@@ -19,7 +19,14 @@ import { defineConfig } from 'vite';
  * This keeps initial load fast even as more levels are added.
  */
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  // Keep local diagnostics intact while removing non-actionable logging from
+  // production chunks. Warnings and errors remain available to ErrorHandler.
+  esbuild: command === 'build'
+    ? {
+        pure: ['console.log', 'console.info', 'console.debug']
+      }
+    : undefined,
   server: {
     port: 8080,
     open: true
@@ -186,4 +193,4 @@ export default defineConfig({
     // Don't pre-bundle large dependencies that we're chunking
     exclude: []
   }
-});
+}));

@@ -8,6 +8,13 @@ const host = process.env.MYTHICAL_VOID_SMOKE_HOST || '127.0.0.1';
 const port = Number(process.env.MYTHICAL_VOID_SMOKE_PORT) || 8125;
 const baseUrl = `http://${host}:${port}`;
 const startupTimeoutMs = 20000;
+const configuredProcessCooldownMs = Number(
+    process.env.MYTHICAL_VOID_SMOKE_PROCESS_COOLDOWN_MS
+);
+const processCooldownMs = Number.isFinite(configuredProcessCooldownMs) &&
+    configuredProcessCooldownMs >= 0
+    ? configuredProcessCooldownMs
+    : 750;
 
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -55,7 +62,11 @@ function runNodeScript(script, extraEnv = {}) {
             process.stderr.write(chunk);
         });
         child.once('error', reject);
-        child.once('exit', (code, signal) => {
+        child.once('exit', async (code, signal) => {
+            // Chrome can exit before macOS has released its GPU process and
+            // WebGL resources. Give the next isolated profile a clean start so
+            // frame budgets measure the game instead of process teardown.
+            await delay(processCooldownMs);
             if (code === 0 && (!expectedMarker || stdout.includes(expectedMarker))) {
                 resolve();
                 return;

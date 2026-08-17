@@ -3837,10 +3837,29 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             JSON.stringify(framePacing)
         );
     }
+    const framePacingSamples = [framePacing];
+    if (SMOKE_CASE !== 'all' && framePacing.p95FrameMs > 100) {
+        const confirmation = await sampleFramePacing(session, sceneName, {
+            warmupMs: 400
+        });
+        if (!confirmation?.sceneActive || confirmation.frameCount < 12) {
+            throw new Error(
+                `${sceneName} did not produce a sustained confirmation frame sample: ` +
+                JSON.stringify(confirmation)
+            );
+        }
+        framePacingSamples.push(confirmation);
+    }
+    const sustainedP95OverBudget =
+        SMOKE_CASE !== 'all' &&
+        framePacingSamples.every(sample => sample.p95FrameMs > 100);
     process.stdout.write(
         `PERF ${sceneName} ` + JSON.stringify({
             averageFps: framePacing.averageFps,
             p95FrameMs: framePacing.p95FrameMs,
+            p95FrameSamples: framePacingSamples.map(
+                sample => sample.p95FrameMs
+            ),
             phaserActualFps: framePacing.phaserActualFps,
             displayCount: framePacing.displayCount,
             activeTweenCount: framePacing.activeTweenCount,
@@ -3862,11 +3881,11 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         ) ||
         framePacing.postPipelineCount !== 0 ||
         framePacing.performanceTier !== renderBudget.performanceTier ||
-        (SMOKE_CASE !== 'all' && framePacing.p95FrameMs > 100)
+        sustainedP95OverBudget
     ) {
         throw new Error(
             `${sceneName} exceeded its sustained mobile render budget: ` +
-            JSON.stringify({ renderBudget, framePacing })
+            JSON.stringify({ renderBudget, framePacingSamples })
         );
     }
     if (
@@ -8737,8 +8756,11 @@ async function smokeSanctuaryNavigation(session, exceptions) {
         state.set('creatures', [creature]);
         state.set('activeCreatureIndex', 0);
         state.save();
-        game.scene.stop('HatchingScene');
-        game.scene.start('GameScene', { biome: 'nebula', forceMobileControls: true });
+        const hatchingScene = game.scene.getScene('HatchingScene');
+        hatchingScene.scene.start('GameScene', {
+            biome: 'nebula',
+            forceMobileControls: true
+        });
         return true;
     })()`);
     await waitForScene(session, 'GameScene', 30000);
