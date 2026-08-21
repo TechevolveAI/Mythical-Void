@@ -159,6 +159,122 @@ function createCommunityPulse(snapshot) {
     return section;
 }
 
+function createHeartDecision(snapshot, { lastResult = null, onChoose = null } = {}) {
+    const decisionState = snapshot?.heartDecision;
+    const active = decisionState?.active || null;
+    if (!active && !lastResult && !decisionState?.completed?.length) return null;
+
+    const section = createElement(
+        'section',
+        `village-heart-decision${lastResult ? ' is-resolved' : active ? ' is-active' : ' is-waiting'}`
+    );
+    const heading = createElement('div', 'village-decision-heading');
+    const heartSignal = createElement('span', 'village-decision-heart');
+    heartSignal.setAttribute('aria-hidden', 'true');
+    const headingCopy = createElement('div', 'village-decision-heading-copy');
+    const presentedDecision = lastResult?.decision || active;
+    headingCopy.append(
+        createElement(
+            'span',
+            'village-decision-kicker',
+            lastResult ? 'THE HEART REMEMBERS' : active ? 'SHARED DECISION' : 'HEART VALUES'
+        ),
+        createElement(
+            'strong',
+            'village-decision-title',
+            lastResult
+                ? lastResult.option.label
+                : active
+                    ? active.title
+                    : 'THE SETTLEMENT HAS CHOSEN'
+        ),
+        createElement(
+            'span',
+            'village-decision-situation',
+            lastResult
+                ? lastResult.option.consequence
+                : active
+                    ? active.situation
+                    : 'Care and readiness now travel with every resident who leaves the Sanctuary.'
+        )
+    );
+    heading.append(heartSignal, headingCopy);
+
+    const values = createElement('div', 'village-decision-values');
+    [
+        {
+            id: 'care',
+            label: 'CARE',
+            value: decisionState.values.care,
+            effect: 'AT 2 · +2 feeding happiness'
+        },
+        {
+            id: 'readiness',
+            label: 'READY',
+            value: decisionState.values.readiness,
+            effect: 'AT 2 + WORKSHOP · +1 expedition energy'
+        }
+    ].forEach(value => {
+        const item = createElement('span', `village-decision-value is-${value.id}`);
+        const track = createElement('span', 'village-decision-value-track');
+        for (let index = 0; index < 2; index += 1) {
+            track.append(createElement(
+                'i',
+                index < value.value ? 'is-filled' : ''
+            ));
+        }
+        item.append(
+            createElement('strong', '', `${value.label} ${Math.min(value.value, 2)}/2`),
+            track,
+            createElement('span', '', value.effect)
+        );
+        values.append(item);
+    });
+
+    section.append(heading, values);
+    if (active && !lastResult) {
+        const participants = createElement(
+            'p',
+            'village-decision-participants',
+            `${active.participantNames.join(' + ')} brought this to the Heart.`
+        );
+        const options = createElement('div', 'village-decision-options');
+        active.options.forEach(option => {
+            const button = createElement('button', 'village-decision-option');
+            button.type = 'button';
+            button.dataset.value = option.value;
+            button.append(
+                createElement(
+                    'span',
+                    'village-decision-option-value',
+                    option.value === 'care' ? 'CARE +1' : 'READINESS +1'
+                ),
+                createElement('strong', '', option.label),
+                createElement('span', '', option.consequence)
+            );
+            button.addEventListener('click', () => onChoose?.({
+                decisionId: active.id,
+                optionId: option.id
+            }));
+            options.append(button);
+        });
+        section.append(participants, options);
+    } else if (!lastResult && decisionState.nextLocked) {
+        section.append(createElement(
+            'p',
+            'village-decision-next',
+            `NEXT · ${decisionState.nextLocked.title} · Keep building the shared base.`
+        ));
+    } else if (lastResult && presentedDecision) {
+        section.append(createElement(
+            'p',
+            'village-decision-next',
+            'This choice is saved. Close the Village Heart to see its Current response.'
+        ));
+    }
+    return section;
+}
+
 function formatCost(cost = {}) {
     return VILLAGE_RESOURCE_DEFINITIONS
         .filter(resource => Number(cost[resource.id]) > 0)
@@ -197,6 +313,9 @@ function formatResult(result) {
     const messages = {
         construction_started: 'Construction started. The foundation is now active.',
         creature_assigned: 'Contribution accepted. Production begins now.',
+        heart_decision_resolved: 'Choice remembered. Its effect now travels through the Village Heart.',
+        decision_unavailable: 'That Heart Decision is not available yet.',
+        unknown_decision_option: 'That response is not part of this decision.',
         village_locked: 'The Village Heart has not been activated yet.',
         plot_occupied: 'That foundation is already occupied.',
         resources_missing: 'The settlement does not have enough supplies.',
@@ -216,12 +335,14 @@ export default class VillageCommandPanel {
         this.getSnapshot = null;
         this.onPlace = null;
         this.onAssign = null;
+        this.onDecision = null;
         this.onTick = null;
         this.onClose = null;
         this.selectedDefinitionId = null;
         this.selectedPlotId = null;
         this.contextual = false;
         this.statusMessage = '';
+        this.lastDecisionResult = null;
         this.keyboardHandler = null;
         this.refreshTimer = null;
         this.inputActivationTimer = null;
@@ -237,6 +358,7 @@ export default class VillageCommandPanel {
         getSnapshot,
         onPlace,
         onAssign,
+        onDecision,
         onTick,
         onClose
     } = {}) {
@@ -247,9 +369,11 @@ export default class VillageCommandPanel {
         this.getSnapshot = getSnapshot;
         this.onPlace = onPlace;
         this.onAssign = onAssign;
+        this.onDecision = onDecision;
         this.onTick = onTick;
         this.onClose = onClose;
         this.statusMessage = '';
+        this.lastDecisionResult = null;
         const requestedPlot = snapshot.plots.find(plot => plot.id === plotId);
         this.selectedPlotId = requestedPlot?.id || null;
         this.contextual = Boolean(this.selectedPlotId);
@@ -736,7 +860,20 @@ export default class VillageCommandPanel {
         body.append(catalog, plan);
         shell.append(header, resources, status);
         if (!this.contextual) {
-            shell.append(phase, createCommunityPulse(snapshot), createVillageVision());
+            const heartDecision = this.onDecision
+                ? createHeartDecision(snapshot, {
+                    lastResult: this.lastDecisionResult,
+                    onChoose: request => {
+                        const result = this.onDecision?.(request);
+                        this.statusMessage = formatResult(result);
+                        if (result?.changed) this.lastDecisionResult = result;
+                        this.render();
+                    }
+                })
+                : null;
+            shell.append(phase, createCommunityPulse(snapshot));
+            if (heartDecision) shell.append(heartDecision);
+            shell.append(createVillageVision());
         } else if (contextualBuilding?.definitionId === 'habitat') {
             shell.append(createCommunityPulse(snapshot));
         }
@@ -767,10 +904,12 @@ export default class VillageCommandPanel {
         this.selectedPlotId = null;
         this.contextual = false;
         this.statusMessage = '';
+        this.lastDecisionResult = null;
         const closeHandler = this.onClose;
         this.getSnapshot = null;
         this.onPlace = null;
         this.onAssign = null;
+        this.onDecision = null;
         this.onTick = null;
         this.onClose = null;
         closeHandler?.();

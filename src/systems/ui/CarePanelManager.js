@@ -178,7 +178,8 @@ class CarePanelManager {
                 this.showCareEffect(
                     actionType,
                     result.happinessBonus,
-                    result.villageBonus
+                    result.villageBonus,
+                    result.heartCareBonus
                 );
                 this.updateSignal();
                 this.updateButtons();
@@ -266,11 +267,19 @@ class CarePanelManager {
         this.updateHint();
     }
 
-    showCareEffect(actionType, happinessBonus, villageBonus = 0) {
+    showCareEffect(
+        actionType,
+        happinessBonus,
+        villageBonus = 0,
+        heartCareBonus = 0
+    ) {
         const creatureName = getGameState()?.get('creature.name') || 'your buddy';
         const actionCopy = this.getActionCopy(actionType);
+        const foragerBonus = Math.max(0, villageBonus - heartCareBonus);
         const support = villageBonus > 0
-            ? `\nFORAGER HUT SUPPORT +${villageBonus}`
+            ? `${foragerBonus > 0 ? `\nFORAGER HUT SUPPORT +${foragerBonus}` : ''}${
+                heartCareBonus > 0 ? `\nVILLAGE HEART CARE +${heartCareBonus}` : ''
+            }`
             : '';
         const message = `${creatureName} ${actionCopy}${
             happinessBonus ? ` (+${happinessBonus} joy)` : ''

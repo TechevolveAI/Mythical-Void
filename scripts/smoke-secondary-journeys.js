@@ -10417,6 +10417,8 @@ async function smokeVillageUi(session, exceptions) {
             .filter(element => element?.type === 'Container');
         const workers = landmark?.workerElements || [];
         const communityPanel = document.querySelector('.village-community-pulse');
+        const decisionPanel = document.querySelector('.village-heart-decision');
+        const decisionOptions = [...document.querySelectorAll('.village-decision-option')];
         const communityMoment = landmark?.snapshot?.communityMoments?.[0] || null;
         const communityMomentStarted = scene.worldBuilder.playVillageCommunityMoment(
             landmark,
@@ -10478,6 +10480,16 @@ async function smokeVillageUi(session, exceptions) {
                 worldElementCount: landmark?.communityMomentElements?.length || 0,
                 worldParticipants: landmark?.activeCommunityMoment?.getData('participantNames') || []
             },
+            decision: {
+                panelPresent: Boolean(decisionPanel),
+                active: decisionPanel?.classList.contains('is-active') === true,
+                title: document.querySelector('.village-decision-title')?.textContent || '',
+                participants: document.querySelector('.village-decision-participants')?.textContent || '',
+                optionCount: decisionOptions.length,
+                optionLabels: decisionOptions.map(option => option.textContent),
+                optionHeights: decisionOptions.map(option => option.getBoundingClientRect().height),
+                valueCount: document.querySelectorAll('.village-decision-value').length
+            },
             worldPresentation: {
                 structureCount: worldStructures.length,
                 plotHitZones,
@@ -10524,6 +10536,14 @@ async function smokeVillageUi(session, exceptions) {
         !layout.community.momentStarted ||
         layout.community.worldElementCount !== 3 ||
         layout.community.worldParticipants.length !== 2 ||
+        !layout.decision.panelPresent ||
+        !layout.decision.active ||
+        !layout.decision.title ||
+        !layout.decision.participants.includes('Ember + Lumen') ||
+        layout.decision.optionCount !== 2 ||
+        layout.decision.optionLabels.some(label => !label.includes('+1')) ||
+        layout.decision.optionHeights.some(height => height < 44) ||
+        layout.decision.valueCount !== 2 ||
         layout.worldPresentation.structureCount !== 5 ||
         layout.worldPresentation.plotHitZones.length !== 5 ||
         layout.worldPresentation.plotHitZones.some(bounds => (
@@ -10552,6 +10572,40 @@ async function smokeVillageUi(session, exceptions) {
         layout.close.bottom - layout.close.top < 44
     ) {
         throw new Error(`Village mobile layout overflowed: ${JSON.stringify(layout)}`);
+    }
+
+    const decisionChoice = await evaluate(session, `(() => {
+        const option = document.querySelector('.village-decision-option[data-value="care"]');
+        if (!option) return { clicked: false };
+        const label = option.textContent;
+        option.click();
+        return { clicked: true, label };
+    })()`);
+    if (!decisionChoice.clicked) {
+        throw new Error('Village Heart Care decision was not actionable');
+    }
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            document.querySelector('.village-heart-decision.is-resolved') &&
+            document.querySelector('.village-command-status')?.textContent.includes('Choice remembered')
+        )`),
+        { message: 'Village Heart remembered decision' }
+    );
+    const decisionRecap = await evaluate(session, `(() => ({
+        title: document.querySelector('.village-decision-title')?.textContent || '',
+        consequence: document.querySelector('.village-decision-situation')?.textContent || '',
+        optionsRemaining: document.querySelectorAll('.village-decision-option').length,
+        pendingWorldMoment: Boolean(
+            window.mythicalGame.scene.getScene('GameScene')?.villageDecisionMomentPending
+        )
+    }))()`);
+    if (
+        decisionRecap.title !== 'CLEAR THE CURRENT FIRST' ||
+        !decisionRecap.consequence ||
+        decisionRecap.optionsRemaining !== 0 ||
+        !decisionRecap.pendingWorldMoment
+    ) {
+        throw new Error(`Village Heart decision recap failed: ${JSON.stringify(decisionRecap)}`);
     }
 
     const placed = await evaluate(session, `(() => {
@@ -10610,6 +10664,31 @@ async function smokeVillageUi(session, exceptions) {
         () => evaluate(session, `!document.querySelector('.village-command-modal')`),
         { message: 'Village world district after closing builder' }
     );
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.activeDecisionMoment
+        )`),
+        { message: 'Village Heart world decision response' }
+    );
+    const decisionWorld = await evaluate(session, `(() => {
+        const landmark = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark;
+        return {
+            elementCount: landmark?.decisionMomentElements?.length || 0,
+            decisionId: landmark?.activeDecisionMoment?.getData('villageDecisionMoment'),
+            optionId: landmark?.activeDecisionMoment?.getData('optionId'),
+            value: landmark?.activeDecisionMoment?.getData('value')
+        };
+    })()`);
+    if (
+        decisionWorld.elementCount !== 3 ||
+        decisionWorld.decisionId !== 'storm_path' ||
+        decisionWorld.optionId !== 'current_first' ||
+        decisionWorld.value !== 'care'
+    ) {
+        throw new Error(`Village Heart world response failed: ${JSON.stringify(decisionWorld)}`);
+    }
     await captureGameplayStill(session, 'village-sanctuary-district.png');
     const directWorldTap = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
@@ -10626,7 +10705,14 @@ async function smokeVillageUi(session, exceptions) {
         { message: 'Village Builder reopened from world build site' }
     );
 
-    return { layout, directWorldTap, interaction };
+    return {
+        layout,
+        decisionChoice,
+        decisionRecap,
+        decisionWorld,
+        directWorldTap,
+        interaction
+    };
 }
 
 async function smokeForestArrival(session, exceptions) {

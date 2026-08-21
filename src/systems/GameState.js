@@ -569,7 +569,7 @@ class GameStateManager {
                     lastContributionAt: null
                 },
                 village: {
-                    schemaVersion: 1,
+                    schemaVersion: 2,
                     foundedAt: null,
                     starterSuppliesClaimed: false,
                     guidanceSeen: false,
@@ -583,6 +583,7 @@ class GameStateManager {
                         stone: 0,
                         food: 0
                     },
+                    heartDecisions: [],
                     buildings: [],
                     history: [],
                     lastReconciledAt: null

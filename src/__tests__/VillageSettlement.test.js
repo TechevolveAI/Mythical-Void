@@ -21,8 +21,10 @@ function loadVillageSettlement() {
                 VILLAGE_PLOTS,
                 VILLAGE_BUILDING_DEFINITIONS,
                 VILLAGE_COMMUNITY_MOMENT_DEFINITIONS,
+                VILLAGE_HEART_DECISION_DEFINITIONS,
                 normalizeVillageState,
                 getVillageGameplayEffects,
+                getVillageHeartValues,
                 getVillageWorldGuidance,
                 getVillageUnlock,
                 markVillageGuidanceSeen,
@@ -34,9 +36,11 @@ function loadVillageSettlement() {
                 getVillageHomeProfile,
                 getVillageCommunityMoments,
                 getVillageCommunityMoment,
+                getVillageHeartDecisionState,
                 getVillageSnapshot,
                 placeVillageBuilding,
-                assignCreatureToVillageBuilding
+                assignCreatureToVillageBuilding,
+                resolveVillageHeartDecision
             };
         `);
     const sandbox = {
@@ -59,8 +63,13 @@ function loadVillageSettlement() {
     return sandbox.module.exports;
 }
 
-function createGameState({ stage = 1, village = {}, creature = null } = {}) {
-    const activeCreature = creature || {
+function createGameState({
+    stage = 1,
+    village = {},
+    creature = null,
+    creatures = null
+} = {}) {
+    const activeCreature = creature || creatures?.[0] || {
         id: 'companion_nova',
         name: 'Nova',
         genes: {
@@ -69,6 +78,7 @@ function createGameState({ stage = 1, village = {}, creature = null } = {}) {
         },
         stats: { happiness: 92, energy: 90 }
     };
+    const roster = creatures || [activeCreature];
     const state = {
         world: {
             fendCommunity: {
@@ -83,7 +93,7 @@ function createGameState({ stage = 1, village = {}, creature = null } = {}) {
             ...activeCreature,
             hatched: true
         },
-        creatures: [activeCreature],
+        creatures: roster,
         activeCreatureIndex: 0,
         maxCreatures: 8
     };
@@ -275,6 +285,9 @@ describe('Village settlement phase one', () => {
             guardCharges: 1,
             creatureCapacityBonus: 2,
             maxEnergyBonus: 1,
+            heartCareBonus: 0,
+            heartReadinessEnergyBonus: 0,
+            heartValues: { care: 0, readiness: 0 },
             activeBuildingIds: [
                 'forager_hut',
                 'sawmill',
@@ -425,5 +438,122 @@ describe('Village settlement phase one', () => {
             ]
         });
         expect(duplicate).toHaveLength(0);
+    });
+
+    test('Heart Decisions unlock from real structures and reject duplicate resolution', () => {
+        const nova = { id: 'nova', name: 'Nova' };
+        const lumen = { id: 'lumen', name: 'Lumen' };
+        const complete = (definitionId, plotId, assignedCreatureId) => ({
+            definitionId,
+            plotId,
+            status: 'complete',
+            startedAt: 1,
+            completesAt: 2,
+            completedAt: 2,
+            assignedCreatureId
+        });
+        const gameState = createGameState({
+            creatures: [nova, lumen],
+            village: {
+                starterSuppliesClaimed: true,
+                buildings: [
+                    complete('sawmill', 'root_01', 'nova'),
+                    complete('current_masonry', 'root_02', 'lumen')
+                ]
+            }
+        });
+
+        const before = village.getVillageSnapshot(gameState);
+        expect(before.heartDecision.active).toEqual(expect.objectContaining({
+            id: 'storm_path',
+            participantNames: ['Nova', 'Lumen']
+        }));
+
+        const result = village.resolveVillageHeartDecision(gameState, {
+            decisionId: 'storm_path',
+            optionId: 'current_first',
+            now: 5000
+        });
+        expect(result).toEqual(expect.objectContaining({
+            changed: true,
+            reason: 'heart_decision_resolved'
+        }));
+        expect(result.snapshot.heartDecision.values).toEqual({ care: 1, readiness: 0 });
+        expect(result.snapshot.state.heartDecisions).toEqual([{
+            decisionId: 'storm_path',
+            optionId: 'current_first',
+            occurredAt: 5000
+        }]);
+
+        const duplicate = village.resolveVillageHeartDecision(gameState, {
+            decisionId: 'storm_path',
+            optionId: 'field_braces',
+            now: 6000
+        });
+        expect(duplicate).toEqual(expect.objectContaining({
+            changed: false,
+            reason: 'decision_unavailable'
+        }));
+    });
+
+    test('two remembered values strengthen existing care or expedition support', () => {
+        const complete = (definitionId, plotId) => ({
+            definitionId,
+            plotId,
+            status: 'complete',
+            startedAt: 1,
+            completesAt: 2,
+            completedAt: 2
+        });
+        const gameState = createGameState({
+            village: {
+                starterSuppliesClaimed: true,
+                heartDecisions: [
+                    { decisionId: 'storm_path', optionId: 'current_first', occurredAt: 3 },
+                    { decisionId: 'shared_harvest', optionId: 'welcome_table', occurredAt: 4 },
+                    { decisionId: 'unknown_tool', optionId: 'wanderer_trial', occurredAt: 5 },
+                    { decisionId: 'storm_path', optionId: 'field_braces', occurredAt: 6 },
+                    { decisionId: 'bad', optionId: 'bad', occurredAt: 7 }
+                ],
+                buildings: [
+                    complete('forager_hut', 'root_01'),
+                    complete('workshop', 'root_02')
+                ]
+            }
+        });
+
+        const effects = village.getVillageGameplayEffects(gameState);
+        expect(effects).toEqual(expect.objectContaining({
+            feedHappinessBonus: 7,
+            maxEnergyBonus: 1,
+            heartCareBonus: 2,
+            heartReadinessEnergyBonus: 0,
+            heartValues: { care: 2, readiness: 1 }
+        }));
+        expect(village.normalizeVillageState(gameState.get('world.village')).heartDecisions)
+            .toHaveLength(3);
+
+        const readinessState = createGameState({
+            village: {
+                starterSuppliesClaimed: true,
+                heartDecisions: [
+                    { decisionId: 'storm_path', optionId: 'field_braces', occurredAt: 3 },
+                    { decisionId: 'shared_harvest', optionId: 'trail_rations', occurredAt: 4 }
+                ],
+                buildings: [
+                    complete('forager_hut', 'root_01'),
+                    complete('workshop', 'root_02')
+                ]
+            }
+        });
+        expect(village.getVillageGameplayEffects(readinessState)).toEqual(
+            expect.objectContaining({
+                feedHappinessBonus: 5,
+                maxEnergyBonus: 2,
+                heartCareBonus: 0,
+                heartReadinessEnergyBonus: 1,
+                heartValues: { care: 0, readiness: 2 }
+            })
+        );
     });
 });

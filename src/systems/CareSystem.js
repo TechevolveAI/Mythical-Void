@@ -126,11 +126,12 @@ class CareSystem {
         const baseBonusHappiness = this.careActions[actionType].happinessBonus;
         let totalHappinessBonus = Math.round(baseBonusHappiness * personalityBonus.multiplier);
         let villageBonus = 0;
+        let heartCareBonus = 0;
 
         if (actionType === 'feed') {
-            villageBonus = getVillageGameplayEffects(
-                getGameState()
-            ).feedHappinessBonus;
+            const villageEffects = getVillageGameplayEffects(getGameState());
+            villageBonus = villageEffects.feedHappinessBonus;
+            heartCareBonus = villageEffects.heartCareBonus;
             totalHappinessBonus += villageBonus;
         }
 
@@ -160,6 +161,7 @@ class CareSystem {
                 action: actionType,
                 happinessBonus: totalHappinessBonus,
                 villageBonus,
+                heartCareBonus,
                 personalityBonus: personalityBonus,
                 careMoment,
                 message: this.getPersonalizedCareMessage(

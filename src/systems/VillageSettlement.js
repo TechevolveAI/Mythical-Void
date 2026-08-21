@@ -1,6 +1,6 @@
 import { getFendCommunitySnapshot } from './FendCommunity.js';
 
-export const VILLAGE_SCHEMA_VERSION = 1;
+export const VILLAGE_SCHEMA_VERSION = 2;
 export const VILLAGE_PRODUCTION_CAP_MS = 4 * 60 * 60 * 1000;
 
 export const VILLAGE_BUILDING_ARTWORK = Object.freeze({
@@ -103,6 +103,76 @@ export const VILLAGE_COMMUNITY_MOMENT_DEFINITIONS = Object.freeze([
         sharedValue: 'A HOME IS MORE THAN CAPACITY'
     })
 ]);
+
+export const VILLAGE_HEART_DECISION_DEFINITIONS = Object.freeze([
+    Object.freeze({
+        id: 'storm_path',
+        title: 'THE STORM LEFT ONE SAFE ROUTE',
+        situation: 'Fallen timber can reopen the living Current or reinforce the next field route. There is time for one first.',
+        requiredBuildingIds: Object.freeze(['sawmill', 'current_masonry']),
+        minimumWorkers: 2,
+        options: Object.freeze([
+            Object.freeze({
+                id: 'current_first',
+                label: 'CLEAR THE CURRENT FIRST',
+                value: 'care',
+                consequence: 'The living route reopens before building work resumes.'
+            }),
+            Object.freeze({
+                id: 'field_braces',
+                label: 'BRACE THE FIELD ROUTE',
+                value: 'readiness',
+                consequence: 'The next expedition leaves with reinforced footing.'
+            })
+        ])
+    }),
+    Object.freeze({
+        id: 'shared_harvest',
+        title: 'THE FIRST SHARED HARVEST',
+        situation: 'The safe food path has produced a surplus. New arrivals need welcome; the expedition team also needs a reserve.',
+        requiredBuildingIds: Object.freeze(['forager_hut', 'habitat']),
+        minimumWorkers: 2,
+        options: Object.freeze([
+            Object.freeze({
+                id: 'welcome_table',
+                label: 'SET A WELCOME TABLE',
+                value: 'care',
+                consequence: 'New arrivals eat before the supplies are counted.'
+            }),
+            Object.freeze({
+                id: 'trail_rations',
+                label: 'PACK TRAIL RATIONS',
+                value: 'readiness',
+                consequence: 'The expedition team carries a protected reserve.'
+            })
+        ])
+    }),
+    Object.freeze({
+        id: 'unknown_tool',
+        title: 'A TOOL WITH AN UNKNOWN SIGNAL',
+        situation: 'The Workshop has combined human hardware with creature knowledge. Nobody yet knows how the Current will answer it.',
+        requiredBuildingIds: Object.freeze(['habitat', 'workshop']),
+        minimumWorkers: 2,
+        options: Object.freeze([
+            Object.freeze({
+                id: 'listen_first',
+                label: 'LISTEN BEFORE TESTING',
+                value: 'care',
+                consequence: 'Residents decide when the tool is ready to touch the Current.'
+            }),
+            Object.freeze({
+                id: 'wanderer_trial',
+                label: 'TEST WITH WANDERER-77',
+                value: 'readiness',
+                consequence: 'The astronaut takes the first risk and records the result.'
+            })
+        ])
+    })
+]);
+
+const HEART_DECISION_BY_ID = new Map(
+    VILLAGE_HEART_DECISION_DEFINITIONS.map(decision => [decision.id, decision])
+);
 
 const MINUTE = 60 * 1000;
 
@@ -237,6 +307,9 @@ export function getVillageWorldGuidance(snapshot) {
     if (unstaffed) {
         return `${restored}/${VILLAGE_PLOTS.length} RESTORED · INVITE A HELPER`;
     }
+    if (snapshot?.heartDecision?.active) {
+        return `${restored}/${VILLAGE_PLOTS.length} RESTORED · HEART CHOICE READY`;
+    }
     const ready = snapshot?.definitions?.find(
         definition => definition.placement.available
     );
@@ -264,6 +337,35 @@ function normalizeResources(value = {}) {
             normalizeResourceAmount(value?.[resource.id])
         ])
     );
+}
+
+function normalizeHeartDecisions(value) {
+    if (!Array.isArray(value)) return [];
+    const candidates = value
+        .map(entry => {
+            const decision = HEART_DECISION_BY_ID.get(entry?.decisionId);
+            const option = decision?.options.find(candidate => candidate.id === entry?.optionId);
+            if (!decision || !option) return null;
+            return {
+                decisionId: decision.id,
+                optionId: option.id,
+                occurredAt: normalizeTimestamp(entry?.occurredAt)
+            };
+        })
+        .filter(Boolean);
+    const byDecision = new Map();
+    candidates.forEach(choice => {
+        if (!byDecision.has(choice.decisionId)) {
+            byDecision.set(choice.decisionId, choice);
+        }
+    });
+    const normalized = [];
+    for (const definition of VILLAGE_HEART_DECISION_DEFINITIONS) {
+        const choice = byDecision.get(definition.id);
+        if (!choice) break;
+        normalized.push(choice);
+    }
+    return normalized;
 }
 
 function normalizeBuildingInstance(instance, usedPlots, usedDefinitions) {
@@ -316,6 +418,12 @@ function normalizeHistory(value) {
             creatureId: typeof entry.creatureId === 'string'
                 ? entry.creatureId.slice(0, 128)
                 : null,
+            decisionId: HEART_DECISION_BY_ID.has(entry?.decisionId)
+                ? entry.decisionId
+                : null,
+            optionId: typeof entry?.optionId === 'string'
+                ? entry.optionId.slice(0, 64)
+                : null,
             occurredAt: normalizeTimestamp(entry.occurredAt)
         }))
         .slice(-MAX_HISTORY);
@@ -335,10 +443,22 @@ export function normalizeVillageState(state = {}) {
         guidanceSeen: state?.guidanceSeen === true,
         resources: normalizeResources(state?.resources),
         lifetimeProduced: normalizeResources(state?.lifetimeProduced),
+        heartDecisions: normalizeHeartDecisions(state?.heartDecisions),
         buildings,
         history: normalizeHistory(state?.history),
         lastReconciledAt: normalizeTimestamp(state?.lastReconciledAt)
     };
+}
+
+export function getVillageHeartValues(state = {}) {
+    const choices = normalizeHeartDecisions(state?.heartDecisions);
+    return choices.reduce((values, choice) => {
+        const decision = HEART_DECISION_BY_ID.get(choice.decisionId);
+        const option = decision?.options.find(candidate => candidate.id === choice.optionId);
+        if (option?.value === 'care') values.care += 1;
+        if (option?.value === 'readiness') values.readiness += 1;
+        return values;
+    }, { care: 0, readiness: 0 });
 }
 
 export function getVillageGameplayEffects(gameState, { stateOverride = null } = {}) {
@@ -350,12 +470,19 @@ export function getVillageGameplayEffects(gameState, { stateOverride = null } = 
             .filter(building => building.status === 'complete')
             .map(building => building.definitionId)
     );
+    const heartValues = getVillageHeartValues(state);
+    const heartCareBonus = complete.has('forager_hut') && heartValues.care >= 2 ? 2 : 0;
+    const heartReadinessEnergyBonus = complete.has('workshop') &&
+        heartValues.readiness >= 2 ? 1 : 0;
     return {
-        feedHappinessBonus: complete.has('forager_hut') ? 5 : 0,
+        feedHappinessBonus: (complete.has('forager_hut') ? 5 : 0) + heartCareBonus,
         victoryCoinBonus: complete.has('sawmill') ? 10 : 0,
         guardCharges: complete.has('current_masonry') ? 1 : 0,
         creatureCapacityBonus: complete.has('habitat') ? 2 : 0,
-        maxEnergyBonus: complete.has('workshop') ? 1 : 0,
+        maxEnergyBonus: (complete.has('workshop') ? 1 : 0) + heartReadinessEnergyBonus,
+        heartCareBonus,
+        heartReadinessEnergyBonus,
+        heartValues,
         activeBuildingIds: [...complete]
     };
 }
@@ -807,6 +934,88 @@ export function getVillageCommunityMoment(snapshot, { cycle = 0 } = {}) {
     return moments[index];
 }
 
+export function getVillageHeartDecisionState({ state = {}, buildings = [] } = {}) {
+    const choices = normalizeHeartDecisions(state?.heartDecisions);
+    const choiceByDecision = new Map(
+        choices.map(choice => [choice.decisionId, choice])
+    );
+    const completeIds = new Set(
+        buildings
+            .filter(building => building.status === 'complete')
+            .map(building => building.definitionId)
+    );
+    const workers = buildings.filter(building => (
+        building.status === 'complete' && building.creature
+    ));
+    const completed = choices.map(choice => {
+        const definition = HEART_DECISION_BY_ID.get(choice.decisionId);
+        const option = definition.options.find(candidate => candidate.id === choice.optionId);
+        return { ...choice, definition, option };
+    });
+    const nextDefinition = VILLAGE_HEART_DECISION_DEFINITIONS.find(
+        decision => !choiceByDecision.has(decision.id)
+    ) || null;
+    const missingBuildingIds = nextDefinition
+        ? nextDefinition.requiredBuildingIds.filter(id => !completeIds.has(id))
+        : [];
+    const missingRequiredWorkerIds = nextDefinition
+        ? nextDefinition.requiredBuildingIds.filter(id => {
+            const building = buildings.find(entry => (
+                entry.definitionId === id && entry.status === 'complete'
+            ));
+            return Boolean(building?.definition?.production && !building.creature);
+        })
+        : [];
+    const missingWorkers = nextDefinition
+        ? Math.max(
+            missingRequiredWorkerIds.length,
+            nextDefinition.minimumWorkers - workers.length,
+            0
+        )
+        : 0;
+    const active = nextDefinition && missingBuildingIds.length === 0 && missingWorkers === 0
+        ? (() => {
+            const requiredWorkers = nextDefinition.requiredBuildingIds
+                .map(id => completeIds.has(id)
+                    ? buildings.find(building => (
+                        building.definitionId === id && building.creature
+                    ))
+                    : null)
+                .filter(Boolean);
+            const requiredWorkerIds = new Set(
+                requiredWorkers.map(building => building.creature.id)
+            );
+            const participants = [
+                ...requiredWorkers,
+                ...workers.filter(building => !requiredWorkerIds.has(building.creature.id))
+            ].slice(0, nextDefinition.minimumWorkers);
+            return {
+                ...nextDefinition,
+                participantNames: participants.map(building => building.creature.name)
+            };
+        })()
+        : null;
+    const values = getVillageHeartValues({ heartDecisions: choices });
+
+    return {
+        active,
+        completed,
+        values,
+        careBonusReady: values.care >= 2,
+        readinessBonusReady: values.readiness >= 2,
+        allResolved: choices.length === VILLAGE_HEART_DECISION_DEFINITIONS.length,
+        nextLocked: !active && nextDefinition
+            ? {
+                id: nextDefinition.id,
+                title: nextDefinition.title,
+                missingBuildingIds,
+                missingRequiredWorkerIds,
+                missingWorkers
+            }
+            : null
+    };
+}
+
 export function getVillageSnapshot(gameState, { stateOverride = null } = {}) {
     const state = normalizeVillageState(
         stateOverride || gameState?.get?.('world.village') || {}
@@ -839,6 +1048,7 @@ export function getVillageSnapshot(gameState, { stateOverride = null } = {}) {
     }, { wood: 0, stone: 0, food: 0 });
     const home = getVillageHomeProfile(buildings, roster);
     const communityMoments = getVillageCommunityMoments({ buildings });
+    const heartDecision = getVillageHeartDecisionState({ state, buildings });
 
     return {
         state,
@@ -860,6 +1070,7 @@ export function getVillageSnapshot(gameState, { stateOverride = null } = {}) {
         productionRates,
         home,
         communityMoments,
+        heartDecision,
         effects: getVillageGameplayEffects(gameState, { stateOverride: state }),
         capacity: 1 + buildings.reduce(
             (total, building) => total + (
@@ -986,4 +1197,56 @@ export function assignCreatureToVillageBuilding(gameState, {
         snapshot: nextSnapshot
     });
     return { changed: true, reason: 'creature_assigned', snapshot: nextSnapshot };
+}
+
+export function resolveVillageHeartDecision(gameState, {
+    decisionId,
+    optionId,
+    now = Date.now(),
+    save = true
+} = {}) {
+    if (!gameState?.get || !gameState?.set) {
+        return { changed: false, reason: 'state_unavailable' };
+    }
+    const snapshot = getVillageSnapshot(gameState);
+    const active = snapshot.heartDecision.active;
+    if (!active || active.id !== decisionId) {
+        return { changed: false, reason: 'decision_unavailable', snapshot };
+    }
+    const option = active.options.find(candidate => candidate.id === optionId);
+    if (!option) {
+        return { changed: false, reason: 'unknown_decision_option', snapshot };
+    }
+
+    const state = normalizeVillageState(snapshot.state);
+    const next = withHistory({
+        ...state,
+        heartDecisions: [
+            ...state.heartDecisions,
+            { decisionId: active.id, optionId: option.id, occurredAt: now }
+        ]
+    }, {
+        type: 'heart_decision_resolved',
+        buildingId: null,
+        creatureId: null,
+        decisionId: active.id,
+        optionId: option.id,
+        occurredAt: now
+    });
+    gameState.set('world.village', normalizeVillageState(next));
+    if (save) gameState.save?.();
+    const nextSnapshot = getVillageSnapshot(gameState);
+    gameState.emit?.('villageChanged', {
+        type: 'heart_decision_resolved',
+        decisionId: active.id,
+        optionId: option.id,
+        snapshot: nextSnapshot
+    });
+    return {
+        changed: true,
+        reason: 'heart_decision_resolved',
+        decision: active,
+        option,
+        snapshot: nextSnapshot
+    };
 }

@@ -133,6 +133,7 @@ import {
     markVillageGuidanceSeen,
     placeVillageBuilding,
     reconcileVillageSettlement,
+    resolveVillageHeartDecision,
     VILLAGE_BUILDING_ARTWORK,
     VILLAGE_RESOURCE_DEFINITIONS,
     VILLAGE_WORLD_ARTWORK
@@ -194,6 +195,7 @@ class GameScene extends Phaser.Scene {
         this.villageCommunityMomentIndex = 0;
         this.lastVillageCommunityMomentAt = 0;
         this.villageCommunityMomentPending = false;
+        this.villageDecisionMomentPending = null;
         this.villageCommandPanel = null;
         this.villageReconcileTimer = null;
         this.villageRenderSignature = null;
@@ -722,6 +724,7 @@ class GameScene extends Phaser.Scene {
         this.villageCommunityMomentIndex = 0;
         this.lastVillageCommunityMomentAt = 0;
         this.villageCommunityMomentPending = false;
+        this.villageDecisionMomentPending = null;
 
         // Transition spawn data must not leak across scene restarts.
         this.spawnPosition = data?.spawnPosition || null;
@@ -1714,6 +1717,18 @@ class GameScene extends Phaser.Scene {
                 );
                 return result;
             },
+            onDecision: request => {
+                const result = resolveVillageHeartDecision(previewState, {
+                    ...request,
+                    save: false
+                });
+                this.worldBuilder.refreshVillageSettlement(
+                    this.villageHeartLandmark,
+                    result.snapshot
+                );
+                if (result.changed) this.villageDecisionMomentPending = result;
+                return result;
+            },
             onTick: () => {
                 const previous = getVillageSnapshot(previewState);
                 const snapshot = reconcileVillageSettlement(previewState, {
@@ -1725,6 +1740,14 @@ class GameScene extends Phaser.Scene {
                 );
                 this.notifyVillageProgress(previous, snapshot);
                 return snapshot;
+            },
+            onClose: () => {
+                if (!this.villageDecisionMomentPending) return;
+                this.worldBuilder.playVillageDecisionMoment(
+                    this.villageHeartLandmark,
+                    this.villageDecisionMomentPending
+                );
+                this.villageDecisionMomentPending = null;
             }
         };
         this.openVillageCommand = ({ plotId = null } = {}) => (
@@ -7978,6 +8001,10 @@ class GameScene extends Phaser.Scene {
                 id: resident.id,
                 atWork: resident.atWork,
                 workBuildingId: resident.workBuildingId
+            })) || [],
+            heartDecisions: snapshot?.heartDecision?.completed?.map(choice => ({
+                decisionId: choice.decisionId,
+                optionId: choice.optionId
             })) || []
         });
     }
@@ -8229,6 +8256,26 @@ class GameScene extends Phaser.Scene {
                 }
                 return result;
             },
+            onDecision: request => {
+                const result = resolveVillageHeartDecision(
+                    window.GameState,
+                    request
+                );
+                this.refreshVillageSettlementWorld(result.snapshot, { force: true });
+                if (result.changed) {
+                    this.villageDecisionMomentPending = result;
+                    this.recordBondActivity('community');
+                    window.AudioManager?.playAchievement?.();
+                    window.AchievementSystem?.recordEvent?.('story_interaction', {
+                        event: 'village_heart_decision',
+                        decisionId: result.decision.id,
+                        optionId: result.option.id
+                    });
+                } else {
+                    window.AudioManager?.playError?.();
+                }
+                return result;
+            },
             onTick: () => {
                 const previous = getVillageSnapshot(window.GameState);
                 const next = reconcileVillageSettlement(window.GameState);
@@ -8244,6 +8291,13 @@ class GameScene extends Phaser.Scene {
                         getVillageSnapshot(window.GameState),
                         { force: true }
                     );
+                }
+                if (this.villageDecisionMomentPending) {
+                    this.worldBuilder?.playVillageDecisionMoment?.(
+                        this.villageHeartLandmark,
+                        this.villageDecisionMomentPending
+                    );
+                    this.villageDecisionMomentPending = null;
                 }
             }
         });
@@ -16049,6 +16103,7 @@ class GameScene extends Phaser.Scene {
         this.villageCommunityMomentIndex = 0;
         this.lastVillageCommunityMomentAt = 0;
         this.villageCommunityMomentPending = false;
+        this.villageDecisionMomentPending = null;
         this.recoveryLogModal?.destroy?.();
         this.recoveryLogModal = null;
 

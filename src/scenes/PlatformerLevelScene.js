@@ -1053,8 +1053,15 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (support.guardCharges > 0) {
             lines.push(`CURRENT MASONRY // ${support.guardCharges} GUARD CHARGE`);
         }
-        if (support.maxEnergyBonus > 0) {
-            lines.push(`DISCOVERY WORKSHOP // +${support.maxEnergyBonus} CRYSTAL ENERGY`);
+        const workshopEnergy = Math.max(
+            0,
+            (support.maxEnergyBonus || 0) - (support.heartReadinessEnergyBonus || 0)
+        );
+        if (workshopEnergy > 0) {
+            lines.push(`DISCOVERY WORKSHOP // +${workshopEnergy} CRYSTAL ENERGY`);
+        }
+        if (support.heartReadinessEnergyBonus > 0) {
+            lines.push(`VILLAGE HEART READY // +${support.heartReadinessEnergyBonus} CRYSTAL ENERGY`);
         }
         if (support.victoryCoinBonus > 0) {
             lines.push(`LIVING SAWMILL // +${support.victoryCoinBonus} VICTORY COINS`);
@@ -8472,8 +8479,15 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (support.guardCharges > 0) {
             lines.push(`MASONRY ${support.guardCharges} GUARD`);
         }
-        if (support.maxEnergyBonus > 0) {
-            lines.push(`WORKSHOP +${support.maxEnergyBonus} ENERGY`);
+        const workshopEnergy = Math.max(
+            0,
+            (support.maxEnergyBonus || 0) - (support.heartReadinessEnergyBonus || 0)
+        );
+        if (workshopEnergy > 0) {
+            lines.push(`WORKSHOP +${workshopEnergy} ENERGY`);
+        }
+        if (support.heartReadinessEnergyBonus > 0) {
+            lines.push(`HEART READY +${support.heartReadinessEnergyBonus} ENERGY`);
         }
         if (lines.length === 0) return '';
         return compact

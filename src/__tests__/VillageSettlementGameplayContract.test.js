@@ -38,6 +38,7 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('village: {');
         expect(source).toContain('starterSuppliesClaimed: false');
         expect(source).toContain('lifetimeProduced: {');
+        expect(source).toContain('heartDecisions: []');
         expect(source).toContain('buildings: []');
     });
 
@@ -99,6 +100,9 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('createCommunityPulse(snapshot)');
         expect(source).toContain('village-community-pulse');
         expect(source).toContain('moment.sharedValue');
+        expect(source).toContain('createHeartDecision(snapshot');
+        expect(source).toContain('village-heart-decision');
+        expect(source).toContain('this.onDecision?.(request)');
         expect(source).toContain("root.classList.add('is-contextual')");
         expect(source).toContain('requestedPlot?.building?.definitionId');
         expect(source).toContain('const contextualBuilding = selectedPlot?.building');
@@ -148,6 +152,9 @@ describe('Village settlement gameplay contract', () => {
         expect(css).toContain('.village-command-modal.is-contextual');
         expect(css).toContain('.village-community-pulse');
         expect(css).toContain('.village-community-home');
+        expect(css).toContain('.village-heart-decision');
+        expect(css).toContain('.village-decision-options');
+        expect(css).toMatch(/\.village-decision-option\s*\{[^}]*min-height: 64px;/s);
         expect(css).toContain('scroll-snap-type: x mandatory;');
         expect(css).toContain('font-size: 11px;');
     });
@@ -161,13 +168,19 @@ describe('Village settlement gameplay contract', () => {
         expect(village).toContain('feedHappinessBonus');
         expect(village).toContain('victoryCoinBonus');
         expect(village).toContain('creatureCapacityBonus');
+        expect(village).toContain('VILLAGE_HEART_DECISION_DEFINITIONS');
+        expect(village).toContain('resolveVillageHeartDecision');
+        expect(village).toContain('heartCareBonus');
+        expect(village).toContain('heartReadinessEnergyBonus');
         expect(village).toContain("gameState.set('maxCreatures', target)");
         expect(care).toContain('.feedHappinessBonus');
         expect(carePanel).toContain('FORAGER HUT SUPPORT');
+        expect(carePanel).toContain('VILLAGE HEART CARE');
         expect(platformer).toContain('this.villageSupport.maxEnergyBonus');
         expect(platformer).toContain('this.villageSupport.guardCharges');
         expect(platformer).toContain('this.villageSupport?.victoryCoinBonus');
         expect(platformer).toContain('showVillageSupportBriefing()');
+        expect(platformer).toContain('VILLAGE HEART READY');
         expect(platformer).toContain('VILLAGE SUPPORT ONLINE');
         expect(platformer).toContain('getVillageCompletionCopy({ compact = false } = {})');
     });
@@ -209,10 +222,14 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('createVillageHabitatLife(');
         expect(world).toContain('playVillageProductionMoment(');
         expect(world).toContain('playVillageCommunityMoment(');
+        expect(world).toContain('playVillageDecisionMoment(');
+        expect(world).toContain("copy.setData('villageDecisionMoment', result.decision.id)");
         expect(world).toContain("container.setData('villageHabitatLife', true)");
         expect(world).toContain("worker.setData('villageWorker', true)");
         expect(scene).toContain('maybePlayVillageCommunityMoment(snapshot');
         expect(scene).toContain('getVillageCommunityMoment(snapshot');
+        expect(scene).toContain('resolveVillageHeartDecision(');
+        expect(scene).toContain('this.villageDecisionMomentPending = result');
         expect(world).toContain('getVillageWorldGuidance(snapshot)');
         expect(world).toContain('definition.worldEffectLabel');
         expect(world).toContain("'BUILD HERE'");

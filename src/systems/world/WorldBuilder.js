@@ -372,6 +372,7 @@ class WorldBuilder {
         landmark.heartArtworkTween?.stop?.();
         landmark.buildingTweens?.forEach(tween => tween?.stop?.());
         this.clearVillageCommunityMoment(landmark);
+        this.clearVillageDecisionMoment(landmark);
         landmark.buildingElements?.forEach(element => element?.destroy?.(true));
         landmark.plotHitZones?.forEach(zone => zone?.destroy?.());
         landmark.buildingTweens = [];
@@ -1204,6 +1205,122 @@ class WorldBuilder {
         landmark.communityMomentTweens = [];
         landmark.communityMomentElements = [];
         landmark.activeCommunityMoment = null;
+    }
+
+    playVillageDecisionMoment(landmark, result) {
+        if (!landmark?.zone || !result?.decision || !result?.option) return false;
+        this.clearVillageCommunityMoment(landmark);
+        this.clearVillageDecisionMoment(landmark);
+        landmark.activeBuildingMomentTween?.stop?.();
+        landmark.activeBuildingMoment?.destroy?.(true);
+        landmark.activeBuildingMomentTween = null;
+        landmark.activeBuildingMoment = null;
+        const compact = this.scene.scale.width <= 600;
+        const color = result.option.value === 'care' ? 0x71E6B1 : 0xF2C14E;
+        const heartX = landmark.zone.x;
+        const heartY = landmark.zone.y - 12;
+        const paths = this.scene.add.graphics()
+            .setDepth(landmark.zone.y - 3)
+            .setAlpha(0);
+        paths.lineStyle(4, color, 0.72);
+        result.decision.requiredBuildingIds.forEach(buildingId => {
+            const building = result.snapshot?.buildings?.find(entry => (
+                entry.definitionId === buildingId
+            ));
+            const position = landmark.plotWorldPositions?.get(building?.plotId);
+            if (!position) return;
+            paths.beginPath();
+            paths.moveTo(position.x, position.y);
+            paths.lineTo(heartX, heartY);
+            paths.strokePath();
+        });
+        paths.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const pulse = this.scene.add.graphics()
+            .setPosition(heartX, heartY)
+            .setDepth(landmark.zone.y + 12)
+            .setAlpha(0);
+        pulse.lineStyle(4, color, 0.92);
+        pulse.strokeCircle(0, 0, compact ? 48 : 62);
+        pulse.lineStyle(2, 0xF4F4F4, 0.72);
+        pulse.strokeCircle(0, 0, compact ? 65 : 82);
+        pulse.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const copy = this.scene.add.container(
+            heartX,
+            heartY - (compact ? 205 : 190)
+        ).setDepth(landmark.zone.y + 16).setAlpha(0);
+        const kicker = this.scene.add.text(0, -25, 'THE VILLAGE HEART REMEMBERS', {
+            fontSize: compact ? '8px' : '9px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: result.option.value === 'care' ? '#8FE3CF' : '#F2C14E',
+            stroke: '#07100F',
+            strokeThickness: 5
+        }).setOrigin(0.5);
+        const title = this.scene.add.text(0, -6, result.option.label, {
+            fontSize: compact ? '11px' : '14px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#F4F4F4',
+            stroke: '#07100F',
+            strokeThickness: 5
+        }).setOrigin(0.5);
+        const consequence = this.scene.add.text(0, 17, result.option.consequence, {
+            fontSize: compact ? '8px' : '9px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#F4F4F4',
+            align: 'center',
+            stroke: '#07100F',
+            strokeThickness: 4,
+            wordWrap: { width: compact ? 230 : 330 }
+        }).setOrigin(0.5);
+        copy.add([kicker, title, consequence]);
+        copy.setData('villageDecisionMoment', result.decision.id);
+        copy.setData('optionId', result.option.id);
+        copy.setData('value', result.option.value);
+
+        const revealTween = this.scene.tweens.add({
+            targets: [paths, pulse, copy],
+            alpha: 1,
+            duration: 420,
+            ease: 'Sine.easeOut'
+        });
+        const pulseTween = this.scene.tweens.add({
+            targets: pulse,
+            scaleX: { from: 0.82, to: 1.12 },
+            scaleY: { from: 0.82, to: 1.12 },
+            alpha: { from: 0.52, to: 1 },
+            duration: 1100,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Sine.easeInOut'
+        });
+        landmark.decisionMomentElements = [paths, pulse, copy];
+        landmark.decisionMomentTweens = [revealTween, pulseTween];
+        landmark.activeDecisionMoment = copy;
+        landmark.decisionMomentTimer = this.scene.time.delayedCall(5200, () => {
+            if (landmark.activeDecisionMoment !== copy) return;
+            const fadeTween = this.scene.tweens.add({
+                targets: [paths, pulse, copy],
+                alpha: 0,
+                duration: 420,
+                onComplete: () => this.clearVillageDecisionMoment(landmark)
+            });
+            landmark.decisionMomentTweens.push(fadeTween);
+        });
+        return true;
+    }
+
+    clearVillageDecisionMoment(landmark) {
+        landmark?.decisionMomentTimer?.remove?.();
+        landmark?.decisionMomentTweens?.forEach(tween => tween?.stop?.());
+        landmark?.decisionMomentElements?.forEach(element => element?.destroy?.(true));
+        if (!landmark) return;
+        landmark.decisionMomentTimer = null;
+        landmark.decisionMomentTweens = [];
+        landmark.decisionMomentElements = [];
+        landmark.activeDecisionMoment = null;
     }
 
     activateVillageHeart(landmark, plotId = null) {
@@ -4118,6 +4235,7 @@ class WorldBuilder {
         this.villageHeart?.heartArtworkTween?.stop?.();
         this.villageHeart?.buildingTweens?.forEach(tween => tween?.stop?.());
         this.clearVillageCommunityMoment(this.villageHeart);
+        this.clearVillageDecisionMoment(this.villageHeart);
         this.villageHeart?.productionTweens?.forEach(tween => tween?.stop?.());
         this.villageHeart?.productionMoments?.forEach(
             moment => moment?.destroy?.(true)
