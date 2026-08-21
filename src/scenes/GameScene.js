@@ -8011,6 +8011,7 @@ class GameScene extends Phaser.Scene {
         if (!this.nearVillageHeart) return;
         const gains = VILLAGE_RESOURCE_DEFINITIONS
             .map(resource => ({
+                id: resource.id,
                 label: resource.label,
                 amount: Math.max(
                     0,
@@ -8020,6 +8021,11 @@ class GameScene extends Phaser.Scene {
             }))
             .filter(gain => gain.amount > 0);
         if (gains.length > 0) {
+            this.worldBuilder?.playVillageProductionMoment?.(
+                this.villageHeartLandmark,
+                next,
+                gains
+            );
             this.showInteractionHint(
                 `Village production · ${gains.map(gain => `+${gain.amount} ${gain.label}`).join(' · ')}`
             );

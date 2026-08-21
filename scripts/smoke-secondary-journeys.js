@@ -10408,6 +10408,12 @@ async function smokeVillageUi(session, exceptions) {
         const landmark = scene.villageHeartLandmark;
         const worldStructures = (landmark?.buildingElements || [])
             .filter(element => element?.type === 'Container');
+        const workers = landmark?.workerElements || [];
+        const productionMomentStarted = scene.worldBuilder.playVillageProductionMoment(
+            landmark,
+            landmark.snapshot,
+            [{ id: 'food', label: 'FOOD', amount: 3 }]
+        );
         const plotHitZones = (landmark?.plotHitZones || []).map(zone => {
             const rect = zone.getBounds();
             return {
@@ -10456,7 +10462,12 @@ async function smokeVillageUi(session, exceptions) {
                 currentPathsActive: landmark?.currentPaths?.active === true,
                 actionLabel: landmark?.actionLabel?.text || '',
                 statusLabel: landmark?.statusLabel?.text || '',
-                animatedElements: landmark?.buildingTweens?.length || 0
+                animatedElements: landmark?.buildingTweens?.length || 0,
+                workerCount: workers.length,
+                workerNames: workers.map(worker => worker.getData('helperName')),
+                workerRoutines: workers.map(worker => worker.getData('routineCue')),
+                productionMomentStarted,
+                productionMomentCount: landmark?.productionMoments?.length || 0
             },
             commandBody: {
                 clientWidth: body.clientWidth,
@@ -10495,6 +10506,12 @@ async function smokeVillageUi(session, exceptions) {
         layout.worldPresentation.actionLabel !== 'OPEN VILLAGE PLAN' ||
         !layout.worldPresentation.statusLabel.includes('RESTORED') ||
         layout.worldPresentation.animatedElements < 8 ||
+        layout.worldPresentation.animatedElements > 20 ||
+        layout.worldPresentation.workerCount !== 3 ||
+        layout.worldPresentation.workerNames.some(name => !name) ||
+        layout.worldPresentation.workerRoutines.some(cue => !cue) ||
+        !layout.worldPresentation.productionMomentStarted ||
+        layout.worldPresentation.productionMomentCount < 1 ||
         !layout.acceptsInput ||
         layout.resourceColumns !== 2 ||
         !withinViewport(layout.shell) ||

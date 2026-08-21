@@ -376,6 +376,7 @@ class WorldBuilder {
         landmark.buildingTweens = [];
         landmark.buildingElements = [];
         landmark.plotHitZones = [];
+        landmark.workerElements = [];
         landmark.plotWorldPositions = new Map();
         landmark.snapshot = snapshot;
 
@@ -642,15 +643,26 @@ class WorldBuilder {
             const activity = building?.status === 'complete'
                 ? this.createVillageBuildingActivity(building)
                 : null;
+            const worker = building?.status === 'complete' && building.creature
+                ? this.createVillageWorker(building, {
+                    compact: compactSettlement,
+                    index
+                })
+                : null;
             container.add([
                 drawing,
                 ...(worldArtwork ? [worldArtwork] : []),
                 ...(building ? [currentSignal] : []),
                 ...(activity ? [activity] : []),
+                ...(worker ? [worker.container] : []),
                 plotLabel,
                 stateLabel
             ]);
             landmark.buildingElements.push(container);
+            if (worker) {
+                landmark.workerElements.push(worker.container);
+                landmark.buildingTweens.push(worker.moveTween, worker.breatheTween);
+            }
             if (building) {
                 landmark.buildingTweens.push(this.scene.tweens.add({
                     targets: currentSignal,
@@ -709,7 +721,9 @@ class WorldBuilder {
                 stateLabel
                     .setText(unlocked
                         ? definition
-                            ? definition.worldEffectLabel
+                            ? building?.creature
+                                ? `${building.creature.name.toUpperCase()} · ${definition.roleLabel}`
+                                : definition.worldEffectLabel
                             : 'CHOOSE WHAT GROWS HERE'
                         : 'DORMANT')
                     .setAlpha(1);
@@ -848,26 +862,160 @@ class WorldBuilder {
         }
 
         activity.add(routine);
-        if (building.creature) {
-            activity.add(this.createVillageHelperGlyph());
-        }
         activity.setData('helperName', building?.creature?.name || 'Companion');
         activity.setData('routine', building.definitionId);
         return activity;
     }
 
-    createVillageHelperGlyph() {
-        const helper = this.scene.add.graphics();
-        helper.fillStyle(0x8FE3CF, 0.96);
-        helper.fillCircle(-63, 17, 9);
-        helper.fillEllipse(-63, 34, 18, 22);
-        helper.fillStyle(0xF4F4F4, 0.95);
-        helper.fillCircle(-66, 15, 2);
-        helper.fillCircle(-60, 15, 2);
-        helper.lineStyle(2, 0x3FAE62, 0.9);
-        helper.lineBetween(-70, 6, -75, -2);
-        helper.lineBetween(-56, 6, -51, -2);
-        return helper;
+    createVillageWorker(building, { compact = false, index = 0 } = {}) {
+        const worker = this.scene.add.container(-48, compact ? 28 : 34);
+        const accentByAffinity = {
+            star: 0xF2C14E,
+            crystal: 0x8FE3CF,
+            nebula: 0x71E6B1
+        };
+        const affinity = String(
+            building.creature?.cosmicAffinity?.element ||
+            building.creature?.cosmicAffinity ||
+            building.creature?.genes?.cosmicAffinity?.element ||
+            'nebula'
+        ).toLowerCase();
+        const accent = accentByAffinity[affinity] || 0x71E6B1;
+        const scale = compact ? 0.78 : 1;
+        const shadow = this.scene.add.ellipse(0, 16, 29, 8, 0x07100F, 0.58);
+        const figure = this.scene.add.graphics();
+        figure.fillStyle(accent, 0.98);
+        figure.fillCircle(0, -4, 8);
+        figure.fillEllipse(0, 8, 16, 20);
+        figure.fillStyle(0xF4F4F4, 0.98);
+        figure.fillCircle(-3, -5, 2);
+        figure.fillCircle(3, -5, 2);
+        figure.lineStyle(2, 0x101616, 0.9);
+        figure.lineBetween(-6, -11, -10, -18);
+        figure.lineBetween(6, -11, 10, -18);
+        const initial = this.scene.add.text(
+            0,
+            7,
+            String(building.creature.name || 'C').slice(0, 1).toUpperCase(),
+            {
+                fontSize: '7px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#07100F'
+            }
+        ).setOrigin(0.5);
+        const cargo = this.createVillageWorkerCargo(
+            building.definition.workerRoutine?.carriedResource
+        );
+        cargo.setPosition(13, 5);
+        worker.add([shadow, figure, initial, cargo]);
+        worker.setScale(scale);
+        worker.setData('villageWorker', true);
+        worker.setData('helperName', building.creature.name);
+        worker.setData('buildingId', building.definitionId);
+        worker.setData('routineCue', building.definition.workerRoutine?.cue || 'HELPING');
+
+        const moveTween = this.scene.tweens.add({
+            targets: worker,
+            x: { from: -48, to: 46 },
+            y: { from: compact ? 28 : 34, to: compact ? 20 : 25 },
+            duration: 3300 + (index * 370),
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        const breatheTween = this.scene.tweens.add({
+            targets: figure,
+            scaleY: { from: 0.96, to: 1.04 },
+            duration: 760 + (index * 90),
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        return { container: worker, moveTween, breatheTween };
+    }
+
+    createVillageWorkerCargo(resource) {
+        const cargo = this.scene.add.graphics();
+        if (resource === 'food') {
+            cargo.fillStyle(0xF2C14E, 1);
+            cargo.fillCircle(0, 0, 5);
+            cargo.lineStyle(2, 0x3FAE62, 1);
+            cargo.lineBetween(0, -4, 4, -9);
+        } else if (resource === 'wood') {
+            cargo.fillStyle(0x6E4D2E, 1);
+            cargo.fillRoundedRect(-7, -3, 14, 7, 3);
+            cargo.lineStyle(1, 0xF2C14E, 0.9);
+            cargo.lineBetween(-3, -2, -3, 3);
+            cargo.lineBetween(3, -2, 3, 3);
+        } else if (resource === 'stone') {
+            cargo.fillStyle(0xB7C8C4, 1);
+            cargo.fillTriangle(0, -7, -7, 5, 7, 5);
+        } else {
+            cargo.fillStyle(0x71E6B1, 1);
+            cargo.fillTriangle(0, -8, -6, 1, 0, 8);
+            cargo.fillTriangle(0, -8, 6, 1, 0, 8);
+        }
+        return cargo;
+    }
+
+    playVillageProductionMoment(landmark, snapshot, gains = []) {
+        if (!landmark?.zone || !Array.isArray(gains) || gains.length === 0) {
+            return false;
+        }
+        const resourceColors = {
+            food: 0xF2C14E,
+            wood: 0x8FE3CF,
+            stone: 0xF4F4F4
+        };
+        landmark.productionMoments ||= [];
+        landmark.productionTweens ||= [];
+        gains.forEach((gain, index) => {
+            const source = snapshot?.buildings?.find(building => (
+                building.status === 'complete' &&
+                building.creature &&
+                building.definition.production?.resource === gain.id
+            ));
+            const position = landmark.plotWorldPositions?.get(source?.plotId);
+            if (!position) return;
+            const color = resourceColors[gain.id] || 0x71E6B1;
+            const moment = this.scene.add.container(position.x, position.y - 42)
+                .setDepth(position.y + 40);
+            const token = this.scene.add.circle(0, 0, 9, color, 0.98)
+                .setStrokeStyle(2, 0x07100F, 0.9);
+            const label = this.scene.add.text(0, -19, `+${gain.amount} ${gain.label}`, {
+                fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F4F4F4',
+                stroke: '#07100F',
+                strokeThickness: 4
+            }).setOrigin(0.5);
+            moment.add([token, label]);
+            landmark.productionMoments.push(moment);
+            const tween = this.scene.tweens.add({
+                targets: moment,
+                x: landmark.zone.x + ((index - (gains.length - 1) / 2) * 18),
+                y: landmark.zone.y - 38,
+                scaleX: { from: 1, to: 0.62 },
+                scaleY: { from: 1, to: 0.62 },
+                alpha: { from: 1, to: 0.16 },
+                delay: index * 160,
+                duration: 1250,
+                ease: 'Sine.easeInOut',
+                onComplete: () => {
+                    moment.destroy(true);
+                    landmark.productionMoments = landmark.productionMoments.filter(
+                        entry => entry !== moment
+                    );
+                    landmark.productionTweens = landmark.productionTweens.filter(
+                        entry => entry !== tween
+                    );
+                }
+            });
+            landmark.productionTweens.push(tween);
+        });
+        return landmark.productionMoments.length > 0;
     }
 
     activateVillageHeart(landmark, plotId = null) {
@@ -3781,6 +3929,10 @@ class WorldBuilder {
         this.villageHeart?.pulseTween?.stop?.();
         this.villageHeart?.heartArtworkTween?.stop?.();
         this.villageHeart?.buildingTweens?.forEach(tween => tween?.stop?.());
+        this.villageHeart?.productionTweens?.forEach(tween => tween?.stop?.());
+        this.villageHeart?.productionMoments?.forEach(
+            moment => moment?.destroy?.(true)
+        );
         this.villageHeart?.activeBuildingMomentTween?.stop?.();
         this.villageHeart?.activeBuildingMoment?.destroy?.(true);
         this.villageHeart?.buildingElements?.forEach(

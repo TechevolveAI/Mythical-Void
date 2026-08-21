@@ -618,6 +618,13 @@ export default class VillageCommandPanel {
                         building.creature
                             ? `${building.creature.name} // ${Math.round(building.workProfile.multiplier * 100)}%`
                             : 'NO CONTRIBUTION'
+                    ),
+                    createElement(
+                        'span',
+                        'village-assignment-routine',
+                        building.definition.workerRoutine
+                            ? `${building.definition.workerRoutine.cue} · ${building.definition.workerRoutine.emotionalPurpose}`
+                            : 'COMMUNITY SUPPORT'
                     )
                 );
                 summary.append(

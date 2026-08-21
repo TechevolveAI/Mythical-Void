@@ -89,7 +89,12 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         constructionMs: 8000,
         production: Object.freeze({ resource: 'food', amount: 2, intervalMs: MINUTE }),
         preferredTraits: Object.freeze(['curious', 'gentle', 'nebula']),
-        roleLabel: 'PATHFINDER'
+        roleLabel: 'PATHFINDER',
+        workerRoutine: Object.freeze({
+            cue: 'MAPS SAFE FOOD PATHS',
+            carriedResource: 'food',
+            emotionalPurpose: 'Leaves enough living growth for tomorrow.'
+        })
     }),
     Object.freeze({
         id: 'sawmill',
@@ -105,7 +110,12 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         constructionMs: 9000,
         production: Object.freeze({ resource: 'wood', amount: 2, intervalMs: MINUTE }),
         preferredTraits: Object.freeze(['energetic', 'bold', 'star']),
-        roleLabel: 'SHAPER'
+        roleLabel: 'SHAPER',
+        workerRoutine: Object.freeze({
+            cue: 'SHAPES FALLEN TIMBER',
+            carriedResource: 'wood',
+            emotionalPurpose: 'Uses what the storms have already released.'
+        })
     }),
     Object.freeze({
         id: 'current_masonry',
@@ -121,7 +131,12 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         constructionMs: 10000,
         production: Object.freeze({ resource: 'stone', amount: 2, intervalMs: MINUTE }),
         preferredTraits: Object.freeze(['wise', 'gentle', 'crystal']),
-        roleLabel: 'RESONANCE KEEPER'
+        roleLabel: 'RESONANCE KEEPER',
+        workerRoutine: Object.freeze({
+            cue: 'LISTENS FOR SAFE STONE',
+            carriedResource: 'stone',
+            emotionalPurpose: 'Keeps every Current pathway open.'
+        })
     }),
     Object.freeze({
         id: 'habitat',
@@ -155,6 +170,11 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         production: Object.freeze({ resource: 'stone', amount: 3, intervalMs: MINUTE }),
         preferredTraits: Object.freeze(['curious', 'wise', 'crystal']),
         roleLabel: 'MAKER',
+        workerRoutine: Object.freeze({
+            cue: 'TESTS SHARED TOOLS',
+            carriedResource: 'crystal',
+            emotionalPurpose: 'Builds only when both kinds of knowledge agree.'
+        }),
         requires: Object.freeze(['forager_hut', 'sawmill', 'current_masonry'])
     })
 ]);

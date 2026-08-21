@@ -320,4 +320,21 @@ describe('Village settlement phase one', () => {
         snapshot.definitions = [];
         expect(village.getVillageWorldGuidance(snapshot)).toBe('SETTLEMENT ONLINE');
     });
+
+    test('every producer has an authored visible worker routine', () => {
+        const producers = village.VILLAGE_BUILDING_DEFINITIONS.filter(
+            definition => definition.production
+        );
+
+        expect(producers).toHaveLength(4);
+        producers.forEach(definition => {
+            expect(definition.workerRoutine).toEqual(expect.objectContaining({
+                cue: expect.any(String),
+                carriedResource: expect.any(String),
+                emotionalPurpose: expect.any(String)
+            }));
+            expect(definition.workerRoutine.cue.length).toBeGreaterThan(8);
+            expect(definition.workerRoutine.emotionalPurpose.length).toBeGreaterThan(16);
+        });
+    });
 });

@@ -94,6 +94,8 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('BUILD ${selectedDefinition.shortLabel} HERE');
         expect(source).toContain('this.selectedPlotId');
         expect(source).toContain("createElement('span', 'village-resource-icon')");
+        expect(source).toContain('village-assignment-routine');
+        expect(source).toContain('workerRoutine.emotionalPurpose');
         expect(source).toContain("root.classList.add('is-contextual')");
         expect(source).toContain('requestedPlot?.building?.definitionId');
         expect(source).toContain('const contextualBuilding = selectedPlot?.building');
@@ -197,6 +199,10 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("VILLAGE_WORLD_ARTWORK[building.definitionId]");
         expect(world).toContain('this.createVillageBuildingActivity(building)');
         expect(world).toContain('playVillageBuildingMoment(');
+        expect(world).toContain('createVillageWorker(');
+        expect(world).toContain('createVillageWorkerCargo(');
+        expect(world).toContain('playVillageProductionMoment(');
+        expect(world).toContain("worker.setData('villageWorker', true)");
         expect(world).toContain('getVillageWorldGuidance(snapshot)');
         expect(world).toContain('definition.worldEffectLabel');
         expect(world).toContain("'BUILD HERE'");

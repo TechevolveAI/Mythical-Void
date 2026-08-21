@@ -1910,6 +1910,13 @@ body.game-mode {
   font-weight: 700;
 }
 
+.village-assignment-routine {
+  max-width: 280px;
+  color: #b9c8c4;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
 .village-assignment-controls {
   display: flex;
   gap: 6px;
@@ -2007,6 +2014,24 @@ body.game-mode {
 .village-command-modal.is-contextual .village-construct-action {
   min-height: 52px;
   font-size: 12px;
+}
+
+.village-command-modal.is-contextual .village-assignment-row {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.village-command-modal.is-contextual .village-assignment-controls {
+  width: 100%;
+}
+
+.village-command-modal.is-contextual .village-creature-select {
+  min-width: 0;
+  flex: 1;
+}
+
+.village-command-modal.is-contextual .village-assignment-routine {
+  max-width: none;
 }
 
 @media (max-width: 680px) {
