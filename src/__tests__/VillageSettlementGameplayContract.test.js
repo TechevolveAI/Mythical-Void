@@ -18,6 +18,18 @@ describe('Village settlement gameplay contract', () => {
             publicRoot,
             'game/village/world/forager-hut.webp'
         ))).toBe(true);
+        [
+            'living-sawmill.webp',
+            'current-masonry.webp',
+            'shared-habitat.webp',
+            'discovery-workshop.webp'
+        ].forEach(asset => {
+            expect(fs.existsSync(path.join(
+                publicRoot,
+                'game/village/world',
+                asset
+            ))).toBe(true);
+        });
     });
 
     test('the additive save tree persists versioned village resources and structures', () => {
@@ -80,6 +92,9 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('BUILD ${selectedDefinition.shortLabel} HERE');
         expect(source).toContain('this.selectedPlotId');
         expect(source).toContain("root.classList.add('is-contextual')");
+        expect(source).toContain('requestedPlot?.building?.definitionId');
+        expect(source).toContain('const contextualBuilding = selectedPlot?.building');
+        expect(source).toContain('ACTIVE · ${contextualBuilding.definition.worldEffectLabel}');
     });
 
     test('the responsive layout moves to a single scroll surface on mobile', () => {
@@ -109,6 +124,11 @@ describe('Village settlement gameplay contract', () => {
         expect(village).toContain("url: '/game/village/discovery-workshop.webp'");
         expect(village).toContain("url: '/game/village/world/village-heart.webp'");
         expect(village).toContain("url: '/game/village/world/forager-hut.webp'");
+        expect(village).toContain("url: '/game/village/world/living-sawmill.webp'");
+        expect(village).toContain("url: '/game/village/world/current-masonry.webp'");
+        expect(village).toContain("url: '/game/village/world/shared-habitat.webp'");
+        expect(village).toContain("url: '/game/village/world/discovery-workshop.webp'");
+        expect(village).toContain("worldEffectLabel: 'FEEDING · +5 HAPPINESS'");
         expect(panel).toContain('`HELPS NOW · ${definition.immediateImpact}`');
         expect(panel).toContain('`UNLOCKS · ${definition.extensionImpact}`');
         expect(panel).toContain('SETTLEMENT GOAL');
@@ -170,8 +190,18 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('this.drawVillageBuilding(');
         expect(world).toContain('VILLAGE_WORLD_ARTWORK.heart.key');
         expect(world).toContain("VILLAGE_WORLD_ARTWORK[building.definitionId]");
-        expect(world).toContain('this.createForagerActivity(building)');
+        expect(world).toContain('this.createVillageBuildingActivity(building)');
+        expect(world).toContain('definition.worldEffectLabel');
         expect(world).toContain("'BUILD HERE'");
         expect(world).toContain('Phaser.BlendModes.ADD');
+    });
+
+    test('the local completion preview renders the entire connected settlement', () => {
+        const game = read('game.js');
+        const scene = read('scenes/GameScene.js');
+
+        expect(game).toContain("['empty', 'building', 'active', 'complete']");
+        expect(scene).toContain("this.villageCommandPreview === 'complete'");
+        expect(scene).toContain("['workshop', 'root_05', null]");
     });
 });

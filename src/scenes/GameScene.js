@@ -567,7 +567,8 @@ class GameScene extends Phaser.Scene {
         this.villageCommandPreview = [
             'empty',
             'building',
-            'active'
+            'active',
+            'complete'
         ].includes(data?.villageCommandPreview)
             ? data.villageCommandPreview
             : null;
@@ -1619,12 +1620,26 @@ class GameScene extends Phaser.Scene {
             });
         }
 
-        if (this.villageCommandPreview === 'active') {
-            [
+        if (['active', 'complete'].includes(this.villageCommandPreview)) {
+            if (this.villageCommandPreview === 'complete') {
+                const village = previewState.get('world.village');
+                previewState.set('world.village', {
+                    ...village,
+                    resources: { wood: 200, stone: 200, food: 200 }
+                });
+            }
+            const previewBuildings = [
                 ['forager_hut', 'root_01', companions[0].id],
                 ['sawmill', 'root_02', companions[1].id],
                 ['current_masonry', 'root_03', companions[2].id]
-            ].forEach(([definitionId, plotId, creatureId], index) => {
+            ];
+            if (this.villageCommandPreview === 'complete') {
+                previewBuildings.push(
+                    ['habitat', 'root_04', null],
+                    ['workshop', 'root_05', null]
+                );
+            }
+            previewBuildings.forEach(([definitionId, plotId, creatureId], index) => {
                 const startedAt = now - 30000 + index;
                 const placed = placeVillageBuilding(previewState, {
                     definitionId,
@@ -1633,12 +1648,14 @@ class GameScene extends Phaser.Scene {
                     save: false
                 });
                 reconcileVillageSettlement(previewState, { now, save: false });
-                assignCreatureToVillageBuilding(previewState, {
-                    buildingId: placed.buildingId,
-                    creatureId,
-                    now,
-                    save: false
-                });
+                if (creatureId) {
+                    assignCreatureToVillageBuilding(previewState, {
+                        buildingId: placed.buildingId,
+                        creatureId,
+                        now,
+                        save: false
+                    });
+                }
             });
         }
 

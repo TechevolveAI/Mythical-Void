@@ -188,13 +188,14 @@ export default class VillageCommandPanel {
         this.onTick = onTick;
         this.onClose = onClose;
         const requestedPlot = snapshot.plots.find(plot => plot.id === plotId);
-        this.selectedPlotId = requestedPlot?.open ? requestedPlot.id : null;
+        this.selectedPlotId = requestedPlot?.id || null;
         this.contextual = Boolean(this.selectedPlotId);
-        this.selectedDefinitionId = snapshot.definitions.find(
-            definition => definition.placement.available
-        )?.id || snapshot.definitions.find(
-            definition => !definition.placement.alreadyBuilt
-        )?.id || snapshot.definitions[0]?.id || null;
+        this.selectedDefinitionId = requestedPlot?.building?.definitionId ||
+            snapshot.definitions.find(
+                definition => definition.placement.available
+            )?.id || snapshot.definitions.find(
+                definition => !definition.placement.alreadyBuilt
+            )?.id || snapshot.definitions[0]?.id || null;
 
         const root = createElement('div', 'village-command-modal');
         if (this.contextual) root.classList.add('is-contextual');
@@ -240,8 +241,13 @@ export default class VillageCommandPanel {
         }
         const selectedDefinition = definitionById.get(this.selectedDefinitionId);
         const selectedPlot = snapshot.plots.find(
-            plot => plot.id === this.selectedPlotId && plot.open
+            plot => plot.id === this.selectedPlotId
         ) || null;
+        const contextualBuilding = selectedPlot?.building
+            ? snapshot.buildings.find(
+                building => building.id === selectedPlot.building.id
+            ) || null
+            : null;
 
         this.root.replaceChildren();
         const shell = createElement('section', 'village-command-shell');
@@ -258,7 +264,11 @@ export default class VillageCommandPanel {
             createElement(
                 'h2',
                 'village-command-title',
-                this.contextual ? 'WHAT SHOULD GROW HERE?' : 'VILLAGE HEART'
+                contextualBuilding
+                    ? contextualBuilding.definition.label
+                    : this.contextual
+                        ? 'WHAT SHOULD GROW HERE?'
+                        : 'VILLAGE HEART'
             )
         );
         headingGroup.append(headingCopy);
@@ -302,7 +312,9 @@ export default class VillageCommandPanel {
             this.statusMessage || (
                 snapshot.unlock.unlocked
                     ? this.contextual
-                        ? 'Choose a structure. You will see its immediate benefit before spending supplies.'
+                        ? contextualBuilding
+                            ? `${contextualBuilding.definition.immediateImpact} ${contextualBuilding.definition.extensionImpact}`
+                            : 'Choose a structure. You will see its immediate benefit before spending supplies.'
                         : 'Choose what to restore next, or invite a companion to help at a completed building.'
                     : snapshot.unlock.reason
             )
@@ -340,7 +352,11 @@ export default class VillageCommandPanel {
         catalog.append(createElement(
             'h3',
             'village-section-title',
-            this.contextual ? 'CHOOSE A BUILDING' : 'STRUCTURES'
+            contextualBuilding
+                ? 'STRUCTURE'
+                : this.contextual
+                    ? 'CHOOSE A BUILDING'
+                    : 'STRUCTURES'
         ));
         const visibleDefinitions = [...snapshot.definitions].sort((left, right) => {
             if (left.placement.available !== right.placement.available) {
@@ -351,8 +367,10 @@ export default class VillageCommandPanel {
             }
             return 0;
         });
-        const displayedDefinitions = this.contextual
-            ? visibleDefinitions.filter(definition => !definition.placement.alreadyBuilt).slice(0, 3)
+        const displayedDefinitions = contextualBuilding
+            ? visibleDefinitions.filter(definition => definition.id === contextualBuilding.definitionId)
+            : this.contextual
+                ? visibleDefinitions.filter(definition => !definition.placement.alreadyBuilt).slice(0, 3)
             : visibleDefinitions;
         const buildingOptions = createElement('div', 'village-building-options');
         displayedDefinitions.forEach(definition => {
@@ -411,27 +429,41 @@ export default class VillageCommandPanel {
             createElement(
                 'h3',
                 'village-section-title',
-                this.contextual ? 'YOUR CHOICE' : 'BUILD NEXT'
+                contextualBuilding
+                    ? contextualBuilding.definition.production
+                        ? 'CREATURE HELP'
+                        : 'ACTIVE BENEFIT'
+                    : this.contextual
+                        ? 'YOUR CHOICE'
+                        : 'BUILD NEXT'
             ),
             createElement(
                 'p',
                 'village-site-selection',
-                this.contextual
+                contextualBuilding
+                    ? `${contextualBuilding.definition.shortLabel} · ${contextualBuilding.status.toUpperCase()}`
+                    : this.contextual
                     ? selectedPlot?.label || 'OPEN GROUND'
                     : selectedDefinition
                         ? `PLACING · ${selectedDefinition.shortLabel}`
                         : 'SELECT A STRUCTURE'
             )
         );
-        const firstOpenPlot = selectedPlot || snapshot.plots.find(plot => plot.open) || null;
+        const firstOpenPlot = selectedPlot?.open
+            ? selectedPlot
+            : contextualBuilding
+                ? null
+                : snapshot.plots.find(plot => plot.open) || null;
         const nextStep = createElement(
             'p',
             'village-next-step',
-            getConstructionStepCopy(
-                selectedDefinition,
-                firstOpenPlot,
-                definitionById
-            )
+            contextualBuilding
+                ? contextualBuilding.definition.immediateImpact
+                : getConstructionStepCopy(
+                    selectedDefinition,
+                    firstOpenPlot,
+                    definitionById
+                )
         );
         nextStep.setAttribute('aria-live', 'polite');
         plan.append(planHeader, nextStep);
@@ -439,7 +471,9 @@ export default class VillageCommandPanel {
         const constructAction = createElement(
             'button',
             'village-construct-action',
-            selectedDefinition?.placement.available && firstOpenPlot
+            contextualBuilding
+                ? `ACTIVE · ${contextualBuilding.definition.worldEffectLabel}`
+                : selectedDefinition?.placement.available && firstOpenPlot
                 ? `BUILD ${selectedDefinition.shortLabel} HERE · ${formatCost(selectedDefinition.cost)}`
                 : selectedDefinition
                     ? formatPlacementReason(selectedDefinition, definitionById)
@@ -447,7 +481,7 @@ export default class VillageCommandPanel {
         );
         constructAction.type = 'button';
         const canConstruct = Boolean(
-            selectedDefinition?.placement.available && firstOpenPlot
+            !contextualBuilding && selectedDefinition?.placement.available && firstOpenPlot
         );
         constructAction.disabled = !canConstruct;
         if (canConstruct) {
@@ -470,7 +504,9 @@ export default class VillageCommandPanel {
         const constructionGuide = createElement(
             'p',
             'village-construction-guide',
-            canConstruct
+            contextualBuilding
+                ? contextualBuilding.definition.extensionImpact
+                : canConstruct
                 ? `${selectedDefinition.immediateImpact} This will use the supplies shown on the button.`
                 : 'Choose a building marked READY. The exact cost will appear before you confirm.'
         );
@@ -533,10 +569,14 @@ export default class VillageCommandPanel {
         if (!this.contextual) plan.append(plotGrid);
 
         const assignments = createElement('section', 'village-assignments');
-        assignments.append(createElement('h3', 'village-section-title', 'CREATURE HELP'));
+        assignments.append(createElement(
+            'h3',
+            'village-section-title',
+            contextualBuilding ? 'INVITE A COMPANION' : 'CREATURE HELP'
+        ));
         const assignable = snapshot.buildings.filter(
             building => building.status === 'complete' && building.definition.production
-        );
+        ).filter(building => !contextualBuilding || building.id === contextualBuilding.id);
         if (assignable.length === 0) {
             assignments.append(createElement(
                 'p',
@@ -593,7 +633,9 @@ export default class VillageCommandPanel {
             });
         }
 
-        if (!this.contextual) plan.append(assignments);
+        if (!this.contextual || contextualBuilding?.definition.production) {
+            plan.append(assignments);
+        }
         body.append(catalog, plan);
         shell.append(header, resources, status);
         if (!this.contextual) shell.append(phase, createVillageVision());

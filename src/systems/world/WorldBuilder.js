@@ -402,7 +402,7 @@ class WorldBuilder {
                 { x: 430, y: -132 },
                 { x: 238, y: 124 },
                 { x: 474, y: 136 },
-                { x: 662, y: -4 }
+                { x: 545, y: -4 }
             ];
 
         districtTerrain.clear();
@@ -461,7 +461,7 @@ class WorldBuilder {
             };
             strokeCurrentPath(16, 0x071411, 0.24);
             strokeCurrentPath(5, unlocked ? 0x3FAE62 : 0x53616A, 0.24);
-            strokeCurrentPath(2, unlocked ? 0xB7F7DE : 0x657682, 0.62);
+            strokeCurrentPath(2, unlocked ? 0xB7F7DE : 0x657682, 0.42);
         });
 
         glow.fillStyle(unlocked ? 0x71E6B1 : 0x53616A, unlocked ? 0.14 : 0.08);
@@ -534,7 +534,10 @@ class WorldBuilder {
             const worldArtwork = worldArtworkDefinition &&
                 this.scene.textures.exists(worldArtworkDefinition.key)
                 ? this.scene.add.image(0, -28, worldArtworkDefinition.key)
-                    .setDisplaySize(176, 176)
+                    .setDisplaySize(
+                        worldArtworkDefinition.displaySize || 176,
+                        worldArtworkDefinition.displaySize || 176
+                    )
                 : null;
             drawing.fillStyle(0x102B26, building ? 0.7 : 0.36);
             drawing.fillEllipse(0, 29, building ? 136 : 96, building ? 46 : 29);
@@ -581,14 +584,28 @@ class WorldBuilder {
             const definition = building
                 ? VILLAGE_BUILDING_DEFINITIONS.find(entry => entry.id === building.definitionId)
                 : null;
+            const buildingStateCopy = building
+                ? building.status === 'constructing'
+                    ? 'GROWING TOGETHER'
+                    : definition?.production && !building.creature
+                        ? 'INVITE A HELPER'
+                        : building.creature
+                            ? `${building.creature.name.toUpperCase()} IS HELPING`
+                            : 'OPEN AND ACTIVE'
+                : unlocked
+                    ? 'BUILD HERE'
+                    : 'DORMANT';
+            const stateVisibleAtRest = !building ||
+                building.status === 'constructing' ||
+                Boolean(definition?.production && !building.creature);
             const plotLabel = this.scene.add.text(
                 0,
                 worldArtwork ? 63 : 45,
                 definition
-                    ? `${definition.shortLabel}${definition.production ? ` · +${definition.production.amount} ${definition.production.resource.toUpperCase()}/MIN` : ''}`
+                    ? definition.shortLabel
                     : plot.label,
                 {
-                    fontSize: '9px',
+                    fontSize: '11px',
                     fontFamily: 'Arial, sans-serif',
                     color: building ? '#F4F4F4' : '#C9F7E9',
                     fontStyle: 'bold',
@@ -599,15 +616,7 @@ class WorldBuilder {
             const stateLabel = this.scene.add.text(
                 0,
                 worldArtwork ? -124 : -48,
-                building
-                    ? building.status === 'complete'
-                        ? building.creature
-                            ? `${building.creature.name.toUpperCase()} IS HELPING`
-                            : 'READY FOR A HELPER'
-                        : 'GROWING TOGETHER'
-                    : unlocked
-                        ? 'BUILD HERE'
-                        : 'DORMANT',
+                buildingStateCopy,
                 {
                     fontSize: '8px',
                     fontFamily: 'Arial, sans-serif',
@@ -620,10 +629,9 @@ class WorldBuilder {
                     stroke: '#050505',
                     strokeThickness: 3
                 }
-            ).setOrigin(0.5);
-            const activity = building?.definitionId === 'forager_hut' &&
-                building.status === 'complete'
-                ? this.createForagerActivity(building)
+            ).setOrigin(0.5).setAlpha(stateVisibleAtRest ? 1 : 0);
+            const activity = building?.status === 'complete'
+                ? this.createVillageBuildingActivity(building)
                 : null;
             container.add([
                 drawing,
@@ -678,27 +686,25 @@ class WorldBuilder {
                 ease: 'Sine.easeInOut'
             }));
 
-            const plotHitZone = this.scene.add.zone(plotX, plotY, 124, 108)
+            const plotHitZone = this.scene.add.zone(plotX, plotY - 10, 168, 164)
                 .setDepth(plotY + 6)
                 .setInteractive({ useHandCursor: unlocked });
             plotHitZone.plotId = plot.id;
             plotHitZone.on('pointerover', () => {
                 container.setScale(1.06);
-                stateLabel.setText(unlocked ? 'OPEN THIS PLACE' : 'DORMANT');
+                stateLabel
+                    .setText(unlocked
+                        ? definition
+                            ? definition.worldEffectLabel
+                            : 'CHOOSE WHAT GROWS HERE'
+                        : 'DORMANT')
+                    .setAlpha(1);
             });
             plotHitZone.on('pointerout', () => {
                 container.setScale(1);
-                stateLabel.setText(
-                    building
-                        ? building.status === 'complete'
-                            ? building.creature
-                                ? `${building.creature.name.toUpperCase()} IS HELPING`
-                                : 'READY FOR A HELPER'
-                            : 'GROWING TOGETHER'
-                        : unlocked
-                            ? 'BUILD HERE'
-                            : 'DORMANT'
-                );
+                stateLabel
+                    .setText(buildingStateCopy)
+                    .setAlpha(stateVisibleAtRest ? 1 : 0);
             });
             plotHitZone.on('pointerdown', () => this.activateVillageHeart(landmark, plot.id));
             landmark.plotHitZones.push(plotHitZone);
@@ -716,8 +722,67 @@ class WorldBuilder {
         });
     }
 
-    createForagerActivity(building) {
+    createVillageBuildingActivity(building) {
         const activity = this.scene.add.container(0, 0);
+        const routine = this.scene.add.graphics();
+
+        if (building.definitionId === 'forager_hut') {
+            routine.fillStyle(0x6E4D2E, 0.96);
+            routine.fillRoundedRect(43, 22, 29, 18, 5);
+            routine.lineStyle(2, 0xF2C14E, 0.92);
+            routine.beginPath();
+            routine.arc(57, 23, 12, Math.PI, 0, false);
+            routine.strokePath();
+            [48, 57, 66].forEach((podX, index) => {
+                routine.fillStyle(index === 1 ? 0xF4F4F4 : 0xF2C14E, 0.98);
+                routine.fillCircle(podX, 20 - (index % 2) * 4, 5);
+            });
+        } else if (building.definitionId === 'sawmill') {
+            routine.fillStyle(0x6E4D2E, 0.98);
+            routine.fillRoundedRect(39, 20, 36, 12, 5);
+            routine.lineStyle(2, 0xF2C14E, 0.92);
+            routine.strokeCircle(57, 26, 18);
+            routine.lineStyle(2, 0xF4F4F4, 0.82);
+            routine.lineBetween(45, 26, 69, 26);
+        } else if (building.definitionId === 'current_masonry') {
+            routine.fillStyle(0x71E6B1, 0.32);
+            routine.fillTriangle(57, 6, 37, 25, 43, 45);
+            routine.fillTriangle(57, 6, 77, 25, 71, 45);
+            routine.lineStyle(2, 0xF4F4F4, 0.92);
+            routine.strokeCircle(57, 27, 20);
+            [40, 57, 74].forEach((stoneX, index) => {
+                routine.fillStyle(0xB7C8C4, 0.95);
+                routine.fillCircle(stoneX, 19 + index * 5, 4);
+            });
+        } else if (building.definitionId === 'habitat') {
+            [[-56, 24, 0x8FE3CF], [54, 27, 0xF2C14E], [0, 34, 0xF4F4F4]]
+                .forEach(([residentX, residentY, color], index) => {
+                    routine.fillStyle(color, 0.95);
+                    routine.fillCircle(residentX, residentY - 9, 6 - index);
+                    routine.fillEllipse(residentX, residentY + 2, 13, 15);
+                });
+            routine.lineStyle(2, 0x71E6B1, 0.82);
+            routine.strokeCircle(0, 30, 19);
+        } else if (building.definitionId === 'workshop') {
+            routine.lineStyle(4, 0xF4F4F4, 0.92);
+            routine.lineBetween(38, 36, 75, 20);
+            routine.lineStyle(3, 0xD94B4B, 0.9);
+            routine.lineBetween(35, 39, 43, 31);
+            routine.fillStyle(0x71E6B1, 0.92);
+            routine.fillTriangle(57, 5, 49, 18, 65, 18);
+            routine.fillTriangle(57, 31, 49, 18, 65, 18);
+        }
+
+        activity.add(routine);
+        if (building.creature) {
+            activity.add(this.createVillageHelperGlyph());
+        }
+        activity.setData('helperName', building?.creature?.name || 'Companion');
+        activity.setData('routine', building.definitionId);
+        return activity;
+    }
+
+    createVillageHelperGlyph() {
         const helper = this.scene.add.graphics();
         helper.fillStyle(0x8FE3CF, 0.96);
         helper.fillCircle(-63, 17, 9);
@@ -728,21 +793,7 @@ class WorldBuilder {
         helper.lineStyle(2, 0x3FAE62, 0.9);
         helper.lineBetween(-70, 6, -75, -2);
         helper.lineBetween(-56, 6, -51, -2);
-
-        const harvest = this.scene.add.graphics();
-        harvest.fillStyle(0x6E4D2E, 0.96);
-        harvest.fillRoundedRect(43, 22, 29, 18, 5);
-        harvest.lineStyle(2, 0xF2C14E, 0.92);
-        harvest.beginPath();
-        harvest.arc(57, 23, 12, Math.PI, 0, false);
-        harvest.strokePath();
-        [48, 57, 66].forEach((podX, index) => {
-            harvest.fillStyle(index === 1 ? 0xF4F4F4 : 0xF2C14E, 0.98);
-            harvest.fillCircle(podX, 20 - (index % 2) * 4, 5);
-        });
-        activity.add([helper, harvest]);
-        activity.setData('helperName', building?.creature?.name || 'Companion');
-        return activity;
+        return helper;
     }
 
     activateVillageHeart(landmark, plotId = null) {
@@ -758,7 +809,10 @@ class WorldBuilder {
         }
 
         this.scene.nearVillageHeart = true;
-        this.scene.showInteractionHint?.('Opening Village Builder');
+        const place = VILLAGE_PLOTS.find(plot => plot.id === plotId);
+        this.scene.showInteractionHint?.(
+            place ? `Planning ${place.label}` : 'Opening Village Plan'
+        );
         return this.scene.openVillageCommand?.({ plotId }) === true;
     }
 

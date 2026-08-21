@@ -1381,7 +1381,7 @@ async function initializeGame() {
 
         // Local, non-saving Village Heart command-panel states.
         const testVillage = urlParams.get('testVillage');
-        if (isLocalPreview && ['empty', 'building', 'active'].includes(testVillage)) {
+        if (isLocalPreview && ['empty', 'building', 'active', 'complete'].includes(testVillage)) {
             game.events.once('ready', () => {
                 setTimeout(() => {
                     game.scene.stop('HatchingScene');

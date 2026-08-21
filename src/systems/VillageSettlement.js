@@ -33,7 +33,28 @@ export const VILLAGE_WORLD_ARTWORK = Object.freeze({
     }),
     forager_hut: Object.freeze({
         key: 'village-world-forager-hut',
-        url: '/game/village/world/forager-hut.webp'
+        url: '/game/village/world/forager-hut.webp',
+        displaySize: 176
+    }),
+    sawmill: Object.freeze({
+        key: 'village-world-living-sawmill',
+        url: '/game/village/world/living-sawmill.webp',
+        displaySize: 168
+    }),
+    current_masonry: Object.freeze({
+        key: 'village-world-current-masonry',
+        url: '/game/village/world/current-masonry.webp',
+        displaySize: 172
+    }),
+    habitat: Object.freeze({
+        key: 'village-world-shared-habitat',
+        url: '/game/village/world/shared-habitat.webp',
+        displaySize: 178
+    }),
+    workshop: Object.freeze({
+        key: 'village-world-discovery-workshop',
+        url: '/game/village/world/discovery-workshop.webp',
+        displaySize: 160
     })
 });
 
@@ -61,6 +82,7 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         description: 'Maps edible growth without exhausting a living patch.',
         purpose: 'Keeps creatures fed without stripping a living region.',
         immediateImpact: '+5 happiness whenever you feed a creature.',
+        worldEffectLabel: 'FEEDING · +5 HAPPINESS',
         extensionImpact: 'Supplies food for habitats, workshops, and future residents.',
         cost: Object.freeze({ wood: 18, stone: 8, food: 0 }),
         constructionMs: 8000,
@@ -75,6 +97,7 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         description: 'Shapes fallen timber. No healthy tree is marked for cutting.',
         purpose: 'Turns storm-fallen timber into safe paths and repair stock.',
         immediateImpact: '+10 cosmic coins after every expedition victory.',
+        worldEffectLabel: 'VICTORY · +10 COINS',
         extensionImpact: 'Supplies wood for bridges, defenses, and village expansion.',
         cost: Object.freeze({ wood: 15, stone: 10, food: 0 }),
         constructionMs: 9000,
@@ -89,6 +112,7 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         description: 'Recovers loose stone while keeping the Current pathways open.',
         purpose: 'Builds protection without blocking the Current beneath the Fend.',
         immediateImpact: '+1 Current Stone guard charge on every expedition.',
+        worldEffectLabel: 'EXPEDITION · +1 GUARD',
         extensionImpact: 'Supplies stone for permanent structures and defenses.',
         cost: Object.freeze({ wood: 15, stone: 8, food: 0 }),
         constructionMs: 10000,
@@ -103,6 +127,7 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         description: 'A sheltered home designed around creature rest and choice.',
         purpose: 'Gives rescued creatures a safe home they can choose to join.',
         immediateImpact: '+2 permanent creature collection capacity.',
+        worldEffectLabel: 'HOME · +2 CAPACITY',
         extensionImpact: 'Unlocks resident groups, bonds, and future village districts.',
         cost: Object.freeze({ wood: 20, stone: 14, food: 4 }),
         constructionMs: 12000,
@@ -118,6 +143,7 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         description: 'Combines human tools with creature knowledge, by invitation.',
         purpose: 'Lets human and creature knowledge solve problems together.',
         immediateImpact: '+1 maximum crystal energy on every expedition.',
+        worldEffectLabel: 'EXPEDITION · +1 ENERGY',
         extensionImpact: 'Enables equipment research, katana upgrades, and new technology.',
         cost: Object.freeze({ wood: 25, stone: 20, food: 6 }),
         constructionMs: 15000,
