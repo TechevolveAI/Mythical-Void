@@ -128,6 +128,7 @@ import {
 import {
     assignCreatureToVillageBuilding,
     getVillageCommunityMoment,
+    getVillageHeartMemory,
     getVillageSnapshot,
     initializeVillageSettlement,
     markVillageGuidanceSeen,
@@ -194,6 +195,8 @@ class GameScene extends Phaser.Scene {
         this.nearVillageHeart = false;
         this.villageCommunityMomentIndex = 0;
         this.lastVillageCommunityMomentAt = 0;
+        this.villageHeartMemoryIndex = 0;
+        this.lastVillageHeartMemoryAt = 0;
         this.villageCommunityMomentPending = false;
         this.villageDecisionMomentPending = null;
         this.villageCommandPanel = null;
@@ -723,6 +726,8 @@ class GameScene extends Phaser.Scene {
         this.villageRenderSignature = null;
         this.villageCommunityMomentIndex = 0;
         this.lastVillageCommunityMomentAt = 0;
+        this.villageHeartMemoryIndex = 0;
+        this.lastVillageHeartMemoryAt = 0;
         this.villageCommunityMomentPending = false;
         this.villageDecisionMomentPending = null;
 
@@ -7985,7 +7990,9 @@ class GameScene extends Phaser.Scene {
                 : `Village Heart offline · ${snapshot.unlock.reason}`
         );
         this.mobileControls?.updateInteractIcon('🏗');
-        this.maybePlayVillageCommunityMoment(snapshot);
+        if (!this.maybePlayVillageHeartMemory(snapshot)) {
+            this.maybePlayVillageCommunityMoment(snapshot);
+        }
     }
 
     getVillageRenderSignature(snapshot) {
@@ -8101,6 +8108,37 @@ class GameScene extends Phaser.Scene {
         if (!played) return false;
         this.villageCommunityMomentIndex += 1;
         this.lastVillageCommunityMomentAt = now;
+        return true;
+    }
+
+    maybePlayVillageHeartMemory(snapshot, { force = false } = {}) {
+        if (
+            this._isShuttingDown ||
+            !this.nearVillageHeart ||
+            !this.villageHeartLandmark ||
+            !snapshot
+        ) {
+            return false;
+        }
+        const now = this.time?.now || Date.now();
+        if (
+            !force &&
+            this.lastVillageHeartMemoryAt > 0 &&
+            now - this.lastVillageHeartMemoryAt < 18000
+        ) {
+            return false;
+        }
+        const memory = getVillageHeartMemory(snapshot, {
+            cycle: this.villageHeartMemoryIndex
+        });
+        if (!memory) return false;
+        const played = this.worldBuilder?.playVillageHeartMemory?.(
+            this.villageHeartLandmark,
+            memory
+        ) === true;
+        if (!played) return false;
+        this.villageHeartMemoryIndex += 1;
+        this.lastVillageHeartMemoryAt = now;
         return true;
     }
 
@@ -16102,6 +16140,8 @@ class GameScene extends Phaser.Scene {
         this.nearVillageHeart = false;
         this.villageCommunityMomentIndex = 0;
         this.lastVillageCommunityMomentAt = 0;
+        this.villageHeartMemoryIndex = 0;
+        this.lastVillageHeartMemoryAt = 0;
         this.villageCommunityMomentPending = false;
         this.villageDecisionMomentPending = null;
         this.recoveryLogModal?.destroy?.();

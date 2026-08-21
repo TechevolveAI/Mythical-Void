@@ -40,6 +40,7 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('lifetimeProduced: {');
         expect(source).toContain('heartDecisions: []');
         expect(source).toContain('buildings: []');
+        expect(source).toContain('schemaVersion: 3');
     });
 
     test('the Village Heart is a real Sanctuary landmark with a mobile interaction fallback', () => {
@@ -103,6 +104,8 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('createHeartDecision(snapshot');
         expect(source).toContain('village-heart-decision');
         expect(source).toContain('this.onDecision?.(request)');
+        expect(source).toContain('village-decision-resident-line');
+        expect(source).toContain('THIS MEMORY REMAINS IN THE SANCTUARY');
         expect(source).toContain("root.classList.add('is-contextual')");
         expect(source).toContain('requestedPlot?.building?.definitionId');
         expect(source).toContain('const contextualBuilding = selectedPlot?.building');
@@ -203,6 +206,7 @@ describe('Village settlement gameplay contract', () => {
     test('completed buildings appear as connected world structures in the Sanctuary', () => {
         const world = read('systems/world/WorldBuilder.js');
         const scene = read('scenes/GameScene.js');
+        const village = read('systems/VillageSettlement.js');
 
         expect(scene).toContain('Object.values(VILLAGE_BUILDING_ARTWORK)');
         expect(scene).toContain('notifyVillageProgress(previous, next)');
@@ -223,6 +227,10 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('playVillageProductionMoment(');
         expect(world).toContain('playVillageCommunityMoment(');
         expect(world).toContain('playVillageDecisionMoment(');
+        expect(world).toContain('createVillageHeartMemories(');
+        expect(world).toContain("setData('villageHeartMemory'");
+        expect(world).toContain('playVillageHeartMemory(');
+        expect(world).toContain("setData('villageHeartFollowUp'");
         expect(world).toContain("copy.setData('villageDecisionMoment', result.decision.id)");
         expect(world).toContain("container.setData('villageHabitatLife', true)");
         expect(world).toContain("worker.setData('villageWorker', true)");
@@ -230,6 +238,10 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain('getVillageCommunityMoment(snapshot');
         expect(scene).toContain('resolveVillageHeartDecision(');
         expect(scene).toContain('this.villageDecisionMomentPending = result');
+        expect(scene).toContain('maybePlayVillageHeartMemory(snapshot)');
+        expect(village).toContain('participantCreatureIds: active.participants.map(');
+        expect(village).toContain('getVillageHeartMemory(snapshot');
+        expect(village).toContain('residentLine:');
         expect(world).toContain('getVillageWorldGuidance(snapshot)');
         expect(world).toContain('definition.worldEffectLabel');
         expect(world).toContain("'BUILD HERE'");

@@ -10594,7 +10594,18 @@ async function smokeVillageUi(session, exceptions) {
     const decisionRecap = await evaluate(session, `(() => ({
         title: document.querySelector('.village-decision-title')?.textContent || '',
         consequence: document.querySelector('.village-decision-situation')?.textContent || '',
+        residentLine: document.querySelector('.village-decision-resident-line')?.textContent || '',
+        residentName: document.querySelector('.village-decision-resident-name')?.textContent || '',
         optionsRemaining: document.querySelectorAll('.village-decision-option').length,
+        persistentMemories: window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark?.heartMemoryElements?.filter(
+                element => element?.getData?.('villageHeartMemory')
+            ).map(element => ({
+                decisionId: element.getData('villageHeartMemory'),
+                optionId: element.getData('optionId'),
+                value: element.getData('value'),
+                speakerName: element.getData('speakerName')
+            })) || [],
         pendingWorldMoment: Boolean(
             window.mythicalGame.scene.getScene('GameScene')?.villageDecisionMomentPending
         )
@@ -10602,11 +10613,18 @@ async function smokeVillageUi(session, exceptions) {
     if (
         decisionRecap.title !== 'CLEAR THE CURRENT FIRST' ||
         !decisionRecap.consequence ||
+        !decisionRecap.residentLine.includes('Current is moving again') ||
+        !decisionRecap.residentName.includes('EMBER') ||
         decisionRecap.optionsRemaining !== 0 ||
+        decisionRecap.persistentMemories.length !== 1 ||
+        decisionRecap.persistentMemories[0].decisionId !== 'storm_path' ||
+        decisionRecap.persistentMemories[0].optionId !== 'current_first' ||
+        decisionRecap.persistentMemories[0].speakerName !== 'Ember' ||
         !decisionRecap.pendingWorldMoment
     ) {
         throw new Error(`Village Heart decision recap failed: ${JSON.stringify(decisionRecap)}`);
     }
+    await captureGameplayStill(session, 'village-heart-choice-recap-mobile.png');
 
     const placed = await evaluate(session, `(() => {
         const habitat = [...document.querySelectorAll('.village-building-card')]
@@ -10690,6 +10708,52 @@ async function smokeVillageUi(session, exceptions) {
         throw new Error(`Village Heart world response failed: ${JSON.stringify(decisionWorld)}`);
     }
     await captureGameplayStill(session, 'village-sanctuary-district.png');
+    const followUpStarted = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.worldBuilder.clearVillageDecisionMoment(scene.villageHeartLandmark);
+        scene.nearVillageHeart = true;
+        return scene.maybePlayVillageHeartMemory(
+            scene.villageHeartLandmark.snapshot,
+            { force: true }
+        );
+    })()`);
+    if (!followUpStarted) {
+        throw new Error('Village Heart resident follow-up did not start');
+    }
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.activeCommunityMoment
+                ?.getData('villageHeartFollowUp')
+        )`),
+        { message: 'Village Heart resident memory response' }
+    );
+    const heartMemory = await evaluate(session, `(() => {
+        const landmark = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark;
+        const followUp = landmark?.activeCommunityMoment;
+        const markers = landmark?.heartMemoryElements?.filter(
+            element => element?.getData?.('villageHeartMemory')
+        ) || [];
+        return {
+            decisionId: followUp?.getData('villageHeartFollowUp'),
+            optionId: followUp?.getData('optionId'),
+            speakerName: followUp?.getData('speakerName'),
+            markerCount: markers.length,
+            markerActive: markers.every(marker => marker.active === true),
+            statusLabel: landmark?.statusLabel?.text || ''
+        };
+    })()`);
+    if (
+        heartMemory.decisionId !== 'storm_path' ||
+        heartMemory.optionId !== 'current_first' ||
+        heartMemory.speakerName !== 'Ember' ||
+        heartMemory.markerCount !== 1 ||
+        !heartMemory.markerActive
+    ) {
+        throw new Error(`Village Heart persistent memory failed: ${JSON.stringify(heartMemory)}`);
+    }
+    await captureGameplayStill(session, 'village-heart-memory-mobile.png');
     const directWorldTap = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const openSite = scene?.villageHeartLandmark?.plotHitZones?.[4];
@@ -10710,6 +10774,7 @@ async function smokeVillageUi(session, exceptions) {
         decisionChoice,
         decisionRecap,
         decisionWorld,
+        heartMemory,
         directWorldTap,
         interaction
     };

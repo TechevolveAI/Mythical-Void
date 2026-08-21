@@ -37,6 +37,7 @@ function loadVillageSettlement() {
                 getVillageCommunityMoments,
                 getVillageCommunityMoment,
                 getVillageHeartDecisionState,
+                getVillageHeartMemory,
                 getVillageSnapshot,
                 placeVillageBuilding,
                 assignCreatureToVillageBuilding,
@@ -482,8 +483,25 @@ describe('Village settlement phase one', () => {
         expect(result.snapshot.state.heartDecisions).toEqual([{
             decisionId: 'storm_path',
             optionId: 'current_first',
-            occurredAt: 5000
+            occurredAt: 5000,
+            participantCreatureIds: ['nova', 'lumen']
         }]);
+        expect(result.snapshot.heartDecision.completed[0]).toEqual(
+            expect.objectContaining({
+                speakerName: 'Nova',
+                participantNames: ['Nova', 'Lumen'],
+                followUpLine: expect.stringContaining('Current is moving again')
+            })
+        );
+        expect(village.getVillageHeartMemory(result.snapshot)).toEqual(
+            expect.objectContaining({
+                decisionId: 'storm_path',
+                optionId: 'current_first',
+                value: 'care',
+                speakerName: 'Nova',
+                participantNames: ['Nova', 'Lumen']
+            })
+        );
 
         const duplicate = village.resolveVillageHeartDecision(gameState, {
             decisionId: 'storm_path',
@@ -532,6 +550,18 @@ describe('Village settlement phase one', () => {
         }));
         expect(village.normalizeVillageState(gameState.get('world.village')).heartDecisions)
             .toHaveLength(3);
+        expect(village.normalizeVillageState({
+            heartDecisions: [{
+                decisionId: 'storm_path',
+                optionId: 'current_first',
+                occurredAt: 8
+            }]
+        }).heartDecisions[0]).toEqual({
+            decisionId: 'storm_path',
+            optionId: 'current_first',
+            occurredAt: 8,
+            participantCreatureIds: []
+        });
 
         const readinessState = createGameState({
             village: {

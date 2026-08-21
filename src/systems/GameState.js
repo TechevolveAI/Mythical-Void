@@ -569,7 +569,7 @@ class GameStateManager {
                     lastContributionAt: null
                 },
                 village: {
-                    schemaVersion: 2,
+                    schemaVersion: 3,
                     foundedAt: null,
                     starterSuppliesClaimed: false,
                     guidanceSeen: false,

@@ -380,6 +380,7 @@ class WorldBuilder {
         landmark.plotHitZones = [];
         landmark.workerElements = [];
         landmark.residentElements = [];
+        landmark.heartMemoryElements = [];
         landmark.plotWorldPositions = new Map();
         landmark.snapshot = snapshot;
 
@@ -765,6 +766,87 @@ class WorldBuilder {
                 }));
             }
         });
+        this.createVillageHeartMemories(landmark, snapshot, {
+            compact: compactSettlement
+        });
+    }
+
+    createVillageHeartMemories(landmark, snapshot, { compact = false } = {}) {
+        const choices = snapshot?.heartDecision?.completed || [];
+        if (!landmark?.zone || choices.length === 0) return false;
+
+        const heartX = landmark.zone.x;
+        const heartY = landmark.zone.y - 12;
+        const offsets = compact
+            ? [{ x: -68, y: 34 }, { x: 0, y: 66 }, { x: 68, y: 34 }]
+            : [{ x: -86, y: 30 }, { x: 0, y: 78 }, { x: 86, y: 30 }];
+        const traces = this.scene.add.graphics()
+            .setDepth(landmark.zone.y - 1)
+            .setData('villageHeartMemoryCount', choices.length);
+
+        choices.forEach((choice, index) => {
+            const color = choice.option.value === 'care' ? 0x71E6B1 : 0xF2C14E;
+            const offset = offsets[index] || offsets[offsets.length - 1];
+            const markerX = heartX + offset.x;
+            const markerY = heartY + offset.y;
+
+            choice.definition.requiredBuildingIds.forEach(buildingId => {
+                const building = snapshot.buildings.find(entry => (
+                    entry.definitionId === buildingId
+                ));
+                const source = landmark.plotWorldPositions?.get(building?.plotId);
+                if (!source) return;
+                traces.lineStyle(2, color, 0.2);
+                traces.beginPath();
+                traces.moveTo(source.x, source.y + 14);
+                traces.lineTo(markerX, markerY);
+                traces.strokePath();
+            });
+
+            const marker = this.scene.add.graphics()
+                .setPosition(markerX, markerY)
+                .setDepth(landmark.zone.y + 7)
+                .setData('villageHeartMemory', choice.decisionId)
+                .setData('optionId', choice.optionId)
+                .setData('value', choice.option.value)
+                .setData('speakerName', choice.speakerName)
+                .setData('followUpLine', choice.followUpLine);
+            marker.fillStyle(0x071411, 0.92);
+            marker.fillCircle(0, 0, compact ? 12 : 14);
+            marker.lineStyle(2, color, 0.92);
+            marker.strokeCircle(0, 0, compact ? 10 : 12);
+            if (choice.option.value === 'care') {
+                marker.fillStyle(color, 0.96);
+                marker.fillTriangle(-1, 6, -7, -2, -1, -7);
+                marker.fillTriangle(1, 6, 7, -2, 1, -7);
+                marker.lineStyle(1, 0xF4F4F4, 0.8);
+                marker.lineBetween(0, 7, 0, -6);
+            } else {
+                marker.fillStyle(color, 0.96);
+                marker.fillTriangle(0, -8, -7, 0, 0, 8);
+                marker.fillTriangle(0, -8, 7, 0, 0, 8);
+                marker.fillStyle(0xF4F4F4, 0.9);
+                marker.fillCircle(0, 0, 2);
+            }
+            marker.setBlendMode?.(Phaser.BlendModes.ADD);
+            landmark.heartMemoryElements.push(marker);
+            landmark.buildingElements.push(marker);
+            landmark.buildingTweens.push(this.scene.tweens.add({
+                targets: marker,
+                alpha: { from: 0.72, to: 1 },
+                scaleX: { from: 0.94, to: 1.06 },
+                scaleY: { from: 0.94, to: 1.06 },
+                duration: 1500 + index * 240,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            }));
+        });
+
+        traces.setBlendMode?.(Phaser.BlendModes.ADD);
+        landmark.heartMemoryElements.unshift(traces);
+        landmark.buildingElements.push(traces);
+        return true;
     }
 
     playVillageBuildingMoment(landmark, building, { stage = 'complete' } = {}) {
@@ -1187,6 +1269,99 @@ class WorldBuilder {
             if (landmark.activeCommunityMoment !== copy) return;
             const fadeTween = this.scene.tweens.add({
                 targets: [path, signal, copy],
+                alpha: 0,
+                duration: 420,
+                onComplete: () => this.clearVillageCommunityMoment(landmark)
+            });
+            landmark.communityMomentTweens.push(fadeTween);
+        });
+        return true;
+    }
+
+    playVillageHeartMemory(landmark, memory) {
+        if (!landmark?.zone || !memory?.line) return false;
+        this.clearVillageCommunityMoment(landmark);
+        this.clearVillageDecisionMoment(landmark);
+
+        const compact = this.scene.scale.width <= 600;
+        const color = memory.value === 'care' ? 0x71E6B1 : 0xF2C14E;
+        const marker = landmark.heartMemoryElements?.find(element => (
+            element?.getData?.('villageHeartMemory') === memory.decisionId
+        ));
+        const markerX = marker?.x ?? landmark.zone.x;
+        const markerY = marker?.y ?? landmark.zone.y;
+        const pulse = this.scene.add.graphics()
+            .setPosition(markerX, markerY)
+            .setDepth(landmark.zone.y + 10)
+            .setAlpha(0);
+        pulse.lineStyle(3, color, 0.9);
+        pulse.strokeCircle(0, 0, compact ? 19 : 22);
+        pulse.lineStyle(1, 0xF4F4F4, 0.72);
+        pulse.strokeCircle(0, 0, compact ? 27 : 31);
+        pulse.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const copy = this.scene.add.container(
+            landmark.zone.x,
+            landmark.zone.y - (compact ? 245 : 215)
+        ).setDepth(landmark.zone.y + 15).setAlpha(0);
+        const speaker = this.scene.add.text(
+            0,
+            -24,
+            `${memory.speakerName.toUpperCase()} REMEMBERS`,
+            {
+                fontSize: compact ? '8px' : '9px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: memory.value === 'care' ? '#8FE3CF' : '#F2C14E',
+                stroke: '#07100F',
+                strokeThickness: 5
+            }
+        ).setOrigin(0.5);
+        const line = this.scene.add.text(0, 0, `"${memory.line}"`, {
+            fontSize: compact ? '10px' : '12px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#F4F4F4',
+            align: 'center',
+            stroke: '#07100F',
+            strokeThickness: 5,
+            wordWrap: { width: compact ? 248 : 370 }
+        }).setOrigin(0.5);
+        const value = this.scene.add.text(0, compact ? 35 : 38, memory.optionLabel, {
+            fontSize: compact ? '7px' : '8px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#F4F4F4',
+            stroke: '#07100F',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+        copy.add([speaker, line, value]);
+        copy.setData('villageHeartFollowUp', memory.decisionId);
+        copy.setData('speakerName', memory.speakerName);
+        copy.setData('optionId', memory.optionId);
+
+        const revealTween = this.scene.tweens.add({
+            targets: [pulse, copy],
+            alpha: 1,
+            duration: 360,
+            ease: 'Sine.easeOut'
+        });
+        const pulseTween = this.scene.tweens.add({
+            targets: pulse,
+            scaleX: { from: 0.78, to: 1.15 },
+            scaleY: { from: 0.78, to: 1.15 },
+            alpha: { from: 0.48, to: 1 },
+            duration: 1200,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Sine.easeInOut'
+        });
+        landmark.communityMomentElements = [pulse, copy];
+        landmark.communityMomentTweens = [revealTween, pulseTween];
+        landmark.activeCommunityMoment = copy;
+        landmark.communityMomentTimer = this.scene.time.delayedCall(5600, () => {
+            if (landmark.activeCommunityMoment !== copy) return;
+            const fadeTween = this.scene.tweens.add({
+                targets: [pulse, copy],
                 alpha: 0,
                 duration: 420,
                 onComplete: () => this.clearVillageCommunityMoment(landmark)

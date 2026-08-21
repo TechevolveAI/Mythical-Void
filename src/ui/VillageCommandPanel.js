@@ -266,11 +266,26 @@ function createHeartDecision(snapshot, { lastResult = null, onChoose = null } = 
             `NEXT · ${decisionState.nextLocked.title} · Keep building the shared base.`
         ));
     } else if (lastResult && presentedDecision) {
-        section.append(createElement(
-            'p',
-            'village-decision-next',
-            'This choice is saved. Close the Village Heart to see its Current response.'
-        ));
+        const speakerName = lastResult.snapshot?.heartDecision?.completed
+            ?.find(choice => choice.decisionId === lastResult.decision.id)
+            ?.speakerName || lastResult.decision.participantNames?.[0] || 'A resident';
+        section.append(
+            createElement(
+                'blockquote',
+                'village-decision-resident-line',
+                `"${lastResult.option.residentLine}"`
+            ),
+            createElement(
+                'p',
+                'village-decision-resident-name',
+                `${speakerName.toUpperCase()} · THIS MEMORY REMAINS IN THE SANCTUARY`
+            ),
+            createElement(
+                'p',
+                'village-decision-next',
+                'This choice is saved. Close the Village Heart to see its Current response.'
+            )
+        );
     }
     return section;
 }

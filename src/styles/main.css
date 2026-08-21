@@ -1331,6 +1331,25 @@ body.game-mode {
   font-weight: 800;
 }
 
+.village-decision-resident-line {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 9px 12px 5px;
+  color: #f4f4f4;
+  border-left: 3px solid #71e6b1;
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1.45;
+}
+
+.village-decision-resident-name {
+  grid-column: 1 / -1;
+  margin: -4px 0 0 15px;
+  color: #8fe3cf;
+  font-size: 7px;
+  font-weight: 900;
+}
+
 .village-decision-options {
   display: grid;
   grid-column: 1 / -1;
@@ -2529,6 +2548,15 @@ body.game-mode {
   .village-decision-participants,
   .village-decision-next {
     font-size: 10px;
+  }
+
+  .village-decision-resident-line {
+    padding: 9px 10px 5px;
+    font-size: 11px;
+  }
+
+  .village-decision-resident-name {
+    font-size: 8px;
   }
 
   .village-command-vision {
