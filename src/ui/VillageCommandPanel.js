@@ -163,6 +163,7 @@ export default class VillageCommandPanel {
         this.statusMessage = '';
         this.keyboardHandler = null;
         this.refreshTimer = null;
+        this.inputActivationTimer = null;
         this.physicsWasPaused = false;
         this.physicsSuspended = false;
         this.restoreMobileControls = false;
@@ -187,6 +188,7 @@ export default class VillageCommandPanel {
         this.onAssign = onAssign;
         this.onTick = onTick;
         this.onClose = onClose;
+        this.statusMessage = '';
         const requestedPlot = snapshot.plots.find(plot => plot.id === plotId);
         this.selectedPlotId = requestedPlot?.id || null;
         this.contextual = Boolean(this.selectedPlotId);
@@ -222,6 +224,10 @@ export default class VillageCommandPanel {
             destroy: () => root.remove()
         };
         requestAnimationFrame(() => root.classList.add('is-visible'));
+        this.inputActivationTimer = window.setTimeout(() => {
+            if (this.root === root) root.classList.add('accepts-input');
+            this.inputActivationTimer = null;
+        }, 220);
         this.refreshTimer = window.setInterval(() => {
             this.onTick?.();
             if (this.root) this.render();
@@ -286,7 +292,11 @@ export default class VillageCommandPanel {
             const item = createElement('div', 'village-resource');
             item.dataset.resource = resource.id;
             item.style.setProperty('--resource-color', resource.color);
+            const icon = createElement('span', 'village-resource-icon');
+            icon.dataset.resource = resource.id;
+            icon.setAttribute('aria-hidden', 'true');
             item.append(
+                icon,
                 createElement('span', 'village-resource-label', resource.label),
                 createElement('strong', 'village-resource-value', String(snapshot.resources[resource.id])),
                 createElement(
@@ -300,7 +310,13 @@ export default class VillageCommandPanel {
             resources.append(item);
         });
         const capacity = createElement('div', 'village-resource village-resource-capacity');
+        const capacityIcon = createElement(
+            'span',
+            'village-resource-icon village-capacity-icon'
+        );
+        capacityIcon.setAttribute('aria-hidden', 'true');
         capacity.append(
+            capacityIcon,
             createElement('span', 'village-resource-label', 'HOME CAPACITY'),
             createElement('strong', 'village-resource-value', String(snapshot.capacity))
         );
@@ -647,6 +663,8 @@ export default class VillageCommandPanel {
         if (!this.domElement) return;
         if (this.refreshTimer) window.clearInterval(this.refreshTimer);
         this.refreshTimer = null;
+        if (this.inputActivationTimer) window.clearTimeout(this.inputActivationTimer);
+        this.inputActivationTimer = null;
         if (this.keyboardHandler) window.removeEventListener('keydown', this.keyboardHandler);
         this.keyboardHandler = null;
         if (this.restoreMobileControls) this.scene.mobileControls?.resume?.();
@@ -663,6 +681,7 @@ export default class VillageCommandPanel {
         this.root = null;
         this.selectedPlotId = null;
         this.contextual = false;
+        this.statusMessage = '';
         const closeHandler = this.onClose;
         this.getSnapshot = null;
         this.onPlace = null;

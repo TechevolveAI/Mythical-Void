@@ -742,11 +742,15 @@ body.game-mode {
   font-family: 'Poppins', 'Inter', system-ui, sans-serif;
   opacity: 0;
   transition: opacity 180ms ease;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .village-command-modal.is-visible {
   opacity: 1;
+}
+
+.village-command-modal.accepts-input {
+  pointer-events: auto;
 }
 
 .village-command-shell {
@@ -802,7 +806,7 @@ body.game-mode {
 
 .village-command-close,
 .village-invite-button {
-  min-height: 38px;
+  min-height: 44px;
   padding: 8px 13px;
   color: #06100e;
   background: #8fe3cf;
@@ -953,7 +957,7 @@ body.game-mode {
 }
 
 .village-resource-rate {
-  grid-column: 1 / -1;
+  grid-column: 2 / -1;
   color: #8fe3cf;
   font-size: 7px;
   font-weight: 800;
@@ -1913,7 +1917,7 @@ body.game-mode {
 
 .village-creature-select {
   min-width: 130px;
-  min-height: 38px;
+  min-height: 44px;
   padding: 7px 28px 7px 9px;
   color: #eef6f4;
   background: #10191e;
@@ -2032,22 +2036,22 @@ body.game-mode {
   }
 
   .village-resource-ledger {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .village-resource {
-    min-height: 41px;
-    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 46px;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
     gap: 4px;
     padding: 5px 7px;
   }
 
   .village-resource-capacity {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
   }
 
   .village-resource-value {
-    grid-column: 2;
+    grid-column: 3;
     font-size: 13px;
   }
 
@@ -2057,7 +2061,7 @@ body.game-mode {
   }
 
   .village-resource-capacity .village-resource-value {
-    grid-column: 2;
+    grid-column: 3;
   }
 
   .village-resource-label {
@@ -2119,7 +2123,19 @@ body.game-mode {
 
   .village-command-body {
     display: block;
+    overflow: visible;
+  }
+
+  .village-command-shell {
+    overflow-x: hidden;
     overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .village-command-header {
+    position: sticky;
+    top: 0;
+    z-index: 3;
   }
 
   .village-building-catalog,
@@ -2229,6 +2245,10 @@ body.game-mode {
     overscroll-behavior: contain;
   }
 
+  .village-command-modal.is-contextual .village-command-shell {
+    overflow: hidden;
+  }
+
   .village-command-modal.is-contextual .village-building-catalog {
     padding: 10px;
   }
@@ -2257,6 +2277,10 @@ body.game-mode {
 }
 
 @media (max-height: 620px) and (orientation: landscape) {
+  .village-resource-ledger {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
   .village-command-shell {
     width: min(1120px, 100%);
   }

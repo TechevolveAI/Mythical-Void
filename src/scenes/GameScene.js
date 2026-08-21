@@ -1684,6 +1684,16 @@ class GameScene extends Phaser.Scene {
                     this.villageHeartLandmark,
                     result.snapshot
                 );
+                if (result.changed) {
+                    const building = result.snapshot.buildings.find(
+                        entry => entry.id === result.buildingId
+                    );
+                    this.worldBuilder.playVillageBuildingMoment(
+                        this.villageHeartLandmark,
+                        building,
+                        { stage: 'construction' }
+                    );
+                }
                 return result;
             },
             onAssign: request => {
@@ -1698,6 +1708,7 @@ class GameScene extends Phaser.Scene {
                 return result;
             },
             onTick: () => {
+                const previous = getVillageSnapshot(previewState);
                 const snapshot = reconcileVillageSettlement(previewState, {
                     save: false
                 });
@@ -1705,6 +1716,7 @@ class GameScene extends Phaser.Scene {
                     this.villageHeartLandmark,
                     snapshot
                 );
+                this.notifyVillageProgress(previous, snapshot);
                 return snapshot;
             }
         };
@@ -7983,6 +7995,11 @@ class GameScene extends Phaser.Scene {
             building.status === 'complete' && !previousComplete.has(building.id)
         ));
         if (completed) {
+            this.worldBuilder?.playVillageBuildingMoment?.(
+                this.villageHeartLandmark,
+                completed,
+                { stage: 'complete' }
+            );
             this.showVillageCompletionMoment(completed);
             this.showInteractionHint(
                 `${completed.definition.shortLabel} online · ${completed.definition.immediateImpact}`
@@ -8023,7 +8040,7 @@ class GameScene extends Phaser.Scene {
         const { width } = this.cameras.main;
         const compact = width < 600;
         const panelWidth = Math.min(width - (compact ? 24 : 48), compact ? 350 : 480);
-        const panelHeight = compact ? 110 : 122;
+        const panelHeight = compact ? 142 : 150;
         const x = width / 2;
         const y = compact ? 116 : 96;
         const container = this.add.container(x, y)
@@ -8051,13 +8068,19 @@ class GameScene extends Phaser.Scene {
             fontStyle: 'bold',
             color: '#F4F4F4'
         });
-        const impact = this.add.text(textX, -panelHeight / 2 + 64, building.definition.immediateImpact, {
+        const story = this.add.text(textX, -panelHeight / 2 + 64, building.definition.completionCopy, {
             fontFamily: 'Arial, sans-serif',
-            fontSize: compact ? '10px' : '12px',
-            color: '#8FE3CF',
+            fontSize: compact ? '10px' : '11px',
+            color: '#F4F4F4',
             wordWrap: { width: panelWidth - (artwork ? (compact ? 136 : 154) : 40) }
         });
-        container.add([panel, signal, ...(artwork ? [artwork] : []), heading, title, impact]);
+        const impact = this.add.text(textX, -panelHeight / 2 + (compact ? 105 : 108), building.definition.worldEffectLabel, {
+            fontFamily: 'Arial, sans-serif',
+            fontSize: compact ? '10px' : '11px',
+            fontStyle: 'bold',
+            color: '#8FE3CF'
+        });
+        container.add([panel, signal, ...(artwork ? [artwork] : []), heading, title, story, impact]);
         this.villageCompletionMoment = container;
 
         this.tweens.add({
@@ -8098,8 +8121,8 @@ class GameScene extends Phaser.Scene {
                 if (this._isShuttingDown) return;
                 const previous = getVillageSnapshot(window.GameState);
                 const snapshot = reconcileVillageSettlement(window.GameState);
-                this.notifyVillageProgress(previous, snapshot);
                 this.refreshVillageSettlementWorld(snapshot);
+                this.notifyVillageProgress(previous, snapshot);
             }
         });
     }
@@ -8122,6 +8145,14 @@ class GameScene extends Phaser.Scene {
                 const result = placeVillageBuilding(window.GameState, request);
                 this.refreshVillageSettlementWorld(result.snapshot, { force: true });
                 if (result.changed) {
+                    const building = result.snapshot?.buildings?.find(
+                        entry => entry.id === result.buildingId
+                    );
+                    this.worldBuilder?.playVillageBuildingMoment?.(
+                        this.villageHeartLandmark,
+                        building,
+                        { stage: 'construction' }
+                    );
                     window.AudioManager?.playAchievement?.();
                     window.AchievementSystem?.recordEvent?.('story_interaction', {
                         event: 'village_construction_started',
@@ -8149,8 +8180,8 @@ class GameScene extends Phaser.Scene {
             onTick: () => {
                 const previous = getVillageSnapshot(window.GameState);
                 const next = reconcileVillageSettlement(window.GameState);
-                this.notifyVillageProgress(previous, next);
                 this.refreshVillageSettlementWorld(next);
+                this.notifyVillageProgress(previous, next);
                 return next;
             },
             onClose: () => {

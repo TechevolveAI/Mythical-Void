@@ -85,12 +85,15 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('this.scene.physics.pause()');
         expect(source).toContain('this.scene.mobileControls?.suspend?.()');
         expect(source).toContain('this.scene.mobileControls?.resume?.()');
+        expect(source).toContain("root.classList.add('accepts-input')");
+        expect(source).toContain('this.inputActivationTimer');
         expect(source).toContain('this.scene.physics?.world');
         expect(source).toContain('this.scene.physics.resume()');
         expect(source).toContain('BUILD NEXT');
         expect(source).toContain('village-next-step');
         expect(source).toContain('BUILD ${selectedDefinition.shortLabel} HERE');
         expect(source).toContain('this.selectedPlotId');
+        expect(source).toContain("createElement('span', 'village-resource-icon')");
         expect(source).toContain("root.classList.add('is-contextual')");
         expect(source).toContain('requestedPlot?.building?.definitionId');
         expect(source).toContain('const contextualBuilding = selectedPlot?.building');
@@ -102,6 +105,7 @@ describe('Village settlement gameplay contract', () => {
         const theme = read('systems/UITheme.js');
 
         expect(css).toContain('@media (max-width: 680px)');
+        expect(css).toContain('.village-command-modal.accepts-input');
         expect(css).toContain('.village-command-body');
         expect(css).toContain('overflow-y: auto;');
         expect(css).toContain('grid-template-columns: repeat(2, minmax(0, 1fr));');
@@ -129,6 +133,7 @@ describe('Village settlement gameplay contract', () => {
         expect(village).toContain("url: '/game/village/world/shared-habitat.webp'");
         expect(village).toContain("url: '/game/village/world/discovery-workshop.webp'");
         expect(village).toContain("worldEffectLabel: 'FEEDING · +5 HAPPINESS'");
+        expect(village).toContain('completionCopy:');
         expect(panel).toContain('`HELPS NOW · ${definition.immediateImpact}`');
         expect(panel).toContain('`UNLOCKS · ${definition.extensionImpact}`');
         expect(panel).toContain('SETTLEMENT GOAL');
@@ -191,6 +196,8 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('VILLAGE_WORLD_ARTWORK.heart.key');
         expect(world).toContain("VILLAGE_WORLD_ARTWORK[building.definitionId]");
         expect(world).toContain('this.createVillageBuildingActivity(building)');
+        expect(world).toContain('playVillageBuildingMoment(');
+        expect(world).toContain('getVillageWorldGuidance(snapshot)');
         expect(world).toContain('definition.worldEffectLabel');
         expect(world).toContain("'BUILD HERE'");
         expect(world).toContain('Phaser.BlendModes.ADD');

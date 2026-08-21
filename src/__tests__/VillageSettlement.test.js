@@ -22,6 +22,7 @@ function loadVillageSettlement() {
                 VILLAGE_BUILDING_DEFINITIONS,
                 normalizeVillageState,
                 getVillageGameplayEffects,
+                getVillageWorldGuidance,
                 getVillageUnlock,
                 markVillageGuidanceSeen,
                 getVillageCreatureRoster,
@@ -282,5 +283,41 @@ describe('Village settlement phase one', () => {
         const phase = village.getVillageSnapshot(gameState).phase;
         expect(phase.complete).toBe(true);
         expect(phase.title).toBe('PHASE ONE SETTLEMENT ONLINE');
+    });
+
+    test('world guidance prioritizes construction, staffing, building, then completion', () => {
+        const forager = village.VILLAGE_BUILDING_DEFINITIONS[0];
+        const sawmill = village.VILLAGE_BUILDING_DEFINITIONS[1];
+        const snapshot = {
+            buildings: [{
+                status: 'constructing',
+                definition: forager,
+                creature: null
+            }],
+            definitions: []
+        };
+
+        expect(village.getVillageWorldGuidance(snapshot)).toBe(
+            '0/5 RESTORED · FORAGE GROWING'
+        );
+        snapshot.buildings[0].status = 'complete';
+        expect(village.getVillageWorldGuidance(snapshot)).toBe(
+            '1/5 RESTORED · INVITE A HELPER'
+        );
+        snapshot.buildings[0].creature = { id: 'nova' };
+        snapshot.definitions = [{
+            ...sawmill,
+            placement: { available: true }
+        }];
+        expect(village.getVillageWorldGuidance(snapshot)).toBe(
+            '1/5 RESTORED · BUILD SAWMILL'
+        );
+        snapshot.buildings = village.VILLAGE_BUILDING_DEFINITIONS.map(definition => ({
+            status: 'complete',
+            definition,
+            creature: definition.production ? { id: definition.id } : null
+        }));
+        snapshot.definitions = [];
+        expect(village.getVillageWorldGuidance(snapshot)).toBe('SETTLEMENT ONLINE');
     });
 });

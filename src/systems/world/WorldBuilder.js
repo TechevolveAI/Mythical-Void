@@ -11,6 +11,7 @@ import { CURRENT_VEIL_ANCHORS } from '../CurrentVeilMission.js';
 import { getFusionPodLandmarkSnapshot } from '../FusionPodLandmark.js';
 import {
     getVillageSnapshot,
+    getVillageWorldGuidance,
     VILLAGE_BUILDING_DEFINITIONS,
     VILLAGE_PLOTS,
     VILLAGE_WORLD_ARTWORK
@@ -297,7 +298,7 @@ class WorldBuilder {
             stroke: '#071411',
             strokeThickness: 4
         }).setOrigin(0.5).setDepth(y + 5);
-        const label = this.scene.add.text(x, y + 101, 'VILLAGE HEART', {
+        const label = this.scene.add.text(x, y + 105, 'VILLAGE HEART', {
             fontSize: '12px',
             fontFamily: 'Arial, sans-serif',
             color: '#F4F4F4',
@@ -305,7 +306,7 @@ class WorldBuilder {
             stroke: '#050505',
             strokeThickness: 4
         }).setOrigin(0.5).setDepth(y + 4);
-        const statusLabel = this.scene.add.text(x, y + 118, '', {
+        const statusLabel = this.scene.add.text(x, y + 132, '', {
             fontSize: '9px',
             fontFamily: 'Arial, sans-serif',
             color: '#8FE3CF',
@@ -375,6 +376,7 @@ class WorldBuilder {
         landmark.buildingTweens = [];
         landmark.buildingElements = [];
         landmark.plotHitZones = [];
+        landmark.plotWorldPositions = new Map();
         landmark.snapshot = snapshot;
 
         const unlocked = snapshot?.unlock?.unlocked === true;
@@ -391,11 +393,11 @@ class WorldBuilder {
         const compactSettlement = this.scene.scale.width <= 600;
         const plotOffsets = compactSettlement
             ? [
-                { x: -168, y: -182 },
-                { x: 168, y: -182 },
-                { x: -174, y: 86 },
-                { x: 174, y: 86 },
-                { x: 0, y: 224 }
+                { x: -130, y: -174 },
+                { x: 130, y: -174 },
+                { x: -130, y: 86 },
+                { x: 130, y: 86 },
+                { x: 0, y: 218 }
             ]
             : [
                 { x: 210, y: -176 },
@@ -491,7 +493,7 @@ class WorldBuilder {
             .setColor(unlocked ? '#F2C14E' : '#93A2A9');
         statusLabel
             .setText(unlocked
-                ? `${snapshot.buildings.length}/${VILLAGE_PLOTS.length} PLACES RESTORED`
+                ? getVillageWorldGuidance(snapshot)
                 : 'HATCH A COMPANION TO WAKE IT'
             )
             .setColor(unlocked ? '#8FE3CF' : '#93A2A9');
@@ -524,6 +526,7 @@ class WorldBuilder {
             const offset = plotOffsets[index];
             const plotX = landmark.zone.x + offset.x;
             const plotY = landmark.zone.y + offset.y;
+            landmark.plotWorldPositions.set(plot.id, { x: plotX, y: plotY });
             const building = buildingByPlot.get(plot.id) || null;
             const container = this.scene.add.container(plotX, plotY).setDepth(plotY + 2);
             const drawing = this.scene.add.graphics();
@@ -533,10 +536,12 @@ class WorldBuilder {
                 : null;
             const worldArtwork = worldArtworkDefinition &&
                 this.scene.textures.exists(worldArtworkDefinition.key)
-                ? this.scene.add.image(0, -28, worldArtworkDefinition.key)
+                ? this.scene.add.image(0, compactSettlement ? -20 : -28, worldArtworkDefinition.key)
                     .setDisplaySize(
-                        worldArtworkDefinition.displaySize || 176,
-                        worldArtworkDefinition.displaySize || 176
+                        (worldArtworkDefinition.displaySize || 176) *
+                            (compactSettlement ? 0.76 : 1),
+                        (worldArtworkDefinition.displaySize || 176) *
+                            (compactSettlement ? 0.76 : 1)
                     )
                 : null;
             drawing.fillStyle(0x102B26, building ? 0.7 : 0.36);
@@ -597,7 +602,11 @@ class WorldBuilder {
                     : 'DORMANT';
             const stateVisibleAtRest = !building ||
                 building.status === 'constructing' ||
-                Boolean(definition?.production && !building.creature);
+                Boolean(
+                    !compactSettlement &&
+                    definition?.production &&
+                    !building.creature
+                );
             const plotLabel = this.scene.add.text(
                 0,
                 worldArtwork ? 63 : 45,
@@ -686,7 +695,12 @@ class WorldBuilder {
                 ease: 'Sine.easeInOut'
             }));
 
-            const plotHitZone = this.scene.add.zone(plotX, plotY - 10, 168, 164)
+            const plotHitZone = this.scene.add.zone(
+                plotX,
+                plotY - 10,
+                compactSettlement ? 132 : 168,
+                compactSettlement ? 132 : 164
+            )
                 .setDepth(plotY + 6)
                 .setInteractive({ useHandCursor: unlocked });
             plotHitZone.plotId = plot.id;
@@ -720,6 +734,66 @@ class WorldBuilder {
                 }));
             }
         });
+    }
+
+    playVillageBuildingMoment(landmark, building, { stage = 'complete' } = {}) {
+        const position = landmark?.plotWorldPositions?.get(building?.plotId);
+        if (!position || !building?.definition) return false;
+
+        landmark.activeBuildingMoment?.destroy?.(true);
+        landmark.activeBuildingMomentTween?.stop?.();
+        const complete = stage === 'complete';
+        const container = this.scene.add.container(position.x, position.y - 18)
+            .setDepth(position.y + 30);
+        const current = this.scene.add.graphics();
+        current.lineStyle(complete ? 5 : 3, complete ? 0x71E6B1 : 0xF2C14E, 0.95);
+        current.strokeEllipse(0, 30, 116, 44);
+        current.lineStyle(2, 0xF4F4F4, 0.82);
+        current.strokeEllipse(0, 30, 82, 30);
+        current.setBlendMode?.(Phaser.BlendModes.ADD);
+        const signal = this.scene.add.circle(0, -70, complete ? 9 : 7, complete ? 0x71E6B1 : 0xF2C14E, 1)
+            .setStrokeStyle(2, 0xF4F4F4, 0.9);
+        const title = this.scene.add.text(
+            0,
+            -104,
+            complete
+                ? `${building.definition.shortLabel} ONLINE`
+                : `${building.definition.shortLabel} PLANTED`,
+            {
+                fontSize: '12px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: complete ? '#8FE3CF' : '#F2C14E',
+                stroke: '#050505',
+                strokeThickness: 4
+            }
+        ).setOrigin(0.5);
+        container.add([current, signal, title]);
+        landmark.activeBuildingMoment = container;
+        landmark.activeBuildingMomentTween = this.scene.tweens.add({
+            targets: current,
+            scaleX: { from: 0.45, to: 1.55 },
+            scaleY: { from: 0.45, to: 1.55 },
+            alpha: { from: 1, to: 0 },
+            duration: complete ? 1500 : 1100,
+            ease: 'Sine.easeOut'
+        });
+        this.scene.tweens.add({
+            targets: [signal, title],
+            y: '-=14',
+            alpha: { from: 1, to: 0 },
+            delay: complete ? 1150 : 850,
+            duration: 650,
+            ease: 'Sine.easeIn',
+            onComplete: () => {
+                container.destroy(true);
+                if (landmark.activeBuildingMoment === container) {
+                    landmark.activeBuildingMoment = null;
+                    landmark.activeBuildingMomentTween = null;
+                }
+            }
+        });
+        return true;
     }
 
     createVillageBuildingActivity(building) {
@@ -3703,21 +3777,23 @@ class WorldBuilder {
         return signs;
     }
 
-        destroy() {
-            this.villageHeart?.pulseTween?.stop?.();
-            this.villageHeart?.heartArtworkTween?.stop?.();
-            this.villageHeart?.buildingTweens?.forEach(tween => tween?.stop?.());
+    destroy() {
+        this.villageHeart?.pulseTween?.stop?.();
+        this.villageHeart?.heartArtworkTween?.stop?.();
+        this.villageHeart?.buildingTweens?.forEach(tween => tween?.stop?.());
+        this.villageHeart?.activeBuildingMomentTween?.stop?.();
+        this.villageHeart?.activeBuildingMoment?.destroy?.(true);
         this.villageHeart?.buildingElements?.forEach(
             element => element?.destroy?.(true)
         );
-            this.villageHeart?.zone?.destroy?.();
-            this.villageHeart?.plotHitZones?.forEach(zone => zone?.destroy?.());
-            this.villageHeart?.districtTerrain?.destroy?.();
-            this.villageHeart?.currentPaths?.destroy?.();
-            this.villageHeart?.heart?.destroy?.();
-            this.villageHeart?.heartArtwork?.destroy?.();
-            this.villageHeart?.glow?.destroy?.();
-            this.villageHeart?.actionLabel?.destroy?.();
+        this.villageHeart?.zone?.destroy?.();
+        this.villageHeart?.plotHitZones?.forEach(zone => zone?.destroy?.());
+        this.villageHeart?.districtTerrain?.destroy?.();
+        this.villageHeart?.currentPaths?.destroy?.();
+        this.villageHeart?.heart?.destroy?.();
+        this.villageHeart?.heartArtwork?.destroy?.();
+        this.villageHeart?.glow?.destroy?.();
+        this.villageHeart?.actionLabel?.destroy?.();
         this.villageHeart?.label?.destroy?.();
         this.villageHeart?.statusLabel?.destroy?.();
         this.villageHeart = null;
@@ -3737,10 +3813,10 @@ class WorldBuilder {
         this.signalGarden?.guardianResidents?.forEach(resident => {
             resident.moveTween?.stop?.();
             resident.idleTween?.stop?.();
-                resident.routineTween?.stop?.();
-                resident.ambientTween?.stop?.();
-                resident.ambientTimer?.remove?.();
-                resident.routineTimer?.remove?.();
+            resident.routineTween?.stop?.();
+            resident.ambientTween?.stop?.();
+            resident.ambientTimer?.remove?.();
+            resident.routineTimer?.remove?.();
             resident.container?.destroy?.(true);
             resident.zone?.destroy?.();
         });

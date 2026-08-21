@@ -10332,7 +10332,7 @@ async function smokeVillageUi(session, exceptions) {
         action.click();
         return { clicked: true, text };
     })()`);
-    if (!construction.clicked || !/CONSTRUCT FORAGE AT ROOT 01/.test(construction.text || '')) {
+    if (!construction.clicked || !/BUILD FORAGE HERE/.test(construction.text || '')) {
         throw new Error(`Base Builder construction action unavailable: ${JSON.stringify(construction)}`);
     }
     await waitFor(
@@ -10401,6 +10401,7 @@ async function smokeVillageUi(session, exceptions) {
         const shell = document.querySelector('.village-command-shell');
         const close = document.querySelector('.village-command-close');
         const body = document.querySelector('.village-command-body');
+        const resources = document.querySelector('.village-resource-ledger');
         const artworks = [...document.querySelectorAll('.village-building-artwork:not(.is-compact)')];
         const milestones = [...document.querySelectorAll('.village-milestone')];
         const scene = window.mythicalGame.scene.getScene('GameScene');
@@ -10426,6 +10427,11 @@ async function smokeVillageUi(session, exceptions) {
             innerWidth,
             innerHeight,
             bodyScrollWidth: document.body.scrollWidth,
+            acceptsInput: modal.classList.contains('accepts-input'),
+            resourceColumns: getComputedStyle(resources).gridTemplateColumns
+                .split(' ')
+                .filter(Boolean)
+                .length,
             modal: bounds(modal),
             shell: bounds(shell),
             close: bounds(close),
@@ -10486,11 +10492,15 @@ async function smokeVillageUi(session, exceptions) {
         )) ||
         !layout.worldPresentation.districtTerrainActive ||
         !layout.worldPresentation.currentPathsActive ||
-        layout.worldPresentation.actionLabel !== 'TAP TO BUILD' ||
-        !layout.worldPresentation.statusLabel.includes('SITES BUILT') ||
+        layout.worldPresentation.actionLabel !== 'OPEN VILLAGE PLAN' ||
+        !layout.worldPresentation.statusLabel.includes('RESTORED') ||
         layout.worldPresentation.animatedElements < 8 ||
+        !layout.acceptsInput ||
+        layout.resourceColumns !== 2 ||
         !withinViewport(layout.shell) ||
-        !withinViewport(layout.close)
+        !withinViewport(layout.close) ||
+        layout.close.right - layout.close.left < 44 ||
+        layout.close.bottom - layout.close.top < 44
     ) {
         throw new Error(`Village mobile layout overflowed: ${JSON.stringify(layout)}`);
     }
@@ -10501,7 +10511,7 @@ async function smokeVillageUi(session, exceptions) {
         if (!habitat || habitat.disabled) return false;
         habitat.click();
         const plot = [...document.querySelectorAll('.village-plot')]
-            .find(button => button.textContent.includes('ROOT 04'));
+            .find(button => button.textContent.includes('SHELTER GROVE'));
         if (!plot || plot.disabled) return false;
         plot.click();
         return true;
@@ -10522,17 +10532,22 @@ async function smokeVillageUi(session, exceptions) {
         const lastInvite = invites[invites.length - 1];
         const close = document.querySelector('.village-command-close');
         const rect = lastInvite?.getBoundingClientRect();
+        const selectRect = lastInvite?.previousElementSibling?.getBoundingClientRect();
         return {
             status: document.querySelector('.village-command-status')?.textContent,
             habitatPresent: [...document.querySelectorAll('.village-plot')]
                 .some(plot => plot.textContent.includes('HABITAT')),
             inviteVisible: Boolean(rect && rect.left >= 0 && rect.right <= innerWidth),
+            inviteHeight: rect?.height || 0,
+            selectHeight: selectRect?.height || 0,
             closeVisible: Boolean(close && close.getBoundingClientRect().right <= innerWidth)
         };
     })()`);
     if (
         !interaction.habitatPresent ||
         !interaction.inviteVisible ||
+        interaction.inviteHeight < 44 ||
+        interaction.selectHeight < 44 ||
         !interaction.closeVisible ||
         exceptions.length
     ) {
@@ -10558,7 +10573,7 @@ async function smokeVillageUi(session, exceptions) {
         throw new Error('Village world build site was not directly tappable');
     }
     await waitFor(
-        () => evaluate(session, `Boolean(document.querySelector('.village-command-modal.is-visible'))`),
+        () => evaluate(session, `Boolean(document.querySelector('.village-command-modal.accepts-input'))`),
         { message: 'Village Builder reopened from world build site' }
     );
 
