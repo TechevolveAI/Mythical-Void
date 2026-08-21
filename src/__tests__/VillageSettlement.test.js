@@ -20,6 +20,7 @@ function loadVillageSettlement() {
                 VILLAGE_RESOURCE_DEFINITIONS,
                 VILLAGE_PLOTS,
                 VILLAGE_BUILDING_DEFINITIONS,
+                VILLAGE_COMMUNITY_MOMENT_DEFINITIONS,
                 normalizeVillageState,
                 getVillageGameplayEffects,
                 getVillageWorldGuidance,
@@ -30,6 +31,9 @@ function loadVillageSettlement() {
                 initializeVillageSettlement,
                 reconcileVillageState,
                 reconcileVillageSettlement,
+                getVillageHomeProfile,
+                getVillageCommunityMoments,
+                getVillageCommunityMoment,
                 getVillageSnapshot,
                 placeVillageBuilding,
                 assignCreatureToVillageBuilding
@@ -336,5 +340,90 @@ describe('Village settlement phase one', () => {
             expect(definition.workerRoutine.cue.length).toBeGreaterThan(8);
             expect(definition.workerRoutine.emotionalPurpose.length).toBeGreaterThan(16);
         });
+    });
+
+    test('the Habitat reports named residents without pretending workers are idle', () => {
+        const definitions = new Map(
+            village.VILLAGE_BUILDING_DEFINITIONS.map(definition => [definition.id, definition])
+        );
+        const buildings = [
+            {
+                definitionId: 'forager_hut',
+                definition: definitions.get('forager_hut'),
+                status: 'complete',
+                assignedCreatureId: 'nova'
+            },
+            {
+                definitionId: 'habitat',
+                definition: definitions.get('habitat'),
+                plotId: 'root_04',
+                status: 'complete'
+            }
+        ];
+        const home = village.getVillageHomeProfile(buildings, [
+            { id: 'nova', name: 'Nova' },
+            { id: 'ember', name: 'Ember' },
+            { id: 'lumen', name: 'Lumen' }
+        ]);
+
+        expect(home).toEqual(expect.objectContaining({
+            unlocked: true,
+            capacity: 2,
+            plotId: 'root_04',
+            presentCount: 1,
+            helpingCount: 1
+        }));
+        expect(home.residents).toEqual([
+            expect.objectContaining({ name: 'Nova', atWork: true, workLabel: 'FORAGE' }),
+            expect.objectContaining({ name: 'Ember', atWork: false })
+        ]);
+    });
+
+    test('community moments require real distinct assigned companions', () => {
+        const definitions = new Map(
+            village.VILLAGE_BUILDING_DEFINITIONS.map(definition => [definition.id, definition])
+        );
+        const staffed = (definitionId, plotId, id, name) => ({
+            definitionId,
+            definition: definitions.get(definitionId),
+            plotId,
+            status: 'complete',
+            assignedCreatureId: id,
+            creature: { id, name }
+        });
+        const moments = village.getVillageCommunityMoments({
+            buildings: [
+                staffed('forager_hut', 'root_01', 'nova', 'Nova'),
+                staffed('sawmill', 'root_02', 'ember', 'Ember'),
+                staffed('current_masonry', 'root_03', 'lumen', 'Lumen'),
+                {
+                    definitionId: 'habitat',
+                    definition: definitions.get('habitat'),
+                    plotId: 'root_04',
+                    status: 'complete',
+                    creature: null
+                }
+            ]
+        });
+
+        expect(moments.map(moment => moment.id)).toEqual([
+            'safe_paths',
+            'fallen_timber',
+            'return_home'
+        ]);
+        expect(moments[0]).toEqual(expect.objectContaining({
+            participantNames: ['Nova', 'Lumen'],
+            sharedValue: 'TAKE ONLY WHAT RETURNS'
+        }));
+        expect(village.getVillageCommunityMoment({ communityMoments: moments }, { cycle: 4 }).id)
+            .toBe('fallen_timber');
+
+        const duplicate = village.getVillageCommunityMoments({
+            buildings: [
+                staffed('forager_hut', 'root_01', 'nova', 'Nova'),
+                staffed('current_masonry', 'root_03', 'nova', 'Nova')
+            ]
+        });
+        expect(duplicate).toHaveLength(0);
     });
 });

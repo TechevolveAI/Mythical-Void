@@ -127,6 +127,7 @@ import {
 } from '../systems/FusionPodLandmark.js';
 import {
     assignCreatureToVillageBuilding,
+    getVillageCommunityMoment,
     getVillageSnapshot,
     initializeVillageSettlement,
     markVillageGuidanceSeen,
@@ -190,6 +191,9 @@ class GameScene extends Phaser.Scene {
         this.signalGarden = null;
         this.villageHeartLandmark = null;
         this.nearVillageHeart = false;
+        this.villageCommunityMomentIndex = 0;
+        this.lastVillageCommunityMomentAt = 0;
+        this.villageCommunityMomentPending = false;
         this.villageCommandPanel = null;
         this.villageReconcileTimer = null;
         this.villageRenderSignature = null;
@@ -715,6 +719,9 @@ class GameScene extends Phaser.Scene {
         }
         this.nearVillageHeart = false;
         this.villageRenderSignature = null;
+        this.villageCommunityMomentIndex = 0;
+        this.lastVillageCommunityMomentAt = 0;
+        this.villageCommunityMomentPending = false;
 
         // Transition spawn data must not leak across scene restarts.
         this.spawnPosition = data?.spawnPosition || null;
@@ -7955,6 +7962,7 @@ class GameScene extends Phaser.Scene {
                 : `Village Heart offline · ${snapshot.unlock.reason}`
         );
         this.mobileControls?.updateInteractIcon('🏗');
+        this.maybePlayVillageCommunityMoment(snapshot);
     }
 
     getVillageRenderSignature(snapshot) {
@@ -7965,6 +7973,11 @@ class GameScene extends Phaser.Scene {
                 status: building.status,
                 creatureId: building.assignedCreatureId,
                 multiplier: building.workProfile?.multiplier || null
+            })) || [],
+            homeResidents: snapshot?.home?.residents?.map(resident => ({
+                id: resident.id,
+                atWork: resident.atWork,
+                workBuildingId: resident.workBuildingId
             })) || []
         });
     }
@@ -8031,6 +8044,37 @@ class GameScene extends Phaser.Scene {
             );
             window.AudioManager?.playCoin?.();
         }
+    }
+
+    maybePlayVillageCommunityMoment(snapshot, { force = false } = {}) {
+        if (
+            this._isShuttingDown ||
+            !this.nearVillageHeart ||
+            !this.villageHeartLandmark ||
+            !snapshot
+        ) {
+            return false;
+        }
+        const now = this.time?.now || Date.now();
+        if (
+            !force &&
+            this.lastVillageCommunityMomentAt > 0 &&
+            now - this.lastVillageCommunityMomentAt < 14000
+        ) {
+            return false;
+        }
+        const moment = getVillageCommunityMoment(snapshot, {
+            cycle: this.villageCommunityMomentIndex
+        });
+        if (!moment) return false;
+        const played = this.worldBuilder?.playVillageCommunityMoment?.(
+            this.villageHeartLandmark,
+            moment
+        ) === true;
+        if (!played) return false;
+        this.villageCommunityMomentIndex += 1;
+        this.lastVillageCommunityMomentAt = now;
+        return true;
     }
 
     showVillageCompletionMoment(building) {
@@ -8129,6 +8173,7 @@ class GameScene extends Phaser.Scene {
                 const snapshot = reconcileVillageSettlement(window.GameState);
                 this.refreshVillageSettlementWorld(snapshot);
                 this.notifyVillageProgress(previous, snapshot);
+                this.maybePlayVillageCommunityMoment(snapshot);
             }
         });
     }
@@ -8177,6 +8222,7 @@ class GameScene extends Phaser.Scene {
                 this.refreshVillageSettlementWorld(result.snapshot, { force: true });
                 if (result.changed) {
                     this.recordBondActivity('community');
+                    this.villageCommunityMomentPending = true;
                     window.AudioManager?.playButtonClick?.();
                 } else {
                     window.AudioManager?.playError?.();
@@ -8192,6 +8238,13 @@ class GameScene extends Phaser.Scene {
             },
             onClose: () => {
                 this.showInteractionHint('Village Heart plan saved');
+                if (this.villageCommunityMomentPending) {
+                    this.villageCommunityMomentPending = false;
+                    this.maybePlayVillageCommunityMoment(
+                        getVillageSnapshot(window.GameState),
+                        { force: true }
+                    );
+                }
             }
         });
     }
@@ -15993,6 +16046,9 @@ class GameScene extends Phaser.Scene {
         this.villageReconcileTimer = null;
         this.villageHeartLandmark = null;
         this.nearVillageHeart = false;
+        this.villageCommunityMomentIndex = 0;
+        this.lastVillageCommunityMomentAt = 0;
+        this.villageCommunityMomentPending = false;
         this.recoveryLogModal?.destroy?.();
         this.recoveryLogModal = null;
 

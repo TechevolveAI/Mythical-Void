@@ -10385,6 +10385,13 @@ async function smokeVillageUi(session, exceptions) {
         { timeoutMs: 45000, message: 'Village Heart command panel' }
     );
     await waitFor(
+        () => evaluate(
+            session,
+            `Boolean(document.querySelector('.village-command-modal.accepts-input'))`
+        ),
+        { timeoutMs: 12000, message: 'Village Heart actionable input state' }
+    );
+    await waitFor(
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('GameScene');
             const landmark = scene?.villageHeartLandmark;
@@ -10409,6 +10416,12 @@ async function smokeVillageUi(session, exceptions) {
         const worldStructures = (landmark?.buildingElements || [])
             .filter(element => element?.type === 'Container');
         const workers = landmark?.workerElements || [];
+        const communityPanel = document.querySelector('.village-community-pulse');
+        const communityMoment = landmark?.snapshot?.communityMoments?.[0] || null;
+        const communityMomentStarted = scene.worldBuilder.playVillageCommunityMoment(
+            landmark,
+            communityMoment
+        );
         const productionMomentStarted = scene.worldBuilder.playVillageProductionMoment(
             landmark,
             landmark.snapshot,
@@ -10455,6 +10468,16 @@ async function smokeVillageUi(session, exceptions) {
                 milestoneCount: milestones.length,
                 completedMilestones: milestones.filter(item => item.classList.contains('is-complete')).length
             },
+            community: {
+                panelPresent: Boolean(communityPanel),
+                momentId: communityPanel?.dataset?.moment || '',
+                identityCount: document.querySelectorAll('.village-community-person').length,
+                line: document.querySelector('.village-community-line')?.textContent || '',
+                value: document.querySelector('.village-community-value')?.textContent || '',
+                momentStarted: communityMomentStarted,
+                worldElementCount: landmark?.communityMomentElements?.length || 0,
+                worldParticipants: landmark?.activeCommunityMoment?.getData('participantNames') || []
+            },
             worldPresentation: {
                 structureCount: worldStructures.length,
                 plotHitZones,
@@ -10477,6 +10500,7 @@ async function smokeVillageUi(session, exceptions) {
             }
         };
     })()`);
+    await captureGameplayStill(session, 'village-community-mobile.png');
     const withinViewport = rect =>
         rect.left >= -1 && rect.right <= layout.innerWidth + 1 &&
         rect.top >= -1 && rect.bottom <= layout.innerHeight + 1;
@@ -10492,6 +10516,14 @@ async function smokeVillageUi(session, exceptions) {
         new Set(layout.artworks.map(artwork => artwork.backgroundImage)).size !== 5 ||
         layout.phase.milestoneCount !== 4 ||
         !layout.phase.title ||
+        !layout.community.panelPresent ||
+        !layout.community.momentId ||
+        layout.community.identityCount !== 2 ||
+        !layout.community.line ||
+        !layout.community.value ||
+        !layout.community.momentStarted ||
+        layout.community.worldElementCount !== 3 ||
+        layout.community.worldParticipants.length !== 2 ||
         layout.worldPresentation.structureCount !== 5 ||
         layout.worldPresentation.plotHitZones.length !== 5 ||
         layout.worldPresentation.plotHitZones.some(bounds => (

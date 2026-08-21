@@ -98,6 +98,67 @@ function createVillageVision() {
     return vision;
 }
 
+function createCommunityPulse(snapshot) {
+    const section = createElement('section', 'village-community-pulse');
+    const home = snapshot?.home || {};
+    const moment = snapshot?.communityMoments?.[0] || null;
+    const identity = createElement('div', 'village-community-identities');
+
+    if (moment) {
+        moment.participants.forEach(participant => {
+            const person = createElement('span', 'village-community-person');
+            person.append(
+                createCreatureAvatar(participant),
+                createElement('strong', '', participant.name),
+                createElement('span', '', participant.roleLabel)
+            );
+            identity.append(person);
+        });
+    } else {
+        const empty = createElement('span', 'village-community-empty-signal', '2');
+        empty.setAttribute('aria-hidden', 'true');
+        identity.append(empty);
+    }
+
+    const copy = createElement('div', 'village-community-copy');
+    copy.append(
+        createElement('span', 'village-community-kicker', 'COMMUNITY LIFE'),
+        createElement(
+            'strong',
+            'village-community-title',
+            moment ? moment.title : 'INVITE TWO COMPANIONS'
+        ),
+        createElement(
+            'span',
+            'village-community-line',
+            moment
+                ? moment.line
+                : 'When companions help at different structures, their knowledge meets at the Heart.'
+        ),
+        createElement(
+            'span',
+            'village-community-value',
+            moment ? moment.sharedValue : 'RELATIONSHIPS UNLOCK HERE'
+        )
+    );
+
+    const homeStatus = createElement('div', 'village-community-home');
+    homeStatus.append(
+        createElement('span', 'village-community-home-icon'),
+        createElement('strong', '', home.unlocked ? 'SHARED HOME' : 'HOME NOT BUILT'),
+        createElement(
+            'span',
+            '',
+            home.unlocked
+                ? `${home.residents.length}/${home.capacity} residents · ${home.helpingCount} helping now`
+                : 'Build the Habitat to give rescued friends a place they choose.'
+        )
+    );
+    section.dataset.moment = moment?.id || 'locked';
+    section.append(identity, copy, homeStatus);
+    return section;
+}
+
 function formatCost(cost = {}) {
     return VILLAGE_RESOURCE_DEFINITIONS
         .filter(resource => Number(cost[resource.id]) > 0)
@@ -254,6 +315,7 @@ export default class VillageCommandPanel {
                 building => building.id === selectedPlot.building.id
             ) || null
             : null;
+        const settlementComplete = snapshot.phase.complete && !this.contextual;
 
         this.root.replaceChildren();
         const shell = createElement('section', 'village-command-shell');
@@ -331,7 +393,9 @@ export default class VillageCommandPanel {
                         ? contextualBuilding
                             ? `${contextualBuilding.definition.immediateImpact} ${contextualBuilding.definition.extensionImpact}`
                             : 'Choose a structure. You will see its immediate benefit before spending supplies.'
-                        : 'Choose what to restore next, or invite a companion to help at a completed building.'
+                        : settlementComplete
+                            ? 'Phase one is online. Review relationships, invite helpers, or prepare for the next expedition.'
+                            : 'Choose what to restore next, or invite a companion to help at a completed building.'
                     : snapshot.unlock.reason
             )
         );
@@ -451,7 +515,9 @@ export default class VillageCommandPanel {
                         : 'ACTIVE BENEFIT'
                     : this.contextual
                         ? 'YOUR CHOICE'
-                        : 'BUILD NEXT'
+                        : settlementComplete
+                            ? 'SETTLEMENT READY'
+                            : 'BUILD NEXT'
             ),
             createElement(
                 'p',
@@ -460,6 +526,8 @@ export default class VillageCommandPanel {
                     ? `${contextualBuilding.definition.shortLabel} · ${contextualBuilding.status.toUpperCase()}`
                     : this.contextual
                     ? selectedPlot?.label || 'OPEN GROUND'
+                    : settlementComplete
+                        ? 'PHASE ONE COMPLETE'
                     : selectedDefinition
                         ? `PLACING · ${selectedDefinition.shortLabel}`
                         : 'SELECT A STRUCTURE'
@@ -475,6 +543,8 @@ export default class VillageCommandPanel {
             'village-next-step',
             contextualBuilding
                 ? contextualBuilding.definition.immediateImpact
+                : settlementComplete
+                    ? 'All five foundations are active. Meet the residents or review a structure\'s contribution.'
                 : getConstructionStepCopy(
                     selectedDefinition,
                     firstOpenPlot,
@@ -489,6 +559,8 @@ export default class VillageCommandPanel {
             'village-construct-action',
             contextualBuilding
                 ? `ACTIVE · ${contextualBuilding.definition.worldEffectLabel}`
+                : settlementComplete
+                    ? 'PHASE ONE COMPLETE · EXPEDITIONS SUPPORTED'
                 : selectedDefinition?.placement.available && firstOpenPlot
                 ? `BUILD ${selectedDefinition.shortLabel} HERE · ${formatCost(selectedDefinition.cost)}`
                 : selectedDefinition
@@ -522,6 +594,8 @@ export default class VillageCommandPanel {
             'village-construction-guide',
             contextualBuilding
                 ? contextualBuilding.definition.extensionImpact
+                : settlementComplete
+                    ? 'Each structure now changes care, capacity, or expedition support.'
                 : canConstruct
                 ? `${selectedDefinition.immediateImpact} This will use the supplies shown on the button.`
                 : 'Choose a building marked READY. The exact cost will appear before you confirm.'
@@ -661,7 +735,11 @@ export default class VillageCommandPanel {
         }
         body.append(catalog, plan);
         shell.append(header, resources, status);
-        if (!this.contextual) shell.append(phase, createVillageVision());
+        if (!this.contextual) {
+            shell.append(phase, createCommunityPulse(snapshot), createVillageVision());
+        } else if (contextualBuilding?.definitionId === 'habitat') {
+            shell.append(createCommunityPulse(snapshot));
+        }
         shell.append(body);
         this.root.append(shell);
     }

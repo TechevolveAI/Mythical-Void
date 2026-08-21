@@ -96,6 +96,9 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain("createElement('span', 'village-resource-icon')");
         expect(source).toContain('village-assignment-routine');
         expect(source).toContain('workerRoutine.emotionalPurpose');
+        expect(source).toContain('createCommunityPulse(snapshot)');
+        expect(source).toContain('village-community-pulse');
+        expect(source).toContain('moment.sharedValue');
         expect(source).toContain("root.classList.add('is-contextual')");
         expect(source).toContain('requestedPlot?.building?.definitionId');
         expect(source).toContain('const contextualBuilding = selectedPlot?.building');
@@ -143,6 +146,8 @@ describe('Village settlement gameplay contract', () => {
         expect(css).toContain('@keyframes village-building-breathe');
         expect(css).toContain('@keyframes village-card-current');
         expect(css).toContain('.village-command-modal.is-contextual');
+        expect(css).toContain('.village-community-pulse');
+        expect(css).toContain('.village-community-home');
         expect(css).toContain('scroll-snap-type: x mandatory;');
         expect(css).toContain('font-size: 11px;');
     });
@@ -201,8 +206,13 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('playVillageBuildingMoment(');
         expect(world).toContain('createVillageWorker(');
         expect(world).toContain('createVillageWorkerCargo(');
+        expect(world).toContain('createVillageHabitatLife(');
         expect(world).toContain('playVillageProductionMoment(');
+        expect(world).toContain('playVillageCommunityMoment(');
+        expect(world).toContain("container.setData('villageHabitatLife', true)");
         expect(world).toContain("worker.setData('villageWorker', true)");
+        expect(scene).toContain('maybePlayVillageCommunityMoment(snapshot');
+        expect(scene).toContain('getVillageCommunityMoment(snapshot');
         expect(world).toContain('getVillageWorldGuidance(snapshot)');
         expect(world).toContain('definition.worldEffectLabel');
         expect(world).toContain("'BUILD HERE'");

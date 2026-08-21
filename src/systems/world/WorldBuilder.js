@@ -371,12 +371,14 @@ class WorldBuilder {
         landmark.pulseTween?.stop?.();
         landmark.heartArtworkTween?.stop?.();
         landmark.buildingTweens?.forEach(tween => tween?.stop?.());
+        this.clearVillageCommunityMoment(landmark);
         landmark.buildingElements?.forEach(element => element?.destroy?.(true));
         landmark.plotHitZones?.forEach(zone => zone?.destroy?.());
         landmark.buildingTweens = [];
         landmark.buildingElements = [];
         landmark.plotHitZones = [];
         landmark.workerElements = [];
+        landmark.residentElements = [];
         landmark.plotWorldPositions = new Map();
         landmark.snapshot = snapshot;
 
@@ -593,6 +595,8 @@ class WorldBuilder {
             const buildingStateCopy = building
                 ? building.status === 'constructing'
                     ? 'GROWING TOGETHER'
+                    : building.definitionId === 'habitat' && snapshot?.home?.unlocked
+                        ? `${snapshot.home.residents.length}/${snapshot.home.capacity} CALL THIS HOME`
                     : definition?.production && !building.creature
                         ? 'INVITE A HELPER'
                         : building.creature
@@ -603,6 +607,7 @@ class WorldBuilder {
                     : 'DORMANT';
             const stateVisibleAtRest = !building ||
                 building.status === 'constructing' ||
+                building.definitionId === 'habitat' ||
                 Boolean(
                     !compactSettlement &&
                     definition?.production &&
@@ -649,12 +654,19 @@ class WorldBuilder {
                     index
                 })
                 : null;
+            const habitatLife = building?.status === 'complete' &&
+                building.definitionId === 'habitat'
+                ? this.createVillageHabitatLife(snapshot?.home, {
+                    compact: compactSettlement
+                })
+                : null;
             container.add([
                 drawing,
                 ...(worldArtwork ? [worldArtwork] : []),
                 ...(building ? [currentSignal] : []),
                 ...(activity ? [activity] : []),
                 ...(worker ? [worker.container] : []),
+                ...(habitatLife ? [habitatLife.container] : []),
                 plotLabel,
                 stateLabel
             ]);
@@ -662,6 +674,10 @@ class WorldBuilder {
             if (worker) {
                 landmark.workerElements.push(worker.container);
                 landmark.buildingTweens.push(worker.moveTween, worker.breatheTween);
+            }
+            if (habitatLife) {
+                landmark.residentElements.push(habitatLife.container);
+                landmark.buildingTweens.push(habitatLife.pulseTween);
             }
             if (building) {
                 landmark.buildingTweens.push(this.scene.tweens.add({
@@ -867,6 +883,66 @@ class WorldBuilder {
         return activity;
     }
 
+    createVillageHabitatLife(home, { compact = false } = {}) {
+        const container = this.scene.add.container(0, compact ? 25 : 31);
+        const residents = Array.isArray(home?.residents) ? home.residents : [];
+        const capacity = Math.max(0, Number(home?.capacity) || 0);
+        const slots = Array.from({ length: capacity }, (_, index) => {
+            const resident = residents[index] || null;
+            const x = (index - ((capacity - 1) / 2)) * 24;
+            const signal = this.scene.add.circle(
+                x,
+                0,
+                9,
+                resident ? (resident.atWork ? 0xF2C14E : 0x71E6B1) : 0x657682,
+                resident ? 0.98 : 0.34
+            ).setStrokeStyle(2, 0x07100F, 0.9);
+            const initial = this.scene.add.text(
+                x,
+                0,
+                resident ? resident.name.slice(0, 1).toUpperCase() : '·',
+                {
+                    fontSize: '8px',
+                    fontFamily: 'Arial, sans-serif',
+                    fontStyle: 'bold',
+                    color: resident ? '#07100F' : '#F4F4F4'
+                }
+            ).setOrigin(0.5);
+            return [signal, initial];
+        }).flat();
+        const status = this.scene.add.text(
+            0,
+            19,
+            residents.length > 0
+                ? `${home.presentCount} HOME · ${home.helpingCount} HELPING`
+                : 'ROOM FOR RESCUED FRIENDS',
+            {
+                fontSize: compact ? '7px' : '8px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#C9F7E9',
+                stroke: '#07100F',
+                strokeThickness: 3
+            }
+        ).setOrigin(0.5);
+        container.add([...slots, status]);
+        container.setData('villageHabitatLife', true);
+        container.setData('residentNames', residents.map(resident => resident.name));
+        container.setData('presentCount', home?.presentCount || 0);
+        container.setData('helpingCount', home?.helpingCount || 0);
+        const pulseTween = this.scene.tweens.add({
+            targets: container,
+            alpha: { from: 0.72, to: 1 },
+            scaleX: { from: 0.96, to: 1.04 },
+            scaleY: { from: 0.96, to: 1.04 },
+            duration: 1450,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        return { container, pulseTween };
+    }
+
     createVillageWorker(building, { compact = false, index = 0 } = {}) {
         const worker = this.scene.add.container(-48, compact ? 28 : 34);
         const accentByAffinity = {
@@ -1016,6 +1092,118 @@ class WorldBuilder {
             landmark.productionTweens.push(tween);
         });
         return landmark.productionMoments.length > 0;
+    }
+
+    playVillageCommunityMoment(landmark, moment) {
+        if (!landmark?.zone || !moment?.participants?.length) return false;
+        const positions = moment.participants
+            .map(participant => landmark.plotWorldPositions?.get(participant.plotId))
+            .filter(Boolean);
+        if (positions.length < 2) return false;
+
+        this.clearVillageCommunityMoment(landmark);
+        const compact = this.scene.scale.width <= 600;
+        const heartPosition = { x: landmark.zone.x, y: landmark.zone.y - 18 };
+        const anchorPosition = landmark.plotWorldPositions?.get(moment.anchorPlotId);
+        const meetingPosition = moment.id === 'return_home' && anchorPosition
+            ? { x: anchorPosition.x, y: anchorPosition.y - 18 }
+            : heartPosition;
+        const path = this.scene.add.graphics()
+            .setDepth(Math.min(...positions.map(position => position.y), landmark.zone.y) - 2);
+        path.lineStyle(3, 0x71E6B1, 0.62);
+        path.beginPath();
+        path.moveTo(positions[0].x, positions[0].y);
+        path.lineTo(meetingPosition.x, meetingPosition.y);
+        path.lineTo(positions[1].x, positions[1].y);
+        path.strokePath();
+        path.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const signal = this.scene.add.circle(
+            positions[0].x,
+            positions[0].y,
+            compact ? 6 : 7,
+            0xF2C14E,
+            1
+        ).setDepth(landmark.zone.y + 12);
+        signal.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const copy = this.scene.add.container(
+            meetingPosition.x,
+            meetingPosition.y - (compact ? 106 : 122)
+        ).setDepth(landmark.zone.y + 14).setAlpha(0);
+        const names = this.scene.add.text(
+            0,
+            -21,
+            moment.participantNames.join(' + ').toUpperCase(),
+            {
+                fontSize: compact ? '9px' : '10px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F2C14E',
+                stroke: '#07100F',
+                strokeThickness: 5
+            }
+        ).setOrigin(0.5);
+        const title = this.scene.add.text(0, -4, moment.title, {
+            fontSize: compact ? '11px' : '13px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#F4F4F4',
+            stroke: '#07100F',
+            strokeThickness: 5
+        }).setOrigin(0.5);
+        const value = this.scene.add.text(0, 15, moment.sharedValue, {
+            fontSize: compact ? '8px' : '9px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#8FE3CF',
+            stroke: '#07100F',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+        copy.add([names, title, value]);
+        copy.setData('villageCommunityMoment', moment.id);
+        copy.setData('participantNames', moment.participantNames);
+        copy.setData('sharedValue', moment.sharedValue);
+
+        const signalTween = this.scene.tweens.add({
+            targets: signal,
+            x: positions[1].x,
+            y: positions[1].y,
+            duration: 4200,
+            ease: 'Sine.easeInOut'
+        });
+        const copyTween = this.scene.tweens.add({
+            targets: copy,
+            alpha: { from: 0, to: 1 },
+            y: copy.y + 6,
+            duration: 380,
+            ease: 'Sine.easeOut'
+        });
+        landmark.communityMomentElements = [path, signal, copy];
+        landmark.communityMomentTweens = [signalTween, copyTween];
+        landmark.activeCommunityMoment = copy;
+        landmark.communityMomentTimer = this.scene.time.delayedCall(4700, () => {
+            if (landmark.activeCommunityMoment !== copy) return;
+            const fadeTween = this.scene.tweens.add({
+                targets: [path, signal, copy],
+                alpha: 0,
+                duration: 420,
+                onComplete: () => this.clearVillageCommunityMoment(landmark)
+            });
+            landmark.communityMomentTweens.push(fadeTween);
+        });
+        return true;
+    }
+
+    clearVillageCommunityMoment(landmark) {
+        landmark?.communityMomentTimer?.remove?.();
+        landmark?.communityMomentTweens?.forEach(tween => tween?.stop?.());
+        landmark?.communityMomentElements?.forEach(element => element?.destroy?.(true));
+        if (!landmark) return;
+        landmark.communityMomentTimer = null;
+        landmark.communityMomentTweens = [];
+        landmark.communityMomentElements = [];
+        landmark.activeCommunityMoment = null;
     }
 
     activateVillageHeart(landmark, plotId = null) {
@@ -3929,6 +4117,7 @@ class WorldBuilder {
         this.villageHeart?.pulseTween?.stop?.();
         this.villageHeart?.heartArtworkTween?.stop?.();
         this.villageHeart?.buildingTweens?.forEach(tween => tween?.stop?.());
+        this.clearVillageCommunityMoment(this.villageHeart);
         this.villageHeart?.productionTweens?.forEach(tween => tween?.stop?.());
         this.villageHeart?.productionMoments?.forEach(
             moment => moment?.destroy?.(true)

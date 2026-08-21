@@ -72,6 +72,38 @@ export const VILLAGE_PLOTS = Object.freeze([
     Object.freeze({ id: 'root_05', label: 'FAR ROOT' })
 ]);
 
+export const VILLAGE_COMMUNITY_MOMENT_DEFINITIONS = Object.freeze([
+    Object.freeze({
+        id: 'safe_paths',
+        buildingIds: Object.freeze(['forager_hut', 'current_masonry']),
+        title: 'A ROUTE BOTH CAN TRUST',
+        exchange: 'map what can regrow while the Current path stays open.',
+        sharedValue: 'TAKE ONLY WHAT RETURNS'
+    }),
+    Object.freeze({
+        id: 'fallen_timber',
+        buildingIds: Object.freeze(['sawmill', 'current_masonry']),
+        title: 'BUILD WITHOUT BLOCKING LIFE',
+        exchange: 'shape what the storms released while loose stone protects the flow.',
+        sharedValue: 'BUILD AROUND THE CURRENT'
+    }),
+    Object.freeze({
+        id: 'shared_tools',
+        buildingIds: Object.freeze(['forager_hut', 'workshop']),
+        title: 'TWO KINDS OF KNOWLEDGE',
+        exchange: 'test a human tool against what the living world already knows.',
+        sharedValue: 'ASK BEFORE CHANGING'
+    }),
+    Object.freeze({
+        id: 'return_home',
+        buildingIds: Object.freeze(['habitat']),
+        minimumWorkers: 2,
+        title: 'THE WORK PAUSES HERE',
+        exchange: 'meet at the shared home and make time to check on each other.',
+        sharedValue: 'A HOME IS MORE THAN CAPACITY'
+    })
+]);
+
 const MINUTE = 60 * 1000;
 
 export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
@@ -685,6 +717,96 @@ function getVillagePhase(buildings) {
     };
 }
 
+export function getVillageHomeProfile(buildings = [], roster = []) {
+    const habitat = buildings.find(building => (
+        building.status === 'complete' && building.definitionId === 'habitat'
+    ));
+    const capacity = habitat?.definition?.capacityBonus || 0;
+    const assignmentByCreature = new Map(
+        buildings
+            .filter(building => (
+                building.status === 'complete' && building.assignedCreatureId
+            ))
+            .map(building => [building.assignedCreatureId, building])
+    );
+    const residents = habitat
+        ? roster.slice(0, capacity).map(creature => {
+            const assignment = assignmentByCreature.get(creature.id) || null;
+            return {
+                id: creature.id,
+                name: creature.name,
+                atWork: Boolean(assignment),
+                workBuildingId: assignment?.definitionId || null,
+                workLabel: assignment?.definition?.shortLabel || null
+            };
+        })
+        : [];
+
+    return {
+        unlocked: Boolean(habitat),
+        plotId: habitat?.plotId || null,
+        capacity,
+        residents,
+        presentCount: residents.filter(resident => !resident.atWork).length,
+        helpingCount: residents.filter(resident => resident.atWork).length
+    };
+}
+
+export function getVillageCommunityMoments({ buildings = [] } = {}) {
+    const completeByDefinition = new Map(
+        buildings
+            .filter(building => building.status === 'complete')
+            .map(building => [building.definitionId, building])
+    );
+    const workers = buildings.filter(building => (
+        building.status === 'complete' && building.creature
+    ));
+
+    return VILLAGE_COMMUNITY_MOMENT_DEFINITIONS
+        .map(definition => {
+            const anchor = completeByDefinition.get(definition.buildingIds[0]);
+            if (!anchor) return null;
+            const participantBuildings = definition.id === 'return_home'
+                ? workers.slice(0, Math.max(2, definition.minimumWorkers || 2))
+                : definition.buildingIds.map(id => completeByDefinition.get(id));
+            if (
+                participantBuildings.length < (definition.minimumWorkers || 2) ||
+                participantBuildings.some(building => !building?.creature)
+            ) {
+                return null;
+            }
+            const participants = participantBuildings.map(building => ({
+                creatureId: building.creature.id,
+                name: building.creature.name,
+                buildingId: building.definitionId,
+                plotId: building.plotId,
+                roleLabel: building.definition.roleLabel
+            }));
+            if (new Set(participants.map(participant => participant.creatureId)).size < 2) {
+                return null;
+            }
+            return {
+                ...definition,
+                participantNames: participants.map(participant => participant.name),
+                participants,
+                anchorPlotId: definition.id === 'return_home'
+                    ? anchor.plotId
+                    : participants[0].plotId,
+                line: `${participants.map(participant => participant.name).join(' and ')} ${definition.exchange}`
+            };
+        })
+        .filter(Boolean);
+}
+
+export function getVillageCommunityMoment(snapshot, { cycle = 0 } = {}) {
+    const moments = Array.isArray(snapshot?.communityMoments)
+        ? snapshot.communityMoments
+        : getVillageCommunityMoments(snapshot);
+    if (moments.length === 0) return null;
+    const index = Math.abs(Math.floor(Number(cycle) || 0)) % moments.length;
+    return moments[index];
+}
+
 export function getVillageSnapshot(gameState, { stateOverride = null } = {}) {
     const state = normalizeVillageState(
         stateOverride || gameState?.get?.('world.village') || {}
@@ -715,6 +837,8 @@ export function getVillageSnapshot(gameState, { stateOverride = null } = {}) {
         ) * cyclesPerMinute;
         return rates;
     }, { wood: 0, stone: 0, food: 0 });
+    const home = getVillageHomeProfile(buildings, roster);
+    const communityMoments = getVillageCommunityMoments({ buildings });
 
     return {
         state,
@@ -734,6 +858,8 @@ export function getVillageSnapshot(gameState, { stateOverride = null } = {}) {
         })),
         phase: getVillagePhase(buildings),
         productionRates,
+        home,
+        communityMoments,
         effects: getVillageGameplayEffects(gameState, { stateOverride: state }),
         capacity: 1 + buildings.reduce(
             (total, building) => total + (

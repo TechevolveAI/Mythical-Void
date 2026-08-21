@@ -1062,6 +1062,136 @@ body.game-mode {
   font-size: 8px;
 }
 
+.village-community-pulse {
+  display: grid;
+  grid-template-columns: auto minmax(260px, 1fr) minmax(190px, 0.55fr);
+  align-items: center;
+  gap: 14px;
+  padding: 10px 15px;
+  background: #0b1715;
+  border-bottom: 1px solid rgba(113, 230, 177, 0.26);
+}
+
+.village-community-identities {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.village-community-person {
+  display: grid;
+  grid-template-columns: 30px auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 6px;
+  min-width: 92px;
+  color: #f4f4f4;
+}
+
+.village-community-person .village-creature-avatar {
+  grid-row: 1 / 3;
+  width: 30px;
+  height: 30px;
+}
+
+.village-community-person strong {
+  align-self: end;
+  font-size: 9px;
+}
+
+.village-community-person > span:last-child {
+  align-self: start;
+  color: #8fe3cf;
+  font-size: 6px;
+  font-weight: 800;
+}
+
+.village-community-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.village-community-kicker {
+  color: #f2c14e;
+  font-size: 7px;
+  font-weight: 900;
+}
+
+.village-community-title {
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.village-community-line {
+  color: #b8c8c4;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.village-community-value {
+  color: #71e6b1;
+  font-size: 7px;
+  font-weight: 900;
+}
+
+.village-community-home {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 7px;
+  padding-left: 12px;
+  color: #f4f4f4;
+  border-left: 1px solid rgba(244, 244, 244, 0.13);
+}
+
+.village-community-home-icon {
+  position: relative;
+  grid-row: 1 / 3;
+  width: 24px;
+  height: 18px;
+  background: #101616;
+  border: 2px solid #8fe3cf;
+  border-radius: 3px;
+}
+
+.village-community-home-icon::before {
+  position: absolute;
+  top: -9px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  background: #3fae62;
+  border: 2px solid #07100f;
+  transform: rotate(45deg);
+  content: '';
+}
+
+.village-community-home strong {
+  align-self: end;
+  font-size: 8px;
+}
+
+.village-community-home > span:last-child {
+  align-self: start;
+  color: #9dafb4;
+  font-size: 7px;
+  line-height: 1.35;
+}
+
+.village-community-empty-signal {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  color: #f2c14e;
+  background: #101616;
+  border: 2px dashed #53616a;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .village-command-vision {
   position: relative;
   display: flex;
@@ -2111,6 +2241,44 @@ body.game-mode {
 
   .village-milestone-track {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .village-community-pulse {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+    gap: 8px;
+    padding: 9px 10px;
+  }
+
+  .village-community-person {
+    min-width: 0;
+    grid-template-columns: 27px minmax(0, 1fr);
+  }
+
+  .village-community-person .village-creature-avatar {
+    width: 27px;
+    height: 27px;
+  }
+
+  .village-community-person > span:last-child {
+    overflow: visible;
+    line-height: 1.15;
+    white-space: normal;
+  }
+
+  .village-community-line {
+    font-size: 10px;
+  }
+
+  .village-community-value {
+    font-size: 9px;
+  }
+
+  .village-community-home {
+    grid-column: 1 / -1;
+    min-height: 38px;
+    padding: 6px 0 0;
+    border-top: 1px solid rgba(244, 244, 244, 0.1);
+    border-left: 0;
   }
 
   .village-command-vision {
