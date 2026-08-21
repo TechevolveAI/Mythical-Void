@@ -1932,6 +1932,79 @@ body.game-mode {
   outline-offset: 2px;
 }
 
+.village-building-options {
+  display: grid;
+  gap: 8px;
+}
+
+/* Plot taps open a world-connected decision sheet, not the full management view. */
+.village-command-modal.is-contextual {
+  align-items: flex-end;
+  background: rgba(2, 8, 8, 0.54);
+  backdrop-filter: blur(3px);
+}
+
+.village-command-modal.is-contextual .village-command-shell {
+  width: min(940px, 100%);
+  max-height: min(720px, 88dvh);
+  background: rgba(8, 18, 17, 0.98);
+  border-color: rgba(143, 227, 207, 0.55);
+  box-shadow: 0 -16px 60px rgba(0, 0, 0, 0.72);
+}
+
+.village-command-modal.is-contextual .village-command-header {
+  background: linear-gradient(90deg, #101916, #162722 58%, #101916);
+}
+
+.village-command-modal.is-contextual .village-command-body {
+  grid-template-columns: minmax(0, 1.55fr) minmax(290px, 0.75fr);
+  min-height: 0;
+}
+
+.village-command-modal.is-contextual .village-building-options {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.village-command-modal.is-contextual .village-building-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0;
+  overflow: hidden;
+  scroll-snap-align: start;
+}
+
+.village-command-modal.is-contextual .village-building-artwork {
+  min-height: 118px;
+}
+
+.village-command-modal.is-contextual .village-building-copy {
+  padding: 10px;
+}
+
+.village-command-modal.is-contextual .village-building-name,
+.village-command-modal.is-contextual .village-site-selection {
+  font-size: 12px;
+}
+
+.village-command-modal.is-contextual .village-building-description,
+.village-command-modal.is-contextual .village-building-impact,
+.village-command-modal.is-contextual .village-building-extension,
+.village-command-modal.is-contextual .village-building-output,
+.village-command-modal.is-contextual .village-building-cost,
+.village-command-modal.is-contextual .village-command-status,
+.village-command-modal.is-contextual .village-next-step,
+.village-command-modal.is-contextual .village-construction-guide {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.village-command-modal.is-contextual .village-construct-action {
+  min-height: 52px;
+  font-size: 12px;
+}
+
 @media (max-width: 680px) {
   .village-command-modal {
     padding-top: max(6px, var(--sat));
@@ -1980,7 +2053,7 @@ body.game-mode {
 
   .village-resource-rate {
     grid-column: 1 / -1;
-    font-size: 5px;
+    font-size: 10px;
   }
 
   .village-resource-capacity .village-resource-value {
@@ -1988,13 +2061,13 @@ body.game-mode {
   }
 
   .village-resource-label {
-    font-size: 6px;
+    font-size: 10px;
   }
 
   .village-command-status {
     min-height: 30px;
     padding: 6px 10px;
-    font-size: 8px;
+    font-size: 11px;
   }
 
   .village-phase-progress {
@@ -2004,7 +2077,7 @@ body.game-mode {
   }
 
   .village-phase-title {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .village-milestone-track {
@@ -2028,7 +2101,7 @@ body.game-mode {
   }
 
   .village-vision-purpose {
-    font-size: 8px;
+    font-size: 11px;
   }
 
   .village-vision-impact {
@@ -2041,7 +2114,7 @@ body.game-mode {
     display: grid;
     grid-template-columns: 1fr;
     gap: 1px;
-    font-size: 7px;
+    font-size: 10px;
   }
 
   .village-command-body {
@@ -2072,7 +2145,7 @@ body.game-mode {
   }
 
   .village-building-impact {
-    font-size: 7px;
+    font-size: 11px;
   }
 
   .village-building-artwork {
@@ -2086,12 +2159,12 @@ body.game-mode {
   .village-next-step {
     margin-top: 8px;
     padding: 8px;
-    font-size: 8px;
+    font-size: 11px;
   }
 
   .village-construct-action {
     min-height: 48px;
-    font-size: 9px;
+    font-size: 12px;
   }
 
   .village-plot-grid {
@@ -2115,6 +2188,71 @@ body.game-mode {
 
   .village-creature-select {
     min-width: 0;
+  }
+
+  .village-command-modal.is-contextual {
+    padding: 0 max(0px, var(--sar)) max(0px, var(--sab)) max(0px, var(--sal));
+  }
+
+  .village-command-modal.is-contextual .village-command-shell {
+    max-height: 82dvh;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .village-command-modal.is-contextual .village-command-eyebrow,
+  .village-command-modal.is-contextual .village-resource-label,
+  .village-command-modal.is-contextual .village-resource-rate {
+    font-size: 10px;
+  }
+
+  .village-command-modal.is-contextual .village-command-title {
+    font-size: 18px;
+  }
+
+  .village-command-modal.is-contextual .village-resource {
+    min-height: 47px;
+    padding: 6px 8px;
+  }
+
+  .village-command-modal.is-contextual .village-command-status {
+    min-height: 40px;
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  .village-command-modal.is-contextual .village-command-body {
+    display: block;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .village-command-modal.is-contextual .village-building-catalog {
+    padding: 10px;
+  }
+
+  .village-command-modal.is-contextual .village-building-options {
+    display: flex;
+    gap: 10px;
+    padding-bottom: 7px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+  }
+
+  .village-command-modal.is-contextual .village-building-card {
+    flex: 0 0 min(76vw, 280px);
+    margin-top: 6px;
+  }
+
+  .village-command-modal.is-contextual .village-building-artwork {
+    min-height: 112px;
+  }
+
+  .village-command-modal.is-contextual .village-site-plan {
+    padding: 10px 10px 14px;
   }
 }
 

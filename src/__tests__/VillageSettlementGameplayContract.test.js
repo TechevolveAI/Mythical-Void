@@ -7,6 +7,19 @@ const read = relativePath => fs.readFileSync(
 );
 
 describe('Village settlement gameplay contract', () => {
+    test('the Living Current vertical-slice world assets ship with the game', () => {
+        const publicRoot = path.join(__dirname, '..', '..', 'public');
+
+        expect(fs.existsSync(path.join(
+            publicRoot,
+            'game/village/world/village-heart.webp'
+        ))).toBe(true);
+        expect(fs.existsSync(path.join(
+            publicRoot,
+            'game/village/world/forager-hut.webp'
+        ))).toBe(true);
+    });
+
     test('the additive save tree persists versioned village resources and structures', () => {
         const source = read('systems/GameState.js');
 
@@ -26,7 +39,9 @@ describe('Village settlement gameplay contract', () => {
         expect(worldSource).toContain('createVillageHeart(');
         expect(worldSource).toContain('refreshVillageSettlement(');
         expect(worldSource).toContain("zone.on('pointerdown', () => this.activateVillageHeart(landmark))");
-        expect(worldSource).toContain("plotHitZone.on('pointerdown', () => this.activateVillageHeart(landmark))");
+        expect(worldSource).toContain(
+            "plotHitZone.on('pointerdown', () => this.activateVillageHeart(landmark, plot.id))"
+        );
         expect(sceneSource).toContain('VILLAGE_HEART_INTERACT_DISTANCE');
         expect(sceneSource).toContain('this.openVillageCommand();');
     });
@@ -62,7 +77,9 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('this.scene.physics.resume()');
         expect(source).toContain('BUILD NEXT');
         expect(source).toContain('village-next-step');
-        expect(source).toContain('CONSTRUCT ${selectedDefinition.shortLabel} AT ${firstOpenPlot.label}');
+        expect(source).toContain('BUILD ${selectedDefinition.shortLabel} HERE');
+        expect(source).toContain('this.selectedPlotId');
+        expect(source).toContain("root.classList.add('is-contextual')");
     });
 
     test('the responsive layout moves to a single scroll surface on mobile', () => {
@@ -90,12 +107,17 @@ describe('Village settlement gameplay contract', () => {
         expect(village).toContain("url: '/game/village/current-masonry.webp'");
         expect(village).toContain("url: '/game/village/shared-habitat.webp'");
         expect(village).toContain("url: '/game/village/discovery-workshop.webp'");
-        expect(panel).toContain('`NOW // ${definition.immediateImpact}`');
-        expect(panel).toContain('`NEXT // ${definition.extensionImpact}`');
-        expect(panel).toContain('PHASE ONE OBJECTIVE');
+        expect(village).toContain("url: '/game/village/world/village-heart.webp'");
+        expect(village).toContain("url: '/game/village/world/forager-hut.webp'");
+        expect(panel).toContain('`HELPS NOW · ${definition.immediateImpact}`');
+        expect(panel).toContain('`UNLOCKS · ${definition.extensionImpact}`');
+        expect(panel).toContain('SETTLEMENT GOAL');
         expect(panel).toContain('snapshot.productionRates');
         expect(css).toContain('@keyframes village-building-breathe');
         expect(css).toContain('@keyframes village-card-current');
+        expect(css).toContain('.village-command-modal.is-contextual');
+        expect(css).toContain('scroll-snap-type: x mandatory;');
+        expect(css).toContain('font-size: 11px;');
     });
 
     test('building promises are connected to care, expeditions, and collection capacity', () => {
@@ -143,10 +165,13 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain('markVillageGuidanceSeen(window.GameState)');
         expect(world).toContain('const compactSettlement = this.scene.scale.width <= 600;');
         expect(world).toContain('districtTerrain.fillEllipse(');
-        expect(world).toContain('currentPaths.lineTo(offset.x, offset.y + 18)');
+        expect(world).toContain('const pathPoints = Array.from({ length: 17 }');
+        expect(world).toContain('currentPaths.lineTo(point.x, point.y)');
         expect(world).toContain('this.drawVillageBuilding(');
-        expect(world).toContain('`BUILD SITE ${index + 1}`');
-        expect(world).toContain("'TAP TO OPEN BUILDER'");
+        expect(world).toContain('VILLAGE_WORLD_ARTWORK.heart.key');
+        expect(world).toContain("VILLAGE_WORLD_ARTWORK[building.definitionId]");
+        expect(world).toContain('this.createForagerActivity(building)');
+        expect(world).toContain("'BUILD HERE'");
         expect(world).toContain('Phaser.BlendModes.ADD');
     });
 });

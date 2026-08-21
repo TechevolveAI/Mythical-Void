@@ -12,7 +12,8 @@ import { getFusionPodLandmarkSnapshot } from '../FusionPodLandmark.js';
 import {
     getVillageSnapshot,
     VILLAGE_BUILDING_DEFINITIONS,
-    VILLAGE_PLOTS
+    VILLAGE_PLOTS,
+    VILLAGE_WORLD_ARTWORK
 } from '../VillageSettlement.js';
 
 /**
@@ -281,16 +282,22 @@ class WorldBuilder {
             .setPosition(x, y)
             .setDepth(y - 2);
         const heart = this.scene.add.graphics().setPosition(x, y).setDepth(y + 2);
+        const heartArtwork = this.scene.textures.exists(VILLAGE_WORLD_ARTWORK.heart.key)
+            ? this.scene.add.image(x, y - 22, VILLAGE_WORLD_ARTWORK.heart.key)
+                .setDisplaySize(228, 228)
+                .setDepth(y + 2)
+            : null;
+        if (heartArtwork) heartArtwork.villageBaseScale = heartArtwork.scaleX;
         const glow = this.scene.add.graphics().setPosition(x, y).setDepth(y + 1);
-        const actionLabel = this.scene.add.text(x, y - 72, 'TAP TO BUILD', {
-            fontSize: '9px',
+        const actionLabel = this.scene.add.text(x, y - 126, 'OPEN VILLAGE PLAN', {
+            fontSize: '10px',
             fontFamily: 'Arial, sans-serif',
             color: '#F2C14E',
             fontStyle: 'bold',
             stroke: '#071411',
             strokeThickness: 4
         }).setOrigin(0.5).setDepth(y + 5);
-        const label = this.scene.add.text(x, y + 64, 'VILLAGE HEART', {
+        const label = this.scene.add.text(x, y + 101, 'VILLAGE HEART', {
             fontSize: '12px',
             fontFamily: 'Arial, sans-serif',
             color: '#F4F4F4',
@@ -298,7 +305,7 @@ class WorldBuilder {
             stroke: '#050505',
             strokeThickness: 4
         }).setOrigin(0.5).setDepth(y + 4);
-        const statusLabel = this.scene.add.text(x, y + 81, '', {
+        const statusLabel = this.scene.add.text(x, y + 118, '', {
             fontSize: '9px',
             fontFamily: 'Arial, sans-serif',
             color: '#8FE3CF',
@@ -312,6 +319,7 @@ class WorldBuilder {
             districtTerrain,
             currentPaths,
             heart,
+            heartArtwork,
             glow,
             actionLabel,
             label,
@@ -320,17 +328,22 @@ class WorldBuilder {
             buildingTweens: [],
             plotHitZones: [],
             pulseTween: null,
+            heartArtworkTween: null,
             snapshot: null
         };
 
         zone.setInteractive({ useHandCursor: true });
         zone.on('pointerover', () => {
             heart.setScale(1.04);
+            if (heartArtwork) {
+                heartArtwork.setScale(heartArtwork.villageBaseScale * 1.04);
+            }
             glow.setScale(1.08);
             actionLabel.setColor('#FFFFFF').setScale(1.06);
         });
         zone.on('pointerout', () => {
             heart.setScale(1);
+            if (heartArtwork) heartArtwork.setScale(heartArtwork.villageBaseScale);
             glow.setScale(1);
             actionLabel
                 .setColor(
@@ -355,6 +368,7 @@ class WorldBuilder {
     refreshVillageSettlement(landmark, snapshot = null) {
         if (!landmark?.heart) return;
         landmark.pulseTween?.stop?.();
+        landmark.heartArtworkTween?.stop?.();
         landmark.buildingTweens?.forEach(tween => tween?.stop?.());
         landmark.buildingElements?.forEach(element => element?.destroy?.(true));
         landmark.plotHitZones?.forEach(zone => zone?.destroy?.());
@@ -368,6 +382,7 @@ class WorldBuilder {
             districtTerrain,
             currentPaths,
             heart,
+            heartArtwork,
             glow,
             actionLabel,
             label,
@@ -376,18 +391,18 @@ class WorldBuilder {
         const compactSettlement = this.scene.scale.width <= 600;
         const plotOffsets = compactSettlement
             ? [
-                { x: -128, y: -144 },
-                { x: 128, y: -144 },
-                { x: -128, y: 34 },
-                { x: 128, y: 34 },
-                { x: 0, y: 154 }
+                { x: -168, y: -182 },
+                { x: 168, y: -182 },
+                { x: -174, y: 86 },
+                { x: 174, y: 86 },
+                { x: 0, y: 224 }
             ]
             : [
-                { x: 150, y: -118 },
-                { x: 300, y: -88 },
-                { x: 170, y: 72 },
-                { x: 330, y: 96 },
-                { x: 470, y: -12 }
+                { x: 210, y: -176 },
+                { x: 430, y: -132 },
+                { x: 238, y: 124 },
+                { x: 474, y: 136 },
+                { x: 662, y: -4 }
             ];
 
         districtTerrain.clear();
@@ -395,75 +410,88 @@ class WorldBuilder {
         heart.clear();
         glow.clear();
 
-        const districtWidth = compactSettlement ? 390 : 650;
-        const districtCenterX = compactSettlement ? 0 : 240;
-        districtTerrain.fillStyle(0x173B35, unlocked ? 0.2 : 0.12);
-        districtTerrain.fillEllipse(
-            districtCenterX,
-            compactSettlement ? 2 : -2,
-            districtWidth,
-            compactSettlement ? 390 : 310
-        );
-        districtTerrain.lineStyle(2, unlocked ? 0x3FAE62 : 0x53616A, 0.28);
-        districtTerrain.strokeEllipse(
-            districtCenterX,
-            compactSettlement ? 2 : -2,
-            districtWidth - 14,
-            compactSettlement ? 376 : 296
-        );
+        const districtCenterX = compactSettlement ? 0 : 230;
+        const districtPatches = compactSettlement
+            ? [
+                [0, 18, 462, 468], [-132, -126, 210, 186],
+                [136, -118, 210, 180], [0, 174, 278, 164]
+            ]
+            : [
+                [districtCenterX + 84, 0, 790, 362], [50, -72, 278, 230],
+                [344, -112, 390, 196], [536, 74, 358, 218]
+            ];
+        districtPatches.forEach(([patchX, patchY, width, height], index) => {
+            districtTerrain.fillStyle(
+                index === 0 ? 0x12352F : index % 2 ? 0x245044 : 0x183E36,
+                unlocked ? (index === 0 ? 0.3 : 0.2) : 0.1
+            );
+            districtTerrain.fillEllipse(patchX, patchY, width, height);
+        });
+        const groundDetails = compactSettlement
+            ? [[-154, 62], [142, 94], [-92, -154], [88, 156]]
+            : [[-54, 64], [132, -130], [294, 128], [492, -72], [548, 74]];
+        groundDetails.forEach(([detailX, detailY], index) => {
+            districtTerrain.fillStyle(index % 2 ? 0x8FE3CF : 0xF4F4F4, 0.16);
+            districtTerrain.fillCircle(detailX, detailY, index % 2 ? 4 : 3);
+            districtTerrain.fillStyle(0x3FAE62, 0.22);
+            districtTerrain.fillEllipse(detailX + 7, detailY + 3, 14, 6);
+        });
 
         plotOffsets.forEach((offset, index) => {
             const elbowX = offset.x * (compactSettlement ? 0.42 : 0.5);
             const elbowY = offset.y * 0.32 + (index % 2 === 0 ? -12 : 12);
-            currentPaths.lineStyle(7, 0x071411, 0.42);
-            currentPaths.beginPath();
-            currentPaths.moveTo(0, 20);
-            currentPaths.lineTo(elbowX, elbowY);
-            currentPaths.lineTo(offset.x, offset.y + 18);
-            currentPaths.strokePath();
-            currentPaths.lineStyle(2, unlocked ? 0x71E6B1 : 0x657682, 0.5);
-            currentPaths.beginPath();
-            currentPaths.moveTo(0, 20);
-            currentPaths.lineTo(elbowX, elbowY);
-            currentPaths.lineTo(offset.x, offset.y + 18);
-            currentPaths.strokePath();
+            const pathPoints = Array.from({ length: 17 }, (_, pointIndex) => {
+                const t = pointIndex / 16;
+                const inverse = 1 - t;
+                return {
+                    x: (2 * inverse * t * elbowX) + (t * t * offset.x),
+                    y: (inverse * inverse * 20) +
+                        (2 * inverse * t * elbowY) +
+                        (t * t * (offset.y + 18))
+                };
+            });
+            const strokeCurrentPath = (width, color, alpha) => {
+                currentPaths.lineStyle(width, color, alpha);
+                currentPaths.beginPath();
+                currentPaths.moveTo(pathPoints[0].x, pathPoints[0].y);
+                pathPoints.slice(1).forEach(point => {
+                    currentPaths.lineTo(point.x, point.y);
+                });
+                currentPaths.strokePath();
+            };
+            strokeCurrentPath(16, 0x071411, 0.24);
+            strokeCurrentPath(5, unlocked ? 0x3FAE62 : 0x53616A, 0.24);
+            strokeCurrentPath(2, unlocked ? 0xB7F7DE : 0x657682, 0.62);
         });
 
         glow.fillStyle(unlocked ? 0x71E6B1 : 0x53616A, unlocked ? 0.14 : 0.08);
-        glow.fillEllipse(0, 18, unlocked ? 154 : 132, unlocked ? 108 : 92);
-        glow.lineStyle(2, unlocked ? 0x71E6B1 : 0x748087, unlocked ? 0.54 : 0.3);
-        glow.strokeEllipse(0, 20, unlocked ? 142 : 124, unlocked ? 96 : 84);
+        glow.fillEllipse(0, 22, unlocked ? 196 : 160, unlocked ? 120 : 96);
+        glow.fillStyle(unlocked ? 0xF4F4F4 : 0x53616A, unlocked ? 0.08 : 0.04);
+        glow.fillEllipse(0, 18, unlocked ? 132 : 104, unlocked ? 76 : 62);
 
-        // The Heart is a stone-and-living-current dais, not a screen placed on the map.
-        heart.fillStyle(0x0C201D, 0.95);
-        heart.fillEllipse(0, 31, 126, 48);
-        heart.lineStyle(3, unlocked ? 0x3FAE62 : 0x53616A, 0.9);
-        heart.strokeEllipse(0, 27, 112, 43);
-        heart.fillStyle(0x183B34, 1);
-        heart.fillCircle(0, 1, 39);
-        heart.lineStyle(3, 0xF4F4F4, unlocked ? 0.82 : 0.4);
-        heart.strokeCircle(0, 1, 34);
-        heart.lineStyle(5, unlocked ? 0x3FAE62 : 0x53616A, 0.95);
-        heart.beginPath();
-        heart.arc(0, 1, 26, Math.PI * 0.16, Math.PI * 0.84, false);
-        heart.strokePath();
-        heart.lineStyle(4, unlocked ? 0xD94B4B : 0x657682, 0.9);
-        heart.lineBetween(-32, 28, -12, 11);
-        heart.lineBetween(32, 28, 12, 11);
-        heart.fillStyle(0xF4F4F4, unlocked ? 1 : 0.55);
-        heart.fillTriangle(0, -31, -13, 4, 13, 4);
-        heart.fillStyle(unlocked ? 0x71E6B1 : 0x657682, 1);
-        heart.fillTriangle(0, -23, -7, -1, 7, -1);
-        heart.fillStyle(unlocked ? 0xF2C14E : 0x53616A, 1);
-        heart.fillCircle(0, 9, 5);
+        if (heartArtwork) {
+            heartArtwork
+                .clearTint()
+                .setAlpha(unlocked ? 1 : 0.52);
+            if (!unlocked) heartArtwork.setTint(0x71807A);
+        } else {
+            heart.fillStyle(0x0C201D, 0.95);
+            heart.fillEllipse(0, 31, 150, 58);
+            heart.lineStyle(4, unlocked ? 0x71E6B1 : 0x53616A, 0.9);
+            heart.strokeEllipse(0, 24, 128, 48);
+            heart.fillStyle(unlocked ? 0xF4F4F4 : 0x657682, 0.95);
+            heart.fillTriangle(0, -54, -19, 9, 19, 9);
+            heart.fillStyle(unlocked ? 0x71E6B1 : 0x53616A, 0.88);
+            heart.fillCircle(0, 13, 11);
+        }
 
         label.setColor(unlocked ? '#F4F4F4' : '#93A2A9');
         actionLabel
-            .setText(unlocked ? 'TAP TO BUILD' : 'DORMANT')
+            .setText(unlocked ? 'OPEN VILLAGE PLAN' : 'HEART DORMANT')
             .setColor(unlocked ? '#F2C14E' : '#93A2A9');
         statusLabel
             .setText(unlocked
-                ? `${snapshot.buildings.length}/${VILLAGE_PLOTS.length} SITES BUILT`
+                ? `${snapshot.buildings.length}/${VILLAGE_PLOTS.length} PLACES RESTORED`
                 : 'HATCH A COMPANION TO WAKE IT'
             )
             .setColor(unlocked ? '#8FE3CF' : '#93A2A9');
@@ -478,6 +506,16 @@ class WorldBuilder {
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
+        if (heartArtwork && unlocked) {
+            landmark.heartArtworkTween = this.scene.tweens.add({
+                targets: heartArtwork,
+                y: { from: landmark.zone.y - 24, to: landmark.zone.y - 20 },
+                duration: 2100,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
 
         const buildingByPlot = new Map(
             snapshot?.buildings?.map(building => [building.plotId, building]) || []
@@ -490,20 +528,35 @@ class WorldBuilder {
             const container = this.scene.add.container(plotX, plotY).setDepth(plotY + 2);
             const drawing = this.scene.add.graphics();
             const currentSignal = this.scene.add.graphics();
-            drawing.fillStyle(0x173B35, building ? 0.88 : 0.54);
-            drawing.fillEllipse(0, 27, building ? 118 : 104, building ? 38 : 32);
+            const worldArtworkDefinition = building
+                ? VILLAGE_WORLD_ARTWORK[building.definitionId]
+                : null;
+            const worldArtwork = worldArtworkDefinition &&
+                this.scene.textures.exists(worldArtworkDefinition.key)
+                ? this.scene.add.image(0, -28, worldArtworkDefinition.key)
+                    .setDisplaySize(176, 176)
+                : null;
+            drawing.fillStyle(0x102B26, building ? 0.7 : 0.36);
+            drawing.fillEllipse(0, 29, building ? 136 : 96, building ? 46 : 29);
             drawing.lineStyle(
-                building ? 3 : 2,
-                building ? 0x71E6B1 : 0x8FE3CF,
-                building ? 0.74 : 0.48
+                building ? 3 : 1,
+                building ? 0x71E6B1 : 0xB7F7DE,
+                building ? 0.5 : 0.34
             );
-            drawing.strokeEllipse(0, 24, building ? 108 : 94, building ? 32 : 27);
+            drawing.strokeEllipse(0, 25, building ? 124 : 84, building ? 38 : 24);
             if (building) {
-                this.drawVillageBuilding(
-                    drawing,
-                    building.definitionId,
-                    building.status
-                );
+                if (!worldArtwork) {
+                    this.drawVillageBuilding(
+                        drawing,
+                        building.definitionId,
+                        building.status
+                    );
+                } else if (building.status === 'constructing') {
+                    worldArtwork.setAlpha(0.58).setTint(0x91A69D);
+                    drawing.lineStyle(2, 0xF2C14E, 0.72);
+                    drawing.strokeRoundedRect(-70, -76, 140, 124, 8);
+                    drawing.lineBetween(-70, -30, 70, -30);
+                }
                 currentSignal.fillStyle(0x71E6B1, 0.95);
                 currentSignal.fillCircle(0, 0, 3);
                 currentSignal.lineStyle(1, 0xF4F4F4, 0.85);
@@ -511,21 +564,29 @@ class WorldBuilder {
                 currentSignal.setPosition(-42, 20);
                 currentSignal.setBlendMode?.(Phaser.BlendModes.ADD);
             } else {
-                drawing.lineStyle(2, 0x8FE3CF, 0.38);
-                drawing.strokeCircle(0, 2, 23);
-                drawing.lineStyle(3, 0xF2C14E, unlocked ? 0.9 : 0.35);
-                drawing.lineBetween(-8, 2, 8, 2);
-                drawing.lineBetween(0, -6, 0, 10);
-                drawing.fillStyle(0x71E6B1, unlocked ? 0.7 : 0.25);
-                [-34, 34].forEach(nodeX => drawing.fillCircle(nodeX, 20, 3));
+                drawing.fillStyle(0x273C37, 0.72);
+                [-24, 0, 24].forEach((stoneX, stoneIndex) => {
+                    drawing.fillEllipse(stoneX, 17 + Math.abs(stoneIndex - 1) * 3, 21, 10);
+                });
+                drawing.lineStyle(2, 0x71E6B1, unlocked ? 0.54 : 0.18);
+                drawing.beginPath();
+                drawing.arc(0, 11, 26, Math.PI * 1.08, Math.PI * 1.92, false);
+                drawing.strokePath();
+                drawing.fillStyle(0xB7F7DE, unlocked ? 0.82 : 0.2);
+                drawing.fillEllipse(-5, -2, 7, 15);
+                drawing.fillEllipse(5, -4, 8, 17);
+                drawing.lineStyle(2, 0x3FAE62, unlocked ? 0.7 : 0.18);
+                drawing.lineBetween(0, 10, 0, -5);
             }
             const definition = building
                 ? VILLAGE_BUILDING_DEFINITIONS.find(entry => entry.id === building.definitionId)
                 : null;
             const plotLabel = this.scene.add.text(
                 0,
-                45,
-                definition?.shortLabel || `BUILD SITE ${index + 1}`,
+                worldArtwork ? 63 : 45,
+                definition
+                    ? `${definition.shortLabel}${definition.production ? ` · +${definition.production.amount} ${definition.production.resource.toUpperCase()}/MIN` : ''}`
+                    : plot.label,
                 {
                     fontSize: '9px',
                     fontFamily: 'Arial, sans-serif',
@@ -537,15 +598,15 @@ class WorldBuilder {
             ).setOrigin(0.5);
             const stateLabel = this.scene.add.text(
                 0,
-                -48,
+                worldArtwork ? -124 : -48,
                 building
                     ? building.status === 'complete'
                         ? building.creature
-                            ? `ACTIVE · ${building.creature.name.toUpperCase()} ${Math.round(building.workProfile.multiplier * 100)}%`
-                            : 'ACTIVE · ASSIGN A HELPER'
-                        : 'BUILDING NOW'
+                            ? `${building.creature.name.toUpperCase()} IS HELPING`
+                            : 'READY FOR A HELPER'
+                        : 'GROWING TOGETHER'
                     : unlocked
-                        ? 'TAP TO CHOOSE'
+                        ? 'BUILD HERE'
                         : 'DORMANT',
                 {
                     fontSize: '8px',
@@ -560,9 +621,15 @@ class WorldBuilder {
                     strokeThickness: 3
                 }
             ).setOrigin(0.5);
+            const activity = building?.definitionId === 'forager_hut' &&
+                building.status === 'complete'
+                ? this.createForagerActivity(building)
+                : null;
             container.add([
                 drawing,
+                ...(worldArtwork ? [worldArtwork] : []),
                 ...(building ? [currentSignal] : []),
+                ...(activity ? [activity] : []),
                 plotLabel,
                 stateLabel
             ]);
@@ -573,6 +640,18 @@ class WorldBuilder {
                     x: { from: -42, to: 42 },
                     alpha: { from: 0.3, to: 1 },
                     duration: 1800 + index * 140,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                }));
+            }
+            if (activity) {
+                landmark.buildingTweens.push(this.scene.tweens.add({
+                    targets: activity,
+                    alpha: { from: 0.68, to: 1 },
+                    scaleX: { from: 0.94, to: 1.04 },
+                    scaleY: { from: 0.94, to: 1.04 },
+                    duration: 1200,
                     yoyo: true,
                     repeat: -1,
                     ease: 'Sine.easeInOut'
@@ -605,7 +684,7 @@ class WorldBuilder {
             plotHitZone.plotId = plot.id;
             plotHitZone.on('pointerover', () => {
                 container.setScale(1.06);
-                stateLabel.setText(unlocked ? 'TAP TO OPEN BUILDER' : 'DORMANT');
+                stateLabel.setText(unlocked ? 'OPEN THIS PLACE' : 'DORMANT');
             });
             plotHitZone.on('pointerout', () => {
                 container.setScale(1);
@@ -613,15 +692,15 @@ class WorldBuilder {
                     building
                         ? building.status === 'complete'
                             ? building.creature
-                                ? `ACTIVE · ${building.creature.name.toUpperCase()} ${Math.round(building.workProfile.multiplier * 100)}%`
-                                : 'ACTIVE · ASSIGN A HELPER'
-                            : 'BUILDING NOW'
+                                ? `${building.creature.name.toUpperCase()} IS HELPING`
+                                : 'READY FOR A HELPER'
+                            : 'GROWING TOGETHER'
                         : unlocked
-                            ? 'TAP TO CHOOSE'
+                            ? 'BUILD HERE'
                             : 'DORMANT'
                 );
             });
-            plotHitZone.on('pointerdown', () => this.activateVillageHeart(landmark));
+            plotHitZone.on('pointerdown', () => this.activateVillageHeart(landmark, plot.id));
             landmark.plotHitZones.push(plotHitZone);
 
             if (building?.status === 'constructing') {
@@ -637,7 +716,36 @@ class WorldBuilder {
         });
     }
 
-    activateVillageHeart(landmark) {
+    createForagerActivity(building) {
+        const activity = this.scene.add.container(0, 0);
+        const helper = this.scene.add.graphics();
+        helper.fillStyle(0x8FE3CF, 0.96);
+        helper.fillCircle(-63, 17, 9);
+        helper.fillEllipse(-63, 34, 18, 22);
+        helper.fillStyle(0xF4F4F4, 0.95);
+        helper.fillCircle(-66, 15, 2);
+        helper.fillCircle(-60, 15, 2);
+        helper.lineStyle(2, 0x3FAE62, 0.9);
+        helper.lineBetween(-70, 6, -75, -2);
+        helper.lineBetween(-56, 6, -51, -2);
+
+        const harvest = this.scene.add.graphics();
+        harvest.fillStyle(0x6E4D2E, 0.96);
+        harvest.fillRoundedRect(43, 22, 29, 18, 5);
+        harvest.lineStyle(2, 0xF2C14E, 0.92);
+        harvest.beginPath();
+        harvest.arc(57, 23, 12, Math.PI, 0, false);
+        harvest.strokePath();
+        [48, 57, 66].forEach((podX, index) => {
+            harvest.fillStyle(index === 1 ? 0xF4F4F4 : 0xF2C14E, 0.98);
+            harvest.fillCircle(podX, 20 - (index % 2) * 4, 5);
+        });
+        activity.add([helper, harvest]);
+        activity.setData('helperName', building?.creature?.name || 'Companion');
+        return activity;
+    }
+
+    activateVillageHeart(landmark, plotId = null) {
         const snapshot = landmark?.snapshot;
         if (!snapshot?.unlock?.unlocked) {
             this.scene.showInteractionHint?.(
@@ -651,7 +759,7 @@ class WorldBuilder {
 
         this.scene.nearVillageHeart = true;
         this.scene.showInteractionHint?.('Opening Village Builder');
-        return this.scene.openVillageCommand?.() === true;
+        return this.scene.openVillageCommand?.({ plotId }) === true;
     }
 
     drawVillageBuilding(graphics, definitionId, status) {
@@ -3541,15 +3649,21 @@ class WorldBuilder {
         return signs;
     }
 
-    destroy() {
-        this.villageHeart?.pulseTween?.stop?.();
-        this.villageHeart?.buildingTweens?.forEach(tween => tween?.stop?.());
+        destroy() {
+            this.villageHeart?.pulseTween?.stop?.();
+            this.villageHeart?.heartArtworkTween?.stop?.();
+            this.villageHeart?.buildingTweens?.forEach(tween => tween?.stop?.());
         this.villageHeart?.buildingElements?.forEach(
             element => element?.destroy?.(true)
         );
-        this.villageHeart?.zone?.destroy?.();
-        this.villageHeart?.heart?.destroy?.();
-        this.villageHeart?.glow?.destroy?.();
+            this.villageHeart?.zone?.destroy?.();
+            this.villageHeart?.plotHitZones?.forEach(zone => zone?.destroy?.());
+            this.villageHeart?.districtTerrain?.destroy?.();
+            this.villageHeart?.currentPaths?.destroy?.();
+            this.villageHeart?.heart?.destroy?.();
+            this.villageHeart?.heartArtwork?.destroy?.();
+            this.villageHeart?.glow?.destroy?.();
+            this.villageHeart?.actionLabel?.destroy?.();
         this.villageHeart?.label?.destroy?.();
         this.villageHeart?.statusLabel?.destroy?.();
         this.villageHeart = null;

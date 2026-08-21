@@ -133,7 +133,8 @@ import {
     placeVillageBuilding,
     reconcileVillageSettlement,
     VILLAGE_BUILDING_ARTWORK,
-    VILLAGE_RESOURCE_DEFINITIONS
+    VILLAGE_RESOURCE_DEFINITIONS,
+    VILLAGE_WORLD_ARTWORK
 } from '../systems/VillageSettlement.js';
 // MapNavigationButtons removed - redundant with HamburgerMenu navigation
 
@@ -429,6 +430,11 @@ class GameScene extends Phaser.Scene {
         });
 
         Object.values(VILLAGE_BUILDING_ARTWORK).forEach(artwork => {
+            if (!this.textures.exists(artwork.key)) {
+                this.load.image(artwork.key, artwork.url);
+            }
+        });
+        Object.values(VILLAGE_WORLD_ARTWORK).forEach(artwork => {
             if (!this.textures.exists(artwork.key)) {
                 this.load.image(artwork.key, artwork.url);
             }
@@ -1650,7 +1656,7 @@ class GameScene extends Phaser.Scene {
         }, previewSnapshot);
 
         this.villageCommandPanel = new VillageCommandPanel(this);
-        this.villageCommandPanel.show({
+        const previewPanelOptions = {
             getSnapshot: () => getVillageSnapshot(previewState),
             onPlace: request => {
                 const result = placeVillageBuilding(previewState, {
@@ -1684,7 +1690,11 @@ class GameScene extends Phaser.Scene {
                 );
                 return snapshot;
             }
-        });
+        };
+        this.openVillageCommand = ({ plotId = null } = {}) => (
+            this.villageCommandPanel.show({ plotId, ...previewPanelOptions })
+        );
+        this.openVillageCommand();
     }
 
     createSignalGardenPreview() {
@@ -8077,7 +8087,7 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    openVillageCommand() {
+    openVillageCommand({ plotId = null } = {}) {
         const snapshot = initializeVillageSettlement(window.GameState);
         this.refreshVillageSettlementWorld(snapshot, { force: true });
         if (!snapshot?.unlock?.unlocked) {
@@ -8089,6 +8099,7 @@ class GameScene extends Phaser.Scene {
             this.villageCommandPanel = new VillageCommandPanel(this);
         }
         return this.villageCommandPanel.show({
+            plotId,
             getSnapshot: () => getVillageSnapshot(window.GameState),
             onPlace: request => {
                 const result = placeVillageBuilding(window.GameState, request);

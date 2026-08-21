@@ -129,7 +129,7 @@ function getConstructionStepCopy(selectedDefinition, firstOpenPlot, definitionBy
     if (!firstOpenPlot) {
         return '1. No open building sites remain.';
     }
-    return `1. ${selectedDefinition.label} selected. 2. Press CONSTRUCT to build at ${firstOpenPlot.label}, or tap another green site.`;
+    return `${selectedDefinition.label} will grow at ${firstOpenPlot.label}. Review the benefit and cost, then confirm below.`;
 }
 
 function formatResult(result) {
@@ -158,6 +158,8 @@ export default class VillageCommandPanel {
         this.onTick = null;
         this.onClose = null;
         this.selectedDefinitionId = null;
+        this.selectedPlotId = null;
+        this.contextual = false;
         this.statusMessage = '';
         this.keyboardHandler = null;
         this.refreshTimer = null;
@@ -169,6 +171,7 @@ export default class VillageCommandPanel {
     }
 
     show({
+        plotId = null,
         getSnapshot,
         onPlace,
         onAssign,
@@ -184,11 +187,17 @@ export default class VillageCommandPanel {
         this.onAssign = onAssign;
         this.onTick = onTick;
         this.onClose = onClose;
+        const requestedPlot = snapshot.plots.find(plot => plot.id === plotId);
+        this.selectedPlotId = requestedPlot?.open ? requestedPlot.id : null;
+        this.contextual = Boolean(this.selectedPlotId);
         this.selectedDefinitionId = snapshot.definitions.find(
             definition => definition.placement.available
+        )?.id || snapshot.definitions.find(
+            definition => !definition.placement.alreadyBuilt
         )?.id || snapshot.definitions[0]?.id || null;
 
         const root = createElement('div', 'village-command-modal');
+        if (this.contextual) root.classList.add('is-contextual');
         root.setAttribute('role', 'dialog');
         root.setAttribute('aria-modal', 'true');
         root.setAttribute('aria-label', 'Village Heart settlement planning');
@@ -230,6 +239,9 @@ export default class VillageCommandPanel {
             this.selectedDefinitionId = snapshot.definitions[0]?.id || null;
         }
         const selectedDefinition = definitionById.get(this.selectedDefinitionId);
+        const selectedPlot = snapshot.plots.find(
+            plot => plot.id === this.selectedPlotId && plot.open
+        ) || null;
 
         this.root.replaceChildren();
         const shell = createElement('section', 'village-command-shell');
@@ -238,8 +250,16 @@ export default class VillageCommandPanel {
         const headingGroup = createElement('div', 'village-command-heading');
         const headingCopy = createElement('div', 'village-command-heading-copy');
         headingCopy.append(
-            createElement('p', 'village-command-eyebrow', 'PROJECT BEACON // SAFE BASE ON THE FEND'),
-            createElement('h2', 'village-command-title', 'VILLAGE HEART')
+            createElement(
+                'p',
+                'village-command-eyebrow',
+                this.contextual ? selectedPlot?.label || 'OPEN GROUND' : 'YOUR SANCTUARY'
+            ),
+            createElement(
+                'h2',
+                'village-command-title',
+                this.contextual ? 'WHAT SHOULD GROW HERE?' : 'VILLAGE HEART'
+            )
         );
         headingGroup.append(headingCopy);
         const close = createElement('button', 'village-command-close', '\u00d7');
@@ -264,7 +284,7 @@ export default class VillageCommandPanel {
                     'village-resource-rate',
                     snapshot.productionRates?.[resource.id] > 0
                         ? `+${snapshot.productionRates[resource.id]}/MIN`
-                        : 'NO ACTIVE CREW'
+                        : 'NO HELP YET'
                 )
             );
             resources.append(item);
@@ -281,7 +301,9 @@ export default class VillageCommandPanel {
             `village-command-status${this.statusMessage ? ' has-message' : ''}`,
             this.statusMessage || (
                 snapshot.unlock.unlocked
-                    ? 'Choose a structure, then press CONSTRUCT. Green sites are available building locations.'
+                    ? this.contextual
+                        ? 'Choose a structure. You will see its immediate benefit before spending supplies.'
+                        : 'Choose what to restore next, or invite a companion to help at a completed building.'
                     : snapshot.unlock.reason
             )
         );
@@ -290,7 +312,7 @@ export default class VillageCommandPanel {
         const phase = createElement('section', 'village-phase-progress');
         const phaseCopy = createElement('div', 'village-phase-copy');
         phaseCopy.append(
-            createElement('span', 'village-phase-kicker', 'PHASE ONE OBJECTIVE'),
+            createElement('span', 'village-phase-kicker', 'SETTLEMENT GOAL'),
             createElement('strong', 'village-phase-title', snapshot.phase.title),
             createElement('span', 'village-phase-objective', snapshot.phase.objective)
         );
@@ -315,8 +337,25 @@ export default class VillageCommandPanel {
 
         const body = createElement('div', 'village-command-body');
         const catalog = createElement('section', 'village-building-catalog');
-        catalog.append(createElement('h3', 'village-section-title', 'STRUCTURES'));
-        snapshot.definitions.forEach(definition => {
+        catalog.append(createElement(
+            'h3',
+            'village-section-title',
+            this.contextual ? 'CHOOSE A BUILDING' : 'STRUCTURES'
+        ));
+        const visibleDefinitions = [...snapshot.definitions].sort((left, right) => {
+            if (left.placement.available !== right.placement.available) {
+                return left.placement.available ? -1 : 1;
+            }
+            if (left.placement.alreadyBuilt !== right.placement.alreadyBuilt) {
+                return left.placement.alreadyBuilt ? 1 : -1;
+            }
+            return 0;
+        });
+        const displayedDefinitions = this.contextual
+            ? visibleDefinitions.filter(definition => !definition.placement.alreadyBuilt).slice(0, 3)
+            : visibleDefinitions;
+        const buildingOptions = createElement('div', 'village-building-options');
+        displayedDefinitions.forEach(definition => {
             const selected = definition.id === this.selectedDefinitionId;
             const card = createElement(
                 'button',
@@ -327,7 +366,7 @@ export default class VillageCommandPanel {
             card.addEventListener('click', () => {
                 this.selectedDefinitionId = definition.id;
                 this.statusMessage = definition.placement.available
-                    ? `${definition.label} selected. Choose an open root foundation.`
+                    ? `${definition.label} selected. ${definition.immediateImpact}`
                     : formatPlacementReason(definition, definitionById);
                 this.render();
             });
@@ -351,31 +390,40 @@ export default class VillageCommandPanel {
                 createElement(
                     'span',
                     'village-building-impact',
-                    `NOW // ${definition.immediateImpact}`
+                    `HELPS NOW · ${definition.immediateImpact}`
                 ),
                 createElement(
                     'span',
                     'village-building-extension',
-                    `NEXT // ${definition.extensionImpact}`
+                    `UNLOCKS · ${definition.extensionImpact}`
                 ),
                 createElement('span', 'village-building-output', production),
                 createElement('span', 'village-building-cost', formatCost(definition.cost))
             );
             card.append(artwork, cardCopy);
-            catalog.append(card);
+            buildingOptions.append(card);
         });
+        catalog.append(buildingOptions);
 
         const plan = createElement('section', 'village-site-plan');
         const planHeader = createElement('div', 'village-site-plan-header');
         planHeader.append(
-            createElement('h3', 'village-section-title', 'BUILD NEXT'),
+            createElement(
+                'h3',
+                'village-section-title',
+                this.contextual ? 'YOUR CHOICE' : 'BUILD NEXT'
+            ),
             createElement(
                 'p',
                 'village-site-selection',
-                selectedDefinition ? `PLACING // ${selectedDefinition.shortLabel}` : 'SELECT A STRUCTURE'
+                this.contextual
+                    ? selectedPlot?.label || 'OPEN GROUND'
+                    : selectedDefinition
+                        ? `PLACING · ${selectedDefinition.shortLabel}`
+                        : 'SELECT A STRUCTURE'
             )
         );
-        const firstOpenPlot = snapshot.plots.find(plot => plot.open) || null;
+        const firstOpenPlot = selectedPlot || snapshot.plots.find(plot => plot.open) || null;
         const nextStep = createElement(
             'p',
             'village-next-step',
@@ -392,7 +440,7 @@ export default class VillageCommandPanel {
             'button',
             'village-construct-action',
             selectedDefinition?.placement.available && firstOpenPlot
-                ? `CONSTRUCT ${selectedDefinition.shortLabel} AT ${firstOpenPlot.label} // ${formatCost(selectedDefinition.cost)}`
+                ? `BUILD ${selectedDefinition.shortLabel} HERE · ${formatCost(selectedDefinition.cost)}`
                 : selectedDefinition
                     ? formatPlacementReason(selectedDefinition, definitionById)
                     : 'SELECT A STRUCTURE'
@@ -409,6 +457,11 @@ export default class VillageCommandPanel {
                     plotId: firstOpenPlot.id
                 });
                 this.statusMessage = formatResult(result);
+                if (result?.changed) {
+                    this.contextual = false;
+                    this.selectedPlotId = null;
+                    this.root?.classList.remove('is-contextual');
+                }
                 this.render();
             });
         }
@@ -418,8 +471,8 @@ export default class VillageCommandPanel {
             'p',
             'village-construction-guide',
             canConstruct
-                ? 'This spends the supplies listed on the button. You can also tap another green site below to build there.'
-                : 'Select a card marked READY TO PLACE. The construct button will then show the exact cost.'
+                ? `${selectedDefinition.immediateImpact} This will use the supplies shown on the button.`
+                : 'Choose a building marked READY. The exact cost will appear before you confirm.'
         );
         plan.append(constructionGuide);
 
@@ -477,7 +530,7 @@ export default class VillageCommandPanel {
             }
             plotGrid.append(plotButton);
         });
-        plan.append(plotGrid);
+        if (!this.contextual) plan.append(plotGrid);
 
         const assignments = createElement('section', 'village-assignments');
         assignments.append(createElement('h3', 'village-section-title', 'CREATURE HELP'));
@@ -540,9 +593,11 @@ export default class VillageCommandPanel {
             });
         }
 
-        plan.append(assignments);
+        if (!this.contextual) plan.append(assignments);
         body.append(catalog, plan);
-        shell.append(header, resources, status, phase, createVillageVision(), body);
+        shell.append(header, resources, status);
+        if (!this.contextual) shell.append(phase, createVillageVision());
+        shell.append(body);
         this.root.append(shell);
     }
 
@@ -564,6 +619,8 @@ export default class VillageCommandPanel {
         this.domElement?.destroy?.();
         this.domElement = null;
         this.root = null;
+        this.selectedPlotId = null;
+        this.contextual = false;
         const closeHandler = this.onClose;
         this.getSnapshot = null;
         this.onPlace = null;

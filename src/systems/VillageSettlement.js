@@ -26,6 +26,17 @@ export const VILLAGE_BUILDING_ARTWORK = Object.freeze({
     })
 });
 
+export const VILLAGE_WORLD_ARTWORK = Object.freeze({
+    heart: Object.freeze({
+        key: 'village-world-heart',
+        url: '/game/village/world/village-heart.webp'
+    }),
+    forager_hut: Object.freeze({
+        key: 'village-world-forager-hut',
+        url: '/game/village/world/forager-hut.webp'
+    })
+});
+
 export const VILLAGE_RESOURCE_DEFINITIONS = Object.freeze([
     Object.freeze({ id: 'wood', label: 'WOOD', color: '#8FE3CF' }),
     Object.freeze({ id: 'stone', label: 'STONE', color: '#F4F4F4' }),
@@ -33,11 +44,11 @@ export const VILLAGE_RESOURCE_DEFINITIONS = Object.freeze([
 ]);
 
 export const VILLAGE_PLOTS = Object.freeze([
-    Object.freeze({ id: 'root_01', label: 'ROOT 01' }),
-    Object.freeze({ id: 'root_02', label: 'ROOT 02' }),
-    Object.freeze({ id: 'root_03', label: 'ROOT 03' }),
-    Object.freeze({ id: 'root_04', label: 'ROOT 04' }),
-    Object.freeze({ id: 'root_05', label: 'ROOT 05' })
+    Object.freeze({ id: 'root_01', label: 'GARDEN EDGE' }),
+    Object.freeze({ id: 'root_02', label: 'UPPER GLADE' }),
+    Object.freeze({ id: 'root_03', label: 'CURRENT BEND' }),
+    Object.freeze({ id: 'root_04', label: 'SHELTER GROVE' }),
+    Object.freeze({ id: 'root_05', label: 'FAR ROOT' })
 ]);
 
 const MINUTE = 60 * 1000;
