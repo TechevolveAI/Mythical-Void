@@ -919,6 +919,8 @@ class WorldBuilder {
             nextActionRing: null,
             nextActionTween: null,
             guidanceRoute: null,
+            arrivalGuide: null,
+            arrivalGuideTween: null,
             pulseTween: null,
             ecologyTween: null,
             heartArtworkTween: null,
@@ -1175,6 +1177,8 @@ class WorldBuilder {
         landmark.nextActionRing = null;
         landmark.nextActionTween = null;
         landmark.guidanceRoute = null;
+        landmark.arrivalGuide = null;
+        landmark.arrivalGuideTween = null;
         landmark.plotWorldPositions = new Map();
         landmark.snapshot = snapshot;
 
@@ -1446,8 +1450,10 @@ class WorldBuilder {
             .setInteractive({ useHandCursor: true });
         statusLabel
             .setText(unlocked
-                ? `${restoredCount}/${VILLAGE_PLOTS.length} ROOTS · ` +
-                    `${snapshot?.worldState?.growthLabel || 'AWAKENED ROOT'}`
+                ? restoredCount === 0
+                    ? `0/${VILLAGE_PLOTS.length} ROOTS · BUILD A HOME TOGETHER`
+                    : `${restoredCount}/${VILLAGE_PLOTS.length} ROOTS · ` +
+                        `${snapshot?.worldState?.growthLabel || 'AWAKENED ROOT'}`
                 : 'HATCH A COMPANION TO WAKE IT'
             )
             .setFontSize(compactSettlement ? '8px' : '9px')
@@ -1522,7 +1528,11 @@ class WorldBuilder {
             const container = this.scene.add.container(plotX, plotY)
                 .setDepth(plotY + 2)
                 .setData('villageBuildingStructure', true)
-                .setData('plotId', plot.id);
+                .setData('plotId', plot.id)
+                .setData(
+                    'villageFoundationMaterial',
+                    building ? 'inhabited_root_basin_v1' : 'living_root_cradle_v2'
+                );
             const drawing = this.scene.add.graphics();
             const currentSignal = this.scene.add.graphics();
             const worldArtworkDefinition = building
@@ -1591,19 +1601,13 @@ class WorldBuilder {
                 currentSignal.setPosition(-42, 20);
                 currentSignal.setBlendMode?.(Phaser.BlendModes.ADD);
             } else {
-                drawing.fillStyle(0x273C37, 0.72);
-                [-24, 0, 24].forEach((stoneX, stoneIndex) => {
-                    drawing.fillEllipse(stoneX, 17 + Math.abs(stoneIndex - 1) * 3, 21, 10);
+                this.drawVillageFoundationCradle(drawing, {
+                    state: plotState,
+                    unlocked,
+                    guided: guidedPlot,
+                    compact: compactSettlement,
+                    index
                 });
-                drawing.lineStyle(2, 0x71E6B1, unlocked ? 0.54 : 0.18);
-                drawing.beginPath();
-                drawing.arc(0, 11, 26, Math.PI * 1.08, Math.PI * 1.92, false);
-                drawing.strokePath();
-                drawing.fillStyle(0xB7F7DE, unlocked ? 0.82 : 0.2);
-                drawing.fillEllipse(-5, -2, 7, 15);
-                drawing.fillEllipse(5, -4, 8, 17);
-                drawing.lineStyle(2, 0x3FAE62, unlocked ? 0.7 : 0.18);
-                drawing.lineBetween(0, 10, 0, -5);
             }
             const stateMarker = this.createVillagePlotStateMarker({
                 state: plotState,
@@ -1917,6 +1921,9 @@ class WorldBuilder {
                 }));
             }
         });
+        this.createVillageArrivalGuide(landmark, snapshot, {
+            compact: compactSettlement
+        });
         this.createVillageHeartMemories(landmark, snapshot, {
             compact: compactSettlement
         });
@@ -2072,6 +2079,7 @@ class WorldBuilder {
         landmark.label?.setAlpha(storyMode ? 0.3 : active ? 0.8 : 0.62);
         landmark.statusLabel?.setAlpha(storyMode ? 0.16 : active ? 0.68 : 0);
         landmark.heartCaption?.setAlpha(storyMode ? 0.44 : active ? 0.9 : 0.68);
+        landmark.arrivalGuide?.setAlpha(storyMode ? 0.12 : active ? 0.82 : 0.58);
         if (landmark.nextActionElement && landmark.nextActionElement !== landmark.actionLabel) {
             landmark.nextActionElement.setAlpha(storyMode ? 0 : 1);
             if (storyMode) {
@@ -2103,6 +2111,149 @@ class WorldBuilder {
         });
         transition(landmark.heartArtwork, heartAlpha);
         transition(landmark.heart, heartAlpha);
+        return true;
+    }
+
+    drawVillageFoundationCradle(
+        drawing,
+        {
+            state = 'dormant',
+            unlocked = false,
+            guided = false,
+            compact = false,
+            index = 0
+        } = {}
+    ) {
+        if (!drawing) return false;
+        const active = unlocked && state === 'available';
+        const accent = guided ? 0xF2C14E : active ? 0x71E6B1 : 0x53616A;
+        const foundationWidth = compact ? 82 : 92;
+        const foundationHeight = compact ? 25 : 28;
+
+        drawing.fillStyle(0x071411, unlocked ? 0.78 : 0.64);
+        drawing.fillEllipse(0, 24, foundationWidth, foundationHeight);
+        drawing.fillStyle(0x173D36, unlocked ? 0.68 : 0.34);
+        drawing.fillEllipse(0, 20, foundationWidth - 12, foundationHeight - 9);
+
+        const rootOffsets = [-1, 1];
+        rootOffsets.forEach((direction, rootIndex) => {
+            const verticalBias = ((index + rootIndex) % 2 === 0 ? -1 : 1) * 3;
+            drawing.lineStyle(
+                rootIndex === 0 ? 5 : 3,
+                0x071411,
+                unlocked ? 0.72 : 0.54
+            );
+            drawing.beginPath();
+            drawing.moveTo(direction * 5, 20);
+            drawing.lineTo(direction * 19, 14 + verticalBias);
+            drawing.lineTo(direction * 32, 20 - verticalBias);
+            drawing.lineTo(direction * 41, 14 + verticalBias);
+            drawing.strokePath();
+            drawing.lineStyle(rootIndex === 0 ? 2 : 1, accent, active ? 0.58 : 0.24);
+            drawing.beginPath();
+            drawing.moveTo(direction * 5, 20);
+            drawing.lineTo(direction * 19, 14 + verticalBias);
+            drawing.lineTo(direction * 32, 20 - verticalBias);
+            drawing.lineTo(direction * 41, 14 + verticalBias);
+            drawing.strokePath();
+        });
+
+        [-28, 0, 28].forEach((stoneX, stoneIndex) => {
+            const stoneY = 18 + Math.abs(stoneIndex - 1) * 4;
+            drawing.fillStyle(stoneIndex === 1 ? 0x273C37 : 0x1E332E, 0.92);
+            drawing.fillEllipse(stoneX, stoneY, stoneIndex === 1 ? 19 : 17, 9);
+            drawing.lineStyle(1, accent, active ? 0.42 : 0.16);
+            drawing.strokeEllipse(stoneX, stoneY, stoneIndex === 1 ? 17 : 15, 7);
+        });
+
+        drawing.fillStyle(0x061310, 0.94);
+        drawing.fillEllipse(0, 6, 22, 30);
+        drawing.lineStyle(2, accent, active ? 0.78 : 0.28);
+        drawing.beginPath();
+        drawing.arc(0, 6, 11, Math.PI * 0.18, Math.PI * 0.82);
+        drawing.strokePath();
+        drawing.beginPath();
+        drawing.arc(0, 6, 11, Math.PI * 1.18, Math.PI * 1.82);
+        drawing.strokePath();
+        drawing.lineStyle(1, active ? 0xF4F4F4 : 0x657682, active ? 0.7 : 0.22);
+        drawing.lineBetween(0, -5, 0, 17);
+        if (active) {
+            drawing.fillStyle(accent, guided ? 0.95 : 0.8);
+            drawing.fillCircle(0, 6, guided ? 4 : 3);
+            drawing.fillEllipse(-9, -7, 12, 6);
+            drawing.fillEllipse(9, -9, 13, 6);
+        }
+
+        drawing
+            .setData('villageFoundationCradle', true)
+            .setData('villageFoundationState', state)
+            .setData('villageFoundationGuided', guided)
+            .setData('villageFoundationMaterial', 'living_root_cradle_v2')
+            .setData('ariaLabel', `${state} living root cradle`);
+        return true;
+    }
+
+    createVillageArrivalGuide(landmark, snapshot, { compact = false } = {}) {
+        if (
+            !landmark?.zone ||
+            snapshot?.unlock?.unlocked !== true ||
+            snapshot?.state?.guidanceSeen === true ||
+            (snapshot?.worldState?.restored || 0) > 0
+        ) {
+            return false;
+        }
+
+        const guideX = landmark.zone.x + (compact ? 0 : -142);
+        const guideY = landmark.zone.y + (compact ? 220 : 126);
+        const guide = this.scene.add.container(guideX, guideY)
+            .setDepth(guideY - 2)
+            .setData('villageArrivalGuide', true)
+            .setData('villageArrivalMessage', 'BUILD A HOME TOGETHER')
+            .setData('villageArrivalSteps', ['BUILD', 'INVITE', 'GROW']);
+        const ground = this.scene.add.graphics();
+        ground.fillStyle(0x071411, 0.78);
+        ground.fillEllipse(0, 4, compact ? 188 : 220, compact ? 42 : 48);
+        ground.lineStyle(2, 0x71E6B1, 0.56);
+        ground.beginPath();
+        ground.arc(0, 5, compact ? 88 : 104, Math.PI * 1.08, Math.PI * 1.92);
+        ground.strokePath();
+        [-1, 0, 1].forEach(stepIndex => {
+            const stepX = stepIndex * (compact ? 41 : 48);
+            ground.fillStyle(0x061310, 0.96);
+            ground.fillCircle(stepX, 3, 7);
+            ground.lineStyle(1.5, stepIndex === 0 ? 0xF2C14E : 0x71E6B1, 0.78);
+            ground.strokeCircle(stepX, 3, 5);
+            ground.fillStyle(0xF4F4F4, 0.82);
+            ground.fillCircle(stepX, 3, 1.5);
+        });
+        const title = this.scene.add.text(0, -24, 'BUILD A HOME TOGETHER', {
+            fontSize: compact ? '9px' : '10px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#F4F4F4',
+            stroke: '#07100F',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+        const steps = this.scene.add.text(0, compact ? 20 : 26, 'BUILD  ·  INVITE  ·  GROW', {
+            fontSize: compact ? '7px' : '8px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#8FE3CF',
+            stroke: '#07100F',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+        guide.add([ground, title, steps]);
+        landmark.arrivalGuide = guide;
+        landmark.arrivalGuideTween = this.scene.tweens.add({
+            targets: ground,
+            alpha: { from: 0.62, to: 1 },
+            duration: 1800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        landmark.buildingElements.push(guide);
+        landmark.buildingTweens.push(landmark.arrivalGuideTween);
         return true;
     }
 
@@ -2955,6 +3106,24 @@ class WorldBuilder {
             building.definition.workerRoutine?.carriedResource
         );
         cargo.setPosition(13, 5);
+        const deliveryPulse = this.scene.add.graphics().setAlpha(0);
+        deliveryPulse.lineStyle(2, accent, 0.86);
+        deliveryPulse.strokeCircle(0, 10, 17);
+        deliveryPulse.lineStyle(1, 0xF4F4F4, 0.72);
+        deliveryPulse.strokeCircle(0, 10, 10);
+        deliveryPulse
+            .setData('villageDeliveryPulse', true)
+            .setData('resource', building.definition.workerRoutine?.carriedResource || null);
+        const routeStatus = this.scene.add.text(0, -48, '', {
+            fontSize: compact ? '10px' : '9px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#C9F7E9',
+            stroke: '#07100F',
+            strokeThickness: 4,
+            align: 'center'
+        }).setOrigin(0.5).setAlpha(0);
+        routeStatus.setData('villageWorkerRouteStatus', true);
         const checkInCue = this.scene.add.graphics();
         checkInCue.fillStyle(0x061513, 0.9);
         checkInCue.fillCircle(0, -29, 10);
@@ -2967,7 +3136,15 @@ class WorldBuilder {
         checkInCue.fillStyle(0xE85D5D, 0.9);
         checkInCue.fillTriangle(7, -37, 12, -34, 8, -31);
         checkInCue.setData('villageResonanceCue', true);
-        worker.add([shadow, figure, initial, cargo, checkInCue]);
+        worker.add([
+            shadow,
+            deliveryPulse,
+            figure,
+            initial,
+            cargo,
+            routeStatus,
+            checkInCue
+        ]);
         worker.setScale(scale);
         worker.setData('villageWorker', true);
         worker.setData('helperName', building.creature.name);
@@ -2984,6 +3161,10 @@ class WorldBuilder {
         );
         worker.setData('routeProgress', 0);
         worker.setData('routePhase', 'working');
+        worker.setData('routeDirection', 'to_heart');
+        worker.setData('cargoVisible', true);
+        worker.setData('deliveryFeedback', false);
+        worker.setData('visibleRoutineCue', building.definition.workerRoutine?.cue || 'HELPING');
         worker.setData('worldEffectLabel', building.definition.worldEffectLabel);
         worker.setData(
             'ariaLabel',
@@ -2997,8 +3178,25 @@ class WorldBuilder {
 
         const travel = { progress: 0 };
         let previousX = routeStart.x;
+        let previousProgress = 0;
+        let routeDirection = 'to_heart';
+        const worldRoutineCue = {
+            forager_hut: 'FORAGING',
+            sawmill: 'SHAPING',
+            current_masonry: 'LISTENING'
+        }[building.definitionId] || 'HELPING';
+        worker.setData('visibleRoutineCue', worldRoutineCue);
+        const effectCue = String(building.definition.worldEffectLabel || 'SUPPLIES DELIVERED')
+            .split('·')
+            .pop()
+            .trim();
         const updateRoute = () => {
             const progress = Phaser.Math.Clamp(travel.progress, 0, 1);
+            if (progress > previousProgress + 0.001) {
+                routeDirection = 'to_heart';
+            } else if (progress < previousProgress - 0.001) {
+                routeDirection = 'to_building';
+            }
             const inverse = 1 - progress;
             const x = (inverse * inverse * routeStart.x) +
                 (2 * inverse * progress * routeControl.x) +
@@ -3010,15 +3208,41 @@ class WorldBuilder {
             worker.setDepth(y + 18);
             figure.setScale(Math.abs(figure.scaleX) * (x < previousX ? -1 : 1), figure.scaleY);
             previousX = x;
+            previousProgress = progress;
+            const working = progress < 0.12;
+            const delivering = routeDirection === 'to_heart' && progress > 0.82;
+            const returning = routeDirection === 'to_building' && !working;
+            const carrying = routeDirection === 'to_heart' && !delivering;
+            cargo.setAlpha(carrying ? 1 : 0.12);
+            cargo.setScale(carrying ? 1 : 0.72);
+            deliveryPulse
+                .setAlpha(delivering ? 0.82 : 0)
+                .setScale(delivering ? 0.72 + ((progress - 0.82) * 2.2) : 0.72);
+            const statusCopy = working
+                ? worldRoutineCue
+                : delivering
+                    ? effectCue
+                    : '';
+            routeStatus
+                .setText(statusCopy)
+                .setAlpha(statusCopy ? 0.92 : 0)
+                .setColor(delivering ? '#F2C14E' : '#C9F7E9');
+            checkInCue.setAlpha(working ? 0.92 : delivering ? 0.46 : 0.28);
             worker.setData('routeProgress', Number(progress.toFixed(3)));
             worker.setData(
                 'routePhase',
-                progress < 0.12
+                working
                     ? 'working'
-                    : progress > 0.88
+                    : delivering
                         ? 'delivering'
-                        : 'travelling'
+                        : returning
+                            ? 'returning'
+                            : 'travelling'
             );
+            worker.setData('routeDirection', routeDirection);
+            worker.setData('cargoVisible', carrying);
+            worker.setData('deliveryFeedback', delivering);
+            worker.setData('visibleRoutineCue', statusCopy || null);
         };
         const moveTween = this.scene.tweens.add({
             targets: travel,
@@ -3046,7 +3270,6 @@ class WorldBuilder {
         });
         const cueTween = this.scene.tweens.add({
             targets: checkInCue,
-            alpha: { from: 0.64, to: 1 },
             scaleX: { from: 0.92, to: 1.06 },
             scaleY: { from: 0.92, to: 1.06 },
             duration: 980 + (index * 110),

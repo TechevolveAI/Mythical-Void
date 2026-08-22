@@ -445,6 +445,15 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('createVillageValueGrowth(');
         expect(world).toContain("setData('villageValueGrowth'");
         expect(world).toContain('createVillageNextActionBeacon(');
+        expect(world).toContain('createVillageArrivalGuide(landmark, snapshot');
+        expect(world).toContain("setData('villageArrivalGuide', true)");
+        expect(world).toContain("setData('villageArrivalMessage', 'BUILD A HOME TOGETHER')");
+        expect(world).toContain("setData('villageArrivalSteps', ['BUILD', 'INVITE', 'GROW'])");
+        expect(world).toContain("'BUILD  ·  INVITE  ·  GROW'");
+        expect(world).toContain('drawVillageFoundationCradle(');
+        expect(world).toContain("setData('villageFoundationCradle', true)");
+        expect(world).toContain("setData('villageFoundationMaterial', 'living_root_cradle_v2')");
+        expect(world).toContain("'inhabited_root_basin_v1' : 'living_root_cradle_v2'");
         expect(world).toContain('createVillageGuidanceRoute({');
         expect(world).toContain("setData('villageGuidanceRoute', true)");
         expect(world).toContain("setData('villageRouteMaterial', 'current_stepping_lights_v1')");
@@ -459,6 +468,12 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("copy.setData('resonanceVerticalOffset', compact ? 360 : 330)");
         expect(world).toContain("copy.setData('resonanceVerticalOffset', compact ? 375 : 345)");
         expect(world).toContain("setData('villageNextAction'");
+        expect(world).toContain("setData('routeDirection', 'to_heart')");
+        expect(world).toContain("setData('villageDeliveryPulse', true)");
+        expect(world).toContain("setData('villageWorkerRouteStatus', true)");
+        expect(world).toContain("worker.setData('cargoVisible', carrying)");
+        expect(world).toContain("worker.setData('deliveryFeedback', delivering)");
+        expect(world).toContain("? 'returning'");
         expect(world).toContain('playVillageHeartMemory(');
         expect(world).toContain("setData('villageHeartFollowUp'");
         expect(world).toContain("copy.setData('villageDecisionMoment', result.decision.id)");

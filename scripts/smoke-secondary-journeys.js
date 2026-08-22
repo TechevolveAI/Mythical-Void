@@ -10273,6 +10273,55 @@ async function smokeVillageUi(session, exceptions) {
             `${error.message}; GameScene diagnostics: ${JSON.stringify(diagnostics)}`
         );
     }
+    const firstArrivalWorld = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const guide = landmark?.arrivalGuide;
+        return {
+            guideActive: guide?.active === true,
+            guideMessage: guide?.getData?.('villageArrivalMessage'),
+            guideSteps: guide?.getData?.('villageArrivalSteps') || [],
+            statusText: landmark?.statusLabel?.text || '',
+            nextAction: landmark?.snapshot?.worldState?.nextAction?.type || null,
+            restored: landmark?.snapshot?.worldState?.restored,
+            foundationMaterials: (landmark?.plotPresentations || []).map(
+                presentation => presentation.container?.getData?.('villageFoundationMaterial')
+            ),
+            foundationCradles: (landmark?.plotPresentations || []).map(presentation => {
+                const drawing = presentation.container?.list?.find(
+                    child => child?.getData?.('villageFoundationCradle') === true
+                );
+                return {
+                    state: drawing?.getData?.('villageFoundationState'),
+                    guided: drawing?.getData?.('villageFoundationGuided'),
+                    material: drawing?.getData?.('villageFoundationMaterial'),
+                    ariaLabel: drawing?.getData?.('ariaLabel')
+                };
+            })
+        };
+    })()`);
+    if (
+        !firstArrivalWorld.guideActive ||
+        firstArrivalWorld.guideMessage !== 'BUILD A HOME TOGETHER' ||
+        JSON.stringify(firstArrivalWorld.guideSteps) !== JSON.stringify(['BUILD', 'INVITE', 'GROW']) ||
+        !firstArrivalWorld.statusText.includes('BUILD A HOME TOGETHER') ||
+        firstArrivalWorld.nextAction !== 'build' ||
+        firstArrivalWorld.restored !== 0 ||
+        firstArrivalWorld.foundationMaterials.length !== 5 ||
+        firstArrivalWorld.foundationMaterials.some(
+            material => material !== 'living_root_cradle_v2'
+        ) ||
+        firstArrivalWorld.foundationCradles.some(
+            cradle => cradle.state !== 'available' ||
+                cradle.material !== 'living_root_cradle_v2' ||
+                !cradle.ariaLabel?.includes('living root cradle')
+        ) ||
+        firstArrivalWorld.foundationCradles.filter(cradle => cradle.guided).length !== 1
+    ) {
+        throw new Error(
+            `Village first-arrival world language failed: ${JSON.stringify(firstArrivalWorld)}`
+        );
+    }
     const shopResult = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         scene.openShop();
@@ -11501,6 +11550,10 @@ async function smokeVillageUi(session, exceptions) {
                     routeType: worker.getData('routeType'),
                     routePhase: worker.getData('routePhase'),
                     routeProgress: worker.getData('routeProgress'),
+                    routeDirection: worker.getData('routeDirection'),
+                    cargoVisible: worker.getData('cargoVisible'),
+                    deliveryFeedback: worker.getData('deliveryFeedback'),
+                    visibleRoutineCue: worker.getData('visibleRoutineCue'),
                     carriedResource: worker.getData('carriedResource'),
                     worldEffectLabel: worker.getData('worldEffectLabel'),
                     ariaLabel: worker.getData('ariaLabel'),
@@ -11626,8 +11679,11 @@ async function smokeVillageUi(session, exceptions) {
         ) ||
         layout.worldPresentation.workerRoutes.some(route => (
             route.routeType !== 'building_to_heart' ||
-            !['working', 'travelling', 'delivering'].includes(route.routePhase) ||
+            !['working', 'travelling', 'delivering', 'returning'].includes(route.routePhase) ||
             !Number.isFinite(route.routeProgress) ||
+            !['to_heart', 'to_building'].includes(route.routeDirection) ||
+            typeof route.cargoVisible !== 'boolean' ||
+            typeof route.deliveryFeedback !== 'boolean' ||
             !route.carriedResource ||
             !route.worldEffectLabel ||
             !route.ariaLabel.includes('Village Heart') ||
@@ -11754,6 +11810,10 @@ async function smokeVillageUi(session, exceptions) {
             routeType: worker.getData('routeType'),
             routePhase: worker.getData('routePhase'),
             routeProgress: worker.getData('routeProgress'),
+            routeDirection: worker.getData('routeDirection'),
+            cargoVisible: worker.getData('cargoVisible'),
+            deliveryFeedback: worker.getData('deliveryFeedback'),
+            visibleRoutineCue: worker.getData('visibleRoutineCue'),
             carriedResource: worker.getData('carriedResource'),
             worldEffectLabel: worker.getData('worldEffectLabel'),
             ariaLabel: worker.getData('ariaLabel'),
@@ -11762,6 +11822,12 @@ async function smokeVillageUi(session, exceptions) {
             checkInCueStyle: worker.getData('checkInCueStyle'),
             resonanceCue: worker.list?.some(
                 child => child?.getData?.('villageResonanceCue') === true
+            ) === true,
+            deliveryPulse: worker.list?.some(
+                child => child?.getData?.('villageDeliveryPulse') === true
+            ) === true,
+            routeStatus: worker.list?.some(
+                child => child?.getData?.('villageWorkerRouteStatus') === true
             ) === true
         };
     })()`);
@@ -11772,13 +11838,18 @@ async function smokeVillageUi(session, exceptions) {
         !['working', 'travelling', 'delivering'].includes(workerRoute.routePhase) ||
         !Number.isFinite(workerRoute.routeProgress) ||
         workerRoute.routeProgress <= 0 ||
+        workerRoute.routeDirection !== 'to_heart' ||
+        workerRoute.cargoVisible !== true ||
+        workerRoute.deliveryFeedback !== false ||
         workerRoute.carriedResource !== 'food' ||
         workerRoute.worldEffectLabel !== 'FEEDING · +5 HAPPINESS' ||
         !workerRoute.ariaLabel.includes('Village Heart') ||
         !workerRoute.inputEnabled ||
         workerRoute.checkInCue !== true ||
         workerRoute.checkInCueStyle !== 'current_resonance' ||
-        !workerRoute.resonanceCue
+        !workerRoute.resonanceCue ||
+        !workerRoute.deliveryPulse ||
+        !workerRoute.routeStatus
     ) {
         throw new Error(`Village worker route was unavailable: ${JSON.stringify(workerRoute)}`);
     }
@@ -11843,6 +11914,64 @@ async function smokeVillageUi(session, exceptions) {
         scene.worldBuilder.clearVillageWorkerCheckIn(scene.villageHeartLandmark);
         return true;
     })()`);
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.workerElements?.[0]
+                ?.getData('deliveryFeedback')
+        )`),
+        { timeoutMs: 8000, message: 'Village worker delivers visible settlement value' }
+    );
+    const workerDelivery = await evaluate(session, `(() => {
+        const worker = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark?.workerElements?.[0];
+        return {
+            phase: worker?.getData('routePhase'),
+            direction: worker?.getData('routeDirection'),
+            cargoVisible: worker?.getData('cargoVisible'),
+            feedback: worker?.getData('deliveryFeedback'),
+            cue: worker?.getData('visibleRoutineCue')
+        };
+    })()`);
+    if (
+        workerDelivery.phase !== 'delivering' ||
+        workerDelivery.direction !== 'to_heart' ||
+        workerDelivery.cargoVisible !== false ||
+        workerDelivery.feedback !== true ||
+        workerDelivery.cue !== '+5 HAPPINESS'
+    ) {
+        throw new Error(`Village worker delivery feedback failed: ${JSON.stringify(workerDelivery)}`);
+    }
+    await captureGameplayStill(session, 'village-worker-delivery-mobile.png');
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const worker = window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.workerElements?.[0];
+            return worker?.getData('routePhase') === 'returning' &&
+                worker?.getData('routeDirection') === 'to_building';
+        })()`),
+        { timeoutMs: 8000, message: 'Village worker returns without duplicate cargo' }
+    );
+    const workerReturn = await evaluate(session, `(() => {
+        const worker = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark?.workerElements?.[0];
+        return {
+            phase: worker?.getData('routePhase'),
+            direction: worker?.getData('routeDirection'),
+            cargoVisible: worker?.getData('cargoVisible'),
+            feedback: worker?.getData('deliveryFeedback'),
+            cue: worker?.getData('visibleRoutineCue')
+        };
+    })()`);
+    if (
+        workerReturn.phase !== 'returning' ||
+        workerReturn.direction !== 'to_building' ||
+        workerReturn.cargoVisible !== false ||
+        workerReturn.feedback !== false ||
+        workerReturn.cue !== null
+    ) {
+        throw new Error(`Village worker return state failed: ${JSON.stringify(workerReturn)}`);
+    }
     const structureRoute = await evaluate(session, `(() => {
         const zone = window.mythicalGame.scene.getScene('GameScene')
             ?.villageHeartLandmark?.plotHitZones?.[0];
@@ -12609,11 +12738,14 @@ async function smokeVillageUi(session, exceptions) {
     }
 
     return {
+        firstArrivalWorld,
         layout,
         integratedSetup,
         integratedWorld,
         focusRecovery,
         workerRoute,
+        workerDelivery,
+        workerReturn,
         workerCheckIn,
         contextualFocus,
         structureRoute,
