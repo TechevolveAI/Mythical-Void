@@ -942,6 +942,7 @@ class WorldBuilder {
             buildingTweens: [],
             focusTweens: [],
             focusModeActive: false,
+            playerProximityPlotId: null,
             plotHitZones: [],
             nextActionElement: null,
             nextActionHitZone: null,
@@ -1298,6 +1299,7 @@ class WorldBuilder {
         landmark.heartMemoryElements = [];
         landmark.valueGrowthElements = [];
         landmark.plotPresentations = [];
+        landmark.playerProximityPlotId = null;
         landmark.villageFlowSignals = [];
         landmark.nextActionElement = null;
         landmark.nextActionHitZone = null;
@@ -1987,6 +1989,7 @@ class WorldBuilder {
                 container.setScale(1);
                 const focusPriority = container.getData('villageFocusPriority');
                 const presentationMode = container.getData('villagePresentationMode');
+                const playerNearby = container.getData('villagePlayerNearby') === true;
                 const directPlotCommand = Boolean(
                     focusPriority === 'primary' &&
                     ['build', 'assign'].includes(
@@ -1997,14 +2000,16 @@ class WorldBuilder {
                     Number(container.getData('villageFocusAlpha')) || 1
                 );
                 focusRing.setAlpha(
-                    presentationMode !== 'story' &&
-                    focusPriority === 'primary' &&
-                    !directPlotCommand
-                        ? 0.82
-                        : 0
+                    playerNearby
+                        ? 0.64
+                        : presentationMode !== 'story' &&
+                            focusPriority === 'primary' &&
+                            !directPlotCommand
+                            ? 0.82
+                            : 0
                 );
                 districtAnchor.setAlpha(
-                    focusPriority === 'primary'
+                    playerNearby || focusPriority === 'primary'
                         ? 1
                         : guidedPlot
                             ? 1
@@ -2013,16 +2018,20 @@ class WorldBuilder {
                                 : 0.3
                 );
                 plotLabel.setAlpha(
-                    directPlotCommand
+                    playerNearby
+                        ? 1
+                        : directPlotCommand
                         ? 0
                         : presentationMode === 'story'
                         ? focusPriority === 'primary' ? 0.88 : 0
                         : focusPriority === 'primary' ? 1 : plotLabelRestAlpha
                 );
                 stateLabel
-                    .setText(buildingStateCopy)
+                    .setText(playerNearby ? focusCopy : buildingStateCopy)
                     .setAlpha(
-                        directPlotCommand
+                        playerNearby && !directPlotCommand
+                            ? 1
+                            : directPlotCommand
                             ? 0
                             : presentationMode === 'story'
                             ? 0
@@ -2069,7 +2078,9 @@ class WorldBuilder {
                 layoutProfile: settlementLayout.profile,
                 plotLabelRestAlpha,
                 stateLabelRestAlpha,
-                interactionLabel
+                interactionLabel,
+                focusCopy,
+                buildingStateCopy
             });
 
             if (building?.status === 'constructing') {
@@ -2482,83 +2493,114 @@ class WorldBuilder {
 
         landmark.plotPresentations?.forEach(presentation => {
             const primary = Boolean(focusPlotId && presentation.plotId === focusPlotId);
+            const compactPresentation = presentation.layoutProfile ===
+                VILLAGE_SETTLEMENT_LAYOUTS.compact.profile;
+            const playerNearby = Boolean(
+                !storyMode &&
+                landmark.playerProximityPlotId === presentation.plotId
+            );
             const directPlotCommand = Boolean(
                 primary && ['build', 'assign'].includes(action?.type)
             );
-            const priority = primary
-                ? 'primary'
-                : !active
-                    ? 'ambient'
-                    : 'supporting';
+            const priority = playerNearby
+                ? 'nearby'
+                : primary
+                    ? 'primary'
+                    : !active
+                        ? 'ambient'
+                        : 'supporting';
             const settled = ['constructing', 'needs_helper', 'complete', 'staffed'].includes(
                 presentation.plotState
             );
             const ambientAlpha = primary
                 ? 1
                 : presentation.plotState === 'constructing'
-                    ? 0.9
+                    ? compactPresentation ? 0.86 : 0.9
                     : settled
-                        ? 0.82
-                        : 0.24;
-            const alpha = !active
+                        ? compactPresentation ? 0.68 : 0.78
+                        : compactPresentation ? 0.16 : 0.2;
+            const baseAlpha = !active
                 ? ambientAlpha
                 : storyMode
-                    ? primary ? 0.86 : 0.48
+                    ? primary ? 0.86 : compactPresentation ? 0.34 : 0.42
                     : primary
                         ? 1
                         : presentation.plotState === 'constructing'
                             ? 0.76
                             : focusPlotId
-                                ? 0.4
-                                : 0.46;
-            const plotLabelAlpha = !active
-                ? presentation.plotLabelRestAlpha
-                : directPlotCommand
-                    ? 0
-                : storyMode
-                    ? primary ? 0.88 : 0
-                    : primary ? 1 : 0.08;
-            const stateLabelAlpha = !active
-                ? presentation.stateLabelRestAlpha
-                : directPlotCommand
-                    ? 0
-                : storyMode
-                    ? 0
-                    : primary || presentation.plotState === 'constructing' ? 1 : 0;
+                                ? compactPresentation ? 0.34 : 0.4
+                                : compactPresentation ? 0.4 : 0.46;
+            const alpha = playerNearby ? 1 : baseAlpha;
+            const plotLabelAlpha = playerNearby
+                ? 1
+                : !active
+                    ? presentation.plotLabelRestAlpha
+                    : directPlotCommand
+                        ? 0
+                        : storyMode
+                            ? primary ? 0.88 : 0
+                            : primary ? 1 : 0.08;
+            const stateLabelAlpha = playerNearby && !directPlotCommand
+                ? 1
+                : !active
+                    ? presentation.stateLabelRestAlpha
+                    : directPlotCommand
+                        ? 0
+                        : storyMode
+                            ? 0
+                            : primary || presentation.plotState === 'constructing' ? 1 : 0;
 
             presentation.container
                 ?.setData('villageFocusPriority', priority)
                 .setData('villageFocusAlpha', alpha)
+                .setData('villagePlayerNearby', playerNearby)
                 .setData('villageFocusAction', action?.type || null)
                 .setData('villagePresentationMode', landmark.presentationMode);
             presentation.focusRing
                 ?.setData('villageFocusPrimary', primary)
-                .setAlpha(!storyMode && primary && !directPlotCommand ? 0.82 : 0);
-            const anchorAlpha = !active
-                ? presentation.districtAnchor?.getData?.('villageDistrictGuided')
-                    ? 1
-                    : ['constructing', 'needs_helper', 'complete', 'staffed'].includes(
-                        presentation.plotState
-                    )
-                        ? 0.58
-                        : 0.3
-                : storyMode
-                    ? primary ? 0.82 : 0.12
-                    : primary ? 1 : 0.18;
+                .setData('villagePlayerNearby', playerNearby)
+                .setAlpha(
+                    playerNearby
+                        ? 0.64
+                        : !storyMode && primary && !directPlotCommand ? 0.82 : 0
+                );
+            const anchorAlpha = playerNearby
+                ? 1
+                : !active
+                    ? presentation.districtAnchor?.getData?.('villageDistrictGuided')
+                        ? 1
+                        : ['constructing', 'needs_helper', 'complete', 'staffed'].includes(
+                            presentation.plotState
+                        )
+                            ? compactPresentation ? 0.42 : 0.52
+                            : 0.3
+                    : storyMode
+                        ? primary ? 0.82 : 0.12
+                        : primary ? 1 : 0.18;
             presentation.districtAnchor
                 ?.setData('villageFocusPrimary', primary)
+                .setData('villagePlayerNearby', playerNearby)
                 .setData('villageFocusPriority', priority);
             transition(presentation.districtAnchor, anchorAlpha);
             presentation.plotLabel?.setAlpha(plotLabelAlpha);
-            presentation.stateLabel?.setAlpha(stateLabelAlpha);
-            presentation.hitZone?.setData('villagePresentationMode', landmark.presentationMode);
+            presentation.stateLabel
+                ?.setText(playerNearby
+                    ? presentation.focusCopy
+                    : presentation.buildingStateCopy
+                )
+                .setAlpha(stateLabelAlpha);
+            presentation.hitZone
+                ?.setData('villagePresentationMode', landmark.presentationMode)
+                .setData('villagePlayerNearby', playerNearby);
             if (landmark.snapshot?.unlock?.unlocked) {
                 presentation.hitZone?.setInteractive?.({ useHandCursor: true });
             }
             transition(presentation.container, alpha);
             if (presentation.worker) {
                 const workerAlpha = !active
-                    ? primary ? 0.92 : 0.72
+                    ? playerNearby
+                        ? 0.96
+                        : primary ? 0.92 : compactPresentation ? 0.58 : 0.68
                     : storyMode
                         ? primary ? 0.78 : 0.24
                         : primary
@@ -2567,6 +2609,7 @@ class WorldBuilder {
                 presentation.worker
                     .setData('villageFocusPriority', priority)
                     .setData('villageFocusAlpha', workerAlpha)
+                    .setData('villagePlayerNearby', playerNearby)
                     .setData('villagePresentationMode', landmark.presentationMode);
                 if (storyMode) {
                     presentation.worker.disableInteractive();
@@ -2655,6 +2698,19 @@ class WorldBuilder {
         });
         transition(landmark.heartArtwork, heartAlpha);
         transition(landmark.heart, heartAlpha);
+        return true;
+    }
+
+    setVillagePlayerProximity(landmark, plotId = null) {
+        if (!landmark?.zone) return false;
+        const nextPlotId = landmark.plotWorldPositions?.has(plotId) ? plotId : null;
+        if (landmark.playerProximityPlotId === nextPlotId) return false;
+        landmark.playerProximityPlotId = nextPlotId;
+        this.setVillageFocusMode(
+            landmark,
+            landmark.focusModeActive === true,
+            { presentationMode: landmark.presentationMode || 'ambient' }
+        );
         return true;
     }
 

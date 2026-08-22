@@ -14811,6 +14811,7 @@ class GameScene extends Phaser.Scene {
         // Check collectible proximity for auto-collection
         this.checkCollectibleProximity();
         this.checkLivingSignalProximity(delta || this.game?.loop?.delta || 16.67);
+        this.updateVillagePlotProximity();
 
         // Check shop proximity distance
         if (this.nearShop && this.shop && this.player) {
@@ -15840,6 +15841,40 @@ class GameScene extends Phaser.Scene {
         this.getHudController().setSanctuaryFocusMode(nextActive);
         this.updateFirstContactFocusMode();
         this.sanctuaryInteractionDirector?.update?.({ force: true });
+    }
+
+    updateVillagePlotProximity() {
+        const landmark = this.villageHeartLandmark;
+        if (!landmark?.plotWorldPositions || !this.player || !this.worldBuilder) {
+            return null;
+        }
+        if (
+            landmark.presentationMode === 'story' ||
+            this.villageCommandPanel?.domElement ||
+            this.currentBiome !== 'nebula'
+        ) {
+            this.worldBuilder.setVillagePlayerProximity(landmark, null);
+            return null;
+        }
+
+        let nearestPlotId = null;
+        let nearestDistance = Number.POSITIVE_INFINITY;
+        landmark.plotWorldPositions.forEach((position, plotId) => {
+            const distance = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                position.x,
+                position.y
+            );
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearestPlotId = plotId;
+            }
+        });
+        const threshold = this.scale.width <= 600 ? 104 : 122;
+        const activePlotId = nearestDistance <= threshold ? nearestPlotId : null;
+        this.worldBuilder.setVillagePlayerProximity(landmark, activePlotId);
+        return activePlotId;
     }
 
     scheduleFusionDiscoveryIntroduction(

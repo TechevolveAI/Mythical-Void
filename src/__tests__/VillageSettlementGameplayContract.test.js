@@ -613,8 +613,13 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("presentationMode = active ? 'action' : 'ambient'");
         expect(world).toContain("presentationMode === 'story'");
         expect(world).toContain("presentation.plotState === 'constructing'");
-        expect(world).toContain('? 0.82');
-        expect(world).toContain(': 0.24;');
+        expect(world).toContain('setVillagePlayerProximity(landmark, plotId = null)');
+        expect(world).toContain(".setData('villagePlayerNearby', playerNearby)");
+        expect(world).toContain("? 'nearby'");
+        expect(world).toContain('compactPresentation ? 0.68 : 0.78');
+        expect(world).toContain('compactPresentation ? 0.16 : 0.2');
+        expect(scene).toContain('updateVillagePlotProximity()');
+        expect(scene).toContain('this.worldBuilder.setVillagePlayerProximity(landmark, activePlotId)');
         expect(world).toContain("'villageFocusAlphaMultiplier'");
         expect(world).toContain('this.scene.setSanctuaryMomentFocus?.(true');
         expect(scene).toContain('getVillageHeartInteractionPrompt(');

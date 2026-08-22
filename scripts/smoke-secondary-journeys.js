@@ -11490,13 +11490,126 @@ async function smokeVillageUi(session, exceptions) {
         focusRecovery.heartPriority !== 'primary' ||
         focusRecovery.plotPriorities.length !== 5 ||
         focusRecovery.plotPriorities.filter(plot => plot.state === 'staffed').some(
-            plot => plot.priority !== 'ambient' || Math.abs(plot.alpha - 0.82) > 0.01
+            plot => plot.priority !== 'ambient' || Math.abs(
+                plot.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.68 : 0.78)
+            ) > 0.01
         ) ||
         focusRecovery.plotPriorities.filter(plot => plot.state === 'available').some(
-            plot => plot.priority !== 'ambient' || Math.abs(plot.alpha - 0.24) > 0.01
+            plot => plot.priority !== 'ambient' || Math.abs(
+                plot.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.16 : 0.2)
+            ) > 0.01
         )
     ) {
         throw new Error(`Sanctuary focus did not restore exploration HUD: ${JSON.stringify(focusRecovery)}`);
+    }
+    const structureProximity = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const presentation = landmark?.plotPresentations?.find(
+            item => item.plotState === 'staffed'
+        );
+        const position = landmark?.plotWorldPositions?.get(presentation?.plotId);
+        if (!scene || !presentation || !position) return null;
+        scene.player.setPosition(position.x, position.y);
+        scene.player.body?.reset?.(position.x, position.y);
+        const activePlotId = scene.updateVillagePlotProximity();
+        return {
+            activePlotId,
+            plotId: presentation.plotId,
+            priority: presentation.container?.getData?.('villageFocusPriority'),
+            playerNearby: presentation.container?.getData?.('villagePlayerNearby'),
+            hitZoneNearby: presentation.hitZone?.getData?.('villagePlayerNearby'),
+            labelAlpha: presentation.plotLabel?.alpha,
+            stateAlpha: presentation.stateLabel?.alpha,
+            stateText: presentation.stateLabel?.text || '',
+            ringAlpha: presentation.focusRing?.alpha,
+            workerNearby: presentation.worker?.getData?.('villagePlayerNearby')
+        };
+    })()`);
+    await delay(280);
+    const structureProximitySettled = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const presentation = scene?.villageHeartLandmark?.plotPresentations?.find(
+            item => item.plotId === '${structureProximity?.plotId || ''}'
+        );
+        return presentation ? {
+            alpha: presentation.container?.alpha,
+            workerAlpha: presentation.worker?.alpha,
+            labelAlpha: presentation.plotLabel?.alpha,
+            stateAlpha: presentation.stateLabel?.alpha,
+            ringAlpha: presentation.focusRing?.alpha
+        } : null;
+    })()`);
+    if (
+        !structureProximity ||
+        structureProximity.activePlotId !== structureProximity.plotId ||
+        structureProximity.priority !== 'nearby' ||
+        structureProximity.playerNearby !== true ||
+        structureProximity.hitZoneNearby !== true ||
+        structureProximity.labelAlpha !== 1 ||
+        structureProximity.stateAlpha !== 1 ||
+        !structureProximity.stateText.includes('NOVA · PATHFINDER') ||
+        structureProximity.workerNearby !== true ||
+        !structureProximitySettled ||
+        Math.abs(structureProximitySettled.alpha - 1) > 0.01 ||
+        Math.abs(structureProximitySettled.workerAlpha - 0.96) > 0.01 ||
+        Math.abs(structureProximitySettled.ringAlpha - 0.64) > 0.01
+    ) {
+        throw new Error(`Village structure proximity reveal failed: ${JSON.stringify({ structureProximity, structureProximitySettled })}`);
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-structure-proximity-mobile.png'
+            : 'village-structure-proximity-desktop.png'
+    );
+    const structureProximityRestored = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const presentation = landmark?.plotPresentations?.find(
+            item => item.plotId === '${structureProximity?.plotId || ''}'
+        );
+        const x = landmark.zone.x;
+        const y = landmark.zone.y - 110;
+        scene.player.setPosition(x, y);
+        scene.player.body?.reset?.(x, y);
+        const activePlotId = scene.updateVillagePlotProximity();
+        return {
+            activePlotId,
+            playerNearby: presentation?.container?.getData?.('villagePlayerNearby'),
+            priority: presentation?.container?.getData?.('villageFocusPriority')
+        };
+    })()`);
+    await delay(280);
+    const structureProximityRest = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const presentation = scene?.villageHeartLandmark?.plotPresentations?.find(
+            item => item.plotId === '${structureProximity?.plotId || ''}'
+        );
+        return presentation ? {
+            alpha: presentation.container?.alpha,
+            workerAlpha: presentation.worker?.alpha,
+            labelAlpha: presentation.plotLabel?.alpha,
+            stateAlpha: presentation.stateLabel?.alpha,
+            ringAlpha: presentation.focusRing?.alpha
+        } : null;
+    })()`);
+    if (
+        structureProximityRestored?.activePlotId !== null ||
+        structureProximityRestored?.playerNearby !== false ||
+        structureProximityRestored?.priority !== 'ambient' ||
+        !structureProximityRest ||
+        Math.abs(
+            structureProximityRest.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.68 : 0.78)
+        ) > 0.01 ||
+        Math.abs(
+            structureProximityRest.workerAlpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.58 : 0.68)
+        ) > 0.01 ||
+        structureProximityRest.labelAlpha !== 0 ||
+        structureProximityRest.stateAlpha !== 0 ||
+        structureProximityRest.ringAlpha !== 0
+    ) {
+        throw new Error(`Village structure proximity did not restore: ${JSON.stringify({ structureProximityRestored, structureProximityRest })}`);
     }
     const landmarkPrompts = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
