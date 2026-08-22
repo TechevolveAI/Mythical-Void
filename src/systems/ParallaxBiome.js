@@ -290,6 +290,12 @@ class ParallaxBiomeManager {
             return;
         }
 
+        if (this.currentBiomeId === 'nebula') {
+            this.shaderEnabled = false;
+            console.log('biome:info [ParallaxBiome] Sanctuary skips expedition post shader');
+            return;
+        }
+
         // The layered renderer already carries each biome's visual identity.
         // Avoid an extra full-screen fractal-noise pass on phone GPUs.
         if (this.performanceTier === 'mobile') {
@@ -565,7 +571,8 @@ class ParallaxBiomeManager {
             const currentField = this.scene.add.graphics()
                 .setData('sanctuaryParallaxProfile', 'quiet_current_threads_v2')
                 .setData('sanctuaryParallaxFilledWisps', false)
-                .setData('sanctuaryParallaxThreadCount', 3);
+                .setData('sanctuaryParallaxThreadCount', 3)
+                .setData('sanctuaryParallaxShaderEnabled', false);
             [0.2, 0.5, 0.78].forEach((heightRatio, threadIndex) => {
                 const color = threadIndex === 1
                     ? this.config.palette.biolume
@@ -1139,6 +1146,11 @@ class ParallaxBiomeManager {
      * Apply nebula shader to camera
      */
     applyNebulaShader() {
+        if (this.currentBiomeId === 'nebula') {
+            this.scene?.cameras?.main?.removePostPipeline?.('NebulaShader');
+            this.shaderEnabled = false;
+            return;
+        }
         if (!this.shaderEnabled || !this.config.effects.enableShader) {
             return;
         }

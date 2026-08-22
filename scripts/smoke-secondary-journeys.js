@@ -10749,6 +10749,10 @@ async function smokeVillageUi(session, exceptions) {
                     threadCount: currentField?.getData?.(
                         'sanctuaryParallaxThreadCount'
                     ),
+                    shaderEnabled: scene.parallaxBiome?.shaderEnabled === true,
+                    shaderContractEnabled: currentField?.getData?.(
+                        'sanctuaryParallaxShaderEnabled'
+                    ),
                     currentFieldCount: layers.filter(
                         entry => entry.type === 'sanctuaryCurrentField'
                     ).length,
@@ -10949,6 +10953,8 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.sanctuaryParallax.profile !== 'quiet_current_threads_v2' ||
         integratedWorld.sanctuaryParallax.filledWisps !== false ||
         integratedWorld.sanctuaryParallax.threadCount !== 3 ||
+        integratedWorld.sanctuaryParallax.shaderEnabled !== false ||
+        integratedWorld.sanctuaryParallax.shaderContractEnabled !== false ||
         integratedWorld.sanctuaryParallax.currentFieldCount !== 1 ||
         integratedWorld.sanctuaryParallax.filledWispCount !== 0 ||
         integratedWorld.sanctuaryParallax.vignetteCount !== 0 ||
