@@ -92,6 +92,12 @@ describe('Village settlement gameplay contract', () => {
             'strokeRoundedRect(-70, -76, 140, 124, 8)'
         );
         expect(worldSource).toContain('worldArtwork.setAlpha(0.66).setTint(0xA7BDAF)');
+        expect(worldSource).toContain('createVillageArtworkGrounding({');
+        expect(worldSource).toContain(".setData('villageGroundingMaterial', 'woven_root_foreground_v1')");
+        expect(worldSource).toContain(".setData('villageArtworkTreatment', 'living_current_material_v1')");
+        expect(worldSource).toContain("? 'full_color'");
+        expect(worldSource).toContain("? 'story_supporting'");
+        expect(worldSource).toContain('this.applyVillageArtworkTreatment(presentation.worldArtwork');
         expect(worldSource).toContain('refreshVillageSettlement(');
         expect(worldSource).toContain("zone.on('pointerdown', () => this.activateVillageHeart(landmark))");
         expect(worldSource).toContain("plotHitZone.on('pointerdown', pointer => {");

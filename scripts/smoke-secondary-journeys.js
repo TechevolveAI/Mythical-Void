@@ -10893,12 +10893,31 @@ async function smokeVillageUi(session, exceptions) {
                 action: landmark.snapshot?.worldState?.nextAction?.type || null,
                 heartPriority: landmark.heartArtwork?.getData?.('villageFocusPriority'),
                 heartAlpha: landmark.heartArtwork?.alpha,
+                heartArtworkTreatment: landmark.heartArtwork?.getData?.(
+                    'villageArtworkTreatment'
+                ),
+                heartArtworkTint: landmark.heartArtwork?.getData?.('villageArtworkTint'),
                 plots: (landmark.plotPresentations || []).map(presentation => ({
                     plotId: presentation.plotId,
                     priority: presentation.container?.getData?.('villageFocusPriority'),
                     alpha: presentation.container?.alpha,
                     workerAlpha: presentation.worker?.alpha ?? null,
-                    focusRingAlpha: presentation.focusRing?.alpha
+                    focusRingAlpha: presentation.focusRing?.alpha,
+                    artworkTreatment: presentation.worldArtwork?.getData?.(
+                        'villageArtworkTreatment'
+                    ) || null,
+                    artworkState: presentation.worldArtwork?.getData?.(
+                        'villageArtworkState'
+                    ) || null,
+                    artworkTint: presentation.worldArtwork?.getData?.(
+                        'villageArtworkTint'
+                    ) || null,
+                    groundingMaterial: presentation.artworkGrounding?.getData?.(
+                        'villageGroundingMaterial'
+                    ) || null,
+                    groundingState: presentation.artworkGrounding?.getData?.(
+                        'villageGroundingState'
+                    ) || null
                 }))
             },
             heartApproach: {
@@ -11244,6 +11263,9 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.focusHierarchy.action !== 'decision' ||
         integratedWorld.focusHierarchy.heartPriority !== 'primary' ||
         integratedWorld.focusHierarchy.heartAlpha !== 1 ||
+        integratedWorld.focusHierarchy.heartArtworkTreatment !==
+            'living_current_landmark_v1' ||
+        integratedWorld.focusHierarchy.heartArtworkTint !== 0xFFFFFF ||
         integratedWorld.focusHierarchy.plots.length !== 5 ||
         integratedWorld.focusHierarchy.plots.some(plot => (
             plot.priority !== 'supporting' ||
@@ -11254,7 +11276,17 @@ async function smokeVillageUi(session, exceptions) {
                     plot.workerAlpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.25 : 0.34)
                 ) > 0.01
             ) ||
-            plot.focusRingAlpha !== 0
+            plot.focusRingAlpha !== 0 ||
+            (
+                plot.artworkTreatment !== null &&
+                (
+                    plot.artworkTreatment !== 'living_current_material_v1' ||
+                    plot.artworkState !== 'focus_supporting' ||
+                    plot.artworkTint !== 0x91B3A7 ||
+                    plot.groundingMaterial !== 'woven_root_foreground_v1' ||
+                    plot.groundingState !== 'staffed'
+                )
+            )
         )) ||
         !integratedWorld.heartApproach.threshold ||
         integratedWorld.heartApproach.direction !== 'south' ||
@@ -11711,6 +11743,11 @@ async function smokeVillageUi(session, exceptions) {
             stateAlpha: presentation.stateLabel?.alpha,
             stateText: presentation.stateLabel?.text || '',
             ringAlpha: presentation.focusRing?.alpha,
+            artworkState: presentation.worldArtwork?.getData?.('villageArtworkState'),
+            artworkTint: presentation.worldArtwork?.getData?.('villageArtworkTint'),
+            groundingMaterial: presentation.artworkGrounding?.getData?.(
+                'villageGroundingMaterial'
+            ),
             workerNearby: presentation.worker?.getData?.('villagePlayerNearby'),
             plotInteractionId: scene.villagePlotInteractionId,
             activeInteractionId: director?.active?.id || null,
@@ -11749,6 +11786,9 @@ async function smokeVillageUi(session, exceptions) {
         structureProximity.stateAlpha !== 1 ||
         !structureProximity.stateText.includes('FORAGE · NOVA') ||
         !structureProximity.stateText.includes('FEEDING · +5 HAPPINESS') ||
+        structureProximity.artworkState !== 'full_color' ||
+        structureProximity.artworkTint !== 0xFFFFFF ||
+        structureProximity.groundingMaterial !== 'woven_root_foreground_v1' ||
         structureProximity.workerNearby !== true ||
         structureProximity.plotInteractionId !==
             `villagePlot:${structureProximity.plotId}` ||

@@ -1359,7 +1359,8 @@ class WorldBuilder {
             heartArtwork.villageBaseScale = heartArtwork.scaleX;
             heartArtwork
                 .setData('villageLayoutProfile', settlementLayout.profile)
-                .setData('villageDisplaySize', heartDisplaySize);
+                .setData('villageDisplaySize', heartDisplaySize)
+                .setData('villageArtworkTreatment', 'living_current_landmark_v1');
         }
         const plotOffsets = settlementLayout.plotOffsets;
         const buildingByPlot = new Map(
@@ -1727,6 +1728,14 @@ class WorldBuilder {
                         (worldArtworkDefinition.displaySize || 176) *
                             settlementLayout.buildingArtworkScale
                     )
+                    .setData('villageArtworkTreatment', 'living_current_material_v1')
+                : null;
+            const artworkGrounding = worldArtwork
+                ? this.createVillageArtworkGrounding({
+                    compact: compactSettlement,
+                    index,
+                    state: plotState
+                })
                 : null;
             drawing.fillStyle(0x102B26, building ? 0.7 : 0.36);
             drawing.fillEllipse(0, 29, building ? 136 : 96, building ? 46 : 29);
@@ -1902,6 +1911,7 @@ class WorldBuilder {
             container.add([
                 drawing,
                 ...(worldArtwork ? [worldArtwork] : []),
+                ...(artworkGrounding ? [artworkGrounding] : []),
                 stateMarker,
                 ...(building ? [currentSignal] : []),
                 ...(activity ? [activity] : []),
@@ -2013,6 +2023,11 @@ class WorldBuilder {
             plotHitZone.on('pointerover', () => {
                 container.setScale(1.06);
                 container.setAlpha(1);
+                this.applyVillageArtworkTreatment(worldArtwork, {
+                    priority: 'nearby',
+                    plotState,
+                    presentationMode: landmark.presentationMode
+                });
                 focusRing.setAlpha(1);
                 districtAnchor.setAlpha(1);
                 plotLabel.setAlpha(compactSettlement ? 0 : 1);
@@ -2034,6 +2049,11 @@ class WorldBuilder {
                 container.setAlpha(
                     Number(container.getData('villageFocusAlpha')) || 1
                 );
+                this.applyVillageArtworkTreatment(worldArtwork, {
+                    priority: playerNearby ? 'nearby' : focusPriority || 'ambient',
+                    plotState,
+                    presentationMode
+                });
                 focusRing.setAlpha(
                     playerNearby
                         ? 0.64
@@ -2102,6 +2122,7 @@ class WorldBuilder {
                 container,
                 hitZone: plotHitZone,
                 worldArtwork,
+                artworkGrounding,
                 plotLabel,
                 stateLabel,
                 focusRing,
@@ -2591,6 +2612,14 @@ class WorldBuilder {
                 .setData('villagePlayerNearby', playerNearby)
                 .setData('villageFocusAction', action?.type || null)
                 .setData('villagePresentationMode', landmark.presentationMode);
+            this.applyVillageArtworkTreatment(presentation.worldArtwork, {
+                priority,
+                plotState: presentation.plotState,
+                presentationMode: landmark.presentationMode
+            });
+            presentation.artworkGrounding
+                ?.setData('villageFocusPriority', priority)
+                .setData('villagePresentationMode', landmark.presentationMode);
             presentation.focusRing
                 ?.setData('villageFocusPrimary', primary)
                 .setData('villagePlayerNearby', playerNearby)
@@ -2668,7 +2697,16 @@ class WorldBuilder {
         landmark.heartArtwork
             ?.setData('villageFocusPriority', heartIsPrimary ? 'primary' : active ? 'supporting' : 'ambient')
             .setData('villageFocusAlpha', heartAlpha)
-            .setData('villageFocusAction', action?.type || null);
+            .setData('villageFocusAction', action?.type || null)
+            .setData(
+                'villageArtworkTint',
+                heartIsPrimary ? 0xFFFFFF : storyMode ? 0xA5C1B7 : 0xC8DAD4
+            );
+        if (landmark.heartArtwork && landmark.snapshot?.unlock?.unlocked === true) {
+            const heartTint = landmark.heartArtwork.getData('villageArtworkTint');
+            landmark.heartArtwork.clearTint();
+            if (heartTint !== 0xFFFFFF) landmark.heartArtwork.setTint(heartTint);
+        }
         landmark.actionLabel
             ?.setData('villageFocusPrimary', heartIsPrimary)
             .setData('villageFocusAction', action?.type || null);
@@ -2749,6 +2787,110 @@ class WorldBuilder {
             { presentationMode: landmark.presentationMode || 'ambient' }
         );
         return true;
+    }
+
+    applyVillageArtworkTreatment(
+        worldArtwork,
+        {
+            priority = 'ambient',
+            plotState = 'available',
+            presentationMode = 'ambient'
+        } = {}
+    ) {
+        if (!worldArtwork) return false;
+        const constructing = plotState === 'constructing';
+        const fullColor = priority === 'nearby' || priority === 'primary';
+        const storySupporting = priority === 'supporting' && presentationMode === 'story';
+        const tint = fullColor
+            ? constructing ? 0xD6E1DA : 0xFFFFFF
+            : storySupporting
+                ? 0x789B8F
+                : priority === 'supporting'
+                    ? 0x91B3A7
+                    : constructing
+                        ? 0x9EB8AE
+                        : 0xBED4CC;
+        const treatment = fullColor
+            ? 'full_color'
+            : storySupporting
+                ? 'story_supporting'
+                : priority === 'supporting'
+                    ? 'focus_supporting'
+                    : 'ambient_current';
+        worldArtwork.clearTint();
+        if (tint !== 0xFFFFFF) worldArtwork.setTint(tint);
+        worldArtwork
+            .setData('villageArtworkTreatment', 'living_current_material_v1')
+            .setData('villageArtworkState', treatment)
+            .setData('villageArtworkTint', tint);
+        return true;
+    }
+
+    createVillageArtworkGrounding({
+        compact = false,
+        index = 0,
+        state = 'complete'
+    } = {}) {
+        const grounding = this.scene.add.graphics();
+        const baseY = compact ? 25 : 37;
+        const width = compact ? 88 : 136;
+        const rootColor = state === 'constructing' ? 0xF2C14E : 0x3FAE62;
+        const currentColor = state === 'constructing' ? 0xF2C14E : 0x8FE3CF;
+        const direction = index % 2 === 0 ? -1 : 1;
+
+        grounding.fillStyle(0x071411, 0.76);
+        grounding.fillEllipse(0, baseY + 3, width, compact ? 18 : 25);
+        const roots = [
+            {
+                startX: direction * 7,
+                bendX: direction * (compact ? 25 : 39),
+                endX: direction * (compact ? 47 : 70),
+                endY: baseY + 5
+            },
+            {
+                startX: -direction * 5,
+                bendX: -direction * (compact ? 21 : 34),
+                endX: -direction * (compact ? 43 : 66),
+                endY: baseY + 8
+            },
+            {
+                startX: 0,
+                bendX: direction * (compact ? 10 : 15),
+                endX: direction * (compact ? 27 : 42),
+                endY: baseY + 10
+            }
+        ];
+        const strokeRoots = (lineWidth, color, alpha) => {
+            grounding.lineStyle(lineWidth, color, alpha);
+            roots.forEach(root => {
+                grounding.beginPath();
+                grounding.moveTo(root.startX, baseY - (compact ? 7 : 11));
+                grounding.lineTo(root.bendX, baseY - 1);
+                grounding.lineTo(root.endX, root.endY);
+                grounding.strokePath();
+            });
+        };
+        strokeRoots(compact ? 5 : 7, 0x071411, 0.86);
+        strokeRoots(compact ? 2 : 3, rootColor, 0.72);
+        roots.slice(0, 2).forEach((root, rootIndex) => {
+            grounding.fillStyle(rootColor, 0.66);
+            grounding.fillEllipse(
+                root.endX - direction * (rootIndex ? -4 : 4),
+                root.endY - 4,
+                compact ? 12 : 17,
+                compact ? 6 : 8
+            );
+        });
+        grounding.fillStyle(currentColor, 0.9);
+        grounding.fillCircle(direction * (compact ? 18 : 28), baseY - 5, compact ? 2 : 3);
+        grounding.lineStyle(1, currentColor, 0.48);
+        grounding.strokeEllipse(0, baseY + 2, width - (compact ? 12 : 18), compact ? 12 : 17);
+        grounding
+            .setData('villageArtworkGrounding', true)
+            .setData('villageGroundingMaterial', 'woven_root_foreground_v1')
+            .setData('villageGroundingState', state)
+            .setData('villageGroundingIndex', index);
+        return grounding;
     }
 
     drawVillageFoundationCradle(
