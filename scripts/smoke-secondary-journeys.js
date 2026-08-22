@@ -10993,6 +10993,13 @@ async function smokeVillageUi(session, exceptions) {
                 districtAnchorState: presentation.districtAnchor?.getData?.(
                     'villageDistrictState'
                 ),
+                districtActionVerb: presentation.districtAnchor?.getData?.(
+                    'villageDistrictActionVerb'
+                ),
+                districtVisualLanguage: presentation.districtAnchor?.getData?.(
+                    'villageDistrictVisualLanguage'
+                ),
+                interactionVerb: presentation.hitZone?.getData?.('interactionVerb'),
                 districtAnchorAlpha: presentation.districtAnchor?.alpha
             })),
             plotCount: landmark.plotHitZones.length,
@@ -11382,6 +11389,13 @@ async function smokeVillageUi(session, exceptions) {
             !plot.districtAnchor ||
             plot.districtAnchorMaterial !== 'root_threshold_v1' ||
             plot.districtAnchorState !== plot.state ||
+            plot.districtVisualLanguage !== 'root_action_glyphs_v1' ||
+            plot.districtActionVerb !== (
+                plot.state === 'available' ? 'BUILD' : 'MANAGE'
+            ) ||
+            plot.interactionVerb !== (
+                plot.state === 'available' ? 'BUILD' : 'MANAGE'
+            ) ||
             plot.districtAnchorAlpha <= 0 ||
             (plot.state === 'staffed' && plot.progressNodes !== 6) ||
             (plot.state === 'available' && plot.progressNodes !== 1)
@@ -12569,6 +12583,13 @@ async function smokeVillageUi(session, exceptions) {
                     layoutProfile: presentation.layoutProfile,
                     artworkDisplaySize: presentation.worldArtwork
                         ?.getData?.('villageDisplaySize') || 0,
+                    districtActionVerb: presentation.districtAnchor?.getData?.(
+                        'villageDistrictActionVerb'
+                    ),
+                    districtVisualLanguage: presentation.districtAnchor?.getData?.(
+                        'villageDistrictVisualLanguage'
+                    ),
+                    interactionVerb: presentation.hitZone?.getData?.('interactionVerb'),
                     interactionLabel: presentation.interactionLabel
                 })),
                 productionMomentStarted,
@@ -12725,6 +12746,13 @@ async function smokeVillageUi(session, exceptions) {
             !presentation.label ||
             !presentation.interactionLabel ||
             !presentation.markerActive ||
+            presentation.districtVisualLanguage !== 'root_action_glyphs_v1' ||
+            presentation.districtActionVerb !== (
+                presentation.plotState === 'available' ? 'BUILD' : 'MANAGE'
+            ) ||
+            presentation.interactionVerb !== (
+                presentation.plotState === 'available' ? 'BUILD' : 'MANAGE'
+            ) ||
             presentation.labelAlpha !== 0 ||
             presentation.layoutProfile !== (
                 SMOKE_VIEWPORT_WIDTH <= 600
@@ -13641,6 +13669,13 @@ async function smokeVillageUi(session, exceptions) {
             progressRatio: presentation?.stateMarker?.getData?.('progressRatio'),
             markerActive: presentation?.stateMarker?.active === true,
             hitState: zone?.getData?.('plotState'),
+            anchorAction: presentation?.districtAnchor?.getData?.(
+                'villageDistrictActionVerb'
+            ),
+            anchorVisualLanguage: presentation?.districtAnchor?.getData?.(
+                'villageDistrictVisualLanguage'
+            ),
+            interactionVerb: zone?.getData?.('interactionVerb'),
             stateText: presentation?.stateLabel?.text || '',
             stateAlpha: presentation?.stateLabel?.alpha,
             flowDirection: presentation?.flowSignal?.getData?.('direction'),
@@ -13659,6 +13694,9 @@ async function smokeVillageUi(session, exceptions) {
     if (
         constructionWorld.state !== 'constructing' ||
         constructionWorld.hitState !== 'constructing' ||
+        constructionWorld.anchorAction !== 'GROWING' ||
+        constructionWorld.anchorVisualLanguage !== 'root_action_glyphs_v1' ||
+        constructionWorld.interactionVerb !== 'REVIEW' ||
         !constructionWorld.markerActive ||
         constructionWorld.progressNodes < 1 ||
         constructionWorld.progressNodes > 6 ||
@@ -13729,6 +13767,10 @@ async function smokeVillageUi(session, exceptions) {
             artworkVariant: presentation?.worldArtwork?.getData?.(
                 'villageArtworkVariant'
             ),
+            anchorAction: presentation?.districtAnchor?.getData?.(
+                'villageDistrictActionVerb'
+            ),
+            interactionVerb: presentation?.hitZone?.getData?.('interactionVerb'),
             capacity: habitat.getData('capacity'),
             residentNames: habitat.getData('residentNames'),
             residentStatuses: habitat.getData('residentStatuses'),
@@ -13753,6 +13795,8 @@ async function smokeVillageUi(session, exceptions) {
     if (
         !habitatWorld?.active ||
         habitatWorld.buildingStatus !== 'complete' ||
+        habitatWorld.anchorAction !== 'MANAGE' ||
+        habitatWorld.interactionVerb !== 'MANAGE' ||
         habitatWorld.artworkVariant !== (
             SMOKE_VIEWPORT_WIDTH <= 600 ? 'compact_silhouette' : 'detailed_world'
         ) ||

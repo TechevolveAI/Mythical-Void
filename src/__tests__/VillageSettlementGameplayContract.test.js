@@ -582,6 +582,10 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('createVillageDistrictAnchor({');
         expect(world).toContain("setData('villageDistrictAnchor', true)");
         expect(world).toContain("setData('villageDistrictAnchorMaterial', 'root_threshold_v1')");
+        expect(world).toContain("setData('villageDistrictActionVerb', actionVerb)");
+        expect(world).toContain("setData('villageDistrictVisualLanguage', 'root_action_glyphs_v1')");
+        expect(world).toContain("'interactionVerb',");
+        expect(world).toContain('drawing.lineBetween(-6, 6, 6, 6)');
         expect(world).toContain("setData('villageFoundationCradle', true)");
         expect(world).toContain("setData('villageFoundationMaterial', 'living_root_cradle_v2')");
         expect(world).toContain("'inhabited_root_basin_v1' : 'living_root_cradle_v2'");

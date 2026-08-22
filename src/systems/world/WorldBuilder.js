@@ -2085,6 +2085,18 @@ class WorldBuilder {
                 .setData('interactionLabel', interactionLabel)
                 .setData('definitionId', building?.definitionId || null)
                 .setData('plotState', plotState)
+                .setData(
+                    'interactionVerb',
+                    plotState === 'available'
+                        ? 'BUILD'
+                        : plotState === 'needs_helper'
+                            ? 'INVITE'
+                            : plotState === 'constructing'
+                                ? 'REVIEW'
+                                : plotState === 'dormant'
+                                    ? 'DORMANT'
+                                    : 'MANAGE'
+                )
                 .setData('worldEffectLabel', definition?.worldEffectLabel || null)
                 .setData('guided', guidedPlot);
             plotHitZone.on('pointerover', () => {
@@ -2137,7 +2149,9 @@ class WorldBuilder {
                             ? 1
                             : ['constructing', 'needs_helper', 'complete', 'staffed'].includes(plotState)
                                 ? 0.58
-                                : 0.3
+                                : plotState === 'available'
+                                    ? compactSettlement ? 0.46 : 0.42
+                                    : 0.24
                 );
                 plotLabel.setAlpha(
                     playerNearby
@@ -2890,7 +2904,9 @@ class WorldBuilder {
                             presentation.plotState
                         )
                             ? compactPresentation ? 0.42 : 0.52
-                            : 0.3
+                            : presentation.plotState === 'available'
+                                ? compactPresentation ? 0.46 : 0.42
+                                : 0.24
                     : storyMode
                         ? primary ? 0.82 : 0.12
                         : primary ? 1 : 0.18;
@@ -3251,6 +3267,9 @@ class WorldBuilder {
         if (active) {
             drawing.fillStyle(accent, guided ? 0.95 : 0.8);
             drawing.fillCircle(0, 6, guided ? 4 : 3);
+            drawing.lineStyle(2, 0xF4F4F4, guided ? 0.96 : 0.82);
+            drawing.lineBetween(-6, 6, 6, 6);
+            drawing.lineBetween(0, 0, 0, 12);
             drawing.fillEllipse(-9, -7, 12, 6);
             drawing.fillEllipse(9, -9, 13, 6);
         }
@@ -3406,6 +3425,7 @@ class WorldBuilder {
         districtId = null
     } = {}) {
         const anchor = this.scene.add.graphics();
+        const available = state === 'available';
         const active = ['constructing', 'needs_helper', 'complete', 'staffed'].includes(state);
         const color = guided || ['constructing', 'needs_helper'].includes(state)
             ? 0xF2C14E
@@ -3414,6 +3434,14 @@ class WorldBuilder {
                 : 0x8FE3CF;
         const y = built ? (compact ? 70 : 77) : (compact ? 48 : 53);
         const width = compact ? 34 : 40;
+        const actionVerb = {
+            dormant: 'DORMANT',
+            available: 'BUILD',
+            constructing: 'GROWING',
+            needs_helper: 'INVITE',
+            complete: 'MANAGE',
+            staffed: 'MANAGE'
+        }[state] || 'OPEN';
 
         anchor.fillStyle(0x071411, 0.88);
         anchor.fillEllipse(0, y, width + 20, compact ? 16 : 18);
@@ -3421,10 +3449,47 @@ class WorldBuilder {
         anchor.beginPath();
         anchor.arc(0, y, width / 2, Math.PI * 1.08, Math.PI * 1.92);
         anchor.strokePath();
-        anchor.fillStyle(color, guided ? 1 : active ? 0.88 : 0.56);
-        anchor.fillCircle(0, y - 1, guided ? 4 : 3);
-        anchor.fillStyle(0xF4F4F4, guided ? 0.96 : 0.72);
-        anchor.fillCircle(0, y - 1, 1.5);
+        anchor.fillStyle(0x061310, 0.94);
+        anchor.fillCircle(0, y - 1, available || guided ? 7 : 6);
+        if (available) {
+            anchor.lineStyle(2, color, guided ? 1 : 0.9);
+            anchor.lineBetween(-4, y - 1, 4, y - 1);
+            anchor.lineBetween(0, y - 5, 0, y + 3);
+        } else if (state === 'constructing') {
+            [-4, 0, 4].forEach((barX, barIndex) => {
+                anchor.lineStyle(2, color, 0.9);
+                anchor.lineBetween(
+                    barX,
+                    y + 3,
+                    barX,
+                    y + 1 - (barIndex * 3)
+                );
+            });
+        } else if (state === 'needs_helper') {
+            anchor.fillStyle(color, 0.94);
+            anchor.fillCircle(-3.5, y - 1, 2.5);
+            anchor.lineStyle(1.5, 0xF4F4F4, 0.9);
+            anchor.strokeCircle(3.5, y - 1, 2.5);
+        } else if (state === 'staffed') {
+            anchor.lineStyle(1.5, color, 0.82);
+            anchor.lineBetween(-4, y + 2, 0, y - 4);
+            anchor.lineBetween(0, y - 4, 4, y + 2);
+            anchor.fillStyle(color, 0.94);
+            anchor.fillCircle(-4, y + 2, 2);
+            anchor.fillCircle(4, y + 2, 2);
+            anchor.fillStyle(0xF4F4F4, 0.96);
+            anchor.fillCircle(0, y - 4, 2);
+        } else if (state === 'complete') {
+            anchor.lineStyle(1.5, color, 0.9);
+            anchor.strokeCircle(0, y - 1, 3.5);
+            anchor.fillStyle(0xF4F4F4, 0.94);
+            anchor.fillCircle(0, y - 1, 1.5);
+        } else {
+            anchor.fillStyle(color, 0.56);
+            anchor.fillCircle(0, y - 1, 3);
+            anchor.fillStyle(0xF4F4F4, 0.62);
+            anchor.fillCircle(0, y - 1, 1.3);
+        }
         [-1, 1].forEach(direction => {
             anchor.lineStyle(1, color, guided ? 0.76 : 0.4);
             anchor.lineBetween(
@@ -3437,13 +3502,18 @@ class WorldBuilder {
             anchor.fillEllipse(direction * (width / 2), y - 8, 8, 4);
         });
         anchor
-            .setAlpha(guided ? 1 : active ? 0.58 : 0.3)
+            .setAlpha(guided ? 1 : active ? 0.58 : available ? 0.46 : 0.24)
             .setData('villageDistrictAnchor', true)
             .setData('villageDistrictId', districtId)
             .setData('villageDistrictState', state)
             .setData('villageDistrictGuided', guided)
+            .setData('villageDistrictActionVerb', actionVerb)
+            .setData('villageDistrictVisualLanguage', 'root_action_glyphs_v1')
             .setData('villageDistrictAnchorMaterial', 'root_threshold_v1')
-            .setData('ariaLabel', `${String(state || 'dormant').replace('_', ' ')} root district`);
+            .setData(
+                'ariaLabel',
+                `${actionVerb}. ${String(state || 'dormant').replace('_', ' ')} root district`
+            );
         anchor.setBlendMode?.(Phaser.BlendModes.ADD);
         return anchor;
     }
