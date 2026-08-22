@@ -1699,12 +1699,31 @@ class WorldBuilder {
         });
 
         let connectedPlotCount = 0;
+        const pathResourceRoutes = [];
         plotOffsets.forEach((offset, index) => {
             const plot = VILLAGE_PLOTS[index];
             const connectedBuilding = buildingByPlot.get(plot.id) || null;
             const completePath = connectedBuilding?.status === 'complete';
             const growingPath = connectedBuilding?.status === 'constructing';
             if (completePath) connectedPlotCount += 1;
+            const buildingDefinition = connectedBuilding?.definition ||
+                VILLAGE_BUILDING_DEFINITIONS.find(
+                    definition => definition.id === connectedBuilding?.definitionId
+                );
+            const pathResource = buildingDefinition?.production?.resource || null;
+            const resourceColor = {
+                food: 0xF2C14E,
+                wood: 0xC58A52,
+                stone: 0xD8E2DF
+            }[pathResource] || 0x3FAE62;
+            if (completePath && pathResource) {
+                pathResourceRoutes.push({
+                    plotId: plot.id,
+                    buildingId: connectedBuilding.definitionId,
+                    resource: pathResource,
+                    color: resourceColor
+                });
+            }
             const elbowX = offset.x * (compactSettlement ? 0.42 : 0.5);
             const elbowY = offset.y * 0.32 + (index % 2 === 0 ? -12 : 12);
             const pathPoints = Array.from({ length: 17 }, (_, pointIndex) => {
@@ -1738,7 +1757,7 @@ class WorldBuilder {
             );
             strokeCurrentPath(
                 completePath ? 3 : growingPath ? 3 : 2,
-                growingPath ? 0xF2C14E : completePath ? 0x3FAE62 : 0x53616A,
+                growingPath ? 0xF2C14E : completePath ? resourceColor : 0x53616A,
                 completePath ? 0.3 : growingPath ? 0.42 : unlocked ? 0.11 : 0.06
             );
             strokeCurrentPath(
@@ -1750,26 +1769,51 @@ class WorldBuilder {
                 [9, 13].forEach((pointIndex, branchIndex) => {
                     const point = pathPoints[pointIndex];
                     const direction = (index + branchIndex) % 2 === 0 ? -1 : 1;
-                    currentPaths.lineStyle(1, 0x3FAE62, 0.28);
+                    currentPaths.lineStyle(1, resourceColor, 0.3);
                     currentPaths.lineBetween(
                         point.x,
                         point.y,
                         point.x + direction * (12 + branchIndex * 4),
                         point.y - 7 + branchIndex * 11
                     );
-                    currentPaths.fillStyle(0x71E6B1, 0.36);
-                    currentPaths.fillEllipse(
-                        point.x + direction * (13 + branchIndex * 4),
-                        point.y - 6 + branchIndex * 11,
-                        9,
-                        4
-                    );
+                    const markerX = point.x + direction * (13 + branchIndex * 4);
+                    const markerY = point.y - 6 + branchIndex * 11;
+                    currentPaths.fillStyle(resourceColor, 0.48);
+                    if (pathResource === 'food') {
+                        currentPaths.fillCircle(markerX, markerY, branchIndex ? 3 : 3.5);
+                        currentPaths.fillStyle(0x71E6B1, 0.4);
+                        currentPaths.fillEllipse(markerX + 4, markerY - 3, 7, 3);
+                    } else if (pathResource === 'wood') {
+                        currentPaths.fillRoundedRect(
+                            markerX - 5,
+                            markerY - 2,
+                            10,
+                            5,
+                            2
+                        );
+                        currentPaths.lineStyle(1, 0xF2C14E, 0.32);
+                        currentPaths.lineBetween(markerX - 2, markerY - 1, markerX - 2, markerY + 2);
+                    } else if (pathResource === 'stone') {
+                        currentPaths.fillTriangle(
+                            markerX,
+                            markerY - 5,
+                            markerX - 5,
+                            markerY + 3,
+                            markerX + 5,
+                            markerY + 3
+                        );
+                    } else {
+                        currentPaths.fillEllipse(markerX, markerY, 9, 4);
+                    }
                 });
             }
         });
         currentPaths
             .setData('villagePathMaterial', 'grounded_current_paths_v3')
             .setData('connectedPlotCount', connectedPlotCount)
+            .setData('villagePathResourceLanguage', 'resource_return_marks_v1')
+            .setData('villagePathResourceRouteCount', pathResourceRoutes.length)
+            .setData('villagePathResourceRoutes', pathResourceRoutes)
             .setData('routeFoundationWidth', compactSettlement ? 22 : 28)
             .setData('routeHighlightWidth', 3);
 

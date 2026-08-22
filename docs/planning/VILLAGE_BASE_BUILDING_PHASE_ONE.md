@@ -91,6 +91,10 @@ plot layout, with open seams toward the Signal Garden and the southern player
 approach. On narrow screens the glade becomes a compact terrace; on desktop it
 stretches into a commons spine. Occupied roots receive stronger local terrain and
 ecology while unopened roots remain quiet, preserving one readable focal action.
+Staffed production paths also retain their resource identity in the world: food
+returns through gold growth nodes, wood through shaped timber marks, and stone
+through pale crystal marks. These match worker cargo and the Heart's delivery
+response so the player can follow a building's effect without opening the planner.
 
 The five scenes are pre-generated project assets rather than runtime generation requests. This keeps the menu immediate, deterministic, inexpensive, and available offline. Each building has a distinct visual identity; motion is layered with CSS and respects `prefers-reduced-motion`.
 

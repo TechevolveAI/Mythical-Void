@@ -125,6 +125,9 @@ describe('Village settlement gameplay contract', () => {
         expect(worldSource).toContain(".setData('villageDistrictGroundProfile', 'shared_living_glade_v1')");
         expect(worldSource).toContain(".setData('villageDistrictEntranceCount', 2)");
         expect(worldSource).toContain(".setData('villageDistrictEdgeNodeCount', edgeNodes.length)");
+        expect(worldSource).toContain(".setData('villagePathResourceLanguage', 'resource_return_marks_v1')");
+        expect(worldSource).toContain(".setData('villagePathResourceRouteCount', pathResourceRoutes.length)");
+        expect(worldSource).toContain(".setData('villagePathResourceRoutes', pathResourceRoutes)");
         expect(worldSource).toContain("? 'full_color'");
         expect(worldSource).toContain("? 'story_supporting'");
         expect(worldSource).toContain('this.applyVillageArtworkTreatment(presentation.worldArtwork');
@@ -549,6 +552,7 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("setData('uniformOverlay', false)");
         expect(world).toContain("setData('districtIdentityCount', districtProfiles.length)");
         expect(world).toContain("setData('districtIdentityIds', districtProfiles.map(profile => profile.id))");
+        expect(world).toContain("setData('villagePathResourceLanguage', 'resource_return_marks_v1')");
         expect(world).toContain("setData('villageDistrictEcology', true)");
         expect(world).toContain("setData('villageThresholdCount'");
         expect(world).toContain("setData('villagePathMaterial', 'grounded_current_paths_v3')");

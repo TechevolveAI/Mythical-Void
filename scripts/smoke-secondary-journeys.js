@@ -11086,6 +11086,15 @@ async function smokeVillageUi(session, exceptions) {
                 terrainDepth: landmark.districtTerrain?.depth,
                 pathMaterial: landmark.currentPaths?.getData?.('villagePathMaterial'),
                 connectedPlotCount: landmark.currentPaths?.getData?.('connectedPlotCount') || 0,
+                pathResourceLanguage: landmark.currentPaths?.getData?.(
+                    'villagePathResourceLanguage'
+                ),
+                pathResourceRouteCount: landmark.currentPaths?.getData?.(
+                    'villagePathResourceRouteCount'
+                ) || 0,
+                pathResourceRoutes: landmark.currentPaths?.getData?.(
+                    'villagePathResourceRoutes'
+                ) || [],
                 pathDepth: landmark.currentPaths?.depth,
                 routeFoundationWidth: landmark.currentPaths?.getData?.('routeFoundationWidth'),
                 routeHighlightWidth: landmark.currentPaths?.getData?.('routeHighlightWidth'),
@@ -11551,6 +11560,15 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.district.terrainDepth !== -21 ||
         integratedWorld.district.pathMaterial !== 'grounded_current_paths_v3' ||
         integratedWorld.district.connectedPlotCount !== 3 ||
+        integratedWorld.district.pathResourceLanguage !== 'resource_return_marks_v1' ||
+        integratedWorld.district.pathResourceRouteCount !== 3 ||
+        integratedWorld.district.pathResourceRoutes
+            .map(route => route.resource)
+            .sort()
+            .join(',') !== 'food,stone,wood' ||
+        integratedWorld.district.pathResourceRoutes.some(route => (
+            !route.plotId || !route.buildingId || !Number.isFinite(route.color)
+        )) ||
         integratedWorld.district.pathDepth !== -20 ||
         integratedWorld.district.routeFoundationWidth !== (
             SMOKE_VIEWPORT_WIDTH <= 600 ? 22 : 28
@@ -12661,6 +12679,12 @@ async function smokeVillageUi(session, exceptions) {
                     )
                 },
                 currentPathsActive: landmark?.currentPaths?.active === true,
+                pathResourceLanguage: landmark?.currentPaths?.getData?.(
+                    'villagePathResourceLanguage'
+                ),
+                pathResourceRoutes: landmark?.currentPaths?.getData?.(
+                    'villagePathResourceRoutes'
+                ) || [],
                 growthTier: landmark?.snapshot?.worldState?.growthTier,
                 growthLabel: landmark?.snapshot?.worldState?.growthLabel,
                 nextActionType: landmark?.snapshot?.worldState?.nextAction?.type,
@@ -12875,6 +12899,11 @@ async function smokeVillageUi(session, exceptions) {
         ) ||
         layout.worldPresentation.districtTerrain.height < 430 ||
         !layout.worldPresentation.currentPathsActive ||
+        layout.worldPresentation.pathResourceLanguage !== 'resource_return_marks_v1' ||
+        layout.worldPresentation.pathResourceRoutes
+            .map(route => route.resource)
+            .sort()
+            .join(',') !== 'food,stone,wood' ||
         layout.worldPresentation.growthTier !== 2 ||
         layout.worldPresentation.growthLabel !== 'CONNECTED GLADE' ||
         layout.worldPresentation.heartLife.stage !== 'CONNECTED GLADE' ||
