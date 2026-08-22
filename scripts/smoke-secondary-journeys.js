@@ -11568,7 +11568,8 @@ async function smokeVillageUi(session, exceptions) {
         scene.player.body?.reset?.(anchor.x, anchor.y);
         if (scene.player.body) scene.player.body.enable = false;
         scene.updateSanctuaryActorDepths();
-        scene.astronautFollower?.update(1000);
+        Array.from({ length: 40 }).forEach(() => scene.astronautFollower?.update(50));
+        scene.updateSanctuaryActorDepths();
         return {
             anchor,
             actorX: scene.player.x,
@@ -11577,7 +11578,23 @@ async function smokeVillageUi(session, exceptions) {
             actorLayer: scene.player.getData?.('villageHeartLayer'),
             heartArtworkDepth: landmark.heartArtwork?.depth,
             astronautDepth: scene.astronautFollower?.sprite?.depth,
-            astronautY: scene.astronautFollower?.sprite?.y
+            astronautX: scene.astronautFollower?.sprite?.x,
+            astronautY: scene.astronautFollower?.sprite?.y,
+            astronautFormation: scene.astronautFollower?.sprite?.getData?.(
+                'expeditionFormationContext'
+            ),
+            formationActive: landmark.zone?.getData?.('villagePartyFormationActive'),
+            formationDistance: landmark.zone?.getData?.('villagePartyFormationDistance'),
+            captionLaneOccupied: landmark.zone?.getData?.(
+                'villagePartyCaptionLaneOccupied'
+            ),
+            partyPositionCount: landmark.zone?.getData?.('villagePartyPositionCount'),
+            labelOccluded: landmark.label?.getData?.('villagePartyOccluded'),
+            statusOccluded: landmark.statusLabel?.getData?.('villagePartyOccluded'),
+            labelAlpha: landmark.label?.alpha,
+            statusAlpha: landmark.statusLabel?.alpha,
+            labelBaseAlpha: landmark.label?.getData?.('villageVisibilityBaseAlpha'),
+            statusBaseAlpha: landmark.statusLabel?.getData?.('villageVisibilityBaseAlpha')
         };
     })()`);
     if (
@@ -11586,7 +11603,24 @@ async function smokeVillageUi(session, exceptions) {
         frontApproach.actorDepth !== frontApproach.actorY ||
         frontApproach.actorLayer !== 'front' ||
         frontApproach.actorDepth <= frontApproach.heartArtworkDepth ||
-        Math.abs(frontApproach.astronautDepth - frontApproach.astronautY) > 0.01
+        Math.abs(frontApproach.astronautDepth - frontApproach.astronautY) > 0.01 ||
+        frontApproach.astronautFormation !== 'village_heart_approach' ||
+        !frontApproach.formationActive ||
+        frontApproach.formationDistance !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 162 : 190) ||
+        !frontApproach.captionLaneOccupied ||
+        frontApproach.partyPositionCount !== 2 ||
+        !frontApproach.labelOccluded ||
+        !frontApproach.statusOccluded ||
+        frontApproach.labelAlpha !== 0 ||
+        frontApproach.statusAlpha !== 0 ||
+        frontApproach.labelBaseAlpha <= 0 ||
+        frontApproach.statusBaseAlpha <= 0 ||
+        (
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? Math.abs(frontApproach.astronautX - frontApproach.actorX) < 58 ||
+                    Math.abs(frontApproach.astronautY - frontApproach.actorY) > 20
+                : frontApproach.astronautY - frontApproach.actorY < 62
+        )
     ) {
         throw new Error(`Village Heart front approach failed: ${JSON.stringify(frontApproach)}`);
     }

@@ -140,6 +140,34 @@ describe('Expedition astronaut', () => {
         expect(findExpeditionTrailTarget(trail, 200)).toEqual({ x: 60, y: 80 });
     });
 
+    test('uses a contextual formation to keep the astronaut clear of a landmark', () => {
+        const { ExpeditionAstronaut } = loadExpeditionAstronaut();
+        const scene = createScene();
+        const target = {
+            active: true,
+            x: 200,
+            y: 300,
+            flipX: false,
+            body: {
+                velocity: { x: 0, y: 0 },
+                blocked: { down: true }
+            }
+        };
+        const follower = new ExpeditionAstronaut(scene, target, { mode: 'topDown' });
+
+        expect(follower.setContextualFormation(
+            { x: 0, y: -70 },
+            'village_heart_approach'
+        )).toBe(true);
+        Array.from({ length: 40 }).forEach(() => follower.update(50));
+
+        expect(follower.sprite.x).toBeCloseTo(200, 0);
+        expect(follower.sprite.y).toBeCloseTo(230, 0);
+        expect(follower.contextualFormation.context).toBe('village_heart_approach');
+        expect(follower.setContextualFormation(null)).toBe(true);
+        expect(follower.contextualFormation).toBeNull();
+    });
+
     test('snaps safely after teleports and equips the recovered katana texture', () => {
         const { ExpeditionAstronaut } = loadExpeditionAstronaut();
         const scene = createScene();

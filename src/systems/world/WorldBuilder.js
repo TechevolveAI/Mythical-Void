@@ -2755,8 +2755,20 @@ class WorldBuilder {
             }
         }
         landmark.zone.setInteractive?.({ useHandCursor: true });
-        landmark.label?.setAlpha(storyMode ? 0.3 : active ? 0.8 : 0.18);
-        landmark.statusLabel?.setAlpha(storyMode ? 0.16 : active ? 0.68 : 0);
+        const compactHeart = this.scene.scale.width <= 600;
+        const labelAlpha = compactHeart
+            ? storyMode ? 0.12 : active ? 0.32 : 0.1
+            : storyMode ? 0.3 : active ? 0.8 : 0.18;
+        const statusAlpha = compactHeart
+            ? storyMode ? 0.08 : active ? 0.46 : 0
+            : storyMode ? 0.16 : active ? 0.68 : 0;
+        landmark.label
+            ?.setData('villageVisibilityBaseAlpha', labelAlpha)
+            .setAlpha(labelAlpha);
+        landmark.statusLabel
+            ?.setData('villageVisibilityBaseAlpha', statusAlpha)
+            .setAlpha(statusAlpha);
+        this.setVillagePartyPresence(landmark, landmark.partyPositions || []);
         landmark.heartCaption?.setAlpha(storyMode ? 0.44 : active ? 0.9 : 0.42);
         landmark.arrivalGuide?.setAlpha(storyMode ? 0.12 : active ? 0.82 : 0.24);
         Object.entries(landmark.heartLife || {}).forEach(([key, element]) => {
@@ -2820,6 +2832,33 @@ class WorldBuilder {
             { presentationMode: landmark.presentationMode || 'ambient' }
         );
         return true;
+    }
+
+    setVillagePartyPresence(landmark, positions = []) {
+        if (!landmark?.zone) return null;
+        const compact = this.scene.scale.width <= 600;
+        const labelLaneY = landmark.zone.y + (compact ? 96 : 126);
+        const laneOccupied = positions.some(position => (
+            Number.isFinite(position?.x) &&
+            Number.isFinite(position?.y) &&
+            Math.abs(position.x - landmark.zone.x) <= (compact ? 92 : 118) &&
+            Math.abs(position.y - labelLaneY) <= (compact ? 34 : 38)
+        ));
+        landmark.partyPositions = positions;
+        landmark.partyCaptionLaneOccupied = laneOccupied;
+        landmark.zone
+            .setData('villagePartyCaptionLaneOccupied', laneOccupied)
+            .setData('villagePartyPositionCount', positions.length);
+
+        [landmark.label, landmark.statusLabel].forEach(element => {
+            if (!element) return;
+            const baseAlpha = Number(element.getData?.('villageVisibilityBaseAlpha'));
+            const visibleAlpha = Number.isFinite(baseAlpha) ? baseAlpha : element.alpha;
+            element
+                .setData('villagePartyOccluded', laneOccupied)
+                .setAlpha(laneOccupied ? 0 : visibleAlpha);
+        });
+        return { laneOccupied, positionCount: positions.length };
     }
 
     applyVillageArtworkTreatment(

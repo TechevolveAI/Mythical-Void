@@ -6226,7 +6226,60 @@ class GameScene extends Phaser.Scene {
                     : 'behind';
             this.player.setData?.('villageHeartLayer', layer);
         }
+        this.updateVillageHeartPartyPresentation();
         return true;
+    }
+
+    updateVillageHeartPartyPresentation() {
+        const landmark = this.villageHeartLandmark;
+        const follower = this.astronautFollower;
+        if (!landmark?.zone || !this.player) {
+            follower?.setContextualFormation?.(null);
+            return null;
+        }
+
+        const compact = this.scale.width <= 600;
+        const dx = this.player.x - landmark.zone.x;
+        const dy = this.player.y - landmark.zone.y;
+        const distance = Math.hypot(dx, dy);
+        const formationDistance = compact ? 162 : 190;
+        if (distance <= formationDistance) {
+            const fallbackX = this.player.flipX ? 1 : -1;
+            const normalX = distance > 12 ? dx / distance : fallbackX;
+            const normalY = distance > 12 ? dy / distance : 0;
+            const spacing = compact ? 70 : 78;
+            let tangentX = -normalY;
+            let tangentY = normalX;
+            if (tangentY > 0) {
+                tangentX *= -1;
+                tangentY *= -1;
+            }
+            follower?.setContextualFormation?.({
+                x: Math.round(
+                    compact ? (tangentX * spacing) + (normalX * 8) : normalX * spacing
+                ),
+                y: Math.round(
+                    compact ? (tangentY * spacing) + (normalY * 8) : normalY * spacing
+                )
+            }, 'village_heart_approach');
+        } else {
+            follower?.setContextualFormation?.(null);
+        }
+
+        const partyPositions = [
+            { x: this.player.x, y: this.player.y },
+            follower?.sprite?.active === true
+                ? { x: follower.sprite.x, y: follower.sprite.y }
+                : null
+        ].filter(Boolean);
+        const presence = this.worldBuilder?.setVillagePartyPresence?.(
+            landmark,
+            partyPositions
+        ) || null;
+        landmark.zone
+            .setData('villagePartyFormationActive', distance <= formationDistance)
+            .setData('villagePartyFormationDistance', formationDistance);
+        return presence;
     }
 
     createExpeditionAstronaut() {

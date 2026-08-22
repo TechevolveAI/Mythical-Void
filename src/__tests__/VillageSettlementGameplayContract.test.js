@@ -141,6 +141,9 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain('this.mobileControls.show(true);');
         expect(sceneSource).toContain('updateSanctuaryActorDepths()');
         expect(sceneSource).toContain(".setData?.('sanctuaryDepthSorted', true)");
+        expect(sceneSource).toContain('updateVillageHeartPartyPresentation()');
+        expect(sceneSource).toContain("'village_heart_approach'");
+        expect(sceneSource).toContain('tangentX = -normalY');
         expect(sceneSource).toContain('setSanctuaryPeripheralWayfindingVisible(visible = true)');
         expect(sceneSource).toContain(".setData('peripheralWayfindingSuppressed', !visible)");
         expect(sceneSource).toContain('this.setSanctuaryPeripheralWayfindingVisible(!nextActive);');
@@ -706,6 +709,9 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain(".setData('approachDirection', 'south')");
         expect(world).toContain(".setData('villageLayoutProfile', settlementLayout.profile)");
         expect(world).toContain(".setData('villageHeartCaption', true)");
+        expect(world).toContain('setVillagePartyPresence(landmark, positions = [])');
+        expect(world).toContain(".setData('villagePartyCaptionLaneOccupied', laneOccupied)");
+        expect(world).toContain(".setData('villagePartyOccluded', laneOccupied)");
         expect(world).toContain('landmark.heartCaption?.setAlpha(');
         expect(world).toContain('const directPlotCommand = Boolean(');
         expect(world).toContain('primary && [\'build\', \'assign\'].includes(action?.type)');
