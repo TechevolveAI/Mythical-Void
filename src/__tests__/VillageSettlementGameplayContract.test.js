@@ -304,6 +304,10 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('definition.worldEffectLabel');
         expect(world).toContain("'BUILD HERE'");
         expect(world).toContain('Phaser.BlendModes.ADD');
+        expect(world).toContain('createVillageFlowSignal({');
+        expect(world).toContain(".setData('direction', isDelivery ? 'to_heart' : 'to_plot')");
+        expect(world).toContain(".setData('resource', resource)");
+        expect(world).toContain(".setData('worldEffectLabel', definition?.worldEffectLabel || null)");
     });
 
     test('the local completion preview renders the entire connected settlement', () => {

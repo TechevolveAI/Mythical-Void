@@ -546,6 +546,7 @@ class WorldBuilder {
         landmark.heartMemoryElements = [];
         landmark.valueGrowthElements = [];
         landmark.plotPresentations = [];
+        landmark.villageFlowSignals = [];
         landmark.nextActionElement = null;
         landmark.plotWorldPositions = new Map();
         landmark.snapshot = snapshot;
@@ -833,7 +834,10 @@ class WorldBuilder {
                 : plotState === 'dormant' || plotState === 'available'
                     ? 0
                     : 1;
-            const container = this.scene.add.container(plotX, plotY).setDepth(plotY + 2);
+            const container = this.scene.add.container(plotX, plotY)
+                .setDepth(plotY + 2)
+                .setData('villageBuildingStructure', true)
+                .setData('plotId', plot.id);
             const drawing = this.scene.add.graphics();
             const currentSignal = this.scene.add.graphics();
             const worldArtworkDefinition = building
@@ -1067,25 +1071,23 @@ class WorldBuilder {
                 }));
             }
 
-            const pathSignal = this.scene.add.circle(
-                landmark.zone.x,
-                landmark.zone.y + 20,
-                3,
-                unlocked ? 0x71E6B1 : 0x657682,
-                unlocked ? 0.85 : 0.25
-            ).setDepth(Math.min(landmark.zone.y, plotY) - 1);
-            pathSignal.setBlendMode?.(Phaser.BlendModes.ADD);
-            landmark.buildingElements.push(pathSignal);
-            landmark.buildingTweens.push(this.scene.tweens.add({
-                targets: pathSignal,
-                x: plotX,
-                y: plotY + 18,
-                alpha: { from: unlocked ? 0.15 : 0.08, to: unlocked ? 1 : 0.2 },
-                duration: 2400 + index * 240,
-                delay: index * 180,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            }));
+            const villageFlow = this.createVillageFlowSignal({
+                building,
+                definition,
+                unlocked,
+                index,
+                heartPosition: {
+                    x: landmark.zone.x,
+                    y: landmark.zone.y + 20
+                },
+                plotPosition: {
+                    x: plotX,
+                    y: plotY + 18
+                }
+            });
+            landmark.villageFlowSignals.push(villageFlow.container);
+            landmark.buildingElements.push(villageFlow.container);
+            landmark.buildingTweens.push(villageFlow.tween);
 
             const plotHitZone = this.scene.add.zone(
                 plotX,
@@ -1112,6 +1114,7 @@ class WorldBuilder {
                 .setData('interactionLabel', interactionLabel)
                 .setData('definitionId', building?.definitionId || null)
                 .setData('plotState', plotState)
+                .setData('worldEffectLabel', definition?.worldEffectLabel || null)
                 .setData('guided', guidedPlot);
             plotHitZone.on('pointerover', () => {
                 container.setScale(1.06);
@@ -1159,6 +1162,7 @@ class WorldBuilder {
                 stateLabel,
                 focusRing,
                 stateMarker,
+                flowSignal: villageFlow.container,
                 plotState,
                 plotLabelRestAlpha,
                 stateLabelRestAlpha,
@@ -1642,6 +1646,109 @@ class WorldBuilder {
             ease: 'Sine.easeInOut'
         });
         return { container, pulseTween };
+    }
+
+    createVillageFlowSignal({
+        building,
+        definition,
+        unlocked = false,
+        index = 0,
+        heartPosition,
+        plotPosition
+    } = {}) {
+        const isDelivery = Boolean(
+            building?.status === 'complete' &&
+            building.creature &&
+            definition?.production
+        );
+        const resource = isDelivery ? definition.production.resource : null;
+        const signalColors = {
+            food: 0xF2C14E,
+            wood: 0xC58A52,
+            stone: 0xD8E2DF
+        };
+        const color = resource
+            ? signalColors[resource] || 0x71E6B1
+            : unlocked
+                ? 0x71E6B1
+                : 0x657682;
+        const start = isDelivery ? plotPosition : heartPosition;
+        const end = isDelivery ? heartPosition : plotPosition;
+        const control = {
+            x: (start.x + end.x) / 2 + (index % 2 === 0 ? -16 : 16),
+            y: (start.y + end.y) / 2 - 24
+        };
+        const container = this.scene.add.container(start.x, start.y)
+            .setDepth(Math.min(heartPosition.y, plotPosition.y) - 1);
+        const halo = this.scene.add.circle(
+            0,
+            0,
+            isDelivery ? 7 : 5,
+            color,
+            isDelivery ? 0.22 : unlocked ? 0.16 : 0.08
+        );
+        const core = this.scene.add.circle(
+            0,
+            0,
+            isDelivery ? 3.5 : 2.5,
+            color,
+            isDelivery ? 0.98 : unlocked ? 0.82 : 0.24
+        );
+        core.setStrokeStyle?.(1, isDelivery ? 0xF4F4F4 : 0x071411, 0.78);
+        container.add([halo, core]);
+        if (isDelivery) {
+            const cargo = this.createVillageWorkerCargo(resource);
+            cargo.setScale(0.58);
+            container.add(cargo);
+        }
+        container.setBlendMode?.(Phaser.BlendModes.ADD);
+        container
+            .setData('villageFlowSignal', true)
+            .setData('direction', isDelivery ? 'to_heart' : 'to_plot')
+            .setData('resource', resource)
+            .setData('helperName', building?.creature?.name || null)
+            .setData('buildingId', building?.definitionId || null)
+            .setData('worldEffectLabel', definition?.worldEffectLabel || null)
+            .setData(
+                'ariaLabel',
+                isDelivery
+                    ? `${building.creature.name} delivers ${resource} to the Village Heart. ${definition.worldEffectLabel}.`
+                    : building
+                        ? `${definition?.label || 'Foundation'} draws Current from the Village Heart.`
+                        : 'An open foundation draws Current from the Village Heart.'
+            );
+
+        const travel = { progress: 0 };
+        const updatePosition = () => {
+            const progress = Phaser.Math.Clamp(travel.progress, 0, 1);
+            const inverse = 1 - progress;
+            container.setPosition(
+                (inverse * inverse * start.x) +
+                    (2 * inverse * progress * control.x) +
+                    (progress * progress * end.x),
+                (inverse * inverse * start.y) +
+                    (2 * inverse * progress * control.y) +
+                    (progress * progress * end.y)
+            );
+            container.setAlpha(
+                (isDelivery ? 0.38 : unlocked ? 0.16 : 0.08) +
+                Math.sin(progress * Math.PI) * (isDelivery ? 0.62 : unlocked ? 0.72 : 0.12)
+            );
+        };
+        const tween = this.scene.tweens.add({
+            targets: travel,
+            progress: 1,
+            duration: 2400 + index * 240,
+            delay: index * 180,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+            onUpdate: updatePosition,
+            onRepeat: () => {
+                travel.progress = 0;
+                updatePosition();
+            }
+        });
+        return { container, tween };
     }
 
     createVillageWorker(building, { compact = false, index = 0 } = {}) {

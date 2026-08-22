@@ -10544,6 +10544,15 @@ async function smokeVillageUi(session, exceptions) {
             })),
             plotCount: landmark.plotHitZones.length,
             workerCount: landmark.workerElements.length,
+            flowSignals: (landmark.villageFlowSignals || []).map(signal => ({
+                direction: signal.getData('direction'),
+                resource: signal.getData('resource'),
+                helperName: signal.getData('helperName'),
+                buildingId: signal.getData('buildingId'),
+                worldEffectLabel: signal.getData('worldEffectLabel'),
+                ariaLabel: signal.getData('ariaLabel'),
+                active: signal.active === true
+            })),
             targetCount: scene.targetRange?.allTargets?.length || 0,
             restoration: {
                 rootBudCount: landmark.restorationRoots?.getData?.('rootBudCount') || 0,
@@ -10599,6 +10608,22 @@ async function smokeVillageUi(session, exceptions) {
             (plot.state === 'available' && plot.progressNodes !== 1)
         )) ||
         integratedWorld.workerCount !== 3 ||
+        integratedWorld.flowSignals.length !== 5 ||
+        integratedWorld.flowSignals.filter(signal => signal.direction === 'to_heart').length !== 3 ||
+        integratedWorld.flowSignals.filter(signal => signal.direction === 'to_plot').length !== 2 ||
+        integratedWorld.flowSignals
+            .filter(signal => signal.direction === 'to_heart')
+            .map(signal => signal.resource)
+            .sort()
+            .join(',') !== 'food,stone,wood' ||
+        integratedWorld.flowSignals.some(signal => (
+            !signal.active ||
+            !signal.ariaLabel ||
+            (
+                signal.direction === 'to_heart' &&
+                (!signal.helperName || !signal.buildingId || !signal.worldEffectLabel)
+            )
+        )) ||
         integratedWorld.targetCount !== 8 ||
         !integratedWorld.restoration.active ||
         integratedWorld.restoration.rootBudCount !== 5 ||
@@ -10775,7 +10800,7 @@ async function smokeVillageUi(session, exceptions) {
             const landmark = scene?.villageHeartLandmark;
             return landmark?.plotHitZones?.length === 5 &&
                 landmark?.buildingElements?.filter(
-                    element => element?.type === 'Container'
+                    element => element?.getData?.('villageBuildingStructure') === true
                 ).length === 5;
         })()`),
         { timeoutMs: 12000, message: 'Village Heart interactive world district' }
@@ -10792,7 +10817,7 @@ async function smokeVillageUi(session, exceptions) {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const landmark = scene.villageHeartLandmark;
         const worldStructures = (landmark?.buildingElements || [])
-            .filter(element => element?.type === 'Container');
+            .filter(element => element?.getData?.('villageBuildingStructure') === true);
         const workers = landmark?.workerElements || [];
         const communityPanel = document.querySelector('.village-community-pulse');
         const decisionPanel = document.querySelector('.village-heart-decision');
@@ -11375,6 +11400,8 @@ async function smokeVillageUi(session, exceptions) {
             hitState: zone?.getData?.('plotState'),
             stateText: presentation?.stateLabel?.text || '',
             stateAlpha: presentation?.stateLabel?.alpha,
+            flowDirection: presentation?.flowSignal?.getData?.('direction'),
+            flowResource: presentation?.flowSignal?.getData?.('resource'),
             stateBounds: stateBounds ? {
                 left: stateBounds.left,
                 right: stateBounds.right,
@@ -11393,6 +11420,8 @@ async function smokeVillageUi(session, exceptions) {
         constructionWorld.progressRatio > 1 ||
         constructionWorld.stateText !== 'GROWING TOGETHER' ||
         constructionWorld.stateAlpha !== 1 ||
+        constructionWorld.flowDirection !== 'to_plot' ||
+        constructionWorld.flowResource !== null ||
         !constructionWorld.stateBounds ||
         constructionWorld.stateBounds.left < -1 ||
         constructionWorld.stateBounds.right > SMOKE_VIEWPORT_WIDTH + 1 ||
