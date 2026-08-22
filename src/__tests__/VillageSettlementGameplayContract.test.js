@@ -293,6 +293,11 @@ describe('Village settlement gameplay contract', () => {
         const chatSource = read('ui/FloatingChatBubble.js');
         expect(chatSource).toContain('this.scene?.hasVisibleTouchControls?.() !== true');
         expect(chatSource).toContain('syncPresentationVisibility()');
+        const collectibleSource = read('systems/CollectibleManager.js');
+        expect(collectibleSource).toContain('Number(scene.worldWidth)');
+        expect(collectibleSource).toContain('Number(scene.worldHeight)');
+        expect(collectibleSource).toContain('isReservedSanctuaryPosition?.(x, y, 36)');
+        expect(collectibleSource).toContain(".setData('spawnCoordinateSpace', 'world')");
         [
             "verb: 'SHOP'",
             "label: 'SUPPLIES & BUILDING'",

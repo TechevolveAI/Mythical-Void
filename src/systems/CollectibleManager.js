@@ -451,11 +451,19 @@ class CollectibleManager {
         const availableTypes = this.getCollectiblesForBiome(biome);
         const totalWeight = availableTypes.reduce((sum, c) => sum + c.spawnWeight, 0);
 
+        const margin = 100;
+        const physicsBounds = scene.physics?.world?.bounds;
+        const worldWidth = Number(scene.worldWidth) ||
+            Number(physicsBounds?.width) ||
+            Number(scene.cameras?.main?.width) || 800;
+        const worldHeight = Number(scene.worldHeight) ||
+            Number(physicsBounds?.height) ||
+            Number(scene.cameras?.main?.height) || 600;
         const worldBounds = {
-            minX: 100,
-            maxX: scene.cameras.main.width * 3 - 100,
-            minY: 100,
-            maxY: scene.cameras.main.height * 2 - 100
+            minX: margin,
+            maxX: Math.max(margin, worldWidth - margin),
+            minY: margin,
+            maxY: Math.max(margin, worldHeight - margin)
         };
 
         const spawnedCollectibles = [];
@@ -473,12 +481,31 @@ class CollectibleManager {
                 }
             }
 
-            // Random position
-            const x = Phaser.Math.Between(worldBounds.minX, worldBounds.maxX);
-            const y = Phaser.Math.Between(worldBounds.minY, worldBounds.maxY);
+            let position = null;
+            for (let attempt = 0; attempt < 80; attempt += 1) {
+                const x = Phaser.Math.Between(worldBounds.minX, worldBounds.maxX);
+                const y = Phaser.Math.Between(worldBounds.minY, worldBounds.maxY);
+                const reservedSanctuary = biome === 'nebula' &&
+                    scene.worldBuilder?.isReservedSanctuaryPosition?.(x, y, 36) === true;
+                const tooCloseToPlayer = scene.player && Math.hypot(
+                    x - Number(scene.player.x || 0),
+                    y - Number(scene.player.y || 0)
+                ) < 120;
+                if (!reservedSanctuary && !tooCloseToPlayer) {
+                    position = { x, y };
+                    break;
+                }
+            }
+            if (!position) continue;
 
             // Create collectible object
-            const collectible = this.createCollectible(scene, selectedType, x, y, biome);
+            const collectible = this.createCollectible(
+                scene,
+                selectedType,
+                position.x,
+                position.y,
+                biome
+            );
             if (collectible) {
                 spawnedCollectibles.push(collectible);
                 this.collectibles.push(collectible);
@@ -498,7 +525,11 @@ class CollectibleManager {
 
         // Create visual representation
         const container = scene.add.container(x, y);
-        container.setDepth(15);
+        container.setDepth(15)
+            .setData('worldCollectible', true)
+            .setData('collectibleType', type.id)
+            .setData('collectibleBiome', biome)
+            .setData('spawnCoordinateSpace', 'world');
 
         // Standard rarity colors (white/green/blue/purple/gold)
         const rarityColors = {

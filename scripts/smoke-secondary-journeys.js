@@ -10819,6 +10819,12 @@ async function smokeVillageUi(session, exceptions) {
             (scene.trees?.getChildren?.().length || 0) +
             (scene.rocks?.getChildren?.().length || 0) +
             (scene.flowers?.getChildren?.().length || 0);
+        const collectibles = (scene.collectibles || []).filter(
+            collectible => collectible?.collected !== true && collectible?.container?.active !== false
+        );
+        const collectiblesInsideDistrict = collectibles.filter(collectible => (
+            insideSettlement(collectible.container)
+        ));
         const stateLanguage = [
             ['dormant', 0],
             ['available', 0],
@@ -11077,6 +11083,19 @@ async function smokeVillageUi(session, exceptions) {
             },
             proceduralDecorInsideDistrict,
             proceduralDecorTotal,
+            collectibles: {
+                total: collectibles.length,
+                insideDistrict: collectiblesInsideDistrict.length,
+                worldCoordinateCount: collectibles.filter(collectible => (
+                    collectible.container?.getData?.('spawnCoordinateSpace') === 'world'
+                )).length,
+                outsideWorldCount: collectibles.filter(collectible => (
+                    collectible.x < 0 ||
+                    collectible.x > scene.worldWidth ||
+                    collectible.y < 0 ||
+                    collectible.y > scene.worldHeight
+                )).length
+            },
             stateLanguage,
             commons: {
                 terrainActive: commons?.terrain?.active === true,
@@ -11528,6 +11547,11 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.focus.questVisible ||
         integratedWorld.focus.mobileHudFocused !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
         Object.values(integratedWorld.secondaryHud).some(Boolean) ||
+        integratedWorld.collectibles.total !== 15 ||
+        integratedWorld.collectibles.insideDistrict !== 0 ||
+        integratedWorld.collectibles.worldCoordinateCount !==
+            integratedWorld.collectibles.total ||
+        integratedWorld.collectibles.outsideWorldCount !== 0 ||
         integratedWorld.interactionBeacon.activeId !== 'villageHeart' ||
         (
             SMOKE_VIEWPORT_WIDTH <= 600
