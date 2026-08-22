@@ -22,7 +22,10 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain("this.scene?.events?.off?.('update', this.syncCameraZoom, this);");
         expect(source).toContain('.setScale(1 / cameraZoom)');
         expect(source).toContain('syncCameraZoom()');
-        expect(sceneSource.match(/this\.achievementNotification\?\.syncCameraZoom\?\.\(\);/g)).toHaveLength(3);
+        expect(sceneSource.match(/this\.achievementNotification\?\.syncCameraZoom\?\.\(\);/g)).toHaveLength(6);
+        expect(sceneSource).toContain('this.sanctuaryCameraFocusPreviousZoom = zoom;');
+        expect(sceneSource).toContain('this.sanctuaryCameraFocusZoom = zoom;');
+        expect(sceneSource).toContain('camera.setZoom(restoreZoom);');
     });
 
     test('the Living Current vertical-slice world assets ship with the game', () => {
@@ -123,6 +126,11 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain('this.updateSanctuaryFocusMode(false)');
         expect(sceneSource).toContain('this.applySanctuaryCameraFocus();');
         expect(sceneSource).toContain('this.restorePlayerCameraFollow();');
+        expect(sceneSource).toContain('const shortViewport = this.scale.height <= 520;');
+        expect(sceneSource).toContain('zoom = Math.min(zoom, compact ? 0.62 : 0.68);');
+        expect(sceneSource).toContain('this.sanctuaryCameraFocusPreviousZoom = zoom;');
+        expect(sceneSource).toContain('this.sanctuaryCameraFocusZoom = zoom;');
+        expect(sceneSource).toContain('const restoreZoom = this.sanctuaryCameraFocusPreviousZoom;');
         expect(sceneSource).toContain('this.worldBuilder?.setVillageFocusMode?.(');
         expect(sceneSource).toContain('firstContactActive || this.sanctuaryFocusModeActive');
         expect(sceneSource).toContain('this.dismissCosmicAffinityNotice();');
@@ -408,7 +416,9 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("setData('uniformOverlay', false)");
         expect(world).toContain("setData('villageDistrictEcology', true)");
         expect(world).toContain("setData('villageThresholdCount'");
-        expect(world).toContain("setData('villagePathMaterial', 'branching_current_roots')");
+        expect(world).toContain("setData('villagePathMaterial', 'grounded_current_paths_v3')");
+        expect(world).toContain("setData('routeFoundationWidth', compactSettlement ? 22 : 28)");
+        expect(world).toContain("setData('routeHighlightWidth', 3)");
         expect(world).toContain("setData('villageEcologyPulse', true)");
         expect(world).toContain("setData('growthLabel', snapshot?.worldState?.growthLabel");
         expect(world).toContain("setData('villageGrowthLabel'");
@@ -435,6 +445,19 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('createVillageValueGrowth(');
         expect(world).toContain("setData('villageValueGrowth'");
         expect(world).toContain('createVillageNextActionBeacon(');
+        expect(world).toContain('createVillageGuidanceRoute({');
+        expect(world).toContain("setData('villageGuidanceRoute', true)");
+        expect(world).toContain("setData('villageRouteMaterial', 'current_stepping_lights_v1')");
+        expect(world).toContain("setData('guidanceNodeCount', guidanceNodes.length)");
+        expect(world).toContain("setData('villageNextActionHitZone', true)");
+        expect(world).toContain("setData('touchTargetHeight', 52)");
+        expect(world).toContain('landmark.nextActionTween?.pause?.();');
+        expect(world).toContain('landmark.nextActionTween?.resume?.();');
+        expect(world).toContain('landmark.nextActionPlacard?.setAlpha(storyMode ? 0 : 1);');
+        expect(world).toContain('landmark.nextActionRing?.setAlpha(storyMode ? 0 : 1);');
+        expect(world).toContain("setData('villageDecisionGroundResponse', true)");
+        expect(world).toContain("copy.setData('resonanceVerticalOffset', compact ? 360 : 330)");
+        expect(world).toContain("copy.setData('resonanceVerticalOffset', compact ? 375 : 345)");
         expect(world).toContain("setData('villageNextAction'");
         expect(world).toContain('playVillageHeartMemory(');
         expect(world).toContain("setData('villageHeartFollowUp'");
@@ -504,11 +527,13 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain("this.sanctuaryPresentationMode = 'ambient'");
         expect(scene).toContain("const quietArrival = ['review', 'supplies'].includes(nextAction?.type)");
         expect(scene).toContain('guided: plotId === null');
-        expect(world).toContain("profile: 'terraced_current_v1'");
-        expect(world).toContain('heartArtworkSize: 156');
+        expect(world).toContain("profile: 'terraced_current_v2'");
+        expect(world).toContain('heartArtworkSize: 150');
         expect(world).toContain('buildingArtworkScale: 0.54');
-        expect(world).toContain('Object.freeze({ x: -112, y: -250 })');
-        expect(world).toContain('Object.freeze({ x: 0, y: 210 })');
+        expect(world).toContain('Object.freeze({ x: -112, y: -226 })');
+        expect(world).toContain('Object.freeze({ x: 0, y: 148 })');
+        expect(world).toContain('.setDepth(-21)');
+        expect(world).toContain('.setDepth(-20)');
         expect(world).toContain('const heartDisplaySize = settlementLayout.heartArtworkSize;');
         expect(world).toContain(".setData('villageLayoutProfile', settlementLayout.profile)");
         expect(world).toContain(".setData('villageHeartCaption', true)");

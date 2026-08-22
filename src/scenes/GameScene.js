@@ -339,6 +339,8 @@ class GameScene extends Phaser.Scene {
         this.economyHud = null;
         this.worldBuilder = null;
         this.currentCameraZoom = 1;
+        this.sanctuaryCameraFocusPreviousZoom = null;
+        this.sanctuaryCameraFocusZoom = null;
         this.gameStateUnsubscribers = [];
         this._sceneLifecycleRegistered = false;
         this._isShuttingDown = false;
@@ -4716,7 +4718,27 @@ class GameScene extends Phaser.Scene {
         if (!camera || !heart) return false;
         const touchControlsVisible = this.hasVisibleTouchControls();
         const compact = this.scale.width <= 600;
-        const zoom = Math.max(0.1, camera.zoom || 1);
+        const shortViewport = this.scale.height <= 520;
+        const isMobile = window.responsiveManager?.isMobile ?? window.innerWidth < 768;
+        let zoom = Math.max(0.1, camera.zoom || 1);
+        if (shortViewport) {
+            if (!Number.isFinite(this.sanctuaryCameraFocusPreviousZoom)) {
+                this.sanctuaryCameraFocusPreviousZoom = zoom;
+            }
+            zoom = Math.min(zoom, compact ? 0.62 : 0.68);
+            camera.setZoom(zoom);
+            this.achievementNotification?.syncCameraZoom?.();
+            this.applyMobileCameraBounds(camera, isMobile, zoom, touchControlsVisible);
+            this.currentCameraZoom = zoom;
+        } else if (Number.isFinite(this.sanctuaryCameraFocusPreviousZoom)) {
+            zoom = this.sanctuaryCameraFocusPreviousZoom;
+            camera.setZoom(zoom);
+            this.achievementNotification?.syncCameraZoom?.();
+            this.applyMobileCameraBounds(camera, isMobile, zoom, touchControlsVisible);
+            this.currentCameraZoom = zoom;
+            this.sanctuaryCameraFocusPreviousZoom = null;
+        }
+        this.sanctuaryCameraFocusZoom = zoom;
         const controlLayout = touchControlsVisible
             ? getMobileControlLayout({
                 width: this.scale.width,
@@ -4746,12 +4768,27 @@ class GameScene extends Phaser.Scene {
     restorePlayerCameraFollow() {
         const camera = this.cameras?.main;
         if (!camera || !this.player || this.player.active === false) return false;
+        if (Number.isFinite(this.sanctuaryCameraFocusPreviousZoom)) {
+            const restoreZoom = this.sanctuaryCameraFocusPreviousZoom;
+            const isMobile = window.responsiveManager?.isMobile ?? window.innerWidth < 768;
+            camera.setZoom(restoreZoom);
+            this.achievementNotification?.syncCameraZoom?.();
+            this.applyMobileCameraBounds(
+                camera,
+                isMobile,
+                restoreZoom,
+                this.hasVisibleTouchControls()
+            );
+            this.currentCameraZoom = restoreZoom;
+            this.sanctuaryCameraFocusPreviousZoom = null;
+        }
         camera.startFollow(this.player, true, 0.12, 0.12);
         camera.setDeadzone(
             Math.round(camera.width * 0.15),
             Math.round(camera.height * 0.2)
         );
         this.sanctuaryCameraFocusTarget = null;
+        this.sanctuaryCameraFocusZoom = null;
         return true;
     }
 

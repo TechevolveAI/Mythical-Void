@@ -10671,8 +10671,12 @@ async function smokeVillageUi(session, exceptions) {
                 material: landmark.districtTerrain?.getData?.('villageTerrainMaterial'),
                 uniformOverlay: landmark.districtTerrain?.getData?.('uniformOverlay'),
                 patchCount: landmark.districtTerrain?.getData?.('terrainPatchCount') || 0,
+                terrainDepth: landmark.districtTerrain?.depth,
                 pathMaterial: landmark.currentPaths?.getData?.('villagePathMaterial'),
                 connectedPlotCount: landmark.currentPaths?.getData?.('connectedPlotCount') || 0,
+                pathDepth: landmark.currentPaths?.depth,
+                routeFoundationWidth: landmark.currentPaths?.getData?.('routeFoundationWidth'),
+                routeHighlightWidth: landmark.currentPaths?.getData?.('routeHighlightWidth'),
                 ecologyActive: landmark.districtEcology?.active === true,
                 ecologyGrowthTier: landmark.districtEcology?.getData?.('growthTier'),
                 ecologyRestoredCount: landmark.districtEcology?.getData?.('restoredCount'),
@@ -10939,8 +10943,14 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.district.material !== 'living_current_v2' ||
         integratedWorld.district.uniformOverlay !== false ||
         integratedWorld.district.patchCount !== 6 ||
-        integratedWorld.district.pathMaterial !== 'branching_current_roots' ||
+        integratedWorld.district.terrainDepth !== -21 ||
+        integratedWorld.district.pathMaterial !== 'grounded_current_paths_v3' ||
         integratedWorld.district.connectedPlotCount !== 3 ||
+        integratedWorld.district.pathDepth !== -20 ||
+        integratedWorld.district.routeFoundationWidth !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 22 : 28
+        ) ||
+        integratedWorld.district.routeHighlightWidth !== 3 ||
         !integratedWorld.district.ecologyActive ||
         integratedWorld.district.ecologyGrowthTier !== 2 ||
         integratedWorld.district.ecologyRestoredCount !== 3 ||
@@ -11579,11 +11589,11 @@ async function smokeVillageUi(session, exceptions) {
         layout.worldPresentation.presentationMode !== 'story' ||
         layout.worldPresentation.layoutProfile !== (
             SMOKE_VIEWPORT_WIDTH <= 600
-                ? 'terraced_current_v1'
+                ? 'terraced_current_v2'
                 : 'commons_spine_v1'
         ) ||
         layout.worldPresentation.heartDisplaySize !== (
-            SMOKE_VIEWPORT_WIDTH <= 600 ? 156 : 218
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 150 : 218
         ) ||
         !layout.worldPresentation.heartCaptionActive ||
         layout.worldPresentation.strayFieldKitShipCount !== 0 ||
@@ -11639,7 +11649,7 @@ async function smokeVillageUi(session, exceptions) {
             presentation.labelAlpha !== 0 ||
             presentation.layoutProfile !== (
                 SMOKE_VIEWPORT_WIDTH <= 600
-                    ? 'terraced_current_v1'
+                    ? 'terraced_current_v2'
                     : 'commons_spine_v1'
             ) ||
             presentation.artworkDisplaySize > (
@@ -12129,9 +12139,24 @@ async function smokeVillageUi(session, exceptions) {
             value: landmark?.activeDecisionMoment?.getData('value'),
             resonanceStyle: landmark?.activeDecisionMoment?.getData('resonanceStyle'),
             resonanceAnchor: landmark?.activeDecisionMoment?.getData('resonanceAnchor'),
+            resonanceVerticalOffset: landmark?.activeDecisionMoment?.getData(
+                'resonanceVerticalOffset'
+            ),
+            groundResponseDepth: landmark?.decisionMomentElements?.find(
+                element => element?.getData?.('villageDecisionGroundResponse') === true
+            )?.depth,
             resonanceBackdrop: landmark?.activeDecisionMoment?.list?.some(
                 child => child?.getData?.('villageResonanceBackdrop') === true
-            ) === true
+            ) === true,
+            actionGuidance: {
+                labelAlpha: landmark?.nextActionElement?.alpha,
+                labelInput: landmark?.nextActionElement?.input?.enabled === true,
+                placardAlpha: landmark?.nextActionPlacard?.alpha,
+                ringAlpha: landmark?.nextActionRing?.alpha,
+                routeAlpha: landmark?.guidanceRoute?.alpha,
+                hitZoneInput: landmark?.nextActionHitZone?.input?.enabled === true,
+                tweenPaused: landmark?.nextActionTween?.isPaused?.() === true
+            }
         };
     })()`);
     if (
@@ -12141,7 +12166,18 @@ async function smokeVillageUi(session, exceptions) {
         decisionWorld.value !== 'care' ||
         decisionWorld.resonanceStyle !== 'current_ribbon' ||
         decisionWorld.resonanceAnchor !== 'village_heart' ||
-        !decisionWorld.resonanceBackdrop
+        decisionWorld.resonanceVerticalOffset !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 360 : 330
+        ) ||
+        decisionWorld.groundResponseDepth !== -15 ||
+        !decisionWorld.resonanceBackdrop ||
+        decisionWorld.actionGuidance.labelAlpha !== 0 ||
+        decisionWorld.actionGuidance.labelInput ||
+        decisionWorld.actionGuidance.placardAlpha !== 0 ||
+        decisionWorld.actionGuidance.ringAlpha !== 0 ||
+        decisionWorld.actionGuidance.routeAlpha !== 0 ||
+        decisionWorld.actionGuidance.hitZoneInput ||
+        !decisionWorld.actionGuidance.tweenPaused
     ) {
         throw new Error(`Village Heart world response failed: ${JSON.stringify(decisionWorld)}`);
     }
@@ -12156,8 +12192,11 @@ async function smokeVillageUi(session, exceptions) {
         const landmark = window.mythicalGame.scene.getScene('GameScene')
             ?.villageHeartLandmark;
         const target = landmark?.nextActionElement;
+        const hitZone = landmark?.nextActionHitZone;
+        const guidanceRoute = landmark?.guidanceRoute;
         if (!target?.getBounds) return null;
         const bounds = target.getBounds();
+        const hitBounds = hitZone?.getBounds?.();
         return {
             x: Math.round(bounds.centerX),
             y: Math.round(bounds.centerY),
@@ -12191,7 +12230,26 @@ async function smokeVillageUi(session, exceptions) {
                 ?.sanctuaryInteractionDirector?.active?.suppressWorldBeacon === true,
             sanctuaryFocusModeActive: window.mythicalGame.scene.getScene('GameScene')
                 ?.sanctuaryFocusModeActive === true,
-            text: target.text || ''
+            text: target.text || '',
+            actionCopy: target.getData('villageActionCopy'),
+            hitZone: hitBounds ? {
+                left: hitBounds.left,
+                right: hitBounds.right,
+                top: hitBounds.top,
+                bottom: hitBounds.bottom,
+                inputEnabled: hitZone.input?.enabled === true,
+                touchTargetWidth: hitZone.getData('touchTargetWidth'),
+                touchTargetHeight: hitZone.getData('touchTargetHeight')
+            } : null,
+            guidanceRoute: guidanceRoute ? {
+                active: guidanceRoute.active === true,
+                action: guidanceRoute.getData('villageNextAction'),
+                plotId: guidanceRoute.getData('plotId'),
+                material: guidanceRoute.getData('villageRouteMaterial'),
+                routePointCount: guidanceRoute.getData('routePointCount'),
+                guidanceNodeCount: guidanceRoute.getData('guidanceNodeCount'),
+                depth: guidanceRoute.depth
+            } : null
         };
     })()`);
     if (
@@ -12216,7 +12274,29 @@ async function smokeVillageUi(session, exceptions) {
         buildRoute.focusHierarchy.filter(plot => plot.plotId !== 'root_04').some(plot => (
             plot.priority !== 'supporting' || plot.alpha >= 1
         )) ||
-        !buildRoute.text.includes('BUILD HABITAT')
+        !buildRoute.text.includes('BUILD HABITAT') ||
+        buildRoute.actionCopy !== (
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? 'TAP · BUILD HABITAT'
+                : 'NEXT · BUILD HABITAT'
+        ) ||
+        !buildRoute.hitZone ||
+        !buildRoute.hitZone.inputEnabled ||
+        buildRoute.hitZone.touchTargetWidth !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 156 : 184
+        ) ||
+        buildRoute.hitZone.touchTargetHeight !== 52 ||
+        buildRoute.hitZone.left < -1 ||
+        buildRoute.hitZone.right > SMOKE_VIEWPORT_WIDTH + 1 ||
+        buildRoute.hitZone.top < -1 ||
+        buildRoute.hitZone.bottom > SMOKE_VIEWPORT_HEIGHT + 1 ||
+        !buildRoute.guidanceRoute?.active ||
+        buildRoute.guidanceRoute.action !== 'build' ||
+        buildRoute.guidanceRoute.plotId !== 'root_04' ||
+        buildRoute.guidanceRoute.material !== 'current_stepping_lights_v1' ||
+        buildRoute.guidanceRoute.routePointCount !== 19 ||
+        buildRoute.guidanceRoute.guidanceNodeCount !== 4 ||
+        buildRoute.guidanceRoute.depth !== -16
     ) {
         throw new Error(`Village next build route failed: ${JSON.stringify(buildRoute)}`);
     }

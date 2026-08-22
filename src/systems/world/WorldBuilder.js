@@ -22,15 +22,15 @@ import {
 
 const VILLAGE_SETTLEMENT_LAYOUTS = Object.freeze({
     compact: Object.freeze({
-        profile: 'terraced_current_v1',
-        heartArtworkSize: 156,
+        profile: 'terraced_current_v2',
+        heartArtworkSize: 150,
         buildingArtworkScale: 0.54,
         plotOffsets: Object.freeze([
-            Object.freeze({ x: -112, y: -250 }),
-            Object.freeze({ x: 112, y: -250 }),
-            Object.freeze({ x: -128, y: -78 }),
-            Object.freeze({ x: 128, y: -78 }),
-            Object.freeze({ x: 0, y: 210 })
+            Object.freeze({ x: -112, y: -226 }),
+            Object.freeze({ x: 112, y: -226 }),
+            Object.freeze({ x: -128, y: -72 }),
+            Object.freeze({ x: 128, y: -72 }),
+            Object.freeze({ x: 0, y: 148 })
         ])
     }),
     expanded: Object.freeze({
@@ -840,20 +840,20 @@ class WorldBuilder {
 
         const districtTerrain = this.scene.add.graphics()
             .setPosition(x, y)
-            .setDepth(y - 3);
+            .setDepth(-21);
         const currentPaths = this.scene.add.graphics()
             .setPosition(x, y)
-            .setDepth(y - 2);
+            .setDepth(-20);
         const districtEcology = this.scene.add.graphics()
             .setPosition(x, y)
-            .setDepth(y - 1);
+            .setDepth(-19);
         const districtPulse = this.scene.add.graphics()
             .setPosition(x, y)
-            .setDepth(y);
+            .setDepth(-18);
         districtPulse.setBlendMode?.(Phaser.BlendModes.ADD);
         const districtThresholds = this.scene.add.graphics()
             .setPosition(x, y)
-            .setDepth(y + 1);
+            .setDepth(-17);
         const heart = this.scene.add.graphics().setPosition(x, y).setDepth(y + 2);
         const heartCaption = this.scene.add.graphics()
             .setPosition(x, y)
@@ -913,6 +913,12 @@ class WorldBuilder {
             focusTweens: [],
             focusModeActive: false,
             plotHitZones: [],
+            nextActionElement: null,
+            nextActionHitZone: null,
+            nextActionPlacard: null,
+            nextActionRing: null,
+            nextActionTween: null,
+            guidanceRoute: null,
             pulseTween: null,
             ecologyTween: null,
             heartArtworkTween: null,
@@ -1164,6 +1170,11 @@ class WorldBuilder {
         landmark.plotPresentations = [];
         landmark.villageFlowSignals = [];
         landmark.nextActionElement = null;
+        landmark.nextActionHitZone = null;
+        landmark.nextActionPlacard = null;
+        landmark.nextActionRing = null;
+        landmark.nextActionTween = null;
+        landmark.guidanceRoute = null;
         landmark.plotWorldPositions = new Map();
         landmark.snapshot = snapshot;
 
@@ -1274,16 +1285,25 @@ class WorldBuilder {
                 });
                 currentPaths.strokePath();
             };
-            strokeCurrentPath(16, 0x071411, 0.24);
             strokeCurrentPath(
-                completePath ? 5 : 3,
-                growingPath ? 0xF2C14E : completePath ? 0x3FAE62 : 0x53616A,
-                completePath ? 0.42 : growingPath ? 0.36 : unlocked ? 0.12 : 0.07
+                compactSettlement ? 22 : 28,
+                0x102B26,
+                completePath ? 0.42 : growingPath ? 0.36 : 0.26
             );
             strokeCurrentPath(
-                completePath ? 1.5 : 1,
+                compactSettlement ? 15 : 19,
+                0x071411,
+                completePath ? 0.42 : 0.34
+            );
+            strokeCurrentPath(
+                completePath ? 3 : growingPath ? 3 : 2,
+                growingPath ? 0xF2C14E : completePath ? 0x3FAE62 : 0x53616A,
+                completePath ? 0.3 : growingPath ? 0.42 : unlocked ? 0.11 : 0.06
+            );
+            strokeCurrentPath(
+                completePath ? 1 : 0.8,
                 growingPath ? 0xF4F4F4 : completePath ? 0xB7F7DE : 0x657682,
-                completePath ? 0.62 : growingPath ? 0.54 : 0.18
+                completePath ? 0.42 : growingPath ? 0.58 : 0.14
             );
             if (completePath) {
                 [9, 13].forEach((pointIndex, branchIndex) => {
@@ -1307,8 +1327,10 @@ class WorldBuilder {
             }
         });
         currentPaths
-            .setData('villagePathMaterial', 'branching_current_roots')
-            .setData('connectedPlotCount', connectedPlotCount);
+            .setData('villagePathMaterial', 'grounded_current_paths_v3')
+            .setData('connectedPlotCount', connectedPlotCount)
+            .setData('routeFoundationWidth', compactSettlement ? 22 : 28)
+            .setData('routeHighlightWidth', 3);
 
         districtPulse.setAlpha(unlocked ? 0.54 : 0.2);
         landmark.ecologyTween = this.scene.tweens.add({
@@ -2058,6 +2080,21 @@ class WorldBuilder {
                 landmark.nextActionElement.setInteractive?.({ useHandCursor: true });
             }
         }
+        if (landmark.nextActionHitZone) {
+            if (storyMode) {
+                landmark.nextActionHitZone.disableInteractive?.();
+            } else {
+                landmark.nextActionHitZone.setInteractive?.({ useHandCursor: true });
+            }
+        }
+        if (storyMode) {
+            landmark.nextActionTween?.pause?.();
+        } else {
+            landmark.nextActionTween?.resume?.();
+        }
+        landmark.nextActionPlacard?.setAlpha(storyMode ? 0 : 1);
+        landmark.nextActionRing?.setAlpha(storyMode ? 0 : 1);
+        landmark.guidanceRoute?.setAlpha(storyMode ? 0 : active ? 1 : 0.72);
         landmark.villageFlowSignals?.forEach(signal => {
             signal?.setData(
                 'villageFocusAlphaMultiplier',
@@ -2200,10 +2237,73 @@ class WorldBuilder {
         return elements.length > 0;
     }
 
+    createVillageGuidanceRoute({ landmark, action, position, compact = false } = {}) {
+        if (!landmark?.zone || !action || !position) return null;
+
+        const color = action.type === 'assign' ? 0x71E6B1 : 0xF2C14E;
+        const start = {
+            x: landmark.zone.x,
+            y: landmark.zone.y + 18
+        };
+        const end = {
+            x: position.x,
+            y: position.y + 18
+        };
+        const bend = {
+            x: start.x + ((end.x - start.x) * 0.56),
+            y: start.y + ((end.y - start.y) * 0.34) + (end.x < start.x ? 16 : -16)
+        };
+        const points = Array.from({ length: 19 }, (_, pointIndex) => {
+            const progress = pointIndex / 18;
+            const inverse = 1 - progress;
+            return {
+                x: (inverse * inverse * start.x) +
+                    (2 * inverse * progress * bend.x) +
+                    (progress * progress * end.x),
+                y: (inverse * inverse * start.y) +
+                    (2 * inverse * progress * bend.y) +
+                    (progress * progress * end.y)
+            };
+        });
+        const route = this.scene.add.graphics()
+            .setDepth(-16)
+            .setData('villageGuidanceRoute', true)
+            .setData('villageRouteMaterial', 'current_stepping_lights_v1')
+            .setData('villageNextAction', action.type)
+            .setData('plotId', action.plotId)
+            .setData('routePointCount', points.length);
+        const strokeRoute = (width, strokeColor, alpha) => {
+            route.lineStyle(width, strokeColor, alpha);
+            route.beginPath();
+            route.moveTo(points[0].x, points[0].y);
+            points.slice(1).forEach(point => route.lineTo(point.x, point.y));
+            route.strokePath();
+        };
+        strokeRoute(compact ? 14 : 18, 0x061310, 0.78);
+        strokeRoute(compact ? 5 : 6, color, 0.62);
+        strokeRoute(1, 0xF4F4F4, 0.58);
+
+        const guidanceNodes = [4, 8, 12, 16];
+        guidanceNodes.forEach((pointIndex, nodeIndex) => {
+            const point = points[pointIndex];
+            route.fillStyle(0x061310, 0.9);
+            route.fillCircle(point.x, point.y, compact ? 5 : 6);
+            route.fillStyle(color, 0.94);
+            route.fillCircle(point.x, point.y, 2 + (nodeIndex * 0.35));
+        });
+        route.setData('guidanceNodeCount', guidanceNodes.length);
+        return route;
+    }
+
     createVillageNextActionBeacon(landmark, snapshot, { compact = false } = {}) {
         const action = snapshot?.worldState?.nextAction;
         if (!landmark?.zone || !action) return false;
         landmark.nextActionElement = null;
+        landmark.nextActionHitZone = null;
+        landmark.nextActionPlacard = null;
+        landmark.nextActionRing = null;
+        landmark.nextActionTween = null;
+        landmark.guidanceRoute = null;
 
         if (action.type === 'decision' || action.type === 'supplies') {
             landmark.actionLabel
@@ -2226,48 +2326,114 @@ class WorldBuilder {
         const position = landmark.plotWorldPositions?.get(action.plotId);
         if (!position) return false;
         const color = action.type === 'assign' ? 0x71E6B1 : 0xF2C14E;
+        const guidanceRoute = this.createVillageGuidanceRoute({
+            landmark,
+            action,
+            position,
+            compact
+        });
         const ring = this.scene.add.graphics()
             .setPosition(position.x, position.y + 16)
             .setDepth(position.y + 5)
             .setData('villageNextActionRing', action.type);
-        ring.lineStyle(3, color, 0.86);
-        ring.strokeEllipse(0, 0, compact ? 116 : 142, compact ? 44 : 52);
+        ring.lineStyle(3, color, 0.9);
+        ring.beginPath();
+        ring.arc(0, 0, compact ? 57 : 70, Math.PI * 0.08, Math.PI * 0.88);
+        ring.strokePath();
+        ring.beginPath();
+        ring.arc(0, 0, compact ? 57 : 70, Math.PI * 1.08, Math.PI * 1.88);
+        ring.strokePath();
         ring.fillStyle(color, 0.96);
         ring.fillTriangle(0, -52, -7, -40, 7, -40);
         ring.setBlendMode?.(Phaser.BlendModes.ADD);
 
+        const labelX = compact
+            ? position.x + (position.x > landmark.zone.x ? -16 : position.x < landmark.zone.x ? 16 : 0)
+            : position.x;
+        const labelY = position.y - (compact ? 92 : 106);
+        const actionCopy = compact
+            ? `TAP · ${action.label}`
+            : `NEXT · ${action.label}`;
+        const labelBackdrop = this.scene.add.graphics()
+            .setPosition(labelX, labelY)
+            .setDepth(position.y + 7)
+            .setData('villageNextActionPlacard', true);
+        labelBackdrop.fillStyle(0x061310, 0.9);
+        labelBackdrop.fillRoundedRect(
+            compact ? -72 : -86,
+            -14,
+            compact ? 144 : 172,
+            28,
+            6
+        );
+        labelBackdrop.lineStyle(1, color, 0.68);
+        labelBackdrop.strokeRoundedRect(
+            compact ? -71 : -85,
+            -13,
+            compact ? 142 : 170,
+            26,
+            5
+        );
         const label = this.scene.add.text(
-            position.x,
-            position.y - (compact ? 92 : 106),
-            `NEXT · ${action.label}`,
+            labelX,
+            labelY,
+            actionCopy,
             {
-                fontSize: compact ? '8px' : '9px',
+                fontSize: compact ? '9px' : '10px',
                 fontFamily: 'Arial, sans-serif',
                 fontStyle: 'bold',
                 color: action.type === 'assign' ? '#8FE3CF' : '#F2C14E',
                 align: 'center',
                 stroke: '#07100F',
-                strokeThickness: 5,
-                wordWrap: { width: compact ? 130 : 168 }
+                strokeThickness: 4,
+                wordWrap: { width: compact ? 130 : 158 }
             }
         ).setOrigin(0.5)
             .setDepth(position.y + 8)
             .setInteractive({ useHandCursor: true })
             .setData('villageNextAction', action.type)
             .setData('plotId', action.plotId)
-            .setData('definitionId', action.definitionId || null);
+            .setData('definitionId', action.definitionId || null)
+            .setData('villageActionCopy', actionCopy);
         label.on('pointerdown', () => this.activateVillageHeart(landmark, action.plotId));
 
+        const hitZone = this.scene.add.zone(
+            labelX,
+            labelY,
+            compact ? 156 : 184,
+            52
+        )
+            .setDepth(position.y + 9)
+            .setInteractive({ useHandCursor: true })
+            .setData('villageNextActionHitZone', true)
+            .setData('touchTargetWidth', compact ? 156 : 184)
+            .setData('touchTargetHeight', 52)
+            .setData('villageNextAction', action.type)
+            .setData('plotId', action.plotId)
+            .setData('definitionId', action.definitionId || null);
+        hitZone.on('pointerdown', () => this.activateVillageHeart(landmark, action.plotId));
+
         landmark.nextActionElement = label;
-        landmark.buildingElements.push(ring, label);
-        landmark.buildingTweens.push(this.scene.tweens.add({
-            targets: [ring, label],
+        landmark.nextActionHitZone = hitZone;
+        landmark.nextActionPlacard = labelBackdrop;
+        landmark.nextActionRing = ring;
+        landmark.guidanceRoute = guidanceRoute;
+        landmark.buildingElements.push(
+            ...(guidanceRoute ? [guidanceRoute] : []),
+            ring,
+            labelBackdrop,
+            label,
+            hitZone
+        );
+        landmark.nextActionTween = this.scene.tweens.add({
+            targets: [ring, label, ...(guidanceRoute ? [guidanceRoute] : [])],
             alpha: { from: 0.68, to: 1 },
             duration: 1050,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
-        }));
+        });
+        landmark.buildingTweens.push(landmark.nextActionTween);
         return true;
     }
 
@@ -3158,7 +3324,7 @@ class WorldBuilder {
 
         const copy = this.scene.add.container(
             landmark.zone.x,
-            landmark.zone.y - (compact ? 245 : 215)
+            landmark.zone.y - (compact ? 375 : 345)
         ).setDepth(landmark.zone.y + 15).setAlpha(0);
         const copyWidth = compact ? 278 : 410;
         const copyHeight = compact ? 102 : 108;
@@ -3205,6 +3371,7 @@ class WorldBuilder {
         copy.setData('resonanceStyle', 'current_ribbon');
         copy.setData('resonanceAnchor', 'village_heart');
         copy.setData('resonanceBounds', { width: copyWidth, height: copyHeight });
+        copy.setData('resonanceVerticalOffset', compact ? 375 : 345);
 
         const revealTween = this.scene.tweens.add({
             targets: [pulse, copy],
@@ -3452,9 +3619,10 @@ class WorldBuilder {
         const heartX = landmark.zone.x;
         const heartY = landmark.zone.y - 12;
         const paths = this.scene.add.graphics()
-            .setDepth(landmark.zone.y - 3)
-            .setAlpha(0);
-        paths.lineStyle(4, color, 0.72);
+            .setDepth(-15)
+            .setAlpha(0)
+            .setData('villageDecisionGroundResponse', true);
+        paths.lineStyle(3, color, 0.58);
         result.decision.requiredBuildingIds.forEach(buildingId => {
             const building = result.snapshot?.buildings?.find(entry => (
                 entry.definitionId === buildingId
@@ -3480,7 +3648,7 @@ class WorldBuilder {
 
         const copy = this.scene.add.container(
             heartX,
-            heartY - (compact ? 205 : 190)
+            heartY - (compact ? 360 : 330)
         ).setDepth(landmark.zone.y + 16).setAlpha(0);
         const copyWidth = compact ? 290 : 420;
         const copyHeight = compact ? 98 : 104;
@@ -3522,6 +3690,7 @@ class WorldBuilder {
         copy.setData('resonanceStyle', 'current_ribbon');
         copy.setData('resonanceAnchor', 'village_heart');
         copy.setData('resonanceBounds', { width: copyWidth, height: copyHeight });
+        copy.setData('resonanceVerticalOffset', compact ? 360 : 330);
 
         const revealTween = this.scene.tweens.add({
             targets: [paths, pulse, copy],
