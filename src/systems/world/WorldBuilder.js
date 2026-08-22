@@ -1040,7 +1040,11 @@ class WorldBuilder {
             landmark.buildingElements.push(container);
             if (worker) {
                 landmark.workerElements.push(worker.container);
-                landmark.buildingTweens.push(worker.moveTween, worker.breatheTween);
+                landmark.buildingTweens.push(
+                    worker.moveTween,
+                    worker.breatheTween,
+                    worker.cueTween
+                );
             }
             if (habitatLife) {
                 landmark.residentElements.push(habitatLife.container);
@@ -1885,11 +1889,17 @@ class WorldBuilder {
         );
         cargo.setPosition(13, 5);
         const checkInCue = this.scene.add.graphics();
-        checkInCue.fillStyle(0xF4F4F4, 0.94);
-        checkInCue.fillRoundedRect(-11, -35, 22, 13, 6);
-        checkInCue.fillTriangle(-4, -23, 1, -18, 3, -24);
-        checkInCue.fillStyle(0x07100F, 0.9);
-        [-5, 0, 5].forEach(dotX => checkInCue.fillCircle(dotX, -29, 1.3));
+        checkInCue.fillStyle(0x061513, 0.9);
+        checkInCue.fillCircle(0, -29, 10);
+        checkInCue.lineStyle(2, 0x71E6B1, 0.86);
+        checkInCue.strokeCircle(0, -29, 9);
+        checkInCue.lineStyle(1, 0xF4F4F4, 0.64);
+        checkInCue.strokeCircle(0, -29, 5.5);
+        checkInCue.fillStyle(0xF4F4F4, 0.95);
+        [-4, 0, 4].forEach(dotX => checkInCue.fillCircle(dotX, -29, 1.25));
+        checkInCue.fillStyle(0xE85D5D, 0.9);
+        checkInCue.fillTriangle(7, -37, 12, -34, 8, -31);
+        checkInCue.setData('villageResonanceCue', true);
         worker.add([shadow, figure, initial, cargo, checkInCue]);
         worker.setScale(scale);
         worker.setData('villageWorker', true);
@@ -1899,6 +1909,7 @@ class WorldBuilder {
         worker.setData('plotId', building.plotId);
         worker.setData('routineCue', building.definition.workerRoutine?.cue || 'HELPING');
         worker.setData('checkInCue', true);
+        worker.setData('checkInCueStyle', 'current_resonance');
 
         const moveTween = this.scene.tweens.add({
             targets: worker,
@@ -1917,7 +1928,17 @@ class WorldBuilder {
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
-        return { container: worker, moveTween, breatheTween };
+        const cueTween = this.scene.tweens.add({
+            targets: checkInCue,
+            alpha: { from: 0.64, to: 1 },
+            scaleX: { from: 0.92, to: 1.06 },
+            scaleY: { from: 0.92, to: 1.06 },
+            duration: 980 + (index * 110),
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        return { container: worker, moveTween, breatheTween, cueTween };
     }
 
     createVillageWorkerCargo(resource) {
@@ -1942,6 +1963,48 @@ class WorldBuilder {
             cargo.fillTriangle(0, -8, 6, 1, 0, 8);
         }
         return cargo;
+    }
+
+    createVillageResonanceBackdrop({
+        width,
+        height,
+        accent = 0x71E6B1,
+        kind = 'current_message',
+        y = 0
+    } = {}) {
+        const backdrop = this.scene.add.graphics().setPosition(0, y);
+        const left = -width / 2;
+        const top = -height / 2;
+        backdrop.fillStyle(0x061513, 0.9);
+        backdrop.fillRoundedRect(left, top, width, height, 8);
+        backdrop.lineStyle(1, 0xF4F4F4, 0.18);
+        backdrop.strokeRoundedRect(left + 1, top + 1, width - 2, height - 2, 7);
+        backdrop.lineStyle(2, accent, 0.82);
+        backdrop.beginPath();
+        backdrop.moveTo(left + 12, top + 1);
+        backdrop.lineTo(left + Math.min(88, width * 0.28), top + 1);
+        backdrop.strokePath();
+        backdrop.lineStyle(1, accent, 0.46);
+        backdrop.beginPath();
+        backdrop.moveTo(left + 12, top + height - 1);
+        backdrop.lineTo(left + Math.min(52, width * 0.2), top + height - 1);
+        backdrop.strokePath();
+        backdrop.fillStyle(0xF4F4F4, 0.86);
+        [0, 7, 14].forEach(offset => backdrop.fillCircle(left + 15 + offset, top + 10, 1.3));
+        backdrop.fillStyle(0xE85D5D, 0.86);
+        backdrop.fillTriangle(
+            left + width - 20,
+            top + 1,
+            left + width - 10,
+            top + 1,
+            left + width - 10,
+            top + 7
+        );
+        backdrop.fillStyle(accent, 0.72);
+        backdrop.fillTriangle(-5, top + height, 5, top + height, 0, top + height + 7);
+        backdrop.setData('villageResonanceBackdrop', true);
+        backdrop.setData('resonanceKind', kind);
+        return backdrop;
     }
 
     playVillageProductionMoment(landmark, snapshot, gains = []) {
@@ -2037,10 +2100,18 @@ class WorldBuilder {
         ).setDepth(landmark.zone.y + 12);
         signal.setBlendMode?.(Phaser.BlendModes.ADD);
 
+        const copyWidth = compact ? 270 : 360;
+        const copyHeight = compact ? 66 : 70;
         const copy = this.scene.add.container(
-            meetingPosition.x,
-            meetingPosition.y - (compact ? 106 : 122)
+            landmark.zone.x + (compact ? 0 : 230),
+            landmark.zone.y - (compact ? 280 : 245)
         ).setDepth(landmark.zone.y + 14).setAlpha(0);
+        const backdrop = this.createVillageResonanceBackdrop({
+            width: copyWidth,
+            height: copyHeight,
+            accent: 0x71E6B1,
+            kind: 'community_moment'
+        });
         const names = this.scene.add.text(
             0,
             -21,
@@ -2070,10 +2141,13 @@ class WorldBuilder {
             stroke: '#07100F',
             strokeThickness: 4
         }).setOrigin(0.5);
-        copy.add([names, title, value]);
+        copy.add([backdrop, names, title, value]);
         copy.setData('villageCommunityMoment', moment.id);
         copy.setData('participantNames', moment.participantNames);
         copy.setData('sharedValue', moment.sharedValue);
+        copy.setData('resonanceStyle', 'current_ribbon');
+        copy.setData('resonanceAnchor', 'quiet_space');
+        copy.setData('resonanceBounds', { width: copyWidth, height: copyHeight });
 
         const signalTween = this.scene.tweens.add({
             targets: signal,
@@ -2132,6 +2206,14 @@ class WorldBuilder {
             landmark.zone.x,
             landmark.zone.y - (compact ? 245 : 215)
         ).setDepth(landmark.zone.y + 15).setAlpha(0);
+        const copyWidth = compact ? 278 : 410;
+        const copyHeight = compact ? 102 : 108;
+        const backdrop = this.createVillageResonanceBackdrop({
+            width: copyWidth,
+            height: copyHeight,
+            accent: color,
+            kind: 'heart_memory'
+        });
         const speaker = this.scene.add.text(
             0,
             -24,
@@ -2162,10 +2244,13 @@ class WorldBuilder {
             stroke: '#07100F',
             strokeThickness: 4
         }).setOrigin(0.5);
-        copy.add([speaker, line, value]);
+        copy.add([backdrop, speaker, line, value]);
         copy.setData('villageHeartFollowUp', memory.decisionId);
         copy.setData('speakerName', memory.speakerName);
         copy.setData('optionId', memory.optionId);
+        copy.setData('resonanceStyle', 'current_ribbon');
+        copy.setData('resonanceAnchor', 'village_heart');
+        copy.setData('resonanceBounds', { width: copyWidth, height: copyHeight });
 
         const revealTween = this.scene.tweens.add({
             targets: [pulse, copy],
@@ -2224,10 +2309,16 @@ class WorldBuilder {
         const workerX = position.x + (worker?.x || 0);
         const workerY = position.y + (worker?.y || 0);
         const copyWidth = compact ? 250 : 380;
+        const ribbonWidth = copyWidth + (compact ? 16 : 22);
+        const cameraView = this.scene.cameras?.main?.worldView;
+        const viewportLeft = cameraView?.x || 0;
+        const viewportRight = viewportLeft + (
+            cameraView?.width || this.scene.scale.width
+        );
         const copyX = Phaser.Math.Clamp(
             workerX,
-            copyWidth / 2 + 8,
-            this.scene.scale.width - copyWidth / 2 - 8
+            viewportLeft + ribbonWidth / 2 + 8,
+            viewportRight - ribbonWidth / 2 - 8
         );
         const copyY = Math.max(
             compact ? 92 : 82,
@@ -2256,6 +2347,14 @@ class WorldBuilder {
         const copy = this.scene.add.container(copyX, copyY)
             .setDepth(landmark.zone.y + 16)
             .setAlpha(0);
+        const copyHeight = checkIn.memory ? (compact ? 136 : 140) : (compact ? 116 : 120);
+        const backdrop = this.createVillageResonanceBackdrop({
+            width: ribbonWidth,
+            height: copyHeight,
+            accent: 0x71E6B1,
+            kind: 'worker_check_in',
+            y: checkIn.memory ? 8 : 1
+        });
         const identity = this.scene.add.text(
             0,
             -38,
@@ -2316,13 +2415,19 @@ class WorldBuilder {
                 }
             ).setOrigin(0.5)
             : null;
-        copy.add([identity, line, routine, impact, ...(memory ? [memory] : [])]);
+        copy.add([backdrop, identity, line, routine, impact, ...(memory ? [memory] : [])]);
         copy.setData('villageWorkerCheckIn', checkIn.creatureId);
         copy.setData('helperName', checkIn.name);
         copy.setData('buildingId', checkIn.definitionId);
         copy.setData('routineCue', checkIn.routineCue);
         copy.setData('impact', checkIn.impact);
         copy.setData('memoryDecisionId', checkIn.memory?.decisionId || null);
+        copy.setData('resonanceStyle', 'current_ribbon');
+        copy.setData('resonanceAnchor', 'resident_tether');
+        copy.setData('resonanceBounds', {
+            width: ribbonWidth,
+            height: copyHeight
+        });
 
         const revealTween = this.scene.tweens.add({
             targets: [path, pulse, copy],
@@ -2411,6 +2516,14 @@ class WorldBuilder {
             heartX,
             heartY - (compact ? 205 : 190)
         ).setDepth(landmark.zone.y + 16).setAlpha(0);
+        const copyWidth = compact ? 290 : 420;
+        const copyHeight = compact ? 98 : 104;
+        const backdrop = this.createVillageResonanceBackdrop({
+            width: copyWidth,
+            height: copyHeight,
+            accent: color,
+            kind: 'heart_decision'
+        });
         const kicker = this.scene.add.text(0, -25, 'THE VILLAGE HEART REMEMBERS', {
             fontSize: compact ? '8px' : '9px',
             fontFamily: 'Arial, sans-serif',
@@ -2436,10 +2549,13 @@ class WorldBuilder {
             strokeThickness: 4,
             wordWrap: { width: compact ? 230 : 330 }
         }).setOrigin(0.5);
-        copy.add([kicker, title, consequence]);
+        copy.add([backdrop, kicker, title, consequence]);
         copy.setData('villageDecisionMoment', result.decision.id);
         copy.setData('optionId', result.option.id);
         copy.setData('value', result.option.value);
+        copy.setData('resonanceStyle', 'current_ribbon');
+        copy.setData('resonanceAnchor', 'village_heart');
+        copy.setData('resonanceBounds', { width: copyWidth, height: copyHeight });
 
         const revealTween = this.scene.tweens.add({
             targets: [paths, pulse, copy],

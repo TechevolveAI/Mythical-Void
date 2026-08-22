@@ -11013,7 +11013,12 @@ async function smokeVillageUi(session, exceptions) {
                 value: document.querySelector('.village-community-value')?.textContent || '',
                 momentStarted: communityMomentStarted,
                 worldElementCount: landmark?.communityMomentElements?.length || 0,
-                worldParticipants: landmark?.activeCommunityMoment?.getData('participantNames') || []
+                worldParticipants: landmark?.activeCommunityMoment?.getData('participantNames') || [],
+                resonanceStyle: landmark?.activeCommunityMoment?.getData('resonanceStyle'),
+                resonanceAnchor: landmark?.activeCommunityMoment?.getData('resonanceAnchor'),
+                resonanceBackdrop: landmark?.activeCommunityMoment?.list?.some(
+                    child => child?.getData?.('villageResonanceBackdrop') === true
+                ) === true
             },
             decision: {
                 panelPresent: Boolean(decisionPanel),
@@ -11042,6 +11047,10 @@ async function smokeVillageUi(session, exceptions) {
                 workerNames: workers.map(worker => worker.getData('helperName')),
                 workerRoutines: workers.map(worker => worker.getData('routineCue')),
                 workerCheckInCues: workers.map(worker => worker.getData('checkInCue')),
+                workerCheckInCueStyles: workers.map(worker => worker.getData('checkInCueStyle')),
+                workerResonanceCues: workers.map(worker => worker.list?.some(
+                    child => child?.getData?.('villageResonanceCue') === true
+                ) === true),
                 plotPresentations: (landmark?.plotPresentations || []).map(presentation => ({
                     plotId: presentation.plotId,
                     plotState: presentation.plotState,
@@ -11089,6 +11098,9 @@ async function smokeVillageUi(session, exceptions) {
         !layout.community.momentStarted ||
         layout.community.worldElementCount !== 3 ||
         layout.community.worldParticipants.length !== 2 ||
+        layout.community.resonanceStyle !== 'current_ribbon' ||
+        layout.community.resonanceAnchor !== 'quiet_space' ||
+        !layout.community.resonanceBackdrop ||
         !layout.decision.panelPresent ||
         !layout.decision.active ||
         !layout.decision.title ||
@@ -11121,6 +11133,10 @@ async function smokeVillageUi(session, exceptions) {
         layout.worldPresentation.workerNames.some(name => !name) ||
         layout.worldPresentation.workerRoutines.some(cue => !cue) ||
         layout.worldPresentation.workerCheckInCues.some(cue => cue !== true) ||
+        layout.worldPresentation.workerCheckInCueStyles.some(
+            style => style !== 'current_resonance'
+        ) ||
+        layout.worldPresentation.workerResonanceCues.some(cue => cue !== true) ||
         layout.worldPresentation.plotPresentations.length !== 5 ||
         layout.worldPresentation.plotPresentations.some(presentation => (
             !presentation.label ||
@@ -11212,13 +11228,19 @@ async function smokeVillageUi(session, exceptions) {
             y: Math.round(point.y),
             creatureId: worker.getData('creatureId'),
             helperName: worker.getData('helperName'),
-            checkInCue: worker.getData('checkInCue')
+            checkInCue: worker.getData('checkInCue'),
+            checkInCueStyle: worker.getData('checkInCueStyle'),
+            resonanceCue: worker.list?.some(
+                child => child?.getData?.('villageResonanceCue') === true
+            ) === true
         };
     })()`);
     if (
         !workerRoute ||
         workerRoute.helperName !== 'Nova' ||
-        workerRoute.checkInCue !== true
+        workerRoute.checkInCue !== true ||
+        workerRoute.checkInCueStyle !== 'current_resonance' ||
+        !workerRoute.resonanceCue
     ) {
         throw new Error(`Village worker route was unavailable: ${JSON.stringify(workerRoute)}`);
     }
@@ -11234,6 +11256,14 @@ async function smokeVillageUi(session, exceptions) {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const landmark = scene?.villageHeartLandmark;
         const checkIn = landmark?.activeWorkerCheckIn;
+        const camera = scene?.cameras?.main;
+        const worldBounds = checkIn?.getBounds?.();
+        const screenBounds = worldBounds && camera ? {
+            left: (worldBounds.left - camera.worldView.x) * camera.zoom + camera.x,
+            right: (worldBounds.right - camera.worldView.x) * camera.zoom + camera.x,
+            top: (worldBounds.top - camera.worldView.y) * camera.zoom + camera.y,
+            bottom: (worldBounds.bottom - camera.worldView.y) * camera.zoom + camera.y
+        } : null;
         return {
             elementCount: landmark?.workerCheckInElements?.length || 0,
             helperName: checkIn?.getData('helperName'),
@@ -11241,6 +11271,12 @@ async function smokeVillageUi(session, exceptions) {
             routineCue: checkIn?.getData('routineCue'),
             impact: checkIn?.getData('impact'),
             memoryDecisionId: checkIn?.getData('memoryDecisionId'),
+            resonanceStyle: checkIn?.getData('resonanceStyle'),
+            resonanceAnchor: checkIn?.getData('resonanceAnchor'),
+            resonanceBackdrop: checkIn?.list?.some(
+                child => child?.getData?.('villageResonanceBackdrop') === true
+            ) === true,
+            screenBounds,
             plannerOpen: Boolean(document.querySelector('.village-command-modal'))
         };
     })()`);
@@ -11251,6 +11287,14 @@ async function smokeVillageUi(session, exceptions) {
         workerCheckIn.routineCue !== 'MAPS SAFE FOOD PATHS' ||
         workerCheckIn.impact !== 'FEEDING · +5 HAPPINESS' ||
         workerCheckIn.memoryDecisionId !== null ||
+        workerCheckIn.resonanceStyle !== 'current_ribbon' ||
+        workerCheckIn.resonanceAnchor !== 'resident_tether' ||
+        !workerCheckIn.resonanceBackdrop ||
+        !workerCheckIn.screenBounds ||
+        workerCheckIn.screenBounds.left < 7 ||
+        workerCheckIn.screenBounds.right > SMOKE_VIEWPORT_WIDTH - 7 ||
+        workerCheckIn.screenBounds.top < 7 ||
+        workerCheckIn.screenBounds.bottom > SMOKE_VIEWPORT_HEIGHT - 7 ||
         workerCheckIn.plannerOpen
     ) {
         throw new Error(`Village worker check-in failed: ${JSON.stringify(workerCheckIn)}`);
@@ -11402,14 +11446,22 @@ async function smokeVillageUi(session, exceptions) {
             elementCount: landmark?.decisionMomentElements?.length || 0,
             decisionId: landmark?.activeDecisionMoment?.getData('villageDecisionMoment'),
             optionId: landmark?.activeDecisionMoment?.getData('optionId'),
-            value: landmark?.activeDecisionMoment?.getData('value')
+            value: landmark?.activeDecisionMoment?.getData('value'),
+            resonanceStyle: landmark?.activeDecisionMoment?.getData('resonanceStyle'),
+            resonanceAnchor: landmark?.activeDecisionMoment?.getData('resonanceAnchor'),
+            resonanceBackdrop: landmark?.activeDecisionMoment?.list?.some(
+                child => child?.getData?.('villageResonanceBackdrop') === true
+            ) === true
         };
     })()`);
     if (
         decisionWorld.elementCount !== 3 ||
         decisionWorld.decisionId !== 'storm_path' ||
         decisionWorld.optionId !== 'current_first' ||
-        decisionWorld.value !== 'care'
+        decisionWorld.value !== 'care' ||
+        decisionWorld.resonanceStyle !== 'current_ribbon' ||
+        decisionWorld.resonanceAnchor !== 'village_heart' ||
+        !decisionWorld.resonanceBackdrop
     ) {
         throw new Error(`Village Heart world response failed: ${JSON.stringify(decisionWorld)}`);
     }
@@ -11624,6 +11676,11 @@ async function smokeVillageUi(session, exceptions) {
             decisionId: followUp?.getData('villageHeartFollowUp'),
             optionId: followUp?.getData('optionId'),
             speakerName: followUp?.getData('speakerName'),
+            resonanceStyle: followUp?.getData('resonanceStyle'),
+            resonanceAnchor: followUp?.getData('resonanceAnchor'),
+            resonanceBackdrop: followUp?.list?.some(
+                child => child?.getData?.('villageResonanceBackdrop') === true
+            ) === true,
             markerCount: markers.length,
             markerActive: markers.every(marker => marker.active === true),
             statusLabel: landmark?.statusLabel?.text || ''
@@ -11633,6 +11690,9 @@ async function smokeVillageUi(session, exceptions) {
         heartMemory.decisionId !== 'storm_path' ||
         heartMemory.optionId !== 'current_first' ||
         heartMemory.speakerName !== 'Ember' ||
+        heartMemory.resonanceStyle !== 'current_ribbon' ||
+        heartMemory.resonanceAnchor !== 'village_heart' ||
+        !heartMemory.resonanceBackdrop ||
         heartMemory.markerCount !== 1 ||
         !heartMemory.markerActive
     ) {

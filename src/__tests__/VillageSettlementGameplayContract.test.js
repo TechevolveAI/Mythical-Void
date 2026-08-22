@@ -263,6 +263,7 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('playVillageBuildingMoment(');
         expect(world).toContain('createVillageWorker(');
         expect(world).toContain('createVillageWorkerCargo(');
+        expect(world).toContain('createVillageResonanceBackdrop(');
         expect(world).toContain('createVillageHabitatLife(');
         expect(world).toContain('playVillageProductionMoment(');
         expect(world).toContain('playVillageCommunityMoment(');
@@ -282,6 +283,10 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("container.setData('villageHabitatLife', true)");
         expect(world).toContain("worker.setData('villageWorker', true)");
         expect(world).toContain("worker.setData('checkInCue', true)");
+        expect(world).toContain("worker.setData('checkInCueStyle', 'current_resonance')");
+        expect(world).toContain("setData('villageResonanceCue', true)");
+        expect(world).toContain("setData('villageResonanceBackdrop', true)");
+        expect(world).toContain("setData('resonanceStyle', 'current_ribbon')");
         expect(world).toContain("copy.setData('villageWorkerCheckIn'");
         expect(scene).toContain('maybePlayVillageCommunityMoment(snapshot');
         expect(scene).toContain('getVillageCommunityMoment(snapshot');
