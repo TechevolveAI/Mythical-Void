@@ -229,6 +229,10 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('playVillageDecisionMoment(');
         expect(world).toContain('createVillageHeartMemories(');
         expect(world).toContain("setData('villageHeartMemory'");
+        expect(world).toContain('createVillageValueGrowth(');
+        expect(world).toContain("setData('villageValueGrowth'");
+        expect(world).toContain('createVillageNextActionBeacon(');
+        expect(world).toContain("setData('villageNextAction'");
         expect(world).toContain('playVillageHeartMemory(');
         expect(world).toContain("setData('villageHeartFollowUp'");
         expect(world).toContain("copy.setData('villageDecisionMoment', result.decision.id)");
@@ -241,6 +245,9 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain('maybePlayVillageHeartMemory(snapshot)');
         expect(village).toContain('participantCreatureIds: active.participants.map(');
         expect(village).toContain('getVillageHeartMemory(snapshot');
+        expect(village).toContain('getVillageWorldState(snapshot)');
+        expect(village).toContain("type: 'supplies'");
+        expect(village).toContain("type: 'assign'");
         expect(village).toContain('residentLine:');
         expect(world).toContain('getVillageWorldGuidance(snapshot)');
         expect(world).toContain('definition.worldEffectLabel');

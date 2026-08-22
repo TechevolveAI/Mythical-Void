@@ -25,6 +25,7 @@ function loadVillageSettlement() {
                 normalizeVillageState,
                 getVillageGameplayEffects,
                 getVillageHeartValues,
+                getVillageWorldState,
                 getVillageWorldGuidance,
                 getVillageUnlock,
                 markVillageGuidanceSeen,
@@ -156,6 +157,64 @@ describe('Village settlement phase one', () => {
         expect(result.state.guidanceSeen).toBe(true);
         expect(result.resources).toEqual({ wood: 72, stone: 52, food: 30 });
         expect(gameState.save).toHaveBeenCalledTimes(2);
+    });
+
+    test('derives one world-native next action and visible growth tier', () => {
+        const gameState = createGameState();
+        const founded = village.initializeVillageSettlement(gameState, { now: 1000 });
+        expect(founded.worldState).toEqual(expect.objectContaining({
+            restored: 0,
+            growthTier: 0,
+            growthLabel: 'AWAKENED ROOT',
+            nextAction: expect.objectContaining({
+                type: 'build',
+                plotId: 'root_01',
+                definitionId: 'forager_hut',
+                label: 'BUILD FORAGE'
+            })
+        }));
+
+        const placed = village.placeVillageBuilding(gameState, {
+            definitionId: 'forager_hut',
+            plotId: 'root_01',
+            now: 2000
+        });
+        expect(placed.snapshot.worldState.nextAction).toEqual(
+            expect.objectContaining({
+                type: 'construction',
+                plotId: 'root_01'
+            })
+        );
+
+        const complete = village.reconcileVillageSettlement(gameState, {
+            now: 2000 + 8000
+        });
+        expect(complete.worldState).toEqual(expect.objectContaining({
+            restored: 1,
+            growthTier: 1,
+            growthLabel: 'FIRST ROOT',
+            nextAction: expect.objectContaining({
+                type: 'assign',
+                plotId: 'root_01',
+                definitionId: 'forager_hut'
+            })
+        }));
+
+        const noSupplies = createGameState({
+            village: {
+                starterSuppliesClaimed: true,
+                resources: { wood: 0, stone: 0, food: 0 }
+            }
+        });
+        const waiting = village.getVillageSnapshot(noSupplies);
+        expect(waiting.worldState.nextAction).toEqual(expect.objectContaining({
+            type: 'supplies',
+            definitionId: 'forager_hut',
+            label: 'GATHER 18 WOOD'
+        }));
+        expect(village.getVillageWorldGuidance(waiting)).toBe(
+            '0/5 RESTORED · GATHER 18 WOOD'
+        );
     });
 
     test('spends resources and creates one deterministic construction per plot', () => {
@@ -320,7 +379,7 @@ describe('Village settlement phase one', () => {
         );
         snapshot.buildings[0].status = 'complete';
         expect(village.getVillageWorldGuidance(snapshot)).toBe(
-            '1/5 RESTORED · INVITE A HELPER'
+            '1/5 RESTORED · INVITE HELP AT FORAGE'
         );
         snapshot.buildings[0].creature = { id: 'nova' };
         snapshot.definitions = [{

@@ -10495,6 +10495,11 @@ async function smokeVillageUi(session, exceptions) {
                 plotHitZones,
                 districtTerrainActive: landmark?.districtTerrain?.active === true,
                 currentPathsActive: landmark?.currentPaths?.active === true,
+                growthTier: landmark?.snapshot?.worldState?.growthTier,
+                growthLabel: landmark?.snapshot?.worldState?.growthLabel,
+                nextActionType: landmark?.snapshot?.worldState?.nextAction?.type,
+                nextActionTarget: landmark?.nextActionElement?.getData('villageNextAction'),
+                valueGrowthCount: landmark?.valueGrowthElements?.length || 0,
                 actionLabel: landmark?.actionLabel?.text || '',
                 statusLabel: landmark?.statusLabel?.text || '',
                 animatedElements: landmark?.buildingTweens?.length || 0,
@@ -10555,7 +10560,12 @@ async function smokeVillageUi(session, exceptions) {
         )) ||
         !layout.worldPresentation.districtTerrainActive ||
         !layout.worldPresentation.currentPathsActive ||
-        layout.worldPresentation.actionLabel !== 'OPEN VILLAGE PLAN' ||
+        layout.worldPresentation.growthTier !== 2 ||
+        layout.worldPresentation.growthLabel !== 'CONNECTED GLADE' ||
+        layout.worldPresentation.nextActionType !== 'decision' ||
+        layout.worldPresentation.nextActionTarget !== 'decision' ||
+        layout.worldPresentation.valueGrowthCount !== 0 ||
+        !layout.worldPresentation.actionLabel.includes('HEART CHOICE') ||
         !layout.worldPresentation.statusLabel.includes('RESTORED') ||
         layout.worldPresentation.animatedElements < 8 ||
         layout.worldPresentation.animatedElements > 20 ||
@@ -10573,6 +10583,37 @@ async function smokeVillageUi(session, exceptions) {
     ) {
         throw new Error(`Village mobile layout overflowed: ${JSON.stringify(layout)}`);
     }
+
+    await evaluate(session, `document.querySelector('.village-command-close')?.click()`);
+    await waitFor(
+        () => evaluate(session, `!document.querySelector('.village-command-modal')`),
+        { message: 'Village Heart closed before next-action route check' }
+    );
+    const actionRoute = await evaluate(session, `(() => {
+        const target = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark?.nextActionElement;
+        if (!target?.getBounds) return null;
+        const bounds = target.getBounds();
+        return {
+            x: Math.round(bounds.centerX),
+            y: Math.round(bounds.centerY),
+            inputEnabled: target.input?.enabled === true,
+            action: target.getData('villageNextAction'),
+            text: target.text || ''
+        };
+    })()`);
+    if (
+        !actionRoute?.inputEnabled ||
+        actionRoute.action !== 'decision' ||
+        !actionRoute.text.includes('HEART CHOICE')
+    ) {
+        throw new Error(`Village world next-action beacon was not tappable: ${JSON.stringify(actionRoute)}`);
+    }
+    await touch(session, actionRoute.x, actionRoute.y);
+    await waitFor(
+        () => evaluate(session, `Boolean(document.querySelector('.village-command-modal.accepts-input'))`),
+        { message: 'Village Heart reopened from next-action beacon' }
+    );
 
     const decisionChoice = await evaluate(session, `(() => {
         const option = document.querySelector('.village-decision-option[data-value="care"]');
@@ -10606,6 +10647,11 @@ async function smokeVillageUi(session, exceptions) {
                 value: element.getData('value'),
                 speakerName: element.getData('speakerName')
             })) || [],
+        valueGrowth: window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark?.valueGrowthElements?.map(element => ({
+                value: element.getData('villageValueGrowth'),
+                index: element.getData('growthIndex')
+            })) || [],
         pendingWorldMoment: Boolean(
             window.mythicalGame.scene.getScene('GameScene')?.villageDecisionMomentPending
         )
@@ -10620,24 +10666,97 @@ async function smokeVillageUi(session, exceptions) {
         decisionRecap.persistentMemories[0].decisionId !== 'storm_path' ||
         decisionRecap.persistentMemories[0].optionId !== 'current_first' ||
         decisionRecap.persistentMemories[0].speakerName !== 'Ember' ||
+        decisionRecap.valueGrowth.length !== 1 ||
+        decisionRecap.valueGrowth[0].value !== 'care' ||
         !decisionRecap.pendingWorldMoment
     ) {
         throw new Error(`Village Heart decision recap failed: ${JSON.stringify(decisionRecap)}`);
     }
     await captureGameplayStill(session, 'village-heart-choice-recap-mobile.png');
 
-    const placed = await evaluate(session, `(() => {
-        const habitat = [...document.querySelectorAll('.village-building-card')]
-            .find(button => button.textContent.includes('SHARED HABITAT'));
-        if (!habitat || habitat.disabled) return false;
-        habitat.click();
-        const plot = [...document.querySelectorAll('.village-plot')]
-            .find(button => button.textContent.includes('SHELTER GROVE'));
-        if (!plot || plot.disabled) return false;
-        plot.click();
+    await evaluate(session, `document.querySelector('.village-command-close')?.click()`);
+    await waitFor(
+        () => evaluate(session, `!document.querySelector('.village-command-modal')`),
+        { message: 'Village world after Heart choice' }
+    );
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.activeDecisionMoment
+        )`),
+        { message: 'Village Heart world decision response' }
+    );
+    const decisionWorld = await evaluate(session, `(() => {
+        const landmark = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark;
+        return {
+            elementCount: landmark?.decisionMomentElements?.length || 0,
+            decisionId: landmark?.activeDecisionMoment?.getData('villageDecisionMoment'),
+            optionId: landmark?.activeDecisionMoment?.getData('optionId'),
+            value: landmark?.activeDecisionMoment?.getData('value')
+        };
+    })()`);
+    if (
+        decisionWorld.elementCount !== 3 ||
+        decisionWorld.decisionId !== 'storm_path' ||
+        decisionWorld.optionId !== 'current_first' ||
+        decisionWorld.value !== 'care'
+    ) {
+        throw new Error(`Village Heart world response failed: ${JSON.stringify(decisionWorld)}`);
+    }
+    await captureGameplayStill(session, 'village-sanctuary-district.png');
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.worldBuilder.clearVillageDecisionMoment(scene.villageHeartLandmark);
         return true;
     })()`);
-    if (!placed) throw new Error('Village habitat foundation was not actionable');
+
+    const buildRoute = await evaluate(session, `(() => {
+        const landmark = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark;
+        const target = landmark?.nextActionElement;
+        if (!target?.getBounds) return null;
+        const bounds = target.getBounds();
+        return {
+            x: Math.round(bounds.centerX),
+            y: Math.round(bounds.centerY),
+            inputEnabled: target.input?.enabled === true,
+            action: target.getData('villageNextAction'),
+            plotId: target.getData('plotId'),
+            definitionId: target.getData('definitionId'),
+            worldAction: landmark?.snapshot?.worldState?.nextAction?.type,
+            text: target.text || ''
+        };
+    })()`);
+    if (
+        !buildRoute?.inputEnabled ||
+        buildRoute.action !== 'build' ||
+        buildRoute.plotId !== 'root_04' ||
+        buildRoute.definitionId !== 'habitat' ||
+        buildRoute.worldAction !== 'build' ||
+        !buildRoute.text.includes('BUILD HABITAT')
+    ) {
+        throw new Error(`Village next build route failed: ${JSON.stringify(buildRoute)}`);
+    }
+    await captureGameplayStill(session, 'village-next-build-world-mobile.png');
+    await touch(session, buildRoute.x, buildRoute.y);
+    await waitFor(
+        () => evaluate(session, `Boolean(document.querySelector('.village-command-modal.accepts-input'))`),
+        { message: 'Village contextual builder from next foundation' }
+    );
+    const placed = await evaluate(session, `(() => {
+        const title = document.querySelector('.village-command-title')?.textContent || '';
+        const action = document.querySelector('.village-construct-action:not(:disabled)');
+        const actionText = action?.textContent || '';
+        if (title !== 'WHAT SHOULD GROW HERE?' || !actionText.includes('BUILD HABITAT')) {
+            return { clicked: false, title, actionText };
+        }
+        action.click();
+        return { clicked: true, title, actionText };
+    })()`);
+    if (!placed.clicked) {
+        throw new Error(`Village habitat foundation was not actionable: ${JSON.stringify(placed)}`);
+    }
     await waitFor(
         () => evaluate(
             session,
@@ -10682,32 +10801,6 @@ async function smokeVillageUi(session, exceptions) {
         () => evaluate(session, `!document.querySelector('.village-command-modal')`),
         { message: 'Village world district after closing builder' }
     );
-    await waitFor(
-        () => evaluate(session, `Boolean(
-            window.mythicalGame.scene.getScene('GameScene')
-                ?.villageHeartLandmark?.activeDecisionMoment
-        )`),
-        { message: 'Village Heart world decision response' }
-    );
-    const decisionWorld = await evaluate(session, `(() => {
-        const landmark = window.mythicalGame.scene.getScene('GameScene')
-            ?.villageHeartLandmark;
-        return {
-            elementCount: landmark?.decisionMomentElements?.length || 0,
-            decisionId: landmark?.activeDecisionMoment?.getData('villageDecisionMoment'),
-            optionId: landmark?.activeDecisionMoment?.getData('optionId'),
-            value: landmark?.activeDecisionMoment?.getData('value')
-        };
-    })()`);
-    if (
-        decisionWorld.elementCount !== 3 ||
-        decisionWorld.decisionId !== 'storm_path' ||
-        decisionWorld.optionId !== 'current_first' ||
-        decisionWorld.value !== 'care'
-    ) {
-        throw new Error(`Village Heart world response failed: ${JSON.stringify(decisionWorld)}`);
-    }
-    await captureGameplayStill(session, 'village-sanctuary-district.png');
     const followUpStarted = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         scene.worldBuilder.clearVillageDecisionMoment(scene.villageHeartLandmark);
@@ -10771,9 +10864,11 @@ async function smokeVillageUi(session, exceptions) {
 
     return {
         layout,
+        actionRoute,
         decisionChoice,
         decisionRecap,
         decisionWorld,
+        buildRoute,
         heartMemory,
         directWorldTap,
         interaction

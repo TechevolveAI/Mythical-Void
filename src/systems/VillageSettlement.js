@@ -295,15 +295,47 @@ const BUILDING_BY_ID = new Map(
 const STARTER_RESOURCES = Object.freeze({ wood: 72, stone: 52, food: 30 });
 const MAX_HISTORY = 64;
 
-export function getVillageWorldGuidance(snapshot) {
+export function getVillageWorldState(snapshot) {
     const restored = snapshot?.buildings?.filter(
         building => building.status === 'complete'
     ).length || 0;
+    const choices = snapshot?.heartDecision?.completed?.length || 0;
+    const values = snapshot?.heartDecision?.values || { care: 0, readiness: 0 };
+    const growthTier = restored >= VILLAGE_PLOTS.length
+        ? 4
+        : restored >= 4
+            ? 3
+            : restored >= 2
+                ? 2
+                : restored >= 1
+                    ? 1
+                    : 0;
+    const growthLabels = [
+        'AWAKENED ROOT',
+        'FIRST ROOT',
+        'CONNECTED GLADE',
+        'LIVING SETTLEMENT',
+        'SHARED SANCTUARY'
+    ];
     const constructing = snapshot?.buildings?.find(
         building => building.status === 'constructing'
     );
     if (constructing) {
-        return `${restored}/${VILLAGE_PLOTS.length} RESTORED · ${constructing.definition.shortLabel} GROWING`;
+        return {
+            restored,
+            choices,
+            values,
+            growthTier,
+            growthLabel: growthLabels[growthTier],
+            nextAction: {
+                type: 'construction',
+                plotId: constructing.plotId,
+                buildingId: constructing.id,
+                definitionId: constructing.definitionId,
+                label: `${constructing.definition.shortLabel} GROWING`,
+                detail: 'The Current is shaping this foundation.'
+            }
+        };
     }
     const unstaffed = snapshot?.buildings?.find(building => (
         building.status === 'complete' &&
@@ -311,24 +343,112 @@ export function getVillageWorldGuidance(snapshot) {
         !building.creature
     ));
     if (unstaffed) {
-        return `${restored}/${VILLAGE_PLOTS.length} RESTORED · INVITE A HELPER`;
+        return {
+            restored,
+            choices,
+            values,
+            growthTier,
+            growthLabel: growthLabels[growthTier],
+            nextAction: {
+                type: 'assign',
+                plotId: unstaffed.plotId,
+                buildingId: unstaffed.id,
+                definitionId: unstaffed.definitionId,
+                label: `INVITE HELP AT ${unstaffed.definition.shortLabel}`,
+                detail: 'Tap this structure and choose a companion.'
+            }
+        };
     }
     if (snapshot?.heartDecision?.active) {
-        return `${restored}/${VILLAGE_PLOTS.length} RESTORED · HEART CHOICE READY`;
+        return {
+            restored,
+            choices,
+            values,
+            growthTier,
+            growthLabel: growthLabels[growthTier],
+            nextAction: {
+                type: 'decision',
+                plotId: null,
+                buildingId: null,
+                definitionId: null,
+                label: 'HEART CHOICE READY',
+                detail: 'Tap the Village Heart to decide together.'
+            }
+        };
     }
     const ready = snapshot?.definitions?.find(
         definition => definition.placement.available
     );
     if (ready) {
-        return `${restored}/${VILLAGE_PLOTS.length} RESTORED · BUILD ${ready.shortLabel}`;
+        const openPlot = snapshot?.plots?.find(plot => plot.open) || null;
+        return {
+            restored,
+            choices,
+            values,
+            growthTier,
+            growthLabel: growthLabels[growthTier],
+            nextAction: {
+                type: 'build',
+                plotId: openPlot?.id || null,
+                buildingId: null,
+                definitionId: ready.id,
+                label: `BUILD ${ready.shortLabel}`,
+                detail: openPlot
+                    ? `Tap ${openPlot.label.toLowerCase()} to place it.`
+                    : 'Open the Village Heart to choose a foundation.'
+            }
+        };
     }
-    const values = snapshot?.heartDecision?.values;
-    if ((values?.care || 0) + (values?.readiness || 0) > 0) {
-        return `HEART · CARE ${values.care} · READY ${values.readiness}`;
+    const nextDefinition = snapshot?.definitions?.find(
+        definition => !definition.placement.alreadyBuilt
+    );
+    if (nextDefinition) {
+        const firstMissing = nextDefinition.placement.missingResources?.[0] || null;
+        return {
+            restored,
+            choices,
+            values,
+            growthTier,
+            growthLabel: growthLabels[growthTier],
+            nextAction: {
+                type: 'supplies',
+                plotId: null,
+                buildingId: null,
+                definitionId: nextDefinition.id,
+                label: firstMissing
+                    ? `GATHER ${firstMissing.required - firstMissing.current} ${firstMissing.resource.toUpperCase()}`
+                    : `PREPARE ${nextDefinition.shortLabel}`,
+                detail: firstMissing
+                    ? `${nextDefinition.shortLabel} needs more village supplies.`
+                    : 'Complete its required structures first.'
+            }
+        };
     }
-    return restored >= VILLAGE_PLOTS.length
-        ? 'SETTLEMENT ONLINE'
-        : `${restored}/${VILLAGE_PLOTS.length} PLACES RESTORED`;
+    return {
+        restored,
+        choices,
+        values,
+        growthTier,
+        growthLabel: growthLabels[growthTier],
+        nextAction: {
+            type: 'review',
+            plotId: null,
+            buildingId: null,
+            definitionId: null,
+            label: choices > 0
+                ? `CARE ${values.care} · READY ${values.readiness}`
+                : 'SETTLEMENT ONLINE',
+            detail: 'Review the village or meet its residents.'
+        }
+    };
+}
+
+export function getVillageWorldGuidance(snapshot) {
+    const worldState = snapshot?.worldState || getVillageWorldState(snapshot);
+    if (worldState.nextAction.type === 'review') {
+        return worldState.nextAction.label;
+    }
+    return `${worldState.restored}/${VILLAGE_PLOTS.length} RESTORED · ${worldState.nextAction.label}`;
 }
 
 function normalizeTimestamp(value) {
@@ -1129,23 +1249,24 @@ export function getVillageSnapshot(gameState, { stateOverride = null } = {}) {
     const home = getVillageHomeProfile(buildings, roster);
     const communityMoments = getVillageCommunityMoments({ buildings });
     const heartDecision = getVillageHeartDecisionState({ state, buildings });
-
-    return {
+    const plots = VILLAGE_PLOTS.map(plot => ({
+        ...plot,
+        building: occupiedPlots.get(plot.id) || null,
+        open: !occupiedPlots.has(plot.id)
+    }));
+    const definitions = VILLAGE_BUILDING_DEFINITIONS.map(definition => ({
+        ...definition,
+        placement: getPlacementStatus(definition, state, unlock)
+    }));
+    const snapshot = {
         state,
         unlock,
         resources: state.resources,
         lifetimeProduced: state.lifetimeProduced,
         buildings,
         roster,
-        plots: VILLAGE_PLOTS.map(plot => ({
-            ...plot,
-            building: occupiedPlots.get(plot.id) || null,
-            open: !occupiedPlots.has(plot.id)
-        })),
-        definitions: VILLAGE_BUILDING_DEFINITIONS.map(definition => ({
-            ...definition,
-            placement: getPlacementStatus(definition, state, unlock)
-        })),
+        plots,
+        definitions,
         phase: getVillagePhase(buildings),
         productionRates,
         home,
@@ -1160,6 +1281,10 @@ export function getVillageSnapshot(gameState, { stateOverride = null } = {}) {
             ),
             0
         )
+    };
+    return {
+        ...snapshot,
+        worldState: getVillageWorldState(snapshot)
     };
 }
 

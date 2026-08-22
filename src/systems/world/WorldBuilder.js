@@ -355,6 +355,8 @@ class WorldBuilder {
                 .setScale(1);
         });
         zone.on('pointerdown', () => this.activateVillageHeart(landmark));
+        actionLabel.setInteractive({ useHandCursor: true });
+        actionLabel.on('pointerdown', () => this.activateVillageHeart(landmark));
 
         const snapshot = snapshotOverride || (
             typeof window !== 'undefined' && window.GameState
@@ -381,6 +383,8 @@ class WorldBuilder {
         landmark.workerElements = [];
         landmark.residentElements = [];
         landmark.heartMemoryElements = [];
+        landmark.valueGrowthElements = [];
+        landmark.nextActionElement = null;
         landmark.plotWorldPositions = new Map();
         landmark.snapshot = snapshot;
 
@@ -411,6 +415,11 @@ class WorldBuilder {
                 { x: 474, y: 136 },
                 { x: 545, y: -4 }
             ];
+        const buildingByPlot = new Map(
+            snapshot?.buildings?.map(building => [building.plotId, building]) || []
+        );
+        const growthTier = snapshot?.worldState?.growthTier || 0;
+        const growthScale = 0.76 + growthTier * 0.06;
 
         districtTerrain.clear();
         currentPaths.clear();
@@ -430,21 +439,34 @@ class WorldBuilder {
         districtPatches.forEach(([patchX, patchY, width, height], index) => {
             districtTerrain.fillStyle(
                 index === 0 ? 0x12352F : index % 2 ? 0x245044 : 0x183E36,
-                unlocked ? (index === 0 ? 0.3 : 0.2) : 0.1
+                unlocked
+                    ? (index === 0 ? 0.2 + growthTier * 0.035 : 0.12 + growthTier * 0.025)
+                    : 0.1
             );
-            districtTerrain.fillEllipse(patchX, patchY, width, height);
+            districtTerrain.fillEllipse(
+                patchX,
+                patchY,
+                width * growthScale,
+                height * growthScale
+            );
         });
         const groundDetails = compactSettlement
             ? [[-154, 62], [142, 94], [-92, -154], [88, 156]]
             : [[-54, 64], [132, -130], [294, 128], [492, -72], [548, 74]];
-        groundDetails.forEach(([detailX, detailY], index) => {
+        groundDetails
+            .slice(0, Math.min(groundDetails.length, 2 + growthTier))
+            .forEach(([detailX, detailY], index) => {
             districtTerrain.fillStyle(index % 2 ? 0x8FE3CF : 0xF4F4F4, 0.16);
             districtTerrain.fillCircle(detailX, detailY, index % 2 ? 4 : 3);
             districtTerrain.fillStyle(0x3FAE62, 0.22);
             districtTerrain.fillEllipse(detailX + 7, detailY + 3, 14, 6);
-        });
+            });
 
         plotOffsets.forEach((offset, index) => {
+            const plot = VILLAGE_PLOTS[index];
+            const connectedBuilding = buildingByPlot.get(plot.id) || null;
+            const completePath = connectedBuilding?.status === 'complete';
+            const growingPath = connectedBuilding?.status === 'constructing';
             const elbowX = offset.x * (compactSettlement ? 0.42 : 0.5);
             const elbowY = offset.y * 0.32 + (index % 2 === 0 ? -12 : 12);
             const pathPoints = Array.from({ length: 17 }, (_, pointIndex) => {
@@ -467,8 +489,16 @@ class WorldBuilder {
                 currentPaths.strokePath();
             };
             strokeCurrentPath(16, 0x071411, 0.24);
-            strokeCurrentPath(5, unlocked ? 0x3FAE62 : 0x53616A, 0.24);
-            strokeCurrentPath(2, unlocked ? 0xB7F7DE : 0x657682, 0.42);
+            strokeCurrentPath(
+                completePath ? 6 : 4,
+                growingPath ? 0xF2C14E : completePath ? 0x3FAE62 : 0x53616A,
+                completePath ? 0.54 : growingPath ? 0.42 : unlocked ? 0.14 : 0.08
+            );
+            strokeCurrentPath(
+                completePath ? 2 : 1,
+                growingPath ? 0xF4F4F4 : completePath ? 0xB7F7DE : 0x657682,
+                completePath ? 0.72 : growingPath ? 0.62 : 0.2
+            );
         });
 
         glow.fillStyle(unlocked ? 0x71E6B1 : 0x53616A, unlocked ? 0.14 : 0.08);
@@ -524,9 +554,6 @@ class WorldBuilder {
             });
         }
 
-        const buildingByPlot = new Map(
-            snapshot?.buildings?.map(building => [building.plotId, building]) || []
-        );
         VILLAGE_PLOTS.forEach((plot, index) => {
             const offset = plotOffsets[index];
             const plotX = landmark.zone.x + offset.x;
@@ -615,6 +642,7 @@ class WorldBuilder {
                     definition?.production &&
                     !building.creature
                 );
+            const guidedPlot = snapshot?.worldState?.nextAction?.plotId === plot.id;
             const plotLabel = this.scene.add.text(
                 0,
                 worldArtwork ? 63 : 45,
@@ -646,7 +674,9 @@ class WorldBuilder {
                     stroke: '#050505',
                     strokeThickness: 3
                 }
-            ).setOrigin(0.5).setAlpha(stateVisibleAtRest ? 1 : 0);
+            ).setOrigin(0.5).setAlpha(
+                stateVisibleAtRest && !guidedPlot ? 1 : 0
+            );
             const activity = building?.status === 'complete'
                 ? this.createVillageBuildingActivity(building)
                 : null;
@@ -750,7 +780,7 @@ class WorldBuilder {
                 container.setScale(1);
                 stateLabel
                     .setText(buildingStateCopy)
-                    .setAlpha(stateVisibleAtRest ? 1 : 0);
+                    .setAlpha(stateVisibleAtRest && !guidedPlot ? 1 : 0);
             });
             plotHitZone.on('pointerdown', () => this.activateVillageHeart(landmark, plot.id));
             landmark.plotHitZones.push(plotHitZone);
@@ -769,6 +799,138 @@ class WorldBuilder {
         this.createVillageHeartMemories(landmark, snapshot, {
             compact: compactSettlement
         });
+        this.createVillageValueGrowth(landmark, snapshot, {
+            compact: compactSettlement
+        });
+        this.createVillageNextActionBeacon(landmark, snapshot, {
+            compact: compactSettlement
+        });
+    }
+
+    createVillageValueGrowth(landmark, snapshot, { compact = false } = {}) {
+        const values = snapshot?.worldState?.values || { care: 0, readiness: 0 };
+        const heartX = landmark?.zone?.x;
+        const heartY = landmark?.zone?.y;
+        if (!Number.isFinite(heartX) || !Number.isFinite(heartY)) return false;
+
+        const careOffsets = compact
+            ? [[-98, 86], [-48, 123], [-118, 22]]
+            : [[-120, 88], [-58, 132], [-150, 12]];
+        const readinessOffsets = compact
+            ? [[98, 86], [48, 123], [118, 22]]
+            : [[120, 88], [58, 132], [150, 12]];
+        const elements = [];
+        const createGrowth = (kind, index, offset) => {
+            const color = kind === 'care' ? 0x71E6B1 : 0xF2C14E;
+            const growth = this.scene.add.graphics()
+                .setPosition(heartX + offset[0], heartY + offset[1])
+                .setDepth(landmark.zone.y + 5)
+                .setData('villageValueGrowth', kind)
+                .setData('growthIndex', index);
+            growth.fillStyle(0x071411, 0.76);
+            growth.fillEllipse(0, 8, compact ? 24 : 28, compact ? 10 : 12);
+            if (kind === 'care') {
+                growth.lineStyle(2, color, 0.92);
+                growth.lineBetween(0, 8, 0, -10 - index * 2);
+                growth.fillStyle(color, 0.9);
+                growth.fillEllipse(-5, -3, 9, 5);
+                growth.fillEllipse(5, -7, 9, 5);
+                growth.fillStyle(0xF4F4F4, 0.82);
+                growth.fillCircle(0, -12 - index * 2, 2);
+            } else {
+                growth.lineStyle(2, color, 0.88);
+                growth.strokeTriangle(0, -15 - index, -8, 6, 8, 6);
+                growth.fillStyle(color, 0.8);
+                growth.fillTriangle(0, -11 - index, -5, 4, 5, 4);
+                growth.fillStyle(0xF4F4F4, 0.9);
+                growth.fillCircle(0, -2, 2);
+            }
+            growth.setBlendMode?.(Phaser.BlendModes.ADD);
+            landmark.buildingElements.push(growth);
+            landmark.buildingTweens.push(this.scene.tweens.add({
+                targets: growth,
+                alpha: { from: 0.62, to: 1 },
+                y: { from: growth.y + 2, to: growth.y - 2 },
+                duration: 1700 + index * 220,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            }));
+            elements.push(growth);
+        };
+        for (let index = 0; index < Math.min(3, values.care || 0); index += 1) {
+            createGrowth('care', index, careOffsets[index]);
+        }
+        for (let index = 0; index < Math.min(3, values.readiness || 0); index += 1) {
+            createGrowth('readiness', index, readinessOffsets[index]);
+        }
+        landmark.valueGrowthElements = elements;
+        return elements.length > 0;
+    }
+
+    createVillageNextActionBeacon(landmark, snapshot, { compact = false } = {}) {
+        const action = snapshot?.worldState?.nextAction;
+        if (!landmark?.zone || !action) return false;
+        landmark.nextActionElement = null;
+
+        if (action.type === 'decision' || action.type === 'supplies') {
+            landmark.actionLabel
+                .setText(`NEXT · ${action.label}`)
+                .setColor(action.type === 'decision' ? '#8FE3CF' : '#F2C14E');
+            landmark.actionLabel
+                .setData('villageNextAction', action.type)
+                .setData('definitionId', action.definitionId || null);
+            landmark.nextActionElement = landmark.actionLabel;
+            return true;
+        }
+        if (!['build', 'assign'].includes(action.type) || !action.plotId) return false;
+
+        const position = landmark.plotWorldPositions?.get(action.plotId);
+        if (!position) return false;
+        const color = action.type === 'assign' ? 0x71E6B1 : 0xF2C14E;
+        const ring = this.scene.add.graphics()
+            .setPosition(position.x, position.y + 16)
+            .setDepth(position.y + 5)
+            .setData('villageNextActionRing', action.type);
+        ring.lineStyle(3, color, 0.86);
+        ring.strokeEllipse(0, 0, compact ? 116 : 142, compact ? 44 : 52);
+        ring.fillStyle(color, 0.96);
+        ring.fillTriangle(0, -52, -7, -40, 7, -40);
+        ring.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const label = this.scene.add.text(
+            position.x,
+            position.y - (compact ? 92 : 106),
+            `NEXT · ${action.label}`,
+            {
+                fontSize: compact ? '8px' : '9px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: action.type === 'assign' ? '#8FE3CF' : '#F2C14E',
+                align: 'center',
+                stroke: '#07100F',
+                strokeThickness: 5,
+                wordWrap: { width: compact ? 130 : 168 }
+            }
+        ).setOrigin(0.5)
+            .setDepth(position.y + 8)
+            .setInteractive({ useHandCursor: true })
+            .setData('villageNextAction', action.type)
+            .setData('plotId', action.plotId)
+            .setData('definitionId', action.definitionId || null);
+        label.on('pointerdown', () => this.activateVillageHeart(landmark, action.plotId));
+
+        landmark.nextActionElement = label;
+        landmark.buildingElements.push(ring, label);
+        landmark.buildingTweens.push(this.scene.tweens.add({
+            targets: [ring, label],
+            alpha: { from: 0.68, to: 1 },
+            duration: 1050,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        }));
+        return true;
     }
 
     createVillageHeartMemories(landmark, snapshot, { compact = false } = {}) {
