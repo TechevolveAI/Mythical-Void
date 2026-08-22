@@ -32,8 +32,9 @@ function loadPlatformerLevelScene(sceneWindow) {
             'const companionMediaService = window.CompanionMediaService || {};'
         )
         .replace(
-            "import { getVillageGameplayEffects } from '../systems/VillageSettlement.js';",
-            'const getVillageGameplayEffects = () => ({ maxEnergyBonus: 0, guardCharges: 0, victoryCoinBonus: 0 });'
+            "import { getVillageGameplayEffects, getVillageSupportSummary } from '../systems/VillageSettlement.js';",
+            'const getVillageGameplayEffects = () => ({ maxEnergyBonus: 0, guardCharges: 0, victoryCoinBonus: 0 });\n' +
+            'const getVillageSupportSummary = () => [];'
         )
         .replace(/^import .*$/gm, '')
         .replace(/export default PlatformerLevelScene;/, 'module.exports = PlatformerLevelScene;');

@@ -24,6 +24,7 @@ function loadVillageSettlement() {
                 VILLAGE_HEART_DECISION_DEFINITIONS,
                 normalizeVillageState,
                 getVillageGameplayEffects,
+                getVillageSupportSummary,
                 getVillageHeartValues,
                 getVillageWorldState,
                 getVillageWorldGuidance,
@@ -132,6 +133,41 @@ describe('Village settlement phase one', () => {
         expect(snapshot.unlock.unlocked).toBe(true);
         expect(snapshot.resources).toEqual({ wood: 72, stone: 52, food: 30 });
         expect(snapshot.state.starterSuppliesClaimed).toBe(true);
+    });
+
+    test('summarizes active building effects in plain player-facing language', () => {
+        const summary = village.getVillageSupportSummary({
+            feedHappinessBonus: 7,
+            victoryCoinBonus: 10,
+            guardCharges: 1,
+            creatureCapacityBonus: 2,
+            maxEnergyBonus: 2,
+            heartReadinessEnergyBonus: 1
+        });
+
+        expect(summary.map(effect => effect.id)).toEqual([
+            'feeding_happiness',
+            'victory_coins',
+            'blocked_hits',
+            'creature_homes',
+            'expedition_energy'
+        ]);
+        expect(summary.find(effect => effect.id === 'blocked_hits')).toEqual(
+            expect.objectContaining({
+                context: 'expedition',
+                effect: '1 INCOMING HIT IS BLOCKED',
+                compact: 'BLOCK 1 HIT'
+            })
+        );
+        expect(summary.find(effect => effect.id === 'creature_homes').effect).toBe(
+            'ROOM FOR 2 MORE CREATURES'
+        );
+        expect(summary.find(effect => effect.id === 'expedition_energy')).toEqual(
+            expect.objectContaining({
+                source: 'WORKSHOP + VILLAGE HEART',
+                effect: 'START WITH 2 EXTRA ENERGY'
+            })
+        );
     });
 
     test('grants one starter stockpile without duplicating it on later loads', () => {

@@ -11618,6 +11618,8 @@ async function smokeVillageUi(session, exceptions) {
             .filter(element => element?.getData?.('villageBuildingStructure') === true);
         const workers = landmark?.workerElements || [];
         const communityPanel = document.querySelector('.village-community-pulse');
+        const supportPanel = document.querySelector('.village-support-impact-summary');
+        const supportRows = [...document.querySelectorAll('.village-support-impact-row')];
         const decisionPanel = document.querySelector('.village-heart-decision');
         const decisionOptions = [...document.querySelectorAll('.village-decision-option')];
         const communityMoment = landmark?.snapshot?.communityMoments?.[0] || null;
@@ -11670,6 +11672,22 @@ async function smokeVillageUi(session, exceptions) {
                 title: document.querySelector('.village-phase-title')?.textContent || '',
                 milestoneCount: milestones.length,
                 completedMilestones: milestones.filter(item => item.classList.contains('is-complete')).length
+            },
+            support: {
+                panelPresent: Boolean(supportPanel),
+                ariaLabel: supportPanel?.getAttribute('aria-label') || '',
+                heading: document.querySelector('.village-support-impact-title')?.textContent || '',
+                rowCount: supportRows.length,
+                ids: supportRows.map(row => row.dataset.support || ''),
+                effects: supportRows.map(
+                    row => row.querySelector('.village-support-effect')?.textContent || ''
+                ),
+                contexts: supportRows.map(
+                    row => row.querySelector('.village-support-context')?.textContent || ''
+                ),
+                sources: supportRows.map(
+                    row => row.querySelector('.village-support-source')?.textContent || ''
+                )
             },
             community: {
                 panelPresent: Boolean(communityPanel),
@@ -11810,6 +11828,23 @@ async function smokeVillageUi(session, exceptions) {
         new Set(layout.artworks.map(artwork => artwork.backgroundImage)).size !== 5 ||
         layout.phase.milestoneCount !== 4 ||
         !layout.phase.title ||
+        !layout.support.panelPresent ||
+        layout.support.heading !== 'WHAT YOUR SANCTUARY CHANGES' ||
+        layout.support.rowCount !== 3 ||
+        layout.support.ids.join(',') !== 'feeding_happiness,victory_coins,blocked_hits' ||
+        layout.support.effects.join('|') !== (
+            'FEEDING ADDS 5 EXTRA HAPPINESS|' +
+            'EVERY WIN RETURNS 10 EXTRA COINS|' +
+            '1 INCOMING HIT IS BLOCKED'
+        ) ||
+        layout.support.contexts.join(',') !== (
+            'CREATURE CARE,LEVEL VICTORY,EXPEDITION DEFENSE'
+        ) ||
+        layout.support.sources.join(',') !== (
+            'FORAGER HUT,LIVING SAWMILL,CURRENT MASONRY'
+        ) ||
+        !layout.support.ariaLabel.includes('FEEDING ADDS 5 EXTRA HAPPINESS') ||
+        !layout.support.ariaLabel.includes('1 INCOMING HIT IS BLOCKED') ||
         !layout.community.panelPresent ||
         !layout.community.momentId ||
         layout.community.identityCount !== 2 ||

@@ -17,7 +17,7 @@ import {
     recordCenteringStancePractice
 } from '../systems/SenseiMemory.js';
 import { companionMediaService } from '../systems/CompanionMediaService.js';
-import { getVillageGameplayEffects } from '../systems/VillageSettlement.js';
+import { getVillageGameplayEffects, getVillageSupportSummary } from '../systems/VillageSettlement.js';
 
 const BOSS_REWARD_KEY_BY_LEVEL = Object.freeze({
     crystalCaves: 'crystalGolem',
@@ -1048,24 +1048,9 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     showVillageSupportBriefing() {
-        const support = this.villageSupport || {};
-        const lines = [];
-        if (support.guardCharges > 0) {
-            lines.push(`CURRENT MASONRY // ${support.guardCharges} GUARD CHARGE`);
-        }
-        const workshopEnergy = Math.max(
-            0,
-            (support.maxEnergyBonus || 0) - (support.heartReadinessEnergyBonus || 0)
-        );
-        if (workshopEnergy > 0) {
-            lines.push(`DISCOVERY WORKSHOP // +${workshopEnergy} CRYSTAL ENERGY`);
-        }
-        if (support.heartReadinessEnergyBonus > 0) {
-            lines.push(`VILLAGE HEART READY // +${support.heartReadinessEnergyBonus} CRYSTAL ENERGY`);
-        }
-        if (support.victoryCoinBonus > 0) {
-            lines.push(`LIVING SAWMILL // +${support.victoryCoinBonus} VICTORY COINS`);
-        }
+        const lines = getVillageSupportSummary(this.villageSupport || {})
+            .filter(effect => effect.context === 'expedition')
+            .map(effect => `${effect.source} // ${effect.effect}`);
         if (lines.length === 0 || this.sys?.isActive?.() === false) return false;
 
         const width = this.cameras.main.width;
@@ -8471,28 +8456,12 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     getVillageCompletionCopy({ compact = false } = {}) {
-        const support = this.villageSupport || {};
-        const lines = [];
-        if (support.victoryCoinBonus > 0) {
-            lines.push(`SAWMILL +${support.victoryCoinBonus} COINS`);
-        }
-        if (support.guardCharges > 0) {
-            lines.push(`MASONRY ${support.guardCharges} GUARD`);
-        }
-        const workshopEnergy = Math.max(
-            0,
-            (support.maxEnergyBonus || 0) - (support.heartReadinessEnergyBonus || 0)
-        );
-        if (workshopEnergy > 0) {
-            lines.push(`WORKSHOP +${workshopEnergy} ENERGY`);
-        }
-        if (support.heartReadinessEnergyBonus > 0) {
-            lines.push(`HEART READY +${support.heartReadinessEnergyBonus} ENERGY`);
-        }
-        if (lines.length === 0) return '';
+        const effects = getVillageSupportSummary(this.villageSupport || {})
+            .filter(effect => effect.context === 'expedition');
+        if (effects.length === 0) return '';
         return compact
-            ? `VILLAGE // ${lines.join(' · ')}`
-            : `Village support active: ${lines.join(' · ')}`;
+            ? `SANCTUARY // ${effects.map(effect => effect.compact).join(' · ')}`
+            : `Sanctuary support delivered: ${effects.map(effect => effect.effect).join(' · ')}`;
     }
 
     showRescuedResidentReleaseMoment(resident) {

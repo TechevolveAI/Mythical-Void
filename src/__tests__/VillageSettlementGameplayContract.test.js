@@ -290,6 +290,10 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('workerRoutine.emotionalPurpose');
         expect(source).toContain('createCommunityPulse(snapshot)');
         expect(source).toContain('village-community-pulse');
+        expect(source).toContain('createVillageSupportImpactSummary(snapshot)');
+        expect(source).toContain('getVillageSupportSummary(snapshot?.effects || {})');
+        expect(source).toContain('WHAT YOUR SANCTUARY CHANGES');
+        expect(source).toContain('village-support-impact-row');
         expect(source).toContain('moment.sharedValue');
         expect(source).toContain('createHeartDecision(snapshot');
         expect(source).toContain('village-heart-decision');
@@ -320,6 +324,8 @@ describe('Village settlement gameplay contract', () => {
         expect(styles).toContain('order: 1;');
         expect(styles).toContain('.village-command-modal.is-contextual .village-assignment-controls {');
         expect(styles).toContain('grid-template-columns: minmax(0, 1fr) minmax(88px, auto);');
+        expect(styles).toContain('.village-support-impact-summary {');
+        expect(styles).toContain('.village-support-impact-list {');
     });
 
     test('the responsive layout moves to a single scroll surface on mobile', () => {
@@ -398,7 +404,11 @@ describe('Village settlement gameplay contract', () => {
         expect(platformer).toContain('this.villageSupport.guardCharges');
         expect(platformer).toContain('this.villageSupport?.victoryCoinBonus');
         expect(platformer).toContain('showVillageSupportBriefing()');
-        expect(platformer).toContain('VILLAGE HEART READY');
+        expect(platformer).toContain('getVillageSupportSummary(this.villageSupport || {})');
+        expect(platformer).toContain(".filter(effect => effect.context === 'expedition')");
+        expect(village).toContain('export function getVillageSupportSummary(effects = {})');
+        expect(village).toContain('INCOMING ${guardCharges === 1 ? \'HIT IS\' : \'HITS ARE\'} BLOCKED');
+        expect(village).toContain('ROOM FOR ${creatureCapacityBonus} MORE');
         expect(platformer).toContain('VILLAGE SUPPORT ONLINE');
         expect(platformer).toContain('getVillageCompletionCopy({ compact = false } = {})');
     });

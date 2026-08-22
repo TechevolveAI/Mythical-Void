@@ -1,6 +1,7 @@
 import {
     VILLAGE_BUILDING_ARTWORK,
-    VILLAGE_RESOURCE_DEFINITIONS
+    VILLAGE_RESOURCE_DEFINITIONS,
+    getVillageSupportSummary
 } from '../systems/VillageSettlement.js';
 import { CINEMATIC_MEDIA, shouldPlayCinematicMedia } from '../config/cinematic-media.js';
 
@@ -156,6 +157,44 @@ function createCommunityPulse(snapshot) {
     );
     section.dataset.moment = moment?.id || 'locked';
     section.append(identity, copy, homeStatus);
+    return section;
+}
+
+function createVillageSupportImpactSummary(snapshot) {
+    const section = createElement('section', 'village-support-impact-summary');
+    const heading = createElement('div', 'village-support-impact-heading');
+    heading.append(
+        createElement('span', 'village-support-impact-kicker', 'ACTIVE SUPPORT'),
+        createElement('strong', 'village-support-impact-title', 'WHAT YOUR SANCTUARY CHANGES')
+    );
+    const effects = getVillageSupportSummary(snapshot?.effects || {});
+    const list = createElement('div', 'village-support-impact-list');
+    if (effects.length === 0) {
+        list.append(createElement(
+            'p',
+            'village-support-impact-empty',
+            'Build the first structure to create a visible benefit here and in the wider game.'
+        ));
+    } else {
+        effects.forEach(effect => {
+            const row = createElement('div', 'village-support-impact-row');
+            row.dataset.support = effect.id;
+            row.append(
+                createElement('span', 'village-support-context', effect.contextLabel),
+                createElement('strong', 'village-support-effect', effect.effect),
+                createElement('span', 'village-support-source', effect.source),
+                createElement('span', 'village-support-detail', effect.detail)
+            );
+            list.append(row);
+        });
+    }
+    section.append(heading, list);
+    section.setAttribute(
+        'aria-label',
+        effects.length > 0
+            ? `Active Sanctuary support. ${effects.map(effect => effect.effect).join('. ')}`
+            : 'No active Sanctuary support yet.'
+    );
     return section;
 }
 
@@ -1256,7 +1295,11 @@ export default class VillageCommandPanel {
                     }
                 })
                 : null;
-            shell.append(phase, createCommunityPulse(snapshot));
+            shell.append(
+                phase,
+                createVillageSupportImpactSummary(snapshot),
+                createCommunityPulse(snapshot)
+            );
             if (heartDecision) shell.append(heartDecision);
             shell.append(createVillageVision());
         } else if (contextualBuilding?.definitionId === 'habitat') {

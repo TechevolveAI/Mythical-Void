@@ -643,6 +643,76 @@ export function getVillageGameplayEffects(gameState, { stateOverride = null } = 
     };
 }
 
+export function getVillageSupportSummary(effects = {}) {
+    const summary = [];
+    const feedHappinessBonus = Math.max(0, Number(effects.feedHappinessBonus) || 0);
+    const victoryCoinBonus = Math.max(0, Number(effects.victoryCoinBonus) || 0);
+    const guardCharges = Math.max(0, Number(effects.guardCharges) || 0);
+    const creatureCapacityBonus = Math.max(0, Number(effects.creatureCapacityBonus) || 0);
+    const maxEnergyBonus = Math.max(0, Number(effects.maxEnergyBonus) || 0);
+
+    if (feedHappinessBonus > 0) {
+        summary.push({
+            id: 'feeding_happiness',
+            source: 'FORAGER HUT',
+            context: 'care',
+            contextLabel: 'CREATURE CARE',
+            effect: `FEEDING ADDS ${feedHappinessBonus} EXTRA HAPPINESS`,
+            compact: `FEED +${feedHappinessBonus} HAPPINESS`,
+            detail: 'Safe food gathered here makes every feeding more restorative.'
+        });
+    }
+    if (victoryCoinBonus > 0) {
+        summary.push({
+            id: 'victory_coins',
+            source: 'LIVING SAWMILL',
+            context: 'expedition',
+            contextLabel: 'LEVEL VICTORY',
+            effect: `EVERY WIN RETURNS ${victoryCoinBonus} EXTRA COINS`,
+            compact: `WIN +${victoryCoinBonus} COINS`,
+            detail: 'Repair stock recovered from fallen timber lowers the cost of each return.'
+        });
+    }
+    if (guardCharges > 0) {
+        summary.push({
+            id: 'blocked_hits',
+            source: 'CURRENT MASONRY',
+            context: 'expedition',
+            contextLabel: 'EXPEDITION DEFENSE',
+            effect: `${guardCharges} INCOMING ${guardCharges === 1 ? 'HIT IS' : 'HITS ARE'} BLOCKED`,
+            compact: `BLOCK ${guardCharges} ${guardCharges === 1 ? 'HIT' : 'HITS'}`,
+            detail: 'Current-shaped stone protects the team at the start of every expedition.'
+        });
+    }
+    if (creatureCapacityBonus > 0) {
+        summary.push({
+            id: 'creature_homes',
+            source: 'SHARED HABITAT',
+            context: 'sanctuary',
+            contextLabel: 'SAFE HOME',
+            effect: `ROOM FOR ${creatureCapacityBonus} MORE ${creatureCapacityBonus === 1 ? 'CREATURE' : 'CREATURES'}`,
+            compact: `HOME +${creatureCapacityBonus} PLACES`,
+            detail: 'Rescued creatures can choose a permanent place in the Sanctuary.'
+        });
+    }
+    if (maxEnergyBonus > 0) {
+        summary.push({
+            id: 'expedition_energy',
+            source: effects.heartReadinessEnergyBonus > 0
+                ? 'WORKSHOP + VILLAGE HEART'
+                : 'DISCOVERY WORKSHOP',
+            context: 'expedition',
+            contextLabel: 'EXPEDITION ENERGY',
+            effect: `START WITH ${maxEnergyBonus} EXTRA ENERGY`,
+            compact: `START +${maxEnergyBonus} ENERGY`,
+            detail: effects.heartReadinessEnergyBonus > 0
+                ? 'Shared tools and readiness decisions reinforce the expedition charge.'
+                : 'Shared tools reinforce the expedition charge before departure.'
+        });
+    }
+    return summary;
+}
+
 function synchronizeVillageCapacity(gameState, state) {
     const bonus = getVillageGameplayEffects(gameState, {
         stateOverride: state

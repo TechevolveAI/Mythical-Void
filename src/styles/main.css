@@ -1062,6 +1062,71 @@ body.game-mode {
   font-size: 8px;
 }
 
+.village-support-impact-summary {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.32fr) minmax(0, 1fr);
+  gap: 14px;
+  padding: 11px 15px;
+  background: #0a1518;
+  border-bottom: 1px solid rgba(242, 193, 78, 0.2);
+}
+
+.village-support-impact-heading {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+}
+
+.village-support-impact-kicker,
+.village-support-context {
+  color: #f2c14e;
+  font-size: 7px;
+  font-weight: 900;
+}
+
+.village-support-impact-title {
+  color: #f4f4f4;
+  font-size: 11px;
+}
+
+.village-support-impact-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 7px 12px;
+}
+
+.village-support-impact-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 8px;
+  min-width: 0;
+  padding: 5px 0 5px 9px;
+  border-left: 2px solid #71e6b1;
+}
+
+.village-support-effect {
+  grid-column: 1 / -1;
+  color: #f4f4f4;
+  font-size: 9px;
+  line-height: 1.25;
+}
+
+.village-support-source {
+  color: #8fe3cf;
+  font-size: 7px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.village-support-detail,
+.village-support-impact-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #9eafb5;
+  font-size: 7px;
+  line-height: 1.35;
+}
+
 .village-community-pulse {
   display: grid;
   grid-template-columns: auto minmax(260px, 1fr) minmax(190px, 0.55fr);
@@ -2813,6 +2878,43 @@ body.game-mode {
 
   .village-phase-title {
     font-size: 12px;
+  }
+
+  .village-support-impact-summary {
+    grid-template-columns: 1fr;
+    gap: 7px;
+    padding: 9px 10px;
+  }
+
+  .village-support-impact-list {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .village-support-impact-row {
+    gap: 4px 8px;
+    padding: 8px 0 8px 10px;
+  }
+
+  .village-support-impact-kicker,
+  .village-support-context,
+  .village-support-source {
+    font-size: 9px;
+  }
+
+  .village-support-impact-title {
+    font-size: 12px;
+  }
+
+  .village-support-effect {
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .village-support-detail,
+  .village-support-impact-empty {
+    font-size: 10px;
+    line-height: 1.45;
   }
 
   .village-milestone-track {
