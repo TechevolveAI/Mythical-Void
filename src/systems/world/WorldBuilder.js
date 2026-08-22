@@ -456,7 +456,7 @@ class WorldBuilder {
         const glow = this.scene.add.graphics().setPosition(x, y).setDepth(y + 1);
         const restorationRoots = this.scene.add.graphics()
             .setPosition(x, y)
-            .setDepth(y + 3);
+            .setDepth(y + 1.5);
         const actionLabel = this.scene.add.text(x, y - 126, 'OPEN PLAN', {
             fontSize: '10px',
             fontFamily: 'Arial, sans-serif',
@@ -812,7 +812,13 @@ class WorldBuilder {
         restorationRoots
             .setData('rootBudCount', VILLAGE_PLOTS.length)
             .setData('litRootCount', restoredCount)
-            .setData('ariaLabel', `${restoredCount} of ${VILLAGE_PLOTS.length} village roots restored`);
+            .setData('growthTier', growthTier)
+            .setData('growthLabel', snapshot?.worldState?.growthLabel || 'AWAKENED ROOT')
+            .setData(
+                'ariaLabel',
+                `${snapshot?.worldState?.growthLabel || 'Awakened root'}; ` +
+                    `${restoredCount} of ${VILLAGE_PLOTS.length} village roots restored`
+            );
 
         this.drawVillageDistrictGround({
             terrain: districtTerrain,
@@ -924,21 +930,29 @@ class WorldBuilder {
             heart.fillCircle(0, 13, 11);
         }
 
-        const rootTargets = [
-            { x: 0, y: 68 },
-            { x: -34, y: 72 },
-            { x: 34, y: 72 },
-            { x: -68, y: 78 },
-            { x: 68, y: 78 }
-        ];
+        const rootTargets = compactSettlement
+            ? [
+                { x: 0, y: 88 },
+                { x: -52, y: 96 },
+                { x: 52, y: 96 },
+                { x: -101, y: 72 },
+                { x: 101, y: 72 }
+            ]
+            : [
+                { x: 0, y: 96 },
+                { x: -60, y: 104 },
+                { x: 60, y: 104 },
+                { x: -112, y: 76 },
+                { x: 112, y: 76 }
+            ];
         rootTargets.forEach((target, index) => {
             const active = unlocked && index < restoredCount;
             const complete = active && restoredCount === VILLAGE_PLOTS.length;
             const color = complete ? 0xF2C14E : active ? 0x71E6B1 : 0x53616A;
-            const start = { x: 0, y: 34 };
+            const start = { x: 0, y: 40 };
             const control = {
                 x: target.x * 0.28 + (index % 2 ? -7 : 7),
-                y: 55 + Math.abs(target.x) * 0.035
+                y: 72 + Math.abs(target.x) * 0.04
             };
             const rootPoints = Array.from({ length: 13 }, (_, pointIndex) => {
                 const progress = pointIndex / 12;
@@ -980,7 +994,7 @@ class WorldBuilder {
         label
             .setText(unlocked ? 'VILLAGE HEART' : 'DORMANT HEART')
             .setFontSize(compactSettlement ? '10px' : '12px')
-            .setPosition(landmark.zone.x, landmark.zone.y + (compactSettlement ? 104 : 105))
+            .setPosition(landmark.zone.x, landmark.zone.y + (compactSettlement ? 112 : 115))
             .setAlpha(unlocked ? 0.86 : 0.68)
             .setColor(unlocked ? '#F4F4F4' : '#93A2A9');
         actionLabel
@@ -992,13 +1006,16 @@ class WorldBuilder {
             .setInteractive({ useHandCursor: true });
         statusLabel
             .setText(unlocked
-                ? `${restoredCount}/${VILLAGE_PLOTS.length} RESTORED`
+                ? `${restoredCount}/${VILLAGE_PLOTS.length} ROOTS · ` +
+                    `${snapshot?.worldState?.growthLabel || 'AWAKENED ROOT'}`
                 : 'HATCH A COMPANION TO WAKE IT'
             )
             .setFontSize(compactSettlement ? '8px' : '9px')
-            .setPosition(landmark.zone.x, landmark.zone.y + (compactSettlement ? 123 : 132))
+            .setPosition(landmark.zone.x, landmark.zone.y + (compactSettlement ? 133 : 138))
             .setAlpha(unlocked ? 0.82 : 0.64)
-            .setColor(unlocked ? '#8FE3CF' : '#93A2A9');
+            .setColor(unlocked ? '#8FE3CF' : '#93A2A9')
+            .setData('villageGrowthTier', growthTier)
+            .setData('villageGrowthLabel', snapshot?.worldState?.growthLabel || 'AWAKENED ROOT');
 
         landmark.pulseTween = this.scene.tweens.add({
             targets: glow,

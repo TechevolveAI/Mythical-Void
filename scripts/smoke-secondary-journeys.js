@@ -10240,7 +10240,10 @@ async function smokeVillageUi(session, exceptions) {
         state.set('activeCreatureIndex', 0);
         state.save();
         game.scene.stop('HatchingScene');
-        game.scene.start('GameScene', { biome: 'nebula', forceMobileControls: true });
+        game.scene.start('GameScene', {
+            biome: 'nebula',
+            forceMobileControls: ${SMOKE_VIEWPORT_WIDTH <= 600}
+        });
         return true;
     })()`);
     if (!publicEntry) throw new Error('Base Builder production entry could not seed a companion');
@@ -10605,6 +10608,12 @@ async function smokeVillageUi(session, exceptions) {
             restoration: {
                 rootBudCount: landmark.restorationRoots?.getData?.('rootBudCount') || 0,
                 litRootCount: landmark.restorationRoots?.getData?.('litRootCount') || 0,
+                growthTier: landmark.restorationRoots?.getData?.('growthTier'),
+                growthLabel: landmark.restorationRoots?.getData?.('growthLabel'),
+                ariaLabel: landmark.restorationRoots?.getData?.('ariaLabel'),
+                statusGrowthTier: landmark.statusLabel?.getData?.('villageGrowthTier'),
+                statusGrowthLabel: landmark.statusLabel?.getData?.('villageGrowthLabel'),
+                statusText: landmark.statusLabel?.text || '',
                 active: landmark.restorationRoots?.active === true
             },
             district: {
@@ -10721,6 +10730,13 @@ async function smokeVillageUi(session, exceptions) {
         !integratedWorld.restoration.active ||
         integratedWorld.restoration.rootBudCount !== 5 ||
         integratedWorld.restoration.litRootCount !== 3 ||
+        integratedWorld.restoration.growthTier !== 2 ||
+        integratedWorld.restoration.growthLabel !== 'CONNECTED GLADE' ||
+        !integratedWorld.restoration.ariaLabel.includes('3 of 5') ||
+        integratedWorld.restoration.statusGrowthTier !== 2 ||
+        integratedWorld.restoration.statusGrowthLabel !== 'CONNECTED GLADE' ||
+        !integratedWorld.restoration.statusText.includes('3/5 ROOTS') ||
+        !integratedWorld.restoration.statusText.includes('CONNECTED GLADE') ||
         !integratedWorld.district.terrainActive ||
         integratedWorld.district.material !== 'living_current_v2' ||
         integratedWorld.district.uniformOverlay !== false ||
@@ -10790,7 +10806,7 @@ async function smokeVillageUi(session, exceptions) {
         scene.hideInteractionHint();
         return true;
     })()`);
-    await delay(280);
+    await delay(420);
     const focusRecovery = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         return {
@@ -11158,7 +11174,7 @@ async function smokeVillageUi(session, exceptions) {
         layout.worldPresentation.nextActionTarget !== 'decision' ||
         layout.worldPresentation.valueGrowthCount !== 0 ||
         !layout.worldPresentation.actionLabel.includes('HEART CHOICE') ||
-        !layout.worldPresentation.statusLabel.includes('RESTORED') ||
+        !layout.worldPresentation.statusLabel.includes('ROOTS') ||
         layout.worldPresentation.animatedElements < 8 ||
         layout.worldPresentation.animatedElements > 20 ||
         layout.worldPresentation.workerCount !== 3 ||
@@ -12263,7 +12279,7 @@ async function main() {
             screenHeight: SMOKE_VIEWPORT_HEIGHT
         });
         await session.call('Emulation.setTouchEmulationEnabled', {
-            enabled: true,
+            enabled: SMOKE_VIEWPORT_WIDTH <= 600,
             maxTouchPoints: 1
         });
 

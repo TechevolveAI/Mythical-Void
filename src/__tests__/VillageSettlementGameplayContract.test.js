@@ -260,6 +260,9 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("setData('villageThresholdCount'");
         expect(world).toContain("setData('villagePathMaterial', 'branching_current_roots')");
         expect(world).toContain("setData('villageEcologyPulse', true)");
+        expect(world).toContain("setData('growthLabel', snapshot?.worldState?.growthLabel");
+        expect(world).toContain("setData('villageGrowthLabel'");
+        expect(world).toContain('const rootTargets = compactSettlement');
         expect(world).toContain('const pathPoints = Array.from({ length: 17 }');
         expect(world).toContain('currentPaths.lineTo(point.x, point.y)');
         expect(world).toContain('this.drawVillageBuilding(');
