@@ -10896,6 +10896,9 @@ async function smokeVillageUi(session, exceptions) {
                 heartArtworkTreatment: landmark.heartArtwork?.getData?.(
                     'villageArtworkTreatment'
                 ),
+                heartArtworkVariant: landmark.heartArtwork?.getData?.(
+                    'villageArtworkVariant'
+                ),
                 heartArtworkTint: landmark.heartArtwork?.getData?.('villageArtworkTint'),
                 plots: (landmark.plotPresentations || []).map(presentation => ({
                     plotId: presentation.plotId,
@@ -10905,6 +10908,9 @@ async function smokeVillageUi(session, exceptions) {
                     focusRingAlpha: presentation.focusRing?.alpha,
                     artworkTreatment: presentation.worldArtwork?.getData?.(
                         'villageArtworkTreatment'
+                    ) || null,
+                    artworkVariant: presentation.worldArtwork?.getData?.(
+                        'villageArtworkVariant'
                     ) || null,
                     artworkState: presentation.worldArtwork?.getData?.(
                         'villageArtworkState'
@@ -11265,6 +11271,9 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.focusHierarchy.heartAlpha !== 1 ||
         integratedWorld.focusHierarchy.heartArtworkTreatment !==
             'living_current_landmark_v1' ||
+        integratedWorld.focusHierarchy.heartArtworkVariant !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 'compact_silhouette' : 'detailed_world'
+        ) ||
         integratedWorld.focusHierarchy.heartArtworkTint !== 0xFFFFFF ||
         integratedWorld.focusHierarchy.plots.length !== 5 ||
         integratedWorld.focusHierarchy.plots.some(plot => (
@@ -11281,6 +11290,11 @@ async function smokeVillageUi(session, exceptions) {
                 plot.artworkTreatment !== null &&
                 (
                     plot.artworkTreatment !== 'living_current_material_v1' ||
+                    plot.artworkVariant !== (
+                        SMOKE_VIEWPORT_WIDTH <= 600
+                            ? 'compact_silhouette'
+                            : 'detailed_world'
+                    ) ||
                     plot.artworkState !== 'focus_supporting' ||
                     plot.artworkTint !== 0x91B3A7 ||
                     plot.groundingMaterial !== 'woven_root_foreground_v1' ||
@@ -13431,8 +13445,14 @@ async function smokeVillageUi(session, exceptions) {
         const building = landmark?.snapshot?.buildings?.find(
             entry => entry.definitionId === 'habitat'
         );
+        const presentation = landmark?.plotPresentations?.find(
+            entry => entry.plotId === building?.plotId
+        );
         return habitat ? {
             buildingStatus: building?.status,
+            artworkVariant: presentation?.worldArtwork?.getData?.(
+                'villageArtworkVariant'
+            ),
             capacity: habitat.getData('capacity'),
             residentNames: habitat.getData('residentNames'),
             residentStatuses: habitat.getData('residentStatuses'),
@@ -13457,6 +13477,9 @@ async function smokeVillageUi(session, exceptions) {
     if (
         !habitatWorld?.active ||
         habitatWorld.buildingStatus !== 'complete' ||
+        habitatWorld.artworkVariant !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 'compact_silhouette' : 'detailed_world'
+        ) ||
         habitatWorld.capacity !== 2 ||
         habitatWorld.residentNames.length !== 2 ||
         habitatWorld.residentStatuses.length !== 2 ||

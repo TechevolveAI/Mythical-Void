@@ -864,10 +864,21 @@ class WorldBuilder {
         const heartCaption = this.scene.add.graphics()
             .setPosition(x, y)
             .setDepth(y + 3);
-        const heartArtwork = this.scene.textures.exists(VILLAGE_WORLD_ARTWORK.heart.key)
-            ? this.scene.add.image(x, y - 22, VILLAGE_WORLD_ARTWORK.heart.key)
+        const compactHeartArtwork = this.scene.scale.width <= 600;
+        const heartArtworkKey = compactHeartArtwork &&
+            this.scene.textures.exists(VILLAGE_WORLD_ARTWORK.heart.compactKey)
+            ? VILLAGE_WORLD_ARTWORK.heart.compactKey
+            : VILLAGE_WORLD_ARTWORK.heart.key;
+        const heartArtwork = this.scene.textures.exists(heartArtworkKey)
+            ? this.scene.add.image(x, y - 22, heartArtworkKey)
                 .setDisplaySize(228, 228)
                 .setDepth(y + 2)
+                .setData(
+                    'villageArtworkVariant',
+                    heartArtworkKey === VILLAGE_WORLD_ARTWORK.heart.compactKey
+                        ? 'compact_silhouette'
+                        : 'detailed_world'
+                )
             : null;
         if (heartArtwork) heartArtwork.villageBaseScale = heartArtwork.scaleX;
         const glow = this.scene.add.graphics().setPosition(x, y).setDepth(y + 1);
@@ -1355,12 +1366,25 @@ class WorldBuilder {
         }
         if (heartArtwork) {
             const heartDisplaySize = settlementLayout.heartArtworkSize;
+            const heartArtworkKey = compactSettlement &&
+                this.scene.textures.exists(VILLAGE_WORLD_ARTWORK.heart.compactKey)
+                ? VILLAGE_WORLD_ARTWORK.heart.compactKey
+                : VILLAGE_WORLD_ARTWORK.heart.key;
+            if (heartArtwork.texture?.key !== heartArtworkKey) {
+                heartArtwork.setTexture(heartArtworkKey);
+            }
             heartArtwork.setDisplaySize(heartDisplaySize, heartDisplaySize);
             heartArtwork.villageBaseScale = heartArtwork.scaleX;
             heartArtwork
                 .setData('villageLayoutProfile', settlementLayout.profile)
                 .setData('villageDisplaySize', heartDisplaySize)
-                .setData('villageArtworkTreatment', 'living_current_landmark_v1');
+                .setData('villageArtworkTreatment', 'living_current_landmark_v1')
+                .setData(
+                    'villageArtworkVariant',
+                    heartArtworkKey === VILLAGE_WORLD_ARTWORK.heart.compactKey
+                        ? 'compact_silhouette'
+                        : 'detailed_world'
+                );
         }
         const plotOffsets = settlementLayout.plotOffsets;
         const buildingByPlot = new Map(
@@ -1713,9 +1737,17 @@ class WorldBuilder {
             const worldArtworkDefinition = building
                 ? VILLAGE_WORLD_ARTWORK[building.definitionId]
                 : null;
+            const worldArtworkKey = compactSettlement &&
+                worldArtworkDefinition?.compactKey &&
+                this.scene.textures.exists(worldArtworkDefinition.compactKey)
+                ? worldArtworkDefinition.compactKey
+                : worldArtworkDefinition?.key;
+            const worldArtworkVariant = worldArtworkKey === worldArtworkDefinition?.compactKey
+                ? 'compact_silhouette'
+                : 'detailed_world';
             const worldArtwork = worldArtworkDefinition &&
-                this.scene.textures.exists(worldArtworkDefinition.key)
-                ? this.scene.add.image(0, compactSettlement ? -20 : -28, worldArtworkDefinition.key)
+                this.scene.textures.exists(worldArtworkKey)
+                ? this.scene.add.image(0, compactSettlement ? -20 : -28, worldArtworkKey)
                     .setDisplaySize(
                         (worldArtworkDefinition.displaySize || 176) *
                             settlementLayout.buildingArtworkScale,
@@ -1729,6 +1761,7 @@ class WorldBuilder {
                             settlementLayout.buildingArtworkScale
                     )
                     .setData('villageArtworkTreatment', 'living_current_material_v1')
+                    .setData('villageArtworkVariant', worldArtworkVariant)
                 : null;
             const artworkGrounding = worldArtwork
                 ? this.createVillageArtworkGrounding({

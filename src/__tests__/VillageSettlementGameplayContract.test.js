@@ -40,6 +40,20 @@ describe('Village settlement gameplay contract', () => {
             'game/village/world/forager-hut.webp'
         ))).toBe(true);
         [
+            'village-heart.png',
+            'forager-hut.png',
+            'living-sawmill.png',
+            'current-masonry.png',
+            'shared-habitat.png',
+            'discovery-workshop.png'
+        ].forEach(asset => {
+            expect(fs.existsSync(path.join(
+                publicRoot,
+                'game/village/world/compact',
+                asset
+            ))).toBe(true);
+        });
+        [
             'living-sawmill.webp',
             'current-masonry.webp',
             'shared-habitat.webp',
@@ -93,6 +107,7 @@ describe('Village settlement gameplay contract', () => {
         );
         expect(worldSource).toContain('worldArtwork.setAlpha(0.66).setTint(0xA7BDAF)');
         expect(worldSource).toContain('createVillageArtworkGrounding({');
+        expect(worldSource).toContain("? 'compact_silhouette'");
         expect(worldSource).toContain(".setData('villageGroundingMaterial', 'woven_root_foreground_v1')");
         expect(worldSource).toContain(".setData('villageArtworkTreatment', 'living_current_material_v1')");
         expect(worldSource).toContain("? 'full_color'");
@@ -388,6 +403,12 @@ describe('Village settlement gameplay contract', () => {
         expect(village).toContain("url: '/game/village/discovery-workshop.webp'");
         expect(village).toContain("url: '/game/village/world/village-heart.webp'");
         expect(village).toContain("url: '/game/village/world/forager-hut.webp'");
+        expect(village).toContain("compactUrl: '/game/village/world/compact/forager-hut.png'");
+        expect(village).toContain("compactUrl: '/game/village/world/compact/living-sawmill.png'");
+        expect(village).toContain("compactUrl: '/game/village/world/compact/current-masonry.png'");
+        expect(village).toContain("compactUrl: '/game/village/world/compact/shared-habitat.png'");
+        expect(village).toContain("compactUrl: '/game/village/world/compact/discovery-workshop.png'");
+        expect(village).toContain("compactUrl: '/game/village/world/compact/village-heart.png'");
         expect(village).toContain("url: '/game/village/world/living-sawmill.webp'");
         expect(village).toContain("url: '/game/village/world/current-masonry.webp'");
         expect(village).toContain("url: '/game/village/world/shared-habitat.webp'");

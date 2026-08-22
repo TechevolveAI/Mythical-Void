@@ -475,6 +475,9 @@ class GameScene extends Phaser.Scene {
             if (!this.textures.exists(artwork.key)) {
                 this.load.image(artwork.key, artwork.url);
             }
+            if (artwork.compactKey && !this.textures.exists(artwork.compactKey)) {
+                this.load.image(artwork.compactKey, artwork.compactUrl);
+            }
         });
         Object.values(SANCTUARY_WORLD_ART).forEach(artwork => {
             if (!this.textures.exists(artwork.key)) {
