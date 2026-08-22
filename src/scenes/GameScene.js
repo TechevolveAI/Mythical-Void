@@ -7,6 +7,8 @@ import EconomyHudManager from '../systems/ui/EconomyHudManager.js';
 import { getSanctuaryCheckInCopy } from '../systems/SanctuaryCheckIn.js';
 import CarePanelManager from '../systems/ui/CarePanelManager.js';
 import WorldBuilder from '../systems/world/WorldBuilder.js';
+import SanctuaryInteractionDirector from '../systems/world/SanctuaryInteractionDirector.js';
+import { SANCTUARY_WORLD_ART } from '../systems/world/SanctuaryWorldArt.js';
 import ChatOverlay from '../ui/ChatOverlay.js';
 import MobileHUD from '../systems/ui/MobileHUD.js';
 import {
@@ -213,6 +215,9 @@ class GameScene extends Phaser.Scene {
         this.livingSignalMomentElements = [];
         this.livingSignalMomentTimer = null;
         this.sanctuaryZones = null;
+        this.sanctuaryDistricts = null;
+        this.sanctuaryInteractionDirector = null;
+        this.sanctuaryPromptOwnerId = null;
         this.targetRange = null;
         this.nearTargetRange = false;
         this.targetRangeScore = 0;
@@ -449,6 +454,11 @@ class GameScene extends Phaser.Scene {
             }
         });
         Object.values(VILLAGE_WORLD_ARTWORK).forEach(artwork => {
+            if (!this.textures.exists(artwork.key)) {
+                this.load.image(artwork.key, artwork.url);
+            }
+        });
+        Object.values(SANCTUARY_WORLD_ART).forEach(artwork => {
             if (!this.textures.exists(artwork.key)) {
                 this.load.image(artwork.key, artwork.url);
             }
@@ -764,6 +774,14 @@ class GameScene extends Phaser.Scene {
     create() {
         console.log('[GameScene] ===== CREATE() STARTING =====');
         try {
+            // A native Start control protects onboarding when WebGL input fails.
+            // Scene changes triggered by recovery tools or restored saves can skip
+            // its normal owner cleanup, so gameplay also enforces the boundary.
+            if (typeof document !== 'undefined') {
+                document
+                    .querySelectorAll('[data-mythical-home-start="true"]')
+                    .forEach(element => element.remove());
+            }
             this.removeStaleAuxiliaryCameras();
             prefetchKatanaArtifactArtwork();
             console.log('[GameScene] Initializing lifecycle tracking...');
@@ -1058,7 +1076,13 @@ class GameScene extends Phaser.Scene {
             this.sanctuaryKeepsakes = worldPieces.sanctuaryKeepsakes || null;
             this.kinshipBeacon = worldPieces.kinshipBeacon || null;
             this.sanctuaryZones = worldPieces.sanctuaryZones || null;
+            this.sanctuaryDistricts = worldPieces.sanctuaryDistricts || null;
             this.targetRange = worldPieces.targetRange || null;
+            if (this.currentBiome === 'nebula') {
+                this.sanctuaryInteractionDirector?.destroy?.();
+                this.sanctuaryInteractionDirector =
+                    new SanctuaryInteractionDirector(this);
+            }
 
             this.setupSanctuaryDecorationListener();
 
@@ -4735,7 +4759,7 @@ class GameScene extends Phaser.Scene {
         const villageSnapshot = getVillageSnapshot(window.GameState);
         const villageNeedsGuidance = villageSnapshot.unlock.unlocked &&
             !villageSnapshot.state.guidanceSeen;
-        const showNavigation = timesVisited < 5 || villageNeedsGuidance;
+        const showNavigation = timesVisited < 2 || villageNeedsGuidance;
 
         // Track visit
         window.GameState?.set('session.sanctuaryVisits', timesVisited + 1);
@@ -4745,14 +4769,10 @@ class GameScene extends Phaser.Scene {
             return;
         }
 
-        // Get landmark positions
-        const centerX = this.worldWidth / 2;
-        const centerY = this.worldHeight / 2;
-
         // Define key destinations with their info
         const destinations = [];
 
-        if (this.crashedShip) {
+        if (this.crashedShip && !villageNeedsGuidance) {
             destinations.push({
                 name: 'Story & Void',
                 icon: '🚀',
@@ -4763,7 +4783,7 @@ class GameScene extends Phaser.Scene {
             });
         }
 
-        if (this.hubPortal) {
+        if (this.hubPortal && !villageNeedsGuidance) {
             destinations.push({
                 name: 'Adventure Portal',
                 icon: '⭐',
@@ -4771,17 +4791,6 @@ class GameScene extends Phaser.Scene {
                 y: this.hubPortal.y,
                 color: 0x9370DB,
                 description: 'Enter levels'
-            });
-        }
-
-        if (this.shop) {
-            destinations.push({
-                name: 'Cosmic Shop',
-                icon: '🏪',
-                x: this.shop.x,
-                y: this.shop.y,
-                color: 0xFFD700,
-                description: 'Buy eggs & items'
             });
         }
 
@@ -4793,30 +4802,15 @@ class GameScene extends Phaser.Scene {
                 y: this.villageHeartLandmark.zone.y,
                 color: 0x71E6B1,
                 description: 'Plan the shared settlement',
-                showMarker: false
+                showMarker: villageNeedsGuidance
             });
         }
 
-        // Add Target Range to navigation
-        if (this.targetRange && this.sanctuaryZones?.zones?.trainingGrounds) {
-            const zone = this.sanctuaryZones.zones.trainingGrounds;
-            destinations.push({
-                name: 'Target Range',
-                icon: '🎯',
-                x: zone.center.x,
-                y: zone.center.y,
-                color: 0xFF6B6B,
-                description: 'Practice shooting'
-            });
-        }
-
-        // Create glowing path trails and floating markers for each destination
-        destinations.forEach((dest, index) => {
-            this.createGlowingPath(centerX, centerY, dest.x, dest.y, dest.color);
-            if (dest.showMarker !== false) {
-                this.createFloatingMarker(dest);
-            }
-        });
+        // Physical district paths now carry wayfinding. Floating callouts only
+        // identify the first two global anchors, or the newly awakened Heart.
+        destinations
+            .filter(dest => dest.showMarker !== false)
+            .forEach(dest => this.createFloatingMarker(dest));
 
         console.log(`[GameScene] Navigation paths created for ${destinations.length} destinations`);
     }
@@ -4892,25 +4886,13 @@ class GameScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(101);
 
-        // Floating animation
+        // One arrival flare establishes the landmark without permanent motion.
+        [glow, icon, label].forEach(element => element.setAlpha(0));
         this.tweens.add({
             targets: [glow, icon, label],
-            y: '-=10',
-            duration: 2000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-
-        // Glow pulsing
-        this.tweens.add({
-            targets: glow,
-            alpha: { from: 0.2, to: 0.5 },
-            scale: { from: 1, to: 1.3 },
-            duration: 1500,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
+            alpha: 1,
+            duration: 420,
+            ease: 'Cubic.easeOut'
         });
 
         // Store for cleanup
@@ -7883,14 +7865,26 @@ class GameScene extends Phaser.Scene {
             this.nearShop = true;
             console.log('[GameScene] Player near shop - showing interaction hint');
 
-            // Show shop entry hint
-            this.showInteractionHint('Press SPACE to visit the Cozy Cosmic Boutique');
-
-            // Update mobile interact button icon to shop
-            if (this.mobileControls) {
-                this.mobileControls.updateInteractIcon('🏪');
-            }
+            this.offerSanctuaryInteraction({
+                id: 'shop',
+                target: shop,
+                message: 'Press SPACE · Visit the Cosmic Shop',
+                icon: '🛍',
+                tone: 0xF2C14E,
+                priority: 20,
+                action: () => this.enterShop()
+            });
         }
+    }
+
+    offerSanctuaryInteraction(candidate) {
+        if (this.currentBiome !== 'nebula') return null;
+        return this.sanctuaryInteractionDirector?.offer(candidate) || null;
+    }
+
+    withdrawSanctuaryInteraction(id) {
+        if (this.currentBiome !== 'nebula') return null;
+        return this.sanctuaryInteractionDirector?.withdraw(id) || null;
     }
 
     enterShop() {
@@ -7919,6 +7913,7 @@ class GameScene extends Phaser.Scene {
 
         // Reset nearShop flag before entering
         this.nearShop = false;
+        this.withdrawSanctuaryInteraction('shop');
 
         // Save current player position before entering shop
         getGameState().set('world.lastPosition', {
@@ -7941,39 +7936,15 @@ class GameScene extends Phaser.Scene {
             this.nearHubPortal = true;
             console.log('[GameScene] Player near Hub Portal');
 
-            this.showInteractionHint('Press SPACE to travel to other worlds ⭐');
-
-            if (this.mobileControls) {
-                this.mobileControls.updateInteractIcon('⭐');
-            }
-
-            // Add mystical pulsing visual indicator around the hub gate
-            if (!this.portalIndicator && portal) {
-                this.portalIndicator = this.add.graphics();
-                this.portalIndicator.setDepth(portal.depth - 1);
-
-                const pulseAnim = this.tweens.add({
-                    targets: { scale: 1 },
-                    scale: 1.15,
-                    duration: 1500,
-                    yoyo: true,
-                    repeat: -1,
-                    ease: 'Sine.easeInOut',
-                    onUpdate: (tween, target) => {
-                        if (this.portalIndicator && portal) {
-                            this.portalIndicator.clear();
-                            // Mystical purple/cyan glow
-                            this.portalIndicator.lineStyle(3, 0x9370DB, 0.5);
-                            const radius = 90 * target.scale;
-                            this.portalIndicator.strokeCircle(portal.x, portal.y, radius);
-                            // Inner glow
-                            this.portalIndicator.lineStyle(2, 0x00CED1, 0.4);
-                            this.portalIndicator.strokeCircle(portal.x, portal.y, radius * 0.75);
-                        }
-                    }
-                });
-                this.portalPulseAnim = pulseAnim;
-            }
+            this.offerSanctuaryInteraction({
+                id: 'hubPortal',
+                target: portal,
+                message: 'Press SPACE · Begin an expedition',
+                icon: '⭐',
+                tone: 0xBFA6FF,
+                priority: 35,
+                action: () => this.enterHubWorld()
+            });
         }
     }
 
@@ -7985,39 +7956,15 @@ class GameScene extends Phaser.Scene {
             this.nearCampfire = true;
             console.log('[GameScene] Player near Campfire');
 
-            this.showInteractionHint('Press SPACE to rest by the fire 🔥');
-
-            if (this.mobileControls) {
-                this.mobileControls.updateInteractIcon('🔥');
-            }
-
-            // Add warm glow indicator around campfire
-            if (!this.campfireIndicator && campfire) {
-                this.campfireIndicator = this.add.graphics();
-                this.campfireIndicator.setDepth(campfire.depth - 1);
-
-                const glowAnim = this.tweens.add({
-                    targets: { intensity: 1 },
-                    intensity: 1.2,
-                    duration: 1000,
-                    yoyo: true,
-                    repeat: -1,
-                    ease: 'Sine.easeInOut',
-                    onUpdate: (tween, target) => {
-                        if (this.campfireIndicator && campfire) {
-                            this.campfireIndicator.clear();
-                            // Warm orange glow
-                            this.campfireIndicator.lineStyle(3, 0xFF6600, 0.4 * target.intensity);
-                            const radius = 60 * target.intensity;
-                            this.campfireIndicator.strokeCircle(campfire.x, campfire.y, radius);
-                            // Inner warm glow
-                            this.campfireIndicator.lineStyle(2, 0xFFAA00, 0.3 * target.intensity);
-                            this.campfireIndicator.strokeCircle(campfire.x, campfire.y, radius * 0.6);
-                        }
-                    }
-                });
-                this.campfireGlowAnim = glowAnim;
-            }
+            this.offerSanctuaryInteraction({
+                id: 'campfire',
+                target: campfire,
+                message: 'Press SPACE · Rest together',
+                icon: '🔥',
+                tone: 0xF2C14E,
+                priority: 28,
+                action: () => this.startCampfireRest()
+            });
         }
     }
 
@@ -8049,9 +7996,15 @@ class GameScene extends Phaser.Scene {
             snapshot
         );
         if (this.nearFusionPod) {
-            this.showInteractionHint(
-                `Press SPACE · ${snapshot.interactionLabel}`
-            );
+            this.offerSanctuaryInteraction({
+                id: 'fusionPod',
+                target: this.fusionPodLandmark?.zone,
+                message: `Press SPACE · ${snapshot.interactionLabel}`,
+                icon: '🧬',
+                tone: snapshot.tone === 'ready' ? 0x71E6B1 : 0xF2C14E,
+                priority: 24,
+                action: () => this.openFusionPod()
+            });
         }
         return snapshot;
     }
@@ -8062,38 +8015,14 @@ class GameScene extends Phaser.Scene {
         this.nearFusionPod = true;
         const snapshot = this.refreshFusionPodWorldLandmark() ||
             this.getFusionPodWorldSnapshot();
-        this.showInteractionHint(
-            `Press SPACE · ${snapshot.interactionLabel}`
-        );
-        this.mobileControls?.updateInteractIcon('🧬');
-
-        const zone = this.fusionPodLandmark?.zone;
-        if (!zone || this.fusionPodIndicator) return;
-        this.fusionPodIndicator = this.add.graphics();
-        this.fusionPodIndicator.setDepth((zone.depth || zone.y) - 1);
-        this.fusionPodIndicatorTween = this.tweens.add({
-            targets: { scale: 1 },
-            scale: 1.1,
-            duration: 1150,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut',
-            onUpdate: (_tween, target) => {
-                if (!this.fusionPodIndicator || !zone.active) return;
-                this.fusionPodIndicator.clear();
-                this.fusionPodIndicator.lineStyle(
-                    3,
-                    snapshot.tone === 'ready'
-                        ? 0x71E6B1
-                        : 0xF2C14E,
-                    0.5
-                );
-                this.fusionPodIndicator.strokeCircle(
-                    zone.x,
-                    zone.y,
-                    72 * target.scale
-                );
-            }
+        this.offerSanctuaryInteraction({
+            id: 'fusionPod',
+            target: this.fusionPodLandmark?.zone,
+            message: `Press SPACE · ${snapshot.interactionLabel}`,
+            icon: '🧬',
+            tone: snapshot.tone === 'ready' ? 0x71E6B1 : 0xF2C14E,
+            priority: 24,
+            action: () => this.openFusionPod()
         });
     }
 
@@ -8113,32 +8042,14 @@ class GameScene extends Phaser.Scene {
                     : community.complete
                         ? 'Tend the Living Commons'
                         : 'Tend garden';
-        this.showInteractionHint(`Press SPACE · ${action}`);
-        this.mobileControls?.updateInteractIcon('🌱');
-
-        const gardenZone = this.signalGarden?.zone;
-        if (!gardenZone || this.signalGardenIndicator) return;
-
-        this.signalGardenIndicator = this.add.graphics();
-        this.signalGardenIndicator.setDepth((gardenZone.depth || gardenZone.y) - 1);
-        this.signalGardenIndicatorTween = this.tweens.add({
-            targets: { scale: 1 },
-            scale: 1.12,
-            duration: 1300,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut',
-            onUpdate: (tween, target) => {
-                if (!this.signalGardenIndicator || !gardenZone.active) return;
-                this.signalGardenIndicator.clear();
-                this.signalGardenIndicator.lineStyle(3, 0x71E6B1, 0.42);
-                this.signalGardenIndicator.strokeEllipse(
-                    gardenZone.x,
-                    gardenZone.y + 4,
-                    190 * target.scale,
-                    92 * target.scale
-                );
-            }
+        this.offerSanctuaryInteraction({
+            id: 'signalGarden',
+            target: this.signalGarden?.zone,
+            message: `Press SPACE · ${action}`,
+            icon: '🌱',
+            tone: 0x71E6B1,
+            priority: 32,
+            action: () => this.tendSignalGarden()
         });
     }
 
@@ -8155,16 +8066,18 @@ class GameScene extends Phaser.Scene {
             markVillageGuidanceSeen(window.GameState);
         }
         const nextAction = snapshot.worldState?.nextAction;
-        this.showInteractionHint(
-            this.getVillageHeartInteractionPrompt(snapshot, {
+        this.offerSanctuaryInteraction({
+            id: 'villageHeart',
+            target: this.villageHeartLandmark?.zone,
+            message: this.getVillageHeartInteractionPrompt(snapshot, {
                 includeGuidance: needsGuidance,
                 touchControlsVisible
             }),
-            { persistent: true }
-        );
-        this.mobileControls?.updateInteractIcon(
-            nextAction?.type === 'decision' ? '?' : '🏗'
-        );
+            icon: nextAction?.type === 'decision' ? '?' : '🏗',
+            tone: nextAction?.type === 'decision' ? 0xF2C14E : 0x71E6B1,
+            priority: 48,
+            action: () => this.openVillageCommand()
+        });
         const memoryPlayed = this.maybePlayVillageHeartMemory(snapshot);
         const quietArrival = ['review', 'supplies'].includes(nextAction?.type);
         if (!memoryPlayed && quietArrival) {
@@ -8212,6 +8125,7 @@ class GameScene extends Phaser.Scene {
         if (!this.villageHeartLandmark || !this.worldBuilder) return false;
         const nextMode = active ? 'story' : this.nearVillageHeart ? 'action' : 'ambient';
         this.sanctuaryPresentationMode = nextMode;
+        this.sanctuaryInteractionDirector?.update({ force: true });
         this.worldBuilder.setVillageFocusMode(
             this.villageHeartLandmark,
             active || this.nearVillageHeart,
@@ -13642,9 +13556,20 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    showInteractionHint(message, { persistent = false } = {}) {
+    showInteractionHint(
+        message,
+        { persistent = false, ownerId = null, force = false } = {}
+    ) {
         if (!this.interactionText?.active) return;
         const isProximityPrompt = persistent || /^\s*Press SPACE\b/i.test(message);
+        if (
+            !force &&
+            isProximityPrompt &&
+            this.sanctuaryPromptOwnerId &&
+            ownerId !== this.sanctuaryPromptOwnerId
+        ) {
+            return;
+        }
         const touchControlsActive = Boolean(
             this.hasVisibleTouchControls() ||
             this.mobileHUD?.isVisible ||
@@ -13729,6 +13654,13 @@ class GameScene extends Phaser.Scene {
             this.companionEarthMemoryModal?.isVisible ||
             this.currentVeilModal?.isVisible ||
             this.villageCommandPanel?.domElement
+        ) {
+            return;
+        }
+
+        if (
+            this.currentBiome === 'nebula' &&
+            this.sanctuaryInteractionDirector?.activate()
         ) {
             return;
         }
@@ -14276,7 +14208,8 @@ class GameScene extends Phaser.Scene {
                 if (distance > this.getInteractionDistance('shop').clear) {
                     console.log('[GameScene] Player moved away from shop, distance:', distance);
                     this.nearShop = false;
-                    this.hideInteractionHint();
+                    const replacement = this.withdrawSanctuaryInteraction('shop');
+                    if (!replacement) this.hideInteractionHint();
 
                     // Reset mobile interact button icon to default
                     if (this.mobileControls && !this.nearbyFlower) {
@@ -14300,7 +14233,8 @@ class GameScene extends Phaser.Scene {
                 if (distance > this.getInteractionDistance('hubPortal').clear) {
                     console.log('[GameScene] Player moved away from hub portal, distance:', distance);
                     this.nearHubPortal = false;
-                    this.hideInteractionHint();
+                    const replacement = this.withdrawSanctuaryInteraction('hubPortal');
+                    if (!replacement) this.hideInteractionHint();
 
                     // Clean up portal indicator
                     if (this.portalIndicator) {
@@ -14382,7 +14316,8 @@ class GameScene extends Phaser.Scene {
                 if (distance > this.getInteractionDistance('campfire').clear) {
                     console.log('[GameScene] Player moved away from campfire, distance:', distance);
                     this.nearCampfire = false;
-                    this.hideInteractionHint();
+                    const replacement = this.withdrawSanctuaryInteraction('campfire');
+                    if (!replacement) this.hideInteractionHint();
 
                     // Clean up campfire indicator
                     if (this.campfireIndicator) {
@@ -14417,7 +14352,8 @@ class GameScene extends Phaser.Scene {
                 if (distance > this.getInteractionDistance('signalGarden').clear) {
                     console.log('[GameScene] Player moved away from Signal Garden, distance:', distance);
                     this.nearSignalGarden = false;
-                    this.hideInteractionHint();
+                    const replacement = this.withdrawSanctuaryInteraction('signalGarden');
+                    if (!replacement) this.hideInteractionHint();
                     this.signalGardenIndicatorTween?.stop();
                     this.signalGardenIndicatorTween = null;
                     this.signalGardenIndicator?.destroy();
@@ -14457,7 +14393,8 @@ class GameScene extends Phaser.Scene {
                 if (distance > this.getInteractionDistance('villageHeart').clear) {
                     this.nearVillageHeart = false;
                     this.updateSanctuaryFocusMode(false);
-                    this.hideInteractionHint();
+                    const replacement = this.withdrawSanctuaryInteraction('villageHeart');
+                    if (!replacement) this.hideInteractionHint();
                     if (
                         this.mobileControls &&
                         !this.nearbyFlower &&
@@ -14496,7 +14433,8 @@ class GameScene extends Phaser.Scene {
                         distance
                     );
                     this.nearFusionPod = false;
-                    this.hideInteractionHint();
+                    const replacement = this.withdrawSanctuaryInteraction('fusionPod');
+                    if (!replacement) this.hideInteractionHint();
                     this.fusionPodIndicatorTween?.stop?.();
                     this.fusionPodIndicatorTween = null;
                     this.fusionPodIndicator?.destroy?.();
@@ -14622,6 +14560,7 @@ class GameScene extends Phaser.Scene {
 
         // Check target range proximity (zone-based check)
         this.checkTargetRangeProximity();
+        this.sanctuaryInteractionDirector?.update();
 
         // Handle care keys (only if care system is available)
         if (this.carePanelManager) {
@@ -16415,6 +16354,9 @@ class GameScene extends Phaser.Scene {
         this.villageReconcileTimer = null;
         this.villageHeartLandmark = null;
         this.nearVillageHeart = false;
+        this.sanctuaryInteractionDirector?.destroy?.();
+        this.sanctuaryInteractionDirector = null;
+        this.sanctuaryPromptOwnerId = null;
         this.villageCommunityMomentIndex = 0;
         this.lastVillageCommunityMomentAt = 0;
         this.villageHeartMemoryIndex = 0;

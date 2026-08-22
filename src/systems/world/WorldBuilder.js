@@ -15,6 +15,10 @@ import {
     VILLAGE_PLOTS,
     VILLAGE_WORLD_ARTWORK
 } from '../VillageSettlement.js';
+import {
+    SANCTUARY_FLORA_PLACEMENTS,
+    SANCTUARY_WORLD_ART
+} from './SanctuaryWorldArt.js';
 
 /**
  * WorldBuilder - Creates biome-specific game world environments
@@ -122,6 +126,7 @@ class WorldBuilder {
     createSanctuaryLandmarks() {
         const physics = this.scene.physics;
         const landmarks = this.sanctuaryZones.landmarks;
+        const sanctuaryDistricts = this.createSanctuaryDistrictEnvironment();
 
         // Create crashed ship (futuristic spacecraft, 220x160 texture - horizontal layout)
         this.graphicsEngine.createCrashedShip();
@@ -263,8 +268,165 @@ class WorldBuilder {
             villageHeartLandmark,
             sanctuaryKeepsakes,
             kinshipBeacon,
-            fusionPodLandmark
+            fusionPodLandmark,
+            sanctuaryDistricts
         };
+    }
+
+    createSanctuaryDistrictEnvironment() {
+        const zones = this.sanctuaryZones.zones;
+        const landmarks = this.sanctuaryZones.landmarks;
+        const terrain = this.scene.add.graphics()
+            .setDepth(-24)
+            .setData('sanctuaryDistrictTerrain', true);
+        const routes = this.scene.add.graphics()
+            .setDepth(-23)
+            .setData('sanctuaryPhysicalRoutes', true);
+
+        const drawOrganicPad = (zone, colors, scale = 1) => {
+            const { center, bounds } = zone;
+            const width = bounds.width * scale;
+            const height = bounds.height * scale;
+            terrain.fillStyle(colors.shadow, 0.22);
+            terrain.fillEllipse(center.x + 10, center.y + 18, width, height * 0.68);
+            terrain.fillStyle(colors.ground, 0.32);
+            terrain.fillEllipse(center.x - width * 0.08, center.y, width * 0.82, height * 0.56);
+            terrain.fillEllipse(
+                center.x + width * 0.18,
+                center.y - height * 0.05,
+                width * 0.55,
+                height * 0.45
+            );
+            terrain.lineStyle(2, colors.edge, 0.22);
+            terrain.strokeEllipse(center.x, center.y, width * 0.88, height * 0.58);
+        };
+
+        drawOrganicPad(zones.crashSite, {
+            shadow: 0x05090A,
+            ground: 0x293438,
+            edge: 0x8BA3AA
+        }, 1.04);
+        drawOrganicPad(zones.livingArea, {
+            shadow: 0x071411,
+            ground: 0x163B35,
+            edge: 0x71E6B1
+        }, 1.05);
+        drawOrganicPad(zones.shopArea, {
+            shadow: 0x080D0D,
+            ground: 0x263D38,
+            edge: 0xF2C14E
+        }, 0.95);
+        drawOrganicPad(zones.hubGate, {
+            shadow: 0x070912,
+            ground: 0x24233D,
+            edge: 0xBFA6FF
+        }, 1.04);
+        drawOrganicPad(zones.gardenPlot, {
+            shadow: 0x071411,
+            ground: 0x1B4435,
+            edge: 0x8FE3CF
+        }, 1.02);
+        drawOrganicPad(zones.trainingGrounds, {
+            shadow: 0x100A0A,
+            ground: 0x342A2A,
+            edge: 0xD94B4B
+        }, 0.96);
+
+        const routeDefinitions = [
+            [landmarks.crashedShip.position, zones.livingArea.center, 0x90A4AE],
+            [zones.livingArea.center, landmarks.cosmicShop.position, 0xF2C14E],
+            [zones.livingArea.center, landmarks.villageHeart.position, 0x71E6B1],
+            [landmarks.villageHeart.position, landmarks.signalGarden.position, 0x8FE3CF],
+            [landmarks.villageHeart.position, landmarks.hubPortal.position, 0xBFA6FF],
+            [zones.livingArea.center, landmarks.targetRange.position, 0xD94B4B]
+        ];
+        routeDefinitions.forEach(([start, end, accent], routeIndex) => {
+            const midpoint = {
+                x: (start.x + end.x) / 2,
+                y: (start.y + end.y) / 2 + (routeIndex % 2 ? 46 : -38)
+            };
+            const points = Array.from({ length: 28 }, (_, index) => {
+                const t = index / 27;
+                const inverse = 1 - t;
+                return {
+                    x: (inverse * inverse * start.x) +
+                        (2 * inverse * t * midpoint.x) +
+                        (t * t * end.x),
+                    y: (inverse * inverse * start.y) +
+                        (2 * inverse * t * midpoint.y) +
+                        (t * t * end.y)
+                };
+            });
+            const stroke = (width, color, alpha) => {
+                routes.lineStyle(width, color, alpha);
+                routes.beginPath();
+                routes.moveTo(points[0].x, points[0].y);
+                points.slice(1).forEach(point => routes.lineTo(point.x, point.y));
+                routes.strokePath();
+            };
+            stroke(58, 0x07100F, 0.22);
+            stroke(42, 0x1C3532, 0.34);
+            stroke(4, accent, routeIndex < 2 ? 0.18 : 0.28);
+            stroke(1, 0xF4F4F4, 0.16);
+        });
+
+        // Crash scars establish the human arrival without another floating label.
+        const ship = landmarks.crashedShip.position;
+        terrain.lineStyle(8, 0x111A1D, 0.34);
+        [-32, 0, 38].forEach((offset, index) => {
+            terrain.beginPath();
+            terrain.moveTo(ship.x - 120, ship.y + offset);
+            terrain.lineTo(ship.x - 210 - (index * 24), ship.y + offset + 42);
+            terrain.strokePath();
+        });
+
+        // Civic markings make the training district legible without UI chrome.
+        const range = zones.trainingGrounds;
+        [0xD94B4B, 0xF4F4F4, 0x101616, 0x3FAE62].forEach((color, index) => {
+            terrain.fillStyle(color, index === 2 ? 0.34 : 0.42);
+            terrain.fillRect(
+                range.bounds.x + 42 + (index * 36),
+                range.bounds.y + range.bounds.height - 48,
+                24,
+                7
+            );
+        });
+
+        const flora = SANCTUARY_FLORA_PLACEMENTS.flatMap((placement, index) => {
+            const artwork = SANCTUARY_WORLD_ART[placement.artwork];
+            const zone = zones[placement.zone];
+            if (!artwork || !zone || !this.scene.textures.exists(artwork.key)) return [];
+            const x = zone.center.x + placement.offsetX;
+            const y = zone.center.y + placement.offsetY;
+            const image = this.scene.add.image(x, y, artwork.key)
+                .setDisplaySize(
+                    placement.width,
+                    placement.artwork === 'listeningReeds'
+                        ? placement.width * 0.667
+                        : placement.width
+                )
+                .setFlipX(placement.flipX)
+                .setDepth(y - 4)
+                .setAlpha(0.97)
+                .setData('sanctuaryFlora', placement.artwork);
+            image.sanctuaryBaseScaleX = image.scaleX;
+            image.sanctuaryBaseScaleY = image.scaleY;
+            const tween = this.scene.tweens.add({
+                targets: image,
+                alpha: { from: 0.9, to: 0.98 },
+                scaleY: {
+                    from: image.sanctuaryBaseScaleY * 0.992,
+                    to: image.sanctuaryBaseScaleY * 1.008
+                },
+                duration: 2500 + (index * 177),
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            return [{ image, tween }];
+        });
+
+        return { terrain, routes, flora };
     }
 
     createSanctuaryCommons({ signalGarden, villageHeart, hubPortal } = {}) {
@@ -5263,7 +5425,7 @@ class WorldBuilder {
             // The Sanctuary's landmarks and routes carry the visual hierarchy.
             // Atmospheric particles keep it alive without turning scenery into
             // dozens of competing collision silhouettes.
-            nebula: { trees: 8, rocks: 15, flowers: 14 },
+            nebula: { trees: 0, rocks: 0, flowers: 8 },
             stellar_reef: { trees: 0, rocks: 20, flowers: 30 },
             crystal_caves: { trees: 5, rocks: 40, flowers: 15 },
             void_peaks: { trees: 8, rocks: 35, flowers: 10 },

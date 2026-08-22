@@ -47,6 +47,8 @@ describe('Village settlement gameplay contract', () => {
         const zoneSource = read('systems/world/SanctuaryZones.js');
         const worldSource = read('systems/world/WorldBuilder.js');
         const sceneSource = read('scenes/GameScene.js');
+        const parallaxSource = read('systems/ParallaxBiome.js');
+        const biomes = JSON.parse(read('config/biomes.json'));
         const hudSource = read('scenes/controllers/GameSceneHudController.js');
         const kidModeSource = read('systems/KidMode.js');
 
@@ -81,7 +83,9 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain("'Tap the Village Heart · Decide together'");
         expect(sceneSource).toContain("nextAction?.type === 'decision' ? '?' : '🏗'");
         expect(sceneSource).toContain('{ persistent: true }');
-        expect(sceneSource).toContain('showInteractionHint(message, { persistent = false } = {})');
+        expect(sceneSource).toContain('{ persistent = false, ownerId = null, force = false } = {}');
+        expect(sceneSource).toContain('this.sanctuaryInteractionDirector?.activate()');
+        expect(sceneSource).toContain("this.withdrawSanctuaryInteraction('villageHeart')");
         expect(sceneSource).toContain('this.updateSanctuaryFocusMode(true)');
         expect(sceneSource).toContain('this.updateSanctuaryFocusMode(false)');
         expect(sceneSource).toContain('this.applySanctuaryCameraFocus();');
@@ -92,7 +96,17 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain(".setData('sanctuaryNotice', true)");
         expect(sceneSource).toContain('Exploration discoveries earn bonus XP');
         expect(sceneSource).not.toContain('${info.emoji} ${element.toUpperCase()} AFFINITY');
-        expect(worldSource).toContain('nebula: { trees: 8, rocks: 15, flowers: 14 }');
+        expect(worldSource).toContain('nebula: { trees: 0, rocks: 0, flowers: 8 }');
+        expect(worldSource).toContain('createSanctuaryDistrictEnvironment()');
+        expect(worldSource).toContain(".setData('sanctuaryPhysicalRoutes', true)");
+        expect(biomes.nebula.layers.floatingRocks.enabled).toBe(false);
+        expect(biomes.nebula.layers.crystalFlora.enabled).toBe(false);
+        expect(parallaxSource).toContain(
+            'if (this.config.layers.floatingRocks.enabled)'
+        );
+        expect(parallaxSource).toContain(
+            'if (this.config.layers.crystalFlora.enabled)'
+        );
         expect(sceneSource).toContain('this.kidModeHelpContainer?.destroy?.(true)');
         expect(sceneSource).not.toContain('createKidModeStatusBar(this, needsData)');
         expect(hudSource).toContain(".get('debugHud') === '1'");

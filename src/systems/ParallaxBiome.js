@@ -401,6 +401,7 @@ class ParallaxBiomeManager {
 
         return {
             nebulaBackground: {
+                enabled: layers.nebulaBackground?.enabled !== false,
                 parallax: layers.nebulaBackground?.scrollFactor || 0.1,
                 alpha: layers.nebulaBackground?.opacity || 0.6,
                 animate: true,
@@ -408,35 +409,39 @@ class ParallaxBiomeManager {
                 colors: layers.nebulaBackground?.colors || []
             },
             distantStars: {
+                enabled: layers.distantStars?.enabled !== false,
                 parallax: layers.distantStars?.scrollFactor || 0.15,
                 alpha: 0.8,
                 animate: true,
                 speed: 0.1,
-                count: (layers.distantStars?.count || 25) * 4, // 4x more stars
+                count: (layers.distantStars?.count ?? 25) * 4, // 4x more stars
                 colors: layers.distantStars?.colors || []
             },
             floatingRocks: {
+                enabled: layers.floatingRocks?.enabled !== false,
                 parallax: layers.floatingRocks?.scrollFactor || 0.3,
                 alpha: 0.7,
                 animate: true,
                 speed: 0.5,
-                count: layers.floatingRocks?.count || 8,
+                count: layers.floatingRocks?.count ?? 8,
                 colors: layers.floatingRocks?.colors || []
             },
             crystalFlora: {
+                enabled: layers.crystalFlora?.enabled !== false,
                 parallax: layers.crystalFlora?.scrollFactor || 0.6,
                 alpha: 0.9,
                 animate: true,
                 speed: 0.2,
-                count: layers.crystalFlora?.count || 12,
+                count: layers.crystalFlora?.count ?? 12,
                 colors: layers.crystalFlora?.colors || []
             },
             foregroundDust: {
+                enabled: layers.foregroundDust?.enabled !== false,
                 parallax: layers.foregroundDust?.scrollFactor || 0.8,
                 alpha: 0.4,
                 animate: true,
                 speed: 1.2,
-                count: (layers.foregroundDust?.count || 15) * 5, // 5x more dust
+                count: (layers.foregroundDust?.count ?? 15) * 5, // 5x more dust
                 colors: layers.foregroundDust?.colors || []
             }
         };
@@ -497,22 +502,32 @@ class ParallaxBiomeManager {
         console.log(`biome:info [ParallaxBiome] Creating enhanced biome: ${this.currentBiomeId}`);
 
         // Layer 1: Gradient background with shader
-        this.createNebulaBackground();
+        if (this.config.layers.nebulaBackground.enabled) {
+            this.createNebulaBackground();
+        }
 
         // Layer 2: Particle-based stars (GPU accelerated)
-        this.createStarParticles();
+        if (this.config.layers.distantStars.enabled) {
+            this.createStarParticles();
+        }
 
         // Layer 3: Floating rock silhouettes
-        this.createFloatingRocks();
+        if (this.config.layers.floatingRocks.enabled) {
+            this.createFloatingRocks();
+        }
 
         // Layer 4: Biome-specific ambient particles
         this.createAmbientParticles();
 
         // Layer 5: Crystal flora with bioluminescence
-        this.createCrystalFlora();
+        if (this.config.layers.crystalFlora.enabled) {
+            this.createCrystalFlora();
+        }
 
         // Layer 6: Foreground dust particles
-        this.createDustParticles();
+        if (this.config.layers.foregroundDust.enabled) {
+            this.createDustParticles();
+        }
 
         // Optional: Subtle vignette
         if (this.config.effects.vignette.enabled) {

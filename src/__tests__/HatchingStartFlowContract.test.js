@@ -13,6 +13,10 @@ const releaseSmoke = fs.readFileSync(
     path.join(__dirname, '../../scripts/run-browser-smoke.js'),
     'utf8'
 );
+const gameScene = fs.readFileSync(
+    path.join(__dirname, '../scenes/GameScene.js'),
+    'utf8'
+);
 
 describe('Hatching home start flow', () => {
     test('restarts immediately after persisting the first-session state', () => {
@@ -39,6 +43,10 @@ describe('Hatching home start flow', () => {
         expect(source).toContain('createHomeStartFallback()');
         expect(source).toContain("button.dataset.mythicalHomeStart = 'true';");
         expect(source).toContain('this.removeHomeStartFallback();');
+        expect(gameScene).toContain(
+            ".querySelectorAll('[data-mythical-home-start=\"true\"]')"
+        );
+        expect(gameScene).toContain('.forEach(element => element.remove())');
     });
 
     test('blocks a release unless real touches reach the egg across entry viewport classes', () => {
