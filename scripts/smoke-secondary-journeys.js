@@ -11852,17 +11852,44 @@ async function smokeVillageUi(session, exceptions) {
         () => evaluate(session, `Boolean(document.querySelector('.village-command-modal.accepts-input'))`),
         { message: 'Village structure planner route' }
     );
-    const structurePlanner = await evaluate(session, `(() => ({
-        title: document.querySelector('.village-command-title')?.textContent || '',
-        immediateImpact: document.querySelector('.village-building-impact')?.textContent || '',
-        extensionImpact: document.querySelector('.village-building-extension')?.textContent || '',
-        activeBenefit: document.querySelector('.village-next-step')?.textContent || '',
-        activeAction: document.querySelector('.village-construct-action')?.textContent || '',
-        workerCheckInOpen: Boolean(
-            window.mythicalGame.scene.getScene('GameScene')
-                ?.villageHeartLandmark?.activeWorkerCheckIn
-        )
-    }))()`);
+    const structurePlanner = await evaluate(session, `(() => {
+        const rect = selector => {
+            const bounds = document.querySelector(selector)?.getBoundingClientRect();
+            return bounds ? {
+                left: bounds.left,
+                right: bounds.right,
+                top: bounds.top,
+                bottom: bounds.bottom
+            } : null;
+        };
+        const body = document.querySelector('.village-command-body');
+        const resources = document.querySelector('.village-resource-ledger');
+        return {
+            title: document.querySelector('.village-command-title')?.textContent || '',
+            immediateImpact: document.querySelector('.village-building-impact')?.textContent || '',
+            extensionImpact: document.querySelector('.village-building-extension')?.textContent || '',
+            activeBenefit: document.querySelector('.village-next-step')?.textContent || '',
+            activeAction: document.querySelector('.village-construct-action')?.textContent || '',
+            actionBounds: rect('.village-construct-action'),
+            inviteBounds: rect('.village-invite-button'),
+            selectBounds: rect('.village-creature-select'),
+            assignmentControlsBounds: rect('.village-assignment-controls'),
+            assignmentGrid: getComputedStyle(
+                document.querySelector('.village-assignment-row')
+            ).gridTemplateColumns,
+            planBounds: rect('.village-site-plan'),
+            catalogBounds: rect('.village-building-catalog'),
+            resourceColumns: getComputedStyle(resources).gridTemplateColumns
+                .split(' ')
+                .filter(Boolean)
+                .length,
+            scrollTop: body?.scrollTop || 0,
+            workerCheckInOpen: Boolean(
+                window.mythicalGame.scene.getScene('GameScene')
+                    ?.villageHeartLandmark?.activeWorkerCheckIn
+            )
+        };
+    })()`);
     if (
         !structurePlanner.title.includes('FORAGE') ||
         !structurePlanner.immediateImpact.includes('HELPS NOW') ||
@@ -11870,6 +11897,28 @@ async function smokeVillageUi(session, exceptions) {
         !structurePlanner.extensionImpact.includes('UNLOCKS') ||
         !structurePlanner.activeBenefit.includes('+5 happiness') ||
         !structurePlanner.activeAction.includes('FEEDING · +5 HAPPINESS') ||
+        !structurePlanner.actionBounds ||
+        !structurePlanner.inviteBounds ||
+        !structurePlanner.selectBounds ||
+        !structurePlanner.assignmentControlsBounds ||
+        structurePlanner.actionBounds.top < 0 ||
+        structurePlanner.actionBounds.bottom > SMOKE_VIEWPORT_HEIGHT ||
+        structurePlanner.inviteBounds.top < 0 ||
+        structurePlanner.inviteBounds.bottom > SMOKE_VIEWPORT_HEIGHT ||
+        structurePlanner.inviteBounds.right - structurePlanner.inviteBounds.left < 44 ||
+        structurePlanner.inviteBounds.bottom - structurePlanner.inviteBounds.top < 44 ||
+        structurePlanner.selectBounds.right - structurePlanner.selectBounds.left < 88 ||
+        structurePlanner.assignmentControlsBounds.right > SMOKE_VIEWPORT_WIDTH ||
+        structurePlanner.assignmentControlsBounds.left < 0 ||
+        structurePlanner.resourceColumns !== 4 ||
+        structurePlanner.scrollTop !== 0 ||
+        (
+            SMOKE_VIEWPORT_WIDTH <= 600 &&
+            (
+                structurePlanner.planBounds?.top >= structurePlanner.catalogBounds?.top ||
+                structurePlanner.assignmentControlsBounds.bottom > structurePlanner.catalogBounds?.top
+            )
+        ) ||
         structurePlanner.workerCheckInOpen
     ) {
         throw new Error(`Village structure tap did not remain distinct: ${JSON.stringify(structurePlanner)}`);

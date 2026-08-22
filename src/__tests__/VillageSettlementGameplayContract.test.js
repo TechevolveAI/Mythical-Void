@@ -281,6 +281,18 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('requestedPlot?.building?.definitionId');
         expect(source).toContain('const contextualBuilding = selectedPlot?.building');
         expect(source).toContain('ACTIVE · ${contextualBuilding.definition.worldEffectLabel}');
+        const styles = read('styles/main.css');
+        expect(styles).toContain('.village-command-modal.is-contextual .village-resource-ledger');
+        expect(styles).toContain('grid-template-columns: repeat(4, minmax(0, 1fr));');
+        expect(styles).toContain('.village-command-modal.is-contextual .village-command-body {');
+        expect(styles).toContain('flex-direction: column;');
+        expect(styles).toContain('.village-command-modal.is-contextual .village-building-catalog {');
+        expect(styles).toContain('flex: 0 0 auto;');
+        expect(styles).toContain('order: 2;');
+        expect(styles).toContain('.village-command-modal.is-contextual .village-site-plan {');
+        expect(styles).toContain('order: 1;');
+        expect(styles).toContain('.village-command-modal.is-contextual .village-assignment-controls {');
+        expect(styles).toContain('grid-template-columns: minmax(0, 1fr) minmax(88px, auto);');
     });
 
     test('the responsive layout moves to a single scroll surface on mobile', () => {

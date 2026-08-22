@@ -3066,8 +3066,34 @@ body.game-mode {
   }
 
   .village-command-modal.is-contextual .village-resource {
-    min-height: 47px;
-    padding: 6px 8px;
+    min-height: 42px;
+    grid-template-columns: 19px minmax(0, 1fr) auto;
+    gap: 3px;
+    padding: 4px 5px;
+  }
+
+  .village-command-modal.is-contextual .village-resource-ledger {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .village-command-modal.is-contextual .village-resource-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .village-command-modal.is-contextual .village-resource-label {
+    font-size: 7px;
+    line-height: 1.1;
+  }
+
+  .village-command-modal.is-contextual .village-resource-value,
+  .village-command-modal.is-contextual .village-resource-capacity .village-resource-value {
+    grid-column: 3;
+    font-size: 12px;
+  }
+
+  .village-command-modal.is-contextual .village-resource-rate {
+    display: none;
   }
 
   .village-command-modal.is-contextual .village-command-status {
@@ -3077,7 +3103,8 @@ body.game-mode {
   }
 
   .village-command-modal.is-contextual .village-command-body {
-    display: block;
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
     overscroll-behavior: contain;
   }
@@ -3087,6 +3114,8 @@ body.game-mode {
   }
 
   .village-command-modal.is-contextual .village-building-catalog {
+    flex: 0 0 auto;
+    order: 2;
     padding: 10px;
   }
 
@@ -3109,7 +3138,25 @@ body.game-mode {
   }
 
   .village-command-modal.is-contextual .village-site-plan {
+    flex: 0 0 auto;
+    order: 1;
     padding: 10px 10px 14px;
+    border-bottom: 1px solid rgba(244, 244, 244, 0.12);
+  }
+
+  .village-command-modal.is-contextual .village-assignment-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(88px, auto);
+    gap: 8px;
+    width: 100%;
+  }
+
+  .village-command-modal.is-contextual .village-creature-select {
+    width: 100%;
+  }
+
+  .village-command-modal.is-contextual .village-invite-button {
+    min-width: 88px;
   }
 
   .village-command-modal.is-guided {
