@@ -10369,6 +10369,177 @@ async function smokeVillageUi(session, exceptions) {
     }
 
     await evaluate(session, `(() => {
+        window.mythicalGame.scene.getScene('ShopScene')?.exitShop?.();
+        return true;
+    })()`);
+    await waitForScene(session, 'GameScene', 12000);
+    const integratedSetup = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const state = window.GameState;
+        const active = state.get('creature');
+        const companions = [
+            { ...active, id: 'smoke_village_nova', name: 'Nova' },
+            {
+                ...active,
+                id: 'smoke_village_ember',
+                name: 'Ember',
+                genes: {
+                    id: 'smoke_village_ember_genes',
+                    personality: { primary: 'bold' },
+                    cosmicAffinity: { element: 'star' }
+                }
+            },
+            {
+                ...active,
+                id: 'smoke_village_lumen',
+                name: 'Lumen',
+                genes: {
+                    id: 'smoke_village_lumen_genes',
+                    personality: { primary: 'wise' },
+                    cosmicAffinity: { element: 'crystal' }
+                }
+            }
+        ];
+        const completedAt = Date.now() - 120000;
+        state.set('creature', companions[0]);
+        state.set('creatures', companions);
+        state.set('world.village', {
+            schemaVersion: 3,
+            foundedAt: completedAt,
+            starterSuppliesClaimed: true,
+            guidanceSeen: true,
+            resources: { wood: 24, stone: 26, food: 30 },
+            lifetimeProduced: { wood: 6, stone: 6, food: 6 },
+            heartDecisions: [],
+            buildings: [
+                ['forager_hut', 'root_01', companions[0].id],
+                ['sawmill', 'root_02', companions[1].id],
+                ['current_masonry', 'root_03', companions[2].id]
+            ].map(([definitionId, plotId, assignedCreatureId]) => ({
+                definitionId,
+                plotId,
+                status: 'complete',
+                startedAt: completedAt - 10000,
+                completesAt: completedAt,
+                completedAt,
+                assignedCreatureId,
+                lastProductionAt: completedAt,
+                totalProduced: 6
+            })),
+            history: [],
+            lastReconciledAt: completedAt
+        });
+        state.set('world.signalGarden.stage', 'bloom');
+        state.save();
+        scene.refreshVillageSettlementWorld(null, { force: true });
+        scene.worldBuilder.refreshSignalGarden(scene.signalGarden, 'bloom');
+        const approachX = scene.villageHeartLandmark.zone.x;
+        const approachY = scene.villageHeartLandmark.zone.y - 110;
+        scene.physics.pause();
+        scene.player.setPosition(approachX, approachY);
+        scene.player.body?.reset?.(approachX, approachY);
+        scene.cameras.main.stopFollow();
+        scene.cameras.main.centerOn(
+            scene.villageHeartLandmark.zone.x,
+            scene.villageHeartLandmark.zone.y
+        );
+        scene.handleVillageHeartProximity();
+        return {
+            worldWidth: scene.worldWidth,
+            worldHeight: scene.worldHeight,
+            targetCount: scene.targetRange?.allTargets?.length || 0
+        };
+    })()`);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            return scene?.villageHeartLandmark?.plotHitZones?.length === 5 &&
+                scene?.villageHeartLandmark?.workerElements?.length === 3;
+        })()`),
+        { message: 'Integrated Sanctuary district' }
+    );
+    await delay(350);
+    const integratedWorld = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const camera = scene.cameras.main;
+        const landmark = scene.villageHeartLandmark;
+        const toScreen = (x, y) => ({
+            x: (x - camera.worldView.x) * camera.zoom,
+            y: (y - camera.worldView.y) * camera.zoom
+        });
+        const commons = scene.sanctuaryCommons;
+        const garden = toScreen(scene.signalGarden.zone.x, scene.signalGarden.zone.y);
+        const heart = toScreen(landmark.zone.x, landmark.zone.y);
+        const plots = [...landmark.plotWorldPositions.entries()].map(([plotId, position]) => ({
+            plotId,
+            ...toScreen(position.x, position.y)
+        }));
+        return {
+            world: { width: scene.worldWidth, height: scene.worldHeight },
+            viewport: { width: camera.width, height: camera.height },
+            camera: { x: camera.worldView.x, y: camera.worldView.y },
+            player: toScreen(scene.player.x, scene.player.y),
+            heart,
+            garden,
+            gardenStage: scene.signalGarden.stage,
+            gardenVisible: garden.x >= 0 && garden.x <= camera.width &&
+                garden.y >= 0 && garden.y <= camera.height,
+            plots,
+            plotCount: landmark.plotHitZones.length,
+            workerCount: landmark.workerElements.length,
+            targetCount: scene.targetRange?.allTargets?.length || 0,
+            commons: {
+                terrainActive: commons?.terrain?.active === true,
+                pathActive: commons?.path?.active === true,
+                routeIds: commons?.routes?.map(route => route.id) || [],
+                nodeCount: commons?.nodes?.length || 0,
+                signalCount: commons?.signals?.length || 0,
+                activeSignals: commons?.signals?.filter(signal => signal.active).length || 0,
+                activeTweens: commons?.signalTweens?.filter(tween => tween.isPlaying()).length || 0
+            },
+            interactionHint: scene.interactionText?.text || '',
+            districtTerrainActive: landmark.districtTerrain?.active === true,
+            modalOpen: Boolean(document.querySelector('.village-command-modal'))
+        };
+    })()`);
+    if (
+        integratedSetup.worldWidth !== 2400 ||
+        integratedSetup.worldHeight !== 1800 ||
+        integratedSetup.targetCount !== 8 ||
+        integratedWorld.world.width !== 2400 ||
+        integratedWorld.world.height !== 1800 ||
+        integratedWorld.plotCount !== 5 ||
+        integratedWorld.workerCount !== 3 ||
+        integratedWorld.targetCount !== 8 ||
+        !integratedWorld.commons.terrainActive ||
+        !integratedWorld.commons.pathActive ||
+        integratedWorld.commons.routeIds.join(',') !== 'garden_to_heart,heart_to_portal' ||
+        integratedWorld.commons.nodeCount !== 3 ||
+        integratedWorld.commons.signalCount !== 4 ||
+        integratedWorld.commons.activeSignals !== 4 ||
+        integratedWorld.commons.activeTweens !== 4 ||
+        !integratedWorld.interactionHint.includes('Decide together') ||
+        integratedWorld.gardenStage !== 'bloom' ||
+        !integratedWorld.districtTerrainActive ||
+        integratedWorld.modalOpen ||
+        integratedWorld.plots.some(plot => (
+            plot.x < -1 ||
+            plot.x > integratedWorld.viewport.width + 1 ||
+            plot.y < -1 ||
+            plot.y > integratedWorld.viewport.height + 1
+        )) ||
+        (SMOKE_VIEWPORT_WIDTH > 600 && !integratedWorld.gardenVisible)
+    ) {
+        throw new Error(`Integrated Sanctuary world failed: ${JSON.stringify({ integratedSetup, integratedWorld })}`);
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-integrated-sanctuary-mobile.png'
+            : 'village-integrated-sanctuary-desktop.png'
+    );
+
+    await evaluate(session, `(() => {
         const game = window.mythicalGame;
         game.scene.getScenes(true).forEach(active => {
             game.scene.stop(active.scene.key);
@@ -11021,6 +11192,8 @@ async function smokeVillageUi(session, exceptions) {
 
     return {
         layout,
+        integratedSetup,
+        integratedWorld,
         workerRoute,
         workerCheckIn,
         contextualFocus,

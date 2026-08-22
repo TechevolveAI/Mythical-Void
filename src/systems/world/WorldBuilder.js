@@ -235,6 +235,11 @@ class WorldBuilder {
 
         // Create Target Practice Range
         const targetRange = this.createTargetRange(landmarks.targetRange);
+        const sanctuaryCommons = this.createSanctuaryCommons({
+            signalGarden: landmarks.signalGarden,
+            villageHeart: landmarks.villageHeart,
+            hubPortal: landmarks.hubPortal
+        });
         const signalGarden = this.createSignalGarden(landmarks.signalGarden);
         const villageHeartLandmark = this.createVillageHeart(
             landmarks.villageHeart
@@ -253,12 +258,162 @@ class WorldBuilder {
             voidPortal,
             campfire,
             targetRange,
+            sanctuaryCommons,
             signalGarden,
             villageHeartLandmark,
             sanctuaryKeepsakes,
             kinshipBeacon,
             fusionPodLandmark
         };
+    }
+
+    createSanctuaryCommons({ signalGarden, villageHeart, hubPortal } = {}) {
+        const garden = signalGarden?.position;
+        const heart = villageHeart?.position;
+        const portal = hubPortal?.position;
+        if (!garden || !heart || !portal) return null;
+
+        const baseDepth = Math.min(garden.y, heart.y, portal.y) - 64;
+        const terrain = this.scene.add.graphics()
+            .setDepth(baseDepth)
+            .setData('sanctuaryCommons', true);
+        const routes = [
+            {
+                id: 'garden_to_heart',
+                start: garden,
+                control: {
+                    x: (garden.x + heart.x) / 2,
+                    y: Math.min(garden.y, heart.y) - 82
+                },
+                end: heart,
+                color: 0x71E6B1
+            },
+            {
+                id: 'heart_to_portal',
+                start: heart,
+                control: {
+                    x: (heart.x + portal.x) / 2,
+                    y: Math.max(heart.y, portal.y) + 88
+                },
+                end: portal,
+                color: 0x8FE3CF
+            }
+        ];
+        const path = this.scene.add.graphics()
+            .setDepth(baseDepth + 8)
+            .setData('sanctuaryCurrentRoutes', routes.map(route => route.id));
+        const pointOnRoute = (route, progress) => {
+            const inverse = 1 - progress;
+            return {
+                x: (inverse * inverse * route.start.x) +
+                    (2 * inverse * progress * route.control.x) +
+                    (progress * progress * route.end.x),
+                y: (inverse * inverse * route.start.y) +
+                    (2 * inverse * progress * route.control.y) +
+                    (progress * progress * route.end.y)
+            };
+        };
+        routes.forEach((route, routeIndex) => {
+            const points = Array.from({ length: 25 }, (_, index) => (
+                pointOnRoute(route, index / 24)
+            ));
+            const strokeGround = (width, color, alpha) => {
+                terrain.lineStyle(width, color, alpha);
+                terrain.beginPath();
+                terrain.moveTo(points[0].x, points[0].y);
+                points.slice(1).forEach(point => terrain.lineTo(point.x, point.y));
+                terrain.strokePath();
+            };
+            strokeGround(54, 0x071411, routeIndex === 0 ? 0.12 : 0.1);
+            strokeGround(34, routeIndex === 0 ? 0x173D36 : 0x12352F, 0.2);
+            [0.18, 0.42, 0.67, 0.86].forEach((progress, detailIndex) => {
+                const detail = pointOnRoute(route, progress);
+                terrain.fillStyle(
+                    detailIndex % 2 ? 0x3FAE62 : 0x8FE3CF,
+                    detailIndex % 2 ? 0.14 : 0.1
+                );
+                terrain.fillEllipse(
+                    detail.x + (detailIndex % 2 ? 9 : -7),
+                    detail.y + (detailIndex % 2 ? 6 : -5),
+                    detailIndex % 2 ? 18 : 11,
+                    detailIndex % 2 ? 7 : 5
+                );
+            });
+        });
+        routes.forEach(route => {
+            const points = Array.from({ length: 25 }, (_, index) => (
+                pointOnRoute(route, index / 24)
+            ));
+            const stroke = (width, color, alpha) => {
+                path.lineStyle(width, color, alpha);
+                path.beginPath();
+                path.moveTo(points[0].x, points[0].y);
+                points.slice(1).forEach(point => path.lineTo(point.x, point.y));
+                path.strokePath();
+            };
+            stroke(9, 0x071411, 0.2);
+            stroke(3, route.color, 0.28);
+            stroke(1, 0xF4F4F4, 0.34);
+        });
+        path.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const nodes = [garden, heart, portal].map((position, index) => {
+            const node = this.scene.add.graphics()
+                .setPosition(position.x, position.y)
+                .setDepth(baseDepth + 10)
+                .setData('sanctuaryCurrentNode', index);
+            node.fillStyle(0x071411, 0.86);
+            node.fillCircle(0, 0, index === 1 ? 12 : 9);
+            node.lineStyle(2, index === 1 ? 0xF2C14E : 0x71E6B1, 0.84);
+            node.strokeCircle(0, 0, index === 1 ? 10 : 7);
+            node.fillStyle(0xF4F4F4, 0.9);
+            node.fillCircle(0, 0, 2);
+            node.setBlendMode?.(Phaser.BlendModes.ADD);
+            return node;
+        });
+
+        const signals = [];
+        const signalTweens = [];
+        routes.forEach((route, routeIndex) => {
+            [0, 1].forEach(signalIndex => {
+                const signal = this.scene.add.circle(
+                    route.start.x,
+                    route.start.y,
+                    signalIndex === 0 ? 3 : 2,
+                    route.color,
+                    0.78
+                ).setDepth(baseDepth + 11)
+                    .setData('sanctuaryCurrentSignal', route.id);
+                signal.setBlendMode?.(Phaser.BlendModes.ADD);
+                const progress = { value: 0 };
+                const tween = this.scene.tweens.add({
+                    targets: progress,
+                    value: 1,
+                    delay: (routeIndex * 420) + (signalIndex * 1250),
+                    duration: 3400 + (routeIndex * 500),
+                    repeat: -1,
+                    ease: 'Sine.easeInOut',
+                    onUpdate: () => {
+                        const point = pointOnRoute(route, progress.value);
+                        signal.setPosition(point.x, point.y);
+                        signal.setAlpha(0.2 + Math.sin(progress.value * Math.PI) * 0.58);
+                    }
+                });
+                signals.push(signal);
+                signalTweens.push(tween);
+            });
+        });
+
+        const commons = {
+            terrain,
+            path,
+            nodes,
+            signals,
+            signalTweens,
+            routes
+        };
+        this.sanctuaryCommons = commons;
+        return commons;
     }
 
     createVillageHeart(landmarkData, snapshotOverride = null) {
@@ -4829,6 +4984,12 @@ class WorldBuilder {
     }
 
     destroy() {
+        this.sanctuaryCommons?.signalTweens?.forEach(tween => tween?.stop?.());
+        this.sanctuaryCommons?.signals?.forEach(signal => signal?.destroy?.());
+        this.sanctuaryCommons?.nodes?.forEach(node => node?.destroy?.());
+        this.sanctuaryCommons?.path?.destroy?.();
+        this.sanctuaryCommons?.terrain?.destroy?.();
+        this.sanctuaryCommons = null;
         this.villageHeart?.pulseTween?.stop?.();
         this.villageHeart?.heartArtworkTween?.stop?.();
         this.villageHeart?.buildingTweens?.forEach(tween => tween?.stop?.());

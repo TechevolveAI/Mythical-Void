@@ -1044,6 +1044,7 @@ class GameScene extends Phaser.Scene {
             this.voidPortal = worldPieces.voidPortal || null;
             this.campfire = worldPieces.campfire || null;
             this.signalGarden = worldPieces.signalGarden || null;
+            this.sanctuaryCommons = worldPieces.sanctuaryCommons || null;
             this.villageHeartLandmark =
                 worldPieces.villageHeartLandmark || null;
             this.fusionPodLandmark =
@@ -7983,9 +7984,28 @@ class GameScene extends Phaser.Scene {
         if (needsGuidance) {
             markVillageGuidanceSeen(window.GameState);
         }
-        const openAction = this.mobileControls
-            ? 'Tap a build site or use BUILD · Open Village Builder'
-            : 'Press SPACE or click a build site · Open Village Builder';
+        const nextAction = snapshot.worldState?.nextAction;
+        const targetPlot = snapshot.plots?.find(plot => plot.id === nextAction?.plotId);
+        const actionPrompts = {
+            decision: this.mobileControls
+                ? 'Tap the Village Heart · Decide together'
+                : 'Press SPACE at the Heart · Decide together',
+            build: this.mobileControls
+                ? `Tap ${targetPlot?.label || 'the highlighted foundation'} · ${nextAction?.label}`
+                : `Click ${targetPlot?.label || 'the highlighted foundation'} · ${nextAction?.label}`,
+            assign: this.mobileControls
+                ? `Tap ${targetPlot?.label || 'the highlighted structure'} · Invite a helper`
+                : `Click ${targetPlot?.label || 'the highlighted structure'} · Invite a helper`,
+            supplies: `${nextAction?.label || 'Gather supplies'} · The village keeps working`,
+            review: this.mobileControls
+                ? 'Tap the Village Heart · Review your Sanctuary'
+                : 'Press SPACE at the Heart · Review your Sanctuary'
+        };
+        const openAction = actionPrompts[nextAction?.type] || (
+            this.mobileControls
+                ? 'Tap the Village Heart · Open Village Plan'
+                : 'Press SPACE at the Heart · Open Village Plan'
+        );
         this.showInteractionHint(
             snapshot.unlock.unlocked
                 ? needsGuidance
@@ -7993,7 +8013,9 @@ class GameScene extends Phaser.Scene {
                     : openAction
                 : `Village Heart offline · ${snapshot.unlock.reason}`
         );
-        this.mobileControls?.updateInteractIcon('🏗');
+        this.mobileControls?.updateInteractIcon(
+            nextAction?.type === 'decision' ? '?' : '🏗'
+        );
         if (!this.maybePlayVillageHeartMemory(snapshot)) {
             this.maybePlayVillageCommunityMoment(snapshot);
         }

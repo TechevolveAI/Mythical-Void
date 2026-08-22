@@ -51,6 +51,11 @@ describe('Village settlement gameplay contract', () => {
         expect(zoneSource).toContain("villageHeart: {");
         expect(zoneSource).toContain("onInteract: 'openVillageCommand'");
         expect(worldSource).toContain('createVillageHeart(');
+        expect(worldSource).toContain('createSanctuaryCommons({');
+        expect(worldSource).toContain("id: 'garden_to_heart'");
+        expect(worldSource).toContain("id: 'heart_to_portal'");
+        expect(worldSource).toContain(".setData('sanctuaryCommons', true)");
+        expect(worldSource).toContain(".setData('sanctuaryCurrentSignal', route.id)");
         expect(worldSource).toContain('refreshVillageSettlement(');
         expect(worldSource).toContain("zone.on('pointerdown', () => this.activateVillageHeart(landmark))");
         expect(worldSource).toContain("plotHitZone.on('pointerdown', pointer => {");
@@ -58,6 +63,9 @@ describe('Village settlement gameplay contract', () => {
         expect(worldSource).toContain('this.activateVillageHeart(landmark, plot.id);');
         expect(sceneSource).toContain('VILLAGE_HEART_INTERACT_DISTANCE');
         expect(sceneSource).toContain('this.openVillageCommand();');
+        expect(sceneSource).toContain("decision: this.mobileControls");
+        expect(sceneSource).toContain("'Tap the Village Heart · Decide together'");
+        expect(sceneSource).toContain("nextAction?.type === 'decision' ? '?' : '🏗'");
     });
 
     test('the Shop makes the Base Builder the direct, clear construction route', () => {
