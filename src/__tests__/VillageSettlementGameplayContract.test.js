@@ -86,6 +86,7 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain('this.updateSanctuaryFocusMode(false)');
         expect(sceneSource).toContain('this.applySanctuaryCameraFocus();');
         expect(sceneSource).toContain('this.restorePlayerCameraFollow();');
+        expect(sceneSource).toContain('this.worldBuilder?.setVillageFocusMode?.(');
         expect(sceneSource).toContain('firstContactActive || this.sanctuaryFocusModeActive');
         expect(sceneSource).toContain('this.dismissCosmicAffinityNotice();');
         expect(sceneSource).toContain(".setData('sanctuaryNotice', true)");
@@ -311,6 +312,10 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain(".setData('direction', isDelivery ? 'to_heart' : 'to_plot')");
         expect(world).toContain(".setData('resource', resource)");
         expect(world).toContain(".setData('worldEffectLabel', definition?.worldEffectLabel || null)");
+        expect(world).toContain('setVillageFocusMode(landmark, active');
+        expect(world).toContain(".setData('villageFocusPriority', priority)");
+        expect(world).toContain(".setData('villageFocusPrimary', primary)");
+        expect(world).toContain('const heartDisplaySize = compactSettlement ? 196 : 218;');
     });
 
     test('the local completion preview renders the entire connected settlement', () => {

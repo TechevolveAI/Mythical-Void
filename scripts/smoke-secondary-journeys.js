@@ -10566,6 +10566,18 @@ async function smokeVillageUi(session, exceptions) {
             plotHitBounds,
             cameraFocusTarget: scene.sanctuaryCameraFocusTarget || null,
             cameraFollowingPlayer: camera._follow === scene.player,
+            focusHierarchy: {
+                active: landmark.focusModeActive === true,
+                action: landmark.snapshot?.worldState?.nextAction?.type || null,
+                heartPriority: landmark.heartArtwork?.getData?.('villageFocusPriority'),
+                heartAlpha: landmark.heartArtwork?.alpha,
+                plots: (landmark.plotPresentations || []).map(presentation => ({
+                    plotId: presentation.plotId,
+                    priority: presentation.container?.getData?.('villageFocusPriority'),
+                    alpha: presentation.container?.alpha,
+                    focusRingAlpha: presentation.focusRing?.alpha
+                }))
+            },
             controlDock: Number.isFinite(dockTop) ? {
                 left: 0,
                 right: camera.width,
@@ -10639,6 +10651,16 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.plotCount !== 5 ||
         !integratedWorld.cameraFocusTarget ||
         integratedWorld.cameraFollowingPlayer ||
+        !integratedWorld.focusHierarchy.active ||
+        integratedWorld.focusHierarchy.action !== 'decision' ||
+        integratedWorld.focusHierarchy.heartPriority !== 'primary' ||
+        integratedWorld.focusHierarchy.heartAlpha !== 1 ||
+        integratedWorld.focusHierarchy.plots.length !== 5 ||
+        integratedWorld.focusHierarchy.plots.some(plot => (
+            plot.priority !== 'supporting' ||
+            plot.alpha >= 1 ||
+            plot.focusRingAlpha !== 0
+        )) ||
         (SMOKE_VIEWPORT_WIDTH <= 600 && !integratedWorld.controlDock) ||
         integratedWorld.focusApproachBounds.left < -1 ||
         integratedWorld.focusApproachBounds.right > integratedWorld.viewport.width + 1 ||
@@ -10730,10 +10752,15 @@ async function smokeVillageUi(session, exceptions) {
             ? 'village-integrated-sanctuary-mobile.png'
             : 'village-integrated-sanctuary-desktop.png'
     );
-    const focusRecovery = await evaluate(session, `(() => {
+    await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         scene.updateSanctuaryFocusMode(false);
         scene.hideInteractionHint();
+        return true;
+    })()`);
+    await delay(280);
+    const focusRecovery = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
         return {
             active: scene.sanctuaryFocusModeActive === true,
             statsVisible: scene.statsText?.visible === true,
@@ -10742,7 +10769,15 @@ async function smokeVillageUi(session, exceptions) {
             interactionVisible: scene.interactionText?.visible === true,
             kidStatusBarActive: scene.kidModeStatusBar?.active === true,
             kidHelpActive: scene.kidModeHelpContainer?.active === true,
-            cameraFollowingPlayer: scene.cameras.main._follow === scene.player
+            cameraFollowingPlayer: scene.cameras.main._follow === scene.player,
+            heartPriority: scene.villageHeartLandmark?.heartArtwork
+                ?.getData?.('villageFocusPriority'),
+            plotPriorities: scene.villageHeartLandmark?.plotPresentations?.map(
+                presentation => ({
+                    priority: presentation.container?.getData?.('villageFocusPriority'),
+                    alpha: presentation.container?.alpha
+                })
+            ) || []
         };
     })()`);
     if (
@@ -10753,7 +10788,12 @@ async function smokeVillageUi(session, exceptions) {
         focusRecovery.interactionVisible ||
         focusRecovery.kidStatusBarActive ||
         focusRecovery.kidHelpActive ||
-        !focusRecovery.cameraFollowingPlayer
+        !focusRecovery.cameraFollowingPlayer ||
+        focusRecovery.heartPriority !== 'ambient' ||
+        focusRecovery.plotPriorities.length !== 5 ||
+        focusRecovery.plotPriorities.some(plot => (
+            plot.priority !== 'ambient' || plot.alpha < 0.98
+        ))
     ) {
         throw new Error(`Sanctuary focus did not restore exploration HUD: ${JSON.stringify(focusRecovery)}`);
     }
@@ -11397,6 +11437,14 @@ async function smokeVillageUi(session, exceptions) {
             centralActionText: landmark?.actionLabel?.text || '',
             centralActionAlpha: landmark?.actionLabel?.alpha,
             centralActionInput: landmark?.actionLabel?.input?.enabled === true,
+            heartFocusPriority: landmark?.heartArtwork?.getData?.('villageFocusPriority'),
+            heartFocusAlpha: landmark?.heartArtwork?.alpha,
+            focusHierarchy: landmark?.plotPresentations?.map(presentation => ({
+                plotId: presentation.plotId,
+                priority: presentation.container?.getData?.('villageFocusPriority'),
+                alpha: presentation.container?.alpha,
+                focusRingAlpha: presentation.focusRing?.alpha
+            })) || [],
             text: target.text || ''
         };
     })()`);
@@ -11409,6 +11457,16 @@ async function smokeVillageUi(session, exceptions) {
         buildRoute.centralActionText !== '' ||
         buildRoute.centralActionAlpha !== 0 ||
         buildRoute.centralActionInput ||
+        buildRoute.heartFocusPriority !== 'supporting' ||
+        buildRoute.heartFocusAlpha >= 1 ||
+        buildRoute.focusHierarchy.length !== 5 ||
+        buildRoute.focusHierarchy.filter(plot => plot.priority === 'primary').length !== 1 ||
+        buildRoute.focusHierarchy.find(plot => plot.plotId === 'root_04')?.priority !== 'primary' ||
+        buildRoute.focusHierarchy.find(plot => plot.plotId === 'root_04')?.alpha !== 1 ||
+        buildRoute.focusHierarchy.find(plot => plot.plotId === 'root_04')?.focusRingAlpha <= 0 ||
+        buildRoute.focusHierarchy.filter(plot => plot.plotId !== 'root_04').some(plot => (
+            plot.priority !== 'supporting' || plot.alpha >= 1
+        )) ||
         !buildRoute.text.includes('BUILD HABITAT')
     ) {
         throw new Error(`Village next build route failed: ${JSON.stringify(buildRoute)}`);

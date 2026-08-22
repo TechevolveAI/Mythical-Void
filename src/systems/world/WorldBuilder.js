@@ -485,6 +485,8 @@ class WorldBuilder {
             statusLabel,
             buildingElements: [],
             buildingTweens: [],
+            focusTweens: [],
+            focusModeActive: false,
             plotHitZones: [],
             pulseTween: null,
             heartArtworkTween: null,
@@ -533,12 +535,14 @@ class WorldBuilder {
         landmark.pulseTween?.stop?.();
         landmark.heartArtworkTween?.stop?.();
         landmark.buildingTweens?.forEach(tween => tween?.stop?.());
+        landmark.focusTweens?.forEach(tween => tween?.stop?.());
         this.clearVillageCommunityMoment(landmark);
         this.clearVillageDecisionMoment(landmark);
         this.clearVillageWorkerCheckIn(landmark);
         landmark.buildingElements?.forEach(element => element?.destroy?.(true));
         landmark.plotHitZones?.forEach(zone => zone?.destroy?.());
         landmark.buildingTweens = [];
+        landmark.focusTweens = [];
         landmark.buildingElements = [];
         landmark.plotHitZones = [];
         landmark.workerElements = [];
@@ -564,6 +568,11 @@ class WorldBuilder {
             statusLabel
         } = landmark;
         const compactSettlement = this.scene.scale.width <= 600;
+        if (heartArtwork) {
+            const heartDisplaySize = compactSettlement ? 196 : 218;
+            heartArtwork.setDisplaySize(heartDisplaySize, heartDisplaySize);
+            heartArtwork.villageBaseScale = heartArtwork.scaleX;
+        }
         const plotOffsets = compactSettlement
             ? [
                 { x: -130, y: -174 },
@@ -848,9 +857,9 @@ class WorldBuilder {
                 ? this.scene.add.image(0, compactSettlement ? -20 : -28, worldArtworkDefinition.key)
                     .setDisplaySize(
                         (worldArtworkDefinition.displaySize || 176) *
-                            (compactSettlement ? 0.76 : 1),
+                            (compactSettlement ? 0.72 : 0.92),
                         (worldArtworkDefinition.displaySize || 176) *
-                            (compactSettlement ? 0.76 : 1)
+                            (compactSettlement ? 0.72 : 0.92)
                     )
                 : null;
             drawing.fillStyle(0x102B26, building ? 0.7 : 0.36);
@@ -1118,6 +1127,7 @@ class WorldBuilder {
                 .setData('guided', guidedPlot);
             plotHitZone.on('pointerover', () => {
                 container.setScale(1.06);
+                container.setAlpha(1);
                 focusRing.setAlpha(1);
                 plotLabel.setAlpha(1);
                 stateLabel
@@ -1126,7 +1136,11 @@ class WorldBuilder {
             });
             plotHitZone.on('pointerout', () => {
                 container.setScale(1);
-                focusRing.setAlpha(0);
+                const focusPriority = container.getData('villageFocusPriority');
+                container.setAlpha(
+                    Number(container.getData('villageFocusAlpha')) || 1
+                );
+                focusRing.setAlpha(focusPriority === 'primary' ? 0.82 : 0);
                 plotLabel.setAlpha(plotLabelRestAlpha);
                 stateLabel
                     .setText(buildingStateCopy)
@@ -1158,6 +1172,8 @@ class WorldBuilder {
             landmark.plotHitZones.push(plotHitZone);
             landmark.plotPresentations.push({
                 plotId: plot.id,
+                container,
+                worldArtwork,
                 plotLabel,
                 stateLabel,
                 focusRing,
@@ -1189,6 +1205,80 @@ class WorldBuilder {
         this.createVillageNextActionBeacon(landmark, snapshot, {
             compact: compactSettlement
         });
+        this.setVillageFocusMode(
+            landmark,
+            Boolean(this.scene.sanctuaryFocusModeActive || this.scene.nearVillageHeart),
+            { immediate: true }
+        );
+    }
+
+    setVillageFocusMode(landmark, active, { immediate = false } = {}) {
+        if (!landmark?.zone) return false;
+        landmark.focusTweens?.forEach(tween => tween?.stop?.());
+        landmark.focusTweens = [];
+        landmark.focusModeActive = Boolean(active);
+
+        const action = landmark.snapshot?.worldState?.nextAction || null;
+        const focusPlotId = active && ['build', 'assign'].includes(action?.type)
+            ? action.plotId
+            : null;
+        const heartIsPrimary = Boolean(active && !focusPlotId);
+        const transition = (target, alpha) => {
+            if (!target?.active) return;
+            if (immediate || !this.scene.tweens?.add) {
+                target.setAlpha(alpha);
+                return;
+            }
+            landmark.focusTweens.push(this.scene.tweens.add({
+                targets: target,
+                alpha,
+                duration: 220,
+                ease: 'Sine.easeOut'
+            }));
+        };
+
+        landmark.plotPresentations?.forEach(presentation => {
+            const primary = Boolean(focusPlotId && presentation.plotId === focusPlotId);
+            const priority = !active
+                ? 'ambient'
+                : primary
+                    ? 'primary'
+                    : 'supporting';
+            const alpha = !active || primary
+                ? 1
+                : presentation.plotState === 'constructing'
+                    ? 0.9
+                    : focusPlotId
+                        ? 0.7
+                        : 0.82;
+
+            presentation.container
+                ?.setData('villageFocusPriority', priority)
+                .setData('villageFocusAlpha', alpha)
+                .setData('villageFocusAction', action?.type || null);
+            presentation.focusRing
+                ?.setData('villageFocusPrimary', primary)
+                .setAlpha(primary ? 0.82 : 0);
+            presentation.plotLabel?.setAlpha(
+                primary ? 1 : presentation.plotLabelRestAlpha
+            );
+            transition(presentation.container, alpha);
+        });
+
+        const heartBaseAlpha = landmark.snapshot?.unlock?.unlocked === true ? 1 : 0.52;
+        const heartAlpha = active && focusPlotId
+            ? heartBaseAlpha * 0.88
+            : heartBaseAlpha;
+        landmark.heartArtwork
+            ?.setData('villageFocusPriority', heartIsPrimary ? 'primary' : active ? 'supporting' : 'ambient')
+            .setData('villageFocusAlpha', heartAlpha)
+            .setData('villageFocusAction', action?.type || null);
+        landmark.actionLabel
+            ?.setData('villageFocusPrimary', heartIsPrimary)
+            .setData('villageFocusAction', action?.type || null);
+        transition(landmark.heartArtwork, heartAlpha);
+        transition(landmark.heart, heartAlpha);
+        return true;
     }
 
     createVillagePlotStateMarker({
@@ -5323,6 +5413,7 @@ class WorldBuilder {
         this.villageHeart?.pulseTween?.stop?.();
         this.villageHeart?.heartArtworkTween?.stop?.();
         this.villageHeart?.buildingTweens?.forEach(tween => tween?.stop?.());
+        this.villageHeart?.focusTweens?.forEach(tween => tween?.stop?.());
         this.clearVillageCommunityMoment(this.villageHeart);
         this.clearVillageDecisionMoment(this.villageHeart);
         this.clearVillageWorkerCheckIn(this.villageHeart);

@@ -15246,6 +15246,10 @@ class GameScene extends Phaser.Scene {
         const nextActive = Boolean(active);
         if (this.sanctuaryFocusModeActive === nextActive) return;
         this.sanctuaryFocusModeActive = nextActive;
+        this.worldBuilder?.setVillageFocusMode?.(
+            this.villageHeartLandmark,
+            nextActive
+        );
 
         if (nextActive) {
             this.applySanctuaryCameraFocus();
