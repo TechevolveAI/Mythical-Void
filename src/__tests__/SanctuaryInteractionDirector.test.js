@@ -63,6 +63,7 @@ const createScene = () => ({
     player: { x: 0, y: 0 },
     sanctuaryPresentationMode: 'ambient',
     sanctuaryPromptOwnerId: null,
+    hasVisibleTouchControls: jest.fn(() => false),
     showInteractionHint: jest.fn(),
     hideInteractionHint: jest.fn(),
     mobileControls: { updateInteractIcon: jest.fn() },
@@ -190,6 +191,34 @@ describe('SanctuaryInteractionDirector', () => {
         expect(scene.add.zone).toHaveBeenCalledWith(30, -105.5, 164, 52);
         hitZone.events.get('pointerdown')({ event: { stopPropagation: jest.fn() } });
         expect(action).toHaveBeenCalledTimes(1);
+    });
+
+    it('adapts world prompts between touch and desktop layouts', () => {
+        const scene = createScene();
+        let touchControlsVisible = true;
+        scene.hasVisibleTouchControls.mockImplementation(
+            () => touchControlsVisible
+        );
+        const director = new SanctuaryInteractionDirector(scene);
+
+        director.offer({
+            id: 'shop',
+            target: { x: 30, y: 0, width: 120, height: 80, active: true },
+            message: 'Press SPACE · Visit the Cosmic Shop',
+            verb: 'SHOP',
+            label: 'SUPPLIES & BUILDING',
+            worldPrompt: true
+        });
+
+        expect(director.active.hintMode).toBe('world');
+        expect(scene.hideInteractionHint).toHaveBeenCalledTimes(1);
+        touchControlsVisible = false;
+        director.update({ force: true });
+        expect(director.active.hintMode).toBe('hud');
+        expect(scene.showInteractionHint).toHaveBeenLastCalledWith(
+            'Press SPACE · Visit the Cosmic Shop',
+            { persistent: true, ownerId: 'shop' }
+        );
     });
 
     it('refreshes dynamic landmark presentation without re-offering it', () => {

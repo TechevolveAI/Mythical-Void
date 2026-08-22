@@ -46,9 +46,17 @@ export default class SanctuaryInteractionDirector {
                 const presentation = typeof candidate.presentation === 'function'
                     ? candidate.presentation()
                     : null;
-                return {
+                const resolved = {
                     ...candidate,
-                    ...(presentation || {}),
+                    ...(presentation || {})
+                };
+                if (resolved.worldPrompt === true) {
+                    resolved.hintMode = this.scene?.hasVisibleTouchControls?.()
+                        ? 'world'
+                        : 'hud';
+                }
+                return {
+                    ...resolved,
                     distance: distanceBetween(player, candidate.target)
                 };
             })

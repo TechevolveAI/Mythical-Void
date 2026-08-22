@@ -92,7 +92,7 @@ describe('Village settlement gameplay contract', () => {
         );
         expect(sceneSource).toContain("verb: 'DECIDE'");
         expect(sceneSource).toContain("label: 'TOGETHER'");
-        expect(sceneSource).toContain("hintMode: touchControlsVisible ? 'world' : 'hud'");
+        expect(sceneSource).toContain('worldPrompt: true');
         expect(sceneSource).toContain("nextAction?.type === 'decision' ? '?' : '🏗'");
         expect(sceneSource).toContain('{ persistent: true }');
         expect(sceneSource).toContain('{ persistent = false, ownerId = null, force = false } = {}');
@@ -113,6 +113,17 @@ describe('Village settlement gameplay contract', () => {
         expect(worldSource).toContain(".setData('sanctuaryPhysicalRoutes', true)");
         expect(worldSource).toContain(".setData('sanctuaryRouteProfile', 'living_current_filaments_v3')");
         expect(worldSource).toContain(".setData('sanctuaryRouteMaxWidth', 28)");
+        expect(worldSource).toContain(".setData('sanctuaryDistrictVisualProfile', 'woven_edge_contours_v4')");
+        expect(worldSource).toContain(".setData('sanctuaryDistrictFullZoneFill', false)");
+        expect(worldSource).toContain(".setData('sanctuaryDistrictMaxFillAlpha', 0.08)");
+        expect(worldSource).toContain(".setData('sanctuaryDistrictContourCount', contourSegmentCount)");
+        expect(worldSource).toContain(".setData('sanctuaryDistrictAnchorPatchCount', anchorPatchCount)");
+        expect(worldSource).not.toContain('drawOrganicPad');
+        expect(worldSource).toContain("isSanctuary ? 'living_current_ground_v2' : 'cosmic_biome_v1'");
+        expect(worldSource).toContain(".setData('worldBackgroundCloudRadiusMax', isSanctuary ? 0 : 200)");
+        expect(worldSource).toContain(".setData('worldBackgroundFloatingPlatformCount', isSanctuary ? 0 : 40)");
+        expect(worldSource).toContain(".setData('worldBackgroundCurrentThreadCount', isSanctuary ? 18 : 0)");
+        expect(worldSource).toContain('addSanctuaryGroundTexture(graphics');
         expect(worldSource).toContain(".setData('sanctuaryCommonsPathProfile', 'living_current_filaments_v3')");
         expect(worldSource).toContain(".setData('sanctuaryCommonsMaxWidth', 32)");
         expect(worldSource).toContain('setSanctuaryDistrictFocus(');
@@ -127,6 +138,11 @@ describe('Village settlement gameplay contract', () => {
         expect(parallaxSource).toContain(
             'if (this.config.layers.crystalFlora.enabled)'
         );
+        expect(parallaxSource).toContain("'quiet_current_threads_v2'");
+        expect(parallaxSource).toContain(".setData('sanctuaryParallaxFilledWisps', false)");
+        expect(parallaxSource).toContain(".setData('sanctuaryParallaxThreadCount', 3)");
+        expect(parallaxSource).toContain("type: 'sanctuaryCurrentField'");
+        expect(parallaxSource).toContain("if (this.currentBiomeId === 'nebula') return;");
         expect(sceneSource).toContain('this.kidModeHelpContainer?.destroy?.(true)');
         expect(sceneSource).not.toContain('createKidModeStatusBar(this, needsData)');
         expect(hudSource).toContain(".get('debugHud') === '1'");
@@ -156,9 +172,23 @@ describe('Village settlement gameplay contract', () => {
         expect(directorSource).toContain('return right.priority - left.priority');
         expect(directorSource).toContain("updateInteractIcon(next.icon)");
         expect(directorSource).toContain("next.hintMode === 'world'");
+        expect(directorSource).toContain('resolved.worldPrompt === true');
+        expect(directorSource).toContain('this.scene?.hasVisibleTouchControls?.()');
         expect(directorSource).toContain(".setData('sanctuaryInteractionBeacon', true)");
         expect(directorSource).toContain(".setData('touchTargetWidth', 164)");
         expect(directorSource).toContain(".setData('touchTargetHeight', 52)");
+        [
+            "verb: 'SHOP'",
+            "label: 'SUPPLIES & BUILDING'",
+            "verb: 'EXPLORE'",
+            "label: 'CHOOSE A WORLD'",
+            "verb: 'REST'",
+            "label: 'TOGETHER'",
+            "label: 'FUSION POD'",
+            "label: 'SIGNAL GARDEN'",
+            "verb: 'CHECK SUPPLIES'",
+            "verb: 'STABILIZE'"
+        ].forEach(copy => expect(sceneSource).toContain(copy));
     });
 
     test('the Shop makes the Base Builder the direct, clear construction route', () => {

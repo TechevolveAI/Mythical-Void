@@ -561,44 +561,77 @@ class ParallaxBiomeManager {
         );
         nebulaBg.fillRect(0, 0, width * 2, height);
 
-        // Phones keep the same full-screen coverage with fewer independently
-        // animated fields. This preserves the nebula instead of disabling it.
-        const wispCount = this.performanceTier === 'mobile' ? 3 : 5;
-        for (let i = 0; i < wispCount; i++) {
-            const wisp = this.scene.add.graphics();
-            wisp.fillStyle(this.config.palette.nebula, 0.15 + i * 0.03);
+        if (this.currentBiomeId === 'nebula') {
+            const currentField = this.scene.add.graphics()
+                .setData('sanctuaryParallaxProfile', 'quiet_current_threads_v2')
+                .setData('sanctuaryParallaxFilledWisps', false)
+                .setData('sanctuaryParallaxThreadCount', 3);
+            [0.2, 0.5, 0.78].forEach((heightRatio, threadIndex) => {
+                const color = threadIndex === 1
+                    ? this.config.palette.biolume
+                    : this.config.palette.crystalFlora;
+                currentField.lineStyle(
+                    threadIndex === 1 ? 2 : 1,
+                    color,
+                    threadIndex === 1 ? 0.09 : 0.07
+                );
+                currentField.beginPath();
+                currentField.moveTo(-40, height * heightRatio);
+                for (let pointIndex = 1; pointIndex <= 8; pointIndex++) {
+                    const progress = pointIndex / 8;
+                    currentField.lineTo(
+                        (width * 1.6) * progress,
+                        (height * heightRatio) +
+                            Math.sin((progress * Math.PI * 2) + threadIndex) * 18
+                    );
+                }
+                currentField.strokePath();
+            });
+            currentField.setScrollFactor(layer.parallax);
+            currentField.setDepth(-100);
+            this.layers.push({
+                type: 'sanctuaryCurrentField',
+                object: currentField,
+                config: layer
+            });
+        } else {
+            const wispCount = this.performanceTier === 'mobile' ? 3 : 5;
+            for (let i = 0; i < wispCount; i++) {
+                const wisp = this.scene.add.graphics();
+                wisp.fillStyle(this.config.palette.nebula, 0.15 + i * 0.03);
 
-            const centerX = this.performanceTier === 'mobile'
-                ? width * ((i + 1) / (wispCount + 1))
-                : width * (0.1 + i * 0.2);
-            const centerY = height * (0.2 + (i % 3) * 0.25);
-            const size = 150 + i * 40;
+                const centerX = this.performanceTier === 'mobile'
+                    ? width * ((i + 1) / (wispCount + 1))
+                    : width * (0.1 + i * 0.2);
+                const centerY = height * (0.2 + (i % 3) * 0.25);
+                const size = 150 + i * 40;
 
-            wisp.fillEllipse(centerX, centerY, size, size * 0.6);
+                wisp.fillEllipse(centerX, centerY, size, size * 0.6);
 
-            if (this.performanceTier === 'mobile') {
-                wisp.setAlpha(0.18);
+                if (this.performanceTier === 'mobile') {
+                    wisp.setAlpha(0.18);
+                }
+
+                if (layer.animate && this.shouldAnimateAmbientFields()) {
+                    this.scene.tweens.add({
+                        targets: wisp,
+                        x: wisp.x + 30,
+                        y: wisp.y + 15,
+                        alpha: { from: 0.1, to: 0.25 },
+                        scaleX: { from: 1, to: 1.1 },
+                        scaleY: { from: 1, to: 1.05 },
+                        duration: 10000 + i * 3000,
+                        ease: 'Sine.easeInOut',
+                        yoyo: true,
+                        repeat: -1,
+                        delay: i * 1500
+                    });
+                }
+
+                wisp.setScrollFactor(layer.parallax);
+                wisp.setDepth(-100 + i);
+                this.layers.push({ type: 'nebula', object: wisp, config: layer });
             }
-
-            if (layer.animate && this.shouldAnimateAmbientFields()) {
-                this.scene.tweens.add({
-                    targets: wisp,
-                    x: wisp.x + 30,
-                    y: wisp.y + 15,
-                    alpha: { from: 0.1, to: 0.25 },
-                    scaleX: { from: 1, to: 1.1 },
-                    scaleY: { from: 1, to: 1.05 },
-                    duration: 10000 + i * 3000,
-                    ease: 'Sine.easeInOut',
-                    yoyo: true,
-                    repeat: -1,
-                    delay: i * 1500
-                });
-            }
-
-            wisp.setScrollFactor(layer.parallax);
-            wisp.setDepth(-100 + i);
-            this.layers.push({ type: 'nebula', object: wisp, config: layer });
         }
 
         nebulaBg.setScrollFactor(layer.parallax);
@@ -1070,6 +1103,7 @@ class ParallaxBiomeManager {
      * Create subtle vignette effect
      */
     createGentleVignette() {
+        if (this.currentBiomeId === 'nebula') return;
         const { width, height } = this.scene.cameras.main;
         const vignetteConfig = this.config.effects.vignette;
 

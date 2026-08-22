@@ -278,61 +278,96 @@ class WorldBuilder {
         const landmarks = this.sanctuaryZones.landmarks;
         const terrain = this.scene.add.graphics()
             .setDepth(-24)
-            .setData('sanctuaryDistrictTerrain', true);
+            .setData('sanctuaryDistrictTerrain', true)
+            .setData('sanctuaryDistrictVisualProfile', 'woven_edge_contours_v4')
+            .setData('sanctuaryDistrictFullZoneFill', false)
+            .setData('sanctuaryDistrictMaxFillAlpha', 0.08);
         const routes = this.scene.add.graphics()
             .setDepth(-23)
             .setData('sanctuaryPhysicalRoutes', true)
             .setData('sanctuaryRouteProfile', 'living_current_filaments_v3')
             .setData('sanctuaryRouteMaxWidth', 28);
 
-        const drawOrganicPad = (zone, colors, scale = 1) => {
+        let contourSegmentCount = 0;
+        let anchorPatchCount = 0;
+        const drawDistrictContours = (zone, colors, scale = 1) => {
             const { center, bounds } = zone;
             const width = bounds.width * scale;
             const height = bounds.height * scale;
-            terrain.fillStyle(colors.shadow, 0.22);
-            terrain.fillEllipse(center.x + 10, center.y + 18, width, height * 0.68);
-            terrain.fillStyle(colors.ground, 0.32);
-            terrain.fillEllipse(center.x - width * 0.08, center.y, width * 0.82, height * 0.56);
-            terrain.fillEllipse(
-                center.x + width * 0.18,
-                center.y - height * 0.05,
-                width * 0.55,
-                height * 0.45
-            );
-            terrain.lineStyle(2, colors.edge, 0.22);
-            terrain.strokeEllipse(center.x, center.y, width * 0.88, height * 0.58);
+            const contourArcs = [
+                { start: 0.03, end: 0.17, radius: 0.92 },
+                { start: 0.29, end: 0.43, radius: 0.76 },
+                { start: 0.53, end: 0.69, radius: 0.9 },
+                { start: 0.79, end: 0.94, radius: 0.72 }
+            ];
+
+            contourArcs.forEach(({ start, end, radius }, arcIndex) => {
+                const points = Array.from({ length: 10 }, (_, pointIndex) => {
+                    const progress = pointIndex / 9;
+                    const angle = Math.PI * 2 * (start + ((end - start) * progress));
+                    return {
+                        x: center.x + Math.cos(angle) * width * 0.44 * radius,
+                        y: center.y + Math.sin(angle) * height * 0.29 * radius
+                    };
+                });
+                const stroke = (lineWidth, color, alpha) => {
+                    terrain.lineStyle(lineWidth, color, alpha);
+                    terrain.beginPath();
+                    terrain.moveTo(points[0].x, points[0].y);
+                    points.slice(1).forEach(point => terrain.lineTo(point.x, point.y));
+                    terrain.strokePath();
+                };
+                stroke(arcIndex % 2 ? 7 : 5, colors.shadow, 0.07);
+                stroke(2, colors.edge, arcIndex % 2 ? 0.18 : 0.22);
+                contourSegmentCount += 1;
+            });
+
+            [0.12, 0.36, 0.61, 0.85].forEach((progress, patchIndex) => {
+                const angle = Math.PI * 2 * progress;
+                const x = center.x + Math.cos(angle) * width * 0.35;
+                const y = center.y + Math.sin(angle) * height * 0.22;
+                const patchWidth = 14 + ((patchIndex % 2) * 7);
+                terrain.fillStyle(colors.ground, patchIndex % 2 ? 0.08 : 0.06);
+                terrain.fillEllipse(x, y, patchWidth, patchIndex % 2 ? 8 : 6);
+                terrain.fillStyle(colors.edge, 0.2);
+                terrain.fillCircle(x + (patchIndex % 2 ? 6 : -5), y - 2, 1.5);
+                anchorPatchCount += 1;
+            });
         };
 
-        drawOrganicPad(zones.crashSite, {
+        drawDistrictContours(zones.crashSite, {
             shadow: 0x05090A,
             ground: 0x293438,
             edge: 0x8BA3AA
         }, 1.04);
-        drawOrganicPad(zones.livingArea, {
+        drawDistrictContours(zones.livingArea, {
             shadow: 0x071411,
             ground: 0x163B35,
             edge: 0x71E6B1
         }, 1.05);
-        drawOrganicPad(zones.shopArea, {
+        drawDistrictContours(zones.shopArea, {
             shadow: 0x080D0D,
             ground: 0x263D38,
             edge: 0xF2C14E
         }, 0.95);
-        drawOrganicPad(zones.hubGate, {
+        drawDistrictContours(zones.hubGate, {
             shadow: 0x070912,
             ground: 0x24233D,
             edge: 0xBFA6FF
         }, 1.04);
-        drawOrganicPad(zones.gardenPlot, {
+        drawDistrictContours(zones.gardenPlot, {
             shadow: 0x071411,
             ground: 0x1B4435,
             edge: 0x8FE3CF
         }, 1.02);
-        drawOrganicPad(zones.trainingGrounds, {
+        drawDistrictContours(zones.trainingGrounds, {
             shadow: 0x100A0A,
             ground: 0x342A2A,
             edge: 0xD94B4B
         }, 0.96);
+        terrain
+            .setData('sanctuaryDistrictContourCount', contourSegmentCount)
+            .setData('sanctuaryDistrictAnchorPatchCount', anchorPatchCount);
 
         const routeDefinitions = [
             {
@@ -5362,12 +5397,22 @@ class WorldBuilder {
         this.backgroundImage = this.scene.add.image(0, 0, textureKey);
         this.backgroundImage.setOrigin(0, 0);
         this.backgroundImage.setDepth(-1000);
+        const isSanctuary = this.currentBiome === 'nebula';
+        this.backgroundImage
+            .setData(
+                'worldBackgroundProfile',
+                isSanctuary ? 'living_current_ground_v2' : 'cosmic_biome_v1'
+            )
+            .setData('worldBackgroundCloudRadiusMax', isSanctuary ? 0 : 200)
+            .setData('worldBackgroundFloatingPlatformCount', isSanctuary ? 0 : 40)
+            .setData('worldBackgroundCurrentThreadCount', isSanctuary ? 18 : 0);
         return this.backgroundImage;
     }
 
     generateBackgroundTexture() {
         const biomeId = this.currentBiome;
-        const textureKey = `worldBackground_${biomeId}_${this.worldWidth}x${this.worldHeight}`;
+        const profileSuffix = biomeId === 'nebula' ? '_living_v2' : '';
+        const textureKey = `worldBackground_${biomeId}_${this.worldWidth}x${this.worldHeight}${profileSuffix}`;
 
         if (this.scene.textures.exists(textureKey)) {
             return textureKey;
@@ -5400,37 +5445,90 @@ class WorldBuilder {
             graphics.fillCircle(x, y, size);
         }
 
-        // Nebula clouds with biome colors
-        const nebulaColors = this.getNebulaColors();
-        for (let i = 0; i < 30; i++) {
-            const nebula = Phaser.Math.RND.pick(nebulaColors);
-            const x = Phaser.Math.Between(0, this.worldWidth);
-            const y = Phaser.Math.Between(0, this.worldHeight);
-            const size = Phaser.Math.Between(80, 200);
-            graphics.fillStyle(nebula.color, nebula.alpha);
-            graphics.fillCircle(x, y, size);
-        }
+        if (biomeId === 'nebula') {
+            this.addSanctuaryGroundTexture(graphics, {
+                nebulaColor,
+                accentColor,
+                floraColor,
+                rockColor
+            });
+        } else {
+            // Expedition biomes retain their more dramatic cloud silhouettes.
+            const nebulaColors = this.getNebulaColors();
+            for (let i = 0; i < 30; i++) {
+                const nebula = Phaser.Math.RND.pick(nebulaColors);
+                const x = Phaser.Math.Between(0, this.worldWidth);
+                const y = Phaser.Math.Between(0, this.worldHeight);
+                const size = Phaser.Math.Between(80, 200);
+                graphics.fillStyle(nebula.color, nebula.alpha);
+                graphics.fillCircle(x, y, size);
+            }
 
-        // Biome-specific features
-        this.addBiomeFeatures(graphics, palette);
+            this.addBiomeFeatures(graphics, palette);
 
-        // Floating platforms with biome-specific colors
-        const platformColor = this.blendColors(skyBottom, rockColor, 0.5);
-        graphics.fillStyle(platformColor, 0.4);
-        for (let i = 0; i < 40; i++) {
-            const x = Phaser.Math.Between(0, this.worldWidth);
-            const y = Phaser.Math.Between(0, this.worldHeight);
-            const width = Phaser.Math.Between(100, 300);
-            const height = Phaser.Math.Between(20, 40);
-            graphics.fillRoundedRect(x, y, width, height, 10);
-            graphics.fillStyle(accentColor, 0.3);
-            graphics.fillRoundedRect(x, y, width, height * 0.3, 5);
+            const platformColor = this.blendColors(skyBottom, rockColor, 0.5);
             graphics.fillStyle(platformColor, 0.4);
+            for (let i = 0; i < 40; i++) {
+                const x = Phaser.Math.Between(0, this.worldWidth);
+                const y = Phaser.Math.Between(0, this.worldHeight);
+                const width = Phaser.Math.Between(100, 300);
+                const height = Phaser.Math.Between(20, 40);
+                graphics.fillRoundedRect(x, y, width, height, 10);
+                graphics.fillStyle(accentColor, 0.3);
+                graphics.fillRoundedRect(x, y, width, height * 0.3, 5);
+                graphics.fillStyle(platformColor, 0.4);
+            }
         }
 
         graphics.generateTexture(textureKey, this.worldWidth, this.worldHeight);
         graphics.destroy();
         return textureKey;
+    }
+
+    addSanctuaryGroundTexture(graphics, {
+        nebulaColor,
+        accentColor,
+        floraColor,
+        rockColor
+    }) {
+        const threadColors = [
+            floraColor,
+            0x8FE3CF,
+            0x71E6B1,
+            accentColor,
+            rockColor
+        ];
+        for (let threadIndex = 0; threadIndex < 18; threadIndex++) {
+            const startX = Phaser.Math.Between(-40, this.worldWidth - 80);
+            const startY = Phaser.Math.Between(40, this.worldHeight - 40);
+            const length = Phaser.Math.Between(110, 260);
+            const bend = Phaser.Math.Between(-44, 44);
+            const color = threadColors[threadIndex % threadColors.length];
+            graphics.lineStyle(
+                threadIndex % 3 === 0 ? 2 : 1,
+                color,
+                threadIndex % 4 === 0 ? 0.12 : 0.08
+            );
+            graphics.beginPath();
+            graphics.moveTo(startX, startY);
+            for (let pointIndex = 1; pointIndex <= 6; pointIndex++) {
+                const progress = pointIndex / 6;
+                graphics.lineTo(
+                    startX + (length * progress),
+                    startY + (bend * Math.sin(progress * Math.PI))
+                );
+            }
+            graphics.strokePath();
+        }
+
+        for (let patchIndex = 0; patchIndex < 30; patchIndex++) {
+            const x = Phaser.Math.Between(0, this.worldWidth);
+            const y = Phaser.Math.Between(0, this.worldHeight);
+            const width = Phaser.Math.Between(8, 34);
+            const color = patchIndex % 3 === 0 ? nebulaColor : rockColor;
+            graphics.fillStyle(color, patchIndex % 3 === 0 ? 0.05 : 0.07);
+            graphics.fillEllipse(x, y, width, Phaser.Math.Between(3, 10));
+        }
     }
 
     /**

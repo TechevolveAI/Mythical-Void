@@ -10687,6 +10687,56 @@ async function smokeVillageUi(session, exceptions) {
                 maxWidth: scene.sanctuaryDistricts?.routes?.getData?.('sanctuaryRouteMaxWidth'),
                 routeIds: scene.sanctuaryDistricts?.routes?.getData?.('sanctuaryRouteIds') || []
             },
+            sanctuaryTerrain: {
+                active: scene.sanctuaryDistricts?.terrain?.active === true,
+                profile: scene.sanctuaryDistricts?.terrain?.getData?.(
+                    'sanctuaryDistrictVisualProfile'
+                ),
+                fullZoneFill: scene.sanctuaryDistricts?.terrain?.getData?.(
+                    'sanctuaryDistrictFullZoneFill'
+                ),
+                maxFillAlpha: scene.sanctuaryDistricts?.terrain?.getData?.(
+                    'sanctuaryDistrictMaxFillAlpha'
+                ),
+                contourCount: scene.sanctuaryDistricts?.terrain?.getData?.(
+                    'sanctuaryDistrictContourCount'
+                ) || 0,
+                anchorPatchCount: scene.sanctuaryDistricts?.terrain?.getData?.(
+                    'sanctuaryDistrictAnchorPatchCount'
+                ) || 0
+            },
+            sanctuaryBackground: {
+                profile: scene.worldBackground?.getData?.('worldBackgroundProfile'),
+                cloudRadiusMax: scene.worldBackground?.getData?.(
+                    'worldBackgroundCloudRadiusMax'
+                ),
+                floatingPlatformCount: scene.worldBackground?.getData?.(
+                    'worldBackgroundFloatingPlatformCount'
+                ),
+                currentThreadCount: scene.worldBackground?.getData?.(
+                    'worldBackgroundCurrentThreadCount'
+                )
+            },
+            sanctuaryParallax: (() => {
+                const layers = scene.parallaxBiome?.layers || [];
+                const currentField = layers.find(
+                    entry => entry.type === 'sanctuaryCurrentField'
+                )?.object;
+                return {
+                    profile: currentField?.getData?.('sanctuaryParallaxProfile'),
+                    filledWisps: currentField?.getData?.(
+                        'sanctuaryParallaxFilledWisps'
+                    ),
+                    threadCount: currentField?.getData?.(
+                        'sanctuaryParallaxThreadCount'
+                    ),
+                    currentFieldCount: layers.filter(
+                        entry => entry.type === 'sanctuaryCurrentField'
+                    ).length,
+                    filledWispCount: layers.filter(entry => entry.type === 'nebula').length,
+                    vignetteCount: layers.filter(entry => entry.type === 'vignette').length
+                };
+            })(),
             focus: {
                 active: scene.sanctuaryFocusModeActive === true,
                 affinityNoticeActive: scene.cosmicAffinityNotice?.active === true,
@@ -10849,6 +10899,22 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.sanctuaryCirculation.maxWidth !== 28 ||
         integratedWorld.sanctuaryCirculation.routeIds.join(',') !==
             'crash_to_commons,commons_to_shop,commons_to_settlement,commons_to_training' ||
+        !integratedWorld.sanctuaryTerrain.active ||
+        integratedWorld.sanctuaryTerrain.profile !== 'woven_edge_contours_v4' ||
+        integratedWorld.sanctuaryTerrain.fullZoneFill !== false ||
+        integratedWorld.sanctuaryTerrain.maxFillAlpha > 0.08 ||
+        integratedWorld.sanctuaryTerrain.contourCount !== 24 ||
+        integratedWorld.sanctuaryTerrain.anchorPatchCount !== 24 ||
+        integratedWorld.sanctuaryBackground.profile !== 'living_current_ground_v2' ||
+        integratedWorld.sanctuaryBackground.cloudRadiusMax !== 0 ||
+        integratedWorld.sanctuaryBackground.floatingPlatformCount !== 0 ||
+        integratedWorld.sanctuaryBackground.currentThreadCount !== 18 ||
+        integratedWorld.sanctuaryParallax.profile !== 'quiet_current_threads_v2' ||
+        integratedWorld.sanctuaryParallax.filledWisps !== false ||
+        integratedWorld.sanctuaryParallax.threadCount !== 3 ||
+        integratedWorld.sanctuaryParallax.currentFieldCount !== 1 ||
+        integratedWorld.sanctuaryParallax.filledWispCount !== 0 ||
+        integratedWorld.sanctuaryParallax.vignetteCount !== 0 ||
         !integratedWorld.focus.active ||
         integratedWorld.focus.affinityNoticeActive ||
         integratedWorld.focus.kidStatusBarActive ||
@@ -10957,6 +11023,125 @@ async function smokeVillageUi(session, exceptions) {
         ))
     ) {
         throw new Error(`Sanctuary focus did not restore exploration HUD: ${JSON.stringify(focusRecovery)}`);
+    }
+    const landmarkPrompts = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const director = scene?.sanctuaryInteractionDirector;
+        if (!scene || !director) return null;
+        const cases = [
+            {
+                expectedId: 'shop',
+                target: scene.shop,
+                prepare: () => {
+                    scene.nearShop = false;
+                    scene.handleShopProximity(scene.player, scene.shop);
+                }
+            },
+            {
+                expectedId: 'hubPortal',
+                target: scene.hubPortal,
+                prepare: () => {
+                    scene.nearHubPortal = false;
+                    scene.handleHubPortalProximity(scene.player, scene.hubPortal);
+                }
+            },
+            {
+                expectedId: 'campfire',
+                target: scene.campfire,
+                prepare: () => {
+                    scene.nearCampfire = false;
+                    scene.handleCampfireProximity(scene.player, scene.campfire);
+                }
+            },
+            {
+                expectedId: 'fusionPod',
+                target: scene.fusionPodLandmark?.zone,
+                prepare: () => {
+                    scene.nearFusionPod = false;
+                    scene.handleFusionPodProximity();
+                }
+            },
+            {
+                expectedId: 'signalGarden',
+                target: scene.signalGarden?.zone,
+                prepare: () => {
+                    scene.nearSignalGarden = false;
+                    scene.handleSignalGardenProximity();
+                }
+            },
+            {
+                expectedId: 'crashedShip',
+                target: scene.crashedShip,
+                prepare: () => {
+                    scene.nearCrashedShip = false;
+                    scene.handleCrashedShipProximity(scene.player, scene.crashedShip);
+                }
+            }
+        ];
+        const results = cases.map(entry => {
+            director.candidates.clear();
+            director.clearIndicator();
+            scene.player.setPosition(entry.target.x, entry.target.y);
+            entry.prepare();
+            director.update({ force: true });
+            const hitZones = director.indicatorElements.filter(element => (
+                element?.getData?.('sanctuaryInteractionBeaconHitZone') === true
+            ));
+            return {
+                expectedId: entry.expectedId,
+                activeId: director.active?.id || null,
+                verb: director.beacon?.getData?.('interactionVerb') || '',
+                label: director.beacon?.getData?.('interactionLabel') || '',
+                worldPrompt: director.active?.worldPrompt === true,
+                hintMode: director.active?.hintMode || '',
+                candidateCount: director.candidates.size,
+                hitZoneCount: hitZones.length,
+                inputEnabled: hitZones[0]?.input?.enabled === true
+            };
+        });
+        director.candidates.clear();
+        director.clearIndicator();
+        scene.nearShop = false;
+        scene.nearHubPortal = false;
+        scene.nearCampfire = false;
+        scene.nearFusionPod = false;
+        scene.nearSignalGarden = false;
+        scene.nearCrashedShip = false;
+        scene.nearVillageHeart = false;
+        scene.player.setPosition(
+            scene.villageHeartLandmark.zone.x,
+            scene.villageHeartLandmark.zone.y
+        );
+        scene.offerVillageHeartInteraction(scene.villageHeartLandmark.snapshot);
+        return results;
+    })()`);
+    const expectedLandmarkCopy = {
+        shop: ['SHOP', 'SUPPLIES & BUILDING'],
+        hubPortal: ['EXPLORE', 'CHOOSE A WORLD'],
+        campfire: ['REST', 'TOGETHER'],
+        fusionPod: [null, 'FUSION POD'],
+        signalGarden: [null, null],
+        crashedShip: [null, null]
+    };
+    if (
+        !landmarkPrompts ||
+        landmarkPrompts.length !== Object.keys(expectedLandmarkCopy).length ||
+        landmarkPrompts.some(prompt => {
+            const expected = expectedLandmarkCopy[prompt.expectedId];
+            return !expected ||
+                prompt.activeId !== prompt.expectedId ||
+                !prompt.verb ||
+                !prompt.label ||
+                (expected[0] && prompt.verb !== expected[0]) ||
+                (expected[1] && prompt.label !== expected[1]) ||
+                !prompt.worldPrompt ||
+                prompt.hintMode !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 'world' : 'hud') ||
+                prompt.candidateCount !== 1 ||
+                prompt.hitZoneCount !== 1 ||
+                !prompt.inputEnabled;
+        })
+    ) {
+        throw new Error(`Sanctuary landmark prompts failed: ${JSON.stringify(landmarkPrompts)}`);
     }
     await captureGameplayStill(
         session,

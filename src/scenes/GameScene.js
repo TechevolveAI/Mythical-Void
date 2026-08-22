@@ -7906,6 +7906,9 @@ class GameScene extends Phaser.Scene {
                 target: shop,
                 message: 'Press SPACE · Visit the Cosmic Shop',
                 icon: '🛍',
+                verb: 'SHOP',
+                label: 'SUPPLIES & BUILDING',
+                worldPrompt: true,
                 tone: 0xF2C14E,
                 priority: 20,
                 action: () => this.enterShop()
@@ -7977,6 +7980,9 @@ class GameScene extends Phaser.Scene {
                 target: portal,
                 message: 'Press SPACE · Begin an expedition',
                 icon: '⭐',
+                verb: 'EXPLORE',
+                label: 'CHOOSE A WORLD',
+                worldPrompt: true,
                 tone: 0xBFA6FF,
                 priority: 35,
                 action: () => this.enterHubWorld()
@@ -7997,6 +8003,9 @@ class GameScene extends Phaser.Scene {
                 target: campfire,
                 message: 'Press SPACE · Rest together',
                 icon: '🔥',
+                verb: 'REST',
+                label: 'TOGETHER',
+                worldPrompt: true,
                 tone: 0xF2C14E,
                 priority: 28,
                 action: () => this.startCampfireRest()
@@ -8037,6 +8046,9 @@ class GameScene extends Phaser.Scene {
                 target: this.fusionPodLandmark?.zone,
                 message: `Press SPACE · ${snapshot.interactionLabel}`,
                 icon: '🧬',
+                verb: snapshot.tone === 'ready' ? 'FUSE' : 'OPEN',
+                label: 'FUSION POD',
+                worldPrompt: true,
                 tone: snapshot.tone === 'ready' ? 0x71E6B1 : 0xF2C14E,
                 priority: 24,
                 action: () => this.openFusionPod()
@@ -8056,6 +8068,9 @@ class GameScene extends Phaser.Scene {
             target: this.fusionPodLandmark?.zone,
             message: `Press SPACE · ${snapshot.interactionLabel}`,
             icon: '🧬',
+            verb: snapshot.tone === 'ready' ? 'FUSE' : 'OPEN',
+            label: 'FUSION POD',
+            worldPrompt: true,
             tone: snapshot.tone === 'ready' ? 0x71E6B1 : 0xF2C14E,
             priority: 24,
             action: () => this.openFusionPod()
@@ -8078,11 +8093,22 @@ class GameScene extends Phaser.Scene {
                     : community.complete
                         ? 'Tend the Living Commons'
                         : 'Tend garden';
+        const presentation = culture.ready
+            ? { verb: 'LISTEN', label: 'WITH THE COMMONS' }
+            : community.nextProject?.ready
+                ? { verb: 'BUILD', label: community.nextProject.shortLabel }
+                : culture.complete
+                    ? { verb: 'REVIEW', label: culture.selectedPriority.shortLabel }
+                    : community.complete
+                        ? { verb: 'TEND', label: 'LIVING COMMONS' }
+                        : { verb: 'TEND', label: 'SIGNAL GARDEN' };
         this.offerSanctuaryInteraction({
             id: 'signalGarden',
             target: this.signalGarden?.zone,
             message: `Press SPACE · ${action}`,
             icon: '🌱',
+            ...presentation,
+            worldPrompt: true,
             tone: 0x71E6B1,
             priority: 32,
             action: () => this.tendSignalGarden()
@@ -8124,7 +8150,7 @@ class GameScene extends Phaser.Scene {
                 touchControlsVisible
             }),
             ...interactionPresentation,
-            hintMode: touchControlsVisible ? 'world' : 'hud',
+            worldPrompt: true,
             ariaLabel: `${interactionPresentation.verb} ${interactionPresentation.label}`,
             tone: nextAction?.type === 'decision' ? 0xF2C14E : 0x71E6B1,
             priority: 48,
@@ -8138,7 +8164,6 @@ class GameScene extends Phaser.Scene {
                 return {
                     ...livePresentation,
                     message: this.getVillageHeartInteractionPrompt(liveSnapshot),
-                    hintMode: this.hasVisibleTouchControls() ? 'world' : 'hud',
                     ariaLabel: `${livePresentation.verb} ${livePresentation.label}`
                 };
             }
@@ -8697,6 +8722,9 @@ class GameScene extends Phaser.Scene {
             target: zone,
             message: `Press SPACE · ${action}`,
             icon: '💬',
+            verb: 'TALK',
+            label: resident.name,
+            worldPrompt: true,
             tone: resident.accent || 0x8FE3CF,
             priority: 56,
             action: () => this.interactWithFendResident()
@@ -8771,6 +8799,9 @@ class GameScene extends Phaser.Scene {
             target: zone,
             message: `Press SPACE · ${action}`,
             icon: '💬',
+            verb: 'TALK',
+            label: resident.name,
+            worldPrompt: true,
             tone: resident.accent || 0xBFA6FF,
             priority: 58,
             action: () => this.interactWithGuardianResident()
@@ -8816,6 +8847,9 @@ class GameScene extends Phaser.Scene {
             target: zone,
             message: `Press SPACE · Check supplies with ${resident.name}`,
             icon: '💬',
+            verb: 'CHECK SUPPLIES',
+            label: resident.name,
+            worldPrompt: true,
             tone: resident.accent || 0xF2C14E,
             priority: 54,
             action: () => this.interactWithRescuedResident()
@@ -9634,6 +9668,9 @@ class GameScene extends Phaser.Scene {
             target: zone,
             message: `Press SPACE · Stabilize ${anchor.label}`,
             icon: '◉',
+            verb: 'STABILIZE',
+            label: anchor.label,
+            worldPrompt: true,
             tone: 0x8FE3CF,
             priority: 68,
             action: () => this.interactWithCurrentVeilAnchor()
@@ -11474,6 +11511,9 @@ class GameScene extends Phaser.Scene {
                 target: ship,
                 message: descriptor.message,
                 icon: descriptor.icon,
+                verb: descriptor.verb,
+                label: descriptor.label,
+                worldPrompt: true,
                 tone: 0x90A4AE,
                 priority: 62,
                 presentation: () => (
@@ -11495,39 +11535,91 @@ class GameScene extends Phaser.Scene {
         const earthMemory = getCompanionEarthMemorySnapshot(window.GameState);
         const protectedReturn = getProtectedReturnSnapshot(window.GameState);
         const currentVeil = getCurrentVeilSnapshot(window.GameState);
-        const message = fieldKitRecovered && senseiMemory.ready
-            ? `Press SPACE · Personal memory ${senseiMemory.recalledCount + 1}/${senseiMemory.totalMemories}`
-            : fieldKitRecovered && shipReconstruction.ready
-                ? `Press SPACE · Install ${shipReconstruction.readyStep.partName}`
-            : fieldKitRecovered && shipReconstruction.fieldSupport.ready
-                ? 'Press SPACE · Powered berth ready'
-            : fieldKitRecovered && shipEvidence.ready
-                ? `Press SPACE · Ship archive ${shipEvidence.reviewedCount}/${shipEvidence.totalSections}`
-            : fieldKitRecovered && consent.ready
-                ? `Press SPACE · Earth boundaries ${consent.reviewedCount}/${consent.totalTopics}`
-            : fieldKitRecovered && earthMemory.ready
-                ? 'Press SPACE · Your companion has an Earth question'
-            : fieldKitRecovered && earthMemory.complete
-                ? 'Press SPACE · Review your shared Earth memory'
-            : fieldKitRecovered && protectedReturn.ready
-                ? `Press SPACE · Return safeguards ${protectedReturn.completedCount}/${protectedReturn.totalSteps}`
-            : fieldKitRecovered && protectedReturn.complete
-                ? currentVeil.verificationReady
-                    ? 'Press SPACE · Verify living mask'
-                    : currentVeil.active
-                        ? `Press SPACE · Quiet Current ${currentVeil.stabilizedCount}/${currentVeil.totalAnchors}`
-                        : currentVeil.complete
-                            ? 'Press SPACE · Living mask verified'
-                            : 'Press SPACE · Protected return sealed'
-            : fieldKitRecovered && shipEvidence.available
-                ? 'Press SPACE · Open ship and evidence board'
-            : fieldKitRecovered
-                ? 'Press SPACE · Examine Wanderer-77'
-                : 'Press SPACE · Recover the Earth field kit';
-        return {
-            message,
-            icon: fieldKitRecovered ? '🚀' : '🥋'
-        };
+        const createDescriptor = (action, verb, label) => ({
+            message: `Press SPACE · ${action}`,
+            icon: fieldKitRecovered ? '🚀' : '🥋',
+            verb,
+            label
+        });
+        if (fieldKitRecovered && senseiMemory.ready) {
+            return createDescriptor(
+                `Personal memory ${senseiMemory.recalledCount + 1}/${senseiMemory.totalMemories}`,
+                'REMEMBER',
+                'SENSEI MEMORY'
+            );
+        }
+        if (fieldKitRecovered && shipReconstruction.ready) {
+            return createDescriptor(
+                `Install ${shipReconstruction.readyStep.partName}`,
+                'REPAIR',
+                shipReconstruction.readyStep.partName
+            );
+        }
+        if (fieldKitRecovered && shipReconstruction.fieldSupport.ready) {
+            return createDescriptor('Powered berth ready', 'ACTIVATE', 'POWERED BERTH');
+        }
+        if (fieldKitRecovered && shipEvidence.ready) {
+            return createDescriptor(
+                `Ship archive ${shipEvidence.reviewedCount}/${shipEvidence.totalSections}`,
+                'REVIEW',
+                'SHIP ARCHIVE'
+            );
+        }
+        if (fieldKitRecovered && consent.ready) {
+            return createDescriptor(
+                `Earth boundaries ${consent.reviewedCount}/${consent.totalTopics}`,
+                'DISCUSS',
+                'EARTH BOUNDARIES'
+            );
+        }
+        if (fieldKitRecovered && earthMemory.ready) {
+            return createDescriptor(
+                'Your companion has an Earth question',
+                'ANSWER',
+                'EARTH QUESTION'
+            );
+        }
+        if (fieldKitRecovered && earthMemory.complete) {
+            return createDescriptor(
+                'Review your shared Earth memory',
+                'REMEMBER',
+                'EARTH TOGETHER'
+            );
+        }
+        if (fieldKitRecovered && protectedReturn.ready) {
+            return createDescriptor(
+                `Return safeguards ${protectedReturn.completedCount}/${protectedReturn.totalSteps}`,
+                'PREPARE',
+                'RETURN SAFEGUARDS'
+            );
+        }
+        if (fieldKitRecovered && protectedReturn.complete) {
+            if (currentVeil.verificationReady) {
+                return createDescriptor('Verify living mask', 'VERIFY', 'LIVING MASK');
+            }
+            if (currentVeil.active) {
+                return createDescriptor(
+                    `Quiet Current ${currentVeil.stabilizedCount}/${currentVeil.totalAnchors}`,
+                    'STABILIZE',
+                    'QUIET CURRENT'
+                );
+            }
+            if (currentVeil.complete) {
+                return createDescriptor('Living mask verified', 'REVIEW', 'LIVING MASK');
+            }
+            return createDescriptor('Protected return sealed', 'REVIEW', 'RETURN PLAN');
+        }
+        if (fieldKitRecovered && shipEvidence.available) {
+            return createDescriptor(
+                'Open ship and evidence board',
+                'REVIEW',
+                'SHIP EVIDENCE'
+            );
+        }
+        if (fieldKitRecovered) {
+            return createDescriptor('Examine Wanderer-77', 'EXAMINE', 'WANDERER-77');
+        }
+        return createDescriptor('Recover the Earth field kit', 'RECOVER', 'EARTH FIELD KIT');
     }
 
     interactWithCrashedShip() {
