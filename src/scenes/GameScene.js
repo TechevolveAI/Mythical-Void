@@ -4656,6 +4656,10 @@ class GameScene extends Phaser.Scene {
         camera.setZoom(zoom);
         this.achievementNotification?.syncCameraZoom?.();
         this.applyMobileCameraBounds(camera, isMobile, zoom, controlDockVisible);
+        this.applyExplorationCameraFollowOffset(camera, {
+            controlDockVisible,
+            zoom
+        });
         camera.setRoundPixels(true);
         camera.setBackgroundColor('#050214');
 
@@ -4675,6 +4679,10 @@ class GameScene extends Phaser.Scene {
                     nextZoom,
                     dockVisible
                 );
+                this.applyExplorationCameraFollowOffset(camera, {
+                    controlDockVisible: dockVisible,
+                    zoom: nextZoom
+                });
                 this.currentCameraZoom = nextZoom;
                 if (this.sanctuaryFocusModeActive) {
                     this.applySanctuaryCameraFocus({ immediate: true });
@@ -4712,6 +4720,29 @@ class GameScene extends Phaser.Scene {
         this.mobileControlDockWorldReserve = reservedWorldHeight;
     }
 
+    applyExplorationCameraFollowOffset(
+        camera = this.cameras?.main,
+        {
+            controlDockVisible = this.hasVisibleTouchControls() ||
+                Boolean(this.forceMobileControls),
+            zoom = camera?.zoom || 1
+        } = {}
+    ) {
+        if (!camera?.setFollowOffset) return 0;
+        let offsetY = 0;
+        if (controlDockVisible) {
+            const layout = getMobileControlLayout({
+                width: this.scale.width,
+                height: this.scale.height,
+                safeArea: getSafeAreaInsets()
+            });
+            offsetY = -Math.round((layout.dockHeight * 0.46) / Math.max(zoom, 0.1));
+        }
+        camera.setFollowOffset(0, offsetY);
+        this.explorationCameraFollowOffsetY = offsetY;
+        return offsetY;
+    }
+
     hasVisibleTouchControls() {
         return Boolean(this.mobileControls?.isVisible);
     }
@@ -4730,6 +4761,10 @@ class GameScene extends Phaser.Scene {
             zoom,
             controlDockVisible
         );
+        this.applyExplorationCameraFollowOffset(camera, {
+            controlDockVisible,
+            zoom
+        });
         this.currentCameraZoom = zoom;
         this.hudController?.layoutInteractionText?.(
             this.scale.width,
@@ -4811,6 +4846,7 @@ class GameScene extends Phaser.Scene {
             this.sanctuaryCameraFocusPreviousZoom = null;
         }
         camera.startFollow(this.player, true, 0.12, 0.12);
+        this.applyExplorationCameraFollowOffset(camera);
         camera.setDeadzone(
             Math.round(camera.width * 0.15),
             Math.round(camera.height * 0.2)

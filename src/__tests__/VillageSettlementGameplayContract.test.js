@@ -620,6 +620,10 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('compactPresentation ? 0.16 : 0.2');
         expect(scene).toContain('updateVillagePlotProximity()');
         expect(scene).toContain('this.worldBuilder.setVillagePlayerProximity(landmark, activePlotId)');
+        expect(scene).toContain('applyExplorationCameraFollowOffset(');
+        expect(scene).toContain('layout.dockHeight * 0.46');
+        expect(world).toContain('compactPresentation ? 0 : 1');
+        expect(world).toContain('`${definition.shortLabel} · ${building.creature.name.toUpperCase()}');
         expect(world).toContain("'villageFocusAlphaMultiplier'");
         expect(world).toContain('this.scene.setSanctuaryMomentFocus?.(true');
         expect(scene).toContain('getVillageHeartInteractionPrompt(');

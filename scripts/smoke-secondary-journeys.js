@@ -11456,6 +11456,7 @@ async function smokeVillageUi(session, exceptions) {
             kidStatusBarActive: scene.kidModeStatusBar?.active === true,
             kidHelpActive: scene.kidModeHelpContainer?.active === true,
             cameraFollowingPlayer: scene.cameras.main._follow === scene.player,
+            followOffsetY: scene.explorationCameraFollowOffsetY || 0,
             secondaryHud: {
                 abilityVisible: scene.abilityHUD?.container?.visible === true,
                 minimapVisible: scene.cosmicMiniMap?.background?.visible === true,
@@ -11484,6 +11485,11 @@ async function smokeVillageUi(session, exceptions) {
         focusRecovery.kidStatusBarActive ||
         focusRecovery.kidHelpActive ||
         !focusRecovery.cameraFollowingPlayer ||
+        (
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? focusRecovery.followOffsetY >= 0
+                : focusRecovery.followOffsetY !== 0
+        ) ||
         Object.values(focusRecovery.secondaryHud).some(
             visible => visible !== (SMOKE_VIEWPORT_WIDTH > 600)
         ) ||
@@ -11526,7 +11532,7 @@ async function smokeVillageUi(session, exceptions) {
             workerNearby: presentation.worker?.getData?.('villagePlayerNearby')
         };
     })()`);
-    await delay(280);
+    await delay(420);
     const structureProximitySettled = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const presentation = scene?.villageHeartLandmark?.plotPresentations?.find(
@@ -11546,9 +11552,10 @@ async function smokeVillageUi(session, exceptions) {
         structureProximity.priority !== 'nearby' ||
         structureProximity.playerNearby !== true ||
         structureProximity.hitZoneNearby !== true ||
-        structureProximity.labelAlpha !== 1 ||
+        structureProximity.labelAlpha !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 0 : 1) ||
         structureProximity.stateAlpha !== 1 ||
-        !structureProximity.stateText.includes('NOVA · PATHFINDER') ||
+        !structureProximity.stateText.includes('FORAGE · NOVA') ||
+        !structureProximity.stateText.includes('PATHFINDER') ||
         structureProximity.workerNearby !== true ||
         !structureProximitySettled ||
         Math.abs(structureProximitySettled.alpha - 1) > 0.01 ||
@@ -11580,7 +11587,7 @@ async function smokeVillageUi(session, exceptions) {
             priority: presentation?.container?.getData?.('villageFocusPriority')
         };
     })()`);
-    await delay(280);
+    await delay(420);
     const structureProximityRest = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const presentation = scene?.villageHeartLandmark?.plotPresentations?.find(
@@ -12289,9 +12296,10 @@ async function smokeVillageUi(session, exceptions) {
     })()`);
     if (
         !contextualFocus ||
-        contextualFocus.focused.labelAlpha !== 1 ||
+        contextualFocus.focused.labelAlpha !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 0 : 1) ||
         contextualFocus.focused.stateAlpha !== 1 ||
         contextualFocus.focused.focusAlpha !== 1 ||
+        !contextualFocus.focused.state.includes('FORAGE · NOVA') ||
         !contextualFocus.focused.state.includes('PATHFINDER') ||
         contextualFocus.restored.labelAlpha >= 1 ||
         contextualFocus.restored.stateAlpha !== 0 ||

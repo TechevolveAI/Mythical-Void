@@ -1819,7 +1819,12 @@ class WorldBuilder {
                     color: building ? '#F4F4F4' : '#C9F7E9',
                     fontStyle: 'bold',
                     stroke: '#050505',
-                    strokeThickness: 3
+                    strokeThickness: 3,
+                    align: 'center',
+                    wordWrap: {
+                        width: compactSettlement ? 126 : 168,
+                        useAdvancedWrap: true
+                    }
                 }
             ).setOrigin(0.5).setAlpha(plotLabelRestAlpha);
             const stateLabel = this.scene.add.text(
@@ -1960,9 +1965,9 @@ class WorldBuilder {
             const focusCopy = unlocked
                 ? definition
                     ? building?.creature
-                        ? `${building.creature.name.toUpperCase()} · ${definition.roleLabel}`
-                        : definition.worldEffectLabel
-                    : 'CHOOSE WHAT GROWS HERE'
+                        ? `${definition.shortLabel} · ${building.creature.name.toUpperCase()}\n${definition.roleLabel}`
+                        : `${definition.shortLabel}\n${definition.worldEffectLabel}`
+                    : `${plot.label.toUpperCase()}\nCHOOSE WHAT GROWS HERE`
                 : 'DORMANT';
             const interactionLabel = definition
                 ? `${definition.label}. ${buildingStateCopy}. Tap to manage.`
@@ -1980,7 +1985,7 @@ class WorldBuilder {
                 container.setAlpha(1);
                 focusRing.setAlpha(1);
                 districtAnchor.setAlpha(1);
-                plotLabel.setAlpha(1);
+                plotLabel.setAlpha(compactSettlement ? 0 : 1);
                 stateLabel
                     .setText(focusCopy)
                     .setAlpha(1);
@@ -2019,7 +2024,7 @@ class WorldBuilder {
                 );
                 plotLabel.setAlpha(
                     playerNearby
-                        ? 1
+                        ? compactSettlement ? 0 : 1
                         : directPlotCommand
                         ? 0
                         : presentationMode === 'story'
@@ -2532,7 +2537,7 @@ class WorldBuilder {
                                 : compactPresentation ? 0.4 : 0.46;
             const alpha = playerNearby ? 1 : baseAlpha;
             const plotLabelAlpha = playerNearby
-                ? 1
+                ? compactPresentation ? 0 : 1
                 : !active
                     ? presentation.plotLabelRestAlpha
                     : directPlotCommand
