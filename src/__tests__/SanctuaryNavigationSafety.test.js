@@ -118,4 +118,17 @@ describe('Sanctuary navigation safety', () => {
             'Recovered player from unsafe Sanctuary perimeter'
         );
     });
+
+    test('routes Sanctuary flower care through the shared nearest-action resolver', () => {
+        const gameSource = fs.readFileSync(
+            path.join(__dirname, '../scenes/GameScene.js'),
+            'utf8'
+        );
+
+        expect(gameSource).toContain("id: 'flower'");
+        expect(gameSource).toContain("message: 'Press SPACE · Smell the flower'");
+        expect(gameSource).toContain('action: () => this.smellNearbyFlower()');
+        expect(gameSource).toContain("this.withdrawSanctuaryInteraction('flower')");
+        expect(gameSource).toContain('priority: 8');
+    });
 });

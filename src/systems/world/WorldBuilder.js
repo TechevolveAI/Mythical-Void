@@ -426,7 +426,151 @@ class WorldBuilder {
             return [{ image, tween }];
         });
 
-        return { terrain, routes, flora };
+        const districtDefinitions = [
+            {
+                zoneId: 'crashSite',
+                label: 'CRASH SITE',
+                x: zones.crashSite.center.x,
+                y: zones.crashSite.bounds.y + zones.crashSite.bounds.height - 12,
+                tone: 0x90A4AE
+            },
+            {
+                zoneId: 'livingArea',
+                label: 'LIVING COMMONS',
+                x: zones.livingArea.center.x,
+                y: zones.livingArea.bounds.y + zones.livingArea.bounds.height - 18,
+                tone: 0x71E6B1
+            },
+            {
+                zoneId: 'shopArea',
+                label: 'SUPPLY DOCK',
+                x: zones.shopArea.bounds.x + 28,
+                y: zones.shopArea.center.y,
+                tone: 0xF2C14E,
+                vertical: true
+            },
+            {
+                zoneId: 'hubGate',
+                label: 'EXPEDITION GATE',
+                x: zones.hubGate.center.x,
+                y: zones.hubGate.bounds.y + 10,
+                tone: 0xBFA6FF
+            },
+            {
+                zoneId: 'gardenPlot',
+                label: 'SIGNAL GARDEN',
+                x: zones.gardenPlot.center.x,
+                y: zones.gardenPlot.bounds.y + 14,
+                tone: 0x8FE3CF
+            },
+            {
+                zoneId: 'settlementDistrict',
+                label: 'FEND SETTLEMENT',
+                x: zones.settlementDistrict.center.x,
+                y: zones.settlementDistrict.bounds.y + 16,
+                tone: 0x71E6B1
+            },
+            {
+                zoneId: 'trainingGrounds',
+                label: 'TRAINING RING',
+                x: zones.trainingGrounds.bounds.x + 30,
+                y: zones.trainingGrounds.bounds.y + zones.trainingGrounds.bounds.height - 18,
+                tone: 0xD94B4B
+            }
+        ];
+        const markers = districtDefinitions.map(definition => {
+            const width = Math.max(126, definition.label.length * 8 + 44);
+            const line = this.scene.add.graphics();
+            line.lineStyle(2, definition.tone, 0.56);
+            line.lineBetween(-width / 2, 0, -18, 0);
+            line.lineBetween(18, 0, width / 2, 0);
+            line.fillStyle(0x071411, 0.94);
+            line.fillCircle(0, 0, 8);
+            line.lineStyle(2, definition.tone, 0.82);
+            line.strokeCircle(0, 0, 6);
+            line.fillStyle(0xF4F4F4, 0.9);
+            line.fillCircle(0, 0, 2);
+            const label = this.scene.add.text(0, 14, definition.label, {
+                fontSize: '11px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#F4F4F4',
+                fontStyle: 'bold',
+                stroke: '#050505',
+                strokeThickness: 4
+            }).setOrigin(0.5, 0).setAlpha(0);
+            const container = this.scene.add.container(
+                definition.x,
+                definition.y,
+                [line, label]
+            )
+                .setDepth(definition.y - 2)
+                .setAlpha(0.18)
+                .setData('sanctuaryDistrictMarker', definition.zoneId)
+                .setData('sanctuaryDistrictLabel', definition.label);
+            if (definition.vertical) {
+                line.setAngle(90);
+                label.setPosition(24, -6).setOrigin(0, 0.5);
+            }
+            return {
+                ...definition,
+                container,
+                line,
+                label,
+                focusTween: null,
+                labelTween: null
+            };
+        });
+
+        const districts = {
+            terrain,
+            routes,
+            flora,
+            markers,
+            activeZoneId: null
+        };
+        this.sanctuaryDistricts = districts;
+        return districts;
+    }
+
+    setSanctuaryDistrictFocus(
+        districts,
+        zoneId,
+        { immediate = false } = {}
+    ) {
+        if (!districts?.markers || districts.activeZoneId === zoneId) {
+            return false;
+        }
+        districts.activeZoneId = zoneId || null;
+        districts.markers.forEach(marker => {
+            marker.focusTween?.stop?.();
+            marker.labelTween?.stop?.();
+            marker.focusTween = null;
+            marker.labelTween = null;
+            const active = marker.zoneId === zoneId;
+            const alpha = active ? 0.82 : 0.18;
+            const scale = active ? 1.04 : 1;
+            marker.label.setColor(active ? '#FFFFFF' : '#C4CFCC');
+            if (immediate || !this.scene?.tweens) {
+                marker.container.setAlpha(alpha).setScale(scale);
+                marker.label.setAlpha(active ? 1 : 0);
+                return;
+            }
+            marker.focusTween = this.scene.tweens.add({
+                targets: marker.container,
+                alpha,
+                scaleX: scale,
+                scaleY: scale,
+                duration: 260,
+                ease: 'Sine.easeOut'
+            });
+            marker.labelTween = this.scene.tweens.add({
+                targets: marker.label,
+                alpha: active ? 1 : 0,
+                duration: active ? 220 : 140,
+                ease: 'Sine.easeOut'
+            });
+        });
+        return true;
     }
 
     createSanctuaryCommons({ signalGarden, villageHeart, hubPortal } = {}) {
@@ -6012,6 +6156,18 @@ class WorldBuilder {
     }
 
     destroy() {
+        this.sanctuaryDistricts?.flora?.forEach(entry => {
+            entry.tween?.stop?.();
+            entry.image?.destroy?.();
+        });
+        this.sanctuaryDistricts?.markers?.forEach(marker => {
+            marker.focusTween?.stop?.();
+            marker.labelTween?.stop?.();
+            marker.container?.destroy?.(true);
+        });
+        this.sanctuaryDistricts?.routes?.destroy?.();
+        this.sanctuaryDistricts?.terrain?.destroy?.();
+        this.sanctuaryDistricts = null;
         this.sanctuaryCommons?.signalTweens?.forEach(tween => tween?.stop?.());
         this.sanctuaryCommons?.signals?.forEach(signal => signal?.destroy?.());
         this.sanctuaryCommons?.nodes?.forEach(node => node?.destroy?.());

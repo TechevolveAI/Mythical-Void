@@ -14,6 +14,10 @@ describe('Protected Return Protocol gameplay contract', () => {
     const story = read('systems/ProjectBeaconStory.js');
     const legacy = read('systems/CampaignLegacy.js');
     const scene = read('scenes/GameScene.js');
+    const shipInteraction = scene.slice(
+        scene.indexOf('\n    interactWithCrashedShip() {'),
+        scene.indexOf('\n    showSenseiMemory() {')
+    );
     const modal = read('ui/ShipEvidenceBoardModal.js');
     const victory = read('scenes/VictoryScene.js');
     const game = read('game.js');
@@ -34,8 +38,8 @@ describe('Protected Return Protocol gameplay contract', () => {
     });
 
     test('plays through the ship only after evidence and companion boundaries', () => {
-        expect(scene).toMatch(
-            /else if \(shipEvidence\.ready\)[\s\S]*else if \(consent\.ready\)[\s\S]*protectedReturn\.ready/
+        expect(shipInteraction).toMatch(
+            /else if \([\s\S]*shipEvidence\.ready[\s\S]*else if \(consent\.ready\)[\s\S]*else if \(earthMemory\.ready \|\| earthMemory\.complete\)[\s\S]*protectedReturn\.ready/
         );
         expect(scene).toContain(
             "event: 'protected_return_safeguard'"

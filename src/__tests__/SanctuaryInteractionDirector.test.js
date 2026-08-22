@@ -138,4 +138,29 @@ describe('SanctuaryInteractionDirector', () => {
         expect(scene.add.graphics).not.toHaveBeenCalled();
         expect(director.indicator).toBeNull();
     });
+
+    it('refreshes dynamic landmark presentation without re-offering it', () => {
+        const scene = createScene();
+        const director = new SanctuaryInteractionDirector(scene);
+        let repaired = false;
+        director.offer({
+            id: 'ship',
+            target: { x: 30, y: 0, active: true },
+            message: 'Recover field kit',
+            icon: 'kit',
+            presentation: () => repaired
+                ? { message: 'Review ship archive', icon: 'ship' }
+                : { message: 'Recover field kit', icon: 'kit' }
+        });
+
+        repaired = true;
+        director.update();
+
+        expect(scene.showInteractionHint).toHaveBeenLastCalledWith(
+            'Review ship archive',
+            { persistent: true, ownerId: 'ship' }
+        );
+        expect(scene.mobileControls.updateInteractIcon)
+            .toHaveBeenLastCalledWith('ship');
+    });
 });

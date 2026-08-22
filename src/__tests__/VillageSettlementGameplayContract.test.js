@@ -99,6 +99,10 @@ describe('Village settlement gameplay contract', () => {
         expect(worldSource).toContain('nebula: { trees: 0, rocks: 0, flowers: 8 }');
         expect(worldSource).toContain('createSanctuaryDistrictEnvironment()');
         expect(worldSource).toContain(".setData('sanctuaryPhysicalRoutes', true)");
+        expect(worldSource).toContain('setSanctuaryDistrictFocus(');
+        expect(worldSource).toContain(".setData('sanctuaryDistrictMarker', definition.zoneId)");
+        expect(worldSource).toContain('marker.label.setAlpha(active ? 1 : 0)');
+        expect(sceneSource).toContain('this.worldBuilder?.setSanctuaryDistrictFocus?.(');
         expect(biomes.nebula.layers.floatingRocks.enabled).toBe(false);
         expect(biomes.nebula.layers.crystalFlora.enabled).toBe(false);
         expect(parallaxSource).toContain(
@@ -112,6 +116,29 @@ describe('Village settlement gameplay contract', () => {
         expect(hudSource).toContain(".get('debugHud') === '1'");
         expect(hudSource).toContain('GIFT READY · STREAK ${bonus.streak}');
         expect(kidModeSource).toContain('if (scene?.sanctuaryFocusModeActive) return null');
+    });
+
+    test('a single proximity director owns competing Sanctuary actions', () => {
+        const sceneSource = read('scenes/GameScene.js');
+        const directorSource = read('systems/world/SanctuaryInteractionDirector.js');
+
+        [
+            "id: 'villageHeart'",
+            "id: 'crashedShip'",
+            "id: 'signalGarden'",
+            "id: 'fusionPod'",
+            "id: 'hubPortal'",
+            "id: 'campfire'",
+            "id: 'shop'",
+            "id: 'flower'"
+        ].forEach(candidate => expect(sceneSource).toContain(candidate));
+        expect(sceneSource).toContain('`fendResident:${residentId}`');
+        expect(sceneSource).toContain('`guardianResident:${guardianId}`');
+        expect(sceneSource).toContain('`rescuedResident:${residentId}`');
+        expect(sceneSource).toContain('`currentVeilAnchor:${anchorId}`');
+        expect(directorSource).toContain('distanceDelta');
+        expect(directorSource).toContain('return right.priority - left.priority');
+        expect(directorSource).toContain("updateInteractIcon(next.icon)");
     });
 
     test('the Shop makes the Base Builder the direct, clear construction route', () => {

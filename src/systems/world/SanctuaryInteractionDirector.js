@@ -40,10 +40,16 @@ export default class SanctuaryInteractionDirector {
 
         return [...this.candidates.values()]
             .filter(candidate => candidate.target?.active !== false)
-            .map(candidate => ({
-                ...candidate,
-                distance: distanceBetween(player, candidate.target)
-            }))
+            .map(candidate => {
+                const presentation = typeof candidate.presentation === 'function'
+                    ? candidate.presentation()
+                    : null;
+                return {
+                    ...candidate,
+                    ...(presentation || {}),
+                    distance: distanceBetween(player, candidate.target)
+                };
+            })
             .sort((left, right) => {
                 const distanceDelta = left.distance - right.distance;
                 if (Math.abs(distanceDelta) > 26) return distanceDelta;
@@ -54,7 +60,9 @@ export default class SanctuaryInteractionDirector {
     update({ force = false } = {}) {
         const next = this.resolve();
         const changed = next?.id !== this.active?.id ||
-            next?.message !== this.active?.message;
+            next?.message !== this.active?.message ||
+            next?.icon !== this.active?.icon ||
+            next?.tone !== this.active?.tone;
         this.active = next;
         this.scene.sanctuaryPromptOwnerId = next?.id || null;
 

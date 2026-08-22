@@ -2265,7 +2265,7 @@ class GameScene extends Phaser.Scene {
                     height - 370
                 )
             }
-        }, false);
+        }, false, { showLabel: true });
         this.livingSignals = [previewSignal];
         if (this.livingSignalProgressPreview !== null) {
             this.setLivingSignalListeningProgress(
@@ -2317,7 +2317,11 @@ class GameScene extends Phaser.Scene {
     createLivingSignalVisual(
         definition,
         observed = false,
-        { progress = 0, total = LIVING_SIGNAL_DEFINITIONS.length } = {}
+        {
+            progress = 0,
+            total = LIVING_SIGNAL_DEFINITIONS.length,
+            showLabel = false
+        } = {}
     ) {
         const { x, y } = definition.position;
         const container = this.add.container(x, y).setDepth(y + 4);
@@ -2375,7 +2379,7 @@ class GameScene extends Phaser.Scene {
                 backgroundColor: 'rgba(5, 18, 17, 0.78)',
                 padding: { x: 5, y: 3 }
             }
-        ).setOrigin(0.5);
+        ).setOrigin(0.5).setVisible(showLabel);
         container.add([aura, listeningProgress, form, label]);
 
         const pulseTween = this.tweens.add({
@@ -2401,6 +2405,7 @@ class GameScene extends Phaser.Scene {
             form,
             label,
             listeningProgress,
+            labelAlwaysVisible: showLabel,
             pulseTween
         };
         if (observed) {
@@ -2480,6 +2485,14 @@ class GameScene extends Phaser.Scene {
         signal.listeningProgress?.setVisible?.(false);
         signal.label?.setText('LIVING SIGNAL // LISTEN TOGETHER');
         signal.label?.setColor('#D8FFF0');
+    }
+
+    setLivingSignalLabelFocus(signalId = null) {
+        this.livingSignals?.forEach(signal => {
+            signal?.label?.setVisible?.(
+                signal.labelAlwaysVisible === true || signal.signalId === signalId
+            );
+        });
     }
 
     resetActiveLivingSignalListening() {
@@ -4208,6 +4221,10 @@ class GameScene extends Phaser.Scene {
 
         this.currentSanctuaryZoneId = zone.id;
         getGameState().visitArea?.(`sanctuary:${zone.id}`);
+        this.worldBuilder?.setSanctuaryDistrictFocus?.(
+            this.sanctuaryDistricts,
+            zone.id
+        );
     }
 
     createSanctuaryDecorationPreview() {
@@ -7733,13 +7750,21 @@ class GameScene extends Phaser.Scene {
 
     handleFlowerInteraction(player, flower) {
         // Only show hint once per flower interaction to prevent spam
-        if (!this.nearbyFlower) {
-            // Show interaction hint when near flowers
-            this.showInteractionHint('Press SPACE to smell the flower');
-
-            // Update mobile interact button icon to flower
-            if (this.mobileControls) {
-                this.mobileControls.updateInteractIcon('🌸');
+        if (this.nearbyFlower !== flower) {
+            if (this.currentBiome === 'nebula') {
+                this.withdrawSanctuaryInteraction('flower');
+                this.offerSanctuaryInteraction({
+                    id: 'flower',
+                    target: flower,
+                    message: 'Press SPACE · Smell the flower',
+                    icon: '🌸',
+                    tone: 0x8FE3CF,
+                    priority: 8,
+                    action: () => this.smellNearbyFlower()
+                });
+            } else {
+                this.showInteractionHint('Press SPACE to smell the flower');
+                this.mobileControls?.updateInteractIcon('🌸');
             }
 
             // Track flower interaction for personality shaping
@@ -8538,6 +8563,11 @@ class GameScene extends Phaser.Scene {
         const resident = snapshot.residents.find(entry => entry.id === residentId);
         if (!resident?.available) return;
 
+        if (this.nearFendResidentId) {
+            this.withdrawSanctuaryInteraction(
+                `fendResident:${this.nearFendResidentId}`
+            );
+        }
         this.nearFendResidentId = residentId;
         const currentVeil = getCurrentVeilSnapshot(window.GameState);
         const recovery = getRemainAndDefendSnapshot(window.GameState);
@@ -8568,8 +8598,15 @@ class GameScene extends Phaser.Scene {
         } else {
             action = `Meet ${resident.name}`;
         }
-        this.showInteractionHint(`Press SPACE · ${action}`);
-        this.mobileControls?.updateInteractIcon('!');
+        this.offerSanctuaryInteraction({
+            id: `fendResident:${residentId}`,
+            target: zone,
+            message: `Press SPACE · ${action}`,
+            icon: '💬',
+            tone: resident.accent || 0x8FE3CF,
+            priority: 56,
+            action: () => this.interactWithFendResident()
+        });
     }
 
     setupFendResidentOverlaps() {
@@ -8600,6 +8637,11 @@ class GameScene extends Phaser.Scene {
             .find(entry => entry.id === guardianId);
         if (!resident) return;
 
+        if (this.nearGuardianResidentId) {
+            this.withdrawSanctuaryInteraction(
+                `guardianResident:${this.nearGuardianResidentId}`
+            );
+        }
         this.nearGuardianResidentId = guardianId;
         const lastRecognitionAt = this.guardianRecognitionCooldowns.get(
             guardianId
@@ -8630,8 +8672,15 @@ class GameScene extends Phaser.Scene {
                     : resident.activeTeam
                         ? `Assist: ${resident.routineCare.action}`
                         : `Speak with ${resident.name}`;
-        this.showInteractionHint(`Press SPACE · ${action}`);
-        this.mobileControls?.updateInteractIcon('!');
+        this.offerSanctuaryInteraction({
+            id: `guardianResident:${guardianId}`,
+            target: zone,
+            message: `Press SPACE · ${action}`,
+            icon: '💬',
+            tone: resident.accent || 0xBFA6FF,
+            priority: 58,
+            action: () => this.interactWithGuardianResident()
+        });
     }
 
     setupGuardianResidentOverlaps() {
@@ -8662,11 +8711,21 @@ class GameScene extends Phaser.Scene {
             .find(entry => entry.id === residentId);
         if (!resident) return;
 
+        if (this.nearRescuedResidentId) {
+            this.withdrawSanctuaryInteraction(
+                `rescuedResident:${this.nearRescuedResidentId}`
+            );
+        }
         this.nearRescuedResidentId = residentId;
-        this.showInteractionHint(
-            `Press SPACE · Check supplies with ${resident.name}`
-        );
-        this.mobileControls?.updateInteractIcon('!');
+        this.offerSanctuaryInteraction({
+            id: `rescuedResident:${residentId}`,
+            target: zone,
+            message: `Press SPACE · Check supplies with ${resident.name}`,
+            icon: '💬',
+            tone: resident.accent || 0xF2C14E,
+            priority: 54,
+            action: () => this.interactWithRescuedResident()
+        });
     }
 
     setupRescuedResidentOverlaps() {
@@ -9476,10 +9535,15 @@ class GameScene extends Phaser.Scene {
         if (!snapshot.active || !anchor || anchor.stabilized) return;
 
         this.nearCurrentVeilAnchorId = anchorId;
-        this.showInteractionHint(
-            `Press SPACE · Stabilize ${anchor.label}`
-        );
-        this.mobileControls?.updateInteractIcon('◉');
+        this.offerSanctuaryInteraction({
+            id: `currentVeilAnchor:${anchorId}`,
+            target: zone,
+            message: `Press SPACE · Stabilize ${anchor.label}`,
+            icon: '◉',
+            tone: 0x8FE3CF,
+            priority: 68,
+            action: () => this.interactWithCurrentVeilAnchor()
+        });
     }
 
     setupCurrentVeilAnchorOverlaps() {
@@ -9617,6 +9681,9 @@ class GameScene extends Phaser.Scene {
             window.AudioManager?.playError?.();
             return;
         }
+        this.withdrawSanctuaryInteraction(
+            `currentVeilAnchor:${this.nearCurrentVeilAnchorId}`
+        );
         this.nearCurrentVeilAnchorId = null;
         this.recordBondActivity('community');
         window.AchievementSystem?.recordEvent?.(
@@ -11077,6 +11144,7 @@ class GameScene extends Phaser.Scene {
 
         // Hide the interaction hint
         this.hideInteractionHint();
+        this.sanctuaryInteractionDirector?.update({ force: true });
     }
 
     /**
@@ -11306,59 +11374,112 @@ class GameScene extends Phaser.Scene {
         if (!this.nearCrashedShip) {
             this.nearCrashedShip = true;
             console.log('[GameScene] Player near Crashed Ship');
-
-            const fieldKitRecovered = this.hasRecoveredProjectBeaconFieldKit();
-            const senseiMemory = getSenseiMemorySnapshot(window.GameState);
-            const shipEvidence = getShipEvidenceSnapshot(window.GameState);
-            const shipReconstruction =
-                getShipReconstructionSnapshot(window.GameState);
-            const consent = getCompanionConsentSnapshot(window.GameState);
-            const earthMemory = getCompanionEarthMemorySnapshot(
-                window.GameState
-            );
-            const protectedReturn = getProtectedReturnSnapshot(
-                window.GameState
-            );
-            const currentVeil = getCurrentVeilSnapshot(
-                window.GameState
-            );
-            this.showInteractionHint(
-                fieldKitRecovered && senseiMemory.ready
-                    ? `Press SPACE · Personal memory ${senseiMemory.recalledCount + 1}/${senseiMemory.totalMemories}`
-                    : fieldKitRecovered && shipReconstruction.ready
-                        ? `Press SPACE · Install ${shipReconstruction.readyStep.partName}`
-                    : fieldKitRecovered &&
-                        shipReconstruction.fieldSupport.ready
-                        ? 'Press SPACE · Powered berth ready'
-                    : fieldKitRecovered && shipEvidence.ready
-                        ? `Press SPACE · Ship archive ${shipEvidence.reviewedCount}/${shipEvidence.totalSections}`
-                    : fieldKitRecovered && consent.ready
-                        ? `Press SPACE · Earth boundaries ${consent.reviewedCount}/${consent.totalTopics}`
-                    : fieldKitRecovered && earthMemory.ready
-                        ? 'Press SPACE · Your companion has an Earth question'
-                    : fieldKitRecovered && earthMemory.complete
-                        ? 'Press SPACE · Review your shared Earth memory'
-                    : fieldKitRecovered && protectedReturn.ready
-                        ? `Press SPACE · Return safeguards ${protectedReturn.completedCount}/${protectedReturn.totalSteps}`
-                    : fieldKitRecovered && protectedReturn.complete
-                        ? currentVeil.verificationReady
-                            ? 'Press SPACE · Verify living mask'
-                            : currentVeil.active
-                                ? `Press SPACE · Quiet Current ${currentVeil.stabilizedCount}/${currentVeil.totalAnchors}`
-                                : currentVeil.complete
-                                    ? 'Press SPACE · Living mask verified'
-                                    : 'Press SPACE · Protected return sealed'
-                    : fieldKitRecovered && shipEvidence.available
-                        ? 'Press SPACE · Open ship and evidence board'
-                    : fieldKitRecovered
-                        ? 'Press SPACE to examine your ship 🚀'
-                    : 'Press SPACE to recover the field kit 🥋'
-            );
-
-            if (this.mobileControls) {
-                this.mobileControls.updateInteractIcon(fieldKitRecovered ? '🚀' : '🥋');
-            }
+            const descriptor = this.getCrashedShipInteractionDescriptor();
+            this.offerSanctuaryInteraction({
+                id: 'crashedShip',
+                target: ship,
+                message: descriptor.message,
+                icon: descriptor.icon,
+                tone: 0x90A4AE,
+                priority: 62,
+                presentation: () => (
+                    this.getCrashedShipInteractionDescriptor()
+                ),
+                action: () => this.interactWithCrashedShip()
+            });
         }
+    }
+
+    getCrashedShipInteractionDescriptor() {
+        const fieldKitRecovered = this.hasRecoveredProjectBeaconFieldKit();
+        const senseiMemory = getSenseiMemorySnapshot(window.GameState);
+        const shipEvidence = getShipEvidenceSnapshot(window.GameState);
+        const shipReconstruction = getShipReconstructionSnapshot(
+            window.GameState
+        );
+        const consent = getCompanionConsentSnapshot(window.GameState);
+        const earthMemory = getCompanionEarthMemorySnapshot(window.GameState);
+        const protectedReturn = getProtectedReturnSnapshot(window.GameState);
+        const currentVeil = getCurrentVeilSnapshot(window.GameState);
+        const message = fieldKitRecovered && senseiMemory.ready
+            ? `Press SPACE · Personal memory ${senseiMemory.recalledCount + 1}/${senseiMemory.totalMemories}`
+            : fieldKitRecovered && shipReconstruction.ready
+                ? `Press SPACE · Install ${shipReconstruction.readyStep.partName}`
+            : fieldKitRecovered && shipReconstruction.fieldSupport.ready
+                ? 'Press SPACE · Powered berth ready'
+            : fieldKitRecovered && shipEvidence.ready
+                ? `Press SPACE · Ship archive ${shipEvidence.reviewedCount}/${shipEvidence.totalSections}`
+            : fieldKitRecovered && consent.ready
+                ? `Press SPACE · Earth boundaries ${consent.reviewedCount}/${consent.totalTopics}`
+            : fieldKitRecovered && earthMemory.ready
+                ? 'Press SPACE · Your companion has an Earth question'
+            : fieldKitRecovered && earthMemory.complete
+                ? 'Press SPACE · Review your shared Earth memory'
+            : fieldKitRecovered && protectedReturn.ready
+                ? `Press SPACE · Return safeguards ${protectedReturn.completedCount}/${protectedReturn.totalSteps}`
+            : fieldKitRecovered && protectedReturn.complete
+                ? currentVeil.verificationReady
+                    ? 'Press SPACE · Verify living mask'
+                    : currentVeil.active
+                        ? `Press SPACE · Quiet Current ${currentVeil.stabilizedCount}/${currentVeil.totalAnchors}`
+                        : currentVeil.complete
+                            ? 'Press SPACE · Living mask verified'
+                            : 'Press SPACE · Protected return sealed'
+            : fieldKitRecovered && shipEvidence.available
+                ? 'Press SPACE · Open ship and evidence board'
+            : fieldKitRecovered
+                ? 'Press SPACE · Examine Wanderer-77'
+                : 'Press SPACE · Recover the Earth field kit';
+        return {
+            message,
+            icon: fieldKitRecovered ? '🚀' : '🥋'
+        };
+    }
+
+    interactWithCrashedShip() {
+        if (!this.nearCrashedShip) return false;
+        if (!this.hasRecoveredProjectBeaconFieldKit()) {
+            console.log('[GameScene] Recovering field kit from ship interaction');
+            this.recoverProjectBeaconFieldKit();
+            return true;
+        }
+
+        const senseiMemory = getSenseiMemorySnapshot(window.GameState);
+        const shipEvidence = getShipEvidenceSnapshot(window.GameState);
+        const shipReconstruction = getShipReconstructionSnapshot(
+            window.GameState
+        );
+        const consent = getCompanionConsentSnapshot(window.GameState);
+        const earthMemory = getCompanionEarthMemorySnapshot(window.GameState);
+        const protectedReturn = getProtectedReturnSnapshot(window.GameState);
+        const currentVeil = getCurrentVeilSnapshot(window.GameState);
+        if (senseiMemory.ready) {
+            this.showSenseiMemory();
+        } else if (
+            shipReconstruction.ready ||
+            shipReconstruction.fieldSupport.ready ||
+            shipEvidence.ready
+        ) {
+            this.showShipEvidenceBoard();
+        } else if (consent.ready) {
+            this.showCompanionBoundaryReview();
+        } else if (earthMemory.ready || earthMemory.complete) {
+            this.showCompanionEarthMemory();
+        } else if (
+            protectedReturn.ready ||
+            (protectedReturn.available && !protectedReturn.complete)
+        ) {
+            this.showShipEvidenceBoard();
+        } else if (currentVeil.verificationReady) {
+            this.showCurrentVeilMission({ verifyPacket: true });
+        } else if (currentVeil.active) {
+            this.showCurrentVeilMission();
+        } else if (shipEvidence.available) {
+            this.showShipEvidenceBoard();
+        } else {
+            this.showShipMemories();
+        }
+        return true;
     }
 
     showSenseiMemory() {
@@ -12680,12 +12801,13 @@ class GameScene extends Phaser.Scene {
     }
 
     checkLivingSignalProximity(delta = 16.67) {
+        if (!this.player || !Array.isArray(this.livingSignals)) return;
         const signalSearchDistance = this.getInteractionDistance('signal', 150, 190).enter;
         const signalApproachDistance = this.getInteractionDistance('signalApproach', 82, 120).enter;
-        const availableSignals = this.livingSignals.filter(
-            signal => signal?.active !== false && !signal.observed
+        const nearbySignals = this.livingSignals.filter(
+            signal => signal?.active !== false
         );
-        const nearest = availableSignals.reduce((closest, signal) => {
+        const nearest = nearbySignals.reduce((closest, signal) => {
             const distance = Phaser.Math.Distance.Between(
                 this.player.x,
                 this.player.y,
@@ -12701,6 +12823,14 @@ class GameScene extends Phaser.Scene {
         // Keep this legacy threshold text for contract compatibility:
         // nearest.distance > 150.
         if (!nearest || nearest.distance > signalSearchDistance || nearest.distance > 150) {
+            this.setLivingSignalLabelFocus();
+            this.resetActiveLivingSignalListening();
+            return;
+        }
+
+        this.setLivingSignalLabelFocus(nearest.signal.signalId);
+
+        if (nearest.signal.observed) {
             this.resetActiveLivingSignalListening();
             return;
         }
@@ -13914,76 +14044,7 @@ class GameScene extends Phaser.Scene {
 
         // Check for crashed ship interaction
         if (this.nearCrashedShip) {
-            if (this.hasRecoveredProjectBeaconFieldKit()) {
-                const senseiMemory = getSenseiMemorySnapshot(
-                    window.GameState
-                );
-                const shipEvidence = getShipEvidenceSnapshot(
-                    window.GameState
-                );
-                const shipReconstruction =
-                    getShipReconstructionSnapshot(window.GameState);
-                const consent = getCompanionConsentSnapshot(
-                    window.GameState
-                );
-                const earthMemory = getCompanionEarthMemorySnapshot(
-                    window.GameState
-                );
-                const protectedReturn = getProtectedReturnSnapshot(
-                    window.GameState
-                );
-                const currentVeil = getCurrentVeilSnapshot(
-                    window.GameState
-                );
-                if (senseiMemory.ready) {
-                    console.log('[GameScene] Reviewing Sensei memory from SPACE handler');
-                    this.showSenseiMemory();
-                } else if (shipReconstruction.ready) {
-                    console.log('[GameScene] Installing recovered Wanderer-77 system from SPACE handler');
-                    this.showShipEvidenceBoard();
-                } else if (shipReconstruction.fieldSupport.ready) {
-                    console.log('[GameScene] Servicing companion at powered berth from SPACE handler');
-                    this.showShipEvidenceBoard();
-                } else if (shipEvidence.ready) {
-                    console.log('[GameScene] Reviewing ship evidence from SPACE handler');
-                    this.showShipEvidenceBoard();
-                } else if (consent.ready) {
-                    console.log('[GameScene] Reviewing Earth boundaries from SPACE handler');
-                    this.showCompanionBoundaryReview();
-                } else if (
-                    earthMemory.ready || earthMemory.complete
-                ) {
-                    console.log('[GameScene] Sharing an Earth memory from SPACE handler');
-                    this.showCompanionEarthMemory();
-                } else if (
-                    protectedReturn.ready ||
-                    (
-                        protectedReturn.available &&
-                        !protectedReturn.complete
-                    )
-                ) {
-                    console.log('[GameScene] Applying protected return protocol from SPACE handler');
-                    this.showShipEvidenceBoard();
-                } else if (currentVeil.verificationReady) {
-                    console.log('[GameScene] Verifying Quiet Current mask from SPACE handler');
-                    this.showCurrentVeilMission({
-                        verifyPacket: true
-                    });
-                } else if (currentVeil.active) {
-                    console.log('[GameScene] Reviewing Quiet Current field work from SPACE handler');
-                    this.showCurrentVeilMission();
-                } else if (shipEvidence.available) {
-                    console.log('[GameScene] Opening reviewed ship archive from SPACE handler');
-                    this.showShipEvidenceBoard();
-                } else {
-                    console.log('[GameScene] Viewing ship memories from SPACE handler');
-                    this.showShipMemories();
-                }
-                this.nearCrashedShip = false;
-            } else {
-                console.log('[GameScene] Recovering field kit from SPACE handler');
-                this.recoverProjectBeaconFieldKit();
-            }
+            this.interactWithCrashedShip();
             return;
         }
 
@@ -13996,95 +14057,98 @@ class GameScene extends Phaser.Scene {
         }
 
         if (this.nearbyFlower) {
-            // Use Nature Attunement System for flower interaction
-            if (window.NatureAttunementSystem) {
-                const result = window.NatureAttunementSystem.recordInteraction(
-                    'flower',
-                    this,
-                    this.nearbyFlower.x,
-                    this.nearbyFlower.y
+            this.smellNearbyFlower();
+        }
+    }
+
+    smellNearbyFlower() {
+        if (!this.nearbyFlower) return false;
+        const flower = this.nearbyFlower;
+        if (window.NatureAttunementSystem) {
+            const result = window.NatureAttunementSystem.recordInteraction(
+                'flower',
+                this,
+                flower.x,
+                flower.y
+            );
+
+            if (result.success) {
+                getGameState().updateWorldExploration(
+                    { x: this.player.x, y: this.player.y },
+                    'flowers'
                 );
 
-                if (result.success) {
-                    // Track interaction in GameState
-                    getGameState().updateWorldExploration(
-                        { x: this.player.x, y: this.player.y },
-                        'flowers'
+                if (this.textures.exists('magicalSparkle')) {
+                    const sparkle = this.add.image(
+                        flower.x,
+                        flower.y - 20,
+                        'magicalSparkle'
                     );
-
-                    // Create a magical sparkle effect on the flower (with defensive texture check)
-                    if (this.textures.exists('magicalSparkle')) {
-                        const sparkle = this.add.image(this.nearbyFlower.x, this.nearbyFlower.y - 20, 'magicalSparkle');
-                        sparkle.setScale(0.6);
-
-                        // Animate the sparkle
-                        this.tweens.add({
-                            targets: sparkle,
-                            y: sparkle.y - 30,
-                            alpha: { from: 1, to: 0 },
-                            scale: { from: 0.5, to: 1 },
-                            duration: 1000,
-                            onComplete: () => sparkle.destroy()
-                        });
-                    } else {
-                        // Texture not available - try to recreate it for future use
-                        console.warn('[GameScene] magicalSparkle texture not found, recreating');
-                        if (this.graphicsEngine) {
-                            this.graphicsEngine.createMagicalSparkle(0x00FFFF, 0.8);
-                        }
-                    }
-
-                    // Update creature happiness (with nature bonus)
-                    const natureBonus = window.NatureAttunementSystem.getStatBonus('happiness');
-                    const happinessGain = Math.round(2 * (1 + natureBonus / 100));
-                    getGameState().updateCreature({
-                        stats: { happiness: getGameState().get('creature.stats.happiness') + happinessGain }
+                    sparkle.setScale(0.6);
+                    this.tweens.add({
+                        targets: sparkle,
+                        y: sparkle.y - 30,
+                        alpha: { from: 1, to: 0 },
+                        scale: { from: 0.5, to: 1 },
+                        duration: 1000,
+                        onComplete: () => sparkle.destroy()
                     });
-
-                    // Show interaction message with attunement info
-                    const dailyLeft = result.dailyRemaining;
-                    this.showInteractionHint(`*sniff* Nature attunement +${result.pointsEarned}! (${dailyLeft} flowers left today)`);
-
-                    // Show milestone unlock if applicable
-                    if (result.milestoneUnlocked) {
-                        console.log(`[GameScene] Nature milestone unlocked: ${result.milestoneName}`);
-                    }
-
-                    // Update stats display
-                    this.updateStatsDisplay();
-
-                    // INTEGRATION: Get creature's response via CreatureAIController
-                    if (window.CreatureAIController) {
-                        window.CreatureAIController.respondToExploration('flower')
-                            .then(response => {
-                                this.showCreatureResponse(response);
-                            })
-                            .catch(error => {
-                                console.warn('[GameScene] AI response failed:', error);
-                            });
-                    }
-
-                    // Check achievements after flower interaction
-                    this.time.delayedCall(500, () => this.checkAndUnlockAchievements());
                 } else {
-                    // Daily limit reached
-                    this.showInteractionHint(result.message || 'You\'ve enjoyed enough flowers today!');
+                    console.warn(
+                        '[GameScene] magicalSparkle texture not found, recreating'
+                    );
+                    this.graphicsEngine?.createMagicalSparkle(0x00FFFF, 0.8);
                 }
-            } else {
-                // Fallback if NatureAttunementSystem not available
+
+                const natureBonus = window.NatureAttunementSystem
+                    .getStatBonus('happiness');
+                const happinessGain = Math.round(2 * (1 + natureBonus / 100));
                 getGameState().updateCreature({
-                    stats: { happiness: getGameState().get('creature.stats.happiness') + 2 }
+                    stats: {
+                        happiness: getGameState().get('creature.stats.happiness') +
+                            happinessGain
+                    }
                 });
-                this.showInteractionHint('*sniff* What a lovely smell! (+2 Happiness)');
+                const dailyLeft = result.dailyRemaining;
+                this.showInteractionHint(
+                    `*sniff* Nature attunement +${result.pointsEarned}! ` +
+                    `(${dailyLeft} flowers left today)`
+                );
+                if (result.milestoneUnlocked) {
+                    console.log(
+                        `[GameScene] Nature milestone unlocked: ${result.milestoneName}`
+                    );
+                }
+                this.updateStatsDisplay();
+                const responseRequest = window.CreatureAIController
+                    ?.respondToExploration?.('flower');
+                responseRequest
+                    ?.then(response => this.showCreatureResponse(response))
+                    ?.catch(error => {
+                        console.warn('[GameScene] AI response failed:', error);
+                    });
+                this.time.delayedCall(500, () => this.checkAndUnlockAchievements());
+            } else {
+                this.showInteractionHint(
+                    result.message || 'You\'ve enjoyed enough flowers today!'
+                );
             }
-
-            this.nearbyFlower = null;
-
-            // Reset mobile interact button icon to default (unless near shop)
-            if (this.mobileControls && !this.nearShop) {
-                this.mobileControls.updateInteractIcon('👆');
-            }
+        } else {
+            getGameState().updateCreature({
+                stats: {
+                    happiness: getGameState().get('creature.stats.happiness') + 2
+                }
+            });
+            this.showInteractionHint('*sniff* What a lovely smell! (+2 Happiness)');
         }
+
+        this.nearbyFlower = null;
+        if (this.currentBiome === 'nebula') {
+            this.withdrawSanctuaryInteraction('flower');
+        } else {
+            this.mobileControls?.updateInteractIcon('👆');
+        }
+        return true;
     }
 
     /**
@@ -14210,11 +14274,6 @@ class GameScene extends Phaser.Scene {
                     this.nearShop = false;
                     const replacement = this.withdrawSanctuaryInteraction('shop');
                     if (!replacement) this.hideInteractionHint();
-
-                    // Reset mobile interact button icon to default
-                    if (this.mobileControls && !this.nearbyFlower) {
-                        this.mobileControls.updateInteractIcon('👆');
-                    }
                 }
             }
         }
@@ -14245,10 +14304,6 @@ class GameScene extends Phaser.Scene {
                         this.portalIndicator.destroy();
                         this.portalIndicator = null;
                     }
-
-                    if (this.mobileControls && !this.nearbyFlower && !this.nearShop) {
-                        this.mobileControls.updateInteractIcon('👆');
-                    }
                 }
             }
         }
@@ -14270,11 +14325,11 @@ class GameScene extends Phaser.Scene {
                 if (distance > this.getInteractionDistance('crashShip').clear) {
                     console.log('[GameScene] Player moved away from crashed ship, distance:', distance);
                     this.nearCrashedShip = false;
-                    this.hideInteractionHint();
+                    const replacement = this.withdrawSanctuaryInteraction(
+                        'crashedShip'
+                    );
+                    if (!replacement) this.hideInteractionHint();
 
-                    if (this.mobileControls && !this.nearbyFlower && !this.nearShop && !this.nearHubPortal) {
-                        this.mobileControls.updateInteractIcon('👆');
-                    }
                 }
             }
         }
@@ -14328,10 +14383,6 @@ class GameScene extends Phaser.Scene {
                         this.campfireGlowAnim.stop();
                         this.campfireGlowAnim = null;
                     }
-
-                    if (this.mobileControls && !this.nearbyFlower && !this.nearShop && !this.nearHubPortal && !this.nearCrashedShip && !this.nearReturnPortal) {
-                        this.mobileControls.updateInteractIcon('👆');
-                    }
                 }
             }
         }
@@ -14358,18 +14409,6 @@ class GameScene extends Phaser.Scene {
                     this.signalGardenIndicatorTween = null;
                     this.signalGardenIndicator?.destroy();
                     this.signalGardenIndicator = null;
-
-                    if (
-                        this.mobileControls &&
-                        !this.nearbyFlower &&
-                        !this.nearShop &&
-                        !this.nearHubPortal &&
-                        !this.nearCrashedShip &&
-                        !this.nearReturnPortal &&
-                        !this.nearCampfire
-                    ) {
-                        this.mobileControls.updateInteractIcon('👆');
-                    }
                 }
             }
         }
@@ -14395,18 +14434,6 @@ class GameScene extends Phaser.Scene {
                     this.updateSanctuaryFocusMode(false);
                     const replacement = this.withdrawSanctuaryInteraction('villageHeart');
                     if (!replacement) this.hideInteractionHint();
-                    if (
-                        this.mobileControls &&
-                        !this.nearbyFlower &&
-                        !this.nearShop &&
-                        !this.nearHubPortal &&
-                        !this.nearCrashedShip &&
-                        !this.nearReturnPortal &&
-                        !this.nearCampfire &&
-                        !this.nearSignalGarden
-                    ) {
-                        this.mobileControls.updateInteractIcon('👆');
-                    }
                 }
             }
         }
@@ -14439,18 +14466,6 @@ class GameScene extends Phaser.Scene {
                     this.fusionPodIndicatorTween = null;
                     this.fusionPodIndicator?.destroy?.();
                     this.fusionPodIndicator = null;
-                    if (
-                        this.mobileControls &&
-                        !this.nearbyFlower &&
-                        !this.nearShop &&
-                        !this.nearHubPortal &&
-                        !this.nearCrashedShip &&
-                        !this.nearReturnPortal &&
-                        !this.nearCampfire &&
-                        !this.nearSignalGarden
-                    ) {
-                        this.mobileControls.updateInteractIcon('👆');
-                    }
                 }
             }
         }
@@ -14468,11 +14483,12 @@ class GameScene extends Phaser.Scene {
                 )
                 : Number.POSITIVE_INFINITY;
             if (distance > this.getInteractionDistance('fendResident').clear) {
+                const previousId = this.nearFendResidentId;
                 this.nearFendResidentId = null;
-                if (!this.nearSignalGarden) {
-                    this.hideInteractionHint();
-                    this.mobileControls?.updateInteractIcon('👆');
-                }
+                const replacement = this.withdrawSanctuaryInteraction(
+                    `fendResident:${previousId}`
+                );
+                if (!replacement) this.hideInteractionHint();
             }
         }
 
@@ -14493,11 +14509,12 @@ class GameScene extends Phaser.Scene {
                 )
                 : Number.POSITIVE_INFINITY;
             if (distance > this.getInteractionDistance('guardianResident').clear) {
+                const previousId = this.nearGuardianResidentId;
                 this.nearGuardianResidentId = null;
-                if (!this.nearSignalGarden && !this.nearFendResidentId) {
-                    this.hideInteractionHint();
-                    this.mobileControls?.updateInteractIcon('👆');
-                }
+                const replacement = this.withdrawSanctuaryInteraction(
+                    `guardianResident:${previousId}`
+                );
+                if (!replacement) this.hideInteractionHint();
             }
         }
 
@@ -14518,15 +14535,12 @@ class GameScene extends Phaser.Scene {
                 )
                 : Number.POSITIVE_INFINITY;
             if (distance > this.getInteractionDistance('rescuedResident').clear) {
+                const previousId = this.nearRescuedResidentId;
                 this.nearRescuedResidentId = null;
-                if (
-                    !this.nearSignalGarden &&
-                    !this.nearFendResidentId &&
-                    !this.nearGuardianResidentId
-                ) {
-                    this.hideInteractionHint();
-                    this.mobileControls?.updateInteractIcon('👆');
-                }
+                const replacement = this.withdrawSanctuaryInteraction(
+                    `rescuedResident:${previousId}`
+                );
+                if (!replacement) this.hideInteractionHint();
             }
         }
 
@@ -14547,14 +14561,12 @@ class GameScene extends Phaser.Scene {
                 )
                 : Number.POSITIVE_INFINITY;
             if (distance > this.getInteractionDistance('currentVeilAnchor').clear) {
+                const previousId = this.nearCurrentVeilAnchorId;
                 this.nearCurrentVeilAnchorId = null;
-                if (
-                    !this.nearSignalGarden &&
-                    !this.nearFendResidentId
-                ) {
-                    this.hideInteractionHint();
-                    this.mobileControls?.updateInteractIcon('👆');
-                }
+                const replacement = this.withdrawSanctuaryInteraction(
+                    `currentVeilAnchor:${previousId}`
+                );
+                if (!replacement) this.hideInteractionHint();
             }
         }
 
@@ -14625,10 +14637,11 @@ class GameScene extends Phaser.Scene {
         if (!this.physics.overlap(this.player, this.flowers)) {
             if (this.nearbyFlower) {
                 this.nearbyFlower = null;
-
-                // Reset mobile interact button icon to default (unless near shop)
-                if (this.mobileControls && !this.nearShop) {
-                    this.mobileControls.updateInteractIcon('👆');
+                if (this.currentBiome === 'nebula') {
+                    const replacement = this.withdrawSanctuaryInteraction('flower');
+                    if (!replacement) this.hideInteractionHint();
+                } else {
+                    this.mobileControls?.updateInteractIcon('👆');
                 }
             }
         }
