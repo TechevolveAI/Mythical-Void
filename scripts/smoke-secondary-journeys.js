@@ -11059,6 +11059,24 @@ async function smokeVillageUi(session, exceptions) {
                 material: landmark.districtTerrain?.getData?.('villageTerrainMaterial'),
                 uniformOverlay: landmark.districtTerrain?.getData?.('uniformOverlay'),
                 patchCount: landmark.districtTerrain?.getData?.('terrainPatchCount') || 0,
+                continuousGround: landmark.districtTerrain?.getData?.(
+                    'villageDistrictContinuousGround'
+                ) === true,
+                groundProfile: landmark.districtTerrain?.getData?.(
+                    'villageDistrictGroundProfile'
+                ),
+                entranceCount: landmark.districtTerrain?.getData?.(
+                    'villageDistrictEntranceCount'
+                ) || 0,
+                edgeNodeCount: landmark.districtTerrain?.getData?.(
+                    'villageDistrictEdgeNodeCount'
+                ) || 0,
+                groundWidth: landmark.districtTerrain?.getData?.(
+                    'villageDistrictGroundWidth'
+                ) || 0,
+                groundHeight: landmark.districtTerrain?.getData?.(
+                    'villageDistrictGroundHeight'
+                ) || 0,
                 identityCount: landmark.districtTerrain?.getData?.(
                     'districtIdentityCount'
                 ) || 0,
@@ -11514,9 +11532,19 @@ async function smokeVillageUi(session, exceptions) {
         !integratedWorld.restoration.statusText.includes('3/5 ROOTS') ||
         !integratedWorld.restoration.statusText.includes('CONNECTED GLADE') ||
         !integratedWorld.district.terrainActive ||
-        integratedWorld.district.material !== 'living_current_districts_v3' ||
+        integratedWorld.district.material !== 'living_current_districts_v4' ||
         integratedWorld.district.uniformOverlay !== false ||
         integratedWorld.district.patchCount !== 6 ||
+        !integratedWorld.district.continuousGround ||
+        integratedWorld.district.groundProfile !== 'shared_living_glade_v1' ||
+        integratedWorld.district.entranceCount !== 2 ||
+        integratedWorld.district.edgeNodeCount !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 10 : 14
+        ) ||
+        integratedWorld.district.groundWidth < (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 300 : 700
+        ) ||
+        integratedWorld.district.groundHeight < 430 ||
         integratedWorld.district.identityCount !== 5 ||
         integratedWorld.district.identityIds.join(',') !==
             'garden_edge,upper_glade,current_bend,shelter_grove,far_root' ||
@@ -12611,6 +12639,27 @@ async function smokeVillageUi(session, exceptions) {
                 structureCount: worldStructures.length,
                 plotHitZones,
                 districtTerrainActive: landmark?.districtTerrain?.active === true,
+                districtTerrain: {
+                    material: landmark?.districtTerrain?.getData?.('villageTerrainMaterial'),
+                    continuousGround: landmark?.districtTerrain?.getData?.(
+                        'villageDistrictContinuousGround'
+                    ),
+                    profile: landmark?.districtTerrain?.getData?.(
+                        'villageDistrictGroundProfile'
+                    ),
+                    entranceCount: landmark?.districtTerrain?.getData?.(
+                        'villageDistrictEntranceCount'
+                    ),
+                    edgeNodeCount: landmark?.districtTerrain?.getData?.(
+                        'villageDistrictEdgeNodeCount'
+                    ),
+                    width: landmark?.districtTerrain?.getData?.(
+                        'villageDistrictGroundWidth'
+                    ),
+                    height: landmark?.districtTerrain?.getData?.(
+                        'villageDistrictGroundHeight'
+                    )
+                },
                 currentPathsActive: landmark?.currentPaths?.active === true,
                 growthTier: landmark?.snapshot?.worldState?.growthTier,
                 growthLabel: landmark?.snapshot?.worldState?.growthLabel,
@@ -12812,6 +12861,19 @@ async function smokeVillageUi(session, exceptions) {
             !bounds.inputEnabled
         )) ||
         !layout.worldPresentation.districtTerrainActive ||
+        layout.worldPresentation.districtTerrain.material !==
+            'living_current_districts_v4' ||
+        layout.worldPresentation.districtTerrain.continuousGround !== true ||
+        layout.worldPresentation.districtTerrain.profile !==
+            'shared_living_glade_v1' ||
+        layout.worldPresentation.districtTerrain.entranceCount !== 2 ||
+        layout.worldPresentation.districtTerrain.edgeNodeCount !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 10 : 14
+        ) ||
+        layout.worldPresentation.districtTerrain.width < (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 300 : 700
+        ) ||
+        layout.worldPresentation.districtTerrain.height < 430 ||
         !layout.worldPresentation.currentPathsActive ||
         layout.worldPresentation.growthTier !== 2 ||
         layout.worldPresentation.growthLabel !== 'CONNECTED GLADE' ||

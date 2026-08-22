@@ -1146,6 +1146,129 @@ class WorldBuilder {
         ];
         const basins = [heartBasin, ...plotBasins];
         const growthStrength = unlocked ? 0.72 + (growthTier * 0.08) : 0.38;
+
+        // One continuous glade makes the settlement read as a place rather than
+        // a collection of decorative pads. The irregular outline is stable so
+        // saved villages retain the same visual geography across sessions.
+        const gladeExtents = basins.reduce((bounds, basin) => ({
+            minX: Math.min(bounds.minX, basin.x - (basin.width * 0.56)),
+            maxX: Math.max(bounds.maxX, basin.x + (basin.width * 0.56)),
+            minY: Math.min(bounds.minY, basin.y - (basin.height * 0.58)),
+            maxY: Math.max(bounds.maxY, basin.y + (basin.height * 0.58))
+        }), {
+            minX: Number.POSITIVE_INFINITY,
+            maxX: Number.NEGATIVE_INFINITY,
+            minY: Number.POSITIVE_INFINITY,
+            maxY: Number.NEGATIVE_INFINITY
+        });
+        const gladeCenter = {
+            x: (gladeExtents.minX + gladeExtents.maxX) / 2,
+            y: (gladeExtents.minY + gladeExtents.maxY) / 2
+        };
+        const gladeSize = {
+            width: (gladeExtents.maxX - gladeExtents.minX) + (compact ? 58 : 86),
+            height: (gladeExtents.maxY - gladeExtents.minY) + (compact ? 68 : 94)
+        };
+        const createGladeContour = (scale = 1, phase = 0) => (
+            Array.from({ length: 32 }, (_, pointIndex) => {
+                const angle = (Math.PI * 2 * pointIndex) / 32;
+                const ripple = 1 +
+                    (Math.sin((angle * 3) + phase) * 0.055) +
+                    (Math.cos((angle * 5) - phase) * 0.035);
+                return new Phaser.Geom.Point(
+                    gladeCenter.x + Math.cos(angle) * gladeSize.width * 0.5 * scale * ripple,
+                    gladeCenter.y + Math.sin(angle) * gladeSize.height * 0.5 * scale * ripple
+                );
+            })
+        );
+        const gladeShadow = createGladeContour(1.08, 0.55);
+        const gladeGround = createGladeContour(1, 0.2);
+        const gladeInner = createGladeContour(0.82, 1.1);
+        terrain.fillStyle(0x071411, unlocked ? 0.06 : 0.04);
+        terrain.fillPoints(gladeShadow, true);
+        terrain.fillStyle(0x0B211D, unlocked ? 0.34 : 0.24);
+        terrain.fillPoints(gladeGround, true);
+        terrain.fillStyle(0x12352F, unlocked ? 0.18 : 0.1);
+        terrain.fillPoints(gladeInner, true);
+
+        // The south approach and west garden seam remain open and readable.
+        terrain.fillStyle(0x102B26, unlocked ? 0.46 : 0.28);
+        const southEdge = gladeExtents.maxY + (compact ? 2 : 8);
+        const southReach = southEdge + (compact ? 94 : 118);
+        terrain.fillPoints([
+            new Phaser.Geom.Point(-32, southReach),
+            new Phaser.Geom.Point(28, southReach),
+            new Phaser.Geom.Point(34, southEdge + 62),
+            new Phaser.Geom.Point(24, southEdge + 26),
+            new Phaser.Geom.Point(46, southEdge - 10),
+            new Phaser.Geom.Point(22, southEdge - 24),
+            new Phaser.Geom.Point(-24, southEdge - 20),
+            new Phaser.Geom.Point(-42, southEdge + 12),
+            new Phaser.Geom.Point(-29, southEdge + 50)
+        ], true);
+        const westEdge = gladeExtents.minX - (compact ? 4 : 10);
+        terrain.fillPoints([
+            new Phaser.Geom.Point(westEdge - (compact ? 88 : 120), heartBasin.y - 24),
+            new Phaser.Geom.Point(westEdge - (compact ? 88 : 120), heartBasin.y + 28),
+            new Phaser.Geom.Point(westEdge - 48, heartBasin.y + 31),
+            new Phaser.Geom.Point(westEdge - 16, heartBasin.y + 20),
+            new Phaser.Geom.Point(westEdge + 20, heartBasin.y + 34),
+            new Phaser.Geom.Point(westEdge + 29, heartBasin.y + 8),
+            new Phaser.Geom.Point(westEdge + 10, heartBasin.y - 22),
+            new Phaser.Geom.Point(westEdge - 34, heartBasin.y - 31)
+        ], true);
+
+        // Broken edge-lighting preserves the organic silhouette and avoids a
+        // panel-like outline around the whole district.
+        const edgeSegments = [
+            { start: 0.03, end: 0.18, color: 0x8FE3CF },
+            { start: 0.29, end: 0.43, color: 0x3FAE62 },
+            { start: 0.55, end: 0.7, color: 0x71E6B1 },
+            { start: 0.8, end: 0.94, color: 0xF2C14E }
+        ];
+        edgeSegments.forEach((segment, segmentIndex) => {
+            terrain.lineStyle(
+                segmentIndex === 3 ? 1 : 2,
+                segment.color,
+                unlocked ? (segmentIndex === 3 ? 0.05 : 0.08) : 0.035
+            );
+            terrain.beginPath();
+            for (let pointIndex = 0; pointIndex <= 9; pointIndex++) {
+                const progress = pointIndex / 9;
+                const angle = Math.PI * 2 * (
+                    segment.start + ((segment.end - segment.start) * progress)
+                );
+                const ripple = 1 +
+                    (Math.sin((angle * 3) + 0.2) * 0.055) +
+                    (Math.cos((angle * 5) - 0.2) * 0.035);
+                const point = {
+                    x: gladeCenter.x +
+                        Math.cos(angle) * gladeSize.width * 0.5 * ripple,
+                    y: gladeCenter.y +
+                        Math.sin(angle) * gladeSize.height * 0.5 * ripple
+                };
+                if (pointIndex === 0) terrain.moveTo(point.x, point.y);
+                else terrain.lineTo(point.x, point.y);
+            }
+            terrain.strokePath();
+        });
+
+        const edgeNodes = Array.from({ length: compact ? 10 : 14 }, (_, nodeIndex) => {
+            const angle = (Math.PI * 2 * (nodeIndex + 0.45)) / (compact ? 10 : 14);
+            const side = nodeIndex % 2 === 0 ? -1 : 1;
+            const x = gladeCenter.x + Math.cos(angle) * gladeSize.width * 0.46;
+            const y = gladeCenter.y + Math.sin(angle) * gladeSize.height * 0.45;
+            ecology.lineStyle(1, 0x3FAE62, unlocked ? 0.3 : 0.14);
+            ecology.lineBetween(x, y + 4, x + side, y - 4);
+            ecology.fillStyle(
+                nodeIndex % 3 === 0 ? 0x8FE3CF : 0x71E6B1,
+                unlocked ? 0.32 : 0.14
+            );
+            ecology.fillEllipse(x - (side * 3), y - 3, 7, 3);
+            ecology.fillEllipse(x + (side * 3), y - 6, 8, 3);
+            return { x, y };
+        });
+
         basins.forEach((basin, index) => {
             const activeStrength = index === 0
                 ? growthStrength
@@ -1155,9 +1278,9 @@ class WorldBuilder {
                         ? growthStrength * 0.72
                         : growthStrength * 0.42;
             const shifts = [
-                { x: -5, y: 3, scale: 1.18, alpha: 0.035 },
-                { x: 4, y: -2, scale: 0.98, alpha: 0.065 },
-                { x: -2, y: 2, scale: 0.74, alpha: 0.075 }
+                { x: -5, y: 3, scale: 1.18, alpha: 0.08 },
+                { x: 4, y: -2, scale: 0.98, alpha: 0.12 },
+                { x: -2, y: 2, scale: 0.74, alpha: 0.14 }
             ];
             shifts.forEach((layer, layerIndex) => {
                 terrain.fillStyle(
@@ -1365,9 +1488,15 @@ class WorldBuilder {
         });
 
         terrain
-            .setData('villageTerrainMaterial', 'living_current_districts_v3')
+            .setData('villageTerrainMaterial', 'living_current_districts_v4')
             .setData('uniformOverlay', false)
             .setData('terrainPatchCount', basins.length)
+            .setData('villageDistrictContinuousGround', true)
+            .setData('villageDistrictGroundProfile', 'shared_living_glade_v1')
+            .setData('villageDistrictEntranceCount', 2)
+            .setData('villageDistrictEdgeNodeCount', edgeNodes.length)
+            .setData('villageDistrictGroundWidth', Math.round(gladeSize.width))
+            .setData('villageDistrictGroundHeight', Math.round(gladeSize.height))
             .setData('districtIdentityCount', districtProfiles.length)
             .setData('districtIdentityIds', districtProfiles.map(profile => profile.id));
         ecology

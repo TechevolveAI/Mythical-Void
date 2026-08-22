@@ -120,6 +120,11 @@ describe('Village settlement gameplay contract', () => {
         expect(worldSource).toContain("? 'compact_silhouette'");
         expect(worldSource).toContain(".setData('villageGroundingMaterial', 'woven_root_foreground_v1')");
         expect(worldSource).toContain(".setData('villageArtworkTreatment', 'living_current_material_v1')");
+        expect(worldSource).toContain(".setData('villageTerrainMaterial', 'living_current_districts_v4')");
+        expect(worldSource).toContain(".setData('villageDistrictContinuousGround', true)");
+        expect(worldSource).toContain(".setData('villageDistrictGroundProfile', 'shared_living_glade_v1')");
+        expect(worldSource).toContain(".setData('villageDistrictEntranceCount', 2)");
+        expect(worldSource).toContain(".setData('villageDistrictEdgeNodeCount', edgeNodes.length)");
         expect(worldSource).toContain("? 'full_color'");
         expect(worldSource).toContain("? 'story_supporting'");
         expect(worldSource).toContain('this.applyVillageArtworkTreatment(presentation.worldArtwork');
@@ -540,7 +545,7 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain('markVillageGuidanceSeen(window.GameState)');
         expect(world).toContain('const compactSettlement = this.scene.scale.width <= 600;');
         expect(world).toContain('drawVillageDistrictGround({');
-        expect(world).toContain("setData('villageTerrainMaterial', 'living_current_districts_v3')");
+        expect(world).toContain("setData('villageTerrainMaterial', 'living_current_districts_v4')");
         expect(world).toContain("setData('uniformOverlay', false)");
         expect(world).toContain("setData('districtIdentityCount', districtProfiles.length)");
         expect(world).toContain("setData('districtIdentityIds', districtProfiles.map(profile => profile.id))");

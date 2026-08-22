@@ -85,6 +85,13 @@ No build control overlays the joystick or action dock.
 
 The same generated building scenes are rendered on the Sanctuary plots. Constructing buildings appear scaffolded and desaturated; completed buildings float subtly, emit animated Current energy, and remain visually identifiable outside the menu. Completion and resource-production notices appear in the world so passive progress is not silent.
 
+The settlement is grounded by one responsive living glade rather than a rectangular
+build-mode overlay. Its irregular terrain footprint is derived from the authored
+plot layout, with open seams toward the Signal Garden and the southern player
+approach. On narrow screens the glade becomes a compact terrace; on desktop it
+stretches into a commons spine. Occupied roots receive stronger local terrain and
+ecology while unopened roots remain quiet, preserving one readable focal action.
+
 The five scenes are pre-generated project assets rather than runtime generation requests. This keeps the menu immediate, deterministic, inexpensive, and available offline. Each building has a distinct visual identity; motion is layered with CSS and respects `prefers-reduced-motion`.
 
 ## 7. Gameplay Impact Contract
