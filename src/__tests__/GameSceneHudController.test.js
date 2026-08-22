@@ -48,7 +48,10 @@ describeHudController('GameSceneHudController', () => {
 
     function createVisibleElement() {
         return {
-            setVisible: jest.fn().mockReturnThis()
+            setVisible: jest.fn().mockReturnThis(),
+            setText: jest.fn().mockReturnThis(),
+            setColor: jest.fn().mockReturnThis(),
+            setBackgroundColor: jest.fn().mockReturnThis()
         };
     }
 
@@ -110,6 +113,37 @@ describeHudController('GameSceneHudController', () => {
         controller.updateDailyBonusButton();
 
         expect(scene.dailyBonusButton.setVisible).toHaveBeenCalledWith(false);
-        expect(scene.dailyBonusButton.setText).toBeUndefined();
+        expect(scene.dailyBonusButton.setText).not.toHaveBeenCalled();
+    });
+
+    test('shows a compact reward cue only while a desktop gift is claimable', () => {
+        const scene = createScene();
+        scene.mobileHUD = { isVisible: false };
+        scene.sanctuaryFocusModeActive = false;
+        scene.careSystem = {
+            getDailyLoginBonus: jest.fn(() => ({ available: true, streak: 4 }))
+        };
+        const controller = new GameSceneHudController(scene);
+
+        controller.updateDailyBonusButton();
+
+        expect(scene.dailyBonusButton.setVisible).toHaveBeenCalledWith(true);
+        expect(scene.dailyBonusButton.setText)
+            .toHaveBeenCalledWith('GIFT READY · STREAK 4');
+    });
+
+    test('suppresses the reward cue while the Village Heart owns focus', () => {
+        const scene = createScene();
+        scene.mobileHUD = { isVisible: false };
+        scene.sanctuaryFocusModeActive = true;
+        scene.careSystem = {
+            getDailyLoginBonus: jest.fn(() => ({ available: true, streak: 4 }))
+        };
+        const controller = new GameSceneHudController(scene);
+
+        controller.updateDailyBonusButton();
+
+        expect(scene.dailyBonusButton.setVisible).toHaveBeenCalledWith(false);
+        expect(scene.dailyBonusButton.setText).not.toHaveBeenCalled();
     });
 });

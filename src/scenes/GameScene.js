@@ -336,6 +336,8 @@ class GameScene extends Phaser.Scene {
         this._sceneLifecycleRegistered = false;
         this._isShuttingDown = false;
         this.kidModeActionHandler = null;
+        this.kidModeHelpContainer = null;
+        this.sanctuaryFocusModeActive = false;
         this.joystickX = 0;
         this.joystickY = 0;
         this.virtualJoystickHandler = null;
@@ -7977,6 +7979,7 @@ class GameScene extends Phaser.Scene {
     handleVillageHeartProximity() {
         if (this.nearVillageHeart) return;
         this.nearVillageHeart = true;
+        this.updateSanctuaryFocusMode(true);
         const snapshot = reconcileVillageSettlement(window.GameState)
             || getVillageSnapshot(window.GameState);
         const needsGuidance = snapshot.unlock.unlocked &&
@@ -8011,7 +8014,8 @@ class GameScene extends Phaser.Scene {
                 ? needsGuidance
                     ? `Village Heart awakened · ${openAction}`
                     : openAction
-                : `Village Heart offline · ${snapshot.unlock.reason}`
+                : `Village Heart offline · ${snapshot.unlock.reason}`,
+            { persistent: true }
         );
         this.mobileControls?.updateInteractIcon(
             nextAction?.type === 'decision' ? '?' : '🏗'
@@ -13418,9 +13422,9 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    showInteractionHint(message) {
+    showInteractionHint(message, { persistent = false } = {}) {
         if (!this.interactionText?.active) return;
-        const isProximityPrompt = /^\s*Press SPACE\b/i.test(message);
+        const isProximityPrompt = persistent || /^\s*Press SPACE\b/i.test(message);
         const touchControlsActive = Boolean(
             this.mobileControls?.isMobile ||
             this.mobileHUD?.isVisible ||
@@ -14232,6 +14236,7 @@ class GameScene extends Phaser.Scene {
             )) {
                 if (distance > this.getInteractionDistance('villageHeart').clear) {
                     this.nearVillageHeart = false;
+                    this.updateSanctuaryFocusMode(false);
                     this.hideInteractionHint();
                     if (
                         this.mobileControls &&
@@ -14575,42 +14580,19 @@ class GameScene extends Phaser.Scene {
 
         const stats = creature.stats;
 
-        let careStatus = null;
-        let happinessDesc = { level: 'unknown' };
-
-        if (this.careSystem) {
-            try {
-                if (typeof this.careSystem.getCareStatus === 'function') {
-                    careStatus = this.careSystem.getCareStatus();
-                }
-                if (typeof this.careSystem.getHappinessDescription === 'function') {
-                    happinessDesc = this.careSystem.getHappinessDescription(stats.happiness);
-                }
-            } catch (careError) {
-                console.warn('[GameScene] Error getting care status:', careError);
-                careStatus = null;
-                happinessDesc = { level: 'unknown' };
-            }
-        }
-
-        const achievementProgress = this.getAchievementProgressText();
-        const tutorialProgress = this.getTutorialProgressText();
-
         // Check for low/critical stat values and add warnings
         const healthWarning = this.getStatWarning(stats.health, 100);
         const happinessWarning = this.getStatWarning(stats.happiness, 100);
         const energyWarning = this.getStatWarning(stats.energy, 100);
 
         const hasCriticalStats = healthWarning.critical || happinessWarning.critical || energyWarning.critical;
+        const displayStat = value => Number.isFinite(Number(value))
+            ? Math.round(Number(value))
+            : '--';
 
         const displayText = [
-            `${creature.name} - Level ${creature.level}`,
-            `XP: ${creature.experience}/100`,
-            `${healthWarning.icon} ${stats.health} ${happinessWarning.icon} ${stats.happiness} (${happinessDesc.level}) ${energyWarning.icon} ${stats.energy}`,
-            `Care Streak: ${careStatus ? careStatus.careStreak : 0} days`,
-            `${achievementProgress}`,
-            `${tutorialProgress}`,
-            `Flowers: ${getGameState().get('world.discoveredObjects.flowers')}`
+            `${creature.name.toUpperCase()} · LV ${creature.level}`,
+            `HP ${displayStat(stats.health)} · JOY ${displayStat(stats.happiness)} · ENERGY ${displayStat(stats.energy)}`
         ].join('\n');
 
         this.statsText.setText(displayText);
@@ -15083,13 +15065,36 @@ class GameScene extends Phaser.Scene {
             'beacon_first_contact' &&
             !activeStoryQuest.completed &&
             !activeStoryQuest.claimed;
+        const interfaceFocusActive = Boolean(
+            firstContactActive || this.sanctuaryFocusModeActive
+        );
         const mobileFocusActive = Boolean(
-            this.mobileHUD?.isVisible && firstContactActive
+            this.mobileHUD?.isVisible && interfaceFocusActive
         );
 
         this.mobileHUD?.setFocusMode?.(mobileFocusActive);
-        this.questTracker?.container?.setVisible?.(!mobileFocusActive);
-        this.firstContactFocusModeActive = mobileFocusActive;
+        this.questTracker?.container?.setVisible?.(!interfaceFocusActive);
+        this.firstContactFocusModeActive = Boolean(firstContactActive);
+    }
+
+    updateSanctuaryFocusMode(active = this.nearVillageHeart) {
+        const nextActive = Boolean(active);
+        if (this.sanctuaryFocusModeActive === nextActive) return;
+        this.sanctuaryFocusModeActive = nextActive;
+
+        if (nextActive) {
+            this.kidModeHelpContainer?.destroy?.(true);
+            this.kidModeHelpContainer = null;
+            this.dailyBonusButton?.setVisible?.(false);
+        } else {
+            this.getHudController().updateDailyBonusButton();
+        }
+
+        if (!this.mobileHUD?.isVisible) {
+            this.statsText?.setVisible?.(!nextActive);
+            this.resetButton?.setVisible?.(!nextActive);
+        }
+        this.updateFirstContactFocusMode();
     }
 
     scheduleFusionDiscoveryIntroduction(
@@ -15869,28 +15874,11 @@ class GameScene extends Phaser.Scene {
      * Create Kid Mode HUD with status bars and CTA buttons
      */
     createKidModeHUD() {
-        // Get creature stats for status bars
         const creatureStats = getGameState().get('creature.stats') || { happiness: 80, energy: 60, health: 90 };
-        const needsData = {
-            hunger: 100 - creatureStats.happiness,
-            energy: 100 - creatureStats.energy, 
-            fun: Math.max(0, 100 - creatureStats.happiness - 20)
-        };
-
-        // Create status bar at top
-        if (window.responsiveManager) {
-            this.kidModeStatusBar = window.responsiveManager.createKidModeStatusBar(this, needsData);
-        }
-
-        // Get next best action based on creature state
+        // Kid Mode keeps larger touch targets, but care status belongs in the
+        // radial care panel rather than a second persistent Sanctuary HUD.
         const emotion = this.determineCreatureEmotion(creatureStats);
-        const bestAction = window.KidMode.getNextBestAction(emotion);
-        const secondaryActions = window.KidMode.getSecondaryActions(bestAction.action);
-
-        // Show contextual help message
-        if (bestAction.message && window.KidMode && window.KidMode.showSpaceHelpMessage) {
-            window.KidMode.showSpaceHelpMessage(this, bestAction.message);
-        }
+        this.lastEmotion = emotion;
     }
 
     /**
@@ -16014,11 +16002,17 @@ class GameScene extends Phaser.Scene {
         const emotion = this.determineCreatureEmotion(creatureStats);
         const bestAction = window.KidMode.getNextBestAction(emotion);
 
-        // Show new contextual message if emotion changed
-        if (this.lastEmotion !== emotion) {
+        const criticalEmotion = ['hungry', 'sleepy', 'dirty'].includes(emotion);
+        // Care guidance appears only when the creature needs help, never as a
+        // competing arrival banner beside a world interaction.
+        if (
+            criticalEmotion &&
+            this.lastEmotion !== emotion &&
+            !this.sanctuaryFocusModeActive
+        ) {
             window.KidMode.showHelpMessage(this, bestAction.message);
-            this.lastEmotion = emotion;
         }
+        this.lastEmotion = emotion;
     }
 
     /**
@@ -16306,6 +16300,8 @@ class GameScene extends Phaser.Scene {
             this.events.off('kid_mode_action', this.kidModeActionHandler, this);
             this.kidModeActionHandler = null;
         }
+        this.kidModeHelpContainer?.destroy?.(true);
+        this.kidModeHelpContainer = null;
 
         // Clean up space weather effects
         if (this.auroraEffect) {

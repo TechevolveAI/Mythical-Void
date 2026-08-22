@@ -10436,8 +10436,8 @@ async function smokeVillageUi(session, exceptions) {
         const approachX = scene.villageHeartLandmark.zone.x;
         const approachY = scene.villageHeartLandmark.zone.y - 110;
         scene.physics.pause();
+        if (scene.player.body) scene.player.body.enable = false;
         scene.player.setPosition(approachX, approachY);
-        scene.player.body?.reset?.(approachX, approachY);
         scene.cameras.main.stopFollow();
         scene.cameras.main.centerOn(
             scene.villageHeartLandmark.zone.x,
@@ -10468,6 +10468,7 @@ async function smokeVillageUi(session, exceptions) {
             y: (y - camera.worldView.y) * camera.zoom
         });
         const commons = scene.sanctuaryCommons;
+        const interactionBounds = scene.interactionText?.getBounds?.();
         const garden = toScreen(scene.signalGarden.zone.x, scene.signalGarden.zone.y);
         const heart = toScreen(landmark.zone.x, landmark.zone.y);
         const plots = [...landmark.plotWorldPositions.entries()].map(([plotId, position]) => ({
@@ -10497,7 +10498,23 @@ async function smokeVillageUi(session, exceptions) {
                 activeSignals: commons?.signals?.filter(signal => signal.active).length || 0,
                 activeTweens: commons?.signalTweens?.filter(tween => tween.isPlaying()).length || 0
             },
+            focus: {
+                active: scene.sanctuaryFocusModeActive === true,
+                kidStatusBarActive: scene.kidModeStatusBar?.active === true,
+                kidHelpActive: scene.kidModeHelpContainer?.active === true,
+                statsVisible: scene.statsText?.visible === true,
+                dailyGiftVisible: scene.dailyBonusButton?.visible === true,
+                questVisible: scene.questTracker?.container?.visible === true,
+                mobileHudFocused: scene.mobileHUD?.focusModeActive === true
+            },
             interactionHint: scene.interactionText?.text || '',
+            interactionVisible: scene.interactionText?.visible === true,
+            interactionBounds: interactionBounds ? {
+                left: interactionBounds.left,
+                right: interactionBounds.right,
+                top: interactionBounds.top,
+                bottom: interactionBounds.bottom
+            } : null,
             districtTerrainActive: landmark.districtTerrain?.active === true,
             modalOpen: Boolean(document.querySelector('.village-command-modal'))
         };
@@ -10518,7 +10535,20 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.commons.signalCount !== 4 ||
         integratedWorld.commons.activeSignals !== 4 ||
         integratedWorld.commons.activeTweens !== 4 ||
+        !integratedWorld.focus.active ||
+        integratedWorld.focus.kidStatusBarActive ||
+        integratedWorld.focus.kidHelpActive ||
+        integratedWorld.focus.statsVisible ||
+        integratedWorld.focus.dailyGiftVisible ||
+        integratedWorld.focus.questVisible ||
+        integratedWorld.focus.mobileHudFocused !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
         !integratedWorld.interactionHint.includes('Decide together') ||
+        !integratedWorld.interactionVisible ||
+        !integratedWorld.interactionBounds ||
+        integratedWorld.interactionBounds.left < -1 ||
+        integratedWorld.interactionBounds.right > integratedWorld.viewport.width + 1 ||
+        integratedWorld.interactionBounds.top < -1 ||
+        integratedWorld.interactionBounds.bottom > integratedWorld.viewport.height + 1 ||
         integratedWorld.gardenStage !== 'bloom' ||
         !integratedWorld.districtTerrainActive ||
         integratedWorld.modalOpen ||
@@ -10537,6 +10567,37 @@ async function smokeVillageUi(session, exceptions) {
         SMOKE_VIEWPORT_WIDTH <= 600
             ? 'village-integrated-sanctuary-mobile.png'
             : 'village-integrated-sanctuary-desktop.png'
+    );
+    const focusRecovery = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.updateSanctuaryFocusMode(false);
+        scene.hideInteractionHint();
+        return {
+            active: scene.sanctuaryFocusModeActive === true,
+            statsVisible: scene.statsText?.visible === true,
+            statsText: scene.statsText?.text || '',
+            resetVisible: scene.resetButton?.visible === true,
+            interactionVisible: scene.interactionText?.visible === true,
+            kidStatusBarActive: scene.kidModeStatusBar?.active === true,
+            kidHelpActive: scene.kidModeHelpContainer?.active === true
+        };
+    })()`);
+    if (
+        focusRecovery.active ||
+        /undefined|null|NaN/i.test(focusRecovery.statsText) ||
+        focusRecovery.statsVisible !== (SMOKE_VIEWPORT_WIDTH > 600) ||
+        focusRecovery.resetVisible !== (SMOKE_VIEWPORT_WIDTH > 600) ||
+        focusRecovery.interactionVisible ||
+        focusRecovery.kidStatusBarActive ||
+        focusRecovery.kidHelpActive
+    ) {
+        throw new Error(`Sanctuary focus did not restore exploration HUD: ${JSON.stringify(focusRecovery)}`);
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-integrated-exploration-mobile.png'
+            : 'village-integrated-exploration-desktop.png'
     );
 
     await evaluate(session, `(() => {
@@ -11194,6 +11255,7 @@ async function smokeVillageUi(session, exceptions) {
         layout,
         integratedSetup,
         integratedWorld,
+        focusRecovery,
         workerRoute,
         workerCheckIn,
         contextualFocus,

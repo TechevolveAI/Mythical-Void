@@ -47,6 +47,8 @@ describe('Village settlement gameplay contract', () => {
         const zoneSource = read('systems/world/SanctuaryZones.js');
         const worldSource = read('systems/world/WorldBuilder.js');
         const sceneSource = read('scenes/GameScene.js');
+        const hudSource = read('scenes/controllers/GameSceneHudController.js');
+        const kidModeSource = read('systems/KidMode.js');
 
         expect(zoneSource).toContain("villageHeart: {");
         expect(zoneSource).toContain("onInteract: 'openVillageCommand'");
@@ -66,6 +68,16 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain("decision: this.mobileControls");
         expect(sceneSource).toContain("'Tap the Village Heart · Decide together'");
         expect(sceneSource).toContain("nextAction?.type === 'decision' ? '?' : '🏗'");
+        expect(sceneSource).toContain('{ persistent: true }');
+        expect(sceneSource).toContain('showInteractionHint(message, { persistent = false } = {})');
+        expect(sceneSource).toContain('this.updateSanctuaryFocusMode(true)');
+        expect(sceneSource).toContain('this.updateSanctuaryFocusMode(false)');
+        expect(sceneSource).toContain('firstContactActive || this.sanctuaryFocusModeActive');
+        expect(sceneSource).toContain('this.kidModeHelpContainer?.destroy?.(true)');
+        expect(sceneSource).not.toContain('createKidModeStatusBar(this, needsData)');
+        expect(hudSource).toContain(".get('debugHud') === '1'");
+        expect(hudSource).toContain('GIFT READY · STREAK ${bonus.streak}');
+        expect(kidModeSource).toContain('if (scene?.sanctuaryFocusModeActive) return null');
     });
 
     test('the Shop makes the Base Builder the direct, clear construction route', () => {

@@ -260,7 +260,10 @@ describe('first-session Project Beacon mission loop', () => {
             'this.mobileHUD?.setFocusMode?.(mobileFocusActive)'
         );
         expect(gameSceneSource).toContain(
-            'this.questTracker?.container?.setVisible?.(!mobileFocusActive)'
+            'firstContactActive || this.sanctuaryFocusModeActive'
+        );
+        expect(gameSceneSource).toContain(
+            'this.questTracker?.container?.setVisible?.(!interfaceFocusActive)'
         );
         expect(mobileHudSource).toContain('setFocusMode(active)');
         expect(mobileHudSource).toContain('this.focusModeActive');
