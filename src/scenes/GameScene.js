@@ -4619,6 +4619,7 @@ class GameScene extends Phaser.Scene {
         const zoom = isMobile || controlDockVisible ? 0.85 : 1.0;
 
         camera.setZoom(zoom);
+        this.achievementNotification?.syncCameraZoom?.();
         this.applyMobileCameraBounds(camera, isMobile, zoom, controlDockVisible);
         camera.setRoundPixels(true);
         camera.setBackgroundColor('#050214');
@@ -4632,6 +4633,7 @@ class GameScene extends Phaser.Scene {
                 const dockVisible = this.hasVisibleTouchControls();
                 const nextZoom = mobile || dockVisible ? 0.85 : 1.0;
                 camera.setZoom(nextZoom);
+                this.achievementNotification?.syncCameraZoom?.();
                 this.applyMobileCameraBounds(
                     camera,
                     mobile,
@@ -4686,6 +4688,7 @@ class GameScene extends Phaser.Scene {
         const controlDockVisible = Boolean(visible);
         const zoom = isMobile || controlDockVisible ? 0.85 : 1;
         camera.setZoom(zoom);
+        this.achievementNotification?.syncCameraZoom?.();
         this.applyMobileCameraBounds(
             camera,
             isMobile,

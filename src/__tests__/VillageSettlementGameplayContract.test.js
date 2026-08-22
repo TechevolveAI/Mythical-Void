@@ -7,6 +7,21 @@ const read = relativePath => fs.readFileSync(
 );
 
 describe('Village settlement gameplay contract', () => {
+    test('achievement modals remain true screen-space UI during Sanctuary focus zoom', () => {
+        const source = read('ui/AchievementNotification.js');
+        const sceneSource = read('scenes/GameScene.js');
+
+        expect(source).toContain('const uiScale = 1 / cameraZoom;');
+        expect(source).toContain('this.container.setScrollFactor(0);');
+        expect(source).toContain('.setPosition(centerX, centerY)');
+        expect(source).toContain('.setScale(uiScale)');
+        expect(source).toContain('.setScrollFactor(0)');
+        expect(source).toContain('scale: uiScale * 0.8');
+        expect(source).toContain('.setScale(1 / cameraZoom)');
+        expect(source).toContain('syncCameraZoom()');
+        expect(sceneSource.match(/this\.achievementNotification\?\.syncCameraZoom\?\.\(\);/g)).toHaveLength(3);
+    });
+
     test('the Living Current vertical-slice world assets ship with the game', () => {
         const publicRoot = path.join(__dirname, '..', '..', 'public');
 

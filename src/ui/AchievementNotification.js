@@ -58,6 +58,8 @@ class AchievementNotification {
         const { width, height } = this.scene.scale;
         const centerX = width / 2;
         const centerY = height / 2;
+        const cameraZoom = this.scene.cameras?.main?.zoom || 1;
+        const uiScale = 1 / cameraZoom;
 
         // Modal dimensions
         const modalWidth = Math.min(380, width - 40);
@@ -68,14 +70,19 @@ class AchievementNotification {
         // Create container
         this.container = this.scene.add.container(centerX, centerY);
         this.container.setDepth(10000);
+        this.container.setScrollFactor(0);
         this.container.setAlpha(0);
-        this.container.setScale(0.8);
+        this.container.setScale(uiScale * 0.8);
 
         // Dark overlay
         this.overlay = this.scene.add.graphics();
         this.overlay.fillStyle(0x000000, 0.6);
         this.overlay.fillRect(-width / 2, -height / 2, width, height);
-        this.overlay.setDepth(9999);
+        this.overlay
+            .setPosition(centerX, centerY)
+            .setScale(uiScale)
+            .setScrollFactor(0)
+            .setDepth(9999);
 
         // Get tier color
         const tierColor = this.colors.border[achievement.tier] || this.colors.border.BRONZE;
@@ -234,7 +241,7 @@ class AchievementNotification {
         this.scene.tweens.add({
             targets: this.container,
             alpha: 1,
-            scale: 1,
+            scale: uiScale,
             duration: 300,
             ease: 'Back.easeOut'
         });
@@ -274,7 +281,7 @@ class AchievementNotification {
         this.scene.tweens.add({
             targets: this.container,
             alpha: 0,
-            scale: 0.8,
+            scale: uiScale * 0.8,
             duration: 200,
             ease: 'Power2',
             onComplete: () => {
@@ -289,6 +296,16 @@ class AchievementNotification {
             alpha: 0,
             duration: 200
         });
+    }
+
+    syncCameraZoom() {
+        if (!this.overlay) return false;
+        const cameraZoom = this.scene.cameras?.main?.zoom || 1;
+        this.overlay
+            .setPosition(this.scene.scale.width / 2, this.scene.scale.height / 2)
+            .setScale(1 / cameraZoom)
+            .setScrollFactor(0);
+        return true;
     }
 
     /**
@@ -310,8 +327,21 @@ class AchievementNotification {
         if (tier === 'GOLD' || tier === 'PLATINUM') {
             const flash = this.scene.add.graphics();
             flash.fillStyle(tier === 'PLATINUM' ? 0xE5E4E2 : 0xFFD700, 0.3);
-            flash.fillRect(0, 0, this.scene.scale.width, this.scene.scale.height);
-            flash.setDepth(9998);
+            const cameraZoom = this.scene.cameras?.main?.zoom || 1;
+            flash.fillRect(
+                -this.scene.scale.width / 2,
+                -this.scene.scale.height / 2,
+                this.scene.scale.width,
+                this.scene.scale.height
+            );
+            flash
+                .setPosition(
+                    this.scene.scale.width / 2,
+                    this.scene.scale.height / 2
+                )
+                .setScale(1 / cameraZoom)
+                .setScrollFactor(0)
+                .setDepth(9998);
 
             this.scene.tweens.add({
                 targets: flash,

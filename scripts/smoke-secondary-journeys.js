@@ -10577,6 +10577,20 @@ async function smokeVillageUi(session, exceptions) {
             plotHitBounds,
             cameraFocusTarget: scene.sanctuaryCameraFocusTarget || null,
             cameraFollowingPlayer: camera._follow === scene.player,
+            achievementOverlay: (() => {
+                const notification = scene.achievementNotification;
+                const overlay = notification?.overlay;
+                const container = notification?.container;
+                if (!overlay) return null;
+                return {
+                    scrollFactorX: overlay.scrollFactorX,
+                    scrollFactorY: overlay.scrollFactorY,
+                    normalizedScaleX: overlay.scaleX * camera.zoom,
+                    normalizedScaleY: overlay.scaleY * camera.zoom,
+                    containerScrollFactorX: container?.scrollFactorX,
+                    containerScrollFactorY: container?.scrollFactorY
+                };
+            })(),
             focusHierarchy: {
                 active: landmark.focusModeActive === true,
                 action: landmark.snapshot?.worldState?.nextAction?.type || null,
@@ -10841,6 +10855,16 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.plotCount !== 5 ||
         !integratedWorld.cameraFocusTarget ||
         integratedWorld.cameraFollowingPlayer ||
+        (
+            integratedWorld.achievementOverlay && (
+                integratedWorld.achievementOverlay.scrollFactorX !== 0 ||
+                integratedWorld.achievementOverlay.scrollFactorY !== 0 ||
+                Math.abs(integratedWorld.achievementOverlay.normalizedScaleX - 1) > 0.01 ||
+                Math.abs(integratedWorld.achievementOverlay.normalizedScaleY - 1) > 0.01 ||
+                integratedWorld.achievementOverlay.containerScrollFactorX !== 0 ||
+                integratedWorld.achievementOverlay.containerScrollFactorY !== 0
+            )
+        ) ||
         !integratedWorld.focusHierarchy.active ||
         integratedWorld.focusHierarchy.action !== 'decision' ||
         integratedWorld.focusHierarchy.heartPriority !== 'primary' ||
