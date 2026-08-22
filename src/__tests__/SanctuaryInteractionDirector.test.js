@@ -213,6 +213,50 @@ describe('SanctuaryInteractionDirector', () => {
         expect(action).toHaveBeenCalledTimes(1);
     });
 
+    it('marks the selected world target with a tappable semantic action node', () => {
+        const scene = createScene();
+        scene.cameras = {
+            main: {
+                worldView: { x: 0, y: 0, width: 390, height: 700 }
+            }
+        };
+        const director = new SanctuaryInteractionDirector(scene);
+        const action = jest.fn();
+
+        director.offer({
+            id: 'worker:nova',
+            target: { x: 350, y: 80, width: 72, height: 84, active: true },
+            message: 'Check in with Nova',
+            ownerLabel: 'NOVA',
+            icon: 'talk',
+            action
+        });
+
+        const node = director.indicatorElements.find(element => (
+            element.getData?.('sanctuaryActionNode') === true
+        ));
+        const hitZone = director.indicatorElements.find(element => (
+            element.getData?.('sanctuaryActionNodeHitZone') === true
+        ));
+        expect(node).toBeTruthy();
+        expect(node.getData('visualLanguage')).toBe('target-ring-action-node');
+        expect(hitZone).toBeTruthy();
+        expect(hitZone.x).toBe(362);
+        expect(hitZone.y).toBeCloseTo(63.2);
+        expect(hitZone.getData('viewportClamped')).toBe(true);
+        expect(hitZone.getData('ownershipRelation'))
+            .toBe('marks-selected-world-target');
+
+        hitZone.events.get('pointerdown')({ event: { stopPropagation: jest.fn() } });
+        expect(action).toHaveBeenCalledTimes(1);
+
+        director.candidates.get('worker:nova').target.x = 140;
+        director.candidates.get('worker:nova').target.y = 220;
+        director.update();
+        expect(hitZone.x).toBeCloseTo(173.12);
+        expect(hitZone.y).toBeCloseTo(203.2);
+    });
+
     it('keeps touch beacons above the mobile dock and inside the viewport', () => {
         const scene = createScene();
         scene.hasVisibleTouchControls.mockReturnValue(true);

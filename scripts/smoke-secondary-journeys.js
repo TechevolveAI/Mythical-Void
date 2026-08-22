@@ -11829,6 +11829,12 @@ async function smokeVillageUi(session, exceptions) {
         const commandHitZones = director?.indicatorElements?.filter(element => (
             element?.getData?.('sanctuaryInteractionBeaconHitZone') === true
         )) || [];
+        const actionNodes = director?.indicatorElements?.filter(element => (
+            element?.getData?.('sanctuaryActionNode') === true
+        )) || [];
+        const actionNodeHitZones = director?.indicatorElements?.filter(element => (
+            element?.getData?.('sanctuaryActionNodeHitZone') === true
+        )) || [];
         return {
             activePlotId,
             plotId: presentation.plotId,
@@ -11854,6 +11860,13 @@ async function smokeVillageUi(session, exceptions) {
             commandBeaconPresent: Boolean(director?.beacon),
             commandHitZoneCount: commandHitZones.length,
             commandInputEnabled: commandHitZones[0]?.input?.enabled === true,
+            actionNodeCount: actionNodes.length,
+            actionNodeVisualLanguage: actionNodes[0]?.getData?.('visualLanguage') || '',
+            actionNodeHitZoneCount: actionNodeHitZones.length,
+            actionNodeInputEnabled: actionNodeHitZones[0]?.input?.enabled === true,
+            actionNodeRelation: actionNodeHitZones[0]?.getData?.(
+                'ownershipRelation'
+            ) || '',
             hudPrompt: scene.interactionText?.text || '',
             hudPromptVisible: scene.interactionText?.visible === true
         };
@@ -11914,6 +11927,11 @@ async function smokeVillageUi(session, exceptions) {
         structureProximity.commandBeaconPresent !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
         structureProximity.commandHitZoneCount !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 1 : 0) ||
         structureProximity.commandInputEnabled !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
+        structureProximity.actionNodeCount !== 1 ||
+        structureProximity.actionNodeVisualLanguage !== 'target-ring-action-node' ||
+        structureProximity.actionNodeHitZoneCount !== 1 ||
+        !structureProximity.actionNodeInputEnabled ||
+        structureProximity.actionNodeRelation !== 'marks-selected-world-target' ||
         (
             SMOKE_VIEWPORT_WIDTH > 600 && (
                 !structureProximity.hudPromptVisible ||
@@ -12081,6 +12099,12 @@ async function smokeVillageUi(session, exceptions) {
             const hitZones = director.indicatorElements.filter(element => (
                 element?.getData?.('sanctuaryInteractionBeaconHitZone') === true
             ));
+            const actionNodes = director.indicatorElements.filter(element => (
+                element?.getData?.('sanctuaryActionNode') === true
+            ));
+            const actionNodeHitZones = director.indicatorElements.filter(element => (
+                element?.getData?.('sanctuaryActionNodeHitZone') === true
+            ));
             return {
                 expectedId: entry.expectedId,
                 activeId: director.active?.id || null,
@@ -12091,7 +12115,16 @@ async function smokeVillageUi(session, exceptions) {
                 hintMode: director.active?.hintMode || '',
                 candidateCount: director.candidates.size,
                 hitZoneCount: hitZones.length,
-                inputEnabled: hitZones[0]?.input?.enabled === true
+                inputEnabled: hitZones[0]?.input?.enabled === true,
+                actionNodeCount: actionNodes.length,
+                actionNodeVisualLanguage: actionNodes[0]?.getData?.(
+                    'visualLanguage'
+                ) || '',
+                actionNodeHitZoneCount: actionNodeHitZones.length,
+                actionNodeInputEnabled: actionNodeHitZones[0]?.input?.enabled === true,
+                actionNodeRelation: actionNodeHitZones[0]?.getData?.(
+                    'ownershipRelation'
+                ) || ''
             };
         });
         director.candidates.clear();
@@ -12134,7 +12167,12 @@ async function smokeVillageUi(session, exceptions) {
                 prompt.candidateCount !== 1 ||
                 prompt.commandBeaconPresent !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
                 prompt.hitZoneCount !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 1 : 0) ||
-                prompt.inputEnabled !== (SMOKE_VIEWPORT_WIDTH <= 600);
+                prompt.inputEnabled !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
+                prompt.actionNodeCount !== 1 ||
+                prompt.actionNodeVisualLanguage !== 'target-ring-action-node' ||
+                prompt.actionNodeHitZoneCount !== 1 ||
+                !prompt.actionNodeInputEnabled ||
+                prompt.actionNodeRelation !== 'marks-selected-world-target';
         })
     ) {
         throw new Error(`Sanctuary landmark prompts failed: ${JSON.stringify(landmarkPrompts)}`);
@@ -12714,6 +12752,15 @@ async function smokeVillageUi(session, exceptions) {
     ) {
         throw new Error(`Village contextual focus failed: ${JSON.stringify(contextualFocus)}`);
     }
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        scene?.worldBuilder?.clearVillageCommunityMoment?.(landmark);
+        scene?.worldBuilder?.clearVillageDecisionMoment?.(landmark);
+        scene?.worldBuilder?.clearVillageWorkerCheckIn?.(landmark);
+        scene?.setSanctuaryMomentFocus?.(false);
+        return landmark?.presentationMode || null;
+    })()`);
     await waitFor(
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('GameScene');
