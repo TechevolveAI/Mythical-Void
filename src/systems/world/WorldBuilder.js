@@ -4148,6 +4148,124 @@ class WorldBuilder {
         return true;
     }
 
+    playVillageReturnRitual(landmark, ritual) {
+        if (!landmark?.zone || !ritual?.line) return false;
+        this.clearVillageCommunityMoment(landmark);
+        this.clearVillageDecisionMoment(landmark);
+        this.clearVillageWorkerCheckIn(landmark);
+
+        const compact = this.scene.scale.width <= 600;
+        const pulse = this.scene.add.graphics()
+            .setPosition(landmark.zone.x, landmark.zone.y - 12)
+            .setDepth(landmark.zone.y + 12)
+            .setAlpha(0);
+        [26, 43, 62].forEach((radius, index) => {
+            pulse.lineStyle(
+                index === 1 ? 2 : 1,
+                index === 2 ? 0xF2C14E : 0x71E6B1,
+                0.82 - index * 0.16
+            );
+            pulse.strokeEllipse(0, 0, radius * 2, radius * (compact ? 1.05 : 1.2));
+        });
+        pulse.setBlendMode?.(Phaser.BlendModes.ADD);
+        pulse.setData('villageReturnCurrentWave', true);
+
+        const copyWidth = compact ? 286 : 420;
+        const copyHeight = compact ? 118 : 124;
+        const copy = this.scene.add.container(
+            landmark.zone.x,
+            landmark.zone.y - (compact ? 330 : 310)
+        ).setDepth(landmark.zone.y + 16).setAlpha(0);
+        const backdrop = this.createVillageResonanceBackdrop({
+            width: copyWidth,
+            height: copyHeight,
+            accent: 0xF2C14E,
+            kind: 'expedition_return'
+        });
+        const kicker = this.scene.add.text(0, -42, 'WELCOME HOME', {
+            fontSize: compact ? '9px' : '10px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#F2C14E',
+            stroke: '#07100F',
+            strokeThickness: 5
+        }).setOrigin(0.5);
+        const title = this.scene.add.text(0, -24, ritual.levelLabel, {
+            fontSize: compact ? '12px' : '14px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#F4F4F4',
+            stroke: '#07100F',
+            strokeThickness: 5
+        }).setOrigin(0.5);
+        const line = this.scene.add.text(0, 2, ritual.line, {
+            fontSize: compact ? '10px' : '11px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#DCE8E5',
+            align: 'center',
+            stroke: '#07100F',
+            strokeThickness: 4,
+            wordWrap: { width: compact ? 252 : 380 }
+        }).setOrigin(0.5);
+        const outcome = this.scene.add.text(
+            0,
+            compact ? 36 : 40,
+            `${ritual.outcome} · ${ritual.worldChange}`,
+            {
+                fontSize: compact ? '8px' : '9px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#8FE3CF',
+                stroke: '#07100F',
+                strokeThickness: 4
+            }
+        ).setOrigin(0.5);
+        copy.add([backdrop, kicker, title, line, outcome]);
+        copy
+            .setData('villageReturnRitual', ritual.id)
+            .setData('returnLevelId', ritual.levelId)
+            .setData('returnResidents', ritual.residents.map(resident => resident.name))
+            .setData('returnOutcome', ritual.outcome)
+            .setData('worldChange', ritual.worldChange)
+            .setData('resonanceStyle', 'current_ribbon')
+            .setData('resonanceAnchor', 'village_heart');
+
+        const revealTween = this.scene.tweens.add({
+            targets: [pulse, copy],
+            alpha: 1,
+            duration: 360,
+            ease: 'Sine.easeOut'
+        });
+        const pulseTween = this.scene.tweens.add({
+            targets: pulse,
+            scaleX: { from: 0.74, to: 1.14 },
+            scaleY: { from: 0.74, to: 1.14 },
+            alpha: { from: 0.4, to: 1 },
+            duration: 1250,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Sine.easeInOut'
+        });
+        landmark.communityMomentElements = [pulse, copy];
+        landmark.communityMomentTweens = [revealTween, pulseTween];
+        landmark.activeCommunityMoment = copy;
+        this.scene.setSanctuaryMomentFocus?.(true, {
+            kind: 'return',
+            plotId: null
+        });
+        landmark.communityMomentTimer = this.scene.time.delayedCall(5600, () => {
+            if (landmark.activeCommunityMoment !== copy) return;
+            const fadeTween = this.scene.tweens.add({
+                targets: [pulse, copy],
+                alpha: 0,
+                duration: 420,
+                onComplete: () => this.clearVillageCommunityMoment(landmark)
+            });
+            landmark.communityMomentTweens.push(fadeTween);
+        });
+        return true;
+    }
+
     playVillageHeartMemory(landmark, memory) {
         if (!landmark?.zone || !memory?.line) return false;
         this.clearVillageCommunityMoment(landmark);

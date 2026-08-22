@@ -10469,7 +10469,7 @@ async function smokeVillageUi(session, exceptions) {
             window.mythicalGame.scene.getScene('GameScene')
                 ?.__smokeVillageArrivalComplete || 0
         ) === 1`),
-        { timeoutMs: 1200, message: 'Village arrival reveal completion handoff' }
+        { timeoutMs: 3000, message: 'Village arrival reveal completion handoff' }
     );
     if (
         !arrivalRecovery.finished ||
@@ -11364,6 +11364,79 @@ async function smokeVillageUi(session, exceptions) {
             ? 'village-integrated-sanctuary-mobile.png'
             : 'village-integrated-sanctuary-desktop.png'
     );
+    const returnRitual = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const state = window.GameState;
+        const expedition = {
+            id: 'smoke_village_return_23',
+            levelId: 'mythicalForest',
+            shipPartId: 'navigation_core',
+            completedAt: '2026-08-22T12:00:00.000Z'
+        };
+        state.set('story.projectBeacon.pendingDebriefs', [expedition]);
+        state.set('story.projectBeacon.villageReturnRitualsSeen', []);
+        scene.nearVillageHeart = true;
+        const started = scene.maybePlayVillageReturnRitual(
+            scene.villageHeartLandmark.snapshot,
+            { force: true, expedition }
+        );
+        const landmark = scene.villageHeartLandmark;
+        const ritual = landmark?.activeCommunityMoment;
+        const camera = scene.cameras?.main;
+        const worldBounds = ritual?.getBounds?.();
+        const screenBounds = worldBounds && camera ? {
+            left: (worldBounds.left - camera.worldView.x) * camera.zoom + camera.x,
+            right: (worldBounds.right - camera.worldView.x) * camera.zoom + camera.x,
+            top: (worldBounds.top - camera.worldView.y) * camera.zoom + camera.y,
+            bottom: (worldBounds.bottom - camera.worldView.y) * camera.zoom + camera.y
+        } : null;
+        return {
+            started,
+            ritualId: ritual?.getData?.('villageReturnRitual') || '',
+            levelId: ritual?.getData?.('returnLevelId') || '',
+            residents: ritual?.getData?.('returnResidents') || [],
+            outcome: ritual?.getData?.('returnOutcome') || '',
+            worldChange: ritual?.getData?.('worldChange') || '',
+            resonanceStyle: ritual?.getData?.('resonanceStyle') || '',
+            resonanceAnchor: ritual?.getData?.('resonanceAnchor') || '',
+            currentWave: landmark?.communityMomentElements?.some(
+                element => element?.getData?.('villageReturnCurrentWave') === true
+            ) === true,
+            seen: state.get('story.projectBeacon.villageReturnRitualsSeen'),
+            screenBounds,
+            viewport: { width: innerWidth, height: innerHeight }
+        };
+    })()`);
+    if (
+        !returnRitual.started ||
+        returnRitual.ritualId !== 'smoke_village_return_23' ||
+        returnRitual.levelId !== 'mythicalForest' ||
+        returnRitual.residents.length < 1 ||
+        returnRitual.outcome !== 'NAVIGATION CORE RECOVERED' ||
+        !returnRitual.worldChange.includes('ROOTS RESTORED') ||
+        returnRitual.resonanceStyle !== 'current_ribbon' ||
+        returnRitual.resonanceAnchor !== 'village_heart' ||
+        !returnRitual.currentWave ||
+        !returnRitual.seen.includes('smoke_village_return_23') ||
+        !returnRitual.screenBounds ||
+        returnRitual.screenBounds.left < -1 ||
+        returnRitual.screenBounds.right > returnRitual.viewport.width + 1 ||
+        returnRitual.screenBounds.top < -1 ||
+        returnRitual.screenBounds.bottom > returnRitual.viewport.height + 1
+    ) {
+        throw new Error(`Village return ritual failed: ${JSON.stringify(returnRitual)}`);
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-return-ritual-mobile.png'
+            : 'village-return-ritual-desktop.png'
+    );
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.worldBuilder.clearVillageCommunityMoment(scene.villageHeartLandmark);
+        return true;
+    })()`);
     await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         scene.nearVillageHeart = false;

@@ -1407,6 +1407,58 @@ export function getVillageResidentProposal(snapshot, { definitionId = null } = {
     };
 }
 
+export function getVillageReturnRitual(snapshot, expedition = {}) {
+    const levelLabels = {
+        mythicalForest: 'MYTHICAL FOREST',
+        crystalCaves: 'CRYSTAL CAVES',
+        cosmicReef: 'COSMIC REEF',
+        voidPeaks: 'VOID PEAKS',
+        auroraDepths: 'AURORA DEPTHS',
+        finalVoid: 'FINAL VOID'
+    };
+    const levelId = typeof expedition?.levelId === 'string'
+        ? expedition.levelId
+        : null;
+    if (!levelId) return null;
+
+    const residentById = new Map(
+        (snapshot?.roster || []).map(resident => [resident.id, resident])
+    );
+    const presentResidents = (snapshot?.home?.residents || [])
+        .map(resident => residentById.get(resident.id) || resident);
+    const workingResidents = (snapshot?.buildings || [])
+        .filter(building => building.status === 'complete' && building.creature)
+        .map(building => building.creature);
+    const welcomeResidents = [...presentResidents, ...workingResidents, ...(snapshot?.roster || [])]
+        .filter((resident, index, residents) => (
+            resident?.id && residents.findIndex(entry => entry?.id === resident.id) === index
+        ))
+        .slice(0, 3);
+    const names = welcomeResidents.map(resident => resident.name || 'A resident');
+    const speakerCopy = names.length >= 2
+        ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+        : names[0] || 'The Village Heart';
+    const recovered = typeof expedition?.shipPartId === 'string' && expedition.shipPartId
+        ? expedition.shipPartId.replaceAll('_', ' ').toUpperCase()
+        : 'FIELD RECORD';
+    const restored = snapshot?.worldState?.restored || 0;
+    const rootCount = snapshot?.plots?.length || VILLAGE_PLOTS.length;
+
+    return {
+        id: expedition.id || `${levelId}:${expedition.completedAt || 'return'}`,
+        levelId,
+        levelLabel: levelLabels[levelId] || levelId.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase(),
+        title: 'THE SANCTUARY ANSWERS YOUR RETURN',
+        line: `${speakerCopy} meets you at the Heart. The Sanctuary counts who returned before what they carried.`,
+        outcome: `${recovered} RECOVERED`,
+        worldChange: `${restored}/${rootCount} ROOTS RESTORED · CURRENT PATHS HOLD`,
+        residents: welcomeResidents.map(resident => ({
+            id: resident.id,
+            name: resident.name || 'Resident'
+        }))
+    };
+}
+
 export function getVillageSnapshot(gameState, { stateOverride = null } = {}) {
     const state = normalizeVillageState(
         stateOverride || gameState?.get?.('world.village') || {}

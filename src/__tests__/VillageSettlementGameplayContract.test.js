@@ -297,6 +297,13 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('createResidentProposal(snapshot, visualDefinition)');
         expect(source).toContain('village-resident-proposal');
         expect(source).toContain('IN YOUR GAME · ${proposal.immediateImpact}');
+        const scene = read('scenes/GameScene.js');
+        const worldBuilder = read('systems/world/WorldBuilder.js');
+        expect(scene).toContain('maybePlayVillageReturnRitual(snapshot)');
+        expect(scene).toContain('villageReturnRitualsSeen');
+        expect(worldBuilder).toContain('playVillageReturnRitual(landmark, ritual)');
+        expect(worldBuilder).toContain("'WELCOME HOME'");
+        expect(worldBuilder).toContain("kind: 'expedition_return'");
         expect(source).toContain('getVillageSupportSummary(snapshot?.effects || {})');
         expect(source).toContain('WHAT YOUR SANCTUARY CHANGES');
         expect(source).toContain('village-support-impact-row');

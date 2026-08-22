@@ -42,6 +42,7 @@ function loadVillageSettlement() {
                 getVillageHeartMemory,
                 getVillageWorkerCheckIn,
                 getVillageResidentProposal,
+                getVillageReturnRitual,
                 getVillageSnapshot,
                 placeVillageBuilding,
                 assignCreatureToVillageBuilding,
@@ -186,6 +187,27 @@ describe('Village settlement phase one', () => {
         expect(proposal.request).toContain('grows back');
         expect(proposal.promise).toContain('tomorrow');
         expect(snapshot.residentProposal).toEqual(proposal);
+    });
+
+    test('turns an expedition return into a resident-led Sanctuary ritual', () => {
+        const gameState = createGameState();
+        const snapshot = village.initializeVillageSettlement(gameState, { now: 1000 });
+        const ritual = village.getVillageReturnRitual(snapshot, {
+            id: 'beacon_debrief_1',
+            levelId: 'mythicalForest',
+            shipPartId: 'navigation_core',
+            completedAt: '2026-08-22T12:00:00.000Z'
+        });
+
+        expect(ritual).toEqual(expect.objectContaining({
+            id: 'beacon_debrief_1',
+            levelId: 'mythicalForest',
+            levelLabel: 'MYTHICAL FOREST',
+            outcome: 'NAVIGATION CORE RECOVERED',
+            worldChange: '0/5 ROOTS RESTORED · CURRENT PATHS HOLD'
+        }));
+        expect(ritual.line).toContain('Nova meets you at the Heart');
+        expect(ritual.line).toContain('counts who returned before what they carried');
     });
 
     test('grants one starter stockpile without duplicating it on later loads', () => {

@@ -131,6 +131,7 @@ import {
     assignCreatureToVillageBuilding,
     getVillageCommunityMoment,
     getVillageHeartMemory,
+    getVillageReturnRitual,
     getVillageSnapshot,
     getVillageWorkerCheckIn,
     initializeVillageSettlement,
@@ -8436,9 +8437,10 @@ class GameScene extends Phaser.Scene {
             includeGuidance: needsGuidance
         });
         const nextAction = snapshot.worldState?.nextAction;
-        const memoryPlayed = this.maybePlayVillageHeartMemory(snapshot);
+        const returnPlayed = this.maybePlayVillageReturnRitual(snapshot);
+        const memoryPlayed = !returnPlayed && this.maybePlayVillageHeartMemory(snapshot);
         const quietArrival = ['review', 'supplies'].includes(nextAction?.type);
-        if (!memoryPlayed && quietArrival) {
+        if (!returnPlayed && !memoryPlayed && quietArrival) {
             this.maybePlayVillageCommunityMoment(snapshot);
         }
     }
@@ -8719,6 +8721,46 @@ class GameScene extends Phaser.Scene {
         if (!played) return false;
         this.villageCommunityMomentIndex += 1;
         this.lastVillageCommunityMomentAt = now;
+        return true;
+    }
+
+    maybePlayVillageReturnRitual(snapshot, { force = false, expedition = null } = {}) {
+        if (
+            this._isShuttingDown ||
+            !this.nearVillageHeart ||
+            !this.villageHeartLandmark ||
+            !snapshot
+        ) {
+            return false;
+        }
+        const pending = expedition || window.GameState
+            ?.get?.('story.projectBeacon.pendingDebriefs')
+            ?.find?.(entry => entry?.levelId) || null;
+        if (!pending) return false;
+        const ritual = getVillageReturnRitual(snapshot, pending);
+        if (!ritual) return false;
+        const seen = Array.isArray(
+            window.GameState?.get?.('story.projectBeacon.villageReturnRitualsSeen')
+        )
+            ? window.GameState.get('story.projectBeacon.villageReturnRitualsSeen')
+            : [];
+        if (!force && seen.includes(ritual.id)) return false;
+        const played = this.worldBuilder?.playVillageReturnRitual?.(
+            this.villageHeartLandmark,
+            ritual
+        ) === true;
+        if (!played) return false;
+        if (!seen.includes(ritual.id)) {
+            window.GameState?.set?.(
+                'story.projectBeacon.villageReturnRitualsSeen',
+                [...seen, ritual.id].slice(-16)
+            );
+            window.GameState?.save?.();
+        }
+        window.AchievementSystem?.recordEvent?.('story_interaction', {
+            event: 'village_return_ritual',
+            levelId: ritual.levelId
+        });
         return true;
     }
 
