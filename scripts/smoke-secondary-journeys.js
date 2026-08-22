@@ -10284,6 +10284,16 @@ async function smokeVillageUi(session, exceptions) {
             statusText: landmark?.statusLabel?.text || '',
             nextAction: landmark?.snapshot?.worldState?.nextAction?.type || null,
             restored: landmark?.snapshot?.worldState?.restored,
+            heartLife: {
+                stage: landmark?.heartLife?.aura?.getData?.('villageHeartGrowthStage'),
+                tier: landmark?.heartLife?.aura?.getData?.('villageHeartGrowthTier'),
+                motion: landmark?.heartLife?.aura?.getData?.('villageHeartMotionProfile'),
+                auraRadius: landmark?.heartLife?.aura?.getData?.('villageHeartAuraRadius'),
+                orbitNodes: landmark?.heartLife?.orbit?.getData?.('villageHeartOrbitNodeCount'),
+                leaves: landmark?.heartLife?.crown?.getData?.('villageHeartLeafCount'),
+                memoryLights: landmark?.heartLife?.crown?.getData?.('villageHeartMemoryLightCount'),
+                tweenCount: landmark?.heartLifeTweens?.length || 0
+            },
             foundationMaterials: (landmark?.plotPresentations || []).map(
                 presentation => presentation.container?.getData?.('villageFoundationMaterial')
             ),
@@ -10307,6 +10317,14 @@ async function smokeVillageUi(session, exceptions) {
         !firstArrivalWorld.statusText.includes('BUILD A HOME TOGETHER') ||
         firstArrivalWorld.nextAction !== 'build' ||
         firstArrivalWorld.restored !== 0 ||
+        firstArrivalWorld.heartLife.stage !== 'AWAKENED ROOT' ||
+        firstArrivalWorld.heartLife.tier !== 0 ||
+        firstArrivalWorld.heartLife.motion !== 'living_current_breath_v1' ||
+        firstArrivalWorld.heartLife.auraRadius <= 0 ||
+        firstArrivalWorld.heartLife.orbitNodes !== 1 ||
+        firstArrivalWorld.heartLife.leaves !== 2 ||
+        firstArrivalWorld.heartLife.memoryLights !== 0 ||
+        firstArrivalWorld.heartLife.tweenCount !== 3 ||
         firstArrivalWorld.foundationMaterials.length !== 5 ||
         firstArrivalWorld.foundationMaterials.some(
             material => material !== 'living_root_cradle_v2'
@@ -11540,6 +11558,21 @@ async function smokeVillageUi(session, exceptions) {
                 valueGrowthCount: landmark?.valueGrowthElements?.length || 0,
                 actionLabel: landmark?.actionLabel?.text || '',
                 statusLabel: landmark?.statusLabel?.text || '',
+                heartLife: {
+                    stage: landmark?.heartLife?.aura?.getData?.('villageHeartGrowthStage'),
+                    tier: landmark?.heartLife?.aura?.getData?.('villageHeartGrowthTier'),
+                    motion: landmark?.heartLife?.aura?.getData?.('villageHeartMotionProfile'),
+                    dominantValue: landmark?.heartLife?.aura?.getData?.('villageHeartDominantValue'),
+                    orbitNodes: landmark?.heartLife?.orbit?.getData?.('villageHeartOrbitNodeCount'),
+                    leaves: landmark?.heartLife?.crown?.getData?.('villageHeartLeafCount'),
+                    memoryLights: landmark?.heartLife?.crown?.getData?.('villageHeartMemoryLightCount'),
+                    auraFocusAlpha: landmark?.heartLife?.aura?.getData?.('villageFocusAlpha'),
+                    presentationMode: landmark?.heartLife?.aura?.getData?.('villagePresentationMode'),
+                    tweenCount: landmark?.heartLifeTweens?.length || 0,
+                    deliveryResponse: landmark?.heartLife?.deliveryPulse?.getData?.(
+                        'villageHeartDeliveryResponse'
+                    )
+                },
                 animatedElements: landmark?.buildingTweens?.length || 0,
                 workerCount: workers.length,
                 workerNames: workers.map(worker => worker.getData('helperName')),
@@ -11663,6 +11696,17 @@ async function smokeVillageUi(session, exceptions) {
         !layout.worldPresentation.currentPathsActive ||
         layout.worldPresentation.growthTier !== 2 ||
         layout.worldPresentation.growthLabel !== 'CONNECTED GLADE' ||
+        layout.worldPresentation.heartLife.stage !== 'CONNECTED GLADE' ||
+        layout.worldPresentation.heartLife.tier !== 2 ||
+        layout.worldPresentation.heartLife.motion !== 'living_current_breath_v1' ||
+        layout.worldPresentation.heartLife.dominantValue !== 'balanced' ||
+        layout.worldPresentation.heartLife.orbitNodes !== 3 ||
+        layout.worldPresentation.heartLife.leaves !== 4 ||
+        layout.worldPresentation.heartLife.memoryLights !== 0 ||
+        layout.worldPresentation.heartLife.auraFocusAlpha !== 0.54 ||
+        layout.worldPresentation.heartLife.presentationMode !== 'story' ||
+        layout.worldPresentation.heartLife.tweenCount !== 3 ||
+        layout.worldPresentation.heartLife.deliveryResponse !== true ||
         layout.worldPresentation.nextActionType !== 'decision' ||
         layout.worldPresentation.nextActionTarget !== 'decision' ||
         layout.worldPresentation.valueGrowthCount !== 0 ||
@@ -11932,14 +11976,22 @@ async function smokeVillageUi(session, exceptions) {
         { timeoutMs: 8000, message: 'Village worker delivers visible settlement value' }
     );
     const workerDelivery = await evaluate(session, `(() => {
-        const worker = window.mythicalGame.scene.getScene('GameScene')
-            ?.villageHeartLandmark?.workerElements?.[0];
+        const landmark = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark;
+        const worker = landmark?.workerElements?.[0];
+        const deliveryPulse = landmark?.heartLife?.deliveryPulse;
         return {
             phase: worker?.getData('routePhase'),
             direction: worker?.getData('routeDirection'),
             cargoVisible: worker?.getData('cargoVisible'),
             feedback: worker?.getData('deliveryFeedback'),
-            cue: worker?.getData('visibleRoutineCue')
+            cue: worker?.getData('visibleRoutineCue'),
+            heartResponse: deliveryPulse?.getData?.('villageHeartDeliveryResponse'),
+            heartActive: deliveryPulse?.getData?.('villageHeartDeliveryActive'),
+            sourceActive: landmark?.activeDeliverySources?.has?.(
+                worker?.getData('deliverySourceId')
+            ) === true,
+            lastDelivery: deliveryPulse?.getData?.('villageHeartLastDelivery')
         };
     })()`);
     if (
@@ -11947,7 +11999,11 @@ async function smokeVillageUi(session, exceptions) {
         workerDelivery.direction !== 'to_heart' ||
         workerDelivery.cargoVisible !== false ||
         workerDelivery.feedback !== true ||
-        workerDelivery.cue !== '+5 HAPPINESS'
+        workerDelivery.cue !== '+5 HAPPINESS' ||
+        workerDelivery.heartResponse !== true ||
+        workerDelivery.heartActive !== true ||
+        workerDelivery.sourceActive !== true ||
+        !workerDelivery.lastDelivery
     ) {
         throw new Error(`Village worker delivery feedback failed: ${JSON.stringify(workerDelivery)}`);
     }
