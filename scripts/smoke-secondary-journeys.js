@@ -10758,7 +10758,23 @@ async function smokeVillageUi(session, exceptions) {
         ),
         { message: 'Village Heart focus camera settled' }
     );
-    await delay(350);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const landmark = scene?.villageHeartLandmark;
+            const expectedPlotAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.2 : 0.28};
+            const expectedWorkerAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.25 : 0.34};
+            return landmark?.focusModeActive === true &&
+                (landmark.plotPresentations || []).every(presentation => (
+                    Math.abs(presentation.container.alpha - expectedPlotAlpha) <= 0.01 &&
+                    (
+                        !presentation.worker ||
+                        Math.abs(presentation.worker.alpha - expectedWorkerAlpha) <= 0.01
+                    )
+                ));
+        })()`),
+        { timeoutMs: 4000, message: 'Village Heart visual focus hierarchy settled' }
+    );
     const integratedWorld = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const camera = scene.cameras.main;
@@ -10881,6 +10897,7 @@ async function smokeVillageUi(session, exceptions) {
                     plotId: presentation.plotId,
                     priority: presentation.container?.getData?.('villageFocusPriority'),
                     alpha: presentation.container?.alpha,
+                    workerAlpha: presentation.worker?.alpha ?? null,
                     focusRingAlpha: presentation.focusRing?.alpha
                 }))
             },
@@ -11230,7 +11247,13 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.focusHierarchy.plots.length !== 5 ||
         integratedWorld.focusHierarchy.plots.some(plot => (
             plot.priority !== 'supporting' ||
-            plot.alpha >= 1 ||
+            Math.abs(plot.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.2 : 0.28)) > 0.01 ||
+            (
+                plot.workerAlpha !== null &&
+                Math.abs(
+                    plot.workerAlpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.25 : 0.34)
+                ) > 0.01
+            ) ||
             plot.focusRingAlpha !== 0
         )) ||
         !integratedWorld.heartApproach.threshold ||
@@ -11652,7 +11675,7 @@ async function smokeVillageUi(session, exceptions) {
         focusRecovery.plotPriorities.length !== 5 ||
         focusRecovery.plotPriorities.filter(plot => plot.state === 'staffed').some(
             plot => plot.priority !== 'ambient' || Math.abs(
-                plot.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.68 : 0.78)
+                plot.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.58 : 0.72)
             ) > 0.01
         ) ||
         focusRecovery.plotPriorities.filter(plot => plot.state === 'available').some(
@@ -11674,6 +11697,10 @@ async function smokeVillageUi(session, exceptions) {
         scene.player.setPosition(position.x, position.y);
         scene.player.body?.reset?.(position.x, position.y);
         const activePlotId = scene.updateVillagePlotProximity();
+        const director = scene.sanctuaryInteractionDirector;
+        const commandHitZones = director?.indicatorElements?.filter(element => (
+            element?.getData?.('sanctuaryInteractionBeaconHitZone') === true
+        )) || [];
         return {
             activePlotId,
             plotId: presentation.plotId,
@@ -11684,7 +11711,18 @@ async function smokeVillageUi(session, exceptions) {
             stateAlpha: presentation.stateLabel?.alpha,
             stateText: presentation.stateLabel?.text || '',
             ringAlpha: presentation.focusRing?.alpha,
-            workerNearby: presentation.worker?.getData?.('villagePlayerNearby')
+            workerNearby: presentation.worker?.getData?.('villagePlayerNearby'),
+            plotInteractionId: scene.villagePlotInteractionId,
+            activeInteractionId: director?.active?.id || null,
+            interactionVerb: director?.active?.verb || '',
+            interactionLabel: director?.active?.label || '',
+            interactionOwner: director?.active?.ownerLabel || '',
+            interactionHintMode: director?.active?.hintMode || '',
+            commandBeaconPresent: Boolean(director?.beacon),
+            commandHitZoneCount: commandHitZones.length,
+            commandInputEnabled: commandHitZones[0]?.input?.enabled === true,
+            hudPrompt: scene.interactionText?.text || '',
+            hudPromptVisible: scene.interactionText?.visible === true
         };
     })()`);
     await delay(420);
@@ -11710,8 +11748,27 @@ async function smokeVillageUi(session, exceptions) {
         structureProximity.labelAlpha !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 0 : 1) ||
         structureProximity.stateAlpha !== 1 ||
         !structureProximity.stateText.includes('FORAGE · NOVA') ||
-        !structureProximity.stateText.includes('PATHFINDER') ||
+        !structureProximity.stateText.includes('FEEDING · +5 HAPPINESS') ||
         structureProximity.workerNearby !== true ||
+        structureProximity.plotInteractionId !==
+            `villagePlot:${structureProximity.plotId}` ||
+        structureProximity.activeInteractionId !==
+            `villagePlot:${structureProximity.plotId}` ||
+        structureProximity.interactionVerb !== 'MANAGE' ||
+        structureProximity.interactionLabel !== 'FORAGE' ||
+        structureProximity.interactionOwner !== 'FORAGER HUT' ||
+        structureProximity.interactionHintMode !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 'world' : 'hud'
+        ) ||
+        structureProximity.commandBeaconPresent !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
+        structureProximity.commandHitZoneCount !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 1 : 0) ||
+        structureProximity.commandInputEnabled !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
+        (
+            SMOKE_VIEWPORT_WIDTH > 600 && (
+                !structureProximity.hudPromptVisible ||
+                !structureProximity.hudPrompt.includes('MANAGE FORAGE')
+            )
+        ) ||
         !structureProximitySettled ||
         Math.abs(structureProximitySettled.alpha - 1) > 0.01 ||
         Math.abs(structureProximitySettled.workerAlpha - 0.96) > 0.01 ||
@@ -11739,9 +11796,21 @@ async function smokeVillageUi(session, exceptions) {
         return {
             activePlotId,
             playerNearby: presentation?.container?.getData?.('villagePlayerNearby'),
-            priority: presentation?.container?.getData?.('villageFocusPriority')
+            priority: presentation?.container?.getData?.('villageFocusPriority'),
+            plotInteractionId: scene.villagePlotInteractionId,
+            plotCandidatePresent: [...(
+                scene.sanctuaryInteractionDirector?.candidates?.keys?.() || []
+            )].some(id => id.startsWith('villagePlot:'))
         };
     })()`);
+    if (SMOKE_VIEWPORT_WIDTH > 600) {
+        await session.call('Input.dispatchMouseEvent', {
+            type: 'mouseMoved',
+            x: SMOKE_VIEWPORT_WIDTH - 5,
+            y: 5,
+            button: 'none'
+        });
+    }
     await delay(420);
     const structureProximityRest = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
@@ -11760,9 +11829,11 @@ async function smokeVillageUi(session, exceptions) {
         structureProximityRestored?.activePlotId !== null ||
         structureProximityRestored?.playerNearby !== false ||
         structureProximityRestored?.priority !== 'ambient' ||
+        structureProximityRestored?.plotInteractionId !== null ||
+        structureProximityRestored?.plotCandidatePresent ||
         !structureProximityRest ||
         Math.abs(
-            structureProximityRest.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.68 : 0.78)
+            structureProximityRest.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.58 : 0.72)
         ) > 0.01 ||
         Math.abs(
             structureProximityRest.workerAlpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.58 : 0.68)
@@ -12462,7 +12533,7 @@ async function smokeVillageUi(session, exceptions) {
         contextualFocus.focused.stateAlpha !== 1 ||
         contextualFocus.focused.focusAlpha !== 1 ||
         !contextualFocus.focused.state.includes('FORAGE · NOVA') ||
-        !contextualFocus.focused.state.includes('PATHFINDER') ||
+        !contextualFocus.focused.state.includes('FEEDING · +5 HAPPINESS') ||
         contextualFocus.restored.labelAlpha >= 1 ||
         contextualFocus.restored.stateAlpha !== 0 ||
         contextualFocus.restored.focusAlpha !== 0
@@ -12491,9 +12562,14 @@ async function smokeVillageUi(session, exceptions) {
         const worker = scene?.villageHeartLandmark?.workerElements?.[0];
         if (!worker?.getWorldTransformMatrix) return null;
         const point = worker.getWorldTransformMatrix().transformPoint(0, 0);
+        const camera = scene.cameras?.main;
+        const screenPoint = camera ? {
+            x: (point.x - camera.worldView.x) * camera.zoom + camera.x,
+            y: (point.y - camera.worldView.y) * camera.zoom + camera.y
+        } : point;
         return {
-            x: Math.round(point.x),
-            y: Math.round(point.y),
+            x: Math.round(screenPoint.x),
+            y: Math.round(screenPoint.y),
             creatureId: worker.getData('creatureId'),
             helperName: worker.getData('helperName'),
             routeType: worker.getData('routeType'),
@@ -12674,13 +12750,18 @@ async function smokeVillageUi(session, exceptions) {
         throw new Error(`Village worker return state failed: ${JSON.stringify(workerReturn)}`);
     }
     const structureRoute = await evaluate(session, `(() => {
-        const zone = window.mythicalGame.scene.getScene('GameScene')
-            ?.villageHeartLandmark?.plotHitZones?.[0];
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const zone = scene?.villageHeartLandmark?.plotHitZones?.[0];
         if (!zone?.input?.enabled) return null;
         const bounds = zone.getBounds();
+        const camera = scene.cameras?.main;
         return {
-            x: Math.round(bounds.centerX),
-            y: Math.round(bounds.top + 18),
+            x: Math.round(
+                (bounds.centerX - camera.worldView.x) * camera.zoom + camera.x
+            ),
+            y: Math.round(
+                ((bounds.top + 18) - camera.worldView.y) * camera.zoom + camera.y
+            ),
             plotId: zone.plotId
         };
     })()`);
@@ -12804,6 +12885,13 @@ async function smokeVillageUi(session, exceptions) {
                 snapshotPresent: Boolean(currentSnapshot),
                 landmarkPresent: Boolean(scene?.villageHeartLandmark?.zone),
                 directorPresent: Boolean(director),
+                touchControlsVisible: scene?.hasVisibleTouchControls?.() === true,
+                mobileControlsVisible: scene?.mobileControls?.isVisible === true,
+                mobileControlsSuspended: scene?.mobileControls?.isSuspended === true,
+                activeHintMode: director?.active?.hintMode || null,
+                activeVerb: director?.active?.verb || null,
+                activeLabel: director?.active?.label || null,
+                activeSuppressWorldBeacon: director?.active?.suppressWorldBeacon === true,
                 restoredInteractionId: restoredInteraction?.id || null,
                 activeId: director?.active?.id || null,
                 candidateIds: [...(director?.candidates?.keys?.() || [])],
@@ -12821,9 +12909,16 @@ async function smokeVillageUi(session, exceptions) {
             };
         }
         const bounds = target.getBounds();
+        const camera = scene.cameras?.main;
+        const scrollFactorX = Number(target.scrollFactorX ?? 1);
+        const scrollFactorY = Number(target.scrollFactorY ?? 1);
+        const screenPoint = camera.matrix.transformPoint(
+            bounds.centerX - (camera.scrollX * scrollFactorX),
+            bounds.centerY - (camera.scrollY * scrollFactorY)
+        );
         return {
-            x: Math.round(bounds.centerX),
-            y: Math.round(bounds.centerY),
+            x: Math.round(screenPoint.x),
+            y: Math.round(screenPoint.y),
             inputEnabled: target.input?.enabled === true,
             action: scene?.villageHeartLandmark?.snapshot?.worldState?.nextAction?.type,
             verb: director?.beacon?.getData?.('interactionVerb') || '',
@@ -13019,17 +13114,22 @@ async function smokeVillageUi(session, exceptions) {
     })()`);
 
     const buildRoute = await evaluate(session, `(() => {
-        const landmark = window.mythicalGame.scene.getScene('GameScene')
-            ?.villageHeartLandmark;
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
         const target = landmark?.nextActionElement;
         const hitZone = landmark?.nextActionHitZone;
         const guidanceRoute = landmark?.guidanceRoute;
         if (!target?.getBounds) return null;
         const bounds = target.getBounds();
         const hitBounds = hitZone?.getBounds?.();
+        const camera = scene.cameras?.main;
+        const screenPoint = camera.matrix.transformPoint(
+            bounds.centerX - (camera.scrollX * Number(target.scrollFactorX ?? 1)),
+            bounds.centerY - (camera.scrollY * Number(target.scrollFactorY ?? 1))
+        );
         return {
-            x: Math.round(bounds.centerX),
-            y: Math.round(bounds.centerY),
+            x: Math.round(screenPoint.x),
+            y: Math.round(screenPoint.y),
             inputEnabled: target.input?.enabled === true,
             action: target.getData('villageNextAction'),
             plotId: target.getData('plotId'),
@@ -13131,7 +13231,11 @@ async function smokeVillageUi(session, exceptions) {
         throw new Error(`Village next build route failed: ${JSON.stringify(buildRoute)}`);
     }
     await captureGameplayStill(session, 'village-next-build-world-mobile.png');
-    await touch(session, buildRoute.x, buildRoute.y);
+    if (SMOKE_VIEWPORT_WIDTH <= 600) {
+        await touch(session, buildRoute.x, buildRoute.y);
+    } else {
+        await tap(session, buildRoute.x, buildRoute.y);
+    }
     await waitFor(
         () => evaluate(session, `Boolean(document.querySelector('.village-command-modal.accepts-input'))`),
         { message: 'Village contextual builder from next foundation' }

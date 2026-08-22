@@ -106,6 +106,8 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain('offerVillageHeartInteraction(snapshot');
         expect(sceneSource).toContain("ownerLabel: 'VILLAGE HEART'");
         expect(sceneSource).toContain('this.setupVillageHeartCollision();');
+        expect(sceneSource).toContain('if (window.MobileControls && this.forceMobileControls)');
+        expect(sceneSource).toContain('this.mobileControls.show(true);');
         expect(sceneSource).toContain('updateSanctuaryActorDepths()');
         expect(sceneSource).toContain(".setData?.('sanctuaryDepthSorted', true)");
         expect(sceneSource).toContain('setSanctuaryPeripheralWayfindingVisible(visible = true)');
@@ -626,10 +628,17 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('setVillagePlayerProximity(landmark, plotId = null)');
         expect(world).toContain(".setData('villagePlayerNearby', playerNearby)");
         expect(world).toContain("? 'nearby'");
-        expect(world).toContain('compactPresentation ? 0.68 : 0.78');
+        expect(world).toContain('compactPresentation ? 0.58 : 0.72');
         expect(world).toContain('compactPresentation ? 0.16 : 0.2');
+        expect(world).toContain('compactPresentation ? 0.2 : 0.28');
+        expect(world).toContain('compactPresentation ? 0.25 : 0.34');
         expect(scene).toContain('updateVillagePlotProximity()');
         expect(scene).toContain('this.worldBuilder.setVillagePlayerProximity(landmark, activePlotId)');
+        expect(scene).toContain('syncVillagePlotInteraction(landmark, plotId = null)');
+        expect(scene).toContain("const nextInteractionId = plotId ? `villagePlot:${plotId}` : null;");
+        expect(scene).toContain("available: { verb: 'BUILD HERE', icon: '+' }");
+        expect(scene).toContain("staffed: { verb: 'MANAGE', icon: '✦' }");
+        expect(scene).toContain('action: () => this.openVillageCommand({ plotId })');
         expect(scene).toContain('applyExplorationCameraFollowOffset(');
         expect(scene).toContain('layout.dockHeight * 0.46');
         expect(scene).toContain('shouldPresentLegacyTutorialFeedback()');
@@ -638,6 +647,7 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain("hint.setData('legacyTutorialHint', true)");
         expect(world).toContain('compactPresentation ? 0 : 1');
         expect(world).toContain('`${definition.shortLabel} · ${building.creature.name.toUpperCase()}');
+        expect(world).toContain('${definition.worldEffectLabel}`');
         expect(world).toContain("'villageFocusAlphaMultiplier'");
         expect(world).toContain('this.scene.setSanctuaryMomentFocus?.(true');
         expect(scene).toContain('getVillageHeartInteractionPrompt(');

@@ -182,6 +182,21 @@ describe('MobileControls pointer ownership', () => {
         expect(new MobileControls(scene).isMobile).toBe(true);
     });
 
+    test('a visible compact touch dock survives a resize when detection changes', () => {
+        const MobileControls = loadMobileControls();
+        const { scene } = createScene({ forceMobileControls: false });
+        const controls = new MobileControls(scene);
+        controls.isVisible = true;
+        jest.spyOn(controls, 'detectMobile').mockReturnValue(false);
+        const hide = jest.spyOn(controls, 'hide').mockImplementation(() => {});
+        const show = jest.spyOn(controls, 'show').mockImplementation(() => {});
+
+        controls.handleResize();
+
+        expect(hide).toHaveBeenCalledTimes(1);
+        expect(show).toHaveBeenCalledWith(true);
+    });
+
     function attachControlFixtures(controls) {
         controls.joystickBase = {
             clear: jest.fn(),

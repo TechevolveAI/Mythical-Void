@@ -256,7 +256,9 @@ class MobileControls {
 
         // Check if still mobile after resize
         this.isMobile = this.detectMobile();
-        if (!this.isMobile) {
+        const explicitlyForced = this.scene?.forceMobileControls === true;
+        const preserveCompactDock = Number(this.scene?.scale?.width || 0) <= 600;
+        if (!this.isMobile && !explicitlyForced && !preserveCompactDock) {
             this.hide();
             return;
         }
@@ -267,7 +269,7 @@ class MobileControls {
         // Store visibility state, hide, then show again
         this.hide();
         this.isVisible = false; // Reset to allow show()
-        this.show();
+        this.show(explicitlyForced || preserveCompactDock);
     }
 
     /**

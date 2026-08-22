@@ -219,6 +219,7 @@ class GameScene extends Phaser.Scene {
         this.villageCommandPanel = null;
         this.villageReconcileTimer = null;
         this.villageRenderSignature = null;
+        this.villagePlotInteractionId = null;
         this.fusionPodLandmark = null;
         this.sanctuaryKeepsakes = null;
         this.livingSignals = [];
@@ -1760,6 +1761,11 @@ class GameScene extends Phaser.Scene {
             size: { width: 150, height: 130 }
         }, previewSnapshot);
         this.setupVillageHeartCollision();
+
+        if (window.MobileControls && this.forceMobileControls) {
+            this.mobileControls = new window.MobileControls(this);
+            this.mobileControls.show(true);
+        }
 
         this.villageCommandPanel = new VillageCommandPanel(this);
         const previewPanelOptions = {
@@ -8725,6 +8731,7 @@ class GameScene extends Phaser.Scene {
             return nextSnapshot;
         }
         this.villageRenderSignature = signature;
+        this.syncVillagePlotInteraction(null, null);
         this.worldBuilder.refreshVillageSettlement(
             this.villageHeartLandmark,
             nextSnapshot
@@ -16008,6 +16015,7 @@ class GameScene extends Phaser.Scene {
             this.currentBiome !== 'nebula'
         ) {
             this.worldBuilder.setVillagePlayerProximity(landmark, null);
+            this.syncVillagePlotInteraction(landmark, null);
             return null;
         }
 
@@ -16028,7 +16036,64 @@ class GameScene extends Phaser.Scene {
         const threshold = this.scale.width <= 600 ? 104 : 122;
         const activePlotId = nearestDistance <= threshold ? nearestPlotId : null;
         this.worldBuilder.setVillagePlayerProximity(landmark, activePlotId);
+        this.syncVillagePlotInteraction(landmark, activePlotId);
         return activePlotId;
+    }
+
+    syncVillagePlotInteraction(landmark, plotId = null) {
+        const nextInteractionId = plotId ? `villagePlot:${plotId}` : null;
+        if (
+            this.villagePlotInteractionId === nextInteractionId &&
+            this.sanctuaryInteractionDirector?.candidates?.has(nextInteractionId)
+        ) {
+            return this.sanctuaryInteractionDirector.candidates.get(nextInteractionId);
+        }
+
+        if (this.villagePlotInteractionId) {
+            this.withdrawSanctuaryInteraction(this.villagePlotInteractionId);
+        }
+        this.villagePlotInteractionId = null;
+        if (!nextInteractionId || !landmark?.snapshot?.unlock?.unlocked) return null;
+
+        const presentation = landmark.plotPresentations?.find(
+            entry => entry.plotId === plotId
+        );
+        const plot = landmark.snapshot.plots?.find(entry => entry.id === plotId);
+        const building = landmark.snapshot.buildings?.find(
+            entry => entry.plotId === plotId
+        );
+        const definition = building?.definition || null;
+        if (!presentation?.hitZone || !plot) return null;
+
+        const statePresentation = {
+            available: { verb: 'BUILD HERE', icon: '+' },
+            constructing: { verb: 'REVIEW BUILD', icon: '+' },
+            needs_helper: { verb: 'INVITE HELP', icon: '+' },
+            complete: { verb: 'MANAGE', icon: '✦' },
+            staffed: { verb: 'MANAGE', icon: '✦' }
+        }[presentation.plotState] || { verb: 'MANAGE', icon: '✦' };
+        const label = definition?.shortLabel || plot.label;
+        const impact = definition?.worldEffectLabel || 'CHOOSE WHAT GROWS HERE';
+        const result = this.offerSanctuaryInteraction({
+            id: nextInteractionId,
+            target: presentation.hitZone,
+            message: `Press SPACE · ${statePresentation.verb} ${label} · ${impact}`,
+            verb: statePresentation.verb,
+            label,
+            ownerLabel: definition?.label || plot.label,
+            icon: statePresentation.icon,
+            worldPrompt: true,
+            ariaLabel: `${statePresentation.verb} ${definition?.label || plot.label}. ${impact}`,
+            tone: ['available', 'constructing', 'needs_helper'].includes(
+                presentation.plotState
+            ) ? 0xF2C14E : 0x71E6B1,
+            priority: 44,
+            action: () => this.openVillageCommand({ plotId })
+        });
+        if (this.sanctuaryInteractionDirector?.candidates?.has(nextInteractionId)) {
+            this.villagePlotInteractionId = nextInteractionId;
+        }
+        return result;
     }
 
     scheduleFusionDiscoveryIntroduction(

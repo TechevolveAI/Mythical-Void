@@ -1995,7 +1995,7 @@ class WorldBuilder {
             const focusCopy = unlocked
                 ? definition
                     ? building?.creature
-                        ? `${definition.shortLabel} · ${building.creature.name.toUpperCase()}\n${definition.roleLabel}`
+                        ? `${definition.shortLabel} · ${building.creature.name.toUpperCase()}\n${definition.worldEffectLabel}`
                         : `${definition.shortLabel}\n${definition.worldEffectLabel}`
                     : `${plot.label.toUpperCase()}\nCHOOSE WHAT GROWS HERE`
                 : 'DORMANT';
@@ -2552,7 +2552,7 @@ class WorldBuilder {
                 : presentation.plotState === 'constructing'
                     ? compactPresentation ? 0.86 : 0.9
                     : settled
-                        ? compactPresentation ? 0.68 : 0.78
+                        ? compactPresentation ? 0.58 : 0.72
                         : compactPresentation ? 0.16 : 0.2;
             const baseAlpha = !active
                 ? ambientAlpha
@@ -2564,7 +2564,7 @@ class WorldBuilder {
                             ? 0.76
                             : focusPlotId
                                 ? compactPresentation ? 0.34 : 0.4
-                                : compactPresentation ? 0.4 : 0.46;
+                                : compactPresentation ? 0.2 : 0.28;
             const alpha = playerNearby ? 1 : baseAlpha;
             const plotLabelAlpha = playerNearby
                 ? compactPresentation ? 0 : 1
@@ -2640,7 +2640,9 @@ class WorldBuilder {
                         ? primary ? 0.78 : 0.24
                         : primary
                             ? 1
-                            : focusPlotId ? 0.36 : 0.54;
+                            : focusPlotId
+                                ? 0.36
+                                : compactPresentation ? 0.25 : 0.34;
                 presentation.worker
                     .setData('villageFocusPriority', priority)
                     .setData('villageFocusAlpha', workerAlpha)
