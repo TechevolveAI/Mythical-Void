@@ -10543,6 +10543,68 @@ async function smokeVillageUi(session, exceptions) {
         { timeoutMs: 12000, message: 'Base Builder opened from Shop Build tab' }
     );
     await captureGameplayStill(session, 'village-base-builder.png');
+    await evaluate(session, `(() => {
+        const proposal = document.querySelector('.village-resident-proposal');
+        proposal?.scrollIntoView?.({ block: 'center' });
+        return Boolean(proposal);
+    })()`);
+    await delay(1250);
+    const residentProposal = await evaluate(session, `(() => {
+        const proposal = document.querySelector('.village-resident-proposal');
+        const bounds = proposal?.getBoundingClientRect?.();
+        return {
+            present: Boolean(proposal),
+            building: proposal?.dataset?.building || '',
+            speaker: proposal?.dataset?.speaker || '',
+            speakerLabel: proposal?.querySelector(
+                '.village-resident-proposal-speaker'
+            )?.textContent || '',
+            title: proposal?.querySelector(
+                '.village-resident-proposal-title'
+            )?.textContent || '',
+            request: proposal?.querySelector(
+                '.village-resident-proposal-request'
+            )?.textContent || '',
+            promise: proposal?.querySelector(
+                '.village-resident-proposal-promise'
+            )?.textContent || '',
+            impact: proposal?.querySelector(
+                '.village-resident-proposal-impact'
+            )?.textContent || '',
+            bounds: bounds ? {
+                left: bounds.left,
+                right: bounds.right,
+                top: bounds.top,
+                bottom: bounds.bottom
+            } : null,
+            viewport: { width: innerWidth, height: innerHeight }
+        };
+    })()`);
+    if (
+        !residentProposal.present ||
+        residentProposal.building !== 'forager_hut' ||
+        !residentProposal.speaker ||
+        !residentProposal.speakerLabel.includes('ASKS') ||
+        residentProposal.title !== 'MARK A SAFE FOOD PATH' ||
+        !residentProposal.request.includes('grows back') ||
+        !residentProposal.promise.includes('tomorrow') ||
+        !residentProposal.impact.includes('5 happiness') ||
+        !residentProposal.bounds ||
+        residentProposal.bounds.left < -1 ||
+        residentProposal.bounds.right > residentProposal.viewport.width + 1 ||
+        residentProposal.bounds.top < -1 ||
+        residentProposal.bounds.bottom > residentProposal.viewport.height + 1
+    ) {
+        throw new Error(
+            `Village resident proposal was not clear and visible: ${JSON.stringify(residentProposal)}`
+        );
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-resident-proposal-mobile.png'
+            : 'village-resident-proposal-desktop.png'
+    );
     const construction = await evaluate(session, `(() => {
         const action = document.querySelector('.village-construct-action:not(:disabled)');
         if (!action) return { clicked: false, text: null };

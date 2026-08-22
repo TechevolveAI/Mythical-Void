@@ -1,6 +1,7 @@
 import {
     VILLAGE_BUILDING_ARTWORK,
     VILLAGE_RESOURCE_DEFINITIONS,
+    getVillageResidentProposal,
     getVillageSupportSummary
 } from '../systems/VillageSettlement.js';
 import { CINEMATIC_MEDIA, shouldPlayCinematicMedia } from '../config/cinematic-media.js';
@@ -195,6 +196,31 @@ function createVillageSupportImpactSummary(snapshot) {
             ? `Active Sanctuary support. ${effects.map(effect => effect.effect).join('. ')}`
             : 'No active Sanctuary support yet.'
     );
+    return section;
+}
+
+function createResidentProposal(snapshot, definition) {
+    const proposal = getVillageResidentProposal(snapshot, {
+        definitionId: definition?.id
+    });
+    if (!proposal) return null;
+
+    const section = createElement('section', 'village-resident-proposal');
+    const identity = createElement('div', 'village-resident-proposal-identity');
+    identity.append(
+        createCreatureAvatar({ id: proposal.speakerId, name: proposal.speakerName }),
+        createElement('span', 'village-resident-proposal-speaker', `${proposal.speakerName.toUpperCase()} ASKS`)
+    );
+    const copy = createElement('div', 'village-resident-proposal-copy');
+    copy.append(
+        createElement('strong', 'village-resident-proposal-title', proposal.title),
+        createElement('q', 'village-resident-proposal-request', proposal.request),
+        createElement('span', 'village-resident-proposal-promise', proposal.promise),
+        createElement('span', 'village-resident-proposal-impact', `IN YOUR GAME · ${proposal.immediateImpact}`)
+    );
+    section.dataset.building = proposal.definitionId;
+    section.dataset.speaker = proposal.speakerId;
+    section.append(identity, copy);
     return section;
 }
 
@@ -655,6 +681,11 @@ export default class VillageCommandPanel {
                 createElement('p', 'village-guided-detail', actionCopy?.detail || nextAction.detail)
             );
 
+            const residentProposal = createResidentProposal(snapshot, visualDefinition);
+            if (residentProposal && ['build', 'supplies'].includes(intent)) {
+                copy.append(residentProposal);
+            }
+
             if (visualDefinition) {
                 const impacts = createElement('div', 'village-guided-impacts');
                 [
@@ -843,6 +874,23 @@ export default class VillageCommandPanel {
 
     render() {
         if (!this.root || !this.getSnapshot) return;
+        const scrollState = [
+            '.village-command-shell',
+            '.village-command-body',
+            '.village-guided-stage'
+        ].map(selector => ({
+            selector,
+            top: this.root.querySelector(selector)?.scrollTop || 0,
+            left: this.root.querySelector(selector)?.scrollLeft || 0
+        }));
+        const restoreScrollState = () => {
+            scrollState.forEach(({ selector, top, left }) => {
+                const element = this.root?.querySelector(selector);
+                if (!element) return;
+                element.scrollTop = top;
+                element.scrollLeft = left;
+            });
+        };
         const snapshot = this.getSnapshot();
         const definitionById = new Map(
             snapshot.definitions.map(definition => [definition.id, definition])
@@ -864,6 +912,7 @@ export default class VillageCommandPanel {
         this.root.replaceChildren();
         if (this.guided) {
             this.renderGuided(snapshot, definitionById);
+            restoreScrollState();
             return;
         }
         const shell = createElement('section', 'village-command-shell');
@@ -1101,6 +1150,10 @@ export default class VillageCommandPanel {
         );
         nextStep.setAttribute('aria-live', 'polite');
         plan.append(planHeader, nextStep);
+        if (!contextualBuilding && !settlementComplete && selectedDefinition) {
+            const residentProposal = createResidentProposal(snapshot, selectedDefinition);
+            if (residentProposal) plan.append(residentProposal);
+        }
 
         const constructAction = createElement(
             'button',
@@ -1307,6 +1360,7 @@ export default class VillageCommandPanel {
         }
         shell.append(body);
         this.root.append(shell);
+        restoreScrollState();
     }
 
     destroy() {

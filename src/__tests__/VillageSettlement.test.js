@@ -41,6 +41,7 @@ function loadVillageSettlement() {
                 getVillageHeartDecisionState,
                 getVillageHeartMemory,
                 getVillageWorkerCheckIn,
+                getVillageResidentProposal,
                 getVillageSnapshot,
                 placeVillageBuilding,
                 assignCreatureToVillageBuilding,
@@ -168,6 +169,23 @@ describe('Village settlement phase one', () => {
                 effect: 'START WITH 2 EXTRA ENERGY'
             })
         );
+    });
+
+    test('turns the next building into a named resident proposal', () => {
+        const gameState = createGameState();
+        const snapshot = village.initializeVillageSettlement(gameState, { now: 1000 });
+        const proposal = village.getVillageResidentProposal(snapshot);
+
+        expect(proposal).toEqual(expect.objectContaining({
+            definitionId: 'forager_hut',
+            speakerId: 'companion_nova',
+            speakerName: 'Nova',
+            title: 'MARK A SAFE FOOD PATH',
+            available: true
+        }));
+        expect(proposal.request).toContain('grows back');
+        expect(proposal.promise).toContain('tomorrow');
+        expect(snapshot.residentProposal).toEqual(proposal);
     });
 
     test('grants one starter stockpile without duplicating it on later loads', () => {

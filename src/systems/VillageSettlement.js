@@ -193,6 +193,11 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         worldEffectLabel: 'FEEDING · +5 HAPPINESS',
         completionCopy: 'A safe food path opens without stripping a living patch.',
         extensionImpact: 'Supplies food for habitats, workshops, and future residents.',
+        residentNeed: Object.freeze({
+            title: 'MARK A SAFE FOOD PATH',
+            request: 'Could we mark what grows back before we gather anything?',
+            promise: 'We eat today without taking tomorrow from this place.'
+        }),
         cost: Object.freeze({ wood: 18, stone: 8, food: 0 }),
         constructionMs: 8000,
         production: Object.freeze({ resource: 'food', amount: 2, intervalMs: MINUTE }),
@@ -215,6 +220,11 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         worldEffectLabel: 'VICTORY · +10 COINS',
         completionCopy: 'Storm-fallen timber becomes shelter. No healthy tree is marked.',
         extensionImpact: 'Supplies wood for bridges, defenses, and village expansion.',
+        residentNeed: Object.freeze({
+            title: 'USE WHAT THE STORM RELEASED',
+            request: 'The storm left enough timber. We do not need to cut a living tree.',
+            promise: 'Repairs become possible without clearing the forest.'
+        }),
         cost: Object.freeze({ wood: 15, stone: 10, food: 0 }),
         constructionMs: 9000,
         production: Object.freeze({ resource: 'wood', amount: 2, intervalMs: MINUTE }),
@@ -237,6 +247,11 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         worldEffectLabel: 'EXPEDITION · +1 GUARD',
         completionCopy: 'Loose stone settles around the Current without closing its path.',
         extensionImpact: 'Supplies stone for permanent structures and defenses.',
+        residentNeed: Object.freeze({
+            title: 'KEEP THE CURRENT OPEN',
+            request: 'I can hear which stones the Current has finished with. Let me show you.',
+            promise: 'Protection grows around the living route instead of blocking it.'
+        }),
         cost: Object.freeze({ wood: 15, stone: 8, food: 0 }),
         constructionMs: 10000,
         production: Object.freeze({ resource: 'stone', amount: 2, intervalMs: MINUTE }),
@@ -259,6 +274,11 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         worldEffectLabel: 'HOME · +2 CAPACITY',
         completionCopy: 'A rescued creature can choose a safe home here.',
         extensionImpact: 'Unlocks resident groups, bonds, and future village districts.',
+        residentNeed: Object.freeze({
+            title: 'MAKE A HOME THEY CAN CHOOSE',
+            request: 'When we rescue someone, they should know a place here can be theirs.',
+            promise: 'Two more creatures can belong here without being assigned a job.'
+        }),
         cost: Object.freeze({ wood: 20, stone: 14, food: 4 }),
         constructionMs: 12000,
         production: null,
@@ -276,6 +296,11 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         worldEffectLabel: 'EXPEDITION · +1 ENERGY',
         completionCopy: 'Human tools and creature knowledge now share one table.',
         extensionImpact: 'Enables equipment research, katana upgrades, and new technology.',
+        residentNeed: Object.freeze({
+            title: 'SHARE ONE WORK TABLE',
+            request: 'Your tools and our knowledge could help each other if we test them together.',
+            promise: 'New equipment begins with consent from both kinds of knowledge.'
+        }),
         cost: Object.freeze({ wood: 25, stone: 20, food: 6 }),
         constructionMs: 15000,
         production: Object.freeze({ resource: 'stone', amount: 3, intervalMs: MINUTE }),
@@ -1345,6 +1370,43 @@ export function getVillageWorkerCheckIn(snapshot, { creatureId } = {}) {
     };
 }
 
+export function getVillageResidentProposal(snapshot, { definitionId = null } = {}) {
+    const requestedDefinitionId = definitionId ||
+        snapshot?.worldState?.nextAction?.definitionId || null;
+    const definition = snapshot?.definitions?.find(
+        entry => entry.id === requestedDefinitionId
+    ) || BUILDING_BY_ID.get(requestedDefinitionId) || null;
+    if (!definition?.residentNeed) return null;
+
+    const assignedCreatureIds = new Set(
+        snapshot?.buildings
+            ?.map(building => building.assignedCreatureId)
+            .filter(Boolean) || []
+    );
+    const prerequisiteWorker = [...(snapshot?.buildings || [])]
+        .reverse()
+        .find(building => (
+            building.status === 'complete' &&
+            building.creature &&
+            (definition.requires || []).includes(building.definitionId)
+        ))?.creature || null;
+    const resident = prerequisiteWorker ||
+        snapshot?.roster?.find(creature => !assignedCreatureIds.has(creature.id)) ||
+        snapshot?.roster?.[0] || null;
+    if (!resident) return null;
+
+    return {
+        definitionId: definition.id,
+        speakerId: resident.id,
+        speakerName: resident.name || 'Your companion',
+        title: definition.residentNeed.title,
+        request: definition.residentNeed.request,
+        promise: definition.residentNeed.promise,
+        immediateImpact: definition.immediateImpact,
+        available: definition.placement?.available === true
+    };
+}
+
 export function getVillageSnapshot(gameState, { stateOverride = null } = {}) {
     const state = normalizeVillageState(
         stateOverride || gameState?.get?.('world.village') || {}
@@ -1411,9 +1473,11 @@ export function getVillageSnapshot(gameState, { stateOverride = null } = {}) {
             0
         )
     };
+    const worldState = getVillageWorldState(snapshot);
     return {
         ...snapshot,
-        worldState: getVillageWorldState(snapshot)
+        worldState,
+        residentProposal: getVillageResidentProposal({ ...snapshot, worldState })
     };
 }
 

@@ -279,6 +279,9 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('this.scene.mobileControls?.resume?.()');
         expect(source).toContain("root.classList.add('accepts-input')");
         expect(source).toContain('this.inputActivationTimer');
+        expect(source).toContain("'.village-guided-stage'");
+        expect(source).toContain('element.scrollTop = top');
+        expect(source).toContain('restoreScrollState()');
         expect(source).toContain('this.scene.physics?.world');
         expect(source).toContain('this.scene.physics.resume()');
         expect(source).toContain('BUILD NEXT');
@@ -291,6 +294,9 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('createCommunityPulse(snapshot)');
         expect(source).toContain('village-community-pulse');
         expect(source).toContain('createVillageSupportImpactSummary(snapshot)');
+        expect(source).toContain('createResidentProposal(snapshot, visualDefinition)');
+        expect(source).toContain('village-resident-proposal');
+        expect(source).toContain('IN YOUR GAME · ${proposal.immediateImpact}');
         expect(source).toContain('getVillageSupportSummary(snapshot?.effects || {})');
         expect(source).toContain('WHAT YOUR SANCTUARY CHANGES');
         expect(source).toContain('village-support-impact-row');
@@ -326,6 +332,7 @@ describe('Village settlement gameplay contract', () => {
         expect(styles).toContain('grid-template-columns: minmax(0, 1fr) minmax(88px, auto);');
         expect(styles).toContain('.village-support-impact-summary {');
         expect(styles).toContain('.village-support-impact-list {');
+        expect(styles).toContain('.village-resident-proposal {');
     });
 
     test('the responsive layout moves to a single scroll surface on mobile', () => {
