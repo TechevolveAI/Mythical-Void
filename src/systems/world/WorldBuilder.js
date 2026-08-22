@@ -798,6 +798,41 @@ class WorldBuilder {
             const plotY = landmark.zone.y + offset.y;
             landmark.plotWorldPositions.set(plot.id, { x: plotX, y: plotY });
             const building = buildingByPlot.get(plot.id) || null;
+            const definition = building
+                ? VILLAGE_BUILDING_DEFINITIONS.find(
+                    entry => entry.id === building.definitionId
+                )
+                : null;
+            const nextAction = snapshot?.worldState?.nextAction;
+            const guidedPlot = ['build', 'assign'].includes(nextAction?.type) &&
+                nextAction?.plotId === plot.id;
+            const plotState = !unlocked
+                ? 'dormant'
+                : !building
+                    ? 'available'
+                    : building.status === 'constructing'
+                        ? 'constructing'
+                        : definition?.production && !building.creature
+                            ? 'needs_helper'
+                            : building.creature
+                                ? 'staffed'
+                                : 'complete';
+            const constructionStartedAt = Number(building?.startedAt) || Date.now();
+            const constructionCompletesAt = Number(building?.completesAt) ||
+                constructionStartedAt;
+            const constructionDuration = Math.max(
+                1,
+                constructionCompletesAt - constructionStartedAt
+            );
+            const constructionProgress = plotState === 'constructing'
+                ? Phaser.Math.Clamp(
+                    (Date.now() - constructionStartedAt) / constructionDuration,
+                    0,
+                    1
+                )
+                : plotState === 'dormant' || plotState === 'available'
+                    ? 0
+                    : 1;
             const container = this.scene.add.container(plotX, plotY).setDepth(plotY + 2);
             const drawing = this.scene.add.graphics();
             const currentSignal = this.scene.add.graphics();
@@ -830,10 +865,29 @@ class WorldBuilder {
                         building.status
                     );
                 } else if (building.status === 'constructing') {
-                    worldArtwork.setAlpha(0.58).setTint(0x91A69D);
-                    drawing.lineStyle(2, 0xF2C14E, 0.72);
-                    drawing.strokeRoundedRect(-70, -76, 140, 124, 8);
-                    drawing.lineBetween(-70, -30, 70, -30);
+                    worldArtwork.setAlpha(0.66).setTint(0xA7BDAF);
+                    drawing.lineStyle(3, 0x071411, 0.62);
+                    drawing.beginPath();
+                    drawing.arc(0, 22, 62, Math.PI * 1.08, Math.PI * 1.92, false);
+                    drawing.strokePath();
+                    drawing.lineStyle(2, 0xF2C14E, 0.78);
+                    drawing.beginPath();
+                    drawing.arc(0, 22, 58, Math.PI * 1.1, Math.PI * 1.9, false);
+                    drawing.strokePath();
+                    [-44, 44].forEach((supportX, supportIndex) => {
+                        const topX = supportX * 0.72;
+                        drawing.lineStyle(3, 0x3FAE62, 0.74);
+                        drawing.lineBetween(supportX, 22, topX, -39);
+                        drawing.fillStyle(0x71E6B1, 0.78);
+                        drawing.fillEllipse(
+                            topX + (supportIndex === 0 ? -5 : 5),
+                            -25,
+                            13,
+                            7
+                        );
+                        drawing.fillStyle(0xF2C14E, 0.88);
+                        drawing.fillCircle(topX, -40, 3);
+                    });
                 }
                 currentSignal.fillStyle(0x71E6B1, 0.95);
                 currentSignal.fillCircle(0, 0, 3);
@@ -856,9 +910,12 @@ class WorldBuilder {
                 drawing.lineStyle(2, 0x3FAE62, unlocked ? 0.7 : 0.18);
                 drawing.lineBetween(0, 10, 0, -5);
             }
-            const definition = building
-                ? VILLAGE_BUILDING_DEFINITIONS.find(entry => entry.id === building.definitionId)
-                : null;
+            const stateMarker = this.createVillagePlotStateMarker({
+                state: plotState,
+                progress: constructionProgress,
+                compact: compactSettlement,
+                built: Boolean(building)
+            });
             const buildingStateCopy = building
                 ? building.status === 'constructing'
                     ? 'GROWING TOGETHER'
@@ -872,7 +929,6 @@ class WorldBuilder {
                 : unlocked
                     ? 'BUILD HERE'
                     : 'DORMANT';
-            const guidedPlot = snapshot?.worldState?.nextAction?.plotId === plot.id;
             const persistentState = Boolean(
                 building?.status === 'constructing' ||
                 (
@@ -885,8 +941,14 @@ class WorldBuilder {
                 ? 0.46
                 : building
                     ? (compactSettlement ? 0.76 : 0.84)
-                    : 0.38;
-            const stateLabelRestAlpha = persistentState && !guidedPlot ? 1 : 0;
+                    : 0.58;
+            const stateLabelRestAlpha = guidedPlot
+                ? 0
+                : persistentState
+                    ? 1
+                    : !building && unlocked
+                        ? 0.72
+                        : 0;
             const focusRing = this.scene.add.graphics().setAlpha(0);
             const focusColor = building?.status === 'complete' ? 0x71E6B1 : 0xF2C14E;
             focusRing.lineStyle(2, focusColor, 0.92);
@@ -916,7 +978,11 @@ class WorldBuilder {
             ).setOrigin(0.5).setAlpha(plotLabelRestAlpha);
             const stateLabel = this.scene.add.text(
                 0,
-                worldArtwork ? -124 : -48,
+                worldArtwork && persistentState
+                    ? (compactSettlement ? 81 : 86)
+                    : worldArtwork
+                        ? -124
+                        : -48,
                 buildingStateCopy,
                 {
                     fontSize: '8px',
@@ -949,6 +1015,7 @@ class WorldBuilder {
             container.add([
                 drawing,
                 ...(worldArtwork ? [worldArtwork] : []),
+                stateMarker,
                 ...(building ? [currentSignal] : []),
                 ...(activity ? [activity] : []),
                 ...(worker ? [worker.container] : []),
@@ -984,6 +1051,16 @@ class WorldBuilder {
                     scaleX: { from: 0.94, to: 1.04 },
                     scaleY: { from: 0.94, to: 1.04 },
                     duration: 1200,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                }));
+            }
+            if (['constructing', 'needs_helper'].includes(plotState)) {
+                landmark.buildingTweens.push(this.scene.tweens.add({
+                    targets: stateMarker,
+                    alpha: { from: 0.62, to: 1 },
+                    duration: plotState === 'constructing' ? 760 : 1250,
                     yoyo: true,
                     repeat: -1,
                     ease: 'Sine.easeInOut'
@@ -1028,10 +1105,13 @@ class WorldBuilder {
                 : 'DORMANT';
             const interactionLabel = definition
                 ? `${definition.label}. ${buildingStateCopy}. Tap to manage.`
-                : `${plot.label}. Foundation available. Tap to plan.`;
+                : unlocked
+                    ? `${plot.label}. Foundation available. Tap to plan.`
+                    : `${plot.label}. Dormant foundation.`;
             plotHitZone
                 .setData('interactionLabel', interactionLabel)
                 .setData('definitionId', building?.definitionId || null)
+                .setData('plotState', plotState)
                 .setData('guided', guidedPlot);
             plotHitZone.on('pointerover', () => {
                 container.setScale(1.06);
@@ -1078,6 +1158,8 @@ class WorldBuilder {
                 plotLabel,
                 stateLabel,
                 focusRing,
+                stateMarker,
+                plotState,
                 plotLabelRestAlpha,
                 stateLabelRestAlpha,
                 interactionLabel
@@ -1103,6 +1185,76 @@ class WorldBuilder {
         this.createVillageNextActionBeacon(landmark, snapshot, {
             compact: compactSettlement
         });
+    }
+
+    createVillagePlotStateMarker({
+        state,
+        progress = 0,
+        compact = false,
+        built = false
+    } = {}) {
+        const marker = this.scene.add.graphics();
+        const nodeCount = 6;
+        const activeNodesByState = {
+            dormant: 0,
+            available: 1,
+            constructing: Math.max(1, Math.round(progress * nodeCount)),
+            needs_helper: nodeCount - 1,
+            complete: nodeCount,
+            staffed: nodeCount
+        };
+        const activeNodes = activeNodesByState[state] ?? 0;
+        const activeColor = ['available', 'constructing', 'needs_helper'].includes(state)
+            ? 0xF2C14E
+            : 0x71E6B1;
+        const radiusX = built
+            ? (compact ? 54 : 64)
+            : (compact ? 37 : 43);
+        const radiusY = built
+            ? (compact ? 16 : 18)
+            : (compact ? 11 : 13);
+        const centerY = built ? 27 : 24;
+        const nodeRadius = compact ? 2.5 : 3;
+
+        for (let index = 0; index < nodeCount; index += 1) {
+            const angle = -Math.PI / 2 + (index / nodeCount) * Math.PI * 2;
+            const nodeX = Math.cos(angle) * radiusX;
+            const nodeY = centerY + Math.sin(angle) * radiusY;
+            marker.fillStyle(0x071411, 0.88);
+            marker.fillCircle(nodeX, nodeY, nodeRadius + 1.5);
+            if (index < activeNodes) {
+                marker.fillStyle(activeColor, state === 'available' ? 0.92 : 0.82);
+                marker.fillCircle(nodeX, nodeY, nodeRadius);
+            } else {
+                marker.fillStyle(0x657682, state === 'dormant' ? 0.22 : 0.38);
+                marker.fillCircle(nodeX, nodeY, nodeRadius - 0.5);
+            }
+            if (state === 'needs_helper' && index === nodeCount - 1) {
+                marker.lineStyle(1.5, 0xF2C14E, 0.9);
+                marker.strokeCircle(nodeX, nodeY, nodeRadius + 2.5);
+            }
+        }
+
+        if (state === 'staffed') {
+            marker.lineStyle(1.5, 0xF4F4F4, 0.72);
+            marker.lineBetween(-7, centerY, 7, centerY);
+            marker.fillStyle(0x71E6B1, 0.96);
+            marker.fillCircle(-7, centerY, 3);
+            marker.fillCircle(7, centerY, 3);
+            marker.fillStyle(0xF4F4F4, 0.96);
+            marker.fillCircle(0, centerY, 2.5);
+        } else if (state === 'complete') {
+            marker.fillStyle(0x71E6B1, 0.92);
+            marker.fillCircle(0, centerY, 3);
+        }
+
+        marker
+            .setData('villagePlotState', state)
+            .setData('progressNodes', activeNodes)
+            .setData('progressRatio', progress)
+            .setData('ariaLabel', `${String(state || 'dormant').replace('_', ' ')} foundation`);
+        marker.setBlendMode?.(Phaser.BlendModes.ADD);
+        return marker;
     }
 
     createVillageValueGrowth(landmark, snapshot, { compact = false } = {}) {

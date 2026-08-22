@@ -61,6 +61,14 @@ describe('Village settlement gameplay contract', () => {
         expect(worldSource).toContain(".setData('rootBudCount', VILLAGE_PLOTS.length)");
         expect(worldSource).toContain(".setData('litRootCount', restoredCount)");
         expect(worldSource).toContain('this.findEnvironmentPosition(80, 36)');
+        expect(worldSource).toContain('createVillagePlotStateMarker({');
+        expect(worldSource).toContain(".setData('villagePlotState', state)");
+        expect(worldSource).toContain(".setData('progressNodes', activeNodes)");
+        expect(worldSource).toContain(".setData('plotState', plotState)");
+        expect(worldSource).not.toContain(
+            'strokeRoundedRect(-70, -76, 140, 124, 8)'
+        );
+        expect(worldSource).toContain('worldArtwork.setAlpha(0.66).setTint(0xA7BDAF)');
         expect(worldSource).toContain('refreshVillageSettlement(');
         expect(worldSource).toContain("zone.on('pointerdown', () => this.activateVillageHeart(landmark))");
         expect(worldSource).toContain("plotHitZone.on('pointerdown', pointer => {");

@@ -10496,6 +10496,29 @@ async function smokeVillageUi(session, exceptions) {
             (scene.trees?.getChildren?.().length || 0) +
             (scene.rocks?.getChildren?.().length || 0) +
             (scene.flowers?.getChildren?.().length || 0);
+        const stateLanguage = [
+            ['dormant', 0],
+            ['available', 0],
+            ['constructing', 0.5],
+            ['needs_helper', 1],
+            ['complete', 1],
+            ['staffed', 1]
+        ].map(([state, progress]) => {
+            const marker = scene.worldBuilder.createVillagePlotStateMarker({
+                state,
+                progress,
+                compact: ${SMOKE_VIEWPORT_WIDTH <= 600},
+                built: !['dormant', 'available'].includes(state)
+            });
+            const result = {
+                state: marker.getData('villagePlotState'),
+                progressNodes: marker.getData('progressNodes'),
+                ariaLabel: marker.getData('ariaLabel'),
+                active: marker.active === true
+            };
+            marker.destroy();
+            return result;
+        });
         const garden = toScreen(scene.signalGarden.zone.x, scene.signalGarden.zone.y);
         const heart = toScreen(landmark.zone.x, landmark.zone.y);
         const plots = [...landmark.plotWorldPositions.entries()].map(([plotId, position]) => ({
@@ -10513,6 +10536,12 @@ async function smokeVillageUi(session, exceptions) {
             gardenVisible: garden.x >= 0 && garden.x <= camera.width &&
                 garden.y >= 0 && garden.y <= camera.height,
             plots,
+            plotStates: (landmark.plotPresentations || []).map(presentation => ({
+                plotId: presentation.plotId,
+                state: presentation.stateMarker?.getData?.('villagePlotState'),
+                progressNodes: presentation.stateMarker?.getData?.('progressNodes'),
+                active: presentation.stateMarker?.active === true
+            })),
             plotCount: landmark.plotHitZones.length,
             workerCount: landmark.workerElements.length,
             targetCount: scene.targetRange?.allTargets?.length || 0,
@@ -10523,6 +10552,7 @@ async function smokeVillageUi(session, exceptions) {
             },
             proceduralDecorInsideDistrict,
             proceduralDecorTotal,
+            stateLanguage,
             commons: {
                 terrainActive: commons?.terrain?.active === true,
                 pathActive: commons?.path?.active === true,
@@ -10561,6 +10591,13 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.world.width !== 2400 ||
         integratedWorld.world.height !== 1800 ||
         integratedWorld.plotCount !== 5 ||
+        integratedWorld.plotStates.filter(plot => plot.state === 'staffed').length !== 3 ||
+        integratedWorld.plotStates.filter(plot => plot.state === 'available').length !== 2 ||
+        integratedWorld.plotStates.some(plot => (
+            !plot.active ||
+            (plot.state === 'staffed' && plot.progressNodes !== 6) ||
+            (plot.state === 'available' && plot.progressNodes !== 1)
+        )) ||
         integratedWorld.workerCount !== 3 ||
         integratedWorld.targetCount !== 8 ||
         !integratedWorld.restoration.active ||
@@ -10568,6 +10605,11 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.restoration.litRootCount !== 3 ||
         integratedWorld.proceduralDecorInsideDistrict !== 0 ||
         integratedWorld.proceduralDecorTotal > 37 ||
+        integratedWorld.stateLanguage.map(item => item.progressNodes).join(',') !==
+            '0,1,3,5,6,6' ||
+        integratedWorld.stateLanguage.some(item => (
+            !item.active || !item.ariaLabel.includes('foundation')
+        )) ||
         !integratedWorld.commons.terrainActive ||
         !integratedWorld.commons.pathActive ||
         integratedWorld.commons.routeIds.join(',') !== 'garden_to_heart,heart_to_portal' ||
@@ -10845,6 +10887,9 @@ async function smokeVillageUi(session, exceptions) {
                 workerCheckInCues: workers.map(worker => worker.getData('checkInCue')),
                 plotPresentations: (landmark?.plotPresentations || []).map(presentation => ({
                     plotId: presentation.plotId,
+                    plotState: presentation.plotState,
+                    progressNodes: presentation.stateMarker?.getData?.('progressNodes'),
+                    markerActive: presentation.stateMarker?.active === true,
                     label: presentation.plotLabel?.text || '',
                     labelAlpha: presentation.plotLabel?.alpha,
                     state: presentation.stateLabel?.text || '',
@@ -10923,11 +10968,31 @@ async function smokeVillageUi(session, exceptions) {
         layout.worldPresentation.plotPresentations.some(presentation => (
             !presentation.label ||
             !presentation.interactionLabel ||
+            !presentation.markerActive ||
             presentation.labelAlpha <= 0 ||
             presentation.labelAlpha >= 1 ||
-            presentation.stateAlpha !== 0 ||
+            (
+                presentation.plotState === 'staffed' &&
+                (
+                    presentation.progressNodes !== 6 ||
+                    presentation.stateAlpha !== 0
+                )
+            ) ||
+            (
+                presentation.plotState === 'available' &&
+                (
+                    presentation.progressNodes !== 1 ||
+                    presentation.stateAlpha <= 0
+                )
+            ) ||
             presentation.focusAlpha !== 0
         )) ||
+        layout.worldPresentation.plotPresentations.filter(
+            presentation => presentation.plotState === 'staffed'
+        ).length !== 3 ||
+        layout.worldPresentation.plotPresentations.filter(
+            presentation => presentation.plotState === 'available'
+        ).length !== 2 ||
         !layout.worldPresentation.productionMomentStarted ||
         layout.worldPresentation.productionMomentCount < 1 ||
         !layout.acceptsInput ||
@@ -11294,6 +11359,61 @@ async function smokeVillageUi(session, exceptions) {
         () => evaluate(session, `!document.querySelector('.village-command-modal')`),
         { message: 'Village world district after closing builder' }
     );
+    const constructionWorld = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const presentation = landmark?.plotPresentations?.find(
+            entry => entry.plotId === 'root_04'
+        );
+        const zone = landmark?.plotHitZones?.find(entry => entry.plotId === 'root_04');
+        const stateBounds = presentation?.stateLabel?.getBounds?.();
+        return {
+            state: presentation?.stateMarker?.getData?.('villagePlotState'),
+            progressNodes: presentation?.stateMarker?.getData?.('progressNodes'),
+            progressRatio: presentation?.stateMarker?.getData?.('progressRatio'),
+            markerActive: presentation?.stateMarker?.active === true,
+            hitState: zone?.getData?.('plotState'),
+            stateText: presentation?.stateLabel?.text || '',
+            stateAlpha: presentation?.stateLabel?.alpha,
+            stateBounds: stateBounds ? {
+                left: stateBounds.left,
+                right: stateBounds.right,
+                top: stateBounds.top,
+                bottom: stateBounds.bottom
+            } : null
+        };
+    })()`);
+    if (
+        constructionWorld.state !== 'constructing' ||
+        constructionWorld.hitState !== 'constructing' ||
+        !constructionWorld.markerActive ||
+        constructionWorld.progressNodes < 1 ||
+        constructionWorld.progressNodes > 6 ||
+        constructionWorld.progressRatio < 0 ||
+        constructionWorld.progressRatio > 1 ||
+        constructionWorld.stateText !== 'GROWING TOGETHER' ||
+        constructionWorld.stateAlpha !== 1 ||
+        !constructionWorld.stateBounds ||
+        constructionWorld.stateBounds.left < -1 ||
+        constructionWorld.stateBounds.right > SMOKE_VIEWPORT_WIDTH + 1 ||
+        constructionWorld.stateBounds.top < -1 ||
+        constructionWorld.stateBounds.bottom > SMOKE_VIEWPORT_HEIGHT + 1
+    ) {
+        throw new Error(`Village construction state failed: ${JSON.stringify(constructionWorld)}`);
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-construction-world-mobile.png'
+            : 'village-construction-world-desktop.png'
+    );
+    await delay(1900);
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-construction-settled-mobile.png'
+            : 'village-construction-settled-desktop.png'
+    );
     const followUpStarted = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         scene.worldBuilder.clearVillageDecisionMoment(scene.villageHeartLandmark);
@@ -11370,6 +11490,7 @@ async function smokeVillageUi(session, exceptions) {
         decisionRecap,
         decisionWorld,
         buildRoute,
+        constructionWorld,
         heartMemory,
         directWorldTap,
         interaction
