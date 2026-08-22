@@ -11089,6 +11089,21 @@ async function smokeVillageUi(session, exceptions) {
                 worldCoordinateCount: collectibles.filter(collectible => (
                     collectible.container?.getData?.('spawnCoordinateSpace') === 'world'
                 )).length,
+                groundedVisualCount: collectibles.filter(collectible => (
+                    collectible.container?.getData?.('collectibleVisualLanguage') ===
+                        'grounded-current-cache-v1'
+                )).length,
+                worldDepthCount: collectibles.filter(collectible => (
+                    collectible.container?.getData?.('collectibleDepthModel') ===
+                        'world-y-sorted'
+                )).length,
+                brokenArcCount: collectibles.filter(collectible => (
+                    collectible.container?.getData?.('collectibleRarityIndicator') ===
+                        'broken-current-arc'
+                )).length,
+                maxHoverAmplitude: Math.max(0, ...collectibles.map(collectible => (
+                    Number(collectible.container?.getData?.('collectibleHoverAmplitude')) || 0
+                ))),
                 outsideWorldCount: collectibles.filter(collectible => (
                     collectible.x < 0 ||
                     collectible.x > scene.worldWidth ||
@@ -11132,6 +11147,31 @@ async function smokeVillageUi(session, exceptions) {
                     'sanctuaryDistrictAnchorPatchCount'
                 ) || 0
             },
+            sanctuaryFlora: (() => {
+                const flora = scene.sanctuaryDistricts?.flora || [];
+                return {
+                    count: flora.length,
+                    groundedCount: flora.filter(entry => (
+                        entry.image?.getData?.('sanctuaryFloraGrounded') === true &&
+                        entry.grounding?.getData?.('sanctuaryFloraGrounding') === true
+                    )).length,
+                    supportingCount: flora.filter(entry => (
+                        entry.image?.getData?.('sanctuaryFloraPresentation') ===
+                            'supporting-focus'
+                    )).length,
+                    targetAlphaCount: flora.filter(entry => (
+                        entry.image?.getData?.('sanctuaryFloraTargetAlpha') ===
+                            ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.34 : 0.44}
+                    )).length,
+                    maxAlpha: Math.max(
+                        0,
+                        ...flora.map(entry => Number(entry.image?.alpha) || 0)
+                    ),
+                    focusActive: scene.sanctuaryDistricts?.terrain?.getData?.(
+                        'sanctuaryFloraFocusActive'
+                    ) === true
+                };
+            })(),
             sanctuaryBackground: {
                 cameraEdgeColor: camera.backgroundColor?.color,
                 profile: scene.worldBackground?.getData?.('worldBackgroundProfile'),
@@ -11524,6 +11564,13 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.sanctuaryTerrain.maxFillAlpha > 0.08 ||
         integratedWorld.sanctuaryTerrain.contourCount !== 24 ||
         integratedWorld.sanctuaryTerrain.anchorPatchCount !== 24 ||
+        integratedWorld.sanctuaryFlora.count !== 6 ||
+        integratedWorld.sanctuaryFlora.groundedCount !== 6 ||
+        integratedWorld.sanctuaryFlora.supportingCount !== 6 ||
+        integratedWorld.sanctuaryFlora.targetAlphaCount !== 6 ||
+        integratedWorld.sanctuaryFlora.maxAlpha >
+            ((SMOKE_VIEWPORT_WIDTH <= 600 ? 0.34 : 0.44) + 0.02) ||
+        !integratedWorld.sanctuaryFlora.focusActive ||
         integratedWorld.sanctuaryBackground.cameraEdgeColor !== 0x102329 ||
         integratedWorld.sanctuaryBackground.profile !== 'living_current_ground_v4' ||
         integratedWorld.sanctuaryBackground.cloudRadiusMax !== 0 ||
@@ -11567,6 +11614,13 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.collectibles.insideDistrict !== 0 ||
         integratedWorld.collectibles.worldCoordinateCount !==
             integratedWorld.collectibles.total ||
+        integratedWorld.collectibles.groundedVisualCount !==
+            integratedWorld.collectibles.total ||
+        integratedWorld.collectibles.worldDepthCount !==
+            integratedWorld.collectibles.total ||
+        integratedWorld.collectibles.brokenArcCount !==
+            integratedWorld.collectibles.total ||
+        integratedWorld.collectibles.maxHoverAmplitude !== 4 ||
         integratedWorld.collectibles.outsideWorldCount !== 0 ||
         integratedWorld.interactionBeacon.activeId !== 'villageHeart' ||
         (

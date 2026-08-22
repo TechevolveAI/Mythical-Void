@@ -299,6 +299,10 @@ describe('Village settlement gameplay contract', () => {
         expect(collectibleSource).toContain('Number(scene.worldHeight)');
         expect(collectibleSource).toContain('isReservedSanctuaryPosition?.(x, y, 36)');
         expect(collectibleSource).toContain(".setData('spawnCoordinateSpace', 'world')");
+        expect(collectibleSource).toContain("'grounded-current-cache-v1'");
+        expect(collectibleSource).toContain("'world-y-sorted'");
+        expect(collectibleSource).toContain("'broken-current-arc'");
+        expect(collectibleSource).toContain("'open-current-roots-v1'");
         expect(sceneSource).toContain('const heartBandY = compact ? 132 : 120');
         expect(sceneSource).toContain("? 'front'");
         expect(sceneSource).toContain(": 'behind'");
@@ -307,6 +311,10 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain(".setData('peripheralLabelVisibleCount', visibleCount)");
         expect(worldSource).toContain(".setData('sanctuaryPeripheralDestination', 'signalGarden')");
         expect(worldSource).toContain(".setData('sanctuaryPeripheralDestination', definition.zoneId)");
+        expect(worldSource).toContain(".setData('sanctuaryFloraGrounded', true)");
+        expect(worldSource).toContain("active ? 'supporting-focus' : 'ambient-world'");
+        expect(worldSource).toContain('compact ? 0.34 : 0.44');
+        expect(sceneSource).toContain('setSanctuaryFloraFocus?.(');
         [
             "verb: 'SHOP'",
             "label: 'SUPPLIES & BUILDING'",

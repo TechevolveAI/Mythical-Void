@@ -502,6 +502,21 @@ class WorldBuilder {
             if (!artwork || !zone || !this.scene.textures.exists(artwork.key)) return [];
             const x = zone.center.x + placement.offsetX;
             const y = zone.center.y + placement.offsetY;
+            const grounding = this.scene.add.graphics()
+                .setPosition(x, y + (placement.width * 0.2))
+                .setDepth(y - 5)
+                .setAlpha(0.68)
+                .setData('sanctuaryFloraGrounding', true)
+                .setData('sanctuaryFloraZone', placement.zone);
+            grounding.fillStyle(0x07100F, 0.72);
+            grounding.fillEllipse(0, 0, placement.width * 0.78, placement.width * 0.16);
+            grounding.lineStyle(2, 0x71E6B1, 0.22);
+            grounding.strokeEllipse(
+                0,
+                -1,
+                placement.width * 0.68,
+                placement.width * 0.11
+            );
             const image = this.scene.add.image(x, y, artwork.key)
                 .setDisplaySize(
                     placement.width,
@@ -511,13 +526,17 @@ class WorldBuilder {
                 )
                 .setFlipX(placement.flipX)
                 .setDepth(y - 4)
-                .setAlpha(0.97)
-                .setData('sanctuaryFlora', placement.artwork);
+                .setAlpha(0.84)
+                .setTint(0xD8E8E2)
+                .setData('sanctuaryFlora', placement.artwork)
+                .setData('sanctuaryFloraZone', placement.zone)
+                .setData('sanctuaryFloraGrounded', true)
+                .setData('sanctuaryFloraPresentation', 'ambient-world')
+                .setData('sanctuaryFloraTargetAlpha', 0.84);
             image.sanctuaryBaseScaleX = image.scaleX;
             image.sanctuaryBaseScaleY = image.scaleY;
             const tween = this.scene.tweens.add({
                 targets: image,
-                alpha: { from: 0.9, to: 0.98 },
                 scaleY: {
                     from: image.sanctuaryBaseScaleY * 0.992,
                     to: image.sanctuaryBaseScaleY * 1.008
@@ -527,7 +546,13 @@ class WorldBuilder {
                 repeat: -1,
                 ease: 'Sine.easeInOut'
             });
-            return [{ image, tween }];
+            return [{
+                image,
+                grounding,
+                tween,
+                zoneId: placement.zone,
+                artworkId: placement.artwork
+            }];
         });
 
         const districtDefinitions = [
@@ -677,6 +702,54 @@ class WorldBuilder {
             });
         });
         return true;
+    }
+
+    setSanctuaryFloraFocus(districts, active = false, { immediate = false } = {}) {
+        const flora = districts?.flora || [];
+        const compact = this.scene.scale.width <= 600;
+        const targetAlpha = active ? (compact ? 0.34 : 0.44) : 0.84;
+        const groundingAlpha = active ? (compact ? 0.22 : 0.28) : 0.68;
+        flora.forEach(entry => {
+            if (!entry?.image) return;
+            entry.focusTween?.stop?.();
+            entry.focusTween = null;
+            entry.image
+                .setTint(active ? 0x9DB8AF : 0xD8E8E2)
+                .setData(
+                    'sanctuaryFloraPresentation',
+                    active ? 'supporting-focus' : 'ambient-world'
+                )
+                .setData('sanctuaryFloraTargetAlpha', targetAlpha);
+            entry.grounding
+                ?.setData(
+                    'sanctuaryFloraPresentation',
+                    active ? 'supporting-focus' : 'ambient-world'
+                )
+                .setData('sanctuaryFloraTargetAlpha', groundingAlpha);
+            if (immediate || !this.scene?.tweens) {
+                entry.image.setAlpha(targetAlpha);
+                entry.grounding?.setAlpha?.(groundingAlpha);
+                return;
+            }
+            entry.focusTween = this.scene.tweens.add({
+                targets: [entry.image, entry.grounding].filter(Boolean),
+                alpha: target => target === entry.image
+                    ? targetAlpha
+                    : groundingAlpha,
+                duration: 260,
+                ease: 'Sine.easeOut'
+            });
+        });
+        districts?.terrain
+            ?.setData('sanctuaryFloraFocusActive', Boolean(active))
+            .setData('sanctuaryFloraTargetAlpha', targetAlpha)
+            .setData('sanctuaryFloraGroundingAlpha', groundingAlpha);
+        return {
+            count: flora.length,
+            active: Boolean(active),
+            targetAlpha,
+            groundingAlpha
+        };
     }
 
     createSanctuaryCommons({ signalGarden, villageHeart, hubPortal } = {}) {
@@ -8358,6 +8431,8 @@ class WorldBuilder {
     destroy() {
         this.sanctuaryDistricts?.flora?.forEach(entry => {
             entry.tween?.stop?.();
+            entry.focusTween?.stop?.();
+            entry.grounding?.destroy?.();
             entry.image?.destroy?.();
         });
         this.sanctuaryDistricts?.markers?.forEach(marker => {

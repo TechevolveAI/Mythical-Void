@@ -16110,6 +16110,10 @@ class GameScene extends Phaser.Scene {
     updateSanctuaryFocusMode(active = this.nearVillageHeart) {
         const nextActive = Boolean(active);
         this.setSanctuaryPeripheralWayfindingVisible(!nextActive);
+        this.worldBuilder?.setSanctuaryFloraFocus?.(
+            this.sanctuaryDistricts,
+            nextActive
+        );
         if (this.sanctuaryFocusModeActive === nextActive) return;
         this.sanctuaryFocusModeActive = nextActive;
         this.sanctuaryPresentationMode = nextActive ? 'action' : 'ambient';
