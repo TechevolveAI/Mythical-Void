@@ -76,6 +76,7 @@ export default class SanctuaryInteractionDirector {
             next?.tone !== this.active?.tone ||
             next?.verb !== this.active?.verb ||
             next?.label !== this.active?.label ||
+            next?.ownerLabel !== this.active?.ownerLabel ||
             next?.hintMode !== this.active?.hintMode ||
             next?.suppressWorldBeacon !== this.active?.suppressWorldBeacon;
         this.active = next;
@@ -128,6 +129,7 @@ export default class SanctuaryInteractionDirector {
             .setData('sanctuaryInteractionBeacon', true)
             .setData('interactionId', candidate.id)
             .setData('interactionState', 'approach')
+            .setData('ownershipLabel', candidate.ownerLabel || '')
             .setData('ariaLabel', candidate.ariaLabel || candidate.message);
         indicator.fillStyle(candidate.tone, 0.08);
         indicator.fillEllipse(0, 0, width, height);
@@ -206,6 +208,7 @@ export default class SanctuaryInteractionDirector {
                 .setData('ariaLabel', candidate.ariaLabel || candidate.message)
                 .setInteractive({ useHandCursor: true });
             const touchLayout = this.scene?.hasVisibleTouchControls?.() === true;
+            let ownerText = null;
             if (touchLayout) {
                 [beacon, glyph, verb, label, hitZone].forEach(element => {
                     element.setScrollFactor?.(0);
@@ -215,14 +218,44 @@ export default class SanctuaryInteractionDirector {
                 verb.setDepth(9501);
                 label.setDepth(9501);
                 hitZone.setDepth(9502);
+                if (candidate.ownerLabel) {
+                    ownerText = this.scene.add.text(
+                        target.x,
+                        beaconY - 26,
+                        String(candidate.ownerLabel).toUpperCase(),
+                        {
+                            fontSize: '8px',
+                            fontFamily: 'Arial, sans-serif',
+                            fontStyle: 'bold',
+                            color: '#D6F4EA',
+                            stroke: '#071411',
+                            strokeThickness: 3
+                        }
+                    ).setOrigin(0.5).setScrollFactor(0).setDepth(9501)
+                        .setData('sanctuaryInteractionOwnerLabel', candidate.ownerLabel);
+                }
             }
             hitZone.on('pointerdown', pointer => {
                 pointer?.event?.stopPropagation?.();
                 candidate.action?.();
             });
             this.beacon = beacon;
-            this.beaconParts = { beacon, glyph, verb, label, hitZone };
-            elements.push(beacon, glyph, verb, label, hitZone);
+            this.beaconParts = {
+                beacon,
+                glyph,
+                verb,
+                label,
+                hitZone,
+                ownerText
+            };
+            elements.push(...[
+                beacon,
+                glyph,
+                verb,
+                label,
+                hitZone,
+                ownerText
+            ].filter(Boolean));
         }
         this.indicator = indicator;
         this.indicatorElements = elements;
@@ -288,7 +321,7 @@ export default class SanctuaryInteractionDirector {
             Math.min(118, Number(target.height || 80) * 0.55 + 34)
         );
         const placement = this.resolveBeaconPlacement(target, desiredY);
-        const { beacon, glyph, verb, label, hitZone } = this.beaconParts;
+        const { beacon, glyph, verb, label, hitZone, ownerText } = this.beaconParts;
         beacon.setPosition(placement.x, placement.y)
             .setData('mobileViewportClamped', placement.clamped)
             .setData('mobileDockClearance', placement.dockClearance)
@@ -297,11 +330,16 @@ export default class SanctuaryInteractionDirector {
         glyph.setPosition(placement.x - 58, placement.y);
         verb.setPosition(placement.x - 31, placement.y - 7);
         label.setPosition(placement.x - 31, placement.y + 8);
+        ownerText?.setPosition(placement.x + 18, placement.y - 27);
         hitZone.setPosition(placement.x, placement.y)
             .setData('mobileViewportClamped', placement.clamped)
             .setData('mobileDockClearance', placement.dockClearance)
             .setData('mobileDockAnchored', placement.dockAnchored)
-            .setData('coordinateSpace', placement.coordinateSpace);
+            .setData('coordinateSpace', placement.coordinateSpace)
+            .setData('ownershipLabel', candidate.ownerLabel || '')
+            .setData('ownershipRelation', 'named-target');
+        beacon.setData('ownershipLabel', candidate.ownerLabel || '')
+            .setData('ownershipRelation', 'named-target');
         return placement;
     }
 

@@ -234,6 +234,7 @@ describe('SanctuaryInteractionDirector', () => {
             message: 'Tap the Village Heart',
             verb: 'DECIDE',
             label: 'TOGETHER',
+            ownerLabel: 'VILLAGE HEART',
             hintMode: 'world'
         });
 
@@ -246,7 +247,14 @@ describe('SanctuaryInteractionDirector', () => {
         expect(hitZone.getData('mobileDockClearance')).toBe(36);
         expect(hitZone.getData('mobileDockAnchored')).toBe(true);
         expect(hitZone.getData('coordinateSpace')).toBe('screen');
+        expect(hitZone.getData('ownershipLabel')).toBe('VILLAGE HEART');
+        expect(hitZone.getData('ownershipRelation')).toBe('named-target');
         expect(hitZone.setScrollFactor).toHaveBeenCalledWith(0);
+
+        const ownerText = director.indicatorElements.find(element => (
+            element.getData?.('sanctuaryInteractionOwnerLabel') === 'VILLAGE HEART'
+        ));
+        expect(ownerText).toBeTruthy();
 
         scene.cameras.main.worldView = { x: 50, y: 100 };
         director.update();

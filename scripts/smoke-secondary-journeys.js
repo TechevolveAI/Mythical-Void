@@ -11124,6 +11124,8 @@ async function smokeVillageUi(session, exceptions) {
                 inputEnabled: interactionHitZone?.input?.enabled === true,
                 coordinateSpace: interactionHitZone?.getData?.('coordinateSpace'),
                 dockAnchored: interactionHitZone?.getData?.('mobileDockAnchored') === true,
+                ownershipLabel: interactionHitZone?.getData?.('ownershipLabel'),
+                ownershipRelation: interactionHitZone?.getData?.('ownershipRelation'),
                 bounds: interactionBeaconBounds ? (() => {
                     if (interactionHitZone?.scrollFactorX === 0) {
                         return {
@@ -11344,6 +11346,8 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.interactionBeacon.activeId !== 'villageHeart' ||
         integratedWorld.interactionBeacon.verb !== 'DECIDE' ||
         integratedWorld.interactionBeacon.label !== 'TOGETHER' ||
+        integratedWorld.interactionBeacon.ownershipLabel !== 'VILLAGE HEART' ||
+        integratedWorld.interactionBeacon.ownershipRelation !== 'named-target' ||
         integratedWorld.interactionBeacon.hitZoneWidth !== 164 ||
         integratedWorld.interactionBeacon.hitZoneHeight !== 52 ||
         !integratedWorld.interactionBeacon.inputEnabled ||
@@ -11783,6 +11787,7 @@ async function smokeVillageUi(session, exceptions) {
             scene.nearVillageHeart = false;
             scene.updateSanctuaryFocusMode(false);
             scene.handleVillageHeartProximity();
+            const hitZone = scene.sanctuaryInteractionDirector?.beaconParts?.hitZone;
             return {
                 detectedAsTouch,
                 controlsVisible: controls.isVisible === true,
@@ -11792,6 +11797,8 @@ async function smokeVillageUi(session, exceptions) {
                     ?.getData?.('interactionVerb') || '',
                 beaconLabel: scene.sanctuaryInteractionDirector?.beacon
                     ?.getData?.('interactionLabel') || '',
+                ownershipLabel: hitZone?.getData?.('ownershipLabel') || '',
+                ownershipRelation: hitZone?.getData?.('ownershipRelation') || '',
                 dockTop: controls.layout?.dockTop ?? null
             };
         })()`);
@@ -11801,6 +11808,8 @@ async function smokeVillageUi(session, exceptions) {
             controlDetection.promptVisible ||
             controlDetection.beaconVerb !== 'DECIDE' ||
             controlDetection.beaconLabel !== 'TOGETHER' ||
+            controlDetection.ownershipLabel !== 'VILLAGE HEART' ||
+            controlDetection.ownershipRelation !== 'named-target' ||
             !Number.isFinite(controlDetection.dockTop)
         ) {
             throw new Error(`Village mobile control detection failed: ${JSON.stringify(controlDetection)}`);

@@ -104,6 +104,7 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain("'Tap the Village Heart · Decide together'");
         expect(sceneSource).toContain('getVillageHeartInteractionPresentation(snapshot)');
         expect(sceneSource).toContain('offerVillageHeartInteraction(snapshot');
+        expect(sceneSource).toContain("ownerLabel: 'VILLAGE HEART'");
         expect(sceneSource).toContain('this.offerVillageHeartInteraction(closeSnapshot)');
         expect(sceneSource).toContain(
             "!this.sanctuaryInteractionDirector?.candidates?.has('villageHeart')"
