@@ -10565,7 +10565,7 @@ async function smokeVillageUi(session, exceptions) {
         return {
             world: { width: scene.worldWidth, height: scene.worldHeight },
             viewport: { width: camera.width, height: camera.height },
-            camera: { x: camera.worldView.x, y: camera.worldView.y },
+            camera: { x: camera.worldView.x, y: camera.worldView.y, zoom: camera.zoom },
             player: toScreen(scene.player.x, scene.player.y),
             heart,
             focusApproachBounds,
@@ -10715,7 +10715,23 @@ async function smokeVillageUi(session, exceptions) {
                 ),
                 currentThreadCount: scene.worldBackground?.getData?.(
                     'worldBackgroundCurrentThreadCount'
-                )
+                ),
+                edgeColor: scene.worldBackground?.getData?.(
+                    'worldBackgroundEdgeColor'
+                ),
+                alpha: scene.worldBackground?.alpha,
+                screenBounds: (() => {
+                    const bounds = scene.worldBackground?.getBounds?.();
+                    if (!bounds) return null;
+                    const topLeft = toScreen(bounds.left, bounds.top);
+                    const bottomRight = toScreen(bounds.right, bounds.bottom);
+                    return {
+                        left: topLeft.x,
+                        top: topLeft.y,
+                        right: bottomRight.x,
+                        bottom: bottomRight.y
+                    };
+                })()
             },
             sanctuaryParallax: (() => {
                 const layers = scene.parallaxBiome?.layers || [];
@@ -10742,6 +10758,17 @@ async function smokeVillageUi(session, exceptions) {
                     backdropProfile: backdrop?.getData?.(
                         'sanctuaryParallaxBackdropProfile'
                     ),
+                    backdropAlpha: backdrop?.alpha,
+                    backdropBounds: (() => {
+                        const bounds = backdrop?.getBounds?.();
+                        if (!bounds) return null;
+                        return {
+                            left: bounds.left,
+                            top: bounds.top,
+                            right: bounds.right,
+                            bottom: bounds.bottom
+                        };
+                    })(),
                     backdropScrollFactorX: backdrop?.scrollFactorX,
                     backdropScrollFactorY: backdrop?.scrollFactorY
                 };
@@ -10914,10 +10941,11 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.sanctuaryTerrain.maxFillAlpha > 0.08 ||
         integratedWorld.sanctuaryTerrain.contourCount !== 24 ||
         integratedWorld.sanctuaryTerrain.anchorPatchCount !== 24 ||
-        integratedWorld.sanctuaryBackground.profile !== 'living_current_ground_v2' ||
+        integratedWorld.sanctuaryBackground.profile !== 'living_current_ground_v3' ||
         integratedWorld.sanctuaryBackground.cloudRadiusMax !== 0 ||
         integratedWorld.sanctuaryBackground.floatingPlatformCount !== 0 ||
         integratedWorld.sanctuaryBackground.currentThreadCount !== 18 ||
+        integratedWorld.sanctuaryBackground.edgeColor !== 0x102329 ||
         integratedWorld.sanctuaryParallax.profile !== 'quiet_current_threads_v2' ||
         integratedWorld.sanctuaryParallax.filledWisps !== false ||
         integratedWorld.sanctuaryParallax.threadCount !== 3 ||

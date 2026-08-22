@@ -119,7 +119,12 @@ describe('Village settlement gameplay contract', () => {
         expect(worldSource).toContain(".setData('sanctuaryDistrictContourCount', contourSegmentCount)");
         expect(worldSource).toContain(".setData('sanctuaryDistrictAnchorPatchCount', anchorPatchCount)");
         expect(worldSource).not.toContain('drawOrganicPad');
-        expect(worldSource).toContain("isSanctuary ? 'living_current_ground_v2' : 'cosmic_biome_v1'");
+        expect(worldSource).toContain("isSanctuary ? 'living_current_ground_v3' : 'cosmic_biome_v1'");
+        expect(worldSource).toContain("this.scene.cameras?.main?.setBackgroundColor?.('#102329')");
+        expect(worldSource).toContain(".setData('worldBackgroundEdgeColor', isSanctuary ? 0x102329 : null)");
+        expect(worldSource).toContain("const profileSuffix = isSanctuary ? '_living_v3' : '';");
+        expect(worldSource).toContain('? 0x071017');
+        expect(worldSource).toContain('? 0x102329');
         expect(worldSource).toContain(".setData('worldBackgroundCloudRadiusMax', isSanctuary ? 0 : 200)");
         expect(worldSource).toContain(".setData('worldBackgroundFloatingPlatformCount', isSanctuary ? 0 : 40)");
         expect(worldSource).toContain(".setData('worldBackgroundCurrentThreadCount', isSanctuary ? 18 : 0)");

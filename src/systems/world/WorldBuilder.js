@@ -5398,20 +5398,25 @@ class WorldBuilder {
         this.backgroundImage.setOrigin(0, 0);
         this.backgroundImage.setDepth(-1000);
         const isSanctuary = this.currentBiome === 'nebula';
+        if (isSanctuary) {
+            this.scene.cameras?.main?.setBackgroundColor?.('#102329');
+        }
         this.backgroundImage
             .setData(
                 'worldBackgroundProfile',
-                isSanctuary ? 'living_current_ground_v2' : 'cosmic_biome_v1'
+                isSanctuary ? 'living_current_ground_v3' : 'cosmic_biome_v1'
             )
             .setData('worldBackgroundCloudRadiusMax', isSanctuary ? 0 : 200)
             .setData('worldBackgroundFloatingPlatformCount', isSanctuary ? 0 : 40)
-            .setData('worldBackgroundCurrentThreadCount', isSanctuary ? 18 : 0);
+            .setData('worldBackgroundCurrentThreadCount', isSanctuary ? 18 : 0)
+            .setData('worldBackgroundEdgeColor', isSanctuary ? 0x102329 : null);
         return this.backgroundImage;
     }
 
     generateBackgroundTexture() {
         const biomeId = this.currentBiome;
-        const profileSuffix = biomeId === 'nebula' ? '_living_v2' : '';
+        const isSanctuary = biomeId === 'nebula';
+        const profileSuffix = isSanctuary ? '_living_v3' : '';
         const textureKey = `worldBackground_${biomeId}_${this.worldWidth}x${this.worldHeight}${profileSuffix}`;
 
         if (this.scene.textures.exists(textureKey)) {
@@ -5422,8 +5427,12 @@ class WorldBuilder {
         const palette = this.biomeConfig.palette || {};
 
         // Get biome-specific colors
-        const skyTop = this.hexToInt(palette.skyTop) || 0x0a0a2e;
-        const skyBottom = this.hexToInt(palette.skyBottom) || 0x1a1a4e;
+        const skyTop = isSanctuary
+            ? 0x071017
+            : this.hexToInt(palette.skyTop) || 0x0a0a2e;
+        const skyBottom = isSanctuary
+            ? 0x102329
+            : this.hexToInt(palette.skyBottom) || 0x1a1a4e;
         const nebulaColor = this.hexToInt(palette.nebula) || 0x9370DB;
         const accentColor = this.hexToInt(palette.accent) || 0xFFD54F;
         const floraColor = this.hexToInt(palette.flora) || 0x64B5F6;
