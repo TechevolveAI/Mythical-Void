@@ -11,6 +11,7 @@ export default class ControlsHintPanel {
         this.scene = scene;
         this.elements = [];
         this.isVisible = false;
+        this.focusModeActive = false;
         const coarsePointer = window.matchMedia?.('(pointer: coarse)')?.matches;
         const touchCapable = 'ontouchstart' in window ||
             navigator.maxTouchPoints > 0 ||
@@ -193,7 +194,7 @@ export default class ControlsHintPanel {
      * @param {boolean} autoHide - Whether to auto-hide after delay
      */
     show(autoHide = false) {
-        if (this.isVisible || this.isMobile) return;
+        if (this.isVisible || this.isMobile || this.focusModeActive) return;
 
         const { width, height } = this.scene.scale;
 
@@ -360,11 +361,24 @@ export default class ControlsHintPanel {
      * Toggle visibility
      */
     toggle() {
+        if (this.focusModeActive) return false;
         if (this.isVisible) {
             this.hide();
         } else {
             this.show(false); // Manual toggle = no auto-hide
         }
+        return this.isVisible;
+    }
+
+    setFocusMode(active) {
+        this.focusModeActive = active === true;
+        if (this.focusModeActive) {
+            this.hide();
+        }
+        Object.values(this.helpIcon || {}).forEach(element => {
+            element?.setVisible?.(!this.focusModeActive && !this.isMobile);
+        });
+        return this.focusModeActive;
     }
 
     /**

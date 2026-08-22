@@ -198,6 +198,7 @@ class GameScene extends Phaser.Scene {
         this.lastVillageCommunityMomentAt = 0;
         this.villageHeartMemoryIndex = 0;
         this.lastVillageHeartMemoryAt = 0;
+        this.sanctuaryPresentationMode = 'ambient';
         this.villageCommunityMomentPending = false;
         this.villageDecisionMomentPending = null;
         this.villageCommandPanel = null;
@@ -733,6 +734,7 @@ class GameScene extends Phaser.Scene {
         this.lastVillageCommunityMomentAt = 0;
         this.villageHeartMemoryIndex = 0;
         this.lastVillageHeartMemoryAt = 0;
+        this.sanctuaryPresentationMode = 'ambient';
         this.villageCommunityMomentPending = false;
         this.villageDecisionMomentPending = null;
 
@@ -8153,6 +8155,35 @@ class GameScene extends Phaser.Scene {
             markVillageGuidanceSeen(window.GameState);
         }
         const nextAction = snapshot.worldState?.nextAction;
+        this.showInteractionHint(
+            this.getVillageHeartInteractionPrompt(snapshot, {
+                includeGuidance: needsGuidance,
+                touchControlsVisible
+            }),
+            { persistent: true }
+        );
+        this.mobileControls?.updateInteractIcon(
+            nextAction?.type === 'decision' ? '?' : '🏗'
+        );
+        const memoryPlayed = this.maybePlayVillageHeartMemory(snapshot);
+        const quietArrival = ['review', 'supplies'].includes(nextAction?.type);
+        if (!memoryPlayed && quietArrival) {
+            this.maybePlayVillageCommunityMoment(snapshot);
+        }
+    }
+
+    getVillageHeartInteractionPrompt(
+        snapshot,
+        {
+            includeGuidance = false,
+            touchControlsVisible = this.hasVisibleTouchControls()
+        } = {}
+    ) {
+        if (!snapshot?.unlock?.unlocked) {
+            return `Village Heart offline · ${snapshot?.unlock?.reason || 'Hatch a companion first'}`;
+        }
+
+        const nextAction = snapshot.worldState?.nextAction;
         const targetPlot = snapshot.plots?.find(plot => plot.id === nextAction?.plotId);
         const actionPrompts = {
             decision: touchControlsVisible
@@ -8169,25 +8200,49 @@ class GameScene extends Phaser.Scene {
                 ? 'Tap the Village Heart · Review your Sanctuary'
                 : 'Press SPACE at the Heart · Review your Sanctuary'
         };
-        const openAction = actionPrompts[nextAction?.type] || (
+        const prompt = actionPrompts[nextAction?.type] || (
             touchControlsVisible
                 ? 'Tap the Village Heart · Open Village Plan'
                 : 'Press SPACE at the Heart · Open Village Plan'
         );
-        this.showInteractionHint(
-            snapshot.unlock.unlocked
-                ? needsGuidance
-                    ? `Village Heart awakened · ${openAction}`
-                    : openAction
-                : `Village Heart offline · ${snapshot.unlock.reason}`,
-            { persistent: true }
+        return includeGuidance ? `Village Heart awakened · ${prompt}` : prompt;
+    }
+
+    setSanctuaryMomentFocus(active, { kind = null, plotId = null } = {}) {
+        if (!this.villageHeartLandmark || !this.worldBuilder) return false;
+        const nextMode = active ? 'story' : this.nearVillageHeart ? 'action' : 'ambient';
+        this.sanctuaryPresentationMode = nextMode;
+        this.worldBuilder.setVillageFocusMode(
+            this.villageHeartLandmark,
+            active || this.nearVillageHeart,
+            {
+                immediate: !active,
+                presentationMode: nextMode,
+                focusPlotIdOverride: active ? plotId : undefined
+            }
         );
-        this.mobileControls?.updateInteractIcon(
-            nextAction?.type === 'decision' ? '?' : '🏗'
-        );
-        if (!this.maybePlayVillageHeartMemory(snapshot)) {
-            this.maybePlayVillageCommunityMoment(snapshot);
+        this.villageHeartLandmark.zone
+            ?.setData('sanctuaryPresentationMode', nextMode)
+            .setData('sanctuaryMomentKind', active ? kind : null);
+
+        if (active) {
+            this.hideInteractionHint();
+            this.mobileControls?.updateInteractIcon('✦');
+            return true;
         }
+
+        if (this.nearVillageHeart) {
+            const snapshot = this.villageHeartLandmark.snapshot ||
+                getVillageSnapshot(window.GameState);
+            this.showInteractionHint(
+                this.getVillageHeartInteractionPrompt(snapshot),
+                { persistent: true }
+            );
+            this.mobileControls?.updateInteractIcon(
+                snapshot.worldState?.nextAction?.type === 'decision' ? '?' : '🏗'
+            );
+        }
+        return true;
     }
 
     getVillageRenderSignature(snapshot) {
@@ -15246,6 +15301,7 @@ class GameScene extends Phaser.Scene {
         const nextActive = Boolean(active);
         if (this.sanctuaryFocusModeActive === nextActive) return;
         this.sanctuaryFocusModeActive = nextActive;
+        this.sanctuaryPresentationMode = nextActive ? 'action' : 'ambient';
         this.worldBuilder?.setVillageFocusMode?.(
             this.villageHeartLandmark,
             nextActive
@@ -15258,6 +15314,9 @@ class GameScene extends Phaser.Scene {
             this.kidModeHelpContainer = null;
             this.dailyBonusButton?.setVisible?.(false);
         } else {
+            this.worldBuilder?.clearVillageCommunityMoment?.(this.villageHeartLandmark);
+            this.worldBuilder?.clearVillageDecisionMoment?.(this.villageHeartLandmark);
+            this.worldBuilder?.clearVillageWorkerCheckIn?.(this.villageHeartLandmark);
             this.restorePlayerCameraFollow();
             this.getHudController().updateDailyBonusButton();
         }
@@ -15266,6 +15325,7 @@ class GameScene extends Phaser.Scene {
             this.statsText?.setVisible?.(!nextActive);
             this.resetButton?.setVisible?.(!nextActive);
         }
+        this.getHudController().setSanctuaryFocusMode(nextActive);
         this.updateFirstContactFocusMode();
     }
 

@@ -471,6 +471,30 @@ export default class GameSceneHudController {
         });
     }
 
+    setSanctuaryFocusMode(active) {
+        const scene = this.scene;
+        const showDesktopContext = !active && !scene.mobileHUD?.isVisible;
+        const desktopContextElements = [
+            scene.cosmicMiniMap?.background,
+            scene.miniMapPlayerDot,
+            scene.statBarGraphics,
+            ...(scene.statBarLabels || []),
+            scene.economyHud?.currencyBgImage,
+            scene.economyHud?.currencyIcon,
+            scene.economyHud?.currencyText
+        ];
+        desktopContextElements.forEach(element => {
+            element?.setVisible?.(showDesktopContext);
+        });
+        scene.abilityHUD?.setVisible?.(showDesktopContext);
+        scene.carePanelManager?.setFocusMode?.(active);
+        scene.controlsHintPanel?.setFocusMode?.(active);
+        scene.positionText?.setVisible?.(
+            showDesktopContext && this.isDebugHudEnabled()
+        );
+        return showDesktopContext;
+    }
+
     hideDesktopUIOnMobile() {
         const scene = this.scene;
 

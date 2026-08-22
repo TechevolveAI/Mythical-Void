@@ -88,7 +88,10 @@ class MobileControls {
         // TouchEvent exists in desktop Chromium even when no touch hardware is
         // present. Hardware capability, a coarse primary pointer, or a mobile
         // user agent must be present before the gameplay dock is shown.
-        const hasTouchHardware = hasOnTouchStart || hasTouchPoints || hasDocumentTouch;
+        const hasLegacyTouchSurface = hasOnTouchStart || hasDocumentTouch;
+        const hasTouchHardware = hasTouchPoints || (
+            hasLegacyTouchSurface && (isTouchPrimary || isHoverNone)
+        );
 
         // Show controls if:
         // 1. Device has touch capability AND (small screen OR touch is primary input)
@@ -174,15 +177,15 @@ class MobileControls {
         this.fallbackTouchListenerSetup = true;
 
         const showOnTouch = (e) => {
-            devLog('[MobileControls] FALLBACK: Touch detected, forcing controls visible');
+            devLog('[MobileControls] FALLBACK: Touch detected, confirming device capability');
             // Remove this listener after first touch
             document.removeEventListener('touchstart', showOnTouch, { passive: true });
             window.removeEventListener('touchstart', showOnTouch, { passive: true });
 
-            // Force show controls
-            if (!this.isVisible) {
-                this.isMobile = true;
-                this.show(true);
+            this.isMobile = this.detectMobile();
+            const explicitlyForced = this.scene?.forceMobileControls === true;
+            if (!this.isVisible && (this.isMobile || explicitlyForced)) {
+                this.show(explicitlyForced);
             }
         };
 

@@ -10553,7 +10553,9 @@ async function smokeVillageUi(session, exceptions) {
                 bottom: bottomRight.y
             };
         });
-        const dockTop = scene.mobileControls?.layout?.dockTop;
+        const dockTop = scene.mobileControls?.isVisible
+            ? scene.mobileControls?.layout?.dockTop
+            : null;
         return {
             world: { width: scene.worldWidth, height: scene.worldHeight },
             viewport: { width: camera.width, height: camera.height },
@@ -10580,6 +10582,17 @@ async function smokeVillageUi(session, exceptions) {
                     alpha: presentation.container?.alpha,
                     focusRingAlpha: presentation.focusRing?.alpha
                 }))
+            },
+            mobileDiagnostics: {
+                controlsMobile: scene.mobileControls?.isMobile === true,
+                controlsVisible: scene.mobileControls?.isVisible === true,
+                forced: scene.forceMobileControls === true,
+                maxTouchPoints: navigator.maxTouchPoints,
+                hasWindowTouchStart: 'ontouchstart' in window,
+                hasDocumentTouchStart: 'ontouchstart' in document.documentElement,
+                coarsePointer: window.matchMedia?.('(pointer: coarse)')?.matches === true,
+                hoverNone: window.matchMedia?.('(hover: none)')?.matches === true,
+                userAgent: navigator.userAgent
             },
             controlDock: Number.isFinite(dockTop) ? {
                 left: 0,
@@ -10655,6 +10668,14 @@ async function smokeVillageUi(session, exceptions) {
                 questVisible: scene.questTracker?.container?.visible === true,
                 mobileHudFocused: scene.mobileHUD?.focusModeActive === true
             },
+            secondaryHud: {
+                abilityVisible: scene.abilityHUD?.container?.visible === true,
+                minimapVisible: scene.cosmicMiniMap?.background?.visible === true,
+                statBarsVisible: scene.statBarGraphics?.visible === true,
+                economyVisible: scene.economyHud?.currencyText?.visible === true,
+                careHintVisible: scene.carePanelManager?.hintText?.visible === true,
+                helpHintVisible: scene.controlsHintPanel?.helpIcon?.bg?.visible === true
+            },
             interactionHint: scene.interactionText?.text || '',
             interactionVisible: scene.interactionText?.visible === true,
             interactionBounds: interactionBounds ? {
@@ -10688,6 +10709,7 @@ async function smokeVillageUi(session, exceptions) {
             plot.focusRingAlpha !== 0
         )) ||
         (SMOKE_VIEWPORT_WIDTH <= 600 && !integratedWorld.controlDock) ||
+        (SMOKE_VIEWPORT_WIDTH > 600 && integratedWorld.controlDock) ||
         integratedWorld.focusApproachBounds.left < -1 ||
         integratedWorld.focusApproachBounds.right > integratedWorld.viewport.width + 1 ||
         integratedWorld.focusApproachBounds.top < -1 ||
@@ -10774,6 +10796,7 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.focus.dailyGiftVisible ||
         integratedWorld.focus.questVisible ||
         integratedWorld.focus.mobileHudFocused !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
+        Object.values(integratedWorld.secondaryHud).some(Boolean) ||
         !integratedWorld.interactionHint.includes('Decide together') ||
         !integratedWorld.interactionVisible ||
         !integratedWorld.interactionBounds ||
@@ -10818,6 +10841,14 @@ async function smokeVillageUi(session, exceptions) {
             kidStatusBarActive: scene.kidModeStatusBar?.active === true,
             kidHelpActive: scene.kidModeHelpContainer?.active === true,
             cameraFollowingPlayer: scene.cameras.main._follow === scene.player,
+            secondaryHud: {
+                abilityVisible: scene.abilityHUD?.container?.visible === true,
+                minimapVisible: scene.cosmicMiniMap?.background?.visible === true,
+                statBarsVisible: scene.statBarGraphics?.visible === true,
+                economyVisible: scene.economyHud?.currencyText?.visible === true,
+                careHintVisible: scene.carePanelManager?.hintText?.visible === true,
+                helpHintVisible: scene.controlsHintPanel?.helpIcon?.bg?.visible === true
+            },
             heartPriority: scene.villageHeartLandmark?.heartArtwork
                 ?.getData?.('villageFocusPriority'),
             plotPriorities: scene.villageHeartLandmark?.plotPresentations?.map(
@@ -10837,6 +10868,9 @@ async function smokeVillageUi(session, exceptions) {
         focusRecovery.kidStatusBarActive ||
         focusRecovery.kidHelpActive ||
         !focusRecovery.cameraFollowingPlayer ||
+        Object.values(focusRecovery.secondaryHud).some(
+            visible => visible !== (SMOKE_VIEWPORT_WIDTH > 600)
+        ) ||
         focusRecovery.heartPriority !== 'ambient' ||
         focusRecovery.plotPriorities.length !== 5 ||
         focusRecovery.plotPriorities.some(plot => (
@@ -11079,6 +11113,7 @@ async function smokeVillageUi(session, exceptions) {
                 valueCount: document.querySelectorAll('.village-decision-value').length
             },
             worldPresentation: {
+                presentationMode: landmark?.presentationMode,
                 structureCount: worldStructures.length,
                 plotHitZones,
                 districtTerrainActive: landmark?.districtTerrain?.active === true,
@@ -11157,6 +11192,7 @@ async function smokeVillageUi(session, exceptions) {
         layout.decision.optionLabels.some(label => !label.includes('+1')) ||
         layout.decision.optionHeights.some(height => height < 44) ||
         layout.decision.valueCount !== 2 ||
+        layout.worldPresentation.presentationMode !== 'story' ||
         layout.worldPresentation.structureCount !== 5 ||
         layout.worldPresentation.plotHitZones.length !== 5 ||
         layout.worldPresentation.plotHitZones.some(bounds => (
@@ -11203,7 +11239,11 @@ async function smokeVillageUi(session, exceptions) {
                 presentation.plotState === 'available' &&
                 (
                     presentation.progressNodes !== 1 ||
-                    presentation.stateAlpha <= 0
+                    (
+                        layout.worldPresentation.presentationMode === 'story'
+                            ? presentation.stateAlpha !== 0
+                            : presentation.stateAlpha <= 0
+                    )
                 )
             ) ||
             presentation.focusAlpha !== 0
@@ -12278,10 +12318,12 @@ async function main() {
             screenWidth: SMOKE_VIEWPORT_WIDTH,
             screenHeight: SMOKE_VIEWPORT_HEIGHT
         });
-        await session.call('Emulation.setTouchEmulationEnabled', {
-            enabled: SMOKE_VIEWPORT_WIDTH <= 600,
-            maxTouchPoints: 1
-        });
+        await session.call(
+            'Emulation.setTouchEmulationEnabled',
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? { enabled: true, maxTouchPoints: 1 }
+                : { enabled: false }
+        );
 
         const exceptions = [];
         session.on('Runtime.exceptionThrown', params => {

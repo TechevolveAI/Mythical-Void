@@ -120,6 +120,56 @@ describe('MobileControls pointer ownership', () => {
         expect(controls.isMobile).toBe(false);
     });
 
+    test('desktop emulation touch event properties do not create a touch dock', () => {
+        const MobileControls = loadMobileControls({
+            window: {
+                ontouchstart: null,
+                TouchEvent: function TouchEvent() {},
+                innerWidth: 1440,
+                innerHeight: 900,
+                matchMedia: jest.fn(() => ({ matches: false }))
+            },
+            documentElement: { ontouchstart: null },
+            navigator: {
+                maxTouchPoints: 0,
+                userAgent: 'Mozilla/5.0 Chrome/126.0 Safari/537.36'
+            }
+        });
+
+        const { scene } = createScene({
+            scale: { width: 1440, height: 900, on: jest.fn(), off: jest.fn() }
+        });
+
+        expect(new MobileControls(scene).isMobile).toBe(false);
+    });
+
+    test('a stray desktop touch event does not force the fallback dock', () => {
+        const addEventListener = jest.fn();
+        const MobileControls = loadMobileControls({
+            document: { addEventListener },
+            navigator: {
+                maxTouchPoints: 0,
+                userAgent: 'Mozilla/5.0 Chrome/126.0 Safari/537.36'
+            }
+        });
+        const { scene } = createScene({
+            forceMobileControls: false,
+            scale: { width: 1440, height: 900, on: jest.fn(), off: jest.fn() }
+        });
+        const controls = new MobileControls(scene);
+        const show = jest.spyOn(controls, 'show');
+        jest.spyOn(controls, 'detectMobile').mockReturnValue(false);
+
+        controls.setupFallbackTouchListener();
+        const touchHandler = addEventListener.mock.calls.find(
+            call => call[0] === 'touchstart'
+        )?.[1];
+        touchHandler?.({});
+
+        expect(show).not.toHaveBeenCalled();
+        expect(controls.isVisible).toBe(false);
+    });
+
     test('touch hardware still creates the dock on phones and tablets', () => {
         const MobileControls = loadMobileControls({
             navigator: {

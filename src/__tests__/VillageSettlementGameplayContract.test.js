@@ -315,8 +315,9 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('landmark.plotPresentations = []');
         expect(world).toContain(".setData('interactionLabel', interactionLabel)");
         expect(world).toContain('focusRing.setAlpha(1)');
-        expect(world).toContain('plotLabel.setAlpha(plotLabelRestAlpha)');
-        expect(world).toContain('.setAlpha(stateLabelRestAlpha);');
+        expect(world).toContain("presentationMode === 'story'");
+        expect(world).toContain('focusPriority === \'primary\' ? 1 : plotLabelRestAlpha');
+        expect(world).toContain('focusPriority === \'primary\' ? 1 : stateLabelRestAlpha');
         expect(world).toContain(".setText('')");
         expect(world).toContain('.disableInteractive();');
         expect(world).toContain('definition.worldEffectLabel');
@@ -326,9 +327,16 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain(".setData('direction', isDelivery ? 'to_heart' : 'to_plot')");
         expect(world).toContain(".setData('resource', resource)");
         expect(world).toContain(".setData('worldEffectLabel', definition?.worldEffectLabel || null)");
-        expect(world).toContain('setVillageFocusMode(landmark, active');
+        expect(world).toContain('setVillageFocusMode(');
         expect(world).toContain(".setData('villageFocusPriority', priority)");
         expect(world).toContain(".setData('villageFocusPrimary', primary)");
+        expect(world).toContain("presentationMode = active ? 'action' : 'ambient'");
+        expect(world).toContain("presentationMode === 'story'");
+        expect(world).toContain("'villageFocusAlphaMultiplier'");
+        expect(world).toContain('this.scene.setSanctuaryMomentFocus?.(true');
+        expect(scene).toContain('getVillageHeartInteractionPrompt(');
+        expect(scene).toContain("this.sanctuaryPresentationMode = 'ambient'");
+        expect(scene).toContain("const quietArrival = ['review', 'supplies'].includes(nextAction?.type)");
         expect(world).toContain('const heartDisplaySize = compactSettlement ? 196 : 218;');
     });
 
