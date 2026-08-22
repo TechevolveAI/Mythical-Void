@@ -11464,6 +11464,12 @@ async function smokeVillageUi(session, exceptions) {
             },
             worldPresentation: {
                 presentationMode: landmark?.presentationMode,
+                layoutProfile: landmark?.heartArtwork?.getData?.('villageLayoutProfile'),
+                heartDisplaySize: landmark?.heartArtwork?.getData?.('villageDisplaySize'),
+                heartCaptionActive: landmark?.heartCaption?.active === true,
+                strayFieldKitShipCount: (scene.fieldKitPreviewElements || []).filter(
+                    element => element?.getData?.('fieldKitPreviewShip') === true
+                ).length,
                 structureCount: worldStructures.length,
                 plotHitZones,
                 districtTerrainActive: landmark?.districtTerrain?.active === true,
@@ -11519,6 +11525,9 @@ async function smokeVillageUi(session, exceptions) {
                     state: presentation.stateLabel?.text || '',
                     stateAlpha: presentation.stateLabel?.alpha,
                     focusAlpha: presentation.focusRing?.alpha,
+                    layoutProfile: presentation.layoutProfile,
+                    artworkDisplaySize: presentation.worldArtwork
+                        ?.getData?.('villageDisplaySize') || 0,
                     interactionLabel: presentation.interactionLabel
                 })),
                 productionMomentStarted,
@@ -11568,6 +11577,16 @@ async function smokeVillageUi(session, exceptions) {
         layout.decision.optionHeights.some(height => height < 44) ||
         layout.decision.valueCount !== 2 ||
         layout.worldPresentation.presentationMode !== 'story' ||
+        layout.worldPresentation.layoutProfile !== (
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? 'terraced_current_v1'
+                : 'commons_spine_v1'
+        ) ||
+        layout.worldPresentation.heartDisplaySize !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 156 : 218
+        ) ||
+        !layout.worldPresentation.heartCaptionActive ||
+        layout.worldPresentation.strayFieldKitShipCount !== 0 ||
         layout.worldPresentation.structureCount !== 5 ||
         layout.worldPresentation.plotHitZones.length !== 5 ||
         layout.worldPresentation.plotHitZones.some(bounds => (
@@ -11617,8 +11636,15 @@ async function smokeVillageUi(session, exceptions) {
             !presentation.label ||
             !presentation.interactionLabel ||
             !presentation.markerActive ||
-            presentation.labelAlpha <= 0 ||
-            presentation.labelAlpha >= 1 ||
+            presentation.labelAlpha !== 0 ||
+            presentation.layoutProfile !== (
+                SMOKE_VIEWPORT_WIDTH <= 600
+                    ? 'terraced_current_v1'
+                    : 'commons_spine_v1'
+            ) ||
+            presentation.artworkDisplaySize > (
+                SMOKE_VIEWPORT_WIDTH <= 600 ? 98 : 164
+            ) ||
             (
                 presentation.plotState === 'staffed' &&
                 (
@@ -11828,6 +11854,10 @@ async function smokeVillageUi(session, exceptions) {
     );
     const structurePlanner = await evaluate(session, `(() => ({
         title: document.querySelector('.village-command-title')?.textContent || '',
+        immediateImpact: document.querySelector('.village-building-impact')?.textContent || '',
+        extensionImpact: document.querySelector('.village-building-extension')?.textContent || '',
+        activeBenefit: document.querySelector('.village-next-step')?.textContent || '',
+        activeAction: document.querySelector('.village-construct-action')?.textContent || '',
         workerCheckInOpen: Boolean(
             window.mythicalGame.scene.getScene('GameScene')
                 ?.villageHeartLandmark?.activeWorkerCheckIn
@@ -11835,10 +11865,16 @@ async function smokeVillageUi(session, exceptions) {
     }))()`);
     if (
         !structurePlanner.title.includes('FORAGE') ||
+        !structurePlanner.immediateImpact.includes('HELPS NOW') ||
+        !structurePlanner.immediateImpact.includes('+5 happiness') ||
+        !structurePlanner.extensionImpact.includes('UNLOCKS') ||
+        !structurePlanner.activeBenefit.includes('+5 happiness') ||
+        !structurePlanner.activeAction.includes('FEEDING · +5 HAPPINESS') ||
         structurePlanner.workerCheckInOpen
     ) {
         throw new Error(`Village structure tap did not remain distinct: ${JSON.stringify(structurePlanner)}`);
     }
+    await captureGameplayStill(session, 'village-structure-impact-mobile.png');
     await evaluate(session, `document.querySelector('.village-command-close')?.click()`);
     await waitFor(
         () => evaluate(session, `!document.querySelector('.village-command-modal')`),
@@ -12090,8 +12126,22 @@ async function smokeVillageUi(session, exceptions) {
                 plotId: presentation.plotId,
                 priority: presentation.container?.getData?.('villageFocusPriority'),
                 alpha: presentation.container?.alpha,
-                focusRingAlpha: presentation.focusRing?.alpha
+                focusRingAlpha: presentation.focusRing?.alpha,
+                labelAlpha: presentation.plotLabel?.alpha,
+                stateAlpha: presentation.stateLabel?.alpha
             })) || [],
+            sharedBeaconVisible: Boolean(
+                window.mythicalGame.scene.getScene('GameScene')
+                    ?.sanctuaryInteractionDirector?.beacon
+            ),
+            sharedBeaconId: window.mythicalGame.scene.getScene('GameScene')
+                ?.sanctuaryInteractionDirector?.beacon?.getData?.('interactionId') || null,
+            activeInteractionId: window.mythicalGame.scene.getScene('GameScene')
+                ?.sanctuaryInteractionDirector?.active?.id || null,
+            activeSuppressWorldBeacon: window.mythicalGame.scene.getScene('GameScene')
+                ?.sanctuaryInteractionDirector?.active?.suppressWorldBeacon === true,
+            sanctuaryFocusModeActive: window.mythicalGame.scene.getScene('GameScene')
+                ?.sanctuaryFocusModeActive === true,
             text: target.text || ''
         };
     })()`);
@@ -12110,7 +12160,10 @@ async function smokeVillageUi(session, exceptions) {
         buildRoute.focusHierarchy.filter(plot => plot.priority === 'primary').length !== 1 ||
         buildRoute.focusHierarchy.find(plot => plot.plotId === 'root_04')?.priority !== 'primary' ||
         buildRoute.focusHierarchy.find(plot => plot.plotId === 'root_04')?.alpha !== 1 ||
-        buildRoute.focusHierarchy.find(plot => plot.plotId === 'root_04')?.focusRingAlpha <= 0 ||
+        buildRoute.focusHierarchy.find(plot => plot.plotId === 'root_04')?.focusRingAlpha !== 0 ||
+        buildRoute.focusHierarchy.find(plot => plot.plotId === 'root_04')?.labelAlpha !== 0 ||
+        buildRoute.focusHierarchy.find(plot => plot.plotId === 'root_04')?.stateAlpha !== 0 ||
+        buildRoute.sharedBeaconVisible ||
         buildRoute.focusHierarchy.filter(plot => plot.plotId !== 'root_04').some(plot => (
             plot.priority !== 'supporting' || plot.alpha >= 1
         )) ||

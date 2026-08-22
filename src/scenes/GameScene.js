@@ -1506,7 +1506,7 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    createFieldKitPreviewBackdrop() {
+    createFieldKitPreviewBackdrop({ includeShip = true } = {}) {
         const { width, height } = this.scale;
         this.cameras.main.setBackgroundColor('#081018');
 
@@ -1523,14 +1523,19 @@ class GameScene extends Phaser.Scene {
             backdrop.fillCircle(starX, starY, index % 5 === 0 ? 2 : 1);
         }
 
-        const ship = this.add.graphics();
-        ship.fillStyle(0x26343E, 1);
-        ship.fillRoundedRect(width * 0.08, height * 0.52, width * 0.26, height * 0.12, 8);
-        ship.lineStyle(2, 0x6FE7DD, 0.55);
-        ship.strokeRoundedRect(width * 0.08, height * 0.52, width * 0.26, height * 0.12, 8);
-        ship.setRotation(-0.08);
+        const elements = [backdrop];
+        if (includeShip) {
+            const ship = this.add.graphics();
+            ship.fillStyle(0x26343E, 1);
+            ship.fillRoundedRect(width * 0.08, height * 0.52, width * 0.26, height * 0.12, 8);
+            ship.lineStyle(2, 0x6FE7DD, 0.55);
+            ship.strokeRoundedRect(width * 0.08, height * 0.52, width * 0.26, height * 0.12, 8);
+            ship.setRotation(-0.08);
+            ship.setData('fieldKitPreviewShip', true);
+            elements.push(ship);
+        }
 
-        this.fieldKitPreviewElements = [backdrop, ship];
+        this.fieldKitPreviewElements = elements;
     }
 
     createCarePanelPreview() {
@@ -1598,7 +1603,7 @@ class GameScene extends Phaser.Scene {
     }
 
     createVillageCommandPreview() {
-        this.createFieldKitPreviewBackdrop();
+        this.createFieldKitPreviewBackdrop({ includeShip: false });
         const now = Date.now();
         const companions = [
             {
@@ -8144,6 +8149,10 @@ class GameScene extends Phaser.Scene {
         if (!snapshot || !this.villageHeartLandmark?.zone) return null;
         const touchControlsVisible = this.hasVisibleTouchControls();
         const nextAction = snapshot.worldState?.nextAction;
+        const directPlotAction = Boolean(
+            (this.sanctuaryFocusModeActive || this.nearVillageHeart) &&
+            ['build', 'assign'].includes(nextAction?.type)
+        );
         const interactionPresentation = this.getVillageHeartInteractionPresentation(snapshot);
         return this.offerSanctuaryInteraction({
             id: 'villageHeart',
@@ -8154,6 +8163,7 @@ class GameScene extends Phaser.Scene {
             }),
             ...interactionPresentation,
             worldPrompt: true,
+            suppressWorldBeacon: directPlotAction,
             ariaLabel: `${interactionPresentation.verb} ${interactionPresentation.label}`,
             tone: nextAction?.type === 'decision' ? 0xF2C14E : 0x71E6B1,
             priority: 48,
@@ -8164,10 +8174,15 @@ class GameScene extends Phaser.Scene {
                 const livePresentation = this.getVillageHeartInteractionPresentation(
                     liveSnapshot
                 );
+                const liveNextAction = liveSnapshot?.worldState?.nextAction;
                 return {
                     ...livePresentation,
                     message: this.getVillageHeartInteractionPrompt(liveSnapshot),
-                    ariaLabel: `${livePresentation.verb} ${livePresentation.label}`
+                    ariaLabel: `${livePresentation.verb} ${livePresentation.label}`,
+                    suppressWorldBeacon: Boolean(
+                        (this.sanctuaryFocusModeActive || this.nearVillageHeart) &&
+                        ['build', 'assign'].includes(liveNextAction?.type)
+                    )
                 };
             }
         });
@@ -8325,6 +8340,7 @@ class GameScene extends Phaser.Scene {
             this.villageHeartLandmark,
             nextSnapshot
         );
+        this.sanctuaryInteractionDirector?.update?.({ force: true });
         return nextSnapshot;
     }
 
@@ -15474,6 +15490,7 @@ class GameScene extends Phaser.Scene {
         }
         this.getHudController().setSanctuaryFocusMode(nextActive);
         this.updateFirstContactFocusMode();
+        this.sanctuaryInteractionDirector?.update?.({ force: true });
     }
 
     scheduleFusionDiscoveryIntroduction(

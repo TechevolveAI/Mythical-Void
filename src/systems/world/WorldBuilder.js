@@ -20,6 +20,33 @@ import {
     SANCTUARY_WORLD_ART
 } from './SanctuaryWorldArt.js';
 
+const VILLAGE_SETTLEMENT_LAYOUTS = Object.freeze({
+    compact: Object.freeze({
+        profile: 'terraced_current_v1',
+        heartArtworkSize: 156,
+        buildingArtworkScale: 0.54,
+        plotOffsets: Object.freeze([
+            Object.freeze({ x: -112, y: -250 }),
+            Object.freeze({ x: 112, y: -250 }),
+            Object.freeze({ x: -128, y: -78 }),
+            Object.freeze({ x: 128, y: -78 }),
+            Object.freeze({ x: 0, y: 210 })
+        ])
+    }),
+    expanded: Object.freeze({
+        profile: 'commons_spine_v1',
+        heartArtworkSize: 218,
+        buildingArtworkScale: 0.92,
+        plotOffsets: Object.freeze([
+            Object.freeze({ x: 210, y: -176 }),
+            Object.freeze({ x: 430, y: -132 }),
+            Object.freeze({ x: 238, y: 124 }),
+            Object.freeze({ x: 474, y: 136 }),
+            Object.freeze({ x: 545, y: -4 })
+        ])
+    })
+});
+
 /**
  * WorldBuilder - Creates biome-specific game world environments
  * Generates backgrounds, environment objects, and world features based on current biome
@@ -828,6 +855,9 @@ class WorldBuilder {
             .setPosition(x, y)
             .setDepth(y + 1);
         const heart = this.scene.add.graphics().setPosition(x, y).setDepth(y + 2);
+        const heartCaption = this.scene.add.graphics()
+            .setPosition(x, y)
+            .setDepth(y + 3);
         const heartArtwork = this.scene.textures.exists(VILLAGE_WORLD_ARTWORK.heart.key)
             ? this.scene.add.image(x, y - 22, VILLAGE_WORLD_ARTWORK.heart.key)
                 .setDisplaySize(228, 228)
@@ -871,6 +901,7 @@ class WorldBuilder {
             districtPulse,
             districtThresholds,
             heart,
+            heartCaption,
             heartArtwork,
             glow,
             restorationRoots,
@@ -1144,6 +1175,7 @@ class WorldBuilder {
             districtPulse,
             districtThresholds,
             heart,
+            heartCaption,
             heartArtwork,
             glow,
             restorationRoots,
@@ -1152,26 +1184,18 @@ class WorldBuilder {
             statusLabel
         } = landmark;
         const compactSettlement = this.scene.scale.width <= 600;
+        const settlementLayout = compactSettlement
+            ? VILLAGE_SETTLEMENT_LAYOUTS.compact
+            : VILLAGE_SETTLEMENT_LAYOUTS.expanded;
         if (heartArtwork) {
-            const heartDisplaySize = compactSettlement ? 184 : 218;
+            const heartDisplaySize = settlementLayout.heartArtworkSize;
             heartArtwork.setDisplaySize(heartDisplaySize, heartDisplaySize);
             heartArtwork.villageBaseScale = heartArtwork.scaleX;
+            heartArtwork
+                .setData('villageLayoutProfile', settlementLayout.profile)
+                .setData('villageDisplaySize', heartDisplaySize);
         }
-        const plotOffsets = compactSettlement
-            ? [
-                { x: -130, y: -174 },
-                { x: 130, y: -174 },
-                { x: -130, y: 86 },
-                { x: 130, y: 86 },
-                { x: 0, y: 218 }
-            ]
-            : [
-                { x: 210, y: -176 },
-                { x: 430, y: -132 },
-                { x: 238, y: 124 },
-                { x: 474, y: 136 },
-                { x: 545, y: -4 }
-            ];
+        const plotOffsets = settlementLayout.plotOffsets;
         const buildingByPlot = new Map(
             snapshot?.buildings?.map(building => [building.plotId, building]) || []
         );
@@ -1188,8 +1212,16 @@ class WorldBuilder {
         districtPulse.clear();
         districtThresholds.clear();
         heart.clear();
+        heartCaption.clear();
         glow.clear();
         restorationRoots.clear();
+        heartCaption
+            .fillStyle(0x071411, unlocked ? 0.82 : 0.62)
+            .fillEllipse(0, compactSettlement ? 94 : 100, compactSettlement ? 170 : 190, 48)
+            .lineStyle(1, unlocked ? 0x71E6B1 : 0x53616A, unlocked ? 0.52 : 0.28)
+            .strokeEllipse(0, compactSettlement ? 94 : 100, compactSettlement ? 164 : 184, 42)
+            .setData('villageHeartCaption', true)
+            .setData('villageLayoutProfile', settlementLayout.profile);
         restorationRoots
             .setData('rootBudCount', VILLAGE_PLOTS.length)
             .setData('litRootCount', restoredCount)
@@ -1291,7 +1323,12 @@ class WorldBuilder {
         });
 
         glow.fillStyle(unlocked ? 0x71E6B1 : 0x53616A, unlocked ? 0.14 : 0.08);
-        glow.fillEllipse(0, 22, unlocked ? 196 : 160, unlocked ? 120 : 96);
+        glow.fillEllipse(
+            0,
+            22,
+            compactSettlement ? (unlocked ? 170 : 142) : (unlocked ? 196 : 160),
+            compactSettlement ? (unlocked ? 104 : 84) : (unlocked ? 120 : 96)
+        );
         glow.fillStyle(unlocked ? 0xF4F4F4 : 0x53616A, unlocked ? 0.08 : 0.04);
         glow.fillEllipse(0, 18, unlocked ? 132 : 104, unlocked ? 76 : 62);
 
@@ -1375,7 +1412,7 @@ class WorldBuilder {
         label
             .setText(unlocked ? 'VILLAGE HEART' : 'DORMANT HEART')
             .setFontSize(compactSettlement ? '10px' : '12px')
-            .setPosition(landmark.zone.x, landmark.zone.y + (compactSettlement ? 112 : 115))
+            .setPosition(landmark.zone.x, landmark.zone.y + (compactSettlement ? 86 : 115))
             .setAlpha(unlocked ? 0.86 : 0.68)
             .setColor(unlocked ? '#F4F4F4' : '#93A2A9');
         actionLabel
@@ -1392,7 +1429,7 @@ class WorldBuilder {
                 : 'HATCH A COMPANION TO WAKE IT'
             )
             .setFontSize(compactSettlement ? '8px' : '9px')
-            .setPosition(landmark.zone.x, landmark.zone.y + (compactSettlement ? 133 : 138))
+            .setPosition(landmark.zone.x, landmark.zone.y + (compactSettlement ? 105 : 138))
             .setAlpha(unlocked ? 0.82 : 0.64)
             .setColor(unlocked ? '#8FE3CF' : '#93A2A9')
             .setData('villageGrowthTier', growthTier)
@@ -1474,9 +1511,15 @@ class WorldBuilder {
                 ? this.scene.add.image(0, compactSettlement ? -20 : -28, worldArtworkDefinition.key)
                     .setDisplaySize(
                         (worldArtworkDefinition.displaySize || 176) *
-                            (compactSettlement ? 0.64 : 0.92),
+                            settlementLayout.buildingArtworkScale,
                         (worldArtworkDefinition.displaySize || 176) *
-                            (compactSettlement ? 0.64 : 0.92)
+                            settlementLayout.buildingArtworkScale
+                    )
+                    .setData('villageLayoutProfile', settlementLayout.profile)
+                    .setData(
+                        'villageDisplaySize',
+                        (worldArtworkDefinition.displaySize || 176) *
+                            settlementLayout.buildingArtworkScale
                     )
                 : null;
             drawing.fillStyle(0x102B26, building ? 0.7 : 0.36);
@@ -1570,15 +1613,13 @@ class WorldBuilder {
             const plotLabelRestAlpha = guidedPlot
                 ? 0.46
                 : building
-                    ? (compactSettlement ? 0.76 : 0.84)
-                    : 0.58;
+                    ? (compactSettlement ? 0.32 : 0.72)
+                    : 0;
             const stateLabelRestAlpha = guidedPlot
                 ? 0
                 : persistentState
                     ? 1
-                    : !building && unlocked
-                        ? 0.72
-                        : 0;
+                    : 0;
             const focusRing = this.scene.add.graphics().setAlpha(0);
             const focusColor = building?.status === 'complete' ? 0x71E6B1 : 0xF2C14E;
             focusRing.lineStyle(2, focusColor, 0.92);
@@ -1768,21 +1809,35 @@ class WorldBuilder {
                 container.setScale(1);
                 const focusPriority = container.getData('villageFocusPriority');
                 const presentationMode = container.getData('villagePresentationMode');
+                const directPlotCommand = Boolean(
+                    focusPriority === 'primary' &&
+                    ['build', 'assign'].includes(
+                        landmark.snapshot?.worldState?.nextAction?.type
+                    )
+                );
                 container.setAlpha(
                     Number(container.getData('villageFocusAlpha')) || 1
                 );
                 focusRing.setAlpha(
-                    presentationMode !== 'story' && focusPriority === 'primary' ? 0.82 : 0
+                    presentationMode !== 'story' &&
+                    focusPriority === 'primary' &&
+                    !directPlotCommand
+                        ? 0.82
+                        : 0
                 );
                 plotLabel.setAlpha(
-                    presentationMode === 'story'
-                        ? focusPriority === 'primary' ? 0.76 : 0.16
+                    directPlotCommand
+                        ? 0
+                        : presentationMode === 'story'
+                        ? focusPriority === 'primary' ? 0.88 : 0
                         : focusPriority === 'primary' ? 1 : plotLabelRestAlpha
                 );
                 stateLabel
                     .setText(buildingStateCopy)
                     .setAlpha(
-                        presentationMode === 'story'
+                        directPlotCommand
+                            ? 0
+                            : presentationMode === 'story'
                             ? 0
                             : focusPriority === 'primary' ? 1 : stateLabelRestAlpha
                     );
@@ -1823,6 +1878,7 @@ class WorldBuilder {
                 flowSignal: villageFlow.container,
                 worker: worker?.container || null,
                 plotState,
+                layoutProfile: settlementLayout.profile,
                 plotLabelRestAlpha,
                 stateLabelRestAlpha,
                 interactionLabel
@@ -1896,6 +1952,9 @@ class WorldBuilder {
 
         landmark.plotPresentations?.forEach(presentation => {
             const primary = Boolean(focusPlotId && presentation.plotId === focusPlotId);
+            const directPlotCommand = Boolean(
+                primary && ['build', 'assign'].includes(action?.type)
+            );
             const priority = !active
                 ? 'ambient'
                 : primary
@@ -1914,11 +1973,15 @@ class WorldBuilder {
                                 : 0.46;
             const plotLabelAlpha = !active
                 ? presentation.plotLabelRestAlpha
+                : directPlotCommand
+                    ? 0
                 : storyMode
-                    ? primary ? 0.76 : 0.16
-                    : primary ? 1 : 0.18;
+                    ? primary ? 0.88 : 0
+                    : primary ? 1 : 0.08;
             const stateLabelAlpha = !active
                 ? presentation.stateLabelRestAlpha
+                : directPlotCommand
+                    ? 0
                 : storyMode
                     ? 0
                     : primary || presentation.plotState === 'constructing' ? 1 : 0;
@@ -1930,7 +1993,7 @@ class WorldBuilder {
                 .setData('villagePresentationMode', landmark.presentationMode);
             presentation.focusRing
                 ?.setData('villageFocusPrimary', primary)
-                .setAlpha(!storyMode && primary ? 0.82 : 0);
+                .setAlpha(!storyMode && primary && !directPlotCommand ? 0.82 : 0);
             presentation.plotLabel?.setAlpha(plotLabelAlpha);
             presentation.stateLabel?.setAlpha(stateLabelAlpha);
             presentation.hitZone?.setData('villagePresentationMode', landmark.presentationMode);
@@ -1986,6 +2049,7 @@ class WorldBuilder {
         landmark.zone.setInteractive?.({ useHandCursor: true });
         landmark.label?.setAlpha(storyMode ? 0.3 : active ? 0.8 : 0.62);
         landmark.statusLabel?.setAlpha(storyMode ? 0.16 : active ? 0.68 : 0);
+        landmark.heartCaption?.setAlpha(storyMode ? 0.44 : active ? 0.9 : 0.68);
         if (landmark.nextActionElement && landmark.nextActionElement !== landmark.actionLabel) {
             landmark.nextActionElement.setAlpha(storyMode ? 0 : 1);
             if (storyMode) {
@@ -6541,9 +6605,10 @@ class WorldBuilder {
         this.villageHeart?.currentPaths?.destroy?.();
         this.villageHeart?.districtEcology?.destroy?.();
         this.villageHeart?.districtPulse?.destroy?.();
-        this.villageHeart?.districtThresholds?.destroy?.();
-        this.villageHeart?.heart?.destroy?.();
-        this.villageHeart?.heartArtwork?.destroy?.();
+            this.villageHeart?.districtThresholds?.destroy?.();
+            this.villageHeart?.heart?.destroy?.();
+            this.villageHeart?.heartCaption?.destroy?.();
+            this.villageHeart?.heartArtwork?.destroy?.();
         this.villageHeart?.glow?.destroy?.();
         this.villageHeart?.restorationRoots?.destroy?.();
         this.villageHeart?.actionLabel?.destroy?.();

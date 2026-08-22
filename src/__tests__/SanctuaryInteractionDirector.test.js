@@ -165,6 +165,21 @@ describe('SanctuaryInteractionDirector', () => {
         expect(director.indicator).toBeNull();
     });
 
+    it('lets a plot-anchored command replace the generic landmark beacon', () => {
+        const scene = createScene();
+        const director = new SanctuaryInteractionDirector(scene);
+        director.offer({
+            id: 'heart',
+            target: { x: 30, y: 0, active: true },
+            message: 'Build at the highlighted root',
+            suppressWorldBeacon: true
+        });
+
+        expect(scene.add.graphics).not.toHaveBeenCalled();
+        expect(director.indicator).toBeNull();
+        expect(director.active.suppressWorldBeacon).toBe(true);
+    });
+
     it('uses a tappable world beacon instead of the HUD prompt on touch layouts', () => {
         const scene = createScene();
         const director = new SanctuaryInteractionDirector(scene);

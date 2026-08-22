@@ -75,7 +75,8 @@ export default class SanctuaryInteractionDirector {
             next?.tone !== this.active?.tone ||
             next?.verb !== this.active?.verb ||
             next?.label !== this.active?.label ||
-            next?.hintMode !== this.active?.hintMode;
+            next?.hintMode !== this.active?.hintMode ||
+            next?.suppressWorldBeacon !== this.active?.suppressWorldBeacon;
         this.active = next;
         this.scene.sanctuaryPromptOwnerId = next?.id || null;
 
@@ -109,7 +110,10 @@ export default class SanctuaryInteractionDirector {
 
     renderIndicator(candidate) {
         this.clearIndicator();
-        if (this.scene.sanctuaryPresentationMode === 'story') return;
+        if (
+            this.scene.sanctuaryPresentationMode === 'story' ||
+            candidate.suppressWorldBeacon === true
+        ) return;
 
         const target = candidate.target;
         const width = Math.max(58, Math.min(144, Number(target.width || 88)));

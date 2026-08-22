@@ -111,6 +111,9 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain("verb: 'DECIDE'");
         expect(sceneSource).toContain("label: 'TOGETHER'");
         expect(sceneSource).toContain('worldPrompt: true');
+        expect(sceneSource).toContain('suppressWorldBeacon: directPlotAction');
+        expect(sceneSource).toContain('(this.sanctuaryFocusModeActive || this.nearVillageHeart) &&');
+        expect(sceneSource).toContain("['build', 'assign'].includes(liveNextAction?.type)");
         expect(sceneSource).toContain("nextAction?.type === 'decision' ? '?' : '🏗'");
         expect(sceneSource).toContain('{ persistent: true }');
         expect(sceneSource).toContain('{ persistent = false, ownerId = null, force = false } = {}');
@@ -489,8 +492,19 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain("this.sanctuaryPresentationMode = 'ambient'");
         expect(scene).toContain("const quietArrival = ['review', 'supplies'].includes(nextAction?.type)");
         expect(scene).toContain('guided: plotId === null');
-        expect(world).toContain('const heartDisplaySize = compactSettlement ? 184 : 218;');
-        expect(world).toContain('(compactSettlement ? 0.64 : 0.92)');
+        expect(world).toContain("profile: 'terraced_current_v1'");
+        expect(world).toContain('heartArtworkSize: 156');
+        expect(world).toContain('buildingArtworkScale: 0.54');
+        expect(world).toContain('Object.freeze({ x: -112, y: -250 })');
+        expect(world).toContain('Object.freeze({ x: 0, y: 210 })');
+        expect(world).toContain('const heartDisplaySize = settlementLayout.heartArtworkSize;');
+        expect(world).toContain(".setData('villageLayoutProfile', settlementLayout.profile)");
+        expect(world).toContain(".setData('villageHeartCaption', true)");
+        expect(world).toContain('landmark.heartCaption?.setAlpha(');
+        expect(world).toContain('const directPlotCommand = Boolean(');
+        expect(world).toContain('primary && [\'build\', \'assign\'].includes(action?.type)');
+        expect(world).toContain("? primary ? 0.88 : 0");
+        expect(world).toContain('? (compactSettlement ? 0.32 : 0.72)');
     });
 
     test('the local completion preview renders the entire connected settlement', () => {
@@ -500,5 +514,8 @@ describe('Village settlement gameplay contract', () => {
         expect(game).toContain("['empty', 'building', 'active', 'complete']");
         expect(scene).toContain("this.villageCommandPreview === 'complete'");
         expect(scene).toContain("['workshop', 'root_05', null]");
+        expect(scene).toContain('createFieldKitPreviewBackdrop({ includeShip = true } = {})');
+        expect(scene).toContain("ship.setData('fieldKitPreviewShip', true)");
+        expect(scene).toContain('this.createFieldKitPreviewBackdrop({ includeShip: false });');
     });
 });
