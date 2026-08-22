@@ -634,8 +634,15 @@ class ParallaxBiomeManager {
             }
         }
 
-        nebulaBg.setScrollFactor(layer.parallax);
-        nebulaBg.setAlpha(layer.alpha);
+        const sanctuaryBackdrop = this.currentBiomeId === 'nebula';
+        nebulaBg
+            .setScrollFactor(sanctuaryBackdrop ? 0 : layer.parallax)
+            .setData('sanctuaryParallaxBackdropFixed', sanctuaryBackdrop)
+            .setData(
+                'sanctuaryParallaxBackdropProfile',
+                sanctuaryBackdrop ? 'world_background_owned_v3' : 'biome_parallax_gradient_v1'
+            );
+        nebulaBg.setAlpha(sanctuaryBackdrop ? 0 : layer.alpha);
         nebulaBg.setDepth(-200);
         this.layers.push({ type: 'background', object: nebulaBg, config: layer });
     }

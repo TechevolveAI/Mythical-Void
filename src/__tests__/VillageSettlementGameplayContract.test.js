@@ -141,6 +141,9 @@ describe('Village settlement gameplay contract', () => {
         expect(parallaxSource).toContain("'quiet_current_threads_v2'");
         expect(parallaxSource).toContain(".setData('sanctuaryParallaxFilledWisps', false)");
         expect(parallaxSource).toContain(".setData('sanctuaryParallaxThreadCount', 3)");
+        expect(parallaxSource).toContain(".setData('sanctuaryParallaxBackdropFixed', sanctuaryBackdrop)");
+        expect(parallaxSource).toContain("sanctuaryBackdrop ? 'world_background_owned_v3' : 'biome_parallax_gradient_v1'");
+        expect(parallaxSource).toContain('nebulaBg.setAlpha(sanctuaryBackdrop ? 0 : layer.alpha);');
         expect(parallaxSource).toContain("type: 'sanctuaryCurrentField'");
         expect(parallaxSource).toContain("if (this.currentBiomeId === 'nebula') return;");
         expect(sceneSource).toContain('this.kidModeHelpContainer?.destroy?.(true)');

@@ -10722,6 +10722,9 @@ async function smokeVillageUi(session, exceptions) {
                 const currentField = layers.find(
                     entry => entry.type === 'sanctuaryCurrentField'
                 )?.object;
+                const backdrop = layers.find(
+                    entry => entry.type === 'background'
+                )?.object;
                 return {
                     profile: currentField?.getData?.('sanctuaryParallaxProfile'),
                     filledWisps: currentField?.getData?.(
@@ -10734,7 +10737,13 @@ async function smokeVillageUi(session, exceptions) {
                         entry => entry.type === 'sanctuaryCurrentField'
                     ).length,
                     filledWispCount: layers.filter(entry => entry.type === 'nebula').length,
-                    vignetteCount: layers.filter(entry => entry.type === 'vignette').length
+                    vignetteCount: layers.filter(entry => entry.type === 'vignette').length,
+                    backdropFixed: backdrop?.getData?.('sanctuaryParallaxBackdropFixed'),
+                    backdropProfile: backdrop?.getData?.(
+                        'sanctuaryParallaxBackdropProfile'
+                    ),
+                    backdropScrollFactorX: backdrop?.scrollFactorX,
+                    backdropScrollFactorY: backdrop?.scrollFactorY
                 };
             })(),
             focus: {
@@ -10915,6 +10924,10 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.sanctuaryParallax.currentFieldCount !== 1 ||
         integratedWorld.sanctuaryParallax.filledWispCount !== 0 ||
         integratedWorld.sanctuaryParallax.vignetteCount !== 0 ||
+        integratedWorld.sanctuaryParallax.backdropFixed !== true ||
+        integratedWorld.sanctuaryParallax.backdropProfile !== 'world_background_owned_v3' ||
+        integratedWorld.sanctuaryParallax.backdropScrollFactorX !== 0 ||
+        integratedWorld.sanctuaryParallax.backdropScrollFactorY !== 0 ||
         !integratedWorld.focus.active ||
         integratedWorld.focus.affinityNoticeActive ||
         integratedWorld.focus.kidStatusBarActive ||
