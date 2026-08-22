@@ -11,16 +11,20 @@ describe('Village settlement gameplay contract', () => {
         const source = read('ui/AchievementNotification.js');
         const sceneSource = read('scenes/GameScene.js');
 
-        expect(source).toContain('const uiScale = 1 / cameraZoom;');
+        expect(source).toContain('getScreenSpaceTransform()');
+        expect(source).toContain('x: width / (2 * cameraZoom)');
+        expect(source).toContain('y: height / (2 * cameraZoom)');
+        expect(source).toContain('scale: 1 / cameraZoom');
+        expect(source).toContain('const uiScale = screenSpace.scale;');
         expect(source).toContain('this.container.setScrollFactor(0);');
-        expect(source).toContain('.setPosition(centerX, centerY)');
+        expect(source).toContain('.setPosition(screenSpace.x, screenSpace.y)');
         expect(source).toContain('.setScale(uiScale)');
         expect(source).toContain('.setScrollFactor(0)');
         expect(source).toContain('this.contentContainer.setScale(0.8);');
         expect(source).toContain('targets: this.contentContainer');
         expect(source).toContain("this.scene.events.on('update', this.syncCameraZoom, this);");
         expect(source).toContain("this.scene?.events?.off?.('update', this.syncCameraZoom, this);");
-        expect(source).toContain('.setScale(1 / cameraZoom)');
+        expect(source).toContain('.setScale(screenSpace.scale)');
         expect(source).toContain('syncCameraZoom()');
         expect(sceneSource.match(/this\.achievementNotification\?\.syncCameraZoom\?\.\(\);/g)).toHaveLength(6);
         expect(sceneSource).toContain('this.sanctuaryCameraFocusPreviousZoom = zoom;');

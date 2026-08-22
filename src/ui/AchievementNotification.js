@@ -58,8 +58,8 @@ class AchievementNotification {
         const { width, height } = this.scene.scale;
         const centerX = width / 2;
         const centerY = height / 2;
-        const cameraZoom = this.scene.cameras?.main?.zoom || 1;
-        const uiScale = 1 / cameraZoom;
+        const screenSpace = this.getScreenSpaceTransform();
+        const uiScale = screenSpace.scale;
 
         // Modal dimensions
         const modalWidth = Math.min(380, width - 40);
@@ -68,7 +68,7 @@ class AchievementNotification {
         const modalY = centerY - modalHeight / 2;
 
         // Create container
-        this.container = this.scene.add.container(centerX, centerY);
+        this.container = this.scene.add.container(screenSpace.x, screenSpace.y);
         this.container.setDepth(10000);
         this.container.setScrollFactor(0);
         this.container.setScale(uiScale);
@@ -82,7 +82,7 @@ class AchievementNotification {
         this.overlay.fillStyle(0x000000, 0.6);
         this.overlay.fillRect(-width / 2, -height / 2, width, height);
         this.overlay
-            .setPosition(centerX, centerY)
+            .setPosition(screenSpace.x, screenSpace.y)
             .setScale(uiScale)
             .setScrollFactor(0)
             .setDepth(9999);
@@ -305,16 +305,26 @@ class AchievementNotification {
 
     syncCameraZoom() {
         if (!this.overlay) return false;
-        const cameraZoom = this.scene.cameras?.main?.zoom || 1;
+        const screenSpace = this.getScreenSpaceTransform();
         this.container
-            ?.setPosition(this.scene.scale.width / 2, this.scene.scale.height / 2)
-            .setScale(1 / cameraZoom)
+            ?.setPosition(screenSpace.x, screenSpace.y)
+            .setScale(screenSpace.scale)
             .setScrollFactor(0);
         this.overlay
-            .setPosition(this.scene.scale.width / 2, this.scene.scale.height / 2)
-            .setScale(1 / cameraZoom)
+            .setPosition(screenSpace.x, screenSpace.y)
+            .setScale(screenSpace.scale)
             .setScrollFactor(0);
         return true;
+    }
+
+    getScreenSpaceTransform() {
+        const cameraZoom = this.scene.cameras?.main?.zoom || 1;
+        const { width, height } = this.scene.scale;
+        return {
+            x: width / (2 * cameraZoom),
+            y: height / (2 * cameraZoom),
+            scale: 1 / cameraZoom
+        };
     }
 
     /**
@@ -336,7 +346,7 @@ class AchievementNotification {
         if (tier === 'GOLD' || tier === 'PLATINUM') {
             const flash = this.scene.add.graphics();
             flash.fillStyle(tier === 'PLATINUM' ? 0xE5E4E2 : 0xFFD700, 0.3);
-            const cameraZoom = this.scene.cameras?.main?.zoom || 1;
+            const screenSpace = this.getScreenSpaceTransform();
             flash.fillRect(
                 -this.scene.scale.width / 2,
                 -this.scene.scale.height / 2,
@@ -344,11 +354,8 @@ class AchievementNotification {
                 this.scene.scale.height
             );
             flash
-                .setPosition(
-                    this.scene.scale.width / 2,
-                    this.scene.scale.height / 2
-                )
-                .setScale(1 / cameraZoom)
+                .setPosition(screenSpace.x, screenSpace.y)
+                .setScale(screenSpace.scale)
                 .setScrollFactor(0)
                 .setDepth(9998);
 

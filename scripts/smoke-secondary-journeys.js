@@ -10723,6 +10723,11 @@ async function smokeVillageUi(session, exceptions) {
         state.set('world.signalGarden.stage', 'bloom');
         state.set('story.projectBeacon.missionLogSeen', true);
         state.save();
+        if (scene.villageArrivalRevealActive) {
+            scene.finishVillageArrivalReveal({ skipped: true });
+        }
+        scene.cancelVillageArrivalReveal?.();
+        scene.setSanctuaryMomentFocus(false);
         scene.refreshVillageSettlementWorld(null, { force: true });
         scene.worldBuilder.refreshSignalGarden(scene.signalGarden, 'bloom');
         const approachX = scene.villageHeartLandmark.zone.x;
@@ -10732,6 +10737,7 @@ async function smokeVillageUi(session, exceptions) {
         scene.physics.pause();
         scene.player.setPosition(approachX, approachY);
         scene.player.body?.reset?.(approachX, approachY);
+        scene.player.setPosition(approachX, approachY);
         scene.player.body?.setVelocity?.(0, 0);
         scene.updateSanctuaryActorDepths();
         scene.astronautFollower?.update(1000);
@@ -10880,10 +10886,14 @@ async function smokeVillageUi(session, exceptions) {
                 return {
                     scrollFactorX: overlay.scrollFactorX,
                     scrollFactorY: overlay.scrollFactorY,
+                    screenCenterX: overlay.x * camera.zoom,
+                    screenCenterY: overlay.y * camera.zoom,
                     normalizedScaleX: overlay.scaleX * camera.zoom,
                     normalizedScaleY: overlay.scaleY * camera.zoom,
                     containerScrollFactorX: container?.scrollFactorX,
                     containerScrollFactorY: container?.scrollFactorY,
+                    containerScreenCenterX: container?.x * camera.zoom,
+                    containerScreenCenterY: container?.y * camera.zoom,
                     normalizedContainerScaleX: container?.scaleX * camera.zoom,
                     normalizedContainerScaleY: container?.scaleY * camera.zoom
                 };
@@ -11253,10 +11263,26 @@ async function smokeVillageUi(session, exceptions) {
             integratedWorld.achievementOverlay && (
                 integratedWorld.achievementOverlay.scrollFactorX !== 0 ||
                 integratedWorld.achievementOverlay.scrollFactorY !== 0 ||
+                Math.abs(
+                    integratedWorld.achievementOverlay.screenCenterX -
+                    (integratedWorld.viewport.width / 2)
+                ) > 1 ||
+                Math.abs(
+                    integratedWorld.achievementOverlay.screenCenterY -
+                    (integratedWorld.viewport.height / 2)
+                ) > 1 ||
                 Math.abs(integratedWorld.achievementOverlay.normalizedScaleX - 1) > 0.01 ||
                 Math.abs(integratedWorld.achievementOverlay.normalizedScaleY - 1) > 0.01 ||
                 integratedWorld.achievementOverlay.containerScrollFactorX !== 0 ||
                 integratedWorld.achievementOverlay.containerScrollFactorY !== 0 ||
+                Math.abs(
+                    integratedWorld.achievementOverlay.containerScreenCenterX -
+                    (integratedWorld.viewport.width / 2)
+                ) > 1 ||
+                Math.abs(
+                    integratedWorld.achievementOverlay.containerScreenCenterY -
+                    (integratedWorld.viewport.height / 2)
+                ) > 1 ||
                 Math.abs(
                     integratedWorld.achievementOverlay.normalizedContainerScaleX - 1
                 ) > 0.01 ||
@@ -11776,7 +11802,22 @@ async function smokeVillageUi(session, exceptions) {
             hudPromptVisible: scene.interactionText?.visible === true
         };
     })()`);
-    await delay(420);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const presentation = scene?.villageHeartLandmark?.plotPresentations?.find(
+                item => item.plotId === '${structureProximity?.plotId || ''}'
+            );
+            return presentation &&
+                Math.abs(presentation.container?.alpha - 1) <= 0.01 &&
+                Math.abs(presentation.worker?.alpha - 0.96) <= 0.01 &&
+                Math.abs(presentation.focusRing?.alpha - 0.64) <= 0.01;
+        })()`),
+        {
+            timeoutMs: 2000,
+            message: 'Village structure proximity reveal settled'
+        }
+    );
     const structureProximitySettled = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const presentation = scene?.villageHeartLandmark?.plotPresentations?.find(
