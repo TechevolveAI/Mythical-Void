@@ -253,7 +253,13 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain('showVillageCompletionMoment(completed)');
         expect(scene).toContain('markVillageGuidanceSeen(window.GameState)');
         expect(world).toContain('const compactSettlement = this.scene.scale.width <= 600;');
-        expect(world).toContain('districtTerrain.fillEllipse(');
+        expect(world).toContain('drawVillageDistrictGround({');
+        expect(world).toContain("setData('villageTerrainMaterial', 'living_current_v2')");
+        expect(world).toContain("setData('uniformOverlay', false)");
+        expect(world).toContain("setData('villageDistrictEcology', true)");
+        expect(world).toContain("setData('villageThresholdCount'");
+        expect(world).toContain("setData('villagePathMaterial', 'branching_current_roots')");
+        expect(world).toContain("setData('villageEcologyPulse', true)");
         expect(world).toContain('const pathPoints = Array.from({ length: 17 }');
         expect(world).toContain('currentPaths.lineTo(point.x, point.y)');
         expect(world).toContain('this.drawVillageBuilding(');

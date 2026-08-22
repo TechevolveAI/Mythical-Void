@@ -436,6 +436,16 @@ class WorldBuilder {
         const currentPaths = this.scene.add.graphics()
             .setPosition(x, y)
             .setDepth(y - 2);
+        const districtEcology = this.scene.add.graphics()
+            .setPosition(x, y)
+            .setDepth(y - 1);
+        const districtPulse = this.scene.add.graphics()
+            .setPosition(x, y)
+            .setDepth(y);
+        districtPulse.setBlendMode?.(Phaser.BlendModes.ADD);
+        const districtThresholds = this.scene.add.graphics()
+            .setPosition(x, y)
+            .setDepth(y + 1);
         const heart = this.scene.add.graphics().setPosition(x, y).setDepth(y + 2);
         const heartArtwork = this.scene.textures.exists(VILLAGE_WORLD_ARTWORK.heart.key)
             ? this.scene.add.image(x, y - 22, VILLAGE_WORLD_ARTWORK.heart.key)
@@ -476,6 +486,9 @@ class WorldBuilder {
             zone,
             districtTerrain,
             currentPaths,
+            districtEcology,
+            districtPulse,
+            districtThresholds,
             heart,
             heartArtwork,
             glow,
@@ -489,6 +502,7 @@ class WorldBuilder {
             focusModeActive: false,
             plotHitZones: [],
             pulseTween: null,
+            ecologyTween: null,
             heartArtworkTween: null,
             snapshot: null
         };
@@ -530,10 +544,196 @@ class WorldBuilder {
         return landmark;
     }
 
+    drawVillageDistrictGround({
+        terrain,
+        ecology,
+        pulse,
+        thresholds,
+        plotOffsets,
+        buildingByPlot,
+        unlocked,
+        growthTier,
+        restoredCount,
+        compact
+    }) {
+        const heartBasin = compact
+            ? { x: 0, y: 22, width: 238, height: 176 }
+            : { x: 0, y: 24, width: 252, height: 184 };
+        const plotBasins = plotOffsets.map((offset, index) => {
+            const plot = VILLAGE_PLOTS[index];
+            const building = buildingByPlot.get(plot.id) || null;
+            const complete = building?.status === 'complete';
+            return {
+                x: offset.x,
+                y: offset.y + 25,
+                width: compact ? (building ? 178 : 150) : (building ? 194 : 164),
+                height: compact ? (building ? 128 : 102) : (building ? 138 : 108),
+                building,
+                complete
+            };
+        });
+        const basins = [heartBasin, ...plotBasins];
+        const growthStrength = unlocked ? 0.72 + (growthTier * 0.08) : 0.38;
+        basins.forEach((basin, index) => {
+            const activeStrength = index === 0
+                ? growthStrength
+                : basin.complete
+                    ? growthStrength
+                    : basin.building
+                        ? growthStrength * 0.72
+                        : growthStrength * 0.42;
+            const shifts = [
+                { x: -5, y: 3, scale: 1.18, alpha: 0.035 },
+                { x: 4, y: -2, scale: 0.98, alpha: 0.065 },
+                { x: -2, y: 2, scale: 0.74, alpha: 0.075 }
+            ];
+            shifts.forEach((layer, layerIndex) => {
+                terrain.fillStyle(
+                    layerIndex === 1 ? 0x173D36 : layerIndex === 2 ? 0x245044 : 0x071411,
+                    layer.alpha * activeStrength
+                );
+                terrain.fillEllipse(
+                    basin.x + layer.x,
+                    basin.y + layer.y,
+                    basin.width * layer.scale,
+                    basin.height * layer.scale
+                );
+            });
+            terrain.lineStyle(
+                1,
+                basin.complete ? 0x71E6B1 : 0x3FAE62,
+                basin.complete ? 0.18 : 0.08
+            );
+            terrain.beginPath();
+            terrain.arc(
+                basin.x,
+                basin.y,
+                basin.width * 0.43,
+                Math.PI * (index % 2 ? 0.12 : 1.08),
+                Math.PI * (index % 2 ? 0.76 : 1.7)
+            );
+            terrain.strokePath();
+        });
+
+        const ecologyByBuilding = {
+            forager_hut: { color: 0xF2C14E, shape: 'fruit' },
+            sawmill: { color: 0x3FAE62, shape: 'leaf' },
+            current_masonry: { color: 0xB7F7DE, shape: 'crystal' },
+            habitat: { color: 0xE85D5D, shape: 'flower' },
+            workshop: { color: 0x8FE3CF, shape: 'spark' }
+        };
+        let ecologyNodeCount = 0;
+        plotBasins.forEach((basin, index) => {
+            if (!basin.complete) return;
+            const profile = ecologyByBuilding[basin.building.definitionId] || {
+                color: 0x71E6B1,
+                shape: 'leaf'
+            };
+            const side = index % 2 === 0 ? -1 : 1;
+            const clusters = [
+                { x: basin.x + side * basin.width * 0.38, y: basin.y + 15 },
+                { x: basin.x - side * basin.width * 0.31, y: basin.y + 35 }
+            ];
+            clusters.forEach((cluster, clusterIndex) => {
+                ecology.lineStyle(2, 0x3FAE62, 0.52);
+                ecology.lineBetween(cluster.x, cluster.y + 8, cluster.x, cluster.y - 5);
+                if (profile.shape === 'crystal') {
+                    ecology.fillStyle(profile.color, 0.66);
+                    ecology.fillTriangle(
+                        cluster.x,
+                        cluster.y - 13,
+                        cluster.x - 6,
+                        cluster.y + 5,
+                        cluster.x + 4,
+                        cluster.y + 5
+                    );
+                } else if (profile.shape === 'fruit') {
+                    ecology.fillStyle(profile.color, 0.72);
+                    ecology.fillCircle(cluster.x, cluster.y - 8, 4);
+                    ecology.fillStyle(0x3FAE62, 0.56);
+                    ecology.fillEllipse(cluster.x + 5, cluster.y - 11, 9, 4);
+                } else if (profile.shape === 'flower') {
+                    ecology.fillStyle(profile.color, 0.58);
+                    [-5, 0, 5].forEach(petalX => (
+                        ecology.fillCircle(cluster.x + petalX, cluster.y - 8, 4)
+                    ));
+                    ecology.fillStyle(0xF2C14E, 0.82);
+                    ecology.fillCircle(cluster.x, cluster.y - 8, 2);
+                } else if (profile.shape === 'spark') {
+                    ecology.fillStyle(profile.color, 0.72);
+                    ecology.fillTriangle(
+                        cluster.x,
+                        cluster.y - 13,
+                        cluster.x - 4,
+                        cluster.y,
+                        cluster.x + 4,
+                        cluster.y
+                    );
+                    ecology.fillTriangle(
+                        cluster.x,
+                        cluster.y + 5,
+                        cluster.x - 4,
+                        cluster.y - 4,
+                        cluster.x + 4,
+                        cluster.y - 4
+                    );
+                } else {
+                    ecology.fillStyle(profile.color, 0.54);
+                    ecology.fillEllipse(cluster.x - 5, cluster.y - 7, 12, 6);
+                    ecology.fillEllipse(cluster.x + 5, cluster.y - 10, 12, 6);
+                }
+                pulse.fillStyle(profile.color, 0.72);
+                pulse.fillCircle(
+                    cluster.x + (clusterIndex ? 3 : -3),
+                    cluster.y - 15,
+                    clusterIndex ? 2 : 2.5
+                );
+                ecologyNodeCount += 1;
+            });
+        });
+
+        const thresholdPositions = compact
+            ? [{ x: -184, y: 46 }, { x: 184, y: 54 }]
+            : [{ x: -126, y: 48 }, { x: 154, y: 76 }];
+        thresholdPositions.forEach((position, index) => {
+            thresholds.lineStyle(3, 0x071411, 0.58);
+            thresholds.beginPath();
+            thresholds.arc(position.x, position.y, 20, Math.PI, Math.PI * 2);
+            thresholds.strokePath();
+            thresholds.lineStyle(2, index === 0 ? 0x71E6B1 : 0x8FE3CF, 0.62);
+            thresholds.beginPath();
+            thresholds.arc(position.x, position.y, 17, Math.PI * 1.08, Math.PI * 1.92);
+            thresholds.strokePath();
+            thresholds.fillStyle(0x3FAE62, 0.64);
+            thresholds.fillEllipse(position.x - 17, position.y + 1, 12, 6);
+            thresholds.fillEllipse(position.x + 17, position.y + 1, 12, 6);
+            thresholds.fillStyle(0xF4F4F4, 0.8);
+            thresholds.fillCircle(position.x, position.y - 17, 2);
+        });
+
+        terrain
+            .setData('villageTerrainMaterial', 'living_current_v2')
+            .setData('uniformOverlay', false)
+            .setData('terrainPatchCount', basins.length);
+        ecology
+            .setData('villageDistrictEcology', true)
+            .setData('growthTier', growthTier)
+            .setData('restoredCount', restoredCount)
+            .setData('ecologyNodeCount', ecologyNodeCount);
+        pulse
+            .setData('villageEcologyPulse', true)
+            .setData('ecologyNodeCount', ecologyNodeCount);
+        thresholds
+            .setData('villageThresholdCount', thresholdPositions.length)
+            .setData('thresholdPurpose', 'commons_transition');
+        return ecologyNodeCount;
+    }
+
     refreshVillageSettlement(landmark, snapshot = null) {
         if (!landmark?.heart) return;
         landmark.pulseTween?.stop?.();
         landmark.heartArtworkTween?.stop?.();
+        landmark.ecologyTween?.stop?.();
         landmark.buildingTweens?.forEach(tween => tween?.stop?.());
         landmark.focusTweens?.forEach(tween => tween?.stop?.());
         this.clearVillageCommunityMoment(landmark);
@@ -559,6 +759,9 @@ class WorldBuilder {
         const {
             districtTerrain,
             currentPaths,
+            districtEcology,
+            districtPulse,
+            districtThresholds,
             heart,
             heartArtwork,
             glow,
@@ -592,7 +795,6 @@ class WorldBuilder {
             snapshot?.buildings?.map(building => [building.plotId, building]) || []
         );
         const growthTier = snapshot?.worldState?.growthTier || 0;
-        const growthScale = 0.76 + growthTier * 0.06;
         const restoredCount = Phaser.Math.Clamp(
             snapshot?.worldState?.restored || 0,
             0,
@@ -601,6 +803,9 @@ class WorldBuilder {
 
         districtTerrain.clear();
         currentPaths.clear();
+        districtEcology.clear();
+        districtPulse.clear();
+        districtThresholds.clear();
         heart.clear();
         glow.clear();
         restorationRoots.clear();
@@ -609,47 +814,26 @@ class WorldBuilder {
             .setData('litRootCount', restoredCount)
             .setData('ariaLabel', `${restoredCount} of ${VILLAGE_PLOTS.length} village roots restored`);
 
-        const districtCenterX = compactSettlement ? 0 : 230;
-        const districtPatches = compactSettlement
-            ? [
-                [0, 18, 462, 468], [-132, -126, 210, 186],
-                [136, -118, 210, 180], [0, 174, 278, 164]
-            ]
-            : [
-                [districtCenterX + 84, 0, 790, 362], [50, -72, 278, 230],
-                [344, -112, 390, 196], [536, 74, 358, 218]
-            ];
-        districtPatches.forEach(([patchX, patchY, width, height], index) => {
-            districtTerrain.fillStyle(
-                index === 0 ? 0x12352F : index % 2 ? 0x245044 : 0x183E36,
-                unlocked
-                    ? (index === 0 ? 0.2 + growthTier * 0.035 : 0.12 + growthTier * 0.025)
-                    : 0.1
-            );
-            districtTerrain.fillEllipse(
-                patchX,
-                patchY,
-                width * growthScale,
-                height * growthScale
-            );
+        this.drawVillageDistrictGround({
+            terrain: districtTerrain,
+            ecology: districtEcology,
+            pulse: districtPulse,
+            thresholds: districtThresholds,
+            plotOffsets,
+            buildingByPlot,
+            unlocked,
+            growthTier,
+            restoredCount,
+            compact: compactSettlement
         });
-        const groundDetails = compactSettlement
-            ? [[-154, 62], [142, 94], [-92, -154], [88, 156]]
-            : [[-54, 64], [132, -130], [294, 128], [492, -72], [548, 74]];
-        groundDetails
-            .slice(0, Math.min(groundDetails.length, 2 + growthTier))
-            .forEach(([detailX, detailY], index) => {
-            districtTerrain.fillStyle(index % 2 ? 0x8FE3CF : 0xF4F4F4, 0.16);
-            districtTerrain.fillCircle(detailX, detailY, index % 2 ? 4 : 3);
-            districtTerrain.fillStyle(0x3FAE62, 0.22);
-            districtTerrain.fillEllipse(detailX + 7, detailY + 3, 14, 6);
-            });
 
+        let connectedPlotCount = 0;
         plotOffsets.forEach((offset, index) => {
             const plot = VILLAGE_PLOTS[index];
             const connectedBuilding = buildingByPlot.get(plot.id) || null;
             const completePath = connectedBuilding?.status === 'complete';
             const growingPath = connectedBuilding?.status === 'constructing';
+            if (completePath) connectedPlotCount += 1;
             const elbowX = offset.x * (compactSettlement ? 0.42 : 0.5);
             const elbowY = offset.y * 0.32 + (index % 2 === 0 ? -12 : 12);
             const pathPoints = Array.from({ length: 17 }, (_, pointIndex) => {
@@ -673,15 +857,50 @@ class WorldBuilder {
             };
             strokeCurrentPath(16, 0x071411, 0.24);
             strokeCurrentPath(
-                completePath ? 6 : 4,
+                completePath ? 5 : 3,
                 growingPath ? 0xF2C14E : completePath ? 0x3FAE62 : 0x53616A,
-                completePath ? 0.54 : growingPath ? 0.42 : unlocked ? 0.14 : 0.08
+                completePath ? 0.42 : growingPath ? 0.36 : unlocked ? 0.12 : 0.07
             );
             strokeCurrentPath(
-                completePath ? 2 : 1,
+                completePath ? 1.5 : 1,
                 growingPath ? 0xF4F4F4 : completePath ? 0xB7F7DE : 0x657682,
-                completePath ? 0.72 : growingPath ? 0.62 : 0.2
+                completePath ? 0.62 : growingPath ? 0.54 : 0.18
             );
+            if (completePath) {
+                [9, 13].forEach((pointIndex, branchIndex) => {
+                    const point = pathPoints[pointIndex];
+                    const direction = (index + branchIndex) % 2 === 0 ? -1 : 1;
+                    currentPaths.lineStyle(1, 0x3FAE62, 0.28);
+                    currentPaths.lineBetween(
+                        point.x,
+                        point.y,
+                        point.x + direction * (12 + branchIndex * 4),
+                        point.y - 7 + branchIndex * 11
+                    );
+                    currentPaths.fillStyle(0x71E6B1, 0.36);
+                    currentPaths.fillEllipse(
+                        point.x + direction * (13 + branchIndex * 4),
+                        point.y - 6 + branchIndex * 11,
+                        9,
+                        4
+                    );
+                });
+            }
+        });
+        currentPaths
+            .setData('villagePathMaterial', 'branching_current_roots')
+            .setData('connectedPlotCount', connectedPlotCount);
+
+        districtPulse.setAlpha(unlocked ? 0.54 : 0.2);
+        landmark.ecologyTween = this.scene.tweens.add({
+            targets: districtPulse,
+            alpha: { from: unlocked ? 0.32 : 0.12, to: unlocked ? 0.78 : 0.28 },
+            scaleX: { from: 0.96, to: 1.04 },
+            scaleY: { from: 0.96, to: 1.04 },
+            duration: 2100,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
         });
 
         glow.fillStyle(unlocked ? 0x71E6B1 : 0x53616A, unlocked ? 0.14 : 0.08);
@@ -5527,6 +5746,7 @@ class WorldBuilder {
         this.sanctuaryCommons?.terrain?.destroy?.();
         this.sanctuaryCommons = null;
         this.villageHeart?.pulseTween?.stop?.();
+        this.villageHeart?.ecologyTween?.stop?.();
         this.villageHeart?.heartArtworkTween?.stop?.();
         this.villageHeart?.buildingTweens?.forEach(tween => tween?.stop?.());
         this.villageHeart?.focusTweens?.forEach(tween => tween?.stop?.());
@@ -5546,6 +5766,9 @@ class WorldBuilder {
         this.villageHeart?.plotHitZones?.forEach(zone => zone?.destroy?.());
         this.villageHeart?.districtTerrain?.destroy?.();
         this.villageHeart?.currentPaths?.destroy?.();
+        this.villageHeart?.districtEcology?.destroy?.();
+        this.villageHeart?.districtPulse?.destroy?.();
+        this.villageHeart?.districtThresholds?.destroy?.();
         this.villageHeart?.heart?.destroy?.();
         this.villageHeart?.heartArtwork?.destroy?.();
         this.villageHeart?.glow?.destroy?.();

@@ -10607,6 +10607,23 @@ async function smokeVillageUi(session, exceptions) {
                 litRootCount: landmark.restorationRoots?.getData?.('litRootCount') || 0,
                 active: landmark.restorationRoots?.active === true
             },
+            district: {
+                terrainActive: landmark.districtTerrain?.active === true,
+                material: landmark.districtTerrain?.getData?.('villageTerrainMaterial'),
+                uniformOverlay: landmark.districtTerrain?.getData?.('uniformOverlay'),
+                patchCount: landmark.districtTerrain?.getData?.('terrainPatchCount') || 0,
+                pathMaterial: landmark.currentPaths?.getData?.('villagePathMaterial'),
+                connectedPlotCount: landmark.currentPaths?.getData?.('connectedPlotCount') || 0,
+                ecologyActive: landmark.districtEcology?.active === true,
+                ecologyGrowthTier: landmark.districtEcology?.getData?.('growthTier'),
+                ecologyRestoredCount: landmark.districtEcology?.getData?.('restoredCount'),
+                ecologyNodeCount: landmark.districtEcology?.getData?.('ecologyNodeCount') || 0,
+                pulseActive: landmark.districtPulse?.active === true,
+                pulseNodeCount: landmark.districtPulse?.getData?.('ecologyNodeCount') || 0,
+                pulseTweenActive: landmark.ecologyTween?.isPlaying?.() === true,
+                thresholdCount: landmark.districtThresholds?.getData?.('villageThresholdCount') || 0,
+                thresholdPurpose: landmark.districtThresholds?.getData?.('thresholdPurpose')
+            },
             proceduralDecorInsideDistrict,
             proceduralDecorTotal,
             stateLanguage,
@@ -10704,6 +10721,21 @@ async function smokeVillageUi(session, exceptions) {
         !integratedWorld.restoration.active ||
         integratedWorld.restoration.rootBudCount !== 5 ||
         integratedWorld.restoration.litRootCount !== 3 ||
+        !integratedWorld.district.terrainActive ||
+        integratedWorld.district.material !== 'living_current_v2' ||
+        integratedWorld.district.uniformOverlay !== false ||
+        integratedWorld.district.patchCount !== 6 ||
+        integratedWorld.district.pathMaterial !== 'branching_current_roots' ||
+        integratedWorld.district.connectedPlotCount !== 3 ||
+        !integratedWorld.district.ecologyActive ||
+        integratedWorld.district.ecologyGrowthTier !== 2 ||
+        integratedWorld.district.ecologyRestoredCount !== 3 ||
+        integratedWorld.district.ecologyNodeCount !== 6 ||
+        !integratedWorld.district.pulseActive ||
+        integratedWorld.district.pulseNodeCount !== 6 ||
+        !integratedWorld.district.pulseTweenActive ||
+        integratedWorld.district.thresholdCount !== 2 ||
+        integratedWorld.district.thresholdPurpose !== 'commons_transition' ||
         integratedWorld.proceduralDecorInsideDistrict !== 0 ||
         integratedWorld.proceduralDecorTotal > 37 ||
         integratedWorld.stateLanguage.map(item => item.progressNodes).join(',') !==
