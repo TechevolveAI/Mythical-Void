@@ -85,14 +85,16 @@ class MobileControls {
         const isTouchPrimary = window.matchMedia?.('(pointer: coarse)')?.matches;
         const isHoverNone = window.matchMedia?.('(hover: none)')?.matches;
 
-        // AGGRESSIVE: Show controls if ANY touch indicator is true
-        const isTouchDevice = hasOnTouchStart || hasTouchPoints || hasDocumentTouch || hasTouchEvent;
+        // TouchEvent exists in desktop Chromium even when no touch hardware is
+        // present. Hardware capability, a coarse primary pointer, or a mobile
+        // user agent must be present before the gameplay dock is shown.
+        const hasTouchHardware = hasOnTouchStart || hasTouchPoints || hasDocumentTouch;
 
         // Show controls if:
         // 1. Device has touch capability AND (small screen OR touch is primary input)
         // 2. OR mobile/tablet user agent detected
         // 3. OR pointer is coarse (touch) AND no hover (mobile)
-        const result = (isTouchDevice && (isSmallScreen || isTouchPrimary)) ||
+        const result = (hasTouchHardware && (isSmallScreen || isTouchPrimary || isHoverNone)) ||
                        isMobileUA ||
                        isTablet ||
                        (isTouchPrimary && isHoverNone);
@@ -101,7 +103,8 @@ class MobileControls {
             hasOnTouchStart,
             hasTouchPoints,
             hasDocumentTouch,
-            hasTouchEvent,
+            hasTouchEventApi: hasTouchEvent,
+            hasTouchHardware,
             isMobileUA,
             isTablet,
             isSmallScreen,
@@ -234,6 +237,7 @@ class MobileControls {
         this.scene.scale.on('resize', this.resizeHandler);
 
         this.isVisible = true;
+        this.scene?.handleMobileControlsVisibilityChange?.(true);
         devLog('[MobileControls] Mobile controls visible at positions:', {
             joystick: { x: this.joystickCenterX, y: this.joystickCenterY },
             buttonCount: Object.keys(this.actionButtons).length
@@ -387,6 +391,7 @@ class MobileControls {
         this.actionButtons = {};
         this.isVisible = false;
         this.isSuspended = false;
+        this.scene?.handleMobileControlsVisibilityChange?.(false);
         devLog('[MobileControls] Mobile controls hidden');
     }
 
@@ -436,6 +441,7 @@ class MobileControls {
             height,
             safeArea: this.getSafeAreaInsets()
         });
+        this.layout = layout;
         const joystickX = layout.joystick.x;
         const joystickY = layout.joystick.y;
         const joystickBaseRadius = layout.joystick.radius;
@@ -457,6 +463,7 @@ class MobileControls {
             );
             this.dockBackground.lineStyle(1, 0x8FE3CF, 0.35);
             this.dockBackground.lineBetween(0, layout.dockTop, width, layout.dockTop);
+            this.dockBackground.setData('dockTop', layout.dockTop);
         }
 
         // Create glow ring (initially invisible, shown when active)

@@ -288,6 +288,7 @@ class GameScene extends Phaser.Scene {
         this.dailyGreetingShown = false;
         this.mobileControls = null;
         this.mobileHUD = null;
+        this.forceMobileControls = false;
         this.questTracker = null;
         this.projectBeaconWaypoint = null;
         this.waypointPreview = null;
@@ -460,6 +461,7 @@ class GameScene extends Phaser.Scene {
     init(data) {
         // Reset shutdown flag for fresh scene
         this._isShuttingDown = false;
+        this.forceMobileControls = data?.forceMobileControls === true;
         this.fieldKitPreview = data?.fieldKitPreview === true;
         this.fieldKitPreviewSize = data?.fieldKitPreviewSize || null;
         this.fieldKitPreviewStage = ['earth', 'crystal', 'aurora'].includes(
@@ -1188,7 +1190,7 @@ class GameScene extends Phaser.Scene {
             // Initialize mobile controls and HUD if on mobile device
             if (window.MobileControls) {
                 this.mobileControls = new window.MobileControls(this);
-                this.mobileControls.show();
+                this.mobileControls.show(this.forceMobileControls);
                 this.hudController?.layoutInteractionText?.(
                     this.scale.width,
                     this.scale.height
@@ -4559,10 +4561,11 @@ class GameScene extends Phaser.Scene {
 
         const responsiveManager = window.responsiveManager;
         const isMobile = responsiveManager?.isMobile ?? window.innerWidth < 768;
-        const zoom = isMobile ? 0.85 : 1.0;
+        const controlDockVisible = Boolean(this.forceMobileControls);
+        const zoom = isMobile || controlDockVisible ? 0.85 : 1.0;
 
         camera.setZoom(zoom);
-        this.applyMobileCameraBounds(camera, isMobile, zoom);
+        this.applyMobileCameraBounds(camera, isMobile, zoom, controlDockVisible);
         camera.setRoundPixels(true);
         camera.setBackgroundColor('#050214');
 
@@ -4572,18 +4575,32 @@ class GameScene extends Phaser.Scene {
             this.mobileCameraResizeHandler = () => {
                 const mobile = window.responsiveManager?.isMobile ??
                     window.innerWidth < 768;
-                const nextZoom = mobile ? 0.85 : 1.0;
+                const dockVisible = this.hasVisibleTouchControls();
+                const nextZoom = mobile || dockVisible ? 0.85 : 1.0;
                 camera.setZoom(nextZoom);
-                this.applyMobileCameraBounds(camera, mobile, nextZoom);
+                this.applyMobileCameraBounds(
+                    camera,
+                    mobile,
+                    nextZoom,
+                    dockVisible
+                );
                 this.currentCameraZoom = nextZoom;
+                if (this.sanctuaryFocusModeActive) {
+                    this.applySanctuaryCameraFocus({ immediate: true });
+                }
             };
             this.scale.on('resize', this.mobileCameraResizeHandler);
         }
     }
 
-    applyMobileCameraBounds(camera, isMobile, zoom) {
+    applyMobileCameraBounds(
+        camera,
+        isMobile,
+        zoom,
+        controlDockVisible = this.hasVisibleTouchControls()
+    ) {
         let reservedWorldHeight = 0;
-        if (isMobile) {
+        if (isMobile || controlDockVisible) {
             const layout = getMobileControlLayout({
                 width: this.scale.width,
                 height: this.scale.height,
@@ -4602,6 +4619,78 @@ class GameScene extends Phaser.Scene {
             this.worldHeight + reservedWorldHeight
         );
         this.mobileControlDockWorldReserve = reservedWorldHeight;
+    }
+
+    hasVisibleTouchControls() {
+        return Boolean(this.mobileControls?.isVisible);
+    }
+
+    handleMobileControlsVisibilityChange(visible) {
+        const camera = this.cameras?.main;
+        if (!camera) return;
+        const isMobile = window.responsiveManager?.isMobile ?? window.innerWidth < 768;
+        const controlDockVisible = Boolean(visible);
+        const zoom = isMobile || controlDockVisible ? 0.85 : 1;
+        camera.setZoom(zoom);
+        this.applyMobileCameraBounds(
+            camera,
+            isMobile,
+            zoom,
+            controlDockVisible
+        );
+        this.currentCameraZoom = zoom;
+        this.hudController?.layoutInteractionText?.(
+            this.scale.width,
+            this.scale.height
+        );
+        if (this.sanctuaryFocusModeActive) {
+            this.applySanctuaryCameraFocus({ immediate: true });
+        }
+    }
+
+    applySanctuaryCameraFocus({ immediate = false } = {}) {
+        const camera = this.cameras?.main;
+        const heart = this.villageHeartLandmark?.zone;
+        if (!camera || !heart) return false;
+        const touchControlsVisible = this.hasVisibleTouchControls();
+        const compact = this.scale.width <= 600;
+        const zoom = Math.max(0.1, camera.zoom || 1);
+        const controlLayout = touchControlsVisible
+            ? getMobileControlLayout({
+                width: this.scale.width,
+                height: this.scale.height,
+                safeArea: getSafeAreaInsets()
+            })
+            : null;
+        const target = {
+            x: heart.x + (compact ? 0 : 230),
+            y: heart.y + (
+                touchControlsVisible
+                    ? Math.round((controlLayout.dockHeight * 0.52) / zoom) + 20
+                    : 0
+            )
+        };
+
+        camera.stopFollow();
+        if (immediate || !camera.pan) {
+            camera.centerOn(target.x, target.y);
+        } else {
+            camera.pan(target.x, target.y, 360, 'Sine.easeInOut');
+        }
+        this.sanctuaryCameraFocusTarget = target;
+        return true;
+    }
+
+    restorePlayerCameraFollow() {
+        const camera = this.cameras?.main;
+        if (!camera || !this.player || this.player.active === false) return false;
+        camera.startFollow(this.player, true, 0.12, 0.12);
+        camera.setDeadzone(
+            Math.round(camera.width * 0.15),
+            Math.round(camera.height * 0.2)
+        );
+        this.sanctuaryCameraFocusTarget = null;
+        return true;
     }
 
     /**
@@ -8055,6 +8144,7 @@ class GameScene extends Phaser.Scene {
         if (this.nearVillageHeart) return;
         this.nearVillageHeart = true;
         this.updateSanctuaryFocusMode(true);
+        const touchControlsVisible = this.hasVisibleTouchControls();
         const snapshot = reconcileVillageSettlement(window.GameState)
             || getVillageSnapshot(window.GameState);
         const needsGuidance = snapshot.unlock.unlocked &&
@@ -8065,22 +8155,22 @@ class GameScene extends Phaser.Scene {
         const nextAction = snapshot.worldState?.nextAction;
         const targetPlot = snapshot.plots?.find(plot => plot.id === nextAction?.plotId);
         const actionPrompts = {
-            decision: this.mobileControls
+            decision: touchControlsVisible
                 ? 'Tap the Village Heart · Decide together'
                 : 'Press SPACE at the Heart · Decide together',
-            build: this.mobileControls
+            build: touchControlsVisible
                 ? `Tap ${targetPlot?.label || 'the highlighted foundation'} · ${nextAction?.label}`
                 : `Click ${targetPlot?.label || 'the highlighted foundation'} · ${nextAction?.label}`,
-            assign: this.mobileControls
+            assign: touchControlsVisible
                 ? `Tap ${targetPlot?.label || 'the highlighted structure'} · Invite a helper`
                 : `Click ${targetPlot?.label || 'the highlighted structure'} · Invite a helper`,
             supplies: `${nextAction?.label || 'Gather supplies'} · The village keeps working`,
-            review: this.mobileControls
+            review: touchControlsVisible
                 ? 'Tap the Village Heart · Review your Sanctuary'
                 : 'Press SPACE at the Heart · Review your Sanctuary'
         };
         const openAction = actionPrompts[nextAction?.type] || (
-            this.mobileControls
+            touchControlsVisible
                 ? 'Tap the Village Heart · Open Village Plan'
                 : 'Press SPACE at the Heart · Open Village Plan'
         );
@@ -13501,7 +13591,7 @@ class GameScene extends Phaser.Scene {
         if (!this.interactionText?.active) return;
         const isProximityPrompt = persistent || /^\s*Press SPACE\b/i.test(message);
         const touchControlsActive = Boolean(
-            this.mobileControls?.isMobile ||
+            this.hasVisibleTouchControls() ||
             this.mobileHUD?.isVisible ||
             window.responsiveManager?.isMobile
         );
@@ -15158,11 +15248,13 @@ class GameScene extends Phaser.Scene {
         this.sanctuaryFocusModeActive = nextActive;
 
         if (nextActive) {
+            this.applySanctuaryCameraFocus();
             this.dismissCosmicAffinityNotice();
             this.kidModeHelpContainer?.destroy?.(true);
             this.kidModeHelpContainer = null;
             this.dailyBonusButton?.setVisible?.(false);
         } else {
+            this.restorePlayerCameraFollow();
             this.getHudController().updateDailyBonusButton();
         }
 

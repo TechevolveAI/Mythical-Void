@@ -113,6 +113,7 @@ export default class GameSceneHudController {
         if (!scene.interactionText?.active) return;
 
         const isMobile = Boolean(
+            scene.hasVisibleTouchControls?.() ||
             scene.mobileControls?.isMobile ||
             window.responsiveManager?.isMobile ||
             width < 768

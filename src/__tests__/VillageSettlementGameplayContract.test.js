@@ -76,13 +76,16 @@ describe('Village settlement gameplay contract', () => {
         expect(worldSource).toContain('this.activateVillageHeart(landmark, plot.id);');
         expect(sceneSource).toContain('VILLAGE_HEART_INTERACT_DISTANCE');
         expect(sceneSource).toContain('this.openVillageCommand();');
-        expect(sceneSource).toContain("decision: this.mobileControls");
+        expect(sceneSource).toContain('const touchControlsVisible = this.hasVisibleTouchControls()');
+        expect(sceneSource).toContain('decision: touchControlsVisible');
         expect(sceneSource).toContain("'Tap the Village Heart · Decide together'");
         expect(sceneSource).toContain("nextAction?.type === 'decision' ? '?' : '🏗'");
         expect(sceneSource).toContain('{ persistent: true }');
         expect(sceneSource).toContain('showInteractionHint(message, { persistent = false } = {})');
         expect(sceneSource).toContain('this.updateSanctuaryFocusMode(true)');
         expect(sceneSource).toContain('this.updateSanctuaryFocusMode(false)');
+        expect(sceneSource).toContain('this.applySanctuaryCameraFocus();');
+        expect(sceneSource).toContain('this.restorePlayerCameraFollow();');
         expect(sceneSource).toContain('firstContactActive || this.sanctuaryFocusModeActive');
         expect(sceneSource).toContain('this.dismissCosmicAffinityNotice();');
         expect(sceneSource).toContain(".setData('sanctuaryNotice', true)");

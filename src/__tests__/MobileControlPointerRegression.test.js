@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-function loadMobileControls() {
+function loadMobileControls(environment = {}) {
     const filePath = path.join(__dirname, '../systems/MobileControls.js');
     const source = fs.readFileSync(filePath, 'utf8');
 
@@ -49,6 +49,13 @@ function loadMobileControls() {
         requestAnimationFrame: () => 0,
         cancelAnimationFrame: () => {}
     };
+    Object.assign(sandbox.window, environment.window || {});
+    Object.assign(sandbox.navigator, environment.navigator || {});
+    Object.assign(sandbox.document, environment.document || {});
+    Object.assign(
+        sandbox.document.documentElement,
+        environment.documentElement || {}
+    );
 
     sandbox.performance = { now: () => 0 };
 
@@ -92,6 +99,38 @@ describe('MobileControls pointer ownership', () => {
 
         return { scene, events };
     }
+
+    test('desktop Chromium API support does not create a touch dock', () => {
+        const MobileControls = loadMobileControls({
+            window: {
+                TouchEvent: function TouchEvent() {},
+                matchMedia: jest.fn(() => ({ matches: false }))
+            },
+            navigator: {
+                maxTouchPoints: 0,
+                userAgent: 'Mozilla/5.0 Chrome/126.0 Safari/537.36'
+            }
+        });
+
+        const { scene } = createScene({
+            scale: { width: 1440, height: 900, on: jest.fn(), off: jest.fn() }
+        });
+        const controls = new MobileControls(scene);
+
+        expect(controls.isMobile).toBe(false);
+    });
+
+    test('touch hardware still creates the dock on phones and tablets', () => {
+        const MobileControls = loadMobileControls({
+            navigator: {
+                maxTouchPoints: 5,
+                userAgent: 'Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X)'
+            }
+        });
+
+        const { scene } = createScene();
+        expect(new MobileControls(scene).isMobile).toBe(true);
+    });
 
     function attachControlFixtures(controls) {
         controls.joystickBase = {

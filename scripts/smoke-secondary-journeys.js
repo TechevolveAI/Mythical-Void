@@ -10447,19 +10447,18 @@ async function smokeVillageUi(session, exceptions) {
         scene.worldBuilder.refreshSignalGarden(scene.signalGarden, 'bloom');
         const approachX = scene.villageHeartLandmark.zone.x;
         const approachY = scene.villageHeartLandmark.zone.y - 110;
+        scene.nearVillageHeart = false;
+        scene.updateSanctuaryFocusMode(false);
         scene.physics.pause();
-        if (scene.player.body) scene.player.body.enable = false;
         scene.player.setPosition(approachX, approachY);
-        scene.cameras.main.stopFollow();
-        scene.cameras.main.centerOn(
-            scene.villageHeartLandmark.zone.x,
-            scene.villageHeartLandmark.zone.y
-        );
+        scene.player.body?.reset?.(approachX, approachY);
+        if (scene.player.body) scene.player.body.enable = false;
         scene.handleVillageHeartProximity();
         return {
             worldWidth: scene.worldWidth,
             worldHeight: scene.worldHeight,
-            targetCount: scene.targetRange?.allTargets?.length || 0
+            targetCount: scene.targetRange?.allTargets?.length || 0,
+            focusTarget: scene.sanctuaryCameraFocusTarget || null
         };
     })()`);
     await waitFor(
@@ -10469,6 +10468,13 @@ async function smokeVillageUi(session, exceptions) {
                 scene?.villageHeartLandmark?.workerElements?.length === 3;
         })()`),
         { message: 'Integrated Sanctuary district' }
+    );
+    await waitFor(
+        () => evaluate(
+            session,
+            `window.mythicalGame.scene.getScene('GameScene')?.cameras?.main?.panEffect?.isRunning !== true`
+        ),
+        { message: 'Village Heart focus camera settled' }
     );
     await delay(350);
     const integratedWorld = await evaluate(session, `(() => {
@@ -10521,21 +10527,51 @@ async function smokeVillageUi(session, exceptions) {
         });
         const garden = toScreen(scene.signalGarden.zone.x, scene.signalGarden.zone.y);
         const heart = toScreen(landmark.zone.x, landmark.zone.y);
+        const interactionRadius = scene.getInteractionDistance('villageHeart').clear;
+        const focusApproachBounds = {
+            left: toScreen(landmark.zone.x - interactionRadius, landmark.zone.y).x,
+            right: toScreen(landmark.zone.x + interactionRadius, landmark.zone.y).x,
+            top: toScreen(landmark.zone.x, landmark.zone.y - interactionRadius).y,
+            bottom: toScreen(landmark.zone.x, landmark.zone.y + interactionRadius).y
+        };
         const plots = [...landmark.plotWorldPositions.entries()].map(([plotId, position]) => ({
             plotId,
             ...toScreen(position.x, position.y)
         }));
+        const plotHitBounds = (landmark.plotHitZones || []).map(zone => {
+            const bounds = zone.getBounds();
+            const topLeft = toScreen(bounds.left, bounds.top);
+            const bottomRight = toScreen(bounds.right, bounds.bottom);
+            return {
+                plotId: zone.plotId,
+                left: topLeft.x,
+                right: bottomRight.x,
+                top: topLeft.y,
+                bottom: bottomRight.y
+            };
+        });
+        const dockTop = scene.mobileControls?.layout?.dockTop;
         return {
             world: { width: scene.worldWidth, height: scene.worldHeight },
             viewport: { width: camera.width, height: camera.height },
             camera: { x: camera.worldView.x, y: camera.worldView.y },
             player: toScreen(scene.player.x, scene.player.y),
             heart,
+            focusApproachBounds,
             garden,
             gardenStage: scene.signalGarden.stage,
             gardenVisible: garden.x >= 0 && garden.x <= camera.width &&
                 garden.y >= 0 && garden.y <= camera.height,
             plots,
+            plotHitBounds,
+            cameraFocusTarget: scene.sanctuaryCameraFocusTarget || null,
+            cameraFollowingPlayer: camera._follow === scene.player,
+            controlDock: Number.isFinite(dockTop) ? {
+                left: 0,
+                right: camera.width,
+                top: dockTop,
+                bottom: camera.height
+            } : null,
             plotStates: (landmark.plotPresentations || []).map(presentation => ({
                 plotId: presentation.plotId,
                 state: presentation.stateMarker?.getData?.('villagePlotState'),
@@ -10597,9 +10633,27 @@ async function smokeVillageUi(session, exceptions) {
         integratedSetup.worldWidth !== 2400 ||
         integratedSetup.worldHeight !== 1800 ||
         integratedSetup.targetCount !== 8 ||
+        !integratedSetup.focusTarget ||
         integratedWorld.world.width !== 2400 ||
         integratedWorld.world.height !== 1800 ||
         integratedWorld.plotCount !== 5 ||
+        !integratedWorld.cameraFocusTarget ||
+        integratedWorld.cameraFollowingPlayer ||
+        (SMOKE_VIEWPORT_WIDTH <= 600 && !integratedWorld.controlDock) ||
+        integratedWorld.focusApproachBounds.left < -1 ||
+        integratedWorld.focusApproachBounds.right > integratedWorld.viewport.width + 1 ||
+        integratedWorld.focusApproachBounds.top < -1 ||
+        integratedWorld.focusApproachBounds.bottom > (
+            integratedWorld.controlDock?.top ?? integratedWorld.viewport.height
+        ) + 1 ||
+        integratedWorld.plotHitBounds.some(bounds => (
+            bounds.left < -1 ||
+            bounds.right > integratedWorld.viewport.width + 1 ||
+            bounds.top < -1 ||
+            bounds.bottom > (
+                integratedWorld.controlDock?.top ?? integratedWorld.viewport.height
+            ) + 1
+        )) ||
         integratedWorld.plotStates.filter(plot => plot.state === 'staffed').length !== 3 ||
         integratedWorld.plotStates.filter(plot => plot.state === 'available').length !== 2 ||
         integratedWorld.plotStates.some(plot => (
@@ -10687,7 +10741,8 @@ async function smokeVillageUi(session, exceptions) {
             resetVisible: scene.resetButton?.visible === true,
             interactionVisible: scene.interactionText?.visible === true,
             kidStatusBarActive: scene.kidModeStatusBar?.active === true,
-            kidHelpActive: scene.kidModeHelpContainer?.active === true
+            kidHelpActive: scene.kidModeHelpContainer?.active === true,
+            cameraFollowingPlayer: scene.cameras.main._follow === scene.player
         };
     })()`);
     if (
@@ -10697,7 +10752,8 @@ async function smokeVillageUi(session, exceptions) {
         focusRecovery.resetVisible !== (SMOKE_VIEWPORT_WIDTH > 600) ||
         focusRecovery.interactionVisible ||
         focusRecovery.kidStatusBarActive ||
-        focusRecovery.kidHelpActive
+        focusRecovery.kidHelpActive ||
+        !focusRecovery.cameraFollowingPlayer
     ) {
         throw new Error(`Sanctuary focus did not restore exploration HUD: ${JSON.stringify(focusRecovery)}`);
     }
@@ -10707,6 +10763,42 @@ async function smokeVillageUi(session, exceptions) {
             ? 'village-integrated-exploration-mobile.png'
             : 'village-integrated-exploration-desktop.png'
     );
+    let controlDetection = null;
+    if (SMOKE_VIEWPORT_WIDTH <= 600) {
+        controlDetection = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const controls = scene.mobileControls;
+            controls.hide();
+            const detectedAsTouch = controls.detectMobile();
+            controls.show();
+            scene.nearVillageHeart = false;
+            scene.updateSanctuaryFocusMode(false);
+            scene.handleVillageHeartProximity();
+            return {
+                detectedAsTouch,
+                controlsVisible: controls.isVisible === true,
+                prompt: scene.interactionText?.text || '',
+                dockTop: controls.layout?.dockTop ?? null
+            };
+        })()`);
+        if (
+            !controlDetection.detectedAsTouch ||
+            !controlDetection.controlsVisible ||
+            !controlDetection.prompt.startsWith('Tap') ||
+            !Number.isFinite(controlDetection.dockTop)
+        ) {
+            throw new Error(`Village mobile control detection failed: ${JSON.stringify(controlDetection)}`);
+        }
+        await captureGameplayStill(session, 'village-control-detection-mobile.png');
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            scene.nearVillageHeart = false;
+            scene.updateSanctuaryFocusMode(false);
+            scene.hideInteractionHint();
+            return true;
+        })()`);
+    }
+
 
     await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
@@ -11503,6 +11595,48 @@ async function smokeVillageUi(session, exceptions) {
         () => evaluate(session, `Boolean(document.querySelector('.village-command-modal.accepts-input'))`),
         { message: 'Village Builder reopened from world build site' }
     );
+    if (SMOKE_VIEWPORT_WIDTH > 600) {
+        await evaluate(session, `(() => {
+            document.querySelector('.village-command-close')?.click();
+            window.GameState.set('session.gameStarted', true);
+            window.GameState.save();
+            return true;
+        })()`);
+        await waitFor(
+            () => evaluate(session, `!document.querySelector('.village-command-modal')`),
+            { message: 'Village Builder closed before no-touch reload' }
+        );
+        await session.call('Emulation.setTouchEmulationEnabled', {
+            enabled: false
+        });
+        await session.call('Page.reload', { ignoreCache: true });
+        await waitFor(
+            () => evaluate(session, 'document.readyState === "complete"'),
+            { timeoutMs: 20000, message: 'Desktop no-touch reload' }
+        );
+        await waitFor(
+            () => evaluate(session, 'Boolean(window.MobileControls)'),
+            { timeoutMs: 20000, message: 'Desktop no-touch controls runtime' }
+        );
+        controlDetection = await evaluate(session, `(() => {
+            const controls = new window.MobileControls({});
+            controls.show();
+            return {
+                detectedAsTouch: controls.detectMobile(),
+                controlsVisible: controls.isVisible === true,
+                prompt: 'keyboard',
+                dockTop: controls.layout?.dockTop ?? null
+            };
+        })()`);
+        if (
+            controlDetection.detectedAsTouch ||
+            controlDetection.controlsVisible ||
+            controlDetection.prompt !== 'keyboard' ||
+            controlDetection.dockTop !== null
+        ) {
+            throw new Error(`Village desktop control detection failed: ${JSON.stringify(controlDetection)}`);
+        }
+    }
 
     return {
         layout,
@@ -11522,6 +11656,7 @@ async function smokeVillageUi(session, exceptions) {
         constructionWorld,
         heartMemory,
         directWorldTap,
+        controlDetection,
         interaction
     };
 }
