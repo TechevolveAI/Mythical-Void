@@ -5197,13 +5197,13 @@ class GameScene extends Phaser.Scene {
 
         if (this.villageHeartLandmark && villageSnapshot.unlock.unlocked) {
             destinations.push({
-                name: villageNeedsGuidance ? 'Village Heart: New' : 'Village Heart',
+                name: 'Village Heart',
                 icon: '+',
                 x: this.villageHeartLandmark.zone.x,
                 y: this.villageHeartLandmark.zone.y,
                 color: 0x71E6B1,
                 description: 'Plan the shared settlement',
-                showMarker: villageNeedsGuidance
+                showMarker: false
             });
         }
 
@@ -5271,12 +5271,14 @@ class GameScene extends Phaser.Scene {
         glow.fillStyle(dest.color, 0.2);
         glow.fillCircle(0, 0, 30);
         glow.setPosition(dest.x, markerY);
-        glow.setDepth(100);
+        glow.setDepth(100)
+            .setData('navigationMarkerDestination', dest.name);
 
         // Create icon text
         const icon = this.add.text(dest.x, markerY - 5, dest.icon, {
             fontSize: '32px'
-        }).setOrigin(0.5).setDepth(101);
+        }).setOrigin(0.5).setDepth(101)
+            .setData('navigationMarkerDestination', dest.name);
 
         // Create name label below icon
         const label = this.add.text(dest.x, markerY + 30, dest.name, {
@@ -5285,7 +5287,8 @@ class GameScene extends Phaser.Scene {
             stroke: '#000000',
             strokeThickness: 3,
             fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(101);
+        }).setOrigin(0.5).setDepth(101)
+            .setData('navigationMarkerDestination', dest.name);
 
         // One arrival flare establishes the landmark without permanent motion.
         [glow, icon, label].forEach(element => element.setAlpha(0));
@@ -8617,6 +8620,7 @@ class GameScene extends Phaser.Scene {
             ...interactionPresentation,
             ownerLabel: 'VILLAGE HEART',
             worldPrompt: true,
+            worldCommandPlacement: 'target',
             suppressWorldBeacon: directPlotAction,
             ariaLabel: `${interactionPresentation.verb} ${interactionPresentation.label}`,
             tone: nextAction?.type === 'decision' ? 0xF2C14E : 0x71E6B1,

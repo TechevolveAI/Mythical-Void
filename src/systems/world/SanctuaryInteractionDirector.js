@@ -80,6 +80,7 @@ export default class SanctuaryInteractionDirector {
             next?.label !== this.active?.label ||
             next?.ownerLabel !== this.active?.ownerLabel ||
             next?.hintMode !== this.active?.hintMode ||
+            next?.worldCommandPlacement !== this.active?.worldCommandPlacement ||
             next?.suppressWorldBeacon !== this.active?.suppressWorldBeacon;
         this.active = next;
         this.scene.sanctuaryPromptOwnerId = next?.id || null;
@@ -125,6 +126,10 @@ export default class SanctuaryInteractionDirector {
         const width = Math.max(58, Math.min(144, Number(target.width || 88)));
         const height = Math.max(28, Math.min(72, Number(target.height || 46) * 0.42));
         const depth = Math.max(2, Number(target.depth || target.y));
+        const usesTappableWorldCommand = candidate.hintMode === 'world' &&
+            Boolean(candidate.verb || candidate.label);
+        const usesTargetCommand = usesTappableWorldCommand &&
+            candidate.worldCommandPlacement === 'target';
         const indicator = this.scene.add.graphics()
             .setPosition(target.x, target.y + Math.min(42, height * 0.45))
             .setDepth(depth - 2)
@@ -148,15 +153,31 @@ export default class SanctuaryInteractionDirector {
                 .setData('interactionId', candidate.id)
                 .setData('interactionState', 'ready')
                 .setData('ownershipLabel', candidate.ownerLabel || '')
-                .setData('visualLanguage', 'target-ring-action-node');
+                .setData(
+                    'visualLanguage',
+                    usesTargetCommand
+                        ? 'target-attached-command-v1'
+                        : 'target-ring-action-node'
+                );
             actionNode.lineStyle(2, candidate.tone, 0.72);
-            actionNode.lineBetween(-24, 10, -12, 4);
+            actionNode.lineBetween(
+                usesTargetCommand ? -66 : -24,
+                10,
+                usesTargetCommand ? -55 : -12,
+                4
+            );
             actionNode.fillStyle(0x071411, 0.94);
-            actionNode.fillCircle(0, 0, 15);
+            actionNode.fillCircle(usesTargetCommand ? -44 : 0, 0, 15);
             actionNode.lineStyle(2, candidate.tone, 0.98);
-            actionNode.strokeCircle(0, 0, 14);
+            actionNode.strokeCircle(usesTargetCommand ? -44 : 0, 0, 14);
             actionNode.lineStyle(1, 0xF4F4F4, 0.62);
-            actionNode.strokeCircle(0, 0, 9);
+            actionNode.strokeCircle(usesTargetCommand ? -44 : 0, 0, 9);
+            if (usesTargetCommand) {
+                actionNode.lineStyle(2, candidate.tone, 0.78);
+                actionNode.lineBetween(-22, 15, 54, 15);
+                actionNode.lineStyle(1, 0xF4F4F4, 0.36);
+                actionNode.lineBetween(-22, 18, 24, 18);
+            }
 
             const actionGlyph = this.scene.add.text(0, 0, candidate.icon || '✦', {
                 fontSize: '12px',
@@ -168,30 +189,71 @@ export default class SanctuaryInteractionDirector {
             }).setOrigin(0.5).setDepth(depth + 7)
                 .setData('sanctuaryActionNodeGlyph', true)
                 .setData('interactionId', candidate.id);
-            const actionHitZone = this.scene.add.zone(0, 0, 48, 48)
+            const actionHitZone = this.scene.add.zone(
+                0,
+                0,
+                usesTargetCommand ? 132 : 48,
+                48
+            )
                 .setDepth(depth + 8)
                 .setData('sanctuaryActionNodeHitZone', true)
                 .setData('interactionId', candidate.id)
-                .setData('touchTargetWidth', 48)
+                .setData('touchTargetWidth', usesTargetCommand ? 132 : 48)
                 .setData('touchTargetHeight', 48)
+                .setData('interactionVerb', candidate.verb || '')
+                .setData('interactionLabel', candidate.label || '')
+                .setData('commandChannel', usesTargetCommand ? 'target' : 'world-node')
+                .setData('ownershipLabel', candidate.ownerLabel || '')
                 .setData('ariaLabel', candidate.ariaLabel || candidate.message)
                 .setInteractive({ useHandCursor: true });
             actionHitZone.on('pointerdown', pointer => {
                 pointer?.event?.stopPropagation?.();
                 candidate.action?.();
             });
+            const targetVerb = usesTargetCommand
+                ? this.scene.add.text(0, 0, String(candidate.verb || '').toUpperCase(), {
+                    fontSize: '10px',
+                    fontFamily: 'Arial, sans-serif',
+                    fontStyle: 'bold',
+                    color: '#F4F4F4',
+                    stroke: '#071411',
+                    strokeThickness: 4
+                }).setOrigin(0, 0.5).setDepth(depth + 7)
+                    .setData('sanctuaryTargetCommandVerb', candidate.verb || '')
+                : null;
+            const targetLabel = usesTargetCommand
+                ? this.scene.add.text(0, 0, String(candidate.label || '').toUpperCase(), {
+                    fontSize: '7px',
+                    fontFamily: 'Arial, sans-serif',
+                    fontStyle: 'bold',
+                    color: '#8FE3CF',
+                    stroke: '#071411',
+                    strokeThickness: 3
+                }).setOrigin(0, 0.5).setDepth(depth + 7)
+                    .setData('sanctuaryTargetCommandLabel', candidate.label || '')
+                : null;
             this.actionNode = actionNode;
             this.actionNodeParts = {
                 node: actionNode,
                 glyph: actionGlyph,
-                hitZone: actionHitZone
+                hitZone: actionHitZone,
+                verbText: targetVerb,
+                labelText: targetLabel,
+                targetCommand: usesTargetCommand
             };
-            elements.push(actionNode, actionGlyph, actionHitZone);
+            elements.push(...[
+                actionNode,
+                actionGlyph,
+                actionHitZone,
+                targetVerb,
+                targetLabel
+            ].filter(Boolean));
         }
-        const usesTappableWorldCommand = candidate.hintMode === 'world' &&
-            Boolean(candidate.verb || candidate.label);
-        indicator.setData('commandChannel', usesTappableWorldCommand ? 'world' : 'hud');
-        if (usesTappableWorldCommand) {
+        indicator.setData(
+            'commandChannel',
+            usesTargetCommand ? 'target' : usesTappableWorldCommand ? 'world' : 'hud'
+        );
+        if (usesTappableWorldCommand && !usesTargetCommand) {
             const beaconY = target.y - Math.max(
                 70,
                 Math.min(118, Number(target.height || 80) * 0.55 + 34)
@@ -358,11 +420,14 @@ export default class SanctuaryInteractionDirector {
         };
     }
 
-    resolveActionNodePlacement(target) {
+    resolveActionNodePlacement(target, { targetCommand = false } = {}) {
         const targetWidth = Math.max(58, Math.min(144, Number(target?.width || 88)));
         const targetHeight = Math.max(46, Math.min(132, Number(target?.height || 72)));
         const cameraView = this.scene?.cameras?.main?.worldView;
-        const preferredX = Number(target?.x || 0) + Math.min(60, targetWidth * 0.46);
+        const preferredX = Number(target?.x || 0) + Math.min(
+            targetCommand ? 72 : 60,
+            targetWidth * (targetCommand ? 0.52 : 0.46)
+        );
         const preferredY = Number(target?.y || 0) - Math.min(28, targetHeight * 0.2);
         if (
             !cameraView ||
@@ -371,7 +436,7 @@ export default class SanctuaryInteractionDirector {
         ) {
             return { x: preferredX, y: preferredY, viewportClamped: false };
         }
-        const margin = 28;
+        const margin = targetCommand ? 70 : 28;
         const left = Number(cameraView.x || 0) + margin;
         const right = Number(cameraView.x || 0) + cameraView.width - margin;
         const top = Number(cameraView.y || 0) + margin;
@@ -394,13 +459,34 @@ export default class SanctuaryInteractionDirector {
             target.y + Math.min(42, height * 0.45)
         );
         if (this.actionNodeParts) {
-            const actionNodePlacement = this.resolveActionNodePlacement(target);
-            const { node, glyph, hitZone } = this.actionNodeParts;
-            [node, glyph, hitZone].forEach(element => {
+            const {
+                node,
+                glyph,
+                hitZone,
+                verbText,
+                labelText,
+                targetCommand
+            } = this.actionNodeParts;
+            const actionNodePlacement = this.resolveActionNodePlacement(target, {
+                targetCommand
+            });
+            [node, hitZone].forEach(element => {
                 element.setPosition(actionNodePlacement.x, actionNodePlacement.y)
                     .setData('viewportClamped', actionNodePlacement.viewportClamped)
                     .setData('ownershipRelation', 'marks-selected-world-target');
             });
+            glyph.setPosition(
+                actionNodePlacement.x + (targetCommand ? -44 : 0),
+                actionNodePlacement.y
+            );
+            verbText?.setPosition(
+                actionNodePlacement.x - 22,
+                actionNodePlacement.y - 7
+            );
+            labelText?.setPosition(
+                actionNodePlacement.x - 22,
+                actionNodePlacement.y + 8
+            );
         }
         if (!this.beaconParts) return null;
 

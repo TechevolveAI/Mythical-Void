@@ -10793,10 +10793,16 @@ async function smokeVillageUi(session, exceptions) {
         const commons = scene.sanctuaryCommons;
         const interactionBounds = scene.interactionText?.getBounds?.();
         const interactionDirector = scene.sanctuaryInteractionDirector;
-        const interactionBeacon = interactionDirector?.beacon;
+        const touchLayout = scene.hasVisibleTouchControls?.() === true;
         const interactionHitZone = interactionDirector?.indicatorElements?.find(element => (
-            element?.getData?.('sanctuaryInteractionBeaconHitZone') === true
+            touchLayout
+                ? element?.getData?.('sanctuaryActionNodeHitZone') === true &&
+                    element?.getData?.('commandChannel') === 'target'
+                : element?.getData?.('sanctuaryInteractionBeaconHitZone') === true
         ));
+        const interactionVisual = touchLayout
+            ? interactionDirector?.actionNodeParts?.node
+            : interactionDirector?.beacon;
         const interactionBeaconBounds = interactionHitZone?.getBounds?.();
         const settlementBounds = scene.sanctuaryZones?.zones?.settlementDistrict?.bounds;
         const insideSettlement = object => Boolean(settlementBounds) &&
@@ -11218,10 +11224,12 @@ async function smokeVillageUi(session, exceptions) {
             interactionVisible: scene.interactionText?.visible === true,
             interactionBeacon: {
                 activeId: interactionDirector?.active?.id || null,
-                verb: interactionBeacon?.getData?.('interactionVerb') || '',
-                label: interactionBeacon?.getData?.('interactionLabel') || '',
-                hitZoneWidth: interactionBeacon?.getData?.('touchTargetWidth') || 0,
-                hitZoneHeight: interactionBeacon?.getData?.('touchTargetHeight') || 0,
+                verb: interactionHitZone?.getData?.('interactionVerb') || '',
+                label: interactionHitZone?.getData?.('interactionLabel') || '',
+                commandChannel: interactionHitZone?.getData?.('commandChannel') || '',
+                visualLanguage: interactionVisual?.getData?.('visualLanguage') || '',
+                hitZoneWidth: interactionHitZone?.getData?.('touchTargetWidth') || 0,
+                hitZoneHeight: interactionHitZone?.getData?.('touchTargetHeight') || 0,
                 inputEnabled: interactionHitZone?.input?.enabled === true,
                 coordinateSpace: interactionHitZone?.getData?.('coordinateSpace'),
                 dockAnchored: interactionHitZone?.getData?.('mobileDockAnchored') === true,
@@ -11508,7 +11516,7 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.sanctuaryParallax.backdropProfile !== 'world_background_owned_v3' ||
         integratedWorld.sanctuaryParallax.backdropScrollFactorX !== 0 ||
         integratedWorld.sanctuaryParallax.backdropScrollFactorY !== 0 ||
-        integratedWorld.peripheralWayfinding.managedCount < 1 ||
+        integratedWorld.peripheralWayfinding.managedCount !== 0 ||
         integratedWorld.peripheralWayfinding.visibleCount !== 0 ||
         !integratedWorld.peripheralWayfinding.suppressed ||
         !integratedWorld.focus.active ||
@@ -11526,20 +11534,23 @@ async function smokeVillageUi(session, exceptions) {
                 ? integratedWorld.interactionVisible ||
                     integratedWorld.interactionBeacon.verb !== 'DECIDE' ||
                     integratedWorld.interactionBeacon.label !== 'TOGETHER' ||
+                    integratedWorld.interactionBeacon.commandChannel !== 'target' ||
+                    integratedWorld.interactionBeacon.visualLanguage !==
+                        'target-attached-command-v1' ||
                     integratedWorld.interactionBeacon.ownershipLabel !== 'VILLAGE HEART' ||
-                    integratedWorld.interactionBeacon.ownershipRelation !== 'named-target' ||
-                    integratedWorld.interactionBeacon.hitZoneWidth !== 164 ||
-                    integratedWorld.interactionBeacon.hitZoneHeight !== 52 ||
+                    integratedWorld.interactionBeacon.ownershipRelation !==
+                        'marks-selected-world-target' ||
+                    integratedWorld.interactionBeacon.hitZoneWidth !== 132 ||
+                    integratedWorld.interactionBeacon.hitZoneHeight !== 48 ||
                     !integratedWorld.interactionBeacon.inputEnabled ||
-                    integratedWorld.interactionBeacon.coordinateSpace !== 'screen' ||
-                    !integratedWorld.interactionBeacon.dockAnchored ||
+                    integratedWorld.interactionBeacon.dockAnchored ||
                     !integratedWorld.interactionBeacon.bounds ||
                     integratedWorld.interactionBeacon.bounds.left < -1 ||
                     integratedWorld.interactionBeacon.bounds.right >
                         integratedWorld.viewport.width + 1 ||
                     integratedWorld.interactionBeacon.bounds.top < -1 ||
                     integratedWorld.interactionBeacon.bounds.bottom >
-                        integratedWorld.controlDock.top - 9
+                        integratedWorld.viewport.height + 1
                 : integratedWorld.interactionBeacon.verb !== '' ||
                     integratedWorld.interactionBeacon.label !== '' ||
                     integratedWorld.interactionBeacon.inputEnabled ||
@@ -11817,9 +11828,8 @@ async function smokeVillageUi(session, exceptions) {
             visible => visible !== (SMOKE_VIEWPORT_WIDTH > 600)
         ) ||
         focusRecovery.heartPriority !== 'primary' ||
-        focusRecovery.peripheralWayfinding.managedCount < 1 ||
-        focusRecovery.peripheralWayfinding.visibleCount !==
-            focusRecovery.peripheralWayfinding.managedCount ||
+        focusRecovery.peripheralWayfinding.managedCount !== 0 ||
+        focusRecovery.peripheralWayfinding.visibleCount !== 0 ||
         focusRecovery.peripheralWayfinding.suppressed ||
         focusRecovery.plotPriorities.length !== 5 ||
         focusRecovery.plotPriorities.filter(plot => plot.state === 'staffed').some(
@@ -11888,6 +11898,7 @@ async function smokeVillageUi(session, exceptions) {
             actionNodeRelation: actionNodeHitZones[0]?.getData?.(
                 'ownershipRelation'
             ) || '',
+            floatingChatVisible: scene.floatingChatBubble?.bubble?.visible === true,
             hudPrompt: scene.interactionText?.text || '',
             hudPromptVisible: scene.interactionText?.visible === true
         };
@@ -11953,6 +11964,7 @@ async function smokeVillageUi(session, exceptions) {
         structureProximity.actionNodeHitZoneCount !== 1 ||
         !structureProximity.actionNodeInputEnabled ||
         structureProximity.actionNodeRelation !== 'marks-selected-world-target' ||
+        structureProximity.floatingChatVisible !== (SMOKE_VIEWPORT_WIDTH > 600) ||
         (
             SMOKE_VIEWPORT_WIDTH > 600 && (
                 !structureProximity.hudPromptVisible ||
@@ -12215,18 +12227,29 @@ async function smokeVillageUi(session, exceptions) {
             scene.nearVillageHeart = false;
             scene.updateSanctuaryFocusMode(false);
             scene.handleVillageHeartProximity();
-            const hitZone = scene.sanctuaryInteractionDirector?.beaconParts?.hitZone;
+            scene.floatingChatBubble?.update?.();
+            const director = scene.sanctuaryInteractionDirector;
+            const hitZone = director?.actionNodeParts?.hitZone;
+            const actionNode = director?.actionNodeParts?.node;
+            const heartNavigationMarkers = (scene.navigationMarkers || []).filter(
+                marker => marker?.getData?.('navigationMarkerDestination') === 'Village Heart'
+            );
             return {
                 detectedAsTouch,
                 controlsVisible: controls.isVisible === true,
                 prompt: scene.interactionText?.text || '',
                 promptVisible: scene.interactionText?.visible === true,
-                beaconVerb: scene.sanctuaryInteractionDirector?.beacon
-                    ?.getData?.('interactionVerb') || '',
-                beaconLabel: scene.sanctuaryInteractionDirector?.beacon
-                    ?.getData?.('interactionLabel') || '',
+                commandBeaconPresent: Boolean(director?.beacon),
+                commandChannel: hitZone?.getData?.('commandChannel') || '',
+                commandVerb: hitZone?.getData?.('interactionVerb') || '',
+                commandLabel: hitZone?.getData?.('interactionLabel') || '',
+                commandVisualLanguage: actionNode?.getData?.('visualLanguage') || '',
+                commandTouchWidth: hitZone?.getData?.('touchTargetWidth') || 0,
+                commandTouchHeight: hitZone?.getData?.('touchTargetHeight') || 0,
                 ownershipLabel: hitZone?.getData?.('ownershipLabel') || '',
                 ownershipRelation: hitZone?.getData?.('ownershipRelation') || '',
+                floatingChatVisible: scene.floatingChatBubble?.bubble?.visible === true,
+                heartNavigationMarkerCount: heartNavigationMarkers.length,
                 dockTop: controls.layout?.dockTop ?? null
             };
         })()`);
@@ -12234,10 +12257,17 @@ async function smokeVillageUi(session, exceptions) {
             !controlDetection.detectedAsTouch ||
             !controlDetection.controlsVisible ||
             controlDetection.promptVisible ||
-            controlDetection.beaconVerb !== 'DECIDE' ||
-            controlDetection.beaconLabel !== 'TOGETHER' ||
+            controlDetection.commandBeaconPresent ||
+            controlDetection.commandChannel !== 'target' ||
+            controlDetection.commandVerb !== 'DECIDE' ||
+            controlDetection.commandLabel !== 'TOGETHER' ||
+            controlDetection.commandVisualLanguage !== 'target-attached-command-v1' ||
+            controlDetection.commandTouchWidth !== 132 ||
+            controlDetection.commandTouchHeight !== 48 ||
             controlDetection.ownershipLabel !== 'VILLAGE HEART' ||
-            controlDetection.ownershipRelation !== 'named-target' ||
+            controlDetection.ownershipRelation !== 'marks-selected-world-target' ||
+            controlDetection.floatingChatVisible ||
+            controlDetection.heartNavigationMarkerCount !== 0 ||
             !Number.isFinite(controlDetection.dockTop)
         ) {
             throw new Error(`Village mobile control detection failed: ${JSON.stringify(controlDetection)}`);
@@ -13205,7 +13235,7 @@ async function smokeVillageUi(session, exceptions) {
         }
         director?.update?.({ force: true });
         const target = director?.indicatorElements?.find(element => (
-            element?.getData?.('sanctuaryInteractionBeaconHitZone') === true &&
+            element?.getData?.('sanctuaryActionNodeHitZone') === true &&
             element?.getData?.('interactionId') === 'villageHeart'
         ));
         if (!target?.getBounds) {
@@ -13254,17 +13284,25 @@ async function smokeVillageUi(session, exceptions) {
             y: Math.round(screenPoint.y),
             inputEnabled: target.input?.enabled === true,
             action: scene?.villageHeartLandmark?.snapshot?.worldState?.nextAction?.type,
-            verb: director?.beacon?.getData?.('interactionVerb') || '',
-            label: director?.beacon?.getData?.('interactionLabel') || ''
+            verb: target.getData?.('interactionVerb') || '',
+            label: target.getData?.('interactionLabel') || '',
+            commandChannel: target.getData?.('commandChannel') || '',
+            touchTargetWidth: target.getData?.('touchTargetWidth') || 0,
+            touchTargetHeight: target.getData?.('touchTargetHeight') || 0,
+            dockBeaconPresent: Boolean(director?.beacon)
         };
     })()`);
     if (
         !actionRoute?.inputEnabled ||
         actionRoute.action !== 'decision' ||
         actionRoute.verb !== 'DECIDE' ||
-        actionRoute.label !== 'TOGETHER'
+        actionRoute.label !== 'TOGETHER' ||
+        actionRoute.commandChannel !== 'target' ||
+        actionRoute.touchTargetWidth !== 132 ||
+        actionRoute.touchTargetHeight !== 48 ||
+        actionRoute.dockBeaconPresent
     ) {
-        throw new Error(`Village world next-action beacon was not tappable: ${JSON.stringify(actionRoute)}`);
+        throw new Error(`Village target-attached next action was not tappable: ${JSON.stringify(actionRoute)}`);
     }
     await touch(session, actionRoute.x, actionRoute.y);
     await waitFor(

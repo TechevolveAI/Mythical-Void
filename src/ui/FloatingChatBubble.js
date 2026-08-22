@@ -14,6 +14,7 @@ export default class FloatingChatBubble {
         this.pulseTween = null;
         this.pulseTimer = null;
         this.isVisible = false;
+        this.presentationVisible = null;
         this.player = null;
         this.offsetX = 45;  // Offset from player
         this.offsetY = -55; // Above player
@@ -32,6 +33,7 @@ export default class FloatingChatBubble {
 
         this.create();
         this.isVisible = true;
+        this.syncPresentationVisibility();
 
         devLog('[FloatingChatBubble] Initialized');
     }
@@ -106,7 +108,7 @@ export default class FloatingChatBubble {
     }
 
     pulse() {
-        if (!this.bubble || !this.isVisible) return;
+        if (!this.bubble || !this.isVisible || !this.presentationVisible) return;
 
         // Cancel existing pulse
         this.pulseTween?.stop();
@@ -140,6 +142,7 @@ export default class FloatingChatBubble {
     update() {
         if (!this.player || !this.isVisible) return;
         if (!this.bubble || !this.bubbleText || !this.hitArea) return;
+        if (!this.syncPresentationVisibility()) return;
 
         const x = this.player.x + this.offsetX;
         const y = this.player.y + this.offsetY;
@@ -152,16 +155,24 @@ export default class FloatingChatBubble {
 
     hide() {
         this.isVisible = false;
-        this.bubble?.setVisible(false);
-        this.bubbleText?.setVisible(false);
-        this.hitArea?.setVisible(false);
+        this.syncPresentationVisibility();
     }
 
     show() {
         this.isVisible = true;
-        this.bubble?.setVisible(true);
-        this.bubbleText?.setVisible(true);
-        this.hitArea?.setVisible(true);
+        this.syncPresentationVisibility();
+    }
+
+    syncPresentationVisibility() {
+        const visible = this.isVisible &&
+            this.scene?.hasVisibleTouchControls?.() !== true;
+        if (this.presentationVisible !== visible) {
+            this.presentationVisible = visible;
+            this.bubble?.setVisible(visible);
+            this.bubbleText?.setVisible(visible);
+            this.hitArea?.setVisible(visible);
+        }
+        return visible;
     }
 
     destroy() {
@@ -177,6 +188,7 @@ export default class FloatingChatBubble {
         this.bubbleText = null;
         this.hitArea = null;
         this.isVisible = false;
+        this.presentationVisible = false;
         this.player = null;
 
         devLog('[FloatingChatBubble] Destroyed');

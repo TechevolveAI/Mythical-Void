@@ -286,6 +286,13 @@ describe('Village settlement gameplay contract', () => {
         expect(directorSource).toContain(".setData('sanctuaryInteractionBeacon', true)");
         expect(directorSource).toContain(".setData('touchTargetWidth', 164)");
         expect(directorSource).toContain(".setData('touchTargetHeight', 52)");
+        expect(directorSource).toContain("'target-attached-command-v1'");
+        expect(directorSource).toContain("usesTargetCommand ? 'target'");
+        expect(sceneSource).toContain("worldCommandPlacement: 'target'");
+        expect(sceneSource).toContain("showMarker: false");
+        const chatSource = read('ui/FloatingChatBubble.js');
+        expect(chatSource).toContain('this.scene?.hasVisibleTouchControls?.() !== true');
+        expect(chatSource).toContain('syncPresentationVisibility()');
         [
             "verb: 'SHOP'",
             "label: 'SUPPLIES & BUILDING'",

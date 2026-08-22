@@ -213,6 +213,60 @@ describe('SanctuaryInteractionDirector', () => {
         expect(action).toHaveBeenCalledTimes(1);
     });
 
+    it('attaches a compact touch command to a visually distinct landmark', () => {
+        const scene = createScene();
+        scene.hasVisibleTouchControls.mockReturnValue(true);
+        scene.cameras = {
+            main: {
+                worldView: { x: 0, y: 0, width: 390, height: 700 }
+            }
+        };
+        const director = new SanctuaryInteractionDirector(scene);
+        const action = jest.fn();
+
+        director.offer({
+            id: 'heart',
+            target: { x: 180, y: 320, width: 150, height: 130, active: true },
+            message: 'Tap the Village Heart · Decide together',
+            verb: 'DECIDE',
+            label: 'TOGETHER',
+            icon: '?',
+            hintMode: 'world',
+            worldCommandPlacement: 'target',
+            action
+        });
+
+        const actionNode = director.indicatorElements.find(element => (
+            element.getData?.('sanctuaryActionNode') === true
+        ));
+        const hitZone = director.indicatorElements.find(element => (
+            element.getData?.('sanctuaryActionNodeHitZone') === true
+        ));
+        const dockBeacon = director.indicatorElements.find(element => (
+            element.getData?.('sanctuaryInteractionBeaconHitZone') === true
+        ));
+
+        expect(scene.hideInteractionHint).toHaveBeenCalledTimes(1);
+        expect(director.beacon).toBeNull();
+        expect(dockBeacon).toBeUndefined();
+        expect(director.indicator.getData('commandChannel')).toBe('target');
+        expect(actionNode.getData('visualLanguage'))
+            .toBe('target-attached-command-v1');
+        expect(hitZone.getData('touchTargetWidth')).toBe(132);
+        expect(hitZone.getData('touchTargetHeight')).toBe(48);
+        expect(hitZone.getData('interactionVerb')).toBe('DECIDE');
+        expect(hitZone.getData('interactionLabel')).toBe('TOGETHER');
+        expect(hitZone.getData('commandChannel')).toBe('target');
+        expect(director.indicatorElements.some(element => (
+            element.getData?.('sanctuaryTargetCommandVerb') === 'DECIDE'
+        ))).toBe(true);
+        expect(director.indicatorElements.some(element => (
+            element.getData?.('sanctuaryTargetCommandLabel') === 'TOGETHER'
+        ))).toBe(true);
+        hitZone.events.get('pointerdown')({ event: { stopPropagation: jest.fn() } });
+        expect(action).toHaveBeenCalledTimes(1);
+    });
+
     it('marks the selected world target with a tappable semantic action node', () => {
         const scene = createScene();
         scene.cameras = {
