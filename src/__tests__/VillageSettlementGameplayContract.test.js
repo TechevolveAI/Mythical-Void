@@ -76,6 +76,11 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain('this.updateSanctuaryFocusMode(true)');
         expect(sceneSource).toContain('this.updateSanctuaryFocusMode(false)');
         expect(sceneSource).toContain('firstContactActive || this.sanctuaryFocusModeActive');
+        expect(sceneSource).toContain('this.dismissCosmicAffinityNotice();');
+        expect(sceneSource).toContain(".setData('sanctuaryNotice', true)");
+        expect(sceneSource).toContain('Exploration discoveries earn bonus XP');
+        expect(sceneSource).not.toContain('${info.emoji} ${element.toUpperCase()} AFFINITY');
+        expect(worldSource).toContain('nebula: { trees: 8, rocks: 15, flowers: 14 }');
         expect(sceneSource).toContain('this.kidModeHelpContainer?.destroy?.(true)');
         expect(sceneSource).not.toContain('createKidModeStatusBar(this, needsData)');
         expect(hudSource).toContain(".get('debugHud') === '1'");

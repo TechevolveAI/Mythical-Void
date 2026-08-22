@@ -10369,6 +10369,17 @@ async function smokeVillageUi(session, exceptions) {
     }
 
     await evaluate(session, `(() => {
+        window.GameState.set('tutorial.crashStorySeen', true);
+        window.GameState.set('tutorial.controlsSeen', true);
+        window.GameState.set('story.projectBeacon.missionLogSeen', true);
+        window.GameState.set(
+            'session.lastDailyShown',
+            new Date().toISOString().split('T')[0]
+        );
+        window.GameState.save();
+        window.OnboardingManager?.skipRemaining?.();
+        window.mythicalGame.scene
+            .getScene('GameScene')?.controlsTutorial?.hide?.();
         window.mythicalGame.scene.getScene('ShopScene')?.exitShop?.();
         return true;
     })()`);
@@ -10430,6 +10441,7 @@ async function smokeVillageUi(session, exceptions) {
             lastReconciledAt: completedAt
         });
         state.set('world.signalGarden.stage', 'bloom');
+        state.set('story.projectBeacon.missionLogSeen', true);
         state.save();
         scene.refreshVillageSettlementWorld(null, { force: true });
         scene.worldBuilder.refreshSignalGarden(scene.signalGarden, 'bloom');
@@ -10480,6 +10492,10 @@ async function smokeVillageUi(session, exceptions) {
             ...(scene.rocks?.getChildren?.() || []),
             ...(scene.flowers?.getChildren?.() || [])
         ].filter(insideSettlement).length;
+        const proceduralDecorTotal =
+            (scene.trees?.getChildren?.().length || 0) +
+            (scene.rocks?.getChildren?.().length || 0) +
+            (scene.flowers?.getChildren?.().length || 0);
         const garden = toScreen(scene.signalGarden.zone.x, scene.signalGarden.zone.y);
         const heart = toScreen(landmark.zone.x, landmark.zone.y);
         const plots = [...landmark.plotWorldPositions.entries()].map(([plotId, position]) => ({
@@ -10506,6 +10522,7 @@ async function smokeVillageUi(session, exceptions) {
                 active: landmark.restorationRoots?.active === true
             },
             proceduralDecorInsideDistrict,
+            proceduralDecorTotal,
             commons: {
                 terrainActive: commons?.terrain?.active === true,
                 pathActive: commons?.path?.active === true,
@@ -10517,6 +10534,7 @@ async function smokeVillageUi(session, exceptions) {
             },
             focus: {
                 active: scene.sanctuaryFocusModeActive === true,
+                affinityNoticeActive: scene.cosmicAffinityNotice?.active === true,
                 kidStatusBarActive: scene.kidModeStatusBar?.active === true,
                 kidHelpActive: scene.kidModeHelpContainer?.active === true,
                 statsVisible: scene.statsText?.visible === true,
@@ -10549,6 +10567,7 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.restoration.rootBudCount !== 5 ||
         integratedWorld.restoration.litRootCount !== 3 ||
         integratedWorld.proceduralDecorInsideDistrict !== 0 ||
+        integratedWorld.proceduralDecorTotal > 37 ||
         !integratedWorld.commons.terrainActive ||
         !integratedWorld.commons.pathActive ||
         integratedWorld.commons.routeIds.join(',') !== 'garden_to_heart,heart_to_portal' ||
@@ -10557,6 +10576,7 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.commons.activeSignals !== 4 ||
         integratedWorld.commons.activeTweens !== 4 ||
         !integratedWorld.focus.active ||
+        integratedWorld.focus.affinityNoticeActive ||
         integratedWorld.focus.kidStatusBarActive ||
         integratedWorld.focus.kidHelpActive ||
         integratedWorld.focus.statsVisible ||
@@ -10620,6 +10640,69 @@ async function smokeVillageUi(session, exceptions) {
             ? 'village-integrated-exploration-mobile.png'
             : 'village-integrated-exploration-desktop.png'
     );
+
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.nearVillageHeart = false;
+        window.GameState.set('session.shownCosmicAffinity', false);
+        scene.showCosmicAffinityNotification('nebula', 0.75);
+        return scene.cosmicAffinityNotice?.active === true;
+    })()`);
+    await delay(260);
+    const resonanceNotice = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const notice = scene.cosmicAffinityNotice;
+        const bounds = notice?.getBounds?.();
+        return {
+            active: notice?.active === true,
+            affinity: notice?.getData?.('affinity') || '',
+            dailyGiftVisible: scene.dailyBonusButton?.visible === true,
+            copy: notice?.list
+                ?.filter(child => typeof child.text === 'string')
+                .map(child => child.text) || [],
+            bounds: bounds ? {
+                left: bounds.left,
+                right: bounds.right,
+                top: bounds.top,
+                bottom: bounds.bottom,
+                width: bounds.width,
+                height: bounds.height
+            } : null,
+            viewport: {
+                width: scene.cameras.main.width,
+                height: scene.cameras.main.height
+            }
+        };
+    })()`);
+    if (
+        !resonanceNotice.active ||
+        resonanceNotice.affinity !== 'nebula' ||
+        resonanceNotice.dailyGiftVisible ||
+        resonanceNotice.copy.join(' ').includes('🌌') ||
+        !resonanceNotice.copy.includes('NEBULA RESONANCE') ||
+        !resonanceNotice.copy.includes('Exploration discoveries earn bonus XP') ||
+        !resonanceNotice.bounds ||
+        resonanceNotice.bounds.left < (
+            resonanceNotice.viewport.width <= 600 ? 87 : -1
+        ) ||
+        resonanceNotice.bounds.right > resonanceNotice.viewport.width + 1 ||
+        resonanceNotice.bounds.top < -1 ||
+        resonanceNotice.bounds.bottom > resonanceNotice.viewport.height + 1 ||
+        resonanceNotice.bounds.width > 301
+    ) {
+        throw new Error(`Companion resonance notice failed: ${JSON.stringify(resonanceNotice)}`);
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-resonance-notice-mobile.png'
+            : 'village-resonance-notice-desktop.png'
+    );
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.dismissCosmicAffinityNotice(0);
+        return scene.cosmicAffinityNotice === null;
+    })()`);
 
     await evaluate(session, `(() => {
         const game = window.mythicalGame;

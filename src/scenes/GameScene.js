@@ -5433,11 +5433,11 @@ class GameScene extends Phaser.Scene {
      */
     showCosmicAffinityNotification(element, powerLevel) {
         const affinityInfo = {
-            star: { emoji: '⭐', color: '#FFD700', effect: 'Health regeneration enhanced' },
-            moon: { emoji: '🌙', color: '#C0C0FF', effect: 'Energy lasts longer' },
-            nebula: { emoji: '🌌', color: '#FF69B4', effect: 'Exploration XP bonus' },
-            crystal: { emoji: '💎', color: '#00FFFF', effect: 'Find more coins' },
-            void: { emoji: '🕳️', color: '#8B008B', effect: 'Combat damage boost' }
+            star: { color: 0xF2C14E, effect: 'Health recovers faster' },
+            moon: { color: 0xC9D6FF, effect: 'Energy lasts longer' },
+            nebula: { color: 0xD89CFF, effect: 'Exploration discoveries earn bonus XP' },
+            crystal: { color: 0x71E6DB, effect: 'Valuable finds appear more often' },
+            void: { color: 0xC58BE2, effect: 'Combat attacks deal more damage' }
         };
 
         const info = affinityInfo[element];
@@ -5449,30 +5449,105 @@ class GameScene extends Phaser.Scene {
 
         getGameState().set('session.shownCosmicAffinity', true);
 
-        const { width } = this.cameras.main;
-        const text = this.add.text(width / 2, 120, `${info.emoji} ${element.toUpperCase()} AFFINITY ${info.emoji}\n${info.effect}`, {
-            fontSize: '16px',
-            color: info.color,
-            stroke: '#000000',
-            strokeThickness: 3,
-            align: 'center'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(1500).setAlpha(0);
+        // World interactions own the player's attention. The resonance remains
+        // recorded in the creature profile, so it does not need to compete with
+        // an active Sanctuary landmark.
+        if (this.sanctuaryFocusModeActive || this.nearVillageHeart) return;
 
-        // Fade in, hold, fade out
+        this.dismissCosmicAffinityNotice(0);
+        this.dailyBonusButton?.setVisible?.(false);
+
+        const camera = this.cameras.main;
+        const compactNotice = camera.width <= 600;
+        const noticeLeft = compactNotice ? 88 : 16;
+        const noticeRight = 16;
+        const noticeWidth = Math.min(
+            300,
+            Math.max(200, camera.width - noticeLeft - noticeRight)
+        );
+        const noticeX = compactNotice
+            ? noticeLeft + noticeWidth / 2
+            : camera.width / 2;
+        const notice = this.add.container(noticeX, 24)
+            .setScrollFactor(0)
+            .setDepth(1500)
+            .setAlpha(0)
+            .setData('affinity', element)
+            .setData('powerLevel', powerLevel)
+            .setData('sanctuaryNotice', true);
+        const panel = this.add.graphics();
+        panel.fillStyle(0x071411, 0.88);
+        panel.fillRoundedRect(-noticeWidth / 2, 0, noticeWidth, 48, 6);
+        panel.fillStyle(info.color, 0.92);
+        panel.fillRoundedRect(-noticeWidth / 2, 0, 4, 48, 2);
+
+        const title = this.add.text(
+            -noticeWidth / 2 + 16,
+            9,
+            `${element.toUpperCase()} RESONANCE`,
+            {
+                fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F4F4F4'
+            }
+        );
+        const effect = this.add.text(
+            -noticeWidth / 2 + 16,
+            25,
+            info.effect,
+            {
+                fontSize: '11px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#D7E2DE'
+            }
+        );
+        notice.add([panel, title, effect]);
+        this.cosmicAffinityNotice = notice;
+
         this.tweens.add({
-            targets: text,
+            targets: notice,
             alpha: 1,
-            duration: 500,
+            y: 32,
+            duration: 220,
+            ease: 'Quad.easeOut',
             onComplete: () => {
-                this.time.delayedCall(2500, () => {
-                    this.tweens.add({
-                        targets: text,
-                        alpha: 0,
-                        y: text.y - 20,
-                        duration: 500,
-                        onComplete: () => text.destroy()
-                    });
-                });
+                this.cosmicAffinityNoticeTimer = this.time.delayedCall(
+                    2400,
+                    () => this.dismissCosmicAffinityNotice()
+                );
+            }
+        });
+    }
+
+    dismissCosmicAffinityNotice(duration = 180) {
+        this.cosmicAffinityNoticeTimer?.remove?.(false);
+        this.cosmicAffinityNoticeTimer = null;
+        const notice = this.cosmicAffinityNotice;
+        this.cosmicAffinityNotice = null;
+        if (!notice?.active) return;
+
+        const restoreDailyGift = () => {
+            if (!this.sanctuaryFocusModeActive) {
+                this.getHudController().updateDailyBonusButton();
+            }
+        };
+
+        this.tweens.killTweensOf(notice);
+        if (duration <= 0) {
+            notice.destroy(true);
+            restoreDailyGift();
+            return;
+        }
+        this.tweens.add({
+            targets: notice,
+            alpha: 0,
+            y: notice.y - 6,
+            duration,
+            ease: 'Quad.easeIn',
+            onComplete: () => {
+                notice.destroy(true);
+                restoreDailyGift();
             }
         });
     }
@@ -15083,6 +15158,7 @@ class GameScene extends Phaser.Scene {
         this.sanctuaryFocusModeActive = nextActive;
 
         if (nextActive) {
+            this.dismissCosmicAffinityNotice();
             this.kidModeHelpContainer?.destroy?.(true);
             this.kidModeHelpContainer = null;
             this.dailyBonusButton?.setVisible?.(false);

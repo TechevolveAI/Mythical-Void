@@ -4465,7 +4465,10 @@ class WorldBuilder {
      */
     getObjectCount(objectType) {
         const counts = {
-            nebula: { trees: 15, rocks: 30, flowers: 25 },
+            // The Sanctuary's landmarks and routes carry the visual hierarchy.
+            // Atmospheric particles keep it alive without turning scenery into
+            // dozens of competing collision silhouettes.
+            nebula: { trees: 8, rocks: 15, flowers: 14 },
             stellar_reef: { trees: 0, rocks: 20, flowers: 30 },
             crystal_caves: { trees: 5, rocks: 40, flowers: 15 },
             void_peaks: { trees: 8, rocks: 35, flowers: 10 },
