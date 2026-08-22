@@ -105,6 +105,9 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain('getVillageHeartInteractionPresentation(snapshot)');
         expect(sceneSource).toContain('offerVillageHeartInteraction(snapshot');
         expect(sceneSource).toContain("ownerLabel: 'VILLAGE HEART'");
+        expect(sceneSource).toContain('this.setupVillageHeartCollision();');
+        expect(sceneSource).toContain('updateSanctuaryActorDepths()');
+        expect(sceneSource).toContain(".setData?.('sanctuaryDepthSorted', true)");
         expect(sceneSource).toContain('this.offerVillageHeartInteraction(closeSnapshot)');
         expect(sceneSource).toContain(
             "!this.sanctuaryInteractionDirector?.candidates?.has('villageHeart')"
@@ -648,6 +651,9 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('.setDepth(-21)');
         expect(world).toContain('.setDepth(-20)');
         expect(world).toContain('const heartDisplaySize = settlementLayout.heartArtworkSize;');
+        expect(world).toContain(".setData('villageHeartCollisionCore', true)");
+        expect(world).toContain(".setData('villageHeartApproachThreshold', true)");
+        expect(world).toContain(".setData('approachDirection', 'south')");
         expect(world).toContain(".setData('villageLayoutProfile', settlementLayout.profile)");
         expect(world).toContain(".setData('villageHeartCaption', true)");
         expect(world).toContain('landmark.heartCaption?.setAlpha(');

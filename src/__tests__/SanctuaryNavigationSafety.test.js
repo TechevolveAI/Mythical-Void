@@ -131,4 +131,20 @@ describe('Sanctuary navigation safety', () => {
         expect(gameSource).toContain("this.withdrawSanctuaryInteraction('flower')");
         expect(gameSource).toContain('priority: 8');
     });
+
+    test('idle breathing never tweens a physics-controlled creature position', () => {
+        const gameSource = fs.readFileSync(
+            path.join(__dirname, '../scenes/GameScene.js'),
+            'utf8'
+        );
+        const start = gameSource.indexOf('addBreathingAnimation(creature, baseScale)');
+        const end = gameSource.indexOf('setupGenerationEffects()', start);
+        const breathingSource = gameSource.slice(start, end);
+        const physicsGuard = breathingSource.indexOf('if (!creature.body)');
+        const positionalTween = breathingSource.indexOf('y: baseY - bobbingAmplitude');
+
+        expect(physicsGuard).toBeGreaterThan(0);
+        expect(positionalTween).toBeGreaterThan(physicsGuard);
+        expect(breathingSource).toContain("'positionSafeBreathing'");
+    });
 });

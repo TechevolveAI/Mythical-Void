@@ -10732,7 +10732,9 @@ async function smokeVillageUi(session, exceptions) {
         scene.physics.pause();
         scene.player.setPosition(approachX, approachY);
         scene.player.body?.reset?.(approachX, approachY);
-        if (scene.player.body) scene.player.body.enable = false;
+        scene.player.body?.setVelocity?.(0, 0);
+        scene.updateSanctuaryActorDepths();
+        scene.astronautFollower?.update(1000);
         scene.handleVillageHeartProximity();
         return {
             worldWidth: scene.worldWidth,
@@ -10881,6 +10883,27 @@ async function smokeVillageUi(session, exceptions) {
                     alpha: presentation.container?.alpha,
                     focusRingAlpha: presentation.focusRing?.alpha
                 }))
+            },
+            heartApproach: {
+                threshold: landmark.heartCaption?.getData?.(
+                    'villageHeartApproachThreshold'
+                ) === true,
+                direction: landmark.heartCaption?.getData?.('approachDirection'),
+                anchorX: landmark.heartCaption?.getData?.('approachAnchorX'),
+                anchorY: landmark.heartCaption?.getData?.('approachAnchorY'),
+                coreActive: landmark.collisionZone?.active === true,
+                coreBodyEnabled: landmark.collisionZone?.body?.enable === true,
+                coreWidth: landmark.collisionZone?.body?.width,
+                coreHeight: landmark.collisionZone?.body?.height,
+                coreShape: landmark.collisionZone?.getData?.('collisionShape'),
+                positionSafeBreathing: scene.player.getData?.(
+                    'positionSafeBreathing'
+                ) === true,
+                actorDepthSorted: scene.player.getData?.('sanctuaryDepthSorted') === true,
+                actorLayer: scene.player.getData?.('villageHeartLayer'),
+                actorDepth: scene.player.depth,
+                actorY: scene.player.y,
+                heartArtworkDepth: landmark.heartArtwork?.depth
             },
             mobileDiagnostics: {
                 controlsMobile: scene.mobileControls?.isMobile === true,
@@ -11197,6 +11220,24 @@ async function smokeVillageUi(session, exceptions) {
             plot.alpha >= 1 ||
             plot.focusRingAlpha !== 0
         )) ||
+        !integratedWorld.heartApproach.threshold ||
+        integratedWorld.heartApproach.direction !== 'south' ||
+        integratedWorld.heartApproach.anchorY <= integratedSetup.focusTarget.y ||
+        !integratedWorld.heartApproach.coreActive ||
+        !integratedWorld.heartApproach.coreBodyEnabled ||
+        integratedWorld.heartApproach.coreWidth !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 88 : 104
+        ) ||
+        integratedWorld.heartApproach.coreHeight !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 62 : 72
+        ) ||
+        integratedWorld.heartApproach.coreShape !== 'oval_core' ||
+        !integratedWorld.heartApproach.positionSafeBreathing ||
+        !integratedWorld.heartApproach.actorDepthSorted ||
+        integratedWorld.heartApproach.actorLayer !== 'behind' ||
+        integratedWorld.heartApproach.actorDepth !== integratedWorld.heartApproach.actorY ||
+        integratedWorld.heartApproach.actorDepth >=
+            integratedWorld.heartApproach.heartArtworkDepth ||
         (SMOKE_VIEWPORT_WIDTH <= 600 && !integratedWorld.controlDock) ||
         (SMOKE_VIEWPORT_WIDTH > 600 && integratedWorld.controlDock) ||
         (
@@ -11386,11 +11427,57 @@ async function smokeVillageUi(session, exceptions) {
     ) {
         throw new Error(`Integrated Sanctuary world failed: ${JSON.stringify({ integratedSetup, integratedWorld })}`);
     }
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const notification = scene?.achievementNotification;
+        if (notification?.isVisible) {
+            notification.queue = [];
+            notification.destroy();
+        }
+        return notification?.isVisible !== true;
+    })()`);
+    await delay(80);
     await captureGameplayStill(
         session,
         SMOKE_VIEWPORT_WIDTH <= 600
             ? 'village-integrated-sanctuary-mobile.png'
             : 'village-integrated-sanctuary-desktop.png'
+    );
+    const frontApproach = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene.villageHeartLandmark;
+        const anchor = landmark.approachAnchor;
+        scene.player.setPosition(anchor.x, anchor.y);
+        scene.player.body?.reset?.(anchor.x, anchor.y);
+        if (scene.player.body) scene.player.body.enable = false;
+        scene.updateSanctuaryActorDepths();
+        scene.astronautFollower?.update(1000);
+        return {
+            anchor,
+            actorX: scene.player.x,
+            actorY: scene.player.y,
+            actorDepth: scene.player.depth,
+            actorLayer: scene.player.getData?.('villageHeartLayer'),
+            heartArtworkDepth: landmark.heartArtwork?.depth,
+            astronautDepth: scene.astronautFollower?.sprite?.depth,
+            astronautY: scene.astronautFollower?.sprite?.y
+        };
+    })()`);
+    if (
+        frontApproach.actorX !== frontApproach.anchor.x ||
+        frontApproach.actorY !== frontApproach.anchor.y ||
+        frontApproach.actorDepth !== frontApproach.actorY ||
+        frontApproach.actorLayer !== 'front' ||
+        frontApproach.actorDepth <= frontApproach.heartArtworkDepth ||
+        Math.abs(frontApproach.astronautDepth - frontApproach.astronautY) > 0.01
+    ) {
+        throw new Error(`Village Heart front approach failed: ${JSON.stringify(frontApproach)}`);
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-heart-approach-mobile.png'
+            : 'village-heart-approach-desktop.png'
     );
     const returnRitual = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');

@@ -837,6 +837,12 @@ class WorldBuilder {
         zone.setDepth(y);
         zone.landmarkId = 'villageHeart';
         zone.landmarkData = landmarkData;
+        const collisionZone = this.scene.add.zone(x, y + 4, 96, 68);
+        this.scene.physics.add.existing(collisionZone, true);
+        collisionZone.setDepth(y)
+            .setData('villageHeartCollisionCore', true)
+            .setData('collisionShape', 'oval_core');
+        const approachAnchor = { x, y: y + 108 };
 
         const districtTerrain = this.scene.add.graphics()
             .setPosition(x, y)
@@ -915,6 +921,8 @@ class WorldBuilder {
 
         const landmark = {
             zone,
+            collisionZone,
+            approachAnchor,
             districtTerrain,
             currentPaths,
             districtEcology,
@@ -1319,6 +1327,7 @@ class WorldBuilder {
             districtEcology,
             districtPulse,
             districtThresholds,
+            collisionZone,
             heart,
             heartCaption,
             heartArtwork,
@@ -1332,6 +1341,18 @@ class WorldBuilder {
         const settlementLayout = compactSettlement
             ? VILLAGE_SETTLEMENT_LAYOUTS.compact
             : VILLAGE_SETTLEMENT_LAYOUTS.expanded;
+        const collisionWidth = compactSettlement ? 88 : 104;
+        const collisionHeight = compactSettlement ? 62 : 72;
+        const approachOffsetY = compactSettlement ? 108 : 112;
+        collisionZone?.setSize?.(collisionWidth, collisionHeight);
+        collisionZone?.body?.setSize?.(collisionWidth, collisionHeight);
+        collisionZone?.setData('collisionWidth', collisionWidth)
+            .setData('collisionHeight', collisionHeight)
+            .setData('approachClearance', approachOffsetY);
+        if (landmark.approachAnchor) {
+            landmark.approachAnchor.x = landmark.zone.x;
+            landmark.approachAnchor.y = landmark.zone.y + approachOffsetY;
+        }
         if (heartArtwork) {
             const heartDisplaySize = settlementLayout.heartArtworkSize;
             heartArtwork.setDisplaySize(heartDisplaySize, heartDisplaySize);
@@ -1372,7 +1393,16 @@ class WorldBuilder {
             .lineStyle(1, unlocked ? 0x71E6B1 : 0x53616A, unlocked ? 0.52 : 0.28)
             .strokeEllipse(0, compactSettlement ? 94 : 100, compactSettlement ? 144 : 168, 38)
             .setData('villageHeartCaption', true)
+            .setData('villageHeartApproachThreshold', true)
+            .setData('approachDirection', 'south')
+            .setData('approachAnchorX', landmark.approachAnchor?.x)
+            .setData('approachAnchorY', landmark.approachAnchor?.y)
             .setData('villageLayoutProfile', settlementLayout.profile);
+        const thresholdY = compactSettlement ? 94 : 100;
+        const thresholdSpan = compactSettlement ? 58 : 68;
+        heartCaption.lineStyle(2, unlocked ? 0x8FE3CF : 0x53616A, unlocked ? 0.42 : 0.22);
+        heartCaption.lineBetween(-thresholdSpan, thresholdY + 9, -34, thresholdY + 3);
+        heartCaption.lineBetween(thresholdSpan, thresholdY + 9, 34, thresholdY + 3);
         restorationRoots
             .setData('rootBudCount', VILLAGE_PLOTS.length)
             .setData('litRootCount', restoredCount)
@@ -7800,6 +7830,7 @@ class WorldBuilder {
             element => element?.destroy?.(true)
         );
         this.villageHeart?.zone?.destroy?.();
+        this.villageHeart?.collisionZone?.destroy?.();
         this.villageHeart?.plotHitZones?.forEach(zone => zone?.destroy?.());
         this.villageHeart?.districtTerrain?.destroy?.();
         this.villageHeart?.currentPaths?.destroy?.();

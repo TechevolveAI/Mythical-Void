@@ -196,6 +196,7 @@ class GameScene extends Phaser.Scene {
         this.campfire = null;
         this.signalGarden = null;
         this.villageHeartLandmark = null;
+        this.villageHeartCollider = null;
         this.nearVillageHeart = false;
         this.villageCommunityMomentIndex = 0;
         this.lastVillageCommunityMomentAt = 0;
@@ -1195,6 +1196,7 @@ class GameScene extends Phaser.Scene {
                         null,
                         this
                     );
+                    this.setupVillageHeartCollision();
                 }
                 if (this.fusionPodLandmark?.zone) {
                     this.physics.add.overlap(
@@ -1757,6 +1759,7 @@ class GameScene extends Phaser.Scene {
             },
             size: { width: 150, height: 130 }
         }, previewSnapshot);
+        this.setupVillageHeartCollision();
 
         this.villageCommandPanel = new VillageCommandPanel(this);
         const previewPanelOptions = {
@@ -6177,6 +6180,44 @@ class GameScene extends Phaser.Scene {
 
         // Add breathing/idle animation to make creature feel alive
         this.addBreathingAnimation(this.player, 1.0);
+        this.updateSanctuaryActorDepths();
+    }
+
+    setupVillageHeartCollision() {
+        this.villageHeartCollider?.destroy?.();
+        this.villageHeartCollider = null;
+        if (!this.player?.body || !this.villageHeartLandmark?.collisionZone?.body) {
+            return null;
+        }
+        this.villageHeartCollider = this.physics.add.collider(
+            this.player,
+            this.villageHeartLandmark.collisionZone
+        );
+        return this.villageHeartCollider;
+    }
+
+    updateSanctuaryActorDepths() {
+        if (this.currentBiome !== 'nebula' || !this.player?.setDepth) return false;
+        const actorDepth = Number(this.player.y || 0);
+        this.player.setDepth(actorDepth)
+            .setData?.('sanctuaryDepthSorted', true);
+        this.generationAura?.setDepth?.(actorDepth - 1);
+        this.orbitingParticles?.forEach(orbit => {
+            orbit.graphics?.setDepth?.(actorDepth + 1);
+        });
+
+        const heart = this.villageHeartLandmark?.zone;
+        if (heart) {
+            const insideHeartBand = Math.abs(this.player.x - heart.x) <= 92 &&
+                Math.abs(this.player.y - heart.y) <= 112;
+            const layer = !insideHeartBand
+                ? 'clear'
+                : actorDepth > Number(heart.y || 0) + 2
+                    ? 'front'
+                    : 'behind';
+            this.player.setData?.('villageHeartLayer', layer);
+        }
+        return true;
     }
 
     createExpeditionAstronaut() {
@@ -6220,9 +6261,6 @@ class GameScene extends Phaser.Scene {
 
         console.log('game:info [GameScene] Adding breathing animation for stage:', stage);
 
-        // Store the base Y position for bobbing
-        const baseY = creature.y;
-
         // Breathing animation - gentle scale oscillation (squash/stretch)
         const breathingTween = this.tweens.add({
             targets: creature,
@@ -6235,30 +6273,23 @@ class GameScene extends Phaser.Scene {
         });
         this.breathingTweens.push(breathingTween);
 
-        // Subtle bobbing animation - only when not moving
-        const bobbingAmplitude = isBaby ? 4 : (isJuvenile ? 3 : 2);
-        const bobbingTween = this.tweens.add({
-            targets: creature,
-            y: baseY - bobbingAmplitude,
-            duration: breathingDuration * 1.2,
-            ease: 'Sine.easeInOut',
-            yoyo: true,
-            repeat: -1,
-            delay: 150, // Slight offset from breathing for natural feel
-            onUpdate: () => {
-                // Pause bobbing if player is moving significantly
-                if (creature.body && (Math.abs(creature.body.velocity.x) > 10 || Math.abs(creature.body.velocity.y) > 10)) {
-                    if (bobbingTween.isPlaying()) {
-                        bobbingTween.pause();
-                    }
-                } else {
-                    if (bobbingTween.isPaused()) {
-                        bobbingTween.resume();
-                    }
-                }
-            }
-        });
-        this.breathingTweens.push(bobbingTween);
+        // Physics owns the player's world position. Tweening a physics actor's
+        // y-coordinate makes idle animation fight joystick and collision motion.
+        if (!creature.body) {
+            const baseY = creature.y;
+            const bobbingAmplitude = isBaby ? 4 : (isJuvenile ? 3 : 2);
+            const bobbingTween = this.tweens.add({
+                targets: creature,
+                y: baseY - bobbingAmplitude,
+                duration: breathingDuration * 1.2,
+                ease: 'Sine.easeInOut',
+                yoyo: true,
+                repeat: -1,
+                delay: 150
+            });
+            this.breathingTweens.push(bobbingTween);
+        }
+        creature.setData?.('positionSafeBreathing', Boolean(creature.body));
 
         // Setup generation-based visual effects for bred creatures
         this.setupGenerationEffects();
@@ -14815,6 +14846,7 @@ class GameScene extends Phaser.Scene {
         if (this._isShuttingDown || !this.player?.active || !this.player.body?.enable) {
             return;
         }
+        this.updateSanctuaryActorDepths();
 
         if (this.waypointPreview) {
             this.projectBeaconWaypoint?.update(delta || 16.67);
@@ -17061,6 +17093,8 @@ class GameScene extends Phaser.Scene {
         this.villageCommandPanel = null;
         this.villageReconcileTimer?.remove?.();
         this.villageReconcileTimer = null;
+        this.villageHeartCollider?.destroy?.();
+        this.villageHeartCollider = null;
         this.villageHeartLandmark = null;
         this.nearVillageHeart = false;
         this.sanctuaryInteractionDirector?.destroy?.();
