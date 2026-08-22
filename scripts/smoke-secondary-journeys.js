@@ -10722,6 +10722,7 @@ async function smokeVillageUi(session, exceptions) {
         });
         state.set('world.signalGarden.stage', 'bloom');
         state.set('story.projectBeacon.missionLogSeen', true);
+        state.set('tutorial.villageHeartArrivalSeen', true);
         state.save();
         if (scene.villageArrivalRevealActive) {
             scene.finishVillageArrivalReveal({ skipped: true });
@@ -10886,10 +10887,8 @@ async function smokeVillageUi(session, exceptions) {
                 return {
                     isVisible: notification?.isVisible === true,
                     overlayAlpha: overlay.alpha,
-                    coverage: overlay.getData?.('screenSpaceCoverage'),
-                    coverageWidth: overlay.getData?.('screenSpaceWidth'),
-                    coverageHeight: overlay.getData?.('screenSpaceHeight'),
-                    coverageZoom: overlay.getData?.('screenSpaceZoom'),
+                    overlayVisible: overlay.visible === true,
+                    backdropMode: overlay.getData?.('achievementBackdropMode'),
                     scrollFactorX: overlay.scrollFactorX,
                     scrollFactorY: overlay.scrollFactorY,
                     screenCenterX: overlay.x * camera.zoom,
@@ -11267,15 +11266,9 @@ async function smokeVillageUi(session, exceptions) {
             integratedWorld.achievementOverlay && (
                 integratedWorld.achievementOverlay.scrollFactorX !== 0 ||
                 integratedWorld.achievementOverlay.scrollFactorY !== 0 ||
-                integratedWorld.achievementOverlay.coverage !== 'viewport' ||
-                integratedWorld.achievementOverlay.coverageWidth !==
-                    integratedWorld.viewport.width ||
-                integratedWorld.achievementOverlay.coverageHeight !==
-                    integratedWorld.viewport.height ||
-                Math.abs(
-                    integratedWorld.achievementOverlay.coverageZoom -
-                    integratedWorld.camera.zoom
-                ) > 0.001 ||
+                integratedWorld.achievementOverlay.overlayVisible ||
+                integratedWorld.achievementOverlay.overlayAlpha !== 0 ||
+                integratedWorld.achievementOverlay.backdropMode !== 'non_blocking' ||
                 Math.abs(
                     integratedWorld.achievementOverlay.screenCenterX -
                     (integratedWorld.viewport.width / 2)
@@ -11935,7 +11928,30 @@ async function smokeVillageUi(session, exceptions) {
             button: 'none'
         });
     }
-    await delay(420);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const presentation = scene?.villageHeartLandmark?.plotPresentations?.find(
+                item => item.plotId === '${structureProximity?.plotId || ''}'
+            );
+            return presentation &&
+                Math.abs(
+                    presentation.container?.alpha -
+                    ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.58 : 0.72}
+                ) <= 0.01 &&
+                Math.abs(
+                    presentation.worker?.alpha -
+                    ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.58 : 0.68}
+                ) <= 0.01 &&
+                presentation.plotLabel?.alpha === 0 &&
+                presentation.stateLabel?.alpha === 0 &&
+                presentation.focusRing?.alpha === 0;
+        })()`),
+        {
+            timeoutMs: 4000,
+            message: 'Village structure proximity ambient state restored'
+        }
+    );
     const structureProximityRest = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const presentation = scene?.villageHeartLandmark?.plotPresentations?.find(

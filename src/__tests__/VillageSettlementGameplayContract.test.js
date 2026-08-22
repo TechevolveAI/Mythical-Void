@@ -17,6 +17,8 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('scale: 1 / cameraZoom');
         expect(source).toContain('drawScreenSpaceRect(graphics, color, alpha)');
         expect(source).toContain(".setData('screenSpaceCoverage', 'viewport')");
+        expect(source).toContain(".setData('achievementBackdropMode', 'non_blocking')");
+        expect(source).toContain('.setVisible(false)');
         expect(source).toContain('screenSpace.width / screenSpace.cameraZoom');
         expect(source).toContain('screenSpace.height / screenSpace.cameraZoom');
         expect(source).toContain('const uiScale = screenSpace.scale;');

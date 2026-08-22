@@ -77,9 +77,14 @@ class AchievementNotification {
         this.contentContainer.setScale(0.8);
         this.container.add(this.contentContainer);
 
-        // Dark overlay
-        this.overlay = this.scene.add.graphics();
-        this.drawScreenSpaceRect(this.overlay, 0x000000, 0.6).setDepth(9999);
+        // Achievements are non-blocking world notifications; exploration remains visible.
+        this.overlay = this.scene.add.graphics()
+            .setPosition(screenSpace.x, screenSpace.y)
+            .setScrollFactor(0)
+            .setDepth(9999)
+            .setVisible(false)
+            .setAlpha(0)
+            .setData('achievementBackdropMode', 'non_blocking');
         this.scene.events.off('update', this.syncCameraZoom, this);
         this.scene.events.on('update', this.syncCameraZoom, this);
 
@@ -304,7 +309,11 @@ class AchievementNotification {
             ?.setPosition(screenSpace.x, screenSpace.y)
             .setScale(screenSpace.scale)
             .setScrollFactor(0);
-        this.drawScreenSpaceRect(this.overlay, 0x000000, 0.6);
+        this.overlay
+            .setPosition(screenSpace.x, screenSpace.y)
+            .setScrollFactor(0)
+            .setVisible(false)
+            .setAlpha(0);
         return true;
     }
 
