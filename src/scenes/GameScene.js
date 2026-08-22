@@ -206,6 +206,7 @@ class GameScene extends Phaser.Scene {
         this.villageArrivalRevealTimer = null;
         this.villageArrivalRevealScheduleTimer = null;
         this.villageArrivalRevealSkipArmTimer = null;
+        this.villageArrivalRevealHandoffTimer = null;
         this.villageArrivalRevealInputShield = null;
         this.villageArrivalRevealInputCooldownUntil = 0;
         this.villageArrivalRevealHiddenElements = [];
@@ -388,6 +389,8 @@ class GameScene extends Phaser.Scene {
         this.dailyBonusButton = null;
         this.dailyBonusGlow = null;
         this.isShowingTutorial = false;
+        this.activeTutorialHint = null;
+        this.activeTutorialHintTween = null;
         this.welcomeToastDisplayed = false;
         this.shownDepartureWarning = false;
         this.welcomeBackChecked = false;
@@ -762,6 +765,7 @@ class GameScene extends Phaser.Scene {
         this.villageArrivalRevealTimer = null;
         this.villageArrivalRevealScheduleTimer = null;
         this.villageArrivalRevealSkipArmTimer = null;
+        this.villageArrivalRevealHandoffTimer = null;
         this.villageArrivalRevealInputShield = null;
         this.villageArrivalRevealInputCooldownUntil = 0;
         this.villageArrivalRevealHiddenElements = [];
@@ -4029,6 +4033,8 @@ class GameScene extends Phaser.Scene {
         this.joystickY = 0;
         this.lastPositionPersistedAt = Number.NEGATIVE_INFINITY;
         this.isShowingTutorial = false;
+        this.activeTutorialHint = null;
+        this.activeTutorialHintTween = null;
         this.welcomeToastDisplayed = false;
         this.combatCooldown = 0;
         this.floatingParticles = [];
@@ -5059,9 +5065,11 @@ class GameScene extends Phaser.Scene {
         this.villageArrivalRevealRestoreControls = false;
         this.villageArrivalRevealPreviousFocus = false;
         if (onComplete) {
-            this.time.delayedCall(280, () => {
+            window.clearTimeout(this.villageArrivalRevealHandoffTimer);
+            this.villageArrivalRevealHandoffTimer = window.setTimeout(() => {
+                this.villageArrivalRevealHandoffTimer = null;
                 if (!this._isShuttingDown) onComplete();
-            });
+            }, 280);
         }
         return true;
     }
@@ -5078,6 +5086,8 @@ class GameScene extends Phaser.Scene {
         this.villageArrivalRevealInputShield?.destroy?.();
         this.villageArrivalRevealInputShield = null;
         this.input?.keyboard?.off?.('keydown', this.skipVillageArrivalReveal, this);
+        window.clearTimeout(this.villageArrivalRevealHandoffTimer);
+        this.villageArrivalRevealHandoffTimer = null;
         this.worldBuilder?.clearVillageArrivalReveal?.(this.villageHeartLandmark);
         this.setVillageArrivalChromeHidden(false);
         if (this.villageArrivalRevealRestoreControls) {
@@ -8667,6 +8677,9 @@ class GameScene extends Phaser.Scene {
     refreshVillageSettlementWorld(snapshot = null, { force = false } = {}) {
         if (!this.villageHeartLandmark || !this.worldBuilder) return null;
         const nextSnapshot = snapshot || getVillageSnapshot(window.GameState);
+        if (nextSnapshot?.unlock?.unlocked === true) {
+            this.dismissLegacyTutorialHint();
+        }
         const signature = this.getVillageRenderSignature(nextSnapshot);
         if (!force && signature === this.villageRenderSignature) {
             return nextSnapshot;
@@ -15502,10 +15515,16 @@ class GameScene extends Phaser.Scene {
             return;
         }
         const completed = this.tutorialSystem.checkTutorials(getGameState().get(), this) || [];
-        completed.forEach((tutorial) => this.showTutorialCompletion(tutorial));
+        if (this.shouldPresentLegacyTutorialFeedback()) {
+            completed.forEach((tutorial) => this.showTutorialCompletion(tutorial));
+        }
     }
 
     showTutorialHintIfNeeded() {
+        if (!this.shouldPresentLegacyTutorialFeedback()) {
+            this.dismissLegacyTutorialHint();
+            return;
+        }
         if (!this.tutorialSystem?.getNextTutorial || this.isShowingTutorial) {
             return;
         }
@@ -15515,7 +15534,29 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    shouldPresentLegacyTutorialFeedback() {
+        if (this._isShuttingDown || this.currentBiome !== 'nebula') return false;
+        const villageSnapshot = this.villageHeartLandmark?.snapshot ||
+            getVillageSnapshot(window.GameState);
+        if (villageSnapshot?.unlock?.unlocked === true) return false;
+        return !(
+            this.sanctuaryFocusModeActive ||
+            this.villageArrivalRevealActive ||
+            this.villageCommandPanel?.domElement
+        );
+    }
+
+    dismissLegacyTutorialHint() {
+        this.activeTutorialHintTween?.stop?.();
+        this.activeTutorialHintTween = null;
+        this.activeTutorialHint?.destroy?.();
+        this.activeTutorialHint = null;
+        this.isShowingTutorial = false;
+        return true;
+    }
+
     showTutorialHint(tutorial) {
+        this.dismissLegacyTutorialHint();
         this.isShowingTutorial = true;
         const { width } = this.scale;
         const isMobile = width < 600;
@@ -15534,14 +15575,20 @@ class GameScene extends Phaser.Scene {
         }).setOrigin(0.5);
         hint.setScrollFactor(0);
         hint.setDepth(4050);
+        hint.setData('legacyTutorialHint', true);
+        this.activeTutorialHint = hint;
 
-        this.tweens.add({
+        this.activeTutorialHintTween = this.tweens.add({
             targets: hint,
             alpha: 0,
             delay: 4500,
             duration: 600,
             onComplete: () => {
                 hint.destroy();
+                if (this.activeTutorialHint === hint) {
+                    this.activeTutorialHint = null;
+                    this.activeTutorialHintTween = null;
+                }
                 this.isShowingTutorial = false;
             }
         });
@@ -15558,6 +15605,7 @@ class GameScene extends Phaser.Scene {
         }).setOrigin(0.5);
         completion.setScrollFactor(0);
         completion.setDepth(4060);
+        completion.setData('legacyTutorialCompletion', true);
 
         this.tweens.add({
             targets: completion,

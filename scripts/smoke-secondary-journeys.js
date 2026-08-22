@@ -11457,6 +11457,10 @@ async function smokeVillageUi(session, exceptions) {
             kidHelpActive: scene.kidModeHelpContainer?.active === true,
             cameraFollowingPlayer: scene.cameras.main._follow === scene.player,
             followOffsetY: scene.explorationCameraFollowOffsetY || 0,
+            legacyTutorialChrome: scene.children.list.filter(child => (
+                child?.getData?.('legacyTutorialHint') === true ||
+                child?.getData?.('legacyTutorialCompletion') === true
+            )).length,
             secondaryHud: {
                 abilityVisible: scene.abilityHUD?.container?.visible === true,
                 minimapVisible: scene.cosmicMiniMap?.background?.visible === true,
@@ -11485,6 +11489,7 @@ async function smokeVillageUi(session, exceptions) {
         focusRecovery.kidStatusBarActive ||
         focusRecovery.kidHelpActive ||
         !focusRecovery.cameraFollowingPlayer ||
+        focusRecovery.legacyTutorialChrome !== 0 ||
         (
             SMOKE_VIEWPORT_WIDTH <= 600
                 ? focusRecovery.followOffsetY >= 0

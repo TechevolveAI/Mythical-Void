@@ -136,6 +136,8 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain("window.GameState?.set('tutorial.villageHeartArrivalSeen', true)");
         expect(sceneSource).toContain("?.once?.('pointerdown', this.skipVillageArrivalReveal, this)");
         expect(sceneSource).toContain("this.input?.keyboard?.once?.('keydown', this.skipVillageArrivalReveal, this)");
+        expect(sceneSource).toContain('this.villageArrivalRevealHandoffTimer = window.setTimeout');
+        expect(sceneSource).toContain('window.clearTimeout(this.villageArrivalRevealHandoffTimer)');
         expect(sceneSource).toContain(".setData('villageArrivalRevealInputShield', true)");
         expect(sceneSource).toContain(".setData('visiblePanel', false)");
         expect(sceneSource).toContain('villageArrivalRevealInputCooldownUntil');
@@ -622,6 +624,10 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain('this.worldBuilder.setVillagePlayerProximity(landmark, activePlotId)');
         expect(scene).toContain('applyExplorationCameraFollowOffset(');
         expect(scene).toContain('layout.dockHeight * 0.46');
+        expect(scene).toContain('shouldPresentLegacyTutorialFeedback()');
+        expect(scene).toContain('if (villageSnapshot?.unlock?.unlocked === true) return false;');
+        expect(scene).toContain('this.dismissLegacyTutorialHint();');
+        expect(scene).toContain("hint.setData('legacyTutorialHint', true)");
         expect(world).toContain('compactPresentation ? 0 : 1');
         expect(world).toContain('`${definition.shortLabel} · ${building.creature.name.toUpperCase()}');
         expect(world).toContain("'villageFocusAlphaMultiplier'");
