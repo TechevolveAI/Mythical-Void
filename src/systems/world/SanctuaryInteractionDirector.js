@@ -139,7 +139,10 @@ export default class SanctuaryInteractionDirector {
         indicator.strokeEllipse(0, 0, width * 0.72, height * 0.62);
 
         const elements = [indicator];
-        if (candidate.verb || candidate.label) {
+        const usesTappableWorldCommand = candidate.hintMode === 'world' &&
+            Boolean(candidate.verb || candidate.label);
+        indicator.setData('commandChannel', usesTappableWorldCommand ? 'world' : 'hud');
+        if (usesTappableWorldCommand) {
             const beaconY = target.y - Math.max(
                 70,
                 Math.min(118, Number(target.height || 80) * 0.55 + 34)

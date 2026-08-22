@@ -108,6 +108,9 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain('this.setupVillageHeartCollision();');
         expect(sceneSource).toContain('updateSanctuaryActorDepths()');
         expect(sceneSource).toContain(".setData?.('sanctuaryDepthSorted', true)");
+        expect(sceneSource).toContain('setSanctuaryPeripheralWayfindingVisible(visible = true)');
+        expect(sceneSource).toContain(".setData('peripheralWayfindingSuppressed', !visible)");
+        expect(sceneSource).toContain('this.setSanctuaryPeripheralWayfindingVisible(!nextActive);');
         expect(sceneSource).toContain('this.offerVillageHeartInteraction(closeSnapshot)');
         expect(sceneSource).toContain(
             "!this.sanctuaryInteractionDirector?.candidates?.has('villageHeart')"

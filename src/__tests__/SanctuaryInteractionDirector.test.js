@@ -288,6 +288,8 @@ describe('SanctuaryInteractionDirector', () => {
             'Press SPACE · Visit the Cosmic Shop',
             { persistent: true, ownerId: 'shop' }
         );
+        expect(director.beacon).toBeNull();
+        expect(director.indicator.getData('commandChannel')).toBe('hud');
     });
 
     it('refreshes dynamic landmark presentation without re-offering it', () => {

@@ -15941,8 +15941,31 @@ class GameScene extends Phaser.Scene {
         this.firstContactFocusModeActive = Boolean(firstContactActive);
     }
 
+    setSanctuaryPeripheralWayfindingVisible(visible = true) {
+        const elements = [...new Set([
+            ...(this.navigationMarkers || []),
+            ...(this.navigationPathDots || [])
+        ].filter(Boolean))];
+        let managedCount = 0;
+        let visibleCount = 0;
+        elements.forEach(element => {
+            if (element.active === false) return;
+            element.setVisible?.(visible);
+            element.setData?.('sanctuaryPeripheralWayfinding', true);
+            element.setData?.('sanctuaryFocusSuppressed', !visible);
+            managedCount += 1;
+            if (element.visible !== false) visibleCount += 1;
+        });
+        this.villageHeartLandmark?.zone
+            ?.setData('peripheralWayfindingSuppressed', !visible)
+            .setData('peripheralWayfindingManagedCount', managedCount)
+            .setData('peripheralWayfindingVisibleCount', visibleCount);
+        return { managedCount, visibleCount, suppressed: !visible };
+    }
+
     updateSanctuaryFocusMode(active = this.nearVillageHeart) {
         const nextActive = Boolean(active);
+        this.setSanctuaryPeripheralWayfindingVisible(!nextActive);
         if (this.sanctuaryFocusModeActive === nextActive) return;
         this.sanctuaryFocusModeActive = nextActive;
         this.sanctuaryPresentationMode = nextActive ? 'action' : 'ambient';

@@ -11118,6 +11118,19 @@ async function smokeVillageUi(session, exceptions) {
                     backdropScrollFactorY: backdrop?.scrollFactorY
                 };
             })(),
+            peripheralWayfinding: (() => {
+                const elements = [...new Set([
+                    ...(scene.navigationMarkers || []),
+                    ...(scene.navigationPathDots || [])
+                ].filter(element => element?.active !== false))];
+                return {
+                    managedCount: elements.length,
+                    visibleCount: elements.filter(element => element.visible !== false).length,
+                    suppressed: landmark.zone?.getData?.(
+                        'peripheralWayfindingSuppressed'
+                    ) === true
+                };
+            })(),
             focus: {
                 active: scene.sanctuaryFocusModeActive === true,
                 affinityNoticeActive: scene.cosmicAffinityNotice?.active === true,
@@ -11375,6 +11388,9 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.sanctuaryParallax.backdropProfile !== 'world_background_owned_v3' ||
         integratedWorld.sanctuaryParallax.backdropScrollFactorX !== 0 ||
         integratedWorld.sanctuaryParallax.backdropScrollFactorY !== 0 ||
+        integratedWorld.peripheralWayfinding.managedCount < 1 ||
+        integratedWorld.peripheralWayfinding.visibleCount !== 0 ||
+        !integratedWorld.peripheralWayfinding.suppressed ||
         !integratedWorld.focus.active ||
         integratedWorld.focus.affinityNoticeActive ||
         integratedWorld.focus.kidStatusBarActive ||
@@ -11385,28 +11401,30 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.focus.mobileHudFocused !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
         Object.values(integratedWorld.secondaryHud).some(Boolean) ||
         integratedWorld.interactionBeacon.activeId !== 'villageHeart' ||
-        integratedWorld.interactionBeacon.verb !== 'DECIDE' ||
-        integratedWorld.interactionBeacon.label !== 'TOGETHER' ||
-        integratedWorld.interactionBeacon.ownershipLabel !== 'VILLAGE HEART' ||
-        integratedWorld.interactionBeacon.ownershipRelation !== 'named-target' ||
-        integratedWorld.interactionBeacon.hitZoneWidth !== 164 ||
-        integratedWorld.interactionBeacon.hitZoneHeight !== 52 ||
-        !integratedWorld.interactionBeacon.inputEnabled ||
-        integratedWorld.interactionBeacon.coordinateSpace !== (
-            SMOKE_VIEWPORT_WIDTH <= 600 ? 'screen' : 'world'
-        ) ||
-        integratedWorld.interactionBeacon.dockAnchored !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
-        !integratedWorld.interactionBeacon.bounds ||
-        integratedWorld.interactionBeacon.bounds.left < -1 ||
-        integratedWorld.interactionBeacon.bounds.right > integratedWorld.viewport.width + 1 ||
-        integratedWorld.interactionBeacon.bounds.top < -1 ||
-        integratedWorld.interactionBeacon.bounds.bottom > (
-            integratedWorld.controlDock?.top ?? integratedWorld.viewport.height
-        ) - (SMOKE_VIEWPORT_WIDTH <= 600 ? 9 : -1) ||
         (
             SMOKE_VIEWPORT_WIDTH <= 600
-                ? integratedWorld.interactionVisible
-                : !integratedWorld.interactionHint.includes('Decide together') ||
+                ? integratedWorld.interactionVisible ||
+                    integratedWorld.interactionBeacon.verb !== 'DECIDE' ||
+                    integratedWorld.interactionBeacon.label !== 'TOGETHER' ||
+                    integratedWorld.interactionBeacon.ownershipLabel !== 'VILLAGE HEART' ||
+                    integratedWorld.interactionBeacon.ownershipRelation !== 'named-target' ||
+                    integratedWorld.interactionBeacon.hitZoneWidth !== 164 ||
+                    integratedWorld.interactionBeacon.hitZoneHeight !== 52 ||
+                    !integratedWorld.interactionBeacon.inputEnabled ||
+                    integratedWorld.interactionBeacon.coordinateSpace !== 'screen' ||
+                    !integratedWorld.interactionBeacon.dockAnchored ||
+                    !integratedWorld.interactionBeacon.bounds ||
+                    integratedWorld.interactionBeacon.bounds.left < -1 ||
+                    integratedWorld.interactionBeacon.bounds.right >
+                        integratedWorld.viewport.width + 1 ||
+                    integratedWorld.interactionBeacon.bounds.top < -1 ||
+                    integratedWorld.interactionBeacon.bounds.bottom >
+                        integratedWorld.controlDock.top - 9
+                : integratedWorld.interactionBeacon.verb !== '' ||
+                    integratedWorld.interactionBeacon.label !== '' ||
+                    integratedWorld.interactionBeacon.inputEnabled ||
+                    integratedWorld.interactionBeacon.bounds !== null ||
+                    !integratedWorld.interactionHint.includes('Decide together') ||
                     !integratedWorld.interactionVisible ||
                     !integratedWorld.interactionBounds ||
                     integratedWorld.interactionBounds.left < -1 ||
@@ -11586,6 +11604,19 @@ async function smokeVillageUi(session, exceptions) {
             },
             heartPriority: scene.villageHeartLandmark?.heartArtwork
                 ?.getData?.('villageFocusPriority'),
+            peripheralWayfinding: (() => {
+                const elements = [...new Set([
+                    ...(scene.navigationMarkers || []),
+                    ...(scene.navigationPathDots || [])
+                ].filter(element => element?.active !== false))];
+                return {
+                    managedCount: elements.length,
+                    visibleCount: elements.filter(element => element.visible !== false).length,
+                    suppressed: scene.villageHeartLandmark?.zone?.getData?.(
+                        'peripheralWayfindingSuppressed'
+                    ) === true
+                };
+            })(),
             plotPriorities: scene.villageHeartLandmark?.plotPresentations?.map(
                 presentation => ({
                     state: presentation.plotState,
@@ -11614,6 +11645,10 @@ async function smokeVillageUi(session, exceptions) {
             visible => visible !== (SMOKE_VIEWPORT_WIDTH > 600)
         ) ||
         focusRecovery.heartPriority !== 'primary' ||
+        focusRecovery.peripheralWayfinding.managedCount < 1 ||
+        focusRecovery.peripheralWayfinding.visibleCount !==
+            focusRecovery.peripheralWayfinding.managedCount ||
+        focusRecovery.peripheralWayfinding.suppressed ||
         focusRecovery.plotPriorities.length !== 5 ||
         focusRecovery.plotPriorities.filter(plot => plot.state === 'staffed').some(
             plot => plot.priority !== 'ambient' || Math.abs(
@@ -11804,8 +11839,9 @@ async function smokeVillageUi(session, exceptions) {
             return {
                 expectedId: entry.expectedId,
                 activeId: director.active?.id || null,
-                verb: director.beacon?.getData?.('interactionVerb') || '',
-                label: director.beacon?.getData?.('interactionLabel') || '',
+                verb: director.active?.verb || '',
+                label: director.active?.label || '',
+                commandBeaconPresent: Boolean(director.beacon),
                 worldPrompt: director.active?.worldPrompt === true,
                 hintMode: director.active?.hintMode || '',
                 candidateCount: director.candidates.size,
@@ -11851,8 +11887,9 @@ async function smokeVillageUi(session, exceptions) {
                 !prompt.worldPrompt ||
                 prompt.hintMode !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 'world' : 'hud') ||
                 prompt.candidateCount !== 1 ||
-                prompt.hitZoneCount !== 1 ||
-                !prompt.inputEnabled;
+                prompt.commandBeaconPresent !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
+                prompt.hitZoneCount !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 1 : 0) ||
+                prompt.inputEnabled !== (SMOKE_VIEWPORT_WIDTH <= 600);
         })
     ) {
         throw new Error(`Sanctuary landmark prompts failed: ${JSON.stringify(landmarkPrompts)}`);
