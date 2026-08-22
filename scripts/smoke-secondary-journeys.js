@@ -10300,6 +10300,12 @@ async function smokeVillageUi(session, exceptions) {
             foundationMaterials: (landmark?.plotPresentations || []).map(
                 presentation => presentation.container?.getData?.('villageFoundationMaterial')
             ),
+            flowSignals: (landmark?.villageFlowSignals || []).map(signal => ({
+                active: signal.active === true,
+                visible: signal.visible === true,
+                role: signal.getData?.('villageAmbientRole'),
+                direction: signal.getData?.('direction')
+            })),
             foundationCradles: (landmark?.plotPresentations || []).map(presentation => {
                 const drawing = presentation.container?.list?.find(
                     child => child?.getData?.('villageFoundationCradle') === true
@@ -10329,6 +10335,14 @@ async function smokeVillageUi(session, exceptions) {
         firstArrivalWorld.heartLife.memoryLights !== 0 ||
         firstArrivalWorld.heartLife.tweenCount !== 3 ||
         firstArrivalWorld.foundationMaterials.length !== 5 ||
+        firstArrivalWorld.flowSignals.length !== 5 ||
+        firstArrivalWorld.flowSignals.filter(signal => signal.active && signal.visible).length !== 1 ||
+        firstArrivalWorld.flowSignals.filter(
+            signal => signal.role === 'guided_foundation' && signal.active
+        ).length !== 1 ||
+        firstArrivalWorld.flowSignals.filter(
+            signal => signal.role === 'quiet_background' && !signal.active
+        ).length !== 4 ||
         firstArrivalWorld.foundationMaterials.some(
             material => material !== 'living_root_cradle_v2'
         ) ||
@@ -10862,8 +10876,10 @@ async function smokeVillageUi(session, exceptions) {
                 helperName: signal.getData('helperName'),
                 buildingId: signal.getData('buildingId'),
                 worldEffectLabel: signal.getData('worldEffectLabel'),
+                role: signal.getData('villageAmbientRole'),
                 ariaLabel: signal.getData('ariaLabel'),
-                active: signal.active === true
+                active: signal.active === true,
+                visible: signal.visible === true
             })),
             targetCount: scene.targetRange?.allTargets?.length || 0,
             restoration: {
@@ -11136,13 +11152,19 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.flowSignals.length !== 5 ||
         integratedWorld.flowSignals.filter(signal => signal.direction === 'to_heart').length !== 3 ||
         integratedWorld.flowSignals.filter(signal => signal.direction === 'to_plot').length !== 2 ||
+        integratedWorld.flowSignals.some(signal => signal.active || signal.visible) ||
+        integratedWorld.flowSignals.filter(
+            signal => signal.role === 'worker_represents_delivery'
+        ).length !== 3 ||
+        integratedWorld.flowSignals.filter(
+            signal => signal.role === 'quiet_background'
+        ).length !== 2 ||
         integratedWorld.flowSignals
             .filter(signal => signal.direction === 'to_heart')
             .map(signal => signal.resource)
             .sort()
             .join(',') !== 'food,stone,wood' ||
         integratedWorld.flowSignals.some(signal => (
-            !signal.active ||
             !signal.ariaLabel ||
             (
                 signal.direction === 'to_heart' &&
@@ -11311,6 +11333,7 @@ async function smokeVillageUi(session, exceptions) {
                 ?.getData?.('villageFocusPriority'),
             plotPriorities: scene.villageHeartLandmark?.plotPresentations?.map(
                 presentation => ({
+                    state: presentation.plotState,
                     priority: presentation.container?.getData?.('villageFocusPriority'),
                     alpha: presentation.container?.alpha
                 })
@@ -11329,11 +11352,14 @@ async function smokeVillageUi(session, exceptions) {
         Object.values(focusRecovery.secondaryHud).some(
             visible => visible !== (SMOKE_VIEWPORT_WIDTH > 600)
         ) ||
-        focusRecovery.heartPriority !== 'ambient' ||
+        focusRecovery.heartPriority !== 'primary' ||
         focusRecovery.plotPriorities.length !== 5 ||
-        focusRecovery.plotPriorities.some(plot => (
-            plot.priority !== 'ambient' || plot.alpha < 0.98
-        ))
+        focusRecovery.plotPriorities.filter(plot => plot.state === 'staffed').some(
+            plot => plot.priority !== 'ambient' || Math.abs(plot.alpha - 0.82) > 0.01
+        ) ||
+        focusRecovery.plotPriorities.filter(plot => plot.state === 'available').some(
+            plot => plot.priority !== 'ambient' || Math.abs(plot.alpha - 0.24) > 0.01
+        )
     ) {
         throw new Error(`Sanctuary focus did not restore exploration HUD: ${JSON.stringify(focusRecovery)}`);
     }
@@ -11871,7 +11897,7 @@ async function smokeVillageUi(session, exceptions) {
                 : 'commons_spine_v1'
         ) ||
         layout.worldPresentation.heartDisplaySize !== (
-            SMOKE_VIEWPORT_WIDTH <= 600 ? 150 : 218
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 132 : 202
         ) ||
         !layout.worldPresentation.heartCaptionActive ||
         layout.worldPresentation.strayFieldKitShipCount !== 0 ||
@@ -11945,7 +11971,7 @@ async function smokeVillageUi(session, exceptions) {
                     : 'commons_spine_v1'
             ) ||
             presentation.artworkDisplaySize > (
-                SMOKE_VIEWPORT_WIDTH <= 600 ? 98 : 164
+                SMOKE_VIEWPORT_WIDTH <= 600 ? 88 : 153
             ) ||
             (
                 presentation.plotState === 'staffed' &&
@@ -12767,6 +12793,9 @@ async function smokeVillageUi(session, exceptions) {
             stateAlpha: presentation?.stateLabel?.alpha,
             flowDirection: presentation?.flowSignal?.getData?.('direction'),
             flowResource: presentation?.flowSignal?.getData?.('resource'),
+            flowRole: presentation?.flowSignal?.getData?.('villageAmbientRole'),
+            flowActive: presentation?.flowSignal?.active === true,
+            flowVisible: presentation?.flowSignal?.visible === true,
             stateBounds: stateBounds ? {
                 left: stateBounds.left,
                 right: stateBounds.right,
@@ -12787,6 +12816,9 @@ async function smokeVillageUi(session, exceptions) {
         constructionWorld.stateAlpha !== 1 ||
         constructionWorld.flowDirection !== 'to_plot' ||
         constructionWorld.flowResource !== null ||
+        constructionWorld.flowRole !== 'construction_current' ||
+        !constructionWorld.flowActive ||
+        !constructionWorld.flowVisible ||
         !constructionWorld.stateBounds ||
         constructionWorld.stateBounds.left < -1 ||
         constructionWorld.stateBounds.right > SMOKE_VIEWPORT_WIDTH + 1 ||

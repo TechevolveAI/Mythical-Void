@@ -23,8 +23,8 @@ import {
 const VILLAGE_SETTLEMENT_LAYOUTS = Object.freeze({
     compact: Object.freeze({
         profile: 'terraced_current_v2',
-        heartArtworkSize: 150,
-        buildingArtworkScale: 0.54,
+        heartArtworkSize: 132,
+        buildingArtworkScale: 0.48,
         plotOffsets: Object.freeze([
             Object.freeze({ x: -112, y: -226 }),
             Object.freeze({ x: 112, y: -226 }),
@@ -35,8 +35,8 @@ const VILLAGE_SETTLEMENT_LAYOUTS = Object.freeze({
     }),
     expanded: Object.freeze({
         profile: 'commons_spine_v1',
-        heartArtworkSize: 218,
-        buildingArtworkScale: 0.92,
+        heartArtworkSize: 202,
+        buildingArtworkScale: 0.84,
         plotOffsets: Object.freeze([
             Object.freeze({ x: 210, y: -176 }),
             Object.freeze({ x: 430, y: -132 }),
@@ -1009,8 +1009,8 @@ class WorldBuilder {
         compact
     }) {
         const heartBasin = compact
-            ? { x: 0, y: 22, width: 238, height: 176 }
-            : { x: 0, y: 24, width: 252, height: 184 };
+            ? { x: 0, y: 22, width: 205, height: 156 }
+            : { x: 0, y: 24, width: 230, height: 170 };
         const plotBasins = plotOffsets.map((offset, index) => {
             const plot = VILLAGE_PLOTS[index];
             const building = buildingByPlot.get(plot.id) || null;
@@ -1366,9 +1366,9 @@ class WorldBuilder {
         });
         heartCaption
             .fillStyle(0x071411, unlocked ? 0.82 : 0.62)
-            .fillEllipse(0, compactSettlement ? 94 : 100, compactSettlement ? 170 : 190, 48)
+            .fillEllipse(0, compactSettlement ? 94 : 100, compactSettlement ? 150 : 174, 44)
             .lineStyle(1, unlocked ? 0x71E6B1 : 0x53616A, unlocked ? 0.52 : 0.28)
-            .strokeEllipse(0, compactSettlement ? 94 : 100, compactSettlement ? 164 : 184, 42)
+            .strokeEllipse(0, compactSettlement ? 94 : 100, compactSettlement ? 144 : 168, 38)
             .setData('villageHeartCaption', true)
             .setData('villageLayoutProfile', settlementLayout.profile);
         restorationRoots
@@ -1494,8 +1494,8 @@ class WorldBuilder {
         glow.fillEllipse(
             0,
             22,
-            compactSettlement ? (unlocked ? 170 : 142) : (unlocked ? 196 : 160),
-            compactSettlement ? (unlocked ? 104 : 84) : (unlocked ? 120 : 96)
+            compactSettlement ? (unlocked ? 152 : 132) : (unlocked ? 180 : 152),
+            compactSettlement ? (unlocked ? 94 : 78) : (unlocked ? 110 : 90)
         );
         glow.fillStyle(unlocked ? 0xF4F4F4 : 0x53616A, unlocked ? 0.08 : 0.04);
         glow.fillEllipse(0, 18, unlocked ? 132 : 104, unlocked ? 76 : 62);
@@ -1930,6 +1930,8 @@ class WorldBuilder {
                 building,
                 definition,
                 unlocked,
+                guided: guidedPlot,
+                state: plotState,
                 index,
                 heartPosition: {
                     x: landmark.zone.x,
@@ -2453,14 +2455,17 @@ class WorldBuilder {
 
         const action = landmark.snapshot?.worldState?.nextAction || null;
         const storyMode = Boolean(active && presentationMode === 'story');
+        const ambientFocusPlotId = !active && ['build', 'assign'].includes(action?.type)
+            ? action.plotId
+            : null;
         const focusPlotId = active
             ? focusPlotIdOverride !== undefined
                 ? focusPlotIdOverride
                 : ['build', 'assign'].includes(action?.type)
                     ? action.plotId
                     : null
-            : null;
-        const heartIsPrimary = Boolean(active && !focusPlotId);
+            : ambientFocusPlotId;
+        const heartIsPrimary = !focusPlotId;
         const transition = (target, alpha) => {
             if (!target?.active) return;
             if (immediate || !this.scene.tweens?.add) {
@@ -2480,13 +2485,23 @@ class WorldBuilder {
             const directPlotCommand = Boolean(
                 primary && ['build', 'assign'].includes(action?.type)
             );
-            const priority = !active
-                ? 'ambient'
-                : primary
-                    ? 'primary'
+            const priority = primary
+                ? 'primary'
+                : !active
+                    ? 'ambient'
                     : 'supporting';
-            const alpha = !active
+            const settled = ['constructing', 'needs_helper', 'complete', 'staffed'].includes(
+                presentation.plotState
+            );
+            const ambientAlpha = primary
                 ? 1
+                : presentation.plotState === 'constructing'
+                    ? 0.9
+                    : settled
+                        ? 0.82
+                        : 0.24;
+            const alpha = !active
+                ? ambientAlpha
                 : storyMode
                     ? primary ? 0.86 : 0.48
                     : primary
@@ -2543,7 +2558,7 @@ class WorldBuilder {
             transition(presentation.container, alpha);
             if (presentation.worker) {
                 const workerAlpha = !active
-                    ? 1
+                    ? primary ? 0.92 : 0.72
                     : storyMode
                         ? primary ? 0.78 : 0.24
                         : primary
@@ -2563,11 +2578,13 @@ class WorldBuilder {
         });
 
         const heartBaseAlpha = landmark.snapshot?.unlock?.unlocked === true ? 1 : 0.52;
-        const heartAlpha = storyMode
-            ? heartIsPrimary ? heartBaseAlpha : heartBaseAlpha * 0.62
-            : active && focusPlotId
-                ? heartBaseAlpha * 0.78
-                : heartBaseAlpha;
+        const heartAlpha = !active
+            ? heartIsPrimary ? heartBaseAlpha : heartBaseAlpha * 0.88
+            : storyMode
+                ? heartIsPrimary ? heartBaseAlpha : heartBaseAlpha * 0.62
+                : focusPlotId
+                    ? heartBaseAlpha * 0.78
+                    : heartBaseAlpha;
         landmark.heartArtwork
             ?.setData('villageFocusPriority', heartIsPrimary ? 'primary' : active ? 'supporting' : 'ambient')
             .setData('villageFocusAlpha', heartAlpha)
@@ -3525,6 +3542,8 @@ class WorldBuilder {
         building,
         definition,
         unlocked = false,
+        guided = false,
+        state = 'available',
         index = 0,
         heartPosition,
         plotPosition
@@ -3534,6 +3553,16 @@ class WorldBuilder {
             building.creature &&
             definition?.production
         );
+        const isConstruction = building?.status === 'constructing' || state === 'constructing';
+        const isGuidance = Boolean(guided && !building);
+        const flowVisible = isConstruction || isGuidance;
+        const ambientRole = isConstruction
+            ? 'construction_current'
+            : isGuidance
+                ? 'guided_foundation'
+                : isDelivery
+                    ? 'worker_represents_delivery'
+                    : 'quiet_background';
         const resource = isDelivery ? definition.production.resource : null;
         const signalColors = {
             food: 0xF2C14E,
@@ -3552,7 +3581,9 @@ class WorldBuilder {
             y: (start.y + end.y) / 2 - 24
         };
         const container = this.scene.add.container(start.x, start.y)
-            .setDepth(Math.min(heartPosition.y, plotPosition.y) - 1);
+            .setDepth(Math.min(heartPosition.y, plotPosition.y) - 1)
+            .setVisible(flowVisible)
+            .setActive(flowVisible);
         const halo = this.scene.add.circle(
             0,
             0,
@@ -3582,13 +3613,17 @@ class WorldBuilder {
             .setData('helperName', building?.creature?.name || null)
             .setData('buildingId', building?.definitionId || null)
             .setData('worldEffectLabel', definition?.worldEffectLabel || null)
+            .setData('villageFlowVisible', flowVisible)
+            .setData('villageAmbientRole', ambientRole)
             .setData(
                 'ariaLabel',
-                isDelivery
-                    ? `${building.creature.name} delivers ${resource} to the Village Heart. ${definition.worldEffectLabel}.`
-                    : building
-                        ? `${definition?.label || 'Foundation'} draws Current from the Village Heart.`
-                        : 'An open foundation draws Current from the Village Heart.'
+                isConstruction
+                    ? `${definition?.label || 'The new structure'} draws construction Current from the Village Heart.`
+                    : isGuidance
+                        ? 'The Current marks the one foundation ready for the next build.'
+                        : isDelivery
+                            ? `${building.creature.name} visibly carries ${resource} to the Village Heart. ${definition.worldEffectLabel}.`
+                            : 'This open foundation stays quiet until the settlement chooses it.'
             );
 
         const travel = { progress: 0 };
@@ -3613,6 +3648,7 @@ class WorldBuilder {
             progress: 1,
             duration: 2400 + index * 240,
             delay: index * 180,
+            paused: !flowVisible,
             repeat: -1,
             ease: 'Sine.easeInOut',
             onUpdate: updatePosition,
