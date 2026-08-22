@@ -12467,6 +12467,30 @@ async function smokeVillageUi(session, exceptions) {
                     orbitNodes: landmark?.heartLife?.orbit?.getData?.('villageHeartOrbitNodeCount'),
                     leaves: landmark?.heartLife?.crown?.getData?.('villageHeartLeafCount'),
                     memoryLights: landmark?.heartLife?.crown?.getData?.('villageHeartMemoryLightCount'),
+                    resourceContributionCount: landmark?.heartLife?.aura?.getData?.(
+                        'villageHeartResourceContributionCount'
+                    ),
+                    resourceContributions: landmark?.heartLife?.aura?.getData?.(
+                        'villageHeartResourceContributions'
+                    ) || [],
+                    resourceImprints: ['food', 'wood', 'stone'].map(resource => {
+                        const imprint = landmark?.heartLife?.[resource + 'Imprint'];
+                        return {
+                            resource,
+                            active: imprint?.getData?.(
+                                'villageHeartResourceImprintActive'
+                            ) === true,
+                            contributor: imprint?.getData?.(
+                                'villageHeartResourceContributor'
+                            ) || null,
+                            effect: imprint?.getData?.(
+                                'villageHeartResourceEffect'
+                            ) || null,
+                            motion: imprint?.getData?.(
+                                'villageHeartResourceMotionProfile'
+                            ) || null
+                        };
+                    }),
                     auraFocusAlpha: landmark?.heartLife?.aura?.getData?.('villageFocusAlpha'),
                     presentationMode: landmark?.heartLife?.aura?.getData?.('villagePresentationMode'),
                     tweenCount: landmark?.heartLifeTweens?.length || 0,
@@ -12621,6 +12645,17 @@ async function smokeVillageUi(session, exceptions) {
         layout.worldPresentation.heartLife.orbitNodes !== 3 ||
         layout.worldPresentation.heartLife.leaves !== 4 ||
         layout.worldPresentation.heartLife.memoryLights !== 0 ||
+        layout.worldPresentation.heartLife.resourceContributionCount !== 3 ||
+        JSON.stringify(
+            [...layout.worldPresentation.heartLife.resourceContributions].sort()
+        ) !== JSON.stringify(['food', 'stone', 'wood']) ||
+        layout.worldPresentation.heartLife.resourceImprints.length !== 3 ||
+        layout.worldPresentation.heartLife.resourceImprints.some(imprint => (
+            !imprint.active ||
+            !imprint.contributor ||
+            !imprint.effect ||
+            imprint.motion !== 'resource_memory_v1'
+        )) ||
         layout.worldPresentation.heartLife.auraFocusAlpha !== 0.54 ||
         layout.worldPresentation.heartLife.presentationMode !== 'story' ||
         layout.worldPresentation.heartLife.tweenCount !== 3 ||
@@ -12912,6 +12947,8 @@ async function smokeVillageUi(session, exceptions) {
             ?.villageHeartLandmark;
         const worker = landmark?.workerElements?.[0];
         const deliveryPulse = landmark?.heartLife?.deliveryPulse;
+        const resource = worker?.getData('carriedResource');
+        const imprint = landmark?.heartLife?.[resource + 'Imprint'];
         return {
             phase: worker?.getData('routePhase'),
             direction: worker?.getData('routeDirection'),
@@ -12923,7 +12960,23 @@ async function smokeVillageUi(session, exceptions) {
             sourceActive: landmark?.activeDeliverySources?.has?.(
                 worker?.getData('deliverySourceId')
             ) === true,
-            lastDelivery: deliveryPulse?.getData?.('villageHeartLastDelivery')
+            lastDelivery: deliveryPulse?.getData?.('villageHeartLastDelivery'),
+            lastDeliveryResource: deliveryPulse?.getData?.(
+                'villageHeartLastDeliveryResource'
+            ),
+            imprintResource: imprint?.getData?.('villageHeartResourceImprint'),
+            imprintActive: imprint?.getData?.(
+                'villageHeartResourceImprintActive'
+            ) === true,
+            imprintDeliveryActive: imprint?.getData?.(
+                'villageHeartResourceDeliveryActive'
+            ) === true,
+            imprintDeliveryCount: imprint?.getData?.(
+                'villageHeartResourceDeliveryCount'
+            ),
+            imprintLastDelivery: imprint?.getData?.(
+                'villageHeartResourceLastDelivery'
+            )
         };
     })()`);
     if (
@@ -12935,7 +12988,13 @@ async function smokeVillageUi(session, exceptions) {
         workerDelivery.heartResponse !== true ||
         workerDelivery.heartActive !== true ||
         workerDelivery.sourceActive !== true ||
-        !workerDelivery.lastDelivery
+        workerDelivery.lastDelivery !== 'FEEDING · +5 HAPPINESS' ||
+        workerDelivery.lastDeliveryResource !== 'food' ||
+        workerDelivery.imprintResource !== 'food' ||
+        !workerDelivery.imprintActive ||
+        !workerDelivery.imprintDeliveryActive ||
+        workerDelivery.imprintDeliveryCount < 1 ||
+        workerDelivery.imprintLastDelivery !== 'FEEDING · +5 HAPPINESS'
     ) {
         throw new Error(`Village worker delivery feedback failed: ${JSON.stringify(workerDelivery)}`);
     }

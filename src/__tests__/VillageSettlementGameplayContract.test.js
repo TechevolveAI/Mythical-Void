@@ -528,6 +528,13 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("setData('villageHeartOrbitNodeCount', orbitNodeCount)");
         expect(world).toContain("setData('villageHeartMemoryLightCount'");
         expect(world).toContain("setData('villageHeartMotionProfile', 'living_current_breath_v1')");
+        expect(world).toContain('drawVillageHeartResourceImprints(');
+        expect(world).toContain("setData('villageHeartResourceImprint', config.id)");
+        expect(world).toContain("setData('villageHeartResourceContributor'");
+        expect(world).toContain("setData('villageHeartResourceEffect'");
+        expect(world).toContain("setData('villageHeartResourceDeliveryCount'");
+        expect(world).toContain("setData('villageHeartLastDeliveryResource', resource)");
+        expect(world).toContain("'resource_memory_v1'");
         expect(world).toContain('setVillageHeartDeliveryState(');
         expect(world).toContain("setData('villageHeartDeliveryResponse', true)");
         expect(world).toContain("setData('villageHeartLastDelivery', effectLabel)");

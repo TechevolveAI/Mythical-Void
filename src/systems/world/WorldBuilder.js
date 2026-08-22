@@ -905,6 +905,15 @@ class WorldBuilder {
             .setPosition(x, y - 6)
             .setDepth(y + 3.3)
             .setAlpha(0);
+        const heartFoodImprint = this.scene.add.graphics()
+            .setPosition(x, y - 22)
+            .setDepth(y + 3.15);
+        const heartWoodImprint = this.scene.add.graphics()
+            .setPosition(x, y - 22)
+            .setDepth(y + 3.15);
+        const heartStoneImprint = this.scene.add.graphics()
+            .setPosition(x, y - 22)
+            .setDepth(y + 3.15);
         const actionLabel = this.scene.add.text(x, y - 126, 'OPEN PLAN', {
             fontSize: '10px',
             fontFamily: 'Arial, sans-serif',
@@ -949,11 +958,16 @@ class WorldBuilder {
                 orbit: heartLifeOrbit,
                 crown: heartLifeCrown,
                 core: heartLifeCore,
+                foodImprint: heartFoodImprint,
+                woodImprint: heartWoodImprint,
+                stoneImprint: heartStoneImprint,
                 deliveryPulse: heartDeliveryPulse
             },
             heartLifeTweens: [],
             heartDeliveryTween: null,
+            heartImprintDeliveryTween: null,
             activeDeliverySources: new Set(),
+            resourceDeliverySources: new Map(),
             actionLabel,
             label,
             statusLabel,
@@ -1298,6 +1312,7 @@ class WorldBuilder {
         landmark.ecologyTween?.stop?.();
         landmark.heartLifeTweens?.forEach(tween => tween?.stop?.());
         landmark.heartDeliveryTween?.stop?.();
+        landmark.heartImprintDeliveryTween?.stop?.();
         landmark.buildingTweens?.forEach(tween => tween?.stop?.());
         landmark.focusTweens?.forEach(tween => tween?.stop?.());
         this.clearVillageCommunityMoment(landmark);
@@ -1309,7 +1324,9 @@ class WorldBuilder {
         landmark.buildingTweens = [];
         landmark.heartLifeTweens = [];
         landmark.heartDeliveryTween = null;
+        landmark.heartImprintDeliveryTween = null;
         landmark.activeDeliverySources?.clear?.();
+        landmark.resourceDeliverySources?.clear?.();
         landmark.focusTweens = [];
         landmark.buildingElements = [];
         landmark.plotHitZones = [];
@@ -1396,6 +1413,18 @@ class WorldBuilder {
             0,
             VILLAGE_PLOTS.length
         );
+        const resourceContributions = (snapshot?.buildings || [])
+            .filter(building => (
+                building.status === 'complete' &&
+                building.creature &&
+                building.definition?.production?.resource
+            ))
+            .map(building => ({
+                resource: building.definition.production.resource,
+                helperName: building.creature.name,
+                sourceId: building.id || `${building.plotId}:${building.definitionId}`,
+                effectLabel: building.definition.worldEffectLabel
+            }));
 
         districtTerrain.clear();
         currentPaths.clear();
@@ -1457,6 +1486,7 @@ class WorldBuilder {
             restoredCount,
             values: snapshot?.worldState?.values,
             choices: snapshot?.worldState?.choices || 0,
+            resourceContributions,
             compact: compactSettlement
         });
 
@@ -2202,6 +2232,115 @@ class WorldBuilder {
         );
     }
 
+    drawVillageHeartResourceImprints(
+        life,
+        resourceContributions = [],
+        { compact = false } = {}
+    ) {
+        const contributionByResource = new Map(
+            resourceContributions.map(contribution => [
+                contribution.resource,
+                contribution
+            ])
+        );
+        const configs = [
+            {
+                id: 'food',
+                element: life.foodImprint,
+                color: 0xF2C14E,
+                x: compact ? -31 : -43,
+                y: compact ? 25 : 34
+            },
+            {
+                id: 'wood',
+                element: life.woodImprint,
+                color: 0x8FE3CF,
+                x: compact ? 31 : 43,
+                y: compact ? 25 : 34
+            },
+            {
+                id: 'stone',
+                element: life.stoneImprint,
+                color: 0xF4F4F4,
+                x: 0,
+                y: compact ? -35 : -49
+            }
+        ];
+
+        configs.forEach(config => {
+            const contribution = contributionByResource.get(config.id) || null;
+            const element = config.element;
+            element.clear();
+            if (contribution) {
+                element.lineStyle(1, config.color, 0.34);
+                element.lineBetween(
+                    config.x * 0.34,
+                    config.y * 0.34,
+                    config.x * 0.82,
+                    config.y * 0.82
+                );
+                element.fillStyle(0x071411, 0.9);
+                element.fillCircle(config.x, config.y, compact ? 7 : 8);
+                element.lineStyle(1.5, config.color, 0.94);
+                element.strokeCircle(config.x, config.y, compact ? 6 : 7);
+
+                if (config.id === 'food') {
+                    element.fillStyle(config.color, 0.96);
+                    element.fillCircle(config.x - 1, config.y + 1, compact ? 2.5 : 3);
+                    element.lineStyle(1, 0x3FAE62, 0.96);
+                    element.lineBetween(config.x, config.y - 1, config.x + 3, config.y - 5);
+                    element.fillStyle(0x71E6B1, 0.9);
+                    element.fillEllipse(config.x + 4, config.y - 5, 4, 2.5);
+                } else if (config.id === 'wood') {
+                    element.lineStyle(2, config.color, 0.96);
+                    element.lineBetween(config.x - 4, config.y + 3, config.x + 4, config.y - 3);
+                    element.lineStyle(1, 0xF2C14E, 0.86);
+                    element.lineBetween(config.x, config.y, config.x - 1, config.y - 4);
+                    element.lineBetween(config.x + 2, config.y - 2, config.x + 5, config.y);
+                } else {
+                    element.fillStyle(config.color, 0.9);
+                    element.fillTriangle(
+                        config.x,
+                        config.y - 4,
+                        config.x - 4,
+                        config.y + 3,
+                        config.x + 4,
+                        config.y + 3
+                    );
+                    element.fillStyle(0x071411, 0.9);
+                    element.fillTriangle(
+                        config.x,
+                        config.y - 1.5,
+                        config.x - 1.8,
+                        config.y + 2,
+                        config.x + 1.8,
+                        config.y + 2
+                    );
+                }
+                element.setBlendMode?.(Phaser.BlendModes.ADD);
+            }
+            element
+                .setAlpha(contribution ? 1 : 0)
+                .setData('villageHeartResourceImprint', config.id)
+                .setData('villageHeartResourceImprintActive', Boolean(contribution))
+                .setData('villageHeartResourceContributor', contribution?.helperName || null)
+                .setData('villageHeartResourceSourceId', contribution?.sourceId || null)
+                .setData('villageHeartResourceEffect', contribution?.effectLabel || null)
+                .setData('villageHeartResourceDeliveryActive', false)
+                .setData('villageHeartResourceDeliveryCount', 0)
+                .setData('villageHeartResourceLastDelivery', null)
+                .setData('villageHeartResourceMotionProfile', 'resource_memory_v1')
+                .setData(
+                    'ariaLabel',
+                    contribution
+                        ? `${contribution.helperName} keeps the ${config.id} Current ` +
+                            `alive. ${contribution.effectLabel}.`
+                        : `${config.id} Current dormant`
+                );
+        });
+        return contributionByResource.size;
+    }
+
     drawVillageHeartLife(
         landmark,
         {
@@ -2210,6 +2349,7 @@ class WorldBuilder {
             restoredCount = 0,
             values = {},
             choices = 0,
+            resourceContributions = [],
             compact = false
         } = {}
     ) {
@@ -2310,6 +2450,11 @@ class WorldBuilder {
         life.deliveryPulse.strokeCircle(0, 8, compact ? 34 : 46);
         life.deliveryPulse.lineStyle(1, 0xF4F4F4, 0.78);
         life.deliveryPulse.strokeCircle(0, 8, compact ? 24 : 33);
+        const resourceContributionCount = this.drawVillageHeartResourceImprints(
+            life,
+            resourceContributions,
+            { compact }
+        );
         life.core
             .setRadius(compact ? 3.5 : 4.5)
             .setFillStyle(stageColor, unlocked ? 0.92 : 0.24)
@@ -2326,6 +2471,11 @@ class WorldBuilder {
         });
         life.aura
             .setData('villageHeartAuraRadius', radius)
+            .setData('villageHeartResourceContributionCount', resourceContributionCount)
+            .setData(
+                'villageHeartResourceContributions',
+                resourceContributions.map(contribution => contribution.resource)
+            )
             .setData('ariaLabel', `${stageLabel}; the Village Heart is breathing`);
         life.orbit
             .setData('villageHeartOrbitNodeCount', orbitNodeCount)
@@ -2337,7 +2487,10 @@ class WorldBuilder {
             .setData('villageHeartDeliveryResponse', true)
             .setData('villageHeartDeliveryActive', false)
             .setData('villageHeartDeliveryCount', 0)
-            .setData('villageHeartLastDelivery', null);
+            .setData('villageHeartLastDelivery', null)
+            .setData('villageHeartLastDeliveryResource', null)
+            .setData('villageHeartDeliveryOuterRadius', compact ? 34 : 46)
+            .setData('villageHeartDeliveryInnerRadius', compact ? 24 : 33);
 
         if (unlocked) {
             landmark.heartLifeTweens.push(this.scene.tweens.add({
@@ -2369,7 +2522,13 @@ class WorldBuilder {
         return true;
     }
 
-    setVillageHeartDeliveryState(landmark, sourceId, active, effectLabel = null) {
+    setVillageHeartDeliveryState(
+        landmark,
+        sourceId,
+        active,
+        effectLabel = null,
+        resource = null
+    ) {
         const life = landmark?.heartLife;
         if (!life?.deliveryPulse || !sourceId) return false;
         const sources = landmark.activeDeliverySources || new Set();
@@ -2377,12 +2536,69 @@ class WorldBuilder {
         const wasActive = sources.has(sourceId);
         if (active) sources.add(sourceId);
         else sources.delete(sourceId);
+        const resourceSources = landmark.resourceDeliverySources || new Map();
+        landmark.resourceDeliverySources = resourceSources;
+        const activeResourceSources = resourceSources.get(resource) || new Set();
+        if (active) activeResourceSources.add(sourceId);
+        else activeResourceSources.delete(sourceId);
+        if (resource) resourceSources.set(resource, activeResourceSources);
+        const imprint = {
+            food: life.foodImprint,
+            wood: life.woodImprint,
+            stone: life.stoneImprint
+        }[resource] || null;
+        imprint?.setData(
+            'villageHeartResourceDeliveryActive',
+            activeResourceSources.size > 0
+        );
         life.deliveryPulse
             .setData('villageHeartDeliveryActive', sources.size > 0)
             .setData('villageHeartDeliveryCount', sources.size);
         if (!active || wasActive) return true;
 
-        life.deliveryPulse.setData('villageHeartLastDelivery', effectLabel);
+        const resourceColor = {
+            food: 0xF2C14E,
+            wood: 0x8FE3CF,
+            stone: 0xF4F4F4
+        }[resource] || 0x71E6B1;
+        const outerRadius = Number(
+            life.deliveryPulse.getData?.('villageHeartDeliveryOuterRadius')
+        ) || 46;
+        const innerRadius = Number(
+            life.deliveryPulse.getData?.('villageHeartDeliveryInnerRadius')
+        ) || 33;
+        life.deliveryPulse.clear();
+        life.deliveryPulse.lineStyle(3, resourceColor, 0.94);
+        life.deliveryPulse.strokeCircle(0, 8, outerRadius);
+        life.deliveryPulse.lineStyle(1, 0xF4F4F4, 0.8);
+        life.deliveryPulse.strokeCircle(0, 8, innerRadius);
+        life.deliveryPulse
+            .setData('villageHeartLastDelivery', effectLabel)
+            .setData('villageHeartLastDeliveryResource', resource);
+        if (imprint?.getData?.('villageHeartResourceImprintActive') === true) {
+            const deliveryCount = Number(
+                imprint.getData('villageHeartResourceDeliveryCount')
+            ) || 0;
+            imprint
+                .setData('villageHeartResourceDeliveryCount', deliveryCount + 1)
+                .setData('villageHeartResourceLastDelivery', effectLabel)
+                .setAlpha(landmark.presentationMode === 'story' ? 0.34 : 1)
+                .setScale(0.72);
+            landmark.heartImprintDeliveryTween?.stop?.();
+            landmark.heartImprintDeliveryTween = this.scene.tweens.add({
+                targets: imprint,
+                alpha: landmark.presentationMode === 'story' ? 0.24 : 1,
+                scaleX: 1.36,
+                scaleY: 1.36,
+                duration: 420,
+                yoyo: true,
+                ease: 'Sine.easeOut',
+                onComplete: () => {
+                    imprint.setScale(1);
+                    landmark.heartImprintDeliveryTween = null;
+                }
+            });
+        }
         landmark.heartDeliveryTween?.stop?.();
         life.deliveryPulse.setAlpha(
             landmark.presentationMode === 'story' ? 0.18 : 0.96
@@ -4173,7 +4389,8 @@ class WorldBuilder {
                     landmark,
                     deliverySourceId,
                     delivering,
-                    building.definition.worldEffectLabel
+                    building.definition.worldEffectLabel,
+                    building.definition.workerRoutine?.carriedResource
                 );
             }
         };
@@ -8030,6 +8247,7 @@ class WorldBuilder {
         this.villageHeart?.heartArtworkTween?.stop?.();
         this.villageHeart?.heartLifeTweens?.forEach(tween => tween?.stop?.());
         this.villageHeart?.heartDeliveryTween?.stop?.();
+        this.villageHeart?.heartImprintDeliveryTween?.stop?.();
         this.villageHeart?.buildingTweens?.forEach(tween => tween?.stop?.());
         this.villageHeart?.focusTweens?.forEach(tween => tween?.stop?.());
         this.clearVillageCommunityMoment(this.villageHeart);
