@@ -1937,7 +1937,9 @@ class WorldBuilder {
         landmark.actionLabel
             ?.setData('villageFocusPrimary', heartIsPrimary)
             .setData('villageFocusAction', action?.type || null);
-        const actionVisible = Boolean(!storyMode && (!active || heartIsPrimary));
+        // The shared Sanctuary interaction beacon owns action copy. Keeping this
+        // text hidden prevents the Heart from publishing the same command twice.
+        const actionVisible = false;
         if (landmark.actionLabel) {
             landmark.actionLabel.setAlpha(actionVisible ? (active ? 1 : 0.58) : 0);
             if (actionVisible) {
@@ -1947,8 +1949,8 @@ class WorldBuilder {
             }
         }
         landmark.zone.setInteractive?.({ useHandCursor: true });
-        landmark.label?.setAlpha(storyMode ? 0.34 : active ? 0.76 : 0.86);
-        landmark.statusLabel?.setAlpha(storyMode ? 0.2 : active ? 0.62 : 0.82);
+        landmark.label?.setAlpha(storyMode ? 0.3 : active ? 0.8 : 0.62);
+        landmark.statusLabel?.setAlpha(storyMode ? 0.16 : active ? 0.68 : 0);
         if (landmark.nextActionElement && landmark.nextActionElement !== landmark.actionLabel) {
             landmark.nextActionElement.setAlpha(storyMode ? 0 : 1);
             if (storyMode) {

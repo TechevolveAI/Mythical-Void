@@ -1800,6 +1800,10 @@ class GameScene extends Phaser.Scene {
         this.openVillageWorkerCheckIn = ({ creatureId } = {}) => (
             this.showVillageWorkerCheckIn({ creatureId, snapshot: getVillageSnapshot(previewState) })
         );
+        this.sanctuaryInteractionDirector?.destroy?.();
+        this.sanctuaryInteractionDirector = new SanctuaryInteractionDirector(this);
+        this.nearVillageHeart = true;
+        this.offerVillageHeartInteraction(previewSnapshot);
         this.openVillageCommand({ guided: false });
     }
 
@@ -8089,7 +8093,6 @@ class GameScene extends Phaser.Scene {
         if (this.nearVillageHeart) return;
         this.nearVillageHeart = true;
         this.updateSanctuaryFocusMode(true);
-        const touchControlsVisible = this.hasVisibleTouchControls();
         const snapshot = reconcileVillageSettlement(window.GameState)
             || getVillageSnapshot(window.GameState);
         const needsGuidance = snapshot.unlock.unlocked &&
@@ -8097,24 +8100,94 @@ class GameScene extends Phaser.Scene {
         if (needsGuidance) {
             markVillageGuidanceSeen(window.GameState);
         }
-        const nextAction = snapshot.worldState?.nextAction;
-        this.offerSanctuaryInteraction({
-            id: 'villageHeart',
-            target: this.villageHeartLandmark?.zone,
-            message: this.getVillageHeartInteractionPrompt(snapshot, {
-                includeGuidance: needsGuidance,
-                touchControlsVisible
-            }),
-            icon: nextAction?.type === 'decision' ? '?' : '🏗',
-            tone: nextAction?.type === 'decision' ? 0xF2C14E : 0x71E6B1,
-            priority: 48,
-            action: () => this.openVillageCommand()
+        this.offerVillageHeartInteraction(snapshot, {
+            includeGuidance: needsGuidance
         });
+        const nextAction = snapshot.worldState?.nextAction;
         const memoryPlayed = this.maybePlayVillageHeartMemory(snapshot);
         const quietArrival = ['review', 'supplies'].includes(nextAction?.type);
         if (!memoryPlayed && quietArrival) {
             this.maybePlayVillageCommunityMoment(snapshot);
         }
+    }
+
+    offerVillageHeartInteraction(snapshot, { includeGuidance = false } = {}) {
+        if (!snapshot || !this.villageHeartLandmark?.zone) return null;
+        const touchControlsVisible = this.hasVisibleTouchControls();
+        const nextAction = snapshot.worldState?.nextAction;
+        const interactionPresentation = this.getVillageHeartInteractionPresentation(snapshot);
+        return this.offerSanctuaryInteraction({
+            id: 'villageHeart',
+            target: this.villageHeartLandmark?.zone,
+            message: this.getVillageHeartInteractionPrompt(snapshot, {
+                includeGuidance,
+                touchControlsVisible
+            }),
+            ...interactionPresentation,
+            hintMode: touchControlsVisible ? 'world' : 'hud',
+            ariaLabel: `${interactionPresentation.verb} ${interactionPresentation.label}`,
+            tone: nextAction?.type === 'decision' ? 0xF2C14E : 0x71E6B1,
+            priority: 48,
+            action: () => this.openVillageCommand(),
+            presentation: () => {
+                const liveSnapshot = this.villageHeartLandmark?.snapshot ||
+                    getVillageSnapshot(window.GameState);
+                const livePresentation = this.getVillageHeartInteractionPresentation(
+                    liveSnapshot
+                );
+                return {
+                    ...livePresentation,
+                    message: this.getVillageHeartInteractionPrompt(liveSnapshot),
+                    hintMode: this.hasVisibleTouchControls() ? 'world' : 'hud',
+                    ariaLabel: `${livePresentation.verb} ${livePresentation.label}`
+                };
+            }
+        });
+    }
+
+    getVillageHeartInteractionPresentation(snapshot) {
+        if (!snapshot?.unlock?.unlocked) {
+            return {
+                verb: 'DORMANT',
+                label: 'HATCH A COMPANION',
+                icon: '·'
+            };
+        }
+
+        const nextAction = snapshot.worldState?.nextAction || {};
+        const targetPlot = snapshot.plots?.find(plot => plot.id === nextAction.plotId);
+        const presentationByType = {
+            decision: {
+                verb: 'DECIDE',
+                label: 'TOGETHER',
+                icon: '?'
+            },
+            build: {
+                verb: 'BUILD NEXT',
+                label: targetPlot?.label || 'HIGHLIGHTED ROOT',
+                icon: '+'
+            },
+            assign: {
+                verb: 'INVITE HELP',
+                label: targetPlot?.label || 'READY STRUCTURE',
+                icon: '+'
+            },
+            supplies: {
+                verb: 'GATHER',
+                label: 'SUPPLIES',
+                icon: '↗'
+            },
+            review: {
+                verb: 'REVIEW',
+                label: 'VILLAGE PLAN',
+                icon: '✦'
+            }
+        };
+        return presentationByType[nextAction.type] || {
+            verb: 'OPEN',
+            label: 'VILLAGE PLAN',
+            icon: '✦'
+        };
     }
 
     getVillageHeartInteractionPrompt(
@@ -8552,11 +8625,16 @@ class GameScene extends Phaser.Scene {
                 return next;
             },
             onClose: () => {
-                this.showInteractionHint('Village Heart plan saved');
+                const closeSnapshot = getVillageSnapshot(window.GameState);
+                if (this.nearVillageHeart) {
+                    this.offerVillageHeartInteraction(closeSnapshot);
+                } else {
+                    this.showInteractionHint('Village Heart plan saved');
+                }
                 if (this.villageCommunityMomentPending) {
                     this.villageCommunityMomentPending = false;
                     this.maybePlayVillageCommunityMoment(
-                        getVillageSnapshot(window.GameState),
+                        closeSnapshot,
                         { force: true }
                     );
                 }
@@ -14434,6 +14512,12 @@ class GameScene extends Phaser.Scene {
             this.villageHeartLandmark?.zone &&
             this.player
         ) {
+            if (!this.sanctuaryInteractionDirector?.candidates?.has('villageHeart')) {
+                this.offerVillageHeartInteraction(
+                    this.villageHeartLandmark.snapshot ||
+                        getVillageSnapshot(window.GameState)
+                );
+            }
             const distance = Phaser.Math.Distance.Between(
                 this.player.x,
                 this.player.y,

@@ -81,6 +81,18 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain('const touchControlsVisible = this.hasVisibleTouchControls()');
         expect(sceneSource).toContain('decision: touchControlsVisible');
         expect(sceneSource).toContain("'Tap the Village Heart · Decide together'");
+        expect(sceneSource).toContain('getVillageHeartInteractionPresentation(snapshot)');
+        expect(sceneSource).toContain('offerVillageHeartInteraction(snapshot');
+        expect(sceneSource).toContain('this.offerVillageHeartInteraction(closeSnapshot)');
+        expect(sceneSource).toContain(
+            "!this.sanctuaryInteractionDirector?.candidates?.has('villageHeart')"
+        );
+        expect(sceneSource).toContain(
+            'this.sanctuaryInteractionDirector = new SanctuaryInteractionDirector(this)'
+        );
+        expect(sceneSource).toContain("verb: 'DECIDE'");
+        expect(sceneSource).toContain("label: 'TOGETHER'");
+        expect(sceneSource).toContain("hintMode: touchControlsVisible ? 'world' : 'hud'");
         expect(sceneSource).toContain("nextAction?.type === 'decision' ? '?' : '🏗'");
         expect(sceneSource).toContain('{ persistent: true }');
         expect(sceneSource).toContain('{ persistent = false, ownerId = null, force = false } = {}');
@@ -143,6 +155,10 @@ describe('Village settlement gameplay contract', () => {
         expect(directorSource).toContain('distanceDelta');
         expect(directorSource).toContain('return right.priority - left.priority');
         expect(directorSource).toContain("updateInteractIcon(next.icon)");
+        expect(directorSource).toContain("next.hintMode === 'world'");
+        expect(directorSource).toContain(".setData('sanctuaryInteractionBeacon', true)");
+        expect(directorSource).toContain(".setData('touchTargetWidth', 164)");
+        expect(directorSource).toContain(".setData('touchTargetHeight', 52)");
     });
 
     test('the Shop makes the Base Builder the direct, clear construction route', () => {

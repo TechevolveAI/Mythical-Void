@@ -10490,6 +10490,12 @@ async function smokeVillageUi(session, exceptions) {
         });
         const commons = scene.sanctuaryCommons;
         const interactionBounds = scene.interactionText?.getBounds?.();
+        const interactionDirector = scene.sanctuaryInteractionDirector;
+        const interactionBeacon = interactionDirector?.beacon;
+        const interactionHitZone = interactionDirector?.indicatorElements?.find(element => (
+            element?.getData?.('sanctuaryInteractionBeaconHitZone') === true
+        ));
+        const interactionBeaconBounds = interactionHitZone?.getBounds?.();
         const settlementBounds = scene.sanctuaryZones?.zones?.settlementDistrict?.bounds;
         const insideSettlement = object => Boolean(settlementBounds) &&
             object.x >= settlementBounds.x &&
@@ -10701,6 +10707,30 @@ async function smokeVillageUi(session, exceptions) {
             },
             interactionHint: scene.interactionText?.text || '',
             interactionVisible: scene.interactionText?.visible === true,
+            interactionBeacon: {
+                activeId: interactionDirector?.active?.id || null,
+                verb: interactionBeacon?.getData?.('interactionVerb') || '',
+                label: interactionBeacon?.getData?.('interactionLabel') || '',
+                hitZoneWidth: interactionBeacon?.getData?.('touchTargetWidth') || 0,
+                hitZoneHeight: interactionBeacon?.getData?.('touchTargetHeight') || 0,
+                inputEnabled: interactionHitZone?.input?.enabled === true,
+                bounds: interactionBeaconBounds ? (() => {
+                    const topLeft = toScreen(
+                        interactionBeaconBounds.left,
+                        interactionBeaconBounds.top
+                    );
+                    const bottomRight = toScreen(
+                        interactionBeaconBounds.right,
+                        interactionBeaconBounds.bottom
+                    );
+                    return {
+                        left: topLeft.x,
+                        right: bottomRight.x,
+                        top: topLeft.y,
+                        bottom: bottomRight.y
+                    };
+                })() : null
+            },
             interactionBounds: interactionBounds ? {
                 left: interactionBounds.left,
                 right: interactionBounds.right,
@@ -10828,13 +10858,30 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.focus.questVisible ||
         integratedWorld.focus.mobileHudFocused !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
         Object.values(integratedWorld.secondaryHud).some(Boolean) ||
-        !integratedWorld.interactionHint.includes('Decide together') ||
-        !integratedWorld.interactionVisible ||
-        !integratedWorld.interactionBounds ||
-        integratedWorld.interactionBounds.left < -1 ||
-        integratedWorld.interactionBounds.right > integratedWorld.viewport.width + 1 ||
-        integratedWorld.interactionBounds.top < -1 ||
-        integratedWorld.interactionBounds.bottom > integratedWorld.viewport.height + 1 ||
+        integratedWorld.interactionBeacon.activeId !== 'villageHeart' ||
+        integratedWorld.interactionBeacon.verb !== 'DECIDE' ||
+        integratedWorld.interactionBeacon.label !== 'TOGETHER' ||
+        integratedWorld.interactionBeacon.hitZoneWidth !== 164 ||
+        integratedWorld.interactionBeacon.hitZoneHeight !== 52 ||
+        !integratedWorld.interactionBeacon.inputEnabled ||
+        !integratedWorld.interactionBeacon.bounds ||
+        integratedWorld.interactionBeacon.bounds.left < -1 ||
+        integratedWorld.interactionBeacon.bounds.right > integratedWorld.viewport.width + 1 ||
+        integratedWorld.interactionBeacon.bounds.top < -1 ||
+        integratedWorld.interactionBeacon.bounds.bottom > (
+            integratedWorld.controlDock?.top ?? integratedWorld.viewport.height
+        ) + 1 ||
+        (
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? integratedWorld.interactionVisible
+                : !integratedWorld.interactionHint.includes('Decide together') ||
+                    !integratedWorld.interactionVisible ||
+                    !integratedWorld.interactionBounds ||
+                    integratedWorld.interactionBounds.left < -1 ||
+                    integratedWorld.interactionBounds.right > integratedWorld.viewport.width + 1 ||
+                    integratedWorld.interactionBounds.top < -1 ||
+                    integratedWorld.interactionBounds.bottom > integratedWorld.viewport.height + 1
+        ) ||
         integratedWorld.gardenStage !== 'bloom' ||
         !integratedWorld.districtTerrainActive ||
         integratedWorld.modalOpen ||
@@ -10932,13 +10979,20 @@ async function smokeVillageUi(session, exceptions) {
                 detectedAsTouch,
                 controlsVisible: controls.isVisible === true,
                 prompt: scene.interactionText?.text || '',
+                promptVisible: scene.interactionText?.visible === true,
+                beaconVerb: scene.sanctuaryInteractionDirector?.beacon
+                    ?.getData?.('interactionVerb') || '',
+                beaconLabel: scene.sanctuaryInteractionDirector?.beacon
+                    ?.getData?.('interactionLabel') || '',
                 dockTop: controls.layout?.dockTop ?? null
             };
         })()`);
         if (
             !controlDetection.detectedAsTouch ||
             !controlDetection.controlsVisible ||
-            !controlDetection.prompt.startsWith('Tap') ||
+            controlDetection.promptVisible ||
+            controlDetection.beaconVerb !== 'DECIDE' ||
+            controlDetection.beaconLabel !== 'TOGETHER' ||
             !Number.isFinite(controlDetection.dockTop)
         ) {
             throw new Error(`Village mobile control detection failed: ${JSON.stringify(controlDetection)}`);
@@ -11527,22 +11581,71 @@ async function smokeVillageUi(session, exceptions) {
         { message: 'Village structure planner closed' }
     );
     const actionRoute = await evaluate(session, `(() => {
-        const target = window.mythicalGame.scene.getScene('GameScene')
-            ?.villageHeartLandmark?.nextActionElement;
-        if (!target?.getBounds) return null;
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene?.worldBuilder?.clearVillageCommunityMoment?.(
+            scene.villageHeartLandmark
+        );
+        scene?.worldBuilder?.clearVillageDecisionMoment?.(
+            scene.villageHeartLandmark
+        );
+        scene?.worldBuilder?.clearVillageWorkerCheckIn?.(
+            scene.villageHeartLandmark
+        );
+        const director = scene?.sanctuaryInteractionDirector;
+        const currentSnapshot = scene?.villageHeartLandmark?.snapshot ||
+            scene?.reconcileVillageSettlementNow?.({ notify: false });
+        let restoredInteraction = null;
+        if (!director?.candidates?.has('villageHeart')) {
+            restoredInteraction = scene?.offerVillageHeartInteraction?.(
+                currentSnapshot
+            );
+        }
+        director?.update?.({ force: true });
+        const target = director?.indicatorElements?.find(element => (
+            element?.getData?.('sanctuaryInteractionBeaconHitZone') === true &&
+            element?.getData?.('interactionId') === 'villageHeart'
+        ));
+        if (!target?.getBounds) {
+            return {
+                missing: true,
+                presentationMode: scene?.sanctuaryPresentationMode,
+                currentBiome: scene?.currentBiome,
+                nearVillageHeart: scene?.nearVillageHeart === true,
+                offerMethod: typeof scene?.offerVillageHeartInteraction,
+                snapshotPresent: Boolean(currentSnapshot),
+                landmarkPresent: Boolean(scene?.villageHeartLandmark?.zone),
+                directorPresent: Boolean(director),
+                restoredInteractionId: restoredInteraction?.id || null,
+                activeId: director?.active?.id || null,
+                candidateIds: [...(director?.candidates?.keys?.() || [])],
+                indicatorElementCount: director?.indicatorElements?.length || 0,
+                modalOpen: Boolean(document.querySelector('.village-command-modal')),
+                communityMomentActive: Boolean(
+                    scene?.villageHeartLandmark?.activeCommunityMoment
+                ),
+                decisionMomentActive: Boolean(
+                    scene?.villageHeartLandmark?.activeDecisionMoment
+                ),
+                workerMomentActive: Boolean(
+                    scene?.villageHeartLandmark?.activeWorkerCheckIn
+                )
+            };
+        }
         const bounds = target.getBounds();
         return {
             x: Math.round(bounds.centerX),
             y: Math.round(bounds.centerY),
             inputEnabled: target.input?.enabled === true,
-            action: target.getData('villageNextAction'),
-            text: target.text || ''
+            action: scene?.villageHeartLandmark?.snapshot?.worldState?.nextAction?.type,
+            verb: director?.beacon?.getData?.('interactionVerb') || '',
+            label: director?.beacon?.getData?.('interactionLabel') || ''
         };
     })()`);
     if (
         !actionRoute?.inputEnabled ||
         actionRoute.action !== 'decision' ||
-        !actionRoute.text.includes('HEART CHOICE')
+        actionRoute.verb !== 'DECIDE' ||
+        actionRoute.label !== 'TOGETHER'
     ) {
         throw new Error(`Village world next-action beacon was not tappable: ${JSON.stringify(actionRoute)}`);
     }

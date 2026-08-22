@@ -15,6 +15,8 @@ export default class SanctuaryInteractionDirector {
         this.candidates = new Map();
         this.active = null;
         this.indicator = null;
+        this.beacon = null;
+        this.indicatorElements = [];
         this.indicatorTween = null;
     }
 
@@ -62,7 +64,10 @@ export default class SanctuaryInteractionDirector {
         const changed = next?.id !== this.active?.id ||
             next?.message !== this.active?.message ||
             next?.icon !== this.active?.icon ||
-            next?.tone !== this.active?.tone;
+            next?.tone !== this.active?.tone ||
+            next?.verb !== this.active?.verb ||
+            next?.label !== this.active?.label ||
+            next?.hintMode !== this.active?.hintMode;
         this.active = next;
         this.scene.sanctuaryPromptOwnerId = next?.id || null;
 
@@ -73,10 +78,14 @@ export default class SanctuaryInteractionDirector {
         }
 
         if (changed || force) {
-            this.scene.showInteractionHint(next.message, {
-                persistent: true,
-                ownerId: next.id
-            });
+            if (next.hintMode === 'world') {
+                this.scene.hideInteractionHint?.();
+            } else {
+                this.scene.showInteractionHint(next.message, {
+                    persistent: true,
+                    ownerId: next.id
+                });
+            }
             this.scene.mobileControls?.updateInteractIcon(next.icon);
             this.renderIndicator(next);
         }
@@ -97,16 +106,101 @@ export default class SanctuaryInteractionDirector {
         const target = candidate.target;
         const width = Math.max(58, Math.min(144, Number(target.width || 88)));
         const height = Math.max(28, Math.min(72, Number(target.height || 46) * 0.42));
+        const depth = Math.max(2, Number(target.depth || target.y));
         const indicator = this.scene.add.graphics()
             .setPosition(target.x, target.y + Math.min(42, height * 0.45))
-            .setDepth(Math.max(2, Number(target.depth || target.y) - 2));
-        indicator.fillStyle(candidate.tone, 0.1);
+            .setDepth(depth - 2)
+            .setData('sanctuaryInteractionBeacon', true)
+            .setData('interactionId', candidate.id)
+            .setData('interactionState', 'approach')
+            .setData('ariaLabel', candidate.ariaLabel || candidate.message);
+        indicator.fillStyle(candidate.tone, 0.08);
         indicator.fillEllipse(0, 0, width, height);
-        indicator.lineStyle(2, candidate.tone, 0.72);
+        indicator.lineStyle(2, candidate.tone, 0.76);
         indicator.strokeEllipse(0, 0, width, height);
+        indicator.lineStyle(1, 0xF4F4F4, 0.34);
+        indicator.strokeEllipse(0, 0, width * 0.72, height * 0.62);
+
+        const elements = [indicator];
+        if (candidate.verb || candidate.label) {
+            const beaconY = target.y - Math.max(
+                70,
+                Math.min(118, Number(target.height || 80) * 0.55 + 34)
+            );
+            const beacon = this.scene.add.graphics()
+                .setPosition(target.x, beaconY)
+                .setDepth(depth + 14)
+                .setData('sanctuaryInteractionBeacon', true)
+                .setData('interactionId', candidate.id)
+                .setData('interactionVerb', candidate.verb || '')
+                .setData('interactionLabel', candidate.label || '')
+                .setData('touchTargetWidth', 164)
+                .setData('touchTargetHeight', 52);
+            beacon.fillStyle(0x071411, 0.9);
+            beacon.fillCircle(-58, 0, 18);
+            beacon.lineStyle(2, candidate.tone, 0.94);
+            beacon.strokeCircle(-58, 0, 18);
+            beacon.lineStyle(2, candidate.tone, 0.78);
+            beacon.lineBetween(-31, 15, 67, 15);
+            beacon.lineStyle(1, 0xF4F4F4, 0.4);
+            beacon.lineBetween(-31, 18, 30, 18);
+
+            const glyph = this.scene.add.text(
+                target.x - 58,
+                beaconY,
+                candidate.icon || '✦',
+                {
+                    fontSize: '14px',
+                    fontFamily: 'Arial, sans-serif',
+                    fontStyle: 'bold',
+                    color: '#F4F4F4',
+                    stroke: '#071411',
+                    strokeThickness: 3
+                }
+            ).setOrigin(0.5).setDepth(depth + 15);
+            const verb = this.scene.add.text(
+                target.x - 31,
+                beaconY - 7,
+                String(candidate.verb || 'INTERACT').toUpperCase(),
+                {
+                    fontSize: '11px',
+                    fontFamily: 'Arial, sans-serif',
+                    fontStyle: 'bold',
+                    color: '#F4F4F4',
+                    stroke: '#071411',
+                    strokeThickness: 4
+                }
+            ).setOrigin(0, 0.5).setDepth(depth + 15);
+            const label = this.scene.add.text(
+                target.x - 31,
+                beaconY + 8,
+                String(candidate.label || '').toUpperCase(),
+                {
+                    fontSize: '8px',
+                    fontFamily: 'Arial, sans-serif',
+                    fontStyle: 'bold',
+                    color: '#8FE3CF',
+                    stroke: '#071411',
+                    strokeThickness: 3
+                }
+            ).setOrigin(0, 0.5).setDepth(depth + 15);
+            const hitZone = this.scene.add.zone(target.x, beaconY, 164, 52)
+                .setDepth(depth + 16)
+                .setData('sanctuaryInteractionBeaconHitZone', true)
+                .setData('interactionId', candidate.id)
+                .setData('ariaLabel', candidate.ariaLabel || candidate.message)
+                .setInteractive({ useHandCursor: true });
+            hitZone.on('pointerdown', pointer => {
+                pointer?.event?.stopPropagation?.();
+                candidate.action?.();
+            });
+            this.beacon = beacon;
+            elements.push(beacon, glyph, verb, label, hitZone);
+        }
         this.indicator = indicator;
+        this.indicatorElements = elements;
         this.indicatorTween = this.scene.tweens.add({
-            targets: indicator,
+            targets: [indicator, this.beacon].filter(Boolean),
             alpha: { from: 0.62, to: 1 },
             scaleX: { from: 0.98, to: 1.04 },
             scaleY: { from: 0.98, to: 1.04 },
@@ -120,8 +214,10 @@ export default class SanctuaryInteractionDirector {
     clearIndicator() {
         this.indicatorTween?.stop?.();
         this.indicatorTween = null;
-        this.indicator?.destroy?.();
+        this.indicatorElements.forEach(element => element?.destroy?.());
+        this.indicatorElements = [];
         this.indicator = null;
+        this.beacon = null;
     }
 
     destroy() {

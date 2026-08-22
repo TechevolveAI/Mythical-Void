@@ -26,26 +26,51 @@ function loadSanctuaryInteractionDirector() {
 
 const SanctuaryInteractionDirector = loadSanctuaryInteractionDirector();
 
-const createGraphics = () => ({
+const createDisplayObject = () => ({
     destroyed: false,
+    data: new Map(),
+    events: new Map(),
     setPosition: jest.fn().mockReturnThis(),
     setDepth: jest.fn().mockReturnThis(),
+    setOrigin: jest.fn().mockReturnThis(),
+    setData: jest.fn(function setData(key, value) {
+        this.data.set(key, value);
+        return this;
+    }),
+    getData: jest.fn(function getData(key) {
+        return this.data.get(key);
+    }),
+    setInteractive: jest.fn().mockReturnThis(),
+    on: jest.fn(function on(event, handler) {
+        this.events.set(event, handler);
+        return this;
+    }),
     fillStyle: jest.fn().mockReturnThis(),
+    fillCircle: jest.fn().mockReturnThis(),
     fillEllipse: jest.fn().mockReturnThis(),
     lineStyle: jest.fn().mockReturnThis(),
+    lineBetween: jest.fn().mockReturnThis(),
+    strokeCircle: jest.fn().mockReturnThis(),
     strokeEllipse: jest.fn().mockReturnThis(),
     destroy: jest.fn(function destroy() {
         this.destroyed = true;
     })
 });
 
+const createGraphics = () => createDisplayObject();
+
 const createScene = () => ({
     player: { x: 0, y: 0 },
     sanctuaryPresentationMode: 'ambient',
     sanctuaryPromptOwnerId: null,
     showInteractionHint: jest.fn(),
+    hideInteractionHint: jest.fn(),
     mobileControls: { updateInteractIcon: jest.fn() },
-    add: { graphics: jest.fn(createGraphics) },
+    add: {
+        graphics: jest.fn(createGraphics),
+        text: jest.fn(() => createDisplayObject()),
+        zone: jest.fn(() => createDisplayObject())
+    },
     tweens: {
         add: jest.fn(() => ({ stop: jest.fn() }))
     }
@@ -137,6 +162,34 @@ describe('SanctuaryInteractionDirector', () => {
 
         expect(scene.add.graphics).not.toHaveBeenCalled();
         expect(director.indicator).toBeNull();
+    });
+
+    it('uses a tappable world beacon instead of the HUD prompt on touch layouts', () => {
+        const scene = createScene();
+        const director = new SanctuaryInteractionDirector(scene);
+        const action = jest.fn();
+
+        director.offer({
+            id: 'heart',
+            target: { x: 30, y: 0, width: 150, height: 130, active: true },
+            message: 'Tap the Village Heart · Decide together',
+            verb: 'DECIDE',
+            label: 'TOGETHER',
+            icon: '?',
+            hintMode: 'world',
+            action
+        });
+
+        const hitZone = director.indicatorElements.find(element => (
+            element.getData?.('sanctuaryInteractionBeaconHitZone') === true
+        ));
+        expect(scene.hideInteractionHint).toHaveBeenCalledTimes(1);
+        expect(scene.showInteractionHint).not.toHaveBeenCalled();
+        expect(hitZone).toBeTruthy();
+        expect(hitZone.getData('interactionId')).toBe('heart');
+        expect(scene.add.zone).toHaveBeenCalledWith(30, -105.5, 164, 52);
+        hitZone.events.get('pointerdown')({ event: { stopPropagation: jest.fn() } });
+        expect(action).toHaveBeenCalledTimes(1);
     });
 
     it('refreshes dynamic landmark presentation without re-offering it', () => {
