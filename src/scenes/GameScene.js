@@ -4667,7 +4667,9 @@ class GameScene extends Phaser.Scene {
             zoom
         });
         camera.setRoundPixels(true);
-        camera.setBackgroundColor('#050214');
+        camera.setBackgroundColor(
+            this.currentBiome === 'nebula' ? '#102329' : '#050214'
+        );
 
         this.currentCameraZoom = zoom;
 

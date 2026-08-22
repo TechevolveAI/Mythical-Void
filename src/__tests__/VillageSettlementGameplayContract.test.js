@@ -153,6 +153,7 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain('this.sanctuaryCameraFocusZoom = zoom;');
         expect(sceneSource).toContain('const restoreZoom = this.sanctuaryCameraFocusPreviousZoom;');
         expect(sceneSource).toContain('this.worldBuilder?.setVillageFocusMode?.(');
+        expect(sceneSource).toContain("this.currentBiome === 'nebula' ? '#102329' : '#050214'");
         expect(sceneSource).toContain('firstContactActive || this.sanctuaryFocusModeActive');
         expect(sceneSource).toContain('this.dismissCosmicAffinityNotice();');
         expect(sceneSource).toContain(".setData('sanctuaryNotice', true)");

@@ -11021,6 +11021,7 @@ async function smokeVillageUi(session, exceptions) {
                 ) || 0
             },
             sanctuaryBackground: {
+                cameraEdgeColor: camera.backgroundColor?.color,
                 profile: scene.worldBackground?.getData?.('worldBackgroundProfile'),
                 cloudRadiusMax: scene.worldBackground?.getData?.(
                     'worldBackgroundCloudRadiusMax'
@@ -11295,6 +11296,7 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.sanctuaryTerrain.maxFillAlpha > 0.08 ||
         integratedWorld.sanctuaryTerrain.contourCount !== 24 ||
         integratedWorld.sanctuaryTerrain.anchorPatchCount !== 24 ||
+        integratedWorld.sanctuaryBackground.cameraEdgeColor !== 0x102329 ||
         integratedWorld.sanctuaryBackground.profile !== 'living_current_ground_v3' ||
         integratedWorld.sanctuaryBackground.cloudRadiusMax !== 0 ||
         integratedWorld.sanctuaryBackground.floatingPlatformCount !== 0 ||
