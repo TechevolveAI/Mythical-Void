@@ -8455,13 +8455,21 @@ class GameScene extends Phaser.Scene {
             loop: true,
             callback: () => {
                 if (this._isShuttingDown) return;
-                const previous = getVillageSnapshot(window.GameState);
-                const snapshot = reconcileVillageSettlement(window.GameState);
-                this.refreshVillageSettlementWorld(snapshot);
-                this.notifyVillageProgress(previous, snapshot);
-                this.maybePlayVillageCommunityMoment(snapshot);
+                this.reconcileVillageSettlementNow();
             }
         });
+    }
+
+    reconcileVillageSettlementNow({ notify = true } = {}) {
+        if (this._isShuttingDown || !this.villageHeartLandmark) return null;
+        const previous = getVillageSnapshot(window.GameState);
+        const snapshot = reconcileVillageSettlement(window.GameState);
+        this.refreshVillageSettlementWorld(snapshot);
+        if (notify) {
+            this.notifyVillageProgress(previous, snapshot);
+            this.maybePlayVillageCommunityMoment(snapshot);
+        }
+        return snapshot;
     }
 
     openVillageCommand({ plotId = null } = {}) {

@@ -281,7 +281,9 @@ class WorldBuilder {
             .setData('sanctuaryDistrictTerrain', true);
         const routes = this.scene.add.graphics()
             .setDepth(-23)
-            .setData('sanctuaryPhysicalRoutes', true);
+            .setData('sanctuaryPhysicalRoutes', true)
+            .setData('sanctuaryRouteProfile', 'living_current_filaments_v3')
+            .setData('sanctuaryRouteMaxWidth', 28);
 
         const drawOrganicPad = (zone, colors, scale = 1) => {
             const { center, bounds } = zone;
@@ -333,17 +335,39 @@ class WorldBuilder {
         }, 0.96);
 
         const routeDefinitions = [
-            [landmarks.crashedShip.position, zones.livingArea.center, 0x90A4AE],
-            [zones.livingArea.center, landmarks.cosmicShop.position, 0xF2C14E],
-            [zones.livingArea.center, landmarks.villageHeart.position, 0x71E6B1],
-            [landmarks.villageHeart.position, landmarks.signalGarden.position, 0x8FE3CF],
-            [landmarks.villageHeart.position, landmarks.hubPortal.position, 0xBFA6FF],
-            [zones.livingArea.center, landmarks.targetRange.position, 0xD94B4B]
+            {
+                id: 'crash_to_commons',
+                start: landmarks.crashedShip.position,
+                end: zones.livingArea.center,
+                accent: 0x90A4AE
+            },
+            {
+                id: 'commons_to_shop',
+                start: zones.livingArea.center,
+                end: landmarks.cosmicShop.position,
+                accent: 0xF2C14E
+            },
+            {
+                id: 'commons_to_settlement',
+                start: zones.livingArea.center,
+                end: landmarks.villageHeart.position,
+                accent: 0x71E6B1
+            },
+            {
+                id: 'commons_to_training',
+                start: zones.livingArea.center,
+                end: landmarks.targetRange.position,
+                accent: 0xD94B4B
+            }
         ];
-        routeDefinitions.forEach(([start, end, accent], routeIndex) => {
+        routes.setData(
+            'sanctuaryRouteIds',
+            routeDefinitions.map(route => route.id)
+        );
+        routeDefinitions.forEach(({ start, end, accent }, routeIndex) => {
             const midpoint = {
-                x: (start.x + end.x) / 2,
-                y: (start.y + end.y) / 2 + (routeIndex % 2 ? 46 : -38)
+                x: (start.x + end.x) / 2 + (routeIndex % 2 ? 34 : -26),
+                y: (start.y + end.y) / 2 + (routeIndex % 2 ? 62 : -54)
             };
             const points = Array.from({ length: 28 }, (_, index) => {
                 const t = index / 27;
@@ -364,10 +388,24 @@ class WorldBuilder {
                 points.slice(1).forEach(point => routes.lineTo(point.x, point.y));
                 routes.strokePath();
             };
-            stroke(58, 0x07100F, 0.22);
-            stroke(42, 0x1C3532, 0.34);
-            stroke(4, accent, routeIndex < 2 ? 0.18 : 0.28);
-            stroke(1, 0xF4F4F4, 0.16);
+            stroke(28, 0x07100F, 0.11);
+            stroke(16, 0x1C3532, 0.2);
+            stroke(3, accent, routeIndex < 2 ? 0.2 : 0.28);
+            stroke(1, 0xF4F4F4, 0.12);
+            [0.18, 0.36, 0.58, 0.78].forEach((progress, detailIndex) => {
+                const point = points[Math.round(progress * (points.length - 1))];
+                const side = detailIndex % 2 ? 1 : -1;
+                routes.fillStyle(
+                    detailIndex % 2 ? accent : 0x8FE3CF,
+                    detailIndex % 2 ? 0.3 : 0.22
+                );
+                routes.fillEllipse(
+                    point.x + side * 11,
+                    point.y - side * 7,
+                    detailIndex % 2 ? 9 : 6,
+                    detailIndex % 2 ? 4 : 3
+                );
+            });
         });
 
         // Crash scars establish the human arrival without another floating label.
@@ -582,7 +620,9 @@ class WorldBuilder {
         const baseDepth = Math.min(garden.y, heart.y, portal.y) - 64;
         const terrain = this.scene.add.graphics()
             .setDepth(baseDepth)
-            .setData('sanctuaryCommons', true);
+            .setData('sanctuaryCommons', true)
+            .setData('sanctuaryCommonsPathProfile', 'living_current_filaments_v3')
+            .setData('sanctuaryCommonsMaxWidth', 32);
         const routes = [
             {
                 id: 'garden_to_heart',
@@ -630,8 +670,8 @@ class WorldBuilder {
                 points.slice(1).forEach(point => terrain.lineTo(point.x, point.y));
                 terrain.strokePath();
             };
-            strokeGround(54, 0x071411, routeIndex === 0 ? 0.12 : 0.1);
-            strokeGround(34, routeIndex === 0 ? 0x173D36 : 0x12352F, 0.2);
+            strokeGround(32, 0x071411, routeIndex === 0 ? 0.1 : 0.08);
+            strokeGround(18, routeIndex === 0 ? 0x173D36 : 0x12352F, 0.18);
             [0.18, 0.42, 0.67, 0.86].forEach((progress, detailIndex) => {
                 const detail = pointOnRoute(route, progress);
                 terrain.fillStyle(
@@ -657,9 +697,9 @@ class WorldBuilder {
                 points.slice(1).forEach(point => path.lineTo(point.x, point.y));
                 path.strokePath();
             };
-            stroke(9, 0x071411, 0.2);
-            stroke(3, route.color, 0.28);
-            stroke(1, 0xF4F4F4, 0.34);
+            stroke(7, 0x071411, 0.16);
+            stroke(2, route.color, 0.34);
+            stroke(1, 0xF4F4F4, 0.26);
         });
         path.setBlendMode?.(Phaser.BlendModes.ADD);
 
@@ -2358,37 +2398,88 @@ class WorldBuilder {
     }
 
     createVillageHabitatLife(home, { compact = false } = {}) {
-        const container = this.scene.add.container(0, compact ? 25 : 31);
+        const container = this.scene.add.container(0, compact ? 23 : 28);
         const residents = Array.isArray(home?.residents) ? home.residents : [];
         const capacity = Math.max(0, Number(home?.capacity) || 0);
-        const slots = Array.from({ length: capacity }, (_, index) => {
+        const residentColors = [0x8FE3CF, 0xF2C14E, 0xBFA6FF, 0xD94B4B];
+        const slotContainers = Array.from({ length: capacity }, (_, index) => {
             const resident = residents[index] || null;
-            const x = (index - ((capacity - 1) / 2)) * 24;
-            const signal = this.scene.add.circle(
-                x,
+            const x = (index - ((capacity - 1) / 2)) * (compact ? 38 : 44);
+            const slot = this.scene.add.container(x, 0);
+            const cradle = this.scene.add.graphics();
+            cradle.fillStyle(0x071411, resident ? 0.76 : 0.42);
+            cradle.fillEllipse(0, 8, compact ? 30 : 34, compact ? 13 : 15);
+            cradle.lineStyle(
+                resident ? 2 : 1,
+                resident?.atWork ? 0xF2C14E : resident ? 0x71E6B1 : 0x657682,
+                resident ? 0.82 : 0.46
+            );
+            cradle.strokeEllipse(0, 8, compact ? 28 : 32, compact ? 11 : 13);
+            const identity = this.scene.add.text(
                 0,
-                9,
-                resident ? (resident.atWork ? 0xF2C14E : 0x71E6B1) : 0x657682,
-                resident ? 0.98 : 0.34
-            ).setStrokeStyle(2, 0x07100F, 0.9);
-            const initial = this.scene.add.text(
-                x,
-                0,
-                resident ? resident.name.slice(0, 1).toUpperCase() : '·',
+                18,
+                resident ? resident.name.slice(0, 7).toUpperCase() : 'OPEN',
                 {
-                    fontSize: '8px',
+                    fontSize: compact ? '6px' : '7px',
                     fontFamily: 'Arial, sans-serif',
                     fontStyle: 'bold',
-                    color: resident ? '#07100F' : '#F4F4F4'
+                    color: resident?.atWork ? '#F2C14E' : resident ? '#C9F7E9' : '#85928F',
+                    stroke: '#07100F',
+                    strokeThickness: 3
                 }
             ).setOrigin(0.5);
-            return [signal, initial];
-        }).flat();
+            slot.add([cradle, identity]);
+
+            if (resident?.atWork) {
+                const tether = this.scene.add.graphics();
+                tether.lineStyle(2, 0xF2C14E, 0.72);
+                tether.beginPath();
+                tether.moveTo(-7, 5);
+                tether.lineTo(-2, -4);
+                tether.lineTo(7, -10);
+                tether.strokePath();
+                tether.fillStyle(0xF2C14E, 0.92);
+                tether.fillTriangle(7, -14, 12, -8, 5, -7);
+                tether.fillStyle(0xF4F4F4, 0.84);
+                tether.fillCircle(-8, 6, 2);
+                tether.setData('villageHomeTether', true);
+                slot.add(tether);
+            } else if (resident) {
+                const figure = this.scene.add.graphics();
+                const color = residentColors[index % residentColors.length];
+                figure.fillStyle(color, 0.98);
+                figure.fillCircle(0, -8, compact ? 5 : 6);
+                figure.fillEllipse(0, 0, compact ? 10 : 12, compact ? 13 : 15);
+                figure.fillStyle(0xF4F4F4, 0.96);
+                figure.fillCircle(-2, -9, 1.3);
+                figure.fillCircle(2, -9, 1.3);
+                figure.lineStyle(1, color, 0.9);
+                figure.lineBetween(-4, -12, -7, -17);
+                figure.lineBetween(4, -12, 7, -17);
+                figure.setData('villageResidentFigure', true);
+                slot.add(figure);
+            } else {
+                const opening = this.scene.add.graphics();
+                opening.lineStyle(1, 0x8FE3CF, 0.4);
+                opening.strokeCircle(0, -2, 5);
+                opening.fillStyle(0x8FE3CF, 0.34);
+                opening.fillCircle(0, -2, 2);
+                slot.add(opening);
+            }
+            slot
+                .setData('villageHabitatSlot', true)
+                .setData('residentName', resident?.name || null)
+                .setData('residentStatus', resident?.atWork ? 'helping' : resident ? 'home' : 'open')
+                .setData('workLabel', resident?.workLabel || null);
+            return slot;
+        });
         const status = this.scene.add.text(
             0,
-            19,
+            37,
             residents.length > 0
-                ? `${home.presentCount} HOME · ${home.helpingCount} HELPING`
+                ? home.presentCount > 0
+                    ? `${home.presentCount} HOME · ${home.helpingCount} OUT HELPING`
+                    : `${home.helpingCount} OUT HELPING · LIGHTS ON`
                 : 'ROOM FOR RESCUED FRIENDS',
             {
                 fontSize: compact ? '7px' : '8px',
@@ -2399,17 +2490,35 @@ class WorldBuilder {
                 strokeThickness: 3
             }
         ).setOrigin(0.5);
-        container.add([...slots, status]);
+        container.add([...slotContainers, status]);
         container.setData('villageHabitatLife', true);
         container.setData('residentNames', residents.map(resident => resident.name));
+        container.setData(
+            'residentStatuses',
+            residents.map(resident => resident.atWork ? 'helping' : 'home')
+        );
+        container.setData('residentFigureCount', home?.presentCount || 0);
+        container.setData('homeTetherCount', home?.helpingCount || 0);
+        container.setData('capacity', capacity);
         container.setData('presentCount', home?.presentCount || 0);
         container.setData('helpingCount', home?.helpingCount || 0);
+        container.setData(
+            'ariaLabel',
+            residents.length > 0
+                ? `Shared Habitat. ${home.presentCount} home and ${home.helpingCount} out helping. ` +
+                    residents.map(resident => (
+                        resident.atWork
+                            ? `${resident.name} is helping at ${resident.workLabel || 'the settlement'}`
+                            : `${resident.name} is home`
+                    )).join('. ')
+                : `Shared Habitat. ${capacity} places ready for rescued friends.`
+        );
         const pulseTween = this.scene.tweens.add({
             targets: container,
-            alpha: { from: 0.72, to: 1 },
-            scaleX: { from: 0.96, to: 1.04 },
-            scaleY: { from: 0.96, to: 1.04 },
-            duration: 1450,
+            alpha: { from: 0.82, to: 1 },
+            scaleX: { from: 0.985, to: 1.015 },
+            scaleY: { from: 0.985, to: 1.015 },
+            duration: 1700,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'

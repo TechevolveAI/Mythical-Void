@@ -10608,6 +10608,21 @@ async function smokeVillageUi(session, exceptions) {
             })),
             plotCount: landmark.plotHitZones.length,
             workerCount: landmark.workerElements.length,
+            habitatLife: (() => {
+                const habitat = landmark.residentElements?.[0] || null;
+                return habitat ? {
+                    capacity: habitat.getData('capacity'),
+                    residentNames: habitat.getData('residentNames'),
+                    residentStatuses: habitat.getData('residentStatuses'),
+                    residentFigureCount: habitat.getData('residentFigureCount'),
+                    homeTetherCount: habitat.getData('homeTetherCount'),
+                    presentCount: habitat.getData('presentCount'),
+                    helpingCount: habitat.getData('helpingCount'),
+                    ariaLabel: habitat.getData('ariaLabel'),
+                    statusText: habitat.list?.find(child => child?.type === 'Text')?.text || '',
+                    active: habitat.active === true
+                } : null;
+            })(),
             flowSignals: (landmark.villageFlowSignals || []).map(signal => ({
                 direction: signal.getData('direction'),
                 resource: signal.getData('resource'),
@@ -10652,11 +10667,19 @@ async function smokeVillageUi(session, exceptions) {
             commons: {
                 terrainActive: commons?.terrain?.active === true,
                 pathActive: commons?.path?.active === true,
+                pathProfile: commons?.terrain?.getData?.('sanctuaryCommonsPathProfile'),
+                maxWidth: commons?.terrain?.getData?.('sanctuaryCommonsMaxWidth'),
                 routeIds: commons?.routes?.map(route => route.id) || [],
                 nodeCount: commons?.nodes?.length || 0,
                 signalCount: commons?.signals?.length || 0,
                 activeSignals: commons?.signals?.filter(signal => signal.active).length || 0,
                 activeTweens: commons?.signalTweens?.filter(tween => tween.isPlaying()).length || 0
+            },
+            sanctuaryCirculation: {
+                active: scene.sanctuaryDistricts?.routes?.active === true,
+                profile: scene.sanctuaryDistricts?.routes?.getData?.('sanctuaryRouteProfile'),
+                maxWidth: scene.sanctuaryDistricts?.routes?.getData?.('sanctuaryRouteMaxWidth'),
+                routeIds: scene.sanctuaryDistricts?.routes?.getData?.('sanctuaryRouteIds') || []
             },
             focus: {
                 active: scene.sanctuaryFocusModeActive === true,
@@ -10732,6 +10755,7 @@ async function smokeVillageUi(session, exceptions) {
             (plot.state === 'available' && plot.progressNodes !== 1)
         )) ||
         integratedWorld.workerCount !== 3 ||
+        integratedWorld.habitatLife !== null ||
         integratedWorld.flowSignals.length !== 5 ||
         integratedWorld.flowSignals.filter(signal => signal.direction === 'to_heart').length !== 3 ||
         integratedWorld.flowSignals.filter(signal => signal.direction === 'to_plot').length !== 2 ||
@@ -10783,11 +10807,18 @@ async function smokeVillageUi(session, exceptions) {
         )) ||
         !integratedWorld.commons.terrainActive ||
         !integratedWorld.commons.pathActive ||
+        integratedWorld.commons.pathProfile !== 'living_current_filaments_v3' ||
+        integratedWorld.commons.maxWidth !== 32 ||
         integratedWorld.commons.routeIds.join(',') !== 'garden_to_heart,heart_to_portal' ||
         integratedWorld.commons.nodeCount !== 3 ||
         integratedWorld.commons.signalCount !== 4 ||
         integratedWorld.commons.activeSignals !== 4 ||
         integratedWorld.commons.activeTweens !== 4 ||
+        !integratedWorld.sanctuaryCirculation.active ||
+        integratedWorld.sanctuaryCirculation.profile !== 'living_current_filaments_v3' ||
+        integratedWorld.sanctuaryCirculation.maxWidth !== 28 ||
+        integratedWorld.sanctuaryCirculation.routeIds.join(',') !==
+            'crash_to_commons,commons_to_shop,commons_to_settlement,commons_to_training' ||
         !integratedWorld.focus.active ||
         integratedWorld.focus.affinityNoticeActive ||
         integratedWorld.focus.kidStatusBarActive ||
@@ -10825,6 +10856,7 @@ async function smokeVillageUi(session, exceptions) {
     );
     await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.nearVillageHeart = false;
         scene.updateSanctuaryFocusMode(false);
         scene.hideInteractionHint();
         return true;
@@ -11141,6 +11173,21 @@ async function smokeVillageUi(session, exceptions) {
                     focusAlpha: worker.getData('villageFocusAlpha'),
                     presentationMode: worker.getData('villagePresentationMode')
                 })),
+                habitatLife: (() => {
+                    const habitat = landmark?.residentElements?.[0] || null;
+                    return habitat ? {
+                        capacity: habitat.getData('capacity'),
+                        residentNames: habitat.getData('residentNames'),
+                        residentStatuses: habitat.getData('residentStatuses'),
+                        residentFigureCount: habitat.getData('residentFigureCount'),
+                        homeTetherCount: habitat.getData('homeTetherCount'),
+                        presentCount: habitat.getData('presentCount'),
+                        helpingCount: habitat.getData('helpingCount'),
+                        ariaLabel: habitat.getData('ariaLabel'),
+                        statusText: habitat.list?.find(child => child?.type === 'Text')?.text || '',
+                        active: habitat.active === true
+                    } : null;
+                })(),
                 workerResonanceCues: workers.map(worker => worker.list?.some(
                     child => child?.getData?.('villageResonanceCue') === true
                 ) === true),
@@ -11245,6 +11292,7 @@ async function smokeVillageUi(session, exceptions) {
             .map(route => route.carriedResource)
             .sort()
             .join(',') !== 'food,stone,wood' ||
+        layout.worldPresentation.habitatLife !== null ||
         layout.worldPresentation.workerResonanceCues.some(cue => cue !== true) ||
         layout.worldPresentation.plotPresentations.length !== 5 ||
         layout.worldPresentation.plotPresentations.some(presentation => (
@@ -11331,7 +11379,14 @@ async function smokeVillageUi(session, exceptions) {
     ) {
         throw new Error(`Village contextual focus failed: ${JSON.stringify(contextualFocus)}`);
     }
-    await delay(1200);
+    await waitFor(
+        () => evaluate(session, `(
+            window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.workerElements?.[0]
+                ?.getData('routeProgress') || 0
+        ) > 0`),
+        { timeoutMs: 6000, message: 'Village worker begins delivery route' }
+    );
     const workerRoute = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const worker = scene?.villageHeartLandmark?.workerElements?.[0];
@@ -11818,6 +11873,81 @@ async function smokeVillageUi(session, exceptions) {
             ? 'village-construction-settled-mobile.png'
             : 'village-construction-settled-desktop.png'
     );
+    const habitatCompleted = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const state = structuredClone(scene?.villageHeartLandmark?.snapshot?.state);
+        const habitat = state?.buildings?.find(building => building.definitionId === 'habitat');
+        if (!habitat || habitat.status !== 'constructing') return false;
+        habitat.completesAt = Date.now() - 1;
+        window.GameState.set('world.village', state);
+        return scene.reconcileVillageSettlementNow({ notify: false })
+            ?.buildings?.some(building => (
+                building.definitionId === 'habitat' && building.status === 'complete'
+            )) === true;
+    })()`);
+    if (!habitatCompleted) {
+        throw new Error('Village Habitat could not be advanced to its completed world state');
+    }
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.residentElements?.length === 1
+        )`),
+        { message: 'Village Habitat resident presence' }
+    );
+    const habitatWorld = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const habitat = landmark?.residentElements?.[0] || null;
+        const building = landmark?.snapshot?.buildings?.find(
+            entry => entry.definitionId === 'habitat'
+        );
+        return habitat ? {
+            buildingStatus: building?.status,
+            capacity: habitat.getData('capacity'),
+            residentNames: habitat.getData('residentNames'),
+            residentStatuses: habitat.getData('residentStatuses'),
+            residentFigureCount: habitat.getData('residentFigureCount'),
+            homeTetherCount: habitat.getData('homeTetherCount'),
+            presentCount: habitat.getData('presentCount'),
+            helpingCount: habitat.getData('helpingCount'),
+            ariaLabel: habitat.getData('ariaLabel'),
+            statusText: habitat.list?.find(child => child?.type === 'Text')?.text || '',
+            slotStatuses: habitat.list
+                ?.filter(child => child?.getData?.('villageHabitatSlot') === true)
+                .map(child => child.getData('residentStatus')) || [],
+            tetherVisualCount: habitat.list?.filter(slot => (
+                slot?.list?.some(child => child?.getData?.('villageHomeTether') === true)
+            )).length || 0,
+            figureVisualCount: habitat.list?.filter(slot => (
+                slot?.list?.some(child => child?.getData?.('villageResidentFigure') === true)
+            )).length || 0,
+            active: habitat.active === true
+        } : null;
+    })()`);
+    if (
+        !habitatWorld?.active ||
+        habitatWorld.buildingStatus !== 'complete' ||
+        habitatWorld.capacity !== 2 ||
+        habitatWorld.residentNames.length !== 2 ||
+        habitatWorld.residentStatuses.length !== 2 ||
+        habitatWorld.residentFigureCount + habitatWorld.homeTetherCount !== 2 ||
+        habitatWorld.presentCount + habitatWorld.helpingCount !== 2 ||
+        habitatWorld.slotStatuses.length !== 2 ||
+        habitatWorld.slotStatuses.some(status => !['home', 'helping'].includes(status)) ||
+        habitatWorld.tetherVisualCount !== habitatWorld.homeTetherCount ||
+        habitatWorld.figureVisualCount !== habitatWorld.residentFigureCount ||
+        !habitatWorld.ariaLabel.includes('Shared Habitat') ||
+        !habitatWorld.statusText
+    ) {
+        throw new Error(`Village Habitat presence failed: ${JSON.stringify(habitatWorld)}`);
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-habitat-homecoming-mobile.png'
+            : 'village-habitat-homecoming-desktop.png'
+    );
     const followUpStarted = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         scene.worldBuilder.clearVillageDecisionMoment(scene.villageHeartLandmark);
@@ -11946,6 +12076,7 @@ async function smokeVillageUi(session, exceptions) {
         decisionWorld,
         buildRoute,
         constructionWorld,
+        habitatWorld,
         heartMemory,
         directWorldTap,
         controlDetection,

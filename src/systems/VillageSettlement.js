@@ -482,6 +482,15 @@ function normalizeParticipantCreatureIds(value) {
     )].slice(0, 4);
 }
 
+function normalizeParticipantNames(value) {
+    if (!Array.isArray(value)) return [];
+    return value
+        .filter(name => typeof name === 'string')
+        .map(name => name.trim().slice(0, 32))
+        .filter(Boolean)
+        .slice(0, 4);
+}
+
 function normalizeHeartDecisions(value) {
     if (!Array.isArray(value)) return [];
     const candidates = value
@@ -495,7 +504,8 @@ function normalizeHeartDecisions(value) {
                 occurredAt: normalizeTimestamp(entry?.occurredAt),
                 participantCreatureIds: normalizeParticipantCreatureIds(
                     entry?.participantCreatureIds
-                )
+                ),
+                participantNames: normalizeParticipantNames(entry?.participantNames)
             };
         })
         .filter(Boolean);
@@ -1002,17 +1012,23 @@ export function getVillageHomeProfile(buildings = [], roster = []) {
             ))
             .map(building => [building.assignedCreatureId, building])
     );
+    const residenceCandidates = roster.map((creature, rosterIndex) => {
+        const assignment = assignmentByCreature.get(creature.id) || null;
+        return {
+            id: creature.id,
+            name: creature.name,
+            atWork: Boolean(assignment),
+            workBuildingId: assignment?.definitionId || null,
+            workLabel: assignment?.definition?.shortLabel || null,
+            rosterIndex
+        };
+    });
+    residenceCandidates.sort((left, right) => (
+        Number(left.atWork) - Number(right.atWork) ||
+        left.rosterIndex - right.rosterIndex
+    ));
     const residents = habitat
-        ? roster.slice(0, capacity).map(creature => {
-            const assignment = assignmentByCreature.get(creature.id) || null;
-            return {
-                id: creature.id,
-                name: creature.name,
-                atWork: Boolean(assignment),
-                workBuildingId: assignment?.definitionId || null,
-                workLabel: assignment?.definition?.shortLabel || null
-            };
-        })
+        ? residenceCandidates.slice(0, capacity).map(({ rosterIndex, ...resident }) => resident)
         : [];
 
     return {
@@ -1136,13 +1152,16 @@ export function getVillageHeartDecisionState({ state = {}, buildings = [] } = {}
             ? savedParticipantBuildings
             : getDecisionParticipantBuildings(definition, buildings);
         const participants = participantBuildings.map(toHeartParticipant);
+        const rememberedParticipantNames = participants.length > 0
+            ? participants.map(participant => participant.name)
+            : choice.participantNames;
         return {
             ...choice,
             definition,
             option,
             participants,
-            participantNames: participants.map(participant => participant.name),
-            speakerName: participants[0]?.name || 'A resident',
+            participantNames: rememberedParticipantNames,
+            speakerName: rememberedParticipantNames[0] || 'A resident',
             followUpLine: option.residentLine
         };
     });
@@ -1474,6 +1493,9 @@ export function resolveVillageHeartDecision(gameState, {
                 occurredAt: now,
                 participantCreatureIds: active.participants.map(
                     participant => participant.creatureId
+                ),
+                participantNames: active.participants.map(
+                    participant => participant.name
                 )
             }
         ]

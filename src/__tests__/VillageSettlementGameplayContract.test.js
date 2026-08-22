@@ -99,6 +99,10 @@ describe('Village settlement gameplay contract', () => {
         expect(worldSource).toContain('nebula: { trees: 0, rocks: 0, flowers: 8 }');
         expect(worldSource).toContain('createSanctuaryDistrictEnvironment()');
         expect(worldSource).toContain(".setData('sanctuaryPhysicalRoutes', true)");
+        expect(worldSource).toContain(".setData('sanctuaryRouteProfile', 'living_current_filaments_v3')");
+        expect(worldSource).toContain(".setData('sanctuaryRouteMaxWidth', 28)");
+        expect(worldSource).toContain(".setData('sanctuaryCommonsPathProfile', 'living_current_filaments_v3')");
+        expect(worldSource).toContain(".setData('sanctuaryCommonsMaxWidth', 32)");
         expect(worldSource).toContain('setSanctuaryDistrictFocus(');
         expect(worldSource).toContain(".setData('sanctuaryDistrictMarker', definition.zoneId)");
         expect(worldSource).toContain('marker.label.setAlpha(active ? 1 : 0)');
@@ -304,6 +308,8 @@ describe('Village settlement gameplay contract', () => {
 
         expect(scene).toContain('Object.values(VILLAGE_BUILDING_ARTWORK)');
         expect(scene).toContain('notifyVillageProgress(previous, next)');
+        expect(scene).toContain('reconcileVillageSettlementNow({ notify = true } = {})');
+        expect(scene).toContain('this.reconcileVillageSettlementNow();');
         expect(scene).toContain('showVillageCompletionMoment(completed)');
         expect(scene).toContain('markVillageGuidanceSeen(window.GameState)');
         expect(world).toContain('const compactSettlement = this.scene.scale.width <= 600;');
@@ -344,6 +350,11 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("setData('villageHeartFollowUp'");
         expect(world).toContain("copy.setData('villageDecisionMoment', result.decision.id)");
         expect(world).toContain("container.setData('villageHabitatLife', true)");
+        expect(world).toContain(".setData('residentStatus', resident?.atWork ? 'helping' : resident ? 'home' : 'open')");
+        expect(world).toContain("tether.setData('villageHomeTether', true)");
+        expect(world).toContain("figure.setData('villageResidentFigure', true)");
+        expect(world).toContain("container.setData('homeTetherCount', home?.helpingCount || 0)");
+        expect(world).toContain("container.setData('residentFigureCount', home?.presentCount || 0)");
         expect(world).toContain("worker.setData('villageWorker', true)");
         expect(world).toContain("worker.setData('checkInCue', true)");
         expect(world).toContain("worker.setData('checkInCueStyle', 'current_resonance')");
@@ -368,6 +379,8 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain('openVillageWorkerCheckIn(');
         expect(scene).toContain('getVillageWorkerCheckIn(');
         expect(village).toContain('participantCreatureIds: active.participants.map(');
+        expect(village).toContain('participantNames: active.participants.map(');
+        expect(village).toContain('choice.participantNames');
         expect(village).toContain('getVillageHeartMemory(snapshot');
         expect(village).toContain('getVillageWorldState(snapshot)');
         expect(village).toContain("type: 'supplies'");

@@ -416,7 +416,7 @@ describe('Village settlement phase one', () => {
         });
     });
 
-    test('the Habitat reports named residents without pretending workers are idle', () => {
+    test('the Habitat prioritizes companions who are physically home', () => {
         const definitions = new Map(
             village.VILLAGE_BUILDING_DEFINITIONS.map(definition => [definition.id, definition])
         );
@@ -444,13 +444,33 @@ describe('Village settlement phase one', () => {
             unlocked: true,
             capacity: 2,
             plotId: 'root_04',
-            presentCount: 1,
-            helpingCount: 1
+            presentCount: 2,
+            helpingCount: 0
         }));
         expect(home.residents).toEqual([
-            expect.objectContaining({ name: 'Nova', atWork: true, workLabel: 'FORAGE' }),
-            expect.objectContaining({ name: 'Ember', atWork: false })
+            expect.objectContaining({ name: 'Ember', atWork: false }),
+            expect.objectContaining({ name: 'Lumen', atWork: false })
         ]);
+
+        const everyoneHelping = village.getVillageHomeProfile([
+            buildings[0],
+            {
+                definitionId: 'sawmill',
+                definition: definitions.get('sawmill'),
+                status: 'complete',
+                assignedCreatureId: 'ember'
+            },
+            buildings[1]
+        ], [
+            { id: 'nova', name: 'Nova' },
+            { id: 'ember', name: 'Ember' }
+        ]);
+        expect(everyoneHelping).toEqual(expect.objectContaining({
+            capacity: 2,
+            presentCount: 0,
+            helpingCount: 2
+        }));
+        expect(everyoneHelping.residents.every(resident => resident.atWork)).toBe(true);
     });
 
     test('community moments require real distinct assigned companions', () => {
@@ -544,7 +564,8 @@ describe('Village settlement phase one', () => {
             decisionId: 'storm_path',
             optionId: 'current_first',
             occurredAt: 5000,
-            participantCreatureIds: ['nova', 'lumen']
+            participantCreatureIds: ['nova', 'lumen'],
+            participantNames: ['Nova', 'Lumen']
         }]);
         expect(result.snapshot.heartDecision.completed[0]).toEqual(
             expect.objectContaining({
@@ -562,6 +583,21 @@ describe('Village settlement phase one', () => {
                 participantNames: ['Nova', 'Lumen']
             })
         );
+        const movedState = gameState.get('world.village');
+        gameState.set('world.village', {
+            ...movedState,
+            buildings: movedState.buildings.map(building => ({
+                ...building,
+                assignedCreatureId: null
+            }))
+        });
+        const rememberedAfterMove = village.getVillageHeartMemory(
+            village.getVillageSnapshot(gameState)
+        );
+        expect(rememberedAfterMove).toEqual(expect.objectContaining({
+            speakerName: 'Nova',
+            participantNames: ['Nova', 'Lumen']
+        }));
         expect(village.getVillageWorkerCheckIn(result.snapshot, {
             creatureId: 'nova'
         })).toEqual(expect.objectContaining({
@@ -638,7 +674,8 @@ describe('Village settlement phase one', () => {
             decisionId: 'storm_path',
             optionId: 'current_first',
             occurredAt: 8,
-            participantCreatureIds: []
+            participantCreatureIds: [],
+            participantNames: []
         });
 
         const readinessState = createGameState({
