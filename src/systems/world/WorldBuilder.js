@@ -20,6 +20,10 @@ import {
     SANCTUARY_WORLD_ART
 } from './SanctuaryWorldArt.js';
 
+const SANCTUARY_BACKGROUND_OVERSCAN = 320;
+const SANCTUARY_BACKGROUND_THREAD_COUNT = 22;
+const SANCTUARY_BACKGROUND_PATCH_COUNT = 36;
+
 const VILLAGE_SETTLEMENT_LAYOUTS = Object.freeze({
     compact: Object.freeze({
         profile: 'terraced_current_v2',
@@ -7128,11 +7132,18 @@ class WorldBuilder {
         this.backgroundImage
             .setData(
                 'worldBackgroundProfile',
-                isSanctuary ? 'living_current_ground_v3' : 'cosmic_biome_v1'
+                isSanctuary ? 'living_current_ground_v4' : 'cosmic_biome_v1'
             )
             .setData('worldBackgroundCloudRadiusMax', isSanctuary ? 0 : 200)
             .setData('worldBackgroundFloatingPlatformCount', isSanctuary ? 0 : 40)
-            .setData('worldBackgroundCurrentThreadCount', isSanctuary ? 18 : 0)
+            .setData(
+                'worldBackgroundCurrentThreadCount',
+                isSanctuary ? SANCTUARY_BACKGROUND_THREAD_COUNT : 0
+            )
+            .setData(
+                'worldBackgroundOverscan',
+                isSanctuary ? SANCTUARY_BACKGROUND_OVERSCAN : 0
+            )
             .setData('worldBackgroundEdgeColor', isSanctuary ? 0x102329 : null);
         return this.backgroundImage;
     }
@@ -7140,8 +7151,11 @@ class WorldBuilder {
     generateBackgroundTexture() {
         const biomeId = this.currentBiome;
         const isSanctuary = biomeId === 'nebula';
-        const profileSuffix = isSanctuary ? '_living_v3' : '';
-        const textureKey = `worldBackground_${biomeId}_${this.worldWidth}x${this.worldHeight}${profileSuffix}`;
+        const backgroundHeight = this.worldHeight + (
+            isSanctuary ? SANCTUARY_BACKGROUND_OVERSCAN : 0
+        );
+        const profileSuffix = isSanctuary ? '_living_v4' : '';
+        const textureKey = `worldBackground_${biomeId}_${this.worldWidth}x${backgroundHeight}${profileSuffix}`;
 
         if (this.scene.textures.exists(textureKey)) {
             return textureKey;
@@ -7165,12 +7179,21 @@ class WorldBuilder {
         // Base gradient using biome colors
         graphics.fillGradientStyle(skyTop, skyTop, skyBottom, skyBottom, 1);
         graphics.fillRect(0, 0, this.worldWidth, this.worldHeight);
+        if (isSanctuary && backgroundHeight > this.worldHeight) {
+            graphics.fillStyle(skyBottom, 1);
+            graphics.fillRect(
+                0,
+                this.worldHeight,
+                this.worldWidth,
+                backgroundHeight - this.worldHeight
+            );
+        }
 
         // Stars with biome-appropriate brightness
         const starCount = this.getStarCount();
         for (let i = 0; i < starCount; i++) {
             const x = Phaser.Math.Between(0, this.worldWidth);
-            const y = Phaser.Math.Between(0, this.worldHeight);
+            const y = Phaser.Math.Between(0, backgroundHeight);
             const brightness = Math.random();
             const color = this.getStarColor(brightness);
             const size = brightness > 0.8 ? 2 : 1;
@@ -7183,7 +7206,8 @@ class WorldBuilder {
                 nebulaColor,
                 accentColor,
                 floraColor,
-                rockColor
+                rockColor,
+                backgroundHeight
             });
         } else {
             // Expedition biomes retain their more dramatic cloud silhouettes.
@@ -7213,7 +7237,7 @@ class WorldBuilder {
             }
         }
 
-        graphics.generateTexture(textureKey, this.worldWidth, this.worldHeight);
+        graphics.generateTexture(textureKey, this.worldWidth, backgroundHeight);
         graphics.destroy();
         return textureKey;
     }
@@ -7222,7 +7246,8 @@ class WorldBuilder {
         nebulaColor,
         accentColor,
         floraColor,
-        rockColor
+        rockColor,
+        backgroundHeight = this.worldHeight
     }) {
         const threadColors = [
             floraColor,
@@ -7231,9 +7256,13 @@ class WorldBuilder {
             accentColor,
             rockColor
         ];
-        for (let threadIndex = 0; threadIndex < 18; threadIndex++) {
+        for (
+            let threadIndex = 0;
+            threadIndex < SANCTUARY_BACKGROUND_THREAD_COUNT;
+            threadIndex++
+        ) {
             const startX = Phaser.Math.Between(-40, this.worldWidth - 80);
-            const startY = Phaser.Math.Between(40, this.worldHeight - 40);
+            const startY = Phaser.Math.Between(40, backgroundHeight - 40);
             const length = Phaser.Math.Between(110, 260);
             const bend = Phaser.Math.Between(-44, 44);
             const color = threadColors[threadIndex % threadColors.length];
@@ -7254,9 +7283,13 @@ class WorldBuilder {
             graphics.strokePath();
         }
 
-        for (let patchIndex = 0; patchIndex < 30; patchIndex++) {
+        for (
+            let patchIndex = 0;
+            patchIndex < SANCTUARY_BACKGROUND_PATCH_COUNT;
+            patchIndex++
+        ) {
             const x = Phaser.Math.Between(0, this.worldWidth);
-            const y = Phaser.Math.Between(0, this.worldHeight);
+            const y = Phaser.Math.Between(0, backgroundHeight);
             const width = Phaser.Math.Between(8, 34);
             const color = patchIndex % 3 === 0 ? nebulaColor : rockColor;
             graphics.fillStyle(color, patchIndex % 3 === 0 ? 0.05 : 0.07);

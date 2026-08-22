@@ -11112,6 +11112,9 @@ async function smokeVillageUi(session, exceptions) {
                 currentThreadCount: scene.worldBackground?.getData?.(
                     'worldBackgroundCurrentThreadCount'
                 ),
+                overscan: scene.worldBackground?.getData?.(
+                    'worldBackgroundOverscan'
+                ),
                 edgeColor: scene.worldBackground?.getData?.(
                     'worldBackgroundEdgeColor'
                 ),
@@ -11470,11 +11473,15 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.sanctuaryTerrain.contourCount !== 24 ||
         integratedWorld.sanctuaryTerrain.anchorPatchCount !== 24 ||
         integratedWorld.sanctuaryBackground.cameraEdgeColor !== 0x102329 ||
-        integratedWorld.sanctuaryBackground.profile !== 'living_current_ground_v3' ||
+        integratedWorld.sanctuaryBackground.profile !== 'living_current_ground_v4' ||
         integratedWorld.sanctuaryBackground.cloudRadiusMax !== 0 ||
         integratedWorld.sanctuaryBackground.floatingPlatformCount !== 0 ||
-        integratedWorld.sanctuaryBackground.currentThreadCount !== 18 ||
+        integratedWorld.sanctuaryBackground.currentThreadCount !== 22 ||
+        integratedWorld.sanctuaryBackground.overscan < 320 ||
         integratedWorld.sanctuaryBackground.edgeColor !== 0x102329 ||
+        !integratedWorld.sanctuaryBackground.screenBounds ||
+        integratedWorld.sanctuaryBackground.screenBounds.bottom <
+            integratedWorld.viewport.height ||
         integratedWorld.sanctuaryParallax.profile !== 'quiet_current_threads_v2' ||
         integratedWorld.sanctuaryParallax.filledWisps !== false ||
         integratedWorld.sanctuaryParallax.threadCount !== 3 ||
@@ -12358,13 +12365,14 @@ async function smokeVillageUi(session, exceptions) {
             landmark.snapshot,
             [{ id: 'food', label: 'FOOD', amount: 3 }]
         );
+        const camera = scene.cameras.main;
         const plotHitZones = (landmark?.plotHitZones || []).map(zone => {
-            const rect = zone.getBounds();
+            const worldBounds = zone.getBounds();
             return {
-                left: rect.left,
-                right: rect.right,
-                top: rect.top,
-                bottom: rect.bottom,
+                left: (worldBounds.left - camera.worldView.x) * camera.zoom + camera.x,
+                right: (worldBounds.right - camera.worldView.x) * camera.zoom + camera.x,
+                top: (worldBounds.top - camera.worldView.y) * camera.zoom + camera.y,
+                bottom: (worldBounds.bottom - camera.worldView.y) * camera.zoom + camera.y,
                 inputEnabled: zone.input?.enabled === true,
                 cursor: zone.input?.cursor || ''
             };
@@ -12448,6 +12456,10 @@ async function smokeVillageUi(session, exceptions) {
                 strayFieldKitShipCount: (scene.fieldKitPreviewElements || []).filter(
                     element => element?.getData?.('fieldKitPreviewShip') === true
                 ).length,
+                strayFieldKitBackdropCount: (scene.fieldKitPreviewElements || []).length,
+                backgroundProfile: scene.worldBackground?.getData?.(
+                    'worldBackgroundProfile'
+                ),
                 structureCount: worldStructures.length,
                 plotHitZones,
                 districtTerrainActive: landmark?.districtTerrain?.active === true,
@@ -12491,6 +12503,14 @@ async function smokeVillageUi(session, exceptions) {
                             ) || null
                         };
                     }),
+                    background: {
+                        displayHeight: scene?.worldBackground?.displayHeight,
+                        overscan: scene?.worldBackground?.getData?.(
+                            'worldBackgroundOverscan'
+                        ),
+                        worldHeight: scene?.worldHeight,
+                        mobileReserve: scene?.mobileControlDockWorldReserve
+                    },
                     auraFocusAlpha: landmark?.heartLife?.aura?.getData?.('villageFocusAlpha'),
                     presentationMode: landmark?.heartLife?.aura?.getData?.('villagePresentationMode'),
                     tweenCount: landmark?.heartLifeTweens?.length || 0,
@@ -12625,6 +12645,8 @@ async function smokeVillageUi(session, exceptions) {
         ) ||
         !layout.worldPresentation.heartCaptionActive ||
         layout.worldPresentation.strayFieldKitShipCount !== 0 ||
+        layout.worldPresentation.strayFieldKitBackdropCount !== 0 ||
+        layout.worldPresentation.backgroundProfile !== 'living_current_ground_v4' ||
         layout.worldPresentation.structureCount !== 5 ||
         layout.worldPresentation.plotHitZones.length !== 5 ||
         layout.worldPresentation.plotHitZones.some(bounds => (
@@ -12656,6 +12678,10 @@ async function smokeVillageUi(session, exceptions) {
             !imprint.effect ||
             imprint.motion !== 'resource_memory_v1'
         )) ||
+        layout.worldPresentation.heartLife.background.overscan < 320 ||
+        layout.worldPresentation.heartLife.background.displayHeight <
+            layout.worldPresentation.heartLife.background.worldHeight +
+            layout.worldPresentation.heartLife.background.mobileReserve ||
         layout.worldPresentation.heartLife.auraFocusAlpha !== 0.54 ||
         layout.worldPresentation.heartLife.presentationMode !== 'story' ||
         layout.worldPresentation.heartLife.tweenCount !== 3 ||
@@ -13406,6 +13432,14 @@ async function smokeVillageUi(session, exceptions) {
             bounds.centerX - (camera.scrollX * Number(target.scrollFactorX ?? 1)),
             bounds.centerY - (camera.scrollY * Number(target.scrollFactorY ?? 1))
         );
+        const hitTopLeft = hitBounds ? camera.matrix.transformPoint(
+            hitBounds.left - (camera.scrollX * Number(hitZone.scrollFactorX ?? 1)),
+            hitBounds.top - (camera.scrollY * Number(hitZone.scrollFactorY ?? 1))
+        ) : null;
+        const hitBottomRight = hitBounds ? camera.matrix.transformPoint(
+            hitBounds.right - (camera.scrollX * Number(hitZone.scrollFactorX ?? 1)),
+            hitBounds.bottom - (camera.scrollY * Number(hitZone.scrollFactorY ?? 1))
+        ) : null;
         return {
             x: Math.round(screenPoint.x),
             y: Math.round(screenPoint.y),
@@ -13442,10 +13476,10 @@ async function smokeVillageUi(session, exceptions) {
             text: target.text || '',
             actionCopy: target.getData('villageActionCopy'),
             hitZone: hitBounds ? {
-                left: hitBounds.left,
-                right: hitBounds.right,
-                top: hitBounds.top,
-                bottom: hitBounds.bottom,
+                left: hitTopLeft.x,
+                right: hitBottomRight.x,
+                top: hitTopLeft.y,
+                bottom: hitBottomRight.y,
                 inputEnabled: hitZone.input?.enabled === true,
                 touchTargetWidth: hitZone.getData('touchTargetWidth'),
                 touchTargetHeight: hitZone.getData('touchTargetHeight')
@@ -13584,6 +13618,23 @@ async function smokeVillageUi(session, exceptions) {
         );
         const zone = landmark?.plotHitZones?.find(entry => entry.plotId === 'root_04');
         const stateBounds = presentation?.stateLabel?.getBounds?.();
+        const camera = scene.cameras.main;
+        const stateTopLeft = stateBounds ? camera.matrix.transformPoint(
+            stateBounds.left - (
+                camera.scrollX * Number(presentation.stateLabel.scrollFactorX ?? 1)
+            ),
+            stateBounds.top - (
+                camera.scrollY * Number(presentation.stateLabel.scrollFactorY ?? 1)
+            )
+        ) : null;
+        const stateBottomRight = stateBounds ? camera.matrix.transformPoint(
+            stateBounds.right - (
+                camera.scrollX * Number(presentation.stateLabel.scrollFactorX ?? 1)
+            ),
+            stateBounds.bottom - (
+                camera.scrollY * Number(presentation.stateLabel.scrollFactorY ?? 1)
+            )
+        ) : null;
         return {
             state: presentation?.stateMarker?.getData?.('villagePlotState'),
             progressNodes: presentation?.stateMarker?.getData?.('progressNodes'),
@@ -13598,10 +13649,10 @@ async function smokeVillageUi(session, exceptions) {
             flowActive: presentation?.flowSignal?.active === true,
             flowVisible: presentation?.flowSignal?.visible === true,
             stateBounds: stateBounds ? {
-                left: stateBounds.left,
-                right: stateBounds.right,
-                top: stateBounds.top,
-                bottom: stateBounds.bottom
+                left: stateTopLeft.x,
+                right: stateBottomRight.x,
+                top: stateTopLeft.y,
+                bottom: stateBottomRight.y
             } : null
         };
     })()`);

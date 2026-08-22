@@ -1643,7 +1643,6 @@ class GameScene extends Phaser.Scene {
     }
 
     createVillageCommandPreview() {
-        this.createFieldKitPreviewBackdrop({ includeShip: false });
         const now = Date.now();
         const companions = [
             {
@@ -1752,15 +1751,22 @@ class GameScene extends Phaser.Scene {
         }
 
         const previewSnapshot = getVillageSnapshot(previewState);
+        this.physics.world.setBounds(0, 0, this.worldWidth, this.worldHeight);
         this.worldBuilder = new WorldBuilder(this, this.graphicsEngine, {
-            worldWidth: this.scale.width,
-            worldHeight: this.scale.height
+            worldWidth: this.worldWidth,
+            worldHeight: this.worldHeight
         });
+        this.worldBackground = this.worldBuilder.createBackgroundImage();
+        const previewHeartPosition = {
+            x: this.worldWidth / 2,
+            y: this.worldHeight / 2
+        };
+        this.cameras.main
+            .setBounds(0, 0, this.worldWidth, this.worldHeight)
+            .centerOn(previewHeartPosition.x, previewHeartPosition.y)
+            .setBackgroundColor('#102329');
         this.villageHeartLandmark = this.worldBuilder.createVillageHeart({
-            position: {
-                x: Math.max(130, this.scale.width * 0.5),
-                y: Math.max(150, this.scale.height * 0.54)
-            },
+            position: previewHeartPosition,
             size: { width: 150, height: 130 }
         }, previewSnapshot);
         this.setupVillageHeartCollision();
