@@ -2288,6 +2288,372 @@ body.game-mode {
   gap: 8px;
 }
 
+/* The world Heart opens to one useful decision before the full planner. */
+.village-command-modal.is-guided {
+  align-items: flex-end;
+  padding: 0 max(10px, var(--sar)) max(10px, var(--sab)) max(10px, var(--sal));
+  background: rgba(2, 8, 8, 0.28);
+}
+
+.village-heart-sheet {
+  display: flex;
+  width: min(760px, 100%);
+  max-height: min(760px, 82dvh);
+  flex-direction: column;
+  overflow: hidden;
+  background: rgba(7, 16, 15, 0.98);
+  border: 1px solid rgba(143, 227, 207, 0.7);
+  border-radius: 8px;
+  box-shadow: 0 -14px 52px rgba(0, 0, 0, 0.72);
+}
+
+.village-guided-header {
+  flex: 0 0 auto;
+  background: rgba(12, 28, 24, 0.98);
+}
+
+.village-heart-quick-resources {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: #07100f;
+  border-bottom: 1px solid rgba(244, 244, 244, 0.12);
+}
+
+.village-heart-resource {
+  display: grid;
+  min-width: 0;
+  min-height: 48px;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-top: 3px solid var(--resource-color, #8fe3cf);
+  border-right: 1px solid rgba(244, 244, 244, 0.1);
+}
+
+.village-heart-resource > span {
+  overflow: hidden;
+  color: #9eb0b5;
+  font-size: 8px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+}
+
+.village-heart-resource > strong {
+  color: #ffffff;
+  font-size: 15px;
+}
+
+.village-heart-resource .village-resource-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.village-heart-resource.is-roots {
+  --resource-color: #3fae62;
+}
+
+.village-heart-root-icon {
+  position: relative;
+  display: block;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #71e6b1;
+  border-radius: 50%;
+}
+
+.village-heart-root-icon::before,
+.village-heart-root-icon::after {
+  position: absolute;
+  bottom: 4px;
+  left: 9px;
+  width: 2px;
+  height: 11px;
+  background: #71e6b1;
+  content: '';
+  transform-origin: bottom;
+}
+
+.village-heart-root-icon::after {
+  transform: rotate(48deg);
+}
+
+.village-guided-status {
+  flex: 0 0 auto;
+  min-height: 0;
+  border-bottom-color: rgba(242, 193, 78, 0.35);
+}
+
+.village-guided-stage {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: minmax(250px, 0.88fr) minmax(300px, 1.12fr);
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.village-guided-stage[data-intent='decision'] {
+  display: block;
+}
+
+.village-guided-visual {
+  position: relative;
+  min-height: 290px;
+  overflow: hidden;
+  background: #050b0c;
+}
+
+.village-guided-visual .village-building-artwork {
+  height: 100%;
+  min-height: 290px;
+  aspect-ratio: auto;
+}
+
+.village-guided-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 18px;
+}
+
+.village-guided-kicker {
+  color: #f2c14e;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.village-guided-title {
+  margin: 4px 0 6px;
+  color: #ffffff;
+  font-size: 22px;
+  line-height: 1.12;
+  letter-spacing: 0;
+}
+
+.village-guided-detail {
+  margin: 0;
+  color: #c5d3d0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.village-guided-impacts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 13px;
+}
+
+.village-guided-impact {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  padding-left: 9px;
+  border-left: 3px solid #71e6b1;
+}
+
+.village-guided-impact:last-child {
+  border-left-color: #f2c14e;
+}
+
+.village-guided-impact b {
+  color: #8fe3cf;
+  font-size: 8px;
+}
+
+.village-guided-impact:last-child b {
+  color: #f2c14e;
+}
+
+.village-guided-impact span {
+  color: #e5efed;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.village-guided-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.village-guided-choice {
+  display: grid;
+  min-width: 0;
+  min-height: 92px;
+  grid-template-columns: 58px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 2px 7px;
+  padding: 6px;
+  color: #d9e6e2;
+  text-align: left;
+  background: #10191b;
+  border: 1px solid #394b50;
+  border-radius: 6px;
+}
+
+.village-guided-choice.is-selected {
+  background: #13241f;
+  border-color: #8fe3cf;
+  box-shadow: inset 0 0 0 1px rgba(113, 230, 177, 0.3);
+}
+
+.village-guided-choice .village-building-artwork {
+  grid-row: 1 / 3;
+  width: 58px;
+  min-height: 0;
+  aspect-ratio: 1;
+}
+
+.village-guided-choice strong {
+  align-self: end;
+  font-size: 9px;
+}
+
+.village-guided-choice > span:last-child {
+  align-self: start;
+  overflow: hidden;
+  color: #8fa2a6;
+  font-size: 7px;
+  line-height: 1.25;
+}
+
+.village-guided-primary,
+.village-guided-secondary {
+  min-height: 48px;
+  color: #07100f;
+  background: #8fe3cf;
+  border: 1px solid #f4f4f4;
+  border-radius: 5px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.village-guided-primary {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.village-guided-primary:disabled {
+  color: #8b9da1;
+  background: #172225;
+  border-color: #405156;
+}
+
+.village-guided-assignment {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.village-guided-progress,
+.village-guided-needs {
+  display: grid;
+  gap: 8px;
+  margin-top: 15px;
+  padding: 11px;
+  color: #dbe8e4;
+  background: #101b1a;
+  border-left: 3px solid #f2c14e;
+}
+
+.village-guided-progress .village-construction-track {
+  width: 100%;
+}
+
+.village-guided-progress > span:last-child,
+.village-guided-needs p {
+  margin: 0;
+  color: #aebfbb;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.village-guided-needs > span {
+  color: #f2c14e;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.village-guided-summary {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.village-guided-milestone {
+  display: grid;
+  min-height: 34px;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  color: #9badb0;
+  background: #10191b;
+  border: 1px solid #314247;
+  border-radius: 4px;
+  font-size: 8px;
+}
+
+.village-guided-milestone i {
+  width: 8px;
+  height: 8px;
+  background: #45565a;
+  border-radius: 50%;
+}
+
+.village-guided-milestone.is-complete {
+  color: #effff9;
+  border-color: #3fae62;
+}
+
+.village-guided-milestone.is-complete i {
+  background: #71e6b1;
+  box-shadow: 0 0 7px rgba(113, 230, 177, 0.7);
+}
+
+.village-guided-stage .village-heart-decision {
+  min-height: 100%;
+  align-content: center;
+  padding: 18px;
+  background: #07100f;
+  border-bottom: 0;
+}
+
+.village-guided-stage > .village-guided-primary {
+  width: calc(100% - 36px);
+  margin: 0 18px 18px;
+}
+
+.village-guided-footer {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px;
+  background: #081210;
+  border-top: 1px solid rgba(143, 227, 207, 0.2);
+}
+
+.village-guided-secondary {
+  color: #dce9e5;
+  background: #111d1b;
+  border-color: #53676b;
+}
+
+.village-guided-secondary.is-return {
+  color: #07100f;
+  background: #8fe3cf;
+  border-color: #f4f4f4;
+}
+
 /* Plot taps open a world-connected decision sheet, not the full management view. */
 .village-command-modal.is-contextual {
   align-items: flex-end;
@@ -2744,6 +3110,132 @@ body.game-mode {
 
   .village-command-modal.is-contextual .village-site-plan {
     padding: 10px 10px 14px;
+  }
+
+  .village-command-modal.is-guided {
+    padding: 0 max(0px, var(--sar)) max(0px, var(--sab)) max(0px, var(--sal));
+  }
+
+  .village-heart-sheet {
+    max-height: 78dvh;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .village-heart-quick-resources {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .village-heart-resource {
+    min-height: 42px;
+    grid-template-columns: 17px minmax(0, 1fr);
+    gap: 3px;
+    padding: 5px 6px;
+  }
+
+  .village-heart-resource .village-resource-icon,
+  .village-heart-root-icon {
+    grid-row: 1 / 3;
+    width: 16px;
+    height: 16px;
+  }
+
+  .village-heart-resource > span {
+    font-size: 7px;
+  }
+
+  .village-heart-resource > strong {
+    font-size: 12px;
+  }
+
+  .village-guided-stage {
+    display: block;
+  }
+
+  .village-guided-visual {
+    min-height: 132px;
+    max-height: 156px;
+  }
+
+  .village-guided-visual .village-building-artwork {
+    min-height: 156px;
+  }
+
+  .village-guided-copy {
+    padding: 12px;
+  }
+
+  .village-guided-title {
+    font-size: 18px;
+  }
+
+  .village-guided-detail {
+    font-size: 11px;
+  }
+
+  .village-guided-impacts {
+    margin-top: 10px;
+  }
+
+  .village-guided-impact span {
+    font-size: 9px;
+  }
+
+  .village-guided-choices {
+    gap: 5px;
+    margin-top: 11px;
+  }
+
+  .village-guided-choice {
+    min-height: 80px;
+    grid-template-columns: 1fr;
+    grid-template-rows: 42px auto auto;
+    gap: 2px;
+    padding: 5px;
+    text-align: center;
+  }
+
+  .village-guided-choice .village-building-artwork {
+    grid-row: auto;
+    width: 100%;
+    height: 42px;
+    aspect-ratio: auto;
+  }
+
+  .village-guided-choice strong {
+    font-size: 8px;
+  }
+
+  .village-guided-choice > span:last-child {
+    font-size: 6px;
+  }
+
+  .village-guided-primary {
+    min-height: 50px;
+    margin-top: 11px;
+    font-size: 10px;
+  }
+
+  .village-guided-stage .village-heart-decision {
+    min-height: 0;
+    padding: 12px;
+  }
+
+  .village-guided-stage > .village-guided-primary {
+    width: calc(100% - 24px);
+    margin: 0 12px 12px;
+  }
+
+  .village-guided-footer {
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .village-guided-secondary {
+    min-height: 46px;
+    font-size: 9px;
   }
 }
 

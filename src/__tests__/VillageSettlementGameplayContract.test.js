@@ -188,6 +188,14 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('village-decision-resident-line');
         expect(source).toContain('THIS MEMORY REMAINS IN THE SANCTUARY');
         expect(source).toContain("root.classList.add('is-contextual')");
+        expect(source).toContain("root.classList.add('is-guided')");
+        expect(source).toContain('renderGuided(snapshot, definitionById)');
+        expect(source).toContain("'village-heart-sheet'");
+        expect(source).toContain("'THE NEXT USEFUL CHANGE'");
+        expect(source).toContain("'CONTINUE WITH THE SANCTUARY'");
+        expect(source).toContain('OPEN FULL PLAN');
+        expect(source).toContain('this.guidedActionKey !== guidedActionKey');
+        expect(source).toContain('nextAction.definitionId ||');
         expect(source).toContain('requestedPlot?.building?.definitionId');
         expect(source).toContain('const contextualBuilding = selectedPlot?.building');
         expect(source).toContain('ACTIVE · ${contextualBuilding.definition.worldEffectLabel}');
@@ -234,6 +242,11 @@ describe('Village settlement gameplay contract', () => {
         expect(css).toContain('@keyframes village-building-breathe');
         expect(css).toContain('@keyframes village-card-current');
         expect(css).toContain('.village-command-modal.is-contextual');
+        expect(css).toContain('.village-command-modal.is-guided');
+        expect(css).toContain('.village-heart-sheet');
+        expect(css).toContain('.village-guided-stage');
+        expect(css).toContain(".village-guided-stage[data-intent='decision']");
+        expect(css).toContain('.village-guided-primary');
         expect(css).toContain('.village-community-pulse');
         expect(css).toContain('.village-community-home');
         expect(css).toContain('.village-heart-decision');
@@ -378,7 +391,9 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain('getVillageHeartInteractionPrompt(');
         expect(scene).toContain("this.sanctuaryPresentationMode = 'ambient'");
         expect(scene).toContain("const quietArrival = ['review', 'supplies'].includes(nextAction?.type)");
-        expect(world).toContain('const heartDisplaySize = compactSettlement ? 196 : 218;');
+        expect(scene).toContain('guided: plotId === null');
+        expect(world).toContain('const heartDisplaySize = compactSettlement ? 184 : 218;');
+        expect(world).toContain('(compactSettlement ? 0.64 : 0.92)');
     });
 
     test('the local completion preview renders the entire connected settlement', () => {

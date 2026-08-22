@@ -1787,13 +1787,20 @@ class GameScene extends Phaser.Scene {
                 this.villageDecisionMomentPending = null;
             }
         };
-        this.openVillageCommand = ({ plotId = null } = {}) => (
-            this.villageCommandPanel.show({ plotId, ...previewPanelOptions })
+        this.openVillageCommand = ({
+            plotId = null,
+            guided = plotId === null
+        } = {}) => (
+            this.villageCommandPanel.show({
+                plotId,
+                guided,
+                ...previewPanelOptions
+            })
         );
         this.openVillageWorkerCheckIn = ({ creatureId } = {}) => (
             this.showVillageWorkerCheckIn({ creatureId, snapshot: getVillageSnapshot(previewState) })
         );
-        this.openVillageCommand();
+        this.openVillageCommand({ guided: false });
     }
 
     createSignalGardenPreview() {
@@ -8470,6 +8477,7 @@ class GameScene extends Phaser.Scene {
         }
         return this.villageCommandPanel.show({
             plotId,
+            guided: plotId === null,
             getSnapshot: () => getVillageSnapshot(window.GameState),
             onPlace: request => {
                 const result = placeVillageBuilding(window.GameState, request);

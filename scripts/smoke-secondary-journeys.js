@@ -11455,6 +11455,50 @@ async function smokeVillageUi(session, exceptions) {
         () => evaluate(session, `Boolean(document.querySelector('.village-command-modal.accepts-input'))`),
         { message: 'Village Heart reopened from next-action beacon' }
     );
+    const guidedDecision = await evaluate(session, `(() => {
+        const modal = document.querySelector('.village-command-modal');
+        const sheet = document.querySelector('.village-heart-sheet');
+        const stage = document.querySelector('.village-guided-stage');
+        const bounds = sheet?.getBoundingClientRect();
+        return {
+            guided: modal?.classList.contains('is-guided') === true,
+            intent: stage?.dataset.intent || '',
+            fullPlannerBodyPresent: Boolean(
+                document.querySelector('.village-command-body')
+            ),
+            fullPlanButton: Array.from(document.querySelectorAll('button'))
+                .some(button => button.textContent.includes('OPEN FULL PLAN')),
+            returnButton: Array.from(document.querySelectorAll('button'))
+                .some(button => button.textContent.includes('RETURN TO SANCTUARY')),
+            bounds: bounds ? {
+                left: bounds.left,
+                right: bounds.right,
+                top: bounds.top,
+                bottom: bounds.bottom,
+                width: bounds.width,
+                height: bounds.height
+            } : null,
+            viewport: {
+                width: window.innerWidth,
+                height: window.innerHeight
+            }
+        };
+    })()`);
+    if (
+        !guidedDecision.guided ||
+        guidedDecision.intent !== 'decision' ||
+        guidedDecision.fullPlannerBodyPresent ||
+        !guidedDecision.fullPlanButton ||
+        !guidedDecision.returnButton ||
+        !guidedDecision.bounds ||
+        guidedDecision.bounds.left < -1 ||
+        guidedDecision.bounds.right > guidedDecision.viewport.width + 1 ||
+        guidedDecision.bounds.top < -1 ||
+        guidedDecision.bounds.bottom > guidedDecision.viewport.height + 1 ||
+        guidedDecision.bounds.height > guidedDecision.viewport.height * 0.83
+    ) {
+        throw new Error(`Village guided Heart sheet failed: ${JSON.stringify(guidedDecision)}`);
+    }
 
     const decisionChoice = await evaluate(session, `(() => {
         const option = document.querySelector('.village-decision-option[data-value="care"]');
@@ -11855,6 +11899,7 @@ async function smokeVillageUi(session, exceptions) {
         structureRoute,
         structurePlanner,
         actionRoute,
+        guidedDecision,
         decisionChoice,
         decisionRecap,
         decisionWorld,

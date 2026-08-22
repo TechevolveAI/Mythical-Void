@@ -356,6 +356,8 @@ export default class VillageCommandPanel {
         this.selectedDefinitionId = null;
         this.selectedPlotId = null;
         this.contextual = false;
+        this.guided = false;
+        this.guidedActionKey = null;
         this.statusMessage = '';
         this.lastDecisionResult = null;
         this.keyboardHandler = null;
@@ -370,6 +372,7 @@ export default class VillageCommandPanel {
 
     show({
         plotId = null,
+        guided = false,
         getSnapshot,
         onPlace,
         onAssign,
@@ -392,7 +395,9 @@ export default class VillageCommandPanel {
         const requestedPlot = snapshot.plots.find(plot => plot.id === plotId);
         this.selectedPlotId = requestedPlot?.id || null;
         this.contextual = Boolean(this.selectedPlotId);
+        this.guided = Boolean(guided && !this.contextual);
         this.selectedDefinitionId = requestedPlot?.building?.definitionId ||
+            snapshot.worldState?.nextAction?.definitionId ||
             snapshot.definitions.find(
                 definition => definition.placement.available
             )?.id || snapshot.definitions.find(
@@ -401,6 +406,7 @@ export default class VillageCommandPanel {
 
         const root = createElement('div', 'village-command-modal');
         if (this.contextual) root.classList.add('is-contextual');
+        if (this.guided) root.classList.add('is-guided');
         root.setAttribute('role', 'dialog');
         root.setAttribute('aria-modal', 'true');
         root.setAttribute('aria-label', 'Village Heart settlement planning');
@@ -436,6 +442,366 @@ export default class VillageCommandPanel {
         return true;
     }
 
+    renderGuided(snapshot, definitionById) {
+        const nextAction = snapshot.worldState?.nextAction || {
+            type: 'review',
+            label: 'SETTLEMENT ONLINE',
+            detail: 'Review the village or meet its residents.'
+        };
+        const intent = this.lastDecisionResult ? 'decision' : nextAction.type;
+        const guidedActionKey = [
+            intent,
+            nextAction.definitionId || '',
+            nextAction.buildingId || '',
+            nextAction.plotId || ''
+        ].join(':');
+        if (this.guidedActionKey !== guidedActionKey) {
+            this.guidedActionKey = guidedActionKey;
+            this.selectedDefinitionId = nextAction.definitionId ||
+                snapshot.definitions.find(
+                    definition => definition.placement.available
+                )?.id || this.selectedDefinitionId;
+        }
+        const selectedDefinition = definitionById.get(this.selectedDefinitionId) ||
+            definitionById.get(nextAction.definitionId) ||
+            snapshot.definitions.find(definition => definition.placement.available) ||
+            snapshot.definitions[0] || null;
+        const selectedPlot = snapshot.plots.find(
+            plot => plot.id === nextAction.plotId
+        ) || snapshot.plots.find(plot => plot.open) || null;
+        const targetBuilding = snapshot.buildings.find(building => (
+            building.id === nextAction.buildingId ||
+            building.plotId === nextAction.plotId
+        )) || null;
+
+        const shell = createElement('section', 'village-heart-sheet');
+        shell.dataset.intent = intent;
+        const header = createElement('header', 'village-command-header village-guided-header');
+        const heading = createElement('div', 'village-command-heading-copy');
+        heading.append(
+            createElement(
+                'p',
+                'village-command-eyebrow',
+                snapshot.worldState?.growthLabel || 'AWAKENED ROOT'
+            ),
+            createElement('h2', 'village-command-title', 'VILLAGE HEART')
+        );
+        const close = createElement('button', 'village-command-close', '\u00d7');
+        close.classList.add('compact-icon-button');
+        close.type = 'button';
+        close.title = 'Return to the Sanctuary';
+        close.setAttribute('aria-label', 'Return to the Sanctuary');
+        close.addEventListener('click', () => this.destroy());
+        header.append(heading, close);
+        shell.append(header);
+
+        if (intent !== 'decision') {
+            const quickResources = createElement(
+                'section',
+                'village-heart-quick-resources'
+            );
+            quickResources.setAttribute('aria-label', 'Available village supplies');
+            VILLAGE_RESOURCE_DEFINITIONS.forEach(resource => {
+                const item = createElement('span', 'village-heart-resource');
+                item.style.setProperty('--resource-color', resource.color);
+                const icon = createElement('i', 'village-resource-icon');
+                icon.dataset.resource = resource.id;
+                icon.setAttribute('aria-hidden', 'true');
+                item.append(
+                    icon,
+                    createElement('span', '', resource.label),
+                    createElement('strong', '', String(snapshot.resources[resource.id]))
+                );
+                quickResources.append(item);
+            });
+            const roots = createElement('span', 'village-heart-resource is-roots');
+            roots.append(
+                createElement('i', 'village-heart-root-icon'),
+                createElement('span', '', 'ROOTS'),
+                createElement(
+                    'strong',
+                    '',
+                    `${snapshot.worldState?.restored || 0}/${snapshot.plots.length}`
+                )
+            );
+            quickResources.append(roots);
+            shell.append(quickResources);
+        }
+
+        if (this.statusMessage) {
+            const status = createElement(
+                'p',
+                'village-command-status has-message village-guided-status',
+                this.statusMessage
+            );
+            status.setAttribute('aria-live', 'polite');
+            shell.append(status);
+        }
+
+        const stage = createElement('section', 'village-guided-stage');
+        stage.dataset.intent = intent;
+        const actionCopy = {
+            build: {
+                kicker: 'THE NEXT USEFUL CHANGE',
+                title: selectedDefinition ? `BUILD ${selectedDefinition.label}` : 'CHOOSE A STRUCTURE',
+                detail: selectedDefinition?.purpose || nextAction.detail
+            },
+            assign: {
+                kicker: 'A STRUCTURE NEEDS A PERSON',
+                title: targetBuilding
+                    ? `INVITE HELP AT ${targetBuilding.definition.label}`
+                    : 'INVITE A HELPER',
+                detail: targetBuilding?.definition.workerRoutine?.emotionalPurpose || nextAction.detail
+            },
+            construction: {
+                kicker: 'THE CURRENT IS WORKING',
+                title: targetBuilding
+                    ? `${targetBuilding.definition.label} IS GROWING`
+                    : 'CONSTRUCTION IN PROGRESS',
+                detail: targetBuilding?.definition.completionCopy || nextAction.detail
+            },
+            supplies: {
+                kicker: 'WHAT THE SANCTUARY NEEDS',
+                title: selectedDefinition
+                    ? `PREPARE ${selectedDefinition.label}`
+                    : nextAction.label,
+                detail: nextAction.detail
+            },
+            review: {
+                kicker: 'YOUR SHARED BASE',
+                title: snapshot.phase.title,
+                detail: snapshot.phase.objective
+            }
+        }[intent];
+
+        if (intent === 'decision') {
+            const decision = createHeartDecision(snapshot, {
+                lastResult: this.lastDecisionResult,
+                onChoose: request => {
+                    const result = this.onDecision?.(request);
+                    this.statusMessage = formatResult(result);
+                    if (result?.changed) this.lastDecisionResult = result;
+                    this.render();
+                }
+            });
+            if (decision) stage.append(decision);
+            if (this.lastDecisionResult) {
+                const continueButton = createElement(
+                    'button',
+                    'village-guided-primary',
+                    'CONTINUE WITH THE SANCTUARY'
+                );
+                continueButton.type = 'button';
+                continueButton.addEventListener('click', () => {
+                    this.lastDecisionResult = null;
+                    this.statusMessage = '';
+                    this.render();
+                });
+                stage.append(continueButton);
+            }
+        } else {
+            const visualDefinition = targetBuilding?.definition || selectedDefinition;
+            if (visualDefinition) {
+                const visual = createElement('div', 'village-guided-visual');
+                visual.append(createBuildingArtwork(visualDefinition.id, {
+                    status: targetBuilding?.status || 'ready'
+                }));
+                stage.append(visual);
+            }
+
+            const copy = createElement('div', 'village-guided-copy');
+            copy.append(
+                createElement('span', 'village-guided-kicker', actionCopy?.kicker || 'RIGHT NOW'),
+                createElement('h3', 'village-guided-title', actionCopy?.title || nextAction.label),
+                createElement('p', 'village-guided-detail', actionCopy?.detail || nextAction.detail)
+            );
+
+            if (visualDefinition) {
+                const impacts = createElement('div', 'village-guided-impacts');
+                [
+                    ['HELPS NOW', visualDefinition.immediateImpact],
+                    ['OPENS LATER', visualDefinition.extensionImpact]
+                ].forEach(([label, value]) => {
+                    const impact = createElement('span', 'village-guided-impact');
+                    impact.append(
+                        createElement('b', '', label),
+                        createElement('span', '', value)
+                    );
+                    impacts.append(impact);
+                });
+                copy.append(impacts);
+            }
+
+            if (intent === 'build' && selectedDefinition) {
+                const choices = createElement('div', 'village-guided-choices');
+                snapshot.definitions
+                    .filter(definition => !definition.placement.alreadyBuilt)
+                    .sort((left, right) => Number(right.placement.available) - Number(left.placement.available))
+                    .slice(0, 3)
+                    .forEach(definition => {
+                        const button = createElement(
+                            'button',
+                            `village-guided-choice${definition.id === selectedDefinition.id ? ' is-selected' : ''}`
+                        );
+                        button.type = 'button';
+                        button.setAttribute(
+                            'aria-pressed',
+                            String(definition.id === selectedDefinition.id)
+                        );
+                        button.append(
+                            createBuildingArtwork(definition.id, { compact: true }),
+                            createElement('strong', '', definition.shortLabel),
+                            createElement(
+                                'span',
+                                '',
+                                definition.placement.available
+                                    ? formatCost(definition.cost)
+                                    : formatPlacementReason(definition, definitionById)
+                            )
+                        );
+                        button.addEventListener('click', () => {
+                            this.selectedDefinitionId = definition.id;
+                            this.statusMessage = definition.placement.available
+                                ? `${definition.label} selected.`
+                                : formatPlacementReason(definition, definitionById);
+                            this.render();
+                        });
+                        choices.append(button);
+                    });
+                copy.append(choices);
+
+                const canBuild = Boolean(
+                    selectedPlot?.open && selectedDefinition.placement.available
+                );
+                const build = createElement(
+                    'button',
+                    'village-guided-primary',
+                    canBuild
+                        ? `BUILD AT ${selectedPlot.label} · ${formatCost(selectedDefinition.cost)}`
+                        : formatPlacementReason(selectedDefinition, definitionById)
+                );
+                build.type = 'button';
+                build.disabled = !canBuild;
+                if (canBuild) {
+                    build.addEventListener('click', () => {
+                        const result = this.onPlace?.({
+                            definitionId: selectedDefinition.id,
+                            plotId: selectedPlot.id
+                        });
+                        this.statusMessage = formatResult(result);
+                        this.render();
+                    });
+                }
+                copy.append(build);
+            } else if (intent === 'assign' && targetBuilding) {
+                const assignment = createElement('div', 'village-guided-assignment');
+                const select = document.createElement('select');
+                select.className = 'village-creature-select';
+                select.setAttribute(
+                    'aria-label',
+                    `Choose a helper for ${targetBuilding.definition.label}`
+                );
+                snapshot.roster.forEach(creature => {
+                    const option = document.createElement('option');
+                    option.value = creature.id;
+                    option.textContent = creature.name;
+                    option.selected = creature.id === targetBuilding.assignedCreatureId;
+                    select.append(option);
+                });
+                const invite = createElement('button', 'village-guided-primary', 'INVITE THIS COMPANION');
+                invite.type = 'button';
+                invite.disabled = snapshot.roster.length === 0;
+                invite.addEventListener('click', () => {
+                    const result = this.onAssign?.({
+                        buildingId: targetBuilding.id,
+                        creatureId: select.value
+                    });
+                    this.statusMessage = formatResult(result);
+                    this.render();
+                });
+                assignment.append(select, invite);
+                copy.append(assignment);
+            } else if (intent === 'construction' && targetBuilding) {
+                const elapsed = Math.max(0, Date.now() - targetBuilding.startedAt);
+                const duration = Math.max(1, targetBuilding.completesAt - targetBuilding.startedAt);
+                const progress = Math.min(100, Math.round((elapsed / duration) * 100));
+                const progressBlock = createElement('div', 'village-guided-progress');
+                const track = createElement('span', 'village-construction-track');
+                const fill = createElement('span', 'village-construction-fill');
+                fill.style.width = `${progress}%`;
+                track.append(fill);
+                progressBlock.append(
+                    createElement('strong', '', `${progress}% SHAPED`),
+                    track,
+                    createElement('span', '', 'You can return to the world. The Heart will signal when it is ready.')
+                );
+                copy.append(progressBlock);
+            } else if (intent === 'supplies' && selectedDefinition) {
+                const needs = createElement('div', 'village-guided-needs');
+                const missing = selectedDefinition.placement.missingResources || [];
+                if (missing.length > 0) {
+                    missing.forEach(resource => {
+                        needs.append(createElement(
+                            'span',
+                            '',
+                            `${resource.required - resource.current} MORE ${resource.resource.toUpperCase()}`
+                        ));
+                    });
+                } else {
+                    needs.append(createElement(
+                        'span',
+                        '',
+                        'Finish the required structures first.'
+                    ));
+                }
+                needs.append(createElement(
+                    'p',
+                    '',
+                    'Invite helpers to completed supply structures, then continue exploring while they work.'
+                ));
+                copy.append(needs);
+            } else if (intent === 'review') {
+                const summary = createElement('div', 'village-guided-summary');
+                snapshot.phase.milestones.forEach(milestone => {
+                    const row = createElement(
+                        'span',
+                        `village-guided-milestone${milestone.complete ? ' is-complete' : ''}`
+                    );
+                    row.append(
+                        createElement('i', ''),
+                        createElement('span', '', milestone.label),
+                        createElement('strong', '', `${milestone.current}/${milestone.target}`)
+                    );
+                    summary.append(row);
+                });
+                copy.append(summary);
+            }
+            stage.append(copy);
+        }
+        shell.append(stage);
+
+        const footer = createElement('footer', 'village-guided-footer');
+        const planner = createElement('button', 'village-guided-secondary', '\u2630  OPEN FULL PLAN');
+        planner.type = 'button';
+        planner.addEventListener('click', () => {
+            this.guided = false;
+            this.root?.classList.remove('is-guided');
+            this.statusMessage = '';
+            this.lastDecisionResult = null;
+            this.render();
+        });
+        const returnButton = createElement(
+            'button',
+            'village-guided-secondary is-return',
+            'RETURN TO SANCTUARY'
+        );
+        returnButton.type = 'button';
+        returnButton.addEventListener('click', () => this.destroy());
+        footer.append(planner, returnButton);
+        shell.append(footer);
+        this.root.append(shell);
+    }
+
     render() {
         if (!this.root || !this.getSnapshot) return;
         const snapshot = this.getSnapshot();
@@ -457,6 +823,10 @@ export default class VillageCommandPanel {
         const settlementComplete = snapshot.phase.complete && !this.contextual;
 
         this.root.replaceChildren();
+        if (this.guided) {
+            this.renderGuided(snapshot, definitionById);
+            return;
+        }
         const shell = createElement('section', 'village-command-shell');
 
         const header = createElement('header', 'village-command-header');
@@ -918,6 +1288,8 @@ export default class VillageCommandPanel {
         this.root = null;
         this.selectedPlotId = null;
         this.contextual = false;
+        this.guided = false;
+        this.guidedActionKey = null;
         this.statusMessage = '';
         this.lastDecisionResult = null;
         const closeHandler = this.onClose;

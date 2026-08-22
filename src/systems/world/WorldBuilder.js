@@ -1078,7 +1078,7 @@ class WorldBuilder {
         } = landmark;
         const compactSettlement = this.scene.scale.width <= 600;
         if (heartArtwork) {
-            const heartDisplaySize = compactSettlement ? 196 : 218;
+            const heartDisplaySize = compactSettlement ? 184 : 218;
             heartArtwork.setDisplaySize(heartDisplaySize, heartDisplaySize);
             heartArtwork.villageBaseScale = heartArtwork.scaleX;
         }
@@ -1399,9 +1399,9 @@ class WorldBuilder {
                 ? this.scene.add.image(0, compactSettlement ? -20 : -28, worldArtworkDefinition.key)
                     .setDisplaySize(
                         (worldArtworkDefinition.displaySize || 176) *
-                            (compactSettlement ? 0.72 : 0.92),
+                            (compactSettlement ? 0.64 : 0.92),
                         (worldArtworkDefinition.displaySize || 176) *
-                            (compactSettlement ? 0.72 : 0.92)
+                            (compactSettlement ? 0.64 : 0.92)
                     )
                 : null;
             drawing.fillStyle(0x102B26, building ? 0.7 : 0.36);
@@ -1823,15 +1823,15 @@ class WorldBuilder {
                     : primary
                         ? 1
                         : presentation.plotState === 'constructing'
-                            ? 0.82
+                            ? 0.76
                             : focusPlotId
-                                ? 0.58
-                                : 0.68;
+                                ? 0.4
+                                : 0.46;
             const plotLabelAlpha = !active
                 ? presentation.plotLabelRestAlpha
                 : storyMode
                     ? primary ? 0.76 : 0.16
-                    : primary ? 1 : 0.34;
+                    : primary ? 1 : 0.18;
             const stateLabelAlpha = !active
                 ? presentation.stateLabelRestAlpha
                 : storyMode
