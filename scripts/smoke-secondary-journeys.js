@@ -13824,13 +13824,15 @@ async function smokeVillageUi(session, exceptions) {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         scene.worldBuilder.clearVillageDecisionMoment(scene.villageHeartLandmark);
         scene.nearVillageHeart = true;
-        return scene.maybePlayVillageHeartMemory(
-            scene.villageHeartLandmark.snapshot,
-            { force: true }
+        const marker = scene.villageHeartLandmark?.heartMemoryElements?.find(
+            element => element?.getData?.('villageHeartMemory') === 'storm_path'
         );
+        if (!marker?.input?.enabled) return false;
+        marker.emit('pointerdown');
+        return true;
     })()`);
     if (!followUpStarted) {
-        throw new Error('Village Heart resident follow-up did not start');
+        throw new Error('Village Heart memory seed was not directly tappable');
     }
     await waitFor(
         () => evaluate(session, `Boolean(
@@ -13858,6 +13860,9 @@ async function smokeVillageUi(session, exceptions) {
             ) === true,
             markerCount: markers.length,
             markerActive: markers.every(marker => marker.active === true),
+            markerInteractive: markers.every(marker => marker.input?.enabled === true),
+            markerVerbs: markers.map(marker => marker.getData('interactionVerb')),
+            markerTouchTargets: markers.map(marker => marker.getData('touchTargetDiameter')),
             statusLabel: landmark?.statusLabel?.text || ''
         };
     })()`);
@@ -13869,7 +13874,10 @@ async function smokeVillageUi(session, exceptions) {
         heartMemory.resonanceAnchor !== 'village_heart' ||
         !heartMemory.resonanceBackdrop ||
         heartMemory.markerCount !== 1 ||
-        !heartMemory.markerActive
+        !heartMemory.markerActive ||
+        !heartMemory.markerInteractive ||
+        heartMemory.markerVerbs.some(verb => verb !== 'REMEMBER') ||
+        heartMemory.markerTouchTargets.some(diameter => diameter < 44)
     ) {
         throw new Error(`Village Heart persistent memory failed: ${JSON.stringify(heartMemory)}`);
     }

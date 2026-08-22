@@ -610,6 +610,9 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("worker.setData('deliveryFeedback', delivering)");
         expect(world).toContain("? 'returning'");
         expect(world).toContain('playVillageHeartMemory(');
+        expect(world).toContain("setData('interactionVerb', 'REMEMBER')");
+        expect(world).toContain("setData('touchTargetDiameter', touchRadius * 2)");
+        expect(world).toContain('this.playVillageHeartMemory(landmark, memory)');
         expect(world).toContain("setData('villageHeartFollowUp'");
         expect(world).toContain("copy.setData('villageDecisionMoment', result.decision.id)");
         expect(world).toContain("container.setData('villageHabitatLife', true)");

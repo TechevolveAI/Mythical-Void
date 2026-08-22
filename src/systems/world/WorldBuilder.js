@@ -3837,6 +3837,31 @@ class WorldBuilder {
                 marker.fillCircle(0, 0, 2);
             }
             marker.setBlendMode?.(Phaser.BlendModes.ADD);
+            const memory = {
+                decisionId: choice.decisionId,
+                optionId: choice.optionId,
+                value: choice.option.value,
+                optionLabel: choice.option.label,
+                participantNames: choice.participantNames,
+                speakerName: choice.speakerName,
+                line: choice.followUpLine,
+                requiredBuildingIds: choice.definition.requiredBuildingIds
+            };
+            const touchRadius = compact ? 22 : 24;
+            marker
+                .setInteractive(
+                    new Phaser.Geom.Circle(0, 0, touchRadius),
+                    Phaser.Geom.Circle.Contains
+                )
+                .setData('interactionVerb', 'REMEMBER')
+                .setData('touchTargetDiameter', touchRadius * 2)
+                .setData(
+                    'ariaLabel',
+                    `Remember ${choice.speakerName}'s ${choice.option.label} choice`
+                );
+            marker.on('pointerdown', () => {
+                this.playVillageHeartMemory(landmark, memory);
+            });
             landmark.heartMemoryElements.push(marker);
             landmark.buildingElements.push(marker);
             landmark.buildingTweens.push(this.scene.tweens.add({
