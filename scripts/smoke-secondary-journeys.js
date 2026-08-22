@@ -11209,13 +11209,24 @@ async function smokeVillageUi(session, exceptions) {
                 };
             })(),
             peripheralWayfinding: (() => {
-                const elements = [...new Set([
-                    ...(scene.navigationMarkers || []),
-                    ...(scene.navigationPathDots || [])
-                ].filter(element => element?.active !== false))];
+                const labels = scene.getSanctuaryPeripheralLabels?.() || [];
                 return {
-                    managedCount: elements.length,
-                    visibleCount: elements.filter(element => element.visible !== false).length,
+                    managedCount: landmark.zone?.getData?.(
+                        'peripheralLabelManagedCount'
+                    ) || 0,
+                    readableCount: landmark.zone?.getData?.(
+                        'peripheralLabelReadableCount'
+                    ) || 0,
+                    visibleCount: landmark.zone?.getData?.(
+                        'peripheralLabelVisibleCount'
+                    ) || 0,
+                    clippedVisibleCount: labels.filter(label => (
+                        label.visible !== false &&
+                        label.getData?.('sanctuaryEdgeReadable') !== true
+                    )).length,
+                    destinations: labels.map(label => label.getData?.(
+                        'sanctuaryPeripheralDestination'
+                    )),
                     suppressed: landmark.zone?.getData?.(
                         'peripheralWayfindingSuppressed'
                     ) === true
@@ -11535,8 +11546,13 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.sanctuaryParallax.backdropProfile !== 'world_background_owned_v3' ||
         integratedWorld.sanctuaryParallax.backdropScrollFactorX !== 0 ||
         integratedWorld.sanctuaryParallax.backdropScrollFactorY !== 0 ||
-        integratedWorld.peripheralWayfinding.managedCount !== 0 ||
+        integratedWorld.peripheralWayfinding.managedCount !== 8 ||
         integratedWorld.peripheralWayfinding.visibleCount !== 0 ||
+        integratedWorld.peripheralWayfinding.clippedVisibleCount !== 0 ||
+        !integratedWorld.peripheralWayfinding.destinations.includes('signalGarden') ||
+        !integratedWorld.peripheralWayfinding.destinations.includes(
+            'settlementDistrict'
+        ) ||
         !integratedWorld.peripheralWayfinding.suppressed ||
         !integratedWorld.focus.active ||
         integratedWorld.focus.affinityNoticeActive ||
@@ -11812,13 +11828,21 @@ async function smokeVillageUi(session, exceptions) {
             heartPriority: scene.villageHeartLandmark?.heartArtwork
                 ?.getData?.('villageFocusPriority'),
             peripheralWayfinding: (() => {
-                const elements = [...new Set([
-                    ...(scene.navigationMarkers || []),
-                    ...(scene.navigationPathDots || [])
-                ].filter(element => element?.active !== false))];
+                const labels = scene.getSanctuaryPeripheralLabels?.() || [];
                 return {
-                    managedCount: elements.length,
-                    visibleCount: elements.filter(element => element.visible !== false).length,
+                    managedCount: scene.villageHeartLandmark?.zone?.getData?.(
+                        'peripheralLabelManagedCount'
+                    ) || 0,
+                    readableCount: scene.villageHeartLandmark?.zone?.getData?.(
+                        'peripheralLabelReadableCount'
+                    ) || 0,
+                    visibleCount: scene.villageHeartLandmark?.zone?.getData?.(
+                        'peripheralLabelVisibleCount'
+                    ) || 0,
+                    clippedVisibleCount: labels.filter(label => (
+                        label.visible !== false &&
+                        label.getData?.('sanctuaryEdgeReadable') !== true
+                    )).length,
                     suppressed: scene.villageHeartLandmark?.zone?.getData?.(
                         'peripheralWayfindingSuppressed'
                     ) === true
@@ -11852,8 +11876,10 @@ async function smokeVillageUi(session, exceptions) {
             visible => visible !== (SMOKE_VIEWPORT_WIDTH > 600)
         ) ||
         focusRecovery.heartPriority !== 'primary' ||
-        focusRecovery.peripheralWayfinding.managedCount !== 0 ||
-        focusRecovery.peripheralWayfinding.visibleCount !== 0 ||
+        focusRecovery.peripheralWayfinding.managedCount !== 8 ||
+        focusRecovery.peripheralWayfinding.visibleCount >
+            focusRecovery.peripheralWayfinding.readableCount ||
+        focusRecovery.peripheralWayfinding.clippedVisibleCount !== 0 ||
         focusRecovery.peripheralWayfinding.suppressed ||
         focusRecovery.plotPriorities.length !== 5 ||
         focusRecovery.plotPriorities.filter(plot => plot.state === 'staffed').some(

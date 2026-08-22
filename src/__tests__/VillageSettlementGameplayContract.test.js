@@ -262,6 +262,7 @@ describe('Village settlement gameplay contract', () => {
     test('a single proximity director owns competing Sanctuary actions', () => {
         const sceneSource = read('scenes/GameScene.js');
         const directorSource = read('systems/world/SanctuaryInteractionDirector.js');
+        const worldSource = read('systems/world/WorldBuilder.js');
 
         [
             "id: 'villageHeart'",
@@ -301,6 +302,11 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain('const heartBandY = compact ? 132 : 120');
         expect(sceneSource).toContain("? 'front'");
         expect(sceneSource).toContain(": 'behind'");
+        expect(sceneSource).toContain('updateSanctuaryPeripheralLabelVisibility()');
+        expect(sceneSource).toContain("getData?.('sanctuaryPeripheralLabel') === true");
+        expect(sceneSource).toContain(".setData('peripheralLabelVisibleCount', visibleCount)");
+        expect(worldSource).toContain(".setData('sanctuaryPeripheralDestination', 'signalGarden')");
+        expect(worldSource).toContain(".setData('sanctuaryPeripheralDestination', definition.zoneId)");
         [
             "verb: 'SHOP'",
             "label: 'SUPPLIES & BUILDING'",

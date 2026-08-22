@@ -601,7 +601,9 @@ class WorldBuilder {
                 fontStyle: 'bold',
                 stroke: '#050505',
                 strokeThickness: 4
-            }).setOrigin(0.5, 0).setAlpha(0);
+            }).setOrigin(0.5, 0).setAlpha(0)
+                .setData('sanctuaryPeripheralLabel', true)
+                .setData('sanctuaryPeripheralDestination', definition.zoneId);
             const container = this.scene.add.container(
                 definition.x,
                 definition.y,
@@ -5821,7 +5823,9 @@ class WorldBuilder {
             fontStyle: 'bold',
             stroke: '#081514',
             strokeThickness: 4
-        }).setOrigin(0.5).setDepth(centerY + 2);
+        }).setOrigin(0.5).setDepth(centerY + 2)
+            .setData('sanctuaryPeripheralLabel', true)
+            .setData('sanctuaryPeripheralDestination', 'signalGarden');
 
         const storedStage = typeof window !== 'undefined'
             ? window.GameState?.get?.('world.signalGarden.stage')

@@ -5288,7 +5288,9 @@ class GameScene extends Phaser.Scene {
             strokeThickness: 3,
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(101)
-            .setData('navigationMarkerDestination', dest.name);
+            .setData('navigationMarkerDestination', dest.name)
+            .setData('sanctuaryPeripheralLabel', true)
+            .setData('sanctuaryPeripheralDestination', dest.name);
 
         // One arrival flare establishes the landmark without permanent motion.
         [glow, icon, label].forEach(element => element.setAlpha(0));
@@ -14923,6 +14925,7 @@ class GameScene extends Phaser.Scene {
             return;
         }
         this.updateSanctuaryActorDepths();
+        this.updateSanctuaryPeripheralLabelVisibility();
 
         if (this.waypointPreview) {
             this.projectBeaconWaypoint?.update(delta || 16.67);
@@ -16018,9 +16021,11 @@ class GameScene extends Phaser.Scene {
     }
 
     setSanctuaryPeripheralWayfindingVisible(visible = true) {
+        const peripheralLabels = this.getSanctuaryPeripheralLabels();
         const elements = [...new Set([
             ...(this.navigationMarkers || []),
-            ...(this.navigationPathDots || [])
+            ...(this.navigationPathDots || []),
+            ...peripheralLabels
         ].filter(Boolean))];
         let managedCount = 0;
         let visibleCount = 0;
@@ -16036,7 +16041,70 @@ class GameScene extends Phaser.Scene {
             ?.setData('peripheralWayfindingSuppressed', !visible)
             .setData('peripheralWayfindingManagedCount', managedCount)
             .setData('peripheralWayfindingVisibleCount', visibleCount);
+        this.updateSanctuaryPeripheralLabelVisibility({ peripheralVisible: visible });
         return { managedCount, visibleCount, suppressed: !visible };
+    }
+
+    getSanctuaryPeripheralLabels() {
+        return [...new Set([
+            this.signalGarden?.label,
+            ...(this.sanctuaryDistricts?.markers || []).map(marker => marker?.label),
+            ...(this.navigationMarkers || []).filter(element => (
+                element?.getData?.('sanctuaryPeripheralLabel') === true
+            ))
+        ].filter(element => element?.active !== false))];
+    }
+
+    updateSanctuaryPeripheralLabelVisibility({
+        peripheralVisible = !this.sanctuaryFocusModeActive
+    } = {}) {
+        if (this.currentBiome !== 'nebula' || !this.cameras?.main) return null;
+        const camera = this.cameras.main;
+        const compact = camera.width <= 600;
+        const margin = compact ? 12 : 18;
+        const dockTop = this.mobileControls?.isVisible
+            ? Number(this.mobileControls?.layout?.dockTop)
+            : camera.height;
+        const safeBottom = Number.isFinite(dockTop)
+            ? Math.min(camera.height, dockTop) - margin
+            : camera.height - margin;
+        const labels = this.getSanctuaryPeripheralLabels();
+        let readableCount = 0;
+        let visibleCount = 0;
+        labels.forEach(label => {
+            const bounds = label.getBounds?.();
+            const screenBounds = bounds ? {
+                left: (bounds.left - camera.worldView.x) * camera.zoom,
+                right: (bounds.right - camera.worldView.x) * camera.zoom,
+                top: (bounds.top - camera.worldView.y) * camera.zoom,
+                bottom: (bounds.bottom - camera.worldView.y) * camera.zoom
+            } : null;
+            const readable = Boolean(
+                screenBounds &&
+                screenBounds.left >= margin &&
+                screenBounds.right <= camera.width - margin &&
+                screenBounds.top >= margin &&
+                screenBounds.bottom <= safeBottom
+            );
+            const shouldShow = peripheralVisible && readable;
+            label.setVisible?.(shouldShow)
+                .setData?.('sanctuaryEdgeReadable', readable)
+                .setData?.('sanctuaryEdgeSuppressed', !shouldShow)
+                .setData?.('sanctuaryEdgeSafeMargin', margin);
+            if (readable) readableCount += 1;
+            if (shouldShow) visibleCount += 1;
+        });
+        this.villageHeartLandmark?.zone
+            ?.setData('peripheralLabelManagedCount', labels.length)
+            .setData('peripheralLabelReadableCount', readableCount)
+            .setData('peripheralLabelVisibleCount', visibleCount)
+            .setData('peripheralLabelSafeBottom', safeBottom);
+        return {
+            managedCount: labels.length,
+            readableCount,
+            visibleCount,
+            safeBottom
+        };
     }
 
     updateSanctuaryFocusMode(active = this.nearVillageHeart) {
