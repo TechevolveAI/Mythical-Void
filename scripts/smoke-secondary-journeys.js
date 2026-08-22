@@ -11790,12 +11790,21 @@ async function smokeVillageUi(session, exceptions) {
         throw new Error(`Village contextual focus failed: ${JSON.stringify(contextualFocus)}`);
     }
     await waitFor(
-        () => evaluate(session, `(
-            window.mythicalGame.scene.getScene('GameScene')
-                ?.villageHeartLandmark?.workerElements?.[0]
-                ?.getData('routeProgress') || 0
-        ) > 0`),
-        { timeoutMs: 6000, message: 'Village worker begins delivery route' }
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const worker = scene?.villageHeartLandmark?.workerElements?.[0];
+            const progress = worker?.getData('routeProgress') || 0;
+            return worker?.input?.enabled === true &&
+                worker?.getData('villagePresentationMode') !== 'story' &&
+                worker?.getData('routeDirection') === 'to_heart' &&
+                worker?.getData('cargoVisible') === true &&
+                progress > 0 &&
+                progress < 0.78;
+        })()`),
+        {
+            timeoutMs: 16000,
+            message: 'Village worker becomes player-ready during outbound delivery route'
+        }
     );
     const workerRoute = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
