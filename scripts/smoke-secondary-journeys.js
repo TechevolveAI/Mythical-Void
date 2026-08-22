@@ -10507,6 +10507,15 @@ async function smokeVillageUi(session, exceptions) {
                 workerNames: workers.map(worker => worker.getData('helperName')),
                 workerRoutines: workers.map(worker => worker.getData('routineCue')),
                 workerCheckInCues: workers.map(worker => worker.getData('checkInCue')),
+                plotPresentations: (landmark?.plotPresentations || []).map(presentation => ({
+                    plotId: presentation.plotId,
+                    label: presentation.plotLabel?.text || '',
+                    labelAlpha: presentation.plotLabel?.alpha,
+                    state: presentation.stateLabel?.text || '',
+                    stateAlpha: presentation.stateLabel?.alpha,
+                    focusAlpha: presentation.focusRing?.alpha,
+                    interactionLabel: presentation.interactionLabel
+                })),
                 productionMomentStarted,
                 productionMomentCount: landmark?.productionMoments?.length || 0
             },
@@ -10523,8 +10532,8 @@ async function smokeVillageUi(session, exceptions) {
         rect.left >= -1 && rect.right <= layout.innerWidth + 1 &&
         rect.top >= -1 && rect.bottom <= layout.innerHeight + 1;
     if (
-        layout.innerWidth !== 390 ||
-        layout.innerHeight !== 844 ||
+        layout.innerWidth !== SMOKE_VIEWPORT_WIDTH ||
+        layout.innerHeight !== SMOKE_VIEWPORT_HEIGHT ||
         layout.bodyScrollWidth > layout.innerWidth ||
         layout.commandBody.scrollWidth > layout.commandBody.clientWidth + 1 ||
         layout.artworks.length !== 5 ||
@@ -10574,10 +10583,19 @@ async function smokeVillageUi(session, exceptions) {
         layout.worldPresentation.workerNames.some(name => !name) ||
         layout.worldPresentation.workerRoutines.some(cue => !cue) ||
         layout.worldPresentation.workerCheckInCues.some(cue => cue !== true) ||
+        layout.worldPresentation.plotPresentations.length !== 5 ||
+        layout.worldPresentation.plotPresentations.some(presentation => (
+            !presentation.label ||
+            !presentation.interactionLabel ||
+            presentation.labelAlpha <= 0 ||
+            presentation.labelAlpha >= 1 ||
+            presentation.stateAlpha !== 0 ||
+            presentation.focusAlpha !== 0
+        )) ||
         !layout.worldPresentation.productionMomentStarted ||
         layout.worldPresentation.productionMomentCount < 1 ||
         !layout.acceptsInput ||
-        layout.resourceColumns !== 2 ||
+        layout.resourceColumns !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 2 : 4) ||
         !withinViewport(layout.shell) ||
         !withinViewport(layout.close) ||
         layout.close.right - layout.close.left < 44 ||
@@ -10591,6 +10609,41 @@ async function smokeVillageUi(session, exceptions) {
         () => evaluate(session, `!document.querySelector('.village-command-modal')`),
         { message: 'Village Heart closed before next-action route check' }
     );
+    const contextualFocus = await evaluate(session, `(() => {
+        const landmark = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark;
+        const zone = landmark?.plotHitZones?.[0];
+        const presentation = landmark?.plotPresentations?.[0];
+        if (!zone || !presentation) return null;
+        zone.emit('pointerover');
+        const focused = {
+            labelAlpha: presentation.plotLabel.alpha,
+            stateAlpha: presentation.stateLabel.alpha,
+            focusAlpha: presentation.focusRing.alpha,
+            state: presentation.stateLabel.text
+        };
+        zone.emit('pointerout');
+        return {
+            focused,
+            restored: {
+                labelAlpha: presentation.plotLabel.alpha,
+                stateAlpha: presentation.stateLabel.alpha,
+                focusAlpha: presentation.focusRing.alpha
+            }
+        };
+    })()`);
+    if (
+        !contextualFocus ||
+        contextualFocus.focused.labelAlpha !== 1 ||
+        contextualFocus.focused.stateAlpha !== 1 ||
+        contextualFocus.focused.focusAlpha !== 1 ||
+        !contextualFocus.focused.state.includes('PATHFINDER') ||
+        contextualFocus.restored.labelAlpha >= 1 ||
+        contextualFocus.restored.stateAlpha !== 0 ||
+        contextualFocus.restored.focusAlpha !== 0
+    ) {
+        throw new Error(`Village contextual focus failed: ${JSON.stringify(contextualFocus)}`);
+    }
     const workerRoute = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const worker = scene?.villageHeartLandmark?.workerElements?.[0];
@@ -10657,7 +10710,7 @@ async function smokeVillageUi(session, exceptions) {
         const bounds = zone.getBounds();
         return {
             x: Math.round(bounds.centerX),
-            y: Math.round(bounds.centerY),
+            y: Math.round(bounds.top + 18),
             plotId: zone.plotId
         };
     })()`);
@@ -10823,6 +10876,9 @@ async function smokeVillageUi(session, exceptions) {
             plotId: target.getData('plotId'),
             definitionId: target.getData('definitionId'),
             worldAction: landmark?.snapshot?.worldState?.nextAction?.type,
+            centralActionText: landmark?.actionLabel?.text || '',
+            centralActionAlpha: landmark?.actionLabel?.alpha,
+            centralActionInput: landmark?.actionLabel?.input?.enabled === true,
             text: target.text || ''
         };
     })()`);
@@ -10832,6 +10888,9 @@ async function smokeVillageUi(session, exceptions) {
         buildRoute.plotId !== 'root_04' ||
         buildRoute.definitionId !== 'habitat' ||
         buildRoute.worldAction !== 'build' ||
+        buildRoute.centralActionText !== '' ||
+        buildRoute.centralActionAlpha !== 0 ||
+        buildRoute.centralActionInput ||
         !buildRoute.text.includes('BUILD HABITAT')
     ) {
         throw new Error(`Village next build route failed: ${JSON.stringify(buildRoute)}`);
@@ -10964,6 +11023,7 @@ async function smokeVillageUi(session, exceptions) {
         layout,
         workerRoute,
         workerCheckIn,
+        contextualFocus,
         structureRoute,
         structurePlanner,
         actionRoute,

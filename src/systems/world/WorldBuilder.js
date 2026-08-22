@@ -11,7 +11,6 @@ import { CURRENT_VEIL_ANCHORS } from '../CurrentVeilMission.js';
 import { getFusionPodLandmarkSnapshot } from '../FusionPodLandmark.js';
 import {
     getVillageSnapshot,
-    getVillageWorldGuidance,
     VILLAGE_BUILDING_DEFINITIONS,
     VILLAGE_PLOTS,
     VILLAGE_WORLD_ARTWORK
@@ -290,7 +289,7 @@ class WorldBuilder {
             : null;
         if (heartArtwork) heartArtwork.villageBaseScale = heartArtwork.scaleX;
         const glow = this.scene.add.graphics().setPosition(x, y).setDepth(y + 1);
-        const actionLabel = this.scene.add.text(x, y - 126, 'OPEN VILLAGE PLAN', {
+        const actionLabel = this.scene.add.text(x, y - 126, 'OPEN PLAN', {
             fontSize: '10px',
             fontFamily: 'Arial, sans-serif',
             color: '#F2C14E',
@@ -346,12 +345,14 @@ class WorldBuilder {
             heart.setScale(1);
             if (heartArtwork) heartArtwork.setScale(heartArtwork.villageBaseScale);
             glow.setScale(1);
-            actionLabel
-                .setColor(
-                    landmark.snapshot?.unlock?.unlocked
-                        ? '#F2C14E'
-                        : '#93A2A9'
-                )
+                actionLabel
+                    .setColor(
+                        !landmark.snapshot?.unlock?.unlocked
+                            ? '#93A2A9'
+                            : landmark.snapshot?.worldState?.nextAction?.type === 'decision'
+                                ? '#8FE3CF'
+                                : '#F2C14E'
+                    )
                 .setScale(1);
         });
         zone.on('pointerdown', () => this.activateVillageHeart(landmark));
@@ -385,6 +386,7 @@ class WorldBuilder {
         landmark.residentElements = [];
         landmark.heartMemoryElements = [];
         landmark.valueGrowthElements = [];
+        landmark.plotPresentations = [];
         landmark.nextActionElement = null;
         landmark.plotWorldPositions = new Map();
         landmark.snapshot = snapshot;
@@ -523,15 +525,28 @@ class WorldBuilder {
             heart.fillCircle(0, 13, 11);
         }
 
-        label.setColor(unlocked ? '#F4F4F4' : '#93A2A9');
+        const restoredCount = snapshot?.worldState?.restored || 0;
+        label
+            .setText(unlocked ? 'VILLAGE HEART' : 'DORMANT HEART')
+            .setFontSize(compactSettlement ? '10px' : '12px')
+            .setPosition(landmark.zone.x, landmark.zone.y + (compactSettlement ? 104 : 105))
+            .setAlpha(unlocked ? 0.86 : 0.68)
+            .setColor(unlocked ? '#F4F4F4' : '#93A2A9');
         actionLabel
-            .setText(unlocked ? 'OPEN VILLAGE PLAN' : 'HEART DORMANT')
-            .setColor(unlocked ? '#F2C14E' : '#93A2A9');
+            .setText(unlocked ? 'OPEN PLAN' : 'HEART DORMANT')
+            .setAlpha(1)
+            .setColor(unlocked ? '#F2C14E' : '#93A2A9')
+            .setData('villageNextAction', null)
+            .setData('definitionId', null)
+            .setInteractive({ useHandCursor: true });
         statusLabel
             .setText(unlocked
-                ? getVillageWorldGuidance(snapshot)
+                ? `${restoredCount}/${VILLAGE_PLOTS.length} RESTORED`
                 : 'HATCH A COMPANION TO WAKE IT'
             )
+            .setFontSize(compactSettlement ? '8px' : '9px')
+            .setPosition(landmark.zone.x, landmark.zone.y + (compactSettlement ? 123 : 132))
+            .setAlpha(unlocked ? 0.82 : 0.64)
             .setColor(unlocked ? '#8FE3CF' : '#93A2A9');
 
         landmark.pulseTween = this.scene.tweens.add({
@@ -635,15 +650,33 @@ class WorldBuilder {
                 : unlocked
                     ? 'BUILD HERE'
                     : 'DORMANT';
-            const stateVisibleAtRest = !building ||
-                building.status === 'constructing' ||
-                building.definitionId === 'habitat' ||
-                Boolean(
-                    !compactSettlement &&
+            const guidedPlot = snapshot?.worldState?.nextAction?.plotId === plot.id;
+            const persistentState = Boolean(
+                building?.status === 'constructing' ||
+                (
+                    building?.status === 'complete' &&
                     definition?.production &&
                     !building.creature
-                );
-            const guidedPlot = snapshot?.worldState?.nextAction?.plotId === plot.id;
+                )
+            );
+            const plotLabelRestAlpha = guidedPlot
+                ? 0.46
+                : building
+                    ? (compactSettlement ? 0.76 : 0.84)
+                    : 0.38;
+            const stateLabelRestAlpha = persistentState && !guidedPlot ? 1 : 0;
+            const focusRing = this.scene.add.graphics().setAlpha(0);
+            const focusColor = building?.status === 'complete' ? 0x71E6B1 : 0xF2C14E;
+            focusRing.lineStyle(2, focusColor, 0.92);
+            focusRing.beginPath();
+            focusRing.arc(0, 23, compactSettlement ? 58 : 70, Math.PI * 0.12, Math.PI * 0.86);
+            focusRing.strokePath();
+            focusRing.beginPath();
+            focusRing.arc(0, 23, compactSettlement ? 58 : 70, Math.PI * 1.08, Math.PI * 1.82);
+            focusRing.strokePath();
+            focusRing.fillStyle(focusColor, 0.94);
+            focusRing.fillCircle(compactSettlement ? 48 : 59, -10, 3);
+            focusRing.setBlendMode?.(Phaser.BlendModes.ADD);
             const plotLabel = this.scene.add.text(
                 0,
                 worldArtwork ? 63 : 45,
@@ -651,14 +684,14 @@ class WorldBuilder {
                     ? definition.shortLabel
                     : plot.label,
                 {
-                    fontSize: '11px',
+                    fontSize: compactSettlement ? '9px' : '10px',
                     fontFamily: 'Arial, sans-serif',
                     color: building ? '#F4F4F4' : '#C9F7E9',
                     fontStyle: 'bold',
                     stroke: '#050505',
                     strokeThickness: 3
                 }
-            ).setOrigin(0.5);
+            ).setOrigin(0.5).setAlpha(plotLabelRestAlpha);
             const stateLabel = this.scene.add.text(
                 0,
                 worldArtwork ? -124 : -48,
@@ -675,9 +708,7 @@ class WorldBuilder {
                     stroke: '#050505',
                     strokeThickness: 3
                 }
-            ).setOrigin(0.5).setAlpha(
-                stateVisibleAtRest && !guidedPlot ? 1 : 0
-            );
+            ).setOrigin(0.5).setAlpha(stateLabelRestAlpha);
             const activity = building?.status === 'complete'
                 ? this.createVillageBuildingActivity(building)
                 : null;
@@ -700,6 +731,7 @@ class WorldBuilder {
                 ...(activity ? [activity] : []),
                 ...(worker ? [worker.container] : []),
                 ...(habitatLife ? [habitatLife.container] : []),
+                focusRing,
                 plotLabel,
                 stateLabel
             ]);
@@ -765,23 +797,35 @@ class WorldBuilder {
                 .setDepth(plotY + 6)
                 .setInteractive({ useHandCursor: unlocked });
             plotHitZone.plotId = plot.id;
+            const focusCopy = unlocked
+                ? definition
+                    ? building?.creature
+                        ? `${building.creature.name.toUpperCase()} · ${definition.roleLabel}`
+                        : definition.worldEffectLabel
+                    : 'CHOOSE WHAT GROWS HERE'
+                : 'DORMANT';
+            const interactionLabel = definition
+                ? `${definition.label}. ${buildingStateCopy}. Tap to manage.`
+                : `${plot.label}. Foundation available. Tap to plan.`;
+            plotHitZone
+                .setData('interactionLabel', interactionLabel)
+                .setData('definitionId', building?.definitionId || null)
+                .setData('guided', guidedPlot);
             plotHitZone.on('pointerover', () => {
                 container.setScale(1.06);
+                focusRing.setAlpha(1);
+                plotLabel.setAlpha(1);
                 stateLabel
-                    .setText(unlocked
-                        ? definition
-                            ? building?.creature
-                                ? `${building.creature.name.toUpperCase()} · ${definition.roleLabel}`
-                                : definition.worldEffectLabel
-                            : 'CHOOSE WHAT GROWS HERE'
-                        : 'DORMANT')
+                    .setText(focusCopy)
                     .setAlpha(1);
             });
             plotHitZone.on('pointerout', () => {
                 container.setScale(1);
+                focusRing.setAlpha(0);
+                plotLabel.setAlpha(plotLabelRestAlpha);
                 stateLabel
                     .setText(buildingStateCopy)
-                    .setAlpha(stateVisibleAtRest && !guidedPlot ? 1 : 0);
+                    .setAlpha(stateLabelRestAlpha);
             });
             plotHitZone.on('pointerdown', pointer => {
                 if (worker?.container && building?.creature) {
@@ -807,6 +851,15 @@ class WorldBuilder {
                 this.activateVillageHeart(landmark, plot.id);
             });
             landmark.plotHitZones.push(plotHitZone);
+            landmark.plotPresentations.push({
+                plotId: plot.id,
+                plotLabel,
+                stateLabel,
+                focusRing,
+                plotLabelRestAlpha,
+                stateLabelRestAlpha,
+                interactionLabel
+            });
 
             if (building?.status === 'constructing') {
                 landmark.buildingTweens.push(this.scene.tweens.add({
@@ -898,7 +951,8 @@ class WorldBuilder {
 
         if (action.type === 'decision' || action.type === 'supplies') {
             landmark.actionLabel
-                .setText(`NEXT · ${action.label}`)
+                .setText(action.label)
+                .setAlpha(1)
                 .setColor(action.type === 'decision' ? '#8FE3CF' : '#F2C14E');
             landmark.actionLabel
                 .setData('villageNextAction', action.type)
@@ -907,6 +961,11 @@ class WorldBuilder {
             return true;
         }
         if (!['build', 'assign'].includes(action.type) || !action.plotId) return false;
+
+        landmark.actionLabel
+            .setText('')
+            .setAlpha(0)
+            .disableInteractive();
 
         const position = landmark.plotWorldPositions?.get(action.plotId);
         if (!position) return false;

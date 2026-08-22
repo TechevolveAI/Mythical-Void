@@ -258,7 +258,13 @@ describe('Village settlement gameplay contract', () => {
         expect(village).toContain('residentLine:');
         expect(village).toContain('checkInLine:');
         expect(village).toContain('getVillageWorkerCheckIn(snapshot');
-        expect(world).toContain('getVillageWorldGuidance(snapshot)');
+        expect(world).toContain('landmark.plotPresentations = []');
+        expect(world).toContain(".setData('interactionLabel', interactionLabel)");
+        expect(world).toContain('focusRing.setAlpha(1)');
+        expect(world).toContain('plotLabel.setAlpha(plotLabelRestAlpha)');
+        expect(world).toContain('.setAlpha(stateLabelRestAlpha);');
+        expect(world).toContain(".setText('')");
+        expect(world).toContain('.disableInteractive();');
         expect(world).toContain('definition.worldEffectLabel');
         expect(world).toContain("'BUILD HERE'");
         expect(world).toContain('Phaser.BlendModes.ADD');
