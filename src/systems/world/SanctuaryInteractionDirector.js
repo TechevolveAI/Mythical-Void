@@ -16,6 +16,7 @@ export default class SanctuaryInteractionDirector {
         this.active = null;
         this.indicator = null;
         this.beacon = null;
+        this.beaconParts = null;
         this.indicatorElements = [];
         this.indicatorTween = null;
     }
@@ -97,6 +98,8 @@ export default class SanctuaryInteractionDirector {
             }
             this.scene.mobileControls?.updateInteractIcon(next.icon);
             this.renderIndicator(next);
+        } else {
+            this.layoutIndicator(next);
         }
         return next;
     }
@@ -202,15 +205,28 @@ export default class SanctuaryInteractionDirector {
                 .setData('interactionId', candidate.id)
                 .setData('ariaLabel', candidate.ariaLabel || candidate.message)
                 .setInteractive({ useHandCursor: true });
+            const touchLayout = this.scene?.hasVisibleTouchControls?.() === true;
+            if (touchLayout) {
+                [beacon, glyph, verb, label, hitZone].forEach(element => {
+                    element.setScrollFactor?.(0);
+                });
+                beacon.setDepth(9500);
+                glyph.setDepth(9501);
+                verb.setDepth(9501);
+                label.setDepth(9501);
+                hitZone.setDepth(9502);
+            }
             hitZone.on('pointerdown', pointer => {
                 pointer?.event?.stopPropagation?.();
                 candidate.action?.();
             });
             this.beacon = beacon;
+            this.beaconParts = { beacon, glyph, verb, label, hitZone };
             elements.push(beacon, glyph, verb, label, hitZone);
         }
         this.indicator = indicator;
         this.indicatorElements = elements;
+        this.layoutIndicator(candidate);
         this.indicatorTween = this.scene.tweens.add({
             targets: [indicator, this.beacon].filter(Boolean),
             alpha: { from: 0.62, to: 1 },
@@ -223,6 +239,72 @@ export default class SanctuaryInteractionDirector {
         });
     }
 
+    resolveBeaconPlacement(target, desiredY) {
+        const camera = this.scene?.cameras?.main;
+        const dockTop = Number(this.scene?.mobileControls?.layout?.dockTop);
+        const touchLayout = this.scene?.hasVisibleTouchControls?.() === true;
+        if (
+            !touchLayout ||
+            !camera ||
+            !Number.isFinite(dockTop) ||
+            !Number.isFinite(camera.zoom) ||
+            camera.zoom <= 0
+        ) {
+            return {
+                x: target.x,
+                y: desiredY,
+                clamped: false,
+                dockClearance: null,
+                coordinateSpace: 'world',
+                dockAnchored: false
+            };
+        }
+
+        const viewportX = Number(camera.x || 0);
+        const dockClearance = 36;
+
+        return {
+            x: viewportX + (camera.width / 2),
+            y: dockTop - dockClearance,
+            clamped: true,
+            dockClearance,
+            coordinateSpace: 'screen',
+            dockAnchored: true
+        };
+    }
+
+    layoutIndicator(candidate = this.active) {
+        const target = candidate?.target;
+        if (!target || !this.indicator) return null;
+        const height = Math.max(28, Math.min(72, Number(target.height || 46) * 0.42));
+        this.indicator.setPosition(
+            target.x,
+            target.y + Math.min(42, height * 0.45)
+        );
+        if (!this.beaconParts) return null;
+
+        const desiredY = target.y - Math.max(
+            70,
+            Math.min(118, Number(target.height || 80) * 0.55 + 34)
+        );
+        const placement = this.resolveBeaconPlacement(target, desiredY);
+        const { beacon, glyph, verb, label, hitZone } = this.beaconParts;
+        beacon.setPosition(placement.x, placement.y)
+            .setData('mobileViewportClamped', placement.clamped)
+            .setData('mobileDockClearance', placement.dockClearance)
+            .setData('mobileDockAnchored', placement.dockAnchored)
+            .setData('coordinateSpace', placement.coordinateSpace);
+        glyph.setPosition(placement.x - 58, placement.y);
+        verb.setPosition(placement.x - 31, placement.y - 7);
+        label.setPosition(placement.x - 31, placement.y + 8);
+        hitZone.setPosition(placement.x, placement.y)
+            .setData('mobileViewportClamped', placement.clamped)
+            .setData('mobileDockClearance', placement.dockClearance)
+            .setData('mobileDockAnchored', placement.dockAnchored)
+            .setData('coordinateSpace', placement.coordinateSpace);
+        return placement;
+    }
+
     clearIndicator() {
         this.indicatorTween?.stop?.();
         this.indicatorTween = null;
@@ -230,6 +312,7 @@ export default class SanctuaryInteractionDirector {
         this.indicatorElements = [];
         this.indicator = null;
         this.beacon = null;
+        this.beaconParts = null;
     }
 
     destroy() {

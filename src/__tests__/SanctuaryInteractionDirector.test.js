@@ -30,8 +30,13 @@ const createDisplayObject = () => ({
     destroyed: false,
     data: new Map(),
     events: new Map(),
-    setPosition: jest.fn().mockReturnThis(),
+    setPosition: jest.fn(function setPosition(x, y) {
+        this.x = x;
+        this.y = y;
+        return this;
+    }),
     setDepth: jest.fn().mockReturnThis(),
+    setScrollFactor: jest.fn().mockReturnThis(),
     setOrigin: jest.fn().mockReturnThis(),
     setData: jest.fn(function setData(key, value) {
         this.data.set(key, value);
@@ -206,6 +211,47 @@ describe('SanctuaryInteractionDirector', () => {
         expect(scene.add.zone).toHaveBeenCalledWith(30, -105.5, 164, 52);
         hitZone.events.get('pointerdown')({ event: { stopPropagation: jest.fn() } });
         expect(action).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps touch beacons above the mobile dock and inside the viewport', () => {
+        const scene = createScene();
+        scene.hasVisibleTouchControls.mockReturnValue(true);
+        scene.cameras = {
+            main: {
+                x: 0,
+                y: 0,
+                width: 390,
+                zoom: 1,
+                worldView: { x: 0, y: 0 }
+            }
+        };
+        scene.mobileControls.layout = { dockTop: 700 };
+        const director = new SanctuaryInteractionDirector(scene);
+
+        director.offer({
+            id: 'heart',
+            target: { x: 380, y: 790, width: 150, height: 80, active: true },
+            message: 'Tap the Village Heart',
+            verb: 'DECIDE',
+            label: 'TOGETHER',
+            hintMode: 'world'
+        });
+
+        const hitZone = director.indicatorElements.find(element => (
+            element.getData?.('sanctuaryInteractionBeaconHitZone') === true
+        ));
+        expect(hitZone.x).toBe(195);
+        expect(hitZone.y).toBe(664);
+        expect(hitZone.getData('mobileViewportClamped')).toBe(true);
+        expect(hitZone.getData('mobileDockClearance')).toBe(36);
+        expect(hitZone.getData('mobileDockAnchored')).toBe(true);
+        expect(hitZone.getData('coordinateSpace')).toBe('screen');
+        expect(hitZone.setScrollFactor).toHaveBeenCalledWith(0);
+
+        scene.cameras.main.worldView = { x: 50, y: 100 };
+        director.update();
+        expect(hitZone.x).toBe(195);
+        expect(hitZone.y).toBe(664);
     });
 
     it('adapts world prompts between touch and desktop layouts', () => {

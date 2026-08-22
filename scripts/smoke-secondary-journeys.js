@@ -11120,7 +11120,17 @@ async function smokeVillageUi(session, exceptions) {
                 hitZoneWidth: interactionBeacon?.getData?.('touchTargetWidth') || 0,
                 hitZoneHeight: interactionBeacon?.getData?.('touchTargetHeight') || 0,
                 inputEnabled: interactionHitZone?.input?.enabled === true,
+                coordinateSpace: interactionHitZone?.getData?.('coordinateSpace'),
+                dockAnchored: interactionHitZone?.getData?.('mobileDockAnchored') === true,
                 bounds: interactionBeaconBounds ? (() => {
+                    if (interactionHitZone?.scrollFactorX === 0) {
+                        return {
+                            left: interactionBeaconBounds.left,
+                            right: interactionBeaconBounds.right,
+                            top: interactionBeaconBounds.top,
+                            bottom: interactionBeaconBounds.bottom
+                        };
+                    }
                     const topLeft = toScreen(
                         interactionBeaconBounds.left,
                         interactionBeaconBounds.top
@@ -11329,13 +11339,17 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.interactionBeacon.hitZoneWidth !== 164 ||
         integratedWorld.interactionBeacon.hitZoneHeight !== 52 ||
         !integratedWorld.interactionBeacon.inputEnabled ||
+        integratedWorld.interactionBeacon.coordinateSpace !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 'screen' : 'world'
+        ) ||
+        integratedWorld.interactionBeacon.dockAnchored !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
         !integratedWorld.interactionBeacon.bounds ||
         integratedWorld.interactionBeacon.bounds.left < -1 ||
         integratedWorld.interactionBeacon.bounds.right > integratedWorld.viewport.width + 1 ||
         integratedWorld.interactionBeacon.bounds.top < -1 ||
         integratedWorld.interactionBeacon.bounds.bottom > (
             integratedWorld.controlDock?.top ?? integratedWorld.viewport.height
-        ) + 1 ||
+        ) - (SMOKE_VIEWPORT_WIDTH <= 600 ? 9 : -1) ||
         (
             SMOKE_VIEWPORT_WIDTH <= 600
                 ? integratedWorld.interactionVisible
