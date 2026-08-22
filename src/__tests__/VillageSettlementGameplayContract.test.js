@@ -347,6 +347,15 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("worker.setData('villageWorker', true)");
         expect(world).toContain("worker.setData('checkInCue', true)");
         expect(world).toContain("worker.setData('checkInCueStyle', 'current_resonance')");
+        expect(world).toContain("worker.setData('routeType', 'building_to_heart')");
+        expect(world).toContain("'carriedResource',");
+        expect(world).toContain("worker.setData('routeProgress'");
+        expect(world).toContain("worker.setData('routePhase'");
+        expect(world).toContain("worker.setData('worldEffectLabel', building.definition.worldEffectLabel)");
+        expect(world).toContain('worker.setInteractive({ useHandCursor: true })');
+        expect(world).toContain('heartPosition: {');
+        expect(world).toContain('plotPosition: { x: plotX, y: plotY }');
+        expect(world).toContain(".setData('villageBuildingImpact', building.definition.worldEffectLabel)");
         expect(world).toContain("setData('villageResonanceCue', true)");
         expect(world).toContain("setData('villageResonanceBackdrop', true)");
         expect(world).toContain("setData('resonanceStyle', 'current_ribbon')");

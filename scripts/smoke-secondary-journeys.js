@@ -11131,6 +11131,16 @@ async function smokeVillageUi(session, exceptions) {
                 workerRoutines: workers.map(worker => worker.getData('routineCue')),
                 workerCheckInCues: workers.map(worker => worker.getData('checkInCue')),
                 workerCheckInCueStyles: workers.map(worker => worker.getData('checkInCueStyle')),
+                workerRoutes: workers.map(worker => ({
+                    routeType: worker.getData('routeType'),
+                    routePhase: worker.getData('routePhase'),
+                    routeProgress: worker.getData('routeProgress'),
+                    carriedResource: worker.getData('carriedResource'),
+                    worldEffectLabel: worker.getData('worldEffectLabel'),
+                    ariaLabel: worker.getData('ariaLabel'),
+                    focusAlpha: worker.getData('villageFocusAlpha'),
+                    presentationMode: worker.getData('villagePresentationMode')
+                })),
                 workerResonanceCues: workers.map(worker => worker.list?.some(
                     child => child?.getData?.('villageResonanceCue') === true
                 ) === true),
@@ -11220,6 +11230,21 @@ async function smokeVillageUi(session, exceptions) {
         layout.worldPresentation.workerCheckInCueStyles.some(
             style => style !== 'current_resonance'
         ) ||
+        layout.worldPresentation.workerRoutes.some(route => (
+            route.routeType !== 'building_to_heart' ||
+            !['working', 'travelling', 'delivering'].includes(route.routePhase) ||
+            !Number.isFinite(route.routeProgress) ||
+            !route.carriedResource ||
+            !route.worldEffectLabel ||
+            !route.ariaLabel.includes('Village Heart') ||
+            !route.ariaLabel.includes(route.worldEffectLabel) ||
+            route.focusAlpha > 0.25 ||
+            route.presentationMode !== 'story'
+        )) ||
+        [...layout.worldPresentation.workerRoutes]
+            .map(route => route.carriedResource)
+            .sort()
+            .join(',') !== 'food,stone,wood' ||
         layout.worldPresentation.workerResonanceCues.some(cue => cue !== true) ||
         layout.worldPresentation.plotPresentations.length !== 5 ||
         layout.worldPresentation.plotPresentations.some(presentation => (
@@ -11306,6 +11331,7 @@ async function smokeVillageUi(session, exceptions) {
     ) {
         throw new Error(`Village contextual focus failed: ${JSON.stringify(contextualFocus)}`);
     }
+    await delay(1200);
     const workerRoute = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const worker = scene?.villageHeartLandmark?.workerElements?.[0];
@@ -11316,6 +11342,13 @@ async function smokeVillageUi(session, exceptions) {
             y: Math.round(point.y),
             creatureId: worker.getData('creatureId'),
             helperName: worker.getData('helperName'),
+            routeType: worker.getData('routeType'),
+            routePhase: worker.getData('routePhase'),
+            routeProgress: worker.getData('routeProgress'),
+            carriedResource: worker.getData('carriedResource'),
+            worldEffectLabel: worker.getData('worldEffectLabel'),
+            ariaLabel: worker.getData('ariaLabel'),
+            inputEnabled: worker.input?.enabled === true,
             checkInCue: worker.getData('checkInCue'),
             checkInCueStyle: worker.getData('checkInCueStyle'),
             resonanceCue: worker.list?.some(
@@ -11326,6 +11359,14 @@ async function smokeVillageUi(session, exceptions) {
     if (
         !workerRoute ||
         workerRoute.helperName !== 'Nova' ||
+        workerRoute.routeType !== 'building_to_heart' ||
+        !['working', 'travelling', 'delivering'].includes(workerRoute.routePhase) ||
+        !Number.isFinite(workerRoute.routeProgress) ||
+        workerRoute.routeProgress <= 0 ||
+        workerRoute.carriedResource !== 'food' ||
+        workerRoute.worldEffectLabel !== 'FEEDING · +5 HAPPINESS' ||
+        !workerRoute.ariaLabel.includes('Village Heart') ||
+        !workerRoute.inputEnabled ||
         workerRoute.checkInCue !== true ||
         workerRoute.checkInCueStyle !== 'current_resonance' ||
         !workerRoute.resonanceCue

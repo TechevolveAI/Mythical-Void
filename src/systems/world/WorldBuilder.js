@@ -1558,7 +1558,12 @@ class WorldBuilder {
             const worker = building?.status === 'complete' && building.creature
                 ? this.createVillageWorker(building, {
                     compact: compactSettlement,
-                    index
+                    index,
+                    plotPosition: { x: plotX, y: plotY },
+                    heartPosition: {
+                        x: landmark.zone.x,
+                        y: landmark.zone.y
+                    }
                 })
                 : null;
             const habitatLife = building?.status === 'complete' &&
@@ -1573,7 +1578,6 @@ class WorldBuilder {
                 stateMarker,
                 ...(building ? [currentSignal] : []),
                 ...(activity ? [activity] : []),
-                ...(worker ? [worker.container] : []),
                 ...(habitatLife ? [habitatLife.container] : []),
                 focusRing,
                 plotLabel,
@@ -1582,11 +1586,16 @@ class WorldBuilder {
             landmark.buildingElements.push(container);
             if (worker) {
                 landmark.workerElements.push(worker.container);
+                landmark.buildingElements.push(worker.container);
                 landmark.buildingTweens.push(
                     worker.moveTween,
                     worker.breatheTween,
                     worker.cueTween
                 );
+                worker.container.on('pointerdown', (_pointer, _x, _y, event) => {
+                    event?.stopPropagation?.();
+                    this.activateVillageWorker(landmark, building);
+                });
             }
             if (habitatLife) {
                 landmark.residentElements.push(habitatLife.container);
@@ -1705,8 +1714,8 @@ class WorldBuilder {
             });
             plotHitZone.on('pointerdown', pointer => {
                 if (worker?.container && building?.creature) {
-                    const workerX = container.x + worker.container.x;
-                    const workerY = container.y + worker.container.y;
+                    const workerX = worker.container.x;
+                    const workerY = worker.container.y;
                     const pointerX = pointer?.worldX ?? pointer?.x;
                     const pointerY = pointer?.worldY ?? pointer?.y;
                     const workerHitRadius = compactSettlement ? 36 : 42;
@@ -1737,6 +1746,7 @@ class WorldBuilder {
                 focusRing,
                 stateMarker,
                 flowSignal: villageFlow.container,
+                worker: worker?.container || null,
                 plotState,
                 plotLabelRestAlpha,
                 stateLabelRestAlpha,
@@ -1853,6 +1863,25 @@ class WorldBuilder {
                 presentation.hitZone?.setInteractive?.({ useHandCursor: true });
             }
             transition(presentation.container, alpha);
+            if (presentation.worker) {
+                const workerAlpha = !active
+                    ? 1
+                    : storyMode
+                        ? primary ? 0.78 : 0.24
+                        : primary
+                            ? 1
+                            : focusPlotId ? 0.36 : 0.54;
+                presentation.worker
+                    .setData('villageFocusPriority', priority)
+                    .setData('villageFocusAlpha', workerAlpha)
+                    .setData('villagePresentationMode', landmark.presentationMode);
+                if (storyMode) {
+                    presentation.worker.disableInteractive();
+                } else {
+                    presentation.worker.setInteractive({ useHandCursor: true });
+                }
+                transition(presentation.worker, workerAlpha);
+            }
         });
 
         const heartBaseAlpha = landmark.snapshot?.unlock?.unlocked === true ? 1 : 0.52;
@@ -2198,7 +2227,7 @@ class WorldBuilder {
             .setStrokeStyle(2, 0xF4F4F4, 0.9);
         const title = this.scene.add.text(
             0,
-            -104,
+            -114,
             complete
                 ? `${building.definition.shortLabel} ONLINE`
                 : `${building.definition.shortLabel} PLANTED`,
@@ -2211,7 +2240,39 @@ class WorldBuilder {
                 strokeThickness: 4
             }
         ).setOrigin(0.5);
-        container.add([current, signal, title]);
+        const impact = this.scene.add.text(
+            0,
+            -92,
+            complete
+                ? building.definition.worldEffectLabel
+                : 'THE CURRENT TAKES ROOT',
+            {
+                fontSize: '9px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F4F4F4',
+                stroke: '#050505',
+                strokeThickness: 4,
+                align: 'center',
+                wordWrap: { width: 180 }
+            }
+        ).setOrigin(0.5);
+        const growth = this.scene.add.graphics();
+        if (complete) {
+            [-42, -21, 0, 21, 42].forEach((rootX, index) => {
+                growth.lineStyle(2, index % 2 ? 0x71E6B1 : 0xF2C14E, 0.82);
+                growth.beginPath();
+                growth.moveTo(rootX, 31);
+                growth.lineTo(rootX + (index % 2 ? 7 : -7), 17 - (index % 3) * 4);
+                growth.strokePath();
+                growth.fillStyle(0x8FE3CF, 0.9);
+                growth.fillCircle(rootX + (index % 2 ? 7 : -7), 15 - (index % 3) * 4, 3);
+            });
+            growth.setBlendMode?.(Phaser.BlendModes.ADD);
+        }
+        container.add([current, growth, signal, impact, title]);
+        container.setData('villageBuildingMomentStage', stage);
+        container.setData('villageBuildingImpact', building.definition.worldEffectLabel);
         landmark.activeBuildingMoment = container;
         landmark.activeBuildingMomentTween = this.scene.tweens.add({
             targets: current,
@@ -2222,7 +2283,7 @@ class WorldBuilder {
             ease: 'Sine.easeOut'
         });
         this.scene.tweens.add({
-            targets: [signal, title],
+            targets: [signal, impact, title, growth],
             y: '-=14',
             alpha: { from: 1, to: 0 },
             delay: complete ? 1150 : 850,
@@ -2459,10 +2520,26 @@ class WorldBuilder {
         return { container, tween };
     }
 
-    createVillageWorker(building, { compact = false, index = 0 } = {}) {
-        const routeStartX = compact ? -30 : -48;
-        const routeEndX = compact ? 34 : 46;
-        const worker = this.scene.add.container(routeStartX, compact ? 28 : 34);
+    createVillageWorker(building, {
+        compact = false,
+        index = 0,
+        plotPosition,
+        heartPosition
+    } = {}) {
+        const routeStart = {
+            x: (plotPosition?.x || 0) + (compact ? -28 : -42),
+            y: (plotPosition?.y || 0) + (compact ? 27 : 33)
+        };
+        const routeEnd = {
+            x: (heartPosition?.x || 0) + ((index - 1) * (compact ? 52 : 64)),
+            y: (heartPosition?.y || 0) + (compact ? 82 : 92) + ((index % 2) * 8)
+        };
+        const routeControl = {
+            x: (routeStart.x + routeEnd.x) / 2 + (index % 2 === 0 ? -22 : 22),
+            y: Math.min(routeStart.y, routeEnd.y) - (compact ? 46 : 58)
+        };
+        const worker = this.scene.add.container(routeStart.x, routeStart.y)
+            .setDepth(routeStart.y + 18);
         const accentByAffinity = {
             star: 0xF2C14E,
             crystal: 0x8FE3CF,
@@ -2524,15 +2601,64 @@ class WorldBuilder {
         worker.setData('routineCue', building.definition.workerRoutine?.cue || 'HELPING');
         worker.setData('checkInCue', true);
         worker.setData('checkInCueStyle', 'current_resonance');
+        worker.setData('routeType', 'building_to_heart');
+        worker.setData(
+            'carriedResource',
+            building.definition.workerRoutine?.carriedResource || null
+        );
+        worker.setData('routeProgress', 0);
+        worker.setData('routePhase', 'working');
+        worker.setData('worldEffectLabel', building.definition.worldEffectLabel);
+        worker.setData(
+            'ariaLabel',
+            `${building.creature.name} carries ` +
+                `${building.definition.workerRoutine?.carriedResource || 'supplies'} ` +
+                `between ${building.definition.label} and the Village Heart. ` +
+                `${building.definition.worldEffectLabel}.`
+        );
+        worker.setSize(compact ? 42 : 48, compact ? 54 : 62);
+        worker.setInteractive({ useHandCursor: true });
 
+        const travel = { progress: 0 };
+        let previousX = routeStart.x;
+        const updateRoute = () => {
+            const progress = Phaser.Math.Clamp(travel.progress, 0, 1);
+            const inverse = 1 - progress;
+            const x = (inverse * inverse * routeStart.x) +
+                (2 * inverse * progress * routeControl.x) +
+                (progress * progress * routeEnd.x);
+            const y = (inverse * inverse * routeStart.y) +
+                (2 * inverse * progress * routeControl.y) +
+                (progress * progress * routeEnd.y);
+            worker.setPosition(x, y);
+            worker.setDepth(y + 18);
+            figure.setScale(Math.abs(figure.scaleX) * (x < previousX ? -1 : 1), figure.scaleY);
+            previousX = x;
+            worker.setData('routeProgress', Number(progress.toFixed(3)));
+            worker.setData(
+                'routePhase',
+                progress < 0.12
+                    ? 'working'
+                    : progress > 0.88
+                        ? 'delivering'
+                        : 'travelling'
+            );
+        };
         const moveTween = this.scene.tweens.add({
-            targets: worker,
-            x: { from: routeStartX, to: routeEndX },
-            y: { from: compact ? 28 : 34, to: compact ? 20 : 25 },
-            duration: 3300 + (index * 370),
+            targets: travel,
+            progress: 1,
+            duration: 4300 + (index * 360),
+            delay: 700 + (index * 940),
+            hold: 1500,
+            repeatDelay: 900,
             yoyo: true,
             repeat: -1,
-            ease: 'Sine.easeInOut'
+            ease: 'Sine.easeInOut',
+            onUpdate: updateRoute,
+            onRepeat: () => {
+                travel.progress = 0;
+                updateRoute();
+            }
         });
         const breatheTween = this.scene.tweens.add({
             targets: figure,
