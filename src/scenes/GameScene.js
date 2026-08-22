@@ -201,6 +201,16 @@ class GameScene extends Phaser.Scene {
         this.villageHeartMemoryIndex = 0;
         this.lastVillageHeartMemoryAt = 0;
         this.sanctuaryPresentationMode = 'ambient';
+        this.villageArrivalRevealActive = false;
+        this.villageArrivalRevealTimer = null;
+        this.villageArrivalRevealScheduleTimer = null;
+        this.villageArrivalRevealSkipArmTimer = null;
+        this.villageArrivalRevealInputShield = null;
+        this.villageArrivalRevealInputCooldownUntil = 0;
+        this.villageArrivalRevealHiddenElements = [];
+        this.villageArrivalRevealOnComplete = null;
+        this.villageArrivalRevealRestoreControls = false;
+        this.villageArrivalRevealPreviousFocus = false;
         this.villageCommunityMomentPending = false;
         this.villageDecisionMomentPending = null;
         this.villageCommandPanel = null;
@@ -747,6 +757,16 @@ class GameScene extends Phaser.Scene {
         this.villageHeartMemoryIndex = 0;
         this.lastVillageHeartMemoryAt = 0;
         this.sanctuaryPresentationMode = 'ambient';
+        this.villageArrivalRevealActive = false;
+        this.villageArrivalRevealTimer = null;
+        this.villageArrivalRevealScheduleTimer = null;
+        this.villageArrivalRevealSkipArmTimer = null;
+        this.villageArrivalRevealInputShield = null;
+        this.villageArrivalRevealInputCooldownUntil = 0;
+        this.villageArrivalRevealHiddenElements = [];
+        this.villageArrivalRevealOnComplete = null;
+        this.villageArrivalRevealRestoreControls = false;
+        this.villageArrivalRevealPreviousFocus = false;
         this.villageCommunityMomentPending = false;
         this.villageDecisionMomentPending = null;
 
@@ -1360,8 +1380,15 @@ class GameScene extends Phaser.Scene {
                     window.OnboardingManager.initialize(this);
                     window.OnboardingManager.onQueueComplete = ({ firstSanctuaryVisit } = {}) => {
                         if (!firstSanctuaryVisit || this._isShuttingDown) return;
-                        const storyQuest = window.QuestManager?.getQuestsByType?.('story')?.[0];
-                        this.questTracker?.showStoryMissionBriefing?.(storyQuest);
+                        this.scheduleVillageArrivalReveal({
+                            initialDelay: 320,
+                            onComplete: () => {
+                                if (this._isShuttingDown) return;
+                                const storyQuest = window.QuestManager
+                                    ?.getQuestsByType?.('story')?.[0];
+                                this.questTracker?.showStoryMissionBriefing?.(storyQuest);
+                            }
+                        });
                     };
                     window.OnboardingManager.startOnboardingFlow();
                 }
@@ -4790,6 +4817,240 @@ class GameScene extends Phaser.Scene {
         this.sanctuaryCameraFocusTarget = null;
         this.sanctuaryCameraFocusZoom = null;
         return true;
+    }
+
+    shouldPlayVillageArrivalReveal() {
+        if (
+            this.currentBiome !== 'nebula' ||
+            !this.villageHeartLandmark ||
+            window.GameState?.get('tutorial.villageHeartArrivalSeen') === true
+        ) {
+            return false;
+        }
+        const snapshot = this.villageHeartLandmark.snapshot ||
+            getVillageSnapshot(window.GameState);
+        return snapshot?.unlock?.unlocked === true;
+    }
+
+    isVillageArrivalRevealBlocked() {
+        return Boolean(
+            this._isShuttingDown ||
+            window.OnboardingManager?.isProcessing ||
+            this.controlsTutorial?.isVisible ||
+            this.storyModalElements?.length ||
+            this.greetingElements?.length ||
+            this.livingSignalMomentElements?.length ||
+            this.questTracker?.storyBannerElements?.length ||
+            this.achievementNotification?.isVisible ||
+            this.livingPortraitNoticeTimer ||
+            this.isFieldKitModalOpen ||
+            this.fusionDiscoveryModalOpen ||
+            this.hamburgerMenu?.isOpen ||
+            this.carePanelManager?.panelVisible ||
+            this.creatureRadialMenu?.isVisible ||
+            document.querySelector('.village-command-modal')
+        );
+    }
+
+    scheduleVillageArrivalReveal({
+        initialDelay = 500,
+        retryDelay = 650,
+        onComplete = null
+    } = {}) {
+        this.villageArrivalRevealScheduleTimer?.remove?.();
+        this.villageArrivalRevealScheduleTimer = null;
+        let completed = false;
+        const complete = () => {
+            if (completed) return;
+            completed = true;
+            onComplete?.();
+        };
+        const attempt = () => {
+            this.villageArrivalRevealScheduleTimer = null;
+            if (this._isShuttingDown) return;
+            if (!this.shouldPlayVillageArrivalReveal()) {
+                complete();
+                return;
+            }
+            if (this.isVillageArrivalRevealBlocked()) {
+                this.villageArrivalRevealScheduleTimer = this.time.delayedCall(
+                    retryDelay,
+                    attempt
+                );
+                return;
+            }
+            if (!this.playVillageArrivalReveal({ onComplete: complete })) {
+                complete();
+            }
+        };
+        this.villageArrivalRevealScheduleTimer = this.time.delayedCall(
+            initialDelay,
+            attempt
+        );
+        return true;
+    }
+
+    setVillageArrivalChromeHidden(hidden) {
+        if (hidden) {
+            const menuButton = this.hamburgerMenu?.menuButton;
+            const candidates = [
+                ...(this.navigationMarkers || []),
+                menuButton?.bg,
+                menuButton?.icon,
+                menuButton?.zone
+            ].filter(Boolean);
+            this.villageArrivalRevealHiddenElements = [...new Set(candidates)].map(
+                element => ({
+                    element,
+                    visible: element.visible !== false
+                })
+            );
+            this.villageArrivalRevealHiddenElements.forEach(({ element }) => {
+                element?.setVisible?.(false);
+            });
+            return true;
+        }
+        this.villageArrivalRevealHiddenElements.forEach(({ element, visible }) => {
+            if (element?.active !== false) element?.setVisible?.(visible);
+        });
+        this.villageArrivalRevealHiddenElements = [];
+        return true;
+    }
+
+    playVillageArrivalReveal({ force = false, onComplete = null } = {}) {
+        if (
+            this.villageArrivalRevealActive ||
+            !this.villageHeartLandmark ||
+            !this.worldBuilder ||
+            (!force && !this.shouldPlayVillageArrivalReveal()) ||
+            (!force && this.isVillageArrivalRevealBlocked())
+        ) {
+            return false;
+        }
+        const duration = 2800;
+        if (!this.worldBuilder.playVillageArrivalReveal(
+            this.villageHeartLandmark,
+            { duration }
+        )) {
+            return false;
+        }
+
+        this.villageArrivalRevealActive = true;
+        this.villageArrivalRevealOnComplete = onComplete;
+        this.villageArrivalRevealPreviousFocus = this.sanctuaryFocusModeActive === true;
+        this.villageArrivalRevealRestoreControls =
+            this.mobileControls?.suspend?.() === true;
+        this.villageArrivalRevealInputShield = this.add.zone(
+            this.scale.width / 2,
+            this.scale.height / 2,
+            this.scale.width,
+            this.scale.height
+        )
+            .setScrollFactor(0)
+            .setDepth(11990)
+            .setInteractive()
+            .setData('villageArrivalRevealInputShield', true)
+            .setData('visiblePanel', false);
+        this.player?.body?.setVelocity?.(0, 0);
+        this.joystickX = 0;
+        this.joystickY = 0;
+        this.setVillageArrivalChromeHidden(true);
+        this.updateSanctuaryFocusMode(true);
+        this.setSanctuaryMomentFocus(true, { kind: 'arrival' });
+        this.villageHeartLandmark.zone
+            ?.setData('villageArrivalRevealActive', true)
+            .setData('villageArrivalRevealDuration', duration)
+            .setData('villageArrivalRevealSkippable', true);
+        window.AudioManager?.playSound?.('current_harmony', 0.9);
+        if (!force) {
+            window.GameState?.set('tutorial.villageHeartArrivalSeen', true);
+            window.GameState?.save?.();
+        }
+
+        this.villageArrivalRevealTimer = this.time.delayedCall(
+            duration,
+            () => this.finishVillageArrivalReveal()
+        );
+        this.villageArrivalRevealSkipArmTimer = this.time.delayedCall(650, () => {
+            this.villageArrivalRevealSkipArmTimer = null;
+            if (!this.villageArrivalRevealActive) return;
+            this.villageArrivalRevealInputShield
+                ?.once?.('pointerdown', this.skipVillageArrivalReveal, this);
+            this.input?.keyboard?.once?.('keydown', this.skipVillageArrivalReveal, this);
+            this.villageHeartLandmark?.zone?.setData('villageArrivalRevealSkipArmed', true);
+        });
+        return true;
+    }
+
+    skipVillageArrivalReveal(event) {
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
+        return this.finishVillageArrivalReveal({ skipped: true });
+    }
+
+    finishVillageArrivalReveal({ skipped = false } = {}) {
+        if (!this.villageArrivalRevealActive) return false;
+        const onComplete = this.villageArrivalRevealOnComplete;
+        const restorePreviousFocus = this.villageArrivalRevealPreviousFocus;
+        this.villageArrivalRevealTimer?.remove?.();
+        this.villageArrivalRevealSkipArmTimer?.remove?.();
+        this.villageArrivalRevealTimer = null;
+        this.villageArrivalRevealSkipArmTimer = null;
+        this.villageArrivalRevealInputShield
+            ?.off?.('pointerdown', this.skipVillageArrivalReveal, this);
+        this.villageArrivalRevealInputShield?.destroy?.();
+        this.villageArrivalRevealInputShield = null;
+        this.input?.keyboard?.off?.('keydown', this.skipVillageArrivalReveal, this);
+        this.worldBuilder?.clearVillageArrivalReveal?.(this.villageHeartLandmark);
+        this.setVillageArrivalChromeHidden(false);
+        this.villageHeartLandmark?.zone
+            ?.setData('villageArrivalRevealActive', false)
+            .setData('villageArrivalRevealSkipArmed', false)
+            .setData('villageArrivalRevealSkipped', skipped);
+        this.villageArrivalRevealActive = false;
+        this.villageArrivalRevealInputCooldownUntil = skipped
+            ? (this.time?.now || 0) + 220
+            : 0;
+        this.villageArrivalRevealOnComplete = null;
+        this.setSanctuaryMomentFocus(false);
+        this.updateSanctuaryFocusMode(
+            restorePreviousFocus || this.nearVillageHeart
+        );
+        if (this.villageArrivalRevealRestoreControls) {
+            this.mobileControls?.resume?.();
+        }
+        this.villageArrivalRevealRestoreControls = false;
+        this.villageArrivalRevealPreviousFocus = false;
+        if (onComplete) {
+            this.time.delayedCall(280, () => {
+                if (!this._isShuttingDown) onComplete();
+            });
+        }
+        return true;
+    }
+
+    cancelVillageArrivalReveal() {
+        this.villageArrivalRevealScheduleTimer?.remove?.();
+        this.villageArrivalRevealTimer?.remove?.();
+        this.villageArrivalRevealSkipArmTimer?.remove?.();
+        this.villageArrivalRevealScheduleTimer = null;
+        this.villageArrivalRevealTimer = null;
+        this.villageArrivalRevealSkipArmTimer = null;
+        this.villageArrivalRevealInputShield
+            ?.off?.('pointerdown', this.skipVillageArrivalReveal, this);
+        this.villageArrivalRevealInputShield?.destroy?.();
+        this.villageArrivalRevealInputShield = null;
+        this.input?.keyboard?.off?.('keydown', this.skipVillageArrivalReveal, this);
+        this.worldBuilder?.clearVillageArrivalReveal?.(this.villageHeartLandmark);
+        this.setVillageArrivalChromeHidden(false);
+        if (this.villageArrivalRevealRestoreControls) {
+            this.mobileControls?.resume?.();
+        }
+        this.villageArrivalRevealActive = false;
+        this.villageArrivalRevealOnComplete = null;
+        this.villageArrivalRevealRestoreControls = false;
+        this.villageArrivalRevealPreviousFocus = false;
+        this.villageArrivalRevealInputCooldownUntil = 0;
     }
 
     /**
@@ -14459,6 +14720,15 @@ class GameScene extends Phaser.Scene {
         }
 
         if (
+            this.villageArrivalRevealActive ||
+            time < (this.villageArrivalRevealInputCooldownUntil || 0)
+        ) {
+            this.player?.body?.setVelocity?.(0, 0);
+            this.astronautFollower?.update(delta || this.game?.loop?.delta || 16.67);
+            return;
+        }
+
+        if (
             this.residentExchangeOpen ||
             this.guardianExchangeOpen ||
             this.guardianCareActivityOpen ||
@@ -16539,6 +16809,7 @@ class GameScene extends Phaser.Scene {
         }
         this._isShuttingDown = true;
         console.log('[GameScene] Shutting down - cleaning up event listeners');
+        this.cancelVillageArrivalReveal();
 
         // Emit session ended event for PersonalitySystem
         if (window.GameState && typeof window.GameState.emit === 'function') {

@@ -951,6 +951,8 @@ class WorldBuilder {
             guidanceRoute: null,
             arrivalGuide: null,
             arrivalGuideTween: null,
+            arrivalReveal: null,
+            arrivalRevealTweens: [],
             pulseTween: null,
             ecologyTween: null,
             heartArtworkTween: null,
@@ -1191,6 +1193,7 @@ class WorldBuilder {
         this.clearVillageCommunityMoment(landmark);
         this.clearVillageDecisionMoment(landmark);
         this.clearVillageWorkerCheckIn(landmark);
+        this.clearVillageArrivalReveal(landmark);
         landmark.buildingElements?.forEach(element => element?.destroy?.(true));
         landmark.plotHitZones?.forEach(zone => zone?.destroy?.());
         landmark.buildingTweens = [];
@@ -2184,6 +2187,146 @@ class WorldBuilder {
             ease: 'Sine.easeOut'
         });
         return true;
+    }
+
+    playVillageArrivalReveal(landmark, { duration = 2800 } = {}) {
+        if (!landmark?.zone) return false;
+        this.clearVillageArrivalReveal(landmark);
+        const compact = this.scene.scale.width <= 600;
+        const reveal = this.scene.add.container(
+            landmark.zone.x,
+            landmark.zone.y
+        ).setDepth(landmark.zone.y + 8);
+        const currentWave = this.scene.add.graphics();
+        const crownSignal = this.scene.add.graphics();
+        const title = this.scene.add.text(
+            0,
+            compact ? -132 : -156,
+            'THE HEART ANSWERS',
+            {
+                fontSize: compact ? '16px' : '18px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#F4F4F4',
+                fontStyle: 'bold',
+                stroke: '#050B0A',
+                strokeThickness: 5,
+                align: 'center'
+            }
+        ).setOrigin(0.5);
+        const subtitle = this.scene.add.text(
+            0,
+            compact ? -108 : -130,
+            'A HOME WE BUILD TOGETHER',
+            {
+                fontSize: compact ? '10px' : '11px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#8FE3CF',
+                fontStyle: 'bold',
+                stroke: '#050B0A',
+                strokeThickness: 4,
+                align: 'center'
+            }
+        ).setOrigin(0.5);
+        const radius = compact ? 74 : 104;
+        currentWave.lineStyle(compact ? 5 : 7, 0x071411, 0.68);
+        currentWave.strokeCircle(0, 0, radius);
+        currentWave.lineStyle(2, 0x71E6B1, 0.92);
+        currentWave.beginPath();
+        currentWave.arc(0, 0, radius, Math.PI * 0.04, Math.PI * 0.9);
+        currentWave.strokePath();
+        currentWave.beginPath();
+        currentWave.arc(0, 0, radius, Math.PI * 1.04, Math.PI * 1.9);
+        currentWave.strokePath();
+        currentWave.lineStyle(1, 0xF4F4F4, 0.72);
+        currentWave.strokeCircle(0, 0, radius - (compact ? 8 : 11));
+        currentWave.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const rayLength = compact ? 118 : 162;
+        [-0.82, -0.28, 0.28, 0.82].forEach((ratio, index) => {
+            const endX = ratio * rayLength;
+            const endY = (compact ? 78 : 104) + ((index % 2) * 13);
+            crownSignal.lineStyle(5, 0x071411, 0.46);
+            crownSignal.lineBetween(ratio * 20, 22, endX, endY);
+            crownSignal.lineStyle(1, index % 2 ? 0x8FE3CF : 0x71E6B1, 0.82);
+            crownSignal.lineBetween(ratio * 20, 22, endX, endY);
+            crownSignal.fillStyle(index % 2 ? 0x8FE3CF : 0x71E6B1, 0.88);
+            crownSignal.fillCircle(endX, endY, compact ? 2.5 : 3);
+        });
+        crownSignal.setBlendMode?.(Phaser.BlendModes.ADD);
+        reveal.add([currentWave, crownSignal, title, subtitle]);
+        reveal
+            .setAlpha(0)
+            .setData('villageArrivalReveal', true)
+            .setData('villageArrivalRevealWorldLed', true)
+            .setData('villageArrivalRevealBlockingPanel', false)
+            .setData('villageArrivalRevealSkippable', true)
+            .setData('villageArrivalRevealDuration', duration)
+            .setData('villageArrivalRevealTitle', title.text)
+            .setData('villageArrivalRevealSubtitle', subtitle.text)
+            .setData(
+                'ariaLabel',
+                `${title.text}. ${subtitle.text}. Tap or press any key to continue.`
+            );
+        currentWave
+            .setScale(0.68)
+            .setAlpha(0)
+            .setData('villageArrivalCurrentWave', true);
+        crownSignal
+            .setAlpha(0)
+            .setData('villageArrivalRootAnswer', true);
+        title.setAlpha(0);
+        subtitle.setAlpha(0);
+
+        landmark.arrivalReveal = reveal;
+        landmark.arrivalRevealTweens = [
+            this.scene.tweens.add({
+                targets: reveal,
+                alpha: 1,
+                duration: 260,
+                ease: 'Sine.easeOut'
+            }),
+            this.scene.tweens.add({
+                targets: currentWave,
+                alpha: { from: 0.82, to: 0 },
+                scaleX: { from: 0.68, to: 1.55 },
+                scaleY: { from: 0.68, to: 1.55 },
+                duration: 1180,
+                delay: 180,
+                repeat: 1,
+                repeatDelay: 90,
+                ease: 'Sine.easeOut'
+            }),
+            this.scene.tweens.add({
+                targets: crownSignal,
+                alpha: { from: 0, to: 0.94 },
+                duration: 520,
+                delay: 320,
+                yoyo: true,
+                hold: 860,
+                ease: 'Sine.easeInOut'
+            }),
+            this.scene.tweens.add({
+                targets: [title, subtitle],
+                alpha: { from: 0, to: 1 },
+                y: '-=5',
+                duration: 420,
+                delay: 360,
+                yoyo: true,
+                hold: 1120,
+                ease: 'Sine.easeInOut'
+            })
+        ];
+        return true;
+    }
+
+    clearVillageArrivalReveal(landmark) {
+        if (!landmark) return false;
+        const wasActive = Boolean(landmark.arrivalReveal?.active);
+        landmark.arrivalRevealTweens?.forEach(tween => tween?.stop?.());
+        landmark.arrivalRevealTweens = [];
+        landmark.arrivalReveal?.destroy?.(true);
+        landmark.arrivalReveal = null;
+        return wasActive;
     }
 
     setVillageFocusMode(
@@ -7259,6 +7402,7 @@ class WorldBuilder {
         this.clearVillageCommunityMoment(this.villageHeart);
         this.clearVillageDecisionMoment(this.villageHeart);
         this.clearVillageWorkerCheckIn(this.villageHeart);
+        this.clearVillageArrivalReveal(this.villageHeart);
         this.villageHeart?.productionTweens?.forEach(tween => tween?.stop?.());
         this.villageHeart?.productionMoments?.forEach(
             moment => moment?.destroy?.(true)

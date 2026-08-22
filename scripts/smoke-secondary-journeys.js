@@ -10238,6 +10238,9 @@ async function smokeVillageUi(session, exceptions) {
         state.set('creature', creature);
         state.set('creatures', [creature]);
         state.set('activeCreatureIndex', 0);
+        state.set('tutorial.controlsSeen', true);
+        state.set('tutorial.crashStorySeen', true);
+        state.set('session.lastDailyShown', new Date().toISOString().split('T')[0]);
         state.save();
         game.scene.stop('HatchingScene');
         game.scene.start('GameScene', {
@@ -10338,6 +10341,137 @@ async function smokeVillageUi(session, exceptions) {
     ) {
         throw new Error(
             `Village first-arrival world language failed: ${JSON.stringify(firstArrivalWorld)}`
+        );
+    }
+    const arrivalReveal = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.achievementNotification?.destroy?.();
+        if (scene.achievementNotification) {
+            scene.achievementNotification.isVisible = false;
+            scene.achievementNotification.currentNotification = null;
+            scene.achievementNotification.queue = [];
+        }
+        scene.__smokeVillageArrivalComplete = 0;
+        const played = scene.playVillageArrivalReveal({
+            force: true,
+            onComplete: () => {
+                scene.__smokeVillageArrivalComplete += 1;
+            }
+        });
+        const landmark = scene.villageHeartLandmark;
+        const reveal = landmark?.arrivalReveal;
+        const camera = scene.cameras?.main;
+        return {
+            played,
+            active: scene.villageArrivalRevealActive === true,
+            presentationMode: landmark?.presentationMode,
+            focusActive: scene.sanctuaryFocusModeActive === true,
+            cameraFollowingPlayer: camera?._follow === scene.player,
+            cameraTarget: scene.sanctuaryCameraFocusTarget,
+            controlsSuspended: scene.mobileControls?.isSuspended === true,
+            inputShield: scene.villageArrivalRevealInputShield
+                ?.getData?.('villageArrivalRevealInputShield') === true,
+            inputShieldVisiblePanel: scene.villageArrivalRevealInputShield
+                ?.getData?.('visiblePanel'),
+            navigationMarkersHidden: (scene.navigationMarkers || []).every(
+                marker => marker.visible === false
+            ),
+            menuHidden: [
+                scene.hamburgerMenu?.menuButton?.bg,
+                scene.hamburgerMenu?.menuButton?.icon,
+                scene.hamburgerMenu?.menuButton?.zone
+            ].filter(Boolean).every(element => element.visible === false),
+            worldLed: reveal?.getData?.('villageArrivalRevealWorldLed'),
+            blockingPanel: reveal?.getData?.('villageArrivalRevealBlockingPanel'),
+            skippable: reveal?.getData?.('villageArrivalRevealSkippable'),
+            duration: reveal?.getData?.('villageArrivalRevealDuration'),
+            title: reveal?.getData?.('villageArrivalRevealTitle'),
+            subtitle: reveal?.getData?.('villageArrivalRevealSubtitle'),
+            ariaLabel: reveal?.getData?.('ariaLabel'),
+            currentWave: reveal?.list?.some(
+                child => child?.getData?.('villageArrivalCurrentWave') === true
+            ) === true,
+            rootAnswer: reveal?.list?.some(
+                child => child?.getData?.('villageArrivalRootAnswer') === true
+            ) === true
+        };
+    })()`);
+    if (
+        !arrivalReveal.played ||
+        !arrivalReveal.active ||
+        arrivalReveal.presentationMode !== 'story' ||
+        !arrivalReveal.focusActive ||
+        arrivalReveal.cameraFollowingPlayer ||
+        !arrivalReveal.cameraTarget ||
+        (SMOKE_VIEWPORT_WIDTH <= 600 && !arrivalReveal.controlsSuspended) ||
+        (SMOKE_VIEWPORT_WIDTH > 600 && arrivalReveal.controlsSuspended) ||
+        !arrivalReveal.inputShield ||
+        arrivalReveal.inputShieldVisiblePanel !== false ||
+        !arrivalReveal.navigationMarkersHidden ||
+        !arrivalReveal.menuHidden ||
+        arrivalReveal.worldLed !== true ||
+        arrivalReveal.blockingPanel !== false ||
+        arrivalReveal.skippable !== true ||
+        arrivalReveal.duration !== 2800 ||
+        arrivalReveal.title !== 'THE HEART ANSWERS' ||
+        arrivalReveal.subtitle !== 'A HOME WE BUILD TOGETHER' ||
+        !arrivalReveal.ariaLabel?.includes('Tap or press any key') ||
+        !arrivalReveal.currentWave ||
+        !arrivalReveal.rootAnswer
+    ) {
+        throw new Error(
+            `Village arrival reveal failed to establish focus: ${JSON.stringify(arrivalReveal)}`
+        );
+    }
+    await delay(850);
+    await captureGameplayStill(session, 'village-heart-arrival-reveal-mobile.png');
+    const arrivalRecovery = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene.villageHeartLandmark;
+        const finished = scene.finishVillageArrivalReveal({ skipped: true });
+        return {
+            finished,
+            active: scene.villageArrivalRevealActive === true,
+            revealPresent: Boolean(landmark?.arrivalReveal),
+            focusActive: scene.sanctuaryFocusModeActive === true,
+            cameraFollowingPlayer: scene.cameras?.main?._follow === scene.player,
+            controlsSuspended: scene.mobileControls?.isSuspended === true,
+            inputShieldPresent: Boolean(scene.villageArrivalRevealInputShield),
+            inputCooldownActive: scene.villageArrivalRevealInputCooldownUntil >
+                (scene.time?.now || 0),
+            navigationMarkersRestored: (scene.navigationMarkers || []).every(
+                marker => marker.visible !== false
+            ),
+            menuRestored: [
+                scene.hamburgerMenu?.menuButton?.bg,
+                scene.hamburgerMenu?.menuButton?.icon,
+                scene.hamburgerMenu?.menuButton?.zone
+            ].filter(Boolean).every(element => element.visible !== false),
+            skipped: landmark?.zone?.getData?.('villageArrivalRevealSkipped')
+        };
+    })()`);
+    await waitFor(
+        () => evaluate(session, `(
+            window.mythicalGame.scene.getScene('GameScene')
+                ?.__smokeVillageArrivalComplete || 0
+        ) === 1`),
+        { timeoutMs: 1200, message: 'Village arrival reveal completion handoff' }
+    );
+    if (
+        !arrivalRecovery.finished ||
+        arrivalRecovery.active ||
+        arrivalRecovery.revealPresent ||
+        arrivalRecovery.focusActive ||
+        !arrivalRecovery.cameraFollowingPlayer ||
+        arrivalRecovery.controlsSuspended ||
+        arrivalRecovery.inputShieldPresent ||
+        !arrivalRecovery.inputCooldownActive ||
+        !arrivalRecovery.navigationMarkersRestored ||
+        !arrivalRecovery.menuRestored ||
+        arrivalRecovery.skipped !== true
+    ) {
+        throw new Error(
+            `Village arrival reveal did not restore gameplay: ${JSON.stringify(arrivalRecovery)}`
         );
     }
     const shopResult = await evaluate(session, `(() => {
@@ -12804,6 +12938,8 @@ async function smokeVillageUi(session, exceptions) {
 
     return {
         firstArrivalWorld,
+        arrivalReveal,
+        arrivalRecovery,
         layout,
         integratedSetup,
         integratedWorld,
