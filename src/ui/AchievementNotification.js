@@ -71,8 +71,11 @@ class AchievementNotification {
         this.container = this.scene.add.container(centerX, centerY);
         this.container.setDepth(10000);
         this.container.setScrollFactor(0);
-        this.container.setAlpha(0);
-        this.container.setScale(uiScale * 0.8);
+        this.container.setScale(uiScale);
+        this.contentContainer = this.scene.add.container(0, 0);
+        this.contentContainer.setAlpha(0);
+        this.contentContainer.setScale(0.8);
+        this.container.add(this.contentContainer);
 
         // Dark overlay
         this.overlay = this.scene.add.graphics();
@@ -83,6 +86,8 @@ class AchievementNotification {
             .setScale(uiScale)
             .setScrollFactor(0)
             .setDepth(9999);
+        this.scene.events.off('update', this.syncCameraZoom, this);
+        this.scene.events.on('update', this.syncCameraZoom, this);
 
         // Get tier color
         const tierColor = this.colors.border[achievement.tier] || this.colors.border.BRONZE;
@@ -103,7 +108,7 @@ class AchievementNotification {
             panel.strokeRoundedRect(-modalWidth / 2 + 4, -modalHeight / 2 + 4, modalWidth - 8, modalHeight - 8, 12);
         }
 
-        this.container.add(panel);
+        this.contentContainer.add(panel);
 
         // Trophy icon and header
         const headerY = -modalHeight / 2 + 35;
@@ -113,13 +118,13 @@ class AchievementNotification {
             color: this.colors.text,
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        this.container.add(trophyText);
+        this.contentContainer.add(trophyText);
 
         // Divider line
         const divider = this.scene.add.graphics();
         divider.lineStyle(1, tierColor, 0.5);
         divider.lineBetween(-modalWidth / 2 + 20, headerY + 20, modalWidth / 2 - 20, headerY + 20);
-        this.container.add(divider);
+        this.contentContainer.add(divider);
 
         // Tier badge and achievement name
         const tierIcon = achievement.tierInfo?.icon || '🥉';
@@ -130,7 +135,7 @@ class AchievementNotification {
             color: this.colors.text,
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        this.container.add(nameText);
+        this.contentContainer.add(nameText);
 
         // Tier name (Bronze, Silver, etc.)
         const tierNameY = nameY + 28;
@@ -140,7 +145,7 @@ class AchievementNotification {
             fontFamily: 'Arial, sans-serif',
             color: this.colors.subtext
         }).setOrigin(0.5);
-        this.container.add(tierNameText);
+        this.contentContainer.add(tierNameText);
 
         // Description
         const descY = tierNameY + 30;
@@ -152,7 +157,7 @@ class AchievementNotification {
             wordWrap: { width: modalWidth - 60 },
             align: 'center'
         }).setOrigin(0.5);
-        this.container.add(descText);
+        this.contentContainer.add(descText);
 
         // Rewards section
         const rewardsY = descY + 40;
@@ -161,7 +166,7 @@ class AchievementNotification {
             fontFamily: 'Arial, sans-serif',
             color: this.colors.subtext
         }).setOrigin(0.5);
-        this.container.add(rewardsLabel);
+        this.contentContainer.add(rewardsLabel);
 
         // Format rewards
         const rewardParts = [];
@@ -182,7 +187,7 @@ class AchievementNotification {
             color: this.colors.reward,
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        this.container.add(rewardsText);
+        this.contentContainer.add(rewardsText);
 
         // CLAIM button
         const buttonY = modalHeight / 2 - 45;
@@ -192,7 +197,7 @@ class AchievementNotification {
         const buttonBg = this.scene.add.graphics();
         buttonBg.fillStyle(tierColor, 1);
         buttonBg.fillRoundedRect(-buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 10);
-        this.container.add(buttonBg);
+        this.contentContainer.add(buttonBg);
 
         const buttonText = this.scene.add.text(0, buttonY, 'CLAIM!', {
             fontSize: '18px',
@@ -200,12 +205,12 @@ class AchievementNotification {
             color: '#000000',
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        this.container.add(buttonText);
+        this.contentContainer.add(buttonText);
 
         // Button zone
         const buttonZone = this.scene.add.zone(0, buttonY, buttonWidth, buttonHeight)
             .setInteractive({ useHandCursor: true });
-        this.container.add(buttonZone);
+        this.contentContainer.add(buttonZone);
 
         // Hover effects
         buttonZone.on('pointerover', () => {
@@ -239,9 +244,9 @@ class AchievementNotification {
 
         // Animate in
         this.scene.tweens.add({
-            targets: this.container,
+            targets: this.contentContainer,
             alpha: 1,
-            scale: uiScale,
+            scale: 1,
             duration: 300,
             ease: 'Back.easeOut'
         });
@@ -279,9 +284,9 @@ class AchievementNotification {
 
         // Animate out
         this.scene.tweens.add({
-            targets: this.container,
+            targets: this.contentContainer,
             alpha: 0,
-            scale: uiScale * 0.8,
+            scale: 0.8,
             duration: 200,
             ease: 'Power2',
             onComplete: () => {
@@ -301,6 +306,10 @@ class AchievementNotification {
     syncCameraZoom() {
         if (!this.overlay) return false;
         const cameraZoom = this.scene.cameras?.main?.zoom || 1;
+        this.container
+            ?.setPosition(this.scene.scale.width / 2, this.scene.scale.height / 2)
+            .setScale(1 / cameraZoom)
+            .setScrollFactor(0);
         this.overlay
             .setPosition(this.scene.scale.width / 2, this.scene.scale.height / 2)
             .setScale(1 / cameraZoom)
@@ -393,9 +402,11 @@ class AchievementNotification {
      * Clean up notification
      */
     destroy() {
+        this.scene?.events?.off?.('update', this.syncCameraZoom, this);
         if (this.container) {
-            this.container.destroy();
+            this.container.destroy(true);
             this.container = null;
+            this.contentContainer = null;
         }
         if (this.overlay) {
             this.overlay.destroy();

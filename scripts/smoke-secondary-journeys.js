@@ -10588,7 +10588,9 @@ async function smokeVillageUi(session, exceptions) {
                     normalizedScaleX: overlay.scaleX * camera.zoom,
                     normalizedScaleY: overlay.scaleY * camera.zoom,
                     containerScrollFactorX: container?.scrollFactorX,
-                    containerScrollFactorY: container?.scrollFactorY
+                    containerScrollFactorY: container?.scrollFactorY,
+                    normalizedContainerScaleX: container?.scaleX * camera.zoom,
+                    normalizedContainerScaleY: container?.scaleY * camera.zoom
                 };
             })(),
             focusHierarchy: {
@@ -10862,7 +10864,13 @@ async function smokeVillageUi(session, exceptions) {
                 Math.abs(integratedWorld.achievementOverlay.normalizedScaleX - 1) > 0.01 ||
                 Math.abs(integratedWorld.achievementOverlay.normalizedScaleY - 1) > 0.01 ||
                 integratedWorld.achievementOverlay.containerScrollFactorX !== 0 ||
-                integratedWorld.achievementOverlay.containerScrollFactorY !== 0
+                integratedWorld.achievementOverlay.containerScrollFactorY !== 0 ||
+                Math.abs(
+                    integratedWorld.achievementOverlay.normalizedContainerScaleX - 1
+                ) > 0.01 ||
+                Math.abs(
+                    integratedWorld.achievementOverlay.normalizedContainerScaleY - 1
+                ) > 0.01
             )
         ) ||
         !integratedWorld.focusHierarchy.active ||
