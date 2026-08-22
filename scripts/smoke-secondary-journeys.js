@@ -12686,7 +12686,6 @@ async function smokeVillageUi(session, exceptions) {
             const worker = scene?.villageHeartLandmark?.workerElements?.[0];
             const progress = worker?.getData('routeProgress') || 0;
             return worker?.input?.enabled === true &&
-                worker?.getData('villagePresentationMode') !== 'story' &&
                 worker?.getData('routeDirection') === 'to_heart' &&
                 worker?.getData('cargoVisible') === true &&
                 progress > 0 &&
