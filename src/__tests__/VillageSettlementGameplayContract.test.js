@@ -431,8 +431,10 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain('markVillageGuidanceSeen(window.GameState)');
         expect(world).toContain('const compactSettlement = this.scene.scale.width <= 600;');
         expect(world).toContain('drawVillageDistrictGround({');
-        expect(world).toContain("setData('villageTerrainMaterial', 'living_current_v2')");
+        expect(world).toContain("setData('villageTerrainMaterial', 'living_current_districts_v3')");
         expect(world).toContain("setData('uniformOverlay', false)");
+        expect(world).toContain("setData('districtIdentityCount', districtProfiles.length)");
+        expect(world).toContain("setData('districtIdentityIds', districtProfiles.map(profile => profile.id))");
         expect(world).toContain("setData('villageDistrictEcology', true)");
         expect(world).toContain("setData('villageThresholdCount'");
         expect(world).toContain("setData('villagePathMaterial', 'grounded_current_paths_v3')");
@@ -490,6 +492,9 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("setData('villageArrivalSteps', ['BUILD', 'INVITE', 'GROW'])");
         expect(world).toContain("'BUILD  ·  INVITE  ·  GROW'");
         expect(world).toContain('drawVillageFoundationCradle(');
+        expect(world).toContain('createVillageDistrictAnchor({');
+        expect(world).toContain("setData('villageDistrictAnchor', true)");
+        expect(world).toContain("setData('villageDistrictAnchorMaterial', 'root_threshold_v1')");
         expect(world).toContain("setData('villageFoundationCradle', true)");
         expect(world).toContain("setData('villageFoundationMaterial', 'living_root_cradle_v2')");
         expect(world).toContain("'inhabited_root_basin_v1' : 'living_root_cradle_v2'");
@@ -595,7 +600,8 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('const directPlotCommand = Boolean(');
         expect(world).toContain('primary && [\'build\', \'assign\'].includes(action?.type)');
         expect(world).toContain("? primary ? 0.88 : 0");
-        expect(world).toContain('? (compactSettlement ? 0.32 : 0.72)');
+        expect(world).toContain('const plotLabelRestAlpha = guidedPlot');
+        expect(world).toContain('? 0.32\n                : 0;');
     });
 
     test('the local completion preview renders the entire connected settlement', () => {

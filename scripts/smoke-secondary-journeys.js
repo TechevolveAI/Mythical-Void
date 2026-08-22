@@ -10827,7 +10827,17 @@ async function smokeVillageUi(session, exceptions) {
                 plotId: presentation.plotId,
                 state: presentation.stateMarker?.getData?.('villagePlotState'),
                 progressNodes: presentation.stateMarker?.getData?.('progressNodes'),
-                active: presentation.stateMarker?.active === true
+                active: presentation.stateMarker?.active === true,
+                districtAnchor: presentation.districtAnchor?.getData?.(
+                    'villageDistrictAnchor'
+                ) === true,
+                districtAnchorMaterial: presentation.districtAnchor?.getData?.(
+                    'villageDistrictAnchorMaterial'
+                ),
+                districtAnchorState: presentation.districtAnchor?.getData?.(
+                    'villageDistrictState'
+                ),
+                districtAnchorAlpha: presentation.districtAnchor?.alpha
             })),
             plotCount: landmark.plotHitZones.length,
             workerCount: landmark.workerElements.length,
@@ -10872,6 +10882,12 @@ async function smokeVillageUi(session, exceptions) {
                 material: landmark.districtTerrain?.getData?.('villageTerrainMaterial'),
                 uniformOverlay: landmark.districtTerrain?.getData?.('uniformOverlay'),
                 patchCount: landmark.districtTerrain?.getData?.('terrainPatchCount') || 0,
+                identityCount: landmark.districtTerrain?.getData?.(
+                    'districtIdentityCount'
+                ) || 0,
+                identityIds: landmark.districtTerrain?.getData?.(
+                    'districtIdentityIds'
+                ) || [],
                 terrainDepth: landmark.districtTerrain?.depth,
                 pathMaterial: landmark.currentPaths?.getData?.('villagePathMaterial'),
                 connectedPlotCount: landmark.currentPaths?.getData?.('connectedPlotCount') || 0,
@@ -11108,6 +11124,10 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.plotStates.filter(plot => plot.state === 'available').length !== 2 ||
         integratedWorld.plotStates.some(plot => (
             !plot.active ||
+            !plot.districtAnchor ||
+            plot.districtAnchorMaterial !== 'root_threshold_v1' ||
+            plot.districtAnchorState !== plot.state ||
+            plot.districtAnchorAlpha <= 0 ||
             (plot.state === 'staffed' && plot.progressNodes !== 6) ||
             (plot.state === 'available' && plot.progressNodes !== 1)
         )) ||
@@ -11141,9 +11161,12 @@ async function smokeVillageUi(session, exceptions) {
         !integratedWorld.restoration.statusText.includes('3/5 ROOTS') ||
         !integratedWorld.restoration.statusText.includes('CONNECTED GLADE') ||
         !integratedWorld.district.terrainActive ||
-        integratedWorld.district.material !== 'living_current_v2' ||
+        integratedWorld.district.material !== 'living_current_districts_v3' ||
         integratedWorld.district.uniformOverlay !== false ||
         integratedWorld.district.patchCount !== 6 ||
+        integratedWorld.district.identityCount !== 5 ||
+        integratedWorld.district.identityIds.join(',') !==
+            'garden_edge,upper_glade,current_bend,shelter_grove,far_root' ||
         integratedWorld.district.terrainDepth !== -21 ||
         integratedWorld.district.pathMaterial !== 'grounded_current_paths_v3' ||
         integratedWorld.district.connectedPlotCount !== 3 ||

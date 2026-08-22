@@ -1024,6 +1024,13 @@ class WorldBuilder {
                 complete
             };
         });
+        const districtProfiles = [
+            { id: 'garden_edge', motif: 'growth', color: 0xF2C14E },
+            { id: 'upper_glade', motif: 'canopy', color: 0x71E6B1 },
+            { id: 'current_bend', motif: 'current', color: 0x8FE3CF },
+            { id: 'shelter_grove', motif: 'shelter', color: 0xE85D5D },
+            { id: 'far_root', motif: 'signal', color: 0xB7F7DE }
+        ];
         const basins = [heartBasin, ...plotBasins];
         const growthStrength = unlocked ? 0.72 + (growthTier * 0.08) : 0.38;
         basins.forEach((basin, index) => {
@@ -1065,6 +1072,87 @@ class WorldBuilder {
                 Math.PI * (index % 2 ? 0.76 : 1.7)
             );
             terrain.strokePath();
+        });
+
+        plotBasins.forEach((basin, index) => {
+            const profile = districtProfiles[index];
+            const settled = Boolean(basin.building);
+            const identityAlpha = settled ? 0.52 : unlocked ? 0.24 : 0.12;
+            const thresholdY = basin.y + (compact ? 42 : 48);
+            const span = compact ? 54 : 62;
+
+            terrain.fillStyle(0x071411, settled ? 0.64 : 0.46);
+            terrain.fillEllipse(
+                basin.x,
+                thresholdY + 3,
+                compact ? 108 : 124,
+                compact ? 23 : 27
+            );
+            terrain.lineStyle(2, profile.color, identityAlpha);
+            terrain.beginPath();
+            terrain.arc(
+                basin.x,
+                thresholdY + 3,
+                span,
+                Math.PI * 1.12,
+                Math.PI * 1.88
+            );
+            terrain.strokePath();
+            terrain.fillStyle(profile.color, identityAlpha + 0.08);
+            terrain.fillCircle(basin.x - span, thresholdY, compact ? 2 : 2.5);
+            terrain.fillCircle(basin.x + span, thresholdY, compact ? 2 : 2.5);
+
+            const motifX = basin.x + (index % 2 === 0 ? -1 : 1) *
+                (basin.width * 0.36);
+            const motifY = basin.y - (compact ? 17 : 20);
+            ecology.lineStyle(2, profile.color, identityAlpha);
+            if (profile.motif === 'growth') {
+                ecology.lineBetween(motifX, motifY + 12, motifX, motifY - 9);
+                ecology.fillStyle(profile.color, identityAlpha + 0.14);
+                ecology.fillEllipse(motifX - 6, motifY - 3, 13, 6);
+                ecology.fillEllipse(motifX + 6, motifY - 8, 13, 6);
+            } else if (profile.motif === 'canopy') {
+                ecology.beginPath();
+                ecology.arc(motifX, motifY + 8, 15, Math.PI, Math.PI * 2);
+                ecology.strokePath();
+                ecology.fillStyle(profile.color, identityAlpha + 0.12);
+                [-10, 0, 10].forEach(branchX => {
+                    ecology.fillEllipse(motifX + branchX, motifY - 5, 13, 6);
+                });
+            } else if (profile.motif === 'current') {
+                [-8, 0, 8].forEach((crystalX, crystalIndex) => {
+                    ecology.fillStyle(profile.color, identityAlpha + 0.12);
+                    ecology.fillTriangle(
+                        motifX + crystalX,
+                        motifY - 13 - (crystalIndex === 1 ? 5 : 0),
+                        motifX + crystalX - 4,
+                        motifY + 6,
+                        motifX + crystalX + 4,
+                        motifY + 6
+                    );
+                });
+            } else if (profile.motif === 'shelter') {
+                ecology.beginPath();
+                ecology.arc(motifX, motifY + 8, 14, Math.PI, Math.PI * 2);
+                ecology.strokePath();
+                ecology.lineBetween(motifX - 14, motifY + 8, motifX - 14, motifY + 15);
+                ecology.lineBetween(motifX + 14, motifY + 8, motifX + 14, motifY + 15);
+                ecology.fillStyle(profile.color, identityAlpha + 0.14);
+                ecology.fillCircle(motifX, motifY + 3, 3);
+            } else {
+                [8, 13, 18].forEach((radius, signalIndex) => {
+                    ecology.lineStyle(
+                        signalIndex === 2 ? 1 : 2,
+                        profile.color,
+                        identityAlpha - (signalIndex * 0.04)
+                    );
+                    ecology.beginPath();
+                    ecology.arc(motifX, motifY + 6, radius, Math.PI * 1.12, Math.PI * 1.88);
+                    ecology.strokePath();
+                });
+                ecology.fillStyle(profile.color, identityAlpha + 0.18);
+                ecology.fillCircle(motifX, motifY + 6, 2.5);
+            }
         });
 
         const ecologyByBuilding = {
@@ -1164,9 +1252,11 @@ class WorldBuilder {
         });
 
         terrain
-            .setData('villageTerrainMaterial', 'living_current_v2')
+            .setData('villageTerrainMaterial', 'living_current_districts_v3')
             .setData('uniformOverlay', false)
-            .setData('terrainPatchCount', basins.length);
+            .setData('terrainPatchCount', basins.length)
+            .setData('districtIdentityCount', districtProfiles.length)
+            .setData('districtIdentityIds', districtProfiles.map(profile => profile.id));
         ecology
             .setData('villageDistrictEcology', true)
             .setData('growthTier', growthTier)
@@ -1689,15 +1779,20 @@ class WorldBuilder {
                 )
             );
             const plotLabelRestAlpha = guidedPlot
-                ? 0.46
-                : building
-                    ? (compactSettlement ? 0.32 : 0.72)
-                    : 0;
+                ? 0.32
+                : 0;
             const stateLabelRestAlpha = guidedPlot
                 ? 0
                 : persistentState
                     ? 1
                     : 0;
+            const districtAnchor = this.createVillageDistrictAnchor({
+                state: plotState,
+                guided: guidedPlot,
+                built: Boolean(building),
+                compact: compactSettlement,
+                districtId: plot.id
+            });
             const focusRing = this.scene.add.graphics().setAlpha(0);
             const focusColor = building?.status === 'complete' ? 0x71E6B1 : 0xF2C14E;
             focusRing.lineStyle(2, focusColor, 0.92);
@@ -1774,6 +1869,7 @@ class WorldBuilder {
                 ...(building ? [currentSignal] : []),
                 ...(activity ? [activity] : []),
                 ...(habitatLife ? [habitatLife.container] : []),
+                districtAnchor,
                 focusRing,
                 plotLabel,
                 stateLabel
@@ -1879,6 +1975,7 @@ class WorldBuilder {
                 container.setScale(1.06);
                 container.setAlpha(1);
                 focusRing.setAlpha(1);
+                districtAnchor.setAlpha(1);
                 plotLabel.setAlpha(1);
                 stateLabel
                     .setText(focusCopy)
@@ -1903,6 +2000,15 @@ class WorldBuilder {
                     !directPlotCommand
                         ? 0.82
                         : 0
+                );
+                districtAnchor.setAlpha(
+                    focusPriority === 'primary'
+                        ? 1
+                        : guidedPlot
+                            ? 1
+                            : ['constructing', 'needs_helper', 'complete', 'staffed'].includes(plotState)
+                                ? 0.58
+                                : 0.3
                 );
                 plotLabel.setAlpha(
                     directPlotCommand
@@ -1954,6 +2060,7 @@ class WorldBuilder {
                 stateLabel,
                 focusRing,
                 stateMarker,
+                districtAnchor,
                 flowSignal: villageFlow.container,
                 worker: worker?.container || null,
                 plotState,
@@ -2412,6 +2519,21 @@ class WorldBuilder {
             presentation.focusRing
                 ?.setData('villageFocusPrimary', primary)
                 .setAlpha(!storyMode && primary && !directPlotCommand ? 0.82 : 0);
+            const anchorAlpha = !active
+                ? presentation.districtAnchor?.getData?.('villageDistrictGuided')
+                    ? 1
+                    : ['constructing', 'needs_helper', 'complete', 'staffed'].includes(
+                        presentation.plotState
+                    )
+                        ? 0.58
+                        : 0.3
+                : storyMode
+                    ? primary ? 0.82 : 0.12
+                    : primary ? 1 : 0.18;
+            presentation.districtAnchor
+                ?.setData('villageFocusPrimary', primary)
+                .setData('villageFocusPriority', priority);
+            transition(presentation.districtAnchor, anchorAlpha);
             presentation.plotLabel?.setAlpha(plotLabelAlpha);
             presentation.stateLabel?.setAlpha(stateLabelAlpha);
             presentation.hitZone?.setData('villagePresentationMode', landmark.presentationMode);
@@ -2465,10 +2587,10 @@ class WorldBuilder {
             }
         }
         landmark.zone.setInteractive?.({ useHandCursor: true });
-        landmark.label?.setAlpha(storyMode ? 0.3 : active ? 0.8 : 0.62);
+        landmark.label?.setAlpha(storyMode ? 0.3 : active ? 0.8 : 0.18);
         landmark.statusLabel?.setAlpha(storyMode ? 0.16 : active ? 0.68 : 0);
-        landmark.heartCaption?.setAlpha(storyMode ? 0.44 : active ? 0.9 : 0.68);
-        landmark.arrivalGuide?.setAlpha(storyMode ? 0.12 : active ? 0.82 : 0.58);
+        landmark.heartCaption?.setAlpha(storyMode ? 0.44 : active ? 0.9 : 0.42);
+        landmark.arrivalGuide?.setAlpha(storyMode ? 0.12 : active ? 0.82 : 0.24);
         Object.entries(landmark.heartLife || {}).forEach(([key, element]) => {
             if (!element || key === 'deliveryPulse') return;
             const lifeBaseAlpha = landmark.snapshot?.unlock?.unlocked === true ? 1 : 0.38;
@@ -2730,6 +2852,56 @@ class WorldBuilder {
             .setData('ariaLabel', `${String(state || 'dormant').replace('_', ' ')} foundation`);
         marker.setBlendMode?.(Phaser.BlendModes.ADD);
         return marker;
+    }
+
+    createVillageDistrictAnchor({
+        state,
+        guided = false,
+        built = false,
+        compact = false,
+        districtId = null
+    } = {}) {
+        const anchor = this.scene.add.graphics();
+        const active = ['constructing', 'needs_helper', 'complete', 'staffed'].includes(state);
+        const color = guided || ['constructing', 'needs_helper'].includes(state)
+            ? 0xF2C14E
+            : active
+                ? 0x71E6B1
+                : 0x8FE3CF;
+        const y = built ? (compact ? 70 : 77) : (compact ? 48 : 53);
+        const width = compact ? 34 : 40;
+
+        anchor.fillStyle(0x071411, 0.88);
+        anchor.fillEllipse(0, y, width + 20, compact ? 16 : 18);
+        anchor.lineStyle(2, color, guided ? 0.92 : active ? 0.66 : 0.36);
+        anchor.beginPath();
+        anchor.arc(0, y, width / 2, Math.PI * 1.08, Math.PI * 1.92);
+        anchor.strokePath();
+        anchor.fillStyle(color, guided ? 1 : active ? 0.88 : 0.56);
+        anchor.fillCircle(0, y - 1, guided ? 4 : 3);
+        anchor.fillStyle(0xF4F4F4, guided ? 0.96 : 0.72);
+        anchor.fillCircle(0, y - 1, 1.5);
+        [-1, 1].forEach(direction => {
+            anchor.lineStyle(1, color, guided ? 0.76 : 0.4);
+            anchor.lineBetween(
+                direction * 6,
+                y - 1,
+                direction * (width / 2),
+                y - 7
+            );
+            anchor.fillStyle(color, guided ? 0.82 : 0.46);
+            anchor.fillEllipse(direction * (width / 2), y - 8, 8, 4);
+        });
+        anchor
+            .setAlpha(guided ? 1 : active ? 0.58 : 0.3)
+            .setData('villageDistrictAnchor', true)
+            .setData('villageDistrictId', districtId)
+            .setData('villageDistrictState', state)
+            .setData('villageDistrictGuided', guided)
+            .setData('villageDistrictAnchorMaterial', 'root_threshold_v1')
+            .setData('ariaLabel', `${String(state || 'dormant').replace('_', ' ')} root district`);
+        anchor.setBlendMode?.(Phaser.BlendModes.ADD);
+        return anchor;
     }
 
     createVillageValueGrowth(landmark, snapshot, { compact = false } = {}) {
