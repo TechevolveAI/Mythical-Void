@@ -298,6 +298,9 @@ describe('Village settlement gameplay contract', () => {
         expect(collectibleSource).toContain('Number(scene.worldHeight)');
         expect(collectibleSource).toContain('isReservedSanctuaryPosition?.(x, y, 36)');
         expect(collectibleSource).toContain(".setData('spawnCoordinateSpace', 'world')");
+        expect(sceneSource).toContain('const heartBandY = compact ? 132 : 120');
+        expect(sceneSource).toContain("? 'front'");
+        expect(sceneSource).toContain(": 'behind'");
         [
             "verb: 'SHOP'",
             "label: 'SUPPLIES & BUILDING'",

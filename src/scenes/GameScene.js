@@ -6226,8 +6226,11 @@ class GameScene extends Phaser.Scene {
 
         const heart = this.villageHeartLandmark?.zone;
         if (heart) {
-            const insideHeartBand = Math.abs(this.player.x - heart.x) <= 92 &&
-                Math.abs(this.player.y - heart.y) <= 112;
+            const compact = this.scale?.width <= 600;
+            const heartBandX = compact ? 104 : 96;
+            const heartBandY = compact ? 132 : 120;
+            const insideHeartBand = Math.abs(this.player.x - heart.x) <= heartBandX &&
+                Math.abs(this.player.y - heart.y) <= heartBandY;
             const layer = !insideHeartBand
                 ? 'clear'
                 : actorDepth > Number(heart.y || 0) + 2
