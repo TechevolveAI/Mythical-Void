@@ -10897,7 +10897,9 @@ async function smokeVillageUi(session, exceptions) {
                 left: 0,
                 right: camera.width,
                 top: dockTop,
-                bottom: camera.height
+                bottom: camera.height,
+                visualStyle: scene.mobileControls?.dockBackground?.getData?.('visualStyle'),
+                centerGapWidth: scene.mobileControls?.dockBackground?.getData?.('centerGapWidth')
             } : null,
             plotStates: (landmark.plotPresentations || []).map(presentation => ({
                 plotId: presentation.plotId,
@@ -11195,6 +11197,12 @@ async function smokeVillageUi(session, exceptions) {
         )) ||
         (SMOKE_VIEWPORT_WIDTH <= 600 && !integratedWorld.controlDock) ||
         (SMOKE_VIEWPORT_WIDTH > 600 && integratedWorld.controlDock) ||
+        (
+            SMOKE_VIEWPORT_WIDTH <= 600 && (
+                integratedWorld.controlDock?.visualStyle !== 'split-current-shelf' ||
+                integratedWorld.controlDock?.centerGapWidth < 44
+            )
+        ) ||
         integratedWorld.focusApproachBounds.left < -1 ||
         integratedWorld.focusApproachBounds.right > integratedWorld.viewport.width + 1 ||
         integratedWorld.focusApproachBounds.top < -1 ||

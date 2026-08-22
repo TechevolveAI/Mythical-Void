@@ -457,16 +457,7 @@ class MobileControls {
         if (!this.dockBackground) {
             this.dockBackground = this.scene.add.graphics();
             this.dockBackground.setScrollFactor(0).setDepth(9998);
-            this.dockBackground.fillStyle(0x080A17, 0.9);
-            this.dockBackground.fillRect(
-                0,
-                layout.dockTop,
-                width,
-                height - layout.dockTop
-            );
-            this.dockBackground.lineStyle(1, 0x8FE3CF, 0.35);
-            this.dockBackground.lineBetween(0, layout.dockTop, width, layout.dockTop);
-            this.dockBackground.setData('dockTop', layout.dockTop);
+            this.drawControlShelf(this.dockBackground, layout, width, height);
         }
 
         // Create glow ring (initially invisible, shown when active)
@@ -546,6 +537,41 @@ class MobileControls {
         graphics.fillTriangle(x, y + edge, x - half, y + edge - 9, x + half, y + edge - 9);
         graphics.fillTriangle(x - edge, y, x - edge + 9, y - half, x - edge + 9, y + half);
         graphics.fillTriangle(x + edge, y, x + edge - 9, y - half, x + edge - 9, y + half);
+    }
+
+    drawControlShelf(graphics, layout, width, height) {
+        const shelf = layout.visualShelf;
+        const shelfHeight = Math.max(0, height - shelf.top + 10);
+        const leftWidth = shelf.leftRight + 10;
+        const rightWidth = width - shelf.rightLeft + 10;
+
+        // A faint veil keeps the control reserve legible without turning it
+        // into a black rectangle detached from the Sanctuary.
+        graphics.fillStyle(0x071419, 0.2);
+        graphics.fillRect(0, layout.dockTop, width, height - layout.dockTop);
+
+        graphics.fillStyle(0x071116, 0.72);
+        graphics.fillRoundedRect(-10, shelf.top, leftWidth, shelfHeight, 8);
+        graphics.fillRoundedRect(shelf.rightLeft, shelf.top, rightWidth, shelfHeight, 8);
+
+        graphics.lineStyle(1, 0x8FE3CF, 0.46);
+        graphics.beginPath();
+        graphics.moveTo(0, shelf.top);
+        graphics.lineTo(shelf.leftRight - 12, shelf.top);
+        graphics.lineTo(shelf.leftRight, shelf.top + 10);
+        graphics.strokePath();
+        graphics.beginPath();
+        graphics.moveTo(shelf.rightLeft, shelf.top + 10);
+        graphics.lineTo(shelf.rightLeft + 12, shelf.top);
+        graphics.lineTo(width, shelf.top);
+        graphics.strokePath();
+
+        graphics.lineStyle(1, 0xE8F8F1, 0.12);
+        graphics.lineBetween(12, shelf.top + 8, shelf.leftRight - 18, shelf.top + 8);
+        graphics.lineBetween(shelf.rightLeft + 18, shelf.top + 8, width - 12, shelf.top + 8);
+        graphics.setData('dockTop', layout.dockTop);
+        graphics.setData('visualStyle', shelf.style);
+        graphics.setData('centerGapWidth', shelf.centerGapWidth);
     }
 
     setupCanvasJoystickInput() {
