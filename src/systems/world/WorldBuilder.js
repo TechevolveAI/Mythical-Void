@@ -444,6 +444,9 @@ class WorldBuilder {
             : null;
         if (heartArtwork) heartArtwork.villageBaseScale = heartArtwork.scaleX;
         const glow = this.scene.add.graphics().setPosition(x, y).setDepth(y + 1);
+        const restorationRoots = this.scene.add.graphics()
+            .setPosition(x, y)
+            .setDepth(y + 3);
         const actionLabel = this.scene.add.text(x, y - 126, 'OPEN PLAN', {
             fontSize: '10px',
             fontFamily: 'Arial, sans-serif',
@@ -476,6 +479,7 @@ class WorldBuilder {
             heart,
             heartArtwork,
             glow,
+            restorationRoots,
             actionLabel,
             label,
             statusLabel,
@@ -553,6 +557,7 @@ class WorldBuilder {
             heart,
             heartArtwork,
             glow,
+            restorationRoots,
             actionLabel,
             label,
             statusLabel
@@ -578,11 +583,21 @@ class WorldBuilder {
         );
         const growthTier = snapshot?.worldState?.growthTier || 0;
         const growthScale = 0.76 + growthTier * 0.06;
+        const restoredCount = Phaser.Math.Clamp(
+            snapshot?.worldState?.restored || 0,
+            0,
+            VILLAGE_PLOTS.length
+        );
 
         districtTerrain.clear();
         currentPaths.clear();
         heart.clear();
         glow.clear();
+        restorationRoots.clear();
+        restorationRoots
+            .setData('rootBudCount', VILLAGE_PLOTS.length)
+            .setData('litRootCount', restoredCount)
+            .setData('ariaLabel', `${restoredCount} of ${VILLAGE_PLOTS.length} village roots restored`);
 
         const districtCenterX = compactSettlement ? 0 : 230;
         const districtPatches = compactSettlement
@@ -680,7 +695,59 @@ class WorldBuilder {
             heart.fillCircle(0, 13, 11);
         }
 
-        const restoredCount = snapshot?.worldState?.restored || 0;
+        const rootTargets = [
+            { x: 0, y: 68 },
+            { x: -34, y: 72 },
+            { x: 34, y: 72 },
+            { x: -68, y: 78 },
+            { x: 68, y: 78 }
+        ];
+        rootTargets.forEach((target, index) => {
+            const active = unlocked && index < restoredCount;
+            const complete = active && restoredCount === VILLAGE_PLOTS.length;
+            const color = complete ? 0xF2C14E : active ? 0x71E6B1 : 0x53616A;
+            const start = { x: 0, y: 34 };
+            const control = {
+                x: target.x * 0.28 + (index % 2 ? -7 : 7),
+                y: 55 + Math.abs(target.x) * 0.035
+            };
+            const rootPoints = Array.from({ length: 13 }, (_, pointIndex) => {
+                const progress = pointIndex / 12;
+                const inverse = 1 - progress;
+                return {
+                    x: (inverse * inverse * start.x) +
+                        (2 * inverse * progress * control.x) +
+                        (progress * progress * target.x),
+                    y: (inverse * inverse * start.y) +
+                        (2 * inverse * progress * control.y) +
+                        (progress * progress * target.y)
+                };
+            });
+            const strokeRoot = (width, strokeColor, alpha) => {
+                restorationRoots.lineStyle(width, strokeColor, alpha);
+                restorationRoots.beginPath();
+                restorationRoots.moveTo(rootPoints[0].x, rootPoints[0].y);
+                rootPoints.slice(1).forEach(point => {
+                    restorationRoots.lineTo(point.x, point.y);
+                });
+                restorationRoots.strokePath();
+            };
+            strokeRoot(active ? 5 : 3, 0x071411, active ? 0.46 : 0.3);
+            strokeRoot(active ? 2 : 1, color, active ? 0.72 : 0.2);
+            if (active) {
+                restorationRoots.fillStyle(color, 0.84);
+                restorationRoots.fillEllipse(target.x - 6, target.y - 5, 12, 6);
+                restorationRoots.fillEllipse(target.x + 6, target.y - 7, 12, 6);
+                restorationRoots.fillStyle(0xF4F4F4, 0.94);
+                restorationRoots.fillCircle(target.x, target.y, 2);
+            } else {
+                restorationRoots.fillStyle(0x071411, 0.72);
+                restorationRoots.fillEllipse(target.x, target.y, 8, 5);
+                restorationRoots.lineStyle(1, color, 0.24);
+                restorationRoots.strokeEllipse(target.x, target.y, 8, 5);
+            }
+        });
+
         label
             .setText(unlocked ? 'VILLAGE HEART' : 'DORMANT HEART')
             .setFontSize(compactSettlement ? '10px' : '12px')
@@ -4346,8 +4413,9 @@ class WorldBuilder {
         if (this.scene.textures.exists('enhancedFlower') && flowerCount > 0) {
             const flowerTints = this.getFlowerTints();
             for (let i = 0; i < flowerCount; i++) {
-                const x = Phaser.Math.Between(80, this.worldWidth - 80);
-                const y = Phaser.Math.Between(80, this.worldHeight - 80);
+                const position = this.findEnvironmentPosition(80, 36);
+                if (!position) continue;
+                const { x, y } = position;
                 const flower = flowers.create(x, y, 'enhancedFlower');
                 flower.setScale(Phaser.Math.FloatBetween(1.0, 1.5));
                 flower.body.setSize(15, 20);
@@ -5012,6 +5080,7 @@ class WorldBuilder {
         this.villageHeart?.heart?.destroy?.();
         this.villageHeart?.heartArtwork?.destroy?.();
         this.villageHeart?.glow?.destroy?.();
+        this.villageHeart?.restorationRoots?.destroy?.();
         this.villageHeart?.actionLabel?.destroy?.();
         this.villageHeart?.label?.destroy?.();
         this.villageHeart?.statusLabel?.destroy?.();

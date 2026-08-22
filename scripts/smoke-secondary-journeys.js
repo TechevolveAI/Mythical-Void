@@ -10469,6 +10469,17 @@ async function smokeVillageUi(session, exceptions) {
         });
         const commons = scene.sanctuaryCommons;
         const interactionBounds = scene.interactionText?.getBounds?.();
+        const settlementBounds = scene.sanctuaryZones?.zones?.settlementDistrict?.bounds;
+        const insideSettlement = object => Boolean(settlementBounds) &&
+            object.x >= settlementBounds.x &&
+            object.x <= settlementBounds.x + settlementBounds.width &&
+            object.y >= settlementBounds.y &&
+            object.y <= settlementBounds.y + settlementBounds.height;
+        const proceduralDecorInsideDistrict = [
+            ...(scene.trees?.getChildren?.() || []),
+            ...(scene.rocks?.getChildren?.() || []),
+            ...(scene.flowers?.getChildren?.() || [])
+        ].filter(insideSettlement).length;
         const garden = toScreen(scene.signalGarden.zone.x, scene.signalGarden.zone.y);
         const heart = toScreen(landmark.zone.x, landmark.zone.y);
         const plots = [...landmark.plotWorldPositions.entries()].map(([plotId, position]) => ({
@@ -10489,6 +10500,12 @@ async function smokeVillageUi(session, exceptions) {
             plotCount: landmark.plotHitZones.length,
             workerCount: landmark.workerElements.length,
             targetCount: scene.targetRange?.allTargets?.length || 0,
+            restoration: {
+                rootBudCount: landmark.restorationRoots?.getData?.('rootBudCount') || 0,
+                litRootCount: landmark.restorationRoots?.getData?.('litRootCount') || 0,
+                active: landmark.restorationRoots?.active === true
+            },
+            proceduralDecorInsideDistrict,
             commons: {
                 terrainActive: commons?.terrain?.active === true,
                 pathActive: commons?.path?.active === true,
@@ -10528,6 +10545,10 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.plotCount !== 5 ||
         integratedWorld.workerCount !== 3 ||
         integratedWorld.targetCount !== 8 ||
+        !integratedWorld.restoration.active ||
+        integratedWorld.restoration.rootBudCount !== 5 ||
+        integratedWorld.restoration.litRootCount !== 3 ||
+        integratedWorld.proceduralDecorInsideDistrict !== 0 ||
         !integratedWorld.commons.terrainActive ||
         !integratedWorld.commons.pathActive ||
         integratedWorld.commons.routeIds.join(',') !== 'garden_to_heart,heart_to_portal' ||

@@ -58,6 +58,9 @@ describe('Village settlement gameplay contract', () => {
         expect(worldSource).toContain("id: 'heart_to_portal'");
         expect(worldSource).toContain(".setData('sanctuaryCommons', true)");
         expect(worldSource).toContain(".setData('sanctuaryCurrentSignal', route.id)");
+        expect(worldSource).toContain(".setData('rootBudCount', VILLAGE_PLOTS.length)");
+        expect(worldSource).toContain(".setData('litRootCount', restoredCount)");
+        expect(worldSource).toContain('this.findEnvironmentPosition(80, 36)');
         expect(worldSource).toContain('refreshVillageSettlement(');
         expect(worldSource).toContain("zone.on('pointerdown', () => this.activateVillageHeart(landmark))");
         expect(worldSource).toContain("plotHitZone.on('pointerdown', pointer => {");
