@@ -79,13 +79,7 @@ class AchievementNotification {
 
         // Dark overlay
         this.overlay = this.scene.add.graphics();
-        this.overlay.fillStyle(0x000000, 0.6);
-        this.overlay.fillRect(-width / 2, -height / 2, width, height);
-        this.overlay
-            .setPosition(screenSpace.x, screenSpace.y)
-            .setScale(uiScale)
-            .setScrollFactor(0)
-            .setDepth(9999);
+        this.drawScreenSpaceRect(this.overlay, 0x000000, 0.6).setDepth(9999);
         this.scene.events.off('update', this.syncCameraZoom, this);
         this.scene.events.on('update', this.syncCameraZoom, this);
 
@@ -310,10 +304,7 @@ class AchievementNotification {
             ?.setPosition(screenSpace.x, screenSpace.y)
             .setScale(screenSpace.scale)
             .setScrollFactor(0);
-        this.overlay
-            .setPosition(screenSpace.x, screenSpace.y)
-            .setScale(screenSpace.scale)
-            .setScrollFactor(0);
+        this.drawScreenSpaceRect(this.overlay, 0x000000, 0.6);
         return true;
     }
 
@@ -323,8 +314,36 @@ class AchievementNotification {
         return {
             x: width / (2 * cameraZoom),
             y: height / (2 * cameraZoom),
-            scale: 1 / cameraZoom
+            scale: 1 / cameraZoom,
+            cameraZoom,
+            width,
+            height
         };
+    }
+
+    drawScreenSpaceRect(graphics, color, alpha) {
+        const screenSpace = this.getScreenSpaceTransform();
+        const changed = graphics.getData?.('screenSpaceZoom') !== screenSpace.cameraZoom ||
+            graphics.getData?.('screenSpaceWidth') !== screenSpace.width ||
+            graphics.getData?.('screenSpaceHeight') !== screenSpace.height;
+        if (changed) {
+            graphics.clear();
+            graphics.fillStyle(color, alpha);
+            graphics.fillRect(
+                -screenSpace.width / (2 * screenSpace.cameraZoom),
+                -screenSpace.height / (2 * screenSpace.cameraZoom),
+                screenSpace.width / screenSpace.cameraZoom,
+                screenSpace.height / screenSpace.cameraZoom
+            );
+        }
+        return graphics
+            .setPosition(screenSpace.x, screenSpace.y)
+            .setScale(1)
+            .setScrollFactor(0)
+            .setData('screenSpaceCoverage', 'viewport')
+            .setData('screenSpaceZoom', screenSpace.cameraZoom)
+            .setData('screenSpaceWidth', screenSpace.width)
+            .setData('screenSpaceHeight', screenSpace.height);
     }
 
     /**
@@ -345,19 +364,11 @@ class AchievementNotification {
         // Screen flash for Gold/Platinum
         if (tier === 'GOLD' || tier === 'PLATINUM') {
             const flash = this.scene.add.graphics();
-            flash.fillStyle(tier === 'PLATINUM' ? 0xE5E4E2 : 0xFFD700, 0.3);
-            const screenSpace = this.getScreenSpaceTransform();
-            flash.fillRect(
-                -this.scene.scale.width / 2,
-                -this.scene.scale.height / 2,
-                this.scene.scale.width,
-                this.scene.scale.height
-            );
-            flash
-                .setPosition(screenSpace.x, screenSpace.y)
-                .setScale(screenSpace.scale)
-                .setScrollFactor(0)
-                .setDepth(9998);
+            this.drawScreenSpaceRect(
+                flash,
+                tier === 'PLATINUM' ? 0xE5E4E2 : 0xFFD700,
+                0.3
+            ).setDepth(9998);
 
             this.scene.tweens.add({
                 targets: flash,

@@ -10884,12 +10884,16 @@ async function smokeVillageUi(session, exceptions) {
                 const container = notification?.container;
                 if (!overlay) return null;
                 return {
+                    isVisible: notification?.isVisible === true,
+                    overlayAlpha: overlay.alpha,
+                    coverage: overlay.getData?.('screenSpaceCoverage'),
+                    coverageWidth: overlay.getData?.('screenSpaceWidth'),
+                    coverageHeight: overlay.getData?.('screenSpaceHeight'),
+                    coverageZoom: overlay.getData?.('screenSpaceZoom'),
                     scrollFactorX: overlay.scrollFactorX,
                     scrollFactorY: overlay.scrollFactorY,
                     screenCenterX: overlay.x * camera.zoom,
                     screenCenterY: overlay.y * camera.zoom,
-                    normalizedScaleX: overlay.scaleX * camera.zoom,
-                    normalizedScaleY: overlay.scaleY * camera.zoom,
                     containerScrollFactorX: container?.scrollFactorX,
                     containerScrollFactorY: container?.scrollFactorY,
                     containerScreenCenterX: container?.x * camera.zoom,
@@ -11263,6 +11267,15 @@ async function smokeVillageUi(session, exceptions) {
             integratedWorld.achievementOverlay && (
                 integratedWorld.achievementOverlay.scrollFactorX !== 0 ||
                 integratedWorld.achievementOverlay.scrollFactorY !== 0 ||
+                integratedWorld.achievementOverlay.coverage !== 'viewport' ||
+                integratedWorld.achievementOverlay.coverageWidth !==
+                    integratedWorld.viewport.width ||
+                integratedWorld.achievementOverlay.coverageHeight !==
+                    integratedWorld.viewport.height ||
+                Math.abs(
+                    integratedWorld.achievementOverlay.coverageZoom -
+                    integratedWorld.camera.zoom
+                ) > 0.001 ||
                 Math.abs(
                     integratedWorld.achievementOverlay.screenCenterX -
                     (integratedWorld.viewport.width / 2)
@@ -11271,8 +11284,6 @@ async function smokeVillageUi(session, exceptions) {
                     integratedWorld.achievementOverlay.screenCenterY -
                     (integratedWorld.viewport.height / 2)
                 ) > 1 ||
-                Math.abs(integratedWorld.achievementOverlay.normalizedScaleX - 1) > 0.01 ||
-                Math.abs(integratedWorld.achievementOverlay.normalizedScaleY - 1) > 0.01 ||
                 integratedWorld.achievementOverlay.containerScrollFactorX !== 0 ||
                 integratedWorld.achievementOverlay.containerScrollFactorY !== 0 ||
                 Math.abs(
@@ -11672,7 +11683,25 @@ async function smokeVillageUi(session, exceptions) {
         scene.hideInteractionHint();
         return true;
     })()`);
-    await delay(420);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const presentations = scene?.villageHeartLandmark?.plotPresentations || [];
+            const staffedAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.58 : 0.72};
+            const availableAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.16 : 0.2};
+            return presentations.length === 5 && presentations.every(presentation => {
+                const expected = presentation.plotState === 'staffed'
+                    ? staffedAlpha
+                    : availableAlpha;
+                return presentation.container?.getData?.('villageFocusPriority') ===
+                    'ambient' && Math.abs(presentation.container.alpha - expected) <= 0.01;
+            });
+        })()`),
+        {
+            timeoutMs: 4000,
+            message: 'Sanctuary exploration hierarchy restored'
+        }
+    );
     const focusRecovery = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         return {

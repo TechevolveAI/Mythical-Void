@@ -15,6 +15,10 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('x: width / (2 * cameraZoom)');
         expect(source).toContain('y: height / (2 * cameraZoom)');
         expect(source).toContain('scale: 1 / cameraZoom');
+        expect(source).toContain('drawScreenSpaceRect(graphics, color, alpha)');
+        expect(source).toContain(".setData('screenSpaceCoverage', 'viewport')");
+        expect(source).toContain('screenSpace.width / screenSpace.cameraZoom');
+        expect(source).toContain('screenSpace.height / screenSpace.cameraZoom');
         expect(source).toContain('const uiScale = screenSpace.scale;');
         expect(source).toContain('this.container.setScrollFactor(0);');
         expect(source).toContain('.setPosition(screenSpace.x, screenSpace.y)');
@@ -24,7 +28,7 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('targets: this.contentContainer');
         expect(source).toContain("this.scene.events.on('update', this.syncCameraZoom, this);");
         expect(source).toContain("this.scene?.events?.off?.('update', this.syncCameraZoom, this);");
-        expect(source).toContain('.setScale(screenSpace.scale)');
+        expect(source).toContain('.setScale(1)');
         expect(source).toContain('syncCameraZoom()');
         expect(sceneSource.match(/this\.achievementNotification\?\.syncCameraZoom\?\.\(\);/g)).toHaveLength(6);
         expect(sceneSource).toContain('this.sanctuaryCameraFocusPreviousZoom = zoom;');
