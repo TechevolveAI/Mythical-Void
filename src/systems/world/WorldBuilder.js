@@ -375,6 +375,7 @@ class WorldBuilder {
         landmark.buildingTweens?.forEach(tween => tween?.stop?.());
         this.clearVillageCommunityMoment(landmark);
         this.clearVillageDecisionMoment(landmark);
+        this.clearVillageWorkerCheckIn(landmark);
         landmark.buildingElements?.forEach(element => element?.destroy?.(true));
         landmark.plotHitZones?.forEach(zone => zone?.destroy?.());
         landmark.buildingTweens = [];
@@ -782,7 +783,29 @@ class WorldBuilder {
                     .setText(buildingStateCopy)
                     .setAlpha(stateVisibleAtRest && !guidedPlot ? 1 : 0);
             });
-            plotHitZone.on('pointerdown', () => this.activateVillageHeart(landmark, plot.id));
+            plotHitZone.on('pointerdown', pointer => {
+                if (worker?.container && building?.creature) {
+                    const workerX = container.x + worker.container.x;
+                    const workerY = container.y + worker.container.y;
+                    const pointerX = pointer?.worldX ?? pointer?.x;
+                    const pointerY = pointer?.worldY ?? pointer?.y;
+                    const workerHitRadius = compactSettlement ? 36 : 42;
+                    if (
+                        Number.isFinite(pointerX) &&
+                        Number.isFinite(pointerY) &&
+                        Phaser.Math.Distance.Between(
+                            pointerX,
+                            pointerY,
+                            workerX,
+                            workerY
+                        ) <= workerHitRadius &&
+                        this.activateVillageWorker(landmark, building)
+                    ) {
+                        return;
+                    }
+                }
+                this.activateVillageHeart(landmark, plot.id);
+            });
             landmark.plotHitZones.push(plotHitZone);
 
             if (building?.status === 'constructing') {
@@ -1189,7 +1212,9 @@ class WorldBuilder {
     }
 
     createVillageWorker(building, { compact = false, index = 0 } = {}) {
-        const worker = this.scene.add.container(-48, compact ? 28 : 34);
+        const routeStartX = compact ? -30 : -48;
+        const routeEndX = compact ? 34 : 46;
+        const worker = this.scene.add.container(routeStartX, compact ? 28 : 34);
         const accentByAffinity = {
             star: 0xF2C14E,
             crystal: 0x8FE3CF,
@@ -1229,16 +1254,25 @@ class WorldBuilder {
             building.definition.workerRoutine?.carriedResource
         );
         cargo.setPosition(13, 5);
-        worker.add([shadow, figure, initial, cargo]);
+        const checkInCue = this.scene.add.graphics();
+        checkInCue.fillStyle(0xF4F4F4, 0.94);
+        checkInCue.fillRoundedRect(-11, -35, 22, 13, 6);
+        checkInCue.fillTriangle(-4, -23, 1, -18, 3, -24);
+        checkInCue.fillStyle(0x07100F, 0.9);
+        [-5, 0, 5].forEach(dotX => checkInCue.fillCircle(dotX, -29, 1.3));
+        worker.add([shadow, figure, initial, cargo, checkInCue]);
         worker.setScale(scale);
         worker.setData('villageWorker', true);
         worker.setData('helperName', building.creature.name);
+        worker.setData('creatureId', building.creature.id);
         worker.setData('buildingId', building.definitionId);
+        worker.setData('plotId', building.plotId);
         worker.setData('routineCue', building.definition.workerRoutine?.cue || 'HELPING');
+        worker.setData('checkInCue', true);
 
         const moveTween = this.scene.tweens.add({
             targets: worker,
-            x: { from: -48, to: 46 },
+            x: { from: routeStartX, to: routeEndX },
             y: { from: compact ? 28 : 34, to: compact ? 20 : 25 },
             duration: 3300 + (index * 370),
             yoyo: true,
@@ -1347,6 +1381,7 @@ class WorldBuilder {
         if (positions.length < 2) return false;
 
         this.clearVillageCommunityMoment(landmark);
+        this.clearVillageWorkerCheckIn(landmark);
         const compact = this.scene.scale.width <= 600;
         const heartPosition = { x: landmark.zone.x, y: landmark.zone.y - 18 };
         const anchorPosition = landmark.plotWorldPositions?.get(moment.anchorPlotId);
@@ -1444,6 +1479,7 @@ class WorldBuilder {
         if (!landmark?.zone || !memory?.line) return false;
         this.clearVillageCommunityMoment(landmark);
         this.clearVillageDecisionMoment(landmark);
+        this.clearVillageWorkerCheckIn(landmark);
 
         const compact = this.scene.scale.width <= 600;
         const color = memory.value === 'care' ? 0x71E6B1 : 0xF2C14E;
@@ -1544,10 +1580,168 @@ class WorldBuilder {
         landmark.activeCommunityMoment = null;
     }
 
+    playVillageWorkerCheckIn(landmark, checkIn) {
+        const position = landmark?.plotWorldPositions?.get(checkIn?.plotId);
+        if (!position || !checkIn?.line) return false;
+        this.clearVillageCommunityMoment(landmark);
+        this.clearVillageDecisionMoment(landmark);
+        this.clearVillageWorkerCheckIn(landmark);
+
+        const compact = this.scene.scale.width <= 600;
+        const worker = landmark.workerElements?.find(element => (
+            element?.getData?.('creatureId') === checkIn.creatureId
+        ));
+        const workerX = position.x + (worker?.x || 0);
+        const workerY = position.y + (worker?.y || 0);
+        const copyWidth = compact ? 250 : 380;
+        const copyX = Phaser.Math.Clamp(
+            workerX,
+            copyWidth / 2 + 8,
+            this.scene.scale.width - copyWidth / 2 - 8
+        );
+        const copyY = Math.max(
+            compact ? 92 : 82,
+            landmark.zone.y - (compact ? 255 : 225)
+        );
+        const path = this.scene.add.graphics()
+            .setDepth(Math.min(workerY, copyY) - 1)
+            .setAlpha(0);
+        path.lineStyle(2, 0x71E6B1, 0.54);
+        path.beginPath();
+        path.moveTo(workerX, workerY - 8);
+        path.lineTo(copyX, copyY + 48);
+        path.strokePath();
+        path.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const pulse = this.scene.add.graphics()
+            .setPosition(workerX, workerY)
+            .setDepth(position.y + 10)
+            .setAlpha(0);
+        pulse.lineStyle(3, 0x71E6B1, 0.9);
+        pulse.strokeCircle(0, 0, compact ? 25 : 30);
+        pulse.lineStyle(1, 0xF4F4F4, 0.7);
+        pulse.strokeCircle(0, 0, compact ? 34 : 40);
+        pulse.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const copy = this.scene.add.container(copyX, copyY)
+            .setDepth(landmark.zone.y + 16)
+            .setAlpha(0);
+        const identity = this.scene.add.text(
+            0,
+            -38,
+            `${checkIn.name.toUpperCase()} // ${checkIn.roleLabel}`,
+            {
+                fontSize: compact ? '9px' : '10px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F2C14E',
+                stroke: '#07100F',
+                strokeThickness: 5
+            }
+        ).setOrigin(0.5);
+        const line = this.scene.add.text(0, -13, `"${checkIn.line}"`, {
+            fontSize: compact ? '10px' : '12px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#F4F4F4',
+            align: 'center',
+            stroke: '#07100F',
+            strokeThickness: 5,
+            wordWrap: { width: copyWidth }
+        }).setOrigin(0.5);
+        const routine = this.scene.add.text(
+            0,
+            20,
+            `${checkIn.routineCue} · ${checkIn.purpose}`,
+            {
+                fontSize: compact ? '7px' : '8px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#8FE3CF',
+                align: 'center',
+                stroke: '#07100F',
+                strokeThickness: 4,
+                wordWrap: { width: copyWidth }
+            }
+        ).setOrigin(0.5);
+        const impact = this.scene.add.text(0, 43, checkIn.impact, {
+            fontSize: compact ? '8px' : '9px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#F4F4F4',
+            stroke: '#07100F',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+        const memory = checkIn.memory
+            ? this.scene.add.text(
+                0,
+                61,
+                `HEART MEMORY · ${checkIn.memory.label}`,
+                {
+                    fontSize: compact ? '7px' : '8px',
+                    fontFamily: 'Arial, sans-serif',
+                    fontStyle: 'bold',
+                    color: checkIn.memory.value === 'care' ? '#8FE3CF' : '#F2C14E',
+                    stroke: '#07100F',
+                    strokeThickness: 4
+                }
+            ).setOrigin(0.5)
+            : null;
+        copy.add([identity, line, routine, impact, ...(memory ? [memory] : [])]);
+        copy.setData('villageWorkerCheckIn', checkIn.creatureId);
+        copy.setData('helperName', checkIn.name);
+        copy.setData('buildingId', checkIn.definitionId);
+        copy.setData('routineCue', checkIn.routineCue);
+        copy.setData('impact', checkIn.impact);
+        copy.setData('memoryDecisionId', checkIn.memory?.decisionId || null);
+
+        const revealTween = this.scene.tweens.add({
+            targets: [path, pulse, copy],
+            alpha: 1,
+            duration: 340,
+            ease: 'Sine.easeOut'
+        });
+        const pulseTween = this.scene.tweens.add({
+            targets: pulse,
+            scaleX: { from: 0.78, to: 1.12 },
+            scaleY: { from: 0.78, to: 1.12 },
+            alpha: { from: 0.5, to: 1 },
+            duration: 1100,
+            yoyo: true,
+            repeat: 3,
+            ease: 'Sine.easeInOut'
+        });
+        landmark.workerCheckInElements = [path, pulse, copy];
+        landmark.workerCheckInTweens = [revealTween, pulseTween];
+        landmark.activeWorkerCheckIn = copy;
+        landmark.workerCheckInTimer = this.scene.time.delayedCall(6500, () => {
+            if (landmark.activeWorkerCheckIn !== copy) return;
+            const fadeTween = this.scene.tweens.add({
+                targets: [path, pulse, copy],
+                alpha: 0,
+                duration: 420,
+                onComplete: () => this.clearVillageWorkerCheckIn(landmark)
+            });
+            landmark.workerCheckInTweens.push(fadeTween);
+        });
+        return true;
+    }
+
+    clearVillageWorkerCheckIn(landmark) {
+        landmark?.workerCheckInTimer?.remove?.();
+        landmark?.workerCheckInTweens?.forEach(tween => tween?.stop?.());
+        landmark?.workerCheckInElements?.forEach(element => element?.destroy?.(true));
+        if (!landmark) return;
+        landmark.workerCheckInTimer = null;
+        landmark.workerCheckInTweens = [];
+        landmark.workerCheckInElements = [];
+        landmark.activeWorkerCheckIn = null;
+    }
+
     playVillageDecisionMoment(landmark, result) {
         if (!landmark?.zone || !result?.decision || !result?.option) return false;
         this.clearVillageCommunityMoment(landmark);
         this.clearVillageDecisionMoment(landmark);
+        this.clearVillageWorkerCheckIn(landmark);
         landmark.activeBuildingMomentTween?.stop?.();
         landmark.activeBuildingMoment?.destroy?.(true);
         landmark.activeBuildingMomentTween = null;
@@ -1678,6 +1872,14 @@ class WorldBuilder {
             place ? `Planning ${place.label}` : 'Opening Village Plan'
         );
         return this.scene.openVillageCommand?.({ plotId }) === true;
+    }
+
+    activateVillageWorker(landmark, building) {
+        if (!landmark?.snapshot || !building?.creature?.id) return false;
+        return this.scene.openVillageWorkerCheckIn?.({
+            creatureId: building.creature.id,
+            snapshot: landmark.snapshot
+        }) === true;
     }
 
     drawVillageBuilding(graphics, definitionId, status) {
@@ -4573,6 +4775,7 @@ class WorldBuilder {
         this.villageHeart?.buildingTweens?.forEach(tween => tween?.stop?.());
         this.clearVillageCommunityMoment(this.villageHeart);
         this.clearVillageDecisionMoment(this.villageHeart);
+        this.clearVillageWorkerCheckIn(this.villageHeart);
         this.villageHeart?.productionTweens?.forEach(tween => tween?.stop?.());
         this.villageHeart?.productionMoments?.forEach(
             moment => moment?.destroy?.(true)

@@ -10506,6 +10506,7 @@ async function smokeVillageUi(session, exceptions) {
                 workerCount: workers.length,
                 workerNames: workers.map(worker => worker.getData('helperName')),
                 workerRoutines: workers.map(worker => worker.getData('routineCue')),
+                workerCheckInCues: workers.map(worker => worker.getData('checkInCue')),
                 productionMomentStarted,
                 productionMomentCount: landmark?.productionMoments?.length || 0
             },
@@ -10572,6 +10573,7 @@ async function smokeVillageUi(session, exceptions) {
         layout.worldPresentation.workerCount !== 3 ||
         layout.worldPresentation.workerNames.some(name => !name) ||
         layout.worldPresentation.workerRoutines.some(cue => !cue) ||
+        layout.worldPresentation.workerCheckInCues.some(cue => cue !== true) ||
         !layout.worldPresentation.productionMomentStarted ||
         layout.worldPresentation.productionMomentCount < 1 ||
         !layout.acceptsInput ||
@@ -10588,6 +10590,102 @@ async function smokeVillageUi(session, exceptions) {
     await waitFor(
         () => evaluate(session, `!document.querySelector('.village-command-modal')`),
         { message: 'Village Heart closed before next-action route check' }
+    );
+    const workerRoute = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const worker = scene?.villageHeartLandmark?.workerElements?.[0];
+        if (!worker?.getWorldTransformMatrix) return null;
+        const point = worker.getWorldTransformMatrix().transformPoint(0, 0);
+        return {
+            x: Math.round(point.x),
+            y: Math.round(point.y),
+            creatureId: worker.getData('creatureId'),
+            helperName: worker.getData('helperName'),
+            checkInCue: worker.getData('checkInCue')
+        };
+    })()`);
+    if (
+        !workerRoute ||
+        workerRoute.helperName !== 'Nova' ||
+        workerRoute.checkInCue !== true
+    ) {
+        throw new Error(`Village worker route was unavailable: ${JSON.stringify(workerRoute)}`);
+    }
+    await touch(session, workerRoute.x, workerRoute.y);
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.activeWorkerCheckIn
+        )`),
+        { message: 'Village worker world check-in' }
+    );
+    const workerCheckIn = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const checkIn = landmark?.activeWorkerCheckIn;
+        return {
+            elementCount: landmark?.workerCheckInElements?.length || 0,
+            helperName: checkIn?.getData('helperName'),
+            buildingId: checkIn?.getData('buildingId'),
+            routineCue: checkIn?.getData('routineCue'),
+            impact: checkIn?.getData('impact'),
+            memoryDecisionId: checkIn?.getData('memoryDecisionId'),
+            plannerOpen: Boolean(document.querySelector('.village-command-modal'))
+        };
+    })()`);
+    if (
+        workerCheckIn.elementCount !== 3 ||
+        workerCheckIn.helperName !== 'Nova' ||
+        workerCheckIn.buildingId !== 'forager_hut' ||
+        workerCheckIn.routineCue !== 'MAPS SAFE FOOD PATHS' ||
+        workerCheckIn.impact !== 'FEEDING · +5 HAPPINESS' ||
+        workerCheckIn.memoryDecisionId !== null ||
+        workerCheckIn.plannerOpen
+    ) {
+        throw new Error(`Village worker check-in failed: ${JSON.stringify(workerCheckIn)}`);
+    }
+    await captureGameplayStill(session, 'village-worker-check-in-mobile.png');
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.worldBuilder.clearVillageWorkerCheckIn(scene.villageHeartLandmark);
+        return true;
+    })()`);
+    const structureRoute = await evaluate(session, `(() => {
+        const zone = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark?.plotHitZones?.[0];
+        if (!zone?.input?.enabled) return null;
+        const bounds = zone.getBounds();
+        return {
+            x: Math.round(bounds.centerX),
+            y: Math.round(bounds.centerY),
+            plotId: zone.plotId
+        };
+    })()`);
+    if (!structureRoute || structureRoute.plotId !== 'root_01') {
+        throw new Error(`Village structure route was unavailable: ${JSON.stringify(structureRoute)}`);
+    }
+    await touch(session, structureRoute.x, structureRoute.y);
+    await waitFor(
+        () => evaluate(session, `Boolean(document.querySelector('.village-command-modal.accepts-input'))`),
+        { message: 'Village structure planner route' }
+    );
+    const structurePlanner = await evaluate(session, `(() => ({
+        title: document.querySelector('.village-command-title')?.textContent || '',
+        workerCheckInOpen: Boolean(
+            window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.activeWorkerCheckIn
+        )
+    }))()`);
+    if (
+        !structurePlanner.title.includes('FORAGE') ||
+        structurePlanner.workerCheckInOpen
+    ) {
+        throw new Error(`Village structure tap did not remain distinct: ${JSON.stringify(structurePlanner)}`);
+    }
+    await evaluate(session, `document.querySelector('.village-command-close')?.click()`);
+    await waitFor(
+        () => evaluate(session, `!document.querySelector('.village-command-modal')`),
+        { message: 'Village structure planner closed' }
     );
     const actionRoute = await evaluate(session, `(() => {
         const target = window.mythicalGame.scene.getScene('GameScene')
@@ -10864,6 +10962,10 @@ async function smokeVillageUi(session, exceptions) {
 
     return {
         layout,
+        workerRoute,
+        workerCheckIn,
+        structureRoute,
+        structurePlanner,
         actionRoute,
         decisionChoice,
         decisionRecap,

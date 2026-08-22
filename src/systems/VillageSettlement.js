@@ -201,7 +201,8 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         workerRoutine: Object.freeze({
             cue: 'MAPS SAFE FOOD PATHS',
             carriedResource: 'food',
-            emotionalPurpose: 'Leaves enough living growth for tomorrow.'
+            emotionalPurpose: 'Leaves enough living growth for tomorrow.',
+            checkInLine: 'I found three patches we can eat from. I marked the fourth so it can recover.'
         })
     }),
     Object.freeze({
@@ -222,7 +223,8 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         workerRoutine: Object.freeze({
             cue: 'SHAPES FALLEN TIMBER',
             carriedResource: 'wood',
-            emotionalPurpose: 'Uses what the storms have already released.'
+            emotionalPurpose: 'Uses what the storms have already released.',
+            checkInLine: 'The storm left enough timber for the next repair. No living tree had to fall.'
         })
     }),
     Object.freeze({
@@ -243,7 +245,8 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         workerRoutine: Object.freeze({
             cue: 'LISTENS FOR SAFE STONE',
             carriedResource: 'stone',
-            emotionalPurpose: 'Keeps every Current pathway open.'
+            emotionalPurpose: 'Keeps every Current pathway open.',
+            checkInLine: 'The stone hums differently near an open Current. I know which pieces are safe to move.'
         })
     }),
     Object.freeze({
@@ -281,7 +284,8 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         workerRoutine: Object.freeze({
             cue: 'TESTS SHARED TOOLS',
             carriedResource: 'crystal',
-            emotionalPurpose: 'Builds only when both kinds of knowledge agree.'
+            emotionalPurpose: 'Builds only when both kinds of knowledge agree.',
+            checkInLine: 'Human tools ask fast questions. The Current answers slowly. I am learning both rhythms.'
         }),
         requires: Object.freeze(['forager_hut', 'sawmill', 'current_masonry'])
     })
@@ -1213,6 +1217,42 @@ export function getVillageHeartMemory(snapshot, { cycle = 0 } = {}) {
         speakerName: choice.speakerName,
         line: choice.followUpLine,
         requiredBuildingIds: choice.definition.requiredBuildingIds
+    };
+}
+
+export function getVillageWorkerCheckIn(snapshot, { creatureId } = {}) {
+    if (!creatureId) return null;
+    const building = snapshot?.buildings?.find(entry => (
+        entry.status === 'complete' &&
+        entry.creature?.id === creatureId &&
+        entry.definition?.workerRoutine
+    ));
+    if (!building) return null;
+    const memory = [...(snapshot?.heartDecision?.completed || [])]
+        .reverse()
+        .find(choice => choice.participants?.some(
+            participant => participant.creatureId === creatureId
+        )) || null;
+    const routine = building.definition.workerRoutine;
+    return {
+        creatureId,
+        name: building.creature.name,
+        buildingId: building.id,
+        definitionId: building.definitionId,
+        plotId: building.plotId,
+        roleLabel: building.definition.roleLabel,
+        routineCue: routine.cue,
+        line: routine.checkInLine,
+        purpose: routine.emotionalPurpose,
+        impact: building.definition.worldEffectLabel,
+        memory: memory
+            ? {
+                decisionId: memory.decisionId,
+                optionId: memory.optionId,
+                label: memory.option.label,
+                value: memory.option.value
+            }
+            : null
     };
 }
 

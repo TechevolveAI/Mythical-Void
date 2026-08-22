@@ -53,9 +53,9 @@ describe('Village settlement gameplay contract', () => {
         expect(worldSource).toContain('createVillageHeart(');
         expect(worldSource).toContain('refreshVillageSettlement(');
         expect(worldSource).toContain("zone.on('pointerdown', () => this.activateVillageHeart(landmark))");
-        expect(worldSource).toContain(
-            "plotHitZone.on('pointerdown', () => this.activateVillageHeart(landmark, plot.id))"
-        );
+        expect(worldSource).toContain("plotHitZone.on('pointerdown', pointer => {");
+        expect(worldSource).toContain('this.activateVillageWorker(landmark, building)');
+        expect(worldSource).toContain('this.activateVillageHeart(landmark, plot.id);');
         expect(sceneSource).toContain('VILLAGE_HEART_INTERACT_DISTANCE');
         expect(sceneSource).toContain('this.openVillageCommand();');
     });
@@ -227,6 +227,9 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('playVillageProductionMoment(');
         expect(world).toContain('playVillageCommunityMoment(');
         expect(world).toContain('playVillageDecisionMoment(');
+        expect(world).toContain('playVillageWorkerCheckIn(');
+        expect(world).toContain('clearVillageWorkerCheckIn(');
+        expect(world).toContain('activateVillageWorker(');
         expect(world).toContain('createVillageHeartMemories(');
         expect(world).toContain("setData('villageHeartMemory'");
         expect(world).toContain('createVillageValueGrowth(');
@@ -238,17 +241,23 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("copy.setData('villageDecisionMoment', result.decision.id)");
         expect(world).toContain("container.setData('villageHabitatLife', true)");
         expect(world).toContain("worker.setData('villageWorker', true)");
+        expect(world).toContain("worker.setData('checkInCue', true)");
+        expect(world).toContain("copy.setData('villageWorkerCheckIn'");
         expect(scene).toContain('maybePlayVillageCommunityMoment(snapshot');
         expect(scene).toContain('getVillageCommunityMoment(snapshot');
         expect(scene).toContain('resolveVillageHeartDecision(');
         expect(scene).toContain('this.villageDecisionMomentPending = result');
         expect(scene).toContain('maybePlayVillageHeartMemory(snapshot)');
+        expect(scene).toContain('openVillageWorkerCheckIn(');
+        expect(scene).toContain('getVillageWorkerCheckIn(');
         expect(village).toContain('participantCreatureIds: active.participants.map(');
         expect(village).toContain('getVillageHeartMemory(snapshot');
         expect(village).toContain('getVillageWorldState(snapshot)');
         expect(village).toContain("type: 'supplies'");
         expect(village).toContain("type: 'assign'");
         expect(village).toContain('residentLine:');
+        expect(village).toContain('checkInLine:');
+        expect(village).toContain('getVillageWorkerCheckIn(snapshot');
         expect(world).toContain('getVillageWorldGuidance(snapshot)');
         expect(world).toContain('definition.worldEffectLabel');
         expect(world).toContain("'BUILD HERE'");

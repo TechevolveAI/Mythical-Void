@@ -39,6 +39,7 @@ function loadVillageSettlement() {
                 getVillageCommunityMoment,
                 getVillageHeartDecisionState,
                 getVillageHeartMemory,
+                getVillageWorkerCheckIn,
                 getVillageSnapshot,
                 placeVillageBuilding,
                 assignCreatureToVillageBuilding,
@@ -561,6 +562,24 @@ describe('Village settlement phase one', () => {
                 participantNames: ['Nova', 'Lumen']
             })
         );
+        expect(village.getVillageWorkerCheckIn(result.snapshot, {
+            creatureId: 'nova'
+        })).toEqual(expect.objectContaining({
+            name: 'Nova',
+            definitionId: 'sawmill',
+            roleLabel: 'SHAPER',
+            routineCue: 'SHAPES FALLEN TIMBER',
+            line: expect.stringContaining('No living tree had to fall'),
+            impact: 'VICTORY · +10 COINS',
+            memory: expect.objectContaining({
+                decisionId: 'storm_path',
+                optionId: 'current_first',
+                value: 'care'
+            })
+        }));
+        expect(village.getVillageWorkerCheckIn(result.snapshot, {
+            creatureId: 'unknown'
+        })).toBeNull();
 
         const duplicate = village.resolveVillageHeartDecision(gameState, {
             decisionId: 'storm_path',

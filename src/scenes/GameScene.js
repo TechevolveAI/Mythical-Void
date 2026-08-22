@@ -130,6 +130,7 @@ import {
     getVillageCommunityMoment,
     getVillageHeartMemory,
     getVillageSnapshot,
+    getVillageWorkerCheckIn,
     initializeVillageSettlement,
     markVillageGuidanceSeen,
     placeVillageBuilding,
@@ -1757,6 +1758,9 @@ class GameScene extends Phaser.Scene {
         };
         this.openVillageCommand = ({ plotId = null } = {}) => (
             this.villageCommandPanel.show({ plotId, ...previewPanelOptions })
+        );
+        this.openVillageWorkerCheckIn = ({ creatureId } = {}) => (
+            this.showVillageWorkerCheckIn({ creatureId, snapshot: getVillageSnapshot(previewState) })
         );
         this.openVillageCommand();
     }
@@ -8140,6 +8144,31 @@ class GameScene extends Phaser.Scene {
         this.villageHeartMemoryIndex += 1;
         this.lastVillageHeartMemoryAt = now;
         return true;
+    }
+
+    showVillageWorkerCheckIn({ creatureId, snapshot = null } = {}) {
+        const checkIn = getVillageWorkerCheckIn(
+            snapshot || getVillageSnapshot(window.GameState),
+            { creatureId }
+        );
+        if (!checkIn) return false;
+        const played = this.worldBuilder?.playVillageWorkerCheckIn?.(
+            this.villageHeartLandmark,
+            checkIn
+        ) === true;
+        if (!played) return false;
+        this.showInteractionHint(`${checkIn.name} · ${checkIn.routineCue}`);
+        window.AudioManager?.playButtonClick?.();
+        window.AchievementSystem?.recordEvent?.('story_interaction', {
+            event: 'village_worker_check_in',
+            creatureId: checkIn.creatureId,
+            buildingId: checkIn.definitionId
+        });
+        return true;
+    }
+
+    openVillageWorkerCheckIn({ creatureId, snapshot = null } = {}) {
+        return this.showVillageWorkerCheckIn({ creatureId, snapshot });
     }
 
     showVillageCompletionMoment(building) {
