@@ -997,7 +997,7 @@ class WorldBuilder {
         const heartStoneImprint = this.scene.add.graphics()
             .setPosition(x, y - 22)
             .setDepth(y + 3.15);
-        const actionLabel = this.scene.add.text(x, y - 126, 'OPEN PLAN', {
+        const actionLabel = this.scene.add.text(x, y - 126, 'OPEN HEART', {
             fontSize: '10px',
             fontFamily: 'Arial, sans-serif',
             color: '#F2C14E',
@@ -1081,7 +1081,7 @@ class WorldBuilder {
 
         zone.setInteractive({ useHandCursor: true });
         zone
-            .setData('ariaLabel', 'Open the Village Heart plan')
+            .setData('ariaLabel', 'Open the Village Heart')
             .setData('villageLandmarkIdentity', 'village_heart')
             .setData('mobileTapTarget', true);
         zone.on('pointerover', () => {
@@ -1844,6 +1844,11 @@ class WorldBuilder {
             0,
             VILLAGE_PLOTS.length
         );
+        const sanctuaryCommunityCount =
+            (snapshot?.community?.companions?.length || 0) +
+            (snapshot?.community?.residents?.length || 0);
+        const regionalGuardianCount = snapshot?.community?.guardianAllies
+            ?.filter?.(guardian => guardian.resolved)?.length || 0;
         const resourceContributions = (snapshot?.buildings || [])
             .filter(building => (
                 building.status === 'complete' &&
@@ -2180,7 +2185,7 @@ class WorldBuilder {
             .setAlpha(unlocked ? 0.86 : 0.68)
             .setColor(unlocked ? '#F4F4F4' : '#93A2A9');
         actionLabel
-            .setText(unlocked ? 'OPEN PLAN' : 'HEART DORMANT')
+            .setText(unlocked ? 'OPEN HEART' : 'HEART DORMANT')
             .setAlpha(1)
             .setColor(unlocked ? '#F2C14E' : '#93A2A9')
             .setData('villageNextAction', null)
@@ -2188,14 +2193,10 @@ class WorldBuilder {
             .setInteractive({ useHandCursor: true });
         statusLabel
             .setText(unlocked
-                ? restoredCount === 0
-                    ? compactSettlement
-                        ? `TAP TO PLAN · 0/${VILLAGE_PLOTS.length} ROOTS`
-                        : `0/${VILLAGE_PLOTS.length} ROOTS · BUILD A HOME TOGETHER`
-                    : compactSettlement
-                        ? `TAP TO PLAN · ${restoredCount}/${VILLAGE_PLOTS.length} ROOTS`
-                        : `${restoredCount}/${VILLAGE_PLOTS.length} ROOTS · ` +
-                            `${snapshot?.worldState?.growthLabel || 'AWAKENED ROOT'}`
+                ? compactSettlement
+                    ? `TAP · ${sanctuaryCommunityCount} COMMUNITY · ${restoredCount}/${VILLAGE_PLOTS.length} ROOTS`
+                    : `${restoredCount}/${VILLAGE_PLOTS.length} ROOTS · ` +
+                        `${sanctuaryCommunityCount} COMMUNITY · ${regionalGuardianCount} REGIONAL ALLIES`
                 : 'HATCH A COMPANION TO WAKE IT'
             )
             .setFontSize(compactSettlement ? '8px' : '9px')
@@ -2203,7 +2204,19 @@ class WorldBuilder {
             .setAlpha(unlocked ? 0.82 : 0.64)
             .setColor(unlocked ? '#8FE3CF' : '#93A2A9')
             .setData('villageGrowthTier', growthTier)
-            .setData('villageGrowthLabel', snapshot?.worldState?.growthLabel || 'AWAKENED ROOT');
+            .setData('villageGrowthLabel', snapshot?.worldState?.growthLabel || 'AWAKENED ROOT')
+            .setData('sanctuaryCommunityCount', sanctuaryCommunityCount)
+            .setData('regionalGuardianCount', regionalGuardianCount);
+        landmark.zone
+            .setData('sanctuaryCommunityCount', sanctuaryCommunityCount)
+            .setData('regionalGuardianCount', regionalGuardianCount)
+            .setData(
+                'ariaLabel',
+                unlocked
+                    ? `Open the Village Heart. ${sanctuaryCommunityCount} creatures live here. ` +
+                        `${regionalGuardianCount} Guardians protect their regions.`
+                    : 'Village Heart dormant. Hatch a companion to wake it.'
+            );
 
         landmark.pulseTween = this.scene.tweens.add({
             targets: glow,
@@ -7570,7 +7583,7 @@ class WorldBuilder {
         this.scene.nearVillageHeart = true;
         const place = VILLAGE_PLOTS.find(plot => plot.id === plotId);
         this.scene.showInteractionHint?.(
-            place ? `Planning ${place.label}` : 'Opening Village Plan'
+            place ? `Planning ${place.label}` : 'Opening Village Heart'
         );
         return this.scene.openVillageCommand?.({ plotId }) === true;
     }

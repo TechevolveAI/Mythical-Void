@@ -10660,13 +10660,93 @@ async function smokeVillageHeartGuidance(session, exceptions) {
             `Village Heart target-aware guidance failed: ${JSON.stringify(guidance)}`
         );
     }
+
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame?.scene?.getScene('GameScene');
+        return scene?.openVillageCommand?.({ guided: true }) === true;
+    })()`);
+    const communityShortcut = await waitFor(
+        () => evaluate(session, `(() => {
+            const modal = document.querySelector('.village-command-modal.accepts-input');
+            const shortcut = document.querySelector('[data-testid="village-community-shortcut"]');
+            const bounds = shortcut?.getBoundingClientRect?.();
+            if (!modal || !shortcut || !bounds) return null;
+            return {
+                text: shortcut.textContent?.replace(/\\s+/g, ' ').trim() || '',
+                ariaLabel: shortcut.getAttribute('aria-label') || '',
+                bounds: {
+                    left: Math.round(bounds.left),
+                    right: Math.round(bounds.right),
+                    top: Math.round(bounds.top),
+                    bottom: Math.round(bounds.bottom),
+                    width: Math.round(bounds.width),
+                    height: Math.round(bounds.height)
+                },
+                viewport: { width: innerWidth, height: innerHeight },
+                topTarget: document.elementFromPoint(
+                    bounds.left + (bounds.width / 2),
+                    bounds.top + (bounds.height / 2)
+                )?.closest?.('[data-testid="village-community-shortcut"]') === shortcut
+            };
+        })()`),
+        { timeoutMs: 12000, message: 'Village Heart community shortcut' }
+    );
+    if (
+        !communityShortcut.text.includes('WHO LIVES HERE') ||
+        !communityShortcut.text.includes('VIEW COMMUNITY & ROLES') ||
+        !communityShortcut.ariaLabel.includes('creatures live here') ||
+        communityShortcut.bounds.width < 240 ||
+        communityShortcut.bounds.height < 44 ||
+        communityShortcut.bounds.left < 0 ||
+        communityShortcut.bounds.right > communityShortcut.viewport.width ||
+        communityShortcut.bounds.top < 0 ||
+        communityShortcut.bounds.bottom > communityShortcut.viewport.height ||
+        !communityShortcut.topTarget
+    ) {
+        throw new Error(
+            `Village Heart community shortcut was not mobile-safe: ${JSON.stringify(communityShortcut)}`
+        );
+    }
+    await captureGameplayStill(session, 'village-heart-community-shortcut-mobile.png');
+    await touchDomButton(session, '[data-testid="village-community-shortcut"]', {
+        message: 'Village Heart community shortcut'
+    });
+    const communityDirectory = await waitFor(
+        () => evaluate(session, `(() => {
+            const directory = document.querySelector('[data-testid="village-community-directory"]');
+            if (!directory) return null;
+            return {
+                title: directory.querySelector('.village-community-directory-title')
+                    ?.textContent?.trim() || '',
+                groups: [...directory.querySelectorAll('.village-community-group-title')]
+                    .map(element => element.textContent?.trim()),
+                intro: directory.querySelector('.village-community-directory-intro')
+                    ?.textContent?.trim() || '',
+                guided: document.querySelector('.village-command-modal')
+                    ?.classList?.contains('is-guided') === true
+            };
+        })()`),
+        { timeoutMs: 4000, message: 'Village Heart community directory' }
+    );
+    if (
+        communityDirectory.title !== 'YOUR SANCTUARY COMMUNITY' ||
+        !communityDirectory.groups.includes('SANCTUARY RESIDENTS') ||
+        !communityDirectory.groups.includes('REGIONAL GUARDIANS') ||
+        !communityDirectory.intro.includes('they do not move into the Sanctuary') ||
+        communityDirectory.guided
+    ) {
+        throw new Error(
+            `Village Heart community directory was unclear: ${JSON.stringify(communityDirectory)}`
+        );
+    }
+    await captureGameplayStill(session, 'village-heart-community-directory-mobile.png');
     if (exceptions.length) {
         throw new Error(
             `Village Heart target-aware guidance raised browser exceptions: ${exceptions.join(' | ')}`
         );
     }
     process.stdout.write('PASS VillageHeartGuidance\n');
-    return { guidance };
+    return { guidance, communityShortcut, communityDirectory };
 }
 
 async function smokeVillageUi(session, exceptions) {

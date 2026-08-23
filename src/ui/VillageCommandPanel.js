@@ -109,6 +109,66 @@ function createVillageViewTabs(snapshot, { activeView, onSelect } = {}) {
     return tabs;
 }
 
+function createCommunityShortcut(snapshot, { onSelect } = {}) {
+    const community = snapshot?.community || {};
+    const members = [
+        ...(community.companions || []),
+        ...(community.residents || [])
+    ].filter((member, index, roster) => (
+        member?.id && roster.findIndex(entry => entry?.id === member.id) === index
+    ));
+    const guardians = (community.guardianAllies || []).filter(
+        guardian => guardian.resolved
+    );
+    const heartLink = guardians.find(
+        guardian => guardian.sanctuaryPresence === 'heart_projection'
+    ) || null;
+    const shortcut = createElement('button', 'village-community-shortcut');
+    shortcut.type = 'button';
+    shortcut.setAttribute('data-testid', 'village-community-shortcut');
+    shortcut.setAttribute(
+        'aria-label',
+        `Open Sanctuary community and roles. ${members.length} creatures live here. ` +
+            `${guardians.length} Guardians protect their regions.`
+    );
+
+    const portraits = createElement('span', 'village-community-shortcut-portraits');
+    members.slice(0, 3).forEach(member => portraits.append(createCreatureAvatar(member)));
+    if (members.length > 3) {
+        portraits.append(createElement(
+            'span',
+            'village-community-shortcut-more',
+            `+${members.length - 3}`
+        ));
+    }
+
+    const copy = createElement('span', 'village-community-shortcut-copy');
+    copy.append(
+        createElement('span', 'village-community-shortcut-kicker', 'WHO LIVES HERE'),
+        createElement(
+            'strong',
+            'village-community-shortcut-title',
+            `${members.length} ${members.length === 1 ? 'CREATURE' : 'CREATURES'} CALL THIS HOME`
+        ),
+        createElement(
+            'span',
+            'village-community-shortcut-detail',
+            heartLink
+                ? `${heartLink.name} answers through the Heart. Other Guardians stay in their regions.`
+                : guardians.length > 0
+                    ? `${guardians.length} Guardians protect their regions; they do not live here.`
+                    : 'Rescued creatures join this community. Guardians protect their own regions.'
+        )
+    );
+    shortcut.append(
+        portraits,
+        copy,
+        createElement('span', 'village-community-shortcut-action', 'VIEW COMMUNITY & ROLES')
+    );
+    shortcut.addEventListener('click', () => onSelect?.());
+    return shortcut;
+}
+
 function getCommunityMemberStatus(member, snapshot) {
     const assignment = (snapshot?.buildings || []).find(building => (
         building.status === 'complete' && building.creature?.id === member.id
@@ -833,6 +893,17 @@ export default class VillageCommandPanel {
             status.setAttribute('aria-live', 'polite');
             shell.append(status);
         }
+
+        shell.append(createCommunityShortcut(snapshot, {
+            onSelect: () => {
+                this.guided = false;
+                this.activeView = 'community';
+                this.root?.classList.remove('is-guided');
+                this.statusMessage = '';
+                this.lastDecisionResult = null;
+                this.render();
+            }
+        }));
 
         const stage = createElement('section', 'village-guided-stage');
         stage.dataset.intent = intent;

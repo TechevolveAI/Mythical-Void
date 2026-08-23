@@ -419,6 +419,11 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain("'THE NEXT USEFUL CHANGE'");
         expect(source).toContain("'CONTINUE WITH THE SANCTUARY'");
         expect(source).toContain('OPEN FULL PLAN');
+        expect(source).toContain('createCommunityShortcut(snapshot');
+        expect(source).toContain("'village-community-shortcut'");
+        expect(source).toContain("'village-community-shortcut-portraits'");
+        expect(source).toContain("'VIEW COMMUNITY & ROLES'");
+        expect(source).toContain("this.activeView = 'community';");
         expect(source).toContain('this.guidedActionKey !== guidedActionKey');
         expect(source).toContain('nextAction.definitionId ||');
         expect(source).toContain('requestedPlot?.building?.definitionId');
@@ -521,6 +526,8 @@ describe('Village settlement gameplay contract', () => {
         expect(guardians).toContain("artwork: '/game/guardians/void-empress.webp'");
         expect(css).toContain('.village-view-tabs');
         expect(css).toContain('.village-community-directory');
+        expect(css).toContain('.village-community-shortcut {');
+        expect(css).toContain('.village-community-shortcut-action');
         expect(css).toContain('.village-guardian-card');
         expect(css).toContain('.village-guardian-artwork');
     });
@@ -616,7 +623,8 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('const labelAlpha = compactHeart');
         expect(world).toContain('? storyMode ? 0.24 : active ? 0.96 : 0.62');
         expect(world).toContain('? storyMode ? 0.12 : active ? 0.78 : 0.48');
-        expect(world).toContain('`TAP TO PLAN · ${restoredCount}/${VILLAGE_PLOTS.length} ROOTS`');
+        expect(world).toContain('`TAP · ${sanctuaryCommunityCount} COMMUNITY · ${restoredCount}/${VILLAGE_PLOTS.length} ROOTS`');
+        expect(world).toContain('`${sanctuaryCommunityCount} COMMUNITY · ${regionalGuardianCount} REGIONAL ALLIES`');
         expect(village).toContain('export const VILLAGE_GROWTH_PROFILES');
         expect(village).toContain('export function getVillageGrowthProfile');
         expect(village).toContain("worldIdentity: 'signal_seed'");
@@ -697,6 +705,11 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("'root_state_silhouettes_v1'");
         expect(world).toContain("constructing: 'taking_root'");
         expect(world).toContain("needs_helper: 'awaiting_resident'");
+        expect(world).toContain("'OPEN HEART'");
+        expect(world).toContain(".setData('sanctuaryCommunityCount', sanctuaryCommunityCount)");
+        expect(world).toContain(".setData('regionalGuardianCount', regionalGuardianCount)");
+        expect(scene).toContain("label: 'SANCTUARY & COMMUNITY'");
+        expect(scene).toContain('residentIds: snapshot?.community?.residents?.map(');
         expect(world).toContain("staffed: 'working_together'");
         expect(world).toContain("const placardPlacement = compactLowerTarget ? 'below_target' : 'above_target';");
         expect(world).toContain(".setData('villagePlacardAvoidsHeart', compactLowerTarget)");

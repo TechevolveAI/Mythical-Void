@@ -2949,6 +2949,94 @@ body.game-mode {
   border-bottom-color: rgba(242, 193, 78, 0.35);
 }
 
+.village-community-shortcut {
+  display: grid;
+  width: 100%;
+  min-height: 68px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  color: #f4f4f4;
+  text-align: left;
+  background: #0b1715;
+  border: 0;
+  border-bottom: 1px solid rgba(113, 230, 177, 0.28);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.village-community-shortcut:hover,
+.village-community-shortcut:focus-visible {
+  background: #10221e;
+  outline: 2px solid #8fe3cf;
+  outline-offset: -3px;
+}
+
+.village-community-shortcut-portraits {
+  display: flex;
+  min-width: 72px;
+  align-items: center;
+  padding-left: 8px;
+}
+
+.village-community-shortcut-portraits .village-creature-avatar,
+.village-community-shortcut-more {
+  width: 36px;
+  height: 36px;
+  margin-left: -8px;
+  border: 2px solid #0b1715;
+}
+
+.village-community-shortcut-more {
+  display: grid;
+  place-items: center;
+  color: #07100f;
+  background: #f2c14e;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.village-community-shortcut-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.village-community-shortcut-kicker,
+.village-community-shortcut-title,
+.village-community-shortcut-detail,
+.village-community-shortcut-action {
+  letter-spacing: 0;
+}
+
+.village-community-shortcut-kicker {
+  color: #8fe3cf;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.village-community-shortcut-title {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+.village-community-shortcut-detail {
+  color: #afc1bd;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.village-community-shortcut-action {
+  max-width: 118px;
+  color: #f2c14e;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1.3;
+  text-align: right;
+}
+
 .village-guided-stage {
   display: grid;
   min-height: 0;
@@ -3916,6 +4004,39 @@ body.game-mode {
 
   .village-heart-resource > strong {
     font-size: 12px;
+  }
+
+  .village-community-shortcut {
+    min-height: 74px;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 9px;
+    padding: 8px 10px;
+  }
+
+  .village-community-shortcut-portraits {
+    min-width: 62px;
+  }
+
+  .village-community-shortcut-portraits .village-creature-avatar,
+  .village-community-shortcut-more {
+    width: 32px;
+    height: 32px;
+  }
+
+  .village-community-shortcut-title {
+    font-size: 10px;
+  }
+
+  .village-community-shortcut-detail {
+    font-size: 8px;
+  }
+
+  .village-community-shortcut-action {
+    grid-column: 1 / -1;
+    max-width: none;
+    padding-top: 5px;
+    border-top: 1px solid rgba(244, 244, 244, 0.1);
+    text-align: center;
   }
 
   .village-guided-stage {

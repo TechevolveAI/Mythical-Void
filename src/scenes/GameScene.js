@@ -9192,13 +9192,13 @@ class GameScene extends Phaser.Scene {
             },
             review: {
                 verb: 'REVIEW',
-                label: 'VILLAGE PLAN',
+                label: 'SANCTUARY & COMMUNITY',
                 icon: '✦'
             }
         };
         return presentationByType[nextAction.type] || {
             verb: 'OPEN',
-            label: 'VILLAGE PLAN',
+            label: 'VILLAGE HEART',
             icon: '✦'
         };
     }
@@ -9228,13 +9228,13 @@ class GameScene extends Phaser.Scene {
                 : `Click ${targetPlot?.label || 'the highlighted structure'} · Invite a helper`,
             supplies: `${nextAction?.label || 'Gather supplies'} · The village keeps working`,
             review: touchControlsVisible
-                ? 'Tap the Village Heart · Review your Sanctuary'
-                : 'Press SPACE at the Heart · Review your Sanctuary'
+                ? 'Tap the Village Heart · Review Sanctuary and community'
+                : 'Press SPACE at the Heart · Review Sanctuary and community'
         };
         const prompt = actionPrompts[nextAction?.type] || (
             touchControlsVisible
-                ? 'Tap the Village Heart · Open Village Plan'
-                : 'Press SPACE at the Heart · Open Village Plan'
+                ? 'Tap the Village Heart · Open Sanctuary and community'
+                : 'Press SPACE at the Heart · Open Sanctuary and community'
         );
         return includeGuidance ? `Village Heart awakened · ${prompt}` : prompt;
     }
@@ -9303,6 +9303,21 @@ class GameScene extends Phaser.Scene {
                 route: routine.route,
                 destinationId: routine.destinationId
             })) || [],
+            community: {
+                companionIds: snapshot?.community?.companions?.map(
+                    companion => companion.id
+                ) || [],
+                residentIds: snapshot?.community?.residents?.map(
+                    resident => resident.id
+                ) || [],
+                guardianOutcomes: snapshot?.community?.guardianAllies?.map(
+                    guardian => ({
+                        id: guardian.guardianId,
+                        standing: guardian.standing,
+                        sanctuaryPresence: guardian.sanctuaryPresence
+                    })
+                ) || []
+            },
             heartDecisions: snapshot?.heartDecision?.completed?.map(choice => ({
                 decisionId: choice.decisionId,
                 optionId: choice.optionId
