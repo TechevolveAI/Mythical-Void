@@ -784,6 +784,17 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain(".setData('villageAmbientRole', ambientRole)");
         expect(world).toContain('.setVisible(flowVisible)');
         expect(world).toContain('paused: !flowVisible');
+        expect(world).toContain('createVillageFutureStructurePreview({');
+        expect(world).toContain(".setData('villageFutureStructurePreview', true)");
+        expect(world).toContain(".setData('villagePreviewMaterial', 'future_structure_echo_v1')");
+        expect(world).toContain(".setData('villagePreviewMaterial', 'living_root_threshold_v2')");
+        expect(world).toContain(".setData('villageTargetLanguage', 'living_root_threshold_v2')");
+        expect(world).toContain(".setData('villagePlacardLanguage', 'current_ribbon_v2')");
+        expect(world).toContain("? `${action.type === 'assign' ? 'INVITE' : 'BUILD'} · ${buildingDefinition.label.toUpperCase()}`");
+        expect(world).toContain("fontSize: compact ? '11px' : '12px'");
+        expect(world).toContain('landmark.nextActionPreview?.setAlpha(storyMode ? 0 : 1);');
+        expect(world).toContain('landmark.nextActionPreviewTween?.pause?.();');
+        expect(world).toContain('landmark.nextActionPreviewTween?.resume?.();');
         expect(world).toContain('setVillageFocusMode(');
         expect(world).toContain(".setData('villageFocusPriority', priority)");
         expect(world).toContain(".setData('villageFocusPrimary', primary)");

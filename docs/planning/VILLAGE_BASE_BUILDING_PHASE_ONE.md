@@ -160,6 +160,17 @@ open a generic management surface before understanding why the building matters.
 The structure name remains the command owner, so benefit clarity does not erase
 place identity.
 
+The selected empty root uses the same world grammar instead of a detached build
+reticle. A translucent `future structure echo` shows the actual authored building
+silhouette rising from its living-root bed, while a low ground ellipse and Current
+shoots mark the footprint. One angular ribbon names the intended place in plain
+language (`BUILD · SHARED HABITAT`). The preview disappears during story moments,
+retains the existing large touch target, and becomes the completed structure in
+the same location. This follows the strongest relevant patterns without copying
+their aesthetics: Pikmin makes base work visibly useful in the field, Astroneer
+exposes functional connections spatially, and Spiritfarer lets each improvement
+become an inhabited place with emotional meaning.
+
 ## 7. Gameplay Impact Contract
 
 Every completed building changes another established game loop:

@@ -1061,6 +1061,8 @@ class WorldBuilder {
             nextActionHitZone: null,
             nextActionPlacard: null,
             nextActionRing: null,
+            nextActionPreview: null,
+            nextActionPreviewTween: null,
             nextActionTween: null,
             guidanceRoute: null,
             arrivalGuide: null,
@@ -1719,6 +1721,8 @@ class WorldBuilder {
         landmark.nextActionHitZone = null;
         landmark.nextActionPlacard = null;
         landmark.nextActionRing = null;
+        landmark.nextActionPreview = null;
+        landmark.nextActionPreviewTween = null;
         landmark.nextActionTween = null;
         landmark.guidanceRoute = null;
         landmark.arrivalGuide = null;
@@ -3510,6 +3514,12 @@ class WorldBuilder {
         }
         landmark.nextActionPlacard?.setAlpha(storyMode ? 0 : 1);
         landmark.nextActionRing?.setAlpha(storyMode ? 0 : 1);
+        landmark.nextActionPreview?.setAlpha(storyMode ? 0 : 1);
+        if (storyMode) {
+            landmark.nextActionPreviewTween?.pause?.();
+        } else {
+            landmark.nextActionPreviewTween?.resume?.();
+        }
         landmark.guidanceRoute?.setAlpha(storyMode ? 0 : active ? 1 : 0.72);
         landmark.villageFlowSignals?.forEach(signal => {
             signal?.setData(
@@ -4180,6 +4190,69 @@ class WorldBuilder {
         return route;
     }
 
+    createVillageFutureStructurePreview({
+        action,
+        position,
+        compact = false,
+        color = 0xF2C14E
+    } = {}) {
+        const artworkDefinition = VILLAGE_WORLD_ARTWORK[action?.definitionId];
+        if (!artworkDefinition || !position) return null;
+        const compactKey = artworkDefinition.compactKey;
+        const artworkKey = compact && compactKey && this.scene.textures.exists(compactKey)
+            ? compactKey
+            : artworkDefinition.key;
+        if (!artworkKey || !this.scene.textures.exists(artworkKey)) return null;
+
+        const buildingDefinition = VILLAGE_BUILDING_DEFINITIONS.find(
+            definition => definition.id === action.definitionId
+        ) || null;
+        const displaySize = compact
+            ? Math.round((artworkDefinition.displaySize || 176) * 0.48)
+            : Math.round((artworkDefinition.displaySize || 176) * 0.68);
+        const artworkY = compact ? -23 : -33;
+        const container = this.scene.add.container(position.x, position.y)
+            .setDepth(position.y + 3)
+            .setData('villageFutureStructurePreview', true)
+            .setData('definitionId', action.definitionId)
+            .setData('plotId', action.plotId)
+            .setData('villagePreviewMaterial', 'future_structure_echo_v1')
+            .setData('villagePreviewLabel', buildingDefinition?.label || action.label)
+            .setData('villagePreviewDisplaySize', displaySize);
+        const rootBed = this.scene.add.graphics()
+            .setData('villageFutureRootBed', true)
+            .setData('villagePreviewMaterial', 'living_root_threshold_v2');
+        rootBed.fillStyle(0x04100E, 0.72);
+        rootBed.fillEllipse(0, compact ? 28 : 34, compact ? 104 : 134, compact ? 32 : 42);
+        rootBed.lineStyle(2, color, 0.42);
+        rootBed.strokeEllipse(0, compact ? 27 : 33, compact ? 96 : 124, compact ? 27 : 35);
+        [-0.62, -0.2, 0.22, 0.64].forEach((ratio, index) => {
+            const startX = ratio * (compact ? 43 : 56);
+            const endX = startX * 0.76;
+            const endY = compact ? 13 - (index % 2) * 4 : 16 - (index % 2) * 5;
+            rootBed.lineStyle(1, index % 2 ? 0xF4F4F4 : color, 0.5);
+            rootBed.lineBetween(startX, compact ? 26 : 32, endX, endY);
+        });
+        const artwork = this.scene.add.image(0, artworkY, artworkKey)
+            .setDisplaySize(displaySize, displaySize)
+            .setTint(0xFFE8A3)
+            .setAlpha(0.38)
+            .setData('villageFutureStructureArtwork', true)
+            .setData('villageArtworkVariant', compact ? 'compact_future_echo' : 'detailed_future_echo')
+            .setData('villagePreviewColor', color);
+        container.add([rootBed, artwork]);
+        const tween = this.scene.tweens.add({
+            targets: artwork,
+            y: { from: artworkY + 2, to: artworkY - 3 },
+            alpha: { from: 0.3, to: 0.48 },
+            duration: 1320,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        return { container, rootBed, artwork, tween };
+    }
+
     createVillageNextActionBeacon(landmark, snapshot, { compact = false } = {}) {
         const action = snapshot?.worldState?.nextAction;
         if (!landmark?.zone || !action) return false;
@@ -4187,6 +4260,8 @@ class WorldBuilder {
         landmark.nextActionHitZone = null;
         landmark.nextActionPlacard = null;
         landmark.nextActionRing = null;
+        landmark.nextActionPreview = null;
+        landmark.nextActionPreviewTween = null;
         landmark.nextActionTween = null;
         landmark.guidanceRoute = null;
 
@@ -4211,67 +4286,82 @@ class WorldBuilder {
         const position = landmark.plotWorldPositions?.get(action.plotId);
         if (!position) return false;
         const color = action.type === 'assign' ? 0x71E6B1 : 0xF2C14E;
+        const buildingDefinition = VILLAGE_BUILDING_DEFINITIONS.find(
+            definition => definition.id === action.definitionId
+        ) || null;
         const guidanceRoute = this.createVillageGuidanceRoute({
             landmark,
             action,
             position,
             compact
         });
+        const futurePreview = action.type === 'build'
+            ? this.createVillageFutureStructurePreview({
+                action,
+                position,
+                compact,
+                color
+            })
+            : null;
         const ring = this.scene.add.graphics()
-            .setPosition(position.x, position.y + 16)
+            .setPosition(position.x, position.y + (compact ? 25 : 29))
             .setDepth(position.y + 5)
-            .setData('villageNextActionRing', action.type);
+            .setData('villageNextActionRing', action.type)
+            .setData('villageTargetLanguage', 'living_root_threshold_v2');
         ring.lineStyle(3, color, 0.9);
-        ring.beginPath();
-        ring.arc(0, 0, compact ? 57 : 70, Math.PI * 0.08, Math.PI * 0.88);
-        ring.strokePath();
-        ring.beginPath();
-        ring.arc(0, 0, compact ? 57 : 70, Math.PI * 1.08, Math.PI * 1.88);
-        ring.strokePath();
-        ring.fillStyle(color, 0.96);
-        ring.fillTriangle(0, -52, -7, -40, 7, -40);
+        ring.strokeEllipse(0, 0, compact ? 112 : 142, compact ? 38 : 48);
+        ring.lineStyle(1, 0xF4F4F4, 0.68);
+        ring.strokeEllipse(0, 0, compact ? 94 : 120, compact ? 26 : 32);
+        [-0.72, 0, 0.72].forEach((ratio, index) => {
+            const rootX = ratio * (compact ? 49 : 61);
+            const rootHeight = compact ? 12 + (index * 3) : 16 + (index * 4);
+            ring.lineStyle(index === 1 ? 3 : 2, color, 0.86);
+            ring.lineBetween(rootX, -2, rootX * 0.82, -rootHeight);
+            ring.fillStyle(color, 0.94);
+            ring.fillCircle(rootX * 0.82, -rootHeight, index === 1 ? 3 : 2);
+        });
         ring.setBlendMode?.(Phaser.BlendModes.ADD);
 
         const labelX = compact
             ? position.x + (position.x > landmark.zone.x ? -16 : position.x < landmark.zone.x ? 16 : 0)
             : position.x;
-        const labelY = position.y - (compact ? 92 : 106);
-        const actionCopy = compact
-            ? `TAP · ${action.label}`
-            : `NEXT · ${action.label}`;
+        const labelY = position.y - (compact ? 92 : 120);
+        const actionCopy = buildingDefinition
+            ? `${action.type === 'assign' ? 'INVITE' : 'BUILD'} · ${buildingDefinition.label.toUpperCase()}`
+            : action.label;
         const labelBackdrop = this.scene.add.graphics()
             .setPosition(labelX, labelY)
             .setDepth(position.y + 7)
-            .setData('villageNextActionPlacard', true);
-        labelBackdrop.fillStyle(0x061310, 0.9);
-        labelBackdrop.fillRoundedRect(
-            compact ? -72 : -86,
-            -14,
-            compact ? 144 : 172,
-            28,
-            6
-        );
+            .setData('villageNextActionPlacard', true)
+            .setData('villagePlacardLanguage', 'current_ribbon_v2');
+        const placardHalfWidth = compact ? 84 : 104;
+        const placardHalfHeight = compact ? 17 : 18;
+        const placardNotch = compact ? 8 : 10;
+        const placardPoints = [
+            new Phaser.Geom.Point(-placardHalfWidth + placardNotch, -placardHalfHeight),
+            new Phaser.Geom.Point(placardHalfWidth, -placardHalfHeight),
+            new Phaser.Geom.Point(placardHalfWidth, placardHalfHeight - placardNotch),
+            new Phaser.Geom.Point(placardHalfWidth - placardNotch, placardHalfHeight),
+            new Phaser.Geom.Point(-placardHalfWidth, placardHalfHeight),
+            new Phaser.Geom.Point(-placardHalfWidth, -placardHalfHeight + placardNotch)
+        ];
+        labelBackdrop.fillStyle(0x061310, 0.94);
+        labelBackdrop.fillPoints(placardPoints, true);
         labelBackdrop.lineStyle(1, color, 0.68);
-        labelBackdrop.strokeRoundedRect(
-            compact ? -71 : -85,
-            -13,
-            compact ? 142 : 170,
-            26,
-            5
-        );
+        labelBackdrop.strokePoints(placardPoints, true);
         const label = this.scene.add.text(
             labelX,
             labelY,
             actionCopy,
             {
-                fontSize: compact ? '9px' : '10px',
+                fontSize: compact ? '11px' : '12px',
                 fontFamily: 'Arial, sans-serif',
                 fontStyle: 'bold',
                 color: action.type === 'assign' ? '#8FE3CF' : '#F2C14E',
                 align: 'center',
                 stroke: '#07100F',
                 strokeThickness: 4,
-                wordWrap: { width: compact ? 130 : 158 }
+                wordWrap: { width: compact ? 154 : 190 }
             }
         ).setOrigin(0.5)
             .setDepth(position.y + 8)
@@ -4279,7 +4369,11 @@ class WorldBuilder {
             .setData('villageNextAction', action.type)
             .setData('plotId', action.plotId)
             .setData('definitionId', action.definitionId || null)
-            .setData('villageActionCopy', actionCopy);
+            .setData('villageActionCopy', actionCopy)
+            .setData(
+                'ariaLabel',
+                `${actionCopy}. Tap to plan this structure at ${action.plotId}.`
+            );
         label.on('pointerdown', () => this.activateVillageHeart(landmark, action.plotId));
 
         const hitZone = this.scene.add.zone(
@@ -4302,9 +4396,12 @@ class WorldBuilder {
         landmark.nextActionHitZone = hitZone;
         landmark.nextActionPlacard = labelBackdrop;
         landmark.nextActionRing = ring;
+        landmark.nextActionPreview = futurePreview?.container || null;
+        landmark.nextActionPreviewTween = futurePreview?.tween || null;
         landmark.guidanceRoute = guidanceRoute;
         landmark.buildingElements.push(
             ...(guidanceRoute ? [guidanceRoute] : []),
+            ...(futurePreview ? [futurePreview.container] : []),
             ring,
             labelBackdrop,
             label,
@@ -4319,6 +4416,9 @@ class WorldBuilder {
             ease: 'Sine.easeInOut'
         });
         landmark.buildingTweens.push(landmark.nextActionTween);
+        if (futurePreview?.tween) {
+            landmark.buildingTweens.push(futurePreview.tween);
+        }
         return true;
     }
 

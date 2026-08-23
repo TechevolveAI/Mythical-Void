@@ -13778,9 +13778,11 @@ async function smokeVillageUi(session, exceptions) {
                 labelInput: landmark?.nextActionElement?.input?.enabled === true,
                 placardAlpha: landmark?.nextActionPlacard?.alpha,
                 ringAlpha: landmark?.nextActionRing?.alpha,
+                previewAlpha: landmark?.nextActionPreview?.alpha,
                 routeAlpha: landmark?.guidanceRoute?.alpha,
                 hitZoneInput: landmark?.nextActionHitZone?.input?.enabled === true,
-                tweenPaused: landmark?.nextActionTween?.isPaused?.() === true
+                tweenPaused: landmark?.nextActionTween?.isPaused?.() === true,
+                previewTweenPaused: landmark?.nextActionPreviewTween?.isPaused?.() === true
             }
         };
     })()`);
@@ -13800,9 +13802,11 @@ async function smokeVillageUi(session, exceptions) {
         decisionWorld.actionGuidance.labelInput ||
         decisionWorld.actionGuidance.placardAlpha !== 0 ||
         decisionWorld.actionGuidance.ringAlpha !== 0 ||
+        decisionWorld.actionGuidance.previewAlpha !== 0 ||
         decisionWorld.actionGuidance.routeAlpha !== 0 ||
         decisionWorld.actionGuidance.hitZoneInput ||
-        !decisionWorld.actionGuidance.tweenPaused
+        !decisionWorld.actionGuidance.tweenPaused ||
+        !decisionWorld.actionGuidance.previewTweenPaused
     ) {
         throw new Error(`Village Heart world response failed: ${JSON.stringify(decisionWorld)}`);
     }
@@ -13819,6 +13823,13 @@ async function smokeVillageUi(session, exceptions) {
         const target = landmark?.nextActionElement;
         const hitZone = landmark?.nextActionHitZone;
         const guidanceRoute = landmark?.guidanceRoute;
+        const preview = landmark?.nextActionPreview;
+        const previewArtwork = preview?.list?.find(
+            child => child?.getData?.('villageFutureStructureArtwork') === true
+        );
+        const previewRootBed = preview?.list?.find(
+            child => child?.getData?.('villageFutureRootBed') === true
+        );
         if (!target?.getBounds) return null;
         const bounds = target.getBounds();
         const hitBounds = hitZone?.getBounds?.();
@@ -13870,6 +13881,24 @@ async function smokeVillageUi(session, exceptions) {
                 ?.sanctuaryFocusModeActive === true,
             text: target.text || '',
             actionCopy: target.getData('villageActionCopy'),
+            ariaLabel: target.getData('ariaLabel'),
+            fontSize: Number.parseInt(target.style?.fontSize, 10),
+            targetLanguage: landmark?.nextActionRing?.getData?.('villageTargetLanguage'),
+            placardLanguage: landmark?.nextActionPlacard?.getData?.('villagePlacardLanguage'),
+            preview: preview ? {
+                active: preview.active === true,
+                alpha: preview.alpha,
+                definitionId: preview.getData('definitionId'),
+                plotId: preview.getData('plotId'),
+                material: preview.getData('villagePreviewMaterial'),
+                label: preview.getData('villagePreviewLabel'),
+                displaySize: preview.getData('villagePreviewDisplaySize'),
+                artworkVariant: previewArtwork?.getData?.('villageArtworkVariant'),
+                artworkAlpha: previewArtwork?.alpha,
+                rootMaterial: previewRootBed?.getData?.('villagePreviewMaterial'),
+                tweenRunning: landmark?.nextActionPreviewTween?.isPlaying?.() === true &&
+                    landmark?.nextActionPreviewTween?.isPaused?.() !== true
+            } : null,
             hitZone: hitBounds ? {
                 left: hitTopLeft.x,
                 right: hitBottomRight.x,
@@ -13912,12 +13941,26 @@ async function smokeVillageUi(session, exceptions) {
         buildRoute.focusHierarchy.filter(plot => plot.plotId !== 'root_04').some(plot => (
             plot.priority !== 'supporting' || plot.alpha >= 1
         )) ||
-        !buildRoute.text.includes('BUILD HABITAT') ||
-        buildRoute.actionCopy !== (
-            SMOKE_VIEWPORT_WIDTH <= 600
-                ? 'TAP · BUILD HABITAT'
-                : 'NEXT · BUILD HABITAT'
+        buildRoute.text !== 'BUILD · SHARED HABITAT' ||
+        buildRoute.actionCopy !== 'BUILD · SHARED HABITAT' ||
+        !buildRoute.ariaLabel?.includes('Tap to plan this structure') ||
+        buildRoute.fontSize < (SMOKE_VIEWPORT_WIDTH <= 600 ? 11 : 12) ||
+        buildRoute.targetLanguage !== 'living_root_threshold_v2' ||
+        buildRoute.placardLanguage !== 'current_ribbon_v2' ||
+        !buildRoute.preview?.active ||
+        buildRoute.preview.alpha !== 1 ||
+        buildRoute.preview.definitionId !== 'habitat' ||
+        buildRoute.preview.plotId !== 'root_04' ||
+        buildRoute.preview.material !== 'future_structure_echo_v1' ||
+        buildRoute.preview.label !== 'SHARED HABITAT' ||
+        buildRoute.preview.displaySize !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 85 : 121) ||
+        buildRoute.preview.artworkVariant !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 'compact_future_echo' : 'detailed_future_echo'
         ) ||
+        buildRoute.preview.artworkAlpha < 0.29 ||
+        buildRoute.preview.artworkAlpha > 0.49 ||
+        buildRoute.preview.rootMaterial !== 'living_root_threshold_v2' ||
+        !buildRoute.preview.tweenRunning ||
         !buildRoute.hitZone ||
         !buildRoute.hitZone.inputEnabled ||
         buildRoute.hitZone.touchTargetWidth !== (
