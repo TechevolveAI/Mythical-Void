@@ -11516,7 +11516,7 @@ async function smokeVillageUi(session, exceptions) {
             !plot.districtAnchor ||
             plot.districtAnchorMaterial !== 'root_threshold_v1' ||
             plot.districtAnchorState !== plot.state ||
-            plot.districtVisualLanguage !== 'root_action_glyphs_v1' ||
+            plot.districtVisualLanguage !== 'root_purpose_glyphs_v2' ||
             plot.districtActionVerb !== (
                 plot.state === 'available' ? 'BUILD' : 'MANAGE'
             ) ||
@@ -12126,8 +12126,8 @@ async function smokeVillageUi(session, exceptions) {
             `villagePlot:${structureProximity.plotId}` ||
         structureProximity.activeInteractionId !==
             `villagePlot:${structureProximity.plotId}` ||
-        structureProximity.interactionVerb !== 'MANAGE' ||
-        structureProximity.interactionLabel !== 'FORAGE' ||
+        structureProximity.interactionVerb !== 'CHECK' ||
+        structureProximity.interactionLabel !== 'FEED +5' ||
         structureProximity.interactionOwner !== 'FORAGER HUT' ||
         structureProximity.interactionHintMode !== (
             SMOKE_VIEWPORT_WIDTH <= 600 ? 'world' : 'hud'
@@ -12144,7 +12144,7 @@ async function smokeVillageUi(session, exceptions) {
         (
             SMOKE_VIEWPORT_WIDTH > 600 && (
                 !structureProximity.hudPromptVisible ||
-                !structureProximity.hudPrompt.includes('MANAGE FORAGE')
+                !structureProximity.hudPrompt.includes('CHECK FORAGE')
             )
         ) ||
         !structureProximitySettled ||
@@ -12852,7 +12852,18 @@ async function smokeVillageUi(session, exceptions) {
                     districtVisualLanguage: presentation.districtAnchor?.getData?.(
                         'villageDistrictVisualLanguage'
                     ),
+                    districtPurposeGlyph: presentation.districtAnchor?.getData?.(
+                        'villageDistrictPurposeGlyph'
+                    ),
+                    districtPurposeLabel: presentation.districtAnchor?.getData?.(
+                        'villageDistrictPurposeLabel'
+                    ),
+                    districtActionLabel: presentation.districtAnchor?.getData?.(
+                        'villageDistrictActionLabel'
+                    ),
                     interactionVerb: presentation.hitZone?.getData?.('interactionVerb'),
+                    worldActionLabel: presentation.hitZone?.getData?.('worldActionLabel'),
+                    purposeGlyph: presentation.hitZone?.getData?.('purposeGlyph'),
                     interactionLabel: presentation.interactionLabel
                 })),
                 productionMomentStarted,
@@ -13038,7 +13049,7 @@ async function smokeVillageUi(session, exceptions) {
             !presentation.label ||
             !presentation.interactionLabel ||
             !presentation.markerActive ||
-            presentation.districtVisualLanguage !== 'root_action_glyphs_v1' ||
+            presentation.districtVisualLanguage !== 'root_purpose_glyphs_v2' ||
             presentation.districtActionVerb !== (
                 presentation.plotState === 'available' ? 'BUILD' : 'MANAGE'
             ) ||
@@ -13077,6 +13088,25 @@ async function smokeVillageUi(session, exceptions) {
         layout.worldPresentation.plotPresentations.filter(
             presentation => presentation.plotState === 'staffed'
         ).length !== 3 ||
+        layout.worldPresentation.plotPresentations.filter(
+            presentation => presentation.plotState === 'staffed'
+        ).some(presentation => (
+            !presentation.districtPurposeGlyph ||
+            !presentation.districtPurposeLabel ||
+            !presentation.districtActionLabel ||
+            presentation.purposeGlyph !== presentation.districtPurposeGlyph ||
+            presentation.worldActionLabel !== presentation.districtActionLabel
+        )) ||
+        layout.worldPresentation.plotPresentations
+            .filter(presentation => presentation.plotState === 'staffed')
+            .map(presentation => presentation.districtPurposeGlyph)
+            .sort()
+            .join(',') !== 'current_guard,renewing_food,repair_value' ||
+        layout.worldPresentation.plotPresentations
+            .filter(presentation => presentation.plotState === 'staffed')
+            .map(presentation => presentation.districtActionLabel)
+            .sort()
+            .join(',') !== 'BLOCK 1 HIT,FEED +5,WIN +10' ||
         layout.worldPresentation.plotPresentations.filter(
             presentation => presentation.plotState === 'available'
         ).length !== 2 ||
@@ -13995,7 +14025,7 @@ async function smokeVillageUi(session, exceptions) {
         constructionWorld.state !== 'constructing' ||
         constructionWorld.hitState !== 'constructing' ||
         constructionWorld.anchorAction !== 'GROWING' ||
-        constructionWorld.anchorVisualLanguage !== 'root_action_glyphs_v1' ||
+        constructionWorld.anchorVisualLanguage !== 'root_purpose_glyphs_v2' ||
         constructionWorld.interactionVerb !== 'REVIEW' ||
         !constructionWorld.markerActive ||
         constructionWorld.progressNodes < 1 ||

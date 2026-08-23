@@ -16318,15 +16318,18 @@ class GameScene extends Phaser.Scene {
             available: { verb: 'BUILD HERE', icon: '+' },
             constructing: { verb: 'REVIEW BUILD', icon: '+' },
             needs_helper: { verb: 'INVITE HELP', icon: '+' },
-            complete: { verb: 'MANAGE', icon: '✦' },
-            staffed: { verb: 'MANAGE', icon: '✦' }
+            complete: { verb: 'CHECK', icon: '✦' },
+            staffed: { verb: 'CHECK', icon: '✦' }
         }[presentation.plotState] || { verb: 'MANAGE', icon: '✦' };
-        const label = definition?.shortLabel || plot.label;
+        const settled = ['complete', 'staffed'].includes(presentation.plotState);
+        const label = settled && definition?.worldActionLabel
+            ? definition.worldActionLabel
+            : definition?.shortLabel || plot.label;
         const impact = definition?.worldEffectLabel || 'CHOOSE WHAT GROWS HERE';
         const result = this.offerSanctuaryInteraction({
             id: nextInteractionId,
             target: presentation.hitZone,
-            message: `Press SPACE · ${statePresentation.verb} ${label} · ${impact}`,
+            message: `Press SPACE · ${statePresentation.verb} ${definition?.shortLabel || plot.label} · ${impact}`,
             verb: statePresentation.verb,
             label,
             ownerLabel: definition?.label || plot.label,

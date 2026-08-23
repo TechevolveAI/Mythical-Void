@@ -128,6 +128,16 @@ building-to-Heart delivery routes. During story focus the commons recedes behind
 the active moment, and compact layouts suppress the redundant Heart caption so
 the contextual action beacon owns the interaction language.
 
+Completed structures also carry a purpose sigil in their living-root threshold.
+The five authored symbols represent renewing food, recovered repair value,
+Current protection, shared homes, and shared energy. They remain quiet in the
+ambient composition and brighten with the structure on approach. The one
+target-attached command then names the immediate result (`FEED +5`, `WIN +10`,
+`BLOCK 1 HIT`, `2 SAFE HOMES`, or `ENERGY +1`) instead of asking the player to
+open a generic management surface before understanding why the building matters.
+The structure name remains the command owner, so benefit clarity does not erase
+place identity.
+
 ## 7. Gameplay Impact Contract
 
 Every completed building changes another established game loop:

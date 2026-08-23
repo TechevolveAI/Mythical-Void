@@ -464,6 +464,26 @@ describe('Village settlement phase one', () => {
         expect(phase.title).toBe('PHASE ONE SETTLEMENT ONLINE');
     });
 
+    test('every structure exposes a concise world purpose language', () => {
+        const expected = {
+            forager_hut: ['FEED +5', 'renewing_food'],
+            sawmill: ['WIN +10', 'repair_value'],
+            current_masonry: ['BLOCK 1 HIT', 'current_guard'],
+            habitat: ['2 SAFE HOMES', 'shared_home'],
+            workshop: ['ENERGY +1', 'shared_energy']
+        };
+
+        expect(village.VILLAGE_BUILDING_DEFINITIONS.map(definition => ({
+            id: definition.id,
+            worldActionLabel: definition.worldActionLabel,
+            purposeGlyph: definition.purposeGlyph
+        }))).toEqual(Object.entries(expected).map(([id, values]) => ({
+            id,
+            worldActionLabel: values[0],
+            purposeGlyph: values[1]
+        })));
+    });
+
     test('world guidance prioritizes construction, staffing, building, then completion', () => {
         const forager = village.VILLAGE_BUILDING_DEFINITIONS[0];
         const sawmill = village.VILLAGE_BUILDING_DEFINITIONS[1];

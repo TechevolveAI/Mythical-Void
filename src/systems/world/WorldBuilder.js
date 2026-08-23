@@ -2356,7 +2356,10 @@ class WorldBuilder {
                 guided: guidedPlot,
                 built: Boolean(building),
                 compact: compactSettlement,
-                districtId: plot.id
+                districtId: plot.id,
+                purposeGlyph: definition?.purposeGlyph || null,
+                purposeLabel: definition?.worldEffectLabel || null,
+                actionLabel: definition?.worldActionLabel || null
             });
             const focusRing = this.scene.add.graphics().setAlpha(0);
             const focusColor = building?.status === 'complete' ? 0x71E6B1 : 0xF2C14E;
@@ -2555,6 +2558,8 @@ class WorldBuilder {
                                     : 'MANAGE'
                 )
                 .setData('worldEffectLabel', definition?.worldEffectLabel || null)
+                .setData('worldActionLabel', definition?.worldActionLabel || null)
+                .setData('purposeGlyph', definition?.purposeGlyph || null)
                 .setData('guided', guidedPlot);
             plotHitZone.on('pointerover', () => {
                 container.setScale(1.06);
@@ -3883,7 +3888,10 @@ class WorldBuilder {
         guided = false,
         built = false,
         compact = false,
-        districtId = null
+        districtId = null,
+        purposeGlyph = null,
+        purposeLabel = null,
+        actionLabel = null
     } = {}) {
         const anchor = this.scene.add.graphics();
         const available = state === 'available';
@@ -3931,6 +3939,13 @@ class WorldBuilder {
             anchor.fillCircle(-3.5, y - 1, 2.5);
             anchor.lineStyle(1.5, 0xF4F4F4, 0.9);
             anchor.strokeCircle(3.5, y - 1, 2.5);
+        } else if (['complete', 'staffed'].includes(state) && purposeGlyph) {
+            this.drawVillagePurposeGlyph(anchor, purposeGlyph, {
+                x: 0,
+                y: y - 1,
+                color,
+                compact
+            });
         } else if (state === 'staffed') {
             anchor.lineStyle(1.5, color, 0.82);
             anchor.lineBetween(-4, y + 2, 0, y - 4);
@@ -3969,14 +3984,82 @@ class WorldBuilder {
             .setData('villageDistrictState', state)
             .setData('villageDistrictGuided', guided)
             .setData('villageDistrictActionVerb', actionVerb)
-            .setData('villageDistrictVisualLanguage', 'root_action_glyphs_v1')
+            .setData('villageDistrictPurposeGlyph', purposeGlyph)
+            .setData('villageDistrictPurposeLabel', purposeLabel)
+            .setData('villageDistrictActionLabel', actionLabel)
+            .setData('villageDistrictVisualLanguage', 'root_purpose_glyphs_v2')
             .setData('villageDistrictAnchorMaterial', 'root_threshold_v1')
             .setData(
                 'ariaLabel',
-                `${actionVerb}. ${String(state || 'dormant').replace('_', ' ')} root district`
+                purposeLabel && ['complete', 'staffed'].includes(state)
+                    ? `${actionVerb}. ${purposeLabel}. Living root district.`
+                    : `${actionVerb}. ${String(state || 'dormant').replace('_', ' ')} root district`
             );
         anchor.setBlendMode?.(Phaser.BlendModes.ADD);
         return anchor;
+    }
+
+    drawVillagePurposeGlyph(graphics, glyph, {
+        x = 0,
+        y = 0,
+        color = 0x71E6B1,
+        compact = false
+    } = {}) {
+        if (!graphics || !glyph) return false;
+        const unit = compact ? 0.88 : 1;
+        graphics.lineStyle(1.5, color, 0.96);
+        graphics.fillStyle(0xF4F4F4, 0.94);
+
+        if (glyph === 'renewing_food') {
+            graphics.lineBetween(x, y + 4 * unit, x, y - 4 * unit);
+            graphics.fillEllipse(x - 3 * unit, y - 2 * unit, 5 * unit, 3 * unit);
+            graphics.fillEllipse(x + 3 * unit, y + unit, 5 * unit, 3 * unit);
+            graphics.fillCircle(x, y - 5 * unit, 1.5 * unit);
+        } else if (glyph === 'repair_value') {
+            [-3, 0, 3].forEach((offset, index) => {
+                graphics.strokeCircle(
+                    x + offset * unit,
+                    y + (index % 2) * 2 * unit,
+                    2.2 * unit
+                );
+            });
+            graphics.fillCircle(x, y - 3.5 * unit, 1.3 * unit);
+        } else if (glyph === 'current_guard') {
+            graphics.beginPath();
+            graphics.moveTo(x, y - 6 * unit);
+            graphics.lineTo(x + 5 * unit, y - 3 * unit);
+            graphics.lineTo(x + 3 * unit, y + 4 * unit);
+            graphics.lineTo(x, y + 6 * unit);
+            graphics.lineTo(x - 3 * unit, y + 4 * unit);
+            graphics.lineTo(x - 5 * unit, y - 3 * unit);
+            graphics.closePath();
+            graphics.strokePath();
+            graphics.fillCircle(x, y, 1.5 * unit);
+        } else if (glyph === 'shared_home') {
+            graphics.beginPath();
+            graphics.moveTo(x - 6 * unit, y);
+            graphics.lineTo(x, y - 6 * unit);
+            graphics.lineTo(x + 6 * unit, y);
+            graphics.strokePath();
+            graphics.lineBetween(x - 4 * unit, y - unit, x - 4 * unit, y + 5 * unit);
+            graphics.lineBetween(x + 4 * unit, y - unit, x + 4 * unit, y + 5 * unit);
+            graphics.fillCircle(x - 2 * unit, y + 2 * unit, 1.3 * unit);
+            graphics.fillCircle(x + 2 * unit, y + 2 * unit, 1.3 * unit);
+        } else if (glyph === 'shared_energy') {
+            graphics.beginPath();
+            graphics.moveTo(x, y - 7 * unit);
+            graphics.lineTo(x + 5 * unit, y);
+            graphics.lineTo(x, y + 7 * unit);
+            graphics.lineTo(x - 5 * unit, y);
+            graphics.closePath();
+            graphics.strokePath();
+            graphics.lineBetween(x - 4 * unit, y, x + 4 * unit, y);
+            graphics.fillCircle(x, y, 1.5 * unit);
+        } else {
+            graphics.strokeCircle(x, y, 4 * unit);
+            graphics.fillCircle(x, y, 1.5 * unit);
+        }
+        return true;
     }
 
     createVillageValueGrowth(landmark, snapshot, { compact = false } = {}) {

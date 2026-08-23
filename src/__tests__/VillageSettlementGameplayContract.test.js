@@ -648,10 +648,14 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("'BUILD  ·  INVITE  ·  GROW'");
         expect(world).toContain('drawVillageFoundationCradle(');
         expect(world).toContain('createVillageDistrictAnchor({');
+        expect(world).toContain('drawVillagePurposeGlyph(');
         expect(world).toContain("setData('villageDistrictAnchor', true)");
         expect(world).toContain("setData('villageDistrictAnchorMaterial', 'root_threshold_v1')");
+        expect(world).toContain("setData('villageDistrictPurposeGlyph', purposeGlyph)");
+        expect(world).toContain("setData('villageDistrictPurposeLabel', purposeLabel)");
+        expect(world).toContain("setData('villageDistrictActionLabel', actionLabel)");
         expect(world).toContain("setData('villageDistrictActionVerb', actionVerb)");
-        expect(world).toContain("setData('villageDistrictVisualLanguage', 'root_action_glyphs_v1')");
+        expect(world).toContain("setData('villageDistrictVisualLanguage', 'root_purpose_glyphs_v2')");
         expect(world).toContain("'interactionVerb',");
         expect(world).toContain('drawing.lineBetween(-6, 6, 6, 6)');
         expect(world).toContain("setData('villageFoundationCradle', true)");
@@ -763,7 +767,8 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain('syncVillagePlotInteraction(landmark, plotId = null)');
         expect(scene).toContain("const nextInteractionId = plotId ? `villagePlot:${plotId}` : null;");
         expect(scene).toContain("available: { verb: 'BUILD HERE', icon: '+' }");
-        expect(scene).toContain("staffed: { verb: 'MANAGE', icon: '✦' }");
+        expect(scene).toContain("staffed: { verb: 'CHECK', icon: '✦' }");
+        expect(scene).toContain('settled && definition?.worldActionLabel');
         expect(scene).toContain('action: () => this.openVillageCommand({ plotId })');
         expect(scene).toContain('applyExplorationCameraFollowOffset(');
         expect(scene).toContain('layout.dockHeight * 0.46');

@@ -203,6 +203,8 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         purpose: 'Keeps creatures fed without stripping a living region.',
         immediateImpact: '+5 happiness whenever you feed a creature.',
         worldEffectLabel: 'FEEDING · +5 HAPPINESS',
+        worldActionLabel: 'FEED +5',
+        purposeGlyph: 'renewing_food',
         completionCopy: 'A safe food path opens without stripping a living patch.',
         extensionImpact: 'Supplies food for habitats, workshops, and future residents.',
         residentNeed: Object.freeze({
@@ -230,6 +232,8 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         purpose: 'Turns storm-fallen timber into safe paths and repair stock.',
         immediateImpact: '+10 cosmic coins after every expedition victory.',
         worldEffectLabel: 'VICTORY · +10 COINS',
+        worldActionLabel: 'WIN +10',
+        purposeGlyph: 'repair_value',
         completionCopy: 'Storm-fallen timber becomes shelter. No healthy tree is marked.',
         extensionImpact: 'Supplies wood for bridges, defenses, and village expansion.',
         residentNeed: Object.freeze({
@@ -257,6 +261,8 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         purpose: 'Builds protection without blocking the Current beneath the Fend.',
         immediateImpact: '+1 Current Stone guard charge on every expedition.',
         worldEffectLabel: 'EXPEDITION · +1 GUARD',
+        worldActionLabel: 'BLOCK 1 HIT',
+        purposeGlyph: 'current_guard',
         completionCopy: 'Loose stone settles around the Current without closing its path.',
         extensionImpact: 'Supplies stone for permanent structures and defenses.',
         residentNeed: Object.freeze({
@@ -284,6 +290,8 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         purpose: 'Gives rescued creatures a safe home they can choose to join.',
         immediateImpact: '+2 permanent creature collection capacity.',
         worldEffectLabel: 'HOME · +2 CAPACITY',
+        worldActionLabel: '2 SAFE HOMES',
+        purposeGlyph: 'shared_home',
         completionCopy: 'A rescued creature can choose a safe home here.',
         extensionImpact: 'Unlocks resident groups, bonds, and future village districts.',
         residentNeed: Object.freeze({
@@ -306,6 +314,8 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         purpose: 'Lets human and creature knowledge solve problems together.',
         immediateImpact: '+1 maximum crystal energy on every expedition.',
         worldEffectLabel: 'EXPEDITION · +1 ENERGY',
+        worldActionLabel: 'ENERGY +1',
+        purposeGlyph: 'shared_energy',
         completionCopy: 'Human tools and creature knowledge now share one table.',
         extensionImpact: 'Enables equipment research, katana upgrades, and new technology.',
         residentNeed: Object.freeze({
