@@ -648,6 +648,12 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('activateVillageWorker(');
         expect(world).toContain('createVillageHeartMemories(');
         expect(world).toContain("setData('villageHeartMemory'");
+        expect(world).toContain("setData('villageHeartMemoryWeave', true)");
+        expect(world).toContain("setData('villageHeartMemoryLanguage', 'shared_vow_weave_v1')");
+        expect(world).toContain("setData('villageHeartCareMarks', careMarks)");
+        expect(world).toContain("setData('villageHeartReadinessMarks', readinessMarks)");
+        expect(world).toContain("setData('villageHeartBalancedWeave', balancedWeave)");
+        expect(world).toContain("setData('villageHeartSilhouetteProfile', 'shared_memory_silhouette_v1')");
         expect(world).toContain('createVillageValueGrowth(');
         expect(world).toContain("setData('villageValueGrowth'");
         expect(world).toContain('createVillageNextActionBeacon(');
@@ -675,6 +681,12 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("setData('villageGuidanceRoute', true)");
         expect(world).toContain("setData('villageRouteMaterial', 'current_stepping_lights_v1')");
         expect(world).toContain("setData('guidanceNodeCount', guidanceNodes.length)");
+        expect(world).toContain("setData('villageRouteHierarchy', 'quiet_network_v1')");
+        expect(world).toContain("? 'story_recessed'");
+        expect(world).toContain("? 'target_support'");
+        expect(world).toContain("? 'heart_support'");
+        expect(world).toContain("'ambient_network'");
+        expect(world).toContain(".setData?.('villageMemoryHierarchyState', routeHierarchyState)");
         expect(world).toContain("setData('villageNextActionHitZone', true)");
         expect(world).toContain("setData('touchTargetHeight', 52)");
         expect(world).toContain('landmark.nextActionTween?.pause?.();');

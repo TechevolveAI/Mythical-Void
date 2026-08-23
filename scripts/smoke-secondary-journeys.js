@@ -10322,6 +10322,19 @@ async function smokeVillageUi(session, exceptions) {
                 orbitNodes: landmark?.heartLife?.orbit?.getData?.('villageHeartOrbitNodeCount'),
                 leaves: landmark?.heartLife?.crown?.getData?.('villageHeartLeafCount'),
                 memoryLights: landmark?.heartLife?.crown?.getData?.('villageHeartMemoryLightCount'),
+                silhouette: landmark?.heartLife?.aura?.getData?.(
+                    'villageHeartSilhouetteProfile'
+                ),
+                memoryLanguage: landmark?.heartLife?.memoryWeave?.getData?.(
+                    'villageHeartMemoryLanguage'
+                ),
+                careMarks: landmark?.heartLife?.memoryWeave?.getData?.(
+                    'villageHeartCareMarks'
+                ),
+                readinessMarks: landmark?.heartLife?.memoryWeave?.getData?.(
+                    'villageHeartReadinessMarks'
+                ),
+                memoryWeaveAlpha: landmark?.heartLife?.memoryWeave?.alpha,
                 tweenCount: landmark?.heartLifeTweens?.length || 0
             },
             foundationMaterials: (landmark?.plotPresentations || []).map(
@@ -10370,6 +10383,11 @@ async function smokeVillageUi(session, exceptions) {
         firstArrivalWorld.heartLife.orbitNodes !== 1 ||
         firstArrivalWorld.heartLife.leaves !== 2 ||
         firstArrivalWorld.heartLife.memoryLights !== 0 ||
+        firstArrivalWorld.heartLife.silhouette !== 'shared_memory_silhouette_v1' ||
+        firstArrivalWorld.heartLife.memoryLanguage !== 'shared_vow_weave_v1' ||
+        firstArrivalWorld.heartLife.careMarks !== 0 ||
+        firstArrivalWorld.heartLife.readinessMarks !== 0 ||
+        firstArrivalWorld.heartLife.memoryWeaveAlpha !== 0 ||
         firstArrivalWorld.heartLife.tweenCount !== 3 ||
         firstArrivalWorld.foundationMaterials.length !== 5 ||
         firstArrivalWorld.ambientPlots.filter(
@@ -13047,6 +13065,16 @@ async function smokeVillageUi(session, exceptions) {
                     presentationMode: landmark.commonsLife.getData('villagePresentationMode')
                 } : null,
                 currentPathsActive: landmark?.currentPaths?.active === true,
+                routeHierarchy: landmark?.currentPaths?.getData?.(
+                    'villageRouteHierarchy'
+                ),
+                routeHierarchyState: landmark?.currentPaths?.getData?.(
+                    'villageRouteHierarchyState'
+                ),
+                routeHierarchyAlpha: landmark?.currentPaths?.alpha,
+                routeHierarchyTargetAlpha: landmark?.currentPaths?.getData?.(
+                    'villageRouteHierarchyAlpha'
+                ),
                 pathResourceLanguage: landmark?.currentPaths?.getData?.(
                     'villagePathResourceLanguage'
                 ),
@@ -13068,6 +13096,21 @@ async function smokeVillageUi(session, exceptions) {
                     orbitNodes: landmark?.heartLife?.orbit?.getData?.('villageHeartOrbitNodeCount'),
                     leaves: landmark?.heartLife?.crown?.getData?.('villageHeartLeafCount'),
                     memoryLights: landmark?.heartLife?.crown?.getData?.('villageHeartMemoryLightCount'),
+                    silhouette: landmark?.heartLife?.aura?.getData?.(
+                        'villageHeartSilhouetteProfile'
+                    ),
+                    memoryLanguage: landmark?.heartLife?.memoryWeave?.getData?.(
+                        'villageHeartMemoryLanguage'
+                    ),
+                    careMarks: landmark?.heartLife?.memoryWeave?.getData?.(
+                        'villageHeartCareMarks'
+                    ),
+                    readinessMarks: landmark?.heartLife?.memoryWeave?.getData?.(
+                        'villageHeartReadinessMarks'
+                    ),
+                    balancedWeave: landmark?.heartLife?.memoryWeave?.getData?.(
+                        'villageHeartBalancedWeave'
+                    ),
                     resourceContributionCount: landmark?.heartLife?.aura?.getData?.(
                         'villageHeartResourceContributionCount'
                     ),
@@ -13319,6 +13362,10 @@ async function smokeVillageUi(session, exceptions) {
         layout.worldPresentation.commonsLife?.routine !== 'heart_check_in' ||
         layout.worldPresentation.commonsLife?.presentationMode !== 'story' ||
         !layout.worldPresentation.currentPathsActive ||
+        layout.worldPresentation.routeHierarchy !== 'quiet_network_v1' ||
+        layout.worldPresentation.routeHierarchyState !== 'story_recessed' ||
+        layout.worldPresentation.routeHierarchyTargetAlpha !== 0.2 ||
+        layout.worldPresentation.routeHierarchyAlpha > 0.72 ||
         layout.worldPresentation.pathResourceLanguage !== 'resource_return_marks_v1' ||
         layout.worldPresentation.pathResourceRoutes
             .map(route => route.resource)
@@ -13333,6 +13380,11 @@ async function smokeVillageUi(session, exceptions) {
         layout.worldPresentation.heartLife.orbitNodes !== 3 ||
         layout.worldPresentation.heartLife.leaves !== 4 ||
         layout.worldPresentation.heartLife.memoryLights !== 0 ||
+        layout.worldPresentation.heartLife.silhouette !== 'shared_memory_silhouette_v1' ||
+        layout.worldPresentation.heartLife.memoryLanguage !== 'shared_vow_weave_v1' ||
+        layout.worldPresentation.heartLife.careMarks !== 0 ||
+        layout.worldPresentation.heartLife.readinessMarks !== 0 ||
+        layout.worldPresentation.heartLife.balancedWeave !== false ||
         layout.worldPresentation.heartLife.resourceContributionCount !== 3 ||
         JSON.stringify(
             [...layout.worldPresentation.heartLife.resourceContributions].sort()
@@ -14209,6 +14261,14 @@ async function smokeVillageUi(session, exceptions) {
             resonanceBackdrop: landmark?.activeDecisionMoment?.list?.some(
                 child => child?.getData?.('villageResonanceBackdrop') === true
             ) === true,
+            routeHierarchy: landmark?.currentPaths?.getData?.('villageRouteHierarchy'),
+            routeHierarchyState: landmark?.currentPaths?.getData?.(
+                'villageRouteHierarchyState'
+            ),
+            routeHierarchyAlpha: landmark?.currentPaths?.alpha,
+            routeHierarchyTargetAlpha: landmark?.currentPaths?.getData?.(
+                'villageRouteHierarchyAlpha'
+            ),
             actionGuidance: {
                 labelAlpha: landmark?.nextActionElement?.alpha,
                 labelInput: landmark?.nextActionElement?.input?.enabled === true,
@@ -14234,6 +14294,10 @@ async function smokeVillageUi(session, exceptions) {
         ) ||
         decisionWorld.groundResponseDepth !== -15 ||
         !decisionWorld.resonanceBackdrop ||
+        decisionWorld.routeHierarchy !== 'quiet_network_v1' ||
+        decisionWorld.routeHierarchyState !== 'story_recessed' ||
+        decisionWorld.routeHierarchyTargetAlpha !== 0.2 ||
+        decisionWorld.routeHierarchyAlpha > 0.72 ||
         decisionWorld.actionGuidance.labelAlpha !== 0 ||
         decisionWorld.actionGuidance.labelInput ||
         decisionWorld.actionGuidance.placardAlpha !== 0 ||
@@ -14969,6 +15033,30 @@ async function smokeVillageUi(session, exceptions) {
             markerInteractive: markers.every(marker => marker.input?.enabled === true),
             markerVerbs: markers.map(marker => marker.getData('interactionVerb')),
             markerTouchTargets: markers.map(marker => marker.getData('touchTargetDiameter')),
+            markerHierarchyRoles: markers.map(
+                marker => marker.getData('villageMemoryHierarchyRole')
+            ),
+            markerVisualLanguages: markers.map(
+                marker => marker.getData('villageMemoryVisualLanguage')
+            ),
+            weave: {
+                language: landmark?.heartLife?.memoryWeave?.getData?.(
+                    'villageHeartMemoryLanguage'
+                ),
+                careMarks: landmark?.heartLife?.memoryWeave?.getData?.(
+                    'villageHeartCareMarks'
+                ),
+                readinessMarks: landmark?.heartLife?.memoryWeave?.getData?.(
+                    'villageHeartReadinessMarks'
+                ),
+                balanced: landmark?.heartLife?.memoryWeave?.getData?.(
+                    'villageHeartBalancedWeave'
+                ),
+                rememberedChoices: landmark?.heartLife?.memoryWeave?.getData?.(
+                    'villageHeartRememberedChoiceCount'
+                ),
+                alpha: landmark?.heartLife?.memoryWeave?.alpha
+            },
             statusLabel: landmark?.statusLabel?.text || ''
         };
     })()`);
@@ -14983,7 +15071,15 @@ async function smokeVillageUi(session, exceptions) {
         !heartMemory.markerActive ||
         !heartMemory.markerInteractive ||
         heartMemory.markerVerbs.some(verb => verb !== 'REMEMBER') ||
-        heartMemory.markerTouchTargets.some(diameter => diameter < 44)
+        heartMemory.markerTouchTargets.some(diameter => diameter < 44) ||
+        heartMemory.markerHierarchyRoles.some(role => role !== 'interactive_memory') ||
+        heartMemory.markerVisualLanguages.some(language => language !== 'shared_vow_weave_v1') ||
+        heartMemory.weave.language !== 'shared_vow_weave_v1' ||
+        heartMemory.weave.careMarks !== 1 ||
+        heartMemory.weave.readinessMarks !== 0 ||
+        heartMemory.weave.balanced !== false ||
+        heartMemory.weave.rememberedChoices !== 1 ||
+        heartMemory.weave.alpha <= 0
     ) {
         throw new Error(`Village Heart persistent memory failed: ${JSON.stringify(heartMemory)}`);
     }
@@ -15098,6 +15194,11 @@ async function smokeVillageUi(session, exceptions) {
                 motions: terrain?.getData?.('villageInhabitedDistrictMotions') || [],
                 changes: terrain?.getData?.('villageInhabitedWorldChanges') || []
             },
+            routeHierarchy: landmark?.currentPaths?.getData?.('villageRouteHierarchy'),
+            routeHierarchyState: landmark?.currentPaths?.getData?.(
+                'villageRouteHierarchyState'
+            ),
+            routeHierarchyAlpha: landmark?.currentPaths?.alpha,
             districts: (landmark?.plotPresentations || []).map(presentation => {
                 const district = presentation.inhabitedDistrict;
                 return {
@@ -15161,6 +15262,11 @@ async function smokeVillageUi(session, exceptions) {
         completeWorldIdentities?.presentationMode !== 'ambient' ||
         completeWorldIdentities.growthTier !== 4 ||
         completeWorldIdentities.restored !== 5 ||
+        completeWorldIdentities.routeHierarchy !== 'quiet_network_v1' ||
+        completeWorldIdentities.routeHierarchyState !== 'target_support' ||
+        completeWorldIdentities.routeHierarchyAlpha !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 0.34 : 0.38
+        ) ||
         completeWorldIdentities.districts.length !== 5 ||
         [...completeWorldIdentities.terrain.ids].sort().join(',') !==
             expectedDistrictIds.join(',') ||

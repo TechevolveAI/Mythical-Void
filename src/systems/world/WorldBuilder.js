@@ -974,6 +974,9 @@ class WorldBuilder {
         const heartLifeCrown = this.scene.add.graphics()
             .setPosition(x, y - 22)
             .setDepth(y + 3.1);
+        const heartMemoryWeave = this.scene.add.graphics()
+            .setPosition(x, y - 22)
+            .setDepth(y + 3.16);
         const heartLifeCore = this.scene.add.circle(
             x,
             y - 22,
@@ -1037,6 +1040,7 @@ class WorldBuilder {
                 aura: heartLifeAura,
                 orbit: heartLifeOrbit,
                 crown: heartLifeCrown,
+                memoryWeave: heartMemoryWeave,
                 core: heartLifeCore,
                 foodImprint: heartFoodImprint,
                 woodImprint: heartWoodImprint,
@@ -2037,9 +2041,15 @@ class WorldBuilder {
             }
         });
         currentPaths
+            .setAlpha(restoredCount >= 4
+                ? compactSettlement ? 0.66 : 0.72
+                : compactSettlement ? 0.76 : 0.82
+            )
             .setData('villagePathMaterial', 'grounded_current_paths_v3')
             .setData('connectedPlotCount', connectedPlotCount)
             .setData('villagePathResourceLanguage', 'resource_return_marks_v1')
+            .setData('villageRouteHierarchy', 'quiet_network_v1')
+            .setData('villageRouteHierarchyState', 'ambient_network')
             .setData('villagePathResourceRouteCount', pathResourceRoutes.length)
             .setData('villagePathResourceRoutes', pathResourceRoutes)
             .setData('routeFoundationWidth', compactSettlement ? 22 : 28)
@@ -2955,6 +2965,7 @@ class WorldBuilder {
         life.aura.clear();
         life.orbit.clear();
         life.crown.clear();
+        life.memoryWeave.clear();
         life.deliveryPulse.clear();
         life.aura.lineStyle(compact ? 7 : 9, 0x071411, unlocked ? 0.48 : 0.3);
         life.aura.beginPath();
@@ -3017,6 +3028,70 @@ class WorldBuilder {
             });
         }
 
+        const careMarks = Math.min(3, care);
+        const readinessMarks = Math.min(3, readiness);
+        const weaveBaseY = compact ? 18 : 25;
+        const weaveSpan = compact ? 34 : 47;
+        Array.from({ length: careMarks }, (_, index) => {
+            const progress = (index + 1) / 4;
+            const x = -(10 + (weaveSpan * progress));
+            const y = weaveBaseY - (progress * (compact ? 42 : 58));
+            life.memoryWeave.lineStyle(2, 0x71E6B1, 0.58 + (index * 0.1));
+            life.memoryWeave.beginPath();
+            life.memoryWeave.moveTo(-4, weaveBaseY);
+            life.memoryWeave.lineTo(x * 0.58, y + 10);
+            life.memoryWeave.lineTo(x, y);
+            life.memoryWeave.strokePath();
+            life.memoryWeave.fillStyle(0x71E6B1, 0.88);
+            life.memoryWeave.fillEllipse(x - 3, y - 2, compact ? 9 : 12, compact ? 4 : 6);
+            life.memoryWeave.fillStyle(0xF4F4F4, 0.84);
+            life.memoryWeave.fillCircle(x, y, compact ? 1.5 : 2);
+        });
+        Array.from({ length: readinessMarks }, (_, index) => {
+            const progress = (index + 1) / 4;
+            const x = 10 + (weaveSpan * progress);
+            const y = weaveBaseY - (progress * (compact ? 42 : 58));
+            life.memoryWeave.lineStyle(2, 0xF2C14E, 0.58 + (index * 0.1));
+            life.memoryWeave.beginPath();
+            life.memoryWeave.moveTo(4, weaveBaseY);
+            life.memoryWeave.lineTo(x * 0.58, y + 10);
+            life.memoryWeave.lineTo(x, y);
+            life.memoryWeave.strokePath();
+            life.memoryWeave.fillStyle(0x071411, 0.9);
+            life.memoryWeave.fillTriangle(
+                x,
+                y - (compact ? 5 : 7),
+                x - (compact ? 5 : 7),
+                y + (compact ? 4 : 6),
+                x + (compact ? 5 : 7),
+                y + (compact ? 4 : 6)
+            );
+            life.memoryWeave.lineStyle(1.5, 0xF2C14E, 0.92);
+            life.memoryWeave.strokeTriangle(
+                x,
+                y - (compact ? 5 : 7),
+                x - (compact ? 5 : 7),
+                y + (compact ? 4 : 6),
+                x + (compact ? 5 : 7),
+                y + (compact ? 4 : 6)
+            );
+            life.memoryWeave.fillStyle(0xF4F4F4, 0.88);
+            life.memoryWeave.fillCircle(x, y + 1, compact ? 1.4 : 1.8);
+        });
+        const balancedWeave = care > 0 && readiness > 0 && care === readiness;
+        if (balancedWeave) {
+            const bridgeY = compact ? -30 : -42;
+            life.memoryWeave.lineStyle(2, 0xF4F4F4, 0.72);
+            life.memoryWeave.beginPath();
+            life.memoryWeave.arc(0, bridgeY, compact ? 24 : 32, Math.PI * 1.12, Math.PI * 1.88);
+            life.memoryWeave.strokePath();
+            life.memoryWeave.fillStyle(0x8FE3CF, 0.94);
+            life.memoryWeave.fillCircle(0, bridgeY - (compact ? 8 : 10), compact ? 2.2 : 3);
+        }
+        life.memoryWeave
+            .setAlpha(unlocked && choices > 0 ? 1 : 0)
+            .setBlendMode?.(Phaser.BlendModes.ADD);
+
         life.deliveryPulse.lineStyle(3, stageColor, 0.92);
         life.deliveryPulse.strokeCircle(0, 8, compact ? 34 : 46);
         life.deliveryPulse.lineStyle(1, 0xF4F4F4, 0.78);
@@ -3027,7 +3102,7 @@ class WorldBuilder {
             { compact }
         );
         life.core
-            .setRadius(compact ? 3.5 : 4.5)
+            .setRadius((compact ? 3.5 : 4.5) + (tier * (compact ? 0.45 : 0.6)))
             .setFillStyle(stageColor, unlocked ? 0.92 : 0.24)
             .setStrokeStyle(1, 0xF4F4F4, unlocked ? 0.72 : 0.18)
             .setAlpha(unlocked ? 0.9 : 0.3);
@@ -3042,18 +3117,35 @@ class WorldBuilder {
         });
         life.aura
             .setData('villageHeartAuraRadius', radius)
+            .setData('villageHeartSilhouetteProfile', 'shared_memory_silhouette_v1')
             .setData('villageHeartResourceContributionCount', resourceContributionCount)
             .setData(
                 'villageHeartResourceContributions',
                 resourceContributions.map(contribution => contribution.resource)
             )
-            .setData('ariaLabel', `${stageLabel}; the Village Heart is breathing`);
+            .setData(
+                'ariaLabel',
+                `${stageLabel}; the Village Heart is breathing. ` +
+                    `${care} care and ${readiness} readiness choices are remembered.`
+            );
         life.orbit
             .setData('villageHeartOrbitNodeCount', orbitNodeCount)
             .setData('villageHeartRestoredRoots', restoredCount);
         life.crown
             .setData('villageHeartLeafCount', leafCount)
             .setData('villageHeartMemoryLightCount', Math.min(5, choices));
+        life.memoryWeave
+            .setData('villageHeartMemoryWeave', true)
+            .setData('villageHeartMemoryLanguage', 'shared_vow_weave_v1')
+            .setData('villageHeartCareMarks', careMarks)
+            .setData('villageHeartReadinessMarks', readinessMarks)
+            .setData('villageHeartBalancedWeave', balancedWeave)
+            .setData('villageHeartRememberedChoiceCount', Math.min(6, care + readiness))
+            .setData(
+                'ariaLabel',
+                `${careMarks} care marks and ${readinessMarks} readiness marks ` +
+                    `are woven into the Village Heart.`
+            );
         life.deliveryPulse
             .setData('villageHeartDeliveryResponse', true)
             .setData('villageHeartDeliveryActive', false)
@@ -3621,11 +3713,15 @@ class WorldBuilder {
         Object.entries(landmark.heartLife || {}).forEach(([key, element]) => {
             if (!element || key === 'deliveryPulse') return;
             const lifeBaseAlpha = landmark.snapshot?.unlock?.unlocked === true ? 1 : 0.38;
-            const lifeAlpha = lifeBaseAlpha * (storyMode
-                ? heartIsPrimary ? 0.54 : 0.24
-                : active && focusPlotId
-                    ? 0.58
-                    : 1);
+            const memoryWeaveEmpty = key === 'memoryWeave' &&
+                Number(element.getData?.('villageHeartRememberedChoiceCount')) === 0;
+            const lifeAlpha = memoryWeaveEmpty
+                ? 0
+                : lifeBaseAlpha * (storyMode
+                    ? heartIsPrimary ? 0.54 : 0.24
+                    : active && focusPlotId
+                        ? 0.58
+                        : 1);
             element
                 .setData('villagePresentationMode', landmark.presentationMode)
                 .setData('villageFocusAlpha', lifeAlpha);
@@ -3670,6 +3766,39 @@ class WorldBuilder {
             landmark.nextActionPreviewTween?.resume?.();
         }
         landmark.guidanceRoute?.setAlpha(storyMode ? 0 : active ? 1 : 0.72);
+        const compactRoutes = this.scene.scale.width <= 600;
+        const routeHierarchyState = storyMode
+            ? 'story_recessed'
+            : focusPlotId
+                ? 'target_support'
+                : active
+                    ? 'heart_support'
+                    : 'ambient_network';
+        const routeHierarchyAlpha = {
+            story_recessed: 0.2,
+            target_support: compactRoutes ? 0.34 : 0.38,
+            heart_support: compactRoutes ? 0.46 : 0.52,
+            ambient_network: compactRoutes ? 0.66 : 0.72
+        }[routeHierarchyState];
+        landmark.currentPaths
+            ?.setData('villageRouteHierarchy', 'quiet_network_v1')
+            .setData('villageRouteHierarchyState', routeHierarchyState)
+            .setData('villageRouteHierarchyAlpha', routeHierarchyAlpha);
+        transition(landmark.currentPaths, routeHierarchyAlpha);
+        landmark.heartMemoryElements?.forEach(element => {
+            const memoryMarker = Boolean(element?.getData?.('villageHeartMemory'));
+            const memoryAlpha = storyMode
+                ? memoryMarker ? 0.3 : 0.1
+                : focusPlotId
+                    ? memoryMarker ? 0.24 : 0.08
+                    : active
+                        ? memoryMarker ? 1 : 0.42
+                        : memoryMarker ? 0.62 : 0.18;
+            element
+                ?.setData?.('villageMemoryHierarchyState', routeHierarchyState)
+                ?.setData?.('villageMemoryHierarchyAlpha', memoryAlpha);
+            transition(element, memoryAlpha);
+        });
         landmark.villageFlowSignals?.forEach(signal => {
             signal?.setData(
                 'villageFocusAlphaMultiplier',
@@ -4964,7 +5093,10 @@ class WorldBuilder {
             : [{ x: -86, y: 30 }, { x: 0, y: 78 }, { x: 86, y: 30 }];
         const traces = this.scene.add.graphics()
             .setDepth(landmark.zone.y - 1)
-            .setData('villageHeartMemoryCount', choices.length);
+            .setData('villageHeartMemoryCount', choices.length)
+            .setData('villageHeartMemoryTrace', true)
+            .setData('villageMemoryHierarchyRole', 'supporting_trace')
+            .setData('villageMemoryVisualLanguage', 'shared_vow_weave_v1');
 
         choices.forEach((choice, index) => {
             const color = choice.option.value === 'care' ? 0x71E6B1 : 0xF2C14E;
@@ -4992,7 +5124,9 @@ class WorldBuilder {
                 .setData('optionId', choice.optionId)
                 .setData('value', choice.option.value)
                 .setData('speakerName', choice.speakerName)
-                .setData('followUpLine', choice.followUpLine);
+                .setData('followUpLine', choice.followUpLine)
+                .setData('villageMemoryHierarchyRole', 'interactive_memory')
+                .setData('villageMemoryVisualLanguage', 'shared_vow_weave_v1');
             marker.fillStyle(0x071411, 0.92);
             marker.fillCircle(0, 0, compact ? 12 : 14);
             marker.lineStyle(2, color, 0.92);

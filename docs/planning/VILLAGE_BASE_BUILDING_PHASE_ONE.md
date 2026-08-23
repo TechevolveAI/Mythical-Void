@@ -288,6 +288,24 @@ actual residents, while an unstaffed production building remains visibly
 `awaiting_helper`. The shared `living_work_cycle_v1` contract is exposed for
 accessibility and exhaustive hosted mobile verification.
 
+### Heart Memory Silhouette
+
+The Village Heart is the settlement's shared record, not another status icon.
+Its silhouette carries growth tier, restored roots, resource contributors, and
+player values in distinct visual layers. Under `shared_vow_weave_v1`, care choices
+grow as living branches on the left, readiness choices settle as protective facets
+on the right, and equal values join across the core. The weave is absent before a
+choice is made, so the early Heart remains visually quiet and later change is
+earned rather than decorative.
+
+Interactive decision memories remain around the Heart but recede into the ambient
+scene until the Heart is the player's focus. Their traces are supporting evidence,
+not permanent navigation lines. Settlement Current paths use the shared
+`quiet_network_v1` hierarchy: recessed during story moments, low-contrast while a
+district is targeted, supportive when the Heart is approached, and only broadly
+visible while the player is reading the whole Sanctuary. A single guidance route
+continues to own directional instruction.
+
 ## 7. Gameplay Impact Contract
 
 Every completed building changes another established game loop:
