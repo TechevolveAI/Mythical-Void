@@ -10807,6 +10807,30 @@ async function smokeVillageUi(session, exceptions) {
         })()`),
         { timeoutMs: 4000, message: 'Village Heart visual focus hierarchy settled' }
     );
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const heart = scene?.villageHeartLandmark?.zone;
+            const player = scene?.player;
+            if (!scene || !heart || !player) return false;
+            const approachX = heart.x;
+            const approachY = heart.y - 110;
+            if (
+                Math.abs(player.x - approachX) > 1 ||
+                Math.abs(player.y - approachY) > 1
+            ) {
+                scene.physics.pause();
+                player.setPosition(approachX, approachY);
+                player.body?.reset?.(approachX, approachY);
+                player.body?.setVelocity?.(0, 0);
+            }
+            scene.updateSanctuaryActorDepths();
+            return Math.abs(player.x - approachX) <= 1 &&
+                Math.abs(player.y - approachY) <= 1 &&
+                player.getData?.('villageHeartLayer') === 'behind';
+        })()`),
+        { timeoutMs: 4000, message: 'Village Heart south approach actor placement' }
+    );
     const integratedWorld = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const camera = scene.cameras.main;
@@ -12564,8 +12588,9 @@ async function smokeVillageUi(session, exceptions) {
         })()`),
         { timeoutMs: 12000, message: 'Village Heart interactive world district' }
     );
-    await waitFor(
-        () => evaluate(session, `(() => {
+    try {
+        await waitFor(
+            () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('GameScene');
             const camera = scene?.cameras?.main;
             const landmark = scene?.villageHeartLandmark;
@@ -12591,9 +12616,56 @@ async function smokeVillageUi(session, exceptions) {
                 return left >= -1 && right <= innerWidth + 1 &&
                     top >= -1 && bottom <= innerHeight + 1;
             });
-        })()`),
-        { timeoutMs: 12000, message: 'Village Heart focused viewport layout' }
-    );
+            })()`),
+            { timeoutMs: 12000, message: 'Village Heart focused viewport layout' }
+        );
+    } catch (error) {
+        const focusDiagnostics = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const camera = scene?.cameras?.main;
+            const landmark = scene?.villageHeartLandmark;
+            const screenBounds = zone => {
+                const bounds = zone?.getBounds?.();
+                if (!bounds || !camera) return null;
+                return {
+                    left: (bounds.left - camera.worldView.x) * camera.zoom + camera.x,
+                    right: (bounds.right - camera.worldView.x) * camera.zoom + camera.x,
+                    top: (bounds.top - camera.worldView.y) * camera.zoom + camera.y,
+                    bottom: (bounds.bottom - camera.worldView.y) * camera.zoom + camera.y
+                };
+            };
+            return {
+                innerSize: { width: innerWidth, height: innerHeight },
+                scaleSize: {
+                    width: scene?.scale?.width,
+                    height: scene?.scale?.height
+                },
+                focusActive: scene?.sanctuaryFocusModeActive,
+                camera: camera ? {
+                    x: camera.x,
+                    y: camera.y,
+                    width: camera.width,
+                    height: camera.height,
+                    zoom: camera.zoom,
+                    worldView: {
+                        x: camera.worldView.x,
+                        y: camera.worldView.y,
+                        width: camera.worldView.width,
+                        height: camera.worldView.height
+                    }
+                } : null,
+                layoutProfiles: (landmark?.plotPresentations || []).map(
+                    presentation => presentation.layoutProfile
+                ),
+                plotBounds: (landmark?.plotHitZones || []).map(screenBounds),
+                previewSyncActive: typeof scene?.villagePreviewCameraSync === 'function'
+            };
+        })()`);
+        throw new Error(`${error.message}: ${JSON.stringify({
+            focusDiagnostics,
+            exceptions
+        })}`);
+    }
 
     const layout = await evaluate(session, `(() => {
         const modal = document.querySelector('.village-command-modal');

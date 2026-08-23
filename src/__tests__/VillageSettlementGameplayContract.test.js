@@ -30,6 +30,11 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('targets: this.contentContainer');
         expect(source).toContain("this.scene.events.on('update', this.syncCameraZoom, this);");
         expect(source).toContain("this.scene?.events?.off?.('update', this.syncCameraZoom, this);");
+        expect(source).toContain("this.scene?.events?.once?.('shutdown', this.destroy, this);");
+        expect(source).toContain('if (this.destroyed || !this.isSceneOperational())');
+        expect(source).toContain('this.autoDismissTimer.destroy();');
+        expect(source).toContain('this.queue.length = 0;');
+        expect(source).toContain("this.scene?.events?.off?.('shutdown', this.destroy, this);");
         expect(source).toContain('.setScale(1)');
         expect(source).toContain('syncCameraZoom()');
         expect(sceneSource.match(/this\.achievementNotification\?\.syncCameraZoom\?\.\(\);/g)).toHaveLength(6);

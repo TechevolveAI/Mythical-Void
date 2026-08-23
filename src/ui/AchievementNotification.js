@@ -18,6 +18,8 @@ class AchievementNotification {
         this.queue = [];
         this.currentNotification = null;
         this.autoDismissTimer = null;
+        this.destroyed = false;
+        this.scene?.events?.once?.('shutdown', this.destroy, this);
 
         // Styling
         this.colors = {
@@ -39,6 +41,8 @@ class AchievementNotification {
      * @param {object} achievement - Achievement unlock data
      */
     show(achievement) {
+        if (this.destroyed || !this.isSceneOperational()) return;
+
         // Add to queue if already showing
         if (this.isVisible) {
             this.queue.push(achievement);
@@ -271,6 +275,11 @@ class AchievementNotification {
             this.autoDismissTimer = null;
         }
 
+        if (this.destroyed || !this.isSceneOperational()) {
+            this.destroy();
+            return;
+        }
+
         // Claim the reward
         if (window.AchievementSystem) {
             window.AchievementSystem.claimReward(achievement.id, achievement.tier);
@@ -289,7 +298,7 @@ class AchievementNotification {
             duration: 200,
             ease: 'Power2',
             onComplete: () => {
-                this.destroy();
+                this.clearNotification();
                 this.showNext();
             }
         });
@@ -414,21 +423,46 @@ class AchievementNotification {
      * Show next queued notification
      */
     showNext() {
+        if (this.destroyed || !this.isSceneOperational()) return;
         this.isVisible = false;
         this.currentNotification = null;
 
         if (this.queue.length > 0) {
             const next = this.queue.shift();
             this.scene.time.delayedCall(300, () => {
-                this.show(next);
+                if (!this.destroyed && this.isSceneOperational()) {
+                    this.show(next);
+                }
             });
         }
+    }
+
+    isSceneOperational() {
+        return Boolean(
+            this.scene &&
+            this.scene.sys?.isActive?.() !== false &&
+            this.scene.tweens?.add
+        );
     }
 
     /**
      * Clean up notification
      */
     destroy() {
+        if (this.destroyed) return;
+        this.destroyed = true;
+        if (this.autoDismissTimer) {
+            this.autoDismissTimer.destroy();
+            this.autoDismissTimer = null;
+        }
+        this.queue.length = 0;
+        this.isVisible = false;
+        this.currentNotification = null;
+        this.scene?.events?.off?.('shutdown', this.destroy, this);
+        this.clearNotification();
+    }
+
+    clearNotification() {
         this.scene?.events?.off?.('update', this.syncCameraZoom, this);
         if (this.container) {
             this.container.destroy(true);
