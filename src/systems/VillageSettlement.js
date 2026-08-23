@@ -1254,6 +1254,11 @@ export function getVillageResidentRoutinePlan(snapshot = {}) {
                 activity: profile.tier >= 3
                     ? 'SHARES THE DAY AT THE HEART'
                     : 'CHECKS IN AT THE HEART',
+                greeting: profile.tier >= 4
+                    ? 'The paths feel less lonely now. Someone is always coming home.'
+                    : profile.tier >= 3
+                        ? 'I took the long way to the Heart. It helps me notice what changed.'
+                        : 'I am checking the Heart before I rest. It remembers who came home.',
                 index
             };
         }

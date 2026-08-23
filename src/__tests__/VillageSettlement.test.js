@@ -625,7 +625,8 @@ describe('Village settlement phase one', () => {
             expect.objectContaining({
                 residentId: 'nova',
                 location: 'commons',
-                route: 'home_to_commons'
+                route: 'home_to_commons',
+                greeting: 'I took the long way to the Heart. It helps me notice what changed.'
             }),
             expect.objectContaining({
                 residentId: 'ember',

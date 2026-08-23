@@ -136,6 +136,17 @@ one authored Current route between their home threshold and a commons seat. One
 resident remains home when several are available, preserving a readable daily
 rhythm instead of making the Habitat look abandoned as the settlement grows.
 
+Travelling residents are reciprocal world characters rather than ambient
+decoration. When the player comes within greeting range, the shared Sanctuary
+command channel targets that resident with one `GREET` action. Activating it does
+not open the Village planner or stop exploration. The resident answers through a
+temporary Living Current ribbon attached to their moving world figure, using an
+authored line that changes with settlement growth. The ribbon retains readable
+phone typography, remains inside the viewport, clears before story focus, and
+records a community bond interaction. This is the phase-one social contract for
+later resident quests and relationship memories without introducing a separate
+dialogue system prematurely.
+
 Completed structures also carry a purpose sigil in their living-root threshold.
 The five authored symbols represent renewing food, recovered repair value,
 Current protection, shared homes, and shared energy. They remain quiet in the

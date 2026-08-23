@@ -14260,6 +14260,84 @@ async function smokeVillageUi(session, exceptions) {
             ? 'village-resident-journey-mobile.png'
             : 'village-resident-journey-desktop.png'
     );
+    const residentGreetingStarted = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const journey = (landmark?.residentRoutineElements || []).find(
+            element => element?.getData?.('villageResidentJourney') === true
+        );
+        if (!journey || !scene?.player) return false;
+        scene.player.setPosition(journey.x, journey.y + 18);
+        scene.player.body?.reset?.(journey.x, journey.y + 18);
+        scene.updateVillagePlotProximity();
+        scene.updateVillageResidentJourneyProximity();
+        scene.sanctuaryInteractionDirector?.update?.({ force: true });
+        return scene.sanctuaryInteractionDirector?.activate?.() === true;
+    })()`);
+    if (!residentGreetingStarted) {
+        throw new Error('Village resident greeting could not be activated from the world route');
+    }
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.activeResidentGreeting?.alpha > 0.9
+        )`),
+        { message: 'Village resident attached greeting' }
+    );
+    const residentGreeting = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const greeting = landmark?.activeResidentGreeting;
+        const journey = greeting?.parentContainer;
+        const camera = scene?.cameras?.main;
+        const bounds = greeting?.getBounds?.();
+        const screenBounds = bounds && camera ? {
+            left: (bounds.left - camera.worldView.x) * camera.zoom + camera.x,
+            right: (bounds.right - camera.worldView.x) * camera.zoom + camera.x,
+            top: (bounds.top - camera.worldView.y) * camera.zoom + camera.y,
+            bottom: (bounds.bottom - camera.worldView.y) * camera.zoom + camera.y
+        } : null;
+        return {
+            residentName: greeting?.getData?.('residentName'),
+            line: greeting?.getData?.('line'),
+            presentation: greeting?.getData?.('presentation'),
+            readableWidth: greeting?.getData?.('readableWidth'),
+            bodyFontSize: greeting?.getData?.('bodyFontSize'),
+            ariaLabel: greeting?.getData?.('ariaLabel'),
+            attachedToJourney: journey?.getData?.('villageResidentJourney') === true,
+            greetingActive: journey?.getData?.('greetingActive') === true,
+            interactionCleared: scene?.villageResidentJourneyInteractionId === null,
+            cooldownActive: scene?.villageResidentGreetingCooldownUntil > (scene?.time?.now || 0),
+            modalOpen: Boolean(document.querySelector('.village-command-modal')),
+            screenBounds
+        };
+    })()`);
+    if (
+        !residentGreeting.residentName ||
+        !residentGreeting.line ||
+        residentGreeting.presentation !== 'resident_attached_current_ribbon_v1' ||
+        residentGreeting.readableWidth < 280 ||
+        residentGreeting.bodyFontSize < 14 ||
+        !residentGreeting.ariaLabel.includes(residentGreeting.residentName) ||
+        !residentGreeting.attachedToJourney ||
+        !residentGreeting.greetingActive ||
+        !residentGreeting.interactionCleared ||
+        !residentGreeting.cooldownActive ||
+        residentGreeting.modalOpen ||
+        !residentGreeting.screenBounds ||
+        residentGreeting.screenBounds.left < -1 ||
+        residentGreeting.screenBounds.right > SMOKE_VIEWPORT_WIDTH + 1 ||
+        residentGreeting.screenBounds.top < -1 ||
+        residentGreeting.screenBounds.bottom > SMOKE_VIEWPORT_HEIGHT + 1
+    ) {
+        throw new Error(`Village resident greeting failed: ${JSON.stringify(residentGreeting)}`);
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-resident-greeting-mobile.png'
+            : 'village-resident-greeting-desktop.png'
+    );
     const followUpStarted = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         scene.worldBuilder.clearVillageDecisionMoment(scene.villageHeartLandmark);

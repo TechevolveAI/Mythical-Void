@@ -226,6 +226,8 @@ class GameScene extends Phaser.Scene {
         this.villageReconcileTimer = null;
         this.villageRenderSignature = null;
         this.villagePlotInteractionId = null;
+        this.villageResidentJourneyInteractionId = null;
+        this.villageResidentGreetingCooldownUntil = 0;
         this.fusionPodLandmark = null;
         this.sanctuaryKeepsakes = null;
         this.livingSignals = [];
@@ -768,6 +770,8 @@ class GameScene extends Phaser.Scene {
         }
         this.nearVillageHeart = false;
         this.villageRenderSignature = null;
+        this.villageResidentJourneyInteractionId = null;
+        this.villageResidentGreetingCooldownUntil = 0;
         this.villageCommunityMomentIndex = 0;
         this.lastVillageCommunityMomentAt = 0;
         this.villageHeartMemoryIndex = 0;
@@ -8842,6 +8846,12 @@ class GameScene extends Phaser.Scene {
 
     setSanctuaryMomentFocus(active, { kind = null, plotId = null } = {}) {
         if (!this.villageHeartLandmark || !this.worldBuilder) return false;
+        if (active) {
+            this.clearVillageResidentJourneyInteraction();
+            this.worldBuilder.clearVillageResidentGreeting?.(
+                this.villageHeartLandmark
+            );
+        }
         const nextMode = active ? 'story' : this.nearVillageHeart ? 'action' : 'ambient';
         this.sanctuaryPresentationMode = nextMode;
         this.sanctuaryInteractionDirector?.update({ force: true });
@@ -8916,6 +8926,7 @@ class GameScene extends Phaser.Scene {
             return nextSnapshot;
         }
         this.villageRenderSignature = signature;
+        this.clearVillageResidentJourneyInteraction();
         this.syncVillagePlotInteraction(null, null);
         this.worldBuilder.refreshVillageSettlement(
             this.villageHeartLandmark,
@@ -15101,6 +15112,7 @@ class GameScene extends Phaser.Scene {
         this.checkCollectibleProximity();
         this.checkLivingSignalProximity(delta || this.game?.loop?.delta || 16.67);
         this.updateVillagePlotProximity();
+        this.updateVillageResidentJourneyProximity();
 
         // Check shop proximity distance
         if (this.nearShop && this.shop && this.player) {
@@ -16352,6 +16364,103 @@ class GameScene extends Phaser.Scene {
             this.villagePlotInteractionId = nextInteractionId;
         }
         return result;
+    }
+
+    updateVillageResidentJourneyProximity() {
+        const landmark = this.villageHeartLandmark;
+        const now = this.time?.now || 0;
+        const unavailable = (
+            !landmark ||
+            !this.player ||
+            this.currentBiome !== 'nebula' ||
+            landmark.presentationMode === 'story' ||
+            Boolean(this.villageCommandPanel?.domElement) ||
+            now < this.villageResidentGreetingCooldownUntil
+        );
+        if (unavailable) {
+            this.clearVillageResidentJourneyInteraction();
+            return null;
+        }
+
+        const journeys = (landmark.residentRoutineElements || []).filter(
+            element => (
+                element?.active &&
+                element?.getData?.('villageResidentJourney') === true
+            )
+        );
+        const nearest = journeys
+            .map(journey => ({
+                journey,
+                distance: Phaser.Math.Distance.Between(
+                    this.player.x,
+                    this.player.y,
+                    journey.x,
+                    journey.y
+                )
+            }))
+            .sort((left, right) => left.distance - right.distance)[0] || null;
+        const threshold = this.scale.width <= 600 ? 76 : 88;
+        if (!nearest || nearest.distance > threshold) {
+            this.clearVillageResidentJourneyInteraction();
+            return null;
+        }
+
+        const residentId = nearest.journey.getData('residentId');
+        const interactionId = `villageJourney:${residentId}`;
+        if (
+            this.villageResidentJourneyInteractionId === interactionId &&
+            this.sanctuaryInteractionDirector?.candidates?.has(interactionId)
+        ) {
+            return this.sanctuaryInteractionDirector.candidates.get(interactionId);
+        }
+        this.clearVillageResidentJourneyInteraction();
+        const residentName = nearest.journey.getData('residentName') || 'Resident';
+        const activity = nearest.journey.getData('routine') || 'VISITS THE HEART';
+        const result = this.offerSanctuaryInteraction({
+            id: interactionId,
+            target: nearest.journey,
+            message: `Press SPACE · Greet ${residentName} · ${activity}`,
+            verb: 'GREET',
+            label: residentName.toUpperCase(),
+            ownerLabel: `${residentName.toUpperCase()} · AT HEART`,
+            icon: '···',
+            worldPrompt: true,
+            ariaLabel: `Greet ${residentName}. ${activity}.`,
+            tone: 0x8FE3CF,
+            priority: 52,
+            action: () => this.greetVillageResidentJourney(nearest.journey)
+        });
+        if (this.sanctuaryInteractionDirector?.candidates?.has(interactionId)) {
+            this.villageResidentJourneyInteractionId = interactionId;
+        }
+        return result;
+    }
+
+    clearVillageResidentJourneyInteraction() {
+        if (!this.villageResidentJourneyInteractionId) return false;
+        const interactionId = this.villageResidentJourneyInteractionId;
+        this.villageResidentJourneyInteractionId = null;
+        this.withdrawSanctuaryInteraction(interactionId);
+        return true;
+    }
+
+    greetVillageResidentJourney(journey) {
+        if (!journey?.active || !this.villageHeartLandmark) return false;
+        const played = this.worldBuilder?.playVillageResidentGreeting?.(
+            this.villageHeartLandmark,
+            journey
+        ) === true;
+        if (!played) return false;
+        this.villageResidentGreetingCooldownUntil = (this.time?.now || 0) + 3800;
+        this.clearVillageResidentJourneyInteraction();
+        this.recordBondActivity('community');
+        window.AudioManager?.playButtonClick?.();
+        window.AchievementSystem?.recordEvent?.('story_interaction', {
+            event: 'village_resident_greeting',
+            residentId: journey.getData('residentId'),
+            route: journey.getData('routeType')
+        });
+        return true;
     }
 
     scheduleFusionDiscoveryIntroduction(

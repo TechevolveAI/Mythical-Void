@@ -1692,6 +1692,7 @@ class WorldBuilder {
         this.clearVillageCommunityMoment(landmark);
         this.clearVillageDecisionMoment(landmark);
         this.clearVillageWorkerCheckIn(landmark);
+        this.clearVillageResidentGreeting(landmark);
         this.clearVillageArrivalReveal(landmark);
         landmark.buildingElements?.forEach(element => element?.destroy?.(true));
         landmark.plotHitZones?.forEach(zone => zone?.destroy?.());
@@ -4839,6 +4840,7 @@ class WorldBuilder {
                 .setData('residentId', routine.residentId)
                 .setData('residentName', routine.residentName)
                 .setData('routine', routine.activity)
+                .setData('greeting', routine.greeting)
                 .setData('routeType', routine.route)
                 .setData('routeDirection', 'to_commons')
                 .setData('routinePhase', 'leaving_home')
@@ -4918,6 +4920,104 @@ class WorldBuilder {
             tweens.push(travelTween, breatheTween);
         });
         return { elements, tweens };
+    }
+
+    playVillageResidentGreeting(landmark, journey) {
+        const residentName = journey?.getData?.('residentName');
+        const line = journey?.getData?.('greeting');
+        if (!landmark || !journey?.active || !residentName || !line) return false;
+        this.clearVillageResidentGreeting(landmark);
+
+        const compact = this.scene.scale.width <= 600;
+        const width = compact ? 286 : 320;
+        const height = compact ? 116 : 120;
+        const bubble = this.scene.add.container(0, compact ? -108 : -112)
+            .setAlpha(0)
+            .setData('villageResidentGreeting', true)
+            .setData('residentId', journey.getData('residentId'))
+            .setData('residentName', residentName)
+            .setData('line', line)
+            .setData('presentation', 'resident_attached_current_ribbon_v1')
+            .setData('readableWidth', width)
+            .setData('bodyFontSize', 14)
+            .setData(
+                'ariaLabel',
+                `${residentName} says: ${line}`
+            );
+        const backdrop = this.createVillageResonanceBackdrop({
+            width,
+            height,
+            accent: 0x8FE3CF,
+            kind: 'resident_greeting'
+        });
+        const pointer = this.scene.add.graphics();
+        pointer.fillStyle(0x061513, 0.92);
+        pointer.fillTriangle(-7, height / 2 - 1, 7, height / 2 - 1, 0, height / 2 + 10);
+        pointer.lineStyle(1, 0x8FE3CF, 0.82);
+        pointer.lineBetween(-7, height / 2 - 1, 0, height / 2 + 10);
+        pointer.lineBetween(7, height / 2 - 1, 0, height / 2 + 10);
+        const identity = this.scene.add.text(
+            0,
+            -height / 2 + 18,
+            `${residentName.toUpperCase()} · AT HEART`,
+            {
+                fontSize: '12px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#8FE3CF',
+                stroke: '#061513',
+                strokeThickness: 3
+            }
+        ).setOrigin(0.5);
+        const copy = this.scene.add.text(
+            0,
+            7,
+            `"${line}"`,
+            {
+                fontSize: '14px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#F4F4F4',
+                align: 'center',
+                stroke: '#061513',
+                strokeThickness: 4,
+                lineSpacing: compact ? 3 : 4,
+                wordWrap: { width: width - 30, useAdvancedWrap: true }
+            }
+        ).setOrigin(0.5);
+        bubble.add([backdrop, pointer, identity, copy]);
+        journey.add(bubble);
+        journey.setData('greetingActive', true);
+        landmark.activeResidentGreeting = bubble;
+        landmark.residentGreetingTween = this.scene.tweens.add({
+            targets: bubble,
+            alpha: 1,
+            y: bubble.y - (compact ? 7 : 9),
+            duration: 240,
+            ease: 'Sine.easeOut'
+        });
+        landmark.residentGreetingTimer = this.scene.time.delayedCall(3400, () => {
+            if (landmark.activeResidentGreeting !== bubble) return;
+            landmark.residentGreetingTween = this.scene.tweens.add({
+                targets: bubble,
+                alpha: 0,
+                duration: 260,
+                onComplete: () => this.clearVillageResidentGreeting(landmark)
+            });
+        });
+        return true;
+    }
+
+    clearVillageResidentGreeting(landmark) {
+        landmark?.residentGreetingTimer?.remove?.();
+        landmark?.residentGreetingTween?.stop?.();
+        const greeting = landmark?.activeResidentGreeting;
+        const parent = greeting?.parentContainer;
+        parent?.setData?.('greetingActive', false);
+        greeting?.destroy?.(true);
+        if (!landmark) return;
+        landmark.residentGreetingTimer = null;
+        landmark.residentGreetingTween = null;
+        landmark.activeResidentGreeting = null;
     }
 
     createVillageFlowSignal({
@@ -5323,9 +5423,12 @@ class WorldBuilder {
         const backdrop = this.scene.add.graphics().setPosition(0, y);
         const left = -width / 2;
         const top = -height / 2;
-        const currentRibbon = kind === 'sanctuary_cycle_return';
+        const currentRibbon = (
+            kind === 'sanctuary_cycle_return' ||
+            kind === 'resident_greeting'
+        );
         if (currentRibbon) {
-            backdrop.fillStyle(0x061513, 0.74);
+            backdrop.fillStyle(0x061513, kind === 'resident_greeting' ? 0.9 : 0.74);
             backdrop.beginPath();
             backdrop.moveTo(left + 24, top);
             backdrop.lineTo(left + width - 14, top);
