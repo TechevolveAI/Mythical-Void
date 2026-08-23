@@ -12556,6 +12556,32 @@ async function smokeVillageUi(session, exceptions) {
         })()`),
         { timeoutMs: 12000, message: 'Village Heart interactive world district' }
     );
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const camera = scene?.cameras?.main;
+            const body = document.querySelector('.village-command-body');
+            const zones = scene?.villageHeartLandmark?.plotHitZones || [];
+            if (
+                !scene?.sanctuaryFocusModeActive ||
+                !camera ||
+                !body ||
+                body.clientHeight <= 0 ||
+                zones.length !== 5
+            ) return false;
+            return zones.every(zone => {
+                const bounds = zone.getBounds?.();
+                if (!bounds) return false;
+                const left = (bounds.left - camera.worldView.x) * camera.zoom + camera.x;
+                const right = (bounds.right - camera.worldView.x) * camera.zoom + camera.x;
+                const top = (bounds.top - camera.worldView.y) * camera.zoom + camera.y;
+                const bottom = (bounds.bottom - camera.worldView.y) * camera.zoom + camera.y;
+                return left >= -1 && right <= innerWidth + 1 &&
+                    top >= -1 && bottom <= innerHeight + 1;
+            });
+        })()`),
+        { timeoutMs: 12000, message: 'Village Heart focused viewport layout' }
+    );
 
     const layout = await evaluate(session, `(() => {
         const modal = document.querySelector('.village-command-modal');
