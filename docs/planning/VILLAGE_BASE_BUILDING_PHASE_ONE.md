@@ -248,6 +248,27 @@ including animation activity, readable touch targets, and the single-action visu
 hierarchy. The animation budget remains bounded to one district motion per built
 structure.
 
+### District Approach Contract
+
+The settlement explains itself through proximity rather than permanent labels.
+Entering a district's approach radius raises its authored ground reply, restores
+the building to full color, and reveals two short lines: what is happening there
+and what established game loop it changes. For example, the Forager Hut responds
+with `SAFE PATCHES REGROW` and `FEED +5`; the resident remains visible in the
+world instead of being repeated as interface copy.
+
+The shared interaction director publishes one command attached to the selected
+structure. Touch devices use `Tap`; keyboard devices use `Press SPACE at`. When
+the approached structure is also the next guided build or assignment, its older
+progression placard recedes so the target-attached command becomes the only
+instruction. Moving away restores the progression route and returns the district
+to ambient intensity.
+
+All five completed districts must expose their activity cue, immediate gameplay
+effect, world consequence, and `ground_reply_v1` response through the same runtime
+contract. Mobile journey coverage physically moves the player to every district
+and verifies that exactly one ground reply is active at a time.
+
 ## 7. Gameplay Impact Contract
 
 Every completed building changes another established game loop:

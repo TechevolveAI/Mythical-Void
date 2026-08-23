@@ -16404,20 +16404,36 @@ class GameScene extends Phaser.Scene {
             staffed: { verb: 'CHECK', icon: '✦' }
         }[presentation.plotState] || { verb: 'MANAGE', icon: '✦' };
         const settled = ['complete', 'staffed'].includes(presentation.plotState);
-        const label = settled && definition?.worldActionLabel
-            ? definition.worldActionLabel
-            : definition?.shortLabel || plot.label;
+        const label = definition?.label || plot.label;
         const impact = definition?.worldEffectLabel || 'CHOOSE WHAT GROWS HERE';
+        const activityCue = definition?.worldProfile?.activityCue || null;
+        const approachDetail = settled && activityCue
+            ? activityCue
+            : presentation.plotState === 'needs_helper'
+                ? 'INVITE A HELPER'
+                : presentation.plotState === 'constructing'
+                    ? 'GROWING TOGETHER'
+                    : presentation.plotState === 'available'
+                        ? 'CHOOSE WHAT GROWS HERE'
+                        : impact;
+        const inputInstruction = this.hasVisibleTouchControls()
+            ? 'Tap'
+            : 'Press SPACE at';
         const result = this.offerSanctuaryInteraction({
             id: nextInteractionId,
             target: presentation.hitZone,
-            message: `Press SPACE · ${statePresentation.verb} ${definition?.shortLabel || plot.label} · ${impact}`,
+            message: `${inputInstruction} ${definition?.shortLabel || plot.label} · ${approachDetail} · ${impact}`,
             verb: statePresentation.verb,
             label,
             ownerLabel: definition?.label || plot.label,
             icon: statePresentation.icon,
             worldPrompt: true,
-            ariaLabel: `${statePresentation.verb} ${definition?.label || plot.label}. ${impact}`,
+            worldCommandPlacement: 'target',
+            districtActivityCue: activityCue,
+            districtApproachDetail: approachDetail,
+            districtWorldChange: definition?.worldProfile?.worldChange || null,
+            districtApproachLanguage: 'ground_reply_v1',
+            ariaLabel: `${statePresentation.verb} ${definition?.label || plot.label}. ${approachDetail}. ${impact}`,
             tone: ['available', 'constructing', 'needs_helper'].includes(
                 presentation.plotState
             ) ? 0xF2C14E : 0x71E6B1,

@@ -2586,11 +2586,14 @@ class WorldBuilder {
                 .setDepth(plotY + 6)
                 .setInteractive({ useHandCursor: unlocked });
             plotHitZone.plotId = plot.id;
+            const districtActivityCue = definition?.worldProfile?.activityCue || null;
             const focusCopy = unlocked
                 ? definition
-                    ? building?.creature
-                        ? `${definition.shortLabel} · ${building.creature.name.toUpperCase()}\n${definition.worldEffectLabel}`
-                        : `${definition.shortLabel}\n${definition.worldEffectLabel}`
+                    ? plotState === 'needs_helper'
+                        ? `INVITE A HELPER\n${definition.worldActionLabel}`
+                        : plotState === 'constructing'
+                            ? `GROWING · ${definition.shortLabel}\n${definition.worldActionLabel}`
+                            : `${districtActivityCue || definition.shortLabel}\n${definition.worldActionLabel}`
                     : `${plot.label.toUpperCase()}\nCHOOSE WHAT GROWS HERE`
                 : 'DORMANT';
             const interactionLabel = definition
@@ -2626,6 +2629,11 @@ class WorldBuilder {
             plotHitZone.on('pointerover', () => {
                 container.setScale(1.06);
                 container.setAlpha(1);
+                inhabitedDistrict?.container
+                    ?.setData('villageDistrictApproachActive', true);
+                inhabitedDistrict?.approachLayer
+                    ?.setData('villageDistrictApproachActive', true)
+                    .setAlpha(1);
                 this.applyVillageArtworkTreatment(worldArtwork, {
                     priority: 'nearby',
                     plotState,
@@ -2649,6 +2657,18 @@ class WorldBuilder {
                         landmark.snapshot?.worldState?.nextAction?.type
                     )
                 );
+                const approachActive = playerNearby;
+                inhabitedDistrict?.container
+                    ?.setData('villageDistrictApproachActive', approachActive);
+                inhabitedDistrict?.approachLayer
+                    ?.setData('villageDistrictApproachActive', approachActive)
+                    .setAlpha(
+                        approachActive
+                            ? 1
+                            : directPlotCommand
+                                ? 0.72
+                                : focusPriority === 'primary' ? 0.38 : 0
+                    );
                 container.setAlpha(
                     Number(container.getData('villageFocusAlpha')) || 1
                 );
@@ -2729,6 +2749,7 @@ class WorldBuilder {
                 worldArtwork,
                 artworkGrounding,
                 inhabitedDistrict: inhabitedDistrict?.container || null,
+                inhabitedDistrictApproachLayer: inhabitedDistrict?.approachLayer || null,
                 plotLabel,
                 stateLabel,
                 focusRing,
@@ -3442,6 +3463,21 @@ class WorldBuilder {
                 .setData('villagePlayerNearby', playerNearby)
                 .setData('villageFocusPriority', priority);
             transition(presentation.districtAnchor, anchorAlpha);
+            const districtApproachAlpha = playerNearby
+                ? 1
+                : directPlotCommand
+                    ? 0.72
+                    : primary && !storyMode ? 0.38 : 0;
+            presentation.inhabitedDistrict
+                ?.setData('villageDistrictApproachActive', playerNearby)
+                .setData('villageDistrictApproachAlpha', districtApproachAlpha);
+            presentation.inhabitedDistrictApproachLayer
+                ?.setData('villageDistrictApproachActive', playerNearby)
+                .setData('villageFocusPriority', priority);
+            transition(
+                presentation.inhabitedDistrictApproachLayer,
+                districtApproachAlpha
+            );
             presentation.plotLabel?.setAlpha(plotLabelAlpha);
             presentation.stateLabel
                 ?.setText(playerNearby
@@ -3483,6 +3519,11 @@ class WorldBuilder {
         });
 
         const heartDecisionReady = action?.type === 'decision';
+        const directPlotActionOwnedByProximity = Boolean(
+            !storyMode &&
+            ['build', 'assign'].includes(action?.type) &&
+            landmark.playerProximityPlotId === action?.plotId
+        );
         const heartBaseAlpha = landmark.snapshot?.unlock?.unlocked === true
             ? heartDecisionReady ? 1 : active ? 0.94 : 0.88
             : 0.52;
@@ -3589,26 +3630,33 @@ class WorldBuilder {
             ?.setData('villagePresentationMode', landmark.presentationMode)
             .setData('villageFocusAlpha', storyMode ? 0.18 : 1);
         if (landmark.nextActionElement && landmark.nextActionElement !== landmark.actionLabel) {
-            landmark.nextActionElement.setAlpha(storyMode ? 0 : 1);
-            if (storyMode) {
+            landmark.nextActionElement.setAlpha(
+                storyMode || directPlotActionOwnedByProximity ? 0 : 1
+            );
+            if (storyMode || directPlotActionOwnedByProximity) {
                 landmark.nextActionElement.disableInteractive?.();
             } else {
                 landmark.nextActionElement.setInteractive?.({ useHandCursor: true });
             }
         }
         if (landmark.nextActionHitZone) {
-            if (storyMode) {
+            if (storyMode || directPlotActionOwnedByProximity) {
                 landmark.nextActionHitZone.disableInteractive?.();
             } else {
                 landmark.nextActionHitZone.setInteractive?.({ useHandCursor: true });
             }
         }
-        if (storyMode) {
+        if (storyMode || directPlotActionOwnedByProximity) {
             landmark.nextActionTween?.pause?.();
         } else {
             landmark.nextActionTween?.resume?.();
         }
-        landmark.nextActionPlacard?.setAlpha(storyMode ? 0 : 1);
+        landmark.nextActionPlacard
+            ?.setData(
+                'villageCommandOwnedByProximity',
+                directPlotActionOwnedByProximity
+            )
+            .setAlpha(storyMode || directPlotActionOwnedByProximity ? 0 : 1);
         landmark.nextActionRing?.setAlpha(storyMode ? 0 : 1);
         landmark.nextActionPreview?.setAlpha(storyMode ? 0 : 1);
         if (storyMode) {
@@ -3803,6 +3851,13 @@ class WorldBuilder {
         const detail = this.scene.add.graphics();
         const motionLayer = this.scene.add.container(0, 0)
             .setData('villageDistrictMotionLayer', profile.motion);
+        const approachLayer = this.scene.add.graphics()
+            .setAlpha(0)
+            .setData('villageDistrictApproachLayer', true)
+            .setData('villageDistrictApproachLanguage', 'ground_reply_v1')
+            .setData('villageDistrictApproachActive', false)
+            .setData('villageDistrictActivityCue', profile.activityCue)
+            .setData('villageDistrictWorldChange', profile.worldChange);
         const width = compact ? 112 : 156;
         const baseY = compact ? 29 : 38;
         const accent = profile.accent;
@@ -3819,6 +3874,34 @@ class WorldBuilder {
         ground.beginPath();
         ground.arc(0, baseY + 2, width * 0.45, Math.PI * 1.12, Math.PI * 1.88);
         ground.strokePath();
+
+        approachLayer.lineStyle(compact ? 2 : 2.5, secondary, 0.82);
+        approachLayer.beginPath();
+        approachLayer.arc(
+            0,
+            baseY + 3,
+            width * 0.5,
+            Math.PI * 0.08,
+            Math.PI * 0.92
+        );
+        approachLayer.strokePath();
+        approachLayer.lineStyle(1.5, accent, 0.9);
+        approachLayer.beginPath();
+        approachLayer.arc(
+            0,
+            baseY + 3,
+            width * 0.5,
+            Math.PI * 1.08,
+            Math.PI * 1.92
+        );
+        approachLayer.strokePath();
+        [-1, 0, 1].forEach((node, nodeIndex) => {
+            const nodeX = node * width * 0.36;
+            const nodeY = baseY + 3 + (nodeIndex === 1 ? 0 : 7);
+            approachLayer.fillStyle(nodeIndex === 1 ? 0xF4F4F4 : accent, 0.92);
+            approachLayer.fillCircle(nodeX, nodeY, compact ? 2.4 : 3);
+        });
+        approachLayer.setBlendMode?.(Phaser.BlendModes.ADD);
 
         if (building.definitionId === 'forager_hut') {
             [-1, 0, 1].forEach((row, rowIndex) => {
@@ -3921,7 +4004,7 @@ class WorldBuilder {
 
         ground.setData('villageDistrictGroundLayer', profile.material);
         detail.setData('villageDistrictDetailLayer', profile.identity);
-        container.add([ground, detail, motionLayer]);
+        container.add([ground, detail, motionLayer, approachLayer]);
         const tweenConfig = {
             seed_drift: {
                 targets: motionLayer,
@@ -3964,7 +4047,7 @@ class WorldBuilder {
             })
             : null;
         container.setData('villageDistrictMotionActive', Boolean(tween));
-        return { container, tween, profile };
+        return { container, approachLayer, tween, profile };
     }
 
     drawVillageFoundationCradle(

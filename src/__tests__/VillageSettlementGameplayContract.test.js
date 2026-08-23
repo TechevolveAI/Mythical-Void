@@ -679,7 +679,7 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("setData('touchTargetHeight', 52)");
         expect(world).toContain('landmark.nextActionTween?.pause?.();');
         expect(world).toContain('landmark.nextActionTween?.resume?.();');
-        expect(world).toContain('landmark.nextActionPlacard?.setAlpha(storyMode ? 0 : 1);');
+        expect(world).toContain('.setAlpha(storyMode || directPlotActionOwnedByProximity ? 0 : 1);');
         expect(world).toContain('landmark.nextActionRing?.setAlpha(storyMode ? 0 : 1);');
         expect(world).toContain("setData('villageDecisionGroundResponse', true)");
         expect(world).toContain("copy.setData('resonanceVerticalOffset', compact ? 360 : 330)");
@@ -834,7 +834,7 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain("const nextInteractionId = plotId ? `villagePlot:${plotId}` : null;");
         expect(scene).toContain("available: { verb: 'BUILD HERE', icon: '+' }");
         expect(scene).toContain("staffed: { verb: 'CHECK', icon: '✦' }");
-        expect(scene).toContain('settled && definition?.worldActionLabel');
+        expect(scene).toContain('const label = definition?.label || plot.label;');
         expect(scene).toContain('action: () => this.openVillageCommand({ plotId })');
         expect(scene).toContain('applyExplorationCameraFollowOffset(');
         expect(scene).toContain('layout.dockHeight * 0.46');
@@ -843,8 +843,9 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain('this.dismissLegacyTutorialHint();');
         expect(scene).toContain("hint.setData('legacyTutorialHint', true)");
         expect(world).toContain('compactPresentation ? 0 : 1');
-        expect(world).toContain('`${definition.shortLabel} · ${building.creature.name.toUpperCase()}');
-        expect(world).toContain('${definition.worldEffectLabel}`');
+        expect(world).toContain('const districtActivityCue = definition?.worldProfile?.activityCue');
+        expect(world).toContain('`${districtActivityCue || definition.shortLabel}');
+        expect(world).toContain('${definition.worldActionLabel}`');
         expect(world).toContain("'villageFocusAlphaMultiplier'");
         expect(world).toContain('this.scene.setSanctuaryMomentFocus?.(true');
         expect(scene).toContain('getVillageHeartInteractionPrompt(');
@@ -895,6 +896,7 @@ describe('Village settlement gameplay contract', () => {
     test('every completed building transforms its district with a distinct world identity', () => {
         const settlement = read('systems/VillageSettlement.js');
         const world = read('systems/world/WorldBuilder.js');
+        const scene = read('scenes/GameScene.js');
         const smoke = read('../scripts/smoke-secondary-journeys.js');
 
         [
@@ -926,10 +928,20 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain(".setData('villageDistrictMotion', profile.motion)");
         expect(world).toContain(".setData('villageDistrictWorldChange', profile.worldChange)");
         expect(world).toContain(".setData('villageDistrictMotionActive', Boolean(tween))");
+        expect(world).toContain(".setData('villageDistrictApproachLanguage', 'ground_reply_v1')");
+        expect(world).toContain(".setData('villageDistrictApproachActive', playerNearby)");
+        expect(world).toContain('inhabitedDistrictApproachLayer');
+        expect(world).toContain('districtApproachAlpha');
+        expect(world).toContain('const directPlotActionOwnedByProximity = Boolean(');
+        expect(world).toContain("'villageCommandOwnedByProximity'");
         expect(world).toContain("'villageInhabitedDistrictIds'");
         expect(world).toContain("'villageInhabitedDistrictMaterials'");
         expect(world).toContain("'villageInhabitedDistrictMotions'");
         expect(world).toContain("'villageInhabitedWorldChanges'");
+        expect(scene).toContain("? 'Tap'");
+        expect(scene).toContain(": 'Press SPACE at'");
+        expect(scene).toContain("districtApproachLanguage: 'ground_reply_v1'");
+        expect(scene).toContain('districtActivityCue: activityCue');
         expect(smoke).toContain("villageCommandPreview: 'complete'");
         expect(smoke).toContain('village-complete-world-identities-mobile.png');
         expect(smoke).toContain('expectedDistrictIds');

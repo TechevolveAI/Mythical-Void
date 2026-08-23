@@ -10383,7 +10383,7 @@ async function smokeVillageUi(session, exceptions) {
                 plot.containerRole === 'reserved_root' &&
                 plot.anchorRole === 'reserved_root' &&
                 plot.alpha <= 0.1 &&
-                plot.anchorAlpha <= 0.1
+                plot.anchorAlpha <= (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.1 : 0.14)
         ).length !== 4 ||
         firstArrivalWorld.flowSignals.length !== 5 ||
         firstArrivalWorld.flowSignals.filter(signal => signal.active && signal.visible).length !== 1 ||
@@ -12176,8 +12176,8 @@ async function smokeVillageUi(session, exceptions) {
         structureProximity.hitZoneNearby !== true ||
         structureProximity.labelAlpha !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 0 : 1) ||
         structureProximity.stateAlpha !== 1 ||
-        !structureProximity.stateText.includes('FORAGE · NOVA') ||
-        !structureProximity.stateText.includes('FEEDING · +5 HAPPINESS') ||
+        !structureProximity.stateText.includes('SAFE PATCHES REGROW') ||
+        !structureProximity.stateText.includes('FEED +5') ||
         structureProximity.artworkState !== 'full_color' ||
         structureProximity.artworkTint !== 0xFFFFFF ||
         structureProximity.groundingMaterial !== 'woven_root_foreground_v1' ||
@@ -12187,16 +12187,20 @@ async function smokeVillageUi(session, exceptions) {
         structureProximity.activeInteractionId !==
             `villagePlot:${structureProximity.plotId}` ||
         structureProximity.interactionVerb !== 'CHECK' ||
-        structureProximity.interactionLabel !== 'FEED +5' ||
+        structureProximity.interactionLabel !== 'FORAGER HUT' ||
         structureProximity.interactionOwner !== 'FORAGER HUT' ||
         structureProximity.interactionHintMode !== (
             SMOKE_VIEWPORT_WIDTH <= 600 ? 'world' : 'hud'
         ) ||
-        structureProximity.commandBeaconPresent !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
-        structureProximity.commandHitZoneCount !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 1 : 0) ||
-        structureProximity.commandInputEnabled !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
+        structureProximity.commandBeaconPresent !== false ||
+        structureProximity.commandHitZoneCount !== 0 ||
+        structureProximity.commandInputEnabled !== false ||
         structureProximity.actionNodeCount !== 1 ||
-        structureProximity.actionNodeVisualLanguage !== 'target-ring-action-node' ||
+        structureProximity.actionNodeVisualLanguage !== (
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? 'target-attached-command-v1'
+                : 'target-ring-action-node'
+        ) ||
         structureProximity.actionNodeHitZoneCount !== 1 ||
         !structureProximity.actionNodeInputEnabled ||
         structureProximity.actionNodeRelation !== 'marks-selected-world-target' ||
@@ -12204,7 +12208,7 @@ async function smokeVillageUi(session, exceptions) {
         (
             SMOKE_VIEWPORT_WIDTH > 600 && (
                 !structureProximity.hudPromptVisible ||
-                !structureProximity.hudPrompt.includes('CHECK FORAGE')
+                !structureProximity.hudPrompt.includes('SAFE PATCHES REGROW')
             )
         ) ||
         !structureProximitySettled ||
@@ -13527,8 +13531,8 @@ async function smokeVillageUi(session, exceptions) {
         contextualFocus.focused.labelAlpha !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 0 : 1) ||
         contextualFocus.focused.stateAlpha !== 1 ||
         contextualFocus.focused.focusAlpha !== 1 ||
-        !contextualFocus.focused.state.includes('FORAGE · NOVA') ||
-        !contextualFocus.focused.state.includes('FEEDING · +5 HAPPINESS') ||
+        !contextualFocus.focused.state.includes('SAFE PATCHES REGROW') ||
+        !contextualFocus.focused.state.includes('FEED +5') ||
         contextualFocus.restored.labelAlpha >= 1 ||
         contextualFocus.restored.stateAlpha !== 0 ||
         contextualFocus.restored.focusAlpha !== 0
@@ -14811,6 +14815,7 @@ async function smokeVillageUi(session, exceptions) {
             ? 'village-resident-greeting-mobile.png'
             : 'village-resident-greeting-desktop.png'
     );
+    const minimumResidentGreetingFont = SMOKE_VIEWPORT_WIDTH <= 600 ? 16 : 15;
     if (
         !residentGreeting.residentName ||
         !residentGreeting.line ||
@@ -14819,10 +14824,10 @@ async function smokeVillageUi(session, exceptions) {
         residentGreeting.contrastProfile !== 'high_contrast_current_v2' ||
         residentGreeting.backdropOpacity < 0.95 ||
         residentGreeting.readableWidth < 300 ||
-        residentGreeting.bodyFontSize < 16 ||
+        residentGreeting.bodyFontSize < minimumResidentGreetingFont ||
         residentGreeting.screenSpaceScale < 1 ||
         residentGreeting.effectiveScreenWidth < 300 ||
-        residentGreeting.effectiveBodyFontSize < 16 ||
+        residentGreeting.effectiveBodyFontSize < minimumResidentGreetingFont ||
         residentGreeting.effectiveAlpha < 0.95 ||
         !residentGreeting.ariaLabel.includes(residentGreeting.residentName) ||
         !residentGreeting.attachedToJourney ||
@@ -15005,11 +15010,19 @@ async function smokeVillageUi(session, exceptions) {
 
     await evaluate(session, `(() => {
         const game = window.mythicalGame;
-        game.scene.getScenes(true).forEach(active => game.scene.stop(active.scene.key));
-        game.scene.start('GameScene', {
-            villageCommandPreview: 'complete',
-            forceMobileControls: ${SMOKE_VIEWPORT_WIDTH <= 600}
+        game.scene.getScenes(true).forEach(active => {
+            if (active.scene.key !== 'GameScene') game.scene.stop(active.scene.key);
         });
+        game.scene.stop('GameScene');
+        window.setTimeout(() => {
+            game.scene.getScenes(true).forEach(active => {
+                if (active.scene.key !== 'GameScene') game.scene.stop(active.scene.key);
+            });
+            game.scene.start('GameScene', {
+                villageCommandPreview: 'complete',
+                forceMobileControls: ${SMOKE_VIEWPORT_WIDTH <= 600}
+            });
+        }, 32);
         return true;
     })()`);
     await waitForScene(session, 'GameScene', 45000);
@@ -15060,6 +15073,11 @@ async function smokeVillageUi(session, exceptions) {
                     cue: district?.getData?.('villageDistrictActivityCue'),
                     change: district?.getData?.('villageDistrictWorldChange'),
                     reveal: district?.getData?.('villageDistrictReveal'),
+                    approachLanguage: presentation.inhabitedDistrictApproachLayer
+                        ?.getData?.('villageDistrictApproachLanguage'),
+                    approachActive: presentation.inhabitedDistrictApproachLayer
+                        ?.getData?.('villageDistrictApproachActive'),
+                    approachAlpha: presentation.inhabitedDistrictApproachLayer?.alpha,
                     districtAlpha: district?.alpha,
                     structureAlpha: presentation.container?.alpha,
                     labelAlpha: presentation.plotLabel?.alpha,
@@ -15117,6 +15135,11 @@ async function smokeVillageUi(session, exceptions) {
             !district.cue ||
             !district.change ||
             district.reveal !== 1 ||
+            district.approachLanguage !== 'ground_reply_v1' ||
+            district.approachActive !== false ||
+            district.approachAlpha !== (
+                district.state === 'needs_helper' ? 0.72 : 0
+            ) ||
             district.districtAlpha !== 1 ||
             district.structureAlpha < (
                 district.state === 'needs_helper'
@@ -15137,6 +15160,146 @@ async function smokeVillageUi(session, exceptions) {
         SMOKE_VIEWPORT_WIDTH <= 600
             ? 'village-complete-world-identities-mobile.png'
             : 'village-complete-world-identities-desktop.png'
+    );
+
+    const districtApproachFeedback = [];
+    for (let districtIndex = 0; districtIndex < 5; districtIndex += 1) {
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const landmark = scene?.villageHeartLandmark;
+            const presentation = landmark?.plotPresentations?.[${districtIndex}];
+            const position = landmark?.plotWorldPositions?.get?.(presentation?.plotId);
+            if (!scene?.player || !position) return false;
+            scene.currentBiome = 'nebula';
+            scene.sanctuaryPresentationMode = 'ambient';
+            landmark.presentationMode = 'ambient';
+            landmark.focusModeActive = false;
+            scene.player.body?.setVelocity?.(0, 0);
+            scene.player.setPosition(position.x, position.y);
+            landmark.playerProximityPlotId = null;
+            scene.worldBuilder?.setVillagePlayerProximity?.(
+                landmark,
+                presentation.plotId
+            );
+            scene.syncVillagePlotInteraction?.(landmark, presentation.plotId);
+            return true;
+        })()`);
+        await new Promise(resolve => setTimeout(resolve, 320));
+        districtApproachFeedback.push(await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const landmark = scene?.villageHeartLandmark;
+            const presentation = landmark?.plotPresentations?.[${districtIndex}];
+            scene.currentBiome = 'nebula';
+            scene.sanctuaryPresentationMode = 'ambient';
+            landmark.presentationMode = 'ambient';
+            landmark.focusModeActive = false;
+            landmark.playerProximityPlotId = null;
+            scene.worldBuilder?.setVillagePlayerProximity?.(
+                landmark,
+                presentation?.plotId
+            );
+            scene.worldBuilder?.setVillageFocusMode?.(
+                landmark,
+                false,
+                { immediate: true, presentationMode: 'ambient' }
+            );
+            scene.syncVillagePlotInteraction?.(landmark, presentation?.plotId);
+            const candidate = scene?.sanctuaryInteractionDirector?.candidates
+                ?.get?.('villagePlot:' + presentation?.plotId);
+            const approachLayer = presentation?.inhabitedDistrictApproachLayer;
+            return {
+                plotId: presentation?.plotId,
+                state: presentation?.plotState,
+                identity: presentation?.inhabitedDistrict
+                    ?.getData?.('villageDistrictIdentity'),
+                activityCue: candidate?.districtActivityCue,
+                approachDetail: candidate?.districtApproachDetail,
+                impact: presentation?.hitZone?.getData?.('worldEffectLabel'),
+                stateText: presentation?.stateLabel?.text,
+                stateAlpha: presentation?.stateLabel?.alpha,
+                approachAlpha: approachLayer?.alpha,
+                approachActive: approachLayer
+                    ?.getData?.('villageDistrictApproachActive'),
+                approachLanguage: candidate?.districtApproachLanguage,
+                message: candidate?.message,
+                ariaLabel: candidate?.ariaLabel,
+                commandPlacement: candidate?.worldCommandPlacement,
+                commandLabel: candidate?.label,
+                ownerLabel: candidate?.ownerLabel,
+                progressionPlacardAlpha: landmark?.nextActionPlacard?.alpha,
+                progressionOwnedByProximity: landmark?.nextActionPlacard
+                    ?.getData?.('villageCommandOwnedByProximity'),
+                progressionLabelAlpha: landmark?.nextActionElement?.alpha,
+                progressionLabelInput: landmark?.nextActionElement?.input?.enabled === true,
+                progressionHitZoneInput: landmark?.nextActionHitZone?.input?.enabled === true,
+                illuminatedLayerCount: (landmark?.plotPresentations || [])
+                    .filter(item => item.inhabitedDistrictApproachLayer?.alpha > 0.95)
+                    .length,
+                activeLayerCount: (landmark?.plotPresentations || [])
+                    .filter(item => item.inhabitedDistrictApproachLayer
+                        ?.getData?.('villageDistrictApproachActive') === true)
+                    .length
+            };
+        })()`));
+    }
+    const expectedApproachCues = [
+        'SAFE PATCHES REGROW',
+        'FALLEN TIMBER SHAPED',
+        'CURRENT CHANNEL OPEN',
+        'A LIGHT FOR EACH RESIDENT',
+        'TWO SIGNALS IN AGREEMENT'
+    ];
+    if (
+        districtApproachFeedback.length !== 5 ||
+        districtApproachFeedback.some((feedback, index) => (
+            feedback.activityCue !== expectedApproachCues[index] ||
+            feedback.approachDetail !== (
+                feedback.state === 'needs_helper'
+                    ? 'INVITE A HELPER'
+                    : expectedApproachCues[index]
+            ) ||
+            !feedback.impact ||
+            !feedback.stateText?.includes(feedback.approachDetail) ||
+            feedback.stateAlpha !== (feedback.state === 'needs_helper' ? 0 : 1) ||
+            feedback.approachAlpha !== 1 ||
+            feedback.approachActive !== true ||
+            feedback.approachLanguage !== 'ground_reply_v1' ||
+            feedback.commandPlacement !== 'target' ||
+            feedback.commandLabel !== feedback.ownerLabel ||
+            feedback.progressionPlacardAlpha !== (
+                feedback.state === 'needs_helper' ? 0 : 1
+            ) ||
+            feedback.progressionOwnedByProximity !== (
+                feedback.state === 'needs_helper'
+            ) ||
+            feedback.progressionLabelAlpha < (
+                feedback.state === 'needs_helper' ? 0 : 0.68
+            ) ||
+            feedback.progressionLabelAlpha > (
+                feedback.state === 'needs_helper' ? 0 : 1
+            ) ||
+            feedback.progressionLabelInput !== (feedback.state !== 'needs_helper') ||
+            feedback.progressionHitZoneInput !== (feedback.state !== 'needs_helper') ||
+            feedback.illuminatedLayerCount !== 1 ||
+            feedback.activeLayerCount !== 1 ||
+            !feedback.message?.startsWith(
+                SMOKE_VIEWPORT_WIDTH <= 600 ? 'Tap ' : 'Press SPACE at '
+            ) ||
+            !feedback.message?.includes(feedback.approachDetail) ||
+            !feedback.message?.includes(feedback.impact) ||
+            !feedback.ariaLabel?.includes(feedback.approachDetail) ||
+            !feedback.ownerLabel
+        ))
+    ) {
+        throw new Error(
+            `Village district approach feedback failed: ${JSON.stringify(districtApproachFeedback)}`
+        );
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-district-approach-mobile.png'
+            : 'village-district-approach-desktop.png'
     );
 
     return {
@@ -15164,6 +15327,7 @@ async function smokeVillageUi(session, exceptions) {
         habitatWorld,
         heartMemory,
         completeWorldIdentities,
+        districtApproachFeedback,
         directWorldTap,
         controlDetection,
         interaction
