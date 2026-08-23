@@ -1,5 +1,6 @@
 import { getFendCommunitySnapshot } from './FendCommunity.js';
 import { getRescuedResidentSnapshot } from './RescuedResidents.js';
+import { getSanctuaryCommunitySnapshot } from './SanctuaryCommunity.js';
 
 export const VILLAGE_SCHEMA_VERSION = 3;
 export const VILLAGE_PRODUCTION_CAP_MS = 4 * 60 * 60 * 1000;
@@ -1766,6 +1767,7 @@ export function getVillageSnapshot(gameState, { stateOverride = null } = {}) {
         home,
         communityMoments,
         heartDecision,
+        community: getSanctuaryCommunitySnapshot(gameState),
         effects: getVillageGameplayEffects(gameState, { stateOverride: state }),
         capacity: 1 + buildings.reduce(
             (total, building) => total + (

@@ -1141,6 +1141,262 @@ body.game-mode {
   font-weight: 800;
 }
 
+.village-view-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 48px;
+  padding: 0 12px;
+  background: #07100f;
+  border-bottom: 1px solid rgba(244, 244, 244, 0.14);
+}
+
+.village-view-tab {
+  min-width: 0;
+  min-height: 48px;
+  padding: 8px 12px;
+  color: #8fa2ab;
+  background: transparent;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.village-view-tab.is-active {
+  color: #ffffff;
+  border-bottom-color: #71e6b1;
+}
+
+.village-view-tab:focus-visible {
+  outline: 2px solid #f2c14e;
+  outline-offset: -4px;
+}
+
+.village-community-directory {
+  min-height: 0;
+  padding: 18px;
+  overflow-y: auto;
+  background:
+    linear-gradient(90deg, rgba(113, 230, 177, 0.06), transparent 34%),
+    #0b1115;
+}
+
+.village-community-directory-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 20px;
+  padding: 0 0 16px;
+  border-bottom: 1px solid rgba(244, 244, 244, 0.14);
+}
+
+.village-community-directory-kicker,
+.village-community-directory-title,
+.village-community-directory-intro,
+.village-community-group-title,
+.village-community-group-note,
+.village-community-member-contribution,
+.village-guardian-outcome {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+.village-community-directory-copy {
+  display: grid;
+  gap: 5px;
+}
+
+.village-community-directory-kicker {
+  color: #71e6b1;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.village-community-directory-title {
+  color: #ffffff;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.village-community-directory-intro {
+  max-width: 680px;
+  color: #c7d4d8;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.village-community-directory-counts {
+  display: flex;
+  gap: 7px;
+}
+
+.village-community-directory-count {
+  display: grid;
+  min-width: 92px;
+  gap: 2px;
+  padding: 8px 10px;
+  background: #10191e;
+  border-left: 3px solid #f2c14e;
+}
+
+.village-community-directory-count strong {
+  color: #ffffff;
+  font-size: 19px;
+}
+
+.village-community-directory-count span {
+  color: #9babb1;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.village-community-group {
+  padding: 17px 0 2px;
+}
+
+.village-community-group + .village-community-group {
+  margin-top: 15px;
+  border-top: 1px solid rgba(244, 244, 244, 0.12);
+}
+
+.village-community-group-title {
+  color: #f4f4f4;
+  font-size: 12px;
+}
+
+.village-community-group-note {
+  margin-top: 3px;
+  color: #8fa2ab;
+  font-size: 10px;
+}
+
+.village-community-grid,
+.village-guardian-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 10px;
+}
+
+.village-community-member,
+.village-guardian-card {
+  min-width: 0;
+  overflow: hidden;
+  background: #10191e;
+  border: 1px solid #314248;
+  border-radius: 6px;
+}
+
+.village-community-member {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 8px;
+  padding: 11px;
+  border-top: 3px solid #71e6b1;
+}
+
+.village-community-member[data-community-type='rescued_resident'] {
+  border-top-color: #f2c14e;
+}
+
+.village-community-member-identity {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.village-community-member-identity .village-creature-avatar {
+  width: 58px;
+  height: 58px;
+}
+
+.village-community-member-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.village-community-member-type,
+.village-community-member-status,
+.village-guardian-presence {
+  color: #71e6b1;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.village-community-member[data-community-type='rescued_resident']
+  .village-community-member-type {
+  color: #f2c14e;
+}
+
+.village-community-member-name,
+.village-guardian-name {
+  overflow-wrap: anywhere;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.village-community-member-role,
+.village-guardian-role {
+  color: #aab9bd;
+  font-size: 10px;
+}
+
+.village-community-member-contribution,
+.village-guardian-outcome {
+  color: #d8e3e5;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.village-community-member-status {
+  padding-top: 7px;
+  border-top: 1px solid rgba(244, 244, 244, 0.1);
+}
+
+.village-guardian-card {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  min-height: 118px;
+  border-left: 3px solid var(--guardian-accent, #8fe3cf);
+}
+
+.village-guardian-artwork {
+  width: 118px;
+  height: 100%;
+  min-height: 118px;
+  object-fit: cover;
+  background: #03070a;
+}
+
+.village-guardian-copy {
+  display: grid;
+  min-width: 0;
+  align-content: center;
+  gap: 4px;
+  padding: 10px;
+}
+
+.village-guardian-presence {
+  color: var(--guardian-accent, #8fe3cf);
+}
+
+.village-community-directory-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 16px;
+  color: #b9c7ca;
+  background: #10191e;
+  border-left: 3px solid #df5d5d;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .village-command-status {
   min-height: 34px;
   padding: 8px 15px;
@@ -3118,6 +3374,64 @@ body.game-mode {
 
   .village-resource-label {
     font-size: 10px;
+  }
+
+  .village-view-tabs {
+    position: sticky;
+    top: 58px;
+    z-index: 2;
+    padding: 0 6px;
+  }
+
+  .village-view-tab {
+    min-height: 50px;
+    font-size: 11px;
+  }
+
+  .village-community-directory {
+    padding: 13px 10px max(16px, var(--sab));
+    overflow: visible;
+  }
+
+  .village-community-directory-header {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .village-community-directory-title {
+    font-size: 18px;
+  }
+
+  .village-community-directory-intro {
+    font-size: 11px;
+  }
+
+  .village-community-directory-counts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .village-community-directory-count {
+    min-width: 0;
+  }
+
+  .village-community-grid,
+  .village-guardian-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .village-community-member {
+    min-height: 128px;
+  }
+
+  .village-guardian-card {
+    grid-template-columns: 104px minmax(0, 1fr);
+    min-height: 112px;
+  }
+
+  .village-guardian-artwork {
+    width: 104px;
+    min-height: 112px;
   }
 
   .village-command-status {

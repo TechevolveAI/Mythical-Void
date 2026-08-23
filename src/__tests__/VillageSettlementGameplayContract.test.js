@@ -502,6 +502,29 @@ describe('Village settlement gameplay contract', () => {
         expect(css).toContain('font-size: 11px;');
     });
 
+    test('the Village Heart separates residents from regional Guardian allies', () => {
+        const panel = read('ui/VillageCommandPanel.js');
+        const settlement = read('systems/VillageSettlement.js');
+        const guardians = read('systems/GuardianOutcomes.js');
+        const css = read('styles/main.css');
+
+        expect(settlement).toContain("import { getSanctuaryCommunitySnapshot }");
+        expect(settlement).toContain('community: getSanctuaryCommunitySnapshot(gameState)');
+        expect(panel).toContain('createVillageViewTabs');
+        expect(panel).toContain('createCommunityDirectory');
+        expect(panel).toContain("'village-community-directory'");
+        expect(panel).toContain('YOUR SANCTUARY COMMUNITY');
+        expect(panel).toContain('HEART LINK · NOT A RESIDENT');
+        expect(panel).toContain('PROTECTING THEIR REGION');
+        expect(panel).toContain('they do not move into the Sanctuary');
+        expect(guardians).toContain("artwork: '/game/guardians/elder-treant.webp'");
+        expect(guardians).toContain("artwork: '/game/guardians/void-empress.webp'");
+        expect(css).toContain('.village-view-tabs');
+        expect(css).toContain('.village-community-directory');
+        expect(css).toContain('.village-guardian-card');
+        expect(css).toContain('.village-guardian-artwork');
+    });
+
     test('building promises are connected to care, expeditions, and collection capacity', () => {
         const village = read('systems/VillageSettlement.js');
         const care = read('systems/CareSystem.js');

@@ -14,6 +14,10 @@ function loadVillageSettlement() {
             "import { getRescuedResidentSnapshot } from './RescuedResidents.js';",
             'const getRescuedResidentSnapshot = GET_RESCUED_RESIDENT_SNAPSHOT;'
         )
+        .replace(
+            "import { getSanctuaryCommunitySnapshot } from './SanctuaryCommunity.js';",
+            'const getSanctuaryCommunitySnapshot = GET_SANCTUARY_COMMUNITY_SNAPSHOT;'
+        )
         .replace(/export const /g, 'const ')
         .replace(/export function /g, 'function ')
         .concat(`
@@ -86,6 +90,18 @@ function loadVillageSettlement() {
             }));
             return { rescued };
         },
+        GET_SANCTUARY_COMMUNITY_SNAPSHOT: gameState => ({
+            companions: [gameState.get('creature')].filter(Boolean),
+            residents: [],
+            guardianAllies: [],
+            guardianPresences: [],
+            counts: {
+                companions: gameState.get('creature') ? 1 : 0,
+                residents: 0,
+                regionalAllies: 0,
+                guardianPresences: 0
+            }
+        }),
         Date,
         JSON,
         Map,
@@ -388,6 +404,21 @@ describe('Village settlement phase one', () => {
         }));
         expect(village.getVillageGrowthProfile(99).tier).toBe(4);
         expect(village.getVillageGrowthProfile(2.9).tier).toBe(2);
+    });
+
+    test('keeps the Sanctuary community categories attached to every village snapshot', () => {
+        const gameState = createGameState();
+        const snapshot = village.getVillageSnapshot(gameState);
+
+        expect(snapshot.community).toEqual(expect.objectContaining({
+            companions: expect.any(Array),
+            residents: expect.any(Array),
+            guardianAllies: expect.any(Array),
+            guardianPresences: expect.any(Array)
+        }));
+        expect(snapshot.community.companions).toHaveLength(1);
+        expect(snapshot.community.residents).toHaveLength(0);
+        expect(snapshot.community.guardianAllies).toHaveLength(0);
     });
 
     test('spends resources and creates one deterministic construction per plot', () => {

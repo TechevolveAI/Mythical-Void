@@ -83,6 +83,194 @@ function formatCommunityMemberOption(creature) {
     return `${creature?.name || 'Companion'} - companion`;
 }
 
+function createVillageViewTabs(snapshot, { activeView, onSelect } = {}) {
+    const tabs = createElement('nav', 'village-view-tabs');
+    tabs.setAttribute('role', 'tablist');
+    tabs.setAttribute('aria-label', 'Village Heart views');
+    const residentCount = (snapshot?.community?.companions?.length || 0) +
+        (snapshot?.community?.residents?.length || 0);
+    [
+        ['plan', 'BUILD PLAN'],
+        ['community', `COMMUNITY ${residentCount}`]
+    ].forEach(([id, label]) => {
+        const button = createElement(
+            'button',
+            `village-view-tab${activeView === id ? ' is-active' : ''}`,
+            label
+        );
+        button.type = 'button';
+        button.dataset.view = id;
+        button.setAttribute('role', 'tab');
+        button.setAttribute('aria-selected', String(activeView === id));
+        button.setAttribute('data-testid', `village-view-${id}`);
+        button.addEventListener('click', () => onSelect?.(id));
+        tabs.append(button);
+    });
+    return tabs;
+}
+
+function getCommunityMemberStatus(member, snapshot) {
+    const assignment = (snapshot?.buildings || []).find(building => (
+        building.status === 'complete' && building.creature?.id === member.id
+    ));
+    if (assignment) return `HELPING AT ${assignment.definition?.shortLabel || 'A STRUCTURE'}`;
+    if (member.isPlayerCompanion) return 'TRAVELS WITH YOU';
+    if (snapshot?.home?.unlocked) return 'HOME · SHARED HABITAT';
+    return 'HOME · SIGNAL GARDEN';
+}
+
+function createCommunityDirectory(snapshot) {
+    const community = snapshot?.community || {};
+    const members = [...(community.companions || []), ...(community.residents || [])]
+        .filter((member, index, roster) => (
+            member?.id && roster.findIndex(entry => entry?.id === member.id) === index
+        ));
+    const guardians = (community.guardianAllies || []).filter(guardian => guardian.resolved);
+    const directory = createElement('section', 'village-community-directory');
+    directory.setAttribute('data-testid', 'village-community-directory');
+
+    const intro = createElement('header', 'village-community-directory-header');
+    const introCopy = createElement('div', 'village-community-directory-copy');
+    introCopy.append(
+        createElement('span', 'village-community-directory-kicker', 'WHO BELONGS WHERE'),
+        createElement('h3', 'village-community-directory-title', 'YOUR SANCTUARY COMMUNITY'),
+        createElement(
+            'p',
+            'village-community-directory-intro',
+            'Your companion and creatures you rescue live and work here by choice. Restored Guardians protect their own regions; they do not move into the Sanctuary.'
+        )
+    );
+    const counts = createElement('div', 'village-community-directory-counts');
+    [
+        [String(members.length), 'LIVING HERE'],
+        [String(guardians.length), 'REGIONAL ALLIES']
+    ].forEach(([value, label]) => {
+        const count = createElement('span', 'village-community-directory-count');
+        count.append(
+            createElement('strong', '', value),
+            createElement('span', '', label)
+        );
+        counts.append(count);
+    });
+    intro.append(introCopy, counts);
+    directory.append(intro);
+
+    const residentSection = createElement('section', 'village-community-group');
+    residentSection.append(
+        createElement('h4', 'village-community-group-title', 'SANCTUARY RESIDENTS'),
+        createElement(
+            'p',
+            'village-community-group-note',
+            'These are the lives building a home with you.'
+        )
+    );
+    const residentGrid = createElement('div', 'village-community-grid');
+    if (members.length === 0) {
+        residentGrid.append(createElement(
+            'p',
+            'village-community-directory-empty',
+            'Rescue a creature during an expedition to welcome the first resident.'
+        ));
+    } else {
+        members.forEach(member => {
+            const card = createElement('article', 'village-community-member');
+            card.dataset.communityType = member.communityType || 'companion';
+            const identity = createElement('div', 'village-community-member-identity');
+            const identityCopy = createElement('span', 'village-community-member-copy');
+            const isRescuedResident = member.communityType === 'rescued_resident';
+            identityCopy.append(
+                createElement(
+                    'span',
+                    'village-community-member-type',
+                    member.isPlayerCompanion
+                        ? 'YOUR COMPANION'
+                        : isRescuedResident
+                            ? 'RESCUED RESIDENT'
+                            : 'COMPANION'
+                ),
+                createElement('strong', 'village-community-member-name', member.name || 'Unnamed creature'),
+                createElement(
+                    'span',
+                    'village-community-member-role',
+                    member.role || (
+                        member.isPlayerCompanion
+                            ? 'Expedition Partner'
+                            : isRescuedResident
+                                ? 'Sanctuary Resident'
+                                : 'Companion'
+                    )
+                )
+            );
+            identity.append(createCreatureAvatar(member), identityCopy);
+            card.append(
+                identity,
+                createElement(
+                    'p',
+                    'village-community-member-contribution',
+                    member.contributionLine || member.supportLabel ||
+                        'Shares the journey and helps the Sanctuary understand this living world.'
+                ),
+                createElement(
+                    'span',
+                    'village-community-member-status',
+                    getCommunityMemberStatus(member, snapshot)
+                )
+            );
+            residentGrid.append(card);
+        });
+    }
+    residentSection.append(residentGrid);
+    directory.append(residentSection);
+
+    const guardianSection = createElement('section', 'village-community-group is-guardians');
+    guardianSection.append(
+        createElement('h4', 'village-community-group-title', 'REGIONAL GUARDIANS'),
+        createElement(
+            'p',
+            'village-community-group-note',
+            'Restored allies hold the places you helped. Their support reaches the Sanctuary without turning them into residents.'
+        )
+    );
+    const guardianGrid = createElement('div', 'village-guardian-grid');
+    if (guardians.length === 0) {
+        guardianGrid.append(createElement(
+            'p',
+            'village-community-directory-empty',
+            'Guardian outcomes will be recorded here after each region is restored.'
+        ));
+    } else {
+        guardians.forEach(guardian => {
+            const card = createElement('article', 'village-guardian-card');
+            card.style.setProperty('--guardian-accent', guardian.accent || '#8FE3CF');
+            card.dataset.presence = guardian.sanctuaryPresence;
+            const image = document.createElement('img');
+            image.className = 'village-guardian-artwork';
+            image.src = guardian.artwork;
+            image.alt = `${guardian.name}, ${guardian.regionRole}`;
+            image.loading = 'lazy';
+            image.decoding = 'async';
+            const copy = createElement('div', 'village-guardian-copy');
+            copy.append(
+                createElement(
+                    'span',
+                    'village-guardian-presence',
+                    guardian.sanctuaryPresence === 'heart_projection'
+                        ? 'HEART LINK · NOT A RESIDENT'
+                        : 'PROTECTING THEIR REGION'
+                ),
+                createElement('strong', 'village-guardian-name', guardian.name),
+                createElement('span', 'village-guardian-role', guardian.regionRole),
+                createElement('p', 'village-guardian-outcome', guardian.outcomeLine)
+            );
+            card.append(image, copy);
+            guardianGrid.append(card);
+        });
+    }
+    guardianSection.append(guardianGrid);
+    directory.append(guardianSection);
+    return directory;
+}
+
 function createVillageVision() {
     const vision = createElement('section', 'village-command-vision');
     if (shouldPlayCinematicMedia()) {
@@ -466,6 +654,7 @@ export default class VillageCommandPanel {
         this.guidedActionKey = null;
         this.statusMessage = '';
         this.lastDecisionResult = null;
+        this.activeView = 'plan';
         this.keyboardHandler = null;
         this.refreshTimer = null;
         this.inputActivationTimer = null;
@@ -498,6 +687,7 @@ export default class VillageCommandPanel {
         this.onClose = onClose;
         this.statusMessage = '';
         this.lastDecisionResult = null;
+        this.activeView = 'plan';
         const requestedPlot = snapshot.plots.find(plot => plot.id === plotId);
         this.selectedPlotId = requestedPlot?.id || null;
         this.contextual = Boolean(this.selectedPlotId);
@@ -1065,6 +1255,29 @@ export default class VillageCommandPanel {
         });
         phase.append(phaseCopy, milestoneTrack);
 
+        const viewTabs = !this.contextual
+            ? createVillageViewTabs(snapshot, {
+                activeView: this.activeView,
+                onSelect: view => {
+                    this.activeView = view;
+                    this.statusMessage = '';
+                    this.render();
+                }
+            })
+            : null;
+        if (viewTabs && this.activeView === 'community') {
+            shell.append(
+                header,
+                resources,
+                status,
+                viewTabs,
+                createCommunityDirectory(snapshot)
+            );
+            this.root.append(shell);
+            restoreScrollState();
+            return;
+        }
+
         const body = createElement('div', 'village-command-body');
         const catalog = createElement('section', 'village-building-catalog');
         catalog.append(createElement(
@@ -1381,6 +1594,7 @@ export default class VillageCommandPanel {
         }
         body.append(catalog, plan);
         shell.append(header, resources, status);
+        if (viewTabs) shell.append(viewTabs);
         if (!this.contextual) {
             const heartDecision = this.onDecision
                 ? createHeartDecision(snapshot, {
@@ -1434,6 +1648,7 @@ export default class VillageCommandPanel {
         this.guidedActionKey = null;
         this.statusMessage = '';
         this.lastDecisionResult = null;
+        this.activeView = 'plan';
         const closeHandler = this.onClose;
         this.getSnapshot = null;
         this.onPlace = null;

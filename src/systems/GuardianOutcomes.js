@@ -15,6 +15,8 @@ export const GUARDIAN_OUTCOME_DEFINITIONS = Object.freeze([
         defaultOutcome: 'restored',
         standing: 'regional_ally',
         sanctuaryPresence: 'heart_projection',
+        artwork: '/game/guardians/elder-treant.webp',
+        accent: '#71E6B1',
         regionRole: 'Forest Rootwarden',
         outcomeLine: 'Restored to the forest. His roots can answer the Village Heart.'
     }),
@@ -25,6 +27,8 @@ export const GUARDIAN_OUTCOME_DEFINITIONS = Object.freeze([
         defaultOutcome: 'restored',
         standing: 'regional_guardian',
         sanctuaryPresence: 'none',
+        artwork: '/game/guardians/crystal-guardian.webp',
+        accent: '#F4F4F4',
         regionRole: 'Cavern Resonance Keeper',
         outcomeLine: 'Remains in the Crystal Caves to protect the restored resonance.'
     }),
@@ -35,6 +39,8 @@ export const GUARDIAN_OUTCOME_DEFINITIONS = Object.freeze([
         defaultOutcome: 'restored',
         standing: 'regional_guardian',
         sanctuaryPresence: 'none',
+        artwork: '/game/guardians/nyxvoral.webp',
+        accent: '#49E6D3',
         regionRole: 'Reef Passage Guardian',
         outcomeLine: 'Guards the reopened passages of the Cosmic Reef.'
     }),
@@ -45,6 +51,8 @@ export const GUARDIAN_OUTCOME_DEFINITIONS = Object.freeze([
         defaultOutcome: 'restored',
         standing: 'regional_guardian',
         sanctuaryPresence: 'none',
+        artwork: '/game/guardians/cosmic-titan.webp',
+        accent: '#DF5D5D',
         regionRole: 'Peak Warning Keeper',
         outcomeLine: 'Holds the restored warning network across the Void Peaks.'
     }),
@@ -55,6 +63,8 @@ export const GUARDIAN_OUTCOME_DEFINITIONS = Object.freeze([
         defaultOutcome: 'restored',
         standing: 'regional_guardian',
         sanctuaryPresence: 'none',
+        artwork: '/game/guardians/shadow-phoenix.webp',
+        accent: '#F2C14E',
         regionRole: 'Aurora Renewal Guardian',
         outcomeLine: 'Returns to the Aurora Depths as its renewal signal.'
     }),
@@ -65,6 +75,8 @@ export const GUARDIAN_OUTCOME_DEFINITIONS = Object.freeze([
         defaultOutcome: 'restored',
         standing: 'regional_guardian',
         sanctuaryPresence: 'none',
+        artwork: '/game/guardians/void-empress.webp',
+        accent: '#8FE3CF',
         regionRole: 'Void Boundary Guardian',
         outcomeLine: 'Remains at the boundary where the living signal was restored.'
     })
