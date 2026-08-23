@@ -219,6 +219,35 @@ waiting for a consequential player choice. Workers remain visible along physical
 building-to-Heart routes, so the settlement communicates production through
 activity rather than a permanent status panel.
 
+### Inhabited District Transformations
+
+A completed structure changes the Sanctuary around it. The authored building is
+therefore only the center of a small inhabited district, not an icon placed on a
+generic plot. Each district has a distinct ground material, ecological silhouette,
+plain-language activity cue, persistent world consequence, and one low-cost motion
+layer. These identities remain visible without opening the planner:
+
+| Building | District identity | Visible world change | Motion language |
+| --- | --- | --- | --- |
+| Forager Hut | Renewing Garden | Safe edible growth returns along marked paths | Seed drift |
+| Living Sawmill | Stormwood Yard | Only storm-fallen timber enters the repair yard | Stormwood turn |
+| Current Masonry | Open-Current Buttress | Loose stone protects the route without sealing the Current | Stone resonance |
+| Shared Habitat | Shared Shelter Grove | A resting light appears for every creature who chooses this home | Home-lantern breath |
+| Discovery Workshop | Shared Discovery Bench | Human tools and creature knowledge illuminate the same circuit | Dual-signal orbit |
+
+Construction reveals the appropriate district underneath the future structure,
+so building completion feels like growth from the existing world rather than a
+card being swapped onto the map. Completed and staffed districts settle back to
+ambient intensity. Only the next unresolved action, such as inviting a helper to
+the Workshop, keeps its label and guidance visible.
+
+District metadata is part of the renderer contract: identity, material, motion,
+activity cue, and world-change copy are exposed on both the terrain and the
+interactive plot. Mobile smoke coverage verifies all five identities together,
+including animation activity, readable touch targets, and the single-action visual
+hierarchy. The animation budget remains bounded to one district motion per built
+structure.
+
 ## 7. Gameplay Impact Contract
 
 Every completed building changes another established game loop:

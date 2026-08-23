@@ -159,6 +159,9 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain('tangentX = -normalY');
         expect(sceneSource).toContain('setSanctuaryPeripheralWayfindingVisible(visible = true)');
         expect(sceneSource).toContain(".setData('peripheralWayfindingSuppressed', !visible)");
+        expect(sceneSource).toContain(
+            'filter(element => element && element.active !== false)'
+        );
         expect(sceneSource).toContain('this.setSanctuaryPeripheralWayfindingVisible(!nextActive);');
         expect(sceneSource).toContain('this.offerVillageHeartInteraction(closeSnapshot)');
         expect(sceneSource).toContain(
@@ -887,5 +890,48 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain('this.worldBackground = this.worldBuilder.createBackgroundImage();');
         expect(scene).toContain('x: this.worldWidth / 2');
         expect(scene).toContain('y: this.worldHeight / 2');
+    });
+
+    test('every completed building transforms its district with a distinct world identity', () => {
+        const settlement = read('systems/VillageSettlement.js');
+        const world = read('systems/world/WorldBuilder.js');
+        const smoke = read('../scripts/smoke-secondary-journeys.js');
+
+        [
+            'renewing_garden',
+            'stormwood_yard',
+            'open_current_buttress',
+            'shared_shelter_grove',
+            'shared_discovery_bench'
+        ].forEach(identity => expect(settlement).toContain(`identity: '${identity}'`));
+        [
+            'regrowth_rows_v1',
+            'fallen_timber_rings_v1',
+            'resonant_stone_arc_v1',
+            'resting_petals_v1',
+            'consent_circuit_v1'
+        ].forEach(material => expect(settlement).toContain(`material: '${material}'`));
+        [
+            'seed_drift',
+            'stormwood_turn',
+            'stone_resonance',
+            'home_lantern_breath',
+            'dual_signal_orbit'
+        ].forEach(motion => expect(settlement).toContain(`motion: '${motion}'`));
+
+        expect(world).toContain('createVillageInhabitedDistrict(building, {');
+        expect(world).toContain(".setData('villageInhabitedDistrict', true)");
+        expect(world).toContain(".setData('villageDistrictIdentity', profile.identity)");
+        expect(world).toContain(".setData('villageDistrictMaterial', profile.material)");
+        expect(world).toContain(".setData('villageDistrictMotion', profile.motion)");
+        expect(world).toContain(".setData('villageDistrictWorldChange', profile.worldChange)");
+        expect(world).toContain(".setData('villageDistrictMotionActive', Boolean(tween))");
+        expect(world).toContain("'villageInhabitedDistrictIds'");
+        expect(world).toContain("'villageInhabitedDistrictMaterials'");
+        expect(world).toContain("'villageInhabitedDistrictMotions'");
+        expect(world).toContain("'villageInhabitedWorldChanges'");
+        expect(smoke).toContain("villageCommandPreview: 'complete'");
+        expect(smoke).toContain('village-complete-world-identities-mobile.png');
+        expect(smoke).toContain('expectedDistrictIds');
     });
 });

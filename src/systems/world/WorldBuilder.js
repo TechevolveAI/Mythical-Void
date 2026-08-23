@@ -1130,6 +1130,10 @@ class WorldBuilder {
         const plotBasins = plotOffsets.map((offset, index) => {
             const plot = VILLAGE_PLOTS[index];
             const building = buildingByPlot.get(plot.id) || null;
+            const buildingDefinition = building?.definition ||
+                VILLAGE_BUILDING_DEFINITIONS.find(
+                    definition => definition.id === building?.definitionId
+                ) || null;
             const complete = building?.status === 'complete';
             return {
                 x: offset.x,
@@ -1137,6 +1141,8 @@ class WorldBuilder {
                 width: compact ? (building ? 178 : 150) : (building ? 194 : 164),
                 height: compact ? (building ? 128 : 102) : (building ? 138 : 108),
                 building,
+                buildingDefinition,
+                worldProfile: buildingDefinition?.worldProfile || null,
                 complete
             };
         });
@@ -1316,7 +1322,20 @@ class WorldBuilder {
         });
 
         plotBasins.forEach((basin, index) => {
-            const profile = districtProfiles[index];
+            const worldProfile = basin.worldProfile;
+            const profile = worldProfile
+                ? {
+                    id: worldProfile.identity,
+                    motif: {
+                        fruit: 'growth',
+                        leaf: 'canopy',
+                        crystal: 'current',
+                        flower: 'shelter',
+                        spark: 'signal'
+                    }[worldProfile.ecologyShape] || 'signal',
+                    color: worldProfile.accent
+                }
+                : districtProfiles[index];
             const settled = Boolean(basin.building);
             const identityAlpha = settled ? 0.52 : unlocked ? 0.24 : 0.12;
             const thresholdY = basin.y + (compact ? 42 : 48);
@@ -1406,10 +1425,15 @@ class WorldBuilder {
         let ecologyNodeCount = 0;
         plotBasins.forEach((basin, index) => {
             if (!basin.complete) return;
-            const profile = ecologyByBuilding[basin.building.definitionId] || {
-                color: 0x71E6B1,
-                shape: 'leaf'
-            };
+            const profile = basin.worldProfile
+                ? {
+                    color: basin.worldProfile.accent,
+                    shape: basin.worldProfile.ecologyShape
+                }
+                : ecologyByBuilding[basin.building.definitionId] || {
+                    color: 0x71E6B1,
+                    shape: 'leaf'
+                };
             const side = index % 2 === 0 ? -1 : 1;
             const clusters = [
                 { x: basin.x + side * basin.width * 0.38, y: basin.y + 15 },
@@ -1505,7 +1529,23 @@ class WorldBuilder {
             .setData('villageLivingBasinCount', livingBasins.length)
             .setData('villageReservedFoundationCount', plotBasins.length - settledBasins.length)
             .setData('districtIdentityCount', districtProfiles.length)
-            .setData('districtIdentityIds', districtProfiles.map(profile => profile.id));
+            .setData('districtIdentityIds', districtProfiles.map(profile => profile.id))
+            .setData(
+                'villageInhabitedDistrictIds',
+                settledBasins.map(basin => basin.worldProfile?.identity).filter(Boolean)
+            )
+            .setData(
+                'villageInhabitedDistrictMaterials',
+                settledBasins.map(basin => basin.worldProfile?.material).filter(Boolean)
+            )
+            .setData(
+                'villageInhabitedDistrictMotions',
+                settledBasins.map(basin => basin.worldProfile?.motion).filter(Boolean)
+            )
+            .setData(
+                'villageInhabitedWorldChanges',
+                settledBasins.map(basin => basin.worldProfile?.worldChange).filter(Boolean)
+            );
         ecology
             .setData('villageDistrictEcology', true)
             .setData('growthTier', growthTier)
@@ -2265,6 +2305,13 @@ class WorldBuilder {
                     state: plotState
                 })
                 : null;
+            const inhabitedDistrict = building
+                ? this.createVillageInhabitedDistrict(building, {
+                    compact: compactSettlement,
+                    index,
+                    progress: constructionProgress
+                })
+                : null;
             drawing.fillStyle(0x102B26, building ? 0.7 : 0.36);
             drawing.fillEllipse(0, 29, building ? 136 : 96, building ? 46 : 29);
             drawing.lineStyle(
@@ -2443,6 +2490,7 @@ class WorldBuilder {
                 : null;
             container.add([
                 drawing,
+                ...(inhabitedDistrict ? [inhabitedDistrict.container] : []),
                 ...(worldArtwork ? [worldArtwork] : []),
                 ...(artworkGrounding ? [artworkGrounding] : []),
                 stateMarker,
@@ -2455,6 +2503,9 @@ class WorldBuilder {
                 stateLabel
             ]);
             landmark.buildingElements.push(container);
+            if (inhabitedDistrict?.tween) {
+                landmark.buildingTweens.push(inhabitedDistrict.tween);
+            }
             if (worker) {
                 landmark.workerElements.push(worker.container);
                 landmark.buildingElements.push(worker.container);
@@ -2566,6 +2617,10 @@ class WorldBuilder {
                 .setData('worldEffectLabel', definition?.worldEffectLabel || null)
                 .setData('worldActionLabel', definition?.worldActionLabel || null)
                 .setData('purposeGlyph', definition?.purposeGlyph || null)
+                .setData('villageDistrictIdentity', definition?.worldProfile?.identity || null)
+                .setData('villageDistrictMaterial', definition?.worldProfile?.material || null)
+                .setData('villageDistrictActivityCue', definition?.worldProfile?.activityCue || null)
+                .setData('villageDistrictWorldChange', definition?.worldProfile?.worldChange || null)
                 .setData('villageAmbientRole', ambientRole)
                 .setData('guided', guidedPlot);
             plotHitZone.on('pointerover', () => {
@@ -2673,6 +2728,7 @@ class WorldBuilder {
                 hitZone: plotHitZone,
                 worldArtwork,
                 artworkGrounding,
+                inhabitedDistrict: inhabitedDistrict?.container || null,
                 plotLabel,
                 stateLabel,
                 focusRing,
@@ -3716,6 +3772,201 @@ class WorldBuilder {
         return grounding;
     }
 
+    createVillageInhabitedDistrict(building, {
+        compact = false,
+        index = 0,
+        progress = 1
+    } = {}) {
+        const profile = building?.definition?.worldProfile ||
+            VILLAGE_BUILDING_DEFINITIONS.find(
+                definition => definition.id === building?.definitionId
+            )?.worldProfile;
+        if (!building || !profile) return null;
+
+        const complete = building.status === 'complete';
+        const reveal = complete ? 1 : Phaser.Math.Clamp(progress, 0.18, 0.72);
+        const container = this.scene.add.container(0, 0)
+            .setAlpha(complete ? 1 : 0.72)
+            .setData('villageInhabitedDistrict', true)
+            .setData('villageDistrictIdentity', profile.identity)
+            .setData('villageDistrictMaterial', profile.material)
+            .setData('villageDistrictMotion', profile.motion)
+            .setData('villageDistrictActivityCue', profile.activityCue)
+            .setData('villageDistrictWorldChange', profile.worldChange)
+            .setData('villageDistrictReveal', reveal)
+            .setData('villageDistrictBuildingId', building.definitionId)
+            .setData(
+                'ariaLabel',
+                `${building.definition?.label || building.definitionId}. ${profile.worldChange}`
+            );
+        const ground = this.scene.add.graphics();
+        const detail = this.scene.add.graphics();
+        const motionLayer = this.scene.add.container(0, 0)
+            .setData('villageDistrictMotionLayer', profile.motion);
+        const width = compact ? 112 : 156;
+        const baseY = compact ? 29 : 38;
+        const accent = profile.accent;
+        const secondary = profile.secondary;
+        const direction = index % 2 === 0 ? -1 : 1;
+
+        ground.fillStyle(0x071411, 0.42 * reveal);
+        ground.fillEllipse(0, baseY + 4, width, compact ? 37 : 49);
+        ground.lineStyle(compact ? 5 : 7, 0x102B26, 0.62 * reveal);
+        ground.beginPath();
+        ground.arc(0, baseY + 2, width * 0.42, Math.PI * 1.08, Math.PI * 1.92);
+        ground.strokePath();
+        ground.lineStyle(2, accent, 0.34 * reveal);
+        ground.beginPath();
+        ground.arc(0, baseY + 2, width * 0.45, Math.PI * 1.12, Math.PI * 1.88);
+        ground.strokePath();
+
+        if (building.definitionId === 'forager_hut') {
+            [-1, 0, 1].forEach((row, rowIndex) => {
+                detail.lineStyle(1.5, rowIndex === 1 ? accent : secondary, 0.5 * reveal);
+                detail.beginPath();
+                detail.arc(
+                    direction * 4,
+                    baseY + 3 + (row * 8),
+                    compact ? 38 - (rowIndex * 4) : 53 - (rowIndex * 5),
+                    Math.PI * 0.12,
+                    Math.PI * 0.88
+                );
+                detail.strokePath();
+            });
+            [-37, -18, 3, 24, 43].forEach((x, seedIndex) => {
+                detail.fillStyle(seedIndex % 2 ? secondary : accent, 0.72 * reveal);
+                detail.fillCircle(x, baseY + 7 + (seedIndex % 2) * 6, compact ? 2.2 : 3);
+            });
+            const seeds = this.scene.add.graphics();
+            [-8, 0, 9].forEach((x, seedIndex) => {
+                seeds.fillStyle(seedIndex === 1 ? 0xF4F4F4 : accent, 0.82);
+                seeds.fillCircle(x, seedIndex % 2 ? 1 : 5, compact ? 1.8 : 2.2);
+            });
+            motionLayer.setPosition(direction * (compact ? 43 : 61), baseY - 19).add(seeds);
+        } else if (building.definitionId === 'sawmill') {
+            [-26, 0, 26].forEach((x, logIndex) => {
+                detail.fillStyle(0x6E4D2E, 0.72 * reveal);
+                detail.fillRoundedRect(x - 12, baseY + (logIndex % 2) * 7, 25, 7, 3);
+                detail.lineStyle(1, logIndex === 1 ? accent : secondary, 0.64 * reveal);
+                detail.strokeCircle(x + 10, baseY + 3 + (logIndex % 2) * 7, 3);
+            });
+            const wheel = this.scene.add.graphics();
+            wheel.lineStyle(2, accent, 0.72);
+            wheel.strokeCircle(0, 0, compact ? 8 : 10);
+            wheel.lineStyle(1, 0xF4F4F4, 0.7);
+            wheel.lineBetween(-7, 0, 7, 0);
+            wheel.lineBetween(0, -7, 0, 7);
+            motionLayer.setPosition(direction * (compact ? 45 : 62), baseY - 12).add(wheel);
+        } else if (building.definitionId === 'current_masonry') {
+            detail.lineStyle(compact ? 5 : 7, 0x071411, 0.84 * reveal);
+            detail.lineBetween(0, baseY + 18, direction * 3, baseY - 17);
+            detail.lineStyle(2, secondary, 0.76 * reveal);
+            detail.lineBetween(0, baseY + 18, direction * 3, baseY - 17);
+            [-42, -25, 24, 43].forEach((x, stoneIndex) => {
+                const stoneY = baseY + (stoneIndex % 2 ? 9 : 1);
+                detail.fillStyle(accent, 0.62 * reveal);
+                detail.fillTriangle(x, stoneY - 7, x - 6, stoneY + 4, x + 6, stoneY + 4);
+            });
+            const resonance = this.scene.add.graphics();
+            resonance.lineStyle(1.5, secondary, 0.76);
+            resonance.strokeCircle(0, 0, compact ? 7 : 9);
+            resonance.fillStyle(0xF4F4F4, 0.9);
+            resonance.fillCircle(0, 0, 2);
+            motionLayer.setPosition(direction * (compact ? 32 : 45), baseY - 15).add(resonance);
+        } else if (building.definitionId === 'habitat') {
+            [-1, 0, 1].forEach((petal, petalIndex) => {
+                detail.lineStyle(2, petalIndex === 1 ? secondary : accent, 0.58 * reveal);
+                detail.beginPath();
+                detail.arc(
+                    petal * (compact ? 20 : 28),
+                    baseY + 5,
+                    compact ? 16 : 21,
+                    Math.PI,
+                    Math.PI * 2
+                );
+                detail.strokePath();
+            });
+            const homeLights = this.scene.add.graphics();
+            [-7, 7].forEach((x, lightIndex) => {
+                homeLights.fillStyle(lightIndex ? secondary : accent, 0.86);
+                homeLights.fillCircle(x, lightIndex ? 2 : -1, compact ? 3 : 4);
+                homeLights.lineStyle(1, 0xF4F4F4, 0.58);
+                homeLights.strokeCircle(x, lightIndex ? 2 : -1, compact ? 5 : 6);
+            });
+            motionLayer.setPosition(0, baseY - 19).add(homeLights);
+        } else if (building.definitionId === 'workshop') {
+            const circuitPoints = [
+                { x: -47, y: baseY + 10 },
+                { x: -25, y: baseY - 3 },
+                { x: 0, y: baseY + 9 },
+                { x: 25, y: baseY - 3 },
+                { x: 47, y: baseY + 10 }
+            ];
+            circuitPoints.slice(0, -1).forEach((point, pointIndex) => {
+                const next = circuitPoints[pointIndex + 1];
+                detail.lineStyle(2, pointIndex % 2 ? secondary : accent, 0.62 * reveal);
+                detail.lineBetween(point.x, point.y, next.x, next.y);
+                detail.fillStyle(pointIndex % 2 ? secondary : accent, 0.78 * reveal);
+                detail.fillCircle(point.x, point.y, 2.5);
+            });
+            const dualSignal = this.scene.add.graphics();
+            dualSignal.fillStyle(accent, 0.9);
+            dualSignal.fillCircle(-7, 0, compact ? 2.5 : 3);
+            dualSignal.fillStyle(secondary, 0.9);
+            dualSignal.fillCircle(7, 0, compact ? 2.5 : 3);
+            dualSignal.lineStyle(1, 0xF4F4F4, 0.72);
+            dualSignal.lineBetween(-4, 0, 4, 0);
+            motionLayer.setPosition(0, baseY - 19).add(dualSignal);
+        }
+
+        ground.setData('villageDistrictGroundLayer', profile.material);
+        detail.setData('villageDistrictDetailLayer', profile.identity);
+        container.add([ground, detail, motionLayer]);
+        const tweenConfig = {
+            seed_drift: {
+                targets: motionLayer,
+                y: { from: motionLayer.y + 4, to: motionLayer.y - 5 },
+                alpha: { from: 0.44, to: 0.96 },
+                duration: 1800
+            },
+            stormwood_turn: {
+                targets: motionLayer,
+                angle: { from: 0, to: 360 },
+                duration: 5600
+            },
+            stone_resonance: {
+                targets: motionLayer,
+                scaleX: { from: 0.9, to: 1.08 },
+                scaleY: { from: 0.9, to: 1.08 },
+                alpha: { from: 0.46, to: 0.92 },
+                duration: 1650
+            },
+            home_lantern_breath: {
+                targets: motionLayer,
+                scaleX: { from: 0.95, to: 1.05 },
+                scaleY: { from: 0.95, to: 1.05 },
+                alpha: { from: 0.5, to: 0.94 },
+                duration: 2100
+            },
+            dual_signal_orbit: {
+                targets: motionLayer,
+                angle: { from: -8, to: 8 },
+                alpha: { from: 0.58, to: 1 },
+                duration: 1450
+            }
+        }[profile.motion];
+        const tween = tweenConfig
+            ? this.scene.tweens.add({
+                ...tweenConfig,
+                yoyo: profile.motion !== 'stormwood_turn',
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            })
+            : null;
+        container.setData('villageDistrictMotionActive', Boolean(tween));
+        return { container, tween, profile };
+    }
+
     drawVillageFoundationCradle(
         drawing,
         {
@@ -4713,6 +4964,15 @@ class WorldBuilder {
         activity.add(routine);
         activity.setData('helperName', building?.creature?.name || 'Companion');
         activity.setData('routine', building.definitionId);
+        activity.setData('villageActivityProfile', building.definition?.worldProfile?.identity);
+        activity.setData('villageActivityMotion', building.definition?.worldProfile?.motion);
+        activity.setData('villageActivityCue', building.definition?.worldProfile?.activityCue);
+        activity.setData('villageWorldChange', building.definition?.worldProfile?.worldChange);
+        activity.setData(
+            'ariaLabel',
+            `${building.definition?.label || building.definitionId}. ` +
+                `${building.definition?.worldProfile?.worldChange || 'The district is active.'}`
+        );
         return activity;
     }
 

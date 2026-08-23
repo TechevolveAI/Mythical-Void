@@ -13004,7 +13004,19 @@ async function smokeVillageUi(session, exceptions) {
                     ),
                     reservedFoundations: landmark?.districtTerrain?.getData?.(
                         'villageReservedFoundationCount'
-                    )
+                    ),
+                    inhabitedIds: landmark?.districtTerrain?.getData?.(
+                        'villageInhabitedDistrictIds'
+                    ) || [],
+                    inhabitedMaterials: landmark?.districtTerrain?.getData?.(
+                        'villageInhabitedDistrictMaterials'
+                    ) || [],
+                    inhabitedMotions: landmark?.districtTerrain?.getData?.(
+                        'villageInhabitedDistrictMotions'
+                    ) || [],
+                    worldChanges: landmark?.districtTerrain?.getData?.(
+                        'villageInhabitedWorldChanges'
+                    ) || []
                 },
                 growthEcology: {
                     identity: landmark?.districtEcology?.getData?.(
@@ -13139,6 +13151,20 @@ async function smokeVillageUi(session, exceptions) {
                     anchorAmbientRole: presentation.districtAnchor?.getData?.(
                         'villageAmbientRole'
                     ),
+                    inhabitedDistrict: presentation.inhabitedDistrict ? {
+                        identity: presentation.inhabitedDistrict.getData('villageDistrictIdentity'),
+                        material: presentation.inhabitedDistrict.getData('villageDistrictMaterial'),
+                        motion: presentation.inhabitedDistrict.getData('villageDistrictMotion'),
+                        motionActive: presentation.inhabitedDistrict.getData(
+                            'villageDistrictMotionActive'
+                        ),
+                        activityCue: presentation.inhabitedDistrict.getData(
+                            'villageDistrictActivityCue'
+                        ),
+                        worldChange: presentation.inhabitedDistrict.getData(
+                            'villageDistrictWorldChange'
+                        )
+                    } : null,
                     progressNodes: presentation.stateMarker?.getData?.('progressNodes'),
                     markerActive: presentation.stateMarker?.active === true,
                     label: presentation.plotLabel?.text || '',
@@ -13272,6 +13298,13 @@ async function smokeVillageUi(session, exceptions) {
         layout.worldPresentation.districtTerrain.height < 430 ||
         layout.worldPresentation.districtTerrain.livingBasins !== 4 ||
         layout.worldPresentation.districtTerrain.reservedFoundations !== 2 ||
+        layout.worldPresentation.districtTerrain.inhabitedIds.sort().join(',') !==
+            'open_current_buttress,renewing_garden,stormwood_yard' ||
+        layout.worldPresentation.districtTerrain.inhabitedMaterials.sort().join(',') !==
+            'fallen_timber_rings_v1,regrowth_rows_v1,resonant_stone_arc_v1' ||
+        layout.worldPresentation.districtTerrain.inhabitedMotions.sort().join(',') !==
+            'seed_drift,stone_resonance,stormwood_turn' ||
+        layout.worldPresentation.districtTerrain.worldChanges.length !== 3 ||
         layout.worldPresentation.growthEcology.identity !== 'shared_crossing' ||
         layout.worldPresentation.growthEcology.canopyCount !== 2 ||
         layout.worldPresentation.growthEcology.currentNodeCount !== 5 ||
@@ -13321,7 +13354,7 @@ async function smokeVillageUi(session, exceptions) {
         !layout.worldPresentation.actionLabel.includes('HEART CHOICE') ||
         !layout.worldPresentation.statusLabel.includes('ROOTS') ||
         layout.worldPresentation.animatedElements < 8 ||
-        layout.worldPresentation.animatedElements > 20 ||
+        layout.worldPresentation.animatedElements > 25 ||
         layout.worldPresentation.workerCount !== 3 ||
         layout.worldPresentation.workerNames.some(name => !name) ||
         layout.worldPresentation.workerRoutines.some(cue => !cue) ||
@@ -13375,6 +13408,12 @@ async function smokeVillageUi(session, exceptions) {
                 (
                     presentation.containerAmbientRole !== 'inhabited_structure' ||
                     presentation.anchorAmbientRole !== 'inhabited_structure' ||
+                    !presentation.inhabitedDistrict?.identity ||
+                    !presentation.inhabitedDistrict?.material ||
+                    !presentation.inhabitedDistrict?.motion ||
+                    presentation.inhabitedDistrict?.motionActive !== true ||
+                    !presentation.inhabitedDistrict?.activityCue ||
+                    !presentation.inhabitedDistrict?.worldChange ||
                     presentation.artworkDisplaySize < (
                         SMOKE_VIEWPORT_WIDTH <= 600 ? 89 : 134
                     )
@@ -13420,6 +13459,16 @@ async function smokeVillageUi(session, exceptions) {
             presentation.purposeGlyph !== presentation.districtPurposeGlyph ||
             presentation.worldActionLabel !== presentation.districtActionLabel
         )) ||
+        layout.worldPresentation.plotPresentations
+            .filter(presentation => presentation.plotState === 'staffed')
+            .map(presentation => presentation.inhabitedDistrict?.identity)
+            .sort()
+            .join(',') !== 'open_current_buttress,renewing_garden,stormwood_yard' ||
+        layout.worldPresentation.plotPresentations
+            .filter(presentation => presentation.plotState === 'staffed')
+            .map(presentation => presentation.inhabitedDistrict?.motion)
+            .sort()
+            .join(',') !== 'seed_drift,stone_resonance,stormwood_turn' ||
         layout.worldPresentation.plotPresentations
             .filter(presentation => presentation.plotState === 'staffed')
             .map(presentation => presentation.districtPurposeGlyph)
@@ -14954,6 +15003,142 @@ async function smokeVillageUi(session, exceptions) {
         }
     }
 
+    await evaluate(session, `(() => {
+        const game = window.mythicalGame;
+        game.scene.getScenes(true).forEach(active => game.scene.stop(active.scene.key));
+        game.scene.start('GameScene', {
+            villageCommandPreview: 'complete',
+            forceMobileControls: ${SMOKE_VIEWPORT_WIDTH <= 600}
+        });
+        return true;
+    })()`);
+    await waitForScene(session, 'GameScene', 45000);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const landmark = window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark;
+            return landmark?.plotPresentations?.length === 5;
+        })()`),
+        { timeoutMs: 30000, message: 'Complete Village world identities' }
+    );
+    await evaluate(session, `document.querySelector('.village-command-close')?.click()`);
+    await waitFor(
+        () => evaluate(session, `!document.querySelector('.village-command-modal')`),
+        { timeoutMs: 6000, message: 'Complete Village planner closed' }
+    );
+    const completeWorldIdentities = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        scene?.worldBuilder?.clearVillageCommunityMoment?.(landmark);
+        scene?.worldBuilder?.clearVillageDecisionMoment?.(landmark);
+        scene.nearVillageHeart = false;
+        scene.setSanctuaryMomentFocus?.(false);
+        scene.updateSanctuaryFocusMode?.(false);
+        scene.worldBuilder?.setVillageFocusMode?.(landmark, false, { immediate: true });
+        scene.cameras?.main?.stopFollow?.();
+        scene.cameras?.main?.centerOn?.(landmark.zone.x, landmark.zone.y);
+        const terrain = landmark?.districtTerrain;
+        return {
+            presentationMode: landmark?.presentationMode,
+            growthTier: landmark?.snapshot?.worldState?.growthTier,
+            restored: landmark?.snapshot?.worldState?.restored,
+            terrain: {
+                ids: terrain?.getData?.('villageInhabitedDistrictIds') || [],
+                materials: terrain?.getData?.('villageInhabitedDistrictMaterials') || [],
+                motions: terrain?.getData?.('villageInhabitedDistrictMotions') || [],
+                changes: terrain?.getData?.('villageInhabitedWorldChanges') || []
+            },
+            districts: (landmark?.plotPresentations || []).map(presentation => {
+                const district = presentation.inhabitedDistrict;
+                return {
+                    plotId: presentation.plotId,
+                    state: presentation.plotState,
+                    identity: district?.getData?.('villageDistrictIdentity'),
+                    material: district?.getData?.('villageDistrictMaterial'),
+                    motion: district?.getData?.('villageDistrictMotion'),
+                    motionActive: district?.getData?.('villageDistrictMotionActive'),
+                    cue: district?.getData?.('villageDistrictActivityCue'),
+                    change: district?.getData?.('villageDistrictWorldChange'),
+                    reveal: district?.getData?.('villageDistrictReveal'),
+                    districtAlpha: district?.alpha,
+                    structureAlpha: presentation.container?.alpha,
+                    labelAlpha: presentation.plotLabel?.alpha,
+                    stateAlpha: presentation.stateLabel?.alpha,
+                    ariaLabel: district?.getData?.('ariaLabel')
+                };
+            })
+        };
+    })()`);
+    const expectedDistrictIds = [
+        'open_current_buttress',
+        'renewing_garden',
+        'shared_discovery_bench',
+        'shared_shelter_grove',
+        'stormwood_yard'
+    ];
+    const expectedDistrictMaterials = [
+        'consent_circuit_v1',
+        'fallen_timber_rings_v1',
+        'regrowth_rows_v1',
+        'resonant_stone_arc_v1',
+        'resting_petals_v1'
+    ];
+    const expectedDistrictMotions = [
+        'dual_signal_orbit',
+        'home_lantern_breath',
+        'seed_drift',
+        'stone_resonance',
+        'stormwood_turn'
+    ];
+    if (
+        completeWorldIdentities?.presentationMode !== 'ambient' ||
+        completeWorldIdentities.growthTier !== 4 ||
+        completeWorldIdentities.restored !== 5 ||
+        completeWorldIdentities.districts.length !== 5 ||
+        [...completeWorldIdentities.terrain.ids].sort().join(',') !==
+            expectedDistrictIds.join(',') ||
+        [...completeWorldIdentities.terrain.materials].sort().join(',') !==
+            expectedDistrictMaterials.join(',') ||
+        [...completeWorldIdentities.terrain.motions].sort().join(',') !==
+            expectedDistrictMotions.join(',') ||
+        completeWorldIdentities.terrain.changes.length !== 5 ||
+        completeWorldIdentities.districts.map(district => district.identity)
+            .sort().join(',') !== expectedDistrictIds.join(',') ||
+        completeWorldIdentities.districts.map(district => district.material)
+            .sort().join(',') !== expectedDistrictMaterials.join(',') ||
+        completeWorldIdentities.districts.map(district => district.motion)
+            .sort().join(',') !== expectedDistrictMotions.join(',') ||
+        completeWorldIdentities.districts.filter(
+            district => district.state === 'needs_helper'
+        ).length !== 1 ||
+        completeWorldIdentities.districts.some(district => (
+            !['complete', 'staffed', 'needs_helper'].includes(district.state) ||
+            district.motionActive !== true ||
+            !district.cue ||
+            !district.change ||
+            district.reveal !== 1 ||
+            district.districtAlpha !== 1 ||
+            district.structureAlpha < (
+                district.state === 'needs_helper'
+                    ? 1
+                    : SMOKE_VIEWPORT_WIDTH <= 600 ? 0.78 : 0.82
+            ) ||
+            district.labelAlpha !== (district.state === 'needs_helper' ? 0.32 : 0) ||
+            district.stateAlpha !== 0 ||
+            !district.ariaLabel?.includes(district.change)
+        ))
+    ) {
+        throw new Error(
+            `Complete Village world identities failed: ${JSON.stringify(completeWorldIdentities)}`
+        );
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-complete-world-identities-mobile.png'
+            : 'village-complete-world-identities-desktop.png'
+    );
+
     return {
         firstArrivalWorld,
         arrivalReveal,
@@ -14978,6 +15163,7 @@ async function smokeVillageUi(session, exceptions) {
         constructionWorld,
         habitatWorld,
         heartMemory,
+        completeWorldIdentities,
         directWorldTap,
         controlDetection,
         interaction

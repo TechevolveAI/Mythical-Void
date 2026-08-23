@@ -16242,7 +16242,7 @@ class GameScene extends Phaser.Scene {
             ...(this.navigationMarkers || []).filter(element => (
                 element?.getData?.('sanctuaryPeripheralLabel') === true
             ))
-        ].filter(element => element?.active !== false))];
+        ].filter(element => element && element.active !== false))];
     }
 
     updateSanctuaryPeripheralLabelVisibility({

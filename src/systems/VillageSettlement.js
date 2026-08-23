@@ -205,6 +205,16 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         worldEffectLabel: 'FEEDING · +5 HAPPINESS',
         worldActionLabel: 'FEED +5',
         purposeGlyph: 'renewing_food',
+        worldProfile: Object.freeze({
+            identity: 'renewing_garden',
+            material: 'regrowth_rows_v1',
+            ecologyShape: 'fruit',
+            accent: 0xF2C14E,
+            secondary: 0x71E6B1,
+            motion: 'seed_drift',
+            activityCue: 'SAFE PATCHES REGROW',
+            worldChange: 'Edible growth returns along marked paths between visits.'
+        }),
         completionCopy: 'A safe food path opens without stripping a living patch.',
         extensionImpact: 'Supplies food for habitats, workshops, and future residents.',
         residentNeed: Object.freeze({
@@ -234,6 +244,16 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         worldEffectLabel: 'VICTORY · +10 COINS',
         worldActionLabel: 'WIN +10',
         purposeGlyph: 'repair_value',
+        worldProfile: Object.freeze({
+            identity: 'stormwood_yard',
+            material: 'fallen_timber_rings_v1',
+            ecologyShape: 'leaf',
+            accent: 0xC58A52,
+            secondary: 0x71E6B1,
+            motion: 'stormwood_turn',
+            activityCue: 'FALLEN TIMBER SHAPED',
+            worldChange: 'Only storm-fallen wood enters the repair yard.'
+        }),
         completionCopy: 'Storm-fallen timber becomes shelter. No healthy tree is marked.',
         extensionImpact: 'Supplies wood for bridges, defenses, and village expansion.',
         residentNeed: Object.freeze({
@@ -263,6 +283,16 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         worldEffectLabel: 'EXPEDITION · +1 GUARD',
         worldActionLabel: 'BLOCK 1 HIT',
         purposeGlyph: 'current_guard',
+        worldProfile: Object.freeze({
+            identity: 'open_current_buttress',
+            material: 'resonant_stone_arc_v1',
+            ecologyShape: 'crystal',
+            accent: 0xD8E2DF,
+            secondary: 0x8FE3CF,
+            motion: 'stone_resonance',
+            activityCue: 'CURRENT CHANNEL OPEN',
+            worldChange: 'Loose stone protects the route without sealing the Current.'
+        }),
         completionCopy: 'Loose stone settles around the Current without closing its path.',
         extensionImpact: 'Supplies stone for permanent structures and defenses.',
         residentNeed: Object.freeze({
@@ -292,6 +322,16 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         worldEffectLabel: 'HOME · +2 CAPACITY',
         worldActionLabel: '2 SAFE HOMES',
         purposeGlyph: 'shared_home',
+        worldProfile: Object.freeze({
+            identity: 'shared_shelter_grove',
+            material: 'resting_petals_v1',
+            ecologyShape: 'flower',
+            accent: 0xE85D5D,
+            secondary: 0xF2C14E,
+            motion: 'home_lantern_breath',
+            activityCue: 'A LIGHT FOR EACH RESIDENT',
+            worldChange: 'Resting lights appear for creatures who choose this home.'
+        }),
         completionCopy: 'A rescued creature can choose a safe home here.',
         extensionImpact: 'Unlocks resident groups, bonds, and future village districts.',
         residentNeed: Object.freeze({
@@ -316,6 +356,16 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
         worldEffectLabel: 'EXPEDITION · +1 ENERGY',
         worldActionLabel: 'ENERGY +1',
         purposeGlyph: 'shared_energy',
+        worldProfile: Object.freeze({
+            identity: 'shared_discovery_bench',
+            material: 'consent_circuit_v1',
+            ecologyShape: 'spark',
+            accent: 0x8FE3CF,
+            secondary: 0xD94B4B,
+            motion: 'dual_signal_orbit',
+            activityCue: 'TWO SIGNALS IN AGREEMENT',
+            worldChange: 'Human tools and creature knowledge illuminate the same circuit.'
+        }),
         completionCopy: 'Human tools and creature knowledge now share one table.',
         extensionImpact: 'Enables equipment research, katana upgrades, and new technology.',
         residentNeed: Object.freeze({
