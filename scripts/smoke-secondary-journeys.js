@@ -12455,6 +12455,7 @@ async function smokeVillageUi(session, exceptions) {
                 nextAction: { type: 'review', label: 'SETTLEMENT ONLINE' }
             }
         };
+        scene.sanctuaryInteractionDirector?.withdraw?.('villageHeart');
         guide.refreshTarget();
 
         const moveTo = (id, target) => {
@@ -12465,6 +12466,9 @@ async function smokeVillageUi(session, exceptions) {
             camera.centerOn(target.x, target.y);
             scene.currentSanctuaryZoneId = null;
             scene.trackSanctuaryZoneVisit();
+            if (id === 'portal') {
+                scene.handleHubPortalProximity(scene.player, scene.hubPortal);
+            }
             guide.update(400);
             const hudBounds = guide.hudLabel?.getBounds?.();
             return {
@@ -12474,6 +12478,7 @@ async function smokeVillageUi(session, exceptions) {
                 missionId: guide.currentTarget?.missionId,
                 label: guide.currentTarget?.label,
                 source: guide.currentTarget?.source,
+                activeInteractionId: scene.sanctuaryInteractionDirector?.active?.id || null,
                 hudVisible: guide.hudContainer?.visible === true,
                 worldVisible: guide.worldContainer?.visible === true,
                 trailVisible: guide.trailContainer?.visible === true,
@@ -12493,6 +12498,8 @@ async function smokeVillageUi(session, exceptions) {
             moveTo('garden', scene.signalGarden.zone),
             moveTo('portal', scene.hubPortal)
         ];
+        scene.nearHubPortal = false;
+        scene.sanctuaryInteractionDirector?.withdraw?.('hubPortal');
         moveTo('garden_capture', scene.signalGarden.zone);
         return {
             decision,
@@ -12538,8 +12545,9 @@ async function smokeVillageUi(session, exceptions) {
                 )
             )
         )) ||
+        sanctuaryGuidance.steps[2].activeInteractionId !== 'hubPortal' ||
         sanctuaryGuidance.steps[2].hudVisible ||
-        !sanctuaryGuidance.steps[2].worldVisible ||
+        sanctuaryGuidance.steps[2].worldVisible ||
         sanctuaryGuidance.steps[2].trailVisible
     ) {
         throw new Error(

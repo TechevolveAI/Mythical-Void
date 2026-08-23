@@ -314,6 +314,7 @@ describe('Project Beacon waypoint', () => {
         expect(waypointSource).toContain("'living_current_edge_ribbon_v2'");
         expect(waypointSource).toContain("'living_current_threshold_v1'");
         expect(waypointSource).toContain('this.scene.sanctuaryFocusModeActive ||');
+        expect(waypointSource).toContain('interactionOwnsAttention');
         expect(waypointSource).not.toContain("backgroundColor: 'rgba(5, 12, 18, 0.88)'");
 
         const gameSource = fs.readFileSync(path.join(__dirname, '../game.js'), 'utf8');

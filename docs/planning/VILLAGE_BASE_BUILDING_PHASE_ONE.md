@@ -190,9 +190,11 @@ The Living Current uses three world-connected states rather than a rectangular H
 card: a short ground trail leaves the player's feet while travelling, an edge-safe
 ribbon names an off-screen destination, and a breathing threshold settles around
 the destination once it enters view. The ribbon respects phone safe areas and the
-threshold replaces it immediately after camera recentering. The same mobile journey
-contract verifies actual movement through the settlement district, Signal Garden,
-and hub gate, preserving one legible route across the Sanctuary's systems.
+threshold replaces it immediately after camera recentering. When a nearby landmark
+publishes its direct action, navigation yields all three layers so the action becomes
+the sole instruction. The same mobile journey contract verifies actual movement
+through the settlement district, Signal Garden, and hub gate, preserving one legible
+route across the Sanctuary's systems.
 
 ## 7. Gameplay Impact Contract
 

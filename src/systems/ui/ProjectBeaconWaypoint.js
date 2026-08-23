@@ -371,7 +371,13 @@ export default class ProjectBeaconWaypoint {
             this.scene.villageCommandPanel?.domElement ||
             this.scene.storyModalElements?.length
         );
-        if (sanctuaryMomentActive) {
+        const interactionTarget = this.scene.sanctuaryInteractionDirector?.active?.target;
+        const interactionOwnsAttention = isUsableTarget(interactionTarget) &&
+            Math.hypot(
+                interactionTarget.x - player.x,
+                interactionTarget.y - player.y
+            ) <= 200;
+        if (sanctuaryMomentActive || interactionOwnsAttention) {
             this.hudContainer.setVisible(false);
             this.worldContainer.setVisible(false);
             this.trailContainer.setVisible(false);
