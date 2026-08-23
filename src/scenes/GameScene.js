@@ -10288,7 +10288,7 @@ class GameScene extends Phaser.Scene {
             : expeditionDebrief
                 ? 'ALLIANCE DEBRIEF // SHARED EXPEDITION MEMORY'
                 : result.resident.id === 'elder_treant'
-                    ? 'REGIONAL ALLY // VILLAGE HEART'
+                    ? 'REGIONAL ALLY // HEART ECHO'
                     : 'REGIONAL ALLY // SANCTUARY VISIT', {
             fontSize: compact ? '12px' : '14px',
             fontStyle: 'bold',
@@ -10299,7 +10299,9 @@ class GameScene extends Phaser.Scene {
             fontStyle: 'bold',
             color: '#F4F4F4'
         });
-        addText(top + 96, `${result.resident.role}  //  ${result.resident.routine}`, {
+        addText(top + 96, result.resident.id === 'elder_treant'
+            ? 'FOREST ROOTWARDEN  //  SPEAKS THROUGH THE VILLAGE HEART'
+            : `${result.resident.role}  //  ${result.resident.routine}`, {
             fontSize: compact ? '12px' : '14px',
             color: '#F2C14E'
         });

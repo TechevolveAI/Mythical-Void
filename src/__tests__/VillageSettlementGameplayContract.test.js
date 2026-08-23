@@ -692,6 +692,12 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("setData('villageArrivalSteps', ['BUILD', 'INVITE', 'GROW'])");
         expect(world).toContain("'BUILD  ·  INVITE  ·  GROW'");
         expect(world).toContain('drawVillageFoundationCradle(');
+        expect(world).toContain('createVillageStructureStateSilhouette({');
+        expect(world).toContain("setData('villageStructureStateSilhouette', true)");
+        expect(world).toContain("'root_state_silhouettes_v1'");
+        expect(world).toContain("constructing: 'taking_root'");
+        expect(world).toContain("needs_helper: 'awaiting_resident'");
+        expect(world).toContain("staffed: 'working_together'");
         expect(world).toContain('createVillageDistrictAnchor({');
         expect(world).toContain('drawVillagePurposeGlyph(');
         expect(world).toContain("setData('villageDistrictAnchor', true)");

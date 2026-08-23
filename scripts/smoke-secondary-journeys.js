@@ -9896,7 +9896,9 @@ async function smokeGuardianHandoff(session, step, exceptions) {
                 partAwarded: result.shipPartAwarded,
                 katanaAwarded: result.katanaUpgradeAwarded,
                 residentId: result.rescuedResident?.id || null,
-                guardianId: result.guardianResident?.id || null,
+                guardianId: result.guardianOutcome?.guardianId || null,
+                guardianStanding: result.guardianOutcome?.standing || null,
+                guardianPresence: result.guardianOutcome?.sanctuaryPresence || null,
                 pendingDebriefs: state.get('story.projectBeacon.pendingDebriefs') || [],
                 completedCount: Number(state.get('stats.levelsCompleted')) || 0,
                 coins: Number(state.get('player.cosmicCoins')) || 0,
@@ -9914,6 +9916,12 @@ async function smokeGuardianHandoff(session, step, exceptions) {
         completion.partAwarded !== true ||
         !completion.residentId ||
         !completion.guardianId ||
+        !['regional_ally', 'regional_guardian'].includes(completion.guardianStanding) ||
+        (
+            step.levelId === 'mythicalForest'
+                ? completion.guardianPresence !== 'heart_projection'
+                : completion.guardianPresence !== 'none'
+        ) ||
         completion.pendingDebriefs.length !== (step.route === 'finalVoid' ? 0 : 1) ||
         completion.completedCount !== finalHit.completedBefore + 1 ||
         completion.coins <= finalHit.coinsBefore ||
@@ -11345,6 +11353,7 @@ async function smokeVillageUi(session, exceptions) {
                 heartArtworkTint: landmark.heartArtwork?.getData?.('villageArtworkTint'),
                 plots: (landmark.plotPresentations || []).map(presentation => ({
                     plotId: presentation.plotId,
+                    plotState: presentation.plotState,
                     priority: presentation.container?.getData?.('villageFocusPriority'),
                     alpha: presentation.container?.alpha,
                     workerAlpha: presentation.worker?.alpha ?? null,
@@ -11366,7 +11375,22 @@ async function smokeVillageUi(session, exceptions) {
                     ) || null,
                     groundingState: presentation.artworkGrounding?.getData?.(
                         'villageGroundingState'
-                    ) || null
+                    ) || null,
+                    silhouetteLanguage: presentation.stateSilhouette?.getData?.(
+                        'villageStructureStateVisualLanguage'
+                    ),
+                    silhouetteState: presentation.stateSilhouette?.getData?.(
+                        'villageStructureState'
+                    ),
+                    silhouetteAction: presentation.stateSilhouette?.getData?.(
+                        'villageStructureStateAction'
+                    ),
+                    silhouetteBuilt: presentation.stateSilhouette?.getData?.(
+                        'villageStructureStateBuilt'
+                    ),
+                    silhouetteBaseAlpha: presentation.stateSilhouette?.getData?.(
+                        'villageStructureStateBaseAlpha'
+                    )
                 }))
             },
             heartApproach: {
@@ -11841,6 +11865,15 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.focusHierarchy.plots.length !== 5 ||
         integratedWorld.focusHierarchy.plots.some(plot => (
             plot.priority !== 'supporting' ||
+            plot.silhouetteLanguage !== 'root_state_silhouettes_v1' ||
+            plot.silhouetteState !== plot.plotState ||
+            plot.silhouetteAction !== (
+                plot.plotState === 'staffed' ? 'working_together' : 'ready_to_build'
+            ) ||
+            plot.silhouetteBuilt !== (plot.plotState === 'staffed') ||
+            plot.silhouetteBaseAlpha !== (
+                plot.plotState === 'staffed' ? 0.72 : 0.38
+            ) ||
             Math.abs(plot.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.2 : 0.28)) > 0.01 ||
             (
                 plot.workerAlpha !== null &&
@@ -14904,6 +14937,21 @@ async function smokeVillageUi(session, exceptions) {
             progressNodes: presentation?.stateMarker?.getData?.('progressNodes'),
             progressRatio: presentation?.stateMarker?.getData?.('progressRatio'),
             markerActive: presentation?.stateMarker?.active === true,
+            silhouetteState: presentation?.stateSilhouette?.getData?.(
+                'villageStructureState'
+            ),
+            silhouetteAction: presentation?.stateSilhouette?.getData?.(
+                'villageStructureStateAction'
+            ),
+            silhouetteLanguage: presentation?.stateSilhouette?.getData?.(
+                'villageStructureStateVisualLanguage'
+            ),
+            silhouetteProgress: presentation?.stateSilhouette?.getData?.(
+                'villageStructureStateProgress'
+            ),
+            silhouetteBuilt: presentation?.stateSilhouette?.getData?.(
+                'villageStructureStateBuilt'
+            ),
             hitState: zone?.getData?.('plotState'),
             anchorAction: presentation?.districtAnchor?.getData?.(
                 'villageDistrictActionVerb'
@@ -14929,6 +14977,12 @@ async function smokeVillageUi(session, exceptions) {
     })()`);
     if (
         constructionWorld.state !== 'constructing' ||
+        constructionWorld.silhouetteState !== 'constructing' ||
+        constructionWorld.silhouetteAction !== 'taking_root' ||
+        constructionWorld.silhouetteLanguage !== 'root_state_silhouettes_v1' ||
+        constructionWorld.silhouetteBuilt !== true ||
+        constructionWorld.silhouetteProgress < 0 ||
+        constructionWorld.silhouetteProgress > 1 ||
         constructionWorld.hitState !== 'constructing' ||
         constructionWorld.anchorAction !== 'GROWING' ||
         constructionWorld.anchorVisualLanguage !== 'root_purpose_glyphs_v2' ||
@@ -15558,6 +15612,18 @@ async function smokeVillageUi(session, exceptions) {
                     structureAlpha: presentation.container?.alpha,
                     labelAlpha: presentation.plotLabel?.alpha,
                     stateAlpha: presentation.stateLabel?.alpha,
+                    silhouetteLanguage: presentation.stateSilhouette?.getData?.(
+                        'villageStructureStateVisualLanguage'
+                    ),
+                    silhouetteState: presentation.stateSilhouette?.getData?.(
+                        'villageStructureState'
+                    ),
+                    silhouetteAction: presentation.stateSilhouette?.getData?.(
+                        'villageStructureStateAction'
+                    ),
+                    silhouetteBuilt: presentation.stateSilhouette?.getData?.(
+                        'villageStructureStateBuilt'
+                    ),
                     ariaLabel: district?.getData?.('ariaLabel')
                 };
             })
@@ -15612,6 +15678,16 @@ async function smokeVillageUi(session, exceptions) {
         ).length !== 1 ||
         completeWorldIdentities.districts.some(district => (
             !['complete', 'staffed', 'needs_helper'].includes(district.state) ||
+            district.silhouetteLanguage !== 'root_state_silhouettes_v1' ||
+            district.silhouetteState !== district.state ||
+            district.silhouetteBuilt !== true ||
+            district.silhouetteAction !== (
+                district.state === 'staffed'
+                    ? 'working_together'
+                    : district.state === 'needs_helper'
+                        ? 'awaiting_resident'
+                        : 'ready'
+            ) ||
             district.motionActive !== true ||
             !district.cue ||
             !district.change ||

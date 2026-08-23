@@ -2394,6 +2394,14 @@ class WorldBuilder {
                 compact: compactSettlement,
                 built: Boolean(building)
             });
+            const stateSilhouette = this.createVillageStructureStateSilhouette({
+                state: plotState,
+                progress: constructionProgress,
+                compact: compactSettlement,
+                built: Boolean(building),
+                guided: guidedPlot,
+                purposeGlyph: definition?.purposeGlyph || null
+            });
             const buildingStateCopy = building
                 ? building.status === 'constructing'
                     ? 'GROWING TOGETHER'
@@ -2513,6 +2521,7 @@ class WorldBuilder {
             container.add([
                 drawing,
                 ...(inhabitedDistrict ? [inhabitedDistrict.container] : []),
+                stateSilhouette,
                 ...(worldArtwork ? [worldArtwork] : []),
                 ...(artworkGrounding ? [artworkGrounding] : []),
                 stateMarker,
@@ -2570,7 +2579,7 @@ class WorldBuilder {
             }
             if (['constructing', 'needs_helper'].includes(plotState)) {
                 landmark.buildingTweens.push(this.scene.tweens.add({
-                    targets: stateMarker,
+                    targets: [stateMarker, stateSilhouette],
                     alpha: { from: 0.62, to: 1 },
                     duration: plotState === 'constructing' ? 760 : 1250,
                     yoyo: true,
@@ -2777,6 +2786,7 @@ class WorldBuilder {
                 stateLabel,
                 focusRing,
                 stateMarker,
+                stateSilhouette,
                 districtAnchor,
                 flowSignal: villageFlow.container,
                 worker: worker?.container || null,
@@ -4556,6 +4566,184 @@ class WorldBuilder {
             .setData('ariaLabel', `${String(state || 'dormant').replace('_', ' ')} foundation`);
         marker.setBlendMode?.(Phaser.BlendModes.ADD);
         return marker;
+    }
+
+    createVillageStructureStateSilhouette({
+        state = 'dormant',
+        progress = 0,
+        compact = false,
+        built = false,
+        guided = false,
+        purposeGlyph = null
+    } = {}) {
+        const silhouette = this.scene.add.graphics();
+        const accent = guided || ['constructing', 'needs_helper'].includes(state)
+            ? 0xF2C14E
+            : state === 'staffed'
+                ? 0x71E6B1
+                : 0x8FE3CF;
+        const stateAction = {
+            dormant: 'sleeping',
+            available: 'ready_to_build',
+            constructing: 'taking_root',
+            needs_helper: 'awaiting_resident',
+            complete: 'ready',
+            staffed: 'working_together'
+        }[state] || 'unknown';
+        const centerY = built ? (compact ? -18 : -25) : 8;
+        const radiusX = built ? (compact ? 54 : 72) : (compact ? 42 : 50);
+        const radiusY = built ? (compact ? 59 : 76) : (compact ? 36 : 42);
+        const normalizedProgress = Phaser.Math.Clamp(Number(progress) || 0, 0, 1);
+        const drawEllipticalArc = (
+            startAngle,
+            endAngle,
+            lineWidth,
+            color,
+            alpha,
+            steps = 28
+        ) => {
+            silhouette.lineStyle(lineWidth, color, alpha);
+            silhouette.beginPath();
+            for (let index = 0; index <= steps; index += 1) {
+                const angle = startAngle + ((endAngle - startAngle) * index / steps);
+                const x = Math.cos(angle) * radiusX;
+                const y = centerY + (Math.sin(angle) * radiusY);
+                if (index === 0) silhouette.moveTo(x, y);
+                else silhouette.lineTo(x, y);
+            }
+            silhouette.strokePath();
+        };
+
+        if (!built) {
+            silhouette.fillStyle(0x071411, state === 'dormant' ? 0.34 : 0.58);
+            silhouette.fillEllipse(0, 26, radiusX * 1.9, compact ? 23 : 27);
+            drawEllipticalArc(
+                Math.PI * 1.06,
+                Math.PI * 1.94,
+                guided ? 3 : 2,
+                accent,
+                guided ? 0.94 : state === 'available' ? 0.48 : 0.2,
+                18
+            );
+            if (state === 'available') {
+                silhouette.lineStyle(2, accent, guided ? 0.96 : 0.62);
+                silhouette.lineBetween(0, 19, 0, -10);
+                silhouette.fillStyle(accent, guided ? 0.96 : 0.68);
+                silhouette.fillEllipse(-8, -5, compact ? 15 : 18, compact ? 7 : 8);
+                silhouette.fillEllipse(8, -11, compact ? 16 : 19, compact ? 7 : 9);
+                silhouette.fillCircle(0, -15, guided ? 4 : 3);
+                if (guided) {
+                    silhouette.lineStyle(2, 0xF4F4F4, 0.96);
+                    silhouette.lineBetween(-6, -15, 6, -15);
+                    silhouette.lineBetween(0, -21, 0, -9);
+                }
+            }
+        } else {
+            silhouette.fillStyle(0x071411, 0.38);
+            silhouette.fillEllipse(0, centerY + radiusY - 2, radiusX * 1.8, compact ? 20 : 25);
+
+            if (state === 'constructing') {
+                const completion = Math.max(0.14, normalizedProgress);
+                drawEllipticalArc(
+                    Math.PI * 0.82,
+                    Math.PI * (0.82 + (1.36 * completion)),
+                    compact ? 2.5 : 3,
+                    accent,
+                    0.94
+                );
+                [-1, 0, 1].forEach((direction, index) => {
+                    const stemX = direction * radiusX * 0.56;
+                    const stemTop = centerY + radiusY -
+                        ((radiusY * (0.72 + index * 0.12)) * completion);
+                    silhouette.lineStyle(2, index === 1 ? 0x8FE3CF : accent, 0.74);
+                    silhouette.lineBetween(
+                        stemX,
+                        centerY + radiusY - 7,
+                        stemX * 0.64,
+                        stemTop
+                    );
+                    silhouette.fillStyle(index === 1 ? 0x8FE3CF : accent, 0.9);
+                    silhouette.fillCircle(stemX * 0.64, stemTop, compact ? 2.5 : 3);
+                });
+            } else if (state === 'needs_helper') {
+                drawEllipticalArc(Math.PI * 0.08, Math.PI * 0.74, 2.5, accent, 0.9);
+                drawEllipticalArc(Math.PI * 1.26, Math.PI * 1.92, 2.5, accent, 0.9);
+                const signalY = centerY + radiusY - (compact ? 8 : 11);
+                silhouette.lineStyle(2, accent, 0.78);
+                silhouette.lineBetween(-10, signalY, 10, signalY);
+                silhouette.fillStyle(accent, 0.96);
+                silhouette.fillCircle(-10, signalY, compact ? 4 : 5);
+                silhouette.fillStyle(0x071411, 0.96);
+                silhouette.fillCircle(10, signalY, compact ? 5 : 6);
+                silhouette.lineStyle(2, 0xF4F4F4, 0.92);
+                silhouette.strokeCircle(10, signalY, compact ? 4 : 5);
+            } else {
+                drawEllipticalArc(
+                    Math.PI * 0.06,
+                    Math.PI * 0.94,
+                    state === 'staffed' ? 2.5 : 2,
+                    accent,
+                    state === 'staffed' ? 0.72 : 0.42,
+                    18
+                );
+                const signalY = centerY + radiusY - (compact ? 8 : 11);
+                if (state === 'staffed') {
+                    [-1, 1].forEach(direction => {
+                        silhouette.lineStyle(2, accent, 0.62);
+                        silhouette.lineBetween(
+                            direction * radiusX * 0.72,
+                            centerY + radiusY * 0.64,
+                            direction * 11,
+                            signalY
+                        );
+                    });
+                    silhouette.lineStyle(2, 0xF4F4F4, 0.78);
+                    silhouette.lineBetween(-11, signalY, 11, signalY);
+                    silhouette.fillStyle(accent, 0.96);
+                    silhouette.fillCircle(-11, signalY, compact ? 4 : 5);
+                    silhouette.fillCircle(11, signalY, compact ? 4 : 5);
+                    silhouette.fillStyle(0xF4F4F4, 0.96);
+                    silhouette.fillCircle(0, signalY, compact ? 2.5 : 3);
+                } else if (purposeGlyph) {
+                    this.drawVillagePurposeGlyph(silhouette, purposeGlyph, {
+                        x: 0,
+                        y: signalY,
+                        color: accent,
+                        compact
+                    });
+                }
+            }
+        }
+
+        const baseAlpha = guided
+            ? 1
+            : state === 'dormant'
+                ? 0.14
+                : state === 'available'
+                    ? 0.38
+                    : state === 'complete'
+                        ? 0.5
+                        : state === 'staffed'
+                            ? 0.72
+                            : 0.9;
+        silhouette
+            .setAlpha(baseAlpha)
+            .setData('villageStructureStateSilhouette', true)
+            .setData('villageStructureState', state)
+            .setData('villageStructureStateAction', stateAction)
+            .setData('villageStructureStateProgress', normalizedProgress)
+            .setData('villageStructureStateBuilt', built)
+            .setData('villageStructureStateGuided', guided)
+            .setData('villageStructureStateBaseAlpha', baseAlpha)
+            .setData('villageStructureStateVisualLanguage', 'root_state_silhouettes_v1')
+            .setData(
+                'ariaLabel',
+                state === 'constructing'
+                    ? `Structure taking root, ${Math.round(normalizedProgress * 100)} percent complete.`
+                    : `${String(state || 'dormant').replace('_', ' ')} structure, ${stateAction.replaceAll('_', ' ')}.`
+            );
+        silhouette.setBlendMode?.(Phaser.BlendModes.ADD);
+        return silhouette;
     }
 
     createVillageDistrictAnchor({
@@ -8190,9 +8378,9 @@ class WorldBuilder {
     }
 
     /**
-     * Restored expedition guardians return in calm forms and patrol distinct
-     * Sanctuary routes. Their collision zones follow them, so they are living
-     * residents rather than static trophies around the Signal Garden.
+     * Render canonical Guardian presences. In the current story only the Elder
+     * Treant can reach the Sanctuary, and he appears through the Village Heart
+     * rather than joining the rescued-creature resident roster.
      */
     refreshGuardianResidents(garden, snapshot = null) {
         if (!garden?.zone) return;
@@ -8261,9 +8449,20 @@ class WorldBuilder {
             }));
             const start = route[0];
             const status = residentStatuses.get(definition.id) || definition;
+            const heartProjection = definition.id === 'elder_treant';
             const container = this.scene.add.container(start.x, start.y)
                 .setDepth(start.y + 4);
             const shadow = this.scene.add.ellipse(0, 23, 54, 14, 0x101616, 0.42);
+            const projectionField = this.scene.add.graphics();
+            if (heartProjection) {
+                projectionField.fillStyle(definition.accent, 0.08);
+                projectionField.fillEllipse(0, -4, 78, 86);
+                projectionField.lineStyle(2, definition.accent, 0.72);
+                projectionField.strokeEllipse(0, 1, 70, 42);
+                projectionField.lineStyle(1, 0xF4F4F4, 0.42);
+                projectionField.strokeEllipse(0, 1, 56, 31);
+                projectionField.setBlendMode?.(Phaser.BlendModes.ADD);
+            }
             let figure;
             let figureScaleX = 1;
             let figureScaleY = 1;
@@ -8282,6 +8481,10 @@ class WorldBuilder {
                 figure = this.scene.add.graphics();
                 this.drawGuardianResidentFigure(figure, definition);
             }
+            if (heartProjection) {
+                figure.setAlpha(0.76);
+                figure.setBlendMode?.(Phaser.BlendModes.ADD);
+            }
             const name = this.scene.add.text(0, 43, definition.name.toUpperCase(), {
                 fontSize: '10px',
                 fontFamily: 'Arial, sans-serif',
@@ -8291,7 +8494,7 @@ class WorldBuilder {
                 strokeThickness: 4
             }).setOrigin(0.5);
             const standingLabel = definition.id === 'elder_treant'
-                ? 'FOREST ALLY'
+                ? 'HEART ECHO'
                 : status.activeTeam
                 ? 'ALLY'
                 : status.synergyUnlocked
@@ -8364,6 +8567,7 @@ class WorldBuilder {
             container.add([
                 shadow,
                 routineRing,
+                projectionField,
                 figure,
                 name,
                 marker,
@@ -8392,6 +8596,10 @@ class WorldBuilder {
                 routineCycle: 0,
                 careFeedbackShown: false
             };
+            container
+                .setData('guardianStanding', heartProjection ? 'regional_ally' : 'regional_guardian')
+                .setData('guardianSanctuaryPresence', heartProjection ? 'heart_projection' : 'none')
+                .setData('guardianCommunityStatus', heartProjection ? 'heart_echo' : 'region_bound');
             const syncZone = () => {
                 if (!container.active || !zone.active) return;
                 zone.setPosition(container.x, container.y);

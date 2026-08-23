@@ -272,10 +272,10 @@ class ProjectBeaconLogModal {
         const guardianFocus = log.guardianResidents.taskFocusResident;
         const guardianFocusLine = guardianFocus
             ? guardianFocus.taskStatus === 'ready'
-                ? `GUARDIAN READY  •  ${guardianFocus.name.toUpperCase()}  •  ${guardianFocus.task.title.toUpperCase()}\n`
+                ? `HEART ECHO READY  •  ${guardianFocus.name.toUpperCase()}  •  ${guardianFocus.task.title.toUpperCase()}\n`
                 : guardianFocus.taskStatus === 'active'
-                    ? `GUARDIAN TASK  •  ${guardianFocus.name.toUpperCase()}  •  ${guardianFocus.taskProgress.progress}/${guardianFocus.taskProgress.target}\n`
-                    : `GUARDIAN REQUEST  •  SPEAK WITH ${guardianFocus.name.toUpperCase()}\n`
+                    ? `HEART ECHO TASK  •  ${guardianFocus.name.toUpperCase()}  •  ${guardianFocus.taskProgress.progress}/${guardianFocus.taskProgress.target}\n`
+                    : `HEART ECHO REQUEST  •  SPEAK WITH ${guardianFocus.name.toUpperCase()}\n`
             : '';
         const compactCulture = log.fendCulture.complete
             ? `  •  LISTEN ${log.fendCulture.selectedPriority.shortLabel}`

@@ -42,7 +42,9 @@ describe('Guardian resident gameplay contract', () => {
     test('renders only canonical Guardian presences while rescued creatures inhabit the Sanctuary', () => {
         expect(worldBuilder).toContain('refreshGuardianResidents(garden, snapshot = null)');
         expect(worldBuilder).toContain('allowedPresenceIds');
-        expect(worldBuilder).toContain("? 'FOREST ALLY'");
+        expect(worldBuilder).toContain("? 'HEART ECHO'");
+        expect(worldBuilder).toContain(".setData('guardianSanctuaryPresence', heartProjection ? 'heart_projection' : 'none')");
+        expect(worldBuilder).toContain(".setData('guardianCommunityStatus', heartProjection ? 'heart_echo' : 'region_bound')");
         expect(worldBuilder).toContain('refreshRescuedResidents(garden, snapshot = null)');
         expect(worldBuilder).toContain('this.scene.add.image(0, -3, definition.textureKey)');
         expect(worldBuilder).toContain('zone.guardianResidentId = definition.id');
@@ -72,7 +74,8 @@ describe('Guardian resident gameplay contract', () => {
         expect(gameScene).toMatch(
             /if \(this\.nearGuardianResidentId\)[\s\S]*this\.interactWithGuardianResident\(\);[\s\S]*if \(this\.nearFendResidentId\)/
         );
-        expect(gameScene).toContain('REGIONAL ALLY // VILLAGE HEART');
+        expect(gameScene).toContain('REGIONAL ALLY // HEART ECHO');
+        expect(gameScene).toContain('FOREST ROOTWARDEN  //  SPEAKS THROUGH THE VILLAGE HEART');
         expect(gameScene).toContain('COOPERATIVE TASK // ${result.resident.task.title.toUpperCase()}');
         expect(gameScene).toContain('ACTIVE EXPEDITION ALLY');
         expect(gameScene).toContain('[ ASSIST ROUTINE ]');
@@ -177,7 +180,7 @@ describe('Guardian resident gameplay contract', () => {
             'REGIONAL ALLIES ${sanctuaryCommunity.counts.regionalAllies}'
         );
         expect(beaconModal).toContain('VILLAGE HEART ALLY');
-        expect(beaconModal).toContain('GUARDIAN READY');
+        expect(beaconModal).toContain('HEART ECHO READY');
         expect(beaconModal).toContain('guardianResidents.taskFocusResident');
         expect(beaconModal).toContain('guardianResidents.supportedResidentCount');
         expect(beaconModal).toContain('guardianResidents.synergyCount');
