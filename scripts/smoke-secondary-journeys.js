@@ -8448,6 +8448,54 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     }
     await captureGameplayStill(session, 'first-living-form-developing-mobile.png');
 
+    if (SMOKE_CASE === 'pending-handoff') {
+        await touchDomButton(session, '[data-testid="living-form-continue"]', {
+            message: 'Enter Sanctuary while living portrait develops'
+        });
+        const transition = await waitFor(
+            () => evaluate(session, `(() => {
+                const root = document.querySelector('[data-testid="living-form-handoff"]');
+                const button = root?.querySelector('[data-testid="living-form-continue"]');
+                if (
+                    !root?.classList?.contains('is-transitioning') ||
+                    button?.textContent?.trim() !== 'ENTERING SANCTUARY...' ||
+                    button?.disabled !== true
+                ) return null;
+                return {
+                    portraitState: root.dataset.portraitState,
+                    action: button.textContent.trim(),
+                    busy: button.getAttribute('aria-busy'),
+                    status: root.querySelector('.living-form-status')?.textContent?.trim() || ''
+                };
+            })()`),
+            { timeoutMs: 1200, message: 'pending portrait Sanctuary transition feedback' }
+        );
+        await waitForScene(session, 'GameScene');
+        const entered = await evaluate(session, `(() => ({
+            gameSceneActive: window.mythicalGame?.scene?.isActive?.('GameScene') === true,
+            livingFormSeen: window.GameState?.get?.('tutorial.livingFormSeen') === true,
+            portraitHandoffCleared: !document.querySelector(
+                '[data-testid="living-form-handoff"]'
+            )
+        }))()`);
+        if (
+            transition.portraitState !== 'entering' ||
+            transition.busy !== 'true' ||
+            !transition.status.includes('will keep developing and follow you') ||
+            !entered.gameSceneActive ||
+            entered.livingFormSeen ||
+            !entered.portraitHandoffCleared ||
+            exceptions.length
+        ) {
+            throw new Error(`Pending portrait handoff failed: ${JSON.stringify({
+                transition,
+                entered,
+                exceptions
+            })}`);
+        }
+        return { naming, pendingReveal, transition, entered };
+    }
+
     const reveal = await waitFor(
         () => evaluate(session, `(() => {
             const root = document.querySelector('[data-testid="living-form-handoff"]');
