@@ -585,6 +585,10 @@ describe('Village settlement gameplay contract', () => {
         expect(smoke).toContain("identity !== 'shared_crossing'");
         expect(smoke).toContain("profile !== 'living_settlement_tiers_v1'");
         expect(smoke).toContain("routine !== 'heart_check_in'");
+        expect(smoke).toContain('const retryableLifecycleRace = diagnostics.gameSceneStatus === 8');
+        expect(smoke).toContain("diagnostics.exceptions.length === 0");
+        expect(smoke).toContain("'[smoke-recovery] GameScene lifecycle retry\\n'");
+        expect(smoke).toContain('? frontApproach.labelBaseAlpha !== 0');
         expect(world).toContain("setData('growthLabel', snapshot?.worldState?.growthLabel");
         expect(world).toContain("setData('villageGrowthLabel'");
         expect(world).toContain('drawVillageHeartLife(landmark, {');
