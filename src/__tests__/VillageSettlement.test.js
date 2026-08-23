@@ -20,6 +20,7 @@ function loadVillageSettlement() {
                 VILLAGE_RESOURCE_DEFINITIONS,
                 VILLAGE_PLOTS,
                 VILLAGE_BUILDING_DEFINITIONS,
+                VILLAGE_GROWTH_PROFILES,
                 VILLAGE_COMMUNITY_MOMENT_DEFINITIONS,
                 VILLAGE_HEART_DECISION_DEFINITIONS,
                 normalizeVillageState,
@@ -27,6 +28,7 @@ function loadVillageSettlement() {
                 getVillageSupportSummary,
                 getVillageHeartValues,
                 getVillageWorldState,
+                getVillageGrowthProfile,
                 getVillageWorldGuidance,
                 getVillageUnlock,
                 markVillageGuidanceSeen,
@@ -292,6 +294,29 @@ describe('Village settlement phase one', () => {
         expect(village.getVillageWorldGuidance(waiting)).toBe(
             '0/5 RESTORED · GATHER 18 WOOD'
         );
+    });
+
+    test('defines perceptible world identities for every settlement growth tier', () => {
+        expect(village.VILLAGE_GROWTH_PROFILES).toHaveLength(5);
+        expect(village.VILLAGE_GROWTH_PROFILES.map(profile => profile.worldIdentity)).toEqual([
+            'signal_seed',
+            'first_shelter',
+            'shared_crossing',
+            'resident_commons',
+            'current_canopy'
+        ]);
+        expect(village.getVillageGrowthProfile(-1)).toEqual(expect.objectContaining({
+            tier: 0,
+            gatheringCapacity: 0
+        }));
+        expect(village.getVillageGrowthProfile(4)).toEqual(expect.objectContaining({
+            tier: 4,
+            label: 'SHARED SANCTUARY',
+            canopyCount: 5,
+            gatheringCapacity: 4
+        }));
+        expect(village.getVillageGrowthProfile(99).tier).toBe(4);
+        expect(village.getVillageGrowthProfile(2.9).tier).toBe(2);
     });
 
     test('spends resources and creates one deterministic construction per plot', () => {

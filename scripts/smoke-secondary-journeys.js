@@ -12676,8 +12676,38 @@ async function smokeVillageUi(session, exceptions) {
                     ),
                     height: landmark?.districtTerrain?.getData?.(
                         'villageDistrictGroundHeight'
+                    ),
+                    livingBasins: landmark?.districtTerrain?.getData?.(
+                        'villageLivingBasinCount'
+                    ),
+                    reservedFoundations: landmark?.districtTerrain?.getData?.(
+                        'villageReservedFoundationCount'
                     )
                 },
+                growthEcology: {
+                    identity: landmark?.districtEcology?.getData?.(
+                        'villageGrowthWorldIdentity'
+                    ),
+                    canopyCount: landmark?.districtEcology?.getData?.(
+                        'villageGrowthCanopyCount'
+                    ),
+                    currentNodeCount: landmark?.districtEcology?.getData?.(
+                        'villageGrowthCurrentNodeCount'
+                    ),
+                    gatheringCapacity: landmark?.districtEcology?.getData?.(
+                        'villageGrowthGatheringCapacity'
+                    ),
+                    profile: landmark?.districtEcology?.getData?.(
+                        'villageGrowthStageProfile'
+                    )
+                },
+                commonsLife: landmark?.commonsLife ? {
+                    profile: landmark.commonsLife.getData('villageCommonsProfile'),
+                    capacity: landmark.commonsLife.getData('villageCommonsCapacity'),
+                    residentCount: landmark.commonsLife.getData('villageCommonsResidentCount'),
+                    routine: landmark.commonsLife.getData('villageCommonsRoutine'),
+                    presentationMode: landmark.commonsLife.getData('villagePresentationMode')
+                } : null,
                 currentPathsActive: landmark?.currentPaths?.active === true,
                 pathResourceLanguage: landmark?.currentPaths?.getData?.(
                     'villagePathResourceLanguage'
@@ -12898,6 +12928,17 @@ async function smokeVillageUi(session, exceptions) {
             SMOKE_VIEWPORT_WIDTH <= 600 ? 300 : 700
         ) ||
         layout.worldPresentation.districtTerrain.height < 430 ||
+        layout.worldPresentation.districtTerrain.livingBasins !== 4 ||
+        layout.worldPresentation.districtTerrain.reservedFoundations !== 2 ||
+        layout.worldPresentation.growthEcology.identity !== 'shared_crossing' ||
+        layout.worldPresentation.growthEcology.canopyCount !== 2 ||
+        layout.worldPresentation.growthEcology.currentNodeCount !== 5 ||
+        layout.worldPresentation.growthEcology.gatheringCapacity !== 2 ||
+        layout.worldPresentation.growthEcology.profile !== 'living_settlement_tiers_v1' ||
+        layout.worldPresentation.commonsLife?.profile !== 'shared_crossing' ||
+        layout.worldPresentation.commonsLife?.capacity !== 2 ||
+        layout.worldPresentation.commonsLife?.routine !== 'heart_check_in' ||
+        layout.worldPresentation.commonsLife?.presentationMode !== 'story' ||
         !layout.worldPresentation.currentPathsActive ||
         layout.worldPresentation.pathResourceLanguage !== 'resource_return_marks_v1' ||
         layout.worldPresentation.pathResourceRoutes

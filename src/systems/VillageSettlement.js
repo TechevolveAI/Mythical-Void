@@ -336,6 +336,62 @@ const BUILDING_BY_ID = new Map(
 const STARTER_RESOURCES = Object.freeze({ wood: 72, stone: 52, food: 30 });
 const MAX_HISTORY = 64;
 
+export const VILLAGE_GROWTH_PROFILES = Object.freeze([
+    Object.freeze({
+        tier: 0,
+        label: 'AWAKENED ROOT',
+        worldIdentity: 'signal_seed',
+        canopyCount: 0,
+        currentNodeCount: 1,
+        gatheringCapacity: 0,
+        ambientPromise: 'The Heart is awake, but it is still alone.'
+    }),
+    Object.freeze({
+        tier: 1,
+        label: 'FIRST ROOT',
+        worldIdentity: 'first_shelter',
+        canopyCount: 1,
+        currentNodeCount: 3,
+        gatheringCapacity: 1,
+        ambientPromise: 'One safe route now reaches beyond the Heart.'
+    }),
+    Object.freeze({
+        tier: 2,
+        label: 'CONNECTED GLADE',
+        worldIdentity: 'shared_crossing',
+        canopyCount: 2,
+        currentNodeCount: 5,
+        gatheringCapacity: 2,
+        ambientPromise: 'The first shared crossing has become a meeting place.'
+    }),
+    Object.freeze({
+        tier: 3,
+        label: 'LIVING SETTLEMENT',
+        worldIdentity: 'resident_commons',
+        canopyCount: 3,
+        currentNodeCount: 7,
+        gatheringCapacity: 3,
+        ambientPromise: 'Work, rest, and return now share one living rhythm.'
+    }),
+    Object.freeze({
+        tier: 4,
+        label: 'SHARED SANCTUARY',
+        worldIdentity: 'current_canopy',
+        canopyCount: 5,
+        currentNodeCount: 9,
+        gatheringCapacity: 4,
+        ambientPromise: 'Every restored root now answers the whole Sanctuary.'
+    })
+]);
+
+export function getVillageGrowthProfile(growthTier = 0) {
+    const tier = Math.floor(Math.max(
+        0,
+        Math.min(VILLAGE_GROWTH_PROFILES.length - 1, Number(growthTier) || 0)
+    ));
+    return VILLAGE_GROWTH_PROFILES[tier];
+}
+
 export function getVillageWorldState(snapshot) {
     const restored = snapshot?.buildings?.filter(
         building => building.status === 'complete'
@@ -351,13 +407,7 @@ export function getVillageWorldState(snapshot) {
                 : restored >= 1
                     ? 1
                     : 0;
-    const growthLabels = [
-        'AWAKENED ROOT',
-        'FIRST ROOT',
-        'CONNECTED GLADE',
-        'LIVING SETTLEMENT',
-        'SHARED SANCTUARY'
-    ];
+    const growthProfile = getVillageGrowthProfile(growthTier);
     const constructing = snapshot?.buildings?.find(
         building => building.status === 'constructing'
     );
@@ -367,7 +417,7 @@ export function getVillageWorldState(snapshot) {
             choices,
             values,
             growthTier,
-            growthLabel: growthLabels[growthTier],
+            growthLabel: growthProfile.label,
             nextAction: {
                 type: 'construction',
                 plotId: constructing.plotId,
@@ -389,7 +439,7 @@ export function getVillageWorldState(snapshot) {
             choices,
             values,
             growthTier,
-            growthLabel: growthLabels[growthTier],
+            growthLabel: growthProfile.label,
             nextAction: {
                 type: 'assign',
                 plotId: unstaffed.plotId,
@@ -406,7 +456,7 @@ export function getVillageWorldState(snapshot) {
             choices,
             values,
             growthTier,
-            growthLabel: growthLabels[growthTier],
+            growthLabel: growthProfile.label,
             nextAction: {
                 type: 'decision',
                 plotId: null,
@@ -427,7 +477,7 @@ export function getVillageWorldState(snapshot) {
             choices,
             values,
             growthTier,
-            growthLabel: growthLabels[growthTier],
+            growthLabel: growthProfile.label,
             nextAction: {
                 type: 'build',
                 plotId: openPlot?.id || null,
@@ -450,7 +500,7 @@ export function getVillageWorldState(snapshot) {
             choices,
             values,
             growthTier,
-            growthLabel: growthLabels[growthTier],
+            growthLabel: growthProfile.label,
             nextAction: {
                 type: 'supplies',
                 plotId: null,
@@ -470,7 +520,7 @@ export function getVillageWorldState(snapshot) {
         choices,
         values,
         growthTier,
-        growthLabel: growthLabels[growthTier],
+        growthLabel: growthProfile.label,
         nextAction: {
             type: 'review',
             plotId: null,

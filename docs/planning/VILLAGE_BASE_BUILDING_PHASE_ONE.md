@@ -108,6 +108,26 @@ mutating a save.
 
 The five scenes are pre-generated project assets rather than runtime generation requests. This keeps the menu immediate, deterministic, inexpensive, and available offline. Each building has a distinct visual identity; motion is layered with CSS and respects `prefers-reduced-motion`.
 
+Settlement growth is also a world-state contract rather than a caption change.
+The living glade begins around the awakened Heart and expands only toward roots
+where construction has actually begun. Unused foundations remain visible and
+interactive, but they no longer force the terrain to display its final footprint
+on day one. Five deterministic profiles drive the same labels and world behavior:
+
+| Tier | World identity | Persistent change |
+| --- | --- | --- |
+| Awakened Root | Signal seed | One breathing Current node and an intimate Heart clearing |
+| First Root | First shelter | First canopy, safe route, and one gathering root |
+| Connected Glade | Shared crossing | Linked Current crossing and a two-resident commons |
+| Living Settlement | Resident commons | Multiple canopies and visible work/rest rhythm |
+| Shared Sanctuary | Current canopy | All restored roots answer one communal network |
+
+The commons is rendered inside the world rather than as another panel. Residents
+who are home make short Heart check-ins; assigned workers retain their existing
+building-to-Heart delivery routes. During story focus the commons recedes behind
+the active moment, and compact layouts suppress the redundant Heart caption so
+the contextual action beacon owns the interaction language.
+
 ## 7. Gameplay Impact Contract
 
 Every completed building changes another established game loop:
@@ -149,7 +169,7 @@ No existing field is renamed or removed. Local saves and cloud saves already ser
 
 ### Nice To Have
 
-- creature walking routines between home and work
+- expanded creature walking routines between home, work, and social spaces
 - building upgrades
 
 ### Later
