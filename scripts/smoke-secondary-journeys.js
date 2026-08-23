@@ -10309,6 +10309,11 @@ async function smokeVillageUi(session, exceptions) {
             statusText: landmark?.statusLabel?.text || '',
             nextAction: landmark?.snapshot?.worldState?.nextAction?.type || null,
             restored: landmark?.snapshot?.worldState?.restored,
+            heartPresentation: {
+                pulseProfile: landmark?.glow?.getData?.('villageHeartPulseProfile'),
+                ambientRole: landmark?.glow?.getData?.('villageAmbientRole'),
+                artworkAlpha: landmark?.heartArtwork?.alpha
+            },
             heartLife: {
                 stage: landmark?.heartLife?.aura?.getData?.('villageHeartGrowthStage'),
                 tier: landmark?.heartLife?.aura?.getData?.('villageHeartGrowthTier'),
@@ -10322,6 +10327,13 @@ async function smokeVillageUi(session, exceptions) {
             foundationMaterials: (landmark?.plotPresentations || []).map(
                 presentation => presentation.container?.getData?.('villageFoundationMaterial')
             ),
+            ambientPlots: (landmark?.plotPresentations || []).map(presentation => ({
+                role: presentation.ambientRole,
+                containerRole: presentation.container?.getData?.('villageAmbientRole'),
+                anchorRole: presentation.districtAnchor?.getData?.('villageAmbientRole'),
+                alpha: presentation.container?.alpha,
+                anchorAlpha: presentation.districtAnchor?.alpha
+            })),
             flowSignals: (landmark?.villageFlowSignals || []).map(signal => ({
                 active: signal.active === true,
                 visible: signal.visible === true,
@@ -10348,6 +10360,9 @@ async function smokeVillageUi(session, exceptions) {
         !firstArrivalWorld.statusText.includes('BUILD A HOME TOGETHER') ||
         firstArrivalWorld.nextAction !== 'build' ||
         firstArrivalWorld.restored !== 0 ||
+        firstArrivalWorld.heartPresentation.pulseProfile !== 'quiet_ambient' ||
+        firstArrivalWorld.heartPresentation.ambientRole !== 'settlement_anchor' ||
+        firstArrivalWorld.heartPresentation.artworkAlpha > 0.8 ||
         firstArrivalWorld.heartLife.stage !== 'AWAKENED ROOT' ||
         firstArrivalWorld.heartLife.tier !== 0 ||
         firstArrivalWorld.heartLife.motion !== 'living_current_breath_v1' ||
@@ -10357,6 +10372,19 @@ async function smokeVillageUi(session, exceptions) {
         firstArrivalWorld.heartLife.memoryLights !== 0 ||
         firstArrivalWorld.heartLife.tweenCount !== 3 ||
         firstArrivalWorld.foundationMaterials.length !== 5 ||
+        firstArrivalWorld.ambientPlots.filter(
+            plot => plot.role === 'guided_foundation' &&
+                plot.containerRole === 'guided_foundation' &&
+                plot.anchorRole === 'guided_foundation' &&
+                plot.alpha === 1
+        ).length !== 1 ||
+        firstArrivalWorld.ambientPlots.filter(
+            plot => plot.role === 'reserved_root' &&
+                plot.containerRole === 'reserved_root' &&
+                plot.anchorRole === 'reserved_root' &&
+                plot.alpha <= 0.1 &&
+                plot.anchorAlpha <= 0.1
+        ).length !== 4 ||
         firstArrivalWorld.flowSignals.length !== 5 ||
         firstArrivalWorld.flowSignals.filter(signal => signal.active && signal.visible).length !== 1 ||
         firstArrivalWorld.flowSignals.filter(
@@ -11939,8 +11967,8 @@ async function smokeVillageUi(session, exceptions) {
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('GameScene');
             const presentations = scene?.villageHeartLandmark?.plotPresentations || [];
-            const staffedAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.58 : 0.72};
-            const availableAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.16 : 0.2};
+            const staffedAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.78 : 0.82};
+            const availableAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.08 : 0.1};
             return presentations.length === 5 && presentations.every(presentation => {
                 const playerNearby = presentation.container
                     ?.getData?.('villagePlayerNearby') === true;
@@ -12042,12 +12070,12 @@ async function smokeVillageUi(session, exceptions) {
         focusRecovery.plotPriorities.length !== 5 ||
         focusRecovery.plotPriorities.filter(plot => plot.state === 'staffed').some(
             plot => plot.priority !== 'ambient' || Math.abs(
-                plot.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.58 : 0.72)
+                plot.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.78 : 0.82)
             ) > 0.01
         ) ||
         focusRecovery.plotPriorities.filter(plot => plot.state === 'available').some(
             plot => plot.priority !== 'ambient' || Math.abs(
-                plot.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.16 : 0.2)
+                plot.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.08 : 0.1)
             ) > 0.01
         )
     ) {
@@ -12230,11 +12258,11 @@ async function smokeVillageUi(session, exceptions) {
             return presentation &&
                 Math.abs(
                     presentation.container?.alpha -
-                    ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.58 : 0.72}
+                    ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.78 : 0.82}
                 ) <= 0.01 &&
                 Math.abs(
                     presentation.worker?.alpha -
-                    ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.58 : 0.68}
+                    ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.76 : 0.78}
                 ) <= 0.01 &&
                 presentation.plotLabel?.alpha === 0 &&
                 presentation.stateLabel?.alpha === 0 &&
@@ -12266,10 +12294,10 @@ async function smokeVillageUi(session, exceptions) {
         structureProximityRestored?.plotCandidatePresent ||
         !structureProximityRest ||
         Math.abs(
-            structureProximityRest.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.58 : 0.72)
+            structureProximityRest.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.78 : 0.82)
         ) > 0.01 ||
         Math.abs(
-            structureProximityRest.workerAlpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.58 : 0.68)
+            structureProximityRest.workerAlpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.76 : 0.78)
         ) > 0.01 ||
         structureProximityRest.labelAlpha !== 0 ||
         structureProximityRest.stateAlpha !== 0 ||
@@ -12936,6 +12964,10 @@ async function smokeVillageUi(session, exceptions) {
                 presentationMode: landmark?.presentationMode,
                 layoutProfile: landmark?.heartArtwork?.getData?.('villageLayoutProfile'),
                 heartDisplaySize: landmark?.heartArtwork?.getData?.('villageDisplaySize'),
+                heartPulseProfile: landmark?.heartArtwork?.getData?.(
+                    'villageHeartPulseProfile'
+                ),
+                heartAmbientRole: landmark?.heartArtwork?.getData?.('villageAmbientRole'),
                 heartCaptionActive: landmark?.heartCaption?.active === true,
                 strayFieldKitShipCount: (scene.fieldKitPreviewElements || []).filter(
                     element => element?.getData?.('fieldKitPreviewShip') === true
@@ -13100,6 +13132,13 @@ async function smokeVillageUi(session, exceptions) {
                 plotPresentations: (landmark?.plotPresentations || []).map(presentation => ({
                     plotId: presentation.plotId,
                     plotState: presentation.plotState,
+                    ambientRole: presentation.ambientRole,
+                    containerAmbientRole: presentation.container?.getData?.(
+                        'villageAmbientRole'
+                    ),
+                    anchorAmbientRole: presentation.districtAnchor?.getData?.(
+                        'villageAmbientRole'
+                    ),
                     progressNodes: presentation.stateMarker?.getData?.('progressNodes'),
                     markerActive: presentation.stateMarker?.active === true,
                     label: presentation.plotLabel?.text || '',
@@ -13202,6 +13241,8 @@ async function smokeVillageUi(session, exceptions) {
         layout.worldPresentation.heartDisplaySize !== (
             SMOKE_VIEWPORT_WIDTH <= 600 ? 132 : 202
         ) ||
+        layout.worldPresentation.heartPulseProfile !== 'decision_beacon' ||
+        layout.worldPresentation.heartAmbientRole !== 'decision_landmark' ||
         !layout.worldPresentation.heartCaptionActive ||
         layout.worldPresentation.strayFieldKitShipCount !== 0 ||
         layout.worldPresentation.strayFieldKitBackdropCount !== 0 ||
@@ -13327,7 +13368,25 @@ async function smokeVillageUi(session, exceptions) {
                     : 'commons_spine_v1'
             ) ||
             presentation.artworkDisplaySize > (
-                SMOKE_VIEWPORT_WIDTH <= 600 ? 88 : 153
+                SMOKE_VIEWPORT_WIDTH <= 600 ? 101 : 153
+            ) ||
+            (
+                presentation.ambientRole === 'inhabited_structure' &&
+                (
+                    presentation.containerAmbientRole !== 'inhabited_structure' ||
+                    presentation.anchorAmbientRole !== 'inhabited_structure' ||
+                    presentation.artworkDisplaySize < (
+                        SMOKE_VIEWPORT_WIDTH <= 600 ? 89 : 134
+                    )
+                )
+            ) ||
+            (
+                presentation.plotState === 'available' &&
+                (
+                    presentation.ambientRole !== 'reserved_root' ||
+                    presentation.containerAmbientRole !== 'reserved_root' ||
+                    presentation.anchorAmbientRole !== 'reserved_root'
+                )
             ) ||
             (
                 presentation.plotState === 'staffed' &&
@@ -13434,8 +13493,62 @@ async function smokeVillageUi(session, exceptions) {
         scene?.worldBuilder?.clearVillageDecisionMoment?.(landmark);
         scene?.worldBuilder?.clearVillageWorkerCheckIn?.(landmark);
         scene?.setSanctuaryMomentFocus?.(false);
+        scene?.worldBuilder?.setVillageFocusMode?.(landmark, false, { immediate: true });
         return landmark?.presentationMode || null;
     })()`);
+    const ambientHierarchy = await evaluate(session, `(() => {
+        const landmark = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark;
+        return {
+            mode: landmark?.presentationMode,
+            heartAlpha: landmark?.heartArtwork?.alpha,
+            heartPulseProfile: landmark?.heartArtwork?.getData?.('villageHeartPulseProfile'),
+            heartRole: landmark?.heartArtwork?.getData?.('villageAmbientRole'),
+            plots: (landmark?.plotPresentations || []).map(presentation => ({
+                state: presentation.plotState,
+                role: presentation.ambientRole,
+                containerRole: presentation.container?.getData?.('villageAmbientRole'),
+                anchorRole: presentation.districtAnchor?.getData?.('villageAmbientRole'),
+                alpha: presentation.container?.alpha,
+                anchorAlpha: presentation.districtAnchor?.alpha,
+                artworkSize: presentation.worldArtwork?.getData?.('villageDisplaySize') || 0,
+                workerAlpha: presentation.worker?.alpha ?? null
+            }))
+        };
+    })()`);
+    const inhabitedAmbientPlots = ambientHierarchy?.plots?.filter(
+        plot => plot.role === 'inhabited_structure'
+    ) || [];
+    const reservedAmbientPlots = ambientHierarchy?.plots?.filter(
+        plot => plot.role === 'reserved_root'
+    ) || [];
+    if (
+        ambientHierarchy?.mode !== 'ambient' ||
+        ambientHierarchy.heartPulseProfile !== 'decision_beacon' ||
+        ambientHierarchy.heartRole !== 'decision_landmark' ||
+        ambientHierarchy.heartAlpha !== 1 ||
+        inhabitedAmbientPlots.length !== 3 ||
+        inhabitedAmbientPlots.some(plot => (
+            plot.containerRole !== 'inhabited_structure' ||
+            plot.anchorRole !== 'inhabited_structure' ||
+            plot.alpha < (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.78 : 0.82) ||
+            plot.anchorAlpha > (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.36 : 0.46) ||
+            plot.artworkSize < (SMOKE_VIEWPORT_WIDTH <= 600 ? 89 : 134) ||
+            plot.workerAlpha < (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.76 : 0.78)
+        )) ||
+        reservedAmbientPlots.length !== 2 ||
+        reservedAmbientPlots.some(plot => (
+            plot.containerRole !== 'reserved_root' ||
+            plot.anchorRole !== 'reserved_root' ||
+            plot.alpha > (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.08 : 0.1) ||
+            plot.anchorAlpha > (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.1 : 0.14)
+        ))
+    ) {
+        throw new Error(
+            `Village ambient hierarchy failed: ${JSON.stringify(ambientHierarchy)}`
+        );
+    }
+    await captureGameplayStill(session, 'village-lived-in-ambient-mobile.png');
     await waitFor(
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('GameScene');

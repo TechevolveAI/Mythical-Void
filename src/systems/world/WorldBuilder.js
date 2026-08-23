@@ -29,7 +29,7 @@ const VILLAGE_SETTLEMENT_LAYOUTS = Object.freeze({
     compact: Object.freeze({
         profile: 'terraced_current_v2',
         heartArtworkSize: 132,
-        buildingArtworkScale: 0.48,
+        buildingArtworkScale: 0.56,
         plotOffsets: Object.freeze([
             Object.freeze({ x: -112, y: -226 }),
             Object.freeze({ x: 112, y: -226 }),
@@ -1790,6 +1790,7 @@ class WorldBuilder {
             snapshot?.buildings?.map(building => [building.plotId, building]) || []
         );
         const growthTier = snapshot?.worldState?.growthTier || 0;
+        const heartDecisionReady = snapshot?.worldState?.nextAction?.type === 'decision';
         const restoredCount = Phaser.Math.Clamp(
             snapshot?.worldState?.restored || 0,
             0,
@@ -2016,15 +2017,30 @@ class WorldBuilder {
             ease: 'Sine.easeInOut'
         });
 
-        glow.fillStyle(unlocked ? 0x71E6B1 : 0x53616A, unlocked ? 0.14 : 0.08);
+        glow.fillStyle(
+            unlocked ? 0x71E6B1 : 0x53616A,
+            unlocked ? heartDecisionReady ? 0.14 : 0.09 : 0.08
+        );
         glow.fillEllipse(
             0,
             22,
             compactSettlement ? (unlocked ? 152 : 132) : (unlocked ? 180 : 152),
             compactSettlement ? (unlocked ? 94 : 78) : (unlocked ? 110 : 90)
         );
-        glow.fillStyle(unlocked ? 0xF4F4F4 : 0x53616A, unlocked ? 0.08 : 0.04);
+        glow.fillStyle(
+            unlocked ? 0xF4F4F4 : 0x53616A,
+            unlocked ? heartDecisionReady ? 0.08 : 0.045 : 0.04
+        );
         glow.fillEllipse(0, 18, unlocked ? 132 : 104, unlocked ? 76 : 62);
+        glow
+            .setData(
+                'villageHeartPulseProfile',
+                heartDecisionReady ? 'decision_beacon' : 'quiet_ambient'
+            )
+            .setData(
+                'villageAmbientRole',
+                heartDecisionReady ? 'decision_landmark' : 'settlement_anchor'
+            );
 
         if (heartArtwork) {
             heartArtwork
@@ -2133,10 +2149,13 @@ class WorldBuilder {
 
         landmark.pulseTween = this.scene.tweens.add({
             targets: glow,
-            alpha: { from: unlocked ? 0.72 : 0.42, to: 1 },
-            scaleX: { from: 0.96, to: 1.05 },
-            scaleY: { from: 0.96, to: 1.05 },
-            duration: unlocked ? 1450 : 2300,
+            alpha: {
+                from: unlocked ? heartDecisionReady ? 0.68 : 0.34 : 0.42,
+                to: unlocked ? heartDecisionReady ? 0.95 : 0.58 : 1
+            },
+            scaleX: { from: 0.97, to: heartDecisionReady ? 1.05 : 1.025 },
+            scaleY: { from: 0.97, to: heartDecisionReady ? 1.05 : 1.025 },
+            duration: unlocked ? heartDecisionReady ? 1450 : 2400 : 2300,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
@@ -2177,6 +2196,11 @@ class WorldBuilder {
                             : building.creature
                                 ? 'staffed'
                                 : 'complete';
+            const ambientRole = building
+                ? 'inhabited_structure'
+                : guidedPlot
+                    ? 'guided_foundation'
+                    : 'reserved_root';
             const constructionStartedAt = Number(building?.startedAt) || Date.now();
             const constructionCompletesAt = Number(building?.completesAt) ||
                 constructionStartedAt;
@@ -2197,6 +2221,7 @@ class WorldBuilder {
                 .setDepth(plotY + 2)
                 .setData('villageBuildingStructure', true)
                 .setData('plotId', plot.id)
+                .setData('villageAmbientRole', ambientRole)
                 .setData(
                     'villageFoundationMaterial',
                     building ? 'inhabited_root_basin_v1' : 'living_root_cradle_v2'
@@ -2230,6 +2255,7 @@ class WorldBuilder {
                             settlementLayout.buildingArtworkScale
                     )
                     .setData('villageArtworkTreatment', 'living_current_material_v1')
+                    .setData('villageAmbientRole', ambientRole)
                     .setData('villageArtworkVariant', worldArtworkVariant)
                 : null;
             const artworkGrounding = worldArtwork
@@ -2337,7 +2363,8 @@ class WorldBuilder {
                 districtId: plot.id,
                 purposeGlyph: definition?.purposeGlyph || null,
                 purposeLabel: definition?.worldEffectLabel || null,
-                actionLabel: definition?.worldActionLabel || null
+                actionLabel: definition?.worldActionLabel || null,
+                ambientRole
             });
             const focusRing = this.scene.add.graphics().setAlpha(0);
             const focusColor = building?.status === 'complete' ? 0x71E6B1 : 0xF2C14E;
@@ -2539,6 +2566,7 @@ class WorldBuilder {
                 .setData('worldEffectLabel', definition?.worldEffectLabel || null)
                 .setData('worldActionLabel', definition?.worldActionLabel || null)
                 .setData('purposeGlyph', definition?.purposeGlyph || null)
+                .setData('villageAmbientRole', ambientRole)
                 .setData('guided', guidedPlot);
             plotHitZone.on('pointerover', () => {
                 container.setScale(1.06);
@@ -2589,10 +2617,10 @@ class WorldBuilder {
                         : guidedPlot
                             ? 1
                             : ['constructing', 'needs_helper', 'complete', 'staffed'].includes(plotState)
-                                ? 0.58
+                                ? compactSettlement ? 0.36 : 0.46
                                 : plotState === 'available'
-                                    ? compactSettlement ? 0.46 : 0.42
-                                    : 0.24
+                                    ? compactSettlement ? 0.1 : 0.14
+                                    : 0.12
                 );
                 plotLabel.setAlpha(
                     playerNearby
@@ -2653,6 +2681,7 @@ class WorldBuilder {
                 flowSignal: villageFlow.container,
                 worker: worker?.container || null,
                 plotState,
+                ambientRole,
                 layoutProfile: settlementLayout.profile,
                 plotLabelRestAlpha,
                 stateLabelRestAlpha,
@@ -3280,10 +3309,10 @@ class WorldBuilder {
             const ambientAlpha = primary
                 ? 1
                 : presentation.plotState === 'constructing'
-                    ? compactPresentation ? 0.86 : 0.9
+                    ? compactPresentation ? 0.9 : 0.92
                     : settled
-                        ? compactPresentation ? 0.58 : 0.72
-                        : compactPresentation ? 0.16 : 0.2;
+                        ? compactPresentation ? 0.78 : 0.82
+                        : compactPresentation ? 0.08 : 0.1;
             const baseAlpha = !active
                 ? ambientAlpha
                 : storyMode
@@ -3345,10 +3374,10 @@ class WorldBuilder {
                         : ['constructing', 'needs_helper', 'complete', 'staffed'].includes(
                             presentation.plotState
                         )
-                            ? compactPresentation ? 0.42 : 0.52
+                            ? compactPresentation ? 0.36 : 0.46
                             : presentation.plotState === 'available'
-                                ? compactPresentation ? 0.46 : 0.42
-                                : 0.24
+                                ? compactPresentation ? 0.1 : 0.14
+                                : 0.12
                     : storyMode
                         ? primary ? 0.82 : 0.12
                         : primary ? 1 : 0.18;
@@ -3375,7 +3404,7 @@ class WorldBuilder {
                 const workerAlpha = !active
                     ? playerNearby
                         ? 0.96
-                        : primary ? 0.92 : compactPresentation ? 0.58 : 0.68
+                        : primary ? 0.92 : compactPresentation ? 0.76 : 0.78
                     : storyMode
                         ? primary ? 0.78 : 0.24
                         : primary
@@ -3397,7 +3426,10 @@ class WorldBuilder {
             }
         });
 
-        const heartBaseAlpha = landmark.snapshot?.unlock?.unlocked === true ? 1 : 0.52;
+        const heartDecisionReady = action?.type === 'decision';
+        const heartBaseAlpha = landmark.snapshot?.unlock?.unlocked === true
+            ? heartDecisionReady ? 1 : active ? 0.94 : 0.88
+            : 0.52;
         const heartAlpha = !active
             ? heartIsPrimary ? heartBaseAlpha : heartBaseAlpha * 0.88
             : storyMode
@@ -3409,6 +3441,14 @@ class WorldBuilder {
             ?.setData('villageFocusPriority', heartIsPrimary ? 'primary' : active ? 'supporting' : 'ambient')
             .setData('villageFocusAlpha', heartAlpha)
             .setData('villageFocusAction', action?.type || null)
+            .setData(
+                'villageHeartPulseProfile',
+                heartDecisionReady ? 'decision_beacon' : 'quiet_ambient'
+            )
+            .setData(
+                'villageAmbientRole',
+                heartDecisionReady ? 'decision_landmark' : 'settlement_anchor'
+            )
             .setData(
                 'villageArtworkTint',
                 heartIsPrimary ? 0xFFFFFF : storyMode ? 0xA5C1B7 : 0xC8DAD4
@@ -3900,7 +3940,8 @@ class WorldBuilder {
         districtId = null,
         purposeGlyph = null,
         purposeLabel = null,
-        actionLabel = null
+        actionLabel = null,
+        ambientRole = 'reserved_root'
     } = {}) {
         const anchor = this.scene.add.graphics();
         const available = state === 'available';
@@ -3996,6 +4037,7 @@ class WorldBuilder {
             .setData('villageDistrictPurposeGlyph', purposeGlyph)
             .setData('villageDistrictPurposeLabel', purposeLabel)
             .setData('villageDistrictActionLabel', actionLabel)
+            .setData('villageAmbientRole', ambientRole)
             .setData('villageDistrictVisualLanguage', 'root_purpose_glyphs_v2')
             .setData('villageDistrictAnchorMaterial', 'root_threshold_v1')
             .setData(

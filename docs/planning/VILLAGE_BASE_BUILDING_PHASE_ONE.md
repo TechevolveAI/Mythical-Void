@@ -196,6 +196,29 @@ the sole instruction. The same mobile journey contract verifies actual movement
 through the settlement district, Signal Garden, and hub gate, preserving one legible
 route across the Sanctuary's systems.
 
+### Ambient Settlement Hierarchy
+
+The developed Village must read as an inhabited place before the player opens a
+panel. Ambient presentation assigns every plot one explicit role:
+
+- `inhabited_structure` keeps completed or growing architecture, its grounded
+  activity, and assigned helper visible at rest.
+- `guided_foundation` is the single empty root currently invited by progression.
+- `reserved_root` recedes into the terrain until the settlement chooses it.
+
+On compact viewports, authored building silhouettes occupy roughly 90-100 world
+pixels and retain enough color and opacity to be recognized beside the 132-pixel
+Heart. Reserved roots retain their collision-free touch regions but lose visual
+weight; their interaction language appears only on approach. This separates
+content hierarchy from hit-target size.
+
+The Heart also has two authored intensity states. `quiet_ambient` breathes slowly
+as the settlement anchor while another build, assignment, or journey owns the
+next action. `decision_beacon` restores the full pulse only when the Heart is
+waiting for a consequential player choice. Workers remain visible along physical
+building-to-Heart routes, so the settlement communicates production through
+activity rather than a permanent status panel.
+
 ## 7. Gameplay Impact Contract
 
 Every completed building changes another established game loop:

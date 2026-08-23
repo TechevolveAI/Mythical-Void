@@ -814,8 +814,15 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('setVillagePlayerProximity(landmark, plotId = null)');
         expect(world).toContain(".setData('villagePlayerNearby', playerNearby)");
         expect(world).toContain("? 'nearby'");
-        expect(world).toContain('compactPresentation ? 0.58 : 0.72');
-        expect(world).toContain('compactPresentation ? 0.16 : 0.2');
+        expect(world).toContain('compactPresentation ? 0.78 : 0.82');
+        expect(world).toContain('compactPresentation ? 0.08 : 0.1');
+        expect(world).toContain('compactPresentation ? 0.76 : 0.78');
+        expect(world).toContain("? 'inhabited_structure'");
+        expect(world).toContain("? 'guided_foundation'");
+        expect(world).toContain(": 'reserved_root';");
+        expect(world).toContain("'villageHeartPulseProfile'");
+        expect(world).toContain("heartDecisionReady ? 'decision_beacon' : 'quiet_ambient'");
+        expect(world).toContain("heartDecisionReady ? 'decision_landmark' : 'settlement_anchor'");
         expect(world).toContain('compactPresentation ? 0.2 : 0.28');
         expect(world).toContain('compactPresentation ? 0.25 : 0.34');
         expect(scene).toContain('updateVillagePlotProximity()');
@@ -843,7 +850,7 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain('guided: plotId === null');
         expect(world).toContain("profile: 'terraced_current_v2'");
         expect(world).toContain('heartArtworkSize: 132');
-        expect(world).toContain('buildingArtworkScale: 0.48');
+        expect(world).toContain('buildingArtworkScale: 0.56');
         expect(world).toContain('heartArtworkSize: 202');
         expect(world).toContain('buildingArtworkScale: 0.84');
         expect(world).toContain('Object.freeze({ x: -112, y: -226 })');
