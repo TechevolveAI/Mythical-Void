@@ -661,6 +661,32 @@ body.game-mode {
   filter: brightness(1.08);
 }
 
+.living-form-continue:disabled {
+  color: #d8fffa;
+  background: #285f59;
+  border-color: #8fe3cf;
+  cursor: wait;
+  filter: none;
+}
+
+.living-form-handoff.is-transitioning .living-form-continue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.living-form-handoff.is-transitioning .living-form-continue::after {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border: 2px solid rgba(216, 255, 250, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  content: '';
+  animation: living-form-spin 700ms linear infinite;
+}
+
 @media (max-width: 660px), (orientation: portrait) {
   .living-form-handoff {
     --living-form-action-reserve: calc(142px + var(--sab));

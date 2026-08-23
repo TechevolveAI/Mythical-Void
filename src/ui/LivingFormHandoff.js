@@ -45,6 +45,7 @@ export default class LivingFormHandoff {
         this.resizeHandler = null;
         this.onPortraitShown = null;
         this.portraitShownIdentity = null;
+        this.keepVisibleOnContinue = false;
     }
 
     show({
@@ -56,6 +57,7 @@ export default class LivingFormHandoff {
         referenceImage = null,
         onContinue = null,
         onPortraitShown = null,
+        keepVisibleOnContinue = false,
         mode = 'arrival'
     } = {}) {
         if (this.domElement || typeof document === 'undefined') {
@@ -277,6 +279,7 @@ export default class LivingFormHandoff {
         this.isVisible = true;
         this.continueActivated = false;
         this.continueButton = continueButton;
+        this.keepVisibleOnContinue = Boolean(keepVisibleOnContinue);
         this.onPortraitShown = typeof onPortraitShown === 'function'
             ? onPortraitShown
             : null;
@@ -286,7 +289,8 @@ export default class LivingFormHandoff {
             if (this.continueActivated || !this.isVisible) return;
             this.continueActivated = true;
             const continueAction = onContinue;
-            this.destroy();
+            this.beginTransition();
+            if (!this.keepVisibleOnContinue) this.destroy();
             continueAction?.();
         };
         continueButton.addEventListener('pointerup', this.continueHandler);
@@ -367,6 +371,24 @@ export default class LivingFormHandoff {
         requestAnimationFrame(() => root.classList.add('is-visible'));
         continueButton.focus({ preventScroll: true });
         return true;
+    }
+
+    beginTransition() {
+        if (!this.isVisible || !this.root || !this.continueButton) return;
+        this.clearStatusTimers();
+        this.root.classList.add('is-transitioning');
+        this.root.dataset.portraitState = 'entering';
+        this.continueButton.disabled = true;
+        this.continueButton.setAttribute('aria-busy', 'true');
+        this.continueButton.textContent = 'ENTERING SANCTUARY...';
+        if (this.actionKicker) {
+            this.actionKicker.textContent = 'ROUTE CONFIRMED // SANCTUARY OPENING';
+        }
+        if (this.status) {
+            this.status.textContent = this.portraitPending
+                ? 'Opening the Sanctuary now. The living portrait will keep developing and follow you.'
+                : 'Opening the Sanctuary now.';
+        }
     }
 
     startPortraitStatusSequence() {
@@ -511,5 +533,6 @@ export default class LivingFormHandoff {
         this.continueHandler = null;
         this.onPortraitShown = null;
         this.portraitShownIdentity = null;
+        this.keepVisibleOnContinue = false;
     }
 }

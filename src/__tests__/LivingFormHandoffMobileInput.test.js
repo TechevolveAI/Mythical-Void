@@ -146,6 +146,37 @@ describe('LivingFormHandoff mobile continuation', () => {
         )).toBeNull();
     });
 
+    test('the first Sanctuary transition stays visible and acknowledges the tap', () => {
+        const onContinue = jest.fn();
+        const handoff = new LivingFormHandoff(createScene());
+        handoff.show({
+            name: 'Nova',
+            species: 'nebulaSprite',
+            portraitPromise: new Promise(() => {}),
+            keepVisibleOnContinue: true,
+            onContinue
+        });
+        const button = document.querySelector(
+            '[data-testid="living-form-continue"]'
+        );
+
+        button.dispatchEvent(new Event('pointerup', {
+            bubbles: true,
+            cancelable: true
+        }));
+
+        expect(onContinue).toHaveBeenCalledTimes(1);
+        expect(handoff.isVisible).toBe(true);
+        expect(button.disabled).toBe(true);
+        expect(button.getAttribute('aria-busy')).toBe('true');
+        expect(button.textContent).toBe('ENTERING SANCTUARY...');
+        expect(document.querySelector('.living-form-status').textContent)
+            .toContain('will keep developing and follow you');
+        expect(document.querySelector('[data-testid="living-form-handoff"]')
+            .classList.contains('is-transitioning')).toBe(true);
+        handoff.destroy();
+    });
+
     test.each(['touchend', 'click'])(
         '%s remains a guarded continuation fallback',
         eventName => {

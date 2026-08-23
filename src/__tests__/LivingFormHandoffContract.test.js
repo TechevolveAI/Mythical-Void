@@ -97,6 +97,10 @@ describe('living form milestone handoff', () => {
             "continueButton.addEventListener('touchend'"
         );
         expect(handoffSource).toContain('ENTER SANCTUARY NOW');
+        expect(handoffSource).toContain('ENTERING SANCTUARY...');
+        expect(handoffSource).toContain('keepVisibleOnContinue');
+        expect(soulSource).toContain('keepVisibleOnContinue: true');
+        expect(soulSource).toContain('this.time.delayedCall(360');
         expect(handoffSource).toContain(
             'the finished portrait will open over the Sanctuary when it arrives.'
         );
