@@ -31,6 +31,7 @@ export default class LivingFormHandoff {
         this.sourceLabel = null;
         this.status = null;
         this.title = null;
+        this.actionKicker = null;
         this.keyboardHandler = null;
         this.continueHandler = null;
         this.continueButton = null;
@@ -79,9 +80,14 @@ export default class LivingFormHandoff {
             const nextHeight = Math.max(1, Math.floor(
                 viewport?.height || this.scene.scale.height || height
             ));
+            const offsetLeft = Math.max(0, Math.floor(viewport?.offsetLeft || 0));
+            const offsetTop = Math.max(0, Math.floor(viewport?.offsetTop || 0));
             root.style.width = `${nextWidth}px`;
             root.style.height = `${nextHeight}px`;
-            this.domElement?.setPosition?.(nextWidth / 2, nextHeight / 2);
+            this.domElement?.setPosition?.(
+                offsetLeft + (nextWidth / 2),
+                offsetTop + (nextHeight / 2)
+            );
             const cameraZoom = Math.max(
                 0.1,
                 Number(this.scene.cameras?.main?.zoom) || 1
@@ -131,9 +137,9 @@ export default class LivingFormHandoff {
             progress.setAttribute('aria-label', `${safeName} living portrait developing`);
             progress.setAttribute('aria-valuetext', 'Portrait generation in progress');
             progress.append(
-                createElement('span', 'living-form-progress-step is-complete'),
-                createElement('span', 'living-form-progress-step is-active'),
-                createElement('span', 'living-form-progress-step')
+                this.createProgressStep('SCAN LOCKED', 'is-complete'),
+                this.createProgressStep('FORMING', 'is-active'),
+                this.createProgressStep('REVEAL NEXT')
             );
             this.loadingDetail = createElement(
                 'span',
@@ -218,15 +224,16 @@ export default class LivingFormHandoff {
         const actions = createElement('footer', 'living-form-actions');
         actions.setAttribute('data-testid', 'living-form-actions');
 
-        actions.append(createElement(
+        this.actionKicker = createElement(
             'p',
             'living-form-action-kicker',
             isLateReveal
                 ? 'PORTRAIT RECEIVED'
                 : portraitPromise
-                    ? 'CONTINUE NOW OR WAIT FOR THE REVEAL'
+                    ? 'SANCTUARY READY // PORTRAIT IN PROGRESS'
                     : 'FIELD ROUTE READY'
-        ));
+        );
+        actions.append(this.actionKicker);
 
         this.status = createElement(
             'p',
@@ -234,7 +241,7 @@ export default class LivingFormHandoff {
                 portraitPromise
                     ? isLateReveal
                         ? 'Opening the completed protected living portrait.'
-                        : `${safeName}'s protected portrait is forming now. You do not need to wait.`
+                        : `${safeName}'s protected portrait is forming now. Enter whenever you are ready; the reveal will follow you.`
                     : 'No personal data was sent. Pixel identity remains the canonical record.'
         );
         this.status.setAttribute('role', 'status');
@@ -376,7 +383,7 @@ export default class LivingFormHandoff {
         this.statusTimers.push(window.setTimeout(() => {
             if (!this.isVisible || !this.portraitPending || !this.status) return;
             this.status.textContent =
-                'You can enter the Sanctuary now. The finished portrait will open there when it arrives.';
+                'Enter the Sanctuary now. The finished portrait will open there automatically when it arrives.';
             if (this.loadingDetail) {
                 this.loadingDetail.textContent =
                     'Still developing. You can continue without losing the reveal.';
@@ -387,6 +394,18 @@ export default class LivingFormHandoff {
     clearStatusTimers() {
         this.statusTimers.forEach(timer => window.clearTimeout(timer));
         this.statusTimers = [];
+    }
+
+    createProgressStep(label, stateClass = '') {
+        const step = createElement(
+            'span',
+            `living-form-progress-step ${stateClass}`.trim()
+        );
+        step.append(
+            createElement('span', 'living-form-progress-bar'),
+            createElement('span', 'living-form-progress-label', label)
+        );
+        return step;
     }
 
     setArtwork(imageUrl, { source, alt, record = null }) {
@@ -412,6 +431,9 @@ export default class LivingFormHandoff {
                 if (this.continueButton?.textContent === 'ENTER SANCTUARY NOW') {
                     this.continueButton.textContent = 'ENTER SANCTUARY';
                     this.root?.querySelector?.('.living-form-continue-note')?.remove?.();
+                }
+                if (this.actionKicker) {
+                    this.actionKicker.textContent = 'LIVING FORM READY // SANCTUARY OPEN';
                 }
                 window.CompanionMediaService?.recordAppearance?.(
                     'first_living_form',
@@ -483,6 +505,7 @@ export default class LivingFormHandoff {
         this.sourceLabel = null;
         this.status = null;
         this.title = null;
+        this.actionKicker = null;
         this.pixelReferenceImage = null;
         this.continueButton = null;
         this.continueHandler = null;

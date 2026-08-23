@@ -47,6 +47,8 @@ function createScene() {
             dom(_x, _y, root) {
                 document.body.append(root);
                 const domElement = {
+                    x: null,
+                    y: null,
                     setOrigin() {
                         return this;
                     },
@@ -54,6 +56,14 @@ function createScene() {
                         return this;
                     },
                     setDepth() {
+                        return this;
+                    },
+                    setPosition(x, y) {
+                        this.x = x;
+                        this.y = y;
+                        return this;
+                    },
+                    setScale() {
                         return this;
                     },
                     destroy: jest.fn(() => root.remove())
@@ -80,6 +90,8 @@ describe('LivingFormHandoff mobile continuation', () => {
             value: {
                 width: 390,
                 height: 500,
+                offsetLeft: 0,
+                offsetTop: 18,
                 addEventListener: jest.fn((eventName, listener) => {
                     if (eventName === 'resize') resizeListener = listener;
                 }),
@@ -90,10 +102,13 @@ describe('LivingFormHandoff mobile continuation', () => {
         handoff.show({ name: 'Nova', species: 'nebulaSprite' });
         const root = document.querySelector('[data-testid="living-form-handoff"]');
         expect(root.style.height).toBe('500px');
+        expect(handoff.domElement.x).toBe(195);
+        expect(handoff.domElement.y).toBe(268);
 
         window.visualViewport.height = 720;
         resizeListener();
         expect(root.style.height).toBe('720px');
+        expect(handoff.domElement.y).toBe(378);
 
         handoff.destroy();
         expect(window.visualViewport.removeEventListener).toHaveBeenCalled();
@@ -195,9 +210,12 @@ describe('LivingFormHandoff mobile continuation', () => {
         jest.advanceTimersByTime(7500);
 
         expect(document.querySelector('.living-form-status').textContent)
-            .toContain('open there when it arrives');
+            .toContain('open there automatically when it arrives');
         expect(document.querySelector('.living-form-spinner')).not.toBeNull();
         expect(document.querySelector('.living-form-progress')).not.toBeNull();
+        expect(Array.from(document.querySelectorAll('.living-form-progress-label'))
+            .map(element => element.textContent))
+            .toEqual(['SCAN LOCKED', 'FORMING', 'REVEAL NEXT']);
         expect(document.querySelector('.living-form-loading-detail').textContent)
             .toContain('continue without losing the reveal');
         expect(document.querySelector('[data-testid="living-form-continue"]')?.textContent)
@@ -207,7 +225,7 @@ describe('LivingFormHandoff mobile continuation', () => {
         expect(document.querySelector('[data-testid="living-form-actions"]'))
             .not.toBeNull();
         expect(document.querySelector('.living-form-action-kicker')?.textContent)
-            .toContain('CONTINUE NOW');
+            .toContain('SANCTUARY READY');
         expect(document.querySelector('[data-testid="living-form-handoff"]')?.dataset.portraitState)
             .toBe('developing');
         expect(document.querySelector('[data-testid="living-form-continue"]')?.disabled)
@@ -249,6 +267,8 @@ describe('LivingFormHandoff mobile continuation', () => {
         expect(document.querySelector('[data-testid="living-form-continue"]')?.textContent)
             .toBe('ENTER SANCTUARY');
         expect(document.querySelector('.living-form-continue-note')).toBeNull();
+        expect(document.querySelector('.living-form-action-kicker')?.textContent)
+            .toContain('LIVING FORM READY');
         expect(onPortraitShown).toHaveBeenCalledTimes(1);
         expect(onPortraitShown).toHaveBeenCalledWith(expect.objectContaining({
             identityKey: 'nova:baby:portrait'

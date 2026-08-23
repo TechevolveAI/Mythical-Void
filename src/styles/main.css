@@ -402,28 +402,51 @@ body.game-mode {
 
 .living-form-progress {
   display: grid;
-  width: min(74%, 190px);
+  width: min(92%, 280px);
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  gap: 8px;
   margin: 1px 0 2px;
 }
 
 .living-form-progress-step {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+}
+
+.living-form-progress-bar {
+  position: relative;
+  display: block;
   height: 3px;
   overflow: hidden;
   background: rgba(159, 178, 185, 0.22);
   border-radius: 2px;
 }
 
-.living-form-progress-step.is-complete {
+.living-form-progress-label {
+  display: block;
+  min-width: 0;
+  color: #7f9098;
+  font-size: 7px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.living-form-progress-step.is-complete .living-form-progress-bar {
   background: #8fe3cf;
 }
 
-.living-form-progress-step.is-active {
-  position: relative;
+.living-form-progress-step.is-complete .living-form-progress-label {
+  color: #8fe3cf;
 }
 
-.living-form-progress-step.is-active::after {
+.living-form-progress-step.is-active .living-form-progress-label {
+  color: #f2c14e;
+}
+
+.living-form-progress-step.is-active .living-form-progress-bar::after {
   position: absolute;
   inset: 0;
   background: #f2c14e;

@@ -752,7 +752,7 @@ describe('background living portrait generation', () => {
         expect(soulSource).toContain('this.portraitPreviewFailure');
         expect(soulSource).toContain('Local portrait failure preview');
         expect(handoffSource).toContain(
-            'The finished portrait will open there when it arrives.'
+            'The finished portrait will open there automatically when it arrives.'
         );
         expect(handoffSource).toContain('ready in the Sanctuary');
         const serviceSource = fs.readFileSync(
