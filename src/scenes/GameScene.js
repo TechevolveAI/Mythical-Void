@@ -594,6 +594,8 @@ class GameScene extends Phaser.Scene {
             ? data.guardianTaskPreview
             : null;
         this.livingPortraitReadyPreview = data?.livingPortraitReadyPreview === true;
+        this.livingPortraitFullRevealPreview =
+            data?.livingPortraitFullRevealPreview === true;
         if (
             this.guardianResidentPreview === null &&
             (
@@ -1378,13 +1380,17 @@ class GameScene extends Phaser.Scene {
             });
             this.time.delayedCall(1400, () => {
                 if (this.livingPortraitReadyPreview) {
+                    if (this.livingPortraitFullRevealPreview) {
+                        window.GameState?.set?.('tutorial.livingFormSeen', false);
+                        window.GameState?.set?.('story.companionMedia', null);
+                    }
                     void this.maybeShowLivingPortraitReadyNotice({
                         identityKey: 'preview_companion_23:baby:portrait',
                         stage: 'baby',
                         imageUrl: '/marketing/nova.webp',
                         assetRef: null,
                         storage: 'preview'
-                    }, { preview: true });
+                    }, { preview: !this.livingPortraitFullRevealPreview });
                     return;
                 }
                 void this.maybeShowLivingPortraitReadyNotice();
@@ -2133,7 +2139,7 @@ class GameScene extends Phaser.Scene {
                     imageUrl: '/marketing/nova.webp',
                     assetRef: null,
                     storage: 'preview'
-                }, { preview: true });
+                }, { preview: !this.livingPortraitFullRevealPreview });
             });
         }
         if (this.fendCulturePreview) {
@@ -14189,7 +14195,10 @@ class GameScene extends Phaser.Scene {
 
     showLivingPortraitReadyNotice(record, textureKey, { preview = false } = {}) {
         this.destroyLivingPortraitReadyNotice();
-        if (!preview && this.showLivingPortraitReveal(record)) {
+        const livingFormSeen = window.GameState?.get?.(
+            'tutorial.livingFormSeen'
+        ) === true;
+        if (!preview && !livingFormSeen && this.showLivingPortraitReveal(record)) {
             return;
         }
         const { width, height } = this.scale;
@@ -14337,6 +14346,11 @@ class GameScene extends Phaser.Scene {
             ) || 'star',
             portraitPromise: Promise.resolve(record),
             mode: 'late_reveal',
+            onPortraitShown: shownRecord => {
+                if (!shownRecord?.imageUrl) return;
+                window.GameState?.set?.('tutorial.livingFormSeen', true);
+                window.GameState?.save?.();
+            },
             onContinue: restore
         });
         if (!shown) {

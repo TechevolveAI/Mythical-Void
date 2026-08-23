@@ -68,6 +68,10 @@ describe('living form milestone handoff', () => {
             "continueButton.setAttribute('data-testid', 'living-form-continue')"
         );
         expect(cssSource).toContain('.living-form-handoff');
+        expect(cssSource).toContain('.living-form-actions');
+        expect(cssSource).toContain('grid-row: 4;');
+        expect(cssSource).toContain('.living-form-spinner');
+        expect(cssSource).toContain('@keyframes living-form-spin');
         expect(cssSource).toContain('.living-form-image.is-pixel-reference');
         expect(cssSource).toContain('width: min(28%, 240px)');
         expect(cssSource).toContain('.living-form-image.is-generated-portrait');
@@ -85,6 +89,26 @@ describe('living form milestone handoff', () => {
         );
         expect(handoffSource).toContain(
             "continueButton.addEventListener('touchend'"
+        );
+        expect(handoffSource).toContain('ENTER SANCTUARY NOW');
+        expect(handoffSource).toContain(
+            'Your reveal will appear in the Sanctuary if it finishes after you enter.'
+        );
+        expect(handoffSource).toContain('this.onPortraitShown?.(record);');
+    });
+
+    test('records the portrait as seen only after its artwork is visibly loaded', () => {
+        expect(soulSource).toContain('onPortraitShown: record => {');
+        expect(soulSource).toContain(
+            "window.GameState?.set('tutorial.livingFormSeen', true);"
+        );
+        const transitionStart = soulSource.indexOf('    transitionToGame() {');
+        const transitionEnd = soulSource.indexOf(
+            '    showLivingPortraitHandoff(finalName) {',
+            transitionStart
+        );
+        expect(soulSource.slice(transitionStart, transitionEnd)).not.toContain(
+            "set('tutorial.livingFormSeen', true)"
         );
     });
 

@@ -8255,6 +8255,72 @@ async function smokeHomeStart(session, exceptions) {
     return { start, recovery, advanced };
 }
 
+async function smokeLateLivingFormArrival(session, exceptions) {
+    exceptions.length = 0;
+    await navigate(
+        session,
+        `${BASE_URL}/play/?testGuardians=0&testPortraitReady=full`
+    );
+    await waitForScene(session, 'GameScene');
+
+    const reveal = await waitFor(
+        () => evaluate(session, `(() => {
+            const root = document.querySelector('[data-testid="living-form-handoff"]');
+            const image = root?.querySelector('.living-form-image.is-ready');
+            const action = root?.querySelector('[data-testid="living-form-continue"]');
+            const bounds = action?.getBoundingClientRect?.();
+            if (
+                !root ||
+                !image?.complete ||
+                image.naturalWidth < 256 ||
+                !bounds ||
+                bounds.width < 180 ||
+                bounds.height < 44
+            ) return null;
+            return {
+                action: action.textContent?.trim(),
+                seen: window.GameState?.get?.('tutorial.livingFormSeen') === true,
+                viewportWidth: window.visualViewport?.width || window.innerWidth,
+                viewportHeight: window.visualViewport?.height || window.innerHeight,
+                actionBounds: {
+                    left: Math.round(bounds.left),
+                    right: Math.round(bounds.right),
+                    top: Math.round(bounds.top),
+                    bottom: Math.round(bounds.bottom)
+                }
+            };
+        })()`),
+        { timeoutMs: 8000, message: 'late living-form Sanctuary reveal' }
+    );
+    if (
+        reveal.action !== 'CONTINUE EXPLORING' ||
+        !reveal.seen ||
+        reveal.actionBounds.left < 0 ||
+        reveal.actionBounds.right > reveal.viewportWidth ||
+        reveal.actionBounds.top < 0 ||
+        reveal.actionBounds.bottom > reveal.viewportHeight
+    ) {
+        throw new Error(`Late living-form reveal was unsafe: ${JSON.stringify(reveal)}`);
+    }
+    await captureGameplayStill(session, 'living-form-late-arrival-mobile.png');
+    await touchDomButton(session, '[data-testid="living-form-continue"]', {
+        message: 'Continue after late living-form reveal'
+    });
+    await waitFor(
+        () => evaluate(
+            session,
+            '!document.querySelector(\'[data-testid="living-form-handoff"]\')'
+        ),
+        { timeoutMs: 2500, message: 'late living-form reveal dismissal' }
+    );
+    if (exceptions.length) {
+        throw new Error(`Late living-form reveal raised browser exceptions: ${
+            exceptions.join(' | ')
+        }`);
+    }
+    return reveal;
+}
+
 async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     exceptions.length = 0;
     await navigate(session, `${BASE_URL}/play/`);
@@ -8265,7 +8331,7 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         localStorage.removeItem('mythical_creature_save');
         return true;
     })()`);
-    await navigate(session, `${BASE_URL}/play/?testSoulReveal=portrait`);
+    await navigate(session, `${BASE_URL}/play/?testSoulReveal=portrait-slow`);
     await waitForScene(session, 'SoulRevealScene');
 
     const naming = await waitFor(
@@ -8308,6 +8374,52 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         message: 'Reveal Living Form action'
     });
 
+    const pendingReveal = await waitFor(
+        () => evaluate(session, `(() => {
+            const root = document.querySelector('[data-testid="living-form-handoff"]');
+            const spinner = root?.querySelector('.living-form-spinner');
+            const detail = root?.querySelector('.living-form-loading-detail');
+            const button = root?.querySelector('[data-testid="living-form-continue"]');
+            const bounds = button?.getBoundingClientRect?.();
+            const viewportHeight = window.visualViewport?.height || window.innerHeight;
+            const viewportWidth = window.visualViewport?.width || window.innerWidth;
+            if (
+                !root?.classList?.contains('is-portrait-pending') ||
+                !spinner ||
+                !detail ||
+                !bounds ||
+                bounds.width < 180 ||
+                bounds.height < 44
+            ) return null;
+            return {
+                action: button.textContent?.trim(),
+                detail: detail.textContent?.trim(),
+                viewportWidth,
+                viewportHeight,
+                actionBounds: {
+                    left: Math.round(bounds.left),
+                    right: Math.round(bounds.right),
+                    top: Math.round(bounds.top),
+                    bottom: Math.round(bounds.bottom)
+                }
+            };
+        })()`),
+        { timeoutMs: 1200, message: 'visible pending living-form handoff' }
+    );
+    if (
+        pendingReveal.action !== 'ENTER SANCTUARY NOW' ||
+        !pendingReveal.detail.includes('body shape') ||
+        pendingReveal.actionBounds.left < 0 ||
+        pendingReveal.actionBounds.right > pendingReveal.viewportWidth ||
+        pendingReveal.actionBounds.top < 0 ||
+        pendingReveal.actionBounds.bottom > pendingReveal.viewportHeight
+    ) {
+        throw new Error(
+            `Pending living-form action was not viewport-safe: ${JSON.stringify(pendingReveal)}`
+        );
+    }
+    await captureGameplayStill(session, 'first-living-form-developing-mobile.png');
+
     const reveal = await waitFor(
         () => evaluate(session, `(() => {
             const root = document.querySelector('[data-testid="living-form-handoff"]');
@@ -8328,6 +8440,8 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
                 imageWidth: image.naturalWidth,
                 imageHeight: image.naturalHeight,
                 action: button.textContent?.trim(),
+                viewportWidth: window.visualViewport?.width || window.innerWidth,
+                viewportHeight: window.visualViewport?.height || window.innerHeight,
                 actionBounds: {
                     left: Math.round(bounds.left),
                     right: Math.round(bounds.right),
@@ -8340,7 +8454,11 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     );
     if (
         reveal.source !== 'PROTECTED LIVING PORTRAIT' ||
-        reveal.action !== 'ENTER SANCTUARY'
+        reveal.action !== 'ENTER SANCTUARY' ||
+        reveal.actionBounds.left < 0 ||
+        reveal.actionBounds.right > reveal.viewportWidth ||
+        reveal.actionBounds.top < 0 ||
+        reveal.actionBounds.bottom > reveal.viewportHeight
     ) {
         throw new Error(`Living-form handoff was incomplete: ${JSON.stringify(reveal)}`);
     }
@@ -8583,6 +8701,54 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         })}`);
     }
 
+    await evaluate(session, `(() => {
+        window.GameState?.set?.('tutorial.livingFormSeen', false);
+        window.GameState?.set?.('story.companionMedia', null);
+        const scene = window.mythicalGame?.scene?.getScene('GameScene');
+        void scene?.maybeShowLivingPortraitReadyNotice?.({
+            identityKey: 'late-arrival-smoke:baby:portrait',
+            stage: 'baby',
+            imageUrl: '/marketing/nova.webp',
+            assetRef: null,
+            storage: 'preview'
+        });
+        return true;
+    })()`);
+    const lateReveal = await waitFor(
+        () => evaluate(session, `(() => {
+            const root = document.querySelector('[data-testid="living-form-handoff"]');
+            const image = root?.querySelector('.living-form-image.is-ready');
+            const action = root?.querySelector('[data-testid="living-form-continue"]');
+            const bounds = action?.getBoundingClientRect?.();
+            if (
+                !root ||
+                !image?.complete ||
+                image.naturalWidth < 256 ||
+                !bounds ||
+                bounds.width < 180 ||
+                bounds.height < 44
+            ) return null;
+            return {
+                action: action.textContent?.trim(),
+                seen: window.GameState?.get?.('tutorial.livingFormSeen') === true,
+                viewportHeight: window.visualViewport?.height || window.innerHeight,
+                actionBottom: Math.round(bounds.bottom)
+            };
+        })()`),
+        { timeoutMs: 5000, message: 'late Sanctuary living-form reveal' }
+    );
+    if (
+        lateReveal.action !== 'CONTINUE EXPLORING' ||
+        !lateReveal.seen ||
+        lateReveal.actionBottom > lateReveal.viewportHeight
+    ) {
+        throw new Error(`Late living-form reveal was incomplete: ${JSON.stringify(lateReveal)}`);
+    }
+    await captureGameplayStill(session, 'first-living-form-late-arrival-mobile.png');
+    await touchDomButton(session, '[data-testid="living-form-continue"]', {
+        message: 'Continue exploring after late living-form reveal'
+    });
+
     const movementStart = await evaluate(session, `(() => {
         const scene = window.mythicalGame?.scene?.getScene('GameScene');
         const controls = scene?.mobileControls;
@@ -8663,6 +8829,7 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
 
     return {
         naming,
+        pendingReveal,
         reveal,
         handoffMs,
         storyAdvanceMs,
@@ -16003,6 +16170,12 @@ async function main() {
         if (SMOKE_MODE === 'home-entry') {
             results.homeEntry = await smokeHomeStart(session, exceptions);
             process.stdout.write('PASS HomeStartToEgg\n');
+        } else if (SMOKE_MODE === 'living-form-late') {
+            results.livingFormLate = await smokeLateLivingFormArrival(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS LateLivingFormArrival\n');
         } else if (SMOKE_MODE === 'first-sanctuary') {
             results.firstSanctuary = await smokeFirstSanctuaryOnboarding(
                 session,

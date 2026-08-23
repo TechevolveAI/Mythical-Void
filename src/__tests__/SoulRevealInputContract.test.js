@@ -68,6 +68,8 @@ describe('Soul Reveal naming input', () => {
         );
 
         expect(game).toContain("urlParams.has('testSoulReveal')");
+        expect(game).toContain("urlParams.get('testSoulReveal') === 'portrait-slow'");
+        expect(source).toContain('this.portraitPreviewDelay');
         expect(game).toContain("game.scene.start('SoulRevealScene', {");
         expect(hatching).toContain("previewParams.has('testSoulReveal')");
     });

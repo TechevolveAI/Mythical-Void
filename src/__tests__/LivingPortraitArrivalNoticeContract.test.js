@@ -32,6 +32,13 @@ describe('late living portrait arrival contract', () => {
         expect(gameScene).toContain('portraitService.resolve(existing)');
         expect(gameScene).toContain('portraitService.prewarm?.({');
         expect(gameScene).toContain('showLivingPortraitReveal(record)');
+        expect(gameScene).toContain(
+            "'tutorial.livingFormSeen'"
+        );
+        expect(gameScene).toContain(
+            'if (!preview && !livingFormSeen && this.showLivingPortraitReveal(record))'
+        );
+        expect(gameScene).toContain('onPortraitShown: shownRecord => {');
         expect(handoff).toContain("mode === 'late_reveal'");
         expect(handoff).toContain('CONTINUE EXPLORING');
     });
@@ -50,9 +57,11 @@ describe('late living portrait arrival contract', () => {
 
     test('provides a non-saving local visual regression route', () => {
         expect(game).toContain(
-            "urlParams.get('testPortraitReady') === '1'"
+            "urlParams.get('testPortraitReady')"
         );
         expect(game).toContain('livingPortraitReadyPreview:');
+        expect(game).toContain('livingPortraitFullRevealPreview:');
+        expect(gameScene).toContain('this.livingPortraitFullRevealPreview');
         expect(gameScene).toContain("imageUrl: '/marketing/nova.webp'");
         expect(gameScene).toContain("storage: 'preview'");
         expect(gameScene).toContain('this.time.delayedCall(350');

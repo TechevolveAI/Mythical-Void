@@ -193,6 +193,13 @@ describe('LivingFormHandoff mobile continuation', () => {
 
         expect(document.querySelector('.living-form-status').textContent)
             .toContain('Companion Archive');
+        expect(document.querySelector('.living-form-spinner')).not.toBeNull();
+        expect(document.querySelector('.living-form-loading-detail').textContent)
+            .toContain('continue without losing the reveal');
+        expect(document.querySelector('[data-testid="living-form-continue"]')?.textContent)
+            .toBe('ENTER SANCTUARY NOW');
+        expect(document.querySelector('.living-form-continue-note')?.textContent)
+            .toContain('appear in the Sanctuary');
         expect(document.querySelector('[data-testid="living-form-continue"]')?.disabled)
             .toBe(false);
         handoff.destroy();
@@ -202,6 +209,7 @@ describe('LivingFormHandoff mobile continuation', () => {
     test('a protected portrait visibly replaces the pixel reference', async () => {
         const imageUrl =
             'https://mkcmdbzcihjgidjuypqe.supabase.co/storage/v1/object/sign/creature-portraits/portrait.jpg';
+        const onPortraitShown = jest.fn();
         const handoff = new LivingFormHandoff(createScene());
         handoff.show({
             name: 'Nova',
@@ -212,6 +220,7 @@ describe('LivingFormHandoff mobile continuation', () => {
                 imageUrl,
                 assetRef: 'portrait-job-v1:824363b2-d374-4b44-bf7f-1d7a177fa074'
             }),
+            onPortraitShown,
             referenceImage: 'data:image/png;base64,iVBORw0KGgo='
         });
 
@@ -225,6 +234,15 @@ describe('LivingFormHandoff mobile continuation', () => {
             .toBe('PROTECTED LIVING PORTRAIT');
         expect(document.querySelector('.living-form-media-fallback')
             .classList.contains('is-hidden')).toBe(true);
+        expect(document.querySelector('[data-testid="living-form-continue"]')?.textContent)
+            .toBe('ENTER SANCTUARY');
+        expect(document.querySelector('.living-form-continue-note')).toBeNull();
+        expect(onPortraitShown).toHaveBeenCalledTimes(1);
+        expect(onPortraitShown).toHaveBeenCalledWith(expect.objectContaining({
+            identityKey: 'nova:baby:portrait'
+        }));
+        handoff.image.onload();
+        expect(onPortraitShown).toHaveBeenCalledTimes(1);
         handoff.destroy();
     });
 });

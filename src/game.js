@@ -1461,7 +1461,11 @@ async function initializeGame() {
                     game.scene.start('GameScene', {
                         guardianResidentPreview: Number(testGuardians),
                         livingPortraitReadyPreview:
-                            urlParams.get('testPortraitReady') === '1'
+                            ['1', 'full'].includes(
+                                urlParams.get('testPortraitReady')
+                            ),
+                        livingPortraitFullRevealPreview:
+                            urlParams.get('testPortraitReady') === 'full'
                     });
                 }, 100);
             });
@@ -1882,11 +1886,17 @@ async function initializeGame() {
             game.events.once('ready', () => {
                 setTimeout(() => {
                     game.scene.start('SoulRevealScene', {
-                        portraitPreviewImage: urlParams.get('testSoulReveal') === 'portrait'
+                        portraitPreviewImage: ['portrait', 'portrait-slow'].includes(
+                            urlParams.get('testSoulReveal')
+                        )
                             ? '/marketing/nova.webp'
                             : null,
                         portraitPreviewFailure: urlParams.get('testSoulReveal') === 'fallback',
-                        portraitPreviewSpecies: 'nebulaSprite'
+                        portraitPreviewSpecies: 'nebulaSprite',
+                        portraitPreviewDelay:
+                            urlParams.get('testSoulReveal') === 'portrait-slow'
+                                ? 5000
+                                : 1400
                     });
                 }, 100);
             });
