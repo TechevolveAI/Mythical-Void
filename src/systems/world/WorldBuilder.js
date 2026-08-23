@@ -3526,12 +3526,12 @@ class WorldBuilder {
                         : storyMode
                             ? primary ? 0.88 : 0
                             : primary ? 1 : 0.08;
-            const stateLabelAlpha = playerNearby && !directPlotCommand
-                ? 1
-                : !active
-                    ? presentation.stateLabelRestAlpha
-                    : directPlotCommand
-                        ? 0
+            const stateLabelAlpha = directPlotCommand
+                ? 0
+                : playerNearby
+                    ? 1
+                    : !active
+                        ? presentation.stateLabelRestAlpha
                         : storyMode
                             ? 0
                             : primary || presentation.plotState === 'constructing' ? 1 : 0;
@@ -5181,7 +5181,11 @@ class WorldBuilder {
         const labelX = compact
             ? position.x + (position.x > landmark.zone.x ? -16 : position.x < landmark.zone.x ? 16 : 0)
             : position.x;
-        const labelY = position.y - (compact ? 92 : 120);
+        const compactLowerTarget = compact && position.y > landmark.zone.y + 70;
+        const placardPlacement = compactLowerTarget ? 'below_target' : 'above_target';
+        const labelY = compactLowerTarget
+            ? position.y + 88
+            : position.y - (compact ? 92 : 120);
         const actionCopy = buildingDefinition
             ? `${action.type === 'assign' ? 'INVITE' : 'BUILD'} · ${buildingDefinition.label.toUpperCase()}`
             : action.label;
@@ -5189,7 +5193,9 @@ class WorldBuilder {
             .setPosition(labelX, labelY)
             .setDepth(position.y + 7)
             .setData('villageNextActionPlacard', true)
-            .setData('villagePlacardLanguage', 'current_ribbon_v2');
+            .setData('villagePlacardLanguage', 'current_ribbon_v2')
+            .setData('villagePlacardPlacement', placardPlacement)
+            .setData('villagePlacardAvoidsHeart', compactLowerTarget);
         const placardHalfWidth = compact ? 84 : 104;
         const placardHalfHeight = compact ? 17 : 18;
         const placardNotch = compact ? 8 : 10;
@@ -5226,15 +5232,18 @@ class WorldBuilder {
             .setData('plotId', action.plotId)
             .setData('definitionId', action.definitionId || null)
             .setData('villageActionCopy', actionCopy)
+            .setData('villagePlacardPlacement', placardPlacement)
+            .setData('villagePlacardAvoidsHeart', compactLowerTarget)
             .setData(
                 'ariaLabel',
                 `${actionCopy}. Tap to plan this structure at ${action.plotId}.`
             );
         label.on('pointerdown', () => this.activateVillageHeart(landmark, action.plotId));
 
+        const hitZoneY = compactLowerTarget ? labelY - 4 : labelY;
         const hitZone = this.scene.add.zone(
             labelX,
-            labelY,
+            hitZoneY,
             compact ? 156 : 184,
             52
         )
@@ -5245,7 +5254,10 @@ class WorldBuilder {
             .setData('touchTargetHeight', 52)
             .setData('villageNextAction', action.type)
             .setData('plotId', action.plotId)
-            .setData('definitionId', action.definitionId || null);
+            .setData('definitionId', action.definitionId || null)
+            .setData('villagePlacardPlacement', placardPlacement)
+            .setData('villagePlacardAvoidsHeart', compactLowerTarget)
+            .setData('villagePlacardHitZoneOffsetY', hitZoneY - labelY);
         hitZone.on('pointerdown', () => this.activateVillageHeart(landmark, action.plotId));
 
         landmark.nextActionElement = label;

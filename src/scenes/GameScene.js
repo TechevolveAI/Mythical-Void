@@ -16935,7 +16935,7 @@ class GameScene extends Phaser.Scene {
             journey
         ) === true;
         if (!played) return false;
-        this.villageResidentGreetingCooldownUntil = (this.time?.now || 0) + 5000;
+        this.villageResidentGreetingCooldownUntil = (this.time?.now || 0) + 7700;
         this.clearVillageResidentJourneyInteraction();
         this.recordBondActivity('community');
         window.AudioManager?.playButtonClick?.();

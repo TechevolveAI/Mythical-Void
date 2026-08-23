@@ -698,6 +698,10 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("constructing: 'taking_root'");
         expect(world).toContain("needs_helper: 'awaiting_resident'");
         expect(world).toContain("staffed: 'working_together'");
+        expect(world).toContain("const placardPlacement = compactLowerTarget ? 'below_target' : 'above_target';");
+        expect(world).toContain(".setData('villagePlacardAvoidsHeart', compactLowerTarget)");
+        expect(world).toContain(".setData('villagePlacardHitZoneOffsetY', hitZoneY - labelY)");
+        expect(world).toContain('const stateLabelAlpha = directPlotCommand');
         expect(world).toContain('createVillageDistrictAnchor({');
         expect(world).toContain('drawVillagePurposeGlyph(');
         expect(world).toContain("setData('villageDistrictAnchor', true)");
@@ -777,6 +781,7 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain("verb: 'GREET'");
         expect(scene).toContain('priority: 52');
         expect(scene).toContain('greetVillageResidentJourney(journey)');
+        expect(scene).toContain('this.villageResidentGreetingCooldownUntil = (this.time?.now || 0) + 7700;');
         expect(scene).toContain("event: 'village_resident_greeting'");
         expect(scene).toContain('residentRoutines: snapshot?.residentRoutines?.map');
         expect(scene).toContain('this.updateSanctuaryFocusMode(true);');
@@ -1004,6 +1009,11 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain('districtActivityCue: activityCue');
         expect(smoke).toContain("villageCommandPreview: 'complete'");
         expect(smoke).toContain('village-complete-world-identities-mobile.png');
+        expect(smoke).toContain('async function smokeVillageHeartGuidance(session, exceptions)');
+        expect(smoke).toContain("SMOKE_CASE === 'heart-guidance'");
+        expect(smoke).toContain("guidance.placement !== 'below_target'");
+        expect(smoke).toContain('guidance.overlapsHeartLabel');
+        expect(smoke).toContain('guidance.screenBounds.bottom > guidance.dockTop - 8');
         expect(smoke).toContain('expectedDistrictIds');
         expect(smoke).toContain("district.operationalLanguage !== 'living_work_cycle_v1'");
         expect(smoke).toContain("workerDelivery.districtOperationalState !== 'delivery_complete'");

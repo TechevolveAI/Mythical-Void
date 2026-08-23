@@ -10537,7 +10537,142 @@ async function smokeSaveReloadJourney(session, exceptions) {
     return restored;
 }
 
+async function smokeVillageHeartGuidance(session, exceptions) {
+    exceptions.length = 0;
+    await navigate(session, `${BASE_URL}/play/?testVillage=complete`);
+    await waitForScene(session, 'GameScene', 45000);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene('GameScene');
+            const landmark = scene?.villageHeartLandmark;
+            return Boolean(
+                landmark?.nextActionElement &&
+                landmark?.nextActionHitZone &&
+                landmark?.plotPresentations?.length === 5
+            );
+        })()`),
+        { timeoutMs: 30000, message: 'Focused Village Heart guidance state' }
+    );
+    await evaluate(session, `(() => {
+        document.querySelector('.village-command-close')?.click();
+        const scene = window.mythicalGame?.scene?.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        if (!scene || !landmark) return false;
+        scene.nearVillageHeart = false;
+        scene.setSanctuaryMomentFocus?.(false);
+        scene.updateSanctuaryFocusMode?.(false);
+        scene.worldBuilder?.setVillageFocusMode?.(landmark, false, {
+            immediate: true,
+            presentationMode: 'ambient'
+        });
+        scene.cameras?.main?.stopFollow?.();
+        scene.cameras?.main?.centerOn?.(landmark.zone.x, landmark.zone.y);
+        return true;
+    })()`);
+    await new Promise(resolve => setTimeout(resolve, 360));
+
+    const guidance = await evaluate(session, `(() => {
+        const scene = window.mythicalGame?.scene?.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const action = landmark?.snapshot?.worldState?.nextAction;
+        const target = landmark?.plotWorldPositions?.get?.(action?.plotId);
+        const presentation = landmark?.plotPresentations?.find(
+            item => item.plotId === action?.plotId
+        );
+        const placardBounds = landmark?.nextActionElement?.getBounds?.();
+        const touchBounds = landmark?.nextActionHitZone?.getBounds?.();
+        const heartLabelBounds = landmark?.label?.getBounds?.();
+        const heartStatusBounds = landmark?.statusLabel?.getBounds?.();
+        const camera = scene?.cameras?.main;
+        const zoom = camera?.zoom || 1;
+        const worldView = camera?.worldView;
+        const controlDockTop = scene?.mobileControls?.isVisible
+            ? Number(scene?.mobileControls?.layout?.dockTop)
+            : Number.NaN;
+        const dockTop = Number.isFinite(controlDockTop)
+            ? controlDockTop
+            : scene?.scale?.width <= 600
+                ? scene.scale.height - 121
+                : scene?.scale?.height;
+        const toScreenBounds = bounds => bounds && worldView ? {
+            left: (bounds.left - worldView.x) * zoom,
+            right: (bounds.right - worldView.x) * zoom,
+            top: (bounds.top - worldView.y) * zoom,
+            bottom: (bounds.bottom - worldView.y) * zoom
+        } : null;
+        return {
+            actionType: action?.type || null,
+            plotId: action?.plotId || null,
+            text: landmark?.nextActionElement?.text || '',
+            placement: landmark?.nextActionPlacard?.getData?.(
+                'villagePlacardPlacement'
+            ) || null,
+            avoidsHeart: landmark?.nextActionPlacard?.getData?.(
+                'villagePlacardAvoidsHeart'
+            ) === true,
+            placardY: landmark?.nextActionElement?.y ?? null,
+            targetY: target?.y ?? null,
+            stateLabelAlpha: presentation?.stateLabel?.alpha ?? null,
+            overlapsHeartLabel: Boolean(
+                placardBounds && heartLabelBounds &&
+                Phaser.Geom.Intersects.RectangleToRectangle(
+                    placardBounds,
+                    heartLabelBounds
+                )
+            ),
+            overlapsHeartStatus: Boolean(
+                placardBounds && heartStatusBounds &&
+                Phaser.Geom.Intersects.RectangleToRectangle(
+                    placardBounds,
+                    heartStatusBounds
+                )
+            ),
+            labelInputEnabled: landmark?.nextActionElement?.input?.enabled === true,
+            hitZoneInputEnabled: landmark?.nextActionHitZone?.input?.enabled === true,
+            screenBounds: toScreenBounds(touchBounds),
+            labelScreenBounds: toScreenBounds(placardBounds),
+            dockTop,
+            viewport: {
+                width: scene?.scale?.width,
+                height: scene?.scale?.height
+            }
+        };
+    })()`);
+    if (
+        guidance.actionType !== 'assign' ||
+        guidance.placement !== 'below_target' ||
+        guidance.avoidsHeart !== true ||
+        guidance.placardY <= guidance.targetY ||
+        guidance.stateLabelAlpha !== 0 ||
+        guidance.overlapsHeartLabel ||
+        guidance.overlapsHeartStatus ||
+        !guidance.labelInputEnabled ||
+        !guidance.hitZoneInputEnabled ||
+        !guidance.text.includes('INVITE') ||
+        !guidance.text.includes('WORKSHOP') ||
+        !guidance.screenBounds ||
+        guidance.screenBounds.left < 8 ||
+        guidance.screenBounds.right > guidance.viewport.width - 8 ||
+        guidance.screenBounds.top < 8 ||
+        guidance.screenBounds.bottom > guidance.dockTop - 8
+    ) {
+        throw new Error(
+            `Village Heart target-aware guidance failed: ${JSON.stringify(guidance)}`
+        );
+    }
+    if (exceptions.length) {
+        throw new Error(
+            `Village Heart target-aware guidance raised browser exceptions: ${exceptions.join(' | ')}`
+        );
+    }
+    process.stdout.write('PASS VillageHeartGuidance\n');
+    return { guidance };
+}
+
 async function smokeVillageUi(session, exceptions) {
+    if (SMOKE_CASE === 'heart-guidance') {
+        return smokeVillageHeartGuidance(session, exceptions);
+    }
     exceptions.length = 0;
     // Exercise the player-facing route first. Construction is intentionally
     // housed in the Shop Build tab; the Sanctuary landmark is only a shortcut.
@@ -15579,6 +15714,36 @@ async function smokeVillageUi(session, exceptions) {
                 'villageRouteHierarchyState'
             ),
             routeHierarchyAlpha: landmark?.currentPaths?.alpha,
+            nextActionGuidance: (() => {
+                const action = landmark?.snapshot?.worldState?.nextAction;
+                const target = landmark?.plotWorldPositions?.get?.(action?.plotId);
+                const targetPresentation = landmark?.plotPresentations?.find(
+                    presentation => presentation.plotId === action?.plotId
+                );
+                const placardBounds = landmark?.nextActionElement?.getBounds?.();
+                const heartLabelBounds = landmark?.label?.getBounds?.();
+                return {
+                    type: action?.type || null,
+                    plotId: action?.plotId || null,
+                    placement: landmark?.nextActionPlacard?.getData?.(
+                        'villagePlacardPlacement'
+                    ) || null,
+                    avoidsHeart: landmark?.nextActionPlacard?.getData?.(
+                        'villagePlacardAvoidsHeart'
+                    ) === true,
+                    placardY: landmark?.nextActionElement?.y ?? null,
+                    targetY: target?.y ?? null,
+                    stateLabelAlpha: targetPresentation?.stateLabel?.alpha ?? null,
+                    overlapsHeartLabel: Boolean(
+                        placardBounds &&
+                        heartLabelBounds &&
+                        Phaser.Geom.Intersects.RectangleToRectangle(
+                            placardBounds,
+                            heartLabelBounds
+                        )
+                    )
+                };
+            })(),
             districts: (landmark?.plotPresentations || []).map(presentation => {
                 const district = presentation.inhabitedDistrict;
                 return {
@@ -15658,6 +15823,17 @@ async function smokeVillageUi(session, exceptions) {
         completeWorldIdentities.routeHierarchyState !== 'target_support' ||
         completeWorldIdentities.routeHierarchyAlpha !== (
             SMOKE_VIEWPORT_WIDTH <= 600 ? 0.34 : 0.38
+        ) ||
+        (
+            SMOKE_VIEWPORT_WIDTH <= 600 && (
+                completeWorldIdentities.nextActionGuidance.type !== 'assign' ||
+                completeWorldIdentities.nextActionGuidance.placement !== 'below_target' ||
+                completeWorldIdentities.nextActionGuidance.avoidsHeart !== true ||
+                completeWorldIdentities.nextActionGuidance.placardY <=
+                    completeWorldIdentities.nextActionGuidance.targetY ||
+                completeWorldIdentities.nextActionGuidance.stateLabelAlpha !== 0 ||
+                completeWorldIdentities.nextActionGuidance.overlapsHeartLabel !== false
+            )
         ) ||
         completeWorldIdentities.districts.length !== 5 ||
         [...completeWorldIdentities.terrain.ids].sort().join(',') !==
