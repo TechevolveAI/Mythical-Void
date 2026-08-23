@@ -2457,6 +2457,22 @@ body.game-mode {
   border-radius: 50% 50% 42% 42%;
 }
 
+.village-creature-avatar.is-authored-resident {
+  overflow: hidden;
+  background: #07100f;
+  border-color: #8fe3cf;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px rgba(242, 193, 78, 0.5);
+}
+
+.village-creature-portrait {
+  position: absolute;
+  inset: 0;
+  background-image: var(--village-avatar-image);
+  background-position: center 35%;
+  background-size: cover;
+}
+
 .village-creature-antenna {
   position: absolute;
   top: -8px;

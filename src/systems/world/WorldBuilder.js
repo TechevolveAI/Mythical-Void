@@ -5974,6 +5974,107 @@ class WorldBuilder {
         return { container, tween };
     }
 
+    createVillageWorkerFigure(creature, { accent = 0x71E6B1 } = {}) {
+        const figure = this.scene.add.graphics();
+        const kind = creature?.communityType === 'rescued_resident'
+            ? String(creature.kind || 'resident').toLowerCase()
+            : 'companion';
+
+        if (kind === 'bloom') {
+            figure.fillStyle(0xE7A3C7, 1);
+            figure.fillEllipse(0, 7, 18, 24);
+            [-8, -4, 0, 4, 8].forEach((x, index) => {
+                figure.fillStyle(index % 2 === 0 ? 0x71E6B1 : 0x3FAE62, 0.98);
+                figure.fillEllipse(x, -5 - (index % 2) * 2, 8, 6);
+            });
+            figure.fillStyle(0xF4F4F4, 1);
+            figure.fillCircle(-4, -6, 4.5);
+            figure.fillCircle(4, -6, 4.5);
+            figure.fillStyle(0x07100F, 1);
+            figure.fillCircle(-3, -6, 1.8);
+            figure.fillCircle(5, -6, 1.8);
+            figure.lineStyle(1, 0xE7A3C7, 0.95);
+            figure.lineBetween(-8, -5, -14, -8);
+            figure.lineBetween(8, -5, 14, -8);
+        } else if (kind === 'pebble') {
+            figure.fillStyle(0xB98A68, 1);
+            figure.fillEllipse(0, 6, 25, 21);
+            figure.fillStyle(0xD8E2DF, 0.9);
+            figure.fillTriangle(-7, -4, -1, -14, 3, -3);
+            figure.fillStyle(0x8FE3CF, 0.92);
+            figure.fillTriangle(3, -2, 9, -11, 12, 0);
+            figure.fillStyle(0xF4F4F4, 1);
+            figure.fillCircle(-5, 3, 3.2);
+            figure.fillCircle(5, 3, 3.2);
+            figure.fillStyle(0x07100F, 1);
+            figure.fillCircle(-4, 3, 1.4);
+            figure.fillCircle(6, 3, 1.4);
+        } else if (kind === 'zephyr') {
+            figure.fillStyle(0xE98843, 1);
+            figure.fillEllipse(0, 4, 15, 24);
+            figure.fillStyle(0x8FE3CF, 0.78);
+            figure.fillTriangle(-5, 0, -18, -10, -14, 9);
+            figure.fillTriangle(5, 0, 18, -10, 14, 9);
+            figure.fillStyle(0xF4F4F4, 1);
+            figure.fillCircle(-3, -5, 3.4);
+            figure.fillCircle(3, -5, 3.4);
+            figure.fillStyle(0x07100F, 1);
+            figure.fillCircle(-2, -5, 1.4);
+            figure.fillCircle(4, -5, 1.4);
+        } else if (kind === 'wisp') {
+            figure.fillStyle(0x8C77C8, 0.98);
+            figure.fillCircle(0, -5, 9);
+            figure.fillTriangle(-8, 0, -3, 20, 1, 6);
+            figure.fillTriangle(0, 3, 5, 19, 8, -1);
+            figure.fillStyle(0xF2C14E, 0.92);
+            figure.fillCircle(0, 5, 3);
+            figure.fillStyle(0xF4F4F4, 1);
+            figure.fillCircle(-3, -7, 2.7);
+            figure.fillCircle(3, -7, 2.7);
+        } else if (kind === 'luna') {
+            figure.fillStyle(0x53A6D8, 1);
+            figure.fillEllipse(0, 5, 16, 25);
+            figure.fillStyle(0xF4D35E, 0.84);
+            figure.fillTriangle(-5, 0, -16, 5, -7, 11);
+            figure.fillTriangle(5, 0, 16, 5, 7, 11);
+            figure.lineStyle(2, 0x8FE3CF, 0.9);
+            figure.lineBetween(-4, -8, -8, -16);
+            figure.lineBetween(4, -8, 8, -16);
+            figure.fillStyle(0xF4F4F4, 1);
+            figure.fillCircle(-3, -5, 3.3);
+            figure.fillCircle(3, -5, 3.3);
+        } else if (kind === 'nova') {
+            figure.fillStyle(0x8FE3CF, 1);
+            figure.fillCircle(0, 1, 10);
+            figure.fillTriangle(0, -17, -5, -6, 5, -6);
+            figure.fillTriangle(0, 19, -5, 7, 5, 7);
+            figure.fillTriangle(-17, 1, -6, -4, -6, 6);
+            figure.fillTriangle(17, 1, 6, -4, 6, 6);
+            figure.fillStyle(0xF2C14E, 0.92);
+            figure.fillCircle(0, 1, 4);
+            figure.fillStyle(0x07100F, 1);
+            figure.fillCircle(-3, -2, 1.4);
+            figure.fillCircle(3, -2, 1.4);
+        } else {
+            figure.fillStyle(accent, 0.98);
+            figure.fillCircle(0, -4, 8);
+            figure.fillEllipse(0, 8, 16, 20);
+            figure.fillStyle(0xF4F4F4, 0.98);
+            figure.fillCircle(-3, -5, 2);
+            figure.fillCircle(3, -5, 2);
+            figure.lineStyle(2, 0x101616, 0.9);
+            figure.lineBetween(-6, -11, -10, -18);
+            figure.lineBetween(6, -11, 10, -18);
+        }
+        figure
+            .setData('villageWorkerVisualProfile', `${kind}_worker_v1`)
+            .setData(
+                'villageWorkerCommunityType',
+                creature?.communityType || 'companion'
+            );
+        return figure;
+    }
+
     createVillageWorker(building, {
         compact = false,
         index = 0,
@@ -6011,25 +6112,38 @@ class WorldBuilder {
         const accent = accentByAffinity[affinity] || 0x71E6B1;
         const scale = compact ? 0.78 : 1;
         const shadow = this.scene.add.ellipse(0, 16, 29, 8, 0x07100F, 0.58);
-        const figure = this.scene.add.graphics();
-        figure.fillStyle(accent, 0.98);
-        figure.fillCircle(0, -4, 8);
-        figure.fillEllipse(0, 8, 16, 20);
-        figure.fillStyle(0xF4F4F4, 0.98);
-        figure.fillCircle(-3, -5, 2);
-        figure.fillCircle(3, -5, 2);
-        figure.lineStyle(2, 0x101616, 0.9);
-        figure.lineBetween(-6, -11, -10, -18);
-        figure.lineBetween(6, -11, 10, -18);
-        const initial = this.scene.add.text(
+        const figure = this.createVillageWorkerFigure(
+            building.creature,
+            { accent }
+        );
+        const isRescuedResident = building.creature?.communityType ===
+            'rescued_resident';
+        const initial = isRescuedResident
+            ? null
+            : this.scene.add.text(
+                0,
+                7,
+                String(building.creature.name || 'C').slice(0, 1).toUpperCase(),
+                {
+                    fontSize: '7px',
+                    fontFamily: 'Arial, sans-serif',
+                    fontStyle: 'bold',
+                    color: '#07100F'
+                }
+            ).setOrigin(0.5);
+        const residentIdentity = this.scene.add.text(
             0,
-            7,
-            String(building.creature.name || 'C').slice(0, 1).toUpperCase(),
+            29,
+            isRescuedResident
+                ? String(building.creature.name || 'RESIDENT').toUpperCase()
+                : '',
             {
-                fontSize: '7px',
+                fontSize: compact ? '8px' : '9px',
                 fontFamily: 'Arial, sans-serif',
                 fontStyle: 'bold',
-                color: '#07100F'
+                color: '#F4F4F4',
+                stroke: '#07100F',
+                strokeThickness: 3
             }
         ).setOrigin(0.5);
         const cargo = this.createVillageWorkerCargo(
@@ -6070,15 +6184,26 @@ class WorldBuilder {
             shadow,
             deliveryPulse,
             figure,
-            initial,
+            ...(!isRescuedResident ? [initial] : []),
             cargo,
             routeStatus,
-            checkInCue
+            checkInCue,
+            residentIdentity
         ]);
         worker.setScale(scale);
         worker.setData('villageWorker', true);
         worker.setData('helperName', building.creature.name);
         worker.setData('creatureId', building.creature.id);
+        worker.setData(
+            'communityType',
+            building.creature.communityType || 'companion'
+        );
+        worker.setData('residentRole', building.creature.role || null);
+        worker.setData(
+            'workerVisualProfile',
+            figure.getData?.('villageWorkerVisualProfile') || 'companion_worker_v1'
+        );
+        worker.setData('residentIdentityVisible', isRescuedResident);
         worker.setData('buildingId', building.definitionId);
         worker.setData('plotId', building.plotId);
         worker.setData('routineCue', building.definition.workerRoutine?.cue || 'HELPING');

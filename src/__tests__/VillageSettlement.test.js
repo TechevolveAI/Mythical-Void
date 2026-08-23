@@ -243,6 +243,25 @@ describe('Village settlement phase one', () => {
         expect(snapshot.residentProposal).toEqual(proposal);
     });
 
+    test('lets a rescued resident propose the structure that matches their role', () => {
+        const gameState = createGameState({
+            levels: { mythicalForest: { completed: true } }
+        });
+        const snapshot = village.initializeVillageSettlement(gameState, { now: 1000 });
+        const proposal = village.getVillageResidentProposal(snapshot, {
+            definitionId: 'forager_hut'
+        });
+
+        expect(proposal).toEqual(expect.objectContaining({
+            definitionId: 'forager_hut',
+            speakerId: 'bloom',
+            speakerName: 'Bloom',
+            speakerRole: 'Renewal Forager',
+            speakerArtwork: '/marketing/bloom 2.webp',
+            speakerCommunityType: 'rescued_resident'
+        }));
+    });
+
     test('turns an expedition return into a resident-led Sanctuary ritual', () => {
         const gameState = createGameState();
         const snapshot = village.initializeVillageSettlement(gameState, { now: 1000 });
@@ -698,17 +717,21 @@ describe('Village settlement phase one', () => {
         const definitions = new Map(
             village.VILLAGE_BUILDING_DEFINITIONS.map(definition => [definition.id, definition])
         );
-        const staffed = (definitionId, plotId, id, name) => ({
+        const staffed = (definitionId, plotId, id, name, creature = {}) => ({
             definitionId,
             definition: definitions.get(definitionId),
             plotId,
             status: 'complete',
             assignedCreatureId: id,
-            creature: { id, name }
+            creature: { id, name, ...creature }
         });
         const moments = village.getVillageCommunityMoments({
             buildings: [
-                staffed('forager_hut', 'root_01', 'nova', 'Nova'),
+                staffed('forager_hut', 'root_01', 'bloom', 'Bloom', {
+                    artwork: '/marketing/bloom 2.webp',
+                    communityType: 'rescued_resident',
+                    role: 'Renewal Forager'
+                }),
                 staffed('sawmill', 'root_02', 'ember', 'Ember'),
                 staffed('current_masonry', 'root_03', 'lumen', 'Lumen'),
                 {
@@ -727,8 +750,15 @@ describe('Village settlement phase one', () => {
             'return_home'
         ]);
         expect(moments[0]).toEqual(expect.objectContaining({
-            participantNames: ['Nova', 'Lumen'],
+            participantNames: ['Bloom', 'Lumen'],
             sharedValue: 'TAKE ONLY WHAT RETURNS'
+        }));
+        expect(moments[0].participants[0]).toEqual(expect.objectContaining({
+            creatureId: 'bloom',
+            communityType: 'rescued_resident',
+            artwork: '/marketing/bloom 2.webp',
+            residentRole: 'Renewal Forager',
+            roleLabel: 'Renewal Forager'
         }));
         expect(village.getVillageCommunityMoment({ communityMoments: moments }, { cycle: 4 }).id)
             .toBe('fallen_timber');

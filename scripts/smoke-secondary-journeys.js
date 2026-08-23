@@ -10968,7 +10968,10 @@ async function smokeVillageUi(session, exceptions) {
         !residentProposal.present ||
         residentProposal.building !== 'forager_hut' ||
         !residentProposal.speaker ||
-        !residentProposal.speakerLabel.includes('ASKS') ||
+        !(
+            residentProposal.speakerLabel.includes('· COMPANION') ||
+            residentProposal.speakerLabel.includes('· RESCUED RESIDENT')
+        ) ||
         residentProposal.title !== 'MARK A SAFE FOOD PATH' ||
         !residentProposal.request.includes('grows back') ||
         !residentProposal.promise.includes('tomorrow') ||
@@ -15796,6 +15799,151 @@ async function smokeVillageUi(session, exceptions) {
             : 'village-district-approach-desktop.png'
     );
 
+    const rescuedCommunity = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const state = window.GameState;
+        const villageState = state.get('world.village');
+        const assignments = {
+            forager_hut: 'bloom',
+            sawmill: 'zephyr',
+            current_masonry: 'pebble'
+        };
+        state.set('world.rescuedResidents', {
+            schemaVersion: 2,
+            rescuedIds: ['bloom', 'pebble', 'zephyr'],
+            interactions: { bloom: 0, pebble: 0, zephyr: 0 },
+            residency: {
+                bloom: { status: 'resident', arrivedAt: null },
+                pebble: { status: 'resident', arrivedAt: null },
+                zephyr: { status: 'resident', arrivedAt: null }
+            },
+            rescueHistory: []
+        });
+        state.set('world.village', {
+            ...villageState,
+            buildings: villageState.buildings.map(building => ({
+                ...building,
+                assignedCreatureId: assignments[building.definitionId] ||
+                    building.assignedCreatureId
+            }))
+        });
+        state.save();
+        scene.refreshVillageSettlementWorld(null, { force: true });
+        const landmark = scene.villageHeartLandmark;
+        const workers = (landmark?.workerElements || []).map(worker => ({
+            helperName: worker.getData?.('helperName'),
+            communityType: worker.getData?.('communityType'),
+            residentRole: worker.getData?.('residentRole'),
+            visualProfile: worker.getData?.('workerVisualProfile'),
+            identityVisible: worker.getData?.('residentIdentityVisible')
+        }));
+        return {
+            workers,
+            rescuedNames: landmark?.snapshot?.roster
+                ?.filter(entry => entry.communityType === 'rescued_resident')
+                .map(entry => entry.name) || []
+        };
+    })()`);
+    const expectedResidentProfiles = {
+        Bloom: 'bloom_worker_v1',
+        Pebble: 'pebble_worker_v1',
+        Zephyr: 'zephyr_worker_v1'
+    };
+    if (
+        rescuedCommunity.rescuedNames.length !== 3 ||
+        Object.keys(expectedResidentProfiles).some(name => (
+            !rescuedCommunity.rescuedNames.includes(name) ||
+            !rescuedCommunity.workers.some(worker => (
+                worker.helperName === name &&
+                worker.communityType === 'rescued_resident' &&
+                worker.visualProfile === expectedResidentProfiles[name] &&
+                worker.identityVisible === true &&
+                Boolean(worker.residentRole)
+            ))
+        ))
+    ) {
+        throw new Error(
+            `Village rescued community failed: ${JSON.stringify(rescuedCommunity)}`
+        );
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-rescued-community-mobile.png'
+            : 'village-rescued-community-desktop.png'
+    );
+
+    const rescuedPanelOpen = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.villageCommandPanel?.destroy?.();
+        const snapshot = scene.refreshVillageSettlementWorld(null, { force: true });
+        const opened = scene.villageCommandPanel?.show?.({
+            plotId: 'root_01',
+            guided: false,
+            getSnapshot: () => snapshot
+        });
+        const panelSnapshot = scene.villageCommandPanel?.getSnapshot?.();
+        return {
+            opened,
+            plotIds: snapshot?.plots?.map(plot => plot.id) || [],
+            rootBuilding: snapshot?.buildings?.find(
+                building => building.plotId === 'root_01'
+            )?.creature || null,
+            panelMatchesWorld: panelSnapshot?.buildings?.find(
+                building => building.plotId === 'root_01'
+            )?.creature?.id === 'bloom'
+        };
+    })()`);
+    await waitFor(
+        () => evaluate(session, `Boolean(document.querySelector('.village-command-modal'))`),
+        { message: 'Village Heart resident planner' }
+    );
+    const rescuedRosterPanel = await evaluate(session, `(() => {
+        const authored = [...document.querySelectorAll(
+            '.village-creature-avatar.is-authored-resident'
+        )];
+        const avatars = [...document.querySelectorAll('.village-creature-avatar')];
+        const options = [...document.querySelectorAll('.village-creature-select option')]
+            .map(option => option.textContent || '');
+        return {
+            authoredPortraitCount: authored.length,
+            authoredTypes: authored.map(node => node.dataset.communityType),
+            avatarTypes: avatars.map(node => ({
+                classes: node.className,
+                communityType: node.dataset.communityType
+            })),
+            title: document.querySelector('.village-command-title')?.textContent || '',
+            assignmentText: document.querySelector('.village-assignment-current')
+                ?.textContent || '',
+            optionText: options
+        };
+    })()`);
+    rescuedRosterPanel.opened = rescuedPanelOpen.opened;
+    rescuedRosterPanel.panelMatchesWorld = rescuedPanelOpen.panelMatchesWorld;
+    if (
+        rescuedRosterPanel.opened !== true ||
+        rescuedRosterPanel.panelMatchesWorld !== true ||
+        rescuedRosterPanel.authoredPortraitCount < 1 ||
+        rescuedRosterPanel.authoredTypes.some(type => type !== 'rescued_resident') ||
+        !rescuedRosterPanel.optionText.some(text => text.includes('Bloom - rescued resident')) ||
+        !rescuedRosterPanel.optionText.some(text => text.includes('Root Forager'))
+    ) {
+        throw new Error(
+            `Village rescued roster panel failed: ${JSON.stringify(rescuedRosterPanel)}`
+        );
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-rescued-roster-mobile.png'
+            : 'village-rescued-roster-desktop.png'
+    );
+    await evaluate(session, `(() => {
+        window.mythicalGame.scene.getScene('GameScene')
+            ?.villageCommandPanel?.destroy?.();
+        return true;
+    })()`);
+
     return {
         firstArrivalWorld,
         arrivalReveal,
@@ -15822,6 +15970,8 @@ async function smokeVillageUi(session, exceptions) {
         heartMemory,
         completeWorldIdentities,
         districtApproachFeedback,
+        rescuedCommunity,
+        rescuedRosterPanel,
         directWorldTap,
         controlDetection,
         interaction

@@ -1396,9 +1396,12 @@ export function getVillageCommunityMoments({ buildings = [] } = {}) {
             const participants = participantBuildings.map(building => ({
                 creatureId: building.creature.id,
                 name: building.creature.name,
+                artwork: building.creature.artwork || null,
+                communityType: building.creature.communityType || 'companion',
+                residentRole: building.creature.role || null,
                 buildingId: building.definitionId,
                 plotId: building.plotId,
-                roleLabel: building.definition.roleLabel
+                roleLabel: building.creature.role || building.definition.roleLabel
             }));
             if (new Set(participants.map(participant => participant.creatureId)).size < 2) {
                 return null;
@@ -1450,6 +1453,10 @@ function toHeartParticipant(building) {
     return {
         creatureId: building.creature.id,
         name: building.creature.name,
+        artwork: building.creature.artwork || null,
+        communityType: building.creature.communityType || 'companion',
+        residentRole: building.creature.role || null,
+        roleLabel: building.creature.role || building.definition.roleLabel,
         buildingId: building.definitionId,
         plotId: building.plotId
     };
@@ -1585,6 +1592,9 @@ export function getVillageWorkerCheckIn(snapshot, { creatureId } = {}) {
     return {
         creatureId,
         name: building.creature.name,
+        communityType: building.creature.communityType || 'companion',
+        residentRole: building.creature.role || null,
+        artwork: building.creature.artwork || null,
         buildingId: building.id,
         definitionId: building.definitionId,
         plotId: building.plotId,
@@ -1637,6 +1647,9 @@ export function getVillageResidentProposal(snapshot, { definitionId = null } = {
         definitionId: definition.id,
         speakerId: resident.id,
         speakerName: resident.name || 'Your companion',
+        speakerRole: resident.role || null,
+        speakerArtwork: resident.artwork || null,
+        speakerCommunityType: resident.communityType || 'companion',
         title: definition.residentNeed.title,
         request: definition.residentNeed.request,
         promise: definition.residentNeed.promise,

@@ -43,6 +43,21 @@ function createBuildingArtwork(definitionId, {
 function createCreatureAvatar(creature) {
     const avatar = createElement('span', 'village-creature-avatar');
     const name = creature?.name || 'Creature';
+    avatar.dataset.communityType = creature?.communityType || 'companion';
+    if (
+        creature?.communityType === 'rescued_resident' &&
+        typeof creature?.artwork === 'string' &&
+        creature.artwork.startsWith('/')
+    ) {
+        avatar.classList.add('is-authored-resident');
+        avatar.style.setProperty(
+            '--village-avatar-image',
+            `url('${creature.artwork}')`
+        );
+        avatar.append(createElement('span', 'village-creature-portrait'));
+        avatar.setAttribute('aria-hidden', 'true');
+        return avatar;
+    }
     const palette = ['#8fe3cf', '#f2c14e', '#f4f4f4', '#df5d5d'];
     const colorIndex = [...name].reduce((total, character) => (
         total + character.charCodeAt(0)
@@ -54,6 +69,18 @@ function createCreatureAvatar(creature) {
     );
     avatar.setAttribute('aria-hidden', 'true');
     return avatar;
+}
+
+function formatCommunityMemberOption(creature) {
+    if (creature?.communityType === 'rescued_resident') {
+        return `${creature.name} - rescued resident${
+            creature.role ? ` · ${creature.role}` : ''
+        }`;
+    }
+    if (creature?.isPlayerCompanion) {
+        return `${creature.name} - your companion`;
+    }
+    return `${creature?.name || 'Companion'} - companion`;
 }
 
 function createVillageVision() {
@@ -128,14 +155,14 @@ function createCommunityPulse(snapshot) {
         createElement(
             'strong',
             'village-community-title',
-            moment ? moment.title : 'INVITE TWO COMPANIONS'
+            moment ? moment.title : 'INVITE TWO COMMUNITY MEMBERS'
         ),
         createElement(
             'span',
             'village-community-line',
             moment
                 ? moment.line
-                : 'When companions help at different structures, their knowledge meets at the Heart.'
+                : 'When rescued residents or companions help at different structures, their knowledge meets at the Heart.'
         ),
         createElement(
             'span',
@@ -208,8 +235,22 @@ function createResidentProposal(snapshot, definition) {
     const section = createElement('section', 'village-resident-proposal');
     const identity = createElement('div', 'village-resident-proposal-identity');
     identity.append(
-        createCreatureAvatar({ id: proposal.speakerId, name: proposal.speakerName }),
-        createElement('span', 'village-resident-proposal-speaker', `${proposal.speakerName.toUpperCase()} ASKS`)
+        createCreatureAvatar({
+            id: proposal.speakerId,
+            name: proposal.speakerName,
+            role: proposal.speakerRole,
+            artwork: proposal.speakerArtwork,
+            communityType: proposal.speakerCommunityType
+        }),
+        createElement(
+            'span',
+            'village-resident-proposal-speaker',
+            `${proposal.speakerName.toUpperCase()} · ${
+                proposal.speakerCommunityType === 'rescued_resident'
+                    ? 'RESCUED RESIDENT'
+                    : 'COMPANION'
+            }`
+        )
     );
     const copy = createElement('div', 'village-resident-proposal-copy');
     copy.append(
@@ -774,11 +815,11 @@ export default class VillageCommandPanel {
                 snapshot.roster.forEach(creature => {
                     const option = document.createElement('option');
                     option.value = creature.id;
-                    option.textContent = creature.name;
+                    option.textContent = formatCommunityMemberOption(creature);
                     option.selected = creature.id === targetBuilding.assignedCreatureId;
                     select.append(option);
                 });
-                const invite = createElement('button', 'village-guided-primary', 'INVITE THIS COMPANION');
+                const invite = createElement('button', 'village-guided-primary', 'INVITE TO HELP');
                 invite.type = 'button';
                 invite.disabled = snapshot.roster.length === 0;
                 invite.addEventListener('click', () => {
@@ -1108,7 +1149,7 @@ export default class VillageCommandPanel {
                 'village-section-title',
                 contextualBuilding
                     ? contextualBuilding.definition.production
-                        ? 'CREATURE HELP'
+                        ? 'COMMUNITY HELP'
                         : 'ACTIVE BENEFIT'
                     : this.contextual
                         ? 'YOUR CHOICE'
@@ -1263,7 +1304,7 @@ export default class VillageCommandPanel {
         assignments.append(createElement(
             'h3',
             'village-section-title',
-            contextualBuilding ? 'INVITE A COMPANION' : 'CREATURE HELP'
+            contextualBuilding ? 'INVITE A RESIDENT OR COMPANION' : 'COMMUNITY HELP'
         ));
         const assignable = snapshot.buildings.filter(
             building => building.status === 'complete' && building.definition.production
@@ -1272,13 +1313,13 @@ export default class VillageCommandPanel {
             assignments.append(createElement(
                 'p',
                 'village-empty-state',
-                'Complete a producer structure to invite a creature contribution.'
+                'Complete a producer structure to invite a resident or companion contribution.'
             ));
         } else if (snapshot.roster.length === 0) {
             assignments.append(createElement(
                 'p',
                 'village-empty-state',
-                'No creature record is available for settlement work.'
+                'No resident or companion is available for settlement work.'
             ));
         } else {
             assignable.forEach(building => {
@@ -1310,7 +1351,11 @@ export default class VillageCommandPanel {
                 const select = createElement('select', 'village-creature-select');
                 select.setAttribute('aria-label', `Creature for ${building.definition.label}`);
                 snapshot.roster.forEach(creature => {
-                    const option = createElement('option', '', creature.name);
+                    const option = createElement(
+                        'option',
+                        '',
+                        formatCommunityMemberOption(creature)
+                    );
                     option.value = creature.id;
                     option.selected = creature.id === building.assignedCreatureId;
                     select.append(option);

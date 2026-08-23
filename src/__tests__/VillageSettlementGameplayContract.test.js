@@ -391,6 +391,10 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('createVillageSupportImpactSummary(snapshot)');
         expect(source).toContain('createResidentProposal(snapshot, visualDefinition)');
         expect(source).toContain('village-resident-proposal');
+        expect(source).toContain('formatCommunityMemberOption(creature)');
+        expect(source).toContain("avatar.classList.add('is-authored-resident')");
+        expect(source).toContain("'RESCUED RESIDENT'");
+        expect(source).toContain('INVITE A RESIDENT OR COMPANION');
         expect(source).toContain('IN YOUR GAME · ${proposal.immediateImpact}');
         const scene = read('scenes/GameScene.js');
         const worldBuilder = read('systems/world/WorldBuilder.js');
@@ -754,6 +758,9 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain('const resizedSnapshot = getVillageSnapshot(previewState);');
         expect(scene).toContain('this.worldBuilder.refreshVillageSettlement(');
         expect(world).toContain("worker.setData('villageWorker', true)");
+        expect(world).toContain('createVillageWorkerFigure(creature');
+        expect(world).toContain("'residentIdentityVisible', isRescuedResident");
+        expect(world).toContain('`${kind}_worker_v1`');
         expect(world).toContain("worker.setData('checkInCue', true)");
         expect(world).toContain("worker.setData('checkInCueStyle', 'current_resonance')");
         expect(world).toContain("worker.setData('routeType', 'building_to_heart')");
