@@ -1632,8 +1632,8 @@ class WorldBuilder {
     } = {}) {
         const profile = getVillageGrowthProfile(snapshot?.worldState?.growthTier || 0);
         if (profile.gatheringCapacity <= 0) return null;
-        const residents = (snapshot?.home?.residents || [])
-            .filter(resident => !resident.atWork)
+        const residents = (snapshot?.residentRoutines || [])
+            .filter(routine => routine.location === 'commons')
             .slice(0, profile.gatheringCapacity);
         const width = compact ? 104 : 144;
         const laneY = compact ? 57 : 72;
@@ -1643,12 +1643,13 @@ class WorldBuilder {
             .setData('villageCommonsProfile', profile.worldIdentity)
             .setData('villageCommonsCapacity', profile.gatheringCapacity)
             .setData('villageCommonsResidentCount', residents.length)
-            .setData('villageCommonsResidentNames', residents.map(resident => resident.name))
+            .setData('villageCommonsResidentNames', residents.map(resident => resident.residentName))
             .setData('villageCommonsRoutine', 'heart_check_in')
+            .setData('villageCommonsPresenceModel', 'single_world_location_v1')
             .setData(
                 'ariaLabel',
                 residents.length > 0
-                    ? `${residents.map(resident => resident.name).join(', ')} gathering beside the Village Heart.`
+                    ? `${residents.map(resident => resident.residentName).join(', ')} gathering beside the Village Heart.`
                     : `${profile.label} gathering roots ready for residents.`
             );
         const ground = this.scene.add.graphics();
@@ -1674,39 +1675,8 @@ class WorldBuilder {
             ground.strokeEllipse(position.x, position.y + 8, compact ? 23 : 29, compact ? 7 : 9);
         });
         container.add(ground);
-
-        const colors = [0x8FE3CF, 0xF2C14E, 0xBFA6FF, 0xE85D5D];
-        const tweens = residents.map((resident, index) => {
-            const seat = seatPositions[index];
-            const figure = this.scene.add.container(seat.x, seat.y);
-            const shadow = this.scene.add.ellipse(0, 7, compact ? 15 : 18, 5, 0x07100F, 0.58);
-            const body = this.scene.add.graphics();
-            const color = colors[index % colors.length];
-            body.fillStyle(color, 0.98);
-            body.fillCircle(0, compact ? -5 : -7, compact ? 4 : 5);
-            body.fillEllipse(0, 2, compact ? 9 : 11, compact ? 12 : 14);
-            body.fillStyle(0xF4F4F4, 0.94);
-            body.fillCircle(-1.7, compact ? -5.5 : -7.5, 1);
-            body.fillCircle(1.7, compact ? -5.5 : -7.5, 1);
-            figure.add([shadow, body]);
-            figure
-                .setData('villageCommonsResident', true)
-                .setData('residentId', resident.id)
-                .setData('residentName', resident.name)
-                .setData('routine', 'heart_check_in');
-            container.add(figure);
-            return this.scene.tweens.add({
-                targets: figure,
-                x: seat.x * 0.72,
-                y: seat.y - (compact ? 8 : 11),
-                duration: 2100 + (index * 260),
-                delay: index * 380,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
-        });
-        return { container, tweens };
+        container.setData('villageCommonsSeatPositions', seatPositions);
+        return { container, tweens: [], seatPositions };
     }
 
     refreshVillageSettlement(landmark, snapshot = null) {
@@ -1736,7 +1706,9 @@ class WorldBuilder {
         landmark.plotHitZones = [];
         landmark.workerElements = [];
         landmark.residentElements = [];
+        landmark.residentRoutineElements = [];
         landmark.commonsLife = null;
+        landmark.commonsSeatPositions = [];
         landmark.heartMemoryElements = [];
         landmark.valueGrowthElements = [];
         landmark.plotPresentations = [];
@@ -1903,6 +1875,7 @@ class WorldBuilder {
         });
         if (commonsLife) {
             landmark.commonsLife = commonsLife.container;
+            landmark.commonsSeatPositions = commonsLife.seatPositions;
             landmark.buildingElements.push(commonsLife.container);
             landmark.buildingTweens.push(...commonsLife.tweens);
         }
@@ -2432,7 +2405,8 @@ class WorldBuilder {
             const habitatLife = building?.status === 'complete' &&
                 building.definitionId === 'habitat'
                 ? this.createVillageHabitatLife(snapshot?.home, {
-                    compact: compactSettlement
+                    compact: compactSettlement,
+                    residentRoutines: snapshot?.residentRoutines || []
                 })
                 : null;
             container.add([
@@ -2693,6 +2667,14 @@ class WorldBuilder {
                 }));
             }
         });
+        const residentJourneys = this.createVillageResidentJourneys(
+            snapshot,
+            landmark,
+            { compact: compactSettlement }
+        );
+        landmark.residentRoutineElements = residentJourneys.elements;
+        landmark.buildingElements.push(...residentJourneys.elements);
+        landmark.buildingTweens.push(...residentJourneys.tweens);
         this.createVillageArrivalGuide(landmark, snapshot, {
             compact: compactSettlement
         });
@@ -3473,6 +3455,22 @@ class WorldBuilder {
                 .setData('villageFocusAlpha', commonsAlpha);
             transition(landmark.commonsLife, commonsAlpha);
         }
+        landmark.residentRoutineElements?.forEach(element => {
+            const baseAlpha = Number(
+                element?.getData?.('villageVisibilityBaseAlpha')
+            ) || 0.9;
+            const routineAlpha = baseAlpha * (
+                storyMode
+                    ? heartIsPrimary ? 0.42 : 0.18
+                    : active && focusPlotId
+                        ? 0.5
+                        : 1
+            );
+            element
+                ?.setData?.('villagePresentationMode', landmark.presentationMode)
+                ?.setData?.('villageFocusAlpha', routineAlpha);
+            transition(element, routineAlpha);
+        });
         Object.entries(landmark.heartLife || {}).forEach(([key, element]) => {
             if (!element || key === 'deliveryPulse') return;
             const lifeBaseAlpha = landmark.snapshot?.unlock?.unlocked === true ? 1 : 0.38;
@@ -4575,13 +4573,23 @@ class WorldBuilder {
         return activity;
     }
 
-    createVillageHabitatLife(home, { compact = false } = {}) {
+    createVillageHabitatLife(home, {
+        compact = false,
+        residentRoutines = []
+    } = {}) {
         const container = this.scene.add.container(0, compact ? 23 : 28);
         const residents = Array.isArray(home?.residents) ? home.residents : [];
         const capacity = Math.max(0, Number(home?.capacity) || 0);
+        const routineByResident = new Map(
+            residentRoutines.map(routine => [routine.residentId, routine])
+        );
         const residentColors = [0x8FE3CF, 0xF2C14E, 0xBFA6FF, 0xD94B4B];
         const slotContainers = Array.from({ length: capacity }, (_, index) => {
             const resident = residents[index] || null;
+            const presence = resident
+                ? routineByResident.get(resident.id)?.location ||
+                    (resident.atWork ? 'work' : 'home')
+                : 'open';
             const x = (index - ((capacity - 1) / 2)) * (compact ? 38 : 44);
             const slot = this.scene.add.container(x, 0);
             const cradle = this.scene.add.graphics();
@@ -4589,7 +4597,11 @@ class WorldBuilder {
             cradle.fillEllipse(0, 8, compact ? 30 : 34, compact ? 13 : 15);
             cradle.lineStyle(
                 resident ? 2 : 1,
-                resident?.atWork ? 0xF2C14E : resident ? 0x71E6B1 : 0x657682,
+                presence === 'work'
+                    ? 0xF2C14E
+                    : presence === 'commons'
+                        ? 0x8FE3CF
+                        : resident ? 0x71E6B1 : 0x657682,
                 resident ? 0.82 : 0.46
             );
             cradle.strokeEllipse(0, 8, compact ? 28 : 32, compact ? 11 : 13);
@@ -4601,14 +4613,18 @@ class WorldBuilder {
                     fontSize: compact ? '6px' : '7px',
                     fontFamily: 'Arial, sans-serif',
                     fontStyle: 'bold',
-                    color: resident?.atWork ? '#F2C14E' : resident ? '#C9F7E9' : '#85928F',
+                    color: presence === 'work'
+                        ? '#F2C14E'
+                        : presence === 'commons'
+                            ? '#8FE3CF'
+                            : resident ? '#C9F7E9' : '#85928F',
                     stroke: '#07100F',
                     strokeThickness: 3
                 }
             ).setOrigin(0.5);
             slot.add([cradle, identity]);
 
-            if (resident?.atWork) {
+            if (presence === 'work') {
                 const tether = this.scene.add.graphics();
                 tether.lineStyle(2, 0xF2C14E, 0.72);
                 tether.beginPath();
@@ -4621,6 +4637,20 @@ class WorldBuilder {
                 tether.fillStyle(0xF4F4F4, 0.84);
                 tether.fillCircle(-8, 6, 2);
                 tether.setData('villageHomeTether', true);
+                slot.add(tether);
+            } else if (presence === 'commons') {
+                const tether = this.scene.add.graphics();
+                tether.lineStyle(2, 0x8FE3CF, 0.72);
+                tether.beginPath();
+                tether.moveTo(-7, 5);
+                tether.lineTo(0, -3);
+                tether.lineTo(7, -10);
+                tether.strokePath();
+                tether.lineStyle(1, 0xF4F4F4, 0.84);
+                tether.strokeCircle(8, -11, 3);
+                tether.fillStyle(0x8FE3CF, 0.92);
+                tether.fillCircle(-8, 6, 2);
+                tether.setData('villageCommonsTether', true);
                 slot.add(tether);
             } else if (resident) {
                 const figure = this.scene.add.graphics();
@@ -4647,17 +4677,35 @@ class WorldBuilder {
             slot
                 .setData('villageHabitatSlot', true)
                 .setData('residentName', resident?.name || null)
-                .setData('residentStatus', resident?.atWork ? 'helping' : resident ? 'home' : 'open')
+                .setData(
+                    'residentStatus',
+                    presence === 'work'
+                        ? 'helping'
+                        : presence === 'commons'
+                            ? 'at_heart'
+                            : resident ? 'home' : 'open'
+                )
                 .setData('workLabel', resident?.workLabel || null);
             return slot;
         });
+        const homeResidentCount = residentRoutines.filter(
+            routine => routine.location === 'home'
+        ).length;
+        const commonsResidentCount = residentRoutines.filter(
+            routine => routine.location === 'commons'
+        ).length;
+        const workingResidentCount = residentRoutines.filter(
+            routine => routine.location === 'work'
+        ).length;
         const status = this.scene.add.text(
             0,
             37,
             residents.length > 0
-                ? home.presentCount > 0
-                    ? `${home.presentCount} HOME · ${home.helpingCount} OUT HELPING`
-                    : `${home.helpingCount} OUT HELPING · LIGHTS ON`
+                ? [
+                    homeResidentCount > 0 ? `${homeResidentCount} RESTING` : null,
+                    commonsResidentCount > 0 ? `${commonsResidentCount} AT HEART` : null,
+                    workingResidentCount > 0 ? `${workingResidentCount} HELPING` : null
+                ].filter(Boolean).join(' · ')
                 : 'ROOM FOR RESCUED FRIENDS',
             {
                 fontSize: compact ? '7px' : '8px',
@@ -4673,22 +4721,36 @@ class WorldBuilder {
         container.setData('residentNames', residents.map(resident => resident.name));
         container.setData(
             'residentStatuses',
-            residents.map(resident => resident.atWork ? 'helping' : 'home')
+            residents.map(resident => {
+                const location = routineByResident.get(resident.id)?.location;
+                return location === 'work'
+                    ? 'helping'
+                    : location === 'commons'
+                        ? 'at_heart'
+                        : 'home';
+            })
         );
-        container.setData('residentFigureCount', home?.presentCount || 0);
-        container.setData('homeTetherCount', home?.helpingCount || 0);
+        container.setData('residentFigureCount', homeResidentCount);
+        container.setData('homeTetherCount', workingResidentCount);
+        container.setData('commonsTetherCount', commonsResidentCount);
         container.setData('capacity', capacity);
-        container.setData('presentCount', home?.presentCount || 0);
-        container.setData('helpingCount', home?.helpingCount || 0);
+        container.setData('presentCount', homeResidentCount);
+        container.setData('commonsCount', commonsResidentCount);
+        container.setData('helpingCount', workingResidentCount);
+        container.setData('residentPresenceModel', 'single_world_location_v1');
         container.setData(
             'ariaLabel',
             residents.length > 0
-                ? `Shared Habitat. ${home.presentCount} home and ${home.helpingCount} out helping. ` +
-                    residents.map(resident => (
-                        resident.atWork
+                ? `Shared Habitat. ${homeResidentCount} resting, ${commonsResidentCount} at the Heart, ` +
+                    `${workingResidentCount} helping. ` +
+                    residents.map(resident => {
+                        const location = routineByResident.get(resident.id)?.location;
+                        return location === 'work'
                             ? `${resident.name} is helping at ${resident.workLabel || 'the settlement'}`
-                            : `${resident.name} is home`
-                    )).join('. ')
+                            : location === 'commons'
+                                ? `${resident.name} is visiting the Village Heart`
+                                : `${resident.name} is resting at home`;
+                    }).join('. ')
                 : `Shared Habitat. ${capacity} places ready for rescued friends.`
         );
         const pulseTween = this.scene.tweens.add({
@@ -4702,6 +4764,160 @@ class WorldBuilder {
             ease: 'Sine.easeInOut'
         });
         return { container, pulseTween };
+    }
+
+    createVillageResidentJourneys(snapshot, landmark, { compact = false } = {}) {
+        const routines = (snapshot?.residentRoutines || []).filter(
+            routine => routine.location === 'commons'
+        );
+        const homePosition = landmark?.plotWorldPositions?.get(snapshot?.home?.plotId);
+        const heartX = landmark?.zone?.x;
+        const heartY = landmark?.zone?.y;
+        const seats = landmark?.commonsSeatPositions || [];
+        if (
+            routines.length === 0 ||
+            !homePosition ||
+            !Number.isFinite(heartX) ||
+            !Number.isFinite(heartY)
+        ) {
+            return { elements: [], tweens: [] };
+        }
+
+        const elements = [];
+        const tweens = [];
+        const colors = [0x8FE3CF, 0xF2C14E, 0xBFA6FF, 0xE85D5D];
+        routines.forEach((routine, index) => {
+            const seat = seats[index] || { x: 0, y: compact ? 57 : 72 };
+            const start = {
+                x: homePosition.x + ((index % 2 === 0 ? -1 : 1) * (compact ? 22 : 30)),
+                y: homePosition.y + (compact ? 30 : 38)
+            };
+            const end = {
+                x: heartX + seat.x,
+                y: heartY + seat.y
+            };
+            const control = {
+                x: (start.x + end.x) / 2 + (index % 2 === 0 ? -22 : 22),
+                y: Math.min(start.y, end.y) - (compact ? 42 : 58)
+            };
+            const route = this.scene.add.graphics()
+                .setDepth(-14)
+                .setAlpha(0.28)
+                .setData('villageResidentJourneyRoute', true)
+                .setData('residentId', routine.residentId)
+                .setData('routeType', routine.route)
+                .setData('villageVisibilityBaseAlpha', 0.28)
+                .setData('villagePresenceModel', 'single_world_location_v1');
+            const points = Array.from({ length: 17 }, (_, pointIndex) => {
+                const progress = pointIndex / 16;
+                const inverse = 1 - progress;
+                return {
+                    x: (inverse * inverse * start.x) +
+                        (2 * inverse * progress * control.x) +
+                        (progress * progress * end.x),
+                    y: (inverse * inverse * start.y) +
+                        (2 * inverse * progress * control.y) +
+                        (progress * progress * end.y)
+                };
+            });
+            route.lineStyle(1, 0x8FE3CF, 0.46);
+            points.slice(1).forEach((point, pointIndex) => {
+                if (pointIndex % 2 !== 0) return;
+                const previous = points[pointIndex];
+                route.lineBetween(previous.x, previous.y, point.x, point.y);
+            });
+            route.fillStyle(0xF4F4F4, 0.64);
+            [4, 8, 12].forEach(pointIndex => {
+                route.fillCircle(points[pointIndex].x, points[pointIndex].y, 1.4);
+            });
+
+            const figure = this.scene.add.container(start.x, start.y)
+                .setDepth(start.y + 18)
+                .setAlpha(0.96)
+                .setData('villageResidentJourney', true)
+                .setData('villageCommonsResident', true)
+                .setData('residentId', routine.residentId)
+                .setData('residentName', routine.residentName)
+                .setData('routine', routine.activity)
+                .setData('routeType', routine.route)
+                .setData('routeDirection', 'to_commons')
+                .setData('routinePhase', 'leaving_home')
+                .setData('destinationLabel', routine.destinationLabel)
+                .setData('villageVisibilityBaseAlpha', 0.96)
+                .setData('villagePresenceModel', 'single_world_location_v1')
+                .setData(
+                    'ariaLabel',
+                    `${routine.residentName} travels from the Shared Habitat to the Village Heart. ${routine.activity}.`
+                );
+            const shadow = this.scene.add.ellipse(0, 8, compact ? 16 : 20, 6, 0x07100F, 0.62);
+            const body = this.scene.add.graphics();
+            const color = colors[index % colors.length];
+            body.fillStyle(color, 0.98);
+            body.fillCircle(0, compact ? -5 : -7, compact ? 4.5 : 5.5);
+            body.fillEllipse(0, 2, compact ? 10 : 12, compact ? 13 : 15);
+            body.fillStyle(0xF4F4F4, 0.96);
+            body.fillCircle(-2, compact ? -5.5 : -7.5, 1.2);
+            body.fillCircle(2, compact ? -5.5 : -7.5, 1.2);
+            body.lineStyle(1, color, 0.9);
+            body.lineBetween(-4, compact ? -9 : -11, -7, compact ? -14 : -17);
+            body.lineBetween(4, compact ? -9 : -11, 7, compact ? -14 : -17);
+            const heartCue = this.scene.add.graphics().setPosition(0, compact ? -22 : -27);
+            heartCue.lineStyle(1, 0x8FE3CF, 0.84);
+            heartCue.strokeCircle(0, 0, compact ? 4 : 5);
+            heartCue.fillStyle(0xF4F4F4, 0.92);
+            heartCue.fillCircle(0, 0, 1.5);
+            figure.add([shadow, body, heartCue]);
+
+            const travel = { progress: 0 };
+            const updatePosition = () => {
+                const progress = Phaser.Math.Clamp(travel.progress, 0, 1);
+                const inverse = 1 - progress;
+                const x = (inverse * inverse * start.x) +
+                    (2 * inverse * progress * control.x) +
+                    (progress * progress * end.x);
+                const y = (inverse * inverse * start.y) +
+                    (2 * inverse * progress * control.y) +
+                    (progress * progress * end.y);
+                figure.setPosition(x, y).setDepth(y + 18);
+                figure
+                    .setData('routeProgress', progress)
+                    .setData(
+                        'routinePhase',
+                        progress >= 0.82
+                            ? 'heart_check_in'
+                            : progress <= 0.18
+                                ? 'home_threshold'
+                                : 'crossing'
+                    );
+            };
+            updatePosition();
+            const travelTween = this.scene.tweens.add({
+                targets: travel,
+                progress: 1,
+                duration: 5600 + (index * 420),
+                delay: 700 + (index * 520),
+                hold: 3200,
+                repeatDelay: 2200,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut',
+                onUpdate: updatePosition,
+                onYoyo: () => figure.setData('routeDirection', 'to_home'),
+                onRepeat: () => figure.setData('routeDirection', 'to_commons')
+            });
+            const breatheTween = this.scene.tweens.add({
+                targets: figure,
+                scaleX: { from: 0.96, to: 1.04 },
+                scaleY: { from: 0.98, to: 1.03 },
+                duration: 1300 + (index * 170),
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            elements.push(route, figure);
+            tweens.push(travelTween, breatheTween);
+        });
+        return { elements, tweens };
     }
 
     createVillageFlowSignal({

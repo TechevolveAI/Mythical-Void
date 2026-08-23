@@ -14092,6 +14092,12 @@ async function smokeVillageUi(session, exceptions) {
         const presentation = landmark?.plotPresentations?.find(
             entry => entry.plotId === building?.plotId
         );
+        const journeys = (landmark?.residentRoutineElements || []).filter(
+            element => element?.getData?.('villageResidentJourney') === true
+        );
+        const journeyRoutes = (landmark?.residentRoutineElements || []).filter(
+            element => element?.getData?.('villageResidentJourneyRoute') === true
+        );
         return habitat ? {
             buildingStatus: building?.status,
             artworkVariant: presentation?.worldArtwork?.getData?.(
@@ -14106,8 +14112,11 @@ async function smokeVillageUi(session, exceptions) {
             residentStatuses: habitat.getData('residentStatuses'),
             residentFigureCount: habitat.getData('residentFigureCount'),
             homeTetherCount: habitat.getData('homeTetherCount'),
+            commonsTetherCount: habitat.getData('commonsTetherCount'),
             presentCount: habitat.getData('presentCount'),
+            commonsCount: habitat.getData('commonsCount'),
             helpingCount: habitat.getData('helpingCount'),
+            presenceModel: habitat.getData('residentPresenceModel'),
             ariaLabel: habitat.getData('ariaLabel'),
             statusText: habitat.list?.find(child => child?.type === 'Text')?.text || '',
             slotStatuses: habitat.list
@@ -14116,9 +14125,30 @@ async function smokeVillageUi(session, exceptions) {
             tetherVisualCount: habitat.list?.filter(slot => (
                 slot?.list?.some(child => child?.getData?.('villageHomeTether') === true)
             )).length || 0,
+            commonsTetherVisualCount: habitat.list?.filter(slot => (
+                slot?.list?.some(child => child?.getData?.('villageCommonsTether') === true)
+            )).length || 0,
             figureVisualCount: habitat.list?.filter(slot => (
                 slot?.list?.some(child => child?.getData?.('villageResidentFigure') === true)
             )).length || 0,
+            commonsResidentCount: landmark?.commonsLife?.getData?.(
+                'villageCommonsResidentCount'
+            ),
+            commonsResidentNames: landmark?.commonsLife?.getData?.(
+                'villageCommonsResidentNames'
+            ) || [],
+            commonsPresenceModel: landmark?.commonsLife?.getData?.(
+                'villageCommonsPresenceModel'
+            ),
+            journeyCount: journeys.length,
+            journeyRouteCount: journeyRoutes.length,
+            journeyResidents: journeys.map(journey => journey.getData('residentName')),
+            journeyRouteTypes: journeys.map(journey => journey.getData('routeType')),
+            journeyDirections: journeys.map(journey => journey.getData('routeDirection')),
+            journeyPhases: journeys.map(journey => journey.getData('routinePhase')),
+            journeyPresenceModels: journeys.map(
+                journey => journey.getData('villagePresenceModel')
+            ),
             active: habitat.active === true
         } : null;
     })()`);
@@ -14133,12 +14163,36 @@ async function smokeVillageUi(session, exceptions) {
         habitatWorld.capacity !== 2 ||
         habitatWorld.residentNames.length !== 2 ||
         habitatWorld.residentStatuses.length !== 2 ||
-        habitatWorld.residentFigureCount + habitatWorld.homeTetherCount !== 2 ||
-        habitatWorld.presentCount + habitatWorld.helpingCount !== 2 ||
+        habitatWorld.residentFigureCount +
+            habitatWorld.homeTetherCount +
+            habitatWorld.commonsTetherCount !== 2 ||
+        habitatWorld.presentCount +
+            habitatWorld.commonsCount +
+            habitatWorld.helpingCount !== 2 ||
         habitatWorld.slotStatuses.length !== 2 ||
-        habitatWorld.slotStatuses.some(status => !['home', 'helping'].includes(status)) ||
+        habitatWorld.slotStatuses.some(
+            status => !['home', 'helping', 'at_heart'].includes(status)
+        ) ||
         habitatWorld.tetherVisualCount !== habitatWorld.homeTetherCount ||
+        habitatWorld.commonsTetherVisualCount !== habitatWorld.commonsTetherCount ||
         habitatWorld.figureVisualCount !== habitatWorld.residentFigureCount ||
+        habitatWorld.presenceModel !== 'single_world_location_v1' ||
+        habitatWorld.commonsPresenceModel !== 'single_world_location_v1' ||
+        habitatWorld.commonsResidentCount !== habitatWorld.commonsCount ||
+        habitatWorld.commonsResidentNames.length !== habitatWorld.commonsCount ||
+        habitatWorld.journeyCount !== habitatWorld.commonsCount ||
+        habitatWorld.journeyRouteCount !== habitatWorld.commonsCount ||
+        habitatWorld.journeyResidents.length !== habitatWorld.commonsCount ||
+        habitatWorld.journeyRouteTypes.some(route => route !== 'home_to_commons') ||
+        habitatWorld.journeyDirections.some(
+            direction => !['to_commons', 'to_home'].includes(direction)
+        ) ||
+        habitatWorld.journeyPhases.some(
+            phase => !['leaving_home', 'home_threshold', 'crossing', 'heart_check_in'].includes(phase)
+        ) ||
+        habitatWorld.journeyPresenceModels.some(
+            model => model !== 'single_world_location_v1'
+        ) ||
         !habitatWorld.ariaLabel.includes('Shared Habitat') ||
         !habitatWorld.statusText
     ) {
@@ -14149,6 +14203,62 @@ async function smokeVillageUi(session, exceptions) {
         SMOKE_VIEWPORT_WIDTH <= 600
             ? 'village-habitat-homecoming-mobile.png'
             : 'village-habitat-homecoming-desktop.png'
+    );
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const landmark = window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark;
+            const journey = (landmark?.residentRoutineElements || []).find(
+                element => element?.getData?.('villageResidentJourney') === true
+            );
+            const progress = journey?.getData?.('routeProgress');
+            return journey?.getData?.('routinePhase') === 'crossing' &&
+                progress > 0.25 && progress < 0.75;
+        })()`),
+        { timeoutMs: 9000, message: 'Village resident travels between home and Heart' }
+    );
+    const residentJourney = await evaluate(session, `(() => {
+        const landmark = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark;
+        const habitat = landmark?.residentElements?.[0];
+        const journeys = (landmark?.residentRoutineElements || []).filter(
+            element => element?.getData?.('villageResidentJourney') === true
+        );
+        const commonsFigures = landmark?.commonsLife?.list?.filter(
+            element => element?.getData?.('villageCommonsResident') === true
+        ).length || 0;
+        return {
+            residentName: journeys[0]?.getData?.('residentName'),
+            routeType: journeys[0]?.getData?.('routeType'),
+            routeDirection: journeys[0]?.getData?.('routeDirection'),
+            routeProgress: journeys[0]?.getData?.('routeProgress'),
+            phase: journeys[0]?.getData?.('routinePhase'),
+            destination: journeys[0]?.getData?.('destinationLabel'),
+            presenceModel: journeys[0]?.getData?.('villagePresenceModel'),
+            habitatFigureCount: habitat?.getData?.('residentFigureCount'),
+            journeyFigureCount: journeys.length,
+            commonsEmbeddedFigureCount: commonsFigures
+        };
+    })()`);
+    if (
+        !residentJourney.residentName ||
+        residentJourney.routeType !== 'home_to_commons' ||
+        residentJourney.routeDirection !== 'to_commons' ||
+        residentJourney.routeProgress <= 0.25 ||
+        residentJourney.routeProgress >= 0.75 ||
+        residentJourney.phase !== 'crossing' ||
+        residentJourney.destination !== 'VILLAGE HEART' ||
+        residentJourney.presenceModel !== 'single_world_location_v1' ||
+        residentJourney.habitatFigureCount + residentJourney.journeyFigureCount !== 2 ||
+        residentJourney.commonsEmbeddedFigureCount !== 0
+    ) {
+        throw new Error(`Village resident journey failed: ${JSON.stringify(residentJourney)}`);
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-resident-journey-mobile.png'
+            : 'village-resident-journey-desktop.png'
     );
     const followUpStarted = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');

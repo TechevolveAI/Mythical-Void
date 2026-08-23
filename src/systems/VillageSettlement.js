@@ -1208,6 +1208,68 @@ export function getVillageHomeProfile(buildings = [], roster = []) {
     };
 }
 
+export function getVillageResidentRoutinePlan(snapshot = {}) {
+    const residents = Array.isArray(snapshot?.home?.residents)
+        ? snapshot.home.residents
+        : [];
+    const profile = getVillageGrowthProfile(
+        snapshot?.worldState?.growthTier || 0
+    );
+    const availableResidents = residents.filter(resident => !resident.atWork);
+    const commonsCount = Math.min(
+        profile.gatheringCapacity,
+        availableResidents.length > 1
+            ? availableResidents.length - 1
+            : availableResidents.length
+    );
+    const commonsIds = new Set(
+        availableResidents.slice(0, commonsCount).map(resident => resident.id)
+    );
+    const buildingByDefinition = new Map(
+        (snapshot?.buildings || []).map(building => [building.definitionId, building])
+    );
+
+    return residents.map((resident, index) => {
+        if (resident.atWork) {
+            const building = buildingByDefinition.get(resident.workBuildingId);
+            return {
+                residentId: resident.id,
+                residentName: resident.name,
+                location: 'work',
+                route: 'building_to_heart',
+                destinationId: resident.workBuildingId,
+                destinationLabel: resident.workLabel || 'VILLAGE WORK',
+                activity: building?.definition?.workerRoutine?.cue || 'HELPS THE SETTLEMENT',
+                index
+            };
+        }
+        if (commonsIds.has(resident.id)) {
+            return {
+                residentId: resident.id,
+                residentName: resident.name,
+                location: 'commons',
+                route: 'home_to_commons',
+                destinationId: 'village_heart',
+                destinationLabel: 'VILLAGE HEART',
+                activity: profile.tier >= 3
+                    ? 'SHARES THE DAY AT THE HEART'
+                    : 'CHECKS IN AT THE HEART',
+                index
+            };
+        }
+        return {
+            residentId: resident.id,
+            residentName: resident.name,
+            location: 'home',
+            route: 'resting_at_home',
+            destinationId: snapshot?.home?.plotId || null,
+            destinationLabel: 'SHARED HABITAT',
+            activity: 'RESTS AT HOME',
+            index
+        };
+    });
+}
+
 export function getVillageCommunityMoments({ buildings = [] } = {}) {
     const completeByDefinition = new Map(
         buildings
@@ -1598,9 +1660,14 @@ export function getVillageSnapshot(gameState, { stateOverride = null } = {}) {
         )
     };
     const worldState = getVillageWorldState(snapshot);
+    const residentRoutines = getVillageResidentRoutinePlan({
+        ...snapshot,
+        worldState
+    });
     return {
         ...snapshot,
         worldState,
+        residentRoutines,
         residentProposal: getVillageResidentProposal({ ...snapshot, worldState })
     };
 }

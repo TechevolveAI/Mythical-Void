@@ -38,6 +38,7 @@ function loadVillageSettlement() {
                 reconcileVillageState,
                 reconcileVillageSettlement,
                 getVillageHomeProfile,
+                getVillageResidentRoutinePlan,
                 getVillageCommunityMoments,
                 getVillageCommunityMoment,
                 getVillageHeartDecisionState,
@@ -592,6 +593,53 @@ describe('Village settlement phase one', () => {
             helpingCount: 2
         }));
         expect(everyoneHelping.residents.every(resident => resident.atWork)).toBe(true);
+    });
+
+    test('resident routines assign one coherent world location per companion', () => {
+        const definitions = new Map(
+            village.VILLAGE_BUILDING_DEFINITIONS.map(definition => [definition.id, definition])
+        );
+        const routines = village.getVillageResidentRoutinePlan({
+            worldState: { growthTier: 3 },
+            home: {
+                plotId: 'root_04',
+                residents: [
+                    { id: 'nova', name: 'Nova', atWork: false },
+                    { id: 'ember', name: 'Ember', atWork: false },
+                    {
+                        id: 'lumen',
+                        name: 'Lumen',
+                        atWork: true,
+                        workBuildingId: 'current_masonry',
+                        workLabel: 'MASONRY'
+                    }
+                ]
+            },
+            buildings: [{
+                definitionId: 'current_masonry',
+                definition: definitions.get('current_masonry')
+            }]
+        });
+
+        expect(routines).toEqual([
+            expect.objectContaining({
+                residentId: 'nova',
+                location: 'commons',
+                route: 'home_to_commons'
+            }),
+            expect.objectContaining({
+                residentId: 'ember',
+                location: 'home',
+                route: 'resting_at_home'
+            }),
+            expect.objectContaining({
+                residentId: 'lumen',
+                location: 'work',
+                route: 'building_to_heart',
+                activity: 'LISTENS FOR SAFE STONE'
+            })
+        ]);
+        expect(new Set(routines.map(routine => routine.residentId)).size).toBe(3);
     });
 
     test('community moments require real distinct assigned companions', () => {

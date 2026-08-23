@@ -8892,6 +8892,12 @@ class GameScene extends Phaser.Scene {
                 atWork: resident.atWork,
                 workBuildingId: resident.workBuildingId
             })) || [],
+            residentRoutines: snapshot?.residentRoutines?.map(routine => ({
+                residentId: routine.residentId,
+                location: routine.location,
+                route: routine.route,
+                destinationId: routine.destinationId
+            })) || [],
             heartDecisions: snapshot?.heartDecision?.completed?.map(choice => ({
                 decisionId: choice.decisionId,
                 optionId: choice.optionId

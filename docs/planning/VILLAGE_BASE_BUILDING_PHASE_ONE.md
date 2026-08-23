@@ -128,6 +128,14 @@ building-to-Heart delivery routes. During story focus the commons recedes behind
 the active moment, and compact layouts suppress the redundant Heart caption so
 the contextual action beacon owns the interaction language.
 
+Resident presence follows a single-world-location contract. A Habitat resident
+is either resting at home, travelling to the Heart commons, or helping at an
+assigned structure; the same resident is never drawn at two destinations. The
+Habitat uses distinct resting, Heart, and work tethers, while Heart visitors walk
+one authored Current route between their home threshold and a commons seat. One
+resident remains home when several are available, preserving a readable daily
+rhythm instead of making the Habitat look abandoned as the settlement grows.
+
 Completed structures also carry a purpose sigil in their living-root threshold.
 The five authored symbols represent renewing food, recovered repair value,
 Current protection, shared homes, and shared energy. They remain quiet in the
@@ -179,7 +187,6 @@ No existing field is renamed or removed. Local saves and cloud saves already ser
 
 ### Nice To Have
 
-- expanded creature walking routines between home, work, and social spaces
 - building upgrades
 
 ### Later
