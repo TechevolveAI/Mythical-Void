@@ -1,3 +1,5 @@
+import { getGuardianOutcomeSnapshot } from './GuardianOutcomes.js';
+
 export const GUARDIAN_RESIDENTS_SCHEMA_VERSION = 4;
 export const GUARDIAN_SYNERGY_ASSISTS = 3;
 export const GUARDIAN_ROUTINE_RECOVERY_MS = 77 * 1000;
@@ -455,7 +457,7 @@ export const GUARDIAN_RESIDENT_DEFINITIONS = Object.freeze([
             'You reached the Heart and chose restoration over conquest. I come here as witness, never as ruler.',
         dialogue: Object.freeze([
             'Earth cannot hear the Current yet. Silence is not permission to own it.',
-            'Every rescued guardian has brought a different truth to this ground.',
+            'Every rescued life and regional Guardian has brought a different truth to this ground.',
             'First contact should begin with two questions: who is here, and what do they need?'
         ])
     })
@@ -631,20 +633,23 @@ function formatExpeditionLabel(levelId) {
 }
 
 function getLegacyCompletedGuardianIds(gameState) {
-    return GUARDIAN_RESIDENT_DEFINITIONS
-        .filter(guardian => (
-            gameState?.get?.(`levels.${guardian.levelId}.completed`) === true
-        ))
-        .map(guardian => guardian.id);
+    // This compatibility layer powers the Elder Treant's Heart projection.
+    // Other completed bosses remain region-bound and never become residents.
+    return getGuardianOutcomeSnapshot(gameState).sanctuaryPresences
+        .map(outcome => outcome.guardianId);
 }
 
 export function normalizeGuardianResidentState(state = {}, {
-    completedGuardianIds = []
+    completedGuardianIds = [],
+    allowedResidentIds = null
 } = {}) {
+    const allowedResidents = Array.isArray(allowedResidentIds)
+        ? new Set(orderedKnownIds(allowedResidentIds))
+        : null;
     const rescuedIds = orderedKnownIds([
         ...(Array.isArray(state?.rescuedIds) ? state.rescuedIds : []),
         ...completedGuardianIds
-    ]);
+    ]).filter(id => !allowedResidents || allowedResidents.has(id));
     const rescuedSet = new Set(rescuedIds);
     const metIds = orderedKnownIds(state?.metIds)
         .filter(id => rescuedSet.has(id));
@@ -806,7 +811,10 @@ export function getGuardianTaskEvidence(gameState, guardianId, state = null) {
     if (!guardian || !TASK_EVIDENCE_KEYS.has(guardian.task.evidenceKey)) return 0;
     const normalizedState = state || normalizeGuardianResidentState(
         gameState?.get?.('world.guardianResidents') || {},
-        { completedGuardianIds: getLegacyCompletedGuardianIds(gameState) }
+        {
+            completedGuardianIds: getLegacyCompletedGuardianIds(gameState),
+            allowedResidentIds: getLegacyCompletedGuardianIds(gameState)
+        }
     );
     const values = {
         gardenVisits: normalizedState.activityEvidence.gardenVisits,
@@ -842,10 +850,15 @@ export function getGuardianResidentsSnapshot(gameState, {
     now = Date.now()
 } = {}) {
     const nowMs = timestampToMs(now) ?? Date.now();
-    const completedGuardianIds = getLegacyCompletedGuardianIds(gameState);
+    const outcomeSnapshot = getGuardianOutcomeSnapshot(gameState);
+    const completedGuardianIds = (outcomeSnapshot.sanctuaryPresences || [])
+        .map(outcome => outcome.guardianId);
     const state = normalizeGuardianResidentState(
         gameState?.get?.('world.guardianResidents') || {},
-        { completedGuardianIds }
+        {
+            completedGuardianIds,
+            allowedResidentIds: completedGuardianIds
+        }
     );
     const residents = GUARDIAN_RESIDENT_DEFINITIONS.map(guardian => {
         const rescued = state.rescuedIds.includes(guardian.id);
@@ -917,6 +930,16 @@ export function getGuardianResidentsSnapshot(gameState, {
         };
     });
     const rescuedResidents = residents.filter(resident => resident.rescued);
+    const residentById = new Map(residents.map(resident => [resident.id, resident]));
+    const regionalAllies = (outcomeSnapshot.regionalAllies || []).map(outcome => ({
+        ...residentById.get(outcome.guardianId),
+        allied: true,
+        outcome: outcome.outcome,
+        standing: outcome.standing,
+        sanctuaryPresence: outcome.sanctuaryPresence,
+        regionRole: outcome.regionRole,
+        outcomeLine: outcome.outcomeLine
+    }));
     const taskFocusResident =
         rescuedResidents.find(resident => resident.taskStatus === 'ready') ||
         rescuedResidents.find(resident => resident.taskStatus === 'active') ||
@@ -927,10 +950,16 @@ export function getGuardianResidentsSnapshot(gameState, {
         state,
         residents,
         rescuedResidents,
+        sanctuaryResidents: rescuedResidents,
+        regionalAllies,
         rescuedCount: state.rescuedIds.length,
+        regionalAllyCount: regionalAllies.length,
         totalResidents: GUARDIAN_RESIDENT_DEFINITIONS.length,
-        completedTaskCount: state.completedTaskIds.length,
-        routineAssistCount: Object.values(state.routineAssists)
+        completedTaskCount: rescuedResidents.filter(
+            resident => resident.teamAbilityUnlocked
+        ).length,
+        routineAssistCount: rescuedResidents
+            .map(resident => resident.routineAssistCount)
             .reduce((total, count) => total + count, 0),
         supportedResidentCount: residents.filter(resident => (
             resident.rescued && resident.routineSupported
@@ -1117,6 +1146,19 @@ export function recordGuardianRescue(gameState, levelId, {
     if (!guardian || !gameState?.get || !gameState?.set) return null;
 
     const snapshot = getGuardianResidentsSnapshot(gameState);
+    const canonicalPresence = (
+        getGuardianOutcomeSnapshot(gameState).sanctuaryPresences || []
+    )
+        .find(outcome => outcome.guardianId === guardian.id);
+    if (!canonicalPresence) {
+        return {
+            changed: false,
+            reason: 'regional_guardian_not_resident',
+            guardian,
+            state: snapshot.state,
+            snapshot
+        };
+    }
     const alreadyRescued = snapshot.state.rescuedIds.includes(guardian.id);
     const state = normalizeGuardianResidentState({
         ...snapshot.state,

@@ -6,6 +6,10 @@ function loadGuardianResidents() {
     const filePath = path.join(__dirname, '../systems/GuardianResidents.js');
     const source = fs.readFileSync(filePath, 'utf8');
     const transformed = source
+        .replace(
+            "import { getGuardianOutcomeSnapshot } from './GuardianOutcomes.js';",
+            'const getGuardianOutcomeSnapshot = GET_GUARDIAN_OUTCOME_SNAPSHOT;'
+        )
         .replace(/export const /g, 'const ')
         .replace(/export function /g, 'function ')
         .replace(/if \(typeof window !== 'undefined'\) \{[\s\S]*$/, '')
@@ -30,6 +34,41 @@ function loadGuardianResidents() {
     const sandbox = {
         module: { exports: {} },
         exports: {},
+        GET_GUARDIAN_OUTCOME_SNAPSHOT: gameState => {
+            const legacyIds = gameState.get(
+                'world.guardianResidents.rescuedIds'
+            ) || [];
+            const guardianByLevel = {
+                mythicalForest: 'elder_treant',
+                crystalCaves: 'crystal_golem',
+                cosmicReef: 'nyxvoral',
+                auroraDepths: 'shadow_phoenix',
+                voidPeaks: 'cosmic_titan',
+                finalVoid: 'void_empress'
+            };
+            const resolvedIds = new Set(legacyIds);
+            Object.entries(guardianByLevel).forEach(([levelId, guardianId]) => {
+                if (gameState.get(`levels.${levelId}.completed`) === true) {
+                    resolvedIds.add(guardianId);
+                }
+            });
+            const elderResolved = resolvedIds.has('elder_treant');
+            return {
+                sanctuaryPresences: elderResolved
+                    ? [{ guardianId: 'elder_treant' }]
+                    : [],
+                regionalAllies: Array.from(resolvedIds).map(guardianId => ({
+                    guardianId,
+                    outcome: 'restored',
+                    standing: 'regional_guardian',
+                    sanctuaryPresence: guardianId === 'elder_treant'
+                        ? 'heart_projection'
+                        : 'none',
+                    regionRole: 'Regional Guardian',
+                    outcomeLine: 'Protecting the restored region.'
+                }))
+            };
+        },
         Date,
         Map,
         Set,
@@ -97,7 +136,7 @@ describe('GuardianResidents', () => {
         expect(formatGuardianRoutineRecovery(0)).toBe('READY');
     });
 
-    test('defines one distinct Sanctuary resident for every expedition guardian', () => {
+    test('retains authored Guardian relationships for regional ally compatibility', () => {
         expect(GUARDIAN_RESIDENT_DEFINITIONS).toHaveLength(6);
         expect(new Set(
             GUARDIAN_RESIDENT_DEFINITIONS.map(entry => entry.levelId)
@@ -141,7 +180,7 @@ describe('GuardianResidents', () => {
         expect(new Set(ambientLines).size).toBe(ambientLines.length);
     });
 
-    test('gives every restored guardian an authored social relationship', () => {
+    test('keeps authored social relationships for legacy Guardian ally saves', () => {
         const guardianIds = new Set(
             GUARDIAN_RESIDENT_DEFINITIONS.map(guardian => guardian.id)
         );
@@ -168,7 +207,7 @@ describe('GuardianResidents', () => {
         expect(new Set(socialLines).size).toBe(socialLines.length);
     });
 
-    test('backfills restored guardians from completed levels in older saves', () => {
+    test('backfills only the Elder Treant Heart presence from completed levels', () => {
         const gameState = createGameState({
             levels: {
                 mythicalForest: { completed: true },
@@ -178,51 +217,45 @@ describe('GuardianResidents', () => {
         });
         const snapshot = getGuardianResidentsSnapshot(gameState);
 
-        expect(snapshot.state.rescuedIds).toEqual([
-            'elder_treant',
-            'nyxvoral'
-        ]);
+        expect(snapshot.state.rescuedIds).toEqual(['elder_treant']);
         expect(snapshot.rescuedResidents.map(entry => entry.name)).toEqual([
-            'Elder Treant',
-            "Nyx'voral"
+            'Elder Treant'
         ]);
     });
 
-    test('records a rescue once at shared level completion and remains idempotent', () => {
+    test('does not turn a defeated regional Guardian into a Sanctuary resident', () => {
         const gameState = createGameState();
-        const first = recordGuardianRescue(gameState, 'auroraDepths', {
+        const result = recordGuardianRescue(gameState, 'auroraDepths', {
             rescuedAt: '2026-08-06T12:00:00.000Z'
         });
-        const duplicate = recordGuardianRescue(gameState, 'auroraDepths', {
-            rescuedAt: '2026-08-06T12:05:00.000Z'
-        });
 
-        expect(first.changed).toBe(true);
-        expect(first.guardian.id).toBe('shadow_phoenix');
-        expect(duplicate.changed).toBe(false);
-        expect(gameState.state.world.guardianResidents.rescueHistory).toHaveLength(1);
-        expect(gameState.emit).toHaveBeenCalledTimes(1);
-        expect(gameState.save).toHaveBeenCalledTimes(2);
+        expect(result.changed).toBe(false);
+        expect(result.reason).toBe('regional_guardian_not_resident');
+        expect(result.guardian.id).toBe('shadow_phoenix');
+        expect(gameState.state.world.guardianResidents.rescueHistory).toBeUndefined();
+        expect(gameState.emit).not.toHaveBeenCalled();
+        expect(gameState.save).not.toHaveBeenCalled();
     });
 
-    test('reveals rescue memory first, then offers a cooperative task', () => {
+    test('reveals the Elder Heart memory first, then offers a cooperative task', () => {
         const gameState = createGameState({
-            levels: { crystalCaves: { completed: true } }
+            levels: { mythicalForest: { completed: true } },
+            guardianResidents: { rescuedIds: ['elder_treant'] }
         });
-        const first = interactWithGuardianResident(gameState, 'crystal_golem', {
+        const first = interactWithGuardianResident(gameState, 'elder_treant', {
             occurredAt: '2026-08-06T12:10:00.000Z'
         });
-        const second = interactWithGuardianResident(gameState, 'crystal_golem', {
+        const second = interactWithGuardianResident(gameState, 'elder_treant', {
             occurredAt: '2026-08-06T12:11:00.000Z'
         });
 
         expect(first.reason).toBe('guardian_first_meeting');
-        expect(first.message).toContain('false pulse');
+        expect(first.message).toContain('pressure in my roots');
         expect(second.reason).toBe('guardian_task_accepted');
-        expect(second.message).toContain('Current');
+        expect(second.message).toContain('garden pulse');
         expect(second.resident.interactionCount).toBe(2);
         expect(gameState.state.world.guardianResidents.metIds).toEqual([
-            'crystal_golem'
+            'elder_treant'
         ]);
     });
 
@@ -264,30 +297,36 @@ describe('GuardianResidents', () => {
             activeTeamGuardianId: 'elder_treant'
         });
         const selected = interactWithGuardianResident(gameState, 'nyxvoral');
-        expect(selected.reason).toBe('guardian_team_selected');
+        expect(selected.reason).toBe('guardian_not_rescued');
         expect(getActiveGuardianTeamSupport(gameState)).toMatchObject({
-            guardianId: 'nyxvoral',
-            abilityId: 'current_passage',
-            speedMultiplier: 1.08
+            guardianId: 'elder_treant',
+            abilityId: 'root_bridge'
         });
+        const snapshot = getGuardianResidentsSnapshot(gameState);
+        expect(snapshot.rescuedResidents.map(resident => resident.id)).toEqual([
+            'elder_treant'
+        ]);
+        expect(snapshot.regionalAllies.map(guardian => guardian.id)).toContain(
+            'nyxvoral'
+        );
     });
 
-    test('records bounded campfire and target evidence for guardian tasks', () => {
+    test('records bounded evidence only for a Heart-linked guardian task', () => {
         const gameState = createGameState({
-            levels: { voidPeaks: { completed: true } }
+            levels: { mythicalForest: { completed: true } }
         });
         gameState.state.world.guardianResidents = normalizeGuardianResidentState({
-            rescuedIds: ['cosmic_titan'],
-            metIds: ['cosmic_titan'],
-            acceptedTaskIds: ['cosmic_titan']
+            rescuedIds: ['elder_treant'],
+            metIds: ['elder_treant'],
+            acceptedTaskIds: ['elder_treant']
         });
-        const result = recordGuardianActivity(gameState, 'targetHits', {
+        const result = recordGuardianActivity(gameState, 'gardenVisits', {
             amount: 3,
             occurredAt: '2026-08-06T12:20:00.000Z'
         });
 
         expect(result.current).toBe(3);
-        expect(result.snapshot.state.activityEvidence.targetHits).toBe(3);
+        expect(result.snapshot.state.activityEvidence.gardenVisits).toBe(3);
         expect(gameState.save).toHaveBeenCalledTimes(1);
         expect(recordGuardianActivity(gameState, 'unknown')).toBe(null);
     });
@@ -381,12 +420,13 @@ describe('GuardianResidents', () => {
 
     test('makes care available after meeting, before expedition ability unlock', () => {
         const gameState = createGameState({
-            levels: { cosmicReef: { completed: true } }
+            levels: { mythicalForest: { completed: true } },
+            guardianResidents: { rescuedIds: ['elder_treant'] }
         });
-        interactWithGuardianResident(gameState, 'nyxvoral', {
+        interactWithGuardianResident(gameState, 'elder_treant', {
             occurredAt: '2026-08-06T15:00:00.000Z'
         });
-        const result = assistGuardianRoutine(gameState, 'nyxvoral', {
+        const result = assistGuardianRoutine(gameState, 'elder_treant', {
             occurredAt: '2026-08-06T15:00:10.000Z'
         });
 
@@ -399,9 +439,10 @@ describe('GuardianResidents', () => {
 
     test('requires a first guardian meeting before routine assistance', () => {
         const gameState = createGameState({
-            levels: { cosmicReef: { completed: true } }
+            levels: { mythicalForest: { completed: true } },
+            guardianResidents: { rescuedIds: ['elder_treant'] }
         });
-        const result = assistGuardianRoutine(gameState, 'nyxvoral');
+        const result = assistGuardianRoutine(gameState, 'elder_treant');
 
         expect(result.changed).toBe(false);
         expect(result.reason).toBe('guardian_trust_required');
@@ -480,7 +521,7 @@ describe('GuardianResidents', () => {
         expect(gameState.save).not.toHaveBeenCalled();
     });
 
-    test('prioritizes ready guardian work for the existing mission log', () => {
+    test('scrubs legacy boss residents while retaining Elder Heart work', () => {
         const gameState = createGameState({
             levels: {
                 mythicalForest: { completed: true },
@@ -492,12 +533,19 @@ describe('GuardianResidents', () => {
             metIds: ['elder_treant', 'cosmic_titan'],
             acceptedTaskIds: ['elder_treant', 'cosmic_titan'],
             taskBaselines: { elder_treant: 0, cosmic_titan: 0 },
-            activityEvidence: { gardenVisits: 0, targetHits: 3 }
+            activityEvidence: { gardenVisits: 1, targetHits: 3 },
+            activeTeamGuardianId: 'cosmic_titan'
         });
 
         const snapshot = getGuardianResidentsSnapshot(gameState);
-        expect(snapshot.taskFocusResident.id).toBe('cosmic_titan');
+        expect(snapshot.state.rescuedIds).toEqual(['elder_treant']);
+        expect(snapshot.state.activeTeamGuardianId).toBeNull();
+        expect(snapshot.taskFocusResident.id).toBe('elder_treant');
         expect(snapshot.taskFocusResident.taskStatus).toBe('ready');
+        expect(snapshot.regionalAllies.map(guardian => guardian.id)).toEqual([
+            'elder_treant',
+            'cosmic_titan'
+        ]);
     });
 
     test('normalizes unknown state into a bounded portable save contract', () => {

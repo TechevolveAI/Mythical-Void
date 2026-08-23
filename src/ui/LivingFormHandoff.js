@@ -27,9 +27,11 @@ export default class LivingFormHandoff {
         this.root = null;
         this.image = null;
         this.mediaFallback = null;
+        this.loadingDetail = null;
         this.sourceLabel = null;
         this.status = null;
         this.title = null;
+        this.actionKicker = null;
         this.keyboardHandler = null;
         this.continueHandler = null;
         this.continueButton = null;
@@ -41,6 +43,9 @@ export default class LivingFormHandoff {
         this.portraitPending = false;
         this.statusTimers = [];
         this.resizeHandler = null;
+        this.onPortraitShown = null;
+        this.portraitShownIdentity = null;
+        this.keepVisibleOnContinue = false;
     }
 
     show({
@@ -51,6 +56,8 @@ export default class LivingFormHandoff {
         portraitPromise = null,
         referenceImage = null,
         onContinue = null,
+        onPortraitShown = null,
+        keepVisibleOnContinue = false,
         mode = 'arrival'
     } = {}) {
         if (this.domElement || typeof document === 'undefined') {
@@ -65,6 +72,8 @@ export default class LivingFormHandoff {
         const { width, height } = this.scene.scale;
 
         const root = createElement('div', 'living-form-handoff');
+        root.classList.toggle('is-portrait-pending', Boolean(portraitPromise));
+        root.dataset.portraitState = portraitPromise ? 'developing' : 'offline';
         this.updateViewportSize = () => {
             const viewport = window.visualViewport;
             const nextWidth = Math.max(1, Math.floor(
@@ -73,9 +82,21 @@ export default class LivingFormHandoff {
             const nextHeight = Math.max(1, Math.floor(
                 viewport?.height || this.scene.scale.height || height
             ));
+            const offsetLeft = Math.max(0, Math.floor(viewport?.offsetLeft || 0));
+            const offsetTop = Math.max(0, Math.floor(viewport?.offsetTop || 0));
             root.style.width = `${nextWidth}px`;
             root.style.height = `${nextHeight}px`;
-            this.domElement?.setPosition?.(nextWidth / 2, nextHeight / 2);
+            this.domElement?.setPosition?.(
+                offsetLeft + (nextWidth / 2),
+                offsetTop + (nextHeight / 2)
+            );
+            const cameraZoom = Math.max(
+                0.1,
+                Number(this.scene.cameras?.main?.zoom) || 1
+            );
+            // Phaser applies world-camera zoom to DOM Elements. Cancel it so
+            // this modal remains true screen-space UI inside the Sanctuary.
+            this.domElement?.setScale?.(1 / cameraZoom);
         };
         this.updateViewportSize();
         root.setAttribute('role', 'dialog');
@@ -109,13 +130,45 @@ export default class LivingFormHandoff {
         this.image.alt = '';
         media.append(this.image);
 
-        this.mediaFallback = createElement(
-            'div',
-            'living-form-media-fallback',
-            portraitPromise
-                ? 'LIVING FORM DEVELOPING'
-                : 'LIVING FORM OFFLINE'
-        );
+        this.mediaFallback = createElement('div', 'living-form-media-fallback');
+        if (portraitPromise) {
+            const spinner = createElement('span', 'living-form-spinner');
+            spinner.setAttribute('aria-hidden', 'true');
+            const progress = createElement('span', 'living-form-progress');
+            progress.setAttribute('role', 'progressbar');
+            progress.setAttribute('aria-label', `${safeName} living portrait developing`);
+            progress.setAttribute('aria-valuetext', 'Portrait generation in progress');
+            progress.append(
+                this.createProgressStep('SCAN LOCKED', 'is-complete'),
+                this.createProgressStep('FORMING', 'is-active'),
+                this.createProgressStep('REVEAL NEXT')
+            );
+            this.loadingDetail = createElement(
+                'span',
+                'living-form-loading-detail',
+                `Building ${safeName}'s anatomy, markings, and cosmic traits.`
+            );
+            this.mediaFallback.append(
+                spinner,
+                createElement(
+                    'strong',
+                    'living-form-loading-title',
+                    'LIVING FORM DEVELOPING'
+                ),
+                progress,
+                this.loadingDetail
+            );
+        } else {
+            this.mediaFallback.append(
+                createElement(
+                    'strong',
+                    'living-form-loading-title',
+                    'LIVING FORM OFFLINE'
+                )
+            );
+        }
+        this.mediaFallback.setAttribute('role', 'status');
+        this.mediaFallback.setAttribute('aria-live', 'polite');
         media.append(this.mediaFallback);
 
         const scanner = createElement('span', 'living-form-scanner');
@@ -170,43 +223,74 @@ export default class LivingFormHandoff {
         });
         content.append(facts);
 
+        const actions = createElement('footer', 'living-form-actions');
+        actions.setAttribute('data-testid', 'living-form-actions');
+
+        this.actionKicker = createElement(
+            'p',
+            'living-form-action-kicker',
+            isLateReveal
+                ? 'PORTRAIT RECEIVED'
+                : portraitPromise
+                    ? 'SANCTUARY READY // PORTRAIT IN PROGRESS'
+                    : 'FIELD ROUTE READY'
+        );
+        actions.append(this.actionKicker);
+
         this.status = createElement(
             'p',
             'living-form-status',
                 portraitPromise
                     ? isLateReveal
                         ? 'Opening the completed protected living portrait.'
-                        : 'Protected living portrait forming in the background.'
+                        : `${safeName}'s protected portrait is forming now. Enter whenever you are ready; the reveal will follow you.`
                     : 'No personal data was sent. Pixel identity remains the canonical record.'
         );
         this.status.setAttribute('role', 'status');
         this.status.setAttribute('aria-live', 'polite');
-        content.append(this.status);
+        actions.append(this.status);
 
         const continueButton = createElement(
             'button',
             'living-form-continue',
-            isLateReveal ? 'CONTINUE EXPLORING' : 'ENTER SANCTUARY'
+            isLateReveal
+                ? 'CONTINUE EXPLORING'
+                : portraitPromise
+                    ? 'ENTER SANCTUARY NOW'
+                    : 'ENTER SANCTUARY'
         );
         continueButton.type = 'button';
         continueButton.setAttribute('data-testid', 'living-form-continue');
         continueButton.style.touchAction = 'manipulation';
         continueButton.style.webkitTapHighlightColor = 'transparent';
-        content.append(continueButton);
+        actions.append(continueButton);
 
-        shell.append(header, media, content);
+        if (portraitPromise && !isLateReveal) {
+            actions.append(createElement(
+                'p',
+                'living-form-continue-note',
+                'If you enter now, the finished portrait will open over the Sanctuary when it arrives.'
+            ));
+        }
+
+        shell.append(header, media, content, actions);
         root.append(shell);
         this.root = root;
         this.isVisible = true;
         this.continueActivated = false;
         this.continueButton = continueButton;
+        this.keepVisibleOnContinue = Boolean(keepVisibleOnContinue);
+        this.onPortraitShown = typeof onPortraitShown === 'function'
+            ? onPortraitShown
+            : null;
         this.continueHandler = event => {
             event?.preventDefault?.();
             event?.stopPropagation?.();
             if (this.continueActivated || !this.isVisible) return;
             this.continueActivated = true;
             const continueAction = onContinue;
-            this.destroy();
+            this.beginTransition();
+            if (!this.keepVisibleOnContinue) this.destroy();
             continueAction?.();
         };
         continueButton.addEventListener('pointerup', this.continueHandler);
@@ -230,6 +314,7 @@ export default class LivingFormHandoff {
             .setOrigin(0.5)
             .setScrollFactor(0)
             .setDepth(18000);
+        this.updateViewportSize();
         root.style.display = 'grid';
 
         this.pixelReferenceImage = (
@@ -254,7 +339,7 @@ export default class LivingFormHandoff {
                     if (!this.isVisible) {
                         window.GameState?.emit?.('notification', {
                             type: 'portraitReady',
-                            message: `${safeName}'s living portrait is ready in the Companion Archive`
+                            message: `${safeName}'s full living-form reveal is ready in the Sanctuary`
                         });
                         return;
                     }
@@ -274,6 +359,7 @@ export default class LivingFormHandoff {
                     this.status.textContent = `${serviceMessage} ` +
                         'Enter the Sanctuary whenever you are ready.';
                     this.status.classList.add('is-fallback');
+                    this.root.dataset.portraitState = 'retry';
                     this.sourceLabel.textContent =
                         error?.code === 'new_identity_quota'
                             ? 'LIVING PORTRAIT // RETRY SCHEDULED'
@@ -287,23 +373,61 @@ export default class LivingFormHandoff {
         return true;
     }
 
+    beginTransition() {
+        if (!this.isVisible || !this.root || !this.continueButton) return;
+        this.clearStatusTimers();
+        this.root.classList.add('is-transitioning');
+        this.root.dataset.portraitState = 'entering';
+        this.continueButton.disabled = true;
+        this.continueButton.setAttribute('aria-busy', 'true');
+        this.continueButton.textContent = 'ENTERING SANCTUARY...';
+        if (this.actionKicker) {
+            this.actionKicker.textContent = 'ROUTE CONFIRMED // SANCTUARY OPENING';
+        }
+        if (this.status) {
+            this.status.textContent = this.portraitPending
+                ? 'Opening the Sanctuary now. The living portrait will keep developing and follow you.'
+                : 'Opening the Sanctuary now.';
+        }
+    }
+
     startPortraitStatusSequence() {
         this.clearStatusTimers();
         this.statusTimers.push(window.setTimeout(() => {
             if (!this.isVisible || !this.portraitPending || !this.status) return;
             this.status.textContent =
                 'Matching anatomy, color, and mutations to the exact pixel identity.';
+            if (this.loadingDetail) {
+                this.loadingDetail.textContent =
+                    'Translating the exact pixel identity into a living field portrait.';
+            }
         }, 2500));
         this.statusTimers.push(window.setTimeout(() => {
             if (!this.isVisible || !this.portraitPending || !this.status) return;
             this.status.textContent =
-                'You can enter the Sanctuary now. The finished portrait will wait in the Companion Archive.';
+                'Enter the Sanctuary now. The finished portrait will open there automatically when it arrives.';
+            if (this.loadingDetail) {
+                this.loadingDetail.textContent =
+                    'Still developing. You can continue without losing the reveal.';
+            }
         }, 7500));
     }
 
     clearStatusTimers() {
         this.statusTimers.forEach(timer => window.clearTimeout(timer));
         this.statusTimers = [];
+    }
+
+    createProgressStep(label, stateClass = '') {
+        const step = createElement(
+            'span',
+            `living-form-progress-step ${stateClass}`.trim()
+        );
+        step.append(
+            createElement('span', 'living-form-progress-bar'),
+            createElement('span', 'living-form-progress-label', label)
+        );
+        return step;
     }
 
     setArtwork(imageUrl, { source, alt, record = null }) {
@@ -324,10 +448,24 @@ export default class LivingFormHandoff {
             this.mediaFallback?.classList.add('is-hidden');
             this.displaySource = source;
             if (isGenerated) {
+                this.root.dataset.portraitState = 'ready';
+                this.root?.classList.remove('is-portrait-pending');
+                if (this.continueButton?.textContent === 'ENTER SANCTUARY NOW') {
+                    this.continueButton.textContent = 'ENTER SANCTUARY';
+                    this.root?.querySelector?.('.living-form-continue-note')?.remove?.();
+                }
+                if (this.actionKicker) {
+                    this.actionKicker.textContent = 'LIVING FORM READY // SANCTUARY OPEN';
+                }
                 window.CompanionMediaService?.recordAppearance?.(
                     'first_living_form',
                     record
                 );
+                const identity = record?.identityKey || imageUrl;
+                if (this.portraitShownIdentity !== identity) {
+                    this.portraitShownIdentity = identity;
+                    this.onPortraitShown?.(record);
+                }
                 if (!window.GameState?.get?.(
                     'story.projectBeacon.firstForestCinematicSeen'
                 )) {
@@ -354,6 +492,7 @@ export default class LivingFormHandoff {
             this.status.textContent =
                 'Visual study offline. The living portrait can retry from the Companion Archive.';
             this.status.classList.add('is-fallback');
+            this.root.dataset.portraitState = 'retry';
             this.sourceLabel.textContent = 'LIVING PORTRAIT RETRY AVAILABLE';
             this.root?.classList.add('has-portrait-failure');
         };
@@ -384,11 +523,16 @@ export default class LivingFormHandoff {
         this.root = null;
         this.image = null;
         this.mediaFallback = null;
+        this.loadingDetail = null;
         this.sourceLabel = null;
         this.status = null;
         this.title = null;
+        this.actionKicker = null;
         this.pixelReferenceImage = null;
         this.continueButton = null;
         this.continueHandler = null;
+        this.onPortraitShown = null;
+        this.portraitShownIdentity = null;
+        this.keepVisibleOnContinue = false;
     }
 }

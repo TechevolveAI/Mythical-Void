@@ -41,7 +41,10 @@ class MobileControls {
         this.scenePointerOutHandler = null;
         this.windowPointerUpHandler = null;
         this.windowPointerCancelHandler = null;
+        this.canvasTouchStartHandler = null;
+        this.canvasTouchMoveHandler = null;
         this.canvasTouchEndHandler = null;
+        this.canvasTouchCancelHandler = null;
         this.pendingWindowPointerUp = null;
 
         // Action buttons
@@ -85,14 +88,19 @@ class MobileControls {
         const isTouchPrimary = window.matchMedia?.('(pointer: coarse)')?.matches;
         const isHoverNone = window.matchMedia?.('(hover: none)')?.matches;
 
-        // AGGRESSIVE: Show controls if ANY touch indicator is true
-        const isTouchDevice = hasOnTouchStart || hasTouchPoints || hasDocumentTouch || hasTouchEvent;
+        // TouchEvent exists in desktop Chromium even when no touch hardware is
+        // present. Hardware capability, a coarse primary pointer, or a mobile
+        // user agent must be present before the gameplay dock is shown.
+        const hasLegacyTouchSurface = hasOnTouchStart || hasDocumentTouch;
+        const hasTouchHardware = hasTouchPoints || (
+            hasLegacyTouchSurface && (isTouchPrimary || isHoverNone)
+        );
 
         // Show controls if:
         // 1. Device has touch capability AND (small screen OR touch is primary input)
         // 2. OR mobile/tablet user agent detected
         // 3. OR pointer is coarse (touch) AND no hover (mobile)
-        const result = (isTouchDevice && (isSmallScreen || isTouchPrimary)) ||
+        const result = (hasTouchHardware && (isSmallScreen || isTouchPrimary || isHoverNone)) ||
                        isMobileUA ||
                        isTablet ||
                        (isTouchPrimary && isHoverNone);
@@ -101,7 +109,8 @@ class MobileControls {
             hasOnTouchStart,
             hasTouchPoints,
             hasDocumentTouch,
-            hasTouchEvent,
+            hasTouchEventApi: hasTouchEvent,
+            hasTouchHardware,
             isMobileUA,
             isTablet,
             isSmallScreen,
@@ -171,15 +180,15 @@ class MobileControls {
         this.fallbackTouchListenerSetup = true;
 
         const showOnTouch = (e) => {
-            devLog('[MobileControls] FALLBACK: Touch detected, forcing controls visible');
+            devLog('[MobileControls] FALLBACK: Touch detected, confirming device capability');
             // Remove this listener after first touch
             document.removeEventListener('touchstart', showOnTouch, { passive: true });
             window.removeEventListener('touchstart', showOnTouch, { passive: true });
 
-            // Force show controls
-            if (!this.isVisible) {
-                this.isMobile = true;
-                this.show(true);
+            this.isMobile = this.detectMobile();
+            const explicitlyForced = this.scene?.forceMobileControls === true;
+            if (!this.isVisible && (this.isMobile || explicitlyForced)) {
+                this.show(explicitlyForced);
             }
         };
 
@@ -234,6 +243,7 @@ class MobileControls {
         this.scene.scale.on('resize', this.resizeHandler);
 
         this.isVisible = true;
+        this.scene?.handleMobileControlsVisibilityChange?.(true);
         devLog('[MobileControls] Mobile controls visible at positions:', {
             joystick: { x: this.joystickCenterX, y: this.joystickCenterY },
             buttonCount: Object.keys(this.actionButtons).length
@@ -249,7 +259,9 @@ class MobileControls {
 
         // Check if still mobile after resize
         this.isMobile = this.detectMobile();
-        if (!this.isMobile) {
+        const explicitlyForced = this.scene?.forceMobileControls === true;
+        const preserveCompactDock = Number(this.scene?.scale?.width || 0) <= 600;
+        if (!this.isMobile && !explicitlyForced && !preserveCompactDock) {
             this.hide();
             return;
         }
@@ -260,7 +272,7 @@ class MobileControls {
         // Store visibility state, hide, then show again
         this.hide();
         this.isVisible = false; // Reset to allow show()
-        this.show();
+        this.show(explicitlyForced || preserveCompactDock);
     }
 
     /**
@@ -306,8 +318,23 @@ class MobileControls {
                 true
             );
             canvas.removeEventListener(
+                'touchstart',
+                this.canvasTouchStartHandler,
+                true
+            );
+            canvas.removeEventListener(
+                'touchmove',
+                this.canvasTouchMoveHandler,
+                true
+            );
+            canvas.removeEventListener(
                 'touchend',
                 this.canvasTouchEndHandler,
+                true
+            );
+            canvas.removeEventListener(
+                'touchcancel',
+                this.canvasTouchCancelHandler,
                 true
             );
             this.canvasPointerDownHandler = null;
@@ -315,7 +342,10 @@ class MobileControls {
             this.canvasPointerUpHandler = null;
             this.canvasPointerCancelHandler = null;
             this.canvasLostPointerCaptureHandler = null;
+            this.canvasTouchStartHandler = null;
+            this.canvasTouchMoveHandler = null;
             this.canvasTouchEndHandler = null;
+            this.canvasTouchCancelHandler = null;
         }
         if (this.inputAbortHandler) {
             window.removeEventListener('blur', this.inputAbortHandler);
@@ -387,6 +417,7 @@ class MobileControls {
         this.actionButtons = {};
         this.isVisible = false;
         this.isSuspended = false;
+        this.scene?.handleMobileControlsVisibilityChange?.(false);
         devLog('[MobileControls] Mobile controls hidden');
     }
 
@@ -436,6 +467,7 @@ class MobileControls {
             height,
             safeArea: this.getSafeAreaInsets()
         });
+        this.layout = layout;
         const joystickX = layout.joystick.x;
         const joystickY = layout.joystick.y;
         const joystickBaseRadius = layout.joystick.radius;
@@ -448,15 +480,7 @@ class MobileControls {
         if (!this.dockBackground) {
             this.dockBackground = this.scene.add.graphics();
             this.dockBackground.setScrollFactor(0).setDepth(9998);
-            this.dockBackground.fillStyle(0x080A17, 0.9);
-            this.dockBackground.fillRect(
-                0,
-                layout.dockTop,
-                width,
-                height - layout.dockTop
-            );
-            this.dockBackground.lineStyle(1, 0x8FE3CF, 0.35);
-            this.dockBackground.lineBetween(0, layout.dockTop, width, layout.dockTop);
+            this.drawControlShelf(this.dockBackground, layout, width, height);
         }
 
         // Create glow ring (initially invisible, shown when active)
@@ -536,6 +560,41 @@ class MobileControls {
         graphics.fillTriangle(x, y + edge, x - half, y + edge - 9, x + half, y + edge - 9);
         graphics.fillTriangle(x - edge, y, x - edge + 9, y - half, x - edge + 9, y + half);
         graphics.fillTriangle(x + edge, y, x + edge - 9, y - half, x + edge - 9, y + half);
+    }
+
+    drawControlShelf(graphics, layout, width, height) {
+        const shelf = layout.visualShelf;
+        const shelfHeight = Math.max(0, height - shelf.top + 10);
+        const leftWidth = shelf.leftRight + 10;
+        const rightWidth = width - shelf.rightLeft + 10;
+
+        // A faint veil keeps the control reserve legible without turning it
+        // into a black rectangle detached from the Sanctuary.
+        graphics.fillStyle(0x071419, 0.2);
+        graphics.fillRect(0, layout.dockTop, width, height - layout.dockTop);
+
+        graphics.fillStyle(0x071116, 0.72);
+        graphics.fillRoundedRect(-10, shelf.top, leftWidth, shelfHeight, 8);
+        graphics.fillRoundedRect(shelf.rightLeft, shelf.top, rightWidth, shelfHeight, 8);
+
+        graphics.lineStyle(1, 0x8FE3CF, 0.46);
+        graphics.beginPath();
+        graphics.moveTo(0, shelf.top);
+        graphics.lineTo(shelf.leftRight - 12, shelf.top);
+        graphics.lineTo(shelf.leftRight, shelf.top + 10);
+        graphics.strokePath();
+        graphics.beginPath();
+        graphics.moveTo(shelf.rightLeft, shelf.top + 10);
+        graphics.lineTo(shelf.rightLeft + 12, shelf.top);
+        graphics.lineTo(width, shelf.top);
+        graphics.strokePath();
+
+        graphics.lineStyle(1, 0xE8F8F1, 0.12);
+        graphics.lineBetween(12, shelf.top + 8, shelf.leftRight - 18, shelf.top + 8);
+        graphics.lineBetween(shelf.rightLeft + 18, shelf.top + 8, width - 12, shelf.top + 8);
+        graphics.setData('dockTop', layout.dockTop);
+        graphics.setData('visualStyle', shelf.style);
+        graphics.setData('centerGapWidth', shelf.centerGapWidth);
     }
 
     setupCanvasJoystickInput() {
@@ -638,6 +697,36 @@ class MobileControls {
             event.stopImmediatePropagation();
             this.finishJoystickInput(this.activePointerId);
         };
+        this.canvasTouchStartHandler = event => {
+            if (this.isSuspended || this.activePointerId !== null) return;
+            const changed = event.changedTouches || event.touches || [];
+            for (let index = 0; index < changed.length; index += 1) {
+                const touch = changed[index];
+                const identifier = getPointerId(touch?.identifier);
+                const point = this.getCanvasGamePoint(touch);
+                if (identifier === null || !this.isJoystickHit(point)) continue;
+                event.preventDefault();
+                event.stopImmediatePropagation?.();
+                activateJoystick({ pointerId: identifier }, point);
+                return;
+            }
+        };
+        this.canvasTouchMoveHandler = event => {
+            if (!this.joystickActive || this.activePointerId === null) return;
+            const touches = event.touches || event.changedTouches || [];
+            for (let index = 0; index < touches.length; index += 1) {
+                const touch = touches[index];
+                if (getPointerId(touch?.identifier) !== this.activePointerId) {
+                    continue;
+                }
+                const point = this.getCanvasGamePoint(touch);
+                if (!point) return;
+                event.preventDefault();
+                event.stopImmediatePropagation?.();
+                this.updateJoystickFromPointer(point);
+                return;
+            }
+        };
         this.canvasTouchEndHandler = event => {
             if (!this.joystickActive || this.activePointerId === null) return;
 
@@ -650,6 +739,19 @@ class MobileControls {
                     this.finishJoystickInput(identifier);
                     return;
                 }
+            }
+        };
+        this.canvasTouchCancelHandler = event => {
+            if (!this.joystickActive || this.activePointerId === null) return;
+            const changed = event.changedTouches || [];
+            for (let index = 0; index < changed.length; index += 1) {
+                if (getPointerId(changed[index]?.identifier) !== this.activePointerId) {
+                    continue;
+                }
+                event.preventDefault();
+                event.stopImmediatePropagation?.();
+                this.resetJoystick(true);
+                return;
             }
         };
         this.canvasPointerCancelHandler = event => {
@@ -715,7 +817,10 @@ class MobileControls {
         canvas.addEventListener('pointermove', this.canvasPointerMoveHandler, captureOptions);
         canvas.addEventListener('pointerup', this.canvasPointerUpHandler, captureOptions);
         canvas.addEventListener('pointercancel', this.canvasPointerCancelHandler, captureOptions);
+        canvas.addEventListener('touchstart', this.canvasTouchStartHandler, captureOptions);
+        canvas.addEventListener('touchmove', this.canvasTouchMoveHandler, captureOptions);
         canvas.addEventListener('touchend', this.canvasTouchEndHandler, captureOptions);
+        canvas.addEventListener('touchcancel', this.canvasTouchCancelHandler, captureOptions);
         canvas.addEventListener(
             'lostpointercapture',
             this.canvasLostPointerCaptureHandler,

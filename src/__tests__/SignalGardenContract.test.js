@@ -31,7 +31,9 @@ describe('Signal Garden sanctuary contract', () => {
 
     test('supports keyboard and mobile tending with saved relationship rewards', () => {
         expect(gameSceneSource).toContain('handleSignalGardenProximity');
-        expect(gameSceneSource).toContain("updateInteractIcon('🌱')");
+        expect(gameSceneSource).toContain("id: 'signalGarden'");
+        expect(gameSceneSource).toContain("icon: '🌱'");
+        expect(gameSceneSource).toContain('this.offerSanctuaryInteraction({');
         expect(gameSceneSource).toContain('this.tendSignalGarden()');
         expect(gameSceneSource).toContain(
             "window.GameState.set('world.signalGarden', result.state)"

@@ -10,6 +10,7 @@ class CarePanelManager {
         this.geneticsProvider = geneticsProvider;
 
         this.panelVisible = false;
+        this.focusModeActive = false;
         this.panelElements = [];
         this.careButtons = {};
         this.hintText = null;
@@ -153,6 +154,7 @@ class CarePanelManager {
     }
 
     togglePanel() {
+        if (this.focusModeActive) return false;
         this.panelVisible = !this.panelVisible;
         this.panelElements.forEach(el => el.setVisible(this.panelVisible));
         Object.values(this.careButtons).forEach(({ bg, text, zone }) => {
@@ -167,6 +169,24 @@ class CarePanelManager {
                 window.UXEnhancements.announce('Companion link open. Choose a care action.');
             }
         }
+        return this.panelVisible;
+    }
+
+    setFocusMode(active) {
+        this.focusModeActive = active === true;
+        if (this.focusModeActive && this.panelVisible) {
+            this.panelVisible = false;
+            this.panelElements.forEach(element => element.setVisible(false));
+            Object.values(this.careButtons).forEach(({ bg, text, zone }) => {
+                bg.setVisible(false);
+                text.setVisible(false);
+                zone.setVisible(false);
+            });
+        }
+        this.hintText?.setVisible(
+            !this.focusModeActive && this.scene.scale.width >= 600
+        );
+        return this.focusModeActive;
     }
 
     async performAction(actionType) {
@@ -178,7 +198,8 @@ class CarePanelManager {
                 this.showCareEffect(
                     actionType,
                     result.happinessBonus,
-                    result.villageBonus
+                    result.villageBonus,
+                    result.heartCareBonus
                 );
                 this.updateSignal();
                 this.updateButtons();
@@ -266,11 +287,19 @@ class CarePanelManager {
         this.updateHint();
     }
 
-    showCareEffect(actionType, happinessBonus, villageBonus = 0) {
+    showCareEffect(
+        actionType,
+        happinessBonus,
+        villageBonus = 0,
+        heartCareBonus = 0
+    ) {
         const creatureName = getGameState()?.get('creature.name') || 'your buddy';
         const actionCopy = this.getActionCopy(actionType);
+        const foragerBonus = Math.max(0, villageBonus - heartCareBonus);
         const support = villageBonus > 0
-            ? `\nFORAGER HUT SUPPORT +${villageBonus}`
+            ? `${foragerBonus > 0 ? `\nFORAGER HUT SUPPORT +${foragerBonus}` : ''}${
+                heartCareBonus > 0 ? `\nVILLAGE HEART CARE +${heartCareBonus}` : ''
+            }`
             : '';
         const message = `${creatureName} ${actionCopy}${
             happinessBonus ? ` (+${happinessBonus} joy)` : ''

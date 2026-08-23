@@ -451,11 +451,19 @@ class CollectibleManager {
         const availableTypes = this.getCollectiblesForBiome(biome);
         const totalWeight = availableTypes.reduce((sum, c) => sum + c.spawnWeight, 0);
 
+        const margin = 100;
+        const physicsBounds = scene.physics?.world?.bounds;
+        const worldWidth = Number(scene.worldWidth) ||
+            Number(physicsBounds?.width) ||
+            Number(scene.cameras?.main?.width) || 800;
+        const worldHeight = Number(scene.worldHeight) ||
+            Number(physicsBounds?.height) ||
+            Number(scene.cameras?.main?.height) || 600;
         const worldBounds = {
-            minX: 100,
-            maxX: scene.cameras.main.width * 3 - 100,
-            minY: 100,
-            maxY: scene.cameras.main.height * 2 - 100
+            minX: margin,
+            maxX: Math.max(margin, worldWidth - margin),
+            minY: margin,
+            maxY: Math.max(margin, worldHeight - margin)
         };
 
         const spawnedCollectibles = [];
@@ -473,12 +481,31 @@ class CollectibleManager {
                 }
             }
 
-            // Random position
-            const x = Phaser.Math.Between(worldBounds.minX, worldBounds.maxX);
-            const y = Phaser.Math.Between(worldBounds.minY, worldBounds.maxY);
+            let position = null;
+            for (let attempt = 0; attempt < 80; attempt += 1) {
+                const x = Phaser.Math.Between(worldBounds.minX, worldBounds.maxX);
+                const y = Phaser.Math.Between(worldBounds.minY, worldBounds.maxY);
+                const reservedSanctuary = biome === 'nebula' &&
+                    scene.worldBuilder?.isReservedSanctuaryPosition?.(x, y, 36) === true;
+                const tooCloseToPlayer = scene.player && Math.hypot(
+                    x - Number(scene.player.x || 0),
+                    y - Number(scene.player.y || 0)
+                ) < 120;
+                if (!reservedSanctuary && !tooCloseToPlayer) {
+                    position = { x, y };
+                    break;
+                }
+            }
+            if (!position) continue;
 
             // Create collectible object
-            const collectible = this.createCollectible(scene, selectedType, x, y, biome);
+            const collectible = this.createCollectible(
+                scene,
+                selectedType,
+                position.x,
+                position.y,
+                biome
+            );
             if (collectible) {
                 spawnedCollectibles.push(collectible);
                 this.collectibles.push(collectible);
@@ -495,10 +522,24 @@ class CollectibleManager {
      */
     createCollectible(scene, type, x, y, biome) {
         const collectibleId = `collectible_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const isSanctuary = biome === 'nebula';
+        const visualLanguage = isSanctuary
+            ? 'grounded-current-cache-v1'
+            : 'expedition-rarity-orbit-v1';
 
         // Create visual representation
         const container = scene.add.container(x, y);
-        container.setDepth(15);
+        container.setDepth(isSanctuary ? y + 2 : 15)
+            .setData('worldCollectible', true)
+            .setData('collectibleType', type.id)
+            .setData('collectibleBiome', biome)
+            .setData('spawnCoordinateSpace', 'world')
+            .setData('collectibleVisualLanguage', visualLanguage)
+            .setData(
+                'collectibleDepthModel',
+                isSanctuary ? 'world-y-sorted' : 'expedition-fixed'
+            )
+            .setData('collectibleHoverAmplitude', isSanctuary ? 4 : 8);
 
         // Standard rarity colors (white/green/blue/purple/gold)
         const rarityColors = {
@@ -513,16 +554,45 @@ class CollectibleManager {
 
         const rarityColor = rarityColors[type.rarity] || 0x9E9E9E;
 
-        // Outer glow effect based on rarity
+        if (isSanctuary) {
+            const groundShadow = scene.add.graphics();
+            groundShadow.fillStyle(0x07100F, 0.48);
+            groundShadow.fillEllipse(0, 12, 34, 11);
+            groundShadow.lineStyle(1, 0x71E6B1, 0.24);
+            groundShadow.strokeEllipse(0, 11, 29, 8);
+            groundShadow.setData('collectibleGrounding', 'current-shadow-v1');
+            container.add(groundShadow);
+
+            const currentCradle = scene.add.graphics();
+            currentCradle.lineStyle(2, 0x71E6B1, 0.52);
+            currentCradle.lineBetween(-14, 10, -7, 3);
+            currentCradle.lineBetween(14, 10, 7, 3);
+            currentCradle.fillStyle(0xF4F4F4, 0.72);
+            currentCradle.fillCircle(-14, 10, 1.5);
+            currentCradle.fillCircle(14, 10, 1.5);
+            currentCradle.setData('collectibleCradle', 'open-current-roots-v1');
+            container.add(currentCradle);
+        }
+
+        // Sanctuary items sit in a small ground current. Expedition items retain
+        // the stronger orbital glow needed against platforming backgrounds.
         const outerGlow = scene.add.graphics();
-        outerGlow.fillStyle(rarityColor, 0.2);
-        outerGlow.fillCircle(0, 0, 35);
+        outerGlow.fillStyle(rarityColor, isSanctuary ? 0.14 : 0.2);
+        if (isSanctuary) {
+            outerGlow.fillEllipse(0, 7, 32, 14);
+        } else {
+            outerGlow.fillCircle(0, 0, 35);
+        }
         container.add(outerGlow);
 
         // Glow effect
         const glow = scene.add.graphics();
-        glow.fillStyle(type.glowColor, 0.3);
-        glow.fillCircle(0, 0, 25);
+        glow.fillStyle(type.glowColor, isSanctuary ? 0.22 : 0.3);
+        if (isSanctuary) {
+            glow.fillEllipse(0, 3, 22, 18);
+        } else {
+            glow.fillCircle(0, 0, 25);
+        }
         container.add(glow);
 
         // Try to use programmatic sprite texture
@@ -532,16 +602,16 @@ class CollectibleManager {
         if (textureName && scene.textures.exists(textureName)) {
             // Use programmatic sprite
             const sprite = scene.add.image(0, 0, textureName);
-            sprite.setScale(0.6);
+            sprite.setScale(isSanctuary ? 0.46 : 0.6);
             container.add(sprite);
             hasSprite = true;
         } else {
             // Fallback: draw a colored circle with glow
             const main = scene.add.graphics();
             main.fillStyle(type.color, 1);
-            main.fillCircle(0, 0, 15);
+            main.fillCircle(0, 0, isSanctuary ? 11 : 15);
             main.lineStyle(2, 0xFFFFFF, 0.8);
-            main.strokeCircle(0, 0, 15);
+            main.strokeCircle(0, 0, isSanctuary ? 11 : 15);
             container.add(main);
 
             // Small inner highlight
@@ -551,17 +621,36 @@ class CollectibleManager {
             container.add(highlight);
         }
 
-        // Rarity indicator (colored ring) - always show
+        // A broken arc reads as part of the Sanctuary current instead of a HUD
+        // badge. Expedition collectibles retain the high-contrast full ring.
         const rarityRing = scene.add.graphics();
-        rarityRing.lineStyle(3, rarityColor, 0.9);
-        rarityRing.strokeCircle(0, 0, hasSprite ? 24 : 20);
+        if (isSanctuary) {
+            rarityRing.lineStyle(2, rarityColor, 0.72);
+            rarityRing.beginPath();
+            rarityRing.arc(
+                0,
+                3,
+                hasSprite ? 18 : 15,
+                Math.PI * 1.12,
+                Math.PI * 1.88,
+                false
+            );
+            rarityRing.strokePath();
+            rarityRing.fillStyle(rarityColor, 0.9);
+            rarityRing.fillCircle(0, hasSprite ? -18 : -15, 2);
+            container.setData('collectibleRarityIndicator', 'broken-current-arc');
+        } else {
+            rarityRing.lineStyle(3, rarityColor, 0.9);
+            rarityRing.strokeCircle(0, 0, hasSprite ? 24 : 20);
+            container.setData('collectibleRarityIndicator', 'full-orbit');
+        }
         container.add(rarityRing);
 
         // Floating animation
         scene.tweens.add({
             targets: container,
-            y: y - 8,
-            duration: 1500,
+            y: y - (isSanctuary ? 4 : 8),
+            duration: isSanctuary ? 1900 : 1500,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
@@ -570,10 +659,12 @@ class CollectibleManager {
         // Glow pulse animation
         scene.tweens.add({
             targets: [glow, outerGlow],
-            alpha: { from: 0.3, to: 0.6 },
-            scaleX: { from: 1, to: 1.15 },
-            scaleY: { from: 1, to: 1.15 },
-            duration: 1000,
+            alpha: isSanctuary
+                ? { from: 0.24, to: 0.42 }
+                : { from: 0.3, to: 0.6 },
+            scaleX: { from: 1, to: isSanctuary ? 1.08 : 1.15 },
+            scaleY: { from: 1, to: isSanctuary ? 1.08 : 1.15 },
+            duration: isSanctuary ? 1450 : 1000,
             yoyo: true,
             repeat: -1
         });
@@ -582,8 +673,10 @@ class CollectibleManager {
         if (type.rarity === 'rare' || type.rarity === 'epic' || type.rarity === 'legendary') {
             scene.tweens.add({
                 targets: rarityRing,
-                alpha: { from: 0.9, to: 0.5 },
-                duration: 600,
+                alpha: isSanctuary
+                    ? { from: 0.72, to: 0.46 }
+                    : { from: 0.9, to: 0.5 },
+                duration: isSanctuary ? 900 : 600,
                 yoyo: true,
                 repeat: -1
             });

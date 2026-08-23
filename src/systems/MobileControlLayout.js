@@ -73,8 +73,9 @@ export function getJoystickVector({
 /**
  * Shared portrait-phone control geometry.
  *
- * All controls stay inside the dock. The world can continue rendering behind it,
- * but the opaque dock and camera offset establish a stable gameplay boundary.
+ * All controls stay inside the dock. The camera offset establishes a stable
+ * gameplay boundary while split control shelves leave a quiet window into the
+ * world between movement and action controls.
  */
 export function getMobileControlLayout({
     width,
@@ -94,6 +95,15 @@ export function getMobileControlLayout({
     const topY = dockTop + edge + maxSize / 2;
     const bottomY = height - safeArea.bottom - edge - maxSize / 2;
     const joystickRadius = compact ? 44 : 48;
+    const joystickX = safeArea.left + edge + joystickRadius;
+    const leftShelfRight = Math.round(Math.min(
+        width * 0.47,
+        joystickX + joystickRadius + (compact ? 30 : 34)
+    ));
+    const rightShelfLeft = Math.round(Math.max(
+        width * 0.53,
+        leftX - primarySize / 2 - (compact ? 10 : 12)
+    ));
 
     return {
         compact,
@@ -105,8 +115,15 @@ export function getMobileControlLayout({
         secondarySize,
         primarySize,
         rowGap,
+        visualShelf: {
+            style: 'split-current-shelf',
+            top: dockTop + 4,
+            leftRight: leftShelfRight,
+            rightLeft: rightShelfLeft,
+            centerGapWidth: Math.max(0, rightShelfLeft - leftShelfRight)
+        },
         joystick: {
-            x: safeArea.left + edge + joystickRadius,
+            x: joystickX,
             y: dockTop + dockHeight / 2,
             radius: joystickRadius,
             thumbRadius: compact ? 20 : 22,

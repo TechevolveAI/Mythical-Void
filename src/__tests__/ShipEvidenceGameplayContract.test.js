@@ -10,6 +10,10 @@ function read(relativePath) {
 
 describe('Wanderer-77 ship evidence gameplay contract', () => {
     const scene = read('scenes/GameScene.js');
+    const shipInteraction = scene.slice(
+        scene.indexOf('\n    interactWithCrashedShip() {'),
+        scene.indexOf('\n    showSenseiMemory() {')
+    );
     const modal = read('ui/ShipEvidenceBoardModal.js');
     const story = read('systems/ProjectBeaconStory.js');
     const legacy = read('systems/CampaignLegacy.js');
@@ -19,8 +23,8 @@ describe('Wanderer-77 ship evidence gameplay contract', () => {
     const hatching = read('scenes/HatchingScene.js');
 
     test('uses the ship as the ordered review hub', () => {
-        expect(scene).toMatch(
-            /if \(senseiMemory\.ready\)[\s\S]*showSenseiMemory\(\)[\s\S]*else if \(shipEvidence\.ready\)[\s\S]*showShipEvidenceBoard\(\)[\s\S]*else if \(consent\.ready\)/
+        expect(shipInteraction).toMatch(
+            /if \(senseiMemory\.ready\)[\s\S]*showSenseiMemory\(\)[\s\S]*else if \([\s\S]*shipEvidence\.ready[\s\S]*showShipEvidenceBoard\(\)[\s\S]*else if \(consent\.ready\)/
         );
         expect(scene).toContain(
             'Open ship and evidence board'

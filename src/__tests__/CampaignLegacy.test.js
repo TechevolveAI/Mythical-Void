@@ -23,6 +23,10 @@ function loadCampaignLegacy() {
             'const getGuardianResidentsSnapshot = GET_GUARDIAN_RESIDENTS_SNAPSHOT;'
         )
         .replace(
+            "import { getSanctuaryCommunitySnapshot } from './SanctuaryCommunity.js';",
+            'const getSanctuaryCommunitySnapshot = GET_SANCTUARY_COMMUNITY_SNAPSHOT;'
+        )
+        .replace(
             "import { getFendCultureSnapshot } from './FendCulture.js';",
             'const getFendCultureSnapshot = GET_FEND_CULTURE_SNAPSHOT;'
         )
@@ -131,16 +135,67 @@ function loadCampaignLegacy() {
                 void_empress: ['Void Empress', 'Living Convergence']
             };
             const metIds = new Set(guardians.metIds || []);
-            return {
-                rescuedResidents: (guardians.rescuedIds || [])
+            const regionalAllies = (guardians.rescuedIds || [])
                     .filter(id => definitions[id])
                     .map(id => ({
                         id,
                         name: definitions[id][0],
                         futureAbility: definitions[id][1],
                         met: metIds.has(id),
-                        interactionCount: guardians.interactions?.[id] || 0
-                    }))
+                        interactionCount: guardians.interactions?.[id] || 0,
+                        sanctuaryPresence: id === 'elder_treant'
+                            ? 'heart_projection'
+                            : 'none'
+                    }));
+            return {
+                rescuedResidents: regionalAllies.filter(
+                    guardian => guardian.id === 'elder_treant'
+                ),
+                regionalAllies
+            };
+        },
+        GET_SANCTUARY_COMMUNITY_SNAPSHOT: gameState => {
+            const rescued = gameState?.get?.('world.rescuedResidents') || {};
+            const guardianIds = gameState?.get?.(
+                'world.guardianResidents.rescuedIds'
+            ) || [];
+            const residentDefinitions = {
+                bloom: ['Root Forager', 'bloom', 'forager_hut'],
+                pebble: ['Shard Finder', 'pebble', 'current_masonry'],
+                zephyr: ['Current Courier', 'zephyr', 'sawmill'],
+                wisp: ['Ridge Lookout', 'wisp', 'current_masonry'],
+                luna: ['Aurora Surveyor', 'luna', 'workshop'],
+                nova: ['Signal Archivist', 'nova', 'workshop']
+            };
+            const residents = (rescued.rescuedIds || [])
+                .filter(id => residentDefinitions[id])
+                .map(id => ({
+                    id,
+                    role: residentDefinitions[id][0],
+                    kind: residentDefinitions[id][1],
+                    residencyStatus: rescued.residency?.[id]?.status || 'resident',
+                    interactionCount: rescued.interactions?.[id] || 0,
+                    preferredBuildingId: residentDefinitions[id][2],
+                    supportLabel: `${residentDefinitions[id][0]} support`
+                }));
+            const guardianAllies = guardianIds.map(guardianId => ({
+                guardianId,
+                outcome: 'restored',
+                standing: guardianId === 'elder_treant'
+                    ? 'regional_ally'
+                    : 'regional_guardian',
+                sanctuaryPresence: guardianId === 'elder_treant'
+                    ? 'heart_projection'
+                    : 'none',
+                regionRole: 'Regional Guardian'
+            }));
+            return {
+                schemaVersion: 1,
+                residents,
+                guardianAllies,
+                guardianPresences: guardianAllies.filter(
+                    guardian => guardian.sanctuaryPresence !== 'none'
+                )
             };
         },
         GET_FEND_CULTURE_SNAPSHOT: gameState => {
@@ -582,6 +637,14 @@ function createGameState(overrides = {}) {
                     crystal_golem: 0
                 }
             },
+            rescuedResidents: {
+                rescuedIds: ['bloom', 'pebble'],
+                interactions: { bloom: 2, pebble: 0 },
+                residency: {
+                    bloom: { status: 'resident' },
+                    pebble: { status: 'resident' }
+                }
+            },
             fendCulture: {
                 firstListening: {
                     selectedPriority: 'restoration',
@@ -750,7 +813,7 @@ describe('Campaign legacy capsule', () => {
             restoredGuardians: [
                 {
                     id: 'elder_treant',
-                    relationship: 'known',
+                    relationship: 'heart_linked',
                     interactions: 3,
                     teamAbility: 'Root Bridge',
                     teamAbilityName: 'Root Bridge',
@@ -760,7 +823,7 @@ describe('Campaign legacy capsule', () => {
                 },
                 {
                     id: 'crystal_golem',
-                    relationship: 'rescued',
+                    relationship: 'regional_ally',
                     interactions: 0,
                     teamAbility: 'Resonance Shield',
                     teamAbilityName: 'Resonance Shield',
@@ -770,6 +833,36 @@ describe('Campaign legacy capsule', () => {
                 }
             ]
         });
+        expect(capsule.campaign.sanctuaryCommunity).toEqual(
+            expect.objectContaining({
+                schemaVersion: 1,
+                rescuedResidents: [
+                    expect.objectContaining({
+                        id: 'bloom',
+                        role: 'Root Forager',
+                        interactions: 2
+                    }),
+                    expect.objectContaining({
+                        id: 'pebble',
+                        role: 'Shard Finder',
+                        interactions: 0
+                    })
+                ],
+                regionalGuardians: [
+                    expect.objectContaining({
+                        id: 'elder_treant',
+                        standing: 'regional_ally',
+                        sanctuaryPresence: 'heart_projection'
+                    }),
+                    expect.objectContaining({
+                        id: 'crystal_golem',
+                        standing: 'regional_guardian',
+                        sanctuaryPresence: 'none'
+                    })
+                ],
+                heartPresenceIds: ['elder_treant']
+            })
+        );
         expect(capsule.campaign.fendCulture).toEqual({
             firstListeningStatus: 'complete',
             selectedPriority: 'restoration',

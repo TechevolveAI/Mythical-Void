@@ -32,8 +32,9 @@ function loadPlatformerLevelScene(sceneWindow) {
             'const companionMediaService = window.CompanionMediaService || {};'
         )
         .replace(
-            "import { getVillageGameplayEffects } from '../systems/VillageSettlement.js';",
-            'const getVillageGameplayEffects = () => ({ maxEnergyBonus: 0, guardCharges: 0, victoryCoinBonus: 0 });'
+            "import { getVillageGameplayEffects, getVillageSupportSummary } from '../systems/VillageSettlement.js';",
+            'const getVillageGameplayEffects = () => ({ maxEnergyBonus: 0, guardCharges: 0, victoryCoinBonus: 0 });\n' +
+            'const getVillageSupportSummary = () => [];'
         )
         .replace(/^import .*$/gm, '')
         .replace(/export default PlatformerLevelScene;/, 'module.exports = PlatformerLevelScene;');
@@ -126,6 +127,8 @@ describe('PlatformerLevelScene completion progression', () => {
             }))
         };
         PlatformerLevelScene = loadPlatformerLevelScene(sceneWindow);
+        PlatformerLevelScene.prototype.showRescuedResidentReleaseMoment =
+            jest.fn(() => false);
         gameState = createGameState({
             stats: {
                 levelsCompleted: 0,
@@ -221,15 +224,38 @@ describe('PlatformerLevelScene completion progression', () => {
                 }
             }))
         };
-        sceneWindow.GuardianResidents = {
-            recordGuardianRescue: jest.fn(() => ({
+        sceneWindow.GuardianOutcomes = {
+            recordGuardianOutcome: jest.fn(() => ({
                 changed: true,
-                guardian: {
-                    id: 'shadow_phoenix',
+                definition: {
+                    guardianId: 'shadow_phoenix',
+                    levelId: 'auroraDepths',
                     name: 'Aurora Phoenix',
-                    role: 'Sky Sentinel',
-                    routine: 'Surveys the Sanctuary sky',
-                    futureAbility: 'Aurora Lift'
+                    regionRole: 'Aurora Renewal Guardian',
+                    outcomeLine: 'Returns to the Aurora Depths as its renewal signal.'
+                },
+                record: {
+                    outcome: 'restored',
+                    standing: 'regional_guardian',
+                    sanctuaryPresence: 'none'
+                }
+            }))
+        };
+        sceneWindow.RescuedResidents = {
+            recordRescuedResident: jest.fn(() => ({
+                changed: true,
+                resident: {
+                    id: 'luna',
+                    name: 'Luna',
+                    role: 'Aurora Surveyor',
+                    kind: 'luna',
+                    artwork: '/marketing/luna%202.webp',
+                    textureKey: 'rescued-resident-luna-art',
+                    color: 0x53A6D8,
+                    accent: 0xF4D35E,
+                    releaseLine: 'Luna can read warm sky lanes.',
+                    sanctuaryLine: 'The reactor is stable.',
+                    supportLabel: '+4% lift from mapped aurora currents'
                 }
             }))
         };
@@ -282,13 +308,31 @@ describe('PlatformerLevelScene completion progression', () => {
                 totalRegions: 6,
                 networkStatus: 'recovering'
             },
-            guardianResident: {
-                id: 'shadow_phoenix',
+            guardianResident: null,
+            guardianOutcome: {
+                guardianId: 'shadow_phoenix',
+                levelId: 'auroraDepths',
                 name: 'Aurora Phoenix',
+                outcome: 'restored',
+                standing: 'regional_guardian',
+                sanctuaryPresence: 'none',
+                regionRole: 'Aurora Renewal Guardian',
+                outcomeLine: 'Returns to the Aurora Depths as its renewal signal.',
+                changed: true
+            },
+            rescuedResident: {
+                id: 'luna',
+                name: 'Luna',
                 newlyRescued: true,
-                role: 'Sky Sentinel',
-                routine: 'Surveys the Sanctuary sky',
-                futureAbility: 'Aurora Lift'
+                role: 'Aurora Surveyor',
+                kind: 'luna',
+                artwork: '/marketing/luna%202.webp',
+                textureKey: 'rescued-resident-luna-art',
+                color: 0x53A6D8,
+                accent: 0xF4D35E,
+                releaseLine: 'Luna can read warm sky lanes.',
+                sanctuaryLine: 'The reactor is stable.',
+                supportLabel: '+4% lift from mapped aurora currents'
             },
             firstCompletion: true,
             noDamage: true,
@@ -314,14 +358,16 @@ describe('PlatformerLevelScene completion progression', () => {
             'auroraDepths',
             { save: false }
         );
-        expect(sceneWindow.GuardianResidents.recordGuardianRescue)
+        expect(sceneWindow.GuardianOutcomes.recordGuardianOutcome)
+            .toHaveBeenCalledWith(gameState, 'auroraDepths', { save: false });
+        expect(sceneWindow.RescuedResidents.recordRescuedResident)
             .toHaveBeenCalledWith(gameState, 'auroraDepths', { save: false });
         expect(scene.getGuardianSanctuaryArrivalCopy()).toBe(
-            'SANCTUARY ARRIVAL // Aurora Phoenix\n' +
-            'Sky Sentinel // Surveys the Sanctuary sky'
+            'LOCAL RESCUED // Luna\n' +
+            'Aurora Surveyor // +4% lift from mapped aurora currents'
         );
         expect(scene.getGuardianSanctuaryArrivalCopy({ compact: true })).toBe(
-            'Aurora Phoenix -> SANCTUARY // Sky Sentinel'
+            'Luna FREED -> SANCTUARY // Aurora Surveyor'
         );
         expect(sceneWindow.AchievementSystem.recordEvent).toHaveBeenCalledTimes(1);
         expect(sceneWindow.AchievementSystem.recordEvent).toHaveBeenCalledWith(

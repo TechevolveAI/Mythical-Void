@@ -10,6 +10,14 @@ function loadVillageSettlement() {
             "import { getFendCommunitySnapshot } from './FendCommunity.js';",
             'const getFendCommunitySnapshot = GET_FEND_COMMUNITY_SNAPSHOT;'
         )
+        .replace(
+            "import { getRescuedResidentSnapshot } from './RescuedResidents.js';",
+            'const getRescuedResidentSnapshot = GET_RESCUED_RESIDENT_SNAPSHOT;'
+        )
+        .replace(
+            "import { getSanctuaryCommunitySnapshot } from './SanctuaryCommunity.js';",
+            'const getSanctuaryCommunitySnapshot = GET_SANCTUARY_COMMUNITY_SNAPSHOT;'
+        )
         .replace(/export const /g, 'const ')
         .replace(/export function /g, 'function ')
         .concat(`
@@ -20,8 +28,16 @@ function loadVillageSettlement() {
                 VILLAGE_RESOURCE_DEFINITIONS,
                 VILLAGE_PLOTS,
                 VILLAGE_BUILDING_DEFINITIONS,
+                VILLAGE_GROWTH_PROFILES,
+                VILLAGE_COMMUNITY_MOMENT_DEFINITIONS,
+                VILLAGE_HEART_DECISION_DEFINITIONS,
                 normalizeVillageState,
                 getVillageGameplayEffects,
+                getVillageSupportSummary,
+                getVillageHeartValues,
+                getVillageWorldState,
+                getVillageGrowthProfile,
+                getVillageWorldGuidance,
                 getVillageUnlock,
                 markVillageGuidanceSeen,
                 getVillageCreatureRoster,
@@ -29,9 +45,20 @@ function loadVillageSettlement() {
                 initializeVillageSettlement,
                 reconcileVillageState,
                 reconcileVillageSettlement,
+                getVillageHomeProfile,
+                getVillageResidentRoutinePlan,
+                getVillageResidentWorldPresence,
+                getVillageCommunityMoments,
+                getVillageCommunityMoment,
+                getVillageHeartDecisionState,
+                getVillageHeartMemory,
+                getVillageWorkerCheckIn,
+                getVillageResidentProposal,
+                getVillageReturnRitual,
                 getVillageSnapshot,
                 placeVillageBuilding,
-                assignCreatureToVillageBuilding
+                assignCreatureToVillageBuilding,
+                resolveVillageHeartDecision
             };
         `);
     const sandbox = {
@@ -39,6 +66,42 @@ function loadVillageSettlement() {
         exports: {},
         GET_FEND_COMMUNITY_SNAPSHOT: gameState => ({
             stage: (gameState.get('world.fendCommunity.builtProjectIds') || []).length
+        }),
+        GET_RESCUED_RESIDENT_SNAPSHOT: gameState => {
+            const definitions = [{
+                id: 'bloom',
+                levelId: 'mythicalForest',
+                name: 'Bloom',
+                role: 'Renewal Forager',
+                kind: 'sproutling',
+                artwork: '/marketing/bloom 2.webp',
+                textureKey: 'rescued-resident-bloom',
+                accent: 0xF2C14E,
+                preferredBuildingId: 'forager_hut',
+                villageTraits: ['foraging', 'renewal'],
+                contributionLine: 'Bloom maps food that can regrow.'
+            }];
+            const storedIds = gameState.get('world.rescuedResidents.rescuedIds') || [];
+            const rescued = definitions.filter(definition => (
+                storedIds.includes(definition.id) ||
+                gameState.get(`levels.${definition.levelId}.completed`) === true
+            )).map(definition => ({
+                ...definition,
+                residencyStatus: 'resident'
+            }));
+            return { rescued };
+        },
+        GET_SANCTUARY_COMMUNITY_SNAPSHOT: gameState => ({
+            companions: [gameState.get('creature')].filter(Boolean),
+            residents: [],
+            guardianAllies: [],
+            guardianPresences: [],
+            counts: {
+                companions: gameState.get('creature') ? 1 : 0,
+                residents: 0,
+                regionalAllies: 0,
+                guardianPresences: 0
+            }
         }),
         Date,
         JSON,
@@ -54,8 +117,15 @@ function loadVillageSettlement() {
     return sandbox.module.exports;
 }
 
-function createGameState({ stage = 1, village = {}, creature = null } = {}) {
-    const activeCreature = creature || {
+function createGameState({
+    stage = 1,
+    village = {},
+    creature = null,
+    creatures = null,
+    levels = {},
+    rescuedResidents = {}
+} = {}) {
+    const activeCreature = creature || creatures?.[0] || {
         id: 'companion_nova',
         name: 'Nova',
         genes: {
@@ -64,6 +134,7 @@ function createGameState({ stage = 1, village = {}, creature = null } = {}) {
         },
         stats: { happiness: 92, energy: 90 }
     };
+    const roster = creatures || [activeCreature];
     const state = {
         world: {
             fendCommunity: {
@@ -72,13 +143,15 @@ function createGameState({ stage = 1, village = {}, creature = null } = {}) {
                     (_, index) => `stage_${index}`
                 )
             },
-            village
+            village,
+            rescuedResidents
         },
+        levels,
         creature: {
             ...activeCreature,
             hatched: true
         },
-        creatures: [activeCreature],
+        creatures: roster,
         activeCreatureIndex: 0,
         maxCreatures: 8
     };
@@ -105,6 +178,25 @@ function createGameState({ stage = 1, village = {}, creature = null } = {}) {
 describe('Village settlement phase one', () => {
     const village = loadVillageSettlement();
 
+    test('places a freed creature in the roster with its preferred contribution', () => {
+        const gameState = createGameState({
+            levels: { mythicalForest: { completed: true } }
+        });
+        const roster = village.getVillageCreatureRoster(gameState);
+        const bloom = roster.find(entry => entry.id === 'bloom');
+
+        expect(bloom).toMatchObject({
+            name: 'Bloom',
+            communityType: 'rescued_resident',
+            preferredBuildingId: 'forager_hut',
+            contributionLine: 'Bloom maps food that can regrow.'
+        });
+        expect(roster.find(entry => entry.id === 'companion_nova')).toMatchObject({
+            communityType: 'player_companion',
+            isPlayerCompanion: true
+        });
+    });
+
     test('unlocks after a companion is hatched, before First Light Shelter exists', () => {
         const gameState = createGameState({ stage: 0 });
         const snapshot = village.initializeVillageSettlement(gameState, {
@@ -114,6 +206,98 @@ describe('Village settlement phase one', () => {
         expect(snapshot.unlock.unlocked).toBe(true);
         expect(snapshot.resources).toEqual({ wood: 72, stone: 52, food: 30 });
         expect(snapshot.state.starterSuppliesClaimed).toBe(true);
+    });
+
+    test('summarizes active building effects in plain player-facing language', () => {
+        const summary = village.getVillageSupportSummary({
+            feedHappinessBonus: 7,
+            victoryCoinBonus: 10,
+            guardCharges: 1,
+            creatureCapacityBonus: 2,
+            maxEnergyBonus: 2,
+            heartReadinessEnergyBonus: 1
+        });
+
+        expect(summary.map(effect => effect.id)).toEqual([
+            'feeding_happiness',
+            'victory_coins',
+            'blocked_hits',
+            'creature_homes',
+            'expedition_energy'
+        ]);
+        expect(summary.find(effect => effect.id === 'blocked_hits')).toEqual(
+            expect.objectContaining({
+                context: 'expedition',
+                effect: '1 INCOMING HIT IS BLOCKED',
+                compact: 'BLOCK 1 HIT'
+            })
+        );
+        expect(summary.find(effect => effect.id === 'creature_homes').effect).toBe(
+            'ROOM FOR 2 MORE CREATURES'
+        );
+        expect(summary.find(effect => effect.id === 'expedition_energy')).toEqual(
+            expect.objectContaining({
+                source: 'WORKSHOP + VILLAGE HEART',
+                effect: 'START WITH 2 EXTRA ENERGY'
+            })
+        );
+    });
+
+    test('turns the next building into a named resident proposal', () => {
+        const gameState = createGameState();
+        const snapshot = village.initializeVillageSettlement(gameState, { now: 1000 });
+        const proposal = village.getVillageResidentProposal(snapshot);
+
+        expect(proposal).toEqual(expect.objectContaining({
+            definitionId: 'forager_hut',
+            speakerId: 'companion_nova',
+            speakerName: 'Nova',
+            title: 'MARK A SAFE FOOD PATH',
+            available: true
+        }));
+        expect(proposal.request).toContain('grows back');
+        expect(proposal.promise).toContain('tomorrow');
+        expect(snapshot.residentProposal).toEqual(proposal);
+    });
+
+    test('lets a rescued resident propose the structure that matches their role', () => {
+        const gameState = createGameState({
+            levels: { mythicalForest: { completed: true } }
+        });
+        const snapshot = village.initializeVillageSettlement(gameState, { now: 1000 });
+        const proposal = village.getVillageResidentProposal(snapshot, {
+            definitionId: 'forager_hut'
+        });
+
+        expect(proposal).toEqual(expect.objectContaining({
+            definitionId: 'forager_hut',
+            speakerId: 'bloom',
+            speakerName: 'Bloom',
+            speakerRole: 'Renewal Forager',
+            speakerArtwork: '/marketing/bloom 2.webp',
+            speakerCommunityType: 'rescued_resident'
+        }));
+    });
+
+    test('turns an expedition return into a resident-led Sanctuary ritual', () => {
+        const gameState = createGameState();
+        const snapshot = village.initializeVillageSettlement(gameState, { now: 1000 });
+        const ritual = village.getVillageReturnRitual(snapshot, {
+            id: 'beacon_debrief_1',
+            levelId: 'mythicalForest',
+            shipPartId: 'navigation_core',
+            completedAt: '2026-08-22T12:00:00.000Z'
+        });
+
+        expect(ritual).toEqual(expect.objectContaining({
+            id: 'beacon_debrief_1',
+            levelId: 'mythicalForest',
+            levelLabel: 'MYTHICAL FOREST',
+            outcome: 'NAVIGATION CORE RECOVERED',
+            worldChange: '0/5 ROOTS RESTORED · CURRENT PATHS HOLD'
+        }));
+        expect(ritual.line).toContain('Nova meets you at the Heart');
+        expect(ritual.line).toContain('counts who returned before what they carried');
     });
 
     test('grants one starter stockpile without duplicating it on later loads', () => {
@@ -140,6 +324,102 @@ describe('Village settlement phase one', () => {
         expect(result.state.guidanceSeen).toBe(true);
         expect(result.resources).toEqual({ wood: 72, stone: 52, food: 30 });
         expect(gameState.save).toHaveBeenCalledTimes(2);
+    });
+
+    test('derives one world-native next action and visible growth tier', () => {
+        const gameState = createGameState();
+        const founded = village.initializeVillageSettlement(gameState, { now: 1000 });
+        expect(founded.worldState).toEqual(expect.objectContaining({
+            restored: 0,
+            growthTier: 0,
+            growthLabel: 'AWAKENED ROOT',
+            nextAction: expect.objectContaining({
+                type: 'build',
+                plotId: 'root_01',
+                definitionId: 'forager_hut',
+                label: 'BUILD FORAGE'
+            })
+        }));
+
+        const placed = village.placeVillageBuilding(gameState, {
+            definitionId: 'forager_hut',
+            plotId: 'root_01',
+            now: 2000
+        });
+        expect(placed.snapshot.worldState.nextAction).toEqual(
+            expect.objectContaining({
+                type: 'construction',
+                plotId: 'root_01'
+            })
+        );
+
+        const complete = village.reconcileVillageSettlement(gameState, {
+            now: 2000 + 8000
+        });
+        expect(complete.worldState).toEqual(expect.objectContaining({
+            restored: 1,
+            growthTier: 1,
+            growthLabel: 'FIRST ROOT',
+            nextAction: expect.objectContaining({
+                type: 'assign',
+                plotId: 'root_01',
+                definitionId: 'forager_hut'
+            })
+        }));
+
+        const noSupplies = createGameState({
+            village: {
+                starterSuppliesClaimed: true,
+                resources: { wood: 0, stone: 0, food: 0 }
+            }
+        });
+        const waiting = village.getVillageSnapshot(noSupplies);
+        expect(waiting.worldState.nextAction).toEqual(expect.objectContaining({
+            type: 'supplies',
+            definitionId: 'forager_hut',
+            label: 'GATHER 18 WOOD'
+        }));
+        expect(village.getVillageWorldGuidance(waiting)).toBe(
+            '0/5 RESTORED · GATHER 18 WOOD'
+        );
+    });
+
+    test('defines perceptible world identities for every settlement growth tier', () => {
+        expect(village.VILLAGE_GROWTH_PROFILES).toHaveLength(5);
+        expect(village.VILLAGE_GROWTH_PROFILES.map(profile => profile.worldIdentity)).toEqual([
+            'signal_seed',
+            'first_shelter',
+            'shared_crossing',
+            'resident_commons',
+            'current_canopy'
+        ]);
+        expect(village.getVillageGrowthProfile(-1)).toEqual(expect.objectContaining({
+            tier: 0,
+            gatheringCapacity: 0
+        }));
+        expect(village.getVillageGrowthProfile(4)).toEqual(expect.objectContaining({
+            tier: 4,
+            label: 'SHARED SANCTUARY',
+            canopyCount: 5,
+            gatheringCapacity: 4
+        }));
+        expect(village.getVillageGrowthProfile(99).tier).toBe(4);
+        expect(village.getVillageGrowthProfile(2.9).tier).toBe(2);
+    });
+
+    test('keeps the Sanctuary community categories attached to every village snapshot', () => {
+        const gameState = createGameState();
+        const snapshot = village.getVillageSnapshot(gameState);
+
+        expect(snapshot.community).toEqual(expect.objectContaining({
+            companions: expect.any(Array),
+            residents: expect.any(Array),
+            guardianAllies: expect.any(Array),
+            guardianPresences: expect.any(Array)
+        }));
+        expect(snapshot.community.companions).toHaveLength(1);
+        expect(snapshot.community.residents).toHaveLength(0);
+        expect(snapshot.community.guardianAllies).toHaveLength(0);
     });
 
     test('spends resources and creates one deterministic construction per plot', () => {
@@ -270,6 +550,9 @@ describe('Village settlement phase one', () => {
             guardCharges: 1,
             creatureCapacityBonus: 2,
             maxEnergyBonus: 1,
+            heartCareBonus: 0,
+            heartReadinessEnergyBonus: 0,
+            heartValues: { care: 0, readiness: 0 },
             activeBuildingIds: [
                 'forager_hut',
                 'sawmill',
@@ -282,5 +565,479 @@ describe('Village settlement phase one', () => {
         const phase = village.getVillageSnapshot(gameState).phase;
         expect(phase.complete).toBe(true);
         expect(phase.title).toBe('PHASE ONE SETTLEMENT ONLINE');
+    });
+
+    test('every structure exposes a concise world purpose language', () => {
+        const expected = {
+            forager_hut: ['FEED +5', 'renewing_food'],
+            sawmill: ['WIN +10', 'repair_value'],
+            current_masonry: ['BLOCK 1 HIT', 'current_guard'],
+            habitat: ['2 SAFE HOMES', 'shared_home'],
+            workshop: ['ENERGY +1', 'shared_energy']
+        };
+
+        expect(village.VILLAGE_BUILDING_DEFINITIONS.map(definition => ({
+            id: definition.id,
+            worldActionLabel: definition.worldActionLabel,
+            purposeGlyph: definition.purposeGlyph
+        }))).toEqual(Object.entries(expected).map(([id, values]) => ({
+            id,
+            worldActionLabel: values[0],
+            purposeGlyph: values[1]
+        })));
+    });
+
+    test('world guidance prioritizes construction, staffing, building, then completion', () => {
+        const forager = village.VILLAGE_BUILDING_DEFINITIONS[0];
+        const sawmill = village.VILLAGE_BUILDING_DEFINITIONS[1];
+        const snapshot = {
+            buildings: [{
+                status: 'constructing',
+                definition: forager,
+                creature: null
+            }],
+            definitions: []
+        };
+
+        expect(village.getVillageWorldGuidance(snapshot)).toBe(
+            '0/5 RESTORED · FORAGE GROWING'
+        );
+        snapshot.buildings[0].status = 'complete';
+        expect(village.getVillageWorldGuidance(snapshot)).toBe(
+            '1/5 RESTORED · INVITE HELP AT FORAGE'
+        );
+        snapshot.buildings[0].creature = { id: 'nova' };
+        snapshot.definitions = [{
+            ...sawmill,
+            placement: { available: true }
+        }];
+        expect(village.getVillageWorldGuidance(snapshot)).toBe(
+            '1/5 RESTORED · BUILD SAWMILL'
+        );
+        snapshot.buildings = village.VILLAGE_BUILDING_DEFINITIONS.map(definition => ({
+            status: 'complete',
+            definition,
+            creature: definition.production ? { id: definition.id } : null
+        }));
+        snapshot.definitions = [];
+        expect(village.getVillageWorldGuidance(snapshot)).toBe('SETTLEMENT ONLINE');
+    });
+
+    test('every producer has an authored visible worker routine', () => {
+        const producers = village.VILLAGE_BUILDING_DEFINITIONS.filter(
+            definition => definition.production
+        );
+
+        expect(producers).toHaveLength(4);
+        producers.forEach(definition => {
+            expect(definition.workerRoutine).toEqual(expect.objectContaining({
+                cue: expect.any(String),
+                carriedResource: expect.any(String),
+                emotionalPurpose: expect.any(String)
+            }));
+            expect(definition.workerRoutine.cue.length).toBeGreaterThan(8);
+            expect(definition.workerRoutine.emotionalPurpose.length).toBeGreaterThan(16);
+        });
+    });
+
+    test('the Habitat prioritizes companions who are physically home', () => {
+        const definitions = new Map(
+            village.VILLAGE_BUILDING_DEFINITIONS.map(definition => [definition.id, definition])
+        );
+        const buildings = [
+            {
+                definitionId: 'forager_hut',
+                definition: definitions.get('forager_hut'),
+                status: 'complete',
+                assignedCreatureId: 'nova'
+            },
+            {
+                definitionId: 'habitat',
+                definition: definitions.get('habitat'),
+                plotId: 'root_04',
+                status: 'complete'
+            }
+        ];
+        const home = village.getVillageHomeProfile(buildings, [
+            { id: 'nova', name: 'Nova' },
+            { id: 'ember', name: 'Ember' },
+            { id: 'lumen', name: 'Lumen' }
+        ]);
+
+        expect(home).toEqual(expect.objectContaining({
+            unlocked: true,
+            capacity: 2,
+            plotId: 'root_04',
+            presentCount: 2,
+            helpingCount: 0
+        }));
+        expect(home.residents).toEqual([
+            expect.objectContaining({ name: 'Ember', atWork: false }),
+            expect.objectContaining({ name: 'Lumen', atWork: false })
+        ]);
+
+        const everyoneHelping = village.getVillageHomeProfile([
+            buildings[0],
+            {
+                definitionId: 'sawmill',
+                definition: definitions.get('sawmill'),
+                status: 'complete',
+                assignedCreatureId: 'ember'
+            },
+            buildings[1]
+        ], [
+            { id: 'nova', name: 'Nova' },
+            { id: 'ember', name: 'Ember' }
+        ]);
+        expect(everyoneHelping).toEqual(expect.objectContaining({
+            capacity: 2,
+            presentCount: 0,
+            helpingCount: 2
+        }));
+        expect(everyoneHelping.residents.every(resident => resident.atWork)).toBe(true);
+    });
+
+    test('resident routines assign one coherent world location per companion', () => {
+        const definitions = new Map(
+            village.VILLAGE_BUILDING_DEFINITIONS.map(definition => [definition.id, definition])
+        );
+        const routines = village.getVillageResidentRoutinePlan({
+            worldState: { growthTier: 3 },
+            home: {
+                plotId: 'root_04',
+                residents: [
+                    { id: 'nova', name: 'Nova', atWork: false },
+                    { id: 'ember', name: 'Ember', atWork: false },
+                    {
+                        id: 'lumen',
+                        name: 'Lumen',
+                        atWork: true,
+                        workBuildingId: 'current_masonry',
+                        workLabel: 'MASONRY'
+                    }
+                ]
+            },
+            buildings: [{
+                definitionId: 'current_masonry',
+                definition: definitions.get('current_masonry')
+            }]
+        });
+
+        expect(routines).toEqual([
+            expect.objectContaining({
+                residentId: 'nova',
+                location: 'commons',
+                route: 'home_to_commons',
+                greeting: 'I took the long way to the Heart. It helps me notice what changed.'
+            }),
+            expect.objectContaining({
+                residentId: 'ember',
+                location: 'home',
+                route: 'resting_at_home'
+            }),
+            expect.objectContaining({
+                residentId: 'lumen',
+                location: 'work',
+                route: 'building_to_heart',
+                activity: 'LISTENS FOR SAFE STONE'
+            })
+        ]);
+        expect(new Set(routines.map(routine => routine.residentId)).size).toBe(3);
+    });
+
+    test('resident world presence resolves to exactly one Sanctuary location', () => {
+        const definitions = new Map(
+            village.VILLAGE_BUILDING_DEFINITIONS.map(definition => [definition.id, definition])
+        );
+        const snapshot = {
+            home: { plotId: 'root_04' },
+            buildings: [{
+                id: 'forager_hut:root_01',
+                definitionId: 'forager_hut',
+                definition: definitions.get('forager_hut'),
+                plotId: 'root_01',
+                status: 'complete',
+                assignedCreatureId: 'bloom',
+                creature: { id: 'bloom', name: 'Bloom' }
+            }],
+            residentRoutines: [
+                {
+                    residentId: 'nova',
+                    location: 'commons',
+                    route: 'home_to_commons'
+                },
+                {
+                    residentId: 'ember',
+                    location: 'home',
+                    route: 'resting_at_home'
+                }
+            ]
+        };
+
+        expect(village.getVillageResidentWorldPresence(snapshot, 'bloom'))
+            .toEqual(expect.objectContaining({
+                location: 'work',
+                locationLabel: 'FORAGE',
+                representedInVillage: true,
+                plotId: 'root_01'
+            }));
+        expect(village.getVillageResidentWorldPresence(snapshot, 'nova'))
+            .toEqual(expect.objectContaining({
+                location: 'heart',
+                locationLabel: 'VILLAGE HEART',
+                representedInVillage: true
+            }));
+        expect(village.getVillageResidentWorldPresence(snapshot, 'ember'))
+            .toEqual(expect.objectContaining({
+                location: 'home',
+                locationLabel: 'SHARED HABITAT',
+                representedInVillage: true
+            }));
+        expect(village.getVillageResidentWorldPresence(snapshot, 'pebble'))
+            .toEqual(expect.objectContaining({
+                location: 'signal_garden',
+                locationLabel: 'SIGNAL GARDEN',
+                representedInVillage: false
+            }));
+    });
+
+    test('community moments require real distinct assigned companions', () => {
+        const definitions = new Map(
+            village.VILLAGE_BUILDING_DEFINITIONS.map(definition => [definition.id, definition])
+        );
+        const staffed = (definitionId, plotId, id, name, creature = {}) => ({
+            definitionId,
+            definition: definitions.get(definitionId),
+            plotId,
+            status: 'complete',
+            assignedCreatureId: id,
+            creature: { id, name, ...creature }
+        });
+        const moments = village.getVillageCommunityMoments({
+            buildings: [
+                staffed('forager_hut', 'root_01', 'bloom', 'Bloom', {
+                    artwork: '/marketing/bloom 2.webp',
+                    communityType: 'rescued_resident',
+                    role: 'Renewal Forager'
+                }),
+                staffed('sawmill', 'root_02', 'ember', 'Ember'),
+                staffed('current_masonry', 'root_03', 'lumen', 'Lumen'),
+                {
+                    definitionId: 'habitat',
+                    definition: definitions.get('habitat'),
+                    plotId: 'root_04',
+                    status: 'complete',
+                    creature: null
+                }
+            ]
+        });
+
+        expect(moments.map(moment => moment.id)).toEqual([
+            'safe_paths',
+            'fallen_timber',
+            'return_home'
+        ]);
+        expect(moments[0]).toEqual(expect.objectContaining({
+            participantNames: ['Bloom', 'Lumen'],
+            sharedValue: 'TAKE ONLY WHAT RETURNS'
+        }));
+        expect(moments[0].participants[0]).toEqual(expect.objectContaining({
+            creatureId: 'bloom',
+            communityType: 'rescued_resident',
+            artwork: '/marketing/bloom 2.webp',
+            residentRole: 'Renewal Forager',
+            roleLabel: 'Renewal Forager'
+        }));
+        expect(village.getVillageCommunityMoment({ communityMoments: moments }, { cycle: 4 }).id)
+            .toBe('fallen_timber');
+
+        const duplicate = village.getVillageCommunityMoments({
+            buildings: [
+                staffed('forager_hut', 'root_01', 'nova', 'Nova'),
+                staffed('current_masonry', 'root_03', 'nova', 'Nova')
+            ]
+        });
+        expect(duplicate).toHaveLength(0);
+    });
+
+    test('Heart Decisions unlock from real structures and reject duplicate resolution', () => {
+        const nova = { id: 'nova', name: 'Nova' };
+        const lumen = { id: 'lumen', name: 'Lumen' };
+        const complete = (definitionId, plotId, assignedCreatureId) => ({
+            definitionId,
+            plotId,
+            status: 'complete',
+            startedAt: 1,
+            completesAt: 2,
+            completedAt: 2,
+            assignedCreatureId
+        });
+        const gameState = createGameState({
+            creatures: [nova, lumen],
+            village: {
+                starterSuppliesClaimed: true,
+                buildings: [
+                    complete('sawmill', 'root_01', 'nova'),
+                    complete('current_masonry', 'root_02', 'lumen')
+                ]
+            }
+        });
+
+        const before = village.getVillageSnapshot(gameState);
+        expect(before.heartDecision.active).toEqual(expect.objectContaining({
+            id: 'storm_path',
+            participantNames: ['Nova', 'Lumen']
+        }));
+
+        const result = village.resolveVillageHeartDecision(gameState, {
+            decisionId: 'storm_path',
+            optionId: 'current_first',
+            now: 5000
+        });
+        expect(result).toEqual(expect.objectContaining({
+            changed: true,
+            reason: 'heart_decision_resolved'
+        }));
+        expect(result.snapshot.heartDecision.values).toEqual({ care: 1, readiness: 0 });
+        expect(result.snapshot.state.heartDecisions).toEqual([{
+            decisionId: 'storm_path',
+            optionId: 'current_first',
+            occurredAt: 5000,
+            participantCreatureIds: ['nova', 'lumen'],
+            participantNames: ['Nova', 'Lumen']
+        }]);
+        expect(result.snapshot.heartDecision.completed[0]).toEqual(
+            expect.objectContaining({
+                speakerName: 'Nova',
+                participantNames: ['Nova', 'Lumen'],
+                followUpLine: expect.stringContaining('Current is moving again')
+            })
+        );
+        expect(village.getVillageHeartMemory(result.snapshot)).toEqual(
+            expect.objectContaining({
+                decisionId: 'storm_path',
+                optionId: 'current_first',
+                value: 'care',
+                speakerName: 'Nova',
+                participantNames: ['Nova', 'Lumen']
+            })
+        );
+        const movedState = gameState.get('world.village');
+        gameState.set('world.village', {
+            ...movedState,
+            buildings: movedState.buildings.map(building => ({
+                ...building,
+                assignedCreatureId: null
+            }))
+        });
+        const rememberedAfterMove = village.getVillageHeartMemory(
+            village.getVillageSnapshot(gameState)
+        );
+        expect(rememberedAfterMove).toEqual(expect.objectContaining({
+            speakerName: 'Nova',
+            participantNames: ['Nova', 'Lumen']
+        }));
+        expect(village.getVillageWorkerCheckIn(result.snapshot, {
+            creatureId: 'nova'
+        })).toEqual(expect.objectContaining({
+            name: 'Nova',
+            definitionId: 'sawmill',
+            roleLabel: 'SHAPER',
+            routineCue: 'SHAPES FALLEN TIMBER',
+            line: expect.stringContaining('No living tree had to fall'),
+            impact: 'VICTORY · +10 COINS',
+            memory: expect.objectContaining({
+                decisionId: 'storm_path',
+                optionId: 'current_first',
+                value: 'care'
+            })
+        }));
+        expect(village.getVillageWorkerCheckIn(result.snapshot, {
+            creatureId: 'unknown'
+        })).toBeNull();
+
+        const duplicate = village.resolveVillageHeartDecision(gameState, {
+            decisionId: 'storm_path',
+            optionId: 'field_braces',
+            now: 6000
+        });
+        expect(duplicate).toEqual(expect.objectContaining({
+            changed: false,
+            reason: 'decision_unavailable'
+        }));
+    });
+
+    test('two remembered values strengthen existing care or expedition support', () => {
+        const complete = (definitionId, plotId) => ({
+            definitionId,
+            plotId,
+            status: 'complete',
+            startedAt: 1,
+            completesAt: 2,
+            completedAt: 2
+        });
+        const gameState = createGameState({
+            village: {
+                starterSuppliesClaimed: true,
+                heartDecisions: [
+                    { decisionId: 'storm_path', optionId: 'current_first', occurredAt: 3 },
+                    { decisionId: 'shared_harvest', optionId: 'welcome_table', occurredAt: 4 },
+                    { decisionId: 'unknown_tool', optionId: 'wanderer_trial', occurredAt: 5 },
+                    { decisionId: 'storm_path', optionId: 'field_braces', occurredAt: 6 },
+                    { decisionId: 'bad', optionId: 'bad', occurredAt: 7 }
+                ],
+                buildings: [
+                    complete('forager_hut', 'root_01'),
+                    complete('workshop', 'root_02')
+                ]
+            }
+        });
+
+        const effects = village.getVillageGameplayEffects(gameState);
+        expect(effects).toEqual(expect.objectContaining({
+            feedHappinessBonus: 7,
+            maxEnergyBonus: 1,
+            heartCareBonus: 2,
+            heartReadinessEnergyBonus: 0,
+            heartValues: { care: 2, readiness: 1 }
+        }));
+        expect(village.normalizeVillageState(gameState.get('world.village')).heartDecisions)
+            .toHaveLength(3);
+        expect(village.normalizeVillageState({
+            heartDecisions: [{
+                decisionId: 'storm_path',
+                optionId: 'current_first',
+                occurredAt: 8
+            }]
+        }).heartDecisions[0]).toEqual({
+            decisionId: 'storm_path',
+            optionId: 'current_first',
+            occurredAt: 8,
+            participantCreatureIds: [],
+            participantNames: []
+        });
+
+        const readinessState = createGameState({
+            village: {
+                starterSuppliesClaimed: true,
+                heartDecisions: [
+                    { decisionId: 'storm_path', optionId: 'field_braces', occurredAt: 3 },
+                    { decisionId: 'shared_harvest', optionId: 'trail_rations', occurredAt: 4 }
+                ],
+                buildings: [
+                    complete('forager_hut', 'root_01'),
+                    complete('workshop', 'root_02')
+                ]
+            }
+        });
+        expect(village.getVillageGameplayEffects(readinessState)).toEqual(
+            expect.objectContaining({
+                feedHappinessBonus: 5,
+                maxEnergyBonus: 2,
+                heartCareBonus: 0,
+                heartReadinessEnergyBonus: 1,
+                heartValues: { care: 0, readiness: 2 }
+            })
+        );
     });
 });

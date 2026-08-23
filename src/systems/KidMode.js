@@ -601,8 +601,12 @@ class KidModeManager {
      * Show contextual space-themed help message
      */
     showSpaceHelpMessage(scene, message, duration = 3000) {
+        if (scene?.sanctuaryFocusModeActive) return null;
+        scene.kidModeHelpContainer?.destroy?.(true);
         const helpContainer = scene.add.container(scene.cameras.main.width / 2, 60);
         helpContainer.setScrollFactor(0);
+        helpContainer.setDepth(2600);
+        scene.kidModeHelpContainer = helpContainer;
 
         // Glassmorphism background
         const bg = scene.add.graphics();
@@ -646,7 +650,12 @@ class KidModeManager {
                 y: helpContainer.y - 10,
                 duration: 300,
                 ease: 'Power2',
-                onComplete: () => helpContainer.destroy()
+                onComplete: () => {
+                    if (scene.kidModeHelpContainer === helpContainer) {
+                        scene.kidModeHelpContainer = null;
+                    }
+                    helpContainer.destroy();
+                }
             });
         });
 

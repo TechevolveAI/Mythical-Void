@@ -5,27 +5,23 @@ function read(relativePath) {
     return fs.readFileSync(path.join(__dirname, '..', relativePath), 'utf8');
 }
 
-describe('Companion guardian-rescue cinematic continuity', () => {
+describe('Companion Guardian-outcome cinematic continuity', () => {
     const platformer = read('scenes/PlatformerLevelScene.js');
     const finalLevel = read('scenes/levels/FinalVoidLevel.js');
 
-    test('shows the persisted companion during every first guardian rescue', () => {
+    test('shows the persisted companion during a newly resolved Guardian outcome', () => {
         expect(platformer).toContain(
             'showCompanionGuardianRescueTableau(guardian)'
         );
-        expect(platformer).toContain('guardian?.newlyRescued');
+        expect(platformer).toContain('guardian?.changed');
         expect(platformer).toContain(
             "import { companionMediaService } from '../systems/CompanionMediaService.js'"
         );
         expect(platformer).toContain('createCinematicStill(this, {');
         expect(platformer).toContain('`guardian_rescue_${guardianId}`');
         expect(platformer).toContain('`FIRST ALLIANCE // ${companionName.toUpperCase()}`');
-        expect(platformer).toContain(
-            '`${guardian.name} will return to the Sanctuary.`'
-        );
-        expect(platformer).toContain(
-            'this.levelCompletionResult.guardianResident'
-        );
+        expect(platformer).toContain('guardian.outcomeLine');
+        expect(platformer).toContain('this.levelCompletionResult.guardianOutcome');
     });
 
     test('never starts generation or delays the reward flow', () => {

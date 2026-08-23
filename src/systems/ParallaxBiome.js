@@ -290,6 +290,12 @@ class ParallaxBiomeManager {
             return;
         }
 
+        if (this.currentBiomeId === 'nebula') {
+            this.shaderEnabled = false;
+            console.log('biome:info [ParallaxBiome] Sanctuary skips expedition post shader');
+            return;
+        }
+
         // The layered renderer already carries each biome's visual identity.
         // Avoid an extra full-screen fractal-noise pass on phone GPUs.
         if (this.performanceTier === 'mobile') {
@@ -401,6 +407,7 @@ class ParallaxBiomeManager {
 
         return {
             nebulaBackground: {
+                enabled: layers.nebulaBackground?.enabled !== false,
                 parallax: layers.nebulaBackground?.scrollFactor || 0.1,
                 alpha: layers.nebulaBackground?.opacity || 0.6,
                 animate: true,
@@ -408,35 +415,39 @@ class ParallaxBiomeManager {
                 colors: layers.nebulaBackground?.colors || []
             },
             distantStars: {
+                enabled: layers.distantStars?.enabled !== false,
                 parallax: layers.distantStars?.scrollFactor || 0.15,
                 alpha: 0.8,
                 animate: true,
                 speed: 0.1,
-                count: (layers.distantStars?.count || 25) * 4, // 4x more stars
+                count: (layers.distantStars?.count ?? 25) * 4, // 4x more stars
                 colors: layers.distantStars?.colors || []
             },
             floatingRocks: {
+                enabled: layers.floatingRocks?.enabled !== false,
                 parallax: layers.floatingRocks?.scrollFactor || 0.3,
                 alpha: 0.7,
                 animate: true,
                 speed: 0.5,
-                count: layers.floatingRocks?.count || 8,
+                count: layers.floatingRocks?.count ?? 8,
                 colors: layers.floatingRocks?.colors || []
             },
             crystalFlora: {
+                enabled: layers.crystalFlora?.enabled !== false,
                 parallax: layers.crystalFlora?.scrollFactor || 0.6,
                 alpha: 0.9,
                 animate: true,
                 speed: 0.2,
-                count: layers.crystalFlora?.count || 12,
+                count: layers.crystalFlora?.count ?? 12,
                 colors: layers.crystalFlora?.colors || []
             },
             foregroundDust: {
+                enabled: layers.foregroundDust?.enabled !== false,
                 parallax: layers.foregroundDust?.scrollFactor || 0.8,
                 alpha: 0.4,
                 animate: true,
                 speed: 1.2,
-                count: (layers.foregroundDust?.count || 15) * 5, // 5x more dust
+                count: (layers.foregroundDust?.count ?? 15) * 5, // 5x more dust
                 colors: layers.foregroundDust?.colors || []
             }
         };
@@ -497,22 +508,32 @@ class ParallaxBiomeManager {
         console.log(`biome:info [ParallaxBiome] Creating enhanced biome: ${this.currentBiomeId}`);
 
         // Layer 1: Gradient background with shader
-        this.createNebulaBackground();
+        if (this.config.layers.nebulaBackground.enabled) {
+            this.createNebulaBackground();
+        }
 
         // Layer 2: Particle-based stars (GPU accelerated)
-        this.createStarParticles();
+        if (this.config.layers.distantStars.enabled) {
+            this.createStarParticles();
+        }
 
         // Layer 3: Floating rock silhouettes
-        this.createFloatingRocks();
+        if (this.config.layers.floatingRocks.enabled) {
+            this.createFloatingRocks();
+        }
 
         // Layer 4: Biome-specific ambient particles
         this.createAmbientParticles();
 
         // Layer 5: Crystal flora with bioluminescence
-        this.createCrystalFlora();
+        if (this.config.layers.crystalFlora.enabled) {
+            this.createCrystalFlora();
+        }
 
         // Layer 6: Foreground dust particles
-        this.createDustParticles();
+        if (this.config.layers.foregroundDust.enabled) {
+            this.createDustParticles();
+        }
 
         // Optional: Subtle vignette
         if (this.config.effects.vignette.enabled) {
@@ -546,48 +567,89 @@ class ParallaxBiomeManager {
         );
         nebulaBg.fillRect(0, 0, width * 2, height);
 
-        // Phones keep the same full-screen coverage with fewer independently
-        // animated fields. This preserves the nebula instead of disabling it.
-        const wispCount = this.performanceTier === 'mobile' ? 3 : 5;
-        for (let i = 0; i < wispCount; i++) {
-            const wisp = this.scene.add.graphics();
-            wisp.fillStyle(this.config.palette.nebula, 0.15 + i * 0.03);
+        if (this.currentBiomeId === 'nebula') {
+            const currentField = this.scene.add.graphics()
+                .setData('sanctuaryParallaxProfile', 'quiet_current_threads_v2')
+                .setData('sanctuaryParallaxFilledWisps', false)
+                .setData('sanctuaryParallaxThreadCount', 3)
+                .setData('sanctuaryParallaxShaderEnabled', false);
+            [0.2, 0.5, 0.78].forEach((heightRatio, threadIndex) => {
+                const color = threadIndex === 1
+                    ? this.config.palette.biolume
+                    : this.config.palette.crystalFlora;
+                currentField.lineStyle(
+                    threadIndex === 1 ? 2 : 1,
+                    color,
+                    threadIndex === 1 ? 0.09 : 0.07
+                );
+                currentField.beginPath();
+                currentField.moveTo(-40, height * heightRatio);
+                for (let pointIndex = 1; pointIndex <= 8; pointIndex++) {
+                    const progress = pointIndex / 8;
+                    currentField.lineTo(
+                        (width * 1.6) * progress,
+                        (height * heightRatio) +
+                            Math.sin((progress * Math.PI * 2) + threadIndex) * 18
+                    );
+                }
+                currentField.strokePath();
+            });
+            currentField.setScrollFactor(layer.parallax);
+            currentField.setDepth(-100);
+            this.layers.push({
+                type: 'sanctuaryCurrentField',
+                object: currentField,
+                config: layer
+            });
+        } else {
+            const wispCount = this.performanceTier === 'mobile' ? 3 : 5;
+            for (let i = 0; i < wispCount; i++) {
+                const wisp = this.scene.add.graphics();
+                wisp.fillStyle(this.config.palette.nebula, 0.15 + i * 0.03);
 
-            const centerX = this.performanceTier === 'mobile'
-                ? width * ((i + 1) / (wispCount + 1))
-                : width * (0.1 + i * 0.2);
-            const centerY = height * (0.2 + (i % 3) * 0.25);
-            const size = 150 + i * 40;
+                const centerX = this.performanceTier === 'mobile'
+                    ? width * ((i + 1) / (wispCount + 1))
+                    : width * (0.1 + i * 0.2);
+                const centerY = height * (0.2 + (i % 3) * 0.25);
+                const size = 150 + i * 40;
 
-            wisp.fillEllipse(centerX, centerY, size, size * 0.6);
+                wisp.fillEllipse(centerX, centerY, size, size * 0.6);
 
-            if (this.performanceTier === 'mobile') {
-                wisp.setAlpha(0.18);
+                if (this.performanceTier === 'mobile') {
+                    wisp.setAlpha(0.18);
+                }
+
+                if (layer.animate && this.shouldAnimateAmbientFields()) {
+                    this.scene.tweens.add({
+                        targets: wisp,
+                        x: wisp.x + 30,
+                        y: wisp.y + 15,
+                        alpha: { from: 0.1, to: 0.25 },
+                        scaleX: { from: 1, to: 1.1 },
+                        scaleY: { from: 1, to: 1.05 },
+                        duration: 10000 + i * 3000,
+                        ease: 'Sine.easeInOut',
+                        yoyo: true,
+                        repeat: -1,
+                        delay: i * 1500
+                    });
+                }
+
+                wisp.setScrollFactor(layer.parallax);
+                wisp.setDepth(-100 + i);
+                this.layers.push({ type: 'nebula', object: wisp, config: layer });
             }
-
-            if (layer.animate && this.shouldAnimateAmbientFields()) {
-                this.scene.tweens.add({
-                    targets: wisp,
-                    x: wisp.x + 30,
-                    y: wisp.y + 15,
-                    alpha: { from: 0.1, to: 0.25 },
-                    scaleX: { from: 1, to: 1.1 },
-                    scaleY: { from: 1, to: 1.05 },
-                    duration: 10000 + i * 3000,
-                    ease: 'Sine.easeInOut',
-                    yoyo: true,
-                    repeat: -1,
-                    delay: i * 1500
-                });
-            }
-
-            wisp.setScrollFactor(layer.parallax);
-            wisp.setDepth(-100 + i);
-            this.layers.push({ type: 'nebula', object: wisp, config: layer });
         }
 
-        nebulaBg.setScrollFactor(layer.parallax);
-        nebulaBg.setAlpha(layer.alpha);
+        const sanctuaryBackdrop = this.currentBiomeId === 'nebula';
+        nebulaBg
+            .setScrollFactor(sanctuaryBackdrop ? 0 : layer.parallax)
+            .setData('sanctuaryParallaxBackdropFixed', sanctuaryBackdrop)
+            .setData(
+                'sanctuaryParallaxBackdropProfile',
+                sanctuaryBackdrop ? 'world_background_owned_v3' : 'biome_parallax_gradient_v1'
+            );
+        nebulaBg.setAlpha(sanctuaryBackdrop ? 0 : layer.alpha);
         nebulaBg.setDepth(-200);
         this.layers.push({ type: 'background', object: nebulaBg, config: layer });
     }
@@ -1055,6 +1117,7 @@ class ParallaxBiomeManager {
      * Create subtle vignette effect
      */
     createGentleVignette() {
+        if (this.currentBiomeId === 'nebula') return;
         const { width, height } = this.scene.cameras.main;
         const vignetteConfig = this.config.effects.vignette;
 
@@ -1083,6 +1146,11 @@ class ParallaxBiomeManager {
      * Apply nebula shader to camera
      */
     applyNebulaShader() {
+        if (this.currentBiomeId === 'nebula') {
+            this.scene?.cameras?.main?.removePostPipeline?.('NebulaShader');
+            this.shaderEnabled = false;
+            return;
+        }
         if (!this.shaderEnabled || !this.config.effects.enableShader) {
             return;
         }

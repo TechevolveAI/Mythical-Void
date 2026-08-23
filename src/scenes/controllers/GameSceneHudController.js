@@ -20,6 +20,15 @@ export default class GameSceneHudController {
         return window.GameState || null;
     }
 
+    isDebugHudEnabled() {
+        try {
+            return new URLSearchParams(window.location?.search || '')
+                .get('debugHud') === '1';
+        } catch (_error) {
+            return false;
+        }
+    }
+
     createUI() {
         const scene = this.scene;
         const { width, height } = scene.scale;
@@ -36,14 +45,15 @@ export default class GameSceneHudController {
         });
         scene.positionText.setScrollFactor(0);
         scene.positionText.setDepth(2000);
+        scene.positionText.setVisible(this.isDebugHudEnabled());
 
-        scene.statsText = scene.add.text(width - 16, 16, '', {
-            fontSize: '14px',
+        scene.statsText = scene.add.text(width - 72, 16, '', {
+            fontSize: '12px',
             color: '#FFFFFF',
             stroke: '#000000',
             strokeThickness: 2,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            padding: { x: 8, y: 4 },
+            backgroundColor: 'rgba(5, 16, 18, 0.72)',
+            padding: { x: 9, y: 6 },
             align: 'right'
         });
         scene.statsText.setOrigin(1, 0);
@@ -103,6 +113,7 @@ export default class GameSceneHudController {
         if (!scene.interactionText?.active) return;
 
         const isMobile = Boolean(
+            scene.hasVisibleTouchControls?.() ||
             scene.mobileControls?.isMobile ||
             window.responsiveManager?.isMobile ||
             width < 768
@@ -130,14 +141,19 @@ export default class GameSceneHudController {
 
     createResetButton() {
         const scene = this.scene;
-        scene.resetButton = scene.add.text(16, 16, '↺ Re-center', {
-            fontSize: '12px',
+        scene.resetButton = scene.add.text(16, 14, '↺', {
+            fontSize: '18px',
             color: '#FFFFFF',
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            padding: { x: 8, y: 4 }
+            backgroundColor: 'rgba(5, 16, 18, 0.72)',
+            padding: { x: 9, y: 5 }
         });
         scene.resetButton.setScrollFactor(0);
+        scene.resetButton.setDepth(2000);
+        scene.resetButton.setData('ariaLabel', 'Re-center at the Sanctuary safe point');
         scene.resetButton.setInteractive({ useHandCursor: true });
+        scene.resetButton.on('pointerover', () => {
+            scene.showInteractionHint?.('Re-center at the Sanctuary safe point');
+        });
         scene.resetButton.on('pointerdown', () => {
             window.AudioManager?.playButtonClick?.();
             const startX = scene.worldWidth / 2;
@@ -193,13 +209,15 @@ export default class GameSceneHudController {
             return;
         }
 
-        const text = bonus.available ?
-            `🎁 Cozy Daily Gift Ready! (Streak ${bonus.streak})` :
-            `🌙 Come back tomorrow for more cozy coins (${bonus.streak}-day streak)`;
+        if (!bonus.available || scene.sanctuaryFocusModeActive) {
+            scene.dailyBonusButton.setVisible(false);
+            return;
+        }
+
         scene.dailyBonusButton.setVisible(true);
-        scene.dailyBonusButton.setText(text);
-        scene.dailyBonusButton.setColor(bonus.available ? '#FFD700' : '#FFFFFF');
-        scene.dailyBonusButton.setBackgroundColor(bonus.available ? 'rgba(255,215,0,0.25)' : 'rgba(0,0,0,0.55)');
+        scene.dailyBonusButton.setText(`GIFT READY · STREAK ${bonus.streak}`);
+        scene.dailyBonusButton.setColor('#F2C14E');
+        scene.dailyBonusButton.setBackgroundColor('rgba(5,16,18,0.72)');
     }
 
     claimDailyBonus() {
@@ -451,6 +469,30 @@ export default class GameSceneHudController {
                 });
             }
         });
+    }
+
+    setSanctuaryFocusMode(active) {
+        const scene = this.scene;
+        const showDesktopContext = !active && !scene.mobileHUD?.isVisible;
+        const desktopContextElements = [
+            scene.cosmicMiniMap?.background,
+            scene.miniMapPlayerDot,
+            scene.statBarGraphics,
+            ...(scene.statBarLabels || []),
+            scene.economyHud?.currencyBgImage,
+            scene.economyHud?.currencyIcon,
+            scene.economyHud?.currencyText
+        ];
+        desktopContextElements.forEach(element => {
+            element?.setVisible?.(showDesktopContext);
+        });
+        scene.abilityHUD?.setVisible?.(showDesktopContext);
+        scene.carePanelManager?.setFocusMode?.(active);
+        scene.controlsHintPanel?.setFocusMode?.(active);
+        scene.positionText?.setVisible?.(
+            showDesktopContext && this.isDebugHudEnabled()
+        );
+        return showDesktopContext;
     }
 
     hideDesktopUIOnMobile() {

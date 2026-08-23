@@ -18,6 +18,8 @@ class AchievementNotification {
         this.queue = [];
         this.currentNotification = null;
         this.autoDismissTimer = null;
+        this.destroyed = false;
+        this.scene?.events?.once?.('shutdown', this.destroy, this);
 
         // Styling
         this.colors = {
@@ -39,6 +41,8 @@ class AchievementNotification {
      * @param {object} achievement - Achievement unlock data
      */
     show(achievement) {
+        if (this.destroyed || !this.isSceneOperational()) return;
+
         // Add to queue if already showing
         if (this.isVisible) {
             this.queue.push(achievement);
@@ -58,6 +62,8 @@ class AchievementNotification {
         const { width, height } = this.scene.scale;
         const centerX = width / 2;
         const centerY = height / 2;
+        const screenSpace = this.getScreenSpaceTransform();
+        const uiScale = screenSpace.scale;
 
         // Modal dimensions
         const modalWidth = Math.min(380, width - 40);
@@ -66,16 +72,25 @@ class AchievementNotification {
         const modalY = centerY - modalHeight / 2;
 
         // Create container
-        this.container = this.scene.add.container(centerX, centerY);
+        this.container = this.scene.add.container(screenSpace.x, screenSpace.y);
         this.container.setDepth(10000);
-        this.container.setAlpha(0);
-        this.container.setScale(0.8);
+        this.container.setScrollFactor(0);
+        this.container.setScale(uiScale);
+        this.contentContainer = this.scene.add.container(0, 0);
+        this.contentContainer.setAlpha(0);
+        this.contentContainer.setScale(0.8);
+        this.container.add(this.contentContainer);
 
-        // Dark overlay
-        this.overlay = this.scene.add.graphics();
-        this.overlay.fillStyle(0x000000, 0.6);
-        this.overlay.fillRect(-width / 2, -height / 2, width, height);
-        this.overlay.setDepth(9999);
+        // Achievements are non-blocking world notifications; exploration remains visible.
+        this.overlay = this.scene.add.graphics()
+            .setPosition(screenSpace.x, screenSpace.y)
+            .setScrollFactor(0)
+            .setDepth(9999)
+            .setVisible(false)
+            .setAlpha(0)
+            .setData('achievementBackdropMode', 'non_blocking');
+        this.scene.events.off('update', this.syncCameraZoom, this);
+        this.scene.events.on('update', this.syncCameraZoom, this);
 
         // Get tier color
         const tierColor = this.colors.border[achievement.tier] || this.colors.border.BRONZE;
@@ -96,7 +111,7 @@ class AchievementNotification {
             panel.strokeRoundedRect(-modalWidth / 2 + 4, -modalHeight / 2 + 4, modalWidth - 8, modalHeight - 8, 12);
         }
 
-        this.container.add(panel);
+        this.contentContainer.add(panel);
 
         // Trophy icon and header
         const headerY = -modalHeight / 2 + 35;
@@ -106,13 +121,13 @@ class AchievementNotification {
             color: this.colors.text,
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        this.container.add(trophyText);
+        this.contentContainer.add(trophyText);
 
         // Divider line
         const divider = this.scene.add.graphics();
         divider.lineStyle(1, tierColor, 0.5);
         divider.lineBetween(-modalWidth / 2 + 20, headerY + 20, modalWidth / 2 - 20, headerY + 20);
-        this.container.add(divider);
+        this.contentContainer.add(divider);
 
         // Tier badge and achievement name
         const tierIcon = achievement.tierInfo?.icon || '🥉';
@@ -123,7 +138,7 @@ class AchievementNotification {
             color: this.colors.text,
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        this.container.add(nameText);
+        this.contentContainer.add(nameText);
 
         // Tier name (Bronze, Silver, etc.)
         const tierNameY = nameY + 28;
@@ -133,7 +148,7 @@ class AchievementNotification {
             fontFamily: 'Arial, sans-serif',
             color: this.colors.subtext
         }).setOrigin(0.5);
-        this.container.add(tierNameText);
+        this.contentContainer.add(tierNameText);
 
         // Description
         const descY = tierNameY + 30;
@@ -145,7 +160,7 @@ class AchievementNotification {
             wordWrap: { width: modalWidth - 60 },
             align: 'center'
         }).setOrigin(0.5);
-        this.container.add(descText);
+        this.contentContainer.add(descText);
 
         // Rewards section
         const rewardsY = descY + 40;
@@ -154,7 +169,7 @@ class AchievementNotification {
             fontFamily: 'Arial, sans-serif',
             color: this.colors.subtext
         }).setOrigin(0.5);
-        this.container.add(rewardsLabel);
+        this.contentContainer.add(rewardsLabel);
 
         // Format rewards
         const rewardParts = [];
@@ -175,7 +190,7 @@ class AchievementNotification {
             color: this.colors.reward,
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        this.container.add(rewardsText);
+        this.contentContainer.add(rewardsText);
 
         // CLAIM button
         const buttonY = modalHeight / 2 - 45;
@@ -185,7 +200,7 @@ class AchievementNotification {
         const buttonBg = this.scene.add.graphics();
         buttonBg.fillStyle(tierColor, 1);
         buttonBg.fillRoundedRect(-buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 10);
-        this.container.add(buttonBg);
+        this.contentContainer.add(buttonBg);
 
         const buttonText = this.scene.add.text(0, buttonY, 'CLAIM!', {
             fontSize: '18px',
@@ -193,12 +208,12 @@ class AchievementNotification {
             color: '#000000',
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        this.container.add(buttonText);
+        this.contentContainer.add(buttonText);
 
         // Button zone
         const buttonZone = this.scene.add.zone(0, buttonY, buttonWidth, buttonHeight)
             .setInteractive({ useHandCursor: true });
-        this.container.add(buttonZone);
+        this.contentContainer.add(buttonZone);
 
         // Hover effects
         buttonZone.on('pointerover', () => {
@@ -232,7 +247,7 @@ class AchievementNotification {
 
         // Animate in
         this.scene.tweens.add({
-            targets: this.container,
+            targets: this.contentContainer,
             alpha: 1,
             scale: 1,
             duration: 300,
@@ -260,6 +275,11 @@ class AchievementNotification {
             this.autoDismissTimer = null;
         }
 
+        if (this.destroyed || !this.isSceneOperational()) {
+            this.destroy();
+            return;
+        }
+
         // Claim the reward
         if (window.AchievementSystem) {
             window.AchievementSystem.claimReward(achievement.id, achievement.tier);
@@ -272,13 +292,13 @@ class AchievementNotification {
 
         // Animate out
         this.scene.tweens.add({
-            targets: this.container,
+            targets: this.contentContainer,
             alpha: 0,
             scale: 0.8,
             duration: 200,
             ease: 'Power2',
             onComplete: () => {
-                this.destroy();
+                this.clearNotification();
                 this.showNext();
             }
         });
@@ -289,6 +309,59 @@ class AchievementNotification {
             alpha: 0,
             duration: 200
         });
+    }
+
+    syncCameraZoom() {
+        if (!this.overlay) return false;
+        const screenSpace = this.getScreenSpaceTransform();
+        this.container
+            ?.setPosition(screenSpace.x, screenSpace.y)
+            .setScale(screenSpace.scale)
+            .setScrollFactor(0);
+        this.overlay
+            .setPosition(screenSpace.x, screenSpace.y)
+            .setScrollFactor(0)
+            .setVisible(false)
+            .setAlpha(0);
+        return true;
+    }
+
+    getScreenSpaceTransform() {
+        const cameraZoom = this.scene.cameras?.main?.zoom || 1;
+        const { width, height } = this.scene.scale;
+        return {
+            x: width / (2 * cameraZoom),
+            y: height / (2 * cameraZoom),
+            scale: 1 / cameraZoom,
+            cameraZoom,
+            width,
+            height
+        };
+    }
+
+    drawScreenSpaceRect(graphics, color, alpha) {
+        const screenSpace = this.getScreenSpaceTransform();
+        const changed = graphics.getData?.('screenSpaceZoom') !== screenSpace.cameraZoom ||
+            graphics.getData?.('screenSpaceWidth') !== screenSpace.width ||
+            graphics.getData?.('screenSpaceHeight') !== screenSpace.height;
+        if (changed) {
+            graphics.clear();
+            graphics.fillStyle(color, alpha);
+            graphics.fillRect(
+                -screenSpace.width / (2 * screenSpace.cameraZoom),
+                -screenSpace.height / (2 * screenSpace.cameraZoom),
+                screenSpace.width / screenSpace.cameraZoom,
+                screenSpace.height / screenSpace.cameraZoom
+            );
+        }
+        return graphics
+            .setPosition(screenSpace.x, screenSpace.y)
+            .setScale(1)
+            .setScrollFactor(0)
+            .setData('screenSpaceCoverage', 'viewport')
+            .setData('screenSpaceZoom', screenSpace.cameraZoom)
+            .setData('screenSpaceWidth', screenSpace.width)
+            .setData('screenSpaceHeight', screenSpace.height);
     }
 
     /**
@@ -309,9 +382,11 @@ class AchievementNotification {
         // Screen flash for Gold/Platinum
         if (tier === 'GOLD' || tier === 'PLATINUM') {
             const flash = this.scene.add.graphics();
-            flash.fillStyle(tier === 'PLATINUM' ? 0xE5E4E2 : 0xFFD700, 0.3);
-            flash.fillRect(0, 0, this.scene.scale.width, this.scene.scale.height);
-            flash.setDepth(9998);
+            this.drawScreenSpaceRect(
+                flash,
+                tier === 'PLATINUM' ? 0xE5E4E2 : 0xFFD700,
+                0.3
+            ).setDepth(9998);
 
             this.scene.tweens.add({
                 targets: flash,
@@ -348,24 +423,51 @@ class AchievementNotification {
      * Show next queued notification
      */
     showNext() {
+        if (this.destroyed || !this.isSceneOperational()) return;
         this.isVisible = false;
         this.currentNotification = null;
 
         if (this.queue.length > 0) {
             const next = this.queue.shift();
             this.scene.time.delayedCall(300, () => {
-                this.show(next);
+                if (!this.destroyed && this.isSceneOperational()) {
+                    this.show(next);
+                }
             });
         }
+    }
+
+    isSceneOperational() {
+        return Boolean(
+            this.scene &&
+            this.scene.sys?.isActive?.() !== false &&
+            this.scene.tweens?.add
+        );
     }
 
     /**
      * Clean up notification
      */
     destroy() {
+        if (this.destroyed) return;
+        this.destroyed = true;
+        if (this.autoDismissTimer) {
+            this.autoDismissTimer.destroy();
+            this.autoDismissTimer = null;
+        }
+        this.queue.length = 0;
+        this.isVisible = false;
+        this.currentNotification = null;
+        this.scene?.events?.off?.('shutdown', this.destroy, this);
+        this.clearNotification();
+    }
+
+    clearNotification() {
+        this.scene?.events?.off?.('update', this.syncCameraZoom, this);
         if (this.container) {
-            this.container.destroy();
+            this.container.destroy(true);
             this.container = null;
+            this.contentContainer = null;
         }
         if (this.overlay) {
             this.overlay.destroy();

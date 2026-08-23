@@ -52,6 +52,12 @@ describe('shared mobile control dock', () => {
         expect(layout.joystick.zoneWidth).toBeLessThan(
             layout.actions.leftX - actionRadius
         );
+        expect(layout.visualShelf.style).toBe('split-current-shelf');
+        expect(layout.visualShelf.leftRight)
+            .toBeGreaterThan(layout.joystick.x + layout.joystick.radius);
+        expect(layout.visualShelf.rightLeft)
+            .toBeLessThan(layout.actions.leftX - actionRadius);
+        expect(layout.visualShelf.centerGapWidth).toBeGreaterThanOrEqual(44);
     });
 
     test.each(viewports)('keeps the interaction prompt above the dock at %ix%i', (

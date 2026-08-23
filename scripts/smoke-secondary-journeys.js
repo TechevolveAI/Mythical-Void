@@ -8255,6 +8255,91 @@ async function smokeHomeStart(session, exceptions) {
     return { start, recovery, advanced };
 }
 
+async function smokeLateLivingFormArrival(session, exceptions) {
+    exceptions.length = 0;
+    await navigate(
+        session,
+        `${BASE_URL}/play/?testGuardians=0&testPortraitReady=full`
+    );
+    try {
+        await waitForScene(session, 'GameScene', 2500);
+    } catch (error) {
+        await evaluate(session, `(() => {
+            const game = window.mythicalGame;
+            if (!game?.scene) return false;
+            game.scene.getScenes(true).forEach(activeScene => {
+                if (activeScene.scene?.key !== 'GameScene') {
+                    game.scene.stop(activeScene.scene.key);
+                }
+            });
+            game.scene.start('GameScene', {
+                guardianResidentPreview: 0,
+                livingPortraitReadyPreview: true,
+                livingPortraitFullRevealPreview: true
+            });
+            return true;
+        })()`);
+        await waitForScene(session, 'GameScene');
+    }
+
+    const reveal = await waitFor(
+        () => evaluate(session, `(() => {
+            const root = document.querySelector('[data-testid="living-form-handoff"]');
+            const image = root?.querySelector('.living-form-image.is-ready');
+            const action = root?.querySelector('[data-testid="living-form-continue"]');
+            const bounds = action?.getBoundingClientRect?.();
+            if (
+                !root ||
+                !image?.complete ||
+                image.naturalWidth < 256 ||
+                !bounds ||
+                bounds.width < 180 ||
+                bounds.height < 44
+            ) return null;
+            return {
+                action: action.textContent?.trim(),
+                seen: window.GameState?.get?.('tutorial.livingFormSeen') === true,
+                viewportWidth: window.visualViewport?.width || window.innerWidth,
+                viewportHeight: window.visualViewport?.height || window.innerHeight,
+                actionBounds: {
+                    left: Math.round(bounds.left),
+                    right: Math.round(bounds.right),
+                    top: Math.round(bounds.top),
+                    bottom: Math.round(bounds.bottom)
+                }
+            };
+        })()`),
+        { timeoutMs: 8000, message: 'late living-form Sanctuary reveal' }
+    );
+    if (
+        reveal.action !== 'CONTINUE EXPLORING' ||
+        !reveal.seen ||
+        reveal.actionBounds.left < 0 ||
+        reveal.actionBounds.right > reveal.viewportWidth ||
+        reveal.actionBounds.top < 0 ||
+        reveal.actionBounds.bottom > reveal.viewportHeight
+    ) {
+        throw new Error(`Late living-form reveal was unsafe: ${JSON.stringify(reveal)}`);
+    }
+    await captureGameplayStill(session, 'living-form-late-arrival-mobile.png');
+    await touchDomButton(session, '[data-testid="living-form-continue"]', {
+        message: 'Continue after late living-form reveal'
+    });
+    await waitFor(
+        () => evaluate(
+            session,
+            '!document.querySelector(\'[data-testid="living-form-handoff"]\')'
+        ),
+        { timeoutMs: 2500, message: 'late living-form reveal dismissal' }
+    );
+    if (exceptions.length) {
+        throw new Error(`Late living-form reveal raised browser exceptions: ${
+            exceptions.join(' | ')
+        }`);
+    }
+    return reveal;
+}
+
 async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     exceptions.length = 0;
     await navigate(session, `${BASE_URL}/play/`);
@@ -8265,7 +8350,7 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         localStorage.removeItem('mythical_creature_save');
         return true;
     })()`);
-    await navigate(session, `${BASE_URL}/play/?testSoulReveal=portrait`);
+    await navigate(session, `${BASE_URL}/play/?testSoulReveal=portrait-slow`);
     await waitForScene(session, 'SoulRevealScene');
 
     const naming = await waitFor(
@@ -8308,6 +8393,109 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         message: 'Reveal Living Form action'
     });
 
+    const pendingReveal = await waitFor(
+        () => evaluate(session, `(() => {
+            const root = document.querySelector('[data-testid="living-form-handoff"]');
+            const spinner = root?.querySelector('.living-form-spinner');
+            const detail = root?.querySelector('.living-form-loading-detail');
+            const button = root?.querySelector('[data-testid="living-form-continue"]');
+            const actions = root?.querySelector('[data-testid="living-form-actions"]');
+            const bounds = button?.getBoundingClientRect?.();
+            const actionDockBounds = actions?.getBoundingClientRect?.();
+            const viewportHeight = window.visualViewport?.height || window.innerHeight;
+            const viewportWidth = window.visualViewport?.width || window.innerWidth;
+            if (
+                !root?.classList?.contains('is-portrait-pending') ||
+                !spinner ||
+                !detail ||
+                !bounds ||
+                !actionDockBounds ||
+                bounds.width < 180 ||
+                bounds.height < 44
+            ) return null;
+            return {
+                action: button.textContent?.trim(),
+                detail: detail.textContent?.trim(),
+                viewportWidth,
+                viewportHeight,
+                actionBounds: {
+                    left: Math.round(bounds.left),
+                    right: Math.round(bounds.right),
+                    top: Math.round(bounds.top),
+                    bottom: Math.round(bounds.bottom)
+                },
+                actionDockBounds: {
+                    top: Math.round(actionDockBounds.top),
+                    bottom: Math.round(actionDockBounds.bottom)
+                }
+            };
+        })()`),
+        { timeoutMs: 1200, message: 'visible pending living-form handoff' }
+    );
+    if (
+        pendingReveal.action !== 'ENTER SANCTUARY NOW' ||
+        !pendingReveal.detail.includes('anatomy') ||
+        pendingReveal.actionBounds.left < 0 ||
+        pendingReveal.actionBounds.right > pendingReveal.viewportWidth ||
+        pendingReveal.actionBounds.top < 0 ||
+        pendingReveal.actionBounds.bottom > pendingReveal.viewportHeight ||
+        pendingReveal.actionDockBounds.top < 0 ||
+        pendingReveal.actionDockBounds.bottom > pendingReveal.viewportHeight
+    ) {
+        throw new Error(
+            `Pending living-form action was not viewport-safe: ${JSON.stringify(pendingReveal)}`
+        );
+    }
+    await captureGameplayStill(session, 'first-living-form-developing-mobile.png');
+
+    if (SMOKE_CASE === 'pending-handoff') {
+        await touchDomButton(session, '[data-testid="living-form-continue"]', {
+            message: 'Enter Sanctuary while living portrait develops'
+        });
+        const transition = await waitFor(
+            () => evaluate(session, `(() => {
+                const root = document.querySelector('[data-testid="living-form-handoff"]');
+                const button = root?.querySelector('[data-testid="living-form-continue"]');
+                if (
+                    !root?.classList?.contains('is-transitioning') ||
+                    button?.textContent?.trim() !== 'ENTERING SANCTUARY...' ||
+                    button?.disabled !== true
+                ) return null;
+                return {
+                    portraitState: root.dataset.portraitState,
+                    action: button.textContent.trim(),
+                    busy: button.getAttribute('aria-busy'),
+                    status: root.querySelector('.living-form-status')?.textContent?.trim() || ''
+                };
+            })()`),
+            { timeoutMs: 1200, message: 'pending portrait Sanctuary transition feedback' }
+        );
+        await waitForScene(session, 'GameScene');
+        const entered = await evaluate(session, `(() => ({
+            gameSceneActive: window.mythicalGame?.scene?.isActive?.('GameScene') === true,
+            livingFormSeen: window.GameState?.get?.('tutorial.livingFormSeen') === true,
+            portraitHandoffCleared: !document.querySelector(
+                '[data-testid="living-form-handoff"]'
+            )
+        }))()`);
+        if (
+            transition.portraitState !== 'entering' ||
+            transition.busy !== 'true' ||
+            !transition.status.includes('will keep developing and follow you') ||
+            !entered.gameSceneActive ||
+            entered.livingFormSeen ||
+            !entered.portraitHandoffCleared ||
+            exceptions.length
+        ) {
+            throw new Error(`Pending portrait handoff failed: ${JSON.stringify({
+                transition,
+                entered,
+                exceptions
+            })}`);
+        }
+        return { naming, pendingReveal, transition, entered };
+    }
+
     const reveal = await waitFor(
         () => evaluate(session, `(() => {
             const root = document.querySelector('[data-testid="living-form-handoff"]');
@@ -8328,6 +8516,8 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
                 imageWidth: image.naturalWidth,
                 imageHeight: image.naturalHeight,
                 action: button.textContent?.trim(),
+                viewportWidth: window.visualViewport?.width || window.innerWidth,
+                viewportHeight: window.visualViewport?.height || window.innerHeight,
                 actionBounds: {
                     left: Math.round(bounds.left),
                     right: Math.round(bounds.right),
@@ -8340,7 +8530,11 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     );
     if (
         reveal.source !== 'PROTECTED LIVING PORTRAIT' ||
-        reveal.action !== 'ENTER SANCTUARY'
+        reveal.action !== 'ENTER SANCTUARY' ||
+        reveal.actionBounds.left < 0 ||
+        reveal.actionBounds.right > reveal.viewportWidth ||
+        reveal.actionBounds.top < 0 ||
+        reveal.actionBounds.bottom > reveal.viewportHeight
     ) {
         throw new Error(`Living-form handoff was incomplete: ${JSON.stringify(reveal)}`);
     }
@@ -8404,6 +8598,8 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
                 y: Math.round(bounds.centerY),
                 targetWidth: Math.round(targetBounds.width),
                 targetHeight: Math.round(targetBounds.height),
+                nativeWidth: Math.round(nativeBounds.width),
+                nativeHeight: Math.round(nativeBounds.height),
                 nativeAction: nativeAction.textContent?.trim(),
                 nativeBackDisabled: nativeBack.disabled,
                 nativeTarget: document.elementFromPoint(
@@ -8421,8 +8617,8 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     const handoffMs = Date.now() - handoffStartedAt;
     if (
         handoffMs > 7000 ||
-        firstPage.targetWidth < 120 ||
-        firstPage.targetHeight < 52 ||
+        firstPage.nativeWidth < 120 ||
+        firstPage.nativeHeight < 52 ||
         firstPage.nativeAction !== 'NEXT' ||
         !firstPage.nativeBackDisabled ||
         !firstPage.nativeTarget ||
@@ -8583,6 +8779,142 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         })}`);
     }
 
+    const lateRevealTrigger = await evaluate(session, `(async () => {
+        window.GameState?.set?.('tutorial.livingFormSeen', false);
+        window.GameState?.set?.('tutorial.villageHeartArrivalSeen', true);
+        window.GameState?.set?.('story.companionMedia', null);
+        const scene = window.mythicalGame?.scene?.getScene('GameScene');
+        scene?.sanctuaryReturnMomentScheduleTimer?.remove?.();
+        if (scene) {
+            scene.sanctuaryReturnMomentScheduleTimer = null;
+            scene.pendingSanctuaryReturnMoment = null;
+        }
+        const accepted = await scene?.maybeShowLivingPortraitReadyNotice?.({
+            identityKey: 'late-arrival-smoke:baby:portrait',
+            stage: 'baby',
+            imageUrl: '/marketing/nova.webp',
+            assetRef: null,
+            storage: 'preview'
+        });
+        return {
+            accepted,
+            blocked: scene?.isLivingPortraitNoticeBlocked?.(),
+            sceneActive: scene?.sys?.isActive?.(),
+            domAvailable: Boolean(scene?.game?.domContainer),
+            pendingIdentity: scene?.livingPortraitNoticePendingIdentity || null,
+            deferredIdentity: scene?.deferredLivingPortraitRecord?.identityKey || null,
+            noticeIdentity: scene?.livingPortraitReadyNotice?.identityKey || null,
+            revealDomPresent: Boolean(document.querySelector(
+                '[data-testid="living-form-handoff"]'
+            ))
+        };
+    })()`);
+    let lateReveal;
+    try {
+        lateReveal = await waitFor(
+            () => evaluate(session, `(() => {
+            const root = document.querySelector('[data-testid="living-form-handoff"]');
+            const image = root?.querySelector('.living-form-image.is-ready');
+            const action = root?.querySelector('[data-testid="living-form-continue"]');
+            const bounds = action?.getBoundingClientRect?.();
+            if (
+                !root ||
+                !image?.complete ||
+                image.naturalWidth < 256 ||
+                !bounds ||
+                bounds.width < 180 ||
+                bounds.height < 44
+            ) return null;
+            return {
+                action: action.textContent?.trim(),
+                seen: window.GameState?.get?.('tutorial.livingFormSeen') === true,
+                viewportHeight: window.visualViewport?.height || window.innerHeight,
+                actionBottom: Math.round(bounds.bottom)
+            };
+            })()`),
+            { timeoutMs: 5000, message: 'late Sanctuary living-form reveal' }
+        );
+    } catch (error) {
+        const diagnostics = await evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene('GameScene');
+            const root = document.querySelector('[data-testid="living-form-handoff"]');
+            const image = root?.querySelector('.living-form-image');
+            const action = root?.querySelector('[data-testid="living-form-continue"]');
+            const actionBounds = action?.getBoundingClientRect?.();
+            const rootBounds = root?.getBoundingClientRect?.();
+            const canvasBounds = scene?.game?.canvas?.getBoundingClientRect?.();
+            const domBounds = scene?.game?.domContainer?.getBoundingClientRect?.();
+            return {
+                trigger: ${JSON.stringify(lateRevealTrigger)},
+                blocked: scene?.isLivingPortraitNoticeBlocked?.(),
+                controlsVisible: scene?.controlsTutorial?.isVisible,
+                storyElements: scene?.storyModalElements?.length,
+                greetingElements: scene?.greetingElements?.length,
+                livingSignalElements: scene?.livingSignalMomentElements?.length,
+                pendingIdentity: scene?.livingPortraitNoticePendingIdentity || null,
+                deferredIdentity: scene?.deferredLivingPortraitRecord?.identityKey || null,
+                noticeIdentity: scene?.livingPortraitReadyNotice?.identityKey || null,
+                revealDomPresent: Boolean(root),
+                portraitState: root?.dataset?.portraitState || null,
+                rootClass: root?.className || null,
+                imageClass: image?.className || null,
+                imageSource: image?.getAttribute?.('src') || null,
+                imageComplete: image?.complete,
+                imageWidth: image?.naturalWidth,
+                action: action?.textContent?.trim() || null,
+                actionBounds: actionBounds ? {
+                    left: Math.round(actionBounds.left),
+                    right: Math.round(actionBounds.right),
+                    top: Math.round(actionBounds.top),
+                    bottom: Math.round(actionBounds.bottom),
+                    width: Math.round(actionBounds.width),
+                    height: Math.round(actionBounds.height)
+                } : null,
+                rootBounds: rootBounds ? {
+                    left: Math.round(rootBounds.left),
+                    right: Math.round(rootBounds.right),
+                    top: Math.round(rootBounds.top),
+                    bottom: Math.round(rootBounds.bottom),
+                    width: Math.round(rootBounds.width),
+                    height: Math.round(rootBounds.height)
+                } : null,
+                canvasBounds: canvasBounds ? {
+                    left: Math.round(canvasBounds.left),
+                    top: Math.round(canvasBounds.top),
+                    width: Math.round(canvasBounds.width),
+                    height: Math.round(canvasBounds.height)
+                } : null,
+                domBounds: domBounds ? {
+                    left: Math.round(domBounds.left),
+                    top: Math.round(domBounds.top),
+                    width: Math.round(domBounds.width),
+                    height: Math.round(domBounds.height)
+                } : null,
+                sceneScale: {
+                    width: scene?.scale?.width,
+                    height: scene?.scale?.height,
+                    displayWidth: scene?.scale?.displaySize?.width,
+                    displayHeight: scene?.scale?.displaySize?.height
+                },
+                domTransform: scene?.game?.domContainer?.style?.transform || null,
+                status: root?.querySelector('.living-form-status')?.textContent?.trim() || null,
+                source: root?.querySelector('.living-form-source')?.textContent?.trim() || null
+            };
+        })()`);
+        throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+    }
+    if (
+        lateReveal.action !== 'CONTINUE EXPLORING' ||
+        !lateReveal.seen ||
+        lateReveal.actionBottom > lateReveal.viewportHeight
+    ) {
+        throw new Error(`Late living-form reveal was incomplete: ${JSON.stringify(lateReveal)}`);
+    }
+    await captureGameplayStill(session, 'first-living-form-late-arrival-mobile.png');
+    await touchDomButton(session, '[data-testid="living-form-continue"]', {
+        message: 'Continue exploring after late living-form reveal'
+    });
+
     const movementStart = await evaluate(session, `(() => {
         const scene = window.mythicalGame?.scene?.getScene('GameScene');
         const controls = scene?.mobileControls;
@@ -8618,19 +8950,50 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     let movement;
     try {
         await holdTouchDrag(session, movementStart.start, movementStart.end, 300);
-        movement = await waitFor(
-            () => evaluate(session, `(() => {
+        try {
+            movement = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame?.scene?.getScene('GameScene');
+                    if (!scene || scene.joystickX <= 0.2) return null;
+                    return {
+                        inputX: scene.joystickX,
+                        velocityX: scene.player?.body?.velocity?.x,
+                        playerX: scene.player?.x,
+                        joystickActive: scene.mobileControls?.joystickActive === true
+                    };
+                })()`),
+                { timeoutMs: 1500, message: 'first Sanctuary joystick movement' }
+            );
+        } catch (error) {
+            const diagnostics = await evaluate(session, `(() => {
                 const scene = window.mythicalGame?.scene?.getScene('GameScene');
-                if (!scene || scene.joystickX <= 0.2) return null;
                 return {
-                    inputX: scene.joystickX,
-                    velocityX: scene.player?.body?.velocity?.x,
-                    playerX: scene.player?.x,
-                    joystickActive: scene.mobileControls?.joystickActive === true
+                    joystickX: scene?.joystickX,
+                    joystickY: scene?.joystickY,
+                    joystickActive: scene?.mobileControls?.joystickActive,
+                    activePointerId: scene?.mobileControls?.activePointerId,
+                    joystickCenter: {
+                        x: scene?.mobileControls?.joystickCenterX,
+                        y: scene?.mobileControls?.joystickCenterY
+                    },
+                    joystickHitBounds: scene?.mobileControls?.joystickHitBounds,
+                    requestedDrag: ${JSON.stringify(movementStart)},
+                    controlsVisible: scene?.mobileControls?.isVisible,
+                    controlsSuspended: scene?.mobileControls?.isSuspended,
+                    physicsPaused: scene?.physics?.world?.isPaused,
+                    playerX: scene?.player?.x,
+                    velocityX: scene?.player?.body?.velocity?.x,
+                    portraitDomPresent: Boolean(document.querySelector(
+                        '[data-testid="living-form-handoff"]'
+                    )),
+                    hitTarget: document.elementFromPoint(
+                        ${movementStart.start.x},
+                        ${movementStart.start.y}
+                    )?.outerHTML?.slice?.(0, 160) || null
                 };
-            })()`),
-            { timeoutMs: 1500, message: 'first Sanctuary joystick movement' }
-        );
+            })()`);
+            throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+        }
     } finally {
         await releaseTouch(session);
     }
@@ -8663,6 +9026,7 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
 
     return {
         naming,
+        pendingReveal,
         reveal,
         handoffMs,
         storyAdvanceMs,
@@ -9580,7 +9944,9 @@ async function smokeGuardianHandoff(session, step, exceptions) {
                 partAwarded: result.shipPartAwarded,
                 katanaAwarded: result.katanaUpgradeAwarded,
                 residentId: result.rescuedResident?.id || null,
-                guardianId: result.guardianResident?.id || null,
+                guardianId: result.guardianOutcome?.guardianId || null,
+                guardianStanding: result.guardianOutcome?.standing || null,
+                guardianPresence: result.guardianOutcome?.sanctuaryPresence || null,
                 pendingDebriefs: state.get('story.projectBeacon.pendingDebriefs') || [],
                 completedCount: Number(state.get('stats.levelsCompleted')) || 0,
                 coins: Number(state.get('player.cosmicCoins')) || 0,
@@ -9598,6 +9964,12 @@ async function smokeGuardianHandoff(session, step, exceptions) {
         completion.partAwarded !== true ||
         !completion.residentId ||
         !completion.guardianId ||
+        !['regional_ally', 'regional_guardian'].includes(completion.guardianStanding) ||
+        (
+            step.levelId === 'mythicalForest'
+                ? completion.guardianPresence !== 'heart_projection'
+                : completion.guardianPresence !== 'none'
+        ) ||
         completion.pendingDebriefs.length !== (step.route === 'finalVoid' ? 0 : 1) ||
         completion.completedCount !== finalHit.completedBefore + 1 ||
         completion.coins <= finalHit.coinsBefore ||
@@ -9613,7 +9985,7 @@ async function smokeGuardianHandoff(session, step, exceptions) {
 
     const residentCta = await touchInteractiveSceneText(
         session,
-        'RETURN WITH ',
+        'WELCOME ',
         {
             match: 'startsWith',
             timeoutMs: 8000,
@@ -10213,7 +10585,222 @@ async function smokeSaveReloadJourney(session, exceptions) {
     return restored;
 }
 
+async function smokeVillageHeartGuidance(session, exceptions) {
+    exceptions.length = 0;
+    await navigate(session, `${BASE_URL}/play/?testVillage=complete`);
+    await waitForScene(session, 'GameScene', 45000);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene('GameScene');
+            const landmark = scene?.villageHeartLandmark;
+            return Boolean(
+                landmark?.nextActionElement &&
+                landmark?.nextActionHitZone &&
+                landmark?.plotPresentations?.length === 5
+            );
+        })()`),
+        { timeoutMs: 30000, message: 'Focused Village Heart guidance state' }
+    );
+    await evaluate(session, `(() => {
+        document.querySelector('.village-command-close')?.click();
+        const scene = window.mythicalGame?.scene?.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        if (!scene || !landmark) return false;
+        scene.nearVillageHeart = false;
+        scene.setSanctuaryMomentFocus?.(false);
+        scene.updateSanctuaryFocusMode?.(false);
+        scene.worldBuilder?.setVillageFocusMode?.(landmark, false, {
+            immediate: true,
+            presentationMode: 'ambient'
+        });
+        scene.cameras?.main?.stopFollow?.();
+        scene.cameras?.main?.centerOn?.(landmark.zone.x, landmark.zone.y);
+        return true;
+    })()`);
+    await new Promise(resolve => setTimeout(resolve, 360));
+
+    const guidance = await evaluate(session, `(() => {
+        const scene = window.mythicalGame?.scene?.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const action = landmark?.snapshot?.worldState?.nextAction;
+        const target = landmark?.plotWorldPositions?.get?.(action?.plotId);
+        const presentation = landmark?.plotPresentations?.find(
+            item => item.plotId === action?.plotId
+        );
+        const placardBounds = landmark?.nextActionElement?.getBounds?.();
+        const touchBounds = landmark?.nextActionHitZone?.getBounds?.();
+        const heartLabelBounds = landmark?.label?.getBounds?.();
+        const heartStatusBounds = landmark?.statusLabel?.getBounds?.();
+        const camera = scene?.cameras?.main;
+        const zoom = camera?.zoom || 1;
+        const worldView = camera?.worldView;
+        const controlDockTop = scene?.mobileControls?.isVisible
+            ? Number(scene?.mobileControls?.layout?.dockTop)
+            : Number.NaN;
+        const dockTop = Number.isFinite(controlDockTop)
+            ? controlDockTop
+            : scene?.scale?.width <= 600
+                ? scene.scale.height - 121
+                : scene?.scale?.height;
+        const toScreenBounds = bounds => bounds && worldView ? {
+            left: (bounds.left - worldView.x) * zoom,
+            right: (bounds.right - worldView.x) * zoom,
+            top: (bounds.top - worldView.y) * zoom,
+            bottom: (bounds.bottom - worldView.y) * zoom
+        } : null;
+        return {
+            actionType: action?.type || null,
+            plotId: action?.plotId || null,
+            text: landmark?.nextActionElement?.text || '',
+            placement: landmark?.nextActionPlacard?.getData?.(
+                'villagePlacardPlacement'
+            ) || null,
+            avoidsHeart: landmark?.nextActionPlacard?.getData?.(
+                'villagePlacardAvoidsHeart'
+            ) === true,
+            placardY: landmark?.nextActionElement?.y ?? null,
+            targetY: target?.y ?? null,
+            stateLabelAlpha: presentation?.stateLabel?.alpha ?? null,
+            overlapsHeartLabel: Boolean(
+                placardBounds && heartLabelBounds &&
+                Phaser.Geom.Intersects.RectangleToRectangle(
+                    placardBounds,
+                    heartLabelBounds
+                )
+            ),
+            overlapsHeartStatus: Boolean(
+                placardBounds && heartStatusBounds &&
+                Phaser.Geom.Intersects.RectangleToRectangle(
+                    placardBounds,
+                    heartStatusBounds
+                )
+            ),
+            labelInputEnabled: landmark?.nextActionElement?.input?.enabled === true,
+            hitZoneInputEnabled: landmark?.nextActionHitZone?.input?.enabled === true,
+            screenBounds: toScreenBounds(touchBounds),
+            labelScreenBounds: toScreenBounds(placardBounds),
+            dockTop,
+            viewport: {
+                width: scene?.scale?.width,
+                height: scene?.scale?.height
+            }
+        };
+    })()`);
+    if (
+        guidance.actionType !== 'assign' ||
+        guidance.placement !== 'below_target' ||
+        guidance.avoidsHeart !== true ||
+        guidance.placardY <= guidance.targetY ||
+        guidance.stateLabelAlpha !== 0 ||
+        guidance.overlapsHeartLabel ||
+        guidance.overlapsHeartStatus ||
+        !guidance.labelInputEnabled ||
+        !guidance.hitZoneInputEnabled ||
+        !guidance.text.includes('INVITE') ||
+        !guidance.text.includes('WORKSHOP') ||
+        !guidance.screenBounds ||
+        guidance.screenBounds.left < 8 ||
+        guidance.screenBounds.right > guidance.viewport.width - 8 ||
+        guidance.screenBounds.top < 8 ||
+        guidance.screenBounds.bottom > guidance.dockTop - 8
+    ) {
+        throw new Error(
+            `Village Heart target-aware guidance failed: ${JSON.stringify(guidance)}`
+        );
+    }
+
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame?.scene?.getScene('GameScene');
+        return scene?.openVillageCommand?.({ guided: true }) === true;
+    })()`);
+    const communityShortcut = await waitFor(
+        () => evaluate(session, `(() => {
+            const modal = document.querySelector('.village-command-modal.accepts-input');
+            const shortcut = document.querySelector('[data-testid="village-community-shortcut"]');
+            const bounds = shortcut?.getBoundingClientRect?.();
+            if (!modal || !shortcut || !bounds) return null;
+            return {
+                text: shortcut.textContent?.replace(/\\s+/g, ' ').trim() || '',
+                ariaLabel: shortcut.getAttribute('aria-label') || '',
+                bounds: {
+                    left: Math.round(bounds.left),
+                    right: Math.round(bounds.right),
+                    top: Math.round(bounds.top),
+                    bottom: Math.round(bounds.bottom),
+                    width: Math.round(bounds.width),
+                    height: Math.round(bounds.height)
+                },
+                viewport: { width: innerWidth, height: innerHeight },
+                topTarget: document.elementFromPoint(
+                    bounds.left + (bounds.width / 2),
+                    bounds.top + (bounds.height / 2)
+                )?.closest?.('[data-testid="village-community-shortcut"]') === shortcut
+            };
+        })()`),
+        { timeoutMs: 12000, message: 'Village Heart community shortcut' }
+    );
+    if (
+        !communityShortcut.text.includes('WHO LIVES HERE') ||
+        !communityShortcut.text.includes('VIEW COMMUNITY & ROLES') ||
+        !communityShortcut.ariaLabel.includes('creatures live here') ||
+        communityShortcut.bounds.width < 240 ||
+        communityShortcut.bounds.height < 44 ||
+        communityShortcut.bounds.left < 0 ||
+        communityShortcut.bounds.right > communityShortcut.viewport.width ||
+        communityShortcut.bounds.top < 0 ||
+        communityShortcut.bounds.bottom > communityShortcut.viewport.height ||
+        !communityShortcut.topTarget
+    ) {
+        throw new Error(
+            `Village Heart community shortcut was not mobile-safe: ${JSON.stringify(communityShortcut)}`
+        );
+    }
+    await captureGameplayStill(session, 'village-heart-community-shortcut-mobile.png');
+    await touchDomButton(session, '[data-testid="village-community-shortcut"]', {
+        message: 'Village Heart community shortcut'
+    });
+    const communityDirectory = await waitFor(
+        () => evaluate(session, `(() => {
+            const directory = document.querySelector('[data-testid="village-community-directory"]');
+            if (!directory) return null;
+            return {
+                title: directory.querySelector('.village-community-directory-title')
+                    ?.textContent?.trim() || '',
+                groups: [...directory.querySelectorAll('.village-community-group-title')]
+                    .map(element => element.textContent?.trim()),
+                intro: directory.querySelector('.village-community-directory-intro')
+                    ?.textContent?.trim() || '',
+                guided: document.querySelector('.village-command-modal')
+                    ?.classList?.contains('is-guided') === true
+            };
+        })()`),
+        { timeoutMs: 4000, message: 'Village Heart community directory' }
+    );
+    if (
+        communityDirectory.title !== 'YOUR SANCTUARY COMMUNITY' ||
+        !communityDirectory.groups.includes('SANCTUARY RESIDENTS') ||
+        !communityDirectory.groups.includes('REGIONAL GUARDIANS') ||
+        !communityDirectory.intro.includes('they do not move into the Sanctuary') ||
+        communityDirectory.guided
+    ) {
+        throw new Error(
+            `Village Heart community directory was unclear: ${JSON.stringify(communityDirectory)}`
+        );
+    }
+    await captureGameplayStill(session, 'village-heart-community-directory-mobile.png');
+    if (exceptions.length) {
+        throw new Error(
+            `Village Heart target-aware guidance raised browser exceptions: ${exceptions.join(' | ')}`
+        );
+    }
+    process.stdout.write('PASS VillageHeartGuidance\n');
+    return { guidance, communityShortcut, communityDirectory };
+}
+
 async function smokeVillageUi(session, exceptions) {
+    if (SMOKE_CASE === 'heart-guidance') {
+        return smokeVillageHeartGuidance(session, exceptions);
+    }
     exceptions.length = 0;
     // Exercise the player-facing route first. Construction is intentionally
     // housed in the Shop Build tab; the Sanctuary landmark is only a shortcut.
@@ -10238,15 +10825,22 @@ async function smokeVillageUi(session, exceptions) {
         state.set('creature', creature);
         state.set('creatures', [creature]);
         state.set('activeCreatureIndex', 0);
+        state.set('tutorial.controlsSeen', true);
+        state.set('tutorial.crashStorySeen', true);
+        state.set('session.lastDailyShown', new Date().toISOString().split('T')[0]);
         state.save();
         game.scene.stop('HatchingScene');
-        game.scene.start('GameScene', { biome: 'nebula', forceMobileControls: true });
+        game.scene.start('GameScene', {
+            biome: 'nebula',
+            forceMobileControls: ${SMOKE_VIEWPORT_WIDTH <= 600}
+        });
         return true;
     })()`);
     if (!publicEntry) throw new Error('Base Builder production entry could not seed a companion');
     // GameScene generates creature animation frames and builds the Sanctuary
     // before it becomes active. Preserve enough Phaser state to distinguish a
     // slow boot from a lifecycle exception if this release gate ever regresses.
+    let gameSceneBootRetried = false;
     try {
         await waitForScene(session, 'GameScene', 45000);
     } catch (error) {
@@ -10266,8 +10860,292 @@ async function smokeVillageUi(session, exceptions) {
                 exceptions: ${JSON.stringify(exceptions)}
             };
         })()`);
+        const retryableLifecycleRace = diagnostics.gameSceneStatus === 8 &&
+            diagnostics.activeScenes.length === 0 &&
+            diagnostics.exceptions.length === 0;
+        if (retryableLifecycleRace) {
+            gameSceneBootRetried = await evaluate(session, `(() => {
+                const game = window.mythicalGame;
+                if (!game?.scene) return false;
+                game.scene.start('GameScene', {
+                    biome: 'nebula',
+                    forceMobileControls: ${SMOKE_VIEWPORT_WIDTH <= 600}
+                });
+                return true;
+            })()`);
+            if (gameSceneBootRetried) {
+                await waitForScene(session, 'GameScene', 45000);
+            }
+        }
+        if (gameSceneBootRetried) {
+            process.stdout.write('[smoke-recovery] GameScene lifecycle retry\n');
+        } else {
+            throw new Error(
+                `${error.message}; GameScene diagnostics: ${JSON.stringify(diagnostics)}`
+            );
+        }
+    }
+    const firstArrivalWorld = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const guide = landmark?.arrivalGuide;
+        return {
+            guideActive: guide?.active === true,
+            guideMessage: guide?.getData?.('villageArrivalMessage'),
+            guideSteps: guide?.getData?.('villageArrivalSteps') || [],
+            statusText: landmark?.statusLabel?.text || '',
+            nextAction: landmark?.snapshot?.worldState?.nextAction?.type || null,
+            restored: landmark?.snapshot?.worldState?.restored,
+            heartPresentation: {
+                pulseProfile: landmark?.glow?.getData?.('villageHeartPulseProfile'),
+                ambientRole: landmark?.glow?.getData?.('villageAmbientRole'),
+                artworkAlpha: landmark?.heartArtwork?.alpha
+            },
+            heartLife: {
+                stage: landmark?.heartLife?.aura?.getData?.('villageHeartGrowthStage'),
+                tier: landmark?.heartLife?.aura?.getData?.('villageHeartGrowthTier'),
+                motion: landmark?.heartLife?.aura?.getData?.('villageHeartMotionProfile'),
+                auraRadius: landmark?.heartLife?.aura?.getData?.('villageHeartAuraRadius'),
+                orbitNodes: landmark?.heartLife?.orbit?.getData?.('villageHeartOrbitNodeCount'),
+                leaves: landmark?.heartLife?.crown?.getData?.('villageHeartLeafCount'),
+                memoryLights: landmark?.heartLife?.crown?.getData?.('villageHeartMemoryLightCount'),
+                silhouette: landmark?.heartLife?.aura?.getData?.(
+                    'villageHeartSilhouetteProfile'
+                ),
+                memoryLanguage: landmark?.heartLife?.memoryWeave?.getData?.(
+                    'villageHeartMemoryLanguage'
+                ),
+                careMarks: landmark?.heartLife?.memoryWeave?.getData?.(
+                    'villageHeartCareMarks'
+                ),
+                readinessMarks: landmark?.heartLife?.memoryWeave?.getData?.(
+                    'villageHeartReadinessMarks'
+                ),
+                memoryWeaveAlpha: landmark?.heartLife?.memoryWeave?.alpha,
+                tweenCount: landmark?.heartLifeTweens?.length || 0
+            },
+            foundationMaterials: (landmark?.plotPresentations || []).map(
+                presentation => presentation.container?.getData?.('villageFoundationMaterial')
+            ),
+            ambientPlots: (landmark?.plotPresentations || []).map(presentation => ({
+                role: presentation.ambientRole,
+                containerRole: presentation.container?.getData?.('villageAmbientRole'),
+                anchorRole: presentation.districtAnchor?.getData?.('villageAmbientRole'),
+                alpha: presentation.container?.alpha,
+                anchorAlpha: presentation.districtAnchor?.alpha
+            })),
+            flowSignals: (landmark?.villageFlowSignals || []).map(signal => ({
+                active: signal.active === true,
+                visible: signal.visible === true,
+                role: signal.getData?.('villageAmbientRole'),
+                direction: signal.getData?.('direction')
+            })),
+            foundationCradles: (landmark?.plotPresentations || []).map(presentation => {
+                const drawing = presentation.container?.list?.find(
+                    child => child?.getData?.('villageFoundationCradle') === true
+                );
+                return {
+                    state: drawing?.getData?.('villageFoundationState'),
+                    guided: drawing?.getData?.('villageFoundationGuided'),
+                    material: drawing?.getData?.('villageFoundationMaterial'),
+                    ariaLabel: drawing?.getData?.('ariaLabel')
+                };
+            })
+        };
+    })()`);
+    if (
+        !firstArrivalWorld.guideActive ||
+        firstArrivalWorld.guideMessage !== 'BUILD A HOME TOGETHER' ||
+        JSON.stringify(firstArrivalWorld.guideSteps) !== JSON.stringify(['BUILD', 'INVITE', 'GROW']) ||
+        (
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? firstArrivalWorld.statusText !== 'TAP · 1 COMMUNITY · 0/5 ROOTS'
+                : firstArrivalWorld.statusText !==
+                    '0/5 ROOTS · 1 COMMUNITY · 0 REGIONAL ALLIES'
+        ) ||
+        firstArrivalWorld.nextAction !== 'build' ||
+        firstArrivalWorld.restored !== 0 ||
+        firstArrivalWorld.heartPresentation.pulseProfile !== 'quiet_ambient' ||
+        firstArrivalWorld.heartPresentation.ambientRole !== 'settlement_anchor' ||
+        firstArrivalWorld.heartPresentation.artworkAlpha > 0.8 ||
+        firstArrivalWorld.heartLife.stage !== 'AWAKENED ROOT' ||
+        firstArrivalWorld.heartLife.tier !== 0 ||
+        firstArrivalWorld.heartLife.motion !== 'living_current_breath_v1' ||
+        firstArrivalWorld.heartLife.auraRadius <= 0 ||
+        firstArrivalWorld.heartLife.orbitNodes !== 1 ||
+        firstArrivalWorld.heartLife.leaves !== 2 ||
+        firstArrivalWorld.heartLife.memoryLights !== 0 ||
+        firstArrivalWorld.heartLife.silhouette !== 'shared_memory_silhouette_v1' ||
+        firstArrivalWorld.heartLife.memoryLanguage !== 'shared_vow_weave_v1' ||
+        firstArrivalWorld.heartLife.careMarks !== 0 ||
+        firstArrivalWorld.heartLife.readinessMarks !== 0 ||
+        firstArrivalWorld.heartLife.memoryWeaveAlpha !== 0 ||
+        firstArrivalWorld.heartLife.tweenCount !== 3 ||
+        firstArrivalWorld.foundationMaterials.length !== 5 ||
+        firstArrivalWorld.ambientPlots.filter(
+            plot => plot.role === 'guided_foundation' &&
+                plot.containerRole === 'guided_foundation' &&
+                plot.anchorRole === 'guided_foundation' &&
+                plot.alpha === 1
+        ).length !== 1 ||
+        firstArrivalWorld.ambientPlots.filter(
+            plot => plot.role === 'reserved_root' &&
+                plot.containerRole === 'reserved_root' &&
+                plot.anchorRole === 'reserved_root' &&
+                plot.alpha <= 0.1 &&
+                plot.anchorAlpha <= (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.1 : 0.14)
+        ).length !== 4 ||
+        firstArrivalWorld.flowSignals.length !== 5 ||
+        firstArrivalWorld.flowSignals.filter(signal => signal.active && signal.visible).length !== 1 ||
+        firstArrivalWorld.flowSignals.filter(
+            signal => signal.role === 'guided_foundation' && signal.active
+        ).length !== 1 ||
+        firstArrivalWorld.flowSignals.filter(
+            signal => signal.role === 'quiet_background' && !signal.active
+        ).length !== 4 ||
+        firstArrivalWorld.foundationMaterials.some(
+            material => material !== 'living_root_cradle_v2'
+        ) ||
+        firstArrivalWorld.foundationCradles.some(
+            cradle => cradle.state !== 'available' ||
+                cradle.material !== 'living_root_cradle_v2' ||
+                !cradle.ariaLabel?.includes('living root cradle')
+        ) ||
+        firstArrivalWorld.foundationCradles.filter(cradle => cradle.guided).length !== 1
+    ) {
         throw new Error(
-            `${error.message}; GameScene diagnostics: ${JSON.stringify(diagnostics)}`
+            `Village first-arrival world language failed: ${JSON.stringify(firstArrivalWorld)}`
+        );
+    }
+    const arrivalReveal = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.achievementNotification?.destroy?.();
+        if (scene.achievementNotification) {
+            scene.achievementNotification.isVisible = false;
+            scene.achievementNotification.currentNotification = null;
+            scene.achievementNotification.queue = [];
+        }
+        scene.__smokeVillageArrivalComplete = 0;
+        const played = scene.playVillageArrivalReveal({
+            force: true,
+            onComplete: () => {
+                scene.__smokeVillageArrivalComplete += 1;
+            }
+        });
+        const landmark = scene.villageHeartLandmark;
+        const reveal = landmark?.arrivalReveal;
+        const camera = scene.cameras?.main;
+        return {
+            played,
+            active: scene.villageArrivalRevealActive === true,
+            presentationMode: landmark?.presentationMode,
+            focusActive: scene.sanctuaryFocusModeActive === true,
+            cameraFollowingPlayer: camera?._follow === scene.player,
+            cameraTarget: scene.sanctuaryCameraFocusTarget,
+            controlsSuspended: scene.mobileControls?.isSuspended === true,
+            inputShield: scene.villageArrivalRevealInputShield
+                ?.getData?.('villageArrivalRevealInputShield') === true,
+            inputShieldVisiblePanel: scene.villageArrivalRevealInputShield
+                ?.getData?.('visiblePanel'),
+            navigationMarkersHidden: (scene.navigationMarkers || []).every(
+                marker => marker.visible === false
+            ),
+            menuHidden: [
+                scene.hamburgerMenu?.menuButton?.bg,
+                scene.hamburgerMenu?.menuButton?.icon,
+                scene.hamburgerMenu?.menuButton?.zone
+            ].filter(Boolean).every(element => element.visible === false),
+            worldLed: reveal?.getData?.('villageArrivalRevealWorldLed'),
+            blockingPanel: reveal?.getData?.('villageArrivalRevealBlockingPanel'),
+            skippable: reveal?.getData?.('villageArrivalRevealSkippable'),
+            duration: reveal?.getData?.('villageArrivalRevealDuration'),
+            title: reveal?.getData?.('villageArrivalRevealTitle'),
+            subtitle: reveal?.getData?.('villageArrivalRevealSubtitle'),
+            ariaLabel: reveal?.getData?.('ariaLabel'),
+            currentWave: reveal?.list?.some(
+                child => child?.getData?.('villageArrivalCurrentWave') === true
+            ) === true,
+            rootAnswer: reveal?.list?.some(
+                child => child?.getData?.('villageArrivalRootAnswer') === true
+            ) === true
+        };
+    })()`);
+    if (
+        !arrivalReveal.played ||
+        !arrivalReveal.active ||
+        arrivalReveal.presentationMode !== 'story' ||
+        !arrivalReveal.focusActive ||
+        arrivalReveal.cameraFollowingPlayer ||
+        !arrivalReveal.cameraTarget ||
+        (SMOKE_VIEWPORT_WIDTH <= 600 && !arrivalReveal.controlsSuspended) ||
+        (SMOKE_VIEWPORT_WIDTH > 600 && arrivalReveal.controlsSuspended) ||
+        !arrivalReveal.inputShield ||
+        arrivalReveal.inputShieldVisiblePanel !== false ||
+        !arrivalReveal.navigationMarkersHidden ||
+        !arrivalReveal.menuHidden ||
+        arrivalReveal.worldLed !== true ||
+        arrivalReveal.blockingPanel !== false ||
+        arrivalReveal.skippable !== true ||
+        arrivalReveal.duration !== 2800 ||
+        arrivalReveal.title !== 'THE HEART ANSWERS' ||
+        arrivalReveal.subtitle !== 'A HOME WE BUILD TOGETHER' ||
+        !arrivalReveal.ariaLabel?.includes('Tap or press any key') ||
+        !arrivalReveal.currentWave ||
+        !arrivalReveal.rootAnswer
+    ) {
+        throw new Error(
+            `Village arrival reveal failed to establish focus: ${JSON.stringify(arrivalReveal)}`
+        );
+    }
+    await delay(850);
+    await captureGameplayStill(session, 'village-heart-arrival-reveal-mobile.png');
+    const arrivalRecovery = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene.villageHeartLandmark;
+        const finished = scene.finishVillageArrivalReveal({ skipped: true });
+        return {
+            finished,
+            active: scene.villageArrivalRevealActive === true,
+            revealPresent: Boolean(landmark?.arrivalReveal),
+            focusActive: scene.sanctuaryFocusModeActive === true,
+            cameraFollowingPlayer: scene.cameras?.main?._follow === scene.player,
+            controlsSuspended: scene.mobileControls?.isSuspended === true,
+            inputShieldPresent: Boolean(scene.villageArrivalRevealInputShield),
+            inputCooldownActive: scene.villageArrivalRevealInputCooldownUntil >
+                (scene.time?.now || 0),
+            navigationMarkersRestored: (scene.navigationMarkers || []).every(
+                marker => marker.visible !== false
+            ),
+            menuRestored: [
+                scene.hamburgerMenu?.menuButton?.bg,
+                scene.hamburgerMenu?.menuButton?.icon,
+                scene.hamburgerMenu?.menuButton?.zone
+            ].filter(Boolean).every(element => element.visible !== false),
+            skipped: landmark?.zone?.getData?.('villageArrivalRevealSkipped')
+        };
+    })()`);
+    await waitFor(
+        () => evaluate(session, `(
+            window.mythicalGame.scene.getScene('GameScene')
+                ?.__smokeVillageArrivalComplete || 0
+        ) === 1`),
+        { timeoutMs: 3000, message: 'Village arrival reveal completion handoff' }
+    );
+    if (
+        !arrivalRecovery.finished ||
+        arrivalRecovery.active ||
+        arrivalRecovery.revealPresent ||
+        arrivalRecovery.focusActive ||
+        !arrivalRecovery.cameraFollowingPlayer ||
+        arrivalRecovery.controlsSuspended ||
+        arrivalRecovery.inputShieldPresent ||
+        !arrivalRecovery.inputCooldownActive ||
+        !arrivalRecovery.navigationMarkersRestored ||
+        !arrivalRecovery.menuRestored ||
+        arrivalRecovery.skipped !== true
+    ) {
+        throw new Error(
+            `Village arrival reveal did not restore gameplay: ${JSON.stringify(arrivalRecovery)}`
         );
     }
     const shopResult = await evaluate(session, `(() => {
@@ -10325,6 +11203,71 @@ async function smokeVillageUi(session, exceptions) {
         { timeoutMs: 12000, message: 'Base Builder opened from Shop Build tab' }
     );
     await captureGameplayStill(session, 'village-base-builder.png');
+    await evaluate(session, `(() => {
+        const proposal = document.querySelector('.village-resident-proposal');
+        proposal?.scrollIntoView?.({ block: 'center' });
+        return Boolean(proposal);
+    })()`);
+    await delay(1250);
+    const residentProposal = await evaluate(session, `(() => {
+        const proposal = document.querySelector('.village-resident-proposal');
+        const bounds = proposal?.getBoundingClientRect?.();
+        return {
+            present: Boolean(proposal),
+            building: proposal?.dataset?.building || '',
+            speaker: proposal?.dataset?.speaker || '',
+            speakerLabel: proposal?.querySelector(
+                '.village-resident-proposal-speaker'
+            )?.textContent || '',
+            title: proposal?.querySelector(
+                '.village-resident-proposal-title'
+            )?.textContent || '',
+            request: proposal?.querySelector(
+                '.village-resident-proposal-request'
+            )?.textContent || '',
+            promise: proposal?.querySelector(
+                '.village-resident-proposal-promise'
+            )?.textContent || '',
+            impact: proposal?.querySelector(
+                '.village-resident-proposal-impact'
+            )?.textContent || '',
+            bounds: bounds ? {
+                left: bounds.left,
+                right: bounds.right,
+                top: bounds.top,
+                bottom: bounds.bottom
+            } : null,
+            viewport: { width: innerWidth, height: innerHeight }
+        };
+    })()`);
+    if (
+        !residentProposal.present ||
+        residentProposal.building !== 'forager_hut' ||
+        !residentProposal.speaker ||
+        !(
+            residentProposal.speakerLabel.includes('· COMPANION') ||
+            residentProposal.speakerLabel.includes('· RESCUED RESIDENT')
+        ) ||
+        residentProposal.title !== 'MARK A SAFE FOOD PATH' ||
+        !residentProposal.request.includes('grows back') ||
+        !residentProposal.promise.includes('tomorrow') ||
+        !residentProposal.impact.includes('5 happiness') ||
+        !residentProposal.bounds ||
+        residentProposal.bounds.left < -1 ||
+        residentProposal.bounds.right > residentProposal.viewport.width + 1 ||
+        residentProposal.bounds.top < -1 ||
+        residentProposal.bounds.bottom > residentProposal.viewport.height + 1
+    ) {
+        throw new Error(
+            `Village resident proposal was not clear and visible: ${JSON.stringify(residentProposal)}`
+        );
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-resident-proposal-mobile.png'
+            : 'village-resident-proposal-desktop.png'
+    );
     const construction = await evaluate(session, `(() => {
         const action = document.querySelector('.village-construct-action:not(:disabled)');
         if (!action) return { clicked: false, text: null };
@@ -10332,7 +11275,7 @@ async function smokeVillageUi(session, exceptions) {
         action.click();
         return { clicked: true, text };
     })()`);
-    if (!construction.clicked || !/CONSTRUCT FORAGE AT ROOT 01/.test(construction.text || '')) {
+    if (!construction.clicked || !/BUILD FORAGE HERE/.test(construction.text || '')) {
         throw new Error(`Base Builder construction action unavailable: ${JSON.stringify(construction)}`);
     }
     await waitFor(
@@ -10369,6 +11312,2079 @@ async function smokeVillageUi(session, exceptions) {
     }
 
     await evaluate(session, `(() => {
+        window.GameState.set('tutorial.crashStorySeen', true);
+        window.GameState.set('tutorial.controlsSeen', true);
+        window.GameState.set('story.projectBeacon.missionLogSeen', true);
+        window.GameState.set(
+            'session.lastDailyShown',
+            new Date().toISOString().split('T')[0]
+        );
+        window.GameState.save();
+        window.OnboardingManager?.skipRemaining?.();
+        window.mythicalGame.scene
+            .getScene('GameScene')?.controlsTutorial?.hide?.();
+        window.mythicalGame.scene.getScene('ShopScene')?.exitShop?.();
+        return true;
+    })()`);
+    await waitForScene(session, 'GameScene', 12000);
+    const integratedSetup = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const state = window.GameState;
+        const active = state.get('creature');
+        const companions = [
+            { ...active, id: 'smoke_village_nova', name: 'Nova' },
+            {
+                ...active,
+                id: 'smoke_village_ember',
+                name: 'Ember',
+                genes: {
+                    id: 'smoke_village_ember_genes',
+                    personality: { primary: 'bold' },
+                    cosmicAffinity: { element: 'star' }
+                }
+            },
+            {
+                ...active,
+                id: 'smoke_village_lumen',
+                name: 'Lumen',
+                genes: {
+                    id: 'smoke_village_lumen_genes',
+                    personality: { primary: 'wise' },
+                    cosmicAffinity: { element: 'crystal' }
+                }
+            }
+        ];
+        const completedAt = Date.now() - 120000;
+        state.set('creature', companions[0]);
+        state.set('creatures', companions);
+        state.set('world.village', {
+            schemaVersion: 3,
+            foundedAt: completedAt,
+            starterSuppliesClaimed: true,
+            guidanceSeen: true,
+            resources: { wood: 24, stone: 26, food: 30 },
+            lifetimeProduced: { wood: 6, stone: 6, food: 6 },
+            heartDecisions: [],
+            buildings: [
+                ['forager_hut', 'root_01', companions[0].id],
+                ['sawmill', 'root_02', companions[1].id],
+                ['current_masonry', 'root_03', companions[2].id]
+            ].map(([definitionId, plotId, assignedCreatureId]) => ({
+                definitionId,
+                plotId,
+                status: 'complete',
+                startedAt: completedAt - 10000,
+                completesAt: completedAt,
+                completedAt,
+                assignedCreatureId,
+                lastProductionAt: completedAt,
+                totalProduced: 6
+            })),
+            history: [],
+            lastReconciledAt: completedAt
+        });
+        state.set('world.signalGarden.stage', 'bloom');
+        state.set('story.projectBeacon.missionLogSeen', true);
+        state.set('tutorial.villageHeartArrivalSeen', true);
+        state.save();
+        if (scene.villageArrivalRevealActive) {
+            scene.finishVillageArrivalReveal({ skipped: true });
+        }
+        scene.cancelVillageArrivalReveal?.();
+        scene.setSanctuaryMomentFocus(false);
+        scene.refreshVillageSettlementWorld(null, { force: true });
+        scene.worldBuilder.refreshSignalGarden(scene.signalGarden, 'bloom');
+        const approachX = scene.villageHeartLandmark.zone.x;
+        const approachY = scene.villageHeartLandmark.zone.y - 110;
+        scene.nearVillageHeart = false;
+        scene.updateSanctuaryFocusMode(false);
+        scene.physics.pause();
+        scene.player.setPosition(approachX, approachY);
+        scene.player.body?.reset?.(approachX, approachY);
+        scene.player.setPosition(approachX, approachY);
+        scene.player.body?.setVelocity?.(0, 0);
+        scene.updateSanctuaryActorDepths();
+        scene.astronautFollower?.update(1000);
+        scene.handleVillageHeartProximity();
+        return {
+            worldWidth: scene.worldWidth,
+            worldHeight: scene.worldHeight,
+            targetCount: scene.targetRange?.allTargets?.length || 0,
+            focusTarget: scene.sanctuaryCameraFocusTarget || null
+        };
+    })()`);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            return scene?.villageHeartLandmark?.plotHitZones?.length === 5 &&
+                scene?.villageHeartLandmark?.workerElements?.length === 3;
+        })()`),
+        { message: 'Integrated Sanctuary district' }
+    );
+    await waitFor(
+        () => evaluate(
+            session,
+            `window.mythicalGame.scene.getScene('GameScene')?.cameras?.main?.panEffect?.isRunning !== true`
+        ),
+        { message: 'Village Heart focus camera settled' }
+    );
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const landmark = scene?.villageHeartLandmark;
+            const expectedPlotAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.2 : 0.28};
+            const expectedWorkerAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.25 : 0.34};
+            return landmark?.focusModeActive === true &&
+                (landmark.plotPresentations || []).every(presentation => {
+                    const playerNearby = presentation.container
+                        ?.getData?.('villagePlayerNearby') === true;
+                    const plotAlpha = playerNearby ? 1 : expectedPlotAlpha;
+                    return Math.abs(presentation.container.alpha - plotAlpha) <= 0.01 &&
+                    (
+                        !presentation.worker ||
+                        Math.abs(presentation.worker.alpha - expectedWorkerAlpha) <= 0.01
+                    );
+                });
+        })()`),
+        { timeoutMs: 4000, message: 'Village Heart visual focus hierarchy settled' }
+    );
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const heart = scene?.villageHeartLandmark?.zone;
+            const player = scene?.player;
+            if (!scene || !heart || !player) return false;
+            const approachX = heart.x;
+            const approachY = heart.y - 110;
+            if (
+                Math.abs(player.x - approachX) > 1 ||
+                Math.abs(player.y - approachY) > 1
+            ) {
+                scene.physics.pause();
+                player.setPosition(approachX, approachY);
+                player.body?.reset?.(approachX, approachY);
+                player.body?.setVelocity?.(0, 0);
+            }
+            scene.updateSanctuaryActorDepths();
+            return Math.abs(player.x - approachX) <= 1 &&
+                Math.abs(player.y - approachY) <= 1 &&
+                player.getData?.('villageHeartLayer') === 'behind';
+        })()`),
+        { timeoutMs: 4000, message: 'Village Heart south approach actor placement' }
+    );
+    const integratedWorld = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const camera = scene.cameras.main;
+        const landmark = scene.villageHeartLandmark;
+        const toScreen = (x, y) => ({
+            x: (x - camera.worldView.x) * camera.zoom,
+            y: (y - camera.worldView.y) * camera.zoom
+        });
+        const commons = scene.sanctuaryCommons;
+        const interactionBounds = scene.interactionText?.getBounds?.();
+        const interactionDirector = scene.sanctuaryInteractionDirector;
+        const touchLayout = scene.hasVisibleTouchControls?.() === true;
+        const interactionHitZone = interactionDirector?.indicatorElements?.find(element => (
+            touchLayout
+                ? element?.getData?.('sanctuaryActionNodeHitZone') === true &&
+                    element?.getData?.('commandChannel') === 'target'
+                : element?.getData?.('sanctuaryInteractionBeaconHitZone') === true
+        ));
+        const interactionVisual = touchLayout
+            ? interactionDirector?.actionNodeParts?.node
+            : interactionDirector?.beacon;
+        const interactionBeaconBounds = interactionHitZone?.getBounds?.();
+        const settlementBounds = scene.sanctuaryZones?.zones?.settlementDistrict?.bounds;
+        const insideSettlement = object => Boolean(settlementBounds) &&
+            object.x >= settlementBounds.x &&
+            object.x <= settlementBounds.x + settlementBounds.width &&
+            object.y >= settlementBounds.y &&
+            object.y <= settlementBounds.y + settlementBounds.height;
+        const proceduralDecorInsideDistrict = [
+            ...(scene.trees?.getChildren?.() || []),
+            ...(scene.rocks?.getChildren?.() || []),
+            ...(scene.flowers?.getChildren?.() || [])
+        ].filter(insideSettlement).length;
+        const proceduralDecorTotal =
+            (scene.trees?.getChildren?.().length || 0) +
+            (scene.rocks?.getChildren?.().length || 0) +
+            (scene.flowers?.getChildren?.().length || 0);
+        const collectibles = (scene.collectibles || []).filter(
+            collectible => collectible?.collected !== true && collectible?.container?.active !== false
+        );
+        const collectiblesInsideDistrict = collectibles.filter(collectible => (
+            insideSettlement(collectible.container)
+        ));
+        const stateLanguage = [
+            ['dormant', 0],
+            ['available', 0],
+            ['constructing', 0.5],
+            ['needs_helper', 1],
+            ['complete', 1],
+            ['staffed', 1]
+        ].map(([state, progress]) => {
+            const marker = scene.worldBuilder.createVillagePlotStateMarker({
+                state,
+                progress,
+                compact: ${SMOKE_VIEWPORT_WIDTH <= 600},
+                built: !['dormant', 'available'].includes(state)
+            });
+            const result = {
+                state: marker.getData('villagePlotState'),
+                progressNodes: marker.getData('progressNodes'),
+                ariaLabel: marker.getData('ariaLabel'),
+                active: marker.active === true
+            };
+            marker.destroy();
+            return result;
+        });
+        const garden = toScreen(scene.signalGarden.zone.x, scene.signalGarden.zone.y);
+        const heart = toScreen(landmark.zone.x, landmark.zone.y);
+        const interactionRadius = scene.getInteractionDistance('villageHeart').clear;
+        const focusApproachBounds = {
+            left: toScreen(landmark.zone.x - interactionRadius, landmark.zone.y).x,
+            right: toScreen(landmark.zone.x + interactionRadius, landmark.zone.y).x,
+            top: toScreen(landmark.zone.x, landmark.zone.y - interactionRadius).y,
+            bottom: toScreen(landmark.zone.x, landmark.zone.y + interactionRadius).y
+        };
+        const plots = [...landmark.plotWorldPositions.entries()].map(([plotId, position]) => ({
+            plotId,
+            ...toScreen(position.x, position.y)
+        }));
+        const plotHitBounds = (landmark.plotHitZones || []).map(zone => {
+            const bounds = zone.getBounds();
+            const topLeft = toScreen(bounds.left, bounds.top);
+            const bottomRight = toScreen(bounds.right, bounds.bottom);
+            return {
+                plotId: zone.plotId,
+                left: topLeft.x,
+                right: bottomRight.x,
+                top: topLeft.y,
+                bottom: bottomRight.y
+            };
+        });
+        const dockTop = scene.mobileControls?.isVisible
+            ? scene.mobileControls?.layout?.dockTop
+            : null;
+        return {
+            world: { width: scene.worldWidth, height: scene.worldHeight },
+            viewport: { width: camera.width, height: camera.height },
+            camera: { x: camera.worldView.x, y: camera.worldView.y, zoom: camera.zoom },
+            player: toScreen(scene.player.x, scene.player.y),
+            heart,
+            focusApproachBounds,
+            garden,
+            gardenStage: scene.signalGarden.stage,
+            gardenVisible: garden.x >= 0 && garden.x <= camera.width &&
+                garden.y >= 0 && garden.y <= camera.height,
+            plots,
+            plotHitBounds,
+            cameraFocusTarget: scene.sanctuaryCameraFocusTarget || null,
+            cameraFollowingPlayer: camera._follow === scene.player,
+            achievementOverlay: (() => {
+                const notification = scene.achievementNotification;
+                const overlay = notification?.overlay;
+                const container = notification?.container;
+                if (!overlay) return null;
+                return {
+                    isVisible: notification?.isVisible === true,
+                    overlayAlpha: overlay.alpha,
+                    overlayVisible: overlay.visible === true,
+                    backdropMode: overlay.getData?.('achievementBackdropMode'),
+                    scrollFactorX: overlay.scrollFactorX,
+                    scrollFactorY: overlay.scrollFactorY,
+                    screenCenterX: overlay.x * camera.zoom,
+                    screenCenterY: overlay.y * camera.zoom,
+                    containerScrollFactorX: container?.scrollFactorX,
+                    containerScrollFactorY: container?.scrollFactorY,
+                    containerScreenCenterX: container?.x * camera.zoom,
+                    containerScreenCenterY: container?.y * camera.zoom,
+                    normalizedContainerScaleX: container?.scaleX * camera.zoom,
+                    normalizedContainerScaleY: container?.scaleY * camera.zoom
+                };
+            })(),
+            focusHierarchy: {
+                active: landmark.focusModeActive === true,
+                action: landmark.snapshot?.worldState?.nextAction?.type || null,
+                heartPriority: landmark.heartArtwork?.getData?.('villageFocusPriority'),
+                heartAlpha: landmark.heartArtwork?.alpha,
+                heartArtworkTreatment: landmark.heartArtwork?.getData?.(
+                    'villageArtworkTreatment'
+                ),
+                heartArtworkVariant: landmark.heartArtwork?.getData?.(
+                    'villageArtworkVariant'
+                ),
+                heartArtworkTint: landmark.heartArtwork?.getData?.('villageArtworkTint'),
+                plots: (landmark.plotPresentations || []).map(presentation => ({
+                    plotId: presentation.plotId,
+                    plotState: presentation.plotState,
+                    priority: presentation.container?.getData?.('villageFocusPriority'),
+                    alpha: presentation.container?.alpha,
+                    workerAlpha: presentation.worker?.alpha ?? null,
+                    focusRingAlpha: presentation.focusRing?.alpha,
+                    artworkTreatment: presentation.worldArtwork?.getData?.(
+                        'villageArtworkTreatment'
+                    ) || null,
+                    artworkVariant: presentation.worldArtwork?.getData?.(
+                        'villageArtworkVariant'
+                    ) || null,
+                    artworkState: presentation.worldArtwork?.getData?.(
+                        'villageArtworkState'
+                    ) || null,
+                    artworkTint: presentation.worldArtwork?.getData?.(
+                        'villageArtworkTint'
+                    ) || null,
+                    groundingMaterial: presentation.artworkGrounding?.getData?.(
+                        'villageGroundingMaterial'
+                    ) || null,
+                    groundingState: presentation.artworkGrounding?.getData?.(
+                        'villageGroundingState'
+                    ) || null,
+                    silhouetteLanguage: presentation.stateSilhouette?.getData?.(
+                        'villageStructureStateVisualLanguage'
+                    ),
+                    silhouetteState: presentation.stateSilhouette?.getData?.(
+                        'villageStructureState'
+                    ),
+                    silhouetteAction: presentation.stateSilhouette?.getData?.(
+                        'villageStructureStateAction'
+                    ),
+                    silhouetteBuilt: presentation.stateSilhouette?.getData?.(
+                        'villageStructureStateBuilt'
+                    ),
+                    silhouetteBaseAlpha: presentation.stateSilhouette?.getData?.(
+                        'villageStructureStateBaseAlpha'
+                    )
+                }))
+            },
+            heartApproach: {
+                threshold: landmark.heartCaption?.getData?.(
+                    'villageHeartApproachThreshold'
+                ) === true,
+                direction: landmark.heartCaption?.getData?.('approachDirection'),
+                anchorX: landmark.heartCaption?.getData?.('approachAnchorX'),
+                anchorY: landmark.heartCaption?.getData?.('approachAnchorY'),
+                coreActive: landmark.collisionZone?.active === true,
+                coreBodyEnabled: landmark.collisionZone?.body?.enable === true,
+                coreWidth: landmark.collisionZone?.body?.width,
+                coreHeight: landmark.collisionZone?.body?.height,
+                coreShape: landmark.collisionZone?.getData?.('collisionShape'),
+                positionSafeBreathing: scene.player.getData?.(
+                    'positionSafeBreathing'
+                ) === true,
+                actorDepthSorted: scene.player.getData?.('sanctuaryDepthSorted') === true,
+                actorLayer: scene.player.getData?.('villageHeartLayer'),
+                actorDepth: scene.player.depth,
+                actorY: scene.player.y,
+                heartArtworkDepth: landmark.heartArtwork?.depth
+            },
+            mobileDiagnostics: {
+                controlsMobile: scene.mobileControls?.isMobile === true,
+                controlsVisible: scene.mobileControls?.isVisible === true,
+                forced: scene.forceMobileControls === true,
+                maxTouchPoints: navigator.maxTouchPoints,
+                hasWindowTouchStart: 'ontouchstart' in window,
+                hasDocumentTouchStart: 'ontouchstart' in document.documentElement,
+                coarsePointer: window.matchMedia?.('(pointer: coarse)')?.matches === true,
+                hoverNone: window.matchMedia?.('(hover: none)')?.matches === true,
+                userAgent: navigator.userAgent
+            },
+            controlDock: Number.isFinite(dockTop) ? {
+                left: 0,
+                right: camera.width,
+                top: dockTop,
+                bottom: camera.height,
+                visualStyle: scene.mobileControls?.dockBackground?.getData?.('visualStyle'),
+                centerGapWidth: scene.mobileControls?.dockBackground?.getData?.('centerGapWidth')
+            } : null,
+            plotStates: (landmark.plotPresentations || []).map(presentation => ({
+                plotId: presentation.plotId,
+                state: presentation.stateMarker?.getData?.('villagePlotState'),
+                progressNodes: presentation.stateMarker?.getData?.('progressNodes'),
+                active: presentation.stateMarker?.active === true,
+                districtAnchor: presentation.districtAnchor?.getData?.(
+                    'villageDistrictAnchor'
+                ) === true,
+                districtAnchorMaterial: presentation.districtAnchor?.getData?.(
+                    'villageDistrictAnchorMaterial'
+                ),
+                districtAnchorState: presentation.districtAnchor?.getData?.(
+                    'villageDistrictState'
+                ),
+                districtActionVerb: presentation.districtAnchor?.getData?.(
+                    'villageDistrictActionVerb'
+                ),
+                districtVisualLanguage: presentation.districtAnchor?.getData?.(
+                    'villageDistrictVisualLanguage'
+                ),
+                interactionVerb: presentation.hitZone?.getData?.('interactionVerb'),
+                districtAnchorAlpha: presentation.districtAnchor?.alpha
+            })),
+            plotCount: landmark.plotHitZones.length,
+            workerCount: landmark.workerElements.length,
+            habitatLife: (() => {
+                const habitat = landmark.residentElements?.[0] || null;
+                return habitat ? {
+                    capacity: habitat.getData('capacity'),
+                    residentNames: habitat.getData('residentNames'),
+                    residentStatuses: habitat.getData('residentStatuses'),
+                    residentFigureCount: habitat.getData('residentFigureCount'),
+                    homeTetherCount: habitat.getData('homeTetherCount'),
+                    presentCount: habitat.getData('presentCount'),
+                    helpingCount: habitat.getData('helpingCount'),
+                    ariaLabel: habitat.getData('ariaLabel'),
+                    statusText: habitat.list?.find(child => child?.type === 'Text')?.text || '',
+                    active: habitat.active === true
+                } : null;
+            })(),
+            flowSignals: (landmark.villageFlowSignals || []).map(signal => ({
+                direction: signal.getData('direction'),
+                resource: signal.getData('resource'),
+                helperName: signal.getData('helperName'),
+                buildingId: signal.getData('buildingId'),
+                worldEffectLabel: signal.getData('worldEffectLabel'),
+                role: signal.getData('villageAmbientRole'),
+                ariaLabel: signal.getData('ariaLabel'),
+                active: signal.active === true,
+                visible: signal.visible === true
+            })),
+            targetCount: scene.targetRange?.allTargets?.length || 0,
+            restoration: {
+                rootBudCount: landmark.restorationRoots?.getData?.('rootBudCount') || 0,
+                litRootCount: landmark.restorationRoots?.getData?.('litRootCount') || 0,
+                growthTier: landmark.restorationRoots?.getData?.('growthTier'),
+                growthLabel: landmark.restorationRoots?.getData?.('growthLabel'),
+                ariaLabel: landmark.restorationRoots?.getData?.('ariaLabel'),
+                statusGrowthTier: landmark.statusLabel?.getData?.('villageGrowthTier'),
+                statusGrowthLabel: landmark.statusLabel?.getData?.('villageGrowthLabel'),
+                statusText: landmark.statusLabel?.text || '',
+                active: landmark.restorationRoots?.active === true
+            },
+            district: {
+                terrainActive: landmark.districtTerrain?.active === true,
+                material: landmark.districtTerrain?.getData?.('villageTerrainMaterial'),
+                uniformOverlay: landmark.districtTerrain?.getData?.('uniformOverlay'),
+                patchCount: landmark.districtTerrain?.getData?.('terrainPatchCount') || 0,
+                continuousGround: landmark.districtTerrain?.getData?.(
+                    'villageDistrictContinuousGround'
+                ) === true,
+                groundProfile: landmark.districtTerrain?.getData?.(
+                    'villageDistrictGroundProfile'
+                ),
+                entranceCount: landmark.districtTerrain?.getData?.(
+                    'villageDistrictEntranceCount'
+                ) || 0,
+                edgeNodeCount: landmark.districtTerrain?.getData?.(
+                    'villageDistrictEdgeNodeCount'
+                ) || 0,
+                groundWidth: landmark.districtTerrain?.getData?.(
+                    'villageDistrictGroundWidth'
+                ) || 0,
+                groundHeight: landmark.districtTerrain?.getData?.(
+                    'villageDistrictGroundHeight'
+                ) || 0,
+                identityCount: landmark.districtTerrain?.getData?.(
+                    'districtIdentityCount'
+                ) || 0,
+                identityIds: landmark.districtTerrain?.getData?.(
+                    'districtIdentityIds'
+                ) || [],
+                terrainDepth: landmark.districtTerrain?.depth,
+                pathMaterial: landmark.currentPaths?.getData?.('villagePathMaterial'),
+                connectedPlotCount: landmark.currentPaths?.getData?.('connectedPlotCount') || 0,
+                pathResourceLanguage: landmark.currentPaths?.getData?.(
+                    'villagePathResourceLanguage'
+                ),
+                pathResourceRouteCount: landmark.currentPaths?.getData?.(
+                    'villagePathResourceRouteCount'
+                ) || 0,
+                pathResourceRoutes: landmark.currentPaths?.getData?.(
+                    'villagePathResourceRoutes'
+                ) || [],
+                pathDepth: landmark.currentPaths?.depth,
+                routeFoundationWidth: landmark.currentPaths?.getData?.('routeFoundationWidth'),
+                routeHighlightWidth: landmark.currentPaths?.getData?.('routeHighlightWidth'),
+                ecologyActive: landmark.districtEcology?.active === true,
+                ecologyGrowthTier: landmark.districtEcology?.getData?.('growthTier'),
+                ecologyRestoredCount: landmark.districtEcology?.getData?.('restoredCount'),
+                ecologyNodeCount: landmark.districtEcology?.getData?.('ecologyNodeCount') || 0,
+                pulseActive: landmark.districtPulse?.active === true,
+                pulseNodeCount: landmark.districtPulse?.getData?.('ecologyNodeCount') || 0,
+                pulseTweenActive: landmark.ecologyTween?.isPlaying?.() === true,
+                thresholdCount: landmark.districtThresholds?.getData?.('villageThresholdCount') || 0,
+                thresholdPurpose: landmark.districtThresholds?.getData?.('thresholdPurpose')
+            },
+            proceduralDecorInsideDistrict,
+            proceduralDecorTotal,
+            collectibles: {
+                total: collectibles.length,
+                insideDistrict: collectiblesInsideDistrict.length,
+                worldCoordinateCount: collectibles.filter(collectible => (
+                    collectible.container?.getData?.('spawnCoordinateSpace') === 'world'
+                )).length,
+                groundedVisualCount: collectibles.filter(collectible => (
+                    collectible.container?.getData?.('collectibleVisualLanguage') ===
+                        'grounded-current-cache-v1'
+                )).length,
+                worldDepthCount: collectibles.filter(collectible => (
+                    collectible.container?.getData?.('collectibleDepthModel') ===
+                        'world-y-sorted'
+                )).length,
+                brokenArcCount: collectibles.filter(collectible => (
+                    collectible.container?.getData?.('collectibleRarityIndicator') ===
+                        'broken-current-arc'
+                )).length,
+                maxHoverAmplitude: Math.max(0, ...collectibles.map(collectible => (
+                    Number(collectible.container?.getData?.('collectibleHoverAmplitude')) || 0
+                ))),
+                outsideWorldCount: collectibles.filter(collectible => (
+                    collectible.x < 0 ||
+                    collectible.x > scene.worldWidth ||
+                    collectible.y < 0 ||
+                    collectible.y > scene.worldHeight
+                )).length
+            },
+            stateLanguage,
+            commons: {
+                terrainActive: commons?.terrain?.active === true,
+                pathActive: commons?.path?.active === true,
+                pathProfile: commons?.terrain?.getData?.('sanctuaryCommonsPathProfile'),
+                maxWidth: commons?.terrain?.getData?.('sanctuaryCommonsMaxWidth'),
+                routeIds: commons?.routes?.map(route => route.id) || [],
+                nodeCount: commons?.nodes?.length || 0,
+                signalCount: commons?.signals?.length || 0,
+                activeSignals: commons?.signals?.filter(signal => signal.active).length || 0,
+                activeTweens: commons?.signalTweens?.filter(tween => tween.isPlaying()).length || 0
+            },
+            sanctuaryCirculation: {
+                active: scene.sanctuaryDistricts?.routes?.active === true,
+                profile: scene.sanctuaryDistricts?.routes?.getData?.('sanctuaryRouteProfile'),
+                maxWidth: scene.sanctuaryDistricts?.routes?.getData?.('sanctuaryRouteMaxWidth'),
+                routeIds: scene.sanctuaryDistricts?.routes?.getData?.('sanctuaryRouteIds') || []
+            },
+            sanctuaryTerrain: {
+                active: scene.sanctuaryDistricts?.terrain?.active === true,
+                profile: scene.sanctuaryDistricts?.terrain?.getData?.(
+                    'sanctuaryDistrictVisualProfile'
+                ),
+                fullZoneFill: scene.sanctuaryDistricts?.terrain?.getData?.(
+                    'sanctuaryDistrictFullZoneFill'
+                ),
+                maxFillAlpha: scene.sanctuaryDistricts?.terrain?.getData?.(
+                    'sanctuaryDistrictMaxFillAlpha'
+                ),
+                contourCount: scene.sanctuaryDistricts?.terrain?.getData?.(
+                    'sanctuaryDistrictContourCount'
+                ) || 0,
+                anchorPatchCount: scene.sanctuaryDistricts?.terrain?.getData?.(
+                    'sanctuaryDistrictAnchorPatchCount'
+                ) || 0
+            },
+            sanctuaryFlora: (() => {
+                const flora = scene.sanctuaryDistricts?.flora || [];
+                return {
+                    count: flora.length,
+                    groundedCount: flora.filter(entry => (
+                        entry.image?.getData?.('sanctuaryFloraGrounded') === true &&
+                        entry.grounding?.getData?.('sanctuaryFloraGrounding') === true
+                    )).length,
+                    supportingCount: flora.filter(entry => (
+                        entry.image?.getData?.('sanctuaryFloraPresentation') ===
+                            'supporting-focus'
+                    )).length,
+                    targetAlphaCount: flora.filter(entry => (
+                        entry.image?.getData?.('sanctuaryFloraTargetAlpha') ===
+                            ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.34 : 0.44}
+                    )).length,
+                    maxAlpha: Math.max(
+                        0,
+                        ...flora.map(entry => Number(entry.image?.alpha) || 0)
+                    ),
+                    focusActive: scene.sanctuaryDistricts?.terrain?.getData?.(
+                        'sanctuaryFloraFocusActive'
+                    ) === true
+                };
+            })(),
+            sanctuaryBackground: {
+                cameraEdgeColor: camera.backgroundColor?.color,
+                profile: scene.worldBackground?.getData?.('worldBackgroundProfile'),
+                cloudRadiusMax: scene.worldBackground?.getData?.(
+                    'worldBackgroundCloudRadiusMax'
+                ),
+                floatingPlatformCount: scene.worldBackground?.getData?.(
+                    'worldBackgroundFloatingPlatformCount'
+                ),
+                currentThreadCount: scene.worldBackground?.getData?.(
+                    'worldBackgroundCurrentThreadCount'
+                ),
+                overscan: scene.worldBackground?.getData?.(
+                    'worldBackgroundOverscan'
+                ),
+                edgeColor: scene.worldBackground?.getData?.(
+                    'worldBackgroundEdgeColor'
+                ),
+                alpha: scene.worldBackground?.alpha,
+                screenBounds: (() => {
+                    const bounds = scene.worldBackground?.getBounds?.();
+                    if (!bounds) return null;
+                    const topLeft = toScreen(bounds.left, bounds.top);
+                    const bottomRight = toScreen(bounds.right, bounds.bottom);
+                    return {
+                        left: topLeft.x,
+                        top: topLeft.y,
+                        right: bottomRight.x,
+                        bottom: bottomRight.y
+                    };
+                })()
+            },
+            sanctuaryParallax: (() => {
+                const layers = scene.parallaxBiome?.layers || [];
+                const currentField = layers.find(
+                    entry => entry.type === 'sanctuaryCurrentField'
+                )?.object;
+                const backdrop = layers.find(
+                    entry => entry.type === 'background'
+                )?.object;
+                return {
+                    profile: currentField?.getData?.('sanctuaryParallaxProfile'),
+                    filledWisps: currentField?.getData?.(
+                        'sanctuaryParallaxFilledWisps'
+                    ),
+                    threadCount: currentField?.getData?.(
+                        'sanctuaryParallaxThreadCount'
+                    ),
+                    shaderEnabled: scene.parallaxBiome?.shaderEnabled === true,
+                    shaderContractEnabled: currentField?.getData?.(
+                        'sanctuaryParallaxShaderEnabled'
+                    ),
+                    currentFieldCount: layers.filter(
+                        entry => entry.type === 'sanctuaryCurrentField'
+                    ).length,
+                    filledWispCount: layers.filter(entry => entry.type === 'nebula').length,
+                    vignetteCount: layers.filter(entry => entry.type === 'vignette').length,
+                    backdropFixed: backdrop?.getData?.('sanctuaryParallaxBackdropFixed'),
+                    backdropProfile: backdrop?.getData?.(
+                        'sanctuaryParallaxBackdropProfile'
+                    ),
+                    backdropAlpha: backdrop?.alpha,
+                    backdropBounds: (() => {
+                        const bounds = backdrop?.getBounds?.();
+                        if (!bounds) return null;
+                        return {
+                            left: bounds.left,
+                            top: bounds.top,
+                            right: bounds.right,
+                            bottom: bounds.bottom
+                        };
+                    })(),
+                    backdropScrollFactorX: backdrop?.scrollFactorX,
+                    backdropScrollFactorY: backdrop?.scrollFactorY
+                };
+            })(),
+            peripheralWayfinding: (() => {
+                const labels = scene.getSanctuaryPeripheralLabels?.() || [];
+                return {
+                    managedCount: landmark.zone?.getData?.(
+                        'peripheralLabelManagedCount'
+                    ) || 0,
+                    readableCount: landmark.zone?.getData?.(
+                        'peripheralLabelReadableCount'
+                    ) || 0,
+                    visibleCount: landmark.zone?.getData?.(
+                        'peripheralLabelVisibleCount'
+                    ) || 0,
+                    clippedVisibleCount: labels.filter(label => (
+                        label.visible !== false &&
+                        label.getData?.('sanctuaryEdgeReadable') !== true
+                    )).length,
+                    destinations: labels.map(label => label.getData?.(
+                        'sanctuaryPeripheralDestination'
+                    )),
+                    suppressed: landmark.zone?.getData?.(
+                        'peripheralWayfindingSuppressed'
+                    ) === true
+                };
+            })(),
+            focus: {
+                active: scene.sanctuaryFocusModeActive === true,
+                affinityNoticeActive: scene.cosmicAffinityNotice?.active === true,
+                kidStatusBarActive: scene.kidModeStatusBar?.active === true,
+                kidHelpActive: scene.kidModeHelpContainer?.active === true,
+                statsVisible: scene.statsText?.visible === true,
+                dailyGiftVisible: scene.dailyBonusButton?.visible === true,
+                questVisible: scene.questTracker?.container?.visible === true,
+                mobileHudFocused: scene.mobileHUD?.focusModeActive === true
+            },
+            secondaryHud: {
+                abilityVisible: scene.abilityHUD?.container?.visible === true,
+                minimapVisible: scene.cosmicMiniMap?.background?.visible === true,
+                statBarsVisible: scene.statBarGraphics?.visible === true,
+                economyVisible: scene.economyHud?.currencyText?.visible === true,
+                careHintVisible: scene.carePanelManager?.hintText?.visible === true,
+                helpHintVisible: scene.controlsHintPanel?.helpIcon?.bg?.visible === true
+            },
+            interactionHint: scene.interactionText?.text || '',
+            interactionVisible: scene.interactionText?.visible === true,
+            interactionBeacon: {
+                activeId: interactionDirector?.active?.id || null,
+                verb: interactionHitZone?.getData?.('interactionVerb') || '',
+                label: interactionHitZone?.getData?.('interactionLabel') || '',
+                commandChannel: interactionHitZone?.getData?.('commandChannel') || '',
+                visualLanguage: interactionVisual?.getData?.('visualLanguage') || '',
+                hitZoneWidth: interactionHitZone?.getData?.('touchTargetWidth') || 0,
+                hitZoneHeight: interactionHitZone?.getData?.('touchTargetHeight') || 0,
+                inputEnabled: interactionHitZone?.input?.enabled === true,
+                coordinateSpace: interactionHitZone?.getData?.('coordinateSpace'),
+                dockAnchored: interactionHitZone?.getData?.('mobileDockAnchored') === true,
+                ownershipLabel: interactionHitZone?.getData?.('ownershipLabel'),
+                ownershipRelation: interactionHitZone?.getData?.('ownershipRelation'),
+                bounds: interactionBeaconBounds ? (() => {
+                    if (interactionHitZone?.scrollFactorX === 0) {
+                        return {
+                            left: interactionBeaconBounds.left,
+                            right: interactionBeaconBounds.right,
+                            top: interactionBeaconBounds.top,
+                            bottom: interactionBeaconBounds.bottom
+                        };
+                    }
+                    const topLeft = toScreen(
+                        interactionBeaconBounds.left,
+                        interactionBeaconBounds.top
+                    );
+                    const bottomRight = toScreen(
+                        interactionBeaconBounds.right,
+                        interactionBeaconBounds.bottom
+                    );
+                    return {
+                        left: topLeft.x,
+                        right: bottomRight.x,
+                        top: topLeft.y,
+                        bottom: bottomRight.y
+                    };
+                })() : null
+            },
+            interactionBounds: interactionBounds ? {
+                left: interactionBounds.left,
+                right: interactionBounds.right,
+                top: interactionBounds.top,
+                bottom: interactionBounds.bottom
+            } : null,
+            districtTerrainActive: landmark.districtTerrain?.active === true,
+            modalOpen: Boolean(document.querySelector('.village-command-modal'))
+        };
+    })()`);
+    if (
+        integratedSetup.worldWidth !== 2400 ||
+        integratedSetup.worldHeight !== 1800 ||
+        integratedSetup.targetCount !== 8 ||
+        !integratedSetup.focusTarget ||
+        integratedWorld.world.width !== 2400 ||
+        integratedWorld.world.height !== 1800 ||
+        integratedWorld.plotCount !== 5 ||
+        !integratedWorld.cameraFocusTarget ||
+        integratedWorld.cameraFollowingPlayer ||
+        (
+            integratedWorld.achievementOverlay && (
+                integratedWorld.achievementOverlay.scrollFactorX !== 0 ||
+                integratedWorld.achievementOverlay.scrollFactorY !== 0 ||
+                integratedWorld.achievementOverlay.overlayVisible ||
+                integratedWorld.achievementOverlay.overlayAlpha !== 0 ||
+                integratedWorld.achievementOverlay.backdropMode !== 'non_blocking' ||
+                Math.abs(
+                    integratedWorld.achievementOverlay.screenCenterX -
+                    (integratedWorld.viewport.width / 2)
+                ) > 1 ||
+                Math.abs(
+                    integratedWorld.achievementOverlay.screenCenterY -
+                    (integratedWorld.viewport.height / 2)
+                ) > 1 ||
+                integratedWorld.achievementOverlay.containerScrollFactorX !== 0 ||
+                integratedWorld.achievementOverlay.containerScrollFactorY !== 0 ||
+                Math.abs(
+                    integratedWorld.achievementOverlay.containerScreenCenterX -
+                    (integratedWorld.viewport.width / 2)
+                ) > 1 ||
+                Math.abs(
+                    integratedWorld.achievementOverlay.containerScreenCenterY -
+                    (integratedWorld.viewport.height / 2)
+                ) > 1 ||
+                Math.abs(
+                    integratedWorld.achievementOverlay.normalizedContainerScaleX - 1
+                ) > 0.01 ||
+                Math.abs(
+                    integratedWorld.achievementOverlay.normalizedContainerScaleY - 1
+                ) > 0.01
+            )
+        ) ||
+        !integratedWorld.focusHierarchy.active ||
+        integratedWorld.focusHierarchy.action !== 'decision' ||
+        integratedWorld.focusHierarchy.heartPriority !== 'primary' ||
+        integratedWorld.focusHierarchy.heartAlpha !== 1 ||
+        integratedWorld.focusHierarchy.heartArtworkTreatment !==
+            'living_current_landmark_v1' ||
+        integratedWorld.focusHierarchy.heartArtworkVariant !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 'compact_silhouette' : 'detailed_world'
+        ) ||
+        integratedWorld.focusHierarchy.heartArtworkTint !== 0xFFFFFF ||
+        integratedWorld.focusHierarchy.plots.length !== 5 ||
+        integratedWorld.focusHierarchy.plots.some(plot => (
+            plot.priority !== 'supporting' ||
+            plot.silhouetteLanguage !== 'root_state_silhouettes_v1' ||
+            plot.silhouetteState !== plot.plotState ||
+            plot.silhouetteAction !== (
+                plot.plotState === 'staffed' ? 'working_together' : 'ready_to_build'
+            ) ||
+            plot.silhouetteBuilt !== (plot.plotState === 'staffed') ||
+            plot.silhouetteBaseAlpha !== (
+                plot.plotState === 'staffed' ? 0.72 : 0.38
+            ) ||
+            Math.abs(plot.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.2 : 0.28)) > 0.01 ||
+            (
+                plot.workerAlpha !== null &&
+                Math.abs(
+                    plot.workerAlpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.25 : 0.34)
+                ) > 0.01
+            ) ||
+            plot.focusRingAlpha !== 0 ||
+            (
+                plot.artworkTreatment !== null &&
+                (
+                    plot.artworkTreatment !== 'living_current_material_v1' ||
+                    plot.artworkVariant !== (
+                        SMOKE_VIEWPORT_WIDTH <= 600
+                            ? 'compact_silhouette'
+                            : 'detailed_world'
+                    ) ||
+                    plot.artworkState !== 'focus_supporting' ||
+                    plot.artworkTint !== 0x91B3A7 ||
+                    plot.groundingMaterial !== 'woven_root_foreground_v1' ||
+                    plot.groundingState !== 'staffed'
+                )
+            )
+        )) ||
+        !integratedWorld.heartApproach.threshold ||
+        integratedWorld.heartApproach.direction !== 'south' ||
+        integratedWorld.heartApproach.anchorY <= integratedSetup.focusTarget.y ||
+        !integratedWorld.heartApproach.coreActive ||
+        !integratedWorld.heartApproach.coreBodyEnabled ||
+        integratedWorld.heartApproach.coreWidth !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 88 : 104
+        ) ||
+        integratedWorld.heartApproach.coreHeight !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 62 : 72
+        ) ||
+        integratedWorld.heartApproach.coreShape !== 'oval_core' ||
+        !integratedWorld.heartApproach.positionSafeBreathing ||
+        !integratedWorld.heartApproach.actorDepthSorted ||
+        integratedWorld.heartApproach.actorLayer !== 'behind' ||
+        integratedWorld.heartApproach.actorDepth !== integratedWorld.heartApproach.actorY ||
+        integratedWorld.heartApproach.actorDepth >=
+            integratedWorld.heartApproach.heartArtworkDepth ||
+        (SMOKE_VIEWPORT_WIDTH <= 600 && !integratedWorld.controlDock) ||
+        (SMOKE_VIEWPORT_WIDTH > 600 && integratedWorld.controlDock) ||
+        (
+            SMOKE_VIEWPORT_WIDTH <= 600 && (
+                integratedWorld.controlDock?.visualStyle !== 'split-current-shelf' ||
+                integratedWorld.controlDock?.centerGapWidth < 44
+            )
+        ) ||
+        integratedWorld.focusApproachBounds.left < -1 ||
+        integratedWorld.focusApproachBounds.right > integratedWorld.viewport.width + 1 ||
+        integratedWorld.focusApproachBounds.top < -1 ||
+        integratedWorld.focusApproachBounds.bottom > (
+            integratedWorld.controlDock?.top ?? integratedWorld.viewport.height
+        ) + 1 ||
+        integratedWorld.plotHitBounds.some(bounds => (
+            bounds.left < -1 ||
+            bounds.right > integratedWorld.viewport.width + 1 ||
+            bounds.top < -1 ||
+            bounds.bottom > (
+                integratedWorld.controlDock?.top ?? integratedWorld.viewport.height
+            ) + 1
+        )) ||
+        integratedWorld.plotStates.filter(plot => plot.state === 'staffed').length !== 3 ||
+        integratedWorld.plotStates.filter(plot => plot.state === 'available').length !== 2 ||
+        integratedWorld.plotStates.some(plot => (
+            !plot.active ||
+            !plot.districtAnchor ||
+            plot.districtAnchorMaterial !== 'root_threshold_v1' ||
+            plot.districtAnchorState !== plot.state ||
+            plot.districtVisualLanguage !== 'root_purpose_glyphs_v2' ||
+            plot.districtActionVerb !== (
+                plot.state === 'available' ? 'BUILD' : 'MANAGE'
+            ) ||
+            plot.interactionVerb !== (
+                plot.state === 'available' ? 'BUILD' : 'MANAGE'
+            ) ||
+            plot.districtAnchorAlpha <= 0 ||
+            (plot.state === 'staffed' && plot.progressNodes !== 6) ||
+            (plot.state === 'available' && plot.progressNodes !== 1)
+        )) ||
+        integratedWorld.workerCount !== 3 ||
+        integratedWorld.habitatLife !== null ||
+        integratedWorld.flowSignals.length !== 5 ||
+        integratedWorld.flowSignals.filter(signal => signal.direction === 'to_heart').length !== 3 ||
+        integratedWorld.flowSignals.filter(signal => signal.direction === 'to_plot').length !== 2 ||
+        integratedWorld.flowSignals.some(signal => signal.active || signal.visible) ||
+        integratedWorld.flowSignals.filter(
+            signal => signal.role === 'worker_represents_delivery'
+        ).length !== 3 ||
+        integratedWorld.flowSignals.filter(
+            signal => signal.role === 'quiet_background'
+        ).length !== 2 ||
+        integratedWorld.flowSignals
+            .filter(signal => signal.direction === 'to_heart')
+            .map(signal => signal.resource)
+            .sort()
+            .join(',') !== 'food,stone,wood' ||
+        integratedWorld.flowSignals.some(signal => (
+            !signal.ariaLabel ||
+            (
+                signal.direction === 'to_heart' &&
+                (!signal.helperName || !signal.buildingId || !signal.worldEffectLabel)
+            )
+        )) ||
+        integratedWorld.targetCount !== 8 ||
+        !integratedWorld.restoration.active ||
+        integratedWorld.restoration.rootBudCount !== 5 ||
+        integratedWorld.restoration.litRootCount !== 3 ||
+        integratedWorld.restoration.growthTier !== 2 ||
+        integratedWorld.restoration.growthLabel !== 'CONNECTED GLADE' ||
+        !integratedWorld.restoration.ariaLabel.includes('3 of 5') ||
+        integratedWorld.restoration.statusGrowthTier !== 2 ||
+        integratedWorld.restoration.statusGrowthLabel !== 'CONNECTED GLADE' ||
+        !integratedWorld.restoration.statusText.includes('3/5 ROOTS') ||
+        (
+            SMOKE_VIEWPORT_WIDTH > 600 &&
+            (
+                !integratedWorld.restoration.statusText.includes('3 COMMUNITY') ||
+                !integratedWorld.restoration.statusText.includes('0 REGIONAL ALLIES')
+            )
+        ) ||
+        !integratedWorld.district.terrainActive ||
+        integratedWorld.district.material !== 'living_current_districts_v4' ||
+        integratedWorld.district.uniformOverlay !== false ||
+        integratedWorld.district.patchCount !== 6 ||
+        !integratedWorld.district.continuousGround ||
+        integratedWorld.district.groundProfile !== 'shared_living_glade_v1' ||
+        integratedWorld.district.entranceCount !== 2 ||
+        integratedWorld.district.edgeNodeCount !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 10 : 14
+        ) ||
+        integratedWorld.district.groundWidth < (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 300 : 700
+        ) ||
+        integratedWorld.district.groundHeight < 430 ||
+        integratedWorld.district.identityCount !== 5 ||
+        integratedWorld.district.identityIds.join(',') !==
+            'garden_edge,upper_glade,current_bend,shelter_grove,far_root' ||
+        integratedWorld.district.terrainDepth !== -21 ||
+        integratedWorld.district.pathMaterial !== 'grounded_current_paths_v3' ||
+        integratedWorld.district.connectedPlotCount !== 3 ||
+        integratedWorld.district.pathResourceLanguage !== 'resource_return_marks_v1' ||
+        integratedWorld.district.pathResourceRouteCount !== 3 ||
+        integratedWorld.district.pathResourceRoutes
+            .map(route => route.resource)
+            .sort()
+            .join(',') !== 'food,stone,wood' ||
+        integratedWorld.district.pathResourceRoutes.some(route => (
+            !route.plotId || !route.buildingId || !Number.isFinite(route.color)
+        )) ||
+        integratedWorld.district.pathDepth !== -20 ||
+        integratedWorld.district.routeFoundationWidth !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 22 : 28
+        ) ||
+        integratedWorld.district.routeHighlightWidth !== 3 ||
+        !integratedWorld.district.ecologyActive ||
+        integratedWorld.district.ecologyGrowthTier !== 2 ||
+        integratedWorld.district.ecologyRestoredCount !== 3 ||
+        integratedWorld.district.ecologyNodeCount !== 6 ||
+        !integratedWorld.district.pulseActive ||
+        integratedWorld.district.pulseNodeCount !== 6 ||
+        !integratedWorld.district.pulseTweenActive ||
+        integratedWorld.district.thresholdCount !== 2 ||
+        integratedWorld.district.thresholdPurpose !== 'commons_transition' ||
+        integratedWorld.proceduralDecorInsideDistrict !== 0 ||
+        integratedWorld.proceduralDecorTotal > 37 ||
+        integratedWorld.stateLanguage.map(item => item.progressNodes).join(',') !==
+            '0,1,3,5,6,6' ||
+        integratedWorld.stateLanguage.some(item => (
+            !item.active || !item.ariaLabel.includes('foundation')
+        )) ||
+        !integratedWorld.commons.terrainActive ||
+        !integratedWorld.commons.pathActive ||
+        integratedWorld.commons.pathProfile !== 'living_current_filaments_v3' ||
+        integratedWorld.commons.maxWidth !== 32 ||
+        integratedWorld.commons.routeIds.join(',') !== 'garden_to_heart,heart_to_portal' ||
+        integratedWorld.commons.nodeCount !== 3 ||
+        integratedWorld.commons.signalCount !== 4 ||
+        integratedWorld.commons.activeSignals !== 4 ||
+        integratedWorld.commons.activeTweens !== 4 ||
+        !integratedWorld.sanctuaryCirculation.active ||
+        integratedWorld.sanctuaryCirculation.profile !== 'living_current_filaments_v3' ||
+        integratedWorld.sanctuaryCirculation.maxWidth !== 28 ||
+        integratedWorld.sanctuaryCirculation.routeIds.join(',') !==
+            'crash_to_commons,commons_to_shop,commons_to_settlement,commons_to_training' ||
+        !integratedWorld.sanctuaryTerrain.active ||
+        integratedWorld.sanctuaryTerrain.profile !== 'woven_edge_contours_v4' ||
+        integratedWorld.sanctuaryTerrain.fullZoneFill !== false ||
+        integratedWorld.sanctuaryTerrain.maxFillAlpha > 0.08 ||
+        integratedWorld.sanctuaryTerrain.contourCount !== 24 ||
+        integratedWorld.sanctuaryTerrain.anchorPatchCount !== 24 ||
+        integratedWorld.sanctuaryFlora.count !== 6 ||
+        integratedWorld.sanctuaryFlora.groundedCount !== 6 ||
+        integratedWorld.sanctuaryFlora.supportingCount !== 6 ||
+        integratedWorld.sanctuaryFlora.targetAlphaCount !== 6 ||
+        integratedWorld.sanctuaryFlora.maxAlpha >
+            ((SMOKE_VIEWPORT_WIDTH <= 600 ? 0.34 : 0.44) + 0.02) ||
+        !integratedWorld.sanctuaryFlora.focusActive ||
+        integratedWorld.sanctuaryBackground.cameraEdgeColor !== 0x102329 ||
+        integratedWorld.sanctuaryBackground.profile !== 'living_current_ground_v4' ||
+        integratedWorld.sanctuaryBackground.cloudRadiusMax !== 0 ||
+        integratedWorld.sanctuaryBackground.floatingPlatformCount !== 0 ||
+        integratedWorld.sanctuaryBackground.currentThreadCount !== 22 ||
+        integratedWorld.sanctuaryBackground.overscan < 320 ||
+        integratedWorld.sanctuaryBackground.edgeColor !== 0x102329 ||
+        !integratedWorld.sanctuaryBackground.screenBounds ||
+        integratedWorld.sanctuaryBackground.screenBounds.bottom <
+            integratedWorld.viewport.height ||
+        integratedWorld.sanctuaryParallax.profile !== 'quiet_current_threads_v2' ||
+        integratedWorld.sanctuaryParallax.filledWisps !== false ||
+        integratedWorld.sanctuaryParallax.threadCount !== 3 ||
+        integratedWorld.sanctuaryParallax.shaderEnabled !== false ||
+        integratedWorld.sanctuaryParallax.shaderContractEnabled !== false ||
+        integratedWorld.sanctuaryParallax.currentFieldCount !== 1 ||
+        integratedWorld.sanctuaryParallax.filledWispCount !== 0 ||
+        integratedWorld.sanctuaryParallax.vignetteCount !== 0 ||
+        integratedWorld.sanctuaryParallax.backdropFixed !== true ||
+        integratedWorld.sanctuaryParallax.backdropProfile !== 'world_background_owned_v3' ||
+        integratedWorld.sanctuaryParallax.backdropScrollFactorX !== 0 ||
+        integratedWorld.sanctuaryParallax.backdropScrollFactorY !== 0 ||
+        integratedWorld.peripheralWayfinding.managedCount !== 8 ||
+        integratedWorld.peripheralWayfinding.visibleCount !== 0 ||
+        integratedWorld.peripheralWayfinding.clippedVisibleCount !== 0 ||
+        !integratedWorld.peripheralWayfinding.destinations.includes('signalGarden') ||
+        !integratedWorld.peripheralWayfinding.destinations.includes(
+            'settlementDistrict'
+        ) ||
+        !integratedWorld.peripheralWayfinding.suppressed ||
+        !integratedWorld.focus.active ||
+        integratedWorld.focus.affinityNoticeActive ||
+        integratedWorld.focus.kidStatusBarActive ||
+        integratedWorld.focus.kidHelpActive ||
+        integratedWorld.focus.statsVisible ||
+        integratedWorld.focus.dailyGiftVisible ||
+        integratedWorld.focus.questVisible ||
+        integratedWorld.focus.mobileHudFocused !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
+        Object.values(integratedWorld.secondaryHud).some(Boolean) ||
+        integratedWorld.collectibles.total !== 15 ||
+        integratedWorld.collectibles.insideDistrict !== 0 ||
+        integratedWorld.collectibles.worldCoordinateCount !==
+            integratedWorld.collectibles.total ||
+        integratedWorld.collectibles.groundedVisualCount !==
+            integratedWorld.collectibles.total ||
+        integratedWorld.collectibles.worldDepthCount !==
+            integratedWorld.collectibles.total ||
+        integratedWorld.collectibles.brokenArcCount !==
+            integratedWorld.collectibles.total ||
+        integratedWorld.collectibles.maxHoverAmplitude !== 4 ||
+        integratedWorld.collectibles.outsideWorldCount !== 0 ||
+        integratedWorld.interactionBeacon.activeId !== 'villageHeart' ||
+        (
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? integratedWorld.interactionVisible ||
+                    integratedWorld.interactionBeacon.verb !== 'DECIDE' ||
+                    integratedWorld.interactionBeacon.label !== 'TOGETHER' ||
+                    integratedWorld.interactionBeacon.commandChannel !== 'target' ||
+                    integratedWorld.interactionBeacon.visualLanguage !==
+                        'target-attached-command-v1' ||
+                    integratedWorld.interactionBeacon.ownershipLabel !== 'VILLAGE HEART' ||
+                    integratedWorld.interactionBeacon.ownershipRelation !==
+                        'marks-selected-world-target' ||
+                    integratedWorld.interactionBeacon.hitZoneWidth !== 132 ||
+                    integratedWorld.interactionBeacon.hitZoneHeight !== 48 ||
+                    !integratedWorld.interactionBeacon.inputEnabled ||
+                    integratedWorld.interactionBeacon.dockAnchored ||
+                    !integratedWorld.interactionBeacon.bounds ||
+                    integratedWorld.interactionBeacon.bounds.left < -1 ||
+                    integratedWorld.interactionBeacon.bounds.right >
+                        integratedWorld.viewport.width + 1 ||
+                    integratedWorld.interactionBeacon.bounds.top < -1 ||
+                    integratedWorld.interactionBeacon.bounds.bottom >
+                        integratedWorld.viewport.height + 1
+                : integratedWorld.interactionBeacon.verb !== '' ||
+                    integratedWorld.interactionBeacon.label !== '' ||
+                    integratedWorld.interactionBeacon.inputEnabled ||
+                    integratedWorld.interactionBeacon.bounds !== null ||
+                    !integratedWorld.interactionHint.includes('Decide together') ||
+                    !integratedWorld.interactionVisible ||
+                    !integratedWorld.interactionBounds ||
+                    integratedWorld.interactionBounds.left < -1 ||
+                    integratedWorld.interactionBounds.right > integratedWorld.viewport.width + 1 ||
+                    integratedWorld.interactionBounds.top < -1 ||
+                    integratedWorld.interactionBounds.bottom > integratedWorld.viewport.height + 1
+        ) ||
+        integratedWorld.gardenStage !== 'bloom' ||
+        !integratedWorld.districtTerrainActive ||
+        integratedWorld.modalOpen ||
+        integratedWorld.plots.some(plot => (
+            plot.x < -1 ||
+            plot.x > integratedWorld.viewport.width + 1 ||
+            plot.y < -1 ||
+            plot.y > integratedWorld.viewport.height + 1
+        )) ||
+        (SMOKE_VIEWPORT_WIDTH > 600 && !integratedWorld.gardenVisible)
+    ) {
+        throw new Error(`Integrated Sanctuary world failed: ${JSON.stringify({ integratedSetup, integratedWorld })}`);
+    }
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const notification = scene?.achievementNotification;
+        if (notification?.isVisible) {
+            notification.queue = [];
+            notification.destroy();
+        }
+        return notification?.isVisible !== true;
+    })()`);
+    await delay(80);
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-integrated-sanctuary-mobile.png'
+            : 'village-integrated-sanctuary-desktop.png'
+    );
+    const frontApproach = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene.villageHeartLandmark;
+        const anchor = landmark.approachAnchor;
+        scene.player.setPosition(anchor.x, anchor.y);
+        scene.player.body?.reset?.(anchor.x, anchor.y);
+        if (scene.player.body) scene.player.body.enable = false;
+        scene.updateSanctuaryActorDepths();
+        Array.from({ length: 40 }).forEach(() => scene.astronautFollower?.update(50));
+        scene.updateSanctuaryActorDepths();
+        return {
+            anchor,
+            actorX: scene.player.x,
+            actorY: scene.player.y,
+            actorDepth: scene.player.depth,
+            actorLayer: scene.player.getData?.('villageHeartLayer'),
+            heartArtworkDepth: landmark.heartArtwork?.depth,
+            astronautDepth: scene.astronautFollower?.sprite?.depth,
+            astronautX: scene.astronautFollower?.sprite?.x,
+            astronautY: scene.astronautFollower?.sprite?.y,
+            astronautFormation: scene.astronautFollower?.sprite?.getData?.(
+                'expeditionFormationContext'
+            ),
+            formationActive: landmark.zone?.getData?.('villagePartyFormationActive'),
+            formationDistance: landmark.zone?.getData?.('villagePartyFormationDistance'),
+            captionLaneOccupied: landmark.zone?.getData?.(
+                'villagePartyCaptionLaneOccupied'
+            ),
+            partyPositionCount: landmark.zone?.getData?.('villagePartyPositionCount'),
+            labelOccluded: landmark.label?.getData?.('villagePartyOccluded'),
+            statusOccluded: landmark.statusLabel?.getData?.('villagePartyOccluded'),
+            labelAlpha: landmark.label?.alpha,
+            statusAlpha: landmark.statusLabel?.alpha,
+            labelBaseAlpha: landmark.label?.getData?.('villageVisibilityBaseAlpha'),
+            statusBaseAlpha: landmark.statusLabel?.getData?.('villageVisibilityBaseAlpha')
+        };
+    })()`);
+    if (
+        frontApproach.actorX !== frontApproach.anchor.x ||
+        frontApproach.actorY !== frontApproach.anchor.y ||
+        frontApproach.actorDepth !== frontApproach.actorY ||
+        frontApproach.actorLayer !== 'front' ||
+        frontApproach.actorDepth <= frontApproach.heartArtworkDepth ||
+        Math.abs(frontApproach.astronautDepth - frontApproach.astronautY) > 0.01 ||
+        frontApproach.astronautFormation !== 'village_heart_approach' ||
+        !frontApproach.formationActive ||
+        frontApproach.formationDistance !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 162 : 190) ||
+        !frontApproach.captionLaneOccupied ||
+        frontApproach.partyPositionCount !== 2 ||
+        !frontApproach.labelOccluded ||
+        !frontApproach.statusOccluded ||
+        frontApproach.labelAlpha !== 0 ||
+        frontApproach.statusAlpha !== 0 ||
+        (
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? frontApproach.labelBaseAlpha <= 0
+                : frontApproach.labelBaseAlpha <= 0
+        ) ||
+        frontApproach.statusBaseAlpha <= 0 ||
+        (
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? Math.abs(frontApproach.astronautX - frontApproach.actorX) < 58 ||
+                    Math.abs(frontApproach.astronautY - frontApproach.actorY) > 20
+                : frontApproach.astronautY - frontApproach.actorY < 62
+        )
+    ) {
+        throw new Error(`Village Heart front approach failed: ${JSON.stringify(frontApproach)}`);
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-heart-approach-mobile.png'
+            : 'village-heart-approach-desktop.png'
+    );
+    const returnRitual = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const state = window.GameState;
+        const expedition = {
+            id: 'smoke_village_return_23',
+            levelId: 'mythicalForest',
+            shipPartId: 'navigation_core',
+            completedAt: '2026-08-22T12:00:00.000Z'
+        };
+        state.set('story.projectBeacon.pendingDebriefs', [expedition]);
+        state.set('story.projectBeacon.villageReturnRitualsSeen', []);
+        scene.nearVillageHeart = true;
+        const started = scene.maybePlayVillageReturnRitual(
+            scene.villageHeartLandmark.snapshot,
+            { force: true, expedition }
+        );
+        const landmark = scene.villageHeartLandmark;
+        const ritual = landmark?.activeCommunityMoment;
+        const camera = scene.cameras?.main;
+        const worldBounds = ritual?.getBounds?.();
+        const screenBounds = worldBounds && camera ? {
+            left: (worldBounds.left - camera.worldView.x) * camera.zoom + camera.x,
+            right: (worldBounds.right - camera.worldView.x) * camera.zoom + camera.x,
+            top: (worldBounds.top - camera.worldView.y) * camera.zoom + camera.y,
+            bottom: (worldBounds.bottom - camera.worldView.y) * camera.zoom + camera.y
+        } : null;
+        return {
+            started,
+            ritualId: ritual?.getData?.('villageReturnRitual') || '',
+            levelId: ritual?.getData?.('returnLevelId') || '',
+            residents: ritual?.getData?.('returnResidents') || [],
+            outcome: ritual?.getData?.('returnOutcome') || '',
+            worldChange: ritual?.getData?.('worldChange') || '',
+            resonanceStyle: ritual?.getData?.('resonanceStyle') || '',
+            resonanceAnchor: ritual?.getData?.('resonanceAnchor') || '',
+            currentWave: landmark?.communityMomentElements?.some(
+                element => element?.getData?.('villageReturnCurrentWave') === true
+            ) === true,
+            seen: state.get('story.projectBeacon.villageReturnRitualsSeen'),
+            screenBounds,
+            viewport: { width: innerWidth, height: innerHeight }
+        };
+    })()`);
+    if (
+        !returnRitual.started ||
+        returnRitual.ritualId !== 'smoke_village_return_23' ||
+        returnRitual.levelId !== 'mythicalForest' ||
+        returnRitual.residents.length < 1 ||
+        returnRitual.outcome !== 'NAVIGATION CORE RECOVERED' ||
+        !returnRitual.worldChange.includes('ROOTS RESTORED') ||
+        returnRitual.resonanceStyle !== 'current_ribbon' ||
+        returnRitual.resonanceAnchor !== 'village_heart' ||
+        !returnRitual.currentWave ||
+        !returnRitual.seen.includes('smoke_village_return_23') ||
+        !returnRitual.screenBounds ||
+        returnRitual.screenBounds.left < -1 ||
+        returnRitual.screenBounds.right > returnRitual.viewport.width + 1 ||
+        returnRitual.screenBounds.top < -1 ||
+        returnRitual.screenBounds.bottom > returnRitual.viewport.height + 1
+    ) {
+        throw new Error(`Village return ritual failed: ${JSON.stringify(returnRitual)}`);
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-return-ritual-mobile.png'
+            : 'village-return-ritual-desktop.png'
+    );
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.worldBuilder.clearVillageCommunityMoment(scene.villageHeartLandmark);
+        return true;
+    })()`);
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.nearVillageHeart = false;
+        scene.updateSanctuaryFocusMode(false);
+        scene.hideInteractionHint();
+        return true;
+    })()`);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const presentations = scene?.villageHeartLandmark?.plotPresentations || [];
+            const staffedAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.78 : 0.82};
+            const availableAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.08 : 0.1};
+            return presentations.length === 5 && presentations.every(presentation => {
+                const playerNearby = presentation.container
+                    ?.getData?.('villagePlayerNearby') === true;
+                const expected = presentation.plotState === 'staffed'
+                    ? staffedAlpha
+                    : availableAlpha;
+                const expectedPriority = playerNearby ? 'nearby' : 'ambient';
+                const expectedAlpha = playerNearby ? 1 : expected;
+                return presentation.container?.getData?.('villageFocusPriority') ===
+                    expectedPriority &&
+                    Math.abs(presentation.container.alpha - expectedAlpha) <= 0.01;
+            });
+        })()`),
+        {
+            timeoutMs: 4000,
+            message: 'Sanctuary exploration hierarchy restored'
+        }
+    );
+    const focusRecovery = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        return {
+            active: scene.sanctuaryFocusModeActive === true,
+            statsVisible: scene.statsText?.visible === true,
+            statsText: scene.statsText?.text || '',
+            resetVisible: scene.resetButton?.visible === true,
+            interactionVisible: scene.interactionText?.visible === true,
+            kidStatusBarActive: scene.kidModeStatusBar?.active === true,
+            kidHelpActive: scene.kidModeHelpContainer?.active === true,
+            cameraFollowingPlayer: scene.cameras.main._follow === scene.player,
+            followOffsetY: scene.explorationCameraFollowOffsetY || 0,
+            legacyTutorialChrome: scene.children.list.filter(child => (
+                child?.getData?.('legacyTutorialHint') === true ||
+                child?.getData?.('legacyTutorialCompletion') === true
+            )).length,
+            secondaryHud: {
+                abilityVisible: scene.abilityHUD?.container?.visible === true,
+                minimapVisible: scene.cosmicMiniMap?.background?.visible === true,
+                statBarsVisible: scene.statBarGraphics?.visible === true,
+                economyVisible: scene.economyHud?.currencyText?.visible === true,
+                careHintVisible: scene.carePanelManager?.hintText?.visible === true,
+                helpHintVisible: scene.controlsHintPanel?.helpIcon?.bg?.visible === true
+            },
+            heartPriority: scene.villageHeartLandmark?.heartArtwork
+                ?.getData?.('villageFocusPriority'),
+            peripheralWayfinding: (() => {
+                const labels = scene.getSanctuaryPeripheralLabels?.() || [];
+                return {
+                    managedCount: scene.villageHeartLandmark?.zone?.getData?.(
+                        'peripheralLabelManagedCount'
+                    ) || 0,
+                    readableCount: scene.villageHeartLandmark?.zone?.getData?.(
+                        'peripheralLabelReadableCount'
+                    ) || 0,
+                    visibleCount: scene.villageHeartLandmark?.zone?.getData?.(
+                        'peripheralLabelVisibleCount'
+                    ) || 0,
+                    clippedVisibleCount: labels.filter(label => (
+                        label.visible !== false &&
+                        label.getData?.('sanctuaryEdgeReadable') !== true
+                    )).length,
+                    suppressed: scene.villageHeartLandmark?.zone?.getData?.(
+                        'peripheralWayfindingSuppressed'
+                    ) === true
+                };
+            })(),
+            plotPriorities: scene.villageHeartLandmark?.plotPresentations?.map(
+                presentation => ({
+                    state: presentation.plotState,
+                    priority: presentation.container?.getData?.('villageFocusPriority'),
+                    alpha: presentation.container?.alpha
+                })
+            ) || []
+        };
+    })()`);
+    if (
+        focusRecovery.active ||
+        /undefined|null|NaN/i.test(focusRecovery.statsText) ||
+        focusRecovery.statsVisible !== (SMOKE_VIEWPORT_WIDTH > 600) ||
+        focusRecovery.resetVisible !== (SMOKE_VIEWPORT_WIDTH > 600) ||
+        focusRecovery.interactionVisible ||
+        focusRecovery.kidStatusBarActive ||
+        focusRecovery.kidHelpActive ||
+        !focusRecovery.cameraFollowingPlayer ||
+        focusRecovery.legacyTutorialChrome !== 0 ||
+        (
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? focusRecovery.followOffsetY >= 0
+                : focusRecovery.followOffsetY !== 0
+        ) ||
+        Object.values(focusRecovery.secondaryHud).some(
+            visible => visible !== (SMOKE_VIEWPORT_WIDTH > 600)
+        ) ||
+        focusRecovery.heartPriority !== 'primary' ||
+        focusRecovery.peripheralWayfinding.managedCount !== 8 ||
+        focusRecovery.peripheralWayfinding.visibleCount >
+            focusRecovery.peripheralWayfinding.readableCount ||
+        focusRecovery.peripheralWayfinding.clippedVisibleCount !== 0 ||
+        focusRecovery.peripheralWayfinding.suppressed ||
+        focusRecovery.plotPriorities.length !== 5 ||
+        focusRecovery.plotPriorities.filter(plot => plot.state === 'staffed').some(
+            plot => plot.priority !== 'ambient' || Math.abs(
+                plot.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.78 : 0.82)
+            ) > 0.01
+        ) ||
+        focusRecovery.plotPriorities.filter(plot => plot.state === 'available').some(
+            plot => plot.priority !== 'ambient' || Math.abs(
+                plot.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.08 : 0.1)
+            ) > 0.01
+        )
+    ) {
+        throw new Error(`Sanctuary focus did not restore exploration HUD: ${JSON.stringify(focusRecovery)}`);
+    }
+    const structureProximity = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const presentation = landmark?.plotPresentations?.find(
+            item => item.plotState === 'staffed'
+        );
+        const position = landmark?.plotWorldPositions?.get(presentation?.plotId);
+        if (!scene || !presentation || !position) return null;
+        scene.player.setPosition(position.x, position.y);
+        scene.player.body?.reset?.(position.x, position.y);
+        const activePlotId = scene.updateVillagePlotProximity();
+        const director = scene.sanctuaryInteractionDirector;
+        const commandHitZones = director?.indicatorElements?.filter(element => (
+            element?.getData?.('sanctuaryInteractionBeaconHitZone') === true
+        )) || [];
+        const actionNodes = director?.indicatorElements?.filter(element => (
+            element?.getData?.('sanctuaryActionNode') === true
+        )) || [];
+        const actionNodeHitZones = director?.indicatorElements?.filter(element => (
+            element?.getData?.('sanctuaryActionNodeHitZone') === true
+        )) || [];
+        return {
+            activePlotId,
+            plotId: presentation.plotId,
+            priority: presentation.container?.getData?.('villageFocusPriority'),
+            playerNearby: presentation.container?.getData?.('villagePlayerNearby'),
+            hitZoneNearby: presentation.hitZone?.getData?.('villagePlayerNearby'),
+            labelAlpha: presentation.plotLabel?.alpha,
+            stateAlpha: presentation.stateLabel?.alpha,
+            stateText: presentation.stateLabel?.text || '',
+            ringAlpha: presentation.focusRing?.alpha,
+            artworkState: presentation.worldArtwork?.getData?.('villageArtworkState'),
+            artworkTint: presentation.worldArtwork?.getData?.('villageArtworkTint'),
+            groundingMaterial: presentation.artworkGrounding?.getData?.(
+                'villageGroundingMaterial'
+            ),
+            workerNearby: presentation.worker?.getData?.('villagePlayerNearby'),
+            plotInteractionId: scene.villagePlotInteractionId,
+            activeInteractionId: director?.active?.id || null,
+            interactionVerb: director?.active?.verb || '',
+            interactionLabel: director?.active?.label || '',
+            interactionOwner: director?.active?.ownerLabel || '',
+            interactionHintMode: director?.active?.hintMode || '',
+            commandBeaconPresent: Boolean(director?.beacon),
+            commandHitZoneCount: commandHitZones.length,
+            commandInputEnabled: commandHitZones[0]?.input?.enabled === true,
+            actionNodeCount: actionNodes.length,
+            actionNodeVisualLanguage: actionNodes[0]?.getData?.('visualLanguage') || '',
+            actionNodeHitZoneCount: actionNodeHitZones.length,
+            actionNodeInputEnabled: actionNodeHitZones[0]?.input?.enabled === true,
+            actionNodeRelation: actionNodeHitZones[0]?.getData?.(
+                'ownershipRelation'
+            ) || '',
+            floatingChatVisible: scene.floatingChatBubble?.bubble?.visible === true,
+            hudPrompt: scene.interactionText?.text || '',
+            hudPromptVisible: scene.interactionText?.visible === true
+        };
+    })()`);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const presentation = scene?.villageHeartLandmark?.plotPresentations?.find(
+                item => item.plotId === '${structureProximity?.plotId || ''}'
+            );
+            return presentation &&
+                Math.abs(presentation.container?.alpha - 1) <= 0.01 &&
+                Math.abs(presentation.worker?.alpha - 0.96) <= 0.01 &&
+                Math.abs(presentation.focusRing?.alpha - 0.64) <= 0.01;
+        })()`),
+        {
+            timeoutMs: 2000,
+            message: 'Village structure proximity reveal settled'
+        }
+    );
+    const structureProximitySettled = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const presentation = scene?.villageHeartLandmark?.plotPresentations?.find(
+            item => item.plotId === '${structureProximity?.plotId || ''}'
+        );
+        return presentation ? {
+            alpha: presentation.container?.alpha,
+            workerAlpha: presentation.worker?.alpha,
+            labelAlpha: presentation.plotLabel?.alpha,
+            stateAlpha: presentation.stateLabel?.alpha,
+            ringAlpha: presentation.focusRing?.alpha
+        } : null;
+    })()`);
+    if (
+        !structureProximity ||
+        structureProximity.activePlotId !== structureProximity.plotId ||
+        structureProximity.priority !== 'nearby' ||
+        structureProximity.playerNearby !== true ||
+        structureProximity.hitZoneNearby !== true ||
+        structureProximity.labelAlpha !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 0 : 1) ||
+        structureProximity.stateAlpha !== 1 ||
+        !structureProximity.stateText.includes('SAFE PATCHES REGROW') ||
+        !structureProximity.stateText.includes('FEED +5') ||
+        structureProximity.artworkState !== 'full_color' ||
+        structureProximity.artworkTint !== 0xFFFFFF ||
+        structureProximity.groundingMaterial !== 'woven_root_foreground_v1' ||
+        structureProximity.workerNearby !== true ||
+        structureProximity.plotInteractionId !==
+            `villagePlot:${structureProximity.plotId}` ||
+        structureProximity.activeInteractionId !==
+            `villagePlot:${structureProximity.plotId}` ||
+        structureProximity.interactionVerb !== 'CHECK' ||
+        structureProximity.interactionLabel !== 'FORAGER HUT' ||
+        structureProximity.interactionOwner !== 'FORAGER HUT' ||
+        structureProximity.interactionHintMode !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 'world' : 'hud'
+        ) ||
+        structureProximity.commandBeaconPresent !== false ||
+        structureProximity.commandHitZoneCount !== 0 ||
+        structureProximity.commandInputEnabled !== false ||
+        structureProximity.actionNodeCount !== 1 ||
+        structureProximity.actionNodeVisualLanguage !== (
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? 'target-attached-command-v1'
+                : 'target-ring-action-node'
+        ) ||
+        structureProximity.actionNodeHitZoneCount !== 1 ||
+        !structureProximity.actionNodeInputEnabled ||
+        structureProximity.actionNodeRelation !== 'marks-selected-world-target' ||
+        structureProximity.floatingChatVisible !== (SMOKE_VIEWPORT_WIDTH > 600) ||
+        (
+            SMOKE_VIEWPORT_WIDTH > 600 && (
+                !structureProximity.hudPromptVisible ||
+                !structureProximity.hudPrompt.includes('SAFE PATCHES REGROW')
+            )
+        ) ||
+        !structureProximitySettled ||
+        Math.abs(structureProximitySettled.alpha - 1) > 0.01 ||
+        Math.abs(structureProximitySettled.workerAlpha - 0.96) > 0.01 ||
+        Math.abs(structureProximitySettled.ringAlpha - 0.64) > 0.01
+    ) {
+        throw new Error(`Village structure proximity reveal failed: ${JSON.stringify({ structureProximity, structureProximitySettled })}`);
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-structure-proximity-mobile.png'
+            : 'village-structure-proximity-desktop.png'
+    );
+    const structureProximityRestored = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const presentation = landmark?.plotPresentations?.find(
+            item => item.plotId === '${structureProximity?.plotId || ''}'
+        );
+        const x = landmark.zone.x;
+        const y = landmark.zone.y - 110;
+        scene.player.setPosition(x, y);
+        scene.player.body?.reset?.(x, y);
+        const activePlotId = scene.updateVillagePlotProximity();
+        return {
+            activePlotId,
+            playerNearby: presentation?.container?.getData?.('villagePlayerNearby'),
+            priority: presentation?.container?.getData?.('villageFocusPriority'),
+            plotInteractionId: scene.villagePlotInteractionId,
+            plotCandidatePresent: [...(
+                scene.sanctuaryInteractionDirector?.candidates?.keys?.() || []
+            )].some(id => id.startsWith('villagePlot:'))
+        };
+    })()`);
+    if (SMOKE_VIEWPORT_WIDTH > 600) {
+        await session.call('Input.dispatchMouseEvent', {
+            type: 'mouseMoved',
+            x: SMOKE_VIEWPORT_WIDTH - 5,
+            y: 5,
+            button: 'none'
+        });
+    }
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const presentation = scene?.villageHeartLandmark?.plotPresentations?.find(
+                item => item.plotId === '${structureProximity?.plotId || ''}'
+            );
+            return presentation &&
+                Math.abs(
+                    presentation.container?.alpha -
+                    ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.78 : 0.82}
+                ) <= 0.01 &&
+                Math.abs(
+                    presentation.worker?.alpha -
+                    ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.76 : 0.78}
+                ) <= 0.01 &&
+                presentation.plotLabel?.alpha === 0 &&
+                presentation.stateLabel?.alpha === 0 &&
+                presentation.focusRing?.alpha === 0;
+        })()`),
+        {
+            timeoutMs: 4000,
+            message: 'Village structure proximity ambient state restored'
+        }
+    );
+    const structureProximityRest = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const presentation = scene?.villageHeartLandmark?.plotPresentations?.find(
+            item => item.plotId === '${structureProximity?.plotId || ''}'
+        );
+        return presentation ? {
+            alpha: presentation.container?.alpha,
+            workerAlpha: presentation.worker?.alpha,
+            labelAlpha: presentation.plotLabel?.alpha,
+            stateAlpha: presentation.stateLabel?.alpha,
+            ringAlpha: presentation.focusRing?.alpha
+        } : null;
+    })()`);
+    if (
+        structureProximityRestored?.activePlotId !== null ||
+        structureProximityRestored?.playerNearby !== false ||
+        structureProximityRestored?.priority !== 'ambient' ||
+        structureProximityRestored?.plotInteractionId !== null ||
+        structureProximityRestored?.plotCandidatePresent ||
+        !structureProximityRest ||
+        Math.abs(
+            structureProximityRest.alpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.78 : 0.82)
+        ) > 0.01 ||
+        Math.abs(
+            structureProximityRest.workerAlpha - (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.76 : 0.78)
+        ) > 0.01 ||
+        structureProximityRest.labelAlpha !== 0 ||
+        structureProximityRest.stateAlpha !== 0 ||
+        structureProximityRest.ringAlpha !== 0
+    ) {
+        throw new Error(`Village structure proximity did not restore: ${JSON.stringify({ structureProximityRestored, structureProximityRest })}`);
+    }
+    const landmarkPrompts = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const director = scene?.sanctuaryInteractionDirector;
+        if (!scene || !director) return null;
+        const cases = [
+            {
+                expectedId: 'shop',
+                target: scene.shop,
+                prepare: () => {
+                    scene.nearShop = false;
+                    scene.handleShopProximity(scene.player, scene.shop);
+                }
+            },
+            {
+                expectedId: 'hubPortal',
+                target: scene.hubPortal,
+                prepare: () => {
+                    scene.nearHubPortal = false;
+                    scene.handleHubPortalProximity(scene.player, scene.hubPortal);
+                }
+            },
+            {
+                expectedId: 'campfire',
+                target: scene.campfire,
+                prepare: () => {
+                    scene.nearCampfire = false;
+                    scene.handleCampfireProximity(scene.player, scene.campfire);
+                }
+            },
+            {
+                expectedId: 'fusionPod',
+                target: scene.fusionPodLandmark?.zone,
+                prepare: () => {
+                    scene.nearFusionPod = false;
+                    scene.handleFusionPodProximity();
+                }
+            },
+            {
+                expectedId: 'signalGarden',
+                target: scene.signalGarden?.zone,
+                prepare: () => {
+                    scene.nearSignalGarden = false;
+                    scene.handleSignalGardenProximity();
+                }
+            },
+            {
+                expectedId: 'crashedShip',
+                target: scene.crashedShip,
+                prepare: () => {
+                    scene.nearCrashedShip = false;
+                    scene.handleCrashedShipProximity(scene.player, scene.crashedShip);
+                }
+            }
+        ];
+        const results = cases.map(entry => {
+            director.candidates.clear();
+            director.clearIndicator();
+            scene.player.setPosition(entry.target.x, entry.target.y);
+            entry.prepare();
+            director.update({ force: true });
+            const hitZones = director.indicatorElements.filter(element => (
+                element?.getData?.('sanctuaryInteractionBeaconHitZone') === true
+            ));
+            const actionNodes = director.indicatorElements.filter(element => (
+                element?.getData?.('sanctuaryActionNode') === true
+            ));
+            const actionNodeHitZones = director.indicatorElements.filter(element => (
+                element?.getData?.('sanctuaryActionNodeHitZone') === true
+            ));
+            return {
+                expectedId: entry.expectedId,
+                activeId: director.active?.id || null,
+                verb: director.active?.verb || '',
+                label: director.active?.label || '',
+                commandBeaconPresent: Boolean(director.beacon),
+                worldPrompt: director.active?.worldPrompt === true,
+                hintMode: director.active?.hintMode || '',
+                candidateCount: director.candidates.size,
+                hitZoneCount: hitZones.length,
+                inputEnabled: hitZones[0]?.input?.enabled === true,
+                actionNodeCount: actionNodes.length,
+                actionNodeVisualLanguage: actionNodes[0]?.getData?.(
+                    'visualLanguage'
+                ) || '',
+                actionNodeHitZoneCount: actionNodeHitZones.length,
+                actionNodeInputEnabled: actionNodeHitZones[0]?.input?.enabled === true,
+                actionNodeRelation: actionNodeHitZones[0]?.getData?.(
+                    'ownershipRelation'
+                ) || ''
+            };
+        });
+        director.candidates.clear();
+        director.clearIndicator();
+        scene.nearShop = false;
+        scene.nearHubPortal = false;
+        scene.nearCampfire = false;
+        scene.nearFusionPod = false;
+        scene.nearSignalGarden = false;
+        scene.nearCrashedShip = false;
+        scene.nearVillageHeart = false;
+        scene.player.setPosition(
+            scene.villageHeartLandmark.zone.x,
+            scene.villageHeartLandmark.zone.y
+        );
+        scene.offerVillageHeartInteraction(scene.villageHeartLandmark.snapshot);
+        return results;
+    })()`);
+    const expectedLandmarkCopy = {
+        shop: ['SHOP', 'SUPPLIES & BUILDING'],
+        hubPortal: ['EXPLORE', 'CHOOSE A WORLD'],
+        campfire: ['REST', 'TOGETHER'],
+        fusionPod: [null, 'FUSION POD'],
+        signalGarden: [null, null],
+        crashedShip: [null, null]
+    };
+    if (
+        !landmarkPrompts ||
+        landmarkPrompts.length !== Object.keys(expectedLandmarkCopy).length ||
+        landmarkPrompts.some(prompt => {
+            const expected = expectedLandmarkCopy[prompt.expectedId];
+            return !expected ||
+                prompt.activeId !== prompt.expectedId ||
+                !prompt.verb ||
+                !prompt.label ||
+                (expected[0] && prompt.verb !== expected[0]) ||
+                (expected[1] && prompt.label !== expected[1]) ||
+                !prompt.worldPrompt ||
+                prompt.hintMode !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 'world' : 'hud') ||
+                prompt.candidateCount !== 1 ||
+                prompt.commandBeaconPresent !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
+                prompt.hitZoneCount !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 1 : 0) ||
+                prompt.inputEnabled !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
+                prompt.actionNodeCount !== 1 ||
+                prompt.actionNodeVisualLanguage !== 'target-ring-action-node' ||
+                prompt.actionNodeHitZoneCount !== 1 ||
+                !prompt.actionNodeInputEnabled ||
+                prompt.actionNodeRelation !== 'marks-selected-world-target';
+        })
+    ) {
+        throw new Error(`Sanctuary landmark prompts failed: ${JSON.stringify(landmarkPrompts)}`);
+    }
+    const sanctuaryGuidance = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const guide = scene.projectBeaconWaypoint;
+        const landmark = scene.villageHeartLandmark;
+        const camera = scene.cameras.main;
+        const originalSnapshot = landmark.snapshot;
+        scene.__smokeGuidanceSnapshot = originalSnapshot;
+        window.GameState.set('story.projectBeacon.fieldKit.recovered', true);
+        guide.questProvider = () => null;
+        guide.campaignStepProvider = () => ({
+            status: 'ready',
+            label: 'Mythical Forest'
+        });
+        guide.refreshTarget();
+        guide.update(400);
+        const decision = {
+            missionId: guide.currentTarget?.missionId,
+            label: guide.currentTarget?.label,
+            source: guide.currentTarget?.source,
+            targetsHeart: guide.currentTarget?.target === landmark.zone
+        };
+        scene.updateSanctuaryFocusMode(true);
+        guide.update(16.67);
+        const focusSuppression = {
+            hudHidden: guide.hudContainer?.visible === false,
+            worldHidden: guide.worldContainer?.visible === false,
+            trailHidden: guide.trailContainer?.visible === false
+        };
+        scene.nearVillageHeart = false;
+        scene.updateSanctuaryFocusMode(false);
+        landmark.snapshot = {
+            ...originalSnapshot,
+            worldState: {
+                ...(originalSnapshot.worldState || {}),
+                nextAction: { type: 'review', label: 'SETTLEMENT ONLINE' }
+            }
+        };
+        scene.sanctuaryInteractionDirector?.withdraw?.('villageHeart');
+        guide.refreshTarget();
+
+        const moveTo = (id, target) => {
+            scene.player.setPosition(target.x, target.y);
+            scene.player.body?.reset?.(target.x, target.y);
+            scene.player.body?.setVelocity?.(0, 0);
+            camera.stopFollow();
+            camera.centerOn(target.x, target.y);
+            scene.currentSanctuaryZoneId = null;
+            scene.trackSanctuaryZoneVisit();
+            if (id === 'portal') {
+                scene.handleHubPortalProximity(scene.player, scene.hubPortal);
+            }
+            guide.update(400);
+            const hudBounds = guide.hudLabel?.getBounds?.();
+            return {
+                id,
+                zoneId: scene.currentSanctuaryZoneId,
+                districtZoneId: scene.sanctuaryDistricts?.activeZoneId,
+                missionId: guide.currentTarget?.missionId,
+                label: guide.currentTarget?.label,
+                source: guide.currentTarget?.source,
+                activeInteractionId: scene.sanctuaryInteractionDirector?.active?.id || null,
+                hudVisible: guide.hudContainer?.visible === true,
+                worldVisible: guide.worldContainer?.visible === true,
+                trailVisible: guide.trailContainer?.visible === true,
+                trailLanguage: guide.trailContainer?.getData?.('waypointVisualLanguage'),
+                edgeLanguage: guide.hudRail?.getData?.('waypointVisualLanguage'),
+                thresholdMaterial: guide.worldRing?.getData?.('waypointThresholdMaterial'),
+                hudBounds: hudBounds ? {
+                    left: hudBounds.left,
+                    right: hudBounds.right,
+                    top: hudBounds.top,
+                    bottom: hudBounds.bottom
+                } : null
+            };
+        };
+        const steps = [
+            moveTo('heart', landmark.zone),
+            moveTo('garden', scene.signalGarden.zone),
+            moveTo('portal', scene.hubPortal)
+        ];
+        scene.nearHubPortal = false;
+        scene.sanctuaryInteractionDirector?.withdraw?.('hubPortal');
+        moveTo('garden_capture', scene.signalGarden.zone);
+        return {
+            decision,
+            focusSuppression,
+            steps,
+            viewport: {
+                width: camera.width,
+                height: camera.height
+            }
+        };
+    })()`);
+    if (
+        sanctuaryGuidance.decision.missionId !== 'sanctuary_heart_choice' ||
+        sanctuaryGuidance.decision.label !== 'HEART CHOICE READY' ||
+        sanctuaryGuidance.decision.source !== 'sanctuary' ||
+        !sanctuaryGuidance.decision.targetsHeart ||
+        !sanctuaryGuidance.focusSuppression.hudHidden ||
+        !sanctuaryGuidance.focusSuppression.worldHidden ||
+        !sanctuaryGuidance.focusSuppression.trailHidden ||
+        sanctuaryGuidance.steps.map(step => step.zoneId).join(',') !==
+            'settlementDistrict,gardenPlot,hubGate' ||
+        sanctuaryGuidance.steps.some(step => (
+            step.zoneId !== step.districtZoneId ||
+            step.missionId !== 'sanctuary_ready_expedition' ||
+            step.label !== 'NEXT · MYTHICAL FOREST' ||
+            step.source !== 'sanctuary' ||
+            step.trailLanguage !== 'player_current_trail_v1' ||
+            step.edgeLanguage !== 'living_current_edge_ribbon_v2' ||
+            step.thresholdMaterial !== 'living_current_threshold_v1'
+        )) ||
+        sanctuaryGuidance.steps.slice(0, 2).some(step => (
+            !step.trailVisible ||
+            (
+                SMOKE_VIEWPORT_WIDTH <= 600 &&
+                (
+                    !step.hudVisible ||
+                    step.worldVisible ||
+                    !step.hudBounds ||
+                    step.hudBounds.left < -1 ||
+                    step.hudBounds.right > sanctuaryGuidance.viewport.width + 1 ||
+                    step.hudBounds.top < -1 ||
+                    step.hudBounds.bottom > sanctuaryGuidance.viewport.height + 1
+                )
+            )
+        )) ||
+        sanctuaryGuidance.steps[2].activeInteractionId !== 'hubPortal' ||
+        sanctuaryGuidance.steps[2].hudVisible ||
+        sanctuaryGuidance.steps[2].worldVisible ||
+        sanctuaryGuidance.steps[2].trailVisible
+    ) {
+        throw new Error(
+            `Living Current Sanctuary guidance failed: ${JSON.stringify(sanctuaryGuidance)}`
+        );
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-current-guidance-mobile.png'
+            : 'village-current-guidance-desktop.png'
+    );
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene.villageHeartLandmark;
+        landmark.snapshot = scene.__smokeGuidanceSnapshot;
+        scene.__smokeGuidanceSnapshot = null;
+        scene.player.setPosition(landmark.zone.x, landmark.zone.y);
+        scene.player.body?.reset?.(landmark.zone.x, landmark.zone.y);
+        scene.restorePlayerCameraFollow();
+        scene.projectBeaconWaypoint.refreshTarget();
+        scene.offerVillageHeartInteraction(landmark.snapshot);
+        return true;
+    })()`);
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-integrated-exploration-mobile.png'
+            : 'village-integrated-exploration-desktop.png'
+    );
+    let controlDetection = null;
+    if (SMOKE_VIEWPORT_WIDTH <= 600) {
+        controlDetection = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const controls = scene.mobileControls;
+            controls.hide();
+            const detectedAsTouch = controls.detectMobile();
+            controls.show();
+            scene.nearVillageHeart = false;
+            scene.updateSanctuaryFocusMode(false);
+            scene.handleVillageHeartProximity();
+            scene.floatingChatBubble?.update?.();
+            const director = scene.sanctuaryInteractionDirector;
+            const hitZone = director?.actionNodeParts?.hitZone;
+            const actionNode = director?.actionNodeParts?.node;
+            const heartNavigationMarkers = (scene.navigationMarkers || []).filter(
+                marker => marker?.getData?.('navigationMarkerDestination') === 'Village Heart'
+            );
+            return {
+                detectedAsTouch,
+                controlsVisible: controls.isVisible === true,
+                prompt: scene.interactionText?.text || '',
+                promptVisible: scene.interactionText?.visible === true,
+                commandBeaconPresent: Boolean(director?.beacon),
+                commandChannel: hitZone?.getData?.('commandChannel') || '',
+                commandVerb: hitZone?.getData?.('interactionVerb') || '',
+                commandLabel: hitZone?.getData?.('interactionLabel') || '',
+                commandVisualLanguage: actionNode?.getData?.('visualLanguage') || '',
+                commandTouchWidth: hitZone?.getData?.('touchTargetWidth') || 0,
+                commandTouchHeight: hitZone?.getData?.('touchTargetHeight') || 0,
+                ownershipLabel: hitZone?.getData?.('ownershipLabel') || '',
+                ownershipRelation: hitZone?.getData?.('ownershipRelation') || '',
+                floatingChatVisible: scene.floatingChatBubble?.bubble?.visible === true,
+                heartNavigationMarkerCount: heartNavigationMarkers.length,
+                dockTop: controls.layout?.dockTop ?? null
+            };
+        })()`);
+        if (
+            !controlDetection.detectedAsTouch ||
+            !controlDetection.controlsVisible ||
+            controlDetection.promptVisible ||
+            controlDetection.commandBeaconPresent ||
+            controlDetection.commandChannel !== 'target' ||
+            controlDetection.commandVerb !== 'DECIDE' ||
+            controlDetection.commandLabel !== 'TOGETHER' ||
+            controlDetection.commandVisualLanguage !== 'target-attached-command-v1' ||
+            controlDetection.commandTouchWidth !== 132 ||
+            controlDetection.commandTouchHeight !== 48 ||
+            controlDetection.ownershipLabel !== 'VILLAGE HEART' ||
+            controlDetection.ownershipRelation !== 'marks-selected-world-target' ||
+            controlDetection.floatingChatVisible ||
+            controlDetection.heartNavigationMarkerCount !== 0 ||
+            !Number.isFinite(controlDetection.dockTop)
+        ) {
+            throw new Error(`Village mobile control detection failed: ${JSON.stringify(controlDetection)}`);
+        }
+        await captureGameplayStill(session, 'village-control-detection-mobile.png');
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            scene.nearVillageHeart = false;
+            scene.updateSanctuaryFocusMode(false);
+            scene.hideInteractionHint();
+            return true;
+        })()`);
+    }
+
+
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.nearVillageHeart = false;
+        window.GameState.set('session.shownCosmicAffinity', false);
+        scene.showCosmicAffinityNotification('nebula', 0.75);
+        return scene.cosmicAffinityNotice?.active === true;
+    })()`);
+    await delay(260);
+    const resonanceNotice = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const notice = scene.cosmicAffinityNotice;
+        const bounds = notice?.getBounds?.();
+        return {
+            active: notice?.active === true,
+            affinity: notice?.getData?.('affinity') || '',
+            dailyGiftVisible: scene.dailyBonusButton?.visible === true,
+            copy: notice?.list
+                ?.filter(child => typeof child.text === 'string')
+                .map(child => child.text) || [],
+            bounds: bounds ? {
+                left: bounds.left,
+                right: bounds.right,
+                top: bounds.top,
+                bottom: bounds.bottom,
+                width: bounds.width,
+                height: bounds.height
+            } : null,
+            viewport: {
+                width: scene.cameras.main.width,
+                height: scene.cameras.main.height
+            }
+        };
+    })()`);
+    if (
+        !resonanceNotice.active ||
+        resonanceNotice.affinity !== 'nebula' ||
+        resonanceNotice.dailyGiftVisible ||
+        resonanceNotice.copy.join(' ').includes('🌌') ||
+        !resonanceNotice.copy.includes('NEBULA RESONANCE') ||
+        !resonanceNotice.copy.includes('Exploration discoveries earn bonus XP') ||
+        !resonanceNotice.bounds ||
+        resonanceNotice.bounds.left < (
+            resonanceNotice.viewport.width <= 600 ? 87 : -1
+        ) ||
+        resonanceNotice.bounds.right > resonanceNotice.viewport.width + 1 ||
+        resonanceNotice.bounds.top < -1 ||
+        resonanceNotice.bounds.bottom > resonanceNotice.viewport.height + 1 ||
+        resonanceNotice.bounds.width > 301
+    ) {
+        throw new Error(`Companion resonance notice failed: ${JSON.stringify(resonanceNotice)}`);
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-resonance-notice-mobile.png'
+            : 'village-resonance-notice-desktop.png'
+    );
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.dismissCosmicAffinityNotice(0);
+        return scene.cosmicAffinityNotice === null;
+    })()`);
+
+    await evaluate(session, `(() => {
         const game = window.mythicalGame;
         game.scene.getScenes(true).forEach(active => {
             game.scene.stop(active.scene.key);
@@ -10385,35 +13401,138 @@ async function smokeVillageUi(session, exceptions) {
         { timeoutMs: 45000, message: 'Village Heart command panel' }
     );
     await waitFor(
+        () => evaluate(
+            session,
+            `Boolean(document.querySelector('.village-command-modal.accepts-input'))`
+        ),
+        { timeoutMs: 12000, message: 'Village Heart actionable input state' }
+    );
+    await waitFor(
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('GameScene');
             const landmark = scene?.villageHeartLandmark;
             return landmark?.plotHitZones?.length === 5 &&
                 landmark?.buildingElements?.filter(
-                    element => element?.type === 'Container'
+                    element => element?.getData?.('villageBuildingStructure') === true
                 ).length === 5;
         })()`),
         { timeoutMs: 12000, message: 'Village Heart interactive world district' }
     );
+    try {
+        await waitFor(
+            () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const camera = scene?.cameras?.main;
+            const landmark = scene?.villageHeartLandmark;
+            const zones = landmark?.plotHitZones || [];
+            const expectedLayoutProfile = innerWidth <= 600
+                ? 'terraced_current_v2'
+                : 'commons_spine_v1';
+            if (
+                !scene?.sanctuaryFocusModeActive ||
+                !camera ||
+                zones.length !== 5 ||
+                landmark?.plotPresentations?.some(
+                    presentation => presentation.layoutProfile !== expectedLayoutProfile
+                )
+            ) return false;
+            return zones.every(zone => {
+                const bounds = zone.getBounds?.();
+                if (!bounds) return false;
+                const left = (bounds.left - camera.worldView.x) * camera.zoom + camera.x;
+                const right = (bounds.right - camera.worldView.x) * camera.zoom + camera.x;
+                const top = (bounds.top - camera.worldView.y) * camera.zoom + camera.y;
+                const bottom = (bounds.bottom - camera.worldView.y) * camera.zoom + camera.y;
+                return left >= -1 && right <= innerWidth + 1 &&
+                    top >= -1 && bottom <= innerHeight + 1;
+            });
+            })()`),
+            { timeoutMs: 12000, message: 'Village Heart focused viewport layout' }
+        );
+    } catch (error) {
+        const focusDiagnostics = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const camera = scene?.cameras?.main;
+            const landmark = scene?.villageHeartLandmark;
+            const screenBounds = zone => {
+                const bounds = zone?.getBounds?.();
+                if (!bounds || !camera) return null;
+                return {
+                    left: (bounds.left - camera.worldView.x) * camera.zoom + camera.x,
+                    right: (bounds.right - camera.worldView.x) * camera.zoom + camera.x,
+                    top: (bounds.top - camera.worldView.y) * camera.zoom + camera.y,
+                    bottom: (bounds.bottom - camera.worldView.y) * camera.zoom + camera.y
+                };
+            };
+            return {
+                innerSize: { width: innerWidth, height: innerHeight },
+                scaleSize: {
+                    width: scene?.scale?.width,
+                    height: scene?.scale?.height
+                },
+                focusActive: scene?.sanctuaryFocusModeActive,
+                camera: camera ? {
+                    x: camera.x,
+                    y: camera.y,
+                    width: camera.width,
+                    height: camera.height,
+                    zoom: camera.zoom,
+                    worldView: {
+                        x: camera.worldView.x,
+                        y: camera.worldView.y,
+                        width: camera.worldView.width,
+                        height: camera.worldView.height
+                    }
+                } : null,
+                layoutProfiles: (landmark?.plotPresentations || []).map(
+                    presentation => presentation.layoutProfile
+                ),
+                plotBounds: (landmark?.plotHitZones || []).map(screenBounds),
+                previewSyncActive: typeof scene?.villagePreviewCameraSync === 'function'
+            };
+        })()`);
+        throw new Error(`${error.message}: ${JSON.stringify({
+            focusDiagnostics,
+            exceptions
+        })}`);
+    }
 
     const layout = await evaluate(session, `(() => {
         const modal = document.querySelector('.village-command-modal');
         const shell = document.querySelector('.village-command-shell');
         const close = document.querySelector('.village-command-close');
         const body = document.querySelector('.village-command-body');
+        const resources = document.querySelector('.village-resource-ledger');
         const artworks = [...document.querySelectorAll('.village-building-artwork:not(.is-compact)')];
         const milestones = [...document.querySelectorAll('.village-milestone')];
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const landmark = scene.villageHeartLandmark;
         const worldStructures = (landmark?.buildingElements || [])
-            .filter(element => element?.type === 'Container');
+            .filter(element => element?.getData?.('villageBuildingStructure') === true);
+        const workers = landmark?.workerElements || [];
+        const communityPanel = document.querySelector('.village-community-pulse');
+        const supportPanel = document.querySelector('.village-support-impact-summary');
+        const supportRows = [...document.querySelectorAll('.village-support-impact-row')];
+        const decisionPanel = document.querySelector('.village-heart-decision');
+        const decisionOptions = [...document.querySelectorAll('.village-decision-option')];
+        const communityMoment = landmark?.snapshot?.communityMoments?.[0] || null;
+        const communityMomentStarted = scene.worldBuilder.playVillageCommunityMoment(
+            landmark,
+            communityMoment
+        );
+        const productionMomentStarted = scene.worldBuilder.playVillageProductionMoment(
+            landmark,
+            landmark.snapshot,
+            [{ id: 'food', label: 'FOOD', amount: 3 }]
+        );
+        const camera = scene.cameras.main;
         const plotHitZones = (landmark?.plotHitZones || []).map(zone => {
-            const rect = zone.getBounds();
+            const worldBounds = zone.getBounds();
             return {
-                left: rect.left,
-                right: rect.right,
-                top: rect.top,
-                bottom: rect.bottom,
+                left: (worldBounds.left - camera.worldView.x) * camera.zoom + camera.x,
+                right: (worldBounds.right - camera.worldView.x) * camera.zoom + camera.x,
+                top: (worldBounds.top - camera.worldView.y) * camera.zoom + camera.y,
+                bottom: (worldBounds.bottom - camera.worldView.y) * camera.zoom + camera.y,
                 inputEnabled: zone.input?.enabled === true,
                 cursor: zone.input?.cursor || ''
             };
@@ -10426,6 +13545,11 @@ async function smokeVillageUi(session, exceptions) {
             innerWidth,
             innerHeight,
             bodyScrollWidth: document.body.scrollWidth,
+            acceptsInput: modal.classList.contains('accepts-input'),
+            resourceColumns: getComputedStyle(resources).gridTemplateColumns
+                .split(' ')
+                .filter(Boolean)
+                .length,
             modal: bounds(modal),
             shell: bounds(shell),
             close: bounds(close),
@@ -10443,14 +13567,309 @@ async function smokeVillageUi(session, exceptions) {
                 milestoneCount: milestones.length,
                 completedMilestones: milestones.filter(item => item.classList.contains('is-complete')).length
             },
+            support: {
+                panelPresent: Boolean(supportPanel),
+                ariaLabel: supportPanel?.getAttribute('aria-label') || '',
+                heading: document.querySelector('.village-support-impact-title')?.textContent || '',
+                rowCount: supportRows.length,
+                ids: supportRows.map(row => row.dataset.support || ''),
+                effects: supportRows.map(
+                    row => row.querySelector('.village-support-effect')?.textContent || ''
+                ),
+                contexts: supportRows.map(
+                    row => row.querySelector('.village-support-context')?.textContent || ''
+                ),
+                sources: supportRows.map(
+                    row => row.querySelector('.village-support-source')?.textContent || ''
+                )
+            },
+            community: {
+                panelPresent: Boolean(communityPanel),
+                momentId: communityPanel?.dataset?.moment || '',
+                identityCount: document.querySelectorAll('.village-community-person').length,
+                line: document.querySelector('.village-community-line')?.textContent || '',
+                value: document.querySelector('.village-community-value')?.textContent || '',
+                momentStarted: communityMomentStarted,
+                worldElementCount: landmark?.communityMomentElements?.length || 0,
+                worldParticipants: landmark?.activeCommunityMoment?.getData('participantNames') || [],
+                resonanceStyle: landmark?.activeCommunityMoment?.getData('resonanceStyle'),
+                resonanceAnchor: landmark?.activeCommunityMoment?.getData('resonanceAnchor'),
+                resonanceBackdrop: landmark?.activeCommunityMoment?.list?.some(
+                    child => child?.getData?.('villageResonanceBackdrop') === true
+                ) === true
+            },
+            decision: {
+                panelPresent: Boolean(decisionPanel),
+                active: decisionPanel?.classList.contains('is-active') === true,
+                title: document.querySelector('.village-decision-title')?.textContent || '',
+                participants: document.querySelector('.village-decision-participants')?.textContent || '',
+                optionCount: decisionOptions.length,
+                optionLabels: decisionOptions.map(option => option.textContent),
+                optionHeights: decisionOptions.map(option => option.getBoundingClientRect().height),
+                valueCount: document.querySelectorAll('.village-decision-value').length
+            },
             worldPresentation: {
+                presentationMode: landmark?.presentationMode,
+                layoutProfile: landmark?.heartArtwork?.getData?.('villageLayoutProfile'),
+                heartDisplaySize: landmark?.heartArtwork?.getData?.('villageDisplaySize'),
+                heartPulseProfile: landmark?.heartArtwork?.getData?.(
+                    'villageHeartPulseProfile'
+                ),
+                heartAmbientRole: landmark?.heartArtwork?.getData?.('villageAmbientRole'),
+                heartCaptionActive: landmark?.heartCaption?.active === true,
+                strayFieldKitShipCount: (scene.fieldKitPreviewElements || []).filter(
+                    element => element?.getData?.('fieldKitPreviewShip') === true
+                ).length,
+                strayFieldKitBackdropCount: (scene.fieldKitPreviewElements || []).length,
+                backgroundProfile: scene.worldBackground?.getData?.(
+                    'worldBackgroundProfile'
+                ),
                 structureCount: worldStructures.length,
                 plotHitZones,
                 districtTerrainActive: landmark?.districtTerrain?.active === true,
+                districtTerrain: {
+                    material: landmark?.districtTerrain?.getData?.('villageTerrainMaterial'),
+                    continuousGround: landmark?.districtTerrain?.getData?.(
+                        'villageDistrictContinuousGround'
+                    ),
+                    profile: landmark?.districtTerrain?.getData?.(
+                        'villageDistrictGroundProfile'
+                    ),
+                    entranceCount: landmark?.districtTerrain?.getData?.(
+                        'villageDistrictEntranceCount'
+                    ),
+                    edgeNodeCount: landmark?.districtTerrain?.getData?.(
+                        'villageDistrictEdgeNodeCount'
+                    ),
+                    width: landmark?.districtTerrain?.getData?.(
+                        'villageDistrictGroundWidth'
+                    ),
+                    height: landmark?.districtTerrain?.getData?.(
+                        'villageDistrictGroundHeight'
+                    ),
+                    livingBasins: landmark?.districtTerrain?.getData?.(
+                        'villageLivingBasinCount'
+                    ),
+                    reservedFoundations: landmark?.districtTerrain?.getData?.(
+                        'villageReservedFoundationCount'
+                    ),
+                    inhabitedIds: landmark?.districtTerrain?.getData?.(
+                        'villageInhabitedDistrictIds'
+                    ) || [],
+                    inhabitedMaterials: landmark?.districtTerrain?.getData?.(
+                        'villageInhabitedDistrictMaterials'
+                    ) || [],
+                    inhabitedMotions: landmark?.districtTerrain?.getData?.(
+                        'villageInhabitedDistrictMotions'
+                    ) || [],
+                    worldChanges: landmark?.districtTerrain?.getData?.(
+                        'villageInhabitedWorldChanges'
+                    ) || []
+                },
+                growthEcology: {
+                    identity: landmark?.districtEcology?.getData?.(
+                        'villageGrowthWorldIdentity'
+                    ),
+                    canopyCount: landmark?.districtEcology?.getData?.(
+                        'villageGrowthCanopyCount'
+                    ),
+                    currentNodeCount: landmark?.districtEcology?.getData?.(
+                        'villageGrowthCurrentNodeCount'
+                    ),
+                    gatheringCapacity: landmark?.districtEcology?.getData?.(
+                        'villageGrowthGatheringCapacity'
+                    ),
+                    profile: landmark?.districtEcology?.getData?.(
+                        'villageGrowthStageProfile'
+                    )
+                },
+                commonsLife: landmark?.commonsLife ? {
+                    profile: landmark.commonsLife.getData('villageCommonsProfile'),
+                    capacity: landmark.commonsLife.getData('villageCommonsCapacity'),
+                    residentCount: landmark.commonsLife.getData('villageCommonsResidentCount'),
+                    routine: landmark.commonsLife.getData('villageCommonsRoutine'),
+                    presentationMode: landmark.commonsLife.getData('villagePresentationMode')
+                } : null,
                 currentPathsActive: landmark?.currentPaths?.active === true,
+                routeHierarchy: landmark?.currentPaths?.getData?.(
+                    'villageRouteHierarchy'
+                ),
+                routeHierarchyState: landmark?.currentPaths?.getData?.(
+                    'villageRouteHierarchyState'
+                ),
+                routeHierarchyAlpha: landmark?.currentPaths?.alpha,
+                routeHierarchyTargetAlpha: landmark?.currentPaths?.getData?.(
+                    'villageRouteHierarchyAlpha'
+                ),
+                pathResourceLanguage: landmark?.currentPaths?.getData?.(
+                    'villagePathResourceLanguage'
+                ),
+                pathResourceRoutes: landmark?.currentPaths?.getData?.(
+                    'villagePathResourceRoutes'
+                ) || [],
+                growthTier: landmark?.snapshot?.worldState?.growthTier,
+                growthLabel: landmark?.snapshot?.worldState?.growthLabel,
+                nextActionType: landmark?.snapshot?.worldState?.nextAction?.type,
+                nextActionTarget: landmark?.nextActionElement?.getData('villageNextAction'),
+                valueGrowthCount: landmark?.valueGrowthElements?.length || 0,
                 actionLabel: landmark?.actionLabel?.text || '',
                 statusLabel: landmark?.statusLabel?.text || '',
-                animatedElements: landmark?.buildingTweens?.length || 0
+                heartLife: {
+                    stage: landmark?.heartLife?.aura?.getData?.('villageHeartGrowthStage'),
+                    tier: landmark?.heartLife?.aura?.getData?.('villageHeartGrowthTier'),
+                    motion: landmark?.heartLife?.aura?.getData?.('villageHeartMotionProfile'),
+                    dominantValue: landmark?.heartLife?.aura?.getData?.('villageHeartDominantValue'),
+                    orbitNodes: landmark?.heartLife?.orbit?.getData?.('villageHeartOrbitNodeCount'),
+                    leaves: landmark?.heartLife?.crown?.getData?.('villageHeartLeafCount'),
+                    memoryLights: landmark?.heartLife?.crown?.getData?.('villageHeartMemoryLightCount'),
+                    silhouette: landmark?.heartLife?.aura?.getData?.(
+                        'villageHeartSilhouetteProfile'
+                    ),
+                    memoryLanguage: landmark?.heartLife?.memoryWeave?.getData?.(
+                        'villageHeartMemoryLanguage'
+                    ),
+                    careMarks: landmark?.heartLife?.memoryWeave?.getData?.(
+                        'villageHeartCareMarks'
+                    ),
+                    readinessMarks: landmark?.heartLife?.memoryWeave?.getData?.(
+                        'villageHeartReadinessMarks'
+                    ),
+                    balancedWeave: landmark?.heartLife?.memoryWeave?.getData?.(
+                        'villageHeartBalancedWeave'
+                    ),
+                    resourceContributionCount: landmark?.heartLife?.aura?.getData?.(
+                        'villageHeartResourceContributionCount'
+                    ),
+                    resourceContributions: landmark?.heartLife?.aura?.getData?.(
+                        'villageHeartResourceContributions'
+                    ) || [],
+                    resourceImprints: ['food', 'wood', 'stone'].map(resource => {
+                        const imprint = landmark?.heartLife?.[resource + 'Imprint'];
+                        return {
+                            resource,
+                            active: imprint?.getData?.(
+                                'villageHeartResourceImprintActive'
+                            ) === true,
+                            contributor: imprint?.getData?.(
+                                'villageHeartResourceContributor'
+                            ) || null,
+                            effect: imprint?.getData?.(
+                                'villageHeartResourceEffect'
+                            ) || null,
+                            motion: imprint?.getData?.(
+                                'villageHeartResourceMotionProfile'
+                            ) || null
+                        };
+                    }),
+                    background: {
+                        displayHeight: scene?.worldBackground?.displayHeight,
+                        overscan: scene?.worldBackground?.getData?.(
+                            'worldBackgroundOverscan'
+                        ),
+                        worldHeight: scene?.worldHeight,
+                        mobileReserve: scene?.mobileControlDockWorldReserve
+                    },
+                    auraFocusAlpha: landmark?.heartLife?.aura?.getData?.('villageFocusAlpha'),
+                    presentationMode: landmark?.heartLife?.aura?.getData?.('villagePresentationMode'),
+                    tweenCount: landmark?.heartLifeTweens?.length || 0,
+                    deliveryResponse: landmark?.heartLife?.deliveryPulse?.getData?.(
+                        'villageHeartDeliveryResponse'
+                    )
+                },
+                animatedElements: landmark?.buildingTweens?.length || 0,
+                workerCount: workers.length,
+                workerNames: workers.map(worker => worker.getData('helperName')),
+                workerRoutines: workers.map(worker => worker.getData('routineCue')),
+                workerCheckInCues: workers.map(worker => worker.getData('checkInCue')),
+                workerCheckInCueStyles: workers.map(worker => worker.getData('checkInCueStyle')),
+                workerRoutes: workers.map(worker => ({
+                    routeType: worker.getData('routeType'),
+                    routePhase: worker.getData('routePhase'),
+                    routeProgress: worker.getData('routeProgress'),
+                    routeDirection: worker.getData('routeDirection'),
+                    cargoVisible: worker.getData('cargoVisible'),
+                    deliveryFeedback: worker.getData('deliveryFeedback'),
+                    visibleRoutineCue: worker.getData('visibleRoutineCue'),
+                    carriedResource: worker.getData('carriedResource'),
+                    worldEffectLabel: worker.getData('worldEffectLabel'),
+                    ariaLabel: worker.getData('ariaLabel'),
+                    focusAlpha: worker.getData('villageFocusAlpha'),
+                    presentationMode: worker.getData('villagePresentationMode')
+                })),
+                habitatLife: (() => {
+                    const habitat = landmark?.residentElements?.[0] || null;
+                    return habitat ? {
+                        capacity: habitat.getData('capacity'),
+                        residentNames: habitat.getData('residentNames'),
+                        residentStatuses: habitat.getData('residentStatuses'),
+                        residentFigureCount: habitat.getData('residentFigureCount'),
+                        homeTetherCount: habitat.getData('homeTetherCount'),
+                        presentCount: habitat.getData('presentCount'),
+                        helpingCount: habitat.getData('helpingCount'),
+                        ariaLabel: habitat.getData('ariaLabel'),
+                        statusText: habitat.list?.find(child => child?.type === 'Text')?.text || '',
+                        active: habitat.active === true
+                    } : null;
+                })(),
+                workerResonanceCues: workers.map(worker => worker.list?.some(
+                    child => child?.getData?.('villageResonanceCue') === true
+                ) === true),
+                plotPresentations: (landmark?.plotPresentations || []).map(presentation => ({
+                    plotId: presentation.plotId,
+                    plotState: presentation.plotState,
+                    ambientRole: presentation.ambientRole,
+                    containerAmbientRole: presentation.container?.getData?.(
+                        'villageAmbientRole'
+                    ),
+                    anchorAmbientRole: presentation.districtAnchor?.getData?.(
+                        'villageAmbientRole'
+                    ),
+                    inhabitedDistrict: presentation.inhabitedDistrict ? {
+                        identity: presentation.inhabitedDistrict.getData('villageDistrictIdentity'),
+                        material: presentation.inhabitedDistrict.getData('villageDistrictMaterial'),
+                        motion: presentation.inhabitedDistrict.getData('villageDistrictMotion'),
+                        motionActive: presentation.inhabitedDistrict.getData(
+                            'villageDistrictMotionActive'
+                        ),
+                        activityCue: presentation.inhabitedDistrict.getData(
+                            'villageDistrictActivityCue'
+                        ),
+                        worldChange: presentation.inhabitedDistrict.getData(
+                            'villageDistrictWorldChange'
+                        )
+                    } : null,
+                    progressNodes: presentation.stateMarker?.getData?.('progressNodes'),
+                    markerActive: presentation.stateMarker?.active === true,
+                    label: presentation.plotLabel?.text || '',
+                    labelAlpha: presentation.plotLabel?.alpha,
+                    state: presentation.stateLabel?.text || '',
+                    stateAlpha: presentation.stateLabel?.alpha,
+                    focusAlpha: presentation.focusRing?.alpha,
+                    layoutProfile: presentation.layoutProfile,
+                    artworkDisplaySize: presentation.worldArtwork
+                        ?.getData?.('villageDisplaySize') || 0,
+                    districtActionVerb: presentation.districtAnchor?.getData?.(
+                        'villageDistrictActionVerb'
+                    ),
+                    districtVisualLanguage: presentation.districtAnchor?.getData?.(
+                        'villageDistrictVisualLanguage'
+                    ),
+                    districtPurposeGlyph: presentation.districtAnchor?.getData?.(
+                        'villageDistrictPurposeGlyph'
+                    ),
+                    districtPurposeLabel: presentation.districtAnchor?.getData?.(
+                        'villageDistrictPurposeLabel'
+                    ),
+                    districtActionLabel: presentation.districtAnchor?.getData?.(
+                        'villageDistrictActionLabel'
+                    ),
+                    interactionVerb: presentation.hitZone?.getData?.('interactionVerb'),
+                    worldActionLabel: presentation.hitZone?.getData?.('worldActionLabel'),
+                    purposeGlyph: presentation.hitZone?.getData?.('purposeGlyph'),
+                    interactionLabel: presentation.interactionLabel
+                })),
+                productionMomentStarted,
+                productionMomentCount: landmark?.productionMoments?.length || 0
             },
             commandBody: {
                 clientWidth: body.clientWidth,
@@ -10460,12 +13879,13 @@ async function smokeVillageUi(session, exceptions) {
             }
         };
     })()`);
+    await captureGameplayStill(session, 'village-community-mobile.png');
     const withinViewport = rect =>
         rect.left >= -1 && rect.right <= layout.innerWidth + 1 &&
         rect.top >= -1 && rect.bottom <= layout.innerHeight + 1;
     if (
-        layout.innerWidth !== 390 ||
-        layout.innerHeight !== 844 ||
+        layout.innerWidth !== SMOKE_VIEWPORT_WIDTH ||
+        layout.innerHeight !== SMOKE_VIEWPORT_HEIGHT ||
         layout.bodyScrollWidth > layout.innerWidth ||
         layout.commandBody.scrollWidth > layout.commandBody.clientWidth + 1 ||
         layout.artworks.length !== 5 ||
@@ -10475,6 +13895,57 @@ async function smokeVillageUi(session, exceptions) {
         new Set(layout.artworks.map(artwork => artwork.backgroundImage)).size !== 5 ||
         layout.phase.milestoneCount !== 4 ||
         !layout.phase.title ||
+        !layout.support.panelPresent ||
+        layout.support.heading !== 'WHAT YOUR SANCTUARY CHANGES' ||
+        layout.support.rowCount !== 3 ||
+        layout.support.ids.join(',') !== 'feeding_happiness,victory_coins,blocked_hits' ||
+        layout.support.effects.join('|') !== (
+            'FEEDING ADDS 5 EXTRA HAPPINESS|' +
+            'EVERY WIN RETURNS 10 EXTRA COINS|' +
+            '1 INCOMING HIT IS BLOCKED'
+        ) ||
+        layout.support.contexts.join(',') !== (
+            'CREATURE CARE,LEVEL VICTORY,EXPEDITION DEFENSE'
+        ) ||
+        layout.support.sources.join(',') !== (
+            'FORAGER HUT,LIVING SAWMILL,CURRENT MASONRY'
+        ) ||
+        !layout.support.ariaLabel.includes('FEEDING ADDS 5 EXTRA HAPPINESS') ||
+        !layout.support.ariaLabel.includes('1 INCOMING HIT IS BLOCKED') ||
+        !layout.community.panelPresent ||
+        !layout.community.momentId ||
+        layout.community.identityCount !== 2 ||
+        !layout.community.line ||
+        !layout.community.value ||
+        !layout.community.momentStarted ||
+        layout.community.worldElementCount !== 3 ||
+        layout.community.worldParticipants.length !== 2 ||
+        layout.community.resonanceStyle !== 'current_ribbon' ||
+        layout.community.resonanceAnchor !== 'quiet_space' ||
+        !layout.community.resonanceBackdrop ||
+        !layout.decision.panelPresent ||
+        !layout.decision.active ||
+        !layout.decision.title ||
+        !layout.decision.participants.includes('Ember + Lumen') ||
+        layout.decision.optionCount !== 2 ||
+        layout.decision.optionLabels.some(label => !label.includes('+1')) ||
+        layout.decision.optionHeights.some(height => height < 44) ||
+        layout.decision.valueCount !== 2 ||
+        layout.worldPresentation.presentationMode !== 'story' ||
+        layout.worldPresentation.layoutProfile !== (
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? 'terraced_current_v2'
+                : 'commons_spine_v1'
+        ) ||
+        layout.worldPresentation.heartDisplaySize !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 132 : 202
+        ) ||
+        layout.worldPresentation.heartPulseProfile !== 'decision_beacon' ||
+        layout.worldPresentation.heartAmbientRole !== 'decision_landmark' ||
+        !layout.worldPresentation.heartCaptionActive ||
+        layout.worldPresentation.strayFieldKitShipCount !== 0 ||
+        layout.worldPresentation.strayFieldKitBackdropCount !== 0 ||
+        layout.worldPresentation.backgroundProfile !== 'living_current_ground_v4' ||
         layout.worldPresentation.structureCount !== 5 ||
         layout.worldPresentation.plotHitZones.length !== 5 ||
         layout.worldPresentation.plotHitZones.some(bounds => (
@@ -10485,28 +13956,1180 @@ async function smokeVillageUi(session, exceptions) {
             !bounds.inputEnabled
         )) ||
         !layout.worldPresentation.districtTerrainActive ||
+        layout.worldPresentation.districtTerrain.material !==
+            'living_current_districts_v4' ||
+        layout.worldPresentation.districtTerrain.continuousGround !== true ||
+        layout.worldPresentation.districtTerrain.profile !==
+            'shared_living_glade_v1' ||
+        layout.worldPresentation.districtTerrain.entranceCount !== 2 ||
+        layout.worldPresentation.districtTerrain.edgeNodeCount !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 10 : 14
+        ) ||
+        layout.worldPresentation.districtTerrain.width < (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 300 : 700
+        ) ||
+        layout.worldPresentation.districtTerrain.height < 430 ||
+        layout.worldPresentation.districtTerrain.livingBasins !== 4 ||
+        layout.worldPresentation.districtTerrain.reservedFoundations !== 2 ||
+        layout.worldPresentation.districtTerrain.inhabitedIds.sort().join(',') !==
+            'open_current_buttress,renewing_garden,stormwood_yard' ||
+        layout.worldPresentation.districtTerrain.inhabitedMaterials.sort().join(',') !==
+            'fallen_timber_rings_v1,regrowth_rows_v1,resonant_stone_arc_v1' ||
+        layout.worldPresentation.districtTerrain.inhabitedMotions.sort().join(',') !==
+            'seed_drift,stone_resonance,stormwood_turn' ||
+        layout.worldPresentation.districtTerrain.worldChanges.length !== 3 ||
+        layout.worldPresentation.growthEcology.identity !== 'shared_crossing' ||
+        layout.worldPresentation.growthEcology.canopyCount !== 2 ||
+        layout.worldPresentation.growthEcology.currentNodeCount !== 5 ||
+        layout.worldPresentation.growthEcology.gatheringCapacity !== 2 ||
+        layout.worldPresentation.growthEcology.profile !== 'living_settlement_tiers_v1' ||
+        layout.worldPresentation.commonsLife?.profile !== 'shared_crossing' ||
+        layout.worldPresentation.commonsLife?.capacity !== 2 ||
+        layout.worldPresentation.commonsLife?.routine !== 'heart_check_in' ||
+        layout.worldPresentation.commonsLife?.presentationMode !== 'story' ||
         !layout.worldPresentation.currentPathsActive ||
-        layout.worldPresentation.actionLabel !== 'TAP TO BUILD' ||
-        !layout.worldPresentation.statusLabel.includes('SITES BUILT') ||
+        layout.worldPresentation.routeHierarchy !== 'quiet_network_v1' ||
+        layout.worldPresentation.routeHierarchyState !== 'story_recessed' ||
+        layout.worldPresentation.routeHierarchyTargetAlpha !== 0.2 ||
+        layout.worldPresentation.routeHierarchyAlpha > 0.72 ||
+        layout.worldPresentation.pathResourceLanguage !== 'resource_return_marks_v1' ||
+        layout.worldPresentation.pathResourceRoutes
+            .map(route => route.resource)
+            .sort()
+            .join(',') !== 'food,stone,wood' ||
+        layout.worldPresentation.growthTier !== 2 ||
+        layout.worldPresentation.growthLabel !== 'CONNECTED GLADE' ||
+        layout.worldPresentation.heartLife.stage !== 'CONNECTED GLADE' ||
+        layout.worldPresentation.heartLife.tier !== 2 ||
+        layout.worldPresentation.heartLife.motion !== 'living_current_breath_v1' ||
+        layout.worldPresentation.heartLife.dominantValue !== 'balanced' ||
+        layout.worldPresentation.heartLife.orbitNodes !== 3 ||
+        layout.worldPresentation.heartLife.leaves !== 4 ||
+        layout.worldPresentation.heartLife.memoryLights !== 0 ||
+        layout.worldPresentation.heartLife.silhouette !== 'shared_memory_silhouette_v1' ||
+        layout.worldPresentation.heartLife.memoryLanguage !== 'shared_vow_weave_v1' ||
+        layout.worldPresentation.heartLife.careMarks !== 0 ||
+        layout.worldPresentation.heartLife.readinessMarks !== 0 ||
+        layout.worldPresentation.heartLife.balancedWeave !== false ||
+        layout.worldPresentation.heartLife.resourceContributionCount !== 3 ||
+        JSON.stringify(
+            [...layout.worldPresentation.heartLife.resourceContributions].sort()
+        ) !== JSON.stringify(['food', 'stone', 'wood']) ||
+        layout.worldPresentation.heartLife.resourceImprints.length !== 3 ||
+        layout.worldPresentation.heartLife.resourceImprints.some(imprint => (
+            !imprint.active ||
+            !imprint.contributor ||
+            !imprint.effect ||
+            imprint.motion !== 'resource_memory_v1'
+        )) ||
+        layout.worldPresentation.heartLife.background.overscan < 320 ||
+        layout.worldPresentation.heartLife.background.displayHeight <
+            layout.worldPresentation.heartLife.background.worldHeight +
+            layout.worldPresentation.heartLife.background.mobileReserve ||
+        layout.worldPresentation.heartLife.auraFocusAlpha !== 0.54 ||
+        layout.worldPresentation.heartLife.presentationMode !== 'story' ||
+        layout.worldPresentation.heartLife.tweenCount !== 3 ||
+        layout.worldPresentation.heartLife.deliveryResponse !== true ||
+        layout.worldPresentation.nextActionType !== 'decision' ||
+        layout.worldPresentation.nextActionTarget !== 'decision' ||
+        layout.worldPresentation.valueGrowthCount !== 0 ||
+        !layout.worldPresentation.actionLabel.includes('HEART CHOICE') ||
+        !layout.worldPresentation.statusLabel.includes('ROOTS') ||
         layout.worldPresentation.animatedElements < 8 ||
+        layout.worldPresentation.animatedElements > 25 ||
+        layout.worldPresentation.workerCount !== 3 ||
+        layout.worldPresentation.workerNames.some(name => !name) ||
+        layout.worldPresentation.workerRoutines.some(cue => !cue) ||
+        layout.worldPresentation.workerCheckInCues.some(cue => cue !== true) ||
+        layout.worldPresentation.workerCheckInCueStyles.some(
+            style => style !== 'current_resonance'
+        ) ||
+        layout.worldPresentation.workerRoutes.some(route => (
+            route.routeType !== 'building_to_heart' ||
+            !['working', 'travelling', 'delivering', 'returning'].includes(route.routePhase) ||
+            !Number.isFinite(route.routeProgress) ||
+            !['to_heart', 'to_building'].includes(route.routeDirection) ||
+            typeof route.cargoVisible !== 'boolean' ||
+            typeof route.deliveryFeedback !== 'boolean' ||
+            !route.carriedResource ||
+            !route.worldEffectLabel ||
+            !route.ariaLabel.includes('Village Heart') ||
+            !route.ariaLabel.includes(route.worldEffectLabel) ||
+            route.focusAlpha > 0.25 ||
+            route.presentationMode !== 'story'
+        )) ||
+        [...layout.worldPresentation.workerRoutes]
+            .map(route => route.carriedResource)
+            .sort()
+            .join(',') !== 'food,stone,wood' ||
+        layout.worldPresentation.habitatLife !== null ||
+        layout.worldPresentation.workerResonanceCues.some(cue => cue !== true) ||
+        layout.worldPresentation.plotPresentations.length !== 5 ||
+        layout.worldPresentation.plotPresentations.some(presentation => (
+            !presentation.label ||
+            !presentation.interactionLabel ||
+            !presentation.markerActive ||
+            presentation.districtVisualLanguage !== 'root_purpose_glyphs_v2' ||
+            presentation.districtActionVerb !== (
+                presentation.plotState === 'available' ? 'BUILD' : 'MANAGE'
+            ) ||
+            presentation.interactionVerb !== (
+                presentation.plotState === 'available' ? 'BUILD' : 'MANAGE'
+            ) ||
+            presentation.labelAlpha !== 0 ||
+            presentation.layoutProfile !== (
+                SMOKE_VIEWPORT_WIDTH <= 600
+                    ? 'terraced_current_v2'
+                    : 'commons_spine_v1'
+            ) ||
+            presentation.artworkDisplaySize > (
+                SMOKE_VIEWPORT_WIDTH <= 600 ? 101 : 153
+            ) ||
+            (
+                presentation.ambientRole === 'inhabited_structure' &&
+                (
+                    presentation.containerAmbientRole !== 'inhabited_structure' ||
+                    presentation.anchorAmbientRole !== 'inhabited_structure' ||
+                    !presentation.inhabitedDistrict?.identity ||
+                    !presentation.inhabitedDistrict?.material ||
+                    !presentation.inhabitedDistrict?.motion ||
+                    presentation.inhabitedDistrict?.motionActive !== true ||
+                    !presentation.inhabitedDistrict?.activityCue ||
+                    !presentation.inhabitedDistrict?.worldChange ||
+                    presentation.artworkDisplaySize < (
+                        SMOKE_VIEWPORT_WIDTH <= 600 ? 89 : 134
+                    )
+                )
+            ) ||
+            (
+                presentation.plotState === 'available' &&
+                (
+                    presentation.ambientRole !== 'reserved_root' ||
+                    presentation.containerAmbientRole !== 'reserved_root' ||
+                    presentation.anchorAmbientRole !== 'reserved_root'
+                )
+            ) ||
+            (
+                presentation.plotState === 'staffed' &&
+                (
+                    presentation.progressNodes !== 6 ||
+                    presentation.stateAlpha !== 0
+                )
+            ) ||
+            (
+                presentation.plotState === 'available' &&
+                (
+                    presentation.progressNodes !== 1 ||
+                    (
+                        layout.worldPresentation.presentationMode === 'story'
+                            ? presentation.stateAlpha !== 0
+                            : presentation.stateAlpha <= 0
+                    )
+                )
+            ) ||
+            presentation.focusAlpha !== 0
+        )) ||
+        layout.worldPresentation.plotPresentations.filter(
+            presentation => presentation.plotState === 'staffed'
+        ).length !== 3 ||
+        layout.worldPresentation.plotPresentations.filter(
+            presentation => presentation.plotState === 'staffed'
+        ).some(presentation => (
+            !presentation.districtPurposeGlyph ||
+            !presentation.districtPurposeLabel ||
+            !presentation.districtActionLabel ||
+            presentation.purposeGlyph !== presentation.districtPurposeGlyph ||
+            presentation.worldActionLabel !== presentation.districtActionLabel
+        )) ||
+        layout.worldPresentation.plotPresentations
+            .filter(presentation => presentation.plotState === 'staffed')
+            .map(presentation => presentation.inhabitedDistrict?.identity)
+            .sort()
+            .join(',') !== 'open_current_buttress,renewing_garden,stormwood_yard' ||
+        layout.worldPresentation.plotPresentations
+            .filter(presentation => presentation.plotState === 'staffed')
+            .map(presentation => presentation.inhabitedDistrict?.motion)
+            .sort()
+            .join(',') !== 'seed_drift,stone_resonance,stormwood_turn' ||
+        layout.worldPresentation.plotPresentations
+            .filter(presentation => presentation.plotState === 'staffed')
+            .map(presentation => presentation.districtPurposeGlyph)
+            .sort()
+            .join(',') !== 'current_guard,renewing_food,repair_value' ||
+        layout.worldPresentation.plotPresentations
+            .filter(presentation => presentation.plotState === 'staffed')
+            .map(presentation => presentation.districtActionLabel)
+            .sort()
+            .join(',') !== 'BLOCK 1 HIT,FEED +5,WIN +10' ||
+        layout.worldPresentation.plotPresentations.filter(
+            presentation => presentation.plotState === 'available'
+        ).length !== 2 ||
+        !layout.worldPresentation.productionMomentStarted ||
+        layout.worldPresentation.productionMomentCount < 1 ||
+        !layout.acceptsInput ||
+        layout.resourceColumns !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 2 : 4) ||
         !withinViewport(layout.shell) ||
-        !withinViewport(layout.close)
+        !withinViewport(layout.close) ||
+        layout.close.right - layout.close.left < 44 ||
+        layout.close.bottom - layout.close.top < 44
     ) {
         throw new Error(`Village mobile layout overflowed: ${JSON.stringify(layout)}`);
     }
 
-    const placed = await evaluate(session, `(() => {
-        const habitat = [...document.querySelectorAll('.village-building-card')]
-            .find(button => button.textContent.includes('SHARED HABITAT'));
-        if (!habitat || habitat.disabled) return false;
-        habitat.click();
-        const plot = [...document.querySelectorAll('.village-plot')]
-            .find(button => button.textContent.includes('ROOT 04'));
-        if (!plot || plot.disabled) return false;
-        plot.click();
+    await evaluate(session, `document.querySelector('.village-command-close')?.click()`);
+    await waitFor(
+        () => evaluate(session, `!document.querySelector('.village-command-modal')`),
+        { message: 'Village Heart closed before next-action route check' }
+    );
+    const contextualFocus = await evaluate(session, `(() => {
+        const landmark = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark;
+        const zone = landmark?.plotHitZones?.[0];
+        const presentation = landmark?.plotPresentations?.[0];
+        if (!zone || !presentation) return null;
+        zone.emit('pointerover');
+        const focused = {
+            labelAlpha: presentation.plotLabel.alpha,
+            stateAlpha: presentation.stateLabel.alpha,
+            focusAlpha: presentation.focusRing.alpha,
+            state: presentation.stateLabel.text
+        };
+        zone.emit('pointerout');
+        return {
+            focused,
+            restored: {
+                labelAlpha: presentation.plotLabel.alpha,
+                stateAlpha: presentation.stateLabel.alpha,
+                focusAlpha: presentation.focusRing.alpha
+            }
+        };
+    })()`);
+    if (
+        !contextualFocus ||
+        contextualFocus.focused.labelAlpha !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 0 : 1) ||
+        contextualFocus.focused.stateAlpha !== 1 ||
+        contextualFocus.focused.focusAlpha !== 1 ||
+        !contextualFocus.focused.state.includes('SAFE PATCHES REGROW') ||
+        !contextualFocus.focused.state.includes('FEED +5') ||
+        contextualFocus.restored.labelAlpha >= 1 ||
+        contextualFocus.restored.stateAlpha !== 0 ||
+        contextualFocus.restored.focusAlpha !== 0
+    ) {
+        throw new Error(`Village contextual focus failed: ${JSON.stringify(contextualFocus)}`);
+    }
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        scene?.worldBuilder?.clearVillageCommunityMoment?.(landmark);
+        scene?.worldBuilder?.clearVillageDecisionMoment?.(landmark);
+        scene?.worldBuilder?.clearVillageWorkerCheckIn?.(landmark);
+        scene?.setSanctuaryMomentFocus?.(false);
+        scene?.worldBuilder?.setVillageFocusMode?.(landmark, false, { immediate: true });
+        return landmark?.presentationMode || null;
+    })()`);
+    const ambientHierarchy = await evaluate(session, `(() => {
+        const landmark = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark;
+        return {
+            mode: landmark?.presentationMode,
+            heartAlpha: landmark?.heartArtwork?.alpha,
+            heartPulseProfile: landmark?.heartArtwork?.getData?.('villageHeartPulseProfile'),
+            heartRole: landmark?.heartArtwork?.getData?.('villageAmbientRole'),
+            plots: (landmark?.plotPresentations || []).map(presentation => ({
+                state: presentation.plotState,
+                role: presentation.ambientRole,
+                containerRole: presentation.container?.getData?.('villageAmbientRole'),
+                anchorRole: presentation.districtAnchor?.getData?.('villageAmbientRole'),
+                alpha: presentation.container?.alpha,
+                anchorAlpha: presentation.districtAnchor?.alpha,
+                artworkSize: presentation.worldArtwork?.getData?.('villageDisplaySize') || 0,
+                workerAlpha: presentation.worker?.alpha ?? null
+            }))
+        };
+    })()`);
+    const inhabitedAmbientPlots = ambientHierarchy?.plots?.filter(
+        plot => plot.role === 'inhabited_structure'
+    ) || [];
+    const reservedAmbientPlots = ambientHierarchy?.plots?.filter(
+        plot => plot.role === 'reserved_root'
+    ) || [];
+    if (
+        ambientHierarchy?.mode !== 'ambient' ||
+        ambientHierarchy.heartPulseProfile !== 'decision_beacon' ||
+        ambientHierarchy.heartRole !== 'decision_landmark' ||
+        ambientHierarchy.heartAlpha !== 1 ||
+        inhabitedAmbientPlots.length !== 3 ||
+        inhabitedAmbientPlots.some(plot => (
+            plot.containerRole !== 'inhabited_structure' ||
+            plot.anchorRole !== 'inhabited_structure' ||
+            plot.alpha < (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.78 : 0.82) ||
+            plot.anchorAlpha > (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.36 : 0.46) ||
+            plot.artworkSize < (SMOKE_VIEWPORT_WIDTH <= 600 ? 89 : 134) ||
+            plot.workerAlpha < (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.76 : 0.78)
+        )) ||
+        reservedAmbientPlots.length !== 2 ||
+        reservedAmbientPlots.some(plot => (
+            plot.containerRole !== 'reserved_root' ||
+            plot.anchorRole !== 'reserved_root' ||
+            plot.alpha > (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.08 : 0.1) ||
+            plot.anchorAlpha > (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.1 : 0.14)
+        ))
+    ) {
+        throw new Error(
+            `Village ambient hierarchy failed: ${JSON.stringify(ambientHierarchy)}`
+        );
+    }
+    await captureGameplayStill(session, 'village-lived-in-ambient-mobile.png');
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const worker = scene?.villageHeartLandmark?.workerElements?.[0];
+            const progress = worker?.getData('routeProgress') || 0;
+            return worker?.input?.enabled === true &&
+                worker?.getData('routeDirection') === 'to_heart' &&
+                worker?.getData('cargoVisible') === true &&
+                progress > 0 &&
+                progress < 0.78;
+        })()`),
+        {
+            timeoutMs: 16000,
+            message: 'Village worker becomes player-ready during outbound delivery route'
+        }
+    );
+    const workerRoute = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const worker = scene?.villageHeartLandmark?.workerElements?.[0];
+        const district = scene?.villageHeartLandmark?.plotPresentations?.find(
+            presentation => presentation.plotId === worker?.getData('plotId')
+        )?.inhabitedDistrict;
+        if (!worker?.getWorldTransformMatrix) return null;
+        const point = worker.getWorldTransformMatrix().transformPoint(0, 0);
+        const camera = scene.cameras?.main;
+        const screenPoint = camera ? {
+            x: (point.x - camera.worldView.x) * camera.zoom + camera.x,
+            y: (point.y - camera.worldView.y) * camera.zoom + camera.y
+        } : point;
+        return {
+            x: Math.round(screenPoint.x),
+            y: Math.round(screenPoint.y),
+            creatureId: worker.getData('creatureId'),
+            helperName: worker.getData('helperName'),
+            routeType: worker.getData('routeType'),
+            routePhase: worker.getData('routePhase'),
+            routeProgress: worker.getData('routeProgress'),
+            routeDirection: worker.getData('routeDirection'),
+            cargoVisible: worker.getData('cargoVisible'),
+            deliveryFeedback: worker.getData('deliveryFeedback'),
+            visibleRoutineCue: worker.getData('visibleRoutineCue'),
+            carriedResource: worker.getData('carriedResource'),
+            worldEffectLabel: worker.getData('worldEffectLabel'),
+            ariaLabel: worker.getData('ariaLabel'),
+            inputEnabled: worker.input?.enabled === true,
+            checkInCue: worker.getData('checkInCue'),
+            checkInCueStyle: worker.getData('checkInCueStyle'),
+            resonanceCue: worker.list?.some(
+                child => child?.getData?.('villageResonanceCue') === true
+            ) === true,
+            deliveryPulse: worker.list?.some(
+                child => child?.getData?.('villageDeliveryPulse') === true
+            ) === true,
+            routeStatus: worker.list?.some(
+                child => child?.getData?.('villageWorkerRouteStatus') === true
+            ) === true,
+            districtOperationalState: district?.getData?.(
+                'villageDistrictOperationalState'
+            ),
+            districtOperationalLanguage: district?.getData?.(
+                'villageDistrictOperationalLanguage'
+            )
+        };
+    })()`);
+    if (
+        !workerRoute ||
+        workerRoute.helperName !== 'Nova' ||
+        workerRoute.routeType !== 'building_to_heart' ||
+        !['working', 'travelling', 'delivering'].includes(workerRoute.routePhase) ||
+        !Number.isFinite(workerRoute.routeProgress) ||
+        workerRoute.routeProgress <= 0 ||
+        workerRoute.routeDirection !== 'to_heart' ||
+        workerRoute.cargoVisible !== true ||
+        workerRoute.deliveryFeedback !== false ||
+        workerRoute.carriedResource !== 'food' ||
+        workerRoute.worldEffectLabel !== 'FEEDING · +5 HAPPINESS' ||
+        !workerRoute.ariaLabel.includes('Village Heart') ||
+        !workerRoute.inputEnabled ||
+        workerRoute.checkInCue !== true ||
+        workerRoute.checkInCueStyle !== 'current_resonance' ||
+        !workerRoute.resonanceCue ||
+        !workerRoute.deliveryPulse ||
+        !workerRoute.routeStatus ||
+        workerRoute.districtOperationalLanguage !== 'living_work_cycle_v1' ||
+        !['working', 'outbound'].includes(workerRoute.districtOperationalState)
+    ) {
+        throw new Error(`Village worker route was unavailable: ${JSON.stringify(workerRoute)}`);
+    }
+    await touch(session, workerRoute.x, workerRoute.y);
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.activeWorkerCheckIn
+        )`),
+        { message: 'Village worker world check-in' }
+    );
+    const workerCheckIn = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const checkIn = landmark?.activeWorkerCheckIn;
+        const camera = scene?.cameras?.main;
+        const worldBounds = checkIn?.getBounds?.();
+        const screenBounds = worldBounds && camera ? {
+            left: (worldBounds.left - camera.worldView.x) * camera.zoom + camera.x,
+            right: (worldBounds.right - camera.worldView.x) * camera.zoom + camera.x,
+            top: (worldBounds.top - camera.worldView.y) * camera.zoom + camera.y,
+            bottom: (worldBounds.bottom - camera.worldView.y) * camera.zoom + camera.y
+        } : null;
+        return {
+            elementCount: landmark?.workerCheckInElements?.length || 0,
+            helperName: checkIn?.getData('helperName'),
+            buildingId: checkIn?.getData('buildingId'),
+            routineCue: checkIn?.getData('routineCue'),
+            impact: checkIn?.getData('impact'),
+            memoryDecisionId: checkIn?.getData('memoryDecisionId'),
+            resonanceStyle: checkIn?.getData('resonanceStyle'),
+            resonanceAnchor: checkIn?.getData('resonanceAnchor'),
+            resonanceBackdrop: checkIn?.list?.some(
+                child => child?.getData?.('villageResonanceBackdrop') === true
+            ) === true,
+            screenBounds,
+            plannerOpen: Boolean(document.querySelector('.village-command-modal'))
+        };
+    })()`);
+    if (
+        workerCheckIn.elementCount !== 3 ||
+        workerCheckIn.helperName !== 'Nova' ||
+        workerCheckIn.buildingId !== 'forager_hut' ||
+        workerCheckIn.routineCue !== 'MAPS SAFE FOOD PATHS' ||
+        workerCheckIn.impact !== 'FEEDING · +5 HAPPINESS' ||
+        workerCheckIn.memoryDecisionId !== null ||
+        workerCheckIn.resonanceStyle !== 'current_ribbon' ||
+        workerCheckIn.resonanceAnchor !== 'resident_tether' ||
+        !workerCheckIn.resonanceBackdrop ||
+        !workerCheckIn.screenBounds ||
+        workerCheckIn.screenBounds.left < 7 ||
+        workerCheckIn.screenBounds.right > SMOKE_VIEWPORT_WIDTH - 7 ||
+        workerCheckIn.screenBounds.top < 7 ||
+        workerCheckIn.screenBounds.bottom > SMOKE_VIEWPORT_HEIGHT - 7 ||
+        workerCheckIn.plannerOpen
+    ) {
+        throw new Error(`Village worker check-in failed: ${JSON.stringify(workerCheckIn)}`);
+    }
+    await captureGameplayStill(session, 'village-worker-check-in-mobile.png');
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.worldBuilder.clearVillageWorkerCheckIn(scene.villageHeartLandmark);
         return true;
     })()`);
-    if (!placed) throw new Error('Village habitat foundation was not actionable');
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.workerElements?.[0]
+                ?.getData('deliveryFeedback')
+        )`),
+        { timeoutMs: 8000, message: 'Village worker delivers visible settlement value' }
+    );
+    const workerDelivery = await evaluate(session, `(() => {
+        const landmark = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark;
+        const worker = landmark?.workerElements?.[0];
+        const districtPresentation = landmark?.plotPresentations?.find(
+            presentation => presentation.plotId === worker?.getData('plotId')
+        );
+        const district = districtPresentation?.inhabitedDistrict;
+        const operationalLayer = districtPresentation?.inhabitedDistrictOperationalLayer;
+        const deliveryPulse = landmark?.heartLife?.deliveryPulse;
+        const resource = worker?.getData('carriedResource');
+        const imprint = landmark?.heartLife?.[resource + 'Imprint'];
+        return {
+            phase: worker?.getData('routePhase'),
+            direction: worker?.getData('routeDirection'),
+            cargoVisible: worker?.getData('cargoVisible'),
+            feedback: worker?.getData('deliveryFeedback'),
+            cue: worker?.getData('visibleRoutineCue'),
+            heartResponse: deliveryPulse?.getData?.('villageHeartDeliveryResponse'),
+            heartActive: deliveryPulse?.getData?.('villageHeartDeliveryActive'),
+            sourceActive: landmark?.activeDeliverySources?.has?.(
+                worker?.getData('deliverySourceId')
+            ) === true,
+            lastDelivery: deliveryPulse?.getData?.('villageHeartLastDelivery'),
+            lastDeliveryResource: deliveryPulse?.getData?.(
+                'villageHeartLastDeliveryResource'
+            ),
+            imprintResource: imprint?.getData?.('villageHeartResourceImprint'),
+            imprintActive: imprint?.getData?.(
+                'villageHeartResourceImprintActive'
+            ) === true,
+            imprintDeliveryActive: imprint?.getData?.(
+                'villageHeartResourceDeliveryActive'
+            ) === true,
+            imprintDeliveryCount: imprint?.getData?.(
+                'villageHeartResourceDeliveryCount'
+            ),
+            imprintLastDelivery: imprint?.getData?.(
+                'villageHeartResourceLastDelivery'
+            ),
+            districtOperationalState: district?.getData?.(
+                'villageDistrictOperationalState'
+            ),
+            districtCycleCount: district?.getData?.('villageDistrictCycleCount'),
+            districtOperationalAlpha: operationalLayer?.alpha,
+            districtOperationalScale: operationalLayer?.scaleX
+        };
+    })()`);
+    if (
+        workerDelivery.phase !== 'delivering' ||
+        workerDelivery.direction !== 'to_heart' ||
+        workerDelivery.cargoVisible !== false ||
+        workerDelivery.feedback !== true ||
+        workerDelivery.cue !== '+5 HAPPINESS' ||
+        workerDelivery.heartResponse !== true ||
+        workerDelivery.heartActive !== true ||
+        workerDelivery.sourceActive !== true ||
+        ![
+            ['food', 'FEEDING · +5 HAPPINESS'],
+            ['wood', 'VICTORY · +10 COINS'],
+            ['stone', 'EXPEDITION · +1 GUARD']
+        ].some(([resource, label]) => (
+            workerDelivery.lastDeliveryResource === resource &&
+            workerDelivery.lastDelivery === label
+        )) ||
+        workerDelivery.imprintResource !== 'food' ||
+        !workerDelivery.imprintActive ||
+        !workerDelivery.imprintDeliveryActive ||
+        workerDelivery.imprintDeliveryCount < 1 ||
+        workerDelivery.imprintLastDelivery !== 'FEEDING · +5 HAPPINESS' ||
+        workerDelivery.districtOperationalState !== 'delivery_complete' ||
+        workerDelivery.districtCycleCount < 1 ||
+        workerDelivery.districtOperationalAlpha !== 1 ||
+        workerDelivery.districtOperationalScale < 1.07
+    ) {
+        throw new Error(`Village worker delivery feedback failed: ${JSON.stringify(workerDelivery)}`);
+    }
+    await captureGameplayStill(session, 'village-worker-delivery-mobile.png');
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const worker = window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.workerElements?.[0];
+            return worker?.getData('routePhase') === 'returning' &&
+                worker?.getData('routeDirection') === 'to_building';
+        })()`),
+        { timeoutMs: 8000, message: 'Village worker returns without duplicate cargo' }
+    );
+    const workerReturn = await evaluate(session, `(() => {
+        const worker = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark?.workerElements?.[0];
+        const landmark = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark;
+        const district = landmark?.plotPresentations?.find(
+            presentation => presentation.plotId === worker?.getData('plotId')
+        )?.inhabitedDistrict;
+        return {
+            phase: worker?.getData('routePhase'),
+            direction: worker?.getData('routeDirection'),
+            cargoVisible: worker?.getData('cargoVisible'),
+            feedback: worker?.getData('deliveryFeedback'),
+            cue: worker?.getData('visibleRoutineCue'),
+            districtOperationalState: district?.getData?.(
+                'villageDistrictOperationalState'
+            ),
+            districtCycleCount: district?.getData?.('villageDistrictCycleCount')
+        };
+    })()`);
+    if (
+        workerReturn.phase !== 'returning' ||
+        workerReturn.direction !== 'to_building' ||
+        workerReturn.cargoVisible !== false ||
+        workerReturn.feedback !== false ||
+        workerReturn.cue !== null ||
+        workerReturn.districtOperationalState !== 'returning' ||
+        workerReturn.districtCycleCount < 1
+    ) {
+        throw new Error(`Village worker return state failed: ${JSON.stringify(workerReturn)}`);
+    }
+    const structureRoute = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const zone = scene?.villageHeartLandmark?.plotHitZones?.[0];
+        if (!zone?.input?.enabled) return null;
+        const bounds = zone.getBounds();
+        const camera = scene.cameras?.main;
+        return {
+            x: Math.round(
+                (bounds.centerX - camera.worldView.x) * camera.zoom + camera.x
+            ),
+            y: Math.round(
+                ((bounds.top + 18) - camera.worldView.y) * camera.zoom + camera.y
+            ),
+            plotId: zone.plotId
+        };
+    })()`);
+    if (!structureRoute || structureRoute.plotId !== 'root_01') {
+        throw new Error(`Village structure route was unavailable: ${JSON.stringify(structureRoute)}`);
+    }
+    await touch(session, structureRoute.x, structureRoute.y);
+    await waitFor(
+        () => evaluate(session, `Boolean(document.querySelector('.village-command-modal.accepts-input'))`),
+        { message: 'Village structure planner route' }
+    );
+    const structurePlanner = await evaluate(session, `(() => {
+        const rect = selector => {
+            const bounds = document.querySelector(selector)?.getBoundingClientRect();
+            return bounds ? {
+                left: bounds.left,
+                right: bounds.right,
+                top: bounds.top,
+                bottom: bounds.bottom
+            } : null;
+        };
+        const body = document.querySelector('.village-command-body');
+        const resources = document.querySelector('.village-resource-ledger');
+        return {
+            title: document.querySelector('.village-command-title')?.textContent || '',
+            immediateImpact: document.querySelector('.village-building-impact')?.textContent || '',
+            extensionImpact: document.querySelector('.village-building-extension')?.textContent || '',
+            activeBenefit: document.querySelector('.village-next-step')?.textContent || '',
+            activeAction: document.querySelector('.village-construct-action')?.textContent || '',
+            actionBounds: rect('.village-construct-action'),
+            inviteBounds: rect('.village-invite-button'),
+            selectBounds: rect('.village-creature-select'),
+            assignmentControlsBounds: rect('.village-assignment-controls'),
+            assignmentGrid: getComputedStyle(
+                document.querySelector('.village-assignment-row')
+            ).gridTemplateColumns,
+            planBounds: rect('.village-site-plan'),
+            catalogBounds: rect('.village-building-catalog'),
+            resourceColumns: getComputedStyle(resources).gridTemplateColumns
+                .split(' ')
+                .filter(Boolean)
+                .length,
+            scrollTop: body?.scrollTop || 0,
+            workerCheckInOpen: Boolean(
+                window.mythicalGame.scene.getScene('GameScene')
+                    ?.villageHeartLandmark?.activeWorkerCheckIn
+            )
+        };
+    })()`);
+    if (
+        !structurePlanner.title.includes('FORAGE') ||
+        !structurePlanner.immediateImpact.includes('HELPS NOW') ||
+        !structurePlanner.immediateImpact.includes('+5 happiness') ||
+        !structurePlanner.extensionImpact.includes('UNLOCKS') ||
+        !structurePlanner.activeBenefit.includes('+5 happiness') ||
+        !structurePlanner.activeAction.includes('FEEDING · +5 HAPPINESS') ||
+        !structurePlanner.actionBounds ||
+        !structurePlanner.inviteBounds ||
+        !structurePlanner.selectBounds ||
+        !structurePlanner.assignmentControlsBounds ||
+        structurePlanner.actionBounds.top < 0 ||
+        structurePlanner.actionBounds.bottom > SMOKE_VIEWPORT_HEIGHT ||
+        structurePlanner.inviteBounds.top < 0 ||
+        structurePlanner.inviteBounds.bottom > SMOKE_VIEWPORT_HEIGHT ||
+        structurePlanner.inviteBounds.right - structurePlanner.inviteBounds.left < 44 ||
+        structurePlanner.inviteBounds.bottom - structurePlanner.inviteBounds.top < 44 ||
+        structurePlanner.selectBounds.right - structurePlanner.selectBounds.left < 88 ||
+        structurePlanner.assignmentControlsBounds.right > SMOKE_VIEWPORT_WIDTH ||
+        structurePlanner.assignmentControlsBounds.left < 0 ||
+        structurePlanner.resourceColumns !== 4 ||
+        structurePlanner.scrollTop !== 0 ||
+        (
+            SMOKE_VIEWPORT_WIDTH <= 600 &&
+            (
+                structurePlanner.planBounds?.top >= structurePlanner.catalogBounds?.top ||
+                structurePlanner.assignmentControlsBounds.bottom > structurePlanner.catalogBounds?.top
+            )
+        ) ||
+        structurePlanner.workerCheckInOpen
+    ) {
+        throw new Error(`Village structure tap did not remain distinct: ${JSON.stringify(structurePlanner)}`);
+    }
+    await captureGameplayStill(session, 'village-structure-impact-mobile.png');
+    await evaluate(session, `document.querySelector('.village-command-close')?.click()`);
+    await waitFor(
+        () => evaluate(session, `!document.querySelector('.village-command-modal')`),
+        { message: 'Village structure planner closed' }
+    );
+    const actionRoute = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene?.worldBuilder?.clearVillageCommunityMoment?.(
+            scene.villageHeartLandmark
+        );
+        scene?.worldBuilder?.clearVillageDecisionMoment?.(
+            scene.villageHeartLandmark
+        );
+        scene?.worldBuilder?.clearVillageWorkerCheckIn?.(
+            scene.villageHeartLandmark
+        );
+        const director = scene?.sanctuaryInteractionDirector;
+        const currentSnapshot = scene?.villageHeartLandmark?.snapshot ||
+            scene?.reconcileVillageSettlementNow?.({ notify: false });
+        let restoredInteraction = null;
+        if (!director?.candidates?.has('villageHeart')) {
+            restoredInteraction = scene?.offerVillageHeartInteraction?.(
+                currentSnapshot
+            );
+        }
+        director?.update?.({ force: true });
+        const target = director?.indicatorElements?.find(element => (
+            element?.getData?.('sanctuaryActionNodeHitZone') === true &&
+            element?.getData?.('interactionId') === 'villageHeart'
+        ));
+        if (!target?.getBounds) {
+            return {
+                missing: true,
+                presentationMode: scene?.sanctuaryPresentationMode,
+                currentBiome: scene?.currentBiome,
+                nearVillageHeart: scene?.nearVillageHeart === true,
+                offerMethod: typeof scene?.offerVillageHeartInteraction,
+                snapshotPresent: Boolean(currentSnapshot),
+                landmarkPresent: Boolean(scene?.villageHeartLandmark?.zone),
+                directorPresent: Boolean(director),
+                touchControlsVisible: scene?.hasVisibleTouchControls?.() === true,
+                mobileControlsVisible: scene?.mobileControls?.isVisible === true,
+                mobileControlsSuspended: scene?.mobileControls?.isSuspended === true,
+                activeHintMode: director?.active?.hintMode || null,
+                activeVerb: director?.active?.verb || null,
+                activeLabel: director?.active?.label || null,
+                activeSuppressWorldBeacon: director?.active?.suppressWorldBeacon === true,
+                restoredInteractionId: restoredInteraction?.id || null,
+                activeId: director?.active?.id || null,
+                candidateIds: [...(director?.candidates?.keys?.() || [])],
+                indicatorElementCount: director?.indicatorElements?.length || 0,
+                modalOpen: Boolean(document.querySelector('.village-command-modal')),
+                communityMomentActive: Boolean(
+                    scene?.villageHeartLandmark?.activeCommunityMoment
+                ),
+                decisionMomentActive: Boolean(
+                    scene?.villageHeartLandmark?.activeDecisionMoment
+                ),
+                workerMomentActive: Boolean(
+                    scene?.villageHeartLandmark?.activeWorkerCheckIn
+                )
+            };
+        }
+        const bounds = target.getBounds();
+        const camera = scene.cameras?.main;
+        const scrollFactorX = Number(target.scrollFactorX ?? 1);
+        const scrollFactorY = Number(target.scrollFactorY ?? 1);
+        const screenPoint = camera.matrix.transformPoint(
+            bounds.centerX - (camera.scrollX * scrollFactorX),
+            bounds.centerY - (camera.scrollY * scrollFactorY)
+        );
+        return {
+            x: Math.round(screenPoint.x),
+            y: Math.round(screenPoint.y),
+            inputEnabled: target.input?.enabled === true,
+            action: scene?.villageHeartLandmark?.snapshot?.worldState?.nextAction?.type,
+            verb: target.getData?.('interactionVerb') || '',
+            label: target.getData?.('interactionLabel') || '',
+            commandChannel: target.getData?.('commandChannel') || '',
+            touchTargetWidth: target.getData?.('touchTargetWidth') || 0,
+            touchTargetHeight: target.getData?.('touchTargetHeight') || 0,
+            dockBeaconPresent: Boolean(director?.beacon)
+        };
+    })()`);
+    if (
+        !actionRoute?.inputEnabled ||
+        actionRoute.action !== 'decision' ||
+        actionRoute.verb !== 'DECIDE' ||
+        actionRoute.label !== 'TOGETHER' ||
+        actionRoute.commandChannel !== 'target' ||
+        actionRoute.touchTargetWidth !== 132 ||
+        actionRoute.touchTargetHeight !== 48 ||
+        actionRoute.dockBeaconPresent
+    ) {
+        throw new Error(`Village target-attached next action was not tappable: ${JSON.stringify(actionRoute)}`);
+    }
+    await touch(session, actionRoute.x, actionRoute.y);
+    await waitFor(
+        () => evaluate(session, `Boolean(document.querySelector('.village-command-modal.accepts-input'))`),
+        { message: 'Village Heart reopened from next-action beacon' }
+    );
+    const guidedDecision = await evaluate(session, `(() => {
+        const modal = document.querySelector('.village-command-modal');
+        const sheet = document.querySelector('.village-heart-sheet');
+        const stage = document.querySelector('.village-guided-stage');
+        const bounds = sheet?.getBoundingClientRect();
+        return {
+            guided: modal?.classList.contains('is-guided') === true,
+            intent: stage?.dataset.intent || '',
+            fullPlannerBodyPresent: Boolean(
+                document.querySelector('.village-command-body')
+            ),
+            fullPlanButton: Array.from(document.querySelectorAll('button'))
+                .some(button => button.textContent.includes('OPEN FULL PLAN')),
+            returnButton: Array.from(document.querySelectorAll('button'))
+                .some(button => button.textContent.includes('RETURN TO SANCTUARY')),
+            bounds: bounds ? {
+                left: bounds.left,
+                right: bounds.right,
+                top: bounds.top,
+                bottom: bounds.bottom,
+                width: bounds.width,
+                height: bounds.height
+            } : null,
+            viewport: {
+                width: window.innerWidth,
+                height: window.innerHeight
+            }
+        };
+    })()`);
+    if (
+        !guidedDecision.guided ||
+        guidedDecision.intent !== 'decision' ||
+        guidedDecision.fullPlannerBodyPresent ||
+        !guidedDecision.fullPlanButton ||
+        !guidedDecision.returnButton ||
+        !guidedDecision.bounds ||
+        guidedDecision.bounds.left < -1 ||
+        guidedDecision.bounds.right > guidedDecision.viewport.width + 1 ||
+        guidedDecision.bounds.top < -1 ||
+        guidedDecision.bounds.bottom > guidedDecision.viewport.height + 1 ||
+        guidedDecision.bounds.height > guidedDecision.viewport.height * 0.83
+    ) {
+        throw new Error(`Village guided Heart sheet failed: ${JSON.stringify(guidedDecision)}`);
+    }
+
+    const decisionChoice = await evaluate(session, `(() => {
+        const option = document.querySelector('.village-decision-option[data-value="care"]');
+        if (!option) return { clicked: false };
+        const label = option.textContent;
+        option.click();
+        return { clicked: true, label };
+    })()`);
+    if (!decisionChoice.clicked) {
+        throw new Error('Village Heart Care decision was not actionable');
+    }
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            document.querySelector('.village-heart-decision.is-resolved') &&
+            document.querySelector('.village-command-status')?.textContent.includes('Choice remembered')
+        )`),
+        { message: 'Village Heart remembered decision' }
+    );
+    const decisionRecap = await evaluate(session, `(() => ({
+        title: document.querySelector('.village-decision-title')?.textContent || '',
+        consequence: document.querySelector('.village-decision-situation')?.textContent || '',
+        residentLine: document.querySelector('.village-decision-resident-line')?.textContent || '',
+        residentName: document.querySelector('.village-decision-resident-name')?.textContent || '',
+        optionsRemaining: document.querySelectorAll('.village-decision-option').length,
+        persistentMemories: window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark?.heartMemoryElements?.filter(
+                element => element?.getData?.('villageHeartMemory')
+            ).map(element => ({
+                decisionId: element.getData('villageHeartMemory'),
+                optionId: element.getData('optionId'),
+                value: element.getData('value'),
+                speakerName: element.getData('speakerName')
+            })) || [],
+        valueGrowth: window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark?.valueGrowthElements?.map(element => ({
+                value: element.getData('villageValueGrowth'),
+                index: element.getData('growthIndex')
+            })) || [],
+        pendingWorldMoment: Boolean(
+            window.mythicalGame.scene.getScene('GameScene')?.villageDecisionMomentPending
+        )
+    }))()`);
+    if (
+        decisionRecap.title !== 'CLEAR THE CURRENT FIRST' ||
+        !decisionRecap.consequence ||
+        !decisionRecap.residentLine.includes('Current is moving again') ||
+        !decisionRecap.residentName.includes('EMBER') ||
+        decisionRecap.optionsRemaining !== 0 ||
+        decisionRecap.persistentMemories.length !== 1 ||
+        decisionRecap.persistentMemories[0].decisionId !== 'storm_path' ||
+        decisionRecap.persistentMemories[0].optionId !== 'current_first' ||
+        decisionRecap.persistentMemories[0].speakerName !== 'Ember' ||
+        decisionRecap.valueGrowth.length !== 1 ||
+        decisionRecap.valueGrowth[0].value !== 'care' ||
+        !decisionRecap.pendingWorldMoment
+    ) {
+        throw new Error(`Village Heart decision recap failed: ${JSON.stringify(decisionRecap)}`);
+    }
+    await captureGameplayStill(session, 'village-heart-choice-recap-mobile.png');
+
+    await evaluate(session, `document.querySelector('.village-command-close')?.click()`);
+    await waitFor(
+        () => evaluate(session, `!document.querySelector('.village-command-modal')`),
+        { message: 'Village world after Heart choice' }
+    );
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.activeDecisionMoment
+        )`),
+        { message: 'Village Heart world decision response' }
+    );
+    const decisionWorld = await evaluate(session, `(() => {
+        const landmark = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark;
+        return {
+            elementCount: landmark?.decisionMomentElements?.length || 0,
+            decisionId: landmark?.activeDecisionMoment?.getData('villageDecisionMoment'),
+            optionId: landmark?.activeDecisionMoment?.getData('optionId'),
+            value: landmark?.activeDecisionMoment?.getData('value'),
+            resonanceStyle: landmark?.activeDecisionMoment?.getData('resonanceStyle'),
+            resonanceAnchor: landmark?.activeDecisionMoment?.getData('resonanceAnchor'),
+            resonanceVerticalOffset: landmark?.activeDecisionMoment?.getData(
+                'resonanceVerticalOffset'
+            ),
+            groundResponseDepth: landmark?.decisionMomentElements?.find(
+                element => element?.getData?.('villageDecisionGroundResponse') === true
+            )?.depth,
+            resonanceBackdrop: landmark?.activeDecisionMoment?.list?.some(
+                child => child?.getData?.('villageResonanceBackdrop') === true
+            ) === true,
+            routeHierarchy: landmark?.currentPaths?.getData?.('villageRouteHierarchy'),
+            routeHierarchyState: landmark?.currentPaths?.getData?.(
+                'villageRouteHierarchyState'
+            ),
+            routeHierarchyAlpha: landmark?.currentPaths?.alpha,
+            routeHierarchyTargetAlpha: landmark?.currentPaths?.getData?.(
+                'villageRouteHierarchyAlpha'
+            ),
+            actionGuidance: {
+                labelAlpha: landmark?.nextActionElement?.alpha,
+                labelInput: landmark?.nextActionElement?.input?.enabled === true,
+                placardAlpha: landmark?.nextActionPlacard?.alpha,
+                ringAlpha: landmark?.nextActionRing?.alpha,
+                previewAlpha: landmark?.nextActionPreview?.alpha,
+                routeAlpha: landmark?.guidanceRoute?.alpha,
+                hitZoneInput: landmark?.nextActionHitZone?.input?.enabled === true,
+                tweenPaused: landmark?.nextActionTween?.isPaused?.() === true,
+                previewTweenPaused: landmark?.nextActionPreviewTween?.isPaused?.() === true
+            }
+        };
+    })()`);
+    if (
+        decisionWorld.elementCount !== 3 ||
+        decisionWorld.decisionId !== 'storm_path' ||
+        decisionWorld.optionId !== 'current_first' ||
+        decisionWorld.value !== 'care' ||
+        decisionWorld.resonanceStyle !== 'current_ribbon' ||
+        decisionWorld.resonanceAnchor !== 'village_heart' ||
+        decisionWorld.resonanceVerticalOffset !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 360 : 330
+        ) ||
+        decisionWorld.groundResponseDepth !== -15 ||
+        !decisionWorld.resonanceBackdrop ||
+        decisionWorld.routeHierarchy !== 'quiet_network_v1' ||
+        decisionWorld.routeHierarchyState !== 'story_recessed' ||
+        decisionWorld.routeHierarchyTargetAlpha !== 0.2 ||
+        decisionWorld.routeHierarchyAlpha > 0.72 ||
+        decisionWorld.actionGuidance.labelAlpha !== 0 ||
+        decisionWorld.actionGuidance.labelInput ||
+        decisionWorld.actionGuidance.placardAlpha !== 0 ||
+        decisionWorld.actionGuidance.ringAlpha !== 0 ||
+        decisionWorld.actionGuidance.previewAlpha !== 0 ||
+        decisionWorld.actionGuidance.routeAlpha !== 0 ||
+        decisionWorld.actionGuidance.hitZoneInput ||
+        !decisionWorld.actionGuidance.tweenPaused ||
+        !decisionWorld.actionGuidance.previewTweenPaused
+    ) {
+        throw new Error(`Village Heart world response failed: ${JSON.stringify(decisionWorld)}`);
+    }
+    await captureGameplayStill(session, 'village-sanctuary-district.png');
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.worldBuilder.clearVillageDecisionMoment(scene.villageHeartLandmark);
+        return true;
+    })()`);
+
+    const buildRoute = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const target = landmark?.nextActionElement;
+        const hitZone = landmark?.nextActionHitZone;
+        const guidanceRoute = landmark?.guidanceRoute;
+        const preview = landmark?.nextActionPreview;
+        const previewArtwork = preview?.list?.find(
+            child => child?.getData?.('villageFutureStructureArtwork') === true
+        );
+        const previewRootBed = preview?.list?.find(
+            child => child?.getData?.('villageFutureRootBed') === true
+        );
+        if (!target?.getBounds) return null;
+        const bounds = target.getBounds();
+        const hitBounds = hitZone?.getBounds?.();
+        const camera = scene.cameras?.main;
+        const screenPoint = camera.matrix.transformPoint(
+            bounds.centerX - (camera.scrollX * Number(target.scrollFactorX ?? 1)),
+            bounds.centerY - (camera.scrollY * Number(target.scrollFactorY ?? 1))
+        );
+        const hitTopLeft = hitBounds ? camera.matrix.transformPoint(
+            hitBounds.left - (camera.scrollX * Number(hitZone.scrollFactorX ?? 1)),
+            hitBounds.top - (camera.scrollY * Number(hitZone.scrollFactorY ?? 1))
+        ) : null;
+        const hitBottomRight = hitBounds ? camera.matrix.transformPoint(
+            hitBounds.right - (camera.scrollX * Number(hitZone.scrollFactorX ?? 1)),
+            hitBounds.bottom - (camera.scrollY * Number(hitZone.scrollFactorY ?? 1))
+        ) : null;
+        return {
+            x: Math.round(screenPoint.x),
+            y: Math.round(screenPoint.y),
+            inputEnabled: target.input?.enabled === true,
+            action: target.getData('villageNextAction'),
+            plotId: target.getData('plotId'),
+            definitionId: target.getData('definitionId'),
+            worldAction: landmark?.snapshot?.worldState?.nextAction?.type,
+            centralActionText: landmark?.actionLabel?.text || '',
+            centralActionAlpha: landmark?.actionLabel?.alpha,
+            centralActionInput: landmark?.actionLabel?.input?.enabled === true,
+            heartFocusPriority: landmark?.heartArtwork?.getData?.('villageFocusPriority'),
+            heartFocusAlpha: landmark?.heartArtwork?.alpha,
+            focusHierarchy: landmark?.plotPresentations?.map(presentation => ({
+                plotId: presentation.plotId,
+                priority: presentation.container?.getData?.('villageFocusPriority'),
+                alpha: presentation.container?.alpha,
+                focusRingAlpha: presentation.focusRing?.alpha,
+                labelAlpha: presentation.plotLabel?.alpha,
+                stateAlpha: presentation.stateLabel?.alpha
+            })) || [],
+            sharedBeaconVisible: Boolean(
+                window.mythicalGame.scene.getScene('GameScene')
+                    ?.sanctuaryInteractionDirector?.beacon
+            ),
+            sharedBeaconId: window.mythicalGame.scene.getScene('GameScene')
+                ?.sanctuaryInteractionDirector?.beacon?.getData?.('interactionId') || null,
+            activeInteractionId: window.mythicalGame.scene.getScene('GameScene')
+                ?.sanctuaryInteractionDirector?.active?.id || null,
+            activeSuppressWorldBeacon: window.mythicalGame.scene.getScene('GameScene')
+                ?.sanctuaryInteractionDirector?.active?.suppressWorldBeacon === true,
+            sanctuaryFocusModeActive: window.mythicalGame.scene.getScene('GameScene')
+                ?.sanctuaryFocusModeActive === true,
+            text: target.text || '',
+            actionCopy: target.getData('villageActionCopy'),
+            ariaLabel: target.getData('ariaLabel'),
+            fontSize: Number.parseInt(target.style?.fontSize, 10),
+            targetLanguage: landmark?.nextActionRing?.getData?.('villageTargetLanguage'),
+            placardLanguage: landmark?.nextActionPlacard?.getData?.('villagePlacardLanguage'),
+            preview: preview ? {
+                active: preview.active === true,
+                alpha: preview.alpha,
+                definitionId: preview.getData('definitionId'),
+                plotId: preview.getData('plotId'),
+                material: preview.getData('villagePreviewMaterial'),
+                label: preview.getData('villagePreviewLabel'),
+                displaySize: preview.getData('villagePreviewDisplaySize'),
+                artworkVariant: previewArtwork?.getData?.('villageArtworkVariant'),
+                artworkAlpha: previewArtwork?.alpha,
+                rootMaterial: previewRootBed?.getData?.('villagePreviewMaterial'),
+                tweenRunning: landmark?.nextActionPreviewTween?.isPlaying?.() === true &&
+                    landmark?.nextActionPreviewTween?.isPaused?.() !== true
+            } : null,
+            hitZone: hitBounds ? {
+                left: hitTopLeft.x,
+                right: hitBottomRight.x,
+                top: hitTopLeft.y,
+                bottom: hitBottomRight.y,
+                inputEnabled: hitZone.input?.enabled === true,
+                touchTargetWidth: hitZone.getData('touchTargetWidth'),
+                touchTargetHeight: hitZone.getData('touchTargetHeight')
+            } : null,
+            guidanceRoute: guidanceRoute ? {
+                active: guidanceRoute.active === true,
+                action: guidanceRoute.getData('villageNextAction'),
+                plotId: guidanceRoute.getData('plotId'),
+                material: guidanceRoute.getData('villageRouteMaterial'),
+                routePointCount: guidanceRoute.getData('routePointCount'),
+                guidanceNodeCount: guidanceRoute.getData('guidanceNodeCount'),
+                depth: guidanceRoute.depth
+            } : null
+        };
+    })()`);
+    if (
+        !buildRoute?.inputEnabled ||
+        buildRoute.action !== 'build' ||
+        buildRoute.plotId !== 'root_04' ||
+        buildRoute.definitionId !== 'habitat' ||
+        buildRoute.worldAction !== 'build' ||
+        buildRoute.centralActionText !== '' ||
+        buildRoute.centralActionAlpha !== 0 ||
+        buildRoute.centralActionInput ||
+        buildRoute.heartFocusPriority !== 'supporting' ||
+        buildRoute.heartFocusAlpha >= 1 ||
+        buildRoute.focusHierarchy.length !== 5 ||
+        buildRoute.focusHierarchy.filter(plot => plot.priority === 'primary').length !== 1 ||
+        buildRoute.focusHierarchy.find(plot => plot.plotId === 'root_04')?.priority !== 'primary' ||
+        buildRoute.focusHierarchy.find(plot => plot.plotId === 'root_04')?.alpha !== 1 ||
+        buildRoute.focusHierarchy.find(plot => plot.plotId === 'root_04')?.focusRingAlpha !== 0 ||
+        buildRoute.focusHierarchy.find(plot => plot.plotId === 'root_04')?.labelAlpha !== 0 ||
+        buildRoute.focusHierarchy.find(plot => plot.plotId === 'root_04')?.stateAlpha !== 0 ||
+        buildRoute.sharedBeaconVisible ||
+        buildRoute.focusHierarchy.filter(plot => plot.plotId !== 'root_04').some(plot => (
+            plot.priority !== 'supporting' || plot.alpha >= 1
+        )) ||
+        buildRoute.text !== 'BUILD · SHARED HABITAT' ||
+        buildRoute.actionCopy !== 'BUILD · SHARED HABITAT' ||
+        !buildRoute.ariaLabel?.includes('Tap to plan this structure') ||
+        buildRoute.fontSize < (SMOKE_VIEWPORT_WIDTH <= 600 ? 11 : 12) ||
+        buildRoute.targetLanguage !== 'living_root_threshold_v2' ||
+        buildRoute.placardLanguage !== 'current_ribbon_v2' ||
+        !buildRoute.preview?.active ||
+        buildRoute.preview.alpha !== 1 ||
+        buildRoute.preview.definitionId !== 'habitat' ||
+        buildRoute.preview.plotId !== 'root_04' ||
+        buildRoute.preview.material !== 'future_structure_echo_v1' ||
+        buildRoute.preview.label !== 'SHARED HABITAT' ||
+        buildRoute.preview.displaySize !== (SMOKE_VIEWPORT_WIDTH <= 600 ? 85 : 121) ||
+        buildRoute.preview.artworkVariant !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 'compact_future_echo' : 'detailed_future_echo'
+        ) ||
+        buildRoute.preview.artworkAlpha < 0.29 ||
+        buildRoute.preview.artworkAlpha > 0.49 ||
+        buildRoute.preview.rootMaterial !== 'living_root_threshold_v2' ||
+        !buildRoute.preview.tweenRunning ||
+        !buildRoute.hitZone ||
+        !buildRoute.hitZone.inputEnabled ||
+        buildRoute.hitZone.touchTargetWidth !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 156 : 184
+        ) ||
+        buildRoute.hitZone.touchTargetHeight !== 52 ||
+        buildRoute.hitZone.left < -1 ||
+        buildRoute.hitZone.right > SMOKE_VIEWPORT_WIDTH + 1 ||
+        buildRoute.hitZone.top < -1 ||
+        buildRoute.hitZone.bottom > SMOKE_VIEWPORT_HEIGHT + 1 ||
+        !buildRoute.guidanceRoute?.active ||
+        buildRoute.guidanceRoute.action !== 'build' ||
+        buildRoute.guidanceRoute.plotId !== 'root_04' ||
+        buildRoute.guidanceRoute.material !== 'current_stepping_lights_v1' ||
+        buildRoute.guidanceRoute.routePointCount !== 19 ||
+        buildRoute.guidanceRoute.guidanceNodeCount !== 4 ||
+        buildRoute.guidanceRoute.depth !== -16
+    ) {
+        throw new Error(`Village next build route failed: ${JSON.stringify(buildRoute)}`);
+    }
+    await captureGameplayStill(session, 'village-next-build-world-mobile.png');
+    if (SMOKE_VIEWPORT_WIDTH <= 600) {
+        await touch(session, buildRoute.x, buildRoute.y);
+    } else {
+        await tap(session, buildRoute.x, buildRoute.y);
+    }
+    await waitFor(
+        () => evaluate(session, `Boolean(document.querySelector('.village-command-modal.accepts-input'))`),
+        { message: 'Village contextual builder from next foundation' }
+    );
+    const placed = await evaluate(session, `(() => {
+        const title = document.querySelector('.village-command-title')?.textContent || '';
+        const action = document.querySelector('.village-construct-action:not(:disabled)');
+        const actionText = action?.textContent || '';
+        if (title !== 'WHAT SHOULD GROW HERE?' || !actionText.includes('BUILD HABITAT')) {
+            return { clicked: false, title, actionText };
+        }
+        action.click();
+        return { clicked: true, title, actionText };
+    })()`);
+    if (!placed.clicked) {
+        throw new Error(`Village habitat foundation was not actionable: ${JSON.stringify(placed)}`);
+    }
     await waitFor(
         () => evaluate(
             session,
@@ -10522,17 +15145,22 @@ async function smokeVillageUi(session, exceptions) {
         const lastInvite = invites[invites.length - 1];
         const close = document.querySelector('.village-command-close');
         const rect = lastInvite?.getBoundingClientRect();
+        const selectRect = lastInvite?.previousElementSibling?.getBoundingClientRect();
         return {
             status: document.querySelector('.village-command-status')?.textContent,
             habitatPresent: [...document.querySelectorAll('.village-plot')]
                 .some(plot => plot.textContent.includes('HABITAT')),
             inviteVisible: Boolean(rect && rect.left >= 0 && rect.right <= innerWidth),
+            inviteHeight: rect?.height || 0,
+            selectHeight: selectRect?.height || 0,
             closeVisible: Boolean(close && close.getBoundingClientRect().right <= innerWidth)
         };
     })()`);
     if (
         !interaction.habitatPresent ||
         !interaction.inviteVisible ||
+        interaction.inviteHeight < 44 ||
+        interaction.selectHeight < 44 ||
         !interaction.closeVisible ||
         exceptions.length
     ) {
@@ -10546,7 +15174,599 @@ async function smokeVillageUi(session, exceptions) {
         () => evaluate(session, `!document.querySelector('.village-command-modal')`),
         { message: 'Village world district after closing builder' }
     );
-    await captureGameplayStill(session, 'village-sanctuary-district.png');
+    const constructionWorld = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const presentation = landmark?.plotPresentations?.find(
+            entry => entry.plotId === 'root_04'
+        );
+        const zone = landmark?.plotHitZones?.find(entry => entry.plotId === 'root_04');
+        const stateBounds = presentation?.stateLabel?.getBounds?.();
+        const camera = scene.cameras.main;
+        const stateTopLeft = stateBounds ? camera.matrix.transformPoint(
+            stateBounds.left - (
+                camera.scrollX * Number(presentation.stateLabel.scrollFactorX ?? 1)
+            ),
+            stateBounds.top - (
+                camera.scrollY * Number(presentation.stateLabel.scrollFactorY ?? 1)
+            )
+        ) : null;
+        const stateBottomRight = stateBounds ? camera.matrix.transformPoint(
+            stateBounds.right - (
+                camera.scrollX * Number(presentation.stateLabel.scrollFactorX ?? 1)
+            ),
+            stateBounds.bottom - (
+                camera.scrollY * Number(presentation.stateLabel.scrollFactorY ?? 1)
+            )
+        ) : null;
+        return {
+            state: presentation?.stateMarker?.getData?.('villagePlotState'),
+            progressNodes: presentation?.stateMarker?.getData?.('progressNodes'),
+            progressRatio: presentation?.stateMarker?.getData?.('progressRatio'),
+            markerActive: presentation?.stateMarker?.active === true,
+            silhouetteState: presentation?.stateSilhouette?.getData?.(
+                'villageStructureState'
+            ),
+            silhouetteAction: presentation?.stateSilhouette?.getData?.(
+                'villageStructureStateAction'
+            ),
+            silhouetteLanguage: presentation?.stateSilhouette?.getData?.(
+                'villageStructureStateVisualLanguage'
+            ),
+            silhouetteProgress: presentation?.stateSilhouette?.getData?.(
+                'villageStructureStateProgress'
+            ),
+            silhouetteBuilt: presentation?.stateSilhouette?.getData?.(
+                'villageStructureStateBuilt'
+            ),
+            hitState: zone?.getData?.('plotState'),
+            anchorAction: presentation?.districtAnchor?.getData?.(
+                'villageDistrictActionVerb'
+            ),
+            anchorVisualLanguage: presentation?.districtAnchor?.getData?.(
+                'villageDistrictVisualLanguage'
+            ),
+            interactionVerb: zone?.getData?.('interactionVerb'),
+            stateText: presentation?.stateLabel?.text || '',
+            stateAlpha: presentation?.stateLabel?.alpha,
+            flowDirection: presentation?.flowSignal?.getData?.('direction'),
+            flowResource: presentation?.flowSignal?.getData?.('resource'),
+            flowRole: presentation?.flowSignal?.getData?.('villageAmbientRole'),
+            flowActive: presentation?.flowSignal?.active === true,
+            flowVisible: presentation?.flowSignal?.visible === true,
+            stateBounds: stateBounds ? {
+                left: stateTopLeft.x,
+                right: stateBottomRight.x,
+                top: stateTopLeft.y,
+                bottom: stateBottomRight.y
+            } : null
+        };
+    })()`);
+    if (
+        constructionWorld.state !== 'constructing' ||
+        constructionWorld.silhouetteState !== 'constructing' ||
+        constructionWorld.silhouetteAction !== 'taking_root' ||
+        constructionWorld.silhouetteLanguage !== 'root_state_silhouettes_v1' ||
+        constructionWorld.silhouetteBuilt !== true ||
+        constructionWorld.silhouetteProgress < 0 ||
+        constructionWorld.silhouetteProgress > 1 ||
+        constructionWorld.hitState !== 'constructing' ||
+        constructionWorld.anchorAction !== 'GROWING' ||
+        constructionWorld.anchorVisualLanguage !== 'root_purpose_glyphs_v2' ||
+        constructionWorld.interactionVerb !== 'REVIEW' ||
+        !constructionWorld.markerActive ||
+        constructionWorld.progressNodes < 1 ||
+        constructionWorld.progressNodes > 6 ||
+        constructionWorld.progressRatio < 0 ||
+        constructionWorld.progressRatio > 1 ||
+        constructionWorld.stateText !== 'GROWING TOGETHER' ||
+        constructionWorld.stateAlpha !== 1 ||
+        constructionWorld.flowDirection !== 'to_plot' ||
+        constructionWorld.flowResource !== null ||
+        constructionWorld.flowRole !== 'construction_current' ||
+        !constructionWorld.flowActive ||
+        !constructionWorld.flowVisible ||
+        !constructionWorld.stateBounds ||
+        constructionWorld.stateBounds.left < -1 ||
+        constructionWorld.stateBounds.right > SMOKE_VIEWPORT_WIDTH + 1 ||
+        constructionWorld.stateBounds.top < -1 ||
+        constructionWorld.stateBounds.bottom > SMOKE_VIEWPORT_HEIGHT + 1
+    ) {
+        throw new Error(`Village construction state failed: ${JSON.stringify(constructionWorld)}`);
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-construction-world-mobile.png'
+            : 'village-construction-world-desktop.png'
+    );
+    await delay(1900);
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-construction-settled-mobile.png'
+            : 'village-construction-settled-desktop.png'
+    );
+    const habitatCompleted = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const state = structuredClone(scene?.villageHeartLandmark?.snapshot?.state);
+        const habitat = state?.buildings?.find(building => building.definitionId === 'habitat');
+        if (!habitat || habitat.status !== 'constructing') return false;
+        habitat.completesAt = Date.now() - 1;
+        window.GameState.set('world.village', state);
+        return scene.reconcileVillageSettlementNow({ notify: false })
+            ?.buildings?.some(building => (
+                building.definitionId === 'habitat' && building.status === 'complete'
+            )) === true;
+    })()`);
+    if (!habitatCompleted) {
+        throw new Error('Village Habitat could not be advanced to its completed world state');
+    }
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.residentElements?.length === 1
+        )`),
+        { message: 'Village Habitat resident presence' }
+    );
+    const habitatWorld = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const habitat = landmark?.residentElements?.[0] || null;
+        const building = landmark?.snapshot?.buildings?.find(
+            entry => entry.definitionId === 'habitat'
+        );
+        const presentation = landmark?.plotPresentations?.find(
+            entry => entry.plotId === building?.plotId
+        );
+        const journeys = (landmark?.residentRoutineElements || []).filter(
+            element => element?.getData?.('villageResidentJourney') === true
+        );
+        const journeyRoutes = (landmark?.residentRoutineElements || []).filter(
+            element => element?.getData?.('villageResidentJourneyRoute') === true
+        );
+        return habitat ? {
+            buildingStatus: building?.status,
+            artworkVariant: presentation?.worldArtwork?.getData?.(
+                'villageArtworkVariant'
+            ),
+            anchorAction: presentation?.districtAnchor?.getData?.(
+                'villageDistrictActionVerb'
+            ),
+            interactionVerb: presentation?.hitZone?.getData?.('interactionVerb'),
+            capacity: habitat.getData('capacity'),
+            residentNames: habitat.getData('residentNames'),
+            residentStatuses: habitat.getData('residentStatuses'),
+            residentFigureCount: habitat.getData('residentFigureCount'),
+            homeTetherCount: habitat.getData('homeTetherCount'),
+            commonsTetherCount: habitat.getData('commonsTetherCount'),
+            presentCount: habitat.getData('presentCount'),
+            commonsCount: habitat.getData('commonsCount'),
+            helpingCount: habitat.getData('helpingCount'),
+            presenceModel: habitat.getData('residentPresenceModel'),
+            ariaLabel: habitat.getData('ariaLabel'),
+            statusText: habitat.list?.find(child => child?.type === 'Text')?.text || '',
+            slotStatuses: habitat.list
+                ?.filter(child => child?.getData?.('villageHabitatSlot') === true)
+                .map(child => child.getData('residentStatus')) || [],
+            tetherVisualCount: habitat.list?.filter(slot => (
+                slot?.list?.some(child => child?.getData?.('villageHomeTether') === true)
+            )).length || 0,
+            commonsTetherVisualCount: habitat.list?.filter(slot => (
+                slot?.list?.some(child => child?.getData?.('villageCommonsTether') === true)
+            )).length || 0,
+            figureVisualCount: habitat.list?.filter(slot => (
+                slot?.list?.some(child => child?.getData?.('villageResidentFigure') === true)
+            )).length || 0,
+            commonsResidentCount: landmark?.commonsLife?.getData?.(
+                'villageCommonsResidentCount'
+            ),
+            commonsResidentNames: landmark?.commonsLife?.getData?.(
+                'villageCommonsResidentNames'
+            ) || [],
+            commonsPresenceModel: landmark?.commonsLife?.getData?.(
+                'villageCommonsPresenceModel'
+            ),
+            journeyCount: journeys.length,
+            journeyRouteCount: journeyRoutes.length,
+            journeyResidents: journeys.map(journey => journey.getData('residentName')),
+            journeyCommunityTypes: journeys.map(
+                journey => journey.getData('residentCommunityType')
+            ),
+            journeyVisualProfiles: journeys.map(
+                journey => journey.getData('residentVisualProfile')
+            ),
+            journeyIdentityPresentations: journeys.map(
+                journey => journey.getData('residentIdentityPresentation')
+            ),
+            journeyRouteTypes: journeys.map(journey => journey.getData('routeType')),
+            journeyDirections: journeys.map(journey => journey.getData('routeDirection')),
+            journeyPhases: journeys.map(journey => journey.getData('routinePhase')),
+            journeyPresenceModels: journeys.map(
+                journey => journey.getData('villagePresenceModel')
+            ),
+            active: habitat.active === true
+        } : null;
+    })()`);
+    if (
+        !habitatWorld?.active ||
+        habitatWorld.buildingStatus !== 'complete' ||
+        habitatWorld.anchorAction !== 'MANAGE' ||
+        habitatWorld.interactionVerb !== 'MANAGE' ||
+        habitatWorld.artworkVariant !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 'compact_silhouette' : 'detailed_world'
+        ) ||
+        habitatWorld.capacity !== 2 ||
+        habitatWorld.residentNames.length !== 2 ||
+        habitatWorld.residentStatuses.length !== 2 ||
+        habitatWorld.residentFigureCount +
+            habitatWorld.homeTetherCount +
+            habitatWorld.commonsTetherCount !== 2 ||
+        habitatWorld.presentCount +
+            habitatWorld.commonsCount +
+            habitatWorld.helpingCount !== 2 ||
+        habitatWorld.slotStatuses.length !== 2 ||
+        habitatWorld.slotStatuses.some(
+            status => !['home', 'helping', 'at_heart'].includes(status)
+        ) ||
+        habitatWorld.tetherVisualCount !== habitatWorld.homeTetherCount ||
+        habitatWorld.commonsTetherVisualCount !== habitatWorld.commonsTetherCount ||
+        habitatWorld.figureVisualCount !== habitatWorld.residentFigureCount ||
+        habitatWorld.presenceModel !== 'single_world_location_v1' ||
+        habitatWorld.commonsPresenceModel !== 'single_world_location_v1' ||
+        habitatWorld.commonsResidentCount !== habitatWorld.commonsCount ||
+        habitatWorld.commonsResidentNames.length !== habitatWorld.commonsCount ||
+        habitatWorld.journeyCount !== habitatWorld.commonsCount ||
+        habitatWorld.journeyRouteCount !== habitatWorld.commonsCount ||
+        habitatWorld.journeyResidents.length !== habitatWorld.commonsCount ||
+        habitatWorld.journeyCommunityTypes.some(type => (
+            !['player_companion', 'companion', 'rescued_resident'].includes(type)
+        )) ||
+        habitatWorld.journeyVisualProfiles.some(profile => !profile?.endsWith('_worker_v1')) ||
+        habitatWorld.journeyIdentityPresentations.some(
+            presentation => presentation !== 'proximity_nameplate_v1'
+        ) ||
+        habitatWorld.journeyRouteTypes.some(route => route !== 'home_to_commons') ||
+        habitatWorld.journeyDirections.some(
+            direction => !['to_commons', 'to_home'].includes(direction)
+        ) ||
+        habitatWorld.journeyPhases.some(
+            phase => !['leaving_home', 'home_threshold', 'crossing', 'heart_check_in'].includes(phase)
+        ) ||
+        habitatWorld.journeyPresenceModels.some(
+            model => model !== 'single_world_location_v1'
+        ) ||
+        !habitatWorld.ariaLabel.includes('Shared Habitat') ||
+        !habitatWorld.statusText
+    ) {
+        throw new Error(`Village Habitat presence failed: ${JSON.stringify(habitatWorld)}`);
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-habitat-homecoming-mobile.png'
+            : 'village-habitat-homecoming-desktop.png'
+    );
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const landmark = window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark;
+            const journey = (landmark?.residentRoutineElements || []).find(
+                element => element?.getData?.('villageResidentJourney') === true
+            );
+            const progress = journey?.getData?.('routeProgress');
+            return journey?.getData?.('routinePhase') === 'crossing' &&
+                progress > 0.25 && progress < 0.75;
+        })()`),
+        { timeoutMs: 9000, message: 'Village resident travels between home and Heart' }
+    );
+    const residentJourney = await evaluate(session, `(() => {
+        const landmark = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark;
+        const habitat = landmark?.residentElements?.[0];
+        const journeys = (landmark?.residentRoutineElements || []).filter(
+            element => element?.getData?.('villageResidentJourney') === true
+        );
+        const commonsFigures = landmark?.commonsLife?.list?.filter(
+            element => element?.getData?.('villageCommonsResident') === true
+        ).length || 0;
+        return {
+            residentName: journeys[0]?.getData?.('residentName'),
+            routeType: journeys[0]?.getData?.('routeType'),
+            routeDirection: journeys[0]?.getData?.('routeDirection'),
+            routeProgress: journeys[0]?.getData?.('routeProgress'),
+            phase: journeys[0]?.getData?.('routinePhase'),
+            destination: journeys[0]?.getData?.('destinationLabel'),
+            communityType: journeys[0]?.getData?.('residentCommunityType'),
+            visualProfile: journeys[0]?.getData?.('residentVisualProfile'),
+            identityPresentation: journeys[0]?.getData?.('residentIdentityPresentation'),
+            identityVisible: journeys[0]?.getData?.('residentIdentityElement')?.alpha > 0.95,
+            presenceModel: journeys[0]?.getData?.('villagePresenceModel'),
+            habitatFigureCount: habitat?.getData?.('residentFigureCount'),
+            journeyFigureCount: journeys.length,
+            commonsEmbeddedFigureCount: commonsFigures
+        };
+    })()`);
+    if (
+        !residentJourney.residentName ||
+        residentJourney.routeType !== 'home_to_commons' ||
+        residentJourney.routeDirection !== 'to_commons' ||
+        residentJourney.routeProgress <= 0.25 ||
+        residentJourney.routeProgress >= 0.75 ||
+        residentJourney.phase !== 'crossing' ||
+        residentJourney.destination !== 'VILLAGE HEART' ||
+        !['player_companion', 'companion', 'rescued_resident'].includes(
+            residentJourney.communityType
+        ) ||
+        !residentJourney.visualProfile?.endsWith('_worker_v1') ||
+        residentJourney.identityPresentation !== 'proximity_nameplate_v1' ||
+        residentJourney.presenceModel !== 'single_world_location_v1' ||
+        residentJourney.habitatFigureCount + residentJourney.journeyFigureCount !== 2 ||
+        residentJourney.commonsEmbeddedFigureCount !== 0
+    ) {
+        throw new Error(`Village resident journey failed: ${JSON.stringify(residentJourney)}`);
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-resident-journey-mobile.png'
+            : 'village-resident-journey-desktop.png'
+    );
+    const residentGreetingStarted = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const journey = (landmark?.residentRoutineElements || []).find(
+            element => element?.getData?.('villageResidentJourney') === true
+        );
+        if (!journey || !scene?.player) return false;
+        scene.player.setPosition(journey.x, journey.y + 18);
+        scene.player.body?.reset?.(journey.x, journey.y + 18);
+        scene.updateVillagePlotProximity();
+        scene.updateVillageResidentJourneyProximity();
+        scene.sanctuaryInteractionDirector?.update?.({ force: true });
+        return scene.sanctuaryInteractionDirector?.activate?.() === true;
+    })()`);
+    if (!residentGreetingStarted) {
+        throw new Error('Village resident greeting could not be activated from the world route');
+    }
+    const residentIdentityVisible = await evaluate(session, `(() => {
+        const landmark = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark;
+        const journey = (landmark?.residentRoutineElements || []).find(
+            element => element?.getData?.('villageResidentJourney') === true
+        );
+        return journey?.getData?.('residentIdentityElement')?.alpha > 0.95;
+    })()`);
+    if (!residentIdentityVisible) {
+        throw new Error('Village resident identity did not appear at greeting range');
+    }
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.activeResidentGreeting?.alpha > 0.98
+        )`),
+        { message: 'Village resident attached greeting' }
+    );
+    const residentGreeting = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const greeting = landmark?.activeResidentGreeting;
+        const targetResidentId = greeting?.getData?.('targetResidentId');
+        const journey = landmark?.activeResidentGreetingJourney;
+        const camera = scene?.cameras?.main;
+        const bounds = greeting?.getBounds?.();
+        const screenBounds = bounds && camera ? {
+            left: (bounds.left - camera.worldView.x) * camera.zoom + camera.x,
+            right: (bounds.right - camera.worldView.x) * camera.zoom + camera.x,
+            top: (bounds.top - camera.worldView.y) * camera.zoom + camera.y,
+            bottom: (bounds.bottom - camera.worldView.y) * camera.zoom + camera.y
+        } : null;
+        return {
+            residentName: greeting?.getData?.('residentName'),
+            line: greeting?.getData?.('line'),
+            presentation: greeting?.getData?.('presentation'),
+            independentWorldLayer: greeting?.getData?.('independentWorldLayer'),
+            contrastProfile: greeting?.getData?.('contrastProfile'),
+            backdropOpacity: greeting?.getData?.('backdropOpacity'),
+            readableWidth: greeting?.getData?.('readableWidth'),
+            bodyFontSize: greeting?.getData?.('bodyFontSize'),
+            screenSpaceScale: greeting?.getData?.('screenSpaceScale'),
+            effectiveScreenWidth: greeting?.getData?.('effectiveScreenWidth'),
+            effectiveBodyFontSize: greeting?.getData?.('effectiveBodyFontSize'),
+            greetingScale: greeting?.scaleX,
+            cameraZoom: camera?.zoom,
+            ariaLabel: greeting?.getData?.('ariaLabel'),
+            attachedToJourney: Boolean(
+                journey?.getData?.('villageResidentJourney') === true &&
+                targetResidentId === journey?.getData?.('residentId') &&
+                Math.abs(greeting.x - journey.x) <= 90 &&
+                greeting.y < journey.y
+            ),
+            residentAnchorDeltaX: greeting?.getData?.('residentAnchorDeltaX'),
+            residentAnchorDeltaY: greeting?.getData?.('residentAnchorDeltaY'),
+            viewportClamped: greeting?.getData?.('viewportClamped') === true,
+            effectiveAlpha: greeting?.alpha,
+            greetingActive: journey?.getData?.('greetingActive') === true,
+            interactionCleared: scene?.villageResidentJourneyInteractionId === null,
+            cooldownActive: scene?.villageResidentGreetingCooldownUntil > (scene?.time?.now || 0),
+            modalOpen: Boolean(document.querySelector('.village-command-modal')),
+            screenBounds
+        };
+    })()`);
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-resident-greeting-mobile.png'
+            : 'village-resident-greeting-desktop.png'
+    );
+    const minimumResidentGreetingFont = SMOKE_VIEWPORT_WIDTH <= 600 ? 16 : 15;
+    if (
+        !residentGreeting.residentName ||
+        !residentGreeting.line ||
+        residentGreeting.presentation !== 'resident_attached_current_ribbon_v2' ||
+        residentGreeting.independentWorldLayer !== true ||
+        residentGreeting.contrastProfile !== 'high_contrast_current_v2' ||
+        residentGreeting.backdropOpacity < 0.95 ||
+        residentGreeting.readableWidth < 300 ||
+        residentGreeting.bodyFontSize < minimumResidentGreetingFont ||
+        residentGreeting.screenSpaceScale < 1 ||
+        residentGreeting.effectiveScreenWidth < 300 ||
+        residentGreeting.effectiveBodyFontSize < minimumResidentGreetingFont ||
+        residentGreeting.effectiveAlpha < 0.95 ||
+        !residentGreeting.ariaLabel.includes(residentGreeting.residentName) ||
+        !residentGreeting.attachedToJourney ||
+        !residentGreeting.greetingActive ||
+        !residentGreeting.interactionCleared ||
+        !residentGreeting.cooldownActive ||
+        residentGreeting.modalOpen ||
+        !residentGreeting.screenBounds ||
+        residentGreeting.screenBounds.left < -1 ||
+        residentGreeting.screenBounds.right > SMOKE_VIEWPORT_WIDTH + 1 ||
+        residentGreeting.screenBounds.top < -1 ||
+        residentGreeting.screenBounds.bottom > SMOKE_VIEWPORT_HEIGHT + 1 ||
+        residentGreeting.screenBounds.right - residentGreeting.screenBounds.left < 240 ||
+        residentGreeting.screenBounds.bottom - residentGreeting.screenBounds.top < 84
+    ) {
+        throw new Error(`Village resident greeting failed: ${JSON.stringify(residentGreeting)}`);
+    }
+    const residentGreetingEdgeClamp = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const greeting = landmark?.activeResidentGreeting;
+        const journey = landmark?.activeResidentGreetingJourney;
+        const camera = scene?.cameras?.main;
+        if (!greeting || !journey || !camera || !landmark?.residentGreetingSync) {
+            return { available: false };
+        }
+        const originalX = journey.x;
+        journey.x = camera.worldView.x + 4;
+        landmark.residentGreetingSync();
+        const bounds = greeting.getBounds?.();
+        const screenBounds = bounds ? {
+            left: (bounds.left - camera.worldView.x) * camera.zoom + camera.x,
+            right: (bounds.right - camera.worldView.x) * camera.zoom + camera.x,
+            top: (bounds.top - camera.worldView.y) * camera.zoom + camera.y,
+            bottom: (bounds.bottom - camera.worldView.y) * camera.zoom + camera.y
+        } : null;
+        const result = {
+            available: true,
+            clamped: greeting.getData('viewportClamped') === true,
+            targetResidentId: greeting.getData('targetResidentId'),
+            residentId: journey.getData('residentId'),
+            anchorDeltaX: greeting.getData('residentAnchorDeltaX'),
+            screenBounds
+        };
+        journey.x = originalX;
+        landmark.residentGreetingSync();
+        return result;
+    })()`);
+    if (
+        !residentGreetingEdgeClamp.available ||
+        !residentGreetingEdgeClamp.clamped ||
+        residentGreetingEdgeClamp.targetResidentId !== residentGreetingEdgeClamp.residentId ||
+        residentGreetingEdgeClamp.anchorDeltaX <= 0 ||
+        !residentGreetingEdgeClamp.screenBounds ||
+        residentGreetingEdgeClamp.screenBounds.left < -1 ||
+        residentGreetingEdgeClamp.screenBounds.right > SMOKE_VIEWPORT_WIDTH + 1
+    ) {
+        throw new Error(
+            `Village resident greeting edge clamp failed: ${JSON.stringify(residentGreetingEdgeClamp)}`
+        );
+    }
+    const followUpStarted = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.worldBuilder.clearVillageDecisionMoment(scene.villageHeartLandmark);
+        scene.nearVillageHeart = true;
+        const marker = scene.villageHeartLandmark?.heartMemoryElements?.find(
+            element => element?.getData?.('villageHeartMemory') === 'storm_path'
+        );
+        if (!marker?.input?.enabled) return false;
+        marker.emit('pointerdown');
+        return true;
+    })()`);
+    if (!followUpStarted) {
+        throw new Error('Village Heart memory seed was not directly tappable');
+    }
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.activeCommunityMoment
+                ?.getData('villageHeartFollowUp')
+        )`),
+        { message: 'Village Heart resident memory response' }
+    );
+    const heartMemory = await evaluate(session, `(() => {
+        const landmark = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark;
+        const followUp = landmark?.activeCommunityMoment;
+        const markers = landmark?.heartMemoryElements?.filter(
+            element => element?.getData?.('villageHeartMemory')
+        ) || [];
+        return {
+            decisionId: followUp?.getData('villageHeartFollowUp'),
+            optionId: followUp?.getData('optionId'),
+            speakerName: followUp?.getData('speakerName'),
+            resonanceStyle: followUp?.getData('resonanceStyle'),
+            resonanceAnchor: followUp?.getData('resonanceAnchor'),
+            resonanceBackdrop: followUp?.list?.some(
+                child => child?.getData?.('villageResonanceBackdrop') === true
+            ) === true,
+            markerCount: markers.length,
+            markerActive: markers.every(marker => marker.active === true),
+            markerInteractive: markers.every(marker => marker.input?.enabled === true),
+            markerVerbs: markers.map(marker => marker.getData('interactionVerb')),
+            markerTouchTargets: markers.map(marker => marker.getData('touchTargetDiameter')),
+            markerHierarchyRoles: markers.map(
+                marker => marker.getData('villageMemoryHierarchyRole')
+            ),
+            markerVisualLanguages: markers.map(
+                marker => marker.getData('villageMemoryVisualLanguage')
+            ),
+            weave: {
+                language: landmark?.heartLife?.memoryWeave?.getData?.(
+                    'villageHeartMemoryLanguage'
+                ),
+                careMarks: landmark?.heartLife?.memoryWeave?.getData?.(
+                    'villageHeartCareMarks'
+                ),
+                readinessMarks: landmark?.heartLife?.memoryWeave?.getData?.(
+                    'villageHeartReadinessMarks'
+                ),
+                balanced: landmark?.heartLife?.memoryWeave?.getData?.(
+                    'villageHeartBalancedWeave'
+                ),
+                rememberedChoices: landmark?.heartLife?.memoryWeave?.getData?.(
+                    'villageHeartRememberedChoiceCount'
+                ),
+                alpha: landmark?.heartLife?.memoryWeave?.alpha
+            },
+            statusLabel: landmark?.statusLabel?.text || ''
+        };
+    })()`);
+    if (
+        heartMemory.decisionId !== 'storm_path' ||
+        heartMemory.optionId !== 'current_first' ||
+        heartMemory.speakerName !== 'Ember' ||
+        heartMemory.resonanceStyle !== 'current_ribbon' ||
+        heartMemory.resonanceAnchor !== 'village_heart' ||
+        !heartMemory.resonanceBackdrop ||
+        heartMemory.markerCount !== 1 ||
+        !heartMemory.markerActive ||
+        !heartMemory.markerInteractive ||
+        heartMemory.markerVerbs.some(verb => verb !== 'REMEMBER') ||
+        heartMemory.markerTouchTargets.some(diameter => diameter < 44) ||
+        heartMemory.markerHierarchyRoles.some(role => role !== 'interactive_memory') ||
+        heartMemory.markerVisualLanguages.some(language => language !== 'shared_vow_weave_v1') ||
+        heartMemory.weave.language !== 'shared_vow_weave_v1' ||
+        heartMemory.weave.careMarks !== 1 ||
+        heartMemory.weave.readinessMarks !== 0 ||
+        heartMemory.weave.balanced !== false ||
+        heartMemory.weave.rememberedChoices !== 1 ||
+        heartMemory.weave.alpha <= 0
+    ) {
+        throw new Error(`Village Heart persistent memory failed: ${JSON.stringify(heartMemory)}`);
+    }
+    await captureGameplayStill(session, 'village-heart-memory-mobile.png');
     const directWorldTap = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const openSite = scene?.villageHeartLandmark?.plotHitZones?.[4];
@@ -10558,11 +15778,894 @@ async function smokeVillageUi(session, exceptions) {
         throw new Error('Village world build site was not directly tappable');
     }
     await waitFor(
-        () => evaluate(session, `Boolean(document.querySelector('.village-command-modal.is-visible'))`),
+        () => evaluate(session, `Boolean(document.querySelector('.village-command-modal.accepts-input'))`),
         { message: 'Village Builder reopened from world build site' }
     );
+    if (SMOKE_VIEWPORT_WIDTH > 600) {
+        await evaluate(session, `(() => {
+            document.querySelector('.village-command-close')?.click();
+            window.GameState.set('session.gameStarted', true);
+            window.GameState.save();
+            return true;
+        })()`);
+        await waitFor(
+            () => evaluate(session, `!document.querySelector('.village-command-modal')`),
+            { message: 'Village Builder closed before no-touch reload' }
+        );
+        await session.call('Emulation.setTouchEmulationEnabled', {
+            enabled: false
+        });
+        await session.call('Page.reload', { ignoreCache: true });
+        await waitFor(
+            () => evaluate(session, 'document.readyState === "complete"'),
+            { timeoutMs: 20000, message: 'Desktop no-touch reload' }
+        );
+        await waitFor(
+            () => evaluate(session, 'Boolean(window.MobileControls)'),
+            { timeoutMs: 20000, message: 'Desktop no-touch controls runtime' }
+        );
+        controlDetection = await evaluate(session, `(() => {
+            const controls = new window.MobileControls({});
+            controls.show();
+            return {
+                detectedAsTouch: controls.detectMobile(),
+                controlsVisible: controls.isVisible === true,
+                prompt: 'keyboard',
+                dockTop: controls.layout?.dockTop ?? null
+            };
+        })()`);
+        if (
+            controlDetection.detectedAsTouch ||
+            controlDetection.controlsVisible ||
+            controlDetection.prompt !== 'keyboard' ||
+            controlDetection.dockTop !== null
+        ) {
+            throw new Error(`Village desktop control detection failed: ${JSON.stringify(controlDetection)}`);
+        }
+    }
 
-    return { layout, directWorldTap, interaction };
+    await evaluate(session, `(() => {
+        const game = window.mythicalGame;
+        game.scene.getScenes(true).forEach(active => {
+            if (active.scene.key !== 'GameScene') game.scene.stop(active.scene.key);
+        });
+        game.scene.stop('GameScene');
+        window.setTimeout(() => {
+            game.scene.getScenes(true).forEach(active => {
+                if (active.scene.key !== 'GameScene') game.scene.stop(active.scene.key);
+            });
+            game.scene.start('GameScene', {
+                villageCommandPreview: 'complete',
+                forceMobileControls: ${SMOKE_VIEWPORT_WIDTH <= 600}
+            });
+        }, 32);
+        return true;
+    })()`);
+    await waitForScene(session, 'GameScene', 45000);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const landmark = window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark;
+            return landmark?.plotPresentations?.length === 5;
+        })()`),
+        { timeoutMs: 30000, message: 'Complete Village world identities' }
+    );
+    await evaluate(session, `document.querySelector('.village-command-close')?.click()`);
+    await waitFor(
+        () => evaluate(session, `!document.querySelector('.village-command-modal')`),
+        { timeoutMs: 6000, message: 'Complete Village planner closed' }
+    );
+    const completeWorldIdentities = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        scene?.worldBuilder?.clearVillageCommunityMoment?.(landmark);
+        scene?.worldBuilder?.clearVillageDecisionMoment?.(landmark);
+        scene.nearVillageHeart = false;
+        scene.setSanctuaryMomentFocus?.(false);
+        scene.updateSanctuaryFocusMode?.(false);
+        scene.worldBuilder?.setVillageFocusMode?.(landmark, false, { immediate: true });
+        scene.cameras?.main?.stopFollow?.();
+        scene.cameras?.main?.centerOn?.(landmark.zone.x, landmark.zone.y);
+        const terrain = landmark?.districtTerrain;
+        return {
+            presentationMode: landmark?.presentationMode,
+            growthTier: landmark?.snapshot?.worldState?.growthTier,
+            restored: landmark?.snapshot?.worldState?.restored,
+            terrain: {
+                ids: terrain?.getData?.('villageInhabitedDistrictIds') || [],
+                materials: terrain?.getData?.('villageInhabitedDistrictMaterials') || [],
+                motions: terrain?.getData?.('villageInhabitedDistrictMotions') || [],
+                changes: terrain?.getData?.('villageInhabitedWorldChanges') || []
+            },
+            routeHierarchy: landmark?.currentPaths?.getData?.('villageRouteHierarchy'),
+            routeHierarchyState: landmark?.currentPaths?.getData?.(
+                'villageRouteHierarchyState'
+            ),
+            routeHierarchyAlpha: landmark?.currentPaths?.alpha,
+            nextActionGuidance: (() => {
+                const action = landmark?.snapshot?.worldState?.nextAction;
+                const target = landmark?.plotWorldPositions?.get?.(action?.plotId);
+                const targetPresentation = landmark?.plotPresentations?.find(
+                    presentation => presentation.plotId === action?.plotId
+                );
+                const placardBounds = landmark?.nextActionElement?.getBounds?.();
+                const heartLabelBounds = landmark?.label?.getBounds?.();
+                return {
+                    type: action?.type || null,
+                    plotId: action?.plotId || null,
+                    placement: landmark?.nextActionPlacard?.getData?.(
+                        'villagePlacardPlacement'
+                    ) || null,
+                    avoidsHeart: landmark?.nextActionPlacard?.getData?.(
+                        'villagePlacardAvoidsHeart'
+                    ) === true,
+                    placardY: landmark?.nextActionElement?.y ?? null,
+                    targetY: target?.y ?? null,
+                    stateLabelAlpha: targetPresentation?.stateLabel?.alpha ?? null,
+                    overlapsHeartLabel: Boolean(
+                        placardBounds &&
+                        heartLabelBounds &&
+                        Phaser.Geom.Intersects.RectangleToRectangle(
+                            placardBounds,
+                            heartLabelBounds
+                        )
+                    )
+                };
+            })(),
+            districts: (landmark?.plotPresentations || []).map(presentation => {
+                const district = presentation.inhabitedDistrict;
+                return {
+                    plotId: presentation.plotId,
+                    state: presentation.plotState,
+                    identity: district?.getData?.('villageDistrictIdentity'),
+                    material: district?.getData?.('villageDistrictMaterial'),
+                    motion: district?.getData?.('villageDistrictMotion'),
+                    motionActive: district?.getData?.('villageDistrictMotionActive'),
+                    cue: district?.getData?.('villageDistrictActivityCue'),
+                    change: district?.getData?.('villageDistrictWorldChange'),
+                    reveal: district?.getData?.('villageDistrictReveal'),
+                    approachLanguage: presentation.inhabitedDistrictApproachLayer
+                        ?.getData?.('villageDistrictApproachLanguage'),
+                    approachActive: presentation.inhabitedDistrictApproachLayer
+                        ?.getData?.('villageDistrictApproachActive'),
+                    approachAlpha: presentation.inhabitedDistrictApproachLayer?.alpha,
+                    operationalLanguage: presentation.inhabitedDistrictOperationalLayer
+                        ?.getData?.('villageDistrictOperationalLanguage'),
+                    operationalState: district?.getData?.(
+                        'villageDistrictOperationalState'
+                    ),
+                    evidenceTier: district?.getData?.('villageDistrictEvidenceTier'),
+                    residentCount: district?.getData?.('villageDistrictResidentCount'),
+                    cycleCount: district?.getData?.('villageDistrictCycleCount'),
+                    operationalAlpha: presentation.inhabitedDistrictOperationalLayer?.alpha,
+                    evidenceType: presentation.inhabitedDistrictOperationalLayer?.list
+                        ?.find?.(child => child?.getData?.('villageDistrictWorkEvidence'))
+                        ?.getData?.('villageDistrictWorkEvidenceType'),
+                    districtAlpha: district?.alpha,
+                    structureAlpha: presentation.container?.alpha,
+                    labelAlpha: presentation.plotLabel?.alpha,
+                    stateAlpha: presentation.stateLabel?.alpha,
+                    silhouetteLanguage: presentation.stateSilhouette?.getData?.(
+                        'villageStructureStateVisualLanguage'
+                    ),
+                    silhouetteState: presentation.stateSilhouette?.getData?.(
+                        'villageStructureState'
+                    ),
+                    silhouetteAction: presentation.stateSilhouette?.getData?.(
+                        'villageStructureStateAction'
+                    ),
+                    silhouetteBuilt: presentation.stateSilhouette?.getData?.(
+                        'villageStructureStateBuilt'
+                    ),
+                    ariaLabel: district?.getData?.('ariaLabel')
+                };
+            })
+        };
+    })()`);
+    const expectedDistrictIds = [
+        'open_current_buttress',
+        'renewing_garden',
+        'shared_discovery_bench',
+        'shared_shelter_grove',
+        'stormwood_yard'
+    ];
+    const expectedDistrictMaterials = [
+        'consent_circuit_v1',
+        'fallen_timber_rings_v1',
+        'regrowth_rows_v1',
+        'resonant_stone_arc_v1',
+        'resting_petals_v1'
+    ];
+    const expectedDistrictMotions = [
+        'dual_signal_orbit',
+        'home_lantern_breath',
+        'seed_drift',
+        'stone_resonance',
+        'stormwood_turn'
+    ];
+    if (
+        completeWorldIdentities?.presentationMode !== 'ambient' ||
+        completeWorldIdentities.growthTier !== 4 ||
+        completeWorldIdentities.restored !== 5 ||
+        completeWorldIdentities.routeHierarchy !== 'quiet_network_v1' ||
+        completeWorldIdentities.routeHierarchyState !== 'target_support' ||
+        completeWorldIdentities.routeHierarchyAlpha !== (
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 0.34 : 0.38
+        ) ||
+        (
+            SMOKE_VIEWPORT_WIDTH <= 600 && (
+                completeWorldIdentities.nextActionGuidance.type !== 'assign' ||
+                completeWorldIdentities.nextActionGuidance.placement !== 'below_target' ||
+                completeWorldIdentities.nextActionGuidance.avoidsHeart !== true ||
+                completeWorldIdentities.nextActionGuidance.placardY <=
+                    completeWorldIdentities.nextActionGuidance.targetY ||
+                completeWorldIdentities.nextActionGuidance.stateLabelAlpha !== 0 ||
+                completeWorldIdentities.nextActionGuidance.overlapsHeartLabel !== false
+            )
+        ) ||
+        completeWorldIdentities.districts.length !== 5 ||
+        [...completeWorldIdentities.terrain.ids].sort().join(',') !==
+            expectedDistrictIds.join(',') ||
+        [...completeWorldIdentities.terrain.materials].sort().join(',') !==
+            expectedDistrictMaterials.join(',') ||
+        [...completeWorldIdentities.terrain.motions].sort().join(',') !==
+            expectedDistrictMotions.join(',') ||
+        completeWorldIdentities.terrain.changes.length !== 5 ||
+        completeWorldIdentities.districts.map(district => district.identity)
+            .sort().join(',') !== expectedDistrictIds.join(',') ||
+        completeWorldIdentities.districts.map(district => district.material)
+            .sort().join(',') !== expectedDistrictMaterials.join(',') ||
+        completeWorldIdentities.districts.map(district => district.motion)
+            .sort().join(',') !== expectedDistrictMotions.join(',') ||
+        completeWorldIdentities.districts.filter(
+            district => district.state === 'needs_helper'
+        ).length !== 1 ||
+        completeWorldIdentities.districts.some(district => (
+            !['complete', 'staffed', 'needs_helper'].includes(district.state) ||
+            district.silhouetteLanguage !== 'root_state_silhouettes_v1' ||
+            district.silhouetteState !== district.state ||
+            district.silhouetteBuilt !== true ||
+            district.silhouetteAction !== (
+                district.state === 'staffed'
+                    ? 'working_together'
+                    : district.state === 'needs_helper'
+                        ? 'awaiting_resident'
+                        : 'ready'
+            ) ||
+            district.motionActive !== true ||
+            !district.cue ||
+            !district.change ||
+            district.reveal !== 1 ||
+            district.approachLanguage !== 'ground_reply_v1' ||
+            district.approachActive !== false ||
+            district.operationalLanguage !== 'living_work_cycle_v1' ||
+            district.evidenceType !== district.identity ||
+            district.evidenceTier < 1 ||
+            district.evidenceTier > 3 ||
+            !Number.isFinite(district.cycleCount) ||
+            ![
+                'working',
+                'outbound',
+                'delivery_complete',
+                'returning',
+                'occupied_home',
+                'ready_home',
+                'awaiting_helper'
+            ].includes(district.operationalState) ||
+            (district.state === 'needs_helper' && (
+                district.operationalState !== 'awaiting_helper' ||
+                district.operationalAlpha !== 0.24
+            )) ||
+            (district.identity === 'shared_shelter_grove' && (
+                !['occupied_home', 'ready_home'].includes(district.operationalState) ||
+                district.residentCount < 0
+            )) ||
+            (district.state === 'staffed' && district.operationalAlpha < 0.58) ||
+            district.approachAlpha !== (
+                district.state === 'needs_helper' ? 0.72 : 0
+            ) ||
+            district.districtAlpha !== 1 ||
+            district.structureAlpha < (
+                district.state === 'needs_helper'
+                    ? 1
+                    : SMOKE_VIEWPORT_WIDTH <= 600 ? 0.78 : 0.82
+            ) ||
+            district.labelAlpha !== (district.state === 'needs_helper' ? 0.32 : 0) ||
+            district.stateAlpha !== 0 ||
+            !district.ariaLabel?.includes(district.change)
+        ))
+    ) {
+        throw new Error(
+            `Complete Village world identities failed: ${JSON.stringify(completeWorldIdentities)}`
+        );
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-complete-world-identities-mobile.png'
+            : 'village-complete-world-identities-desktop.png'
+    );
+
+    const districtApproachFeedback = [];
+    for (let districtIndex = 0; districtIndex < 5; districtIndex += 1) {
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const landmark = scene?.villageHeartLandmark;
+            const presentation = landmark?.plotPresentations?.[${districtIndex}];
+            const position = landmark?.plotWorldPositions?.get?.(presentation?.plotId);
+            if (!scene?.player || !position) return false;
+            scene.currentBiome = 'nebula';
+            scene.sanctuaryPresentationMode = 'ambient';
+            landmark.presentationMode = 'ambient';
+            landmark.focusModeActive = false;
+            scene.player.body?.setVelocity?.(0, 0);
+            scene.player.setPosition(position.x, position.y);
+            landmark.playerProximityPlotId = null;
+            scene.worldBuilder?.setVillagePlayerProximity?.(
+                landmark,
+                presentation.plotId
+            );
+            scene.syncVillagePlotInteraction?.(landmark, presentation.plotId);
+            return true;
+        })()`);
+        await new Promise(resolve => setTimeout(resolve, 320));
+        districtApproachFeedback.push(await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const landmark = scene?.villageHeartLandmark;
+            const presentation = landmark?.plotPresentations?.[${districtIndex}];
+            scene.currentBiome = 'nebula';
+            scene.sanctuaryPresentationMode = 'ambient';
+            landmark.presentationMode = 'ambient';
+            landmark.focusModeActive = false;
+            landmark.playerProximityPlotId = null;
+            scene.worldBuilder?.setVillagePlayerProximity?.(
+                landmark,
+                presentation?.plotId
+            );
+            scene.worldBuilder?.setVillageFocusMode?.(
+                landmark,
+                false,
+                { immediate: true, presentationMode: 'ambient' }
+            );
+            scene.syncVillagePlotInteraction?.(landmark, presentation?.plotId);
+            const candidate = scene?.sanctuaryInteractionDirector?.candidates
+                ?.get?.('villagePlot:' + presentation?.plotId);
+            const approachLayer = presentation?.inhabitedDistrictApproachLayer;
+            return {
+                plotId: presentation?.plotId,
+                state: presentation?.plotState,
+                identity: presentation?.inhabitedDistrict
+                    ?.getData?.('villageDistrictIdentity'),
+                activityCue: candidate?.districtActivityCue,
+                approachDetail: candidate?.districtApproachDetail,
+                impact: presentation?.hitZone?.getData?.('worldEffectLabel'),
+                stateText: presentation?.stateLabel?.text,
+                stateAlpha: presentation?.stateLabel?.alpha,
+                approachAlpha: approachLayer?.alpha,
+                approachActive: approachLayer
+                    ?.getData?.('villageDistrictApproachActive'),
+                approachLanguage: candidate?.districtApproachLanguage,
+                message: candidate?.message,
+                ariaLabel: candidate?.ariaLabel,
+                commandPlacement: candidate?.worldCommandPlacement,
+                commandLabel: candidate?.label,
+                ownerLabel: candidate?.ownerLabel,
+                progressionPlacardAlpha: landmark?.nextActionPlacard?.alpha,
+                progressionOwnedByProximity: landmark?.nextActionPlacard
+                    ?.getData?.('villageCommandOwnedByProximity'),
+                progressionLabelAlpha: landmark?.nextActionElement?.alpha,
+                progressionLabelInput: landmark?.nextActionElement?.input?.enabled === true,
+                progressionHitZoneInput: landmark?.nextActionHitZone?.input?.enabled === true,
+                illuminatedLayerCount: (landmark?.plotPresentations || [])
+                    .filter(item => item.inhabitedDistrictApproachLayer?.alpha > 0.95)
+                    .length,
+                activeLayerCount: (landmark?.plotPresentations || [])
+                    .filter(item => item.inhabitedDistrictApproachLayer
+                        ?.getData?.('villageDistrictApproachActive') === true)
+                    .length
+            };
+        })()`));
+    }
+    const expectedApproachCues = [
+        'SAFE PATCHES REGROW',
+        'FALLEN TIMBER SHAPED',
+        'CURRENT CHANNEL OPEN',
+        'A LIGHT FOR EACH RESIDENT',
+        'TWO SIGNALS IN AGREEMENT'
+    ];
+    if (
+        districtApproachFeedback.length !== 5 ||
+        districtApproachFeedback.some((feedback, index) => (
+            feedback.activityCue !== expectedApproachCues[index] ||
+            feedback.approachDetail !== (
+                feedback.state === 'needs_helper'
+                    ? 'INVITE A HELPER'
+                    : expectedApproachCues[index]
+            ) ||
+            !feedback.impact ||
+            !feedback.stateText?.includes(feedback.approachDetail) ||
+            feedback.stateAlpha !== (feedback.state === 'needs_helper' ? 0 : 1) ||
+            feedback.approachAlpha !== 1 ||
+            feedback.approachActive !== true ||
+            feedback.approachLanguage !== 'ground_reply_v1' ||
+            feedback.commandPlacement !== 'target' ||
+            feedback.commandLabel !== feedback.ownerLabel ||
+            feedback.progressionPlacardAlpha !== (
+                feedback.state === 'needs_helper' ? 0 : 1
+            ) ||
+            feedback.progressionOwnedByProximity !== (
+                feedback.state === 'needs_helper'
+            ) ||
+            feedback.progressionLabelAlpha < (
+                feedback.state === 'needs_helper' ? 0 : 0.68
+            ) ||
+            feedback.progressionLabelAlpha > (
+                feedback.state === 'needs_helper' ? 0 : 1
+            ) ||
+            feedback.progressionLabelInput !== (feedback.state !== 'needs_helper') ||
+            feedback.progressionHitZoneInput !== (feedback.state !== 'needs_helper') ||
+            feedback.illuminatedLayerCount !== 1 ||
+            feedback.activeLayerCount !== 1 ||
+            !feedback.message?.startsWith(
+                SMOKE_VIEWPORT_WIDTH <= 600 ? 'Tap ' : 'Press SPACE at '
+            ) ||
+            !feedback.message?.includes(feedback.approachDetail) ||
+            !feedback.message?.includes(feedback.impact) ||
+            !feedback.ariaLabel?.includes(feedback.approachDetail) ||
+            !feedback.ownerLabel
+        ))
+    ) {
+        throw new Error(
+            `Village district approach feedback failed: ${JSON.stringify(districtApproachFeedback)}`
+        );
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-district-approach-mobile.png'
+            : 'village-district-approach-desktop.png'
+    );
+
+    const rescuedCommunity = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const state = window.GameState;
+        const villageState = structuredClone(
+            scene?.villageHeartLandmark?.snapshot?.state ||
+            state.get('world.village')
+        );
+        const assignments = {
+            forager_hut: 'bloom',
+            sawmill: 'zephyr',
+            current_masonry: 'pebble'
+        };
+        state.set('world.rescuedResidents', {
+            schemaVersion: 2,
+            rescuedIds: ['bloom', 'pebble', 'zephyr'],
+            interactions: { bloom: 0, pebble: 0, zephyr: 0 },
+            residency: {
+                bloom: { status: 'resident', arrivedAt: null },
+                pebble: { status: 'resident', arrivedAt: null },
+                zephyr: { status: 'resident', arrivedAt: null }
+            },
+            rescueHistory: []
+        });
+        state.set('world.village', {
+            ...villageState,
+            buildings: villageState.buildings.map(building => ({
+                ...building,
+                assignedCreatureId: assignments[building.definitionId] ||
+                    building.assignedCreatureId
+            }))
+        });
+        state.save();
+        scene.refreshVillageSettlementWorld(null, { force: true });
+        const landmark = scene.villageHeartLandmark;
+        const workers = (landmark?.workerElements || []).map(worker => ({
+            helperName: worker.getData?.('helperName'),
+            communityType: worker.getData?.('communityType'),
+            residentRole: worker.getData?.('residentRole'),
+            visualProfile: worker.getData?.('workerVisualProfile'),
+            identityVisible: worker.getData?.('residentIdentityVisible')
+        }));
+        return {
+            workers,
+            rescuedNames: landmark?.snapshot?.roster
+                ?.filter(entry => entry.communityType === 'rescued_resident')
+                .map(entry => entry.name) || []
+        };
+    })()`);
+    const expectedResidentProfiles = {
+        Bloom: 'bloom_worker_v1',
+        Pebble: 'pebble_worker_v1',
+        Zephyr: 'zephyr_worker_v1'
+    };
+    if (
+        rescuedCommunity.rescuedNames.length !== 3 ||
+        Object.keys(expectedResidentProfiles).some(name => (
+            !rescuedCommunity.rescuedNames.includes(name) ||
+            !rescuedCommunity.workers.some(worker => (
+                worker.helperName === name &&
+                worker.communityType === 'rescued_resident' &&
+                worker.visualProfile === expectedResidentProfiles[name] &&
+                worker.identityVisible === true &&
+                Boolean(worker.residentRole)
+            ))
+        ))
+    ) {
+        throw new Error(
+            `Village rescued community failed: ${JSON.stringify(rescuedCommunity)}`
+        );
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-rescued-community-mobile.png'
+            : 'village-rescued-community-desktop.png'
+    );
+
+    const rescuedPanelOpen = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.villageCommandPanel?.destroy?.();
+        const snapshot = scene.refreshVillageSettlementWorld(null, { force: true });
+        const opened = scene.villageCommandPanel?.show?.({
+            plotId: 'root_01',
+            guided: false,
+            getSnapshot: () => snapshot
+        });
+        const panelSnapshot = scene.villageCommandPanel?.getSnapshot?.();
+        return {
+            opened,
+            plotIds: snapshot?.plots?.map(plot => plot.id) || [],
+            rootBuilding: snapshot?.buildings?.find(
+                building => building.plotId === 'root_01'
+            )?.creature || null,
+            panelMatchesWorld: panelSnapshot?.buildings?.find(
+                building => building.plotId === 'root_01'
+            )?.creature?.id === 'bloom'
+        };
+    })()`);
+    await waitFor(
+        () => evaluate(session, `Boolean(document.querySelector('.village-command-modal'))`),
+        { message: 'Village Heart resident planner' }
+    );
+    const rescuedRosterPanel = await evaluate(session, `(() => {
+        const authored = [...document.querySelectorAll(
+            '.village-creature-avatar.is-authored-resident'
+        )];
+        const avatars = [...document.querySelectorAll('.village-creature-avatar')];
+        const options = [...document.querySelectorAll('.village-creature-select option')]
+            .map(option => option.textContent || '');
+        return {
+            authoredPortraitCount: authored.length,
+            authoredTypes: authored.map(node => node.dataset.communityType),
+            avatarTypes: avatars.map(node => ({
+                classes: node.className,
+                communityType: node.dataset.communityType
+            })),
+            title: document.querySelector('.village-command-title')?.textContent || '',
+            assignmentText: document.querySelector('.village-assignment-current')
+                ?.textContent || '',
+            optionText: options
+        };
+    })()`);
+    rescuedRosterPanel.opened = rescuedPanelOpen.opened;
+    rescuedRosterPanel.panelMatchesWorld = rescuedPanelOpen.panelMatchesWorld;
+    if (
+        rescuedRosterPanel.opened !== true ||
+        rescuedRosterPanel.panelMatchesWorld !== true ||
+        rescuedRosterPanel.authoredPortraitCount < 1 ||
+        rescuedRosterPanel.authoredTypes.some(type => type !== 'rescued_resident') ||
+        !rescuedRosterPanel.optionText.some(text => text.includes('Bloom - rescued resident')) ||
+        !rescuedRosterPanel.optionText.some(text => text.includes('Root Forager'))
+    ) {
+        throw new Error(
+            `Village rescued roster panel failed: ${JSON.stringify(rescuedRosterPanel)}`
+        );
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-rescued-roster-mobile.png'
+            : 'village-rescued-roster-desktop.png'
+    );
+    await evaluate(session, `(() => {
+        window.mythicalGame.scene.getScene('GameScene')
+            ?.villageCommandPanel?.destroy?.();
+        return true;
+    })()`);
+
+    await evaluate(session, `(() => {
+        const game = window.mythicalGame;
+        game.scene.stop('GameScene');
+        window.setTimeout(() => {
+            game.scene.start('GameScene', {
+                forceMobileControls: ${SMOKE_VIEWPORT_WIDTH <= 600}
+            });
+        }, 32);
+        return true;
+    })()`);
+    await waitForScene(session, 'GameScene', 45000);
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            window.mythicalGame.scene.getScene('GameScene')?.signalGarden?.zone
+        )`),
+        { timeoutMs: 30000, message: 'Sanctuary Signal Garden before resident arrival' }
+    );
+
+    const rescuedArrival = await evaluate(session, `(async () => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const state = window.GameState;
+        const rescued = state.get('world.rescuedResidents');
+        state.set('world.rescuedResidents', {
+            ...rescued,
+            schemaVersion: 3,
+            sanctuaryArrivalSeenIds: [],
+            lastSanctuaryArrivalId: null,
+            lastSanctuaryArrivalAt: null,
+            rescueHistory: [{
+                residentId: 'bloom',
+                levelId: 'mythicalForest',
+                rescuedAt: new Date().toISOString()
+            }]
+        });
+        state.save();
+        scene.rescuedResidentArrivalPlayedThisVisit = false;
+        scene.rescuedResidentArrivalScheduleTimer?.remove?.();
+        scene.rescuedResidentArrivalScheduleTimer = null;
+        if (!scene.textures.exists('rescued-resident-bloom-art')) {
+            await new Promise((resolve, reject) => {
+                const timeout = window.setTimeout(
+                    () => reject(new Error('Bloom texture load timed out')),
+                    8000
+                );
+                scene.load.once('complete', () => {
+                    window.clearTimeout(timeout);
+                    resolve();
+                });
+                scene.load.image(
+                    'rescued-resident-bloom-art',
+                    '/marketing/bloom%202.webp'
+                );
+                scene.load.start();
+            });
+        }
+        scene.worldBuilder.refreshRescuedResidents(
+            scene.signalGarden,
+            window.RescuedResidents.getRescuedResidentSnapshot(state)
+        );
+        scene.setupRescuedResidentOverlaps();
+        const pending = window.RescuedResidents
+            ?.getPendingRescuedResidentArrival?.(state) || null;
+        const gardenResidentIds = scene.signalGarden?.rescuedResidents
+            ?.map(entry => entry.id) || [];
+        const presenceModel = scene.signalGarden?.zone?.getData?.(
+            'rescuedResidentPresenceModel'
+        );
+        const visibleResidentIds = scene.signalGarden?.zone?.getData?.(
+            'rescuedResidentVisibleIds'
+        ) || [];
+        const relocations = scene.signalGarden?.zone?.getData?.(
+            'rescuedResidentRelocations'
+        ) || [];
+        const blocked = scene.isRescuedResidentArrivalBlocked?.();
+        const played = scene.playRescuedResidentArrival({ force: true });
+        const arrival = scene.signalGarden?.rescuedResidentArrival;
+        const reveal = arrival?.reveal;
+        return {
+            played,
+            pendingId: pending?.id || null,
+            rescueHistory: state.get('world.rescuedResidents.rescueHistory') || [],
+            gardenResidentIds,
+            presenceModel,
+            visibleResidentIds,
+            relocations,
+            blocked,
+            worldMethod: typeof scene.worldBuilder?.playRescuedResidentArrival,
+            textureLoaded: scene.textures.exists('rescued-resident-bloom-art'),
+            active: scene.rescuedResidentArrivalActive === true,
+            residentId: reveal?.getData?.('residentId'),
+            residentName: reveal?.getData?.('residentName'),
+            residentRole: reveal?.getData?.('residentRole'),
+            location: reveal?.getData?.('residentLocation'),
+            nextLocation: reveal?.getData?.('residentNextLocation'),
+            nextLocationLabel: reveal?.getData?.('residentNextLocationLabel'),
+            communityStatus: reveal?.getData?.('residentCommunityStatus'),
+            contribution: reveal?.getData?.('residentContribution'),
+            authoredPortraitVisible: reveal?.getData?.('authoredPortraitVisible'),
+            framingOffsetX: reveal?.getData?.('framingOffsetX'),
+            focusWorldX: reveal?.getData?.('focusWorldX'),
+            peripheralResidentAlphas: (arrival?.peripheralResidents || [])
+                .map(item => item.container?.alpha),
+            skippable: reveal?.getData?.('skippable'),
+            ariaLabel: reveal?.getData?.('ariaLabel'),
+            controlsSuspended: scene.mobileControls?.isSuspended === true,
+            inputShield: scene.rescuedResidentArrivalInputShield
+                ?.getData?.('rescuedResidentArrivalInputShield') === true,
+            cameraFollowingPlayer: scene.cameras?.main?._follow === scene.player,
+            cameraTarget: scene.sanctuaryCameraFocusTarget
+        };
+    })()`);
+    if (
+        !rescuedArrival.played ||
+        !rescuedArrival.active ||
+        rescuedArrival.residentId !== 'bloom' ||
+        rescuedArrival.residentName !== 'Bloom' ||
+        rescuedArrival.residentRole !== 'Root Forager' ||
+        rescuedArrival.location !== 'signal_garden' ||
+        rescuedArrival.nextLocation !== 'work' ||
+        rescuedArrival.nextLocationLabel !== 'FORAGE' ||
+        rescuedArrival.presenceModel !== 'single_world_location_v2' ||
+        rescuedArrival.gardenResidentIds.join(',') !== 'bloom' ||
+        rescuedArrival.visibleResidentIds.join(',') !== 'bloom' ||
+        rescuedArrival.relocations.length !== 2 ||
+        rescuedArrival.relocations.some(entry => (
+            !['pebble', 'zephyr'].includes(entry.id) || entry.location !== 'work'
+        )) ||
+        rescuedArrival.communityStatus !== 'sanctuary_resident' ||
+        !rescuedArrival.contribution?.includes('regrow') ||
+        rescuedArrival.authoredPortraitVisible !== true ||
+        !Number.isFinite(rescuedArrival.framingOffsetX) ||
+        !Number.isFinite(rescuedArrival.focusWorldX) ||
+        rescuedArrival.peripheralResidentAlphas.some(alpha => alpha > 0.13) ||
+        rescuedArrival.skippable !== true ||
+        !rescuedArrival.ariaLabel?.includes('joined the Sanctuary') ||
+        !rescuedArrival.ariaLabel?.includes('Sanctuary resident') ||
+        !rescuedArrival.ariaLabel?.includes('will report to FORAGE') ||
+        rescuedArrival.controlsSuspended !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
+        !rescuedArrival.inputShield ||
+        rescuedArrival.cameraFollowingPlayer ||
+        !rescuedArrival.cameraTarget
+    ) {
+        throw new Error(
+            `Village rescued arrival failed: ${JSON.stringify(rescuedArrival)}`
+        );
+    }
+    await delay(520);
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-rescued-arrival-mobile.png'
+            : 'village-rescued-arrival-desktop.png'
+    );
+    const rescuedArrivalRecovery = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const finished = scene.finishRescuedResidentArrival({ skipped: false });
+        const saved = window.GameState.get('world.rescuedResidents');
+        const visibleResidentIds = scene.signalGarden?.zone?.getData?.(
+            'rescuedResidentVisibleIds'
+        ) || [];
+        const relocations = scene.signalGarden?.zone?.getData?.(
+            'rescuedResidentRelocations'
+        ) || [];
+        const bloomWorkers = (scene.villageHeartLandmark?.workerElements || [])
+            .filter(worker => worker?.getData?.('creatureId') === 'bloom');
+        return {
+            finished,
+            active: scene.rescuedResidentArrivalActive,
+            revealPresent: Boolean(scene.signalGarden?.rescuedResidentArrival),
+            controlsSuspended: scene.mobileControls?.isSuspended === true,
+            cameraFollowingPlayer: scene.cameras?.main?._follow === scene.player,
+            focusActive: scene.sanctuaryFocusModeActive === true,
+            cameraTarget: scene.sanctuaryCameraFocusTarget,
+            seenIds: saved?.sanctuaryArrivalSeenIds || [],
+            lastArrivalId: saved?.lastSanctuaryArrivalId || null,
+            visibleResidentIds,
+            relocations,
+            bloomWorkerCount: bloomWorkers.length,
+            bloomStillInGarden: scene.signalGarden?.rescuedResidents?.some(
+                entry => entry.id === 'bloom'
+            ) === true
+        };
+    })()`);
+    const staleResidentArrivalCamera = Boolean(
+        rescuedArrivalRecovery.cameraTarget &&
+        rescuedArrival.cameraTarget &&
+        Math.abs(
+            rescuedArrivalRecovery.cameraTarget.x - rescuedArrival.cameraTarget.x
+        ) < 1 &&
+        Math.abs(
+            rescuedArrivalRecovery.cameraTarget.y - rescuedArrival.cameraTarget.y
+        ) < 1
+    );
+    if (
+        !rescuedArrivalRecovery.finished ||
+        rescuedArrivalRecovery.active ||
+        rescuedArrivalRecovery.revealPresent ||
+        rescuedArrivalRecovery.controlsSuspended ||
+        !(
+            rescuedArrivalRecovery.cameraFollowingPlayer ||
+            rescuedArrivalRecovery.focusActive ||
+            !staleResidentArrivalCamera
+        ) ||
+        !rescuedArrivalRecovery.seenIds.includes('bloom') ||
+        rescuedArrivalRecovery.lastArrivalId !== 'bloom' ||
+        rescuedArrivalRecovery.visibleResidentIds.join(',') !== 'pebble' ||
+        rescuedArrivalRecovery.relocations.length !== 2 ||
+        !rescuedArrivalRecovery.relocations.some(entry => entry.id === 'bloom') ||
+        rescuedArrivalRecovery.bloomWorkerCount !== 1 ||
+        rescuedArrivalRecovery.bloomStillInGarden
+    ) {
+        throw new Error(
+            `Village rescued arrival recovery failed: ${JSON.stringify(rescuedArrivalRecovery)}`
+        );
+    }
+
+    const rescuedWorkCheckIn = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const played = scene.showVillageWorkerCheckIn({ creatureId: 'bloom' });
+        const checkIn = scene.villageHeartLandmark?.activeWorkerCheckIn;
+        return {
+            played,
+            helperName: checkIn?.getData?.('helperName'),
+            buildingId: checkIn?.getData?.('buildingId'),
+            routineCue: checkIn?.getData?.('routineCue'),
+            impact: checkIn?.getData?.('impact'),
+            bloomInGarden: scene.signalGarden?.rescuedResidents?.some(
+                entry => entry.id === 'bloom'
+            ) === true
+        };
+    })()`);
+    if (
+        !rescuedWorkCheckIn.played ||
+        rescuedWorkCheckIn.helperName !== 'Bloom' ||
+        rescuedWorkCheckIn.buildingId !== 'forager_hut' ||
+        !rescuedWorkCheckIn.routineCue ||
+        !rescuedWorkCheckIn.impact ||
+        rescuedWorkCheckIn.bloomInGarden
+    ) {
+        throw new Error(
+            `Village rescued work presence failed: ${JSON.stringify(rescuedWorkCheckIn)}`
+        );
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-rescued-work-check-in-mobile.png'
+            : 'village-rescued-work-check-in-desktop.png'
+    );
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.worldBuilder?.clearVillageWorkerCheckIn?.(
+            scene.villageHeartLandmark
+        );
+        return true;
+    })()`);
+
+    return {
+        firstArrivalWorld,
+        arrivalReveal,
+        arrivalRecovery,
+        layout,
+        integratedSetup,
+        integratedWorld,
+        focusRecovery,
+        workerRoute,
+        workerDelivery,
+        workerReturn,
+        workerCheckIn,
+        contextualFocus,
+        structureRoute,
+        structurePlanner,
+        actionRoute,
+        guidedDecision,
+        decisionChoice,
+        decisionRecap,
+        decisionWorld,
+        buildRoute,
+        constructionWorld,
+        habitatWorld,
+        heartMemory,
+        completeWorldIdentities,
+        districtApproachFeedback,
+        rescuedCommunity,
+        rescuedRosterPanel,
+        rescuedArrival,
+        rescuedArrivalRecovery,
+        rescuedWorkCheckIn,
+        directWorldTap,
+        controlDetection,
+        interaction
+    };
 }
 
 async function smokeForestArrival(session, exceptions) {
@@ -11016,10 +17119,12 @@ async function main() {
             screenWidth: SMOKE_VIEWPORT_WIDTH,
             screenHeight: SMOKE_VIEWPORT_HEIGHT
         });
-        await session.call('Emulation.setTouchEmulationEnabled', {
-            enabled: true,
-            maxTouchPoints: 1
-        });
+        await session.call(
+            'Emulation.setTouchEmulationEnabled',
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? { enabled: true, maxTouchPoints: 1 }
+                : { enabled: false }
+        );
 
         const exceptions = [];
         session.on('Runtime.exceptionThrown', params => {
@@ -11054,6 +17159,12 @@ async function main() {
         if (SMOKE_MODE === 'home-entry') {
             results.homeEntry = await smokeHomeStart(session, exceptions);
             process.stdout.write('PASS HomeStartToEgg\n');
+        } else if (SMOKE_MODE === 'living-form-late') {
+            results.livingFormLate = await smokeLateLivingFormArrival(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS LateLivingFormArrival\n');
         } else if (SMOKE_MODE === 'first-sanctuary') {
             results.firstSanctuary = await smokeFirstSanctuaryOnboarding(
                 session,

@@ -55,6 +55,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         this.portraitPreviewImage = data?.portraitPreviewImage || null;
         this.portraitPreviewFailure = data?.portraitPreviewFailure || false;
         this.portraitPreviewSpecies = data?.portraitPreviewSpecies || null;
+        this.portraitPreviewDelay = Number(data?.portraitPreviewDelay) || 1400;
         this.portraitReferenceImage = null;
         devLog('[SoulRevealScene] Init with data:', data);
     }
@@ -77,14 +78,14 @@ export default class SoulRevealScene extends Phaser.Scene {
         if (this.portraitPreviewFailure) {
             this.portraitPromise = new Promise((resolve, reject) => {
                 this.time.delayedCall(
-                    1400,
+                    this.portraitPreviewDelay,
                     () => reject(new Error('Local portrait failure preview'))
                 );
             });
             this.portraitPromise.catch(() => {});
         } else if (this.portraitPreviewImage) {
             this.portraitPromise = new Promise(resolve => {
-                this.time.delayedCall(1400, () => resolve({
+                this.time.delayedCall(this.portraitPreviewDelay, () => resolve({
                     identityKey: 'local-preview',
                     stage: 'baby',
                     imageUrl: this.portraitPreviewImage
@@ -1353,15 +1354,15 @@ export default class SoulRevealScene extends Phaser.Scene {
     }
 
     transitionToGame() {
-        this.livingFormHandoff?.destroy?.();
-        this.livingFormHandoff = null;
+        this.livingFormHandoff?.beginTransition?.();
         window.GameState?.set('tutorial.livingFormPending', false);
-        window.GameState?.set('tutorial.livingFormSeen', true);
         window.GameState?.save?.();
-        this.restoreDomContainerStyles();
-        this.cameras.main.fadeOut(800, 0, 0, 0);
+        this.cameras.main.fadeOut(360, 0, 0, 0);
 
-        this.time.delayedCall(800, () => {
+        this.time.delayedCall(360, () => {
+            this.livingFormHandoff?.destroy?.();
+            this.livingFormHandoff = null;
+            this.restoreDomContainerStyles();
             this.scene.start('GameScene', { fromSoulReveal: true });
         });
     }
@@ -1380,6 +1381,12 @@ export default class SoulRevealScene extends Phaser.Scene {
             affinity: this.creatureData?.cosmicAffinity,
             portraitPromise: this.portraitPromise,
             referenceImage: this.portraitReferenceImage,
+            keepVisibleOnContinue: true,
+            onPortraitShown: record => {
+                if (!record?.imageUrl) return;
+                window.GameState?.set('tutorial.livingFormSeen', true);
+                window.GameState?.save?.();
+            },
             onContinue: () => this.transitionToGame()
         });
         if (!shown) {

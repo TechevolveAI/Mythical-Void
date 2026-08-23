@@ -14,10 +14,15 @@ function loadWaypointHelpers() {
             'export function getWaypointScreenPosition',
             'function getWaypointScreenPosition'
         )
+        .replace(
+            'export function resolveSanctuaryCurrentTarget',
+            'function resolveSanctuaryCurrentTarget'
+        )
         .replace('export default class ProjectBeaconWaypoint', 'class ProjectBeaconWaypoint')
         .concat(
             '\nmodule.exports = {' +
-            ' ProjectBeaconWaypoint, resolveProjectBeaconWaypointTarget, getWaypointScreenPosition };'
+            ' ProjectBeaconWaypoint, resolveProjectBeaconWaypointTarget,' +
+            ' resolveSanctuaryCurrentTarget, getWaypointScreenPosition };'
         );
     const sandbox = {
         module: { exports: {} },
@@ -163,6 +168,108 @@ describe('Project Beacon waypoint', () => {
             y: 215,
             isVisible: false
         }));
+
+        expect(getWaypointScreenPosition({
+            targetX: 900,
+            targetY: 286,
+            width: 390,
+            height: 844,
+            horizontalMargin: 96,
+            topMargin: 215,
+            bottomMargin: 145
+        })).toEqual(expect.objectContaining({
+            x: 294,
+            isVisible: false
+        }));
+    });
+
+    test('continues Sanctuary guidance from survival into community and expeditions', () => {
+        const { resolveSanctuaryCurrentTarget } = loadWaypointHelpers();
+        const crashedShip = { x: 100, y: 200, active: true };
+        const villageZone = { x: 460, y: 1300, active: true };
+        const hubPortal = { x: 800, y: 1800, active: true };
+        const values = new Map([
+            ['story.projectBeacon.fieldKit.recovered', false]
+        ]);
+        const gameState = { get: path => values.get(path) };
+        const scene = {
+            currentBiome: 'nebula',
+            crashedShip,
+            hubPortal,
+            villageHeartLandmark: {
+                zone: villageZone,
+                snapshot: {
+                    unlock: { unlocked: true },
+                    state: { guidanceSeen: false },
+                    worldState: { nextAction: { type: 'build' } }
+                }
+            }
+        };
+
+        expect(resolveSanctuaryCurrentTarget(scene, { gameState }))
+            .toEqual(expect.objectContaining({
+                missionId: 'sanctuary_field_kit',
+                label: 'RECOVER FIELD KIT',
+                target: crashedShip
+            }));
+
+        values.set('story.projectBeacon.fieldKit.recovered', true);
+        expect(resolveSanctuaryCurrentTarget(scene, { gameState }))
+            .toEqual(expect.objectContaining({
+                missionId: 'sanctuary_village_arrival',
+                label: 'BUILD A HOME TOGETHER',
+                target: villageZone
+            }));
+
+        scene.villageHeartLandmark.snapshot.state.guidanceSeen = true;
+        scene.villageHeartLandmark.snapshot.worldState.nextAction = {
+            type: 'decision'
+        };
+        expect(resolveSanctuaryCurrentTarget(scene, { gameState }))
+            .toEqual(expect.objectContaining({
+                missionId: 'sanctuary_heart_choice',
+                label: 'HEART CHOICE READY',
+                target: villageZone
+            }));
+
+        scene.villageHeartLandmark.snapshot.worldState.nextAction = {
+            type: 'review'
+        };
+        expect(resolveSanctuaryCurrentTarget(scene, {
+            gameState,
+            campaignStep: {
+                status: 'ready',
+                label: 'Mythical Forest'
+            }
+        })).toEqual(expect.objectContaining({
+            missionId: 'sanctuary_ready_expedition',
+            label: 'NEXT · MYTHICAL FOREST',
+            target: hubPortal
+        }));
+    });
+
+    test('does not override an active non-spatial story moment with fallback guidance', () => {
+        const { ProjectBeaconWaypoint } = loadWaypointHelpers();
+        const director = new ProjectBeaconWaypoint({
+            currentBiome: 'nebula',
+            player: { x: 20, y: 20 },
+            hubPortal: { x: 900, y: 700, active: true }
+        }, {
+            questProvider: () => ({
+                id: 'beacon_first_contact',
+                type: 'story',
+                completed: false,
+                claimed: false
+            }),
+            campaignStepProvider: () => ({
+                status: 'ready',
+                label: 'Mythical Forest'
+            })
+        });
+
+        director.refreshTarget();
+
+        expect(director.currentTarget).toBeNull();
     });
 
     test('uses the controlled player position for collectible collection', () => {
@@ -188,16 +295,32 @@ describe('Project Beacon waypoint', () => {
         const source = fs.readFileSync(path.join(__dirname, '../scenes/GameScene.js'), 'utf8');
         const spawnIndex = source.indexOf('this.spawnWorldCollectibles();');
         const waypointIndex = source.indexOf(
-            'this.projectBeaconWaypoint = new ProjectBeaconWaypoint(this);'
+            'this.projectBeaconWaypoint = new ProjectBeaconWaypoint(this, {'
         );
 
         expect(spawnIndex).toBeGreaterThan(-1);
         expect(waypointIndex).toBeGreaterThan(spawnIndex);
         expect(source).toContain('this.projectBeaconWaypoint?.update');
         expect(source).toContain('this.projectBeaconWaypoint?.destroy');
+        expect(source).toContain(
+            'campaignStepProvider: () => getCampaignJourneyStep(window.GameState)'
+        );
+
+        const waypointSource = fs.readFileSync(
+            path.join(__dirname, '../systems/ui/ProjectBeaconWaypoint.js'),
+            'utf8'
+        );
+        expect(waypointSource).toContain("'player_current_trail_v1'");
+        expect(waypointSource).toContain("'living_current_edge_ribbon_v2'");
+        expect(waypointSource).toContain("'living_current_threshold_v1'");
+        expect(waypointSource).toContain('this.scene.sanctuaryFocusModeActive ||');
+        expect(waypointSource).toContain('interactionOwnsAttention');
+        expect(waypointSource).not.toContain("backgroundColor: 'rgba(5, 12, 18, 0.88)'");
 
         const gameSource = fs.readFileSync(path.join(__dirname, '../game.js'), 'utf8');
-        expect(gameSource).toContain("['fieldKit', 'signals'].includes(testWaypoint)");
+        expect(gameSource).toContain(
+            "['fieldKit', 'signals', 'village', 'expedition'].includes(testWaypoint)"
+        );
         expect(gameSource).toContain("{ waypointPreview: testWaypoint }");
     });
 });

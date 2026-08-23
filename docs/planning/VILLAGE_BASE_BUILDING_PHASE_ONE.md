@@ -85,7 +85,226 @@ No build control overlays the joystick or action dock.
 
 The same generated building scenes are rendered on the Sanctuary plots. Constructing buildings appear scaffolded and desaturated; completed buildings float subtly, emit animated Current energy, and remain visually identifiable outside the menu. Completion and resource-production notices appear in the world so passive progress is not silent.
 
+The settlement is grounded by one responsive living glade rather than a rectangular
+build-mode overlay. Its irregular terrain footprint is derived from the authored
+plot layout, with open seams toward the Signal Garden and the southern player
+approach. On narrow screens the glade becomes a compact terrace; on desktop it
+stretches into a commons spine. Occupied roots receive stronger local terrain and
+ecology while unopened roots remain quiet, preserving one readable focal action.
+Staffed production paths also retain their resource identity in the world: food
+returns through gold growth nodes, wood through shaped timber marks, and stone
+through pale crystal marks. These match worker cargo and the Heart's delivery
+response so the player can follow a building's effect without opening the planner.
+
+Returning after an offline cycle no longer interrupts play with a separate field
+report scene. Village reconciliation first compares the saved and current
+settlement, then the live Sanctuary briefly focuses the Heart. Named workers carry
+color-matched food, wood, and stone signals along their authored routes; completed
+structures take root in place; and a tapered Current ribbon states what changed and
+the next available action. The moment waits behind onboarding and active overlays,
+leaves touch controls enabled, clears automatically, and returns the camera to the
+player. A deterministic local preview covers phone and desktop visual QA without
+mutating a save.
+
 The five scenes are pre-generated project assets rather than runtime generation requests. This keeps the menu immediate, deterministic, inexpensive, and available offline. Each building has a distinct visual identity; motion is layered with CSS and respects `prefers-reduced-motion`.
+
+Settlement growth is also a world-state contract rather than a caption change.
+The living glade begins around the awakened Heart and expands only toward roots
+where construction has actually begun. Unused foundations remain visible and
+interactive, but they no longer force the terrain to display its final footprint
+on day one. Five deterministic profiles drive the same labels and world behavior:
+
+| Tier | World identity | Persistent change |
+| --- | --- | --- |
+| Awakened Root | Signal seed | One breathing Current node and an intimate Heart clearing |
+| First Root | First shelter | First canopy, safe route, and one gathering root |
+| Connected Glade | Shared crossing | Linked Current crossing and a two-resident commons |
+| Living Settlement | Resident commons | Multiple canopies and visible work/rest rhythm |
+| Shared Sanctuary | Current canopy | All restored roots answer one communal network |
+
+The commons is rendered inside the world rather than as another panel. Residents
+who are home make short Heart check-ins; assigned workers retain their existing
+building-to-Heart delivery routes. During story focus the commons recedes behind
+the active moment, and compact layouts suppress the redundant Heart caption so
+the contextual action beacon owns the interaction language.
+
+Resident presence follows a single-world-location contract. A Habitat resident
+is either resting at home, travelling to the Heart commons, or helping at an
+assigned structure; the same resident is never drawn at two destinations. The
+Habitat uses distinct resting, Heart, and work tethers, while Heart visitors walk
+one authored Current route between their home threshold and a commons seat. One
+resident remains home when several are available, preserving a readable daily
+rhythm instead of making the Habitat look abandoned as the settlement grows.
+
+Travelling residents are reciprocal world characters rather than ambient
+decoration. When the player comes within greeting range, the shared Sanctuary
+command channel targets that resident with one `GREET` action. Activating it does
+not open the Village planner or stop exploration. The resident answers through a
+temporary Living Current ribbon attached to their moving world figure, using an
+authored line that changes with settlement growth. The ribbon retains readable
+phone typography, remains inside the viewport, clears before story focus, and
+records a community bond interaction. Its high-contrast world layer follows the
+exact resident route independently of the resident's ambient focus alpha, and it
+counter-scales the Sanctuary camera so 16px mobile dialogue remains 16px on
+screen. This is the phase-one social contract for later resident quests and
+relationship memories without introducing a separate dialogue system
+prematurely.
+
+Completed structures also carry a purpose sigil in their living-root threshold.
+The five authored symbols represent renewing food, recovered repair value,
+Current protection, shared homes, and shared energy. They remain quiet in the
+ambient composition and brighten with the structure on approach. The one
+target-attached command then names the immediate result (`FEED +5`, `WIN +10`,
+`BLOCK 1 HIT`, `2 SAFE HOMES`, or `ENERGY +1`) instead of asking the player to
+open a generic management surface before understanding why the building matters.
+The structure name remains the command owner, so benefit clarity does not erase
+place identity.
+
+The selected empty root uses the same world grammar instead of a detached build
+reticle. A translucent `future structure echo` shows the actual authored building
+silhouette rising from its living-root bed, while a low ground ellipse and Current
+shoots mark the footprint. One angular ribbon names the intended place in plain
+language (`BUILD · SHARED HABITAT`). The preview disappears during story moments,
+retains the existing large touch target, and becomes the completed structure in
+the same location. This follows the strongest relevant patterns without copying
+their aesthetics: Pikmin makes base work visibly useful in the field, Astroneer
+exposes functional connections spatially, and Spiritfarer lets each improvement
+become an inhabited place with emotional meaning.
+
+### Sanctuary Living Current Guidance
+
+The Sanctuary has many useful destinations, but it presents only one contextual
+journey at a time. The existing Project Beacon waypoint is therefore the shared
+navigation director for story, settlement, and expedition flow. Its priority is:
+
+1. the active authored story mission
+2. the unrecovered field kit at Wanderer-77
+3. a newly awakened or decision-ready Village Heart
+4. the next ready or resumable expedition at the world gate
+
+An active non-spatial story scene intentionally suppresses lower-priority guidance.
+Village focus moments, the planner, the arrival reveal, and story dialogue suppress
+all navigation marks so two calls to action never compete.
+
+The Living Current uses three world-connected states rather than a rectangular HUD
+card: a short ground trail leaves the player's feet while travelling, an edge-safe
+ribbon names an off-screen destination, and a breathing threshold settles around
+the destination once it enters view. The ribbon respects phone safe areas and the
+threshold replaces it immediately after camera recentering. When a nearby landmark
+publishes its direct action, navigation yields all three layers so the action becomes
+the sole instruction. The same mobile journey contract verifies actual movement
+through the settlement district, Signal Garden, and hub gate, preserving one legible
+route across the Sanctuary's systems.
+
+### Ambient Settlement Hierarchy
+
+The developed Village must read as an inhabited place before the player opens a
+panel. Ambient presentation assigns every plot one explicit role:
+
+- `inhabited_structure` keeps completed or growing architecture, its grounded
+  activity, and assigned helper visible at rest.
+- `guided_foundation` is the single empty root currently invited by progression.
+- `reserved_root` recedes into the terrain until the settlement chooses it.
+
+On compact viewports, authored building silhouettes occupy roughly 90-100 world
+pixels and retain enough color and opacity to be recognized beside the 132-pixel
+Heart. Reserved roots retain their collision-free touch regions but lose visual
+weight; their interaction language appears only on approach. This separates
+content hierarchy from hit-target size.
+
+The Heart also has two authored intensity states. `quiet_ambient` breathes slowly
+as the settlement anchor while another build, assignment, or journey owns the
+next action. `decision_beacon` restores the full pulse only when the Heart is
+waiting for a consequential player choice. Workers remain visible along physical
+building-to-Heart routes, so the settlement communicates production through
+activity rather than a permanent status panel.
+
+### Inhabited District Transformations
+
+A completed structure changes the Sanctuary around it. The authored building is
+therefore only the center of a small inhabited district, not an icon placed on a
+generic plot. Each district has a distinct ground material, ecological silhouette,
+plain-language activity cue, persistent world consequence, and one low-cost motion
+layer. These identities remain visible without opening the planner:
+
+| Building | District identity | Visible world change | Motion language |
+| --- | --- | --- | --- |
+| Forager Hut | Renewing Garden | Safe edible growth returns along marked paths | Seed drift |
+| Living Sawmill | Stormwood Yard | Only storm-fallen timber enters the repair yard | Stormwood turn |
+| Current Masonry | Open-Current Buttress | Loose stone protects the route without sealing the Current | Stone resonance |
+| Shared Habitat | Shared Shelter Grove | A resting light appears for every creature who chooses this home | Home-lantern breath |
+| Discovery Workshop | Shared Discovery Bench | Human tools and creature knowledge illuminate the same circuit | Dual-signal orbit |
+
+Construction reveals the appropriate district underneath the future structure,
+so building completion feels like growth from the existing world rather than a
+card being swapped onto the map. Completed and staffed districts settle back to
+ambient intensity. Only the next unresolved action, such as inviting a helper to
+the Workshop, keeps its label and guidance visible.
+
+District metadata is part of the renderer contract: identity, material, motion,
+activity cue, and world-change copy are exposed on both the terrain and the
+interactive plot. Mobile smoke coverage verifies all five identities together,
+including animation activity, readable touch targets, and the single-action visual
+hierarchy. The animation budget remains bounded to one district motion per built
+structure.
+
+### District Approach Contract
+
+The settlement explains itself through proximity rather than permanent labels.
+Entering a district's approach radius raises its authored ground reply, restores
+the building to full color, and reveals two short lines: what is happening there
+and what established game loop it changes. For example, the Forager Hut responds
+with `SAFE PATCHES REGROW` and `FEED +5`; the resident remains visible in the
+world instead of being repeated as interface copy.
+
+The shared interaction director publishes one command attached to the selected
+structure. Touch devices use `Tap`; keyboard devices use `Press SPACE at`. When
+the approached structure is also the next guided build or assignment, its older
+progression placard recedes so the target-attached command becomes the only
+instruction. Moving away restores the progression route and returns the district
+to ambient intensity.
+
+All five completed districts must expose their activity cue, immediate gameplay
+effect, world consequence, and `ground_reply_v1` response through the same runtime
+contract. Mobile journey coverage physically moves the player to every district
+and verifies that exactly one ground reply is active at a time.
+
+### Living Work Cycle
+
+A completed structure must show whether it is genuinely operating. Production
+districts move through `working`, `outbound`, `delivery_complete`, and `returning`
+states using the same worker route that delivers settlement value to the Village
+Heart. The district response is synchronized to that route: work evidence is
+strongest while the resident is present, travels with the outbound delivery,
+answers at full intensity when the Heart receives it, and settles while the
+resident returns. Each completed delivery increments a session-visible cycle
+count without creating a second economy or fabricating saved progress.
+
+Physical evidence remains specific to the building: renewing shoots for the
+Forager Hut, stacked stormwood for the Living Sawmill, aligned resonant stones for
+Current Masonry, one light per resident at the Shared Habitat, and a paired circuit
+only when the Discovery Workshop has a willing helper. Habitat state comes from
+actual residents, while an unstaffed production building remains visibly
+`awaiting_helper`. The shared `living_work_cycle_v1` contract is exposed for
+accessibility and exhaustive hosted mobile verification.
+
+### Heart Memory Silhouette
+
+The Village Heart is the settlement's shared record, not another status icon.
+Its silhouette carries growth tier, restored roots, resource contributors, and
+player values in distinct visual layers. Under `shared_vow_weave_v1`, care choices
+grow as living branches on the left, readiness choices settle as protective facets
+on the right, and equal values join across the core. The weave is absent before a
+choice is made, so the early Heart remains visually quiet and later change is
+earned rather than decorative.
+
+Interactive decision memories remain around the Heart but recede into the ambient
+scene until the Heart is the player's focus. Their traces are supporting evidence,
+not permanent navigation lines. Settlement Current paths use the shared
+`quiet_network_v1` hierarchy: recessed during story moments, low-contrast while a
+district is targeted, supportive when the Heart is approached, and only broadly
+visible while the player is reading the whole Sanctuary. A single guidance route
+continues to own directional instruction.
 
 ## 7. Gameplay Impact Contract
 
@@ -128,7 +347,6 @@ No existing field is renamed or removed. Local saves and cloud saves already ser
 
 ### Nice To Have
 
-- creature walking routines between home and work
 - building upgrades
 
 ### Later

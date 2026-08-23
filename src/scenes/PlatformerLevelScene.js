@@ -17,7 +17,7 @@ import {
     recordCenteringStancePractice
 } from '../systems/SenseiMemory.js';
 import { companionMediaService } from '../systems/CompanionMediaService.js';
-import { getVillageGameplayEffects } from '../systems/VillageSettlement.js';
+import { getVillageGameplayEffects, getVillageSupportSummary } from '../systems/VillageSettlement.js';
 
 const BOSS_REWARD_KEY_BY_LEVEL = Object.freeze({
     crystalCaves: 'crystalGolem',
@@ -1048,17 +1048,9 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     showVillageSupportBriefing() {
-        const support = this.villageSupport || {};
-        const lines = [];
-        if (support.guardCharges > 0) {
-            lines.push(`CURRENT MASONRY // ${support.guardCharges} GUARD CHARGE`);
-        }
-        if (support.maxEnergyBonus > 0) {
-            lines.push(`DISCOVERY WORKSHOP // +${support.maxEnergyBonus} CRYSTAL ENERGY`);
-        }
-        if (support.victoryCoinBonus > 0) {
-            lines.push(`LIVING SAWMILL // +${support.victoryCoinBonus} VICTORY COINS`);
-        }
+        const lines = getVillageSupportSummary(this.villageSupport || {})
+            .filter(effect => effect.context === 'expedition')
+            .map(effect => `${effect.source} // ${effect.effect}`);
         if (lines.length === 0 || this.sys?.isActive?.() === false) return false;
 
         const width = this.cameras.main.width;
@@ -8443,7 +8435,7 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Keep the rescue payoff connected to the persistent Sanctuary resident.
      */
     getGuardianSanctuaryArrivalCopy({ compact = false } = {}) {
-        const guardian = this.levelCompletionResult?.guardianResident;
+        const guardian = this.levelCompletionResult?.guardianOutcome;
         const resident = this.levelCompletionResult?.rescuedResident;
         if (resident) {
             return compact
@@ -8451,34 +8443,18 @@ class PlatformerLevelScene extends Phaser.Scene {
                 : `LOCAL RESCUED // ${resident.name}\n${resident.role} // ${resident.supportLabel}`;
         }
         if (!guardian) return null;
-
-        if (!guardian.newlyRescued) {
-            return compact
-                ? `${guardian.name} // SANCTUARY RESIDENT`
-                : `SANCTUARY RESIDENT // ${guardian.name}\n${guardian.role} remains on duty near Wanderer-77.`;
-        }
-
         return compact
-            ? `${guardian.name} -> SANCTUARY // ${guardian.role}`
-            : `SANCTUARY ARRIVAL // ${guardian.name}\n${guardian.role} // ${guardian.routine}`;
+            ? `${guardian.name} // ${guardian.standing.replaceAll('_', ' ').toUpperCase()}`
+            : `REGIONAL OUTCOME // ${guardian.name}\n${guardian.outcomeLine}`;
     }
 
     getVillageCompletionCopy({ compact = false } = {}) {
-        const support = this.villageSupport || {};
-        const lines = [];
-        if (support.victoryCoinBonus > 0) {
-            lines.push(`SAWMILL +${support.victoryCoinBonus} COINS`);
-        }
-        if (support.guardCharges > 0) {
-            lines.push(`MASONRY ${support.guardCharges} GUARD`);
-        }
-        if (support.maxEnergyBonus > 0) {
-            lines.push(`WORKSHOP +${support.maxEnergyBonus} ENERGY`);
-        }
-        if (lines.length === 0) return '';
+        const effects = getVillageSupportSummary(this.villageSupport || {})
+            .filter(effect => effect.context === 'expedition');
+        if (effects.length === 0) return '';
         return compact
-            ? `VILLAGE // ${lines.join(' · ')}`
-            : `Village support active: ${lines.join(' · ')}`;
+            ? `SANCTUARY // ${effects.map(effect => effect.compact).join(' · ')}`
+            : `Sanctuary support delivered: ${effects.map(effect => effect.effect).join(' · ')}`;
     }
 
     showRescuedResidentReleaseMoment(resident) {
@@ -8617,7 +8593,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         const button = this.add.text(
             centerX,
             height - (compact ? 44 : 60),
-            `RETURN WITH ${resident.name.toUpperCase()}`,
+            `WELCOME ${resident.name.toUpperCase()} TO THE SANCTUARY`,
             {
                 fontFamily: 'Arial, sans-serif',
                 fontSize: compact ? '15px' : '19px',
@@ -8669,7 +8645,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         const mediaService = window.CompanionMediaService ||
             companionMediaService;
         if (
-            !guardian?.newlyRescued ||
+            !guardian?.changed ||
             !mediaService?.createCinematicStill
         ) {
             return false;
@@ -8677,7 +8653,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         this.companionMediaRequest += 1;
         const requestId = this.companionMediaRequest;
-        const guardianId = String(guardian.id || 'guardian')
+        const guardianId = String(guardian.guardianId || 'guardian')
             .toLowerCase()
             .replace(/[^a-z0-9_-]/g, '_')
             .slice(0, 32);
@@ -8739,7 +8715,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             const arrivalLabel = this.add.text(
                 width / 2,
                 height * 0.85,
-                `${guardian.name} will return to the Sanctuary.`,
+                guardian.outcomeLine || `${guardian.name} remains in the restored region.`,
                 {
                     fontSize: width < 600 ? '11px' : '14px',
                     color: '#B9DAD7',
@@ -8796,6 +8772,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         let nextGateUnlock = null;
         let currentRestoration = null;
         let guardianResident = null;
+        let guardianOutcome = null;
         let guardianExpedition = null;
         let rescuedResident = null;
         const configuredVictoryCoins = calculateVictoryCoins(
@@ -8856,8 +8833,8 @@ class PlatformerLevelScene extends Phaser.Scene {
             if (currentRestoration?.changed) {
                 this.refreshCurrentEcologyNode({ celebrate: true });
             }
-            guardianResident = window.GuardianResidents
-                ?.recordGuardianRescue?.(
+            guardianOutcome = window.GuardianOutcomes
+                ?.recordGuardianOutcome?.(
                     gameState,
                     achievementLevelId,
                     { save: false }
@@ -8998,6 +8975,19 @@ class PlatformerLevelScene extends Phaser.Scene {
                     futureAbility: guardianResident.guardian.futureAbility
                 }
                 : null,
+            guardianOutcome: guardianOutcome
+                ? {
+                    guardianId: guardianOutcome.definition.guardianId,
+                    levelId: guardianOutcome.definition.levelId,
+                    name: guardianOutcome.definition.name,
+                    outcome: guardianOutcome.record.outcome,
+                    standing: guardianOutcome.record.standing,
+                    sanctuaryPresence: guardianOutcome.record.sanctuaryPresence,
+                    regionRole: guardianOutcome.definition.regionRole,
+                    outcomeLine: guardianOutcome.definition.outcomeLine,
+                    changed: guardianOutcome.changed
+                }
+                : null,
             guardianExpedition: guardianExpedition?.changed
                 ? {
                     guardianId: guardianExpedition.entry.guardianId,
@@ -9031,7 +9021,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         );
         if (!residentReleaseShown) {
             this.showCompanionGuardianRescueTableau(
-                this.levelCompletionResult.guardianResident
+                this.levelCompletionResult.guardianOutcome
             );
         }
 

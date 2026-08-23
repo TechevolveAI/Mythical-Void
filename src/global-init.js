@@ -119,6 +119,8 @@ import './systems/FendCommunity.js';
 import './systems/FendResidents.js';
 import './systems/GuardianResidents.js';
 import './systems/RescuedResidents.js';
+import './systems/GuardianOutcomes.js';
+import './systems/SanctuaryCommunity.js';
 import './systems/FendCulture.js';
 import './systems/CompanionConsent.js';
 import './systems/RemainAndDefendCampaign.js';

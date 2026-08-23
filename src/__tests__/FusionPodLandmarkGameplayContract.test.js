@@ -23,7 +23,9 @@ describe('Fusion Pod physical landmark gameplay contract', () => {
 
     test('wires proximity, mobile affordance, interaction, and state refresh', () => {
         expect(scene).toContain('handleFusionPodProximity');
-        expect(scene).toContain("updateInteractIcon('🧬')");
+        expect(scene).toContain("id: 'fusionPod'");
+        expect(scene).toContain("icon: '🧬'");
+        expect(scene).toContain('this.offerSanctuaryInteraction({');
         expect(scene).toContain('if (this.nearFusionPod)');
         expect(scene).toContain('this.openFusionPod();');
         expect(scene).toContain("'fusionPodDiscovered'");

@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-function loadMobileControls() {
+function loadMobileControls(environment = {}) {
     const filePath = path.join(__dirname, '../systems/MobileControls.js');
     const source = fs.readFileSync(filePath, 'utf8');
 
@@ -49,6 +49,13 @@ function loadMobileControls() {
         requestAnimationFrame: () => 0,
         cancelAnimationFrame: () => {}
     };
+    Object.assign(sandbox.window, environment.window || {});
+    Object.assign(sandbox.navigator, environment.navigator || {});
+    Object.assign(sandbox.document, environment.document || {});
+    Object.assign(
+        sandbox.document.documentElement,
+        environment.documentElement || {}
+    );
 
     sandbox.performance = { now: () => 0 };
 
@@ -92,6 +99,103 @@ describe('MobileControls pointer ownership', () => {
 
         return { scene, events };
     }
+
+    test('desktop Chromium API support does not create a touch dock', () => {
+        const MobileControls = loadMobileControls({
+            window: {
+                TouchEvent: function TouchEvent() {},
+                matchMedia: jest.fn(() => ({ matches: false }))
+            },
+            navigator: {
+                maxTouchPoints: 0,
+                userAgent: 'Mozilla/5.0 Chrome/126.0 Safari/537.36'
+            }
+        });
+
+        const { scene } = createScene({
+            scale: { width: 1440, height: 900, on: jest.fn(), off: jest.fn() }
+        });
+        const controls = new MobileControls(scene);
+
+        expect(controls.isMobile).toBe(false);
+    });
+
+    test('desktop emulation touch event properties do not create a touch dock', () => {
+        const MobileControls = loadMobileControls({
+            window: {
+                ontouchstart: null,
+                TouchEvent: function TouchEvent() {},
+                innerWidth: 1440,
+                innerHeight: 900,
+                matchMedia: jest.fn(() => ({ matches: false }))
+            },
+            documentElement: { ontouchstart: null },
+            navigator: {
+                maxTouchPoints: 0,
+                userAgent: 'Mozilla/5.0 Chrome/126.0 Safari/537.36'
+            }
+        });
+
+        const { scene } = createScene({
+            scale: { width: 1440, height: 900, on: jest.fn(), off: jest.fn() }
+        });
+
+        expect(new MobileControls(scene).isMobile).toBe(false);
+    });
+
+    test('a stray desktop touch event does not force the fallback dock', () => {
+        const addEventListener = jest.fn();
+        const MobileControls = loadMobileControls({
+            document: { addEventListener },
+            navigator: {
+                maxTouchPoints: 0,
+                userAgent: 'Mozilla/5.0 Chrome/126.0 Safari/537.36'
+            }
+        });
+        const { scene } = createScene({
+            forceMobileControls: false,
+            scale: { width: 1440, height: 900, on: jest.fn(), off: jest.fn() }
+        });
+        const controls = new MobileControls(scene);
+        const show = jest.spyOn(controls, 'show');
+        jest.spyOn(controls, 'detectMobile').mockReturnValue(false);
+
+        controls.setupFallbackTouchListener();
+        const touchHandler = addEventListener.mock.calls.find(
+            call => call[0] === 'touchstart'
+        )?.[1];
+        touchHandler?.({});
+
+        expect(show).not.toHaveBeenCalled();
+        expect(controls.isVisible).toBe(false);
+    });
+
+    test('touch hardware still creates the dock on phones and tablets', () => {
+        const MobileControls = loadMobileControls({
+            navigator: {
+                maxTouchPoints: 5,
+                userAgent: 'Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X)'
+            }
+        });
+
+        const { scene } = createScene();
+        expect(new MobileControls(scene).isMobile).toBe(true);
+    });
+
+    test('a visible compact touch dock survives a resize when detection changes', () => {
+        const MobileControls = loadMobileControls();
+        const { scene } = createScene({ forceMobileControls: false });
+        const controls = new MobileControls(scene);
+        controls.isVisible = true;
+        jest.spyOn(controls, 'detectMobile').mockReturnValue(false);
+        const hide = jest.spyOn(controls, 'hide').mockImplementation(() => {});
+        const show = jest.spyOn(controls, 'show').mockImplementation(() => {});
+
+        controls.handleResize();
+
+        expect(hide).toHaveBeenCalledTimes(1);
+        expect(show).toHaveBeenCalledWith(true);
+    });
 
     function attachControlFixtures(controls) {
         controls.joystickBase = {
@@ -149,6 +253,43 @@ describe('MobileControls pointer ownership', () => {
 
         expect(controls.joystickActive).toBe(false);
         expect(controls.activePointerId).toBeNull();
+    });
+
+    test('uses native touch events when a browser does not synthesize pointer events', () => {
+        const MobileControls = loadMobileControls();
+        const { scene, events } = createScene();
+        const controls = new MobileControls(scene);
+        controls.isMobile = true;
+        controls.scene = scene;
+
+        attachControlFixtures(controls);
+        controls.setupCanvasJoystickInput();
+
+        const touchStart = events.find(evt => evt.type === 'touchstart');
+        const touchMove = events.find(evt => evt.type === 'touchmove');
+        expect(touchStart).toBeDefined();
+        expect(touchMove).toBeDefined();
+
+        const startEvent = {
+            changedTouches: [{ identifier: 0, clientX: 40, clientY: 760 }],
+            preventDefault: jest.fn(),
+            stopImmediatePropagation: jest.fn()
+        };
+        touchStart.handler(startEvent);
+
+        expect(controls.joystickActive).toBe(true);
+        expect(controls.activePointerId).toBe(0);
+        expect(startEvent.preventDefault).toHaveBeenCalled();
+
+        const moveEvent = {
+            touches: [{ identifier: 0, clientX: 70, clientY: 760 }],
+            preventDefault: jest.fn(),
+            stopImmediatePropagation: jest.fn()
+        };
+        touchMove.handler(moveEvent);
+
+        expect(controls.updateJoystickFromPointer).toHaveBeenCalledTimes(2);
+        expect(moveEvent.preventDefault).toHaveBeenCalled();
     });
 
     test('only resets joystick when the active pointer ends', () => {

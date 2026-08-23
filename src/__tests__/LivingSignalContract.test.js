@@ -79,6 +79,18 @@ describe('Living Signal first-session contract', () => {
         expect(gameSceneSource).not.toContain('signal.container?.setAlpha(0.58)');
     });
 
+    test('keeps signal captions quiet until the player approaches', () => {
+        expect(gameSceneSource).toContain('showLabel = false');
+        expect(gameSceneSource).toContain('.setVisible(showLabel)');
+        expect(gameSceneSource).toContain('setLivingSignalLabelFocus(signalId = null)');
+        expect(gameSceneSource).toContain('this.setLivingSignalLabelFocus();');
+        expect(gameSceneSource).toContain(
+            'this.setLivingSignalLabelFocus(nearest.signal.signalId);'
+        );
+        expect(gameSceneSource).toContain('if (nearest.signal.observed)');
+        expect(gameSceneSource).toContain('}, false, { showLabel: true });');
+    });
+
     test('targets only unobserved authored signals', () => {
         expect(waypointSource).toContain("targetKey: 'nearestLivingSignal'");
         expect(waypointSource).toContain('scene.livingSignals || []');

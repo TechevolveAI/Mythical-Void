@@ -185,6 +185,7 @@ export class ExpeditionAstronaut {
         this.trail = [];
         this.elapsed = 0;
         this.lastTargetPosition = null;
+        this.contextualFormation = null;
         this.isStriking = false;
         this.strikeTween = null;
         this.strikeEffects = [];
@@ -279,6 +280,22 @@ export class ExpeditionAstronaut {
             y: this.target.y + offset.y
         }];
         this.lastTargetPosition = { x: this.target.x, y: this.target.y };
+    }
+
+    setContextualFormation(offset = null, context = null) {
+        const hasOffset = Number.isFinite(offset?.x) && Number.isFinite(offset?.y);
+        const next = hasOffset
+            ? { x: Number(offset.x), y: Number(offset.y), context: context || 'contextual' }
+            : null;
+        const unchanged = this.contextualFormation?.context === next?.context &&
+            this.contextualFormation?.x === next?.x &&
+            this.contextualFormation?.y === next?.y;
+        if (unchanged) return false;
+
+        this.contextualFormation = next;
+        if (!next) this.resetTrail();
+        this.sprite?.setData?.('expeditionFormationContext', next?.context || 'trail');
+        return true;
     }
 
     recordTargetPosition() {
@@ -426,12 +443,17 @@ export class ExpeditionAstronaut {
         const facingRight = !this.target.flipX;
         const stationaryOffset = getExpeditionFollowOffset(this.mode, facingRight);
         const trailTarget = findExpeditionTrailTarget(this.trail, this.followDistance);
-        const desired = this.trail.length > 1
-            ? trailTarget
-            : {
-                x: this.target.x + stationaryOffset.x,
-                y: this.target.y + stationaryOffset.y
-            };
+        const desired = this.contextualFormation
+            ? {
+                x: this.target.x + this.contextualFormation.x,
+                y: this.target.y + this.contextualFormation.y
+            }
+            : this.trail.length > 1
+                ? trailTarget
+                : {
+                    x: this.target.x + stationaryOffset.x,
+                    y: this.target.y + stationaryOffset.y
+                };
 
         if (!desired) return;
 
@@ -476,6 +498,7 @@ export class ExpeditionAstronaut {
         this.sprite = null;
         this.shadow = null;
         this.target = null;
+        this.contextualFormation = null;
         this.trail = [];
     }
 }

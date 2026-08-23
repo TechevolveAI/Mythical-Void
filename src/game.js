@@ -1361,7 +1361,10 @@ async function initializeGame() {
         }
 
         const testWaypoint = urlParams.get('testWaypoint');
-        if (isLocalPreview && ['fieldKit', 'signals'].includes(testWaypoint)) {
+        if (
+            isLocalPreview &&
+            ['fieldKit', 'signals', 'village', 'expedition'].includes(testWaypoint)
+        ) {
             game.events.once('ready', () => {
                 setTimeout(() => {
                     game.scene.start('GameScene', { waypointPreview: testWaypoint });
@@ -1381,12 +1384,26 @@ async function initializeGame() {
 
         // Local, non-saving Village Heart command-panel states.
         const testVillage = urlParams.get('testVillage');
-        if (isLocalPreview && ['empty', 'building', 'active'].includes(testVillage)) {
+        if (isLocalPreview && ['empty', 'building', 'active', 'complete'].includes(testVillage)) {
             game.events.once('ready', () => {
                 setTimeout(() => {
                     game.scene.stop('HatchingScene');
                     game.scene.start('GameScene', {
                         villageCommandPreview: testVillage
+                    });
+                }, 100);
+            });
+        }
+
+        if (isLocalPreview && urlParams.get('testVillageReturn') === '1') {
+            game.events.once('ready', () => {
+                setTimeout(() => {
+                    game.scene.stop('HatchingScene');
+                    game.scene.start('GameScene', {
+                        villageCommandPreview: 'active',
+                        villageReturnPreview: true,
+                        forceMobileControls:
+                            urlParams.get('forceMobileControls') === '1'
                     });
                 }, 100);
             });
@@ -1444,7 +1461,11 @@ async function initializeGame() {
                     game.scene.start('GameScene', {
                         guardianResidentPreview: Number(testGuardians),
                         livingPortraitReadyPreview:
-                            urlParams.get('testPortraitReady') === '1'
+                            ['1', 'full'].includes(
+                                urlParams.get('testPortraitReady')
+                            ),
+                        livingPortraitFullRevealPreview:
+                            urlParams.get('testPortraitReady') === 'full'
                     });
                 }, 100);
             });
@@ -1706,7 +1727,7 @@ async function initializeGame() {
                             {
                                 icon: '◇',
                                 creatureName: 'Nova',
-                                result: 'Shared gathered light with a rescued guardian.'
+                                result: 'Shared gathered light with a rescued Sanctuary resident.'
                             },
                             {
                                 icon: '⌖',
@@ -1865,11 +1886,17 @@ async function initializeGame() {
             game.events.once('ready', () => {
                 setTimeout(() => {
                     game.scene.start('SoulRevealScene', {
-                        portraitPreviewImage: urlParams.get('testSoulReveal') === 'portrait'
+                        portraitPreviewImage: ['portrait', 'portrait-slow'].includes(
+                            urlParams.get('testSoulReveal')
+                        )
                             ? '/marketing/nova.webp'
                             : null,
                         portraitPreviewFailure: urlParams.get('testSoulReveal') === 'fallback',
-                        portraitPreviewSpecies: 'nebulaSprite'
+                        portraitPreviewSpecies: 'nebulaSprite',
+                        portraitPreviewDelay:
+                            urlParams.get('testSoulReveal') === 'portrait-slow'
+                                ? 5000
+                                : 1400
                     });
                 }, 100);
             });

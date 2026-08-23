@@ -48,7 +48,10 @@ describeHudController('GameSceneHudController', () => {
 
     function createVisibleElement() {
         return {
-            setVisible: jest.fn().mockReturnThis()
+            setVisible: jest.fn().mockReturnThis(),
+            setText: jest.fn().mockReturnThis(),
+            setColor: jest.fn().mockReturnThis(),
+            setBackgroundColor: jest.fn().mockReturnThis()
         };
     }
 
@@ -56,6 +59,7 @@ describeHudController('GameSceneHudController', () => {
         return {
             statsText: createVisibleElement(),
             statBarGraphics: createVisibleElement(),
+            statBarLabels: [createVisibleElement(), createVisibleElement()],
             personalityText: createVisibleElement(),
             positionText: createVisibleElement(),
             resetButton: createVisibleElement(),
@@ -69,6 +73,9 @@ describeHudController('GameSceneHudController', () => {
                 currencyIcon: createVisibleElement(),
                 currencyText: createVisibleElement()
             },
+            abilityHUD: { setVisible: jest.fn() },
+            carePanelManager: { setFocusMode: jest.fn() },
+            controlsHintPanel: { setFocusMode: jest.fn() },
             combatButton: createVisibleElement(),
             combatBg: createVisibleElement(),
             combatText: createVisibleElement()
@@ -99,6 +106,33 @@ describeHudController('GameSceneHudController', () => {
         expect(scene.combatText.setVisible).toHaveBeenCalledWith(false);
     });
 
+    test('gives the Village Heart sole desktop HUD focus and restores exploration context', () => {
+        const scene = createScene();
+        scene.mobileHUD = { isVisible: false };
+        const controller = new GameSceneHudController(scene);
+
+        expect(controller.setSanctuaryFocusMode(true)).toBe(false);
+        expect(scene.cosmicMiniMap.background.setVisible).toHaveBeenLastCalledWith(false);
+        expect(scene.miniMapPlayerDot.setVisible).toHaveBeenLastCalledWith(false);
+        expect(scene.statBarGraphics.setVisible).toHaveBeenLastCalledWith(false);
+        scene.statBarLabels.forEach(label => {
+            expect(label.setVisible).toHaveBeenLastCalledWith(false);
+        });
+        expect(scene.economyHud.currencyBgImage.setVisible).toHaveBeenLastCalledWith(false);
+        expect(scene.economyHud.currencyIcon.setVisible).toHaveBeenLastCalledWith(false);
+        expect(scene.economyHud.currencyText.setVisible).toHaveBeenLastCalledWith(false);
+        expect(scene.abilityHUD.setVisible).toHaveBeenLastCalledWith(false);
+        expect(scene.carePanelManager.setFocusMode).toHaveBeenLastCalledWith(true);
+        expect(scene.controlsHintPanel.setFocusMode).toHaveBeenLastCalledWith(true);
+
+        expect(controller.setSanctuaryFocusMode(false)).toBe(true);
+        expect(scene.cosmicMiniMap.background.setVisible).toHaveBeenLastCalledWith(true);
+        expect(scene.statBarGraphics.setVisible).toHaveBeenLastCalledWith(true);
+        expect(scene.abilityHUD.setVisible).toHaveBeenLastCalledWith(true);
+        expect(scene.carePanelManager.setFocusMode).toHaveBeenLastCalledWith(false);
+        expect(scene.controlsHintPanel.setFocusMode).toHaveBeenLastCalledWith(false);
+    });
+
     test('does not re-show the desktop daily banner while compact HUD is active', () => {
         const scene = createScene();
         scene.mobileHUD = { isVisible: true };
@@ -110,6 +144,37 @@ describeHudController('GameSceneHudController', () => {
         controller.updateDailyBonusButton();
 
         expect(scene.dailyBonusButton.setVisible).toHaveBeenCalledWith(false);
-        expect(scene.dailyBonusButton.setText).toBeUndefined();
+        expect(scene.dailyBonusButton.setText).not.toHaveBeenCalled();
+    });
+
+    test('shows a compact reward cue only while a desktop gift is claimable', () => {
+        const scene = createScene();
+        scene.mobileHUD = { isVisible: false };
+        scene.sanctuaryFocusModeActive = false;
+        scene.careSystem = {
+            getDailyLoginBonus: jest.fn(() => ({ available: true, streak: 4 }))
+        };
+        const controller = new GameSceneHudController(scene);
+
+        controller.updateDailyBonusButton();
+
+        expect(scene.dailyBonusButton.setVisible).toHaveBeenCalledWith(true);
+        expect(scene.dailyBonusButton.setText)
+            .toHaveBeenCalledWith('GIFT READY · STREAK 4');
+    });
+
+    test('suppresses the reward cue while the Village Heart owns focus', () => {
+        const scene = createScene();
+        scene.mobileHUD = { isVisible: false };
+        scene.sanctuaryFocusModeActive = true;
+        scene.careSystem = {
+            getDailyLoginBonus: jest.fn(() => ({ available: true, streak: 4 }))
+        };
+        const controller = new GameSceneHudController(scene);
+
+        controller.updateDailyBonusButton();
+
+        expect(scene.dailyBonusButton.setVisible).toHaveBeenCalledWith(false);
+        expect(scene.dailyBonusButton.setText).not.toHaveBeenCalled();
     });
 });

@@ -4,9 +4,14 @@
  */
 
 import EconomyHudManager from '../systems/ui/EconomyHudManager.js';
-import { getSanctuaryCheckInCopy } from '../systems/SanctuaryCheckIn.js';
+import {
+    getSanctuaryCheckInCopy,
+    getSanctuaryReturnSummary
+} from '../systems/SanctuaryCheckIn.js';
 import CarePanelManager from '../systems/ui/CarePanelManager.js';
 import WorldBuilder from '../systems/world/WorldBuilder.js';
+import SanctuaryInteractionDirector from '../systems/world/SanctuaryInteractionDirector.js';
+import { SANCTUARY_WORLD_ART } from '../systems/world/SanctuaryWorldArt.js';
 import ChatOverlay from '../ui/ChatOverlay.js';
 import MobileHUD from '../systems/ui/MobileHUD.js';
 import {
@@ -60,9 +65,13 @@ import {
     getGuardianCompanionRecognition
 } from '../systems/GuardianCompanionRecognition.js';
 import {
+    RESCUED_RESIDENT_DEFINITIONS,
+    acknowledgeRescuedResidentArrival,
+    getPendingRescuedResidentArrival,
     getRescuedResidentSnapshot,
     interactWithRescuedResident
 } from '../systems/RescuedResidents.js';
+import { getSanctuaryCommunitySnapshot } from '../systems/SanctuaryCommunity.js';
 import { companionMediaService } from '../systems/CompanionMediaService.js';
 import {
     FEND_COMMONS_PRIORITIES,
@@ -73,6 +82,7 @@ import {
 } from '../systems/FendCulture.js';
 import ExpeditionAstronaut from '../systems/ExpeditionAstronaut.js';
 import ProjectBeaconWaypoint from '../systems/ui/ProjectBeaconWaypoint.js';
+import { getCampaignJourneyStep } from '../systems/CampaignJourneyGuide.js';
 import ProjectBeaconLogModal from '../ui/ProjectBeaconLogModal.js';
 import SettingsModal from '../ui/SettingsModal.js';
 import KatanaArtifactModal, { prefetchKatanaArtifactArtwork } from '../ui/KatanaArtifactModal.js';
@@ -127,13 +137,20 @@ import {
 } from '../systems/FusionPodLandmark.js';
 import {
     assignCreatureToVillageBuilding,
+    getVillageCommunityMoment,
+    getVillageHeartMemory,
+    getVillageResidentWorldPresence,
+    getVillageReturnRitual,
     getVillageSnapshot,
+    getVillageWorkerCheckIn,
     initializeVillageSettlement,
     markVillageGuidanceSeen,
     placeVillageBuilding,
     reconcileVillageSettlement,
+    resolveVillageHeartDecision,
     VILLAGE_BUILDING_ARTWORK,
-    VILLAGE_RESOURCE_DEFINITIONS
+    VILLAGE_RESOURCE_DEFINITIONS,
+    VILLAGE_WORLD_ARTWORK
 } from '../systems/VillageSettlement.js';
 // MapNavigationButtons removed - redundant with HamburgerMenu navigation
 
@@ -188,10 +205,35 @@ class GameScene extends Phaser.Scene {
         this.campfire = null;
         this.signalGarden = null;
         this.villageHeartLandmark = null;
+        this.villageHeartCollider = null;
         this.nearVillageHeart = false;
+        this.villageCommunityMomentIndex = 0;
+        this.lastVillageCommunityMomentAt = 0;
+        this.villageHeartMemoryIndex = 0;
+        this.lastVillageHeartMemoryAt = 0;
+        this.sanctuaryPresentationMode = 'ambient';
+        this.villageArrivalRevealActive = false;
+        this.villageArrivalRevealTimer = null;
+        this.villageArrivalRevealScheduleTimer = null;
+        this.villageArrivalRevealSkipArmTimer = null;
+        this.villageArrivalRevealHandoffTimer = null;
+        this.villageArrivalRevealInputShield = null;
+        this.villageArrivalRevealInputCooldownUntil = 0;
+        this.villageArrivalRevealHiddenElements = [];
+        this.villageArrivalRevealOnComplete = null;
+        this.villageArrivalRevealRestoreControls = false;
+        this.villageArrivalRevealPreviousFocus = false;
+        this.pendingSanctuaryReturnMoment = null;
+        this.sanctuaryReturnMomentTimer = null;
+        this.sanctuaryReturnMomentScheduleTimer = null;
+        this.villageCommunityMomentPending = false;
+        this.villageDecisionMomentPending = null;
         this.villageCommandPanel = null;
         this.villageReconcileTimer = null;
         this.villageRenderSignature = null;
+        this.villagePlotInteractionId = null;
+        this.villageResidentJourneyInteractionId = null;
+        this.villageResidentGreetingCooldownUntil = 0;
         this.fusionPodLandmark = null;
         this.sanctuaryKeepsakes = null;
         this.livingSignals = [];
@@ -201,6 +243,9 @@ class GameScene extends Phaser.Scene {
         this.livingSignalMomentElements = [];
         this.livingSignalMomentTimer = null;
         this.sanctuaryZones = null;
+        this.sanctuaryDistricts = null;
+        this.sanctuaryInteractionDirector = null;
+        this.sanctuaryPromptOwnerId = null;
         this.targetRange = null;
         this.nearTargetRange = false;
         this.targetRangeScore = 0;
@@ -221,6 +266,17 @@ class GameScene extends Phaser.Scene {
         this.rescuedResidentOverlapColliders = [];
         this.rescuedResidentExchangeElements = [];
         this.rescuedResidentExchangeOpen = false;
+        this.rescuedResidentArrivalActive = false;
+        this.rescuedResidentArrivalPlayedThisVisit = false;
+        this.rescuedResidentArrivalResident = null;
+        this.rescuedResidentArrivalScheduleTimer = null;
+        this.rescuedResidentArrivalTimer = null;
+        this.rescuedResidentArrivalSkipArmTimer = null;
+        this.rescuedResidentArrivalInputShield = null;
+        this.rescuedResidentArrivalRestoreControls = false;
+        this.rescuedResidentArrivalPreviousFocus = false;
+        this.rescuedResidentArrivalPreviousCameraFollow = null;
+        this.rescuedResidentArrivalPreviousCameraTarget = null;
         this.guardianExchangeElements = [];
         this.guardianExchangeOpen = false;
         this.guardianCareActivityElements = [];
@@ -234,6 +290,7 @@ class GameScene extends Phaser.Scene {
         this.livingPortraitReadyNotice = null;
         this.livingPortraitNoticeTimer = null;
         this.livingPortraitNoticePendingIdentity = null;
+        this.deferredLivingPortraitRecord = null;
         this.nearCurrentVeilAnchorId = null;
         this.currentVeilOverlapColliders = [];
         this.residentExchangeElements = [];
@@ -277,6 +334,7 @@ class GameScene extends Phaser.Scene {
         this.dailyGreetingShown = false;
         this.mobileControls = null;
         this.mobileHUD = null;
+        this.forceMobileControls = false;
         this.questTracker = null;
         this.projectBeaconWaypoint = null;
         this.waypointPreview = null;
@@ -321,10 +379,14 @@ class GameScene extends Phaser.Scene {
         this.economyHud = null;
         this.worldBuilder = null;
         this.currentCameraZoom = 1;
+        this.sanctuaryCameraFocusPreviousZoom = null;
+        this.sanctuaryCameraFocusZoom = null;
         this.gameStateUnsubscribers = [];
         this._sceneLifecycleRegistered = false;
         this._isShuttingDown = false;
         this.kidModeActionHandler = null;
+        this.kidModeHelpContainer = null;
+        this.sanctuaryFocusModeActive = false;
         this.joystickX = 0;
         this.joystickY = 0;
         this.virtualJoystickHandler = null;
@@ -355,6 +417,8 @@ class GameScene extends Phaser.Scene {
         this.dailyBonusButton = null;
         this.dailyBonusGlow = null;
         this.isShowingTutorial = false;
+        this.activeTutorialHint = null;
+        this.activeTutorialHintTween = null;
         this.welcomeToastDisplayed = false;
         this.shownDepartureWarning = false;
         this.welcomeBackChecked = false;
@@ -414,9 +478,9 @@ class GameScene extends Phaser.Scene {
                     .map(resident => resident.id)
             )
             : new Set(
-                getGuardianResidentsSnapshot(window.GameState)
-                    .rescuedResidents
-                    .map(resident => resident.id)
+                getSanctuaryCommunitySnapshot(window.GameState)
+                    .guardianPresences
+                    .map(resident => resident.guardianId)
             );
 
         GUARDIAN_RESIDENT_DEFINITIONS.forEach(resident => {
@@ -428,7 +492,34 @@ class GameScene extends Phaser.Scene {
             }
         });
 
+        const rescuedResidentIds = new Set(
+            getRescuedResidentSnapshot(window.GameState)
+                .rescued
+                .map(resident => resident.id)
+        );
+        RESCUED_RESIDENT_DEFINITIONS.forEach(resident => {
+            if (
+                rescuedResidentIds.has(resident.id) &&
+                !this.textures.exists(resident.textureKey)
+            ) {
+                this.load.image(resident.textureKey, resident.artwork);
+            }
+        });
+
         Object.values(VILLAGE_BUILDING_ARTWORK).forEach(artwork => {
+            if (!this.textures.exists(artwork.key)) {
+                this.load.image(artwork.key, artwork.url);
+            }
+        });
+        Object.values(VILLAGE_WORLD_ARTWORK).forEach(artwork => {
+            if (!this.textures.exists(artwork.key)) {
+                this.load.image(artwork.key, artwork.url);
+            }
+            if (artwork.compactKey && !this.textures.exists(artwork.compactKey)) {
+                this.load.image(artwork.compactKey, artwork.compactUrl);
+            }
+        });
+        Object.values(SANCTUARY_WORLD_ART).forEach(artwork => {
             if (!this.textures.exists(artwork.key)) {
                 this.load.image(artwork.key, artwork.url);
             }
@@ -442,6 +533,7 @@ class GameScene extends Phaser.Scene {
     init(data) {
         // Reset shutdown flag for fresh scene
         this._isShuttingDown = false;
+        this.forceMobileControls = data?.forceMobileControls === true;
         this.fieldKitPreview = data?.fieldKitPreview === true;
         this.fieldKitPreviewSize = data?.fieldKitPreviewSize || null;
         this.fieldKitPreviewStage = ['earth', 'crystal', 'aurora'].includes(
@@ -459,6 +551,7 @@ class GameScene extends Phaser.Scene {
             'energetic'
         ].includes(data?.checkInPreview) ? data.checkInPreview : null;
         this.checkInBonusPreview = data?.checkInBonusPreview === true;
+        this.villageReturnPreview = data?.villageReturnPreview === true;
         this.communityMomentPreview = Number.isFinite(
             Number(data?.communityMomentPreview)
         )
@@ -532,6 +625,8 @@ class GameScene extends Phaser.Scene {
             ? data.guardianTaskPreview
             : null;
         this.livingPortraitReadyPreview = data?.livingPortraitReadyPreview === true;
+        this.livingPortraitFullRevealPreview =
+            data?.livingPortraitFullRevealPreview === true;
         if (
             this.guardianResidentPreview === null &&
             (
@@ -561,7 +656,8 @@ class GameScene extends Phaser.Scene {
         this.villageCommandPreview = [
             'empty',
             'building',
-            'active'
+            'active',
+            'complete'
         ].includes(data?.villageCommandPreview)
             ? data.villageCommandPreview
             : null;
@@ -708,6 +804,37 @@ class GameScene extends Phaser.Scene {
         }
         this.nearVillageHeart = false;
         this.villageRenderSignature = null;
+        this.villageResidentJourneyInteractionId = null;
+        this.villageResidentGreetingCooldownUntil = 0;
+        this.villageCommunityMomentIndex = 0;
+        this.lastVillageCommunityMomentAt = 0;
+        this.villageHeartMemoryIndex = 0;
+        this.lastVillageHeartMemoryAt = 0;
+        this.sanctuaryPresentationMode = 'ambient';
+        this.villageArrivalRevealActive = false;
+        this.villageArrivalRevealTimer = null;
+        this.villageArrivalRevealScheduleTimer = null;
+        this.villageArrivalRevealSkipArmTimer = null;
+        this.villageArrivalRevealHandoffTimer = null;
+        this.villageArrivalRevealInputShield = null;
+        this.villageArrivalRevealInputCooldownUntil = 0;
+        this.villageArrivalRevealHiddenElements = [];
+        this.villageArrivalRevealOnComplete = null;
+        this.villageArrivalRevealRestoreControls = false;
+        this.villageArrivalRevealPreviousFocus = false;
+        this.rescuedResidentArrivalActive = false;
+        this.rescuedResidentArrivalPlayedThisVisit = false;
+        this.rescuedResidentArrivalResident = null;
+        this.rescuedResidentArrivalScheduleTimer = null;
+        this.rescuedResidentArrivalTimer = null;
+        this.rescuedResidentArrivalSkipArmTimer = null;
+        this.rescuedResidentArrivalInputShield = null;
+        this.rescuedResidentArrivalRestoreControls = false;
+        this.rescuedResidentArrivalPreviousFocus = false;
+        this.rescuedResidentArrivalPreviousCameraFollow = null;
+        this.rescuedResidentArrivalPreviousCameraTarget = null;
+        this.villageCommunityMomentPending = false;
+        this.villageDecisionMomentPending = null;
 
         // Transition spawn data must not leak across scene restarts.
         this.spawnPosition = data?.spawnPosition || null;
@@ -735,6 +862,14 @@ class GameScene extends Phaser.Scene {
     create() {
         console.log('[GameScene] ===== CREATE() STARTING =====');
         try {
+            // A native Start control protects onboarding when WebGL input fails.
+            // Scene changes triggered by recovery tools or restored saves can skip
+            // its normal owner cleanup, so gameplay also enforces the boundary.
+            if (typeof document !== 'undefined') {
+                document
+                    .querySelectorAll('[data-mythical-home-start="true"]')
+                    .forEach(element => element.remove());
+            }
             this.removeStaleAuxiliaryCameras();
             prefetchKatanaArtifactArtwork();
             console.log('[GameScene] Initializing lifecycle tracking...');
@@ -1021,6 +1156,7 @@ class GameScene extends Phaser.Scene {
             this.voidPortal = worldPieces.voidPortal || null;
             this.campfire = worldPieces.campfire || null;
             this.signalGarden = worldPieces.signalGarden || null;
+            this.sanctuaryCommons = worldPieces.sanctuaryCommons || null;
             this.villageHeartLandmark =
                 worldPieces.villageHeartLandmark || null;
             this.fusionPodLandmark =
@@ -1028,7 +1164,13 @@ class GameScene extends Phaser.Scene {
             this.sanctuaryKeepsakes = worldPieces.sanctuaryKeepsakes || null;
             this.kinshipBeacon = worldPieces.kinshipBeacon || null;
             this.sanctuaryZones = worldPieces.sanctuaryZones || null;
+            this.sanctuaryDistricts = worldPieces.sanctuaryDistricts || null;
             this.targetRange = worldPieces.targetRange || null;
+            if (this.currentBiome === 'nebula') {
+                this.sanctuaryInteractionDirector?.destroy?.();
+                this.sanctuaryInteractionDirector =
+                    new SanctuaryInteractionDirector(this);
+            }
 
             this.setupSanctuaryDecorationListener();
 
@@ -1114,6 +1256,7 @@ class GameScene extends Phaser.Scene {
                         null,
                         this
                     );
+                    this.setupVillageHeartCollision();
                 }
                 if (this.fusionPodLandmark?.zone) {
                     this.physics.add.overlap(
@@ -1162,7 +1305,7 @@ class GameScene extends Phaser.Scene {
             // Initialize mobile controls and HUD if on mobile device
             if (window.MobileControls) {
                 this.mobileControls = new window.MobileControls(this);
-                this.mobileControls.show();
+                this.mobileControls.show(this.forceMobileControls);
                 this.hudController?.layoutInteractionText?.(
                     this.scale.width,
                     this.scale.height
@@ -1178,6 +1321,8 @@ class GameScene extends Phaser.Scene {
                 // Hide desktop-oriented UI elements on mobile
                 this.hideDesktopUIOnMobile();
             }
+
+            this.scheduleSanctuaryReturnMoment();
 
             // Initialize Quest Tracker UI
             this.questTracker = new QuestTracker(this);
@@ -1262,7 +1407,9 @@ class GameScene extends Phaser.Scene {
 
             // Spawn collectibles in the world
             this.spawnWorldCollectibles();
-            this.projectBeaconWaypoint = new ProjectBeaconWaypoint(this);
+            this.projectBeaconWaypoint = new ProjectBeaconWaypoint(this, {
+                campaignStepProvider: () => getCampaignJourneyStep(window.GameState)
+            });
             this.projectBeaconWaypoint.create();
 
             // Initialize Kid Mode features if enabled
@@ -1270,18 +1417,23 @@ class GameScene extends Phaser.Scene {
             
             // Listen for GameState events
             this.setupGameStateListeners();
+            this.scheduleRescuedResidentArrival({ initialDelay: 1900 });
             this.time.delayedCall(700, () => {
                 void this.recoverLivingPortraitAfterArrival();
             });
             this.time.delayedCall(1400, () => {
                 if (this.livingPortraitReadyPreview) {
+                    if (this.livingPortraitFullRevealPreview) {
+                        window.GameState?.set?.('tutorial.livingFormSeen', false);
+                        window.GameState?.set?.('story.companionMedia', null);
+                    }
                     void this.maybeShowLivingPortraitReadyNotice({
                         identityKey: 'preview_companion_23:baby:portrait',
                         stage: 'baby',
                         imageUrl: '/marketing/nova.webp',
                         assetRef: null,
                         storage: 'preview'
-                    }, { preview: true });
+                    }, { preview: !this.livingPortraitFullRevealPreview });
                     return;
                 }
                 void this.maybeShowLivingPortraitReadyNotice();
@@ -1304,8 +1456,15 @@ class GameScene extends Phaser.Scene {
                     window.OnboardingManager.initialize(this);
                     window.OnboardingManager.onQueueComplete = ({ firstSanctuaryVisit } = {}) => {
                         if (!firstSanctuaryVisit || this._isShuttingDown) return;
-                        const storyQuest = window.QuestManager?.getQuestsByType?.('story')?.[0];
-                        this.questTracker?.showStoryMissionBriefing?.(storyQuest);
+                        this.scheduleVillageArrivalReveal({
+                            initialDelay: 320,
+                            onComplete: () => {
+                                if (this._isShuttingDown) return;
+                                const storyQuest = window.QuestManager
+                                    ?.getQuestsByType?.('story')?.[0];
+                                this.questTracker?.showStoryMissionBriefing?.(storyQuest);
+                            }
+                        });
                     };
                     window.OnboardingManager.startOnboardingFlow();
                 }
@@ -1452,7 +1611,7 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    createFieldKitPreviewBackdrop() {
+    createFieldKitPreviewBackdrop({ includeShip = true } = {}) {
         const { width, height } = this.scale;
         this.cameras.main.setBackgroundColor('#081018');
 
@@ -1469,14 +1628,19 @@ class GameScene extends Phaser.Scene {
             backdrop.fillCircle(starX, starY, index % 5 === 0 ? 2 : 1);
         }
 
-        const ship = this.add.graphics();
-        ship.fillStyle(0x26343E, 1);
-        ship.fillRoundedRect(width * 0.08, height * 0.52, width * 0.26, height * 0.12, 8);
-        ship.lineStyle(2, 0x6FE7DD, 0.55);
-        ship.strokeRoundedRect(width * 0.08, height * 0.52, width * 0.26, height * 0.12, 8);
-        ship.setRotation(-0.08);
+        const elements = [backdrop];
+        if (includeShip) {
+            const ship = this.add.graphics();
+            ship.fillStyle(0x26343E, 1);
+            ship.fillRoundedRect(width * 0.08, height * 0.52, width * 0.26, height * 0.12, 8);
+            ship.lineStyle(2, 0x6FE7DD, 0.55);
+            ship.strokeRoundedRect(width * 0.08, height * 0.52, width * 0.26, height * 0.12, 8);
+            ship.setRotation(-0.08);
+            ship.setData('fieldKitPreviewShip', true);
+            elements.push(ship);
+        }
 
-        this.fieldKitPreviewElements = [backdrop, ship];
+        this.fieldKitPreviewElements = elements;
     }
 
     createCarePanelPreview() {
@@ -1544,7 +1708,6 @@ class GameScene extends Phaser.Scene {
     }
 
     createVillageCommandPreview() {
-        this.createFieldKitPreviewBackdrop();
         const now = Date.now();
         const companions = [
             {
@@ -1613,12 +1776,26 @@ class GameScene extends Phaser.Scene {
             });
         }
 
-        if (this.villageCommandPreview === 'active') {
-            [
+        if (['active', 'complete'].includes(this.villageCommandPreview)) {
+            if (this.villageCommandPreview === 'complete') {
+                const village = previewState.get('world.village');
+                previewState.set('world.village', {
+                    ...village,
+                    resources: { wood: 200, stone: 200, food: 200 }
+                });
+            }
+            const previewBuildings = [
                 ['forager_hut', 'root_01', companions[0].id],
                 ['sawmill', 'root_02', companions[1].id],
                 ['current_masonry', 'root_03', companions[2].id]
-            ].forEach(([definitionId, plotId, creatureId], index) => {
+            ];
+            if (this.villageCommandPreview === 'complete') {
+                previewBuildings.push(
+                    ['habitat', 'root_04', null],
+                    ['workshop', 'root_05', null]
+                );
+            }
+            previewBuildings.forEach(([definitionId, plotId, creatureId], index) => {
                 const startedAt = now - 30000 + index;
                 const placed = placeVillageBuilding(previewState, {
                     definitionId,
@@ -1627,30 +1804,45 @@ class GameScene extends Phaser.Scene {
                     save: false
                 });
                 reconcileVillageSettlement(previewState, { now, save: false });
-                assignCreatureToVillageBuilding(previewState, {
-                    buildingId: placed.buildingId,
-                    creatureId,
-                    now,
-                    save: false
-                });
+                if (creatureId) {
+                    assignCreatureToVillageBuilding(previewState, {
+                        buildingId: placed.buildingId,
+                        creatureId,
+                        now,
+                        save: false
+                    });
+                }
             });
         }
 
         const previewSnapshot = getVillageSnapshot(previewState);
+        this.physics.world.setBounds(0, 0, this.worldWidth, this.worldHeight);
         this.worldBuilder = new WorldBuilder(this, this.graphicsEngine, {
-            worldWidth: this.scale.width,
-            worldHeight: this.scale.height
+            worldWidth: this.worldWidth,
+            worldHeight: this.worldHeight
         });
+        this.worldBackground = this.worldBuilder.createBackgroundImage();
+        const previewHeartPosition = {
+            x: this.worldWidth / 2,
+            y: this.worldHeight / 2
+        };
+        this.cameras.main
+            .setBounds(0, 0, this.worldWidth, this.worldHeight)
+            .centerOn(previewHeartPosition.x, previewHeartPosition.y)
+            .setBackgroundColor('#102329');
         this.villageHeartLandmark = this.worldBuilder.createVillageHeart({
-            position: {
-                x: Math.max(130, this.scale.width * 0.5),
-                y: Math.max(150, this.scale.height * 0.54)
-            },
+            position: previewHeartPosition,
             size: { width: 150, height: 130 }
         }, previewSnapshot);
+        this.setupVillageHeartCollision();
+
+        if (window.MobileControls && this.forceMobileControls) {
+            this.mobileControls = new window.MobileControls(this);
+            this.mobileControls.show(true);
+        }
 
         this.villageCommandPanel = new VillageCommandPanel(this);
-        this.villageCommandPanel.show({
+        const previewPanelOptions = {
             getSnapshot: () => getVillageSnapshot(previewState),
             onPlace: request => {
                 const result = placeVillageBuilding(previewState, {
@@ -1661,6 +1853,16 @@ class GameScene extends Phaser.Scene {
                     this.villageHeartLandmark,
                     result.snapshot
                 );
+                if (result.changed) {
+                    const building = result.snapshot.buildings.find(
+                        entry => entry.id === result.buildingId
+                    );
+                    this.worldBuilder.playVillageBuildingMoment(
+                        this.villageHeartLandmark,
+                        building,
+                        { stage: 'construction' }
+                    );
+                }
                 return result;
             },
             onAssign: request => {
@@ -1674,7 +1876,20 @@ class GameScene extends Phaser.Scene {
                 );
                 return result;
             },
+            onDecision: request => {
+                const result = resolveVillageHeartDecision(previewState, {
+                    ...request,
+                    save: false
+                });
+                this.worldBuilder.refreshVillageSettlement(
+                    this.villageHeartLandmark,
+                    result.snapshot
+                );
+                if (result.changed) this.villageDecisionMomentPending = result;
+                return result;
+            },
             onTick: () => {
+                const previous = getVillageSnapshot(previewState);
                 const snapshot = reconcileVillageSettlement(previewState, {
                     save: false
                 });
@@ -1682,9 +1897,94 @@ class GameScene extends Phaser.Scene {
                     this.villageHeartLandmark,
                     snapshot
                 );
+                this.notifyVillageProgress(previous, snapshot);
                 return snapshot;
+            },
+            onClose: () => {
+                if (!this.villageDecisionMomentPending) return;
+                this.worldBuilder.playVillageDecisionMoment(
+                    this.villageHeartLandmark,
+                    this.villageDecisionMomentPending
+                );
+                this.villageDecisionMomentPending = null;
             }
+        };
+        this.openVillageCommand = ({
+            plotId = null,
+            guided = plotId === null
+        } = {}) => (
+            this.villageCommandPanel.show({
+                plotId,
+                guided,
+                ...previewPanelOptions
+            })
+        );
+        this.openVillageWorkerCheckIn = ({ creatureId } = {}) => (
+            this.showVillageWorkerCheckIn({ creatureId, snapshot: getVillageSnapshot(previewState) })
+        );
+        this.sanctuaryInteractionDirector?.destroy?.();
+        this.sanctuaryInteractionDirector = new SanctuaryInteractionDirector(this);
+        this.nearVillageHeart = true;
+        this.offerVillageHeartInteraction(previewSnapshot);
+        this.updateSanctuaryFocusMode(true);
+        this.applySanctuaryCameraFocus({ immediate: true });
+        this.villagePreviewCameraSync = () => {
+            if (this.sanctuaryFocusModeActive) {
+                const expectedLayoutProfile = this.scale.width <= 600
+                    ? 'terraced_current_v2'
+                    : 'commons_spine_v1';
+                const currentLayoutProfile = this.villageHeartLandmark
+                    ?.plotPresentations?.[0]?.layoutProfile;
+                if (
+                    currentLayoutProfile &&
+                    currentLayoutProfile !== expectedLayoutProfile
+                ) {
+                    const resizedSnapshot = getVillageSnapshot(previewState);
+                    this.worldBuilder.refreshVillageSettlement(
+                        this.villageHeartLandmark,
+                        resizedSnapshot
+                    );
+                    this.offerVillageHeartInteraction(resizedSnapshot);
+                }
+                this.applySanctuaryCameraFocus({ immediate: true });
+            }
+        };
+        this.events.on('postupdate', this.villagePreviewCameraSync);
+        this.events.once('shutdown', () => {
+            this.events.off('postupdate', this.villagePreviewCameraSync);
+            this.villagePreviewCameraSync = null;
         });
+        if (this.villageReturnPreview) {
+            const summary = getSanctuaryReturnSummary({
+                previousVillage: {
+                    ...previewSnapshot,
+                    resources: {
+                        ...previewSnapshot.resources,
+                        food: Math.max(0, previewSnapshot.resources.food - 8),
+                        wood: Math.max(0, previewSnapshot.resources.wood - 6),
+                        stone: Math.max(0, previewSnapshot.resources.stone - 5)
+                    }
+                },
+                nextVillage: previewSnapshot,
+                events: [{
+                    creatureName: 'Nova',
+                    result: 'Mapped a quiet Current change near the Village Heart.'
+                }],
+                offlineMinutes: 47,
+                companionName: 'Nova'
+            });
+            this.worldBuilder.playVillageProductionMoment(
+                this.villageHeartLandmark,
+                previewSnapshot,
+                summary.gains
+            );
+            this.worldBuilder.playVillageCycleReturnMoment(
+                this.villageHeartLandmark,
+                summary
+            );
+            return;
+        }
+        this.openVillageCommand({ guided: false });
     }
 
     createSignalGardenPreview() {
@@ -1882,7 +2182,7 @@ class GameScene extends Phaser.Scene {
                     imageUrl: '/marketing/nova.webp',
                     assetRef: null,
                     storage: 'preview'
-                }, { preview: true });
+                }, { preview: !this.livingPortraitFullRevealPreview });
             });
         }
         if (this.fendCulturePreview) {
@@ -2156,7 +2456,7 @@ class GameScene extends Phaser.Scene {
                     height - 370
                 )
             }
-        }, false);
+        }, false, { showLabel: true });
         this.livingSignals = [previewSignal];
         if (this.livingSignalProgressPreview !== null) {
             this.setLivingSignalListeningProgress(
@@ -2208,7 +2508,11 @@ class GameScene extends Phaser.Scene {
     createLivingSignalVisual(
         definition,
         observed = false,
-        { progress = 0, total = LIVING_SIGNAL_DEFINITIONS.length } = {}
+        {
+            progress = 0,
+            total = LIVING_SIGNAL_DEFINITIONS.length,
+            showLabel = false
+        } = {}
     ) {
         const { x, y } = definition.position;
         const container = this.add.container(x, y).setDepth(y + 4);
@@ -2266,7 +2570,7 @@ class GameScene extends Phaser.Scene {
                 backgroundColor: 'rgba(5, 18, 17, 0.78)',
                 padding: { x: 5, y: 3 }
             }
-        ).setOrigin(0.5);
+        ).setOrigin(0.5).setVisible(showLabel);
         container.add([aura, listeningProgress, form, label]);
 
         const pulseTween = this.tweens.add({
@@ -2292,6 +2596,7 @@ class GameScene extends Phaser.Scene {
             form,
             label,
             listeningProgress,
+            labelAlwaysVisible: showLabel,
             pulseTween
         };
         if (observed) {
@@ -2373,6 +2678,14 @@ class GameScene extends Phaser.Scene {
         signal.label?.setColor('#D8FFF0');
     }
 
+    setLivingSignalLabelFocus(signalId = null) {
+        this.livingSignals?.forEach(signal => {
+            signal?.label?.setVisible?.(
+                signal.labelAlwaysVisible === true || signal.signalId === signalId
+            );
+        });
+    }
+
     resetActiveLivingSignalListening() {
         if (!this.activeLivingSignalId) return;
         const activeSignal = this.livingSignals.find(
@@ -2428,17 +2741,30 @@ class GameScene extends Phaser.Scene {
         };
 
         const isSignalPreview = this.waypointPreview === 'signals';
-        const targetX = isSignalPreview ? width + 450 : width * 0.77;
-        const targetY = isSignalPreview ? height * 0.34 : height * 0.46;
+        const isVillagePreview = this.waypointPreview === 'village';
+        const isExpeditionPreview = this.waypointPreview === 'expedition';
+        const targetOffscreen = isSignalPreview || isExpeditionPreview;
+        const targetX = targetOffscreen ? width + 450 : width * 0.77;
+        const targetY = targetOffscreen ? height * 0.34 : height * 0.46;
         const target = { x: targetX, y: targetY, active: true, collected: false };
-        this.crashedShip = target;
-        this.hubPortal = target;
+        this.crashedShip = isVillagePreview || isExpeditionPreview ? null : target;
+        this.hubPortal = isExpeditionPreview ? target : null;
+        this.villageHeartLandmark = isVillagePreview
+            ? {
+                zone: target,
+                snapshot: {
+                    unlock: { unlocked: true },
+                    state: { guidanceSeen: false },
+                    worldState: { nextAction: { type: 'build' } }
+                }
+            }
+            : null;
         this.collectibles = [];
         this.livingSignals = isSignalPreview
             ? [{ ...target, observed: false, signalId: 'preview_signal' }]
             : [];
 
-        if (!isSignalPreview) {
+        if (!targetOffscreen && !isVillagePreview) {
             const ship = this.add.graphics();
             ship.fillStyle(0xBFCBD0, 1);
             ship.fillRoundedRect(targetX - 65, targetY - 22, 130, 44, 12);
@@ -2449,14 +2775,35 @@ class GameScene extends Phaser.Scene {
             this.waypointPreviewElements.push(ship);
         }
 
-        const mission = {
-            id: isSignalPreview ? 'beacon_living_signals' : 'beacon_field_kit',
-            type: 'story',
-            completed: false,
-            claimed: false
-        };
+        if (isVillagePreview) {
+            const heart = this.add.graphics();
+            heart.fillStyle(0x071411, 0.92);
+            heart.fillEllipse(targetX, targetY + 14, 118, 34);
+            heart.lineStyle(3, 0x71E6B1, 0.9);
+            heart.strokeEllipse(targetX, targetY + 14, 106, 28);
+            heart.lineStyle(3, 0xF2C14E, 0.88);
+            heart.lineBetween(targetX, targetY + 4, targetX, targetY - 42);
+            heart.lineStyle(2, 0x71E6B1, 0.82);
+            heart.lineBetween(targetX, targetY - 24, targetX - 24, targetY - 37);
+            heart.lineBetween(targetX, targetY - 16, targetX + 27, targetY - 31);
+            heart.fillStyle(0xF4F4F4, 0.94);
+            heart.fillCircle(targetX, targetY - 44, 5);
+            this.waypointPreviewElements.push(heart);
+        }
+
+        const mission = isVillagePreview || isExpeditionPreview
+            ? null
+            : {
+                id: isSignalPreview ? 'beacon_living_signals' : 'beacon_field_kit',
+                type: 'story',
+                completed: false,
+                claimed: false
+            };
         this.projectBeaconWaypoint = new ProjectBeaconWaypoint(this, {
-            questProvider: () => mission
+            questProvider: () => mission,
+            campaignStepProvider: () => isExpeditionPreview
+                ? { status: 'ready', label: 'Mythical Forest' }
+                : null
         });
         this.projectBeaconWaypoint.create();
         this.projectBeaconWaypoint.update(16.67);
@@ -3861,6 +4208,8 @@ class GameScene extends Phaser.Scene {
         this.joystickY = 0;
         this.lastPositionPersistedAt = Number.NEGATIVE_INFINITY;
         this.isShowingTutorial = false;
+        this.activeTutorialHint = null;
+        this.activeTutorialHintTween = null;
         this.welcomeToastDisplayed = false;
         this.combatCooldown = 0;
         this.floatingParticles = [];
@@ -4099,6 +4448,10 @@ class GameScene extends Phaser.Scene {
 
         this.currentSanctuaryZoneId = zone.id;
         getGameState().visitArea?.(`sanctuary:${zone.id}`);
+        this.worldBuilder?.setSanctuaryDistrictFocus?.(
+            this.sanctuaryDistricts,
+            zone.id
+        );
     }
 
     createSanctuaryDecorationPreview() {
@@ -4478,12 +4831,20 @@ class GameScene extends Phaser.Scene {
 
         const responsiveManager = window.responsiveManager;
         const isMobile = responsiveManager?.isMobile ?? window.innerWidth < 768;
-        const zoom = isMobile ? 0.85 : 1.0;
+        const controlDockVisible = Boolean(this.forceMobileControls);
+        const zoom = isMobile || controlDockVisible ? 0.85 : 1.0;
 
         camera.setZoom(zoom);
-        this.applyMobileCameraBounds(camera, isMobile, zoom);
+        this.achievementNotification?.syncCameraZoom?.();
+        this.applyMobileCameraBounds(camera, isMobile, zoom, controlDockVisible);
+        this.applyExplorationCameraFollowOffset(camera, {
+            controlDockVisible,
+            zoom
+        });
         camera.setRoundPixels(true);
-        camera.setBackgroundColor('#050214');
+        camera.setBackgroundColor(
+            this.currentBiome === 'nebula' ? '#102329' : '#050214'
+        );
 
         this.currentCameraZoom = zoom;
 
@@ -4491,18 +4852,37 @@ class GameScene extends Phaser.Scene {
             this.mobileCameraResizeHandler = () => {
                 const mobile = window.responsiveManager?.isMobile ??
                     window.innerWidth < 768;
-                const nextZoom = mobile ? 0.85 : 1.0;
+                const dockVisible = this.hasVisibleTouchControls();
+                const nextZoom = mobile || dockVisible ? 0.85 : 1.0;
                 camera.setZoom(nextZoom);
-                this.applyMobileCameraBounds(camera, mobile, nextZoom);
+                this.achievementNotification?.syncCameraZoom?.();
+                this.applyMobileCameraBounds(
+                    camera,
+                    mobile,
+                    nextZoom,
+                    dockVisible
+                );
+                this.applyExplorationCameraFollowOffset(camera, {
+                    controlDockVisible: dockVisible,
+                    zoom: nextZoom
+                });
                 this.currentCameraZoom = nextZoom;
+                if (this.sanctuaryFocusModeActive) {
+                    this.applySanctuaryCameraFocus({ immediate: true });
+                }
             };
             this.scale.on('resize', this.mobileCameraResizeHandler);
         }
     }
 
-    applyMobileCameraBounds(camera, isMobile, zoom) {
+    applyMobileCameraBounds(
+        camera,
+        isMobile,
+        zoom,
+        controlDockVisible = this.hasVisibleTouchControls()
+    ) {
         let reservedWorldHeight = 0;
-        if (isMobile) {
+        if (isMobile || controlDockVisible) {
             const layout = getMobileControlLayout({
                 width: this.scale.width,
                 height: this.scale.height,
@@ -4521,6 +4901,740 @@ class GameScene extends Phaser.Scene {
             this.worldHeight + reservedWorldHeight
         );
         this.mobileControlDockWorldReserve = reservedWorldHeight;
+    }
+
+    applyExplorationCameraFollowOffset(
+        camera = this.cameras?.main,
+        {
+            controlDockVisible = this.hasVisibleTouchControls() ||
+                Boolean(this.forceMobileControls),
+            zoom = camera?.zoom || 1
+        } = {}
+    ) {
+        if (!camera?.setFollowOffset) return 0;
+        let offsetY = 0;
+        if (controlDockVisible) {
+            const layout = getMobileControlLayout({
+                width: this.scale.width,
+                height: this.scale.height,
+                safeArea: getSafeAreaInsets()
+            });
+            offsetY = -Math.round((layout.dockHeight * 0.46) / Math.max(zoom, 0.1));
+        }
+        camera.setFollowOffset(0, offsetY);
+        this.explorationCameraFollowOffsetY = offsetY;
+        return offsetY;
+    }
+
+    hasVisibleTouchControls() {
+        return Boolean(this.mobileControls?.isVisible);
+    }
+
+    handleMobileControlsVisibilityChange(visible) {
+        const camera = this.cameras?.main;
+        if (!camera) return;
+        const isMobile = window.responsiveManager?.isMobile ?? window.innerWidth < 768;
+        const controlDockVisible = Boolean(visible);
+        const zoom = isMobile || controlDockVisible ? 0.85 : 1;
+        camera.setZoom(zoom);
+        this.achievementNotification?.syncCameraZoom?.();
+        this.applyMobileCameraBounds(
+            camera,
+            isMobile,
+            zoom,
+            controlDockVisible
+        );
+        this.applyExplorationCameraFollowOffset(camera, {
+            controlDockVisible,
+            zoom
+        });
+        this.currentCameraZoom = zoom;
+        this.hudController?.layoutInteractionText?.(
+            this.scale.width,
+            this.scale.height
+        );
+        if (this.sanctuaryFocusModeActive) {
+            this.applySanctuaryCameraFocus({ immediate: true });
+        }
+    }
+
+    applySanctuaryCameraFocus({ immediate = false } = {}) {
+        const camera = this.cameras?.main;
+        const heart = this.villageHeartLandmark?.zone;
+        if (!camera || !heart) return false;
+        const touchControlsVisible = this.hasVisibleTouchControls();
+        const compact = this.scale.width <= 600;
+        const shortViewport = this.scale.height <= 520;
+        const isMobile = window.responsiveManager?.isMobile ?? window.innerWidth < 768;
+        let zoom = Math.max(0.1, camera.zoom || 1);
+        if (shortViewport) {
+            if (!Number.isFinite(this.sanctuaryCameraFocusPreviousZoom)) {
+                this.sanctuaryCameraFocusPreviousZoom = zoom;
+            }
+            zoom = Math.min(zoom, compact ? 0.62 : 0.68);
+            camera.setZoom(zoom);
+            this.achievementNotification?.syncCameraZoom?.();
+            this.applyMobileCameraBounds(camera, isMobile, zoom, touchControlsVisible);
+            this.currentCameraZoom = zoom;
+        } else if (Number.isFinite(this.sanctuaryCameraFocusPreviousZoom)) {
+            zoom = this.sanctuaryCameraFocusPreviousZoom;
+            camera.setZoom(zoom);
+            this.achievementNotification?.syncCameraZoom?.();
+            this.applyMobileCameraBounds(camera, isMobile, zoom, touchControlsVisible);
+            this.currentCameraZoom = zoom;
+            this.sanctuaryCameraFocusPreviousZoom = null;
+        }
+        this.sanctuaryCameraFocusZoom = zoom;
+        const controlLayout = touchControlsVisible
+            ? getMobileControlLayout({
+                width: this.scale.width,
+                height: this.scale.height,
+                safeArea: getSafeAreaInsets()
+            })
+            : null;
+        const target = {
+            x: heart.x + (compact ? 0 : 230),
+            y: heart.y + (
+                touchControlsVisible
+                    ? Math.round((controlLayout.dockHeight * 0.52) / zoom) + 20
+                    : 0
+            )
+        };
+
+        camera.stopFollow();
+        if (immediate || !camera.pan) {
+            camera.centerOn(target.x, target.y);
+        } else {
+            camera.pan(target.x, target.y, 360, 'Sine.easeInOut');
+        }
+        this.sanctuaryCameraFocusTarget = target;
+        return true;
+    }
+
+    restorePlayerCameraFollow() {
+        const camera = this.cameras?.main;
+        if (!camera || !this.player || this.player.active === false) return false;
+        if (Number.isFinite(this.sanctuaryCameraFocusPreviousZoom)) {
+            const restoreZoom = this.sanctuaryCameraFocusPreviousZoom;
+            const isMobile = window.responsiveManager?.isMobile ?? window.innerWidth < 768;
+            camera.setZoom(restoreZoom);
+            this.achievementNotification?.syncCameraZoom?.();
+            this.applyMobileCameraBounds(
+                camera,
+                isMobile,
+                restoreZoom,
+                this.hasVisibleTouchControls()
+            );
+            this.currentCameraZoom = restoreZoom;
+            this.sanctuaryCameraFocusPreviousZoom = null;
+        }
+        camera.startFollow(this.player, true, 0.12, 0.12);
+        this.applyExplorationCameraFollowOffset(camera);
+        camera.setDeadzone(
+            Math.round(camera.width * 0.15),
+            Math.round(camera.height * 0.2)
+        );
+        this.sanctuaryCameraFocusTarget = null;
+        this.sanctuaryCameraFocusZoom = null;
+        return true;
+    }
+
+    shouldPlayVillageArrivalReveal() {
+        if (
+            this.currentBiome !== 'nebula' ||
+            !this.villageHeartLandmark ||
+            window.GameState?.get('tutorial.villageHeartArrivalSeen') === true
+        ) {
+            return false;
+        }
+        const snapshot = this.villageHeartLandmark.snapshot ||
+            getVillageSnapshot(window.GameState);
+        return snapshot?.unlock?.unlocked === true;
+    }
+
+    isVillageArrivalRevealBlocked() {
+        return Boolean(
+            this._isShuttingDown ||
+            this.villageArrivalRevealActive ||
+            this.rescuedResidentArrivalActive ||
+            window.OnboardingManager?.isProcessing ||
+            this.controlsTutorial?.isVisible ||
+            this.storyModalElements?.length ||
+            this.greetingElements?.length ||
+            this.livingSignalMomentElements?.length ||
+            this.questTracker?.storyBannerElements?.length ||
+            this.achievementNotification?.isVisible ||
+            this.livingPortraitReadyNotice ||
+            this.livingPortraitNoticeTimer ||
+            this.isFieldKitModalOpen ||
+            this.fusionDiscoveryModalOpen ||
+            this.hamburgerMenu?.isOpen ||
+            this.carePanelManager?.panelVisible ||
+            this.creatureRadialMenu?.isVisible ||
+            document.querySelector('.village-command-modal')
+        );
+    }
+
+    scheduleSanctuaryReturnMoment({ initialDelay = 900, retryDelay = 650 } = {}) {
+        this.sanctuaryReturnMomentScheduleTimer?.remove?.();
+        this.sanctuaryReturnMomentScheduleTimer = null;
+        if (!this.pendingSanctuaryReturnMoment || !this.villageHeartLandmark) {
+            return false;
+        }
+        const attempt = () => {
+            this.sanctuaryReturnMomentScheduleTimer = null;
+            if (this._isShuttingDown || !this.pendingSanctuaryReturnMoment) return;
+            if (this.isVillageArrivalRevealBlocked()) {
+                this.sanctuaryReturnMomentScheduleTimer = this.time.delayedCall(
+                    retryDelay,
+                    attempt
+                );
+                return;
+            }
+            this.playSanctuaryReturnMoment();
+        };
+        this.sanctuaryReturnMomentScheduleTimer = this.time.delayedCall(
+            initialDelay,
+            attempt
+        );
+        return true;
+    }
+
+    playSanctuaryReturnMoment() {
+        const summary = this.pendingSanctuaryReturnMoment;
+        if (!summary || !this.villageHeartLandmark || !this.worldBuilder) return false;
+        const snapshot = getVillageSnapshot(window.GameState);
+        this.refreshVillageSettlementWorld(snapshot, { force: true });
+        if (summary.gains.length > 0) {
+            this.worldBuilder.playVillageProductionMoment(
+                this.villageHeartLandmark,
+                snapshot,
+                summary.gains
+            );
+        }
+        if (summary.completedBuildings[0]) {
+            this.worldBuilder.playVillageBuildingMoment(
+                this.villageHeartLandmark,
+                summary.completedBuildings[0],
+                { stage: 'complete' }
+            );
+        }
+        const played = this.worldBuilder.playVillageCycleReturnMoment(
+            this.villageHeartLandmark,
+            summary
+        );
+        if (!played) return false;
+
+        this.pendingSanctuaryReturnMoment = null;
+        this.player?.body?.setVelocity?.(0, 0);
+        this.applySanctuaryCameraFocus();
+        this.sanctuaryReturnMomentTimer?.remove?.();
+        this.sanctuaryReturnMomentTimer = this.time.delayedCall(5600, () => {
+            this.sanctuaryReturnMomentTimer = null;
+            if (!this._isShuttingDown) this.restorePlayerCameraFollow();
+        });
+        window.AudioManager?.playSound?.('current_harmony', 0.72);
+        window.AchievementSystem?.recordEvent?.('story_interaction', {
+            event: 'sanctuary_cycle_return',
+            workerCount: summary.workerReturns.length,
+            gainCount: summary.gains.length
+        });
+        return true;
+    }
+
+    scheduleVillageArrivalReveal({
+        initialDelay = 500,
+        retryDelay = 650,
+        onComplete = null
+    } = {}) {
+        this.villageArrivalRevealScheduleTimer?.remove?.();
+        this.villageArrivalRevealScheduleTimer = null;
+        let completed = false;
+        const complete = () => {
+            if (completed) return;
+            completed = true;
+            onComplete?.();
+        };
+        const attempt = () => {
+            this.villageArrivalRevealScheduleTimer = null;
+            if (this._isShuttingDown) return;
+            if (!this.shouldPlayVillageArrivalReveal()) {
+                complete();
+                return;
+            }
+            if (this.isVillageArrivalRevealBlocked()) {
+                this.villageArrivalRevealScheduleTimer = this.time.delayedCall(
+                    retryDelay,
+                    attempt
+                );
+                return;
+            }
+            if (!this.playVillageArrivalReveal({ onComplete: complete })) {
+                complete();
+            }
+        };
+        this.villageArrivalRevealScheduleTimer = this.time.delayedCall(
+            initialDelay,
+            attempt
+        );
+        return true;
+    }
+
+    setVillageArrivalChromeHidden(hidden) {
+        if (hidden) {
+            const menuButton = this.hamburgerMenu?.menuButton;
+            const candidates = [
+                ...(this.navigationMarkers || []),
+                menuButton?.bg,
+                menuButton?.icon,
+                menuButton?.zone
+            ].filter(Boolean);
+            this.villageArrivalRevealHiddenElements = [...new Set(candidates)].map(
+                element => ({
+                    element,
+                    visible: element.visible !== false
+                })
+            );
+            this.villageArrivalRevealHiddenElements.forEach(({ element }) => {
+                element?.setVisible?.(false);
+            });
+            return true;
+        }
+        this.villageArrivalRevealHiddenElements.forEach(({ element, visible }) => {
+            if (element?.active !== false) element?.setVisible?.(visible);
+        });
+        this.villageArrivalRevealHiddenElements = [];
+        return true;
+    }
+
+    playVillageArrivalReveal({ force = false, onComplete = null } = {}) {
+        if (
+            this.villageArrivalRevealActive ||
+            !this.villageHeartLandmark ||
+            !this.worldBuilder ||
+            (!force && !this.shouldPlayVillageArrivalReveal()) ||
+            (!force && this.isVillageArrivalRevealBlocked())
+        ) {
+            return false;
+        }
+        const duration = 2800;
+        if (!this.worldBuilder.playVillageArrivalReveal(
+            this.villageHeartLandmark,
+            { duration }
+        )) {
+            return false;
+        }
+
+        this.villageArrivalRevealActive = true;
+        this.villageArrivalRevealOnComplete = onComplete;
+        this.villageArrivalRevealPreviousFocus = this.sanctuaryFocusModeActive === true;
+        this.villageArrivalRevealRestoreControls =
+            this.mobileControls?.suspend?.() === true;
+        this.villageArrivalRevealInputShield = this.add.zone(
+            this.scale.width / 2,
+            this.scale.height / 2,
+            this.scale.width,
+            this.scale.height
+        )
+            .setScrollFactor(0)
+            .setDepth(11990)
+            .setInteractive()
+            .setData('villageArrivalRevealInputShield', true)
+            .setData('visiblePanel', false);
+        this.player?.body?.setVelocity?.(0, 0);
+        this.joystickX = 0;
+        this.joystickY = 0;
+        this.setVillageArrivalChromeHidden(true);
+        this.updateSanctuaryFocusMode(true);
+        this.setSanctuaryMomentFocus(true, { kind: 'arrival' });
+        this.villageHeartLandmark.zone
+            ?.setData('villageArrivalRevealActive', true)
+            .setData('villageArrivalRevealDuration', duration)
+            .setData('villageArrivalRevealSkippable', true);
+        window.AudioManager?.playSound?.('current_harmony', 0.9);
+        if (!force) {
+            window.GameState?.set('tutorial.villageHeartArrivalSeen', true);
+            window.GameState?.save?.();
+        }
+
+        this.villageArrivalRevealTimer = this.time.delayedCall(
+            duration,
+            () => this.finishVillageArrivalReveal()
+        );
+        this.villageArrivalRevealSkipArmTimer = this.time.delayedCall(650, () => {
+            this.villageArrivalRevealSkipArmTimer = null;
+            if (!this.villageArrivalRevealActive) return;
+            this.villageArrivalRevealInputShield
+                ?.once?.('pointerdown', this.skipVillageArrivalReveal, this);
+            this.input?.keyboard?.once?.('keydown', this.skipVillageArrivalReveal, this);
+            this.villageHeartLandmark?.zone?.setData('villageArrivalRevealSkipArmed', true);
+        });
+        return true;
+    }
+
+    skipVillageArrivalReveal(event) {
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
+        return this.finishVillageArrivalReveal({ skipped: true });
+    }
+
+    finishVillageArrivalReveal({ skipped = false } = {}) {
+        if (!this.villageArrivalRevealActive) return false;
+        const onComplete = this.villageArrivalRevealOnComplete;
+        const restorePreviousFocus = this.villageArrivalRevealPreviousFocus;
+        this.villageArrivalRevealTimer?.remove?.();
+        this.villageArrivalRevealSkipArmTimer?.remove?.();
+        this.villageArrivalRevealTimer = null;
+        this.villageArrivalRevealSkipArmTimer = null;
+        this.villageArrivalRevealInputShield
+            ?.off?.('pointerdown', this.skipVillageArrivalReveal, this);
+        this.villageArrivalRevealInputShield?.destroy?.();
+        this.villageArrivalRevealInputShield = null;
+        this.input?.keyboard?.off?.('keydown', this.skipVillageArrivalReveal, this);
+        this.worldBuilder?.clearVillageArrivalReveal?.(this.villageHeartLandmark);
+        this.setVillageArrivalChromeHidden(false);
+        this.villageHeartLandmark?.zone
+            ?.setData('villageArrivalRevealActive', false)
+            .setData('villageArrivalRevealSkipArmed', false)
+            .setData('villageArrivalRevealSkipped', skipped);
+        this.villageArrivalRevealActive = false;
+        this.villageArrivalRevealInputCooldownUntil = skipped
+            ? (this.time?.now || 0) + 220
+            : 0;
+        this.villageArrivalRevealOnComplete = null;
+        this.setSanctuaryMomentFocus(false);
+        this.updateSanctuaryFocusMode(
+            restorePreviousFocus || this.nearVillageHeart
+        );
+        if (this.villageArrivalRevealRestoreControls) {
+            this.mobileControls?.resume?.();
+        }
+        this.villageArrivalRevealRestoreControls = false;
+        this.villageArrivalRevealPreviousFocus = false;
+        if (onComplete) {
+            window.clearTimeout(this.villageArrivalRevealHandoffTimer);
+            this.villageArrivalRevealHandoffTimer = window.setTimeout(() => {
+                this.villageArrivalRevealHandoffTimer = null;
+                if (!this._isShuttingDown) onComplete();
+            }, 280);
+        }
+        return true;
+    }
+
+    cancelVillageArrivalReveal() {
+        this.villageArrivalRevealScheduleTimer?.remove?.();
+        this.villageArrivalRevealTimer?.remove?.();
+        this.villageArrivalRevealSkipArmTimer?.remove?.();
+        this.villageArrivalRevealScheduleTimer = null;
+        this.villageArrivalRevealTimer = null;
+        this.villageArrivalRevealSkipArmTimer = null;
+        this.villageArrivalRevealInputShield
+            ?.off?.('pointerdown', this.skipVillageArrivalReveal, this);
+        this.villageArrivalRevealInputShield?.destroy?.();
+        this.villageArrivalRevealInputShield = null;
+        this.input?.keyboard?.off?.('keydown', this.skipVillageArrivalReveal, this);
+        window.clearTimeout(this.villageArrivalRevealHandoffTimer);
+        this.villageArrivalRevealHandoffTimer = null;
+        this.worldBuilder?.clearVillageArrivalReveal?.(this.villageHeartLandmark);
+        this.setVillageArrivalChromeHidden(false);
+        if (this.villageArrivalRevealRestoreControls) {
+            this.mobileControls?.resume?.();
+        }
+        this.villageArrivalRevealActive = false;
+        this.villageArrivalRevealOnComplete = null;
+        this.villageArrivalRevealRestoreControls = false;
+        this.villageArrivalRevealPreviousFocus = false;
+        this.villageArrivalRevealInputCooldownUntil = 0;
+    }
+
+    shouldPlayRescuedResidentArrival() {
+        if (
+            this.currentBiome !== 'nebula' ||
+            this.rescuedResidentArrivalPlayedThisVisit ||
+            !this.signalGarden ||
+            !window.GameState
+        ) {
+            return false;
+        }
+        return Boolean(getPendingRescuedResidentArrival(window.GameState));
+    }
+
+    isRescuedResidentArrivalBlocked() {
+        return Boolean(
+            this._isShuttingDown ||
+            this.rescuedResidentArrivalActive ||
+            this.villageArrivalRevealActive ||
+            this.sanctuaryReturnMomentTimer ||
+            window.OnboardingManager?.isProcessing ||
+            this.controlsTutorial?.isVisible ||
+            this.storyModalElements?.length ||
+            this.greetingElements?.length ||
+            this.livingSignalMomentElements?.length ||
+            this.questTracker?.storyBannerElements?.length ||
+            this.achievementNotification?.isVisible ||
+            this.livingPortraitReadyNotice ||
+            this.livingPortraitNoticeTimer ||
+            this.isFieldKitModalOpen ||
+            this.fusionDiscoveryModalOpen ||
+            this.guardianExchangeOpen ||
+            this.rescuedResidentExchangeOpen ||
+            this.hamburgerMenu?.isOpen ||
+            this.carePanelManager?.panelVisible ||
+            this.creatureRadialMenu?.isVisible ||
+            document.querySelector('.village-command-modal')
+        );
+    }
+
+    scheduleRescuedResidentArrival({
+        initialDelay = 900,
+        retryDelay = 700
+    } = {}) {
+        this.rescuedResidentArrivalScheduleTimer?.remove?.();
+        this.rescuedResidentArrivalScheduleTimer = null;
+        if (!this.shouldPlayRescuedResidentArrival()) return false;
+        const attempt = () => {
+            this.rescuedResidentArrivalScheduleTimer = null;
+            if (this._isShuttingDown || !this.shouldPlayRescuedResidentArrival()) return;
+            if (this.isRescuedResidentArrivalBlocked()) {
+                this.rescuedResidentArrivalScheduleTimer = this.time.delayedCall(
+                    retryDelay,
+                    attempt
+                );
+                return;
+            }
+            this.playRescuedResidentArrival();
+        };
+        this.rescuedResidentArrivalScheduleTimer = this.time.delayedCall(
+            initialDelay,
+            attempt
+        );
+        return true;
+    }
+
+    playRescuedResidentArrival({ force = false } = {}) {
+        if (
+            this.rescuedResidentArrivalActive ||
+            !this.worldBuilder ||
+            !this.signalGarden ||
+            (!force && !this.shouldPlayRescuedResidentArrival()) ||
+            (!force && this.isRescuedResidentArrivalBlocked())
+        ) {
+            return false;
+        }
+        const resident = getPendingRescuedResidentArrival(window.GameState);
+        if (!resident) return false;
+        const entry = this.signalGarden.rescuedResidents?.find(
+            candidate => candidate.id === resident.id
+        );
+        if (!entry?.container) return false;
+        const duration = 5200;
+        const residentPresence = getVillageResidentWorldPresence(
+            getVillageSnapshot(window.GameState),
+            resident.id
+        );
+        const arrivalResident = {
+            ...resident,
+            sanctuaryPresence: residentPresence
+        };
+        if (!this.worldBuilder.playRescuedResidentArrival(
+            this.signalGarden,
+            arrivalResident,
+            { duration }
+        )) {
+            return false;
+        }
+
+        this.rescuedResidentArrivalActive = true;
+        this.rescuedResidentArrivalResident = arrivalResident;
+        this.rescuedResidentArrivalPreviousFocus =
+            this.sanctuaryFocusModeActive === true;
+        this.rescuedResidentArrivalRestoreControls =
+            this.mobileControls?.suspend?.() === true;
+        this.rescuedResidentArrivalInputShield = this.add.zone(
+            this.scale.width / 2,
+            this.scale.height / 2,
+            this.scale.width,
+            this.scale.height
+        )
+            .setScrollFactor(0)
+            .setDepth(15980)
+            .setInteractive()
+            .setData('rescuedResidentArrivalInputShield', true)
+            .setData('visiblePanel', false);
+        this.player?.body?.setVelocity?.(0, 0);
+        this.joystickX = 0;
+        this.joystickY = 0;
+        this.hideInteractionHint();
+        this.sanctuaryInteractionDirector?.clearIndicator?.();
+        this.setVillageArrivalChromeHidden(true);
+        this.setSanctuaryPeripheralWayfindingVisible(false);
+
+        const camera = this.cameras?.main;
+        this.rescuedResidentArrivalPreviousCameraFollow = camera?._follow || null;
+        this.rescuedResidentArrivalPreviousCameraTarget =
+            this.sanctuaryCameraFocusTarget
+                ? { ...this.sanctuaryCameraFocusTarget }
+                : null;
+        const zoom = Math.max(0.1, camera?.zoom || 1);
+        const controlLayout = this.hasVisibleTouchControls()
+            ? getMobileControlLayout({
+                width: this.scale.width,
+                height: this.scale.height,
+                safeArea: getSafeAreaInsets()
+            })
+            : null;
+        const target = {
+            x: this.signalGarden.rescuedResidentArrival?.focusWorldX ||
+                entry.container.x,
+            y: entry.container.y + (
+                controlLayout
+                    ? Math.round((controlLayout.dockHeight * 0.38) / zoom)
+                    : 24
+            )
+        };
+        camera?.stopFollow?.();
+        camera?.pan?.(target.x, target.y, 420, 'Sine.easeInOut');
+        this.sanctuaryCameraFocusTarget = target;
+        this.signalGarden.zone
+            ?.setData('rescuedResidentArrivalActive', true)
+            .setData('rescuedResidentArrivalId', resident.id)
+            .setData('rescuedResidentArrivalSkippable', true);
+        window.AudioManager?.playSound?.('current_harmony', 0.86);
+
+        this.rescuedResidentArrivalTimer = this.time.delayedCall(
+            duration,
+            () => this.finishRescuedResidentArrival()
+        );
+        this.rescuedResidentArrivalSkipArmTimer = this.time.delayedCall(800, () => {
+            this.rescuedResidentArrivalSkipArmTimer = null;
+            if (!this.rescuedResidentArrivalActive) return;
+            this.rescuedResidentArrivalInputShield?.once?.(
+                'pointerdown',
+                this.skipRescuedResidentArrival,
+                this
+            );
+            this.input?.keyboard?.once?.(
+                'keydown',
+                this.skipRescuedResidentArrival,
+                this
+            );
+        });
+        return true;
+    }
+
+    skipRescuedResidentArrival(event) {
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
+        return this.finishRescuedResidentArrival({ skipped: true });
+    }
+
+    finishRescuedResidentArrival({ skipped = false } = {}) {
+        if (!this.rescuedResidentArrivalActive) return false;
+        const resident = this.rescuedResidentArrivalResident;
+        const restorePreviousFocus = this.rescuedResidentArrivalPreviousFocus;
+        this.rescuedResidentArrivalTimer?.remove?.();
+        this.rescuedResidentArrivalSkipArmTimer?.remove?.();
+        this.rescuedResidentArrivalTimer = null;
+        this.rescuedResidentArrivalSkipArmTimer = null;
+        this.rescuedResidentArrivalInputShield?.off?.(
+            'pointerdown',
+            this.skipRescuedResidentArrival,
+            this
+        );
+        this.rescuedResidentArrivalInputShield?.destroy?.();
+        this.rescuedResidentArrivalInputShield = null;
+        this.input?.keyboard?.off?.(
+            'keydown',
+            this.skipRescuedResidentArrival,
+            this
+        );
+        this.worldBuilder?.clearRescuedResidentArrival?.(this.signalGarden);
+        this.signalGarden?.zone
+            ?.setData('rescuedResidentArrivalActive', false)
+            .setData('rescuedResidentArrivalSkipped', skipped);
+        this.setVillageArrivalChromeHidden(false);
+        this.setSanctuaryPeripheralWayfindingVisible(true);
+        this.rescuedResidentArrivalActive = false;
+        this.rescuedResidentArrivalPlayedThisVisit = true;
+        this.rescuedResidentArrivalResident = null;
+        if (resident?.id) {
+            acknowledgeRescuedResidentArrival(window.GameState, resident.id);
+            window.AchievementSystem?.recordEvent?.('story_interaction', {
+                event: 'rescued_resident_arrival',
+                residentId: resident.id,
+                skipped
+            });
+        }
+        this.refreshSanctuaryResidentPresence();
+        if (this.rescuedResidentArrivalRestoreControls) {
+            this.mobileControls?.resume?.();
+        }
+        this.rescuedResidentArrivalRestoreControls = false;
+        this.rescuedResidentArrivalPreviousFocus = false;
+        const previousFollow = this.rescuedResidentArrivalPreviousCameraFollow;
+        const previousTarget = this.rescuedResidentArrivalPreviousCameraTarget;
+        this.rescuedResidentArrivalPreviousCameraFollow = null;
+        this.rescuedResidentArrivalPreviousCameraTarget = null;
+        const camera = this.cameras?.main;
+        camera?.panEffect?.reset?.();
+        if (restorePreviousFocus || this.nearVillageHeart) {
+            this.updateSanctuaryFocusMode(true);
+            this.applySanctuaryCameraFocus();
+        } else if (previousFollow && previousFollow.active !== false) {
+            camera?.startFollow?.(previousFollow, true, 0.12, 0.12);
+            this.applyExplorationCameraFollowOffset(camera);
+            this.sanctuaryCameraFocusTarget = null;
+            this.sanctuaryCameraFocusZoom = null;
+        } else if (previousTarget) {
+            camera?.pan?.(
+                previousTarget.x,
+                previousTarget.y,
+                320,
+                'Sine.easeInOut'
+            );
+            this.sanctuaryCameraFocusTarget = previousTarget;
+        } else {
+            this.updateSanctuaryFocusMode(false);
+            if (!this.restorePlayerCameraFollow()) {
+                this.sanctuaryCameraFocusTarget = null;
+                this.sanctuaryCameraFocusZoom = null;
+            }
+        }
+        this.sanctuaryInteractionDirector?.update?.({ force: true });
+        return true;
+    }
+
+    cancelRescuedResidentArrival() {
+        this.rescuedResidentArrivalScheduleTimer?.remove?.();
+        this.rescuedResidentArrivalTimer?.remove?.();
+        this.rescuedResidentArrivalSkipArmTimer?.remove?.();
+        this.rescuedResidentArrivalScheduleTimer = null;
+        this.rescuedResidentArrivalTimer = null;
+        this.rescuedResidentArrivalSkipArmTimer = null;
+        this.rescuedResidentArrivalInputShield?.off?.(
+            'pointerdown',
+            this.skipRescuedResidentArrival,
+            this
+        );
+        this.rescuedResidentArrivalInputShield?.destroy?.();
+        this.rescuedResidentArrivalInputShield = null;
+        this.input?.keyboard?.off?.(
+            'keydown',
+            this.skipRescuedResidentArrival,
+            this
+        );
+        this.worldBuilder?.clearRescuedResidentArrival?.(this.signalGarden);
+        this.setVillageArrivalChromeHidden(false);
+        this.setSanctuaryPeripheralWayfindingVisible(true);
+        if (this.rescuedResidentArrivalRestoreControls) {
+            this.mobileControls?.resume?.();
+        }
+        this.rescuedResidentArrivalRestoreControls = false;
+        this.rescuedResidentArrivalPreviousFocus = false;
+        this.rescuedResidentArrivalPreviousCameraFollow = null;
+        this.rescuedResidentArrivalPreviousCameraTarget = null;
+        this.rescuedResidentArrivalActive = false;
+        this.rescuedResidentArrivalResident = null;
     }
 
     /**
@@ -4563,7 +5677,7 @@ class GameScene extends Phaser.Scene {
         const villageSnapshot = getVillageSnapshot(window.GameState);
         const villageNeedsGuidance = villageSnapshot.unlock.unlocked &&
             !villageSnapshot.state.guidanceSeen;
-        const showNavigation = timesVisited < 5 || villageNeedsGuidance;
+        const showNavigation = timesVisited < 2 || villageNeedsGuidance;
 
         // Track visit
         window.GameState?.set('session.sanctuaryVisits', timesVisited + 1);
@@ -4573,14 +5687,10 @@ class GameScene extends Phaser.Scene {
             return;
         }
 
-        // Get landmark positions
-        const centerX = this.worldWidth / 2;
-        const centerY = this.worldHeight / 2;
-
         // Define key destinations with their info
         const destinations = [];
 
-        if (this.crashedShip) {
+        if (this.crashedShip && !villageNeedsGuidance) {
             destinations.push({
                 name: 'Story & Void',
                 icon: '🚀',
@@ -4591,7 +5701,7 @@ class GameScene extends Phaser.Scene {
             });
         }
 
-        if (this.hubPortal) {
+        if (this.hubPortal && !villageNeedsGuidance) {
             destinations.push({
                 name: 'Adventure Portal',
                 icon: '⭐',
@@ -4602,20 +5712,9 @@ class GameScene extends Phaser.Scene {
             });
         }
 
-        if (this.shop) {
-            destinations.push({
-                name: 'Cosmic Shop',
-                icon: '🏪',
-                x: this.shop.x,
-                y: this.shop.y,
-                color: 0xFFD700,
-                description: 'Buy eggs & items'
-            });
-        }
-
         if (this.villageHeartLandmark && villageSnapshot.unlock.unlocked) {
             destinations.push({
-                name: villageNeedsGuidance ? 'Village Heart: New' : 'Village Heart',
+                name: 'Village Heart',
                 icon: '+',
                 x: this.villageHeartLandmark.zone.x,
                 y: this.villageHeartLandmark.zone.y,
@@ -4625,26 +5724,11 @@ class GameScene extends Phaser.Scene {
             });
         }
 
-        // Add Target Range to navigation
-        if (this.targetRange && this.sanctuaryZones?.zones?.trainingGrounds) {
-            const zone = this.sanctuaryZones.zones.trainingGrounds;
-            destinations.push({
-                name: 'Target Range',
-                icon: '🎯',
-                x: zone.center.x,
-                y: zone.center.y,
-                color: 0xFF6B6B,
-                description: 'Practice shooting'
-            });
-        }
-
-        // Create glowing path trails and floating markers for each destination
-        destinations.forEach((dest, index) => {
-            this.createGlowingPath(centerX, centerY, dest.x, dest.y, dest.color);
-            if (dest.showMarker !== false) {
-                this.createFloatingMarker(dest);
-            }
-        });
+        // Physical district paths now carry wayfinding. Floating callouts only
+        // identify the first two global anchors, or the newly awakened Heart.
+        destinations
+            .filter(dest => dest.showMarker !== false)
+            .forEach(dest => this.createFloatingMarker(dest));
 
         console.log(`[GameScene] Navigation paths created for ${destinations.length} destinations`);
     }
@@ -4704,12 +5788,14 @@ class GameScene extends Phaser.Scene {
         glow.fillStyle(dest.color, 0.2);
         glow.fillCircle(0, 0, 30);
         glow.setPosition(dest.x, markerY);
-        glow.setDepth(100);
+        glow.setDepth(100)
+            .setData('navigationMarkerDestination', dest.name);
 
         // Create icon text
         const icon = this.add.text(dest.x, markerY - 5, dest.icon, {
             fontSize: '32px'
-        }).setOrigin(0.5).setDepth(101);
+        }).setOrigin(0.5).setDepth(101)
+            .setData('navigationMarkerDestination', dest.name);
 
         // Create name label below icon
         const label = this.add.text(dest.x, markerY + 30, dest.name, {
@@ -4718,27 +5804,18 @@ class GameScene extends Phaser.Scene {
             stroke: '#000000',
             strokeThickness: 3,
             fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(101);
+        }).setOrigin(0.5).setDepth(101)
+            .setData('navigationMarkerDestination', dest.name)
+            .setData('sanctuaryPeripheralLabel', true)
+            .setData('sanctuaryPeripheralDestination', dest.name);
 
-        // Floating animation
+        // One arrival flare establishes the landmark without permanent motion.
+        [glow, icon, label].forEach(element => element.setAlpha(0));
         this.tweens.add({
             targets: [glow, icon, label],
-            y: '-=10',
-            duration: 2000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-
-        // Glow pulsing
-        this.tweens.add({
-            targets: glow,
-            alpha: { from: 0.2, to: 0.5 },
-            scale: { from: 1, to: 1.3 },
-            duration: 1500,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
+            alpha: 1,
+            duration: 420,
+            ease: 'Cubic.easeOut'
         });
 
         // Store for cleanup
@@ -5352,11 +6429,11 @@ class GameScene extends Phaser.Scene {
      */
     showCosmicAffinityNotification(element, powerLevel) {
         const affinityInfo = {
-            star: { emoji: '⭐', color: '#FFD700', effect: 'Health regeneration enhanced' },
-            moon: { emoji: '🌙', color: '#C0C0FF', effect: 'Energy lasts longer' },
-            nebula: { emoji: '🌌', color: '#FF69B4', effect: 'Exploration XP bonus' },
-            crystal: { emoji: '💎', color: '#00FFFF', effect: 'Find more coins' },
-            void: { emoji: '🕳️', color: '#8B008B', effect: 'Combat damage boost' }
+            star: { color: 0xF2C14E, effect: 'Health recovers faster' },
+            moon: { color: 0xC9D6FF, effect: 'Energy lasts longer' },
+            nebula: { color: 0xD89CFF, effect: 'Exploration discoveries earn bonus XP' },
+            crystal: { color: 0x71E6DB, effect: 'Valuable finds appear more often' },
+            void: { color: 0xC58BE2, effect: 'Combat attacks deal more damage' }
         };
 
         const info = affinityInfo[element];
@@ -5368,30 +6445,105 @@ class GameScene extends Phaser.Scene {
 
         getGameState().set('session.shownCosmicAffinity', true);
 
-        const { width } = this.cameras.main;
-        const text = this.add.text(width / 2, 120, `${info.emoji} ${element.toUpperCase()} AFFINITY ${info.emoji}\n${info.effect}`, {
-            fontSize: '16px',
-            color: info.color,
-            stroke: '#000000',
-            strokeThickness: 3,
-            align: 'center'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(1500).setAlpha(0);
+        // World interactions own the player's attention. The resonance remains
+        // recorded in the creature profile, so it does not need to compete with
+        // an active Sanctuary landmark.
+        if (this.sanctuaryFocusModeActive || this.nearVillageHeart) return;
 
-        // Fade in, hold, fade out
+        this.dismissCosmicAffinityNotice(0);
+        this.dailyBonusButton?.setVisible?.(false);
+
+        const camera = this.cameras.main;
+        const compactNotice = camera.width <= 600;
+        const noticeLeft = compactNotice ? 88 : 16;
+        const noticeRight = 16;
+        const noticeWidth = Math.min(
+            300,
+            Math.max(200, camera.width - noticeLeft - noticeRight)
+        );
+        const noticeX = compactNotice
+            ? noticeLeft + noticeWidth / 2
+            : camera.width / 2;
+        const notice = this.add.container(noticeX, 24)
+            .setScrollFactor(0)
+            .setDepth(1500)
+            .setAlpha(0)
+            .setData('affinity', element)
+            .setData('powerLevel', powerLevel)
+            .setData('sanctuaryNotice', true);
+        const panel = this.add.graphics();
+        panel.fillStyle(0x071411, 0.88);
+        panel.fillRoundedRect(-noticeWidth / 2, 0, noticeWidth, 48, 6);
+        panel.fillStyle(info.color, 0.92);
+        panel.fillRoundedRect(-noticeWidth / 2, 0, 4, 48, 2);
+
+        const title = this.add.text(
+            -noticeWidth / 2 + 16,
+            9,
+            `${element.toUpperCase()} RESONANCE`,
+            {
+                fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F4F4F4'
+            }
+        );
+        const effect = this.add.text(
+            -noticeWidth / 2 + 16,
+            25,
+            info.effect,
+            {
+                fontSize: '11px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#D7E2DE'
+            }
+        );
+        notice.add([panel, title, effect]);
+        this.cosmicAffinityNotice = notice;
+
         this.tweens.add({
-            targets: text,
+            targets: notice,
             alpha: 1,
-            duration: 500,
+            y: 32,
+            duration: 220,
+            ease: 'Quad.easeOut',
             onComplete: () => {
-                this.time.delayedCall(2500, () => {
-                    this.tweens.add({
-                        targets: text,
-                        alpha: 0,
-                        y: text.y - 20,
-                        duration: 500,
-                        onComplete: () => text.destroy()
-                    });
-                });
+                this.cosmicAffinityNoticeTimer = this.time.delayedCall(
+                    2400,
+                    () => this.dismissCosmicAffinityNotice()
+                );
+            }
+        });
+    }
+
+    dismissCosmicAffinityNotice(duration = 180) {
+        this.cosmicAffinityNoticeTimer?.remove?.(false);
+        this.cosmicAffinityNoticeTimer = null;
+        const notice = this.cosmicAffinityNotice;
+        this.cosmicAffinityNotice = null;
+        if (!notice?.active) return;
+
+        const restoreDailyGift = () => {
+            if (!this.sanctuaryFocusModeActive) {
+                this.getHudController().updateDailyBonusButton();
+            }
+        };
+
+        this.tweens.killTweensOf(notice);
+        if (duration <= 0) {
+            notice.destroy(true);
+            restoreDailyGift();
+            return;
+        }
+        this.tweens.add({
+            targets: notice,
+            alpha: 0,
+            y: notice.y - 6,
+            duration,
+            ease: 'Quad.easeIn',
+            onComplete: () => {
+                notice.destroy(true);
+                restoreDailyGift();
             }
         });
     }
@@ -5565,6 +6717,100 @@ class GameScene extends Phaser.Scene {
 
         // Add breathing/idle animation to make creature feel alive
         this.addBreathingAnimation(this.player, 1.0);
+        this.updateSanctuaryActorDepths();
+    }
+
+    setupVillageHeartCollision() {
+        this.villageHeartCollider?.destroy?.();
+        this.villageHeartCollider = null;
+        if (!this.player?.body || !this.villageHeartLandmark?.collisionZone?.body) {
+            return null;
+        }
+        this.villageHeartCollider = this.physics.add.collider(
+            this.player,
+            this.villageHeartLandmark.collisionZone
+        );
+        return this.villageHeartCollider;
+    }
+
+    updateSanctuaryActorDepths() {
+        if (this.currentBiome !== 'nebula' || !this.player?.setDepth) return false;
+        const actorDepth = Number(this.player.y || 0);
+        this.player.setDepth(actorDepth)
+            .setData?.('sanctuaryDepthSorted', true);
+        this.generationAura?.setDepth?.(actorDepth - 1);
+        this.orbitingParticles?.forEach(orbit => {
+            orbit.graphics?.setDepth?.(actorDepth + 1);
+        });
+
+        const heart = this.villageHeartLandmark?.zone;
+        if (heart) {
+            const compact = this.scale?.width <= 600;
+            const heartBandX = compact ? 104 : 96;
+            const heartBandY = compact ? 132 : 120;
+            const insideHeartBand = Math.abs(this.player.x - heart.x) <= heartBandX &&
+                Math.abs(this.player.y - heart.y) <= heartBandY;
+            const layer = !insideHeartBand
+                ? 'clear'
+                : actorDepth > Number(heart.y || 0) + 2
+                    ? 'front'
+                    : 'behind';
+            this.player.setData?.('villageHeartLayer', layer);
+        }
+        this.updateVillageHeartPartyPresentation();
+        return true;
+    }
+
+    updateVillageHeartPartyPresentation() {
+        const landmark = this.villageHeartLandmark;
+        const follower = this.astronautFollower;
+        if (!landmark?.zone || !this.player) {
+            follower?.setContextualFormation?.(null);
+            return null;
+        }
+
+        const compact = this.scale.width <= 600;
+        const dx = this.player.x - landmark.zone.x;
+        const dy = this.player.y - landmark.zone.y;
+        const distance = Math.hypot(dx, dy);
+        const formationDistance = compact ? 162 : 190;
+        if (distance <= formationDistance) {
+            const fallbackX = this.player.flipX ? 1 : -1;
+            const normalX = distance > 12 ? dx / distance : fallbackX;
+            const normalY = distance > 12 ? dy / distance : 0;
+            const spacing = compact ? 70 : 78;
+            let tangentX = -normalY;
+            let tangentY = normalX;
+            if (tangentY > 0) {
+                tangentX *= -1;
+                tangentY *= -1;
+            }
+            follower?.setContextualFormation?.({
+                x: Math.round(
+                    compact ? (tangentX * spacing) + (normalX * 8) : normalX * spacing
+                ),
+                y: Math.round(
+                    compact ? (tangentY * spacing) + (normalY * 8) : normalY * spacing
+                )
+            }, 'village_heart_approach');
+        } else {
+            follower?.setContextualFormation?.(null);
+        }
+
+        const partyPositions = [
+            { x: this.player.x, y: this.player.y },
+            follower?.sprite?.active === true
+                ? { x: follower.sprite.x, y: follower.sprite.y }
+                : null
+        ].filter(Boolean);
+        const presence = this.worldBuilder?.setVillagePartyPresence?.(
+            landmark,
+            partyPositions
+        ) || null;
+        landmark.zone
+            .setData('villagePartyFormationActive', distance <= formationDistance)
+            .setData('villagePartyFormationDistance', formationDistance);
+        return presence;
     }
 
     createExpeditionAstronaut() {
@@ -5608,9 +6854,6 @@ class GameScene extends Phaser.Scene {
 
         console.log('game:info [GameScene] Adding breathing animation for stage:', stage);
 
-        // Store the base Y position for bobbing
-        const baseY = creature.y;
-
         // Breathing animation - gentle scale oscillation (squash/stretch)
         const breathingTween = this.tweens.add({
             targets: creature,
@@ -5623,30 +6866,23 @@ class GameScene extends Phaser.Scene {
         });
         this.breathingTweens.push(breathingTween);
 
-        // Subtle bobbing animation - only when not moving
-        const bobbingAmplitude = isBaby ? 4 : (isJuvenile ? 3 : 2);
-        const bobbingTween = this.tweens.add({
-            targets: creature,
-            y: baseY - bobbingAmplitude,
-            duration: breathingDuration * 1.2,
-            ease: 'Sine.easeInOut',
-            yoyo: true,
-            repeat: -1,
-            delay: 150, // Slight offset from breathing for natural feel
-            onUpdate: () => {
-                // Pause bobbing if player is moving significantly
-                if (creature.body && (Math.abs(creature.body.velocity.x) > 10 || Math.abs(creature.body.velocity.y) > 10)) {
-                    if (bobbingTween.isPlaying()) {
-                        bobbingTween.pause();
-                    }
-                } else {
-                    if (bobbingTween.isPaused()) {
-                        bobbingTween.resume();
-                    }
-                }
-            }
-        });
-        this.breathingTweens.push(bobbingTween);
+        // Physics owns the player's world position. Tweening a physics actor's
+        // y-coordinate makes idle animation fight joystick and collision motion.
+        if (!creature.body) {
+            const baseY = creature.y;
+            const bobbingAmplitude = isBaby ? 4 : (isJuvenile ? 3 : 2);
+            const bobbingTween = this.tweens.add({
+                targets: creature,
+                y: baseY - bobbingAmplitude,
+                duration: breathingDuration * 1.2,
+                ease: 'Sine.easeInOut',
+                yoyo: true,
+                repeat: -1,
+                delay: 150
+            });
+            this.breathingTweens.push(bobbingTween);
+        }
+        creature.setData?.('positionSafeBreathing', Boolean(creature.body));
 
         // Setup generation-based visual effects for bred creatures
         this.setupGenerationEffects();
@@ -7504,13 +8740,21 @@ class GameScene extends Phaser.Scene {
 
     handleFlowerInteraction(player, flower) {
         // Only show hint once per flower interaction to prevent spam
-        if (!this.nearbyFlower) {
-            // Show interaction hint when near flowers
-            this.showInteractionHint('Press SPACE to smell the flower');
-
-            // Update mobile interact button icon to flower
-            if (this.mobileControls) {
-                this.mobileControls.updateInteractIcon('🌸');
+        if (this.nearbyFlower !== flower) {
+            if (this.currentBiome === 'nebula') {
+                this.withdrawSanctuaryInteraction('flower');
+                this.offerSanctuaryInteraction({
+                    id: 'flower',
+                    target: flower,
+                    message: 'Press SPACE · Smell the flower',
+                    icon: '🌸',
+                    tone: 0x8FE3CF,
+                    priority: 8,
+                    action: () => this.smellNearbyFlower()
+                });
+            } else {
+                this.showInteractionHint('Press SPACE to smell the flower');
+                this.mobileControls?.updateInteractIcon('🌸');
             }
 
             // Track flower interaction for personality shaping
@@ -7636,14 +8880,30 @@ class GameScene extends Phaser.Scene {
             this.nearShop = true;
             console.log('[GameScene] Player near shop - showing interaction hint');
 
-            // Show shop entry hint
-            this.showInteractionHint('Press SPACE to visit the Cozy Cosmic Boutique');
-
-            // Update mobile interact button icon to shop
-            if (this.mobileControls) {
-                this.mobileControls.updateInteractIcon('🏪');
-            }
+            this.offerSanctuaryInteraction({
+                id: 'shop',
+                target: shop,
+                message: 'Press SPACE · Visit the Cosmic Shop',
+                icon: '🛍',
+                verb: 'SHOP',
+                label: 'SUPPLIES & BUILDING',
+                ownerLabel: 'COSMIC SHOP',
+                worldPrompt: true,
+                tone: 0xF2C14E,
+                priority: 20,
+                action: () => this.enterShop()
+            });
         }
+    }
+
+    offerSanctuaryInteraction(candidate) {
+        if (this.currentBiome !== 'nebula') return null;
+        return this.sanctuaryInteractionDirector?.offer(candidate) || null;
+    }
+
+    withdrawSanctuaryInteraction(id) {
+        if (this.currentBiome !== 'nebula') return null;
+        return this.sanctuaryInteractionDirector?.withdraw(id) || null;
     }
 
     enterShop() {
@@ -7672,6 +8932,7 @@ class GameScene extends Phaser.Scene {
 
         // Reset nearShop flag before entering
         this.nearShop = false;
+        this.withdrawSanctuaryInteraction('shop');
 
         // Save current player position before entering shop
         getGameState().set('world.lastPosition', {
@@ -7694,39 +8955,19 @@ class GameScene extends Phaser.Scene {
             this.nearHubPortal = true;
             console.log('[GameScene] Player near Hub Portal');
 
-            this.showInteractionHint('Press SPACE to travel to other worlds ⭐');
-
-            if (this.mobileControls) {
-                this.mobileControls.updateInteractIcon('⭐');
-            }
-
-            // Add mystical pulsing visual indicator around the hub gate
-            if (!this.portalIndicator && portal) {
-                this.portalIndicator = this.add.graphics();
-                this.portalIndicator.setDepth(portal.depth - 1);
-
-                const pulseAnim = this.tweens.add({
-                    targets: { scale: 1 },
-                    scale: 1.15,
-                    duration: 1500,
-                    yoyo: true,
-                    repeat: -1,
-                    ease: 'Sine.easeInOut',
-                    onUpdate: (tween, target) => {
-                        if (this.portalIndicator && portal) {
-                            this.portalIndicator.clear();
-                            // Mystical purple/cyan glow
-                            this.portalIndicator.lineStyle(3, 0x9370DB, 0.5);
-                            const radius = 90 * target.scale;
-                            this.portalIndicator.strokeCircle(portal.x, portal.y, radius);
-                            // Inner glow
-                            this.portalIndicator.lineStyle(2, 0x00CED1, 0.4);
-                            this.portalIndicator.strokeCircle(portal.x, portal.y, radius * 0.75);
-                        }
-                    }
-                });
-                this.portalPulseAnim = pulseAnim;
-            }
+            this.offerSanctuaryInteraction({
+                id: 'hubPortal',
+                target: portal,
+                message: 'Press SPACE · Begin an expedition',
+                icon: '⭐',
+                verb: 'EXPLORE',
+                label: 'CHOOSE A WORLD',
+                ownerLabel: 'ADVENTURE PORTAL',
+                worldPrompt: true,
+                tone: 0xBFA6FF,
+                priority: 35,
+                action: () => this.enterHubWorld()
+            });
         }
     }
 
@@ -7738,39 +8979,19 @@ class GameScene extends Phaser.Scene {
             this.nearCampfire = true;
             console.log('[GameScene] Player near Campfire');
 
-            this.showInteractionHint('Press SPACE to rest by the fire 🔥');
-
-            if (this.mobileControls) {
-                this.mobileControls.updateInteractIcon('🔥');
-            }
-
-            // Add warm glow indicator around campfire
-            if (!this.campfireIndicator && campfire) {
-                this.campfireIndicator = this.add.graphics();
-                this.campfireIndicator.setDepth(campfire.depth - 1);
-
-                const glowAnim = this.tweens.add({
-                    targets: { intensity: 1 },
-                    intensity: 1.2,
-                    duration: 1000,
-                    yoyo: true,
-                    repeat: -1,
-                    ease: 'Sine.easeInOut',
-                    onUpdate: (tween, target) => {
-                        if (this.campfireIndicator && campfire) {
-                            this.campfireIndicator.clear();
-                            // Warm orange glow
-                            this.campfireIndicator.lineStyle(3, 0xFF6600, 0.4 * target.intensity);
-                            const radius = 60 * target.intensity;
-                            this.campfireIndicator.strokeCircle(campfire.x, campfire.y, radius);
-                            // Inner warm glow
-                            this.campfireIndicator.lineStyle(2, 0xFFAA00, 0.3 * target.intensity);
-                            this.campfireIndicator.strokeCircle(campfire.x, campfire.y, radius * 0.6);
-                        }
-                    }
-                });
-                this.campfireGlowAnim = glowAnim;
-            }
+            this.offerSanctuaryInteraction({
+                id: 'campfire',
+                target: campfire,
+                message: 'Press SPACE · Rest together',
+                icon: '🔥',
+                verb: 'REST',
+                label: 'TOGETHER',
+                ownerLabel: 'CAMPFIRE',
+                worldPrompt: true,
+                tone: 0xF2C14E,
+                priority: 28,
+                action: () => this.startCampfireRest()
+            });
         }
     }
 
@@ -7802,9 +9023,19 @@ class GameScene extends Phaser.Scene {
             snapshot
         );
         if (this.nearFusionPod) {
-            this.showInteractionHint(
-                `Press SPACE · ${snapshot.interactionLabel}`
-            );
+            this.offerSanctuaryInteraction({
+                id: 'fusionPod',
+                target: this.fusionPodLandmark?.zone,
+                message: `Press SPACE · ${snapshot.interactionLabel}`,
+                icon: '🧬',
+                verb: snapshot.tone === 'ready' ? 'FUSE' : 'OPEN',
+                label: 'FUSION POD',
+                ownerLabel: 'FUSION POD',
+                worldPrompt: true,
+                tone: snapshot.tone === 'ready' ? 0x71E6B1 : 0xF2C14E,
+                priority: 24,
+                action: () => this.openFusionPod()
+            });
         }
         return snapshot;
     }
@@ -7815,38 +9046,18 @@ class GameScene extends Phaser.Scene {
         this.nearFusionPod = true;
         const snapshot = this.refreshFusionPodWorldLandmark() ||
             this.getFusionPodWorldSnapshot();
-        this.showInteractionHint(
-            `Press SPACE · ${snapshot.interactionLabel}`
-        );
-        this.mobileControls?.updateInteractIcon('🧬');
-
-        const zone = this.fusionPodLandmark?.zone;
-        if (!zone || this.fusionPodIndicator) return;
-        this.fusionPodIndicator = this.add.graphics();
-        this.fusionPodIndicator.setDepth((zone.depth || zone.y) - 1);
-        this.fusionPodIndicatorTween = this.tweens.add({
-            targets: { scale: 1 },
-            scale: 1.1,
-            duration: 1150,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut',
-            onUpdate: (_tween, target) => {
-                if (!this.fusionPodIndicator || !zone.active) return;
-                this.fusionPodIndicator.clear();
-                this.fusionPodIndicator.lineStyle(
-                    3,
-                    snapshot.tone === 'ready'
-                        ? 0x71E6B1
-                        : 0xF2C14E,
-                    0.5
-                );
-                this.fusionPodIndicator.strokeCircle(
-                    zone.x,
-                    zone.y,
-                    72 * target.scale
-                );
-            }
+        this.offerSanctuaryInteraction({
+            id: 'fusionPod',
+            target: this.fusionPodLandmark?.zone,
+            message: `Press SPACE · ${snapshot.interactionLabel}`,
+            icon: '🧬',
+            verb: snapshot.tone === 'ready' ? 'FUSE' : 'OPEN',
+            label: 'FUSION POD',
+            ownerLabel: 'FUSION POD',
+            worldPrompt: true,
+            tone: snapshot.tone === 'ready' ? 0x71E6B1 : 0xF2C14E,
+            priority: 24,
+            action: () => this.openFusionPod()
         });
     }
 
@@ -7866,38 +9077,33 @@ class GameScene extends Phaser.Scene {
                     : community.complete
                         ? 'Tend the Living Commons'
                         : 'Tend garden';
-        this.showInteractionHint(`Press SPACE · ${action}`);
-        this.mobileControls?.updateInteractIcon('🌱');
-
-        const gardenZone = this.signalGarden?.zone;
-        if (!gardenZone || this.signalGardenIndicator) return;
-
-        this.signalGardenIndicator = this.add.graphics();
-        this.signalGardenIndicator.setDepth((gardenZone.depth || gardenZone.y) - 1);
-        this.signalGardenIndicatorTween = this.tweens.add({
-            targets: { scale: 1 },
-            scale: 1.12,
-            duration: 1300,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut',
-            onUpdate: (tween, target) => {
-                if (!this.signalGardenIndicator || !gardenZone.active) return;
-                this.signalGardenIndicator.clear();
-                this.signalGardenIndicator.lineStyle(3, 0x71E6B1, 0.42);
-                this.signalGardenIndicator.strokeEllipse(
-                    gardenZone.x,
-                    gardenZone.y + 4,
-                    190 * target.scale,
-                    92 * target.scale
-                );
-            }
+        const presentation = culture.ready
+            ? { verb: 'LISTEN', label: 'WITH THE COMMONS' }
+            : community.nextProject?.ready
+                ? { verb: 'BUILD', label: community.nextProject.shortLabel }
+                : culture.complete
+                    ? { verb: 'REVIEW', label: culture.selectedPriority.shortLabel }
+                    : community.complete
+                        ? { verb: 'TEND', label: 'LIVING COMMONS' }
+                        : { verb: 'TEND', label: 'SIGNAL GARDEN' };
+        this.offerSanctuaryInteraction({
+            id: 'signalGarden',
+            target: this.signalGarden?.zone,
+            message: `Press SPACE · ${action}`,
+            icon: '🌱',
+            ...presentation,
+            ownerLabel: 'SIGNAL GARDEN',
+            worldPrompt: true,
+            tone: 0x71E6B1,
+            priority: 32,
+            action: () => this.tendSignalGarden()
         });
     }
 
     handleVillageHeartProximity() {
         if (this.nearVillageHeart) return;
         this.nearVillageHeart = true;
+        this.updateSanctuaryFocusMode(true);
         const snapshot = reconcileVillageSettlement(window.GameState)
             || getVillageSnapshot(window.GameState);
         const needsGuidance = snapshot.unlock.unlocked &&
@@ -7905,17 +9111,186 @@ class GameScene extends Phaser.Scene {
         if (needsGuidance) {
             markVillageGuidanceSeen(window.GameState);
         }
-        const openAction = this.mobileControls
-            ? 'Tap a build site or use BUILD · Open Village Builder'
-            : 'Press SPACE or click a build site · Open Village Builder';
-        this.showInteractionHint(
-            snapshot.unlock.unlocked
-                ? needsGuidance
-                    ? `Village Heart awakened · ${openAction}`
-                    : openAction
-                : `Village Heart offline · ${snapshot.unlock.reason}`
+        this.offerVillageHeartInteraction(snapshot, {
+            includeGuidance: needsGuidance
+        });
+        const nextAction = snapshot.worldState?.nextAction;
+        const returnPlayed = this.maybePlayVillageReturnRitual(snapshot);
+        const memoryPlayed = !returnPlayed && this.maybePlayVillageHeartMemory(snapshot);
+        const quietArrival = ['review', 'supplies'].includes(nextAction?.type);
+        if (!returnPlayed && !memoryPlayed && quietArrival) {
+            this.maybePlayVillageCommunityMoment(snapshot);
+        }
+    }
+
+    offerVillageHeartInteraction(snapshot, { includeGuidance = false } = {}) {
+        if (!snapshot || !this.villageHeartLandmark?.zone) return null;
+        const touchControlsVisible = this.hasVisibleTouchControls();
+        const nextAction = snapshot.worldState?.nextAction;
+        const directPlotAction = Boolean(
+            (this.sanctuaryFocusModeActive || this.nearVillageHeart) &&
+            ['build', 'assign'].includes(nextAction?.type)
         );
-        this.mobileControls?.updateInteractIcon('🏗');
+        const interactionPresentation = this.getVillageHeartInteractionPresentation(snapshot);
+        return this.offerSanctuaryInteraction({
+            id: 'villageHeart',
+            target: this.villageHeartLandmark?.zone,
+            message: this.getVillageHeartInteractionPrompt(snapshot, {
+                includeGuidance,
+                touchControlsVisible
+            }),
+            ...interactionPresentation,
+            ownerLabel: 'VILLAGE HEART',
+            worldPrompt: true,
+            worldCommandPlacement: 'target',
+            suppressWorldBeacon: directPlotAction,
+            ariaLabel: `${interactionPresentation.verb} ${interactionPresentation.label}`,
+            tone: nextAction?.type === 'decision' ? 0xF2C14E : 0x71E6B1,
+            priority: 48,
+            action: () => this.openVillageCommand(),
+            presentation: () => {
+                const liveSnapshot = this.villageHeartLandmark?.snapshot ||
+                    getVillageSnapshot(window.GameState);
+                const livePresentation = this.getVillageHeartInteractionPresentation(
+                    liveSnapshot
+                );
+                const liveNextAction = liveSnapshot?.worldState?.nextAction;
+                return {
+                    ...livePresentation,
+                    message: this.getVillageHeartInteractionPrompt(liveSnapshot),
+                    ariaLabel: `${livePresentation.verb} ${livePresentation.label}`,
+                    suppressWorldBeacon: Boolean(
+                        (this.sanctuaryFocusModeActive || this.nearVillageHeart) &&
+                        ['build', 'assign'].includes(liveNextAction?.type)
+                    )
+                };
+            }
+        });
+    }
+
+    getVillageHeartInteractionPresentation(snapshot) {
+        if (!snapshot?.unlock?.unlocked) {
+            return {
+                verb: 'DORMANT',
+                label: 'HATCH A COMPANION',
+                icon: '·'
+            };
+        }
+
+        const nextAction = snapshot.worldState?.nextAction || {};
+        const targetPlot = snapshot.plots?.find(plot => plot.id === nextAction.plotId);
+        const presentationByType = {
+            decision: {
+                verb: 'DECIDE',
+                label: 'TOGETHER',
+                icon: '?'
+            },
+            build: {
+                verb: 'BUILD NEXT',
+                label: targetPlot?.label || 'HIGHLIGHTED ROOT',
+                icon: '+'
+            },
+            assign: {
+                verb: 'INVITE HELP',
+                label: targetPlot?.label || 'READY STRUCTURE',
+                icon: '+'
+            },
+            supplies: {
+                verb: 'GATHER',
+                label: 'SUPPLIES',
+                icon: '↗'
+            },
+            review: {
+                verb: 'REVIEW',
+                label: 'SANCTUARY & COMMUNITY',
+                icon: '✦'
+            }
+        };
+        return presentationByType[nextAction.type] || {
+            verb: 'OPEN',
+            label: 'VILLAGE HEART',
+            icon: '✦'
+        };
+    }
+
+    getVillageHeartInteractionPrompt(
+        snapshot,
+        {
+            includeGuidance = false,
+            touchControlsVisible = this.hasVisibleTouchControls()
+        } = {}
+    ) {
+        if (!snapshot?.unlock?.unlocked) {
+            return `Village Heart offline · ${snapshot?.unlock?.reason || 'Hatch a companion first'}`;
+        }
+
+        const nextAction = snapshot.worldState?.nextAction;
+        const targetPlot = snapshot.plots?.find(plot => plot.id === nextAction?.plotId);
+        const actionPrompts = {
+            decision: touchControlsVisible
+                ? 'Tap the Village Heart · Decide together'
+                : 'Press SPACE at the Heart · Decide together',
+            build: touchControlsVisible
+                ? `Tap ${targetPlot?.label || 'the highlighted foundation'} · ${nextAction?.label}`
+                : `Click ${targetPlot?.label || 'the highlighted foundation'} · ${nextAction?.label}`,
+            assign: touchControlsVisible
+                ? `Tap ${targetPlot?.label || 'the highlighted structure'} · Invite a helper`
+                : `Click ${targetPlot?.label || 'the highlighted structure'} · Invite a helper`,
+            supplies: `${nextAction?.label || 'Gather supplies'} · The village keeps working`,
+            review: touchControlsVisible
+                ? 'Tap the Village Heart · Review Sanctuary and community'
+                : 'Press SPACE at the Heart · Review Sanctuary and community'
+        };
+        const prompt = actionPrompts[nextAction?.type] || (
+            touchControlsVisible
+                ? 'Tap the Village Heart · Open Sanctuary and community'
+                : 'Press SPACE at the Heart · Open Sanctuary and community'
+        );
+        return includeGuidance ? `Village Heart awakened · ${prompt}` : prompt;
+    }
+
+    setSanctuaryMomentFocus(active, { kind = null, plotId = null } = {}) {
+        if (!this.villageHeartLandmark || !this.worldBuilder) return false;
+        if (active) {
+            this.clearVillageResidentJourneyInteraction();
+            this.worldBuilder.clearVillageResidentGreeting?.(
+                this.villageHeartLandmark
+            );
+        }
+        const nextMode = active ? 'story' : this.nearVillageHeart ? 'action' : 'ambient';
+        this.sanctuaryPresentationMode = nextMode;
+        this.sanctuaryInteractionDirector?.update({ force: true });
+        this.worldBuilder.setVillageFocusMode(
+            this.villageHeartLandmark,
+            active || this.nearVillageHeart,
+            {
+                immediate: !active,
+                presentationMode: nextMode,
+                focusPlotIdOverride: active ? plotId : undefined
+            }
+        );
+        this.villageHeartLandmark.zone
+            ?.setData('sanctuaryPresentationMode', nextMode)
+            .setData('sanctuaryMomentKind', active ? kind : null);
+
+        if (active) {
+            this.hideInteractionHint();
+            this.mobileControls?.updateInteractIcon('✦');
+            return true;
+        }
+
+        if (this.nearVillageHeart) {
+            const snapshot = this.villageHeartLandmark.snapshot ||
+                getVillageSnapshot(window.GameState);
+            this.showInteractionHint(
+                this.getVillageHeartInteractionPrompt(snapshot),
+                { persistent: true }
+            );
+            this.mobileControls?.updateInteractIcon(
+                snapshot.worldState?.nextAction?.type === 'decision' ? '?' : '🏗'
+            );
+        }
+        return true;
     }
 
     getVillageRenderSignature(snapshot) {
@@ -7926,6 +9301,36 @@ class GameScene extends Phaser.Scene {
                 status: building.status,
                 creatureId: building.assignedCreatureId,
                 multiplier: building.workProfile?.multiplier || null
+            })) || [],
+            homeResidents: snapshot?.home?.residents?.map(resident => ({
+                id: resident.id,
+                atWork: resident.atWork,
+                workBuildingId: resident.workBuildingId
+            })) || [],
+            residentRoutines: snapshot?.residentRoutines?.map(routine => ({
+                residentId: routine.residentId,
+                location: routine.location,
+                route: routine.route,
+                destinationId: routine.destinationId
+            })) || [],
+            community: {
+                companionIds: snapshot?.community?.companions?.map(
+                    companion => companion.id
+                ) || [],
+                residentIds: snapshot?.community?.residents?.map(
+                    resident => resident.id
+                ) || [],
+                guardianOutcomes: snapshot?.community?.guardianAllies?.map(
+                    guardian => ({
+                        id: guardian.guardianId,
+                        standing: guardian.standing,
+                        sanctuaryPresence: guardian.sanctuaryPresence
+                    })
+                ) || []
+            },
+            heartDecisions: snapshot?.heartDecision?.completed?.map(choice => ({
+                decisionId: choice.decisionId,
+                optionId: choice.optionId
             })) || []
         });
     }
@@ -7933,16 +9338,44 @@ class GameScene extends Phaser.Scene {
     refreshVillageSettlementWorld(snapshot = null, { force = false } = {}) {
         if (!this.villageHeartLandmark || !this.worldBuilder) return null;
         const nextSnapshot = snapshot || getVillageSnapshot(window.GameState);
+        if (nextSnapshot?.unlock?.unlocked === true) {
+            this.dismissLegacyTutorialHint();
+        }
         const signature = this.getVillageRenderSignature(nextSnapshot);
         if (!force && signature === this.villageRenderSignature) {
             return nextSnapshot;
         }
         this.villageRenderSignature = signature;
+        this.clearVillageResidentJourneyInteraction();
+        this.syncVillagePlotInteraction(null, null);
         this.worldBuilder.refreshVillageSettlement(
             this.villageHeartLandmark,
             nextSnapshot
         );
+        this.refreshSanctuaryResidentPresence(nextSnapshot);
+        this.sanctuaryInteractionDirector?.update?.({ force: true });
         return nextSnapshot;
+    }
+
+    refreshSanctuaryResidentPresence(villageSnapshot = null) {
+        if (
+            this.currentBiome !== 'nebula' ||
+            !this.signalGarden?.zone ||
+            !this.worldBuilder ||
+            this.rescuedResidentArrivalActive
+        ) {
+            return false;
+        }
+        this.worldBuilder.refreshRescuedResidents(
+            this.signalGarden,
+            getRescuedResidentSnapshot(window.GameState),
+            {
+                villageSnapshot: villageSnapshot ||
+                    getVillageSnapshot(window.GameState)
+            }
+        );
+        this.setupRescuedResidentOverlaps();
+        return true;
     }
 
     notifyVillageProgress(previous, next) {
@@ -7956,6 +9389,11 @@ class GameScene extends Phaser.Scene {
             building.status === 'complete' && !previousComplete.has(building.id)
         ));
         if (completed) {
+            this.worldBuilder?.playVillageBuildingMoment?.(
+                this.villageHeartLandmark,
+                completed,
+                { stage: 'complete' }
+            );
             this.showVillageCompletionMoment(completed);
             this.showInteractionHint(
                 `${completed.definition.shortLabel} online · ${completed.definition.immediateImpact}`
@@ -7967,6 +9405,7 @@ class GameScene extends Phaser.Scene {
         if (!this.nearVillageHeart) return;
         const gains = VILLAGE_RESOURCE_DEFINITIONS
             .map(resource => ({
+                id: resource.id,
                 label: resource.label,
                 amount: Math.max(
                     0,
@@ -7976,11 +9415,143 @@ class GameScene extends Phaser.Scene {
             }))
             .filter(gain => gain.amount > 0);
         if (gains.length > 0) {
+            this.worldBuilder?.playVillageProductionMoment?.(
+                this.villageHeartLandmark,
+                next,
+                gains
+            );
             this.showInteractionHint(
                 `Village production · ${gains.map(gain => `+${gain.amount} ${gain.label}`).join(' · ')}`
             );
             window.AudioManager?.playCoin?.();
         }
+    }
+
+    maybePlayVillageCommunityMoment(snapshot, { force = false } = {}) {
+        if (
+            this._isShuttingDown ||
+            !this.nearVillageHeart ||
+            !this.villageHeartLandmark ||
+            !snapshot
+        ) {
+            return false;
+        }
+        const now = this.time?.now || Date.now();
+        if (
+            !force &&
+            this.lastVillageCommunityMomentAt > 0 &&
+            now - this.lastVillageCommunityMomentAt < 14000
+        ) {
+            return false;
+        }
+        const moment = getVillageCommunityMoment(snapshot, {
+            cycle: this.villageCommunityMomentIndex
+        });
+        if (!moment) return false;
+        const played = this.worldBuilder?.playVillageCommunityMoment?.(
+            this.villageHeartLandmark,
+            moment
+        ) === true;
+        if (!played) return false;
+        this.villageCommunityMomentIndex += 1;
+        this.lastVillageCommunityMomentAt = now;
+        return true;
+    }
+
+    maybePlayVillageReturnRitual(snapshot, { force = false, expedition = null } = {}) {
+        if (
+            this._isShuttingDown ||
+            !this.nearVillageHeart ||
+            !this.villageHeartLandmark ||
+            !snapshot
+        ) {
+            return false;
+        }
+        const pending = expedition || window.GameState
+            ?.get?.('story.projectBeacon.pendingDebriefs')
+            ?.find?.(entry => entry?.levelId) || null;
+        if (!pending) return false;
+        const ritual = getVillageReturnRitual(snapshot, pending);
+        if (!ritual) return false;
+        const seen = Array.isArray(
+            window.GameState?.get?.('story.projectBeacon.villageReturnRitualsSeen')
+        )
+            ? window.GameState.get('story.projectBeacon.villageReturnRitualsSeen')
+            : [];
+        if (!force && seen.includes(ritual.id)) return false;
+        const played = this.worldBuilder?.playVillageReturnRitual?.(
+            this.villageHeartLandmark,
+            ritual
+        ) === true;
+        if (!played) return false;
+        if (!seen.includes(ritual.id)) {
+            window.GameState?.set?.(
+                'story.projectBeacon.villageReturnRitualsSeen',
+                [...seen, ritual.id].slice(-16)
+            );
+            window.GameState?.save?.();
+        }
+        window.AchievementSystem?.recordEvent?.('story_interaction', {
+            event: 'village_return_ritual',
+            levelId: ritual.levelId
+        });
+        return true;
+    }
+
+    maybePlayVillageHeartMemory(snapshot, { force = false } = {}) {
+        if (
+            this._isShuttingDown ||
+            !this.nearVillageHeart ||
+            !this.villageHeartLandmark ||
+            !snapshot
+        ) {
+            return false;
+        }
+        const now = this.time?.now || Date.now();
+        if (
+            !force &&
+            this.lastVillageHeartMemoryAt > 0 &&
+            now - this.lastVillageHeartMemoryAt < 18000
+        ) {
+            return false;
+        }
+        const memory = getVillageHeartMemory(snapshot, {
+            cycle: this.villageHeartMemoryIndex
+        });
+        if (!memory) return false;
+        const played = this.worldBuilder?.playVillageHeartMemory?.(
+            this.villageHeartLandmark,
+            memory
+        ) === true;
+        if (!played) return false;
+        this.villageHeartMemoryIndex += 1;
+        this.lastVillageHeartMemoryAt = now;
+        return true;
+    }
+
+    showVillageWorkerCheckIn({ creatureId, snapshot = null } = {}) {
+        const checkIn = getVillageWorkerCheckIn(
+            snapshot || getVillageSnapshot(window.GameState),
+            { creatureId }
+        );
+        if (!checkIn) return false;
+        const played = this.worldBuilder?.playVillageWorkerCheckIn?.(
+            this.villageHeartLandmark,
+            checkIn
+        ) === true;
+        if (!played) return false;
+        this.showInteractionHint(`${checkIn.name} · ${checkIn.routineCue}`);
+        window.AudioManager?.playButtonClick?.();
+        window.AchievementSystem?.recordEvent?.('story_interaction', {
+            event: 'village_worker_check_in',
+            creatureId: checkIn.creatureId,
+            buildingId: checkIn.definitionId
+        });
+        return true;
+    }
+
+    openVillageWorkerCheckIn({ creatureId, snapshot = null } = {}) {
+        return this.showVillageWorkerCheckIn({ creatureId, snapshot });
     }
 
     showVillageCompletionMoment(building) {
@@ -7996,7 +9567,7 @@ class GameScene extends Phaser.Scene {
         const { width } = this.cameras.main;
         const compact = width < 600;
         const panelWidth = Math.min(width - (compact ? 24 : 48), compact ? 350 : 480);
-        const panelHeight = compact ? 110 : 122;
+        const panelHeight = compact ? 142 : 150;
         const x = width / 2;
         const y = compact ? 116 : 96;
         const container = this.add.container(x, y)
@@ -8024,13 +9595,19 @@ class GameScene extends Phaser.Scene {
             fontStyle: 'bold',
             color: '#F4F4F4'
         });
-        const impact = this.add.text(textX, -panelHeight / 2 + 64, building.definition.immediateImpact, {
+        const story = this.add.text(textX, -panelHeight / 2 + 64, building.definition.completionCopy, {
             fontFamily: 'Arial, sans-serif',
-            fontSize: compact ? '10px' : '12px',
-            color: '#8FE3CF',
+            fontSize: compact ? '10px' : '11px',
+            color: '#F4F4F4',
             wordWrap: { width: panelWidth - (artwork ? (compact ? 136 : 154) : 40) }
         });
-        container.add([panel, signal, ...(artwork ? [artwork] : []), heading, title, impact]);
+        const impact = this.add.text(textX, -panelHeight / 2 + (compact ? 105 : 108), building.definition.worldEffectLabel, {
+            fontFamily: 'Arial, sans-serif',
+            fontSize: compact ? '10px' : '11px',
+            fontStyle: 'bold',
+            color: '#8FE3CF'
+        });
+        container.add([panel, signal, ...(artwork ? [artwork] : []), heading, title, story, impact]);
         this.villageCompletionMoment = container;
 
         this.tweens.add({
@@ -8069,15 +9646,24 @@ class GameScene extends Phaser.Scene {
             loop: true,
             callback: () => {
                 if (this._isShuttingDown) return;
-                const previous = getVillageSnapshot(window.GameState);
-                const snapshot = reconcileVillageSettlement(window.GameState);
-                this.notifyVillageProgress(previous, snapshot);
-                this.refreshVillageSettlementWorld(snapshot);
+                this.reconcileVillageSettlementNow();
             }
         });
     }
 
-    openVillageCommand() {
+    reconcileVillageSettlementNow({ notify = true } = {}) {
+        if (this._isShuttingDown || !this.villageHeartLandmark) return null;
+        const previous = getVillageSnapshot(window.GameState);
+        const snapshot = reconcileVillageSettlement(window.GameState);
+        this.refreshVillageSettlementWorld(snapshot);
+        if (notify) {
+            this.notifyVillageProgress(previous, snapshot);
+            this.maybePlayVillageCommunityMoment(snapshot);
+        }
+        return snapshot;
+    }
+
+    openVillageCommand({ plotId = null } = {}) {
         const snapshot = initializeVillageSettlement(window.GameState);
         this.refreshVillageSettlementWorld(snapshot, { force: true });
         if (!snapshot?.unlock?.unlocked) {
@@ -8089,11 +9675,21 @@ class GameScene extends Phaser.Scene {
             this.villageCommandPanel = new VillageCommandPanel(this);
         }
         return this.villageCommandPanel.show({
+            plotId,
+            guided: plotId === null,
             getSnapshot: () => getVillageSnapshot(window.GameState),
             onPlace: request => {
                 const result = placeVillageBuilding(window.GameState, request);
                 this.refreshVillageSettlementWorld(result.snapshot, { force: true });
                 if (result.changed) {
+                    const building = result.snapshot?.buildings?.find(
+                        entry => entry.id === result.buildingId
+                    );
+                    this.worldBuilder?.playVillageBuildingMoment?.(
+                        this.villageHeartLandmark,
+                        building,
+                        { stage: 'construction' }
+                    );
                     window.AudioManager?.playAchievement?.();
                     window.AchievementSystem?.recordEvent?.('story_interaction', {
                         event: 'village_construction_started',
@@ -8112,7 +9708,28 @@ class GameScene extends Phaser.Scene {
                 this.refreshVillageSettlementWorld(result.snapshot, { force: true });
                 if (result.changed) {
                     this.recordBondActivity('community');
+                    this.villageCommunityMomentPending = true;
                     window.AudioManager?.playButtonClick?.();
+                } else {
+                    window.AudioManager?.playError?.();
+                }
+                return result;
+            },
+            onDecision: request => {
+                const result = resolveVillageHeartDecision(
+                    window.GameState,
+                    request
+                );
+                this.refreshVillageSettlementWorld(result.snapshot, { force: true });
+                if (result.changed) {
+                    this.villageDecisionMomentPending = result;
+                    this.recordBondActivity('community');
+                    window.AudioManager?.playAchievement?.();
+                    window.AchievementSystem?.recordEvent?.('story_interaction', {
+                        event: 'village_heart_decision',
+                        decisionId: result.decision.id,
+                        optionId: result.option.id
+                    });
                 } else {
                     window.AudioManager?.playError?.();
                 }
@@ -8121,12 +9738,31 @@ class GameScene extends Phaser.Scene {
             onTick: () => {
                 const previous = getVillageSnapshot(window.GameState);
                 const next = reconcileVillageSettlement(window.GameState);
-                this.notifyVillageProgress(previous, next);
                 this.refreshVillageSettlementWorld(next);
+                this.notifyVillageProgress(previous, next);
                 return next;
             },
             onClose: () => {
-                this.showInteractionHint('Village Heart plan saved');
+                const closeSnapshot = getVillageSnapshot(window.GameState);
+                if (this.nearVillageHeart) {
+                    this.offerVillageHeartInteraction(closeSnapshot);
+                } else {
+                    this.showInteractionHint('Village Heart plan saved');
+                }
+                if (this.villageCommunityMomentPending) {
+                    this.villageCommunityMomentPending = false;
+                    this.maybePlayVillageCommunityMoment(
+                        closeSnapshot,
+                        { force: true }
+                    );
+                }
+                if (this.villageDecisionMomentPending) {
+                    this.worldBuilder?.playVillageDecisionMoment?.(
+                        this.villageHeartLandmark,
+                        this.villageDecisionMomentPending
+                    );
+                    this.villageDecisionMomentPending = null;
+                }
             }
         });
     }
@@ -8139,6 +9775,11 @@ class GameScene extends Phaser.Scene {
         const resident = snapshot.residents.find(entry => entry.id === residentId);
         if (!resident?.available) return;
 
+        if (this.nearFendResidentId) {
+            this.withdrawSanctuaryInteraction(
+                `fendResident:${this.nearFendResidentId}`
+            );
+        }
         this.nearFendResidentId = residentId;
         const currentVeil = getCurrentVeilSnapshot(window.GameState);
         const recovery = getRemainAndDefendSnapshot(window.GameState);
@@ -8169,8 +9810,19 @@ class GameScene extends Phaser.Scene {
         } else {
             action = `Meet ${resident.name}`;
         }
-        this.showInteractionHint(`Press SPACE · ${action}`);
-        this.mobileControls?.updateInteractIcon('!');
+        this.offerSanctuaryInteraction({
+            id: `fendResident:${residentId}`,
+            target: zone,
+            message: `Press SPACE · ${action}`,
+            icon: '💬',
+            verb: 'TALK',
+            label: resident.name,
+            ownerLabel: resident.name,
+            worldPrompt: true,
+            tone: resident.accent || 0x8FE3CF,
+            priority: 56,
+            action: () => this.interactWithFendResident()
+        });
     }
 
     setupFendResidentOverlaps() {
@@ -8201,6 +9853,11 @@ class GameScene extends Phaser.Scene {
             .find(entry => entry.id === guardianId);
         if (!resident) return;
 
+        if (this.nearGuardianResidentId) {
+            this.withdrawSanctuaryInteraction(
+                `guardianResident:${this.nearGuardianResidentId}`
+            );
+        }
         this.nearGuardianResidentId = guardianId;
         const lastRecognitionAt = this.guardianRecognitionCooldowns.get(
             guardianId
@@ -8231,8 +9888,19 @@ class GameScene extends Phaser.Scene {
                     : resident.activeTeam
                         ? `Assist: ${resident.routineCare.action}`
                         : `Speak with ${resident.name}`;
-        this.showInteractionHint(`Press SPACE · ${action}`);
-        this.mobileControls?.updateInteractIcon('!');
+        this.offerSanctuaryInteraction({
+            id: `guardianResident:${guardianId}`,
+            target: zone,
+            message: `Press SPACE · ${action}`,
+            icon: '💬',
+            verb: 'TALK',
+            label: resident.name,
+            ownerLabel: resident.name,
+            worldPrompt: true,
+            tone: resident.accent || 0xBFA6FF,
+            priority: 58,
+            action: () => this.interactWithGuardianResident()
+        });
     }
 
     setupGuardianResidentOverlaps() {
@@ -8263,11 +9931,25 @@ class GameScene extends Phaser.Scene {
             .find(entry => entry.id === residentId);
         if (!resident) return;
 
+        if (this.nearRescuedResidentId) {
+            this.withdrawSanctuaryInteraction(
+                `rescuedResident:${this.nearRescuedResidentId}`
+            );
+        }
         this.nearRescuedResidentId = residentId;
-        this.showInteractionHint(
-            `Press SPACE · Check supplies with ${resident.name}`
-        );
-        this.mobileControls?.updateInteractIcon('!');
+        this.offerSanctuaryInteraction({
+            id: `rescuedResident:${residentId}`,
+            target: zone,
+            message: `Press SPACE · Talk with ${resident.name}`,
+            icon: '💬',
+            verb: 'TALK',
+            label: resident.name,
+            ownerLabel: resident.name,
+            worldPrompt: true,
+            tone: resident.accent || 0xF2C14E,
+            priority: 54,
+            action: () => this.interactWithRescuedResident()
+        });
     }
 
     setupRescuedResidentOverlaps() {
@@ -8275,6 +9957,12 @@ class GameScene extends Phaser.Scene {
             collider?.destroy?.();
         });
         this.rescuedResidentOverlapColliders = [];
+        if (this.nearRescuedResidentId) {
+            this.withdrawSanctuaryInteraction(
+                `rescuedResident:${this.nearRescuedResidentId}`
+            );
+            this.nearRescuedResidentId = null;
+        }
         if (!this.player) return;
 
         this.signalGarden?.rescuedResidents?.forEach(resident => {
@@ -8337,8 +10025,8 @@ class GameScene extends Phaser.Scene {
         overlay.lineBetween(0, top + bandHeight, width, top + bandHeight);
         elements.push(overlay);
 
-        const addText = (y, value, style = {}) => {
-            const entry = this.add.text(width / 2, y, value, {
+        const addText = (y, value, style = {}, x = width / 2) => {
+            const entry = this.add.text(x, y, value, {
                 fontFamily: 'Arial, sans-serif',
                 align: 'center',
                 wordWrap: { width: Math.min(width - 38, 700) },
@@ -8349,7 +10037,7 @@ class GameScene extends Phaser.Scene {
             return entry;
         };
 
-        addText(top + 32, 'SANCTUARY // RESCUED RESIDENT', {
+        addText(top + 32, 'SANCTUARY // COMMUNITY', {
             fontSize: compact ? '11px' : '13px',
             color: '#8FE3CF',
             fontStyle: 'bold'
@@ -8359,26 +10047,80 @@ class GameScene extends Phaser.Scene {
             color: '#F2C14E',
             fontStyle: 'bold'
         });
-        addText(top + (compact ? 145 : 154), `"${result.line}"`, {
+        addText(top + 103, 'LIVES IN THE SIGNAL GARDEN', {
+            fontSize: compact ? '10px' : '12px',
+            color: '#8FE3CF',
+            fontStyle: 'bold'
+        });
+
+        const portraitBounds = compact
+            ? { x: 14, y: top + 119, width: 96, height: 110 }
+            : { x: (width / 2) - 350, y: top + 116, width: 126, height: 134 };
+        const portraitFrame = this.add.graphics()
+            .setScrollFactor(0)
+            .setDepth(depth + 1);
+        portraitFrame.fillStyle(0x07100F, 0.96);
+        portraitFrame.fillRoundedRect(
+            portraitBounds.x,
+            portraitBounds.y,
+            portraitBounds.width,
+            portraitBounds.height,
+            6
+        );
+        portraitFrame.lineStyle(2, resident.accent, 0.96);
+        portraitFrame.strokeRoundedRect(
+            portraitBounds.x,
+            portraitBounds.y,
+            portraitBounds.width,
+            portraitBounds.height,
+            6
+        );
+        portraitFrame.setData('rescuedResidentPortraitFrame', true);
+        elements.push(portraitFrame);
+        if (this.textures.exists(resident.textureKey)) {
+            const portrait = this.add.image(
+                portraitBounds.x + (portraitBounds.width / 2),
+                portraitBounds.y + (portraitBounds.height / 2),
+                resident.textureKey
+            ).setScrollFactor(0).setDepth(depth + 2)
+                .setData('rescuedResidentAuthoredPortrait', true);
+            portrait.setScale(Math.min(
+                (portraitBounds.width - 10) / Math.max(1, portrait.width),
+                (portraitBounds.height - 10) / Math.max(1, portrait.height)
+            ));
+            elements.push(portrait);
+        }
+
+        addText(top + (compact ? 168 : 181), `"${result.line}"`, {
             fontSize: compact ? '15px' : '18px',
             color: '#F4F4F4',
             fontStyle: 'italic',
-            lineSpacing: 5
-        });
-        addText(top + (compact ? 238 : 260), result.supportLabel.toUpperCase(), {
+            lineSpacing: 5,
+            wordWrap: { width: compact ? width - 145 : 540 }
+        }, compact ? (width / 2) + 52 : (width / 2) + 76);
+        addText(
+            top + (compact ? 225 : 246),
+            (resident.contributionLine || resident.sanctuaryLine).toUpperCase(),
+            {
+                fontSize: compact ? '11px' : '13px',
+                color: '#F2C14E',
+                fontStyle: 'bold'
+            }
+        );
+        addText(top + (compact ? 258 : 282), result.supportLabel.toUpperCase(), {
             fontSize: compact ? '12px' : '14px',
             color: '#8FE3CF',
             fontStyle: 'bold'
         });
         addText(
-            top + (compact ? 290 : 320),
-            `SUPPLY CHECK ${result.interactionCount} // SUPPORT APPLIES ON THE NEXT EXPEDITION`,
+            top + (compact ? 302 : 334),
+            `COMMUNITY CHECK-IN ${result.interactionCount} // THEIR WORK CHANGES THE NEXT EXPEDITION`,
             {
                 fontSize: compact ? '10px' : '12px',
                 color: '#AFC3CF'
             }
         );
-        const continueButton = addText(top + bandHeight - 38, '[ RETURN TO SANCTUARY ]', {
+        const continueButton = addText(top + bandHeight - 38, 'RETURN TO SANCTUARY', {
             fontSize: compact ? '15px' : '17px',
             color: '#101616',
             backgroundColor: '#8FE3CF',
@@ -8598,7 +10340,9 @@ class GameScene extends Phaser.Scene {
             ? 'FIRST ALLIANCE // TRUST MEMORY UNLOCKED'
             : expeditionDebrief
                 ? 'ALLIANCE DEBRIEF // SHARED EXPEDITION MEMORY'
-                : 'SANCTUARY RESIDENT // RESTORED GUARDIAN', {
+                : result.resident.id === 'elder_treant'
+                    ? 'REGIONAL ALLY // HEART ECHO'
+                    : 'REGIONAL ALLY // SANCTUARY VISIT', {
             fontSize: compact ? '12px' : '14px',
             fontStyle: 'bold',
             color: '#8FE3CF'
@@ -8608,7 +10352,9 @@ class GameScene extends Phaser.Scene {
             fontStyle: 'bold',
             color: '#F4F4F4'
         });
-        addText(top + 96, `${result.resident.role}  //  ${result.resident.routine}`, {
+        addText(top + 96, result.resident.id === 'elder_treant'
+            ? 'FOREST ROOTWARDEN  //  SPEAKS THROUGH THE VILLAGE HEART'
+            : `${result.resident.role}  //  ${result.resident.routine}`, {
             fontSize: compact ? '12px' : '14px',
             color: '#F2C14E'
         });
@@ -9077,10 +10823,19 @@ class GameScene extends Phaser.Scene {
         if (!snapshot.active || !anchor || anchor.stabilized) return;
 
         this.nearCurrentVeilAnchorId = anchorId;
-        this.showInteractionHint(
-            `Press SPACE · Stabilize ${anchor.label}`
-        );
-        this.mobileControls?.updateInteractIcon('◉');
+        this.offerSanctuaryInteraction({
+            id: `currentVeilAnchor:${anchorId}`,
+            target: zone,
+            message: `Press SPACE · Stabilize ${anchor.label}`,
+            icon: '◉',
+            verb: 'STABILIZE',
+            label: anchor.label,
+            ownerLabel: anchor.label,
+            worldPrompt: true,
+            tone: 0x8FE3CF,
+            priority: 68,
+            action: () => this.interactWithCurrentVeilAnchor()
+        });
     }
 
     setupCurrentVeilAnchorOverlaps() {
@@ -9218,6 +10973,9 @@ class GameScene extends Phaser.Scene {
             window.AudioManager?.playError?.();
             return;
         }
+        this.withdrawSanctuaryInteraction(
+            `currentVeilAnchor:${this.nearCurrentVeilAnchorId}`
+        );
         this.nearCurrentVeilAnchorId = null;
         this.recordBondActivity('community');
         window.AchievementSystem?.recordEvent?.(
@@ -10678,6 +12436,7 @@ class GameScene extends Phaser.Scene {
 
         // Hide the interaction hint
         this.hideInteractionHint();
+        this.sanctuaryInteractionDirector?.update({ force: true });
     }
 
     /**
@@ -10907,59 +12666,169 @@ class GameScene extends Phaser.Scene {
         if (!this.nearCrashedShip) {
             this.nearCrashedShip = true;
             console.log('[GameScene] Player near Crashed Ship');
-
-            const fieldKitRecovered = this.hasRecoveredProjectBeaconFieldKit();
-            const senseiMemory = getSenseiMemorySnapshot(window.GameState);
-            const shipEvidence = getShipEvidenceSnapshot(window.GameState);
-            const shipReconstruction =
-                getShipReconstructionSnapshot(window.GameState);
-            const consent = getCompanionConsentSnapshot(window.GameState);
-            const earthMemory = getCompanionEarthMemorySnapshot(
-                window.GameState
-            );
-            const protectedReturn = getProtectedReturnSnapshot(
-                window.GameState
-            );
-            const currentVeil = getCurrentVeilSnapshot(
-                window.GameState
-            );
-            this.showInteractionHint(
-                fieldKitRecovered && senseiMemory.ready
-                    ? `Press SPACE · Personal memory ${senseiMemory.recalledCount + 1}/${senseiMemory.totalMemories}`
-                    : fieldKitRecovered && shipReconstruction.ready
-                        ? `Press SPACE · Install ${shipReconstruction.readyStep.partName}`
-                    : fieldKitRecovered &&
-                        shipReconstruction.fieldSupport.ready
-                        ? 'Press SPACE · Powered berth ready'
-                    : fieldKitRecovered && shipEvidence.ready
-                        ? `Press SPACE · Ship archive ${shipEvidence.reviewedCount}/${shipEvidence.totalSections}`
-                    : fieldKitRecovered && consent.ready
-                        ? `Press SPACE · Earth boundaries ${consent.reviewedCount}/${consent.totalTopics}`
-                    : fieldKitRecovered && earthMemory.ready
-                        ? 'Press SPACE · Your companion has an Earth question'
-                    : fieldKitRecovered && earthMemory.complete
-                        ? 'Press SPACE · Review your shared Earth memory'
-                    : fieldKitRecovered && protectedReturn.ready
-                        ? `Press SPACE · Return safeguards ${protectedReturn.completedCount}/${protectedReturn.totalSteps}`
-                    : fieldKitRecovered && protectedReturn.complete
-                        ? currentVeil.verificationReady
-                            ? 'Press SPACE · Verify living mask'
-                            : currentVeil.active
-                                ? `Press SPACE · Quiet Current ${currentVeil.stabilizedCount}/${currentVeil.totalAnchors}`
-                                : currentVeil.complete
-                                    ? 'Press SPACE · Living mask verified'
-                                    : 'Press SPACE · Protected return sealed'
-                    : fieldKitRecovered && shipEvidence.available
-                        ? 'Press SPACE · Open ship and evidence board'
-                    : fieldKitRecovered
-                        ? 'Press SPACE to examine your ship 🚀'
-                    : 'Press SPACE to recover the field kit 🥋'
-            );
-
-            if (this.mobileControls) {
-                this.mobileControls.updateInteractIcon(fieldKitRecovered ? '🚀' : '🥋');
-            }
+            const descriptor = this.getCrashedShipInteractionDescriptor();
+            this.offerSanctuaryInteraction({
+                id: 'crashedShip',
+                target: ship,
+                message: descriptor.message,
+                icon: descriptor.icon,
+                verb: descriptor.verb,
+                label: descriptor.label,
+                ownerLabel: descriptor.ownerLabel,
+                worldPrompt: true,
+                tone: 0x90A4AE,
+                priority: 62,
+                presentation: () => (
+                    this.getCrashedShipInteractionDescriptor()
+                ),
+                action: () => this.interactWithCrashedShip()
+            });
         }
+    }
+
+    getCrashedShipInteractionDescriptor() {
+        const fieldKitRecovered = this.hasRecoveredProjectBeaconFieldKit();
+        const senseiMemory = getSenseiMemorySnapshot(window.GameState);
+        const shipEvidence = getShipEvidenceSnapshot(window.GameState);
+        const shipReconstruction = getShipReconstructionSnapshot(
+            window.GameState
+        );
+        const consent = getCompanionConsentSnapshot(window.GameState);
+        const earthMemory = getCompanionEarthMemorySnapshot(window.GameState);
+        const protectedReturn = getProtectedReturnSnapshot(window.GameState);
+        const currentVeil = getCurrentVeilSnapshot(window.GameState);
+        const createDescriptor = (action, verb, label) => ({
+            message: `Press SPACE · ${action}`,
+            icon: fieldKitRecovered ? '🚀' : '🥋',
+            verb,
+            label,
+            ownerLabel: 'WANDERER-77'
+        });
+        if (fieldKitRecovered && senseiMemory.ready) {
+            return createDescriptor(
+                `Personal memory ${senseiMemory.recalledCount + 1}/${senseiMemory.totalMemories}`,
+                'REMEMBER',
+                'SENSEI MEMORY'
+            );
+        }
+        if (fieldKitRecovered && shipReconstruction.ready) {
+            return createDescriptor(
+                `Install ${shipReconstruction.readyStep.partName}`,
+                'REPAIR',
+                shipReconstruction.readyStep.partName
+            );
+        }
+        if (fieldKitRecovered && shipReconstruction.fieldSupport.ready) {
+            return createDescriptor('Powered berth ready', 'ACTIVATE', 'POWERED BERTH');
+        }
+        if (fieldKitRecovered && shipEvidence.ready) {
+            return createDescriptor(
+                `Ship archive ${shipEvidence.reviewedCount}/${shipEvidence.totalSections}`,
+                'REVIEW',
+                'SHIP ARCHIVE'
+            );
+        }
+        if (fieldKitRecovered && consent.ready) {
+            return createDescriptor(
+                `Earth boundaries ${consent.reviewedCount}/${consent.totalTopics}`,
+                'DISCUSS',
+                'EARTH BOUNDARIES'
+            );
+        }
+        if (fieldKitRecovered && earthMemory.ready) {
+            return createDescriptor(
+                'Your companion has an Earth question',
+                'ANSWER',
+                'EARTH QUESTION'
+            );
+        }
+        if (fieldKitRecovered && earthMemory.complete) {
+            return createDescriptor(
+                'Review your shared Earth memory',
+                'REMEMBER',
+                'EARTH TOGETHER'
+            );
+        }
+        if (fieldKitRecovered && protectedReturn.ready) {
+            return createDescriptor(
+                `Return safeguards ${protectedReturn.completedCount}/${protectedReturn.totalSteps}`,
+                'PREPARE',
+                'RETURN SAFEGUARDS'
+            );
+        }
+        if (fieldKitRecovered && protectedReturn.complete) {
+            if (currentVeil.verificationReady) {
+                return createDescriptor('Verify living mask', 'VERIFY', 'LIVING MASK');
+            }
+            if (currentVeil.active) {
+                return createDescriptor(
+                    `Quiet Current ${currentVeil.stabilizedCount}/${currentVeil.totalAnchors}`,
+                    'STABILIZE',
+                    'QUIET CURRENT'
+                );
+            }
+            if (currentVeil.complete) {
+                return createDescriptor('Living mask verified', 'REVIEW', 'LIVING MASK');
+            }
+            return createDescriptor('Protected return sealed', 'REVIEW', 'RETURN PLAN');
+        }
+        if (fieldKitRecovered && shipEvidence.available) {
+            return createDescriptor(
+                'Open ship and evidence board',
+                'REVIEW',
+                'SHIP EVIDENCE'
+            );
+        }
+        if (fieldKitRecovered) {
+            return createDescriptor('Examine Wanderer-77', 'EXAMINE', 'WANDERER-77');
+        }
+        return createDescriptor('Recover the Earth field kit', 'RECOVER', 'EARTH FIELD KIT');
+    }
+
+    interactWithCrashedShip() {
+        if (!this.nearCrashedShip) return false;
+        if (!this.hasRecoveredProjectBeaconFieldKit()) {
+            console.log('[GameScene] Recovering field kit from ship interaction');
+            this.recoverProjectBeaconFieldKit();
+            return true;
+        }
+
+        const senseiMemory = getSenseiMemorySnapshot(window.GameState);
+        const shipEvidence = getShipEvidenceSnapshot(window.GameState);
+        const shipReconstruction = getShipReconstructionSnapshot(
+            window.GameState
+        );
+        const consent = getCompanionConsentSnapshot(window.GameState);
+        const earthMemory = getCompanionEarthMemorySnapshot(window.GameState);
+        const protectedReturn = getProtectedReturnSnapshot(window.GameState);
+        const currentVeil = getCurrentVeilSnapshot(window.GameState);
+        if (senseiMemory.ready) {
+            this.showSenseiMemory();
+        } else if (
+            shipReconstruction.ready ||
+            shipReconstruction.fieldSupport.ready ||
+            shipEvidence.ready
+        ) {
+            this.showShipEvidenceBoard();
+        } else if (consent.ready) {
+            this.showCompanionBoundaryReview();
+        } else if (earthMemory.ready || earthMemory.complete) {
+            this.showCompanionEarthMemory();
+        } else if (
+            protectedReturn.ready ||
+            (protectedReturn.available && !protectedReturn.complete)
+        ) {
+            this.showShipEvidenceBoard();
+        } else if (currentVeil.verificationReady) {
+            this.showCurrentVeilMission({ verifyPacket: true });
+        } else if (currentVeil.active) {
+            this.showCurrentVeilMission();
+        } else if (shipEvidence.available) {
+            this.showShipEvidenceBoard();
+        } else {
+            this.showShipMemories();
+        }
+        return true;
     }
 
     showSenseiMemory() {
@@ -12281,12 +14150,13 @@ class GameScene extends Phaser.Scene {
     }
 
     checkLivingSignalProximity(delta = 16.67) {
+        if (!this.player || !Array.isArray(this.livingSignals)) return;
         const signalSearchDistance = this.getInteractionDistance('signal', 150, 190).enter;
         const signalApproachDistance = this.getInteractionDistance('signalApproach', 82, 120).enter;
-        const availableSignals = this.livingSignals.filter(
-            signal => signal?.active !== false && !signal.observed
+        const nearbySignals = this.livingSignals.filter(
+            signal => signal?.active !== false
         );
-        const nearest = availableSignals.reduce((closest, signal) => {
+        const nearest = nearbySignals.reduce((closest, signal) => {
             const distance = Phaser.Math.Distance.Between(
                 this.player.x,
                 this.player.y,
@@ -12302,6 +14172,14 @@ class GameScene extends Phaser.Scene {
         // Keep this legacy threshold text for contract compatibility:
         // nearest.distance > 150.
         if (!nearest || nearest.distance > signalSearchDistance || nearest.distance > 150) {
+            this.setLivingSignalLabelFocus();
+            this.resetActiveLivingSignalListening();
+            return;
+        }
+
+        this.setLivingSignalLabelFocus(nearest.signal.signalId);
+
+        if (nearest.signal.observed) {
             this.resetActiveLivingSignalListening();
             return;
         }
@@ -12652,16 +14530,15 @@ class GameScene extends Phaser.Scene {
             return false;
         }
         if (this.isLivingPortraitNoticeBlocked()) {
-            if (attempt < 20) {
-                this.livingPortraitNoticeTimer?.remove?.();
-                this.livingPortraitNoticeTimer = this.time.delayedCall(
-                    1500,
-                    () => void this.maybeShowLivingPortraitReadyNotice(
-                        portrait,
-                        { attempt: attempt + 1, preview }
-                    )
-                );
-            }
+            this.deferredLivingPortraitRecord = portrait;
+            this.livingPortraitNoticeTimer?.remove?.();
+            this.livingPortraitNoticeTimer = this.time.delayedCall(
+                1500,
+                () => void this.maybeShowLivingPortraitReadyNotice(
+                    this.deferredLivingPortraitRecord || portrait,
+                    { attempt: attempt + 1, preview }
+                )
+            );
             return false;
         }
 
@@ -12676,6 +14553,7 @@ class GameScene extends Phaser.Scene {
                 return false;
             }
             if (this.isLivingPortraitNoticeBlocked()) {
+                this.deferredLivingPortraitRecord = portrait;
                 this.livingPortraitNoticePendingIdentity = null;
                 this.livingPortraitNoticeTimer?.remove?.();
                 this.livingPortraitNoticeTimer = this.time.delayedCall(
@@ -12687,6 +14565,7 @@ class GameScene extends Phaser.Scene {
                 );
                 return false;
             }
+            this.deferredLivingPortraitRecord = null;
             this.showLivingPortraitReadyNotice(portrait, textureKey, { preview });
             return true;
         } finally {
@@ -12735,6 +14614,8 @@ class GameScene extends Phaser.Scene {
 
     isLivingPortraitNoticeBlocked() {
         return Boolean(
+            window.OnboardingManager?.isProcessing ||
+            this.villageArrivalRevealActive ||
             this.guardianExchangeOpen ||
             this.guardianCareActivityOpen ||
             this.residentExchangeOpen ||
@@ -12743,6 +14624,8 @@ class GameScene extends Phaser.Scene {
             this.storyModalElements?.length ||
             this.greetingElements?.length ||
             this.livingSignalMomentElements?.length ||
+            this.questTracker?.storyBannerElements?.length ||
+            this.achievementNotification?.isVisible ||
             this.isFieldKitModalOpen ||
             this.fusionDiscoveryModalOpen ||
             this.hamburgerMenu?.isOpen ||
@@ -12753,7 +14636,10 @@ class GameScene extends Phaser.Scene {
 
     showLivingPortraitReadyNotice(record, textureKey, { preview = false } = {}) {
         this.destroyLivingPortraitReadyNotice();
-        if (!preview && this.showLivingPortraitReveal(record)) {
+        const livingFormSeen = window.GameState?.get?.(
+            'tutorial.livingFormSeen'
+        ) === true;
+        if (!preview && !livingFormSeen && this.showLivingPortraitReveal(record)) {
             return;
         }
         const { width, height } = this.scale;
@@ -12901,6 +14787,11 @@ class GameScene extends Phaser.Scene {
             ) || 'star',
             portraitPromise: Promise.resolve(record),
             mode: 'late_reveal',
+            onPortraitShown: shownRecord => {
+                if (!shownRecord?.imageUrl) return;
+                window.GameState?.set?.('tutorial.livingFormSeen', true);
+                window.GameState?.save?.();
+            },
             onContinue: restore
         });
         if (!shown) {
@@ -12926,6 +14817,7 @@ class GameScene extends Phaser.Scene {
         this.livingPortraitReadyNotice?.destroy?.();
         this.livingPortraitReadyNotice = null;
         this.livingPortraitNoticePendingIdentity = null;
+        this.deferredLivingPortraitRecord = null;
     }
 
     /**
@@ -13157,11 +15049,22 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    showInteractionHint(message) {
+    showInteractionHint(
+        message,
+        { persistent = false, ownerId = null, force = false } = {}
+    ) {
         if (!this.interactionText?.active) return;
-        const isProximityPrompt = /^\s*Press SPACE\b/i.test(message);
+        const isProximityPrompt = persistent || /^\s*Press SPACE\b/i.test(message);
+        if (
+            !force &&
+            isProximityPrompt &&
+            this.sanctuaryPromptOwnerId &&
+            ownerId !== this.sanctuaryPromptOwnerId
+        ) {
+            return;
+        }
         const touchControlsActive = Boolean(
-            this.mobileControls?.isMobile ||
+            this.hasVisibleTouchControls() ||
             this.mobileHUD?.isVisible ||
             window.responsiveManager?.isMobile
         );
@@ -13236,6 +15139,7 @@ class GameScene extends Phaser.Scene {
             this.residentExchangeOpen ||
             this.guardianExchangeOpen ||
             this.rescuedResidentExchangeOpen ||
+            this.rescuedResidentArrivalActive ||
             this.guardianCareActivityOpen ||
             this.fendListeningOpen ||
             this.senseiMemoryModal?.isVisible ||
@@ -13244,6 +15148,13 @@ class GameScene extends Phaser.Scene {
             this.companionEarthMemoryModal?.isVisible ||
             this.currentVeilModal?.isVisible ||
             this.villageCommandPanel?.domElement
+        ) {
+            return;
+        }
+
+        if (
+            this.currentBiome === 'nebula' &&
+            this.sanctuaryInteractionDirector?.activate()
         ) {
             return;
         }
@@ -13497,76 +15408,7 @@ class GameScene extends Phaser.Scene {
 
         // Check for crashed ship interaction
         if (this.nearCrashedShip) {
-            if (this.hasRecoveredProjectBeaconFieldKit()) {
-                const senseiMemory = getSenseiMemorySnapshot(
-                    window.GameState
-                );
-                const shipEvidence = getShipEvidenceSnapshot(
-                    window.GameState
-                );
-                const shipReconstruction =
-                    getShipReconstructionSnapshot(window.GameState);
-                const consent = getCompanionConsentSnapshot(
-                    window.GameState
-                );
-                const earthMemory = getCompanionEarthMemorySnapshot(
-                    window.GameState
-                );
-                const protectedReturn = getProtectedReturnSnapshot(
-                    window.GameState
-                );
-                const currentVeil = getCurrentVeilSnapshot(
-                    window.GameState
-                );
-                if (senseiMemory.ready) {
-                    console.log('[GameScene] Reviewing Sensei memory from SPACE handler');
-                    this.showSenseiMemory();
-                } else if (shipReconstruction.ready) {
-                    console.log('[GameScene] Installing recovered Wanderer-77 system from SPACE handler');
-                    this.showShipEvidenceBoard();
-                } else if (shipReconstruction.fieldSupport.ready) {
-                    console.log('[GameScene] Servicing companion at powered berth from SPACE handler');
-                    this.showShipEvidenceBoard();
-                } else if (shipEvidence.ready) {
-                    console.log('[GameScene] Reviewing ship evidence from SPACE handler');
-                    this.showShipEvidenceBoard();
-                } else if (consent.ready) {
-                    console.log('[GameScene] Reviewing Earth boundaries from SPACE handler');
-                    this.showCompanionBoundaryReview();
-                } else if (
-                    earthMemory.ready || earthMemory.complete
-                ) {
-                    console.log('[GameScene] Sharing an Earth memory from SPACE handler');
-                    this.showCompanionEarthMemory();
-                } else if (
-                    protectedReturn.ready ||
-                    (
-                        protectedReturn.available &&
-                        !protectedReturn.complete
-                    )
-                ) {
-                    console.log('[GameScene] Applying protected return protocol from SPACE handler');
-                    this.showShipEvidenceBoard();
-                } else if (currentVeil.verificationReady) {
-                    console.log('[GameScene] Verifying Quiet Current mask from SPACE handler');
-                    this.showCurrentVeilMission({
-                        verifyPacket: true
-                    });
-                } else if (currentVeil.active) {
-                    console.log('[GameScene] Reviewing Quiet Current field work from SPACE handler');
-                    this.showCurrentVeilMission();
-                } else if (shipEvidence.available) {
-                    console.log('[GameScene] Opening reviewed ship archive from SPACE handler');
-                    this.showShipEvidenceBoard();
-                } else {
-                    console.log('[GameScene] Viewing ship memories from SPACE handler');
-                    this.showShipMemories();
-                }
-                this.nearCrashedShip = false;
-            } else {
-                console.log('[GameScene] Recovering field kit from SPACE handler');
-                this.recoverProjectBeaconFieldKit();
-            }
+            this.interactWithCrashedShip();
             return;
         }
 
@@ -13579,95 +15421,98 @@ class GameScene extends Phaser.Scene {
         }
 
         if (this.nearbyFlower) {
-            // Use Nature Attunement System for flower interaction
-            if (window.NatureAttunementSystem) {
-                const result = window.NatureAttunementSystem.recordInteraction(
-                    'flower',
-                    this,
-                    this.nearbyFlower.x,
-                    this.nearbyFlower.y
+            this.smellNearbyFlower();
+        }
+    }
+
+    smellNearbyFlower() {
+        if (!this.nearbyFlower) return false;
+        const flower = this.nearbyFlower;
+        if (window.NatureAttunementSystem) {
+            const result = window.NatureAttunementSystem.recordInteraction(
+                'flower',
+                this,
+                flower.x,
+                flower.y
+            );
+
+            if (result.success) {
+                getGameState().updateWorldExploration(
+                    { x: this.player.x, y: this.player.y },
+                    'flowers'
                 );
 
-                if (result.success) {
-                    // Track interaction in GameState
-                    getGameState().updateWorldExploration(
-                        { x: this.player.x, y: this.player.y },
-                        'flowers'
+                if (this.textures.exists('magicalSparkle')) {
+                    const sparkle = this.add.image(
+                        flower.x,
+                        flower.y - 20,
+                        'magicalSparkle'
                     );
-
-                    // Create a magical sparkle effect on the flower (with defensive texture check)
-                    if (this.textures.exists('magicalSparkle')) {
-                        const sparkle = this.add.image(this.nearbyFlower.x, this.nearbyFlower.y - 20, 'magicalSparkle');
-                        sparkle.setScale(0.6);
-
-                        // Animate the sparkle
-                        this.tweens.add({
-                            targets: sparkle,
-                            y: sparkle.y - 30,
-                            alpha: { from: 1, to: 0 },
-                            scale: { from: 0.5, to: 1 },
-                            duration: 1000,
-                            onComplete: () => sparkle.destroy()
-                        });
-                    } else {
-                        // Texture not available - try to recreate it for future use
-                        console.warn('[GameScene] magicalSparkle texture not found, recreating');
-                        if (this.graphicsEngine) {
-                            this.graphicsEngine.createMagicalSparkle(0x00FFFF, 0.8);
-                        }
-                    }
-
-                    // Update creature happiness (with nature bonus)
-                    const natureBonus = window.NatureAttunementSystem.getStatBonus('happiness');
-                    const happinessGain = Math.round(2 * (1 + natureBonus / 100));
-                    getGameState().updateCreature({
-                        stats: { happiness: getGameState().get('creature.stats.happiness') + happinessGain }
+                    sparkle.setScale(0.6);
+                    this.tweens.add({
+                        targets: sparkle,
+                        y: sparkle.y - 30,
+                        alpha: { from: 1, to: 0 },
+                        scale: { from: 0.5, to: 1 },
+                        duration: 1000,
+                        onComplete: () => sparkle.destroy()
                     });
-
-                    // Show interaction message with attunement info
-                    const dailyLeft = result.dailyRemaining;
-                    this.showInteractionHint(`*sniff* Nature attunement +${result.pointsEarned}! (${dailyLeft} flowers left today)`);
-
-                    // Show milestone unlock if applicable
-                    if (result.milestoneUnlocked) {
-                        console.log(`[GameScene] Nature milestone unlocked: ${result.milestoneName}`);
-                    }
-
-                    // Update stats display
-                    this.updateStatsDisplay();
-
-                    // INTEGRATION: Get creature's response via CreatureAIController
-                    if (window.CreatureAIController) {
-                        window.CreatureAIController.respondToExploration('flower')
-                            .then(response => {
-                                this.showCreatureResponse(response);
-                            })
-                            .catch(error => {
-                                console.warn('[GameScene] AI response failed:', error);
-                            });
-                    }
-
-                    // Check achievements after flower interaction
-                    this.time.delayedCall(500, () => this.checkAndUnlockAchievements());
                 } else {
-                    // Daily limit reached
-                    this.showInteractionHint(result.message || 'You\'ve enjoyed enough flowers today!');
+                    console.warn(
+                        '[GameScene] magicalSparkle texture not found, recreating'
+                    );
+                    this.graphicsEngine?.createMagicalSparkle(0x00FFFF, 0.8);
                 }
-            } else {
-                // Fallback if NatureAttunementSystem not available
+
+                const natureBonus = window.NatureAttunementSystem
+                    .getStatBonus('happiness');
+                const happinessGain = Math.round(2 * (1 + natureBonus / 100));
                 getGameState().updateCreature({
-                    stats: { happiness: getGameState().get('creature.stats.happiness') + 2 }
+                    stats: {
+                        happiness: getGameState().get('creature.stats.happiness') +
+                            happinessGain
+                    }
                 });
-                this.showInteractionHint('*sniff* What a lovely smell! (+2 Happiness)');
+                const dailyLeft = result.dailyRemaining;
+                this.showInteractionHint(
+                    `*sniff* Nature attunement +${result.pointsEarned}! ` +
+                    `(${dailyLeft} flowers left today)`
+                );
+                if (result.milestoneUnlocked) {
+                    console.log(
+                        `[GameScene] Nature milestone unlocked: ${result.milestoneName}`
+                    );
+                }
+                this.updateStatsDisplay();
+                const responseRequest = window.CreatureAIController
+                    ?.respondToExploration?.('flower');
+                responseRequest
+                    ?.then(response => this.showCreatureResponse(response))
+                    ?.catch(error => {
+                        console.warn('[GameScene] AI response failed:', error);
+                    });
+                this.time.delayedCall(500, () => this.checkAndUnlockAchievements());
+            } else {
+                this.showInteractionHint(
+                    result.message || 'You\'ve enjoyed enough flowers today!'
+                );
             }
-
-            this.nearbyFlower = null;
-
-            // Reset mobile interact button icon to default (unless near shop)
-            if (this.mobileControls && !this.nearShop) {
-                this.mobileControls.updateInteractIcon('👆');
-            }
+        } else {
+            getGameState().updateCreature({
+                stats: {
+                    happiness: getGameState().get('creature.stats.happiness') + 2
+                }
+            });
+            this.showInteractionHint('*sniff* What a lovely smell! (+2 Happiness)');
         }
+
+        this.nearbyFlower = null;
+        if (this.currentBiome === 'nebula') {
+            this.withdrawSanctuaryInteraction('flower');
+        } else {
+            this.mobileControls?.updateInteractIcon('👆');
+        }
+        return true;
     }
 
     /**
@@ -13725,6 +15570,8 @@ class GameScene extends Phaser.Scene {
         if (this._isShuttingDown || !this.player?.active || !this.player.body?.enable) {
             return;
         }
+        this.updateSanctuaryActorDepths();
+        this.updateSanctuaryPeripheralLabelVisibility();
 
         if (this.waypointPreview) {
             this.projectBeaconWaypoint?.update(delta || 16.67);
@@ -13732,6 +15579,15 @@ class GameScene extends Phaser.Scene {
         }
 
         if (this.mapRecoveryPreview) {
+            return;
+        }
+
+        if (
+            this.villageArrivalRevealActive ||
+            time < (this.villageArrivalRevealInputCooldownUntil || 0)
+        ) {
+            this.player?.body?.setVelocity?.(0, 0);
+            this.astronautFollower?.update(delta || this.game?.loop?.delta || 16.67);
             return;
         }
 
@@ -13776,6 +15632,8 @@ class GameScene extends Phaser.Scene {
         // Check collectible proximity for auto-collection
         this.checkCollectibleProximity();
         this.checkLivingSignalProximity(delta || this.game?.loop?.delta || 16.67);
+        this.updateVillagePlotProximity();
+        this.updateVillageResidentJourneyProximity();
 
         // Check shop proximity distance
         if (this.nearShop && this.shop && this.player) {
@@ -13791,12 +15649,8 @@ class GameScene extends Phaser.Scene {
                 if (distance > this.getInteractionDistance('shop').clear) {
                     console.log('[GameScene] Player moved away from shop, distance:', distance);
                     this.nearShop = false;
-                    this.hideInteractionHint();
-
-                    // Reset mobile interact button icon to default
-                    if (this.mobileControls && !this.nearbyFlower) {
-                        this.mobileControls.updateInteractIcon('👆');
-                    }
+                    const replacement = this.withdrawSanctuaryInteraction('shop');
+                    if (!replacement) this.hideInteractionHint();
                 }
             }
         }
@@ -13815,7 +15669,8 @@ class GameScene extends Phaser.Scene {
                 if (distance > this.getInteractionDistance('hubPortal').clear) {
                     console.log('[GameScene] Player moved away from hub portal, distance:', distance);
                     this.nearHubPortal = false;
-                    this.hideInteractionHint();
+                    const replacement = this.withdrawSanctuaryInteraction('hubPortal');
+                    if (!replacement) this.hideInteractionHint();
 
                     // Clean up portal indicator
                     if (this.portalIndicator) {
@@ -13825,10 +15680,6 @@ class GameScene extends Phaser.Scene {
                         }
                         this.portalIndicator.destroy();
                         this.portalIndicator = null;
-                    }
-
-                    if (this.mobileControls && !this.nearbyFlower && !this.nearShop) {
-                        this.mobileControls.updateInteractIcon('👆');
                     }
                 }
             }
@@ -13851,11 +15702,11 @@ class GameScene extends Phaser.Scene {
                 if (distance > this.getInteractionDistance('crashShip').clear) {
                     console.log('[GameScene] Player moved away from crashed ship, distance:', distance);
                     this.nearCrashedShip = false;
-                    this.hideInteractionHint();
+                    const replacement = this.withdrawSanctuaryInteraction(
+                        'crashedShip'
+                    );
+                    if (!replacement) this.hideInteractionHint();
 
-                    if (this.mobileControls && !this.nearbyFlower && !this.nearShop && !this.nearHubPortal) {
-                        this.mobileControls.updateInteractIcon('👆');
-                    }
                 }
             }
         }
@@ -13897,7 +15748,8 @@ class GameScene extends Phaser.Scene {
                 if (distance > this.getInteractionDistance('campfire').clear) {
                     console.log('[GameScene] Player moved away from campfire, distance:', distance);
                     this.nearCampfire = false;
-                    this.hideInteractionHint();
+                    const replacement = this.withdrawSanctuaryInteraction('campfire');
+                    if (!replacement) this.hideInteractionHint();
 
                     // Clean up campfire indicator
                     if (this.campfireIndicator) {
@@ -13907,10 +15759,6 @@ class GameScene extends Phaser.Scene {
                     if (this.campfireGlowAnim) {
                         this.campfireGlowAnim.stop();
                         this.campfireGlowAnim = null;
-                    }
-
-                    if (this.mobileControls && !this.nearbyFlower && !this.nearShop && !this.nearHubPortal && !this.nearCrashedShip && !this.nearReturnPortal) {
-                        this.mobileControls.updateInteractIcon('👆');
                     }
                 }
             }
@@ -13932,23 +15780,12 @@ class GameScene extends Phaser.Scene {
                 if (distance > this.getInteractionDistance('signalGarden').clear) {
                     console.log('[GameScene] Player moved away from Signal Garden, distance:', distance);
                     this.nearSignalGarden = false;
-                    this.hideInteractionHint();
+                    const replacement = this.withdrawSanctuaryInteraction('signalGarden');
+                    if (!replacement) this.hideInteractionHint();
                     this.signalGardenIndicatorTween?.stop();
                     this.signalGardenIndicatorTween = null;
                     this.signalGardenIndicator?.destroy();
                     this.signalGardenIndicator = null;
-
-                    if (
-                        this.mobileControls &&
-                        !this.nearbyFlower &&
-                        !this.nearShop &&
-                        !this.nearHubPortal &&
-                        !this.nearCrashedShip &&
-                        !this.nearReturnPortal &&
-                        !this.nearCampfire
-                    ) {
-                        this.mobileControls.updateInteractIcon('👆');
-                    }
                 }
             }
         }
@@ -13958,6 +15795,12 @@ class GameScene extends Phaser.Scene {
             this.villageHeartLandmark?.zone &&
             this.player
         ) {
+            if (!this.sanctuaryInteractionDirector?.candidates?.has('villageHeart')) {
+                this.offerVillageHeartInteraction(
+                    this.villageHeartLandmark.snapshot ||
+                        getVillageSnapshot(window.GameState)
+                );
+            }
             const distance = Phaser.Math.Distance.Between(
                 this.player.x,
                 this.player.y,
@@ -13971,19 +15814,9 @@ class GameScene extends Phaser.Scene {
             )) {
                 if (distance > this.getInteractionDistance('villageHeart').clear) {
                     this.nearVillageHeart = false;
-                    this.hideInteractionHint();
-                    if (
-                        this.mobileControls &&
-                        !this.nearbyFlower &&
-                        !this.nearShop &&
-                        !this.nearHubPortal &&
-                        !this.nearCrashedShip &&
-                        !this.nearReturnPortal &&
-                        !this.nearCampfire &&
-                        !this.nearSignalGarden
-                    ) {
-                        this.mobileControls.updateInteractIcon('👆');
-                    }
+                    this.updateSanctuaryFocusMode(false);
+                    const replacement = this.withdrawSanctuaryInteraction('villageHeart');
+                    if (!replacement) this.hideInteractionHint();
                 }
             }
         }
@@ -14010,23 +15843,12 @@ class GameScene extends Phaser.Scene {
                         distance
                     );
                     this.nearFusionPod = false;
-                    this.hideInteractionHint();
+                    const replacement = this.withdrawSanctuaryInteraction('fusionPod');
+                    if (!replacement) this.hideInteractionHint();
                     this.fusionPodIndicatorTween?.stop?.();
                     this.fusionPodIndicatorTween = null;
                     this.fusionPodIndicator?.destroy?.();
                     this.fusionPodIndicator = null;
-                    if (
-                        this.mobileControls &&
-                        !this.nearbyFlower &&
-                        !this.nearShop &&
-                        !this.nearHubPortal &&
-                        !this.nearCrashedShip &&
-                        !this.nearReturnPortal &&
-                        !this.nearCampfire &&
-                        !this.nearSignalGarden
-                    ) {
-                        this.mobileControls.updateInteractIcon('👆');
-                    }
                 }
             }
         }
@@ -14044,11 +15866,12 @@ class GameScene extends Phaser.Scene {
                 )
                 : Number.POSITIVE_INFINITY;
             if (distance > this.getInteractionDistance('fendResident').clear) {
+                const previousId = this.nearFendResidentId;
                 this.nearFendResidentId = null;
-                if (!this.nearSignalGarden) {
-                    this.hideInteractionHint();
-                    this.mobileControls?.updateInteractIcon('👆');
-                }
+                const replacement = this.withdrawSanctuaryInteraction(
+                    `fendResident:${previousId}`
+                );
+                if (!replacement) this.hideInteractionHint();
             }
         }
 
@@ -14069,11 +15892,12 @@ class GameScene extends Phaser.Scene {
                 )
                 : Number.POSITIVE_INFINITY;
             if (distance > this.getInteractionDistance('guardianResident').clear) {
+                const previousId = this.nearGuardianResidentId;
                 this.nearGuardianResidentId = null;
-                if (!this.nearSignalGarden && !this.nearFendResidentId) {
-                    this.hideInteractionHint();
-                    this.mobileControls?.updateInteractIcon('👆');
-                }
+                const replacement = this.withdrawSanctuaryInteraction(
+                    `guardianResident:${previousId}`
+                );
+                if (!replacement) this.hideInteractionHint();
             }
         }
 
@@ -14094,15 +15918,12 @@ class GameScene extends Phaser.Scene {
                 )
                 : Number.POSITIVE_INFINITY;
             if (distance > this.getInteractionDistance('rescuedResident').clear) {
+                const previousId = this.nearRescuedResidentId;
                 this.nearRescuedResidentId = null;
-                if (
-                    !this.nearSignalGarden &&
-                    !this.nearFendResidentId &&
-                    !this.nearGuardianResidentId
-                ) {
-                    this.hideInteractionHint();
-                    this.mobileControls?.updateInteractIcon('👆');
-                }
+                const replacement = this.withdrawSanctuaryInteraction(
+                    `rescuedResident:${previousId}`
+                );
+                if (!replacement) this.hideInteractionHint();
             }
         }
 
@@ -14123,19 +15944,18 @@ class GameScene extends Phaser.Scene {
                 )
                 : Number.POSITIVE_INFINITY;
             if (distance > this.getInteractionDistance('currentVeilAnchor').clear) {
+                const previousId = this.nearCurrentVeilAnchorId;
                 this.nearCurrentVeilAnchorId = null;
-                if (
-                    !this.nearSignalGarden &&
-                    !this.nearFendResidentId
-                ) {
-                    this.hideInteractionHint();
-                    this.mobileControls?.updateInteractIcon('👆');
-                }
+                const replacement = this.withdrawSanctuaryInteraction(
+                    `currentVeilAnchor:${previousId}`
+                );
+                if (!replacement) this.hideInteractionHint();
             }
         }
 
         // Check target range proximity (zone-based check)
         this.checkTargetRangeProximity();
+        this.sanctuaryInteractionDirector?.update();
 
         // Handle care keys (only if care system is available)
         if (this.carePanelManager) {
@@ -14200,10 +16020,11 @@ class GameScene extends Phaser.Scene {
         if (!this.physics.overlap(this.player, this.flowers)) {
             if (this.nearbyFlower) {
                 this.nearbyFlower = null;
-
-                // Reset mobile interact button icon to default (unless near shop)
-                if (this.mobileControls && !this.nearShop) {
-                    this.mobileControls.updateInteractIcon('👆');
+                if (this.currentBiome === 'nebula') {
+                    const replacement = this.withdrawSanctuaryInteraction('flower');
+                    if (!replacement) this.hideInteractionHint();
+                } else {
+                    this.mobileControls?.updateInteractIcon('👆');
                 }
             }
         }
@@ -14314,42 +16135,19 @@ class GameScene extends Phaser.Scene {
 
         const stats = creature.stats;
 
-        let careStatus = null;
-        let happinessDesc = { level: 'unknown' };
-
-        if (this.careSystem) {
-            try {
-                if (typeof this.careSystem.getCareStatus === 'function') {
-                    careStatus = this.careSystem.getCareStatus();
-                }
-                if (typeof this.careSystem.getHappinessDescription === 'function') {
-                    happinessDesc = this.careSystem.getHappinessDescription(stats.happiness);
-                }
-            } catch (careError) {
-                console.warn('[GameScene] Error getting care status:', careError);
-                careStatus = null;
-                happinessDesc = { level: 'unknown' };
-            }
-        }
-
-        const achievementProgress = this.getAchievementProgressText();
-        const tutorialProgress = this.getTutorialProgressText();
-
         // Check for low/critical stat values and add warnings
         const healthWarning = this.getStatWarning(stats.health, 100);
         const happinessWarning = this.getStatWarning(stats.happiness, 100);
         const energyWarning = this.getStatWarning(stats.energy, 100);
 
         const hasCriticalStats = healthWarning.critical || happinessWarning.critical || energyWarning.critical;
+        const displayStat = value => Number.isFinite(Number(value))
+            ? Math.round(Number(value))
+            : '--';
 
         const displayText = [
-            `${creature.name} - Level ${creature.level}`,
-            `XP: ${creature.experience}/100`,
-            `${healthWarning.icon} ${stats.health} ${happinessWarning.icon} ${stats.happiness} (${happinessDesc.level}) ${energyWarning.icon} ${stats.energy}`,
-            `Care Streak: ${careStatus ? careStatus.careStreak : 0} days`,
-            `${achievementProgress}`,
-            `${tutorialProgress}`,
-            `Flowers: ${getGameState().get('world.discoveredObjects.flowers')}`
+            `${creature.name.toUpperCase()} · LV ${creature.level}`,
+            `HP ${displayStat(stats.health)} · JOY ${displayStat(stats.happiness)} · ENERGY ${displayStat(stats.energy)}`
         ].join('\n');
 
         this.statsText.setText(displayText);
@@ -14490,10 +16288,16 @@ class GameScene extends Phaser.Scene {
             return;
         }
         const completed = this.tutorialSystem.checkTutorials(getGameState().get(), this) || [];
-        completed.forEach((tutorial) => this.showTutorialCompletion(tutorial));
+        if (this.shouldPresentLegacyTutorialFeedback()) {
+            completed.forEach((tutorial) => this.showTutorialCompletion(tutorial));
+        }
     }
 
     showTutorialHintIfNeeded() {
+        if (!this.shouldPresentLegacyTutorialFeedback()) {
+            this.dismissLegacyTutorialHint();
+            return;
+        }
         if (!this.tutorialSystem?.getNextTutorial || this.isShowingTutorial) {
             return;
         }
@@ -14503,7 +16307,29 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    shouldPresentLegacyTutorialFeedback() {
+        if (this._isShuttingDown || this.currentBiome !== 'nebula') return false;
+        const villageSnapshot = this.villageHeartLandmark?.snapshot ||
+            getVillageSnapshot(window.GameState);
+        if (villageSnapshot?.unlock?.unlocked === true) return false;
+        return !(
+            this.sanctuaryFocusModeActive ||
+            this.villageArrivalRevealActive ||
+            this.villageCommandPanel?.domElement
+        );
+    }
+
+    dismissLegacyTutorialHint() {
+        this.activeTutorialHintTween?.stop?.();
+        this.activeTutorialHintTween = null;
+        this.activeTutorialHint?.destroy?.();
+        this.activeTutorialHint = null;
+        this.isShowingTutorial = false;
+        return true;
+    }
+
     showTutorialHint(tutorial) {
+        this.dismissLegacyTutorialHint();
         this.isShowingTutorial = true;
         const { width } = this.scale;
         const isMobile = width < 600;
@@ -14522,14 +16348,20 @@ class GameScene extends Phaser.Scene {
         }).setOrigin(0.5);
         hint.setScrollFactor(0);
         hint.setDepth(4050);
+        hint.setData('legacyTutorialHint', true);
+        this.activeTutorialHint = hint;
 
-        this.tweens.add({
+        this.activeTutorialHintTween = this.tweens.add({
             targets: hint,
             alpha: 0,
             delay: 4500,
             duration: 600,
             onComplete: () => {
                 hint.destroy();
+                if (this.activeTutorialHint === hint) {
+                    this.activeTutorialHint = null;
+                    this.activeTutorialHintTween = null;
+                }
                 this.isShowingTutorial = false;
             }
         });
@@ -14546,6 +16378,7 @@ class GameScene extends Phaser.Scene {
         }).setOrigin(0.5);
         completion.setScrollFactor(0);
         completion.setDepth(4060);
+        completion.setData('legacyTutorialCompletion', true);
 
         this.tweens.add({
             targets: completion,
@@ -14822,13 +16655,355 @@ class GameScene extends Phaser.Scene {
             'beacon_first_contact' &&
             !activeStoryQuest.completed &&
             !activeStoryQuest.claimed;
+        const interfaceFocusActive = Boolean(
+            firstContactActive || this.sanctuaryFocusModeActive
+        );
         const mobileFocusActive = Boolean(
-            this.mobileHUD?.isVisible && firstContactActive
+            this.mobileHUD?.isVisible && interfaceFocusActive
         );
 
         this.mobileHUD?.setFocusMode?.(mobileFocusActive);
-        this.questTracker?.container?.setVisible?.(!mobileFocusActive);
-        this.firstContactFocusModeActive = mobileFocusActive;
+        this.questTracker?.container?.setVisible?.(!interfaceFocusActive);
+        this.firstContactFocusModeActive = Boolean(firstContactActive);
+    }
+
+    setSanctuaryPeripheralWayfindingVisible(visible = true) {
+        const peripheralLabels = this.getSanctuaryPeripheralLabels();
+        const elements = [...new Set([
+            ...(this.navigationMarkers || []),
+            ...(this.navigationPathDots || []),
+            ...peripheralLabels
+        ].filter(Boolean))];
+        let managedCount = 0;
+        let visibleCount = 0;
+        elements.forEach(element => {
+            if (element.active === false) return;
+            element.setVisible?.(visible);
+            element.setData?.('sanctuaryPeripheralWayfinding', true);
+            element.setData?.('sanctuaryFocusSuppressed', !visible);
+            managedCount += 1;
+            if (element.visible !== false) visibleCount += 1;
+        });
+        this.villageHeartLandmark?.zone
+            ?.setData('peripheralWayfindingSuppressed', !visible)
+            .setData('peripheralWayfindingManagedCount', managedCount)
+            .setData('peripheralWayfindingVisibleCount', visibleCount);
+        this.updateSanctuaryPeripheralLabelVisibility({ peripheralVisible: visible });
+        return { managedCount, visibleCount, suppressed: !visible };
+    }
+
+    getSanctuaryPeripheralLabels() {
+        return [...new Set([
+            this.signalGarden?.label,
+            ...(this.sanctuaryDistricts?.markers || []).map(marker => marker?.label),
+            ...(this.navigationMarkers || []).filter(element => (
+                element?.getData?.('sanctuaryPeripheralLabel') === true
+            ))
+        ].filter(element => element && element.active !== false))];
+    }
+
+    updateSanctuaryPeripheralLabelVisibility({
+        peripheralVisible = !this.sanctuaryFocusModeActive
+    } = {}) {
+        if (this.currentBiome !== 'nebula' || !this.cameras?.main) return null;
+        const camera = this.cameras.main;
+        const compact = camera.width <= 600;
+        const margin = compact ? 12 : 18;
+        const dockTop = this.mobileControls?.isVisible
+            ? Number(this.mobileControls?.layout?.dockTop)
+            : camera.height;
+        const safeBottom = Number.isFinite(dockTop)
+            ? Math.min(camera.height, dockTop) - margin
+            : camera.height - margin;
+        const labels = this.getSanctuaryPeripheralLabels();
+        let readableCount = 0;
+        let visibleCount = 0;
+        labels.forEach(label => {
+            const bounds = label.getBounds?.();
+            const screenBounds = bounds ? {
+                left: (bounds.left - camera.worldView.x) * camera.zoom,
+                right: (bounds.right - camera.worldView.x) * camera.zoom,
+                top: (bounds.top - camera.worldView.y) * camera.zoom,
+                bottom: (bounds.bottom - camera.worldView.y) * camera.zoom
+            } : null;
+            const readable = Boolean(
+                screenBounds &&
+                screenBounds.left >= margin &&
+                screenBounds.right <= camera.width - margin &&
+                screenBounds.top >= margin &&
+                screenBounds.bottom <= safeBottom
+            );
+            const shouldShow = peripheralVisible && readable;
+            label.setVisible?.(shouldShow)
+                .setData?.('sanctuaryEdgeReadable', readable)
+                .setData?.('sanctuaryEdgeSuppressed', !shouldShow)
+                .setData?.('sanctuaryEdgeSafeMargin', margin);
+            if (readable) readableCount += 1;
+            if (shouldShow) visibleCount += 1;
+        });
+        this.villageHeartLandmark?.zone
+            ?.setData('peripheralLabelManagedCount', labels.length)
+            .setData('peripheralLabelReadableCount', readableCount)
+            .setData('peripheralLabelVisibleCount', visibleCount)
+            .setData('peripheralLabelSafeBottom', safeBottom);
+        return {
+            managedCount: labels.length,
+            readableCount,
+            visibleCount,
+            safeBottom
+        };
+    }
+
+    updateSanctuaryFocusMode(active = this.nearVillageHeart) {
+        const nextActive = Boolean(active);
+        this.setSanctuaryPeripheralWayfindingVisible(!nextActive);
+        this.worldBuilder?.setSanctuaryFloraFocus?.(
+            this.sanctuaryDistricts,
+            nextActive
+        );
+        if (this.sanctuaryFocusModeActive === nextActive) return;
+        this.sanctuaryFocusModeActive = nextActive;
+        this.sanctuaryPresentationMode = nextActive ? 'action' : 'ambient';
+        this.worldBuilder?.setVillageFocusMode?.(
+            this.villageHeartLandmark,
+            nextActive
+        );
+
+        if (nextActive) {
+            this.applySanctuaryCameraFocus();
+            this.dismissCosmicAffinityNotice();
+            this.kidModeHelpContainer?.destroy?.(true);
+            this.kidModeHelpContainer = null;
+            this.dailyBonusButton?.setVisible?.(false);
+        } else {
+            this.worldBuilder?.clearVillageCommunityMoment?.(this.villageHeartLandmark);
+            this.worldBuilder?.clearVillageDecisionMoment?.(this.villageHeartLandmark);
+            this.worldBuilder?.clearVillageWorkerCheckIn?.(this.villageHeartLandmark);
+            this.restorePlayerCameraFollow();
+            this.getHudController().updateDailyBonusButton();
+        }
+
+        if (!this.mobileHUD?.isVisible) {
+            this.statsText?.setVisible?.(!nextActive);
+            this.resetButton?.setVisible?.(!nextActive);
+        }
+        this.getHudController().setSanctuaryFocusMode(nextActive);
+        this.updateFirstContactFocusMode();
+        this.sanctuaryInteractionDirector?.update?.({ force: true });
+    }
+
+    updateVillagePlotProximity() {
+        const landmark = this.villageHeartLandmark;
+        if (!landmark?.plotWorldPositions || !this.player || !this.worldBuilder) {
+            return null;
+        }
+        if (
+            landmark.presentationMode === 'story' ||
+            this.villageCommandPanel?.domElement ||
+            this.currentBiome !== 'nebula'
+        ) {
+            this.worldBuilder.setVillagePlayerProximity(landmark, null);
+            this.syncVillagePlotInteraction(landmark, null);
+            return null;
+        }
+
+        let nearestPlotId = null;
+        let nearestDistance = Number.POSITIVE_INFINITY;
+        landmark.plotWorldPositions.forEach((position, plotId) => {
+            const distance = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                position.x,
+                position.y
+            );
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearestPlotId = plotId;
+            }
+        });
+        const threshold = this.scale.width <= 600 ? 104 : 122;
+        const activePlotId = nearestDistance <= threshold ? nearestPlotId : null;
+        this.worldBuilder.setVillagePlayerProximity(landmark, activePlotId);
+        this.syncVillagePlotInteraction(landmark, activePlotId);
+        return activePlotId;
+    }
+
+    syncVillagePlotInteraction(landmark, plotId = null) {
+        const nextInteractionId = plotId ? `villagePlot:${plotId}` : null;
+        if (
+            this.villagePlotInteractionId === nextInteractionId &&
+            this.sanctuaryInteractionDirector?.candidates?.has(nextInteractionId)
+        ) {
+            return this.sanctuaryInteractionDirector.candidates.get(nextInteractionId);
+        }
+
+        if (this.villagePlotInteractionId) {
+            this.withdrawSanctuaryInteraction(this.villagePlotInteractionId);
+        }
+        this.villagePlotInteractionId = null;
+        if (!nextInteractionId || !landmark?.snapshot?.unlock?.unlocked) return null;
+
+        const presentation = landmark.plotPresentations?.find(
+            entry => entry.plotId === plotId
+        );
+        const plot = landmark.snapshot.plots?.find(entry => entry.id === plotId);
+        const building = landmark.snapshot.buildings?.find(
+            entry => entry.plotId === plotId
+        );
+        const definition = building?.definition || null;
+        if (!presentation?.hitZone || !plot) return null;
+
+        const statePresentation = {
+            available: { verb: 'BUILD HERE', icon: '+' },
+            constructing: { verb: 'REVIEW BUILD', icon: '+' },
+            needs_helper: { verb: 'INVITE HELP', icon: '+' },
+            complete: { verb: 'CHECK', icon: '✦' },
+            staffed: { verb: 'CHECK', icon: '✦' }
+        }[presentation.plotState] || { verb: 'MANAGE', icon: '✦' };
+        const settled = ['complete', 'staffed'].includes(presentation.plotState);
+        const label = definition?.label || plot.label;
+        const impact = definition?.worldEffectLabel || 'CHOOSE WHAT GROWS HERE';
+        const activityCue = definition?.worldProfile?.activityCue || null;
+        const approachDetail = settled && activityCue
+            ? activityCue
+            : presentation.plotState === 'needs_helper'
+                ? 'INVITE A HELPER'
+                : presentation.plotState === 'constructing'
+                    ? 'GROWING TOGETHER'
+                    : presentation.plotState === 'available'
+                        ? 'CHOOSE WHAT GROWS HERE'
+                        : impact;
+        const inputInstruction = this.hasVisibleTouchControls()
+            ? 'Tap'
+            : 'Press SPACE at';
+        const result = this.offerSanctuaryInteraction({
+            id: nextInteractionId,
+            target: presentation.hitZone,
+            message: `${inputInstruction} ${definition?.shortLabel || plot.label} · ${approachDetail} · ${impact}`,
+            verb: statePresentation.verb,
+            label,
+            ownerLabel: definition?.label || plot.label,
+            icon: statePresentation.icon,
+            worldPrompt: true,
+            worldCommandPlacement: 'target',
+            districtActivityCue: activityCue,
+            districtApproachDetail: approachDetail,
+            districtWorldChange: definition?.worldProfile?.worldChange || null,
+            districtApproachLanguage: 'ground_reply_v1',
+            ariaLabel: `${statePresentation.verb} ${definition?.label || plot.label}. ${approachDetail}. ${impact}`,
+            tone: ['available', 'constructing', 'needs_helper'].includes(
+                presentation.plotState
+            ) ? 0xF2C14E : 0x71E6B1,
+            priority: 44,
+            action: () => this.openVillageCommand({ plotId })
+        });
+        if (this.sanctuaryInteractionDirector?.candidates?.has(nextInteractionId)) {
+            this.villagePlotInteractionId = nextInteractionId;
+        }
+        return result;
+    }
+
+    updateVillageResidentJourneyProximity() {
+        const landmark = this.villageHeartLandmark;
+        const now = this.time?.now || 0;
+        const unavailable = (
+            !landmark ||
+            !this.player ||
+            this.currentBiome !== 'nebula' ||
+            landmark.presentationMode === 'story' ||
+            Boolean(this.villageCommandPanel?.domElement) ||
+            now < this.villageResidentGreetingCooldownUntil
+        );
+        if (unavailable) {
+            this.clearVillageResidentJourneyInteraction();
+            return null;
+        }
+
+        const journeys = (landmark.residentRoutineElements || []).filter(
+            element => (
+                element?.active &&
+                element?.getData?.('villageResidentJourney') === true
+            )
+        );
+        const nearest = journeys
+            .map(journey => ({
+                journey,
+                distance: Phaser.Math.Distance.Between(
+                    this.player.x,
+                    this.player.y,
+                    journey.x,
+                    journey.y
+                )
+            }))
+            .sort((left, right) => left.distance - right.distance)[0] || null;
+        const threshold = this.scale.width <= 600 ? 76 : 88;
+        journeys.forEach(journey => {
+            const identity = journey.getData?.('residentIdentityElement');
+            if (!identity) return;
+            const visible = nearest?.journey === journey && nearest.distance <= threshold;
+            identity.setAlpha(visible ? 1 : 0);
+        });
+        if (!nearest || nearest.distance > threshold) {
+            this.clearVillageResidentJourneyInteraction();
+            return null;
+        }
+
+        const residentId = nearest.journey.getData('residentId');
+        const interactionId = `villageJourney:${residentId}`;
+        if (
+            this.villageResidentJourneyInteractionId === interactionId &&
+            this.sanctuaryInteractionDirector?.candidates?.has(interactionId)
+        ) {
+            return this.sanctuaryInteractionDirector.candidates.get(interactionId);
+        }
+        this.clearVillageResidentJourneyInteraction();
+        const residentName = nearest.journey.getData('residentName') || 'Resident';
+        const activity = nearest.journey.getData('routine') || 'VISITS THE HEART';
+        const result = this.offerSanctuaryInteraction({
+            id: interactionId,
+            target: nearest.journey,
+            message: `Press SPACE · Greet ${residentName} · ${activity}`,
+            verb: 'GREET',
+            label: residentName.toUpperCase(),
+            ownerLabel: `${residentName.toUpperCase()} · AT HEART`,
+            icon: '···',
+            worldPrompt: true,
+            ariaLabel: `Greet ${residentName}. ${activity}.`,
+            tone: 0x8FE3CF,
+            priority: 52,
+            action: () => this.greetVillageResidentJourney(nearest.journey)
+        });
+        if (this.sanctuaryInteractionDirector?.candidates?.has(interactionId)) {
+            this.villageResidentJourneyInteractionId = interactionId;
+        }
+        return result;
+    }
+
+    clearVillageResidentJourneyInteraction() {
+        if (!this.villageResidentJourneyInteractionId) return false;
+        const interactionId = this.villageResidentJourneyInteractionId;
+        this.villageResidentJourneyInteractionId = null;
+        this.withdrawSanctuaryInteraction(interactionId);
+        return true;
+    }
+
+    greetVillageResidentJourney(journey) {
+        if (!journey?.active || !this.villageHeartLandmark) return false;
+        const played = this.worldBuilder?.playVillageResidentGreeting?.(
+            this.villageHeartLandmark,
+            journey
+        ) === true;
+        if (!played) return false;
+        this.villageResidentGreetingCooldownUntil = (this.time?.now || 0) + 7700;
+        this.clearVillageResidentJourneyInteraction();
+        this.recordBondActivity('community');
+        window.AudioManager?.playButtonClick?.();
+        window.AchievementSystem?.recordEvent?.('story_interaction', {
+            event: 'village_resident_greeting',
+            residentId: journey.getData('residentId'),
+            route: journey.getData('routeType')
+        });
+        return true;
     }
 
     scheduleFusionDiscoveryIntroduction(
@@ -15608,28 +17783,11 @@ class GameScene extends Phaser.Scene {
      * Create Kid Mode HUD with status bars and CTA buttons
      */
     createKidModeHUD() {
-        // Get creature stats for status bars
         const creatureStats = getGameState().get('creature.stats') || { happiness: 80, energy: 60, health: 90 };
-        const needsData = {
-            hunger: 100 - creatureStats.happiness,
-            energy: 100 - creatureStats.energy, 
-            fun: Math.max(0, 100 - creatureStats.happiness - 20)
-        };
-
-        // Create status bar at top
-        if (window.responsiveManager) {
-            this.kidModeStatusBar = window.responsiveManager.createKidModeStatusBar(this, needsData);
-        }
-
-        // Get next best action based on creature state
+        // Kid Mode keeps larger touch targets, but care status belongs in the
+        // radial care panel rather than a second persistent Sanctuary HUD.
         const emotion = this.determineCreatureEmotion(creatureStats);
-        const bestAction = window.KidMode.getNextBestAction(emotion);
-        const secondaryActions = window.KidMode.getSecondaryActions(bestAction.action);
-
-        // Show contextual help message
-        if (bestAction.message && window.KidMode && window.KidMode.showSpaceHelpMessage) {
-            window.KidMode.showSpaceHelpMessage(this, bestAction.message);
-        }
+        this.lastEmotion = emotion;
     }
 
     /**
@@ -15753,11 +17911,17 @@ class GameScene extends Phaser.Scene {
         const emotion = this.determineCreatureEmotion(creatureStats);
         const bestAction = window.KidMode.getNextBestAction(emotion);
 
-        // Show new contextual message if emotion changed
-        if (this.lastEmotion !== emotion) {
+        const criticalEmotion = ['hungry', 'sleepy', 'dirty'].includes(emotion);
+        // Care guidance appears only when the creature needs help, never as a
+        // competing arrival banner beside a world interaction.
+        if (
+            criticalEmotion &&
+            this.lastEmotion !== emotion &&
+            !this.sanctuaryFocusModeActive
+        ) {
             window.KidMode.showHelpMessage(this, bestAction.message);
-            this.lastEmotion = emotion;
         }
+        this.lastEmotion = emotion;
     }
 
     /**
@@ -15793,7 +17957,7 @@ class GameScene extends Phaser.Scene {
 
     /**
      * Check for offline activities when returning to game
-     * Shows WelcomeBackScene if significant offline time passed
+     * Simulates the elapsed cycle and queues an in-world Sanctuary recap.
      */
     checkOfflineActivities() {
         this.welcomeBackChecked = true;
@@ -15815,22 +17979,22 @@ class GameScene extends Phaser.Scene {
             if (offlineMinutes >= minOfflineMinutes && creatureHatched && window.CreatureAgent) {
                 console.log('[GameScene] Significant offline time detected, simulating activities...');
 
+                const previousVillage = this.currentBiome === 'nebula'
+                    ? getVillageSnapshot(window.GameState)
+                    : null;
+
                 // Run offline simulation
                 const results = window.CreatureAgent.simulateOfflineActivities(offlineMinutes);
-
-                // Only show WelcomeBackScene if there were notable events
-                if (results.events && results.events.length > 0) {
-                    console.log(`[GameScene] ${results.events.length} events occurred while away, showing welcome back screen`);
-
-                    // Stop this scene and show WelcomeBackScene
-                    this.scene.stop('GameScene');
-                    this.scene.start('WelcomeBackScene', {
-                        events: results.events,
-                        offlineMinutes: offlineMinutes,
-                        returnScene: 'GameScene'
-                    });
-                    return;
-                }
+                const nextVillage = previousVillage
+                    ? reconcileVillageSettlement(window.GameState)
+                    : null;
+                this.pendingSanctuaryReturnMoment = getSanctuaryReturnSummary({
+                    previousVillage,
+                    nextVillage,
+                    events: results.events || [],
+                    offlineMinutes,
+                    companionName: window.GameState?.get('creature.name')
+                });
             }
 
             // Update last activity time
@@ -15851,6 +18015,12 @@ class GameScene extends Phaser.Scene {
         }
         this._isShuttingDown = true;
         console.log('[GameScene] Shutting down - cleaning up event listeners');
+        this.cancelVillageArrivalReveal();
+        this.cancelRescuedResidentArrival();
+        this.sanctuaryReturnMomentScheduleTimer?.remove?.();
+        this.sanctuaryReturnMomentTimer?.remove?.();
+        this.sanctuaryReturnMomentScheduleTimer = null;
+        this.sanctuaryReturnMomentTimer = null;
 
         // Emit session ended event for PersonalitySystem
         if (window.GameState && typeof window.GameState.emit === 'function') {
@@ -15926,8 +18096,19 @@ class GameScene extends Phaser.Scene {
         this.villageCommandPanel = null;
         this.villageReconcileTimer?.remove?.();
         this.villageReconcileTimer = null;
+        this.villageHeartCollider?.destroy?.();
+        this.villageHeartCollider = null;
         this.villageHeartLandmark = null;
         this.nearVillageHeart = false;
+        this.sanctuaryInteractionDirector?.destroy?.();
+        this.sanctuaryInteractionDirector = null;
+        this.sanctuaryPromptOwnerId = null;
+        this.villageCommunityMomentIndex = 0;
+        this.lastVillageCommunityMomentAt = 0;
+        this.villageHeartMemoryIndex = 0;
+        this.lastVillageHeartMemoryAt = 0;
+        this.villageCommunityMomentPending = false;
+        this.villageDecisionMomentPending = null;
         this.recoveryLogModal?.destroy?.();
         this.recoveryLogModal = null;
 
@@ -16039,6 +18220,8 @@ class GameScene extends Phaser.Scene {
             this.events.off('kid_mode_action', this.kidModeActionHandler, this);
             this.kidModeActionHandler = null;
         }
+        this.kidModeHelpContainer?.destroy?.(true);
+        this.kidModeHelpContainer = null;
 
         // Clean up space weather effects
         if (this.auroraEffect) {

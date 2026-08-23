@@ -23,12 +23,15 @@ describe('Guardian resident gameplay contract', () => {
         'scenes/levels/FinalVoidLevel.js'
     ].map(read);
 
-    test('records every guardian at the shared idempotent level-completion boundary', () => {
-        expect(platformer).toContain('window.GuardianResidents');
-        expect(platformer).toContain('?.recordGuardianRescue?.(');
-        expect(platformer).toContain('newlyRescued: guardianResident.changed');
+    test('records regional Guardian outcomes and frees a distinct creature', () => {
+        expect(platformer).toContain('window.GuardianOutcomes');
+        expect(platformer).toContain('?.recordGuardianOutcome?.(');
+        expect(platformer).toContain('window.RescuedResidents');
+        expect(platformer).toContain('?.recordRescuedResident?.(');
+        expect(platformer).toContain('newlyRescued: rescuedResident.changed');
         expect(platformer).toContain('getGuardianSanctuaryArrivalCopy');
-        expect(platformer).toContain('SANCTUARY ARRIVAL // ${guardian.name}');
+        expect(platformer).toContain('${resident.name} FREED -> SANCTUARY');
+        expect(platformer).toContain('REGIONAL OUTCOME // ${guardian.name}');
         completionLevels.forEach(level => {
             expect(level).toContain(
                 'this.getGuardianSanctuaryArrivalCopy({ compact: true })'
@@ -36,8 +39,14 @@ describe('Guardian resident gameplay contract', () => {
         });
     });
 
-    test('renders rescued guardians as moving Sanctuary residents with following zones', () => {
+    test('renders only canonical Guardian presences while rescued creatures inhabit the Sanctuary', () => {
         expect(worldBuilder).toContain('refreshGuardianResidents(garden, snapshot = null)');
+        expect(worldBuilder).toContain('allowedPresenceIds');
+        expect(worldBuilder).toContain("? 'HEART ECHO'");
+        expect(worldBuilder).toContain(".setData('guardianSanctuaryPresence', heartProjection ? 'heart_projection' : 'none')");
+        expect(worldBuilder).toContain(".setData('guardianCommunityStatus', heartProjection ? 'heart_echo' : 'region_bound')");
+        expect(worldBuilder).toContain('refreshRescuedResidents(garden, snapshot = null, {');
+        expect(worldBuilder).toContain('this.scene.add.image(0, -3, definition.textureKey)');
         expect(worldBuilder).toContain('zone.guardianResidentId = definition.id');
         expect(worldBuilder).toContain('zone.body?.updateFromGameObject?.()');
         expect(worldBuilder).toContain('onComplete: beginRoutine');
@@ -65,7 +74,8 @@ describe('Guardian resident gameplay contract', () => {
         expect(gameScene).toMatch(
             /if \(this\.nearGuardianResidentId\)[\s\S]*this\.interactWithGuardianResident\(\);[\s\S]*if \(this\.nearFendResidentId\)/
         );
-        expect(gameScene).toContain('SANCTUARY RESIDENT // RESTORED GUARDIAN');
+        expect(gameScene).toContain('REGIONAL ALLY // HEART ECHO');
+        expect(gameScene).toContain('FOREST ROOTWARDEN  //  SPEAKS THROUGH THE VILLAGE HEART');
         expect(gameScene).toContain('COOPERATIVE TASK // ${result.resident.task.title.toUpperCase()}');
         expect(gameScene).toContain('ACTIVE EXPEDITION ALLY');
         expect(gameScene).toContain('[ ASSIST ROUTINE ]');
@@ -102,6 +112,8 @@ describe('Guardian resident gameplay contract', () => {
         expect(gameState).toContain('expeditionHistory: []');
         expect(gameState).toContain('pendingExpeditionDebrief: null');
         expect(globalInit).toContain("import './systems/GuardianResidents.js';");
+        expect(globalInit).toContain("import './systems/GuardianOutcomes.js';");
+        expect(globalInit).toContain("import './systems/SanctuaryCommunity.js';");
     });
 
     test('applies exactly one selected guardian ability to expedition stats', () => {
@@ -162,9 +174,13 @@ describe('Guardian resident gameplay contract', () => {
 
     test('makes the Sanctuary return payoff visible in Project Beacon', () => {
         expect(beaconModal).toContain(
-            'GUARDIANS ${log.guardianResidents.rescuedCount}/${log.guardianResidents.totalResidents}'
+            'SANCTUARY RESIDENTS ${sanctuaryCommunity.counts.residents}'
         );
-        expect(beaconModal).toContain('GUARDIAN READY');
+        expect(beaconModal).toContain(
+            'REGIONAL ALLIES ${sanctuaryCommunity.counts.regionalAllies}'
+        );
+        expect(beaconModal).toContain('VILLAGE HEART ALLY');
+        expect(beaconModal).toContain('HEART ECHO READY');
         expect(beaconModal).toContain('guardianResidents.taskFocusResident');
         expect(beaconModal).toContain('guardianResidents.supportedResidentCount');
         expect(beaconModal).toContain('guardianResidents.synergyCount');

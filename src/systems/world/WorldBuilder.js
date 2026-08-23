@@ -10,10 +10,48 @@ import { RESCUED_RESIDENT_DEFINITIONS } from '../RescuedResidents.js';
 import { CURRENT_VEIL_ANCHORS } from '../CurrentVeilMission.js';
 import { getFusionPodLandmarkSnapshot } from '../FusionPodLandmark.js';
 import {
+    getVillageGrowthProfile,
+    getVillageResidentWorldPresence,
     getVillageSnapshot,
     VILLAGE_BUILDING_DEFINITIONS,
-    VILLAGE_PLOTS
+    VILLAGE_PLOTS,
+    VILLAGE_WORLD_ARTWORK
 } from '../VillageSettlement.js';
+import {
+    SANCTUARY_FLORA_PLACEMENTS,
+    SANCTUARY_WORLD_ART
+} from './SanctuaryWorldArt.js';
+
+const SANCTUARY_BACKGROUND_OVERSCAN = 320;
+const SANCTUARY_BACKGROUND_THREAD_COUNT = 22;
+const SANCTUARY_BACKGROUND_PATCH_COUNT = 36;
+
+const VILLAGE_SETTLEMENT_LAYOUTS = Object.freeze({
+    compact: Object.freeze({
+        profile: 'terraced_current_v2',
+        heartArtworkSize: 132,
+        buildingArtworkScale: 0.56,
+        plotOffsets: Object.freeze([
+            Object.freeze({ x: -112, y: -226 }),
+            Object.freeze({ x: 112, y: -226 }),
+            Object.freeze({ x: -128, y: -72 }),
+            Object.freeze({ x: 128, y: -72 }),
+            Object.freeze({ x: 0, y: 148 })
+        ])
+    }),
+    expanded: Object.freeze({
+        profile: 'commons_spine_v1',
+        heartArtworkSize: 202,
+        buildingArtworkScale: 0.84,
+        plotOffsets: Object.freeze([
+            Object.freeze({ x: 210, y: -176 }),
+            Object.freeze({ x: 430, y: -132 }),
+            Object.freeze({ x: 238, y: 124 }),
+            Object.freeze({ x: 474, y: 136 }),
+            Object.freeze({ x: 545, y: -4 })
+        ])
+    })
+});
 
 /**
  * WorldBuilder - Creates biome-specific game world environments
@@ -121,6 +159,7 @@ class WorldBuilder {
     createSanctuaryLandmarks() {
         const physics = this.scene.physics;
         const landmarks = this.sanctuaryZones.landmarks;
+        const sanctuaryDistricts = this.createSanctuaryDistrictEnvironment();
 
         // Create crashed ship (futuristic spacecraft, 220x160 texture - horizontal layout)
         this.graphicsEngine.createCrashedShip();
@@ -234,6 +273,11 @@ class WorldBuilder {
 
         // Create Target Practice Range
         const targetRange = this.createTargetRange(landmarks.targetRange);
+        const sanctuaryCommons = this.createSanctuaryCommons({
+            signalGarden: landmarks.signalGarden,
+            villageHeart: landmarks.villageHeart,
+            hubPortal: landmarks.hubPortal
+        });
         const signalGarden = this.createSignalGarden(landmarks.signalGarden);
         const villageHeartLandmark = this.createVillageHeart(
             landmarks.villageHeart
@@ -252,12 +296,613 @@ class WorldBuilder {
             voidPortal,
             campfire,
             targetRange,
+            sanctuaryCommons,
             signalGarden,
             villageHeartLandmark,
             sanctuaryKeepsakes,
             kinshipBeacon,
-            fusionPodLandmark
+            fusionPodLandmark,
+            sanctuaryDistricts
         };
+    }
+
+    createSanctuaryDistrictEnvironment() {
+        const zones = this.sanctuaryZones.zones;
+        const landmarks = this.sanctuaryZones.landmarks;
+        const terrain = this.scene.add.graphics()
+            .setDepth(-24)
+            .setData('sanctuaryDistrictTerrain', true)
+            .setData('sanctuaryDistrictVisualProfile', 'woven_edge_contours_v4')
+            .setData('sanctuaryDistrictFullZoneFill', false)
+            .setData('sanctuaryDistrictMaxFillAlpha', 0.08);
+        const routes = this.scene.add.graphics()
+            .setDepth(-23)
+            .setData('sanctuaryPhysicalRoutes', true)
+            .setData('sanctuaryRouteProfile', 'living_current_filaments_v3')
+            .setData('sanctuaryRouteMaxWidth', 28);
+
+        let contourSegmentCount = 0;
+        let anchorPatchCount = 0;
+        const drawDistrictContours = (zone, colors, scale = 1) => {
+            const { center, bounds } = zone;
+            const width = bounds.width * scale;
+            const height = bounds.height * scale;
+            const contourArcs = [
+                { start: 0.03, end: 0.17, radius: 0.92 },
+                { start: 0.29, end: 0.43, radius: 0.76 },
+                { start: 0.53, end: 0.69, radius: 0.9 },
+                { start: 0.79, end: 0.94, radius: 0.72 }
+            ];
+
+            contourArcs.forEach(({ start, end, radius }, arcIndex) => {
+                const points = Array.from({ length: 10 }, (_, pointIndex) => {
+                    const progress = pointIndex / 9;
+                    const angle = Math.PI * 2 * (start + ((end - start) * progress));
+                    return {
+                        x: center.x + Math.cos(angle) * width * 0.44 * radius,
+                        y: center.y + Math.sin(angle) * height * 0.29 * radius
+                    };
+                });
+                const stroke = (lineWidth, color, alpha) => {
+                    terrain.lineStyle(lineWidth, color, alpha);
+                    terrain.beginPath();
+                    terrain.moveTo(points[0].x, points[0].y);
+                    points.slice(1).forEach(point => terrain.lineTo(point.x, point.y));
+                    terrain.strokePath();
+                };
+                stroke(arcIndex % 2 ? 7 : 5, colors.shadow, 0.07);
+                stroke(2, colors.edge, arcIndex % 2 ? 0.18 : 0.22);
+                contourSegmentCount += 1;
+            });
+
+            [0.12, 0.36, 0.61, 0.85].forEach((progress, patchIndex) => {
+                const angle = Math.PI * 2 * progress;
+                const x = center.x + Math.cos(angle) * width * 0.35;
+                const y = center.y + Math.sin(angle) * height * 0.22;
+                const patchWidth = 14 + ((patchIndex % 2) * 7);
+                terrain.fillStyle(colors.ground, patchIndex % 2 ? 0.08 : 0.06);
+                terrain.fillEllipse(x, y, patchWidth, patchIndex % 2 ? 8 : 6);
+                terrain.fillStyle(colors.edge, 0.2);
+                terrain.fillCircle(x + (patchIndex % 2 ? 6 : -5), y - 2, 1.5);
+                anchorPatchCount += 1;
+            });
+        };
+
+        drawDistrictContours(zones.crashSite, {
+            shadow: 0x05090A,
+            ground: 0x293438,
+            edge: 0x8BA3AA
+        }, 1.04);
+        drawDistrictContours(zones.livingArea, {
+            shadow: 0x071411,
+            ground: 0x163B35,
+            edge: 0x71E6B1
+        }, 1.05);
+        drawDistrictContours(zones.shopArea, {
+            shadow: 0x080D0D,
+            ground: 0x263D38,
+            edge: 0xF2C14E
+        }, 0.95);
+        drawDistrictContours(zones.hubGate, {
+            shadow: 0x070912,
+            ground: 0x24233D,
+            edge: 0xBFA6FF
+        }, 1.04);
+        drawDistrictContours(zones.gardenPlot, {
+            shadow: 0x071411,
+            ground: 0x1B4435,
+            edge: 0x8FE3CF
+        }, 1.02);
+        drawDistrictContours(zones.trainingGrounds, {
+            shadow: 0x100A0A,
+            ground: 0x342A2A,
+            edge: 0xD94B4B
+        }, 0.96);
+        terrain
+            .setData('sanctuaryDistrictContourCount', contourSegmentCount)
+            .setData('sanctuaryDistrictAnchorPatchCount', anchorPatchCount);
+
+        const routeDefinitions = [
+            {
+                id: 'crash_to_commons',
+                start: landmarks.crashedShip.position,
+                end: zones.livingArea.center,
+                accent: 0x90A4AE
+            },
+            {
+                id: 'commons_to_shop',
+                start: zones.livingArea.center,
+                end: landmarks.cosmicShop.position,
+                accent: 0xF2C14E
+            },
+            {
+                id: 'commons_to_settlement',
+                start: zones.livingArea.center,
+                end: landmarks.villageHeart.position,
+                accent: 0x71E6B1
+            },
+            {
+                id: 'commons_to_training',
+                start: zones.livingArea.center,
+                end: landmarks.targetRange.position,
+                accent: 0xD94B4B
+            }
+        ];
+        routes.setData(
+            'sanctuaryRouteIds',
+            routeDefinitions.map(route => route.id)
+        );
+        routeDefinitions.forEach(({ start, end, accent }, routeIndex) => {
+            const midpoint = {
+                x: (start.x + end.x) / 2 + (routeIndex % 2 ? 34 : -26),
+                y: (start.y + end.y) / 2 + (routeIndex % 2 ? 62 : -54)
+            };
+            const points = Array.from({ length: 28 }, (_, index) => {
+                const t = index / 27;
+                const inverse = 1 - t;
+                return {
+                    x: (inverse * inverse * start.x) +
+                        (2 * inverse * t * midpoint.x) +
+                        (t * t * end.x),
+                    y: (inverse * inverse * start.y) +
+                        (2 * inverse * t * midpoint.y) +
+                        (t * t * end.y)
+                };
+            });
+            const stroke = (width, color, alpha) => {
+                routes.lineStyle(width, color, alpha);
+                routes.beginPath();
+                routes.moveTo(points[0].x, points[0].y);
+                points.slice(1).forEach(point => routes.lineTo(point.x, point.y));
+                routes.strokePath();
+            };
+            stroke(28, 0x07100F, 0.11);
+            stroke(16, 0x1C3532, 0.2);
+            stroke(3, accent, routeIndex < 2 ? 0.2 : 0.28);
+            stroke(1, 0xF4F4F4, 0.12);
+            [0.18, 0.36, 0.58, 0.78].forEach((progress, detailIndex) => {
+                const point = points[Math.round(progress * (points.length - 1))];
+                const side = detailIndex % 2 ? 1 : -1;
+                routes.fillStyle(
+                    detailIndex % 2 ? accent : 0x8FE3CF,
+                    detailIndex % 2 ? 0.3 : 0.22
+                );
+                routes.fillEllipse(
+                    point.x + side * 11,
+                    point.y - side * 7,
+                    detailIndex % 2 ? 9 : 6,
+                    detailIndex % 2 ? 4 : 3
+                );
+            });
+        });
+
+        // Crash scars establish the human arrival without another floating label.
+        const ship = landmarks.crashedShip.position;
+        terrain.lineStyle(8, 0x111A1D, 0.34);
+        [-32, 0, 38].forEach((offset, index) => {
+            terrain.beginPath();
+            terrain.moveTo(ship.x - 120, ship.y + offset);
+            terrain.lineTo(ship.x - 210 - (index * 24), ship.y + offset + 42);
+            terrain.strokePath();
+        });
+
+        // Civic markings make the training district legible without UI chrome.
+        const range = zones.trainingGrounds;
+        [0xD94B4B, 0xF4F4F4, 0x101616, 0x3FAE62].forEach((color, index) => {
+            terrain.fillStyle(color, index === 2 ? 0.34 : 0.42);
+            terrain.fillRect(
+                range.bounds.x + 42 + (index * 36),
+                range.bounds.y + range.bounds.height - 48,
+                24,
+                7
+            );
+        });
+
+        const flora = SANCTUARY_FLORA_PLACEMENTS.flatMap((placement, index) => {
+            const artwork = SANCTUARY_WORLD_ART[placement.artwork];
+            const zone = zones[placement.zone];
+            if (!artwork || !zone || !this.scene.textures.exists(artwork.key)) return [];
+            const x = zone.center.x + placement.offsetX;
+            const y = zone.center.y + placement.offsetY;
+            const grounding = this.scene.add.graphics()
+                .setPosition(x, y + (placement.width * 0.2))
+                .setDepth(y - 5)
+                .setAlpha(0.68)
+                .setData('sanctuaryFloraGrounding', true)
+                .setData('sanctuaryFloraZone', placement.zone);
+            grounding.fillStyle(0x07100F, 0.72);
+            grounding.fillEllipse(0, 0, placement.width * 0.78, placement.width * 0.16);
+            grounding.lineStyle(2, 0x71E6B1, 0.22);
+            grounding.strokeEllipse(
+                0,
+                -1,
+                placement.width * 0.68,
+                placement.width * 0.11
+            );
+            const image = this.scene.add.image(x, y, artwork.key)
+                .setDisplaySize(
+                    placement.width,
+                    placement.artwork === 'listeningReeds'
+                        ? placement.width * 0.667
+                        : placement.width
+                )
+                .setFlipX(placement.flipX)
+                .setDepth(y - 4)
+                .setAlpha(0.84)
+                .setTint(0xD8E8E2)
+                .setData('sanctuaryFlora', placement.artwork)
+                .setData('sanctuaryFloraZone', placement.zone)
+                .setData('sanctuaryFloraGrounded', true)
+                .setData('sanctuaryFloraPresentation', 'ambient-world')
+                .setData('sanctuaryFloraTargetAlpha', 0.84);
+            image.sanctuaryBaseScaleX = image.scaleX;
+            image.sanctuaryBaseScaleY = image.scaleY;
+            const tween = this.scene.tweens.add({
+                targets: image,
+                scaleY: {
+                    from: image.sanctuaryBaseScaleY * 0.992,
+                    to: image.sanctuaryBaseScaleY * 1.008
+                },
+                duration: 2500 + (index * 177),
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            return [{
+                image,
+                grounding,
+                tween,
+                zoneId: placement.zone,
+                artworkId: placement.artwork
+            }];
+        });
+
+        const districtDefinitions = [
+            {
+                zoneId: 'crashSite',
+                label: 'CRASH SITE',
+                x: zones.crashSite.center.x,
+                y: zones.crashSite.bounds.y + zones.crashSite.bounds.height - 12,
+                tone: 0x90A4AE
+            },
+            {
+                zoneId: 'livingArea',
+                label: 'LIVING COMMONS',
+                x: zones.livingArea.center.x,
+                y: zones.livingArea.bounds.y + zones.livingArea.bounds.height - 18,
+                tone: 0x71E6B1
+            },
+            {
+                zoneId: 'shopArea',
+                label: 'SUPPLY DOCK',
+                x: zones.shopArea.bounds.x + 28,
+                y: zones.shopArea.center.y,
+                tone: 0xF2C14E,
+                vertical: true
+            },
+            {
+                zoneId: 'hubGate',
+                label: 'EXPEDITION GATE',
+                x: zones.hubGate.center.x,
+                y: zones.hubGate.bounds.y + 10,
+                tone: 0xBFA6FF
+            },
+            {
+                zoneId: 'gardenPlot',
+                label: 'SIGNAL GARDEN',
+                x: zones.gardenPlot.center.x,
+                y: zones.gardenPlot.bounds.y + 14,
+                tone: 0x8FE3CF
+            },
+            {
+                zoneId: 'settlementDistrict',
+                label: 'FEND SETTLEMENT',
+                x: zones.settlementDistrict.center.x,
+                y: zones.settlementDistrict.bounds.y + 16,
+                tone: 0x71E6B1
+            },
+            {
+                zoneId: 'trainingGrounds',
+                label: 'TRAINING RING',
+                x: zones.trainingGrounds.bounds.x + 30,
+                y: zones.trainingGrounds.bounds.y + zones.trainingGrounds.bounds.height - 18,
+                tone: 0xD94B4B
+            }
+        ];
+        const markers = districtDefinitions.map(definition => {
+            const width = Math.max(126, definition.label.length * 8 + 44);
+            const line = this.scene.add.graphics();
+            line.lineStyle(2, definition.tone, 0.56);
+            line.lineBetween(-width / 2, 0, -18, 0);
+            line.lineBetween(18, 0, width / 2, 0);
+            line.fillStyle(0x071411, 0.94);
+            line.fillCircle(0, 0, 8);
+            line.lineStyle(2, definition.tone, 0.82);
+            line.strokeCircle(0, 0, 6);
+            line.fillStyle(0xF4F4F4, 0.9);
+            line.fillCircle(0, 0, 2);
+            const label = this.scene.add.text(0, 14, definition.label, {
+                fontSize: '11px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#F4F4F4',
+                fontStyle: 'bold',
+                stroke: '#050505',
+                strokeThickness: 4
+            }).setOrigin(0.5, 0).setAlpha(0)
+                .setData('sanctuaryPeripheralLabel', true)
+                .setData('sanctuaryPeripheralDestination', definition.zoneId);
+            const container = this.scene.add.container(
+                definition.x,
+                definition.y,
+                [line, label]
+            )
+                .setDepth(definition.y - 2)
+                .setAlpha(0.18)
+                .setData('sanctuaryDistrictMarker', definition.zoneId)
+                .setData('sanctuaryDistrictLabel', definition.label);
+            if (definition.vertical) {
+                line.setAngle(90);
+                label.setPosition(24, -6).setOrigin(0, 0.5);
+            }
+            return {
+                ...definition,
+                container,
+                line,
+                label,
+                focusTween: null,
+                labelTween: null
+            };
+        });
+
+        const districts = {
+            terrain,
+            routes,
+            flora,
+            markers,
+            activeZoneId: null
+        };
+        this.sanctuaryDistricts = districts;
+        return districts;
+    }
+
+    setSanctuaryDistrictFocus(
+        districts,
+        zoneId,
+        { immediate = false } = {}
+    ) {
+        if (!districts?.markers || districts.activeZoneId === zoneId) {
+            return false;
+        }
+        districts.activeZoneId = zoneId || null;
+        districts.markers.forEach(marker => {
+            marker.focusTween?.stop?.();
+            marker.labelTween?.stop?.();
+            marker.focusTween = null;
+            marker.labelTween = null;
+            const active = marker.zoneId === zoneId;
+            const alpha = active ? 0.82 : 0.18;
+            const scale = active ? 1.04 : 1;
+            marker.label.setColor(active ? '#FFFFFF' : '#C4CFCC');
+            if (immediate || !this.scene?.tweens) {
+                marker.container.setAlpha(alpha).setScale(scale);
+                marker.label.setAlpha(active ? 1 : 0);
+                return;
+            }
+            marker.focusTween = this.scene.tweens.add({
+                targets: marker.container,
+                alpha,
+                scaleX: scale,
+                scaleY: scale,
+                duration: 260,
+                ease: 'Sine.easeOut'
+            });
+            marker.labelTween = this.scene.tweens.add({
+                targets: marker.label,
+                alpha: active ? 1 : 0,
+                duration: active ? 220 : 140,
+                ease: 'Sine.easeOut'
+            });
+        });
+        return true;
+    }
+
+    setSanctuaryFloraFocus(districts, active = false, { immediate = false } = {}) {
+        const flora = districts?.flora || [];
+        const compact = this.scene.scale.width <= 600;
+        const targetAlpha = active ? (compact ? 0.34 : 0.44) : 0.84;
+        const groundingAlpha = active ? (compact ? 0.22 : 0.28) : 0.68;
+        flora.forEach(entry => {
+            if (!entry?.image) return;
+            entry.focusTween?.stop?.();
+            entry.focusTween = null;
+            entry.image
+                .setTint(active ? 0x9DB8AF : 0xD8E8E2)
+                .setData(
+                    'sanctuaryFloraPresentation',
+                    active ? 'supporting-focus' : 'ambient-world'
+                )
+                .setData('sanctuaryFloraTargetAlpha', targetAlpha);
+            entry.grounding
+                ?.setData(
+                    'sanctuaryFloraPresentation',
+                    active ? 'supporting-focus' : 'ambient-world'
+                )
+                .setData('sanctuaryFloraTargetAlpha', groundingAlpha);
+            if (immediate || !this.scene?.tweens) {
+                entry.image.setAlpha(targetAlpha);
+                entry.grounding?.setAlpha?.(groundingAlpha);
+                return;
+            }
+            entry.focusTween = this.scene.tweens.add({
+                targets: [entry.image, entry.grounding].filter(Boolean),
+                alpha: target => target === entry.image
+                    ? targetAlpha
+                    : groundingAlpha,
+                duration: 260,
+                ease: 'Sine.easeOut'
+            });
+        });
+        districts?.terrain
+            ?.setData('sanctuaryFloraFocusActive', Boolean(active))
+            .setData('sanctuaryFloraTargetAlpha', targetAlpha)
+            .setData('sanctuaryFloraGroundingAlpha', groundingAlpha);
+        return {
+            count: flora.length,
+            active: Boolean(active),
+            targetAlpha,
+            groundingAlpha
+        };
+    }
+
+    createSanctuaryCommons({ signalGarden, villageHeart, hubPortal } = {}) {
+        const garden = signalGarden?.position;
+        const heart = villageHeart?.position;
+        const portal = hubPortal?.position;
+        if (!garden || !heart || !portal) return null;
+
+        const baseDepth = Math.min(garden.y, heart.y, portal.y) - 64;
+        const terrain = this.scene.add.graphics()
+            .setDepth(baseDepth)
+            .setData('sanctuaryCommons', true)
+            .setData('sanctuaryCommonsPathProfile', 'living_current_filaments_v3')
+            .setData('sanctuaryCommonsMaxWidth', 32);
+        const routes = [
+            {
+                id: 'garden_to_heart',
+                start: garden,
+                control: {
+                    x: (garden.x + heart.x) / 2,
+                    y: Math.min(garden.y, heart.y) - 82
+                },
+                end: heart,
+                color: 0x71E6B1
+            },
+            {
+                id: 'heart_to_portal',
+                start: heart,
+                control: {
+                    x: (heart.x + portal.x) / 2,
+                    y: Math.max(heart.y, portal.y) + 88
+                },
+                end: portal,
+                color: 0x8FE3CF
+            }
+        ];
+        const path = this.scene.add.graphics()
+            .setDepth(baseDepth + 8)
+            .setData('sanctuaryCurrentRoutes', routes.map(route => route.id));
+        const pointOnRoute = (route, progress) => {
+            const inverse = 1 - progress;
+            return {
+                x: (inverse * inverse * route.start.x) +
+                    (2 * inverse * progress * route.control.x) +
+                    (progress * progress * route.end.x),
+                y: (inverse * inverse * route.start.y) +
+                    (2 * inverse * progress * route.control.y) +
+                    (progress * progress * route.end.y)
+            };
+        };
+        routes.forEach((route, routeIndex) => {
+            const points = Array.from({ length: 25 }, (_, index) => (
+                pointOnRoute(route, index / 24)
+            ));
+            const strokeGround = (width, color, alpha) => {
+                terrain.lineStyle(width, color, alpha);
+                terrain.beginPath();
+                terrain.moveTo(points[0].x, points[0].y);
+                points.slice(1).forEach(point => terrain.lineTo(point.x, point.y));
+                terrain.strokePath();
+            };
+            strokeGround(32, 0x071411, routeIndex === 0 ? 0.1 : 0.08);
+            strokeGround(18, routeIndex === 0 ? 0x173D36 : 0x12352F, 0.18);
+            [0.18, 0.42, 0.67, 0.86].forEach((progress, detailIndex) => {
+                const detail = pointOnRoute(route, progress);
+                terrain.fillStyle(
+                    detailIndex % 2 ? 0x3FAE62 : 0x8FE3CF,
+                    detailIndex % 2 ? 0.14 : 0.1
+                );
+                terrain.fillEllipse(
+                    detail.x + (detailIndex % 2 ? 9 : -7),
+                    detail.y + (detailIndex % 2 ? 6 : -5),
+                    detailIndex % 2 ? 18 : 11,
+                    detailIndex % 2 ? 7 : 5
+                );
+            });
+        });
+        routes.forEach(route => {
+            const points = Array.from({ length: 25 }, (_, index) => (
+                pointOnRoute(route, index / 24)
+            ));
+            const stroke = (width, color, alpha) => {
+                path.lineStyle(width, color, alpha);
+                path.beginPath();
+                path.moveTo(points[0].x, points[0].y);
+                points.slice(1).forEach(point => path.lineTo(point.x, point.y));
+                path.strokePath();
+            };
+            stroke(7, 0x071411, 0.16);
+            stroke(2, route.color, 0.34);
+            stroke(1, 0xF4F4F4, 0.26);
+        });
+        path.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const nodes = [garden, heart, portal].map((position, index) => {
+            const node = this.scene.add.graphics()
+                .setPosition(position.x, position.y)
+                .setDepth(baseDepth + 10)
+                .setData('sanctuaryCurrentNode', index);
+            node.fillStyle(0x071411, 0.86);
+            node.fillCircle(0, 0, index === 1 ? 12 : 9);
+            node.lineStyle(2, index === 1 ? 0xF2C14E : 0x71E6B1, 0.84);
+            node.strokeCircle(0, 0, index === 1 ? 10 : 7);
+            node.fillStyle(0xF4F4F4, 0.9);
+            node.fillCircle(0, 0, 2);
+            node.setBlendMode?.(Phaser.BlendModes.ADD);
+            return node;
+        });
+
+        const signals = [];
+        const signalTweens = [];
+        routes.forEach((route, routeIndex) => {
+            [0, 1].forEach(signalIndex => {
+                const signal = this.scene.add.circle(
+                    route.start.x,
+                    route.start.y,
+                    signalIndex === 0 ? 3 : 2,
+                    route.color,
+                    0.78
+                ).setDepth(baseDepth + 11)
+                    .setData('sanctuaryCurrentSignal', route.id);
+                signal.setBlendMode?.(Phaser.BlendModes.ADD);
+                const progress = { value: 0 };
+                const tween = this.scene.tweens.add({
+                    targets: progress,
+                    value: 1,
+                    delay: (routeIndex * 420) + (signalIndex * 1250),
+                    duration: 3400 + (routeIndex * 500),
+                    repeat: -1,
+                    ease: 'Sine.easeInOut',
+                    onUpdate: () => {
+                        const point = pointOnRoute(route, progress.value);
+                        signal.setPosition(point.x, point.y);
+                        signal.setAlpha(0.2 + Math.sin(progress.value * Math.PI) * 0.58);
+                    }
+                });
+                signals.push(signal);
+                signalTweens.push(tween);
+            });
+        });
+
+        const commons = {
+            terrain,
+            path,
+            nodes,
+            signals,
+            signalTweens,
+            routes
+        };
+        this.sanctuaryCommons = commons;
+        return commons;
     }
 
     createVillageHeart(landmarkData, snapshotOverride = null) {
@@ -273,24 +918,95 @@ class WorldBuilder {
         zone.setDepth(y);
         zone.landmarkId = 'villageHeart';
         zone.landmarkData = landmarkData;
+        const collisionZone = this.scene.add.zone(x, y + 4, 96, 68);
+        this.scene.physics.add.existing(collisionZone, true);
+        collisionZone.setDepth(y)
+            .setData('villageHeartCollisionCore', true)
+            .setData('collisionShape', 'oval_core');
+        const approachAnchor = { x, y: y + 108 };
 
         const districtTerrain = this.scene.add.graphics()
             .setPosition(x, y)
-            .setDepth(y - 3);
+            .setDepth(-21);
         const currentPaths = this.scene.add.graphics()
             .setPosition(x, y)
-            .setDepth(y - 2);
+            .setDepth(-20);
+        const districtEcology = this.scene.add.graphics()
+            .setPosition(x, y)
+            .setDepth(-19);
+        const districtPulse = this.scene.add.graphics()
+            .setPosition(x, y)
+            .setDepth(-18);
+        districtPulse.setBlendMode?.(Phaser.BlendModes.ADD);
+        const districtThresholds = this.scene.add.graphics()
+            .setPosition(x, y)
+            .setDepth(-17);
         const heart = this.scene.add.graphics().setPosition(x, y).setDepth(y + 2);
+        const heartCaption = this.scene.add.graphics()
+            .setPosition(x, y)
+            .setDepth(y + 3);
+        const compactHeartArtwork = this.scene.scale.width <= 600;
+        const heartArtworkKey = compactHeartArtwork &&
+            this.scene.textures.exists(VILLAGE_WORLD_ARTWORK.heart.compactKey)
+            ? VILLAGE_WORLD_ARTWORK.heart.compactKey
+            : VILLAGE_WORLD_ARTWORK.heart.key;
+        const heartArtwork = this.scene.textures.exists(heartArtworkKey)
+            ? this.scene.add.image(x, y - 22, heartArtworkKey)
+                .setDisplaySize(228, 228)
+                .setDepth(y + 2)
+                .setData(
+                    'villageArtworkVariant',
+                    heartArtworkKey === VILLAGE_WORLD_ARTWORK.heart.compactKey
+                        ? 'compact_silhouette'
+                        : 'detailed_world'
+                )
+            : null;
+        if (heartArtwork) heartArtwork.villageBaseScale = heartArtwork.scaleX;
         const glow = this.scene.add.graphics().setPosition(x, y).setDepth(y + 1);
-        const actionLabel = this.scene.add.text(x, y - 72, 'TAP TO BUILD', {
-            fontSize: '9px',
+        const restorationRoots = this.scene.add.graphics()
+            .setPosition(x, y)
+            .setDepth(y + 1.5);
+        const heartLifeAura = this.scene.add.graphics()
+            .setPosition(x, y - 22)
+            .setDepth(y + 1.75);
+        const heartLifeOrbit = this.scene.add.graphics()
+            .setPosition(x, y - 22)
+            .setDepth(y + 3);
+        const heartLifeCrown = this.scene.add.graphics()
+            .setPosition(x, y - 22)
+            .setDepth(y + 3.1);
+        const heartMemoryWeave = this.scene.add.graphics()
+            .setPosition(x, y - 22)
+            .setDepth(y + 3.16);
+        const heartLifeCore = this.scene.add.circle(
+            x,
+            y - 22,
+            4,
+            0xF4F4F4,
+            0
+        ).setDepth(y + 3.2);
+        const heartDeliveryPulse = this.scene.add.graphics()
+            .setPosition(x, y - 6)
+            .setDepth(y + 3.3)
+            .setAlpha(0);
+        const heartFoodImprint = this.scene.add.graphics()
+            .setPosition(x, y - 22)
+            .setDepth(y + 3.15);
+        const heartWoodImprint = this.scene.add.graphics()
+            .setPosition(x, y - 22)
+            .setDepth(y + 3.15);
+        const heartStoneImprint = this.scene.add.graphics()
+            .setPosition(x, y - 22)
+            .setDepth(y + 3.15);
+        const actionLabel = this.scene.add.text(x, y - 126, 'OPEN HEART', {
+            fontSize: '10px',
             fontFamily: 'Arial, sans-serif',
             color: '#F2C14E',
             fontStyle: 'bold',
             stroke: '#071411',
             strokeThickness: 4
         }).setOrigin(0.5).setDepth(y + 5);
-        const label = this.scene.add.text(x, y + 64, 'VILLAGE HEART', {
+        const label = this.scene.add.text(x, y + 105, 'VILLAGE HEART', {
             fontSize: '12px',
             fontFamily: 'Arial, sans-serif',
             color: '#F4F4F4',
@@ -298,7 +1014,7 @@ class WorldBuilder {
             stroke: '#050505',
             strokeThickness: 4
         }).setOrigin(0.5).setDepth(y + 4);
-        const statusLabel = this.scene.add.text(x, y + 81, '', {
+        const statusLabel = this.scene.add.text(x, y + 132, '', {
             fontSize: '9px',
             fontFamily: 'Arial, sans-serif',
             color: '#8FE3CF',
@@ -309,38 +1025,91 @@ class WorldBuilder {
 
         const landmark = {
             zone,
+            collisionZone,
+            approachAnchor,
             districtTerrain,
             currentPaths,
+            districtEcology,
+            districtPulse,
+            districtThresholds,
             heart,
+            heartCaption,
+            heartArtwork,
             glow,
+            restorationRoots,
+            heartLife: {
+                aura: heartLifeAura,
+                orbit: heartLifeOrbit,
+                crown: heartLifeCrown,
+                memoryWeave: heartMemoryWeave,
+                core: heartLifeCore,
+                foodImprint: heartFoodImprint,
+                woodImprint: heartWoodImprint,
+                stoneImprint: heartStoneImprint,
+                deliveryPulse: heartDeliveryPulse
+            },
+            heartLifeTweens: [],
+            heartDeliveryTween: null,
+            heartImprintDeliveryTween: null,
+            activeDeliverySources: new Set(),
+            resourceDeliverySources: new Map(),
             actionLabel,
             label,
             statusLabel,
             buildingElements: [],
             buildingTweens: [],
+            focusTweens: [],
+            focusModeActive: false,
+            playerProximityPlotId: null,
             plotHitZones: [],
+            nextActionElement: null,
+            nextActionHitZone: null,
+            nextActionPlacard: null,
+            nextActionRing: null,
+            nextActionPreview: null,
+            nextActionPreviewTween: null,
+            nextActionTween: null,
+            guidanceRoute: null,
+            arrivalGuide: null,
+            arrivalGuideTween: null,
+            arrivalReveal: null,
+            arrivalRevealTweens: [],
             pulseTween: null,
+            ecologyTween: null,
+            heartArtworkTween: null,
             snapshot: null
         };
 
         zone.setInteractive({ useHandCursor: true });
+        zone
+            .setData('ariaLabel', 'Open the Village Heart')
+            .setData('villageLandmarkIdentity', 'village_heart')
+            .setData('mobileTapTarget', true);
         zone.on('pointerover', () => {
             heart.setScale(1.04);
+            if (heartArtwork) {
+                heartArtwork.setScale(heartArtwork.villageBaseScale * 1.04);
+            }
             glow.setScale(1.08);
             actionLabel.setColor('#FFFFFF').setScale(1.06);
         });
         zone.on('pointerout', () => {
             heart.setScale(1);
+            if (heartArtwork) heartArtwork.setScale(heartArtwork.villageBaseScale);
             glow.setScale(1);
-            actionLabel
-                .setColor(
-                    landmark.snapshot?.unlock?.unlocked
-                        ? '#F2C14E'
-                        : '#93A2A9'
-                )
+                actionLabel
+                    .setColor(
+                        !landmark.snapshot?.unlock?.unlocked
+                            ? '#93A2A9'
+                            : landmark.snapshot?.worldState?.nextAction?.type === 'decision'
+                                ? '#8FE3CF'
+                                : '#F2C14E'
+                    )
                 .setScale(1);
         });
         zone.on('pointerdown', () => this.activateVillageHeart(landmark));
+        actionLabel.setInteractive({ useHandCursor: true });
+        actionLabel.on('pointerdown', () => this.activateVillageHeart(landmark));
 
         const snapshot = snapshotOverride || (
             typeof window !== 'undefined' && window.GameState
@@ -352,158 +1121,1272 @@ class WorldBuilder {
         return landmark;
     }
 
+    drawVillageDistrictGround({
+        terrain,
+        ecology,
+        pulse,
+        thresholds,
+        plotOffsets,
+        buildingByPlot,
+        unlocked,
+        growthTier,
+        restoredCount,
+        compact
+    }) {
+        const heartBasin = compact
+            ? { x: 0, y: 22, width: 205, height: 156 }
+            : { x: 0, y: 24, width: 230, height: 170 };
+        const plotBasins = plotOffsets.map((offset, index) => {
+            const plot = VILLAGE_PLOTS[index];
+            const building = buildingByPlot.get(plot.id) || null;
+            const buildingDefinition = building?.definition ||
+                VILLAGE_BUILDING_DEFINITIONS.find(
+                    definition => definition.id === building?.definitionId
+                ) || null;
+            const complete = building?.status === 'complete';
+            return {
+                x: offset.x,
+                y: offset.y + 25,
+                width: compact ? (building ? 178 : 150) : (building ? 194 : 164),
+                height: compact ? (building ? 128 : 102) : (building ? 138 : 108),
+                building,
+                buildingDefinition,
+                worldProfile: buildingDefinition?.worldProfile || null,
+                complete
+            };
+        });
+        const districtProfiles = [
+            { id: 'garden_edge', motif: 'growth', color: 0xF2C14E },
+            { id: 'upper_glade', motif: 'canopy', color: 0x71E6B1 },
+            { id: 'current_bend', motif: 'current', color: 0x8FE3CF },
+            { id: 'shelter_grove', motif: 'shelter', color: 0xE85D5D },
+            { id: 'far_root', motif: 'signal', color: 0xB7F7DE }
+        ];
+        const basins = [heartBasin, ...plotBasins];
+        const settledBasins = plotBasins.filter(basin => basin.building);
+        const livingBasins = [heartBasin, ...settledBasins];
+        const growthStrength = unlocked ? 0.72 + (growthTier * 0.08) : 0.38;
+
+        // One continuous glade makes the settlement read as a place rather than
+        // a collection of decorative pads. The irregular outline is stable so
+        // saved villages retain the same visual geography across sessions.
+        const gladeExtents = livingBasins.reduce((bounds, basin) => ({
+            minX: Math.min(bounds.minX, basin.x - (basin.width * 0.56)),
+            maxX: Math.max(bounds.maxX, basin.x + (basin.width * 0.56)),
+            minY: Math.min(bounds.minY, basin.y - (basin.height * 0.58)),
+            maxY: Math.max(bounds.maxY, basin.y + (basin.height * 0.58))
+        }), {
+            minX: Number.POSITIVE_INFINITY,
+            maxX: Number.NEGATIVE_INFINITY,
+            minY: Number.POSITIVE_INFINITY,
+            maxY: Number.NEGATIVE_INFINITY
+        });
+        const gladeCenter = {
+            x: (gladeExtents.minX + gladeExtents.maxX) / 2,
+            y: (gladeExtents.minY + gladeExtents.maxY) / 2
+        };
+        const gladeSize = {
+            width: (gladeExtents.maxX - gladeExtents.minX) + (compact ? 58 : 86),
+            height: (gladeExtents.maxY - gladeExtents.minY) + (compact ? 68 : 94)
+        };
+        const createGladeContour = (scale = 1, phase = 0) => (
+            Array.from({ length: 32 }, (_, pointIndex) => {
+                const angle = (Math.PI * 2 * pointIndex) / 32;
+                const ripple = 1 +
+                    (Math.sin((angle * 3) + phase) * 0.055) +
+                    (Math.cos((angle * 5) - phase) * 0.035);
+                return new Phaser.Geom.Point(
+                    gladeCenter.x + Math.cos(angle) * gladeSize.width * 0.5 * scale * ripple,
+                    gladeCenter.y + Math.sin(angle) * gladeSize.height * 0.5 * scale * ripple
+                );
+            })
+        );
+        const gladeShadow = createGladeContour(1.08, 0.55);
+        const gladeGround = createGladeContour(1, 0.2);
+        const gladeInner = createGladeContour(0.82, 1.1);
+        terrain.fillStyle(0x071411, unlocked ? 0.06 : 0.04);
+        terrain.fillPoints(gladeShadow, true);
+        terrain.fillStyle(0x0B211D, unlocked ? 0.34 : 0.24);
+        terrain.fillPoints(gladeGround, true);
+        terrain.fillStyle(0x12352F, unlocked ? 0.18 : 0.1);
+        terrain.fillPoints(gladeInner, true);
+
+        // The south approach and west garden seam remain open and readable.
+        terrain.fillStyle(0x102B26, unlocked ? 0.46 : 0.28);
+        const southEdge = gladeExtents.maxY + (compact ? 2 : 8);
+        const southReach = southEdge + (compact ? 94 : 118);
+        terrain.fillPoints([
+            new Phaser.Geom.Point(-32, southReach),
+            new Phaser.Geom.Point(28, southReach),
+            new Phaser.Geom.Point(34, southEdge + 62),
+            new Phaser.Geom.Point(24, southEdge + 26),
+            new Phaser.Geom.Point(46, southEdge - 10),
+            new Phaser.Geom.Point(22, southEdge - 24),
+            new Phaser.Geom.Point(-24, southEdge - 20),
+            new Phaser.Geom.Point(-42, southEdge + 12),
+            new Phaser.Geom.Point(-29, southEdge + 50)
+        ], true);
+        const westEdge = gladeExtents.minX - (compact ? 4 : 10);
+        terrain.fillPoints([
+            new Phaser.Geom.Point(westEdge - (compact ? 88 : 120), heartBasin.y - 24),
+            new Phaser.Geom.Point(westEdge - (compact ? 88 : 120), heartBasin.y + 28),
+            new Phaser.Geom.Point(westEdge - 48, heartBasin.y + 31),
+            new Phaser.Geom.Point(westEdge - 16, heartBasin.y + 20),
+            new Phaser.Geom.Point(westEdge + 20, heartBasin.y + 34),
+            new Phaser.Geom.Point(westEdge + 29, heartBasin.y + 8),
+            new Phaser.Geom.Point(westEdge + 10, heartBasin.y - 22),
+            new Phaser.Geom.Point(westEdge - 34, heartBasin.y - 31)
+        ], true);
+
+        // Broken edge-lighting preserves the organic silhouette and avoids a
+        // panel-like outline around the whole district.
+        const edgeSegments = [
+            { start: 0.03, end: 0.18, color: 0x8FE3CF },
+            { start: 0.29, end: 0.43, color: 0x3FAE62 },
+            { start: 0.55, end: 0.7, color: 0x71E6B1 },
+            { start: 0.8, end: 0.94, color: 0xF2C14E }
+        ];
+        edgeSegments.forEach((segment, segmentIndex) => {
+            terrain.lineStyle(
+                segmentIndex === 3 ? 1 : 2,
+                segment.color,
+                unlocked ? (segmentIndex === 3 ? 0.05 : 0.08) : 0.035
+            );
+            terrain.beginPath();
+            for (let pointIndex = 0; pointIndex <= 9; pointIndex++) {
+                const progress = pointIndex / 9;
+                const angle = Math.PI * 2 * (
+                    segment.start + ((segment.end - segment.start) * progress)
+                );
+                const ripple = 1 +
+                    (Math.sin((angle * 3) + 0.2) * 0.055) +
+                    (Math.cos((angle * 5) - 0.2) * 0.035);
+                const point = {
+                    x: gladeCenter.x +
+                        Math.cos(angle) * gladeSize.width * 0.5 * ripple,
+                    y: gladeCenter.y +
+                        Math.sin(angle) * gladeSize.height * 0.5 * ripple
+                };
+                if (pointIndex === 0) terrain.moveTo(point.x, point.y);
+                else terrain.lineTo(point.x, point.y);
+            }
+            terrain.strokePath();
+        });
+
+        const edgeNodes = Array.from({ length: compact ? 10 : 14 }, (_, nodeIndex) => {
+            const angle = (Math.PI * 2 * (nodeIndex + 0.45)) / (compact ? 10 : 14);
+            const side = nodeIndex % 2 === 0 ? -1 : 1;
+            const x = gladeCenter.x + Math.cos(angle) * gladeSize.width * 0.46;
+            const y = gladeCenter.y + Math.sin(angle) * gladeSize.height * 0.45;
+            ecology.lineStyle(1, 0x3FAE62, unlocked ? 0.3 : 0.14);
+            ecology.lineBetween(x, y + 4, x + side, y - 4);
+            ecology.fillStyle(
+                nodeIndex % 3 === 0 ? 0x8FE3CF : 0x71E6B1,
+                unlocked ? 0.32 : 0.14
+            );
+            ecology.fillEllipse(x - (side * 3), y - 3, 7, 3);
+            ecology.fillEllipse(x + (side * 3), y - 6, 8, 3);
+            return { x, y };
+        });
+
+        basins.forEach((basin, index) => {
+            const activeStrength = index === 0
+                ? growthStrength
+                : basin.complete
+                    ? growthStrength
+                    : basin.building
+                        ? growthStrength * 0.72
+                        : growthStrength * 0.42;
+            const shifts = [
+                { x: -5, y: 3, scale: 1.18, alpha: 0.08 },
+                { x: 4, y: -2, scale: 0.98, alpha: 0.12 },
+                { x: -2, y: 2, scale: 0.74, alpha: 0.14 }
+            ];
+            shifts.forEach((layer, layerIndex) => {
+                terrain.fillStyle(
+                    layerIndex === 1 ? 0x173D36 : layerIndex === 2 ? 0x245044 : 0x071411,
+                    layer.alpha * activeStrength
+                );
+                terrain.fillEllipse(
+                    basin.x + layer.x,
+                    basin.y + layer.y,
+                    basin.width * layer.scale,
+                    basin.height * layer.scale
+                );
+            });
+            terrain.lineStyle(
+                1,
+                basin.complete ? 0x71E6B1 : 0x3FAE62,
+                basin.complete ? 0.18 : 0.08
+            );
+            terrain.beginPath();
+            terrain.arc(
+                basin.x,
+                basin.y,
+                basin.width * 0.43,
+                Math.PI * (index % 2 ? 0.12 : 1.08),
+                Math.PI * (index % 2 ? 0.76 : 1.7)
+            );
+            terrain.strokePath();
+        });
+
+        plotBasins.forEach((basin, index) => {
+            const worldProfile = basin.worldProfile;
+            const profile = worldProfile
+                ? {
+                    id: worldProfile.identity,
+                    motif: {
+                        fruit: 'growth',
+                        leaf: 'canopy',
+                        crystal: 'current',
+                        flower: 'shelter',
+                        spark: 'signal'
+                    }[worldProfile.ecologyShape] || 'signal',
+                    color: worldProfile.accent
+                }
+                : districtProfiles[index];
+            const settled = Boolean(basin.building);
+            const identityAlpha = settled ? 0.52 : unlocked ? 0.24 : 0.12;
+            const thresholdY = basin.y + (compact ? 42 : 48);
+            const span = compact ? 54 : 62;
+
+            terrain.fillStyle(0x071411, settled ? 0.64 : 0.46);
+            terrain.fillEllipse(
+                basin.x,
+                thresholdY + 3,
+                compact ? 108 : 124,
+                compact ? 23 : 27
+            );
+            terrain.lineStyle(2, profile.color, identityAlpha);
+            terrain.beginPath();
+            terrain.arc(
+                basin.x,
+                thresholdY + 3,
+                span,
+                Math.PI * 1.12,
+                Math.PI * 1.88
+            );
+            terrain.strokePath();
+            terrain.fillStyle(profile.color, identityAlpha + 0.08);
+            terrain.fillCircle(basin.x - span, thresholdY, compact ? 2 : 2.5);
+            terrain.fillCircle(basin.x + span, thresholdY, compact ? 2 : 2.5);
+
+            const motifX = basin.x + (index % 2 === 0 ? -1 : 1) *
+                (basin.width * 0.36);
+            const motifY = basin.y - (compact ? 17 : 20);
+            ecology.lineStyle(2, profile.color, identityAlpha);
+            if (profile.motif === 'growth') {
+                ecology.lineBetween(motifX, motifY + 12, motifX, motifY - 9);
+                ecology.fillStyle(profile.color, identityAlpha + 0.14);
+                ecology.fillEllipse(motifX - 6, motifY - 3, 13, 6);
+                ecology.fillEllipse(motifX + 6, motifY - 8, 13, 6);
+            } else if (profile.motif === 'canopy') {
+                ecology.beginPath();
+                ecology.arc(motifX, motifY + 8, 15, Math.PI, Math.PI * 2);
+                ecology.strokePath();
+                ecology.fillStyle(profile.color, identityAlpha + 0.12);
+                [-10, 0, 10].forEach(branchX => {
+                    ecology.fillEllipse(motifX + branchX, motifY - 5, 13, 6);
+                });
+            } else if (profile.motif === 'current') {
+                [-8, 0, 8].forEach((crystalX, crystalIndex) => {
+                    ecology.fillStyle(profile.color, identityAlpha + 0.12);
+                    ecology.fillTriangle(
+                        motifX + crystalX,
+                        motifY - 13 - (crystalIndex === 1 ? 5 : 0),
+                        motifX + crystalX - 4,
+                        motifY + 6,
+                        motifX + crystalX + 4,
+                        motifY + 6
+                    );
+                });
+            } else if (profile.motif === 'shelter') {
+                ecology.beginPath();
+                ecology.arc(motifX, motifY + 8, 14, Math.PI, Math.PI * 2);
+                ecology.strokePath();
+                ecology.lineBetween(motifX - 14, motifY + 8, motifX - 14, motifY + 15);
+                ecology.lineBetween(motifX + 14, motifY + 8, motifX + 14, motifY + 15);
+                ecology.fillStyle(profile.color, identityAlpha + 0.14);
+                ecology.fillCircle(motifX, motifY + 3, 3);
+            } else {
+                [8, 13, 18].forEach((radius, signalIndex) => {
+                    ecology.lineStyle(
+                        signalIndex === 2 ? 1 : 2,
+                        profile.color,
+                        identityAlpha - (signalIndex * 0.04)
+                    );
+                    ecology.beginPath();
+                    ecology.arc(motifX, motifY + 6, radius, Math.PI * 1.12, Math.PI * 1.88);
+                    ecology.strokePath();
+                });
+                ecology.fillStyle(profile.color, identityAlpha + 0.18);
+                ecology.fillCircle(motifX, motifY + 6, 2.5);
+            }
+        });
+
+        const ecologyByBuilding = {
+            forager_hut: { color: 0xF2C14E, shape: 'fruit' },
+            sawmill: { color: 0x3FAE62, shape: 'leaf' },
+            current_masonry: { color: 0xB7F7DE, shape: 'crystal' },
+            habitat: { color: 0xE85D5D, shape: 'flower' },
+            workshop: { color: 0x8FE3CF, shape: 'spark' }
+        };
+        let ecologyNodeCount = 0;
+        plotBasins.forEach((basin, index) => {
+            if (!basin.complete) return;
+            const profile = basin.worldProfile
+                ? {
+                    color: basin.worldProfile.accent,
+                    shape: basin.worldProfile.ecologyShape
+                }
+                : ecologyByBuilding[basin.building.definitionId] || {
+                    color: 0x71E6B1,
+                    shape: 'leaf'
+                };
+            const side = index % 2 === 0 ? -1 : 1;
+            const clusters = [
+                { x: basin.x + side * basin.width * 0.38, y: basin.y + 15 },
+                { x: basin.x - side * basin.width * 0.31, y: basin.y + 35 }
+            ];
+            clusters.forEach((cluster, clusterIndex) => {
+                ecology.lineStyle(2, 0x3FAE62, 0.52);
+                ecology.lineBetween(cluster.x, cluster.y + 8, cluster.x, cluster.y - 5);
+                if (profile.shape === 'crystal') {
+                    ecology.fillStyle(profile.color, 0.66);
+                    ecology.fillTriangle(
+                        cluster.x,
+                        cluster.y - 13,
+                        cluster.x - 6,
+                        cluster.y + 5,
+                        cluster.x + 4,
+                        cluster.y + 5
+                    );
+                } else if (profile.shape === 'fruit') {
+                    ecology.fillStyle(profile.color, 0.72);
+                    ecology.fillCircle(cluster.x, cluster.y - 8, 4);
+                    ecology.fillStyle(0x3FAE62, 0.56);
+                    ecology.fillEllipse(cluster.x + 5, cluster.y - 11, 9, 4);
+                } else if (profile.shape === 'flower') {
+                    ecology.fillStyle(profile.color, 0.58);
+                    [-5, 0, 5].forEach(petalX => (
+                        ecology.fillCircle(cluster.x + petalX, cluster.y - 8, 4)
+                    ));
+                    ecology.fillStyle(0xF2C14E, 0.82);
+                    ecology.fillCircle(cluster.x, cluster.y - 8, 2);
+                } else if (profile.shape === 'spark') {
+                    ecology.fillStyle(profile.color, 0.72);
+                    ecology.fillTriangle(
+                        cluster.x,
+                        cluster.y - 13,
+                        cluster.x - 4,
+                        cluster.y,
+                        cluster.x + 4,
+                        cluster.y
+                    );
+                    ecology.fillTriangle(
+                        cluster.x,
+                        cluster.y + 5,
+                        cluster.x - 4,
+                        cluster.y - 4,
+                        cluster.x + 4,
+                        cluster.y - 4
+                    );
+                } else {
+                    ecology.fillStyle(profile.color, 0.54);
+                    ecology.fillEllipse(cluster.x - 5, cluster.y - 7, 12, 6);
+                    ecology.fillEllipse(cluster.x + 5, cluster.y - 10, 12, 6);
+                }
+                pulse.fillStyle(profile.color, 0.72);
+                pulse.fillCircle(
+                    cluster.x + (clusterIndex ? 3 : -3),
+                    cluster.y - 15,
+                    clusterIndex ? 2 : 2.5
+                );
+                ecologyNodeCount += 1;
+            });
+        });
+
+        const thresholdPositions = compact
+            ? [{ x: -184, y: 46 }, { x: 184, y: 54 }]
+            : [{ x: -126, y: 48 }, { x: 154, y: 76 }];
+        thresholdPositions.forEach((position, index) => {
+            thresholds.lineStyle(3, 0x071411, 0.58);
+            thresholds.beginPath();
+            thresholds.arc(position.x, position.y, 20, Math.PI, Math.PI * 2);
+            thresholds.strokePath();
+            thresholds.lineStyle(2, index === 0 ? 0x71E6B1 : 0x8FE3CF, 0.62);
+            thresholds.beginPath();
+            thresholds.arc(position.x, position.y, 17, Math.PI * 1.08, Math.PI * 1.92);
+            thresholds.strokePath();
+            thresholds.fillStyle(0x3FAE62, 0.64);
+            thresholds.fillEllipse(position.x - 17, position.y + 1, 12, 6);
+            thresholds.fillEllipse(position.x + 17, position.y + 1, 12, 6);
+            thresholds.fillStyle(0xF4F4F4, 0.8);
+            thresholds.fillCircle(position.x, position.y - 17, 2);
+        });
+
+        terrain
+            .setData('villageTerrainMaterial', 'living_current_districts_v4')
+            .setData('uniformOverlay', false)
+            .setData('terrainPatchCount', basins.length)
+            .setData('villageDistrictContinuousGround', true)
+            .setData('villageDistrictGroundProfile', 'shared_living_glade_v1')
+            .setData('villageDistrictEntranceCount', 2)
+            .setData('villageDistrictEdgeNodeCount', edgeNodes.length)
+            .setData('villageDistrictGroundWidth', Math.round(gladeSize.width))
+            .setData('villageDistrictGroundHeight', Math.round(gladeSize.height))
+            .setData('villageLivingBasinCount', livingBasins.length)
+            .setData('villageReservedFoundationCount', plotBasins.length - settledBasins.length)
+            .setData('districtIdentityCount', districtProfiles.length)
+            .setData('districtIdentityIds', districtProfiles.map(profile => profile.id))
+            .setData(
+                'villageInhabitedDistrictIds',
+                settledBasins.map(basin => basin.worldProfile?.identity).filter(Boolean)
+            )
+            .setData(
+                'villageInhabitedDistrictMaterials',
+                settledBasins.map(basin => basin.worldProfile?.material).filter(Boolean)
+            )
+            .setData(
+                'villageInhabitedDistrictMotions',
+                settledBasins.map(basin => basin.worldProfile?.motion).filter(Boolean)
+            )
+            .setData(
+                'villageInhabitedWorldChanges',
+                settledBasins.map(basin => basin.worldProfile?.worldChange).filter(Boolean)
+            );
+        ecology
+            .setData('villageDistrictEcology', true)
+            .setData('growthTier', growthTier)
+            .setData('restoredCount', restoredCount)
+            .setData('ecologyNodeCount', ecologyNodeCount);
+        this.drawVillageGrowthStageEcology({
+            ecology,
+            pulse,
+            growthTier,
+            compact,
+            settledBasins
+        });
+        pulse
+            .setData('villageEcologyPulse', true)
+            .setData('ecologyNodeCount', ecologyNodeCount);
+        thresholds
+            .setData('villageThresholdCount', thresholdPositions.length)
+            .setData('thresholdPurpose', 'commons_transition');
+        return ecologyNodeCount;
+    }
+
+    drawVillageGrowthStageEcology({
+        ecology,
+        pulse,
+        growthTier = 0,
+        compact = false,
+        settledBasins = []
+    } = {}) {
+        if (!ecology || !pulse) return null;
+        const profile = getVillageGrowthProfile(growthTier);
+        const stageColor = profile.tier >= 4
+            ? 0xF2C14E
+            : profile.tier >= 2
+                ? 0x71E6B1
+                : 0x8FE3CF;
+        const canopyBasins = settledBasins.slice(0, profile.canopyCount);
+
+        canopyBasins.forEach((basin, index) => {
+            const canopyY = basin.y - (compact ? 46 : 62);
+            const canopyWidth = compact ? 48 : 68;
+            const direction = index % 2 === 0 ? -1 : 1;
+            ecology.lineStyle(compact ? 3 : 4, 0x071411, 0.72);
+            ecology.beginPath();
+            ecology.moveTo(basin.x + (direction * 10), basin.y + 12);
+            ecology.lineTo(basin.x + (direction * 4), canopyY + 12);
+            ecology.lineTo(basin.x - (direction * 18), canopyY - 3);
+            ecology.strokePath();
+            ecology.lineStyle(2, 0x3FAE62, 0.68 + (profile.tier * 0.04));
+            ecology.beginPath();
+            ecology.arc(
+                basin.x,
+                canopyY + 12,
+                canopyWidth * 0.5,
+                Math.PI * 1.08,
+                Math.PI * 1.92
+            );
+            ecology.strokePath();
+            [-0.72, -0.24, 0.24, 0.72].forEach((spread, leafIndex) => {
+                const leafX = basin.x + (spread * canopyWidth * 0.54);
+                const leafY = canopyY + (Math.abs(spread) * 10);
+                ecology.fillStyle(
+                    leafIndex % 2 === 0 ? stageColor : 0x3FAE62,
+                    0.42 + (profile.tier * 0.07)
+                );
+                ecology.fillEllipse(
+                    leafX,
+                    leafY,
+                    compact ? 15 : 21,
+                    compact ? 7 : 9
+                );
+            });
+            pulse.fillStyle(stageColor, 0.78);
+            pulse.fillCircle(basin.x, canopyY - 2, compact ? 2 : 2.5);
+        });
+
+        const currentRadiusX = compact ? 68 : 96;
+        const currentRadiusY = compact ? 48 : 62;
+        Array.from({ length: profile.currentNodeCount }, (_, index) => {
+            const angle = (-Math.PI * 0.92) + (
+                (Math.PI * 1.84 * index) /
+                Math.max(1, profile.currentNodeCount - 1)
+            );
+            const nodeX = Math.cos(angle) * currentRadiusX;
+            const nodeY = 28 + (Math.sin(angle) * currentRadiusY);
+            ecology.fillStyle(0x071411, 0.76);
+            ecology.fillCircle(nodeX, nodeY, compact ? 5 : 6);
+            ecology.lineStyle(1, stageColor, 0.66);
+            ecology.strokeCircle(nodeX, nodeY, compact ? 4 : 5);
+            pulse.fillStyle(index % 2 === 0 ? stageColor : 0xF4F4F4, 0.82);
+            pulse.fillCircle(nodeX, nodeY, compact ? 1.5 : 2);
+        });
+
+        if (profile.tier >= 2) {
+            const crossingY = compact ? 64 : 82;
+            const crossingWidth = compact ? 112 : 156;
+            ecology.lineStyle(5, 0x071411, 0.68);
+            ecology.beginPath();
+            ecology.arc(0, crossingY, crossingWidth * 0.5, Math.PI * 1.12, Math.PI * 1.88);
+            ecology.strokePath();
+            ecology.lineStyle(2, stageColor, 0.54 + (profile.tier * 0.07));
+            ecology.beginPath();
+            ecology.arc(0, crossingY, crossingWidth * 0.5, Math.PI * 1.12, Math.PI * 1.88);
+            ecology.strokePath();
+        }
+
+        ecology
+            .setData('villageGrowthWorldIdentity', profile.worldIdentity)
+            .setData('villageGrowthCanopyCount', canopyBasins.length)
+            .setData('villageGrowthCurrentNodeCount', profile.currentNodeCount)
+            .setData('villageGrowthGatheringCapacity', profile.gatheringCapacity)
+            .setData('villageGrowthAmbientPromise', profile.ambientPromise)
+            .setData('villageGrowthStageProfile', 'living_settlement_tiers_v1')
+            .setData(
+                'ariaLabel',
+                `${profile.label}. ${profile.ambientPromise}`
+            );
+        pulse
+            .setData('villageGrowthStagePulse', true)
+            .setData('villageGrowthWorldIdentity', profile.worldIdentity);
+        return profile;
+    }
+
+    createVillageCommonsLife(snapshot, {
+        compact = false,
+        heartPosition = { x: 0, y: 0 }
+    } = {}) {
+        const profile = getVillageGrowthProfile(snapshot?.worldState?.growthTier || 0);
+        if (profile.gatheringCapacity <= 0) return null;
+        const residents = (snapshot?.residentRoutines || [])
+            .filter(routine => routine.location === 'commons')
+            .slice(0, profile.gatheringCapacity);
+        const width = compact ? 104 : 144;
+        const laneY = compact ? 57 : 72;
+        const container = this.scene.add.container(heartPosition.x, heartPosition.y)
+            .setDepth(heartPosition.y + laneY + 1)
+            .setData('villageCommonsLife', true)
+            .setData('villageCommonsProfile', profile.worldIdentity)
+            .setData('villageCommonsCapacity', profile.gatheringCapacity)
+            .setData('villageCommonsResidentCount', residents.length)
+            .setData('villageCommonsResidentNames', residents.map(resident => resident.residentName))
+            .setData('villageCommonsRoutine', 'heart_check_in')
+            .setData('villageCommonsPresenceModel', 'single_world_location_v1')
+            .setData(
+                'ariaLabel',
+                residents.length > 0
+                    ? `${residents.map(resident => resident.residentName).join(', ')} gathering beside the Village Heart.`
+                    : `${profile.label} gathering roots ready for residents.`
+            );
+        const ground = this.scene.add.graphics();
+        const seatCount = profile.gatheringCapacity;
+        const seatPositions = Array.from({ length: seatCount }, (_, index) => ({
+            x: seatCount === 1
+                ? 0
+                : ((index / (seatCount - 1)) - 0.5) * width,
+            y: laneY + (index % 2 === 0 ? 0 : compact ? 5 : 7)
+        }));
+        ground.lineStyle(2, 0x071411, 0.7);
+        ground.beginPath();
+        ground.arc(0, laneY + 4, width * 0.54, Math.PI * 1.08, Math.PI * 1.92);
+        ground.strokePath();
+        ground.lineStyle(1, 0x71E6B1, 0.5 + (profile.tier * 0.06));
+        ground.beginPath();
+        ground.arc(0, laneY + 4, width * 0.51, Math.PI * 1.1, Math.PI * 1.9);
+        ground.strokePath();
+        seatPositions.forEach((position, index) => {
+            ground.fillStyle(0x071411, 0.82);
+            ground.fillEllipse(position.x, position.y + 8, compact ? 25 : 31, compact ? 9 : 11);
+            ground.lineStyle(1, index < residents.length ? 0xF2C14E : 0x8FE3CF, 0.62);
+            ground.strokeEllipse(position.x, position.y + 8, compact ? 23 : 29, compact ? 7 : 9);
+        });
+        container.add(ground);
+        container.setData('villageCommonsSeatPositions', seatPositions);
+        return { container, tweens: [], seatPositions };
+    }
+
     refreshVillageSettlement(landmark, snapshot = null) {
         if (!landmark?.heart) return;
         landmark.pulseTween?.stop?.();
+        landmark.heartArtworkTween?.stop?.();
+        landmark.ecologyTween?.stop?.();
+        landmark.heartLifeTweens?.forEach(tween => tween?.stop?.());
+        landmark.heartDeliveryTween?.stop?.();
+        landmark.heartImprintDeliveryTween?.stop?.();
         landmark.buildingTweens?.forEach(tween => tween?.stop?.());
+        landmark.focusTweens?.forEach(tween => tween?.stop?.());
+        this.clearVillageCommunityMoment(landmark);
+        this.clearVillageDecisionMoment(landmark);
+        this.clearVillageWorkerCheckIn(landmark);
+        this.clearVillageResidentGreeting(landmark);
+        this.clearVillageArrivalReveal(landmark);
         landmark.buildingElements?.forEach(element => element?.destroy?.(true));
         landmark.plotHitZones?.forEach(zone => zone?.destroy?.());
         landmark.buildingTweens = [];
+        landmark.heartLifeTweens = [];
+        landmark.heartDeliveryTween = null;
+        landmark.heartImprintDeliveryTween = null;
+        landmark.activeDeliverySources?.clear?.();
+        landmark.resourceDeliverySources?.clear?.();
+        landmark.focusTweens = [];
         landmark.buildingElements = [];
         landmark.plotHitZones = [];
+        landmark.workerElements = [];
+        landmark.residentElements = [];
+        landmark.residentRoutineElements = [];
+        landmark.commonsLife = null;
+        landmark.commonsSeatPositions = [];
+        landmark.heartMemoryElements = [];
+        landmark.valueGrowthElements = [];
+        landmark.plotPresentations = [];
+        landmark.playerProximityPlotId = null;
+        landmark.villageFlowSignals = [];
+        landmark.nextActionElement = null;
+        landmark.nextActionHitZone = null;
+        landmark.nextActionPlacard = null;
+        landmark.nextActionRing = null;
+        landmark.nextActionPreview = null;
+        landmark.nextActionPreviewTween = null;
+        landmark.nextActionTween = null;
+        landmark.guidanceRoute = null;
+        landmark.arrivalGuide = null;
+        landmark.arrivalGuideTween = null;
+        landmark.plotWorldPositions = new Map();
         landmark.snapshot = snapshot;
 
         const unlocked = snapshot?.unlock?.unlocked === true;
         const {
             districtTerrain,
             currentPaths,
+            districtEcology,
+            districtPulse,
+            districtThresholds,
+            collisionZone,
             heart,
+            heartCaption,
+            heartArtwork,
             glow,
+            restorationRoots,
             actionLabel,
             label,
             statusLabel
         } = landmark;
         const compactSettlement = this.scene.scale.width <= 600;
-        const plotOffsets = compactSettlement
-            ? [
-                { x: -128, y: -144 },
-                { x: 128, y: -144 },
-                { x: -128, y: 34 },
-                { x: 128, y: 34 },
-                { x: 0, y: 154 }
-            ]
-            : [
-                { x: 150, y: -118 },
-                { x: 300, y: -88 },
-                { x: 170, y: 72 },
-                { x: 330, y: 96 },
-                { x: 470, y: -12 }
-            ];
+        const settlementLayout = compactSettlement
+            ? VILLAGE_SETTLEMENT_LAYOUTS.compact
+            : VILLAGE_SETTLEMENT_LAYOUTS.expanded;
+        const collisionWidth = compactSettlement ? 88 : 104;
+        const collisionHeight = compactSettlement ? 62 : 72;
+        const approachOffsetY = compactSettlement ? 108 : 112;
+        collisionZone?.setSize?.(collisionWidth, collisionHeight);
+        collisionZone?.body?.setSize?.(collisionWidth, collisionHeight);
+        collisionZone?.setData('collisionWidth', collisionWidth)
+            .setData('collisionHeight', collisionHeight)
+            .setData('approachClearance', approachOffsetY);
+        if (landmark.approachAnchor) {
+            landmark.approachAnchor.x = landmark.zone.x;
+            landmark.approachAnchor.y = landmark.zone.y + approachOffsetY;
+        }
+        if (heartArtwork) {
+            const heartDisplaySize = settlementLayout.heartArtworkSize;
+            const heartArtworkKey = compactSettlement &&
+                this.scene.textures.exists(VILLAGE_WORLD_ARTWORK.heart.compactKey)
+                ? VILLAGE_WORLD_ARTWORK.heart.compactKey
+                : VILLAGE_WORLD_ARTWORK.heart.key;
+            if (heartArtwork.texture?.key !== heartArtworkKey) {
+                heartArtwork.setTexture(heartArtworkKey);
+            }
+            heartArtwork.setDisplaySize(heartDisplaySize, heartDisplaySize);
+            heartArtwork.villageBaseScale = heartArtwork.scaleX;
+            heartArtwork
+                .setData('villageLayoutProfile', settlementLayout.profile)
+                .setData('villageDisplaySize', heartDisplaySize)
+                .setData('villageArtworkTreatment', 'living_current_landmark_v1')
+                .setData(
+                    'villageArtworkVariant',
+                    heartArtworkKey === VILLAGE_WORLD_ARTWORK.heart.compactKey
+                        ? 'compact_silhouette'
+                        : 'detailed_world'
+                );
+        }
+        const plotOffsets = settlementLayout.plotOffsets;
+        const buildingByPlot = new Map(
+            snapshot?.buildings?.map(building => [building.plotId, building]) || []
+        );
+        const growthTier = snapshot?.worldState?.growthTier || 0;
+        const heartDecisionReady = snapshot?.worldState?.nextAction?.type === 'decision';
+        const restoredCount = Phaser.Math.Clamp(
+            snapshot?.worldState?.restored || 0,
+            0,
+            VILLAGE_PLOTS.length
+        );
+        const sanctuaryCommunityCount =
+            (snapshot?.community?.companions?.length || 0) +
+            (snapshot?.community?.residents?.length || 0);
+        const regionalGuardianCount = snapshot?.community?.guardianAllies
+            ?.filter?.(guardian => guardian.resolved)?.length || 0;
+        const resourceContributions = (snapshot?.buildings || [])
+            .filter(building => (
+                building.status === 'complete' &&
+                building.creature &&
+                building.definition?.production?.resource
+            ))
+            .map(building => ({
+                resource: building.definition.production.resource,
+                helperName: building.creature.name,
+                sourceId: building.id || `${building.plotId}:${building.definitionId}`,
+                effectLabel: building.definition.worldEffectLabel
+            }));
 
         districtTerrain.clear();
         currentPaths.clear();
+        districtEcology.clear();
+        districtPulse.clear();
+        districtThresholds.clear();
         heart.clear();
+        heartCaption.clear();
         glow.clear();
+        restorationRoots.clear();
+        Object.values(landmark.heartLife || {}).forEach(element => {
+            element?.clear?.();
+            element?.setAlpha?.(0);
+            element?.setScale?.(1);
+            if (typeof element?.setAngle === 'function') element.setAngle(0);
+        });
+        heartCaption
+            .fillStyle(0x071411, unlocked ? 0.82 : 0.62)
+            .fillEllipse(0, compactSettlement ? 94 : 100, compactSettlement ? 150 : 174, 44)
+            .lineStyle(1, unlocked ? 0x71E6B1 : 0x53616A, unlocked ? 0.52 : 0.28)
+            .strokeEllipse(0, compactSettlement ? 94 : 100, compactSettlement ? 144 : 168, 38)
+            .setData('villageHeartCaption', true)
+            .setData('villageHeartApproachThreshold', true)
+            .setData('approachDirection', 'south')
+            .setData('approachAnchorX', landmark.approachAnchor?.x)
+            .setData('approachAnchorY', landmark.approachAnchor?.y)
+            .setData('villageLayoutProfile', settlementLayout.profile);
+        const thresholdY = compactSettlement ? 94 : 100;
+        const thresholdSpan = compactSettlement ? 58 : 68;
+        heartCaption.lineStyle(2, unlocked ? 0x8FE3CF : 0x53616A, unlocked ? 0.42 : 0.22);
+        heartCaption.lineBetween(-thresholdSpan, thresholdY + 9, -34, thresholdY + 3);
+        heartCaption.lineBetween(thresholdSpan, thresholdY + 9, 34, thresholdY + 3);
+        restorationRoots
+            .setData('rootBudCount', VILLAGE_PLOTS.length)
+            .setData('litRootCount', restoredCount)
+            .setData('growthTier', growthTier)
+            .setData('growthLabel', snapshot?.worldState?.growthLabel || 'AWAKENED ROOT')
+            .setData(
+                'ariaLabel',
+                `${snapshot?.worldState?.growthLabel || 'Awakened root'}; ` +
+                    `${restoredCount} of ${VILLAGE_PLOTS.length} village roots restored`
+            );
 
-        const districtWidth = compactSettlement ? 390 : 650;
-        const districtCenterX = compactSettlement ? 0 : 240;
-        districtTerrain.fillStyle(0x173B35, unlocked ? 0.2 : 0.12);
-        districtTerrain.fillEllipse(
-            districtCenterX,
-            compactSettlement ? 2 : -2,
-            districtWidth,
-            compactSettlement ? 390 : 310
-        );
-        districtTerrain.lineStyle(2, unlocked ? 0x3FAE62 : 0x53616A, 0.28);
-        districtTerrain.strokeEllipse(
-            districtCenterX,
-            compactSettlement ? 2 : -2,
-            districtWidth - 14,
-            compactSettlement ? 376 : 296
-        );
+        this.drawVillageDistrictGround({
+            terrain: districtTerrain,
+            ecology: districtEcology,
+            pulse: districtPulse,
+            thresholds: districtThresholds,
+            plotOffsets,
+            buildingByPlot,
+            unlocked,
+            growthTier,
+            restoredCount,
+            compact: compactSettlement
+        });
+        this.drawVillageHeartLife(landmark, {
+            unlocked,
+            growthTier,
+            restoredCount,
+            values: snapshot?.worldState?.values,
+            choices: snapshot?.worldState?.choices || 0,
+            resourceContributions,
+            compact: compactSettlement
+        });
+        const commonsLife = this.createVillageCommonsLife(snapshot, {
+            compact: compactSettlement,
+            heartPosition: {
+                x: landmark.zone.x,
+                y: landmark.zone.y
+            }
+        });
+        if (commonsLife) {
+            landmark.commonsLife = commonsLife.container;
+            landmark.commonsSeatPositions = commonsLife.seatPositions;
+            landmark.buildingElements.push(commonsLife.container);
+            landmark.buildingTweens.push(...commonsLife.tweens);
+        }
 
+        let connectedPlotCount = 0;
+        const pathResourceRoutes = [];
         plotOffsets.forEach((offset, index) => {
+            const plot = VILLAGE_PLOTS[index];
+            const connectedBuilding = buildingByPlot.get(plot.id) || null;
+            const completePath = connectedBuilding?.status === 'complete';
+            const growingPath = connectedBuilding?.status === 'constructing';
+            if (completePath) connectedPlotCount += 1;
+            const buildingDefinition = connectedBuilding?.definition ||
+                VILLAGE_BUILDING_DEFINITIONS.find(
+                    definition => definition.id === connectedBuilding?.definitionId
+                );
+            const pathResource = buildingDefinition?.production?.resource || null;
+            const resourceColor = {
+                food: 0xF2C14E,
+                wood: 0xC58A52,
+                stone: 0xD8E2DF
+            }[pathResource] || 0x3FAE62;
+            if (completePath && pathResource) {
+                pathResourceRoutes.push({
+                    plotId: plot.id,
+                    buildingId: connectedBuilding.definitionId,
+                    resource: pathResource,
+                    color: resourceColor
+                });
+            }
             const elbowX = offset.x * (compactSettlement ? 0.42 : 0.5);
             const elbowY = offset.y * 0.32 + (index % 2 === 0 ? -12 : 12);
-            currentPaths.lineStyle(7, 0x071411, 0.42);
-            currentPaths.beginPath();
-            currentPaths.moveTo(0, 20);
-            currentPaths.lineTo(elbowX, elbowY);
-            currentPaths.lineTo(offset.x, offset.y + 18);
-            currentPaths.strokePath();
-            currentPaths.lineStyle(2, unlocked ? 0x71E6B1 : 0x657682, 0.5);
-            currentPaths.beginPath();
-            currentPaths.moveTo(0, 20);
-            currentPaths.lineTo(elbowX, elbowY);
-            currentPaths.lineTo(offset.x, offset.y + 18);
-            currentPaths.strokePath();
+            const pathPoints = Array.from({ length: 17 }, (_, pointIndex) => {
+                const t = pointIndex / 16;
+                const inverse = 1 - t;
+                return {
+                    x: (2 * inverse * t * elbowX) + (t * t * offset.x),
+                    y: (inverse * inverse * 20) +
+                        (2 * inverse * t * elbowY) +
+                        (t * t * (offset.y + 18))
+                };
+            });
+            const strokeCurrentPath = (width, color, alpha) => {
+                currentPaths.lineStyle(width, color, alpha);
+                currentPaths.beginPath();
+                currentPaths.moveTo(pathPoints[0].x, pathPoints[0].y);
+                pathPoints.slice(1).forEach(point => {
+                    currentPaths.lineTo(point.x, point.y);
+                });
+                currentPaths.strokePath();
+            };
+            strokeCurrentPath(
+                compactSettlement ? 22 : 28,
+                0x102B26,
+                completePath ? 0.42 : growingPath ? 0.36 : 0.26
+            );
+            strokeCurrentPath(
+                compactSettlement ? 15 : 19,
+                0x071411,
+                completePath ? 0.42 : 0.34
+            );
+            strokeCurrentPath(
+                completePath ? 3 : growingPath ? 3 : 2,
+                growingPath ? 0xF2C14E : completePath ? resourceColor : 0x53616A,
+                completePath ? 0.3 : growingPath ? 0.42 : unlocked ? 0.11 : 0.06
+            );
+            strokeCurrentPath(
+                completePath ? 1 : 0.8,
+                growingPath ? 0xF4F4F4 : completePath ? 0xB7F7DE : 0x657682,
+                completePath ? 0.42 : growingPath ? 0.58 : 0.14
+            );
+            if (completePath) {
+                [9, 13].forEach((pointIndex, branchIndex) => {
+                    const point = pathPoints[pointIndex];
+                    const direction = (index + branchIndex) % 2 === 0 ? -1 : 1;
+                    currentPaths.lineStyle(1, resourceColor, 0.3);
+                    currentPaths.lineBetween(
+                        point.x,
+                        point.y,
+                        point.x + direction * (12 + branchIndex * 4),
+                        point.y - 7 + branchIndex * 11
+                    );
+                    const markerX = point.x + direction * (13 + branchIndex * 4);
+                    const markerY = point.y - 6 + branchIndex * 11;
+                    currentPaths.fillStyle(resourceColor, 0.48);
+                    if (pathResource === 'food') {
+                        currentPaths.fillCircle(markerX, markerY, branchIndex ? 3 : 3.5);
+                        currentPaths.fillStyle(0x71E6B1, 0.4);
+                        currentPaths.fillEllipse(markerX + 4, markerY - 3, 7, 3);
+                    } else if (pathResource === 'wood') {
+                        currentPaths.fillRoundedRect(
+                            markerX - 5,
+                            markerY - 2,
+                            10,
+                            5,
+                            2
+                        );
+                        currentPaths.lineStyle(1, 0xF2C14E, 0.32);
+                        currentPaths.lineBetween(markerX - 2, markerY - 1, markerX - 2, markerY + 2);
+                    } else if (pathResource === 'stone') {
+                        currentPaths.fillTriangle(
+                            markerX,
+                            markerY - 5,
+                            markerX - 5,
+                            markerY + 3,
+                            markerX + 5,
+                            markerY + 3
+                        );
+                    } else {
+                        currentPaths.fillEllipse(markerX, markerY, 9, 4);
+                    }
+                });
+            }
         });
-
-        glow.fillStyle(unlocked ? 0x71E6B1 : 0x53616A, unlocked ? 0.14 : 0.08);
-        glow.fillEllipse(0, 18, unlocked ? 154 : 132, unlocked ? 108 : 92);
-        glow.lineStyle(2, unlocked ? 0x71E6B1 : 0x748087, unlocked ? 0.54 : 0.3);
-        glow.strokeEllipse(0, 20, unlocked ? 142 : 124, unlocked ? 96 : 84);
-
-        // The Heart is a stone-and-living-current dais, not a screen placed on the map.
-        heart.fillStyle(0x0C201D, 0.95);
-        heart.fillEllipse(0, 31, 126, 48);
-        heart.lineStyle(3, unlocked ? 0x3FAE62 : 0x53616A, 0.9);
-        heart.strokeEllipse(0, 27, 112, 43);
-        heart.fillStyle(0x183B34, 1);
-        heart.fillCircle(0, 1, 39);
-        heart.lineStyle(3, 0xF4F4F4, unlocked ? 0.82 : 0.4);
-        heart.strokeCircle(0, 1, 34);
-        heart.lineStyle(5, unlocked ? 0x3FAE62 : 0x53616A, 0.95);
-        heart.beginPath();
-        heart.arc(0, 1, 26, Math.PI * 0.16, Math.PI * 0.84, false);
-        heart.strokePath();
-        heart.lineStyle(4, unlocked ? 0xD94B4B : 0x657682, 0.9);
-        heart.lineBetween(-32, 28, -12, 11);
-        heart.lineBetween(32, 28, 12, 11);
-        heart.fillStyle(0xF4F4F4, unlocked ? 1 : 0.55);
-        heart.fillTriangle(0, -31, -13, 4, 13, 4);
-        heart.fillStyle(unlocked ? 0x71E6B1 : 0x657682, 1);
-        heart.fillTriangle(0, -23, -7, -1, 7, -1);
-        heart.fillStyle(unlocked ? 0xF2C14E : 0x53616A, 1);
-        heart.fillCircle(0, 9, 5);
-
-        label.setColor(unlocked ? '#F4F4F4' : '#93A2A9');
-        actionLabel
-            .setText(unlocked ? 'TAP TO BUILD' : 'DORMANT')
-            .setColor(unlocked ? '#F2C14E' : '#93A2A9');
-        statusLabel
-            .setText(unlocked
-                ? `${snapshot.buildings.length}/${VILLAGE_PLOTS.length} SITES BUILT`
-                : 'HATCH A COMPANION TO WAKE IT'
+        currentPaths
+            .setAlpha(restoredCount >= 4
+                ? compactSettlement ? 0.66 : 0.72
+                : compactSettlement ? 0.76 : 0.82
             )
-            .setColor(unlocked ? '#8FE3CF' : '#93A2A9');
+            .setData('villagePathMaterial', 'grounded_current_paths_v3')
+            .setData('connectedPlotCount', connectedPlotCount)
+            .setData('villagePathResourceLanguage', 'resource_return_marks_v1')
+            .setData('villageRouteHierarchy', 'quiet_network_v1')
+            .setData('villageRouteHierarchyState', 'ambient_network')
+            .setData('villagePathResourceRouteCount', pathResourceRoutes.length)
+            .setData('villagePathResourceRoutes', pathResourceRoutes)
+            .setData('routeFoundationWidth', compactSettlement ? 22 : 28)
+            .setData('routeHighlightWidth', 3);
 
-        landmark.pulseTween = this.scene.tweens.add({
-            targets: glow,
-            alpha: { from: unlocked ? 0.72 : 0.42, to: 1 },
-            scaleX: { from: 0.96, to: 1.05 },
-            scaleY: { from: 0.96, to: 1.05 },
-            duration: unlocked ? 1450 : 2300,
+        districtPulse.setAlpha(unlocked ? 0.54 : 0.2);
+        landmark.ecologyTween = this.scene.tweens.add({
+            targets: districtPulse,
+            alpha: { from: unlocked ? 0.32 : 0.12, to: unlocked ? 0.78 : 0.28 },
+            scaleX: { from: 0.96, to: 1.04 },
+            scaleY: { from: 0.96, to: 1.04 },
+            duration: 2100,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
 
-        const buildingByPlot = new Map(
-            snapshot?.buildings?.map(building => [building.plotId, building]) || []
+        glow.fillStyle(
+            unlocked ? 0x71E6B1 : 0x53616A,
+            unlocked ? heartDecisionReady ? 0.14 : 0.09 : 0.08
         );
+        glow.fillEllipse(
+            0,
+            22,
+            compactSettlement ? (unlocked ? 152 : 132) : (unlocked ? 180 : 152),
+            compactSettlement ? (unlocked ? 94 : 78) : (unlocked ? 110 : 90)
+        );
+        glow.fillStyle(
+            unlocked ? 0xF4F4F4 : 0x53616A,
+            unlocked ? heartDecisionReady ? 0.08 : 0.045 : 0.04
+        );
+        glow.fillEllipse(0, 18, unlocked ? 132 : 104, unlocked ? 76 : 62);
+        glow
+            .setData(
+                'villageHeartPulseProfile',
+                heartDecisionReady ? 'decision_beacon' : 'quiet_ambient'
+            )
+            .setData(
+                'villageAmbientRole',
+                heartDecisionReady ? 'decision_landmark' : 'settlement_anchor'
+            );
+
+        if (heartArtwork) {
+            heartArtwork
+                .clearTint()
+                .setAlpha(unlocked ? 1 : 0.52);
+            if (!unlocked) heartArtwork.setTint(0x71807A);
+        } else {
+            heart.fillStyle(0x0C201D, 0.95);
+            heart.fillEllipse(0, 31, 150, 58);
+            heart.lineStyle(4, unlocked ? 0x71E6B1 : 0x53616A, 0.9);
+            heart.strokeEllipse(0, 24, 128, 48);
+            heart.fillStyle(unlocked ? 0xF4F4F4 : 0x657682, 0.95);
+            heart.fillTriangle(0, -54, -19, 9, 19, 9);
+            heart.fillStyle(unlocked ? 0x71E6B1 : 0x53616A, 0.88);
+            heart.fillCircle(0, 13, 11);
+        }
+
+        const rootTargets = compactSettlement
+            ? [
+                { x: 0, y: 88 },
+                { x: -52, y: 96 },
+                { x: 52, y: 96 },
+                { x: -101, y: 72 },
+                { x: 101, y: 72 }
+            ]
+            : [
+                { x: 0, y: 96 },
+                { x: -60, y: 104 },
+                { x: 60, y: 104 },
+                { x: -112, y: 76 },
+                { x: 112, y: 76 }
+            ];
+        rootTargets.forEach((target, index) => {
+            const active = unlocked && index < restoredCount;
+            const complete = active && restoredCount === VILLAGE_PLOTS.length;
+            const color = complete ? 0xF2C14E : active ? 0x71E6B1 : 0x53616A;
+            const start = { x: 0, y: 40 };
+            const control = {
+                x: target.x * 0.28 + (index % 2 ? -7 : 7),
+                y: 72 + Math.abs(target.x) * 0.04
+            };
+            const rootPoints = Array.from({ length: 13 }, (_, pointIndex) => {
+                const progress = pointIndex / 12;
+                const inverse = 1 - progress;
+                return {
+                    x: (inverse * inverse * start.x) +
+                        (2 * inverse * progress * control.x) +
+                        (progress * progress * target.x),
+                    y: (inverse * inverse * start.y) +
+                        (2 * inverse * progress * control.y) +
+                        (progress * progress * target.y)
+                };
+            });
+            const strokeRoot = (width, strokeColor, alpha) => {
+                restorationRoots.lineStyle(width, strokeColor, alpha);
+                restorationRoots.beginPath();
+                restorationRoots.moveTo(rootPoints[0].x, rootPoints[0].y);
+                rootPoints.slice(1).forEach(point => {
+                    restorationRoots.lineTo(point.x, point.y);
+                });
+                restorationRoots.strokePath();
+            };
+            strokeRoot(active ? 5 : 3, 0x071411, active ? 0.46 : 0.3);
+            strokeRoot(active ? 2 : 1, color, active ? 0.72 : 0.2);
+            if (active) {
+                restorationRoots.fillStyle(color, 0.84);
+                restorationRoots.fillEllipse(target.x - 6, target.y - 5, 12, 6);
+                restorationRoots.fillEllipse(target.x + 6, target.y - 7, 12, 6);
+                restorationRoots.fillStyle(0xF4F4F4, 0.94);
+                restorationRoots.fillCircle(target.x, target.y, 2);
+            } else {
+                restorationRoots.fillStyle(0x071411, 0.72);
+                restorationRoots.fillEllipse(target.x, target.y, 8, 5);
+                restorationRoots.lineStyle(1, color, 0.24);
+                restorationRoots.strokeEllipse(target.x, target.y, 8, 5);
+            }
+        });
+
+        label
+            .setText(unlocked ? 'VILLAGE HEART' : 'DORMANT HEART')
+            .setFontSize(compactSettlement ? '10px' : '12px')
+            .setPosition(landmark.zone.x, landmark.zone.y + (compactSettlement ? 86 : 115))
+            .setAlpha(unlocked ? 0.86 : 0.68)
+            .setColor(unlocked ? '#F4F4F4' : '#93A2A9');
+        actionLabel
+            .setText(unlocked ? 'OPEN HEART' : 'HEART DORMANT')
+            .setAlpha(1)
+            .setColor(unlocked ? '#F2C14E' : '#93A2A9')
+            .setData('villageNextAction', null)
+            .setData('definitionId', null)
+            .setInteractive({ useHandCursor: true });
+        statusLabel
+            .setText(unlocked
+                ? compactSettlement
+                    ? `TAP · ${sanctuaryCommunityCount} COMMUNITY · ${restoredCount}/${VILLAGE_PLOTS.length} ROOTS`
+                    : `${restoredCount}/${VILLAGE_PLOTS.length} ROOTS · ` +
+                        `${sanctuaryCommunityCount} COMMUNITY · ${regionalGuardianCount} REGIONAL ALLIES`
+                : 'HATCH A COMPANION TO WAKE IT'
+            )
+            .setFontSize(compactSettlement ? '8px' : '9px')
+            .setPosition(landmark.zone.x, landmark.zone.y + (compactSettlement ? 105 : 138))
+            .setAlpha(unlocked ? 0.82 : 0.64)
+            .setColor(unlocked ? '#8FE3CF' : '#93A2A9')
+            .setData('villageGrowthTier', growthTier)
+            .setData('villageGrowthLabel', snapshot?.worldState?.growthLabel || 'AWAKENED ROOT')
+            .setData('sanctuaryCommunityCount', sanctuaryCommunityCount)
+            .setData('regionalGuardianCount', regionalGuardianCount);
+        landmark.zone
+            .setData('sanctuaryCommunityCount', sanctuaryCommunityCount)
+            .setData('regionalGuardianCount', regionalGuardianCount)
+            .setData(
+                'ariaLabel',
+                unlocked
+                    ? `Open the Village Heart. ${sanctuaryCommunityCount} creatures live here. ` +
+                        `${regionalGuardianCount} Guardians protect their regions.`
+                    : 'Village Heart dormant. Hatch a companion to wake it.'
+            );
+
+        landmark.pulseTween = this.scene.tweens.add({
+            targets: glow,
+            alpha: {
+                from: unlocked ? heartDecisionReady ? 0.68 : 0.34 : 0.42,
+                to: unlocked ? heartDecisionReady ? 0.95 : 0.58 : 1
+            },
+            scaleX: { from: 0.97, to: heartDecisionReady ? 1.05 : 1.025 },
+            scaleY: { from: 0.97, to: heartDecisionReady ? 1.05 : 1.025 },
+            duration: unlocked ? heartDecisionReady ? 1450 : 2400 : 2300,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        if (heartArtwork && unlocked) {
+            landmark.heartArtworkTween = this.scene.tweens.add({
+                targets: heartArtwork,
+                y: { from: landmark.zone.y - 24, to: landmark.zone.y - 20 },
+                duration: 2100,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+
         VILLAGE_PLOTS.forEach((plot, index) => {
             const offset = plotOffsets[index];
             const plotX = landmark.zone.x + offset.x;
             const plotY = landmark.zone.y + offset.y;
+            landmark.plotWorldPositions.set(plot.id, { x: plotX, y: plotY });
             const building = buildingByPlot.get(plot.id) || null;
-            const container = this.scene.add.container(plotX, plotY).setDepth(plotY + 2);
+            const definition = building
+                ? VILLAGE_BUILDING_DEFINITIONS.find(
+                    entry => entry.id === building.definitionId
+                )
+                : null;
+            const nextAction = snapshot?.worldState?.nextAction;
+            const guidedPlot = ['build', 'assign'].includes(nextAction?.type) &&
+                nextAction?.plotId === plot.id;
+            const plotState = !unlocked
+                ? 'dormant'
+                : !building
+                    ? 'available'
+                    : building.status === 'constructing'
+                        ? 'constructing'
+                        : definition?.production && !building.creature
+                            ? 'needs_helper'
+                            : building.creature
+                                ? 'staffed'
+                                : 'complete';
+            const ambientRole = building
+                ? 'inhabited_structure'
+                : guidedPlot
+                    ? 'guided_foundation'
+                    : 'reserved_root';
+            const constructionStartedAt = Number(building?.startedAt) || Date.now();
+            const constructionCompletesAt = Number(building?.completesAt) ||
+                constructionStartedAt;
+            const constructionDuration = Math.max(
+                1,
+                constructionCompletesAt - constructionStartedAt
+            );
+            const constructionProgress = plotState === 'constructing'
+                ? Phaser.Math.Clamp(
+                    (Date.now() - constructionStartedAt) / constructionDuration,
+                    0,
+                    1
+                )
+                : plotState === 'dormant' || plotState === 'available'
+                    ? 0
+                    : 1;
+            const container = this.scene.add.container(plotX, plotY)
+                .setDepth(plotY + 2)
+                .setData('villageBuildingStructure', true)
+                .setData('plotId', plot.id)
+                .setData('villageAmbientRole', ambientRole)
+                .setData(
+                    'villageFoundationMaterial',
+                    building ? 'inhabited_root_basin_v1' : 'living_root_cradle_v2'
+                );
             const drawing = this.scene.add.graphics();
             const currentSignal = this.scene.add.graphics();
-            drawing.fillStyle(0x173B35, building ? 0.88 : 0.54);
-            drawing.fillEllipse(0, 27, building ? 118 : 104, building ? 38 : 32);
+            const worldArtworkDefinition = building
+                ? VILLAGE_WORLD_ARTWORK[building.definitionId]
+                : null;
+            const worldArtworkKey = compactSettlement &&
+                worldArtworkDefinition?.compactKey &&
+                this.scene.textures.exists(worldArtworkDefinition.compactKey)
+                ? worldArtworkDefinition.compactKey
+                : worldArtworkDefinition?.key;
+            const worldArtworkVariant = worldArtworkKey === worldArtworkDefinition?.compactKey
+                ? 'compact_silhouette'
+                : 'detailed_world';
+            const worldArtwork = worldArtworkDefinition &&
+                this.scene.textures.exists(worldArtworkKey)
+                ? this.scene.add.image(0, compactSettlement ? -20 : -28, worldArtworkKey)
+                    .setDisplaySize(
+                        (worldArtworkDefinition.displaySize || 176) *
+                            settlementLayout.buildingArtworkScale,
+                        (worldArtworkDefinition.displaySize || 176) *
+                            settlementLayout.buildingArtworkScale
+                    )
+                    .setData('villageLayoutProfile', settlementLayout.profile)
+                    .setData(
+                        'villageDisplaySize',
+                        (worldArtworkDefinition.displaySize || 176) *
+                            settlementLayout.buildingArtworkScale
+                    )
+                    .setData('villageArtworkTreatment', 'living_current_material_v1')
+                    .setData('villageAmbientRole', ambientRole)
+                    .setData('villageArtworkVariant', worldArtworkVariant)
+                : null;
+            const artworkGrounding = worldArtwork
+                ? this.createVillageArtworkGrounding({
+                    compact: compactSettlement,
+                    index,
+                    state: plotState
+                })
+                : null;
+            const inhabitedDistrict = building
+                ? this.createVillageInhabitedDistrict(building, {
+                    compact: compactSettlement,
+                    index,
+                    progress: constructionProgress,
+                    residentCount: building.definitionId === 'habitat'
+                        ? snapshot?.home?.residents?.length || 0
+                        : 0
+                })
+                : null;
+            drawing.fillStyle(0x102B26, building ? 0.7 : 0.36);
+            drawing.fillEllipse(0, 29, building ? 136 : 96, building ? 46 : 29);
             drawing.lineStyle(
-                building ? 3 : 2,
-                building ? 0x71E6B1 : 0x8FE3CF,
-                building ? 0.74 : 0.48
+                building ? 3 : 1,
+                building ? 0x71E6B1 : 0xB7F7DE,
+                building ? 0.5 : 0.34
             );
-            drawing.strokeEllipse(0, 24, building ? 108 : 94, building ? 32 : 27);
+            drawing.strokeEllipse(0, 25, building ? 124 : 84, building ? 38 : 24);
             if (building) {
-                this.drawVillageBuilding(
-                    drawing,
-                    building.definitionId,
-                    building.status
-                );
+                if (!worldArtwork) {
+                    this.drawVillageBuilding(
+                        drawing,
+                        building.definitionId,
+                        building.status
+                    );
+                } else if (building.status === 'constructing') {
+                    worldArtwork.setAlpha(0.66).setTint(0xA7BDAF);
+                    drawing.lineStyle(3, 0x071411, 0.62);
+                    drawing.beginPath();
+                    drawing.arc(0, 22, 62, Math.PI * 1.08, Math.PI * 1.92, false);
+                    drawing.strokePath();
+                    drawing.lineStyle(2, 0xF2C14E, 0.78);
+                    drawing.beginPath();
+                    drawing.arc(0, 22, 58, Math.PI * 1.1, Math.PI * 1.9, false);
+                    drawing.strokePath();
+                    [-44, 44].forEach((supportX, supportIndex) => {
+                        const topX = supportX * 0.72;
+                        drawing.lineStyle(3, 0x3FAE62, 0.74);
+                        drawing.lineBetween(supportX, 22, topX, -39);
+                        drawing.fillStyle(0x71E6B1, 0.78);
+                        drawing.fillEllipse(
+                            topX + (supportIndex === 0 ? -5 : 5),
+                            -25,
+                            13,
+                            7
+                        );
+                        drawing.fillStyle(0xF2C14E, 0.88);
+                        drawing.fillCircle(topX, -40, 3);
+                    });
+                }
                 currentSignal.fillStyle(0x71E6B1, 0.95);
                 currentSignal.fillCircle(0, 0, 3);
                 currentSignal.lineStyle(1, 0xF4F4F4, 0.85);
@@ -511,42 +2394,108 @@ class WorldBuilder {
                 currentSignal.setPosition(-42, 20);
                 currentSignal.setBlendMode?.(Phaser.BlendModes.ADD);
             } else {
-                drawing.lineStyle(2, 0x8FE3CF, 0.38);
-                drawing.strokeCircle(0, 2, 23);
-                drawing.lineStyle(3, 0xF2C14E, unlocked ? 0.9 : 0.35);
-                drawing.lineBetween(-8, 2, 8, 2);
-                drawing.lineBetween(0, -6, 0, 10);
-                drawing.fillStyle(0x71E6B1, unlocked ? 0.7 : 0.25);
-                [-34, 34].forEach(nodeX => drawing.fillCircle(nodeX, 20, 3));
+                this.drawVillageFoundationCradle(drawing, {
+                    state: plotState,
+                    unlocked,
+                    guided: guidedPlot,
+                    compact: compactSettlement,
+                    index
+                });
             }
-            const definition = building
-                ? VILLAGE_BUILDING_DEFINITIONS.find(entry => entry.id === building.definitionId)
-                : null;
+            const stateMarker = this.createVillagePlotStateMarker({
+                state: plotState,
+                progress: constructionProgress,
+                compact: compactSettlement,
+                built: Boolean(building)
+            });
+            const stateSilhouette = this.createVillageStructureStateSilhouette({
+                state: plotState,
+                progress: constructionProgress,
+                compact: compactSettlement,
+                built: Boolean(building),
+                guided: guidedPlot,
+                purposeGlyph: definition?.purposeGlyph || null
+            });
+            const buildingStateCopy = building
+                ? building.status === 'constructing'
+                    ? 'GROWING TOGETHER'
+                    : building.definitionId === 'habitat' && snapshot?.home?.unlocked
+                        ? `${snapshot.home.residents.length}/${snapshot.home.capacity} CALL THIS HOME`
+                    : definition?.production && !building.creature
+                        ? 'INVITE A HELPER'
+                        : building.creature
+                            ? `${building.creature.name.toUpperCase()} IS HELPING`
+                            : 'OPEN AND ACTIVE'
+                : unlocked
+                    ? 'BUILD HERE'
+                    : 'DORMANT';
+            const persistentState = Boolean(
+                building?.status === 'constructing' ||
+                (
+                    building?.status === 'complete' &&
+                    definition?.production &&
+                    !building.creature
+                )
+            );
+            const plotLabelRestAlpha = guidedPlot
+                ? 0.32
+                : 0;
+            const stateLabelRestAlpha = guidedPlot
+                ? 0
+                : persistentState
+                    ? 1
+                    : 0;
+            const districtAnchor = this.createVillageDistrictAnchor({
+                state: plotState,
+                guided: guidedPlot,
+                built: Boolean(building),
+                compact: compactSettlement,
+                districtId: plot.id,
+                purposeGlyph: definition?.purposeGlyph || null,
+                purposeLabel: definition?.worldEffectLabel || null,
+                actionLabel: definition?.worldActionLabel || null,
+                ambientRole
+            });
+            const focusRing = this.scene.add.graphics().setAlpha(0);
+            const focusColor = building?.status === 'complete' ? 0x71E6B1 : 0xF2C14E;
+            focusRing.lineStyle(2, focusColor, 0.92);
+            focusRing.beginPath();
+            focusRing.arc(0, 23, compactSettlement ? 58 : 70, Math.PI * 0.12, Math.PI * 0.86);
+            focusRing.strokePath();
+            focusRing.beginPath();
+            focusRing.arc(0, 23, compactSettlement ? 58 : 70, Math.PI * 1.08, Math.PI * 1.82);
+            focusRing.strokePath();
+            focusRing.fillStyle(focusColor, 0.94);
+            focusRing.fillCircle(compactSettlement ? 48 : 59, -10, 3);
+            focusRing.setBlendMode?.(Phaser.BlendModes.ADD);
             const plotLabel = this.scene.add.text(
                 0,
-                45,
-                definition?.shortLabel || `BUILD SITE ${index + 1}`,
+                worldArtwork ? 63 : 45,
+                definition
+                    ? definition.shortLabel
+                    : plot.label,
                 {
-                    fontSize: '9px',
+                    fontSize: compactSettlement ? '9px' : '10px',
                     fontFamily: 'Arial, sans-serif',
                     color: building ? '#F4F4F4' : '#C9F7E9',
                     fontStyle: 'bold',
                     stroke: '#050505',
-                    strokeThickness: 3
+                    strokeThickness: 3,
+                    align: 'center',
+                    wordWrap: {
+                        width: compactSettlement ? 126 : 168,
+                        useAdvancedWrap: true
+                    }
                 }
-            ).setOrigin(0.5);
+            ).setOrigin(0.5).setAlpha(plotLabelRestAlpha);
             const stateLabel = this.scene.add.text(
                 0,
-                -48,
-                building
-                    ? building.status === 'complete'
-                        ? building.creature
-                            ? `ACTIVE · ${building.creature.name.toUpperCase()} ${Math.round(building.workProfile.multiplier * 100)}%`
-                            : 'ACTIVE · ASSIGN A HELPER'
-                        : 'BUILDING NOW'
-                    : unlocked
-                        ? 'TAP TO CHOOSE'
-                        : 'DORMANT',
+                worldArtwork && persistentState
+                    ? (compactSettlement ? 81 : 86)
+                    : worldArtwork
+                        ? -124
+                        : -48,
+                buildingStateCopy,
                 {
                     fontSize: '8px',
                     fontFamily: 'Arial, sans-serif',
@@ -559,14 +2508,66 @@ class WorldBuilder {
                     stroke: '#050505',
                     strokeThickness: 3
                 }
-            ).setOrigin(0.5);
+            ).setOrigin(0.5).setAlpha(stateLabelRestAlpha);
+            const activity = building?.status === 'complete'
+                ? this.createVillageBuildingActivity(building)
+                : null;
+            const worker = building?.status === 'complete' && building.creature
+                ? this.createVillageWorker(building, {
+                    compact: compactSettlement,
+                    index,
+                    landmark,
+                    inhabitedDistrict,
+                    plotPosition: { x: plotX, y: plotY },
+                    heartPosition: {
+                        x: landmark.zone.x,
+                        y: landmark.zone.y
+                    }
+                })
+                : null;
+            const habitatLife = building?.status === 'complete' &&
+                building.definitionId === 'habitat'
+                ? this.createVillageHabitatLife(snapshot?.home, {
+                    compact: compactSettlement,
+                    residentRoutines: snapshot?.residentRoutines || []
+                })
+                : null;
             container.add([
                 drawing,
+                ...(inhabitedDistrict ? [inhabitedDistrict.container] : []),
+                stateSilhouette,
+                ...(worldArtwork ? [worldArtwork] : []),
+                ...(artworkGrounding ? [artworkGrounding] : []),
+                stateMarker,
                 ...(building ? [currentSignal] : []),
+                ...(activity ? [activity] : []),
+                ...(habitatLife ? [habitatLife.container] : []),
+                districtAnchor,
+                focusRing,
                 plotLabel,
                 stateLabel
             ]);
             landmark.buildingElements.push(container);
+            if (inhabitedDistrict?.tween) {
+                landmark.buildingTweens.push(inhabitedDistrict.tween);
+            }
+            if (worker) {
+                landmark.workerElements.push(worker.container);
+                landmark.buildingElements.push(worker.container);
+                landmark.buildingTweens.push(
+                    worker.moveTween,
+                    worker.breatheTween,
+                    worker.cueTween
+                );
+                worker.container.on('pointerdown', (_pointer, _x, _y, event) => {
+                    event?.stopPropagation?.();
+                    this.activateVillageWorker(landmark, building);
+                });
+            }
+            if (habitatLife) {
+                landmark.residentElements.push(habitatLife.container);
+                landmark.buildingTweens.push(habitatLife.pulseTween);
+            }
             if (building) {
                 landmark.buildingTweens.push(this.scene.tweens.add({
                     targets: currentSignal,
@@ -578,51 +2579,240 @@ class WorldBuilder {
                     ease: 'Sine.easeInOut'
                 }));
             }
+            if (activity) {
+                landmark.buildingTweens.push(this.scene.tweens.add({
+                    targets: activity,
+                    alpha: { from: 0.68, to: 1 },
+                    scaleX: { from: 0.94, to: 1.04 },
+                    scaleY: { from: 0.94, to: 1.04 },
+                    duration: 1200,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                }));
+            }
+            if (['constructing', 'needs_helper'].includes(plotState)) {
+                landmark.buildingTweens.push(this.scene.tweens.add({
+                    targets: [stateMarker, stateSilhouette],
+                    alpha: { from: 0.62, to: 1 },
+                    duration: plotState === 'constructing' ? 760 : 1250,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                }));
+            }
 
-            const pathSignal = this.scene.add.circle(
-                landmark.zone.x,
-                landmark.zone.y + 20,
-                3,
-                unlocked ? 0x71E6B1 : 0x657682,
-                unlocked ? 0.85 : 0.25
-            ).setDepth(Math.min(landmark.zone.y, plotY) - 1);
-            pathSignal.setBlendMode?.(Phaser.BlendModes.ADD);
-            landmark.buildingElements.push(pathSignal);
-            landmark.buildingTweens.push(this.scene.tweens.add({
-                targets: pathSignal,
-                x: plotX,
-                y: plotY + 18,
-                alpha: { from: unlocked ? 0.15 : 0.08, to: unlocked ? 1 : 0.2 },
-                duration: 2400 + index * 240,
-                delay: index * 180,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            }));
+            const villageFlow = this.createVillageFlowSignal({
+                building,
+                definition,
+                unlocked,
+                guided: guidedPlot,
+                state: plotState,
+                index,
+                heartPosition: {
+                    x: landmark.zone.x,
+                    y: landmark.zone.y + 20
+                },
+                plotPosition: {
+                    x: plotX,
+                    y: plotY + 18
+                }
+            });
+            landmark.villageFlowSignals.push(villageFlow.container);
+            landmark.buildingElements.push(villageFlow.container);
+            landmark.buildingTweens.push(villageFlow.tween);
 
-            const plotHitZone = this.scene.add.zone(plotX, plotY, 124, 108)
+            const plotHitZone = this.scene.add.zone(
+                plotX,
+                plotY - 10,
+                compactSettlement ? 132 : 168,
+                compactSettlement ? 132 : 164
+            )
                 .setDepth(plotY + 6)
                 .setInteractive({ useHandCursor: unlocked });
             plotHitZone.plotId = plot.id;
+            const districtActivityCue = definition?.worldProfile?.activityCue || null;
+            const focusCopy = unlocked
+                ? definition
+                    ? plotState === 'needs_helper'
+                        ? `INVITE A HELPER\n${definition.worldActionLabel}`
+                        : plotState === 'constructing'
+                            ? `GROWING · ${definition.shortLabel}\n${definition.worldActionLabel}`
+                            : `${districtActivityCue || definition.shortLabel}\n${definition.worldActionLabel}`
+                    : `${plot.label.toUpperCase()}\nCHOOSE WHAT GROWS HERE`
+                : 'DORMANT';
+            const interactionLabel = definition
+                ? `${definition.label}. ${buildingStateCopy}. Tap to manage.`
+                : unlocked
+                    ? `${plot.label}. Foundation available. Tap to plan.`
+                    : `${plot.label}. Dormant foundation.`;
+            plotHitZone
+                .setData('interactionLabel', interactionLabel)
+                .setData('definitionId', building?.definitionId || null)
+                .setData('plotState', plotState)
+                .setData(
+                    'interactionVerb',
+                    plotState === 'available'
+                        ? 'BUILD'
+                        : plotState === 'needs_helper'
+                            ? 'INVITE'
+                            : plotState === 'constructing'
+                                ? 'REVIEW'
+                                : plotState === 'dormant'
+                                    ? 'DORMANT'
+                                    : 'MANAGE'
+                )
+                .setData('worldEffectLabel', definition?.worldEffectLabel || null)
+                .setData('worldActionLabel', definition?.worldActionLabel || null)
+                .setData('purposeGlyph', definition?.purposeGlyph || null)
+                .setData('villageDistrictIdentity', definition?.worldProfile?.identity || null)
+                .setData('villageDistrictMaterial', definition?.worldProfile?.material || null)
+                .setData('villageDistrictActivityCue', definition?.worldProfile?.activityCue || null)
+                .setData('villageDistrictWorldChange', definition?.worldProfile?.worldChange || null)
+                .setData('villageAmbientRole', ambientRole)
+                .setData('guided', guidedPlot);
             plotHitZone.on('pointerover', () => {
                 container.setScale(1.06);
-                stateLabel.setText(unlocked ? 'TAP TO OPEN BUILDER' : 'DORMANT');
+                container.setAlpha(1);
+                inhabitedDistrict?.container
+                    ?.setData('villageDistrictApproachActive', true);
+                inhabitedDistrict?.approachLayer
+                    ?.setData('villageDistrictApproachActive', true)
+                    .setAlpha(1);
+                this.applyVillageArtworkTreatment(worldArtwork, {
+                    priority: 'nearby',
+                    plotState,
+                    presentationMode: landmark.presentationMode
+                });
+                focusRing.setAlpha(1);
+                districtAnchor.setAlpha(1);
+                plotLabel.setAlpha(compactSettlement ? 0 : 1);
+                stateLabel
+                    .setText(focusCopy)
+                    .setAlpha(1);
             });
             plotHitZone.on('pointerout', () => {
                 container.setScale(1);
-                stateLabel.setText(
-                    building
-                        ? building.status === 'complete'
-                            ? building.creature
-                                ? `ACTIVE · ${building.creature.name.toUpperCase()} ${Math.round(building.workProfile.multiplier * 100)}%`
-                                : 'ACTIVE · ASSIGN A HELPER'
-                            : 'BUILDING NOW'
-                        : unlocked
-                            ? 'TAP TO CHOOSE'
-                            : 'DORMANT'
+                const focusPriority = container.getData('villageFocusPriority');
+                const presentationMode = container.getData('villagePresentationMode');
+                const playerNearby = container.getData('villagePlayerNearby') === true;
+                const directPlotCommand = Boolean(
+                    focusPriority === 'primary' &&
+                    ['build', 'assign'].includes(
+                        landmark.snapshot?.worldState?.nextAction?.type
+                    )
                 );
+                const approachActive = playerNearby;
+                inhabitedDistrict?.container
+                    ?.setData('villageDistrictApproachActive', approachActive);
+                inhabitedDistrict?.approachLayer
+                    ?.setData('villageDistrictApproachActive', approachActive)
+                    .setAlpha(
+                        approachActive
+                            ? 1
+                            : directPlotCommand
+                                ? 0.72
+                                : focusPriority === 'primary' ? 0.38 : 0
+                    );
+                container.setAlpha(
+                    Number(container.getData('villageFocusAlpha')) || 1
+                );
+                this.applyVillageArtworkTreatment(worldArtwork, {
+                    priority: playerNearby ? 'nearby' : focusPriority || 'ambient',
+                    plotState,
+                    presentationMode
+                });
+                focusRing.setAlpha(
+                    playerNearby
+                        ? 0.64
+                        : presentationMode !== 'story' &&
+                            focusPriority === 'primary' &&
+                            !directPlotCommand
+                            ? 0.82
+                            : 0
+                );
+                districtAnchor.setAlpha(
+                    playerNearby || focusPriority === 'primary'
+                        ? 1
+                        : guidedPlot
+                            ? 1
+                            : ['constructing', 'needs_helper', 'complete', 'staffed'].includes(plotState)
+                                ? compactSettlement ? 0.36 : 0.46
+                                : plotState === 'available'
+                                    ? compactSettlement ? 0.1 : 0.14
+                                    : 0.12
+                );
+                plotLabel.setAlpha(
+                    playerNearby
+                        ? compactSettlement ? 0 : 1
+                        : directPlotCommand
+                        ? 0
+                        : presentationMode === 'story'
+                        ? focusPriority === 'primary' ? 0.88 : 0
+                        : focusPriority === 'primary' ? 1 : plotLabelRestAlpha
+                );
+                stateLabel
+                    .setText(playerNearby ? focusCopy : buildingStateCopy)
+                    .setAlpha(
+                        playerNearby && !directPlotCommand
+                            ? 1
+                            : directPlotCommand
+                            ? 0
+                            : presentationMode === 'story'
+                            ? 0
+                            : focusPriority === 'primary' ? 1 : stateLabelRestAlpha
+                    );
             });
-            plotHitZone.on('pointerdown', () => this.activateVillageHeart(landmark));
+            plotHitZone.on('pointerdown', pointer => {
+                if (worker?.container && building?.creature) {
+                    const workerX = worker.container.x;
+                    const workerY = worker.container.y;
+                    const pointerX = pointer?.worldX ?? pointer?.x;
+                    const pointerY = pointer?.worldY ?? pointer?.y;
+                    const workerHitRadius = compactSettlement ? 36 : 42;
+                    if (
+                        Number.isFinite(pointerX) &&
+                        Number.isFinite(pointerY) &&
+                        Phaser.Math.Distance.Between(
+                            pointerX,
+                            pointerY,
+                            workerX,
+                            workerY
+                        ) <= workerHitRadius &&
+                        this.activateVillageWorker(landmark, building)
+                    ) {
+                        return;
+                    }
+                }
+                this.activateVillageHeart(landmark, plot.id);
+            });
             landmark.plotHitZones.push(plotHitZone);
+            landmark.plotPresentations.push({
+                plotId: plot.id,
+                container,
+                hitZone: plotHitZone,
+                worldArtwork,
+                artworkGrounding,
+                inhabitedDistrict: inhabitedDistrict?.container || null,
+                inhabitedDistrictApproachLayer: inhabitedDistrict?.approachLayer || null,
+                inhabitedDistrictOperationalLayer: inhabitedDistrict?.operationalLayer || null,
+                plotLabel,
+                stateLabel,
+                focusRing,
+                stateMarker,
+                stateSilhouette,
+                districtAnchor,
+                flowSignal: villageFlow.container,
+                worker: worker?.container || null,
+                plotState,
+                ambientRole,
+                layoutProfile: settlementLayout.profile,
+                plotLabelRestAlpha,
+                stateLabelRestAlpha,
+                interactionLabel,
+                focusCopy,
+                buildingStateCopy
+            });
 
             if (building?.status === 'constructing') {
                 landmark.buildingTweens.push(this.scene.tweens.add({
@@ -635,9 +2825,4775 @@ class WorldBuilder {
                 }));
             }
         });
+        const residentJourneys = this.createVillageResidentJourneys(
+            snapshot,
+            landmark,
+            { compact: compactSettlement }
+        );
+        landmark.residentRoutineElements = residentJourneys.elements;
+        landmark.buildingElements.push(...residentJourneys.elements);
+        landmark.buildingTweens.push(...residentJourneys.tweens);
+        this.createVillageArrivalGuide(landmark, snapshot, {
+            compact: compactSettlement
+        });
+        this.createVillageHeartMemories(landmark, snapshot, {
+            compact: compactSettlement
+        });
+        this.createVillageValueGrowth(landmark, snapshot, {
+            compact: compactSettlement
+        });
+        this.createVillageNextActionBeacon(landmark, snapshot, {
+            compact: compactSettlement
+        });
+        this.setVillageFocusMode(
+            landmark,
+            Boolean(this.scene.sanctuaryFocusModeActive || this.scene.nearVillageHeart),
+            { immediate: true }
+        );
     }
 
-    activateVillageHeart(landmark) {
+    drawVillageHeartResourceImprints(
+        life,
+        resourceContributions = [],
+        { compact = false } = {}
+    ) {
+        const contributionByResource = new Map(
+            resourceContributions.map(contribution => [
+                contribution.resource,
+                contribution
+            ])
+        );
+        const configs = [
+            {
+                id: 'food',
+                element: life.foodImprint,
+                color: 0xF2C14E,
+                x: compact ? -31 : -43,
+                y: compact ? 25 : 34
+            },
+            {
+                id: 'wood',
+                element: life.woodImprint,
+                color: 0x8FE3CF,
+                x: compact ? 31 : 43,
+                y: compact ? 25 : 34
+            },
+            {
+                id: 'stone',
+                element: life.stoneImprint,
+                color: 0xF4F4F4,
+                x: 0,
+                y: compact ? -35 : -49
+            }
+        ];
+
+        configs.forEach(config => {
+            const contribution = contributionByResource.get(config.id) || null;
+            const element = config.element;
+            element.clear();
+            if (contribution) {
+                element.lineStyle(1, config.color, 0.34);
+                element.lineBetween(
+                    config.x * 0.34,
+                    config.y * 0.34,
+                    config.x * 0.82,
+                    config.y * 0.82
+                );
+                element.fillStyle(0x071411, 0.9);
+                element.fillCircle(config.x, config.y, compact ? 7 : 8);
+                element.lineStyle(1.5, config.color, 0.94);
+                element.strokeCircle(config.x, config.y, compact ? 6 : 7);
+
+                if (config.id === 'food') {
+                    element.fillStyle(config.color, 0.96);
+                    element.fillCircle(config.x - 1, config.y + 1, compact ? 2.5 : 3);
+                    element.lineStyle(1, 0x3FAE62, 0.96);
+                    element.lineBetween(config.x, config.y - 1, config.x + 3, config.y - 5);
+                    element.fillStyle(0x71E6B1, 0.9);
+                    element.fillEllipse(config.x + 4, config.y - 5, 4, 2.5);
+                } else if (config.id === 'wood') {
+                    element.lineStyle(2, config.color, 0.96);
+                    element.lineBetween(config.x - 4, config.y + 3, config.x + 4, config.y - 3);
+                    element.lineStyle(1, 0xF2C14E, 0.86);
+                    element.lineBetween(config.x, config.y, config.x - 1, config.y - 4);
+                    element.lineBetween(config.x + 2, config.y - 2, config.x + 5, config.y);
+                } else {
+                    element.fillStyle(config.color, 0.9);
+                    element.fillTriangle(
+                        config.x,
+                        config.y - 4,
+                        config.x - 4,
+                        config.y + 3,
+                        config.x + 4,
+                        config.y + 3
+                    );
+                    element.fillStyle(0x071411, 0.9);
+                    element.fillTriangle(
+                        config.x,
+                        config.y - 1.5,
+                        config.x - 1.8,
+                        config.y + 2,
+                        config.x + 1.8,
+                        config.y + 2
+                    );
+                }
+                element.setBlendMode?.(Phaser.BlendModes.ADD);
+            }
+            element
+                .setAlpha(contribution ? 1 : 0)
+                .setData('villageHeartResourceImprint', config.id)
+                .setData('villageHeartResourceImprintActive', Boolean(contribution))
+                .setData('villageHeartResourceContributor', contribution?.helperName || null)
+                .setData('villageHeartResourceSourceId', contribution?.sourceId || null)
+                .setData('villageHeartResourceEffect', contribution?.effectLabel || null)
+                .setData('villageHeartResourceDeliveryActive', false)
+                .setData('villageHeartResourceDeliveryCount', 0)
+                .setData('villageHeartResourceLastDelivery', null)
+                .setData('villageHeartResourceMotionProfile', 'resource_memory_v1')
+                .setData(
+                    'ariaLabel',
+                    contribution
+                        ? `${contribution.helperName} keeps the ${config.id} Current ` +
+                            `alive. ${contribution.effectLabel}.`
+                        : `${config.id} Current dormant`
+                );
+        });
+        return contributionByResource.size;
+    }
+
+    drawVillageHeartLife(
+        landmark,
+        {
+            unlocked = false,
+            growthTier = 0,
+            restoredCount = 0,
+            values = {},
+            choices = 0,
+            resourceContributions = [],
+            compact = false
+        } = {}
+    ) {
+        const life = landmark?.heartLife;
+        if (!life) return false;
+        const tier = Phaser.Math.Clamp(Number(growthTier) || 0, 0, 4);
+        const stageLabel = getVillageGrowthProfile(tier).label;
+        const radius = (compact ? 57 : 81) + (tier * (compact ? 2.5 : 3));
+        const orbitNodeCount = unlocked ? Math.max(1, Math.min(5, restoredCount)) : 0;
+        const care = Math.max(0, Number(values?.care) || 0);
+        const readiness = Math.max(0, Number(values?.readiness) || 0);
+        const dominantValue = care === readiness
+            ? 'balanced'
+            : care > readiness
+                ? 'care'
+                : 'readiness';
+        const stageColor = tier >= 4
+            ? 0xF2C14E
+            : tier >= 2
+                ? 0x71E6B1
+                : unlocked
+                    ? 0x8FE3CF
+                    : 0x53616A;
+
+        life.aura.clear();
+        life.orbit.clear();
+        life.crown.clear();
+        life.memoryWeave.clear();
+        life.deliveryPulse.clear();
+        life.aura.lineStyle(compact ? 7 : 9, 0x071411, unlocked ? 0.48 : 0.3);
+        life.aura.beginPath();
+        life.aura.arc(0, 4, radius, Math.PI * 0.06, Math.PI * 0.9);
+        life.aura.strokePath();
+        life.aura.beginPath();
+        life.aura.arc(0, 4, radius, Math.PI * 1.06, Math.PI * 1.9);
+        life.aura.strokePath();
+        life.aura.lineStyle(2, stageColor, unlocked ? 0.48 + (tier * 0.07) : 0.18);
+        life.aura.beginPath();
+        life.aura.arc(0, 4, radius, Math.PI * 0.08, Math.PI * 0.88);
+        life.aura.strokePath();
+        life.aura.beginPath();
+        life.aura.arc(0, 4, radius, Math.PI * 1.08, Math.PI * 1.88);
+        life.aura.strokePath();
+        life.aura.lineStyle(1, 0xF4F4F4, unlocked ? 0.22 + (tier * 0.04) : 0.08);
+        life.aura.strokeCircle(0, 4, radius - (compact ? 7 : 9));
+
+        Array.from({ length: orbitNodeCount }, (_, index) => {
+            const angle = (-Math.PI / 2) + ((Math.PI * 2 * index) / orbitNodeCount);
+            const nodeX = Math.cos(angle) * radius;
+            const nodeY = 4 + (Math.sin(angle) * radius);
+            life.orbit.fillStyle(0x071411, 0.82);
+            life.orbit.fillCircle(nodeX, nodeY, compact ? 5 : 6);
+            life.orbit.lineStyle(1, stageColor, 0.86);
+            life.orbit.strokeCircle(nodeX, nodeY, compact ? 4 : 5);
+            life.orbit.fillStyle(index < restoredCount ? 0xF4F4F4 : stageColor, 0.94);
+            life.orbit.fillCircle(nodeX, nodeY, compact ? 1.8 : 2.2);
+        });
+
+        const leafCount = unlocked ? 2 + tier : 0;
+        Array.from({ length: leafCount }, (_, index) => {
+            const spread = leafCount === 1 ? 0 : (index / (leafCount - 1)) - 0.5;
+            const leafX = spread * (compact ? 76 : 108);
+            const leafY = (compact ? -52 : -74) + (Math.abs(spread) * 26);
+            const direction = index % 2 === 0 ? -1 : 1;
+            life.crown.lineStyle(1, 0x3FAE62, 0.5 + (tier * 0.06));
+            life.crown.lineBetween(leafX, leafY + 10, leafX + direction * 4, leafY);
+            life.crown.fillStyle(stageColor, 0.34 + (tier * 0.08));
+            life.crown.fillEllipse(
+                leafX + direction * 5,
+                leafY,
+                compact ? 11 : 14,
+                compact ? 5 : 7
+            );
+        });
+        if (choices > 0) {
+            const memoryCount = Math.min(5, choices);
+            Array.from({ length: memoryCount }, (_, index) => {
+                const memoryX = (index - ((memoryCount - 1) / 2)) * (compact ? 17 : 21);
+                const memoryColor = dominantValue === 'care'
+                    ? 0x71E6B1
+                    : dominantValue === 'readiness'
+                        ? 0xF2C14E
+                        : index % 2 === 0 ? 0x71E6B1 : 0xF2C14E;
+                life.crown.fillStyle(0x071411, 0.82);
+                life.crown.fillCircle(memoryX, compact ? 59 : 82, compact ? 4 : 5);
+                life.crown.fillStyle(memoryColor, 0.94);
+                life.crown.fillCircle(memoryX, compact ? 59 : 82, compact ? 2 : 2.5);
+            });
+        }
+
+        const careMarks = Math.min(3, care);
+        const readinessMarks = Math.min(3, readiness);
+        const weaveBaseY = compact ? 18 : 25;
+        const weaveSpan = compact ? 34 : 47;
+        Array.from({ length: careMarks }, (_, index) => {
+            const progress = (index + 1) / 4;
+            const x = -(10 + (weaveSpan * progress));
+            const y = weaveBaseY - (progress * (compact ? 42 : 58));
+            life.memoryWeave.lineStyle(2, 0x71E6B1, 0.58 + (index * 0.1));
+            life.memoryWeave.beginPath();
+            life.memoryWeave.moveTo(-4, weaveBaseY);
+            life.memoryWeave.lineTo(x * 0.58, y + 10);
+            life.memoryWeave.lineTo(x, y);
+            life.memoryWeave.strokePath();
+            life.memoryWeave.fillStyle(0x71E6B1, 0.88);
+            life.memoryWeave.fillEllipse(x - 3, y - 2, compact ? 9 : 12, compact ? 4 : 6);
+            life.memoryWeave.fillStyle(0xF4F4F4, 0.84);
+            life.memoryWeave.fillCircle(x, y, compact ? 1.5 : 2);
+        });
+        Array.from({ length: readinessMarks }, (_, index) => {
+            const progress = (index + 1) / 4;
+            const x = 10 + (weaveSpan * progress);
+            const y = weaveBaseY - (progress * (compact ? 42 : 58));
+            life.memoryWeave.lineStyle(2, 0xF2C14E, 0.58 + (index * 0.1));
+            life.memoryWeave.beginPath();
+            life.memoryWeave.moveTo(4, weaveBaseY);
+            life.memoryWeave.lineTo(x * 0.58, y + 10);
+            life.memoryWeave.lineTo(x, y);
+            life.memoryWeave.strokePath();
+            life.memoryWeave.fillStyle(0x071411, 0.9);
+            life.memoryWeave.fillTriangle(
+                x,
+                y - (compact ? 5 : 7),
+                x - (compact ? 5 : 7),
+                y + (compact ? 4 : 6),
+                x + (compact ? 5 : 7),
+                y + (compact ? 4 : 6)
+            );
+            life.memoryWeave.lineStyle(1.5, 0xF2C14E, 0.92);
+            life.memoryWeave.strokeTriangle(
+                x,
+                y - (compact ? 5 : 7),
+                x - (compact ? 5 : 7),
+                y + (compact ? 4 : 6),
+                x + (compact ? 5 : 7),
+                y + (compact ? 4 : 6)
+            );
+            life.memoryWeave.fillStyle(0xF4F4F4, 0.88);
+            life.memoryWeave.fillCircle(x, y + 1, compact ? 1.4 : 1.8);
+        });
+        const balancedWeave = care > 0 && readiness > 0 && care === readiness;
+        if (balancedWeave) {
+            const bridgeY = compact ? -30 : -42;
+            life.memoryWeave.lineStyle(2, 0xF4F4F4, 0.72);
+            life.memoryWeave.beginPath();
+            life.memoryWeave.arc(0, bridgeY, compact ? 24 : 32, Math.PI * 1.12, Math.PI * 1.88);
+            life.memoryWeave.strokePath();
+            life.memoryWeave.fillStyle(0x8FE3CF, 0.94);
+            life.memoryWeave.fillCircle(0, bridgeY - (compact ? 8 : 10), compact ? 2.2 : 3);
+        }
+        life.memoryWeave
+            .setAlpha(unlocked && choices > 0 ? 1 : 0)
+            .setBlendMode?.(Phaser.BlendModes.ADD);
+
+        life.deliveryPulse.lineStyle(3, stageColor, 0.92);
+        life.deliveryPulse.strokeCircle(0, 8, compact ? 34 : 46);
+        life.deliveryPulse.lineStyle(1, 0xF4F4F4, 0.78);
+        life.deliveryPulse.strokeCircle(0, 8, compact ? 24 : 33);
+        const resourceContributionCount = this.drawVillageHeartResourceImprints(
+            life,
+            resourceContributions,
+            { compact }
+        );
+        life.core
+            .setRadius((compact ? 3.5 : 4.5) + (tier * (compact ? 0.45 : 0.6)))
+            .setFillStyle(stageColor, unlocked ? 0.92 : 0.24)
+            .setStrokeStyle(1, 0xF4F4F4, unlocked ? 0.72 : 0.18)
+            .setAlpha(unlocked ? 0.9 : 0.3);
+        [life.aura, life.orbit, life.crown, life.core].forEach(element => {
+            element
+                .setAlpha(unlocked ? 1 : 0.38)
+                .setData('villageHeartLife', true)
+                .setData('villageHeartGrowthTier', tier)
+                .setData('villageHeartGrowthStage', stageLabel)
+                .setData('villageHeartDominantValue', dominantValue)
+                .setData('villageHeartMotionProfile', 'living_current_breath_v1');
+        });
+        life.aura
+            .setData('villageHeartAuraRadius', radius)
+            .setData('villageHeartSilhouetteProfile', 'shared_memory_silhouette_v1')
+            .setData('villageHeartResourceContributionCount', resourceContributionCount)
+            .setData(
+                'villageHeartResourceContributions',
+                resourceContributions.map(contribution => contribution.resource)
+            )
+            .setData(
+                'ariaLabel',
+                `${stageLabel}; the Village Heart is breathing. ` +
+                    `${care} care and ${readiness} readiness choices are remembered.`
+            );
+        life.orbit
+            .setData('villageHeartOrbitNodeCount', orbitNodeCount)
+            .setData('villageHeartRestoredRoots', restoredCount);
+        life.crown
+            .setData('villageHeartLeafCount', leafCount)
+            .setData('villageHeartMemoryLightCount', Math.min(5, choices));
+        life.memoryWeave
+            .setData('villageHeartMemoryWeave', true)
+            .setData('villageHeartMemoryLanguage', 'shared_vow_weave_v1')
+            .setData('villageHeartCareMarks', careMarks)
+            .setData('villageHeartReadinessMarks', readinessMarks)
+            .setData('villageHeartBalancedWeave', balancedWeave)
+            .setData('villageHeartRememberedChoiceCount', Math.min(6, care + readiness))
+            .setData(
+                'ariaLabel',
+                `${careMarks} care marks and ${readinessMarks} readiness marks ` +
+                    `are woven into the Village Heart.`
+            );
+        life.deliveryPulse
+            .setData('villageHeartDeliveryResponse', true)
+            .setData('villageHeartDeliveryActive', false)
+            .setData('villageHeartDeliveryCount', 0)
+            .setData('villageHeartLastDelivery', null)
+            .setData('villageHeartLastDeliveryResource', null)
+            .setData('villageHeartDeliveryOuterRadius', compact ? 34 : 46)
+            .setData('villageHeartDeliveryInnerRadius', compact ? 24 : 33);
+
+        if (unlocked) {
+            landmark.heartLifeTweens.push(this.scene.tweens.add({
+                targets: life.aura,
+                scaleX: { from: 0.985, to: 1.025 },
+                scaleY: { from: 0.985, to: 1.025 },
+                duration: Math.max(1500, 2350 - (tier * 140)),
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            }));
+            landmark.heartLifeTweens.push(this.scene.tweens.add({
+                targets: life.orbit,
+                angle: 360,
+                duration: Math.max(14000, 23000 - (tier * 1600)),
+                repeat: -1,
+                ease: 'Linear'
+            }));
+            landmark.heartLifeTweens.push(this.scene.tweens.add({
+                targets: life.core,
+                scaleX: { from: 0.9, to: 1.2 },
+                scaleY: { from: 0.9, to: 1.2 },
+                duration: Math.max(920, 1450 - (tier * 90)),
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            }));
+        }
+        return true;
+    }
+
+    setVillageHeartDeliveryState(
+        landmark,
+        sourceId,
+        active,
+        effectLabel = null,
+        resource = null
+    ) {
+        const life = landmark?.heartLife;
+        if (!life?.deliveryPulse || !sourceId) return false;
+        const sources = landmark.activeDeliverySources || new Set();
+        landmark.activeDeliverySources = sources;
+        const wasActive = sources.has(sourceId);
+        if (active) sources.add(sourceId);
+        else sources.delete(sourceId);
+        const resourceSources = landmark.resourceDeliverySources || new Map();
+        landmark.resourceDeliverySources = resourceSources;
+        const activeResourceSources = resourceSources.get(resource) || new Set();
+        if (active) activeResourceSources.add(sourceId);
+        else activeResourceSources.delete(sourceId);
+        if (resource) resourceSources.set(resource, activeResourceSources);
+        const imprint = {
+            food: life.foodImprint,
+            wood: life.woodImprint,
+            stone: life.stoneImprint
+        }[resource] || null;
+        imprint?.setData(
+            'villageHeartResourceDeliveryActive',
+            activeResourceSources.size > 0
+        );
+        life.deliveryPulse
+            .setData('villageHeartDeliveryActive', sources.size > 0)
+            .setData('villageHeartDeliveryCount', sources.size);
+        if (!active || wasActive) return true;
+
+        const resourceColor = {
+            food: 0xF2C14E,
+            wood: 0x8FE3CF,
+            stone: 0xF4F4F4
+        }[resource] || 0x71E6B1;
+        const outerRadius = Number(
+            life.deliveryPulse.getData?.('villageHeartDeliveryOuterRadius')
+        ) || 46;
+        const innerRadius = Number(
+            life.deliveryPulse.getData?.('villageHeartDeliveryInnerRadius')
+        ) || 33;
+        life.deliveryPulse.clear();
+        life.deliveryPulse.lineStyle(3, resourceColor, 0.94);
+        life.deliveryPulse.strokeCircle(0, 8, outerRadius);
+        life.deliveryPulse.lineStyle(1, 0xF4F4F4, 0.8);
+        life.deliveryPulse.strokeCircle(0, 8, innerRadius);
+        life.deliveryPulse
+            .setData('villageHeartLastDelivery', effectLabel)
+            .setData('villageHeartLastDeliveryResource', resource);
+        if (imprint?.getData?.('villageHeartResourceImprintActive') === true) {
+            const deliveryCount = Number(
+                imprint.getData('villageHeartResourceDeliveryCount')
+            ) || 0;
+            imprint
+                .setData('villageHeartResourceDeliveryCount', deliveryCount + 1)
+                .setData('villageHeartResourceLastDelivery', effectLabel)
+                .setAlpha(landmark.presentationMode === 'story' ? 0.34 : 1)
+                .setScale(0.72);
+            landmark.heartImprintDeliveryTween?.stop?.();
+            landmark.heartImprintDeliveryTween = this.scene.tweens.add({
+                targets: imprint,
+                alpha: landmark.presentationMode === 'story' ? 0.24 : 1,
+                scaleX: 1.36,
+                scaleY: 1.36,
+                duration: 420,
+                yoyo: true,
+                ease: 'Sine.easeOut',
+                onComplete: () => {
+                    imprint.setScale(1);
+                    landmark.heartImprintDeliveryTween = null;
+                }
+            });
+        }
+        landmark.heartDeliveryTween?.stop?.();
+        life.deliveryPulse.setAlpha(
+            landmark.presentationMode === 'story' ? 0.18 : 0.96
+        ).setScale(0.72);
+        landmark.heartDeliveryTween = this.scene.tweens.add({
+            targets: life.deliveryPulse,
+            alpha: 0,
+            scaleX: 1.55,
+            scaleY: 1.55,
+            duration: 760,
+            ease: 'Sine.easeOut'
+        });
+        return true;
+    }
+
+    playVillageArrivalReveal(landmark, { duration = 2800 } = {}) {
+        if (!landmark?.zone) return false;
+        this.clearVillageArrivalReveal(landmark);
+        const compact = this.scene.scale.width <= 600;
+        const reveal = this.scene.add.container(
+            landmark.zone.x,
+            landmark.zone.y
+        ).setDepth(landmark.zone.y + 8);
+        const currentWave = this.scene.add.graphics();
+        const crownSignal = this.scene.add.graphics();
+        const title = this.scene.add.text(
+            0,
+            compact ? -132 : -156,
+            'THE HEART ANSWERS',
+            {
+                fontSize: compact ? '16px' : '18px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#F4F4F4',
+                fontStyle: 'bold',
+                stroke: '#050B0A',
+                strokeThickness: 5,
+                align: 'center'
+            }
+        ).setOrigin(0.5);
+        const subtitle = this.scene.add.text(
+            0,
+            compact ? -108 : -130,
+            'A HOME WE BUILD TOGETHER',
+            {
+                fontSize: compact ? '10px' : '11px',
+                fontFamily: 'Arial, sans-serif',
+                color: '#8FE3CF',
+                fontStyle: 'bold',
+                stroke: '#050B0A',
+                strokeThickness: 4,
+                align: 'center'
+            }
+        ).setOrigin(0.5);
+        const radius = compact ? 74 : 104;
+        currentWave.lineStyle(compact ? 5 : 7, 0x071411, 0.68);
+        currentWave.strokeCircle(0, 0, radius);
+        currentWave.lineStyle(2, 0x71E6B1, 0.92);
+        currentWave.beginPath();
+        currentWave.arc(0, 0, radius, Math.PI * 0.04, Math.PI * 0.9);
+        currentWave.strokePath();
+        currentWave.beginPath();
+        currentWave.arc(0, 0, radius, Math.PI * 1.04, Math.PI * 1.9);
+        currentWave.strokePath();
+        currentWave.lineStyle(1, 0xF4F4F4, 0.72);
+        currentWave.strokeCircle(0, 0, radius - (compact ? 8 : 11));
+        currentWave.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const rayLength = compact ? 118 : 162;
+        [-0.82, -0.28, 0.28, 0.82].forEach((ratio, index) => {
+            const endX = ratio * rayLength;
+            const endY = (compact ? 78 : 104) + ((index % 2) * 13);
+            crownSignal.lineStyle(5, 0x071411, 0.46);
+            crownSignal.lineBetween(ratio * 20, 22, endX, endY);
+            crownSignal.lineStyle(1, index % 2 ? 0x8FE3CF : 0x71E6B1, 0.82);
+            crownSignal.lineBetween(ratio * 20, 22, endX, endY);
+            crownSignal.fillStyle(index % 2 ? 0x8FE3CF : 0x71E6B1, 0.88);
+            crownSignal.fillCircle(endX, endY, compact ? 2.5 : 3);
+        });
+        crownSignal.setBlendMode?.(Phaser.BlendModes.ADD);
+        reveal.add([currentWave, crownSignal, title, subtitle]);
+        reveal
+            .setAlpha(0)
+            .setData('villageArrivalReveal', true)
+            .setData('villageArrivalRevealWorldLed', true)
+            .setData('villageArrivalRevealBlockingPanel', false)
+            .setData('villageArrivalRevealSkippable', true)
+            .setData('villageArrivalRevealDuration', duration)
+            .setData('villageArrivalRevealTitle', title.text)
+            .setData('villageArrivalRevealSubtitle', subtitle.text)
+            .setData(
+                'ariaLabel',
+                `${title.text}. ${subtitle.text}. Tap or press any key to continue.`
+            );
+        currentWave
+            .setScale(0.68)
+            .setAlpha(0)
+            .setData('villageArrivalCurrentWave', true);
+        crownSignal
+            .setAlpha(0)
+            .setData('villageArrivalRootAnswer', true);
+        title.setAlpha(0);
+        subtitle.setAlpha(0);
+
+        landmark.arrivalReveal = reveal;
+        landmark.arrivalRevealTweens = [
+            this.scene.tweens.add({
+                targets: reveal,
+                alpha: 1,
+                duration: 260,
+                ease: 'Sine.easeOut'
+            }),
+            this.scene.tweens.add({
+                targets: currentWave,
+                alpha: { from: 0.82, to: 0 },
+                scaleX: { from: 0.68, to: 1.55 },
+                scaleY: { from: 0.68, to: 1.55 },
+                duration: 1180,
+                delay: 180,
+                repeat: 1,
+                repeatDelay: 90,
+                ease: 'Sine.easeOut'
+            }),
+            this.scene.tweens.add({
+                targets: crownSignal,
+                alpha: { from: 0, to: 0.94 },
+                duration: 520,
+                delay: 320,
+                yoyo: true,
+                hold: 860,
+                ease: 'Sine.easeInOut'
+            }),
+            this.scene.tweens.add({
+                targets: [title, subtitle],
+                alpha: { from: 0, to: 1 },
+                y: '-=5',
+                duration: 420,
+                delay: 360,
+                yoyo: true,
+                hold: 1120,
+                ease: 'Sine.easeInOut'
+            })
+        ];
+        return true;
+    }
+
+    clearVillageArrivalReveal(landmark) {
+        if (!landmark) return false;
+        const wasActive = Boolean(landmark.arrivalReveal?.active);
+        landmark.arrivalRevealTweens?.forEach(tween => tween?.stop?.());
+        landmark.arrivalRevealTweens = [];
+        landmark.arrivalReveal?.destroy?.(true);
+        landmark.arrivalReveal = null;
+        return wasActive;
+    }
+
+    setVillageFocusMode(
+        landmark,
+        active,
+        {
+            immediate = false,
+            presentationMode = active ? 'action' : 'ambient',
+            focusPlotIdOverride
+        } = {}
+    ) {
+        if (!landmark?.zone) return false;
+        landmark.focusTweens?.forEach(tween => tween?.stop?.());
+        landmark.focusTweens = [];
+        landmark.focusModeActive = Boolean(active);
+        landmark.presentationMode = active ? presentationMode : 'ambient';
+
+        const action = landmark.snapshot?.worldState?.nextAction || null;
+        const storyMode = Boolean(active && presentationMode === 'story');
+        const ambientFocusPlotId = !active && ['build', 'assign'].includes(action?.type)
+            ? action.plotId
+            : null;
+        const focusPlotId = active
+            ? focusPlotIdOverride !== undefined
+                ? focusPlotIdOverride
+                : ['build', 'assign'].includes(action?.type)
+                    ? action.plotId
+                    : null
+            : ambientFocusPlotId;
+        const heartIsPrimary = !focusPlotId;
+        const transition = (target, alpha) => {
+            if (!target?.active) return;
+            if (immediate || !this.scene.tweens?.add) {
+                target.setAlpha(alpha);
+                return;
+            }
+            landmark.focusTweens.push(this.scene.tweens.add({
+                targets: target,
+                alpha,
+                duration: 220,
+                ease: 'Sine.easeOut'
+            }));
+        };
+
+        landmark.plotPresentations?.forEach(presentation => {
+            const primary = Boolean(focusPlotId && presentation.plotId === focusPlotId);
+            const compactPresentation = presentation.layoutProfile ===
+                VILLAGE_SETTLEMENT_LAYOUTS.compact.profile;
+            const playerNearby = Boolean(
+                !storyMode &&
+                landmark.playerProximityPlotId === presentation.plotId
+            );
+            const directPlotCommand = Boolean(
+                primary && ['build', 'assign'].includes(action?.type)
+            );
+            const priority = playerNearby
+                ? 'nearby'
+                : primary
+                    ? 'primary'
+                    : !active
+                        ? 'ambient'
+                        : 'supporting';
+            const settled = ['constructing', 'needs_helper', 'complete', 'staffed'].includes(
+                presentation.plotState
+            );
+            const ambientAlpha = primary
+                ? 1
+                : presentation.plotState === 'constructing'
+                    ? compactPresentation ? 0.9 : 0.92
+                    : settled
+                        ? compactPresentation ? 0.78 : 0.82
+                        : compactPresentation ? 0.08 : 0.1;
+            const baseAlpha = !active
+                ? ambientAlpha
+                : storyMode
+                    ? primary ? 0.86 : compactPresentation ? 0.34 : 0.42
+                    : primary
+                        ? 1
+                        : presentation.plotState === 'constructing'
+                            ? 0.76
+                            : focusPlotId
+                                ? compactPresentation ? 0.34 : 0.4
+                                : compactPresentation ? 0.2 : 0.28;
+            const alpha = playerNearby ? 1 : baseAlpha;
+            const plotLabelAlpha = playerNearby
+                ? compactPresentation ? 0 : 1
+                : !active
+                    ? presentation.plotLabelRestAlpha
+                    : directPlotCommand
+                        ? 0
+                        : storyMode
+                            ? primary ? 0.88 : 0
+                            : primary ? 1 : 0.08;
+            const stateLabelAlpha = directPlotCommand
+                ? 0
+                : playerNearby
+                    ? 1
+                    : !active
+                        ? presentation.stateLabelRestAlpha
+                        : storyMode
+                            ? 0
+                            : primary || presentation.plotState === 'constructing' ? 1 : 0;
+
+            presentation.container
+                ?.setData('villageFocusPriority', priority)
+                .setData('villageFocusAlpha', alpha)
+                .setData('villagePlayerNearby', playerNearby)
+                .setData('villageFocusAction', action?.type || null)
+                .setData('villagePresentationMode', landmark.presentationMode);
+            this.applyVillageArtworkTreatment(presentation.worldArtwork, {
+                priority,
+                plotState: presentation.plotState,
+                presentationMode: landmark.presentationMode
+            });
+            presentation.artworkGrounding
+                ?.setData('villageFocusPriority', priority)
+                .setData('villagePresentationMode', landmark.presentationMode);
+            presentation.focusRing
+                ?.setData('villageFocusPrimary', primary)
+                .setData('villagePlayerNearby', playerNearby)
+                .setAlpha(
+                    playerNearby
+                        ? 0.64
+                        : !storyMode && primary && !directPlotCommand ? 0.82 : 0
+                );
+            const anchorAlpha = playerNearby
+                ? 1
+                : !active
+                    ? presentation.districtAnchor?.getData?.('villageDistrictGuided')
+                        ? 1
+                        : ['constructing', 'needs_helper', 'complete', 'staffed'].includes(
+                            presentation.plotState
+                        )
+                            ? compactPresentation ? 0.36 : 0.46
+                            : presentation.plotState === 'available'
+                                ? compactPresentation ? 0.1 : 0.14
+                                : 0.12
+                    : storyMode
+                        ? primary ? 0.82 : 0.12
+                        : primary ? 1 : 0.18;
+            presentation.districtAnchor
+                ?.setData('villageFocusPrimary', primary)
+                .setData('villagePlayerNearby', playerNearby)
+                .setData('villageFocusPriority', priority);
+            transition(presentation.districtAnchor, anchorAlpha);
+            const districtApproachAlpha = playerNearby
+                ? 1
+                : directPlotCommand
+                    ? 0.72
+                    : primary && !storyMode ? 0.38 : 0;
+            presentation.inhabitedDistrict
+                ?.setData('villageDistrictApproachActive', playerNearby)
+                .setData('villageDistrictApproachAlpha', districtApproachAlpha);
+            presentation.inhabitedDistrictApproachLayer
+                ?.setData('villageDistrictApproachActive', playerNearby)
+                .setData('villageFocusPriority', priority);
+            transition(
+                presentation.inhabitedDistrictApproachLayer,
+                districtApproachAlpha
+            );
+            presentation.plotLabel?.setAlpha(plotLabelAlpha);
+            presentation.stateLabel
+                ?.setText(playerNearby
+                    ? presentation.focusCopy
+                    : presentation.buildingStateCopy
+                )
+                .setAlpha(stateLabelAlpha);
+            presentation.hitZone
+                ?.setData('villagePresentationMode', landmark.presentationMode)
+                .setData('villagePlayerNearby', playerNearby);
+            if (landmark.snapshot?.unlock?.unlocked) {
+                presentation.hitZone?.setInteractive?.({ useHandCursor: true });
+            }
+            transition(presentation.container, alpha);
+            if (presentation.worker) {
+                const workerAlpha = !active
+                    ? playerNearby
+                        ? 0.96
+                        : primary ? 0.92 : compactPresentation ? 0.76 : 0.78
+                    : storyMode
+                        ? primary ? 0.78 : 0.24
+                        : primary
+                            ? 1
+                            : focusPlotId
+                                ? 0.36
+                                : compactPresentation ? 0.25 : 0.34;
+                presentation.worker
+                    .setData('villageFocusPriority', priority)
+                    .setData('villageFocusAlpha', workerAlpha)
+                    .setData('villagePlayerNearby', playerNearby)
+                    .setData('villagePresentationMode', landmark.presentationMode);
+                if (storyMode) {
+                    presentation.worker.disableInteractive();
+                } else {
+                    presentation.worker.setInteractive({ useHandCursor: true });
+                }
+                transition(presentation.worker, workerAlpha);
+            }
+        });
+
+        const heartDecisionReady = action?.type === 'decision';
+        const directPlotActionOwnedByProximity = Boolean(
+            !storyMode &&
+            ['build', 'assign'].includes(action?.type) &&
+            landmark.playerProximityPlotId === action?.plotId
+        );
+        const heartBaseAlpha = landmark.snapshot?.unlock?.unlocked === true
+            ? heartDecisionReady ? 1 : active ? 0.94 : 0.88
+            : 0.52;
+        const heartAlpha = !active
+            ? heartIsPrimary ? heartBaseAlpha : heartBaseAlpha * 0.88
+            : storyMode
+                ? heartIsPrimary ? heartBaseAlpha : heartBaseAlpha * 0.62
+                : focusPlotId
+                    ? heartBaseAlpha * 0.78
+                    : heartBaseAlpha;
+        landmark.heartArtwork
+            ?.setData('villageFocusPriority', heartIsPrimary ? 'primary' : active ? 'supporting' : 'ambient')
+            .setData('villageFocusAlpha', heartAlpha)
+            .setData('villageFocusAction', action?.type || null)
+            .setData(
+                'villageHeartPulseProfile',
+                heartDecisionReady ? 'decision_beacon' : 'quiet_ambient'
+            )
+            .setData(
+                'villageAmbientRole',
+                heartDecisionReady ? 'decision_landmark' : 'settlement_anchor'
+            )
+            .setData(
+                'villageArtworkTint',
+                heartIsPrimary ? 0xFFFFFF : storyMode ? 0xA5C1B7 : 0xC8DAD4
+            );
+        if (landmark.heartArtwork && landmark.snapshot?.unlock?.unlocked === true) {
+            const heartTint = landmark.heartArtwork.getData('villageArtworkTint');
+            landmark.heartArtwork.clearTint();
+            if (heartTint !== 0xFFFFFF) landmark.heartArtwork.setTint(heartTint);
+        }
+        landmark.actionLabel
+            ?.setData('villageFocusPrimary', heartIsPrimary)
+            .setData('villageFocusAction', action?.type || null);
+        // The shared Sanctuary interaction beacon owns action copy. Keeping this
+        // text hidden prevents the Heart from publishing the same command twice.
+        const actionVisible = false;
+        if (landmark.actionLabel) {
+            landmark.actionLabel.setAlpha(actionVisible ? (active ? 1 : 0.58) : 0);
+            if (actionVisible) {
+                landmark.actionLabel.setInteractive({ useHandCursor: true });
+            } else {
+                landmark.actionLabel.disableInteractive();
+            }
+        }
+        landmark.zone.setInteractive?.({ useHandCursor: true });
+        const compactHeart = this.scene.scale.width <= 600;
+        const labelAlpha = compactHeart
+            ? storyMode ? 0.24 : active ? 0.96 : 0.62
+            : storyMode ? 0.3 : active ? 0.8 : 0.18;
+        const statusAlpha = compactHeart
+            ? storyMode ? 0.12 : active ? 0.78 : 0.48
+            : storyMode ? 0.16 : active ? 0.68 : 0;
+        landmark.label
+            ?.setData('villageVisibilityBaseAlpha', labelAlpha)
+            .setAlpha(labelAlpha);
+        landmark.statusLabel
+            ?.setData('villageVisibilityBaseAlpha', statusAlpha)
+            .setAlpha(statusAlpha);
+        this.setVillagePartyPresence(landmark, landmark.partyPositions || []);
+        landmark.heartCaption?.setAlpha(storyMode ? 0.44 : active ? 0.9 : 0.42);
+        landmark.arrivalGuide?.setAlpha(storyMode ? 0.12 : active ? 0.82 : 0.24);
+        if (landmark.commonsLife) {
+            const commonsAlpha = storyMode
+                ? heartIsPrimary ? 0.38 : 0.16
+                : active && focusPlotId
+                    ? 0.46
+                    : 0.86;
+            landmark.commonsLife
+                .setData('villagePresentationMode', landmark.presentationMode)
+                .setData('villageFocusAlpha', commonsAlpha);
+            transition(landmark.commonsLife, commonsAlpha);
+        }
+        landmark.residentRoutineElements?.forEach(element => {
+            const baseAlpha = Number(
+                element?.getData?.('villageVisibilityBaseAlpha')
+            ) || 0.9;
+            const routineAlpha = baseAlpha * (
+                storyMode
+                    ? heartIsPrimary ? 0.42 : 0.18
+                    : active && focusPlotId
+                        ? 0.5
+                        : 1
+            );
+            element
+                ?.setData?.('villagePresentationMode', landmark.presentationMode)
+                ?.setData?.('villageFocusAlpha', routineAlpha);
+            transition(element, routineAlpha);
+        });
+        Object.entries(landmark.heartLife || {}).forEach(([key, element]) => {
+            if (!element || key === 'deliveryPulse') return;
+            const lifeBaseAlpha = landmark.snapshot?.unlock?.unlocked === true ? 1 : 0.38;
+            const memoryWeaveEmpty = key === 'memoryWeave' &&
+                Number(element.getData?.('villageHeartRememberedChoiceCount')) === 0;
+            const lifeAlpha = memoryWeaveEmpty
+                ? 0
+                : lifeBaseAlpha * (storyMode
+                    ? heartIsPrimary ? 0.54 : 0.24
+                    : active && focusPlotId
+                        ? 0.58
+                        : 1);
+            element
+                .setData('villagePresentationMode', landmark.presentationMode)
+                .setData('villageFocusAlpha', lifeAlpha);
+            transition(element, lifeAlpha);
+        });
+        landmark.heartLife?.deliveryPulse
+            ?.setData('villagePresentationMode', landmark.presentationMode)
+            .setData('villageFocusAlpha', storyMode ? 0.18 : 1);
+        if (landmark.nextActionElement && landmark.nextActionElement !== landmark.actionLabel) {
+            landmark.nextActionElement.setAlpha(
+                storyMode || directPlotActionOwnedByProximity ? 0 : 1
+            );
+            if (storyMode || directPlotActionOwnedByProximity) {
+                landmark.nextActionElement.disableInteractive?.();
+            } else {
+                landmark.nextActionElement.setInteractive?.({ useHandCursor: true });
+            }
+        }
+        if (landmark.nextActionHitZone) {
+            if (storyMode || directPlotActionOwnedByProximity) {
+                landmark.nextActionHitZone.disableInteractive?.();
+            } else {
+                landmark.nextActionHitZone.setInteractive?.({ useHandCursor: true });
+            }
+        }
+        if (storyMode || directPlotActionOwnedByProximity) {
+            landmark.nextActionTween?.pause?.();
+        } else {
+            landmark.nextActionTween?.resume?.();
+        }
+        landmark.nextActionPlacard
+            ?.setData(
+                'villageCommandOwnedByProximity',
+                directPlotActionOwnedByProximity
+            )
+            .setAlpha(storyMode || directPlotActionOwnedByProximity ? 0 : 1);
+        landmark.nextActionRing?.setAlpha(storyMode ? 0 : 1);
+        landmark.nextActionPreview?.setAlpha(storyMode ? 0 : 1);
+        if (storyMode) {
+            landmark.nextActionPreviewTween?.pause?.();
+        } else {
+            landmark.nextActionPreviewTween?.resume?.();
+        }
+        landmark.guidanceRoute?.setAlpha(storyMode ? 0 : active ? 1 : 0.72);
+        const compactRoutes = this.scene.scale.width <= 600;
+        const routeHierarchyState = storyMode
+            ? 'story_recessed'
+            : focusPlotId
+                ? 'target_support'
+                : active
+                    ? 'heart_support'
+                    : 'ambient_network';
+        const routeHierarchyAlpha = {
+            story_recessed: 0.2,
+            target_support: compactRoutes ? 0.34 : 0.38,
+            heart_support: compactRoutes ? 0.46 : 0.52,
+            ambient_network: compactRoutes ? 0.66 : 0.72
+        }[routeHierarchyState];
+        landmark.currentPaths
+            ?.setData('villageRouteHierarchy', 'quiet_network_v1')
+            .setData('villageRouteHierarchyState', routeHierarchyState)
+            .setData('villageRouteHierarchyAlpha', routeHierarchyAlpha);
+        transition(landmark.currentPaths, routeHierarchyAlpha);
+        landmark.heartMemoryElements?.forEach(element => {
+            const memoryMarker = Boolean(element?.getData?.('villageHeartMemory'));
+            const memoryAlpha = storyMode
+                ? memoryMarker ? 0.3 : 0.1
+                : focusPlotId
+                    ? memoryMarker ? 0.24 : 0.08
+                    : active
+                        ? memoryMarker ? 1 : 0.42
+                        : memoryMarker ? 0.62 : 0.18;
+            element
+                ?.setData?.('villageMemoryHierarchyState', routeHierarchyState)
+                ?.setData?.('villageMemoryHierarchyAlpha', memoryAlpha);
+            transition(element, memoryAlpha);
+        });
+        landmark.villageFlowSignals?.forEach(signal => {
+            signal?.setData(
+                'villageFocusAlphaMultiplier',
+                storyMode ? 0.22 : active ? 0.52 : 1
+            );
+        });
+        transition(landmark.heartArtwork, heartAlpha);
+        transition(landmark.heart, heartAlpha);
+        return true;
+    }
+
+    setVillagePlayerProximity(landmark, plotId = null) {
+        if (!landmark?.zone) return false;
+        const nextPlotId = landmark.plotWorldPositions?.has(plotId) ? plotId : null;
+        if (landmark.playerProximityPlotId === nextPlotId) return false;
+        landmark.playerProximityPlotId = nextPlotId;
+        this.setVillageFocusMode(
+            landmark,
+            landmark.focusModeActive === true,
+            { presentationMode: landmark.presentationMode || 'ambient' }
+        );
+        return true;
+    }
+
+    setVillagePartyPresence(landmark, positions = []) {
+        if (!landmark?.zone) return null;
+        const compact = this.scene.scale.width <= 600;
+        const labelLaneY = landmark.zone.y + (compact ? 96 : 126);
+        const laneOccupied = positions.some(position => (
+            Number.isFinite(position?.x) &&
+            Number.isFinite(position?.y) &&
+            Math.abs(position.x - landmark.zone.x) <= (compact ? 92 : 118) &&
+            Math.abs(position.y - labelLaneY) <= (compact ? 34 : 38)
+        ));
+        landmark.partyPositions = positions;
+        landmark.partyCaptionLaneOccupied = laneOccupied;
+        landmark.zone
+            .setData('villagePartyCaptionLaneOccupied', laneOccupied)
+            .setData('villagePartyPositionCount', positions.length);
+
+        [landmark.label, landmark.statusLabel].forEach(element => {
+            if (!element) return;
+            const baseAlpha = Number(element.getData?.('villageVisibilityBaseAlpha'));
+            const visibleAlpha = Number.isFinite(baseAlpha) ? baseAlpha : element.alpha;
+            element
+                .setData('villagePartyOccluded', laneOccupied)
+                .setAlpha(laneOccupied ? 0 : visibleAlpha);
+        });
+        return { laneOccupied, positionCount: positions.length };
+    }
+
+    applyVillageArtworkTreatment(
+        worldArtwork,
+        {
+            priority = 'ambient',
+            plotState = 'available',
+            presentationMode = 'ambient'
+        } = {}
+    ) {
+        if (!worldArtwork) return false;
+        const constructing = plotState === 'constructing';
+        const fullColor = priority === 'nearby' || priority === 'primary';
+        const storySupporting = priority === 'supporting' && presentationMode === 'story';
+        const tint = fullColor
+            ? constructing ? 0xD6E1DA : 0xFFFFFF
+            : storySupporting
+                ? 0x789B8F
+                : priority === 'supporting'
+                    ? 0x91B3A7
+                    : constructing
+                        ? 0x9EB8AE
+                        : 0xBED4CC;
+        const treatment = fullColor
+            ? 'full_color'
+            : storySupporting
+                ? 'story_supporting'
+                : priority === 'supporting'
+                    ? 'focus_supporting'
+                    : 'ambient_current';
+        worldArtwork.clearTint();
+        if (tint !== 0xFFFFFF) worldArtwork.setTint(tint);
+        worldArtwork
+            .setData('villageArtworkTreatment', 'living_current_material_v1')
+            .setData('villageArtworkState', treatment)
+            .setData('villageArtworkTint', tint);
+        return true;
+    }
+
+    createVillageArtworkGrounding({
+        compact = false,
+        index = 0,
+        state = 'complete'
+    } = {}) {
+        const grounding = this.scene.add.graphics();
+        const baseY = compact ? 25 : 37;
+        const width = compact ? 88 : 136;
+        const rootColor = state === 'constructing' ? 0xF2C14E : 0x3FAE62;
+        const currentColor = state === 'constructing' ? 0xF2C14E : 0x8FE3CF;
+        const direction = index % 2 === 0 ? -1 : 1;
+
+        grounding.fillStyle(0x071411, 0.76);
+        grounding.fillEllipse(0, baseY + 3, width, compact ? 18 : 25);
+        const roots = [
+            {
+                startX: direction * 7,
+                bendX: direction * (compact ? 25 : 39),
+                endX: direction * (compact ? 47 : 70),
+                endY: baseY + 5
+            },
+            {
+                startX: -direction * 5,
+                bendX: -direction * (compact ? 21 : 34),
+                endX: -direction * (compact ? 43 : 66),
+                endY: baseY + 8
+            },
+            {
+                startX: 0,
+                bendX: direction * (compact ? 10 : 15),
+                endX: direction * (compact ? 27 : 42),
+                endY: baseY + 10
+            }
+        ];
+        const strokeRoots = (lineWidth, color, alpha) => {
+            grounding.lineStyle(lineWidth, color, alpha);
+            roots.forEach(root => {
+                grounding.beginPath();
+                grounding.moveTo(root.startX, baseY - (compact ? 7 : 11));
+                grounding.lineTo(root.bendX, baseY - 1);
+                grounding.lineTo(root.endX, root.endY);
+                grounding.strokePath();
+            });
+        };
+        strokeRoots(compact ? 5 : 7, 0x071411, 0.86);
+        strokeRoots(compact ? 2 : 3, rootColor, 0.72);
+        roots.slice(0, 2).forEach((root, rootIndex) => {
+            grounding.fillStyle(rootColor, 0.66);
+            grounding.fillEllipse(
+                root.endX - direction * (rootIndex ? -4 : 4),
+                root.endY - 4,
+                compact ? 12 : 17,
+                compact ? 6 : 8
+            );
+        });
+        grounding.fillStyle(currentColor, 0.9);
+        grounding.fillCircle(direction * (compact ? 18 : 28), baseY - 5, compact ? 2 : 3);
+        grounding.lineStyle(1, currentColor, 0.48);
+        grounding.strokeEllipse(0, baseY + 2, width - (compact ? 12 : 18), compact ? 12 : 17);
+        grounding
+            .setData('villageArtworkGrounding', true)
+            .setData('villageGroundingMaterial', 'woven_root_foreground_v1')
+            .setData('villageGroundingState', state)
+            .setData('villageGroundingIndex', index);
+        return grounding;
+    }
+
+    createVillageInhabitedDistrict(building, {
+        compact = false,
+        index = 0,
+        progress = 1,
+        residentCount = 0
+    } = {}) {
+        const profile = building?.definition?.worldProfile ||
+            VILLAGE_BUILDING_DEFINITIONS.find(
+                definition => definition.id === building?.definitionId
+            )?.worldProfile;
+        if (!building || !profile) return null;
+
+        const complete = building.status === 'complete';
+        const staffed = complete && Boolean(building.creature);
+        const operationalState = !complete
+            ? 'growing'
+            : building.definitionId === 'habitat'
+                ? residentCount > 0 ? 'occupied_home' : 'ready_home'
+                : staffed ? 'working' : 'awaiting_helper';
+        const evidenceTier = Math.min(
+            3,
+            Math.max(
+                complete ? 1 : 0,
+                Math.floor((Number(building.totalProduced) || 0) / 6) +
+                    (complete ? 1 : 0)
+            )
+        );
+        const reveal = complete ? 1 : Phaser.Math.Clamp(progress, 0.18, 0.72);
+        const container = this.scene.add.container(0, 0)
+            .setAlpha(complete ? 1 : 0.72)
+            .setData('villageInhabitedDistrict', true)
+            .setData('villageDistrictIdentity', profile.identity)
+            .setData('villageDistrictMaterial', profile.material)
+            .setData('villageDistrictMotion', profile.motion)
+            .setData('villageDistrictActivityCue', profile.activityCue)
+            .setData('villageDistrictWorldChange', profile.worldChange)
+            .setData('villageDistrictReveal', reveal)
+            .setData('villageDistrictBuildingId', building.definitionId)
+            .setData('villageDistrictOperationalLanguage', 'living_work_cycle_v1')
+            .setData('villageDistrictOperationalState', operationalState)
+            .setData('villageDistrictEvidenceTier', evidenceTier)
+            .setData('villageDistrictResidentCount', residentCount)
+            .setData('villageDistrictCycleCount', 0)
+            .setData(
+                'ariaLabel',
+                `${building.definition?.label || building.definitionId}. ${profile.worldChange}`
+            );
+        const ground = this.scene.add.graphics();
+        const detail = this.scene.add.graphics();
+        const motionLayer = this.scene.add.container(0, 0)
+            .setData('villageDistrictMotionLayer', profile.motion);
+        const operationalLayer = this.scene.add.container(0, 0)
+            .setAlpha({
+                growing: 0.42,
+                working: 0.9,
+                occupied_home: 0.84,
+                ready_home: 0.46,
+                awaiting_helper: 0.24
+            }[operationalState] || 0.4)
+            .setData('villageDistrictOperationalLayer', true)
+            .setData('villageDistrictOperationalLanguage', 'living_work_cycle_v1')
+            .setData('villageDistrictOperationalState', operationalState)
+            .setData('villageDistrictEvidenceTier', evidenceTier)
+            .setData('villageDistrictResidentCount', residentCount)
+            .setData('villageDistrictCycleCount', 0);
+        const workEvidence = this.scene.add.graphics()
+            .setData('villageDistrictWorkEvidence', true)
+            .setData('villageDistrictWorkEvidenceType', profile.identity);
+        const workPulse = this.scene.add.graphics()
+            .setData('villageDistrictWorkPulse', true);
+        const approachLayer = this.scene.add.graphics()
+            .setAlpha(0)
+            .setData('villageDistrictApproachLayer', true)
+            .setData('villageDistrictApproachLanguage', 'ground_reply_v1')
+            .setData('villageDistrictApproachActive', false)
+            .setData('villageDistrictActivityCue', profile.activityCue)
+            .setData('villageDistrictWorldChange', profile.worldChange);
+        const width = compact ? 112 : 156;
+        const baseY = compact ? 29 : 38;
+        const accent = profile.accent;
+        const secondary = profile.secondary;
+        const direction = index % 2 === 0 ? -1 : 1;
+        const evidenceY = baseY + (compact ? 17 : 22);
+
+        ground.fillStyle(0x071411, 0.42 * reveal);
+        ground.fillEllipse(0, baseY + 4, width, compact ? 37 : 49);
+        ground.lineStyle(compact ? 5 : 7, 0x102B26, 0.62 * reveal);
+        ground.beginPath();
+        ground.arc(0, baseY + 2, width * 0.42, Math.PI * 1.08, Math.PI * 1.92);
+        ground.strokePath();
+        ground.lineStyle(2, accent, 0.34 * reveal);
+        ground.beginPath();
+        ground.arc(0, baseY + 2, width * 0.45, Math.PI * 1.12, Math.PI * 1.88);
+        ground.strokePath();
+
+        approachLayer.lineStyle(compact ? 2 : 2.5, secondary, 0.82);
+        approachLayer.beginPath();
+        approachLayer.arc(
+            0,
+            baseY + 3,
+            width * 0.5,
+            Math.PI * 0.08,
+            Math.PI * 0.92
+        );
+        approachLayer.strokePath();
+        approachLayer.lineStyle(1.5, accent, 0.9);
+        approachLayer.beginPath();
+        approachLayer.arc(
+            0,
+            baseY + 3,
+            width * 0.5,
+            Math.PI * 1.08,
+            Math.PI * 1.92
+        );
+        approachLayer.strokePath();
+        [-1, 0, 1].forEach((node, nodeIndex) => {
+            const nodeX = node * width * 0.36;
+            const nodeY = baseY + 3 + (nodeIndex === 1 ? 0 : 7);
+            approachLayer.fillStyle(nodeIndex === 1 ? 0xF4F4F4 : accent, 0.92);
+            approachLayer.fillCircle(nodeX, nodeY, compact ? 2.4 : 3);
+        });
+        approachLayer.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        workPulse.lineStyle(compact ? 1.5 : 2, secondary, 0.64);
+        workPulse.beginPath();
+        workPulse.arc(0, baseY + 4, width * 0.34, Math.PI * 0.16, Math.PI * 0.84);
+        workPulse.strokePath();
+        workPulse.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        if (building.definitionId === 'forager_hut') {
+            Array.from({ length: evidenceTier }, (_, evidenceIndex) => {
+                const x = (evidenceIndex - ((evidenceTier - 1) / 2)) * (compact ? 17 : 23);
+                workEvidence.lineStyle(1.5, secondary, 0.84);
+                workEvidence.lineBetween(x, evidenceY + 3, x, evidenceY - 6);
+                workEvidence.fillStyle(accent, 0.92);
+                workEvidence.fillEllipse(x - 4, evidenceY - 7, compact ? 7 : 9, 4);
+                workEvidence.fillEllipse(x + 4, evidenceY - 10, compact ? 7 : 9, 4);
+                workEvidence.fillStyle(0xF4F4F4, 0.86);
+                workEvidence.fillCircle(x, evidenceY - 12, compact ? 1.5 : 2);
+            });
+        } else if (building.definitionId === 'sawmill') {
+            Array.from({ length: evidenceTier }, (_, evidenceIndex) => {
+                const y = evidenceY - (evidenceIndex * (compact ? 4 : 5));
+                workEvidence.fillStyle(0x6E4D2E, 0.9);
+                workEvidence.fillRoundedRect(
+                    -(compact ? 17 : 22) + (evidenceIndex % 2 ? 4 : 0),
+                    y,
+                    compact ? 34 : 44,
+                    compact ? 4 : 5,
+                    2
+                );
+                workEvidence.lineStyle(1, accent, 0.78);
+                workEvidence.lineBetween(
+                    -(compact ? 12 : 16),
+                    y + 2,
+                    compact ? 12 : 16,
+                    y + 2
+                );
+            });
+        } else if (building.definitionId === 'current_masonry') {
+            Array.from({ length: evidenceTier }, (_, evidenceIndex) => {
+                const x = (evidenceIndex - ((evidenceTier - 1) / 2)) * (compact ? 17 : 23);
+                workEvidence.fillStyle(accent, 0.82);
+                workEvidence.fillTriangle(
+                    x,
+                    evidenceY - (compact ? 10 : 13),
+                    x - (compact ? 7 : 9),
+                    evidenceY + 2,
+                    x + (compact ? 7 : 9),
+                    evidenceY + 2
+                );
+                workEvidence.lineStyle(1, secondary, 0.86);
+                workEvidence.lineBetween(x, evidenceY - 8, x, evidenceY - 2);
+            });
+        } else if (building.definitionId === 'habitat') {
+            const lightCount = Math.min(2, Math.max(1, residentCount));
+            Array.from({ length: lightCount }, (_, lightIndex) => {
+                const x = (lightIndex - ((lightCount - 1) / 2)) * (compact ? 18 : 24);
+                workEvidence.fillStyle(lightIndex % 2 ? secondary : accent, residentCount ? 0.94 : 0.38);
+                workEvidence.fillCircle(x, evidenceY - 7, compact ? 3 : 4);
+                workEvidence.lineStyle(1, 0xF4F4F4, residentCount ? 0.76 : 0.3);
+                workEvidence.strokeCircle(x, evidenceY - 7, compact ? 6 : 8);
+            });
+        } else if (building.definitionId === 'workshop') {
+            const paired = staffed;
+            const nodeOffset = compact ? 10 : 13;
+            workEvidence.fillStyle(accent, paired ? 0.94 : 0.42);
+            workEvidence.fillCircle(-nodeOffset, evidenceY - 8, compact ? 3 : 4);
+            workEvidence.fillStyle(secondary, paired ? 0.94 : 0.2);
+            workEvidence.fillCircle(nodeOffset, evidenceY - 8, compact ? 3 : 4);
+            workEvidence.lineStyle(2, 0xF4F4F4, paired ? 0.8 : 0.18);
+            workEvidence.lineBetween(-nodeOffset + 4, evidenceY - 8, nodeOffset - 4, evidenceY - 8);
+        }
+        operationalLayer.add([workEvidence, workPulse]);
+
+        if (building.definitionId === 'forager_hut') {
+            [-1, 0, 1].forEach((row, rowIndex) => {
+                detail.lineStyle(1.5, rowIndex === 1 ? accent : secondary, 0.5 * reveal);
+                detail.beginPath();
+                detail.arc(
+                    direction * 4,
+                    baseY + 3 + (row * 8),
+                    compact ? 38 - (rowIndex * 4) : 53 - (rowIndex * 5),
+                    Math.PI * 0.12,
+                    Math.PI * 0.88
+                );
+                detail.strokePath();
+            });
+            [-37, -18, 3, 24, 43].forEach((x, seedIndex) => {
+                detail.fillStyle(seedIndex % 2 ? secondary : accent, 0.72 * reveal);
+                detail.fillCircle(x, baseY + 7 + (seedIndex % 2) * 6, compact ? 2.2 : 3);
+            });
+            const seeds = this.scene.add.graphics();
+            [-8, 0, 9].forEach((x, seedIndex) => {
+                seeds.fillStyle(seedIndex === 1 ? 0xF4F4F4 : accent, 0.82);
+                seeds.fillCircle(x, seedIndex % 2 ? 1 : 5, compact ? 1.8 : 2.2);
+            });
+            motionLayer.setPosition(direction * (compact ? 43 : 61), baseY - 19).add(seeds);
+        } else if (building.definitionId === 'sawmill') {
+            [-26, 0, 26].forEach((x, logIndex) => {
+                detail.fillStyle(0x6E4D2E, 0.72 * reveal);
+                detail.fillRoundedRect(x - 12, baseY + (logIndex % 2) * 7, 25, 7, 3);
+                detail.lineStyle(1, logIndex === 1 ? accent : secondary, 0.64 * reveal);
+                detail.strokeCircle(x + 10, baseY + 3 + (logIndex % 2) * 7, 3);
+            });
+            const wheel = this.scene.add.graphics();
+            wheel.lineStyle(2, accent, 0.72);
+            wheel.strokeCircle(0, 0, compact ? 8 : 10);
+            wheel.lineStyle(1, 0xF4F4F4, 0.7);
+            wheel.lineBetween(-7, 0, 7, 0);
+            wheel.lineBetween(0, -7, 0, 7);
+            motionLayer.setPosition(direction * (compact ? 45 : 62), baseY - 12).add(wheel);
+        } else if (building.definitionId === 'current_masonry') {
+            detail.lineStyle(compact ? 5 : 7, 0x071411, 0.84 * reveal);
+            detail.lineBetween(0, baseY + 18, direction * 3, baseY - 17);
+            detail.lineStyle(2, secondary, 0.76 * reveal);
+            detail.lineBetween(0, baseY + 18, direction * 3, baseY - 17);
+            [-42, -25, 24, 43].forEach((x, stoneIndex) => {
+                const stoneY = baseY + (stoneIndex % 2 ? 9 : 1);
+                detail.fillStyle(accent, 0.62 * reveal);
+                detail.fillTriangle(x, stoneY - 7, x - 6, stoneY + 4, x + 6, stoneY + 4);
+            });
+            const resonance = this.scene.add.graphics();
+            resonance.lineStyle(1.5, secondary, 0.76);
+            resonance.strokeCircle(0, 0, compact ? 7 : 9);
+            resonance.fillStyle(0xF4F4F4, 0.9);
+            resonance.fillCircle(0, 0, 2);
+            motionLayer.setPosition(direction * (compact ? 32 : 45), baseY - 15).add(resonance);
+        } else if (building.definitionId === 'habitat') {
+            [-1, 0, 1].forEach((petal, petalIndex) => {
+                detail.lineStyle(2, petalIndex === 1 ? secondary : accent, 0.58 * reveal);
+                detail.beginPath();
+                detail.arc(
+                    petal * (compact ? 20 : 28),
+                    baseY + 5,
+                    compact ? 16 : 21,
+                    Math.PI,
+                    Math.PI * 2
+                );
+                detail.strokePath();
+            });
+            const homeLights = this.scene.add.graphics();
+            [-7, 7].forEach((x, lightIndex) => {
+                homeLights.fillStyle(lightIndex ? secondary : accent, 0.86);
+                homeLights.fillCircle(x, lightIndex ? 2 : -1, compact ? 3 : 4);
+                homeLights.lineStyle(1, 0xF4F4F4, 0.58);
+                homeLights.strokeCircle(x, lightIndex ? 2 : -1, compact ? 5 : 6);
+            });
+            motionLayer.setPosition(0, baseY - 19).add(homeLights);
+        } else if (building.definitionId === 'workshop') {
+            const circuitPoints = [
+                { x: -47, y: baseY + 10 },
+                { x: -25, y: baseY - 3 },
+                { x: 0, y: baseY + 9 },
+                { x: 25, y: baseY - 3 },
+                { x: 47, y: baseY + 10 }
+            ];
+            circuitPoints.slice(0, -1).forEach((point, pointIndex) => {
+                const next = circuitPoints[pointIndex + 1];
+                detail.lineStyle(2, pointIndex % 2 ? secondary : accent, 0.62 * reveal);
+                detail.lineBetween(point.x, point.y, next.x, next.y);
+                detail.fillStyle(pointIndex % 2 ? secondary : accent, 0.78 * reveal);
+                detail.fillCircle(point.x, point.y, 2.5);
+            });
+            const dualSignal = this.scene.add.graphics();
+            dualSignal.fillStyle(accent, 0.9);
+            dualSignal.fillCircle(-7, 0, compact ? 2.5 : 3);
+            dualSignal.fillStyle(secondary, 0.9);
+            dualSignal.fillCircle(7, 0, compact ? 2.5 : 3);
+            dualSignal.lineStyle(1, 0xF4F4F4, 0.72);
+            dualSignal.lineBetween(-4, 0, 4, 0);
+            motionLayer.setPosition(0, baseY - 19).add(dualSignal);
+        }
+
+        ground.setData('villageDistrictGroundLayer', profile.material);
+        detail.setData('villageDistrictDetailLayer', profile.identity);
+        container.add([ground, detail, motionLayer, operationalLayer, approachLayer]);
+        const tweenConfig = {
+            seed_drift: {
+                targets: motionLayer,
+                y: { from: motionLayer.y + 4, to: motionLayer.y - 5 },
+                alpha: { from: 0.44, to: 0.96 },
+                duration: 1800
+            },
+            stormwood_turn: {
+                targets: motionLayer,
+                angle: { from: 0, to: 360 },
+                duration: 5600
+            },
+            stone_resonance: {
+                targets: motionLayer,
+                scaleX: { from: 0.9, to: 1.08 },
+                scaleY: { from: 0.9, to: 1.08 },
+                alpha: { from: 0.46, to: 0.92 },
+                duration: 1650
+            },
+            home_lantern_breath: {
+                targets: motionLayer,
+                scaleX: { from: 0.95, to: 1.05 },
+                scaleY: { from: 0.95, to: 1.05 },
+                alpha: { from: 0.5, to: 0.94 },
+                duration: 2100
+            },
+            dual_signal_orbit: {
+                targets: motionLayer,
+                angle: { from: -8, to: 8 },
+                alpha: { from: 0.58, to: 1 },
+                duration: 1450
+            }
+        }[profile.motion];
+        const tween = tweenConfig
+            ? this.scene.tweens.add({
+                ...tweenConfig,
+                yoyo: profile.motion !== 'stormwood_turn',
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            })
+            : null;
+        container.setData('villageDistrictMotionActive', Boolean(tween));
+        return { container, approachLayer, operationalLayer, tween, profile };
+    }
+
+    setVillageDistrictOperationalState(district, state, {
+        delivered = false
+    } = {}) {
+        const container = district?.container || district;
+        const layer = district?.operationalLayer;
+        if (!container?.active || !layer?.active || !state) return false;
+        const previousState = container.getData('villageDistrictOperationalState');
+        const cycleCount = Number(container.getData('villageDistrictCycleCount')) || 0;
+        const nextCycleCount = delivered && previousState !== 'delivery_complete'
+            ? cycleCount + 1
+            : cycleCount;
+        const alpha = {
+            working: 0.96,
+            outbound: 0.72,
+            delivery_complete: 1,
+            returning: 0.58,
+            occupied_home: 0.84,
+            ready_home: 0.46,
+            awaiting_helper: 0.24,
+            growing: 0.42
+        }[state] || 0.5;
+        const scale = state === 'delivery_complete' ? 1.08 : 1;
+        container
+            .setData('villageDistrictOperationalState', state)
+            .setData('villageDistrictCycleCount', nextCycleCount)
+            .setData(
+                'villageDistrictOperationalAria',
+                `${container.getData('villageDistrictActivityCue') || 'Village work'}: ` +
+                    `${state.replaceAll('_', ' ')}.`
+            );
+        layer
+            .setData('villageDistrictOperationalState', state)
+            .setData('villageDistrictCycleCount', nextCycleCount)
+            .setAlpha(alpha)
+            .setScale(scale);
+        return true;
+    }
+
+    drawVillageFoundationCradle(
+        drawing,
+        {
+            state = 'dormant',
+            unlocked = false,
+            guided = false,
+            compact = false,
+            index = 0
+        } = {}
+    ) {
+        if (!drawing) return false;
+        const active = unlocked && state === 'available';
+        const accent = guided ? 0xF2C14E : active ? 0x71E6B1 : 0x53616A;
+        const foundationWidth = compact ? 82 : 92;
+        const foundationHeight = compact ? 25 : 28;
+
+        drawing.fillStyle(0x071411, unlocked ? 0.78 : 0.64);
+        drawing.fillEllipse(0, 24, foundationWidth, foundationHeight);
+        drawing.fillStyle(0x173D36, unlocked ? 0.68 : 0.34);
+        drawing.fillEllipse(0, 20, foundationWidth - 12, foundationHeight - 9);
+
+        const rootOffsets = [-1, 1];
+        rootOffsets.forEach((direction, rootIndex) => {
+            const verticalBias = ((index + rootIndex) % 2 === 0 ? -1 : 1) * 3;
+            drawing.lineStyle(
+                rootIndex === 0 ? 5 : 3,
+                0x071411,
+                unlocked ? 0.72 : 0.54
+            );
+            drawing.beginPath();
+            drawing.moveTo(direction * 5, 20);
+            drawing.lineTo(direction * 19, 14 + verticalBias);
+            drawing.lineTo(direction * 32, 20 - verticalBias);
+            drawing.lineTo(direction * 41, 14 + verticalBias);
+            drawing.strokePath();
+            drawing.lineStyle(rootIndex === 0 ? 2 : 1, accent, active ? 0.58 : 0.24);
+            drawing.beginPath();
+            drawing.moveTo(direction * 5, 20);
+            drawing.lineTo(direction * 19, 14 + verticalBias);
+            drawing.lineTo(direction * 32, 20 - verticalBias);
+            drawing.lineTo(direction * 41, 14 + verticalBias);
+            drawing.strokePath();
+        });
+
+        [-28, 0, 28].forEach((stoneX, stoneIndex) => {
+            const stoneY = 18 + Math.abs(stoneIndex - 1) * 4;
+            drawing.fillStyle(stoneIndex === 1 ? 0x273C37 : 0x1E332E, 0.92);
+            drawing.fillEllipse(stoneX, stoneY, stoneIndex === 1 ? 19 : 17, 9);
+            drawing.lineStyle(1, accent, active ? 0.42 : 0.16);
+            drawing.strokeEllipse(stoneX, stoneY, stoneIndex === 1 ? 17 : 15, 7);
+        });
+
+        drawing.fillStyle(0x061310, 0.94);
+        drawing.fillEllipse(0, 6, 22, 30);
+        drawing.lineStyle(2, accent, active ? 0.78 : 0.28);
+        drawing.beginPath();
+        drawing.arc(0, 6, 11, Math.PI * 0.18, Math.PI * 0.82);
+        drawing.strokePath();
+        drawing.beginPath();
+        drawing.arc(0, 6, 11, Math.PI * 1.18, Math.PI * 1.82);
+        drawing.strokePath();
+        drawing.lineStyle(1, active ? 0xF4F4F4 : 0x657682, active ? 0.7 : 0.22);
+        drawing.lineBetween(0, -5, 0, 17);
+        if (active) {
+            drawing.fillStyle(accent, guided ? 0.95 : 0.8);
+            drawing.fillCircle(0, 6, guided ? 4 : 3);
+            drawing.lineStyle(2, 0xF4F4F4, guided ? 0.96 : 0.82);
+            drawing.lineBetween(-6, 6, 6, 6);
+            drawing.lineBetween(0, 0, 0, 12);
+            drawing.fillEllipse(-9, -7, 12, 6);
+            drawing.fillEllipse(9, -9, 13, 6);
+        }
+
+        drawing
+            .setData('villageFoundationCradle', true)
+            .setData('villageFoundationState', state)
+            .setData('villageFoundationGuided', guided)
+            .setData('villageFoundationMaterial', 'living_root_cradle_v2')
+            .setData('ariaLabel', `${state} living root cradle`);
+        return true;
+    }
+
+    createVillageArrivalGuide(landmark, snapshot, { compact = false } = {}) {
+        if (
+            !landmark?.zone ||
+            snapshot?.unlock?.unlocked !== true ||
+            snapshot?.state?.guidanceSeen === true ||
+            (snapshot?.worldState?.restored || 0) > 0
+        ) {
+            return false;
+        }
+
+        const guideX = landmark.zone.x + (compact ? 0 : -142);
+        const guideY = landmark.zone.y + (compact ? 220 : 126);
+        const guide = this.scene.add.container(guideX, guideY)
+            .setDepth(guideY - 2)
+            .setData('villageArrivalGuide', true)
+            .setData('villageArrivalMessage', 'BUILD A HOME TOGETHER')
+            .setData('villageArrivalSteps', ['BUILD', 'INVITE', 'GROW']);
+        const ground = this.scene.add.graphics();
+        ground.fillStyle(0x071411, 0.78);
+        ground.fillEllipse(0, 4, compact ? 188 : 220, compact ? 42 : 48);
+        ground.lineStyle(2, 0x71E6B1, 0.56);
+        ground.beginPath();
+        ground.arc(0, 5, compact ? 88 : 104, Math.PI * 1.08, Math.PI * 1.92);
+        ground.strokePath();
+        [-1, 0, 1].forEach(stepIndex => {
+            const stepX = stepIndex * (compact ? 41 : 48);
+            ground.fillStyle(0x061310, 0.96);
+            ground.fillCircle(stepX, 3, 7);
+            ground.lineStyle(1.5, stepIndex === 0 ? 0xF2C14E : 0x71E6B1, 0.78);
+            ground.strokeCircle(stepX, 3, 5);
+            ground.fillStyle(0xF4F4F4, 0.82);
+            ground.fillCircle(stepX, 3, 1.5);
+        });
+        const title = this.scene.add.text(0, -24, 'BUILD A HOME TOGETHER', {
+            fontSize: compact ? '9px' : '10px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#F4F4F4',
+            stroke: '#07100F',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+        const steps = this.scene.add.text(0, compact ? 20 : 26, 'BUILD  ·  INVITE  ·  GROW', {
+            fontSize: compact ? '7px' : '8px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#8FE3CF',
+            stroke: '#07100F',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+        guide.add([ground, title, steps]);
+        landmark.arrivalGuide = guide;
+        landmark.arrivalGuideTween = this.scene.tweens.add({
+            targets: ground,
+            alpha: { from: 0.62, to: 1 },
+            duration: 1800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        landmark.buildingElements.push(guide);
+        landmark.buildingTweens.push(landmark.arrivalGuideTween);
+        return true;
+    }
+
+    createVillagePlotStateMarker({
+        state,
+        progress = 0,
+        compact = false,
+        built = false
+    } = {}) {
+        const marker = this.scene.add.graphics();
+        const nodeCount = 6;
+        const activeNodesByState = {
+            dormant: 0,
+            available: 1,
+            constructing: Math.max(1, Math.round(progress * nodeCount)),
+            needs_helper: nodeCount - 1,
+            complete: nodeCount,
+            staffed: nodeCount
+        };
+        const activeNodes = activeNodesByState[state] ?? 0;
+        const activeColor = ['available', 'constructing', 'needs_helper'].includes(state)
+            ? 0xF2C14E
+            : 0x71E6B1;
+        const radiusX = built
+            ? (compact ? 54 : 64)
+            : (compact ? 37 : 43);
+        const radiusY = built
+            ? (compact ? 16 : 18)
+            : (compact ? 11 : 13);
+        const centerY = built ? 27 : 24;
+        const nodeRadius = compact ? 2.5 : 3;
+
+        for (let index = 0; index < nodeCount; index += 1) {
+            const angle = -Math.PI / 2 + (index / nodeCount) * Math.PI * 2;
+            const nodeX = Math.cos(angle) * radiusX;
+            const nodeY = centerY + Math.sin(angle) * radiusY;
+            marker.fillStyle(0x071411, 0.88);
+            marker.fillCircle(nodeX, nodeY, nodeRadius + 1.5);
+            if (index < activeNodes) {
+                marker.fillStyle(activeColor, state === 'available' ? 0.92 : 0.82);
+                marker.fillCircle(nodeX, nodeY, nodeRadius);
+            } else {
+                marker.fillStyle(0x657682, state === 'dormant' ? 0.22 : 0.38);
+                marker.fillCircle(nodeX, nodeY, nodeRadius - 0.5);
+            }
+            if (state === 'needs_helper' && index === nodeCount - 1) {
+                marker.lineStyle(1.5, 0xF2C14E, 0.9);
+                marker.strokeCircle(nodeX, nodeY, nodeRadius + 2.5);
+            }
+        }
+
+        if (state === 'staffed') {
+            marker.lineStyle(1.5, 0xF4F4F4, 0.72);
+            marker.lineBetween(-7, centerY, 7, centerY);
+            marker.fillStyle(0x71E6B1, 0.96);
+            marker.fillCircle(-7, centerY, 3);
+            marker.fillCircle(7, centerY, 3);
+            marker.fillStyle(0xF4F4F4, 0.96);
+            marker.fillCircle(0, centerY, 2.5);
+        } else if (state === 'complete') {
+            marker.fillStyle(0x71E6B1, 0.92);
+            marker.fillCircle(0, centerY, 3);
+        }
+
+        marker
+            .setData('villagePlotState', state)
+            .setData('progressNodes', activeNodes)
+            .setData('progressRatio', progress)
+            .setData('ariaLabel', `${String(state || 'dormant').replace('_', ' ')} foundation`);
+        marker.setBlendMode?.(Phaser.BlendModes.ADD);
+        return marker;
+    }
+
+    createVillageStructureStateSilhouette({
+        state = 'dormant',
+        progress = 0,
+        compact = false,
+        built = false,
+        guided = false,
+        purposeGlyph = null
+    } = {}) {
+        const silhouette = this.scene.add.graphics();
+        const accent = guided || ['constructing', 'needs_helper'].includes(state)
+            ? 0xF2C14E
+            : state === 'staffed'
+                ? 0x71E6B1
+                : 0x8FE3CF;
+        const stateAction = {
+            dormant: 'sleeping',
+            available: 'ready_to_build',
+            constructing: 'taking_root',
+            needs_helper: 'awaiting_resident',
+            complete: 'ready',
+            staffed: 'working_together'
+        }[state] || 'unknown';
+        const centerY = built ? (compact ? -18 : -25) : 8;
+        const radiusX = built ? (compact ? 54 : 72) : (compact ? 42 : 50);
+        const radiusY = built ? (compact ? 59 : 76) : (compact ? 36 : 42);
+        const normalizedProgress = Phaser.Math.Clamp(Number(progress) || 0, 0, 1);
+        const drawEllipticalArc = (
+            startAngle,
+            endAngle,
+            lineWidth,
+            color,
+            alpha,
+            steps = 28
+        ) => {
+            silhouette.lineStyle(lineWidth, color, alpha);
+            silhouette.beginPath();
+            for (let index = 0; index <= steps; index += 1) {
+                const angle = startAngle + ((endAngle - startAngle) * index / steps);
+                const x = Math.cos(angle) * radiusX;
+                const y = centerY + (Math.sin(angle) * radiusY);
+                if (index === 0) silhouette.moveTo(x, y);
+                else silhouette.lineTo(x, y);
+            }
+            silhouette.strokePath();
+        };
+
+        if (!built) {
+            silhouette.fillStyle(0x071411, state === 'dormant' ? 0.34 : 0.58);
+            silhouette.fillEllipse(0, 26, radiusX * 1.9, compact ? 23 : 27);
+            drawEllipticalArc(
+                Math.PI * 1.06,
+                Math.PI * 1.94,
+                guided ? 3 : 2,
+                accent,
+                guided ? 0.94 : state === 'available' ? 0.48 : 0.2,
+                18
+            );
+            if (state === 'available') {
+                silhouette.lineStyle(2, accent, guided ? 0.96 : 0.62);
+                silhouette.lineBetween(0, 19, 0, -10);
+                silhouette.fillStyle(accent, guided ? 0.96 : 0.68);
+                silhouette.fillEllipse(-8, -5, compact ? 15 : 18, compact ? 7 : 8);
+                silhouette.fillEllipse(8, -11, compact ? 16 : 19, compact ? 7 : 9);
+                silhouette.fillCircle(0, -15, guided ? 4 : 3);
+                if (guided) {
+                    silhouette.lineStyle(2, 0xF4F4F4, 0.96);
+                    silhouette.lineBetween(-6, -15, 6, -15);
+                    silhouette.lineBetween(0, -21, 0, -9);
+                }
+            }
+        } else {
+            silhouette.fillStyle(0x071411, 0.38);
+            silhouette.fillEllipse(0, centerY + radiusY - 2, radiusX * 1.8, compact ? 20 : 25);
+
+            if (state === 'constructing') {
+                const completion = Math.max(0.14, normalizedProgress);
+                drawEllipticalArc(
+                    Math.PI * 0.82,
+                    Math.PI * (0.82 + (1.36 * completion)),
+                    compact ? 2.5 : 3,
+                    accent,
+                    0.94
+                );
+                [-1, 0, 1].forEach((direction, index) => {
+                    const stemX = direction * radiusX * 0.56;
+                    const stemTop = centerY + radiusY -
+                        ((radiusY * (0.72 + index * 0.12)) * completion);
+                    silhouette.lineStyle(2, index === 1 ? 0x8FE3CF : accent, 0.74);
+                    silhouette.lineBetween(
+                        stemX,
+                        centerY + radiusY - 7,
+                        stemX * 0.64,
+                        stemTop
+                    );
+                    silhouette.fillStyle(index === 1 ? 0x8FE3CF : accent, 0.9);
+                    silhouette.fillCircle(stemX * 0.64, stemTop, compact ? 2.5 : 3);
+                });
+            } else if (state === 'needs_helper') {
+                drawEllipticalArc(Math.PI * 0.08, Math.PI * 0.74, 2.5, accent, 0.9);
+                drawEllipticalArc(Math.PI * 1.26, Math.PI * 1.92, 2.5, accent, 0.9);
+                const signalY = centerY + radiusY - (compact ? 8 : 11);
+                silhouette.lineStyle(2, accent, 0.78);
+                silhouette.lineBetween(-10, signalY, 10, signalY);
+                silhouette.fillStyle(accent, 0.96);
+                silhouette.fillCircle(-10, signalY, compact ? 4 : 5);
+                silhouette.fillStyle(0x071411, 0.96);
+                silhouette.fillCircle(10, signalY, compact ? 5 : 6);
+                silhouette.lineStyle(2, 0xF4F4F4, 0.92);
+                silhouette.strokeCircle(10, signalY, compact ? 4 : 5);
+            } else {
+                drawEllipticalArc(
+                    Math.PI * 0.06,
+                    Math.PI * 0.94,
+                    state === 'staffed' ? 2.5 : 2,
+                    accent,
+                    state === 'staffed' ? 0.72 : 0.42,
+                    18
+                );
+                const signalY = centerY + radiusY - (compact ? 8 : 11);
+                if (state === 'staffed') {
+                    [-1, 1].forEach(direction => {
+                        silhouette.lineStyle(2, accent, 0.62);
+                        silhouette.lineBetween(
+                            direction * radiusX * 0.72,
+                            centerY + radiusY * 0.64,
+                            direction * 11,
+                            signalY
+                        );
+                    });
+                    silhouette.lineStyle(2, 0xF4F4F4, 0.78);
+                    silhouette.lineBetween(-11, signalY, 11, signalY);
+                    silhouette.fillStyle(accent, 0.96);
+                    silhouette.fillCircle(-11, signalY, compact ? 4 : 5);
+                    silhouette.fillCircle(11, signalY, compact ? 4 : 5);
+                    silhouette.fillStyle(0xF4F4F4, 0.96);
+                    silhouette.fillCircle(0, signalY, compact ? 2.5 : 3);
+                } else if (purposeGlyph) {
+                    this.drawVillagePurposeGlyph(silhouette, purposeGlyph, {
+                        x: 0,
+                        y: signalY,
+                        color: accent,
+                        compact
+                    });
+                }
+            }
+        }
+
+        const baseAlpha = guided
+            ? 1
+            : state === 'dormant'
+                ? 0.14
+                : state === 'available'
+                    ? 0.38
+                    : state === 'complete'
+                        ? 0.5
+                        : state === 'staffed'
+                            ? 0.72
+                            : 0.9;
+        silhouette
+            .setAlpha(baseAlpha)
+            .setData('villageStructureStateSilhouette', true)
+            .setData('villageStructureState', state)
+            .setData('villageStructureStateAction', stateAction)
+            .setData('villageStructureStateProgress', normalizedProgress)
+            .setData('villageStructureStateBuilt', built)
+            .setData('villageStructureStateGuided', guided)
+            .setData('villageStructureStateBaseAlpha', baseAlpha)
+            .setData('villageStructureStateVisualLanguage', 'root_state_silhouettes_v1')
+            .setData(
+                'ariaLabel',
+                state === 'constructing'
+                    ? `Structure taking root, ${Math.round(normalizedProgress * 100)} percent complete.`
+                    : `${String(state || 'dormant').replace('_', ' ')} structure, ${stateAction.replaceAll('_', ' ')}.`
+            );
+        silhouette.setBlendMode?.(Phaser.BlendModes.ADD);
+        return silhouette;
+    }
+
+    createVillageDistrictAnchor({
+        state,
+        guided = false,
+        built = false,
+        compact = false,
+        districtId = null,
+        purposeGlyph = null,
+        purposeLabel = null,
+        actionLabel = null,
+        ambientRole = 'reserved_root'
+    } = {}) {
+        const anchor = this.scene.add.graphics();
+        const available = state === 'available';
+        const active = ['constructing', 'needs_helper', 'complete', 'staffed'].includes(state);
+        const color = guided || ['constructing', 'needs_helper'].includes(state)
+            ? 0xF2C14E
+            : active
+                ? 0x71E6B1
+                : 0x8FE3CF;
+        const y = built ? (compact ? 70 : 77) : (compact ? 48 : 53);
+        const width = compact ? 34 : 40;
+        const actionVerb = {
+            dormant: 'DORMANT',
+            available: 'BUILD',
+            constructing: 'GROWING',
+            needs_helper: 'INVITE',
+            complete: 'MANAGE',
+            staffed: 'MANAGE'
+        }[state] || 'OPEN';
+
+        anchor.fillStyle(0x071411, 0.88);
+        anchor.fillEllipse(0, y, width + 20, compact ? 16 : 18);
+        anchor.lineStyle(2, color, guided ? 0.92 : active ? 0.66 : 0.36);
+        anchor.beginPath();
+        anchor.arc(0, y, width / 2, Math.PI * 1.08, Math.PI * 1.92);
+        anchor.strokePath();
+        anchor.fillStyle(0x061310, 0.94);
+        anchor.fillCircle(0, y - 1, available || guided ? 7 : 6);
+        if (available) {
+            anchor.lineStyle(2, color, guided ? 1 : 0.9);
+            anchor.lineBetween(-4, y - 1, 4, y - 1);
+            anchor.lineBetween(0, y - 5, 0, y + 3);
+        } else if (state === 'constructing') {
+            [-4, 0, 4].forEach((barX, barIndex) => {
+                anchor.lineStyle(2, color, 0.9);
+                anchor.lineBetween(
+                    barX,
+                    y + 3,
+                    barX,
+                    y + 1 - (barIndex * 3)
+                );
+            });
+        } else if (state === 'needs_helper') {
+            anchor.fillStyle(color, 0.94);
+            anchor.fillCircle(-3.5, y - 1, 2.5);
+            anchor.lineStyle(1.5, 0xF4F4F4, 0.9);
+            anchor.strokeCircle(3.5, y - 1, 2.5);
+        } else if (['complete', 'staffed'].includes(state) && purposeGlyph) {
+            this.drawVillagePurposeGlyph(anchor, purposeGlyph, {
+                x: 0,
+                y: y - 1,
+                color,
+                compact
+            });
+        } else if (state === 'staffed') {
+            anchor.lineStyle(1.5, color, 0.82);
+            anchor.lineBetween(-4, y + 2, 0, y - 4);
+            anchor.lineBetween(0, y - 4, 4, y + 2);
+            anchor.fillStyle(color, 0.94);
+            anchor.fillCircle(-4, y + 2, 2);
+            anchor.fillCircle(4, y + 2, 2);
+            anchor.fillStyle(0xF4F4F4, 0.96);
+            anchor.fillCircle(0, y - 4, 2);
+        } else if (state === 'complete') {
+            anchor.lineStyle(1.5, color, 0.9);
+            anchor.strokeCircle(0, y - 1, 3.5);
+            anchor.fillStyle(0xF4F4F4, 0.94);
+            anchor.fillCircle(0, y - 1, 1.5);
+        } else {
+            anchor.fillStyle(color, 0.56);
+            anchor.fillCircle(0, y - 1, 3);
+            anchor.fillStyle(0xF4F4F4, 0.62);
+            anchor.fillCircle(0, y - 1, 1.3);
+        }
+        [-1, 1].forEach(direction => {
+            anchor.lineStyle(1, color, guided ? 0.76 : 0.4);
+            anchor.lineBetween(
+                direction * 6,
+                y - 1,
+                direction * (width / 2),
+                y - 7
+            );
+            anchor.fillStyle(color, guided ? 0.82 : 0.46);
+            anchor.fillEllipse(direction * (width / 2), y - 8, 8, 4);
+        });
+        anchor
+            .setAlpha(guided ? 1 : active ? 0.58 : available ? 0.46 : 0.24)
+            .setData('villageDistrictAnchor', true)
+            .setData('villageDistrictId', districtId)
+            .setData('villageDistrictState', state)
+            .setData('villageDistrictGuided', guided)
+            .setData('villageDistrictActionVerb', actionVerb)
+            .setData('villageDistrictPurposeGlyph', purposeGlyph)
+            .setData('villageDistrictPurposeLabel', purposeLabel)
+            .setData('villageDistrictActionLabel', actionLabel)
+            .setData('villageAmbientRole', ambientRole)
+            .setData('villageDistrictVisualLanguage', 'root_purpose_glyphs_v2')
+            .setData('villageDistrictAnchorMaterial', 'root_threshold_v1')
+            .setData(
+                'ariaLabel',
+                purposeLabel && ['complete', 'staffed'].includes(state)
+                    ? `${actionVerb}. ${purposeLabel}. Living root district.`
+                    : `${actionVerb}. ${String(state || 'dormant').replace('_', ' ')} root district`
+            );
+        anchor.setBlendMode?.(Phaser.BlendModes.ADD);
+        return anchor;
+    }
+
+    drawVillagePurposeGlyph(graphics, glyph, {
+        x = 0,
+        y = 0,
+        color = 0x71E6B1,
+        compact = false
+    } = {}) {
+        if (!graphics || !glyph) return false;
+        const unit = compact ? 0.88 : 1;
+        graphics.lineStyle(1.5, color, 0.96);
+        graphics.fillStyle(0xF4F4F4, 0.94);
+
+        if (glyph === 'renewing_food') {
+            graphics.lineBetween(x, y + 4 * unit, x, y - 4 * unit);
+            graphics.fillEllipse(x - 3 * unit, y - 2 * unit, 5 * unit, 3 * unit);
+            graphics.fillEllipse(x + 3 * unit, y + unit, 5 * unit, 3 * unit);
+            graphics.fillCircle(x, y - 5 * unit, 1.5 * unit);
+        } else if (glyph === 'repair_value') {
+            [-3, 0, 3].forEach((offset, index) => {
+                graphics.strokeCircle(
+                    x + offset * unit,
+                    y + (index % 2) * 2 * unit,
+                    2.2 * unit
+                );
+            });
+            graphics.fillCircle(x, y - 3.5 * unit, 1.3 * unit);
+        } else if (glyph === 'current_guard') {
+            graphics.beginPath();
+            graphics.moveTo(x, y - 6 * unit);
+            graphics.lineTo(x + 5 * unit, y - 3 * unit);
+            graphics.lineTo(x + 3 * unit, y + 4 * unit);
+            graphics.lineTo(x, y + 6 * unit);
+            graphics.lineTo(x - 3 * unit, y + 4 * unit);
+            graphics.lineTo(x - 5 * unit, y - 3 * unit);
+            graphics.closePath();
+            graphics.strokePath();
+            graphics.fillCircle(x, y, 1.5 * unit);
+        } else if (glyph === 'shared_home') {
+            graphics.beginPath();
+            graphics.moveTo(x - 6 * unit, y);
+            graphics.lineTo(x, y - 6 * unit);
+            graphics.lineTo(x + 6 * unit, y);
+            graphics.strokePath();
+            graphics.lineBetween(x - 4 * unit, y - unit, x - 4 * unit, y + 5 * unit);
+            graphics.lineBetween(x + 4 * unit, y - unit, x + 4 * unit, y + 5 * unit);
+            graphics.fillCircle(x - 2 * unit, y + 2 * unit, 1.3 * unit);
+            graphics.fillCircle(x + 2 * unit, y + 2 * unit, 1.3 * unit);
+        } else if (glyph === 'shared_energy') {
+            graphics.beginPath();
+            graphics.moveTo(x, y - 7 * unit);
+            graphics.lineTo(x + 5 * unit, y);
+            graphics.lineTo(x, y + 7 * unit);
+            graphics.lineTo(x - 5 * unit, y);
+            graphics.closePath();
+            graphics.strokePath();
+            graphics.lineBetween(x - 4 * unit, y, x + 4 * unit, y);
+            graphics.fillCircle(x, y, 1.5 * unit);
+        } else {
+            graphics.strokeCircle(x, y, 4 * unit);
+            graphics.fillCircle(x, y, 1.5 * unit);
+        }
+        return true;
+    }
+
+    createVillageValueGrowth(landmark, snapshot, { compact = false } = {}) {
+        const values = snapshot?.worldState?.values || { care: 0, readiness: 0 };
+        const heartX = landmark?.zone?.x;
+        const heartY = landmark?.zone?.y;
+        if (!Number.isFinite(heartX) || !Number.isFinite(heartY)) return false;
+
+        const careOffsets = compact
+            ? [[-98, 86], [-48, 123], [-118, 22]]
+            : [[-120, 88], [-58, 132], [-150, 12]];
+        const readinessOffsets = compact
+            ? [[98, 86], [48, 123], [118, 22]]
+            : [[120, 88], [58, 132], [150, 12]];
+        const elements = [];
+        const createGrowth = (kind, index, offset) => {
+            const color = kind === 'care' ? 0x71E6B1 : 0xF2C14E;
+            const growth = this.scene.add.graphics()
+                .setPosition(heartX + offset[0], heartY + offset[1])
+                .setDepth(landmark.zone.y + 5)
+                .setData('villageValueGrowth', kind)
+                .setData('growthIndex', index);
+            growth.fillStyle(0x071411, 0.76);
+            growth.fillEllipse(0, 8, compact ? 24 : 28, compact ? 10 : 12);
+            if (kind === 'care') {
+                growth.lineStyle(2, color, 0.92);
+                growth.lineBetween(0, 8, 0, -10 - index * 2);
+                growth.fillStyle(color, 0.9);
+                growth.fillEllipse(-5, -3, 9, 5);
+                growth.fillEllipse(5, -7, 9, 5);
+                growth.fillStyle(0xF4F4F4, 0.82);
+                growth.fillCircle(0, -12 - index * 2, 2);
+            } else {
+                growth.lineStyle(2, color, 0.88);
+                growth.strokeTriangle(0, -15 - index, -8, 6, 8, 6);
+                growth.fillStyle(color, 0.8);
+                growth.fillTriangle(0, -11 - index, -5, 4, 5, 4);
+                growth.fillStyle(0xF4F4F4, 0.9);
+                growth.fillCircle(0, -2, 2);
+            }
+            growth.setBlendMode?.(Phaser.BlendModes.ADD);
+            landmark.buildingElements.push(growth);
+            landmark.buildingTweens.push(this.scene.tweens.add({
+                targets: growth,
+                alpha: { from: 0.62, to: 1 },
+                y: { from: growth.y + 2, to: growth.y - 2 },
+                duration: 1700 + index * 220,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            }));
+            elements.push(growth);
+        };
+        for (let index = 0; index < Math.min(3, values.care || 0); index += 1) {
+            createGrowth('care', index, careOffsets[index]);
+        }
+        for (let index = 0; index < Math.min(3, values.readiness || 0); index += 1) {
+            createGrowth('readiness', index, readinessOffsets[index]);
+        }
+        landmark.valueGrowthElements = elements;
+        return elements.length > 0;
+    }
+
+    createVillageGuidanceRoute({ landmark, action, position, compact = false } = {}) {
+        if (!landmark?.zone || !action || !position) return null;
+
+        const color = action.type === 'assign' ? 0x71E6B1 : 0xF2C14E;
+        const start = {
+            x: landmark.zone.x,
+            y: landmark.zone.y + 18
+        };
+        const end = {
+            x: position.x,
+            y: position.y + 18
+        };
+        const bend = {
+            x: start.x + ((end.x - start.x) * 0.56),
+            y: start.y + ((end.y - start.y) * 0.34) + (end.x < start.x ? 16 : -16)
+        };
+        const points = Array.from({ length: 19 }, (_, pointIndex) => {
+            const progress = pointIndex / 18;
+            const inverse = 1 - progress;
+            return {
+                x: (inverse * inverse * start.x) +
+                    (2 * inverse * progress * bend.x) +
+                    (progress * progress * end.x),
+                y: (inverse * inverse * start.y) +
+                    (2 * inverse * progress * bend.y) +
+                    (progress * progress * end.y)
+            };
+        });
+        const route = this.scene.add.graphics()
+            .setDepth(-16)
+            .setData('villageGuidanceRoute', true)
+            .setData('villageRouteMaterial', 'current_stepping_lights_v1')
+            .setData('villageNextAction', action.type)
+            .setData('plotId', action.plotId)
+            .setData('routePointCount', points.length);
+        const strokeRoute = (width, strokeColor, alpha) => {
+            route.lineStyle(width, strokeColor, alpha);
+            route.beginPath();
+            route.moveTo(points[0].x, points[0].y);
+            points.slice(1).forEach(point => route.lineTo(point.x, point.y));
+            route.strokePath();
+        };
+        strokeRoute(compact ? 14 : 18, 0x061310, 0.78);
+        strokeRoute(compact ? 5 : 6, color, 0.62);
+        strokeRoute(1, 0xF4F4F4, 0.58);
+
+        const guidanceNodes = [4, 8, 12, 16];
+        guidanceNodes.forEach((pointIndex, nodeIndex) => {
+            const point = points[pointIndex];
+            route.fillStyle(0x061310, 0.9);
+            route.fillCircle(point.x, point.y, compact ? 5 : 6);
+            route.fillStyle(color, 0.94);
+            route.fillCircle(point.x, point.y, 2 + (nodeIndex * 0.35));
+        });
+        route.setData('guidanceNodeCount', guidanceNodes.length);
+        return route;
+    }
+
+    createVillageFutureStructurePreview({
+        action,
+        position,
+        compact = false,
+        color = 0xF2C14E
+    } = {}) {
+        const artworkDefinition = VILLAGE_WORLD_ARTWORK[action?.definitionId];
+        if (!artworkDefinition || !position) return null;
+        const compactKey = artworkDefinition.compactKey;
+        const artworkKey = compact && compactKey && this.scene.textures.exists(compactKey)
+            ? compactKey
+            : artworkDefinition.key;
+        if (!artworkKey || !this.scene.textures.exists(artworkKey)) return null;
+
+        const buildingDefinition = VILLAGE_BUILDING_DEFINITIONS.find(
+            definition => definition.id === action.definitionId
+        ) || null;
+        const displaySize = compact
+            ? Math.round((artworkDefinition.displaySize || 176) * 0.48)
+            : Math.round((artworkDefinition.displaySize || 176) * 0.68);
+        const artworkY = compact ? -23 : -33;
+        const container = this.scene.add.container(position.x, position.y)
+            .setDepth(position.y + 3)
+            .setData('villageFutureStructurePreview', true)
+            .setData('definitionId', action.definitionId)
+            .setData('plotId', action.plotId)
+            .setData('villagePreviewMaterial', 'future_structure_echo_v1')
+            .setData('villagePreviewLabel', buildingDefinition?.label || action.label)
+            .setData('villagePreviewDisplaySize', displaySize);
+        const rootBed = this.scene.add.graphics()
+            .setData('villageFutureRootBed', true)
+            .setData('villagePreviewMaterial', 'living_root_threshold_v2');
+        rootBed.fillStyle(0x04100E, 0.72);
+        rootBed.fillEllipse(0, compact ? 28 : 34, compact ? 104 : 134, compact ? 32 : 42);
+        rootBed.lineStyle(2, color, 0.42);
+        rootBed.strokeEllipse(0, compact ? 27 : 33, compact ? 96 : 124, compact ? 27 : 35);
+        [-0.62, -0.2, 0.22, 0.64].forEach((ratio, index) => {
+            const startX = ratio * (compact ? 43 : 56);
+            const endX = startX * 0.76;
+            const endY = compact ? 13 - (index % 2) * 4 : 16 - (index % 2) * 5;
+            rootBed.lineStyle(1, index % 2 ? 0xF4F4F4 : color, 0.5);
+            rootBed.lineBetween(startX, compact ? 26 : 32, endX, endY);
+        });
+        const artwork = this.scene.add.image(0, artworkY, artworkKey)
+            .setDisplaySize(displaySize, displaySize)
+            .setTint(0xFFE8A3)
+            .setAlpha(0.38)
+            .setData('villageFutureStructureArtwork', true)
+            .setData('villageArtworkVariant', compact ? 'compact_future_echo' : 'detailed_future_echo')
+            .setData('villagePreviewColor', color);
+        container.add([rootBed, artwork]);
+        const tween = this.scene.tweens.add({
+            targets: artwork,
+            y: { from: artworkY + 2, to: artworkY - 3 },
+            alpha: { from: 0.3, to: 0.48 },
+            duration: 1320,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        return { container, rootBed, artwork, tween };
+    }
+
+    createVillageNextActionBeacon(landmark, snapshot, { compact = false } = {}) {
+        const action = snapshot?.worldState?.nextAction;
+        if (!landmark?.zone || !action) return false;
+        landmark.nextActionElement = null;
+        landmark.nextActionHitZone = null;
+        landmark.nextActionPlacard = null;
+        landmark.nextActionRing = null;
+        landmark.nextActionPreview = null;
+        landmark.nextActionPreviewTween = null;
+        landmark.nextActionTween = null;
+        landmark.guidanceRoute = null;
+
+        if (action.type === 'decision' || action.type === 'supplies') {
+            landmark.actionLabel
+                .setText(action.label)
+                .setAlpha(1)
+                .setColor(action.type === 'decision' ? '#8FE3CF' : '#F2C14E');
+            landmark.actionLabel
+                .setData('villageNextAction', action.type)
+                .setData('definitionId', action.definitionId || null);
+            landmark.nextActionElement = landmark.actionLabel;
+            return true;
+        }
+        if (!['build', 'assign'].includes(action.type) || !action.plotId) return false;
+
+        landmark.actionLabel
+            .setText('')
+            .setAlpha(0)
+            .disableInteractive();
+
+        const position = landmark.plotWorldPositions?.get(action.plotId);
+        if (!position) return false;
+        const color = action.type === 'assign' ? 0x71E6B1 : 0xF2C14E;
+        const buildingDefinition = VILLAGE_BUILDING_DEFINITIONS.find(
+            definition => definition.id === action.definitionId
+        ) || null;
+        const guidanceRoute = this.createVillageGuidanceRoute({
+            landmark,
+            action,
+            position,
+            compact
+        });
+        const futurePreview = action.type === 'build'
+            ? this.createVillageFutureStructurePreview({
+                action,
+                position,
+                compact,
+                color
+            })
+            : null;
+        const ring = this.scene.add.graphics()
+            .setPosition(position.x, position.y + (compact ? 25 : 29))
+            .setDepth(position.y + 5)
+            .setData('villageNextActionRing', action.type)
+            .setData('villageTargetLanguage', 'living_root_threshold_v2');
+        ring.lineStyle(3, color, 0.9);
+        ring.strokeEllipse(0, 0, compact ? 112 : 142, compact ? 38 : 48);
+        ring.lineStyle(1, 0xF4F4F4, 0.68);
+        ring.strokeEllipse(0, 0, compact ? 94 : 120, compact ? 26 : 32);
+        [-0.72, 0, 0.72].forEach((ratio, index) => {
+            const rootX = ratio * (compact ? 49 : 61);
+            const rootHeight = compact ? 12 + (index * 3) : 16 + (index * 4);
+            ring.lineStyle(index === 1 ? 3 : 2, color, 0.86);
+            ring.lineBetween(rootX, -2, rootX * 0.82, -rootHeight);
+            ring.fillStyle(color, 0.94);
+            ring.fillCircle(rootX * 0.82, -rootHeight, index === 1 ? 3 : 2);
+        });
+        ring.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const labelX = compact
+            ? position.x + (position.x > landmark.zone.x ? -16 : position.x < landmark.zone.x ? 16 : 0)
+            : position.x;
+        const compactLowerTarget = compact && position.y > landmark.zone.y + 70;
+        const placardPlacement = compactLowerTarget ? 'below_target' : 'above_target';
+        const labelY = compactLowerTarget
+            ? position.y + 88
+            : position.y - (compact ? 92 : 120);
+        const actionCopy = buildingDefinition
+            ? `${action.type === 'assign' ? 'INVITE' : 'BUILD'} · ${buildingDefinition.label.toUpperCase()}`
+            : action.label;
+        const labelBackdrop = this.scene.add.graphics()
+            .setPosition(labelX, labelY)
+            .setDepth(position.y + 7)
+            .setData('villageNextActionPlacard', true)
+            .setData('villagePlacardLanguage', 'current_ribbon_v2')
+            .setData('villagePlacardPlacement', placardPlacement)
+            .setData('villagePlacardAvoidsHeart', compactLowerTarget);
+        const placardHalfWidth = compact ? 84 : 104;
+        const placardHalfHeight = compact ? 17 : 18;
+        const placardNotch = compact ? 8 : 10;
+        const placardPoints = [
+            new Phaser.Geom.Point(-placardHalfWidth + placardNotch, -placardHalfHeight),
+            new Phaser.Geom.Point(placardHalfWidth, -placardHalfHeight),
+            new Phaser.Geom.Point(placardHalfWidth, placardHalfHeight - placardNotch),
+            new Phaser.Geom.Point(placardHalfWidth - placardNotch, placardHalfHeight),
+            new Phaser.Geom.Point(-placardHalfWidth, placardHalfHeight),
+            new Phaser.Geom.Point(-placardHalfWidth, -placardHalfHeight + placardNotch)
+        ];
+        labelBackdrop.fillStyle(0x061310, 0.94);
+        labelBackdrop.fillPoints(placardPoints, true);
+        labelBackdrop.lineStyle(1, color, 0.68);
+        labelBackdrop.strokePoints(placardPoints, true);
+        const label = this.scene.add.text(
+            labelX,
+            labelY,
+            actionCopy,
+            {
+                fontSize: compact ? '11px' : '12px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: action.type === 'assign' ? '#8FE3CF' : '#F2C14E',
+                align: 'center',
+                stroke: '#07100F',
+                strokeThickness: 4,
+                wordWrap: { width: compact ? 154 : 190 }
+            }
+        ).setOrigin(0.5)
+            .setDepth(position.y + 8)
+            .setInteractive({ useHandCursor: true })
+            .setData('villageNextAction', action.type)
+            .setData('plotId', action.plotId)
+            .setData('definitionId', action.definitionId || null)
+            .setData('villageActionCopy', actionCopy)
+            .setData('villagePlacardPlacement', placardPlacement)
+            .setData('villagePlacardAvoidsHeart', compactLowerTarget)
+            .setData(
+                'ariaLabel',
+                `${actionCopy}. Tap to plan this structure at ${action.plotId}.`
+            );
+        label.on('pointerdown', () => this.activateVillageHeart(landmark, action.plotId));
+
+        const hitZoneY = compactLowerTarget ? labelY - 4 : labelY;
+        const hitZone = this.scene.add.zone(
+            labelX,
+            hitZoneY,
+            compact ? 156 : 184,
+            52
+        )
+            .setDepth(position.y + 9)
+            .setInteractive({ useHandCursor: true })
+            .setData('villageNextActionHitZone', true)
+            .setData('touchTargetWidth', compact ? 156 : 184)
+            .setData('touchTargetHeight', 52)
+            .setData('villageNextAction', action.type)
+            .setData('plotId', action.plotId)
+            .setData('definitionId', action.definitionId || null)
+            .setData('villagePlacardPlacement', placardPlacement)
+            .setData('villagePlacardAvoidsHeart', compactLowerTarget)
+            .setData('villagePlacardHitZoneOffsetY', hitZoneY - labelY);
+        hitZone.on('pointerdown', () => this.activateVillageHeart(landmark, action.plotId));
+
+        landmark.nextActionElement = label;
+        landmark.nextActionHitZone = hitZone;
+        landmark.nextActionPlacard = labelBackdrop;
+        landmark.nextActionRing = ring;
+        landmark.nextActionPreview = futurePreview?.container || null;
+        landmark.nextActionPreviewTween = futurePreview?.tween || null;
+        landmark.guidanceRoute = guidanceRoute;
+        landmark.buildingElements.push(
+            ...(guidanceRoute ? [guidanceRoute] : []),
+            ...(futurePreview ? [futurePreview.container] : []),
+            ring,
+            labelBackdrop,
+            label,
+            hitZone
+        );
+        landmark.nextActionTween = this.scene.tweens.add({
+            targets: [ring, label, ...(guidanceRoute ? [guidanceRoute] : [])],
+            alpha: { from: 0.68, to: 1 },
+            duration: 1050,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        landmark.buildingTweens.push(landmark.nextActionTween);
+        if (futurePreview?.tween) {
+            landmark.buildingTweens.push(futurePreview.tween);
+        }
+        return true;
+    }
+
+    createVillageHeartMemories(landmark, snapshot, { compact = false } = {}) {
+        const choices = snapshot?.heartDecision?.completed || [];
+        if (!landmark?.zone || choices.length === 0) return false;
+
+        const heartX = landmark.zone.x;
+        const heartY = landmark.zone.y - 12;
+        const offsets = compact
+            ? [{ x: -68, y: 34 }, { x: 0, y: 66 }, { x: 68, y: 34 }]
+            : [{ x: -86, y: 30 }, { x: 0, y: 78 }, { x: 86, y: 30 }];
+        const traces = this.scene.add.graphics()
+            .setDepth(landmark.zone.y - 1)
+            .setData('villageHeartMemoryCount', choices.length)
+            .setData('villageHeartMemoryTrace', true)
+            .setData('villageMemoryHierarchyRole', 'supporting_trace')
+            .setData('villageMemoryVisualLanguage', 'shared_vow_weave_v1');
+
+        choices.forEach((choice, index) => {
+            const color = choice.option.value === 'care' ? 0x71E6B1 : 0xF2C14E;
+            const offset = offsets[index] || offsets[offsets.length - 1];
+            const markerX = heartX + offset.x;
+            const markerY = heartY + offset.y;
+
+            choice.definition.requiredBuildingIds.forEach(buildingId => {
+                const building = snapshot.buildings.find(entry => (
+                    entry.definitionId === buildingId
+                ));
+                const source = landmark.plotWorldPositions?.get(building?.plotId);
+                if (!source) return;
+                traces.lineStyle(2, color, 0.2);
+                traces.beginPath();
+                traces.moveTo(source.x, source.y + 14);
+                traces.lineTo(markerX, markerY);
+                traces.strokePath();
+            });
+
+            const marker = this.scene.add.graphics()
+                .setPosition(markerX, markerY)
+                .setDepth(landmark.zone.y + 7)
+                .setData('villageHeartMemory', choice.decisionId)
+                .setData('optionId', choice.optionId)
+                .setData('value', choice.option.value)
+                .setData('speakerName', choice.speakerName)
+                .setData('followUpLine', choice.followUpLine)
+                .setData('villageMemoryHierarchyRole', 'interactive_memory')
+                .setData('villageMemoryVisualLanguage', 'shared_vow_weave_v1');
+            marker.fillStyle(0x071411, 0.92);
+            marker.fillCircle(0, 0, compact ? 12 : 14);
+            marker.lineStyle(2, color, 0.92);
+            marker.strokeCircle(0, 0, compact ? 10 : 12);
+            if (choice.option.value === 'care') {
+                marker.fillStyle(color, 0.96);
+                marker.fillTriangle(-1, 6, -7, -2, -1, -7);
+                marker.fillTriangle(1, 6, 7, -2, 1, -7);
+                marker.lineStyle(1, 0xF4F4F4, 0.8);
+                marker.lineBetween(0, 7, 0, -6);
+            } else {
+                marker.fillStyle(color, 0.96);
+                marker.fillTriangle(0, -8, -7, 0, 0, 8);
+                marker.fillTriangle(0, -8, 7, 0, 0, 8);
+                marker.fillStyle(0xF4F4F4, 0.9);
+                marker.fillCircle(0, 0, 2);
+            }
+            marker.setBlendMode?.(Phaser.BlendModes.ADD);
+            const memory = {
+                decisionId: choice.decisionId,
+                optionId: choice.optionId,
+                value: choice.option.value,
+                optionLabel: choice.option.label,
+                participantNames: choice.participantNames,
+                speakerName: choice.speakerName,
+                line: choice.followUpLine,
+                requiredBuildingIds: choice.definition.requiredBuildingIds
+            };
+            const touchRadius = compact ? 22 : 24;
+            marker
+                .setInteractive(
+                    new Phaser.Geom.Circle(0, 0, touchRadius),
+                    Phaser.Geom.Circle.Contains
+                )
+                .setData('interactionVerb', 'REMEMBER')
+                .setData('touchTargetDiameter', touchRadius * 2)
+                .setData(
+                    'ariaLabel',
+                    `Remember ${choice.speakerName}'s ${choice.option.label} choice`
+                );
+            marker.on('pointerdown', () => {
+                this.playVillageHeartMemory(landmark, memory);
+            });
+            landmark.heartMemoryElements.push(marker);
+            landmark.buildingElements.push(marker);
+            landmark.buildingTweens.push(this.scene.tweens.add({
+                targets: marker,
+                alpha: { from: 0.72, to: 1 },
+                scaleX: { from: 0.94, to: 1.06 },
+                scaleY: { from: 0.94, to: 1.06 },
+                duration: 1500 + index * 240,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            }));
+        });
+
+        traces.setBlendMode?.(Phaser.BlendModes.ADD);
+        landmark.heartMemoryElements.unshift(traces);
+        landmark.buildingElements.push(traces);
+        return true;
+    }
+
+    playVillageBuildingMoment(landmark, building, { stage = 'complete' } = {}) {
+        const position = landmark?.plotWorldPositions?.get(building?.plotId);
+        if (!position || !building?.definition) return false;
+
+        landmark.activeBuildingMoment?.destroy?.(true);
+        landmark.activeBuildingMomentTween?.stop?.();
+        const complete = stage === 'complete';
+        const container = this.scene.add.container(position.x, position.y - 18)
+            .setDepth(position.y + 30);
+        const current = this.scene.add.graphics();
+        current.lineStyle(complete ? 5 : 3, complete ? 0x71E6B1 : 0xF2C14E, 0.95);
+        current.strokeEllipse(0, 30, 116, 44);
+        current.lineStyle(2, 0xF4F4F4, 0.82);
+        current.strokeEllipse(0, 30, 82, 30);
+        current.setBlendMode?.(Phaser.BlendModes.ADD);
+        const signal = this.scene.add.circle(0, -70, complete ? 9 : 7, complete ? 0x71E6B1 : 0xF2C14E, 1)
+            .setStrokeStyle(2, 0xF4F4F4, 0.9);
+        const title = this.scene.add.text(
+            0,
+            -114,
+            complete
+                ? `${building.definition.shortLabel} ONLINE`
+                : `${building.definition.shortLabel} PLANTED`,
+            {
+                fontSize: '12px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: complete ? '#8FE3CF' : '#F2C14E',
+                stroke: '#050505',
+                strokeThickness: 4
+            }
+        ).setOrigin(0.5);
+        const impact = this.scene.add.text(
+            0,
+            -92,
+            complete
+                ? building.definition.worldEffectLabel
+                : 'THE CURRENT TAKES ROOT',
+            {
+                fontSize: '9px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F4F4F4',
+                stroke: '#050505',
+                strokeThickness: 4,
+                align: 'center',
+                wordWrap: { width: 180 }
+            }
+        ).setOrigin(0.5);
+        const growth = this.scene.add.graphics();
+        if (complete) {
+            [-42, -21, 0, 21, 42].forEach((rootX, index) => {
+                growth.lineStyle(2, index % 2 ? 0x71E6B1 : 0xF2C14E, 0.82);
+                growth.beginPath();
+                growth.moveTo(rootX, 31);
+                growth.lineTo(rootX + (index % 2 ? 7 : -7), 17 - (index % 3) * 4);
+                growth.strokePath();
+                growth.fillStyle(0x8FE3CF, 0.9);
+                growth.fillCircle(rootX + (index % 2 ? 7 : -7), 15 - (index % 3) * 4, 3);
+            });
+            growth.setBlendMode?.(Phaser.BlendModes.ADD);
+        }
+        container.add([current, growth, signal, impact, title]);
+        container.setData('villageBuildingMomentStage', stage);
+        container.setData('villageBuildingImpact', building.definition.worldEffectLabel);
+        landmark.activeBuildingMoment = container;
+        landmark.activeBuildingMomentTween = this.scene.tweens.add({
+            targets: current,
+            scaleX: { from: 0.45, to: 1.55 },
+            scaleY: { from: 0.45, to: 1.55 },
+            alpha: { from: 1, to: 0 },
+            duration: complete ? 1500 : 1100,
+            ease: 'Sine.easeOut'
+        });
+        this.scene.tweens.add({
+            targets: [signal, impact, title, growth],
+            y: '-=14',
+            alpha: { from: 1, to: 0 },
+            delay: complete ? 1150 : 850,
+            duration: 650,
+            ease: 'Sine.easeIn',
+            onComplete: () => {
+                container.destroy(true);
+                if (landmark.activeBuildingMoment === container) {
+                    landmark.activeBuildingMoment = null;
+                    landmark.activeBuildingMomentTween = null;
+                }
+            }
+        });
+        return true;
+    }
+
+    createVillageBuildingActivity(building) {
+        const activity = this.scene.add.container(0, 0);
+        const routine = this.scene.add.graphics();
+
+        if (building.definitionId === 'forager_hut') {
+            routine.fillStyle(0x6E4D2E, 0.96);
+            routine.fillRoundedRect(43, 22, 29, 18, 5);
+            routine.lineStyle(2, 0xF2C14E, 0.92);
+            routine.beginPath();
+            routine.arc(57, 23, 12, Math.PI, 0, false);
+            routine.strokePath();
+            [48, 57, 66].forEach((podX, index) => {
+                routine.fillStyle(index === 1 ? 0xF4F4F4 : 0xF2C14E, 0.98);
+                routine.fillCircle(podX, 20 - (index % 2) * 4, 5);
+            });
+        } else if (building.definitionId === 'sawmill') {
+            routine.fillStyle(0x6E4D2E, 0.98);
+            routine.fillRoundedRect(39, 20, 36, 12, 5);
+            routine.lineStyle(2, 0xF2C14E, 0.92);
+            routine.strokeCircle(57, 26, 18);
+            routine.lineStyle(2, 0xF4F4F4, 0.82);
+            routine.lineBetween(45, 26, 69, 26);
+        } else if (building.definitionId === 'current_masonry') {
+            routine.fillStyle(0x71E6B1, 0.32);
+            routine.fillTriangle(57, 6, 37, 25, 43, 45);
+            routine.fillTriangle(57, 6, 77, 25, 71, 45);
+            routine.lineStyle(2, 0xF4F4F4, 0.92);
+            routine.strokeCircle(57, 27, 20);
+            [40, 57, 74].forEach((stoneX, index) => {
+                routine.fillStyle(0xB7C8C4, 0.95);
+                routine.fillCircle(stoneX, 19 + index * 5, 4);
+            });
+        } else if (building.definitionId === 'habitat') {
+            [[-56, 24, 0x8FE3CF], [54, 27, 0xF2C14E], [0, 34, 0xF4F4F4]]
+                .forEach(([residentX, residentY, color], index) => {
+                    routine.fillStyle(color, 0.95);
+                    routine.fillCircle(residentX, residentY - 9, 6 - index);
+                    routine.fillEllipse(residentX, residentY + 2, 13, 15);
+                });
+            routine.lineStyle(2, 0x71E6B1, 0.82);
+            routine.strokeCircle(0, 30, 19);
+        } else if (building.definitionId === 'workshop') {
+            routine.lineStyle(4, 0xF4F4F4, 0.92);
+            routine.lineBetween(38, 36, 75, 20);
+            routine.lineStyle(3, 0xD94B4B, 0.9);
+            routine.lineBetween(35, 39, 43, 31);
+            routine.fillStyle(0x71E6B1, 0.92);
+            routine.fillTriangle(57, 5, 49, 18, 65, 18);
+            routine.fillTriangle(57, 31, 49, 18, 65, 18);
+        }
+
+        activity.add(routine);
+        activity.setData('helperName', building?.creature?.name || 'Companion');
+        activity.setData('routine', building.definitionId);
+        activity.setData('villageActivityProfile', building.definition?.worldProfile?.identity);
+        activity.setData('villageActivityMotion', building.definition?.worldProfile?.motion);
+        activity.setData('villageActivityCue', building.definition?.worldProfile?.activityCue);
+        activity.setData('villageWorldChange', building.definition?.worldProfile?.worldChange);
+        activity.setData(
+            'ariaLabel',
+            `${building.definition?.label || building.definitionId}. ` +
+                `${building.definition?.worldProfile?.worldChange || 'The district is active.'}`
+        );
+        return activity;
+    }
+
+    createVillageHabitatLife(home, {
+        compact = false,
+        residentRoutines = []
+    } = {}) {
+        const container = this.scene.add.container(0, compact ? 23 : 28);
+        const residents = Array.isArray(home?.residents) ? home.residents : [];
+        const capacity = Math.max(0, Number(home?.capacity) || 0);
+        const routineByResident = new Map(
+            residentRoutines.map(routine => [routine.residentId, routine])
+        );
+        const residentColors = [0x8FE3CF, 0xF2C14E, 0xBFA6FF, 0xD94B4B];
+        const slotContainers = Array.from({ length: capacity }, (_, index) => {
+            const resident = residents[index] || null;
+            const presence = resident
+                ? routineByResident.get(resident.id)?.location ||
+                    (resident.atWork ? 'work' : 'home')
+                : 'open';
+            const x = (index - ((capacity - 1) / 2)) * (compact ? 38 : 44);
+            const slot = this.scene.add.container(x, 0);
+            const cradle = this.scene.add.graphics();
+            cradle.fillStyle(0x071411, resident ? 0.76 : 0.42);
+            cradle.fillEllipse(0, 8, compact ? 30 : 34, compact ? 13 : 15);
+            cradle.lineStyle(
+                resident ? 2 : 1,
+                presence === 'work'
+                    ? 0xF2C14E
+                    : presence === 'commons'
+                        ? 0x8FE3CF
+                        : resident ? 0x71E6B1 : 0x657682,
+                resident ? 0.82 : 0.46
+            );
+            cradle.strokeEllipse(0, 8, compact ? 28 : 32, compact ? 11 : 13);
+            const identity = this.scene.add.text(
+                0,
+                18,
+                resident ? resident.name.slice(0, 7).toUpperCase() : 'OPEN',
+                {
+                    fontSize: compact ? '6px' : '7px',
+                    fontFamily: 'Arial, sans-serif',
+                    fontStyle: 'bold',
+                    color: presence === 'work'
+                        ? '#F2C14E'
+                        : presence === 'commons'
+                            ? '#8FE3CF'
+                            : resident ? '#C9F7E9' : '#85928F',
+                    stroke: '#07100F',
+                    strokeThickness: 3
+                }
+            ).setOrigin(0.5);
+            slot.add([cradle, identity]);
+
+            if (presence === 'work') {
+                const tether = this.scene.add.graphics();
+                tether.lineStyle(2, 0xF2C14E, 0.72);
+                tether.beginPath();
+                tether.moveTo(-7, 5);
+                tether.lineTo(-2, -4);
+                tether.lineTo(7, -10);
+                tether.strokePath();
+                tether.fillStyle(0xF2C14E, 0.92);
+                tether.fillTriangle(7, -14, 12, -8, 5, -7);
+                tether.fillStyle(0xF4F4F4, 0.84);
+                tether.fillCircle(-8, 6, 2);
+                tether.setData('villageHomeTether', true);
+                slot.add(tether);
+            } else if (presence === 'commons') {
+                const tether = this.scene.add.graphics();
+                tether.lineStyle(2, 0x8FE3CF, 0.72);
+                tether.beginPath();
+                tether.moveTo(-7, 5);
+                tether.lineTo(0, -3);
+                tether.lineTo(7, -10);
+                tether.strokePath();
+                tether.lineStyle(1, 0xF4F4F4, 0.84);
+                tether.strokeCircle(8, -11, 3);
+                tether.fillStyle(0x8FE3CF, 0.92);
+                tether.fillCircle(-8, 6, 2);
+                tether.setData('villageCommonsTether', true);
+                slot.add(tether);
+            } else if (resident) {
+                const figure = this.scene.add.graphics();
+                const color = residentColors[index % residentColors.length];
+                figure.fillStyle(color, 0.98);
+                figure.fillCircle(0, -8, compact ? 5 : 6);
+                figure.fillEllipse(0, 0, compact ? 10 : 12, compact ? 13 : 15);
+                figure.fillStyle(0xF4F4F4, 0.96);
+                figure.fillCircle(-2, -9, 1.3);
+                figure.fillCircle(2, -9, 1.3);
+                figure.lineStyle(1, color, 0.9);
+                figure.lineBetween(-4, -12, -7, -17);
+                figure.lineBetween(4, -12, 7, -17);
+                figure.setData('villageResidentFigure', true);
+                slot.add(figure);
+            } else {
+                const opening = this.scene.add.graphics();
+                opening.lineStyle(1, 0x8FE3CF, 0.4);
+                opening.strokeCircle(0, -2, 5);
+                opening.fillStyle(0x8FE3CF, 0.34);
+                opening.fillCircle(0, -2, 2);
+                slot.add(opening);
+            }
+            slot
+                .setData('villageHabitatSlot', true)
+                .setData('residentName', resident?.name || null)
+                .setData(
+                    'residentStatus',
+                    presence === 'work'
+                        ? 'helping'
+                        : presence === 'commons'
+                            ? 'at_heart'
+                            : resident ? 'home' : 'open'
+                )
+                .setData('workLabel', resident?.workLabel || null);
+            return slot;
+        });
+        const homeResidentCount = residentRoutines.filter(
+            routine => routine.location === 'home'
+        ).length;
+        const commonsResidentCount = residentRoutines.filter(
+            routine => routine.location === 'commons'
+        ).length;
+        const workingResidentCount = residentRoutines.filter(
+            routine => routine.location === 'work'
+        ).length;
+        const status = this.scene.add.text(
+            0,
+            37,
+            residents.length > 0
+                ? [
+                    homeResidentCount > 0 ? `${homeResidentCount} RESTING` : null,
+                    commonsResidentCount > 0 ? `${commonsResidentCount} AT HEART` : null,
+                    workingResidentCount > 0 ? `${workingResidentCount} HELPING` : null
+                ].filter(Boolean).join(' · ')
+                : 'ROOM FOR RESCUED FRIENDS',
+            {
+                fontSize: compact ? '7px' : '8px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#C9F7E9',
+                stroke: '#07100F',
+                strokeThickness: 3
+            }
+        ).setOrigin(0.5);
+        container.add([...slotContainers, status]);
+        container.setData('villageHabitatLife', true);
+        container.setData('residentNames', residents.map(resident => resident.name));
+        container.setData(
+            'residentStatuses',
+            residents.map(resident => {
+                const location = routineByResident.get(resident.id)?.location;
+                return location === 'work'
+                    ? 'helping'
+                    : location === 'commons'
+                        ? 'at_heart'
+                        : 'home';
+            })
+        );
+        container.setData('residentFigureCount', homeResidentCount);
+        container.setData('homeTetherCount', workingResidentCount);
+        container.setData('commonsTetherCount', commonsResidentCount);
+        container.setData('capacity', capacity);
+        container.setData('presentCount', homeResidentCount);
+        container.setData('commonsCount', commonsResidentCount);
+        container.setData('helpingCount', workingResidentCount);
+        container.setData('residentPresenceModel', 'single_world_location_v1');
+        container.setData(
+            'ariaLabel',
+            residents.length > 0
+                ? `Shared Habitat. ${homeResidentCount} resting, ${commonsResidentCount} at the Heart, ` +
+                    `${workingResidentCount} helping. ` +
+                    residents.map(resident => {
+                        const location = routineByResident.get(resident.id)?.location;
+                        return location === 'work'
+                            ? `${resident.name} is helping at ${resident.workLabel || 'the settlement'}`
+                            : location === 'commons'
+                                ? `${resident.name} is visiting the Village Heart`
+                                : `${resident.name} is resting at home`;
+                    }).join('. ')
+                : `Shared Habitat. ${capacity} places ready for rescued friends.`
+        );
+        const pulseTween = this.scene.tweens.add({
+            targets: container,
+            alpha: { from: 0.82, to: 1 },
+            scaleX: { from: 0.985, to: 1.015 },
+            scaleY: { from: 0.985, to: 1.015 },
+            duration: 1700,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        return { container, pulseTween };
+    }
+
+    createVillageResidentJourneys(snapshot, landmark, { compact = false } = {}) {
+        const routines = (snapshot?.residentRoutines || []).filter(
+            routine => routine.location === 'commons'
+        );
+        const homePosition = landmark?.plotWorldPositions?.get(snapshot?.home?.plotId);
+        const heartX = landmark?.zone?.x;
+        const heartY = landmark?.zone?.y;
+        const seats = landmark?.commonsSeatPositions || [];
+        if (
+            routines.length === 0 ||
+            !homePosition ||
+            !Number.isFinite(heartX) ||
+            !Number.isFinite(heartY)
+        ) {
+            return { elements: [], tweens: [] };
+        }
+
+        const elements = [];
+        const tweens = [];
+        routines.forEach((routine, index) => {
+            const seat = seats[index] || { x: 0, y: compact ? 57 : 72 };
+            const start = {
+                x: homePosition.x + ((index % 2 === 0 ? -1 : 1) * (compact ? 22 : 30)),
+                y: homePosition.y + (compact ? 30 : 38)
+            };
+            const end = {
+                x: heartX + seat.x,
+                y: heartY + seat.y
+            };
+            const control = {
+                x: (start.x + end.x) / 2 + (index % 2 === 0 ? -22 : 22),
+                y: Math.min(start.y, end.y) - (compact ? 42 : 58)
+            };
+            const route = this.scene.add.graphics()
+                .setDepth(-14)
+                .setAlpha(0.28)
+                .setData('villageResidentJourneyRoute', true)
+                .setData('residentId', routine.residentId)
+                .setData('routeType', routine.route)
+                .setData('villageVisibilityBaseAlpha', 0.28)
+                .setData('villagePresenceModel', 'single_world_location_v1');
+            const points = Array.from({ length: 17 }, (_, pointIndex) => {
+                const progress = pointIndex / 16;
+                const inverse = 1 - progress;
+                return {
+                    x: (inverse * inverse * start.x) +
+                        (2 * inverse * progress * control.x) +
+                        (progress * progress * end.x),
+                    y: (inverse * inverse * start.y) +
+                        (2 * inverse * progress * control.y) +
+                        (progress * progress * end.y)
+                };
+            });
+            route.lineStyle(1, 0x8FE3CF, 0.46);
+            points.slice(1).forEach((point, pointIndex) => {
+                if (pointIndex % 2 !== 0) return;
+                const previous = points[pointIndex];
+                route.lineBetween(previous.x, previous.y, point.x, point.y);
+            });
+            route.fillStyle(0xF4F4F4, 0.64);
+            [4, 8, 12].forEach(pointIndex => {
+                route.fillCircle(points[pointIndex].x, points[pointIndex].y, 1.4);
+            });
+
+            const figure = this.scene.add.container(start.x, start.y)
+                .setDepth(start.y + 18)
+                .setAlpha(0.96)
+                .setData('villageResidentJourney', true)
+                .setData('villageCommonsResident', true)
+                .setData('residentId', routine.residentId)
+                .setData('residentName', routine.residentName)
+                .setData('residentRole', routine.residentRole || null)
+                .setData('residentCommunityType', routine.communityType || 'companion')
+                .setData('routine', routine.activity)
+                .setData('greeting', routine.greeting)
+                .setData('routeType', routine.route)
+                .setData('routeDirection', 'to_commons')
+                .setData('routinePhase', 'leaving_home')
+                .setData('destinationLabel', routine.destinationLabel)
+                .setData('villageVisibilityBaseAlpha', 0.96)
+                .setData('residentIdentityPresentation', 'proximity_nameplate_v1')
+                .setData('villagePresenceModel', 'single_world_location_v1')
+                .setData(
+                    'ariaLabel',
+                    `${routine.residentName} travels from the Shared Habitat to the Village Heart. ${routine.activity}.`
+                );
+            const color = Number(routine.accent || routine.color) || 0x8FE3CF;
+            const shadow = this.scene.add.ellipse(0, 12, compact ? 25 : 29, 8, 0x07100F, 0.62);
+            const body = this.createVillageWorkerFigure(routine, { accent: color });
+            body.setScale(compact ? 0.92 : 1.06);
+            const heartCue = this.scene.add.graphics().setPosition(0, compact ? -29 : -34);
+            heartCue.lineStyle(1, 0x8FE3CF, 0.84);
+            heartCue.strokeCircle(0, 0, compact ? 4 : 5);
+            heartCue.fillStyle(0xF4F4F4, 0.92);
+            heartCue.fillCircle(0, 0, 1.5);
+            const identity = this.scene.add.container(0, compact ? 27 : 31)
+                .setAlpha(0)
+                .setData('villageResidentJourneyIdentity', true);
+            const identityBackdrop = this.scene.add.rectangle(
+                0,
+                0,
+                compact ? 104 : 118,
+                compact ? 27 : 29,
+                0x061513,
+                0.9
+            ).setStrokeStyle(1, color, 0.76);
+            const identityCopy = this.scene.add.text(
+                0,
+                0,
+                routine.residentRole
+                    ? `${routine.residentName.toUpperCase()} · ${routine.residentRole.toUpperCase()}`
+                    : routine.residentName.toUpperCase(),
+                {
+                    fontSize: compact ? '8px' : '9px',
+                    fontFamily: 'Arial, sans-serif',
+                    fontStyle: 'bold',
+                    color: '#F4F4F4',
+                    align: 'center',
+                    wordWrap: { width: compact ? 96 : 110, useAdvancedWrap: true }
+                }
+            ).setOrigin(0.5);
+            identity.add([identityBackdrop, identityCopy]);
+            figure.add([shadow, body, heartCue, identity]);
+            figure
+                .setData('residentIdentityElement', identity)
+                .setData('residentVisualProfile', body.getData('villageWorkerVisualProfile'));
+
+            const travel = { progress: 0 };
+            const updatePosition = () => {
+                const progress = Phaser.Math.Clamp(travel.progress, 0, 1);
+                const inverse = 1 - progress;
+                const x = (inverse * inverse * start.x) +
+                    (2 * inverse * progress * control.x) +
+                    (progress * progress * end.x);
+                const y = (inverse * inverse * start.y) +
+                    (2 * inverse * progress * control.y) +
+                    (progress * progress * end.y);
+                figure.setPosition(x, y).setDepth(y + 18);
+                figure
+                    .setData('routeProgress', progress)
+                    .setData(
+                        'routinePhase',
+                        progress >= 0.82
+                            ? 'heart_check_in'
+                            : progress <= 0.18
+                                ? 'home_threshold'
+                                : 'crossing'
+                    );
+            };
+            updatePosition();
+            const travelTween = this.scene.tweens.add({
+                targets: travel,
+                progress: 1,
+                duration: 5600 + (index * 420),
+                delay: 700 + (index * 520),
+                hold: 3200,
+                repeatDelay: 2200,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut',
+                onUpdate: updatePosition,
+                onYoyo: () => figure.setData('routeDirection', 'to_home'),
+                onRepeat: () => figure.setData('routeDirection', 'to_commons')
+            });
+            const breatheTween = this.scene.tweens.add({
+                targets: figure,
+                scaleX: { from: 0.96, to: 1.04 },
+                scaleY: { from: 0.98, to: 1.03 },
+                duration: 1300 + (index * 170),
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+            elements.push(route, figure);
+            tweens.push(travelTween, breatheTween);
+        });
+        return { elements, tweens };
+    }
+
+    playVillageResidentGreeting(landmark, journey) {
+        const residentName = journey?.getData?.('residentName');
+        const line = journey?.getData?.('greeting');
+        if (!landmark || !journey?.active || !residentName || !line) return false;
+        this.clearVillageResidentGreeting(landmark);
+
+        const compact = this.scene.scale.width <= 600;
+        const width = compact ? 304 : 336;
+        const height = compact ? 128 : 124;
+        const bodyFontSize = compact ? 16 : 15;
+        const verticalOffset = compact ? 116 : 120;
+        const bubble = this.scene.add.container(journey.x, journey.y - verticalOffset)
+            .setDepth(6000)
+            .setAlpha(0)
+            .setData('villageResidentGreeting', true)
+            .setData('residentId', journey.getData('residentId'))
+            .setData('targetResidentId', journey.getData('residentId'))
+            .setData('residentName', residentName)
+            .setData('line', line)
+            .setData('presentation', 'resident_attached_current_ribbon_v2')
+            .setData('independentWorldLayer', true)
+            .setData('contrastProfile', 'high_contrast_current_v2')
+            .setData('backdropOpacity', 0.97)
+            .setData('readableWidth', width)
+            .setData('bodyFontSize', bodyFontSize)
+            .setData(
+                'ariaLabel',
+                `${residentName} says: ${line}`
+            );
+        const backdrop = this.createVillageResonanceBackdrop({
+            width,
+            height,
+            accent: 0x8FE3CF,
+            kind: 'resident_greeting'
+        });
+        const pointer = this.scene.add.graphics();
+        const divider = this.scene.add.graphics();
+        divider.lineStyle(1, 0x8FE3CF, 0.5);
+        divider.lineBetween(-width / 2 + 18, -height / 2 + 37, width / 2 - 18, -height / 2 + 37);
+        const identity = this.scene.add.text(
+            0,
+            -height / 2 + 19,
+            `${residentName.toUpperCase()} · AT HEART`,
+            {
+                fontSize: compact ? '13px' : '12px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#8FE3CF',
+                stroke: '#061513',
+                strokeThickness: 3
+            }
+        ).setOrigin(0.5);
+        const copy = this.scene.add.text(
+            0,
+            10,
+            `"${line}"`,
+            {
+                fontSize: `${bodyFontSize}px`,
+                fontFamily: 'Arial, sans-serif',
+                color: '#F4F4F4',
+                align: 'center',
+                stroke: '#020807',
+                strokeThickness: 5,
+                lineSpacing: compact ? 3 : 4,
+                wordWrap: { width: width - 34, useAdvancedWrap: true }
+            }
+        ).setOrigin(0.5);
+        bubble.add([backdrop, pointer, divider, identity, copy]);
+        const syncGreeting = () => {
+            if (!bubble.active || !journey.active) return;
+            const camera = this.scene.cameras?.main;
+            const zoom = Math.max(0.1, camera?.zoom || 1);
+            const screenSpaceScale = 1 / zoom;
+            const margin = 10 / zoom;
+            const halfWidth = (width * screenSpaceScale) / 2;
+            const halfHeight = (height * screenSpaceScale) / 2;
+            const minX = (camera?.worldView?.x ?? journey.x - halfWidth) + halfWidth + margin;
+            const maxX = (camera?.worldView?.right ?? journey.x + halfWidth) - halfWidth - margin;
+            const minY = (camera?.worldView?.y ?? journey.y - verticalOffset) + halfHeight + margin;
+            const maxY = (camera?.worldView?.bottom ?? journey.y) - halfHeight - margin;
+            const x = minX <= maxX
+                ? Phaser.Math.Clamp(journey.x, minX, maxX)
+                : journey.x;
+            const y = minY <= maxY
+                ? Phaser.Math.Clamp(journey.y - verticalOffset, minY, maxY)
+                : journey.y - verticalOffset;
+            const pointerX = Phaser.Math.Clamp(
+                (journey.x - x) / screenSpaceScale,
+                -width / 2 + 20,
+                width / 2 - 20
+            );
+            bubble
+                .setPosition(x, y)
+                .setScale(screenSpaceScale)
+                .setData('screenSpaceScale', screenSpaceScale)
+                .setData('effectiveScreenWidth', width)
+                .setData('effectiveBodyFontSize', bodyFontSize);
+            pointer.clear();
+            pointer.fillStyle(0x061513, 0.97);
+            pointer.fillTriangle(
+                pointerX - 8,
+                height / 2 - 1,
+                pointerX + 8,
+                height / 2 - 1,
+                pointerX,
+                height / 2 + 11
+            );
+            pointer.lineStyle(1, 0x8FE3CF, 0.94);
+            pointer.lineBetween(pointerX - 8, height / 2 - 1, pointerX, height / 2 + 11);
+            pointer.lineBetween(pointerX + 8, height / 2 - 1, pointerX, height / 2 + 11);
+            bubble
+                .setData('residentAnchorDeltaX', x - journey.x)
+                .setData('residentAnchorDeltaY', y - journey.y)
+                .setData('viewportClamped', x !== journey.x || y !== journey.y - verticalOffset);
+        };
+        syncGreeting();
+        this.scene.events.on('postupdate', syncGreeting);
+        landmark.residentGreetingSync = syncGreeting;
+        landmark.activeResidentGreetingJourney = journey;
+        journey.setData('greetingActive', true);
+        landmark.activeResidentGreeting = bubble;
+        landmark.residentGreetingTween = this.scene.tweens.add({
+            targets: bubble,
+            alpha: 1,
+            duration: 240,
+            ease: 'Sine.easeOut'
+        });
+        landmark.residentGreetingTimer = this.scene.time.delayedCall(4600, () => {
+            if (landmark.activeResidentGreeting !== bubble) return;
+            landmark.residentGreetingTween = this.scene.tweens.add({
+                targets: bubble,
+                alpha: 0,
+                duration: 260,
+                onComplete: () => this.clearVillageResidentGreeting(landmark)
+            });
+        });
+        return true;
+    }
+
+    clearVillageResidentGreeting(landmark) {
+        landmark?.residentGreetingTimer?.remove?.();
+        landmark?.residentGreetingTween?.stop?.();
+        if (landmark?.residentGreetingSync) {
+            this.scene.events.off('postupdate', landmark.residentGreetingSync);
+        }
+        const greeting = landmark?.activeResidentGreeting;
+        landmark?.activeResidentGreetingJourney?.setData?.('greetingActive', false);
+        greeting?.destroy?.(true);
+        if (!landmark) return;
+        landmark.residentGreetingTimer = null;
+        landmark.residentGreetingTween = null;
+        landmark.residentGreetingSync = null;
+        landmark.activeResidentGreetingJourney = null;
+        landmark.activeResidentGreeting = null;
+    }
+
+    createVillageFlowSignal({
+        building,
+        definition,
+        unlocked = false,
+        guided = false,
+        state = 'available',
+        index = 0,
+        heartPosition,
+        plotPosition
+    } = {}) {
+        const isDelivery = Boolean(
+            building?.status === 'complete' &&
+            building.creature &&
+            definition?.production
+        );
+        const isConstruction = building?.status === 'constructing' || state === 'constructing';
+        const isGuidance = Boolean(guided && !building);
+        const flowVisible = isConstruction || isGuidance;
+        const ambientRole = isConstruction
+            ? 'construction_current'
+            : isGuidance
+                ? 'guided_foundation'
+                : isDelivery
+                    ? 'worker_represents_delivery'
+                    : 'quiet_background';
+        const resource = isDelivery ? definition.production.resource : null;
+        const signalColors = {
+            food: 0xF2C14E,
+            wood: 0xC58A52,
+            stone: 0xD8E2DF
+        };
+        const color = resource
+            ? signalColors[resource] || 0x71E6B1
+            : unlocked
+                ? 0x71E6B1
+                : 0x657682;
+        const start = isDelivery ? plotPosition : heartPosition;
+        const end = isDelivery ? heartPosition : plotPosition;
+        const control = {
+            x: (start.x + end.x) / 2 + (index % 2 === 0 ? -16 : 16),
+            y: (start.y + end.y) / 2 - 24
+        };
+        const container = this.scene.add.container(start.x, start.y)
+            .setDepth(Math.min(heartPosition.y, plotPosition.y) - 1)
+            .setVisible(flowVisible)
+            .setActive(flowVisible);
+        const halo = this.scene.add.circle(
+            0,
+            0,
+            isDelivery ? 7 : 5,
+            color,
+            isDelivery ? 0.22 : unlocked ? 0.16 : 0.08
+        );
+        const core = this.scene.add.circle(
+            0,
+            0,
+            isDelivery ? 3.5 : 2.5,
+            color,
+            isDelivery ? 0.98 : unlocked ? 0.82 : 0.24
+        );
+        core.setStrokeStyle?.(1, isDelivery ? 0xF4F4F4 : 0x071411, 0.78);
+        container.add([halo, core]);
+        if (isDelivery) {
+            const cargo = this.createVillageWorkerCargo(resource);
+            cargo.setScale(0.58);
+            container.add(cargo);
+        }
+        container.setBlendMode?.(Phaser.BlendModes.ADD);
+        container
+            .setData('villageFlowSignal', true)
+            .setData('direction', isDelivery ? 'to_heart' : 'to_plot')
+            .setData('resource', resource)
+            .setData('helperName', building?.creature?.name || null)
+            .setData('buildingId', building?.definitionId || null)
+            .setData('worldEffectLabel', definition?.worldEffectLabel || null)
+            .setData('villageFlowVisible', flowVisible)
+            .setData('villageAmbientRole', ambientRole)
+            .setData(
+                'ariaLabel',
+                isConstruction
+                    ? `${definition?.label || 'The new structure'} draws construction Current from the Village Heart.`
+                    : isGuidance
+                        ? 'The Current marks the one foundation ready for the next build.'
+                        : isDelivery
+                            ? `${building.creature.name} visibly carries ${resource} to the Village Heart. ${definition.worldEffectLabel}.`
+                            : 'This open foundation stays quiet until the settlement chooses it.'
+            );
+
+        const travel = { progress: 0 };
+        const updatePosition = () => {
+            const progress = Phaser.Math.Clamp(travel.progress, 0, 1);
+            const inverse = 1 - progress;
+            container.setPosition(
+                (inverse * inverse * start.x) +
+                    (2 * inverse * progress * control.x) +
+                    (progress * progress * end.x),
+                (inverse * inverse * start.y) +
+                    (2 * inverse * progress * control.y) +
+                    (progress * progress * end.y)
+            );
+            container.setAlpha((
+                (isDelivery ? 0.38 : unlocked ? 0.16 : 0.08) +
+                Math.sin(progress * Math.PI) * (isDelivery ? 0.62 : unlocked ? 0.72 : 0.12)
+            ) * (Number(container.getData('villageFocusAlphaMultiplier')) || 1));
+        };
+        const tween = this.scene.tweens.add({
+            targets: travel,
+            progress: 1,
+            duration: 2400 + index * 240,
+            delay: index * 180,
+            paused: !flowVisible,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+            onUpdate: updatePosition,
+            onRepeat: () => {
+                travel.progress = 0;
+                updatePosition();
+            }
+        });
+        return { container, tween };
+    }
+
+    createVillageWorkerFigure(creature, { accent = 0x71E6B1 } = {}) {
+        const figure = this.scene.add.graphics();
+        const kind = creature?.communityType === 'rescued_resident'
+            ? String(creature.kind || 'resident').toLowerCase()
+            : 'companion';
+
+        if (kind === 'bloom') {
+            figure.fillStyle(0xE7A3C7, 1);
+            figure.fillEllipse(0, 7, 18, 24);
+            [-8, -4, 0, 4, 8].forEach((x, index) => {
+                figure.fillStyle(index % 2 === 0 ? 0x71E6B1 : 0x3FAE62, 0.98);
+                figure.fillEllipse(x, -5 - (index % 2) * 2, 8, 6);
+            });
+            figure.fillStyle(0xF4F4F4, 1);
+            figure.fillCircle(-4, -6, 4.5);
+            figure.fillCircle(4, -6, 4.5);
+            figure.fillStyle(0x07100F, 1);
+            figure.fillCircle(-3, -6, 1.8);
+            figure.fillCircle(5, -6, 1.8);
+            figure.lineStyle(1, 0xE7A3C7, 0.95);
+            figure.lineBetween(-8, -5, -14, -8);
+            figure.lineBetween(8, -5, 14, -8);
+        } else if (kind === 'pebble') {
+            figure.fillStyle(0xB98A68, 1);
+            figure.fillEllipse(0, 6, 25, 21);
+            figure.fillStyle(0xD8E2DF, 0.9);
+            figure.fillTriangle(-7, -4, -1, -14, 3, -3);
+            figure.fillStyle(0x8FE3CF, 0.92);
+            figure.fillTriangle(3, -2, 9, -11, 12, 0);
+            figure.fillStyle(0xF4F4F4, 1);
+            figure.fillCircle(-5, 3, 3.2);
+            figure.fillCircle(5, 3, 3.2);
+            figure.fillStyle(0x07100F, 1);
+            figure.fillCircle(-4, 3, 1.4);
+            figure.fillCircle(6, 3, 1.4);
+        } else if (kind === 'zephyr') {
+            figure.fillStyle(0xE98843, 1);
+            figure.fillEllipse(0, 4, 15, 24);
+            figure.fillStyle(0x8FE3CF, 0.78);
+            figure.fillTriangle(-5, 0, -18, -10, -14, 9);
+            figure.fillTriangle(5, 0, 18, -10, 14, 9);
+            figure.fillStyle(0xF4F4F4, 1);
+            figure.fillCircle(-3, -5, 3.4);
+            figure.fillCircle(3, -5, 3.4);
+            figure.fillStyle(0x07100F, 1);
+            figure.fillCircle(-2, -5, 1.4);
+            figure.fillCircle(4, -5, 1.4);
+        } else if (kind === 'wisp') {
+            figure.fillStyle(0x8C77C8, 0.98);
+            figure.fillCircle(0, -5, 9);
+            figure.fillTriangle(-8, 0, -3, 20, 1, 6);
+            figure.fillTriangle(0, 3, 5, 19, 8, -1);
+            figure.fillStyle(0xF2C14E, 0.92);
+            figure.fillCircle(0, 5, 3);
+            figure.fillStyle(0xF4F4F4, 1);
+            figure.fillCircle(-3, -7, 2.7);
+            figure.fillCircle(3, -7, 2.7);
+        } else if (kind === 'luna') {
+            figure.fillStyle(0x53A6D8, 1);
+            figure.fillEllipse(0, 5, 16, 25);
+            figure.fillStyle(0xF4D35E, 0.84);
+            figure.fillTriangle(-5, 0, -16, 5, -7, 11);
+            figure.fillTriangle(5, 0, 16, 5, 7, 11);
+            figure.lineStyle(2, 0x8FE3CF, 0.9);
+            figure.lineBetween(-4, -8, -8, -16);
+            figure.lineBetween(4, -8, 8, -16);
+            figure.fillStyle(0xF4F4F4, 1);
+            figure.fillCircle(-3, -5, 3.3);
+            figure.fillCircle(3, -5, 3.3);
+        } else if (kind === 'nova') {
+            figure.fillStyle(0x8FE3CF, 1);
+            figure.fillCircle(0, 1, 10);
+            figure.fillTriangle(0, -17, -5, -6, 5, -6);
+            figure.fillTriangle(0, 19, -5, 7, 5, 7);
+            figure.fillTriangle(-17, 1, -6, -4, -6, 6);
+            figure.fillTriangle(17, 1, 6, -4, 6, 6);
+            figure.fillStyle(0xF2C14E, 0.92);
+            figure.fillCircle(0, 1, 4);
+            figure.fillStyle(0x07100F, 1);
+            figure.fillCircle(-3, -2, 1.4);
+            figure.fillCircle(3, -2, 1.4);
+        } else {
+            figure.fillStyle(accent, 0.98);
+            figure.fillCircle(0, -4, 8);
+            figure.fillEllipse(0, 8, 16, 20);
+            figure.fillStyle(0xF4F4F4, 0.98);
+            figure.fillCircle(-3, -5, 2);
+            figure.fillCircle(3, -5, 2);
+            figure.lineStyle(2, 0x101616, 0.9);
+            figure.lineBetween(-6, -11, -10, -18);
+            figure.lineBetween(6, -11, 10, -18);
+        }
+        figure
+            .setData('villageWorkerVisualProfile', `${kind}_worker_v1`)
+            .setData(
+                'villageWorkerCommunityType',
+                creature?.communityType || 'companion'
+            );
+        return figure;
+    }
+
+    createVillageWorker(building, {
+        compact = false,
+        index = 0,
+        landmark = null,
+        inhabitedDistrict = null,
+        plotPosition,
+        heartPosition
+    } = {}) {
+        const deliverySourceId = building.id || `${building.plotId}:${building.definitionId}`;
+        const routeStart = {
+            x: (plotPosition?.x || 0) + (compact ? -28 : -42),
+            y: (plotPosition?.y || 0) + (compact ? 27 : 33)
+        };
+        const routeEnd = {
+            x: (heartPosition?.x || 0) + ((index - 1) * (compact ? 52 : 64)),
+            y: (heartPosition?.y || 0) + (compact ? 82 : 92) + ((index % 2) * 8)
+        };
+        const routeControl = {
+            x: (routeStart.x + routeEnd.x) / 2 + (index % 2 === 0 ? -22 : 22),
+            y: Math.min(routeStart.y, routeEnd.y) - (compact ? 46 : 58)
+        };
+        const worker = this.scene.add.container(routeStart.x, routeStart.y)
+            .setDepth(routeStart.y + 18);
+        const accentByAffinity = {
+            star: 0xF2C14E,
+            crystal: 0x8FE3CF,
+            nebula: 0x71E6B1
+        };
+        const affinity = String(
+            building.creature?.cosmicAffinity?.element ||
+            building.creature?.cosmicAffinity ||
+            building.creature?.genes?.cosmicAffinity?.element ||
+            'nebula'
+        ).toLowerCase();
+        const accent = accentByAffinity[affinity] || 0x71E6B1;
+        const scale = compact ? 0.78 : 1;
+        const shadow = this.scene.add.ellipse(0, 16, 29, 8, 0x07100F, 0.58);
+        const figure = this.createVillageWorkerFigure(
+            building.creature,
+            { accent }
+        );
+        const isRescuedResident = building.creature?.communityType ===
+            'rescued_resident';
+        const initial = isRescuedResident
+            ? null
+            : this.scene.add.text(
+                0,
+                7,
+                String(building.creature.name || 'C').slice(0, 1).toUpperCase(),
+                {
+                    fontSize: '7px',
+                    fontFamily: 'Arial, sans-serif',
+                    fontStyle: 'bold',
+                    color: '#07100F'
+                }
+            ).setOrigin(0.5);
+        const residentIdentity = this.scene.add.text(
+            0,
+            29,
+            isRescuedResident
+                ? String(building.creature.name || 'RESIDENT').toUpperCase()
+                : '',
+            {
+                fontSize: compact ? '8px' : '9px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F4F4F4',
+                stroke: '#07100F',
+                strokeThickness: 3
+            }
+        ).setOrigin(0.5);
+        const cargo = this.createVillageWorkerCargo(
+            building.definition.workerRoutine?.carriedResource
+        );
+        cargo.setPosition(13, 5);
+        const deliveryPulse = this.scene.add.graphics().setAlpha(0);
+        deliveryPulse.lineStyle(2, accent, 0.86);
+        deliveryPulse.strokeCircle(0, 10, 17);
+        deliveryPulse.lineStyle(1, 0xF4F4F4, 0.72);
+        deliveryPulse.strokeCircle(0, 10, 10);
+        deliveryPulse
+            .setData('villageDeliveryPulse', true)
+            .setData('resource', building.definition.workerRoutine?.carriedResource || null);
+        const routeStatus = this.scene.add.text(0, -48, '', {
+            fontSize: compact ? '10px' : '9px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#C9F7E9',
+            stroke: '#07100F',
+            strokeThickness: 4,
+            align: 'center'
+        }).setOrigin(0.5).setAlpha(0);
+        routeStatus.setData('villageWorkerRouteStatus', true);
+        const checkInCue = this.scene.add.graphics();
+        checkInCue.fillStyle(0x061513, 0.9);
+        checkInCue.fillCircle(0, -29, 10);
+        checkInCue.lineStyle(2, 0x71E6B1, 0.86);
+        checkInCue.strokeCircle(0, -29, 9);
+        checkInCue.lineStyle(1, 0xF4F4F4, 0.64);
+        checkInCue.strokeCircle(0, -29, 5.5);
+        checkInCue.fillStyle(0xF4F4F4, 0.95);
+        [-4, 0, 4].forEach(dotX => checkInCue.fillCircle(dotX, -29, 1.25));
+        checkInCue.fillStyle(0xE85D5D, 0.9);
+        checkInCue.fillTriangle(7, -37, 12, -34, 8, -31);
+        checkInCue.setData('villageResonanceCue', true);
+        worker.add([
+            shadow,
+            deliveryPulse,
+            figure,
+            ...(!isRescuedResident ? [initial] : []),
+            cargo,
+            routeStatus,
+            checkInCue,
+            residentIdentity
+        ]);
+        worker.setScale(scale);
+        worker.setData('villageWorker', true);
+        worker.setData('helperName', building.creature.name);
+        worker.setData('creatureId', building.creature.id);
+        worker.setData(
+            'communityType',
+            building.creature.communityType || 'companion'
+        );
+        worker.setData('residentRole', building.creature.role || null);
+        worker.setData(
+            'workerVisualProfile',
+            figure.getData?.('villageWorkerVisualProfile') || 'companion_worker_v1'
+        );
+        worker.setData('residentIdentityVisible', isRescuedResident);
+        worker.setData('buildingId', building.definitionId);
+        worker.setData('plotId', building.plotId);
+        worker.setData('routineCue', building.definition.workerRoutine?.cue || 'HELPING');
+        worker.setData('checkInCue', true);
+        worker.setData('checkInCueStyle', 'current_resonance');
+        worker.setData('routeType', 'building_to_heart');
+        worker.setData(
+            'carriedResource',
+            building.definition.workerRoutine?.carriedResource || null
+        );
+        worker.setData('routeProgress', 0);
+        worker.setData('routePhase', 'working');
+        worker.setData('routeDirection', 'to_heart');
+        worker.setData('deliverySourceId', deliverySourceId);
+        worker.setData('cargoVisible', true);
+        worker.setData('deliveryFeedback', false);
+        worker.setData('visibleRoutineCue', building.definition.workerRoutine?.cue || 'HELPING');
+        worker.setData('worldEffectLabel', building.definition.worldEffectLabel);
+        worker.setData(
+            'ariaLabel',
+            `${building.creature.name} carries ` +
+                `${building.definition.workerRoutine?.carriedResource || 'supplies'} ` +
+                `between ${building.definition.label} and the Village Heart. ` +
+                `${building.definition.worldEffectLabel}.`
+        );
+        worker.setSize(compact ? 42 : 48, compact ? 54 : 62);
+        worker.setInteractive({ useHandCursor: true });
+
+        const travel = { progress: 0 };
+        let previousX = routeStart.x;
+        let previousProgress = 0;
+        let routeDirection = 'to_heart';
+        let deliveryActive = false;
+        let previousOperationalState = 'working';
+        const worldRoutineCue = {
+            forager_hut: 'FORAGING',
+            sawmill: 'SHAPING',
+            current_masonry: 'LISTENING'
+        }[building.definitionId] || 'HELPING';
+        worker.setData('visibleRoutineCue', worldRoutineCue);
+        const effectCue = String(building.definition.worldEffectLabel || 'SUPPLIES DELIVERED')
+            .split('·')
+            .pop()
+            .trim();
+        const updateRoute = () => {
+            const progress = Phaser.Math.Clamp(travel.progress, 0, 1);
+            if (progress > previousProgress + 0.001) {
+                routeDirection = 'to_heart';
+            } else if (progress < previousProgress - 0.001) {
+                routeDirection = 'to_building';
+            }
+            const inverse = 1 - progress;
+            const x = (inverse * inverse * routeStart.x) +
+                (2 * inverse * progress * routeControl.x) +
+                (progress * progress * routeEnd.x);
+            const y = (inverse * inverse * routeStart.y) +
+                (2 * inverse * progress * routeControl.y) +
+                (progress * progress * routeEnd.y);
+            worker.setPosition(x, y);
+            worker.setDepth(y + 18);
+            figure.setScale(Math.abs(figure.scaleX) * (x < previousX ? -1 : 1), figure.scaleY);
+            previousX = x;
+            previousProgress = progress;
+            const working = progress < 0.12;
+            const delivering = routeDirection === 'to_heart' && progress > 0.82;
+            const returning = routeDirection === 'to_building' && !working;
+            const carrying = routeDirection === 'to_heart' && !delivering;
+            cargo.setAlpha(carrying ? 1 : 0.12);
+            cargo.setScale(carrying ? 1 : 0.72);
+            deliveryPulse
+                .setAlpha(delivering ? 0.82 : 0)
+                .setScale(delivering ? 0.72 + ((progress - 0.82) * 2.2) : 0.72);
+            const statusCopy = working
+                ? worldRoutineCue
+                : delivering
+                    ? effectCue
+                    : '';
+            const operationalState = working
+                ? 'working'
+                : delivering
+                    ? 'delivery_complete'
+                    : returning
+                        ? 'returning'
+                        : 'outbound';
+            routeStatus
+                .setText(statusCopy)
+                .setAlpha(statusCopy ? 0.92 : 0)
+                .setColor(delivering ? '#F2C14E' : '#C9F7E9');
+            checkInCue.setAlpha(working ? 0.92 : delivering ? 0.46 : 0.28);
+            worker.setData('routeProgress', Number(progress.toFixed(3)));
+            worker.setData(
+                'routePhase',
+                working
+                    ? 'working'
+                    : delivering
+                        ? 'delivering'
+                        : returning
+                            ? 'returning'
+                            : 'travelling'
+            );
+            worker.setData('routeDirection', routeDirection);
+            worker.setData('cargoVisible', carrying);
+            worker.setData('deliveryFeedback', delivering);
+            worker.setData('visibleRoutineCue', statusCopy || null);
+            if (operationalState !== previousOperationalState) {
+                this.setVillageDistrictOperationalState(
+                    inhabitedDistrict,
+                    operationalState,
+                    { delivered: operationalState === 'delivery_complete' }
+                );
+                previousOperationalState = operationalState;
+            }
+            if (delivering !== deliveryActive) {
+                deliveryActive = delivering;
+                this.setVillageHeartDeliveryState(
+                    landmark,
+                    deliverySourceId,
+                    delivering,
+                    building.definition.worldEffectLabel,
+                    building.definition.workerRoutine?.carriedResource
+                );
+            }
+        };
+        const moveTween = this.scene.tweens.add({
+            targets: travel,
+            progress: 1,
+            duration: 4300 + (index * 360),
+            delay: 700 + (index * 940),
+            hold: 1500,
+            repeatDelay: 900,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+            onUpdate: updateRoute,
+            onRepeat: () => {
+                travel.progress = 0;
+                updateRoute();
+            }
+        });
+        const breatheTween = this.scene.tweens.add({
+            targets: figure,
+            scaleY: { from: 0.96, to: 1.04 },
+            duration: 760 + (index * 90),
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        const cueTween = this.scene.tweens.add({
+            targets: checkInCue,
+            scaleX: { from: 0.92, to: 1.06 },
+            scaleY: { from: 0.92, to: 1.06 },
+            duration: 980 + (index * 110),
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        return { container: worker, moveTween, breatheTween, cueTween };
+    }
+
+    createVillageWorkerCargo(resource) {
+        const cargo = this.scene.add.graphics();
+        if (resource === 'food') {
+            cargo.fillStyle(0xF2C14E, 1);
+            cargo.fillCircle(0, 0, 5);
+            cargo.lineStyle(2, 0x3FAE62, 1);
+            cargo.lineBetween(0, -4, 4, -9);
+        } else if (resource === 'wood') {
+            cargo.fillStyle(0x6E4D2E, 1);
+            cargo.fillRoundedRect(-7, -3, 14, 7, 3);
+            cargo.lineStyle(1, 0xF2C14E, 0.9);
+            cargo.lineBetween(-3, -2, -3, 3);
+            cargo.lineBetween(3, -2, 3, 3);
+        } else if (resource === 'stone') {
+            cargo.fillStyle(0xB7C8C4, 1);
+            cargo.fillTriangle(0, -7, -7, 5, 7, 5);
+        } else {
+            cargo.fillStyle(0x71E6B1, 1);
+            cargo.fillTriangle(0, -8, -6, 1, 0, 8);
+            cargo.fillTriangle(0, -8, 6, 1, 0, 8);
+        }
+        return cargo;
+    }
+
+    createVillageResonanceBackdrop({
+        width,
+        height,
+        accent = 0x71E6B1,
+        kind = 'current_message',
+        y = 0
+    } = {}) {
+        const backdrop = this.scene.add.graphics().setPosition(0, y);
+        const left = -width / 2;
+        const top = -height / 2;
+        const currentRibbon = (
+            kind === 'sanctuary_cycle_return' ||
+            kind === 'resident_greeting'
+        );
+        if (currentRibbon) {
+            backdrop.fillStyle(0x061513, kind === 'resident_greeting' ? 0.97 : 0.74);
+            backdrop.beginPath();
+            backdrop.moveTo(left + 24, top);
+            backdrop.lineTo(left + width - 14, top);
+            backdrop.lineTo(left + width, top + 13);
+            backdrop.lineTo(left + width - 8, top + height - 11);
+            backdrop.lineTo(left + width - 38, top + height);
+            backdrop.lineTo(left + 15, top + height);
+            backdrop.lineTo(left, top + height - 17);
+            backdrop.lineTo(left + 8, top + 13);
+            backdrop.closePath();
+            backdrop.fillPath();
+            backdrop.lineStyle(1, 0xF4F4F4, 0.14);
+            backdrop.lineBetween(left + 24, top, left + width - 62, top);
+            backdrop.lineBetween(
+                left + 44,
+                top + height,
+                left + width - 38,
+                top + height
+            );
+        } else {
+            backdrop.fillStyle(0x061513, 0.9);
+            backdrop.fillRoundedRect(left, top, width, height, 8);
+            backdrop.lineStyle(1, 0xF4F4F4, 0.18);
+            backdrop.strokeRoundedRect(left + 1, top + 1, width - 2, height - 2, 7);
+        }
+        backdrop.lineStyle(2, accent, 0.82);
+        backdrop.beginPath();
+        backdrop.moveTo(left + 12, top + 1);
+        backdrop.lineTo(left + Math.min(88, width * 0.28), top + 1);
+        backdrop.strokePath();
+        backdrop.lineStyle(1, accent, 0.46);
+        backdrop.beginPath();
+        backdrop.moveTo(left + 12, top + height - 1);
+        backdrop.lineTo(left + Math.min(52, width * 0.2), top + height - 1);
+        backdrop.strokePath();
+        backdrop.fillStyle(0xF4F4F4, 0.86);
+        [0, 7, 14].forEach(offset => backdrop.fillCircle(left + 15 + offset, top + 10, 1.3));
+        backdrop.fillStyle(0xE85D5D, 0.86);
+        backdrop.fillTriangle(
+            left + width - 20,
+            top + 1,
+            left + width - 10,
+            top + 1,
+            left + width - 10,
+            top + 7
+        );
+        backdrop.fillStyle(accent, 0.72);
+        backdrop.fillTriangle(-5, top + height, 5, top + height, 0, top + height + 7);
+        backdrop.setData('villageResonanceBackdrop', true);
+        backdrop.setData('resonanceKind', kind);
+        return backdrop;
+    }
+
+    playVillageProductionMoment(landmark, snapshot, gains = []) {
+        if (!landmark?.zone || !Array.isArray(gains) || gains.length === 0) {
+            return false;
+        }
+        const resourceColors = {
+            food: 0xF2C14E,
+            wood: 0x8FE3CF,
+            stone: 0xF4F4F4
+        };
+        landmark.productionMoments ||= [];
+        landmark.productionTweens ||= [];
+        gains.forEach((gain, index) => {
+            const source = snapshot?.buildings?.find(building => (
+                building.status === 'complete' &&
+                building.creature &&
+                building.definition.production?.resource === gain.id
+            ));
+            const position = landmark.plotWorldPositions?.get(source?.plotId);
+            if (!position) return;
+            const color = resourceColors[gain.id] || 0x71E6B1;
+            const moment = this.scene.add.container(position.x, position.y - 42)
+                .setDepth(position.y + 40);
+            const token = this.scene.add.circle(0, 0, 9, color, 0.98)
+                .setStrokeStyle(2, 0x07100F, 0.9);
+            const label = this.scene.add.text(0, -19, `+${gain.amount} ${gain.label}`, {
+                fontSize: '10px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F4F4F4',
+                stroke: '#07100F',
+                strokeThickness: 4
+            }).setOrigin(0.5);
+            moment.add([token, label]);
+            landmark.productionMoments.push(moment);
+            const tween = this.scene.tweens.add({
+                targets: moment,
+                x: landmark.zone.x + ((index - (gains.length - 1) / 2) * 18),
+                y: landmark.zone.y - 38,
+                scaleX: { from: 1, to: 0.62 },
+                scaleY: { from: 1, to: 0.62 },
+                alpha: { from: 1, to: 0.16 },
+                delay: index * 160,
+                duration: 1250,
+                ease: 'Sine.easeInOut',
+                onComplete: () => {
+                    moment.destroy(true);
+                    landmark.productionMoments = landmark.productionMoments.filter(
+                        entry => entry !== moment
+                    );
+                    landmark.productionTweens = landmark.productionTweens.filter(
+                        entry => entry !== tween
+                    );
+                }
+            });
+            landmark.productionTweens.push(tween);
+        });
+        return landmark.productionMoments.length > 0;
+    }
+
+    playVillageCycleReturnMoment(landmark, summary) {
+        if (!landmark?.zone || !summary?.title || !summary?.detail) return false;
+        this.clearVillageCommunityMoment(landmark);
+        this.clearVillageDecisionMoment(landmark);
+        this.clearVillageWorkerCheckIn(landmark);
+
+        const compact = this.scene.scale.width <= 600;
+        const touchControlsVisible = this.scene.hasVisibleTouchControls?.() === true;
+        const heart = { x: landmark.zone.x, y: landmark.zone.y - 12 };
+        const route = this.scene.add.graphics()
+            .setDepth(landmark.zone.y - 4)
+            .setAlpha(0);
+        const tokens = [];
+        const routeTweens = [];
+        summary.workerReturns.forEach((worker, index) => {
+            const source = landmark.plotWorldPositions?.get(worker.plotId);
+            if (!source) return;
+            const colors = { food: 0xF2C14E, wood: 0x71E6B1, stone: 0xF4F4F4 };
+            const color = colors[worker.id] || 0x71E6B1;
+            route.lineStyle(2, color, 0.52);
+            route.beginPath();
+            route.moveTo(source.x, source.y - 10);
+            route.lineTo(heart.x, heart.y);
+            route.strokePath();
+            const token = this.scene.add.circle(
+                source.x,
+                source.y - 10,
+                compact ? 5 : 6,
+                color,
+                0.98
+            )
+                .setStrokeStyle(1, 0x07100F, 0.9)
+                .setDepth(landmark.zone.y + 13)
+                .setData('villageReturnResource', worker.id)
+                .setData('villageReturnWorker', worker.name);
+            token.setBlendMode?.(Phaser.BlendModes.ADD);
+            tokens.push(token);
+            routeTweens.push(this.scene.tweens.add({
+                targets: token,
+                x: heart.x,
+                y: heart.y,
+                delay: 260 + index * 180,
+                duration: 1450,
+                ease: 'Sine.easeInOut'
+            }));
+        });
+        route.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const pulse = this.scene.add.graphics()
+            .setPosition(heart.x, heart.y)
+            .setDepth(landmark.zone.y + 12)
+            .setAlpha(0);
+        [28, 46, 66].forEach((radius, index) => {
+            pulse.lineStyle(index === 1 ? 2 : 1, index === 2 ? 0xF2C14E : 0x71E6B1, 0.82 - index * 0.16);
+            pulse.strokeEllipse(0, 0, radius * 2, radius * 1.16);
+        });
+        pulse.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const copyWidth = compact ? 330 : 420;
+        const copyHeight = compact ? 136 : 120;
+        const copy = this.scene.add.container(
+            heart.x + (compact ? 0 : 210),
+            touchControlsVisible
+                ? heart.y + (compact ? 170 : 120)
+                : heart.y - (compact ? 188 : 250)
+        ).setDepth(Math.max(landmark.zone.y + 18, 1800)).setAlpha(0);
+        const backdrop = this.createVillageResonanceBackdrop({
+            width: copyWidth,
+            height: copyHeight,
+            accent: 0x71E6B1,
+            kind: 'sanctuary_cycle_return'
+        });
+        const kicker = this.scene.add.text(0, -40, 'THE SANCTUARY KEPT MOVING', {
+            fontSize: compact ? '10px' : '9px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#8FE3CF',
+            stroke: '#07100F',
+            strokeThickness: 5
+        }).setOrigin(0.5);
+        const title = this.scene.add.text(0, -22, summary.title, {
+            fontSize: compact ? '14px' : '13px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#F4F4F4',
+            stroke: '#07100F',
+            strokeThickness: 5,
+            align: 'center',
+            wordWrap: { width: copyWidth - 30 }
+        }).setOrigin(0.5);
+        const detail = this.scene.add.text(0, 4, summary.detail, {
+            fontSize: compact ? '12px' : '10px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#DCE8E5',
+            stroke: '#07100F',
+            strokeThickness: 4,
+            align: 'center',
+            wordWrap: { width: copyWidth - 34 }
+        }).setOrigin(0.5);
+        const next = this.scene.add.text(
+            0,
+            37,
+            `NEXT  ·  ${summary.nextAction?.label || 'MEET AT THE VILLAGE HEART'}`,
+            {
+                fontSize: compact ? '10px' : '9px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F2C14E',
+                stroke: '#07100F',
+                strokeThickness: 4
+            }
+        ).setOrigin(0.5);
+        copy.add([backdrop, kicker, title, detail, next]);
+        copy
+            .setData('sanctuaryCycleReturn', summary.id)
+            .setData('returnActor', summary.actor)
+            .setData('returnGains', summary.gains)
+            .setData('returnNextAction', summary.nextAction)
+            .setData('worldLedRecap', true);
+
+        const revealTween = this.scene.tweens.add({
+            targets: [route, pulse, copy],
+            alpha: 1,
+            duration: 360,
+            ease: 'Sine.easeOut'
+        });
+        const pulseTween = this.scene.tweens.add({
+            targets: pulse,
+            scaleX: { from: 0.78, to: 1.12 },
+            scaleY: { from: 0.78, to: 1.12 },
+            duration: 1200,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Sine.easeInOut'
+        });
+        landmark.communityMomentElements = [route, pulse, copy, ...tokens];
+        landmark.communityMomentTweens = [revealTween, pulseTween, ...routeTweens];
+        landmark.activeCommunityMoment = copy;
+        this.scene.setSanctuaryMomentFocus?.(true, {
+            kind: 'cycle_return',
+            plotId: summary.nextAction?.plotId || null
+        });
+        landmark.communityMomentTimer = this.scene.time.delayedCall(5200, () => {
+            if (landmark.activeCommunityMoment !== copy) return;
+            const fadeTween = this.scene.tweens.add({
+                targets: [route, pulse, copy, ...tokens],
+                alpha: 0,
+                duration: 380,
+                onComplete: () => this.clearVillageCommunityMoment(landmark)
+            });
+            landmark.communityMomentTweens.push(fadeTween);
+        });
+        return true;
+    }
+
+    playVillageCommunityMoment(landmark, moment) {
+        if (!landmark?.zone || !moment?.participants?.length) return false;
+        const positions = moment.participants
+            .map(participant => landmark.plotWorldPositions?.get(participant.plotId))
+            .filter(Boolean);
+        if (positions.length < 2) return false;
+
+        this.clearVillageCommunityMoment(landmark);
+        this.clearVillageWorkerCheckIn(landmark);
+        const compact = this.scene.scale.width <= 600;
+        const heartPosition = { x: landmark.zone.x, y: landmark.zone.y - 18 };
+        const anchorPosition = landmark.plotWorldPositions?.get(moment.anchorPlotId);
+        const meetingPosition = moment.id === 'return_home' && anchorPosition
+            ? { x: anchorPosition.x, y: anchorPosition.y - 18 }
+            : heartPosition;
+        const path = this.scene.add.graphics()
+            .setDepth(Math.min(...positions.map(position => position.y), landmark.zone.y) - 2);
+        path.lineStyle(3, 0x71E6B1, 0.62);
+        path.beginPath();
+        path.moveTo(positions[0].x, positions[0].y);
+        path.lineTo(meetingPosition.x, meetingPosition.y);
+        path.lineTo(positions[1].x, positions[1].y);
+        path.strokePath();
+        path.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const signal = this.scene.add.circle(
+            positions[0].x,
+            positions[0].y,
+            compact ? 6 : 7,
+            0xF2C14E,
+            1
+        ).setDepth(landmark.zone.y + 12);
+        signal.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const copyWidth = compact ? 270 : 360;
+        const copyHeight = compact ? 66 : 70;
+        const copy = this.scene.add.container(
+            landmark.zone.x + (compact ? 0 : 230),
+            landmark.zone.y - (compact ? 280 : 245)
+        ).setDepth(landmark.zone.y + 14).setAlpha(0);
+        const backdrop = this.createVillageResonanceBackdrop({
+            width: copyWidth,
+            height: copyHeight,
+            accent: 0x71E6B1,
+            kind: 'community_moment'
+        });
+        const names = this.scene.add.text(
+            0,
+            -21,
+            moment.participantNames.join(' + ').toUpperCase(),
+            {
+                fontSize: compact ? '9px' : '10px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F2C14E',
+                stroke: '#07100F',
+                strokeThickness: 5
+            }
+        ).setOrigin(0.5);
+        const title = this.scene.add.text(0, -4, moment.title, {
+            fontSize: compact ? '11px' : '13px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#F4F4F4',
+            stroke: '#07100F',
+            strokeThickness: 5
+        }).setOrigin(0.5);
+        const value = this.scene.add.text(0, 15, moment.sharedValue, {
+            fontSize: compact ? '8px' : '9px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#8FE3CF',
+            stroke: '#07100F',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+        copy.add([backdrop, names, title, value]);
+        copy.setData('villageCommunityMoment', moment.id);
+        copy.setData('participantNames', moment.participantNames);
+        copy.setData('sharedValue', moment.sharedValue);
+        copy.setData('resonanceStyle', 'current_ribbon');
+        copy.setData('resonanceAnchor', 'quiet_space');
+        copy.setData('resonanceBounds', { width: copyWidth, height: copyHeight });
+
+        const signalTween = this.scene.tweens.add({
+            targets: signal,
+            x: positions[1].x,
+            y: positions[1].y,
+            duration: 4200,
+            ease: 'Sine.easeInOut'
+        });
+        const copyTween = this.scene.tweens.add({
+            targets: copy,
+            alpha: { from: 0, to: 1 },
+            y: copy.y + 6,
+            duration: 380,
+            ease: 'Sine.easeOut'
+        });
+        landmark.communityMomentElements = [path, signal, copy];
+        landmark.communityMomentTweens = [signalTween, copyTween];
+        landmark.activeCommunityMoment = copy;
+        this.scene.setSanctuaryMomentFocus?.(true, {
+            kind: 'community',
+            plotId: null
+        });
+        landmark.communityMomentTimer = this.scene.time.delayedCall(4700, () => {
+            if (landmark.activeCommunityMoment !== copy) return;
+            const fadeTween = this.scene.tweens.add({
+                targets: [path, signal, copy],
+                alpha: 0,
+                duration: 420,
+                onComplete: () => this.clearVillageCommunityMoment(landmark)
+            });
+            landmark.communityMomentTweens.push(fadeTween);
+        });
+        return true;
+    }
+
+    playVillageReturnRitual(landmark, ritual) {
+        if (!landmark?.zone || !ritual?.line) return false;
+        this.clearVillageCommunityMoment(landmark);
+        this.clearVillageDecisionMoment(landmark);
+        this.clearVillageWorkerCheckIn(landmark);
+
+        const compact = this.scene.scale.width <= 600;
+        const pulse = this.scene.add.graphics()
+            .setPosition(landmark.zone.x, landmark.zone.y - 12)
+            .setDepth(landmark.zone.y + 12)
+            .setAlpha(0);
+        [26, 43, 62].forEach((radius, index) => {
+            pulse.lineStyle(
+                index === 1 ? 2 : 1,
+                index === 2 ? 0xF2C14E : 0x71E6B1,
+                0.82 - index * 0.16
+            );
+            pulse.strokeEllipse(0, 0, radius * 2, radius * (compact ? 1.05 : 1.2));
+        });
+        pulse.setBlendMode?.(Phaser.BlendModes.ADD);
+        pulse.setData('villageReturnCurrentWave', true);
+
+        const copyWidth = compact ? 286 : 420;
+        const copyHeight = compact ? 118 : 124;
+        const copy = this.scene.add.container(
+            landmark.zone.x,
+            landmark.zone.y - (compact ? 330 : 310)
+        ).setDepth(landmark.zone.y + 16).setAlpha(0);
+        const backdrop = this.createVillageResonanceBackdrop({
+            width: copyWidth,
+            height: copyHeight,
+            accent: 0xF2C14E,
+            kind: 'expedition_return'
+        });
+        const kicker = this.scene.add.text(0, -42, 'WELCOME HOME', {
+            fontSize: compact ? '9px' : '10px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#F2C14E',
+            stroke: '#07100F',
+            strokeThickness: 5
+        }).setOrigin(0.5);
+        const title = this.scene.add.text(0, -24, ritual.levelLabel, {
+            fontSize: compact ? '12px' : '14px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#F4F4F4',
+            stroke: '#07100F',
+            strokeThickness: 5
+        }).setOrigin(0.5);
+        const line = this.scene.add.text(0, 2, ritual.line, {
+            fontSize: compact ? '10px' : '11px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#DCE8E5',
+            align: 'center',
+            stroke: '#07100F',
+            strokeThickness: 4,
+            wordWrap: { width: compact ? 252 : 380 }
+        }).setOrigin(0.5);
+        const outcome = this.scene.add.text(
+            0,
+            compact ? 36 : 40,
+            `${ritual.outcome} · ${ritual.worldChange}`,
+            {
+                fontSize: compact ? '8px' : '9px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#8FE3CF',
+                stroke: '#07100F',
+                strokeThickness: 4
+            }
+        ).setOrigin(0.5);
+        copy.add([backdrop, kicker, title, line, outcome]);
+        copy
+            .setData('villageReturnRitual', ritual.id)
+            .setData('returnLevelId', ritual.levelId)
+            .setData('returnResidents', ritual.residents.map(resident => resident.name))
+            .setData('returnOutcome', ritual.outcome)
+            .setData('worldChange', ritual.worldChange)
+            .setData('resonanceStyle', 'current_ribbon')
+            .setData('resonanceAnchor', 'village_heart');
+
+        const revealTween = this.scene.tweens.add({
+            targets: [pulse, copy],
+            alpha: 1,
+            duration: 360,
+            ease: 'Sine.easeOut'
+        });
+        const pulseTween = this.scene.tweens.add({
+            targets: pulse,
+            scaleX: { from: 0.74, to: 1.14 },
+            scaleY: { from: 0.74, to: 1.14 },
+            alpha: { from: 0.4, to: 1 },
+            duration: 1250,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Sine.easeInOut'
+        });
+        landmark.communityMomentElements = [pulse, copy];
+        landmark.communityMomentTweens = [revealTween, pulseTween];
+        landmark.activeCommunityMoment = copy;
+        this.scene.setSanctuaryMomentFocus?.(true, {
+            kind: 'return',
+            plotId: null
+        });
+        landmark.communityMomentTimer = this.scene.time.delayedCall(5600, () => {
+            if (landmark.activeCommunityMoment !== copy) return;
+            const fadeTween = this.scene.tweens.add({
+                targets: [pulse, copy],
+                alpha: 0,
+                duration: 420,
+                onComplete: () => this.clearVillageCommunityMoment(landmark)
+            });
+            landmark.communityMomentTweens.push(fadeTween);
+        });
+        return true;
+    }
+
+    playVillageHeartMemory(landmark, memory) {
+        if (!landmark?.zone || !memory?.line) return false;
+        this.clearVillageCommunityMoment(landmark);
+        this.clearVillageDecisionMoment(landmark);
+        this.clearVillageWorkerCheckIn(landmark);
+
+        const compact = this.scene.scale.width <= 600;
+        const color = memory.value === 'care' ? 0x71E6B1 : 0xF2C14E;
+        const marker = landmark.heartMemoryElements?.find(element => (
+            element?.getData?.('villageHeartMemory') === memory.decisionId
+        ));
+        const markerX = marker?.x ?? landmark.zone.x;
+        const markerY = marker?.y ?? landmark.zone.y;
+        const pulse = this.scene.add.graphics()
+            .setPosition(markerX, markerY)
+            .setDepth(landmark.zone.y + 10)
+            .setAlpha(0);
+        pulse.lineStyle(3, color, 0.9);
+        pulse.strokeCircle(0, 0, compact ? 19 : 22);
+        pulse.lineStyle(1, 0xF4F4F4, 0.72);
+        pulse.strokeCircle(0, 0, compact ? 27 : 31);
+        pulse.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const copy = this.scene.add.container(
+            landmark.zone.x,
+            landmark.zone.y - (compact ? 375 : 345)
+        ).setDepth(landmark.zone.y + 15).setAlpha(0);
+        const copyWidth = compact ? 278 : 410;
+        const copyHeight = compact ? 102 : 108;
+        const backdrop = this.createVillageResonanceBackdrop({
+            width: copyWidth,
+            height: copyHeight,
+            accent: color,
+            kind: 'heart_memory'
+        });
+        const speaker = this.scene.add.text(
+            0,
+            -24,
+            `${memory.speakerName.toUpperCase()} REMEMBERS`,
+            {
+                fontSize: compact ? '8px' : '9px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: memory.value === 'care' ? '#8FE3CF' : '#F2C14E',
+                stroke: '#07100F',
+                strokeThickness: 5
+            }
+        ).setOrigin(0.5);
+        const line = this.scene.add.text(0, 0, `"${memory.line}"`, {
+            fontSize: compact ? '10px' : '12px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#F4F4F4',
+            align: 'center',
+            stroke: '#07100F',
+            strokeThickness: 5,
+            wordWrap: { width: compact ? 248 : 370 }
+        }).setOrigin(0.5);
+        const value = this.scene.add.text(0, compact ? 35 : 38, memory.optionLabel, {
+            fontSize: compact ? '7px' : '8px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#F4F4F4',
+            stroke: '#07100F',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+        copy.add([backdrop, speaker, line, value]);
+        copy.setData('villageHeartFollowUp', memory.decisionId);
+        copy.setData('speakerName', memory.speakerName);
+        copy.setData('optionId', memory.optionId);
+        copy.setData('resonanceStyle', 'current_ribbon');
+        copy.setData('resonanceAnchor', 'village_heart');
+        copy.setData('resonanceBounds', { width: copyWidth, height: copyHeight });
+        copy.setData('resonanceVerticalOffset', compact ? 375 : 345);
+
+        const revealTween = this.scene.tweens.add({
+            targets: [pulse, copy],
+            alpha: 1,
+            duration: 360,
+            ease: 'Sine.easeOut'
+        });
+        const pulseTween = this.scene.tweens.add({
+            targets: pulse,
+            scaleX: { from: 0.78, to: 1.15 },
+            scaleY: { from: 0.78, to: 1.15 },
+            alpha: { from: 0.48, to: 1 },
+            duration: 1200,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Sine.easeInOut'
+        });
+        landmark.communityMomentElements = [pulse, copy];
+        landmark.communityMomentTweens = [revealTween, pulseTween];
+        landmark.activeCommunityMoment = copy;
+        this.scene.setSanctuaryMomentFocus?.(true, {
+            kind: 'memory',
+            plotId: null
+        });
+        landmark.communityMomentTimer = this.scene.time.delayedCall(5600, () => {
+            if (landmark.activeCommunityMoment !== copy) return;
+            const fadeTween = this.scene.tweens.add({
+                targets: [pulse, copy],
+                alpha: 0,
+                duration: 420,
+                onComplete: () => this.clearVillageCommunityMoment(landmark)
+            });
+            landmark.communityMomentTweens.push(fadeTween);
+        });
+        return true;
+    }
+
+    clearVillageCommunityMoment(landmark) {
+        const wasActive = Boolean(landmark?.activeCommunityMoment);
+        landmark?.communityMomentTimer?.remove?.();
+        landmark?.communityMomentTweens?.forEach(tween => tween?.stop?.());
+        landmark?.communityMomentElements?.forEach(element => element?.destroy?.(true));
+        if (!landmark) return;
+        landmark.communityMomentTimer = null;
+        landmark.communityMomentTweens = [];
+        landmark.communityMomentElements = [];
+        landmark.activeCommunityMoment = null;
+        if (wasActive) this.scene.setSanctuaryMomentFocus?.(false);
+    }
+
+    playVillageWorkerCheckIn(landmark, checkIn) {
+        const position = landmark?.plotWorldPositions?.get(checkIn?.plotId);
+        if (!position || !checkIn?.line) return false;
+        this.clearVillageCommunityMoment(landmark);
+        this.clearVillageDecisionMoment(landmark);
+        this.clearVillageWorkerCheckIn(landmark);
+
+        const compact = this.scene.scale.width <= 600;
+        const worker = landmark.workerElements?.find(element => (
+            element?.getData?.('creatureId') === checkIn.creatureId
+        ));
+        const workerX = position.x + (worker?.x || 0);
+        const workerY = position.y + (worker?.y || 0);
+        const copyWidth = compact ? 250 : 380;
+        const ribbonWidth = copyWidth + (compact ? 16 : 22);
+        const cameraView = this.scene.cameras?.main?.worldView;
+        const viewportLeft = cameraView?.x || 0;
+        const viewportRight = viewportLeft + (
+            cameraView?.width || this.scene.scale.width
+        );
+        const copyX = Phaser.Math.Clamp(
+            workerX,
+            viewportLeft + ribbonWidth / 2 + 8,
+            viewportRight - ribbonWidth / 2 - 8
+        );
+        const copyY = Math.max(
+            compact ? 92 : 82,
+            landmark.zone.y - (compact ? 255 : 225)
+        );
+        const path = this.scene.add.graphics()
+            .setDepth(Math.min(workerY, copyY) - 1)
+            .setAlpha(0);
+        path.lineStyle(2, 0x71E6B1, 0.54);
+        path.beginPath();
+        path.moveTo(workerX, workerY - 8);
+        path.lineTo(copyX, copyY + 48);
+        path.strokePath();
+        path.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const pulse = this.scene.add.graphics()
+            .setPosition(workerX, workerY)
+            .setDepth(position.y + 10)
+            .setAlpha(0);
+        pulse.lineStyle(3, 0x71E6B1, 0.9);
+        pulse.strokeCircle(0, 0, compact ? 25 : 30);
+        pulse.lineStyle(1, 0xF4F4F4, 0.7);
+        pulse.strokeCircle(0, 0, compact ? 34 : 40);
+        pulse.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const copy = this.scene.add.container(copyX, copyY)
+            .setDepth(landmark.zone.y + 16)
+            .setAlpha(0);
+        const copyHeight = checkIn.memory ? (compact ? 136 : 140) : (compact ? 116 : 120);
+        const backdrop = this.createVillageResonanceBackdrop({
+            width: ribbonWidth,
+            height: copyHeight,
+            accent: 0x71E6B1,
+            kind: 'worker_check_in',
+            y: checkIn.memory ? 8 : 1
+        });
+        const identity = this.scene.add.text(
+            0,
+            -38,
+            `${checkIn.name.toUpperCase()} // ${checkIn.roleLabel}`,
+            {
+                fontSize: compact ? '9px' : '10px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F2C14E',
+                stroke: '#07100F',
+                strokeThickness: 5
+            }
+        ).setOrigin(0.5);
+        const line = this.scene.add.text(0, -13, `"${checkIn.line}"`, {
+            fontSize: compact ? '10px' : '12px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#F4F4F4',
+            align: 'center',
+            stroke: '#07100F',
+            strokeThickness: 5,
+            wordWrap: { width: copyWidth }
+        }).setOrigin(0.5);
+        const routine = this.scene.add.text(
+            0,
+            20,
+            `${checkIn.routineCue} · ${checkIn.purpose}`,
+            {
+                fontSize: compact ? '7px' : '8px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#8FE3CF',
+                align: 'center',
+                stroke: '#07100F',
+                strokeThickness: 4,
+                wordWrap: { width: copyWidth }
+            }
+        ).setOrigin(0.5);
+        const impact = this.scene.add.text(0, 43, checkIn.impact, {
+            fontSize: compact ? '8px' : '9px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#F4F4F4',
+            stroke: '#07100F',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+        const memory = checkIn.memory
+            ? this.scene.add.text(
+                0,
+                61,
+                `HEART MEMORY · ${checkIn.memory.label}`,
+                {
+                    fontSize: compact ? '7px' : '8px',
+                    fontFamily: 'Arial, sans-serif',
+                    fontStyle: 'bold',
+                    color: checkIn.memory.value === 'care' ? '#8FE3CF' : '#F2C14E',
+                    stroke: '#07100F',
+                    strokeThickness: 4
+                }
+            ).setOrigin(0.5)
+            : null;
+        copy.add([backdrop, identity, line, routine, impact, ...(memory ? [memory] : [])]);
+        copy.setData('villageWorkerCheckIn', checkIn.creatureId);
+        copy.setData('helperName', checkIn.name);
+        copy.setData('buildingId', checkIn.definitionId);
+        copy.setData('routineCue', checkIn.routineCue);
+        copy.setData('impact', checkIn.impact);
+        copy.setData('memoryDecisionId', checkIn.memory?.decisionId || null);
+        copy.setData('resonanceStyle', 'current_ribbon');
+        copy.setData('resonanceAnchor', 'resident_tether');
+        copy.setData('resonanceBounds', {
+            width: ribbonWidth,
+            height: copyHeight
+        });
+
+        const revealTween = this.scene.tweens.add({
+            targets: [path, pulse, copy],
+            alpha: 1,
+            duration: 340,
+            ease: 'Sine.easeOut'
+        });
+        const pulseTween = this.scene.tweens.add({
+            targets: pulse,
+            scaleX: { from: 0.78, to: 1.12 },
+            scaleY: { from: 0.78, to: 1.12 },
+            alpha: { from: 0.5, to: 1 },
+            duration: 1100,
+            yoyo: true,
+            repeat: 3,
+            ease: 'Sine.easeInOut'
+        });
+        landmark.workerCheckInElements = [path, pulse, copy];
+        landmark.workerCheckInTweens = [revealTween, pulseTween];
+        landmark.activeWorkerCheckIn = copy;
+        this.scene.setSanctuaryMomentFocus?.(true, {
+            kind: 'resident',
+            plotId: checkIn.plotId
+        });
+        landmark.workerCheckInTimer = this.scene.time.delayedCall(6500, () => {
+            if (landmark.activeWorkerCheckIn !== copy) return;
+            const fadeTween = this.scene.tweens.add({
+                targets: [path, pulse, copy],
+                alpha: 0,
+                duration: 420,
+                onComplete: () => this.clearVillageWorkerCheckIn(landmark)
+            });
+            landmark.workerCheckInTweens.push(fadeTween);
+        });
+        return true;
+    }
+
+    clearVillageWorkerCheckIn(landmark) {
+        const wasActive = Boolean(landmark?.activeWorkerCheckIn);
+        landmark?.workerCheckInTimer?.remove?.();
+        landmark?.workerCheckInTweens?.forEach(tween => tween?.stop?.());
+        landmark?.workerCheckInElements?.forEach(element => element?.destroy?.(true));
+        if (!landmark) return;
+        landmark.workerCheckInTimer = null;
+        landmark.workerCheckInTweens = [];
+        landmark.workerCheckInElements = [];
+        landmark.activeWorkerCheckIn = null;
+        if (wasActive) this.scene.setSanctuaryMomentFocus?.(false);
+    }
+
+    playVillageDecisionMoment(landmark, result) {
+        if (!landmark?.zone || !result?.decision || !result?.option) return false;
+        this.clearVillageCommunityMoment(landmark);
+        this.clearVillageDecisionMoment(landmark);
+        this.clearVillageWorkerCheckIn(landmark);
+        landmark.activeBuildingMomentTween?.stop?.();
+        landmark.activeBuildingMoment?.destroy?.(true);
+        landmark.activeBuildingMomentTween = null;
+        landmark.activeBuildingMoment = null;
+        const compact = this.scene.scale.width <= 600;
+        const color = result.option.value === 'care' ? 0x71E6B1 : 0xF2C14E;
+        const heartX = landmark.zone.x;
+        const heartY = landmark.zone.y - 12;
+        const paths = this.scene.add.graphics()
+            .setDepth(-15)
+            .setAlpha(0)
+            .setData('villageDecisionGroundResponse', true);
+        paths.lineStyle(3, color, 0.58);
+        result.decision.requiredBuildingIds.forEach(buildingId => {
+            const building = result.snapshot?.buildings?.find(entry => (
+                entry.definitionId === buildingId
+            ));
+            const position = landmark.plotWorldPositions?.get(building?.plotId);
+            if (!position) return;
+            paths.beginPath();
+            paths.moveTo(position.x, position.y);
+            paths.lineTo(heartX, heartY);
+            paths.strokePath();
+        });
+        paths.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const pulse = this.scene.add.graphics()
+            .setPosition(heartX, heartY)
+            .setDepth(landmark.zone.y + 12)
+            .setAlpha(0);
+        pulse.lineStyle(4, color, 0.92);
+        pulse.strokeCircle(0, 0, compact ? 48 : 62);
+        pulse.lineStyle(2, 0xF4F4F4, 0.72);
+        pulse.strokeCircle(0, 0, compact ? 65 : 82);
+        pulse.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const copy = this.scene.add.container(
+            heartX,
+            heartY - (compact ? 360 : 330)
+        ).setDepth(landmark.zone.y + 16).setAlpha(0);
+        const copyWidth = compact ? 290 : 420;
+        const copyHeight = compact ? 98 : 104;
+        const backdrop = this.createVillageResonanceBackdrop({
+            width: copyWidth,
+            height: copyHeight,
+            accent: color,
+            kind: 'heart_decision'
+        });
+        const kicker = this.scene.add.text(0, -25, 'THE VILLAGE HEART REMEMBERS', {
+            fontSize: compact ? '8px' : '9px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: result.option.value === 'care' ? '#8FE3CF' : '#F2C14E',
+            stroke: '#07100F',
+            strokeThickness: 5
+        }).setOrigin(0.5);
+        const title = this.scene.add.text(0, -6, result.option.label, {
+            fontSize: compact ? '11px' : '14px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#F4F4F4',
+            stroke: '#07100F',
+            strokeThickness: 5
+        }).setOrigin(0.5);
+        const consequence = this.scene.add.text(0, 17, result.option.consequence, {
+            fontSize: compact ? '8px' : '9px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#F4F4F4',
+            align: 'center',
+            stroke: '#07100F',
+            strokeThickness: 4,
+            wordWrap: { width: compact ? 230 : 330 }
+        }).setOrigin(0.5);
+        copy.add([backdrop, kicker, title, consequence]);
+        copy.setData('villageDecisionMoment', result.decision.id);
+        copy.setData('optionId', result.option.id);
+        copy.setData('value', result.option.value);
+        copy.setData('resonanceStyle', 'current_ribbon');
+        copy.setData('resonanceAnchor', 'village_heart');
+        copy.setData('resonanceBounds', { width: copyWidth, height: copyHeight });
+        copy.setData('resonanceVerticalOffset', compact ? 360 : 330);
+
+        const revealTween = this.scene.tweens.add({
+            targets: [paths, pulse, copy],
+            alpha: 1,
+            duration: 420,
+            ease: 'Sine.easeOut'
+        });
+        const pulseTween = this.scene.tweens.add({
+            targets: pulse,
+            scaleX: { from: 0.82, to: 1.12 },
+            scaleY: { from: 0.82, to: 1.12 },
+            alpha: { from: 0.52, to: 1 },
+            duration: 1100,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Sine.easeInOut'
+        });
+        landmark.decisionMomentElements = [paths, pulse, copy];
+        landmark.decisionMomentTweens = [revealTween, pulseTween];
+        landmark.activeDecisionMoment = copy;
+        this.scene.setSanctuaryMomentFocus?.(true, {
+            kind: 'decision',
+            plotId: null
+        });
+        landmark.decisionMomentTimer = this.scene.time.delayedCall(5200, () => {
+            if (landmark.activeDecisionMoment !== copy) return;
+            const fadeTween = this.scene.tweens.add({
+                targets: [paths, pulse, copy],
+                alpha: 0,
+                duration: 420,
+                onComplete: () => this.clearVillageDecisionMoment(landmark)
+            });
+            landmark.decisionMomentTweens.push(fadeTween);
+        });
+        return true;
+    }
+
+    clearVillageDecisionMoment(landmark) {
+        const wasActive = Boolean(landmark?.activeDecisionMoment);
+        landmark?.decisionMomentTimer?.remove?.();
+        landmark?.decisionMomentTweens?.forEach(tween => tween?.stop?.());
+        landmark?.decisionMomentElements?.forEach(element => element?.destroy?.(true));
+        if (!landmark) return;
+        landmark.decisionMomentTimer = null;
+        landmark.decisionMomentTweens = [];
+        landmark.decisionMomentElements = [];
+        landmark.activeDecisionMoment = null;
+        if (wasActive) this.scene.setSanctuaryMomentFocus?.(false);
+    }
+
+    activateVillageHeart(landmark, plotId = null) {
         const snapshot = landmark?.snapshot;
         if (!snapshot?.unlock?.unlocked) {
             this.scene.showInteractionHint?.(
@@ -650,8 +7606,19 @@ class WorldBuilder {
         }
 
         this.scene.nearVillageHeart = true;
-        this.scene.showInteractionHint?.('Opening Village Builder');
-        return this.scene.openVillageCommand?.() === true;
+        const place = VILLAGE_PLOTS.find(plot => plot.id === plotId);
+        this.scene.showInteractionHint?.(
+            place ? `Planning ${place.label}` : 'Opening Village Heart'
+        );
+        return this.scene.openVillageCommand?.({ plotId }) === true;
+    }
+
+    activateVillageWorker(landmark, building) {
+        if (!landmark?.snapshot || !building?.creature?.id) return false;
+        return this.scene.openVillageWorkerCheckIn?.({
+            creatureId: building.creature.id,
+            snapshot: landmark.snapshot
+        }) === true;
     }
 
     drawVillageBuilding(graphics, definitionId, status) {
@@ -1116,7 +8083,9 @@ class WorldBuilder {
             fontStyle: 'bold',
             stroke: '#081514',
             strokeThickness: 4
-        }).setOrigin(0.5).setDepth(centerY + 2);
+        }).setOrigin(0.5).setDepth(centerY + 2)
+            .setData('sanctuaryPeripheralLabel', true)
+            .setData('sanctuaryPeripheralDestination', 'signalGarden');
 
         const storedStage = typeof window !== 'undefined'
             ? window.GameState?.get?.('world.signalGarden.stage')
@@ -1159,7 +8128,12 @@ class WorldBuilder {
                 window.GameState
             )
             : null;
-        this.refreshRescuedResidents(garden, rescuedResidentSnapshot);
+        const villageSnapshot = typeof window !== 'undefined'
+            ? getVillageSnapshot(window.GameState)
+            : null;
+        this.refreshRescuedResidents(garden, rescuedResidentSnapshot, {
+            villageSnapshot
+        });
         const cultureSnapshot = typeof window !== 'undefined'
             ? window.FendCulture?.getFendCultureSnapshot?.(window.GameState)
             : null;
@@ -1459,9 +8433,9 @@ class WorldBuilder {
     }
 
     /**
-     * Restored expedition guardians return in calm forms and patrol distinct
-     * Sanctuary routes. Their collision zones follow them, so they are living
-     * residents rather than static trophies around the Signal Garden.
+     * Render canonical Guardian presences. In the current story only the Elder
+     * Treant can reach the Sanctuary, and he appears through the Village Heart
+     * rather than joining the rescued-creature resident roster.
      */
     refreshGuardianResidents(garden, snapshot = null) {
         if (!garden?.zone) return;
@@ -1481,8 +8455,21 @@ class WorldBuilder {
         });
         garden.guardianResidents = [];
 
+        const allowedPresenceIds = this.scene?.guardianResidentPreview !== null &&
+            this.scene?.guardianResidentPreview !== undefined
+            ? null
+            : new Set(
+                window.GuardianOutcomes
+                    ?.getGuardianOutcomeSnapshot?.(window.GameState)
+                    ?.sanctuaryPresences
+                    ?.map(outcome => outcome.guardianId) || []
+            );
         const rescuedIds = new Set(
-            snapshot?.rescuedResidents?.map(resident => resident.id) || []
+            (snapshot?.rescuedResidents || [])
+                .filter(resident => (
+                    !allowedPresenceIds || allowedPresenceIds.has(resident.id)
+                ))
+                .map(resident => resident.id)
         );
         const residentStatuses = new Map(
             snapshot?.residents?.map(resident => [resident.id, resident]) || []
@@ -1517,9 +8504,20 @@ class WorldBuilder {
             }));
             const start = route[0];
             const status = residentStatuses.get(definition.id) || definition;
+            const heartProjection = definition.id === 'elder_treant';
             const container = this.scene.add.container(start.x, start.y)
                 .setDepth(start.y + 4);
             const shadow = this.scene.add.ellipse(0, 23, 54, 14, 0x101616, 0.42);
+            const projectionField = this.scene.add.graphics();
+            if (heartProjection) {
+                projectionField.fillStyle(definition.accent, 0.08);
+                projectionField.fillEllipse(0, -4, 78, 86);
+                projectionField.lineStyle(2, definition.accent, 0.72);
+                projectionField.strokeEllipse(0, 1, 70, 42);
+                projectionField.lineStyle(1, 0xF4F4F4, 0.42);
+                projectionField.strokeEllipse(0, 1, 56, 31);
+                projectionField.setBlendMode?.(Phaser.BlendModes.ADD);
+            }
             let figure;
             let figureScaleX = 1;
             let figureScaleY = 1;
@@ -1538,6 +8536,10 @@ class WorldBuilder {
                 figure = this.scene.add.graphics();
                 this.drawGuardianResidentFigure(figure, definition);
             }
+            if (heartProjection) {
+                figure.setAlpha(0.76);
+                figure.setBlendMode?.(Phaser.BlendModes.ADD);
+            }
             const name = this.scene.add.text(0, 43, definition.name.toUpperCase(), {
                 fontSize: '10px',
                 fontFamily: 'Arial, sans-serif',
@@ -1546,7 +8548,9 @@ class WorldBuilder {
                 stroke: '#081514',
                 strokeThickness: 4
             }).setOrigin(0.5);
-            const standingLabel = status.activeTeam
+            const standingLabel = definition.id === 'elder_treant'
+                ? 'HEART ECHO'
+                : status.activeTeam
                 ? 'ALLY'
                 : status.synergyUnlocked
                     ? 'TRUSTED'
@@ -1618,6 +8622,7 @@ class WorldBuilder {
             container.add([
                 shadow,
                 routineRing,
+                projectionField,
                 figure,
                 name,
                 marker,
@@ -1646,6 +8651,10 @@ class WorldBuilder {
                 routineCycle: 0,
                 careFeedbackShown: false
             };
+            container
+                .setData('guardianStanding', heartProjection ? 'regional_ally' : 'regional_guardian')
+                .setData('guardianSanctuaryPresence', heartProjection ? 'heart_projection' : 'none')
+                .setData('guardianCommunityStatus', heartProjection ? 'heart_echo' : 'region_bound');
             const syncZone = () => {
                 if (!container.active || !zone.active) return;
                 zone.setPosition(container.x, container.y);
@@ -1770,8 +8779,16 @@ class WorldBuilder {
         this.startGuardianResidentSocialMoments(garden);
     }
 
-    refreshRescuedResidents(garden, snapshot = null) {
+    refreshRescuedResidents(garden, snapshot = null, {
+        villageSnapshot = null
+    } = {}) {
         if (!garden?.zone) return;
+        const resolvedVillageSnapshot = villageSnapshot || (
+            typeof window !== 'undefined' && window.GameState
+                ? getVillageSnapshot(window.GameState)
+                : null
+        );
+        this.clearRescuedResidentArrival(garden);
         garden.rescuedResidents?.forEach(resident => {
             resident.moveTween?.stop?.();
             resident.idleTween?.stop?.();
@@ -1783,6 +8800,23 @@ class WorldBuilder {
         const rescuedIds = new Set(
             snapshot?.rescued?.map(resident => resident.id) || []
         );
+        const arrivalSeenIds = new Set(
+            snapshot?.state?.sanctuaryArrivalSeenIds || []
+        );
+        const pendingArrivalId = snapshot?.rescued?.find(
+            resident => !arrivalSeenIds.has(resident.id)
+        )?.id || null;
+        const presenceByResident = new Map(
+            (snapshot?.rescued || []).map(resident => [
+                resident.id,
+                getVillageResidentWorldPresence(
+                    resolvedVillageSnapshot,
+                    resident.id
+                )
+            ])
+        );
+        const visibleResidentIds = [];
+        const relocatedResidents = [];
         const compact = this.worldWidth < 900 ||
             (this.worldWidth - garden.zone.x) < 1250;
         const positions = compact
@@ -1791,6 +8825,18 @@ class WorldBuilder {
 
         RESCUED_RESIDENT_DEFINITIONS.forEach((definition, index) => {
             if (!rescuedIds.has(definition.id)) return;
+            const presence = presenceByResident.get(definition.id) ||
+                getVillageResidentWorldPresence(null, definition.id);
+            const arrivalPending = definition.id === pendingArrivalId;
+            if (presence.representedInVillage && !arrivalPending) {
+                relocatedResidents.push({
+                    id: definition.id,
+                    location: presence.location,
+                    locationLabel: presence.locationLabel
+                });
+                return;
+            }
+            visibleResidentIds.push(definition.id);
             const [offsetX, offsetY] = positions[index];
             const startX = Math.max(62, Math.min(
                 this.worldWidth - 62,
@@ -1803,17 +8849,28 @@ class WorldBuilder {
             const container = this.scene.add.container(startX, startY)
                 .setDepth(startY + 6);
             const shadow = this.scene.add.ellipse(0, 20, 40, 11, 0x101616, 0.38);
-            const figure = this.scene.add.graphics();
-            figure.fillStyle(definition.color, 1);
-            figure.fillRoundedRect(-19, -24, 38, 48, 10);
-            figure.fillStyle(definition.accent, 0.75);
-            figure.fillCircle(0, 6, 11);
-            figure.fillStyle(0xF4F4F4, 1);
-            figure.fillCircle(-8, -8, 7);
-            figure.fillCircle(8, -8, 7);
-            figure.fillStyle(0x101616, 1);
-            figure.fillCircle(-7, -8, 3);
-            figure.fillCircle(9, -8, 3);
+            let figure;
+            let figureScale = 1;
+            if (this.scene.textures.exists(definition.textureKey)) {
+                figure = this.scene.add.image(0, -3, definition.textureKey);
+                figureScale = Math.min(
+                    58 / Math.max(1, figure.width),
+                    64 / Math.max(1, figure.height)
+                );
+                figure.setScale(figureScale);
+            } else {
+                figure = this.scene.add.graphics();
+                figure.fillStyle(definition.color, 1);
+                figure.fillRoundedRect(-19, -24, 38, 48, 10);
+                figure.fillStyle(definition.accent, 0.75);
+                figure.fillCircle(0, 6, 11);
+                figure.fillStyle(0xF4F4F4, 1);
+                figure.fillCircle(-8, -8, 7);
+                figure.fillCircle(8, -8, 7);
+                figure.fillStyle(0x101616, 1);
+                figure.fillCircle(-7, -8, 3);
+                figure.fillCircle(9, -8, 3);
+            }
             const name = this.scene.add.text(0, 35, definition.name.toUpperCase(), {
                 fontSize: '10px',
                 fontFamily: 'Arial, sans-serif',
@@ -1829,7 +8886,7 @@ class WorldBuilder {
                 backgroundColor: '#101616',
                 padding: { x: 4, y: 2 }
             }).setOrigin(0.5);
-            const marker = this.scene.add.text(0, -41, 'SUPPORT READY', {
+            const marker = this.scene.add.text(0, -41, 'COMMUNITY', {
                 fontSize: '8px',
                 fontFamily: 'Arial, sans-serif',
                 color: '#061116',
@@ -1838,6 +8895,12 @@ class WorldBuilder {
                 padding: { x: 5, y: 2 }
             }).setOrigin(0.5);
             container.add([shadow, figure, name, role, marker]);
+            container
+                .setData('residentWorldLocation', 'signal_garden')
+                .setData('residentArrivalPending', arrivalPending)
+                .setData('residentNextLocation', presence.location)
+                .setData('residentNextLocationLabel', presence.locationLabel)
+                .setData('residentPresenceModel', 'single_world_location_v2');
 
             const zone = this.scene.add.zone(startX, startY, 82, 92);
             this.scene.physics.add.existing(zone, true);
@@ -1847,12 +8910,18 @@ class WorldBuilder {
                 definition,
                 container,
                 zone,
+                figure,
+                nameLabel: name,
+                roleLabel: role,
+                communityMarker: marker,
                 moveTween: null,
                 idleTween: null
             };
             entry.idleTween = this.scene.tweens.add({
                 targets: figure,
                 y: { from: -2, to: 2 },
+                scaleX: figureScale,
+                scaleY: { from: figureScale * 0.98, to: figureScale * 1.02 },
                 duration: 900 + index * 90,
                 yoyo: true,
                 repeat: -1,
@@ -1874,6 +8943,235 @@ class WorldBuilder {
             });
             garden.rescuedResidents.push(entry);
         });
+        garden.zone
+            ?.setData('rescuedResidentPresenceModel', 'single_world_location_v2')
+            .setData('rescuedResidentVisibleIds', visibleResidentIds)
+            .setData('rescuedResidentRelocations', relocatedResidents)
+            .setData('rescuedResidentPendingArrivalId', pendingArrivalId);
+    }
+
+    playRescuedResidentArrival(garden, resident, { duration = 5200 } = {}) {
+        const entry = garden?.rescuedResidents?.find(
+            candidate => candidate.id === resident?.id
+        );
+        if (!entry?.container) return false;
+        this.clearRescuedResidentArrival(garden);
+
+        const compact = this.scene.scale.width <= 600;
+        const reveal = this.scene.add.container(0, 0);
+        const camera = this.scene.cameras?.main;
+        const zoom = Math.max(0.1, camera?.zoom || 1);
+        const halfViewWidth = (camera?.width || this.scene.scale.width) /
+            (2 * zoom);
+        const safeFocusX = Phaser.Math.Clamp(
+            entry.container.x,
+            halfViewWidth,
+            Math.max(halfViewWidth, this.worldWidth - halfViewWidth)
+        );
+        const framingOffsetX = safeFocusX - entry.container.x;
+        reveal.setX(framingOffsetX);
+        const aura = this.scene.add.graphics();
+        const roots = this.scene.add.graphics();
+        const radius = compact ? 67 : 82;
+        aura.fillStyle(0x07100F, 0.82);
+        aura.fillCircle(0, -3, radius - 6);
+        aura.lineStyle(6, 0x07100F, 0.72);
+        aura.strokeCircle(0, -3, radius);
+        aura.lineStyle(2, resident.accent || 0x71E6B1, 0.98);
+        aura.strokeCircle(0, -3, radius - 3);
+        aura.lineStyle(1, 0xF2C14E, 0.82);
+        aura.strokeCircle(0, -3, radius - 12);
+        aura.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        [-0.75, -0.38, 0, 0.38, 0.75].forEach((ratio, index) => {
+            const startX = ratio * (radius - 16);
+            const endX = ratio * (compact ? 112 : 138);
+            const endY = compact ? 102 + ((index % 2) * 8) : 122 + ((index % 2) * 10);
+            roots.lineStyle(5, 0x07100F, 0.58);
+            roots.lineBetween(startX, 48, endX, endY);
+            roots.lineStyle(1, index % 2 ? 0x8FE3CF : 0xF2C14E, 0.86);
+            roots.lineBetween(startX, 48, endX, endY);
+            roots.fillStyle(index % 2 ? 0x8FE3CF : 0xF2C14E, 0.95);
+            roots.fillCircle(endX, endY, compact ? 2.5 : 3);
+        });
+
+        let portrait = null;
+        if (this.scene.textures.exists(resident.textureKey)) {
+            portrait = this.scene.add.image(0, -3, resident.textureKey);
+            const maxSize = compact ? 112 : 136;
+            portrait.setScale(Math.min(
+                maxSize / Math.max(1, portrait.width),
+                maxSize / Math.max(1, portrait.height)
+            ));
+        }
+
+        const title = this.scene.add.text(
+            0,
+            compact ? -102 : -123,
+            `${resident.name.toUpperCase()} JOINED THE SANCTUARY`,
+            {
+                fontSize: compact ? '16px' : '20px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F4F4F4',
+                stroke: '#050B0A',
+                strokeThickness: 6,
+                align: 'center',
+                wordWrap: { width: compact ? 300 : 420 }
+            }
+        ).setOrigin(0.5);
+        const role = this.scene.add.text(
+            0,
+            compact ? -78 : -95,
+            `SANCTUARY RESIDENT · ${resident.role.toUpperCase()}`,
+            {
+                fontSize: compact ? '9px' : '11px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#8FE3CF',
+                stroke: '#050B0A',
+                strokeThickness: 4,
+                align: 'center',
+                wordWrap: { width: compact ? 288 : 380 }
+            }
+        ).setOrigin(0.5);
+        const contribution = this.scene.add.text(
+            0,
+            compact ? 125 : 149,
+            String(resident.contributionLine || resident.sanctuaryLine).toUpperCase(),
+            {
+                fontSize: compact ? '9px' : '11px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F2C14E',
+                stroke: '#050B0A',
+                strokeThickness: 4,
+                align: 'center',
+                wordWrap: { width: compact ? 270 : 360 }
+            }
+        ).setOrigin(0.5);
+        const nextLocationLabel = entry.container.getData('residentNextLocationLabel');
+        const nextLocation = entry.container.getData('residentNextLocation');
+        const guidance = this.scene.add.text(
+            0,
+            compact ? 164 : 192,
+            nextLocation !== 'signal_garden'
+                ? compact
+                    ? `${resident.name.toUpperCase()} WILL REPORT TO ${nextLocationLabel}\nTAP TO CONTINUE`
+                    : `${resident.name.toUpperCase()} WILL REPORT TO ${nextLocationLabel} · CLICK TO CONTINUE`
+                : compact
+                    ? `FIND ${resident.name.toUpperCase()} AT SIGNAL GARDEN\nTAP TO CONTINUE`
+                    : `FIND ${resident.name.toUpperCase()} AT THE SIGNAL GARDEN · CLICK TO CONTINUE`,
+            {
+                fontSize: compact ? '9px' : '10px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F4F4F4',
+                stroke: '#050B0A',
+                strokeThickness: 4,
+                align: 'center',
+                lineSpacing: 3,
+                wordWrap: { width: compact ? 270 : 400 }
+            }
+        ).setOrigin(0.5);
+
+        reveal.add([
+            roots,
+            aura,
+            ...(portrait ? [portrait] : []),
+            title,
+            role,
+            contribution,
+            guidance
+        ]);
+        reveal
+            .setAlpha(0)
+            .setData('rescuedResidentArrivalReveal', true)
+            .setData('residentId', resident.id)
+            .setData('residentName', resident.name)
+            .setData('residentRole', resident.role)
+            .setData('residentLocation', 'signal_garden')
+            .setData('residentNextLocation', nextLocation)
+            .setData('residentNextLocationLabel', nextLocationLabel)
+            .setData('residentCommunityStatus', 'sanctuary_resident')
+            .setData('residentContribution', resident.contributionLine)
+            .setData('authoredPortraitVisible', Boolean(portrait))
+            .setData('framingOffsetX', framingOffsetX)
+            .setData('focusWorldX', safeFocusX)
+            .setData('skippable', true)
+            .setData('duration', duration)
+            .setData(
+                'ariaLabel',
+                `${resident.name} joined the Sanctuary. Sanctuary resident, ${resident.role}. ` +
+                    `${resident.contributionLine} ${
+                        nextLocation !== 'signal_garden'
+                            ? `${resident.name} will report to ${nextLocationLabel}.`
+                            : `Find ${resident.name} at the Signal Garden.`
+                    } Tap to continue.`
+            );
+        entry.figure?.setAlpha?.(0.18);
+        entry.nameLabel?.setAlpha?.(0);
+        entry.roleLabel?.setAlpha?.(0);
+        entry.communityMarker?.setAlpha?.(0);
+        const peripheralResidents = (garden.rescuedResidents || [])
+            .filter(candidate => candidate !== entry && candidate.container?.active)
+            .map(candidate => ({
+                container: candidate.container,
+                alpha: candidate.container.alpha
+            }));
+        peripheralResidents.forEach(({ container }) => container.setAlpha(0.12));
+        entry.container.add(reveal);
+
+        const tweens = [
+            this.scene.tweens.add({
+                targets: reveal,
+                alpha: 1,
+                duration: 260,
+                ease: 'Sine.easeOut'
+            }),
+            this.scene.tweens.add({
+                targets: aura,
+                scaleX: { from: 0.84, to: 1.08 },
+                scaleY: { from: 0.84, to: 1.08 },
+                alpha: { from: 0.72, to: 1 },
+                duration: 1100,
+                yoyo: true,
+                repeat: 3,
+                ease: 'Sine.easeInOut'
+            }),
+            this.scene.tweens.add({
+                targets: roots,
+                alpha: { from: 0.25, to: 1 },
+                duration: 760,
+                yoyo: true,
+                repeat: 4,
+                ease: 'Sine.easeInOut'
+            })
+        ];
+        garden.rescuedResidentArrival = {
+            entry,
+            reveal,
+            tweens,
+            peripheralResidents,
+            focusWorldX: safeFocusX
+        };
+        return true;
+    }
+
+    clearRescuedResidentArrival(garden) {
+        const arrival = garden?.rescuedResidentArrival;
+        if (!arrival) return false;
+        arrival.tweens?.forEach(tween => tween?.stop?.());
+        arrival.reveal?.destroy?.(true);
+        arrival.entry?.figure?.setAlpha?.(1);
+        arrival.entry?.nameLabel?.setAlpha?.(1);
+        arrival.entry?.roleLabel?.setAlpha?.(1);
+        arrival.entry?.communityMarker?.setAlpha?.(1);
+        arrival.peripheralResidents?.forEach(({ container, alpha }) => {
+            if (container?.active !== false) container?.setAlpha?.(alpha);
+        });
+        garden.rescuedResidentArrival = null;
+        return true;
     }
 
     clearGuardianResidentSocialMoment(garden) {
@@ -2515,12 +9813,37 @@ class WorldBuilder {
         this.backgroundImage = this.scene.add.image(0, 0, textureKey);
         this.backgroundImage.setOrigin(0, 0);
         this.backgroundImage.setDepth(-1000);
+        const isSanctuary = this.currentBiome === 'nebula';
+        if (isSanctuary) {
+            this.scene.cameras?.main?.setBackgroundColor?.('#102329');
+        }
+        this.backgroundImage
+            .setData(
+                'worldBackgroundProfile',
+                isSanctuary ? 'living_current_ground_v4' : 'cosmic_biome_v1'
+            )
+            .setData('worldBackgroundCloudRadiusMax', isSanctuary ? 0 : 200)
+            .setData('worldBackgroundFloatingPlatformCount', isSanctuary ? 0 : 40)
+            .setData(
+                'worldBackgroundCurrentThreadCount',
+                isSanctuary ? SANCTUARY_BACKGROUND_THREAD_COUNT : 0
+            )
+            .setData(
+                'worldBackgroundOverscan',
+                isSanctuary ? SANCTUARY_BACKGROUND_OVERSCAN : 0
+            )
+            .setData('worldBackgroundEdgeColor', isSanctuary ? 0x102329 : null);
         return this.backgroundImage;
     }
 
     generateBackgroundTexture() {
         const biomeId = this.currentBiome;
-        const textureKey = `worldBackground_${biomeId}_${this.worldWidth}x${this.worldHeight}`;
+        const isSanctuary = biomeId === 'nebula';
+        const backgroundHeight = this.worldHeight + (
+            isSanctuary ? SANCTUARY_BACKGROUND_OVERSCAN : 0
+        );
+        const profileSuffix = isSanctuary ? '_living_v4' : '';
+        const textureKey = `worldBackground_${biomeId}_${this.worldWidth}x${backgroundHeight}${profileSuffix}`;
 
         if (this.scene.textures.exists(textureKey)) {
             return textureKey;
@@ -2530,8 +9853,12 @@ class WorldBuilder {
         const palette = this.biomeConfig.palette || {};
 
         // Get biome-specific colors
-        const skyTop = this.hexToInt(palette.skyTop) || 0x0a0a2e;
-        const skyBottom = this.hexToInt(palette.skyBottom) || 0x1a1a4e;
+        const skyTop = isSanctuary
+            ? 0x071017
+            : this.hexToInt(palette.skyTop) || 0x0a0a2e;
+        const skyBottom = isSanctuary
+            ? 0x102329
+            : this.hexToInt(palette.skyBottom) || 0x1a1a4e;
         const nebulaColor = this.hexToInt(palette.nebula) || 0x9370DB;
         const accentColor = this.hexToInt(palette.accent) || 0xFFD54F;
         const floraColor = this.hexToInt(palette.flora) || 0x64B5F6;
@@ -2540,12 +9867,21 @@ class WorldBuilder {
         // Base gradient using biome colors
         graphics.fillGradientStyle(skyTop, skyTop, skyBottom, skyBottom, 1);
         graphics.fillRect(0, 0, this.worldWidth, this.worldHeight);
+        if (isSanctuary && backgroundHeight > this.worldHeight) {
+            graphics.fillStyle(skyBottom, 1);
+            graphics.fillRect(
+                0,
+                this.worldHeight,
+                this.worldWidth,
+                backgroundHeight - this.worldHeight
+            );
+        }
 
         // Stars with biome-appropriate brightness
         const starCount = this.getStarCount();
         for (let i = 0; i < starCount; i++) {
             const x = Phaser.Math.Between(0, this.worldWidth);
-            const y = Phaser.Math.Between(0, this.worldHeight);
+            const y = Phaser.Math.Between(0, backgroundHeight);
             const brightness = Math.random();
             const color = this.getStarColor(brightness);
             const size = brightness > 0.8 ? 2 : 1;
@@ -2553,37 +9889,100 @@ class WorldBuilder {
             graphics.fillCircle(x, y, size);
         }
 
-        // Nebula clouds with biome colors
-        const nebulaColors = this.getNebulaColors();
-        for (let i = 0; i < 30; i++) {
-            const nebula = Phaser.Math.RND.pick(nebulaColors);
-            const x = Phaser.Math.Between(0, this.worldWidth);
-            const y = Phaser.Math.Between(0, this.worldHeight);
-            const size = Phaser.Math.Between(80, 200);
-            graphics.fillStyle(nebula.color, nebula.alpha);
-            graphics.fillCircle(x, y, size);
-        }
+        if (biomeId === 'nebula') {
+            this.addSanctuaryGroundTexture(graphics, {
+                nebulaColor,
+                accentColor,
+                floraColor,
+                rockColor,
+                backgroundHeight
+            });
+        } else {
+            // Expedition biomes retain their more dramatic cloud silhouettes.
+            const nebulaColors = this.getNebulaColors();
+            for (let i = 0; i < 30; i++) {
+                const nebula = Phaser.Math.RND.pick(nebulaColors);
+                const x = Phaser.Math.Between(0, this.worldWidth);
+                const y = Phaser.Math.Between(0, this.worldHeight);
+                const size = Phaser.Math.Between(80, 200);
+                graphics.fillStyle(nebula.color, nebula.alpha);
+                graphics.fillCircle(x, y, size);
+            }
 
-        // Biome-specific features
-        this.addBiomeFeatures(graphics, palette);
+            this.addBiomeFeatures(graphics, palette);
 
-        // Floating platforms with biome-specific colors
-        const platformColor = this.blendColors(skyBottom, rockColor, 0.5);
-        graphics.fillStyle(platformColor, 0.4);
-        for (let i = 0; i < 40; i++) {
-            const x = Phaser.Math.Between(0, this.worldWidth);
-            const y = Phaser.Math.Between(0, this.worldHeight);
-            const width = Phaser.Math.Between(100, 300);
-            const height = Phaser.Math.Between(20, 40);
-            graphics.fillRoundedRect(x, y, width, height, 10);
-            graphics.fillStyle(accentColor, 0.3);
-            graphics.fillRoundedRect(x, y, width, height * 0.3, 5);
+            const platformColor = this.blendColors(skyBottom, rockColor, 0.5);
             graphics.fillStyle(platformColor, 0.4);
+            for (let i = 0; i < 40; i++) {
+                const x = Phaser.Math.Between(0, this.worldWidth);
+                const y = Phaser.Math.Between(0, this.worldHeight);
+                const width = Phaser.Math.Between(100, 300);
+                const height = Phaser.Math.Between(20, 40);
+                graphics.fillRoundedRect(x, y, width, height, 10);
+                graphics.fillStyle(accentColor, 0.3);
+                graphics.fillRoundedRect(x, y, width, height * 0.3, 5);
+                graphics.fillStyle(platformColor, 0.4);
+            }
         }
 
-        graphics.generateTexture(textureKey, this.worldWidth, this.worldHeight);
+        graphics.generateTexture(textureKey, this.worldWidth, backgroundHeight);
         graphics.destroy();
         return textureKey;
+    }
+
+    addSanctuaryGroundTexture(graphics, {
+        nebulaColor,
+        accentColor,
+        floraColor,
+        rockColor,
+        backgroundHeight = this.worldHeight
+    }) {
+        const threadColors = [
+            floraColor,
+            0x8FE3CF,
+            0x71E6B1,
+            accentColor,
+            rockColor
+        ];
+        for (
+            let threadIndex = 0;
+            threadIndex < SANCTUARY_BACKGROUND_THREAD_COUNT;
+            threadIndex++
+        ) {
+            const startX = Phaser.Math.Between(-40, this.worldWidth - 80);
+            const startY = Phaser.Math.Between(40, backgroundHeight - 40);
+            const length = Phaser.Math.Between(110, 260);
+            const bend = Phaser.Math.Between(-44, 44);
+            const color = threadColors[threadIndex % threadColors.length];
+            graphics.lineStyle(
+                threadIndex % 3 === 0 ? 2 : 1,
+                color,
+                threadIndex % 4 === 0 ? 0.12 : 0.08
+            );
+            graphics.beginPath();
+            graphics.moveTo(startX, startY);
+            for (let pointIndex = 1; pointIndex <= 6; pointIndex++) {
+                const progress = pointIndex / 6;
+                graphics.lineTo(
+                    startX + (length * progress),
+                    startY + (bend * Math.sin(progress * Math.PI))
+                );
+            }
+            graphics.strokePath();
+        }
+
+        for (
+            let patchIndex = 0;
+            patchIndex < SANCTUARY_BACKGROUND_PATCH_COUNT;
+            patchIndex++
+        ) {
+            const x = Phaser.Math.Between(0, this.worldWidth);
+            const y = Phaser.Math.Between(0, backgroundHeight);
+            const width = Phaser.Math.Between(8, 34);
+            const color = patchIndex % 3 === 0 ? nebulaColor : rockColor;
+            graphics.fillStyle(color, patchIndex % 3 === 0 ? 0.05 : 0.07);
+            graphics.fillEllipse(x, y, width, Phaser.Math.Between(3, 10));
+        }
     }
 
     /**
@@ -2904,8 +10303,9 @@ class WorldBuilder {
         if (this.scene.textures.exists('enhancedFlower') && flowerCount > 0) {
             const flowerTints = this.getFlowerTints();
             for (let i = 0; i < flowerCount; i++) {
-                const x = Phaser.Math.Between(80, this.worldWidth - 80);
-                const y = Phaser.Math.Between(80, this.worldHeight - 80);
+                const position = this.findEnvironmentPosition(80, 36);
+                if (!position) continue;
+                const { x, y } = position;
                 const flower = flowers.create(x, y, 'enhancedFlower');
                 flower.setScale(Phaser.Math.FloatBetween(1.0, 1.5));
                 flower.body.setSize(15, 20);
@@ -2955,7 +10355,10 @@ class WorldBuilder {
      */
     getObjectCount(objectType) {
         const counts = {
-            nebula: { trees: 15, rocks: 30, flowers: 25 },
+            // The Sanctuary's landmarks and routes carry the visual hierarchy.
+            // Atmospheric particles keep it alive without turning scenery into
+            // dozens of competing collision silhouettes.
+            nebula: { trees: 0, rocks: 0, flowers: 8 },
             stellar_reef: { trees: 0, rocks: 20, flowers: 30 },
             crystal_caves: { trees: 5, rocks: 40, flowers: 15 },
             void_peaks: { trees: 8, rocks: 35, flowers: 10 },
@@ -3542,14 +10945,64 @@ class WorldBuilder {
     }
 
     destroy() {
+        this.sanctuaryDistricts?.flora?.forEach(entry => {
+            entry.tween?.stop?.();
+            entry.focusTween?.stop?.();
+            entry.grounding?.destroy?.();
+            entry.image?.destroy?.();
+        });
+        this.sanctuaryDistricts?.markers?.forEach(marker => {
+            marker.focusTween?.stop?.();
+            marker.labelTween?.stop?.();
+            marker.container?.destroy?.(true);
+        });
+        this.sanctuaryDistricts?.routes?.destroy?.();
+        this.sanctuaryDistricts?.terrain?.destroy?.();
+        this.sanctuaryDistricts = null;
+        this.sanctuaryCommons?.signalTweens?.forEach(tween => tween?.stop?.());
+        this.sanctuaryCommons?.signals?.forEach(signal => signal?.destroy?.());
+        this.sanctuaryCommons?.nodes?.forEach(node => node?.destroy?.());
+        this.sanctuaryCommons?.path?.destroy?.();
+        this.sanctuaryCommons?.terrain?.destroy?.();
+        this.sanctuaryCommons = null;
         this.villageHeart?.pulseTween?.stop?.();
+        this.villageHeart?.ecologyTween?.stop?.();
+        this.villageHeart?.heartArtworkTween?.stop?.();
+        this.villageHeart?.heartLifeTweens?.forEach(tween => tween?.stop?.());
+        this.villageHeart?.heartDeliveryTween?.stop?.();
+        this.villageHeart?.heartImprintDeliveryTween?.stop?.();
         this.villageHeart?.buildingTweens?.forEach(tween => tween?.stop?.());
+        this.villageHeart?.focusTweens?.forEach(tween => tween?.stop?.());
+        this.clearVillageCommunityMoment(this.villageHeart);
+        this.clearVillageDecisionMoment(this.villageHeart);
+        this.clearVillageWorkerCheckIn(this.villageHeart);
+        this.clearVillageArrivalReveal(this.villageHeart);
+        this.villageHeart?.productionTweens?.forEach(tween => tween?.stop?.());
+        this.villageHeart?.productionMoments?.forEach(
+            moment => moment?.destroy?.(true)
+        );
+        this.villageHeart?.activeBuildingMomentTween?.stop?.();
+        this.villageHeart?.activeBuildingMoment?.destroy?.(true);
         this.villageHeart?.buildingElements?.forEach(
             element => element?.destroy?.(true)
         );
         this.villageHeart?.zone?.destroy?.();
-        this.villageHeart?.heart?.destroy?.();
+        this.villageHeart?.collisionZone?.destroy?.();
+        this.villageHeart?.plotHitZones?.forEach(zone => zone?.destroy?.());
+        this.villageHeart?.districtTerrain?.destroy?.();
+        this.villageHeart?.currentPaths?.destroy?.();
+        this.villageHeart?.districtEcology?.destroy?.();
+        this.villageHeart?.districtPulse?.destroy?.();
+            this.villageHeart?.districtThresholds?.destroy?.();
+            this.villageHeart?.heart?.destroy?.();
+            this.villageHeart?.heartCaption?.destroy?.();
+            this.villageHeart?.heartArtwork?.destroy?.();
         this.villageHeart?.glow?.destroy?.();
+        this.villageHeart?.restorationRoots?.destroy?.();
+        Object.values(this.villageHeart?.heartLife || {}).forEach(
+            element => element?.destroy?.()
+        );
+        this.villageHeart?.actionLabel?.destroy?.();
         this.villageHeart?.label?.destroy?.();
         this.villageHeart?.statusLabel?.destroy?.();
         this.villageHeart = null;
@@ -3569,10 +11022,10 @@ class WorldBuilder {
         this.signalGarden?.guardianResidents?.forEach(resident => {
             resident.moveTween?.stop?.();
             resident.idleTween?.stop?.();
-                resident.routineTween?.stop?.();
-                resident.ambientTween?.stop?.();
-                resident.ambientTimer?.remove?.();
-                resident.routineTimer?.remove?.();
+            resident.routineTween?.stop?.();
+            resident.ambientTween?.stop?.();
+            resident.ambientTimer?.remove?.();
+            resident.routineTimer?.remove?.();
             resident.container?.destroy?.(true);
             resident.zone?.destroy?.();
         });

@@ -26,14 +26,14 @@
         "scrollFactor": 0.2
       },
       "floatingRocks": {
-        "enabled": true,
+        "enabled": false,
         "count": 8,
         "colors": ["#708090", "#696969", "#778899"],
         "crystalGlow": ["#9370DB", "#8A2BE2"],
         "scrollFactor": 0.4
       },
       "crystalFlora": {
-        "enabled": true,
+        "enabled": false,
         "count": 12,
         "colors": ["#40E0D0", "#48D1CC", "#20B2AA"],
         "scrollFactor": 0.6,

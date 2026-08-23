@@ -569,7 +569,7 @@ class GameStateManager {
                     lastContributionAt: null
                 },
                 village: {
-                    schemaVersion: 1,
+                    schemaVersion: 3,
                     foundedAt: null,
                     starterSuppliesClaimed: false,
                     guidanceSeen: false,
@@ -583,6 +583,7 @@ class GameStateManager {
                         stone: 0,
                         food: 0
                     },
+                    heartDecisions: [],
                     buildings: [],
                     history: [],
                     lastReconciledAt: null
@@ -620,11 +621,20 @@ class GameStateManager {
                     lastInteractionId: null,
                     lastInteractionAt: null
                 },
-                rescuedResidents: {
+                guardianOutcomes: {
                     schemaVersion: 1,
+                    records: {},
+                    history: []
+                },
+                rescuedResidents: {
+                    schemaVersion: 3,
                     rescuedIds: [],
                     interactions: {},
+                    residency: {},
                     rescueHistory: [],
+                    sanctuaryArrivalSeenIds: [],
+                    lastSanctuaryArrivalId: null,
+                    lastSanctuaryArrivalAt: null,
                     lastInteractionId: null,
                     lastInteractionAt: null
                 },

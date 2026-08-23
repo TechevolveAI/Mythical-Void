@@ -260,7 +260,10 @@ describe('first-session Project Beacon mission loop', () => {
             'this.mobileHUD?.setFocusMode?.(mobileFocusActive)'
         );
         expect(gameSceneSource).toContain(
-            'this.questTracker?.container?.setVisible?.(!mobileFocusActive)'
+            'firstContactActive || this.sanctuaryFocusModeActive'
+        );
+        expect(gameSceneSource).toContain(
+            'this.questTracker?.container?.setVisible?.(!interfaceFocusActive)'
         );
         expect(mobileHudSource).toContain('setFocusMode(active)');
         expect(mobileHudSource).toContain('this.focusModeActive');
@@ -723,6 +726,13 @@ describe('first-session Project Beacon mission loop', () => {
 
         expect(manager.panelVisible).toBe(true);
         expect(manager.panelElements).toHaveLength(13);
+        expect(manager.setFocusMode(true)).toBe(true);
+        expect(manager.panelVisible).toBe(false);
+        expect(manager.hintText.setVisible).toHaveBeenLastCalledWith(false);
+        expect(manager.togglePanel()).toBe(false);
+        expect(manager.setFocusMode(false)).toBe(false);
+        expect(manager.hintText.setVisible).toHaveBeenLastCalledWith(true);
+        manager.togglePanel();
         const closeButton = manager.panelElements[3];
         closeButton.handlers.pointerdown();
         expect(manager.panelVisible).toBe(false);
