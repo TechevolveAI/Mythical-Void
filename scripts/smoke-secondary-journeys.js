@@ -12560,13 +12560,10 @@ async function smokeVillageUi(session, exceptions) {
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('GameScene');
             const camera = scene?.cameras?.main;
-            const body = document.querySelector('.village-command-body');
             const zones = scene?.villageHeartLandmark?.plotHitZones || [];
             if (
                 !scene?.sanctuaryFocusModeActive ||
                 !camera ||
-                !body ||
-                body.clientHeight <= 0 ||
                 zones.length !== 5
             ) return false;
             return zones.every(zone => {

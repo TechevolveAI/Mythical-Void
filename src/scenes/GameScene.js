@@ -1874,6 +1874,8 @@ class GameScene extends Phaser.Scene {
         this.sanctuaryInteractionDirector = new SanctuaryInteractionDirector(this);
         this.nearVillageHeart = true;
         this.offerVillageHeartInteraction(previewSnapshot);
+        this.updateSanctuaryFocusMode(true);
+        this.applySanctuaryCameraFocus({ immediate: true });
         if (this.villageReturnPreview) {
             const summary = getSanctuaryReturnSummary({
                 previousVillage: {
@@ -1902,7 +1904,6 @@ class GameScene extends Phaser.Scene {
                 this.villageHeartLandmark,
                 summary
             );
-            this.applySanctuaryCameraFocus({ immediate: true });
             return;
         }
         this.openVillageCommand({ guided: false });
