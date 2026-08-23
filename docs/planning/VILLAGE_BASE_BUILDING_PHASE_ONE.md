@@ -171,6 +171,29 @@ their aesthetics: Pikmin makes base work visibly useful in the field, Astroneer
 exposes functional connections spatially, and Spiritfarer lets each improvement
 become an inhabited place with emotional meaning.
 
+### Sanctuary Living Current Guidance
+
+The Sanctuary has many useful destinations, but it presents only one contextual
+journey at a time. The existing Project Beacon waypoint is therefore the shared
+navigation director for story, settlement, and expedition flow. Its priority is:
+
+1. the active authored story mission
+2. the unrecovered field kit at Wanderer-77
+3. a newly awakened or decision-ready Village Heart
+4. the next ready or resumable expedition at the world gate
+
+An active non-spatial story scene intentionally suppresses lower-priority guidance.
+Village focus moments, the planner, the arrival reveal, and story dialogue suppress
+all navigation marks so two calls to action never compete.
+
+The Living Current uses three world-connected states rather than a rectangular HUD
+card: a short ground trail leaves the player's feet while travelling, an edge-safe
+ribbon names an off-screen destination, and a breathing threshold settles around
+the destination once it enters view. The ribbon respects phone safe areas and the
+threshold replaces it immediately after camera recentering. The same mobile journey
+contract verifies actual movement through the settlement district, Signal Garden,
+and hub gate, preserving one legible route across the Sanctuary's systems.
+
 ## 7. Gameplay Impact Contract
 
 Every completed building changes another established game loop:

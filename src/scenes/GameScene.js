@@ -78,6 +78,7 @@ import {
 } from '../systems/FendCulture.js';
 import ExpeditionAstronaut from '../systems/ExpeditionAstronaut.js';
 import ProjectBeaconWaypoint from '../systems/ui/ProjectBeaconWaypoint.js';
+import { getCampaignJourneyStep } from '../systems/CampaignJourneyGuide.js';
 import ProjectBeaconLogModal from '../ui/ProjectBeaconLogModal.js';
 import SettingsModal from '../ui/SettingsModal.js';
 import KatanaArtifactModal, { prefetchKatanaArtifactArtwork } from '../ui/KatanaArtifactModal.js';
@@ -1362,7 +1363,9 @@ class GameScene extends Phaser.Scene {
 
             // Spawn collectibles in the world
             this.spawnWorldCollectibles();
-            this.projectBeaconWaypoint = new ProjectBeaconWaypoint(this);
+            this.projectBeaconWaypoint = new ProjectBeaconWaypoint(this, {
+                campaignStepProvider: () => getCampaignJourneyStep(window.GameState)
+            });
             this.projectBeaconWaypoint.create();
 
             // Initialize Kid Mode features if enabled
@@ -2689,17 +2692,30 @@ class GameScene extends Phaser.Scene {
         };
 
         const isSignalPreview = this.waypointPreview === 'signals';
-        const targetX = isSignalPreview ? width + 450 : width * 0.77;
-        const targetY = isSignalPreview ? height * 0.34 : height * 0.46;
+        const isVillagePreview = this.waypointPreview === 'village';
+        const isExpeditionPreview = this.waypointPreview === 'expedition';
+        const targetOffscreen = isSignalPreview || isExpeditionPreview;
+        const targetX = targetOffscreen ? width + 450 : width * 0.77;
+        const targetY = targetOffscreen ? height * 0.34 : height * 0.46;
         const target = { x: targetX, y: targetY, active: true, collected: false };
-        this.crashedShip = target;
-        this.hubPortal = target;
+        this.crashedShip = isVillagePreview || isExpeditionPreview ? null : target;
+        this.hubPortal = isExpeditionPreview ? target : null;
+        this.villageHeartLandmark = isVillagePreview
+            ? {
+                zone: target,
+                snapshot: {
+                    unlock: { unlocked: true },
+                    state: { guidanceSeen: false },
+                    worldState: { nextAction: { type: 'build' } }
+                }
+            }
+            : null;
         this.collectibles = [];
         this.livingSignals = isSignalPreview
             ? [{ ...target, observed: false, signalId: 'preview_signal' }]
             : [];
 
-        if (!isSignalPreview) {
+        if (!targetOffscreen && !isVillagePreview) {
             const ship = this.add.graphics();
             ship.fillStyle(0xBFCBD0, 1);
             ship.fillRoundedRect(targetX - 65, targetY - 22, 130, 44, 12);
@@ -2710,14 +2726,35 @@ class GameScene extends Phaser.Scene {
             this.waypointPreviewElements.push(ship);
         }
 
-        const mission = {
-            id: isSignalPreview ? 'beacon_living_signals' : 'beacon_field_kit',
-            type: 'story',
-            completed: false,
-            claimed: false
-        };
+        if (isVillagePreview) {
+            const heart = this.add.graphics();
+            heart.fillStyle(0x071411, 0.92);
+            heart.fillEllipse(targetX, targetY + 14, 118, 34);
+            heart.lineStyle(3, 0x71E6B1, 0.9);
+            heart.strokeEllipse(targetX, targetY + 14, 106, 28);
+            heart.lineStyle(3, 0xF2C14E, 0.88);
+            heart.lineBetween(targetX, targetY + 4, targetX, targetY - 42);
+            heart.lineStyle(2, 0x71E6B1, 0.82);
+            heart.lineBetween(targetX, targetY - 24, targetX - 24, targetY - 37);
+            heart.lineBetween(targetX, targetY - 16, targetX + 27, targetY - 31);
+            heart.fillStyle(0xF4F4F4, 0.94);
+            heart.fillCircle(targetX, targetY - 44, 5);
+            this.waypointPreviewElements.push(heart);
+        }
+
+        const mission = isVillagePreview || isExpeditionPreview
+            ? null
+            : {
+                id: isSignalPreview ? 'beacon_living_signals' : 'beacon_field_kit',
+                type: 'story',
+                completed: false,
+                claimed: false
+            };
         this.projectBeaconWaypoint = new ProjectBeaconWaypoint(this, {
-            questProvider: () => mission
+            questProvider: () => mission,
+            campaignStepProvider: () => isExpeditionPreview
+                ? { status: 'ready', label: 'Mythical Forest' }
+                : null
         });
         this.projectBeaconWaypoint.create();
         this.projectBeaconWaypoint.update(16.67);

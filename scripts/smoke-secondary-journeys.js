@@ -12418,6 +12418,152 @@ async function smokeVillageUi(session, exceptions) {
     ) {
         throw new Error(`Sanctuary landmark prompts failed: ${JSON.stringify(landmarkPrompts)}`);
     }
+    const sanctuaryGuidance = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const guide = scene.projectBeaconWaypoint;
+        const landmark = scene.villageHeartLandmark;
+        const camera = scene.cameras.main;
+        const originalSnapshot = landmark.snapshot;
+        scene.__smokeGuidanceSnapshot = originalSnapshot;
+        window.GameState.set('story.projectBeacon.fieldKit.recovered', true);
+        guide.questProvider = () => null;
+        guide.campaignStepProvider = () => ({
+            status: 'ready',
+            label: 'Mythical Forest'
+        });
+        guide.refreshTarget();
+        guide.update(400);
+        const decision = {
+            missionId: guide.currentTarget?.missionId,
+            label: guide.currentTarget?.label,
+            source: guide.currentTarget?.source,
+            targetsHeart: guide.currentTarget?.target === landmark.zone
+        };
+        scene.updateSanctuaryFocusMode(true);
+        guide.update(16.67);
+        const focusSuppression = {
+            hudHidden: guide.hudContainer?.visible === false,
+            worldHidden: guide.worldContainer?.visible === false,
+            trailHidden: guide.trailContainer?.visible === false
+        };
+        scene.nearVillageHeart = false;
+        scene.updateSanctuaryFocusMode(false);
+        landmark.snapshot = {
+            ...originalSnapshot,
+            worldState: {
+                ...(originalSnapshot.worldState || {}),
+                nextAction: { type: 'review', label: 'SETTLEMENT ONLINE' }
+            }
+        };
+        guide.refreshTarget();
+
+        const moveTo = (id, target) => {
+            scene.player.setPosition(target.x, target.y);
+            scene.player.body?.reset?.(target.x, target.y);
+            scene.player.body?.setVelocity?.(0, 0);
+            camera.stopFollow();
+            camera.centerOn(target.x, target.y);
+            scene.currentSanctuaryZoneId = null;
+            scene.trackSanctuaryZoneVisit();
+            guide.update(400);
+            const hudBounds = guide.hudLabel?.getBounds?.();
+            return {
+                id,
+                zoneId: scene.currentSanctuaryZoneId,
+                districtZoneId: scene.sanctuaryDistricts?.activeZoneId,
+                missionId: guide.currentTarget?.missionId,
+                label: guide.currentTarget?.label,
+                source: guide.currentTarget?.source,
+                hudVisible: guide.hudContainer?.visible === true,
+                worldVisible: guide.worldContainer?.visible === true,
+                trailVisible: guide.trailContainer?.visible === true,
+                trailLanguage: guide.trailContainer?.getData?.('waypointVisualLanguage'),
+                edgeLanguage: guide.hudRail?.getData?.('waypointVisualLanguage'),
+                thresholdMaterial: guide.worldRing?.getData?.('waypointThresholdMaterial'),
+                hudBounds: hudBounds ? {
+                    left: hudBounds.left,
+                    right: hudBounds.right,
+                    top: hudBounds.top,
+                    bottom: hudBounds.bottom
+                } : null
+            };
+        };
+        const steps = [
+            moveTo('heart', landmark.zone),
+            moveTo('garden', scene.signalGarden.zone),
+            moveTo('portal', scene.hubPortal)
+        ];
+        moveTo('garden_capture', scene.signalGarden.zone);
+        return {
+            decision,
+            focusSuppression,
+            steps,
+            viewport: {
+                width: camera.width,
+                height: camera.height
+            }
+        };
+    })()`);
+    if (
+        sanctuaryGuidance.decision.missionId !== 'sanctuary_heart_choice' ||
+        sanctuaryGuidance.decision.label !== 'HEART CHOICE READY' ||
+        sanctuaryGuidance.decision.source !== 'sanctuary' ||
+        !sanctuaryGuidance.decision.targetsHeart ||
+        !sanctuaryGuidance.focusSuppression.hudHidden ||
+        !sanctuaryGuidance.focusSuppression.worldHidden ||
+        !sanctuaryGuidance.focusSuppression.trailHidden ||
+        sanctuaryGuidance.steps.map(step => step.zoneId).join(',') !==
+            'settlementDistrict,gardenPlot,hubGate' ||
+        sanctuaryGuidance.steps.some(step => (
+            step.zoneId !== step.districtZoneId ||
+            step.missionId !== 'sanctuary_ready_expedition' ||
+            step.label !== 'NEXT · MYTHICAL FOREST' ||
+            step.source !== 'sanctuary' ||
+            step.trailLanguage !== 'player_current_trail_v1' ||
+            step.edgeLanguage !== 'living_current_edge_ribbon_v2' ||
+            step.thresholdMaterial !== 'living_current_threshold_v1'
+        )) ||
+        sanctuaryGuidance.steps.slice(0, 2).some(step => (
+            !step.trailVisible ||
+            (
+                SMOKE_VIEWPORT_WIDTH <= 600 &&
+                (
+                    !step.hudVisible ||
+                    step.worldVisible ||
+                    !step.hudBounds ||
+                    step.hudBounds.left < -1 ||
+                    step.hudBounds.right > sanctuaryGuidance.viewport.width + 1 ||
+                    step.hudBounds.top < -1 ||
+                    step.hudBounds.bottom > sanctuaryGuidance.viewport.height + 1
+                )
+            )
+        )) ||
+        sanctuaryGuidance.steps[2].hudVisible ||
+        !sanctuaryGuidance.steps[2].worldVisible ||
+        sanctuaryGuidance.steps[2].trailVisible
+    ) {
+        throw new Error(
+            `Living Current Sanctuary guidance failed: ${JSON.stringify(sanctuaryGuidance)}`
+        );
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-current-guidance-mobile.png'
+            : 'village-current-guidance-desktop.png'
+    );
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene.villageHeartLandmark;
+        landmark.snapshot = scene.__smokeGuidanceSnapshot;
+        scene.__smokeGuidanceSnapshot = null;
+        scene.player.setPosition(landmark.zone.x, landmark.zone.y);
+        scene.player.body?.reset?.(landmark.zone.x, landmark.zone.y);
+        scene.restorePlayerCameraFollow();
+        scene.projectBeaconWaypoint.refreshTarget();
+        scene.offerVillageHeartInteraction(landmark.snapshot);
+        return true;
+    })()`);
     await captureGameplayStill(
         session,
         SMOKE_VIEWPORT_WIDTH <= 600

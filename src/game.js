@@ -1361,7 +1361,10 @@ async function initializeGame() {
         }
 
         const testWaypoint = urlParams.get('testWaypoint');
-        if (isLocalPreview && ['fieldKit', 'signals'].includes(testWaypoint)) {
+        if (
+            isLocalPreview &&
+            ['fieldKit', 'signals', 'village', 'expedition'].includes(testWaypoint)
+        ) {
             game.events.once('ready', () => {
                 setTimeout(() => {
                     game.scene.start('GameScene', { waypointPreview: testWaypoint });
