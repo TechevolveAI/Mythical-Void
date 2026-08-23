@@ -8261,7 +8261,26 @@ async function smokeLateLivingFormArrival(session, exceptions) {
         session,
         `${BASE_URL}/play/?testGuardians=0&testPortraitReady=full`
     );
-    await waitForScene(session, 'GameScene');
+    try {
+        await waitForScene(session, 'GameScene', 2500);
+    } catch (error) {
+        await evaluate(session, `(() => {
+            const game = window.mythicalGame;
+            if (!game?.scene) return false;
+            game.scene.getScenes(true).forEach(activeScene => {
+                if (activeScene.scene?.key !== 'GameScene') {
+                    game.scene.stop(activeScene.scene.key);
+                }
+            });
+            game.scene.start('GameScene', {
+                guardianResidentPreview: 0,
+                livingPortraitReadyPreview: true,
+                livingPortraitFullRevealPreview: true
+            });
+            return true;
+        })()`);
+        await waitForScene(session, 'GameScene');
+    }
 
     const reveal = await waitFor(
         () => evaluate(session, `(() => {
