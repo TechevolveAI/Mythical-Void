@@ -16438,6 +16438,15 @@ async function smokeVillageUi(session, exceptions) {
             ?.getPendingRescuedResidentArrival?.(state) || null;
         const gardenResidentIds = scene.signalGarden?.rescuedResidents
             ?.map(entry => entry.id) || [];
+        const presenceModel = scene.signalGarden?.zone?.getData?.(
+            'rescuedResidentPresenceModel'
+        );
+        const visibleResidentIds = scene.signalGarden?.zone?.getData?.(
+            'rescuedResidentVisibleIds'
+        ) || [];
+        const relocations = scene.signalGarden?.zone?.getData?.(
+            'rescuedResidentRelocations'
+        ) || [];
         const blocked = scene.isRescuedResidentArrivalBlocked?.();
         const played = scene.playRescuedResidentArrival({ force: true });
         const arrival = scene.signalGarden?.rescuedResidentArrival;
@@ -16447,6 +16456,9 @@ async function smokeVillageUi(session, exceptions) {
             pendingId: pending?.id || null,
             rescueHistory: state.get('world.rescuedResidents.rescueHistory') || [],
             gardenResidentIds,
+            presenceModel,
+            visibleResidentIds,
+            relocations,
             blocked,
             worldMethod: typeof scene.worldBuilder?.playRescuedResidentArrival,
             textureLoaded: scene.textures.exists('rescued-resident-bloom-art'),
@@ -16455,6 +16467,8 @@ async function smokeVillageUi(session, exceptions) {
             residentName: reveal?.getData?.('residentName'),
             residentRole: reveal?.getData?.('residentRole'),
             location: reveal?.getData?.('residentLocation'),
+            nextLocation: reveal?.getData?.('residentNextLocation'),
+            nextLocationLabel: reveal?.getData?.('residentNextLocationLabel'),
             communityStatus: reveal?.getData?.('residentCommunityStatus'),
             contribution: reveal?.getData?.('residentContribution'),
             authoredPortraitVisible: reveal?.getData?.('authoredPortraitVisible'),
@@ -16478,6 +16492,15 @@ async function smokeVillageUi(session, exceptions) {
         rescuedArrival.residentName !== 'Bloom' ||
         rescuedArrival.residentRole !== 'Root Forager' ||
         rescuedArrival.location !== 'signal_garden' ||
+        rescuedArrival.nextLocation !== 'work' ||
+        rescuedArrival.nextLocationLabel !== 'FORAGE' ||
+        rescuedArrival.presenceModel !== 'single_world_location_v2' ||
+        rescuedArrival.gardenResidentIds.join(',') !== 'bloom' ||
+        rescuedArrival.visibleResidentIds.join(',') !== 'bloom' ||
+        rescuedArrival.relocations.length !== 2 ||
+        rescuedArrival.relocations.some(entry => (
+            !['pebble', 'zephyr'].includes(entry.id) || entry.location !== 'work'
+        )) ||
         rescuedArrival.communityStatus !== 'sanctuary_resident' ||
         !rescuedArrival.contribution?.includes('regrow') ||
         rescuedArrival.authoredPortraitVisible !== true ||
@@ -16487,6 +16510,7 @@ async function smokeVillageUi(session, exceptions) {
         rescuedArrival.skippable !== true ||
         !rescuedArrival.ariaLabel?.includes('joined the Sanctuary') ||
         !rescuedArrival.ariaLabel?.includes('Sanctuary resident') ||
+        !rescuedArrival.ariaLabel?.includes('will report to FORAGE') ||
         rescuedArrival.controlsSuspended !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
         !rescuedArrival.inputShield ||
         rescuedArrival.cameraFollowingPlayer ||
@@ -16507,6 +16531,14 @@ async function smokeVillageUi(session, exceptions) {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const finished = scene.finishRescuedResidentArrival({ skipped: false });
         const saved = window.GameState.get('world.rescuedResidents');
+        const visibleResidentIds = scene.signalGarden?.zone?.getData?.(
+            'rescuedResidentVisibleIds'
+        ) || [];
+        const relocations = scene.signalGarden?.zone?.getData?.(
+            'rescuedResidentRelocations'
+        ) || [];
+        const bloomWorkers = (scene.villageHeartLandmark?.workerElements || [])
+            .filter(worker => worker?.getData?.('creatureId') === 'bloom');
         return {
             finished,
             active: scene.rescuedResidentArrivalActive,
@@ -16516,7 +16548,13 @@ async function smokeVillageUi(session, exceptions) {
             focusActive: scene.sanctuaryFocusModeActive === true,
             cameraTarget: scene.sanctuaryCameraFocusTarget,
             seenIds: saved?.sanctuaryArrivalSeenIds || [],
-            lastArrivalId: saved?.lastSanctuaryArrivalId || null
+            lastArrivalId: saved?.lastSanctuaryArrivalId || null,
+            visibleResidentIds,
+            relocations,
+            bloomWorkerCount: bloomWorkers.length,
+            bloomStillInGarden: scene.signalGarden?.rescuedResidents?.some(
+                entry => entry.id === 'bloom'
+            ) === true
         };
     })()`);
     const staleResidentArrivalCamera = Boolean(
@@ -16540,54 +16578,56 @@ async function smokeVillageUi(session, exceptions) {
             !staleResidentArrivalCamera
         ) ||
         !rescuedArrivalRecovery.seenIds.includes('bloom') ||
-        rescuedArrivalRecovery.lastArrivalId !== 'bloom'
+        rescuedArrivalRecovery.lastArrivalId !== 'bloom' ||
+        rescuedArrivalRecovery.visibleResidentIds.join(',') !== 'pebble' ||
+        rescuedArrivalRecovery.relocations.length !== 2 ||
+        !rescuedArrivalRecovery.relocations.some(entry => entry.id === 'bloom') ||
+        rescuedArrivalRecovery.bloomWorkerCount !== 1 ||
+        rescuedArrivalRecovery.bloomStillInGarden
     ) {
         throw new Error(
             `Village rescued arrival recovery failed: ${JSON.stringify(rescuedArrivalRecovery)}`
         );
     }
 
-    const rescuedConversation = await evaluate(session, `(() => {
+    const rescuedWorkCheckIn = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
-        scene.nearRescuedResidentId = 'bloom';
-        scene.interactWithRescuedResident();
+        const played = scene.showVillageWorkerCheckIn({ creatureId: 'bloom' });
+        const checkIn = scene.villageHeartLandmark?.activeWorkerCheckIn;
         return {
-            open: scene.rescuedResidentExchangeOpen === true,
-            authoredPortraitCount: (scene.rescuedResidentExchangeElements || [])
-                .filter(element => element?.getData?.(
-                    'rescuedResidentAuthoredPortrait'
-                ) === true).length,
-            portraitFrameCount: (scene.rescuedResidentExchangeElements || [])
-                .filter(element => element?.getData?.(
-                    'rescuedResidentPortraitFrame'
-                ) === true).length,
-            text: (scene.rescuedResidentExchangeElements || [])
-                .map(element => element?.text || '')
-                .filter(Boolean)
-                .join(' | ')
+            played,
+            helperName: checkIn?.getData?.('helperName'),
+            buildingId: checkIn?.getData?.('buildingId'),
+            routineCue: checkIn?.getData?.('routineCue'),
+            impact: checkIn?.getData?.('impact'),
+            bloomInGarden: scene.signalGarden?.rescuedResidents?.some(
+                entry => entry.id === 'bloom'
+            ) === true
         };
     })()`);
     if (
-        !rescuedConversation.open ||
-        rescuedConversation.authoredPortraitCount !== 1 ||
-        rescuedConversation.portraitFrameCount !== 1 ||
-        !rescuedConversation.text.includes('LIVES IN THE SIGNAL GARDEN') ||
-        !rescuedConversation.text.includes('ROOT FORAGER') ||
-        !rescuedConversation.text.includes('THEIR WORK CHANGES THE NEXT EXPEDITION')
+        !rescuedWorkCheckIn.played ||
+        rescuedWorkCheckIn.helperName !== 'Bloom' ||
+        rescuedWorkCheckIn.buildingId !== 'forager_hut' ||
+        !rescuedWorkCheckIn.routineCue ||
+        !rescuedWorkCheckIn.impact ||
+        rescuedWorkCheckIn.bloomInGarden
     ) {
         throw new Error(
-            `Village rescued conversation failed: ${JSON.stringify(rescuedConversation)}`
+            `Village rescued work presence failed: ${JSON.stringify(rescuedWorkCheckIn)}`
         );
     }
     await captureGameplayStill(
         session,
         SMOKE_VIEWPORT_WIDTH <= 600
-            ? 'village-rescued-conversation-mobile.png'
-            : 'village-rescued-conversation-desktop.png'
+            ? 'village-rescued-work-check-in-mobile.png'
+            : 'village-rescued-work-check-in-desktop.png'
     );
     await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
-        scene.rescuedResidentExchangeElements?.[0]?.emit?.('pointerup');
+        scene.worldBuilder?.clearVillageWorkerCheckIn?.(
+            scene.villageHeartLandmark
+        );
         return true;
     })()`);
 
@@ -16621,7 +16661,7 @@ async function smokeVillageUi(session, exceptions) {
         rescuedRosterPanel,
         rescuedArrival,
         rescuedArrivalRecovery,
-        rescuedConversation,
+        rescuedWorkCheckIn,
         directWorldTap,
         controlDetection,
         interaction

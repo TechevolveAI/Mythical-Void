@@ -25,10 +25,13 @@ describe('rescued resident gameplay contract', () => {
     });
 
     test('spawns persistent residents with moving interaction zones', () => {
-        expect(worldBuilder).toContain('refreshRescuedResidents(garden, snapshot = null)');
+        expect(worldBuilder).toContain('refreshRescuedResidents(garden, snapshot = null, {');
         expect(worldBuilder).toContain('zone.rescuedResidentId = definition.id');
         expect(worldBuilder).toContain("'COMMUNITY'");
         expect(worldBuilder).toContain('zone.body?.updateFromGameObject?.()');
+        expect(worldBuilder).toContain("'single_world_location_v2'");
+        expect(worldBuilder).toContain('presence.representedInVillage && !arrivalPending');
+        expect(gameScene).toContain('this.refreshSanctuaryResidentPresence(nextSnapshot);');
         expect(gameState).toContain('rescuedResidents: {');
         expect(globalInit).toContain("import './systems/RescuedResidents.js'");
     });

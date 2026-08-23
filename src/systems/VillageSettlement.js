@@ -1388,6 +1388,62 @@ export function getVillageResidentRoutinePlan(snapshot = {}) {
     });
 }
 
+export function getVillageResidentWorldPresence(snapshot = {}, residentId = null) {
+    if (!residentId) {
+        return {
+            residentId: null,
+            location: 'signal_garden',
+            locationLabel: 'SIGNAL GARDEN',
+            representedInVillage: false
+        };
+    }
+    const routine = snapshot?.residentRoutines?.find(
+        entry => entry.residentId === residentId
+    ) || null;
+    const assignedBuilding = snapshot?.buildings?.find(building => (
+        building.status === 'complete' &&
+        building.assignedCreatureId === residentId &&
+        building.creature?.id === residentId
+    )) || null;
+    if (assignedBuilding) {
+        return {
+            residentId,
+            location: 'work',
+            locationLabel: assignedBuilding.definition?.shortLabel ||
+                assignedBuilding.definition?.label ||
+                'VILLAGE WORK',
+            representedInVillage: true,
+            buildingId: assignedBuilding.id,
+            definitionId: assignedBuilding.definitionId,
+            plotId: assignedBuilding.plotId
+        };
+    }
+    if (routine?.location === 'commons') {
+        return {
+            residentId,
+            location: 'heart',
+            locationLabel: 'VILLAGE HEART',
+            representedInVillage: true,
+            route: routine.route
+        };
+    }
+    if (routine?.location === 'home') {
+        return {
+            residentId,
+            location: 'home',
+            locationLabel: 'SHARED HABITAT',
+            representedInVillage: true,
+            plotId: snapshot?.home?.plotId || null
+        };
+    }
+    return {
+        residentId,
+        location: 'signal_garden',
+        locationLabel: 'SIGNAL GARDEN',
+        representedInVillage: false
+    };
+}
+
 export function getVillageCommunityMoments({ buildings = [] } = {}) {
     const completeByDefinition = new Map(
         buildings

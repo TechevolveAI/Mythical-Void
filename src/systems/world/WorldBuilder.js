@@ -11,6 +11,7 @@ import { CURRENT_VEIL_ANCHORS } from '../CurrentVeilMission.js';
 import { getFusionPodLandmarkSnapshot } from '../FusionPodLandmark.js';
 import {
     getVillageGrowthProfile,
+    getVillageResidentWorldPresence,
     getVillageSnapshot,
     VILLAGE_BUILDING_DEFINITIONS,
     VILLAGE_PLOTS,
@@ -8127,7 +8128,12 @@ class WorldBuilder {
                 window.GameState
             )
             : null;
-        this.refreshRescuedResidents(garden, rescuedResidentSnapshot);
+        const villageSnapshot = typeof window !== 'undefined'
+            ? getVillageSnapshot(window.GameState)
+            : null;
+        this.refreshRescuedResidents(garden, rescuedResidentSnapshot, {
+            villageSnapshot
+        });
         const cultureSnapshot = typeof window !== 'undefined'
             ? window.FendCulture?.getFendCultureSnapshot?.(window.GameState)
             : null;
@@ -8773,8 +8779,15 @@ class WorldBuilder {
         this.startGuardianResidentSocialMoments(garden);
     }
 
-    refreshRescuedResidents(garden, snapshot = null) {
+    refreshRescuedResidents(garden, snapshot = null, {
+        villageSnapshot = null
+    } = {}) {
         if (!garden?.zone) return;
+        const resolvedVillageSnapshot = villageSnapshot || (
+            typeof window !== 'undefined' && window.GameState
+                ? getVillageSnapshot(window.GameState)
+                : null
+        );
         this.clearRescuedResidentArrival(garden);
         garden.rescuedResidents?.forEach(resident => {
             resident.moveTween?.stop?.();
@@ -8787,6 +8800,23 @@ class WorldBuilder {
         const rescuedIds = new Set(
             snapshot?.rescued?.map(resident => resident.id) || []
         );
+        const arrivalSeenIds = new Set(
+            snapshot?.state?.sanctuaryArrivalSeenIds || []
+        );
+        const pendingArrivalId = snapshot?.rescued?.find(
+            resident => !arrivalSeenIds.has(resident.id)
+        )?.id || null;
+        const presenceByResident = new Map(
+            (snapshot?.rescued || []).map(resident => [
+                resident.id,
+                getVillageResidentWorldPresence(
+                    resolvedVillageSnapshot,
+                    resident.id
+                )
+            ])
+        );
+        const visibleResidentIds = [];
+        const relocatedResidents = [];
         const compact = this.worldWidth < 900 ||
             (this.worldWidth - garden.zone.x) < 1250;
         const positions = compact
@@ -8795,6 +8825,18 @@ class WorldBuilder {
 
         RESCUED_RESIDENT_DEFINITIONS.forEach((definition, index) => {
             if (!rescuedIds.has(definition.id)) return;
+            const presence = presenceByResident.get(definition.id) ||
+                getVillageResidentWorldPresence(null, definition.id);
+            const arrivalPending = definition.id === pendingArrivalId;
+            if (presence.representedInVillage && !arrivalPending) {
+                relocatedResidents.push({
+                    id: definition.id,
+                    location: presence.location,
+                    locationLabel: presence.locationLabel
+                });
+                return;
+            }
+            visibleResidentIds.push(definition.id);
             const [offsetX, offsetY] = positions[index];
             const startX = Math.max(62, Math.min(
                 this.worldWidth - 62,
@@ -8853,6 +8895,12 @@ class WorldBuilder {
                 padding: { x: 5, y: 2 }
             }).setOrigin(0.5);
             container.add([shadow, figure, name, role, marker]);
+            container
+                .setData('residentWorldLocation', 'signal_garden')
+                .setData('residentArrivalPending', arrivalPending)
+                .setData('residentNextLocation', presence.location)
+                .setData('residentNextLocationLabel', presence.locationLabel)
+                .setData('residentPresenceModel', 'single_world_location_v2');
 
             const zone = this.scene.add.zone(startX, startY, 82, 92);
             this.scene.physics.add.existing(zone, true);
@@ -8895,6 +8943,11 @@ class WorldBuilder {
             });
             garden.rescuedResidents.push(entry);
         });
+        garden.zone
+            ?.setData('rescuedResidentPresenceModel', 'single_world_location_v2')
+            .setData('rescuedResidentVisibleIds', visibleResidentIds)
+            .setData('rescuedResidentRelocations', relocatedResidents)
+            .setData('rescuedResidentPendingArrivalId', pendingArrivalId);
     }
 
     playRescuedResidentArrival(garden, resident, { duration = 5200 } = {}) {
@@ -8997,12 +9050,18 @@ class WorldBuilder {
                 wordWrap: { width: compact ? 270 : 360 }
             }
         ).setOrigin(0.5);
+        const nextLocationLabel = entry.container.getData('residentNextLocationLabel');
+        const nextLocation = entry.container.getData('residentNextLocation');
         const guidance = this.scene.add.text(
             0,
             compact ? 164 : 192,
-            compact
-                ? `FIND ${resident.name.toUpperCase()} AT SIGNAL GARDEN\nTAP TO CONTINUE`
-                : `FIND ${resident.name.toUpperCase()} AT THE SIGNAL GARDEN · CLICK TO CONTINUE`,
+            nextLocation !== 'signal_garden'
+                ? compact
+                    ? `${resident.name.toUpperCase()} WILL REPORT TO ${nextLocationLabel}\nTAP TO CONTINUE`
+                    : `${resident.name.toUpperCase()} WILL REPORT TO ${nextLocationLabel} · CLICK TO CONTINUE`
+                : compact
+                    ? `FIND ${resident.name.toUpperCase()} AT SIGNAL GARDEN\nTAP TO CONTINUE`
+                    : `FIND ${resident.name.toUpperCase()} AT THE SIGNAL GARDEN · CLICK TO CONTINUE`,
             {
                 fontSize: compact ? '9px' : '10px',
                 fontFamily: 'Arial, sans-serif',
@@ -9032,6 +9091,8 @@ class WorldBuilder {
             .setData('residentName', resident.name)
             .setData('residentRole', resident.role)
             .setData('residentLocation', 'signal_garden')
+            .setData('residentNextLocation', nextLocation)
+            .setData('residentNextLocationLabel', nextLocationLabel)
             .setData('residentCommunityStatus', 'sanctuary_resident')
             .setData('residentContribution', resident.contributionLine)
             .setData('authoredPortraitVisible', Boolean(portrait))
@@ -9042,7 +9103,11 @@ class WorldBuilder {
             .setData(
                 'ariaLabel',
                 `${resident.name} joined the Sanctuary. Sanctuary resident, ${resident.role}. ` +
-                    `${resident.contributionLine} Find ${resident.name} at the Signal Garden. Tap to continue.`
+                    `${resident.contributionLine} ${
+                        nextLocation !== 'signal_garden'
+                            ? `${resident.name} will report to ${nextLocationLabel}.`
+                            : `Find ${resident.name} at the Signal Garden.`
+                    } Tap to continue.`
             );
         entry.figure?.setAlpha?.(0.18);
         entry.nameLabel?.setAlpha?.(0);

@@ -47,6 +47,7 @@ function loadVillageSettlement() {
                 reconcileVillageSettlement,
                 getVillageHomeProfile,
                 getVillageResidentRoutinePlan,
+                getVillageResidentWorldPresence,
                 getVillageCommunityMoments,
                 getVillageCommunityMoment,
                 getVillageHeartDecisionState,
@@ -742,6 +743,62 @@ describe('Village settlement phase one', () => {
             })
         ]);
         expect(new Set(routines.map(routine => routine.residentId)).size).toBe(3);
+    });
+
+    test('resident world presence resolves to exactly one Sanctuary location', () => {
+        const definitions = new Map(
+            village.VILLAGE_BUILDING_DEFINITIONS.map(definition => [definition.id, definition])
+        );
+        const snapshot = {
+            home: { plotId: 'root_04' },
+            buildings: [{
+                id: 'forager_hut:root_01',
+                definitionId: 'forager_hut',
+                definition: definitions.get('forager_hut'),
+                plotId: 'root_01',
+                status: 'complete',
+                assignedCreatureId: 'bloom',
+                creature: { id: 'bloom', name: 'Bloom' }
+            }],
+            residentRoutines: [
+                {
+                    residentId: 'nova',
+                    location: 'commons',
+                    route: 'home_to_commons'
+                },
+                {
+                    residentId: 'ember',
+                    location: 'home',
+                    route: 'resting_at_home'
+                }
+            ]
+        };
+
+        expect(village.getVillageResidentWorldPresence(snapshot, 'bloom'))
+            .toEqual(expect.objectContaining({
+                location: 'work',
+                locationLabel: 'FORAGE',
+                representedInVillage: true,
+                plotId: 'root_01'
+            }));
+        expect(village.getVillageResidentWorldPresence(snapshot, 'nova'))
+            .toEqual(expect.objectContaining({
+                location: 'heart',
+                locationLabel: 'VILLAGE HEART',
+                representedInVillage: true
+            }));
+        expect(village.getVillageResidentWorldPresence(snapshot, 'ember'))
+            .toEqual(expect.objectContaining({
+                location: 'home',
+                locationLabel: 'SHARED HABITAT',
+                representedInVillage: true
+            }));
+        expect(village.getVillageResidentWorldPresence(snapshot, 'pebble'))
+            .toEqual(expect.objectContaining({
+                location: 'signal_garden',
+                locationLabel: 'SIGNAL GARDEN',
+                representedInVillage: false
+            }));
     });
 
     test('community moments require real distinct assigned companions', () => {

@@ -45,7 +45,7 @@ describe('Guardian resident gameplay contract', () => {
         expect(worldBuilder).toContain("? 'HEART ECHO'");
         expect(worldBuilder).toContain(".setData('guardianSanctuaryPresence', heartProjection ? 'heart_projection' : 'none')");
         expect(worldBuilder).toContain(".setData('guardianCommunityStatus', heartProjection ? 'heart_echo' : 'region_bound')");
-        expect(worldBuilder).toContain('refreshRescuedResidents(garden, snapshot = null)');
+        expect(worldBuilder).toContain('refreshRescuedResidents(garden, snapshot = null, {');
         expect(worldBuilder).toContain('this.scene.add.image(0, -3, definition.textureKey)');
         expect(worldBuilder).toContain('zone.guardianResidentId = definition.id');
         expect(worldBuilder).toContain('zone.body?.updateFromGameObject?.()');

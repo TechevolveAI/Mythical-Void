@@ -139,6 +139,7 @@ import {
     assignCreatureToVillageBuilding,
     getVillageCommunityMoment,
     getVillageHeartMemory,
+    getVillageResidentWorldPresence,
     getVillageReturnRitual,
     getVillageSnapshot,
     getVillageWorkerCheckIn,
@@ -5427,16 +5428,24 @@ class GameScene extends Phaser.Scene {
         );
         if (!entry?.container) return false;
         const duration = 5200;
+        const residentPresence = getVillageResidentWorldPresence(
+            getVillageSnapshot(window.GameState),
+            resident.id
+        );
+        const arrivalResident = {
+            ...resident,
+            sanctuaryPresence: residentPresence
+        };
         if (!this.worldBuilder.playRescuedResidentArrival(
             this.signalGarden,
-            resident,
+            arrivalResident,
             { duration }
         )) {
             return false;
         }
 
         this.rescuedResidentArrivalActive = true;
-        this.rescuedResidentArrivalResident = resident;
+        this.rescuedResidentArrivalResident = arrivalResident;
         this.rescuedResidentArrivalPreviousFocus =
             this.sanctuaryFocusModeActive === true;
         this.rescuedResidentArrivalRestoreControls =
@@ -5556,6 +5565,7 @@ class GameScene extends Phaser.Scene {
                 skipped
             });
         }
+        this.refreshSanctuaryResidentPresence();
         if (this.rescuedResidentArrivalRestoreControls) {
             this.mobileControls?.resume?.();
         }
@@ -9342,8 +9352,30 @@ class GameScene extends Phaser.Scene {
             this.villageHeartLandmark,
             nextSnapshot
         );
+        this.refreshSanctuaryResidentPresence(nextSnapshot);
         this.sanctuaryInteractionDirector?.update?.({ force: true });
         return nextSnapshot;
+    }
+
+    refreshSanctuaryResidentPresence(villageSnapshot = null) {
+        if (
+            this.currentBiome !== 'nebula' ||
+            !this.signalGarden?.zone ||
+            !this.worldBuilder ||
+            this.rescuedResidentArrivalActive
+        ) {
+            return false;
+        }
+        this.worldBuilder.refreshRescuedResidents(
+            this.signalGarden,
+            getRescuedResidentSnapshot(window.GameState),
+            {
+                villageSnapshot: villageSnapshot ||
+                    getVillageSnapshot(window.GameState)
+            }
+        );
+        this.setupRescuedResidentOverlaps();
+        return true;
     }
 
     notifyVillageProgress(previous, next) {
@@ -9925,6 +9957,12 @@ class GameScene extends Phaser.Scene {
             collider?.destroy?.();
         });
         this.rescuedResidentOverlapColliders = [];
+        if (this.nearRescuedResidentId) {
+            this.withdrawSanctuaryInteraction(
+                `rescuedResident:${this.nearRescuedResidentId}`
+            );
+            this.nearRescuedResidentId = null;
+        }
         if (!this.player) return;
 
         this.signalGarden?.rescuedResidents?.forEach(resident => {

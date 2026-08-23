@@ -770,6 +770,9 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("container.setData('commonsTetherCount', commonsResidentCount)");
         expect(world).toContain("container.setData('residentFigureCount', homeResidentCount)");
         expect(world).toContain(".setData('villageResidentJourney', true)");
+        expect(world).toContain(".setData('residentPresenceModel', 'single_world_location_v2')");
+        expect(world).toContain(".setData('rescuedResidentPresenceModel', 'single_world_location_v2')");
+        expect(world).toContain('getVillageResidentWorldPresence(');
         expect(world).toContain(".setData('residentCommunityType', routine.communityType || 'companion')");
         expect(world).toContain(".setData('residentIdentityPresentation', 'proximity_nameplate_v1')");
         expect(world).toContain('const body = this.createVillageWorkerFigure(routine, { accent: color });');
@@ -794,6 +797,7 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('landmark.activeResidentGreetingJourney = journey;');
         expect(world).toContain(".setData('viewportClamped'");
         expect(scene).toContain('updateVillageResidentJourneyProximity()');
+        expect(scene).toContain('refreshSanctuaryResidentPresence(villageSnapshot = null)');
         expect(scene).toContain("const identity = journey.getData?.('residentIdentityElement');");
         expect(scene).toContain('const interactionId = `villageJourney:${residentId}`;');
         expect(scene).toContain("verb: 'GREET'");
