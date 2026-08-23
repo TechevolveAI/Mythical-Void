@@ -71,4 +71,132 @@ export function getSanctuaryCheckInCopy({
     });
 }
 
+const RETURN_RESOURCE_LABELS = Object.freeze({
+    food: 'FOOD',
+    wood: 'WOOD',
+    stone: 'STONE'
+});
+
+function getResourceGains(previousVillage, nextVillage) {
+    return Object.entries(RETURN_RESOURCE_LABELS)
+        .map(([id, label]) => ({
+            id,
+            label,
+            amount: Math.max(
+                0,
+                Math.floor(Number(nextVillage?.resources?.[id]) || 0) -
+                    Math.floor(Number(previousVillage?.resources?.[id]) || 0)
+            )
+        }))
+        .filter(gain => gain.amount > 0);
+}
+
+function getCompletedBuildings(previousVillage, nextVillage) {
+    const previousComplete = new Set(
+        (previousVillage?.buildings || [])
+            .filter(building => building?.status === 'complete')
+            .map(building => building.id)
+    );
+    return (nextVillage?.buildings || []).filter(building => (
+        building?.status === 'complete' && !previousComplete.has(building.id)
+    ));
+}
+
+function getWorkerReturns(nextVillage, gains) {
+    return gains.map(gain => {
+        const building = (nextVillage?.buildings || []).find(candidate => (
+            candidate?.status === 'complete' &&
+            candidate?.creature &&
+            candidate?.definition?.production?.resource === gain.id
+        ));
+        return {
+            ...gain,
+            creatureId: building?.creature?.id || null,
+            name: cleanName(building?.creature?.name || 'Village residents'),
+            plotId: building?.plotId || null,
+            buildingId: building?.id || null,
+            buildingLabel: building?.definition?.shortLabel || 'Village structure'
+        };
+    });
+}
+
+function cleanEvent(event) {
+    if (!event) return null;
+    const description = typeof event.result === 'string'
+        ? event.result
+        : typeof event.action === 'string'
+            ? event.action
+            : '';
+    if (!description) return null;
+    return {
+        creatureName: cleanName(event.creatureName),
+        description: description.replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, 120)
+    };
+}
+
+/**
+ * Turns offline simulation and Village reconciliation into one world-readable
+ * return beat. Rendering belongs to the Sanctuary; this function only decides
+ * what changed, who caused it, and what the player can do next.
+ */
+export function getSanctuaryReturnSummary({
+    previousVillage,
+    nextVillage,
+    events = [],
+    offlineMinutes = 0,
+    companionName = 'Your companion'
+} = {}) {
+    const gains = getResourceGains(previousVillage, nextVillage);
+    const completedBuildings = getCompletedBuildings(previousVillage, nextVillage);
+    const workerReturns = getWorkerReturns(nextVillage, gains);
+    const event = [...events].reverse().map(cleanEvent).find(Boolean) || null;
+    const safeCompanionName = cleanName(companionName);
+    const nextAction = nextVillage?.worldState?.nextAction || null;
+    const changed = gains.length > 0 || completedBuildings.length > 0 || Boolean(event);
+    if (!changed) return null;
+
+    const completed = completedBuildings[0] || null;
+    const namedWorkers = [...new Set(
+        workerReturns
+            .filter(worker => worker.creatureId)
+            .map(worker => worker.name)
+    )];
+    const gainLine = gains
+        .map(gain => `+${gain.amount} ${gain.label}`)
+        .join('  ·  ');
+    const actor = completed
+        ? completed.creature?.name || 'The Village'
+        : namedWorkers.length > 0
+            ? namedWorkers.join(' + ')
+            : event?.creatureName || safeCompanionName;
+    const title = completed
+        ? `${(completed.definition?.shortLabel || 'A NEW STRUCTURE').toUpperCase()} TOOK ROOT`
+        : gains.length > 0
+            ? `${actor.toUpperCase()} RETURNED`
+            : `${actor.toUpperCase()} KEPT WATCH`;
+    const detail = completed
+        ? completed.definition?.completionCopy || 'The Sanctuary changed while you were away.'
+        : gainLine || event?.description || 'The Sanctuary completed another cycle.';
+
+    return Object.freeze({
+        id: `sanctuary_return_${Math.max(0, Math.floor(Number(offlineMinutes) || 0))}`,
+        offlineMinutes: Math.max(0, Number(offlineMinutes) || 0),
+        actor,
+        title,
+        detail,
+        gains,
+        workerReturns,
+        completedBuildings,
+        event,
+        nextAction: nextAction
+            ? {
+                type: nextAction.type || 'review',
+                plotId: nextAction.plotId || null,
+                label: nextAction.label || 'REVIEW THE VILLAGE',
+                detail: nextAction.detail || 'Meet the residents at the Village Heart.'
+            }
+            : null
+    });
+}
+
 export { CHECK_IN_LINES };

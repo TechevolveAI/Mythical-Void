@@ -4811,10 +4811,34 @@ class WorldBuilder {
         const backdrop = this.scene.add.graphics().setPosition(0, y);
         const left = -width / 2;
         const top = -height / 2;
-        backdrop.fillStyle(0x061513, 0.9);
-        backdrop.fillRoundedRect(left, top, width, height, 8);
-        backdrop.lineStyle(1, 0xF4F4F4, 0.18);
-        backdrop.strokeRoundedRect(left + 1, top + 1, width - 2, height - 2, 7);
+        const currentRibbon = kind === 'sanctuary_cycle_return';
+        if (currentRibbon) {
+            backdrop.fillStyle(0x061513, 0.74);
+            backdrop.beginPath();
+            backdrop.moveTo(left + 24, top);
+            backdrop.lineTo(left + width - 14, top);
+            backdrop.lineTo(left + width, top + 13);
+            backdrop.lineTo(left + width - 8, top + height - 11);
+            backdrop.lineTo(left + width - 38, top + height);
+            backdrop.lineTo(left + 15, top + height);
+            backdrop.lineTo(left, top + height - 17);
+            backdrop.lineTo(left + 8, top + 13);
+            backdrop.closePath();
+            backdrop.fillPath();
+            backdrop.lineStyle(1, 0xF4F4F4, 0.14);
+            backdrop.lineBetween(left + 24, top, left + width - 62, top);
+            backdrop.lineBetween(
+                left + 44,
+                top + height,
+                left + width - 38,
+                top + height
+            );
+        } else {
+            backdrop.fillStyle(0x061513, 0.9);
+            backdrop.fillRoundedRect(left, top, width, height, 8);
+            backdrop.lineStyle(1, 0xF4F4F4, 0.18);
+            backdrop.strokeRoundedRect(left + 1, top + 1, width - 2, height - 2, 7);
+        }
         backdrop.lineStyle(2, accent, 0.82);
         backdrop.beginPath();
         backdrop.moveTo(left + 12, top + 1);
@@ -4900,6 +4924,161 @@ class WorldBuilder {
             landmark.productionTweens.push(tween);
         });
         return landmark.productionMoments.length > 0;
+    }
+
+    playVillageCycleReturnMoment(landmark, summary) {
+        if (!landmark?.zone || !summary?.title || !summary?.detail) return false;
+        this.clearVillageCommunityMoment(landmark);
+        this.clearVillageDecisionMoment(landmark);
+        this.clearVillageWorkerCheckIn(landmark);
+
+        const compact = this.scene.scale.width <= 600;
+        const touchControlsVisible = this.scene.hasVisibleTouchControls?.() === true;
+        const heart = { x: landmark.zone.x, y: landmark.zone.y - 12 };
+        const route = this.scene.add.graphics()
+            .setDepth(landmark.zone.y - 4)
+            .setAlpha(0);
+        const tokens = [];
+        const routeTweens = [];
+        summary.workerReturns.forEach((worker, index) => {
+            const source = landmark.plotWorldPositions?.get(worker.plotId);
+            if (!source) return;
+            const colors = { food: 0xF2C14E, wood: 0x71E6B1, stone: 0xF4F4F4 };
+            const color = colors[worker.id] || 0x71E6B1;
+            route.lineStyle(2, color, 0.52);
+            route.beginPath();
+            route.moveTo(source.x, source.y - 10);
+            route.lineTo(heart.x, heart.y);
+            route.strokePath();
+            const token = this.scene.add.circle(
+                source.x,
+                source.y - 10,
+                compact ? 5 : 6,
+                color,
+                0.98
+            )
+                .setStrokeStyle(1, 0x07100F, 0.9)
+                .setDepth(landmark.zone.y + 13)
+                .setData('villageReturnResource', worker.id)
+                .setData('villageReturnWorker', worker.name);
+            token.setBlendMode?.(Phaser.BlendModes.ADD);
+            tokens.push(token);
+            routeTweens.push(this.scene.tweens.add({
+                targets: token,
+                x: heart.x,
+                y: heart.y,
+                delay: 260 + index * 180,
+                duration: 1450,
+                ease: 'Sine.easeInOut'
+            }));
+        });
+        route.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const pulse = this.scene.add.graphics()
+            .setPosition(heart.x, heart.y)
+            .setDepth(landmark.zone.y + 12)
+            .setAlpha(0);
+        [28, 46, 66].forEach((radius, index) => {
+            pulse.lineStyle(index === 1 ? 2 : 1, index === 2 ? 0xF2C14E : 0x71E6B1, 0.82 - index * 0.16);
+            pulse.strokeEllipse(0, 0, radius * 2, radius * 1.16);
+        });
+        pulse.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const copyWidth = compact ? 330 : 420;
+        const copyHeight = compact ? 136 : 120;
+        const copy = this.scene.add.container(
+            heart.x + (compact ? 0 : 210),
+            touchControlsVisible
+                ? heart.y + (compact ? 170 : 120)
+                : heart.y - (compact ? 188 : 250)
+        ).setDepth(Math.max(landmark.zone.y + 18, 1800)).setAlpha(0);
+        const backdrop = this.createVillageResonanceBackdrop({
+            width: copyWidth,
+            height: copyHeight,
+            accent: 0x71E6B1,
+            kind: 'sanctuary_cycle_return'
+        });
+        const kicker = this.scene.add.text(0, -40, 'THE SANCTUARY KEPT MOVING', {
+            fontSize: compact ? '10px' : '9px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#8FE3CF',
+            stroke: '#07100F',
+            strokeThickness: 5
+        }).setOrigin(0.5);
+        const title = this.scene.add.text(0, -22, summary.title, {
+            fontSize: compact ? '14px' : '13px',
+            fontFamily: 'Arial, sans-serif',
+            fontStyle: 'bold',
+            color: '#F4F4F4',
+            stroke: '#07100F',
+            strokeThickness: 5,
+            align: 'center',
+            wordWrap: { width: copyWidth - 30 }
+        }).setOrigin(0.5);
+        const detail = this.scene.add.text(0, 4, summary.detail, {
+            fontSize: compact ? '12px' : '10px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#DCE8E5',
+            stroke: '#07100F',
+            strokeThickness: 4,
+            align: 'center',
+            wordWrap: { width: copyWidth - 34 }
+        }).setOrigin(0.5);
+        const next = this.scene.add.text(
+            0,
+            37,
+            `NEXT  ·  ${summary.nextAction?.label || 'MEET AT THE VILLAGE HEART'}`,
+            {
+                fontSize: compact ? '10px' : '9px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F2C14E',
+                stroke: '#07100F',
+                strokeThickness: 4
+            }
+        ).setOrigin(0.5);
+        copy.add([backdrop, kicker, title, detail, next]);
+        copy
+            .setData('sanctuaryCycleReturn', summary.id)
+            .setData('returnActor', summary.actor)
+            .setData('returnGains', summary.gains)
+            .setData('returnNextAction', summary.nextAction)
+            .setData('worldLedRecap', true);
+
+        const revealTween = this.scene.tweens.add({
+            targets: [route, pulse, copy],
+            alpha: 1,
+            duration: 360,
+            ease: 'Sine.easeOut'
+        });
+        const pulseTween = this.scene.tweens.add({
+            targets: pulse,
+            scaleX: { from: 0.78, to: 1.12 },
+            scaleY: { from: 0.78, to: 1.12 },
+            duration: 1200,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Sine.easeInOut'
+        });
+        landmark.communityMomentElements = [route, pulse, copy, ...tokens];
+        landmark.communityMomentTweens = [revealTween, pulseTween, ...routeTweens];
+        landmark.activeCommunityMoment = copy;
+        this.scene.setSanctuaryMomentFocus?.(true, {
+            kind: 'cycle_return',
+            plotId: summary.nextAction?.plotId || null
+        });
+        landmark.communityMomentTimer = this.scene.time.delayedCall(5200, () => {
+            if (landmark.activeCommunityMoment !== copy) return;
+            const fadeTween = this.scene.tweens.add({
+                targets: [route, pulse, copy, ...tokens],
+                alpha: 0,
+                duration: 380,
+                onComplete: () => this.clearVillageCommunityMoment(landmark)
+            });
+            landmark.communityMomentTweens.push(fadeTween);
+        });
+        return true;
     }
 
     playVillageCommunityMoment(landmark, moment) {

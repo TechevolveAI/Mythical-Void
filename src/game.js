@@ -1392,6 +1392,20 @@ async function initializeGame() {
             });
         }
 
+        if (isLocalPreview && urlParams.get('testVillageReturn') === '1') {
+            game.events.once('ready', () => {
+                setTimeout(() => {
+                    game.scene.stop('HatchingScene');
+                    game.scene.start('GameScene', {
+                        villageCommandPreview: 'active',
+                        villageReturnPreview: true,
+                        forceMobileControls:
+                            urlParams.get('forceMobileControls') === '1'
+                    });
+                }, 100);
+            });
+        }
+
         const testCommunity = urlParams.get('testCommunity');
         if (
             isLocalPreview &&

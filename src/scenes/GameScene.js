@@ -4,7 +4,10 @@
  */
 
 import EconomyHudManager from '../systems/ui/EconomyHudManager.js';
-import { getSanctuaryCheckInCopy } from '../systems/SanctuaryCheckIn.js';
+import {
+    getSanctuaryCheckInCopy,
+    getSanctuaryReturnSummary
+} from '../systems/SanctuaryCheckIn.js';
 import CarePanelManager from '../systems/ui/CarePanelManager.js';
 import WorldBuilder from '../systems/world/WorldBuilder.js';
 import SanctuaryInteractionDirector from '../systems/world/SanctuaryInteractionDirector.js';
@@ -214,6 +217,9 @@ class GameScene extends Phaser.Scene {
         this.villageArrivalRevealOnComplete = null;
         this.villageArrivalRevealRestoreControls = false;
         this.villageArrivalRevealPreviousFocus = false;
+        this.pendingSanctuaryReturnMoment = null;
+        this.sanctuaryReturnMomentTimer = null;
+        this.sanctuaryReturnMomentScheduleTimer = null;
         this.villageCommunityMomentPending = false;
         this.villageDecisionMomentPending = null;
         this.villageCommandPanel = null;
@@ -511,6 +517,7 @@ class GameScene extends Phaser.Scene {
             'energetic'
         ].includes(data?.checkInPreview) ? data.checkInPreview : null;
         this.checkInBonusPreview = data?.checkInBonusPreview === true;
+        this.villageReturnPreview = data?.villageReturnPreview === true;
         this.communityMomentPreview = Number.isFinite(
             Number(data?.communityMomentPreview)
         )
@@ -1266,6 +1273,8 @@ class GameScene extends Phaser.Scene {
                 this.hideDesktopUIOnMobile();
             }
 
+            this.scheduleSanctuaryReturnMoment();
+
             // Initialize Quest Tracker UI
             this.questTracker = new QuestTracker(this);
             this.questTracker.create();
@@ -1861,6 +1870,37 @@ class GameScene extends Phaser.Scene {
         this.sanctuaryInteractionDirector = new SanctuaryInteractionDirector(this);
         this.nearVillageHeart = true;
         this.offerVillageHeartInteraction(previewSnapshot);
+        if (this.villageReturnPreview) {
+            const summary = getSanctuaryReturnSummary({
+                previousVillage: {
+                    ...previewSnapshot,
+                    resources: {
+                        ...previewSnapshot.resources,
+                        food: Math.max(0, previewSnapshot.resources.food - 8),
+                        wood: Math.max(0, previewSnapshot.resources.wood - 6),
+                        stone: Math.max(0, previewSnapshot.resources.stone - 5)
+                    }
+                },
+                nextVillage: previewSnapshot,
+                events: [{
+                    creatureName: 'Nova',
+                    result: 'Mapped a quiet Current change near the Village Heart.'
+                }],
+                offlineMinutes: 47,
+                companionName: 'Nova'
+            });
+            this.worldBuilder.playVillageProductionMoment(
+                this.villageHeartLandmark,
+                previewSnapshot,
+                summary.gains
+            );
+            this.worldBuilder.playVillageCycleReturnMoment(
+                this.villageHeartLandmark,
+                summary
+            );
+            this.applySanctuaryCameraFocus({ immediate: true });
+            return;
+        }
         this.openVillageCommand({ guided: false });
     }
 
@@ -4898,6 +4938,7 @@ class GameScene extends Phaser.Scene {
     isVillageArrivalRevealBlocked() {
         return Boolean(
             this._isShuttingDown ||
+            this.villageArrivalRevealActive ||
             window.OnboardingManager?.isProcessing ||
             this.controlsTutorial?.isVisible ||
             this.storyModalElements?.length ||
@@ -4913,6 +4954,73 @@ class GameScene extends Phaser.Scene {
             this.creatureRadialMenu?.isVisible ||
             document.querySelector('.village-command-modal')
         );
+    }
+
+    scheduleSanctuaryReturnMoment({ initialDelay = 900, retryDelay = 650 } = {}) {
+        this.sanctuaryReturnMomentScheduleTimer?.remove?.();
+        this.sanctuaryReturnMomentScheduleTimer = null;
+        if (!this.pendingSanctuaryReturnMoment || !this.villageHeartLandmark) {
+            return false;
+        }
+        const attempt = () => {
+            this.sanctuaryReturnMomentScheduleTimer = null;
+            if (this._isShuttingDown || !this.pendingSanctuaryReturnMoment) return;
+            if (this.isVillageArrivalRevealBlocked()) {
+                this.sanctuaryReturnMomentScheduleTimer = this.time.delayedCall(
+                    retryDelay,
+                    attempt
+                );
+                return;
+            }
+            this.playSanctuaryReturnMoment();
+        };
+        this.sanctuaryReturnMomentScheduleTimer = this.time.delayedCall(
+            initialDelay,
+            attempt
+        );
+        return true;
+    }
+
+    playSanctuaryReturnMoment() {
+        const summary = this.pendingSanctuaryReturnMoment;
+        if (!summary || !this.villageHeartLandmark || !this.worldBuilder) return false;
+        const snapshot = getVillageSnapshot(window.GameState);
+        this.refreshVillageSettlementWorld(snapshot, { force: true });
+        if (summary.gains.length > 0) {
+            this.worldBuilder.playVillageProductionMoment(
+                this.villageHeartLandmark,
+                snapshot,
+                summary.gains
+            );
+        }
+        if (summary.completedBuildings[0]) {
+            this.worldBuilder.playVillageBuildingMoment(
+                this.villageHeartLandmark,
+                summary.completedBuildings[0],
+                { stage: 'complete' }
+            );
+        }
+        const played = this.worldBuilder.playVillageCycleReturnMoment(
+            this.villageHeartLandmark,
+            summary
+        );
+        if (!played) return false;
+
+        this.pendingSanctuaryReturnMoment = null;
+        this.player?.body?.setVelocity?.(0, 0);
+        this.applySanctuaryCameraFocus();
+        this.sanctuaryReturnMomentTimer?.remove?.();
+        this.sanctuaryReturnMomentTimer = this.time.delayedCall(5600, () => {
+            this.sanctuaryReturnMomentTimer = null;
+            if (!this._isShuttingDown) this.restorePlayerCameraFollow();
+        });
+        window.AudioManager?.playSound?.('current_harmony', 0.72);
+        window.AchievementSystem?.recordEvent?.('story_interaction', {
+            event: 'sanctuary_cycle_return',
+            workerCount: summary.workerReturns.length,
+            gainCount: summary.gains.length
+        });
+        return true;
     }
 
     scheduleVillageArrivalReveal({
@@ -17188,7 +17296,7 @@ class GameScene extends Phaser.Scene {
 
     /**
      * Check for offline activities when returning to game
-     * Shows WelcomeBackScene if significant offline time passed
+     * Simulates the elapsed cycle and queues an in-world Sanctuary recap.
      */
     checkOfflineActivities() {
         this.welcomeBackChecked = true;
@@ -17210,22 +17318,22 @@ class GameScene extends Phaser.Scene {
             if (offlineMinutes >= minOfflineMinutes && creatureHatched && window.CreatureAgent) {
                 console.log('[GameScene] Significant offline time detected, simulating activities...');
 
+                const previousVillage = this.currentBiome === 'nebula'
+                    ? getVillageSnapshot(window.GameState)
+                    : null;
+
                 // Run offline simulation
                 const results = window.CreatureAgent.simulateOfflineActivities(offlineMinutes);
-
-                // Only show WelcomeBackScene if there were notable events
-                if (results.events && results.events.length > 0) {
-                    console.log(`[GameScene] ${results.events.length} events occurred while away, showing welcome back screen`);
-
-                    // Stop this scene and show WelcomeBackScene
-                    this.scene.stop('GameScene');
-                    this.scene.start('WelcomeBackScene', {
-                        events: results.events,
-                        offlineMinutes: offlineMinutes,
-                        returnScene: 'GameScene'
-                    });
-                    return;
-                }
+                const nextVillage = previousVillage
+                    ? reconcileVillageSettlement(window.GameState)
+                    : null;
+                this.pendingSanctuaryReturnMoment = getSanctuaryReturnSummary({
+                    previousVillage,
+                    nextVillage,
+                    events: results.events || [],
+                    offlineMinutes,
+                    companionName: window.GameState?.get('creature.name')
+                });
             }
 
             // Update last activity time
@@ -17247,6 +17355,10 @@ class GameScene extends Phaser.Scene {
         this._isShuttingDown = true;
         console.log('[GameScene] Shutting down - cleaning up event listeners');
         this.cancelVillageArrivalReveal();
+        this.sanctuaryReturnMomentScheduleTimer?.remove?.();
+        this.sanctuaryReturnMomentTimer?.remove?.();
+        this.sanctuaryReturnMomentScheduleTimer = null;
+        this.sanctuaryReturnMomentTimer = null;
 
         // Emit session ended event for PersonalitySystem
         if (window.GameState && typeof window.GameState.emit === 'function') {

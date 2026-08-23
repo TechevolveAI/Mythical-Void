@@ -601,6 +601,7 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('createVillageResonanceBackdrop(');
         expect(world).toContain('createVillageHabitatLife(');
         expect(world).toContain('playVillageProductionMoment(');
+        expect(world).toContain('playVillageCycleReturnMoment(');
         expect(world).toContain('playVillageCommunityMoment(');
         expect(world).toContain('playVillageDecisionMoment(');
         expect(world).toContain('playVillageWorkerCheckIn(');

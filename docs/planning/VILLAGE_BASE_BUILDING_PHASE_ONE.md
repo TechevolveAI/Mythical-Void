@@ -96,6 +96,16 @@ returns through gold growth nodes, wood through shaped timber marks, and stone
 through pale crystal marks. These match worker cargo and the Heart's delivery
 response so the player can follow a building's effect without opening the planner.
 
+Returning after an offline cycle no longer interrupts play with a separate field
+report scene. Village reconciliation first compares the saved and current
+settlement, then the live Sanctuary briefly focuses the Heart. Named workers carry
+color-matched food, wood, and stone signals along their authored routes; completed
+structures take root in place; and a tapered Current ribbon states what changed and
+the next available action. The moment waits behind onboarding and active overlays,
+leaves touch controls enabled, clears automatically, and returns the camera to the
+player. A deterministic local preview covers phone and desktop visual QA without
+mutating a save.
+
 The five scenes are pre-generated project assets rather than runtime generation requests. This keeps the menu immediate, deterministic, inexpensive, and available offline. Each building has a distinct visual identity; motion is layered with CSS and respects `prefers-reduced-motion`.
 
 ## 7. Gameplay Impact Contract
