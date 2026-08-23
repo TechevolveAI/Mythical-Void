@@ -166,7 +166,7 @@ describe('RescuedResidents', () => {
         expect(second.snapshot.rescuedCount).toBe(1);
     });
 
-    test('backfills residents for levels completed before the feature shipped', () => {
+    test('backfills and introduces residents from saves made before the feature shipped', () => {
         const gameState = createGameState({}, {
             mythicalForest: { completed: true },
             crystalCaves: { completed: true }
@@ -177,7 +177,16 @@ describe('RescuedResidents', () => {
             'bloom',
             'pebble'
         ]);
+        expect(residents.getPendingRescuedResidentArrival(gameState)?.id)
+            .toBe('bloom');
+        residents.acknowledgeRescuedResidentArrival(gameState, 'bloom');
+        expect(residents.getPendingRescuedResidentArrival(gameState)?.id)
+            .toBe('pebble');
+        residents.acknowledgeRescuedResidentArrival(gameState, 'pebble');
         expect(residents.getPendingRescuedResidentArrival(gameState)).toBeNull();
+        expect(
+            gameState.state.world.rescuedResidents.sanctuaryArrivalSeenIds
+        ).toEqual(['bloom', 'pebble']);
         const interaction = residents.interactWithRescuedResident(
             gameState,
             'bloom'

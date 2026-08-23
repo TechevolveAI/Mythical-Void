@@ -9929,7 +9929,7 @@ async function smokeGuardianHandoff(session, step, exceptions) {
 
     const residentCta = await touchInteractiveSceneText(
         session,
-        'RETURN WITH ',
+        'WELCOME ',
         {
             match: 'startsWith',
             timeoutMs: 8000,
@@ -11957,7 +11957,10 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.restoration.statusGrowthTier !== 2 ||
         integratedWorld.restoration.statusGrowthLabel !== 'CONNECTED GLADE' ||
         !integratedWorld.restoration.statusText.includes('3/5 ROOTS') ||
-        !integratedWorld.restoration.statusText.includes('CONNECTED GLADE') ||
+        (
+            SMOKE_VIEWPORT_WIDTH > 600 &&
+            !integratedWorld.restoration.statusText.includes('CONNECTED GLADE')
+        ) ||
         !integratedWorld.district.terrainActive ||
         integratedWorld.district.material !== 'living_current_districts_v4' ||
         integratedWorld.district.uniformOverlay !== false ||
@@ -16011,6 +16014,7 @@ async function smokeVillageUi(session, exceptions) {
             residentName: reveal?.getData?.('residentName'),
             residentRole: reveal?.getData?.('residentRole'),
             location: reveal?.getData?.('residentLocation'),
+            communityStatus: reveal?.getData?.('residentCommunityStatus'),
             contribution: reveal?.getData?.('residentContribution'),
             authoredPortraitVisible: reveal?.getData?.('authoredPortraitVisible'),
             framingOffsetX: reveal?.getData?.('framingOffsetX'),
@@ -16033,14 +16037,15 @@ async function smokeVillageUi(session, exceptions) {
         rescuedArrival.residentName !== 'Bloom' ||
         rescuedArrival.residentRole !== 'Root Forager' ||
         rescuedArrival.location !== 'signal_garden' ||
+        rescuedArrival.communityStatus !== 'sanctuary_resident' ||
         !rescuedArrival.contribution?.includes('regrow') ||
         rescuedArrival.authoredPortraitVisible !== true ||
         !Number.isFinite(rescuedArrival.framingOffsetX) ||
         !Number.isFinite(rescuedArrival.focusWorldX) ||
         rescuedArrival.peripheralResidentAlphas.some(alpha => alpha > 0.13) ||
         rescuedArrival.skippable !== true ||
-        !rescuedArrival.ariaLabel?.includes('found a home') ||
-        !rescuedArrival.ariaLabel?.includes('Signal Garden resident') ||
+        !rescuedArrival.ariaLabel?.includes('joined the Sanctuary') ||
+        !rescuedArrival.ariaLabel?.includes('Sanctuary resident') ||
         !rescuedArrival.controlsSuspended ||
         !rescuedArrival.inputShield ||
         rescuedArrival.cameraFollowingPlayer ||

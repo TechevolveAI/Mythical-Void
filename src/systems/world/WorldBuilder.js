@@ -8698,7 +8698,7 @@ class WorldBuilder {
         const title = this.scene.add.text(
             0,
             compact ? -102 : -123,
-            `${resident.name.toUpperCase()} FOUND A HOME`,
+            `${resident.name.toUpperCase()} JOINED THE SANCTUARY`,
             {
                 fontSize: compact ? '16px' : '20px',
                 fontFamily: 'Arial, sans-serif',
@@ -8706,13 +8706,14 @@ class WorldBuilder {
                 color: '#F4F4F4',
                 stroke: '#050B0A',
                 strokeThickness: 6,
-                align: 'center'
+                align: 'center',
+                wordWrap: { width: compact ? 300 : 420 }
             }
         ).setOrigin(0.5);
         const role = this.scene.add.text(
             0,
             compact ? -78 : -95,
-            `${resident.role.toUpperCase()} · SIGNAL GARDEN RESIDENT`,
+            `SANCTUARY RESIDENT · ${resident.role.toUpperCase()}`,
             {
                 fontSize: compact ? '9px' : '11px',
                 fontFamily: 'Arial, sans-serif',
@@ -8720,7 +8721,8 @@ class WorldBuilder {
                 color: '#8FE3CF',
                 stroke: '#050B0A',
                 strokeThickness: 4,
-                align: 'center'
+                align: 'center',
+                wordWrap: { width: compact ? 288 : 380 }
             }
         ).setOrigin(0.5);
         const contribution = this.scene.add.text(
@@ -8741,7 +8743,9 @@ class WorldBuilder {
         const guidance = this.scene.add.text(
             0,
             compact ? 164 : 192,
-            'TALK HERE ANY TIME · TAP TO CONTINUE',
+            compact
+                ? `FIND ${resident.name.toUpperCase()} AT SIGNAL GARDEN\nTAP TO CONTINUE`
+                : `FIND ${resident.name.toUpperCase()} AT THE SIGNAL GARDEN · CLICK TO CONTINUE`,
             {
                 fontSize: compact ? '9px' : '10px',
                 fontFamily: 'Arial, sans-serif',
@@ -8749,7 +8753,9 @@ class WorldBuilder {
                 color: '#F4F4F4',
                 stroke: '#050B0A',
                 strokeThickness: 4,
-                align: 'center'
+                align: 'center',
+                lineSpacing: 3,
+                wordWrap: { width: compact ? 270 : 400 }
             }
         ).setOrigin(0.5);
 
@@ -8769,6 +8775,7 @@ class WorldBuilder {
             .setData('residentName', resident.name)
             .setData('residentRole', resident.role)
             .setData('residentLocation', 'signal_garden')
+            .setData('residentCommunityStatus', 'sanctuary_resident')
             .setData('residentContribution', resident.contributionLine)
             .setData('authoredPortraitVisible', Boolean(portrait))
             .setData('framingOffsetX', framingOffsetX)
@@ -8777,7 +8784,8 @@ class WorldBuilder {
             .setData('duration', duration)
             .setData(
                 'ariaLabel',
-                `${resident.name} found a home. ${resident.role}. Signal Garden resident. ${resident.contributionLine} Tap to continue.`
+                `${resident.name} joined the Sanctuary. Sanctuary resident, ${resident.role}. ` +
+                    `${resident.contributionLine} Find ${resident.name} at the Signal Garden. Tap to continue.`
             );
         entry.figure?.setAlpha?.(0.18);
         entry.nameLabel?.setAlpha?.(0);

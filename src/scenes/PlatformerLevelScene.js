@@ -8593,7 +8593,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         const button = this.add.text(
             centerX,
             height - (compact ? 44 : 60),
-            `RETURN WITH ${resident.name.toUpperCase()}`,
+            `WELCOME ${resident.name.toUpperCase()} TO THE SANCTUARY`,
             {
                 fontFamily: 'Arial, sans-serif',
                 fontSize: compact ? '15px' : '19px',

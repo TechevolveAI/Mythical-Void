@@ -273,8 +273,14 @@ export function recordRescuedResident(gameState, levelId, {
 export function getPendingRescuedResidentArrival(gameState) {
     const snapshot = getRescuedResidentSnapshot(gameState);
     const seen = new Set(snapshot.state.sanctuaryArrivalSeenIds || []);
-    const pendingId = snapshot.state.rescueHistory
+    const historyPendingId = snapshot.state.rescueHistory
         .map(entry => entry.residentId)
+        .find(id => !seen.has(id));
+    // Saves created before resident arrivals have completed levels but no
+    // rescue history. Introduce those residents one at a time on later visits
+    // instead of silently placing unfamiliar characters in the Sanctuary.
+    const pendingId = historyPendingId || snapshot.rescued
+        .map(resident => resident.id)
         .find(id => !seen.has(id));
     if (!pendingId) return null;
     return snapshot.rescued.find(resident => resident.id === pendingId) || null;
