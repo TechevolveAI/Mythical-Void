@@ -1,4 +1,4 @@
-export const RESCUED_RESIDENTS_SCHEMA_VERSION = 2;
+export const RESCUED_RESIDENTS_SCHEMA_VERSION = 3;
 
 export const RESCUED_RESIDENT_DEFINITIONS = Object.freeze([
     Object.freeze({
@@ -144,6 +144,12 @@ export function normalizeRescuedResidentState(value = {}, {
     )];
     const interactions = {};
     const residency = {};
+    const sanctuaryArrivalSeenIds = [...new Set(
+        (Array.isArray(value.sanctuaryArrivalSeenIds)
+            ? value.sanctuaryArrivalSeenIds
+            : [])
+            .filter(id => rescuedIds.includes(id))
+    )];
     rescuedIds.forEach(id => {
         interactions[id] = Math.max(0, Number(value.interactions?.[id]) || 0);
         const stored = value.residency?.[id];
@@ -169,6 +175,11 @@ export function normalizeRescuedResidentState(value = {}, {
                 levelId: RESIDENT_BY_ID.get(entry.residentId).levelId,
                 rescuedAt: normalizeTimestamp(entry.rescuedAt)
             })),
+        sanctuaryArrivalSeenIds,
+        lastSanctuaryArrivalId: RESIDENT_BY_ID.has(value.lastSanctuaryArrivalId)
+            ? value.lastSanctuaryArrivalId
+            : null,
+        lastSanctuaryArrivalAt: normalizeTimestamp(value.lastSanctuaryArrivalAt),
         lastInteractionId: RESIDENT_BY_ID.has(value.lastInteractionId)
             ? value.lastInteractionId
             : null,
@@ -259,6 +270,45 @@ export function recordRescuedResident(gameState, levelId, {
     };
 }
 
+export function getPendingRescuedResidentArrival(gameState) {
+    const snapshot = getRescuedResidentSnapshot(gameState);
+    const seen = new Set(snapshot.state.sanctuaryArrivalSeenIds || []);
+    const pendingId = snapshot.state.rescueHistory
+        .map(entry => entry.residentId)
+        .find(id => !seen.has(id));
+    if (!pendingId) return null;
+    return snapshot.rescued.find(resident => resident.id === pendingId) || null;
+}
+
+export function acknowledgeRescuedResidentArrival(gameState, residentId, {
+    save = true,
+    arrivedAt = new Date().toISOString()
+} = {}) {
+    if (!gameState || !RESIDENT_BY_ID.has(residentId)) {
+        return { changed: false, reason: 'unknown_resident' };
+    }
+    const state = normalizeRescuedResidentState(
+        gameState.get?.('world.rescuedResidents') || {},
+        { completedResidentIds: getLegacyCompletedResidentIds(gameState) }
+    );
+    if (!state.rescuedIds.includes(residentId)) {
+        return { changed: false, reason: 'resident_not_rescued' };
+    }
+    const changed = !state.sanctuaryArrivalSeenIds.includes(residentId);
+    if (changed) {
+        state.sanctuaryArrivalSeenIds.push(residentId);
+        state.lastSanctuaryArrivalId = residentId;
+        state.lastSanctuaryArrivalAt = normalizeTimestamp(arrivedAt);
+        gameState.set('world.rescuedResidents', state);
+        if (save) gameState.save?.();
+    }
+    return {
+        changed,
+        resident: RESIDENT_BY_ID.get(residentId),
+        snapshot: getRescuedResidentSnapshot(gameState)
+    };
+}
+
 export function interactWithRescuedResident(gameState, residentId, {
     interactedAt = new Date().toISOString()
 } = {}) {
@@ -294,6 +344,8 @@ if (typeof window !== 'undefined') {
         normalizeRescuedResidentState,
         getRescuedResidentSnapshot,
         recordRescuedResident,
+        getPendingRescuedResidentArrival,
+        acknowledgeRescuedResidentArrival,
         interactWithRescuedResident,
         getRescuedResidentByLevel
     };

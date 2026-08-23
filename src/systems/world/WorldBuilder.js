@@ -8510,6 +8510,7 @@ class WorldBuilder {
 
     refreshRescuedResidents(garden, snapshot = null) {
         if (!garden?.zone) return;
+        this.clearRescuedResidentArrival(garden);
         garden.rescuedResidents?.forEach(resident => {
             resident.moveTween?.stop?.();
             resident.idleTween?.stop?.();
@@ -8596,6 +8597,10 @@ class WorldBuilder {
                 definition,
                 container,
                 zone,
+                figure,
+                nameLabel: name,
+                roleLabel: role,
+                communityMarker: marker,
                 moveTween: null,
                 idleTween: null
             };
@@ -8625,6 +8630,210 @@ class WorldBuilder {
             });
             garden.rescuedResidents.push(entry);
         });
+    }
+
+    playRescuedResidentArrival(garden, resident, { duration = 5200 } = {}) {
+        const entry = garden?.rescuedResidents?.find(
+            candidate => candidate.id === resident?.id
+        );
+        if (!entry?.container) return false;
+        this.clearRescuedResidentArrival(garden);
+
+        const compact = this.scene.scale.width <= 600;
+        const reveal = this.scene.add.container(0, 0);
+        const camera = this.scene.cameras?.main;
+        const zoom = Math.max(0.1, camera?.zoom || 1);
+        const halfViewWidth = (camera?.width || this.scene.scale.width) /
+            (2 * zoom);
+        const safeFocusX = Phaser.Math.Clamp(
+            entry.container.x,
+            halfViewWidth,
+            Math.max(halfViewWidth, this.worldWidth - halfViewWidth)
+        );
+        const framingOffsetX = safeFocusX - entry.container.x;
+        reveal.setX(framingOffsetX);
+        const aura = this.scene.add.graphics();
+        const roots = this.scene.add.graphics();
+        const radius = compact ? 67 : 82;
+        aura.fillStyle(0x07100F, 0.82);
+        aura.fillCircle(0, -3, radius - 6);
+        aura.lineStyle(6, 0x07100F, 0.72);
+        aura.strokeCircle(0, -3, radius);
+        aura.lineStyle(2, resident.accent || 0x71E6B1, 0.98);
+        aura.strokeCircle(0, -3, radius - 3);
+        aura.lineStyle(1, 0xF2C14E, 0.82);
+        aura.strokeCircle(0, -3, radius - 12);
+        aura.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        [-0.75, -0.38, 0, 0.38, 0.75].forEach((ratio, index) => {
+            const startX = ratio * (radius - 16);
+            const endX = ratio * (compact ? 112 : 138);
+            const endY = compact ? 102 + ((index % 2) * 8) : 122 + ((index % 2) * 10);
+            roots.lineStyle(5, 0x07100F, 0.58);
+            roots.lineBetween(startX, 48, endX, endY);
+            roots.lineStyle(1, index % 2 ? 0x8FE3CF : 0xF2C14E, 0.86);
+            roots.lineBetween(startX, 48, endX, endY);
+            roots.fillStyle(index % 2 ? 0x8FE3CF : 0xF2C14E, 0.95);
+            roots.fillCircle(endX, endY, compact ? 2.5 : 3);
+        });
+
+        let portrait = null;
+        if (this.scene.textures.exists(resident.textureKey)) {
+            portrait = this.scene.add.image(0, -3, resident.textureKey);
+            const maxSize = compact ? 112 : 136;
+            portrait.setScale(Math.min(
+                maxSize / Math.max(1, portrait.width),
+                maxSize / Math.max(1, portrait.height)
+            ));
+        }
+
+        const title = this.scene.add.text(
+            0,
+            compact ? -102 : -123,
+            `${resident.name.toUpperCase()} FOUND A HOME`,
+            {
+                fontSize: compact ? '16px' : '20px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F4F4F4',
+                stroke: '#050B0A',
+                strokeThickness: 6,
+                align: 'center'
+            }
+        ).setOrigin(0.5);
+        const role = this.scene.add.text(
+            0,
+            compact ? -78 : -95,
+            `${resident.role.toUpperCase()} · SIGNAL GARDEN RESIDENT`,
+            {
+                fontSize: compact ? '9px' : '11px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#8FE3CF',
+                stroke: '#050B0A',
+                strokeThickness: 4,
+                align: 'center'
+            }
+        ).setOrigin(0.5);
+        const contribution = this.scene.add.text(
+            0,
+            compact ? 125 : 149,
+            String(resident.contributionLine || resident.sanctuaryLine).toUpperCase(),
+            {
+                fontSize: compact ? '9px' : '11px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F2C14E',
+                stroke: '#050B0A',
+                strokeThickness: 4,
+                align: 'center',
+                wordWrap: { width: compact ? 270 : 360 }
+            }
+        ).setOrigin(0.5);
+        const guidance = this.scene.add.text(
+            0,
+            compact ? 164 : 192,
+            'TALK HERE ANY TIME · TAP TO CONTINUE',
+            {
+                fontSize: compact ? '9px' : '10px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F4F4F4',
+                stroke: '#050B0A',
+                strokeThickness: 4,
+                align: 'center'
+            }
+        ).setOrigin(0.5);
+
+        reveal.add([
+            roots,
+            aura,
+            ...(portrait ? [portrait] : []),
+            title,
+            role,
+            contribution,
+            guidance
+        ]);
+        reveal
+            .setAlpha(0)
+            .setData('rescuedResidentArrivalReveal', true)
+            .setData('residentId', resident.id)
+            .setData('residentName', resident.name)
+            .setData('residentRole', resident.role)
+            .setData('residentLocation', 'signal_garden')
+            .setData('residentContribution', resident.contributionLine)
+            .setData('authoredPortraitVisible', Boolean(portrait))
+            .setData('framingOffsetX', framingOffsetX)
+            .setData('focusWorldX', safeFocusX)
+            .setData('skippable', true)
+            .setData('duration', duration)
+            .setData(
+                'ariaLabel',
+                `${resident.name} found a home. ${resident.role}. Signal Garden resident. ${resident.contributionLine} Tap to continue.`
+            );
+        entry.figure?.setAlpha?.(0.18);
+        entry.nameLabel?.setAlpha?.(0);
+        entry.roleLabel?.setAlpha?.(0);
+        entry.communityMarker?.setAlpha?.(0);
+        const peripheralResidents = (garden.rescuedResidents || [])
+            .filter(candidate => candidate !== entry && candidate.container?.active)
+            .map(candidate => ({
+                container: candidate.container,
+                alpha: candidate.container.alpha
+            }));
+        peripheralResidents.forEach(({ container }) => container.setAlpha(0.12));
+        entry.container.add(reveal);
+
+        const tweens = [
+            this.scene.tweens.add({
+                targets: reveal,
+                alpha: 1,
+                duration: 260,
+                ease: 'Sine.easeOut'
+            }),
+            this.scene.tweens.add({
+                targets: aura,
+                scaleX: { from: 0.84, to: 1.08 },
+                scaleY: { from: 0.84, to: 1.08 },
+                alpha: { from: 0.72, to: 1 },
+                duration: 1100,
+                yoyo: true,
+                repeat: 3,
+                ease: 'Sine.easeInOut'
+            }),
+            this.scene.tweens.add({
+                targets: roots,
+                alpha: { from: 0.25, to: 1 },
+                duration: 760,
+                yoyo: true,
+                repeat: 4,
+                ease: 'Sine.easeInOut'
+            })
+        ];
+        garden.rescuedResidentArrival = {
+            entry,
+            reveal,
+            tweens,
+            peripheralResidents,
+            focusWorldX: safeFocusX
+        };
+        return true;
+    }
+
+    clearRescuedResidentArrival(garden) {
+        const arrival = garden?.rescuedResidentArrival;
+        if (!arrival) return false;
+        arrival.tweens?.forEach(tween => tween?.stop?.());
+        arrival.reveal?.destroy?.(true);
+        arrival.entry?.figure?.setAlpha?.(1);
+        arrival.entry?.nameLabel?.setAlpha?.(1);
+        arrival.entry?.roleLabel?.setAlpha?.(1);
+        arrival.entry?.communityMarker?.setAlpha?.(1);
+        arrival.peripheralResidents?.forEach(({ container, alpha }) => {
+            if (container?.active !== false) container?.setAlpha?.(alpha);
+        });
+        garden.rescuedResidentArrival = null;
+        return true;
     }
 
     clearGuardianResidentSocialMoment(garden) {

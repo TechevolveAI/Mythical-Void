@@ -31,12 +31,30 @@ describe('rescued resident gameplay contract', () => {
         expect(globalInit).toContain("import './systems/RescuedResidents.js'");
     });
 
+    test('welcomes each genuine rescue into the Sanctuary exactly once', () => {
+        const residents = read('systems/RescuedResidents.js');
+
+        expect(residents).toContain('sanctuaryArrivalSeenIds');
+        expect(residents).toContain('getPendingRescuedResidentArrival(gameState)');
+        expect(residents).toContain('acknowledgeRescuedResidentArrival(');
+        expect(gameScene).toContain('scheduleRescuedResidentArrival({ initialDelay: 1900 })');
+        expect(gameScene).toContain('playRescuedResidentArrival({ force = false } = {})');
+        expect(gameScene).toContain('finishRescuedResidentArrival({ skipped = false } = {})');
+        expect(gameScene).toContain("event: 'rescued_resident_arrival'");
+        expect(worldBuilder).toContain('playRescuedResidentArrival(garden, resident');
+        expect(worldBuilder).toContain('FOUND A HOME`');
+        expect(worldBuilder).toContain('SIGNAL GARDEN RESIDENT');
+        expect(worldBuilder).toContain(".setData('authoredPortraitVisible', Boolean(portrait))");
+    });
+
     test('lets the player talk with residents and understand their contribution', () => {
         expect(gameScene).toContain('this.setupRescuedResidentOverlaps()');
         expect(gameScene).toContain('this.interactWithRescuedResident();');
         expect(gameScene).toContain('SANCTUARY // COMMUNITY');
         expect(gameScene).toContain('THEIR WORK CHANGES THE NEXT EXPEDITION');
         expect(gameScene).toContain('resident.contributionLine');
+        expect(gameScene).toContain('LIVES IN THE SIGNAL GARDEN');
+        expect(gameScene).toContain(".setData('rescuedResidentAuthoredPortrait', true)");
         expect(gameScene).toContain('rescued_resident_check_in');
     });
 

@@ -15,6 +15,8 @@ function loadRescuedResidents() {
                 normalizeRescuedResidentState,
                 getRescuedResidentSnapshot,
                 recordRescuedResident,
+                getPendingRescuedResidentArrival,
+                acknowledgeRescuedResidentArrival,
                 interactWithRescuedResident,
                 getRescuedResidentByLevel
             };
@@ -119,6 +121,39 @@ describe('RescuedResidents', () => {
         });
     });
 
+    test('persists one Sanctuary arrival acknowledgement for a genuine rescue', () => {
+        const gameState = createGameState();
+        residents.recordRescuedResident(
+            gameState,
+            'mythicalForest',
+            { rescuedAt: '2026-08-10T12:00:00.000Z' }
+        );
+
+        expect(residents.getPendingRescuedResidentArrival(gameState)?.id)
+            .toBe('bloom');
+        const first = residents.acknowledgeRescuedResidentArrival(
+            gameState,
+            'bloom',
+            { arrivedAt: '2026-08-10T12:05:00.000Z' }
+        );
+        const replay = residents.acknowledgeRescuedResidentArrival(
+            gameState,
+            'bloom'
+        );
+
+        expect(first.changed).toBe(true);
+        expect(replay.changed).toBe(false);
+        expect(residents.getPendingRescuedResidentArrival(gameState)).toBeNull();
+        expect(gameState.state.world.rescuedResidents).toEqual(
+            expect.objectContaining({
+                schemaVersion: 3,
+                sanctuaryArrivalSeenIds: ['bloom'],
+                lastSanctuaryArrivalId: 'bloom',
+                lastSanctuaryArrivalAt: '2026-08-10T12:05:00.000Z'
+            })
+        );
+    });
+
     test('records repeat Sanctuary check-ins without changing rescue state', () => {
         const gameState = createGameState();
         residents.recordRescuedResident(gameState, 'finalVoid');
@@ -142,6 +177,7 @@ describe('RescuedResidents', () => {
             'bloom',
             'pebble'
         ]);
+        expect(residents.getPendingRescuedResidentArrival(gameState)).toBeNull();
         const interaction = residents.interactWithRescuedResident(
             gameState,
             'bloom'

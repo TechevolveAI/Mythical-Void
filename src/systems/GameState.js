@@ -627,11 +627,14 @@ class GameStateManager {
                     history: []
                 },
                 rescuedResidents: {
-                    schemaVersion: 2,
+                    schemaVersion: 3,
                     rescuedIds: [],
                     interactions: {},
                     residency: {},
                     rescueHistory: [],
+                    sanctuaryArrivalSeenIds: [],
+                    lastSanctuaryArrivalId: null,
+                    lastSanctuaryArrivalAt: null,
                     lastInteractionId: null,
                     lastInteractionAt: null
                 },

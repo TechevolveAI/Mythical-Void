@@ -66,6 +66,8 @@ import {
 } from '../systems/GuardianCompanionRecognition.js';
 import {
     RESCUED_RESIDENT_DEFINITIONS,
+    acknowledgeRescuedResidentArrival,
+    getPendingRescuedResidentArrival,
     getRescuedResidentSnapshot,
     interactWithRescuedResident
 } from '../systems/RescuedResidents.js';
@@ -263,6 +265,17 @@ class GameScene extends Phaser.Scene {
         this.rescuedResidentOverlapColliders = [];
         this.rescuedResidentExchangeElements = [];
         this.rescuedResidentExchangeOpen = false;
+        this.rescuedResidentArrivalActive = false;
+        this.rescuedResidentArrivalPlayedThisVisit = false;
+        this.rescuedResidentArrivalResident = null;
+        this.rescuedResidentArrivalScheduleTimer = null;
+        this.rescuedResidentArrivalTimer = null;
+        this.rescuedResidentArrivalSkipArmTimer = null;
+        this.rescuedResidentArrivalInputShield = null;
+        this.rescuedResidentArrivalRestoreControls = false;
+        this.rescuedResidentArrivalPreviousFocus = false;
+        this.rescuedResidentArrivalPreviousCameraFollow = null;
+        this.rescuedResidentArrivalPreviousCameraTarget = null;
         this.guardianExchangeElements = [];
         this.guardianExchangeOpen = false;
         this.guardianCareActivityElements = [];
@@ -808,6 +821,17 @@ class GameScene extends Phaser.Scene {
         this.villageArrivalRevealOnComplete = null;
         this.villageArrivalRevealRestoreControls = false;
         this.villageArrivalRevealPreviousFocus = false;
+        this.rescuedResidentArrivalActive = false;
+        this.rescuedResidentArrivalPlayedThisVisit = false;
+        this.rescuedResidentArrivalResident = null;
+        this.rescuedResidentArrivalScheduleTimer = null;
+        this.rescuedResidentArrivalTimer = null;
+        this.rescuedResidentArrivalSkipArmTimer = null;
+        this.rescuedResidentArrivalInputShield = null;
+        this.rescuedResidentArrivalRestoreControls = false;
+        this.rescuedResidentArrivalPreviousFocus = false;
+        this.rescuedResidentArrivalPreviousCameraFollow = null;
+        this.rescuedResidentArrivalPreviousCameraTarget = null;
         this.villageCommunityMomentPending = false;
         this.villageDecisionMomentPending = null;
 
@@ -1392,6 +1416,7 @@ class GameScene extends Phaser.Scene {
             
             // Listen for GameState events
             this.setupGameStateListeners();
+            this.scheduleRescuedResidentArrival({ initialDelay: 1900 });
             this.time.delayedCall(700, () => {
                 void this.recoverLivingPortraitAfterArrival();
             });
@@ -5030,6 +5055,7 @@ class GameScene extends Phaser.Scene {
         return Boolean(
             this._isShuttingDown ||
             this.villageArrivalRevealActive ||
+            this.rescuedResidentArrivalActive ||
             window.OnboardingManager?.isProcessing ||
             this.controlsTutorial?.isVisible ||
             this.storyModalElements?.length ||
@@ -5318,6 +5344,287 @@ class GameScene extends Phaser.Scene {
         this.villageArrivalRevealRestoreControls = false;
         this.villageArrivalRevealPreviousFocus = false;
         this.villageArrivalRevealInputCooldownUntil = 0;
+    }
+
+    shouldPlayRescuedResidentArrival() {
+        if (
+            this.currentBiome !== 'nebula' ||
+            this.rescuedResidentArrivalPlayedThisVisit ||
+            !this.signalGarden ||
+            !window.GameState
+        ) {
+            return false;
+        }
+        return Boolean(getPendingRescuedResidentArrival(window.GameState));
+    }
+
+    isRescuedResidentArrivalBlocked() {
+        return Boolean(
+            this._isShuttingDown ||
+            this.rescuedResidentArrivalActive ||
+            this.villageArrivalRevealActive ||
+            this.sanctuaryReturnMomentTimer ||
+            window.OnboardingManager?.isProcessing ||
+            this.controlsTutorial?.isVisible ||
+            this.storyModalElements?.length ||
+            this.greetingElements?.length ||
+            this.livingSignalMomentElements?.length ||
+            this.questTracker?.storyBannerElements?.length ||
+            this.achievementNotification?.isVisible ||
+            this.livingPortraitReadyNotice ||
+            this.livingPortraitNoticeTimer ||
+            this.isFieldKitModalOpen ||
+            this.fusionDiscoveryModalOpen ||
+            this.guardianExchangeOpen ||
+            this.rescuedResidentExchangeOpen ||
+            this.hamburgerMenu?.isOpen ||
+            this.carePanelManager?.panelVisible ||
+            this.creatureRadialMenu?.isVisible ||
+            document.querySelector('.village-command-modal')
+        );
+    }
+
+    scheduleRescuedResidentArrival({
+        initialDelay = 900,
+        retryDelay = 700
+    } = {}) {
+        this.rescuedResidentArrivalScheduleTimer?.remove?.();
+        this.rescuedResidentArrivalScheduleTimer = null;
+        if (!this.shouldPlayRescuedResidentArrival()) return false;
+        const attempt = () => {
+            this.rescuedResidentArrivalScheduleTimer = null;
+            if (this._isShuttingDown || !this.shouldPlayRescuedResidentArrival()) return;
+            if (this.isRescuedResidentArrivalBlocked()) {
+                this.rescuedResidentArrivalScheduleTimer = this.time.delayedCall(
+                    retryDelay,
+                    attempt
+                );
+                return;
+            }
+            this.playRescuedResidentArrival();
+        };
+        this.rescuedResidentArrivalScheduleTimer = this.time.delayedCall(
+            initialDelay,
+            attempt
+        );
+        return true;
+    }
+
+    playRescuedResidentArrival({ force = false } = {}) {
+        if (
+            this.rescuedResidentArrivalActive ||
+            !this.worldBuilder ||
+            !this.signalGarden ||
+            (!force && !this.shouldPlayRescuedResidentArrival()) ||
+            (!force && this.isRescuedResidentArrivalBlocked())
+        ) {
+            return false;
+        }
+        const resident = getPendingRescuedResidentArrival(window.GameState);
+        if (!resident) return false;
+        const entry = this.signalGarden.rescuedResidents?.find(
+            candidate => candidate.id === resident.id
+        );
+        if (!entry?.container) return false;
+        const duration = 5200;
+        if (!this.worldBuilder.playRescuedResidentArrival(
+            this.signalGarden,
+            resident,
+            { duration }
+        )) {
+            return false;
+        }
+
+        this.rescuedResidentArrivalActive = true;
+        this.rescuedResidentArrivalResident = resident;
+        this.rescuedResidentArrivalPreviousFocus =
+            this.sanctuaryFocusModeActive === true;
+        this.rescuedResidentArrivalRestoreControls =
+            this.mobileControls?.suspend?.() === true;
+        this.rescuedResidentArrivalInputShield = this.add.zone(
+            this.scale.width / 2,
+            this.scale.height / 2,
+            this.scale.width,
+            this.scale.height
+        )
+            .setScrollFactor(0)
+            .setDepth(15980)
+            .setInteractive()
+            .setData('rescuedResidentArrivalInputShield', true)
+            .setData('visiblePanel', false);
+        this.player?.body?.setVelocity?.(0, 0);
+        this.joystickX = 0;
+        this.joystickY = 0;
+        this.hideInteractionHint();
+        this.sanctuaryInteractionDirector?.clearIndicator?.();
+        this.setVillageArrivalChromeHidden(true);
+        this.setSanctuaryPeripheralWayfindingVisible(false);
+
+        const camera = this.cameras?.main;
+        this.rescuedResidentArrivalPreviousCameraFollow = camera?._follow || null;
+        this.rescuedResidentArrivalPreviousCameraTarget =
+            this.sanctuaryCameraFocusTarget
+                ? { ...this.sanctuaryCameraFocusTarget }
+                : null;
+        const zoom = Math.max(0.1, camera?.zoom || 1);
+        const controlLayout = this.hasVisibleTouchControls()
+            ? getMobileControlLayout({
+                width: this.scale.width,
+                height: this.scale.height,
+                safeArea: getSafeAreaInsets()
+            })
+            : null;
+        const target = {
+            x: this.signalGarden.rescuedResidentArrival?.focusWorldX ||
+                entry.container.x,
+            y: entry.container.y + (
+                controlLayout
+                    ? Math.round((controlLayout.dockHeight * 0.38) / zoom)
+                    : 24
+            )
+        };
+        camera?.stopFollow?.();
+        camera?.pan?.(target.x, target.y, 420, 'Sine.easeInOut');
+        this.sanctuaryCameraFocusTarget = target;
+        this.signalGarden.zone
+            ?.setData('rescuedResidentArrivalActive', true)
+            .setData('rescuedResidentArrivalId', resident.id)
+            .setData('rescuedResidentArrivalSkippable', true);
+        window.AudioManager?.playSound?.('current_harmony', 0.86);
+
+        this.rescuedResidentArrivalTimer = this.time.delayedCall(
+            duration,
+            () => this.finishRescuedResidentArrival()
+        );
+        this.rescuedResidentArrivalSkipArmTimer = this.time.delayedCall(800, () => {
+            this.rescuedResidentArrivalSkipArmTimer = null;
+            if (!this.rescuedResidentArrivalActive) return;
+            this.rescuedResidentArrivalInputShield?.once?.(
+                'pointerdown',
+                this.skipRescuedResidentArrival,
+                this
+            );
+            this.input?.keyboard?.once?.(
+                'keydown',
+                this.skipRescuedResidentArrival,
+                this
+            );
+        });
+        return true;
+    }
+
+    skipRescuedResidentArrival(event) {
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
+        return this.finishRescuedResidentArrival({ skipped: true });
+    }
+
+    finishRescuedResidentArrival({ skipped = false } = {}) {
+        if (!this.rescuedResidentArrivalActive) return false;
+        const resident = this.rescuedResidentArrivalResident;
+        const restorePreviousFocus = this.rescuedResidentArrivalPreviousFocus;
+        this.rescuedResidentArrivalTimer?.remove?.();
+        this.rescuedResidentArrivalSkipArmTimer?.remove?.();
+        this.rescuedResidentArrivalTimer = null;
+        this.rescuedResidentArrivalSkipArmTimer = null;
+        this.rescuedResidentArrivalInputShield?.off?.(
+            'pointerdown',
+            this.skipRescuedResidentArrival,
+            this
+        );
+        this.rescuedResidentArrivalInputShield?.destroy?.();
+        this.rescuedResidentArrivalInputShield = null;
+        this.input?.keyboard?.off?.(
+            'keydown',
+            this.skipRescuedResidentArrival,
+            this
+        );
+        this.worldBuilder?.clearRescuedResidentArrival?.(this.signalGarden);
+        this.signalGarden?.zone
+            ?.setData('rescuedResidentArrivalActive', false)
+            .setData('rescuedResidentArrivalSkipped', skipped);
+        this.setVillageArrivalChromeHidden(false);
+        this.setSanctuaryPeripheralWayfindingVisible(true);
+        this.rescuedResidentArrivalActive = false;
+        this.rescuedResidentArrivalPlayedThisVisit = true;
+        this.rescuedResidentArrivalResident = null;
+        if (resident?.id) {
+            acknowledgeRescuedResidentArrival(window.GameState, resident.id);
+            window.AchievementSystem?.recordEvent?.('story_interaction', {
+                event: 'rescued_resident_arrival',
+                residentId: resident.id,
+                skipped
+            });
+        }
+        if (this.rescuedResidentArrivalRestoreControls) {
+            this.mobileControls?.resume?.();
+        }
+        this.rescuedResidentArrivalRestoreControls = false;
+        this.rescuedResidentArrivalPreviousFocus = false;
+        const previousFollow = this.rescuedResidentArrivalPreviousCameraFollow;
+        const previousTarget = this.rescuedResidentArrivalPreviousCameraTarget;
+        this.rescuedResidentArrivalPreviousCameraFollow = null;
+        this.rescuedResidentArrivalPreviousCameraTarget = null;
+        const camera = this.cameras?.main;
+        camera?.panEffect?.reset?.();
+        if (restorePreviousFocus || this.nearVillageHeart) {
+            this.updateSanctuaryFocusMode(true);
+            this.applySanctuaryCameraFocus();
+        } else if (previousFollow && previousFollow.active !== false) {
+            camera?.startFollow?.(previousFollow, true, 0.12, 0.12);
+            this.applyExplorationCameraFollowOffset(camera);
+            this.sanctuaryCameraFocusTarget = null;
+            this.sanctuaryCameraFocusZoom = null;
+        } else if (previousTarget) {
+            camera?.pan?.(
+                previousTarget.x,
+                previousTarget.y,
+                320,
+                'Sine.easeInOut'
+            );
+            this.sanctuaryCameraFocusTarget = previousTarget;
+        } else {
+            this.updateSanctuaryFocusMode(false);
+            if (!this.restorePlayerCameraFollow()) {
+                this.sanctuaryCameraFocusTarget = null;
+                this.sanctuaryCameraFocusZoom = null;
+            }
+        }
+        this.sanctuaryInteractionDirector?.update?.({ force: true });
+        return true;
+    }
+
+    cancelRescuedResidentArrival() {
+        this.rescuedResidentArrivalScheduleTimer?.remove?.();
+        this.rescuedResidentArrivalTimer?.remove?.();
+        this.rescuedResidentArrivalSkipArmTimer?.remove?.();
+        this.rescuedResidentArrivalScheduleTimer = null;
+        this.rescuedResidentArrivalTimer = null;
+        this.rescuedResidentArrivalSkipArmTimer = null;
+        this.rescuedResidentArrivalInputShield?.off?.(
+            'pointerdown',
+            this.skipRescuedResidentArrival,
+            this
+        );
+        this.rescuedResidentArrivalInputShield?.destroy?.();
+        this.rescuedResidentArrivalInputShield = null;
+        this.input?.keyboard?.off?.(
+            'keydown',
+            this.skipRescuedResidentArrival,
+            this
+        );
+        this.worldBuilder?.clearRescuedResidentArrival?.(this.signalGarden);
+        this.setVillageArrivalChromeHidden(false);
+        this.setSanctuaryPeripheralWayfindingVisible(true);
+        if (this.rescuedResidentArrivalRestoreControls) {
+            this.mobileControls?.resume?.();
+        }
+        this.rescuedResidentArrivalRestoreControls = false;
+        this.rescuedResidentArrivalPreviousFocus = false;
+        this.rescuedResidentArrivalPreviousCameraFollow = null;
+        this.rescuedResidentArrivalPreviousCameraTarget = null;
+        this.rescuedResidentArrivalActive = false;
+        this.rescuedResidentArrivalResident = null;
     }
 
     /**
@@ -9665,8 +9972,8 @@ class GameScene extends Phaser.Scene {
         overlay.lineBetween(0, top + bandHeight, width, top + bandHeight);
         elements.push(overlay);
 
-        const addText = (y, value, style = {}) => {
-            const entry = this.add.text(width / 2, y, value, {
+        const addText = (y, value, style = {}, x = width / 2) => {
+            const entry = this.add.text(x, y, value, {
                 fontFamily: 'Arial, sans-serif',
                 align: 'center',
                 wordWrap: { width: Math.min(width - 38, 700) },
@@ -9687,12 +9994,57 @@ class GameScene extends Phaser.Scene {
             color: '#F2C14E',
             fontStyle: 'bold'
         });
-        addText(top + (compact ? 145 : 154), `"${result.line}"`, {
+        addText(top + 103, 'LIVES IN THE SIGNAL GARDEN', {
+            fontSize: compact ? '10px' : '12px',
+            color: '#8FE3CF',
+            fontStyle: 'bold'
+        });
+
+        const portraitBounds = compact
+            ? { x: 14, y: top + 119, width: 96, height: 110 }
+            : { x: (width / 2) - 350, y: top + 116, width: 126, height: 134 };
+        const portraitFrame = this.add.graphics()
+            .setScrollFactor(0)
+            .setDepth(depth + 1);
+        portraitFrame.fillStyle(0x07100F, 0.96);
+        portraitFrame.fillRoundedRect(
+            portraitBounds.x,
+            portraitBounds.y,
+            portraitBounds.width,
+            portraitBounds.height,
+            6
+        );
+        portraitFrame.lineStyle(2, resident.accent, 0.96);
+        portraitFrame.strokeRoundedRect(
+            portraitBounds.x,
+            portraitBounds.y,
+            portraitBounds.width,
+            portraitBounds.height,
+            6
+        );
+        portraitFrame.setData('rescuedResidentPortraitFrame', true);
+        elements.push(portraitFrame);
+        if (this.textures.exists(resident.textureKey)) {
+            const portrait = this.add.image(
+                portraitBounds.x + (portraitBounds.width / 2),
+                portraitBounds.y + (portraitBounds.height / 2),
+                resident.textureKey
+            ).setScrollFactor(0).setDepth(depth + 2)
+                .setData('rescuedResidentAuthoredPortrait', true);
+            portrait.setScale(Math.min(
+                (portraitBounds.width - 10) / Math.max(1, portrait.width),
+                (portraitBounds.height - 10) / Math.max(1, portrait.height)
+            ));
+            elements.push(portrait);
+        }
+
+        addText(top + (compact ? 168 : 181), `"${result.line}"`, {
             fontSize: compact ? '15px' : '18px',
             color: '#F4F4F4',
             fontStyle: 'italic',
-            lineSpacing: 5
-        });
+            lineSpacing: 5,
+            wordWrap: { width: compact ? width - 145 : 540 }
+        }, compact ? (width / 2) + 52 : (width / 2) + 76);
         addText(
             top + (compact ? 225 : 246),
             (resident.contributionLine || resident.sanctuaryLine).toUpperCase(),
@@ -9715,7 +10067,7 @@ class GameScene extends Phaser.Scene {
                 color: '#AFC3CF'
             }
         );
-        const continueButton = addText(top + bandHeight - 38, '[ RETURN TO SANCTUARY ]', {
+        const continueButton = addText(top + bandHeight - 38, 'RETURN TO SANCTUARY', {
             fontSize: compact ? '15px' : '17px',
             color: '#101616',
             backgroundColor: '#8FE3CF',
@@ -14732,6 +15084,7 @@ class GameScene extends Phaser.Scene {
             this.residentExchangeOpen ||
             this.guardianExchangeOpen ||
             this.rescuedResidentExchangeOpen ||
+            this.rescuedResidentArrivalActive ||
             this.guardianCareActivityOpen ||
             this.fendListeningOpen ||
             this.senseiMemoryModal?.isVisible ||
@@ -17602,6 +17955,7 @@ class GameScene extends Phaser.Scene {
         this._isShuttingDown = true;
         console.log('[GameScene] Shutting down - cleaning up event listeners');
         this.cancelVillageArrivalReveal();
+        this.cancelRescuedResidentArrival();
         this.sanctuaryReturnMomentScheduleTimer?.remove?.();
         this.sanctuaryReturnMomentTimer?.remove?.();
         this.sanctuaryReturnMomentScheduleTimer = null;

@@ -15944,6 +15944,203 @@ async function smokeVillageUi(session, exceptions) {
         return true;
     })()`);
 
+    const rescuedArrival = await evaluate(session, `(async () => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const state = window.GameState;
+        const rescued = state.get('world.rescuedResidents');
+        state.set('world.rescuedResidents', {
+            ...rescued,
+            schemaVersion: 3,
+            sanctuaryArrivalSeenIds: [],
+            lastSanctuaryArrivalId: null,
+            lastSanctuaryArrivalAt: null,
+            rescueHistory: [{
+                residentId: 'bloom',
+                levelId: 'mythicalForest',
+                rescuedAt: new Date().toISOString()
+            }]
+        });
+        state.save();
+        scene.rescuedResidentArrivalPlayedThisVisit = false;
+        scene.rescuedResidentArrivalScheduleTimer?.remove?.();
+        scene.rescuedResidentArrivalScheduleTimer = null;
+        if (!scene.textures.exists('rescued-resident-bloom-art')) {
+            await new Promise((resolve, reject) => {
+                const timeout = window.setTimeout(
+                    () => reject(new Error('Bloom texture load timed out')),
+                    8000
+                );
+                scene.load.once('complete', () => {
+                    window.clearTimeout(timeout);
+                    resolve();
+                });
+                scene.load.image(
+                    'rescued-resident-bloom-art',
+                    '/marketing/bloom%202.webp'
+                );
+                scene.load.start();
+            });
+        }
+        scene.worldBuilder.refreshRescuedResidents(
+            scene.signalGarden,
+            window.RescuedResidents.getRescuedResidentSnapshot(state)
+        );
+        scene.setupRescuedResidentOverlaps();
+        const pending = window.RescuedResidents
+            ?.getPendingRescuedResidentArrival?.(state) || null;
+        const gardenResidentIds = scene.signalGarden?.rescuedResidents
+            ?.map(entry => entry.id) || [];
+        const blocked = scene.isRescuedResidentArrivalBlocked?.();
+        const played = scene.playRescuedResidentArrival({ force: true });
+        const arrival = scene.signalGarden?.rescuedResidentArrival;
+        const reveal = arrival?.reveal;
+        return {
+            played,
+            pendingId: pending?.id || null,
+            rescueHistory: state.get('world.rescuedResidents.rescueHistory') || [],
+            gardenResidentIds,
+            blocked,
+            worldMethod: typeof scene.worldBuilder?.playRescuedResidentArrival,
+            textureLoaded: scene.textures.exists('rescued-resident-bloom-art'),
+            active: scene.rescuedResidentArrivalActive === true,
+            residentId: reveal?.getData?.('residentId'),
+            residentName: reveal?.getData?.('residentName'),
+            residentRole: reveal?.getData?.('residentRole'),
+            location: reveal?.getData?.('residentLocation'),
+            contribution: reveal?.getData?.('residentContribution'),
+            authoredPortraitVisible: reveal?.getData?.('authoredPortraitVisible'),
+            framingOffsetX: reveal?.getData?.('framingOffsetX'),
+            focusWorldX: reveal?.getData?.('focusWorldX'),
+            peripheralResidentAlphas: (arrival?.peripheralResidents || [])
+                .map(item => item.container?.alpha),
+            skippable: reveal?.getData?.('skippable'),
+            ariaLabel: reveal?.getData?.('ariaLabel'),
+            controlsSuspended: scene.mobileControls?.isSuspended === true,
+            inputShield: scene.rescuedResidentArrivalInputShield
+                ?.getData?.('rescuedResidentArrivalInputShield') === true,
+            cameraFollowingPlayer: scene.cameras?.main?._follow === scene.player,
+            cameraTarget: scene.sanctuaryCameraFocusTarget
+        };
+    })()`);
+    if (
+        !rescuedArrival.played ||
+        !rescuedArrival.active ||
+        rescuedArrival.residentId !== 'bloom' ||
+        rescuedArrival.residentName !== 'Bloom' ||
+        rescuedArrival.residentRole !== 'Root Forager' ||
+        rescuedArrival.location !== 'signal_garden' ||
+        !rescuedArrival.contribution?.includes('regrow') ||
+        rescuedArrival.authoredPortraitVisible !== true ||
+        !Number.isFinite(rescuedArrival.framingOffsetX) ||
+        !Number.isFinite(rescuedArrival.focusWorldX) ||
+        rescuedArrival.peripheralResidentAlphas.some(alpha => alpha > 0.13) ||
+        rescuedArrival.skippable !== true ||
+        !rescuedArrival.ariaLabel?.includes('found a home') ||
+        !rescuedArrival.ariaLabel?.includes('Signal Garden resident') ||
+        !rescuedArrival.controlsSuspended ||
+        !rescuedArrival.inputShield ||
+        rescuedArrival.cameraFollowingPlayer ||
+        !rescuedArrival.cameraTarget
+    ) {
+        throw new Error(
+            `Village rescued arrival failed: ${JSON.stringify(rescuedArrival)}`
+        );
+    }
+    await delay(520);
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-rescued-arrival-mobile.png'
+            : 'village-rescued-arrival-desktop.png'
+    );
+    const rescuedArrivalRecovery = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const finished = scene.finishRescuedResidentArrival({ skipped: false });
+        const saved = window.GameState.get('world.rescuedResidents');
+        return {
+            finished,
+            active: scene.rescuedResidentArrivalActive,
+            revealPresent: Boolean(scene.signalGarden?.rescuedResidentArrival),
+            controlsSuspended: scene.mobileControls?.isSuspended === true,
+            cameraFollowingPlayer: scene.cameras?.main?._follow === scene.player,
+            focusActive: scene.sanctuaryFocusModeActive === true,
+            cameraTarget: scene.sanctuaryCameraFocusTarget,
+            seenIds: saved?.sanctuaryArrivalSeenIds || [],
+            lastArrivalId: saved?.lastSanctuaryArrivalId || null
+        };
+    })()`);
+    const staleResidentArrivalCamera = Boolean(
+        rescuedArrivalRecovery.cameraTarget &&
+        rescuedArrival.cameraTarget &&
+        Math.abs(
+            rescuedArrivalRecovery.cameraTarget.x - rescuedArrival.cameraTarget.x
+        ) < 1 &&
+        Math.abs(
+            rescuedArrivalRecovery.cameraTarget.y - rescuedArrival.cameraTarget.y
+        ) < 1
+    );
+    if (
+        !rescuedArrivalRecovery.finished ||
+        rescuedArrivalRecovery.active ||
+        rescuedArrivalRecovery.revealPresent ||
+        rescuedArrivalRecovery.controlsSuspended ||
+        !(
+            rescuedArrivalRecovery.cameraFollowingPlayer ||
+            rescuedArrivalRecovery.focusActive ||
+            !staleResidentArrivalCamera
+        ) ||
+        !rescuedArrivalRecovery.seenIds.includes('bloom') ||
+        rescuedArrivalRecovery.lastArrivalId !== 'bloom'
+    ) {
+        throw new Error(
+            `Village rescued arrival recovery failed: ${JSON.stringify(rescuedArrivalRecovery)}`
+        );
+    }
+
+    const rescuedConversation = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.nearRescuedResidentId = 'bloom';
+        scene.interactWithRescuedResident();
+        return {
+            open: scene.rescuedResidentExchangeOpen === true,
+            authoredPortraitCount: (scene.rescuedResidentExchangeElements || [])
+                .filter(element => element?.getData?.(
+                    'rescuedResidentAuthoredPortrait'
+                ) === true).length,
+            portraitFrameCount: (scene.rescuedResidentExchangeElements || [])
+                .filter(element => element?.getData?.(
+                    'rescuedResidentPortraitFrame'
+                ) === true).length,
+            text: (scene.rescuedResidentExchangeElements || [])
+                .map(element => element?.text || '')
+                .filter(Boolean)
+                .join(' | ')
+        };
+    })()`);
+    if (
+        !rescuedConversation.open ||
+        rescuedConversation.authoredPortraitCount !== 1 ||
+        rescuedConversation.portraitFrameCount !== 1 ||
+        !rescuedConversation.text.includes('LIVES IN THE SIGNAL GARDEN') ||
+        !rescuedConversation.text.includes('ROOT FORAGER') ||
+        !rescuedConversation.text.includes('THEIR WORK CHANGES THE NEXT EXPEDITION')
+    ) {
+        throw new Error(
+            `Village rescued conversation failed: ${JSON.stringify(rescuedConversation)}`
+        );
+    }
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-rescued-conversation-mobile.png'
+            : 'village-rescued-conversation-desktop.png'
+    );
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        scene.rescuedResidentExchangeElements?.[0]?.emit?.('pointerup');
+        return true;
+    })()`);
+
     return {
         firstArrivalWorld,
         arrivalReveal,
@@ -15972,6 +16169,9 @@ async function smokeVillageUi(session, exceptions) {
         districtApproachFeedback,
         rescuedCommunity,
         rescuedRosterPanel,
+        rescuedArrival,
+        rescuedArrivalRecovery,
+        rescuedConversation,
         directWorldTap,
         controlDetection,
         interaction
