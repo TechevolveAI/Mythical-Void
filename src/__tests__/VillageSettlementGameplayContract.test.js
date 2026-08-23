@@ -728,6 +728,11 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain('this.applySanctuaryCameraFocus({ immediate: true });');
         expect(scene).toContain("this.events.on('postupdate', this.villagePreviewCameraSync);");
         expect(scene).toContain("this.events.off('postupdate', this.villagePreviewCameraSync);");
+        expect(scene).toContain("? 'terraced_current_v2'");
+        expect(scene).toContain(": 'commons_spine_v1';");
+        expect(scene).toContain('currentLayoutProfile !== expectedLayoutProfile');
+        expect(scene).toContain('const resizedSnapshot = getVillageSnapshot(previewState);');
+        expect(scene).toContain('this.worldBuilder.refreshVillageSettlement(');
         expect(world).toContain("worker.setData('villageWorker', true)");
         expect(world).toContain("worker.setData('checkInCue', true)");
         expect(world).toContain("worker.setData('checkInCueStyle', 'current_resonance')");

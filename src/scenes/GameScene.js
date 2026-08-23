@@ -1878,6 +1878,22 @@ class GameScene extends Phaser.Scene {
         this.applySanctuaryCameraFocus({ immediate: true });
         this.villagePreviewCameraSync = () => {
             if (this.sanctuaryFocusModeActive) {
+                const expectedLayoutProfile = this.scale.width <= 600
+                    ? 'terraced_current_v2'
+                    : 'commons_spine_v1';
+                const currentLayoutProfile = this.villageHeartLandmark
+                    ?.plotPresentations?.[0]?.layoutProfile;
+                if (
+                    currentLayoutProfile &&
+                    currentLayoutProfile !== expectedLayoutProfile
+                ) {
+                    const resizedSnapshot = getVillageSnapshot(previewState);
+                    this.worldBuilder.refreshVillageSettlement(
+                        this.villageHeartLandmark,
+                        resizedSnapshot
+                    );
+                    this.offerVillageHeartInteraction(resizedSnapshot);
+                }
                 this.applySanctuaryCameraFocus({ immediate: true });
             }
         };

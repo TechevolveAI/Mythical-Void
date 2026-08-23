@@ -12568,11 +12568,18 @@ async function smokeVillageUi(session, exceptions) {
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('GameScene');
             const camera = scene?.cameras?.main;
-            const zones = scene?.villageHeartLandmark?.plotHitZones || [];
+            const landmark = scene?.villageHeartLandmark;
+            const zones = landmark?.plotHitZones || [];
+            const expectedLayoutProfile = innerWidth <= 600
+                ? 'terraced_current_v2'
+                : 'commons_spine_v1';
             if (
                 !scene?.sanctuaryFocusModeActive ||
                 !camera ||
-                zones.length !== 5
+                zones.length !== 5 ||
+                landmark?.plotPresentations?.some(
+                    presentation => presentation.layoutProfile !== expectedLayoutProfile
+                )
             ) return false;
             return zones.every(zone => {
                 const bounds = zone.getBounds?.();
