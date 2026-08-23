@@ -14317,7 +14317,7 @@ async function smokeVillageUi(session, exceptions) {
     await waitFor(
         () => evaluate(session, `Boolean(
             window.mythicalGame.scene.getScene('GameScene')
-                ?.villageHeartLandmark?.activeResidentGreeting?.alpha > 0.9
+                ?.villageHeartLandmark?.activeResidentGreeting?.alpha > 0.98
         )`),
         { message: 'Village resident attached greeting' }
     );
@@ -14325,7 +14325,8 @@ async function smokeVillageUi(session, exceptions) {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const landmark = scene?.villageHeartLandmark;
         const greeting = landmark?.activeResidentGreeting;
-        const journey = greeting?.parentContainer;
+        const targetResidentId = greeting?.getData?.('targetResidentId');
+        const journey = landmark?.activeResidentGreetingJourney;
         const camera = scene?.cameras?.main;
         const bounds = greeting?.getBounds?.();
         const screenBounds = bounds && camera ? {
@@ -14338,10 +14339,27 @@ async function smokeVillageUi(session, exceptions) {
             residentName: greeting?.getData?.('residentName'),
             line: greeting?.getData?.('line'),
             presentation: greeting?.getData?.('presentation'),
+            independentWorldLayer: greeting?.getData?.('independentWorldLayer'),
+            contrastProfile: greeting?.getData?.('contrastProfile'),
+            backdropOpacity: greeting?.getData?.('backdropOpacity'),
             readableWidth: greeting?.getData?.('readableWidth'),
             bodyFontSize: greeting?.getData?.('bodyFontSize'),
+            screenSpaceScale: greeting?.getData?.('screenSpaceScale'),
+            effectiveScreenWidth: greeting?.getData?.('effectiveScreenWidth'),
+            effectiveBodyFontSize: greeting?.getData?.('effectiveBodyFontSize'),
+            greetingScale: greeting?.scaleX,
+            cameraZoom: camera?.zoom,
             ariaLabel: greeting?.getData?.('ariaLabel'),
-            attachedToJourney: journey?.getData?.('villageResidentJourney') === true,
+            attachedToJourney: Boolean(
+                journey?.getData?.('villageResidentJourney') === true &&
+                targetResidentId === journey?.getData?.('residentId') &&
+                Math.abs(greeting.x - journey.x) <= 90 &&
+                greeting.y < journey.y
+            ),
+            residentAnchorDeltaX: greeting?.getData?.('residentAnchorDeltaX'),
+            residentAnchorDeltaY: greeting?.getData?.('residentAnchorDeltaY'),
+            viewportClamped: greeting?.getData?.('viewportClamped') === true,
+            effectiveAlpha: greeting?.alpha,
             greetingActive: journey?.getData?.('greetingActive') === true,
             interactionCleared: scene?.villageResidentJourneyInteractionId === null,
             cooldownActive: scene?.villageResidentGreetingCooldownUntil > (scene?.time?.now || 0),
@@ -14349,12 +14367,25 @@ async function smokeVillageUi(session, exceptions) {
             screenBounds
         };
     })()`);
+    await captureGameplayStill(
+        session,
+        SMOKE_VIEWPORT_WIDTH <= 600
+            ? 'village-resident-greeting-mobile.png'
+            : 'village-resident-greeting-desktop.png'
+    );
     if (
         !residentGreeting.residentName ||
         !residentGreeting.line ||
-        residentGreeting.presentation !== 'resident_attached_current_ribbon_v1' ||
-        residentGreeting.readableWidth < 280 ||
-        residentGreeting.bodyFontSize < 14 ||
+        residentGreeting.presentation !== 'resident_attached_current_ribbon_v2' ||
+        residentGreeting.independentWorldLayer !== true ||
+        residentGreeting.contrastProfile !== 'high_contrast_current_v2' ||
+        residentGreeting.backdropOpacity < 0.95 ||
+        residentGreeting.readableWidth < 300 ||
+        residentGreeting.bodyFontSize < 16 ||
+        residentGreeting.screenSpaceScale < 1 ||
+        residentGreeting.effectiveScreenWidth < 300 ||
+        residentGreeting.effectiveBodyFontSize < 16 ||
+        residentGreeting.effectiveAlpha < 0.95 ||
         !residentGreeting.ariaLabel.includes(residentGreeting.residentName) ||
         !residentGreeting.attachedToJourney ||
         !residentGreeting.greetingActive ||
@@ -14365,16 +14396,56 @@ async function smokeVillageUi(session, exceptions) {
         residentGreeting.screenBounds.left < -1 ||
         residentGreeting.screenBounds.right > SMOKE_VIEWPORT_WIDTH + 1 ||
         residentGreeting.screenBounds.top < -1 ||
-        residentGreeting.screenBounds.bottom > SMOKE_VIEWPORT_HEIGHT + 1
+        residentGreeting.screenBounds.bottom > SMOKE_VIEWPORT_HEIGHT + 1 ||
+        residentGreeting.screenBounds.right - residentGreeting.screenBounds.left < 240 ||
+        residentGreeting.screenBounds.bottom - residentGreeting.screenBounds.top < 84
     ) {
         throw new Error(`Village resident greeting failed: ${JSON.stringify(residentGreeting)}`);
     }
-    await captureGameplayStill(
-        session,
-        SMOKE_VIEWPORT_WIDTH <= 600
-            ? 'village-resident-greeting-mobile.png'
-            : 'village-resident-greeting-desktop.png'
-    );
+    const residentGreetingEdgeClamp = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const landmark = scene?.villageHeartLandmark;
+        const greeting = landmark?.activeResidentGreeting;
+        const journey = landmark?.activeResidentGreetingJourney;
+        const camera = scene?.cameras?.main;
+        if (!greeting || !journey || !camera || !landmark?.residentGreetingSync) {
+            return { available: false };
+        }
+        const originalX = journey.x;
+        journey.x = camera.worldView.x + 4;
+        landmark.residentGreetingSync();
+        const bounds = greeting.getBounds?.();
+        const screenBounds = bounds ? {
+            left: (bounds.left - camera.worldView.x) * camera.zoom + camera.x,
+            right: (bounds.right - camera.worldView.x) * camera.zoom + camera.x,
+            top: (bounds.top - camera.worldView.y) * camera.zoom + camera.y,
+            bottom: (bounds.bottom - camera.worldView.y) * camera.zoom + camera.y
+        } : null;
+        const result = {
+            available: true,
+            clamped: greeting.getData('viewportClamped') === true,
+            targetResidentId: greeting.getData('targetResidentId'),
+            residentId: journey.getData('residentId'),
+            anchorDeltaX: greeting.getData('residentAnchorDeltaX'),
+            screenBounds
+        };
+        journey.x = originalX;
+        landmark.residentGreetingSync();
+        return result;
+    })()`);
+    if (
+        !residentGreetingEdgeClamp.available ||
+        !residentGreetingEdgeClamp.clamped ||
+        residentGreetingEdgeClamp.targetResidentId !== residentGreetingEdgeClamp.residentId ||
+        residentGreetingEdgeClamp.anchorDeltaX <= 0 ||
+        !residentGreetingEdgeClamp.screenBounds ||
+        residentGreetingEdgeClamp.screenBounds.left < -1 ||
+        residentGreetingEdgeClamp.screenBounds.right > SMOKE_VIEWPORT_WIDTH + 1
+    ) {
+        throw new Error(
+            `Village resident greeting edge clamp failed: ${JSON.stringify(residentGreetingEdgeClamp)}`
+        );
+    }
     const followUpStarted = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         scene.worldBuilder.clearVillageDecisionMoment(scene.villageHeartLandmark);

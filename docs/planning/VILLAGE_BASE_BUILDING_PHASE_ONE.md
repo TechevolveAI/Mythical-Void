@@ -143,9 +143,12 @@ not open the Village planner or stop exploration. The resident answers through a
 temporary Living Current ribbon attached to their moving world figure, using an
 authored line that changes with settlement growth. The ribbon retains readable
 phone typography, remains inside the viewport, clears before story focus, and
-records a community bond interaction. This is the phase-one social contract for
-later resident quests and relationship memories without introducing a separate
-dialogue system prematurely.
+records a community bond interaction. Its high-contrast world layer follows the
+exact resident route independently of the resident's ambient focus alpha, and it
+counter-scales the Sanctuary camera so 16px mobile dialogue remains 16px on
+screen. This is the phase-one social contract for later resident quests and
+relationship memories without introducing a separate dialogue system
+prematurely.
 
 Completed structures also carry a purpose sigil in their living-root threshold.
 The five authored symbols represent renewing food, recovered repair value,

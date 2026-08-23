@@ -4929,17 +4929,24 @@ class WorldBuilder {
         this.clearVillageResidentGreeting(landmark);
 
         const compact = this.scene.scale.width <= 600;
-        const width = compact ? 286 : 320;
-        const height = compact ? 116 : 120;
-        const bubble = this.scene.add.container(0, compact ? -108 : -112)
+        const width = compact ? 304 : 336;
+        const height = compact ? 128 : 124;
+        const bodyFontSize = compact ? 16 : 15;
+        const verticalOffset = compact ? 116 : 120;
+        const bubble = this.scene.add.container(journey.x, journey.y - verticalOffset)
+            .setDepth(6000)
             .setAlpha(0)
             .setData('villageResidentGreeting', true)
             .setData('residentId', journey.getData('residentId'))
+            .setData('targetResidentId', journey.getData('residentId'))
             .setData('residentName', residentName)
             .setData('line', line)
-            .setData('presentation', 'resident_attached_current_ribbon_v1')
+            .setData('presentation', 'resident_attached_current_ribbon_v2')
+            .setData('independentWorldLayer', true)
+            .setData('contrastProfile', 'high_contrast_current_v2')
+            .setData('backdropOpacity', 0.97)
             .setData('readableWidth', width)
-            .setData('bodyFontSize', 14)
+            .setData('bodyFontSize', bodyFontSize)
             .setData(
                 'ariaLabel',
                 `${residentName} says: ${line}`
@@ -4951,17 +4958,15 @@ class WorldBuilder {
             kind: 'resident_greeting'
         });
         const pointer = this.scene.add.graphics();
-        pointer.fillStyle(0x061513, 0.92);
-        pointer.fillTriangle(-7, height / 2 - 1, 7, height / 2 - 1, 0, height / 2 + 10);
-        pointer.lineStyle(1, 0x8FE3CF, 0.82);
-        pointer.lineBetween(-7, height / 2 - 1, 0, height / 2 + 10);
-        pointer.lineBetween(7, height / 2 - 1, 0, height / 2 + 10);
+        const divider = this.scene.add.graphics();
+        divider.lineStyle(1, 0x8FE3CF, 0.5);
+        divider.lineBetween(-width / 2 + 18, -height / 2 + 37, width / 2 - 18, -height / 2 + 37);
         const identity = this.scene.add.text(
             0,
-            -height / 2 + 18,
+            -height / 2 + 19,
             `${residentName.toUpperCase()} · AT HEART`,
             {
-                fontSize: '12px',
+                fontSize: compact ? '13px' : '12px',
                 fontFamily: 'Arial, sans-serif',
                 fontStyle: 'bold',
                 color: '#8FE3CF',
@@ -4971,31 +4976,80 @@ class WorldBuilder {
         ).setOrigin(0.5);
         const copy = this.scene.add.text(
             0,
-            7,
+            10,
             `"${line}"`,
             {
-                fontSize: '14px',
+                fontSize: `${bodyFontSize}px`,
                 fontFamily: 'Arial, sans-serif',
                 color: '#F4F4F4',
                 align: 'center',
-                stroke: '#061513',
-                strokeThickness: 4,
+                stroke: '#020807',
+                strokeThickness: 5,
                 lineSpacing: compact ? 3 : 4,
-                wordWrap: { width: width - 30, useAdvancedWrap: true }
+                wordWrap: { width: width - 34, useAdvancedWrap: true }
             }
         ).setOrigin(0.5);
-        bubble.add([backdrop, pointer, identity, copy]);
-        journey.add(bubble);
+        bubble.add([backdrop, pointer, divider, identity, copy]);
+        const syncGreeting = () => {
+            if (!bubble.active || !journey.active) return;
+            const camera = this.scene.cameras?.main;
+            const zoom = Math.max(0.1, camera?.zoom || 1);
+            const screenSpaceScale = 1 / zoom;
+            const margin = 10 / zoom;
+            const halfWidth = (width * screenSpaceScale) / 2;
+            const halfHeight = (height * screenSpaceScale) / 2;
+            const minX = (camera?.worldView?.x ?? journey.x - halfWidth) + halfWidth + margin;
+            const maxX = (camera?.worldView?.right ?? journey.x + halfWidth) - halfWidth - margin;
+            const minY = (camera?.worldView?.y ?? journey.y - verticalOffset) + halfHeight + margin;
+            const maxY = (camera?.worldView?.bottom ?? journey.y) - halfHeight - margin;
+            const x = minX <= maxX
+                ? Phaser.Math.Clamp(journey.x, minX, maxX)
+                : journey.x;
+            const y = minY <= maxY
+                ? Phaser.Math.Clamp(journey.y - verticalOffset, minY, maxY)
+                : journey.y - verticalOffset;
+            const pointerX = Phaser.Math.Clamp(
+                (journey.x - x) / screenSpaceScale,
+                -width / 2 + 20,
+                width / 2 - 20
+            );
+            bubble
+                .setPosition(x, y)
+                .setScale(screenSpaceScale)
+                .setData('screenSpaceScale', screenSpaceScale)
+                .setData('effectiveScreenWidth', width)
+                .setData('effectiveBodyFontSize', bodyFontSize);
+            pointer.clear();
+            pointer.fillStyle(0x061513, 0.97);
+            pointer.fillTriangle(
+                pointerX - 8,
+                height / 2 - 1,
+                pointerX + 8,
+                height / 2 - 1,
+                pointerX,
+                height / 2 + 11
+            );
+            pointer.lineStyle(1, 0x8FE3CF, 0.94);
+            pointer.lineBetween(pointerX - 8, height / 2 - 1, pointerX, height / 2 + 11);
+            pointer.lineBetween(pointerX + 8, height / 2 - 1, pointerX, height / 2 + 11);
+            bubble
+                .setData('residentAnchorDeltaX', x - journey.x)
+                .setData('residentAnchorDeltaY', y - journey.y)
+                .setData('viewportClamped', x !== journey.x || y !== journey.y - verticalOffset);
+        };
+        syncGreeting();
+        this.scene.events.on('postupdate', syncGreeting);
+        landmark.residentGreetingSync = syncGreeting;
+        landmark.activeResidentGreetingJourney = journey;
         journey.setData('greetingActive', true);
         landmark.activeResidentGreeting = bubble;
         landmark.residentGreetingTween = this.scene.tweens.add({
             targets: bubble,
             alpha: 1,
-            y: bubble.y - (compact ? 7 : 9),
             duration: 240,
             ease: 'Sine.easeOut'
         });
-        landmark.residentGreetingTimer = this.scene.time.delayedCall(3400, () => {
+        landmark.residentGreetingTimer = this.scene.time.delayedCall(4600, () => {
             if (landmark.activeResidentGreeting !== bubble) return;
             landmark.residentGreetingTween = this.scene.tweens.add({
                 targets: bubble,
@@ -5010,13 +5064,17 @@ class WorldBuilder {
     clearVillageResidentGreeting(landmark) {
         landmark?.residentGreetingTimer?.remove?.();
         landmark?.residentGreetingTween?.stop?.();
+        if (landmark?.residentGreetingSync) {
+            this.scene.events.off('postupdate', landmark.residentGreetingSync);
+        }
         const greeting = landmark?.activeResidentGreeting;
-        const parent = greeting?.parentContainer;
-        parent?.setData?.('greetingActive', false);
+        landmark?.activeResidentGreetingJourney?.setData?.('greetingActive', false);
         greeting?.destroy?.(true);
         if (!landmark) return;
         landmark.residentGreetingTimer = null;
         landmark.residentGreetingTween = null;
+        landmark.residentGreetingSync = null;
+        landmark.activeResidentGreetingJourney = null;
         landmark.activeResidentGreeting = null;
     }
 
@@ -5428,7 +5486,7 @@ class WorldBuilder {
             kind === 'resident_greeting'
         );
         if (currentRibbon) {
-            backdrop.fillStyle(0x061513, kind === 'resident_greeting' ? 0.9 : 0.74);
+            backdrop.fillStyle(0x061513, kind === 'resident_greeting' ? 0.97 : 0.74);
             backdrop.beginPath();
             backdrop.moveTo(left + 24, top);
             backdrop.lineTo(left + width - 14, top);
