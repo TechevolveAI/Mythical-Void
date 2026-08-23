@@ -189,17 +189,27 @@ describe('LivingFormHandoff mobile continuation', () => {
             referenceImage: 'data:image/png;base64,iVBORw0KGgo='
         });
 
+        expect(document.querySelector('.living-form-loading-detail').textContent)
+            .toContain("Nova's");
+
         jest.advanceTimersByTime(7500);
 
         expect(document.querySelector('.living-form-status').textContent)
-            .toContain('Companion Archive');
+            .toContain('open there when it arrives');
         expect(document.querySelector('.living-form-spinner')).not.toBeNull();
+        expect(document.querySelector('.living-form-progress')).not.toBeNull();
         expect(document.querySelector('.living-form-loading-detail').textContent)
             .toContain('continue without losing the reveal');
         expect(document.querySelector('[data-testid="living-form-continue"]')?.textContent)
             .toBe('ENTER SANCTUARY NOW');
         expect(document.querySelector('.living-form-continue-note')?.textContent)
-            .toContain('appear in the Sanctuary');
+            .toContain('open over the Sanctuary');
+        expect(document.querySelector('[data-testid="living-form-actions"]'))
+            .not.toBeNull();
+        expect(document.querySelector('.living-form-action-kicker')?.textContent)
+            .toContain('CONTINUE NOW');
+        expect(document.querySelector('[data-testid="living-form-handoff"]')?.dataset.portraitState)
+            .toBe('developing');
         expect(document.querySelector('[data-testid="living-form-continue"]')?.disabled)
             .toBe(false);
         handoff.destroy();
@@ -234,6 +244,8 @@ describe('LivingFormHandoff mobile continuation', () => {
             .toBe('PROTECTED LIVING PORTRAIT');
         expect(document.querySelector('.living-form-media-fallback')
             .classList.contains('is-hidden')).toBe(true);
+        expect(document.querySelector('[data-testid="living-form-handoff"]')?.dataset.portraitState)
+            .toBe('ready');
         expect(document.querySelector('[data-testid="living-form-continue"]')?.textContent)
             .toBe('ENTER SANCTUARY');
         expect(document.querySelector('.living-form-continue-note')).toBeNull();

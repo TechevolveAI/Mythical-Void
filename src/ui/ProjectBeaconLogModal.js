@@ -1,4 +1,5 @@
 import { getProjectBeaconLog } from '../systems/ProjectBeaconStory.js';
+import { getSanctuaryCommunitySnapshot } from '../systems/SanctuaryCommunity.js';
 import {
     completeRemainAndDefendCampaign
 } from '../systems/RemainAndDefendCampaign.js';
@@ -37,6 +38,9 @@ class ProjectBeaconLogModal {
         if (!this.isVisible) return;
 
         const log = getProjectBeaconLog(this.getGameState());
+        const sanctuaryCommunity = getSanctuaryCommunitySnapshot(
+            this.getGameState()
+        );
         const { width, height } = this.scene.cameras.main;
         const short = height < 520;
         const compact = width < 600 || height < 650;
@@ -285,11 +289,12 @@ class ProjectBeaconLogModal {
                 : '';
         const compactCommunityText =
             `COMMONS ${log.fendCommunity.stage}/${log.fendCommunity.totalStages}  •  ${communityProject}\n` +
-            `GUARDIANS ${log.guardianResidents.rescuedCount}/${log.guardianResidents.totalResidents}  •  ` +
-            `TASKS ${log.guardianResidents.completedTaskCount}/${log.guardianResidents.totalResidents}  •  ` +
+            `RESIDENTS ${sanctuaryCommunity.counts.residents}/${sanctuaryCommunity.totals.residents}  •  ` +
+            `REGIONAL ALLIES ${sanctuaryCommunity.counts.regionalAllies}/${sanctuaryCommunity.totals.guardians}\n` +
+            `ALLY TASKS ${log.guardianResidents.completedTaskCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
             `SUPPORT ${log.guardianResidents.supportedResidentCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
             `SYNERGY ${log.guardianResidents.synergyCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
-            `ALLY ${log.guardianResidents.activeTeamResident?.name?.toUpperCase() || 'NONE'}\n` +
+            `HEART ALLY ${sanctuaryCommunity.guardianPresences[0]?.name?.toUpperCase() || 'NONE'}\n` +
             guardianFocusLine +
             `SETTLERS ${log.fendResidents.metCount}/${log.fendResidents.totalResidents}  •  ` +
             `REQUESTS ${log.fendResidents.completedCount}/${log.fendResidents.totalResidents}` +
@@ -299,11 +304,12 @@ class ProjectBeaconLogModal {
             `RELAY ${log.fendCommunity.support.guardCharges}`;
         const detailedCommunityText =
             `${log.fendCommunity.stage}/${log.fendCommunity.totalStages} PROJECTS  •  ${communityProject}\n` +
-            `GUARDIANS ${log.guardianResidents.rescuedCount}/${log.guardianResidents.totalResidents}  •  ` +
-            `TASKS ${log.guardianResidents.completedTaskCount}/${log.guardianResidents.totalResidents}  •  ` +
+            `SANCTUARY RESIDENTS ${sanctuaryCommunity.counts.residents}/${sanctuaryCommunity.totals.residents}  •  ` +
+            `REGIONAL ALLIES ${sanctuaryCommunity.counts.regionalAllies}/${sanctuaryCommunity.totals.guardians}\n` +
+            `ALLY TASKS ${log.guardianResidents.completedTaskCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
             `SUPPORT ${log.guardianResidents.supportedResidentCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
             `SYNERGY ${log.guardianResidents.synergyCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
-            `ALLY ${log.guardianResidents.activeTeamResident?.name?.toUpperCase() || 'NONE'}\n` +
+            `VILLAGE HEART ALLY ${sanctuaryCommunity.guardianPresences[0]?.name?.toUpperCase() || 'NONE'}\n` +
             guardianFocusLine +
             `SETTLERS ${log.fendResidents.metCount}/${log.fendResidents.totalResidents}  •  ` +
             `REQUESTS ${log.fendResidents.completedCount}/${log.fendResidents.totalResidents}\n` +
@@ -336,14 +342,14 @@ class ProjectBeaconLogModal {
             }
         );
         y += compact
-            ? (guardianFocus ? 86 : 73)
+            ? (guardianFocus ? 106 : 93)
             : (
                 log.companionConsent.ready ||
                 log.companionConsent.complete
-                    ? 110
+                    ? 138
                     : log.fendCulture.ready || log.fendCulture.complete
-                        ? 96
-                        : 82
+                        ? 124
+                        : 110
             ) + (guardianFocus ? 14 : 0);
 
         this.addLabel(contentLeft, y, 'TRUST RECORD');

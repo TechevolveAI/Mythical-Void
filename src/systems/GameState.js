@@ -621,10 +621,16 @@ class GameStateManager {
                     lastInteractionId: null,
                     lastInteractionAt: null
                 },
-                rescuedResidents: {
+                guardianOutcomes: {
                     schemaVersion: 1,
+                    records: {},
+                    history: []
+                },
+                rescuedResidents: {
+                    schemaVersion: 2,
                     rescuedIds: [],
                     interactions: {},
+                    residency: {},
                     rescueHistory: [],
                     lastInteractionId: null,
                     lastInteractionAt: null

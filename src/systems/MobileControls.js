@@ -41,7 +41,10 @@ class MobileControls {
         this.scenePointerOutHandler = null;
         this.windowPointerUpHandler = null;
         this.windowPointerCancelHandler = null;
+        this.canvasTouchStartHandler = null;
+        this.canvasTouchMoveHandler = null;
         this.canvasTouchEndHandler = null;
+        this.canvasTouchCancelHandler = null;
         this.pendingWindowPointerUp = null;
 
         // Action buttons
@@ -315,8 +318,23 @@ class MobileControls {
                 true
             );
             canvas.removeEventListener(
+                'touchstart',
+                this.canvasTouchStartHandler,
+                true
+            );
+            canvas.removeEventListener(
+                'touchmove',
+                this.canvasTouchMoveHandler,
+                true
+            );
+            canvas.removeEventListener(
                 'touchend',
                 this.canvasTouchEndHandler,
+                true
+            );
+            canvas.removeEventListener(
+                'touchcancel',
+                this.canvasTouchCancelHandler,
                 true
             );
             this.canvasPointerDownHandler = null;
@@ -324,7 +342,10 @@ class MobileControls {
             this.canvasPointerUpHandler = null;
             this.canvasPointerCancelHandler = null;
             this.canvasLostPointerCaptureHandler = null;
+            this.canvasTouchStartHandler = null;
+            this.canvasTouchMoveHandler = null;
             this.canvasTouchEndHandler = null;
+            this.canvasTouchCancelHandler = null;
         }
         if (this.inputAbortHandler) {
             window.removeEventListener('blur', this.inputAbortHandler);
@@ -676,6 +697,36 @@ class MobileControls {
             event.stopImmediatePropagation();
             this.finishJoystickInput(this.activePointerId);
         };
+        this.canvasTouchStartHandler = event => {
+            if (this.isSuspended || this.activePointerId !== null) return;
+            const changed = event.changedTouches || event.touches || [];
+            for (let index = 0; index < changed.length; index += 1) {
+                const touch = changed[index];
+                const identifier = getPointerId(touch?.identifier);
+                const point = this.getCanvasGamePoint(touch);
+                if (identifier === null || !this.isJoystickHit(point)) continue;
+                event.preventDefault();
+                event.stopImmediatePropagation?.();
+                activateJoystick({ pointerId: identifier }, point);
+                return;
+            }
+        };
+        this.canvasTouchMoveHandler = event => {
+            if (!this.joystickActive || this.activePointerId === null) return;
+            const touches = event.touches || event.changedTouches || [];
+            for (let index = 0; index < touches.length; index += 1) {
+                const touch = touches[index];
+                if (getPointerId(touch?.identifier) !== this.activePointerId) {
+                    continue;
+                }
+                const point = this.getCanvasGamePoint(touch);
+                if (!point) return;
+                event.preventDefault();
+                event.stopImmediatePropagation?.();
+                this.updateJoystickFromPointer(point);
+                return;
+            }
+        };
         this.canvasTouchEndHandler = event => {
             if (!this.joystickActive || this.activePointerId === null) return;
 
@@ -688,6 +739,19 @@ class MobileControls {
                     this.finishJoystickInput(identifier);
                     return;
                 }
+            }
+        };
+        this.canvasTouchCancelHandler = event => {
+            if (!this.joystickActive || this.activePointerId === null) return;
+            const changed = event.changedTouches || [];
+            for (let index = 0; index < changed.length; index += 1) {
+                if (getPointerId(changed[index]?.identifier) !== this.activePointerId) {
+                    continue;
+                }
+                event.preventDefault();
+                event.stopImmediatePropagation?.();
+                this.resetJoystick(true);
+                return;
             }
         };
         this.canvasPointerCancelHandler = event => {
@@ -753,7 +817,10 @@ class MobileControls {
         canvas.addEventListener('pointermove', this.canvasPointerMoveHandler, captureOptions);
         canvas.addEventListener('pointerup', this.canvasPointerUpHandler, captureOptions);
         canvas.addEventListener('pointercancel', this.canvasPointerCancelHandler, captureOptions);
+        canvas.addEventListener('touchstart', this.canvasTouchStartHandler, captureOptions);
+        canvas.addEventListener('touchmove', this.canvasTouchMoveHandler, captureOptions);
         canvas.addEventListener('touchend', this.canvasTouchEndHandler, captureOptions);
+        canvas.addEventListener('touchcancel', this.canvasTouchCancelHandler, captureOptions);
         canvas.addEventListener(
             'lostpointercapture',
             this.canvasLostPointerCaptureHandler,

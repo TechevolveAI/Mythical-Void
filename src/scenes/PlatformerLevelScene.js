@@ -8435,7 +8435,7 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Keep the rescue payoff connected to the persistent Sanctuary resident.
      */
     getGuardianSanctuaryArrivalCopy({ compact = false } = {}) {
-        const guardian = this.levelCompletionResult?.guardianResident;
+        const guardian = this.levelCompletionResult?.guardianOutcome;
         const resident = this.levelCompletionResult?.rescuedResident;
         if (resident) {
             return compact
@@ -8443,16 +8443,9 @@ class PlatformerLevelScene extends Phaser.Scene {
                 : `LOCAL RESCUED // ${resident.name}\n${resident.role} // ${resident.supportLabel}`;
         }
         if (!guardian) return null;
-
-        if (!guardian.newlyRescued) {
-            return compact
-                ? `${guardian.name} // SANCTUARY RESIDENT`
-                : `SANCTUARY RESIDENT // ${guardian.name}\n${guardian.role} remains on duty near Wanderer-77.`;
-        }
-
         return compact
-            ? `${guardian.name} -> SANCTUARY // ${guardian.role}`
-            : `SANCTUARY ARRIVAL // ${guardian.name}\n${guardian.role} // ${guardian.routine}`;
+            ? `${guardian.name} // ${guardian.standing.replaceAll('_', ' ').toUpperCase()}`
+            : `REGIONAL OUTCOME // ${guardian.name}\n${guardian.outcomeLine}`;
     }
 
     getVillageCompletionCopy({ compact = false } = {}) {
@@ -8652,7 +8645,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         const mediaService = window.CompanionMediaService ||
             companionMediaService;
         if (
-            !guardian?.newlyRescued ||
+            !guardian?.changed ||
             !mediaService?.createCinematicStill
         ) {
             return false;
@@ -8660,7 +8653,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         this.companionMediaRequest += 1;
         const requestId = this.companionMediaRequest;
-        const guardianId = String(guardian.id || 'guardian')
+        const guardianId = String(guardian.guardianId || 'guardian')
             .toLowerCase()
             .replace(/[^a-z0-9_-]/g, '_')
             .slice(0, 32);
@@ -8722,7 +8715,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             const arrivalLabel = this.add.text(
                 width / 2,
                 height * 0.85,
-                `${guardian.name} will return to the Sanctuary.`,
+                guardian.outcomeLine || `${guardian.name} remains in the restored region.`,
                 {
                     fontSize: width < 600 ? '11px' : '14px',
                     color: '#B9DAD7',
@@ -8779,6 +8772,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         let nextGateUnlock = null;
         let currentRestoration = null;
         let guardianResident = null;
+        let guardianOutcome = null;
         let guardianExpedition = null;
         let rescuedResident = null;
         const configuredVictoryCoins = calculateVictoryCoins(
@@ -8839,8 +8833,8 @@ class PlatformerLevelScene extends Phaser.Scene {
             if (currentRestoration?.changed) {
                 this.refreshCurrentEcologyNode({ celebrate: true });
             }
-            guardianResident = window.GuardianResidents
-                ?.recordGuardianRescue?.(
+            guardianOutcome = window.GuardianOutcomes
+                ?.recordGuardianOutcome?.(
                     gameState,
                     achievementLevelId,
                     { save: false }
@@ -8981,6 +8975,19 @@ class PlatformerLevelScene extends Phaser.Scene {
                     futureAbility: guardianResident.guardian.futureAbility
                 }
                 : null,
+            guardianOutcome: guardianOutcome
+                ? {
+                    guardianId: guardianOutcome.definition.guardianId,
+                    levelId: guardianOutcome.definition.levelId,
+                    name: guardianOutcome.definition.name,
+                    outcome: guardianOutcome.record.outcome,
+                    standing: guardianOutcome.record.standing,
+                    sanctuaryPresence: guardianOutcome.record.sanctuaryPresence,
+                    regionRole: guardianOutcome.definition.regionRole,
+                    outcomeLine: guardianOutcome.definition.outcomeLine,
+                    changed: guardianOutcome.changed
+                }
+                : null,
             guardianExpedition: guardianExpedition?.changed
                 ? {
                     guardianId: guardianExpedition.entry.guardianId,
@@ -9014,7 +9021,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         );
         if (!residentReleaseShown) {
             this.showCompanionGuardianRescueTableau(
-                this.levelCompletionResult.guardianResident
+                this.levelCompletionResult.guardianOutcome
             );
         }
 

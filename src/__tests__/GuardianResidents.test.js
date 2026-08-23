@@ -6,6 +6,10 @@ function loadGuardianResidents() {
     const filePath = path.join(__dirname, '../systems/GuardianResidents.js');
     const source = fs.readFileSync(filePath, 'utf8');
     const transformed = source
+        .replace(
+            "import { getGuardianOutcomeSnapshot } from './GuardianOutcomes.js';",
+            'const getGuardianOutcomeSnapshot = GET_GUARDIAN_OUTCOME_SNAPSHOT;'
+        )
         .replace(/export const /g, 'const ')
         .replace(/export function /g, 'function ')
         .replace(/if \(typeof window !== 'undefined'\) \{[\s\S]*$/, '')
@@ -30,6 +34,18 @@ function loadGuardianResidents() {
     const sandbox = {
         module: { exports: {} },
         exports: {},
+        GET_GUARDIAN_OUTCOME_SNAPSHOT: gameState => {
+            const legacyIds = gameState.get(
+                'world.guardianResidents.rescuedIds'
+            ) || [];
+            const elderResolved = legacyIds.includes('elder_treant') ||
+                gameState.get('levels.mythicalForest.completed') === true;
+            return {
+                sanctuaryPresences: elderResolved
+                    ? [{ guardianId: 'elder_treant' }]
+                    : []
+            };
+        },
         Date,
         Map,
         Set,
@@ -97,7 +113,7 @@ describe('GuardianResidents', () => {
         expect(formatGuardianRoutineRecovery(0)).toBe('READY');
     });
 
-    test('defines one distinct Sanctuary resident for every expedition guardian', () => {
+    test('retains authored Guardian relationships for regional ally compatibility', () => {
         expect(GUARDIAN_RESIDENT_DEFINITIONS).toHaveLength(6);
         expect(new Set(
             GUARDIAN_RESIDENT_DEFINITIONS.map(entry => entry.levelId)
@@ -141,7 +157,7 @@ describe('GuardianResidents', () => {
         expect(new Set(ambientLines).size).toBe(ambientLines.length);
     });
 
-    test('gives every restored guardian an authored social relationship', () => {
+    test('keeps authored social relationships for legacy Guardian ally saves', () => {
         const guardianIds = new Set(
             GUARDIAN_RESIDENT_DEFINITIONS.map(guardian => guardian.id)
         );
@@ -168,7 +184,7 @@ describe('GuardianResidents', () => {
         expect(new Set(socialLines).size).toBe(socialLines.length);
     });
 
-    test('backfills restored guardians from completed levels in older saves', () => {
+    test('backfills only the Elder Treant Heart presence from completed levels', () => {
         const gameState = createGameState({
             levels: {
                 mythicalForest: { completed: true },
@@ -178,13 +194,9 @@ describe('GuardianResidents', () => {
         });
         const snapshot = getGuardianResidentsSnapshot(gameState);
 
-        expect(snapshot.state.rescuedIds).toEqual([
-            'elder_treant',
-            'nyxvoral'
-        ]);
+        expect(snapshot.state.rescuedIds).toEqual(['elder_treant']);
         expect(snapshot.rescuedResidents.map(entry => entry.name)).toEqual([
-            'Elder Treant',
-            "Nyx'voral"
+            'Elder Treant'
         ]);
     });
 
@@ -207,7 +219,8 @@ describe('GuardianResidents', () => {
 
     test('reveals rescue memory first, then offers a cooperative task', () => {
         const gameState = createGameState({
-            levels: { crystalCaves: { completed: true } }
+            levels: { crystalCaves: { completed: true } },
+            guardianResidents: { rescuedIds: ['crystal_golem'] }
         });
         const first = interactWithGuardianResident(gameState, 'crystal_golem', {
             occurredAt: '2026-08-06T12:10:00.000Z'
@@ -381,7 +394,8 @@ describe('GuardianResidents', () => {
 
     test('makes care available after meeting, before expedition ability unlock', () => {
         const gameState = createGameState({
-            levels: { cosmicReef: { completed: true } }
+            levels: { cosmicReef: { completed: true } },
+            guardianResidents: { rescuedIds: ['nyxvoral'] }
         });
         interactWithGuardianResident(gameState, 'nyxvoral', {
             occurredAt: '2026-08-06T15:00:00.000Z'
@@ -399,7 +413,8 @@ describe('GuardianResidents', () => {
 
     test('requires a first guardian meeting before routine assistance', () => {
         const gameState = createGameState({
-            levels: { cosmicReef: { completed: true } }
+            levels: { cosmicReef: { completed: true } },
+            guardianResidents: { rescuedIds: ['nyxvoral'] }
         });
         const result = assistGuardianRoutine(gameState, 'nyxvoral');
 

@@ -8399,7 +8399,9 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
             const spinner = root?.querySelector('.living-form-spinner');
             const detail = root?.querySelector('.living-form-loading-detail');
             const button = root?.querySelector('[data-testid="living-form-continue"]');
+            const actions = root?.querySelector('[data-testid="living-form-actions"]');
             const bounds = button?.getBoundingClientRect?.();
+            const actionDockBounds = actions?.getBoundingClientRect?.();
             const viewportHeight = window.visualViewport?.height || window.innerHeight;
             const viewportWidth = window.visualViewport?.width || window.innerWidth;
             if (
@@ -8407,6 +8409,7 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
                 !spinner ||
                 !detail ||
                 !bounds ||
+                !actionDockBounds ||
                 bounds.width < 180 ||
                 bounds.height < 44
             ) return null;
@@ -8420,6 +8423,10 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
                     right: Math.round(bounds.right),
                     top: Math.round(bounds.top),
                     bottom: Math.round(bounds.bottom)
+                },
+                actionDockBounds: {
+                    top: Math.round(actionDockBounds.top),
+                    bottom: Math.round(actionDockBounds.bottom)
                 }
             };
         })()`),
@@ -8427,11 +8434,13 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     );
     if (
         pendingReveal.action !== 'ENTER SANCTUARY NOW' ||
-        !pendingReveal.detail.includes('body shape') ||
+        !pendingReveal.detail.includes('anatomy') ||
         pendingReveal.actionBounds.left < 0 ||
         pendingReveal.actionBounds.right > pendingReveal.viewportWidth ||
         pendingReveal.actionBounds.top < 0 ||
-        pendingReveal.actionBounds.bottom > pendingReveal.viewportHeight
+        pendingReveal.actionBounds.bottom > pendingReveal.viewportHeight ||
+        pendingReveal.actionDockBounds.top < 0 ||
+        pendingReveal.actionDockBounds.bottom > pendingReveal.viewportHeight
     ) {
         throw new Error(
             `Pending living-form action was not viewport-safe: ${JSON.stringify(pendingReveal)}`
@@ -8541,6 +8550,8 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
                 y: Math.round(bounds.centerY),
                 targetWidth: Math.round(targetBounds.width),
                 targetHeight: Math.round(targetBounds.height),
+                nativeWidth: Math.round(nativeBounds.width),
+                nativeHeight: Math.round(nativeBounds.height),
                 nativeAction: nativeAction.textContent?.trim(),
                 nativeBackDisabled: nativeBack.disabled,
                 nativeTarget: document.elementFromPoint(
@@ -8558,8 +8569,8 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     const handoffMs = Date.now() - handoffStartedAt;
     if (
         handoffMs > 7000 ||
-        firstPage.targetWidth < 120 ||
-        firstPage.targetHeight < 52 ||
+        firstPage.nativeWidth < 120 ||
+        firstPage.nativeHeight < 52 ||
         firstPage.nativeAction !== 'NEXT' ||
         !firstPage.nativeBackDisabled ||
         !firstPage.nativeTarget ||
@@ -8720,21 +8731,40 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         })}`);
     }
 
-    await evaluate(session, `(() => {
+    const lateRevealTrigger = await evaluate(session, `(async () => {
         window.GameState?.set?.('tutorial.livingFormSeen', false);
+        window.GameState?.set?.('tutorial.villageHeartArrivalSeen', true);
         window.GameState?.set?.('story.companionMedia', null);
         const scene = window.mythicalGame?.scene?.getScene('GameScene');
-        void scene?.maybeShowLivingPortraitReadyNotice?.({
+        scene?.sanctuaryReturnMomentScheduleTimer?.remove?.();
+        if (scene) {
+            scene.sanctuaryReturnMomentScheduleTimer = null;
+            scene.pendingSanctuaryReturnMoment = null;
+        }
+        const accepted = await scene?.maybeShowLivingPortraitReadyNotice?.({
             identityKey: 'late-arrival-smoke:baby:portrait',
             stage: 'baby',
             imageUrl: '/marketing/nova.webp',
             assetRef: null,
             storage: 'preview'
         });
-        return true;
+        return {
+            accepted,
+            blocked: scene?.isLivingPortraitNoticeBlocked?.(),
+            sceneActive: scene?.sys?.isActive?.(),
+            domAvailable: Boolean(scene?.game?.domContainer),
+            pendingIdentity: scene?.livingPortraitNoticePendingIdentity || null,
+            deferredIdentity: scene?.deferredLivingPortraitRecord?.identityKey || null,
+            noticeIdentity: scene?.livingPortraitReadyNotice?.identityKey || null,
+            revealDomPresent: Boolean(document.querySelector(
+                '[data-testid="living-form-handoff"]'
+            ))
+        };
     })()`);
-    const lateReveal = await waitFor(
-        () => evaluate(session, `(() => {
+    let lateReveal;
+    try {
+        lateReveal = await waitFor(
+            () => evaluate(session, `(() => {
             const root = document.querySelector('[data-testid="living-form-handoff"]');
             const image = root?.querySelector('.living-form-image.is-ready');
             const action = root?.querySelector('[data-testid="living-form-continue"]');
@@ -8753,9 +8783,78 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
                 viewportHeight: window.visualViewport?.height || window.innerHeight,
                 actionBottom: Math.round(bounds.bottom)
             };
-        })()`),
-        { timeoutMs: 5000, message: 'late Sanctuary living-form reveal' }
-    );
+            })()`),
+            { timeoutMs: 5000, message: 'late Sanctuary living-form reveal' }
+        );
+    } catch (error) {
+        const diagnostics = await evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene('GameScene');
+            const root = document.querySelector('[data-testid="living-form-handoff"]');
+            const image = root?.querySelector('.living-form-image');
+            const action = root?.querySelector('[data-testid="living-form-continue"]');
+            const actionBounds = action?.getBoundingClientRect?.();
+            const rootBounds = root?.getBoundingClientRect?.();
+            const canvasBounds = scene?.game?.canvas?.getBoundingClientRect?.();
+            const domBounds = scene?.game?.domContainer?.getBoundingClientRect?.();
+            return {
+                trigger: ${JSON.stringify(lateRevealTrigger)},
+                blocked: scene?.isLivingPortraitNoticeBlocked?.(),
+                controlsVisible: scene?.controlsTutorial?.isVisible,
+                storyElements: scene?.storyModalElements?.length,
+                greetingElements: scene?.greetingElements?.length,
+                livingSignalElements: scene?.livingSignalMomentElements?.length,
+                pendingIdentity: scene?.livingPortraitNoticePendingIdentity || null,
+                deferredIdentity: scene?.deferredLivingPortraitRecord?.identityKey || null,
+                noticeIdentity: scene?.livingPortraitReadyNotice?.identityKey || null,
+                revealDomPresent: Boolean(root),
+                portraitState: root?.dataset?.portraitState || null,
+                rootClass: root?.className || null,
+                imageClass: image?.className || null,
+                imageSource: image?.getAttribute?.('src') || null,
+                imageComplete: image?.complete,
+                imageWidth: image?.naturalWidth,
+                action: action?.textContent?.trim() || null,
+                actionBounds: actionBounds ? {
+                    left: Math.round(actionBounds.left),
+                    right: Math.round(actionBounds.right),
+                    top: Math.round(actionBounds.top),
+                    bottom: Math.round(actionBounds.bottom),
+                    width: Math.round(actionBounds.width),
+                    height: Math.round(actionBounds.height)
+                } : null,
+                rootBounds: rootBounds ? {
+                    left: Math.round(rootBounds.left),
+                    right: Math.round(rootBounds.right),
+                    top: Math.round(rootBounds.top),
+                    bottom: Math.round(rootBounds.bottom),
+                    width: Math.round(rootBounds.width),
+                    height: Math.round(rootBounds.height)
+                } : null,
+                canvasBounds: canvasBounds ? {
+                    left: Math.round(canvasBounds.left),
+                    top: Math.round(canvasBounds.top),
+                    width: Math.round(canvasBounds.width),
+                    height: Math.round(canvasBounds.height)
+                } : null,
+                domBounds: domBounds ? {
+                    left: Math.round(domBounds.left),
+                    top: Math.round(domBounds.top),
+                    width: Math.round(domBounds.width),
+                    height: Math.round(domBounds.height)
+                } : null,
+                sceneScale: {
+                    width: scene?.scale?.width,
+                    height: scene?.scale?.height,
+                    displayWidth: scene?.scale?.displaySize?.width,
+                    displayHeight: scene?.scale?.displaySize?.height
+                },
+                domTransform: scene?.game?.domContainer?.style?.transform || null,
+                status: root?.querySelector('.living-form-status')?.textContent?.trim() || null,
+                source: root?.querySelector('.living-form-source')?.textContent?.trim() || null
+            };
+        })()`);
+        throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+    }
     if (
         lateReveal.action !== 'CONTINUE EXPLORING' ||
         !lateReveal.seen ||
@@ -8803,19 +8902,50 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     let movement;
     try {
         await holdTouchDrag(session, movementStart.start, movementStart.end, 300);
-        movement = await waitFor(
-            () => evaluate(session, `(() => {
+        try {
+            movement = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame?.scene?.getScene('GameScene');
+                    if (!scene || scene.joystickX <= 0.2) return null;
+                    return {
+                        inputX: scene.joystickX,
+                        velocityX: scene.player?.body?.velocity?.x,
+                        playerX: scene.player?.x,
+                        joystickActive: scene.mobileControls?.joystickActive === true
+                    };
+                })()`),
+                { timeoutMs: 1500, message: 'first Sanctuary joystick movement' }
+            );
+        } catch (error) {
+            const diagnostics = await evaluate(session, `(() => {
                 const scene = window.mythicalGame?.scene?.getScene('GameScene');
-                if (!scene || scene.joystickX <= 0.2) return null;
                 return {
-                    inputX: scene.joystickX,
-                    velocityX: scene.player?.body?.velocity?.x,
-                    playerX: scene.player?.x,
-                    joystickActive: scene.mobileControls?.joystickActive === true
+                    joystickX: scene?.joystickX,
+                    joystickY: scene?.joystickY,
+                    joystickActive: scene?.mobileControls?.joystickActive,
+                    activePointerId: scene?.mobileControls?.activePointerId,
+                    joystickCenter: {
+                        x: scene?.mobileControls?.joystickCenterX,
+                        y: scene?.mobileControls?.joystickCenterY
+                    },
+                    joystickHitBounds: scene?.mobileControls?.joystickHitBounds,
+                    requestedDrag: ${JSON.stringify(movementStart)},
+                    controlsVisible: scene?.mobileControls?.isVisible,
+                    controlsSuspended: scene?.mobileControls?.isSuspended,
+                    physicsPaused: scene?.physics?.world?.isPaused,
+                    playerX: scene?.player?.x,
+                    velocityX: scene?.player?.body?.velocity?.x,
+                    portraitDomPresent: Boolean(document.querySelector(
+                        '[data-testid="living-form-handoff"]'
+                    )),
+                    hitTarget: document.elementFromPoint(
+                        ${movementStart.start.x},
+                        ${movementStart.start.y}
+                    )?.outerHTML?.slice?.(0, 160) || null
                 };
-            })()`),
-            { timeoutMs: 1500, message: 'first Sanctuary joystick movement' }
-        );
+            })()`);
+            throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+        }
     } finally {
         await releaseTouch(session);
     }

@@ -751,8 +751,10 @@ describe('background living portrait generation', () => {
         expect(handoffSource).toContain('ENTER SANCTUARY');
         expect(soulSource).toContain('this.portraitPreviewFailure');
         expect(soulSource).toContain('Local portrait failure preview');
-        expect(handoffSource).toContain('wait in the Companion Archive');
-        expect(handoffSource).toContain('ready in the Companion Archive');
+        expect(handoffSource).toContain(
+            'The finished portrait will open there when it arrives.'
+        );
+        expect(handoffSource).toContain('ready in the Sanctuary');
         const serviceSource = fs.readFileSync(
             path.join(__dirname, '../systems/LivingPortraitService.js'),
             'utf8'

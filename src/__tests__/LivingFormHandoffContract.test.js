@@ -69,14 +69,20 @@ describe('living form milestone handoff', () => {
         );
         expect(cssSource).toContain('.living-form-handoff');
         expect(cssSource).toContain('.living-form-actions');
-        expect(cssSource).toContain('grid-row: 4;');
+        expect(cssSource).toContain('--living-form-action-reserve');
+        expect(cssSource).toContain('position: absolute;');
+        expect(cssSource).toContain('min-height: var(--living-form-action-reserve);');
         expect(cssSource).toContain('.living-form-spinner');
+        expect(cssSource).toContain('.living-form-progress');
         expect(cssSource).toContain('@keyframes living-form-spin');
         expect(cssSource).toContain('.living-form-image.is-pixel-reference');
         expect(cssSource).toContain('width: min(28%, 240px)');
         expect(cssSource).toContain('.living-form-image.is-generated-portrait');
         expect(cssSource).toContain('min-height: 48px');
         expect(cssSource).toContain('touch-action: manipulation');
+        expect(handoffSource).toContain(
+            'this.domElement?.setScale?.(1 / cameraZoom)'
+        );
         expect(cssSource).toContain('(orientation: portrait)');
         expect(cssSource).toContain(
             '(max-height: 520px) and (orientation: landscape)'
@@ -92,7 +98,7 @@ describe('living form milestone handoff', () => {
         );
         expect(handoffSource).toContain('ENTER SANCTUARY NOW');
         expect(handoffSource).toContain(
-            'Your reveal will appear in the Sanctuary if it finishes after you enter.'
+            'the finished portrait will open over the Sanctuary when it arrives.'
         );
         expect(handoffSource).toContain('this.onPortraitShown?.(record);');
     });

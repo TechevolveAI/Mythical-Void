@@ -8079,8 +8079,21 @@ class WorldBuilder {
         });
         garden.guardianResidents = [];
 
+        const allowedPresenceIds = this.scene?.guardianResidentPreview !== null &&
+            this.scene?.guardianResidentPreview !== undefined
+            ? null
+            : new Set(
+                window.GuardianOutcomes
+                    ?.getGuardianOutcomeSnapshot?.(window.GameState)
+                    ?.sanctuaryPresences
+                    ?.map(outcome => outcome.guardianId) || []
+            );
         const rescuedIds = new Set(
-            snapshot?.rescuedResidents?.map(resident => resident.id) || []
+            (snapshot?.rescuedResidents || [])
+                .filter(resident => (
+                    !allowedPresenceIds || allowedPresenceIds.has(resident.id)
+                ))
+                .map(resident => resident.id)
         );
         const residentStatuses = new Map(
             snapshot?.residents?.map(resident => [resident.id, resident]) || []
@@ -8144,7 +8157,9 @@ class WorldBuilder {
                 stroke: '#081514',
                 strokeThickness: 4
             }).setOrigin(0.5);
-            const standingLabel = status.activeTeam
+            const standingLabel = definition.id === 'elder_treant'
+                ? 'FOREST ALLY'
+                : status.activeTeam
                 ? 'ALLY'
                 : status.synergyUnlocked
                     ? 'TRUSTED'
@@ -8401,17 +8416,28 @@ class WorldBuilder {
             const container = this.scene.add.container(startX, startY)
                 .setDepth(startY + 6);
             const shadow = this.scene.add.ellipse(0, 20, 40, 11, 0x101616, 0.38);
-            const figure = this.scene.add.graphics();
-            figure.fillStyle(definition.color, 1);
-            figure.fillRoundedRect(-19, -24, 38, 48, 10);
-            figure.fillStyle(definition.accent, 0.75);
-            figure.fillCircle(0, 6, 11);
-            figure.fillStyle(0xF4F4F4, 1);
-            figure.fillCircle(-8, -8, 7);
-            figure.fillCircle(8, -8, 7);
-            figure.fillStyle(0x101616, 1);
-            figure.fillCircle(-7, -8, 3);
-            figure.fillCircle(9, -8, 3);
+            let figure;
+            let figureScale = 1;
+            if (this.scene.textures.exists(definition.textureKey)) {
+                figure = this.scene.add.image(0, -3, definition.textureKey);
+                figureScale = Math.min(
+                    58 / Math.max(1, figure.width),
+                    64 / Math.max(1, figure.height)
+                );
+                figure.setScale(figureScale);
+            } else {
+                figure = this.scene.add.graphics();
+                figure.fillStyle(definition.color, 1);
+                figure.fillRoundedRect(-19, -24, 38, 48, 10);
+                figure.fillStyle(definition.accent, 0.75);
+                figure.fillCircle(0, 6, 11);
+                figure.fillStyle(0xF4F4F4, 1);
+                figure.fillCircle(-8, -8, 7);
+                figure.fillCircle(8, -8, 7);
+                figure.fillStyle(0x101616, 1);
+                figure.fillCircle(-7, -8, 3);
+                figure.fillCircle(9, -8, 3);
+            }
             const name = this.scene.add.text(0, 35, definition.name.toUpperCase(), {
                 fontSize: '10px',
                 fontFamily: 'Arial, sans-serif',
@@ -8427,7 +8453,7 @@ class WorldBuilder {
                 backgroundColor: '#101616',
                 padding: { x: 4, y: 2 }
             }).setOrigin(0.5);
-            const marker = this.scene.add.text(0, -41, 'SUPPORT READY', {
+            const marker = this.scene.add.text(0, -41, 'COMMUNITY', {
                 fontSize: '8px',
                 fontFamily: 'Arial, sans-serif',
                 color: '#061116',
@@ -8451,6 +8477,8 @@ class WorldBuilder {
             entry.idleTween = this.scene.tweens.add({
                 targets: figure,
                 y: { from: -2, to: 2 },
+                scaleX: figureScale,
+                scaleY: { from: figureScale * 0.98, to: figureScale * 1.02 },
                 duration: 900 + index * 90,
                 yoyo: true,
                 repeat: -1,

@@ -25,17 +25,18 @@ describe('rescued resident gameplay contract', () => {
     test('spawns persistent residents with moving interaction zones', () => {
         expect(worldBuilder).toContain('refreshRescuedResidents(garden, snapshot = null)');
         expect(worldBuilder).toContain('zone.rescuedResidentId = definition.id');
-        expect(worldBuilder).toContain("'SUPPORT READY'");
+        expect(worldBuilder).toContain("'COMMUNITY'");
         expect(worldBuilder).toContain('zone.body?.updateFromGameObject?.()');
         expect(gameState).toContain('rescuedResidents: {');
         expect(globalInit).toContain("import './systems/RescuedResidents.js'");
     });
 
-    test('lets the player check supplies and understand the benefit', () => {
+    test('lets the player talk with residents and understand their contribution', () => {
         expect(gameScene).toContain('this.setupRescuedResidentOverlaps()');
         expect(gameScene).toContain('this.interactWithRescuedResident();');
-        expect(gameScene).toContain('SANCTUARY // RESCUED RESIDENT');
-        expect(gameScene).toContain('SUPPORT APPLIES ON THE NEXT EXPEDITION');
+        expect(gameScene).toContain('SANCTUARY // COMMUNITY');
+        expect(gameScene).toContain('THEIR WORK CHANGES THE NEXT EXPEDITION');
+        expect(gameScene).toContain('resident.contributionLine');
         expect(gameScene).toContain('rescued_resident_check_in');
     });
 

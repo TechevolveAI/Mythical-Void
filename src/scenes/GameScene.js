@@ -65,9 +65,11 @@ import {
     getGuardianCompanionRecognition
 } from '../systems/GuardianCompanionRecognition.js';
 import {
+    RESCUED_RESIDENT_DEFINITIONS,
     getRescuedResidentSnapshot,
     interactWithRescuedResident
 } from '../systems/RescuedResidents.js';
+import { getSanctuaryCommunitySnapshot } from '../systems/SanctuaryCommunity.js';
 import { companionMediaService } from '../systems/CompanionMediaService.js';
 import {
     FEND_COMMONS_PRIORITIES,
@@ -274,6 +276,7 @@ class GameScene extends Phaser.Scene {
         this.livingPortraitReadyNotice = null;
         this.livingPortraitNoticeTimer = null;
         this.livingPortraitNoticePendingIdentity = null;
+        this.deferredLivingPortraitRecord = null;
         this.nearCurrentVeilAnchorId = null;
         this.currentVeilOverlapColliders = [];
         this.residentExchangeElements = [];
@@ -461,14 +464,28 @@ class GameScene extends Phaser.Scene {
                     .map(resident => resident.id)
             )
             : new Set(
-                getGuardianResidentsSnapshot(window.GameState)
-                    .rescuedResidents
-                    .map(resident => resident.id)
+                getSanctuaryCommunitySnapshot(window.GameState)
+                    .guardianPresences
+                    .map(resident => resident.guardianId)
             );
 
         GUARDIAN_RESIDENT_DEFINITIONS.forEach(resident => {
             if (
                 rescuedIds.has(resident.id) &&
+                !this.textures.exists(resident.textureKey)
+            ) {
+                this.load.image(resident.textureKey, resident.artwork);
+            }
+        });
+
+        const rescuedResidentIds = new Set(
+            getRescuedResidentSnapshot(window.GameState)
+                .rescued
+                .map(resident => resident.id)
+        );
+        RESCUED_RESIDENT_DEFINITIONS.forEach(resident => {
+            if (
+                rescuedResidentIds.has(resident.id) &&
                 !this.textures.exists(resident.textureKey)
             ) {
                 this.load.image(resident.textureKey, resident.artwork);
@@ -5020,6 +5037,7 @@ class GameScene extends Phaser.Scene {
             this.livingSignalMomentElements?.length ||
             this.questTracker?.storyBannerElements?.length ||
             this.achievementNotification?.isVisible ||
+            this.livingPortraitReadyNotice ||
             this.livingPortraitNoticeTimer ||
             this.isFieldKitModalOpen ||
             this.fusionDiscoveryModalOpen ||
@@ -9568,9 +9586,9 @@ class GameScene extends Phaser.Scene {
         this.offerSanctuaryInteraction({
             id: `rescuedResident:${residentId}`,
             target: zone,
-            message: `Press SPACE · Check supplies with ${resident.name}`,
+            message: `Press SPACE · Talk with ${resident.name}`,
             icon: '💬',
-            verb: 'CHECK SUPPLIES',
+            verb: 'TALK',
             label: resident.name,
             ownerLabel: resident.name,
             worldPrompt: true,
@@ -9659,7 +9677,7 @@ class GameScene extends Phaser.Scene {
             return entry;
         };
 
-        addText(top + 32, 'SANCTUARY // RESCUED RESIDENT', {
+        addText(top + 32, 'SANCTUARY // COMMUNITY', {
             fontSize: compact ? '11px' : '13px',
             color: '#8FE3CF',
             fontStyle: 'bold'
@@ -9675,14 +9693,23 @@ class GameScene extends Phaser.Scene {
             fontStyle: 'italic',
             lineSpacing: 5
         });
-        addText(top + (compact ? 238 : 260), result.supportLabel.toUpperCase(), {
+        addText(
+            top + (compact ? 225 : 246),
+            (resident.contributionLine || resident.sanctuaryLine).toUpperCase(),
+            {
+                fontSize: compact ? '11px' : '13px',
+                color: '#F2C14E',
+                fontStyle: 'bold'
+            }
+        );
+        addText(top + (compact ? 258 : 282), result.supportLabel.toUpperCase(), {
             fontSize: compact ? '12px' : '14px',
             color: '#8FE3CF',
             fontStyle: 'bold'
         });
         addText(
-            top + (compact ? 290 : 320),
-            `SUPPLY CHECK ${result.interactionCount} // SUPPORT APPLIES ON THE NEXT EXPEDITION`,
+            top + (compact ? 302 : 334),
+            `COMMUNITY CHECK-IN ${result.interactionCount} // THEIR WORK CHANGES THE NEXT EXPEDITION`,
             {
                 fontSize: compact ? '10px' : '12px',
                 color: '#AFC3CF'
@@ -9908,7 +9935,9 @@ class GameScene extends Phaser.Scene {
             ? 'FIRST ALLIANCE // TRUST MEMORY UNLOCKED'
             : expeditionDebrief
                 ? 'ALLIANCE DEBRIEF // SHARED EXPEDITION MEMORY'
-                : 'SANCTUARY RESIDENT // RESTORED GUARDIAN', {
+                : result.resident.id === 'elder_treant'
+                    ? 'REGIONAL ALLY // VILLAGE HEART'
+                    : 'REGIONAL ALLY // SANCTUARY VISIT', {
             fontSize: compact ? '12px' : '14px',
             fontStyle: 'bold',
             color: '#8FE3CF'
@@ -14094,16 +14123,15 @@ class GameScene extends Phaser.Scene {
             return false;
         }
         if (this.isLivingPortraitNoticeBlocked()) {
-            if (attempt < 20) {
-                this.livingPortraitNoticeTimer?.remove?.();
-                this.livingPortraitNoticeTimer = this.time.delayedCall(
-                    1500,
-                    () => void this.maybeShowLivingPortraitReadyNotice(
-                        portrait,
-                        { attempt: attempt + 1, preview }
-                    )
-                );
-            }
+            this.deferredLivingPortraitRecord = portrait;
+            this.livingPortraitNoticeTimer?.remove?.();
+            this.livingPortraitNoticeTimer = this.time.delayedCall(
+                1500,
+                () => void this.maybeShowLivingPortraitReadyNotice(
+                    this.deferredLivingPortraitRecord || portrait,
+                    { attempt: attempt + 1, preview }
+                )
+            );
             return false;
         }
 
@@ -14118,6 +14146,7 @@ class GameScene extends Phaser.Scene {
                 return false;
             }
             if (this.isLivingPortraitNoticeBlocked()) {
+                this.deferredLivingPortraitRecord = portrait;
                 this.livingPortraitNoticePendingIdentity = null;
                 this.livingPortraitNoticeTimer?.remove?.();
                 this.livingPortraitNoticeTimer = this.time.delayedCall(
@@ -14129,6 +14158,7 @@ class GameScene extends Phaser.Scene {
                 );
                 return false;
             }
+            this.deferredLivingPortraitRecord = null;
             this.showLivingPortraitReadyNotice(portrait, textureKey, { preview });
             return true;
         } finally {
@@ -14177,6 +14207,8 @@ class GameScene extends Phaser.Scene {
 
     isLivingPortraitNoticeBlocked() {
         return Boolean(
+            window.OnboardingManager?.isProcessing ||
+            this.villageArrivalRevealActive ||
             this.guardianExchangeOpen ||
             this.guardianCareActivityOpen ||
             this.residentExchangeOpen ||
@@ -14185,6 +14217,8 @@ class GameScene extends Phaser.Scene {
             this.storyModalElements?.length ||
             this.greetingElements?.length ||
             this.livingSignalMomentElements?.length ||
+            this.questTracker?.storyBannerElements?.length ||
+            this.achievementNotification?.isVisible ||
             this.isFieldKitModalOpen ||
             this.fusionDiscoveryModalOpen ||
             this.hamburgerMenu?.isOpen ||
@@ -14376,6 +14410,7 @@ class GameScene extends Phaser.Scene {
         this.livingPortraitReadyNotice?.destroy?.();
         this.livingPortraitReadyNotice = null;
         this.livingPortraitNoticePendingIdentity = null;
+        this.deferredLivingPortraitRecord = null;
     }
 
     /**

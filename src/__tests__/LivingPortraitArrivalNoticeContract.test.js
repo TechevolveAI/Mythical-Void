@@ -39,6 +39,11 @@ describe('late living portrait arrival contract', () => {
             'if (!preview && !livingFormSeen && this.showLivingPortraitReveal(record))'
         );
         expect(gameScene).toContain('onPortraitShown: shownRecord => {');
+        expect(gameScene).toContain('this.deferredLivingPortraitRecord = portrait;');
+        expect(gameScene).not.toContain('if (attempt < 20)');
+        expect(gameScene).toContain('window.OnboardingManager?.isProcessing');
+        expect(gameScene).toContain('this.villageArrivalRevealActive');
+        expect(gameScene).toContain('this.livingPortraitReadyNotice ||');
         expect(handoff).toContain("mode === 'late_reveal'");
         expect(handoff).toContain('CONTINUE EXPLORING');
     });

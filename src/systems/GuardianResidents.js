@@ -1,3 +1,5 @@
+import { getGuardianOutcomeSnapshot } from './GuardianOutcomes.js';
+
 export const GUARDIAN_RESIDENTS_SCHEMA_VERSION = 4;
 export const GUARDIAN_SYNERGY_ASSISTS = 3;
 export const GUARDIAN_ROUTINE_RECOVERY_MS = 77 * 1000;
@@ -631,11 +633,10 @@ function formatExpeditionLabel(levelId) {
 }
 
 function getLegacyCompletedGuardianIds(gameState) {
-    return GUARDIAN_RESIDENT_DEFINITIONS
-        .filter(guardian => (
-            gameState?.get?.(`levels.${guardian.levelId}.completed`) === true
-        ))
-        .map(guardian => guardian.id);
+    // This compatibility layer powers the Elder Treant's Heart projection.
+    // Other completed bosses remain region-bound and never become residents.
+    return getGuardianOutcomeSnapshot(gameState).sanctuaryPresences
+        .map(outcome => outcome.guardianId);
 }
 
 export function normalizeGuardianResidentState(state = {}, {

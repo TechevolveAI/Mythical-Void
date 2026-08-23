@@ -1,4 +1,5 @@
 import { getFendCommunitySnapshot } from './FendCommunity.js';
+import { getRescuedResidentSnapshot } from './RescuedResidents.js';
 
 export const VILLAGE_SCHEMA_VERSION = 3;
 export const VILLAGE_PRODUCTION_CAP_MS = 4 * 60 * 60 * 1000;
@@ -920,9 +921,37 @@ export function getVillageCreatureRoster(gameState) {
         roster.push({
             ...creature,
             id,
-            name: creature.name || 'Unnamed companion'
+            name: creature.name || 'Unnamed companion',
+            communityType: index === 0 ? 'player_companion' : 'companion',
+            isPlayerCompanion: index === 0,
+            villageTraits: Array.isArray(creature.villageTraits)
+                ? creature.villageTraits
+                : []
         });
     });
+
+    getRescuedResidentSnapshot(gameState).rescued
+        .filter(resident => resident.residencyStatus !== 'away')
+        .forEach(resident => {
+            if (seen.has(resident.id)) return;
+            seen.add(resident.id);
+            roster.push({
+                id: resident.id,
+                name: resident.name,
+                role: resident.role,
+                kind: resident.kind,
+                artwork: resident.artwork,
+                textureKey: resident.textureKey,
+                accent: resident.accent,
+                communityType: 'rescued_resident',
+                isPlayerCompanion: false,
+                residencyStatus: resident.residencyStatus,
+                preferredBuildingId: resident.preferredBuildingId,
+                villageTraits: resident.villageTraits,
+                contributionLine: resident.contributionLine,
+                stats: { happiness: 100, energy: 100, health: 100 }
+            });
+        });
 
     return roster;
 }
@@ -947,6 +976,8 @@ function collectTraitLabels(creature) {
     add(dna?.curiosity);
     add(personality?.primary);
     add(personality?.type);
+    (Array.isArray(creature?.villageTraits) ? creature.villageTraits : [])
+        .forEach(add);
 
     if (Number(axes.energy) > 30) add('energetic');
     if (Number(axes.curiosity) > 30) add('curious');
@@ -1234,18 +1265,32 @@ export function getVillageHomeProfile(buildings = [], roster = []) {
         return {
             id: creature.id,
             name: creature.name,
+            communityType: creature.communityType || 'companion',
+            role: creature.role || null,
+            artwork: creature.artwork || null,
+            textureKey: creature.textureKey || null,
             atWork: Boolean(assignment),
             workBuildingId: assignment?.definitionId || null,
             workLabel: assignment?.definition?.shortLabel || null,
+            homePriority: creature.communityType === 'rescued_resident'
+                ? 0
+                : creature.isPlayerCompanion
+                    ? 1
+                    : 2,
             rosterIndex
         };
     });
     residenceCandidates.sort((left, right) => (
         Number(left.atWork) - Number(right.atWork) ||
+        left.homePriority - right.homePriority ||
         left.rosterIndex - right.rosterIndex
     ));
     const residents = habitat
-        ? residenceCandidates.slice(0, capacity).map(({ rosterIndex, ...resident }) => resident)
+        ? residenceCandidates.slice(0, capacity).map(({
+            rosterIndex,
+            homePriority,
+            ...resident
+        }) => resident)
         : [];
 
     return {
@@ -1579,7 +1624,11 @@ export function getVillageResidentProposal(snapshot, { definitionId = null } = {
             building.creature &&
             (definition.requires || []).includes(building.definitionId)
         ))?.creature || null;
-    const resident = prerequisiteWorker ||
+    const preferredResident = snapshot?.roster?.find(creature => (
+        creature.preferredBuildingId === definition.id &&
+        !assignedCreatureIds.has(creature.id)
+    ));
+    const resident = preferredResident || prerequisiteWorker ||
         snapshot?.roster?.find(creature => !assignedCreatureIds.has(creature.id)) ||
         snapshot?.roster?.[0] || null;
     if (!resident) return null;

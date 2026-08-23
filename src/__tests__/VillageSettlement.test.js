@@ -10,6 +10,10 @@ function loadVillageSettlement() {
             "import { getFendCommunitySnapshot } from './FendCommunity.js';",
             'const getFendCommunitySnapshot = GET_FEND_COMMUNITY_SNAPSHOT;'
         )
+        .replace(
+            "import { getRescuedResidentSnapshot } from './RescuedResidents.js';",
+            'const getRescuedResidentSnapshot = GET_RESCUED_RESIDENT_SNAPSHOT;'
+        )
         .replace(/export const /g, 'const ')
         .replace(/export function /g, 'function ')
         .concat(`
@@ -58,6 +62,30 @@ function loadVillageSettlement() {
         GET_FEND_COMMUNITY_SNAPSHOT: gameState => ({
             stage: (gameState.get('world.fendCommunity.builtProjectIds') || []).length
         }),
+        GET_RESCUED_RESIDENT_SNAPSHOT: gameState => {
+            const definitions = [{
+                id: 'bloom',
+                levelId: 'mythicalForest',
+                name: 'Bloom',
+                role: 'Renewal Forager',
+                kind: 'sproutling',
+                artwork: '/marketing/bloom 2.webp',
+                textureKey: 'rescued-resident-bloom',
+                accent: 0xF2C14E,
+                preferredBuildingId: 'forager_hut',
+                villageTraits: ['foraging', 'renewal'],
+                contributionLine: 'Bloom maps food that can regrow.'
+            }];
+            const storedIds = gameState.get('world.rescuedResidents.rescuedIds') || [];
+            const rescued = definitions.filter(definition => (
+                storedIds.includes(definition.id) ||
+                gameState.get(`levels.${definition.levelId}.completed`) === true
+            )).map(definition => ({
+                ...definition,
+                residencyStatus: 'resident'
+            }));
+            return { rescued };
+        },
         Date,
         JSON,
         Map,
@@ -76,7 +104,9 @@ function createGameState({
     stage = 1,
     village = {},
     creature = null,
-    creatures = null
+    creatures = null,
+    levels = {},
+    rescuedResidents = {}
 } = {}) {
     const activeCreature = creature || creatures?.[0] || {
         id: 'companion_nova',
@@ -96,8 +126,10 @@ function createGameState({
                     (_, index) => `stage_${index}`
                 )
             },
-            village
+            village,
+            rescuedResidents
         },
+        levels,
         creature: {
             ...activeCreature,
             hatched: true
@@ -128,6 +160,25 @@ function createGameState({
 
 describe('Village settlement phase one', () => {
     const village = loadVillageSettlement();
+
+    test('places a freed creature in the roster with its preferred contribution', () => {
+        const gameState = createGameState({
+            levels: { mythicalForest: { completed: true } }
+        });
+        const roster = village.getVillageCreatureRoster(gameState);
+        const bloom = roster.find(entry => entry.id === 'bloom');
+
+        expect(bloom).toMatchObject({
+            name: 'Bloom',
+            communityType: 'rescued_resident',
+            preferredBuildingId: 'forager_hut',
+            contributionLine: 'Bloom maps food that can regrow.'
+        });
+        expect(roster.find(entry => entry.id === 'companion_nova')).toMatchObject({
+            communityType: 'player_companion',
+            isPlayerCompanion: true
+        });
+    });
 
     test('unlocks after a companion is hatched, before First Light Shelter exists', () => {
         const gameState = createGameState({ stage: 0 });

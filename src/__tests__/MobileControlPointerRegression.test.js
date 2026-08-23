@@ -255,6 +255,43 @@ describe('MobileControls pointer ownership', () => {
         expect(controls.activePointerId).toBeNull();
     });
 
+    test('uses native touch events when a browser does not synthesize pointer events', () => {
+        const MobileControls = loadMobileControls();
+        const { scene, events } = createScene();
+        const controls = new MobileControls(scene);
+        controls.isMobile = true;
+        controls.scene = scene;
+
+        attachControlFixtures(controls);
+        controls.setupCanvasJoystickInput();
+
+        const touchStart = events.find(evt => evt.type === 'touchstart');
+        const touchMove = events.find(evt => evt.type === 'touchmove');
+        expect(touchStart).toBeDefined();
+        expect(touchMove).toBeDefined();
+
+        const startEvent = {
+            changedTouches: [{ identifier: 0, clientX: 40, clientY: 760 }],
+            preventDefault: jest.fn(),
+            stopImmediatePropagation: jest.fn()
+        };
+        touchStart.handler(startEvent);
+
+        expect(controls.joystickActive).toBe(true);
+        expect(controls.activePointerId).toBe(0);
+        expect(startEvent.preventDefault).toHaveBeenCalled();
+
+        const moveEvent = {
+            touches: [{ identifier: 0, clientX: 70, clientY: 760 }],
+            preventDefault: jest.fn(),
+            stopImmediatePropagation: jest.fn()
+        };
+        touchMove.handler(moveEvent);
+
+        expect(controls.updateJoystickFromPointer).toHaveBeenCalledTimes(2);
+        expect(moveEvent.preventDefault).toHaveBeenCalled();
+    });
+
     test('only resets joystick when the active pointer ends', () => {
         const MobileControls = loadMobileControls();
         const { scene, events } = createScene();
