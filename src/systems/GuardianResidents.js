@@ -457,7 +457,7 @@ export const GUARDIAN_RESIDENT_DEFINITIONS = Object.freeze([
             'You reached the Heart and chose restoration over conquest. I come here as witness, never as ruler.',
         dialogue: Object.freeze([
             'Earth cannot hear the Current yet. Silence is not permission to own it.',
-            'Every rescued guardian has brought a different truth to this ground.',
+            'Every rescued life and regional Guardian has brought a different truth to this ground.',
             'First contact should begin with two questions: who is here, and what do they need?'
         ])
     })

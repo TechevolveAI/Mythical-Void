@@ -2,6 +2,7 @@ import { getCurrentEcologySnapshot } from './CurrentEcology.js';
 import { getFendCommunitySnapshot } from './FendCommunity.js';
 import { getFendResidentsSnapshot } from './FendResidents.js';
 import { getGuardianResidentsSnapshot } from './GuardianResidents.js';
+import { getSanctuaryCommunitySnapshot } from './SanctuaryCommunity.js';
 import { getFendCultureSnapshot } from './FendCulture.js';
 import {
     createCompanionConsentState,
@@ -498,6 +499,7 @@ export function buildCampaignLegacyCapsule(gameState, {
     const fendCommunity = getFendCommunitySnapshot(gameState);
     const fendResidents = getFendResidentsSnapshot(gameState);
     const guardianResidents = getGuardianResidentsSnapshot(gameState);
+    const sanctuaryCommunity = getSanctuaryCommunitySnapshot(gameState);
     const fendCulture = getFendCultureSnapshot(gameState);
     const remainAndDefend = getRemainAndDefendSnapshot(gameState);
     const agencyHistory = getAgencyHistory(gameState);
@@ -701,10 +703,14 @@ export function buildCampaignLegacyCapsule(gameState, {
                 )
             },
             guardianResidents: {
-                restoredGuardians: guardianResidents.rescuedResidents.map(
+                // Deprecated compatibility alias. Guardians remain in their
+                // regions; only an authored presence may answer the Heart.
+                restoredGuardians: guardianResidents.regionalAllies.map(
                     resident => ({
                         id: normalizeText(resident.id, 'guardian', 48),
-                        relationship: resident.met ? 'known' : 'rescued',
+                        relationship: resident.sanctuaryPresence !== 'none'
+                            ? 'heart_linked'
+                            : 'regional_ally',
                         interactions: Math.max(
                             0,
                             Math.min(
@@ -731,6 +737,68 @@ export function buildCampaignLegacyCapsule(gameState, {
                             resident.teamAbilityUnlocked === true,
                         activeTeam: resident.activeTeam === true
                     })
+                )
+            },
+            sanctuaryCommunity: {
+                schemaVersion: Math.max(
+                    1,
+                    Number(sanctuaryCommunity.schemaVersion) || 1
+                ),
+                rescuedResidents: sanctuaryCommunity.residents.map(resident => ({
+                    id: normalizeText(resident.id, 'resident', 48),
+                    role: normalizeText(resident.role, 'Sanctuary resident', 64),
+                    kind: normalizeText(resident.kind, 'unknown', 48),
+                    residencyStatus: normalizeEnum(
+                        resident.residencyStatus,
+                        ['resident', 'guest', 'away'],
+                        'resident'
+                    ),
+                    interactions: Math.max(
+                        0,
+                        Math.min(999, Number(resident.interactionCount) || 0)
+                    ),
+                    preferredBuildingId: normalizeText(
+                        resident.preferredBuildingId,
+                        null,
+                        64
+                    ),
+                    supportLabel: normalizeText(
+                        resident.supportLabel,
+                        null,
+                        120
+                    )
+                })),
+                regionalGuardians: sanctuaryCommunity.guardianAllies.map(
+                    guardian => ({
+                        id: normalizeText(guardian.guardianId, 'guardian', 48),
+                        outcome: normalizeEnum(
+                            guardian.outcome,
+                            ['restored', 'allied', 'defeated', 'withdrawn'],
+                            'restored'
+                        ),
+                        standing: normalizeText(
+                            guardian.standing,
+                            'regional_guardian',
+                            48
+                        ),
+                        sanctuaryPresence: normalizeText(
+                            guardian.sanctuaryPresence,
+                            'none',
+                            48
+                        ),
+                        regionRole: normalizeText(
+                            guardian.regionRole,
+                            'Regional guardian',
+                            64
+                        )
+                    })
+                ),
+                heartPresenceIds: normalizeStringList(
+                    sanctuaryCommunity.guardianPresences.map(
+                        guardian => guardian.guardianId
+                    ),
+                    2,
+                    48
                 )
             },
             fendCulture: {

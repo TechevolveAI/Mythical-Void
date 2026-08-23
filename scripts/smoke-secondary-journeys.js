@@ -10686,7 +10686,11 @@ async function smokeVillageUi(session, exceptions) {
         !firstArrivalWorld.guideActive ||
         firstArrivalWorld.guideMessage !== 'BUILD A HOME TOGETHER' ||
         JSON.stringify(firstArrivalWorld.guideSteps) !== JSON.stringify(['BUILD', 'INVITE', 'GROW']) ||
-        !firstArrivalWorld.statusText.includes('BUILD A HOME TOGETHER') ||
+        (
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? firstArrivalWorld.statusText !== 'TAP TO PLAN · 0/5 ROOTS'
+                : !firstArrivalWorld.statusText.includes('BUILD A HOME TOGETHER')
+        ) ||
         firstArrivalWorld.nextAction !== 'build' ||
         firstArrivalWorld.restored !== 0 ||
         firstArrivalWorld.heartPresentation.pulseProfile !== 'quiet_ambient' ||
@@ -12201,7 +12205,7 @@ async function smokeVillageUi(session, exceptions) {
         frontApproach.statusAlpha !== 0 ||
         (
             SMOKE_VIEWPORT_WIDTH <= 600
-                ? frontApproach.labelBaseAlpha !== 0
+                ? frontApproach.labelBaseAlpha <= 0
                 : frontApproach.labelBaseAlpha <= 0
         ) ||
         frontApproach.statusBaseAlpha <= 0 ||

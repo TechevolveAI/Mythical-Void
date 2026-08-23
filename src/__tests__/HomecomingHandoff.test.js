@@ -358,6 +358,82 @@ describe('Homecoming cross-title handoff', () => {
         expect(guardians[0].activeTeam).toBe(true);
     });
 
+    test('carries rescued residents separately from regional Guardians', () => {
+        const capsule = createCompleteLegacyCapsule();
+        capsule.campaign.sanctuaryCommunity = {
+            schemaVersion: 1,
+            rescuedResidents: [
+                {
+                    id: 'bloom',
+                    role: 'Root Forager',
+                    kind: 'bloom',
+                    residencyStatus: 'resident',
+                    interactions: 4,
+                    preferredBuildingId: 'forager_hut',
+                    supportLabel: 'Root route support'
+                },
+                {
+                    id: 'pebble',
+                    role: 'Shard Finder',
+                    kind: 'pebble',
+                    residencyStatus: 'away',
+                    interactions: 1,
+                    preferredBuildingId: 'current_masonry',
+                    supportLabel: 'Safe shard support'
+                }
+            ],
+            regionalGuardians: [
+                {
+                    id: 'elder_treant',
+                    outcome: 'restored',
+                    standing: 'regional_ally',
+                    sanctuaryPresence: 'heart_projection',
+                    regionRole: 'Forest Rootwarden'
+                },
+                {
+                    id: 'crystal_golem',
+                    outcome: 'restored',
+                    standing: 'regional_guardian',
+                    sanctuaryPresence: 'none',
+                    regionRole: 'Cavern Resonance Keeper'
+                }
+            ],
+            heartPresenceIds: ['elder_treant', 'crystal_golem']
+        };
+
+        const handoff = createHomecomingHandoffPackageFromCapsule(capsule);
+
+        expect(handoff.payload.allies.rescuedResidents).toEqual([
+            expect.objectContaining({
+                id: 'bloom',
+                role: 'root_forager',
+                residencyStatus: 'resident',
+                interactions: 4
+            }),
+            expect.objectContaining({
+                id: 'pebble',
+                role: 'shard_finder',
+                residencyStatus: 'away',
+                interactions: 1
+            })
+        ]);
+        expect(handoff.payload.allies.regionalGuardians).toEqual([
+            expect.objectContaining({
+                id: 'elder_treant',
+                standing: 'regional_ally',
+                sanctuaryPresence: 'heart_projection'
+            }),
+            expect.objectContaining({
+                id: 'crystal_golem',
+                standing: 'regional_guardian',
+                sanctuaryPresence: 'none'
+            })
+        ]);
+        expect(handoff.payload.allies.heartPresenceIds).toEqual([
+            'elder_treant'
+        ]);
+    });
+
     test('preserves bounded lineage while excluding remote identity and URLs', () => {
         const handoff = createHomecomingHandoffPackageFromCapsule(
             createCompleteLegacyCapsule()

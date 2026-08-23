@@ -1727,7 +1727,7 @@ async function initializeGame() {
                             {
                                 icon: '◇',
                                 creatureName: 'Nova',
-                                result: 'Shared gathered light with a rescued guardian.'
+                                result: 'Shared gathered light with a rescued Sanctuary resident.'
                             },
                             {
                                 icon: '⌖',

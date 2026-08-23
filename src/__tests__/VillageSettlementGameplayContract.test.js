@@ -614,7 +614,9 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('const commonsAlpha = storyMode');
         expect(world).toContain(".setData('villagePresentationMode', landmark.presentationMode)");
         expect(world).toContain('const labelAlpha = compactHeart');
-        expect(world).toContain('? 0\n            : storyMode');
+        expect(world).toContain('? storyMode ? 0.24 : active ? 0.96 : 0.62');
+        expect(world).toContain('? storyMode ? 0.12 : active ? 0.78 : 0.48');
+        expect(world).toContain('`TAP TO PLAN · ${restoredCount}/${VILLAGE_PLOTS.length} ROOTS`');
         expect(village).toContain('export const VILLAGE_GROWTH_PROFILES');
         expect(village).toContain('export function getVillageGrowthProfile');
         expect(village).toContain("worldIdentity: 'signal_seed'");
@@ -625,7 +627,7 @@ describe('Village settlement gameplay contract', () => {
         expect(smoke).toContain('const retryableLifecycleRace = diagnostics.gameSceneStatus === 8');
         expect(smoke).toContain("diagnostics.exceptions.length === 0");
         expect(smoke).toContain("'[smoke-recovery] GameScene lifecycle retry\\n'");
-        expect(smoke).toContain('? frontApproach.labelBaseAlpha !== 0');
+        expect(smoke).toContain('? frontApproach.labelBaseAlpha <= 0');
         expect(world).toContain("setData('growthLabel', snapshot?.worldState?.growthLabel");
         expect(world).toContain("setData('villageGrowthLabel'");
         expect(world).toContain('drawVillageHeartLife(landmark, {');

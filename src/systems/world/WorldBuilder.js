@@ -1080,6 +1080,10 @@ class WorldBuilder {
         };
 
         zone.setInteractive({ useHandCursor: true });
+        zone
+            .setData('ariaLabel', 'Open the Village Heart plan')
+            .setData('villageLandmarkIdentity', 'village_heart')
+            .setData('mobileTapTarget', true);
         zone.on('pointerover', () => {
             heart.setScale(1.04);
             if (heartArtwork) {
@@ -2185,9 +2189,13 @@ class WorldBuilder {
         statusLabel
             .setText(unlocked
                 ? restoredCount === 0
-                    ? `0/${VILLAGE_PLOTS.length} ROOTS · BUILD A HOME TOGETHER`
-                    : `${restoredCount}/${VILLAGE_PLOTS.length} ROOTS · ` +
-                        `${snapshot?.worldState?.growthLabel || 'AWAKENED ROOT'}`
+                    ? compactSettlement
+                        ? `TAP TO PLAN · 0/${VILLAGE_PLOTS.length} ROOTS`
+                        : `0/${VILLAGE_PLOTS.length} ROOTS · BUILD A HOME TOGETHER`
+                    : compactSettlement
+                        ? `TAP TO PLAN · ${restoredCount}/${VILLAGE_PLOTS.length} ROOTS`
+                        : `${restoredCount}/${VILLAGE_PLOTS.length} ROOTS · ` +
+                            `${snapshot?.worldState?.growthLabel || 'AWAKENED ROOT'}`
                 : 'HATCH A COMPANION TO WAKE IT'
             )
             .setFontSize(compactSettlement ? '8px' : '9px')
@@ -3669,10 +3677,10 @@ class WorldBuilder {
         landmark.zone.setInteractive?.({ useHandCursor: true });
         const compactHeart = this.scene.scale.width <= 600;
         const labelAlpha = compactHeart
-            ? 0
+            ? storyMode ? 0.24 : active ? 0.96 : 0.62
             : storyMode ? 0.3 : active ? 0.8 : 0.18;
         const statusAlpha = compactHeart
-            ? storyMode ? 0.08 : active ? 0.46 : 0
+            ? storyMode ? 0.12 : active ? 0.78 : 0.48
             : storyMode ? 0.16 : active ? 0.68 : 0;
         landmark.label
             ?.setData('villageVisibilityBaseAlpha', labelAlpha)

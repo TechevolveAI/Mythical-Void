@@ -52,6 +52,14 @@ const GUARDIAN_RESIDENT_IDS = Object.freeze([
     'cosmic_titan',
     'void_empress'
 ]);
+const RESCUED_RESIDENT_IDS = Object.freeze([
+    'bloom',
+    'pebble',
+    'zephyr',
+    'wisp',
+    'luna',
+    'nova'
+]);
 const PRIVACY_EXCLUDES = Object.freeze([
     'account_identity',
     'age',
@@ -230,9 +238,16 @@ function normalizeGuardianRoster(value) {
         if (activeTeam) activeAssigned = true;
         return {
             id,
-            relationship: guardian?.relationship === 'known'
-                ? 'known'
-                : 'rescued',
+            relationship: normalizeEnum(
+                guardian?.relationship,
+                [
+                    'known',
+                    'rescued',
+                    'regional_ally',
+                    'heart_linked'
+                ],
+                'regional_ally'
+            ),
             interactions: clamp(
                 Math.floor(Number(guardian?.interactions) || 0),
                 0,
@@ -254,6 +269,72 @@ function normalizeGuardianRoster(value) {
     }).filter(Boolean).slice(0, GUARDIAN_RESIDENT_IDS.length);
 }
 
+function normalizeRegionalGuardianRoster(value) {
+    if (!Array.isArray(value)) return [];
+    const seen = new Set();
+    return value.map(guardian => {
+        const id = normalizeEnum(guardian?.id, GUARDIAN_RESIDENT_IDS, null);
+        if (!id || seen.has(id)) return null;
+        seen.add(id);
+        return {
+            id,
+            outcome: normalizeEnum(
+                guardian?.outcome,
+                ['restored', 'allied', 'defeated', 'withdrawn'],
+                'restored'
+            ),
+            standing: normalizeEnum(
+                guardian?.standing,
+                ['regional_ally', 'regional_guardian'],
+                id === 'elder_treant' ? 'regional_ally' : 'regional_guardian'
+            ),
+            sanctuaryPresence: guardian?.sanctuaryPresence === 'heart_projection'
+                ? 'heart_projection'
+                : 'none',
+            regionRole: normalizeIdentifier(
+                guardian?.regionRole,
+                'regional_guardian',
+                64
+            )
+        };
+    }).filter(Boolean).slice(0, GUARDIAN_RESIDENT_IDS.length);
+}
+
+function normalizeRescuedResidentRoster(value) {
+    if (!Array.isArray(value)) return [];
+    const seen = new Set();
+    return value.map(resident => {
+        const id = normalizeEnum(resident?.id, RESCUED_RESIDENT_IDS, null);
+        if (!id || seen.has(id)) return null;
+        seen.add(id);
+        return {
+            id,
+            role: normalizeIdentifier(resident?.role, 'sanctuary_resident', 64),
+            kind: normalizeIdentifier(resident?.kind, id, 48),
+            residencyStatus: normalizeEnum(
+                resident?.residencyStatus,
+                ['resident', 'guest', 'away'],
+                'resident'
+            ),
+            interactions: clamp(
+                Math.floor(Number(resident?.interactions) || 0),
+                0,
+                999
+            ),
+            preferredBuildingId: normalizeIdentifier(
+                resident?.preferredBuildingId,
+                null,
+                64
+            ),
+            supportLabel: normalizeIdentifier(
+                resident?.supportLabel,
+                null,
+                120
+            )
+        };
+    }).filter(Boolean).slice(0, RESCUED_RESIDENT_IDS.length);
+}
+
 function buildPayloadFromLegacyCapsule(capsule = {}) {
     const companion = getCapsuleCompanion(capsule);
     const identity = capsule?.companionIdentity || {};
@@ -264,8 +345,26 @@ function buildPayloadFromLegacyCapsule(capsule = {}) {
     const current = capsule?.discoveries?.currentEcology || {};
     const equipment = capsule?.equipment || {};
     const remain = capsule?.campaign?.remainAndDefend || {};
-    const guardianRoster = capsule?.campaign?.guardianResidents
-        ?.restoredGuardians;
+    const sanctuaryCommunity = capsule?.campaign?.sanctuaryCommunity || {};
+    const legacyGuardianRoster = normalizeGuardianRoster(
+        capsule?.campaign?.guardianResidents?.restoredGuardians
+    );
+    const regionalGuardians = normalizeRegionalGuardianRoster(
+        sanctuaryCommunity?.regionalGuardians
+    );
+    const effectiveRegionalGuardians = regionalGuardians.length > 0
+        ? regionalGuardians
+        : legacyGuardianRoster.map(guardian => ({
+            id: guardian.id,
+            outcome: 'restored',
+            standing: guardian.id === 'elder_treant'
+                ? 'regional_ally'
+                : 'regional_guardian',
+            sanctuaryPresence: guardian.relationship === 'heart_linked'
+                ? 'heart_projection'
+                : 'none',
+            regionRole: 'regional_guardian'
+        }));
     const handoff = capsule?.handoff || {};
     const shipArchive = handoff?.shipArchive || {};
     const protectedReturn =
@@ -538,7 +637,33 @@ function buildPayloadFromLegacyCapsule(capsule = {}) {
             transmissionStatus: 'not_sent'
         },
         allies: {
-            restoredGuardians: normalizeGuardianRoster(guardianRoster)
+            rescuedResidents: normalizeRescuedResidentRoster(
+                sanctuaryCommunity?.rescuedResidents
+            ),
+            regionalGuardians: effectiveRegionalGuardians,
+            heartPresenceIds: normalizeKnownList(
+                sanctuaryCommunity?.heartPresenceIds,
+                GUARDIAN_RESIDENT_IDS,
+                2
+            ).filter(id => effectiveRegionalGuardians.some(guardian => (
+                guardian.id === id &&
+                guardian.sanctuaryPresence !== 'none'
+            ))),
+            // Deprecated alias retained for handoffs created before the
+            // Sanctuary community model was introduced.
+            restoredGuardians: legacyGuardianRoster.length > 0
+                ? legacyGuardianRoster
+                : effectiveRegionalGuardians.map(guardian => ({
+                    id: guardian.id,
+                    relationship: guardian.sanctuaryPresence !== 'none'
+                        ? 'heart_linked'
+                        : 'regional_ally',
+                    interactions: 0,
+                    teamAbilityId: 'unknown',
+                    teamAbilityName: null,
+                    abilityUnlocked: false,
+                    activeTeam: false
+                }))
         },
         ship: {
             stealthDescent: normalizeEnum(
@@ -740,6 +865,11 @@ function normalizePayload(payload = {}) {
         equipment: payload?.equipment,
         campaign: {
             remainAndDefend: payload?.recovery,
+            sanctuaryCommunity: {
+                rescuedResidents: payload?.allies?.rescuedResidents,
+                regionalGuardians: payload?.allies?.regionalGuardians,
+                heartPresenceIds: payload?.allies?.heartPresenceIds
+            },
             guardianResidents: {
                 restoredGuardians:
                     payload?.allies?.restoredGuardians?.map(
