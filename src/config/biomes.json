@@ -1,28 +1,28 @@
 {
   "nebula": {
     "id": "nebula",
-    "name": "Cosmic Crash Site",
-    "description": "A mystical crystalline biome where your ship landed among floating rocks and aurora streams",
+    "name": "The Fend Sanctuary",
+    "description": "A living alien valley of Current-fed soil, mineral ridges, and strange luminous flora",
     "unlockCost": 0,
     "palette": {
-      "skyTop": "#B39DDB",
-      "skyBottom": "#80CBC4",
-      "nebula": "#F48FB1",
-      "accent": "#FFD54F",
-      "flora": "#64B5F6",
-      "rocks": "#90A4AE"
+      "skyTop": "#0E302F",
+      "skyBottom": "#17483B",
+      "nebula": "#675A82",
+      "accent": "#E7BE58",
+      "flora": "#58C58A",
+      "rocks": "#52665C"
     },
     "layers": {
       "nebulaBackground": {
         "enabled": true,
-        "colors": ["#4A148C", "#7B1FA2", "#6A1B9A"],
+        "colors": ["#0E302F", "#17483B", "#315A43"],
         "scrollFactor": 0.1,
         "opacity": 0.8
       },
       "distantStars": {
-        "enabled": true,
-        "count": 40,
-        "colors": ["#FFFFFF", "#F0F8FF", "#E6E6FA"],
+        "enabled": false,
+        "count": 0,
+        "colors": ["#8FE3CF", "#E7BE58", "#675A82"],
         "scrollFactor": 0.2
       },
       "floatingRocks": {
@@ -40,9 +40,9 @@
         "bioluminescence": true
       },
       "foregroundDust": {
-        "enabled": true,
-        "count": 25,
-        "colors": ["#F5DEB3", "#DDDDDD"],
+        "enabled": false,
+        "count": 0,
+        "colors": ["#8FE3CF", "#E7BE58"],
         "scrollFactor": 0.9
       }
     },

@@ -23,8 +23,13 @@ import {
 } from './SanctuaryWorldArt.js';
 
 const SANCTUARY_BACKGROUND_OVERSCAN = 320;
-const SANCTUARY_BACKGROUND_THREAD_COUNT = 22;
-const SANCTUARY_BACKGROUND_PATCH_COUNT = 36;
+const SANCTUARY_BACKGROUND_THREAD_COUNT = 34;
+const SANCTUARY_BACKGROUND_PATCH_COUNT = 64;
+const SANCTUARY_BACKGROUND_BIOME_REGION_COUNT = 7;
+const SANCTUARY_BACKGROUND_FLORA_SILHOUETTE_COUNT = 30;
+const SANCTUARY_BACKGROUND_ALIEN_TREE_COUNT = 14;
+const SANCTUARY_BACKGROUND_SPORE_COUNT = 42;
+const SANCTUARY_SURFACE_STAR_COUNT = 0;
 
 const VILLAGE_SETTLEMENT_LAYOUTS = Object.freeze({
     compact: Object.freeze({
@@ -312,9 +317,10 @@ class WorldBuilder {
         const terrain = this.scene.add.graphics()
             .setDepth(-24)
             .setData('sanctuaryDistrictTerrain', true)
-            .setData('sanctuaryDistrictVisualProfile', 'woven_edge_contours_v4')
+            .setData('sanctuaryDistrictVisualProfile', 'living_biome_contours_v5')
             .setData('sanctuaryDistrictFullZoneFill', false)
-            .setData('sanctuaryDistrictMaxFillAlpha', 0.08);
+            .setData('sanctuaryDistrictMaxFillAlpha', 0.14)
+            .setData('sanctuaryDistrictBiomeFieldCount', 7);
         const routes = this.scene.add.graphics()
             .setDepth(-23)
             .setData('sanctuaryPhysicalRoutes', true)
@@ -327,6 +333,17 @@ class WorldBuilder {
             const { center, bounds } = zone;
             const width = bounds.width * scale;
             const height = bounds.height * scale;
+            terrain.fillStyle(colors.ground, 0.1);
+            terrain.fillEllipse(center.x, center.y, width * 0.92, height * 0.66);
+            terrain.fillStyle(colors.secondary || colors.edge, 0.055);
+            terrain.fillEllipse(
+                center.x - (width * 0.08),
+                center.y + (height * 0.04),
+                width * 0.7,
+                height * 0.48
+            );
+            terrain.lineStyle(12, colors.shadow, 0.09);
+            terrain.strokeEllipse(center.x, center.y + 5, width * 0.88, height * 0.61);
             const contourArcs = [
                 { start: 0.03, end: 0.17, radius: 0.92 },
                 { start: 0.29, end: 0.43, radius: 0.76 },
@@ -370,32 +387,44 @@ class WorldBuilder {
 
         drawDistrictContours(zones.crashSite, {
             shadow: 0x05090A,
-            ground: 0x293438,
-            edge: 0x8BA3AA
+            ground: 0x314A45,
+            secondary: 0x5B425F,
+            edge: 0xA7C0B8
         }, 1.04);
         drawDistrictContours(zones.livingArea, {
             shadow: 0x071411,
-            ground: 0x163B35,
+            ground: 0x235B46,
+            secondary: 0x1E6A62,
             edge: 0x71E6B1
         }, 1.05);
         drawDistrictContours(zones.shopArea, {
             shadow: 0x080D0D,
-            ground: 0x263D38,
+            ground: 0x405747,
+            secondary: 0x5B4534,
             edge: 0xF2C14E
         }, 0.95);
         drawDistrictContours(zones.hubGate, {
             shadow: 0x070912,
-            ground: 0x24233D,
+            ground: 0x3A365B,
+            secondary: 0x23524D,
             edge: 0xBFA6FF
         }, 1.04);
         drawDistrictContours(zones.gardenPlot, {
             shadow: 0x071411,
-            ground: 0x1B4435,
+            ground: 0x28664A,
+            secondary: 0x345A66,
             edge: 0x8FE3CF
+        }, 1.02);
+        drawDistrictContours(zones.settlementDistrict, {
+            shadow: 0x06120F,
+            ground: 0x245B43,
+            secondary: 0x313F5C,
+            edge: 0x71E6B1
         }, 1.02);
         drawDistrictContours(zones.trainingGrounds, {
             shadow: 0x100A0A,
-            ground: 0x342A2A,
+            ground: 0x4A3835,
+            secondary: 0x28513E,
             edge: 0xD94B4B
         }, 0.96);
         terrain
@@ -528,13 +557,13 @@ class WorldBuilder {
                 )
                 .setFlipX(placement.flipX)
                 .setDepth(y - 4)
-                .setAlpha(0.84)
-                .setTint(0xD8E8E2)
+                .setAlpha(0.96)
+                .setTint(0xFFFFFF)
                 .setData('sanctuaryFlora', placement.artwork)
                 .setData('sanctuaryFloraZone', placement.zone)
                 .setData('sanctuaryFloraGrounded', true)
                 .setData('sanctuaryFloraPresentation', 'ambient-world')
-                .setData('sanctuaryFloraTargetAlpha', 0.84);
+                .setData('sanctuaryFloraTargetAlpha', 0.96);
             image.sanctuaryBaseScaleX = image.scaleX;
             image.sanctuaryBaseScaleY = image.scaleY;
             const tween = this.scene.tweens.add({
@@ -709,14 +738,14 @@ class WorldBuilder {
     setSanctuaryFloraFocus(districts, active = false, { immediate = false } = {}) {
         const flora = districts?.flora || [];
         const compact = this.scene.scale.width <= 600;
-        const targetAlpha = active ? (compact ? 0.34 : 0.44) : 0.84;
-        const groundingAlpha = active ? (compact ? 0.22 : 0.28) : 0.68;
+        const targetAlpha = active ? (compact ? 0.58 : 0.68) : 0.96;
+        const groundingAlpha = active ? (compact ? 0.38 : 0.46) : 0.76;
         flora.forEach(entry => {
             if (!entry?.image) return;
             entry.focusTween?.stop?.();
             entry.focusTween = null;
             entry.image
-                .setTint(active ? 0x9DB8AF : 0xD8E8E2)
+                .setTint(active ? 0xC0DCCF : 0xFFFFFF)
                 .setData(
                     'sanctuaryFloraPresentation',
                     active ? 'supporting-focus' : 'ambient-world'
@@ -9815,12 +9844,30 @@ class WorldBuilder {
         this.backgroundImage.setDepth(-1000);
         const isSanctuary = this.currentBiome === 'nebula';
         if (isSanctuary) {
-            this.scene.cameras?.main?.setBackgroundColor?.('#102329');
+            this.scene.cameras?.main?.setBackgroundColor?.('#163B35');
         }
         this.backgroundImage
             .setData(
                 'worldBackgroundProfile',
-                isSanctuary ? 'living_current_ground_v4' : 'cosmic_biome_v1'
+                isSanctuary ? 'living_alien_planet_v5' : 'cosmic_biome_v1'
+            )
+            .setData('worldBackgroundSurfaceType', isSanctuary ? 'alien_planet' : 'space')
+            .setData('worldBackgroundSurfaceStarCount', isSanctuary ? SANCTUARY_SURFACE_STAR_COUNT : null)
+            .setData(
+                'worldBackgroundBiomeRegionCount',
+                isSanctuary ? SANCTUARY_BACKGROUND_BIOME_REGION_COUNT : 0
+            )
+            .setData(
+                'worldBackgroundFloraSilhouetteCount',
+                isSanctuary ? SANCTUARY_BACKGROUND_FLORA_SILHOUETTE_COUNT : 0
+            )
+            .setData(
+                'worldBackgroundAlienTreeCount',
+                isSanctuary ? SANCTUARY_BACKGROUND_ALIEN_TREE_COUNT : 0
+            )
+            .setData(
+                'worldBackgroundSporeCount',
+                isSanctuary ? SANCTUARY_BACKGROUND_SPORE_COUNT : 0
             )
             .setData('worldBackgroundCloudRadiusMax', isSanctuary ? 0 : 200)
             .setData('worldBackgroundFloatingPlatformCount', isSanctuary ? 0 : 40)
@@ -9832,7 +9879,7 @@ class WorldBuilder {
                 'worldBackgroundOverscan',
                 isSanctuary ? SANCTUARY_BACKGROUND_OVERSCAN : 0
             )
-            .setData('worldBackgroundEdgeColor', isSanctuary ? 0x102329 : null);
+            .setData('worldBackgroundEdgeColor', isSanctuary ? 0x163B35 : null);
         return this.backgroundImage;
     }
 
@@ -9842,7 +9889,7 @@ class WorldBuilder {
         const backgroundHeight = this.worldHeight + (
             isSanctuary ? SANCTUARY_BACKGROUND_OVERSCAN : 0
         );
-        const profileSuffix = isSanctuary ? '_living_v4' : '';
+        const profileSuffix = isSanctuary ? '_alien_planet_v5' : '';
         const textureKey = `worldBackground_${biomeId}_${this.worldWidth}x${backgroundHeight}${profileSuffix}`;
 
         if (this.scene.textures.exists(textureKey)) {
@@ -9854,10 +9901,10 @@ class WorldBuilder {
 
         // Get biome-specific colors
         const skyTop = isSanctuary
-            ? 0x071017
+            ? 0x0E302F
             : this.hexToInt(palette.skyTop) || 0x0a0a2e;
         const skyBottom = isSanctuary
-            ? 0x102329
+            ? 0x17483B
             : this.hexToInt(palette.skyBottom) || 0x1a1a4e;
         const nebulaColor = this.hexToInt(palette.nebula) || 0x9370DB;
         const accentColor = this.hexToInt(palette.accent) || 0xFFD54F;
@@ -9878,7 +9925,9 @@ class WorldBuilder {
         }
 
         // Stars with biome-appropriate brightness
-        const starCount = this.getStarCount();
+        const starCount = isSanctuary
+            ? SANCTUARY_SURFACE_STAR_COUNT
+            : this.getStarCount();
         for (let i = 0; i < starCount; i++) {
             const x = Phaser.Math.Between(0, this.worldWidth);
             const y = Phaser.Math.Between(0, backgroundHeight);
@@ -9937,6 +9986,53 @@ class WorldBuilder {
         rockColor,
         backgroundHeight = this.worldHeight
     }) {
+        const biomeRegions = [
+            { x: 0.12, y: 0.14, width: 0.42, height: 0.3, color: 0x385A50, alpha: 0.42 },
+            { x: 0.72, y: 0.13, width: 0.48, height: 0.28, color: 0x4C3F59, alpha: 0.28 },
+            { x: 0.48, y: 0.36, width: 0.58, height: 0.3, color: 0x1D6753, alpha: 0.38 },
+            { x: 0.15, y: 0.62, width: 0.42, height: 0.28, color: 0x315A43, alpha: 0.46 },
+            { x: 0.76, y: 0.57, width: 0.5, height: 0.34, color: 0x354C62, alpha: 0.3 },
+            { x: 0.45, y: 0.78, width: 0.64, height: 0.32, color: 0x245E49, alpha: 0.42 },
+            { x: 0.84, y: 0.88, width: 0.34, height: 0.23, color: 0x5A4639, alpha: 0.23 }
+        ];
+        biomeRegions.forEach((region, regionIndex) => {
+            const x = this.worldWidth * region.x;
+            const y = backgroundHeight * region.y;
+            const width = this.worldWidth * region.width;
+            const height = backgroundHeight * region.height;
+            graphics.fillStyle(region.color, region.alpha);
+            graphics.fillEllipse(x, y, width, height);
+            graphics.lineStyle(
+                regionIndex % 2 === 0 ? 9 : 6,
+                regionIndex % 3 === 0 ? 0x75B89A : 0x88749B,
+                0.08
+            );
+            graphics.strokeEllipse(x, y, width * 0.9, height * 0.82);
+            graphics.lineStyle(2, 0xB7D7C5, 0.08);
+            graphics.strokeEllipse(
+                x + (regionIndex % 2 ? 18 : -20),
+                y + 12,
+                width * 0.7,
+                height * 0.58
+            );
+        });
+
+        for (let ridgeIndex = 0; ridgeIndex < 20; ridgeIndex++) {
+            const x = Phaser.Math.Between(20, this.worldWidth - 20);
+            const y = Phaser.Math.Between(30, backgroundHeight - 30);
+            const width = Phaser.Math.Between(54, 148);
+            const height = Phaser.Math.Between(12, 34);
+            graphics.fillStyle(ridgeIndex % 4 === 0 ? 0x4D405A : 0x273F3A, 0.34);
+            graphics.fillEllipse(x, y, width, height);
+            graphics.lineStyle(2, ridgeIndex % 3 === 0 ? 0xC29A55 : 0x6EA98D, 0.2);
+            graphics.beginPath();
+            graphics.moveTo(x - width * 0.38, y - 1);
+            graphics.lineTo(x - width * 0.12, y - height * 0.28);
+            graphics.lineTo(x + width * 0.16, y - height * 0.12);
+            graphics.lineTo(x + width * 0.4, y - height * 0.32);
+            graphics.strokePath();
+        }
+
         const threadColors = [
             floraColor,
             0x8FE3CF,
@@ -9955,9 +10051,9 @@ class WorldBuilder {
             const bend = Phaser.Math.Between(-44, 44);
             const color = threadColors[threadIndex % threadColors.length];
             graphics.lineStyle(
-                threadIndex % 3 === 0 ? 2 : 1,
+                threadIndex % 3 === 0 ? 3 : 2,
                 color,
-                threadIndex % 4 === 0 ? 0.12 : 0.08
+                threadIndex % 4 === 0 ? 0.24 : 0.16
             );
             graphics.beginPath();
             graphics.moveTo(startX, startY);
@@ -9979,9 +10075,97 @@ class WorldBuilder {
             const x = Phaser.Math.Between(0, this.worldWidth);
             const y = Phaser.Math.Between(0, backgroundHeight);
             const width = Phaser.Math.Between(8, 34);
-            const color = patchIndex % 3 === 0 ? nebulaColor : rockColor;
-            graphics.fillStyle(color, patchIndex % 3 === 0 ? 0.05 : 0.07);
-            graphics.fillEllipse(x, y, width, Phaser.Math.Between(3, 10));
+            const color = patchIndex % 5 === 0
+                ? 0x9A6B62
+                : patchIndex % 3 === 0
+                    ? nebulaColor
+                    : rockColor;
+            graphics.fillStyle(color, patchIndex % 5 === 0 ? 0.18 : 0.14);
+            graphics.fillEllipse(x, y, width, Phaser.Math.Between(4, 12));
+            if (patchIndex % 4 === 0) {
+                graphics.fillStyle(0xC6D9C7, 0.18);
+                graphics.fillEllipse(x - width * 0.18, y - 2, width * 0.2, 2);
+            }
+        }
+
+        for (
+            let floraIndex = 0;
+            floraIndex < SANCTUARY_BACKGROUND_FLORA_SILHOUETTE_COUNT;
+            floraIndex++
+        ) {
+            const x = Phaser.Math.Between(28, this.worldWidth - 28);
+            const y = Phaser.Math.Between(52, backgroundHeight - 30);
+            const height = Phaser.Math.Between(14, 34);
+            const lean = Phaser.Math.Between(-8, 8);
+            const stemColor = floraIndex % 5 === 0 ? 0x8D5367 : 0x3C8D67;
+            graphics.lineStyle(floraIndex % 3 === 0 ? 3 : 2, stemColor, 0.48);
+            graphics.beginPath();
+            graphics.moveTo(x, y);
+            graphics.lineTo(x + lean * 0.45, y - height * 0.55);
+            graphics.lineTo(x + lean, y - height);
+            graphics.strokePath();
+            graphics.fillStyle(floraIndex % 4 === 0 ? 0xC2A75C : 0x62BA83, 0.36);
+            graphics.fillEllipse(x + lean - 6, y - height + 2, 11, 5);
+            graphics.fillEllipse(x + lean + 5, y - height - 2, 9, 5);
+            graphics.fillStyle(0xA8F0D2, 0.34);
+            graphics.fillCircle(x + lean, y - height - 4, floraIndex % 3 === 0 ? 3 : 2);
+        }
+
+        const alienTreeAnchors = [
+            [0.08, 0.18], [0.27, 0.12], [0.48, 0.2], [0.76, 0.15],
+            [0.92, 0.3], [0.13, 0.4], [0.37, 0.46], [0.68, 0.4],
+            [0.86, 0.56], [0.18, 0.67], [0.48, 0.63], [0.72, 0.75],
+            [0.32, 0.84], [0.9, 0.9]
+        ];
+        alienTreeAnchors.forEach(([xRatio, yRatio], treeIndex) => {
+            const x = this.worldWidth * xRatio;
+            const y = backgroundHeight * yRatio;
+            const height = 68 + ((treeIndex % 4) * 13);
+            const lean = treeIndex % 2 === 0 ? -8 : 8;
+            const trunk = treeIndex % 3 === 0 ? 0x70504A : 0x355E4B;
+            const canopy = treeIndex % 4 === 0 ? 0x78577E : 0x3F8A62;
+            graphics.fillStyle(0x0B201C, 0.36);
+            graphics.fillEllipse(x, y + 3, 54, 14);
+            graphics.lineStyle(9, 0x152D27, 0.6);
+            graphics.beginPath();
+            graphics.moveTo(x, y);
+            graphics.lineTo(x + lean * 0.45, y - height * 0.55);
+            graphics.lineTo(x + lean, y - height);
+            graphics.strokePath();
+            graphics.lineStyle(5, trunk, 0.86);
+            graphics.beginPath();
+            graphics.moveTo(x, y);
+            graphics.lineTo(x + lean * 0.45, y - height * 0.55);
+            graphics.lineTo(x + lean, y - height);
+            graphics.moveTo(x + lean * 0.4, y - height * 0.56);
+            graphics.lineTo(x - 18, y - height * 0.78);
+            graphics.moveTo(x + lean * 0.55, y - height * 0.64);
+            graphics.lineTo(x + 22, y - height * 0.82);
+            graphics.strokePath();
+            graphics.fillStyle(canopy, 0.82);
+            graphics.fillEllipse(x + lean - 12, y - height, 38, 18);
+            graphics.fillEllipse(x + lean + 15, y - height + 4, 34, 17);
+            graphics.fillEllipse(x - 20, y - height * 0.79, 29, 14);
+            graphics.fillEllipse(x + 25, y - height * 0.83, 29, 14);
+            graphics.fillStyle(treeIndex % 3 === 0 ? 0xE5BD5C : 0x9DEBC8, 0.86);
+            graphics.fillCircle(x + lean, y - height - 5, 5);
+            graphics.fillCircle(x - 21, y - height * 0.8 - 3, 4);
+            graphics.fillCircle(x + 26, y - height * 0.84 - 3, 4);
+            graphics.fillStyle(treeIndex % 2 === 0 ? 0xB45F6F : 0xE7D9C4, 0.78);
+            graphics.fillEllipse(x - 12, y - 5, 9, 5);
+            graphics.fillEllipse(x + 13, y - 3, 7, 4);
+        });
+
+        for (
+            let sporeIndex = 0;
+            sporeIndex < SANCTUARY_BACKGROUND_SPORE_COUNT;
+            sporeIndex++
+        ) {
+            const x = Phaser.Math.Between(10, this.worldWidth - 10);
+            const y = Phaser.Math.Between(10, backgroundHeight - 10);
+            const color = sporeIndex % 5 === 0 ? 0xD4B45F : 0x75C8A2;
+            graphics.fillStyle(color, sporeIndex % 5 === 0 ? 0.32 : 0.22);
+            graphics.fillEllipse(x, y, sporeIndex % 3 === 0 ? 5 : 3, 2);
         }
     }
 

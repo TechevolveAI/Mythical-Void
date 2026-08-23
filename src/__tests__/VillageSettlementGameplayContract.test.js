@@ -212,7 +212,7 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain('this.sanctuaryCameraFocusZoom = zoom;');
         expect(sceneSource).toContain('const restoreZoom = this.sanctuaryCameraFocusPreviousZoom;');
         expect(sceneSource).toContain('this.worldBuilder?.setVillageFocusMode?.(');
-        expect(sceneSource).toContain("this.currentBiome === 'nebula' ? '#102329' : '#050214'");
+        expect(sceneSource).toContain("this.currentBiome === 'nebula' ? '#163B35' : '#050214'");
         expect(sceneSource).toContain('firstContactActive || this.sanctuaryFocusModeActive');
         expect(sceneSource).toContain('this.dismissCosmicAffinityNotice();');
         expect(sceneSource).toContain(".setData('sanctuaryNotice', true)");
@@ -223,24 +223,29 @@ describe('Village settlement gameplay contract', () => {
         expect(worldSource).toContain(".setData('sanctuaryPhysicalRoutes', true)");
         expect(worldSource).toContain(".setData('sanctuaryRouteProfile', 'living_current_filaments_v3')");
         expect(worldSource).toContain(".setData('sanctuaryRouteMaxWidth', 28)");
-        expect(worldSource).toContain(".setData('sanctuaryDistrictVisualProfile', 'woven_edge_contours_v4')");
+        expect(worldSource).toContain(".setData('sanctuaryDistrictVisualProfile', 'living_biome_contours_v5')");
         expect(worldSource).toContain(".setData('sanctuaryDistrictFullZoneFill', false)");
-        expect(worldSource).toContain(".setData('sanctuaryDistrictMaxFillAlpha', 0.08)");
+        expect(worldSource).toContain(".setData('sanctuaryDistrictMaxFillAlpha', 0.14)");
+        expect(worldSource).toContain(".setData('sanctuaryDistrictBiomeFieldCount', 7)");
         expect(worldSource).toContain(".setData('sanctuaryDistrictContourCount', contourSegmentCount)");
         expect(worldSource).toContain(".setData('sanctuaryDistrictAnchorPatchCount', anchorPatchCount)");
         expect(worldSource).not.toContain('drawOrganicPad');
-        expect(worldSource).toContain("isSanctuary ? 'living_current_ground_v4' : 'cosmic_biome_v1'");
-        expect(worldSource).toContain("this.scene.cameras?.main?.setBackgroundColor?.('#102329')");
-        expect(worldSource).toContain(".setData('worldBackgroundEdgeColor', isSanctuary ? 0x102329 : null)");
+        expect(worldSource).toContain("isSanctuary ? 'living_alien_planet_v5' : 'cosmic_biome_v1'");
+        expect(worldSource).toContain(".setData('worldBackgroundSurfaceType', isSanctuary ? 'alien_planet' : 'space')");
+        expect(worldSource).toContain("this.scene.cameras?.main?.setBackgroundColor?.('#163B35')");
+        expect(worldSource).toContain(".setData('worldBackgroundEdgeColor', isSanctuary ? 0x163B35 : null)");
         expect(worldSource).toContain('const SANCTUARY_BACKGROUND_OVERSCAN = 320;');
         expect(worldSource).toContain(".setData(\n                'worldBackgroundOverscan'");
-        expect(worldSource).toContain("const profileSuffix = isSanctuary ? '_living_v4' : '';");
+        expect(worldSource).toContain("const profileSuffix = isSanctuary ? '_alien_planet_v5' : '';");
         expect(worldSource).toContain('graphics.generateTexture(textureKey, this.worldWidth, backgroundHeight)');
-        expect(worldSource).toContain('? 0x071017');
-        expect(worldSource).toContain('? 0x102329');
+        expect(worldSource).toContain('? 0x0E302F');
+        expect(worldSource).toContain('? 0x17483B');
         expect(worldSource).toContain(".setData('worldBackgroundCloudRadiusMax', isSanctuary ? 0 : 200)");
         expect(worldSource).toContain(".setData('worldBackgroundFloatingPlatformCount', isSanctuary ? 0 : 40)");
-        expect(worldSource).toContain('const SANCTUARY_BACKGROUND_THREAD_COUNT = 22;');
+        expect(worldSource).toContain('const SANCTUARY_BACKGROUND_THREAD_COUNT = 34;');
+        expect(worldSource).toContain('const SANCTUARY_SURFACE_STAR_COUNT = 0;');
+        expect(worldSource).toContain('const SANCTUARY_BACKGROUND_FLORA_SILHOUETTE_COUNT = 30;');
+        expect(worldSource).toContain('const SANCTUARY_BACKGROUND_ALIEN_TREE_COUNT = 14;');
         expect(worldSource).toContain("'worldBackgroundCurrentThreadCount'");
         expect(worldSource).toContain('addSanctuaryGroundTexture(graphics');
         expect(worldSource).toContain(".setData('sanctuaryCommonsPathProfile', 'living_current_filaments_v3')");
@@ -251,6 +256,8 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain('this.worldBuilder?.setSanctuaryDistrictFocus?.(');
         expect(biomes.nebula.layers.floatingRocks.enabled).toBe(false);
         expect(biomes.nebula.layers.crystalFlora.enabled).toBe(false);
+        expect(biomes.nebula.layers.distantStars.enabled).toBe(false);
+        expect(biomes.nebula.layers.foregroundDust.enabled).toBe(false);
         expect(parallaxSource).toContain(
             'if (this.config.layers.floatingRocks.enabled)'
         );
@@ -329,7 +336,7 @@ describe('Village settlement gameplay contract', () => {
         expect(worldSource).toContain(".setData('sanctuaryPeripheralDestination', definition.zoneId)");
         expect(worldSource).toContain(".setData('sanctuaryFloraGrounded', true)");
         expect(worldSource).toContain("active ? 'supporting-focus' : 'ambient-world'");
-        expect(worldSource).toContain('compact ? 0.34 : 0.44');
+        expect(worldSource).toContain('compact ? 0.58 : 0.68');
         expect(sceneSource).toContain('setSanctuaryFloraFocus?.(');
         [
             "verb: 'SHOP'",

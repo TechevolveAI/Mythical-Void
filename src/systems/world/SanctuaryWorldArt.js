@@ -57,5 +57,85 @@ export const SANCTUARY_FLORA_PLACEMENTS = Object.freeze([
         offsetY: 132,
         width: 176,
         flipX: true
+    }),
+    Object.freeze({
+        artwork: 'listeningReeds',
+        zone: 'crashSite',
+        offsetX: -232,
+        offsetY: 108,
+        width: 136,
+        flipX: false
+    }),
+    Object.freeze({
+        artwork: 'currentBloomGrove',
+        zone: 'livingArea',
+        offsetX: 236,
+        offsetY: -126,
+        width: 152,
+        flipX: true
+    }),
+    Object.freeze({
+        artwork: 'listeningReeds',
+        zone: 'livingArea',
+        offsetX: 224,
+        offsetY: 158,
+        width: 126,
+        flipX: false
+    }),
+    Object.freeze({
+        artwork: 'listeningReeds',
+        zone: 'shopArea',
+        offsetX: 142,
+        offsetY: -116,
+        width: 128,
+        flipX: false
+    }),
+    Object.freeze({
+        artwork: 'currentBloomGrove',
+        zone: 'gardenPlot',
+        offsetX: -112,
+        offsetY: -126,
+        width: 138,
+        flipX: false
+    }),
+    Object.freeze({
+        artwork: 'listeningReeds',
+        zone: 'gardenPlot',
+        offsetX: -104,
+        offsetY: 154,
+        width: 118,
+        flipX: true
+    }),
+    Object.freeze({
+        artwork: 'currentBloomGrove',
+        zone: 'hubGate',
+        offsetX: 206,
+        offsetY: 82,
+        width: 132,
+        flipX: true
+    }),
+    Object.freeze({
+        artwork: 'currentBloomGrove',
+        zone: 'trainingGrounds',
+        offsetX: 188,
+        offsetY: -112,
+        width: 146,
+        flipX: false
+    }),
+    Object.freeze({
+        artwork: 'listeningReeds',
+        zone: 'settlementDistrict',
+        offsetX: -300,
+        offsetY: 176,
+        width: 124,
+        flipX: false
+    }),
+    Object.freeze({
+        artwork: 'currentBloomGrove',
+        zone: 'settlementDistrict',
+        offsetX: 326,
+        offsetY: 166,
+        width: 136,
+        flipX: true
     })
 ]);
