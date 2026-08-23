@@ -726,7 +726,8 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain('residentRoutines: snapshot?.residentRoutines?.map');
         expect(scene).toContain('this.updateSanctuaryFocusMode(true);');
         expect(scene).toContain('this.applySanctuaryCameraFocus({ immediate: true });');
-        expect(scene).toContain("this.events.once('postupdate', () => {");
+        expect(scene).toContain("this.events.on('postupdate', this.villagePreviewCameraSync);");
+        expect(scene).toContain("this.events.off('postupdate', this.villagePreviewCameraSync);");
         expect(world).toContain("worker.setData('villageWorker', true)");
         expect(world).toContain("worker.setData('checkInCue', true)");
         expect(world).toContain("worker.setData('checkInCueStyle', 'current_resonance')");

@@ -1876,10 +1876,15 @@ class GameScene extends Phaser.Scene {
         this.offerVillageHeartInteraction(previewSnapshot);
         this.updateSanctuaryFocusMode(true);
         this.applySanctuaryCameraFocus({ immediate: true });
-        this.events.once('postupdate', () => {
+        this.villagePreviewCameraSync = () => {
             if (this.sanctuaryFocusModeActive) {
                 this.applySanctuaryCameraFocus({ immediate: true });
             }
+        };
+        this.events.on('postupdate', this.villagePreviewCameraSync);
+        this.events.once('shutdown', () => {
+            this.events.off('postupdate', this.villagePreviewCameraSync);
+            this.villagePreviewCameraSync = null;
         });
         if (this.villageReturnPreview) {
             const summary = getSanctuaryReturnSummary({
