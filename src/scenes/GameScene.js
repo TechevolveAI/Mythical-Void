@@ -1829,7 +1829,7 @@ class GameScene extends Phaser.Scene {
         this.cameras.main
             .setBounds(0, 0, this.worldWidth, this.worldHeight)
             .centerOn(previewHeartPosition.x, previewHeartPosition.y)
-            .setBackgroundColor('#102329');
+            .setBackgroundColor('#163B35');
         this.villageHeartLandmark = this.worldBuilder.createVillageHeart({
             position: previewHeartPosition,
             size: { width: 150, height: 130 }
@@ -4456,13 +4456,13 @@ class GameScene extends Phaser.Scene {
 
     createSanctuaryDecorationPreview() {
         const camera = this.cameras.main;
-        camera.setBackgroundColor('#102329');
+        camera.setBackgroundColor('#163B35');
         camera.setBounds(0, 0, this.worldWidth, this.worldHeight);
         camera.centerOn(1100, 1045);
         camera.setZoom(Math.min(camera.width / 700, camera.height / 560));
 
         const ground = this.add.graphics();
-        ground.fillStyle(0x102329, 1);
+        ground.fillStyle(0x163B35, 1);
         ground.fillRect(700, 690, 800, 700);
         ground.fillStyle(0x193B3B, 1);
         ground.fillEllipse(1100, 1050, 620, 410);
@@ -4500,13 +4500,13 @@ class GameScene extends Phaser.Scene {
     createKinshipBeaconPreview() {
         const camera = this.cameras.main;
         const isShared = this.kinshipBeaconPreview === 'shared';
-        camera.setBackgroundColor('#102329');
+        camera.setBackgroundColor('#163B35');
         camera.setBounds(0, 0, this.worldWidth, this.worldHeight);
         camera.centerOn(520, 1015);
         camera.setZoom(Math.min(camera.width / 700, camera.height / 560));
 
         const ground = this.add.graphics();
-        ground.fillStyle(0x102329, 1);
+        ground.fillStyle(0x163B35, 1);
         ground.fillRect(100, 680, 850, 700);
         ground.fillStyle(0x193B3B, 1);
         ground.fillEllipse(520, 1040, 620, 410);
@@ -4570,13 +4570,13 @@ class GameScene extends Phaser.Scene {
             }
         };
 
-        camera.setBackgroundColor('#102329');
+        camera.setBackgroundColor('#163B35');
         camera.setBounds(0, 0, this.worldWidth, this.worldHeight);
         camera.centerOn(x, y);
         camera.setZoom(Math.min(camera.width / 700, camera.height / 560));
 
         const ground = this.add.graphics();
-        ground.fillStyle(0x102329, 1);
+        ground.fillStyle(0x163B35, 1);
         ground.fillRect(x - 430, y - 350, 860, 700);
         ground.fillStyle(0x193B3B, 1);
         ground.fillEllipse(x, y + 28, 610, 365);
@@ -4843,7 +4843,7 @@ class GameScene extends Phaser.Scene {
         });
         camera.setRoundPixels(true);
         camera.setBackgroundColor(
-            this.currentBiome === 'nebula' ? '#102329' : '#050214'
+            this.currentBiome === 'nebula' ? '#163B35' : '#050214'
         );
 
         this.currentCameraZoom = zoom;

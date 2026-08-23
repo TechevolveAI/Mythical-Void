@@ -11878,6 +11878,9 @@ async function smokeVillageUi(session, exceptions) {
                 ) || 0,
                 anchorPatchCount: scene.sanctuaryDistricts?.terrain?.getData?.(
                     'sanctuaryDistrictAnchorPatchCount'
+                ) || 0,
+                biomeFieldCount: scene.sanctuaryDistricts?.terrain?.getData?.(
+                    'sanctuaryDistrictBiomeFieldCount'
                 ) || 0
             },
             sanctuaryFlora: (() => {
@@ -11894,7 +11897,7 @@ async function smokeVillageUi(session, exceptions) {
                     )).length,
                     targetAlphaCount: flora.filter(entry => (
                         entry.image?.getData?.('sanctuaryFloraTargetAlpha') ===
-                            ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.34 : 0.44}
+                            ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.58 : 0.68}
                     )).length,
                     maxAlpha: Math.max(
                         0,
@@ -11908,6 +11911,24 @@ async function smokeVillageUi(session, exceptions) {
             sanctuaryBackground: {
                 cameraEdgeColor: camera.backgroundColor?.color,
                 profile: scene.worldBackground?.getData?.('worldBackgroundProfile'),
+                surfaceType: scene.worldBackground?.getData?.(
+                    'worldBackgroundSurfaceType'
+                ),
+                surfaceStarCount: scene.worldBackground?.getData?.(
+                    'worldBackgroundSurfaceStarCount'
+                ),
+                biomeRegionCount: scene.worldBackground?.getData?.(
+                    'worldBackgroundBiomeRegionCount'
+                ),
+                floraSilhouetteCount: scene.worldBackground?.getData?.(
+                    'worldBackgroundFloraSilhouetteCount'
+                ),
+                alienTreeCount: scene.worldBackground?.getData?.(
+                    'worldBackgroundAlienTreeCount'
+                ),
+                sporeCount: scene.worldBackground?.getData?.(
+                    'worldBackgroundSporeCount'
+                ),
                 cloudRadiusMax: scene.worldBackground?.getData?.(
                     'worldBackgroundCloudRadiusMax'
                 ),
@@ -11959,6 +11980,12 @@ async function smokeVillageUi(session, exceptions) {
                     ),
                     currentFieldCount: layers.filter(
                         entry => entry.type === 'sanctuaryCurrentField'
+                    ).length,
+                    starEmitterCount: layers.filter(
+                        entry => entry.type === 'starEmitter'
+                    ).length,
+                    dustEmitterCount: layers.filter(
+                        entry => entry.type === 'dustEmitter'
                     ).length,
                     filledWispCount: layers.filter(entry => entry.type === 'nebula').length,
                     vignetteCount: layers.filter(entry => entry.type === 'vignette').length,
@@ -12326,25 +12353,32 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.sanctuaryCirculation.routeIds.join(',') !==
             'crash_to_commons,commons_to_shop,commons_to_settlement,commons_to_training' ||
         !integratedWorld.sanctuaryTerrain.active ||
-        integratedWorld.sanctuaryTerrain.profile !== 'woven_edge_contours_v4' ||
+        integratedWorld.sanctuaryTerrain.profile !== 'living_biome_contours_v5' ||
         integratedWorld.sanctuaryTerrain.fullZoneFill !== false ||
-        integratedWorld.sanctuaryTerrain.maxFillAlpha > 0.08 ||
-        integratedWorld.sanctuaryTerrain.contourCount !== 24 ||
-        integratedWorld.sanctuaryTerrain.anchorPatchCount !== 24 ||
-        integratedWorld.sanctuaryFlora.count !== 6 ||
-        integratedWorld.sanctuaryFlora.groundedCount !== 6 ||
-        integratedWorld.sanctuaryFlora.supportingCount !== 6 ||
-        integratedWorld.sanctuaryFlora.targetAlphaCount !== 6 ||
+        integratedWorld.sanctuaryTerrain.maxFillAlpha > 0.14 ||
+        integratedWorld.sanctuaryTerrain.contourCount !== 28 ||
+        integratedWorld.sanctuaryTerrain.anchorPatchCount !== 28 ||
+        integratedWorld.sanctuaryTerrain.biomeFieldCount !== 7 ||
+        integratedWorld.sanctuaryFlora.count !== 16 ||
+        integratedWorld.sanctuaryFlora.groundedCount !== 16 ||
+        integratedWorld.sanctuaryFlora.supportingCount !== 16 ||
+        integratedWorld.sanctuaryFlora.targetAlphaCount !== 16 ||
         integratedWorld.sanctuaryFlora.maxAlpha >
-            ((SMOKE_VIEWPORT_WIDTH <= 600 ? 0.34 : 0.44) + 0.02) ||
+            ((SMOKE_VIEWPORT_WIDTH <= 600 ? 0.58 : 0.68) + 0.02) ||
         !integratedWorld.sanctuaryFlora.focusActive ||
-        integratedWorld.sanctuaryBackground.cameraEdgeColor !== 0x102329 ||
-        integratedWorld.sanctuaryBackground.profile !== 'living_current_ground_v4' ||
+        integratedWorld.sanctuaryBackground.cameraEdgeColor !== 0x163B35 ||
+        integratedWorld.sanctuaryBackground.profile !== 'living_alien_planet_v5' ||
+        integratedWorld.sanctuaryBackground.surfaceType !== 'alien_planet' ||
+        integratedWorld.sanctuaryBackground.surfaceStarCount !== 0 ||
+        integratedWorld.sanctuaryBackground.biomeRegionCount !== 7 ||
+        integratedWorld.sanctuaryBackground.floraSilhouetteCount !== 30 ||
+        integratedWorld.sanctuaryBackground.alienTreeCount !== 14 ||
+        integratedWorld.sanctuaryBackground.sporeCount !== 42 ||
         integratedWorld.sanctuaryBackground.cloudRadiusMax !== 0 ||
         integratedWorld.sanctuaryBackground.floatingPlatformCount !== 0 ||
-        integratedWorld.sanctuaryBackground.currentThreadCount !== 22 ||
+        integratedWorld.sanctuaryBackground.currentThreadCount !== 34 ||
         integratedWorld.sanctuaryBackground.overscan < 320 ||
-        integratedWorld.sanctuaryBackground.edgeColor !== 0x102329 ||
+        integratedWorld.sanctuaryBackground.edgeColor !== 0x163B35 ||
         !integratedWorld.sanctuaryBackground.screenBounds ||
         integratedWorld.sanctuaryBackground.screenBounds.bottom <
             integratedWorld.viewport.height ||
@@ -12354,6 +12388,8 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.sanctuaryParallax.shaderEnabled !== false ||
         integratedWorld.sanctuaryParallax.shaderContractEnabled !== false ||
         integratedWorld.sanctuaryParallax.currentFieldCount !== 1 ||
+        integratedWorld.sanctuaryParallax.starEmitterCount !== 0 ||
+        integratedWorld.sanctuaryParallax.dustEmitterCount !== 0 ||
         integratedWorld.sanctuaryParallax.filledWispCount !== 0 ||
         integratedWorld.sanctuaryParallax.vignetteCount !== 0 ||
         integratedWorld.sanctuaryParallax.backdropFixed !== true ||
@@ -13945,7 +13981,7 @@ async function smokeVillageUi(session, exceptions) {
         !layout.worldPresentation.heartCaptionActive ||
         layout.worldPresentation.strayFieldKitShipCount !== 0 ||
         layout.worldPresentation.strayFieldKitBackdropCount !== 0 ||
-        layout.worldPresentation.backgroundProfile !== 'living_current_ground_v4' ||
+        layout.worldPresentation.backgroundProfile !== 'living_alien_planet_v5' ||
         layout.worldPresentation.structureCount !== 5 ||
         layout.worldPresentation.plotHitZones.length !== 5 ||
         layout.worldPresentation.plotHitZones.some(bounds => (
