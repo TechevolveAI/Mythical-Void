@@ -5781,7 +5781,6 @@ class WorldBuilder {
 
         const elements = [];
         const tweens = [];
-        const colors = [0x8FE3CF, 0xF2C14E, 0xBFA6FF, 0xE85D5D];
         routines.forEach((routine, index) => {
             const seat = seats[index] || { x: 0, y: compact ? 57 : 72 };
             const start = {
@@ -5834,6 +5833,8 @@ class WorldBuilder {
                 .setData('villageCommonsResident', true)
                 .setData('residentId', routine.residentId)
                 .setData('residentName', routine.residentName)
+                .setData('residentRole', routine.residentRole || null)
+                .setData('residentCommunityType', routine.communityType || 'companion')
                 .setData('routine', routine.activity)
                 .setData('greeting', routine.greeting)
                 .setData('routeType', routine.route)
@@ -5841,29 +5842,52 @@ class WorldBuilder {
                 .setData('routinePhase', 'leaving_home')
                 .setData('destinationLabel', routine.destinationLabel)
                 .setData('villageVisibilityBaseAlpha', 0.96)
+                .setData('residentIdentityPresentation', 'proximity_nameplate_v1')
                 .setData('villagePresenceModel', 'single_world_location_v1')
                 .setData(
                     'ariaLabel',
                     `${routine.residentName} travels from the Shared Habitat to the Village Heart. ${routine.activity}.`
                 );
-            const shadow = this.scene.add.ellipse(0, 8, compact ? 16 : 20, 6, 0x07100F, 0.62);
-            const body = this.scene.add.graphics();
-            const color = colors[index % colors.length];
-            body.fillStyle(color, 0.98);
-            body.fillCircle(0, compact ? -5 : -7, compact ? 4.5 : 5.5);
-            body.fillEllipse(0, 2, compact ? 10 : 12, compact ? 13 : 15);
-            body.fillStyle(0xF4F4F4, 0.96);
-            body.fillCircle(-2, compact ? -5.5 : -7.5, 1.2);
-            body.fillCircle(2, compact ? -5.5 : -7.5, 1.2);
-            body.lineStyle(1, color, 0.9);
-            body.lineBetween(-4, compact ? -9 : -11, -7, compact ? -14 : -17);
-            body.lineBetween(4, compact ? -9 : -11, 7, compact ? -14 : -17);
-            const heartCue = this.scene.add.graphics().setPosition(0, compact ? -22 : -27);
+            const color = Number(routine.accent || routine.color) || 0x8FE3CF;
+            const shadow = this.scene.add.ellipse(0, 12, compact ? 25 : 29, 8, 0x07100F, 0.62);
+            const body = this.createVillageWorkerFigure(routine, { accent: color });
+            body.setScale(compact ? 0.92 : 1.06);
+            const heartCue = this.scene.add.graphics().setPosition(0, compact ? -29 : -34);
             heartCue.lineStyle(1, 0x8FE3CF, 0.84);
             heartCue.strokeCircle(0, 0, compact ? 4 : 5);
             heartCue.fillStyle(0xF4F4F4, 0.92);
             heartCue.fillCircle(0, 0, 1.5);
-            figure.add([shadow, body, heartCue]);
+            const identity = this.scene.add.container(0, compact ? 27 : 31)
+                .setAlpha(0)
+                .setData('villageResidentJourneyIdentity', true);
+            const identityBackdrop = this.scene.add.rectangle(
+                0,
+                0,
+                compact ? 104 : 118,
+                compact ? 27 : 29,
+                0x061513,
+                0.9
+            ).setStrokeStyle(1, color, 0.76);
+            const identityCopy = this.scene.add.text(
+                0,
+                0,
+                routine.residentRole
+                    ? `${routine.residentName.toUpperCase()} · ${routine.residentRole.toUpperCase()}`
+                    : routine.residentName.toUpperCase(),
+                {
+                    fontSize: compact ? '8px' : '9px',
+                    fontFamily: 'Arial, sans-serif',
+                    fontStyle: 'bold',
+                    color: '#F4F4F4',
+                    align: 'center',
+                    wordWrap: { width: compact ? 96 : 110, useAdvancedWrap: true }
+                }
+            ).setOrigin(0.5);
+            identity.add([identityBackdrop, identityCopy]);
+            figure.add([shadow, body, heartCue, identity]);
+            figure
+                .setData('residentIdentityElement', identity)
+                .setData('residentVisualProfile', body.getData('villageWorkerVisualProfile'));
 
             const travel = { progress: 0 };
             const updatePosition = () => {

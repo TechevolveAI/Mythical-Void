@@ -1268,8 +1268,12 @@ export function getVillageHomeProfile(buildings = [], roster = []) {
             name: creature.name,
             communityType: creature.communityType || 'companion',
             role: creature.role || null,
+            kind: creature.kind || null,
             artwork: creature.artwork || null,
             textureKey: creature.textureKey || null,
+            color: creature.color || null,
+            accent: creature.accent || null,
+            isPlayerCompanion: creature.isPlayerCompanion === true,
             atWork: Boolean(assignment),
             workBuildingId: assignment?.definitionId || null,
             workLabel: assignment?.definition?.shortLabel || null,
@@ -1326,6 +1330,16 @@ export function getVillageResidentRoutinePlan(snapshot = {}) {
     );
 
     return residents.map((resident, index) => {
+        const residentIdentity = {
+            communityType: resident.communityType,
+            residentRole: resident.role,
+            kind: resident.kind,
+            artwork: resident.artwork,
+            textureKey: resident.textureKey,
+            color: resident.color,
+            accent: resident.accent,
+            isPlayerCompanion: resident.isPlayerCompanion === true
+        };
         if (resident.atWork) {
             const building = buildingByDefinition.get(resident.workBuildingId);
             return {
@@ -1336,6 +1350,7 @@ export function getVillageResidentRoutinePlan(snapshot = {}) {
                 destinationId: resident.workBuildingId,
                 destinationLabel: resident.workLabel || 'VILLAGE WORK',
                 activity: building?.definition?.workerRoutine?.cue || 'HELPS THE SETTLEMENT',
+                ...residentIdentity,
                 index
             };
         }
@@ -1355,6 +1370,7 @@ export function getVillageResidentRoutinePlan(snapshot = {}) {
                     : profile.tier >= 3
                         ? 'I took the long way to the Heart. It helps me notice what changed.'
                         : 'I am checking the Heart before I rest. It remembers who came home.',
+                ...residentIdentity,
                 index
             };
         }
@@ -1366,6 +1382,7 @@ export function getVillageResidentRoutinePlan(snapshot = {}) {
             destinationId: snapshot?.home?.plotId || null,
             destinationLabel: 'SHARED HABITAT',
             activity: 'RESTS AT HOME',
+            ...residentIdentity,
             index
         };
     });

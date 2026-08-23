@@ -16899,6 +16899,12 @@ class GameScene extends Phaser.Scene {
             }))
             .sort((left, right) => left.distance - right.distance)[0] || null;
         const threshold = this.scale.width <= 600 ? 76 : 88;
+        journeys.forEach(journey => {
+            const identity = journey.getData?.('residentIdentityElement');
+            if (!identity) return;
+            const visible = nearest?.journey === journey && nearest.distance <= threshold;
+            identity.setAlpha(visible ? 1 : 0);
+        });
         if (!nearest || nearest.distance > threshold) {
             this.clearVillageResidentJourneyInteraction();
             return null;

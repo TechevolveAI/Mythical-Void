@@ -10959,8 +10959,9 @@ async function smokeVillageUi(session, exceptions) {
         JSON.stringify(firstArrivalWorld.guideSteps) !== JSON.stringify(['BUILD', 'INVITE', 'GROW']) ||
         (
             SMOKE_VIEWPORT_WIDTH <= 600
-                ? firstArrivalWorld.statusText !== 'TAP TO PLAN · 0/5 ROOTS'
-                : !firstArrivalWorld.statusText.includes('BUILD A HOME TOGETHER')
+                ? firstArrivalWorld.statusText !== 'TAP · 1 COMMUNITY · 0/5 ROOTS'
+                : firstArrivalWorld.statusText !==
+                    '0/5 ROOTS · 1 COMMUNITY · 0 REGIONAL ALLIES'
         ) ||
         firstArrivalWorld.nextAction !== 'build' ||
         firstArrivalWorld.restored !== 0 ||
@@ -12255,7 +12256,10 @@ async function smokeVillageUi(session, exceptions) {
         !integratedWorld.restoration.statusText.includes('3/5 ROOTS') ||
         (
             SMOKE_VIEWPORT_WIDTH > 600 &&
-            !integratedWorld.restoration.statusText.includes('CONNECTED GLADE')
+            (
+                !integratedWorld.restoration.statusText.includes('3 COMMUNITY') ||
+                !integratedWorld.restoration.statusText.includes('0 REGIONAL ALLIES')
+            )
         ) ||
         !integratedWorld.district.terrainActive ||
         integratedWorld.district.material !== 'living_current_districts_v4' ||
@@ -15366,6 +15370,15 @@ async function smokeVillageUi(session, exceptions) {
             journeyCount: journeys.length,
             journeyRouteCount: journeyRoutes.length,
             journeyResidents: journeys.map(journey => journey.getData('residentName')),
+            journeyCommunityTypes: journeys.map(
+                journey => journey.getData('residentCommunityType')
+            ),
+            journeyVisualProfiles: journeys.map(
+                journey => journey.getData('residentVisualProfile')
+            ),
+            journeyIdentityPresentations: journeys.map(
+                journey => journey.getData('residentIdentityPresentation')
+            ),
             journeyRouteTypes: journeys.map(journey => journey.getData('routeType')),
             journeyDirections: journeys.map(journey => journey.getData('routeDirection')),
             journeyPhases: journeys.map(journey => journey.getData('routinePhase')),
@@ -15406,6 +15419,13 @@ async function smokeVillageUi(session, exceptions) {
         habitatWorld.journeyCount !== habitatWorld.commonsCount ||
         habitatWorld.journeyRouteCount !== habitatWorld.commonsCount ||
         habitatWorld.journeyResidents.length !== habitatWorld.commonsCount ||
+        habitatWorld.journeyCommunityTypes.some(type => (
+            !['player_companion', 'companion', 'rescued_resident'].includes(type)
+        )) ||
+        habitatWorld.journeyVisualProfiles.some(profile => !profile?.endsWith('_worker_v1')) ||
+        habitatWorld.journeyIdentityPresentations.some(
+            presentation => presentation !== 'proximity_nameplate_v1'
+        ) ||
         habitatWorld.journeyRouteTypes.some(route => route !== 'home_to_commons') ||
         habitatWorld.journeyDirections.some(
             direction => !['to_commons', 'to_home'].includes(direction)
@@ -15457,6 +15477,10 @@ async function smokeVillageUi(session, exceptions) {
             routeProgress: journeys[0]?.getData?.('routeProgress'),
             phase: journeys[0]?.getData?.('routinePhase'),
             destination: journeys[0]?.getData?.('destinationLabel'),
+            communityType: journeys[0]?.getData?.('residentCommunityType'),
+            visualProfile: journeys[0]?.getData?.('residentVisualProfile'),
+            identityPresentation: journeys[0]?.getData?.('residentIdentityPresentation'),
+            identityVisible: journeys[0]?.getData?.('residentIdentityElement')?.alpha > 0.95,
             presenceModel: journeys[0]?.getData?.('villagePresenceModel'),
             habitatFigureCount: habitat?.getData?.('residentFigureCount'),
             journeyFigureCount: journeys.length,
@@ -15471,6 +15495,11 @@ async function smokeVillageUi(session, exceptions) {
         residentJourney.routeProgress >= 0.75 ||
         residentJourney.phase !== 'crossing' ||
         residentJourney.destination !== 'VILLAGE HEART' ||
+        !['player_companion', 'companion', 'rescued_resident'].includes(
+            residentJourney.communityType
+        ) ||
+        !residentJourney.visualProfile?.endsWith('_worker_v1') ||
+        residentJourney.identityPresentation !== 'proximity_nameplate_v1' ||
         residentJourney.presenceModel !== 'single_world_location_v1' ||
         residentJourney.habitatFigureCount + residentJourney.journeyFigureCount !== 2 ||
         residentJourney.commonsEmbeddedFigureCount !== 0
@@ -15499,6 +15528,17 @@ async function smokeVillageUi(session, exceptions) {
     })()`);
     if (!residentGreetingStarted) {
         throw new Error('Village resident greeting could not be activated from the world route');
+    }
+    const residentIdentityVisible = await evaluate(session, `(() => {
+        const landmark = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark;
+        const journey = (landmark?.residentRoutineElements || []).find(
+            element => element?.getData?.('villageResidentJourney') === true
+        );
+        return journey?.getData?.('residentIdentityElement')?.alpha > 0.95;
+    })()`);
+    if (!residentIdentityVisible) {
+        throw new Error('Village resident identity did not appear at greeting range');
     }
     await waitFor(
         () => evaluate(session, `Boolean(
@@ -16189,7 +16229,10 @@ async function smokeVillageUi(session, exceptions) {
     const rescuedCommunity = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const state = window.GameState;
-        const villageState = state.get('world.village');
+        const villageState = structuredClone(
+            scene?.villageHeartLandmark?.snapshot?.state ||
+            state.get('world.village')
+        );
         const assignments = {
             forager_hut: 'bloom',
             sawmill: 'zephyr',
@@ -16331,6 +16374,24 @@ async function smokeVillageUi(session, exceptions) {
         return true;
     })()`);
 
+    await evaluate(session, `(() => {
+        const game = window.mythicalGame;
+        game.scene.stop('GameScene');
+        window.setTimeout(() => {
+            game.scene.start('GameScene', {
+                forceMobileControls: ${SMOKE_VIEWPORT_WIDTH <= 600}
+            });
+        }, 32);
+        return true;
+    })()`);
+    await waitForScene(session, 'GameScene', 45000);
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            window.mythicalGame.scene.getScene('GameScene')?.signalGarden?.zone
+        )`),
+        { timeoutMs: 30000, message: 'Sanctuary Signal Garden before resident arrival' }
+    );
+
     const rescuedArrival = await evaluate(session, `(async () => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const state = window.GameState;
@@ -16426,7 +16487,7 @@ async function smokeVillageUi(session, exceptions) {
         rescuedArrival.skippable !== true ||
         !rescuedArrival.ariaLabel?.includes('joined the Sanctuary') ||
         !rescuedArrival.ariaLabel?.includes('Sanctuary resident') ||
-        !rescuedArrival.controlsSuspended ||
+        rescuedArrival.controlsSuspended !== (SMOKE_VIEWPORT_WIDTH <= 600) ||
         !rescuedArrival.inputShield ||
         rescuedArrival.cameraFollowingPlayer ||
         !rescuedArrival.cameraTarget
