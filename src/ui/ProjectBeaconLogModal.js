@@ -291,9 +291,9 @@ class ProjectBeaconLogModal {
             `COMMONS ${log.fendCommunity.stage}/${log.fendCommunity.totalStages}  •  ${communityProject}\n` +
             `RESIDENTS ${sanctuaryCommunity.counts.residents}/${sanctuaryCommunity.totals.residents}  •  ` +
             `REGIONAL ALLIES ${sanctuaryCommunity.counts.regionalAllies}/${sanctuaryCommunity.totals.guardians}\n` +
-            `ALLY TASKS ${log.guardianResidents.completedTaskCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
-            `SUPPORT ${log.guardianResidents.supportedResidentCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
-            `SYNERGY ${log.guardianResidents.synergyCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
+            `HEART-LINK TASKS ${log.guardianResidents.completedTaskCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
+            `HEART SUPPORT ${log.guardianResidents.supportedResidentCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
+            `TRUST ${log.guardianResidents.synergyCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
             `HEART ALLY ${sanctuaryCommunity.guardianPresences[0]?.name?.toUpperCase() || 'NONE'}\n` +
             guardianFocusLine +
             `SETTLERS ${log.fendResidents.metCount}/${log.fendResidents.totalResidents}  •  ` +
@@ -306,9 +306,9 @@ class ProjectBeaconLogModal {
             `${log.fendCommunity.stage}/${log.fendCommunity.totalStages} PROJECTS  •  ${communityProject}\n` +
             `SANCTUARY RESIDENTS ${sanctuaryCommunity.counts.residents}/${sanctuaryCommunity.totals.residents}  •  ` +
             `REGIONAL ALLIES ${sanctuaryCommunity.counts.regionalAllies}/${sanctuaryCommunity.totals.guardians}\n` +
-            `ALLY TASKS ${log.guardianResidents.completedTaskCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
-            `SUPPORT ${log.guardianResidents.supportedResidentCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
-            `SYNERGY ${log.guardianResidents.synergyCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
+            `HEART-LINK TASKS ${log.guardianResidents.completedTaskCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
+            `HEART SUPPORT ${log.guardianResidents.supportedResidentCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
+            `TRUST ${log.guardianResidents.synergyCount}/${log.guardianResidents.rescuedCount || 0}  •  ` +
             `VILLAGE HEART ALLY ${sanctuaryCommunity.guardianPresences[0]?.name?.toUpperCase() || 'NONE'}\n` +
             guardianFocusLine +
             `SETTLERS ${log.fendResidents.metCount}/${log.fendResidents.totalResidents}  •  ` +
