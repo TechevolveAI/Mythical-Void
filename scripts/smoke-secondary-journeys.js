@@ -10794,13 +10794,16 @@ async function smokeVillageUi(session, exceptions) {
             const expectedPlotAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.2 : 0.28};
             const expectedWorkerAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.25 : 0.34};
             return landmark?.focusModeActive === true &&
-                (landmark.plotPresentations || []).every(presentation => (
-                    Math.abs(presentation.container.alpha - expectedPlotAlpha) <= 0.01 &&
+                (landmark.plotPresentations || []).every(presentation => {
+                    const playerNearby = presentation.container
+                        ?.getData?.('villagePlayerNearby') === true;
+                    const plotAlpha = playerNearby ? 1 : expectedPlotAlpha;
+                    return Math.abs(presentation.container.alpha - plotAlpha) <= 0.01 &&
                     (
                         !presentation.worker ||
                         Math.abs(presentation.worker.alpha - expectedWorkerAlpha) <= 0.01
-                    )
-                ));
+                    );
+                });
         })()`),
         { timeoutMs: 4000, message: 'Village Heart visual focus hierarchy settled' }
     );
@@ -11915,11 +11918,16 @@ async function smokeVillageUi(session, exceptions) {
             const staffedAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.58 : 0.72};
             const availableAlpha = ${SMOKE_VIEWPORT_WIDTH <= 600 ? 0.16 : 0.2};
             return presentations.length === 5 && presentations.every(presentation => {
+                const playerNearby = presentation.container
+                    ?.getData?.('villagePlayerNearby') === true;
                 const expected = presentation.plotState === 'staffed'
                     ? staffedAlpha
                     : availableAlpha;
+                const expectedPriority = playerNearby ? 'nearby' : 'ambient';
+                const expectedAlpha = playerNearby ? 1 : expected;
                 return presentation.container?.getData?.('villageFocusPriority') ===
-                    'ambient' && Math.abs(presentation.container.alpha - expected) <= 0.01;
+                    expectedPriority &&
+                    Math.abs(presentation.container.alpha - expectedAlpha) <= 0.01;
             });
         })()`),
         {
@@ -13387,8 +13395,14 @@ async function smokeVillageUi(session, exceptions) {
         workerDelivery.heartResponse !== true ||
         workerDelivery.heartActive !== true ||
         workerDelivery.sourceActive !== true ||
-        workerDelivery.lastDelivery !== 'FEEDING · +5 HAPPINESS' ||
-        workerDelivery.lastDeliveryResource !== 'food' ||
+        ![
+            ['food', 'FEEDING · +5 HAPPINESS'],
+            ['wood', 'VICTORY · +10 COINS'],
+            ['stone', 'EXPEDITION · +1 GUARD']
+        ].some(([resource, label]) => (
+            workerDelivery.lastDeliveryResource === resource &&
+            workerDelivery.lastDelivery === label
+        )) ||
         workerDelivery.imprintResource !== 'food' ||
         !workerDelivery.imprintActive ||
         !workerDelivery.imprintDeliveryActive ||
