@@ -269,6 +269,25 @@ effect, world consequence, and `ground_reply_v1` response through the same runti
 contract. Mobile journey coverage physically moves the player to every district
 and verifies that exactly one ground reply is active at a time.
 
+### Living Work Cycle
+
+A completed structure must show whether it is genuinely operating. Production
+districts move through `working`, `outbound`, `delivery_complete`, and `returning`
+states using the same worker route that delivers settlement value to the Village
+Heart. The district response is synchronized to that route: work evidence is
+strongest while the resident is present, travels with the outbound delivery,
+answers at full intensity when the Heart receives it, and settles while the
+resident returns. Each completed delivery increments a session-visible cycle
+count without creating a second economy or fabricating saved progress.
+
+Physical evidence remains specific to the building: renewing shoots for the
+Forager Hut, stacked stormwood for the Living Sawmill, aligned resonant stones for
+Current Masonry, one light per resident at the Shared Habitat, and a paired circuit
+only when the Discovery Workshop has a willing helper. Habitat state comes from
+actual residents, while an unstaffed production building remains visibly
+`awaiting_helper`. The shared `living_work_cycle_v1` contract is exposed for
+accessibility and exhaustive hosted mobile verification.
+
 ## 7. Gameplay Impact Contract
 
 Every completed building changes another established game loop:

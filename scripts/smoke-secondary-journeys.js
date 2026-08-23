@@ -13621,6 +13621,9 @@ async function smokeVillageUi(session, exceptions) {
     const workerRoute = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const worker = scene?.villageHeartLandmark?.workerElements?.[0];
+        const district = scene?.villageHeartLandmark?.plotPresentations?.find(
+            presentation => presentation.plotId === worker?.getData('plotId')
+        )?.inhabitedDistrict;
         if (!worker?.getWorldTransformMatrix) return null;
         const point = worker.getWorldTransformMatrix().transformPoint(0, 0);
         const camera = scene.cameras?.main;
@@ -13654,7 +13657,13 @@ async function smokeVillageUi(session, exceptions) {
             ) === true,
             routeStatus: worker.list?.some(
                 child => child?.getData?.('villageWorkerRouteStatus') === true
-            ) === true
+            ) === true,
+            districtOperationalState: district?.getData?.(
+                'villageDistrictOperationalState'
+            ),
+            districtOperationalLanguage: district?.getData?.(
+                'villageDistrictOperationalLanguage'
+            )
         };
     })()`);
     if (
@@ -13675,7 +13684,9 @@ async function smokeVillageUi(session, exceptions) {
         workerRoute.checkInCueStyle !== 'current_resonance' ||
         !workerRoute.resonanceCue ||
         !workerRoute.deliveryPulse ||
-        !workerRoute.routeStatus
+        !workerRoute.routeStatus ||
+        workerRoute.districtOperationalLanguage !== 'living_work_cycle_v1' ||
+        !['working', 'outbound'].includes(workerRoute.districtOperationalState)
     ) {
         throw new Error(`Village worker route was unavailable: ${JSON.stringify(workerRoute)}`);
     }
@@ -13752,6 +13763,11 @@ async function smokeVillageUi(session, exceptions) {
         const landmark = window.mythicalGame.scene.getScene('GameScene')
             ?.villageHeartLandmark;
         const worker = landmark?.workerElements?.[0];
+        const districtPresentation = landmark?.plotPresentations?.find(
+            presentation => presentation.plotId === worker?.getData('plotId')
+        );
+        const district = districtPresentation?.inhabitedDistrict;
+        const operationalLayer = districtPresentation?.inhabitedDistrictOperationalLayer;
         const deliveryPulse = landmark?.heartLife?.deliveryPulse;
         const resource = worker?.getData('carriedResource');
         const imprint = landmark?.heartLife?.[resource + 'Imprint'];
@@ -13782,7 +13798,13 @@ async function smokeVillageUi(session, exceptions) {
             ),
             imprintLastDelivery: imprint?.getData?.(
                 'villageHeartResourceLastDelivery'
-            )
+            ),
+            districtOperationalState: district?.getData?.(
+                'villageDistrictOperationalState'
+            ),
+            districtCycleCount: district?.getData?.('villageDistrictCycleCount'),
+            districtOperationalAlpha: operationalLayer?.alpha,
+            districtOperationalScale: operationalLayer?.scaleX
         };
     })()`);
     if (
@@ -13806,7 +13828,11 @@ async function smokeVillageUi(session, exceptions) {
         !workerDelivery.imprintActive ||
         !workerDelivery.imprintDeliveryActive ||
         workerDelivery.imprintDeliveryCount < 1 ||
-        workerDelivery.imprintLastDelivery !== 'FEEDING · +5 HAPPINESS'
+        workerDelivery.imprintLastDelivery !== 'FEEDING · +5 HAPPINESS' ||
+        workerDelivery.districtOperationalState !== 'delivery_complete' ||
+        workerDelivery.districtCycleCount < 1 ||
+        workerDelivery.districtOperationalAlpha !== 1 ||
+        workerDelivery.districtOperationalScale < 1.07
     ) {
         throw new Error(`Village worker delivery feedback failed: ${JSON.stringify(workerDelivery)}`);
     }
@@ -13823,12 +13849,21 @@ async function smokeVillageUi(session, exceptions) {
     const workerReturn = await evaluate(session, `(() => {
         const worker = window.mythicalGame.scene.getScene('GameScene')
             ?.villageHeartLandmark?.workerElements?.[0];
+        const landmark = window.mythicalGame.scene.getScene('GameScene')
+            ?.villageHeartLandmark;
+        const district = landmark?.plotPresentations?.find(
+            presentation => presentation.plotId === worker?.getData('plotId')
+        )?.inhabitedDistrict;
         return {
             phase: worker?.getData('routePhase'),
             direction: worker?.getData('routeDirection'),
             cargoVisible: worker?.getData('cargoVisible'),
             feedback: worker?.getData('deliveryFeedback'),
-            cue: worker?.getData('visibleRoutineCue')
+            cue: worker?.getData('visibleRoutineCue'),
+            districtOperationalState: district?.getData?.(
+                'villageDistrictOperationalState'
+            ),
+            districtCycleCount: district?.getData?.('villageDistrictCycleCount')
         };
     })()`);
     if (
@@ -13836,7 +13871,9 @@ async function smokeVillageUi(session, exceptions) {
         workerReturn.direction !== 'to_building' ||
         workerReturn.cargoVisible !== false ||
         workerReturn.feedback !== false ||
-        workerReturn.cue !== null
+        workerReturn.cue !== null ||
+        workerReturn.districtOperationalState !== 'returning' ||
+        workerReturn.districtCycleCount < 1
     ) {
         throw new Error(`Village worker return state failed: ${JSON.stringify(workerReturn)}`);
     }
@@ -15078,6 +15115,18 @@ async function smokeVillageUi(session, exceptions) {
                     approachActive: presentation.inhabitedDistrictApproachLayer
                         ?.getData?.('villageDistrictApproachActive'),
                     approachAlpha: presentation.inhabitedDistrictApproachLayer?.alpha,
+                    operationalLanguage: presentation.inhabitedDistrictOperationalLayer
+                        ?.getData?.('villageDistrictOperationalLanguage'),
+                    operationalState: district?.getData?.(
+                        'villageDistrictOperationalState'
+                    ),
+                    evidenceTier: district?.getData?.('villageDistrictEvidenceTier'),
+                    residentCount: district?.getData?.('villageDistrictResidentCount'),
+                    cycleCount: district?.getData?.('villageDistrictCycleCount'),
+                    operationalAlpha: presentation.inhabitedDistrictOperationalLayer?.alpha,
+                    evidenceType: presentation.inhabitedDistrictOperationalLayer?.list
+                        ?.find?.(child => child?.getData?.('villageDistrictWorkEvidence'))
+                        ?.getData?.('villageDistrictWorkEvidenceType'),
                     districtAlpha: district?.alpha,
                     structureAlpha: presentation.container?.alpha,
                     labelAlpha: presentation.plotLabel?.alpha,
@@ -15137,6 +15186,29 @@ async function smokeVillageUi(session, exceptions) {
             district.reveal !== 1 ||
             district.approachLanguage !== 'ground_reply_v1' ||
             district.approachActive !== false ||
+            district.operationalLanguage !== 'living_work_cycle_v1' ||
+            district.evidenceType !== district.identity ||
+            district.evidenceTier < 1 ||
+            district.evidenceTier > 3 ||
+            !Number.isFinite(district.cycleCount) ||
+            ![
+                'working',
+                'outbound',
+                'delivery_complete',
+                'returning',
+                'occupied_home',
+                'ready_home',
+                'awaiting_helper'
+            ].includes(district.operationalState) ||
+            (district.state === 'needs_helper' && (
+                district.operationalState !== 'awaiting_helper' ||
+                district.operationalAlpha !== 0.24
+            )) ||
+            (district.identity === 'shared_shelter_grove' && (
+                !['occupied_home', 'ready_home'].includes(district.operationalState) ||
+                district.residentCount < 0
+            )) ||
+            (district.state === 'staffed' && district.operationalAlpha < 0.58) ||
             district.approachAlpha !== (
                 district.state === 'needs_helper' ? 0.72 : 0
             ) ||

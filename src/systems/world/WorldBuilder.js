@@ -2309,7 +2309,10 @@ class WorldBuilder {
                 ? this.createVillageInhabitedDistrict(building, {
                     compact: compactSettlement,
                     index,
-                    progress: constructionProgress
+                    progress: constructionProgress,
+                    residentCount: building.definitionId === 'habitat'
+                        ? snapshot?.home?.residents?.length || 0
+                        : 0
                 })
                 : null;
             drawing.fillStyle(0x102B26, building ? 0.7 : 0.36);
@@ -2474,6 +2477,7 @@ class WorldBuilder {
                     compact: compactSettlement,
                     index,
                     landmark,
+                    inhabitedDistrict,
                     plotPosition: { x: plotX, y: plotY },
                     heartPosition: {
                         x: landmark.zone.x,
@@ -2750,6 +2754,7 @@ class WorldBuilder {
                 artworkGrounding,
                 inhabitedDistrict: inhabitedDistrict?.container || null,
                 inhabitedDistrictApproachLayer: inhabitedDistrict?.approachLayer || null,
+                inhabitedDistrictOperationalLayer: inhabitedDistrict?.operationalLayer || null,
                 plotLabel,
                 stateLabel,
                 focusRing,
@@ -3823,7 +3828,8 @@ class WorldBuilder {
     createVillageInhabitedDistrict(building, {
         compact = false,
         index = 0,
-        progress = 1
+        progress = 1,
+        residentCount = 0
     } = {}) {
         const profile = building?.definition?.worldProfile ||
             VILLAGE_BUILDING_DEFINITIONS.find(
@@ -3832,6 +3838,20 @@ class WorldBuilder {
         if (!building || !profile) return null;
 
         const complete = building.status === 'complete';
+        const staffed = complete && Boolean(building.creature);
+        const operationalState = !complete
+            ? 'growing'
+            : building.definitionId === 'habitat'
+                ? residentCount > 0 ? 'occupied_home' : 'ready_home'
+                : staffed ? 'working' : 'awaiting_helper';
+        const evidenceTier = Math.min(
+            3,
+            Math.max(
+                complete ? 1 : 0,
+                Math.floor((Number(building.totalProduced) || 0) / 6) +
+                    (complete ? 1 : 0)
+            )
+        );
         const reveal = complete ? 1 : Phaser.Math.Clamp(progress, 0.18, 0.72);
         const container = this.scene.add.container(0, 0)
             .setAlpha(complete ? 1 : 0.72)
@@ -3843,6 +3863,11 @@ class WorldBuilder {
             .setData('villageDistrictWorldChange', profile.worldChange)
             .setData('villageDistrictReveal', reveal)
             .setData('villageDistrictBuildingId', building.definitionId)
+            .setData('villageDistrictOperationalLanguage', 'living_work_cycle_v1')
+            .setData('villageDistrictOperationalState', operationalState)
+            .setData('villageDistrictEvidenceTier', evidenceTier)
+            .setData('villageDistrictResidentCount', residentCount)
+            .setData('villageDistrictCycleCount', 0)
             .setData(
                 'ariaLabel',
                 `${building.definition?.label || building.definitionId}. ${profile.worldChange}`
@@ -3851,6 +3876,25 @@ class WorldBuilder {
         const detail = this.scene.add.graphics();
         const motionLayer = this.scene.add.container(0, 0)
             .setData('villageDistrictMotionLayer', profile.motion);
+        const operationalLayer = this.scene.add.container(0, 0)
+            .setAlpha({
+                growing: 0.42,
+                working: 0.9,
+                occupied_home: 0.84,
+                ready_home: 0.46,
+                awaiting_helper: 0.24
+            }[operationalState] || 0.4)
+            .setData('villageDistrictOperationalLayer', true)
+            .setData('villageDistrictOperationalLanguage', 'living_work_cycle_v1')
+            .setData('villageDistrictOperationalState', operationalState)
+            .setData('villageDistrictEvidenceTier', evidenceTier)
+            .setData('villageDistrictResidentCount', residentCount)
+            .setData('villageDistrictCycleCount', 0);
+        const workEvidence = this.scene.add.graphics()
+            .setData('villageDistrictWorkEvidence', true)
+            .setData('villageDistrictWorkEvidenceType', profile.identity);
+        const workPulse = this.scene.add.graphics()
+            .setData('villageDistrictWorkPulse', true);
         const approachLayer = this.scene.add.graphics()
             .setAlpha(0)
             .setData('villageDistrictApproachLayer', true)
@@ -3863,6 +3907,7 @@ class WorldBuilder {
         const accent = profile.accent;
         const secondary = profile.secondary;
         const direction = index % 2 === 0 ? -1 : 1;
+        const evidenceY = baseY + (compact ? 17 : 22);
 
         ground.fillStyle(0x071411, 0.42 * reveal);
         ground.fillEllipse(0, baseY + 4, width, compact ? 37 : 49);
@@ -3902,6 +3947,78 @@ class WorldBuilder {
             approachLayer.fillCircle(nodeX, nodeY, compact ? 2.4 : 3);
         });
         approachLayer.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        workPulse.lineStyle(compact ? 1.5 : 2, secondary, 0.64);
+        workPulse.beginPath();
+        workPulse.arc(0, baseY + 4, width * 0.34, Math.PI * 0.16, Math.PI * 0.84);
+        workPulse.strokePath();
+        workPulse.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        if (building.definitionId === 'forager_hut') {
+            Array.from({ length: evidenceTier }, (_, evidenceIndex) => {
+                const x = (evidenceIndex - ((evidenceTier - 1) / 2)) * (compact ? 17 : 23);
+                workEvidence.lineStyle(1.5, secondary, 0.84);
+                workEvidence.lineBetween(x, evidenceY + 3, x, evidenceY - 6);
+                workEvidence.fillStyle(accent, 0.92);
+                workEvidence.fillEllipse(x - 4, evidenceY - 7, compact ? 7 : 9, 4);
+                workEvidence.fillEllipse(x + 4, evidenceY - 10, compact ? 7 : 9, 4);
+                workEvidence.fillStyle(0xF4F4F4, 0.86);
+                workEvidence.fillCircle(x, evidenceY - 12, compact ? 1.5 : 2);
+            });
+        } else if (building.definitionId === 'sawmill') {
+            Array.from({ length: evidenceTier }, (_, evidenceIndex) => {
+                const y = evidenceY - (evidenceIndex * (compact ? 4 : 5));
+                workEvidence.fillStyle(0x6E4D2E, 0.9);
+                workEvidence.fillRoundedRect(
+                    -(compact ? 17 : 22) + (evidenceIndex % 2 ? 4 : 0),
+                    y,
+                    compact ? 34 : 44,
+                    compact ? 4 : 5,
+                    2
+                );
+                workEvidence.lineStyle(1, accent, 0.78);
+                workEvidence.lineBetween(
+                    -(compact ? 12 : 16),
+                    y + 2,
+                    compact ? 12 : 16,
+                    y + 2
+                );
+            });
+        } else if (building.definitionId === 'current_masonry') {
+            Array.from({ length: evidenceTier }, (_, evidenceIndex) => {
+                const x = (evidenceIndex - ((evidenceTier - 1) / 2)) * (compact ? 17 : 23);
+                workEvidence.fillStyle(accent, 0.82);
+                workEvidence.fillTriangle(
+                    x,
+                    evidenceY - (compact ? 10 : 13),
+                    x - (compact ? 7 : 9),
+                    evidenceY + 2,
+                    x + (compact ? 7 : 9),
+                    evidenceY + 2
+                );
+                workEvidence.lineStyle(1, secondary, 0.86);
+                workEvidence.lineBetween(x, evidenceY - 8, x, evidenceY - 2);
+            });
+        } else if (building.definitionId === 'habitat') {
+            const lightCount = Math.min(2, Math.max(1, residentCount));
+            Array.from({ length: lightCount }, (_, lightIndex) => {
+                const x = (lightIndex - ((lightCount - 1) / 2)) * (compact ? 18 : 24);
+                workEvidence.fillStyle(lightIndex % 2 ? secondary : accent, residentCount ? 0.94 : 0.38);
+                workEvidence.fillCircle(x, evidenceY - 7, compact ? 3 : 4);
+                workEvidence.lineStyle(1, 0xF4F4F4, residentCount ? 0.76 : 0.3);
+                workEvidence.strokeCircle(x, evidenceY - 7, compact ? 6 : 8);
+            });
+        } else if (building.definitionId === 'workshop') {
+            const paired = staffed;
+            const nodeOffset = compact ? 10 : 13;
+            workEvidence.fillStyle(accent, paired ? 0.94 : 0.42);
+            workEvidence.fillCircle(-nodeOffset, evidenceY - 8, compact ? 3 : 4);
+            workEvidence.fillStyle(secondary, paired ? 0.94 : 0.2);
+            workEvidence.fillCircle(nodeOffset, evidenceY - 8, compact ? 3 : 4);
+            workEvidence.lineStyle(2, 0xF4F4F4, paired ? 0.8 : 0.18);
+            workEvidence.lineBetween(-nodeOffset + 4, evidenceY - 8, nodeOffset - 4, evidenceY - 8);
+        }
+        operationalLayer.add([workEvidence, workPulse]);
 
         if (building.definitionId === 'forager_hut') {
             [-1, 0, 1].forEach((row, rowIndex) => {
@@ -4004,7 +4121,7 @@ class WorldBuilder {
 
         ground.setData('villageDistrictGroundLayer', profile.material);
         detail.setData('villageDistrictDetailLayer', profile.identity);
-        container.add([ground, detail, motionLayer, approachLayer]);
+        container.add([ground, detail, motionLayer, operationalLayer, approachLayer]);
         const tweenConfig = {
             seed_drift: {
                 targets: motionLayer,
@@ -4047,7 +4164,45 @@ class WorldBuilder {
             })
             : null;
         container.setData('villageDistrictMotionActive', Boolean(tween));
-        return { container, approachLayer, tween, profile };
+        return { container, approachLayer, operationalLayer, tween, profile };
+    }
+
+    setVillageDistrictOperationalState(district, state, {
+        delivered = false
+    } = {}) {
+        const container = district?.container || district;
+        const layer = district?.operationalLayer;
+        if (!container?.active || !layer?.active || !state) return false;
+        const previousState = container.getData('villageDistrictOperationalState');
+        const cycleCount = Number(container.getData('villageDistrictCycleCount')) || 0;
+        const nextCycleCount = delivered && previousState !== 'delivery_complete'
+            ? cycleCount + 1
+            : cycleCount;
+        const alpha = {
+            working: 0.96,
+            outbound: 0.72,
+            delivery_complete: 1,
+            returning: 0.58,
+            occupied_home: 0.84,
+            ready_home: 0.46,
+            awaiting_helper: 0.24,
+            growing: 0.42
+        }[state] || 0.5;
+        const scale = state === 'delivery_complete' ? 1.08 : 1;
+        container
+            .setData('villageDistrictOperationalState', state)
+            .setData('villageDistrictCycleCount', nextCycleCount)
+            .setData(
+                'villageDistrictOperationalAria',
+                `${container.getData('villageDistrictActivityCue') || 'Village work'}: ` +
+                    `${state.replaceAll('_', ' ')}.`
+            );
+        layer
+            .setData('villageDistrictOperationalState', state)
+            .setData('villageDistrictCycleCount', nextCycleCount)
+            .setAlpha(alpha)
+            .setScale(scale);
+        return true;
     }
 
     drawVillageFoundationCradle(
@@ -5689,6 +5844,7 @@ class WorldBuilder {
         compact = false,
         index = 0,
         landmark = null,
+        inhabitedDistrict = null,
         plotPosition,
         heartPosition
     } = {}) {
@@ -5822,6 +5978,7 @@ class WorldBuilder {
         let previousProgress = 0;
         let routeDirection = 'to_heart';
         let deliveryActive = false;
+        let previousOperationalState = 'working';
         const worldRoutineCue = {
             forager_hut: 'FORAGING',
             sawmill: 'SHAPING',
@@ -5865,6 +6022,13 @@ class WorldBuilder {
                 : delivering
                     ? effectCue
                     : '';
+            const operationalState = working
+                ? 'working'
+                : delivering
+                    ? 'delivery_complete'
+                    : returning
+                        ? 'returning'
+                        : 'outbound';
             routeStatus
                 .setText(statusCopy)
                 .setAlpha(statusCopy ? 0.92 : 0)
@@ -5885,6 +6049,14 @@ class WorldBuilder {
             worker.setData('cargoVisible', carrying);
             worker.setData('deliveryFeedback', delivering);
             worker.setData('visibleRoutineCue', statusCopy || null);
+            if (operationalState !== previousOperationalState) {
+                this.setVillageDistrictOperationalState(
+                    inhabitedDistrict,
+                    operationalState,
+                    { delivered: operationalState === 'delivery_complete' }
+                );
+                previousOperationalState = operationalState;
+            }
             if (delivering !== deliveryActive) {
                 deliveryActive = delivering;
                 this.setVillageHeartDeliveryState(

@@ -932,6 +932,16 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain(".setData('villageDistrictApproachActive', playerNearby)");
         expect(world).toContain('inhabitedDistrictApproachLayer');
         expect(world).toContain('districtApproachAlpha');
+        expect(world).toContain(".setData('villageDistrictOperationalLanguage', 'living_work_cycle_v1')");
+        expect(world).toContain(".setData('villageDistrictOperationalState', operationalState)");
+        expect(world).toContain(".setData('villageDistrictWorkEvidence', true)");
+        expect(world).toContain(".setData('villageDistrictWorkEvidenceType', profile.identity)");
+        expect(world).toContain('inhabitedDistrictOperationalLayer');
+        expect(world).toContain('setVillageDistrictOperationalState(');
+        expect(world).toContain("? 'delivery_complete'");
+        expect(world).toContain("? 'occupied_home' : 'ready_home'");
+        expect(world).toContain(": staffed ? 'working' : 'awaiting_helper'");
+        expect(world).toContain(".setData('villageDistrictCycleCount', nextCycleCount)");
         expect(world).toContain('const directPlotActionOwnedByProximity = Boolean(');
         expect(world).toContain("'villageCommandOwnedByProximity'");
         expect(world).toContain("'villageInhabitedDistrictIds'");
@@ -945,5 +955,8 @@ describe('Village settlement gameplay contract', () => {
         expect(smoke).toContain("villageCommandPreview: 'complete'");
         expect(smoke).toContain('village-complete-world-identities-mobile.png');
         expect(smoke).toContain('expectedDistrictIds');
+        expect(smoke).toContain("district.operationalLanguage !== 'living_work_cycle_v1'");
+        expect(smoke).toContain("workerDelivery.districtOperationalState !== 'delivery_complete'");
+        expect(smoke).toContain("workerReturn.districtOperationalState !== 'returning'");
     });
 });
