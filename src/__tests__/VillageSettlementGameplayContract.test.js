@@ -302,7 +302,7 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain('`rescuedResident:${residentId}`');
         expect(sceneSource).toContain('`currentVeilAnchor:${anchorId}`');
         expect(directorSource).toContain('distanceDelta');
-        expect(directorSource).toContain('return right.priority - left.priority');
+        expect(directorSource).toContain('if (resolved.priority > best.priority)');
         expect(directorSource).toContain("updateInteractIcon(next.icon)");
         expect(directorSource).toContain("next.hintMode === 'world'");
         expect(directorSource).toContain('resolved.worldPrompt === true');

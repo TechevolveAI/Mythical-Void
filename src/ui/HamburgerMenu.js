@@ -423,16 +423,7 @@ export default class HamburgerMenu {
             const queue = [];
 
             if (apod) {
-                queue.push({
-                    type: 'apod',
-                    title: 'Astronomy Picture of the Day',
-                    subtitle: apod.title,
-                    imageUrl: window.NASAContentSystem.ensureHttps(apod.url),
-                    hdUrl: window.NASAContentSystem.ensureHttps(apod.hdurl),
-                    description: window.NASAContentSystem.simplifyDescription(apod.explanation),
-                    date: apod.date,
-                    creatureComment: window.NASAContentSystem.getCreatureAPODComment(apod.title)
-                });
+                queue.push(window.NASAContentSystem.createAPODDiscovery(apod));
             }
 
             devLog('[HamburgerMenu] Fetching Mars photo...');
@@ -441,15 +432,7 @@ export default class HamburgerMenu {
             devLog('[HamburgerMenu] Mars result:', mars ? 'success' : 'failed/null');
 
             if (mars) {
-                queue.push({
-                    type: 'mars',
-                    title: 'Postcard from Mars',
-                    subtitle: `${mars.rover.name} Rover - ${mars.camera.full_name}`,
-                    imageUrl: window.NASAContentSystem.ensureHttps(mars.img_src),
-                    description: `This photo was taken on Mars by the ${mars.rover.name} rover on Sol ${mars.sol}.`,
-                    date: mars.earth_date,
-                    creatureComment: window.NASAContentSystem.getCreatureMarsComment()
-                });
+                queue.push(window.NASAContentSystem.createMarsDiscovery(mars));
             }
 
             devLog('[HamburgerMenu] Content queue length:', queue.length);
@@ -691,8 +674,8 @@ export default class HamburgerMenu {
         window.GameState.set('creature.lifecycle.stage', newStage);
 
         // Trigger creature texture regeneration if in GameScene
-        if (this.scene.regenerateCreatureTexture) {
-            this.scene.regenerateCreatureTexture(newStage);
+        if (this.scene.setCreatureLifecycleStageForDebug) {
+            this.scene.setCreatureLifecycleStageForDebug(newStage);
         }
 
         this.showHackFeedback(`${stageIcons[newStage]} ${newStage}`, '#E040FB');

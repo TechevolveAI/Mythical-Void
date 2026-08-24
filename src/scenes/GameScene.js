@@ -24,7 +24,6 @@ import ControlsHintPanel from '../ui/ControlsHintPanel.js';
 import FloatingChatBubble from '../ui/FloatingChatBubble.js';
 import CreatureSwitcherModal from '../ui/CreatureSwitcherModal.js';
 import HamburgerMenu from '../ui/HamburgerMenu.js';
-import NASAContentModal from '../ui/NASAContentModal.js';
 import AchievementNotification from '../ui/AchievementNotification.js';
 import CreatureRadialMenu from '../ui/CreatureRadialMenu.js';
 import AbilityHUD from '../ui/AbilityHUD.js';
@@ -5933,10 +5932,21 @@ class GameScene extends Phaser.Scene {
                 await window.NASAContentSystem.initialize();
             }
 
-            // Set up ISS overhead alert listener
-            window.NASAContentSystem.on('issOverhead', (data) => {
+            // Set up ISS overhead alert listener without accumulating handlers
+            // when this long-lived scene is restarted.
+            if (this.nasaIssOverheadHandler) {
+                window.NASAContentSystem.off(
+                    'issOverhead',
+                    this.nasaIssOverheadHandler
+                );
+            }
+            this.nasaIssOverheadHandler = (data) => {
                 this.showCreatureSpeechBubble(data.message, 8000);
-            });
+            };
+            window.NASAContentSystem.on(
+                'issOverhead',
+                this.nasaIssOverheadHandler
+            );
 
             // Try to get player's approximate location for ISS tracking
             this.requestLocationForISS();
@@ -5983,38 +5993,6 @@ class GameScene extends Phaser.Scene {
             },
             { enableHighAccuracy: false, timeout: 10000 }
         );
-    }
-
-    /**
-     * Check and show daily NASA content (APOD, Mars postcards)
-     */
-    async checkAndShowDailyNASAContent() {
-        console.log('[GameScene] Checking NASA daily content...');
-
-        if (!window.NASAContentSystem?.shouldShowDailyContent()) {
-            console.log('[GameScene] NASA content already shown today - to reset, run: window.NASAContentSystem.resetDailyContent()');
-            return;
-        }
-
-        try {
-            const contentQueue = await window.NASAContentSystem.getDailyContentQueue();
-            console.log('[GameScene] NASA content queue:', contentQueue.length, 'items');
-
-            if (contentQueue.length > 0) {
-                // Create and show modal
-                console.log('[GameScene] Showing NASA content modal');
-                this.nasaModal = new NASAContentModal(this);
-                this.nasaModal.show(contentQueue, () => {
-                    // Mark content as shown when user dismisses
-                    window.NASAContentSystem?.markDailyContentShown();
-                    this.nasaModal = null;
-                });
-            } else {
-                console.log('[GameScene] No NASA content available in queue');
-            }
-        } catch (error) {
-            console.warn('[GameScene] Failed to show NASA content:', error.message);
-        }
     }
 
     /**
@@ -18237,12 +18215,12 @@ class GameScene extends Phaser.Scene {
         }
 
         // Clean up NASA content
-        if (window.NASAContentSystem) {
-            window.NASAContentSystem.off('issOverhead');
-        }
-        if (this.nasaModal) {
-            this.nasaModal.cleanup();
-            this.nasaModal = null;
+        if (window.NASAContentSystem && this.nasaIssOverheadHandler) {
+            window.NASAContentSystem.off(
+                'issOverhead',
+                this.nasaIssOverheadHandler
+            );
+            this.nasaIssOverheadHandler = null;
         }
         if (this.creatureSpeechBubble) {
             this.creatureSpeechBubble.forEach(el => el?.destroy());
@@ -18610,9 +18588,8 @@ class GameScene extends Phaser.Scene {
      * Regenerate creature texture for a given stage
      * Called by hamburger menu Developer Hacks when cycling stages
      */
-    regenerateCreatureTexture(newStage) {
+    setCreatureLifecycleStageForDebug(newStage) {
         if (window.GameState) {
-            const stageOrder = ['baby', 'juvenile', 'adult', 'elder'];
             const stageDays = { baby: 0, juvenile: 1, adult: 2, elder: 9 };
 
             // Calculate birthDate to match the stage

@@ -22,7 +22,7 @@ function createFixture(files) {
 describe('production bundle logging gate', () => {
     test('production builds strip non-actionable logs without stripping warnings or errors', () => {
         const config = fs.readFileSync(
-            path.join(rootDir, 'vite.config.js'),
+            path.join(rootDir, 'vite.config.mjs'),
             'utf8'
         );
 

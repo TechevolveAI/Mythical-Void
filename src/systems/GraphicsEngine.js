@@ -8192,33 +8192,6 @@ class GraphicsEngine {
     }
 
     /**
-     * Add power level indicators for high-power cosmic creatures
-     * @param {Phaser.GameObjects.Graphics} graphics - Graphics context
-     * @param {Object} center - Center position {x, y}
-     * @param {number} color - Indicator color
-     * @param {number} powerLevel - Power level (0-1)
-     */
-    addPowerIndicators(graphics, center, color, powerLevel) {
-        // Add power level dots/indicators for high-power creatures
-        const numIndicators = Math.floor(powerLevel * 5); // 0-5 indicators
-
-        for (let i = 0; i < numIndicators; i++) {
-            const angle = (i / numIndicators) * Math.PI * 2 - Math.PI / 2;
-            const distance = 35;
-            const x = center.x + Math.cos(angle) * distance;
-            const y = center.y + Math.sin(angle) * distance;
-
-            // Outer glow
-            graphics.fillStyle(color, 0.3);
-            graphics.fillCircle(x, y, 4);
-
-            // Inner bright dot
-            graphics.fillStyle(this.lightenColor(color, 0.3), 0.8);
-            graphics.fillCircle(x, y, 2);
-        }
-    }
-
-    /**
      * Add soft glow effect around creature
      * @param {Phaser.GameObjects.Graphics} graphics - Graphics object
      * @param {Object} center - Center point {x, y}
