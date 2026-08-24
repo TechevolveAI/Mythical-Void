@@ -308,7 +308,14 @@ describe('PlatformerLevelScene completion progression', () => {
                 totalRegions: 6,
                 networkStatus: 'recovering'
             },
-            guardianResident: null,
+            guardianResident: {
+                id: 'shadow_phoenix',
+                name: 'Aurora Phoenix',
+                newlyRescued: true,
+                role: 'Aurora Renewal Guardian',
+                routine: null,
+                futureAbility: null
+            },
             guardianOutcome: {
                 guardianId: 'shadow_phoenix',
                 levelId: 'auroraDepths',

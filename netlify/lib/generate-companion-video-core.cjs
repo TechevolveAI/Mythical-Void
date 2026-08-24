@@ -26,7 +26,10 @@ const SHOT_VERSION = 1;
 const JOB_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MOMENT_ID_PATTERN = /^[a-z0-9][a-z0-9:_-]{0,63}$/;
 const GEMINI_OPERATION_PATTERN = /^[A-Za-z0-9._~-]+(?:\/[A-Za-z0-9._~-]+)+$/;
-const ALLOWED_MOMENTS = new Set(['first_forest_arrival']);
+const ALLOWED_MOMENTS = new Set([
+    'first_forest_arrival',
+    'beacon_reflection'
+]);
 const TERMINAL_STATUSES = new Set(['succeeded', 'failed', 'canceled']);
 
 function classifyGeminiFailure(error) {
@@ -255,13 +258,26 @@ async function signPortraitInput(adminClient, portrait) {
     return data.signedUrl;
 }
 
+function isAllowedMoment(momentId) {
+    return ALLOWED_MOMENTS.has(momentId) ||
+        /^guardian_(?:rescue|trust|debrief)_[a-z0-9_-]{1,32}$/.test(momentId);
+}
+
 function buildPrompt(momentId, stage) {
-    if (momentId !== 'first_forest_arrival') return '';
+    const momentCopy = momentId === 'first_forest_arrival'
+        ? 'The companion takes two cautious steps from the edge of a damaged spacecraft into a bioluminescent forest, then looks back with trust toward its astronaut companion, Wanderer-77, who is visible only from behind at the edge of frame.'
+        : momentId === 'beacon_reflection'
+            ? 'The companion stands beside a quiet beacon at dusk, watching its living light move through the landscape while Wanderer-77 considers the responsibility of returning home.'
+            : momentId.startsWith('guardian_rescue_')
+                ? 'The companion approaches a newly opened rescue enclosure, pauses to let the freed guardian choose, then walks with it toward the warm lights of the Sanctuary.'
+                : momentId.startsWith('guardian_trust_')
+                    ? 'The companion shares a calm recognition with a Sanctuary resident beside living roots, with a gentle exchange of trust expressed through posture and eye contact.'
+                    : 'The companion and a Sanctuary resident look over a recovering region together, communicating shared purpose through small, natural gestures.';
     return [
         'Use the input image as the exact identity reference for this creature.',
         `Preserve its face, silhouette, anatomy, colors, markings, and ${stage} life stage without redesigning it.`,
         'A single continuous cinematic wildlife shot in the Mythical Forest on the alien world called the Fend.',
-        'The creature takes two cautious steps from the edge of a damaged spacecraft into a bioluminescent forest, then looks back with trust toward its astronaut companion, Wanderer-77, who is visible only from behind at the edge of frame.',
+        momentCopy,
         'Subtle breathing, natural weight, blinking, moving foliage, drifting Current motes, damp ground reflections, restrained wonder, emotionally warm but not childish.',
         'Slow low camera push, realistic lens behavior, premium live-action science-fantasy film, physically coherent motion.',
         'No dialogue, no subtitles, no logos, no text, no weapons, no extra creatures, no transformation, no morphing, no pixel art, no cartoon rendering.'
@@ -746,7 +762,7 @@ exports.handler = async event => {
             return json(400, { success: false, error: 'Invalid JSON request' });
         }
         const momentId = typeof body.momentId === 'string' ? body.momentId : '';
-        if (!MOMENT_ID_PATTERN.test(momentId) || !ALLOWED_MOMENTS.has(momentId)) {
+        if (!MOMENT_ID_PATTERN.test(momentId) || !isAllowedMoment(momentId)) {
             return json(400, { success: false, error: 'Unsupported story moment' });
         }
         const portraitJobId = parseRef(body.portraitAssetRef, PORTRAIT_REF_PREFIX);

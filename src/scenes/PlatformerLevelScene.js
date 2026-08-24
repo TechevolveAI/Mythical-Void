@@ -8662,7 +8662,10 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.companionRescueTableau = null;
 
         Promise.resolve(
-            mediaService.createCinematicStill(this, {
+            (mediaService.createStoryMoment || mediaService.createCinematicStill).call(
+                mediaService,
+                this,
+                {
                 momentId,
                 stage: window.GameState?.get?.(
                     'creature.lifecycle.stage'
@@ -8684,7 +8687,8 @@ class PlatformerLevelScene extends Phaser.Scene {
                     this.companionMediaRequest === requestId &&
                     this.sys?.isActive?.() !== false
                 )
-            })
+                }
+            )
         ).then(tableau => {
             if (!tableau) return;
             if (
@@ -8839,6 +8843,21 @@ class PlatformerLevelScene extends Phaser.Scene {
                     achievementLevelId,
                     { save: false }
                 ) || null;
+            // Keep the completion payload explicit for downstream campaign
+            // consumers: the outcome ledger and the resident-facing story
+            // record describe the same guardian, but serve different screens.
+            if (guardianOutcome?.definition) {
+                guardianResident = {
+                    changed: guardianOutcome.changed,
+                    guardian: {
+                        id: guardianOutcome.definition.guardianId,
+                        name: guardianOutcome.definition.name,
+                        role: guardianOutcome.definition.regionRole,
+                        routine: null,
+                        futureAbility: null
+                    }
+                };
+            }
             guardianExpedition = window.GuardianResidents
                 ?.recordGuardianExpedition?.(gameState, {
                     levelId: achievementLevelId,

@@ -84,6 +84,26 @@ function runNodeScript(script, extraEnv = {}) {
     });
 }
 
+async function runNodeScriptWithRetry(script, extraEnv = {}, attempts = 2) {
+    let lastError = null;
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        try {
+            await runNodeScript(script, extraEnv);
+            return;
+        } catch (error) {
+            lastError = error;
+            if (attempt < attempts) {
+                console.warn(
+                    `[release-smoke] Retrying ${extraEnv.SMOKE_MODE || script}` +
+                    ` (${attempt + 1}/${attempts}) after timing-sensitive failure`
+                );
+                await delay(1000);
+            }
+        }
+    }
+    throw lastError;
+}
+
 async function main() {
     const viteBin = path.join(
         path.dirname(require.resolve('vite')),
@@ -292,7 +312,7 @@ async function main() {
         for (const guardianCase of guardianCases) {
             console.log(`[release-smoke] Guardian case: ${guardianCase}`);
             try {
-                await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                await runNodeScriptWithRetry('scripts/smoke-secondary-journeys.js', {
                     SMOKE_MODE: 'guardian-pacing',
                     SMOKE_CASE: guardianCase
                 });

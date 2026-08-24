@@ -228,6 +228,35 @@ describe('personalized companion video Netlify function', () => {
         expect(providerBody.input.prompt).not.toContain('must-not-be-used');
     });
 
+    test('accepts an authored guardian rescue beat without accepting arbitrary prompts', async () => {
+        const adminClient = createAdminClient({
+            moment_id: 'guardian_rescue_elder_treant'
+        });
+        const providerFetch = jest.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                id: 'private-provider-prediction-rescue',
+                status: 'starting',
+                model: 'google/veo-3.1-fast'
+            })
+        });
+        videoFunction._internal.setRuntime({
+            fetch: providerFetch,
+            createClient: () => adminClient
+        });
+
+        const response = await videoFunction.handler(event({
+            momentId: 'guardian_rescue_elder_treant',
+            portraitAssetRef: PORTRAIT_REF,
+            prompt: 'must-not-be-used'
+        }, { authorization: 'Bearer valid-token' }));
+
+        expect(response.statusCode).toBe(202);
+        const providerBody = JSON.parse(providerFetch.mock.calls[0][1].body);
+        expect(providerBody.input.prompt).toContain('newly opened rescue enclosure');
+        expect(providerBody.input.prompt).not.toContain('must-not-be-used');
+    });
+
     test('starts a Gemini Veo image-to-video job from the private portrait', async () => {
         process.env.VIDEO_PROVIDER = 'gemini';
         process.env.GEMINI_API_KEY = 'server-gemini-token';
