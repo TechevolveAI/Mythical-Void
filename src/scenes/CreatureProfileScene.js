@@ -2062,20 +2062,6 @@ export default class CreatureProfileScene extends Phaser.Scene {
     }
 
     /**
-     * Get rarity color as number (for graphics)
-     */
-    getRarityColor(rarity) {
-        const colors = {
-            common: 0x4CAF50,
-            uncommon: 0x03A9F4,
-            rare: 0xE91E63,
-            epic: 0x9C27B0,
-            legendary: 0xFFD700
-        };
-        return colors[rarity] || colors.common;
-    }
-
-    /**
      * Find a creature by ID in the collection
      */
     findCreatureById(id, collection) {

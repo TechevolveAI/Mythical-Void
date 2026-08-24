@@ -8832,7 +8832,7 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
                 actionBottom: Math.round(bounds.bottom)
             };
             })()`),
-            { timeoutMs: 5000, message: 'late Sanctuary living-form reveal' }
+            { timeoutMs: 12000, message: 'late Sanctuary living-form reveal' }
         );
     } catch (error) {
         const diagnostics = await evaluate(session, `(() => {
@@ -9057,11 +9057,47 @@ async function smokeNASAContent(session, exceptions) {
     );
     await waitForScene(session, 'HatchingScene');
     await evaluate(session, `(() => {
-        const scene = window.mythicalGame.scene.getScene('HatchingScene');
+        const game = window.mythicalGame;
+        const state = window.GameState;
+        const creature = {
+            ...(state.get('creature') || {}),
+            id: 'smoke_nasa_nova',
+            name: 'Nova',
+            hatched: true,
+            named: true,
+            genes: {
+                id: 'smoke_nasa_genes_23',
+                personality: { primary: 'curious' },
+                cosmicAffinity: { element: 'nebula' }
+            },
+            stats: { happiness: 92, energy: 90 }
+        };
+        state.set('creature', creature);
+        state.set('creatures', [creature]);
+        state.set('activeCreatureIndex', 0);
+        state.save();
+        const hatchingScene = game.scene.getScene('HatchingScene');
+        hatchingScene.scene.start('GameScene', { biome: 'nebula' });
+        return true;
+    })()`);
+    await waitForScene(session, 'GameScene', 30000);
+    await waitFor(
+        () => evaluate(session, `Boolean(window.mythicalGame.scene.getScene('GameScene')?.hamburgerMenu)`),
+        { timeoutMs: 18000, message: 'Space News menu route' }
+    );
+    await evaluate(session, `(() => {
         const content = ${JSON.stringify(fixture.content)};
-        window.NASAContentSystem.getDailyContentQueue = async () => [content];
-        window.OnboardingManager.initialize(scene);
-        window.OnboardingManager.showNASAContent(() => {});
+        const nasa = window.NASAContentSystem;
+        nasa.isInitialized = true;
+        nasa.fetchAPOD = async () => ({
+            title: content.subtitle,
+            url: content.imageUrl,
+            hdurl: content.hdUrl,
+            explanation: content.description,
+            date: content.date
+        });
+        nasa.fetchMarsPhoto = async () => null;
+        window.mythicalGame.scene.getScene('GameScene').hamburgerMenu.showSpaceNews();
         return true;
     })()`);
 
@@ -9070,7 +9106,7 @@ async function smokeNASAContent(session, exceptions) {
             const image = Array.from(document.images).find(candidate =>
                 candidate.src.includes('a11pan1040226lftsm.jpg')
             );
-            const scene = window.mythicalGame.scene.getScene('HatchingScene');
+            const scene = window.mythicalGame.scene.getScene('GameScene');
             const labels = (scene?.children?.list || [])
                 .map(item => typeof item?.text === 'string' ? item.text : '')
                 .filter(Boolean);

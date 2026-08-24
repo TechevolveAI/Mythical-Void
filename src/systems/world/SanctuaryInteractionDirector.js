@@ -43,31 +43,37 @@ export default class SanctuaryInteractionDirector {
         const player = this.scene?.player;
         if (!player || this.candidates.size === 0) return null;
 
-        return [...this.candidates.values()]
-            .filter(candidate => candidate.target?.active !== false)
-            .map(candidate => {
-                const presentation = typeof candidate.presentation === 'function'
-                    ? candidate.presentation()
-                    : null;
-                const resolved = {
-                    ...candidate,
-                    ...(presentation || {})
-                };
-                if (resolved.worldPrompt === true) {
-                    resolved.hintMode = this.scene?.hasVisibleTouchControls?.()
-                        ? 'world'
-                        : 'hud';
-                }
-                return {
-                    ...resolved,
-                    distance: distanceBetween(player, candidate.target)
-                };
-            })
-            .sort((left, right) => {
-                const distanceDelta = left.distance - right.distance;
-                if (Math.abs(distanceDelta) > 26) return distanceDelta;
-                return right.priority - left.priority;
-            })[0] || null;
+        let best = null;
+        for (const candidate of this.candidates.values()) {
+            if (candidate.target?.active === false) continue;
+
+            const presentation = typeof candidate.presentation === 'function'
+                ? candidate.presentation()
+                : null;
+            const resolved = {
+                ...candidate,
+                ...(presentation || {}),
+                distance: distanceBetween(player, candidate.target)
+            };
+            if (resolved.worldPrompt === true) {
+                resolved.hintMode = this.scene?.hasVisibleTouchControls?.()
+                    ? 'world'
+                    : 'hud';
+            }
+
+            if (!best) {
+                best = resolved;
+                continue;
+            }
+
+            const distanceDelta = resolved.distance - best.distance;
+            if (Math.abs(distanceDelta) > 26) {
+                if (distanceDelta < 0) best = resolved;
+                continue;
+            }
+            if (resolved.priority > best.priority) best = resolved;
+        }
+        return best;
     }
 
     update({ force = false } = {}) {

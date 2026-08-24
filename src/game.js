@@ -1,7 +1,6 @@
 // Import Tailwind CSS styles
 import './styles/main.css';
 
-import { createClient } from '@supabase/supabase-js';
 import { Phaser, preloadModulesReady } from './global-init.js';
 import HatchingScene from './scenes/HatchingScene.js';
 import PersonalityScene from './scenes/PersonalityScene.js';
@@ -266,6 +265,7 @@ async function initializeCloudSaves() {
         return null;
     }
 
+    const { createClient } = await import('@supabase/supabase-js');
     const client = createClient(supabaseUrl, publishableKey, {
         auth: {
             persistSession: true,

@@ -5,7 +5,6 @@
  * 1. Crash Story (first time only)
  * 2. Field Controls (first time only)
  * 3. Daily Greeting/Bonus (once per day)
- * 4. NASA Content (once per day)
  *
  * Each popup must be dismissed before the next one shows.
  */
@@ -168,9 +167,6 @@ class OnboardingManager {
                 case 'daily_greeting':
                     this.showDailyGreeting(popup.data, resolve);
                     break;
-                case 'nasa_content':
-                    this.showNASAContent(resolve);
-                    break;
                 default:
                     devLog(`[OnboardingManager] Unknown popup type: ${popup.type}`);
                     resolve();
@@ -181,37 +177,74 @@ class OnboardingManager {
     /**
      * Show controls tutorial
      */
-    showControlsTutorial(onComplete) {
+    async showControlsTutorial(onComplete) {
         devLog('[OnboardingManager] Showing controls tutorial');
 
-        if (!this.scene.controlsTutorial) {
-            // Import dynamically if not available
-            import('../ui/ControlsTutorialOverlay.js').then(module => {
+        try {
+            if (!this.scene.controlsTutorial) {
+                const module = await import('../ui/ControlsTutorialOverlay.js');
                 const ControlsTutorialOverlay = module.default;
                 this.scene.controlsTutorial = new ControlsTutorialOverlay(this.scene);
-                this.scene.controlsTutorial.show();
-                this.waitForTutorialDismiss(onComplete);
-            });
-        } else {
+            }
             this.scene.controlsTutorial.show();
             this.waitForTutorialDismiss(onComplete);
+        } catch (error) {
+            console.error('[OnboardingManager] Controls tutorial failed:', error);
+            onComplete();
         }
+    }
+
+    waitForDismissal({ isDismissed, onComplete, safetyDelay }) {
+        let settled = false;
+        let checkInterval = null;
+        let completionTimer = null;
+        let safetyTimer = null;
+
+        const complete = (delay = 0) => {
+            if (settled) return;
+            settled = true;
+            checkInterval?.remove?.();
+            safetyTimer?.remove?.();
+
+            if (delay > 0) {
+                completionTimer = this.scene.time.delayedCall(delay, () => {
+                    completionTimer = null;
+                    onComplete();
+                });
+                return;
+            }
+            onComplete();
+        };
+
+        checkInterval = this.scene.time.addEvent({
+            delay: 100,
+            callback: () => {
+                if (isDismissed()) complete(500);
+            },
+            loop: true
+        });
+        safetyTimer = this.scene.time.delayedCall(
+            safetyDelay,
+            () => complete()
+        );
+
+        return () => {
+            if (settled) return;
+            settled = true;
+            checkInterval?.remove?.();
+            safetyTimer?.remove?.();
+            completionTimer?.remove?.();
+        };
     }
 
     /**
      * Wait for controls tutorial to be dismissed
      */
     waitForTutorialDismiss(onComplete) {
-        const checkInterval = this.scene.time.addEvent({
-            delay: 100,
-            callback: () => {
-                if (!this.scene.controlsTutorial?.isVisible) {
-                    checkInterval.remove();
-                    // Small delay before next popup
-                    this.scene.time.delayedCall(500, onComplete);
-                }
-            },
-            loop: true
+        return this.waitForDismissal({
+            isDismissed: () => !this.scene.controlsTutorial?.isVisible,
+            onComplete,
+            safetyDelay: 30000
         });
     }
 
@@ -243,23 +276,11 @@ class OnboardingManager {
      * Wait for story modal to be dismissed
      */
     waitForStoryDismiss(onComplete) {
-        const checkInterval = this.scene.time.addEvent({
-            delay: 100,
-            callback: () => {
-                // Check if story elements are gone
-                if (!this.scene.storyModalElements || this.scene.storyModalElements.length === 0) {
-                    checkInterval.remove();
-                    // Small delay before next popup
-                    this.scene.time.delayedCall(500, onComplete);
-                }
-            },
-            loop: true
-        });
-
-        // Safety timeout - if story doesn't dismiss after 60 seconds, continue
-        this.scene.time.delayedCall(60000, () => {
-            checkInterval.remove();
-            onComplete();
+        return this.waitForDismissal({
+            isDismissed: () => !this.scene.storyModalElements ||
+                this.scene.storyModalElements.length === 0,
+            onComplete,
+            safetyDelay: 60000
         });
     }
 
@@ -298,59 +319,12 @@ class OnboardingManager {
      * Wait for greeting to be dismissed
      */
     waitForGreetingDismiss(onComplete) {
-        const checkInterval = this.scene.time.addEvent({
-            delay: 100,
-            callback: () => {
-                // Check if greeting elements are gone
-                if (!this.scene.greetingElements || this.scene.greetingElements.length === 0) {
-                    checkInterval.remove();
-                    // Small delay before next popup
-                    this.scene.time.delayedCall(500, onComplete);
-                }
-            },
-            loop: true
+        return this.waitForDismissal({
+            isDismissed: () => !this.scene.greetingElements ||
+                this.scene.greetingElements.length === 0,
+            onComplete,
+            safetyDelay: 30000
         });
-
-        // Safety timeout
-        this.scene.time.delayedCall(30000, () => {
-            checkInterval.remove();
-            onComplete();
-        });
-    }
-
-    /**
-     * Show NASA content
-     */
-    async showNASAContent(onComplete) {
-        devLog('[OnboardingManager] Showing NASA content');
-
-        if (!window.NASAContentSystem) {
-            devLog('[OnboardingManager] NASAContentSystem not available');
-            onComplete();
-            return;
-        }
-
-        try {
-            const contentQueue = await window.NASAContentSystem.getDailyContentQueue();
-
-            if (contentQueue.length > 0) {
-                // Import and create modal
-                import('../ui/NASAContentModal.js').then(module => {
-                    const NASAContentModal = module.default;
-                    const nasaModal = new NASAContentModal(this.scene);
-                    nasaModal.show(contentQueue, () => {
-                        window.NASAContentSystem?.markDailyContentShown();
-                        onComplete();
-                    });
-                });
-            } else {
-                devLog('[OnboardingManager] No NASA content available');
-                onComplete();
-            }
-        } catch (error) {
-            console.error('[OnboardingManager] NASA content error:', error);
-            onComplete();
-        }
     }
 
     /**

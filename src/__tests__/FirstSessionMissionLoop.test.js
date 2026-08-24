@@ -158,6 +158,92 @@ describe('first-session Project Beacon mission loop', () => {
         expect(onComplete).toHaveBeenCalledTimes(1);
     });
 
+    test('completes a dismissed popup once and cancels its safety timer', () => {
+        const delayedCalls = [];
+        let pollCallback;
+        const pollTimer = { remove: jest.fn() };
+        const scene = {
+            storyModalElements: [],
+            time: {
+                addEvent: jest.fn(({ callback }) => {
+                    pollCallback = callback;
+                    return pollTimer;
+                }),
+                delayedCall: jest.fn((delay, callback) => {
+                    const timer = { remove: jest.fn() };
+                    delayedCalls.push({ delay, callback, timer });
+                    return timer;
+                })
+            }
+        };
+        const OnboardingManager = loadOnboardingManager({});
+        const manager = new OnboardingManager();
+        const onComplete = jest.fn();
+        manager.initialize(scene);
+
+        manager.waitForStoryDismiss(onComplete);
+        pollCallback();
+
+        const safety = delayedCalls.find(call => call.delay === 60000);
+        const completion = delayedCalls.find(call => call.delay === 500);
+        expect(pollTimer.remove).toHaveBeenCalledTimes(1);
+        expect(safety.timer.remove).toHaveBeenCalledTimes(1);
+
+        completion.callback();
+        safety.callback();
+        expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+
+    test('uses a one-shot safety timeout when a popup never dismisses', () => {
+        let pollCallback;
+        let safetyCallback;
+        const pollTimer = { remove: jest.fn() };
+        const scene = {
+            controlsTutorial: { isVisible: true },
+            time: {
+                addEvent: jest.fn(({ callback }) => {
+                    pollCallback = callback;
+                    return pollTimer;
+                }),
+                delayedCall: jest.fn((delay, callback) => {
+                    if (delay === 30000) safetyCallback = callback;
+                    return { remove: jest.fn() };
+                })
+            }
+        };
+        const OnboardingManager = loadOnboardingManager({});
+        const manager = new OnboardingManager();
+        const onComplete = jest.fn();
+        manager.initialize(scene);
+
+        manager.waitForTutorialDismiss(onComplete);
+        safetyCallback();
+        safetyCallback();
+        scene.controlsTutorial.isVisible = false;
+        pollCallback();
+
+        expect(pollTimer.remove).toHaveBeenCalledTimes(1);
+        expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+
+    test('removes the exact NASA listener installed by the Sanctuary scene', () => {
+        const gameSceneSource = fs.readFileSync(
+            path.join(__dirname, '../scenes/GameScene.js'),
+            'utf8'
+        );
+
+        expect(gameSceneSource).toContain('this.nasaIssOverheadHandler = (data) => {');
+        expect(gameSceneSource).toMatch(
+            /NASAContentSystem\.on\(\s*'issOverhead',\s*this\.nasaIssOverheadHandler\s*\)/
+        );
+        expect(gameSceneSource).toMatch(
+            /NASAContentSystem\.off\(\s*'issOverhead',\s*this\.nasaIssOverheadHandler\s*\)/
+        );
+        expect(gameSceneSource).not.toContain(
+            "window.NASAContentSystem.off('issOverhead');"
+        );
+    });
+
     test('keeps the Sanctuary story CTA mobile-safe after the DOM reveal', () => {
         const gameSceneSource = fs.readFileSync(
             path.join(__dirname, '../scenes/GameScene.js'),

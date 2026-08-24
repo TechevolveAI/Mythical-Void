@@ -4,7 +4,7 @@ import { defineConfig } from 'vite';
  * Mythical Void - Vite Build Configuration
  *
  * Code Splitting Strategy:
- * - vendor: Phaser.js (largest dependency, ~1.5MB, rarely changes)
+ * - vendor-phaser: Phaser.js (largest dependency, ~1.5MB, rarely changes)
  * - core: Essential systems needed for all gameplay
  * - onboarding: First-time user flow scenes
  * - gameplay: Main game scene and related systems
@@ -56,11 +56,6 @@ export default defineConfig(({ command }) => ({
             return 'vendor-phaser';
           }
 
-          // Other vendor dependencies
-          if (id.includes('node_modules')) {
-            return 'vendor';
-          }
-
           // Core systems - always needed
           if (id.includes('/systems/') && (
             id.includes('ErrorHandler') ||
@@ -86,6 +81,7 @@ export default defineConfig(({ command }) => ({
             id.includes('PersonalitySystem') ||
             id.includes('RaritySystem') ||
             id.includes('RerollSystem') ||
+            id.includes('CreaturePowerProfile') ||
             id.includes('StageVisualResolver') ||
             id.includes('CreatureAnimationController') ||
             id.includes('ThoughtBubbleSystem')
@@ -172,6 +168,11 @@ export default defineConfig(({ command }) => ({
           // Config files
           if (id.includes('/config/')) {
             return 'config';
+          }
+
+          // Optional NASA presentation stays out of the core UI chunk until used.
+          if (id.includes('/ui/NASAContentModal')) {
+            return 'nasa-content-modal';
           }
 
           // UI components
