@@ -3,6 +3,22 @@ const MAX_APPEARANCES = 32;
 const MOMENT_ID_PATTERN = /^[a-z0-9][a-z0-9:_-]{0,63}$/;
 const PORTRAIT_ASSET_REF_PATTERN = /^portrait-job-v1:[0-9a-f-]{36}$/i;
 const VIDEO_ASSET_REF_PATTERN = /^video-job-v1:[0-9a-f-]{36}$/i;
+const COMPANION_VIDEO_MOMENTS = Object.freeze({
+    first_forest_arrival: 'The companion enters the Mythical Forest beside Wanderer-77.',
+    beacon_reflection: 'The companion witnesses the Beacon choice and the cost of returning home.',
+    guardian_rescue: 'The companion helps a rescued guardian leave its cage and choose the Sanctuary.',
+    guardian_trust: 'The companion shares a quiet trust memory with a newly welcomed Sanctuary resident.',
+    guardian_debrief: 'The companion and a Sanctuary resident review what their shared expedition changed.'
+});
+
+function isSupportedVideoMoment(momentId) {
+    if (Object.prototype.hasOwnProperty.call(COMPANION_VIDEO_MOMENTS, momentId)) {
+        return true;
+    }
+    return /^guardian_(?:rescue|trust|debrief)_[a-z0-9_-]{1,32}$/.test(
+        String(momentId || '')
+    );
+}
 
 function hashText(value) {
     let hash = 2166136261;
@@ -334,7 +350,7 @@ class CompanionMediaService {
         record = null
     } = {}) {
         if (!MOMENT_ID_PATTERN.test(momentId || '')) return null;
-        if (momentId !== 'first_forest_arrival') return null;
+        if (!isSupportedVideoMoment(momentId)) return null;
         const portraitRecord = record || await this.resolvePortrait(stage);
         if (
             !portraitRecord?.identityKey ||
@@ -530,6 +546,41 @@ class CompanionMediaService {
         };
     }
 
+    /**
+     * Resolve a story beat to its best available representation. A completed
+     * clip is preferred, but the portrait tableau always wins the first-visit
+     * latency budget and remains the fallback for mobile or restricted players.
+     */
+    async createStoryMoment(scene, options = {}) {
+        const {
+            momentId,
+            stage = null,
+            record = null,
+            isCurrent = null
+        } = options;
+        const portraitRecord = record || await this.resolvePortrait(stage);
+        if (!portraitRecord) return null;
+
+        const storedVideo = this.getVideoRecord(
+            momentId,
+            portraitRecord.identityKey
+        );
+        if (storedVideo?.status === 'succeeded') {
+            const video = await this.createCinematicVideo(scene, {
+                ...options,
+                record: portraitRecord,
+                isCurrent
+            });
+            if (video) return video;
+        }
+
+        return this.createCinematicStill(scene, {
+            ...options,
+            record: portraitRecord,
+            isCurrent
+        });
+    }
+
     async createCinematicStill(scene, {
         momentId,
         stage = null,
@@ -542,6 +593,12 @@ class CompanionMediaService {
     } = {}) {
         if (!MOMENT_ID_PATTERN.test(momentId || '') || !scene?.add) {
             return null;
+        }
+        // Start optional video work without making the playable story wait for it.
+        // The portrait tableau is the immediate, deterministic fallback on mobile,
+        // reduced-motion devices, restricted accounts, and provider failure.
+        if (isSupportedVideoMoment(momentId)) {
+            this.prepareGeneratedVideo({ momentId, stage, record }).catch(() => null);
         }
         const preparedKey = this.getPreparedMomentKey(momentId, stage, record);
         const prepared = record
@@ -616,6 +673,8 @@ if (typeof window !== 'undefined') {
 
 export {
     COMPANION_MEDIA_SCHEMA_VERSION,
+    COMPANION_VIDEO_MOMENTS,
     CompanionMediaService,
-    companionMediaService
+    companionMediaService,
+    isSupportedVideoMoment
 };

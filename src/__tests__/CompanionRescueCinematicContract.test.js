@@ -17,7 +17,8 @@ describe('Companion Guardian-outcome cinematic continuity', () => {
         expect(platformer).toContain(
             "import { companionMediaService } from '../systems/CompanionMediaService.js'"
         );
-        expect(platformer).toContain('createCinematicStill(this, {');
+        expect(platformer).toContain('createStoryMoment || mediaService.createCinematicStill');
+        expect(platformer).toContain('mediaService,\n                this,');
         expect(platformer).toContain('`guardian_rescue_${guardianId}`');
         expect(platformer).toContain('`FIRST ALLIANCE // ${companionName.toUpperCase()}`');
         expect(platformer).toContain('guardian.outcomeLine');

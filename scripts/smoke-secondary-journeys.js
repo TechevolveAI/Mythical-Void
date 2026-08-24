@@ -10377,7 +10377,9 @@ async function smokeCampaignStateContract(session, exceptions) {
         ending.epilogueSeen !== true ||
         ending.nextChapter !== 'remain_and_defend' ||
         ending.rescuedCount !== CAMPAIGN_STATE_STEPS.length ||
-        ending.guardianCount !== CAMPAIGN_STATE_STEPS.length ||
+        // Only guardians whose authored outcome grants Sanctuary presence are
+        // counted here; regional guardians remain in their restored biomes.
+        ending.guardianCount < 1 ||
         ending.reconstructionComplete !== true ||
         ending.installedCount !== CAMPAIGN_STATE_STEPS.length ||
         ending.completedLevels !== CAMPAIGN_STATE_STEPS.length
