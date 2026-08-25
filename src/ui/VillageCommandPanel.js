@@ -653,6 +653,7 @@ function formatCost(cost = {}) {
 
 function formatPlacementReason(definition, definitionById) {
     const placement = definition.placement;
+    if (placement.revealed === false) return placement.revealReason || 'NOT DISCOVERED YET';
     if (placement.alreadyBuilt) return 'BUILT';
     if (placement.noOpenPlot) return 'NO OPEN FOUNDATION';
     if (placement.missingPrerequisites.length > 0) {
@@ -679,9 +680,13 @@ function getConstructionStepCopy(selectedDefinition, firstOpenPlot, definitionBy
 }
 
 function formatResult(result) {
+    if (result?.firstDelivery) {
+        return `First safe harvest delivered: +${result.firstDelivery.amount} ` +
+            `${result.firstDelivery.resource.toUpperCase()}. Wood and stone routes are now available.`;
+    }
     const messages = {
         construction_started: 'Construction started. The foundation is now active.',
-        creature_assigned: 'Contribution accepted. Production begins now.',
+        creature_assigned: 'Helper invited. This structure now returns supplies while you explore.',
         heart_decision_resolved: 'Choice remembered. Its effect now travels through the Village Heart.',
         decision_unavailable: 'That Heart Decision is not available yet.',
         unknown_decision_option: 'That response is not part of this decision.',
@@ -694,6 +699,30 @@ function formatResult(result) {
         unknown_creature: 'That creature record is not available.'
     };
     return messages[result?.reason] || 'The Village Heart could not complete that request.';
+}
+
+function createResourceLesson(snapshot) {
+    const lesson = createElement('section', 'village-resource-lesson');
+    lesson.setAttribute('data-testid', 'village-resource-lesson');
+    lesson.append(
+        createElement('strong', 'village-resource-lesson-title', 'WHERE SUPPLIES COME FROM'),
+        createElement(
+            'p',
+            'village-resource-lesson-intro',
+            'Your first supplies survived the Wanderer-77 landing. Staffed structures make the supply loop renewable.'
+        )
+    );
+    (snapshot.onboarding?.resourceSources || []).forEach(resource => {
+        const row = createElement('span', 'village-resource-lesson-row');
+        row.dataset.resource = resource.id;
+        row.append(
+            createElement('b', '', resource.label),
+            createElement('span', '', `${resource.currentSource} → ${resource.renewableSource}`),
+            createElement('small', '', resource.lesson)
+        );
+        lesson.append(row);
+    });
+    return lesson;
 }
 
 export default class VillageCommandPanel {
@@ -799,6 +828,7 @@ export default class VillageCommandPanel {
     }
 
     renderGuided(snapshot, definitionById) {
+        const onboarding = snapshot.onboarding || {};
         const nextAction = snapshot.worldState?.nextAction || {
             type: 'review',
             label: 'SETTLEMENT ONLINE',
@@ -860,13 +890,24 @@ export default class VillageCommandPanel {
             VILLAGE_RESOURCE_DEFINITIONS.forEach(resource => {
                 const item = createElement('span', 'village-heart-resource');
                 item.style.setProperty('--resource-color', resource.color);
+                const source = onboarding.resourceSources?.find(
+                    entry => entry.id === resource.id
+                );
+                item.title = source
+                    ? `${resource.label}: ${source.currentSource}`
+                    : resource.label;
                 const icon = createElement('i', 'village-resource-icon');
                 icon.dataset.resource = resource.id;
                 icon.setAttribute('aria-hidden', 'true');
                 item.append(
                     icon,
                     createElement('span', '', resource.label),
-                    createElement('strong', '', String(snapshot.resources[resource.id]))
+                    createElement('strong', '', String(snapshot.resources[resource.id])),
+                    createElement(
+                        'small',
+                        'village-heart-resource-source',
+                        source?.currentSource || 'NO SOURCE YET'
+                    )
                 );
                 quickResources.append(item);
             });
@@ -894,20 +935,22 @@ export default class VillageCommandPanel {
             shell.append(status);
         }
 
-        shell.append(createCommunityShortcut(snapshot, {
-            onSelect: () => {
-                this.guided = false;
-                this.activeView = 'community';
-                this.root?.classList.remove('is-guided');
-                this.statusMessage = '';
-                this.lastDecisionResult = null;
-                this.render();
-            }
-        }));
+        if (onboarding.showFullPlan) {
+            shell.append(createCommunityShortcut(snapshot, {
+                onSelect: () => {
+                    this.guided = false;
+                    this.activeView = 'community';
+                    this.root?.classList.remove('is-guided');
+                    this.statusMessage = '';
+                    this.lastDecisionResult = null;
+                    this.render();
+                }
+            }));
+        }
 
         const stage = createElement('section', 'village-guided-stage');
         stage.dataset.intent = intent;
-        const actionCopy = {
+        const standardActionCopy = {
             build: {
                 kicker: 'THE NEXT USEFUL CHANGE',
                 title: selectedDefinition ? `BUILD ${selectedDefinition.label}` : 'CHOOSE A STRUCTURE',
@@ -940,6 +983,13 @@ export default class VillageCommandPanel {
                 detail: snapshot.phase.objective
             }
         }[intent];
+        const actionCopy = !onboarding.firstLoopComplete
+            ? {
+                kicker: `FIRST SANCTUARY LESSON · ${onboarding.step || 1}/${onboarding.totalSteps || 3}`,
+                title: onboarding.title || standardActionCopy?.title,
+                detail: onboarding.instruction || standardActionCopy?.detail
+            }
+            : standardActionCopy;
 
         if (intent === 'decision') {
             const decision = createHeartDecision(snapshot, {
@@ -1004,10 +1054,17 @@ export default class VillageCommandPanel {
                 copy.append(impacts);
             }
 
+            const resourceLesson = !onboarding.firstLoopComplete || intent === 'supplies'
+                ? createResourceLesson(snapshot)
+                : null;
+
             if (intent === 'build' && selectedDefinition) {
                 const choices = createElement('div', 'village-guided-choices');
                 snapshot.definitions
-                    .filter(definition => !definition.placement.alreadyBuilt)
+                    .filter(definition => (
+                        definition.placement.revealed &&
+                        !definition.placement.alreadyBuilt
+                    ))
                     .sort((left, right) => Number(right.placement.available) - Number(left.placement.available))
                     .slice(0, 3)
                     .forEach(definition => {
@@ -1148,20 +1205,30 @@ export default class VillageCommandPanel {
                 });
                 copy.append(summary);
             }
+            if (resourceLesson) copy.append(resourceLesson);
             stage.append(copy);
         }
         shell.append(stage);
 
         const footer = createElement('footer', 'village-guided-footer');
-        const planner = createElement('button', 'village-guided-secondary', '\u2630  OPEN FULL PLAN');
-        planner.type = 'button';
-        planner.addEventListener('click', () => {
-            this.guided = false;
-            this.root?.classList.remove('is-guided');
-            this.statusMessage = '';
-            this.lastDecisionResult = null;
-            this.render();
-        });
+        if (onboarding.showFullPlan) {
+            const planner = createElement('button', 'village-guided-secondary', '\u2630  OPEN FULL PLAN');
+            planner.type = 'button';
+            planner.addEventListener('click', () => {
+                this.guided = false;
+                this.root?.classList.remove('is-guided');
+                this.statusMessage = '';
+                this.lastDecisionResult = null;
+                this.render();
+            });
+            footer.append(planner);
+        } else {
+            footer.append(createElement(
+                'p',
+                'village-guided-lock-note',
+                'The wider plan opens after your first helper returns a safe harvest.'
+            ));
+        }
         const returnButton = createElement(
             'button',
             'village-guided-secondary is-return',
@@ -1169,7 +1236,7 @@ export default class VillageCommandPanel {
         );
         returnButton.type = 'button';
         returnButton.addEventListener('click', () => this.destroy());
-        footer.append(planner, returnButton);
+        footer.append(returnButton);
         shell.append(footer);
         this.root.append(shell);
     }
@@ -1360,7 +1427,11 @@ export default class VillageCommandPanel {
                     ? 'CHOOSE A BUILDING'
                     : 'STRUCTURES'
         ));
-        const visibleDefinitions = [...snapshot.definitions].sort((left, right) => {
+        const visibleDefinitions = snapshot.definitions
+            .filter(definition => (
+                definition.placement.revealed || definition.placement.alreadyBuilt
+            ))
+            .sort((left, right) => {
             if (left.placement.available !== right.placement.available) {
                 return left.placement.available ? -1 : 1;
             }

@@ -283,6 +283,42 @@ describe('CompanionMediaService', () => {
         expect(JSON.stringify(stored)).not.toContain('videoUrl');
     });
 
+    test('backs off after video quota exhaustion and keeps portrait fallback available', async () => {
+        const portrait = {
+            identityKey: 'identity-23',
+            stage: 'baby',
+            imageUrl: 'https://example.test/private-portrait.png',
+            assetRef: 'portrait-job-v1:42e1e046-c676-4fb9-91c9-1575dcb094ee'
+        };
+        const fetchMock = jest.fn(async () => ({
+            ok: false,
+            status: 429,
+            json: async () => ({ error: 'quota' })
+        }));
+        const sceneWindow = {
+            GameState: createGameState(portrait),
+            fetch: fetchMock,
+            LivingPortraitService: {
+                hasUsableDisplayUrl: jest.fn(() => true),
+                getAccessToken: jest.fn(async () => 'private-access-token')
+            }
+        };
+        const { CompanionMediaService } = loadCompanionMediaService(sceneWindow);
+        const service = new CompanionMediaService();
+
+        await expect(service.prepareGeneratedVideo({
+            momentId: 'first_forest_arrival',
+            record: portrait
+        })).resolves.toBeNull();
+        await expect(service.prepareGeneratedVideo({
+            momentId: 'first_forest_arrival',
+            record: portrait
+        })).resolves.toBeNull();
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(service.videoUnavailableUntil).toBeGreaterThan(Date.now());
+    });
+
     test('uses a completed story video when available and keeps the portrait fallback', async () => {
         const portrait = {
             identityKey: 'identity-23',

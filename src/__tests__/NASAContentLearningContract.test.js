@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-function loadNASAContentSystem() {
+function loadNASAContentSystem(fetchMock = jest.fn()) {
     const filePath = path.join(__dirname, '../systems/NASAContentSystem.js');
     const source = fs.readFileSync(filePath, 'utf8');
     const transformed = source
@@ -24,7 +24,7 @@ function loadNASAContentSystem() {
             setItem: jest.fn(),
             removeItem: jest.fn()
         },
-        fetch: jest.fn(),
+        fetch: fetchMock,
         Date,
         Math,
         Promise,
@@ -38,6 +38,15 @@ function loadNASAContentSystem() {
 }
 
 describe('NASA discovery learning contract', () => {
+    test('does not call the archived Mars Rover Photos endpoint', async () => {
+        const fetchMock = jest.fn();
+        const NASAContentSystem = loadNASAContentSystem(fetchMock);
+        const system = new NASAContentSystem();
+
+        await expect(system.fetchMarsPhoto()).resolves.toBeNull();
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
     test('keeps an APOD observation, exact source and fictional reaction separate', () => {
         const NASAContentSystem = loadNASAContentSystem();
         const system = new NASAContentSystem();

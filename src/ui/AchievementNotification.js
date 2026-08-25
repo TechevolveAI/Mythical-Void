@@ -3,9 +3,9 @@
  *
  * Displays when an achievement is unlocked with:
  * - Tier badge and achievement name
- * - Description and rewards preview
- * - CLAIM button for satisfying micro-interaction
- * - Celebration effects based on tier
+ * - Automatically granted rewards
+ * - Compact, dismissible progress toast
+ * - Celebration effects reserved for rare tiers
  */
 
 import { devLog } from '../utils/devLogger.js';
@@ -19,6 +19,8 @@ class AchievementNotification {
         this.currentNotification = null;
         this.autoDismissTimer = null;
         this.destroyed = false;
+        this.closing = false;
+        this.blocksStory = false;
         this.scene?.events?.once?.('shutdown', this.destroy, this);
 
         // Styling
@@ -43,16 +45,39 @@ class AchievementNotification {
     show(achievement) {
         if (this.destroyed || !this.isSceneOperational()) return;
 
+        const notificationKey = `${achievement?.id || 'unknown'}:${achievement?.tier || 'BRONZE'}`;
+        const rewardResult = achievement.rewardClaimed
+            ? achievement.rewardResult || null
+            : window.AchievementSystem?.claimReward?.(
+                achievement.id,
+                achievement.tier
+            ) || null;
+        const notification = {
+            ...achievement,
+            notificationKey,
+            rewardResult,
+            rewardClaimed: true
+        };
+
+        if (
+            this.currentNotification?.notificationKey === notificationKey ||
+            this.queue.some(entry => entry.notificationKey === notificationKey)
+        ) {
+            return;
+        }
+
         // Add to queue if already showing
         if (this.isVisible) {
-            this.queue.push(achievement);
+            // Rewards are already granted above. Keep the visual queue short so
+            // multiple milestones never take over the Sanctuary.
+            if (this.queue.length < 2) this.queue.push(notification);
             devLog('[AchievementNotification] Queued:', achievement.name);
             return;
         }
 
-        this.currentNotification = achievement;
+        this.currentNotification = notification;
         this.isVisible = true;
-        this.createNotification(achievement);
+        this.createNotification(notification);
     }
 
     /**
@@ -65,11 +90,12 @@ class AchievementNotification {
         const screenSpace = this.getScreenSpaceTransform();
         const uiScale = screenSpace.scale;
 
-        // Modal dimensions
-        const modalWidth = Math.min(380, width - 40);
-        const modalHeight = 280;
-        const modalX = centerX - modalWidth / 2;
-        const modalY = centerY - modalHeight / 2;
+        // Compact, non-blocking toast. Achievement details remain available in
+        // the achievement menu, while exploration stays readable underneath.
+        const compact = width < 620;
+        const modalWidth = Math.min(compact ? 330 : 360, width - 24);
+        const modalHeight = compact ? 98 : 104;
+        const toastY = (-height / 2) + (compact ? 70 : 66);
 
         // Create container
         this.container = this.scene.add.container(screenSpace.x, screenSpace.y);
@@ -77,8 +103,9 @@ class AchievementNotification {
         this.container.setScrollFactor(0);
         this.container.setScale(uiScale);
         this.contentContainer = this.scene.add.container(0, 0);
+        this.contentContainer.setPosition(0, toastY);
         this.contentContainer.setAlpha(0);
-        this.contentContainer.setScale(0.8);
+        this.contentContainer.setScale(0.94);
         this.container.add(this.contentContainer);
 
         // Achievements are non-blocking world notifications; exploration remains visible.
@@ -95,153 +122,83 @@ class AchievementNotification {
         // Get tier color
         const tierColor = this.colors.border[achievement.tier] || this.colors.border.BRONZE;
 
-        // Main panel with gradient effect
+        // Main panel
         const panel = this.scene.add.graphics();
-        panel.fillStyle(this.colors.background, 0.98);
-        panel.fillRoundedRect(-modalWidth / 2, -modalHeight / 2, modalWidth, modalHeight, 16);
+        panel.fillStyle(0x081312, 0.97);
+        panel.fillRoundedRect(-modalWidth / 2, -modalHeight / 2, modalWidth, modalHeight, 8);
 
-        // Tier-colored border (thicker for higher tiers)
-        const borderWidth = achievement.tier === 'PLATINUM' ? 4 : achievement.tier === 'GOLD' ? 3 : 2;
+        const borderWidth = achievement.tier === 'PLATINUM' ? 3 : 2;
         panel.lineStyle(borderWidth, tierColor, 1);
-        panel.strokeRoundedRect(-modalWidth / 2, -modalHeight / 2, modalWidth, modalHeight, 16);
-
-        // Inner glow for Gold/Platinum
-        if (achievement.tier === 'GOLD' || achievement.tier === 'PLATINUM') {
-            panel.lineStyle(1, tierColor, 0.3);
-            panel.strokeRoundedRect(-modalWidth / 2 + 4, -modalHeight / 2 + 4, modalWidth - 8, modalHeight - 8, 12);
-        }
+        panel.strokeRoundedRect(-modalWidth / 2, -modalHeight / 2, modalWidth, modalHeight, 8);
 
         this.contentContainer.add(panel);
 
-        // Trophy icon and header
-        const headerY = -modalHeight / 2 + 35;
-        const trophyText = this.scene.add.text(0, headerY, '🏆 ACHIEVEMENT UNLOCKED!', {
-            fontSize: '18px',
+        const tierName = achievement.tierInfo?.name || 'Bronze';
+        const headerY = -modalHeight / 2 + 18;
+        const trophyText = this.scene.add.text(
+            -modalWidth / 2 + 16,
+            headerY,
+            `ACHIEVEMENT · ${tierName.toUpperCase()}`,
+            {
+            fontSize: compact ? '10px' : '11px',
             fontFamily: 'Arial, sans-serif',
-            color: this.colors.text,
+            color: achievement.tier === 'BRONZE' ? '#F2C14E' : this.colors.text,
             fontStyle: 'bold'
-        }).setOrigin(0.5);
+        }).setOrigin(0, 0.5);
         this.contentContainer.add(trophyText);
 
-        // Divider line
-        const divider = this.scene.add.graphics();
-        divider.lineStyle(1, tierColor, 0.5);
-        divider.lineBetween(-modalWidth / 2 + 20, headerY + 20, modalWidth / 2 - 20, headerY + 20);
-        this.contentContainer.add(divider);
-
-        // Tier badge and achievement name
-        const tierIcon = achievement.tierInfo?.icon || '🥉';
-        const nameY = headerY + 55;
-        const nameText = this.scene.add.text(0, nameY, `${tierIcon} ${achievement.name}`, {
-            fontSize: '22px',
+        const nameY = headerY + 25;
+        const nameText = this.scene.add.text(
+            -modalWidth / 2 + 16,
+            nameY,
+            achievement.name,
+            {
+            fontSize: compact ? '17px' : '18px',
             fontFamily: 'Arial, sans-serif',
             color: this.colors.text,
             fontStyle: 'bold'
-        }).setOrigin(0.5);
+        }).setOrigin(0, 0.5);
         this.contentContainer.add(nameText);
 
-        // Tier name (Bronze, Silver, etc.)
-        const tierNameY = nameY + 28;
-        const tierName = achievement.tierInfo?.name || 'Bronze';
-        const tierNameText = this.scene.add.text(0, tierNameY, `(${tierName})`, {
-            fontSize: '14px',
-            fontFamily: 'Arial, sans-serif',
-            color: this.colors.subtext
-        }).setOrigin(0.5);
-        this.contentContainer.add(tierNameText);
-
-        // Description
-        const descY = tierNameY + 30;
-        const descText = this.scene.add.text(0, descY, `"${achievement.description}"`, {
-            fontSize: '14px',
-            fontFamily: 'Arial, sans-serif',
-            color: this.colors.subtext,
-            fontStyle: 'italic',
-            wordWrap: { width: modalWidth - 60 },
-            align: 'center'
-        }).setOrigin(0.5);
-        this.contentContainer.add(descText);
-
-        // Rewards section
-        const rewardsY = descY + 40;
-        const rewardsLabel = this.scene.add.text(0, rewardsY, 'Rewards:', {
-            fontSize: '14px',
-            fontFamily: 'Arial, sans-serif',
-            color: this.colors.subtext
-        }).setOrigin(0.5);
-        this.contentContainer.add(rewardsLabel);
-
-        // Format rewards
+        const rewards = achievement.rewards || {};
         const rewardParts = [];
-        if (achievement.rewards.coins) {
-            rewardParts.push(`🪙 +${achievement.rewards.coins}`);
+        if (rewards.coins) {
+            rewardParts.push(`+${rewards.coins} COINS`);
         }
-        if (achievement.rewards.stardust) {
-            rewardParts.push(`✨ +${achievement.rewards.stardust}`);
+        if (rewards.stardust) {
+            rewardParts.push(`+${rewards.stardust} STARDUST`);
         }
-        if (achievement.rewards.egg) {
-            const eggRarity = achievement.rewards.egg.charAt(0).toUpperCase() + achievement.rewards.egg.slice(1);
-            rewardParts.push(`🥚 ${eggRarity} Egg`);
+        if (rewards.egg) {
+            const eggRarity = rewards.egg.charAt(0).toUpperCase() + rewards.egg.slice(1);
+            rewardParts.push(`${eggRarity.toUpperCase()} EGG`);
         }
 
-        const rewardsText = this.scene.add.text(0, rewardsY + 22, rewardParts.join('    '), {
-            fontSize: '18px',
+        const rewardsText = this.scene.add.text(
+            -modalWidth / 2 + 16,
+            nameY + 27,
+            `REWARD ADDED · ${rewardParts.join(' · ') || 'MILESTONE RECORDED'}`,
+            {
+            fontSize: compact ? '10px' : '11px',
             fontFamily: 'Arial, sans-serif',
-            color: this.colors.reward,
+            color: '#8FE3CF',
             fontStyle: 'bold'
-        }).setOrigin(0.5);
+        }).setOrigin(0, 0.5);
         this.contentContainer.add(rewardsText);
 
-        // CLAIM button
-        const buttonY = modalHeight / 2 - 45;
-        const buttonWidth = 140;
-        const buttonHeight = 44;
-
-        const buttonBg = this.scene.add.graphics();
-        buttonBg.fillStyle(tierColor, 1);
-        buttonBg.fillRoundedRect(-buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 10);
-        this.contentContainer.add(buttonBg);
-
-        const buttonText = this.scene.add.text(0, buttonY, 'CLAIM!', {
-            fontSize: '18px',
+        const closeText = this.scene.add.text(modalWidth / 2 - 18, headerY, '×', {
+            fontSize: '22px',
             fontFamily: 'Arial, sans-serif',
-            color: '#000000',
-            fontStyle: 'bold'
+            color: '#F4F4F4'
         }).setOrigin(0.5);
-        this.contentContainer.add(buttonText);
+        this.contentContainer.add(closeText);
 
-        // Button zone
-        const buttonZone = this.scene.add.zone(0, buttonY, buttonWidth, buttonHeight)
-            .setInteractive({ useHandCursor: true });
-        this.contentContainer.add(buttonZone);
-
-        // Hover effects
-        buttonZone.on('pointerover', () => {
-            buttonBg.clear();
-            buttonBg.fillStyle(0xFFFFFF, 1);
-            buttonBg.fillRoundedRect(-buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 10);
-            this.scene.tweens.add({
-                targets: buttonBg,
-                scaleX: 1.05,
-                scaleY: 1.05,
-                duration: 100
-            });
-        });
-
-        buttonZone.on('pointerout', () => {
-            buttonBg.clear();
-            buttonBg.fillStyle(tierColor, 1);
-            buttonBg.fillRoundedRect(-buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 10);
-            this.scene.tweens.add({
-                targets: buttonBg,
-                scaleX: 1,
-                scaleY: 1,
-                duration: 100
-            });
-        });
-
-        // Claim action
-        buttonZone.on('pointerdown', () => {
+        // The full toast is a generous mobile-safe dismiss target.
+        const dismissZone = this.scene.add.zone(0, 0, modalWidth, modalHeight)
+            .setInteractive({ useHandCursor: true })
+            .setData('achievementDismissTarget', true)
+            .setData('ariaLabel', `Dismiss ${achievement.name} achievement`);
+        this.contentContainer.add(dismissZone);
+        dismissZone.on('pointerup', () => {
             this.claimAndClose(achievement);
         });
 
@@ -254,11 +211,13 @@ class AchievementNotification {
             ease: 'Back.easeOut'
         });
 
-        // Play celebration effects
-        this.playCelebrationEffects(achievement.tier, centerX, centerY);
+        // Large effects are reserved for genuinely rare milestones.
+        if (achievement.tier === 'GOLD' || achievement.tier === 'PLATINUM') {
+            this.playCelebrationEffects(achievement.tier, centerX, centerY);
+        }
 
-        // Auto-dismiss after 15 seconds
-        this.autoDismissTimer = this.scene.time.delayedCall(15000, () => {
+        // Short enough to acknowledge without interrupting play.
+        this.autoDismissTimer = this.scene.time.delayedCall(4200, () => {
             this.claimAndClose(achievement);
         });
 
@@ -269,6 +228,8 @@ class AchievementNotification {
      * Claim the reward and close notification
      */
     claimAndClose(achievement) {
+        if (this.closing) return false;
+        this.closing = true;
         // Cancel auto-dismiss
         if (this.autoDismissTimer) {
             this.autoDismissTimer.destroy();
@@ -278,16 +239,6 @@ class AchievementNotification {
         if (this.destroyed || !this.isSceneOperational()) {
             this.destroy();
             return;
-        }
-
-        // Claim the reward
-        if (window.AchievementSystem) {
-            window.AchievementSystem.claimReward(achievement.id, achievement.tier);
-        }
-
-        // Play claim sound
-        if (window.AudioManager) {
-            window.AudioManager.playAchievement();
         }
 
         // Animate out
@@ -309,6 +260,7 @@ class AchievementNotification {
             alpha: 0,
             duration: 200
         });
+        return true;
     }
 
     syncCameraZoom() {
@@ -426,6 +378,7 @@ class AchievementNotification {
         if (this.destroyed || !this.isSceneOperational()) return;
         this.isVisible = false;
         this.currentNotification = null;
+        this.closing = false;
 
         if (this.queue.length > 0) {
             const next = this.queue.shift();

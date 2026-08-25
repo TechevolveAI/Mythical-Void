@@ -16,6 +16,9 @@ class NASAContentSystem {
         this.isInitialized = false;
         this.apiKey = null;
         this.baseUrl = 'https://api.nasa.gov';
+        // NASA archived the Mars Rover Photos API in 2025. Keep the learning
+        // surface available through authored links without issuing dead calls.
+        this.marsPhotoApiAvailable = false;
 
         // Cache settings
         this.cache = {
@@ -332,6 +335,7 @@ class NASAContentSystem {
      * Fetch random Mars Rover photo
      */
     async fetchMarsPhoto() {
+        if (!this.marsPhotoApiAvailable) return null;
         const today = new Date().toISOString().split('T')[0];
 
         // Return cached if same day

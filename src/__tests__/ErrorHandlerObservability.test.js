@@ -48,6 +48,7 @@ describe('privacy-conscious runtime observability', () => {
         await handler.observability.flush();
 
         expect(send).toHaveBeenCalledTimes(1);
+        expect(send.mock.calls[0][0]).toBe('/.netlify/functions/observability-events');
         const body = send.mock.calls[0][1].body;
         const payload = JSON.parse(body);
         expect(payload.events[0]).toMatchObject({
@@ -109,6 +110,35 @@ describe('privacy-conscious runtime observability', () => {
 
         await transport.flush();
         expect(localStorage.getItem(OBSERVABILITY_STORAGE_KEY)).toBeNull();
+    });
+
+    test('disables optional delivery after a permanent missing-endpoint response', async () => {
+        jest.useFakeTimers();
+        const send = jest.fn().mockResolvedValue({ ok: false, status: 404 });
+        const transport = new PrivacyObservabilityTransport({
+            storage: localStorage,
+            fetch: send
+        });
+
+        transport.capture({
+            category: 'runtime',
+            code: 'runtime_uncaught',
+            severity: 'error',
+            scene: 'GameScene',
+            phase: 'runtime',
+            recovery: 'reload_offered'
+        });
+        await transport.flush();
+
+        expect(transport.deliveryDisabled).toBe(true);
+        expect(transport.queue).toHaveLength(0);
+        expect(transport.retryTimer).toBeNull();
+        expect(transport.capture({
+            category: 'runtime',
+            code: 'runtime_uncaught',
+            severity: 'error'
+        })).toBe(false);
+        expect(send).toHaveBeenCalledTimes(1);
     });
 
     test('cancels queued delivery retries when the transport is destroyed', async () => {

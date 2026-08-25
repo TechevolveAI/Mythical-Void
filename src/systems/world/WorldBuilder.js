@@ -2284,9 +2284,14 @@ class WorldBuilder {
                 )
                 : null;
             const nextAction = snapshot?.worldState?.nextAction;
+            const visiblePlotCount = snapshot?.onboarding?.visiblePlotCount ||
+                VILLAGE_PLOTS.length;
+            const plotRevealed = Boolean(building) || index < visiblePlotCount;
             const guidedPlot = ['build', 'assign'].includes(nextAction?.type) &&
-                nextAction?.plotId === plot.id;
-            const plotState = !unlocked
+                nextAction?.plotId === plot.id && plotRevealed;
+            const plotState = !plotRevealed
+                ? 'veiled'
+                : !unlocked
                 ? 'dormant'
                 : !building
                     ? 'available'
@@ -2320,8 +2325,10 @@ class WorldBuilder {
                     : 1;
             const container = this.scene.add.container(plotX, plotY)
                 .setDepth(plotY + 2)
+                .setVisible(plotRevealed)
                 .setData('villageBuildingStructure', true)
                 .setData('plotId', plot.id)
+                .setData('plotRevealed', plotRevealed)
                 .setData('villageAmbientRole', ambientRole)
                 .setData(
                     'villageFoundationMaterial',
@@ -2455,7 +2462,9 @@ class WorldBuilder {
                         : building.creature
                             ? `${building.creature.name.toUpperCase()} IS HELPING`
                             : 'OPEN AND ACTIVE'
-                : unlocked
+                : !plotRevealed
+                    ? 'ROOT SLEEPING'
+                    : unlocked
                     ? 'BUILD HERE'
                     : 'DORMANT';
             const persistentState = Boolean(
@@ -2647,6 +2656,7 @@ class WorldBuilder {
                     y: plotY + 18
                 }
             });
+            villageFlow.container.setVisible(plotRevealed);
             landmark.villageFlowSignals.push(villageFlow.container);
             landmark.buildingElements.push(villageFlow.container);
             landmark.buildingTweens.push(villageFlow.tween);
@@ -2658,7 +2668,10 @@ class WorldBuilder {
                 compactSettlement ? 132 : 164
             )
                 .setDepth(plotY + 6)
-                .setInteractive({ useHandCursor: unlocked });
+                .setVisible(plotRevealed);
+            if (plotRevealed) {
+                plotHitZone.setInteractive({ useHandCursor: unlocked });
+            }
             plotHitZone.plotId = plot.id;
             const districtActivityCue = definition?.worldProfile?.activityCue || null;
             const focusCopy = unlocked
@@ -2679,6 +2692,7 @@ class WorldBuilder {
                 .setData('interactionLabel', interactionLabel)
                 .setData('definitionId', building?.definitionId || null)
                 .setData('plotState', plotState)
+                .setData('plotRevealed', plotRevealed)
                 .setData(
                     'interactionVerb',
                     plotState === 'available'
@@ -2701,6 +2715,7 @@ class WorldBuilder {
                 .setData('villageAmbientRole', ambientRole)
                 .setData('guided', guidedPlot);
             plotHitZone.on('pointerover', () => {
+                if (!plotRevealed) return;
                 container.setScale(1.06);
                 container.setAlpha(1);
                 inhabitedDistrict?.container
@@ -2721,6 +2736,7 @@ class WorldBuilder {
                     .setAlpha(1);
             });
             plotHitZone.on('pointerout', () => {
+                if (!plotRevealed) return;
                 container.setScale(1);
                 const focusPriority = container.getData('villageFocusPriority');
                 const presentationMode = container.getData('villagePresentationMode');
@@ -2793,6 +2809,7 @@ class WorldBuilder {
                     );
             });
             plotHitZone.on('pointerdown', pointer => {
+                if (!plotRevealed) return;
                 if (worker?.container && building?.creature) {
                     const workerX = worker.container.x;
                     const workerY = worker.container.y;

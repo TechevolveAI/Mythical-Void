@@ -4,7 +4,7 @@
  */
 
 const OBSERVABILITY_STORAGE_KEY = 'mythical_void_observability_v1';
-const OBSERVABILITY_ENDPOINT = '/api/observability-events';
+const OBSERVABILITY_ENDPOINT = '/.netlify/functions/observability-events';
 const OBSERVABILITY_SCHEMA_VERSION = 1;
 const OBSERVABILITY_QUEUE_LIMIT = 20;
 const OBSERVABILITY_BATCH_LIMIT = 10;
@@ -159,6 +159,7 @@ class PrivacyObservabilityTransport {
         this.retryTimer = null;
         this.recentFingerprints = new Map();
         this.initialized = false;
+        this.deliveryDisabled = false;
         this.boundFlush = () => this.flush();
     }
 
@@ -195,6 +196,7 @@ class PrivacyObservabilityTransport {
     }
 
     capture(summary) {
+        if (this.deliveryDisabled) return false;
         const event = this.createSanitizedEvent(summary);
         if (!event || this.isDuplicate(event)) return false;
 
@@ -339,6 +341,15 @@ class PrivacyObservabilityTransport {
                 keepalive: true,
                 body: JSON.stringify({ events })
             });
+            if (
+                response &&
+                [400, 401, 403, 404, 405, 410, 413, 422].includes(response.status)
+            ) {
+                // Observability is optional. A permanent endpoint/configuration
+                // failure must never create a ten-second retry loop in gameplay.
+                this.deliveryDisabled = true;
+                return true;
+            }
             return response?.ok === true;
         } catch (error) {
             // Avoid recursive reporting when the observability endpoint is unavailable.

@@ -178,7 +178,8 @@ class ProjectBeaconLogModal {
                 panelWidth,
                 panelHeight,
                 contentLeft,
-                contentWidth
+                contentWidth,
+                sanctuaryCommunity
             });
         }
 
@@ -188,7 +189,12 @@ class ProjectBeaconLogModal {
 
     renderMission(log, layout) {
         const {
-            compact, panelY, panelHeight, contentLeft, contentWidth
+            compact,
+            panelY,
+            panelHeight,
+            contentLeft,
+            contentWidth,
+            sanctuaryCommunity
         } = layout;
         let y = panelY + 126;
 
