@@ -1160,7 +1160,8 @@ class WorldBuilder {
         unlocked,
         growthTier,
         restoredCount,
-        compact
+        compact,
+        visiblePlotCount = 1
     }) {
         const heartBasin = compact
             ? { x: 0, y: 22, width: 205, height: 156 }
@@ -1174,6 +1175,7 @@ class WorldBuilder {
                 ) || null;
             const complete = building?.status === 'complete';
             return {
+                plotIndex: index,
                 x: offset.x,
                 y: offset.y + 25,
                 width: compact ? (building ? 178 : 150) : (building ? 194 : 164),
@@ -1181,7 +1183,8 @@ class WorldBuilder {
                 building,
                 buildingDefinition,
                 worldProfile: buildingDefinition?.worldProfile || null,
-                complete
+                complete,
+                revealed: Boolean(building) || index < visiblePlotCount
             };
         });
         const districtProfiles = [
@@ -1191,9 +1194,10 @@ class WorldBuilder {
             { id: 'shelter_grove', motif: 'shelter', color: 0xE85D5D },
             { id: 'far_root', motif: 'signal', color: 0xB7F7DE }
         ];
-        const basins = [heartBasin, ...plotBasins];
+        const visiblePlotBasins = plotBasins.filter(basin => basin.revealed);
+        const basins = [heartBasin, ...visiblePlotBasins];
         const settledBasins = plotBasins.filter(basin => basin.building);
-        const livingBasins = [heartBasin, ...settledBasins];
+        const livingBasins = [heartBasin, ...visiblePlotBasins];
         const growthStrength = unlocked ? 0.72 + (growthTier * 0.08) : 0.38;
 
         // One continuous glade makes the settlement read as a place rather than
@@ -1359,7 +1363,8 @@ class WorldBuilder {
             terrain.strokePath();
         });
 
-        plotBasins.forEach((basin, index) => {
+        visiblePlotBasins.forEach(basin => {
+            const index = basin.plotIndex;
             const worldProfile = basin.worldProfile;
             const profile = worldProfile
                 ? {
@@ -1461,8 +1466,9 @@ class WorldBuilder {
             workshop: { color: 0x8FE3CF, shape: 'spark' }
         };
         let ecologyNodeCount = 0;
-        plotBasins.forEach((basin, index) => {
+        visiblePlotBasins.forEach(basin => {
             if (!basin.complete) return;
+            const index = basin.plotIndex;
             const profile = basin.worldProfile
                 ? {
                     color: basin.worldProfile.accent,
@@ -1565,9 +1571,15 @@ class WorldBuilder {
             .setData('villageDistrictGroundWidth', Math.round(gladeSize.width))
             .setData('villageDistrictGroundHeight', Math.round(gladeSize.height))
             .setData('villageLivingBasinCount', livingBasins.length)
-            .setData('villageReservedFoundationCount', plotBasins.length - settledBasins.length)
-            .setData('districtIdentityCount', districtProfiles.length)
-            .setData('districtIdentityIds', districtProfiles.map(profile => profile.id))
+            .setData(
+                'villageReservedFoundationCount',
+                visiblePlotBasins.filter(basin => !basin.building).length
+            )
+            .setData('districtIdentityCount', visiblePlotBasins.length)
+            .setData(
+                'districtIdentityIds',
+                visiblePlotBasins.map(basin => districtProfiles[basin.plotIndex].id)
+            )
             .setData(
                 'villageInhabitedDistrictIds',
                 settledBasins.map(basin => basin.worldProfile?.identity).filter(Boolean)
@@ -1934,6 +1946,7 @@ class WorldBuilder {
                     `${restoredCount} of ${VILLAGE_PLOTS.length} village roots restored`
             );
 
+        const onboardingVisiblePlotCount = snapshot?.onboarding?.visiblePlotCount || 1;
         this.drawVillageDistrictGround({
             terrain: districtTerrain,
             ecology: districtEcology,
@@ -1944,7 +1957,8 @@ class WorldBuilder {
             unlocked,
             growthTier,
             restoredCount,
-            compact: compactSettlement
+            compact: compactSettlement,
+            visiblePlotCount: onboardingVisiblePlotCount
         });
         this.drawVillageHeartLife(landmark, {
             unlocked,
@@ -1974,6 +1988,9 @@ class WorldBuilder {
         plotOffsets.forEach((offset, index) => {
             const plot = VILLAGE_PLOTS[index];
             const connectedBuilding = buildingByPlot.get(plot.id) || null;
+            const plotRevealed = Boolean(connectedBuilding) ||
+                index < onboardingVisiblePlotCount;
+            if (!plotRevealed) return;
             const completePath = connectedBuilding?.status === 'complete';
             const growingPath = connectedBuilding?.status === 'constructing';
             if (completePath) connectedPlotCount += 1;
@@ -2284,9 +2301,8 @@ class WorldBuilder {
                 )
                 : null;
             const nextAction = snapshot?.worldState?.nextAction;
-            const visiblePlotCount = snapshot?.onboarding?.visiblePlotCount ||
-                VILLAGE_PLOTS.length;
-            const plotRevealed = Boolean(building) || index < visiblePlotCount;
+            const plotRevealed = Boolean(building) ||
+                index < onboardingVisiblePlotCount;
             const guidedPlot = ['build', 'assign'].includes(nextAction?.type) &&
                 nextAction?.plotId === plot.id && plotRevealed;
             const plotState = !plotRevealed
