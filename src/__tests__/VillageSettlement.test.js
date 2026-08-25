@@ -38,6 +38,8 @@ function loadVillageSettlement() {
                 getVillageWorldState,
                 getVillageGrowthProfile,
                 getVillageWorldGuidance,
+                getVillageRevealState,
+                getVillageOnboardingState,
                 getVillageUnlock,
                 markVillageGuidanceSeen,
                 getVillageCreatureRoster,
@@ -206,6 +208,15 @@ describe('Village settlement phase one', () => {
         expect(snapshot.unlock.unlocked).toBe(true);
         expect(snapshot.resources).toEqual({ wood: 72, stone: 52, food: 30 });
         expect(snapshot.state.starterSuppliesClaimed).toBe(true);
+        expect(snapshot.onboarding).toEqual(expect.objectContaining({
+            stage: 'first_build',
+            step: 1,
+            totalSteps: 3,
+            showFullPlan: false,
+            visiblePlotCount: 1
+        }));
+        expect(snapshot.definitions.filter(definition => definition.placement.revealed)
+            .map(definition => definition.id)).toEqual(['forager_hut']);
     });
 
     test('summarizes active building effects in plain player-facing language', () => {
@@ -475,9 +486,42 @@ describe('Village settlement phase one', () => {
         );
         expect(assigned.snapshot.buildings[0].workProfile.multiplier).toBe(1.4);
         expect(assigned.snapshot.productionRates.food).toBe(3);
-        expect(produced.resources.food).toBe(36);
-        expect(produced.lifetimeProduced.food).toBe(6);
-        expect(produced.buildings[0].totalProduced).toBe(6);
+        expect(assigned.firstDelivery).toEqual({ resource: 'food', amount: 2 });
+        expect(assigned.snapshot.resources.food).toBe(32);
+        expect(assigned.snapshot.onboarding).toEqual(expect.objectContaining({
+            stage: 'supply_choice',
+            showFullPlan: true,
+            visiblePlotCount: 3
+        }));
+        expect(assigned.snapshot.definitions
+            .filter(definition => definition.placement.revealed)
+            .map(definition => definition.id)).toEqual([
+                'forager_hut',
+                'sawmill',
+                'current_masonry'
+            ]);
+        expect(produced.resources.food).toBe(38);
+        expect(produced.lifetimeProduced.food).toBe(8);
+        expect(produced.buildings[0].totalProduced).toBe(8);
+    });
+
+    test('reveals the settlement plan progressively without hiding existing saves', () => {
+        const fresh = village.getVillageRevealState({});
+        expect(Array.from(fresh.revealedDefinitionIds)).toEqual(['forager_hut']);
+        expect(fresh.visiblePlotCount).toBe(1);
+
+        const existing = village.getVillageRevealState({
+            buildings: [{
+                id: 'village:habitat:root_04',
+                definitionId: 'habitat',
+                plotId: 'root_04',
+                status: 'complete'
+            }]
+        });
+        expect(Array.from(existing.revealedDefinitionIds)).toEqual(
+            expect.arrayContaining(['forager_hut', 'sawmill', 'current_masonry', 'habitat'])
+        );
+        expect(existing.visiblePlotCount).toBeGreaterThanOrEqual(4);
     });
 
     test('requires the three producer structures before the workshop', () => {

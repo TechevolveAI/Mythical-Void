@@ -40,6 +40,7 @@ class CompanionMediaService {
         this.preparedMoments = new Map();
         this.videoJobs = new Map();
         this.videoResolutions = new Map();
+        this.videoUnavailableUntil = 0;
     }
 
     createEmptyState() {
@@ -349,6 +350,7 @@ class CompanionMediaService {
         stage = null,
         record = null
     } = {}) {
+        if (Date.now() < (this.videoUnavailableUntil || 0)) return null;
         if (!MOMENT_ID_PATTERN.test(momentId || '')) return null;
         if (!isSupportedVideoMoment(momentId)) return null;
         const portraitRecord = record || await this.resolvePortrait(stage);
@@ -395,6 +397,14 @@ class CompanionMediaService {
         });
         const result = await response.json().catch(() => ({}));
         if (!response.ok) {
+            if (response.status === 429) {
+                // A quota response is session-wide. Keep using the portrait
+                // fallback instead of repeating a costly failed request at
+                // every authored story beat.
+                this.videoUnavailableUntil = Date.now() + (30 * 60 * 1000);
+            } else if (response.status === 503) {
+                this.videoUnavailableUntil = Date.now() + (5 * 60 * 1000);
+            }
             if ([403, 404, 409, 429, 503].includes(response.status)) return null;
             throw new Error(result.error || `Video service error (${response.status})`);
         }

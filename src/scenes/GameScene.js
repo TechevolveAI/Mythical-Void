@@ -1983,7 +1983,9 @@ class GameScene extends Phaser.Scene {
             );
             return;
         }
-        this.openVillageCommand({ guided: false });
+        this.openVillageCommand({
+            guided: this.villageCommandPreview === 'empty'
+        });
     }
 
     createSignalGardenPreview() {
@@ -5062,7 +5064,7 @@ class GameScene extends Phaser.Scene {
             this.greetingElements?.length ||
             this.livingSignalMomentElements?.length ||
             this.questTracker?.storyBannerElements?.length ||
-            this.achievementNotification?.isVisible ||
+            this.achievementNotification?.blocksStory === true ||
             this.livingPortraitReadyNotice ||
             this.livingPortraitNoticeTimer ||
             this.isFieldKitModalOpen ||
@@ -5370,7 +5372,7 @@ class GameScene extends Phaser.Scene {
             this.greetingElements?.length ||
             this.livingSignalMomentElements?.length ||
             this.questTracker?.storyBannerElements?.length ||
-            this.achievementNotification?.isVisible ||
+            this.achievementNotification?.blocksStory === true ||
             this.livingPortraitReadyNotice ||
             this.livingPortraitNoticeTimer ||
             this.isFieldKitModalOpen ||
@@ -5948,8 +5950,11 @@ class GameScene extends Phaser.Scene {
                 this.nasaIssOverheadHandler
             );
 
-            // Try to get player's approximate location for ISS tracking
-            this.requestLocationForISS();
+            // Location is optional and this deployment deliberately disables it
+            // through Permissions-Policy. Do not trigger a browser policy error.
+            if (this.canRequestLocationForISS()) {
+                this.requestLocationForISS();
+            }
 
             // NASA daily content is now handled by OnboardingManager
             // to ensure proper sequencing with other popups
@@ -5964,7 +5969,7 @@ class GameScene extends Phaser.Scene {
      * Request location permission for ISS tracking
      */
     requestLocationForISS() {
-        if (!navigator.geolocation) return;
+        if (!this.canRequestLocationForISS()) return false;
 
         // Check if we already have stored location
         const storedLat = localStorage.getItem('player_lat');
@@ -5975,7 +5980,7 @@ class GameScene extends Phaser.Scene {
                 parseFloat(storedLat),
                 parseFloat(storedLon)
             );
-            return;
+            return true;
         }
 
         // Request location (non-blocking, user can decline)
@@ -5993,6 +5998,17 @@ class GameScene extends Phaser.Scene {
             },
             { enableHighAccuracy: false, timeout: 10000 }
         );
+        return true;
+    }
+
+    canRequestLocationForISS() {
+        if (typeof navigator === 'undefined' || !navigator.geolocation) return false;
+        if (typeof document === 'undefined') return false;
+        const policy = document.permissionsPolicy || document.featurePolicy;
+        if (typeof policy?.allowsFeature === 'function') {
+            return policy.allowsFeature('geolocation');
+        }
+        return false;
     }
 
     /**
@@ -9086,9 +9102,6 @@ class GameScene extends Phaser.Scene {
             || getVillageSnapshot(window.GameState);
         const needsGuidance = snapshot.unlock.unlocked &&
             !snapshot.state.guidanceSeen;
-        if (needsGuidance) {
-            markVillageGuidanceSeen(window.GameState);
-        }
         this.offerVillageHeartInteraction(snapshot, {
             includeGuidance: needsGuidance
         });
@@ -9652,7 +9665,7 @@ class GameScene extends Phaser.Scene {
         if (!this.villageCommandPanel) {
             this.villageCommandPanel = new VillageCommandPanel(this);
         }
-        return this.villageCommandPanel.show({
+        const opened = this.villageCommandPanel.show({
             plotId,
             guided: plotId === null,
             getSnapshot: () => getVillageSnapshot(window.GameState),
@@ -9743,6 +9756,11 @@ class GameScene extends Phaser.Scene {
                 }
             }
         });
+        if (opened && !snapshot.state.guidanceSeen) {
+            const guidedSnapshot = markVillageGuidanceSeen(window.GameState);
+            this.refreshVillageSettlementWorld(guidedSnapshot, { force: true });
+        }
+        return opened;
     }
 
     handleFendResidentProximity(_player, zone) {
@@ -14603,7 +14621,7 @@ class GameScene extends Phaser.Scene {
             this.greetingElements?.length ||
             this.livingSignalMomentElements?.length ||
             this.questTracker?.storyBannerElements?.length ||
-            this.achievementNotification?.isVisible ||
+            this.achievementNotification?.blocksStory === true ||
             this.isFieldKitModalOpen ||
             this.fusionDiscoveryModalOpen ||
             this.hamburgerMenu?.isOpen ||

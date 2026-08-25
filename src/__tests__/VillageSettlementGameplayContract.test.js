@@ -26,7 +26,14 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('.setPosition(screenSpace.x, screenSpace.y)');
         expect(source).toContain('.setScale(uiScale)');
         expect(source).toContain('.setScrollFactor(0)');
-        expect(source).toContain('this.contentContainer.setScale(0.8);');
+        expect(source).toContain('this.contentContainer.setScale(0.94);');
+        expect(source).toContain('this.blocksStory = false;');
+        expect(source).toContain(".setData('achievementDismissTarget', true)");
+        expect(source).toContain("dismissZone.on('pointerup'");
+        expect(source).toContain('this.queue.length < 2');
+        expect(source).toContain('this.scene.time.delayedCall(4200');
+        expect(source).toContain('REWARD ADDED');
+        expect(source).not.toContain("'CLAIM!'");
         expect(source).toContain('targets: this.contentContainer');
         expect(source).toContain("this.scene.events.on('update', this.syncCameraZoom, this);");
         expect(source).toContain("this.scene?.events?.off?.('update', this.syncCameraZoom, this);");
@@ -164,6 +171,7 @@ describe('Village settlement gameplay contract', () => {
         );
         expect(sceneSource).toContain('this.setSanctuaryPeripheralWayfindingVisible(!nextActive);');
         expect(sceneSource).toContain('this.offerVillageHeartInteraction(closeSnapshot)');
+        expect(sceneSource).toContain("guided: this.villageCommandPreview === 'empty'");
         expect(sceneSource).toContain(
             "!this.sanctuaryInteractionDirector?.candidates?.has('villageHeart')"
         );
@@ -188,7 +196,7 @@ describe('Village settlement gameplay contract', () => {
         expect(sceneSource).toContain('scheduleVillageArrivalReveal({');
         expect(sceneSource).toContain('shouldPlayVillageArrivalReveal()');
         expect(sceneSource).toContain('isVillageArrivalRevealBlocked()');
-        expect(sceneSource).toContain('this.achievementNotification?.isVisible ||');
+        expect(sceneSource).toContain('this.achievementNotification?.blocksStory === true ||');
         expect(sceneSource).toContain('playVillageArrivalReveal({ force = false');
         expect(sceneSource).toContain("this.setSanctuaryMomentFocus(true, { kind: 'arrival' });");
         expect(sceneSource).toContain("window.AudioManager?.playSound?.('current_harmony', 0.9);");

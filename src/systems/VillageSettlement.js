@@ -73,9 +73,30 @@ export const VILLAGE_WORLD_ARTWORK = Object.freeze({
 });
 
 export const VILLAGE_RESOURCE_DEFINITIONS = Object.freeze([
-    Object.freeze({ id: 'wood', label: 'WOOD', color: '#8FE3CF' }),
-    Object.freeze({ id: 'stone', label: 'STONE', color: '#F4F4F4' }),
-    Object.freeze({ id: 'food', label: 'FOOD', color: '#F2C14E' })
+    Object.freeze({
+        id: 'wood',
+        label: 'WOOD',
+        color: '#8FE3CF',
+        starterSource: 'WANDERER-77 SALVAGE',
+        renewableSource: 'LIVING SAWMILL',
+        lesson: 'Use only timber already released by storms.'
+    }),
+    Object.freeze({
+        id: 'stone',
+        label: 'STONE',
+        color: '#F4F4F4',
+        starterSource: 'LANDING DEBRIS',
+        renewableSource: 'CURRENT MASONRY',
+        lesson: 'Recover loose stone without blocking the Current.'
+    }),
+    Object.freeze({
+        id: 'food',
+        label: 'FOOD',
+        color: '#F2C14E',
+        starterSource: 'FIELD RATIONS',
+        renewableSource: 'FORAGER HUT',
+        lesson: 'Map edible patches and leave enough to regrow.'
+    })
 ]);
 
 export const VILLAGE_PLOTS = Object.freeze([
@@ -602,6 +623,75 @@ export function getVillageWorldGuidance(snapshot) {
         return worldState.nextAction.label;
     }
     return `${worldState.restored}/${VILLAGE_PLOTS.length} RESTORED · ${worldState.nextAction.label}`;
+}
+
+export function getVillageOnboardingState(snapshot = {}) {
+    const forager = snapshot.buildings?.find(
+        building => building.definitionId === 'forager_hut'
+    ) || null;
+    const firstFoodDelivered = Number(snapshot.lifetimeProduced?.food) > 0;
+    const firstLoopComplete = Boolean(
+        forager?.status === 'complete' && forager.creature && firstFoodDelivered
+    );
+    const secondarySupplyCount = snapshot.buildings?.filter(building => (
+        ['sawmill', 'current_masonry'].includes(building.definitionId)
+    )).length || 0;
+    let stage = 'established';
+    let step = 3;
+    let title = 'GROW THE SANCTUARY';
+    let instruction = 'Choose the next need at the Village Heart.';
+
+    if (!forager) {
+        stage = 'first_build';
+        step = 1;
+        title = 'BUILD ONE SAFE FOOD PATH';
+        instruction = 'Use Wanderer-77 salvage to build the Forager Hut at the first living root.';
+    } else if (forager.status === 'constructing') {
+        stage = 'first_construction';
+        step = 1;
+        title = 'LET THE FIRST ROOT GROW';
+        instruction = 'The Current is shaping the Forager Hut. Stay or continue exploring.';
+    } else if (!forager.creature) {
+        stage = 'first_helper';
+        step = 2;
+        title = 'INVITE YOUR COMPANION';
+        instruction = 'A structure only produces supplies when a creature chooses to help there.';
+    } else if (!firstFoodDelivered) {
+        stage = 'first_delivery';
+        step = 3;
+        title = 'WATCH THE FIRST SAFE HARVEST';
+        instruction = 'Your companion is returning food to the Heart without stripping the living patch.';
+    } else if (secondarySupplyCount === 0) {
+        stage = 'supply_choice';
+        step = 3;
+        title = 'CHOOSE THE NEXT SUPPLY ROUTE';
+        instruction = 'Restore wood from fallen timber or recover loose stone beside the Current.';
+    }
+
+    const visiblePlotCount = snapshot.revealState?.visiblePlotCount ||
+        Math.min(VILLAGE_PLOTS.length, Math.max(1, (snapshot.buildings?.length || 0) + 1));
+    return {
+        stage,
+        step,
+        totalSteps: 3,
+        title,
+        instruction,
+        firstLoopComplete,
+        showFullPlan: firstLoopComplete,
+        visiblePlotCount,
+        visibleDefinitionIds: snapshot.definitions
+            ?.filter(definition => definition.placement.revealed)
+            .map(definition => definition.id) || ['forager_hut'],
+        resourceSources: VILLAGE_RESOURCE_DEFINITIONS.map(resource => ({
+            id: resource.id,
+            label: resource.label,
+            currentSource: snapshot.productionRates?.[resource.id] > 0
+                ? resource.renewableSource
+                : resource.starterSource,
+            renewableSource: resource.renewableSource,
+            lesson: resource.lesson
+        }))
+    };
 }
 
 function normalizeTimestamp(value) {
@@ -1151,7 +1241,66 @@ export function reconcileVillageSettlement(gameState, {
     return getVillageSnapshot(gameState, { stateOverride: next });
 }
 
-function getPlacementStatus(definition, state, unlock) {
+export function getVillageRevealState(rawState = {}) {
+    const state = normalizeVillageState(rawState);
+    const builtDefinitionIds = new Set(
+        state.buildings.map(building => building.definitionId)
+    );
+    const completeDefinitionIds = new Set(
+        state.buildings
+            .filter(building => building.status === 'complete')
+            .map(building => building.definitionId)
+    );
+    const forager = state.buildings.find(
+        building => building.definitionId === 'forager_hut'
+    );
+    const firstLoopComplete = Boolean(
+        forager?.status === 'complete' && forager.assignedCreatureId
+    );
+    const revealedDefinitionIds = new Set(['forager_hut', ...builtDefinitionIds]);
+
+    if (
+        firstLoopComplete ||
+        builtDefinitionIds.has('sawmill') ||
+        builtDefinitionIds.has('current_masonry') ||
+        builtDefinitionIds.has('habitat') ||
+        builtDefinitionIds.has('workshop')
+    ) {
+        revealedDefinitionIds.add('sawmill');
+        revealedDefinitionIds.add('current_masonry');
+    }
+    if (
+        completeDefinitionIds.has('sawmill') ||
+        completeDefinitionIds.has('current_masonry') ||
+        builtDefinitionIds.has('habitat') ||
+        builtDefinitionIds.has('workshop')
+    ) {
+        revealedDefinitionIds.add('habitat');
+    }
+    if (
+        ['forager_hut', 'sawmill', 'current_masonry'].every(
+            id => completeDefinitionIds.has(id)
+        ) || builtDefinitionIds.has('workshop')
+    ) {
+        revealedDefinitionIds.add('workshop');
+    }
+
+    const visiblePlotCount = Math.min(
+        VILLAGE_PLOTS.length,
+        Math.max(
+            1,
+            state.buildings.length + (firstLoopComplete ? 2 : 1),
+            revealedDefinitionIds.size
+        )
+    );
+    return {
+        revealedDefinitionIds,
+        visiblePlotCount,
+        firstLoopComplete
+    };
+}
+
+function getPlacementStatus(definition, state, unlock, revealState) {
     const builtDefinitionIds = new Set(state.buildings.map(building => building.definitionId));
     const missingPrerequisites = (definition.requires || [])
         .filter(requiredId => !builtDefinitionIds.has(requiredId));
@@ -1164,9 +1313,18 @@ function getPlacementStatus(definition, state, unlock) {
         }));
     const alreadyBuilt = builtDefinitionIds.has(definition.id);
     const noOpenPlot = state.buildings.length >= VILLAGE_PLOTS.length;
+    const revealed = revealState.revealedDefinitionIds.has(definition.id);
     return {
-        available: unlock.unlocked && !alreadyBuilt && !noOpenPlot &&
+        available: unlock.unlocked && revealed && !alreadyBuilt && !noOpenPlot &&
             missingPrerequisites.length === 0 && missingResources.length === 0,
+        revealed,
+        revealReason: revealed
+            ? null
+            : definition.id === 'workshop'
+                ? 'Restore the three supply structures first.'
+                : definition.id === 'habitat'
+                    ? 'Restore a wood or stone supply route first.'
+                    : 'Build the Forager Hut and invite your first helper.',
         alreadyBuilt,
         noOpenPlot,
         missingPrerequisites,
@@ -1822,9 +1980,10 @@ export function getVillageSnapshot(gameState, { stateOverride = null } = {}) {
         building: occupiedPlots.get(plot.id) || null,
         open: !occupiedPlots.has(plot.id)
     }));
+    const revealState = getVillageRevealState(state);
     const definitions = VILLAGE_BUILDING_DEFINITIONS.map(definition => ({
         ...definition,
-        placement: getPlacementStatus(definition, state, unlock)
+        placement: getPlacementStatus(definition, state, unlock, revealState)
     }));
     const snapshot = {
         state,
@@ -1852,6 +2011,11 @@ export function getVillageSnapshot(gameState, { stateOverride = null } = {}) {
         )
     };
     const worldState = getVillageWorldState(snapshot);
+    const onboarding = getVillageOnboardingState({
+        ...snapshot,
+        worldState,
+        revealState
+    });
     const residentRoutines = getVillageResidentRoutinePlan({
         ...snapshot,
         worldState
@@ -1859,6 +2023,7 @@ export function getVillageSnapshot(gameState, { stateOverride = null } = {}) {
     return {
         ...snapshot,
         worldState,
+        onboarding,
         residentRoutines,
         residentProposal: getVillageResidentProposal({ ...snapshot, worldState })
     };
@@ -1951,23 +2116,52 @@ export function assignCreatureToVillageBuilding(gameState, {
     if (!creature) return { changed: false, reason: 'unknown_creature', snapshot };
 
     const state = normalizeVillageState(snapshot.state);
-    const buildings = state.buildings.map(instance => ({
-        ...instance,
-        assignedCreatureId: instance.id === buildingId
-            ? creature.id
-            : instance.assignedCreatureId === creature.id
-                ? null
-                : instance.assignedCreatureId,
-        lastProductionAt: instance.id === buildingId
-            ? now
-            : instance.lastProductionAt
-    }));
-    const next = withHistory({ ...state, buildings }, {
+    const firstDelivery = building.definitionId === 'forager_hut' &&
+        Number(state.lifetimeProduced.food) === 0;
+    const firstDeliveryAmount = firstDelivery
+        ? building.definition.production.amount
+        : 0;
+    const buildings = state.buildings.map(instance => {
+        const assignedHere = instance.id === buildingId;
+        return {
+            ...instance,
+            assignedCreatureId: assignedHere
+                ? creature.id
+                : instance.assignedCreatureId === creature.id
+                    ? null
+                    : instance.assignedCreatureId,
+            lastProductionAt: assignedHere ? now : instance.lastProductionAt,
+            totalProduced: assignedHere
+                ? instance.totalProduced + firstDeliveryAmount
+                : instance.totalProduced
+        };
+    });
+    let next = withHistory({
+        ...state,
+        buildings,
+        resources: firstDelivery
+            ? { ...state.resources, food: state.resources.food + firstDeliveryAmount }
+            : state.resources,
+        lifetimeProduced: firstDelivery
+            ? {
+                ...state.lifetimeProduced,
+                food: state.lifetimeProduced.food + firstDeliveryAmount
+            }
+            : state.lifetimeProduced
+    }, {
         type: 'creature_assigned',
         buildingId,
         creatureId: creature.id,
         occurredAt: now
     });
+    if (firstDelivery) {
+        next = withHistory(next, {
+            type: 'first_safe_harvest',
+            buildingId,
+            creatureId: creature.id,
+            occurredAt: now
+        });
+    }
     gameState.set('world.village', normalizeVillageState(next));
     if (save) gameState.save?.();
     const nextSnapshot = getVillageSnapshot(gameState);
@@ -1977,7 +2171,14 @@ export function assignCreatureToVillageBuilding(gameState, {
         creatureId: creature.id,
         snapshot: nextSnapshot
     });
-    return { changed: true, reason: 'creature_assigned', snapshot: nextSnapshot };
+    return {
+        changed: true,
+        reason: 'creature_assigned',
+        firstDelivery: firstDelivery
+            ? { resource: 'food', amount: firstDeliveryAmount }
+            : null,
+        snapshot: nextSnapshot
+    };
 }
 
 export function resolveVillageHeartDecision(gameState, {

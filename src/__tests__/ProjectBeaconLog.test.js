@@ -808,6 +808,8 @@ describe('Project Beacon mission log', () => {
         expect(modalSource).toContain('getProjectBeaconLog(this.getGameState())');
         expect(modalSource).toContain("'CURRENT NETWORK'");
         expect(modalSource).toContain('log.currentEcology.vitality');
+        expect(modalSource).toContain('contentWidth,\n                sanctuaryCommunity');
+        expect(modalSource).toContain('contentWidth,\n            sanctuaryCommunity');
         expect(modalSource).toContain('CHOSE TO INTERVENE');
         expect(modalSource).toContain('LINEAGES STABILIZED');
         expect(modalSource).toContain('EXTREME POWER WITNESSED');
