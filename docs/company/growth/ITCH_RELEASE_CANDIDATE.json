@@ -8,17 +8,100 @@
   "directPlay": true,
   "listing": {
     "title": "Mythical Void",
+    "kind": "html_game",
+    "releaseStage": "early_access",
     "shortDescription": "Hatch a strange alien creature, restore six living realms and decide what Project Beacon should tell Earth.",
+    "opening": "Crash beyond mapped space. Discover what survived. Mythical Void is a free browser adventure with no download or account needed.",
+    "playerPromise": "Hatch an alien creature shaped by genetics, cross six living realms and make a final choice about what Earth should know.",
+    "genre": "Adventure",
+    "tags": [
+      "Adventure",
+      "Aliens",
+      "Creatures",
+      "Exploration",
+      "Family Friendly",
+      "Platformer",
+      "Science Fiction",
+      "Story Rich",
+      "Singleplayer"
+    ],
+    "engine": "Phaser",
     "price": "free",
     "donationRequest": false,
     "display": "click_to_launch_fullscreen",
-    "mobileFriendlyClaimApproved": false
+    "mobileFriendlyClaimApproved": false,
+    "accessFacts": [
+      "free",
+      "plays in a modern browser",
+      "no download",
+      "no account",
+      "no payment details"
+    ],
+    "controls": [
+      "WASD or arrow keys to move",
+      "Space to interact",
+      "Touch controls appear on supported smaller screens",
+      "Further controls are introduced inside the game"
+    ],
+    "longDescription": "Wanderer-77 has crashed beyond mapped space. Recover the field kit, follow a strange signal and hatch an alien creature shaped by genetics, cosmic affinity and rare changes. Together, cross six living realms, release their guardians from the Void, build a sanctuary and decide what Project Beacon should tell Earth. Mythical Void is a free, single-player browser adventure in early access. Generative AI is part of the small studio's creative process and some optional expressive features; people remain responsible for the story, safety, public claims and important choices. Selected public NASA material may appear in optional learning moments with its source shown. NASA does not endorse Mythical Void.",
+    "disclosures": {
+      "earlyAccess": true,
+      "formalAgeRatingClaimed": false,
+      "generativeAiUseDisclosed": true,
+      "nasaEndorsementClaimed": false,
+      "imaginedMarketingArtMayBeCalledGameplay": false
+    }
   },
   "visualGate": {
+    "sourceOfTruth": "docs/company/content/visual-launch-moments.json",
     "approvedMoments": 0,
     "requiredMoments": 4,
-    "coverApproved": false,
-    "trailerApproved": false
+    "cover": {
+      "state": "waiting_for_approved_cover",
+      "assetPath": null,
+      "requiredWidth": 630,
+      "requiredHeight": 500,
+      "mustResembleActualGame": true
+    },
+    "screenshotSlots": [
+      {
+        "momentId": "creature-helps",
+        "state": "waiting_for_approved_gameplay",
+        "assetPath": null,
+        "caption": "Your creature helps during one clear obstacle."
+      },
+      {
+        "momentId": "choice-changes-world",
+        "state": "waiting_for_approved_gameplay",
+        "assetPath": null,
+        "caption": "A plain choice creates a visible change in the world."
+      },
+      {
+        "momentId": "strange-discovery",
+        "state": "waiting_for_approved_gameplay",
+        "assetPath": null,
+        "caption": "The player and creature discover something memorable in an alien realm."
+      },
+      {
+        "momentId": "movement-with-life",
+        "state": "waiting_for_approved_gameplay",
+        "assetPath": null,
+        "caption": "A continuous stretch of play keeps the creature visible and the action readable."
+      }
+    ],
+    "trailer": {
+      "state": "waiting_for_human_review",
+      "assetPath": null
+    }
+  },
+  "reviewGate": {
+    "state": "ready_for_human_review_when_visual_gate_passes",
+    "distributionDecisionId": "D-018",
+    "distributionDecisionMade": false,
+    "itchAccountAccessProvided": false,
+    "pageCreated": false,
+    "readyForPublication": false,
+    "kevinApprovalRequired": true
   },
   "boundaries": {
     "externalPublicationAuthorized": false,

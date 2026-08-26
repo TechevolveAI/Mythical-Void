@@ -67,7 +67,14 @@
       "submittedAt": "2026-08-26T17:20:54Z",
       "responseStatus": 202,
       "submittedUrlCount": 13,
-      "meaning": "IndexNow received the first notification and is checking the live ownership file. Acceptance is a discovery signal, not a promise that any search engine will show a page."
+      "meaning": "IndexNow received the first notification and began checking the live ownership file. Acceptance is a discovery signal, not a promise that any search engine will show a page.",
+      "latestSubmission": {
+        "confirmedAt": "2026-08-26T21:15:56Z",
+        "accepted": true,
+        "responseStatus": 200,
+        "submittedUrlCount": 13,
+        "reason": "The shareable game-finder release added a new public Signal Log entry and refreshed both discovery feeds."
+      }
     },
     "googleSearchConsole": {
       "state": "owner_access_needed_later",
