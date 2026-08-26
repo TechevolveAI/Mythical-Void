@@ -54,6 +54,15 @@ expectFailure('substituted non-observable evidence', value => {
         'background_looks_good'
     ];
 });
+expectFailure('caption-only help state', value => {
+    value.moments[0].observableStateGate.result = 'dialogue_says_route_open';
+});
+expectFailure('unlinked strange discovery', value => {
+    value.moments[2].observableStateGate.linkedActors = 0;
+});
+expectFailure('movement permits fallback frame', value => {
+    value.moments[3].observableStateGate.fallbackFramesAllowed = 1;
+});
 expectFailure('unimplemented substitute state', value => {
     value.moments[2].playableState = 'concept_art_only';
 });

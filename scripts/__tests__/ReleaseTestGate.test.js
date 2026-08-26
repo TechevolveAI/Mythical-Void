@@ -72,6 +72,26 @@ describe('release test gate', () => {
         expect(source).toContain('Visual movement desktop sample');
     });
 
+    test('visual launch proof waits for observable gameplay consequences', () => {
+        const smoke = read('scripts/smoke-secondary-journeys.js');
+        const world = read('src/systems/world/WorldBuilder.js');
+        const capture = read('scripts/company/prepare-visual-launch-candidates.cjs');
+
+        expect(smoke).toContain('Creature help changes the route in the same shot');
+        expect(smoke).toContain("visibleHelpResult.action !== 'CREATURE SENDS LIFE ENERGY'");
+        expect(smoke).toContain("visibleHelpResult.problem !== 'BLOCKED FOOD ROUTE'");
+        expect(smoke).toContain("visibleHelpResult.result !== 'ROUTE OPEN +5 HAPPINESS'");
+        expect(smoke).toContain("captureGameplayStill(session, 'village-heart-choice-mobile.png')");
+        expect(smoke).toContain("heartMemory.visibleDiscovery !== 'THE PLANET REMEMBERS YOUR CHOICE'");
+        expect(smoke).toContain("heartMemory.phenomenonLanguage !== 'living_current_remembers_choice_v1'");
+        expect(world).toContain(".setData('villageHelpProblem', 'blocked_food_route')");
+        expect(world).toContain(".setData('villageHelpResult', 'safe_food_route_open')");
+        expect(world).toContain(".setData('villagePlanetMemoryPhenomenon', true)");
+        expect(world).toContain(".setData('linkedActorCount', linkedActors.length)");
+        expect(capture).toContain("'village-heart-choice-mobile.png'");
+        expect(capture).not.toContain("'village-heart-choice-recap-mobile.png', `choice-before-");
+    });
+
     test('production-preview journeys explicitly isolate reset cases', () => {
         const source = read('scripts/smoke-secondary-journeys.js');
 

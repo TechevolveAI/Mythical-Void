@@ -258,7 +258,7 @@ async function main() {
             const movementDir = path.join(workingRoot, `movement-${viewportId}`);
             const mappings = [
                 ['VL-001', 'village-worker-check-in-mobile.png', `creature-helps-${viewportId}.png`, 'action_and_result'],
-                ['VL-002', 'village-heart-choice-recap-mobile.png', `choice-before-${viewportId}.png`, 'plain_choice'],
+                ['VL-002', 'village-heart-choice-mobile.png', `choice-before-${viewportId}.png`, 'plain_choice'],
                 ['VL-002', 'village-sanctuary-district.png', `choice-after-${viewportId}.png`, 'visible_consequence'],
                 ['VL-003', 'village-heart-memory-mobile.png', `strange-discovery-${viewportId}.png`, 'living_memory_discovery']
             ];

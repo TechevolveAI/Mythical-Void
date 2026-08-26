@@ -62,6 +62,10 @@
       "actor_overlap",
       "action_outside_central_safe_frame",
       "modal_or_menu_interrupts_action",
+      "caption_only_proof_without_visible_world_action",
+      "choice_capture_omits_plain_pre_choice_options",
+      "strange_discovery_does_not_link_both_actors",
+      "movement_renderer_changes_between_frames",
       "capture_dimensions_wrong",
       "video_too_short_or_missing_frames"
     ]
@@ -121,6 +125,11 @@
       "playableState": "sanctuary_worker_check_in_and_delivery",
       "plainLanguageBeat": "Nova maps food paths that regrow. The Sanctuary gains 5 happiness.",
       "requiredEvidence": ["astronaut_and_creature_face_one_obvious_problem_together", "creature_action_is_recognisable", "result_appears_in_the_same_uninterrupted_shot"],
+      "observableStateGate": {
+        "problem": "blocked_food_route",
+        "action": "creature_sends_life_energy",
+        "result": "safe_food_route_open_with_regrowth_and_5_happiness"
+      },
       "candidateAssets": { "phone": "creature-helps-phone.png", "desktop": "creature-helps-desktop.png" },
       "implementationStatus": "playable_state_available",
       "reviewStatus": "candidate_under_human_review"
@@ -132,6 +141,11 @@
       "playableState": "sanctuary_heart_choice",
       "plainLanguageBeat": "Clear the current first. The current moves again and a living route opens through the Sanctuary.",
       "requiredEvidence": ["choice_is_stated_in_plain_words", "consequence_is_visible_after_the_menu_closes", "world_or_relationship_change_persists"],
+      "observableStateGate": {
+        "before": "both_plain_language_options_visible_before_selection",
+        "selection": "clear_the_current_first",
+        "after": "living_route_reopens_and_memory_persists_in_world"
+      },
       "candidateAssets": { "phoneBefore": "choice-before-phone.png", "phoneAfter": "choice-after-phone.png", "desktopBefore": "choice-before-desktop.png", "desktopAfter": "choice-after-desktop.png" },
       "implementationStatus": "playable_state_available",
       "reviewStatus": "candidate_under_human_review"
@@ -143,6 +157,11 @@
       "playableState": "village_heart_living_memory",
       "plainLanguageBeat": "The Village Heart remembers a choice as a visible current woven into the terrain.",
       "requiredEvidence": ["mythical_void_specific_memory_or_current_behavior", "astronaut_and_creature_remain_visible", "discovery_is_part_of_the_world_not_background_art"],
+      "observableStateGate": {
+        "phenomenon": "living_current_remembers_choice_v1",
+        "linkedActors": 2,
+        "worldAnchor": "village_heart"
+      },
       "candidateAssets": { "phone": "strange-discovery-phone.png", "desktop": "strange-discovery-desktop.png" },
       "implementationStatus": "playable_state_available",
       "reviewStatus": "candidate_under_human_review"
@@ -154,6 +173,12 @@
       "playableState": "mythical_forest_normal_movement",
       "plainLanguageBeat": "Nova and the astronaut travel together through the living forest.",
       "requiredEvidence": ["continuous_normal_play", "creature_stays_fully_rendered_and_recognisable", "no_placeholder_missing_sprite_menu_dead_pause_or_explanatory_edit"],
+      "observableStateGate": {
+        "minimumFrames": 20,
+        "renderer": "player_facing_phaser_creature_renderer",
+        "fallbackFramesAllowed": 0,
+        "actorOverlapFramesAllowed": 0
+      },
       "candidateAssets": { "phoneVideo": "movement-alive-phone.mp4", "phonePoster": "movement-alive-phone.png", "desktopVideo": "movement-alive-desktop.mp4", "desktopPoster": "movement-alive-desktop.png" },
       "implementationStatus": "capture_journey_ready",
       "reviewStatus": "candidate_under_human_review"

@@ -7262,6 +7262,47 @@ class WorldBuilder {
         pulse.strokeCircle(0, 0, compact ? 27 : 31);
         pulse.setBlendMode?.(Phaser.BlendModes.ADD);
 
+        const creature = this.scene.player;
+        const astronaut = this.scene.astronautFollower?.sprite;
+        const linkedActors = [creature, astronaut].filter(actor => (
+            actor?.active !== false &&
+            Number.isFinite(actor?.x) &&
+            Number.isFinite(actor?.y)
+        ));
+        const phenomenon = this.scene.add.graphics()
+            .setDepth(Math.max(1, Math.min(markerY, ...linkedActors.map(actor => actor.y)) - 2))
+            .setAlpha(0)
+            .setData('villagePlanetMemoryPhenomenon', true)
+            .setData('linkedActorCount', linkedActors.length)
+            .setData('phenomenonLanguage', 'living_current_remembers_choice_v1');
+        linkedActors.forEach((actor, actorIndex) => {
+            const actorColor = actorIndex === 0 ? 0x71E6B1 : 0xF4F4F4;
+            phenomenon.lineStyle(3, color, 0.72);
+            phenomenon.beginPath();
+            phenomenon.moveTo(markerX, markerY);
+            const midX = (markerX + actor.x) / 2;
+            const midY = Math.min(markerY, actor.y) - (compact ? 34 : 48);
+            phenomenon.lineTo(midX, midY);
+            phenomenon.lineTo(actor.x, actor.y - 12);
+            phenomenon.strokePath();
+            phenomenon.lineStyle(2, actorColor, 0.82);
+            phenomenon.strokeEllipse(
+                actor.x,
+                actor.y - 8,
+                compact ? 62 : 72,
+                compact ? 30 : 36
+            );
+            for (let step = 1; step <= 3; step += 1) {
+                const progress = step / 4;
+                const x = Phaser.Math.Linear(markerX, actor.x, progress);
+                const y = Phaser.Math.Linear(markerY, actor.y - 12, progress) -
+                    Math.sin(progress * Math.PI) * (compact ? 28 : 40);
+                phenomenon.fillStyle(step === 2 ? 0xF2C14E : actorColor, 0.95);
+                phenomenon.fillCircle(x, y, step === 2 ? 5 : 3);
+            }
+        });
+        phenomenon.setBlendMode?.(Phaser.BlendModes.ADD);
+
         const copy = this.scene.add.container(
             landmark.zone.x,
             landmark.zone.y - (compact ? 375 : 345)
@@ -7312,9 +7353,12 @@ class WorldBuilder {
         copy.setData('resonanceAnchor', 'village_heart');
         copy.setData('resonanceBounds', { width: copyWidth, height: copyHeight });
         copy.setData('resonanceVerticalOffset', compact ? 375 : 345);
+        copy.setData('planetMemoryPhenomenon', true);
+        copy.setData('linkedActorCount', linkedActors.length);
+        copy.setData('visibleDiscovery', 'THE PLANET REMEMBERS YOUR CHOICE');
 
         const revealTween = this.scene.tweens.add({
-            targets: [pulse, copy],
+            targets: [pulse, phenomenon, copy],
             alpha: 1,
             duration: 360,
             ease: 'Sine.easeOut'
@@ -7329,7 +7373,7 @@ class WorldBuilder {
             repeat: 2,
             ease: 'Sine.easeInOut'
         });
-        landmark.communityMomentElements = [pulse, copy];
+        landmark.communityMomentElements = [pulse, phenomenon, copy];
         landmark.communityMomentTweens = [revealTween, pulseTween];
         landmark.activeCommunityMoment = copy;
         this.scene.setSanctuaryMomentFocus?.(true, {
@@ -7339,7 +7383,7 @@ class WorldBuilder {
         landmark.communityMomentTimer = this.scene.time.delayedCall(5600, () => {
             if (landmark.activeCommunityMoment !== copy) return;
             const fadeTween = this.scene.tweens.add({
-                targets: [pulse, copy],
+                targets: [pulse, phenomenon, copy],
                 alpha: 0,
                 duration: 420,
                 onComplete: () => this.clearVillageCommunityMoment(landmark)
@@ -7404,6 +7448,95 @@ class WorldBuilder {
         pulse.lineStyle(1, 0xF4F4F4, 0.7);
         pulse.strokeCircle(0, 0, compact ? 34 : 40);
         pulse.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const activeCreature = this.scene.player;
+        const zoom = Math.max(0.1, this.scene.cameras?.main?.zoom || 1);
+        const actionOriginX = Number.isFinite(activeCreature?.x)
+            ? activeCreature.x
+            : workerX;
+        const actionOriginY = Number.isFinite(activeCreature?.y)
+            ? activeCreature.y - 8
+            : workerY;
+        const problemX = actionOriginX + ((compact ? 76 : 116) / zoom);
+        const problemY = actionOriginY - ((compact ? 4 : 8) / zoom);
+        const blockedRoute = this.scene.add.graphics()
+            .setDepth(Math.min(actionOriginY, problemY) - 2)
+            .setAlpha(1)
+            .setData('villageHelpProblem', 'blocked_food_route');
+        blockedRoute.lineStyle(5, 0xC73A3A, 0.78);
+        blockedRoute.lineBetween(problemX - 18, problemY - 13, problemX + 18, problemY + 13);
+        blockedRoute.lineBetween(problemX - 18, problemY + 13, problemX + 18, problemY - 13);
+        blockedRoute.lineStyle(2, 0xF2C14E, 0.82);
+        blockedRoute.strokeCircle(problemX, problemY, compact ? 25 : 29);
+
+        const openedRoute = this.scene.add.graphics()
+            .setDepth(Math.min(actionOriginY, problemY) - 1)
+            .setAlpha(0.08)
+            .setData('villageHelpResult', 'safe_food_route_open');
+        openedRoute.lineStyle(5, 0x71E6B1, 0.82);
+        openedRoute.beginPath();
+        openedRoute.moveTo(actionOriginX, actionOriginY);
+        openedRoute.lineTo(problemX, problemY - (compact ? 5 : 8));
+        openedRoute.lineTo(
+            problemX + ((compact ? 52 : 72) / zoom),
+            problemY - ((compact ? 18 : 26) / zoom)
+        );
+        openedRoute.strokePath();
+        openedRoute.lineStyle(1, 0xF4F4F4, 0.72);
+        openedRoute.beginPath();
+        openedRoute.moveTo(actionOriginX, actionOriginY);
+        openedRoute.lineTo(problemX, problemY - (compact ? 5 : 8));
+        openedRoute.lineTo(
+            problemX + ((compact ? 52 : 72) / zoom),
+            problemY - ((compact ? 18 : 26) / zoom)
+        );
+        openedRoute.strokePath();
+        for (let step = 1; step <= 4; step += 1) {
+            const progress = step / 5;
+            const x = Phaser.Math.Linear(actionOriginX, problemX, progress);
+            const y = Phaser.Math.Linear(actionOriginY, problemY, progress) -
+                Math.sin(progress * Math.PI) * ((compact ? 12 : 18) / zoom);
+            openedRoute.fillStyle(step === 4 ? 0xF2C14E : 0x8FE3CF, 0.96);
+            openedRoute.fillCircle(x, y, step === 4 ? 5 : 3);
+        }
+        openedRoute.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const regrowth = this.scene.add.graphics()
+            .setDepth(problemY + 4)
+            .setAlpha(0)
+            .setData('villageHelpRegrowth', true);
+        regrowth.lineStyle(3, 0x71E6B1, 0.95);
+        [-16, 0, 16].forEach((offset, index) => {
+            const stemHeight = compact ? 22 + (index * 5) : 30 + (index * 6);
+            regrowth.lineBetween(
+                problemX + offset,
+                problemY + 14,
+                problemX + offset + (index - 1) * 4,
+                problemY + 14 - stemHeight
+            );
+            regrowth.fillStyle(index === 1 ? 0xF2C14E : 0x8FE3CF, 0.95);
+            regrowth.fillCircle(
+                problemX + offset + (index - 1) * 6,
+                problemY + 10 - stemHeight,
+                compact ? 6 : 8
+            );
+        });
+        regrowth.setBlendMode?.(Phaser.BlendModes.ADD);
+
+        const result = this.scene.add.text(
+            problemX,
+            problemY + (compact ? 34 : 40),
+            'ROUTE OPEN  +5 HAPPINESS',
+            {
+                fontSize: compact ? '9px' : '11px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#F4F4F4',
+                stroke: '#07100F',
+                strokeThickness: 5
+            }
+        ).setOrigin(0.5).setDepth(Math.max(actionOriginY, problemY) + 5).setAlpha(0)
+            .setData('villageHelpResultLabel', true);
 
         const copy = this.scene.add.container(copyX, copyY)
             .setDepth(landmark.zone.y + 16)
@@ -7490,9 +7623,13 @@ class WorldBuilder {
             width: ribbonWidth,
             height: copyHeight
         });
+        copy.setData('helpAction', 'CREATURE SENDS LIFE ENERGY');
+        copy.setData('helpProblem', 'BLOCKED FOOD ROUTE');
+        copy.setData('helpResult', 'ROUTE OPEN +5 HAPPINESS');
+        copy.setData('helpResultVisible', false);
 
         const revealTween = this.scene.tweens.add({
-            targets: [path, pulse, copy],
+            targets: [path, pulse, copy, blockedRoute],
             alpha: 1,
             duration: 340,
             ease: 'Sine.easeOut'
@@ -7507,12 +7644,39 @@ class WorldBuilder {
             repeat: 3,
             ease: 'Sine.easeInOut'
         });
-        landmark.workerCheckInElements = [path, pulse, copy];
+        landmark.workerCheckInElements = [
+            path,
+            pulse,
+            blockedRoute,
+            openedRoute,
+            regrowth,
+            result,
+            copy
+        ];
         landmark.workerCheckInTweens = [revealTween, pulseTween];
         landmark.activeWorkerCheckIn = copy;
         this.scene.setSanctuaryMomentFocus?.(true, {
             kind: 'resident',
             plotId: checkIn.plotId
+        });
+        landmark.workerHelpResultTimer = this.scene.time.delayedCall(780, () => {
+            if (landmark.activeWorkerCheckIn !== copy) return;
+            copy.setData('helpResultVisible', true);
+            const routeTween = this.scene.tweens.add({
+                targets: [openedRoute, regrowth, result],
+                alpha: 1,
+                duration: 360,
+                ease: 'Sine.easeOut'
+            });
+            const obstacleTween = this.scene.tweens.add({
+                targets: blockedRoute,
+                alpha: 0.12,
+                scaleX: 1.35,
+                scaleY: 1.35,
+                duration: 360,
+                ease: 'Sine.easeOut'
+            });
+            landmark.workerCheckInTweens.push(routeTween, obstacleTween);
         });
         landmark.workerCheckInTimer = this.scene.time.delayedCall(6500, () => {
             if (landmark.activeWorkerCheckIn !== copy) return;
@@ -7530,10 +7694,12 @@ class WorldBuilder {
     clearVillageWorkerCheckIn(landmark) {
         const wasActive = Boolean(landmark?.activeWorkerCheckIn);
         landmark?.workerCheckInTimer?.remove?.();
+        landmark?.workerHelpResultTimer?.remove?.();
         landmark?.workerCheckInTweens?.forEach(tween => tween?.stop?.());
         landmark?.workerCheckInElements?.forEach(element => element?.destroy?.(true));
         if (!landmark) return;
         landmark.workerCheckInTimer = null;
+        landmark.workerHelpResultTimer = null;
         landmark.workerCheckInTweens = [];
         landmark.workerCheckInElements = [];
         landmark.activeWorkerCheckIn = null;
