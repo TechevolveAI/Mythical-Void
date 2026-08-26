@@ -47,6 +47,15 @@ expectFailure('candidate publication authorization', value => {
 expectFailure('candidate renderer substitution', value => {
     value.latestPrivateCandidateRun.renderer = 'marketing_mock_renderer';
 });
+expectFailure('candidate editorial rejection removed', value => {
+    delete value.latestPrivateCandidateRun.editorialScreening;
+});
+expectFailure('candidate run drifted from screening', value => {
+    value.latestPrivateCandidateRun.runId = '2026-08-26T00-00-00-000Z';
+});
+expectFailure('rejected work sent to Kevin', value => {
+    value.latestScreening.kevinReviewRequested = true;
+});
 expectFailure('substituted non-observable evidence', value => {
     value.moments[0].requiredEvidence = [
         'copy_explains_the_action',

@@ -69,8 +69,9 @@ function validateVisualLaunchMoments(document) {
         );
         requireValue(
             candidateRun.automatedScreening === 'passed_obvious_fault_checks_only' &&
+            candidateRun.editorialScreening === 'rejected_obvious_visual_faults' &&
             candidateRun.adultFrameReview === 'pending' &&
-            candidateRun.kevinApproval === 'pending' &&
+            candidateRun.kevinApproval === 'not_requested' &&
             candidateRun.publicationAuthorized === false,
             'candidate run cannot imply human approval or publication authority'
         );
@@ -178,12 +179,12 @@ function validateVisualLaunchMoments(document) {
             `${label} observable evidence contract changed`
         );
         requireValue(
-            ['capture_pending', 'candidate_under_human_review'].includes(
+            ['capture_pending', 'candidate_under_human_review', 'candidate_rejected_obvious_visual_faults'].includes(
                 moment?.reviewStatus
             ),
             `${label} cannot claim review or approval before human review`
         );
-        if (moment?.reviewStatus === 'candidate_under_human_review') {
+        if (['candidate_under_human_review', 'candidate_rejected_obvious_visual_faults'].includes(moment?.reviewStatus)) {
             requireValue(
                 Boolean(candidateRun),
                 `${label} needs a recorded private candidate run`
@@ -198,6 +199,20 @@ function validateVisualLaunchMoments(document) {
             `${label} candidate assets must stay inside the private run directory`
         );
     }
+
+    requireValue(
+        /^docs\/company\/content\/visual-screening-\d{4}-\d{2}-\d{2}\.json$/.test(document?.latestScreening?.path || '') &&
+        /^[0-9a-f]{40}$/.test(document?.latestScreening?.sourceCommit || '') &&
+        document?.latestScreening?.decision === 'all_four_rejected_before_kevin_review' &&
+        document?.latestScreening?.kevinReviewRequested === false,
+        'latest screening decision is missing or incorrectly asks Kevin to review rejected work'
+    );
+    requireValue(
+        moments.every(moment => moment?.reviewStatus === 'candidate_rejected_obvious_visual_faults') &&
+        candidateRun?.runId === document?.latestScreening?.candidateRunId &&
+        candidateRun?.sourceCommit === document?.latestScreening?.sourceCommit,
+        'latest rejected candidates must match the private run and screening record'
+    );
 
     return {
         valid: failures.length === 0,

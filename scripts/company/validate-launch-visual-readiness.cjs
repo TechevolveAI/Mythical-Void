@@ -41,9 +41,9 @@ for (const moment of moments) {
     requireValue(moment.publicQuestion?.length >= 15, `${moment.id} needs a plain public question`);
     requireValue(moment.shot?.length >= 35, `${moment.id} needs a deliberate shot description`);
     requireValue(moment.mustShow?.length >= 3, `${moment.id} needs at least three visible requirements`);
-    requireValue(['blocked_by_current_game_visual', 'no_candidate_captured', 'candidate_under_human_review', 'approved'].includes(moment.currentState), `${moment.id} has an invalid state`);
+    requireValue(['blocked_by_current_game_visual', 'no_candidate_captured', 'candidate_under_human_review', 'candidate_rejected_obvious_visual_faults', 'approved'].includes(moment.currentState), `${moment.id} has an invalid state`);
     if (moment.evidence) {
-        if (moment.currentState === 'candidate_under_human_review') {
+        if (['candidate_under_human_review', 'candidate_rejected_obvious_visual_faults'].includes(moment.currentState)) {
             requireValue(
                 isPrivateCandidate(moment.evidence),
                 `${moment.id} candidate evidence must remain in private review`
@@ -64,6 +64,24 @@ for (const moment of moments) {
         requireValue(register.publicApproved?.some(item => item.path === moment.candidatePath && item.review === 'approved'), `${moment.id} is absent from the exact public approval register`);
     }
 }
+
+requireValue(typeof plan.latestScreening?.path === 'string' && plan.latestScreening.path.startsWith('docs/company/content/visual-screening-'), 'latest visual screening record is missing');
+let latestScreening = null;
+try {
+    latestScreening = JSON.parse(fs.readFileSync(path.join(root, plan.latestScreening?.path || ''), 'utf8'));
+} catch (error) {
+    failures.push(`latest visual screening record cannot be read: ${error.message}`);
+}
+requireValue(plan.latestScreening?.sourceCommit === latestScreening?.source?.commit, 'latest visual screening source commit drifted');
+requireValue(plan.latestScreening?.candidateRunId === latestScreening?.source?.candidateRunId, 'latest visual screening run identity drifted');
+requireValue(plan.latestScreening?.decision === 'all_four_rejected_before_kevin_review', 'latest visual screening must not imply approval');
+requireValue(plan.latestScreening?.kevinReviewRequested === false, 'rejected candidates must not be handed to Kevin as approval-ready');
+requireValue(latestScreening?.decision === 'reject_all_before_kevin_review' && latestScreening?.approvedMomentCount === 0, 'screening record does not preserve the 0/4 rejection');
+requireValue(plan.latestPrivateCandidateRun?.runId === plan.latestScreening?.candidateRunId, 'private candidate run drifted from the latest screening');
+requireValue(plan.latestPrivateCandidateRun?.sourceCommit === plan.latestScreening?.sourceCommit, 'private candidate source drifted from the latest screening');
+requireValue(plan.latestPrivateCandidateRun?.editorialScreening === 'rejected_obvious_visual_faults', 'private candidate run must preserve the editorial rejection');
+requireValue(plan.latestPrivateCandidateRun?.kevinApproval === 'not_requested', 'rejected private candidates must not be sent to Kevin');
+requireValue(plan.latestPrivateCandidateRun?.publicationAuthorized === false, 'rejected private candidates must remain unpublished');
 
 const approved = moments.filter(moment => moment.currentState === 'approved').length;
 requireValue(plan.approvalRule?.approvedMomentCount === approved, 'approved moment count drifted');
