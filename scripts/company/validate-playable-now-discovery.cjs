@@ -32,6 +32,10 @@ requireValue(!/no two creatures|every creature is unique|infinite unique/i.test(
 requireValue(!/<form\b/i.test(page), 'page must not open contact or signup collection');
 requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(page), 'page contains a tracking parameter');
 requireValue(!/NASA (?:made|makes|endorses|partners with) Mythical Void/i.test(page), 'page implies a NASA relationship');
+requireValue(page.includes('data-share-game') && page.includes('data-copy-game') && page.includes('data-share-status'), 'clean sharing controls are missing');
+requireValue(page.includes('never asks for their contact details') && page.includes('adds no tracking code'), 'sharing privacy explanation is missing');
+requireValue(page.includes('https://mythicalvoid.com/press/social/mythical-void-share-wide.png'), 'reviewed sharing preview metadata is missing');
+requireValue(page.includes('labelled imagined-universe artwork') && !page.includes('sharing image is branded Project Beacon artwork'), 'sharing-image disclosure has drifted');
 
 const playLinks = [...page.matchAll(/href="(\/play\/[^"]*)"/g)].map(match => match[1]);
 requireValue(playLinks.length >= release.page?.directPlayLinkMinimum, 'page needs at least three direct play links');

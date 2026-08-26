@@ -33,10 +33,23 @@ describe('Playable Now discovery page', () => {
         expect(page).toContain('not gameplay');
     });
 
+    test('lets a visitor pass on one clean game link without contact collection', () => {
+        const discovery = fs.readFileSync(path.join(root, 'public/discovery.js'), 'utf8');
+        expect(page).toContain('data-share-game');
+        expect(page).toContain('data-copy-game');
+        expect(page).toContain('never asks for their contact details');
+        expect(discovery).toContain('navigator.share(shareData)');
+        expect(discovery).toContain('navigator.clipboard.writeText(shareUrl)');
+        expect(discovery).toContain("https://mythicalvoid.com/playable-now/");
+        expect(`${page} ${discovery}`).not.toMatch(/[?&](?:utm_|fbclid|gclid)/i);
+    });
+
     test('is checked during every production build', () => {
         const scripts = require('../../package.json').scripts;
         expect(scripts.build).toContain('validate:playable-now');
         expect(scripts.build).toContain('validate:visual-media');
+        expect(scripts.build).toContain('validate:owned-sharing');
+        expect(scripts.build).toContain('validate:social-previews');
         expect(scripts['validate:playable-now']).toContain('validate-playable-now-discovery.cjs');
     });
 });

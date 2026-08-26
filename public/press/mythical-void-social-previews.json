@@ -6,26 +6,26 @@
     {
       "route": "/",
       "htmlPath": "index.html",
-      "imagePath": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
-      "imageUrl": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
-      "imageType": "image/webp",
-      "width": 1672,
-      "height": 941,
-      "alt": "A universe of alien creatures in Mythical Void",
+      "imagePath": "public/press/social/mythical-void-share-wide.png",
+      "imageUrl": "https://mythicalvoid.com/press/social/mythical-void-share-wide.png",
+      "imageType": "image/png",
+      "width": 1200,
+      "height": 630,
+      "alt": "A luminous universe of alien creatures asking what will you hatch in Mythical Void",
       "classification": "ai_generated_marketing_illustration",
-      "disclosure": "AI-generated marketing illustration inspired by profiles from the creature genetics engine. Not gameplay."
+      "disclosure": "Branded sharing preview built from an AI-generated marketing illustration inspired by profiles from the creature genetics engine. It is labelled as imagined universe art and is not gameplay."
     },
     {
       "route": "/playable-now/",
       "htmlPath": "public/playable-now/index.html",
-      "imagePath": "public/press/social/project-beacon-story-wide.png",
-      "imageUrl": "https://mythicalvoid.com/press/social/project-beacon-story-wide.png",
+      "imagePath": "public/press/social/mythical-void-share-wide.png",
+      "imageUrl": "https://mythicalvoid.com/press/social/mythical-void-share-wide.png",
       "imageType": "image/png",
       "width": 1200,
       "height": 630,
-      "alt": "Mythical Void Project Beacon sharing artwork with a real gameplay frame",
-      "classification": "branded_social_artwork_with_authentic_gameplay_frame",
-      "disclosure": "Branded sharing layout, not a raw screenshot. The framed scene is real gameplay captured from the running browser game using an invented test state; no player information is shown."
+      "alt": "A luminous universe of alien creatures asking what will you hatch in Mythical Void",
+      "classification": "ai_generated_marketing_illustration",
+      "disclosure": "Branded sharing preview built from an AI-generated marketing illustration inspired by profiles from the creature genetics engine. It is labelled as imagined universe art and is not gameplay."
     },
     {
       "route": "/story/",
