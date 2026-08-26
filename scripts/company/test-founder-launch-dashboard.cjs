@@ -206,10 +206,18 @@ try {
     autoPostedCreatorKit.authenticGameplayCreatorKitRelease.autonomousSocialPostingAuthorized = true;
     if (run('auto-posted-creator-kit', { signalLog: autoPostedCreatorKit }).status === 0) throw new Error('Creator kit silently authorized external social posting.');
 
+    const alteredHatchReveal = structuredClone(sources.signalLog);
+    alteredHatchReveal.hatchRevealRelease.imageSha256 = '0'.repeat(64);
+    if (run('altered-hatch-reveal', { signalLog: alteredHatchReveal }).status === 0) throw new Error('An altered real hatch image fingerprint was accepted.');
+
+    const autoPostedHatchReveal = structuredClone(sources.signalLog);
+    autoPostedHatchReveal.hatchRevealRelease.autonomousSocialPostingAuthorized = true;
+    if (run('auto-posted-hatch-reveal', { signalLog: autoPostedHatchReveal }).status === 0) throw new Error('Real hatch release silently authorized external social posting.');
+
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 33 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 35 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }
