@@ -3056,7 +3056,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             { x: 1650, y: this.levelHeight - 450 - 20, hint: 'Vine bridge' },
             // Fragment 4: Very top of Tree 4 (the tallest tree)
             {
-                x: 3200,
+                x: 2700,
                 y: this.levelHeight - 100 - 800 - 30,
                 hint: 'Tree 4 peak',
                 optionalRouteId: 'forest_canopy_run'

@@ -660,6 +660,7 @@ class GameScene extends Phaser.Scene {
         ].includes(data?.villageCommandPreview)
             ? data.villageCommandPreview
             : null;
+        this.villageCommandPreviewState = null;
         this.sanctuaryDecorationPreview = Number.isFinite(Number(data?.sanctuaryDecorationPreview))
             ? Math.max(0, Math.min(3, Math.floor(Number(data.sanctuaryDecorationPreview))))
             : null;
@@ -1729,6 +1730,20 @@ class GameScene extends Phaser.Scene {
                 stats: { energy: 74, happiness: 90 },
                 personalityState: { axes: { temperament: -18 } },
                 cosmicAffinity: 'crystal'
+            },
+            {
+                id: 'preview-mira',
+                name: 'Mira',
+                stats: { energy: 70, happiness: 94 },
+                personalityState: { axes: { curiosity: 31, temperament: -12 } },
+                cosmicAffinity: 'moon'
+            },
+            {
+                id: 'preview-sol',
+                name: 'Sol',
+                stats: { energy: 81, happiness: 89 },
+                personalityState: { axes: { curiosity: 28, energy: 24 } },
+                cosmicAffinity: 'aurora'
             }
         ];
         const previewData = {
@@ -1764,6 +1779,7 @@ class GameScene extends Phaser.Scene {
             emit: () => {},
             getActiveCreature: () => previewData.creature
         };
+        this.villageCommandPreviewState = previewState;
         initializeVillageSettlement(previewState, { now, save: false });
 
         if (this.villageCommandPreview === 'building') {
@@ -9700,8 +9716,11 @@ class GameScene extends Phaser.Scene {
 
     reconcileVillageSettlementNow({ notify = true } = {}) {
         if (this._isShuttingDown || !this.villageHeartLandmark) return null;
-        const previous = getVillageSnapshot(window.GameState);
-        const snapshot = reconcileVillageSettlement(window.GameState);
+        const stateStore = this.villageCommandPreviewState || window.GameState;
+        const previous = getVillageSnapshot(stateStore);
+        const snapshot = reconcileVillageSettlement(stateStore, {
+            save: this.villageCommandPreviewState === null
+        });
         this.refreshVillageSettlementWorld(snapshot);
         if (notify) {
             this.notifyVillageProgress(previous, snapshot);
@@ -18090,6 +18109,7 @@ class GameScene extends Phaser.Scene {
             return;
         }
         this._isShuttingDown = true;
+        this.villageCommandPreviewState = null;
         console.log('[GameScene] Shutting down - cleaning up event listeners');
         this.cancelVillageArrivalReveal();
         this.cancelRescuedResidentArrival();

@@ -21,12 +21,14 @@ class ResponsiveManager {
         this.resolutionMediaQuery = null;
         this.fullscreenButton = null;
         this.fullscreenChangeHandler = null;
+        this.isDestroyed = false;
     }
 
     /**
      * Initialize the responsive manager
      */
     initialize(game) {
+        this.isDestroyed = false;
         this.game = game;
         
         // Detect device capabilities
@@ -85,6 +87,7 @@ class ResponsiveManager {
         this.resizeHandler = this.debounce(() => {
             this.handleResize();
         }, 100);
+        this.registerCleanup(() => this.resizeHandler?.cancel?.());
         
         // Listen for resize events
         this.addManagedEvent(window, 'resize', this.resizeHandler);
@@ -111,7 +114,7 @@ class ResponsiveManager {
      * Handle window resize with error handling
      */
     handleResize() {
-        if (!this.game) return;
+        if (this.isDestroyed || !this.game) return;
 
         try {
             const viewport = window.visualViewport;
@@ -472,7 +475,7 @@ class ResponsiveManager {
     /**
      * Remove Kid Mode responsive layout
      */
-    removeKidModeLayout() {
+    removeKidModeLayout({ reflow = true } = {}) {
         const kidModeStyles = document.getElementById('kidmode-responsive-styles');
         if (kidModeStyles) {
             kidModeStyles.remove();
@@ -483,7 +486,9 @@ class ResponsiveManager {
             this.resetVirtualControls();
         }
         
-        this.handleResize();
+        if (reflow) {
+            this.handleResize();
+        }
     }
     
     /**
@@ -1025,14 +1030,20 @@ class ResponsiveManager {
      */
     debounce(func, wait) {
         let timeout;
-        return function executedFunction(...args) {
+        const executedFunction = (...args) => {
             const later = () => {
                 clearTimeout(timeout);
+                timeout = null;
                 func(...args);
             };
             clearTimeout(timeout);
             timeout = setTimeout(later, wait);
         };
+        executedFunction.cancel = () => {
+            clearTimeout(timeout);
+            timeout = null;
+        };
+        return executedFunction;
     }
 
     registerCleanup(task) {
@@ -1069,6 +1080,9 @@ class ResponsiveManager {
      * Cleanup
      */
     destroy() {
+        if (this.isDestroyed) return;
+        this.isDestroyed = true;
+
         this.runCleanupTasks();
 
         this.touchButtons.clear();
@@ -1077,8 +1091,8 @@ class ResponsiveManager {
 
         this.hideOrientationMessage();
         
-        // Remove Kid Mode styles
-        this.removeKidModeLayout();
+        // Remove DOM styling without asking Phaser to resize during teardown.
+        this.removeKidModeLayout({ reflow: false });
         const touchStyle = document.getElementById('responsive-touch-styles');
         if (touchStyle) {
             touchStyle.remove();

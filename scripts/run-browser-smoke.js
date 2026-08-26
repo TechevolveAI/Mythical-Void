@@ -153,6 +153,17 @@ async function main() {
         } catch (error) {
             failures.push(`village-ui: ${error.message}`);
         }
+        console.log('\n[release-smoke] Shop Base Builder desktop reload suite');
+        try {
+            await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                SMOKE_MODE: 'village-ui',
+                SMOKE_CASE: 'desktop',
+                SMOKE_VIEWPORT_WIDTH: '1440',
+                SMOKE_VIEWPORT_HEIGHT: '810'
+            });
+        } catch (error) {
+            failures.push(`village-ui:desktop: ${error.message}`);
+        }
 
         console.log('\n[release-smoke] First-session Start-to-egg viewport suite');
         const homeEntryViewports = [

@@ -1540,12 +1540,15 @@ describe('campaign traversal quality contracts', () => {
             "challengeLabel: 'HIGH JUMPS // 1-HIT WARD // FEWER GUARDS'"
         );
         expect(source).toContain("id: 'aurora_quiet_light'");
+        expect(source).toContain('claimQuietLightPickup(shelter = this.optionalRoutePickup)');
         expect(source).toContain("rewardLabel: 'QUIET LIGHT WARD // 1 HIT'");
         expect(source).toContain("this.grantOptionalRouteGuard('QUIET LIGHT WARD', 1)");
         expect(source).toContain("this.selectAuroraRoute('shadow_current')");
         expect(source).toContain('LAND + ALIGN');
         expect(source).toContain('this.phoenixLandingGuide = this.createTraversalLandingGuide(');
-        expect(source).toContain("this.isPlayerGroundedOnTraversalSupport(\n                    'aurora-quiet-step-3'");
+        expect(source).toContain(
+            "!this.isPlayerGroundedOnTraversalSupport('aurora-quiet-step-3')"
+        );
         expect(source).toContain('const routeBonus = this.consumeCurrentCharge();');
         expect(source).toContain('this.currentChargeAuraTween?.remove?.();');
         expect(source).toContain(
@@ -1570,6 +1573,9 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("id: 'forest_canopy_run'");
         expect(source).toContain("rewardLabel: 'CANOPY GUARD // 1 HIT'");
         expect(source).toContain("optionalRouteId: 'forest_canopy_run'");
+        expect(source).toContain(
+            "x: 2700,\n                y: this.levelHeight - 100 - 800 - 30,\n                hint: 'Tree 4 peak'"
+        );
         expect(source).toContain("this.grantOptionalRouteGuard('CANOPY GUARD', 1)");
         expect(source).toContain("this.getOptionalRouteStatusText(");
         expect(source).toContain("onMainSelected: () => this.selectForestRoute('main')");
@@ -1673,6 +1679,12 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("'final-rift-step-1'");
         expect(source).toContain("'final-rift-step-4'");
         expect(source).toContain(
+            "[1650, groundY - 100, 180, 'final-rift-step-1']"
+        );
+        expect(source).toContain(
+            "[1850, groundY - 190, 190, 'final-rift-step-2']"
+        );
+        expect(source).toContain(
             "[2180, groundY - 150, 260, 'final-rift-step-4']"
         );
         expect(source).toContain("mainLabel: 'LOW RIFT CROSSING →'");
@@ -1688,6 +1700,7 @@ describe('campaign traversal quality contracts', () => {
             "this.createPlatform(0, groundY, this.levelWidth, 80, 'solid');"
         );
         expect(source).toContain("id: 'final_trust_bridge'");
+        expect(source).toContain('claimBondReservePickup(reserve = this.optionalRoutePickup)');
         expect(source).toContain("mainSupportIds: ['final-rift-step-1']");
         expect(source).toContain("optionalSupportIds: ['final-trust-bridge-1']");
         expect(source).toContain("rejoinSupportIds: ['final-rift-step-4']");

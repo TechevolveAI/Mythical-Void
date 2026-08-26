@@ -37,12 +37,37 @@ describe('release test gate', () => {
         expect(source).not.toContain('awaitPromise: true');
     });
 
+    test('browser smoke rejects console errors and failed same-origin requests', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+
+        expect(source).toContain("await session.call('Network.enable')");
+        expect(source).toContain("session.on('Runtime.consoleAPICalled'");
+        expect(source).toContain("session.on('Network.responseReceived'");
+        expect(source).toContain("session.on('Network.loadingFailed'");
+        expect(source).toContain('Browser health gate failed');
+        expect(source).toContain('sameOriginHttpFailures: 0');
+    });
+
     test('production-preview journeys explicitly isolate reset cases', () => {
         const source = read('scripts/smoke-secondary-journeys.js');
 
         expect(source).toContain("new URL(url).searchParams.get('reset') === 'true'");
         expect(source).toContain('window.GameState?.reset?.();');
         expect(source).toContain("localStorage.removeItem('mythical_creature_save');");
+    });
+
+    test('Sanctuary reload smoke proves persisted assignments before preview staging', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+        const releaseRunner = read('scripts/run-browser-smoke.js');
+
+        expect(source).toContain('const readVillageReloadState');
+        expect(source).toContain('Village reload persistence failed');
+        expect(source).toContain("current.scene.restart(previewData)");
+        expect(source).toContain("scene?.villageCommandPreview === 'complete'");
+        expect(source).toContain('Complete Village preview scene lifecycle');
+        expect(releaseRunner).toContain('[release-smoke] Shop Base Builder desktop reload suite');
+        expect(releaseRunner).toContain("SMOKE_VIEWPORT_WIDTH: '1440'");
+        expect(releaseRunner).toContain("SMOKE_VIEWPORT_HEIGHT: '810'");
     });
 
     test('npm test is finite and the manual framework has an explicit command', () => {

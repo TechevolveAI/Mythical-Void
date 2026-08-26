@@ -987,6 +987,13 @@ describe('Village settlement gameplay contract', () => {
         expect(game).toContain("['empty', 'building', 'active', 'complete']");
         expect(scene).toContain("this.villageCommandPreview === 'complete'");
         expect(scene).toContain("['workshop', 'root_05', null]");
+        expect(scene).toContain("id: 'preview-mira'");
+        expect(scene).toContain("id: 'preview-sol'");
+        expect(scene).toContain('this.villageCommandPreviewState = previewState;');
+        expect(scene).toContain(
+            'const stateStore = this.villageCommandPreviewState || window.GameState;'
+        );
+        expect(scene).toContain('save: this.villageCommandPreviewState === null');
         expect(scene).toContain('createFieldKitPreviewBackdrop({ includeShip = true } = {})');
         expect(scene).toContain("ship.setData('fieldKitPreviewShip', true)");
         expect(scene).not.toContain('this.createFieldKitPreviewBackdrop({ includeShip: false });');

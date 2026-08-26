@@ -876,35 +876,36 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.optionalRoutePickupOverlap = this.physics.add.overlap(
             this.player,
             shelter,
-            () => {
-                if (
-                    this.quietLightClaimed ||
-                    this.auroraRouteChoice === 'shadow_current' ||
-                    !shelter.active
-                ) return;
-                if (!this.isPlayerGroundedOnTraversalSupport(
-                    'aurora-quiet-step-3'
-                )) return;
-
-                this.quietLightClaimed = true;
-                this.selectAuroraRoute('quiet_light');
-                const rewardX = shelter.x;
-                const rewardY = shelter.y;
-                this.clearQuietLightPickup();
-                this.recordOptionalRouteProgress('aurora_quiet_light', {
-                    x: rewardX,
-                    y: rewardY
-                });
-                window.FXLibrary?.stardustBurst?.(this, rewardX, rewardY, {
-                    count: 22,
-                    color: [0xF2C94C, 0x7FFFD4, 0xFFFFFF],
-                    duration: 1000
-                });
-                window.AchievementSystem?.recordEvent?.('story_interaction', {
-                    event: 'aurora_quiet_light_route'
-                });
-            }
+            () => this.claimQuietLightPickup(shelter)
         );
+    }
+
+    claimQuietLightPickup(shelter = this.optionalRoutePickup) {
+        if (
+            this.quietLightClaimed ||
+            this.auroraRouteChoice === 'shadow_current' ||
+            !shelter?.active ||
+            !this.isPlayerGroundedOnTraversalSupport('aurora-quiet-step-3')
+        ) return false;
+
+        this.quietLightClaimed = true;
+        this.selectAuroraRoute('quiet_light');
+        const rewardX = shelter.x;
+        const rewardY = shelter.y;
+        this.clearQuietLightPickup();
+        this.recordOptionalRouteProgress('aurora_quiet_light', {
+            x: rewardX,
+            y: rewardY
+        });
+        window.FXLibrary?.stardustBurst?.(this, rewardX, rewardY, {
+            count: 22,
+            color: [0xF2C94C, 0x7FFFD4, 0xFFFFFF],
+            duration: 1000
+        });
+        window.AchievementSystem?.recordEvent?.('story_interaction', {
+            event: 'aurora_quiet_light_route'
+        });
+        return true;
     }
 
     clearQuietLightPickup() {
