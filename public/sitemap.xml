@@ -26,6 +26,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://mythicalvoid.com/creature-field-guide/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mythicalvoid.com/nasa-space-science/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>

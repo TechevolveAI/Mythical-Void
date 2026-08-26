@@ -585,6 +585,70 @@ async function smokeCreatureShowcasePage(session, exceptions) {
     return layout;
 }
 
+async function smokeCreatureFieldGuidePage(session, exceptions) {
+    if (!SMOKE_CAPTURE_DIR) {
+        throw new Error('SMOKE_CAPTURE_DIR is required for creature-field-guide-page mode');
+    }
+    await session.call('Page.navigate', {
+        url: `${BASE_URL}/creature-field-guide/index.html`
+    });
+    await waitFor(
+        () => evaluate(session, 'document.readyState === "complete"'),
+        { message: 'creature field guide page load' }
+    );
+    await evaluate(session, `(() => {
+        document.querySelectorAll('img[loading="lazy"]').forEach(image => {
+            image.loading = 'eager';
+        });
+        scrollTo(0, document.documentElement.scrollHeight);
+        return true;
+    })()`);
+    await delay(450);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const realms = document.querySelectorAll('[data-field-realm]').length;
+            const cards = document.querySelectorAll('.field-sighting').length;
+            const imagesReady = [...document.images]
+                .every(image => image.complete && image.naturalWidth > 0);
+            return realms === 6 && cards === 12 && imagesReady
+                ? { realms, cards, imagesReady }
+                : null;
+        })()`),
+        { timeoutMs: 10000, message: 'creature field guide realms, cards and images' }
+    );
+    const layout = await evaluate(session, `(() => {
+        document.documentElement.style.scrollBehavior = 'auto';
+        scrollTo(0, 0);
+        document.querySelector('.analytics-choice')?.remove();
+        const brokenImages = [...document.images]
+            .filter(image => !image.complete || image.naturalWidth === 0)
+            .map(image => image.getAttribute('src'));
+        const firstCard = document.querySelector('.field-sighting');
+        return {
+            viewport: { width: innerWidth, height: innerHeight },
+            realmCount: document.querySelectorAll('[data-field-realm]').length,
+            cardCount: document.querySelectorAll('.field-sighting').length,
+            brokenImages,
+            horizontalOverflow: document.documentElement.scrollWidth > innerWidth + 1,
+            heading: document.querySelector('h1')?.textContent?.trim() || '',
+            firstCardColumns: firstCard ? getComputedStyle(firstCard).gridTemplateColumns : '',
+            boundaryVisible: Boolean(document.querySelector('.field-boundary-card'))
+        };
+    })()`);
+    if (exceptions.length) {
+        throw new Error(`Creature field guide page raised browser exceptions: ${exceptions.join(' | ')}`);
+    }
+    if (layout.realmCount !== 6 || layout.cardCount !== 12 || layout.brokenImages.length || layout.horizontalOverflow || !layout.boundaryVisible) {
+        throw new Error(`Creature field guide page layout failed: ${JSON.stringify(layout)}`);
+    }
+    await delay(150);
+    await captureGameplayStill(
+        session,
+        `creature-field-guide-page-${SMOKE_VIEWPORT_WIDTH}x${SMOKE_VIEWPORT_HEIGHT}.png`
+    );
+    return layout;
+}
+
 async function startGameplayVideo(session) {
     if (!SMOKE_VIDEO_PATH || activeVideoCapture) return activeVideoCapture;
     if (!SMOKE_VIDEO_PATH.endsWith('.mp4')) {
@@ -17445,6 +17509,12 @@ async function main() {
                 exceptions
             );
             process.stdout.write('PASS CreatureShowcasePage\n');
+        } else if (SMOKE_MODE === 'creature-field-guide-page') {
+            results.creatureFieldGuidePage = await smokeCreatureFieldGuidePage(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS CreatureFieldGuidePage\n');
         } else if (SMOKE_MODE === 'living-form-late') {
             results.livingFormLate = await smokeLateLivingFormArrival(
                 session,
