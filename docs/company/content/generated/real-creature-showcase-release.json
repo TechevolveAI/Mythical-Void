@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "state": "owned_site_release_visually_verified_waiting_for_production_verification",
+  "releaseDate": "2026-08-26",
+  "page": "https://mythicalvoid.com/creature-genetics/#meet-the-twelve",
+  "source": {
+    "commit": "5f5c48cd89678249ca44592303eebed0e33251ca",
+    "engineRuns": 1000,
+    "selectedCreatures": 12,
+    "profileFile": "public/press/gameplay/real-creature-showcase/source-profiles.json",
+    "profileSha256": "b0c6f530c8d958747eaea420d3dc9964091cff38afae528198e2d3f53a917dbe",
+    "rendererManifest": "public/press/gameplay/real-creature-showcase/renderer-manifest.json"
+  },
+  "coverage": {
+    "currentSpecies": 7,
+    "rarityLevels": 5,
+    "geneticsBodyFamilies": 11,
+    "renderedBodyForms": 5,
+    "headForms": 9,
+    "environmentalAuras": 6,
+    "personalities": 5,
+    "mutatedCreatures": 10,
+    "shinyCreatures": 3
+  },
+  "claimBoundaries": {
+    "allImagesAreExactRunningRendererExports": true,
+    "galleryFrameIsAPlayableGameScene": false,
+    "selectionRepresentsNormalHatchOdds": false,
+    "absoluteUniquenessClaimed": false,
+    "generatedMarketingArtworkUsed": false,
+    "creatureSentienceClaimed": false
+  },
+  "authority": {
+    "ownedWebsitePublicationAuthorized": true,
+    "externalSocialPublicationAuthorized": false,
+    "emailOrOutreachSendingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "publicRepliesAuthorized": false,
+    "directChildContactAuthorized": false,
+    "kevinApprovalRequiredBeforeExternalPublication": true,
+    "externalActionTaken": false
+  },
+  "verification": {
+    "deterministicProfileBuildPassed": true,
+    "deterministicSpriteCapturePassed": true,
+    "desktopVisualReviewPassed": true,
+    "phoneVisualReviewPassed": true,
+    "productionUrlVerified": false
+  }
+}

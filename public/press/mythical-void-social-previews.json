@@ -54,14 +54,14 @@
     {
       "route": "/creature-genetics/",
       "htmlPath": "public/creature-genetics/index.html",
-      "imagePath": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
-      "imageUrl": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
-      "imageType": "image/webp",
-      "width": 1672,
-      "height": 941,
-      "alt": "Many possible alien creature forms in the Mythical Void universe",
-      "classification": "ai_generated_marketing_illustration",
-      "disclosure": "AI-generated marketing illustration inspired by profiles from the creature genetics engine. Not gameplay."
+      "imagePath": "public/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png",
+      "imageUrl": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png",
+      "imageType": "image/png",
+      "width": 1440,
+      "height": 900,
+      "alt": "Twelve real pixel creatures rendered by the running Mythical Void genetics and DNA engine",
+      "classification": "branded_renderer_proof_layout_with_authentic_game_sprite_exports",
+      "disclosure": "Branded proof layout, not a playable scene. Every creature inside it is an exact export from the running game renderer, selected from deliberately balanced engine runs to show range rather than normal hatch odds."
     },
     {
       "route": "/nasa-space-science/",

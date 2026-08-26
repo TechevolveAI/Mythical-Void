@@ -31,6 +31,9 @@ describe('local hatch renderer gallery contract', () => {
         expect(gameSource).toContain('deterministicGalleryRandom');
         expect(gameSource).toContain("Phaser.Math.RND?.sow?.(['mythical-real-creature-showcase-v1'])");
         expect(smokeSource).toContain("SMOKE_MODE === 'hatch-gallery'");
+        expect(smokeSource).toContain("SMOKE_MODE === 'creature-showcase-page'");
+        expect(smokeSource).toContain('horizontalOverflow');
+        expect(smokeSource).toContain("document.querySelectorAll('.creature-specimen').length");
         expect(smokeSource).toContain("'.home-start-fallback, [data-mythical-home-start]'");
         expect(gallerySource).not.toContain('GameState.save');
         expect(gallerySource).not.toContain('localStorage');

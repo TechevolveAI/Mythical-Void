@@ -15,6 +15,19 @@
   ],
   "items": [
     {
+      "id": "https://mythicalvoid.com/updates/#signal-013",
+      "url": "https://mythicalvoid.com/updates/#signal-013",
+      "external_url": "https://mythicalvoid.com/creature-genetics/#meet-the-twelve",
+      "title": "Twelve real hatches show the engine’s range",
+      "content_text": "A new source-bound gallery shows twelve creatures made by the running Mythical Void genetics, DNA and pixel-rendering system—not concept art.\n\n• The engine was run 1,000 times with deliberately balanced rarity groups, then twelve results were selected for visible breadth across all seven current species and all five rarity levels.\n• The set covers all eleven genetics body families, nine head forms, six environmental auras and five personalities. Each card uses the exact sprite exported by the game renderer.\n• This is a range showcase, not a probability sample, a normal hatch-odds claim or a promise of endless mathematical uniqueness. The source profiles, image fingerprints and renderer build are open for checking.\n\nSee the live change: https://mythicalvoid.com/creature-genetics/#meet-the-twelve\n\nMedia note: Branded proof layout, not a playable game scene. Every creature is an exact game-renderer export; the set was deliberately selected to show range and does not represent normal hatch odds.",
+      "summary": "A new source-bound gallery shows twelve creatures made by the running Mythical Void genetics, DNA and pixel-rendering system—not concept art.",
+      "image": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png",
+      "date_published": "2026-08-26T12:00:00.000Z",
+      "tags": [
+        "REAL CREATURE RANGE"
+      ]
+    },
+    {
       "id": "https://mythicalvoid.com/updates/#signal-012",
       "url": "https://mythicalvoid.com/updates/#signal-012",
       "external_url": "https://mythicalvoid.com/press/#real-creature-hatch",

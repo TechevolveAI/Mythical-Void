@@ -526,6 +526,65 @@ async function smokeRealCreatureShowcase(session, exceptions) {
     };
 }
 
+async function smokeCreatureShowcasePage(session, exceptions) {
+    if (!SMOKE_CAPTURE_DIR) {
+        throw new Error('SMOKE_CAPTURE_DIR is required for creature-showcase-page mode');
+    }
+    await session.call('Page.navigate', {
+        url: `${BASE_URL}/creature-genetics/index.html`
+    });
+    await waitFor(
+        () => evaluate(session, 'document.readyState === "complete"'),
+        { message: 'creature showcase page load' }
+    );
+    await evaluate(session, `(() => {
+        document.querySelectorAll('img[loading="lazy"]').forEach(image => {
+            image.loading = 'eager';
+        });
+        scrollTo(0, document.documentElement.scrollHeight);
+        return true;
+    })()`);
+    await delay(350);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const cards = document.querySelectorAll('.creature-specimen').length;
+            const imagesReady = [...document.images]
+                .every(image => image.complete && image.naturalWidth > 0);
+            return cards === 12 && imagesReady ? { cards, imagesReady } : null;
+        })()`),
+        { timeoutMs: 10000, message: 'creature showcase cards and images' }
+    );
+    const layout = await evaluate(session, `(() => {
+        document.documentElement.style.scrollBehavior = 'auto';
+        scrollTo(0, 0);
+        document.querySelector('.analytics-choice')?.remove();
+        const cardCount = document.querySelectorAll('.creature-specimen').length;
+        const brokenImages = [...document.images]
+            .filter(image => !image.complete || image.naturalWidth === 0)
+            .map(image => image.getAttribute('src'));
+        return {
+            viewport: { width: innerWidth, height: innerHeight },
+            cardCount,
+            brokenImages,
+            horizontalOverflow: document.documentElement.scrollWidth > innerWidth + 1,
+            heading: document.querySelector('h1')?.textContent?.trim() || '',
+            gridColumns: getComputedStyle(document.querySelector('.creature-showcase-grid')).gridTemplateColumns
+        };
+    })()`);
+    if (exceptions.length) {
+        throw new Error(`Creature showcase page raised browser exceptions: ${exceptions.join(' | ')}`);
+    }
+    if (layout.cardCount !== 12 || layout.brokenImages.length || layout.horizontalOverflow) {
+        throw new Error(`Creature showcase page layout failed: ${JSON.stringify(layout)}`);
+    }
+    await delay(150);
+    await captureGameplayStill(
+        session,
+        `creature-showcase-page-${SMOKE_VIEWPORT_WIDTH}x${SMOKE_VIEWPORT_HEIGHT}.png`
+    );
+    return layout;
+}
+
 async function startGameplayVideo(session) {
     if (!SMOKE_VIDEO_PATH || activeVideoCapture) return activeVideoCapture;
     if (!SMOKE_VIDEO_PATH.endsWith('.mp4')) {
@@ -17380,6 +17439,12 @@ async function main() {
                 exceptions
             );
             process.stdout.write('PASS RealCreatureShowcase\n');
+        } else if (SMOKE_MODE === 'creature-showcase-page') {
+            results.creatureShowcasePage = await smokeCreatureShowcasePage(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS CreatureShowcasePage\n');
         } else if (SMOKE_MODE === 'living-form-late') {
             results.livingFormLate = await smokeLateLivingFormArrival(
                 session,
