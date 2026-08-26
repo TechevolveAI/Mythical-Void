@@ -17,6 +17,8 @@ const captureSource = fs.readFileSync(path.join(root, 'scripts/company/capture-a
 const showcaseCaptureSource = fs.readFileSync(path.join(root, 'scripts/company/capture-real-creature-showcase.cjs'), 'utf8');
 const netlify = fs.readFileSync(path.join(root, 'netlify.toml'), 'utf8');
 const vercel = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+const cleanupSource = fs.readFileSync(path.join(root, 'scripts/company/remove-withdrawn-public-media.cjs'), 'utf8');
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 
@@ -60,6 +62,9 @@ requireValue(captureSource.includes("approvalState: 'candidate_quarantine_human_
 requireValue(captureSource.includes('ownedWebsiteProofUseAuthorized: false'), 'capture tool authorizes unreviewed owned-site publication');
 requireValue(showcaseCaptureSource.includes("path.join(root, '.visual-review', 'candidates', 'creature-showcase')"), 'creature showcase capture is not quarantined outside the website');
 requireValue(showcaseCaptureSource.includes("throw new Error('Creature showcase candidates cannot be captured inside public/.')"), 'creature showcase capture does not refuse direct public output');
+requireValue(packageJson.scripts?.build?.includes('npm run remove:withdrawn-public-media'), 'production build does not remove withdrawn media');
+requireValue(packageJson.scripts?.['remove:withdrawn-public-media'] === 'node scripts/company/remove-withdrawn-public-media.cjs', 'withdrawn-media cleanup command drifted');
+requireValue(cleanupSource.includes('register.withdrawnPathFamilies') && cleanupSource.includes('register.withdrawnIndividualPaths'), 'production cleanup is not bound to the visual register');
 
 for (const prefix of register.withdrawnPathFamilies) {
     const netlifyRule = `from = "${prefix}*"`;
