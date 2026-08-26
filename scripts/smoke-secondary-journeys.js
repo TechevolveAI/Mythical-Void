@@ -18759,6 +18759,8 @@ async function main() {
         const exceptions = [];
         const consoleErrors = [];
         const networkFailures = [];
+        const networkRequestUrls = new Map();
+        const documentNavigationRequests = [];
         const smokeOrigin = new URL(BASE_URL).origin;
         const formatConsoleArgument = argument => {
             if (argument?.value !== undefined) {
@@ -18790,13 +18792,45 @@ async function main() {
                 url
             });
         });
+        session.on('Network.requestWillBeSent', params => {
+            if (!params.requestId) return;
+            networkRequestUrls.set(
+                params.requestId,
+                params.request?.url || ''
+            );
+        });
+        session.on('Page.frameRequestedNavigation', params => {
+            documentNavigationRequests.push({
+                url: params.url || '',
+                reason: params.reason || 'unknown',
+                disposition: params.disposition || 'unknown'
+            });
+            if (documentNavigationRequests.length > 5) {
+                documentNavigationRequests.shift();
+            }
+        });
         session.on('Network.loadingFailed', params => {
             if (params.canceled) return;
+            const latestNavigation = documentNavigationRequests.at(-1);
+            const isExpectedNetlifyPreviewPanelBlock =
+                params.type === 'Document' &&
+                params.errorText === 'net::ERR_BLOCKED_BY_CSP' &&
+                /^deploy-preview-\d+--[^.]+\.netlify\.app$/.test(
+                    new URL(BASE_URL).hostname
+                ) &&
+                latestNavigation?.url?.startsWith(
+                    'https://app.netlify.com/cdp/'
+                );
+            if (isExpectedNetlifyPreviewPanelBlock) return;
             networkFailures.push({
                 kind: 'transport',
                 errorText: params.errorText || 'request failed',
                 type: params.type || 'Other',
-                requestId: params.requestId || null
+                requestId: params.requestId || null,
+                url: networkRequestUrls.get(params.requestId) || null,
+                recentDocumentNavigations: params.type === 'Document'
+                    ? [...documentNavigationRequests]
+                    : undefined
             });
         });
         if (SMOKE_BROWSER_TRACE) {

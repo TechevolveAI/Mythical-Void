@@ -341,6 +341,30 @@ describe('release test gate', () => {
         );
     });
 
+    test('reports the URL for browser transport failures', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+
+        expect(source).toContain('const networkRequestUrls = new Map();');
+        expect(source).toContain("session.on('Network.requestWillBeSent'");
+        expect(source).toContain("session.on('Page.frameRequestedNavigation'");
+        expect(source).toContain(
+            'url: networkRequestUrls.get(params.requestId) || null'
+        );
+        expect(source).toContain('recentDocumentNavigations: params.type ===');
+    });
+
+    test('ignores only Netlify deploy-preview panel CSP blocks', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+
+        expect(source).toContain('isExpectedNetlifyPreviewPanelBlock');
+        expect(source).toContain("params.errorText === 'net::ERR_BLOCKED_BY_CSP'");
+        expect(source).toContain("'https://app.netlify.com/cdp/'");
+        expect(source).toContain('if (isExpectedNetlifyPreviewPanelBlock) return;');
+        expect(source).toContain(
+            '/^deploy-preview-\\d+--[^.]+\\.netlify\\.app$/'
+        );
+    });
+
     test('Sanctuary lifecycle smoke uses the production scene transition path', () => {
         const source = read('scripts/smoke-secondary-journeys.js');
         const start = source.indexOf('async function smokeSanctuaryNavigation');
