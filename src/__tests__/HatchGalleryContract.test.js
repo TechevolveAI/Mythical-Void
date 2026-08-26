@@ -13,12 +13,17 @@ describe('local hatch renderer gallery contract', () => {
             .split('/**\n * Main game file')[0];
 
         expect(gameSource).toContain("urlParams.has('testHatchGallery')");
-        expect(gameSource).toContain(
-            'window.CreatureGenetics\n                        .generateCreatureGenetics()'
+        expect(gameSource).toMatch(
+            /window\.CreatureGenetics\s*\.generateCreatureGenetics\(\)/
         );
         expect(gameSource).toContain('window.CreatureDNA.generateDNA({');
         expect(gameSource).toContain('engine.createCreatureFromDNA(');
         expect(gameSource).toContain("exportElement.id = 'hatch-qa-manifest'");
+        expect(gameSource).toContain(
+            '/press/gameplay/real-creature-showcase/source-profiles.json'
+        );
+        expect(gameSource).toContain("imageExportElement.id = 'hatch-qa-exports'");
+        expect(gameSource).toContain("exportCanvas.toDataURL('image/png')");
         expect(gallerySource).not.toContain('GameState.save');
         expect(gallerySource).not.toContain('localStorage');
     });

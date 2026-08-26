@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "start": "vite",
-    "build": "npm run build:signal-log && npm run validate:signal-log && npm run validate:signal-feeds && npm run validate:playable-now && npm run validate:hatch-reveal && npm run validate:gameplay-social-kit && npm run validate:creator-kit && vite build && node scripts/inject-build-timestamp.js && node scripts/verify-production-bundle.cjs",
+    "build": "npm run build:creature-showcase-profiles && npm run build:signal-log && npm run validate:signal-log && npm run validate:signal-feeds && npm run validate:playable-now && npm run validate:hatch-reveal && npm run validate:gameplay-social-kit && npm run validate:creator-kit && vite build && node scripts/inject-build-timestamp.js && node scripts/verify-production-bundle.cjs",
+    "build:creature-showcase-profiles": "node scripts/company/build-real-creature-showcase-profiles.cjs",
+    "capture:creature-showcase": "node scripts/company/capture-real-creature-showcase.cjs",
     "validate:story-page": "node scripts/company/validate-story-production-release.cjs",
     "build:signal-log": "node scripts/company/build-public-signal-log.cjs && node scripts/company/build-signal-feeds.cjs",
     "validate:signal-log": "node scripts/company/validate-public-signal-log.cjs",
