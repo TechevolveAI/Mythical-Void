@@ -198,10 +198,18 @@ try {
     autoPostedGameplayVideoKit.authenticGameplaySocialKitRelease.autonomousSocialPostingAuthorized = true;
     if (run('auto-posted-gameplay-video-kit', { signalLog: autoPostedGameplayVideoKit }).status === 0) throw new Error('Authentic gameplay social kit silently authorized external social posting.');
 
+    const alteredCreatorKit = structuredClone(sources.signalLog);
+    alteredCreatorKit.authenticGameplayCreatorKitRelease.archiveSha256 = '0'.repeat(64);
+    if (run('altered-creator-kit', { signalLog: alteredCreatorKit }).status === 0) throw new Error('An altered creator-kit archive fingerprint was accepted.');
+
+    const autoPostedCreatorKit = structuredClone(sources.signalLog);
+    autoPostedCreatorKit.authenticGameplayCreatorKitRelease.autonomousSocialPostingAuthorized = true;
+    if (run('auto-posted-creator-kit', { signalLog: autoPostedCreatorKit }).status === 0) throw new Error('Creator kit silently authorized external social posting.');
+
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 31 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 33 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }

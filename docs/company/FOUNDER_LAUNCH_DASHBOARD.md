@@ -12,7 +12,7 @@
 - 9 public information pages were verified: the homepage, creature genetics, NASA and STEM, parents, studio, press room, Project Beacon story, Signal Log, and Playable Now.
 - The Project Beacon story is live with six real gameplay realm images and no link to the unapproved trailer.
 - Playable Now gives a stranger 20 seconds of real gameplay, four real game screenshots, a plain-language journey and three direct ways to start the free early-access game. It needs no account, email address or payment details to begin.
-- The Signal Log is live with 10 checked release notes. Its merged draft builder has already turned them into 30 internal review drafts for later social, press, and creator use without publishing anything.
+- The Signal Log is live with 11 checked release notes. Its merged draft builder has already turned them into 33 internal review drafts for later social, press, and creator use without publishing anything.
 - People can now follow those same checked releases through the live RSS feed, while the JSON feed gives future Mythical tools the same source. Neither feed needs an account or email address, collects a recipient, or adds tracking code.
 - The homepage now offers 2 user-controlled ways to share the clean game link, including one beside Play on the first screen. The control does not collect a recipient or add tracking code.
 - 8 important public pages now carry checked, route-specific social preview images and accessible image text. The Project Beacon story uses its purpose-built wide artwork.
@@ -20,6 +20,7 @@
 - The NASA/STEM sharing release is live with 2 downloadable images built around a real Apollo 11 game screen. The NASA source, non-endorsement and science-versus-fiction boundary are explicit; posting still waits for an official channel and Kevin's approval.
 - The father-and-son studio story now has 2 downloadable sharing images and a purpose-built link preview. The marketing-art and real-game boundaries are labelled, and no photograph, name, quote, contact detail or identifying detail of the child is used.
 - The authentic-gameplay social kit is live in the press room with 3 checked video shapes and 3 source-bound captions. Each edit keeps the complete real game frame visible; no social account, post, message, recipient or tracking link was created.
+- The complete creator handoff is live as one 12-file download. It combines the checked videos, posters, captions, emblem, fact sheet, package record and official-channel checklist; official posting, outreach, spending and replies still wait for Kevin and an owned channel.
 - The game created its playable canvas during that check.
 - The real-gameplay page clearly separates game evidence from marketing artwork and carries the NASA non-endorsement boundary.
 
