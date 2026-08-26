@@ -2,11 +2,11 @@
   "schemaVersion": 2,
   "releaseId": "PLAYABLE-NOW-VISUAL-TRUST-2026-08-26",
   "state": "owned_site_explanation_live_media_withdrawn_pending_rebuild",
-  "purpose": "Explain the playable game clearly, help a visitor choose an honest way into it, and keep weak screenshots and video withheld from promotion.",
+  "purpose": "Give someone actively looking for a new game an immediate, honest choice of wonder, creation, challenge or story, then explain the playable game clearly while weak screenshots and video remain withheld.",
   "page": {
     "path": "public/playable-now/index.html",
     "publicUrl": "https://mythicalvoid.com/playable-now/",
-    "sha256": "c92572f1cc6414f5b98ef6359de6ea3c936332c74b81690afc52b1b166034f7e",
+    "sha256": "f8d5f4c18c89de3d27b5932d4641c1a01300cb9321863f7d8950565dfcef7d3a",
     "canonical": "https://mythicalvoid.com/playable-now/",
     "directPlayLinkMinimum": 3,
     "structuredData": ["VideoGame", "FAQPage"]
@@ -15,8 +15,10 @@
     "registerPath": "public/press/visual-publication-register.json",
     "withdrawnGameplayMedia": true,
     "replacementApproved": false,
-    "temporaryHero": "/marketing/mythical-void-creature-universe-hero-v2.webp",
-    "temporaryHeroClassification": "ai_generated_marketing_illustration_not_gameplay",
+    "firstScreenArtRemoved": true,
+    "firstScreenExperience": "interactive_game_finder",
+    "sharingImage": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+    "sharingImageClassification": "ai_generated_marketing_illustration_not_gameplay",
     "humanReviewRequiredBeforeReplacement": true
   },
   "privacy": {

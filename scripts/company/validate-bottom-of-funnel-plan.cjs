@@ -42,9 +42,10 @@ for (const phrase of ['A free browser adventure', 'One important choice before i
     requireValue(planText.includes(phrase), `plain-language plan is missing: ${phrase}`);
 }
 for (const source of plan.sources || []) requireValue(planText.includes(source), `plain-language plan is missing source: ${source}`);
-for (const phrase of ['PLAYABLE NOW // FREE BROWSER GAME', 'No download. No account.', 'Hatch a strange alien creature']) {
+for (const phrase of ['LOOKING FOR A NEW GAME? START HERE', 'Free · No download · No account · No payment details · Early access', 'Hatch a creature shaped by genetics']) {
     requireValue(playable.includes(phrase), `playable search doorway is missing: ${phrase}`);
 }
+requireValue(playable.indexOf('id="find-your-way"') < playable.indexOf('class="truth-strip"'), 'the owned search doorway is not the first main decision');
 requireValue(itchCandidate.state === 'technical_package_ready_visual_and_account_approval_pending', 'itch release candidate state is invalid');
 requireValue(itchCandidate.directPlay === true && itchCandidate.entryPoint === 'index.html', 'itch candidate must open the game directly');
 requireValue(itchCandidate.visualGate?.approvedMoments === 0 && itchCandidate.visualGate?.requiredMoments === 4, 'itch candidate must remain behind the 0/4 visual gate');

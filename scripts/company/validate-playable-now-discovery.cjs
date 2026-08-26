@@ -19,11 +19,14 @@ const sha256 = value => crypto.createHash('sha256').update(value).digest('hex');
 requireValue(page.includes('<link rel="canonical" href="https://mythicalvoid.com/playable-now/">'), 'canonical URL is missing');
 requireValue(page.includes('<meta name="robots" content="index, follow, max-image-preview:large'), 'page must remain indexable');
 requireValue((page.match(/<h1(?:\s[^>]*)?>/g) || []).length === 1, 'page must have exactly one main heading');
-requireValue(page.includes('Crash. Hatch. Restore. Choose.'), 'plain first-screen promise is missing');
-requireValue(page.includes('No download. No account. No payment details needed to start.'), 'first-screen access answer is missing');
+requireValue(page.includes('LOOKING FOR A NEW GAME? START HERE') && page.includes('<h1>What are you in the mood for?</h1>'), 'search-first game finder is missing from the first screen');
+requireValue(page.indexOf('id="find-your-way"') < page.indexOf('class="truth-strip"'), 'the game finder must remain the first main section');
+requireValue(page.includes('Mythical Void is a free alien creature adventure.'), 'plain playable category is missing from the first screen');
+requireValue(page.includes('Free · No download · No account · No payment details · Early access'), 'first-screen access answer is missing');
 requireValue(page.includes('Early access') && /still (?:growing|in early access)/i.test(page), 'early-access boundary is missing');
 requireValue(page.includes('NASA does not endorse Mythical Void.'), 'NASA non-endorsement is missing');
 requireValue(page.includes('AI-generated marketing artwork') && page.includes('It is not gameplay.'), 'marketing-art boundary is missing');
+requireValue(!/<section class="hero playable-hero">/.test(page), 'imagined artwork must not displace the game finder on the first screen');
 requireValue(page.includes('previous gameplay media pack is withdrawn'), 'human visual-review decision is missing');
 requireValue(page.includes('creature stays visible') && page.includes('watched every frame'), 'replacement quality bar is missing');
 requireValue(!/<video\b/i.test(page), 'withdrawn video must not be embedded');
@@ -54,6 +57,8 @@ requireValue(sha256(Buffer.from(page)) === release.page?.sha256, 'page fingerpri
 requireValue(release.state === 'owned_site_explanation_live_media_withdrawn_pending_rebuild', 'release state must record the current visual decision');
 requireValue(release.visualDecision?.registerPath === 'public/press/visual-publication-register.json', 'release must point to the visual-review register');
 requireValue(release.visualDecision?.withdrawnGameplayMedia === true && release.visualDecision?.replacementApproved === false, 'release must not imply replacement gameplay media is approved');
+requireValue(release.visualDecision?.firstScreenArtRemoved === true && release.visualDecision?.firstScreenExperience === 'interactive_game_finder', 'release must record the art-free first-screen decision');
+requireValue(release.visualDecision?.sharingImageClassification === 'ai_generated_marketing_illustration_not_gameplay', 'sharing-image boundary is missing');
 for (const [key, expected] of Object.entries({ ownedWebsitePublicationAuthorized: true, externalSocialPublicationAuthorized: false, emailOrOutreachSendingAuthorized: false, paidPromotionAuthorized: false, publicRepliesAuthorized: false, externalActionTaken: false })) {
     requireValue(release.authority?.[key] === expected, `authority.${key} must be ${expected}`);
 }

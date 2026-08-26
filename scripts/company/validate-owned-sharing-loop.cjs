@@ -41,7 +41,7 @@ for (const route of ['/', '/playable-now/']) {
 
 requireValue(playable.includes('data-share-game') && playable.includes('data-copy-game') && playable.includes('data-share-status'), 'Playable Now needs native share, copy and accessible status controls.');
 requireValue(playable.includes('never asks for their contact details') && playable.includes('adds no tracking code'), 'The sharing privacy promise is missing.');
-requireValue(playable.includes('sharing image is AI-generated imagined-universe artwork') && playable.includes('it is not gameplay'), 'The page must explain the sharing artwork boundary.');
+requireValue(playable.includes('sharing image is AI-generated marketing artwork') && playable.includes('It is not gameplay.'), 'The page must explain the sharing artwork boundary.');
 for (const [pagePath, destination] of sharePages) {
     const page = text(pagePath);
     requireValue(page.includes('data-share-card') && page.includes(`data-share-url="${destination}"`), `${pagePath} must use its own clean reviewed destination.`);

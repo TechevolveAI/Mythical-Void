@@ -24,9 +24,9 @@
   },
   "sharingJourney": {
     "pagePath": "public/playable-now/index.html",
-    "pageSha256": "c92572f1cc6414f5b98ef6359de6ea3c936332c74b81690afc52b1b166034f7e",
+    "pageSha256": "f8d5f4c18c89de3d27b5932d4641c1a01300cb9321863f7d8950565dfcef7d3a",
     "scriptPath": "public/discovery.js",
-    "scriptSha256": "47e5f666b525d1cd994f39e4ce6905ab08fae2eb1a74cdd13fbb5464061ac694",
+    "scriptSha256": "aaf4d9d6bd8c21b88bdaba9b2d48166a6c3f27eb566a88a3d7df46fb9eee444b",
     "nativeDeviceShareUsedWhenAvailable": true,
     "clipboardFallbackProvided": true,
     "cleanUrl": "https://mythicalvoid.com/playable-now/#find-your-way",

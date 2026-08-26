@@ -122,6 +122,7 @@
     var intentRoot = document.querySelector('[data-play-intent]');
     if (intentRoot) {
         var intentButtons = Array.from(intentRoot.querySelectorAll('[data-intent-choice]'));
+        var intentGrid = intentRoot.querySelector('.play-intent-grid');
         var intentAnswer = intentRoot.querySelector('[data-intent-answer]');
         var intentTitle = intentRoot.querySelector('[data-intent-title]');
         var intentCopy = intentRoot.querySelector('[data-intent-copy]');
@@ -141,14 +142,29 @@
                 intentCopy.textContent = message.copy;
                 intentCta.textContent = message.cta;
                 intentPlay.dataset.sourceArea = message.sourceArea;
+                if (intentGrid && window.innerWidth <= 560) button.insertAdjacentElement('afterend', intentAnswer);
+                else if (intentGrid && intentGrid.contains(intentAnswer)) intentGrid.insertAdjacentElement('afterend', intentAnswer);
                 intentAnswer.hidden = false;
+                if (window.innerWidth <= 560 && typeof intentAnswer.scrollIntoView === 'function') {
+                    intentAnswer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
             });
+        });
+
+        window.addEventListener('resize', function () {
+            if (intentGrid && intentAnswer && window.innerWidth > 560 && intentGrid.contains(intentAnswer)) {
+                intentGrid.insertAdjacentElement('afterend', intentAnswer);
+            }
         });
 
         if (window.location.hash === '#find-your-way') {
             var settleIntentAnchor = function () {
                 window.requestAnimationFrame(function () {
-                    intentRoot.scrollIntoView({ block: 'start' });
+                    var isFirstMainSection = intentRoot.parentElement
+                        && intentRoot.parentElement.matches('main')
+                        && intentRoot.parentElement.firstElementChild === intentRoot;
+                    if (isFirstMainSection) window.scrollTo({ top: 0, left: 0 });
+                    else intentRoot.scrollIntoView({ block: 'start' });
                 });
             };
             if (document.readyState === 'complete') settleIntentAnchor();

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "asOf": "2026-08-26",
-  "status": "ready_for_release",
-  "plainLanguageOutcome": "Help search engines discover Mythical Void and learn which public website buttons lead people towards play or sharing, while keeping all measurement out of the game.",
+  "status": "owned_search_entry_live_and_improved",
+  "plainLanguageOutcome": "Help people looking for a new game understand Mythical Void immediately, choose the kind of experience they want and reach Play without an account, download or tracked sharing link.",
   "publicSearchCheck": {
     "queries": [
       "site:mythicalvoid.com Mythical Void",
@@ -12,6 +12,35 @@
     "result": "no_mythical_void_result_seen",
     "checkedOn": "2026-08-26",
     "meaning": "The site has useful search files and readable pages, but it is not yet visibly findable in the checked public results."
+  },
+  "latestCategorySample": {
+    "checkedOn": "2026-08-26",
+    "queries": [
+      "free alien creature browser game no download",
+      "story choice creature browser game free"
+    ],
+    "mythicalVoidResultObserved": false,
+    "method": "Directional public search sample; not a complete index census or ranking tracker.",
+    "observedPattern": "Visible first-party game pages plainly led with the playable category and immediate-access facts such as free, browser and no download.",
+    "examples": [
+      "https://www.terraform-game.com/",
+      "https://dobudob.com/",
+      "https://beanlings.com/s/browser-pet-game",
+      "https://choicefall.com/"
+    ],
+    "limitation": "Results can vary by engine, place, language, time and personalisation. Absence in this sample does not prove global non-indexing."
+  },
+  "gameFinderImprovement": {
+    "route": "https://mythicalvoid.com/playable-now/#find-your-way",
+    "firstScreenQuestion": "What are you in the mood for?",
+    "choices": ["wonder", "creation", "challenge", "story"],
+    "plainCategory": "free alien creature browser game",
+    "accessFacts": ["free", "no download", "no account", "no payment details", "early access"],
+    "imaginedArtworkOnFirstScreen": false,
+    "directPlayAvailable": true,
+    "phoneChoicePlacesAnswerBesideSelection": true,
+    "trackingAddressAdded": false,
+    "contactCollectionAdded": false
   },
   "searchEngineDiscovery": {
     "robotsFile": "https://mythicalvoid.com/robots.txt",
