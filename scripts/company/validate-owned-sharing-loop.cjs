@@ -21,7 +21,7 @@ const previews = json('public/press/mythical-void-social-previews.json');
 const press = json('public/press/mythical-void-press-assets.json');
 const scripts = json('package.json').scripts;
 
-requireValue(release.schemaVersion === 1 && /owned_site_release/.test(release.state), 'Owned sharing release identity or state is invalid.');
+requireValue(release.schemaVersion === 1 && release.state === 'owned_site_release_live_and_verified', 'Owned sharing release identity or state is invalid.');
 requireValue(sha256(release.preview.path) === release.preview.sha256, 'Sharing preview fingerprint has drifted.');
 requireValue(sha256(release.preview.sourcePath) === release.preview.sourceSha256, 'Sharing preview source fingerprint has drifted.');
 requireValue(sha256(release.sharingJourney.pagePath) === release.sharingJourney.pageSha256, 'Playable Now sharing page fingerprint has drifted.');
@@ -60,7 +60,8 @@ for (const weakAssetName of ['Mythical Forest phone gameplay', 'Village Heart bu
 
 requireValue(Object.values(release.humanReview).every(Boolean), 'Every recorded human preview review must be complete.');
 requireValue(release.verification.productionBuildPassed === true && release.verification.desktopBrowserReviewed === true && release.verification.phoneBrowserReviewed === true && release.verification.clipboardFallbackVerified === true, 'The owned sharing loop must retain its build, desktop, phone and copy-link checks.');
-requireValue(release.verification.productionUrlVerified === false, 'Do not claim production verification before deployment.');
+requireValue(release.verification.productionUrlVerified === true && /^[a-f0-9]{40}$/.test(release.verification.productionCommit || '') && Boolean(release.verification.productionDeployId), 'Production verification must identify the exact live commit and deploy.');
+requireValue(release.verification.liveHomepagePreviewVerified === true && release.verification.livePlayablePreviewVerified === true && release.verification.liveImageDimensionsVerified === '1200x630' && release.verification.liveClipboardFallbackVerified === true && release.verification.liveBrokenImageCount === 0 && release.verification.liveHorizontalOverflowObserved === false, 'Live sharing checks have drifted or are incomplete.');
 requireValue(release.authority.ownedWebsitePublicationAuthorized === true, 'Owned website publication must be authorized.');
 requireValue(release.authority.autonomousSocialPostingAuthorized === false && release.authority.emailOrOutreachSendingAuthorized === false && release.authority.paidPromotionAuthorized === false, 'The owned sharing release must not authorize external posting, outreach or spend.');
 requireValue(scripts.build.includes('validate:owned-sharing') && scripts.build.includes('validate:social-previews'), 'Production build must run both sharing validators.');
