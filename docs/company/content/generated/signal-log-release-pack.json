@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "id": "SIGNAL-DRAFT-PACK-2026-08-14",
+  "id": "SIGNAL-DRAFT-PACK-2026-08-26",
   "state": "draft_only_missing_verified_social_channels_and_approval",
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "94dc731b00f8dd7efb8ed92bfd86a8b00e0b1e523b8075565c40fccc1c92d3bc",
-    "liveEntryCount": 8,
-    "latestSourceDate": "2026-08-14"
+    "sourceFingerprint": "a178bca43640659ff5b4d9d3dd9d1ebb6e9bc9e689001518a24ab98d2eaafb24",
+    "liveEntryCount": 9,
+    "latestSourceDate": "2026-08-26"
   },
   "purpose": "Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
   "audienceBoundary": {
@@ -32,6 +32,51 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-SIGNAL-009",
+      "sourceEntryId": "SIGNAL-009",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/playable-now/",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
+        "alt": "Real Mythical Void gameplay in the Mythical Forest with platforming controls and route display",
+        "class": "authentic_running_build_screenshot",
+        "disclosure": "Poster captured from the real browser game using an invented test state; no generated frames, player identity or personal save information are shown."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "See the real game before you play\n\nA new Mythical Void page gives unfamiliar players one clear view of the real browser game, what they do in it and why the project is different before asking them to play.\n\n• The page leads with a 19.58-second recording made directly from the running Mythical Forest level, with no generated frames or replacement scenery.\n• It explains the crash, creature, six realms, restoration, Sanctuary building and Project Beacon choice in plain language, with four real game screens as proof.\n• Every Play link goes directly to the free browser game without an account, download, email signup or tracking parameter.\n\nSee what changed: https://mythicalvoid.com/playable-now/\n\nPoster captured from the real browser game using an invented test state; no generated frames, player identity or personal save information are shown.",
+          "characterCount": 850
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: See the real game before you play\n\nA new Mythical Void page gives unfamiliar players one clear view of the real browser game, what they do in it and why the project is different before asking them to play.\n\nhttps://mythicalvoid.com/playable-now/\n\nPoster captured from the real browser game using an invented test state; no generated frames, player identity or personal save information are shown.",
+          "characterCount": 415
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: See the real game before you play",
+          "body": "Mythical Void has a new live update: See the real game before you play.\n\nA new Mythical Void page gives unfamiliar players one clear view of the real browser game, what they do in it and why the project is different before asking them to play.\n\nThe page leads with a 19.58-second recording made directly from the running Mythical Forest level, with no generated frames or replacement scenery. It explains the crash, creature, six realms, restoration, Sanctuary building and Project Beacon choice in plain language, with four real game screens as proof. Every Play link goes directly to the free browser game without an account, download, email signup or tracking parameter.\n\nThe checked public destination is https://mythicalvoid.com/playable-now/\n\nMedia note: Poster captured from the real browser game using an invented test state; no generated frames, player identity or personal save information are shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 985,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-SIGNAL-008",
       "sourceEntryId": "SIGNAL-008",

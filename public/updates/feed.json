@@ -15,6 +15,19 @@
   ],
   "items": [
     {
+      "id": "https://mythicalvoid.com/updates/#signal-009",
+      "url": "https://mythicalvoid.com/updates/#signal-009",
+      "external_url": "https://mythicalvoid.com/playable-now/",
+      "title": "See the real game before you play",
+      "content_text": "A new Mythical Void page gives unfamiliar players one clear view of the real browser game, what they do in it and why the project is different before asking them to play.\n\n• The page leads with a 19.58-second recording made directly from the running Mythical Forest level, with no generated frames or replacement scenery.\n• It explains the crash, creature, six realms, restoration, Sanctuary building and Project Beacon choice in plain language, with four real game screens as proof.\n• Every Play link goes directly to the free browser game without an account, download, email signup or tracking parameter.\n\nSee the live change: https://mythicalvoid.com/playable-now/\n\nMedia note: Poster captured from the real browser game using an invented test state; no generated frames, player identity or personal save information are shown.",
+      "summary": "A new Mythical Void page gives unfamiliar players one clear view of the real browser game, what they do in it and why the project is different before asking them to play.",
+      "image": "https://mythicalvoid.com/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
+      "date_published": "2026-08-26T12:00:00.000Z",
+      "tags": [
+        "PLAYABLE NOW"
+      ]
+    },
+    {
       "id": "https://mythicalvoid.com/updates/#signal-008",
       "url": "https://mythicalvoid.com/updates/#signal-008",
       "external_url": "https://mythicalvoid.com/updates/feed.xml",

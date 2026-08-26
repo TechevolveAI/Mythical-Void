@@ -5,13 +5,32 @@
     <link>https://mythicalvoid.com/updates/</link>
     <description>See what is newly live in Mythical Void: game stories, useful resources and honest release notes linked to the playable browser game.</description>
     <language>en-ie</language>
-    <lastBuildDate>Fri, 14 Aug 2026 12:00:00 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 26 Aug 2026 12:00:00 GMT</lastBuildDate>
     <atom:link href="https://mythicalvoid.com/updates/feed.xml" rel="self" type="application/rss+xml" />
     <image>
       <url>https://mythicalvoid.com/marketing/mythical-void-mark-192.png</url>
       <title>Mythical Void — The Signal Log</title>
       <link>https://mythicalvoid.com/updates/</link>
     </image>
+    <item>
+      <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-009</guid>
+      <title>See the real game before you play</title>
+      <link>https://mythicalvoid.com/updates/#signal-009</link>
+      <pubDate>Wed, 26 Aug 2026 12:00:00 GMT</pubDate>
+      <category>PLAYABLE NOW</category>
+      <description>A new Mythical Void page gives unfamiliar players one clear view of the real browser game, what they do in it and why the project is different before asking them to play.
+
+• The page leads with a 19.58-second recording made directly from the running Mythical Forest level, with no generated frames or replacement scenery.
+• It explains the crash, creature, six realms, restoration, Sanctuary building and Project Beacon choice in plain language, with four real game screens as proof.
+• Every Play link goes directly to the free browser game without an account, download, email signup or tracking parameter.
+
+See the live change: https://mythicalvoid.com/playable-now/
+
+Media note: Poster captured from the real browser game using an invented test state; no generated frames, player identity or personal save information are shown.</description>
+      <media:content url="https://mythicalvoid.com/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png" type="image/png" medium="image">
+        <media:description>Real Mythical Void gameplay in the Mythical Forest with platforming controls and route display</media:description>
+      </media:content>
+    </item>
     <item>
       <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-008</guid>
       <title>The Signal Log can now travel</title>

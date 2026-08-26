@@ -148,6 +148,9 @@ async function main() {
             privacy: 'A clean invented QA state is used. No player name, child identity, account, message, notification or personal save data appears.',
             presentationBoundary: 'Authentic running-build gameplay. No generated frames, simulated interface, replacement scenery or generated audio.',
             approvalState: 'internal_review_required_before_public_promotion',
+            ownedWebsiteProofUseAuthorized: true,
+            externalPromotionAuthorized: false,
+            kevinApprovalRequiredBeforeExternalPublication: true,
             asset: {
                 id: 'GV-001',
                 filename: videoFilename,
