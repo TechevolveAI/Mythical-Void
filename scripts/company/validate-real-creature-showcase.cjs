@@ -61,13 +61,14 @@ for (const creature of manifest.creatures || []) {
 
 requireValue((page.match(/class="creature-specimen"/g) || []).length === 12, 'public page must show exactly twelve specimen cards');
 requireValue(page.includes('1,000 times') && page.includes('not the odds of a random hatch') && page.includes('not a promise of endless mathematical uniqueness'), 'public selection boundary drifted');
-requireValue(storefront.includes('id="real-creature-range"') && storefront.includes('exact export from the game renderer'), 'press-room renderer proof is missing');
+requireValue(!storefront.includes('id="real-creature-range"') && !storefront.includes('exact export from the game renderer'), 'withdrawn renderer proof returned to the press room');
 requireValue(llms.includes('https://mythicalvoid.com/creature-genetics/#meet-the-twelve') && llms.includes('does not represent normal hatch odds'), 'machine-readable discovery or boundary is missing');
 
 const pressExports = press.assets.filter(item => item.kind === 'authentic_running_game_renderer_export');
 requireValue(pressExports.length === 12, 'press manifest must contain twelve renderer exports');
 requireValue(press.assets.some(item => item.kind === 'branded_renderer_proof_layout_with_authentic_game_sprite_exports'), 'press manifest is missing the wide proof layout');
 requireValue(press.realCreatureShowcase?.selectedFromEngineRuns === 1000 && press.realCreatureShowcase?.selectedCreatures === 12, 'press showcase summary drifted');
+requireValue(press.realCreatureShowcase?.state === 'withdrawn_visual_quality_failed_do_not_publish', 'press showcase is not marked as withdrawn from promotion');
 const preview = previews.pages.find(item => item.route === '/creature-genetics/');
 requireValue(preview?.imagePath.endsWith('real-creature-showcase-wide.png') && preview?.classification === 'branded_renderer_proof_layout_with_authentic_game_sprite_exports', 'creature page social preview is not bound to the real gallery');
 const signal = signals.entries.find(item => item.id === 'SIGNAL-013');

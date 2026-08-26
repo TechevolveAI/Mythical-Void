@@ -91,7 +91,7 @@ function validate(values, baseDir = root) {
 
     const pressAssetsVideos = (pressAssets.assets || []).filter(asset => asset.kind === 'branded_social_video_with_authentic_running_build_gameplay');
     requireValue(pressAssets.authenticGameplaySocialKit?.state === 'withdrawn_visual_quality_failed_do_not_publish' && pressAssetsVideos.length === 3 && pressAssetsVideos.every(asset => asset.state === 'withdrawn_visual_quality_failed_do_not_publish'), 'press manifest must retain the three withdrawn file records without presenting them as usable');
-    requireValue(!pressSource.includes('id="real-gameplay-social-video"') && pressSource.includes('The previous social video pack is withdrawn.'), 'press room must hide the files and explain the withdrawal');
+    requireValue(!pressSource.includes('id="real-gameplay-social-video"') && pressSource.includes('The public media library is being rebuilt.') && pressSource.includes('No gameplay download pack is approved.'), 'press room must hide the files and explain the withdrawal');
     requireValue(!llms.includes('Authentic gameplay social video kit:'), 'machine-readable site guide still promotes the withdrawn kit');
     const signalEntry = signal.entries?.find(entry => entry.id === 'SIGNAL-010');
     requireValue(!signalEntry, 'Signal Log still promotes the withdrawn social kit');
