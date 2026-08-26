@@ -263,7 +263,7 @@ function renderStorefront() {
                     <span></span><span></span><span></span>
                 </button>
                 <nav class="site-nav" aria-label="Main navigation" data-menu>
-                    <a href="/playable-now/">See the game</a>
+                    <a href="/playable-now/#find-your-way">Find your game</a>
                     <a href="#adventure">The adventure</a>
                     <a href="#how-it-works">How it works</a>
                     <a href="#studio">The studio</a>
@@ -290,7 +290,7 @@ function renderStorefront() {
                                 <span data-share-label>Share the game</span>
                                 <span class="button-arrow" aria-hidden="true">↗</span>
                             </button>
-                            <a class="button button-quiet" href="/playable-now/">Watch real gameplay</a>
+                            <a class="button button-quiet" href="/playable-now/#find-your-way">Find your way in</a>
                         </div>
                         <p class="hero-share-status share-status" data-share-status aria-live="polite"></p>
                         <ul class="hero-genetics" aria-label="How this scene was made">
@@ -568,7 +568,7 @@ function renderStorefront() {
                 </div>
                 <nav aria-label="Footer navigation">
                     <a href="/play/">Play game</a>
-                    <a href="/playable-now/">See real gameplay</a>
+                    <a href="/playable-now/#find-your-way">Find your way in</a>
                     <a href="/press/">Press & creators</a>
                     <a href="/updates/">What's new</a>
                     <a href="/creature-genetics/">Creature genetics</a>

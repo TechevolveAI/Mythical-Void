@@ -12,6 +12,7 @@ const validator = path.join(__dirname, 'validate-play-intent-doorway.cjs');
 const files = [
     'public/playable-now/index.html',
     'public/discovery.js',
+    'public/discovery.css',
     'docs/company/growth/PLAY_INTENT_DOORWAY.json'
 ];
 let cases = 0;
@@ -59,6 +60,7 @@ try {
 invalid('public/playable-now/index.html', source => source.replace('data-intent-choice="story"', 'data-intent-choice="missing"'), 'page is missing story');
 invalid('public/playable-now/index.html', source => source.replace('href="/play/" data-intent-play', 'href="/play/?source=story" data-intent-play'), 'tracking address');
 invalid('public/discovery.js', source => source.replace("readChoice() !== 'granted'", 'false'), 'measurement is not stopped before consent');
+invalid('public/discovery.css', source => source.replace('scroll-margin-top: 16px', 'scroll-margin-top: 0'), 'readable arrival offset');
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceRememberedInBrowser": false', '"choiceRememberedInBrowser": true'), 'choice collection boundary is invalid');
 
 function interactiveResult(consent, choice) {
@@ -98,5 +100,5 @@ const denied = interactiveResult('denied', 'wonder');
 assert.strictEqual(denied.answerHidden, false);
 assert.strictEqual(denied.events.length, 0);
 
-assert.strictEqual(cases, 7);
-console.log('Play-intent doorway checks passed (7 scenarios).');
+assert.strictEqual(cases, 8);
+console.log('Play-intent doorway checks passed (8 scenarios).');

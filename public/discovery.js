@@ -144,6 +144,16 @@
                 intentAnswer.hidden = false;
             });
         });
+
+        if (window.location.hash === '#find-your-way') {
+            var settleIntentAnchor = function () {
+                window.requestAnimationFrame(function () {
+                    intentRoot.scrollIntoView({ block: 'start' });
+                });
+            };
+            if (document.readyState === 'complete') settleIntentAnchor();
+            else window.addEventListener('load', settleIntentAnchor, { once: true });
+        }
     }
 
     window.dataLayer = window.dataLayer || [];

@@ -10,6 +10,7 @@ const root = rootFlag === -1
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 const page = read('public/playable-now/index.html');
 const discovery = read('public/discovery.js');
+const discoveryCss = read('public/discovery.css');
 const plan = JSON.parse(read('docs/company/growth/PLAY_INTENT_DOORWAY.json'));
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
@@ -25,6 +26,7 @@ requireValue(plan.releaseId === 'PLAY-INTENT-DOORWAY-2026-08-26', 'release ident
 requireValue(plan.state === 'owned_site_release_authorized_pending_production_verification', 'release authority state is invalid');
 requireValue(plan.publicRoute === 'https://mythicalvoid.com/playable-now/', 'public route is invalid');
 requireValue(page.includes('What are you in the mood for?'), 'plain-language question is missing');
+requireValue(page.includes('id="find-your-way"'), 'play-intent doorway needs a stable homepage destination');
 requireValue(page.includes('It does not create a profile, and no account is needed.'), 'public privacy promise is missing');
 requireValue(page.includes('data-play-intent') && page.includes('data-intent-answer hidden'), 'progressive intent doorway is missing');
 requireValue(page.includes('<noscript>') && page.includes('Play Mythical Void free in your browser'), 'no-script Play route is missing');
@@ -45,6 +47,8 @@ for (const [id, button, sourceArea] of expected) {
 }
 
 requireValue(discovery.includes("declaredArea.dataset.sourceArea"), 'Play source does not use the selected doorway');
+requireValue(discovery.includes("window.location.hash === '#find-your-way'") && discovery.includes("intentRoot.scrollIntoView({ block: 'start' })"), 'the homepage doorway does not settle reliably after page load');
+requireValue(discoveryCss.includes('.play-intent-section') && discoveryCss.includes('scroll-margin-top: 16px'), 'the doorway lacks a readable arrival offset');
 requireValue(discovery.includes("readChoice() !== 'granted'"), 'measurement is not stopped before consent');
 requireValue(discovery.includes("track('play_selected'"), 'existing Play event is not connected');
 requireValue(!discovery.includes("track('intent_"), 'choice clicks must not create analytics events');
