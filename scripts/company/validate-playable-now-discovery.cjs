@@ -37,7 +37,7 @@ requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(page), 'page contains a tracking
 requireValue(!/NASA (?:made|makes|endorses|partners with) Mythical Void/i.test(page), 'page implies a NASA relationship');
 requireValue(page.includes('data-share-game') && page.includes('data-copy-game') && page.includes('data-share-status'), 'clean sharing controls are missing');
 requireValue(page.includes('never asks for their contact details') && page.includes('adds no tracking code'), 'sharing privacy explanation is missing');
-requireValue(page.includes('/discovery.css?v=20260826-intent-sharing') && page.includes('/discovery.js?v=20260826-intent-sharing'), 'game-finder sharing assets need a matching fresh cache version');
+requireValue(page.includes('/discovery.css?v=20260826-return-doorway') && page.includes('/discovery.js?v=20260826-return-doorway'), 'game-finder assets need a matching fresh cache version');
 
 for (const prefix of register.withdrawnPathFamilies) requireValue(!page.includes(prefix), `withdrawn path family ${prefix} is published on the page`);
 for (const publicPath of register.withdrawnIndividualPaths) requireValue(!page.includes(publicPath), `withdrawn asset ${publicPath} is published on the page`);

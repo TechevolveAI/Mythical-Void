@@ -41,7 +41,7 @@ requireValue(storefront.includes('MythicalReturningPlayer?.apply(app)'), 'render
 requireValue(storefrontCss.includes('.returning-player-note') && storefrontCss.includes('[hidden]'), 'homepage return styling is missing');
 
 requireValue(playable.includes('/returning-player.js?v=20260826-return-doorway'), 'new-game doorway does not load the return helper');
-requireValue(playable.indexOf('/returning-player.js?v=20260826-return-doorway') < playable.indexOf('/discovery.js?v=20260826-intent-sharing'), 'return helper must load before the game-finder script');
+requireValue(playable.indexOf('/returning-player.js?v=20260826-return-doorway') < playable.indexOf('/discovery.js?v=20260826-return-doorway'), 'return helper must load before the game-finder script');
 requireValue((playable.match(/data-play-link/g) || []).length >= 4, 'new-game doorway needs four return-aware Play controls');
 requireValue(playable.includes('data-returning-player-note hidden'), 'new-game doorway welcome-back note is missing');
 requireValue(discovery.includes("isReturningPlayer() ? 'Continue your adventure' : message.cta"), 'choosing a mood overwrites the returning-player label');
