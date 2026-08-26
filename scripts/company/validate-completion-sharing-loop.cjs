@@ -16,7 +16,7 @@ const requireValue = (condition, message) => { if (!condition) failures.push(mes
 const method = scene.match(/async shareCompletedAdventure\(label\) \{([\s\S]*?)\n    \}\n\n    \/\*\*\n     \* Return to hub/)?.[1] || '';
 
 requireValue(release.releaseId === 'COMPLETION-SHARING-LOOP-2026-08-27', 'release identity is missing');
-requireValue(release.state === 'owned_game_release_authorized_pending_production_verification', 'release authority state is invalid');
+requireValue(['owned_game_release_authorized_pending_production_verification', 'live_production_verified'].includes(release.state), 'release authority state is invalid');
 requireValue(release.trigger?.moment === 'final_epilogue_page_after_priority_choice', 'completion moment drifted');
 requireValue(release.trigger?.automaticShare === false && release.trigger?.automaticPrompt === false && release.trigger?.playerActionRequired === true, 'sharing must remain voluntary');
 
@@ -61,6 +61,19 @@ for (const [key, expected] of Object.entries({
     externalAccountChangeAuthorized: false,
     externalActionTaken: false
 })) requireValue(release.authority?.[key] === expected, `authority.${key} must be ${expected}`);
+if (release.state === 'live_production_verified') {
+    requireValue(/^[0-9a-f]{40}$/.test(release.verification?.productionCommit || ''), 'verified release is missing its production commit');
+    requireValue(/^[0-9a-f]{24}$/.test(release.verification?.productionDeployId || ''), 'verified release is missing its production deploy ID');
+    requireValue(!Number.isNaN(Date.parse(release.verification?.productionPublishedAt || '')), 'verified release is missing its production time');
+    for (const [key, expected] of Object.entries({
+        updatesPageHttpStatus: 200,
+        signalEntryPresent: true,
+        shareActionPresentInGameBundle: true,
+        cleanShareUrlPresentInGameBundle: true,
+        nonIdentifyingChildCreditPresent: true,
+        exactChildAgeAbsent: true
+    })) requireValue(release.verification?.publicChecks?.[key] === expected, `verification.publicChecks.${key} must be ${expected}`);
+}
 
 if (failures.length) {
     console.error('Completion sharing loop is not ready:\n');

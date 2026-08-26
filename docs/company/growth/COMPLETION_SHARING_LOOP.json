@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "COMPLETION-SHARING-LOOP-2026-08-27",
-  "state": "owned_game_release_authorized_pending_production_verification",
+  "state": "live_production_verified",
   "purpose": "Give a player who completes Project Beacon a natural, voluntary way to pass the free game on after a meaningful ending.",
   "trigger": {
     "scene": "VictoryScene",
@@ -53,7 +53,16 @@
     "automatedPrivacyTestRequired": true,
     "endingLayoutReviewRequired": true,
     "productionVerificationRequired": true,
-    "productionCommit": null,
-    "productionDeployId": null
+    "productionCommit": "b92c62f73c5784c739669478718e67eaeb1650c4",
+    "productionDeployId": "6a8f7352b958330008635e96",
+    "productionPublishedAt": "2026-08-26T23:15:30.963Z",
+    "publicChecks": {
+      "updatesPageHttpStatus": 200,
+      "signalEntryPresent": true,
+      "shareActionPresentInGameBundle": true,
+      "cleanShareUrlPresentInGameBundle": true,
+      "nonIdentifyingChildCreditPresent": true,
+      "exactChildAgeAbsent": true
+    }
   }
 }

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "SIGNAL-LOG-SYNDICATION-2026-08-26",
-  "state": "complete_owned_site_release_waiting_for_production_verification",
+  "state": "complete_owned_site_release_production_verified",
   "source": {
     "path": "public/updates/releases.json",
     "fingerprintSha256": "afbfad908ac5faeec28aa09c9213c3cd95b9a12d6ee531671e39ffa008a64249",
@@ -45,5 +45,12 @@
     "emailSendingAuthorized": false,
     "socialPostingAuthorized": false,
     "externalActionTaken": false
+  },
+  "productionVerification": {
+    "commit": "b92c62f73c5784c739669478718e67eaeb1650c4",
+    "deployId": "6a8f7352b958330008635e96",
+    "publishedAt": "2026-08-26T23:15:30.963Z",
+    "updatesPageHttpStatus": 200,
+    "signalEntryPresent": true
   }
 }
