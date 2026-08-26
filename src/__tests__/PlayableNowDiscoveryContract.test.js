@@ -15,7 +15,12 @@ describe('Playable Now discovery page', () => {
     });
 
     test('explains the game clearly while weak media remains withdrawn', () => {
-        expect(page).toContain('Crash. Hatch. Restore. Choose.');
+        expect(page).toContain('LOOKING FOR A NEW GAME? START HERE');
+        expect(page).toContain('<h1>What are you in the mood for?</h1>');
+        expect(page).toContain('Mythical Void is a free alien creature adventure.');
+        expect(page).toContain('Free · No download · No account · No payment details · Early access');
+        expect(page.indexOf('id="find-your-way"')).toBeLessThan(page.indexOf('class="truth-strip"'));
+        expect(page).not.toContain('<section class="hero playable-hero">');
         expect(page).toContain('previous gameplay media pack is withdrawn');
         expect(page).toContain('creature stays visible');
         expect(page.match(/href="\/play\/"/g).length).toBeGreaterThanOrEqual(3);
@@ -47,6 +52,7 @@ describe('Playable Now discovery page', () => {
     test('is checked during every production build', () => {
         const scripts = require('../../package.json').scripts;
         expect(scripts.build).toContain('validate:playable-now');
+        expect(scripts.build).toContain('validate:organic-discovery');
         expect(scripts.build).toContain('validate:public-visual-trust');
         expect(scripts.build).toContain('validate:owned-sharing');
         expect(scripts.build).toContain('validate:social-previews');
