@@ -111,7 +111,7 @@ describe('storefront Project Beacon story contract', () => {
 
     test('publishes absolute social media assets and route-aware canonical metadata', () => {
         expect(metadata).toContain(
-            'content="https://mythicalvoid.com/press/social/mythical-void-share-wide.png"'
+            'content="https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp"'
         );
         expect(metadata).toContain(
             '<link rel="canonical" href="https://mythicalvoid.com/">'

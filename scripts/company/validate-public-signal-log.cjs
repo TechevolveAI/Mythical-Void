@@ -12,13 +12,14 @@ const page = fs.readFileSync(pagePath, 'utf8');
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 const allowedKeys = new Set(['id', 'publishedOn', 'status', 'category', 'title', 'summary', 'details', 'image', 'imageAlt', 'imageClass', 'disclosure', 'destination', 'linkText', 'download']);
+const liveEntries = (data.entries || []).filter(entry => entry.status === 'live');
 
 requireValue(data.schemaVersion === 1, 'schemaVersion must be 1');
 requireValue(data.page?.canonicalUrl === 'https://mythicalvoid.com/updates/', 'canonical URL must be the owned updates route');
 for (const [field, expected] of Object.entries({ liveItemsOnly: true, commentsEnabled: false, contactCollectionEnabled: false, emailSignupEnabled: false, playerProfilesCreated: false, trackingParametersPermitted: false })) {
     requireValue(data.publicationBoundary?.[field] === expected, `publicationBoundary.${field} must be ${expected}`);
 }
-requireValue(Array.isArray(data.entries) && data.entries.length >= 2, 'Signal Log needs at least two real live entries at launch');
+requireValue(liveEntries.length >= 2, 'Signal Log needs at least two real live entries');
 
 const ids = new Set();
 for (const [index, entry] of (data.entries || []).entries()) {
@@ -27,7 +28,7 @@ for (const [index, entry] of (data.entries || []).entries()) {
     requireValue(/^SIGNAL-\d{3}$/.test(entry?.id || ''), `${label} has an invalid ID`);
     requireValue(!ids.has(entry?.id), `${label} is duplicated`);
     ids.add(entry?.id);
-    requireValue(entry?.status === 'live', `${label} is not live`);
+    requireValue(entry?.status === 'live' || entry?.status === 'withdrawn', `${label} has an unsupported publication status`);
     requireValue(/^\d{4}-\d{2}-\d{2}$/.test(entry?.publishedOn || ''), `${label} has an invalid publication date`);
     requireValue(!Number.isNaN(Date.parse(`${entry.publishedOn}T00:00:00Z`)), `${label} has an impossible publication date`);
     requireValue(Array.isArray(entry?.details) && entry.details.length === 3, `${label} must contain three checkable details`);
@@ -71,12 +72,12 @@ try {
 } catch (error) {
     failures.push(`structured data is invalid: ${error.message}`);
 }
-requireValue(structured?.['@type'] === 'CollectionPage' && structured?.hasPart?.length === data.entries.length, 'structured data must describe every live entry');
+requireValue(structured?.['@type'] === 'CollectionPage' && structured?.hasPart?.length === liveEntries.length, 'structured data must describe every live entry');
 
 console.log(JSON.stringify({
     route: '/updates/',
     valid: failures.length === 0,
-    liveEntryCount: (data.entries || []).length,
+    liveEntryCount: liveEntries.length,
     commentsEnabled: false,
     contactCollectionEnabled: false,
     trackingParametersPermitted: false,

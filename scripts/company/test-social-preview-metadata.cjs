@@ -39,9 +39,9 @@ try {
     assert.strictEqual(run('valid').status, 0);
     assert.notStrictEqual(run('tracked-image', manifest => { manifest.pages[0].imageUrl += '?utm_source=test'; }).status, 0);
     assert.notStrictEqual(run('wrong-width', manifest => { manifest.pages[0].width = 1199; }).status, 0);
-    assert.notStrictEqual(run('unsafe-generated-label', manifest => { manifest.pages.find(page => page.classification === 'ai_generated_marketing_illustration').disclosure = 'Beautiful game image.'; }).status, 0);
-    assert.notStrictEqual(run('missing-nasa-boundary', manifest => { manifest.pages.find(page => /nasa/i.test(page.classification)).disclosure = 'NASA learning image.'; }).status, 0);
-    assert.notStrictEqual(run('missing-founder-identity-boundary', manifest => { manifest.pages.find(page => /founder_story/i.test(page.classification)).disclosure = 'Founder artwork with a game image.'; }).status, 0);
+    assert.notStrictEqual(run('unsafe-generated-label', manifest => { manifest.pages.find(page => page.classification === 'ai_generated_marketing_illustration_not_gameplay').disclosure = 'Beautiful game image.'; }).status, 0);
+    assert.notStrictEqual(run('missing-route', manifest => { manifest.pages.pop(); }).status, 0);
+    assert.notStrictEqual(run('state-drift', manifest => { manifest.state = 'gameplay_media_approved'; }).status, 0);
     assert.notStrictEqual(run('missing-renderer-proof-boundary', manifest => { manifest.pages.find(page => page.route === '/creature-field-guide/').disclosure = 'A collection of creatures.'; }).status, 0);
     assert.notStrictEqual(run('hidden-press-limit', manifest => { manifest.knownLimitations = []; }).status, 0);
     assert.notStrictEqual(run('opened-social-authority', manifest => { manifest.authority.autonomousSocialPostingAuthorized = true; }).status, 0);

@@ -1,49 +1,23 @@
 {
-  "schemaVersion": 1,
-  "releaseId": "PLAYABLE-NOW-DISCOVERY-2026-08-26",
-  "state": "owned_site_visual_quality_correction_live_and_verified",
-  "purpose": "Give an unfamiliar visitor one clear, attractive and truthfully labelled path from an in-game story moment to understanding the game and starting it.",
+  "schemaVersion": 2,
+  "releaseId": "PLAYABLE-NOW-VISUAL-TRUST-2026-08-26",
+  "state": "owned_site_explanation_live_media_withdrawn_pending_rebuild",
+  "purpose": "Explain the playable game clearly while weak screenshots and video remain withheld from promotion.",
   "page": {
     "path": "public/playable-now/index.html",
     "publicUrl": "https://mythicalvoid.com/playable-now/",
-    "sha256": "dc46677175e9a04fd23f63009984c75327322b5267de3ae6c1f8b78b6a385d78",
+    "sha256": "8d94703133ec9382b1b6dd9316caf87788052407fb593b41c964365a615a890e",
     "canonical": "https://mythicalvoid.com/playable-now/",
     "directPlayLinkMinimum": 3,
-    "structuredData": ["VideoGame", "VideoObject", "FAQPage"]
+    "structuredData": ["VideoGame", "FAQPage"]
   },
-  "authenticStoryMoment": {
-    "videoPath": "public/press/gameplay-video/mythical-forest-authentic-gameplay.mp4",
-    "videoSha256": "bb4c59d8af77624b24894e55ec2425af2224cebe6f42acd326942b242f6a1750",
-    "videoDurationSeconds": 3.17,
-    "posterPath": "public/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
-    "posterSha256": "27b777a254c0830b59812ed82934a0bc30681e522e0d1ec509fc73103b584b86",
-    "screenshotCount": 4,
-    "creatureRangePath": "public/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png",
-    "creatureRangeSha256": "597ae1f4f4507ce071857c20b70407baa451ec0802602616d14c1c2ddfafaf11",
-    "forestArrivalPath": "public/press/gameplay/mythical-forest-arrival-wide.png",
-    "forestArrivalSha256": "dfc392f689d212f0453b034c414d16f67ab024c957e5faf2209dcbde4c125d4f",
-    "classification": "authentic_running_build_story_moment",
-    "platformingOrCombatClaimed": false,
-    "generatedFramesUsed": false,
-    "playerIdentityUsed": false,
-    "personalSaveUsed": false
-  },
-  "discoverability": {
-    "homepageFirstScreenLink": true,
-    "sitemapListed": true,
-    "pressManifestListed": true,
-    "machineReadableSiteGuideListed": true,
-    "signalLogEntry": "SIGNAL-009",
-    "rssAndJsonFeedIncluded": true,
-    "cleanOwnedSharingJourney": true
-  },
-  "claimBoundaries": {
-    "earlyAccessStated": true,
-    "freeCurrentReleaseStated": true,
-    "formalAgeRatingClaimed": false,
-    "absoluteCreatureUniquenessClaimed": false,
-    "nasaEndorsementClaimed": false,
-    "generatedMarketingArtCalledGameplay": false
+  "visualDecision": {
+    "registerPath": "public/press/visual-publication-register.json",
+    "withdrawnGameplayMedia": true,
+    "replacementApproved": false,
+    "temporaryHero": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+    "temporaryHeroClassification": "ai_generated_marketing_illustration_not_gameplay",
+    "humanReviewRequiredBeforeReplacement": true
   },
   "privacy": {
     "accountRequired": false,
@@ -62,15 +36,10 @@
     "externalActionTaken": false
   },
   "verification": {
-    "desktopVisualReviewPassed": true,
-    "phoneVisualReviewPassed": true,
-    "phoneWidth": 390,
-    "horizontalOverflowObserved": false,
-    "videoDurationObservedSeconds": 3.166667,
-    "motionContactSheetReviewPassed": true,
-    "directPlayNavigationVerified": true,
-    "productionUrlVerified": true,
-    "productionCommit": "fafa1ff4ef04cb191a7481c45e8c6de36c462794",
-    "productionDeployId": "6a8ef19ba3897e000853ffae"
+    "desktopVisualReviewRequired": true,
+    "phoneVisualReviewRequired": true,
+    "productionVerificationRequired": true,
+    "productionCommit": null,
+    "productionDeployId": null
   }
 }

@@ -87,8 +87,9 @@ function renderSighting(sighting) {
     return `
         <article class="field-sighting" style="--creature-colour:${escapeHtml(profile.colors.primary)}">
             <div class="field-sighting-visual">
-                <span class="field-sighting-id">${escapeHtml(profile.id)} // REAL GAME RENDER</span>
-                <img src="${escapeHtml(profile.image)}" alt="Real game render of ${escapeHtml(profile.speciesLabel)}, known in the field guide as ${escapeHtml(sighting.name)}" loading="lazy">
+                <span class="field-sighting-id">${escapeHtml(profile.id)} // VERIFIED PROFILE</span>
+                <div class="field-sighting-glyph" aria-hidden="true"><i></i><i></i><i></i><strong>${escapeHtml(sighting.name.slice(0, 1))}</strong></div>
+                <small>Visual withheld while the creature capture is rebuilt.</small>
             </div>
             <div class="field-sighting-copy">
                 <p class="field-story-label">FIELD-GUIDE STORY</p>
@@ -113,10 +114,7 @@ function renderRealm(realm) {
                 </div>
             </header>
             <div class="field-realm-context">
-                <figure>
-                    <img src="${escapeHtml(realm.gameImage)}" alt="${escapeHtml(realm.imageAlt)}" loading="lazy">
-                    <figcaption>Real phone gameplay from ${escapeHtml(realm.label)}.</figcaption>
-                </figure>
+                <div class="field-realm-signal" aria-label="Project Beacon realm signal for ${escapeHtml(realm.label)}"><span>REALM ${escapeHtml(realm.number)}</span><strong>${escapeHtml(realm.label)}</strong><small>SIGNAL PARTIALLY RESTORED</small></div>
                 <div class="field-realm-truth">
                     <span>WHAT THE GAME TEACHES</span>
                     <p>${escapeHtml(realm.knownGameTruth)}</p>
@@ -136,7 +134,7 @@ function buildFieldGuideHtml(data) {
         '@type': 'CollectionPage',
         name: 'Project Beacon Creature Field Guide',
         url: 'https://mythicalvoid.com/creature-field-guide/',
-        description: 'Twelve real Mythical Void creature renders placed carefully across the game’s six realms, with verified traits and clearly labelled field-guide stories.',
+        description: 'Twelve Mythical Void creature profiles placed carefully across the game’s six realms, with verified traits and clearly labelled field-guide stories.',
         isPartOf: { '@type': 'WebSite', name: 'Mythical Void', url: 'https://mythicalvoid.com/' }
     }).replace(/</g, '\\u003c');
     return `<!doctype html>
@@ -144,24 +142,24 @@ function buildFieldGuideHtml(data) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Meet 12 real Mythical Void creatures across six realms. Explore verified game traits and official field-guide stories connected to Project Beacon.">
+    <meta name="description" content="Meet 12 Mythical Void creature profiles across six realms. Explore verified traits and official field-guide stories connected to Project Beacon.">
     <meta name="robots" content="index, follow, max-image-preview:large">
     <meta name="theme-color" content="#090711">
     <meta property="og:title" content="Project Beacon Creature Field Guide | Mythical Void">
-    <meta property="og:description" content="Twelve real creature renders. Six realms. Official stories that make the living universe easier to enter.">
-    <meta property="og:image" content="https://mythicalvoid.com/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png">
-    <meta property="og:image:type" content="image/png">
-    <meta property="og:image:width" content="1440">
-    <meta property="og:image:height" content="900">
-    <meta property="og:image:alt" content="Twelve real pixel creatures from the Mythical Void renderer gathered in a luminous alien field-guide display">
+    <meta property="og:description" content="Twelve creature profiles. Six realms. Official stories that make the living universe easier to enter.">
+    <meta property="og:image" content="https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp">
+    <meta property="og:image:type" content="image/webp">
+    <meta property="og:image:width" content="1672">
+    <meta property="og:image:height" content="941">
+    <meta property="og:image:alt" content="An imagined luminous universe filled with many possible alien creature forms">
     <meta property="og:url" content="https://mythicalvoid.com/creature-field-guide/">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Mythical Void">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Project Beacon Creature Field Guide | Mythical Void">
-    <meta name="twitter:description" content="Meet 12 verified creature renders across the six realms of Mythical Void.">
-    <meta name="twitter:image" content="https://mythicalvoid.com/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png">
-    <meta name="twitter:image:alt" content="Twelve real pixel creatures from the Mythical Void renderer gathered in a luminous alien field-guide display">
+    <meta name="twitter:description" content="Meet 12 verified creature profiles across the six realms of Mythical Void.">
+    <meta name="twitter:image" content="https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp">
+    <meta name="twitter:image:alt" content="An imagined luminous universe filled with many possible alien creature forms">
     <link rel="canonical" href="https://mythicalvoid.com/creature-field-guide/">
     <link rel="alternate" type="application/rss+xml" title="Mythical Void — The Signal Log" href="https://mythicalvoid.com/updates/feed.xml">
     <link rel="alternate" type="application/feed+json" title="Mythical Void — The Signal Log" href="https://mythicalvoid.com/updates/feed.json">
@@ -174,9 +172,9 @@ function buildFieldGuideHtml(data) {
     <a class="skip-link" href="#main">Skip to the field guide</a>
     <header class="site-header"><div class="header-inner"><a class="brand" href="/" aria-label="Mythical Void home"><img src="/marketing/mythical-void-emblem-v3.png" alt=""><span>MYTHICAL VOID</span></a><nav class="site-nav" aria-label="Main navigation"><a href="/creature-genetics/">Creature engine</a><a href="/story/">The story</a><a href="/parents/">For grown-ups</a><a class="button button-primary" href="/play/">Play now →</a></nav></div></header>
     <main id="main">
-        <section class="hero field-guide-hero"><div class="section-inner hero-grid"><div><p class="kicker">PROJECT BEACON // FIELD RECORD 001</p><h1>The Void remembers every signal.</h1><p class="hero-copy">Twelve real creatures. Six living realms. One difficult question: what should Project Beacon carry home?</p><div class="hero-actions"><a class="button button-primary" href="#mythical_forest">Enter the field guide →</a><a class="button button-quiet" href="/play/">Play the current game</a></div></div><figure class="hero-visual"><img src="/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png" alt="Twelve real pixel creatures rendered by the running Mythical Void creature engine"><figcaption><strong>REAL CREATURE RENDERS.</strong> Every creature inside this display is an exact export from the running game renderer.</figcaption></figure></div></section>
-        <section class="truth-strip" aria-label="Field guide structure"><div class="section-inner truth-grid"><div><span>12</span><small>verified creature renders</small></div><div><span>6</span><small>realms in the current journey</small></div><div><span>2</span><small>field sightings per realm</small></div><div><span>1</span><small>choice at the living boundary</small></div></div></section>
-        <section class="field-boundary"><div class="section-inner"><div class="field-boundary-card"><p class="kicker">WHAT IS FACT — AND WHAT IS STORY?</p><h2>A field guide with its labels left on.</h2><p><strong>From the current game:</strong> the creature images and profile traits, the six realm names, their guardians, and Project Beacon’s central questions.</p><p><strong>New official universe material:</strong> the names and short stories below. They deepen the world, but do not claim these twelve creatures or events are already playable quests.</p></div><nav class="field-route" aria-label="Jump to a realm">${routeLinks}</nav></div></section>
+        <section class="hero field-guide-hero"><div class="section-inner hero-grid"><div><p class="kicker">PROJECT BEACON // FIELD RECORD 001</p><h1>The Void remembers every signal.</h1><p class="hero-copy">Twelve creature profiles. Six living realms. One difficult question: what should Project Beacon carry home?</p><div class="hero-actions"><a class="button button-primary" href="#mythical_forest">Enter the field guide →</a><a class="button button-quiet" href="/play/">Play the current game</a></div></div><figure class="hero-visual"><img src="/marketing/mythical-void-creature-universe-hero-v2.webp" alt="Many imagined alien organisms gathered in a luminous Mythical Void realm"><figcaption><strong>IMAGINED UNIVERSE ART.</strong> AI-generated marketing artwork inspired by the creature system. It is not gameplay.</figcaption></figure></div></section>
+        <section class="truth-strip" aria-label="Field guide structure"><div class="section-inner truth-grid"><div><span>12</span><small>verified creature profiles</small></div><div><span>6</span><small>realms in the current journey</small></div><div><span>2</span><small>field sightings per realm</small></div><div><span>1</span><small>choice at the living boundary</small></div></div></section>
+        <section class="field-boundary"><div class="section-inner"><div class="field-boundary-card"><p class="kicker">WHAT IS FACT — AND WHAT IS STORY?</p><h2>A field guide with its labels left on.</h2><p><strong>From the current game:</strong> the structured creature traits, the six realm names, their guardians, and Project Beacon’s central questions.</p><p><strong>New official universe material:</strong> the names and short stories below. They deepen the world, but do not claim these twelve creatures or events are already playable quests.</p><p><strong>Visual review:</strong> the earlier sprite and realm captures were real but poor at communicating the experience. They are withheld here until better moments are captured.</p></div><nav class="field-route" aria-label="Jump to a realm">${routeLinks}</nav></div></section>
         ${data.realms.map(renderRealm).join('')}
         <section class="content-section field-guide-finale"><div class="section-inner split"><div><p class="kicker">THE FINAL RECORD IS YOURS</p><h2>Observe. Repair. Protect. Then decide what should be known.</h2><p>Project Beacon begins as a way home. Each realm changes the meaning of that mission. By the final boundary, discovery is no longer only about what humanity can learn. It is about what humanity can be trusted to carry.</p></div><div class="field-finale-card"><span>READY TO BEGIN?</span><p>Wanderer-77 is down. The first signal is waiting in the Mythical Forest.</p><a class="button button-primary" href="/play/">Play now — it’s free →</a><a class="field-text-link" href="/story/">Read the main story</a></div></div></section>
     </main>

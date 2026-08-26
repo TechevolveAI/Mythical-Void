@@ -6,7 +6,8 @@
   "currentHumanReview": {
     "decision": "withdrawn_from_public_promotion",
     "reason": "The creature is visible and technically correct, but the sprite, surrounding frame and overall composition are not strong enough to represent the game to an unfamiliar person.",
-    "replacement": "/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png"
+    "replacement": null,
+    "replacementState": "pending_new_human_reviewed_gameplay_moment"
   },
   "priorReview": {
     "id": "HATCH-REVEAL-REVIEW-001",

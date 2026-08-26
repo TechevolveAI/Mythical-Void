@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { readVisualPublicationRegister } = require('./visual-publication-policy.cjs');
 
 const root = path.resolve(__dirname, '../..');
 const pagePath = process.argv[2] ? path.resolve(process.argv[2]) : path.join(root, 'public/educators/index.html');
@@ -31,9 +32,9 @@ for (const step of ['Observe a real signal', 'Change the rules', 'Build for surv
     requireValue(page.includes(step), `mission step is missing: ${step}`);
 }
 requireValue(page.includes('/resources/mythical-void-stem-creature-lab.pdf'), 'STEM Creature Lab link is missing');
-requireValue(page.includes('/resources/mythical-void-play-share-card.pdf'), 'play-and-share card link is missing');
-requireValue(page.includes('/press/social/nasa-stem-discovery-wide.png'), 'reviewed NASA and real-game sharing visual is missing');
-requireValue(page.includes('REAL GAME + REAL NASA IMAGE.'), 'the real-game and real-space boundary is missing');
+requireValue(page.includes('/resources/previews/stem-creature-lab-cover.png'), 'accurate activity preview is missing');
+requireValue(page.includes('THE ACTIVITY YOU WILL USE.'), 'activity-preview boundary is missing');
+requireValue(page.includes('Open Mythical Void together'), 'shared play route is missing');
 requireValue((page.match(/NASA does not endorse Mythical Void\./g) || []).length >= 2, 'NASA non-endorsement must be unmistakable');
 requireValue(page.includes('Children are not asked to use a generative AI service.'), 'child AI-use boundary is missing');
 requireValue(page.includes('do not need to leave the room'), 'student-work privacy guidance is missing');
@@ -51,32 +52,29 @@ requireValue(graph.some(item => item?.['@type'] === 'LearningResource' && item?.
 requireValue(graph.some(item => item?.['@type'] === 'FAQPage' && item?.mainEntity?.length >= 3), 'FAQ structured data is missing');
 
 for (const [relative, minimumBytes] of [
-    ['public/resources/mythical-void-stem-creature-lab.pdf', 500000],
-    ['public/resources/mythical-void-play-share-card.pdf', 500000]
+    ['public/resources/mythical-void-stem-creature-lab.pdf', 500000]
 ]) {
     const bytes = read(relative);
     requireValue(bytes.subarray(0, 4).toString('ascii') === '%PDF', `${relative} is not a PDF`);
     requireValue(bytes.length > minimumBytes, `${relative} is unexpectedly small`);
 }
 for (const relative of [
-    'public/resources/previews/stem-creature-lab-cover.png',
-    'public/resources/previews/play-share-card.png'
+    'public/resources/previews/stem-creature-lab-cover.png'
 ]) {
     const dimensions = pngDimensions(relative);
     requireValue(dimensions?.width === 794 && dimensions?.height === 1123, `${relative} preview dimensions are incorrect`);
     requireValue(read(relative).length > 100000, `${relative} preview is unexpectedly small`);
 }
 
-const gameplay = json('public/press/gameplay/manifest.json');
-const proof = gameplay.captures?.find(item => item.publicPath === '/press/gameplay/nasa-apollo11-real-space-discovery.png');
-requireValue(Boolean(proof), 'NASA discovery screen is missing from the gameplay manifest');
-if (proof) requireValue(proof.sha256 === sha256(read('public/press/gameplay/nasa-apollo11-real-space-discovery.png')), 'NASA discovery screen fingerprint has drifted');
+const visualRegister = readVisualPublicationRegister();
+for (const prefix of visualRegister.withdrawnPathFamilies) requireValue(!page.includes(prefix), `educator page republishes withdrawn path family ${prefix}`);
+for (const publicPath of visualRegister.withdrawnIndividualPaths) requireValue(!page.includes(publicPath), `educator page republishes withdrawn asset ${publicPath}`);
 
 const previews = json('public/press/mythical-void-social-previews.json');
 const preview = previews.pages?.find(item => item.route === '/educators/');
 requireValue(preview?.htmlPath === 'public/educators/index.html', 'educator social preview route is missing');
-requireValue(preview?.imagePath === 'public/press/social/nasa-stem-discovery-wide.png', 'educator social preview is not using the reviewed NASA/STEM card');
-requireValue(/NASA does not endorse Mythical Void/i.test(preview?.disclosure || ''), 'educator preview lost the NASA boundary');
+requireValue(preview?.imagePath === 'public/marketing/mythical-void-creature-universe-hero-v2.webp', 'educator social preview is not using the approved temporary fallback');
+requireValue(/not gameplay/i.test(preview?.disclosure || ''), 'educator preview lost its artwork boundary');
 
 const press = json('public/press/mythical-void-press-assets.json');
 requireValue(press.educatorPageUrl === 'https://mythicalvoid.com/educators/', 'press manifest educator page URL is missing');
@@ -84,7 +82,7 @@ requireValue(press.educatorResources?.some(item => item.pageUrl === 'https://myt
 
 const signals = json('public/updates/releases.json');
 const releaseSignal = signals.entries?.find(item => item.id === 'SIGNAL-016');
-requireValue(releaseSignal?.status === 'live' && releaseSignal?.destination === '/educators/' && releaseSignal?.image === '/press/social/nasa-stem-discovery-wide.png', 'educator Signal Log entry is missing or drifted');
+requireValue(releaseSignal?.status === 'live' && releaseSignal?.destination === '/educators/', 'educator Signal Log entry is missing or drifted');
 
 for (const [relative, fragment, label] of [
     ['public/sitemap.xml', '<loc>https://mythicalvoid.com/educators/</loc>', 'sitemap'],
@@ -103,7 +101,7 @@ console.log(JSON.stringify({
     publicUrl: 'https://mythicalvoid.com/educators/',
     fullSessionMinutes: '45-60',
     quickSessionMinutes: 20,
-    printableResources: 2,
+    printableResources: 1,
     studentAccountRequired: false,
     contactCollection: false,
     externalPublicationAuthorized: false,
