@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-26",
+  "state": "no_launch_grade_gameplay_media_approved",
+  "purpose": "Create a small, honest set of gameplay moments that makes a child or grown-up want to understand and try Mythical Void.",
+  "currentVisualFinding": {
+    "source": "Kevin's direct testing feedback and a fresh full-size review of the current public capture set",
+    "finding": "The existing media does not communicate the game well enough. In platforming footage the creature can read as a small square block, the frame is crowded by controls and instructions, and the selected moments do not create curiosity or delight.",
+    "decision": "Keep the entire old media set withdrawn and block its direct public URLs. Do not replace it with another automatically accepted capture run."
+  },
+  "requiredMoments": [
+    {
+      "id": "creature-helps",
+      "publicQuestion": "What can my creature and I do together?",
+      "shot": "The creature visibly helps the player solve or survive one clear obstacle.",
+      "mustShow": [
+        "player and creature in the same frame",
+        "one recognisable obstacle",
+        "the creature's helpful action",
+        "the immediate result"
+      ],
+      "currentState": "blocked_by_current_game_visual",
+      "evidence": "/press/gameplay/realm-mythicalforest.png",
+      "reason": "The current creature presentation is too small and can look like a placeholder block beside the astronaut."
+    },
+    {
+      "id": "choice-changes-world",
+      "publicQuestion": "Do my choices actually matter?",
+      "shot": "One readable choice followed by a visible change in the world.",
+      "mustShow": [
+        "the choice in plain words",
+        "the changed place, creature or relationship",
+        "no unexplained menu clutter"
+      ],
+      "currentState": "no_candidate_captured",
+      "evidence": null,
+      "reason": "The old material shows interfaces but not a clear before-and-after consequence."
+    },
+    {
+      "id": "strange-discovery",
+      "publicQuestion": "What is surprising about this universe?",
+      "shot": "The player and creature discover one memorable feature of an alien realm.",
+      "mustShow": [
+        "player and creature in the same frame",
+        "one unusual realm feature",
+        "a composition understandable without a caption"
+      ],
+      "currentState": "no_candidate_captured",
+      "evidence": null,
+      "reason": "The old realm captures are test checkpoints, not deliberately selected discoveries."
+    },
+    {
+      "id": "movement-with-life",
+      "publicQuestion": "Does this feel alive when it moves?",
+      "shot": "A short uninterrupted stretch of play with the creature continuously present.",
+      "mustShow": [
+        "continuous creature rendering",
+        "readable movement",
+        "no menu takeover or dead time",
+        "every frame watched at desktop and phone presentation size"
+      ],
+      "currentState": "blocked_by_current_game_visual",
+      "evidence": "/press/gameplay-video/mythical-forest-authentic-gameplay.mp4",
+      "reason": "The old clip is an arrival screen and does not prove a strong stretch of play."
+    }
+  ],
+  "approvalRule": {
+    "requiredApprovedMoments": 4,
+    "approvedMomentCount": 0,
+    "readyForPublicLaunch": false,
+    "automationMay": [
+      "run controlled play sessions",
+      "capture candidates into the private review area",
+      "check dimensions, missing files and known withdrawn paths",
+      "prepare contact sheets and captions"
+    ],
+    "automationMayNot": [
+      "approve visual quality",
+      "move a candidate into public",
+      "post to a social account",
+      "describe a story screen or marketing illustration as gameplay"
+    ],
+    "adultReviewRequired": true,
+    "kevinApprovalRequiredBeforeExternalPublication": true
+  },
+  "authority": {
+    "ownedWebsiteReplacementAuthorized": false,
+    "externalSocialPublicationAuthorized": false,
+    "creatorOutreachAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "externalActionTaken": false
+  }
+}

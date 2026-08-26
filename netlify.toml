@@ -72,6 +72,50 @@
   to = "/updates/index.html"
   status = 200
 
+# Withdrawn visual media must not remain reachable through an old direct link.
+# A file can remain in the internal release record without remaining public.
+[[redirects]]
+  from = "/press/gameplay/*"
+  to = "/press/"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/press/gameplay-video/*"
+  to = "/press/"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/press/social/*"
+  to = "/press/"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/press/social-video/*"
+  to = "/press/"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/press/creator-kit/*"
+  to = "/press/"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/resources/mythical-void-play-share-card.pdf"
+  to = "/press/"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/resources/previews/play-share-card.png"
+  to = "/press/"
+  status = 302
+  force = true
+
 [[redirects]]
   # Fallback to index.html for client-side routing
   from = "/*"
