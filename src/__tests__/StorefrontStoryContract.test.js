@@ -187,7 +187,10 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('This is what players really see.');
         expect(storefront).toContain('/press/gameplay/manifest.json');
         expect(storefront).toContain('/press/gameplay-video/manifest.json');
-        expect(storefront).toContain('REAL GAMEPLAY VIDEO');
+        expect(storefront).toContain('IN-GAME STORY MOMENT · 3.17 SECONDS');
+        expect(storefront).toContain('The previous social video pack is withdrawn.');
+        expect(storefront).not.toContain('id="real-gameplay-social-video"');
+        expect(storefront).not.toContain('id="creator-download-kit"');
         expect(storefront).toContain('REAL GAME + REAL NASA IMAGE');
         expect(pressAssets.gameplayProofManifest).toBe(
             'https://mythicalvoid.com/press/gameplay/manifest.json'
@@ -199,8 +202,10 @@ describe('storefront Project Beacon story contract', () => {
         expect(pressAssets.assets).toContainEqual(expect.objectContaining({
             name: 'Real creature hatch reveal',
             url: 'https://mythicalvoid.com/press/gameplay/creature-cosmic-egg-reveal.png',
-            kind: 'authentic_running_build_screenshot'
+            kind: 'authentic_running_build_screenshot',
+            state: 'withdrawn_visual_quality_failed_do_not_publish'
         }));
+        expect(storefront).not.toContain('id="real-creature-hatch"');
         expect(storefront).toContain('id="real-creature-range"');
         expect(storefront).toContain('Twelve real hatches. One running engine.');
         expect(pressAssets.realCreatureShowcase).toEqual(expect.objectContaining({
@@ -215,7 +220,8 @@ describe('storefront Project Beacon story contract', () => {
         ))).toHaveLength(1);
         expect(pressAssets.authenticGameplaySocialKit).toEqual(expect.objectContaining({
             manifest: 'https://mythicalvoid.com/press/social-video/manifest.json',
-            captionPack: 'https://mythicalvoid.com/press/social-video/authentic-gameplay-caption-pack.json'
+            captionPack: 'https://mythicalvoid.com/press/social-video/authentic-gameplay-caption-pack.json',
+            state: 'withdrawn_visual_quality_failed_do_not_publish'
         }));
         expect(pressAssets.assets.filter(asset => (
             asset.kind === 'branded_social_video_with_authentic_running_build_gameplay'
@@ -233,14 +239,19 @@ describe('storefront Project Beacon story contract', () => {
             asset.kind === 'authentic_running_build_screenshot'
         ))).toHaveLength(6);
         expect(pressAssets.assets.filter(asset => (
-            asset.kind === 'authentic_running_build_gameplay_video'
+            asset.kind === 'authentic_running_build_story_moment'
         ))).toHaveLength(1);
-        expect(pressAssets.assets[0].kind).toBe('authentic_running_build_gameplay_video');
-        expect(gameplayManifest.captures).toHaveLength(13);
+        expect(pressAssets.assets[0].kind).toBe('authentic_running_build_story_moment');
+        expect(gameplayManifest.captures).toHaveLength(14);
         expect(gameplayManifest.captures).toContainEqual(expect.objectContaining({
             id: 'GP-013',
             publicPath: '/press/gameplay/creature-cosmic-egg-reveal.png',
             classification: 'authentic_running_build_screenshot'
+        }));
+        expect(gameplayManifest.captures).toContainEqual(expect.objectContaining({
+            id: 'GP-014',
+            publicPath: '/press/gameplay/mythical-forest-arrival-wide.png',
+            classification: 'authentic_running_build_story_screenshot'
         }));
         expect(gameplayManifest.sourceCommit).toMatch(/^[0-9a-f]{40}$/);
         expect(gameplayManifest.captureSourcePolicy).toContain(
@@ -256,7 +267,7 @@ describe('storefront Project Beacon story contract', () => {
             'Only assets labelled authentic_running_build_screenshot may be described as gameplay screenshots.'
         );
         expect(gameplayVideoManifest.asset.classification).toBe(
-            'authentic_running_build_gameplay_video'
+            'authentic_running_build_story_moment'
         );
         expect(gameplayVideoManifest.asset.durationSeconds).toBeGreaterThanOrEqual(3);
         expect(gameplayVideoManifest.sourceCommit).toMatch(/^[0-9a-f]{40}$/);

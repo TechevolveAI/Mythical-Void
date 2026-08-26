@@ -1,25 +1,29 @@
 {
   "schemaVersion": 1,
   "releaseId": "PLAYABLE-NOW-DISCOVERY-2026-08-26",
-  "state": "owned_site_release_visually_verified_waiting_for_production_verification",
-  "purpose": "Give an unfamiliar visitor one truthful path from seeing real gameplay to understanding the game and starting it.",
+  "state": "owned_site_visual_quality_correction_waiting_for_production_verification",
+  "purpose": "Give an unfamiliar visitor one clear, attractive and truthfully labelled path from an in-game story moment to understanding the game and starting it.",
   "page": {
     "path": "public/playable-now/index.html",
     "publicUrl": "https://mythicalvoid.com/playable-now/",
-    "sha256": "4d7630cd35df9b7e8d50e1c085a01f9e993084cc03996b2b6aa366024795ff36",
+    "sha256": "48f0b854c51edca60c927560b654e3cb4c800f56f219cecaf70109e9a5f9f204",
     "canonical": "https://mythicalvoid.com/playable-now/",
     "directPlayLinkMinimum": 3,
     "structuredData": ["VideoGame", "VideoObject", "FAQPage"]
   },
-  "authenticGameplay": {
+  "authenticStoryMoment": {
     "videoPath": "public/press/gameplay-video/mythical-forest-authentic-gameplay.mp4",
-    "videoSha256": "3b9aa5e41bef7f9b2b5529a3c3d3e1a3cc6448676cb0e2643d0e61bd6c418a8c",
-    "videoDurationSeconds": 19.58,
+    "videoSha256": "bb4c59d8af77624b24894e55ec2425af2224cebe6f42acd326942b242f6a1750",
+    "videoDurationSeconds": 3.17,
     "posterPath": "public/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
-    "posterSha256": "7ad7b821bcf3c872804133f7c22da7ae3aa12cccfdea3dafc0d425224e164376",
+    "posterSha256": "27b777a254c0830b59812ed82934a0bc30681e522e0d1ec509fc73103b584b86",
     "screenshotCount": 4,
-    "hatchRevealPath": "public/press/gameplay/creature-cosmic-egg-reveal.png",
-    "hatchRevealSha256": "55943dfceb9debbc8f6c2f96cbcfacfd0afc7abc264c6cde0714c9be3690ed86",
+    "creatureRangePath": "public/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png",
+    "creatureRangeSha256": "597ae1f4f4507ce071857c20b70407baa451ec0802602616d14c1c2ddfafaf11",
+    "forestArrivalPath": "public/press/gameplay/mythical-forest-arrival-wide.png",
+    "forestArrivalSha256": "dfc392f689d212f0453b034c414d16f67ab024c957e5faf2209dcbde4c125d4f",
+    "classification": "authentic_running_build_story_moment",
+    "platformingOrCombatClaimed": false,
     "generatedFramesUsed": false,
     "playerIdentityUsed": false,
     "personalSaveUsed": false
@@ -61,7 +65,8 @@
     "phoneVisualReviewPassed": true,
     "phoneWidth": 390,
     "horizontalOverflowObserved": false,
-    "videoDurationObservedSeconds": 19.583333,
+    "videoDurationObservedSeconds": 3.166667,
+    "motionContactSheetReviewPassed": true,
     "directPlayNavigationVerified": true,
     "productionUrlVerified": false
   }

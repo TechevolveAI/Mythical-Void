@@ -10,7 +10,6 @@
 Canonical website: https://mythicalvoid.com/
 Play in a browser: https://mythicalvoid.com/play/
 See real gameplay and the game at a glance: https://mythicalvoid.com/playable-now/
-See one real creature generated and revealed by the running game: https://mythicalvoid.com/press/#real-creature-hatch
 See twelve real game-rendered creatures selected to show the current engine's range: https://mythicalvoid.com/creature-genetics/#meet-the-twelve
 Explore the source-bound Project Beacon creature field guide across all six realms: https://mythicalvoid.com/creature-field-guide/
 Privacy and safety: https://mythicalvoid.com/privacy/
@@ -19,8 +18,6 @@ Updates: https://mythicalvoid.com/updates/
 RSS updates feed: https://mythicalvoid.com/updates/feed.xml
 JSON updates feed: https://mythicalvoid.com/updates/feed.json
 Press and creator room: https://mythicalvoid.com/press/
-Authentic gameplay social video kit: https://mythicalvoid.com/press/#real-gameplay-social-video
-One-download creator kit: https://mythicalvoid.com/press/creator-kit/mythical-void-authentic-gameplay-creator-kit.zip
 
 Key facts:
 

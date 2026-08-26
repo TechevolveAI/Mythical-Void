@@ -78,7 +78,7 @@ function validate(values) {
 
     const archiveSha256 = sha256(archiveBuffer);
     requireValue(manifest.releaseId === 'MYTHICAL-VOID-AUTHENTIC-GAMEPLAY-CREATOR-KIT-2026-08-26', 'creator kit release id changed');
-    requireValue(manifest.state === 'owned_press_room_release_waiting_for_external_channel_and_kevin_approval', 'creator kit state must retain the channel and Kevin approval gate');
+    requireValue(manifest.state === 'withdrawn_visual_quality_failed_do_not_publish' && /must not be used or shared/i.test(manifest.withdrawalReason || ''), 'creator kit must remain withdrawn with its visual-quality reason recorded');
     requireValue(manifest.archive?.sha256 === archiveSha256 && manifest.archive?.bytes === archiveBuffer.length && manifest.archive?.fileCount === 12 && manifest.archive?.rootFolder === 'mythical-void-creator-kit', 'archive fingerprint, size, count or root folder changed');
     requireValue(files.size === 12, 'archive must contain exactly twelve files');
 
@@ -106,7 +106,10 @@ function validate(values) {
     const captionsPath = 'mythical-void-creator-kit/captions/authentic-gameplay-caption-pack.json';
     const emblemPath = 'mythical-void-creator-kit/brand/mythical-void-emblem-v3.png';
     const factSheetPath = 'mythical-void-creator-kit/facts/mythical-void-fact-sheet.txt';
-    requireValue(sha256(files.get(captionsPath) || Buffer.alloc(0)) === sha256(captionsBuffer), 'caption pack is not the checked public caption pack');
+    requireValue(sha256(files.get(captionsPath) || Buffer.alloc(0)) === 'd4ba65588da0f0e559e0b55e8372bc37738f915be5571b9fec71a7976e8c9567', 'archived caption pack changed from the exact withdrawn package record');
+    let publicCaptions = {};
+    try { publicCaptions = JSON.parse(captionsBuffer.toString('utf8')); } catch (error) { failures.push('public caption withdrawal record is not valid JSON'); }
+    requireValue(publicCaptions.state === 'withdrawn_visual_quality_failed_do_not_publish' && publicCaptions.authority?.publicPressRoomPublicationAuthorized === false, 'public captions are not withdrawn');
     requireValue(sha256(files.get(emblemPath) || Buffer.alloc(0)) === sha256(emblemBuffer), 'emblem is not the checked public emblem');
     requireValue(sha256(files.get(factSheetPath) || Buffer.alloc(0)) === sha256(factSheetBuffer), 'fact sheet is not the checked public fact sheet');
     for (const asset of socialManifest.assets || []) {
@@ -125,15 +128,15 @@ function validate(values) {
     requireValue(!/[?&](?:utm_|ref=|source=)/i.test(publicWords), 'creator kit must not contain tracking parameters');
 
     const authority = manifest.authority || {};
-    requireValue(authority.truthfulEditorialUsePermitted === true && authority.officialMythicalVoidSocialPublicationAuthorized === false && authority.kevinApprovalRequiredBeforeOfficialPublication === true && authority.creatorOutreachSendingAuthorized === false && authority.paidPromotionAuthorized === false && authority.publicRepliesAuthorized === false && authority.externalActionPerformed === false, 'package authority silently widened');
+    requireValue(authority.truthfulEditorialUsePermitted === false && authority.officialMythicalVoidSocialPublicationAuthorized === false && authority.kevinApprovalRequiredBeforeOfficialPublication === true && authority.creatorOutreachSendingAuthorized === false && authority.paidPromotionAuthorized === false && authority.publicRepliesAuthorized === false && authority.externalActionPerformed === false, 'withdrawn package authority silently widened');
     requireValue(packageManifest.authority?.officialMythicalVoidSocialPublicationAuthorized === false && packageManifest.authority?.kevinApprovalRequiredBeforeOfficialPublication === true && packageManifest.authority?.externalActionPerformed === false, 'inside package authority silently widened');
-    requireValue(pressAssets.creatorDownloadKit?.archive === manifest.archive?.publicUrl && pressAssets.creatorDownloadKit?.manifest === 'https://mythicalvoid.com/press/creator-kit/manifest.json' && pressAssets.creatorDownloadKit?.state === manifest.state, 'press asset record does not expose the creator kit and its gate');
-    requireValue(pressSource.includes('id="creator-download-kit"') && pressSource.includes('/press/creator-kit/mythical-void-authentic-gameplay-creator-kit.zip') && pressSource.includes('Download the creator kit') && pressSource.includes("Official Mythical Void posting still needs Kevin's approval."), 'press room does not present the one-download package and approval boundary');
-    requireValue(llms.includes('One-download creator kit: https://mythicalvoid.com/press/creator-kit/mythical-void-authentic-gameplay-creator-kit.zip'), 'machine-readable guide does not expose the creator kit');
+    requireValue(pressAssets.creatorDownloadKit?.archive === manifest.archive?.publicUrl && pressAssets.creatorDownloadKit?.manifest === 'https://mythicalvoid.com/press/creator-kit/manifest.json' && pressAssets.creatorDownloadKit?.state === manifest.state && /Withdrawn/i.test(pressAssets.creatorDownloadKit?.contents || ''), 'press asset record does not retain the withdrawn kit and warning');
+    requireValue(!pressSource.includes('id="creator-download-kit"') && pressSource.includes('The previous social video pack is withdrawn.'), 'press room still exposes the withdrawn creator package');
+    requireValue(!llms.includes('One-download creator kit:'), 'machine-readable guide still exposes the withdrawn creator package');
     const signalEntry = signal.entries?.find(entry => entry.id === 'SIGNAL-011');
-    requireValue(signalEntry?.destination === '/press/#creator-download-kit' && signalEntry?.status === 'live' && /No external post or message has been sent/i.test(signalEntry?.details?.[2] || ''), 'Signal Log must retain the creator handoff and its no-external-action boundary');
-    requireValue(release?.archive?.sha256 === archiveSha256 && release?.archive?.bytes === archiveBuffer.length && release?.archive?.fileCount === 12 && release?.verification?.deterministicRebuildMatched === true && release?.verification?.archiveIntegrityPassed === true && release?.verification?.allInsideFilesMatchedPackageRecord === true && release?.verification?.desktopPressRoomVisualReviewPassed === true && release?.verification?.phonePressRoomVisualReviewPassed === true && release?.verification?.phoneWidth === 390 && release?.verification?.phoneHorizontalOverflowObserved === false && release?.verification?.creatorKitContractTestsPassed === 24 && release?.verification?.fullTestSuitesPassed === 181 && release?.verification?.fullTestsPassed === 1655 && release?.verification?.productionUrlVerified === false, 'release proof must match the archive, tests and visual review while retaining the pre-production boundary');
-    requireValue(release?.authority?.officialMythicalVoidSocialPublicationAuthorized === false && release?.authority?.kevinApprovalRequiredBeforeOfficialPublication === true && release?.authority?.externalActionPerformed === false, 'release authority silently widened');
+    requireValue(!signalEntry, 'Signal Log still promotes the withdrawn creator package');
+    requireValue(release?.state === 'withdrawn_visual_quality_failed_do_not_publish' && release?.archive?.sha256 === archiveSha256 && release?.archive?.bytes === archiveBuffer.length && release?.archive?.fileCount === 12 && release?.verification?.deterministicRebuildMatched === true && release?.verification?.archiveIntegrityPassed === true && release?.verification?.allInsideFilesMatchedPackageRecord === true && release?.verification?.desktopPressRoomVisualReviewPassed === true && release?.verification?.phonePressRoomVisualReviewPassed === true && release?.verification?.phoneWidth === 390 && release?.verification?.phoneHorizontalOverflowObserved === false && release?.verification?.creatorKitContractTestsPassed === 24 && release?.verification?.fullTestSuitesPassed === 181 && release?.verification?.fullTestsPassed === 1655 && release?.verification?.productionUrlVerified === false, 'withdrawn release must retain archive integrity, completed review, test evidence and its pre-production record');
+    requireValue(release?.authority?.truthfulEditorialUsePermitted === false && release?.authority?.officialMythicalVoidSocialPublicationAuthorized === false && release?.authority?.kevinApprovalRequiredBeforeOfficialPublication === true && release?.authority?.externalActionPerformed === false, 'withdrawn release authority silently widened');
 
     return { valid: failures.length === 0, archiveSha256, archiveBytes: archiveBuffer.length, fileCount: files.size, failures };
 }

@@ -30,7 +30,8 @@ const requireValue = (condition, message) => { if (!condition) failures.push(mes
 const sha256 = value => crypto.createHash('sha256').update(value).digest('hex');
 
 requireValue(release.schemaVersion === 1, 'release schemaVersion must be 1');
-requireValue(release.state === 'owned_site_release_visually_verified_waiting_for_production_verification', 'release must retain visual review while waiting for production proof');
+requireValue(release.state === 'withdrawn_visual_quality_failed_do_not_publish', 'hatch screenshot must remain withdrawn from public promotion');
+requireValue(release.currentHumanReview?.decision === 'withdrawn_from_public_promotion' && /not strong enough/i.test(release.currentHumanReview?.reason || '') && release.currentHumanReview?.replacement === '/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png', 'the human visual rejection and replacement must remain recorded');
 requireValue(release.priorReview?.decision === 'authentic_internal_proof_rejected_for_public_promotion' && release.priorReview?.supersededForOwnedSiteUse === true && release.priorReview?.issuesResolved?.length === 4, 'the rejected old proof and its four fixes must remain recorded');
 
 const capture = manifest.captures?.find(item => item.id === release.capture?.id);
@@ -55,22 +56,19 @@ for (const [field, expected] of Object.entries({ fieldClassificationReadable: tr
 requireValue(release.presentation?.creatureBoundsDesktop?.width >= 220 && release.presentation?.creatureBoundsPhone?.width >= 220, 'the creature is not large enough in both reviewed layouts');
 requireValue(release.presentation?.phoneViewport?.width === 390 && release.presentation?.phoneViewport?.height === 844, 'the reviewed phone viewport drifted');
 
-requireValue(playable.includes('src="/press/gameplay/creature-cosmic-egg-reveal.png"'), 'Playable Now does not show the real hatch result');
-requireValue(playable.includes('one real result, not every form'), 'Playable Now is missing the one-hatch claim boundary');
-requireValue(storefront.includes('id="real-creature-hatch"') && storefront.includes('/press/gameplay/creature-cosmic-egg-reveal.png'), 'the press room hatch feature is missing');
-requireValue(/one creature generated and revealed by the running game/i.test(storefront) && /not a promise that every possible form/i.test(storefront), 'the press room hatch boundary drifted');
-requireValue(llms.includes('https://mythicalvoid.com/press/#real-creature-hatch'), 'the machine-readable hatch discovery link is missing');
+requireValue(!playable.includes('src="/press/gameplay/creature-cosmic-egg-reveal.png"') && playable.includes('/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png'), 'Playable Now must use the reviewed creature-range replacement');
+requireValue(!storefront.includes('id="real-creature-hatch"') && !storefront.includes('/press/gameplay/creature-cosmic-egg-reveal.png'), 'the withdrawn hatch screenshot returned to the press room');
+requireValue(!llms.includes('https://mythicalvoid.com/press/#real-creature-hatch'), 'the machine-readable guide still promotes the withdrawn hatch screenshot');
 
 const pressAsset = pressAssets.assets?.find(item => item.url === 'https://mythicalvoid.com/press/gameplay/creature-cosmic-egg-reveal.png');
-requireValue(pressAsset?.kind === 'authentic_running_build_screenshot' && /one pixel creature generated/i.test(pressAsset?.description || '') && /not marketing art/i.test(pressAsset?.description || ''), 'the press asset record is missing or mislabelled');
-const signalEntry = signal.entries?.find(entry => entry.id === release.ownedSiteDiscovery?.signalLogEntry);
-requireValue(signalEntry?.status === 'live' && signalEntry?.image === '/press/gameplay/creature-cosmic-egg-reveal.png' && signalEntry?.destination === '/press/#real-creature-hatch', 'SIGNAL-012 is missing or drifted');
-requireValue(signalEntry?.imageClass === 'authentic_running_build_screenshot' && /real browser game/i.test(signalEntry?.disclosure || '') && /one genetics result/i.test(signalEntry?.disclosure || ''), 'SIGNAL-012 disclosure drifted');
+requireValue(pressAsset?.kind === 'authentic_running_build_screenshot' && pressAsset?.state === 'withdrawn_visual_quality_failed_do_not_publish' && /Retained only as an exact running-build record/i.test(pressAsset?.description || ''), 'the press asset record does not retain the withdrawn state');
+const signalEntry = signal.entries?.find(entry => entry.id === 'SIGNAL-012');
+requireValue(!signalEntry && release.ownedSiteDiscovery?.signalLogEntry === null && release.ownedSiteDiscovery?.rssAndJsonFeedIncluded === false, 'the withdrawn hatch screenshot is still promoted in the Signal Log or feeds');
 
 for (const [field, expected] of Object.entries({ provesOneRealHatch: true, provesEveryPossibleForm: false, absoluteUniquenessClaimed: false, generatedMarketingArtworkCalledGameplay: false, creatureSentienceClaimed: false })) {
     requireValue(release.claimBoundaries?.[field] === expected, `claimBoundaries.${field} must be ${expected}`);
 }
-for (const [field, expected] of Object.entries({ ownedWebsitePublicationAuthorized: true, externalSocialPublicationAuthorized: false, emailOrOutreachSendingAuthorized: false, paidPromotionAuthorized: false, publicRepliesAuthorized: false, kevinApprovalRequiredBeforeExternalPublication: true, externalActionTaken: false })) {
+for (const [field, expected] of Object.entries({ ownedWebsitePublicationAuthorized: false, externalSocialPublicationAuthorized: false, emailOrOutreachSendingAuthorized: false, paidPromotionAuthorized: false, publicRepliesAuthorized: false, kevinApprovalRequiredBeforeExternalPublication: true, externalActionTaken: false })) {
     requireValue(release.authority?.[field] === expected, `authority.${field} must be ${expected}`);
 }
 for (const field of ['freshAutomatedDesktopCapturePassed', 'freshAutomatedPhoneCapturePassed', 'desktopVisualReviewPassed', 'phoneVisualReviewPassed']) {

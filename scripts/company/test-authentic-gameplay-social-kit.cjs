@@ -42,8 +42,8 @@ expectFailure('external social posting', values => { values.manifest.authority.e
 expectFailure('creator outreach sending', values => { values.captions.authority.creatorOutreachSendingAuthorized = true; });
 expectFailure('paid promotion', values => { values.release.authority.paidPromotionAuthorized = true; });
 expectFailure('invented production proof', values => { values.release.verification.productionUrlsVerified = true; });
-expectFailure('missing public press section', values => { values.pressSource = values.pressSource.replace('id="real-gameplay-social-video"', ''); });
-expectFailure('missing machine-readable discovery link', values => { values.llms = values.llms.replace('Authentic gameplay social video kit:', 'Hidden gameplay social video kit:'); });
-expectFailure('missing Signal release', values => { values.signal.entries = values.signal.entries.filter(entry => entry.id !== 'SIGNAL-010'); });
+expectFailure('withdrawn press section exposed again', values => { values.pressSource += '<div id="real-gameplay-social-video"></div>'; });
+expectFailure('withdrawn machine-readable link exposed again', values => { values.llms += '\nAuthentic gameplay social video kit: https://mythicalvoid.com/press/#real-gameplay-social-video'; });
+expectFailure('withdrawn Signal release exposed again', values => { values.signal.entries.push({ id: 'SIGNAL-010', status: 'live' }); });
 
-console.log('Authentic gameplay social kit tests passed: valid release plus 17 media, claims, authority and discovery failures rejected.');
+console.log('Withdrawn gameplay social kit tests passed: exact files retained and 17 media, claims, authority and accidental re-publication failures rejected.');

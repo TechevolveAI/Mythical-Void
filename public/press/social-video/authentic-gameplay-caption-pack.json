@@ -1,7 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "AUTHENTIC-GAMEPLAY-CAPTION-PACK-2026-08-26",
-  "state": "source_bound_drafts_waiting_for_channel_and_kevin_approval",
+  "state": "withdrawn_visual_quality_failed_do_not_publish",
+  "withdrawalReason": "The captions describe the withdrawn social video set and must not be posted.",
   "cleanDestination": "https://mythicalvoid.com/playable-now/",
   "mediaManifest": "https://mythicalvoid.com/press/social-video/manifest.json",
   "sharedDisclosure": "The complete moving game frame is real Mythical Void gameplay. The surrounding branded layout is not gameplay. The videos are silent and contain no generated motion, replacement scenery or replacement interface.",
@@ -47,7 +48,7 @@
     "inventedAudienceMetricsPermitted": false
   },
   "authority": {
-    "publicPressRoomPublicationAuthorized": true,
+    "publicPressRoomPublicationAuthorized": false,
     "externalSocialPublicationAuthorized": false,
     "creatorOutreachSendingAuthorized": false,
     "paidPromotionAuthorized": false,

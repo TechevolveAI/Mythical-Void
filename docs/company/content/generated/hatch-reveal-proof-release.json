@@ -1,8 +1,13 @@
 {
   "schemaVersion": 1,
   "releaseId": "HATCH-REVEAL-PROOF-2026-08-26",
-  "state": "owned_site_release_visually_verified_waiting_for_production_verification",
-  "purpose": "Show the real creature created at the end of a hatch clearly enough for an unfamiliar player to understand the game’s genetics promise without mistaking marketing art for gameplay.",
+  "state": "withdrawn_visual_quality_failed_do_not_publish",
+  "purpose": "Retain an exact build record of one real hatch while preventing a technically valid but aesthetically weak screenshot from being used as public marketing.",
+  "currentHumanReview": {
+    "decision": "withdrawn_from_public_promotion",
+    "reason": "The creature is visible and technically correct, but the sprite, surrounding frame and overall composition are not strong enough to represent the game to an unfamiliar person.",
+    "replacement": "/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png"
+  },
   "priorReview": {
     "id": "HATCH-REVEAL-REVIEW-001",
     "decision": "authentic_internal_proof_rejected_for_public_promotion",
@@ -43,12 +48,12 @@
     "nextAction": "MEET THIS CREATURE"
   },
   "ownedSiteDiscovery": {
-    "playableNowPage": "/playable-now/",
-    "pressAnchor": "/press/#real-creature-hatch",
+    "playableNowPage": null,
+    "pressAnchor": null,
     "pressAssetManifestListed": true,
-    "machineReadableGuideListed": true,
-    "signalLogEntry": "SIGNAL-012",
-    "rssAndJsonFeedIncluded": true
+    "machineReadableGuideListed": false,
+    "signalLogEntry": null,
+    "rssAndJsonFeedIncluded": false
   },
   "claimBoundaries": {
     "provesOneRealHatch": true,
@@ -58,7 +63,7 @@
     "creatureSentienceClaimed": false
   },
   "authority": {
-    "ownedWebsitePublicationAuthorized": true,
+    "ownedWebsitePublicationAuthorized": false,
     "externalSocialPublicationAuthorized": false,
     "emailOrOutreachSendingAuthorized": false,
     "paidPromotionAuthorized": false,

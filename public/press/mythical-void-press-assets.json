@@ -9,7 +9,7 @@
   "authenticGameplaySocialKit": {
     "manifest": "https://mythicalvoid.com/press/social-video/manifest.json",
     "captionPack": "https://mythicalvoid.com/press/social-video/authentic-gameplay-caption-pack.json",
-    "state": "owned_press_room_release_waiting_for_external_channel_and_kevin_approval"
+    "state": "withdrawn_visual_quality_failed_do_not_publish"
   },
   "realCreatureShowcase": {
     "page": "https://mythicalvoid.com/creature-genetics/#meet-the-twelve",
@@ -23,8 +23,8 @@
   "creatorDownloadKit": {
     "archive": "https://mythicalvoid.com/press/creator-kit/mythical-void-authentic-gameplay-creator-kit.zip",
     "manifest": "https://mythicalvoid.com/press/creator-kit/manifest.json",
-    "contents": "Three verified gameplay videos, three posters, caption pack, emblem, fact sheet, package record and official-channel release checklist.",
-    "state": "owned_press_room_release_waiting_for_external_channel_and_kevin_approval"
+    "contents": "Withdrawn because the included game render and selected moments failed human visual review. Do not publish or share this archive.",
+    "state": "withdrawn_visual_quality_failed_do_not_publish"
   },
   "socialPreviewManifest": "https://mythicalvoid.com/press/mythical-void-social-previews.json",
   "signalLogFeeds": {
@@ -55,14 +55,15 @@
   ],
   "assets": [
     {
-      "name": "Mythical Forest authentic gameplay video",
+      "name": "Mythical Forest in-game arrival",
       "url": "https://mythicalvoid.com/press/gameplay-video/mythical-forest-authentic-gameplay.mp4",
       "posterUrl": "https://mythicalvoid.com/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
-      "kind": "authentic_running_build_gameplay_video",
-      "description": "A short vertical recording made directly from the real Mythical Void browser game, with real movement, jumping, touch controls and route display; no generated frames or replacement scenery."
+      "kind": "authentic_running_build_story_moment",
+      "description": "A 3.17-second landscape arrival recorded directly from the running Mythical Void game. It is an in-game story moment, not a platforming or combat demonstration."
     },
     {
       "name": "Authentic gameplay social video — vertical",
+      "state": "withdrawn_visual_quality_failed_do_not_publish",
       "url": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-vertical.mp4",
       "posterUrl": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-vertical-poster.png",
       "kind": "branded_social_video_with_authentic_running_build_gameplay",
@@ -71,6 +72,7 @@
     },
     {
       "name": "Authentic gameplay social video — square",
+      "state": "withdrawn_visual_quality_failed_do_not_publish",
       "url": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-square.mp4",
       "posterUrl": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-square-poster.png",
       "kind": "branded_social_video_with_authentic_running_build_gameplay",
@@ -79,6 +81,7 @@
     },
     {
       "name": "Authentic gameplay social video — wide",
+      "state": "withdrawn_visual_quality_failed_do_not_publish",
       "url": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-wide.mp4",
       "posterUrl": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-wide-poster.png",
       "kind": "branded_social_video_with_authentic_running_build_gameplay",
@@ -100,10 +103,11 @@
     },
     {
       "name": "Real creature hatch reveal",
+      "state": "withdrawn_visual_quality_failed_do_not_publish",
       "url": "https://mythicalvoid.com/press/gameplay/creature-cosmic-egg-reveal.png",
       "recordUrl": "https://mythicalvoid.com/press/gameplay/manifest.json",
       "kind": "authentic_running_build_screenshot",
-      "description": "One pixel creature generated and revealed by the real Mythical Void genetics engine in the running browser game. This is not marketing art and does not claim to show every possible form."
+      "description": "Withdrawn from public promotion after human visual review. Retained only as an exact running-build record of one hatch."
     },
     {
       "name": "Project Beacon story social artwork — wide",
@@ -289,11 +293,11 @@
       "description": "Transparent official purple-and-gold studio emblem."
     }
   ],
-  "permissions": "Assets may be used in truthful editorial coverage of Mythical Void with their descriptions and disclosures preserved.",
+  "permissions": "Assets not marked withdrawn may be used in truthful editorial coverage of Mythical Void with their descriptions and disclosures preserved.",
   "restrictions": [
     "Only assets labelled authentic_running_build_screenshot may be described as gameplay screenshots.",
-    "Only assets labelled authentic_running_build_gameplay_video may be described as gameplay footage.",
-    "Branded social videos contain authentic gameplay but must be described as edited layouts rather than raw gameplay footage.",
+    "The Forest video labelled authentic_running_build_story_moment must be described as an in-game story moment, not platforming or combat footage.",
+    "The branded social videos and creator kit are withdrawn and must not be published or shared.",
     "Creature renderer exports may be described as authentic game-rendered creatures, but the branded twelve-creature proof layout is not a playable game scene and the selection must not be presented as normal hatch odds.",
     "Do not present marketing illustrations or game-world artwork as gameplay footage.",
     "Do not imply NASA endorsement or partnership.",

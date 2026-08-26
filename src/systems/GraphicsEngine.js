@@ -10181,12 +10181,26 @@ class GraphicsEngine {
 
         for (let frame = 0; frame < 4; frame++) {
             const result = this.loadCreatureFromGameState(frame);
-            if (result && result.textureName) {
-                frameNames.push(result.textureName);
-            } else {
-                console.warn(`graphics:warn [GraphicsEngine] Failed to create frame ${frame}, using fallback`);
-                frameNames.push(`enhancedCreature${frame}`);
+            const textureName = typeof result === 'string'
+                ? result
+                : result?.textureName;
+
+            if (textureName && this.scene?.textures?.exists(textureName)) {
+                frameNames.push(textureName);
+                continue;
             }
+
+            console.warn(
+                `graphics:warn [GraphicsEngine] Failed to create frame ${frame}, ` +
+                'drawing a verified fallback creature'
+            );
+            const fallbackTexture = this.createEnhancedCreature(
+                0x6F5CFF,
+                0xF5EFFF,
+                0x61E6D2,
+                frame
+            );
+            frameNames.push(fallbackTexture);
         }
 
         console.log('graphics:info [GraphicsEngine] Created animation frames:', frameNames);

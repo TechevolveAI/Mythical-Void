@@ -1,7 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "AUTHENTIC-GAMEPLAY-SOCIAL-KIT-2026-08-26",
-  "state": "owned_press_room_release_visually_verified_waiting_for_production_verification",
+  "state": "withdrawn_visual_quality_failed_do_not_publish",
+  "withdrawalReason": "Technical origin checks passed, but human visual review failed: the creature render was broken and the chosen moments were weak.",
   "purpose": "Give future Mythical Void channels, adult creators and press truthful gameplay video in the three shapes most likely to be useful without waiting for an official social account.",
   "publicDestination": "https://mythicalvoid.com/press/#real-gameplay-social-video",
   "source": {
@@ -86,7 +87,7 @@
     "productionUrlsVerified": false
   },
   "authority": {
-    "ownedPressRoomPublicationAuthorized": true,
+    "ownedPressRoomPublicationAuthorized": false,
     "externalSocialPublicationAuthorized": false,
     "creatorOutreachSendingAuthorized": false,
     "paidPromotionAuthorized": false,

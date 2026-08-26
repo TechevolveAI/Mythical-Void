@@ -38,11 +38,11 @@ expectFailure('creator sending opened', values => { values.manifest.authority.cr
 expectFailure('paid promotion opened', values => { values.manifest.authority.paidPromotionAuthorized = true; });
 expectFailure('public replies opened', values => { values.manifest.authority.publicRepliesAuthorized = true; });
 expectFailure('invented external action', values => { values.release.authority.externalActionPerformed = true; });
-expectFailure('missing press room download', values => { values.pressSource = values.pressSource.replace('id="creator-download-kit"', ''); });
-expectFailure('missing machine discovery', values => { values.llms = values.llms.replace('One-download creator kit:', 'Hidden creator kit:'); });
+expectFailure('withdrawn press room download exposed again', values => { values.pressSource += '<div id="creator-download-kit"></div>'; });
+expectFailure('withdrawn machine discovery exposed again', values => { values.llms += '\nOne-download creator kit: https://mythicalvoid.com/press/creator-kit/mythical-void-authentic-gameplay-creator-kit.zip'; });
 expectFailure('missing press asset record', values => { delete values.pressAssets.creatorDownloadKit; });
-expectFailure('missing Signal entry', values => { values.signal.entries = values.signal.entries.filter(entry => entry.id !== 'SIGNAL-011'); });
+expectFailure('withdrawn Signal entry exposed again', values => { values.signal.entries.push({ id: 'SIGNAL-011', status: 'live' }); });
 expectFailure('missing phone visual proof', values => { values.release.verification.phoneHorizontalOverflowObserved = true; });
 expectFailure('invented production proof', values => { values.release.verification.productionUrlVerified = true; });
 
-console.log('Authentic gameplay creator kit tests passed: valid package plus 24 integrity, claims, safeguarding, authority and discovery failures rejected.');
+console.log('Withdrawn gameplay creator kit tests passed: exact archive retained and 24 integrity, claims, safeguarding, authority and accidental re-publication failures rejected.');
