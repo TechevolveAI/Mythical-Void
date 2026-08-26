@@ -24,7 +24,7 @@ const SMOKE_VIEWPORT_WIDTH = Number(process.env.SMOKE_VIEWPORT_WIDTH) || 390;
 const SMOKE_VIEWPORT_HEIGHT = Number(process.env.SMOKE_VIEWPORT_HEIGHT) || 844;
 const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({
     mythicalForest: Object.freeze({
-        displayCount: 215,
+        displayCount: 150,
         activeTweenCount: 18,
         performanceTier: 'mobile'
     }),
@@ -3631,6 +3631,15 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 ).length
             } : null,
             forestEnemyRuntime: scene?.scene?.key === 'MythicalForestLevel' ? {
+                physicsOnlySupportCount: (
+                    scene?.platforms?.getChildren?.() || []
+                ).filter(support => support?.forestPhysicsOnly === true).length,
+                physicsOnlySupportDisplayCount: (
+                    scene?.platforms?.getChildren?.() || []
+                ).filter(support => (
+                    support?.forestPhysicsOnly === true &&
+                    support?.displayList === scene.children
+                )).length,
                 scheduledEnemyCount: (
                     scene?.enemies?.getChildren?.() || []
                 ).filter(enemy => Number.isFinite(enemy?.forestNextAiAt)).length,
@@ -4132,7 +4141,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     if (
         route === 'mythicalForest' &&
         (
-            state.displayCount > 225 ||
+            state.displayCount > 150 ||
             state.ambientRendering?.layerCount !== 1 ||
             state.ambientRendering?.pointCount !== 164 ||
             state.coinRendering?.batchedCount < 40 ||
@@ -4140,6 +4149,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             state.coinRendering?.layerCount !== 1 ||
             state.coinRendering?.pickupCount !== state.coinRendering?.batchedCount ||
             state.coinRendering?.pickupBodyCount !== 0 ||
+            state.forestEnemyRuntime?.physicsOnlySupportCount !== 73 ||
+            state.forestEnemyRuntime?.physicsOnlySupportDisplayCount !== 0 ||
             state.forestEnemyRuntime?.scheduledEnemyCount !== 23 ||
             state.forestEnemyRuntime?.individualTimerCount !== 0 ||
             state.forestEnemyRuntime?.aiSchedulerActive !== true ||

@@ -257,7 +257,7 @@ async function main() {
         for (const smokeCase of guardianHandoffCases) {
             console.log(`[release-smoke] Guardian handoff case: ${smokeCase}`);
             try {
-                await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                await runNodeScriptWithRetry('scripts/smoke-secondary-journeys.js', {
                     SMOKE_MODE: 'guardian-handoff',
                     SMOKE_CASE: smokeCase
                 });

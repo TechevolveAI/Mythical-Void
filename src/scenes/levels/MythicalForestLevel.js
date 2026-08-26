@@ -801,6 +801,16 @@ class MythicalForestLevel extends PlatformerLevelScene {
         return platform;
     }
 
+    detachForestPhysicsSupport(platform) {
+        if (!platform) return null;
+        platform.setVisible?.(false);
+        platform.forestPhysicsOnly = true;
+        if (platform.displayList === this.children) {
+            this.children.remove(platform);
+        }
+        return platform;
+    }
+
     createHUD() {
         super.createHUD();
         this.createCampaignObjectiveDisplay(
@@ -1666,6 +1676,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             this.physics.add.existing(platformZone, true);
             platformZone.traversalId = section.id;
             this.platforms.add(platformZone);
+            this.detachForestPhysicsSupport(platformZone);
         });
 
         // Add void pit warnings
@@ -1861,6 +1872,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             this.configureForestClimbSupport(branchPlatform);
             branchPlatform.traversalId = `forest-tree-${treeIndex + 1}-branch-${i + 1}`;
             this.platforms.add(branchPlatform);
+            this.detachForestPhysicsSupport(branchPlatform);
             this.branchPlatforms.push({
                 zone: branchPlatform,
                 treeIndex,
@@ -1884,6 +1896,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.configureForestClimbSupport(topPlatform);
         topPlatform.traversalId = `forest-tree-${treeIndex + 1}-crown`;
         this.platforms.add(topPlatform);
+        this.detachForestPhysicsSupport(topPlatform);
 
         // Visual crown at top (crystal formation, not leaves)
         structure.fillStyle(veinColor, 0.4);
@@ -3555,6 +3568,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             this.configureForestClimbSupport(bridgeZone);
             bridgeZone.traversalId = id || `forest-bridge-${index + 1}`;
             this.platforms.add(bridgeZone);
+            this.detachForestPhysicsSupport(bridgeZone);
 
         } else if (type === 'vine') {
             // Swinging vine bridge (visual only for now - physics complex)
@@ -3586,6 +3600,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 this.configureForestClimbSupport(stepZone);
                 stepZone.traversalId = `forest-vine-${index + 1}-step-${i + 1}`;
                 this.platforms.add(stepZone);
+                this.detachForestPhysicsSupport(stepZone);
             }
 
         } else if (type === 'collapsing') {
@@ -3616,6 +3631,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 sectionZone.body.checkCollision.left = false;
                 sectionZone.body.checkCollision.right = false;
                 this.platforms.add(sectionZone);
+                this.detachForestPhysicsSupport(sectionZone);
 
                 // Store for collapse mechanic
                 this.collapsingBranches.push({

@@ -324,6 +324,23 @@ describe('release test gate', () => {
         expect(source).toContain('throw lastError;');
     });
 
+    test('retries timing-sensitive guardian handoffs without bypassing them', () => {
+        const source = read('scripts/run-browser-smoke.js');
+        const start = source.indexOf(
+            "console.log('\\n[release-smoke] Guardian defeat, debrief, and installation suite')"
+        );
+        const end = source.indexOf(
+            "console.log('\\n[release-smoke] Final priority mobile journey suite')"
+        );
+        const handoffSuite = source.slice(start, end);
+
+        expect(handoffSuite).toContain('await runNodeScriptWithRetry(');
+        expect(handoffSuite).toContain("SMOKE_MODE: 'guardian-handoff'");
+        expect(handoffSuite).toContain(
+            'failures.push(`guardian-handoff:${smokeCase}: ${error.message}`)'
+        );
+    });
+
     test('Sanctuary lifecycle smoke uses the production scene transition path', () => {
         const source = read('scripts/smoke-secondary-journeys.js');
         const start = source.indexOf('async function smokeSanctuaryNavigation');

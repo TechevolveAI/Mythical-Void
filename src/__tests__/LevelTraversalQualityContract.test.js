@@ -840,6 +840,12 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.forestFoliageLayer = this.add.graphics()');
         expect(source).toContain('targets: this.forestFoliageLayer');
         expect(source).toContain('this.forestBridgeLayer = this.add.graphics()');
+        expect(source).toContain('detachForestPhysicsSupport(platform)');
+        expect(source).toContain('platform.forestPhysicsOnly = true;');
+        expect(source).toContain('this.children.remove(platform);');
+        expect(source).toContain('this.detachForestPhysicsSupport(platformZone);');
+        expect(source).toContain('this.detachForestPhysicsSupport(branchPlatform);');
+        expect(source).toContain('this.detachForestPhysicsSupport(bridgeZone);');
         expect(source).toContain('startForestEnemyTrailRenderer()');
         expect(source).toContain('delay: this.isMobile ? 180 : 100');
         expect(source).toContain('sprite.x < view.left - 120');
@@ -929,8 +935,10 @@ describe('campaign traversal quality contracts', () => {
         expect(smokeSource).toContain('renderAttachedEnemyCount');
         expect(smokeSource).toContain('renderAttachedCueCount');
         expect(smokeSource).toContain('sleepingDetachedCount');
-        expect(smokeSource).toContain('displayCount: 215');
-        expect(smokeSource).toContain('state.displayCount > 225');
+        expect(smokeSource).toContain('displayCount: 150');
+        expect(smokeSource).toContain('state.displayCount > 150');
+        expect(smokeSource).toContain('physicsOnlySupportCount !== 73');
+        expect(smokeSource).toContain('physicsOnlySupportDisplayCount !== 0');
     });
 
     test('shared biome rendering batches ambient fields and uses a phone tier', () => {
@@ -2829,7 +2837,7 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('scene.player.setVelocity?.(0, 680)');
         expect(smoke).toContain('message: `${sceneName} live stomp collision`');
         expect(smoke).toContain('const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({');
-        expect(smoke).toContain('state.displayCount > 225');
+        expect(smoke).toContain('state.displayCount > 150');
         expect(smoke).toContain(
             'framePacing.displayCount > renderBudget.displayCount'
         );
