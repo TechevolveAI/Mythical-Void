@@ -613,7 +613,7 @@ details p { margin: 0.9rem 0 0; }
 .playable-social-note { margin: 1rem 0 0; color: #9188a3; font-size: 0.78rem; }
 
 .play-intent-section {
-    scroll-margin-top: 16px;
+    scroll-margin-top: 82px;
     background:
         radial-gradient(circle at 8% 12%, rgba(167, 104, 255, 0.16), transparent 28rem),
         radial-gradient(circle at 92% 82%, rgba(118, 227, 207, 0.1), transparent 30rem),

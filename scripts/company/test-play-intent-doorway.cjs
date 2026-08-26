@@ -60,7 +60,7 @@ try {
 invalid('public/playable-now/index.html', source => source.replace('data-intent-choice="story"', 'data-intent-choice="missing"'), 'page is missing story');
 invalid('public/playable-now/index.html', source => source.replace('href="/play/" data-intent-play', 'href="/play/?source=story" data-intent-play'), 'tracking address');
 invalid('public/discovery.js', source => source.replace("readChoice() !== 'granted'", 'false'), 'measurement is not stopped before consent');
-invalid('public/discovery.css', source => source.replace('scroll-margin-top: 16px', 'scroll-margin-top: 0'), 'readable arrival offset');
+invalid('public/discovery.css', source => source.replace('scroll-margin-top: 82px', 'scroll-margin-top: 0'), 'does not preserve the 82px site header');
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceRememberedInBrowser": false', '"choiceRememberedInBrowser": true'), 'choice collection boundary is invalid');
 
 function interactiveResult(consent, choice) {

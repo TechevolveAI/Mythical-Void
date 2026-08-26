@@ -50,7 +50,7 @@ requireValue(discovery.includes("declaredArea.dataset.sourceArea"), 'Play source
 requireValue(discovery.includes("button.insertAdjacentElement('afterend', intentAnswer)") && discovery.includes("intentAnswer.scrollIntoView({ behavior: 'smooth', block: 'nearest' })"), 'phone visitors are not shown the answer beside their selected choice');
 requireValue(discovery.includes("window.addEventListener('resize'") && discovery.includes("intentGrid.insertAdjacentElement('afterend', intentAnswer)"), 'the phone answer does not return to the normal layout after resizing');
 requireValue(discovery.includes("window.location.hash === '#find-your-way'") && discovery.includes('isFirstMainSection') && discovery.includes('window.scrollTo({ top: 0, left: 0 })') && discovery.includes("intentRoot.scrollIntoView({ block: 'start' })"), 'the shared doorway does not preserve the first-screen header or settle reliably after page load');
-requireValue(discoveryCss.includes('.play-intent-section') && discoveryCss.includes('scroll-margin-top: 16px'), 'the doorway lacks a readable arrival offset');
+requireValue(discoveryCss.includes('.play-intent-section') && discoveryCss.includes('scroll-margin-top: 82px'), 'the doorway does not preserve the 82px site header on shared arrival');
 requireValue(discovery.includes("readChoice() !== 'granted'"), 'measurement is not stopped before consent');
 requireValue(discovery.includes("track('play_selected'"), 'existing Play event is not connected');
 requireValue(!discovery.includes("track('intent_"), 'choice clicks must not create analytics events');
