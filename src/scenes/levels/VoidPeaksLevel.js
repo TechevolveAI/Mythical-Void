@@ -271,12 +271,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         console.log('[VoidPeaksLevel] TEST MODE - Spawning Cosmic Titan');
         this.createPeakAtmosphere();
 
-        if (this.player) {
-            this.player.setPosition(
-                TITAN_ARENA.playerEntryX,
-                this.levelHeight - TITAN_ARENA.playerBottomOffset
-            );
-        }
+        this.stageTitanArenaEntry();
 
         this.showPlatformerMobileControls();
 
@@ -1896,10 +1891,14 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         if (!this.player) return false;
 
         const y = this.levelHeight - TITAN_ARENA.playerBottomOffset;
-        if (this.player.body?.reset) {
-            this.player.body.reset(TITAN_ARENA.playerEntryX, y);
-        } else {
-            this.player.setPosition(TITAN_ARENA.playerEntryX, y);
+        this.player.setPosition(TITAN_ARENA.playerEntryX, y);
+        this.player.body?.updateFromGameObject?.();
+        const body = this.player.body;
+        const arena = this.getTraversalSupport?.('peak-titan-gate');
+        if (body && arena?.body) {
+            this.player.x += TITAN_ARENA.playerEntryX - body.center.x;
+            this.player.y += arena.body.top - body.bottom - 4;
+            body.updateFromGameObject?.();
         }
         this.player.setVelocity?.(0, 0);
         this.player.facingRight = true;

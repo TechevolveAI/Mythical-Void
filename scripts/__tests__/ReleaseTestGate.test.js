@@ -306,6 +306,18 @@ describe('release test gate', () => {
         expect(source).toContain('p95FrameSamples: framePacingSamples.map(');
     });
 
+    test('retries isolated interaction profiles without bypassing their gates', () => {
+        const source = read('scripts/run-browser-smoke.js');
+        const start = source.indexOf("console.log('\\n[release-smoke] Genuine interaction suite')");
+        const end = source.indexOf("console.log('\\n[release-smoke] Conservative campaign topology suite')");
+        const interactionSuite = source.slice(start, end);
+
+        expect(interactionSuite).toContain('await runNodeScriptWithRetry(');
+        expect(interactionSuite).toContain("SMOKE_MODE: 'interaction'");
+        expect(source).toContain('async function runNodeScriptWithRetry(');
+        expect(source).toContain('throw lastError;');
+    });
+
     test('Sanctuary lifecycle smoke uses the production scene transition path', () => {
         const source = read('scripts/smoke-secondary-journeys.js');
         const start = source.indexOf('async function smokeSanctuaryNavigation');

@@ -18268,6 +18268,7 @@ const GUARDIAN_PACING_CASES = Object.freeze([
     {
         sceneName: 'CrystalCavesLevel',
         attack: 'ground_slam',
+        arenaSupportId: 'caves-guardian-arena',
         recoveryCheck: 'scene?.boss?.isRecovering === true',
         phaseDeferral: true,
         phaseThreshold: 0.5
@@ -18275,6 +18276,7 @@ const GUARDIAN_PACING_CASES = Object.freeze([
     {
         sceneName: 'ReefLevel',
         attack: 'dimensionalTear',
+        arenaSupportId: 'reef-guardian-arena',
         recoveryCheck: 'scene?.time?.now < scene?.bossRecoveryUntil',
         phaseDeferral: true,
         phaseThreshold: 0.6
@@ -18282,6 +18284,7 @@ const GUARDIAN_PACING_CASES = Object.freeze([
     {
         sceneName: 'VoidPeaksLevel',
         attack: 'gravityCrush',
+        arenaSupportId: 'peak-titan-gate',
         recoveryCheck: 'scene?.time?.now < scene?.titanRecoveryUntil'
     },
     {
@@ -18301,6 +18304,7 @@ const GUARDIAN_PACING_CASES = Object.freeze([
 
 async function smokeGuardianPacing(session, exceptions) {
     const results = {};
+    const guardianProfile = getVisualReviewCreatureProfile();
     const knownCases = GUARDIAN_PACING_CASES.map(item => item.sceneName);
     if (SMOKE_CASE !== 'all' && !knownCases.includes(SMOKE_CASE)) {
         throw new Error(
@@ -18316,6 +18320,7 @@ async function smokeGuardianPacing(session, exceptions) {
         const {
             sceneName,
             attack,
+            arenaSupportId,
             recoveryCheck,
             triggerManually,
             phaseDeferral,
@@ -18325,6 +18330,24 @@ async function smokeGuardianPacing(session, exceptions) {
         await waitForScene(session, 'HatchingScene');
         await evaluate(session, `(async () => {
             const game = window.mythicalGame;
+            const state = window.GameState;
+            const profile = ${JSON.stringify(guardianProfile)};
+            const creature = {
+                ...(state.get('creature') || {}),
+                id: profile.genes.id,
+                name: 'Nova',
+                hatched: true,
+                named: true,
+                genes: profile.genes,
+                genetics: profile.genes,
+                dna: profile.dna,
+                species: profile.species,
+                rarity: profile.rarity,
+                textureName: null
+            };
+            state.set('creature', creature);
+            state.set('creatures', [creature]);
+            state.set('activeCreatureIndex', 0);
             game.scene.getScenes(true).forEach(active => {
                 game.scene.stop(active.scene.key);
             });
@@ -18356,6 +18379,10 @@ async function smokeGuardianPacing(session, exceptions) {
                     const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
                     const camera = scene?.cameras?.main;
                     const player = scene?.player;
+                    const playerBody = player?.body;
+                    const arena = scene?.getTraversalSupport?.(
+                        ${JSON.stringify(arenaSupportId)}
+                    );
                     const boss = ${JSON.stringify(sceneName)} === 'ReefLevel'
                         ? scene?.bossBody
                         : scene?.boss;
@@ -18377,6 +18404,20 @@ async function smokeGuardianPacing(session, exceptions) {
                         orientationElapsed: Math.round(orientationElapsed),
                         zoom: camera.zoom,
                         playerHealth: scene.health,
+                        rendererProfileId:
+                            window.GameState?.get?.('creature.genes.id'),
+                        playerTexture: player?.texture?.key || null,
+                        fallbackRenderer:
+                            player?.texture?.key === 'platformerCreature' ||
+                            player?.texture?.key === '__MISSING',
+                        playerBodyCenterX: playerBody?.center?.x,
+                        playerBodyBottom: playerBody?.bottom,
+                        arenaSupportTop: arena?.body?.top,
+                        arenaSettled: Boolean(
+                            playerBody &&
+                            arena?.body &&
+                            Math.abs(playerBody.bottom - arena.body.top) <= 12
+                        ),
                         bossHealth: scene.bossHealth,
                         bossMaxHealth: scene.bossMaxHealth,
                         openingAttackPending:
@@ -18402,6 +18443,9 @@ async function smokeGuardianPacing(session, exceptions) {
                 !openingFraming.bossVisible ||
                 openingFraming.bossHealth !== openingFraming.bossMaxHealth ||
                 openingFraming.playerHealth !== 4 ||
+                openingFraming.rendererProfileId !== guardianProfile.genes.id ||
+                openingFraming.fallbackRenderer ||
+                !openingFraming.arenaSettled ||
                 !openingFraming.openingAttackPending ||
                 openingFraming.contactDamageArmed ||
                 openingFraming.playerScreenX < 24 ||

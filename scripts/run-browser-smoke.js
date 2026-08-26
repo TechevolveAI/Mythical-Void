@@ -209,7 +209,7 @@ async function main() {
         for (const smokeCase of interactionCases) {
             console.log(`[release-smoke] Interaction case: ${smokeCase}`);
             try {
-                await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                await runNodeScriptWithRetry('scripts/smoke-secondary-journeys.js', {
                     SMOKE_MODE: 'interaction',
                     SMOKE_CASE: smokeCase
                 });

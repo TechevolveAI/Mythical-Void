@@ -76,6 +76,16 @@ describe('guardian encounter pacing contracts', () => {
             'const CRYSTAL_GUARDIAN_ARENA = Object.freeze({'
         );
         expect(source).toContain('stageCrystalGuardianArenaEntry() {');
+        expect(source).toContain('this.player.body?.updateFromGameObject?.();');
+        expect(source).toContain(
+            "const arena = this.getTraversalSupport?.('caves-guardian-arena');"
+        );
+        expect(source).toContain(
+            'this.player.y += arena.body.top - body.bottom - 4;'
+        );
+        expect(source).not.toMatch(
+            /stageCrystalGuardianArenaEntry\(\)[\s\S]*?this\.player\.body\.reset\(/
+        );
         expect(source).toMatch(
             /startBossFight\(\)[\s\S]*this\.hidePlatformerMobileControls\(\);[\s\S]*this\.stageCrystalGuardianArenaEntry\(\);/
         );
@@ -102,6 +112,16 @@ describe('guardian encounter pacing contracts', () => {
 
         expect(source).toContain('const TITAN_ARENA = Object.freeze({');
         expect(source).toContain('stageTitanArenaEntry() {');
+        expect(source).toContain('this.player.body?.updateFromGameObject?.();');
+        expect(source).toContain(
+            "const arena = this.getTraversalSupport?.('peak-titan-gate');"
+        );
+        expect(source).toContain(
+            'this.player.y += arena.body.top - body.bottom - 4;'
+        );
+        expect(source).not.toMatch(
+            /stageTitanArenaEntry\(\)[\s\S]*?this\.player\.body\.reset\(/
+        );
         expect(source).toMatch(
             /startBossFight\(\)[\s\S]*this\.hidePlatformerMobileControls\(\);[\s\S]*this\.stageTitanArenaEntry\(\);/
         );
