@@ -48,6 +48,34 @@ class NASAContentSystem {
         this.lastRequestTime = 0;
         this.minRequestInterval = 1000; // Minimum 1 second between requests
         this.rateLimitedUntil = 0; // Timestamp when rate limiting expires
+        this.requestTimeoutMs = 8000;
+    }
+
+    async fetchWithTimeout(url, options = {}) {
+        const controller = typeof AbortController !== 'undefined'
+            ? new AbortController()
+            : null;
+        const requestOptions = controller
+            ? { ...options, signal: controller.signal }
+            : options;
+        let timeoutId = null;
+        const timeout = new Promise((_, reject) => {
+            timeoutId = setTimeout(() => {
+                controller?.abort?.();
+                const error = new Error('NASA request timed out');
+                error.name = 'TimeoutError';
+                reject(error);
+            }, this.requestTimeoutMs);
+        });
+
+        try {
+            return await Promise.race([
+                Promise.resolve().then(() => fetch(url, requestOptions)),
+                timeout
+            ]);
+        } finally {
+            if (timeoutId !== null) clearTimeout(timeoutId);
+        }
     }
 
     /**
@@ -71,7 +99,7 @@ class NASAContentSystem {
 
         this.lastRequestTime = Date.now();
 
-        const response = await fetch(url);
+        const response = await this.fetchWithTimeout(url);
 
         // Handle rate limiting
         if (response.status === 429) {
@@ -507,7 +535,9 @@ class NASAContentSystem {
 
         try {
             // Get current ISS position
-            const response = await fetch('http://api.open-notify.org/iss-now.json');
+            const response = await this.fetchWithTimeout(
+                'http://api.open-notify.org/iss-now.json'
+            );
             const data = await response.json();
 
             if (data.message !== 'success') return;
@@ -577,7 +607,9 @@ class NASAContentSystem {
      */
     async getAstronautCount() {
         try {
-            const response = await fetch('http://api.open-notify.org/astros.json');
+            const response = await this.fetchWithTimeout(
+                'http://api.open-notify.org/astros.json'
+            );
             const data = await response.json();
 
             if (data.message === 'success') {

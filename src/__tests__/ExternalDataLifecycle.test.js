@@ -33,7 +33,9 @@ function loadSystem(relativePath, className, singletonName, runtime = {}) {
         Promise,
         setInterval: runtime.setInterval || jest.fn(() => 23),
         clearInterval: runtime.clearInterval || jest.fn(),
-        setTimeout
+        setTimeout: runtime.setTimeout || setTimeout,
+        clearTimeout: runtime.clearTimeout || clearTimeout,
+        AbortController
     };
 
     vm.runInNewContext(transformed, sandbox, { filename: filePath });
@@ -101,6 +103,8 @@ describe('external data singleton lifecycle', () => {
         const system = new System();
 
         const initialization = system.initialize();
+        await Promise.resolve();
+        await Promise.resolve();
         expect(fetchMock).toHaveBeenCalledTimes(1);
         system.destroy();
         finishRequest(successfulResponse({ media_type: 'image' }));
@@ -160,6 +164,8 @@ describe('external data singleton lifecycle', () => {
         system.on('weatherUpdated', weatherUpdated);
 
         const initialization = system.initialize();
+        await Promise.resolve();
+        await Promise.resolve();
         expect(pendingRequests).toHaveLength(2);
         system.destroy();
         pendingRequests.forEach(resolve => resolve(successfulResponse([])));
@@ -168,5 +174,33 @@ describe('external data singleton lifecycle', () => {
         expect(setIntervalMock).not.toHaveBeenCalled();
         expect(weatherUpdated).not.toHaveBeenCalled();
         expect(system.isInitialized).toBe(false);
+    });
+
+    test.each([
+        ['NASAContentSystem', 'nasaContentSystem', 'systems/NASAContentSystem.js'],
+        ['SpaceWeatherSystem', 'spaceWeatherSystem', 'systems/SpaceWeatherSystem.js']
+    ])('%s aborts a stalled external request at its deadline', async (
+        className,
+        singletonName,
+        relativePath
+    ) => {
+        const clearTimeoutMock = jest.fn();
+        const setTimeoutMock = jest.fn(callback => {
+            callback();
+            return 91;
+        });
+        const fetchMock = jest.fn(() => new Promise(() => {}));
+        const { System } = loadSystem(relativePath, className, singletonName, {
+            fetch: fetchMock,
+            setTimeout: setTimeoutMock,
+            clearTimeout: clearTimeoutMock
+        });
+        const system = new System();
+
+        await expect(system.fetchWithTimeout('https://example.test/data'))
+            .rejects.toMatchObject({ name: 'TimeoutError' });
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
+        expect(clearTimeoutMock).toHaveBeenCalledWith(91);
     });
 });

@@ -20,6 +20,7 @@ class SpaceWeatherSystem {
         this.refreshInterval = null;
         this.apiKey = null;
         this.baseUrl = 'https://api.nasa.gov/DONKI';
+        this.requestTimeoutMs = 8000;
 
         // Cache settings - don't spam NASA
         this.cache = {
@@ -43,6 +44,33 @@ class SpaceWeatherSystem {
 
         // Event listeners
         this.listeners = {};
+    }
+
+    async fetchWithTimeout(url, options = {}) {
+        const controller = typeof AbortController !== 'undefined'
+            ? new AbortController()
+            : null;
+        const requestOptions = controller
+            ? { ...options, signal: controller.signal }
+            : options;
+        let timeoutId = null;
+        const timeout = new Promise((_, reject) => {
+            timeoutId = setTimeout(() => {
+                controller?.abort?.();
+                const error = new Error('Space-weather request timed out');
+                error.name = 'TimeoutError';
+                reject(error);
+            }, this.requestTimeoutMs);
+        });
+
+        try {
+            return await Promise.race([
+                Promise.resolve().then(() => fetch(url, requestOptions)),
+                timeout
+            ]);
+        } finally {
+            if (timeoutId !== null) clearTimeout(timeoutId);
+        }
     }
 
     /**
@@ -139,7 +167,7 @@ class SpaceWeatherSystem {
 
         const url = `${this.baseUrl}/GST?startDate=${startDate}&endDate=${endDate}&api_key=${this.apiKey}`;
 
-        const response = await fetch(url);
+        const response = await this.fetchWithTimeout(url);
         if (!response.ok) throw new Error(`GST API error: ${response.status}`);
 
         return response.json();
@@ -154,7 +182,7 @@ class SpaceWeatherSystem {
 
         const url = `${this.baseUrl}/FLR?startDate=${startDate}&endDate=${endDate}&api_key=${this.apiKey}`;
 
-        const response = await fetch(url);
+        const response = await this.fetchWithTimeout(url);
         if (!response.ok) throw new Error(`FLR API error: ${response.status}`);
 
         return response.json();
