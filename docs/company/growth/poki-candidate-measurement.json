@@ -9,7 +9,7 @@
   "package": {
     "fileCount": 85,
     "rawBytes": 46879380,
-    "gzipEstimateBytes": 43051838,
+    "gzipEstimateBytes": 43051796,
     "advisoryTargetBytes": 8388608,
     "advisoryTargetMet": false,
     "contentDigestSha256": "e4f1e50f1f7d8b5bc040bc53b7f06c40cab4f7e4d08c35560d0d9d7233d0e793"
@@ -137,7 +137,7 @@
     "root": {
       "fileCount": 2,
       "rawBytes": 4791,
-      "gzipEstimateBytes": 1736
+      "gzipEstimateBytes": 1694
     },
     "marketing": {
       "fileCount": 25,

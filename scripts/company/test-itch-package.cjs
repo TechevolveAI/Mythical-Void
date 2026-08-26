@@ -4,7 +4,7 @@ const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { rewriteLocalAssetPaths } = require('./build-itch-package.cjs');
+const { buildPackage, rewriteLocalAssetPaths } = require('./build-itch-package.cjs');
 const { inspectItchPackage } = require('./validate-itch-package.cjs');
 
 let cases = 0;
@@ -35,6 +35,16 @@ assert.strictEqual(inspectItchPackage(validRoot).valid, true);
 fs.rmSync(validRoot, { recursive: true, force: true });
 cases += 1;
 
+const repeatRoot = fixture();
+buildPackage(repeatRoot);
+const firstManifest = JSON.parse(fs.readFileSync(path.join(repeatRoot, 'itch-package-manifest.json')));
+buildPackage(repeatRoot);
+const secondManifest = JSON.parse(fs.readFileSync(path.join(repeatRoot, 'itch-package-manifest.json')));
+assert.deepStrictEqual(secondManifest.package, firstManifest.package);
+assert.strictEqual(inspectItchPackage(repeatRoot).valid, true);
+fs.rmSync(repeatRoot, { recursive: true, force: true });
+cases += 1;
+
 for (const [relative, mutate, expected] of [
     ['index.html', source => source.replace('data-distribution-target="itch"', ''), 'direct-play itch marker'],
     ['assets/main.js', source => `${source}\nconst broken="/game/world.webp";`, 'root-only local asset path'],
@@ -54,5 +64,5 @@ for (const [relative, mutate, expected] of [
     cases += 1;
 }
 
-assert.strictEqual(cases, 6);
-console.log('itch.io package evaluations passed (6 cases).');
+assert.strictEqual(cases, 7);
+console.log('itch.io package evaluations passed (7 cases).');
