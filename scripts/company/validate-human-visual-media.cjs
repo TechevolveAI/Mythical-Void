@@ -92,7 +92,7 @@ requireValue(
     release.verification?.productionUrlVerified === true &&
     /^[0-9a-f]{40}$/.test(release.verification?.productionCommit || '') &&
     /^[0-9a-f]{24}$/.test(release.verification?.productionDeployId || ''),
-    'review or production verification evidence drifted'
+    'review or exact production evidence drifted'
 );
 
 console.log(JSON.stringify({
