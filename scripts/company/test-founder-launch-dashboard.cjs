@@ -214,10 +214,26 @@ try {
     autoPostedHatchReveal.hatchRevealRelease.autonomousSocialPostingAuthorized = true;
     if (run('auto-posted-hatch-reveal', { signalLog: autoPostedHatchReveal }).status === 0) throw new Error('Real hatch release silently authorized external social posting.');
 
+    const alteredCreatureShowcase = structuredClone(sources.signalLog);
+    alteredCreatureShowcase.realCreatureShowcaseRelease.gallerySha256 = '0'.repeat(64);
+    if (run('altered-creature-showcase', { signalLog: alteredCreatureShowcase }).status === 0) throw new Error('An altered real-creature gallery fingerprint was accepted.');
+
+    const inventedNormalOdds = structuredClone(sources.signalLog);
+    inventedNormalOdds.realCreatureShowcaseRelease.selectionRepresentsNormalHatchOdds = true;
+    if (run('invented-normal-hatch-odds', { signalLog: inventedNormalOdds }).status === 0) throw new Error('The deliberately selected showcase was falsely accepted as normal hatch odds.');
+
+    const autoPostedCreatureShowcase = structuredClone(sources.signalLog);
+    autoPostedCreatureShowcase.realCreatureShowcaseRelease.autonomousSocialPostingAuthorized = true;
+    if (run('auto-posted-creature-showcase', { signalLog: autoPostedCreatureShowcase }).status === 0) throw new Error('Real creature showcase silently authorized external social posting.');
+
+    const brokenCreaturePhoneLayout = structuredClone(sources.evidence);
+    brokenCreaturePhoneLayout.routes.find(route => route.route === '/creature-genetics/').horizontalOverflowObserved = true;
+    if (run('broken-creature-phone-layout', { evidence: brokenCreaturePhoneLayout }).status === 0) throw new Error('A horizontally overflowing creature page was accepted.');
+
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 35 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 39 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }
