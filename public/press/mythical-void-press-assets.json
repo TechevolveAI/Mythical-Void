@@ -5,6 +5,18 @@
   "playUrl": "https://mythicalvoid.com/play/",
   "playableNowUrl": "https://mythicalvoid.com/playable-now/",
   "educatorPageUrl": "https://mythicalvoid.com/educators/",
+  "mediaLibrary": {
+    "state": "withdrawn_pending_human_visual_rebuild_do_not_publish",
+    "defaultAssetState": "withdrawn_visual_quality_failed_do_not_publish",
+    "approvedPublicDownloads": [
+      "https://mythicalvoid.com/marketing/mythical-void-emblem-v3.png",
+      "https://mythicalvoid.com/press/mythical-void-fact-sheet.txt",
+      "https://mythicalvoid.com/resources/mythical-void-stem-creature-lab.pdf"
+    ],
+    "rule": "Every image, screenshot, video, social layout and archive listed below is withdrawn from press, creator and social use unless its exact URL appears in approvedPublicDownloads.",
+    "reason": "Authenticity alone did not make the earlier material understandable or attractive. Several captures had an unreadable or missing creature, weak composition, cluttered interface or a moment that did not demonstrate play.",
+    "replacementGate": "A replacement needs one clear gameplay moment, a fully visible creature, clean framing, phone-size readability and frame-by-frame review by a named adult."
+  },
   "gameplayProofManifest": "https://mythicalvoid.com/press/gameplay/manifest.json",
   "gameplayVideoProofManifest": "https://mythicalvoid.com/press/gameplay-video/manifest.json",
   "authenticGameplaySocialKit": {
@@ -19,7 +31,7 @@
     "selectedFromEngineRuns": 1000,
     "selectedCreatures": 12,
     "selectionBoundary": "Selected from deliberately balanced engine runs to show visible range. This is not a probability sample, normal hatch odds or an absolute uniqueness claim.",
-    "state": "owned_press_room_release_no_external_posting_without_official_channel_and_kevin_approval"
+    "state": "withdrawn_visual_quality_failed_do_not_publish"
   },
   "creatorDownloadKit": {
     "archive": "https://mythicalvoid.com/press/creator-kit/mythical-void-authentic-gameplay-creator-kit.zip",
@@ -52,7 +64,8 @@
       "kind": "adult_led_printable_play_share_card",
       "audience": "Adults, families, educators, clubs and events",
       "description": "A free one-page A4 card with a clean QR link to the playable browser game, one real gameplay frame and clearly disclosed creature-universe artwork.",
-      "disclosure": "The large creature-universe image is an AI-generated marketing illustration, not gameplay. The framed Project Beacon image is real gameplay. NASA does not endorse Mythical Void."
+      "disclosure": "The large creature-universe image is an AI-generated marketing illustration, not gameplay. The framed Project Beacon image is real gameplay. NASA does not endorse Mythical Void.",
+      "state": "withdrawn_visual_quality_failed_do_not_publish"
     }
   ],
   "assets": [
