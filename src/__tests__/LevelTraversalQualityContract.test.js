@@ -934,7 +934,9 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("type: 'starField'");
         expect(source).toContain("type: 'floraField'");
         expect(source).toContain('shouldAnimateAmbientFields()');
+        expect(source).toContain('shouldUseContinuousAmbientEmitters()');
         expect(source).toContain("return this.performanceTier !== 'mobile'");
+        expect(source).toContain("type: 'dustField'");
         expect(source).toContain('layer.animate && this.shouldAnimateAmbientFields()');
         expect(source).toContain('this.config.effects.enableTwinkling &&');
         expect(source).toContain('this.config.effects.enableGentleFloat &&');
@@ -946,6 +948,7 @@ describe('campaign traversal quality contracts', () => {
             'utf8'
         );
         expect(smokeSource).toContain('sharedAmbientFieldTweenCount');
+        expect(smokeSource).toContain('framePacing.particleProcessors.length !== 0');
         expect(smokeSource).toContain("framePacing.performanceTier === 'mobile'");
     });
 
@@ -1133,12 +1136,37 @@ describe('campaign traversal quality contracts', () => {
         );
     });
 
+    test('shared route choices use the physics body rather than padded artwork', () => {
+        const source = read('PlatformerLevelScene.js');
+
+        expect(source).toContain(
+            'this.player?.body?.center?.x ?? this.player?.x'
+        );
+        expect(source).toContain(
+            'this.player?.body?.center?.y ?? this.player?.y'
+        );
+    });
+
     test('Stellar Reef spawns above its opening floating platform', () => {
         const source = read('levels/ReefLevel.js');
 
         expect(source).toContain('createPlayer() {');
         expect(source).toContain('this.player.setPosition(200, this.levelHeight - 290);');
         expect(source).toContain('this.player.setVelocity(0, 0);');
+    });
+
+    test('Mythical Forest spawns above its authored first ground section', () => {
+        const platformer = read('PlatformerLevelScene.js');
+        const forest = read('levels/MythicalForestLevel.js');
+        const smoke = read('../../scripts/smoke-secondary-journeys.js');
+
+        expect(platformer).toContain('getPlayerSpawnGroundTopY()');
+        expect(platformer).toContain('const groundTopY = this.getPlayerSpawnGroundTopY();');
+        expect(forest).toMatch(
+            /getPlayerSpawnGroundTopY\(\)\s*\{\s*return this\.levelHeight - 100;/
+        );
+        expect(smoke).toContain("scene?.getTraversalSupport?.('forest-ground-1')");
+        expect(smoke).toContain('playerGrounded &&');
     });
 
     test('Stellar Reef offers a finite resource detour that rejoins the route', () => {

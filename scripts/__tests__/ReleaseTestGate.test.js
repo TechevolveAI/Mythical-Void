@@ -37,6 +37,14 @@ describe('release test gate', () => {
         expect(source).not.toContain('awaitPromise: true');
     });
 
+    test('production-preview journeys explicitly isolate reset cases', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+
+        expect(source).toContain("new URL(url).searchParams.get('reset') === 'true'");
+        expect(source).toContain('window.GameState?.reset?.();');
+        expect(source).toContain("localStorage.removeItem('mythical_creature_save');");
+    });
+
     test('npm test is finite and the manual framework has an explicit command', () => {
         const packageJson = JSON.parse(read('package.json'));
 

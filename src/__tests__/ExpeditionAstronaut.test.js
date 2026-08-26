@@ -124,7 +124,35 @@ describe('Expedition astronaut', () => {
 
         expect(getExpeditionFollowOffset('topDown', true)).toEqual({ x: -58, y: 24 });
         expect(getExpeditionFollowOffset('topDown', false)).toEqual({ x: 58, y: 24 });
-        expect(getExpeditionFollowOffset('platformer', true)).toEqual({ x: -68, y: 2 });
+        expect(getExpeditionFollowOffset('platformer', true)).toEqual({ x: -92, y: 2 });
+        expect(getExpeditionFollowOffset('platformer', false)).toEqual({ x: 92, y: 2 });
+    });
+
+    test('keeps the platformer astronaut visually separate from a wide creature', () => {
+        const { ExpeditionAstronaut, getExpeditionFollowOffset } =
+            loadExpeditionAstronaut();
+        const scene = createScene();
+        const target = {
+            active: true,
+            x: 200,
+            y: 300,
+            flipX: false,
+            body: {
+                velocity: { x: 0, y: 0 },
+                blocked: { down: true }
+            }
+        };
+        const follower = new ExpeditionAstronaut(scene, target, {
+            mode: 'platformer'
+        });
+        const creatureHalfWidth = 52.5;
+        const astronautHalfWidth = (74 * 0.78) / 2;
+        const formation = getExpeditionFollowOffset('platformer', true);
+
+        expect(follower.followDistance).toBe(96);
+        expect(Math.abs(formation.x)).toBeGreaterThan(
+            creatureHalfWidth + astronautHalfWidth
+        );
     });
 
     test('samples an actual travelled path rather than a straight-line shortcut', () => {

@@ -788,6 +788,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.platforms = this.physics.add.staticGroup();
     }
 
+    getPlayerSpawnGroundTopY() {
+        return this.levelHeight - 100;
+    }
+
     configureForestClimbSupport(platform) {
         if (!platform?.body) return platform;
         platform.platformType = 'one-way';

@@ -7379,14 +7379,8 @@ class WorldBuilder {
         const ribbonWidth = copyWidth + (compact ? 16 : 22);
         const cameraView = this.scene.cameras?.main?.worldView;
         const viewportLeft = cameraView?.x || 0;
-        const viewportRight = viewportLeft + (
-            cameraView?.width || this.scene.scale.width
-        );
-        const copyX = Phaser.Math.Clamp(
-            workerX,
-            viewportLeft + ribbonWidth / 2 + 8,
-            viewportRight - ribbonWidth / 2 - 8
-        );
+        const viewportWidth = cameraView?.width || this.scene.scale.width;
+        const copyX = viewportLeft + (viewportWidth / 2);
         const copyY = Math.max(
             compact ? 92 : 82,
             landmark.zone.y - (compact ? 255 : 225)
@@ -7491,6 +7485,7 @@ class WorldBuilder {
         copy.setData('memoryDecisionId', checkIn.memory?.decisionId || null);
         copy.setData('resonanceStyle', 'current_ribbon');
         copy.setData('resonanceAnchor', 'resident_tether');
+        copy.setData('resonancePlacement', 'camera_center');
         copy.setData('resonanceBounds', {
             width: ribbonWidth,
             height: copyHeight

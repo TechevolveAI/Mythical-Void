@@ -777,6 +777,8 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("setData('villageWorkerRouteStatus', true)");
         expect(world).toContain("worker.setData('cargoVisible', carrying)");
         expect(world).toContain("worker.setData('deliveryFeedback', delivering)");
+        expect(world).toContain('const copyX = viewportLeft + (viewportWidth / 2);');
+        expect(world).toContain("copy.setData('resonancePlacement', 'camera_center')");
         expect(world).toContain("? 'returning'");
         expect(world).toContain('playVillageHeartMemory(');
         expect(world).toContain("setData('interactionVerb', 'REMEMBER')");

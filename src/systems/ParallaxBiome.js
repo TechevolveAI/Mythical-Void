@@ -551,6 +551,10 @@ class ParallaxBiomeManager {
             this.config?.performance?.enableAnimations !== false;
     }
 
+    shouldUseContinuousAmbientEmitters() {
+        return this.performanceTier !== 'mobile';
+    }
+
     /**
      * Layer 1: Create nebula background with animated gradient
      */
@@ -664,25 +668,26 @@ class ParallaxBiomeManager {
         // Get biome-specific star colors
         const starColors = this.getStarColors();
 
-        // Create particle emitter for stars
-        const starEmitter = this.scene.add.particles(0, 0, 'particle_star', {
-            x: { min: 0, max: width * 1.5 },
-            y: { min: 0, max: height * 0.8 },
-            scale: { min: 0.2, max: 0.8 },
-            alpha: { start: 0.3, end: 1, ease: 'Sine.easeInOut' },
-            tint: starColors,
-            lifespan: { min: 3000, max: 6000 },
-            frequency: this.performanceTier === 'mobile' ? 240 : 100,
-            quantity: this.performanceTier === 'mobile' ? 1 : 2,
-            blendMode: 'ADD',
-            emitting: true
-        });
+        if (this.shouldUseContinuousAmbientEmitters()) {
+            const starEmitter = this.scene.add.particles(0, 0, 'particle_star', {
+                x: { min: 0, max: width * 1.5 },
+                y: { min: 0, max: height * 0.8 },
+                scale: { min: 0.2, max: 0.8 },
+                alpha: { start: 0.3, end: 1, ease: 'Sine.easeInOut' },
+                tint: starColors,
+                lifespan: { min: 3000, max: 6000 },
+                frequency: 100,
+                quantity: 2,
+                blendMode: 'ADD',
+                emitting: true
+            });
 
-        starEmitter.setScrollFactor(layer.parallax);
-        starEmitter.setDepth(-50);
+            starEmitter.setScrollFactor(layer.parallax);
+            starEmitter.setDepth(-50);
 
-        this.particleEmitters.stars = starEmitter;
-        this.layers.push({ type: 'starEmitter', object: starEmitter, config: layer });
+            this.particleEmitters.stars = starEmitter;
+            this.layers.push({ type: 'starEmitter', object: starEmitter, config: layer });
+        }
 
         // Keep instant density, but animate a handful of fields rather than an
         // individual display object and tween for every point. On phones this
@@ -840,6 +845,7 @@ class ParallaxBiomeManager {
      */
     createAmbientParticles() {
         const { width, height } = this.scene.cameras.main;
+        if (!this.shouldUseContinuousAmbientEmitters()) return;
 
         switch (this.currentBiomeId) {
             case 'stellar_reef':
@@ -1068,6 +1074,26 @@ class ParallaxBiomeManager {
 
         const dustColors = this.getDustColors();
 
+        if (!this.shouldUseContinuousAmbientEmitters()) {
+            const dustField = this.scene.add.graphics();
+            const dustCount = Math.min(18, Math.max(8, layer.count || 12));
+            for (let index = 0; index < dustCount; index++) {
+                dustField.fillStyle(
+                    Phaser.Math.RND.pick(dustColors),
+                    Phaser.Math.FloatBetween(0.18, 0.42)
+                );
+                dustField.fillCircle(
+                    Phaser.Math.Between(-20, width * 1.5),
+                    Phaser.Math.Between(0, height),
+                    Phaser.Math.FloatBetween(0.7, 2.2)
+                );
+            }
+            dustField.setScrollFactor(layer.parallax);
+            dustField.setDepth(5);
+            this.layers.push({ type: 'dustField', object: dustField, config: layer });
+            return;
+        }
+
         const dustEmitter = this.scene.add.particles(0, 0, 'particle_dust', {
             x: { min: -50, max: width * 1.5 },
             y: { min: 0, max: height },
@@ -1077,8 +1103,8 @@ class ParallaxBiomeManager {
             alpha: { start: 0.6, end: 0.1 },
             tint: dustColors,
             lifespan: { min: 4000, max: 8000 },
-            frequency: this.performanceTier === 'mobile' ? 220 : 50,
-            quantity: this.performanceTier === 'mobile' ? 1 : 3,
+            frequency: 50,
+            quantity: 3,
             blendMode: 'ADD',
             emitting: true
         });
