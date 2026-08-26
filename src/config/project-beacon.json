@@ -45,7 +45,7 @@
     "tutorialHints": {
       "preHatch": "Tip: Tap the egg gently to answer the living signal.",
       "hatching": "The signal is answering. Stay close.",
-      "postHatch": "First contact confirmed. Next, learn who trusted you and choose a name."
+      "postHatch": "First contact confirmed. Learn who answered, then choose a name."
     }
   },
   "openingPages": [

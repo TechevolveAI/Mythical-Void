@@ -26,11 +26,12 @@ const expectedFiles = [
     'realm-finalvoid.png',
     'village-base-builder.png',
     'village-first-construction.png',
-    'nasa-apollo11-real-space-discovery.png'
+    'nasa-apollo11-real-space-discovery.png',
+    'creature-cosmic-egg-reveal.png'
 ];
 
 const groupFiles = {
-    opening: expectedFiles.slice(0, 3),
+    opening: [...expectedFiles.slice(0, 3), 'creature-cosmic-egg-reveal.png'],
     realms: expectedFiles.slice(3, 9),
     village: expectedFiles.slice(9, 11),
     nasa: expectedFiles.slice(11, 12),

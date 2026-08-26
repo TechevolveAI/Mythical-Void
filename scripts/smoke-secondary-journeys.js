@@ -8114,10 +8114,56 @@ async function smokePurchasedEgg(session, exceptions) {
         throw new Error(`Purchased egg was not reserved exactly once: ${JSON.stringify(state)}`);
     }
     await captureGameplayStill(session, 'creature-cosmic-egg-hatch.png');
+
+    process.stdout.write('EGG complete authentic hatch\n');
+    const hatchTarget = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('HatchingScene');
+        if (!scene?.egg?.active || scene.isHatching || scene.creatureAppeared) return null;
+        return { x: scene.egg.x, y: scene.egg.y };
+    })()`);
+    if (!hatchTarget) throw new Error('Purchased egg could not begin its authentic hatch');
+    await touch(session, hatchTarget.x, hatchTarget.y);
+
+    const reveal = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('HatchingScene');
+            if (!scene?.creatureAppeared || !scene?.creature?.visible || !scene?.keepUI?.keepText?.visible || !scene?.rarityBanner?.rarityText?.visible) return null;
+            const bounds = item => item?.getBounds?.() ? item.getBounds() : null;
+            return {
+                creature: bounds(scene.creature),
+                classification: bounds(scene.rarityBanner.rarityText),
+                classificationDetail: bounds(scene.rarityBanner.speciesText),
+                action: bounds(scene.keepUI.keepText),
+                actionCount: Number(Boolean(scene.keepUI?.keepText?.visible)) + Number(Boolean(scene.rerollUI?.rerollText?.visible)),
+                eggInstructionVisible: Boolean(scene.instructionText?.visible && /egg/i.test(scene.instructionText?.text || '')),
+                tapPromptVisible: Boolean(scene.tapToHatchText?.visible),
+                controlPanelVisible: Object.values(scene.controlPanelElements || {}).some(item => item?.visible),
+                scanEstimateVisible: Boolean(scene.adviceText?.visible),
+                width: scene.scale.width,
+                height: scene.scale.height
+            };
+        })()`),
+        { timeoutMs: 24000, message: 'stable creature reveal with classification and action' }
+    );
+    await delay(700);
+    await captureGameplayStill(session, 'creature-cosmic-egg-reveal.png');
+    const classificationOverlapsDetail = reveal.classification.bottom > reveal.classificationDetail.top;
+    const minimumCreatureWidth = Math.min(reveal.width * 0.16, 220);
+    if (
+        reveal.actionCount !== 1 ||
+        reveal.eggInstructionVisible ||
+        reveal.tapPromptVisible ||
+        reveal.controlPanelVisible ||
+        reveal.scanEstimateVisible ||
+        classificationOverlapsDetail ||
+        reveal.creature.width < minimumCreatureWidth
+    ) {
+        throw new Error(`Creature reveal did not present one clean action: ${JSON.stringify(reveal)}`);
+    }
     if (exceptions.length) {
         throw new Error(`Purchased egg flow raised browser exceptions: ${exceptions.join(' | ')}`);
     }
-    return state;
+    return { ...state, reveal };
 }
 
 async function smokeHomeStart(session, exceptions) {

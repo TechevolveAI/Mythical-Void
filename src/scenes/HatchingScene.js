@@ -1566,7 +1566,7 @@ class HatchingScene extends Phaser.Scene {
         panelBg.strokeRoundedRect(centerX - panelWidth/2, panelY, panelWidth, panelHeight, 15);
 
         // Instructions
-        this.add.text(centerX, panelY + 30, firstSessionFraming.controlPrompt, {
+        const controlText = this.add.text(centerX, panelY + 30, firstSessionFraming.controlPrompt, {
             fontSize: '16px',
             color: '#F5F5F5',
             align: 'center',
@@ -1574,12 +1574,14 @@ class HatchingScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Game info
-        this.add.text(centerX, panelY + 60, firstSessionFraming.journeyPrompt, {
+        const journeyText = this.add.text(centerX, panelY + 60, firstSessionFraming.journeyPrompt, {
             fontSize: '14px',
             color: '#80CBC4',
             align: 'center',
             fontFamily: 'Arial, sans-serif'
         }).setOrigin(0.5);
+
+        this.controlPanelElements = { panelBg, controlText, journeyText };
     }
 
 
@@ -1588,6 +1590,16 @@ class HatchingScene extends Phaser.Scene {
         this.isHatching = true;
         this.instructionText.setVisible(false);
         this.progressText.setVisible(true);
+
+        // The egg prompt and movement guide have finished their job. Keeping
+        // them behind the revealed creature makes the first-contact moment look
+        // stale and gives the player several conflicting instructions.
+        if (this.tapToHatchText) {
+            this.tweens.killTweensOf(this.tapToHatchText);
+            this.tapToHatchText.destroy();
+            this.tapToHatchText = null;
+        }
+        Object.values(this.controlPanelElements || {}).forEach(element => element?.setVisible(false));
 
         // Hide tutorial pointer if present
         if (this.tutorialPointer) {
@@ -2308,8 +2320,8 @@ class HatchingScene extends Phaser.Scene {
             // MOBILE-RESPONSIVE creature positioning
             const { width, height } = this.scale;
             const centerX = width / 2;
-            const creatureY = height * 0.45; // Center at 45% height
-            const targetScale = width < 600 ? Math.min(1.2, width / 350) : 1.2;
+            const creatureY = height * 0.43;
+            const targetScale = width < 600 ? Math.min(2.3, width / 160) : 2.6;
 
             // Create the enhanced creature with the new texture
             this.creature = this.add.image(centerX, creatureY, creatureResult.textureName);
@@ -2381,8 +2393,8 @@ class HatchingScene extends Phaser.Scene {
             // MOBILE-RESPONSIVE fallback creature positioning
             const { width, height } = this.scale;
             const centerX = width / 2;
-            const creatureY = height * 0.45;
-            const targetScale = width < 600 ? Math.min(1.2, width / 350) : 1.2;
+            const creatureY = height * 0.43;
+            const targetScale = width < 600 ? Math.min(2.3, width / 160) : 2.6;
 
             this.creature = this.add.image(centerX, creatureY, 'enhancedCreature0');
             this.creature.setScale(1.5);
@@ -3345,14 +3357,15 @@ class HatchingScene extends Phaser.Scene {
             // MOBILE-RESPONSIVE rarity banner
             const { width, height } = this.scale;
             const centerX = width / 2;
-            const bannerWidth = Math.min(width * 0.9, 500);
-            const bannerHeight = Math.min(height * 0.105, 76);
+            const isCompact = width < 600;
+            const bannerWidth = Math.min(width - 24, 620);
+            const bannerHeight = isCompact ? 90 : 84;
             const bannerX = centerX - (bannerWidth / 2);
             const bannerY = height * 0.055;
 
             // Responsive font sizes
-            const titleSize = Math.max(17, Math.min(24, width * 0.052));
-            const subtitleSize = Math.max(13, Math.min(17, width * 0.038));
+            const titleSize = isCompact ? 17 : 22;
+            const subtitleSize = isCompact ? 12 : 15;
 
             // The classification result owns the header area while this decision is open.
             [this.hatchTitleText, this.hatchSubtitleText, this.instructionText, this.progressText]
@@ -3366,20 +3379,26 @@ class HatchingScene extends Phaser.Scene {
             bannerBg.strokeRoundedRect(bannerX, bannerY, bannerWidth, bannerHeight, 10);
 
             // Rarity title
-            const rarityText = this.add.text(centerX, bannerY + (bannerHeight * 0.34), `FIELD CLASSIFICATION // ${rarityInfo.name.toUpperCase()}`, {
+            const rarityText = this.add.text(centerX, bannerY + (bannerHeight * 0.32), 'FIELD CLASSIFICATION', {
                 fontSize: `${titleSize}px`,
                 color: rarityInfo.displayColor,
                 fontStyle: 'bold',
+                fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
                 stroke: '#000000',
-                strokeThickness: 3,
-                wordWrap: { width: bannerWidth * 0.9 }
+                strokeThickness: 3
             }).setOrigin(0.5);
 
-            // Creature name/species
-            const speciesText = this.add.text(centerX, bannerY + (bannerHeight * 0.74), `${this.creatureGenetics.species} // ${this.creatureGenetics.personality.core}`, {
+            // One readable field line: rarity, organism family and temperament.
+            const formatFieldTerm = value => String(value || 'unknown')
+                .replace(/([a-z])([A-Z])/g, '$1 $2')
+                .replace(/[_-]+/g, ' ')
+                .replace(/\b\w/g, letter => letter.toUpperCase());
+            const speciesText = this.add.text(centerX, bannerY + (bannerHeight * 0.72), `${rarityInfo.name.toUpperCase()} SIGNAL · ${formatFieldTerm(this.creatureGenetics.species)} · ${formatFieldTerm(this.creatureGenetics.personality.core)}`, {
                 fontSize: `${subtitleSize}px`,
                 color: '#FFFFFF',
-                wordWrap: { width: bannerWidth * 0.9 }
+                fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
+                align: 'center',
+                wordWrap: { width: bannerWidth - 28 }
             }).setOrigin(0.5);
 
             // Animate banner
@@ -3444,8 +3463,10 @@ class HatchingScene extends Phaser.Scene {
             const isMobile = width < 600;
 
             // Responsive sizing
-            const buttonWidth = isMobile ? Math.min(width * 0.43, 164) : 180;
-            const buttonHeight = isMobile ? Math.min(height * 0.07, 50) : 50;
+            const buttonWidth = canReroll
+                ? (isMobile ? Math.min(width * 0.43, 164) : 180)
+                : (isMobile ? Math.min(width * 0.72, 250) : 220);
+            const buttonHeight = isMobile ? Math.min(height * 0.07, 54) : 54;
             const buttonSpacing = isMobile ? width * 0.035 : 32;
             const buttonY = height * 0.79;
             const fontSize = Math.max(13, Math.min(18, width * 0.04));
@@ -3463,10 +3484,12 @@ class HatchingScene extends Phaser.Scene {
             keepBg.lineStyle(3, 0xFFD54F);
             keepBg.strokeRoundedRect(keepX, buttonY, buttonWidth, buttonHeight, 10);
 
-            const keepText = this.add.text(keepX + (buttonWidth / 2), buttonY + (buttonHeight / 2), 'CONFIRM CONTACT', {
+            const keepLabel = canReroll ? 'CONFIRM CONTACT' : 'MEET THIS CREATURE';
+            const keepText = this.add.text(keepX + (buttonWidth / 2), buttonY + (buttonHeight / 2), keepLabel, {
                 fontSize: `${fontSize}px`,
                 color: '#FFFFFF',
-                fontStyle: 'bold'
+                fontStyle: 'bold',
+                fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif'
             }).setOrigin(0.5);
 
             const keepZone = this.add.zone(keepX, buttonY, buttonWidth, buttonHeight).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
@@ -3496,14 +3519,14 @@ class HatchingScene extends Phaser.Scene {
             }
 
             // Advice text
-            const advice = window.rerollSystem.getRerollAdvice(this.creatureGenetics.rarity);
+            const advice = canReroll ? window.rerollSystem.getRerollAdvice(this.creatureGenetics.rarity) : null;
             const adviceFontSize = Math.max(12, Math.min(14, width * 0.034));
-            const adviceText = this.add.text(centerX, height * 0.715, `SCAN ESTIMATE // ${advice.message}`, {
+            const adviceText = advice ? this.add.text(centerX, height * 0.715, `SCAN ESTIMATE // ${advice.message}`, {
                 fontSize: `${adviceFontSize}px`,
                 color: '#FFD54F',
                 align: 'center',
                 wordWrap: { width: width * 0.9 }
-            }).setOrigin(0.5);
+            }).setOrigin(0.5) : null;
 
             // Tutorial hint for first-time players
             let tutorialHint = null;
@@ -3528,7 +3551,10 @@ class HatchingScene extends Phaser.Scene {
             }
 
             // Animate elements
-            const elements = [keepBg, keepText, adviceText];
+            const elements = [keepBg, keepText];
+            if (adviceText) {
+                elements.push(adviceText);
+            }
             if (canReroll) {
                 elements.push(rerollBg, rerollText);
             }
@@ -3755,8 +3781,8 @@ class HatchingScene extends Phaser.Scene {
         // MOBILE-RESPONSIVE rerolled creature positioning
         const { width, height } = this.scale;
         const centerX = width / 2;
-        const creatureY = height * 0.45;
-        const targetScale = width < 600 ? Math.min(1.2, width / 350) : 1.2;
+        const creatureY = height * 0.43;
+        const targetScale = width < 600 ? Math.min(2.3, width / 160) : 2.6;
 
         this.creature = this.add.image(centerX, creatureY, creatureResult.textureName);
         this.creature.setScale(1.5);

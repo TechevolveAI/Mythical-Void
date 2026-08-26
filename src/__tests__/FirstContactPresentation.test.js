@@ -20,7 +20,7 @@ describe('first-contact hatch presentation', () => {
     });
 
     test('treats the result as a field reading and the alternative as a rescan', () => {
-        expect(sceneSource).toContain('FIELD CLASSIFICATION //');
+        expect(sceneSource).toContain("'FIELD CLASSIFICATION'");
         expect(sceneSource).toContain('CONFIRM CONTACT');
         expect(sceneSource).toContain('RESCAN SIGNAL');
         expect(sceneSource).toContain('before the signal stabilizes');
@@ -36,6 +36,18 @@ describe('first-contact hatch presentation', () => {
             '[this.hatchTitleText, this.hatchSubtitleText, this.instructionText, this.progressText]'
         );
         expect(sceneSource).toContain('element?.setVisible(false)');
+        expect(sceneSource).toContain("'FIELD CLASSIFICATION'");
+        expect(sceneSource).toContain('SIGNAL · ${formatFieldTerm(this.creatureGenetics.species)}');
+    });
+
+    test('makes the creature the focus and removes finished egg instructions', () => {
+        expect(sceneSource.match(/const targetScale = width < 600 \? Math\.min\(2\.3, width \/ 160\) : 2\.6/g)).toHaveLength(3);
+        expect(sceneSource).toContain('this.tapToHatchText.destroy()');
+        expect(sceneSource).toContain('Object.values(this.controlPanelElements || {}).forEach');
+        expect(sceneSource).toContain('const advice = canReroll ?');
+        expect(sceneSource).toContain('const adviceText = advice ?');
+        expect(sceneSource).toContain('this.controlPanelElements = { panelBg, controlText, journeyText }');
+        expect(sceneSource).toContain("const keepLabel = canReroll ? 'CONFIRM CONTACT' : 'MEET THIS CREATURE'");
     });
 
     test('positions sparkles and confirmation from the active viewport', () => {
