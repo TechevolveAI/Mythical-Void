@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-26",
+  "status": "ready_for_release",
+  "plainLanguageOutcome": "Help search engines discover Mythical Void and learn which public website buttons lead people towards play or sharing, while keeping all measurement out of the game.",
+  "publicSearchCheck": {
+    "queries": [
+      "site:mythicalvoid.com Mythical Void",
+      "\"Mythical Void\" game",
+      "\"mythicalvoid.com\""
+    ],
+    "result": "no_mythical_void_result_seen",
+    "checkedOn": "2026-08-26",
+    "meaning": "The site has useful search files and readable pages, but it is not yet visibly findable in the checked public results."
+  },
+  "searchEngineDiscovery": {
+    "robotsFile": "https://mythicalvoid.com/robots.txt",
+    "sitemap": "https://mythicalvoid.com/sitemap.xml",
+    "sitemapRouteCount": 13,
+    "indexNow": {
+      "ownershipFile": "/2d33a591a69d023517107abcaf6b7d52.txt",
+      "dryRunByDefault": true,
+      "productionSubmissionRequires": "--submit",
+      "submissionState": "not_yet_submitted"
+    },
+    "googleSearchConsole": {
+      "state": "owner_access_needed_later",
+      "nextHumanStep": "Kevin verifies mythicalvoid.com in Google Search Console and submits sitemap.xml. This does not stop the owned-site release."
+    }
+  },
+  "publicWebsiteMeasurement": {
+    "googleTagId": "G-FTM4W73ECQ",
+    "previousCodeProblem": "The final letters were swapped in the website code.",
+    "consentRequired": true,
+    "advertisingEnabled": false,
+    "gameMeasured": false,
+    "events": ["play_selected", "share_completed", "share_link_copied"],
+    "eventDetails": ["source_page", "source_area", "transport_type"],
+    "excludedDetails": ["recipient", "contact detail", "creature detail", "game activity", "full URL", "query string", "user ID"]
+  },
+  "visualLaunch": {
+    "state": "waiting_for_game_iteration",
+    "requiredApprovedMoments": 4,
+    "currentApprovedMoments": 0,
+    "note": "The development team has received the four gameplay improvement points. No weak screenshot or video is released while the new build is being prepared."
+  }
+}

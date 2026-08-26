@@ -1,7 +1,9 @@
 (function () {
     var storageKey = 'mythical-analytics-consent';
-    var tagId = 'G-FTM4W73EQC';
+    var tagId = 'G-FTM4W73ECQ';
     var currentPath = window.location.pathname;
+    var allowedEvents = ['play_selected', 'share_completed', 'share_link_copied'];
+    var allowedAreas = ['header', 'hero', 'content', 'share_section', 'final_cta', 'footer'];
 
     var shareUrl = 'https://mythicalvoid.com/playable-now/';
     var shareData = {
@@ -15,10 +17,31 @@
         if (shareStatus) shareStatus.textContent = message;
     }
 
+    function sourceAreaFor(element) {
+        if (element && element.closest('header')) return 'header';
+        if (element && element.closest('.hero, .page-hero')) return 'hero';
+        if (element && element.closest('.playable-share-section, [data-share-section]')) return 'share_section';
+        if (element && element.closest('.final-cta')) return 'final_cta';
+        if (element && element.closest('footer')) return 'footer';
+        return 'content';
+    }
+
+    function track(eventName, sourceArea) {
+        if (readChoice() !== 'granted' || allowedEvents.indexOf(eventName) === -1) return false;
+        var safeArea = allowedAreas.indexOf(sourceArea) === -1 ? 'content' : sourceArea;
+        window.gtag('event', eventName, {
+            source_page: currentPath,
+            source_area: safeArea,
+            transport_type: 'beacon'
+        });
+        return true;
+    }
+
     async function copyCleanGameLink() {
         try {
             await navigator.clipboard.writeText(shareUrl);
             setShareStatus('Game link copied — no tracking code.');
+            track('share_link_copied', sourceAreaFor(document.activeElement));
         } catch (error) {
             setShareStatus('Copy this address: mythicalvoid.com/playable-now');
         }
@@ -38,6 +61,7 @@
             try {
                 await navigator.share(shareData);
                 setShareStatus('Thanks for passing the signal on.');
+                track('share_completed', sourceAreaFor(shareButton));
             } catch (error) {
                 if (error && error.name !== 'AbortError') {
                     setShareStatus('You can share mythicalvoid.com/playable-now from your browser.');
@@ -79,6 +103,23 @@
         }
     }
 
+    window.MythicalAnalytics = {
+        getConsent: readChoice,
+        setConsent: function (value) {
+            if (value !== 'granted' && value !== 'denied') return;
+            rememberChoice(value);
+            applyChoice(value);
+        },
+        track: function (eventName, details) {
+            return track(eventName, details && details.source_area);
+        }
+    };
+
+    document.addEventListener('click', function (event) {
+        var link = event.target.closest && event.target.closest('a[href="/play/"]');
+        if (link) track('play_selected', sourceAreaFor(link));
+    });
+
     window.gtag('consent', 'default', {
         analytics_storage: 'denied',
         ad_storage: 'denied',
@@ -109,17 +150,15 @@
     var notice = document.createElement('aside');
     notice.className = 'analytics-choice';
     notice.setAttribute('aria-label', 'Optional website analytics');
-    notice.innerHTML = '<strong>Help us improve the website?</strong><p>Allow private, advertising-free visit counting on this information page. The game itself is not measured.</p><div class="analytics-actions"><button type="button" data-allow>Allow analytics</button><button type="button" data-deny>No thanks</button></div>';
+    notice.innerHTML = '<strong>Help us improve the website?</strong><p>Allow private, advertising-free counting of page visits and whether website buttons lead to play or sharing. The game itself is not measured.</p><div class="analytics-actions"><button type="button" data-allow>Allow analytics</button><button type="button" data-deny>No thanks</button></div>';
     document.body.appendChild(notice);
 
     notice.querySelector('[data-allow]').addEventListener('click', function () {
-        rememberChoice('granted');
-        applyChoice('granted');
+        window.MythicalAnalytics.setConsent('granted');
         notice.remove();
     });
     notice.querySelector('[data-deny]').addEventListener('click', function () {
-        rememberChoice('denied');
-        applyChoice('denied');
+        window.MythicalAnalytics.setConsent('denied');
         notice.remove();
     });
 }());

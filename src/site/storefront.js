@@ -221,7 +221,7 @@ function renderLegalPage(type) {
                     <h2>Online services</h2>
                     <p>Cloud Save uses Supabase. The game may also ask trusted outside services for public space-weather or game-help information. Like most online services, they may receive basic connection information such as an internet address.</p>
                     <h2>Optional website analytics</h2>
-                    <p>The public website may use Google Analytics to count visits and improve the shop window. It is off by default. If you choose “Allow analytics”, Google receives limited visit information for the public website only. It is not used in the game, and advertising features are switched off. You can choose “No thanks” instead.</p>
+                    <p>The public website may use Google Analytics to count visits and whether website buttons lead to the game or sharing. It is off by default. If you choose “Allow analytics”, Google receives the public page and general button area only. It does not receive a message recipient, contact detail, creature detail, game activity, or the extra information after a question mark in a web address. It is not used in the game, and advertising features are switched off. You can choose “No thanks” instead.</p>
                     <h2>Children</h2>
                     <p>Children can play without Cloud Save. A child should only use Cloud Save when a parent or guardian has given any permission required where they live.</p>
                     <h2>Contact</h2>
@@ -590,6 +590,18 @@ function renderStorefront() {
 }
 
 function bindInteractions() {
+    const sourceAreaFor = (element) => {
+        if (element?.closest('header')) return 'header';
+        if (element?.closest('.hero, .press-hero')) return 'hero';
+        if (element?.closest('.playable-share-section, [data-share-section]')) return 'share_section';
+        if (element?.closest('.final-cta')) return 'final_cta';
+        if (element?.closest('footer')) return 'footer';
+        return 'content';
+    };
+    const trackPublicEvent = (eventName, element) => {
+        window.MythicalAnalytics?.track?.(eventName, { source_area: sourceAreaFor(element) });
+    };
+
     const menuButton = app.querySelector('[data-menu-button]');
     const menu = app.querySelector('[data-menu]');
 
@@ -660,6 +672,10 @@ function bindInteractions() {
         });
     });
 
+    app.querySelectorAll('a[href="/play/"]').forEach((link) => {
+        link.addEventListener('click', () => trackPublicEvent('play_selected', link));
+    });
+
     const shareButtons = [...app.querySelectorAll('[data-share-game]')];
     const shareStatuses = [...app.querySelectorAll('[data-share-status]')];
     const shareData = {
@@ -684,11 +700,13 @@ function bindInteractions() {
                 if (navigator.share) {
                     await navigator.share(shareData);
                     setShareStatus('Thanks for sharing the signal.');
+                    trackPublicEvent('share_completed', button);
                     return;
                 }
 
                 await navigator.clipboard.writeText(shareData.url);
                 setShareStatus('Clean game link copied — no tracking code.');
+                trackPublicEvent('share_link_copied', button);
             } catch (error) {
                 if (error?.name !== 'AbortError') {
                     setShareStatus('You can share mythicalvoid.com from your browser.');

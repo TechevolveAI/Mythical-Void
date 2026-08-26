@@ -531,7 +531,7 @@
       "followUp": "Name the support and knowledge owners, review the eight source records, approve the exact wording, and keep inbox connection and sending as separate human decisions"
     },
     {
-      "evidence": "A-058 checked the Google tag ID G-FTM4W73EQC, consent denied by default, visitor choice, advertising features off, public-page scope, game exclusion, canonical path, both hosting policies, and 17 prohibited data fields. It passed 25 independent cases. It has not claimed a live deployment or trusted measurement result.",
+      "evidence": "A-058 checked the user-supplied Google tag ID G-FTM4W73ECQ, consent denied by default, visitor choice, advertising features off, public-page scope, game exclusion, canonical path, both hosting policies, and 17 prohibited data fields. It passed 25 independent cases. Live results still need a property-side check before they are treated as trusted.",
       "source": "A-058 website analytics tag contract, public source checks, hosting policies, and independent evaluation 2026-08-11",
       "confidence": "High for the checked source files and declared consent rules; the live domain, Google property, visitor behaviour, retention, and production response have not yet been verified",
       "implication": "Mythical can measure whether its public shop window helps visitors only after they choose analytics, without adding Google tracking to the game.",

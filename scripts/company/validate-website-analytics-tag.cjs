@@ -44,8 +44,8 @@ if (contract.authority?.productionDeploymentAuthorizedByKevin !== true) failures
 requireFalse(contract.authority, authorityFields.filter(field => field !== 'productionDeploymentAuthorizedByKevin'), 'authority', failures, false);
 
 const tag = contract.tag || {};
-if (tag.measurementId !== 'G-FTM4W73EQC') failures.push('measurementId is invalid');
-if (tag.scriptUrl !== 'https://www.googletagmanager.com/gtag/js?id=G-FTM4W73EQC') failures.push('scriptUrl is invalid');
+if (tag.measurementId !== 'G-FTM4W73ECQ') failures.push('measurementId is invalid');
+if (tag.scriptUrl !== 'https://www.googletagmanager.com/gtag/js?id=G-FTM4W73ECQ') failures.push('scriptUrl is invalid');
 if (tag.scope !== 'public_shop_window_only') failures.push('scope is invalid');
 exactSet(tag.includedRoutes, ['/', '/privacy/', '/terms/'], 'includedRoutes', failures);
 exactSet(tag.excludedRoutes, ['/play/', '/game/', '?testBoss'], 'excludedRoutes', failures);
@@ -67,7 +67,7 @@ const storefrontCss = read('src/site/storefront.css');
 const netlifyText = read('netlify.toml');
 const vercelText = read('vercel.json');
 for (const required of [
-    'G-FTM4W73EQC', 'analytics_storage: \'denied\'', 'ad_storage: \'denied\'', 'ad_user_data: \'denied\'', 'ad_personalization: \'denied\'',
+    'G-FTM4W73ECQ', 'analytics_storage: \'denied\'', 'ad_storage: \'denied\'', 'ad_user_data: \'denied\'', 'ad_personalization: \'denied\'',
     "send_page_view: false", "allow_google_signals: false", "allow_ad_personalization_signals: false", "path === '/play'", "path === '/game'", "params.has('testBoss')", 'www.googletagmanager.com/gtag/js'
 ]) if (!indexText.includes(required)) failures.push(`index.html missing ${required}`);
 for (const required of ['Allow analytics', 'No thanks', 'mythical-analytics-consent', 'setConsent', 'analytics-consent']) if (!consentText.includes(required)) failures.push(`analytics consent helper missing ${required}`);
@@ -87,7 +87,7 @@ function collectSourceText(directory, pieces = []) {
     return pieces;
 }
 const gameSourceText = collectSourceText(path.join(repositoryRoot, 'src')).join('\n');
-if (gameSourceText.includes('G-FTM4W73EQC') || gameSourceText.includes('googletagmanager.com/gtag/js')) failures.push('game source must not contain the Google tag');
+if (gameSourceText.includes('G-FTM4W73ECQ') || gameSourceText.includes('googletagmanager.com/gtag/js')) failures.push('game source must not contain the Google tag');
 if (!indexText.includes('if (isGameRoute) return')) failures.push('index.html must stop before loading the tag on game routes');
 
 exactSet(contract.prohibitedData, ['user_id', 'account_id', 'email', 'name', 'age', 'age_band', 'birth_date', 'child_data', 'creature_id', 'creature_name', 'game_save', 'story_choice', 'full_url', 'query_string', 'raw_referrer', 'ip_address', 'advertising_id'], 'prohibitedData', failures);
