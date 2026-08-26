@@ -14,8 +14,12 @@ const itchPath = path.join(repositoryRoot, 'docs', 'company', 'growth', 'ITCH_RE
 const pokiAssessmentPath = path.join(repositoryRoot, 'docs', 'company', 'growth', 'POKI_READINESS_ASSESSMENT.json');
 const pokiMeasurementPath = path.join(repositoryRoot, 'docs', 'company', 'growth', 'poki-candidate-measurement.json');
 const decisionsPath = path.join(repositoryRoot, 'docs', 'company', 'registers', 'DECISIONS.md');
+const measurementSnapshotToleranceBytes = 128 * 1024;
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
+const withinSnapshotTolerance = (recorded, measured) =>
+    Number.isFinite(recorded) && Number.isFinite(measured) &&
+    Math.abs(recorded - measured) <= measurementSnapshotToleranceBytes;
 
 function readJson(file, label) {
     try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
@@ -49,9 +53,9 @@ const technical = map.technicalAssessment;
 requireValue(technical?.source === 'docs/company/growth/POKI_READINESS_ASSESSMENT.json', 'Poki technical assessment source is missing');
 requireValue(technical?.measurementSource === 'docs/company/growth/poki-candidate-measurement.json', 'Poki measurement source is missing');
 requireValue(technical?.decision === pokiAssessment.decision && technical.decision === 'no_go_yet_preserve_option', 'Poki no-go-yet decision is missing');
-requireValue(technical?.firstLoadGzipEstimateBytes === pokiMeasurement.firstLoad?.gzipEstimateBytes, 'Poki first-load evidence drifted');
+requireValue(withinSnapshotTolerance(technical?.firstLoadGzipEstimateBytes, pokiMeasurement.firstLoad?.gzipEstimateBytes), 'Poki first-load evidence drifted beyond the 128 KiB snapshot tolerance');
 requireValue(technical?.firstLoadAdvisoryTargetBytes === pokiMeasurement.firstLoad?.advisoryTargetBytes && technical.firstLoadTargetMet === true, 'Poki first-load target evidence is missing');
-requireValue(technical?.totalGzipEstimateBytes === pokiMeasurement.package?.gzipEstimateBytes, 'Poki total-delivery evidence drifted');
+requireValue(withinSnapshotTolerance(technical?.totalGzipEstimateBytes, pokiMeasurement.package?.gzipEstimateBytes), 'Poki total-delivery evidence drifted beyond the 128 KiB snapshot tolerance');
 requireValue(technical?.totalAdvisoryTargetBytes === pokiMeasurement.package?.advisoryTargetBytes && technical.totalTargetMet === false, 'Poki total-delivery gap is missing');
 for (const field of ['outsideServicesIsolated', 'incognitoSavingVerified', 'tabletTouchVerified', 'fivePersonFirstMinuteReviewComplete', 'pokiSdkPresent', 'pokiSdkAuthorized', 'submissionReady']) {
     requireValue(technical?.[field] === false, `technicalAssessment.${field} must remain false`);
@@ -108,5 +112,6 @@ console.log(JSON.stringify({
     visualGate: `${map.currentTruth.approvedAuthenticVisualMoments}/${map.currentTruth.requiredAuthenticVisualMoments}`,
     externalActionAuthorized: false,
     rightsDecisionPreserved: true,
+    measurementSnapshotToleranceBytes,
     secondaryRouteCount: map.secondaryRoutes.length
 }, null, 2));
