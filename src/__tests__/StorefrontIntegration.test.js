@@ -10,6 +10,7 @@ describe('storefront and game deployment integration', () => {
     const main = read('src/main.js');
     const envExample = read('.env.example');
     const netlify = read('netlify.toml');
+    const publishedRedirects = read('public/_redirects');
     const observabilityFunction = read('netlify/functions/observability-events.mjs');
     const vercel = JSON.parse(read('vercel.json'));
     const supabaseOrigin = envExample.match(
@@ -91,6 +92,9 @@ describe('storefront and game deployment integration', () => {
     test('keeps the observability API alias ahead of the generic API redirect', () => {
         const explicitAlias = 'from = "/api/observability-events"';
         const genericAlias = 'from = "/api/*"';
+        const publishedExplicitAlias = '/api/observability-events';
+        const publishedGenericAlias = '/api/*';
+        const publishedSpaFallback = '/*    /index.html';
 
         expect(netlify).toContain(
             'to = "/.netlify/functions/observability-events"'
@@ -101,6 +105,18 @@ describe('storefront and game deployment integration', () => {
         );
         expect(observabilityFunction).not.toContain(
             "path: '/api/observability-events'"
+        );
+        expect(publishedRedirects).toContain(
+            '/api/observability-events    /.netlify/functions/observability-events    200!'
+        );
+        expect(publishedRedirects).toContain(
+            '/api/*                       /.netlify/functions/:splat                  200!'
+        );
+        expect(publishedRedirects.indexOf(publishedExplicitAlias)).toBeLessThan(
+            publishedRedirects.indexOf(publishedGenericAlias)
+        );
+        expect(publishedRedirects.indexOf(publishedGenericAlias)).toBeLessThan(
+            publishedRedirects.indexOf(publishedSpaFallback)
         );
     });
 });
