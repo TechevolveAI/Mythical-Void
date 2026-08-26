@@ -5,8 +5,8 @@
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "a7a40f420d7d4250966af61955f71ba400138d34dc07a293535e23beb730332e",
-    "liveEntryCount": 12,
+    "sourceFingerprint": "e8ecbb264d68cc97c5c369f25dc1b8ec1e7373e6212861ff00831ad2ca214508",
+    "liveEntryCount": 13,
     "latestSourceDate": "2026-08-26"
   },
   "purpose": "Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
@@ -32,6 +32,51 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-SIGNAL-020",
+      "sourceEntryId": "SIGNAL-020",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/llms.txt",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+        "alt": "Many imagined alien organisms gathered in a luminous Mythical Void realm",
+        "class": "ai_generated_marketing_illustration",
+        "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "One truthful guide now points to the whole game\n\nA concise public guide now helps people, search tools and AI systems find Mythical Void’s canonical play, story, creature, family, NASA and studio pages without guessing what is real.\n\n• The guide states what players do today, where to play free and which public pages are the clearest sources for each part of the game.\n• It also states the boundaries directly: no absolute creature-uniqueness promise, NASA endorsement, formal age rating, imagined artwork called gameplay or identifying detail about the child in the founder story.\n• This proposed web convention does not control crawlers or promise search inclusion, ranking or AI citations. The real pages, sitemap, structured game facts and human review remain authoritative.\n\nSee what changed: https://mythicalvoid.com/llms.txt\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 916
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: One truthful guide now points to the whole game\n\nA concise public guide now helps people, search tools and AI systems find Mythical Void’s canonical play, story, creature, family, NASA and studio pages without guessing what is real.\n\nhttps://mythicalvoid.com/llms.txt\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 370
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: One truthful guide now points to the whole game",
+          "body": "Mythical Void has a new live update: One truthful guide now points to the whole game.\n\nA concise public guide now helps people, search tools and AI systems find Mythical Void’s canonical play, story, creature, family, NASA and studio pages without guessing what is real.\n\nThe guide states what players do today, where to play free and which public pages are the clearest sources for each part of the game. It also states the boundaries directly: no absolute creature-uniqueness promise, NASA endorsement, formal age rating, imagined artwork called gameplay or identifying detail about the child in the founder story. This proposed web convention does not control crawlers or promise search inclusion, ranking or AI citations. The real pages, sitemap, structured game facts and human review remain authoritative.\n\nThe checked public destination is https://mythicalvoid.com/llms.txt\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 1051,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-SIGNAL-019",
       "sourceEntryId": "SIGNAL-019",

@@ -8,16 +8,16 @@
   },
   "package": {
     "fileCount": 85,
-    "rawBytes": 46879380,
-    "gzipEstimateBytes": 43051796,
+    "rawBytes": 46879471,
+    "gzipEstimateBytes": 43051822,
     "advisoryTargetBytes": 8388608,
     "advisoryTargetMet": false,
-    "contentDigestSha256": "e4f1e50f1f7d8b5bc040bc53b7f06c40cab4f7e4d08c35560d0d9d7233d0e793"
+    "contentDigestSha256": "23a61d179335fbc22753e83a80c21f2aef5bce96fb2c5120ecefcbb92d6088a6"
   },
   "firstLoad": {
     "resourceCount": 18,
-    "rawBytes": 7138776,
-    "gzipEstimateBytes": 3938914,
+    "rawBytes": 7138867,
+    "gzipEstimateBytes": 3938940,
     "advisoryTargetBytes": 5242880,
     "advisoryTargetMet": true,
     "resources": [
@@ -98,8 +98,8 @@
       },
       {
         "path": "index.html",
-        "rawBytes": 3895,
-        "gzipEstimateBytes": 1234
+        "rawBytes": 3986,
+        "gzipEstimateBytes": 1260
       },
       {
         "path": "assets/index-sSM_T93v.js",
@@ -136,8 +136,8 @@
     },
     "root": {
       "fileCount": 2,
-      "rawBytes": 4791,
-      "gzipEstimateBytes": 1694
+      "rawBytes": 4882,
+      "gzipEstimateBytes": 1720
     },
     "marketing": {
       "fileCount": 25,

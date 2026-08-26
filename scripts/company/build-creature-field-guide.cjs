@@ -161,6 +161,7 @@ function buildFieldGuideHtml(data) {
     <meta name="twitter:image" content="https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp">
     <meta name="twitter:image:alt" content="An imagined luminous universe filled with many possible alien creature forms">
     <link rel="canonical" href="https://mythicalvoid.com/creature-field-guide/">
+    <link rel="describedby" type="text/markdown" href="https://mythicalvoid.com/llms.txt">
     <link rel="alternate" type="application/rss+xml" title="Mythical Void — The Signal Log" href="https://mythicalvoid.com/updates/feed.xml">
     <link rel="alternate" type="application/feed+json" title="Mythical Void — The Signal Log" href="https://mythicalvoid.com/updates/feed.json">
     <link rel="icon" type="image/png" sizes="32x32" href="/marketing/mythical-void-mark-32.png">

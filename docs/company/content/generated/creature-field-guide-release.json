@@ -21,7 +21,7 @@
     },
     "publicPage": {
       "path": "public/creature-field-guide/index.html",
-      "sha256": "bb00323535d281f7ca8466c7bd73362463fe76732896d09e83df3588554407eb"
+      "sha256": "6c910cb2840c62dae6911b707e49dedf01d9528ce1f2ac049ee1e92f27f67322"
     }
   },
   "coverage": {
