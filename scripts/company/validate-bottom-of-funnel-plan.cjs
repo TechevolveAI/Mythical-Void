@@ -20,19 +20,25 @@ const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 
 requireValue(plan.id === 'BOTTOM-OF-FUNNEL-001', 'distribution plan id is missing');
-requireValue(plan.primaryNextShelf?.name === 'itch.io', 'itch.io must remain the first candidate shelf');
-requireValue(plan.primaryNextShelf?.publicationAuthorized === false, 'external publication must wait for Kevin');
-requireValue(plan.primaryNextShelf?.gates?.includes('four authentic gameplay moments approved'), 'the four-moment visual gate is missing');
-requireValue(plan.primaryNextShelf?.gates?.includes('embedded browser package tested'), 'the embedded build gate is missing');
-requireValue(plan.primaryNextShelf?.technicalEvidence?.nestedFrameTestPassed === true, 'the nested frame test evidence is missing');
-requireValue(plan.primaryNextShelf?.technicalEvidence?.withdrawnMediaIncluded === false, 'withdrawn media must remain outside the portal package');
+requireValue(plan.readyFallbackShelf?.name === 'itch.io', 'itch.io must remain the ready fallback shelf');
+requireValue(plan.readyFallbackShelf?.publicationAuthorized === false, 'external publication must wait for Kevin');
+requireValue(plan.readyFallbackShelf?.rightsDecisionRequiredBeforePublication === true, 'the distribution-rights choice must happen before publication');
+requireValue(plan.readyFallbackShelf?.gates?.includes('four authentic gameplay moments approved'), 'the four-moment visual gate is missing');
+requireValue(plan.readyFallbackShelf?.gates?.includes('embedded browser package tested'), 'the embedded build gate is missing');
+requireValue(plan.readyFallbackShelf?.technicalEvidence?.nestedFrameTestPassed === true, 'the nested frame test evidence is missing');
+requireValue(plan.readyFallbackShelf?.technicalEvidence?.withdrawnMediaIncluded === false, 'withdrawn media must remain outside the portal package');
 requireValue(plan.routeOrder?.find(route => route.name === 'itch.io')?.state === 'technical_package_ready_not_published', 'itch.io route state is stale');
 requireValue(plan.routeOrder?.[0]?.url === 'https://mythicalvoid.com/playable-now/', 'the owned search doorway must stay first and live');
 requireValue(plan.routeOrder?.find(route => route.name === 'YouTube')?.state === 'held_for_visual_quality', 'YouTube must remain behind the visual gate');
-for (const field of ['externalPublishingAuthorized', 'paidPromotionAuthorized', 'bulkOutreachAuthorized', 'directChildContactAuthorized', 'imaginedArtMayBeCalledGameplay', 'portalAcceptanceMayBePromised']) {
+requireValue(plan.routeOrder?.find(route => route.name === 'Poki')?.state === 'high_upside_option_preserved_not_submitted', 'Poki option state is stale');
+requireValue(plan.distributionRightsFork?.decisionId === 'D-018', 'distribution rights decision is missing');
+requireValue(plan.distributionRightsFork?.pokiPreferredDealWebExclusive === true, 'Poki web exclusivity fact is missing');
+requireValue(plan.distributionRightsFork?.pokiIndicativeExclusiveTermYears === 5, 'Poki indicative term is missing');
+requireValue(plan.distributionRightsFork?.decisionMade === false, 'distribution decision must remain open');
+for (const field of ['externalPublishingAuthorized', 'paidPromotionAuthorized', 'bulkOutreachAuthorized', 'directChildContactAuthorized', 'imaginedArtMayBeCalledGameplay', 'portalAcceptanceMayBePromised', 'pokiAccessRequestAuthorized', 'webExclusivityMayBeAccepted']) {
     requireValue(plan.boundaries?.[field] === false, `boundary ${field} must remain false`);
 }
-for (const phrase of ['A free browser adventure', 'Why itch.io is first', 'Three to five real game images', 'No action is needed now', 'NASA endorsement']) {
+for (const phrase of ['A free browser adventure', 'One important choice before itch.io', 'Why itch.io is first if Kevin chooses speed', 'Three to five real game images', 'No action is needed now', 'NASA endorsement']) {
     requireValue(planText.includes(phrase), `plain-language plan is missing: ${phrase}`);
 }
 for (const source of plan.sources || []) requireValue(planText.includes(source), `plain-language plan is missing source: ${source}`);
@@ -62,7 +68,8 @@ if (failures.length) {
 console.log(JSON.stringify({
     valid: true,
     ownedSearchDoorway: 'live',
-    primaryNextShelf: 'itch.io',
+    recommendedFirstRequest: 'Poki after quality gates',
+    readyFallbackShelf: 'itch.io',
     itchTechnicalPackageReady: true,
     itchPublicationAuthorized: false,
     visualGateOpen: false,

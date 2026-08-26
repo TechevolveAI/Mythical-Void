@@ -25,11 +25,24 @@ The father-and-son beginning, creature engine, careful use of AI and NASA-inspir
 | Google and other search engines | The player is already asking for a free browser, creature or indie game | Keep `/playable-now/` as the truthful search landing page and lead directly to play | Live |
 | itch.io | People browse specifically for new independent games; an account is free and HTML games can run in the browser | Use the tested direct-play package and prepared listing | Technically ready, not published |
 | YouTube | Players search for gameplay, reviews and “games to try” | Publish only after four real, excellent gameplay moments exist | Held for visual quality |
-| Poki | A large audience is already choosing a web game | Apply after the opening minutes, mobile play, loading and thumbnail all pass review | Later candidate |
+| Poki | A very large audience is already choosing a web game | Preserve the option; its preferred deals can require web exclusivity, so decide before itch.io publication | High-upside option, not submitted |
 | CrazyGames | Another direct web-game shelf | Review its current portal requirements after an account is available; do not promise acceptance | Later candidate |
 | Steam | Strong intent, but a different kind of release | Revisit when there is a suitable downloadable build and a store plan | Not now |
 
-## Why itch.io is first
+## One important choice before itch.io
+
+Poki's current official guide says its preferred partnership is web-exclusive,
+with an indicative five-year term. It also describes a non-exclusive flat-fee
+route for games already live on other web platforms. Publishing on itch.io
+first could therefore change the kind of Poki opportunity available later.
+
+The visual gate is still closed, so no immediate decision is needed. When it
+passes, Kevin should choose between a Poki-first access request and an
+itch.io-first learning release. For maximum upside, the current recommendation
+is to request Poki access first and keep the prepared itch.io release as the
+fallback. No form submission, exclusivity or terms are authorized.
+
+## Why itch.io is first if Kevin chooses speed
 
 It is the closest match for the game we have today. itch.io supports games that play directly in the browser. Its official guide says the project needs a ZIP with a top-level `index.html`, no more than 1,000 files, no more than 500 MB extracted, and relative file paths. A free account can create the page.
 
@@ -76,11 +89,15 @@ We record what happened, not what we hoped happened. No child is contacted priva
 
 ## What Kevin will eventually need to approve
 
-No action is needed now. When the visual gate passes, ask Kevin for one decision:
+No action is needed now. When the visual gate passes, ask Kevin for one
+distribution decision:
 
-> Shall I publish the prepared itch.io page through an account you control?
+> Should we preserve maximum upside by asking Poki to consider the game first,
+> or publish the prepared itch.io page now for faster learning?
 
-That approval covers the public listing and the platform terms. It does not cover ads, paid promotion, direct messages, bulk outreach or additional platforms.
+That decision does not itself authorize a form submission, public listing,
+platform terms, exclusivity, ads, paid promotion, direct messages, bulk
+outreach or additional platforms.
 
 ## Sources used for the current platform facts
 
@@ -89,5 +106,7 @@ That approval covers the public listing and the platform terms. It does not cove
 - Poki web-game guide: https://developers.poki.com/guide
 - Poki thumbnail guide: https://developers.poki.com/guide/thumbnail
 - Poki developer application: https://developers.poki.com/share
+- Poki deal types and web exclusivity: https://developers.poki.com/guide/revenue-deal-types
+- What Poki looks for: https://developers.poki.com/guide/what-we-look-for
 - CrazyGames developer portal: https://developer.crazygames.com/games
 - Steam Direct fee: https://partner.steamgames.com/doc/gettingstarted/appfee
