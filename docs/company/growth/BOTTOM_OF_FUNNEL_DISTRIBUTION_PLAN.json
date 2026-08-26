@@ -1,0 +1,51 @@
+{
+  "id": "BOTTOM-OF-FUNNEL-001",
+  "checkedOn": "2026-08-26",
+  "state": "owned_entry_live_itch_listing_prepared_visual_gate_closed",
+  "playerPromise": "A free browser adventure where you hatch a strange alien creature, cross six living realms and decide what Project Beacon should tell Earth. No download or account needed.",
+  "primaryNextShelf": {
+    "name": "itch.io",
+    "accountCost": "free",
+    "publicationAuthorized": false,
+    "reason": "The audience is actively browsing for independent games and HTML games can play directly in the browser.",
+    "requirements": {
+      "topLevelIndexHtml": true,
+      "relativePaths": true,
+      "maximumExtractedFiles": 1000,
+      "maximumExtractedSizeMb": 500,
+      "recommendedCover": "630x500",
+      "recommendedAuthenticScreenshots": "3-5"
+    },
+    "gates": [
+      "four authentic gameplay moments approved",
+      "clean creature reveal approved",
+      "embedded browser package tested",
+      "Kevin approves account and public listing"
+    ]
+  },
+  "routeOrder": [
+    { "name": "owned search landing page", "state": "live", "url": "https://mythicalvoid.com/playable-now/" },
+    { "name": "itch.io", "state": "prepared_not_published" },
+    { "name": "YouTube", "state": "held_for_visual_quality" },
+    { "name": "Poki", "state": "later_candidate" },
+    { "name": "CrazyGames", "state": "later_candidate" },
+    { "name": "Steam", "state": "not_now", "feeUsd": 100 }
+  ],
+  "boundaries": {
+    "externalPublishingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "bulkOutreachAuthorized": false,
+    "directChildContactAuthorized": false,
+    "imaginedArtMayBeCalledGameplay": false,
+    "portalAcceptanceMayBePromised": false
+  },
+  "sources": [
+    "https://itch.io/docs/creators/html5",
+    "https://itch.io/docs/creators/getting-started",
+    "https://developers.poki.com/guide",
+    "https://developers.poki.com/guide/thumbnail",
+    "https://developers.poki.com/share",
+    "https://developer.crazygames.com/games",
+    "https://partner.steamgames.com/doc/gettingstarted/appfee"
+  ]
+}

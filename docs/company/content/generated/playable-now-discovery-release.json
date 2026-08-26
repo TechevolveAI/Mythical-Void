@@ -6,7 +6,7 @@
   "page": {
     "path": "public/playable-now/index.html",
     "publicUrl": "https://mythicalvoid.com/playable-now/",
-    "sha256": "8d94703133ec9382b1b6dd9316caf87788052407fb593b41c964365a615a890e",
+    "sha256": "d5ccbeaa59255c9077fcc30f3dd0d51d6e87fea9d238958bdebe57c18e65652d",
     "canonical": "https://mythicalvoid.com/playable-now/",
     "directPlayLinkMinimum": 3,
     "structuredData": ["VideoGame", "FAQPage"]

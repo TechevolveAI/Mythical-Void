@@ -5,10 +5,17 @@
     var allowedEvents = ['play_selected', 'share_completed', 'share_link_copied'];
     var allowedAreas = ['header', 'hero', 'content', 'share_section', 'final_cta', 'footer'];
 
-    var shareUrl = 'https://mythicalvoid.com/playable-now/';
+    var shareCard = document.querySelector('[data-share-card]');
+    var shareUrl = shareCard && shareCard.dataset.shareUrl
+        ? shareCard.dataset.shareUrl
+        : 'https://mythicalvoid.com/playable-now/';
     var shareData = {
-        title: 'Mythical Void',
-        text: 'Try Mythical Void — a free alien-creature adventure you can play in your browser. No download or account needed.',
+        title: shareCard && shareCard.dataset.shareTitle
+            ? shareCard.dataset.shareTitle
+            : 'Mythical Void',
+        text: shareCard && shareCard.dataset.shareText
+            ? shareCard.dataset.shareText
+            : 'Try Mythical Void — a free alien-creature adventure you can play in your browser. No download or account needed.',
         url: shareUrl
     };
     var shareStatus = document.querySelector('[data-share-status]');
@@ -37,13 +44,22 @@
         return true;
     }
 
-    async function copyCleanGameLink() {
+    function readableShareAddress() {
+        try {
+            var parsed = new URL(shareUrl);
+            return parsed.host + parsed.pathname;
+        } catch (error) {
+            return shareUrl;
+        }
+    }
+
+    async function copyCleanLink() {
         try {
             await navigator.clipboard.writeText(shareUrl);
-            setShareStatus('Game link copied — no tracking code.');
+            setShareStatus('Clean link copied — no tracking code.');
             track('share_link_copied', sourceAreaFor(document.activeElement));
         } catch (error) {
-            setShareStatus('Copy this address: mythicalvoid.com/playable-now');
+            setShareStatus('Copy this address: ' + readableShareAddress());
         }
     }
 
@@ -55,7 +71,7 @@
         }
         shareButton.addEventListener('click', async function () {
             if (!navigator.share) {
-                await copyCleanGameLink();
+                await copyCleanLink();
                 return;
             }
             try {
@@ -64,14 +80,14 @@
                 track('share_completed', sourceAreaFor(shareButton));
             } catch (error) {
                 if (error && error.name !== 'AbortError') {
-                    setShareStatus('You can share mythicalvoid.com/playable-now from your browser.');
+                    setShareStatus('You can share ' + readableShareAddress() + ' from your browser.');
                 }
             }
         });
     }
 
     var copyButton = document.querySelector('[data-copy-game]');
-    if (copyButton) copyButton.addEventListener('click', copyCleanGameLink);
+    if (copyButton) copyButton.addEventListener('click', copyCleanLink);
 
     window.dataLayer = window.dataLayer || [];
     function gtag() { window.dataLayer.push(arguments); }
