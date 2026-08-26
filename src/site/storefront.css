@@ -2182,6 +2182,109 @@ footer {
     background: #080719;
 }
 
+.press-social-video-release {
+    padding: 4.5rem clamp(1rem, 3vw, 3rem) 2.5rem;
+    border: 1px solid rgba(118, 227, 207, .18);
+    border-radius: 2.3rem;
+    background:
+        radial-gradient(circle at 82% 12%, rgba(100, 75, 190, .24), transparent 34%),
+        linear-gradient(145deg, rgba(11, 9, 31, .98), rgba(6, 5, 17, .98));
+}
+
+.press-social-video-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, .78fr) minmax(0, 1.22fr);
+    align-items: start;
+    gap: 1.25rem;
+}
+
+.press-social-video-stack {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.press-asset-card.press-social-video-card {
+    border-color: rgba(118, 227, 207, .18);
+    background: #0a091b;
+    box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, .25);
+}
+
+.press-social-video-card video {
+    display: block;
+    width: 100%;
+    background: #060510;
+}
+
+.press-social-video-vertical video {
+    aspect-ratio: 9 / 16;
+    object-fit: contain;
+}
+
+.press-social-video-card figcaption {
+    color: #fff8e7;
+    background: #0a091b;
+}
+
+.press-social-video-card strong {
+    color: #fff8e7;
+}
+
+.press-social-video-card figcaption > span {
+    color: var(--mint);
+    font-size: .64rem;
+    font-weight: 900;
+    letter-spacing: .14em;
+}
+
+.press-asset-card.press-social-video-card p {
+    color: #bdb6cf;
+}
+
+.press-asset-card.press-social-video-card a {
+    color: var(--mint);
+}
+
+.press-caption-ready {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 2rem;
+    margin-top: 1.25rem;
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+    border: 1px solid rgba(118, 227, 207, .2);
+    border-radius: 1.6rem;
+    background: rgba(118, 227, 207, .08);
+}
+
+.press-caption-ready h3 {
+    margin: .35rem 0 .6rem;
+    color: #fff8e7;
+    font-family: "Arial Rounded MT Bold", "Avenir Next", ui-rounded, system-ui, sans-serif;
+    font-size: clamp(1.7rem, 3vw, 2.5rem);
+}
+
+.press-caption-ready > div > p:last-child {
+    max-width: 680px;
+    margin: 0;
+    color: #c7c0d8;
+}
+
+.press-caption-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .75rem;
+}
+
+.press-caption-actions .button-quiet {
+    color: #fff8e7;
+}
+
+.press-social-video-release .press-social-note {
+    color: #aaa4bb;
+    line-height: 1.65;
+}
+
 .press-social-note {
     margin: 1.1rem 0 0;
     color: #68677c;
@@ -2325,6 +2428,9 @@ footer {
     .press-gameplay-grid { grid-template-columns: 1fr 1fr; }
     .press-gameplay-wide { grid-column: 1 / -1; }
     .press-proof-feature-grid { grid-template-columns: 1fr 1fr; }
+    .press-social-video-layout { grid-template-columns: minmax(250px, .75fr) minmax(0, 1.25fr); }
+    .press-caption-ready { grid-template-columns: 1fr; }
+    .press-caption-actions { justify-content: flex-start; }
     .press-video-shell,
     .press-nasa-card > img { min-height: 540px; height: 540px; }
 }
@@ -2345,6 +2451,10 @@ footer {
     .press-gameplay-grid,
     .press-proof-feature-grid,
     .press-language-cards { grid-template-columns: 1fr; }
+    .press-social-video-layout { grid-template-columns: 1fr; }
+    .press-social-video-vertical video { max-height: 720px; }
+    .press-social-video-release { padding: 3.2rem 1rem 1.5rem; border-radius: 1.6rem; }
+    .press-caption-actions { display: grid; }
     .press-asset-wide { grid-column: auto; }
     .press-gameplay-wide { grid-column: auto; }
     .press-asset-card > img,

@@ -5,8 +5,8 @@
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "a178bca43640659ff5b4d9d3dd9d1ebb6e9bc9e689001518a24ab98d2eaafb24",
-    "liveEntryCount": 9,
+    "sourceFingerprint": "f89aa7b171057264f5761f657a21d41476e2e84cbb5ffe04883911732ddc4d3c",
+    "liveEntryCount": 10,
     "latestSourceDate": "2026-08-26"
   },
   "purpose": "Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
@@ -32,6 +32,51 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-SIGNAL-010",
+      "sourceEntryId": "SIGNAL-010",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/press/#real-gameplay-social-video",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/social-video/mythical-void-real-gameplay-square-poster.png",
+        "alt": "Square Mythical Void branded video poster with a complete real gameplay frame and the words Crash beyond mapped space, hatch something strange",
+        "class": "branded_social_video_poster_with_authentic_running_build_gameplay",
+        "disclosure": "Poster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Real gameplay now fits every screen\n\nOne checked Mythical Void gameplay recording is now available as vertical, square and wide branded video, ready for adults, press and creators to review without changing what the game really shows.\n\n• Every version preserves the complete moving phone-game frame and adds branding only around it; no generated motion, replacement scenery, replacement interface or replacement audio is used.\n• The silent 19.58-second videos come in 1080 by 1920, 1080 by 1080 and 1920 by 1080 formats, with downloadable posters and an exact build record.\n• Three source-bound caption drafts use the clean Playable Now link, make no absolute uniqueness claim and remain unposted until an official channel and Kevin approval exist.\n\nSee what changed: https://mythicalvoid.com/press/#real-gameplay-social-video\n\nPoster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.",
+          "characterCount": 1002
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Real gameplay now fits every screen\n\nOne checked Mythical Void gameplay recording is now available as vertical, square and wide branded video, ready for adults, press and creators to review without changing what the game really shows.\n\nhttps://mythicalvoid.com/press/#real-gameplay-social-video\n\nPoster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.",
+          "characterCount": 489
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Real gameplay now fits every screen",
+          "body": "Mythical Void has a new live update: Real gameplay now fits every screen.\n\nOne checked Mythical Void gameplay recording is now available as vertical, square and wide branded video, ready for adults, press and creators to review without changing what the game really shows.\n\nEvery version preserves the complete moving phone-game frame and adds branding only around it; no generated motion, replacement scenery, replacement interface or replacement audio is used. The silent 19.58-second videos come in 1080 by 1920, 1080 by 1080 and 1920 by 1080 formats, with downloadable posters and an exact build record. Three source-bound caption drafts use the clean Playable Now link, make no absolute uniqueness claim and remain unposted until an official channel and Kevin approval exist.\n\nThe checked public destination is https://mythicalvoid.com/press/#real-gameplay-social-video\n\nMedia note: Poster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 1137,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-SIGNAL-009",
       "sourceEntryId": "SIGNAL-009",

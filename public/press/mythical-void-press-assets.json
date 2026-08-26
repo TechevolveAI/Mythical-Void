@@ -6,6 +6,11 @@
   "playableNowUrl": "https://mythicalvoid.com/playable-now/",
   "gameplayProofManifest": "https://mythicalvoid.com/press/gameplay/manifest.json",
   "gameplayVideoProofManifest": "https://mythicalvoid.com/press/gameplay-video/manifest.json",
+  "authenticGameplaySocialKit": {
+    "manifest": "https://mythicalvoid.com/press/social-video/manifest.json",
+    "captionPack": "https://mythicalvoid.com/press/social-video/authentic-gameplay-caption-pack.json",
+    "state": "owned_press_room_release_waiting_for_external_channel_and_kevin_approval"
+  },
   "socialPreviewManifest": "https://mythicalvoid.com/press/mythical-void-social-previews.json",
   "signalLogFeeds": {
     "publicUpdates": "https://mythicalvoid.com/updates/",
@@ -40,6 +45,30 @@
       "posterUrl": "https://mythicalvoid.com/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
       "kind": "authentic_running_build_gameplay_video",
       "description": "A short vertical recording made directly from the real Mythical Void browser game, with real movement, jumping, touch controls and route display; no generated frames or replacement scenery."
+    },
+    {
+      "name": "Authentic gameplay social video — vertical",
+      "url": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-vertical.mp4",
+      "posterUrl": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-vertical-poster.png",
+      "kind": "branded_social_video_with_authentic_running_build_gameplay",
+      "dimensions": "1080x1920",
+      "description": "A silent vertical branded edit preserving the complete authentic Mythical Void phone-gameplay frame. The surrounding branded layout is not gameplay; no generated motion, replacement scenery, replacement interface or replacement audio was added."
+    },
+    {
+      "name": "Authentic gameplay social video — square",
+      "url": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-square.mp4",
+      "posterUrl": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-square-poster.png",
+      "kind": "branded_social_video_with_authentic_running_build_gameplay",
+      "dimensions": "1080x1080",
+      "description": "A silent square branded edit preserving the complete authentic Mythical Void phone-gameplay frame. The surrounding branded layout is not gameplay; no generated motion, replacement scenery, replacement interface or replacement audio was added."
+    },
+    {
+      "name": "Authentic gameplay social video — wide",
+      "url": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-wide.mp4",
+      "posterUrl": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-wide-poster.png",
+      "kind": "branded_social_video_with_authentic_running_build_gameplay",
+      "dimensions": "1920x1080",
+      "description": "A silent wide branded edit preserving the complete authentic Mythical Void phone-gameplay frame. The surrounding branded layout is not gameplay; no generated motion, replacement scenery, replacement interface or replacement audio was added."
     },
     {
       "name": "Apollo 11 real-space discovery",
@@ -151,6 +180,7 @@
   "restrictions": [
     "Only assets labelled authentic_running_build_screenshot may be described as gameplay screenshots.",
     "Only assets labelled authentic_running_build_gameplay_video may be described as gameplay footage.",
+    "Branded social videos contain authentic gameplay but must be described as edited layouts rather than raw gameplay footage.",
     "Do not present marketing illustrations or game-world artwork as gameplay footage.",
     "Do not imply NASA endorsement or partnership.",
     "Do not imply sentience, consciousness, global creature uniqueness or a fully autonomous studio."
