@@ -10,6 +10,7 @@ describe('storefront and game deployment integration', () => {
     const main = read('src/main.js');
     const envExample = read('.env.example');
     const netlify = read('netlify.toml');
+    const observabilityFunction = read('netlify/functions/observability-events.mjs');
     const vercel = JSON.parse(read('vercel.json'));
     const supabaseOrigin = envExample.match(
         /^VITE_SUPABASE_URL=(https:\/\/[^\s]+)$/m
@@ -84,6 +85,22 @@ describe('storefront and game deployment integration', () => {
         expect(vercelCsp).toContain(`connect-src 'self' ${supabaseOrigin}`);
         expect(netlify).toContain(
             `connect-src 'self' ${supabaseOrigin}`
+        );
+    });
+
+    test('keeps the observability API alias ahead of the generic API redirect', () => {
+        const explicitAlias = 'from = "/api/observability-events"';
+        const genericAlias = 'from = "/api/*"';
+
+        expect(netlify).toContain(
+            'to = "/.netlify/functions/observability-events"'
+        );
+        expect(netlify.indexOf(explicitAlias)).toBeGreaterThan(-1);
+        expect(netlify.indexOf(explicitAlias)).toBeLessThan(
+            netlify.indexOf(genericAlias)
+        );
+        expect(observabilityFunction).not.toContain(
+            "path: '/api/observability-events'"
         );
     });
 });

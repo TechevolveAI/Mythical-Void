@@ -38,6 +38,15 @@ expectFailure('missing phone visual bar', value => {
 expectFailure('premature review claim', value => {
     value.moments[0].reviewStatus = 'approved';
 });
+expectFailure('candidate without private run record', value => {
+    delete value.latestPrivateCandidateRun;
+});
+expectFailure('candidate publication authorization', value => {
+    value.latestPrivateCandidateRun.publicationAuthorized = true;
+});
+expectFailure('candidate renderer substitution', value => {
+    value.latestPrivateCandidateRun.renderer = 'marketing_mock_renderer';
+});
 expectFailure('substituted non-observable evidence', value => {
     value.moments[0].requiredEvidence = [
         'copy_explains_the_action',

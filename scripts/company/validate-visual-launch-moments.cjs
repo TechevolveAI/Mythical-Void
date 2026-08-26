@@ -16,6 +16,7 @@ function validateVisualLaunchMoments(document) {
     };
     const authority = document?.authority || {};
     const contract = document?.sharedCaptureContract || {};
+    const candidateRun = document?.latestPrivateCandidateRun || null;
     const moments = Array.isArray(document?.moments) ? document.moments : [];
 
     requireValue(document?.schemaVersion === 1, 'schemaVersion must be 1');
@@ -52,6 +53,28 @@ function validateVisualLaunchMoments(document) {
         authority.externalPublicationAuthorized === false,
         'external publication must remain unauthorized'
     );
+    if (candidateRun) {
+        requireValue(
+            /^\d{4}-\d{2}-\d{2}T/.test(candidateRun.createdAt || '') &&
+            /^[a-f0-9]{40}$/.test(candidateRun.sourceCommit || '') &&
+            candidateRun.sourceProfileId === contract.profileId &&
+            candidateRun.renderer === contract.renderer,
+            'private candidate run must identify its source build, profile and renderer'
+        );
+        requireValue(
+            /^\.visual-review\/candidates\/[^/]+\/manifest\.json$/.test(
+                candidateRun.manifest || ''
+            ),
+            'private candidate manifest must remain in the review quarantine'
+        );
+        requireValue(
+            candidateRun.automatedScreening === 'passed_obvious_fault_checks_only' &&
+            candidateRun.adultFrameReview === 'pending' &&
+            candidateRun.kevinApproval === 'pending' &&
+            candidateRun.publicationAuthorized === false,
+            'candidate run cannot imply human approval or publication authority'
+        );
+    }
     requireValue(
         contract.source === 'real_running_production_build' &&
         contract.fixture === 'company_controlled_real_creature_profile' &&
@@ -155,9 +178,17 @@ function validateVisualLaunchMoments(document) {
             `${label} observable evidence contract changed`
         );
         requireValue(
-            moment?.reviewStatus === 'capture_pending',
-            `${label} cannot claim review or approval before capture`
+            ['capture_pending', 'candidate_under_human_review'].includes(
+                moment?.reviewStatus
+            ),
+            `${label} cannot claim review or approval before human review`
         );
+        if (moment?.reviewStatus === 'candidate_under_human_review') {
+            requireValue(
+                Boolean(candidateRun),
+                `${label} needs a recorded private candidate run`
+            );
+        }
         requireValue(
             Object.values(moment?.candidateAssets || {}).every(filename => (
                 typeof filename === 'string' &&

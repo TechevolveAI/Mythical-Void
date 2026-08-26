@@ -27,6 +27,12 @@ try {
     assert.notStrictEqual(run('fake-ready', plan => { plan.approvalRule.readyForPublicLaunch = true; }).status, 0);
     assert.notStrictEqual(run('social-authority', plan => { plan.authority.externalSocialPublicationAuthorized = true; }).status, 0);
     assert.notStrictEqual(run('outreach-authority', plan => { plan.authority.creatorOutreachAuthorized = true; }).status, 0);
+    assert.notStrictEqual(run('candidate-moved-to-public', plan => {
+        plan.requiredMoments[0].evidence = '/press/gameplay/new-candidate.png';
+    }).status, 0);
+    assert.notStrictEqual(run('candidate-path-traversal', plan => {
+        plan.requiredMoments[0].evidence = '.visual-review/candidates/../public/new-candidate.png';
+    }).status, 0);
     assert.notStrictEqual(run('approval-without-review', plan => {
         const moment = plan.requiredMoments[0];
         moment.currentState = 'approved';
@@ -41,7 +47,7 @@ try {
         moment.humanReview = { decision: 'approved', reviewedBy: 'Adult reviewer', desktopPassed: true, phonePassed: true };
         plan.approvalRule.approvedMomentCount = 1;
     }).status, 0);
-    console.log('Launch visual safeguards passed (current-state validation and 8 rejection cases).');
+    console.log('Launch visual safeguards passed (current-state validation and 10 rejection cases).');
 } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
 }

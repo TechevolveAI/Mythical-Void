@@ -15,7 +15,6 @@ _internal.setRuntime({
 });
 
 export const config = {
-    path: '/api/observability-events',
     rateLimit: {
         windowLimit: 20,
         windowSize: 60,
