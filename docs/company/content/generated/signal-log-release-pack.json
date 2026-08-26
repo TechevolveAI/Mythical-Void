@@ -5,8 +5,8 @@
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "fd358b5269af91c1f11d3aadb631151a539de507637aa1cb61b84bbd07ebe881",
-    "liveEntryCount": 12,
+    "sourceFingerprint": "1d1426867f57593a3d88dc9ae2a511169c97a30514d65f7e45720e867728872b",
+    "liveEntryCount": 13,
     "latestSourceDate": "2026-08-26"
   },
   "purpose": "Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
@@ -32,6 +32,51 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-SIGNAL-013",
+      "sourceEntryId": "SIGNAL-013",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/creature-genetics/#meet-the-twelve",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png",
+        "alt": "Twelve real pixel creatures rendered by the running Mythical Void genetics and DNA engine",
+        "class": "branded_renderer_proof_layout_with_authentic_game_sprite_exports",
+        "disclosure": "Branded proof layout, not a playable game scene. Every creature is an exact game-renderer export; the set was deliberately selected to show range and does not represent normal hatch odds."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Twelve real hatches show the engine’s range\n\nA new source-bound gallery shows twelve creatures made by the running Mythical Void genetics, DNA and pixel-rendering system—not concept art.\n\n• The engine was run 1,000 times with deliberately balanced rarity groups, then twelve results were selected for visible breadth across all seven current species and all five rarity levels.\n• The set covers all eleven genetics body families, nine head forms, six environmental auras and five personalities. Each card uses the exact sprite exported by the game renderer.\n• This is a range showcase, not a probability sample, a normal hatch-odds claim or a promise of endless mathematical uniqueness. The source profiles, image fingerprints and renderer build are open for checking.\n\nSee what changed: https://mythicalvoid.com/creature-genetics/#meet-the-twelve\n\nBranded proof layout, not a playable game scene. Every creature is an exact game-renderer export; the set was deliberately selected to show range and does not represent normal hatch odds.",
+          "characterCount": 1036
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Twelve real hatches show the engine’s range\n\nA new source-bound gallery shows twelve creatures made by the running Mythical Void genetics, DNA and pixel-rendering system—not concept art.\n\nhttps://mythicalvoid.com/creature-genetics/#meet-the-twelve\n\nBranded proof layout, not a playable game scene. Every creature is an exact game-renderer export; the set was deliberately selected to show range and does not represent normal hatch odds.",
+          "characterCount": 455
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Twelve real hatches show the engine’s range",
+          "body": "Mythical Void has a new live update: Twelve real hatches show the engine’s range.\n\nA new source-bound gallery shows twelve creatures made by the running Mythical Void genetics, DNA and pixel-rendering system—not concept art.\n\nThe engine was run 1,000 times with deliberately balanced rarity groups, then twelve results were selected for visible breadth across all seven current species and all five rarity levels. The set covers all eleven genetics body families, nine head forms, six environmental auras and five personalities. Each card uses the exact sprite exported by the game renderer. This is a range showcase, not a probability sample, a normal hatch-odds claim or a promise of endless mathematical uniqueness. The source profiles, image fingerprints and renderer build are open for checking.\n\nThe checked public destination is https://mythicalvoid.com/creature-genetics/#meet-the-twelve\n\nMedia note: Branded proof layout, not a playable game scene. Every creature is an exact game-renderer export; the set was deliberately selected to show range and does not represent normal hatch odds.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 1171,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-SIGNAL-012",
       "sourceEntryId": "SIGNAL-012",
