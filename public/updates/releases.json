@@ -17,6 +17,26 @@
   },
   "entries": [
     {
+      "id": "SIGNAL-012",
+      "publishedOn": "2026-08-26",
+      "status": "live",
+      "category": "REAL CREATURE HATCH",
+      "title": "The real creature now takes centre stage",
+      "summary": "The first hatch now gives the generated pixel creature room to be seen before the player chooses a name, and the real result is available as checked gameplay proof.",
+      "details": [
+        "The running genetics engine creates the creature shown in the new screenshot; no marketing illustration, replacement creature or private player state is used.",
+        "The creature is more than twice its previous display size, the field reading no longer overlaps and old egg instructions disappear when the hatch is complete.",
+        "The moment gives the player one clear next step. The screenshot proves one genuine hatch, not every possible creature form or an absolute uniqueness claim."
+      ],
+      "image": "/press/gameplay/creature-cosmic-egg-reveal.png",
+      "imageAlt": "A real generated pixel creature taking centre stage after hatching in Mythical Void",
+      "imageClass": "authentic_running_build_screenshot",
+      "disclosure": "Captured from the real browser game using an invented Mythical Void test state; not marketing art. It shows one genetics result and no player identity or private save.",
+      "destination": "/press/#real-creature-hatch",
+      "linkText": "See the real creature hatch",
+      "download": false
+    },
+    {
       "id": "SIGNAL-011",
       "publishedOn": "2026-08-26",
       "status": "live",

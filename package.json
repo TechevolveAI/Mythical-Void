@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "start": "vite",
-    "build": "npm run build:signal-log && npm run validate:signal-log && npm run validate:signal-feeds && npm run validate:playable-now && npm run validate:gameplay-social-kit && npm run validate:creator-kit && vite build && node scripts/inject-build-timestamp.js && node scripts/verify-production-bundle.cjs",
+    "build": "npm run build:signal-log && npm run validate:signal-log && npm run validate:signal-feeds && npm run validate:playable-now && npm run validate:hatch-reveal && npm run validate:gameplay-social-kit && npm run validate:creator-kit && vite build && node scripts/inject-build-timestamp.js && node scripts/verify-production-bundle.cjs",
     "validate:story-page": "node scripts/company/validate-story-production-release.cjs",
     "build:signal-log": "node scripts/company/build-public-signal-log.cjs && node scripts/company/build-signal-feeds.cjs",
     "validate:signal-log": "node scripts/company/validate-public-signal-log.cjs",
@@ -19,6 +19,8 @@
     "test:signal-release-pack": "node scripts/company/test-signal-release-pack.cjs",
     "validate:playable-now": "node scripts/company/validate-playable-now-discovery.cjs",
     "test:playable-now": "node scripts/company/test-playable-now-discovery.cjs",
+    "validate:hatch-reveal": "node scripts/company/validate-hatch-reveal-release.cjs",
+    "test:hatch-reveal": "node scripts/company/test-hatch-reveal-release.cjs",
     "build:gameplay-social-kit": "node scripts/company/build-authentic-gameplay-social-kit.cjs",
     "validate:gameplay-social-kit": "node scripts/company/validate-authentic-gameplay-social-kit.cjs",
     "test:gameplay-social-kit": "node scripts/company/test-authentic-gameplay-social-kit.cjs",

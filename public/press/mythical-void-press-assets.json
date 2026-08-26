@@ -90,6 +90,13 @@
       "description": "Captured from the real Mythical Void browser game using an invented QA state; not a generated mockup."
     },
     {
+      "name": "Real creature hatch reveal",
+      "url": "https://mythicalvoid.com/press/gameplay/creature-cosmic-egg-reveal.png",
+      "recordUrl": "https://mythicalvoid.com/press/gameplay/manifest.json",
+      "kind": "authentic_running_build_screenshot",
+      "description": "One pixel creature generated and revealed by the real Mythical Void genetics engine in the running browser game. This is not marketing art and does not claim to show every possible form."
+    },
+    {
       "name": "Project Beacon story social artwork — wide",
       "url": "https://mythicalvoid.com/press/social/project-beacon-story-wide.png",
       "kind": "branded_social_artwork_with_authentic_gameplay_frame",

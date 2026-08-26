@@ -13,7 +13,7 @@ const pages = [
     {
         route: '/creature-genetics/',
         file: 'public/creature-genetics/index.html',
-        required: ['procedural genetics', 'does not promise', '/press/gameplay/creature-cosmic-egg-hatch.png']
+        required: ['procedural genetics', 'does not promise', '/press/gameplay/creature-cosmic-egg-reveal.png']
     },
     {
         route: '/nasa-space-science/',

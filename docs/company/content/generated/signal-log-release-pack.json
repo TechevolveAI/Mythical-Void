@@ -5,8 +5,8 @@
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "965b9935804205c718d48312986079b5b4053ae7148c3e7e7e62917e5184d4d5",
-    "liveEntryCount": 11,
+    "sourceFingerprint": "fd358b5269af91c1f11d3aadb631151a539de507637aa1cb61b84bbd07ebe881",
+    "liveEntryCount": 12,
     "latestSourceDate": "2026-08-26"
   },
   "purpose": "Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
@@ -32,6 +32,51 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-SIGNAL-012",
+      "sourceEntryId": "SIGNAL-012",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/press/#real-creature-hatch",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/gameplay/creature-cosmic-egg-reveal.png",
+        "alt": "A real generated pixel creature taking centre stage after hatching in Mythical Void",
+        "class": "authentic_running_build_screenshot",
+        "disclosure": "Captured from the real browser game using an invented Mythical Void test state; not marketing art. It shows one genetics result and no player identity or private save."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "The real creature now takes centre stage\n\nThe first hatch now gives the generated pixel creature room to be seen before the player chooses a name, and the real result is available as checked gameplay proof.\n\n• The running genetics engine creates the creature shown in the new screenshot; no marketing illustration, replacement creature or private player state is used.\n• The creature is more than twice its previous display size, the field reading no longer overlaps and old egg instructions disappear when the hatch is complete.\n• The moment gives the player one clear next step. The screenshot proves one genuine hatch, not every possible creature form or an absolute uniqueness claim.\n\nSee what changed: https://mythicalvoid.com/press/#real-creature-hatch\n\nCaptured from the real browser game using an invented Mythical Void test state; not marketing art. It shows one genetics result and no player identity or private save.",
+          "characterCount": 927
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: The real creature now takes centre stage\n\nThe first hatch now gives the generated pixel creature room to be seen before the player chooses a name, and the real result is available as checked gameplay proof.\n\nhttps://mythicalvoid.com/press/#real-creature-hatch\n\nCaptured from the real browser game using an invented Mythical Void test state; not marketing art. It shows one genetics result and no player identity or private save.",
+          "characterCount": 447
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: The real creature now takes centre stage",
+          "body": "Mythical Void has a new live update: The real creature now takes centre stage.\n\nThe first hatch now gives the generated pixel creature room to be seen before the player chooses a name, and the real result is available as checked gameplay proof.\n\nThe running genetics engine creates the creature shown in the new screenshot; no marketing illustration, replacement creature or private player state is used. The creature is more than twice its previous display size, the field reading no longer overlaps and old egg instructions disappear when the hatch is complete. The moment gives the player one clear next step. The screenshot proves one genuine hatch, not every possible creature form or an absolute uniqueness claim.\n\nThe checked public destination is https://mythicalvoid.com/press/#real-creature-hatch\n\nMedia note: Captured from the real browser game using an invented Mythical Void test state; not marketing art. It shows one genetics result and no player identity or private save.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 1062,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-SIGNAL-011",
       "sourceEntryId": "SIGNAL-011",
