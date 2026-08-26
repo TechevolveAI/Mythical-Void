@@ -609,7 +609,7 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("setData('villageTerrainMaterial', 'living_current_districts_v4')");
         expect(world).toContain("setData('uniformOverlay', false)");
         expect(world).toContain('const visiblePlotBasins = plotBasins.filter(basin => basin.revealed);');
-        expect(world).toContain('const livingBasins = [heartBasin, ...visiblePlotBasins];');
+        expect(world).toContain('const livingBasins = [heartBasin, ...settledBasins];');
         expect(world).toContain("setData('villageLivingBasinCount', livingBasins.length)");
         expect(world).toContain("'villageReservedFoundationCount',");
         expect(world).toContain('visiblePlotBasins.filter(basin => !basin.building).length');
@@ -618,6 +618,9 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('const onboardingVisiblePlotCount = snapshot?.onboarding?.visiblePlotCount || 1;');
         expect(world).toContain('index < onboardingVisiblePlotCount;');
         expect(world).toContain("setData('villagePathResourceLanguage', 'resource_return_marks_v1')");
+        expect(world).toContain("villageFlow.container.getData('villageFlowVisible') === true");
+        expect(world).toContain('.setVisible(flowVisible)');
+        expect(world).toContain('.setActive(flowVisible)');
         expect(world).toContain("setData('villageDistrictEcology', true)");
         expect(world).toContain("setData('villageThresholdCount'");
         expect(world).toContain("setData('villagePathMaterial', 'grounded_current_paths_v3')");

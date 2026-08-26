@@ -10969,6 +10969,8 @@ async function smokeVillageUi(session, exceptions) {
                 role: presentation.ambientRole,
                 containerRole: presentation.container?.getData?.('villageAmbientRole'),
                 anchorRole: presentation.districtAnchor?.getData?.('villageAmbientRole'),
+                visible: presentation.container?.visible === true,
+                anchorVisible: presentation.districtAnchor?.visible === true,
                 alpha: presentation.container?.alpha,
                 anchorAlpha: presentation.districtAnchor?.alpha
             })),
@@ -11024,14 +11026,15 @@ async function smokeVillageUi(session, exceptions) {
             plot => plot.role === 'guided_foundation' &&
                 plot.containerRole === 'guided_foundation' &&
                 plot.anchorRole === 'guided_foundation' &&
+                plot.visible &&
+                plot.anchorVisible &&
                 plot.alpha === 1
         ).length !== 1 ||
         firstArrivalWorld.ambientPlots.filter(
             plot => plot.role === 'reserved_root' &&
                 plot.containerRole === 'reserved_root' &&
                 plot.anchorRole === 'reserved_root' &&
-                plot.alpha <= 0.1 &&
-                plot.anchorAlpha <= (SMOKE_VIEWPORT_WIDTH <= 600 ? 0.1 : 0.14)
+                !plot.visible
         ).length !== 4 ||
         firstArrivalWorld.flowSignals.length !== 5 ||
         firstArrivalWorld.flowSignals.filter(signal => signal.active && signal.visible).length !== 1 ||
@@ -11045,10 +11048,15 @@ async function smokeVillageUi(session, exceptions) {
             material => material !== 'living_root_cradle_v2'
         ) ||
         firstArrivalWorld.foundationCradles.some(
-            cradle => cradle.state !== 'available' ||
-                cradle.material !== 'living_root_cradle_v2' ||
+            cradle => cradle.material !== 'living_root_cradle_v2' ||
                 !cradle.ariaLabel?.includes('living root cradle')
         ) ||
+        firstArrivalWorld.foundationCradles.filter(
+            cradle => cradle.state === 'available' && cradle.guided
+        ).length !== 1 ||
+        firstArrivalWorld.foundationCradles.filter(
+            cradle => cradle.state === 'veiled' && !cradle.guided
+        ).length !== 4 ||
         firstArrivalWorld.foundationCradles.filter(cradle => cradle.guided).length !== 1
     ) {
         throw new Error(

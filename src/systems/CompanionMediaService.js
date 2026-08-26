@@ -402,10 +402,15 @@ class CompanionMediaService {
                 // fallback instead of repeating a costly failed request at
                 // every authored story beat.
                 this.videoUnavailableUntil = Date.now() + (30 * 60 * 1000);
-            } else if (response.status === 503) {
+            } else if (response.status >= 500) {
                 this.videoUnavailableUntil = Date.now() + (5 * 60 * 1000);
             }
-            if ([403, 404, 409, 429, 503].includes(response.status)) return null;
+            if (
+                [401, 403, 404, 409, 429].includes(response.status) ||
+                response.status >= 500
+            ) {
+                return null;
+            }
             throw new Error(result.error || `Video service error (${response.status})`);
         }
         if (result.assetRef) {

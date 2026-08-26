@@ -146,6 +146,8 @@ describe('personalized companion video Netlify function', () => {
     });
 
     test('rejects unauthenticated and cross-origin requests before provider use', async () => {
+        const errorLog = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const warningLog = jest.spyOn(console, 'warn').mockImplementation(() => {});
         const providerFetch = jest.fn();
         const createClient = jest.fn(() => createAdminClient());
         videoFunction._internal.setRuntime({ fetch: providerFetch, createClient });
@@ -163,6 +165,8 @@ describe('personalized companion video Netlify function', () => {
         expect(unauthenticated.statusCode).toBe(401);
         expect(crossOrigin.statusCode).toBe(403);
         expect(providerFetch).not.toHaveBeenCalled();
+        expect(errorLog).not.toHaveBeenCalled();
+        expect(warningLog).not.toHaveBeenCalled();
     });
 
     test('accepts only the versioned Forest story beat', async () => {
@@ -226,6 +230,34 @@ describe('personalized companion video Netlify function', () => {
         expect(providerBody.input.prompt).toContain('exact identity reference');
         expect(providerBody.input.prompt).toContain('Wanderer-77');
         expect(providerBody.input.prompt).not.toContain('must-not-be-used');
+    });
+
+    test('reports rejected provider credentials as temporary unavailability', async () => {
+        const errorLog = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const warningLog = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        const providerFetch = jest.fn().mockResolvedValue({
+            ok: false,
+            status: 401,
+            json: async () => ({ error: 'invalid token' })
+        });
+        videoFunction._internal.setRuntime({
+            fetch: providerFetch,
+            createClient: () => createAdminClient()
+        });
+
+        const response = await videoFunction.handler(event({
+            momentId: 'first_forest_arrival',
+            portraitAssetRef: PORTRAIT_REF
+        }, { authorization: 'Bearer valid-token' }));
+
+        expect(response.statusCode).toBe(503);
+        expect(JSON.parse(response.body)).toMatchObject({
+            success: false,
+            error: 'Video provider request failed'
+        });
+        expect(providerFetch).toHaveBeenCalledTimes(1);
+        expect(errorLog).not.toHaveBeenCalled();
+        expect(warningLog).toHaveBeenCalledTimes(1);
     });
 
     test('accepts an authored guardian rescue beat without accepting arbitrary prompts', async () => {

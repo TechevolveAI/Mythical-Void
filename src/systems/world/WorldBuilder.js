@@ -1197,7 +1197,7 @@ class WorldBuilder {
         const visiblePlotBasins = plotBasins.filter(basin => basin.revealed);
         const basins = [heartBasin, ...visiblePlotBasins];
         const settledBasins = plotBasins.filter(basin => basin.building);
-        const livingBasins = [heartBasin, ...visiblePlotBasins];
+        const livingBasins = [heartBasin, ...settledBasins];
         const growthStrength = unlocked ? 0.72 + (growthTier * 0.08) : 0.38;
 
         // One continuous glade makes the settlement read as a place rather than
@@ -2672,7 +2672,11 @@ class WorldBuilder {
                     y: plotY + 18
                 }
             });
-            villageFlow.container.setVisible(plotRevealed);
+            const flowVisible = plotRevealed &&
+                villageFlow.container.getData('villageFlowVisible') === true;
+            villageFlow.container
+                .setVisible(flowVisible)
+                .setActive(flowVisible);
             landmark.villageFlowSignals.push(villageFlow.container);
             landmark.buildingElements.push(villageFlow.container);
             landmark.buildingTweens.push(villageFlow.tween);

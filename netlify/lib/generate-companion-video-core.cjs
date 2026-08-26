@@ -321,7 +321,11 @@ async function callReplicate(path, options = {}) {
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
         const error = new Error('Video provider request failed');
-        error.statusCode = response.status === 429 ? 429 : 502;
+        error.statusCode = response.status === 429
+            ? 429
+            : [401, 403].includes(response.status)
+                ? 503
+                : 502;
         error.providerStatus = response.status;
         throw error;
     }
@@ -452,13 +456,30 @@ async function startGeminiPrediction(portraitUrl, momentId, stage) {
         const providerStatus = Number(
             providerError?.status || providerError?.statusCode || providerError?.code
         );
-        console.error(`[CompanionVideo] Gemini request failed ${JSON.stringify({
+        const failureReason = classifyGeminiFailure(providerError);
+        const logProviderFailure = [
+            'api_key_rejected',
+            'billing_required',
+            'permission_denied',
+            'model_unavailable',
+            'quota_exceeded'
+        ].includes(failureReason) ? console.warn : console.error;
+        logProviderFailure(`[CompanionVideo] Gemini request failed ${JSON.stringify({
             providerStatus: Number.isFinite(providerStatus) ? providerStatus : null,
-            reason: classifyGeminiFailure(providerError),
+            reason: failureReason,
             model: getGeminiModel()
         })}`);
         const error = new Error('Video provider request failed');
-        error.statusCode = providerStatus === 429 ? 429 : 502;
+        error.statusCode = providerStatus === 429
+            ? 429
+            : [401, 403].includes(providerStatus) || [
+                'api_key_rejected',
+                'billing_required',
+                'permission_denied',
+                'model_unavailable'
+            ].includes(failureReason)
+                ? 503
+                : 502;
         error.providerStatus = Number.isFinite(providerStatus)
             ? providerStatus
             : undefined;
@@ -647,7 +668,11 @@ async function pollGeminiPrediction(operationName) {
         const providerStatus = Number(
             providerError?.status || providerError?.statusCode || providerError?.code
         );
-        error.statusCode = providerStatus === 429 ? 429 : 502;
+        error.statusCode = providerStatus === 429
+            ? 429
+            : [401, 403].includes(providerStatus)
+                ? 503
+                : 502;
         error.providerStatus = Number.isFinite(providerStatus)
             ? providerStatus
             : undefined;
@@ -820,15 +845,20 @@ exports.handler = async event => {
                 completed_at: new Date(runtime.now()).toISOString()
             }).catch(() => {});
         }
-        console.error('[CompanionVideo] Request failed', {
-            message: error.message,
-            statusCode: error.statusCode,
-            providerStatus: error.providerStatus,
-            provider: getProviderPreference(),
-            model: getProviderPreference() === 'replicate'
-                ? getReplicateModel()
-                : getGeminiModel()
-        });
+        if (error.statusCode >= 500 || error.statusCode === 429) {
+            const logFailure = [429, 503].includes(error.statusCode)
+                ? console.warn
+                : console.error;
+            logFailure('[CompanionVideo] Request failed', {
+                message: error.message,
+                statusCode: error.statusCode,
+                providerStatus: error.providerStatus,
+                provider: getProviderPreference(),
+                model: getProviderPreference() === 'replicate'
+                    ? getReplicateModel()
+                    : getGeminiModel()
+            });
+        }
         return json(error.statusCode || 500, {
             success: false,
             error: error.statusCode ? error.message : 'Video generation failed'
