@@ -518,7 +518,8 @@ details p { margin: 0.9rem 0 0; }
 .playable-art-boundary img { max-height: 520px; object-fit: cover; }
 .playable-social-note { margin: 1rem 0 0; color: #9188a3; font-size: 0.78rem; }
 
-.educator-hero h1 { font-size: clamp(3.1rem, 6.4vw, 6rem); }
+.educator-hero { padding-block: clamp(3.2rem, 5vw, 5rem); }
+.educator-hero h1 { font-size: clamp(3.1rem, 5.4vw, 5.4rem); }
 .educator-hero .hero-visual { transform: rotate(-0.7deg); }
 .educator-hero .hero-visual img { aspect-ratio: 16 / 9; object-fit: contain; background: #05030c; }
 .educator-hero .hero-visual figcaption strong { color: var(--mint); letter-spacing: 0.06em; }
