@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "FOUNDING-SIGNAL-001",
+  "asOf": "2026-08-26",
+  "state": "owned_word_of_mouth_live_first_external_post_waits_for_kevin",
+  "primaryStoryUrl": "https://mythicalvoid.com/studio/",
+  "playUrl": "https://mythicalvoid.com/",
+  "recommendedFirstChannel": "Kevin's existing professional profile, if confirmed",
+  "reason": "The father-and-son beginning is personal, true and understandable before a viewer knows the game. An existing profile avoids waiting for a new mailbox, company account or paid campaign.",
+  "approvedVisual": {
+    "path": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
+    "usage": "automatic link preview from the studio page",
+    "classification": "ai_generated_marketing_illustration_not_gameplay",
+    "disclosure": "AI-generated marketing artwork inspired by creature-engine profiles; not gameplay."
+  },
+  "ownedShareRoutes": [
+    {
+      "route": "/playable-now/",
+      "purpose": "share the playable game"
+    },
+    {
+      "route": "/studio/",
+      "purpose": "share the father-and-son beginning"
+    },
+    {
+      "route": "/nasa-space-science/",
+      "purpose": "share the free STEM Creature Lab"
+    },
+    {
+      "route": "/educators/",
+      "purpose": "share the ready-to-run group mission"
+    }
+  ],
+  "boundaries": {
+    "socialPublishingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "bulkOutreachAuthorized": false,
+    "directChildContactAuthorized": false,
+    "recipientCollectionEnabled": false,
+    "trackingParametersEnabled": false,
+    "weakGameplayVisualPermitted": false
+  },
+  "kevinDecision": {
+    "required": true,
+    "question": "Use an existing personal professional profile for the first post, or wait for an official Mythical Void company page?",
+    "recommendedAnswer": "Use the existing personal profile for the founder story, if available.",
+    "neededValue": "The exact public profile URL and approval of the complete post preview."
+  },
+  "nextChannel": {
+    "name": "YouTube",
+    "state": "held_for_visual_quality",
+    "releaseGate": "Four authentic gameplay moments must pass human visual review before a trailer or gameplay-led channel launch."
+  }
+}

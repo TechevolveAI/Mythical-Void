@@ -17,6 +17,26 @@
   },
   "entries": [
     {
+      "id": "SIGNAL-017",
+      "publishedOn": "2026-08-26",
+      "status": "live",
+      "category": "PASS THE SIGNAL ON",
+      "title": "Four true Mythical stories can now travel",
+      "summary": "Visitors can now pass on the playable game, father-and-son beginning, NASA and STEM activity, or ready-to-run group mission using the clean sharing choices already on their device.",
+      "details": [
+        "Each page shares its own plain-language story and clean mythicalvoid.com address rather than sending everyone to one generic campaign link.",
+        "If device sharing is unavailable, the same control copies the page address. Mythical Void does not collect a recipient, contact detail or tracking code.",
+        "The first adult-facing founder post is ready for Kevin’s review without a new email address, paid advertising or a weak gameplay screenshot."
+      ],
+      "image": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "imageAlt": "Many imagined alien organisms gathered in a luminous Mythical Void realm",
+      "imageClass": "ai_generated_marketing_illustration",
+      "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay.",
+      "destination": "/studio/",
+      "linkText": "Read and share the father-and-son story",
+      "download": false
+    },
+    {
       "id": "SIGNAL-016",
       "publishedOn": "2026-08-26",
       "status": "live",

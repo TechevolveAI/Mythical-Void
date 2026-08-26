@@ -13,6 +13,12 @@ const requireValue = (condition, message) => { if (!condition) failures.push(mes
 
 const playable = text('public/playable-now/index.html');
 const discovery = text('public/discovery.js');
+const sharePages = [
+    ['public/playable-now/index.html', 'https://mythicalvoid.com/playable-now/'],
+    ['public/studio/index.html', 'https://mythicalvoid.com/studio/'],
+    ['public/nasa-space-science/index.html', 'https://mythicalvoid.com/nasa-space-science/'],
+    ['public/educators/index.html', 'https://mythicalvoid.com/educators/']
+];
 const previews = json('public/press/mythical-void-social-previews.json');
 const press = json('public/press/mythical-void-press-assets.json');
 const register = readVisualPublicationRegister();
@@ -35,10 +41,16 @@ for (const route of ['/', '/playable-now/']) {
 requireValue(playable.includes('data-share-game') && playable.includes('data-copy-game') && playable.includes('data-share-status'), 'Playable Now needs native share, copy and accessible status controls.');
 requireValue(playable.includes('never asks for their contact details') && playable.includes('adds no tracking code'), 'The sharing privacy promise is missing.');
 requireValue(playable.includes('sharing image is AI-generated imagined-universe artwork') && playable.includes('it is not gameplay'), 'The page must explain the sharing artwork boundary.');
-requireValue(discovery.includes("var shareUrl = 'https://mythicalvoid.com/playable-now/';"), 'Sharing must use the clean reviewed destination.');
+for (const [pagePath, destination] of sharePages) {
+    const page = text(pagePath);
+    requireValue(page.includes('data-share-card') && page.includes(`data-share-url="${destination}"`), `${pagePath} must use its own clean reviewed destination.`);
+    requireValue(page.includes('data-share-title=') && page.includes('data-share-text='), `${pagePath} needs a useful share title and description.`);
+    requireValue(page.includes('data-share-game') && page.includes('data-copy-game') && page.includes('data-share-status'), `${pagePath} needs native share, copy and accessible status controls.`);
+}
+requireValue(discovery.includes("shareCard.dataset.shareUrl"), 'Sharing must read the reviewed destination from each page.');
 requireValue(discovery.includes('navigator.share(shareData)'), 'Native device sharing is missing.');
 requireValue(discovery.includes('navigator.clipboard.writeText(shareUrl)'), 'Clipboard fallback is missing.');
-requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(`${playable} ${discovery}`), 'The owned sharing loop must not add tracking parameters.');
+requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(`${sharePages.map(([pagePath]) => text(pagePath)).join(' ')} ${discovery}`), 'The owned sharing loop must not add tracking parameters.');
 requireValue(!/email|phone number|recipient/i.test(discovery), 'The sharing script must not collect contact details.');
 
 const oldShareAsset = press.assets.find(item => item.url?.endsWith('/press/social/mythical-void-share-wide.png'));
@@ -62,6 +74,8 @@ console.log(JSON.stringify({
     preview: fallbackPath,
     dimensions: '1672x941',
     cleanDestination: 'https://mythicalvoid.com/playable-now/',
+    sharePageCount: sharePages.length,
+    shareDestinations: sharePages.map(([, destination]) => destination),
     nativeShare: true,
     clipboardFallback: true,
     contactCollection: false,
