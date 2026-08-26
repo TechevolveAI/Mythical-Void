@@ -33,7 +33,10 @@ try {
     assert.notStrictEqual(execute('authorize-publishing', { ...source, authority: { ...source.authority, itchPublicationAuthorized: true } }).status, 0);
     assert.notStrictEqual(execute('skip-kevin', { ...source, recommendation: { ...source.recommendation, afterVisualGate: 'Publish automatically.' } }).status, 0);
     assert.notStrictEqual(execute('fake-visuals', { ...source, currentTruth: { ...source.currentTruth, approvedAuthenticVisualMoments: 4 } }).status, 0);
-    console.log('Web distribution launch-map checks passed (6 scenarios).');
+    assert.notStrictEqual(execute('hide-poki-assessment', { ...source, technicalAssessment: undefined }).status, 0);
+    assert.notStrictEqual(execute('pretend-poki-ready', { ...source, technicalAssessment: { ...source.technicalAssessment, decision: 'go', submissionReady: true } }).status, 0);
+    assert.notStrictEqual(execute('hide-total-gap', { ...source, technicalAssessment: { ...source.technicalAssessment, totalTargetMet: true } }).status, 0);
+    console.log('Web distribution launch-map checks passed (9 scenarios).');
 } finally {
     fs.rmSync(temporaryDirectory, { recursive: true, force: true });
 }

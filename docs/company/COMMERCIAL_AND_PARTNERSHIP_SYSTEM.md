@@ -176,21 +176,30 @@ Sources: [CrazyGames launch documentation](https://docs.crazygames.com/),
 
 Poki's current official requirements include desktop/mobile/tablet support,
 16:9 scaling, incognito/local-storage resilience, SDK events, no non-Poki ads,
-static and animated thumbnails, and a target initial download below 8 MB.
+and accurate, text-free thumbnails. Its current engine guide suggests about
+5 MB or less for the first download and about 8 MB for a good complete web
+game.
 
 Mythical implications:
 
-- the current production directory is approximately 16 MB, including about
-  9 MB across MP3/OGG theme variants; measure actual initial transfer before
-  concluding fit, then optimize/stream as required;
+- the measured portal candidate begins at about 3.75 MB compressed across 18
+  resources, which provisionally fits the opening guidance;
+- the complete delivery is about 41 MB compressed, including about 24.5 MB of
+  later films and 9.3 MB of audio, so progressive loading and a much leaner
+  portal delivery are required;
+- outside NASA, Open Notify and Mythical-hosted services are still referenced
+  and must be off by default in an isolated portal mode;
 - local-storage error handling already exists, but portal runtime must be
   tested independently;
 - the SDK's advertising/data behavior needs explicit youth/privacy and player-
   experience review;
-- 16:9 and cross-device requirements need a dedicated QA matrix;
+- desktop and phone openings look promising, but real tablet touch, denied
+  storage and unfamiliar-player first-minute tests remain unproved;
 - do not submit before authentic thumbnails/footage and portal readiness exist.
 
-Source: [Poki game requirements](https://sdk.poki.com/new-requirements).
+Sources: [Poki quality requirements](https://developers.poki.com/guide/requirements-quality),
+[web-engine guidance](https://developers.poki.com/guide/web-engine), and the
+measured [`POKI_READINESS_ASSESSMENT.md`](growth/POKI_READINESS_ASSESSMENT.md).
 
 ### Newgrounds — community-feedback candidate
 

@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "target": "poki-readiness-candidate-not-a-poki-build",
+  "measurementMethod": {
+    "package": "Raw bytes plus a deterministic per-file gzip estimate; this is not a CDN timing test.",
+    "firstLoad": "Module entry, module preloads, its mapped startup dependencies and the three opening resources observed in a private local browser run.",
+    "externalServices": "Static markers in built HTML, CSS and application JavaScript; a marker is a compatibility risk, not proof that a request fired."
+  },
+  "package": {
+    "fileCount": 85,
+    "rawBytes": 46868981,
+    "gzipEstimateBytes": 43049481,
+    "advisoryTargetBytes": 8388608,
+    "advisoryTargetMet": false,
+    "contentDigestSha256": "cdc47d04fe81fb7530571b1ab8acbfc3a01ff3360bad31848f2ac12b13d248b6"
+  },
+  "firstLoad": {
+    "resourceCount": 18,
+    "rawBytes": 7129083,
+    "gzipEstimateBytes": 3936773,
+    "advisoryTargetBytes": 5242880,
+    "advisoryTargetMet": true,
+    "resources": [
+      {
+        "path": "game/cinematics/fend-crash-site-loop.mp4",
+        "rawBytes": 2738626,
+        "gzipEstimateBytes": 2733046
+      },
+      {
+        "path": "assets/vendor-phaser-DGEgCO3k.js",
+        "rawBytes": 1478412,
+        "gzipEstimateBytes": 337161
+      },
+      {
+        "path": "assets/gameplay-Dyiz9IM4.js",
+        "rawBytes": 627205,
+        "gzipEstimateBytes": 169942
+      },
+      {
+        "path": "assets/ui-components-NnZ0eAy0.js",
+        "rawBytes": 443150,
+        "gzipEstimateBytes": 121735
+      },
+      {
+        "path": "assets/core-Cz1hMTCz.js",
+        "rawBytes": 405070,
+        "gzipEstimateBytes": 103074
+      },
+      {
+        "path": "assets/game-BW5K1IS5.js",
+        "rawBytes": 337503,
+        "gzipEstimateBytes": 94842
+      },
+      {
+        "path": "assets/levels-hub-ExPBBV2Z.js",
+        "rawBytes": 265928,
+        "gzipEstimateBytes": 73952
+      },
+      {
+        "path": "assets/managers-C32feJkY.js",
+        "rawBytes": 165971,
+        "gzipEstimateBytes": 48824
+      },
+      {
+        "path": "assets/onboarding-BGbL4AQb.js",
+        "rawBytes": 138818,
+        "gzipEstimateBytes": 35765
+      },
+      {
+        "path": "assets/advanced-By7Ka2zk.js",
+        "rawBytes": 127386,
+        "gzipEstimateBytes": 32353
+      },
+      {
+        "path": "assets/creature-ChaX2YCz.js",
+        "rawBytes": 104625,
+        "gzipEstimateBytes": 33836
+      },
+      {
+        "path": "assets/game-BdCh1EOk.css",
+        "rawBytes": 100768,
+        "gzipEstimateBytes": 18884
+      },
+      {
+        "path": "game/project-beacon-crash-site.webp",
+        "rawBytes": 99624,
+        "gzipEstimateBytes": 99677
+      },
+      {
+        "path": "assets/config-DW-Y5j80.js",
+        "rawBytes": 60946,
+        "gzipEstimateBytes": 21987
+      },
+      {
+        "path": "assets/utils-Bn7e9KnK.js",
+        "rawBytes": 27303,
+        "gzipEstimateBytes": 7598
+      },
+      {
+        "path": "index.html",
+        "rawBytes": 3895,
+        "gzipEstimateBytes": 1235
+      },
+      {
+        "path": "assets/index-qSTSRq8U.js",
+        "rawBytes": 2117,
+        "gzipEstimateBytes": 1103
+      },
+      {
+        "path": "marketing/mythical-void-mark-32.png",
+        "rawBytes": 1736,
+        "gzipEstimateBytes": 1759
+      }
+    ]
+  },
+  "categories": {
+    "code_and_css": {
+      "fileCount": 22,
+      "rawBytes": 4871357,
+      "gzipEstimateBytes": 1261051
+    },
+    "audio": {
+      "fileCount": 2,
+      "rawBytes": 9375375,
+      "gzipEstimateBytes": 9259123
+    },
+    "other_game_art": {
+      "fileCount": 30,
+      "rawBytes": 5856661,
+      "gzipEstimateBytes": 5847420
+    },
+    "cinematics": {
+      "fileCount": 4,
+      "rawBytes": 24496302,
+      "gzipEstimateBytes": 24469975
+    },
+    "root": {
+      "fileCount": 2,
+      "rawBytes": 4791,
+      "gzipEstimateBytes": 1735
+    },
+    "marketing": {
+      "fileCount": 25,
+      "rawBytes": 2264495,
+      "gzipEstimateBytes": 2210177
+    }
+  },
+  "externalServiceMarkers": {
+    "api.nasa.gov": {
+      "fileCount": 1,
+      "files": [
+        "assets/game-BW5K1IS5.js"
+      ]
+    },
+    "apod.nasa.gov": {
+      "fileCount": 1,
+      "files": [
+        "assets/game-BW5K1IS5.js"
+      ]
+    },
+    "mars.nasa.gov": {
+      "fileCount": 1,
+      "files": [
+        "assets/game-BW5K1IS5.js"
+      ]
+    },
+    "api.open-notify.org": {
+      "fileCount": 1,
+      "files": [
+        "assets/game-BW5K1IS5.js"
+      ]
+    },
+    "netlify/functions": {
+      "fileCount": 3,
+      "files": [
+        "assets/core-Cz1hMTCz.js",
+        "assets/game-BW5K1IS5.js",
+        "assets/gameplay-Dyiz9IM4.js"
+      ]
+    }
+  },
+  "pokiSdkMarkers": {
+    "PokiSDK": false,
+    "officialPhaserPlugin": false
+  },
+  "localStorageMarkerFileCount": 8
+}

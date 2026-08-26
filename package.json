@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "vite",
     "start": "vite",
-    "build:itch": "vite build --mode itch && node scripts/company/remove-withdrawn-public-media.cjs dist-itch && node scripts/company/build-itch-package.cjs && node scripts/company/validate-itch-package.cjs",
+    "build:itch": "vite build --mode itch && node scripts/company/remove-withdrawn-public-media.cjs dist-itch && node scripts/company/build-itch-package.cjs && node scripts/company/validate-itch-package.cjs && npm run measure:poki && npm run validate:poki-readiness && npm run test:poki-readiness",
     "package:itch": "npm run build:itch && node scripts/company/create-itch-archive.cjs",
     "test:itch": "node scripts/company/test-itch-package.cjs",
+    "measure:poki": "node scripts/company/measure-poki-candidate.cjs --write",
+    "validate:poki-readiness": "node scripts/company/validate-poki-readiness.cjs",
+    "test:poki-readiness": "node scripts/company/test-poki-readiness.cjs",
     "growth:pulse": "node scripts/company/compile-growth-pulse.cjs",
     "test:growth-pulse": "node scripts/company/test-growth-pulse.cjs",
     "build": "npm run build:creature-showcase-profiles && npm run build:creature-field-guide && npm run build:signal-log && npm run validate:signal-log && npm run validate:signal-feeds && npm run validate:playable-now && npm run validate:play-intent && npm run test:play-intent && npm run validate:organic-discovery && npm run validate:educator-discovery && npm run validate:public-visual-trust && npm run validate:visual-publication && npm run validate:launch-visuals && npm run validate:owned-sharing && npm run validate:word-of-mouth && npm run validate:bottom-of-funnel && npm run validate:itch-listing && npm run test:itch-listing && npm run validate:web-launch-map && npm run test:growth-pulse && npm run validate:social-previews && npm run validate:hatch-reveal && npm run validate:creature-showcase && npm run validate:creature-field-guide && npm run validate:gameplay-social-kit && npm run validate:creator-kit && vite build && npm run remove:withdrawn-public-media && node scripts/inject-build-timestamp.js && node scripts/verify-production-bundle.cjs && npm run build:itch",

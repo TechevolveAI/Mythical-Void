@@ -15,6 +15,23 @@ real play:
 The tested itch.io game package is ready. The artwork is not: the authentic
 gameplay gate remains at **0 of 4 approved moments**.
 
+## What the Poki check found
+
+The opening is promising. A private local review reached the **FIRST CONTACT**
+egg interaction immediately on desktop and phone, and the first download is
+about **3.75 MB compressed**. That is inside Poki's current suggestion of about
+5 MB for the first download.
+
+The complete delivery is not ready. It is about **41 MB compressed**, compared
+with Poki's current suggestion of about 8 MB for a good web game. Most of the
+extra weight is later films and music. The build also still knows about outside
+NASA, Open Notify and Mythical-hosted services; real tablet touch, denied
+storage and five unfamiliar players' first minutes have not yet been proved.
+
+The decision is therefore **not ready to submit, preserve the option**. The
+exact evidence and game-team request are in
+[`POKI_READINESS_ASSESSMENT.md`](POKI_READINESS_ASSESSMENT.md).
+
 ## The important choice we nearly missed
 
 Poki says its preferred partnership is web-exclusive. Its current guide says

@@ -11,6 +11,8 @@ const mapPath = mapFlag >= 0
 const mapTextPath = path.join(repositoryRoot, 'docs', 'company', 'growth', 'WEB_DISTRIBUTION_LAUNCH_MAP.md');
 const visualPath = path.join(repositoryRoot, 'docs', 'company', 'content', 'visual-launch-moments.json');
 const itchPath = path.join(repositoryRoot, 'docs', 'company', 'growth', 'ITCH_RELEASE_CANDIDATE.json');
+const pokiAssessmentPath = path.join(repositoryRoot, 'docs', 'company', 'growth', 'POKI_READINESS_ASSESSMENT.json');
+const pokiMeasurementPath = path.join(repositoryRoot, 'docs', 'company', 'growth', 'poki-candidate-measurement.json');
 const decisionsPath = path.join(repositoryRoot, 'docs', 'company', 'registers', 'DECISIONS.md');
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
@@ -26,6 +28,8 @@ function readJson(file, label) {
 const map = readJson(mapPath, 'Web distribution launch map');
 const visuals = readJson(visualPath, 'Visual launch register');
 const itch = readJson(itchPath, 'itch.io release candidate');
+const pokiAssessment = readJson(pokiAssessmentPath, 'Poki readiness assessment');
+const pokiMeasurement = readJson(pokiMeasurementPath, 'Poki candidate measurement');
 const mapText = fs.readFileSync(mapTextPath, 'utf8');
 const decisions = fs.readFileSync(decisionsPath, 'utf8');
 
@@ -40,6 +44,18 @@ requireValue(map.currentTruth?.requiredAuthenticVisualMoments === visuals.approv
 requireValue(map.recommendation?.afterVisualGate?.includes('Ask Kevin to choose'), 'Kevin distribution-rights decision is missing');
 requireValue(map.recommendation?.afterVisualGate?.includes('Poki access request first'), 'recommended Poki-first option-preserving sequence is missing');
 requireValue(map.recommendation?.decisionDue?.includes('4/4 visual gate'), 'decision must remain behind the visual gate');
+
+const technical = map.technicalAssessment;
+requireValue(technical?.source === 'docs/company/growth/POKI_READINESS_ASSESSMENT.json', 'Poki technical assessment source is missing');
+requireValue(technical?.measurementSource === 'docs/company/growth/poki-candidate-measurement.json', 'Poki measurement source is missing');
+requireValue(technical?.decision === pokiAssessment.decision && technical.decision === 'no_go_yet_preserve_option', 'Poki no-go-yet decision is missing');
+requireValue(technical?.firstLoadGzipEstimateBytes === pokiMeasurement.firstLoad?.gzipEstimateBytes, 'Poki first-load evidence drifted');
+requireValue(technical?.firstLoadAdvisoryTargetBytes === pokiMeasurement.firstLoad?.advisoryTargetBytes && technical.firstLoadTargetMet === true, 'Poki first-load target evidence is missing');
+requireValue(technical?.totalGzipEstimateBytes === pokiMeasurement.package?.gzipEstimateBytes, 'Poki total-delivery evidence drifted');
+requireValue(technical?.totalAdvisoryTargetBytes === pokiMeasurement.package?.advisoryTargetBytes && technical.totalTargetMet === false, 'Poki total-delivery gap is missing');
+for (const field of ['outsideServicesIsolated', 'incognitoSavingVerified', 'tabletTouchVerified', 'fivePersonFirstMinuteReviewComplete', 'pokiSdkPresent', 'pokiSdkAuthorized', 'submissionReady']) {
+    requireValue(technical?.[field] === false, `technicalAssessment.${field} must remain false`);
+}
 
 const poki = map.primaryFork?.find(route => route.id === 'poki_first_reach_bet');
 const itchRoute = map.primaryFork?.find(route => route.id === 'itch_first_learning_bet');
@@ -74,7 +90,7 @@ const requiredSources = [
     'https://www.newgrounds.com/wiki/help-information/content-submission/games-and-movies'
 ];
 for (const source of requiredSources) requireValue(map.sources?.includes(source), `required source is missing: ${source}`);
-for (const phrase of ['The important choice we nearly missed', 'For maximum upside', '0 of 4 approved moments', 'Why itch.io is still first if speed wins']) {
+for (const phrase of ['What the Poki check found', '3.75 MB compressed', '41 MB compressed', 'not ready to submit, preserve the option', 'The important choice we nearly missed', 'For maximum upside', '0 of 4 approved moments', 'Why itch.io is still first if speed wins']) {
     requireValue(mapText.includes(phrase), `plain-language map is missing: ${phrase}`);
 }
 requireValue(decisions.includes('| D-018 |'), 'D-018 distribution-rights decision is missing');

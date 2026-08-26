@@ -1,0 +1,136 @@
+{
+  "id": "POKI-READINESS-001",
+  "checkedOn": "2026-08-26",
+  "state": "promising_opening_not_ready_for_submission",
+  "decision": "no_go_yet_preserve_option",
+  "plainLanguageOutcome": "Mythical Void already has a clear browser opening and a light enough first download to merit serious Poki preparation, but it should not be submitted until the full package is much leaner, outside services are isolated, saving and touch controls are proven, the platform layer is approved, and four excellent real gameplay moments exist.",
+  "measurement": {
+    "source": "docs/company/growth/poki-candidate-measurement.json",
+    "browserReview": {
+      "privateLocalReview": true,
+      "openingReached": "FIRST CONTACT — tap or click the egg to answer the signal",
+      "desktop": { "viewport": "1280x720", "canvasFilledViewport": true, "horizontalOverflow": false },
+      "phone": { "viewport": "390x844", "canvasFilledViewport": true, "horizontalOverflow": false, "touchPromptSeen": true },
+      "tablet": { "viewport": "820x1180", "canvasFilledViewport": true, "horizontalOverflow": false, "touchModeVerified": false },
+      "limitation": "This proves layout and the opening on one local browser, not worldwide loading speed, real touch hardware, incognito saving or Poki Inspector acceptance."
+    }
+  },
+  "valueCase": [
+    {
+      "area": "Originality",
+      "evidence": "A structured alien-creature genetics system, six living realms and Project Beacon's final message create a recognisable idea rather than a reskin.",
+      "state": "promising_needs_player_proof"
+    },
+    {
+      "area": "Depth and room to grow",
+      "evidence": "Creature growth, realm restoration, guardian outcomes, sanctuary building and story choices support updates beyond one short mechanic.",
+      "state": "promising_needs_retention_proof"
+    },
+    {
+      "area": "First impression",
+      "evidence": "The portal build reaches one clear egg interaction immediately on desktop and phone without a storefront or account screen.",
+      "state": "provisional_pass"
+    },
+    {
+      "area": "Cross-device potential",
+      "evidence": "The opening filled desktop, phone and tablet viewports without page overflow; real tablet touch switching remains unverified.",
+      "state": "provisional_pass_with_touch_gap"
+    }
+  ],
+  "readiness": [
+    {
+      "id": "opening-download",
+      "state": "provisional_pass",
+      "evidence": "The reconstructed first load is 3,936,773 gzip-estimate bytes across 18 resources, below Poki's 5 MB good-web-game guidance.",
+      "nextProof": "Measure the uploaded candidate through Poki Inspector on representative connections."
+    },
+    {
+      "id": "total-download",
+      "state": "gap",
+      "evidence": "The full package is about 43.0 MB by deterministic gzip estimate, far above Poki's 8 MB good-web-game guidance. Cinematics account for about 24.5 MB and audio about 9.3 MB.",
+      "nextProof": "Create a progressive portal build that downloads only the opening and first playable area, then measure the complete delivery plan."
+    },
+    {
+      "id": "outside-services",
+      "state": "gap",
+      "evidence": "The built application still contains NASA, Open Notify and Mythical-hosted function markers; Poki blocks outside requests by default.",
+      "nextProof": "A portal mode must keep these optional features off or provide a separately approved exception without harming play."
+    },
+    {
+      "id": "incognito-saving",
+      "state": "unverified",
+      "evidence": "Storage handling exists, but the exact portal package has not been run with storage access denied.",
+      "nextProof": "Complete a denied-storage and private-browsing play/save/reload test without a crash."
+    },
+    {
+      "id": "tablet-touch-controls",
+      "state": "unverified",
+      "evidence": "The tablet-sized canvas filled the viewport, but the private browser review did not emulate touch hardware.",
+      "nextProof": "Show the touch control scheme automatically on a real or touch-emulated tablet and complete the opening interaction."
+    },
+    {
+      "id": "sdk-advertising-and-events",
+      "state": "not_started_not_authorized",
+      "evidence": "No Poki SDK or official Phaser plugin marker is present, which is correct before approval but not enough for Poki Web Fit testing.",
+      "nextProof": "After explicit privacy, commercial and Kevin approval, isolate the official Phaser plugin in a Poki-only build and verify loading, gameplay, pause, cutscene and ad event order."
+    },
+    {
+      "id": "visual-click-proof",
+      "state": "blocked",
+      "evidence": "The authentic gameplay gate remains 0 of 4 and no truthful 628x628 Poki thumbnail is approved.",
+      "nextProof": "Approve all four real gameplay moments and a full-bleed square thumbnail that closely matches the actual game."
+    },
+    {
+      "id": "first-minute-player-fit",
+      "state": "not_tested",
+      "evidence": "The opening is visually clear in review, but no five-person unfamiliar-player observation has been recorded.",
+      "nextProof": "Watch five unfamiliar people start without coaching and record first action, confusion, creature recognition and wish to continue."
+    },
+    {
+      "id": "distribution-rights",
+      "state": "decision_pending",
+      "evidence": "Decision D-018 is still open. Publishing elsewhere first can change the kind of Poki partnership available.",
+      "nextProof": "Kevin chooses Poki-first reach or itch.io-first learning after the quality gates pass; any agreement then receives separate commercial and legal review."
+    }
+  ],
+  "gameDevelopmentHandoff": [
+    "Build an isolated portal mode with optional NASA, Open Notify, hosted AI, cloud saves and Mythical-hosted functions off by default; the core game must remain complete without them.",
+    "Progressively load later cinematics, music and realm art after the first playable action instead of including the whole 43 MB delivery up front.",
+    "Prove private-browsing save failure is graceful, tablet touch controls switch correctly, the game stays playable with an ad blocker and the first minutes work on slower hardware.",
+    "Keep the immediate egg interaction, make every early cutscene skippable and replace text walls with gradual visual teaching.",
+    "Design a Poki-only SDK adapter but do not install, connect or activate advertising until Kevin, privacy and commercial review explicitly approve it.",
+    "Return four excellent real gameplay moments and one text-free 628x628 thumbnail that resembles the actual creature and world."
+  ],
+  "accessRequestDraft": {
+    "state": "incomplete_not_authorized",
+    "gameTitle": "Mythical Void",
+    "studio": "Mythical",
+    "country": "Ireland",
+    "contactName": "Kevin",
+    "contactEmail": null,
+    "liveGameUrl": "https://mythicalvoid.com/play/",
+    "pitch": "Hatch an alien creature shaped by a structured genetics system, restore six living realms and decide what Project Beacon should tell Earth. Mythical Void is a free Phaser browser adventure that began as a father-and-son experiment in imagination and careful generative AI.",
+    "thumbnailPath": null,
+    "submissionMade": false
+  },
+  "authority": {
+    "pokiAccountAccessProvided": false,
+    "pokiAccessRequestAuthorized": false,
+    "gameUploadAuthorized": false,
+    "sdkIntegrationAuthorized": false,
+    "advertisingAuthorized": false,
+    "platformTermsAcceptanceAuthorized": false,
+    "webExclusivityAcceptanceAuthorized": false,
+    "externalActionTaken": false
+  },
+  "sources": [
+    "https://developers.poki.com/guide/what-we-look-for",
+    "https://developers.poki.com/guide/easy-access",
+    "https://developers.poki.com/guide/requirements-quality",
+    "https://developers.poki.com/guide/web-engine",
+    "https://developers.poki.com/guide/game-thumbnail",
+    "https://developers.poki.com/guide/sdk-phaser",
+    "https://developers.poki.com/guide/revenue-deal-types",
+    "https://developers.poki.com/guide/adding-your-game"
+  ]
+}

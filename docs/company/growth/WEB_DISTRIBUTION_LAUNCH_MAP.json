@@ -19,6 +19,25 @@
     "why": "Poki says its preferred partnership is web-exclusive and can include platform marketing. Publishing on another web portal first can move the game into Poki's non-exclusive flat-fee route. The itch.io build is already ready, so preserving the larger option costs no technical rework while the visual gate is closed.",
     "decisionDue": "Only after the 4/4 visual gate, first-minute play review, mobile and desktop check, and rights review pass."
   },
+  "technicalAssessment": {
+    "source": "docs/company/growth/POKI_READINESS_ASSESSMENT.json",
+    "measurementSource": "docs/company/growth/poki-candidate-measurement.json",
+    "decision": "no_go_yet_preserve_option",
+    "openingReview": "One clear FIRST CONTACT egg interaction reached immediately on desktop and phone in a private local review.",
+    "firstLoadGzipEstimateBytes": 3936773,
+    "firstLoadAdvisoryTargetBytes": 5242880,
+    "firstLoadTargetMet": true,
+    "totalGzipEstimateBytes": 43049481,
+    "totalAdvisoryTargetBytes": 8388608,
+    "totalTargetMet": false,
+    "outsideServicesIsolated": false,
+    "incognitoSavingVerified": false,
+    "tabletTouchVerified": false,
+    "fivePersonFirstMinuteReviewComplete": false,
+    "pokiSdkPresent": false,
+    "pokiSdkAuthorized": false,
+    "submissionReady": false
+  },
   "primaryFork": [
     {
       "id": "poki_first_reach_bet",
