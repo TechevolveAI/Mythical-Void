@@ -5,8 +5,8 @@
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "e8ecbb264d68cc97c5c369f25dc1b8ec1e7373e6212861ff00831ad2ca214508",
-    "liveEntryCount": 13,
+    "sourceFingerprint": "589a87421f13c02b474f65646080f050324ff0a7ebd3671478e9130d09159c74",
+    "liveEntryCount": 14,
     "latestSourceDate": "2026-08-26"
   },
   "purpose": "Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
@@ -32,6 +32,51 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-SIGNAL-021",
+      "sourceEntryId": "SIGNAL-021",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+        "alt": "Many imagined alien organisms gathered in a luminous Mythical Void realm",
+        "class": "ai_generated_marketing_illustration",
+        "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Your saved adventure now has a clearer way back\n\nWhen Mythical Void notices its own save name in the same browser, the website changes Play to Continue and gives that player a direct way back into the game.\n\n• The website checks only whether the Mythical Void save name exists. It does not open, read or change the saved adventure.\n• The signal stays in the browser: it is not sent to Mythical Void, added to analytics or used to identify the player.\n• If browser storage is blocked or there is no save, the normal new-player experience remains unchanged. No account is needed in either case.\n\nSee what changed: https://mythicalvoid.com/\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 721
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Your saved adventure now has a clearer way back\n\nWhen Mythical Void notices its own save name in the same browser, the website changes Play to Continue and gives that player a direct way back into the game.\n\nhttps://mythicalvoid.com/\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 336
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Your saved adventure now has a clearer way back",
+          "body": "Mythical Void has a new live update: Your saved adventure now has a clearer way back.\n\nWhen Mythical Void notices its own save name in the same browser, the website changes Play to Continue and gives that player a direct way back into the game.\n\nThe website checks only whether the Mythical Void save name exists. It does not open, read or change the saved adventure. The signal stays in the browser: it is not sent to Mythical Void, added to analytics or used to identify the player. If browser storage is blocked or there is no save, the normal new-player experience remains unchanged. No account is needed in either case.\n\nThe checked public destination is https://mythicalvoid.com/\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 856,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-SIGNAL-020",
       "sourceEntryId": "SIGNAL-020",

@@ -15,6 +15,19 @@
   ],
   "items": [
     {
+      "id": "https://mythicalvoid.com/updates/#signal-021",
+      "url": "https://mythicalvoid.com/updates/#signal-021",
+      "external_url": "https://mythicalvoid.com/",
+      "title": "Your saved adventure now has a clearer way back",
+      "content_text": "When Mythical Void notices its own save name in the same browser, the website changes Play to Continue and gives that player a direct way back into the game.\n\n• The website checks only whether the Mythical Void save name exists. It does not open, read or change the saved adventure.\n• The signal stays in the browser: it is not sent to Mythical Void, added to analytics or used to identify the player.\n• If browser storage is blocked or there is no save, the normal new-player experience remains unchanged. No account is needed in either case.\n\nSee the live change: https://mythicalvoid.com/\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.",
+      "summary": "When Mythical Void notices its own save name in the same browser, the website changes Play to Continue and gives that player a direct way back into the game.",
+      "image": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "date_published": "2026-08-26T12:00:00.000Z",
+      "tags": [
+        "EASIER TO COME BACK"
+      ]
+    },
+    {
       "id": "https://mythicalvoid.com/updates/#signal-020",
       "url": "https://mythicalvoid.com/updates/#signal-020",
       "external_url": "https://mythicalvoid.com/llms.txt",

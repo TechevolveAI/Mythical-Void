@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "RETURNING-PLAYER-DOORWAY-2026-08-26",
+  "state": "owned_site_release_authorized_pending_production_verification",
+  "purpose": "Help a person who has already played get back to their own browser adventure without making them search for the game again.",
+  "publicRoutes": [
+    "https://mythicalvoid.com/",
+    "https://mythicalvoid.com/playable-now/"
+  ],
+  "destination": "https://mythicalvoid.com/play/",
+  "localSignal": {
+    "saveKey": "mythical-creature-save",
+    "keyNameExistenceChecked": true,
+    "saveValueRead": false,
+    "saveValueParsed": false,
+    "saveValueChanged": false,
+    "newStorageWritten": false,
+    "sentToServer": false
+  },
+  "visitorExperience": {
+    "returningLabel": "Continue your adventure",
+    "welcomeBackNoteShown": true,
+    "blockedStorageFallback": "normal_new_player_experience",
+    "accountRequired": false,
+    "identityCreated": false,
+    "contactCollected": false
+  },
+  "measurement": {
+    "newAnalyticsEventAdded": false,
+    "returningPlayerStatusMeasured": false,
+    "saveStatusAddedToExistingEvents": false,
+    "gameActivityMeasured": false
+  },
+  "visualBoundary": {
+    "approvedGameplayMoments": 0,
+    "requiredGameplayMoments": 4,
+    "visualLaunchGateChanged": false
+  },
+  "authority": {
+    "ownedWebsitePublicationAuthorized": true,
+    "externalSocialPublicationAuthorized": false,
+    "emailOrOutreachSendingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "externalAccountChangeAuthorized": false,
+    "externalActionTaken": false
+  },
+  "verification": {
+    "automatedPrivacyTestRequired": true,
+    "productionVerificationRequired": true,
+    "productionCommit": null,
+    "productionDeployId": null
+  }
+}

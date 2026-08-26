@@ -17,6 +17,26 @@
   },
   "entries": [
     {
+      "id": "SIGNAL-021",
+      "publishedOn": "2026-08-26",
+      "status": "live",
+      "category": "EASIER TO COME BACK",
+      "title": "Your saved adventure now has a clearer way back",
+      "summary": "When Mythical Void notices its own save name in the same browser, the website changes Play to Continue and gives that player a direct way back into the game.",
+      "details": [
+        "The website checks only whether the Mythical Void save name exists. It does not open, read or change the saved adventure.",
+        "The signal stays in the browser: it is not sent to Mythical Void, added to analytics or used to identify the player.",
+        "If browser storage is blocked or there is no save, the normal new-player experience remains unchanged. No account is needed in either case."
+      ],
+      "image": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "imageAlt": "Many imagined alien organisms gathered in a luminous Mythical Void realm",
+      "imageClass": "ai_generated_marketing_illustration",
+      "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay.",
+      "destination": "/",
+      "linkText": "Return to Mythical Void",
+      "download": false
+    },
+    {
       "id": "SIGNAL-020",
       "publishedOn": "2026-08-26",
       "status": "live",

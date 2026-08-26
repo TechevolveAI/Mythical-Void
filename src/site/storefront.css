@@ -457,6 +457,26 @@ body.site-mode h3 {
     font-size: 0.75rem;
 }
 
+.returning-player-note {
+    width: fit-content;
+    max-width: 620px;
+    margin: 1rem 0 0;
+    padding: 0.75rem 1rem;
+    border: 1px solid rgba(124, 232, 207, 0.42);
+    border-radius: 16px;
+    background: rgba(8, 7, 25, 0.72);
+    color: var(--paper);
+    font-size: 0.92rem;
+}
+
+.returning-player-note[hidden] {
+    display: none;
+}
+
+.returning-player-note strong {
+    color: var(--mint);
+}
+
 .hero-genetics {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -37,8 +37,8 @@ function updatePageMetadata({ title, description, path = '/' }) {
 }
 
 const playLink = (label, className = 'button button-primary') => `
-    <a class="${className}" href="/play/">
-        <span>${label}</span>
+    <a class="${className}" href="/play/" data-play-link>
+        <span data-play-label>${label}</span>
         <span class="button-arrow" aria-hidden="true">→</span>
     </a>
 `;
@@ -292,6 +292,7 @@ function renderStorefront() {
                             </button>
                             <a class="button button-quiet" href="/playable-now/#find-your-way">Find your way in</a>
                         </div>
+                        <p class="returning-player-note" data-returning-player-note hidden><strong>Welcome back.</strong> Your saved adventure is still in this browser. Continue where you left off.</p>
                         <p class="hero-share-status share-status" data-share-status aria-live="polite"></p>
                         <ul class="hero-genetics" aria-label="How this scene was made">
                             <li><strong>1,000</strong><span>real engine hatches explored</span></li>
@@ -585,6 +586,7 @@ function renderStorefront() {
         </footer>
     `;
 
+    window.MythicalReturningPlayer?.apply(app);
     bindInteractions();
     mountAnalyticsConsent();
 }

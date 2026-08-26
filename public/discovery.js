@@ -140,6 +140,10 @@
         var intentShare = intentRoot.querySelector('[data-intent-share]');
         var intentShareStatus = intentRoot.querySelector('[data-intent-share-status]');
 
+        function isReturningPlayer() {
+            return globalThis.MythicalReturningPlayer?.hasLocalAdventure?.() === true;
+        }
+
         function intentIdFromHash() {
             var match = window.location.hash.match(/^#find-your-way\/(wonder|create|challenge|story)$/);
             return match ? match[1] : null;
@@ -156,7 +160,7 @@
             });
             intentTitle.textContent = message.title;
             intentCopy.textContent = message.copy;
-            intentCta.textContent = message.cta;
+            intentCta.textContent = isReturningPlayer() ? 'Continue your adventure' : message.cta;
             intentPlay.dataset.sourceArea = message.sourceArea;
             if (intentShare) intentShare.dataset.sourceArea = message.sourceArea;
             shareUrl = 'https://mythicalvoid.com/playable-now/#find-your-way/' + intentId;
