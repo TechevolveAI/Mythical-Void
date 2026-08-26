@@ -41,7 +41,7 @@
     {
       "id": "opening-download",
       "state": "provisional_pass",
-      "evidence": "The reconstructed first load is 3,936,773 gzip-estimate bytes across 18 resources, below Poki's 5 MB good-web-game guidance.",
+      "evidence": "The reconstructed first load is about 3.75 MB across 18 resources, below Poki's 5 MB good-web-game guidance.",
       "nextProof": "Measure the uploaded candidate through Poki Inspector on representative connections."
     },
     {

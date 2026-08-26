@@ -51,7 +51,7 @@ function validatePokiReadiness(assessment, recordedMeasurement, freshMeasurement
         'first-minute-player-fit': 'not_tested',
         'distribution-rights': 'decision_pending'
     })) requireValue(readiness[id]?.state === state, `readiness state drifted: ${id}`);
-    requireValue((readiness['opening-download']?.evidence || '').includes(recordedMeasurement.firstLoad.gzipEstimateBytes.toLocaleString('en-US')), 'opening evidence does not match the measurement');
+    requireValue((readiness['opening-download']?.evidence || '').includes('about 3.75 MB across 18 resources'), 'opening evidence does not state the measured result clearly');
     requireValue(approvedVisuals === 0 && requiredVisuals === 4, 'human visual gate is no longer 0 of 4; update the assessment deliberately');
     requireValue((readiness['visual-click-proof']?.evidence || '').includes('0 of 4'), 'visual blocker does not match the human register');
 

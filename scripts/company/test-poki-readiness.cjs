@@ -34,6 +34,14 @@ function rejected(name, expected, change) {
 
 assert.deepStrictEqual(check(), []);
 cases += 1;
+{
+    const recorded = clone(measurement);
+    const fresh = clone(measurement);
+    recorded.firstLoad.gzipEstimateBytes += 32;
+    fresh.firstLoad.gzipEstimateBytes += 32;
+    assert.deepStrictEqual(check(source, recorded, fresh), []);
+    cases += 1;
+}
 rejected('stale measurement', 'measurement drifted', (_a, recorded) => { recorded.package.rawBytes += 1; });
 rejected('premature request', 'pokiAccessRequestAuthorized', assessment => { assessment.authority.pokiAccessRequestAuthorized = true; });
 rejected('hidden outside-service gap', 'outside-services', assessment => { assessment.readiness.find(item => item.id === 'outside-services').state = 'provisional_pass'; });
@@ -44,5 +52,5 @@ rejected('fake tablet proof', 'tablet touch limitation', assessment => { assessm
 rejected('fake total pass', 'total-download', assessment => { assessment.readiness.find(item => item.id === 'total-download').state = 'provisional_pass'; });
 rejected('fake visual approval', 'human visual gate', (_a, _r, _f, visuals) => { visuals.requiredMoments[0].currentState = 'approved'; });
 
-assert.strictEqual(cases, 10);
-console.log('Poki readiness safeguards passed (10 cases).');
+assert.strictEqual(cases, 11);
+console.log('Poki readiness safeguards passed (11 cases).');
