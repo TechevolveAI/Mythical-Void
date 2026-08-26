@@ -3,7 +3,33 @@
     var tagId = 'G-FTM4W73ECQ';
     var currentPath = window.location.pathname;
     var allowedEvents = ['play_selected', 'share_completed', 'share_link_copied'];
-    var allowedAreas = ['header', 'hero', 'content', 'share_section', 'final_cta', 'footer'];
+    var allowedAreas = ['header', 'hero', 'content', 'share_section', 'final_cta', 'footer', 'intent_wonder', 'intent_create', 'intent_challenge', 'intent_story'];
+    var intentMessages = {
+        wonder: {
+            title: 'Follow the signal into six impossible realms.',
+            copy: 'Begin at the wreck of Wanderer-77, meet a life form Earth has never seen and discover what each living world is trying to protect.',
+            cta: 'Enter the unknown',
+            sourceArea: 'intent_wonder'
+        },
+        create: {
+            title: 'See what the creature engine makes with you.',
+            copy: 'Your hatch combines form, colour, markings, personality, cosmic affinity and the possibility of a rare change—then carries that identity into the story.',
+            cta: 'See what hatches',
+            sourceArea: 'intent_create'
+        },
+        challenge: {
+            title: 'Recover the ship. Cross the realms. Free the guardians.',
+            copy: 'Run, leap, investigate and fight beside your creature. The guardians are trapped by the corruption; the mission is to release them, not destroy them.',
+            cta: 'Take the first mission',
+            sourceArea: 'intent_challenge'
+        },
+        story: {
+            title: 'Project Beacon begins as an order and ends as your choice.',
+            copy: 'Earth sent you to find hope. What you discover changes the mission, and the final message home is yours to decide.',
+            cta: 'Begin Project Beacon',
+            sourceArea: 'intent_story'
+        }
+    };
 
     var shareCard = document.querySelector('[data-share-card]');
     var shareUrl = shareCard && shareCard.dataset.shareUrl
@@ -25,6 +51,10 @@
     }
 
     function sourceAreaFor(element) {
+        var declaredArea = element && element.closest && element.closest('[data-source-area]');
+        if (declaredArea && allowedAreas.indexOf(declaredArea.dataset.sourceArea) !== -1) {
+            return declaredArea.dataset.sourceArea;
+        }
         if (element && element.closest('header')) return 'header';
         if (element && element.closest('.hero, .page-hero')) return 'hero';
         if (element && element.closest('.playable-share-section, [data-share-section]')) return 'share_section';
@@ -88,6 +118,33 @@
 
     var copyButton = document.querySelector('[data-copy-game]');
     if (copyButton) copyButton.addEventListener('click', copyCleanLink);
+
+    var intentRoot = document.querySelector('[data-play-intent]');
+    if (intentRoot) {
+        var intentButtons = Array.from(intentRoot.querySelectorAll('[data-intent-choice]'));
+        var intentAnswer = intentRoot.querySelector('[data-intent-answer]');
+        var intentTitle = intentRoot.querySelector('[data-intent-title]');
+        var intentCopy = intentRoot.querySelector('[data-intent-copy]');
+        var intentCta = intentRoot.querySelector('[data-intent-cta]');
+        var intentPlay = intentRoot.querySelector('[data-intent-play]');
+
+        intentButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                var message = intentMessages[button.dataset.intentChoice];
+                if (!message || !intentAnswer || !intentTitle || !intentCopy || !intentCta || !intentPlay) return;
+                intentButtons.forEach(function (candidate) {
+                    var selected = candidate === button;
+                    candidate.classList.toggle('active', selected);
+                    candidate.setAttribute('aria-pressed', String(selected));
+                });
+                intentTitle.textContent = message.title;
+                intentCopy.textContent = message.copy;
+                intentCta.textContent = message.cta;
+                intentPlay.dataset.sourceArea = message.sourceArea;
+                intentAnswer.hidden = false;
+            });
+        });
+    }
 
     window.dataLayer = window.dataLayer || [];
     function gtag() { window.dataLayer.push(arguments); }

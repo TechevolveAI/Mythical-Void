@@ -19,6 +19,7 @@ an AI-first, human-governed studio.
 - [Privacy-Preserving Measurement Specification](PRIVACY_PRESERVING_MEASUREMENT_SPEC.md)
 - [Weekly Growth Pulse](measurement/GROWTH_PULSE.md)
 - [Web Distribution Launch Map](growth/WEB_DISTRIBUTION_LAUNCH_MAP.md)
+- [“What do I feel like playing?” doorway](growth/PLAY_INTENT_DOORWAY.md)
 - [Support and Safeguarding Runbook](SUPPORT_AND_SAFEGUARDING_RUNBOOK.md)
 - [Safeguarding Activation and Escalation System](SAFEGUARDING_ACTIVATION_AND_ESCALATION_SYSTEM.md)
 - [Agent and Automation Architecture](AGENT_AUTOMATION_ARCHITECTURE.md)

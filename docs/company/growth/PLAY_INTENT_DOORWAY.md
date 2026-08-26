@@ -1,0 +1,53 @@
+# The “what do I feel like playing?” doorway
+
+Status: approved for the owned website; production proof still required  
+Route: https://mythicalvoid.com/playable-now/
+
+## Why this exists
+
+People rarely choose a game because of a list of technology. They choose it
+because they want a feeling: wonder, creativity, challenge or a story that
+matters.
+
+The Playable Now page now lets a visitor choose one of four honest ways into
+Mythical Void:
+
+- **Show me something strange** — the six living realms and alien discovery.
+- **Let me make something** — the creature engine and the hatch.
+- **Give me a mission** — movement, investigation and restoring the guardians.
+- **Make my choices matter** — Project Beacon and the final message to Earth.
+
+Each choice gives one short explanation and one clean Play button. It is not a
+personality quiz and it does not pretend to know the visitor.
+
+## What we can learn
+
+If optional website analytics have been allowed, the existing `play_selected`
+event records only which of the four Play buttons was used. The choice itself is
+not sent or stored. The game remains outside website analytics.
+
+This can answer one useful question: which truthful promise most often leads to
+a Play selection? It cannot tell us who selected it, why someone left, whether
+they are a child, or whether they enjoyed the game.
+
+Do not change the main message from a tiny result. Wait for at least 50
+consented page views and 10 Play selections from this section. Treat the result
+as a direction to test again, not as a fact about the market.
+
+## Safety and quality boundaries
+
+- No name, email, age, creature information or free text is collected.
+- No choice is remembered for a later visit.
+- No tracking code is added to the Play address.
+- No new screenshot or video is published while the authentic visual gate is
+  still 0 of 4 approved moments.
+- This release does not authorize a social post, portal submission, advert,
+  outreach message or account change.
+
+## How to check it
+
+```bash
+npm run validate:play-intent
+npm run test:play-intent
+```
+

@@ -612,6 +612,68 @@ details p { margin: 0.9rem 0 0; }
 .playable-art-boundary img { max-height: 520px; object-fit: cover; }
 .playable-social-note { margin: 1rem 0 0; color: #9188a3; font-size: 0.78rem; }
 
+.play-intent-section {
+    background:
+        radial-gradient(circle at 8% 12%, rgba(167, 104, 255, 0.16), transparent 28rem),
+        radial-gradient(circle at 92% 82%, rgba(118, 227, 207, 0.1), transparent 30rem),
+        #0d0919;
+}
+.play-intent-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
+    gap: clamp(2rem, 7vw, 6rem);
+    align-items: end;
+    margin-bottom: clamp(2rem, 5vw, 3.7rem);
+}
+.play-intent-heading h2 { max-width: 760px; margin-bottom: 0; }
+.play-intent-heading > p { max-width: 620px; margin-bottom: 0.35rem; color: var(--muted); font-size: 1.08rem; }
+.play-intent-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.8rem; }
+.play-intent-card {
+    position: relative;
+    min-height: 285px;
+    padding: 1.45rem;
+    border: 1px solid var(--line);
+    border-radius: 1.45rem;
+    background: linear-gradient(155deg, rgba(255,255,255,0.065), rgba(255,255,255,0.014));
+    color: var(--cream);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+.play-intent-card::after {
+    content: "→";
+    position: absolute;
+    right: 1.35rem;
+    bottom: 1.15rem;
+    color: var(--mint);
+    font-size: 1.45rem;
+    font-weight: 950;
+}
+.play-intent-card > span { display: block; margin-bottom: 3.5rem; color: var(--mint); font-size: 0.68rem; font-weight: 950; letter-spacing: 0.12em; }
+.play-intent-card strong { display: block; margin-bottom: 0.75rem; font-size: clamp(1.2rem, 2vw, 1.55rem); line-height: 1.08; letter-spacing: -0.035em; }
+.play-intent-card small { display: block; max-width: 25ch; padding-right: 1rem; color: var(--muted); font-size: 0.86rem; line-height: 1.55; }
+.play-intent-card:hover,
+.play-intent-card:focus-visible { transform: translateY(-4px); border-color: rgba(118, 227, 207, 0.55); outline: none; }
+.play-intent-card.active { border-color: var(--mint); background: linear-gradient(155deg, rgba(118, 227, 207, 0.14), rgba(167, 104, 255, 0.08)); box-shadow: 0 1.2rem 3.2rem rgba(0,0,0,0.22); }
+.play-intent-answer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2rem;
+    align-items: center;
+    margin-top: 1rem;
+    padding: clamp(1.35rem, 4vw, 2.35rem);
+    border: 1px solid rgba(118, 227, 207, 0.38);
+    border-radius: 1.5rem;
+    background: linear-gradient(110deg, rgba(118, 227, 207, 0.09), rgba(167, 104, 255, 0.08));
+}
+.play-intent-answer[hidden] { display: none; }
+.play-intent-answer h3 { margin-bottom: 0.65rem; font-size: clamp(1.65rem, 3vw, 2.55rem); }
+.play-intent-answer p:not(.kicker) { max-width: 760px; margin-bottom: 0; color: var(--muted); }
+.play-intent-answer .button { min-width: 220px; }
+.play-intent-noscript { margin-top: 1rem; padding: 1rem; border-left: 3px solid var(--gold); background: rgba(255,213,106,0.06); }
+.play-intent-noscript a { color: var(--mint); font-weight: 900; }
+
 .educator-hero { padding-block: clamp(3.2rem, 5vw, 5rem); }
 .educator-hero h1 { font-size: clamp(3.1rem, 5.4vw, 5.4rem); }
 .educator-hero .hero-visual { transform: rotate(-0.7deg); }
@@ -1027,6 +1089,10 @@ details p { margin: 0.9rem 0 0; }
     .playable-video-screen { min-height: auto; }
     .playable-share-card { grid-template-columns: 1fr; }
     .playable-share-actions { max-width: 440px; }
+    .play-intent-heading { grid-template-columns: 1fr; gap: 1rem; }
+    .play-intent-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .play-intent-answer { grid-template-columns: 1fr; }
+    .play-intent-answer .button { justify-self: start; }
     .signal-entry { grid-template-columns: 1fr; }
     .signal-entry::before,
     .signal-timeline::before { display: none; }
@@ -1058,6 +1124,10 @@ details p { margin: 0.9rem 0 0; }
     .realm-story-grid { grid-template-columns: repeat(2, 1fr); }
     .playable-journey,
     .playable-proof-grid { grid-template-columns: 1fr; }
+    .play-intent-grid { grid-template-columns: 1fr; }
+    .play-intent-card { min-height: 230px; }
+    .play-intent-card > span { margin-bottom: 2.3rem; }
+    .play-intent-answer .button { width: 100%; }
     .creature-showcase-grid { grid-template-columns: 1fr; }
     .creature-specimen { min-height: 0; }
     .creature-specimen-visual { min-height: 210px; }
@@ -1087,5 +1157,7 @@ details p { margin: 0.9rem 0 0; }
 @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
     .button:hover,
-    .button:focus-visible { transform: none; }
+    .button:focus-visible,
+    .play-intent-card:hover,
+    .play-intent-card:focus-visible { transform: none; }
 }

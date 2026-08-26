@@ -2,11 +2,11 @@
   "schemaVersion": 2,
   "releaseId": "PLAYABLE-NOW-VISUAL-TRUST-2026-08-26",
   "state": "owned_site_explanation_live_media_withdrawn_pending_rebuild",
-  "purpose": "Explain the playable game clearly while weak screenshots and video remain withheld from promotion.",
+  "purpose": "Explain the playable game clearly, help a visitor choose an honest way into it, and keep weak screenshots and video withheld from promotion.",
   "page": {
     "path": "public/playable-now/index.html",
     "publicUrl": "https://mythicalvoid.com/playable-now/",
-    "sha256": "d5ccbeaa59255c9077fcc30f3dd0d51d6e87fea9d238958bdebe57c18e65652d",
+    "sha256": "3ecbe9a5e423af7f37461888ae86f2be6f36ce9cb8147aa6863bef1ca3ea9981",
     "canonical": "https://mythicalvoid.com/playable-now/",
     "directPlayLinkMinimum": 3,
     "structuredData": ["VideoGame", "FAQPage"]
@@ -26,6 +26,14 @@
     "recipientCollectionEnabled": false,
     "trackingParametersPermitted": false,
     "analyticsDefault": "denied"
+  },
+  "playIntentDoorway": {
+    "planPath": "docs/company/growth/PLAY_INTENT_DOORWAY.json",
+    "choices": ["wonder", "create", "challenge", "story"],
+    "choiceClickMeasured": false,
+    "choiceStored": false,
+    "playEvent": "play_selected",
+    "playSourceProperty": "source_area"
   },
   "authority": {
     "ownedWebsitePublicationAuthorized": true,
