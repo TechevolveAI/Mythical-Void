@@ -80,7 +80,7 @@ for (const publicPath of screenshotPaths) {
 }
 
 requireValue(sha256(Buffer.from(page)) === release.page?.sha256, 'page fingerprint drifted');
-requireValue(release.state === 'owned_site_visual_quality_correction_waiting_for_production_verification', 'release state must retain the visual-quality correction while waiting for production verification');
+requireValue(release.state === 'owned_site_visual_quality_correction_live_and_verified', 'release state must retain the verified visual-quality correction');
 requireValue(release.authenticStoryMoment?.screenshotCount === 4 && release.authenticStoryMoment?.generatedFramesUsed === false && release.authenticStoryMoment?.playerIdentityUsed === false && release.authenticStoryMoment?.personalSaveUsed === false && release.authenticStoryMoment?.platformingOrCombatClaimed === false, 'story-moment proof or privacy boundary drifted');
 for (const [key, expected] of Object.entries({ ownedWebsitePublicationAuthorized: true, externalSocialPublicationAuthorized: false, emailOrOutreachSendingAuthorized: false, paidPromotionAuthorized: false, publicRepliesAuthorized: false, externalActionTaken: false })) {
     requireValue(release.authority?.[key] === expected, `authority.${key} must be ${expected}`);
@@ -88,7 +88,7 @@ for (const [key, expected] of Object.entries({ ownedWebsitePublicationAuthorized
 for (const [key, expected] of Object.entries({ accountRequired: false, emailSignupEnabled: false, contactCollectionEnabled: false, recipientCollectionEnabled: false, trackingParametersPermitted: false, analyticsDefault: 'denied' })) {
     requireValue(release.privacy?.[key] === expected, `privacy.${key} must be ${expected}`);
 }
-requireValue(release.verification?.desktopVisualReviewPassed === true && release.verification?.phoneVisualReviewPassed === true && release.verification?.phoneWidth === 390 && release.verification?.horizontalOverflowObserved === false && release.verification?.videoDurationObservedSeconds === 3.166667 && release.verification?.motionContactSheetReviewPassed === true && release.verification?.directPlayNavigationVerified === true && release.verification?.productionUrlVerified === false, 'release must retain its visual, video and play-route checks without inventing production verification');
+requireValue(release.verification?.desktopVisualReviewPassed === true && release.verification?.phoneVisualReviewPassed === true && release.verification?.phoneWidth === 390 && release.verification?.horizontalOverflowObserved === false && release.verification?.videoDurationObservedSeconds === 3.166667 && release.verification?.motionContactSheetReviewPassed === true && release.verification?.directPlayNavigationVerified === true && release.verification?.productionUrlVerified === true && /^[a-f0-9]{40}$/.test(release.verification?.productionCommit || '') && Boolean(release.verification?.productionDeployId), 'release must retain its visual, video, play-route and exact production checks');
 
 for (const [file, fragment, label] of [
     ['public/sitemap.xml', '<loc>https://mythicalvoid.com/playable-now/</loc>', 'sitemap'],

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "PLAYABLE-NOW-DISCOVERY-2026-08-26",
-  "state": "owned_site_visual_quality_correction_waiting_for_production_verification",
+  "state": "owned_site_visual_quality_correction_live_and_verified",
   "purpose": "Give an unfamiliar visitor one clear, attractive and truthfully labelled path from an in-game story moment to understanding the game and starting it.",
   "page": {
     "path": "public/playable-now/index.html",
@@ -69,6 +69,8 @@
     "videoDurationObservedSeconds": 3.166667,
     "motionContactSheetReviewPassed": true,
     "directPlayNavigationVerified": true,
-    "productionUrlVerified": false
+    "productionUrlVerified": true,
+    "productionCommit": "fafa1ff4ef04cb191a7481c45e8c6de36c462794",
+    "productionDeployId": "6a8ef19ba3897e000853ffae"
   }
 }
