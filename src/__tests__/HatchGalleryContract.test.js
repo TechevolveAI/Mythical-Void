@@ -6,6 +6,10 @@ describe('local hatch renderer gallery contract', () => {
         path.join(__dirname, '..', 'game.js'),
         'utf8'
     );
+    const smokeSource = fs.readFileSync(
+        path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
+        'utf8'
+    );
 
     test('uses the production genetics, DNA, and sprite renderer without saving', () => {
         const gallerySource = gameSource
@@ -26,6 +30,8 @@ describe('local hatch renderer gallery contract', () => {
         expect(gameSource).toContain("exportCanvas.toDataURL('image/png')");
         expect(gameSource).toContain('deterministicGalleryRandom');
         expect(gameSource).toContain("Phaser.Math.RND?.sow?.(['mythical-real-creature-showcase-v1'])");
+        expect(smokeSource).toContain("SMOKE_MODE === 'hatch-gallery'");
+        expect(smokeSource).toContain("'.home-start-fallback, [data-mythical-home-start]'");
         expect(gallerySource).not.toContain('GameState.save');
         expect(gallerySource).not.toContain('localStorage');
     });

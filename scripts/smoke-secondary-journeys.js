@@ -456,6 +456,15 @@ async function smokeRealCreatureShowcase(session, exceptions) {
             `Real-creature showcase raised browser exceptions: ${exceptions.join(' | ')}`
         );
     }
+    await evaluate(session, `(() => {
+        document.querySelectorAll(
+            '.home-start-fallback, [data-mythical-home-start]'
+        ).forEach(element => element.remove());
+        return document.querySelectorAll(
+            '.home-start-fallback, [data-mythical-home-start]'
+        ).length;
+    })()`);
+    await delay(250);
 
     fs.mkdirSync(SMOKE_CAPTURE_DIR, { recursive: true });
     const imageRecords = exported.images.map(image => {
