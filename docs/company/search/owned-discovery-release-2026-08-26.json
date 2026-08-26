@@ -21,7 +21,11 @@
       "ownershipFile": "/2d33a591a69d023517107abcaf6b7d52.txt",
       "dryRunByDefault": true,
       "productionSubmissionRequires": "--submit",
-      "submissionState": "not_yet_submitted"
+      "submissionState": "accepted_pending_key_validation",
+      "submittedAt": "2026-08-26T17:20:54Z",
+      "responseStatus": 202,
+      "submittedUrlCount": 13,
+      "meaning": "IndexNow received the first notification and is checking the live ownership file. Acceptance is a discovery signal, not a promise that any search engine will show a page."
     },
     "googleSearchConsole": {
       "state": "owner_access_needed_later",
