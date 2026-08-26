@@ -64,6 +64,12 @@ describe('release test gate', () => {
         expect(source).toContain(
             "stageVillageVisualParty(session, 'Village strange discovery')"
         );
+        expect(source).toContain(
+            'const actorBounds = [state.creatureBounds, state.astronautBounds]'
+        );
+        expect(source).toContain('const movementSamples = []');
+        expect(source).toContain('Visual movement phone sample');
+        expect(source).toContain('Visual movement desktop sample');
     });
 
     test('production-preview journeys explicitly isolate reset cases', () => {

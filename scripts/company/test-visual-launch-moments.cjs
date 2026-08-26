@@ -38,6 +38,16 @@ expectFailure('missing phone visual bar', value => {
 expectFailure('premature review claim', value => {
     value.moments[0].reviewStatus = 'approved';
 });
+expectFailure('substituted non-observable evidence', value => {
+    value.moments[0].requiredEvidence = [
+        'copy_explains_the_action',
+        'menu_is_visible',
+        'background_looks_good'
+    ];
+});
+expectFailure('unimplemented substitute state', value => {
+    value.moments[2].playableState = 'concept_art_only';
+});
 expectFailure('nested public asset', value => {
     value.moments[0].candidateAssets.phone = '../public/creature.png';
 });

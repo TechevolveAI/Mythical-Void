@@ -168,6 +168,32 @@ describe('Expedition astronaut', () => {
         expect(findExpeditionTrailTarget(trail, 200)).toEqual({ x: 60, y: 80 });
     });
 
+    test('keeps the platformer astronaut within its readable follow range', () => {
+        const { ExpeditionAstronaut } = loadExpeditionAstronaut();
+        const scene = createScene();
+        const target = {
+            active: true,
+            x: 200,
+            y: 300,
+            flipX: false,
+            body: {
+                velocity: { x: 180, y: 0 },
+                blocked: { down: true }
+            }
+        };
+        const follower = new ExpeditionAstronaut(scene, target, {
+            mode: 'platformer'
+        });
+
+        target.x += 180;
+        follower.update(16);
+
+        expect(Math.hypot(
+            follower.sprite.x - target.x,
+            follower.sprite.y - target.y
+        )).toBeLessThanOrEqual(follower.followDistance + 8.001);
+    });
+
     test('uses a contextual formation to keep the astronaut clear of a landmark', () => {
         const { ExpeditionAstronaut } = loadExpeditionAstronaut();
         const scene = createScene();

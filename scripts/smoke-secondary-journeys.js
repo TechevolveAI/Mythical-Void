@@ -18086,17 +18086,12 @@ async function smokeVisualMovement(session, exceptions) {
     const started = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
         if (!scene?.player?.body || !scene?.astronautFollower?.sprite) return false;
-        const supportId = ${isPhone ? "'forest-ground-1'" : "'forest-ground-6'"};
+        const supportId = 'forest-ground-6';
         const support = scene.getTraversalSupport?.(supportId) ||
             scene.platforms?.getChildren?.()[0];
         if (!support?.body || scene.physics.world.isPaused) return false;
-        const x = ${isPhone}
-            ? Math.min(
-                support.body.right - 180,
-                Math.max(support.body.left + 520, support.body.center.x)
-            )
-            : support.body.left + 1000;
-        if (!${isPhone} && scene.bossTriggerZone?.body) {
+        const x = support.body.left + (${isPhone} ? 540 : 1000);
+        if (scene.bossTriggerZone?.body) {
             scene.bossTriggerZone.body.enable = false;
         }
         scene.player.setPosition(x, scene.player.y);
@@ -18177,9 +18172,9 @@ async function smokeVisualMovement(session, exceptions) {
     })()`);
 
     const assertActors = (state, label) => {
-        const safeLeft = state.viewport.width * (isPhone ? 0.12 : 0.2);
-        const safeRight = state.viewport.width * (isPhone ? 0.88 : 0.8);
-        const bounds = state.creatureBounds;
+        const safeLeft = state.viewport.width * (isPhone ? 0.08 : 0.2);
+        const safeRight = state.viewport.width * (isPhone ? 0.92 : 0.8);
+        const actorBounds = [state.creatureBounds, state.astronautBounds];
         if (
             !state.active ||
             state.paused ||
@@ -18188,9 +18183,13 @@ async function smokeVisualMovement(session, exceptions) {
             state.fallback ||
             !state.creatureVisible ||
             !state.astronautVisible ||
-            !bounds ||
-            bounds.left < safeLeft ||
-            bounds.right > safeRight ||
+            actorBounds.some(bounds => (
+                !bounds ||
+                bounds.left < safeLeft ||
+                bounds.right > safeRight ||
+                bounds.top < 0 ||
+                bounds.bottom > state.viewport.height
+            )) ||
             state.overlapArea > 0 ||
             state.modalCount !== 0 ||
             state.levelEntryCount !== 0
@@ -18202,6 +18201,7 @@ async function smokeVisualMovement(session, exceptions) {
     const before = await inspectActors();
     assertActors(before, 'Visual movement opening');
     await startGameplayVideo(session);
+    const movementSamples = [];
 
     if (isPhone) {
         const joystick = await evaluate(session, `(() => {
@@ -18216,14 +18216,25 @@ async function smokeVisualMovement(session, exceptions) {
             session,
             { x: joystick.x, y: joystick.y },
             { x: joystick.x + joystick.distance, y: joystick.y },
-            1900
+            400
         );
+        for (let index = 0; index < 3; index++) {
+            const sample = await inspectActors();
+            assertActors(sample, `Visual movement phone sample ${index + 1}`);
+            movementSamples.push(sample);
+            await delay(450);
+        }
         await releaseTouch(session);
     } else {
         await setKeyboardKey(session, 'keyDown', {
             key: 'd', code: 'KeyD', keyCode: 68
         });
-        await delay(1900);
+        for (let index = 0; index < 4; index++) {
+            await delay(450);
+            const sample = await inspectActors();
+            assertActors(sample, `Visual movement desktop sample ${index + 1}`);
+            movementSamples.push(sample);
+        }
         await setKeyboardKey(session, 'keyUp', {
             key: 'd', code: 'KeyD', keyCode: 68
         });
@@ -18252,6 +18263,7 @@ async function smokeVisualMovement(session, exceptions) {
         profileId: profile.id,
         rendererProfileId: profile.genes.id,
         before,
+        movementSamples,
         after,
         video
     };

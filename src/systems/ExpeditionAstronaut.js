@@ -476,6 +476,20 @@ export class ExpeditionAstronaut {
         this.sprite.y += bob * 0.08;
 
         if (this.mode === 'platformer') {
+            const offsetX = this.sprite.x - this.target.x;
+            const offsetY = this.sprite.y - this.target.y;
+            const distance = Math.hypot(offsetX, offsetY);
+            const maximumDistance = this.followDistance + 8;
+            if (distance > maximumDistance) {
+                const scale = maximumDistance / distance;
+                this.sprite.setPosition(
+                    this.target.x + (offsetX * scale),
+                    this.target.y + (offsetY * scale)
+                );
+            }
+        }
+
+        if (this.mode === 'platformer') {
             this.sprite.setDepth(898);
             this.shadow?.setPosition(this.sprite.x, this.sprite.y + 34);
             this.shadow?.setDepth(897);

@@ -80,13 +80,52 @@ function validateVisualLaunchMoments(document) {
     }
 
     requireValue(moments.length === 4, 'exactly four launch moments are required');
-    const expectedIds = ['VL-001', 'VL-002', 'VL-003', 'VL-004'];
+    const expectedMoments = {
+        'VL-001': {
+            playableState: 'sanctuary_worker_check_in_and_delivery',
+            implementationStatus: 'playable_state_available',
+            evidence: [
+                'astronaut_and_creature_face_one_obvious_problem_together',
+                'creature_action_is_recognisable',
+                'result_appears_in_the_same_uninterrupted_shot'
+            ]
+        },
+        'VL-002': {
+            playableState: 'sanctuary_heart_choice',
+            implementationStatus: 'playable_state_available',
+            evidence: [
+                'choice_is_stated_in_plain_words',
+                'consequence_is_visible_after_the_menu_closes',
+                'world_or_relationship_change_persists'
+            ]
+        },
+        'VL-003': {
+            playableState: 'village_heart_living_memory',
+            implementationStatus: 'playable_state_available',
+            evidence: [
+                'mythical_void_specific_memory_or_current_behavior',
+                'astronaut_and_creature_remain_visible',
+                'discovery_is_part_of_the_world_not_background_art'
+            ]
+        },
+        'VL-004': {
+            playableState: 'mythical_forest_normal_movement',
+            implementationStatus: 'capture_journey_ready',
+            evidence: [
+                'continuous_normal_play',
+                'creature_stays_fully_rendered_and_recognisable',
+                'no_placeholder_missing_sprite_menu_dead_pause_or_explanatory_edit'
+            ]
+        }
+    };
+    const expectedIds = Object.keys(expectedMoments);
     const ids = new Set(moments.map(moment => moment.id));
     for (const id of expectedIds) {
         requireValue(ids.has(id), `missing launch moment ${id}`);
     }
     for (const moment of moments) {
         const label = moment?.id || 'unknown moment';
+        const expected = expectedMoments[moment?.id];
         requireValue(
             typeof moment?.title === 'string' && moment.title.trim(),
             `${label} needs a title`
@@ -100,6 +139,20 @@ function validateVisualLaunchMoments(document) {
             Array.isArray(moment?.requiredEvidence) &&
             moment.requiredEvidence.length === 3,
             `${label} must define three observable requirements`
+        );
+        requireValue(
+            Boolean(expected) && moment?.playableState === expected.playableState,
+            `${label} playable state changed or is not implemented`
+        );
+        requireValue(
+            Boolean(expected) &&
+            moment?.implementationStatus === expected.implementationStatus,
+            `${label} implementation status changed`
+        );
+        requireValue(
+            Boolean(expected) &&
+            expected.evidence.every(item => moment.requiredEvidence?.includes(item)),
+            `${label} observable evidence contract changed`
         );
         requireValue(
             moment?.reviewStatus === 'capture_pending',
