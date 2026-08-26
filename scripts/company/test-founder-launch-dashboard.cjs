@@ -230,10 +230,26 @@ try {
     brokenCreaturePhoneLayout.routes.find(route => route.route === '/creature-genetics/').horizontalOverflowObserved = true;
     if (run('broken-creature-phone-layout', { evidence: brokenCreaturePhoneLayout }).status === 0) throw new Error('A horizontally overflowing creature page was accepted.');
 
+    const alteredFieldGuide = structuredClone(sources.signalLog);
+    alteredFieldGuide.creatureFieldGuideRelease.liveDataSha256 = '0'.repeat(64);
+    if (run('altered-field-guide', { signalLog: alteredFieldGuide }).status === 0) throw new Error('An altered creature field-guide fingerprint was accepted.');
+
+    const inventedPlayableFieldQuest = structuredClone(sources.signalLog);
+    inventedPlayableFieldQuest.creatureFieldGuideRelease.fieldGuideStoriesAlreadyPlayableQuests = true;
+    if (run('invented-playable-field-quest', { signalLog: inventedPlayableFieldQuest }).status === 0) throw new Error('A field-guide story was falsely accepted as an already-playable quest.');
+
+    const autoPostedFieldGuide = structuredClone(sources.signalLog);
+    autoPostedFieldGuide.creatureFieldGuideRelease.autonomousSocialPostingAuthorized = true;
+    if (run('auto-posted-field-guide', { signalLog: autoPostedFieldGuide }).status === 0) throw new Error('Creature field guide silently authorized external social posting.');
+
+    const brokenFieldGuidePhoneLayout = structuredClone(sources.evidence);
+    brokenFieldGuidePhoneLayout.routes.find(route => route.route === '/creature-field-guide/').horizontalOverflowObserved = true;
+    if (run('broken-field-guide-phone-layout', { evidence: brokenFieldGuidePhoneLayout }).status === 0) throw new Error('A horizontally overflowing field-guide page was accepted.');
+
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 39 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 43 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }
