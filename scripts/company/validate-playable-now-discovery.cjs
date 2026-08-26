@@ -92,7 +92,7 @@ for (const [file, fragment, label] of [
 const signal = signalSource.entries?.find(entry => entry.id === 'SIGNAL-009');
 requireValue(signal?.status === 'live' && signal?.destination === '/playable-now/' && signal?.image === video.posterPublicPath, 'SIGNAL-009 is missing or drifted');
 requireValue(fs.readFileSync(path.join(root, 'public/updates/feed.xml'), 'utf8').includes('See the real game before you play'), 'RSS feed is missing SIGNAL-009');
-requireValue(JSON.parse(fs.readFileSync(path.join(root, 'public/updates/feed.json'), 'utf8')).items?.[0]?.external_url === 'https://mythicalvoid.com/playable-now/', 'JSON feed is missing the latest playable page');
+requireValue(JSON.parse(fs.readFileSync(path.join(root, 'public/updates/feed.json'), 'utf8')).items?.some(item => item.external_url === 'https://mythicalvoid.com/playable-now/'), 'JSON feed is missing the playable page');
 
 console.log(JSON.stringify({
     valid: failures.length === 0,

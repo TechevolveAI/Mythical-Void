@@ -195,7 +195,14 @@ describe('storefront Project Beacon story contract', () => {
         expect(pressAssets.gameplayVideoProofManifest).toBe(
             'https://mythicalvoid.com/press/gameplay-video/manifest.json'
         );
-        expect(pressAssets.assets).toHaveLength(17);
+        expect(pressAssets.assets).toHaveLength(20);
+        expect(pressAssets.authenticGameplaySocialKit).toEqual(expect.objectContaining({
+            manifest: 'https://mythicalvoid.com/press/social-video/manifest.json',
+            captionPack: 'https://mythicalvoid.com/press/social-video/authentic-gameplay-caption-pack.json'
+        }));
+        expect(pressAssets.assets.filter(asset => (
+            asset.kind === 'branded_social_video_with_authentic_running_build_gameplay'
+        ))).toHaveLength(3);
         expect(pressAssets.assets.filter(asset => (
             asset.kind === 'branded_social_artwork_with_authentic_gameplay_frame_and_nasa_public_image'
         ))).toHaveLength(2);

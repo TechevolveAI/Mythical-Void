@@ -159,6 +159,46 @@ function renderPressPage() {
                             <figcaption><span>REAL PHONE GAMEPLAY</span><strong>Build a home</strong><p>The Village Heart where rescued creatures and useful structures can find a place.</p><a href="/press/gameplay/village-base-builder.png" download>Download gameplay image ↓</a></figcaption>
                         </figure>
                     </div>
+                    <div class="press-social-release press-social-video-release" id="real-gameplay-social-video">
+                        <div class="press-section-heading press-heading-split">
+                            <div><p class="kicker">REAL GAMEPLAY · READY FOR REVIEW</p><h2>One true clip. Every useful shape.</h2></div>
+                            <p>The full game frame is preserved in vertical, square and wide edits, so creators and future Mythical channels can show the same checked play without pretending branded media is raw gameplay.</p>
+                        </div>
+                        <div class="press-social-video-layout">
+                            <figure class="press-asset-card press-social-video-card press-social-video-vertical">
+                                <video controls muted playsinline preload="metadata" poster="/press/social-video/mythical-void-real-gameplay-vertical-poster.png" aria-label="Vertical branded video containing the complete real Mythical Void gameplay frame">
+                                    <source src="/press/social-video/mythical-void-real-gameplay-vertical.mp4" type="video/mp4">
+                                </video>
+                                <figcaption><span>VERTICAL · 1080 × 1920 · REAL GAMEPLAY</span><strong>Short-form video</strong><p>For vertical feeds and short-form video. The complete phone game frame stays visible throughout.</p><a href="/press/social-video/mythical-void-real-gameplay-vertical.mp4" download>Download vertical MP4 ↓</a></figcaption>
+                            </figure>
+                            <div class="press-social-video-stack">
+                                <figure class="press-asset-card press-social-video-card">
+                                    <video controls muted playsinline preload="metadata" poster="/press/social-video/mythical-void-real-gameplay-square-poster.png" aria-label="Square branded video containing the complete real Mythical Void gameplay frame">
+                                        <source src="/press/social-video/mythical-void-real-gameplay-square.mp4" type="video/mp4">
+                                    </video>
+                                    <figcaption><span>SQUARE · 1080 × 1080 · REAL GAMEPLAY</span><strong>Square social video</strong><p>A full-frame gameplay proof with room for a clear game promise and clean play link.</p><a href="/press/social-video/mythical-void-real-gameplay-square.mp4" download>Download square MP4 ↓</a></figcaption>
+                                </figure>
+                                <figure class="press-asset-card press-social-video-card">
+                                    <video controls muted playsinline preload="metadata" poster="/press/social-video/mythical-void-real-gameplay-wide-poster.png" aria-label="Wide branded video containing the complete real Mythical Void gameplay frame">
+                                        <source src="/press/social-video/mythical-void-real-gameplay-wide.mp4" type="video/mp4">
+                                    </video>
+                                    <figcaption><span>WIDE · 1920 × 1080 · REAL GAMEPLAY</span><strong>Wide creator video</strong><p>For video pages, creator notes and professional posts without cropping the running game.</p><a href="/press/social-video/mythical-void-real-gameplay-wide.mp4" download>Download wide MP4 ↓</a></figcaption>
+                                </figure>
+                            </div>
+                        </div>
+                        <div class="press-caption-ready">
+                            <div>
+                                <p class="kicker">SOURCE-BOUND WORDING</p>
+                                <h3>“The Void is waiting.”</h3>
+                                <p>Mythical Void is a free early-access creature adventure from an independent Irish studio. Watch real gameplay and start in your browser.</p>
+                            </div>
+                            <div class="press-caption-actions">
+                                <a class="button button-primary" href="/press/social-video/authentic-gameplay-caption-pack.json">Open the caption pack</a>
+                                <a class="button button-quiet" href="/press/social-video/manifest.json">View the video record</a>
+                            </div>
+                        </div>
+                        <p class="press-social-note">These are silent branded edits, not raw screen recordings. The complete moving game frame is real gameplay; the surrounding words and frame are branding. No generated motion, replacement scenery, replacement interface or replacement audio was added. External posting still requires an official channel and Kevin's approval.</p>
+                    </div>
                     <div class="press-social-release" id="project-beacon-social-assets">
                         <div class="press-section-heading press-heading-split">
                             <div><p class="kicker">READY TO SHARE</p><h2>Tell the Project Beacon story.</h2></div>
