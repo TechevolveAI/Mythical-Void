@@ -891,6 +891,24 @@
       },
       "killSwitch": "Remove the tag and its hosting permissions from the public shop window; A-058 has no Google account access, network check, advertising authority, game measurement, user profiling, or deployment authority.",
       "promotionCondition": "Live domain and Google property confirmed; privacy and retention review complete; consent, game exclusion, advertising-off, canonical-path, removal, and post-release checks pass; named removal owner; and separate approval for any future measurement change."
+    },
+    {
+      "id": "A-059",
+      "name": "Weekly Mythical Void growth loop",
+      "version": 1,
+      "status": "active",
+      "autonomy": "A1",
+      "purpose": "Return to the active company task each week, check real public discovery and production evidence, and complete the safest high-impact owned improvement while surfacing one human decision when needed.",
+      "owner": "Company task / Kevin",
+      "dataZones": ["Z0", "Z1"],
+      "externalEffect": false,
+      "implementation": "docs/company/growth/WEEKLY_GROWTH_LOOP.md",
+      "approval": {
+        "required": true,
+        "role": "Kevin before social publication, outside contact, account creation, platform submission or terms, spend, advertising, or public replies"
+      },
+      "killSwitch": "Pause or delete the Codex heartbeat mythical-void-weekly-growth-loop. It has no social publisher, inbox, ad account, payment route or platform-submission authority.",
+      "promotionCondition": "Four accurate weekly runs using current production and search evidence, with no invented metrics, personal data, child contact, weak visual publication or unauthorized outside action."
     }
   ]
 }
