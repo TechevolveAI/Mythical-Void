@@ -121,6 +121,18 @@ function launchLocalHatchGallery(game, urlParams, isLocalPreview) {
                     }
                 }
 
+                const originalRandom = Math.random;
+                if (showcaseMode) {
+                    let gallerySeed = 0x52454E44;
+                    Math.random = function deterministicGalleryRandom() {
+                        let value = gallerySeed += 0x6D2B79F5;
+                        value = Math.imul(value ^ value >>> 15, value | 1);
+                        value ^= value + Math.imul(value ^ value >>> 7, value | 61);
+                        return ((value ^ value >>> 14) >>> 0) / 4294967296;
+                    };
+                    Phaser.Math.RND?.sow?.(['mythical-real-creature-showcase-v1']);
+                }
+
                 this.cameras.main.setBackgroundColor('#06040F');
                 const background = this.add.graphics();
                 background.fillGradientStyle(
@@ -308,6 +320,7 @@ function launchLocalHatchGallery(game, urlParams, isLocalPreview) {
                         dataUrl: exportCanvas.toDataURL('image/png')
                     });
                 }
+                Math.random = originalRandom;
 
                 const exportElement = document.getElementById('hatch-qa-manifest')
                     || document.createElement('script');

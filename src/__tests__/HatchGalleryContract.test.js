@@ -24,6 +24,8 @@ describe('local hatch renderer gallery contract', () => {
         );
         expect(gameSource).toContain("imageExportElement.id = 'hatch-qa-exports'");
         expect(gameSource).toContain("exportCanvas.toDataURL('image/png')");
+        expect(gameSource).toContain('deterministicGalleryRandom');
+        expect(gameSource).toContain("Phaser.Math.RND?.sow?.(['mythical-real-creature-showcase-v1'])");
         expect(gallerySource).not.toContain('GameState.save');
         expect(gallerySource).not.toContain('localStorage');
     });
