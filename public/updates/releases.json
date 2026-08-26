@@ -17,6 +17,26 @@
   },
   "entries": [
     {
+      "id": "SIGNAL-018",
+      "publishedOn": "2026-08-26",
+      "status": "live",
+      "category": "FIND YOUR NEXT GAME",
+      "title": "Choose the feeling you want before you play",
+      "summary": "A new Mythical Void doorway now helps people looking for a game choose between wonder, creation, challenge and story before entering the free browser adventure.",
+      "details": [
+        "Each choice explains the part of Mythical Void that best matches that mood, then offers one clean way into the playable game.",
+        "Choosing a mood does not create a profile or require an account. If optional website analytics were already allowed, only the chosen Play doorway is counted when Play is pressed.",
+        "The game remains outside website analytics, and the release does not use unfinished gameplay media, paid promotion or an invented audience claim."
+      ],
+      "image": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "imageAlt": "Many imagined alien organisms gathered in a luminous Mythical Void realm",
+      "imageClass": "ai_generated_marketing_illustration",
+      "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay.",
+      "destination": "/playable-now/#main",
+      "linkText": "Choose your way into Mythical Void",
+      "download": false
+    },
+    {
       "id": "SIGNAL-017",
       "publishedOn": "2026-08-26",
       "status": "live",
