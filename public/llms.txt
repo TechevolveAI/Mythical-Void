@@ -17,6 +17,7 @@ RSS updates feed: https://mythicalvoid.com/updates/feed.xml
 JSON updates feed: https://mythicalvoid.com/updates/feed.json
 Press and creator room: https://mythicalvoid.com/press/
 Authentic gameplay social video kit: https://mythicalvoid.com/press/#real-gameplay-social-video
+One-download creator kit: https://mythicalvoid.com/press/creator-kit/mythical-void-authentic-gameplay-creator-kit.zip
 
 Key facts:
 

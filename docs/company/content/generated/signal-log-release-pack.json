@@ -5,8 +5,8 @@
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "f89aa7b171057264f5761f657a21d41476e2e84cbb5ffe04883911732ddc4d3c",
-    "liveEntryCount": 10,
+    "sourceFingerprint": "965b9935804205c718d48312986079b5b4053ae7148c3e7e7e62917e5184d4d5",
+    "liveEntryCount": 11,
     "latestSourceDate": "2026-08-26"
   },
   "purpose": "Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
@@ -32,6 +32,51 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-SIGNAL-011",
+      "sourceEntryId": "SIGNAL-011",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/press/#creator-download-kit",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/social-video/mythical-void-real-gameplay-wide-poster.png",
+        "alt": "Wide Mythical Void creator video poster with a complete real gameplay frame and the words The Void is waiting",
+        "class": "branded_social_video_poster_with_authentic_running_build_gameplay",
+        "disclosure": "Poster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "The creator kit is now one download\n\nAdults, press and creators can now collect the checked Mythical Void gameplay videos, posters, captions, emblem and facts in one clearly labelled package.\n\n• The package contains vertical, square and wide videos built around the same complete real gameplay frame, with matching posters and the media disclosure kept beside them.\n• A checked caption pack, official emblem, fact sheet and file-by-file package record remove the need to hunt through the website or guess which version is current.\n• A release checklist keeps official posting, spending, replies and child contact closed until an official channel, safeguarding cover and Kevin approval exist. No external post or message has been sent.\n\nSee what changed: https://mythicalvoid.com/press/#creator-download-kit\n\nPoster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.",
+          "characterCount": 982
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: The creator kit is now one download\n\nAdults, press and creators can now collect the checked Mythical Void gameplay videos, posters, captions, emblem and facts in one clearly labelled package.\n\nhttps://mythicalvoid.com/press/#creator-download-kit\n\nPoster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.",
+          "characterCount": 440
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: The creator kit is now one download",
+          "body": "Mythical Void has a new live update: The creator kit is now one download.\n\nAdults, press and creators can now collect the checked Mythical Void gameplay videos, posters, captions, emblem and facts in one clearly labelled package.\n\nThe package contains vertical, square and wide videos built around the same complete real gameplay frame, with matching posters and the media disclosure kept beside them. A checked caption pack, official emblem, fact sheet and file-by-file package record remove the need to hunt through the website or guess which version is current. A release checklist keeps official posting, spending, replies and child contact closed until an official channel, safeguarding cover and Kevin approval exist. No external post or message has been sent.\n\nThe checked public destination is https://mythicalvoid.com/press/#creator-download-kit\n\nMedia note: Poster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 1117,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-SIGNAL-010",
       "sourceEntryId": "SIGNAL-010",

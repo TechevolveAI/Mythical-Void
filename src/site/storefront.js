@@ -197,6 +197,19 @@ function renderPressPage() {
                                 <a class="button button-quiet" href="/press/social-video/manifest.json">View the video record</a>
                             </div>
                         </div>
+                        <div class="press-creator-download" id="creator-download-kit">
+                            <img src="/marketing/mythical-void-emblem-v3.png" alt="Mythical Void purple and gold creature emblem" loading="lazy">
+                            <div>
+                                <p class="kicker">ONE DOWNLOAD · 10.2 MB</p>
+                                <h3>Take the complete creator kit.</h3>
+                                <p>Get all three checked gameplay videos, their posters, ready-to-review captions, the emblem, fact sheet and a short safe-release checklist in one package.</p>
+                                <p class="press-creator-download-detail">For truthful coverage by adults, press and creators. Official Mythical Void posting still needs Kevin's approval.</p>
+                            </div>
+                            <div class="press-creator-download-actions">
+                                <a class="button button-primary" href="/press/creator-kit/mythical-void-authentic-gameplay-creator-kit.zip" download>Download the creator kit ↓</a>
+                                <a href="/press/creator-kit/manifest.json">Check the package record →</a>
+                            </div>
+                        </div>
                         <p class="press-social-note">These are silent branded edits, not raw screen recordings. The complete moving game frame is real gameplay; the surrounding words and frame are branding. No generated motion, replacement scenery, replacement interface or replacement audio was added. External posting still requires an official channel and Kevin's approval.</p>
                     </div>
                     <div class="press-social-release" id="project-beacon-social-assets">

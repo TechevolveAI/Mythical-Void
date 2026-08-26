@@ -11,6 +11,12 @@
     "captionPack": "https://mythicalvoid.com/press/social-video/authentic-gameplay-caption-pack.json",
     "state": "owned_press_room_release_waiting_for_external_channel_and_kevin_approval"
   },
+  "creatorDownloadKit": {
+    "archive": "https://mythicalvoid.com/press/creator-kit/mythical-void-authentic-gameplay-creator-kit.zip",
+    "manifest": "https://mythicalvoid.com/press/creator-kit/manifest.json",
+    "contents": "Three verified gameplay videos, three posters, caption pack, emblem, fact sheet, package record and official-channel release checklist.",
+    "state": "owned_press_room_release_waiting_for_external_channel_and_kevin_approval"
+  },
   "socialPreviewManifest": "https://mythicalvoid.com/press/mythical-void-social-previews.json",
   "signalLogFeeds": {
     "publicUpdates": "https://mythicalvoid.com/updates/",
