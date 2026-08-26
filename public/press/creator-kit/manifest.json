@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "MYTHICAL-VOID-AUTHENTIC-GAMEPLAY-CREATOR-KIT-2026-08-26",
+  "state": "owned_press_room_release_waiting_for_external_channel_and_kevin_approval",
+  "archive": {
+    "filename": "mythical-void-authentic-gameplay-creator-kit.zip",
+    "publicUrl": "https://mythicalvoid.com/press/creator-kit/mythical-void-authentic-gameplay-creator-kit.zip",
+    "bytes": 10660492,
+    "sha256": "43df00a7b0636f2b7fb4d05ba590880b3fa104323a72d0ad8b3d966202c30ff8",
+    "rootFolder": "mythical-void-creator-kit",
+    "fileCount": 12
+  },
+  "contents": [
+    {
+      "path": "mythical-void-creator-kit/brand/mythical-void-emblem-v3.png",
+      "bytes": 820709,
+      "sha256": "727245608b576923688b91fe200a88444eb68d1eb089ce63f70b418306c41cb8"
+    },
+    {
+      "path": "mythical-void-creator-kit/captions/authentic-gameplay-caption-pack.json",
+      "bytes": 3970,
+      "sha256": "d4ba65588da0f0e559e0b55e8372bc37738f915be5571b9fec71a7976e8c9567"
+    },
+    {
+      "path": "mythical-void-creator-kit/facts/mythical-void-fact-sheet.txt",
+      "bytes": 2478,
+      "sha256": "bb80dc79c40c091862a3549a21f9e901aeab6fb2b698da230a5737d537eb9a2b"
+    },
+    {
+      "path": "mythical-void-creator-kit/OFFICIAL_CHANNEL_RELEASE_CHECKLIST.txt",
+      "bytes": 1233,
+      "sha256": "803e6b47d1b7905a9bce249dd888570b5ebfc6b06753902af4525dc18be677b2"
+    },
+    {
+      "path": "mythical-void-creator-kit/PACKAGE_MANIFEST.json",
+      "bytes": 2994,
+      "sha256": "f0473dfb4a99c25c236146a9cf5757a619837df4e27a8b9d9ce349a0803ca440"
+    },
+    {
+      "path": "mythical-void-creator-kit/posters/mythical-void-real-gameplay-square-poster.png",
+      "bytes": 585149,
+      "sha256": "6203ff498d5eac075b015f454d3aaf0ea7041fd9edd61c2243526e3b4f3f1433"
+    },
+    {
+      "path": "mythical-void-creator-kit/posters/mythical-void-real-gameplay-vertical-poster.png",
+      "bytes": 930283,
+      "sha256": "bbc4c8cc7369076632913835c29a04b9972b57b7e2c6d86a2e17efb05dc3fd32"
+    },
+    {
+      "path": "mythical-void-creator-kit/posters/mythical-void-real-gameplay-wide-poster.png",
+      "bytes": 691079,
+      "sha256": "06eaf53d90432a894c34d1268bc1aabe66719f34d6bd89a908a391abf656941c"
+    },
+    {
+      "path": "mythical-void-creator-kit/README.txt",
+      "bytes": 1825,
+      "sha256": "bc610dcf354506ea3ebe6c4f8dd617a4b066b4b8b067020fc39ab9390caa34d4"
+    },
+    {
+      "path": "mythical-void-creator-kit/videos/mythical-void-real-gameplay-square.mp4",
+      "bytes": 1776686,
+      "sha256": "b5dba4bab6ae59a6e0fd22b5d250cb8ea26d8c9f45d4f7cf27523fa79eed927b"
+    },
+    {
+      "path": "mythical-void-creator-kit/videos/mythical-void-real-gameplay-vertical.mp4",
+      "bytes": 3884199,
+      "sha256": "9b531598a59d2b71fd9012a1e015267452159e3515dbd942c676ca03d284874c"
+    },
+    {
+      "path": "mythical-void-creator-kit/videos/mythical-void-real-gameplay-wide.mp4",
+      "bytes": 1990803,
+      "sha256": "e7c68a2343511786bd9486c54b98c9d1b39519e76944c761ac25dcf0bd718047"
+    }
+  ],
+  "mediaSourceManifest": "https://mythicalvoid.com/press/social-video/manifest.json",
+  "cleanPlayUrl": "https://mythicalvoid.com/playable-now/",
+  "permissions": "Adults, press and creators may use the package for truthful editorial coverage when the included media disclosures are preserved.",
+  "authority": {
+    "truthfulEditorialUsePermitted": true,
+    "officialMythicalVoidSocialPublicationAuthorized": false,
+    "kevinApprovalRequiredBeforeOfficialPublication": true,
+    "creatorOutreachSendingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "publicRepliesAuthorized": false,
+    "externalActionPerformed": false
+  }
+}

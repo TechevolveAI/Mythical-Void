@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "MYTHICAL-VOID-AUTHENTIC-GAMEPLAY-CREATOR-KIT-2026-08-26",
+  "state": "owned_press_room_release_verified_waiting_for_production_verification",
+  "purpose": "Give future Mythical Void channels, adult creators and press one trustworthy download containing the current gameplay video set, words, brand, facts and safe-release instructions.",
+  "publicDestination": "https://mythicalvoid.com/press/#creator-download-kit",
+  "archive": {
+    "path": "public/press/creator-kit/mythical-void-authentic-gameplay-creator-kit.zip",
+    "publicUrl": "https://mythicalvoid.com/press/creator-kit/mythical-void-authentic-gameplay-creator-kit.zip",
+    "bytes": 10660492,
+    "sha256": "43df00a7b0636f2b7fb4d05ba590880b3fa104323a72d0ad8b3d966202c30ff8",
+    "fileCount": 12
+  },
+  "contents": {
+    "verifiedGameplayVideos": 3,
+    "matchingPosters": 3,
+    "captionPacks": 1,
+    "brandEmblems": 1,
+    "factSheets": 1,
+    "readmes": 1,
+    "officialChannelReleaseChecklists": 1,
+    "insidePackageRecords": 1
+  },
+  "verification": {
+    "archiveIntegrityPassed": true,
+    "allInsideFilesMatchedPackageRecord": true,
+    "allVideosMatchedSourceSocialManifest": true,
+    "allPostersMatchedSourceSocialManifest": true,
+    "captionBrandAndFactFilesMatchedPublicSources": true,
+    "deterministicRebuildMatched": true,
+    "claimsSafeguardingAndAuthorityChecksPassed": true,
+    "desktopPressRoomVisualReviewPassed": true,
+    "phonePressRoomVisualReviewPassed": true,
+    "phoneWidth": 390,
+    "phoneHorizontalOverflowObserved": false,
+    "creatorKitContractTestsPassed": 24,
+    "fullTestSuitesPassed": 181,
+    "fullTestsPassed": 1655,
+    "productionUrlVerified": false
+  },
+  "authority": {
+    "truthfulEditorialUsePermitted": true,
+    "officialMythicalVoidSocialPublicationAuthorized": false,
+    "kevinApprovalRequiredBeforeOfficialPublication": true,
+    "creatorOutreachSendingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "publicRepliesAuthorized": false,
+    "externalActionPerformed": false
+  }
+}

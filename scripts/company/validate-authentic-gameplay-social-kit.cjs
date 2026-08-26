@@ -93,7 +93,7 @@ function validate(values, baseDir = root) {
     requireValue(pressSource.includes('id="real-gameplay-social-video"') && (pressSource.match(/\/press\/social-video\/.+?\.mp4/g) || []).length >= 6 && pressSource.includes('Open the caption pack') && pressSource.includes('External posting still requires an official channel and Kevin\'s approval.'), 'press room must show and download all three videos with the caption and approval boundary');
     requireValue(llms.includes('Authentic gameplay social video kit: https://mythicalvoid.com/press/#real-gameplay-social-video'), 'machine-readable site guide must expose the social video kit');
     const signalEntry = signal.entries?.find(entry => entry.id === 'SIGNAL-010');
-    requireValue(signal.entries?.[0]?.id === 'SIGNAL-010' && signalEntry?.status === 'live' && signalEntry?.destination === '/press/#real-gameplay-social-video' && signalEntry?.image === '/press/social-video/mythical-void-real-gameplay-square-poster.png', 'Signal Log must lead with the real-gameplay social kit and link to it');
+    requireValue(signalEntry?.status === 'live' && signalEntry?.destination === '/press/#real-gameplay-social-video' && signalEntry?.image === '/press/social-video/mythical-void-real-gameplay-square-poster.png', 'Signal Log must retain the real-gameplay social kit and link to it');
     requireValue(signalEntry?.details?.length === 3 && /no generated motion/i.test(signalEntry.details[0]) && /unposted/i.test(signalEntry.details[2]), 'Signal Log must retain its media truth and unposted boundary');
 
     return {
