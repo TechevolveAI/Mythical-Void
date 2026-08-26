@@ -4,6 +4,7 @@
   "canonicalPressRoom": "https://mythicalvoid.com/press/",
   "playUrl": "https://mythicalvoid.com/play/",
   "playableNowUrl": "https://mythicalvoid.com/playable-now/",
+  "educatorPageUrl": "https://mythicalvoid.com/educators/",
   "gameplayProofManifest": "https://mythicalvoid.com/press/gameplay/manifest.json",
   "gameplayVideoProofManifest": "https://mythicalvoid.com/press/gameplay-video/manifest.json",
   "authenticGameplaySocialKit": {
@@ -36,6 +37,7 @@
   "educatorResources": [
     {
       "name": "Mythical Void STEM Creature Lab",
+      "pageUrl": "https://mythicalvoid.com/educators/",
       "url": "https://mythicalvoid.com/resources/mythical-void-stem-creature-lab.pdf",
       "kind": "adult_led_printable_activity",
       "audience": "Ages 9-14, families, clubs and classrooms",

@@ -100,6 +100,18 @@
       "disclosure": "Captured from the real browser game using an invented test state; no player information is shown."
     },
     {
+      "route": "/educators/",
+      "htmlPath": "public/educators/index.html",
+      "imagePath": "public/press/social/nasa-stem-discovery-wide.png",
+      "imageUrl": "https://mythicalvoid.com/press/social/nasa-stem-discovery-wide.png",
+      "imageType": "image/png",
+      "width": 1200,
+      "height": 630,
+      "alt": "Mythical Void space-discovery artwork with a real game screen and credited NASA Apollo 11 image",
+      "classification": "branded_social_artwork_with_authentic_gameplay_frame_and_nasa_public_image",
+      "disclosure": "Branded sharing layout, not a raw screenshot. The framed screen is real gameplay using a company-controlled test state and contains a credited NASA public image; no player information is shown. NASA does not endorse Mythical Void."
+    },
+    {
       "route": "/studio/",
       "htmlPath": "public/studio/index.html",
       "imagePath": "public/press/social/father-son-story-wide.png",

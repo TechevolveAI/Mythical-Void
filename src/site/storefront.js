@@ -671,6 +671,7 @@ function renderStorefront() {
                     <a href="/updates/">What's new</a>
                     <a href="/creature-genetics/">Creature genetics</a>
                     <a href="/nasa-space-science/">NASA & STEM</a>
+                    <a href="/educators/">For groups & educators</a>
                     <a href="/studio/">Our story</a>
                     <a href="/parents/">For grown-ups</a>
                     <a href="/privacy/">Privacy & safety</a>
