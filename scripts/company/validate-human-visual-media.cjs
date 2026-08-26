@@ -84,8 +84,8 @@ requireValue(socialManifest.authority?.ownedPressRoomPublicationAuthorized === f
 requireValue(creatorManifest.authority?.truthfulEditorialUsePermitted === false, 'withdrawn creator kit still permits editorial use');
 
 requireValue(sha256(Buffer.from(page)) === release.page?.sha256, 'page fingerprint drifted');
-requireValue(release.state === 'owned_site_visual_quality_correction_waiting_for_production_verification', 'visual-quality correction state drifted');
-requireValue(release.verification?.desktopVisualReviewPassed === true && release.verification?.phoneVisualReviewPassed === true && release.verification?.motionContactSheetReviewPassed === true && release.verification?.productionUrlVerified === false, 'review evidence drifted or production was claimed too early');
+requireValue(release.state === 'owned_site_visual_quality_correction_live_and_verified', 'visual-quality correction state drifted');
+requireValue(release.verification?.desktopVisualReviewPassed === true && release.verification?.phoneVisualReviewPassed === true && release.verification?.motionContactSheetReviewPassed === true && release.verification?.productionUrlVerified === true && /^[a-f0-9]{40}$/.test(release.verification?.productionCommit || '') && Boolean(release.verification?.productionDeployId), 'review or exact production evidence drifted');
 
 console.log(JSON.stringify({
     valid: failures.length === 0,
