@@ -61,7 +61,7 @@ requireValue(!/\bcompanions?\b/i.test(combined), 'feeds use retired companion wo
 requireValue(!/no two creatures|every creature is unique|infinite unique/i.test(combined), 'feeds contain an unsupported uniqueness promise');
 requireValue(!/\b\d[\d,.]*\s+(?:players|customers|downloads|followers|visits)\b/i.test(combined), 'feeds contain an unverified audience metric');
 
-for (const file of ['index.html', 'public/playable-now/index.html', 'public/story/index.html', 'public/creature-genetics/index.html', 'public/creature-field-guide/index.html', 'public/nasa-space-science/index.html', 'public/parents/index.html', 'public/studio/index.html', 'public/updates/index.html']) {
+for (const file of ['index.html', 'public/playable-now/index.html', 'public/story/index.html', 'public/creature-genetics/index.html', 'public/creature-field-guide/index.html', 'public/nasa-space-science/index.html', 'public/parents/index.html', 'public/educators/index.html', 'public/studio/index.html', 'public/updates/index.html']) {
     const text = fs.readFileSync(path.join(root, file), 'utf8');
     requireValue(text.includes('rel="alternate" type="application/rss+xml"'), `${file} does not advertise RSS`);
     requireValue(text.includes('rel="alternate" type="application/feed+json"'), `${file} does not advertise JSON Feed`);
