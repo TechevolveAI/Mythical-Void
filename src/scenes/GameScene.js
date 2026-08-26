@@ -1709,6 +1709,10 @@ class GameScene extends Phaser.Scene {
 
     createVillageCommandPreview() {
         const now = Date.now();
+        this.sanctuaryZones = null;
+        this.sanctuaryDistricts = null;
+        this.generationAura = null;
+        this.orbitingParticles = [];
         const companions = [
             {
                 id: 'preview-nova',
@@ -1832,6 +1836,8 @@ class GameScene extends Phaser.Scene {
 
         const previewSnapshot = getVillageSnapshot(previewState);
         this.physics.world.setBounds(0, 0, this.worldWidth, this.worldHeight);
+        const GraphicsEngine = getGraphicsEngine();
+        this.graphicsEngine = new GraphicsEngine(this);
         this.worldBuilder = new WorldBuilder(this, this.graphicsEngine, {
             worldWidth: this.worldWidth,
             worldHeight: this.worldHeight
@@ -1849,6 +1855,8 @@ class GameScene extends Phaser.Scene {
             position: previewHeartPosition,
             size: { width: 150, height: 130 }
         }, previewSnapshot);
+        this.createPlayer();
+        this.createExpeditionAstronaut();
         this.setupVillageHeartCollision();
 
         if (window.MobileControls && this.forceMobileControls) {
@@ -6823,7 +6831,15 @@ class GameScene extends Phaser.Scene {
         const dy = this.player.y - landmark.zone.y;
         const distance = Math.hypot(dx, dy);
         const formationDistance = compact ? 162 : 190;
-        if (distance <= formationDistance) {
+        if (
+            Number.isFinite(this.villageVisualPartyFormation?.x) &&
+            Number.isFinite(this.villageVisualPartyFormation?.y)
+        ) {
+            follower?.setContextualFormation?.(
+                this.villageVisualPartyFormation,
+                'visual_launch_party'
+            );
+        } else if (distance <= formationDistance) {
             const fallbackX = this.player.flipX ? 1 : -1;
             const normalX = distance > 12 ? dx / distance : fallbackX;
             const normalY = distance > 12 ? dy / distance : 0;
@@ -6857,7 +6873,10 @@ class GameScene extends Phaser.Scene {
             partyPositions
         ) || null;
         landmark.zone
-            .setData('villagePartyFormationActive', distance <= formationDistance)
+            .setData(
+                'villagePartyFormationActive',
+                Boolean(this.villageVisualPartyFormation) || distance <= formationDistance
+            )
             .setData('villagePartyFormationDistance', formationDistance);
         return presence;
     }
@@ -15666,6 +15685,11 @@ class GameScene extends Phaser.Scene {
             return;
         }
         this.updateSanctuaryActorDepths();
+        if (this.villageCommandPreview) {
+            this.player.body.setVelocity(0, 0);
+            this.astronautFollower?.update(delta || this.game?.loop?.delta || 16.67);
+            return;
+        }
         this.updateSanctuaryPeripheralLabelVisibility();
 
         if (this.waypointPreview) {

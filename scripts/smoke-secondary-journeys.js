@@ -452,6 +452,127 @@ async function captureGameplayStill(session, filename) {
     return destination;
 }
 
+async function stageVillageVisualParty(session, label) {
+    const expectedProfileId = getVisualReviewCreatureProfile().genes.id;
+    const staged = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const camera = scene?.cameras?.main;
+        const creature = scene?.player;
+        const follower = scene?.astronautFollower;
+        const astronaut = follower?.sprite;
+        if (!camera?.getWorldPoint || !creature?.body || !astronaut?.active) {
+            return null;
+        }
+
+        const compact = innerWidth <= 600;
+        const target = camera.getWorldPoint(
+            innerWidth * (compact ? 0.58 : 0.52),
+            innerHeight * (compact ? 0.62 : 0.67)
+        );
+        const separation = (compact ? 110 : 120) / Math.max(0.1, camera.zoom || 1);
+        creature.setPosition(target.x, target.y);
+        creature.body.updateFromGameObject?.();
+        creature.setVelocity?.(0, 0);
+        creature.setFlipX?.(false);
+        creature.setVisible?.(true);
+        creature.setAlpha?.(1);
+
+        scene.updateSanctuaryActorDepths?.();
+        scene.villageVisualPartyFormation = {
+            x: -separation,
+            y: 4 / Math.max(0.1, camera.zoom || 1)
+        };
+        follower.setContextualFormation?.(
+            scene.villageVisualPartyFormation,
+            'visual_launch_party'
+        );
+        astronaut.setPosition(
+            creature.x - separation,
+            creature.y + (4 / Math.max(0.1, camera.zoom || 1))
+        );
+        astronaut.setVisible?.(true);
+        astronaut.setAlpha?.(1);
+        follower.shadow?.setPosition?.(astronaut.x, astronaut.y + 34);
+        follower.resetTrail?.();
+        astronaut.setDepth?.(astronaut.y);
+        follower.shadow?.setDepth?.(astronaut.y - 1);
+        return true;
+    })()`);
+    if (!staged) {
+        throw new Error(`${label} could not stage the player and companion`);
+    }
+
+    await delay(350);
+    const state = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const camera = scene?.cameras?.main;
+        const creature = scene?.player;
+        const astronaut = scene?.astronautFollower?.sprite;
+        const screenBounds = actor => {
+            if (!actor?.getBounds || !camera) return null;
+            const bounds = actor.getBounds();
+            return {
+                left: (bounds.left - camera.worldView.x) * camera.zoom + camera.x,
+                right: (bounds.right - camera.worldView.x) * camera.zoom + camera.x,
+                top: (bounds.top - camera.worldView.y) * camera.zoom + camera.y,
+                bottom: (bounds.bottom - camera.worldView.y) * camera.zoom + camera.y
+            };
+        };
+        const creatureBounds = screenBounds(creature);
+        const astronautBounds = screenBounds(astronaut);
+        const overlap = creatureBounds && astronautBounds ? {
+            width: Math.max(0, Math.min(creatureBounds.right, astronautBounds.right) -
+                Math.max(creatureBounds.left, astronautBounds.left)),
+            height: Math.max(0, Math.min(creatureBounds.bottom, astronautBounds.bottom) -
+                Math.max(creatureBounds.top, astronautBounds.top))
+        } : null;
+        return {
+            profileId: window.GameState?.get?.('creature.genes.id'),
+            texture: creature?.texture?.key || null,
+            textureExists: Boolean(
+                creature?.texture?.key && scene?.textures?.exists?.(creature.texture.key)
+            ),
+            fallback: [
+                '__MISSING',
+                'platformerCreature',
+                'enhancedCreature0'
+            ].includes(creature?.texture?.key),
+            creatureVisible: creature?.active === true && creature?.visible !== false &&
+                creature?.alpha > 0 && creature?.displayWidth >= 60 &&
+                creature?.displayHeight >= 60,
+            astronautVisible: astronaut?.active === true && astronaut?.visible !== false &&
+                astronaut?.alpha > 0 && astronaut?.displayWidth >= 40 &&
+                astronaut?.displayHeight >= 48,
+            creatureBounds,
+            astronautBounds,
+            overlapArea: overlap ? overlap.width * overlap.height : null,
+            viewport: { width: innerWidth, height: innerHeight },
+            modalCount: document.querySelectorAll(
+                '.village-command-modal, .achievement-notification, .companion-media-overlay'
+            ).length
+        };
+    })()`);
+    const boundsInsideSafeFrame = bounds => Boolean(bounds) &&
+        bounds.left >= state.viewport.width * 0.08 &&
+        bounds.right <= state.viewport.width * 0.92 &&
+        bounds.top >= state.viewport.height * 0.35 &&
+        bounds.bottom <= state.viewport.height * 0.79;
+    if (
+        state.profileId !== expectedProfileId ||
+        !state.textureExists ||
+        state.fallback ||
+        !state.creatureVisible ||
+        !state.astronautVisible ||
+        !boundsInsideSafeFrame(state.creatureBounds) ||
+        !boundsInsideSafeFrame(state.astronautBounds) ||
+        state.overlapArea > 0 ||
+        state.modalCount !== 0
+    ) {
+        throw new Error(`${label} failed visual party contract: ${JSON.stringify(state)}`);
+    }
+    return state;
+}
+
 async function smokeRealCreatureShowcase(session, exceptions) {
     if (!SMOKE_CAPTURE_DIR) {
         throw new Error('SMOKE_CAPTURE_DIR is required for hatch-gallery mode');
@@ -15350,6 +15471,9 @@ async function smokeVillageUi(session, exceptions) {
     ) {
         throw new Error(`Village worker check-in failed: ${JSON.stringify(workerCheckIn)}`);
     }
+    const workerVisualParty = SMOKE_CASE === 'visual-launch'
+        ? await stageVillageVisualParty(session, 'Village worker help')
+        : null;
     await captureGameplayStill(session, 'village-worker-check-in-mobile.png');
     await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
@@ -15863,6 +15987,9 @@ async function smokeVillageUi(session, exceptions) {
     ) {
         throw new Error(`Village Heart world response failed: ${JSON.stringify(decisionWorld)}`);
     }
+    const choiceVisualParty = SMOKE_CASE === 'visual-launch'
+        ? await stageVillageVisualParty(session, 'Village choice consequence')
+        : null;
     await captureGameplayStill(session, 'village-sanctuary-district.png');
     await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
@@ -16694,6 +16821,9 @@ async function smokeVillageUi(session, exceptions) {
     ) {
         throw new Error(`Village Heart persistent memory failed: ${JSON.stringify(heartMemory)}`);
     }
+    const discoveryVisualParty = SMOKE_CASE === 'visual-launch'
+        ? await stageVillageVisualParty(session, 'Village strange discovery')
+        : null;
     await captureGameplayStill(session, 'village-heart-memory-mobile.png');
     if (SMOKE_CASE === 'visual-launch') {
         if (exceptions.length) {
@@ -16704,10 +16834,13 @@ async function smokeVillageUi(session, exceptions) {
         return {
             workerCheckIn,
             workerDelivery,
+            workerVisualParty,
             decisionChoice,
             decisionRecap,
             decisionWorld,
-            heartMemory
+            choiceVisualParty,
+            heartMemory,
+            discoveryVisualParty
         };
     }
     const directWorldTap = await evaluate(session, `(() => {

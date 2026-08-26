@@ -990,6 +990,13 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain("id: 'preview-mira'");
         expect(scene).toContain("id: 'preview-sol'");
         expect(scene).toContain('this.villageCommandPreviewState = previewState;');
+        expect(scene).toContain('this.graphicsEngine = new GraphicsEngine(this);');
+        expect(scene).toContain('this.createPlayer();');
+        expect(scene).toContain('this.createExpeditionAstronaut();');
+        expect(scene).toContain('if (this.villageCommandPreview) {');
+        expect(scene).toContain('this.sanctuaryDistricts = null;');
+        expect(scene).toContain("'visual_launch_party'");
+        expect(scene).toContain('Boolean(this.villageVisualPartyFormation)');
         expect(scene).toContain(
             'const stateStore = this.villageCommandPreviewState || window.GameState;'
         );

@@ -48,6 +48,24 @@ describe('release test gate', () => {
         expect(source).toContain('sameOriginHttpFailures: 0');
     });
 
+    test('visual launch stills require the real creature and astronaut in-frame', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+
+        expect(source).toContain('async function stageVillageVisualParty');
+        expect(source).toContain("'visual_launch_party'");
+        expect(source).toContain('state.profileId !== expectedProfileId');
+        expect(source).toContain('state.overlapArea > 0');
+        expect(source).toContain('boundsInsideSafeFrame(state.creatureBounds)');
+        expect(source).toContain('boundsInsideSafeFrame(state.astronautBounds)');
+        expect(source).toContain("stageVillageVisualParty(session, 'Village worker help')");
+        expect(source).toContain(
+            "stageVillageVisualParty(session, 'Village choice consequence')"
+        );
+        expect(source).toContain(
+            "stageVillageVisualParty(session, 'Village strange discovery')"
+        );
+    });
+
     test('production-preview journeys explicitly isolate reset cases', () => {
         const source = read('scripts/smoke-secondary-journeys.js');
 
