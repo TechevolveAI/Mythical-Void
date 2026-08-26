@@ -85,7 +85,7 @@ const socialPreview = socialPreviews.pages.find(page => page.route === '/creatur
 assert.strictEqual(socialPreview?.classification, 'branded_renderer_proof_layout_with_authentic_game_sprite_exports');
 assert.ok(/not a playable scene/i.test(socialPreview?.disclosure || '') && /playable quests/i.test(socialPreview?.disclosure || ''), 'Field-guide social preview lacks its renderer or canon boundary.');
 
-assert.strictEqual(release.state, 'complete_owned_site_release_waiting_for_production_verification');
+assert.strictEqual(release.state, 'verified_live_production_release');
 assert.strictEqual(release.sourceProof.fieldGuideSource.sha256, sha256('src/data/creature-field-guide.json'));
 assert.strictEqual(release.sourceProof.rendererProfiles.sha256, sha256('public/press/gameplay/real-creature-showcase/source-profiles.json'));
 assert.strictEqual(release.sourceProof.publicData.sha256, sha256('public/creature-field-guide/field-guide.json'));
@@ -94,6 +94,11 @@ assert.deepStrictEqual(release.coverage, { realms: 6, verifiedCreatureRenders: 1
 assert.strictEqual(release.canonBoundary.changesPlayableQuestCanon, false);
 assert.strictEqual(release.safeguards.deterministicSourceBoundBuild, true);
 assert.strictEqual(release.safeguards.directMinorContactEnabled, false);
+assert.strictEqual(release.productionProof.mergeCommit, '49eb002c76b62a4aa0b0bf97a9f2fa664401923a');
+assert.strictEqual(release.productionProof.netlifyState, 'ready');
+assert.strictEqual(release.productionProof.livePageSha256, release.sourceProof.publicPage.sha256);
+assert.strictEqual(release.productionProof.liveDataSha256, release.sourceProof.publicData.sha256);
+assert.strictEqual(release.productionProof.liveFilesMatchCheckedRelease, true);
 
 assert.strictEqual(source.authority.ownedWebsitePublicationAuthorized, true);
 assert.strictEqual(source.authority.changesPlayableQuestCanon, false);

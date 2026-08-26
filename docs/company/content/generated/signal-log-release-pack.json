@@ -5,8 +5,8 @@
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "1d1426867f57593a3d88dc9ae2a511169c97a30514d65f7e45720e867728872b",
-    "liveEntryCount": 13,
+    "sourceFingerprint": "7e491cb6d62e47c2fbc99413958363d77b7a9f20179d0a552cc860ecd60fd947",
+    "liveEntryCount": 14,
     "latestSourceDate": "2026-08-26"
   },
   "purpose": "Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
@@ -32,6 +32,51 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-SIGNAL-014",
+      "sourceEntryId": "SIGNAL-014",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/creature-field-guide/",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png",
+        "alt": "Twelve real pixel creatures from the Mythical Void renderer gathered in a luminous alien field-guide display",
+        "class": "branded_renderer_proof_layout_with_authentic_game_sprite_exports",
+        "disclosure": "Branded proof layout, not a playable game scene. Every creature is an exact export from the running game renderer. The field-guide stories are official universe material, not claims that these events are already playable quests."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Twelve creatures now have a place in the story\n\nA new Project Beacon field guide connects twelve verified game-renderer creatures to the six living realms, with their real traits and new official stories kept clearly separate.\n\n• Each realm now has two field sightings tied to a lesson already present in the game: listen, repair, keep routes open, protect warnings, use signals carefully and choose what should remain undisclosed.\n• Every creature image is an exact export from the running renderer, and every trait comes from its checked genetics and DNA profile rather than new marketing invention.\n• The names and short stories are official universe material, but they do not claim these twelve creatures or events are already playable quests. The current game and the wider field guide remain plainly labelled.\n\nSee what changed: https://mythicalvoid.com/creature-field-guide/\n\nBranded proof layout, not a playable game scene. Every creature is an exact export from the running game renderer. The field-guide stories are official universe material, not claims that these events are already playable quests.",
+          "characterCount": 1111
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Twelve creatures now have a place in the story\n\nA new Project Beacon field guide connects twelve verified game-renderer creatures to the six living realms, with their real traits and new official stories kept clearly separate.\n\nhttps://mythicalvoid.com/creature-field-guide/\n\nBranded proof layout, not a playable game scene. Every creature is an exact export from the running game renderer. The field-guide stories are official universe material, not claims that these events are already playable quests.",
+          "characterCount": 523
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Twelve creatures now have a place in the story",
+          "body": "Mythical Void has a new live update: Twelve creatures now have a place in the story.\n\nA new Project Beacon field guide connects twelve verified game-renderer creatures to the six living realms, with their real traits and new official stories kept clearly separate.\n\nEach realm now has two field sightings tied to a lesson already present in the game: listen, repair, keep routes open, protect warnings, use signals carefully and choose what should remain undisclosed. Every creature image is an exact export from the running renderer, and every trait comes from its checked genetics and DNA profile rather than new marketing invention. The names and short stories are official universe material, but they do not claim these twelve creatures or events are already playable quests. The current game and the wider field guide remain plainly labelled.\n\nThe checked public destination is https://mythicalvoid.com/creature-field-guide/\n\nMedia note: Branded proof layout, not a playable game scene. Every creature is an exact export from the running game renderer. The field-guide stories are official universe material, not claims that these events are already playable quests.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 1246,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-SIGNAL-013",
       "sourceEntryId": "SIGNAL-013",
