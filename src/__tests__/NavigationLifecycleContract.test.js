@@ -75,4 +75,15 @@ describe('Sanctuary navigation lifecycle', () => {
             /await window\.NASAContentSystem\.initialize\(\);\s*}\s*if \(this\._isShuttingDown\) return;/
         );
     });
+
+    test('settles asynchronous world-data setup before measuring listener idempotence', () => {
+        const smoke = fs.readFileSync(
+            path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
+            'utf8'
+        );
+
+        expect(smoke).toMatch(
+            /await scene\.setupSpaceWeather\(\);\s*await scene\.setupNASAContent\(\);\s*const weatherBefore[\s\S]*?const nasaBefore[\s\S]*?await scene\.setupSpaceWeather\(\);\s*await scene\.setupNASAContent\(\);/
+        );
+    });
 });

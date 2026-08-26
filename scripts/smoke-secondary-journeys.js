@@ -10119,11 +10119,13 @@ async function smokeSanctuaryNavigation(session, exceptions) {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         const weather = window.SpaceWeatherSystem;
         const nasa = window.NASAContentSystem;
+        // Scene creation starts these integrations asynchronously. Establish a
+        // settled baseline before checking that repeated setup is idempotent.
+        await scene.setupSpaceWeather();
+        await scene.setupNASAContent();
         const weatherBefore = weather?.listeners?.weatherUpdated?.length || 0;
         const nasaBefore = nasa?.listeners?.issOverhead?.length || 0;
         await scene.setupSpaceWeather();
-        await scene.setupSpaceWeather();
-        await scene.setupNASAContent();
         await scene.setupNASAContent();
         const weatherListeners = weather?.listeners?.weatherUpdated || [];
         const nasaListeners = nasa?.listeners?.issOverhead || [];
