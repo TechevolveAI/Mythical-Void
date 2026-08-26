@@ -26,6 +26,14 @@
 
 # Redirect rules for single-page application behavior
 [[redirects]]
+  # Keep the stable runtime-observability alias explicit. A function-level
+  # custom path can shadow this route and return Netlify's cached 404 page.
+  from = "/api/observability-events"
+  to = "/.netlify/functions/observability-events"
+  status = 200
+  force = true
+
+[[redirects]]
   # Handle API routes (when implemented)
   from = "/api/*"
   to = "/.netlify/functions/:splat"

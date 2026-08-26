@@ -21,6 +21,13 @@ const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 
 const cleanupSource = fs.readFileSync(path.join(root, 'scripts/company/remove-withdrawn-public-media.cjs'), 'utf8');
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
+const privateCandidatePrefix = '.visual-review/candidates/';
+const isPrivateCandidate = value => (
+    typeof value === 'string' &&
+    value.startsWith(privateCandidatePrefix) &&
+    !value.includes('..') &&
+    !path.isAbsolute(value)
+);
 
 const requiredIds = ['creature-helps', 'choice-changes-world', 'strange-discovery', 'movement-with-life'];
 const moments = Array.isArray(plan.requiredMoments) ? plan.requiredMoments : [];
@@ -35,7 +42,19 @@ for (const moment of moments) {
     requireValue(moment.shot?.length >= 35, `${moment.id} needs a deliberate shot description`);
     requireValue(moment.mustShow?.length >= 3, `${moment.id} needs at least three visible requirements`);
     requireValue(['blocked_by_current_game_visual', 'no_candidate_captured', 'candidate_under_human_review', 'approved'].includes(moment.currentState), `${moment.id} has an invalid state`);
-    if (moment.evidence) requireValue(isWithdrawnPublicVisual(moment.evidence, register), `${moment.id} current evidence must remain withdrawn`);
+    if (moment.evidence) {
+        if (moment.currentState === 'candidate_under_human_review') {
+            requireValue(
+                isPrivateCandidate(moment.evidence),
+                `${moment.id} candidate evidence must remain in private review`
+            );
+        } else {
+            requireValue(
+                isWithdrawnPublicVisual(moment.evidence, register),
+                `${moment.id} current evidence must remain withdrawn`
+            );
+        }
+    }
     if (moment.currentState === 'approved') {
         requireValue(moment.humanReview?.decision === 'approved', `${moment.id} lacks an adult approval decision`);
         requireValue(moment.humanReview?.reviewedBy?.length >= 2, `${moment.id} lacks a named adult reviewer`);
