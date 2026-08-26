@@ -9,24 +9,28 @@
             title: 'Follow the signal into six impossible realms.',
             copy: 'Begin at the wreck of Wanderer-77, meet a life form Earth has never seen and discover what each living world is trying to protect.',
             cta: 'Enter the unknown',
+            shareText: 'Want a free game full of strange alien worlds? This is your way into Mythical Void—no download or account needed.',
             sourceArea: 'intent_wonder'
         },
         create: {
             title: 'See what the creature engine makes with you.',
             copy: 'Your hatch combines form, colour, markings, personality, cosmic affinity and the possibility of a rare change—then carries that identity into the story.',
             cta: 'See what hatches',
+            shareText: 'Want to hatch a strange alien creature shaped by a genetics engine? This is your way into Mythical Void—free in your browser.',
             sourceArea: 'intent_create'
         },
         challenge: {
             title: 'Recover the ship. Cross the realms. Free the guardians.',
             copy: 'Run, leap, investigate and fight beside your creature. The guardians are trapped by the corruption; the mission is to release them, not destroy them.',
             cta: 'Take the first mission',
+            shareText: 'Want a free browser mission with six alien realms to cross and restore? This is your way into Mythical Void.',
             sourceArea: 'intent_challenge'
         },
         story: {
             title: 'Project Beacon begins as an order and ends as your choice.',
             copy: 'Earth sent you to find hope. What you discover changes the mission, and the final message home is yours to decide.',
             cta: 'Begin Project Beacon',
+            shareText: 'Want a science-fiction game where the final message to Earth is your choice? This is your way into Mythical Void—free in your browser.',
             sourceArea: 'intent_story'
         }
     };
@@ -46,8 +50,9 @@
     };
     var shareStatus = document.querySelector('[data-share-status]');
 
-    function setShareStatus(message) {
-        if (shareStatus) shareStatus.textContent = message;
+    function setShareStatus(message, target) {
+        var status = target || shareStatus;
+        if (status) status.textContent = message;
     }
 
     function sourceAreaFor(element) {
@@ -83,13 +88,29 @@
         }
     }
 
-    async function copyCleanLink() {
+    async function copyCleanLink(statusTarget) {
         try {
             await navigator.clipboard.writeText(shareUrl);
-            setShareStatus('Clean link copied — no tracking code.');
+            setShareStatus('Clean link copied — no tracking code.', statusTarget);
             track('share_link_copied', sourceAreaFor(document.activeElement));
         } catch (error) {
-            setShareStatus('Copy this address: ' + readableShareAddress());
+            setShareStatus('Copy this address: ' + readableShareAddress(), statusTarget);
+        }
+    }
+
+    async function shareCleanLink(statusTarget, sourceElement) {
+        if (!navigator.share) {
+            await copyCleanLink(statusTarget);
+            return;
+        }
+        try {
+            await navigator.share(shareData);
+            setShareStatus('Thanks for passing the signal on.', statusTarget);
+            track('share_completed', sourceAreaFor(sourceElement));
+        } catch (error) {
+            if (error && error.name !== 'AbortError') {
+                setShareStatus('You can share ' + readableShareAddress() + ' from your browser.', statusTarget);
+            }
         }
     }
 
@@ -100,24 +121,12 @@
             if (shareLabel) shareLabel.textContent = 'Copy game link';
         }
         shareButton.addEventListener('click', async function () {
-            if (!navigator.share) {
-                await copyCleanLink();
-                return;
-            }
-            try {
-                await navigator.share(shareData);
-                setShareStatus('Thanks for passing the signal on.');
-                track('share_completed', sourceAreaFor(shareButton));
-            } catch (error) {
-                if (error && error.name !== 'AbortError') {
-                    setShareStatus('You can share ' + readableShareAddress() + ' from your browser.');
-                }
-            }
+            await shareCleanLink(shareStatus, shareButton);
         });
     }
 
     var copyButton = document.querySelector('[data-copy-game]');
-    if (copyButton) copyButton.addEventListener('click', copyCleanLink);
+    if (copyButton) copyButton.addEventListener('click', function () { copyCleanLink(shareStatus); });
 
     var intentRoot = document.querySelector('[data-play-intent]');
     if (intentRoot) {
@@ -128,28 +137,59 @@
         var intentCopy = intentRoot.querySelector('[data-intent-copy]');
         var intentCta = intentRoot.querySelector('[data-intent-cta]');
         var intentPlay = intentRoot.querySelector('[data-intent-play]');
+        var intentShare = intentRoot.querySelector('[data-intent-share]');
+        var intentShareStatus = intentRoot.querySelector('[data-intent-share-status]');
+
+        function intentIdFromHash() {
+            var match = window.location.hash.match(/^#find-your-way\/(wonder|create|challenge|story)$/);
+            return match ? match[1] : null;
+        }
+
+        function selectIntent(button, updateAddress, scrollAnswer) {
+            var intentId = button && button.dataset.intentChoice;
+            var message = intentMessages[intentId];
+            if (!message || !intentAnswer || !intentTitle || !intentCopy || !intentCta || !intentPlay) return;
+            intentButtons.forEach(function (candidate) {
+                var selected = candidate === button;
+                candidate.classList.toggle('active', selected);
+                candidate.setAttribute('aria-pressed', String(selected));
+            });
+            intentTitle.textContent = message.title;
+            intentCopy.textContent = message.copy;
+            intentCta.textContent = message.cta;
+            intentPlay.dataset.sourceArea = message.sourceArea;
+            if (intentShare) intentShare.dataset.sourceArea = message.sourceArea;
+            shareUrl = 'https://mythicalvoid.com/playable-now/#find-your-way/' + intentId;
+            shareData = {
+                title: 'Your way into Mythical Void',
+                text: message.shareText,
+                url: shareUrl
+            };
+            if (updateAddress && window.history && typeof window.history.replaceState === 'function') {
+                var cleanAddress = new URL(window.location.href);
+                cleanAddress.hash = 'find-your-way/' + intentId;
+                window.history.replaceState(null, '', cleanAddress.pathname + cleanAddress.search + cleanAddress.hash);
+            }
+            if (intentShareStatus) intentShareStatus.textContent = '';
+            if (intentGrid && window.innerWidth <= 560) button.insertAdjacentElement('afterend', intentAnswer);
+            else if (intentGrid && intentGrid.contains(intentAnswer)) intentGrid.insertAdjacentElement('afterend', intentAnswer);
+            intentAnswer.hidden = false;
+            if (scrollAnswer && window.innerWidth <= 560 && typeof intentAnswer.scrollIntoView === 'function') {
+                intentAnswer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
 
         intentButtons.forEach(function (button) {
             button.addEventListener('click', function () {
-                var message = intentMessages[button.dataset.intentChoice];
-                if (!message || !intentAnswer || !intentTitle || !intentCopy || !intentCta || !intentPlay) return;
-                intentButtons.forEach(function (candidate) {
-                    var selected = candidate === button;
-                    candidate.classList.toggle('active', selected);
-                    candidate.setAttribute('aria-pressed', String(selected));
-                });
-                intentTitle.textContent = message.title;
-                intentCopy.textContent = message.copy;
-                intentCta.textContent = message.cta;
-                intentPlay.dataset.sourceArea = message.sourceArea;
-                if (intentGrid && window.innerWidth <= 560) button.insertAdjacentElement('afterend', intentAnswer);
-                else if (intentGrid && intentGrid.contains(intentAnswer)) intentGrid.insertAdjacentElement('afterend', intentAnswer);
-                intentAnswer.hidden = false;
-                if (window.innerWidth <= 560 && typeof intentAnswer.scrollIntoView === 'function') {
-                    intentAnswer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }
+                selectIntent(button, true, true);
             });
         });
+
+        if (intentShare) {
+            intentShare.addEventListener('click', function () {
+                shareCleanLink(intentShareStatus, intentShare);
+            });
+        }
 
         window.addEventListener('resize', function () {
             if (intentGrid && intentAnswer && window.innerWidth > 560 && intentGrid.contains(intentAnswer)) {
@@ -157,7 +197,12 @@
             }
         });
 
-        if (window.location.hash === '#find-your-way') {
+        var sharedIntentId = intentIdFromHash();
+        if (sharedIntentId) {
+            selectIntent(intentRoot.querySelector('[data-intent-choice="' + sharedIntentId + '"]'), false, false);
+        }
+
+        if (window.location.hash.indexOf('#find-your-way') === 0) {
             var settleIntentAnchor = function () {
                 window.requestAnimationFrame(function () {
                     var isFirstMainSection = intentRoot.parentElement

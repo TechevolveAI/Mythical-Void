@@ -39,6 +39,19 @@
     "imaginedArtworkOnFirstScreen": false,
     "directPlayAvailable": true,
     "phoneChoicePlacesAnswerBesideSelection": true,
+    "intentSpecificSharing": {
+      "enabled": true,
+      "routes": [
+        "#find-your-way/wonder",
+        "#find-your-way/create",
+        "#find-your-way/challenge",
+        "#find-your-way/story"
+      ],
+      "sharedAnswerReopens": true,
+      "routeUsesFragmentOnly": true,
+      "choiceSentToServer": false,
+      "recipientContactCollected": false
+    },
     "trackingAddressAdded": false,
     "contactCollectionAdded": false
   },

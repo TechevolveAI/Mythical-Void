@@ -20,6 +20,13 @@ Mythical Void:
 Each choice gives one short explanation and one clean Play button. It is not a
 personality quiz and it does not pretend to know the visitor.
 
+Each answer also has a clean “Share this way in” link. A wonder link reopens
+the wonder answer; creation, challenge and story do the same. The choice lives
+only in the address after `#` so the receiving page can reopen it. It is not
+sent to the server, remembered as a profile or added to analytics. This lets an
+adult say “this is the part you might like” without making Mythical guess who
+the recipient is.
+
 ## What we can learn
 
 The initial choice click is not sent anywhere. If optional website analytics
@@ -42,6 +49,8 @@ as a direction to test again, not as a fact about the market.
 - No name, email, age, creature information or free text is collected.
 - No choice is remembered in the browser for a later visit.
 - No tracking code is added to the Play address.
+- Shared routes contain only one of four public words after `#`: `wonder`,
+  `create`, `challenge` or `story`.
 - No new screenshot or video is published while the authentic visual gate is
   still 0 of 4 approved moments.
 - This release does not authorize a social post, portal submission, advert,

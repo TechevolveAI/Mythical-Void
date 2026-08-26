@@ -59,6 +59,9 @@ requireValue(release.visualDecision?.registerPath === 'public/press/visual-publi
 requireValue(release.visualDecision?.withdrawnGameplayMedia === true && release.visualDecision?.replacementApproved === false, 'release must not imply replacement gameplay media is approved');
 requireValue(release.visualDecision?.firstScreenArtRemoved === true && release.visualDecision?.firstScreenExperience === 'interactive_game_finder', 'release must record the art-free first-screen decision');
 requireValue(release.visualDecision?.sharingImageClassification === 'ai_generated_marketing_illustration_not_gameplay', 'sharing-image boundary is missing');
+requireValue(release.playIntentDoorway?.intentSpecificSharingEnabled === true && release.playIntentDoorway?.shareRouteLocation === 'URL fragment only', 'intent-specific sharing release is missing');
+requireValue(JSON.stringify(release.playIntentDoorway?.shareRouteWords) === JSON.stringify(['wonder', 'create', 'challenge', 'story']), 'intent share route allowlist drifted');
+requireValue(release.playIntentDoorway?.sharedChoiceSentToServer === false && release.playIntentDoorway?.recipientContactCollected === false, 'intent sharing privacy boundary drifted');
 for (const [key, expected] of Object.entries({ ownedWebsitePublicationAuthorized: true, externalSocialPublicationAuthorized: false, emailOrOutreachSendingAuthorized: false, paidPromotionAuthorized: false, publicRepliesAuthorized: false, externalActionTaken: false })) {
     requireValue(release.authority?.[key] === expected, `authority.${key} must be ${expected}`);
 }

@@ -43,6 +43,15 @@
     "gameMeasured": false,
     "reportingLanguage": "play selections, not people"
   },
+  "sharing": {
+    "intentSpecificRoutes": true,
+    "routeLocation": "URL fragment only",
+    "allowedRouteWords": ["wonder", "create", "challenge", "story"],
+    "trackingCodeAdded": false,
+    "choiceSentToServer": false,
+    "choiceStoredAsProfile": false,
+    "recipientContactCollected": false
+  },
   "decisionRules": {
     "minimumConsentedPageViews": 50,
     "minimumIntentPlaySelections": 10,

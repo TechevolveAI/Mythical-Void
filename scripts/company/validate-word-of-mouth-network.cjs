@@ -43,6 +43,8 @@ for (const required of [
     "track('share_link_copied'"
 ]) requireValue(discovery.includes(required), `public/discovery.js: missing ${required}`);
 requireValue(!discovery.includes('mailto:') && !discovery.includes('tel:'), 'sharing must not collect or route contact details');
+requireValue(discovery.includes("shareUrl = 'https://mythicalvoid.com/playable-now/#find-your-way/' + intentId"), 'game-finder word of mouth is not specific to the chosen reason');
+requireValue(discovery.includes("window.history.replaceState(null, '', cleanAddress.pathname + cleanAddress.search + cleanAddress.hash)"), 'game-finder sharing must keep a clean owned URL');
 
 requireValue(pack.id === 'FOUNDING-SIGNAL-001' && pack.state === 'owned_word_of_mouth_live_first_external_post_waits_for_kevin', 'founding launch pack state is invalid');
 requireValue(pack.primaryStoryUrl === 'https://mythicalvoid.com/studio/', 'founding launch pack must use the studio story');
@@ -71,6 +73,7 @@ if (failures.length) {
 console.log(JSON.stringify({
     valid: true,
     sharePageCount: pages.length,
+    gameFinderShareRouteCount: 4,
     shareSubjects: pages.map(page => page.subject),
     recipientCollection: false,
     trackingParameters: false,

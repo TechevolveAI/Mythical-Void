@@ -51,6 +51,8 @@ for (const [pagePath, destination] of sharePages) {
 requireValue(discovery.includes("shareCard.dataset.shareUrl"), 'Sharing must read the reviewed destination from each page.');
 requireValue(discovery.includes('navigator.share(shareData)'), 'Native device sharing is missing.');
 requireValue(discovery.includes('navigator.clipboard.writeText(shareUrl)'), 'Clipboard fallback is missing.');
+requireValue(playable.includes('data-intent-share data-source-area') && discovery.includes("#find-your-way/' + intentId"), 'The four game-finder answers need their own clean sharing route.');
+requireValue(discovery.includes('/^#find-your-way\\/(wonder|create|challenge|story)$/') && discovery.includes('sharedIntentId'), 'Shared game-finder routes must be allowlisted and reopen the chosen answer.');
 requireValue(storefront.includes("url: 'https://mythicalvoid.com/playable-now/#find-your-way'") && storefront.includes('Choose wonder, creation, challenge or story'), 'Homepage sharing must send the recipient into the four-choice game finder.');
 requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(`${sharePages.map(([pagePath]) => text(pagePath)).join(' ')} ${discovery}`), 'The owned sharing loop must not add tracking parameters.');
 requireValue(!/email|phone number|recipient/i.test(discovery), 'The sharing script must not collect contact details.');
@@ -76,6 +78,7 @@ console.log(JSON.stringify({
     preview: fallbackPath,
     dimensions: '1672x941',
     cleanDestination: 'https://mythicalvoid.com/playable-now/#find-your-way',
+    intentSpecificDestinations: ['wonder', 'create', 'challenge', 'story'].map(intent => `https://mythicalvoid.com/playable-now/#find-your-way/${intent}`),
     sharePageCount: sharePages.length,
     shareDestinations: sharePages.map(([, destination]) => destination),
     nativeShare: true,

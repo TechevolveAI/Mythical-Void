@@ -676,6 +676,9 @@ details p { margin: 0.9rem 0 0; }
 .play-intent-answer h3 { margin-bottom: 0.65rem; font-size: clamp(1.65rem, 3vw, 2.55rem); }
 .play-intent-answer p:not(.kicker) { max-width: 760px; margin-bottom: 0; color: var(--muted); }
 .play-intent-answer .button { min-width: 220px; }
+.play-intent-answer-actions { display: grid; gap: 0.65rem; min-width: 240px; }
+.play-intent-answer-actions .button { width: 100%; justify-content: center; }
+.play-intent-share-status { min-height: 1.2rem; color: var(--mint) !important; font-size: 0.78rem; font-weight: 800; text-align: center; }
 .play-intent-grid > .play-intent-answer { margin-top: 0; }
 .play-intent-skip { display: flex; flex-wrap: wrap; align-items: center; gap: 0.9rem; margin-top: 1.1rem; color: var(--muted); }
 .play-intent-skip > span { color: var(--cream); font-weight: 850; }
@@ -1101,7 +1104,7 @@ details p { margin: 0.9rem 0 0; }
     .play-intent-heading { grid-template-columns: 1fr; gap: 1rem; }
     .play-intent-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .play-intent-answer { grid-template-columns: 1fr; }
-    .play-intent-answer .button { justify-self: start; }
+    .play-intent-answer-actions { width: min(100%, 440px); }
     .signal-entry { grid-template-columns: 1fr; }
     .signal-entry::before,
     .signal-timeline::before { display: none; }
@@ -1136,6 +1139,7 @@ details p { margin: 0.9rem 0 0; }
     .play-intent-grid { grid-template-columns: 1fr; }
     .play-intent-card { min-height: 230px; }
     .play-intent-card > span { margin-bottom: 2.3rem; }
+    .play-intent-answer-actions { width: 100%; }
     .play-intent-answer .button { width: 100%; }
     .play-intent-skip { align-items: stretch; }
     .play-intent-skip > span,

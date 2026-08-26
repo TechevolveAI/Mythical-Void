@@ -82,7 +82,11 @@
                 </div>
                 <div class="play-intent-answer" data-intent-answer hidden aria-live="polite">
                     <div><p class="kicker" data-intent-label>YOUR WAY IN</p><h3 data-intent-title></h3><p data-intent-copy></p></div>
-                    <a class="button button-primary" href="/play/" data-intent-play data-source-area="intent_wonder"><span data-intent-cta>Enter the unknown</span> →</a>
+                    <div class="play-intent-answer-actions">
+                        <a class="button button-primary" href="/play/" data-intent-play data-source-area="intent_wonder"><span data-intent-cta>Enter the unknown</span> →</a>
+                        <button class="button button-quiet" type="button" data-intent-share data-source-area="intent_wonder">Share this way in</button>
+                        <p class="play-intent-share-status" data-intent-share-status role="status" aria-live="polite"></p>
+                    </div>
                 </div>
                 <div class="play-intent-skip"><span>Already ready?</span><a class="button button-quiet" href="/play/" data-public-action="play">Play Mythical Void now →</a><a href="#journey">Or see what you actually do</a></div>
                 <noscript><p class="play-intent-noscript">Ready to explore? <a href="/play/">Play Mythical Void free in your browser →</a></p></noscript>

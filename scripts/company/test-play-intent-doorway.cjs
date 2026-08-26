@@ -59,28 +59,37 @@ try {
 
 invalid('public/playable-now/index.html', source => source.replace('data-intent-choice="story"', 'data-intent-choice="missing"'), 'page is missing story');
 invalid('public/playable-now/index.html', source => source.replace('href="/play/" data-intent-play', 'href="/play/?source=story" data-intent-play'), 'tracking address');
+invalid('public/playable-now/index.html', source => source.replace('data-intent-share data-source-area', 'data-missing-share data-source-area'), 'intent-specific sharing controls are missing');
 invalid('public/discovery.js', source => source.replace("readChoice() !== 'granted'", 'false'), 'measurement is not stopped before consent');
+invalid('public/discovery.js', source => source.replace('/^#find-your-way\\/(wonder|create|challenge|story)$/', '/^#find-your-way\\/(.*)$/'), 'shared intent routes are not restricted');
 invalid('public/discovery.css', source => source.replace('scroll-margin-top: 82px', 'scroll-margin-top: 0'), 'does not preserve the 82px site header');
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceRememberedInBrowser": false', '"choiceRememberedInBrowser": true'), 'choice collection boundary is invalid');
+invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceSentToServer": false', '"choiceSentToServer": true'), 'choiceSentToServer must remain false');
 
-function interactiveResult(consent, choice) {
+function interactiveResult(consent, choice, url = 'https://mythicalvoid.com/playable-now/') {
     const page = fs.readFileSync(path.join(root, 'public/playable-now/index.html'), 'utf8');
     const body = page.match(/<body[^>]*>([\s\S]*?)<script src="\/discovery\.js[^>]*><\/script>/)?.[1];
     const dom = new JSDOM(`<!doctype html><body>${body}</body>`, {
-        url: 'https://mythicalvoid.com/playable-now/',
+        url,
         runScripts: 'outside-only'
     });
     if (consent) dom.window.localStorage.setItem('mythical-analytics-consent', consent);
+    dom.window.requestAnimationFrame = callback => callback();
+    dom.window.scrollTo = () => {};
     const play = dom.window.document.querySelector('[data-intent-play]');
     play.addEventListener('click', event => event.preventDefault());
     dom.window.eval(fs.readFileSync(path.join(root, 'public/discovery.js'), 'utf8'));
-    dom.window.document.querySelector(`[data-intent-choice="${choice}"]`).click();
-    play.click();
+    if (choice) {
+        dom.window.document.querySelector(`[data-intent-choice="${choice}"]`).click();
+        play.click();
+    }
+    const selected = dom.window.document.querySelector('[data-intent-choice][aria-pressed="true"]');
     return {
         answerHidden: dom.window.document.querySelector('[data-intent-answer]').hidden,
         title: dom.window.document.querySelector('[data-intent-title]').textContent,
         cta: dom.window.document.querySelector('[data-intent-cta]').textContent,
-        pressed: dom.window.document.querySelector(`[data-intent-choice="${choice}"]`).getAttribute('aria-pressed'),
+        selected: selected?.dataset.intentChoice || null,
+        hash: dom.window.location.hash,
         events: dom.window.dataLayer.map(entry => Array.from(entry)).filter(entry => entry[0] === 'event')
     };
 }
@@ -90,7 +99,8 @@ const story = interactiveResult('granted', 'story');
 assert.strictEqual(story.answerHidden, false);
 assert.match(story.title, /Project Beacon/);
 assert.strictEqual(story.cta, 'Begin Project Beacon');
-assert.strictEqual(story.pressed, 'true');
+assert.strictEqual(story.selected, 'story');
+assert.strictEqual(story.hash, '#find-your-way/story');
 assert.strictEqual(story.events.length, 1);
 assert.strictEqual(story.events[0][1], 'play_selected');
 assert.strictEqual(story.events[0][2].source_area, 'intent_story');
@@ -100,5 +110,13 @@ const denied = interactiveResult('denied', 'wonder');
 assert.strictEqual(denied.answerHidden, false);
 assert.strictEqual(denied.events.length, 0);
 
-assert.strictEqual(cases, 8);
-console.log('Play-intent doorway checks passed (8 scenarios).');
+cases += 1;
+const sharedCreation = interactiveResult('denied', null, 'https://mythicalvoid.com/playable-now/#find-your-way/create');
+assert.strictEqual(sharedCreation.answerHidden, false);
+assert.match(sharedCreation.title, /creature engine/);
+assert.strictEqual(sharedCreation.selected, 'create');
+assert.strictEqual(sharedCreation.hash, '#find-your-way/create');
+assert.strictEqual(sharedCreation.events.length, 0);
+
+assert.strictEqual(cases, 12);
+console.log('Play-intent doorway checks passed (12 scenarios).');

@@ -26,7 +26,7 @@ try {
     for (const [name, replace] of [
         ['withdrawn-video-restored', page => page.replace('</main>', '<video src="/press/gameplay-video/mythical-forest-authentic-gameplay.mp4"></video></main>')],
         ['companion-wording', page => page.replace('alien creature', 'AI companion')],
-        ['uniqueness-promise', page => page.replace('strange alien creature', 'unique alien creature—every creature is unique')],
+        ['uniqueness-promise', page => page.replace('</main>', '<p>Every creature is unique.</p></main>')],
         ['tracked-play', page => page.replace('href="/play/"', 'href="/play/?utm_source=test"')],
         ['external-play', page => page.replaceAll('href="/play/"', 'href="https://example.com/play"')],
         ['missing-early-access', page => page.replaceAll('early-access', 'current').replaceAll('Early access', 'Available')],
