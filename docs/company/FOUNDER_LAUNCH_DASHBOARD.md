@@ -1,6 +1,6 @@
 # Mythical Void — founder launch command centre
 
-**Last verified production check:** 14/08/2026
+**Last verified production check:** 26/08/2026
 
 **Public game:** https://mythicalvoid.com/
 
@@ -9,17 +9,18 @@
 ## Verified live
 
 - The public homepage and game entry worked during the last production check.
-- 8 public information pages were verified: the homepage, creature genetics, NASA and STEM, parents, studio, press room, Project Beacon story, and Signal Log.
+- 9 public information pages were verified: the homepage, creature genetics, NASA and STEM, parents, studio, press room, Project Beacon story, Signal Log, and Playable Now.
 - The Project Beacon story is live with six real gameplay realm images and no link to the unapproved trailer.
-- The Signal Log is live with 8 checked release notes. Its merged draft builder has already turned them into 24 internal review drafts for later social, press, and creator use without publishing anything.
+- Playable Now gives a stranger 20 seconds of real gameplay, four real game screenshots, a plain-language journey and three direct ways to start the free early-access game. It needs no account, email address or payment details to begin.
+- The Signal Log is live with 9 checked release notes. Its merged draft builder has already turned them into 27 internal review drafts for later social, press, and creator use without publishing anything.
 - People can now follow those same checked releases through the live RSS feed, while the JSON feed gives future Mythical tools the same source. Neither feed needs an account or email address, collects a recipient, or adds tracking code.
 - The homepage now offers 2 user-controlled ways to share the clean game link, including one beside Play on the first screen. The control does not collect a recipient or add tracking code.
-- 7 important public pages now carry checked, route-specific social preview images and accessible image text. The Project Beacon story uses its purpose-built wide artwork.
+- 8 important public pages now carry checked, route-specific social preview images and accessible image text. The Project Beacon story uses its purpose-built wide artwork.
 - The first Project Beacon social release is live in the press room with 2 finished, downloadable images. Posting still waits for an official channel and Kevin's approval.
 - The NASA/STEM sharing release is live with 2 downloadable images built around a real Apollo 11 game screen. The NASA source, non-endorsement and science-versus-fiction boundary are explicit; posting still waits for an official channel and Kevin's approval.
 - The father-and-son studio story now has 2 downloadable sharing images and a purpose-built link preview. The marketing-art and real-game boundaries are labelled, and no photograph, name, quote, contact detail or identifying detail of the child is used.
 - The game created its playable canvas during that check.
-- Real gameplay screenshots and a short real gameplay video are available for truthful promotion.
+- The real-gameplay page clearly separates game evidence from marketing artwork and carries the NASA non-endorsement boundary.
 
 This is a dated production snapshot. It does not claim continuous uptime, search visibility, traffic, or a complete playthrough.
 
@@ -32,7 +33,7 @@ This is a dated production snapshot. It does not claim continuous uptime, search
 - **Restoration proof:** the real Void Empress before-and-after pair supports the word restored, but it was rejected as the lead proof of visible world change after 4 quality limits were recorded.
 - **Project Beacon choice:** 2 real responsive frames show the three preparation priorities without selecting or saving an outcome. They are spoiler-safe supporting proof ready for Kevin to review, with 2 visible limitations recorded.
 - **Adult STEM discovery:** 2 one-to-one introductions are prepared for the Blackrock Castle Observatory and ESERO Ireland education teams. Nothing has been sent, and both messages still require Kevin to approve the sender, recipient and final wording.
-- **Search findability:** the homepage, public robots file and 10-route live sitemap are reachable, but the public samples found no owned Mythical Void result. A related TechEvolveAI result is visible, but its source contains an unsupported uniqueness promise; an exact correction is prepared. Search Console has not been connected, so indexing, rankings and search traffic remain unknown.
+- **Search findability:** the homepage, public robots file and 11-route live sitemap are reachable, but the public samples found no owned Mythical Void result. A related TechEvolveAI result is visible, but its source contains an unsupported uniqueness promise; an exact correction is prepared. Search Console has not been connected, so indexing, rankings and search traffic remain unknown.
 - **Irish founder story:** a first-person contributed article or interview background and tailored Irish Tech News contribution pitch are prepared. Nothing has been sent or promised, and any paid feature, rights request or child-participation request stops for a separate Kevin decision.
 - **Science Week 2026:** the visually checked 3-page printable “Water That Isn't Water: Design Life for the Stellar Reef” joins 3 sourced ocean-world facts to the real Stellar Reef game realm. A 12-check adult review system and one adult-only invitation are ready, but nothing has been sent and no review has been completed; no event, submission, partnership, logo use or public release exists.
 - **Family play observations:** a one-minute adult-only note route is ready with 0 observations recorded. It accepts an adult's own play or a parent's de-identified account of family play, and it rejects names, contact details, exact ages, direct quotes, media, public use and any claim that these notes are independent customer research.

@@ -90,8 +90,9 @@ function buildDashboard({ evidence, outreach, activation, itch, launch, trailer,
 ## Verified live
 
 - The public homepage and game entry worked during the last production check.
-- ${livePageCount} public information pages were verified: the homepage, creature genetics, NASA and STEM, parents, studio, press room, Project Beacon story, and Signal Log.
+- ${livePageCount} public information pages were verified: the homepage, creature genetics, NASA and STEM, parents, studio, press room, Project Beacon story, Signal Log, and Playable Now.
 - The Project Beacon story is live with six real gameplay realm images and no link to the unapproved trailer.
+- Playable Now gives a stranger 20 seconds of real gameplay, four real game screenshots, a plain-language journey and three direct ways to start the free early-access game. It needs no account, email address or payment details to begin.
 - The Signal Log is live with ${signalLog.liveEntries.length} checked release notes. Its merged draft builder has already turned them into ${signalLog.draftAutomation.reviewDraftCount} internal review drafts for later social, press, and creator use without publishing anything.
 - People can now follow those same checked releases through the live RSS feed, while the JSON feed gives future Mythical tools the same source. Neither feed needs an account or email address, collects a recipient, or adds tracking code.
 - The homepage now offers ${signalLog.homepageSharingRelease.shareActionCount} user-controlled ways to share the clean game link, including one beside Play on the first screen. The control does not collect a recipient or add tracking code.
@@ -100,7 +101,7 @@ function buildDashboard({ evidence, outreach, activation, itch, launch, trailer,
 - The NASA/STEM sharing release is live with ${signalLog.nasaStemSocialRelease.assets.length} downloadable images built around a real Apollo 11 game screen. The NASA source, non-endorsement and science-versus-fiction boundary are explicit; posting still waits for an official channel and Kevin's approval.
 - The father-and-son studio story now has ${signalLog.fatherSonStorySocialRelease.assets.length} downloadable sharing images and a purpose-built link preview. The marketing-art and real-game boundaries are labelled, and no photograph, name, quote, contact detail or identifying detail of the child is used.
 - The game created its playable canvas during that check.
-- Real gameplay screenshots and a short real gameplay video are available for truthful promotion.${verifiedChannelLine}
+- The real-gameplay page clearly separates game evidence from marketing artwork and carries the NASA non-endorsement boundary.${verifiedChannelLine}
 
 This is a dated production snapshot. It does not claim continuous uptime, search visibility, traffic, or a complete playthrough.
 
