@@ -60,8 +60,8 @@ function inspectVideo() {
     const parsed = JSON.parse(probe.stdout);
     const stream = parsed.streams?.[0];
     const duration = Number(parsed.format?.duration);
-    if (stream?.width !== 390 || stream?.height !== 844) {
-        throw new Error(`Gameplay video must be 390x844, got ${stream?.width}x${stream?.height}`);
+    if (stream?.width !== 1440 || stream?.height !== 810) {
+        throw new Error(`Gameplay video must be 1440x810, got ${stream?.width}x${stream?.height}`);
     }
     if (!Number.isFinite(duration) || duration < 3) {
         throw new Error(`Gameplay video is too short: ${parsed.format?.duration || 'unknown'} seconds`);
@@ -99,10 +99,11 @@ async function main() {
             env: {
                 ...process.env,
                 MYTHICAL_VOID_SMOKE_URL: baseUrl,
-                SMOKE_MODE: 'interaction',
+                SMOKE_MODE: 'visual-story-reel',
                 SMOKE_CASE: 'mythicalForest',
-                SMOKE_VIEWPORT_WIDTH: '390',
-                SMOKE_VIEWPORT_HEIGHT: '844',
+                SMOKE_VIEWPORT_WIDTH: '1440',
+                SMOKE_VIEWPORT_HEIGHT: '810',
+                SMOKE_CAPTURE_DIR: path.join(root, 'public/press/gameplay'),
                 SMOKE_VIDEO_PATH: videoPath,
                 SMOKE_VIDEO_FPS: '12',
                 SMOKE_SKIP_PREVIEW: '1'
@@ -115,7 +116,7 @@ async function main() {
         if (journey.status !== 0) {
             throw new Error(`Authentic gameplay video journey failed with code ${journey.status}`);
         }
-        if (!journey.stdout.includes('[smoke-result] interaction:mythicalForest:pass')) {
+        if (!journey.stdout.includes('[smoke-result] visual-story-reel:mythicalForest:pass')) {
             throw new Error('Gameplay video journey did not reach its verified completion marker.');
         }
         const captureLine = journey.stdout.split('\n')
@@ -129,7 +130,7 @@ async function main() {
             '-hide_banner',
             '-loglevel', 'error',
             '-y',
-            '-ss', '1',
+            '-ss', '1.5',
             '-i', videoPath,
             '-frames:v', '1',
             posterPath
@@ -144,9 +145,9 @@ async function main() {
             sourceCommit: gitValue(['rev-parse', 'HEAD']),
             sourceBranch: gitValue(['branch', '--show-current']),
             sourceRoute: '/play/',
-            captureMethod: 'First-party automated browser journey recorded directly from the running Mythical Void canvas and interface.',
+            captureMethod: 'A deliberately directed first-party browser capture of the running Mythical Void game’s Mythical Forest arrival moment.',
             privacy: 'A clean invented QA state is used. No player name, child identity, account, message, notification or personal save data appears.',
-            presentationBoundary: 'Authentic running-build gameplay. No generated frames, simulated interface, replacement scenery or generated audio.',
+            presentationBoundary: 'Authentic running-build in-game story moment. This clip intentionally does not claim to show platforming or combat. No replacement scenery, simulated interface or generated audio was added during capture.',
             approvalState: 'internal_review_required_before_public_promotion',
             ownedWebsiteProofUseAuthorized: true,
             externalPromotionAuthorized: false,
@@ -159,8 +160,8 @@ async function main() {
                 posterPublicPath: `/press/gameplay-video/${posterFilename}`,
                 sha256: sha256(videoPath),
                 posterSha256: sha256(posterPath),
-                classification: 'authentic_running_build_gameplay_video',
-                disclosure: 'Recorded directly from the real Mythical Void browser game; not generated footage.',
+                classification: 'authentic_running_build_story_moment',
+                disclosure: 'Recorded directly from the real Mythical Void browser game’s Forest arrival. It is an in-game story moment, not a platforming or combat demonstration.',
                 ...metadata,
                 capturedFrames: journeyCapture?.frames || null,
                 journeyDurationSeconds: journeyCapture?.journeyDurationSeconds || null,

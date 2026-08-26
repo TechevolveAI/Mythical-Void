@@ -2316,8 +2316,14 @@ class PlatformerLevelScene extends Phaser.Scene {
         } else if (this.graphicsEngine) {
             try {
                 const textures = this.graphicsEngine.createCreatureAnimationFrames();
-                if (textures && textures.length > 0) {
+                if (
+                    textures &&
+                    textures.length > 0 &&
+                    this.textures.exists(textures[0])
+                ) {
                     textureName = textures[0];
+                } else {
+                    this.createFallbackCreatureTexture();
                 }
             } catch (e) {
                 console.warn('[PlatformerLevel] Using fallback creature texture');
@@ -2325,6 +2331,15 @@ class PlatformerLevelScene extends Phaser.Scene {
             }
         } else {
             this.createFallbackCreatureTexture();
+        }
+
+        if (!this.textures.exists(textureName)) {
+            console.warn(
+                `[PlatformerLevel] Creature texture ${textureName} is unavailable; ` +
+                'using the visible fallback creature instead'
+            );
+            this.createFallbackCreatureTexture();
+            textureName = 'platformerCreature';
         }
 
         // Create physics sprite

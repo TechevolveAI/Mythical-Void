@@ -193,6 +193,19 @@
       "fixture": "company_controlled_qa_state_no_personal_data",
       "sourceCommit": "e7acbd0b3e82f8a7fbc070a35d0c1d26c203f9e5",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
+    },
+    {
+      "id": "GP-014",
+      "filename": "mythical-forest-arrival-wide.png",
+      "publicPath": "/press/gameplay/mythical-forest-arrival-wide.png",
+      "sha256": "dfc392f689d212f0453b034c414d16f67ab024c957e5faf2209dcbde4c125d4f",
+      "bytes": 1505133,
+      "width": 1440,
+      "height": 810,
+      "classification": "authentic_running_build_story_screenshot",
+      "fixture": "company_controlled_qa_state_no_personal_data",
+      "sourceCommit": "181017f8d82fbc696f3bf5c45ae8ffa542e78c38",
+      "disclosure": "Captured from the running game during the Mythical Forest arrival. It is an in-game story moment, not a platforming or combat demonstration."
     }
   ]
 }

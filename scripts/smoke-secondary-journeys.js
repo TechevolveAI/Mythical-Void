@@ -3217,6 +3217,17 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             mobileControls: scene?.platformerControlsVisible === true,
             interactiveCount: scene?.input?._list?.length || 0,
             displayCount: scene?.children?.list?.length || 0,
+            playerRendering: scene?.player ? {
+                requestedTexture: scene.player.texture?.key || null,
+                textureExists: Boolean(
+                    scene.player.texture?.key &&
+                    scene.textures?.exists?.(scene.player.texture.key)
+                ),
+                isMissingTexture: scene.player.texture?.key === '__MISSING',
+                width: Number(scene.player.displayWidth) || 0,
+                height: Number(scene.player.displayHeight) || 0,
+                visible: scene.player.visible !== false && scene.player.alpha > 0
+            } : null,
             enemyCount: scene?.enemies?.getChildren?.()
                 ?.filter(enemy => enemy?.active !== false).length || 0,
             combatCueCount: scene?.enemies?.getChildren?.()
@@ -3781,6 +3792,18 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     }
     if (!state.canvasWidth || !state.canvasHeight) {
         throw new Error(`${sceneName} rendered a blank-sized canvas`);
+    }
+    if (
+        !state.playerRendering?.textureExists ||
+        state.playerRendering?.isMissingTexture ||
+        !state.playerRendering?.visible ||
+        state.playerRendering?.width < 20 ||
+        state.playerRendering?.height < 20
+    ) {
+        throw new Error(
+            `${sceneName} rendered an unreadable creature: ` +
+            JSON.stringify(state.playerRendering)
+        );
     }
     if (
         route === 'mythicalForest' &&
@@ -17096,6 +17119,96 @@ async function smokeForestArrival(session, exceptions) {
     return { brief, progression };
 }
 
+async function smokeVisualStoryReel(session, exceptions) {
+    if (!SMOKE_VIDEO_PATH) {
+        throw new Error('SMOKE_VIDEO_PATH is required for visual-story-reel mode');
+    }
+    if (SMOKE_VIEWPORT_WIDTH < 960 || SMOKE_VIEWPORT_HEIGHT < 540) {
+        throw new Error('visual-story-reel must be captured in a landscape viewport');
+    }
+
+    exceptions.length = 0;
+    const profileSource = JSON.parse(fs.readFileSync(path.join(
+        __dirname,
+        '..',
+        'public',
+        'press',
+        'gameplay',
+        'real-creature-showcase',
+        'source-profiles.json'
+    ), 'utf8'));
+    const profile = profileSource.profiles.find(entry => entry.id === 'MV-0813');
+    if (!profile?.genes || !profile?.dna) {
+        throw new Error('The selected visual-story creature profile is unavailable');
+    }
+
+    await navigate(session, `${BASE_URL}/play/?reset=true`);
+    await waitForScene(session, 'HatchingScene');
+    await evaluate(session, `(async () => {
+        const profile = ${JSON.stringify(profile)};
+        const state = window.GameState;
+        state.set('creature', {
+            ...state.get('creature'),
+            id: profile.genes.id,
+            name: 'Nova',
+            hatched: true,
+            named: true,
+            genes: profile.genes,
+            genetics: profile.genes,
+            dna: profile.dna,
+            rarity: profile.rarity,
+            species: profile.species,
+            textureName: null,
+            lifecycle: {
+                ...(state.get('creature.lifecycle') || {}),
+                stage: 'baby'
+            }
+        });
+        state.set('creatures', [state.get('creature')]);
+        state.set('story.projectBeacon.firstForestCinematicSeen', false);
+        state.set('story.projectBeacon.firstForestCinematicVersion', 0);
+        state.set('story.projectBeacon.firstExpeditionDrill', {
+            completed: true,
+            completedAt: new Date().toISOString()
+        });
+        const game = window.mythicalGame;
+        game.scene.getScenes(true).forEach(active => game.scene.stop(active.scene.key));
+        await window.SceneLoader.loadScene(game, 'MythicalForestLevel');
+        game.scene.start('MythicalForestLevel');
+        return true;
+    })()`);
+    await waitForScene(session, 'MythicalForestLevel');
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            return Boolean(scene?.forestArrivalElements?.length);
+        })()`),
+        { timeoutMs: 15000, message: 'cinematic Forest arrival for visual reel' }
+    );
+
+    await startGameplayVideo(session);
+    await delay(2200);
+    if (SMOKE_CAPTURE_DIR) {
+        await captureGameplayStill(session, 'mythical-forest-arrival-wide.png');
+    }
+
+    // The public lead clip is deliberately limited to the coherent in-game
+    // arrival moment. Platforming footage is held back until its art direction
+    // passes the same human review; technical authenticity alone is not enough.
+    await delay(1850);
+    const arrivalVideo = await stopGameplayVideo();
+    if (exceptions.length) {
+        throw new Error(
+            `Visual story moment raised browser exceptions: ${exceptions.join(' | ')}`
+        );
+    }
+    return {
+        profileId: profile.id,
+        moment: 'mythical_forest_arrival',
+        video: arrivalVideo
+    };
+}
+
 const GUARDIAN_PACING_CASES = Object.freeze([
     {
         sceneName: 'MythicalForestLevel',
@@ -17617,6 +17730,12 @@ async function main() {
         } else if (SMOKE_MODE === 'forest-arrival') {
             results.forestArrival = await smokeForestArrival(session, exceptions);
             process.stdout.write('PASS MythicalForestArrival\n');
+        } else if (SMOKE_MODE === 'visual-story-reel') {
+            results.visualStoryReel = await smokeVisualStoryReel(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS VisualStoryReel\n');
         } else if (SMOKE_MODE === 'guardian-pacing') {
             results.guardianPacing = await smokeGuardianPacing(
                 session,
@@ -17625,7 +17744,7 @@ async function main() {
         } else {
             throw new Error(
                 `Unknown SMOKE_MODE ${JSON.stringify(SMOKE_MODE)}. ` +
-                'Use home-entry, hatch-gallery, first-sanctuary, nasa-content, interaction, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, or guardian-pacing.'
+                'Use home-entry, hatch-gallery, first-sanctuary, nasa-content, interaction, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, visual-story-reel, or guardian-pacing.'
             );
         }
         console.log(JSON.stringify({

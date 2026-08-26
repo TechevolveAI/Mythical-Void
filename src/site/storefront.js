@@ -130,11 +130,11 @@ function renderPressPage() {
                     <div class="press-proof-feature-grid">
                         <figure class="press-gameplay-card press-video-card">
                             <div class="press-video-shell">
-                                <video controls muted playsinline preload="metadata" poster="/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png" aria-label="Real vertical gameplay in the Mythical Forest">
+                                <video controls muted playsinline preload="metadata" poster="/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png" aria-label="A real in-game Project Beacon arrival moment in the Mythical Forest">
                                     <source src="/press/gameplay-video/mythical-forest-authentic-gameplay.mp4" type="video/mp4">
                                 </video>
                             </div>
-                            <figcaption><span>REAL GAMEPLAY VIDEO</span><strong>Move through the Mythical Forest</strong><p>A short unfiltered journey with real movement, jumping, touch controls and the live route display. There are no generated frames or replacement scenery.</p><a href="/press/gameplay-video/mythical-forest-authentic-gameplay.mp4" download>Download gameplay video ↓</a></figcaption>
+                            <figcaption><span>IN-GAME STORY MOMENT · 3.17 SECONDS</span><strong>Arrive in the Mythical Forest</strong><p>A coherent Project Beacon arrival recorded from the running game. It is not labelled as platforming or combat footage.</p><a href="/press/gameplay-video/mythical-forest-authentic-gameplay.mp4" download>Download the Forest arrival ↓</a></figcaption>
                         </figure>
                         <figure class="press-gameplay-card press-nasa-card">
                             <img src="/press/gameplay/nasa-apollo11-real-space-discovery.png" alt="A real Mythical Void learning card showing a credited NASA Apollo 11 panorama, observation prompts and an imagined creature reaction" loading="lazy">
@@ -150,75 +150,21 @@ function renderPressPage() {
                             <img src="/press/gameplay/project-beacon-live-egg.png" alt="The real first-contact screen with an alien egg waiting above a signal platform" loading="lazy">
                             <figcaption><span>REAL RUNNING BUILD</span><strong>First contact</strong><p>The live egg interaction at the Wanderer-77 crash site.</p><a href="/press/gameplay/project-beacon-live-egg.png" download>Download gameplay image ↓</a></figcaption>
                         </figure>
-                        <figure class="press-gameplay-card press-gameplay-wide" id="real-creature-hatch">
-                            <img src="/press/gameplay/creature-cosmic-egg-reveal.png" alt="A real generated pixel creature taking centre stage after hatching in Mythical Void" loading="lazy">
-                            <figcaption><span>REAL RUNNING BUILD · REAL GENETICS RESULT</span><strong>Meet who answered</strong><p>This is one creature generated and revealed by the running game—not marketing art and not a promise that every possible form looks like this.</p><a href="/press/gameplay/creature-cosmic-egg-reveal.png" download>Download real hatch image ↓</a><a href="/press/gameplay/manifest.json">Check the build record →</a></figcaption>
-                        </figure>
                         <figure class="press-gameplay-card press-gameplay-wide" id="real-creature-range">
                             <img src="/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png" alt="Twelve real pixel creatures rendered by the running Mythical Void genetics and DNA engine" loading="lazy">
                             <figcaption><span>12 REAL RENDERER OUTPUTS · 7 SPECIES</span><strong>Twelve real hatches. One running engine.</strong><p>Every creature in this branded proof layout is an exact export from the game renderer. The twelve were selected from 1,000 deliberately balanced engine runs to show visible range—not normal hatch odds or endless uniqueness.</p><a href="/creature-genetics/#meet-the-twelve">Meet all twelve creatures →</a><a href="/creature-field-guide/">Read their Project Beacon field stories →</a><a href="/press/gameplay/real-creature-showcase/renderer-manifest.json">Check the renderer record →</a></figcaption>
                         </figure>
-                        <figure class="press-gameplay-card press-gameplay-portrait">
-                            <img src="/press/gameplay/realm-mythicalforest.png" alt="Phone gameplay in the Mythical Forest with the astronaut, route display and touch controls" loading="lazy">
-                            <figcaption><span>REAL PHONE GAMEPLAY</span><strong>Mythical Forest</strong><p>Platforming, route guidance and the astronaut’s on-screen controls.</p><a href="/press/gameplay/realm-mythicalforest.png" download>Download gameplay image ↓</a></figcaption>
-                        </figure>
-                        <figure class="press-gameplay-card press-gameplay-portrait">
-                            <img src="/press/gameplay/village-base-builder.png" alt="The real Village Heart builder showing resources, structures and a Forager Hut" loading="lazy">
-                            <figcaption><span>REAL PHONE GAMEPLAY</span><strong>Build a home</strong><p>The Village Heart where rescued creatures and useful structures can find a place.</p><a href="/press/gameplay/village-base-builder.png" download>Download gameplay image ↓</a></figcaption>
+                        <figure class="press-gameplay-card press-gameplay-wide">
+                            <img src="/press/gameplay/mythical-forest-arrival-wide.png" alt="The in-game Mythical Forest arrival with a distant Project Beacon tower" loading="lazy">
+                            <figcaption><span>RUNNING-BUILD STORY MOMENT</span><strong>Follow the signal</strong><p>A deliberately chosen arrival frame with one clear place, question and direction.</p><a href="/press/gameplay/mythical-forest-arrival-wide.png" download>Download the Forest arrival image ↓</a></figcaption>
                         </figure>
                     </div>
-                    <div class="press-social-release press-social-video-release" id="real-gameplay-social-video">
+                    <div class="press-social-release press-media-quality-hold" id="media-quality-review">
                         <div class="press-section-heading press-heading-split">
-                            <div><p class="kicker">REAL GAMEPLAY · READY FOR REVIEW</p><h2>One true clip. Every useful shape.</h2></div>
-                            <p>The full game frame is preserved in vertical, square and wide edits, so creators and future Mythical channels can show the same checked play without pretending branded media is raw gameplay.</p>
+                            <div><p class="kicker">VISUAL QUALITY GATE</p><h2>The previous social video pack is withdrawn.</h2></div>
+                            <p>The files were technically genuine, but the creature was not rendered correctly and the chosen moments were not strong enough. We will not call a clip ready merely because it loads.</p>
                         </div>
-                        <div class="press-social-video-layout">
-                            <figure class="press-asset-card press-social-video-card press-social-video-vertical">
-                                <video controls muted playsinline preload="metadata" poster="/press/social-video/mythical-void-real-gameplay-vertical-poster.png" aria-label="Vertical branded video containing the complete real Mythical Void gameplay frame">
-                                    <source src="/press/social-video/mythical-void-real-gameplay-vertical.mp4" type="video/mp4">
-                                </video>
-                                <figcaption><span>VERTICAL · 1080 × 1920 · REAL GAMEPLAY</span><strong>Short-form video</strong><p>For vertical feeds and short-form video. The complete phone game frame stays visible throughout.</p><a href="/press/social-video/mythical-void-real-gameplay-vertical.mp4" download>Download vertical MP4 ↓</a></figcaption>
-                            </figure>
-                            <div class="press-social-video-stack">
-                                <figure class="press-asset-card press-social-video-card">
-                                    <video controls muted playsinline preload="metadata" poster="/press/social-video/mythical-void-real-gameplay-square-poster.png" aria-label="Square branded video containing the complete real Mythical Void gameplay frame">
-                                        <source src="/press/social-video/mythical-void-real-gameplay-square.mp4" type="video/mp4">
-                                    </video>
-                                    <figcaption><span>SQUARE · 1080 × 1080 · REAL GAMEPLAY</span><strong>Square social video</strong><p>A full-frame gameplay proof with room for a clear game promise and clean play link.</p><a href="/press/social-video/mythical-void-real-gameplay-square.mp4" download>Download square MP4 ↓</a></figcaption>
-                                </figure>
-                                <figure class="press-asset-card press-social-video-card">
-                                    <video controls muted playsinline preload="metadata" poster="/press/social-video/mythical-void-real-gameplay-wide-poster.png" aria-label="Wide branded video containing the complete real Mythical Void gameplay frame">
-                                        <source src="/press/social-video/mythical-void-real-gameplay-wide.mp4" type="video/mp4">
-                                    </video>
-                                    <figcaption><span>WIDE · 1920 × 1080 · REAL GAMEPLAY</span><strong>Wide creator video</strong><p>For video pages, creator notes and professional posts without cropping the running game.</p><a href="/press/social-video/mythical-void-real-gameplay-wide.mp4" download>Download wide MP4 ↓</a></figcaption>
-                                </figure>
-                            </div>
-                        </div>
-                        <div class="press-caption-ready">
-                            <div>
-                                <p class="kicker">SOURCE-BOUND WORDING</p>
-                                <h3>“The Void is waiting.”</h3>
-                                <p>Mythical Void is a free early-access creature adventure from an independent Irish studio. Watch real gameplay and start in your browser.</p>
-                            </div>
-                            <div class="press-caption-actions">
-                                <a class="button button-primary" href="/press/social-video/authentic-gameplay-caption-pack.json">Open the caption pack</a>
-                                <a class="button button-quiet" href="/press/social-video/manifest.json">View the video record</a>
-                            </div>
-                        </div>
-                        <div class="press-creator-download" id="creator-download-kit">
-                            <img src="/marketing/mythical-void-emblem-v3.png" alt="Mythical Void purple and gold creature emblem" loading="lazy">
-                            <div>
-                                <p class="kicker">ONE DOWNLOAD · 10.2 MB</p>
-                                <h3>Take the complete creator kit.</h3>
-                                <p>Get all three checked gameplay videos, their posters, ready-to-review captions, the emblem, fact sheet and a short safe-release checklist in one package.</p>
-                                <p class="press-creator-download-detail">For truthful coverage by adults, press and creators. Official Mythical Void posting still needs Kevin's approval.</p>
-                            </div>
-                            <div class="press-creator-download-actions">
-                                <a class="button button-primary" href="/press/creator-kit/mythical-void-authentic-gameplay-creator-kit.zip" download>Download the creator kit ↓</a>
-                                <a href="/press/creator-kit/manifest.json">Check the package record →</a>
-                            </div>
-                        </div>
-                        <p class="press-social-note">These are silent branded edits, not raw screen recordings. The complete moving game frame is real gameplay; the surrounding words and frame are branding. No generated motion, replacement scenery, replacement interface or replacement audio was added. External posting still requires an official channel and Kevin's approval.</p>
+                        <p class="press-social-note">A replacement pack will return only after every frame makes sense to a person: a readable creature, a clear focal moment, clean framing and an honest description of what the viewer is seeing.</p>
                     </div>
                     <div class="press-social-release" id="project-beacon-social-assets">
                         <div class="press-section-heading press-heading-split">

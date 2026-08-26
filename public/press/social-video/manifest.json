@@ -1,7 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "AUTHENTIC-GAMEPLAY-SOCIAL-KIT-2026-08-26",
-  "state": "owned_press_room_release_waiting_for_external_channel_and_kevin_approval",
+  "state": "withdrawn_visual_quality_failed_do_not_publish",
+  "withdrawalReason": "The source clip contained a visibly broken creature render and the selected gameplay moments were not strong or clear enough for public promotion.",
   "source": {
     "filename": "mythical-forest-authentic-gameplay.mp4",
     "publicPath": "/press/gameplay-video/mythical-forest-authentic-gameplay.mp4",
@@ -84,7 +85,7 @@
   ],
   "captionPack": "/press/social-video/authentic-gameplay-caption-pack.json",
   "authority": {
-    "ownedPressRoomPublicationAuthorized": true,
+    "ownedPressRoomPublicationAuthorized": false,
     "externalSocialPublicationAuthorized": false,
     "creatorOutreachSendingAuthorized": false,
     "paidPromotionAuthorized": false,

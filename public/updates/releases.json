@@ -57,63 +57,23 @@
       "download": false
     },
     {
-      "id": "SIGNAL-012",
+      "id": "SIGNAL-015",
       "publishedOn": "2026-08-26",
       "status": "live",
-      "category": "REAL CREATURE HATCH",
-      "title": "The real creature now takes centre stage",
-      "summary": "The first hatch now gives the generated pixel creature room to be seen before the player chooses a name, and the real result is available as checked gameplay proof.",
+      "category": "VISUAL QUALITY",
+      "title": "A better standard for showing the game",
+      "summary": "Mythical Void has withdrawn a technically genuine but visually poor video set, fixed the broken creature render behind it and replaced the public lead with one clear Forest arrival.",
       "details": [
-        "The running genetics engine creates the creature shown in the new screenshot; no marketing illustration, replacement creature or private player state is used.",
-        "The creature is more than twice its previous display size, the field reading no longer overlaps and old egg instructions disappear when the hatch is complete.",
-        "The moment gives the player one clear next step. The screenshot proves one genuine hatch, not every possible creature form or an absolute uniqueness claim."
+        "The black square seen in the old footage was a real missing-texture failure. The game now verifies that a creature texture exists before a level can use it.",
+        "The old vertical, square and wide social videos are withdrawn. Passing technical file checks is no longer treated as visual approval.",
+        "The new 3.17-second lead is a deliberately selected in-game Mythical Forest arrival. It is clearly labelled as a story moment, not as platforming or combat proof."
       ],
-      "image": "/press/gameplay/creature-cosmic-egg-reveal.png",
-      "imageAlt": "A real generated pixel creature taking centre stage after hatching in Mythical Void",
-      "imageClass": "authentic_running_build_screenshot",
-      "disclosure": "Captured from the real browser game using an invented Mythical Void test state; not marketing art. It shows one genetics result and no player identity or private save.",
-      "destination": "/press/#real-creature-hatch",
-      "linkText": "See the real creature hatch",
-      "download": false
-    },
-    {
-      "id": "SIGNAL-011",
-      "publishedOn": "2026-08-26",
-      "status": "live",
-      "category": "CREATOR HANDOFF",
-      "title": "The creator kit is now one download",
-      "summary": "Adults, press and creators can now collect the checked Mythical Void gameplay videos, posters, captions, emblem and facts in one clearly labelled package.",
-      "details": [
-        "The package contains vertical, square and wide videos built around the same complete real gameplay frame, with matching posters and the media disclosure kept beside them.",
-        "A checked caption pack, official emblem, fact sheet and file-by-file package record remove the need to hunt through the website or guess which version is current.",
-        "A release checklist keeps official posting, spending, replies and child contact closed until an official channel, safeguarding cover and Kevin approval exist. No external post or message has been sent."
-      ],
-      "image": "/press/social-video/mythical-void-real-gameplay-wide-poster.png",
-      "imageAlt": "Wide Mythical Void creator video poster with a complete real gameplay frame and the words The Void is waiting",
-      "imageClass": "branded_social_video_poster_with_authentic_running_build_gameplay",
-      "disclosure": "Poster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.",
-      "destination": "/press/#creator-download-kit",
-      "linkText": "Download the complete creator kit",
-      "download": false
-    },
-    {
-      "id": "SIGNAL-010",
-      "publishedOn": "2026-08-26",
-      "status": "live",
-      "category": "REAL GAMEPLAY KIT",
-      "title": "Real gameplay now fits every screen",
-      "summary": "One checked Mythical Void gameplay recording is now available as vertical, square and wide branded video, ready for adults, press and creators to review without changing what the game really shows.",
-      "details": [
-        "Every version preserves the complete moving phone-game frame and adds branding only around it; no generated motion, replacement scenery, replacement interface or replacement audio is used.",
-        "The silent 19.58-second videos come in 1080 by 1920, 1080 by 1080 and 1920 by 1080 formats, with downloadable posters and an exact build record.",
-        "Three source-bound caption drafts use the clean Playable Now link, make no absolute uniqueness claim and remain unposted until an official channel and Kevin approval exist."
-      ],
-      "image": "/press/social-video/mythical-void-real-gameplay-square-poster.png",
-      "imageAlt": "Square Mythical Void branded video poster with a complete real gameplay frame and the words Crash beyond mapped space, hatch something strange",
-      "imageClass": "branded_social_video_poster_with_authentic_running_build_gameplay",
-      "disclosure": "Poster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.",
-      "destination": "/press/#real-gameplay-social-video",
-      "linkText": "Download the real-gameplay video kit",
+      "image": "/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
+      "imageAlt": "The in-game Mythical Forest arrival with a clear field brief and Project Beacon tower",
+      "imageClass": "authentic_running_build_story_moment",
+      "disclosure": "Captured from the running Mythical Void game using an invented QA state. It is an in-game story moment, not a platforming or combat demonstration.",
+      "destination": "/playable-now/",
+      "linkText": "See the corrected game view",
       "download": false
     },
     {
@@ -124,14 +84,14 @@
       "title": "See the real game before you play",
       "summary": "A new Mythical Void page gives unfamiliar players one clear view of the real browser game, what they do in it and why the project is different before asking them to play.",
       "details": [
-        "The page leads with a 19.58-second recording made directly from the running Mythical Forest level, with no generated frames or replacement scenery.",
-        "It explains the crash, creature, six realms, restoration, Sanctuary building and Project Beacon choice in plain language, with four real game screens as proof.",
+        "The page leads with a short, landscape Mythical Forest arrival recorded directly from the running game and labelled as an in-game story moment.",
+        "It explains the crash, creature, six realms, restoration, Sanctuary building and Project Beacon choice in plain language, with four deliberately selected game moments as proof.",
         "Every Play link goes directly to the free browser game without an account, download, email signup or tracking parameter."
       ],
       "image": "/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
-      "imageAlt": "Real Mythical Void gameplay in the Mythical Forest with platforming controls and route display",
-      "imageClass": "authentic_running_build_screenshot",
-      "disclosure": "Poster captured from the real browser game using an invented test state; no generated frames, player identity or personal save information are shown.",
+      "imageAlt": "The in-game Mythical Forest arrival with a clear field brief and Project Beacon tower",
+      "imageClass": "authentic_running_build_story_moment",
+      "disclosure": "Poster captured from the running browser game using an invented test state. It is a story moment, not a platforming or combat demonstration; no player identity or private save is shown.",
       "destination": "/playable-now/",
       "linkText": "See the real game",
       "download": false

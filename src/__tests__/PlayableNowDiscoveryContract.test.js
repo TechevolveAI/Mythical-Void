@@ -16,11 +16,13 @@ describe('Playable Now discovery page', () => {
 
     test('leads with genuine gameplay and clean play routes', () => {
         expect(page).toContain('/press/gameplay-video/mythical-forest-authentic-gameplay.mp4');
-        expect(page).toContain('Recorded directly from the running browser game');
+        expect(page).toContain('IN-GAME STORY MOMENT // 3.17 SECONDS');
+        expect(page).toContain('not a claim that it shows platforming or combat');
         expect(page.match(/href="\/play\/"/g).length).toBeGreaterThanOrEqual(3);
         expect(page).not.toMatch(/[?&](?:utm_|fbclid|gclid)/i);
-        expect(page).toContain('/press/gameplay/creature-cosmic-egg-reveal.png');
-        expect(page).toContain('one real result, not every form');
+        expect(page).toContain('/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png');
+        expect(page).toContain('branded renderer-proof layout, not a playable scene');
+        expect(page).not.toContain('/press/gameplay/creature-cosmic-egg-reveal.png');
     });
 
     test('keeps public language and claims inside the studio rules', () => {
@@ -34,6 +36,7 @@ describe('Playable Now discovery page', () => {
     test('is checked during every production build', () => {
         const scripts = require('../../package.json').scripts;
         expect(scripts.build).toContain('validate:playable-now');
+        expect(scripts.build).toContain('validate:visual-media');
         expect(scripts['validate:playable-now']).toContain('validate-playable-now-discovery.cjs');
     });
 });

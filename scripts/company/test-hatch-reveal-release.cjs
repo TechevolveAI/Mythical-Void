@@ -56,12 +56,13 @@ try {
         ['two-actions', value => { value.release.presentation.visibleNextActionCount = 2; }],
         ['small-phone-creature', value => { value.release.presentation.creatureBoundsPhone.width = 120; }],
         ['failed-phone-review', value => { value.release.verification.phoneVisualReviewPassed = false; }],
-        ['missing-playable-proof', value => { value.playable = value.playable.replaceAll('/press/gameplay/creature-cosmic-egg-reveal.png', '/missing.png'); }],
-        ['missing-press-feature', value => { value.storefront = value.storefront.replace('id="real-creature-hatch"', ''); }],
+        ['missing-playable-replacement', value => { value.playable = value.playable.replaceAll('/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png', '/missing.png'); }],
+        ['withdrawn-press-feature-exposed', value => { value.storefront += '<div id="real-creature-hatch"><img src="/press/gameplay/creature-cosmic-egg-reveal.png"></div>'; }],
         ['missing-press-record', value => { value.pressAssets.assets = value.pressAssets.assets.filter(item => !item.url.endsWith('creature-cosmic-egg-reveal.png')); }],
-        ['missing-machine-link', value => { value.llms = value.llms.replace(/See one real creature[^\n]+\n/, ''); }],
-        ['wrong-signal-image', value => { value.signal.entries.find(item => item.id === 'SIGNAL-012').image = '/missing.png'; }],
-        ['wrong-signal-disclosure', value => { value.signal.entries.find(item => item.id === 'SIGNAL-012').disclosure = 'A creature image.'; }],
+        ['withdrawn-machine-link-exposed', value => { value.llms += '\nSee one real creature generated and revealed by the running game: https://mythicalvoid.com/press/#real-creature-hatch'; }],
+        ['withdrawn-signal-exposed', value => { value.signal.entries.push({ id: 'SIGNAL-012', status: 'live' }); }],
+        ['owned-site-publication-reopened', value => { value.release.authority.ownedWebsitePublicationAuthorized = true; }],
+        ['human-rejection-removed', value => { delete value.release.currentHumanReview; }],
         ['mock-classification', value => { value.manifest.captures.find(item => item.id === 'GP-013').classification = 'generated_mockup'; }]
     ];
     for (const [name, mutate] of failures) {

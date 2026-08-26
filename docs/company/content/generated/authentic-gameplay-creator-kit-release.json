@@ -1,7 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MYTHICAL-VOID-AUTHENTIC-GAMEPLAY-CREATOR-KIT-2026-08-26",
-  "state": "owned_press_room_release_verified_waiting_for_production_verification",
+  "state": "withdrawn_visual_quality_failed_do_not_publish",
+  "withdrawalReason": "The archive contains the withdrawn social video set and is no longer offered publicly.",
   "purpose": "Give future Mythical Void channels, adult creators and press one trustworthy download containing the current gameplay video set, words, brand, facts and safe-release instructions.",
   "publicDestination": "https://mythicalvoid.com/press/#creator-download-kit",
   "archive": {
@@ -39,7 +40,7 @@
     "productionUrlVerified": false
   },
   "authority": {
-    "truthfulEditorialUsePermitted": true,
+    "truthfulEditorialUsePermitted": false,
     "officialMythicalVoidSocialPublicationAuthorized": false,
     "kevinApprovalRequiredBeforeOfficialPublication": true,
     "creatorOutreachSendingAuthorized": false,

@@ -1,7 +1,8 @@
 {
   "schemaVersion": 1,
   "releaseId": "MYTHICAL-VOID-AUTHENTIC-GAMEPLAY-CREATOR-KIT-2026-08-26",
-  "state": "owned_press_room_release_waiting_for_external_channel_and_kevin_approval",
+  "state": "withdrawn_visual_quality_failed_do_not_publish",
+  "withdrawalReason": "The package contains the withdrawn social video set and must not be used or shared.",
   "archive": {
     "filename": "mythical-void-authentic-gameplay-creator-kit.zip",
     "publicUrl": "https://mythicalvoid.com/press/creator-kit/mythical-void-authentic-gameplay-creator-kit.zip",
@@ -74,9 +75,9 @@
   ],
   "mediaSourceManifest": "https://mythicalvoid.com/press/social-video/manifest.json",
   "cleanPlayUrl": "https://mythicalvoid.com/playable-now/",
-  "permissions": "Adults, press and creators may use the package for truthful editorial coverage when the included media disclosures are preserved.",
+  "permissions": "Withdrawn. Do not publish, share or use this package.",
   "authority": {
-    "truthfulEditorialUsePermitted": true,
+    "truthfulEditorialUsePermitted": false,
     "officialMythicalVoidSocialPublicationAuthorized": false,
     "kevinApprovalRequiredBeforeOfficialPublication": true,
     "creatorOutreachSendingAuthorized": false,
