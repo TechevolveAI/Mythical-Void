@@ -13,8 +13,9 @@ const requireValue = (condition, message) => { if (!condition) failures.push(mes
 
 const playable = text('public/playable-now/index.html');
 const discovery = text('public/discovery.js');
+const storefront = text('src/site/storefront.js');
 const sharePages = [
-    ['public/playable-now/index.html', 'https://mythicalvoid.com/playable-now/'],
+    ['public/playable-now/index.html', 'https://mythicalvoid.com/playable-now/#find-your-way'],
     ['public/studio/index.html', 'https://mythicalvoid.com/studio/'],
     ['public/nasa-space-science/index.html', 'https://mythicalvoid.com/nasa-space-science/'],
     ['public/educators/index.html', 'https://mythicalvoid.com/educators/']
@@ -50,6 +51,7 @@ for (const [pagePath, destination] of sharePages) {
 requireValue(discovery.includes("shareCard.dataset.shareUrl"), 'Sharing must read the reviewed destination from each page.');
 requireValue(discovery.includes('navigator.share(shareData)'), 'Native device sharing is missing.');
 requireValue(discovery.includes('navigator.clipboard.writeText(shareUrl)'), 'Clipboard fallback is missing.');
+requireValue(storefront.includes("url: 'https://mythicalvoid.com/playable-now/#find-your-way'") && storefront.includes('Choose wonder, creation, challenge or story'), 'Homepage sharing must send the recipient into the four-choice game finder.');
 requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(`${sharePages.map(([pagePath]) => text(pagePath)).join(' ')} ${discovery}`), 'The owned sharing loop must not add tracking parameters.');
 requireValue(!/email|phone number|recipient/i.test(discovery), 'The sharing script must not collect contact details.');
 
@@ -73,7 +75,7 @@ console.log(JSON.stringify({
     valid: true,
     preview: fallbackPath,
     dimensions: '1672x941',
-    cleanDestination: 'https://mythicalvoid.com/playable-now/',
+    cleanDestination: 'https://mythicalvoid.com/playable-now/#find-your-way',
     sharePageCount: sharePages.length,
     shareDestinations: sharePages.map(([, destination]) => destination),
     nativeShare: true,

@@ -3,7 +3,7 @@
   "releaseId": "OWNED-SHARING-LOOP-2026-08-26-VISUAL-RESET",
   "state": "sharing_controls_ready_old_preview_withdrawn_temporary_fallback_pending_production",
   "purpose": "Make Mythical Void easier for an adult, family member or player to pass to someone else without requiring a social account, collecting a contact or adding tracking parameters.",
-  "publicDestination": "https://mythicalvoid.com/playable-now/",
+  "publicDestination": "https://mythicalvoid.com/playable-now/#find-your-way",
   "priorWithdrawnPreview": {
     "path": "public/press/social/mythical-void-share-wide.png",
     "sourcePath": "scripts/company/mythical-void-share-card.html",
@@ -24,12 +24,12 @@
   },
   "sharingJourney": {
     "pagePath": "public/playable-now/index.html",
-    "pageSha256": "d5ccbeaa59255c9077fcc30f3dd0d51d6e87fea9d238958bdebe57c18e65652d",
+    "pageSha256": "c92572f1cc6414f5b98ef6359de6ea3c936332c74b81690afc52b1b166034f7e",
     "scriptPath": "public/discovery.js",
-    "scriptSha256": "ad90710072cbd26d1bfe7f0dc18d43eba85672afbb0d38e5f5082db2ffcf812d",
+    "scriptSha256": "47e5f666b525d1cd994f39e4ce6905ab08fae2eb1a74cdd13fbb5464061ac694",
     "nativeDeviceShareUsedWhenAvailable": true,
     "clipboardFallbackProvided": true,
-    "cleanUrl": "https://mythicalvoid.com/playable-now/",
+    "cleanUrl": "https://mythicalvoid.com/playable-now/#find-your-way",
     "trackingParametersUsed": false,
     "contactCollectionEnabled": false
   },

@@ -680,8 +680,8 @@ function bindInteractions() {
     const shareStatuses = [...app.querySelectorAll('[data-share-status]')];
     const shareData = {
         title: 'Mythical Void',
-        text: 'Try Mythical Void — a free creature adventure you can play in your browser. No download or account needed.',
-        url: 'https://mythicalvoid.com/'
+        text: 'What are you in the mood for? Choose wonder, creation, challenge or story, then enter Mythical Void free in your browser.',
+        url: 'https://mythicalvoid.com/playable-now/#find-your-way'
     };
     const setShareStatus = (message) => {
         shareStatuses.forEach((status) => { status.textContent = message; });
@@ -709,7 +709,7 @@ function bindInteractions() {
                 trackPublicEvent('share_link_copied', button);
             } catch (error) {
                 if (error?.name !== 'AbortError') {
-                    setShareStatus('You can share mythicalvoid.com from your browser.');
+                    setShareStatus('You can share mythicalvoid.com/playable-now from your browser.');
                 }
             }
         });

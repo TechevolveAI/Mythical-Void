@@ -34,7 +34,7 @@
     var shareCard = document.querySelector('[data-share-card]');
     var shareUrl = shareCard && shareCard.dataset.shareUrl
         ? shareCard.dataset.shareUrl
-        : 'https://mythicalvoid.com/playable-now/';
+        : 'https://mythicalvoid.com/playable-now/#find-your-way';
     var shareData = {
         title: shareCard && shareCard.dataset.shareTitle
             ? shareCard.dataset.shareTitle

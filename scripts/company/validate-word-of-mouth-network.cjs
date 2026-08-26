@@ -12,7 +12,7 @@ const json = relative => JSON.parse(read(relative));
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 const pages = [
-    { file: 'public/playable-now/index.html', route: '/playable-now/', url: 'https://mythicalvoid.com/playable-now/', subject: 'playable game' },
+    { file: 'public/playable-now/index.html', route: '/playable-now/', url: 'https://mythicalvoid.com/playable-now/#find-your-way', subject: 'playable game' },
     { file: 'public/studio/index.html', route: '/studio/', url: 'https://mythicalvoid.com/studio/', subject: 'father-and-son beginning' },
     { file: 'public/nasa-space-science/index.html', route: '/nasa-space-science/', url: 'https://mythicalvoid.com/nasa-space-science/', subject: 'STEM Creature Lab' },
     { file: 'public/educators/index.html', route: '/educators/', url: 'https://mythicalvoid.com/educators/', subject: 'group mission' }
