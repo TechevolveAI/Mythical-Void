@@ -143,6 +143,20 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('timeoutMs: 4500');
     });
 
+    test('route-choice smoke stages a settled landing before reading the choice', () => {
+        const smoke = read('../../scripts/smoke-secondary-journeys.js');
+
+        expect(smoke).toContain(
+            'support.body.top - scene.player.body.bottom'
+        );
+        expect(smoke).toContain('scene.player.body.blocked.down = true;');
+        expect(smoke).toContain('scene.player.body.touching.down = true;');
+        expect(smoke).toContain('scene.updateOptionalRouteChoices?.();');
+        expect(smoke).toContain("message: 'Desktop no-touch Sanctuary reload'");
+        expect(smoke).toContain('waitForRemoval = false');
+        expect(smoke).toContain('waitForRemoval: true');
+    });
+
     test('authored movement survives a scene reset', () => {
         const PlatformerLevelScene = loadPlatformerLevelScene();
         const scene = new PlatformerLevelScene({

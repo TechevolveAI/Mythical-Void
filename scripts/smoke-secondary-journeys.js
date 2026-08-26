@@ -1981,7 +1981,8 @@ async function touchInteractiveSceneText(session, text, {
 
 async function touchDomButton(session, selector, {
     message = selector,
-    timeoutMs = 12000
+    timeoutMs = 12000,
+    waitForRemoval = false
 } = {}) {
     const point = await waitFor(
         () => evaluate(session, `(() => {
@@ -2019,6 +2020,12 @@ async function touchDomButton(session, selector, {
         { timeoutMs, message }
     );
     await touch(session, point.x, point.y);
+    if (waitForRemoval) {
+        await waitFor(
+            () => evaluate(session, `!document.querySelector(${JSON.stringify(selector)})`),
+            { timeoutMs, message: `${message} dismissal` }
+        );
+    }
     return point;
 }
 
@@ -2965,7 +2972,6 @@ async function smokeFinalVoidRiftCrossing(session) {
             });
             let launch = null;
             if (shouldJump) {
-                await delay(90);
                 await evaluate(session, `(() => {
                     const scene = window.mythicalGame.scene.getScene('FinalVoidLevel');
                     scene.queueVirtualJumpInput?.();
@@ -8281,14 +8287,48 @@ async function smokeDeclaredRouteChoiceSupports(session, route, sceneName) {
             const choice = routeState?.choice;
             const support = scene?.getTraversalSupport?.(${JSON.stringify(supportId)});
             if (!scene?.player?.body || !choice || !support?.body) return null;
-            scene.player.body.reset(
-                support.x,
-                support.body.top - scene.player.body.height - 18
-            );
+            const targetX = support.x;
+            scene.player.body.reset(targetX, support.body.top);
+            scene.player.body.position.y +=
+                support.body.top - scene.player.body.bottom;
+            scene.player.body.position.x +=
+                targetX - scene.player.body.center.x;
+            scene.player.body.updateCenter?.();
             scene.player.setVelocity?.(0, 0);
+            scene.player.body.blocked.down = true;
+            scene.player.body.touching.down = true;
+            scene.isGrounded = true;
+            scene.lastGroundedTime = scene.time.now;
+            const zone = ${JSON.stringify(lane)} === 'main'
+                ? choice.mainZone
+                : (${JSON.stringify(lane)} === 'optional'
+                    ? choice.optionalZone
+                    : choice.rejoinZone);
+            const supportIds = ${JSON.stringify(lane)} === 'main'
+                ? choice.mainSupportIds
+                : (${JSON.stringify(lane)} === 'optional'
+                    ? choice.optionalSupportIds
+                    : choice.rejoinSupportIds);
+            const committed = scene.isPlayerCommittedToRouteChoice?.(
+                zone,
+                supportIds
+            ) === true;
+            const changed = scene.updateOptionalRouteChoices?.() === true;
             return {
                 lane: ${JSON.stringify(lane)},
-                supportId: support.traversalId
+                supportId: support.traversalId,
+                committed,
+                changed,
+                selectedPath: choice.selectedPath,
+                mainEntered: choice.mainEntered,
+                optionalEntered: choice.optionalEntered,
+                rejoined: choice.rejoined,
+                playerCenterX: scene.player.body.center.x,
+                playerCenterY: scene.player.body.center.y,
+                playerBottom: scene.player.body.bottom,
+                supportTop: support.body.top,
+                blockedDown: scene.player.body.blocked.down,
+                touchingDown: scene.player.body.touching.down
             };
         })()`);
     };
@@ -8403,6 +8443,12 @@ async function smokeDeclaredRouteChoiceSupports(session, route, sceneName) {
             }
             const staged = await stageLane(lane, supportId);
             if (!staged) return null;
+            if (!staged.committed) {
+                throw new Error(
+                    `${sceneName} could not stage ${lane} on ${supportId}: ` +
+                    JSON.stringify(staged)
+                );
+            }
             const state = await waitForLane(lane);
             results.push({ ...state, supportId: staged.supportId });
         }
@@ -8586,11 +8632,22 @@ async function smokeAuroraRouteJourney(session, exceptions) {
         const choice = scene.optionalRouteRewards.get('aurora_quiet_light').choice;
         const support = scene.getTraversalSupport?.('aurora-ground-3');
         if (!scene.player?.body || !support?.body || !choice) return false;
-        scene.player.body.reset(
-            Math.max(support.body.left + 40, choice.mainZone.left + 40),
-            support.body.top - scene.player.body.height - 18
+        const targetX = Math.max(
+            support.body.left + 40,
+            choice.mainZone.left + 40
         );
+        scene.player.body.reset(targetX, support.body.top);
+        scene.player.body.position.y +=
+            support.body.top - scene.player.body.bottom;
+        scene.player.body.position.x +=
+            targetX - scene.player.body.center.x;
+        scene.player.body.updateCenter?.();
         scene.player.setVelocity?.(0, 0);
+        scene.player.body.blocked.down = true;
+        scene.player.body.touching.down = true;
+        scene.isGrounded = true;
+        scene.lastGroundedTime = scene.time.now;
+        scene.updateOptionalRouteChoices?.();
         return true;
     })()`);
     const directChoice = await waitFor(
@@ -8715,11 +8772,19 @@ async function smokeAuroraRouteJourney(session, exceptions) {
         const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
         const support = scene.getTraversalSupport?.('aurora-quiet-step-1');
         if (!scene.player?.body || !support?.body) return false;
-        scene.player.body.reset(
-            support.x,
-            support.body.top - scene.player.body.height - 18
-        );
+        const targetX = support.x;
+        scene.player.body.reset(targetX, support.body.top);
+        scene.player.body.position.y +=
+            support.body.top - scene.player.body.bottom;
+        scene.player.body.position.x +=
+            targetX - scene.player.body.center.x;
+        scene.player.body.updateCenter?.();
         scene.player.setVelocity?.(0, 0);
+        scene.player.body.blocked.down = true;
+        scene.player.body.touching.down = true;
+        scene.isGrounded = true;
+        scene.lastGroundedTime = scene.time.now;
+        scene.updateOptionalRouteChoices?.();
         return true;
     })()`);
     await waitFor(
@@ -8734,11 +8799,19 @@ async function smokeAuroraRouteJourney(session, exceptions) {
         const pickup = scene.optionalRoutePickup;
         const support = scene.getTraversalSupport?.('aurora-quiet-step-3');
         if (!scene.player?.body || !pickup?.active || !support?.body) return false;
-        scene.player.body.reset(
-            pickup.x,
-            support.body.top - scene.player.body.height - 18
-        );
+        const targetX = pickup.x;
+        scene.player.body.reset(targetX, support.body.top);
+        scene.player.body.position.y +=
+            support.body.top - scene.player.body.bottom;
+        scene.player.body.position.x +=
+            targetX - scene.player.body.center.x;
+        scene.player.body.updateCenter?.();
         scene.player.setVelocity?.(0, 0);
+        scene.player.body.blocked.down = true;
+        scene.player.body.touching.down = true;
+        scene.isGrounded = true;
+        scene.lastGroundedTime = scene.time.now;
+        scene.claimQuietLightPickup?.(pickup);
         return true;
     })()`);
     const quietChoice = await waitFor(
@@ -10975,7 +11048,8 @@ async function smokeGuardianHandoff(session, step, exceptions) {
             '.katana-artifact-continue',
             {
                 timeoutMs: 16000,
-                message: `${step.sceneName} visible katana continuation`
+                message: `${step.sceneName} visible katana continuation`,
+                waitForRemoval: true
             }
         );
     }
@@ -16901,6 +16975,14 @@ async function smokeVillageUi(session, exceptions) {
             ),
             { timeoutMs: 20000, message: 'Desktop no-touch controls runtime' }
         );
+        await waitForScene(session, 'GameScene', 30000);
+        await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('GameScene');
+                return Boolean(scene?.player?.active && scene?.villageHeartLandmark);
+            })()`),
+            { timeoutMs: 30000, message: 'Desktop no-touch Sanctuary reload' }
+        );
         const afterReload = await evaluate(session, readVillageReloadState);
         reloadPersistence = { beforeReload, afterReload };
         if (JSON.stringify(beforeReload) !== JSON.stringify(afterReload)) {
@@ -18427,6 +18509,23 @@ async function smokeGuardianPacing(session, exceptions) {
             const lungeStarted = await evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene('ReefLevel');
                 if (!scene?.player?.active || !scene?.bossBody?.active) return null;
+                const support = scene.getTraversalSupport?.('reef-guardian-arena');
+                if (!support?.body || !scene.player?.body) return null;
+                scene.bossAttackTimer?.remove?.();
+                scene.bossAttackTimer = null;
+                scene.bossAttackPreviewTimer?.remove?.();
+                scene.bossAttackPreviewTimer = null;
+                scene.bossAttackUnlockTimer?.remove?.();
+                scene.bossAttackUnlockTimer = null;
+                scene.bossPhaseTransitionTimer?.remove?.();
+                scene.bossPhaseTransitionTimer = null;
+                scene.tweens.killTweensOf?.(scene.boss);
+                scene.tweens.killTweensOf?.(scene.bossBody);
+                scene.boss?.setAlpha?.(1);
+                scene.pendingBossPhase = null;
+                scene.bossPhaseTransitionActive = false;
+                scene.bossAttackLocked = false;
+                scene.bossRecoveryUntil = 0;
                 scene.health = scene.maxHealth;
                 scene.isInvincible = false;
                 scene.damageTaken = Number(scene.damageTaken) || 0;
@@ -18434,33 +18533,79 @@ async function smokeGuardianPacing(session, exceptions) {
                 scene.bossContactDamageArmed = false;
                 scene.bossContactDamageConsumed = false;
                 scene.bossBody.setPosition(5700, scene.levelHeight - 500);
-                scene.player.setPosition(5500, scene.levelHeight - 360);
+                scene.stageReefGuardianArenaEntry?.();
                 scene.player.setVelocity?.(0, 0);
                 const damageBefore = scene.damageTaken;
                 scene.__smokeReefLungeDamageBefore = damageBefore;
-                scene.bossVoidLunge();
-                return { damageBefore, healthBefore: scene.health };
+                scene.time.delayedCall(250, () => scene.bossVoidLunge());
+                return {
+                    damageBefore,
+                    healthBefore: scene.health,
+                    bossFightActive: scene.bossFightActive,
+                    bossBodyActive: scene.bossBody.active,
+                    playerX: scene.player.x,
+                    playerY: scene.player.y,
+                    playerBodyX: scene.player.body.center.x,
+                    playerBodyY: scene.player.body.center.y,
+                    bossBodyX: scene.bossBody.body.center.x,
+                    bossBodyY: scene.bossBody.body.center.y,
+                    sceneTimePaused: scene.time.paused,
+                    physicsPaused: scene.physics.world.isPaused,
+                    bossTweenCount: scene.tweens.getTweensOf(scene.boss).length,
+                    bodyTweenCount: scene.tweens.getTweensOf(scene.bossBody).length
+                };
             })()`);
             if (!lungeStarted) {
                 throw new Error('Reef guardian lunge could not be staged');
             }
-            lungeContact = await waitFor(
-                () => evaluate(session, `(() => {
+            try {
+                lungeContact = await waitFor(
+                    () => evaluate(session, `(() => {
+                        const scene = window.mythicalGame.scene.getScene('ReefLevel');
+                        if (!scene?.bossContactDamageConsumed) return null;
+                        return {
+                            health: scene.health,
+                            maxHealth: scene.maxHealth,
+                            damageDelta: scene.damageTaken -
+                                scene.__smokeReefLungeDamageBefore,
+                            contactDamageArmed:
+                                scene.bossContactDamageArmed === true,
+                            contactDamageConsumed:
+                                scene.bossContactDamageConsumed === true
+                        };
+                    })()`),
+                    { timeoutMs: 5000, message: 'Reef single-hit lunge contact' }
+                );
+            } catch (error) {
+                const diagnostic = await evaluate(session, `(() => {
                     const scene = window.mythicalGame.scene.getScene('ReefLevel');
-                    if (!scene?.bossContactDamageConsumed) return null;
+                    const playerBody = scene?.player?.body;
+                    const bossBody = scene?.bossBody?.body;
                     return {
-                        health: scene.health,
-                        maxHealth: scene.maxHealth,
-                        damageDelta: scene.damageTaken -
-                            scene.__smokeReefLungeDamageBefore,
-                        contactDamageArmed:
-                            scene.bossContactDamageArmed === true,
-                        contactDamageConsumed:
-                            scene.bossContactDamageConsumed === true
+                        lungeStarted: ${JSON.stringify(lungeStarted)},
+                        bossFightActive: scene?.bossFightActive,
+                        bossBodyActive: scene?.bossBody?.active,
+                        contactDamageArmed: scene?.bossContactDamageArmed,
+                        contactDamageConsumed: scene?.bossContactDamageConsumed,
+                        damageTaken: scene?.damageTaken,
+                        sceneTimePaused: scene?.time?.paused,
+                        physicsPaused: scene?.physics?.world?.isPaused,
+                        bossTweenCount: scene?.tweens?.getTweensOf?.(scene?.boss)?.length,
+                        bodyTweenCount: scene?.tweens?.getTweensOf?.(scene?.bossBody)?.length,
+                        playerCenter: playerBody && {
+                            x: playerBody.center.x,
+                            y: playerBody.center.y
+                        },
+                        bossCenter: bossBody && {
+                            x: bossBody.center.x,
+                            y: bossBody.center.y
+                        }
                     };
-                })()`),
-                { timeoutMs: 5000, message: 'Reef single-hit lunge contact' }
-            );
+                })()`);
+                throw new Error(
+                    `${error.message}: ${JSON.stringify(diagnostic)}`
+                );
+            }
             if (
                 lungeContact.health !== lungeContact.maxHealth - 1 ||
                 lungeContact.damageDelta !== 1 ||

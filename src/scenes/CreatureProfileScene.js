@@ -986,28 +986,9 @@ export default class CreatureProfileScene extends Phaser.Scene {
             this.creatureSprite = this.add.image(pixelX, creatureY, data.textureName);
             this.creatureSprite.setScale(this.isMobile ? 1.0 : 1.2);
         } else if (this.graphicsEngine) {
-            // Generate new texture for current stage
-            let result = null;
-
-            // Check if genes have valid traits structure (required by createRandomizedSpaceMythicCreature)
-            const hasValidGenes = data.genes && data.genes.traits;
-
-            if (data.dna) {
-                // Prefer DNA-based rendering (more reliable)
-                devLog(`[CreatureProfileScene] Generating from DNA for stage: ${currentStage}`);
-                result = this.graphicsEngine.createCreatureFromDNA(
-                    data.dna, 0, currentStage, data.genes
-                );
-            } else if (hasValidGenes) {
-                // Fallback to genes if no DNA
-                devLog(`[CreatureProfileScene] Generating from genes for stage: ${currentStage}`);
-                result = this.graphicsEngine.createRandomizedSpaceMythicCreature(
-                    data.genes, 0, currentStage
-                );
-            } else {
-                console.error('[CreatureProfileScene] No valid DNA or genes data available for creature');
-                devLog('[CreatureProfileScene] genes:', data.genes, 'dna:', data.dna);
-            }
+            // Use the shared loader so interrupted or legacy saves receive the
+            // same deterministic fallback as every other gameplay scene.
+            const result = this.graphicsEngine.loadCreatureFromGameState(0);
 
             if (result?.textureName) {
                 devLog(`[CreatureProfileScene] Generated new texture: ${result.textureName}`);
@@ -1016,8 +997,6 @@ export default class CreatureProfileScene extends Phaser.Scene {
 
                 // Update GameState with new texture name so it's cached correctly
                 window.GameState?.set('creature.textureName', result.textureName);
-            } else {
-                console.error('[CreatureProfileScene] Failed to generate creature texture');
             }
         }
 
