@@ -17,6 +17,7 @@ an AI-first, human-governed studio.
 - [Adult Research Operations System](ADULT_RESEARCH_OPERATIONS_SYSTEM.md)
 - [Customer Engagement and Relationship System](CUSTOMER_ENGAGEMENT_AND_RELATIONSHIP_SYSTEM.md)
 - [Privacy-Preserving Measurement Specification](PRIVACY_PRESERVING_MEASUREMENT_SPEC.md)
+- [Weekly Growth Pulse](measurement/GROWTH_PULSE.md)
 - [Support and Safeguarding Runbook](SUPPORT_AND_SAFEGUARDING_RUNBOOK.md)
 - [Safeguarding Activation and Escalation System](SAFEGUARDING_ACTIVATION_AND_ESCALATION_SYSTEM.md)
 - [Agent and Automation Architecture](AGENT_AUTOMATION_ARCHITECTURE.md)
@@ -102,6 +103,7 @@ an AI-first, human-governed studio.
 - [Protected nonce-concurrency/failover schema](automation/protected-nonce-concurrency-and-failover.schema.json)
 - [Customer evidence schema](customer/evidence.schema.json)
 - [Proposed identifier-free event contract](measurement/event-contract.json)
+- [Weekly aggregate Growth Pulse](measurement/GROWTH_PULSE.md)
 - [Draft support knowledge base](support/knowledge-base.json)
 - [Synthetic support evaluation set](support/synthetic-evaluation.json)
 - [Machine-readable safeguarding activation contract](automation/safeguarding-activation.json)
@@ -187,6 +189,14 @@ Compile the A-002 internal weekly review from explicit structured state:
 
 ```bash
 node scripts/company/compile-weekly-review.cjs
+```
+
+Turn a seven-day, aggregate-only Google Analytics export into the public-site
+Growth Pulse without claiming unique people or importing personal fields:
+
+```bash
+npm run growth:pulse -- /path/to/ga4-export.csv
+npm run test:growth-pulse
 ```
 
 Validate and synthesize only accepted, human-reviewed, de-identified customer
