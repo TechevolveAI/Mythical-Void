@@ -42,7 +42,7 @@ function imageDimensions(file, type) {
 }
 
 requireValue(manifest.schemaVersion === 1 && manifest.state === 'route_specific_preview_metadata_bound_to_checked_assets', 'Social preview manifest identity or state is invalid.');
-requireValue(Array.isArray(manifest.pages) && manifest.pages.length === 7, 'Social preview manifest must cover exactly seven static public pages.');
+requireValue(Array.isArray(manifest.pages) && manifest.pages.length === 8, 'Social preview manifest must cover exactly eight static public pages.');
 requireValue(new Set((manifest.pages || []).map(page => page.route)).size === manifest.pages?.length, 'Social preview routes must be unique.');
 
 for (const page of manifest.pages || []) {

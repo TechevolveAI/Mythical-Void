@@ -16,6 +16,18 @@
       "disclosure": "AI-generated marketing illustration inspired by profiles from the creature genetics engine. Not gameplay."
     },
     {
+      "route": "/playable-now/",
+      "htmlPath": "public/playable-now/index.html",
+      "imagePath": "public/press/social/project-beacon-story-wide.png",
+      "imageUrl": "https://mythicalvoid.com/press/social/project-beacon-story-wide.png",
+      "imageType": "image/png",
+      "width": 1200,
+      "height": 630,
+      "alt": "Mythical Void Project Beacon sharing artwork with a real gameplay frame",
+      "classification": "branded_social_artwork_with_authentic_gameplay_frame",
+      "disclosure": "Branded sharing layout, not a raw screenshot. The framed scene is real gameplay captured from the running browser game using an invented test state; no player information is shown."
+    },
+    {
       "route": "/story/",
       "htmlPath": "public/story/index.html",
       "imagePath": "public/press/social/project-beacon-story-wide.png",

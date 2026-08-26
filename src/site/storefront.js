@@ -63,6 +63,7 @@ function renderPressPage() {
                 </a>
                 <div class="press-header-actions">
                     <a href="/">Main website</a>
+                    <a href="/playable-now/">Game at a glance</a>
                     <a href="/updates/feed.xml">Signal feed</a>
                     ${playLink('Play now', 'button button-small')}
                 </div>
@@ -353,6 +354,7 @@ function renderStorefront() {
                     <span></span><span></span><span></span>
                 </button>
                 <nav class="site-nav" aria-label="Main navigation" data-menu>
+                    <a href="/playable-now/">See the game</a>
                     <a href="#adventure">The adventure</a>
                     <a href="#how-it-works">How it works</a>
                     <a href="#studio">The studio</a>
@@ -379,7 +381,7 @@ function renderStorefront() {
                                 <span data-share-label>Share the game</span>
                                 <span class="button-arrow" aria-hidden="true">↗</span>
                             </button>
-                            <a class="button button-quiet" href="#creatures">Meet the possibilities</a>
+                            <a class="button button-quiet" href="/playable-now/">Watch real gameplay</a>
                         </div>
                         <p class="hero-share-status share-status" data-share-status aria-live="polite"></p>
                         <ul class="hero-genetics" aria-label="How this scene was made">
@@ -657,6 +659,7 @@ function renderStorefront() {
                 </div>
                 <nav aria-label="Footer navigation">
                     <a href="/play/">Play game</a>
+                    <a href="/playable-now/">See real gameplay</a>
                     <a href="/press/">Press & creators</a>
                     <a href="/updates/">What's new</a>
                     <a href="/creature-genetics/">Creature genetics</a>

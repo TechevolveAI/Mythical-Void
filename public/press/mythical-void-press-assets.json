@@ -3,6 +3,7 @@
   "updated": "2026-08",
   "canonicalPressRoom": "https://mythicalvoid.com/press/",
   "playUrl": "https://mythicalvoid.com/play/",
+  "playableNowUrl": "https://mythicalvoid.com/playable-now/",
   "gameplayProofManifest": "https://mythicalvoid.com/press/gameplay/manifest.json",
   "gameplayVideoProofManifest": "https://mythicalvoid.com/press/gameplay-video/manifest.json",
   "socialPreviewManifest": "https://mythicalvoid.com/press/mythical-void-social-previews.json",

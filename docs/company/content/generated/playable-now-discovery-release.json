@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "PLAYABLE-NOW-DISCOVERY-2026-08-26",
+  "state": "owned_site_release_visually_verified_waiting_for_production_verification",
+  "purpose": "Give an unfamiliar visitor one truthful path from seeing real gameplay to understanding the game and starting it.",
+  "page": {
+    "path": "public/playable-now/index.html",
+    "publicUrl": "https://mythicalvoid.com/playable-now/",
+    "sha256": "0d1fefaa0acb203f4d9d290df2ab8590e29dd5069e8185686ee16d3ef7ffb9b6",
+    "canonical": "https://mythicalvoid.com/playable-now/",
+    "directPlayLinkMinimum": 3,
+    "structuredData": ["VideoGame", "VideoObject", "FAQPage"]
+  },
+  "authenticGameplay": {
+    "videoPath": "public/press/gameplay-video/mythical-forest-authentic-gameplay.mp4",
+    "videoSha256": "3b9aa5e41bef7f9b2b5529a3c3d3e1a3cc6448676cb0e2643d0e61bd6c418a8c",
+    "videoDurationSeconds": 19.58,
+    "posterPath": "public/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
+    "posterSha256": "7ad7b821bcf3c872804133f7c22da7ae3aa12cccfdea3dafc0d425224e164376",
+    "screenshotCount": 4,
+    "generatedFramesUsed": false,
+    "playerIdentityUsed": false,
+    "personalSaveUsed": false
+  },
+  "discoverability": {
+    "homepageFirstScreenLink": true,
+    "sitemapListed": true,
+    "pressManifestListed": true,
+    "machineReadableSiteGuideListed": true,
+    "signalLogEntry": "SIGNAL-009",
+    "rssAndJsonFeedIncluded": true
+  },
+  "claimBoundaries": {
+    "earlyAccessStated": true,
+    "freeCurrentReleaseStated": true,
+    "formalAgeRatingClaimed": false,
+    "absoluteCreatureUniquenessClaimed": false,
+    "nasaEndorsementClaimed": false,
+    "generatedMarketingArtCalledGameplay": false
+  },
+  "privacy": {
+    "accountRequired": false,
+    "emailSignupEnabled": false,
+    "contactCollectionEnabled": false,
+    "recipientCollectionEnabled": false,
+    "trackingParametersPermitted": false,
+    "analyticsDefault": "denied"
+  },
+  "authority": {
+    "ownedWebsitePublicationAuthorized": true,
+    "externalSocialPublicationAuthorized": false,
+    "emailOrOutreachSendingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "publicRepliesAuthorized": false,
+    "externalActionTaken": false
+  },
+  "verification": {
+    "desktopVisualReviewPassed": true,
+    "phoneVisualReviewPassed": true,
+    "phoneWidth": 390,
+    "horizontalOverflowObserved": false,
+    "videoDurationObservedSeconds": 19.583333,
+    "directPlayNavigationVerified": true,
+    "productionUrlVerified": false
+  }
+}

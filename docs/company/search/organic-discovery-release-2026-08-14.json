@@ -21,6 +21,13 @@
   },
   "pages": [
     {
+      "route": "/playable-now/",
+      "audience": "People encountering Mythical Void for the first time, including players, families, creators, press and educators",
+      "intent": "See authentic moving gameplay, understand the playable journey and enter the game without guessing what is real",
+      "claimIds": ["CL-001", "CL-002", "CL-004", "CL-005", "CL-008", "CL-013"],
+      "proof": ["public/press/gameplay-video/manifest.json", "public/press/gameplay/manifest.json"]
+    },
+    {
       "route": "/creature-genetics/",
       "audience": "Players, creature-game fans, creators and game developers",
       "intent": "Understand the varied creature genetics and the boundary between the playable form and wider artwork",

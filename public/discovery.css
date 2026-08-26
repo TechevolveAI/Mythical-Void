@@ -98,6 +98,7 @@ img { display: block; max-width: 100%; }
 }
 
 .site-nav a { text-decoration: none; color: var(--muted); }
+.site-nav .button-primary { color: #071411; }
 .site-nav a:hover,
 .site-nav a:focus-visible { color: var(--cream); }
 
@@ -487,6 +488,36 @@ details p { margin: 0.9rem 0 0; }
 .story-choice-frame img { object-fit: contain; }
 .story-choice-frame details { margin-top: 1.4rem; }
 
+.playable-hero h1 { font-size: clamp(3.3rem, 7vw, 6.5rem); }
+.playable-trust-line { margin: 1.15rem 0 0; color: var(--gold); font-size: 0.92rem; font-weight: 850; }
+.playable-video {
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid rgba(118, 227, 207, 0.32);
+    border-radius: 2rem;
+    background: #05030c;
+    box-shadow: 0 2.4rem 7rem rgba(0, 0, 0, 0.5);
+}
+.playable-video-screen { display: grid; place-items: center; min-height: 580px; background: radial-gradient(circle, #1b1740, #05030c 68%); }
+.playable-video video { display: block; width: min(100%, 390px); max-height: 640px; background: #030207; }
+.playable-video figcaption { display: grid; gap: 0.25rem; padding: 1rem 1.2rem; color: var(--muted); font-size: 0.84rem; }
+.playable-video figcaption strong { color: var(--mint); font-size: 0.73rem; letter-spacing: 0.1em; }
+.playable-journey { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.9rem; margin: 0; padding: 0; list-style: none; }
+.playable-journey li { min-height: 230px; padding: 1.5rem; border: 1px solid var(--line); border-radius: 1.4rem; background: linear-gradient(150deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015)); }
+.playable-journey span { display: block; margin-bottom: 2.5rem; color: var(--mint); font-weight: 950; letter-spacing: 0.12em; }
+.playable-journey strong { display: block; margin-bottom: 0.6rem; font-size: 1.18rem; }
+.playable-journey p { margin: 0; color: var(--muted); }
+.playable-proof-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.85rem; }
+.playable-proof-grid figure { margin: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 1.35rem; background: var(--panel); }
+.playable-proof-grid img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; object-position: top; background: #030207; }
+.playable-proof-grid figcaption { min-height: 130px; padding: 1rem; }
+.playable-proof-grid figcaption span { display: block; color: var(--mint); font-size: 0.7rem; font-weight: 950; letter-spacing: 0.1em; }
+.playable-proof-grid figcaption strong { display: block; margin: 0.3rem 0; }
+.playable-proof-grid figcaption small { color: var(--muted); }
+.playable-links { display: grid; justify-items: start; gap: 0.75rem; margin-top: 1.5rem; }
+.playable-art-boundary img { max-height: 520px; object-fit: cover; }
+.playable-social-note { margin: 1rem 0 0; color: #9188a3; font-size: 0.78rem; }
+
 .site-footer { border-top: 1px solid var(--line); }
 .footer-inner { padding: 2.5rem 0; }
 .footer-links { display: flex; flex-wrap: wrap; gap: 0.8rem 1.3rem; margin: 1.5rem 0; }
@@ -534,6 +565,9 @@ details p { margin: 0.9rem 0 0; }
     .story-path li { min-height: auto; border: 1px solid var(--line); border-radius: 1.2rem !important; }
     .story-path li > span { margin-bottom: 1.3rem; }
     .realm-story-grid { grid-template-columns: repeat(3, 1fr); }
+    .playable-journey { grid-template-columns: repeat(2, 1fr); }
+    .playable-proof-grid { grid-template-columns: repeat(2, 1fr); }
+    .playable-video-screen { min-height: auto; }
     .signal-entry { grid-template-columns: 1fr; }
     .signal-entry::before,
     .signal-timeline::before { display: none; }
@@ -552,6 +586,8 @@ details p { margin: 0.9rem 0 0; }
     .truth-grid div { min-height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
     .truth-grid div:last-child { border-bottom: 0; }
     .realm-story-grid { grid-template-columns: repeat(2, 1fr); }
+    .playable-journey,
+    .playable-proof-grid { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

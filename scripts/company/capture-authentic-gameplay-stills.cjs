@@ -164,6 +164,9 @@ function writeManifest() {
         privacy: 'No player name, child identity, account, message, notification or personal save data is used.',
         presentationBoundary: 'These are authentic screenshots of a running build. Some in-game art may have its own disclosed production provenance; none of these images is a generated gameplay mockup.',
         approvalState: 'internal_review_required_before_public_promotion',
+        ownedWebsiteProofUseAuthorized: true,
+        externalPromotionAuthorized: false,
+        kevinApprovalRequiredBeforeExternalPublication: true,
         captures
     };
     fs.writeFileSync(

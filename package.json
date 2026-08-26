@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "start": "vite",
-    "build": "npm run build:signal-log && npm run validate:signal-log && npm run validate:signal-feeds && vite build && node scripts/inject-build-timestamp.js && node scripts/verify-production-bundle.cjs",
+    "build": "npm run build:signal-log && npm run validate:signal-log && npm run validate:signal-feeds && npm run validate:playable-now && vite build && node scripts/inject-build-timestamp.js && node scripts/verify-production-bundle.cjs",
     "validate:story-page": "node scripts/company/validate-story-production-release.cjs",
     "build:signal-log": "node scripts/company/build-public-signal-log.cjs && node scripts/company/build-signal-feeds.cjs",
     "validate:signal-log": "node scripts/company/validate-public-signal-log.cjs",
@@ -17,6 +17,8 @@
     "build:signal-release-pack": "node scripts/company/build-signal-release-pack.cjs",
     "validate:signal-release-pack": "node scripts/company/validate-signal-release-pack.cjs",
     "test:signal-release-pack": "node scripts/company/test-signal-release-pack.cjs",
+    "validate:playable-now": "node scripts/company/validate-playable-now-discovery.cjs",
+    "test:playable-now": "node scripts/company/test-playable-now-discovery.cjs",
     "validate:first-social-release": "node scripts/company/validate-first-social-release.cjs",
     "test:first-social-release": "node scripts/company/test-first-social-release.cjs",
     "validate:nasa-stem-social-release": "node scripts/company/validate-nasa-stem-social-release.cjs",
