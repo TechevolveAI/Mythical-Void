@@ -2,16 +2,19 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://mythicalvoid.com/</loc>
+    <lastmod>2026-08-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://mythicalvoid.com/privacy/</loc>
+    <lastmod>2026-08-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://mythicalvoid.com/press/</loc>
+    <lastmod>2026-08-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -23,36 +26,43 @@
   </url>
   <url>
     <loc>https://mythicalvoid.com/creature-genetics/</loc>
+    <lastmod>2026-08-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mythicalvoid.com/creature-field-guide/</loc>
+    <lastmod>2026-08-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mythicalvoid.com/nasa-space-science/</loc>
+    <lastmod>2026-08-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mythicalvoid.com/parents/</loc>
+    <lastmod>2026-08-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mythicalvoid.com/educators/</loc>
+    <lastmod>2026-08-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mythicalvoid.com/studio/</loc>
+    <lastmod>2026-08-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mythicalvoid.com/story/</loc>
+    <lastmod>2026-08-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -64,6 +74,7 @@
   </url>
   <url>
     <loc>https://mythicalvoid.com/terms/</loc>
+    <lastmod>2026-08-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>

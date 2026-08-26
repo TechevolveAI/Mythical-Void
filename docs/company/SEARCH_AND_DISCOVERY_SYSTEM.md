@@ -1,6 +1,6 @@
 # Search and Discovery System
 
-**Status:** Technical foundation and five useful discovery pages live; the playable search doorway now starts with a game finder; search-engine account work still gated
+**Status:** Technical foundation, useful discovery pages and a concise AI-readable site guide prepared for the owned website; search-engine account work still gated
 **Updated:** 26 August 2026
 
 ## Current release
@@ -21,6 +21,19 @@ The current machine-readable evidence is recorded in
 [`search/owned-discovery-release-2026-08-26.json`](search/owned-discovery-release-2026-08-26.json).
 It retains the sample limitations and does not claim that the site is indexed
 or ranked.
+
+The site now also publishes a concise `/llms.txt` guide to the canonical play,
+story, creature, NASA and STEM, family, studio, policy and update pages. It
+states the public claim boundaries directly: creatures rather than inflated AI
+language, no absolute uniqueness promise, no NASA endorsement, no formal age
+rating claim, no imagined artwork called gameplay, and no identifying detail
+about the child in the founder story. Each public discovery page points to the
+guide using a standard link relation.
+
+`llms.txt` is a proposed convention, not a ratified web standard. It does not
+control crawler access, guarantee an AI citation or replace the real pages,
+robots file, sitemap or structured game data. The bounded release record is
+[`search/ai-readable-discovery-release-2026-08-26.json`](search/ai-readable-discovery-release-2026-08-26.json).
 
 The first useful discovery layer is now recorded in
 [`search/organic-discovery-release-2026-08-14.json`](search/organic-discovery-release-2026-08-14.json).

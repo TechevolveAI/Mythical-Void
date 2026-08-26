@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "AI-DISCOVERY-001",
+  "checkedOn": "2026-08-26",
+  "status": "approved_for_owned_website_release",
+  "purpose": "Give people and automated systems one concise route to Mythical Void's canonical public facts without creating a thin search page or inventing authority.",
+  "publicRoute": "https://mythicalvoid.com/llms.txt",
+  "format": "CommonMark Markdown served as plain text",
+  "convention": {
+    "name": "llms.txt",
+    "state": "proposed_convention_not_ratified_standard",
+    "source": "https://llmstxt.org/",
+    "discoveryLink": "<link rel=\"describedby\" type=\"text/markdown\" href=\"https://mythicalvoid.com/llms.txt\">",
+    "limits": [
+      "Does not control crawler access or AI training",
+      "Does not guarantee crawling, indexing, citation or ranking",
+      "Does not replace robots.txt, sitemap.xml, structured data or canonical pages"
+    ]
+  },
+  "canonicalSubjects": [
+    "play and access facts",
+    "current game journey",
+    "creature genetics",
+    "Project Beacon story",
+    "NASA and STEM boundary",
+    "family and educator notes",
+    "father-and-son origin",
+    "AI and visual honesty",
+    "privacy and terms"
+  ],
+  "claimBoundaries": [
+    "Call the beings creatures",
+    "No absolute global uniqueness or literal-infinity promise",
+    "No NASA endorsement",
+    "No formal age rating claim",
+    "No imagined artwork or new field-guide story described as current gameplay",
+    "No invented reviews, awards, customer numbers or platform availability",
+    "No identifying detail about the child"
+  ],
+  "release": {
+    "ownedWebsitePublicationAuthorized": true,
+    "indexNowNotificationAuthorizedForMeaningfulOwnedChange": true,
+    "searchRankingClaimAuthorized": false,
+    "aiCitationClaimAuthorized": false,
+    "crawlerPermissionChangeAuthorized": false,
+    "externalPostingAuthorized": false,
+    "paidPromotionAuthorized": false
+  }
+}

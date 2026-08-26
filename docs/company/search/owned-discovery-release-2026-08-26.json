@@ -81,6 +81,16 @@
       "nextHumanStep": "Kevin verifies mythicalvoid.com in Google Search Console and submits sitemap.xml. This does not stop the owned-site release."
     }
   },
+  "aiReadableDiscovery": {
+    "route": "https://mythicalvoid.com/llms.txt",
+    "releaseRecord": "docs/company/search/ai-readable-discovery-release-2026-08-26.json",
+    "purpose": "Give people and automated systems a concise path to canonical public facts and explicit claim boundaries.",
+    "state": "approved_for_owned_website_release",
+    "conventionState": "proposed_convention_not_ratified_standard",
+    "advertisedFromPublicDiscoveryPages": true,
+    "crawlerPermissionChanged": false,
+    "indexingOrCitationPromised": false
+  },
   "publicWebsiteMeasurement": {
     "googleTagId": "G-FTM4W73ECQ",
     "previousCodeProblem": "The final letters were swapped in the website code.",

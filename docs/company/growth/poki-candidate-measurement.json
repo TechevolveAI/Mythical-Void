@@ -8,16 +8,16 @@
   },
   "package": {
     "fileCount": 85,
-    "rawBytes": 46868981,
-    "gzipEstimateBytes": 43049481,
+    "rawBytes": 46869072,
+    "gzipEstimateBytes": 43049508,
     "advisoryTargetBytes": 8388608,
     "advisoryTargetMet": false,
-    "contentDigestSha256": "cdc47d04fe81fb7530571b1ab8acbfc3a01ff3360bad31848f2ac12b13d248b6"
+    "contentDigestSha256": "2936e229be2b169058dbca0d22336ca714a13360ee10213f3b5880c5fd834061"
   },
   "firstLoad": {
     "resourceCount": 18,
-    "rawBytes": 7129083,
-    "gzipEstimateBytes": 3936773,
+    "rawBytes": 7129174,
+    "gzipEstimateBytes": 3936798,
     "advisoryTargetBytes": 5242880,
     "advisoryTargetMet": true,
     "resources": [
@@ -98,8 +98,8 @@
       },
       {
         "path": "index.html",
-        "rawBytes": 3895,
-        "gzipEstimateBytes": 1235
+        "rawBytes": 3986,
+        "gzipEstimateBytes": 1260
       },
       {
         "path": "assets/index-qSTSRq8U.js",
@@ -136,8 +136,8 @@
     },
     "root": {
       "fileCount": 2,
-      "rawBytes": 4791,
-      "gzipEstimateBytes": 1735
+      "rawBytes": 4882,
+      "gzipEstimateBytes": 1762
     },
     "marketing": {
       "fileCount": 25,

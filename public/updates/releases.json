@@ -17,6 +17,26 @@
   },
   "entries": [
     {
+      "id": "SIGNAL-020",
+      "publishedOn": "2026-08-26",
+      "status": "live",
+      "category": "CLEARER ONLINE DISCOVERY",
+      "title": "One truthful guide now points to the whole game",
+      "summary": "A concise public guide now helps people, search tools and AI systems find Mythical Void’s canonical play, story, creature, family, NASA and studio pages without guessing what is real.",
+      "details": [
+        "The guide states what players do today, where to play free and which public pages are the clearest sources for each part of the game.",
+        "It also states the boundaries directly: no absolute creature-uniqueness promise, NASA endorsement, formal age rating, imagined artwork called gameplay or identifying detail about the child in the founder story.",
+        "This proposed web convention does not control crawlers or promise search inclusion, ranking or AI citations. The real pages, sitemap, structured game facts and human review remain authoritative."
+      ],
+      "image": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "imageAlt": "Many imagined alien organisms gathered in a luminous Mythical Void realm",
+      "imageClass": "ai_generated_marketing_illustration",
+      "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay.",
+      "destination": "/llms.txt",
+      "linkText": "Read the concise site guide",
+      "download": false
+    },
+    {
       "id": "SIGNAL-019",
       "publishedOn": "2026-08-26",
       "status": "live",
