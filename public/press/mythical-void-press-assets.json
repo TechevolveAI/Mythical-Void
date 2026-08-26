@@ -3,8 +3,29 @@
   "updated": "2026-08",
   "canonicalPressRoom": "https://mythicalvoid.com/press/",
   "playUrl": "https://mythicalvoid.com/play/",
+  "playableNowUrl": "https://mythicalvoid.com/playable-now/",
   "gameplayProofManifest": "https://mythicalvoid.com/press/gameplay/manifest.json",
   "gameplayVideoProofManifest": "https://mythicalvoid.com/press/gameplay-video/manifest.json",
+  "authenticGameplaySocialKit": {
+    "manifest": "https://mythicalvoid.com/press/social-video/manifest.json",
+    "captionPack": "https://mythicalvoid.com/press/social-video/authentic-gameplay-caption-pack.json",
+    "state": "withdrawn_visual_quality_failed_do_not_publish"
+  },
+  "realCreatureShowcase": {
+    "page": "https://mythicalvoid.com/creature-genetics/#meet-the-twelve",
+    "manifest": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/renderer-manifest.json",
+    "sourceProfiles": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/source-profiles.json",
+    "selectedFromEngineRuns": 1000,
+    "selectedCreatures": 12,
+    "selectionBoundary": "Selected from deliberately balanced engine runs to show visible range. This is not a probability sample, normal hatch odds or an absolute uniqueness claim.",
+    "state": "owned_press_room_release_no_external_posting_without_official_channel_and_kevin_approval"
+  },
+  "creatorDownloadKit": {
+    "archive": "https://mythicalvoid.com/press/creator-kit/mythical-void-authentic-gameplay-creator-kit.zip",
+    "manifest": "https://mythicalvoid.com/press/creator-kit/manifest.json",
+    "contents": "Withdrawn because the included game render and selected moments failed human visual review. Do not publish or share this archive.",
+    "state": "withdrawn_visual_quality_failed_do_not_publish"
+  },
   "socialPreviewManifest": "https://mythicalvoid.com/press/mythical-void-social-previews.json",
   "signalLogFeeds": {
     "publicUpdates": "https://mythicalvoid.com/updates/",
@@ -34,11 +55,38 @@
   ],
   "assets": [
     {
-      "name": "Mythical Forest authentic gameplay video",
+      "name": "Mythical Forest in-game arrival",
       "url": "https://mythicalvoid.com/press/gameplay-video/mythical-forest-authentic-gameplay.mp4",
       "posterUrl": "https://mythicalvoid.com/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
-      "kind": "authentic_running_build_gameplay_video",
-      "description": "A short vertical recording made directly from the real Mythical Void browser game, with real movement, jumping, touch controls and route display; no generated frames or replacement scenery."
+      "kind": "authentic_running_build_story_moment",
+      "description": "A 3.17-second landscape arrival recorded directly from the running Mythical Void game. It is an in-game story moment, not a platforming or combat demonstration."
+    },
+    {
+      "name": "Authentic gameplay social video — vertical",
+      "state": "withdrawn_visual_quality_failed_do_not_publish",
+      "url": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-vertical.mp4",
+      "posterUrl": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-vertical-poster.png",
+      "kind": "branded_social_video_with_authentic_running_build_gameplay",
+      "dimensions": "1080x1920",
+      "description": "A silent vertical branded edit preserving the complete authentic Mythical Void phone-gameplay frame. The surrounding branded layout is not gameplay; no generated motion, replacement scenery, replacement interface or replacement audio was added."
+    },
+    {
+      "name": "Authentic gameplay social video — square",
+      "state": "withdrawn_visual_quality_failed_do_not_publish",
+      "url": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-square.mp4",
+      "posterUrl": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-square-poster.png",
+      "kind": "branded_social_video_with_authentic_running_build_gameplay",
+      "dimensions": "1080x1080",
+      "description": "A silent square branded edit preserving the complete authentic Mythical Void phone-gameplay frame. The surrounding branded layout is not gameplay; no generated motion, replacement scenery, replacement interface or replacement audio was added."
+    },
+    {
+      "name": "Authentic gameplay social video — wide",
+      "state": "withdrawn_visual_quality_failed_do_not_publish",
+      "url": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-wide.mp4",
+      "posterUrl": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-wide-poster.png",
+      "kind": "branded_social_video_with_authentic_running_build_gameplay",
+      "dimensions": "1920x1080",
+      "description": "A silent wide branded edit preserving the complete authentic Mythical Void phone-gameplay frame. The surrounding branded layout is not gameplay; no generated motion, replacement scenery, replacement interface or replacement audio was added."
     },
     {
       "name": "Apollo 11 real-space discovery",
@@ -52,6 +100,21 @@
       "url": "https://mythicalvoid.com/press/gameplay/project-beacon-start.png",
       "kind": "authentic_running_build_screenshot",
       "description": "Captured from the real Mythical Void browser game using an invented QA state; not a generated mockup."
+    },
+    {
+      "name": "Real creature hatch reveal",
+      "state": "withdrawn_visual_quality_failed_do_not_publish",
+      "url": "https://mythicalvoid.com/press/gameplay/creature-cosmic-egg-reveal.png",
+      "recordUrl": "https://mythicalvoid.com/press/gameplay/manifest.json",
+      "kind": "authentic_running_build_screenshot",
+      "description": "Withdrawn from public promotion after human visual review. Retained only as an exact running-build record of one hatch."
+    },
+    {
+      "name": "Mythical Void primary sharing preview",
+      "url": "https://mythicalvoid.com/press/social/mythical-void-share-wide.png",
+      "kind": "branded_share_preview_with_ai_generated_marketing_illustration",
+      "dimensions": "1200x630",
+      "description": "A deliberately simple link-preview image designed to remain readable at message and feed size. It uses AI-generated imagined-universe artwork inspired by the creature engine and is labelled as imagined universe art, not gameplay."
     },
     {
       "name": "Project Beacon story social artwork — wide",
@@ -105,15 +168,108 @@
     },
     {
       "name": "Mythical Forest phone gameplay",
+      "state": "withdrawn_visual_quality_failed_do_not_publish",
       "url": "https://mythicalvoid.com/press/gameplay/realm-mythicalforest.png",
       "kind": "authentic_running_build_screenshot",
-      "description": "Real phone gameplay showing the astronaut, route display, platforming world and touch controls."
+      "description": "Withdrawn from public promotion because the phone frame is visually cluttered and does not present the gameplay clearly. Retained only as a running-build record."
     },
     {
       "name": "Village Heart builder",
+      "state": "withdrawn_visual_quality_failed_do_not_publish",
       "url": "https://mythicalvoid.com/press/gameplay/village-base-builder.png",
       "kind": "authentic_running_build_screenshot",
-      "description": "Real phone gameplay showing village resources, objectives and the Forager Hut."
+      "description": "Withdrawn from public promotion because the selected frame does not communicate the building experience clearly. Retained only as a running-build record."
+    },
+    {
+      "name": "Twelve real creature hatches — wide proof layout",
+      "url": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png",
+      "kind": "branded_renderer_proof_layout_with_authentic_game_sprite_exports",
+      "dimensions": "1440x900",
+      "description": "A branded proof layout containing twelve exact sprite exports from the running Mythical Void genetics, DNA and Phaser renderer. The creatures were selected from deliberately balanced engine runs to show range, not normal hatch odds."
+    },
+    {
+      "name": "Real creature renderer export MV-0010",
+      "url": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/mv-0010-real-render.png",
+      "kind": "authentic_running_game_renderer_export",
+      "dimensions": "100x85",
+      "description": "Exact running-game renderer export: a legendary quadruped Cosmic Guardian with crystal affinity."
+    },
+    {
+      "name": "Real creature renderer export MV-0715",
+      "url": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/mv-0715-real-render.png",
+      "kind": "authentic_running_game_renderer_export",
+      "dimensions": "75x120",
+      "description": "Exact running-game renderer export: a legendary serpentine Stellar Wyrm with nebula affinity."
+    },
+    {
+      "name": "Real creature renderer export MV-0698",
+      "url": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/mv-0698-real-render.png",
+      "kind": "authentic_running_game_renderer_export",
+      "dimensions": "90x90",
+      "description": "Exact running-game renderer export: a rare blob-form Nebula Sprite with Void affinity."
+    },
+    {
+      "name": "Real creature renderer export MV-0153",
+      "url": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/mv-0153-real-render.png",
+      "kind": "authentic_running_game_renderer_export",
+      "dimensions": "80x110",
+      "description": "Exact running-game renderer export: a rare biped Crystal Drake with moon affinity."
+    },
+    {
+      "name": "Real creature renderer export MV-0813",
+      "url": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/mv-0813-real-render.png",
+      "kind": "authentic_running_game_renderer_export",
+      "dimensions": "105x100",
+      "description": "Exact running-game renderer export: a rare winged Aurora Phoenix with star affinity."
+    },
+    {
+      "name": "Real creature renderer export MV-0249",
+      "url": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/mv-0249-real-render.png",
+      "kind": "authentic_running_game_renderer_export",
+      "dimensions": "75x120",
+      "description": "Exact running-game renderer export: an epic serpentine Crystal Elemental with crystal affinity."
+    },
+    {
+      "name": "Real creature renderer export MV-0259",
+      "url": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/mv-0259-real-render.png",
+      "kind": "authentic_running_game_renderer_export",
+      "dimensions": "80x110",
+      "description": "Exact running-game renderer export: an epic biped Void Stalker with nebula affinity."
+    },
+    {
+      "name": "Real creature renderer export MV-0794",
+      "url": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/mv-0794-real-render.png",
+      "kind": "authentic_running_game_renderer_export",
+      "dimensions": "90x90",
+      "description": "Exact running-game renderer export: an epic blob-form Nebula Sprite with Void affinity."
+    },
+    {
+      "name": "Real creature renderer export MV-0567",
+      "url": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/mv-0567-real-render.png",
+      "kind": "authentic_running_game_renderer_export",
+      "dimensions": "90x90",
+      "description": "Exact running-game renderer export: an uncommon blob-form Crystal Drake with crystal affinity."
+    },
+    {
+      "name": "Real creature renderer export MV-0257",
+      "url": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/mv-0257-real-render.png",
+      "kind": "authentic_running_game_renderer_export",
+      "dimensions": "100x85",
+      "description": "Exact running-game renderer export: an uncommon quadruped Cosmic Guardian with crystal affinity."
+    },
+    {
+      "name": "Real creature renderer export MV-0171",
+      "url": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/mv-0171-real-render.png",
+      "kind": "authentic_running_game_renderer_export",
+      "dimensions": "80x110",
+      "description": "Exact running-game renderer export: a common biped Crystal Drake with crystal affinity."
+    },
+    {
+      "name": "Real creature renderer export MV-0846",
+      "url": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/mv-0846-real-render.png",
+      "kind": "authentic_running_game_renderer_export",
+      "dimensions": "90x90",
+      "description": "Exact running-game renderer export: a common blob-form Crystal Elemental with moon affinity."
     },
     {
       "name": "A Universe of Creatures",
@@ -146,10 +302,13 @@
       "description": "Transparent official purple-and-gold studio emblem."
     }
   ],
-  "permissions": "Assets may be used in truthful editorial coverage of Mythical Void with their descriptions and disclosures preserved.",
+  "permissions": "Assets not marked withdrawn may be used in truthful editorial coverage of Mythical Void with their descriptions and disclosures preserved.",
   "restrictions": [
     "Only assets labelled authentic_running_build_screenshot may be described as gameplay screenshots.",
-    "Only assets labelled authentic_running_build_gameplay_video may be described as gameplay footage.",
+    "The Forest video labelled authentic_running_build_story_moment must be described as an in-game story moment, not platforming or combat footage.",
+    "The branded social videos and creator kit are withdrawn and must not be published or shared.",
+    "The Mythical Forest phone frame and Village Heart builder frame are withdrawn from promotion because they failed human visual review.",
+    "Creature renderer exports may be described as authentic game-rendered creatures, but the branded twelve-creature proof layout is not a playable game scene and the selection must not be presented as normal hatch odds.",
     "Do not present marketing illustrations or game-world artwork as gameplay footage.",
     "Do not imply NASA endorsement or partnership.",
     "Do not imply sentience, consciousness, global creature uniqueness or a fully autonomous studio."

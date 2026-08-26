@@ -15,6 +15,58 @@
   ],
   "items": [
     {
+      "id": "https://mythicalvoid.com/updates/#signal-014",
+      "url": "https://mythicalvoid.com/updates/#signal-014",
+      "external_url": "https://mythicalvoid.com/creature-field-guide/",
+      "title": "Twelve creatures now have a place in the story",
+      "content_text": "A new Project Beacon field guide connects twelve verified game-renderer creatures to the six living realms, with their real traits and new official stories kept clearly separate.\n\n• Each realm now has two field sightings tied to a lesson already present in the game: listen, repair, keep routes open, protect warnings, use signals carefully and choose what should remain undisclosed.\n• Every creature image is an exact export from the running renderer, and every trait comes from its checked genetics and DNA profile rather than new marketing invention.\n• The names and short stories are official universe material, but they do not claim these twelve creatures or events are already playable quests. The current game and the wider field guide remain plainly labelled.\n\nSee the live change: https://mythicalvoid.com/creature-field-guide/\n\nMedia note: Branded proof layout, not a playable game scene. Every creature is an exact export from the running game renderer. The field-guide stories are official universe material, not claims that these events are already playable quests.",
+      "summary": "A new Project Beacon field guide connects twelve verified game-renderer creatures to the six living realms, with their real traits and new official stories kept clearly separate.",
+      "image": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png",
+      "date_published": "2026-08-26T12:00:00.000Z",
+      "tags": [
+        "CREATURE FIELD GUIDE"
+      ]
+    },
+    {
+      "id": "https://mythicalvoid.com/updates/#signal-013",
+      "url": "https://mythicalvoid.com/updates/#signal-013",
+      "external_url": "https://mythicalvoid.com/creature-genetics/#meet-the-twelve",
+      "title": "Twelve real hatches show the engine’s range",
+      "content_text": "A new source-bound gallery shows twelve creatures made by the running Mythical Void genetics, DNA and pixel-rendering system—not concept art.\n\n• The engine was run 1,000 times with deliberately balanced rarity groups, then twelve results were selected for visible breadth across all seven current species and all five rarity levels.\n• The set covers all eleven genetics body families, nine head forms, six environmental auras and five personalities. Each card uses the exact sprite exported by the game renderer.\n• This is a range showcase, not a probability sample, a normal hatch-odds claim or a promise of endless mathematical uniqueness. The source profiles, image fingerprints and renderer build are open for checking.\n\nSee the live change: https://mythicalvoid.com/creature-genetics/#meet-the-twelve\n\nMedia note: Branded proof layout, not a playable game scene. Every creature is an exact game-renderer export; the set was deliberately selected to show range and does not represent normal hatch odds.",
+      "summary": "A new source-bound gallery shows twelve creatures made by the running Mythical Void genetics, DNA and pixel-rendering system—not concept art.",
+      "image": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png",
+      "date_published": "2026-08-26T12:00:00.000Z",
+      "tags": [
+        "REAL CREATURE RANGE"
+      ]
+    },
+    {
+      "id": "https://mythicalvoid.com/updates/#signal-015",
+      "url": "https://mythicalvoid.com/updates/#signal-015",
+      "external_url": "https://mythicalvoid.com/playable-now/",
+      "title": "A better standard for showing the game",
+      "content_text": "Mythical Void has withdrawn a technically genuine but visually poor video set, fixed the broken creature render behind it and replaced the public lead with one clear Forest arrival.\n\n• The black square seen in the old footage was a real missing-texture failure. The game now verifies that a creature texture exists before a level can use it.\n• The old vertical, square and wide social videos are withdrawn. Passing technical file checks is no longer treated as visual approval.\n• The new 3.17-second lead is a deliberately selected in-game Mythical Forest arrival. It is clearly labelled as a story moment, not as platforming or combat proof.\n\nSee the live change: https://mythicalvoid.com/playable-now/\n\nMedia note: Captured from the running Mythical Void game using an invented QA state. It is an in-game story moment, not a platforming or combat demonstration.",
+      "summary": "Mythical Void has withdrawn a technically genuine but visually poor video set, fixed the broken creature render behind it and replaced the public lead with one clear Forest arrival.",
+      "image": "https://mythicalvoid.com/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
+      "date_published": "2026-08-26T12:00:00.000Z",
+      "tags": [
+        "VISUAL QUALITY"
+      ]
+    },
+    {
+      "id": "https://mythicalvoid.com/updates/#signal-009",
+      "url": "https://mythicalvoid.com/updates/#signal-009",
+      "external_url": "https://mythicalvoid.com/playable-now/",
+      "title": "See the real game before you play",
+      "content_text": "A new Mythical Void page gives unfamiliar players one clear view of the real browser game, what they do in it and why the project is different before asking them to play.\n\n• The page leads with a short, landscape Mythical Forest arrival recorded directly from the running game and labelled as an in-game story moment.\n• It explains the crash, creature, six realms, restoration, Sanctuary building and Project Beacon choice in plain language, with four deliberately selected game moments as proof.\n• Every Play link goes directly to the free browser game without an account, download, email signup or tracking parameter.\n\nSee the live change: https://mythicalvoid.com/playable-now/\n\nMedia note: Poster captured from the running browser game using an invented test state. It is a story moment, not a platforming or combat demonstration; no player identity or private save is shown.",
+      "summary": "A new Mythical Void page gives unfamiliar players one clear view of the real browser game, what they do in it and why the project is different before asking them to play.",
+      "image": "https://mythicalvoid.com/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
+      "date_published": "2026-08-26T12:00:00.000Z",
+      "tags": [
+        "PLAYABLE NOW"
+      ]
+    },
+    {
       "id": "https://mythicalvoid.com/updates/#signal-008",
       "url": "https://mythicalvoid.com/updates/#signal-008",
       "external_url": "https://mythicalvoid.com/updates/feed.xml",

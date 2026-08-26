@@ -40,4 +40,17 @@ describe('GraphicsEngine creature identity contract', () => {
             );
         });
     });
+
+    test('never hands a missing creature texture to the platforming levels', () => {
+        expect(source).toContain("typeof result === 'string'");
+        expect(source).toContain('this.scene?.textures?.exists(textureName)');
+        expect(source).toContain('drawing a verified fallback creature');
+
+        const platformerSource = fs.readFileSync(
+            path.join(__dirname, '..', 'scenes', 'PlatformerLevelScene.js'),
+            'utf8'
+        );
+        expect(platformerSource).toContain('if (!this.textures.exists(textureName))');
+        expect(platformerSource).toContain("textureName = 'platformerCreature';");
+    });
 });

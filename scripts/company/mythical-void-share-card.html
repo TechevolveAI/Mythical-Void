@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mythical Void sharing preview</title>
+    <style>
+        :root {
+            --night: #070611;
+            --paper: #fff9ed;
+            --mint: #7ce8cf;
+            --gold: #ffd66b;
+            font-family: "Avenir Next", Avenir, Inter, system-ui, sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        html,
+        body {
+            width: 1200px;
+            height: 630px;
+            margin: 0;
+            overflow: hidden;
+            background: var(--night);
+        }
+
+        body {
+            color: var(--paper);
+            background:
+                linear-gradient(90deg, rgba(7, 6, 17, .99) 0%, rgba(7, 6, 17, .94) 37%, rgba(7, 6, 17, .4) 62%, rgba(7, 6, 17, .04) 100%),
+                url('/marketing/mythical-void-creature-universe-hero-v2.webp') center / cover no-repeat;
+        }
+
+        .card {
+            position: relative;
+            display: flex;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 42px 54px 40px;
+            isolation: isolate;
+        }
+
+        .card::after {
+            position: absolute;
+            z-index: -1;
+            inset: 0;
+            content: "";
+            background: radial-gradient(circle at 78% 48%, rgba(164, 93, 255, .18), transparent 35%);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 20px;
+            font-weight: 950;
+            letter-spacing: .14em;
+        }
+
+        .brand img {
+            width: 42px;
+            height: 58px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 20px rgba(168, 93, 255, .55));
+        }
+
+        .message {
+            max-width: 585px;
+            margin-top: 24px;
+        }
+
+        .kicker {
+            margin: 0 0 15px;
+            color: var(--mint);
+            font-size: 17px;
+            font-weight: 950;
+            letter-spacing: .15em;
+        }
+
+        h1 {
+            margin: 0;
+            font-family: "Arial Rounded MT Bold", "Avenir Next", ui-rounded, system-ui, sans-serif;
+            font-size: 82px;
+            line-height: .93;
+            letter-spacing: -.055em;
+            text-wrap: balance;
+        }
+
+        h1 span { color: var(--gold); }
+
+        .promise {
+            max-width: 530px;
+            margin: 22px 0 0;
+            color: #d4cde1;
+            font-size: 24px;
+            font-weight: 650;
+            line-height: 1.32;
+        }
+
+        .footer {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 24px;
+        }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .play {
+            padding: 13px 19px;
+            border-radius: 999px;
+            background: var(--mint);
+            color: #07131a;
+            font-size: 16px;
+            font-weight: 950;
+            letter-spacing: .035em;
+        }
+
+        .url {
+            color: var(--paper);
+            font-size: 17px;
+            font-weight: 900;
+        }
+
+        .art-label {
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, .34);
+            border-radius: 999px;
+            background: rgba(7, 6, 17, .7);
+            color: #e7e0f0;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: .1em;
+        }
+    </style>
+</head>
+<body>
+    <main class="card" aria-label="Mythical Void sharing preview">
+        <div>
+            <div class="brand"><img src="/marketing/mythical-void-emblem-v3.png" alt=""><span>MYTHICAL VOID</span></div>
+            <section class="message">
+                <p class="kicker">FREE CREATURE ADVENTURE</p>
+                <h1>What will <span>you</span> hatch?</h1>
+                <p class="promise">Explore six living realms. Shape Project Beacon.</p>
+            </section>
+        </div>
+        <footer class="footer">
+            <div class="actions"><span class="play">PLAY IN YOUR BROWSER →</span><span class="url">mythicalvoid.com</span></div>
+            <span class="art-label">IMAGINED UNIVERSE ART</span>
+        </footer>
+    </main>
+</body>
+</html>

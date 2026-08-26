@@ -39,7 +39,7 @@ describe('first-session Project Beacon framing', () => {
         expect(hatchText).toMatch(/first contact/i);
         expect(hatchText).toMatch(/living signal/i);
         expect(hatchText).toMatch(/gently/i);
-        expect(hatchText).toMatch(/trusted you/i);
+        expect(hatchText).toMatch(/answered/i);
         expect(hatchText).not.toMatch(/specimen|extract|Earth comes first/i);
     });
 

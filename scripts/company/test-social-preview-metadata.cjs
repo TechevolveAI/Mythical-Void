@@ -38,10 +38,11 @@ function run(name, mutateManifest = value => value, mutateSite = () => {}) {
 try {
     assert.strictEqual(run('valid').status, 0);
     assert.notStrictEqual(run('tracked-image', manifest => { manifest.pages[0].imageUrl += '?utm_source=test'; }).status, 0);
-    assert.notStrictEqual(run('wrong-width', manifest => { manifest.pages[0].width = 1200; }).status, 0);
+    assert.notStrictEqual(run('wrong-width', manifest => { manifest.pages[0].width = 1199; }).status, 0);
     assert.notStrictEqual(run('unsafe-generated-label', manifest => { manifest.pages.find(page => page.classification === 'ai_generated_marketing_illustration').disclosure = 'Beautiful game image.'; }).status, 0);
     assert.notStrictEqual(run('missing-nasa-boundary', manifest => { manifest.pages.find(page => /nasa/i.test(page.classification)).disclosure = 'NASA learning image.'; }).status, 0);
     assert.notStrictEqual(run('missing-founder-identity-boundary', manifest => { manifest.pages.find(page => /founder_story/i.test(page.classification)).disclosure = 'Founder artwork with a game image.'; }).status, 0);
+    assert.notStrictEqual(run('missing-renderer-proof-boundary', manifest => { manifest.pages.find(page => page.route === '/creature-field-guide/').disclosure = 'A collection of creatures.'; }).status, 0);
     assert.notStrictEqual(run('hidden-press-limit', manifest => { manifest.knownLimitations = []; }).status, 0);
     assert.notStrictEqual(run('opened-social-authority', manifest => { manifest.authority.autonomousSocialPostingAuthorized = true; }).status, 0);
     assert.notStrictEqual(run('missing-twitter-alt', value => value, (site, manifest) => {
@@ -58,7 +59,7 @@ try {
         const page = manifest.pages.find(item => item.route === '/nasa-space-science/');
         fs.rmSync(path.join(site, page.imagePath));
     }).status, 0);
-    console.log('Social preview metadata safeguards passed (11 failure cases).');
+    console.log('Social preview metadata safeguards passed (12 failure cases).');
 } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
 }

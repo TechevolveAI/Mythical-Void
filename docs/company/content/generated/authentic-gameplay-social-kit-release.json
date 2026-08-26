@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "AUTHENTIC-GAMEPLAY-SOCIAL-KIT-2026-08-26",
+  "state": "withdrawn_visual_quality_failed_do_not_publish",
+  "withdrawalReason": "Technical origin checks passed, but human visual review failed: the creature render was broken and the chosen moments were weak.",
+  "purpose": "Give future Mythical Void channels, adult creators and press truthful gameplay video in the three shapes most likely to be useful without waiting for an official social account.",
+  "publicDestination": "https://mythicalvoid.com/press/#real-gameplay-social-video",
+  "source": {
+    "path": "public/press/gameplay-video/mythical-forest-authentic-gameplay.mp4",
+    "sha256": "3b9aa5e41bef7f9b2b5529a3c3d3e1a3cc6448676cb0e2643d0e61bd6c418a8c",
+    "durationSeconds": 19.58,
+    "capturedFromRunningBuild": true,
+    "generatedFramesUsed": false,
+    "privatePlayerDataUsed": false
+  },
+  "assets": [
+    {
+      "format": "vertical",
+      "path": "public/press/social-video/mythical-void-real-gameplay-vertical.mp4",
+      "publicUrl": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-vertical.mp4",
+      "dimensions": "1080x1920",
+      "durationSeconds": 19.58,
+      "sha256": "9b531598a59d2b71fd9012a1e015267452159e3515dbd942c676ca03d284874c",
+      "posterSha256": "bbc4c8cc7369076632913835c29a04b9972b57b7e2c6d86a2e17efb05dc3fd32"
+    },
+    {
+      "format": "square",
+      "path": "public/press/social-video/mythical-void-real-gameplay-square.mp4",
+      "publicUrl": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-square.mp4",
+      "dimensions": "1080x1080",
+      "durationSeconds": 19.58,
+      "sha256": "b5dba4bab6ae59a6e0fd22b5d250cb8ea26d8c9f45d4f7cf27523fa79eed927b",
+      "posterSha256": "6203ff498d5eac075b015f454d3aaf0ea7041fd9edd61c2243526e3b4f3f1433"
+    },
+    {
+      "format": "wide",
+      "path": "public/press/social-video/mythical-void-real-gameplay-wide.mp4",
+      "publicUrl": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-wide.mp4",
+      "dimensions": "1920x1080",
+      "durationSeconds": 19.58,
+      "sha256": "e7c68a2343511786bd9486c54b98c9d1b39519e76944c761ac25dcf0bd718047",
+      "posterSha256": "06eaf53d90432a894c34d1268bc1aabe66719f34d6bd89a908a391abf656941c"
+    }
+  ],
+  "presentationBoundary": {
+    "fullGameplayFramePreserved": true,
+    "surroundingBrandLayoutIsGameplay": false,
+    "generatedMotionUsed": false,
+    "replacementSceneryUsed": false,
+    "replacementInterfaceUsed": false,
+    "replacementAudioUsed": false,
+    "audio": "none"
+  },
+  "captions": {
+    "path": "public/press/social-video/authentic-gameplay-caption-pack.json",
+    "draftCount": 3,
+    "cleanDestination": "https://mythicalvoid.com/playable-now/",
+    "trackingParametersPermitted": false,
+    "absoluteCreatureUniquenessClaimed": false,
+    "nasaEndorsementClaimed": false,
+    "childPhotoNameQuoteContactOrIdentifyingDetailUsed": false
+  },
+  "discoverability": {
+    "pressRoomSectionPrepared": true,
+    "pressAssetManifestPrepared": true,
+    "signalLogEntry": "SIGNAL-010",
+    "rssAndJsonFeedIncluded": true
+  },
+  "verification": {
+    "allMediaFingerprintsMatched": true,
+    "deterministicRebuildManifestMatched": true,
+    "allVideosH264Yuv420p": true,
+    "allVideosSilent": true,
+    "allDurationsSeconds": 19.58,
+    "posterVisualReviewsPassed": 3,
+    "motionContactSheetReviewPassed": true,
+    "squareTextClippingObserved": false,
+    "desktopPressRoomVisualReviewPassed": true,
+    "phonePressRoomVisualReviewPassed": true,
+    "phoneWidth": 390,
+    "phoneHorizontalOverflowObserved": false,
+    "browserVideoCount": 3,
+    "browserVideoDurationSeconds": 19.583333,
+    "captionActionsVisibleOnPhone": true,
+    "fullTestSuitesPassed": 181,
+    "fullTestsPassed": 1655,
+    "productionUrlsVerified": false
+  },
+  "authority": {
+    "ownedPressRoomPublicationAuthorized": false,
+    "externalSocialPublicationAuthorized": false,
+    "creatorOutreachSendingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "publicRepliesAuthorized": false,
+    "kevinApprovalRequiredBeforeExternalPublication": true,
+    "externalActionPerformed": false
+  }
+}

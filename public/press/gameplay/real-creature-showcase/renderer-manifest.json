@@ -1,0 +1,408 @@
+{
+  "schemaVersion": 1,
+  "state": "captured_from_real_running_renderer_waiting_for_release_review",
+  "sourceCommit": "5f5c48cd89678249ca44592303eebed0e33251ca",
+  "sourceRoute": "/play/?testHatchGallery=showcase",
+  "captureMethod": "First-party headless browser capture from the production genetics, DNA and Phaser sprite renderer.",
+  "selectedFromEngineRuns": 1000,
+  "selectionBoundary": "Twelve profiles were selected for breadth across deliberately balanced rarity runs. This is not a probability sample or an absolute uniqueness claim.",
+  "rights": "First-party Mythical Void game renderer output.",
+  "privacy": "No player identity, child identity, account, message, notification or personal save is used.",
+  "presentationBoundary": "Every creature image is exported from the real pixel renderer. The gallery frame is a branded proof layout, not a playable game scene.",
+  "generatedMarketingArtworkUsed": false,
+  "gallery": {
+    "filename": "real-creature-showcase-wide.png",
+    "width": 1440,
+    "height": 900,
+    "bytes": 347138,
+    "sha256": "597ae1f4f4507ce071857c20b70407baa451ec0802602616d14c1c2ddfafaf11"
+  },
+  "creatures": [
+    {
+      "id": "MV-0010",
+      "geneticsId": "showcase-0010",
+      "dnaId": "showcase-dna-0010",
+      "species": "cosmicGuardian",
+      "rarity": "legendary",
+      "bodyArchetype": "quadruped",
+      "headArchetype": "canine",
+      "hybridTag": "dual-hybrid",
+      "personality": "gentle",
+      "affinity": "crystal",
+      "aura": "storm",
+      "mutations": [
+        {
+          "type": "gem_body",
+          "variant": "ruby",
+          "intensity": 0.4167684606043622,
+          "inherited": false,
+          "dominance": 0.48148937956430016
+        },
+        {
+          "type": "elemental_aura",
+          "variant": "lightning",
+          "intensity": 0.49475860230159013,
+          "inherited": false,
+          "dominance": 0.8154036407824605
+        },
+        {
+          "type": "prismatic_sheen",
+          "variant": "opalescent",
+          "intensity": 0.7869174343766645,
+          "inherited": false,
+          "dominance": 0.6045339509379118
+        }
+      ],
+      "shiny": true,
+      "textureName": "creature_dna_showcase-dna-0010_0_baby",
+      "imageFile": "mv-0010-real-render.png",
+      "width": 100,
+      "height": 85,
+      "filename": "mv-0010-real-render.png",
+      "bytes": 13396,
+      "sha256": "8b22dad1766ae283db7d0f633ebb3346c190fa74d733e7af9e20103227384037"
+    },
+    {
+      "id": "MV-0715",
+      "geneticsId": "showcase-0715",
+      "dnaId": "showcase-dna-0715",
+      "species": "stellarWyrm",
+      "rarity": "legendary",
+      "bodyArchetype": "serpentine",
+      "headArchetype": "simian",
+      "hybridTag": "single-species",
+      "personality": "curious",
+      "affinity": "nebula",
+      "aura": "forest",
+      "mutations": [
+        {
+          "type": "extra_eyes",
+          "variant": "floating",
+          "intensity": 0.7900757429422811,
+          "inherited": false,
+          "dominance": 0.32546179932542146
+        },
+        {
+          "type": "inanimate_markings",
+          "variant": "circuits",
+          "intensity": 0.4540183222386986,
+          "inherited": false,
+          "dominance": 0.5344589828979224
+        }
+      ],
+      "shiny": false,
+      "textureName": "creature_dna_showcase-dna-0715_0_baby",
+      "imageFile": "mv-0715-real-render.png",
+      "width": 75,
+      "height": 120,
+      "filename": "mv-0715-real-render.png",
+      "bytes": 11370,
+      "sha256": "d49cd133185a56c4900562a2844a2a4c0d0eca2a7a14b021d4dbc85401af4283"
+    },
+    {
+      "id": "MV-0698",
+      "geneticsId": "showcase-0698",
+      "dnaId": "showcase-dna-0698",
+      "species": "nebulaSprite",
+      "rarity": "rare",
+      "bodyArchetype": "blob",
+      "headArchetype": "avian",
+      "hybridTag": "dual-hybrid",
+      "personality": "curious",
+      "affinity": "void",
+      "aura": "cosmic",
+      "mutations": [
+        {
+          "type": "scale_armor",
+          "variant": "reptile",
+          "intensity": 0.3511351085733622,
+          "inherited": false,
+          "dominance": 0.6923785198945551
+        },
+        {
+          "type": "surreal_appendages",
+          "variant": "flames",
+          "intensity": 0.6059678166173399,
+          "inherited": false,
+          "dominance": 0.3936436397954821
+        }
+      ],
+      "shiny": false,
+      "textureName": "creature_dna_showcase-dna-0698_0_baby",
+      "imageFile": "mv-0698-real-render.png",
+      "width": 90,
+      "height": 90,
+      "filename": "mv-0698-real-render.png",
+      "bytes": 9147,
+      "sha256": "af7de8bf586bbcc029312359674320164941d495008f1aeb5d994931a2464704"
+    },
+    {
+      "id": "MV-0153",
+      "geneticsId": "showcase-0153",
+      "dnaId": "showcase-dna-0153",
+      "species": "crystalDrake",
+      "rarity": "rare",
+      "bodyArchetype": "biped",
+      "headArchetype": "cervine",
+      "hybridTag": "triple-hybrid",
+      "personality": "playful",
+      "affinity": "moon",
+      "aura": "tidal",
+      "mutations": [
+        {
+          "type": "cosmic_horns",
+          "variant": "branching",
+          "intensity": 0.5634136686101556,
+          "inherited": false,
+          "dominance": 0.7657789855264128
+        }
+      ],
+      "shiny": true,
+      "textureName": "creature_dna_showcase-dna-0153_0_baby",
+      "imageFile": "mv-0153-real-render.png",
+      "width": 80,
+      "height": 110,
+      "filename": "mv-0153-real-render.png",
+      "bytes": 11101,
+      "sha256": "8483ea6ec1096a18e9a8ecfa13f089a00b890e228b833e115026c06343bff0c2"
+    },
+    {
+      "id": "MV-0813",
+      "geneticsId": "showcase-0813",
+      "dnaId": "showcase-dna-0813",
+      "species": "auroraPhoenix",
+      "rarity": "rare",
+      "bodyArchetype": "winged",
+      "headArchetype": "feline",
+      "hybridTag": "dual-hybrid",
+      "personality": "playful",
+      "affinity": "star",
+      "aura": "shadow-soft",
+      "mutations": [],
+      "shiny": false,
+      "textureName": "creature_dna_showcase-dna-0813_0_baby",
+      "imageFile": "mv-0813-real-render.png",
+      "width": 105,
+      "height": 100,
+      "filename": "mv-0813-real-render.png",
+      "bytes": 12367,
+      "sha256": "fd1e0112ba339cd0ccbefd3dd3c66f3a354ef65b564883ef08814c3e478a4b2d"
+    },
+    {
+      "id": "MV-0249",
+      "geneticsId": "showcase-0249",
+      "dnaId": "showcase-dna-0249",
+      "species": "crystalElemental",
+      "rarity": "epic",
+      "bodyArchetype": "serpentine",
+      "headArchetype": "aquatic",
+      "hybridTag": "single-species",
+      "personality": "gentle",
+      "affinity": "crystal",
+      "aura": "forest",
+      "mutations": [
+        {
+          "type": "feather_mane",
+          "variant": "mohawk",
+          "intensity": 0.3740570311900228,
+          "inherited": false,
+          "dominance": 0.46126717971637843
+        },
+        {
+          "type": "nebula_trails",
+          "variant": "flowing",
+          "intensity": 0.34672833741642534,
+          "inherited": false,
+          "dominance": 0.5689380400814116
+        }
+      ],
+      "shiny": false,
+      "textureName": "creature_dna_showcase-dna-0249_0_baby",
+      "imageFile": "mv-0249-real-render.png",
+      "width": 75,
+      "height": 120,
+      "filename": "mv-0249-real-render.png",
+      "bytes": 8133,
+      "sha256": "fca0d62e9ba7ace54c062870a8370bd5e6ef8c28d1b67b9876346f8429b80e8c"
+    },
+    {
+      "id": "MV-0259",
+      "geneticsId": "showcase-0259",
+      "dnaId": "showcase-dna-0259",
+      "species": "voidStalker",
+      "rarity": "epic",
+      "bodyArchetype": "biped",
+      "headArchetype": "avian",
+      "hybridTag": "triple-hybrid",
+      "personality": "gentle",
+      "affinity": "nebula",
+      "aura": "cosmic",
+      "mutations": [
+        {
+          "type": "circuit_veins",
+          "variant": "gold_glow",
+          "intensity": 0.4209688229719177,
+          "inherited": false,
+          "dominance": 0.45709813074208794
+        },
+        {
+          "type": "bioluminescence",
+          "variant": "patches",
+          "intensity": 0.32536786126438527,
+          "inherited": false,
+          "dominance": 0.30541883627884087
+        }
+      ],
+      "shiny": true,
+      "textureName": "creature_dna_showcase-dna-0259_0_baby",
+      "imageFile": "mv-0259-real-render.png",
+      "width": 80,
+      "height": 110,
+      "filename": "mv-0259-real-render.png",
+      "bytes": 11502,
+      "sha256": "e751debe5edb0cecf67d2e70f154fa4c9ab147a9f863c753133c37b40e3036c5"
+    },
+    {
+      "id": "MV-0794",
+      "geneticsId": "showcase-0794",
+      "dnaId": "showcase-dna-0794",
+      "species": "nebulaSprite",
+      "rarity": "epic",
+      "bodyArchetype": "blob",
+      "headArchetype": "reptile",
+      "hybridTag": "triple-hybrid",
+      "personality": "energetic",
+      "affinity": "void",
+      "aura": "ember",
+      "mutations": [
+        {
+          "type": "rock_texture",
+          "variant": "rough",
+          "intensity": 0.7514310118975118,
+          "inherited": false,
+          "dominance": 0.4425856456160545
+        }
+      ],
+      "shiny": false,
+      "textureName": "creature_dna_showcase-dna-0794_0_baby",
+      "imageFile": "mv-0794-real-render.png",
+      "width": 90,
+      "height": 90,
+      "filename": "mv-0794-real-render.png",
+      "bytes": 6775,
+      "sha256": "431eda7603cc5e8c0c09510ce8bd12aa98d1d474efa502b77702f3e3b47ac1cf"
+    },
+    {
+      "id": "MV-0567",
+      "geneticsId": "showcase-0567",
+      "dnaId": "showcase-dna-0567",
+      "species": "crystalDrake",
+      "rarity": "uncommon",
+      "bodyArchetype": "blob",
+      "headArchetype": "rodent",
+      "hybridTag": "glitchy",
+      "personality": "wise",
+      "affinity": "crystal",
+      "aura": "cosmic",
+      "mutations": [],
+      "shiny": false,
+      "textureName": "creature_dna_showcase-dna-0567_0_baby",
+      "imageFile": "mv-0567-real-render.png",
+      "width": 90,
+      "height": 90,
+      "filename": "mv-0567-real-render.png",
+      "bytes": 9033,
+      "sha256": "64bbdabcc0a4280685c5dbc98c228a71755cee8ab08e9108939b8edf9b51480d"
+    },
+    {
+      "id": "MV-0257",
+      "geneticsId": "showcase-0257",
+      "dnaId": "showcase-dna-0257",
+      "species": "cosmicGuardian",
+      "rarity": "uncommon",
+      "bodyArchetype": "quadruped",
+      "headArchetype": "insectoid",
+      "hybridTag": "dual-hybrid",
+      "personality": "energetic",
+      "affinity": "crystal",
+      "aura": "ember",
+      "mutations": [
+        {
+          "type": "crystal_growths",
+          "variant": "spires",
+          "intensity": 0.6720227042213083,
+          "inherited": false,
+          "dominance": 0.8919188451021909
+        }
+      ],
+      "shiny": false,
+      "textureName": "creature_dna_showcase-dna-0257_0_baby",
+      "imageFile": "mv-0257-real-render.png",
+      "width": 100,
+      "height": 85,
+      "filename": "mv-0257-real-render.png",
+      "bytes": 9269,
+      "sha256": "5dd7af501034f6d002a829b494f47a713529ab3031ad09460bc0164287a57b0b"
+    },
+    {
+      "id": "MV-0171",
+      "geneticsId": "showcase-0171",
+      "dnaId": "showcase-dna-0171",
+      "species": "crystalDrake",
+      "rarity": "common",
+      "bodyArchetype": "biped",
+      "headArchetype": "avian",
+      "hybridTag": "single-species",
+      "personality": "playful",
+      "affinity": "crystal",
+      "aura": "tidal",
+      "mutations": [
+        {
+          "type": "floating_parts",
+          "variant": "rings",
+          "intensity": 0.6855917833279819,
+          "inherited": false,
+          "dominance": 0.7604960327502339
+        }
+      ],
+      "shiny": false,
+      "textureName": "creature_dna_showcase-dna-0171_0_baby",
+      "imageFile": "mv-0171-real-render.png",
+      "width": 80,
+      "height": 110,
+      "filename": "mv-0171-real-render.png",
+      "bytes": 6398,
+      "sha256": "b24aeedf8fff64bda5ae5b3948dd17f9ffaf84de10316419dc83d3a086940be4"
+    },
+    {
+      "id": "MV-0846",
+      "geneticsId": "showcase-0846",
+      "dnaId": "showcase-dna-0846",
+      "species": "crystalElemental",
+      "rarity": "common",
+      "bodyArchetype": "blob",
+      "headArchetype": "feline",
+      "hybridTag": "single-species",
+      "personality": "wise",
+      "affinity": "moon",
+      "aura": "forest",
+      "mutations": [
+        {
+          "type": "void_patches",
+          "variant": "medium",
+          "intensity": 0.5066059448989109,
+          "inherited": false,
+          "dominance": 0.5708998412825167
+        }
+      ],
+      "shiny": false,
+      "textureName": "creature_dna_showcase-dna-0846_0_baby",
+      "imageFile": "mv-0846-real-render.png",
+      "width": 90,
+      "height": 90,
+      "filename": "mv-0846-real-render.png",
+      "bytes": 7039,
+      "sha256": "ebd4f8c89b6f97165ee6696cce4b8806f319fd0d5a4c42d6ced71777f61cad33"
+    }
+  ]
+}

@@ -51,6 +51,17 @@
   status = 200
 
 [[redirects]]
+  # Keep the real-gameplay discovery page ahead of the SPA fallback.
+  from = "/playable-now"
+  to = "/playable-now/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/playable-now/"
+  to = "/playable-now/index.html"
+  status = 200
+
+[[redirects]]
   # Keep the public Signal Log ahead of the SPA fallback.
   from = "/updates"
   to = "/updates/index.html"

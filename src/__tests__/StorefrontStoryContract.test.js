@@ -111,7 +111,7 @@ describe('storefront Project Beacon story contract', () => {
 
     test('publishes absolute social media assets and route-aware canonical metadata', () => {
         expect(metadata).toContain(
-            'content="https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp"'
+            'content="https://mythicalvoid.com/press/social/mythical-void-share-wide.png"'
         );
         expect(metadata).toContain(
             '<link rel="canonical" href="https://mythicalvoid.com/">'
@@ -187,7 +187,10 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('This is what players really see.');
         expect(storefront).toContain('/press/gameplay/manifest.json');
         expect(storefront).toContain('/press/gameplay-video/manifest.json');
-        expect(storefront).toContain('REAL GAMEPLAY VIDEO');
+        expect(storefront).toContain('IN-GAME STORY MOMENT · 3.17 SECONDS');
+        expect(storefront).toContain('The previous social video pack is withdrawn.');
+        expect(storefront).not.toContain('id="real-gameplay-social-video"');
+        expect(storefront).not.toContain('id="creator-download-kit"');
         expect(storefront).toContain('REAL GAME + REAL NASA IMAGE');
         expect(pressAssets.gameplayProofManifest).toBe(
             'https://mythicalvoid.com/press/gameplay/manifest.json'
@@ -195,7 +198,46 @@ describe('storefront Project Beacon story contract', () => {
         expect(pressAssets.gameplayVideoProofManifest).toBe(
             'https://mythicalvoid.com/press/gameplay-video/manifest.json'
         );
-        expect(pressAssets.assets).toHaveLength(17);
+        expect(pressAssets.assets).toHaveLength(35);
+        expect(pressAssets.assets).toContainEqual(expect.objectContaining({
+            name: 'Mythical Void primary sharing preview',
+            kind: 'branded_share_preview_with_ai_generated_marketing_illustration',
+            dimensions: '1200x630'
+        }));
+        expect(pressAssets.assets).toContainEqual(expect.objectContaining({
+            name: 'Real creature hatch reveal',
+            url: 'https://mythicalvoid.com/press/gameplay/creature-cosmic-egg-reveal.png',
+            kind: 'authentic_running_build_screenshot',
+            state: 'withdrawn_visual_quality_failed_do_not_publish'
+        }));
+        expect(storefront).not.toContain('id="real-creature-hatch"');
+        expect(pressAssets.assets.filter(asset => [
+            'Mythical Forest phone gameplay',
+            'Village Heart builder'
+        ].includes(asset.name))).toEqual(expect.arrayContaining([
+            expect.objectContaining({ state: 'withdrawn_visual_quality_failed_do_not_publish' }),
+            expect.objectContaining({ state: 'withdrawn_visual_quality_failed_do_not_publish' })
+        ]));
+        expect(storefront).toContain('id="real-creature-range"');
+        expect(storefront).toContain('Twelve real hatches. One running engine.');
+        expect(pressAssets.realCreatureShowcase).toEqual(expect.objectContaining({
+            selectedFromEngineRuns: 1000,
+            selectedCreatures: 12
+        }));
+        expect(pressAssets.assets.filter(asset => (
+            asset.kind === 'authentic_running_game_renderer_export'
+        ))).toHaveLength(12);
+        expect(pressAssets.assets.filter(asset => (
+            asset.kind === 'branded_renderer_proof_layout_with_authentic_game_sprite_exports'
+        ))).toHaveLength(1);
+        expect(pressAssets.authenticGameplaySocialKit).toEqual(expect.objectContaining({
+            manifest: 'https://mythicalvoid.com/press/social-video/manifest.json',
+            captionPack: 'https://mythicalvoid.com/press/social-video/authentic-gameplay-caption-pack.json',
+            state: 'withdrawn_visual_quality_failed_do_not_publish'
+        }));
+        expect(pressAssets.assets.filter(asset => (
+            asset.kind === 'branded_social_video_with_authentic_running_build_gameplay'
+        ))).toHaveLength(3);
         expect(pressAssets.assets.filter(asset => (
             asset.kind === 'branded_social_artwork_with_authentic_gameplay_frame_and_nasa_public_image'
         ))).toHaveLength(2);
@@ -207,12 +249,22 @@ describe('storefront Project Beacon story contract', () => {
         expect(pressAssets.educatorResources[0].disclosure).toContain('NASA does not endorse');
         expect(pressAssets.assets.filter(asset => (
             asset.kind === 'authentic_running_build_screenshot'
-        ))).toHaveLength(5);
+        ))).toHaveLength(6);
         expect(pressAssets.assets.filter(asset => (
-            asset.kind === 'authentic_running_build_gameplay_video'
+            asset.kind === 'authentic_running_build_story_moment'
         ))).toHaveLength(1);
-        expect(pressAssets.assets[0].kind).toBe('authentic_running_build_gameplay_video');
-        expect(gameplayManifest.captures).toHaveLength(12);
+        expect(pressAssets.assets[0].kind).toBe('authentic_running_build_story_moment');
+        expect(gameplayManifest.captures).toHaveLength(14);
+        expect(gameplayManifest.captures).toContainEqual(expect.objectContaining({
+            id: 'GP-013',
+            publicPath: '/press/gameplay/creature-cosmic-egg-reveal.png',
+            classification: 'authentic_running_build_screenshot'
+        }));
+        expect(gameplayManifest.captures).toContainEqual(expect.objectContaining({
+            id: 'GP-014',
+            publicPath: '/press/gameplay/mythical-forest-arrival-wide.png',
+            classification: 'authentic_running_build_story_screenshot'
+        }));
         expect(gameplayManifest.sourceCommit).toMatch(/^[0-9a-f]{40}$/);
         expect(gameplayManifest.captureSourcePolicy).toContain(
             'Each capture has its own sourceCommit'
@@ -227,7 +279,7 @@ describe('storefront Project Beacon story contract', () => {
             'Only assets labelled authentic_running_build_screenshot may be described as gameplay screenshots.'
         );
         expect(gameplayVideoManifest.asset.classification).toBe(
-            'authentic_running_build_gameplay_video'
+            'authentic_running_build_story_moment'
         );
         expect(gameplayVideoManifest.asset.durationSeconds).toBeGreaterThanOrEqual(3);
         expect(gameplayVideoManifest.sourceCommit).toMatch(/^[0-9a-f]{40}$/);

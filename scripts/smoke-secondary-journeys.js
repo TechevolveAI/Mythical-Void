@@ -431,6 +431,224 @@ async function captureGameplayStill(session, filename) {
     return destination;
 }
 
+async function smokeRealCreatureShowcase(session, exceptions) {
+    if (!SMOKE_CAPTURE_DIR) {
+        throw new Error('SMOKE_CAPTURE_DIR is required for hatch-gallery mode');
+    }
+    await navigate(
+        session,
+        `${BASE_URL}/play/?testHatchGallery=showcase`
+    );
+    const exported = await waitFor(
+        () => evaluate(session, `(() => {
+            const manifestElement = document.getElementById('hatch-qa-manifest');
+            const exportElement = document.getElementById('hatch-qa-exports');
+            if (!manifestElement || !exportElement) return null;
+            const manifest = JSON.parse(manifestElement.textContent || '[]');
+            const images = JSON.parse(exportElement.textContent || '[]');
+            if (manifest.length !== 12 || images.length !== 12) return null;
+            return { manifest, images };
+        })()`),
+        { timeoutMs: 15000, message: 'twelve real rendered creature exports' }
+    );
+    if (exceptions.length) {
+        throw new Error(
+            `Real-creature showcase raised browser exceptions: ${exceptions.join(' | ')}`
+        );
+    }
+    await evaluate(session, `(() => {
+        document.querySelectorAll(
+            '.home-start-fallback, [data-mythical-home-start]'
+        ).forEach(element => element.remove());
+        return document.querySelectorAll(
+            '.home-start-fallback, [data-mythical-home-start]'
+        ).length;
+    })()`);
+    await delay(250);
+
+    fs.mkdirSync(SMOKE_CAPTURE_DIR, { recursive: true });
+    const imageRecords = exported.images.map(image => {
+        if (!/^data:image\/png;base64,/.test(image.dataUrl || '')) {
+            throw new Error(`Missing PNG export for ${image.id}`);
+        }
+        const bytes = Buffer.from(image.dataUrl.split(',')[1], 'base64');
+        const filename = String(image.imageFile || 'missing.png');
+        fs.writeFileSync(path.join(SMOKE_CAPTURE_DIR, filename), bytes);
+        return {
+            ...Object.fromEntries(
+                Object.entries(image).filter(([key]) => key !== 'dataUrl')
+            ),
+            filename,
+            bytes: bytes.length,
+            sha256: require('crypto').createHash('sha256').update(bytes).digest('hex')
+        };
+    });
+    const widePath = await captureGameplayStill(
+        session,
+        'real-creature-showcase-wide.png'
+    );
+    const wideBytes = fs.readFileSync(widePath);
+    const sourceCommit = spawnSync('git', ['rev-parse', 'HEAD'], {
+        cwd: path.resolve(__dirname, '..'),
+        encoding: 'utf8'
+    }).stdout.trim();
+    const rendererManifest = {
+        schemaVersion: 1,
+        state: 'captured_from_real_running_renderer_waiting_for_release_review',
+        sourceCommit,
+        sourceRoute: '/play/?testHatchGallery=showcase',
+        captureMethod: 'First-party headless browser capture from the production genetics, DNA and Phaser sprite renderer.',
+        selectedFromEngineRuns: 1000,
+        selectionBoundary: 'Twelve profiles were selected for breadth across deliberately balanced rarity runs. This is not a probability sample or an absolute uniqueness claim.',
+        rights: 'First-party Mythical Void game renderer output.',
+        privacy: 'No player identity, child identity, account, message, notification or personal save is used.',
+        presentationBoundary: 'Every creature image is exported from the real pixel renderer. The gallery frame is a branded proof layout, not a playable game scene.',
+        generatedMarketingArtworkUsed: false,
+        gallery: {
+            filename: 'real-creature-showcase-wide.png',
+            width: SMOKE_VIEWPORT_WIDTH,
+            height: SMOKE_VIEWPORT_HEIGHT,
+            bytes: wideBytes.length,
+            sha256: require('crypto').createHash('sha256').update(wideBytes).digest('hex')
+        },
+        creatures: imageRecords
+    };
+    fs.writeFileSync(
+        path.join(SMOKE_CAPTURE_DIR, 'renderer-manifest.json'),
+        `${JSON.stringify(rendererManifest, null, 2)}\n`
+    );
+    return {
+        profileCount: exported.manifest.length,
+        imageCount: imageRecords.length,
+        galleryBytes: wideBytes.length,
+        gallerySha256: rendererManifest.gallery.sha256,
+        sourceCommit
+    };
+}
+
+async function smokeCreatureShowcasePage(session, exceptions) {
+    if (!SMOKE_CAPTURE_DIR) {
+        throw new Error('SMOKE_CAPTURE_DIR is required for creature-showcase-page mode');
+    }
+    await session.call('Page.navigate', {
+        url: `${BASE_URL}/creature-genetics/index.html`
+    });
+    await waitFor(
+        () => evaluate(session, 'document.readyState === "complete"'),
+        { message: 'creature showcase page load' }
+    );
+    await evaluate(session, `(() => {
+        document.querySelectorAll('img[loading="lazy"]').forEach(image => {
+            image.loading = 'eager';
+        });
+        scrollTo(0, document.documentElement.scrollHeight);
+        return true;
+    })()`);
+    await delay(350);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const cards = document.querySelectorAll('.creature-specimen').length;
+            const imagesReady = [...document.images]
+                .every(image => image.complete && image.naturalWidth > 0);
+            return cards === 12 && imagesReady ? { cards, imagesReady } : null;
+        })()`),
+        { timeoutMs: 10000, message: 'creature showcase cards and images' }
+    );
+    const layout = await evaluate(session, `(() => {
+        document.documentElement.style.scrollBehavior = 'auto';
+        scrollTo(0, 0);
+        document.querySelector('.analytics-choice')?.remove();
+        const cardCount = document.querySelectorAll('.creature-specimen').length;
+        const brokenImages = [...document.images]
+            .filter(image => !image.complete || image.naturalWidth === 0)
+            .map(image => image.getAttribute('src'));
+        return {
+            viewport: { width: innerWidth, height: innerHeight },
+            cardCount,
+            brokenImages,
+            horizontalOverflow: document.documentElement.scrollWidth > innerWidth + 1,
+            heading: document.querySelector('h1')?.textContent?.trim() || '',
+            gridColumns: getComputedStyle(document.querySelector('.creature-showcase-grid')).gridTemplateColumns
+        };
+    })()`);
+    if (exceptions.length) {
+        throw new Error(`Creature showcase page raised browser exceptions: ${exceptions.join(' | ')}`);
+    }
+    if (layout.cardCount !== 12 || layout.brokenImages.length || layout.horizontalOverflow) {
+        throw new Error(`Creature showcase page layout failed: ${JSON.stringify(layout)}`);
+    }
+    await delay(150);
+    await captureGameplayStill(
+        session,
+        `creature-showcase-page-${SMOKE_VIEWPORT_WIDTH}x${SMOKE_VIEWPORT_HEIGHT}.png`
+    );
+    return layout;
+}
+
+async function smokeCreatureFieldGuidePage(session, exceptions) {
+    if (!SMOKE_CAPTURE_DIR) {
+        throw new Error('SMOKE_CAPTURE_DIR is required for creature-field-guide-page mode');
+    }
+    await session.call('Page.navigate', {
+        url: `${BASE_URL}/creature-field-guide/index.html`
+    });
+    await waitFor(
+        () => evaluate(session, 'document.readyState === "complete"'),
+        { message: 'creature field guide page load' }
+    );
+    await evaluate(session, `(() => {
+        document.querySelectorAll('img[loading="lazy"]').forEach(image => {
+            image.loading = 'eager';
+        });
+        scrollTo(0, document.documentElement.scrollHeight);
+        return true;
+    })()`);
+    await delay(450);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const realms = document.querySelectorAll('[data-field-realm]').length;
+            const cards = document.querySelectorAll('.field-sighting').length;
+            const imagesReady = [...document.images]
+                .every(image => image.complete && image.naturalWidth > 0);
+            return realms === 6 && cards === 12 && imagesReady
+                ? { realms, cards, imagesReady }
+                : null;
+        })()`),
+        { timeoutMs: 10000, message: 'creature field guide realms, cards and images' }
+    );
+    const layout = await evaluate(session, `(() => {
+        document.documentElement.style.scrollBehavior = 'auto';
+        scrollTo(0, 0);
+        document.querySelector('.analytics-choice')?.remove();
+        const brokenImages = [...document.images]
+            .filter(image => !image.complete || image.naturalWidth === 0)
+            .map(image => image.getAttribute('src'));
+        const firstCard = document.querySelector('.field-sighting');
+        return {
+            viewport: { width: innerWidth, height: innerHeight },
+            realmCount: document.querySelectorAll('[data-field-realm]').length,
+            cardCount: document.querySelectorAll('.field-sighting').length,
+            brokenImages,
+            horizontalOverflow: document.documentElement.scrollWidth > innerWidth + 1,
+            heading: document.querySelector('h1')?.textContent?.trim() || '',
+            firstCardColumns: firstCard ? getComputedStyle(firstCard).gridTemplateColumns : '',
+            boundaryVisible: Boolean(document.querySelector('.field-boundary-card'))
+        };
+    })()`);
+    if (exceptions.length) {
+        throw new Error(`Creature field guide page raised browser exceptions: ${exceptions.join(' | ')}`);
+    }
+    if (layout.realmCount !== 6 || layout.cardCount !== 12 || layout.brokenImages.length || layout.horizontalOverflow || !layout.boundaryVisible) {
+        throw new Error(`Creature field guide page layout failed: ${JSON.stringify(layout)}`);
+    }
+    await delay(150);
+    await captureGameplayStill(
+        session,
+        `creature-field-guide-page-${SMOKE_VIEWPORT_WIDTH}x${SMOKE_VIEWPORT_HEIGHT}.png`
+    );
+    return layout;
+}
+
 async function startGameplayVideo(session) {
     if (!SMOKE_VIDEO_PATH || activeVideoCapture) return activeVideoCapture;
     if (!SMOKE_VIDEO_PATH.endsWith('.mp4')) {
@@ -2999,6 +3217,17 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             mobileControls: scene?.platformerControlsVisible === true,
             interactiveCount: scene?.input?._list?.length || 0,
             displayCount: scene?.children?.list?.length || 0,
+            playerRendering: scene?.player ? {
+                requestedTexture: scene.player.texture?.key || null,
+                textureExists: Boolean(
+                    scene.player.texture?.key &&
+                    scene.textures?.exists?.(scene.player.texture.key)
+                ),
+                isMissingTexture: scene.player.texture?.key === '__MISSING',
+                width: Number(scene.player.displayWidth) || 0,
+                height: Number(scene.player.displayHeight) || 0,
+                visible: scene.player.visible !== false && scene.player.alpha > 0
+            } : null,
             enemyCount: scene?.enemies?.getChildren?.()
                 ?.filter(enemy => enemy?.active !== false).length || 0,
             combatCueCount: scene?.enemies?.getChildren?.()
@@ -3563,6 +3792,18 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     }
     if (!state.canvasWidth || !state.canvasHeight) {
         throw new Error(`${sceneName} rendered a blank-sized canvas`);
+    }
+    if (
+        !state.playerRendering?.textureExists ||
+        state.playerRendering?.isMissingTexture ||
+        !state.playerRendering?.visible ||
+        state.playerRendering?.width < 20 ||
+        state.playerRendering?.height < 20
+    ) {
+        throw new Error(
+            `${sceneName} rendered an unreadable creature: ` +
+            JSON.stringify(state.playerRendering)
+        );
     }
     if (
         route === 'mythicalForest' &&
@@ -8114,10 +8355,56 @@ async function smokePurchasedEgg(session, exceptions) {
         throw new Error(`Purchased egg was not reserved exactly once: ${JSON.stringify(state)}`);
     }
     await captureGameplayStill(session, 'creature-cosmic-egg-hatch.png');
+
+    process.stdout.write('EGG complete authentic hatch\n');
+    const hatchTarget = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('HatchingScene');
+        if (!scene?.egg?.active || scene.isHatching || scene.creatureAppeared) return null;
+        return { x: scene.egg.x, y: scene.egg.y };
+    })()`);
+    if (!hatchTarget) throw new Error('Purchased egg could not begin its authentic hatch');
+    await touch(session, hatchTarget.x, hatchTarget.y);
+
+    const reveal = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('HatchingScene');
+            if (!scene?.creatureAppeared || !scene?.creature?.visible || !scene?.keepUI?.keepText?.visible || !scene?.rarityBanner?.rarityText?.visible) return null;
+            const bounds = item => item?.getBounds?.() ? item.getBounds() : null;
+            return {
+                creature: bounds(scene.creature),
+                classification: bounds(scene.rarityBanner.rarityText),
+                classificationDetail: bounds(scene.rarityBanner.speciesText),
+                action: bounds(scene.keepUI.keepText),
+                actionCount: Number(Boolean(scene.keepUI?.keepText?.visible)) + Number(Boolean(scene.rerollUI?.rerollText?.visible)),
+                eggInstructionVisible: Boolean(scene.instructionText?.visible && /egg/i.test(scene.instructionText?.text || '')),
+                tapPromptVisible: Boolean(scene.tapToHatchText?.visible),
+                controlPanelVisible: Object.values(scene.controlPanelElements || {}).some(item => item?.visible),
+                scanEstimateVisible: Boolean(scene.adviceText?.visible),
+                width: scene.scale.width,
+                height: scene.scale.height
+            };
+        })()`),
+        { timeoutMs: 24000, message: 'stable creature reveal with classification and action' }
+    );
+    await delay(700);
+    await captureGameplayStill(session, 'creature-cosmic-egg-reveal.png');
+    const classificationOverlapsDetail = reveal.classification.bottom > reveal.classificationDetail.top;
+    const minimumCreatureWidth = Math.min(reveal.width * 0.16, 220);
+    if (
+        reveal.actionCount !== 1 ||
+        reveal.eggInstructionVisible ||
+        reveal.tapPromptVisible ||
+        reveal.controlPanelVisible ||
+        reveal.scanEstimateVisible ||
+        classificationOverlapsDetail ||
+        reveal.creature.width < minimumCreatureWidth
+    ) {
+        throw new Error(`Creature reveal did not present one clean action: ${JSON.stringify(reveal)}`);
+    }
     if (exceptions.length) {
         throw new Error(`Purchased egg flow raised browser exceptions: ${exceptions.join(' | ')}`);
     }
-    return state;
+    return { ...state, reveal };
 }
 
 async function smokeHomeStart(session, exceptions) {
@@ -16889,6 +17176,96 @@ async function smokeForestArrival(session, exceptions) {
     return { brief, progression };
 }
 
+async function smokeVisualStoryReel(session, exceptions) {
+    if (!SMOKE_VIDEO_PATH) {
+        throw new Error('SMOKE_VIDEO_PATH is required for visual-story-reel mode');
+    }
+    if (SMOKE_VIEWPORT_WIDTH < 960 || SMOKE_VIEWPORT_HEIGHT < 540) {
+        throw new Error('visual-story-reel must be captured in a landscape viewport');
+    }
+
+    exceptions.length = 0;
+    const profileSource = JSON.parse(fs.readFileSync(path.join(
+        __dirname,
+        '..',
+        'public',
+        'press',
+        'gameplay',
+        'real-creature-showcase',
+        'source-profiles.json'
+    ), 'utf8'));
+    const profile = profileSource.profiles.find(entry => entry.id === 'MV-0813');
+    if (!profile?.genes || !profile?.dna) {
+        throw new Error('The selected visual-story creature profile is unavailable');
+    }
+
+    await navigate(session, `${BASE_URL}/play/?reset=true`);
+    await waitForScene(session, 'HatchingScene');
+    await evaluate(session, `(async () => {
+        const profile = ${JSON.stringify(profile)};
+        const state = window.GameState;
+        state.set('creature', {
+            ...state.get('creature'),
+            id: profile.genes.id,
+            name: 'Nova',
+            hatched: true,
+            named: true,
+            genes: profile.genes,
+            genetics: profile.genes,
+            dna: profile.dna,
+            rarity: profile.rarity,
+            species: profile.species,
+            textureName: null,
+            lifecycle: {
+                ...(state.get('creature.lifecycle') || {}),
+                stage: 'baby'
+            }
+        });
+        state.set('creatures', [state.get('creature')]);
+        state.set('story.projectBeacon.firstForestCinematicSeen', false);
+        state.set('story.projectBeacon.firstForestCinematicVersion', 0);
+        state.set('story.projectBeacon.firstExpeditionDrill', {
+            completed: true,
+            completedAt: new Date().toISOString()
+        });
+        const game = window.mythicalGame;
+        game.scene.getScenes(true).forEach(active => game.scene.stop(active.scene.key));
+        await window.SceneLoader.loadScene(game, 'MythicalForestLevel');
+        game.scene.start('MythicalForestLevel');
+        return true;
+    })()`);
+    await waitForScene(session, 'MythicalForestLevel');
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            return Boolean(scene?.forestArrivalElements?.length);
+        })()`),
+        { timeoutMs: 15000, message: 'cinematic Forest arrival for visual reel' }
+    );
+
+    await startGameplayVideo(session);
+    await delay(2200);
+    if (SMOKE_CAPTURE_DIR) {
+        await captureGameplayStill(session, 'mythical-forest-arrival-wide.png');
+    }
+
+    // The public lead clip is deliberately limited to the coherent in-game
+    // arrival moment. Platforming footage is held back until its art direction
+    // passes the same human review; technical authenticity alone is not enough.
+    await delay(1850);
+    const arrivalVideo = await stopGameplayVideo();
+    if (exceptions.length) {
+        throw new Error(
+            `Visual story moment raised browser exceptions: ${exceptions.join(' | ')}`
+        );
+    }
+    return {
+        profileId: profile.id,
+        moment: 'mythical_forest_arrival',
+        video: arrivalVideo
+    };
+}
+
 const GUARDIAN_PACING_CASES = Object.freeze([
     {
         sceneName: 'MythicalForestLevel',
@@ -17290,6 +17667,24 @@ async function main() {
         if (SMOKE_MODE === 'home-entry') {
             results.homeEntry = await smokeHomeStart(session, exceptions);
             process.stdout.write('PASS HomeStartToEgg\n');
+        } else if (SMOKE_MODE === 'hatch-gallery') {
+            results.hatchGallery = await smokeRealCreatureShowcase(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS RealCreatureShowcase\n');
+        } else if (SMOKE_MODE === 'creature-showcase-page') {
+            results.creatureShowcasePage = await smokeCreatureShowcasePage(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS CreatureShowcasePage\n');
+        } else if (SMOKE_MODE === 'creature-field-guide-page') {
+            results.creatureFieldGuidePage = await smokeCreatureFieldGuidePage(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS CreatureFieldGuidePage\n');
         } else if (SMOKE_MODE === 'living-form-late') {
             results.livingFormLate = await smokeLateLivingFormArrival(
                 session,
@@ -17392,6 +17787,12 @@ async function main() {
         } else if (SMOKE_MODE === 'forest-arrival') {
             results.forestArrival = await smokeForestArrival(session, exceptions);
             process.stdout.write('PASS MythicalForestArrival\n');
+        } else if (SMOKE_MODE === 'visual-story-reel') {
+            results.visualStoryReel = await smokeVisualStoryReel(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS VisualStoryReel\n');
         } else if (SMOKE_MODE === 'guardian-pacing') {
             results.guardianPacing = await smokeGuardianPacing(
                 session,
@@ -17400,7 +17801,7 @@ async function main() {
         } else {
             throw new Error(
                 `Unknown SMOKE_MODE ${JSON.stringify(SMOKE_MODE)}. ` +
-                'Use home-entry, first-sanctuary, nasa-content, interaction, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, or guardian-pacing.'
+                'Use home-entry, hatch-gallery, first-sanctuary, nasa-content, interaction, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, visual-story-reel, or guardian-pacing.'
             );
         }
         console.log(JSON.stringify({

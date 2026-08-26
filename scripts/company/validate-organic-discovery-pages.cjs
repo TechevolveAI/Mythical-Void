@@ -6,9 +6,14 @@ const path = require('path');
 const root = path.resolve(__dirname, '../..');
 const pages = [
     {
+        route: '/playable-now/',
+        file: 'public/playable-now/index.html',
+        required: ['See the real game. Then enter the Void.', '/press/gameplay-video/mythical-forest-authentic-gameplay.mp4', 'No download. No account.', 'NASA does not endorse Mythical Void.']
+    },
+    {
         route: '/creature-genetics/',
         file: 'public/creature-genetics/index.html',
-        required: ['procedural genetics', 'does not promise', '/press/gameplay/creature-cosmic-egg-hatch.png']
+        required: ['procedural genetics', 'does not promise', '/press/gameplay/creature-cosmic-egg-reveal.png']
     },
     {
         route: '/nasa-space-science/',

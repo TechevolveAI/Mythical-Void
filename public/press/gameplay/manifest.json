@@ -1,12 +1,13 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-08-14T13:55:57.609Z",
-  "sourceCommit": "ef195f7762feacf72a0aee2c3778b52dcddcd2d7",
-  "sourceBranch": "codex/logo-production",
+  "asOf": "2026-08-26T10:40:00.395Z",
+  "sourceCommit": "e7acbd0b3e82f8a7fbc070a35d0c1d26c203f9e5",
+  "sourceBranch": "codex/hatch-reveal-proof",
   "sourceRoute": "/play/",
   "captureMethod": "Automated first-party browser journeys using a clean invented QA state.",
   "captureSourcePolicy": "The top-level sourceCommit records the build that last updated this manifest. Each capture has its own sourceCommit, which remains unchanged during partial recaptures.",
   "captureSourceCommits": [
+    "e7acbd0b3e82f8a7fbc070a35d0c1d26c203f9e5",
     "cf0f9c2409b5915a0177f65b287f539932352021",
     "ef195f7762feacf72a0aee2c3778b52dcddcd2d7"
   ],
@@ -14,44 +15,47 @@
   "privacy": "No player name, child identity, account, message, notification or personal save data is used.",
   "presentationBoundary": "These are authentic screenshots of a running build. Some in-game art may have its own disclosed production provenance; none of these images is a generated gameplay mockup.",
   "approvalState": "internal_review_required_before_public_promotion",
+  "ownedWebsiteProofUseAuthorized": true,
+  "externalPromotionAuthorized": false,
+  "kevinApprovalRequiredBeforeExternalPublication": true,
   "captures": [
     {
       "id": "GP-001",
       "filename": "project-beacon-start.png",
       "publicPath": "/press/gameplay/project-beacon-start.png",
-      "sha256": "787641e1a94398db39b37a50064e6e0c7c616f5e03e8613984932f859fd46391",
-      "bytes": 750954,
+      "sha256": "27f906d11fe882674130be643616b1edde90215855ae87e3f86c6af1017404b3",
+      "bytes": 732748,
       "width": 1440,
       "height": 810,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
-      "sourceCommit": "cf0f9c2409b5915a0177f65b287f539932352021",
+      "sourceCommit": "e7acbd0b3e82f8a7fbc070a35d0c1d26c203f9e5",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     },
     {
       "id": "GP-002",
       "filename": "project-beacon-live-egg.png",
       "publicPath": "/press/gameplay/project-beacon-live-egg.png",
-      "sha256": "f6478b6b72b39a643063a32cd3cf36caa8712b99f56d0036f45ea2eb49bff759",
-      "bytes": 758314,
+      "sha256": "35dc99c5dd86fb312d5d2373491b130a897a91f8bf0ddbb39ecfd3f3d830dda6",
+      "bytes": 759803,
       "width": 1440,
       "height": 810,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
-      "sourceCommit": "cf0f9c2409b5915a0177f65b287f539932352021",
+      "sourceCommit": "e7acbd0b3e82f8a7fbc070a35d0c1d26c203f9e5",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     },
     {
       "id": "GP-003",
       "filename": "creature-cosmic-egg-hatch.png",
       "publicPath": "/press/gameplay/creature-cosmic-egg-hatch.png",
-      "sha256": "a483e87cdfe9b0d6cbd39bdb719424ceedcbfb3664db5668ed82d0765042a120",
-      "bytes": 758843,
+      "sha256": "2458c1d8e71f680f59dd8bc415449326423c4d8cb22a23faa8f7f0d6e09f5e0a",
+      "bytes": 760669,
       "width": 1440,
       "height": 810,
       "classification": "authentic_running_build_screenshot",
       "fixture": "company_controlled_qa_state_no_personal_data",
-      "sourceCommit": "cf0f9c2409b5915a0177f65b287f539932352021",
+      "sourceCommit": "e7acbd0b3e82f8a7fbc070a35d0c1d26c203f9e5",
       "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
     },
     {
@@ -176,6 +180,32 @@
         "url": "https://apod.nasa.gov/apod/ap240720.html",
         "imageCredit": "Neil Armstrong · Apollo 11 · NASA"
       }
+    },
+    {
+      "id": "GP-013",
+      "filename": "creature-cosmic-egg-reveal.png",
+      "publicPath": "/press/gameplay/creature-cosmic-egg-reveal.png",
+      "sha256": "55943dfceb9debbc8f6c2f96cbcfacfd0afc7abc264c6cde0714c9be3690ed86",
+      "bytes": 352155,
+      "width": 1440,
+      "height": 810,
+      "classification": "authentic_running_build_screenshot",
+      "fixture": "company_controlled_qa_state_no_personal_data",
+      "sourceCommit": "e7acbd0b3e82f8a7fbc070a35d0c1d26c203f9e5",
+      "disclosure": "Captured from the real Mythical Void browser game; not a generated mockup."
+    },
+    {
+      "id": "GP-014",
+      "filename": "mythical-forest-arrival-wide.png",
+      "publicPath": "/press/gameplay/mythical-forest-arrival-wide.png",
+      "sha256": "dfc392f689d212f0453b034c414d16f67ab024c957e5faf2209dcbde4c125d4f",
+      "bytes": 1505133,
+      "width": 1440,
+      "height": 810,
+      "classification": "authentic_running_build_story_screenshot",
+      "fixture": "company_controlled_qa_state_no_personal_data",
+      "sourceCommit": "181017f8d82fbc696f3bf5c45ae8ffa542e78c38",
+      "disclosure": "Captured from the running game during the Mythical Forest arrival. It is an in-game story moment, not a platforming or combat demonstration."
     }
   ]
 }

@@ -3,6 +3,52 @@
     var tagId = 'G-FTM4W73EQC';
     var currentPath = window.location.pathname;
 
+    var shareUrl = 'https://mythicalvoid.com/playable-now/';
+    var shareData = {
+        title: 'Mythical Void',
+        text: 'Try Mythical Void — a free alien-creature adventure you can play in your browser. No download or account needed.',
+        url: shareUrl
+    };
+    var shareStatus = document.querySelector('[data-share-status]');
+
+    function setShareStatus(message) {
+        if (shareStatus) shareStatus.textContent = message;
+    }
+
+    async function copyCleanGameLink() {
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            setShareStatus('Game link copied — no tracking code.');
+        } catch (error) {
+            setShareStatus('Copy this address: mythicalvoid.com/playable-now');
+        }
+    }
+
+    var shareButton = document.querySelector('[data-share-game]');
+    if (shareButton) {
+        if (!navigator.share) {
+            var shareLabel = shareButton.querySelector('[data-share-label]');
+            if (shareLabel) shareLabel.textContent = 'Copy game link';
+        }
+        shareButton.addEventListener('click', async function () {
+            if (!navigator.share) {
+                await copyCleanGameLink();
+                return;
+            }
+            try {
+                await navigator.share(shareData);
+                setShareStatus('Thanks for passing the signal on.');
+            } catch (error) {
+                if (error && error.name !== 'AbortError') {
+                    setShareStatus('You can share mythicalvoid.com/playable-now from your browser.');
+                }
+            }
+        });
+    }
+
+    var copyButton = document.querySelector('[data-copy-game]');
+    if (copyButton) copyButton.addEventListener('click', copyCleanGameLink);
+
     window.dataLayer = window.dataLayer || [];
     function gtag() { window.dataLayer.push(arguments); }
     window.gtag = window.gtag || gtag;

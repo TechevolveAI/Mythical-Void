@@ -26,11 +26,12 @@ const expectedFiles = [
     'realm-finalvoid.png',
     'village-base-builder.png',
     'village-first-construction.png',
-    'nasa-apollo11-real-space-discovery.png'
+    'nasa-apollo11-real-space-discovery.png',
+    'creature-cosmic-egg-reveal.png'
 ];
 
 const groupFiles = {
-    opening: expectedFiles.slice(0, 3),
+    opening: [...expectedFiles.slice(0, 3), 'creature-cosmic-egg-reveal.png'],
     realms: expectedFiles.slice(3, 9),
     village: expectedFiles.slice(9, 11),
     nasa: expectedFiles.slice(11, 12),
@@ -164,6 +165,9 @@ function writeManifest() {
         privacy: 'No player name, child identity, account, message, notification or personal save data is used.',
         presentationBoundary: 'These are authentic screenshots of a running build. Some in-game art may have its own disclosed production provenance; none of these images is a generated gameplay mockup.',
         approvalState: 'internal_review_required_before_public_promotion',
+        ownedWebsiteProofUseAuthorized: true,
+        externalPromotionAuthorized: false,
+        kevinApprovalRequiredBeforeExternalPublication: true,
         captures
     };
     fs.writeFileSync(

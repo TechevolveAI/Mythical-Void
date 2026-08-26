@@ -80,6 +80,8 @@ async function launchLocalHighPowerPreview(game) {
 function launchLocalHatchGallery(game, urlParams, isLocalPreview) {
     if (!isLocalPreview || !urlParams.has('testHatchGallery')) return;
 
+    const showcaseMode = urlParams.get('testHatchGallery') === 'showcase';
+
     game.events.once('ready', () => {
         setTimeout(() => {
             game.scene.getScenes(true).forEach(activeScene => {
@@ -89,43 +91,113 @@ function launchLocalHatchGallery(game, urlParams, isLocalPreview) {
             const galleryScene = new Phaser.Scene({
                 key: 'LocalHatchGalleryScene'
             });
-            galleryScene.create = function createHatchGallery() {
+            galleryScene.create = async function createHatchGallery() {
                 const { width, height } = this.scale;
                 const compact = width < 700;
-                const columns = compact ? 2 : 4;
-                const rows = compact ? 3 : 3;
+                const columns = compact ? 2 : 6;
+                const rows = 2;
                 const specimenCount = columns * rows;
-                const top = compact ? 112 : 104;
-                const bottom = 24;
+                const top = compact ? 122 : 142;
+                const bottom = compact ? 18 : 30;
                 const cellWidth = width / columns;
                 const cellHeight = (height - top - bottom) / rows;
                 const engine = new window.GraphicsEngine(this);
                 const manifest = [];
+                const exports = [];
+                let preparedProfiles = null;
 
-                this.cameras.main.setBackgroundColor('#07100F');
-                this.add.text(width / 2, 24, 'HATCH VARIATION // LIVE RENDERER', {
+                if (showcaseMode) {
+                    const response = await fetch(
+                        '/press/gameplay/real-creature-showcase/source-profiles.json',
+                        { cache: 'no-store' }
+                    );
+                    if (!response.ok) {
+                        throw new Error(`Showcase profiles failed: ${response.status}`);
+                    }
+                    const source = await response.json();
+                    preparedProfiles = source.profiles;
+                    if (!Array.isArray(preparedProfiles) || preparedProfiles.length < specimenCount) {
+                        throw new Error('The real-creature showcase needs twelve prepared profiles');
+                    }
+                }
+
+                const originalRandom = Math.random;
+                if (showcaseMode) {
+                    let gallerySeed = 0x52454E44;
+                    Math.random = function deterministicGalleryRandom() {
+                        let value = gallerySeed += 0x6D2B79F5;
+                        value = Math.imul(value ^ value >>> 15, value | 1);
+                        value ^= value + Math.imul(value ^ value >>> 7, value | 61);
+                        return ((value ^ value >>> 14) >>> 0) / 4294967296;
+                    };
+                    Phaser.Math.RND?.sow?.(['mythical-real-creature-showcase-v1']);
+                }
+
+                this.cameras.main.setBackgroundColor('#06040F');
+                const background = this.add.graphics();
+                background.fillGradientStyle(
+                    0x070511,
+                    0x120A25,
+                    0x061B24,
+                    0x06040F,
+                    1
+                );
+                background.fillRect(0, 0, width, height);
+                for (let star = 0; star < 80; star += 1) {
+                    const starX = (star * 173) % width;
+                    const starY = ((star * 97) % Math.max(1, height - 40)) + 20;
+                    const bright = star % 7 === 0;
+                    background.fillStyle(bright ? 0x8FE3CF : 0x7C6EA5, bright ? 0.58 : 0.2);
+                    background.fillCircle(starX, starY, bright ? 1.5 : 0.8);
+                }
+
+                this.add.text(width / 2, 25, '12 REAL HATCHES', {
                     fontFamily: 'Arial, sans-serif',
-                    fontSize: compact ? '17px' : '23px',
+                    fontSize: compact ? '18px' : '31px',
                     fontStyle: 'bold',
-                    color: '#8FE3CF'
+                    color: '#FFF9E9',
+                    letterSpacing: compact ? 1 : 3
                 }).setOrigin(0.5, 0);
                 this.add.text(
                     width / 2,
-                    compact ? 55 : 60,
-                    `${specimenCount} independent genetics + DNA outcomes`,
+                    compact ? 57 : 68,
+                    'ONE RUNNING GENETICS + DNA ENGINE',
                     {
                         fontFamily: 'Arial, sans-serif',
-                        fontSize: compact ? '11px' : '14px',
-                        color: '#F2C14E'
+                        fontSize: compact ? '10px' : '14px',
+                        fontStyle: 'bold',
+                        color: '#78E4D1',
+                        letterSpacing: compact ? 0 : 2
+                    }
+                ).setOrigin(0.5, 0);
+                this.add.text(
+                    width / 2,
+                    compact ? 82 : 99,
+                    'Selected from 1,000 real engine runs to show range — not the odds of a random hatch.',
+                    {
+                        fontFamily: 'Arial, sans-serif',
+                        fontSize: compact ? '8px' : '12px',
+                        color: '#BDB4D1',
+                        align: 'center',
+                        wordWrap: { width: width - 28 }
                     }
                 ).setOrigin(0.5, 0);
 
                 for (let index = 0; index < specimenCount; index += 1) {
-                    const genes = window.CreatureGenetics
-                        .generateCreatureGenetics();
-                    const dna = window.CreatureDNA.generateDNA({
-                        forcedRarity: genes.rarity
-                    });
+                    let genes;
+                    let dna;
+                    let publicProfile = null;
+                    if (preparedProfiles) {
+                        publicProfile = preparedProfiles[index];
+                        genes = publicProfile.genes;
+                        dna = publicProfile.dna;
+                    } else {
+                        genes = window.CreatureGenetics
+                            .generateCreatureGenetics();
+                        dna = window.CreatureDNA.generateDNA({
+                            forcedRarity: genes.rarity
+                        });
+                    }
                     const result = engine.createCreatureFromDNA(
                         dna,
                         0,
@@ -135,58 +207,86 @@ function launchLocalHatchGallery(game, urlParams, isLocalPreview) {
                     const column = index % columns;
                     const row = Math.floor(index / columns);
                     const centerX = (column * cellWidth) + (cellWidth / 2);
-                    const centerY = top + (row * cellHeight) + (cellHeight * 0.42);
-                    const frameWidth = Math.max(72, cellWidth - (compact ? 18 : 30));
-                    const frameHeight = Math.max(95, cellHeight - 18);
+                    const cellTop = top + (row * cellHeight);
+                    const frameWidth = Math.max(72, cellWidth - (compact ? 16 : 18));
+                    const frameHeight = Math.max(95, cellHeight - (compact ? 12 : 16));
                     const frame = this.add.graphics();
-                    frame.fillStyle(0x101616, 0.92);
+                    const primaryColor = Number(
+                        genes.traits?.colorGenome?.primary || 0x7E57C2
+                    );
+                    frame.fillStyle(0x0C0A17, 0.94);
                     frame.fillRoundedRect(
                         centerX - (frameWidth / 2),
-                        top + (row * cellHeight),
+                        cellTop,
                         frameWidth,
                         frameHeight,
-                        6
+                        compact ? 12 : 18
                     );
-                    frame.lineStyle(1, index % 2 === 0 ? 0x8FE3CF : 0xF2C14E, 0.72);
+                    frame.fillStyle(primaryColor, 0.13);
+                    frame.fillCircle(
+                        centerX,
+                        cellTop + (frameHeight * 0.36),
+                        Math.min(frameWidth * 0.38, frameHeight * 0.29)
+                    );
+                    frame.lineStyle(
+                        index % 2 === 0 ? 2 : 1,
+                        index % 2 === 0 ? 0x78E4D1 : 0xF5C85B,
+                        index % 2 === 0 ? 0.72 : 0.55
+                    );
                     frame.strokeRoundedRect(
                         centerX - (frameWidth / 2),
-                        top + (row * cellHeight),
+                        cellTop,
                         frameWidth,
                         frameHeight,
-                        6
+                        compact ? 12 : 18
                     );
 
+                    const centerY = cellTop + (frameHeight * 0.37);
                     const specimen = this.add.image(
                         centerX,
                         centerY,
                         result.textureName
                     );
                     const specimenScale = Math.min(
-                        (frameWidth - 18) / specimen.width,
-                        (frameHeight * 0.58) / specimen.height
+                        (frameWidth * 0.78) / specimen.width,
+                        (frameHeight * 0.54) / specimen.height
                     );
                     specimen.setScale(specimenScale);
 
-                    const labelY = top + (row * cellHeight) + (frameHeight * 0.75);
+                    const speciesLabel = String(genes.species)
+                        .replace(/([a-z])([A-Z])/g, '$1 $2')
+                        .replace(/\b\w/g, letter => letter.toUpperCase());
+                    const labelY = cellTop + (frameHeight * 0.69);
                     this.add.text(
                         centerX,
                         labelY,
-                        `${genes.species.replace(/([a-z])([A-Z])/g, '$1 $2')}\n` +
-                            `${dna.bodyArchetype} / ${dna.headArchetype}\n` +
-                            `${genes.personality.core} / ${genes.cosmicAffinity.element}`,
+                        speciesLabel.toUpperCase(),
                         {
                             fontFamily: 'Arial, sans-serif',
-                            fontSize: compact ? '8px' : '11px',
+                            fontSize: compact ? '9px' : '13px',
                             fontStyle: 'bold',
                             align: 'center',
-                            color: '#F4F4F4',
-                            lineSpacing: 2,
+                            color: '#FFF9E9',
+                            wordWrap: { width: frameWidth - 12 }
+                        }
+                    ).setOrigin(0.5, 0);
+                    this.add.text(
+                        centerX,
+                        labelY + (compact ? 15 : 22),
+                        `${dna.bodyArchetype} form · ${genes.cosmicAffinity.element} affinity\n` +
+                            `${genes.personality.core} · ${genes.rarity}`,
+                        {
+                            fontFamily: 'Arial, sans-serif',
+                            fontSize: compact ? '7px' : '10px',
+                            align: 'center',
+                            color: '#BDB4D1',
+                            lineSpacing: compact ? 1 : 3,
                             wordWrap: { width: frameWidth - 10 }
                         }
                     ).setOrigin(0.5, 0);
 
-                    manifest.push({
-                        index,
+                    const publicRecord = {
+                        id: publicProfile?.id || `random-${index + 1}`,
                         geneticsId: genes.id,
                         dnaId: dna.id,
                         species: genes.species,
@@ -196,9 +296,31 @@ function launchLocalHatchGallery(game, urlParams, isLocalPreview) {
                         hybridTag: dna.hybridTag,
                         personality: genes.personality.core,
                         affinity: genes.cosmicAffinity.element,
-                        mutations: genes.traits.features.wackyMutations || []
+                        aura: dna.elementalAura,
+                        mutations: genes.traits.features.wackyMutations || [],
+                        shiny: genes.isShiny === true,
+                        textureName: result.textureName,
+                        imageFile: showcaseMode
+                            ? `${String(publicProfile.id).toLowerCase()}-real-render.png`
+                            : null
+                    };
+                    manifest.push(publicRecord);
+
+                    const sourceImage = this.textures
+                        .get(result.textureName)
+                        .getSourceImage();
+                    const exportCanvas = document.createElement('canvas');
+                    exportCanvas.width = sourceImage.width;
+                    exportCanvas.height = sourceImage.height;
+                    exportCanvas.getContext('2d').drawImage(sourceImage, 0, 0);
+                    exports.push({
+                        ...publicRecord,
+                        width: sourceImage.width,
+                        height: sourceImage.height,
+                        dataUrl: exportCanvas.toDataURL('image/png')
                     });
                 }
+                Math.random = originalRandom;
 
                 const exportElement = document.getElementById('hatch-qa-manifest')
                     || document.createElement('script');
@@ -207,6 +329,14 @@ function launchLocalHatchGallery(game, urlParams, isLocalPreview) {
                 exportElement.textContent = JSON.stringify(manifest);
                 if (!exportElement.isConnected) {
                     document.body.appendChild(exportElement);
+                }
+                const imageExportElement = document.getElementById('hatch-qa-exports')
+                    || document.createElement('script');
+                imageExportElement.id = 'hatch-qa-exports';
+                imageExportElement.type = 'application/json';
+                imageExportElement.textContent = JSON.stringify(exports);
+                if (!imageExportElement.isConnected) {
+                    document.body.appendChild(imageExportElement);
                 }
             };
 

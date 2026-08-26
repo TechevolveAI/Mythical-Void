@@ -63,6 +63,7 @@ function renderPressPage() {
                 </a>
                 <div class="press-header-actions">
                     <a href="/">Main website</a>
+                    <a href="/playable-now/">Game at a glance</a>
                     <a href="/updates/feed.xml">Signal feed</a>
                     ${playLink('Play now', 'button button-small')}
                 </div>
@@ -129,11 +130,11 @@ function renderPressPage() {
                     <div class="press-proof-feature-grid">
                         <figure class="press-gameplay-card press-video-card">
                             <div class="press-video-shell">
-                                <video controls muted playsinline preload="metadata" poster="/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png" aria-label="Real vertical gameplay in the Mythical Forest">
+                                <video controls muted playsinline preload="metadata" poster="/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png" aria-label="A real in-game Project Beacon arrival moment in the Mythical Forest">
                                     <source src="/press/gameplay-video/mythical-forest-authentic-gameplay.mp4" type="video/mp4">
                                 </video>
                             </div>
-                            <figcaption><span>REAL GAMEPLAY VIDEO</span><strong>Move through the Mythical Forest</strong><p>A short unfiltered journey with real movement, jumping, touch controls and the live route display. There are no generated frames or replacement scenery.</p><a href="/press/gameplay-video/mythical-forest-authentic-gameplay.mp4" download>Download gameplay video ↓</a></figcaption>
+                            <figcaption><span>IN-GAME STORY MOMENT · 3.17 SECONDS</span><strong>Arrive in the Mythical Forest</strong><p>A coherent Project Beacon arrival recorded from the running game. It is not labelled as platforming or combat footage.</p><a href="/press/gameplay-video/mythical-forest-authentic-gameplay.mp4" download>Download the Forest arrival ↓</a></figcaption>
                         </figure>
                         <figure class="press-gameplay-card press-nasa-card">
                             <img src="/press/gameplay/nasa-apollo11-real-space-discovery.png" alt="A real Mythical Void learning card showing a credited NASA Apollo 11 panorama, observation prompts and an imagined creature reaction" loading="lazy">
@@ -149,14 +150,21 @@ function renderPressPage() {
                             <img src="/press/gameplay/project-beacon-live-egg.png" alt="The real first-contact screen with an alien egg waiting above a signal platform" loading="lazy">
                             <figcaption><span>REAL RUNNING BUILD</span><strong>First contact</strong><p>The live egg interaction at the Wanderer-77 crash site.</p><a href="/press/gameplay/project-beacon-live-egg.png" download>Download gameplay image ↓</a></figcaption>
                         </figure>
-                        <figure class="press-gameplay-card press-gameplay-portrait">
-                            <img src="/press/gameplay/realm-mythicalforest.png" alt="Phone gameplay in the Mythical Forest with the astronaut, route display and touch controls" loading="lazy">
-                            <figcaption><span>REAL PHONE GAMEPLAY</span><strong>Mythical Forest</strong><p>Platforming, route guidance and the astronaut’s on-screen controls.</p><a href="/press/gameplay/realm-mythicalforest.png" download>Download gameplay image ↓</a></figcaption>
+                        <figure class="press-gameplay-card press-gameplay-wide" id="real-creature-range">
+                            <img src="/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png" alt="Twelve real pixel creatures rendered by the running Mythical Void genetics and DNA engine" loading="lazy">
+                            <figcaption><span>12 REAL RENDERER OUTPUTS · 7 SPECIES</span><strong>Twelve real hatches. One running engine.</strong><p>Every creature in this branded proof layout is an exact export from the game renderer. The twelve were selected from 1,000 deliberately balanced engine runs to show visible range—not normal hatch odds or endless uniqueness.</p><a href="/creature-genetics/#meet-the-twelve">Meet all twelve creatures →</a><a href="/creature-field-guide/">Read their Project Beacon field stories →</a><a href="/press/gameplay/real-creature-showcase/renderer-manifest.json">Check the renderer record →</a></figcaption>
                         </figure>
-                        <figure class="press-gameplay-card press-gameplay-portrait">
-                            <img src="/press/gameplay/village-base-builder.png" alt="The real Village Heart builder showing resources, structures and a Forager Hut" loading="lazy">
-                            <figcaption><span>REAL PHONE GAMEPLAY</span><strong>Build a home</strong><p>The Village Heart where rescued creatures and useful structures can find a place.</p><a href="/press/gameplay/village-base-builder.png" download>Download gameplay image ↓</a></figcaption>
+                        <figure class="press-gameplay-card press-gameplay-wide">
+                            <img src="/press/gameplay/mythical-forest-arrival-wide.png" alt="The in-game Mythical Forest arrival with a distant Project Beacon tower" loading="lazy">
+                            <figcaption><span>RUNNING-BUILD STORY MOMENT</span><strong>Follow the signal</strong><p>A deliberately chosen arrival frame with one clear place, question and direction.</p><a href="/press/gameplay/mythical-forest-arrival-wide.png" download>Download the Forest arrival image ↓</a></figcaption>
                         </figure>
+                    </div>
+                    <div class="press-social-release press-media-quality-hold" id="media-quality-review">
+                        <div class="press-section-heading press-heading-split">
+                            <div><p class="kicker">VISUAL QUALITY GATE</p><h2>The previous social video pack is withdrawn.</h2></div>
+                            <p>The files were technically genuine, but the creature was not rendered correctly and the chosen moments were not strong enough. We will not call a clip ready merely because it loads.</p>
+                        </div>
+                        <p class="press-social-note">A replacement pack will return only after every frame makes sense to a person: a readable creature, a clear focal moment, clean framing and an honest description of what the viewer is seeing.</p>
                     </div>
                     <div class="press-social-release" id="project-beacon-social-assets">
                         <div class="press-section-heading press-heading-split">
@@ -353,6 +361,7 @@ function renderStorefront() {
                     <span></span><span></span><span></span>
                 </button>
                 <nav class="site-nav" aria-label="Main navigation" data-menu>
+                    <a href="/playable-now/">See the game</a>
                     <a href="#adventure">The adventure</a>
                     <a href="#how-it-works">How it works</a>
                     <a href="#studio">The studio</a>
@@ -379,7 +388,7 @@ function renderStorefront() {
                                 <span data-share-label>Share the game</span>
                                 <span class="button-arrow" aria-hidden="true">↗</span>
                             </button>
-                            <a class="button button-quiet" href="#creatures">Meet the possibilities</a>
+                            <a class="button button-quiet" href="/playable-now/">Watch real gameplay</a>
                         </div>
                         <p class="hero-share-status share-status" data-share-status aria-live="polite"></p>
                         <ul class="hero-genetics" aria-label="How this scene was made">
@@ -450,7 +459,7 @@ function renderStorefront() {
                         <p>Under the story is a set of living systems designed to make each creature and each expedition feel personal.</p>
                     </div>
                     <div class="systems-grid">
-                        <article class="system-card"><span class="system-index">01</span><h3>Genetics with real variety</h3><p>Creature genetics combine species, colours, body shapes, personalities, rarity, and cosmic affinities. Your creature is built from a profile—not picked from one poster.</p><a href="/creature-genetics/">Explore creature genetics →</a></article>
+                        <article class="system-card"><span class="system-index">01</span><h3>Genetics with real variety</h3><p>Creature genetics combine species, colours, body shapes, personalities, rarity, and cosmic affinities. Your creature is built from a profile—not picked from one poster.</p><a href="/creature-genetics/">Explore creature genetics →</a><a href="/creature-field-guide/">Enter the creature universe →</a></article>
                         <article class="system-card"><span class="system-index">02</span><h3>A living browser world</h3><p>Phaser 3 is the game engine underneath the adventure. It lets the movement, exploration, battles, guardians, village, and story scenes happen right in your browser.</p><a href="/play/">Enter the Fend →</a></article>
                         <article class="system-card"><span class="system-index">03</span><h3>Story moments made for your friend</h3><p>Optional, experimental tools, available only with adult approval, can turn your creature’s identity into a living portrait or a short AI-made scene. These moments add wonder; the main story and its choices are still written and checked by people.</p><a href="/parents/">Read the family notes →</a></article>
                         <article class="system-card"><span class="system-index">04</span><h3>Real space science</h3><p>The game can bring in NASA’s public space data, including astronomy pictures, Mars images, and space-weather signals. It gives curious players a friendly way to ask questions, spot patterns, and discover that the space around the story is real.</p><a href="/nasa-space-science/">See the STEM promise →</a></article>
@@ -657,6 +666,7 @@ function renderStorefront() {
                 </div>
                 <nav aria-label="Footer navigation">
                     <a href="/play/">Play game</a>
+                    <a href="/playable-now/">See real gameplay</a>
                     <a href="/press/">Press & creators</a>
                     <a href="/updates/">What's new</a>
                     <a href="/creature-genetics/">Creature genetics</a>

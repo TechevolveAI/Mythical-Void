@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "HATCH-REVEAL-PROOF-2026-08-26",
+  "state": "withdrawn_visual_quality_failed_do_not_publish",
+  "purpose": "Retain an exact build record of one real hatch while preventing a technically valid but aesthetically weak screenshot from being used as public marketing.",
+  "currentHumanReview": {
+    "decision": "withdrawn_from_public_promotion",
+    "reason": "The creature is visible and technically correct, but the sprite, surrounding frame and overall composition are not strong enough to represent the game to an unfamiliar person.",
+    "replacement": "/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png"
+  },
+  "priorReview": {
+    "id": "HATCH-REVEAL-REVIEW-001",
+    "decision": "authentic_internal_proof_rejected_for_public_promotion",
+    "supersededForOwnedSiteUse": true,
+    "issuesResolved": [
+      "The creature was too small to lead the moment.",
+      "The field-classification lines overlapped.",
+      "An egg instruction remained after the egg disappeared.",
+      "Several prompts and controls competed for attention."
+    ]
+  },
+  "capture": {
+    "id": "GP-013",
+    "path": "public/press/gameplay/creature-cosmic-egg-reveal.png",
+    "publicUrl": "https://mythicalvoid.com/press/gameplay/creature-cosmic-egg-reveal.png",
+    "manifestPath": "public/press/gameplay/manifest.json",
+    "sha256": "55943dfceb9debbc8f6c2f96cbcfacfd0afc7abc264c6cde0714c9be3690ed86",
+    "bytes": 352155,
+    "width": 1440,
+    "height": 810,
+    "sourceCommit": "e7acbd0b3e82f8a7fbc070a35d0c1d26c203f9e5",
+    "classification": "authentic_running_build_screenshot",
+    "generatedMarketingArtworkUsed": false,
+    "playerIdentityUsed": false,
+    "personalSaveUsed": false
+  },
+  "presentation": {
+    "creatureBoundsDesktop": { "width": 264.19604741085186, "height": 219.216679850388 },
+    "creatureBoundsPhone": { "width": 233.26924103114042, "height": 194.11090451182198 },
+    "phoneViewport": { "width": 390, "height": 844 },
+    "fieldClassificationReadable": true,
+    "classificationOverlapObserved": false,
+    "eggInstructionVisibleAfterReveal": false,
+    "tapPromptVisibleAfterReveal": false,
+    "controlPanelVisibleAfterReveal": false,
+    "scanEstimateVisibleWithoutRescan": false,
+    "visibleNextActionCount": 1,
+    "nextAction": "MEET THIS CREATURE"
+  },
+  "ownedSiteDiscovery": {
+    "playableNowPage": null,
+    "pressAnchor": null,
+    "pressAssetManifestListed": true,
+    "machineReadableGuideListed": false,
+    "signalLogEntry": null,
+    "rssAndJsonFeedIncluded": false
+  },
+  "claimBoundaries": {
+    "provesOneRealHatch": true,
+    "provesEveryPossibleForm": false,
+    "absoluteUniquenessClaimed": false,
+    "generatedMarketingArtworkCalledGameplay": false,
+    "creatureSentienceClaimed": false
+  },
+  "authority": {
+    "ownedWebsitePublicationAuthorized": false,
+    "externalSocialPublicationAuthorized": false,
+    "emailOrOutreachSendingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "publicRepliesAuthorized": false,
+    "kevinApprovalRequiredBeforeExternalPublication": true,
+    "externalActionTaken": false
+  },
+  "verification": {
+    "freshAutomatedDesktopCapturePassed": true,
+    "freshAutomatedPhoneCapturePassed": true,
+    "desktopVisualReviewPassed": true,
+    "phoneVisualReviewPassed": true,
+    "fullGameTestSuitesPassed": 181,
+    "fullGameTestsPassed": 1656,
+    "productionUrlVerified": false
+  }
+}

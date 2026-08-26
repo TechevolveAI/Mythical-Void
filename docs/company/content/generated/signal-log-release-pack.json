@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "id": "SIGNAL-DRAFT-PACK-2026-08-14",
+  "id": "SIGNAL-DRAFT-PACK-2026-08-26",
   "state": "draft_only_missing_verified_social_channels_and_approval",
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "94dc731b00f8dd7efb8ed92bfd86a8b00e0b1e523b8075565c40fccc1c92d3bc",
-    "liveEntryCount": 8,
-    "latestSourceDate": "2026-08-14"
+    "sourceFingerprint": "7e491cb6d62e47c2fbc99413958363d77b7a9f20179d0a552cc860ecd60fd947",
+    "liveEntryCount": 14,
+    "latestSourceDate": "2026-08-26"
   },
   "purpose": "Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
   "audienceBoundary": {
@@ -32,6 +32,276 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-SIGNAL-014",
+      "sourceEntryId": "SIGNAL-014",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/creature-field-guide/",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png",
+        "alt": "Twelve real pixel creatures from the Mythical Void renderer gathered in a luminous alien field-guide display",
+        "class": "branded_renderer_proof_layout_with_authentic_game_sprite_exports",
+        "disclosure": "Branded proof layout, not a playable game scene. Every creature is an exact export from the running game renderer. The field-guide stories are official universe material, not claims that these events are already playable quests."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Twelve creatures now have a place in the story\n\nA new Project Beacon field guide connects twelve verified game-renderer creatures to the six living realms, with their real traits and new official stories kept clearly separate.\n\n• Each realm now has two field sightings tied to a lesson already present in the game: listen, repair, keep routes open, protect warnings, use signals carefully and choose what should remain undisclosed.\n• Every creature image is an exact export from the running renderer, and every trait comes from its checked genetics and DNA profile rather than new marketing invention.\n• The names and short stories are official universe material, but they do not claim these twelve creatures or events are already playable quests. The current game and the wider field guide remain plainly labelled.\n\nSee what changed: https://mythicalvoid.com/creature-field-guide/\n\nBranded proof layout, not a playable game scene. Every creature is an exact export from the running game renderer. The field-guide stories are official universe material, not claims that these events are already playable quests.",
+          "characterCount": 1111
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Twelve creatures now have a place in the story\n\nA new Project Beacon field guide connects twelve verified game-renderer creatures to the six living realms, with their real traits and new official stories kept clearly separate.\n\nhttps://mythicalvoid.com/creature-field-guide/\n\nBranded proof layout, not a playable game scene. Every creature is an exact export from the running game renderer. The field-guide stories are official universe material, not claims that these events are already playable quests.",
+          "characterCount": 523
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Twelve creatures now have a place in the story",
+          "body": "Mythical Void has a new live update: Twelve creatures now have a place in the story.\n\nA new Project Beacon field guide connects twelve verified game-renderer creatures to the six living realms, with their real traits and new official stories kept clearly separate.\n\nEach realm now has two field sightings tied to a lesson already present in the game: listen, repair, keep routes open, protect warnings, use signals carefully and choose what should remain undisclosed. Every creature image is an exact export from the running renderer, and every trait comes from its checked genetics and DNA profile rather than new marketing invention. The names and short stories are official universe material, but they do not claim these twelve creatures or events are already playable quests. The current game and the wider field guide remain plainly labelled.\n\nThe checked public destination is https://mythicalvoid.com/creature-field-guide/\n\nMedia note: Branded proof layout, not a playable game scene. Every creature is an exact export from the running game renderer. The field-guide stories are official universe material, not claims that these events are already playable quests.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 1246,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
+    {
+      "id": "DRAFT-SIGNAL-013",
+      "sourceEntryId": "SIGNAL-013",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/creature-genetics/#meet-the-twelve",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png",
+        "alt": "Twelve real pixel creatures rendered by the running Mythical Void genetics and DNA engine",
+        "class": "branded_renderer_proof_layout_with_authentic_game_sprite_exports",
+        "disclosure": "Branded proof layout, not a playable game scene. Every creature is an exact game-renderer export; the set was deliberately selected to show range and does not represent normal hatch odds."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Twelve real hatches show the engine’s range\n\nA new source-bound gallery shows twelve creatures made by the running Mythical Void genetics, DNA and pixel-rendering system—not concept art.\n\n• The engine was run 1,000 times with deliberately balanced rarity groups, then twelve results were selected for visible breadth across all seven current species and all five rarity levels.\n• The set covers all eleven genetics body families, nine head forms, six environmental auras and five personalities. Each card uses the exact sprite exported by the game renderer.\n• This is a range showcase, not a probability sample, a normal hatch-odds claim or a promise of endless mathematical uniqueness. The source profiles, image fingerprints and renderer build are open for checking.\n\nSee what changed: https://mythicalvoid.com/creature-genetics/#meet-the-twelve\n\nBranded proof layout, not a playable game scene. Every creature is an exact game-renderer export; the set was deliberately selected to show range and does not represent normal hatch odds.",
+          "characterCount": 1036
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Twelve real hatches show the engine’s range\n\nA new source-bound gallery shows twelve creatures made by the running Mythical Void genetics, DNA and pixel-rendering system—not concept art.\n\nhttps://mythicalvoid.com/creature-genetics/#meet-the-twelve\n\nBranded proof layout, not a playable game scene. Every creature is an exact game-renderer export; the set was deliberately selected to show range and does not represent normal hatch odds.",
+          "characterCount": 455
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Twelve real hatches show the engine’s range",
+          "body": "Mythical Void has a new live update: Twelve real hatches show the engine’s range.\n\nA new source-bound gallery shows twelve creatures made by the running Mythical Void genetics, DNA and pixel-rendering system—not concept art.\n\nThe engine was run 1,000 times with deliberately balanced rarity groups, then twelve results were selected for visible breadth across all seven current species and all five rarity levels. The set covers all eleven genetics body families, nine head forms, six environmental auras and five personalities. Each card uses the exact sprite exported by the game renderer. This is a range showcase, not a probability sample, a normal hatch-odds claim or a promise of endless mathematical uniqueness. The source profiles, image fingerprints and renderer build are open for checking.\n\nThe checked public destination is https://mythicalvoid.com/creature-genetics/#meet-the-twelve\n\nMedia note: Branded proof layout, not a playable game scene. Every creature is an exact game-renderer export; the set was deliberately selected to show range and does not represent normal hatch odds.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 1171,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
+    {
+      "id": "DRAFT-SIGNAL-012",
+      "sourceEntryId": "SIGNAL-012",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/press/#real-creature-hatch",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/gameplay/creature-cosmic-egg-reveal.png",
+        "alt": "A real generated pixel creature taking centre stage after hatching in Mythical Void",
+        "class": "authentic_running_build_screenshot",
+        "disclosure": "Captured from the real browser game using an invented Mythical Void test state; not marketing art. It shows one genetics result and no player identity or private save."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "The real creature now takes centre stage\n\nThe first hatch now gives the generated pixel creature room to be seen before the player chooses a name, and the real result is available as checked gameplay proof.\n\n• The running genetics engine creates the creature shown in the new screenshot; no marketing illustration, replacement creature or private player state is used.\n• The creature is more than twice its previous display size, the field reading no longer overlaps and old egg instructions disappear when the hatch is complete.\n• The moment gives the player one clear next step. The screenshot proves one genuine hatch, not every possible creature form or an absolute uniqueness claim.\n\nSee what changed: https://mythicalvoid.com/press/#real-creature-hatch\n\nCaptured from the real browser game using an invented Mythical Void test state; not marketing art. It shows one genetics result and no player identity or private save.",
+          "characterCount": 927
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: The real creature now takes centre stage\n\nThe first hatch now gives the generated pixel creature room to be seen before the player chooses a name, and the real result is available as checked gameplay proof.\n\nhttps://mythicalvoid.com/press/#real-creature-hatch\n\nCaptured from the real browser game using an invented Mythical Void test state; not marketing art. It shows one genetics result and no player identity or private save.",
+          "characterCount": 447
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: The real creature now takes centre stage",
+          "body": "Mythical Void has a new live update: The real creature now takes centre stage.\n\nThe first hatch now gives the generated pixel creature room to be seen before the player chooses a name, and the real result is available as checked gameplay proof.\n\nThe running genetics engine creates the creature shown in the new screenshot; no marketing illustration, replacement creature or private player state is used. The creature is more than twice its previous display size, the field reading no longer overlaps and old egg instructions disappear when the hatch is complete. The moment gives the player one clear next step. The screenshot proves one genuine hatch, not every possible creature form or an absolute uniqueness claim.\n\nThe checked public destination is https://mythicalvoid.com/press/#real-creature-hatch\n\nMedia note: Captured from the real browser game using an invented Mythical Void test state; not marketing art. It shows one genetics result and no player identity or private save.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 1062,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
+    {
+      "id": "DRAFT-SIGNAL-011",
+      "sourceEntryId": "SIGNAL-011",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/press/#creator-download-kit",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/social-video/mythical-void-real-gameplay-wide-poster.png",
+        "alt": "Wide Mythical Void creator video poster with a complete real gameplay frame and the words The Void is waiting",
+        "class": "branded_social_video_poster_with_authentic_running_build_gameplay",
+        "disclosure": "Poster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "The creator kit is now one download\n\nAdults, press and creators can now collect the checked Mythical Void gameplay videos, posters, captions, emblem and facts in one clearly labelled package.\n\n• The package contains vertical, square and wide videos built around the same complete real gameplay frame, with matching posters and the media disclosure kept beside them.\n• A checked caption pack, official emblem, fact sheet and file-by-file package record remove the need to hunt through the website or guess which version is current.\n• A release checklist keeps official posting, spending, replies and child contact closed until an official channel, safeguarding cover and Kevin approval exist. No external post or message has been sent.\n\nSee what changed: https://mythicalvoid.com/press/#creator-download-kit\n\nPoster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.",
+          "characterCount": 982
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: The creator kit is now one download\n\nAdults, press and creators can now collect the checked Mythical Void gameplay videos, posters, captions, emblem and facts in one clearly labelled package.\n\nhttps://mythicalvoid.com/press/#creator-download-kit\n\nPoster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.",
+          "characterCount": 440
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: The creator kit is now one download",
+          "body": "Mythical Void has a new live update: The creator kit is now one download.\n\nAdults, press and creators can now collect the checked Mythical Void gameplay videos, posters, captions, emblem and facts in one clearly labelled package.\n\nThe package contains vertical, square and wide videos built around the same complete real gameplay frame, with matching posters and the media disclosure kept beside them. A checked caption pack, official emblem, fact sheet and file-by-file package record remove the need to hunt through the website or guess which version is current. A release checklist keeps official posting, spending, replies and child contact closed until an official channel, safeguarding cover and Kevin approval exist. No external post or message has been sent.\n\nThe checked public destination is https://mythicalvoid.com/press/#creator-download-kit\n\nMedia note: Poster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 1117,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
+    {
+      "id": "DRAFT-SIGNAL-010",
+      "sourceEntryId": "SIGNAL-010",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/press/#real-gameplay-social-video",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/social-video/mythical-void-real-gameplay-square-poster.png",
+        "alt": "Square Mythical Void branded video poster with a complete real gameplay frame and the words Crash beyond mapped space, hatch something strange",
+        "class": "branded_social_video_poster_with_authentic_running_build_gameplay",
+        "disclosure": "Poster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Real gameplay now fits every screen\n\nOne checked Mythical Void gameplay recording is now available as vertical, square and wide branded video, ready for adults, press and creators to review without changing what the game really shows.\n\n• Every version preserves the complete moving phone-game frame and adds branding only around it; no generated motion, replacement scenery, replacement interface or replacement audio is used.\n• The silent 19.58-second videos come in 1080 by 1920, 1080 by 1080 and 1920 by 1080 formats, with downloadable posters and an exact build record.\n• Three source-bound caption drafts use the clean Playable Now link, make no absolute uniqueness claim and remain unposted until an official channel and Kevin approval exist.\n\nSee what changed: https://mythicalvoid.com/press/#real-gameplay-social-video\n\nPoster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.",
+          "characterCount": 1002
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Real gameplay now fits every screen\n\nOne checked Mythical Void gameplay recording is now available as vertical, square and wide branded video, ready for adults, press and creators to review without changing what the game really shows.\n\nhttps://mythicalvoid.com/press/#real-gameplay-social-video\n\nPoster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.",
+          "characterCount": 489
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Real gameplay now fits every screen",
+          "body": "Mythical Void has a new live update: Real gameplay now fits every screen.\n\nOne checked Mythical Void gameplay recording is now available as vertical, square and wide branded video, ready for adults, press and creators to review without changing what the game really shows.\n\nEvery version preserves the complete moving phone-game frame and adds branding only around it; no generated motion, replacement scenery, replacement interface or replacement audio is used. The silent 19.58-second videos come in 1080 by 1920, 1080 by 1080 and 1920 by 1080 formats, with downloadable posters and an exact build record. Three source-bound caption drafts use the clean Playable Now link, make no absolute uniqueness claim and remain unposted until an official channel and Kevin approval exist.\n\nThe checked public destination is https://mythicalvoid.com/press/#real-gameplay-social-video\n\nMedia note: Poster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 1137,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
+    {
+      "id": "DRAFT-SIGNAL-009",
+      "sourceEntryId": "SIGNAL-009",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/playable-now/",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
+        "alt": "Real Mythical Void gameplay in the Mythical Forest with platforming controls and route display",
+        "class": "authentic_running_build_screenshot",
+        "disclosure": "Poster captured from the real browser game using an invented test state; no generated frames, player identity or personal save information are shown."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "See the real game before you play\n\nA new Mythical Void page gives unfamiliar players one clear view of the real browser game, what they do in it and why the project is different before asking them to play.\n\n• The page leads with a 19.58-second recording made directly from the running Mythical Forest level, with no generated frames or replacement scenery.\n• It explains the crash, creature, six realms, restoration, Sanctuary building and Project Beacon choice in plain language, with four real game screens as proof.\n• Every Play link goes directly to the free browser game without an account, download, email signup or tracking parameter.\n\nSee what changed: https://mythicalvoid.com/playable-now/\n\nPoster captured from the real browser game using an invented test state; no generated frames, player identity or personal save information are shown.",
+          "characterCount": 850
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: See the real game before you play\n\nA new Mythical Void page gives unfamiliar players one clear view of the real browser game, what they do in it and why the project is different before asking them to play.\n\nhttps://mythicalvoid.com/playable-now/\n\nPoster captured from the real browser game using an invented test state; no generated frames, player identity or personal save information are shown.",
+          "characterCount": 415
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: See the real game before you play",
+          "body": "Mythical Void has a new live update: See the real game before you play.\n\nA new Mythical Void page gives unfamiliar players one clear view of the real browser game, what they do in it and why the project is different before asking them to play.\n\nThe page leads with a 19.58-second recording made directly from the running Mythical Forest level, with no generated frames or replacement scenery. It explains the crash, creature, six realms, restoration, Sanctuary building and Project Beacon choice in plain language, with four real game screens as proof. Every Play link goes directly to the free browser game without an account, download, email signup or tracking parameter.\n\nThe checked public destination is https://mythicalvoid.com/playable-now/\n\nMedia note: Poster captured from the real browser game using an invented test state; no generated frames, player identity or personal save information are shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 985,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-SIGNAL-008",
       "sourceEntryId": "SIGNAL-008",

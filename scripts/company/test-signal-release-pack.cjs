@@ -28,7 +28,7 @@ try {
     const failures = [
         ['draft-source', source => { source.entries[0].status = 'draft'; }, () => {}],
         ['tracking-link', source => { source.entries[0].destination += '?utm_source=social'; }, () => {}],
-        ['missing-art-disclosure', source => { source.entries[0].disclosure = 'Creature artwork.'; }, () => {}],
+        ['missing-renderer-proof-disclosure', source => { source.entries.find(entry => entry.imageClass === 'branded_renderer_proof_layout_with_authentic_game_sprite_exports').disclosure = 'Creature artwork.'; }, () => {}],
         ['missing-generated-art-disclosure', source => { source.entries.find(entry => entry.imageClass === 'ai_generated_marketing_illustration').disclosure = 'Creature artwork.'; }, () => {}],
         ['publishing-authorized', () => {}, pack => { pack.authority.publishingAuthorized = true; }],
         ['invented-channel', () => {}, pack => { pack.authority.socialAccountsVerified = true; }],

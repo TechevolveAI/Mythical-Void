@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "AUTHENTIC-GAMEPLAY-CAPTION-PACK-2026-08-26",
+  "state": "withdrawn_visual_quality_failed_do_not_publish",
+  "withdrawalReason": "The captions describe the withdrawn social video set and must not be posted.",
+  "cleanDestination": "https://mythicalvoid.com/playable-now/",
+  "mediaManifest": "https://mythicalvoid.com/press/social-video/manifest.json",
+  "sharedDisclosure": "The complete moving game frame is real Mythical Void gameplay. The surrounding branded layout is not gameplay. The videos are silent and contain no generated motion, replacement scenery or replacement interface.",
+  "drafts": [
+    {
+      "id": "GSV-CAPTION-001",
+      "use": "vertical_short_form",
+      "asset": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-vertical.mp4",
+      "headline": "A signal is waiting beyond mapped space.",
+      "caption": "This is real Mythical Void gameplay. Crash beyond mapped space, hatch a strange alien creature, cross six living realms and decide what Project Beacon should become. The current early-access game is free in your browser. No download or account is needed to start.\n\nPlay: https://mythicalvoid.com/playable-now/\n\n#MythicalVoid #IndieGame #BrowserGame #CreatureGame",
+      "altText": "A vertical branded video containing the complete real Mythical Void phone-gameplay frame. An astronaut moves and jumps through the green Mythical Forest while the route display and touch controls remain visible."
+    },
+    {
+      "id": "GSV-CAPTION-002",
+      "use": "square_social_post",
+      "asset": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-square.mp4",
+      "headline": "Crash. Hatch. Cross six living realms.",
+      "caption": "What can a father, his nine-year-old son, generative AI tools and a lot of imagination build together? Mythical Void grew from that experiment into a real browser game. This clip comes directly from the running early-access build.\n\nSee the game and play free: https://mythicalvoid.com/playable-now/\n\n#MythicalVoid #GameDev #IndieGame #BuiltTogether",
+      "altText": "A square Mythical Void video with the complete real phone-gameplay frame on the left and the words Crash beyond mapped space. Hatch something strange on the right."
+    },
+    {
+      "id": "GSV-CAPTION-003",
+      "use": "wide_creator_or_professional_post",
+      "asset": "https://mythicalvoid.com/press/social-video/mythical-void-real-gameplay-wide.mp4",
+      "headline": "The Void is waiting.",
+      "caption": "Mythical Void is a free early-access creature adventure from an independent Irish studio. Players hatch a genetically varied alien creature, explore six living realms, clear the corruption holding their guardians and choose what Project Beacon should become.\n\nWatch real gameplay and start in your browser: https://mythicalvoid.com/playable-now/\n\n#MythicalVoid #IrishGameDev #BrowserGame #IndieGame",
+      "altText": "A wide Mythical Void video with the words The Void is waiting beside the complete real vertical gameplay frame from the Mythical Forest."
+    }
+  ],
+  "factSources": [
+    "https://mythicalvoid.com/playable-now/",
+    "https://mythicalvoid.com/story/",
+    "https://mythicalvoid.com/studio/",
+    "https://mythicalvoid.com/press/gameplay-video/manifest.json"
+  ],
+  "boundaries": {
+    "absoluteCreatureUniquenessClaimPermitted": false,
+    "generatedArtworkMayBeCalledGameplay": false,
+    "nasaEndorsementClaimPermitted": false,
+    "sentienceOrConsciousnessClaimPermitted": false,
+    "childPhotoNameQuoteContactOrIdentifyingDetailPermitted": false,
+    "trackingParametersPermitted": false,
+    "inventedAudienceMetricsPermitted": false
+  },
+  "authority": {
+    "publicPressRoomPublicationAuthorized": false,
+    "externalSocialPublicationAuthorized": false,
+    "creatorOutreachSendingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "publicRepliesAuthorized": false,
+    "kevinApprovalRequiredBeforeExternalPublication": true,
+    "externalActionPerformed": false
+  }
+}

@@ -12,6 +12,14 @@
       "destination": "/story/index.html"
     },
     {
+      "source": "/playable-now",
+      "destination": "/playable-now/index.html"
+    },
+    {
+      "source": "/playable-now/",
+      "destination": "/playable-now/index.html"
+    },
+    {
       "source": "/updates",
       "destination": "/updates/index.html"
     },
@@ -20,7 +28,7 @@
       "destination": "/updates/index.html"
     },
     {
-      "source": "/((?!assets/|marketing/|game/|audio/|updates/|og\\.png|sw\\.js|apple-touch-icon\\.png).*)",
+      "source": "/((?!assets/|marketing/|game/|audio/|updates/|playable-now/|og\\.png|sw\\.js|apple-touch-icon\\.png).*)",
       "destination": "/index.html"
     }
   ],

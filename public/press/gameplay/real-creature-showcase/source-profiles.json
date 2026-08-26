@@ -1,0 +1,2326 @@
+{
+  "schemaVersion": 1,
+  "state": "deterministic_real_engine_profiles_ready_for_renderer_capture",
+  "generatedBy": "CreatureGenetics + CreatureDNA",
+  "deterministicSeed": "0x5245414C",
+  "candidatesExplored": 1000,
+  "profilesSelected": 12,
+  "selectionNote": "Selected for visible breadth across deliberately balanced rarity runs; this is not a probability sample or an absolute uniqueness claim.",
+  "coverage": {
+    "species": {
+      "cosmicGuardian": 2,
+      "stellarWyrm": 1,
+      "nebulaSprite": 2,
+      "crystalDrake": 3,
+      "auroraPhoenix": 1,
+      "crystalElemental": 2,
+      "voidStalker": 1
+    },
+    "rarity": {
+      "legendary": 2,
+      "rare": 3,
+      "epic": 3,
+      "uncommon": 2,
+      "common": 2
+    },
+    "geneBodies": {
+      "blob": 1,
+      "balanced": 1,
+      "serpentine": 1,
+      "cyclops": 1,
+      "avian": 1,
+      "insectoid": 2,
+      "fish": 1,
+      "sturdy": 1,
+      "slender": 1,
+      "reptilian": 1,
+      "quadruped": 1
+    },
+    "bodies": {
+      "quadruped": 2,
+      "serpentine": 2,
+      "blob": 4,
+      "biped": 3,
+      "winged": 1
+    },
+    "heads": {
+      "canine": 1,
+      "simian": 1,
+      "avian": 3,
+      "cervine": 1,
+      "feline": 2,
+      "aquatic": 1,
+      "reptile": 1,
+      "rodent": 1,
+      "insectoid": 1
+    },
+    "affinities": {
+      "crystal": 5,
+      "nebula": 2,
+      "void": 2,
+      "moon": 2,
+      "star": 1
+    },
+    "auras": {
+      "storm": 1,
+      "forest": 3,
+      "cosmic": 3,
+      "tidal": 2,
+      "shadow-soft": 1,
+      "ember": 2
+    },
+    "personalities": {
+      "gentle": 3,
+      "curious": 2,
+      "playful": 3,
+      "energetic": 2,
+      "wise": 2
+    },
+    "mutated": 10,
+    "shiny": 3
+  },
+  "profiles": [
+    {
+      "id": "MV-0010",
+      "species": "cosmicGuardian",
+      "speciesLabel": "Cosmic Guardian",
+      "rarity": "legendary",
+      "geneBody": "blob",
+      "body": "quadruped",
+      "head": "canine",
+      "hybrid": "dual-hybrid",
+      "aura": "storm",
+      "personality": "gentle",
+      "affinity": "crystal",
+      "mutations": [
+        {
+          "type": "gem_body",
+          "variant": "ruby"
+        },
+        {
+          "type": "elemental_aura",
+          "variant": "lightning"
+        },
+        {
+          "type": "prismatic_sheen",
+          "variant": "opalescent"
+        }
+      ],
+      "specialFeatures": [
+        {
+          "type": "dimensional_shadows",
+          "variant": "unique"
+        },
+        {
+          "type": "star_dust_emanation",
+          "variant": "enhanced"
+        },
+        {
+          "type": "time_ripples",
+          "variant": "unique"
+        }
+      ],
+      "shiny": true,
+      "shinyType": "sparkle",
+      "colors": {
+        "primary": "#B76E79",
+        "secondary": "#E8B4B8",
+        "accent": "#FFC0CB"
+      },
+      "genes": {
+        "id": "showcase-0010",
+        "species": "cosmicGuardian",
+        "rarity": "legendary",
+        "generatedAt": 0,
+        "traits": {
+          "bodyShape": {
+            "type": "blob",
+            "intensity": 0.5600634302943945
+          },
+          "colorGenome": {
+            "primary": 12021369,
+            "secondary": 15250616,
+            "accent": 16761035,
+            "feet": 9136489,
+            "head": 13216166,
+            "markings": 16770273,
+            "gradient": {
+              "type": "radial",
+              "startColor": 12021369,
+              "endColor": 15250616,
+              "intensity": 0.7407501271925867,
+              "angle": 338.61116585321724
+            },
+            "shimmerIntensity": 1,
+            "colorComplexity": 0.11974518991039705,
+            "harmonicResonance": 0.6000000000000001,
+            "mixingPattern": "legendary_shimmer",
+            "dominantHue": 351,
+            "saturationLevel": 0.6223392582839588,
+            "mutationFlags": [
+              "luminance_boost",
+              "stellar_core"
+            ],
+            "isLegendaryPrestige": true,
+            "hasSparkle": true,
+            "sparkleColor": 16777215,
+            "sparkleIntensity": 0.8
+          },
+          "features": {
+            "eyes": {
+              "size": "medium",
+              "color": 16766287,
+              "glow": 0.9478666817769408
+            },
+            "wings": {
+              "type": "armored",
+              "span": 1.0524232579395176,
+              "shimmer": 0.9212961988523602
+            },
+            "markings": {
+              "pattern": "cosmic_fractals",
+              "intensity": 0.3974991898052394,
+              "distribution": "scattered",
+              "colorVariant": "lighter",
+              "scale": 0.9807608414441347,
+              "opacity": 0.41722548808902504,
+              "animation": {
+                "type": "wave",
+                "speed": 0.5557428651489318,
+                "intensity": 0.7483444070909173,
+                "pattern": "cascading"
+              }
+            },
+            "specialFeatures": [
+              {
+                "type": "dimensional_shadows",
+                "intensity": 0.7538528479635715,
+                "variant": "unique",
+                "animation": {
+                  "type": "pulse",
+                  "duration": 2188.6355434544384,
+                  "easing": "bounce",
+                  "loop": true
+                }
+              },
+              {
+                "type": "star_dust_emanation",
+                "intensity": 0.8190971182659268,
+                "variant": "enhanced",
+                "animation": {
+                  "type": "pulse",
+                  "duration": 1243.0166504345834,
+                  "easing": "bounce",
+                  "loop": true
+                }
+              },
+              {
+                "type": "time_ripples",
+                "intensity": 0.21240879204124213,
+                "variant": "unique",
+                "animation": {
+                  "type": "expand",
+                  "duration": 2292.6796707324684,
+                  "easing": "linear",
+                  "loop": true
+                }
+              }
+            ],
+            "wackyMutations": [
+              {
+                "type": "gem_body",
+                "variant": "ruby",
+                "intensity": 0.4167684606043622,
+                "inherited": false,
+                "dominance": 0.48148937956430016
+              },
+              {
+                "type": "elemental_aura",
+                "variant": "lightning",
+                "intensity": 0.49475860230159013,
+                "inherited": false,
+                "dominance": 0.8154036407824605
+              },
+              {
+                "type": "prismatic_sheen",
+                "variant": "opalescent",
+                "intensity": 0.7869174343766645,
+                "inherited": false,
+                "dominance": 0.6045339509379118
+              }
+            ]
+          }
+        },
+        "personality": {
+          "core": "gentle",
+          "description": "Calm and affectionate, loves quiet moments",
+          "quirks": [
+            "gentle_nuzzler",
+            "peace_bringer"
+          ],
+          "socialLevel": 0.46284169806167486,
+          "independence": 0.5618775567039848,
+          "emotionModifiers": {
+            "stressed": -0.3,
+            "content": 0.2
+          },
+          "carePreferences": {
+            "pet": 1.3,
+            "clean": 1.1,
+            "play": 0.8
+          }
+        },
+        "cosmicAffinity": {
+          "element": "crystal",
+          "description": "Resonates with crystalline structures",
+          "powerLevel": 0.8792407660745085,
+          "visualEffects": [
+            "crystal_growth",
+            "harmonic_vibration"
+          ],
+          "specialAbilities": [
+            "memory_storing",
+            "healing_resonance"
+          ]
+        },
+        "breedingData": {
+          "canBreed": true,
+          "breedingCooldown": 0,
+          "timesBreeded": 0,
+          "maxBreedingTimes": 5,
+          "compatibleSpecies": [
+            "cosmicGuardian"
+          ],
+          "fertilityRate": 0.8874076913110912
+        },
+        "lineage": {
+          "parent1": null,
+          "parent2": null,
+          "generation": 0,
+          "familyTree": []
+        },
+        "isShiny": true,
+        "shinyType": "sparkle",
+        "metadata": {
+          "generationTime": 0,
+          "version": "1.0.0"
+        }
+      },
+      "dna": {
+        "id": "showcase-dna-0010",
+        "generatedAt": 0,
+        "version": "1.0",
+        "bodyArchetype": "quadruped",
+        "headArchetype": "canine",
+        "hybridTag": "dual-hybrid",
+        "elementalAura": "storm",
+        "temperament": "shy",
+        "energyLevel": "chill",
+        "curiosity": "low",
+        "attachmentStyle": "clingy",
+        "favouriteCareAction": "grooming",
+        "raritySignature": "legendary",
+        "mutationPotential": 0.35,
+        "metadata": {
+          "generation": 1,
+          "lineage": [],
+          "mutations": []
+        }
+      }
+    },
+    {
+      "id": "MV-0715",
+      "species": "stellarWyrm",
+      "speciesLabel": "Stellar Wyrm",
+      "rarity": "legendary",
+      "geneBody": "balanced",
+      "body": "serpentine",
+      "head": "simian",
+      "hybrid": "single-species",
+      "aura": "forest",
+      "personality": "curious",
+      "affinity": "nebula",
+      "mutations": [
+        {
+          "type": "extra_eyes",
+          "variant": "floating"
+        },
+        {
+          "type": "inanimate_markings",
+          "variant": "circuits"
+        }
+      ],
+      "specialFeatures": [
+        {
+          "type": "constellation_markings",
+          "variant": "enhanced"
+        },
+        {
+          "type": "aurora_aura",
+          "variant": "flowing"
+        },
+        {
+          "type": "cosmic_resonance",
+          "variant": "standard"
+        }
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "primary": "#FFD700",
+        "secondary": "#FFC125",
+        "accent": "#FFF8DC"
+      },
+      "genes": {
+        "id": "showcase-0715",
+        "species": "stellarWyrm",
+        "rarity": "legendary",
+        "generatedAt": 0,
+        "traits": {
+          "bodyShape": {
+            "type": "balanced",
+            "intensity": 0.43522922694683075
+          },
+          "colorGenome": {
+            "primary": 16766720,
+            "secondary": 16761125,
+            "accent": 16775388,
+            "feet": 14329120,
+            "head": 16768768,
+            "markings": 16777184,
+            "gradient": {
+              "type": "radial",
+              "startColor": 16766720,
+              "endColor": 16761125,
+              "intensity": 0.6732006156817079,
+              "angle": 189.23261823132634
+            },
+            "shimmerIntensity": 1,
+            "colorComplexity": 0.1989516718889215,
+            "harmonicResonance": 0.6000000000000001,
+            "mixingPattern": "legendary_shimmer",
+            "dominantHue": 51,
+            "saturationLevel": 1,
+            "mutationFlags": [
+              "luminance_boost"
+            ],
+            "isLegendaryPrestige": true
+          },
+          "features": {
+            "eyes": {
+              "size": "small",
+              "color": 16766287,
+              "glow": 0.7769062131643296
+            },
+            "wings": {
+              "type": "feathered",
+              "span": 1.073091008514166,
+              "shimmer": 0.7203463785350324
+            },
+            "markings": {
+              "pattern": "reality_rifts",
+              "intensity": 0.5502739139366895,
+              "distribution": "scattered",
+              "colorVariant": "lighter",
+              "scale": 0.23912850953638554,
+              "opacity": 0.596866205520928,
+              "animation": {
+                "type": "pulse",
+                "speed": 0.43174691156018524,
+                "intensity": 0.22529148282483222,
+                "pattern": "cascading"
+              }
+            },
+            "specialFeatures": [
+              {
+                "type": "constellation_markings",
+                "intensity": 0.8353504555299878,
+                "variant": "enhanced",
+                "animation": {
+                  "type": "fade",
+                  "duration": 2410.536924377084,
+                  "easing": "elastic",
+                  "loop": true
+                }
+              },
+              {
+                "type": "aurora_aura",
+                "intensity": 0.6427893705666066,
+                "variant": "flowing",
+                "animation": {
+                  "type": "shimmer",
+                  "duration": 2621.1553681641817,
+                  "easing": "bounce",
+                  "loop": true
+                }
+              },
+              {
+                "type": "cosmic_resonance",
+                "intensity": 0.49279618356376886,
+                "variant": "standard",
+                "animation": {
+                  "type": "pulse",
+                  "duration": 1437.7301502972841,
+                  "easing": "bounce",
+                  "loop": false
+                }
+              }
+            ],
+            "wackyMutations": [
+              {
+                "type": "extra_eyes",
+                "variant": "floating",
+                "intensity": 0.7900757429422811,
+                "inherited": false,
+                "dominance": 0.32546179932542146
+              },
+              {
+                "type": "inanimate_markings",
+                "variant": "circuits",
+                "intensity": 0.4540183222386986,
+                "inherited": false,
+                "dominance": 0.5344589828979224
+              }
+            ]
+          }
+        },
+        "personality": {
+          "core": "curious",
+          "description": "Loves to explore and discover new things",
+          "quirks": [
+            "star_gazer"
+          ],
+          "socialLevel": 0.41873206896707416,
+          "independence": 0.7056894776877016,
+          "emotionModifiers": {
+            "bored": -0.3,
+            "excited": 0.2
+          },
+          "carePreferences": {
+            "photo": 1.2,
+            "play": 1.1,
+            "rest": 0.8
+          }
+        },
+        "cosmicAffinity": {
+          "element": "nebula",
+          "description": "Flowing with cosmic mists",
+          "powerLevel": 1,
+          "visualEffects": [
+            "color_shifting",
+            "mist_trail"
+          ],
+          "specialAbilities": [
+            "emotion_sensing",
+            "color_changing"
+          ]
+        },
+        "breedingData": {
+          "canBreed": true,
+          "breedingCooldown": 0,
+          "timesBreeded": 0,
+          "maxBreedingTimes": 5,
+          "compatibleSpecies": [
+            "stellarWyrm"
+          ],
+          "fertilityRate": 0.9946902087889612
+        },
+        "lineage": {
+          "parent1": null,
+          "parent2": null,
+          "generation": 0,
+          "familyTree": []
+        },
+        "isShiny": false,
+        "shinyType": null,
+        "metadata": {
+          "generationTime": 0,
+          "version": "1.0.0"
+        }
+      },
+      "dna": {
+        "id": "showcase-dna-0715",
+        "generatedAt": 0,
+        "version": "1.0",
+        "bodyArchetype": "serpentine",
+        "headArchetype": "simian",
+        "hybridTag": "single-species",
+        "elementalAura": "forest",
+        "temperament": "shy",
+        "energyLevel": "chill",
+        "curiosity": "medium",
+        "attachmentStyle": "independent",
+        "favouriteCareAction": "grooming",
+        "raritySignature": "legendary",
+        "mutationPotential": 0.35,
+        "metadata": {
+          "generation": 1,
+          "lineage": [],
+          "mutations": []
+        }
+      }
+    },
+    {
+      "id": "MV-0698",
+      "species": "nebulaSprite",
+      "speciesLabel": "Nebula Sprite",
+      "rarity": "rare",
+      "geneBody": "serpentine",
+      "body": "blob",
+      "head": "avian",
+      "hybrid": "dual-hybrid",
+      "aura": "cosmic",
+      "personality": "curious",
+      "affinity": "void",
+      "mutations": [
+        {
+          "type": "scale_armor",
+          "variant": "reptile"
+        },
+        {
+          "type": "surreal_appendages",
+          "variant": "flames"
+        }
+      ],
+      "specialFeatures": [
+        {
+          "type": "bioluminescent_spots",
+          "variant": "pulsing"
+        },
+        {
+          "type": "crystal_growth",
+          "variant": "geometric"
+        }
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "primary": "#80302A",
+        "secondary": "#F899A1",
+        "accent": "#B3BA44"
+      },
+      "genes": {
+        "id": "showcase-0698",
+        "species": "nebulaSprite",
+        "rarity": "rare",
+        "generatedAt": 0,
+        "traits": {
+          "bodyShape": {
+            "type": "serpentine",
+            "intensity": 0.4437720717862248
+          },
+          "colorGenome": {
+            "primary": 8400938,
+            "secondary": 16292257,
+            "accent": 11778628,
+            "feet": 14654074,
+            "head": 12841542,
+            "markings": 10610650,
+            "gradient": {
+              "type": "spiral",
+              "startColor": 8400938,
+              "endColor": 16292257,
+              "intensity": 0.6622346505522727,
+              "angle": 26.8368676956743
+            },
+            "shimmerIntensity": 0.8252795477514155,
+            "colorComplexity": 0.2042598010092122,
+            "harmonicResonance": 0.2,
+            "mixingPattern": "harmonic_blend",
+            "dominantHue": 4,
+            "saturationLevel": 0.6140029717008525,
+            "mutationFlags": [],
+            "isLegendaryPrestige": false
+          },
+          "features": {
+            "eyes": {
+              "size": "medium",
+              "color": 16027569,
+              "glow": 0.6509737078100444
+            },
+            "wings": {
+              "type": "ethereal",
+              "span": 1.0011968434788288,
+              "shimmer": 0.55067905690521
+            },
+            "markings": {
+              "pattern": "complex_spots",
+              "intensity": 0.47859836295247077,
+              "distribution": "flowing",
+              "colorVariant": "complementary",
+              "scale": 0.7444852862507105,
+              "opacity": 0.630669755768031,
+              "animation": null
+            },
+            "specialFeatures": [
+              {
+                "type": "bioluminescent_spots",
+                "intensity": 0.6357582163065671,
+                "variant": "pulsing",
+                "animation": null
+              },
+              {
+                "type": "crystal_growth",
+                "intensity": 0.9622388193383813,
+                "variant": "geometric",
+                "animation": null
+              }
+            ],
+            "wackyMutations": [
+              {
+                "type": "scale_armor",
+                "variant": "reptile",
+                "intensity": 0.3511351085733622,
+                "inherited": false,
+                "dominance": 0.6923785198945551
+              },
+              {
+                "type": "surreal_appendages",
+                "variant": "flames",
+                "intensity": 0.6059678166173399,
+                "inherited": false,
+                "dominance": 0.3936436397954821
+              }
+            ]
+          }
+        },
+        "personality": {
+          "core": "curious",
+          "description": "Loves to explore and discover new things",
+          "quirks": [
+            "head_tilter"
+          ],
+          "socialLevel": 0.5208332077600062,
+          "independence": 0.2743882236070931,
+          "emotionModifiers": {
+            "bored": -0.3,
+            "excited": 0.2
+          },
+          "carePreferences": {
+            "photo": 1.2,
+            "play": 1.1,
+            "rest": 0.8
+          }
+        },
+        "cosmicAffinity": {
+          "element": "void",
+          "description": "Touched by the deep cosmos",
+          "powerLevel": 1,
+          "visualEffects": [
+            "shadow_dance",
+            "star_field"
+          ],
+          "specialAbilities": [
+            "space_sensing",
+            "portal_creation"
+          ]
+        },
+        "breedingData": {
+          "canBreed": true,
+          "breedingCooldown": 0,
+          "timesBreeded": 0,
+          "maxBreedingTimes": 5,
+          "compatibleSpecies": [
+            "nebulaSprite"
+          ],
+          "fertilityRate": 0.8252779888454825
+        },
+        "lineage": {
+          "parent1": null,
+          "parent2": null,
+          "generation": 0,
+          "familyTree": []
+        },
+        "isShiny": false,
+        "shinyType": null,
+        "metadata": {
+          "generationTime": 0,
+          "version": "1.0.0"
+        }
+      },
+      "dna": {
+        "id": "showcase-dna-0698",
+        "generatedAt": 0,
+        "version": "1.0",
+        "bodyArchetype": "blob",
+        "headArchetype": "avian",
+        "hybridTag": "dual-hybrid",
+        "elementalAura": "cosmic",
+        "temperament": "gentle",
+        "energyLevel": "balanced",
+        "curiosity": "medium",
+        "attachmentStyle": "balanced",
+        "favouriteCareAction": "feeding",
+        "raritySignature": "rare",
+        "mutationPotential": 0.15,
+        "metadata": {
+          "generation": 1,
+          "lineage": [],
+          "mutations": []
+        }
+      }
+    },
+    {
+      "id": "MV-0153",
+      "species": "crystalDrake",
+      "speciesLabel": "Crystal Drake",
+      "rarity": "rare",
+      "geneBody": "cyclops",
+      "body": "biped",
+      "head": "cervine",
+      "hybrid": "triple-hybrid",
+      "aura": "tidal",
+      "personality": "playful",
+      "affinity": "moon",
+      "mutations": [
+        {
+          "type": "cosmic_horns",
+          "variant": "branching"
+        }
+      ],
+      "specialFeatures": [
+        {
+          "type": "constellation_eyes",
+          "variant": "enhanced"
+        }
+      ],
+      "shiny": true,
+      "shinyType": "inverted",
+      "colors": {
+        "primary": "#AFDB75",
+        "secondary": "#415BBF",
+        "accent": "#8994D9"
+      },
+      "genes": {
+        "id": "showcase-0153",
+        "species": "crystalDrake",
+        "rarity": "rare",
+        "generatedAt": 0,
+        "traits": {
+          "bodyShape": {
+            "type": "cyclops",
+            "intensity": 0.40210373057052495
+          },
+          "colorGenome": {
+            "primary": 11524981,
+            "secondary": 4283327,
+            "accent": 9016537,
+            "feet": 8200476,
+            "head": 13992536,
+            "markings": 3256645,
+            "gradient": {
+              "type": "linear",
+              "startColor": 5252234,
+              "endColor": 12493888,
+              "intensity": 0.49771833601407706,
+              "angle": 65.02848789095879
+            },
+            "shimmerIntensity": 1,
+            "colorComplexity": 0.17782893175950726,
+            "harmonicResonance": 0.2,
+            "mixingPattern": "harmonic_blend",
+            "dominantHue": 266,
+            "saturationLevel": 0.531696800499407,
+            "mutationFlags": [
+              "prismatic_effect",
+              "cosmic_resonance"
+            ],
+            "isLegendaryPrestige": false,
+            "isInverted": true
+          },
+          "features": {
+            "eyes": {
+              "size": "small",
+              "color": 8505220,
+              "glow": 0.3451225679367781
+            },
+            "wings": {
+              "type": "crystal",
+              "span": 1.0229744328185917,
+              "shimmer": 0.9582785010337831
+            },
+            "markings": {
+              "pattern": "galaxy_swirls",
+              "intensity": 0.8574000215157866,
+              "distribution": "symmetrical",
+              "colorVariant": "cosmic",
+              "scale": 0.4075339745730162,
+              "opacity": 0.6354937240481378,
+              "animation": {
+                "type": "wave",
+                "speed": 0.3543250045739114,
+                "intensity": 0.7253989566583185,
+                "pattern": "synchronized"
+              }
+            },
+            "specialFeatures": [
+              {
+                "type": "constellation_eyes",
+                "intensity": 0.5864011945202947,
+                "variant": "enhanced",
+                "animation": {
+                  "type": "fade",
+                  "duration": 2776.2458426877856,
+                  "easing": "bounce",
+                  "loop": false
+                }
+              }
+            ],
+            "wackyMutations": [
+              {
+                "type": "cosmic_horns",
+                "variant": "branching",
+                "intensity": 0.5634136686101556,
+                "inherited": false,
+                "dominance": 0.7657789855264128
+              }
+            ]
+          }
+        },
+        "personality": {
+          "core": "playful",
+          "description": "Full of energy and loves games",
+          "quirks": [
+            "chase_lights"
+          ],
+          "socialLevel": 0.6548881891649216,
+          "independence": 0.6018398127052933,
+          "emotionModifiers": {
+            "happy": 0.2,
+            "bored": -0.2
+          },
+          "carePreferences": {
+            "play": 1.3,
+            "feed": 1,
+            "rest": 0.7
+          }
+        },
+        "cosmicAffinity": {
+          "element": "moon",
+          "description": "Attuned to lunar cycles",
+          "powerLevel": 0.5116905609611422,
+          "visualEffects": [
+            "silver_glow",
+            "crescent_markings"
+          ],
+          "specialAbilities": [
+            "night_vision"
+          ]
+        },
+        "breedingData": {
+          "canBreed": true,
+          "breedingCooldown": 0,
+          "timesBreeded": 0,
+          "maxBreedingTimes": 5,
+          "compatibleSpecies": [
+            "crystalDrake"
+          ],
+          "fertilityRate": 0.9209642318543048
+        },
+        "lineage": {
+          "parent1": null,
+          "parent2": null,
+          "generation": 0,
+          "familyTree": []
+        },
+        "isShiny": true,
+        "shinyType": "inverted",
+        "metadata": {
+          "generationTime": 0,
+          "version": "1.0.0"
+        }
+      },
+      "dna": {
+        "id": "showcase-dna-0153",
+        "generatedAt": 0,
+        "version": "1.0",
+        "bodyArchetype": "biped",
+        "headArchetype": "cervine",
+        "hybridTag": "triple-hybrid",
+        "elementalAura": "tidal",
+        "temperament": "bold",
+        "energyLevel": "balanced",
+        "curiosity": "high",
+        "attachmentStyle": "clingy",
+        "favouriteCareAction": "grooming",
+        "raritySignature": "rare",
+        "mutationPotential": 0.15,
+        "metadata": {
+          "generation": 1,
+          "lineage": [],
+          "mutations": []
+        }
+      }
+    },
+    {
+      "id": "MV-0813",
+      "species": "auroraPhoenix",
+      "speciesLabel": "Aurora Phoenix",
+      "rarity": "rare",
+      "geneBody": "avian",
+      "body": "winged",
+      "head": "feline",
+      "hybrid": "dual-hybrid",
+      "aura": "shadow-soft",
+      "personality": "playful",
+      "affinity": "star",
+      "mutations": [],
+      "specialFeatures": [
+        {
+          "type": "aurora_wing_tips",
+          "variant": "standard"
+        }
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "primary": "#26A471",
+        "secondary": "#10906A",
+        "accent": "#3BAF2C"
+      },
+      "genes": {
+        "id": "showcase-0813",
+        "species": "auroraPhoenix",
+        "rarity": "rare",
+        "generatedAt": 0,
+        "traits": {
+          "bodyShape": {
+            "type": "avian",
+            "intensity": 0.5876796870492399
+          },
+          "colorGenome": {
+            "primary": 2532465,
+            "secondary": 1085546,
+            "accent": 3911468,
+            "feet": 7437103,
+            "head": 4333952,
+            "markings": 14735511,
+            "gradient": {
+              "type": "radial",
+              "startColor": 2532465,
+              "endColor": 1085546,
+              "intensity": 0.4335924046114087,
+              "angle": 322.2195374686271
+            },
+            "shimmerIntensity": 0.670098467997741,
+            "colorComplexity": 0.0806431351948538,
+            "harmonicResonance": 0.6000000000000001,
+            "mixingPattern": "color_morph",
+            "dominantHue": 156,
+            "saturationLevel": 0.6739786307397863,
+            "mutationFlags": [
+              "luminance_boost"
+            ],
+            "isLegendaryPrestige": false
+          },
+          "features": {
+            "eyes": {
+              "size": "medium",
+              "color": 38823,
+              "glow": 0.2281105574220419
+            },
+            "wings": {
+              "type": "flaming",
+              "span": 1.153923064749688,
+              "shimmer": 0.5072904316708446
+            },
+            "markings": {
+              "pattern": "aurora_stripes",
+              "intensity": 0.7485655201133341,
+              "distribution": "clustered",
+              "colorVariant": "complementary",
+              "scale": 0.4746750621125102,
+              "opacity": 0.7137592318467796,
+              "animation": {
+                "type": "rotation",
+                "speed": 0.6982143921311945,
+                "intensity": 0.7745028811506927,
+                "pattern": "synchronized"
+              }
+            },
+            "specialFeatures": [
+              {
+                "type": "aurora_wing_tips",
+                "intensity": 0.9652687098830939,
+                "variant": "standard",
+                "animation": null
+              }
+            ],
+            "wackyMutations": []
+          }
+        },
+        "personality": {
+          "core": "playful",
+          "description": "Full of energy and loves games",
+          "quirks": [
+            "bounce_dancer"
+          ],
+          "socialLevel": 0.21186175337061286,
+          "independence": 0.37409593830816446,
+          "emotionModifiers": {
+            "happy": 0.2,
+            "bored": -0.2
+          },
+          "carePreferences": {
+            "play": 1.3,
+            "feed": 1,
+            "rest": 0.7
+          }
+        },
+        "cosmicAffinity": {
+          "element": "star",
+          "description": "Connected to stellar energy",
+          "powerLevel": 0.9097389598842711,
+          "visualEffects": [
+            "golden_shimmer",
+            "star_sparkles"
+          ],
+          "specialAbilities": [
+            "light_generation",
+            "warmth_sharing"
+          ]
+        },
+        "breedingData": {
+          "canBreed": true,
+          "breedingCooldown": 0,
+          "timesBreeded": 0,
+          "maxBreedingTimes": 5,
+          "compatibleSpecies": [
+            "auroraPhoenix"
+          ],
+          "fertilityRate": 0.9398355528246611
+        },
+        "lineage": {
+          "parent1": null,
+          "parent2": null,
+          "generation": 0,
+          "familyTree": []
+        },
+        "isShiny": false,
+        "shinyType": null,
+        "metadata": {
+          "generationTime": 0,
+          "version": "1.0.0"
+        }
+      },
+      "dna": {
+        "id": "showcase-dna-0813",
+        "generatedAt": 0,
+        "version": "1.0",
+        "bodyArchetype": "winged",
+        "headArchetype": "feline",
+        "hybridTag": "dual-hybrid",
+        "elementalAura": "shadow-soft",
+        "temperament": "playful",
+        "energyLevel": "balanced",
+        "curiosity": "high",
+        "attachmentStyle": "balanced",
+        "favouriteCareAction": "rest",
+        "raritySignature": "rare",
+        "mutationPotential": 0.15,
+        "metadata": {
+          "generation": 1,
+          "lineage": [],
+          "mutations": []
+        }
+      }
+    },
+    {
+      "id": "MV-0249",
+      "species": "crystalElemental",
+      "speciesLabel": "Crystal Elemental",
+      "rarity": "epic",
+      "geneBody": "insectoid",
+      "body": "serpentine",
+      "head": "aquatic",
+      "hybrid": "single-species",
+      "aura": "forest",
+      "personality": "gentle",
+      "affinity": "crystal",
+      "mutations": [
+        {
+          "type": "feather_mane",
+          "variant": "mohawk"
+        },
+        {
+          "type": "nebula_trails",
+          "variant": "flowing"
+        }
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "primary": "#7FF65B",
+        "secondary": "#AC7FD0",
+        "accent": "#EB64B5"
+      },
+      "genes": {
+        "id": "showcase-0249",
+        "species": "crystalElemental",
+        "rarity": "epic",
+        "generatedAt": 0,
+        "traits": {
+          "bodyShape": {
+            "type": "insectoid",
+            "intensity": 0.5417683290317654
+          },
+          "colorGenome": {
+            "primary": 8386139,
+            "secondary": 11304912,
+            "accent": 15426741,
+            "feet": 14816540,
+            "head": 10606300,
+            "markings": 14976733,
+            "gradient": {
+              "type": "linear",
+              "startColor": 8386139,
+              "endColor": 11304912,
+              "intensity": 0.4243029398377985,
+              "angle": 233.5791102424264
+            },
+            "shimmerIntensity": 0.7658687491435557,
+            "colorComplexity": 0.19572725580994327,
+            "harmonicResonance": 0.6000000000000001,
+            "mixingPattern": "aurora_flow",
+            "dominantHue": 106,
+            "saturationLevel": 0.7100798238370492,
+            "mutationFlags": [
+              "cosmic_resonance"
+            ],
+            "isLegendaryPrestige": false
+          },
+          "features": {
+            "eyes": {
+              "size": "small",
+              "color": 13538264,
+              "glow": 0.7188414560630918
+            },
+            "wings": {
+              "type": "crystal",
+              "span": 1.0090095664374532,
+              "shimmer": 0.835253014229238
+            },
+            "markings": {
+              "pattern": "nebula_trail",
+              "intensity": 0.8481314793694763,
+              "distribution": "clustered",
+              "colorVariant": "complementary",
+              "scale": 0.4674126993864775,
+              "opacity": 0.5915336896665395,
+              "animation": null
+            },
+            "specialFeatures": [],
+            "wackyMutations": [
+              {
+                "type": "feather_mane",
+                "variant": "mohawk",
+                "intensity": 0.3740570311900228,
+                "inherited": false,
+                "dominance": 0.46126717971637843
+              },
+              {
+                "type": "nebula_trails",
+                "variant": "flowing",
+                "intensity": 0.34672833741642534,
+                "inherited": false,
+                "dominance": 0.5689380400814116
+              }
+            ]
+          }
+        },
+        "personality": {
+          "core": "gentle",
+          "description": "Calm and affectionate, loves quiet moments",
+          "quirks": [
+            "soft_hummer",
+            "peace_bringer"
+          ],
+          "socialLevel": 0.5961754623800516,
+          "independence": 0.21227722908370197,
+          "emotionModifiers": {
+            "stressed": -0.3,
+            "content": 0.2
+          },
+          "carePreferences": {
+            "pet": 1.3,
+            "clean": 1.1,
+            "play": 0.8
+          }
+        },
+        "cosmicAffinity": {
+          "element": "crystal",
+          "description": "Resonates with crystalline structures",
+          "powerLevel": 1,
+          "visualEffects": [
+            "crystal_growth",
+            "harmonic_vibration"
+          ],
+          "specialAbilities": [
+            "healing_resonance",
+            "memory_storing"
+          ]
+        },
+        "breedingData": {
+          "canBreed": true,
+          "breedingCooldown": 0,
+          "timesBreeded": 0,
+          "maxBreedingTimes": 5,
+          "compatibleSpecies": [
+            "crystalElemental"
+          ],
+          "fertilityRate": 0.8600399240851403
+        },
+        "lineage": {
+          "parent1": null,
+          "parent2": null,
+          "generation": 0,
+          "familyTree": []
+        },
+        "isShiny": false,
+        "shinyType": null,
+        "metadata": {
+          "generationTime": 0,
+          "version": "1.0.0"
+        }
+      },
+      "dna": {
+        "id": "showcase-dna-0249",
+        "generatedAt": 0,
+        "version": "1.0",
+        "bodyArchetype": "serpentine",
+        "headArchetype": "aquatic",
+        "hybridTag": "single-species",
+        "elementalAura": "forest",
+        "temperament": "gentle",
+        "energyLevel": "hyper",
+        "curiosity": "low",
+        "attachmentStyle": "balanced",
+        "favouriteCareAction": "grooming",
+        "raritySignature": "epic",
+        "mutationPotential": 0.25,
+        "metadata": {
+          "generation": 1,
+          "lineage": [],
+          "mutations": []
+        }
+      }
+    },
+    {
+      "id": "MV-0259",
+      "species": "voidStalker",
+      "speciesLabel": "Void Stalker",
+      "rarity": "epic",
+      "geneBody": "fish",
+      "body": "biped",
+      "head": "avian",
+      "hybrid": "triple-hybrid",
+      "aura": "cosmic",
+      "personality": "gentle",
+      "affinity": "nebula",
+      "mutations": [
+        {
+          "type": "circuit_veins",
+          "variant": "gold_glow"
+        },
+        {
+          "type": "bioluminescence",
+          "variant": "patches"
+        }
+      ],
+      "specialFeatures": [],
+      "shiny": true,
+      "shinyType": "chromatic",
+      "colors": {
+        "primary": "#B767D7",
+        "secondary": "#B9CB0B",
+        "accent": "#BC5F12"
+      },
+      "genes": {
+        "id": "showcase-0259",
+        "species": "voidStalker",
+        "rarity": "epic",
+        "generatedAt": 0,
+        "traits": {
+          "bodyShape": {
+            "type": "fish",
+            "intensity": 0.3130529075860977
+          },
+          "colorGenome": {
+            "primary": 12019671,
+            "secondary": 12176139,
+            "accent": 12345106,
+            "feet": 5529808,
+            "head": 6552824,
+            "markings": 4568166,
+            "gradient": {
+              "type": "radial",
+              "startColor": 8902503,
+              "endColor": 1903563,
+              "intensity": 0.5937488104682416,
+              "angle": 125.49338447861373
+            },
+            "shimmerIntensity": 1,
+            "colorComplexity": 0.23117536692246998,
+            "harmonicResonance": 0.5,
+            "mixingPattern": "stellar_burst",
+            "dominantHue": 103,
+            "saturationLevel": 0.7685907711540595,
+            "mutationFlags": [
+              "luminance_boost",
+              "prismatic_effect",
+              "cosmic_resonance"
+            ],
+            "isLegendaryPrestige": false,
+            "hasRainbowShimmer": true,
+            "rainbowSpeed": 0.9173583553638309
+          },
+          "features": {
+            "eyes": {
+              "size": "small",
+              "color": 11141375,
+              "glow": 0.6431775346398354
+            },
+            "wings": {
+              "type": "ethereal",
+              "span": 0.8258617368526757,
+              "shimmer": 0.8985472343862058
+            },
+            "markings": {
+              "pattern": "nebula_trail",
+              "intensity": 0.5154177410993726,
+              "distribution": "scattered",
+              "colorVariant": "cosmic",
+              "scale": 0.3807962153106928,
+              "opacity": 0.6525448058731854,
+              "animation": null
+            },
+            "specialFeatures": [],
+            "wackyMutations": [
+              {
+                "type": "circuit_veins",
+                "variant": "gold_glow",
+                "intensity": 0.4209688229719177,
+                "inherited": false,
+                "dominance": 0.45709813074208794
+              },
+              {
+                "type": "bioluminescence",
+                "variant": "patches",
+                "intensity": 0.32536786126438527,
+                "inherited": false,
+                "dominance": 0.30541883627884087
+              }
+            ]
+          }
+        },
+        "personality": {
+          "core": "gentle",
+          "description": "Calm and affectionate, loves quiet moments",
+          "quirks": [
+            "soft_hummer"
+          ],
+          "socialLevel": 0.6017832155805081,
+          "independence": 0.5118810121901334,
+          "emotionModifiers": {
+            "stressed": -0.3,
+            "content": 0.2
+          },
+          "carePreferences": {
+            "pet": 1.3,
+            "clean": 1.1,
+            "play": 0.8
+          }
+        },
+        "cosmicAffinity": {
+          "element": "nebula",
+          "description": "Flowing with cosmic mists",
+          "powerLevel": 0.9456991283223033,
+          "visualEffects": [
+            "color_shifting",
+            "mist_trail"
+          ],
+          "specialAbilities": [
+            "emotion_sensing",
+            "color_changing"
+          ]
+        },
+        "breedingData": {
+          "canBreed": true,
+          "breedingCooldown": 0,
+          "timesBreeded": 0,
+          "maxBreedingTimes": 5,
+          "compatibleSpecies": [
+            "voidStalker"
+          ],
+          "fertilityRate": 0.9158362641464919
+        },
+        "lineage": {
+          "parent1": null,
+          "parent2": null,
+          "generation": 0,
+          "familyTree": []
+        },
+        "isShiny": true,
+        "shinyType": "chromatic",
+        "metadata": {
+          "generationTime": 0,
+          "version": "1.0.0"
+        }
+      },
+      "dna": {
+        "id": "showcase-dna-0259",
+        "generatedAt": 0,
+        "version": "1.0",
+        "bodyArchetype": "biped",
+        "headArchetype": "avian",
+        "hybridTag": "triple-hybrid",
+        "elementalAura": "cosmic",
+        "temperament": "gentle",
+        "energyLevel": "hyper",
+        "curiosity": "low",
+        "attachmentStyle": "independent",
+        "favouriteCareAction": "play",
+        "raritySignature": "epic",
+        "mutationPotential": 0.25,
+        "metadata": {
+          "generation": 1,
+          "lineage": [],
+          "mutations": []
+        }
+      }
+    },
+    {
+      "id": "MV-0794",
+      "species": "nebulaSprite",
+      "speciesLabel": "Nebula Sprite",
+      "rarity": "epic",
+      "geneBody": "sturdy",
+      "body": "blob",
+      "head": "reptile",
+      "hybrid": "triple-hybrid",
+      "aura": "ember",
+      "personality": "energetic",
+      "affinity": "void",
+      "mutations": [
+        {
+          "type": "rock_texture",
+          "variant": "rough"
+        }
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "primary": "#243688",
+        "secondary": "#CFB37D",
+        "accent": "#3879F3"
+      },
+      "genes": {
+        "id": "showcase-0794",
+        "species": "nebulaSprite",
+        "rarity": "epic",
+        "generatedAt": 0,
+        "traits": {
+          "bodyShape": {
+            "type": "sturdy",
+            "intensity": 0.39767712689936163
+          },
+          "colorGenome": {
+            "primary": 2373256,
+            "secondary": 13611901,
+            "accent": 3701235,
+            "feet": 7919571,
+            "head": 12688673,
+            "markings": 6659051,
+            "gradient": {
+              "type": "radial",
+              "startColor": 2373256,
+              "endColor": 13611901,
+              "intensity": 0.31805047281086446,
+              "angle": 126.23250178992748
+            },
+            "shimmerIntensity": 0.7715453260578216,
+            "colorComplexity": 0.2353568424487543,
+            "harmonicResonance": 1,
+            "mixingPattern": "prismatic_wave",
+            "dominantHue": 229,
+            "saturationLevel": 0.6427751434370653,
+            "mutationFlags": [
+              "prismatic_effect",
+              "cosmic_resonance"
+            ],
+            "isLegendaryPrestige": false
+          },
+          "features": {
+            "eyes": {
+              "size": "small",
+              "color": 16027569,
+              "glow": 0.5617568271234632
+            },
+            "wings": {
+              "type": "ethereal",
+              "span": 1.0813753996975721,
+              "shimmer": 0.4116773320361972
+            },
+            "markings": {
+              "pattern": "crystal_facets",
+              "intensity": 0.38546519195660944,
+              "distribution": "scattered",
+              "colorVariant": "cosmic",
+              "scale": 0.6483503015711904,
+              "opacity": 0.7287000931799412,
+              "animation": null
+            },
+            "specialFeatures": [],
+            "wackyMutations": [
+              {
+                "type": "rock_texture",
+                "variant": "rough",
+                "intensity": 0.7514310118975118,
+                "inherited": false,
+                "dominance": 0.4425856456160545
+              }
+            ]
+          }
+        },
+        "personality": {
+          "core": "energetic",
+          "description": "Always active and enthusiastic",
+          "quirks": [
+            "energy_burst"
+          ],
+          "socialLevel": 0.20315874116495253,
+          "independence": 0.6345645829569548,
+          "emotionModifiers": {
+            "excited": 0.3,
+            "sleepy": -0.2
+          },
+          "carePreferences": {
+            "play": 1.4,
+            "feed": 1.1,
+            "rest": 0.6
+          }
+        },
+        "cosmicAffinity": {
+          "element": "void",
+          "description": "Touched by the deep cosmos",
+          "powerLevel": 1,
+          "visualEffects": [
+            "shadow_dance",
+            "star_field"
+          ],
+          "specialAbilities": [
+            "space_sensing",
+            "portal_creation"
+          ]
+        },
+        "breedingData": {
+          "canBreed": true,
+          "breedingCooldown": 0,
+          "timesBreeded": 0,
+          "maxBreedingTimes": 5,
+          "compatibleSpecies": [
+            "nebulaSprite"
+          ],
+          "fertilityRate": 0.8725265541579574
+        },
+        "lineage": {
+          "parent1": null,
+          "parent2": null,
+          "generation": 0,
+          "familyTree": []
+        },
+        "isShiny": false,
+        "shinyType": null,
+        "metadata": {
+          "generationTime": 0,
+          "version": "1.0.0"
+        }
+      },
+      "dna": {
+        "id": "showcase-dna-0794",
+        "generatedAt": 0,
+        "version": "1.0",
+        "bodyArchetype": "blob",
+        "headArchetype": "reptile",
+        "hybridTag": "triple-hybrid",
+        "elementalAura": "ember",
+        "temperament": "bold",
+        "energyLevel": "balanced",
+        "curiosity": "high",
+        "attachmentStyle": "balanced",
+        "favouriteCareAction": "grooming",
+        "raritySignature": "epic",
+        "mutationPotential": 0.25,
+        "metadata": {
+          "generation": 1,
+          "lineage": [],
+          "mutations": []
+        }
+      }
+    },
+    {
+      "id": "MV-0567",
+      "species": "crystalDrake",
+      "speciesLabel": "Crystal Drake",
+      "rarity": "uncommon",
+      "geneBody": "slender",
+      "body": "blob",
+      "head": "rodent",
+      "hybrid": "glitchy",
+      "aura": "cosmic",
+      "personality": "wise",
+      "affinity": "crystal",
+      "mutations": [],
+      "specialFeatures": [
+        {
+          "type": "soft_glow",
+          "variant": "standard"
+        }
+      ],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "primary": "#9DECB0",
+        "secondary": "#A4F1DF",
+        "accent": "#87CB6D"
+      },
+      "genes": {
+        "id": "showcase-0567",
+        "species": "crystalDrake",
+        "rarity": "uncommon",
+        "generatedAt": 0,
+        "traits": {
+          "bodyShape": {
+            "type": "slender",
+            "intensity": 0.3069148547947407
+          },
+          "colorGenome": {
+            "primary": 10349744,
+            "secondary": 10809823,
+            "accent": 8899437,
+            "feet": 14181237,
+            "head": 3843891,
+            "markings": 15317422,
+            "gradient": {
+              "type": "linear",
+              "startColor": 10349744,
+              "endColor": 10809823,
+              "intensity": 0.4485786026343703,
+              "angle": 200.17997696064413
+            },
+            "shimmerIntensity": 0.7935411695158109,
+            "colorComplexity": 0.10860825179199156,
+            "harmonicResonance": 0.4,
+            "mixingPattern": "gradient",
+            "dominantHue": 134,
+            "saturationLevel": 0.6277648277648279,
+            "mutationFlags": [],
+            "isLegendaryPrestige": false
+          },
+          "features": {
+            "eyes": {
+              "size": "medium",
+              "color": 8505220,
+              "glow": 0.27053162176162004
+            },
+            "wings": {
+              "type": "crystal",
+              "span": 0.8861010184511543,
+              "shimmer": 0.5596332451328636
+            },
+            "markings": {
+              "pattern": "crescents",
+              "intensity": 0.6109971758443862,
+              "distribution": "scattered",
+              "colorVariant": "complementary",
+              "scale": 0.7203291215002536,
+              "opacity": 0.5305768704973162,
+              "animation": null
+            },
+            "specialFeatures": [
+              {
+                "type": "soft_glow",
+                "intensity": 0.40922930222004655,
+                "variant": "standard",
+                "animation": null
+              }
+            ],
+            "wackyMutations": []
+          }
+        },
+        "personality": {
+          "core": "wise",
+          "description": "Thoughtful and perceptive",
+          "quirks": [
+            "ancient_singer"
+          ],
+          "socialLevel": 0.5501788971479982,
+          "independence": 0.5014741146937013,
+          "emotionModifiers": {
+            "confused": -0.2,
+            "contemplative": 0.3
+          },
+          "carePreferences": {
+            "rest": 1.2,
+            "pet": 1.1,
+            "play": 0.9
+          }
+        },
+        "cosmicAffinity": {
+          "element": "crystal",
+          "description": "Resonates with crystalline structures",
+          "powerLevel": 0.6977332564070821,
+          "visualEffects": [
+            "crystal_growth",
+            "harmonic_vibration"
+          ],
+          "specialAbilities": [
+            "healing_resonance"
+          ]
+        },
+        "breedingData": {
+          "canBreed": true,
+          "breedingCooldown": 0,
+          "timesBreeded": 0,
+          "maxBreedingTimes": 5,
+          "compatibleSpecies": [
+            "crystalDrake"
+          ],
+          "fertilityRate": 0.8992292092647404
+        },
+        "lineage": {
+          "parent1": null,
+          "parent2": null,
+          "generation": 0,
+          "familyTree": []
+        },
+        "isShiny": false,
+        "shinyType": null,
+        "metadata": {
+          "generationTime": 0,
+          "version": "1.0.0"
+        }
+      },
+      "dna": {
+        "id": "showcase-dna-0567",
+        "generatedAt": 0,
+        "version": "1.0",
+        "bodyArchetype": "blob",
+        "headArchetype": "rodent",
+        "hybridTag": "glitchy",
+        "elementalAura": "cosmic",
+        "temperament": "playful",
+        "energyLevel": "balanced",
+        "curiosity": "medium",
+        "attachmentStyle": "clingy",
+        "favouriteCareAction": "grooming",
+        "raritySignature": "uncommon",
+        "mutationPotential": 0.1,
+        "metadata": {
+          "generation": 1,
+          "lineage": [],
+          "mutations": []
+        }
+      }
+    },
+    {
+      "id": "MV-0257",
+      "species": "cosmicGuardian",
+      "speciesLabel": "Cosmic Guardian",
+      "rarity": "uncommon",
+      "geneBody": "reptilian",
+      "body": "quadruped",
+      "head": "insectoid",
+      "hybrid": "dual-hybrid",
+      "aura": "ember",
+      "personality": "energetic",
+      "affinity": "crystal",
+      "mutations": [
+        {
+          "type": "crystal_growths",
+          "variant": "spires"
+        }
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "primary": "#68B341",
+        "secondary": "#B10ABA",
+        "accent": "#6DF32A"
+      },
+      "genes": {
+        "id": "showcase-0257",
+        "species": "cosmicGuardian",
+        "rarity": "uncommon",
+        "generatedAt": 0,
+        "traits": {
+          "bodyShape": {
+            "type": "reptilian",
+            "intensity": 0.49330852683633564
+          },
+          "colorGenome": {
+            "primary": 6861633,
+            "secondary": 11602618,
+            "accent": 7205674,
+            "feet": 12634370,
+            "head": 12314746,
+            "markings": 14390268,
+            "gradient": {
+              "type": "radial",
+              "startColor": 6861633,
+              "endColor": 11602618,
+              "intensity": 0.4468102289363742,
+              "angle": 217.80188198201358
+            },
+            "shimmerIntensity": 0.7188550041755661,
+            "colorComplexity": 0.24867537200565273,
+            "harmonicResonance": 1,
+            "mixingPattern": "subtle_blend",
+            "dominantHue": 99,
+            "saturationLevel": 0.752835210586967,
+            "mutationFlags": [],
+            "isLegendaryPrestige": false
+          },
+          "features": {
+            "eyes": {
+              "size": "small",
+              "color": 16757504,
+              "glow": 0.20848940946161748
+            },
+            "wings": {
+              "type": "armored",
+              "span": 1.037208239361644,
+              "shimmer": 0.7717380940914154
+            },
+            "markings": {
+              "pattern": "sparkles",
+              "intensity": 0.7716226265765727,
+              "distribution": "clustered",
+              "colorVariant": "darker",
+              "scale": 0.5029230363667012,
+              "opacity": 0.5836635454557837,
+              "animation": null
+            },
+            "specialFeatures": [],
+            "wackyMutations": [
+              {
+                "type": "crystal_growths",
+                "variant": "spires",
+                "intensity": 0.6720227042213083,
+                "inherited": false,
+                "dominance": 0.8919188451021909
+              }
+            ]
+          }
+        },
+        "personality": {
+          "core": "energetic",
+          "description": "Always active and enthusiastic",
+          "quirks": [
+            "energy_burst",
+            "rainbow_flutter"
+          ],
+          "socialLevel": 0.2359497186727822,
+          "independence": 0.3475686570163816,
+          "emotionModifiers": {
+            "excited": 0.3,
+            "sleepy": -0.2
+          },
+          "carePreferences": {
+            "play": 1.4,
+            "feed": 1.1,
+            "rest": 0.6
+          }
+        },
+        "cosmicAffinity": {
+          "element": "crystal",
+          "description": "Resonates with crystalline structures",
+          "powerLevel": 0.7354273188859225,
+          "visualEffects": [
+            "crystal_growth",
+            "harmonic_vibration"
+          ],
+          "specialAbilities": [
+            "memory_storing"
+          ]
+        },
+        "breedingData": {
+          "canBreed": true,
+          "breedingCooldown": 0,
+          "timesBreeded": 0,
+          "maxBreedingTimes": 5,
+          "compatibleSpecies": [
+            "cosmicGuardian"
+          ],
+          "fertilityRate": 0.8983305585570633
+        },
+        "lineage": {
+          "parent1": null,
+          "parent2": null,
+          "generation": 0,
+          "familyTree": []
+        },
+        "isShiny": false,
+        "shinyType": null,
+        "metadata": {
+          "generationTime": 0,
+          "version": "1.0.0"
+        }
+      },
+      "dna": {
+        "id": "showcase-dna-0257",
+        "generatedAt": 0,
+        "version": "1.0",
+        "bodyArchetype": "quadruped",
+        "headArchetype": "insectoid",
+        "hybridTag": "dual-hybrid",
+        "elementalAura": "ember",
+        "temperament": "bold",
+        "energyLevel": "balanced",
+        "curiosity": "high",
+        "attachmentStyle": "clingy",
+        "favouriteCareAction": "feeding",
+        "raritySignature": "uncommon",
+        "mutationPotential": 0.1,
+        "metadata": {
+          "generation": 1,
+          "lineage": [],
+          "mutations": []
+        }
+      }
+    },
+    {
+      "id": "MV-0171",
+      "species": "crystalDrake",
+      "speciesLabel": "Crystal Drake",
+      "rarity": "common",
+      "geneBody": "quadruped",
+      "body": "biped",
+      "head": "avian",
+      "hybrid": "single-species",
+      "aura": "tidal",
+      "personality": "playful",
+      "affinity": "crystal",
+      "mutations": [
+        {
+          "type": "floating_parts",
+          "variant": "rings"
+        }
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "primary": "#DF026F",
+        "secondary": "#E22603",
+        "accent": "#1D3ABF"
+      },
+      "genes": {
+        "id": "showcase-0171",
+        "species": "crystalDrake",
+        "rarity": "common",
+        "generatedAt": 0,
+        "traits": {
+          "bodyShape": {
+            "type": "quadruped",
+            "intensity": 0.36435836032032964
+          },
+          "colorGenome": {
+            "primary": 14615151,
+            "secondary": 14820867,
+            "accent": 1915583,
+            "feet": 13246166,
+            "head": 9463229,
+            "markings": 6379196,
+            "gradient": {
+              "type": "linear",
+              "startColor": 14615151,
+              "endColor": 14820867,
+              "intensity": 0.36734162080101673,
+              "angle": 130.66522342152894
+            },
+            "shimmerIntensity": 0.4662315375404432,
+            "colorComplexity": 0.26323164702550583,
+            "harmonicResonance": 0.3,
+            "mixingPattern": "solid",
+            "dominantHue": 330,
+            "saturationLevel": 0.8974616617411377,
+            "mutationFlags": [],
+            "isLegendaryPrestige": false
+          },
+          "features": {
+            "eyes": {
+              "size": "medium",
+              "color": 16766287,
+              "glow": 0.5902609873563052
+            },
+            "wings": {
+              "type": "crystal",
+              "span": 0.8493263166397811,
+              "shimmer": 0.3637535272864625
+            },
+            "markings": {
+              "pattern": "simple_sparkles",
+              "intensity": 0.8757380301598459,
+              "distribution": "clustered",
+              "colorVariant": "cosmic",
+              "scale": 0.718464051000774,
+              "opacity": 0.6454056003130972,
+              "animation": null
+            },
+            "specialFeatures": [],
+            "wackyMutations": [
+              {
+                "type": "floating_parts",
+                "variant": "rings",
+                "intensity": 0.6855917833279819,
+                "inherited": false,
+                "dominance": 0.7604960327502339
+              }
+            ]
+          }
+        },
+        "personality": {
+          "core": "playful",
+          "description": "Full of energy and loves games",
+          "quirks": [
+            "giggle_singer"
+          ],
+          "socialLevel": 0.7909257355611772,
+          "independence": 0.5332141494844109,
+          "emotionModifiers": {
+            "happy": 0.2,
+            "bored": -0.2
+          },
+          "carePreferences": {
+            "play": 1.3,
+            "feed": 1,
+            "rest": 0.7
+          }
+        },
+        "cosmicAffinity": {
+          "element": "crystal",
+          "description": "Resonates with crystalline structures",
+          "powerLevel": 0.7750369550660253,
+          "visualEffects": [
+            "crystal_growth",
+            "harmonic_vibration"
+          ],
+          "specialAbilities": [
+            "healing_resonance"
+          ]
+        },
+        "breedingData": {
+          "canBreed": true,
+          "breedingCooldown": 0,
+          "timesBreeded": 0,
+          "maxBreedingTimes": 5,
+          "compatibleSpecies": [
+            "crystalDrake"
+          ],
+          "fertilityRate": 0.9296677142847329
+        },
+        "lineage": {
+          "parent1": null,
+          "parent2": null,
+          "generation": 0,
+          "familyTree": []
+        },
+        "isShiny": false,
+        "shinyType": null,
+        "metadata": {
+          "generationTime": 0,
+          "version": "1.0.0"
+        }
+      },
+      "dna": {
+        "id": "showcase-dna-0171",
+        "generatedAt": 0,
+        "version": "1.0",
+        "bodyArchetype": "biped",
+        "headArchetype": "avian",
+        "hybridTag": "single-species",
+        "elementalAura": "tidal",
+        "temperament": "mischievous",
+        "energyLevel": "balanced",
+        "curiosity": "low",
+        "attachmentStyle": "balanced",
+        "favouriteCareAction": "rest",
+        "raritySignature": "common",
+        "mutationPotential": 0.05,
+        "metadata": {
+          "generation": 1,
+          "lineage": [],
+          "mutations": []
+        }
+      }
+    },
+    {
+      "id": "MV-0846",
+      "species": "crystalElemental",
+      "speciesLabel": "Crystal Elemental",
+      "rarity": "common",
+      "geneBody": "insectoid",
+      "body": "blob",
+      "head": "feline",
+      "hybrid": "single-species",
+      "aura": "forest",
+      "personality": "wise",
+      "affinity": "moon",
+      "mutations": [
+        {
+          "type": "void_patches",
+          "variant": "medium"
+        }
+      ],
+      "specialFeatures": [],
+      "shiny": false,
+      "shinyType": null,
+      "colors": {
+        "primary": "#80F34B",
+        "secondary": "#DE9479",
+        "accent": "#238892"
+      },
+      "genes": {
+        "id": "showcase-0846",
+        "species": "crystalElemental",
+        "rarity": "common",
+        "generatedAt": 0,
+        "traits": {
+          "bodyShape": {
+            "type": "insectoid",
+            "intensity": 0.5158182951621711
+          },
+          "colorGenome": {
+            "primary": 8450891,
+            "secondary": 14587001,
+            "accent": 2328722,
+            "feet": 7637213,
+            "head": 5148461,
+            "markings": 10998672,
+            "gradient": {
+              "type": "linear",
+              "startColor": 8450891,
+              "endColor": 14587001,
+              "intensity": 0.5599386777728796,
+              "angle": 173.50151122547686
+            },
+            "shimmerIntensity": 0.49986359879840164,
+            "colorComplexity": 0.21304479916029365,
+            "harmonicResonance": 0.4,
+            "mixingPattern": "solid",
+            "dominantHue": 101,
+            "saturationLevel": 0.6976833625566546,
+            "mutationFlags": [],
+            "isLegendaryPrestige": false
+          },
+          "features": {
+            "eyes": {
+              "size": "medium",
+              "color": 15368444,
+              "glow": 0.20190011374652386
+            },
+            "wings": {
+              "type": "crystal",
+              "span": 1.07917064325884,
+              "shimmer": 0.43285283085424453
+            },
+            "markings": {
+              "pattern": "none",
+              "intensity": 0,
+              "distribution": "none",
+              "colorVariant": "none"
+            },
+            "specialFeatures": [],
+            "wackyMutations": [
+              {
+                "type": "void_patches",
+                "variant": "medium",
+                "intensity": 0.5066059448989109,
+                "inherited": false,
+                "dominance": 0.5708998412825167
+              }
+            ]
+          }
+        },
+        "personality": {
+          "core": "wise",
+          "description": "Thoughtful and perceptive",
+          "quirks": [
+            "wisdom_sharer",
+            "ancient_singer"
+          ],
+          "socialLevel": 0.3052169783040881,
+          "independence": 0.43805215349420906,
+          "emotionModifiers": {
+            "confused": -0.2,
+            "contemplative": 0.3
+          },
+          "carePreferences": {
+            "rest": 1.2,
+            "pet": 1.1,
+            "play": 0.9
+          }
+        },
+        "cosmicAffinity": {
+          "element": "moon",
+          "description": "Attuned to lunar cycles",
+          "powerLevel": 0.5761531609576196,
+          "visualEffects": [
+            "silver_glow",
+            "crescent_markings"
+          ],
+          "specialAbilities": [
+            "night_vision"
+          ]
+        },
+        "breedingData": {
+          "canBreed": true,
+          "breedingCooldown": 0,
+          "timesBreeded": 0,
+          "maxBreedingTimes": 5,
+          "compatibleSpecies": [
+            "crystalElemental"
+          ],
+          "fertilityRate": 0.8698734029661864
+        },
+        "lineage": {
+          "parent1": null,
+          "parent2": null,
+          "generation": 0,
+          "familyTree": []
+        },
+        "isShiny": false,
+        "shinyType": null,
+        "metadata": {
+          "generationTime": 0,
+          "version": "1.0.0"
+        }
+      },
+      "dna": {
+        "id": "showcase-dna-0846",
+        "generatedAt": 0,
+        "version": "1.0",
+        "bodyArchetype": "blob",
+        "headArchetype": "feline",
+        "hybridTag": "single-species",
+        "elementalAura": "forest",
+        "temperament": "shy",
+        "energyLevel": "chill",
+        "curiosity": "medium",
+        "attachmentStyle": "balanced",
+        "favouriteCareAction": "feeding",
+        "raritySignature": "common",
+        "mutationPotential": 0.05,
+        "metadata": {
+          "generation": 1,
+          "lineage": [],
+          "mutations": []
+        }
+      }
+    }
+  ]
+}

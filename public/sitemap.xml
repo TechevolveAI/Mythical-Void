@@ -16,7 +16,17 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mythicalvoid.com/playable-now/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://mythicalvoid.com/creature-genetics/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mythicalvoid.com/creature-field-guide/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>

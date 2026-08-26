@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "OWNED-SHARING-LOOP-2026-08-26",
+  "state": "owned_site_release_live_and_verified",
+  "purpose": "Make Mythical Void easier for an adult, family member or player to pass to someone else without requiring a social account, collecting a contact or adding tracking parameters.",
+  "publicDestination": "https://mythicalvoid.com/playable-now/",
+  "preview": {
+    "path": "public/press/social/mythical-void-share-wide.png",
+    "sourcePath": "scripts/company/mythical-void-share-card.html",
+    "width": 1200,
+    "height": 630,
+    "sha256": "2ce14a85560714e4ef30f17856c86b373a1d8f072baf02a0e49bf99760259c70",
+    "sourceSha256": "448054cc35adc85ebd30d8faa5379d15dfbb9ff60b981c9e976598a93c4ef1ce",
+    "visibleHeadline": "What will you hatch?",
+    "classification": "branded_share_preview_with_ai_generated_marketing_illustration",
+    "disclosure": "The preview is labelled IMAGINED UNIVERSE ART. Its background is AI-generated marketing artwork inspired by profiles from the creature engine; it is not gameplay."
+  },
+  "sharingJourney": {
+    "pagePath": "public/playable-now/index.html",
+    "pageSha256": "dc46677175e9a04fd23f63009984c75327322b5267de3ae6c1f8b78b6a385d78",
+    "scriptPath": "public/discovery.js",
+    "scriptSha256": "981ef7e72f8de4744be9299decb823bd985912159e4cb7895ae1c58577f70d02",
+    "nativeDeviceShareUsedWhenAvailable": true,
+    "clipboardFallbackProvided": true,
+    "cleanUrl": "https://mythicalvoid.com/playable-now/",
+    "trackingParametersUsed": false,
+    "contactCollectionEnabled": false
+  },
+  "humanReview": {
+    "reviewedAtFullSize": true,
+    "reviewedAt600x315PreviewSize": true,
+    "oneClearFocalQuestion": true,
+    "smallBodyCopyRemoved": true,
+    "logoReadableAtPreviewSize": true,
+    "callToActionReadableAtPreviewSize": true,
+    "mainCreaturesVisibleAtPreviewSize": true,
+    "artworkBoundaryVisible": true
+  },
+  "authority": {
+    "ownedWebsitePublicationAuthorized": true,
+    "autonomousSocialPostingAuthorized": false,
+    "emailOrOutreachSendingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "externalActionPerformed": false,
+    "kevinApprovalRequiredForExternalPosting": true
+  },
+  "verification": {
+    "productionBuildPassed": true,
+    "desktopBrowserReviewed": true,
+    "phoneBrowserReviewed": true,
+    "nativeSharePayloadVerified": false,
+    "clipboardFallbackVerified": true,
+    "productionUrlVerified": true,
+    "productionCommit": "fafa1ff4ef04cb191a7481c45e8c6de36c462794",
+    "productionDeployId": "6a8ef19ba3897e000853ffae",
+    "verifiedAt": "2026-08-26T14:02:00Z",
+    "liveHomepagePreviewVerified": true,
+    "livePlayablePreviewVerified": true,
+    "liveImageDimensionsVerified": "1200x630",
+    "liveClipboardFallbackVerified": true,
+    "liveBrokenImageCount": 0,
+    "liveHorizontalOverflowObserved": false
+  }
+}

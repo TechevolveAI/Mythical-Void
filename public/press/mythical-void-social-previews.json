@@ -6,14 +6,26 @@
     {
       "route": "/",
       "htmlPath": "index.html",
-      "imagePath": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
-      "imageUrl": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
-      "imageType": "image/webp",
-      "width": 1672,
-      "height": 941,
-      "alt": "A universe of alien creatures in Mythical Void",
+      "imagePath": "public/press/social/mythical-void-share-wide.png",
+      "imageUrl": "https://mythicalvoid.com/press/social/mythical-void-share-wide.png",
+      "imageType": "image/png",
+      "width": 1200,
+      "height": 630,
+      "alt": "A luminous universe of alien creatures asking what will you hatch in Mythical Void",
       "classification": "ai_generated_marketing_illustration",
-      "disclosure": "AI-generated marketing illustration inspired by profiles from the creature genetics engine. Not gameplay."
+      "disclosure": "Branded sharing preview built from an AI-generated marketing illustration inspired by profiles from the creature genetics engine. It is labelled as imagined universe art and is not gameplay."
+    },
+    {
+      "route": "/playable-now/",
+      "htmlPath": "public/playable-now/index.html",
+      "imagePath": "public/press/social/mythical-void-share-wide.png",
+      "imageUrl": "https://mythicalvoid.com/press/social/mythical-void-share-wide.png",
+      "imageType": "image/png",
+      "width": 1200,
+      "height": 630,
+      "alt": "A luminous universe of alien creatures asking what will you hatch in Mythical Void",
+      "classification": "ai_generated_marketing_illustration",
+      "disclosure": "Branded sharing preview built from an AI-generated marketing illustration inspired by profiles from the creature genetics engine. It is labelled as imagined universe art and is not gameplay."
     },
     {
       "route": "/story/",
@@ -42,14 +54,26 @@
     {
       "route": "/creature-genetics/",
       "htmlPath": "public/creature-genetics/index.html",
-      "imagePath": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
-      "imageUrl": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
-      "imageType": "image/webp",
-      "width": 1672,
-      "height": 941,
-      "alt": "Many possible alien creature forms in the Mythical Void universe",
-      "classification": "ai_generated_marketing_illustration",
-      "disclosure": "AI-generated marketing illustration inspired by profiles from the creature genetics engine. Not gameplay."
+      "imagePath": "public/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png",
+      "imageUrl": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png",
+      "imageType": "image/png",
+      "width": 1440,
+      "height": 900,
+      "alt": "Twelve real pixel creatures rendered by the running Mythical Void genetics and DNA engine",
+      "classification": "branded_renderer_proof_layout_with_authentic_game_sprite_exports",
+      "disclosure": "Branded proof layout, not a playable scene. Every creature inside it is an exact export from the running game renderer, selected from deliberately balanced engine runs to show range rather than normal hatch odds."
+    },
+    {
+      "route": "/creature-field-guide/",
+      "htmlPath": "public/creature-field-guide/index.html",
+      "imagePath": "public/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png",
+      "imageUrl": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png",
+      "imageType": "image/png",
+      "width": 1440,
+      "height": 900,
+      "alt": "Twelve real pixel creatures from the Mythical Void renderer gathered in a luminous alien field-guide display",
+      "classification": "branded_renderer_proof_layout_with_authentic_game_sprite_exports",
+      "disclosure": "Branded proof layout, not a playable scene. Every creature inside it is an exact export from the running game renderer. The field-guide stories are official universe material, not claims that these events are already playable quests."
     },
     {
       "route": "/nasa-space-science/",
