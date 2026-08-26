@@ -23,37 +23,37 @@
     {
       "route": "/playable-now/",
       "audience": "People encountering Mythical Void for the first time, including players, families, creators, press and educators",
-      "intent": "See authentic moving gameplay, understand the playable journey and enter the game without guessing what is real",
+      "intent": "Choose the feeling wanted from a new game, understand the playable journey and enter without guessing what is real",
       "claimIds": ["CL-001", "CL-002", "CL-004", "CL-005", "CL-008", "CL-013"],
-      "proof": ["public/press/gameplay-video/manifest.json", "public/press/gameplay/manifest.json"]
+      "proof": ["public/playable-now/index.html", "docs/company/growth/PLAY_INTENT_DOORWAY.json", "public/press/visual-publication-register.json"]
     },
     {
       "route": "/creature-genetics/",
       "audience": "Players, creature-game fans, creators and game developers",
       "intent": "Understand the varied creature genetics and the boundary between the playable form and wider artwork",
       "claimIds": ["CL-005"],
-      "proof": ["public/press/gameplay/creature-cosmic-egg-hatch.png", "docs/company/content/technology-proof-map.json"]
+      "proof": ["src/systems/CreatureGenetics.js", "src/systems/CreatureDNA.js", "docs/company/content/technology-proof-map.json"]
     },
     {
       "route": "/nasa-space-science/",
       "audience": "Families, educators, STEM communities, creators and press",
       "intent": "Understand how selected public NASA material can support optional discovery inside a fictional world",
       "claimIds": ["CL-013"],
-      "proof": ["public/press/gameplay/nasa-apollo11-real-space-discovery.png", "https://apod.nasa.gov/apod/ap240720.html"]
+      "proof": ["public/nasa-space-science/index.html", "public/resources/mythical-void-stem-creature-lab.pdf", "https://apod.nasa.gov/apod/ap240720.html"]
     },
     {
       "route": "/parents/",
       "audience": "Parents, guardians and adults evaluating a younger player's first use",
       "intent": "Understand cost, access, saves, fantasy combat, privacy and AI boundaries before play",
       "claimIds": ["CL-001", "CL-002", "CL-003", "CL-007", "CL-013"],
-      "proof": ["public/press/gameplay/project-beacon-start.png", "public/privacy/index.html"]
+      "proof": ["public/parents/index.html", "src/site/storefront.js"]
     },
     {
       "route": "/studio/",
       "audience": "Players, families, press, creators, partners and game-development peers",
       "intent": "Understand the father-and-son origin and how a small human-led studio uses generative AI tools",
       "claimIds": ["CL-001", "CL-002", "CL-004", "CL-005"],
-      "proof": ["public/press/gameplay/realm-mythicalforest.png", "public/press/gameplay-video/manifest.json"]
+      "proof": ["public/studio/index.html", "docs/company/content/technology-proof-map.json"]
     }
   ],
   "releaseChecks": [

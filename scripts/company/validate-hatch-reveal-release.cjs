@@ -31,7 +31,7 @@ const sha256 = value => crypto.createHash('sha256').update(value).digest('hex');
 
 requireValue(release.schemaVersion === 1, 'release schemaVersion must be 1');
 requireValue(release.state === 'withdrawn_visual_quality_failed_do_not_publish', 'hatch screenshot must remain withdrawn from public promotion');
-requireValue(release.currentHumanReview?.decision === 'withdrawn_from_public_promotion' && /not strong enough/i.test(release.currentHumanReview?.reason || '') && release.currentHumanReview?.replacement === '/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png', 'the human visual rejection and replacement must remain recorded');
+requireValue(release.currentHumanReview?.decision === 'withdrawn_from_public_promotion' && /not strong enough/i.test(release.currentHumanReview?.reason || '') && release.currentHumanReview?.replacement === null && release.currentHumanReview?.replacementState === 'pending_new_human_reviewed_gameplay_moment', 'the human visual rejection and pending replacement must remain recorded');
 requireValue(release.priorReview?.decision === 'authentic_internal_proof_rejected_for_public_promotion' && release.priorReview?.supersededForOwnedSiteUse === true && release.priorReview?.issuesResolved?.length === 4, 'the rejected old proof and its four fixes must remain recorded');
 
 const capture = manifest.captures?.find(item => item.id === release.capture?.id);
@@ -56,7 +56,7 @@ for (const [field, expected] of Object.entries({ fieldClassificationReadable: tr
 requireValue(release.presentation?.creatureBoundsDesktop?.width >= 220 && release.presentation?.creatureBoundsPhone?.width >= 220, 'the creature is not large enough in both reviewed layouts');
 requireValue(release.presentation?.phoneViewport?.width === 390 && release.presentation?.phoneViewport?.height === 844, 'the reviewed phone viewport drifted');
 
-requireValue(!playable.includes('src="/press/gameplay/creature-cosmic-egg-reveal.png"') && playable.includes('/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png'), 'Playable Now must use the reviewed creature-range replacement');
+requireValue(!playable.includes('/press/gameplay/creature-cosmic-egg-reveal.png') && !playable.includes('/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png') && playable.includes('previous gameplay media pack is withdrawn'), 'Playable Now must keep both weak creature proofs withdrawn pending a new human-reviewed moment');
 requireValue(!storefront.includes('id="real-creature-hatch"') && !storefront.includes('/press/gameplay/creature-cosmic-egg-reveal.png'), 'the withdrawn hatch screenshot returned to the press room');
 requireValue(!llms.includes('https://mythicalvoid.com/press/#real-creature-hatch'), 'the machine-readable guide still promotes the withdrawn hatch screenshot');
 

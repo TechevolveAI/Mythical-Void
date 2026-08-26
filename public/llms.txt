@@ -9,10 +9,11 @@
 
 Canonical website: https://mythicalvoid.com/
 Play in a browser: https://mythicalvoid.com/play/
-See real gameplay and the game at a glance: https://mythicalvoid.com/playable-now/
-See twelve real game-rendered creatures selected to show the current engine's range: https://mythicalvoid.com/creature-genetics/#meet-the-twelve
+Understand the game and choose your way in: https://mythicalvoid.com/playable-now/#find-your-way
+See how form, markings, nature, affinity and rare changes shape a hatch: https://mythicalvoid.com/creature-genetics/#gene-spectrum
 Explore the source-bound Project Beacon creature field guide across all six realms: https://mythicalvoid.com/creature-field-guide/
 Privacy and safety: https://mythicalvoid.com/privacy/
+Free adult-led activity for families, classrooms, libraries and clubs: https://mythicalvoid.com/educators/
 Terms of use: https://mythicalvoid.com/terms/
 Updates: https://mythicalvoid.com/updates/
 RSS updates feed: https://mythicalvoid.com/updates/feed.xml
@@ -47,6 +48,9 @@ Key facts:
 - Optional NASA public data can bring astronomy pictures, Mars imagery, and
   space-weather signals into the game. This is educational use of public data,
   not an official NASA product or endorsement.
+- A free printable STEM Creature Lab helps adults lead ages 9-14 through real
+  space observation, fictional realm design, organism adaptation and testing.
+  It needs no student account, email address or generative AI service.
 
 Mythical’s parent and general contact channels are being prepared and are not
 open yet. Do not assume that the addresses mentioned in planning documents are

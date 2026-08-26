@@ -1,0 +1,169 @@
+{
+  "id": "WEB-DISTRIBUTION-001",
+  "checkedOn": "2026-08-26",
+  "state": "options_preserved_no_external_action",
+  "purpose": "Put Mythical Void where people are already choosing a new game without accidentally giving away distribution rights or launching with weak visual proof.",
+  "currentTruth": {
+    "ownedGameLive": true,
+    "itchPackageReady": true,
+    "itchListingPublished": false,
+    "pokiAccessRequested": false,
+    "approvedAuthenticVisualMoments": 0,
+    "requiredAuthenticVisualMoments": 4,
+    "externalChannelAccountsConfirmed": 0,
+    "externalActionTaken": false
+  },
+  "recommendation": {
+    "now": "Keep both the Poki-first and itch.io-first options open while Game Development improves the opening experience and four authentic gameplay moments are approved.",
+    "afterVisualGate": "Ask Kevin to choose between requesting Poki access first or publishing the prepared itch.io release. The recommended order for maximum upside is a bounded Poki access request first, with itch.io as the ready fallback if Poki is not a fit or acceptable terms are not offered.",
+    "why": "Poki says its preferred partnership is web-exclusive and can include platform marketing. Publishing on another web portal first can move the game into Poki's non-exclusive flat-fee route. The itch.io build is already ready, so preserving the larger option costs no technical rework while the visual gate is closed.",
+    "decisionDue": "Only after the 4/4 visual gate, first-minute play review, mobile and desktop check, and rights review pass."
+  },
+  "technicalAssessment": {
+    "source": "docs/company/growth/POKI_READINESS_ASSESSMENT.json",
+    "measurementSource": "docs/company/growth/poki-candidate-measurement.json",
+    "decision": "no_go_yet_preserve_option",
+    "openingReview": "One clear FIRST CONTACT egg interaction reached immediately on desktop and phone in a private local review.",
+    "firstLoadGzipEstimateBytes": 3936773,
+    "firstLoadAdvisoryTargetBytes": 5242880,
+    "firstLoadTargetMet": true,
+    "totalGzipEstimateBytes": 43049481,
+    "totalAdvisoryTargetBytes": 8388608,
+    "totalTargetMet": false,
+    "outsideServicesIsolated": false,
+    "incognitoSavingVerified": false,
+    "tabletTouchVerified": false,
+    "fivePersonFirstMinuteReviewComplete": false,
+    "pokiSdkPresent": false,
+    "pokiSdkAuthorized": false,
+    "submissionReady": false
+  },
+  "primaryFork": [
+    {
+      "id": "poki_first_reach_bet",
+      "name": "Poki-first reach bet",
+      "bestFor": "A chance at much larger curated web reach and platform marketing.",
+      "currentState": "option_preserved_not_submitted",
+      "knownTerms": {
+        "curatedSelection": true,
+        "preferredDealIsWebExclusive": true,
+        "indicativeExclusiveTermYears": 5,
+        "nonExclusiveFlatFeeRouteExists": true,
+        "sameGameOnItchDuringExclusiveDeal": false,
+        "sameGameOnSteamMobileAndConsolePermittedInPrinciple": true,
+        "actualAgreementRequiresReview": true
+      },
+      "entryRequirements": [
+        "A game with a strong core loop, first impression and cross-device feel",
+        "Fast loading, stable performance and a lean web build",
+        "A full-bleed square thumbnail that closely matches the actual game",
+        "A named person, email, studio, country and live game link for the access request",
+        "Kevin approval before form submission",
+        "Commercial and legal review before accepting any exclusivity, advertising, SDK or revenue terms"
+      ],
+      "tradeoff": "Slower and selective; a preferred deal can restrict other web portals for an indicative five years, with exact terms set by agreement.",
+      "externalActionAuthorized": false
+    },
+    {
+      "id": "itch_first_learning_bet",
+      "name": "itch.io-first learning bet",
+      "bestFor": "The fastest low-cost route to a real indie game shelf and early player learning.",
+      "currentState": "technical_package_ready_not_published",
+      "knownTerms": {
+        "directBrowserPlaySupported": true,
+        "accountCost": "free",
+        "firstPublicReleaseGetsOneMostRecentMoment": true,
+        "coverRequiredForDiscovery": true,
+        "authenticScreenshotsStronglyRecommended": true,
+        "accurateGenerativeAiClassificationRequired": true,
+        "pokiExclusiveUpsidePreservedAfterPublication": false
+      },
+      "entryRequirements": [
+        "Four approved authentic gameplay moments",
+        "A truthful cover and three to five real game images",
+        "The already tested direct-play ZIP",
+        "Kevin-controlled account and approval of the public page and platform terms"
+      ],
+      "tradeoff": "Faster learning and control, but publishing elsewhere can reduce the value of a later Poki approach.",
+      "externalActionAuthorized": false
+    }
+  ],
+  "secondaryRoutes": [
+    {
+      "rank": 1,
+      "name": "YouTube",
+      "role": "Show authentic gameplay to people comparing games before trying one.",
+      "state": "held_for_4_of_4_visual_gate_and_official_channel",
+      "rule": "No trailers or Shorts made from the withdrawn captures or from imagined art presented as gameplay."
+    },
+    {
+      "rank": 2,
+      "name": "Newgrounds",
+      "role": "A direct HTML5 game shelf with an established games community.",
+      "state": "technically_plausible_quality_and_account_gated",
+      "rule": "New submissions face public judgment and can be removed for a low score; use only after the first minutes, rights, credits and presentation are strong."
+    },
+    {
+      "rank": 3,
+      "name": "r/WebGames and relevant browser-game communities",
+      "role": "Human discussion with people who deliberately try browser games.",
+      "state": "relationship_and_rules_gated",
+      "rule": "Do not treat a community as a free advert board. Lead with the playable experience and human craft, disclose AI honestly, read current rules immediately before posting, and do not use automated promotional copy."
+    },
+    {
+      "rank": 4,
+      "name": "Game Jolt",
+      "role": "A game page plus ongoing creator/community activity.",
+      "state": "signed_in_technical_verification_needed",
+      "rule": "Do not create a profile or promise browser-package support until the current signed-in add-game flow and terms are checked."
+    },
+    {
+      "rank": 5,
+      "name": "CrazyGames",
+      "role": "Potential larger web-game distribution.",
+      "state": "later_platform_review",
+      "rule": "Require current SDK, privacy, advertising, audience, rights and commercial review before any submission."
+    },
+    {
+      "rank": 6,
+      "name": "Steam",
+      "role": "A later downloadable release with strong buying intent.",
+      "state": "not_current_build_strategy",
+      "rule": "Revisit only with a downloadable product, store plan, fee and support capacity."
+    }
+  ],
+  "qualityGates": [
+    "4 of 4 authentic gameplay moments approved by a person",
+    "The creature remains clearly visible and alive during real play",
+    "The first meaningful action is understandable without a long explanation",
+    "The packaged game loads reliably on desktop and mobile",
+    "All public images match what a player will actually experience",
+    "Music, art, code and AI-use disclosures are ready for the chosen platform"
+  ],
+  "authority": {
+    "pokiAccessRequestAuthorized": false,
+    "itchPublicationAuthorized": false,
+    "newgroundsPublicationAuthorized": false,
+    "communityPostingAuthorized": false,
+    "socialPublishingAuthorized": false,
+    "platformTermsAcceptanceAuthorized": false,
+    "webExclusivityAcceptanceAuthorized": false,
+    "sdkIntegrationAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "directChildContactAuthorized": false,
+    "externalActionTaken": false
+  },
+  "sources": [
+    "https://developers.poki.com/guide/working-with-poki",
+    "https://developers.poki.com/guide/revenue-deal-types",
+    "https://developers.poki.com/guide/what-we-look-for",
+    "https://developers.poki.com/guide/easy-access",
+    "https://developers.poki.com/guide/game-thumbnail",
+    "https://developers.poki.com/guide/share",
+    "https://itch.io/docs/creators/html5",
+    "https://itch.io/docs/creators/quality-guidelines",
+    "https://itch.io/docs/creators/getting-indexed",
+    "https://www.newgrounds.com/wiki/help-information/content-submission/games-and-movies",
+    "https://developer.crazygames.com/games"
+  ]
+}

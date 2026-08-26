@@ -1,10 +1,10 @@
 {
-  "schemaVersion": 1,
-  "releaseId": "OWNED-SHARING-LOOP-2026-08-26",
-  "state": "owned_site_release_live_and_verified",
+  "schemaVersion": 2,
+  "releaseId": "OWNED-SHARING-LOOP-2026-08-26-VISUAL-RESET",
+  "state": "sharing_controls_ready_old_preview_withdrawn_temporary_fallback_pending_production",
   "purpose": "Make Mythical Void easier for an adult, family member or player to pass to someone else without requiring a social account, collecting a contact or adding tracking parameters.",
-  "publicDestination": "https://mythicalvoid.com/playable-now/",
-  "preview": {
+  "publicDestination": "https://mythicalvoid.com/playable-now/#find-your-way",
+  "priorWithdrawnPreview": {
     "path": "public/press/social/mythical-void-share-wide.png",
     "sourcePath": "scripts/company/mythical-void-share-card.html",
     "width": 1200,
@@ -13,20 +13,27 @@
     "sourceSha256": "448054cc35adc85ebd30d8faa5379d15dfbb9ff60b981c9e976598a93c4ef1ce",
     "visibleHeadline": "What will you hatch?",
     "classification": "branded_share_preview_with_ai_generated_marketing_illustration",
-    "disclosure": "The preview is labelled IMAGINED UNIVERSE ART. Its background is AI-generated marketing artwork inspired by profiles from the creature engine; it is not gameplay."
+    "disclosure": "Withdrawn after human review because it did not meet the public visual standard. Retained only as a release record."
+  },
+  "temporaryFallback": {
+    "path": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
+    "sha256": "33900887fb56104c3fada02ccd965747b0dfab12be7b2c883c624ff8f448fc47",
+    "classification": "ai_generated_marketing_illustration_not_gameplay",
+    "disclosure": "AI-generated marketing artwork inspired by the creature system. It is not gameplay.",
+    "replacementState": "pending_new_human_reviewed_gameplay_moments"
   },
   "sharingJourney": {
     "pagePath": "public/playable-now/index.html",
-    "pageSha256": "dc46677175e9a04fd23f63009984c75327322b5267de3ae6c1f8b78b6a385d78",
+    "pageSha256": "f8d5f4c18c89de3d27b5932d4641c1a01300cb9321863f7d8950565dfcef7d3a",
     "scriptPath": "public/discovery.js",
-    "scriptSha256": "981ef7e72f8de4744be9299decb823bd985912159e4cb7895ae1c58577f70d02",
+    "scriptSha256": "aaf4d9d6bd8c21b88bdaba9b2d48166a6c3f27eb566a88a3d7df46fb9eee444b",
     "nativeDeviceShareUsedWhenAvailable": true,
     "clipboardFallbackProvided": true,
-    "cleanUrl": "https://mythicalvoid.com/playable-now/",
+    "cleanUrl": "https://mythicalvoid.com/playable-now/#find-your-way",
     "trackingParametersUsed": false,
     "contactCollectionEnabled": false
   },
-  "humanReview": {
+  "priorPreviewHumanReview": {
     "reviewedAtFullSize": true,
     "reviewedAt600x315PreviewSize": true,
     "oneClearFocalQuestion": true,
@@ -45,20 +52,20 @@
     "kevinApprovalRequiredForExternalPosting": true
   },
   "verification": {
-    "productionBuildPassed": true,
+    "productionBuildPassed": false,
     "desktopBrowserReviewed": true,
     "phoneBrowserReviewed": true,
     "nativeSharePayloadVerified": false,
     "clipboardFallbackVerified": true,
-    "productionUrlVerified": true,
-    "productionCommit": "fafa1ff4ef04cb191a7481c45e8c6de36c462794",
-    "productionDeployId": "6a8ef19ba3897e000853ffae",
-    "verifiedAt": "2026-08-26T14:02:00Z",
-    "liveHomepagePreviewVerified": true,
-    "livePlayablePreviewVerified": true,
-    "liveImageDimensionsVerified": "1200x630",
-    "liveClipboardFallbackVerified": true,
-    "liveBrokenImageCount": 0,
-    "liveHorizontalOverflowObserved": false
+    "productionUrlVerified": false,
+    "productionCommit": null,
+    "productionDeployId": null,
+    "verifiedAt": null,
+    "liveHomepagePreviewVerified": false,
+    "livePlayablePreviewVerified": false,
+    "liveImageDimensionsVerified": null,
+    "liveClipboardFallbackVerified": false,
+    "liveBrokenImageCount": null,
+    "liveHorizontalOverflowObserved": null
   }
 }

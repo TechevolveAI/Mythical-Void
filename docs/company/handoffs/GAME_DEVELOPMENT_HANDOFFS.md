@@ -77,10 +77,10 @@ not authorize capture or publication.
 ## GDH-005 — Portal-build feasibility spike
 
 **Status:** Proposed; do not integrate a platform SDK  
-**Evidence:** the current `dist/` is approximately 16 MB, theme MP3/OGG files
-account for roughly 9 MB, and the application contains extensive root-absolute
-routes/assets. Official portal requirements commonly use ZIP/subdirectory or
-iframe hosting; Poki targets an initial download below 8 MB.  
+**Evidence:** this original broad feasibility request is now superseded for
+Poki by the measured GDH-007 request below. The tested portal package proves
+portable ZIP/iframe delivery, but each portal still needs its own runtime,
+rights and service review.
 **Request:** produce a scoped technical assessment for:
 
 - OP-001 as the portable packaging baseline, with OP-004, OP-002, and OP-003
@@ -129,3 +129,38 @@ conclusions require professional review.
 **Success:** V-003/V-004 and R-002/R-008 have evidence-backed status; all public
 and internal provider descriptions match actual behavior in one coordinated
 release.
+
+## GDH-007 — Produce a lean, isolated Poki candidate
+
+**Status:** P0 readiness request; no SDK, advertising, upload or platform request is authorized
+
+**Evidence:** the direct portal build now reaches one clear egg interaction on
+desktop and phone. Its reconstructed opening download is about 3.75 MB, but the
+full delivery is about 41 MB compressed: roughly 24.5 MB of cinematics and 9.3
+MB of audio. The built game still contains outside NASA, Open Notify and
+Mythical-hosted function routes. The authentic visual gate is 0/4, incognito
+saving and real tablet touch switching are unverified, and no Poki SDK is
+present or approved.
+
+**Request:** return a separate portal candidate that:
+
+- keeps the core adventure complete with live NASA, Open Notify, hosted AI,
+  cloud saving and Mythical-hosted functions off by default;
+- progressively loads later films, music and realm art after the first playable
+  action, with measured first-load and complete-delivery evidence;
+- survives denied storage, private browsing and ad blocking without a crash;
+- forces the correct touch controls on real or touch-emulated tablets;
+- preserves the immediate egg interaction, makes early films skippable and
+  teaches the first actions visually and gradually;
+- defines a Poki-only SDK adapter boundary without installing or activating the
+  SDK, game events, advertising or external links.
+
+**Constraints:** do not weaken the canonical browser game, call imagined art
+gameplay, add tracking, contact a platform, accept terms, create an account or
+publish a package. The external-service-free mode must fail closed without
+removing the NASA/STEM layer from the owned game.
+
+**Success:** the candidate passes desktop, phone, real tablet, denied-storage,
+ad-block and slow-load reviews; the first action remains clear; delivery weight
+is materially reduced; every outside request is absent or separately approved;
+and the operating thread receives exact evidence without any platform action.

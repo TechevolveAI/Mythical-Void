@@ -2022,6 +2022,81 @@ footer {
     color: #bdb6cf;
 }
 
+.press-review-layout {
+    display: grid;
+    gap: 2rem;
+}
+
+.press-review-standard {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: .85rem;
+}
+
+.press-review-standard article {
+    min-height: 245px;
+    padding: 1.45rem;
+    border: 1px solid rgba(124, 232, 207, .18);
+    border-radius: 1.35rem;
+    background: rgba(255, 255, 255, .045);
+}
+
+.press-review-standard span {
+    display: block;
+    margin-bottom: 2.4rem;
+    color: var(--gold);
+    font-size: .72rem;
+    font-weight: 900;
+    letter-spacing: .14em;
+}
+
+.press-review-standard strong {
+    display: block;
+    margin-bottom: .7rem;
+    color: #fff8e7;
+    font-family: "Arial Rounded MT Bold", "Avenir Next", ui-rounded, system-ui, sans-serif;
+    font-size: 1.05rem;
+    line-height: 1.25;
+}
+
+.press-review-standard p {
+    margin: 0;
+    color: #bdb6cf;
+    font-size: .86rem;
+    line-height: 1.6;
+}
+
+.press-review-decision {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 2rem;
+    padding: clamp(1.5rem, 4vw, 2.7rem);
+    border: 1px solid rgba(255, 202, 72, .32);
+    border-radius: 1.7rem;
+    background: linear-gradient(120deg, rgba(255, 202, 72, .12), rgba(121, 80, 218, .12));
+}
+
+.press-review-decision h3 {
+    margin: .35rem 0 .55rem;
+    color: #fff8e7;
+    font-family: "Arial Rounded MT Bold", "Avenir Next", ui-rounded, system-ui, sans-serif;
+    font-size: clamp(1.45rem, 3vw, 2.35rem);
+}
+
+.press-review-decision p:last-child {
+    max-width: 720px;
+    margin: 0;
+    color: #c9c3d4;
+}
+
+.press-brand-download {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 430px);
+    align-items: center;
+    gap: clamp(2rem, 6vw, 6rem);
+}
+
 .press-gameplay-grid {
     display: grid;
     grid-template-columns: 1.25fr .75fr .75fr;
@@ -2486,6 +2561,8 @@ footer {
     .press-caption-actions { justify-content: flex-start; }
     .press-video-shell { min-height: 0; height: auto; }
     .press-nasa-card > img { min-height: 540px; height: 540px; }
+    .press-review-standard { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .press-brand-download { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 620px) {
@@ -2493,6 +2570,10 @@ footer {
     .press-hero { min-height: 720px; }
     .press-hero-shade { background: linear-gradient(0deg, rgba(5, 4, 18, .98) 8%, rgba(5, 4, 18, .68) 68%, rgba(5, 4, 18, .32)); }
     .press-hero-copy h1 { font-size: 3.3rem; }
+    .press-review-standard { grid-template-columns: 1fr; }
+    .press-review-standard article { min-height: 0; }
+    .press-review-standard span { margin-bottom: 1.4rem; }
+    .press-review-decision { grid-template-columns: 1fr; }
     .press-hero-actions { display: grid; }
     .press-facts-section,
     .press-gameplay-section,

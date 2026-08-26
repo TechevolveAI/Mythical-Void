@@ -14,14 +14,19 @@ describe('Playable Now discovery page', () => {
         expect(release.authority.emailOrOutreachSendingAuthorized).toBe(false);
     });
 
-    test('leads with genuine gameplay and clean play routes', () => {
-        expect(page).toContain('/press/gameplay-video/mythical-forest-authentic-gameplay.mp4');
-        expect(page).toContain('IN-GAME STORY MOMENT // 3.17 SECONDS');
-        expect(page).toContain('not a claim that it shows platforming or combat');
+    test('explains the game clearly while weak media remains withdrawn', () => {
+        expect(page).toContain('LOOKING FOR A NEW GAME? START HERE');
+        expect(page).toContain('<h1>What are you in the mood for?</h1>');
+        expect(page).toContain('Mythical Void is a free alien creature adventure.');
+        expect(page).toContain('Free · No download · No account · No payment details · Early access');
+        expect(page.indexOf('id="find-your-way"')).toBeLessThan(page.indexOf('class="truth-strip"'));
+        expect(page).not.toContain('<section class="hero playable-hero">');
+        expect(page).toContain('previous gameplay media pack is withdrawn');
+        expect(page).toContain('creature stays visible');
         expect(page.match(/href="\/play\/"/g).length).toBeGreaterThanOrEqual(3);
         expect(page).not.toMatch(/[?&](?:utm_|fbclid|gclid)/i);
-        expect(page).toContain('/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png');
-        expect(page).toContain('branded renderer-proof layout, not a playable scene');
+        expect(page).not.toContain('/press/gameplay-video/');
+        expect(page).not.toContain('/press/gameplay/');
         expect(page).not.toContain('/press/gameplay/creature-cosmic-egg-reveal.png');
     });
 
@@ -29,7 +34,7 @@ describe('Playable Now discovery page', () => {
         expect(page).not.toMatch(/\bcompanions?\b/i);
         expect(page).not.toMatch(/no two creatures|every creature is unique|infinite unique/i);
         expect(page).toContain('NASA does not endorse Mythical Void.');
-        expect(page).toContain('AI-generated marketing illustration');
+        expect(page).toContain('AI-generated marketing artwork');
         expect(page).toContain('not gameplay');
     });
 
@@ -47,7 +52,8 @@ describe('Playable Now discovery page', () => {
     test('is checked during every production build', () => {
         const scripts = require('../../package.json').scripts;
         expect(scripts.build).toContain('validate:playable-now');
-        expect(scripts.build).toContain('validate:visual-media');
+        expect(scripts.build).toContain('validate:organic-discovery');
+        expect(scripts.build).toContain('validate:public-visual-trust');
         expect(scripts.build).toContain('validate:owned-sharing');
         expect(scripts.build).toContain('validate:social-previews');
         expect(scripts['validate:playable-now']).toContain('validate-playable-now-discovery.cjs');

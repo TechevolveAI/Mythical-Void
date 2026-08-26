@@ -2,6 +2,15 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "redirects": [
+    { "source": "/press/gameplay/:path*", "destination": "/press/", "permanent": false },
+    { "source": "/press/gameplay-video/:path*", "destination": "/press/", "permanent": false },
+    { "source": "/press/social/:path*", "destination": "/press/", "permanent": false },
+    { "source": "/press/social-video/:path*", "destination": "/press/", "permanent": false },
+    { "source": "/press/creator-kit/:path*", "destination": "/press/", "permanent": false },
+    { "source": "/resources/mythical-void-play-share-card.pdf", "destination": "/press/", "permanent": false },
+    { "source": "/resources/previews/play-share-card.png", "destination": "/press/", "permanent": false }
+  ],
   "rewrites": [
     {
       "source": "/story",

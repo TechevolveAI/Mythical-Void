@@ -1,0 +1,75 @@
+{
+  "id": "BOTTOM-OF-FUNNEL-001",
+  "checkedOn": "2026-08-26",
+  "state": "owned_entry_live_options_preserved_visual_gate_closed",
+  "playerPromise": "A free browser adventure where you hatch a strange alien creature, cross six living realms and decide what Project Beacon should tell Earth. No download or account needed.",
+  "readyFallbackShelf": {
+    "name": "itch.io",
+    "accountCost": "free",
+    "publicationAuthorized": false,
+    "rightsDecisionRequiredBeforePublication": true,
+    "reason": "The audience is actively browsing for independent games and HTML games can play directly in the browser.",
+    "requirements": {
+      "topLevelIndexHtml": true,
+      "relativePaths": true,
+      "maximumExtractedFiles": 1000,
+      "maximumExtractedSizeMb": 500,
+      "recommendedCover": "630x500",
+      "recommendedAuthenticScreenshots": "3-5"
+    },
+    "gates": [
+      "four authentic gameplay moments approved",
+      "clean creature reveal approved",
+      "embedded browser package tested",
+      "Kevin chooses itch.io-first learning or a Poki-first access request",
+      "Kevin approves account and public listing"
+    ],
+    "technicalEvidence": {
+      "buildCommand": "npm run package:itch",
+      "directPlay": true,
+      "nestedFrameTestPassed": true,
+      "fileCount": 85,
+      "extractedBytes": 46868954,
+      "latestArchiveBytes": 43051532,
+      "withdrawnMediaIncluded": false
+    }
+  },
+  "distributionRightsFork": {
+    "decisionId": "D-018",
+    "decisionDue": "after 4 of 4 authentic visuals, first-minute, mobile and loading gates pass",
+    "recommendedSequence": "Request Poki access first to preserve the larger curated-reach option; use the ready itch.io release if Poki is not a fit or acceptable terms are not offered.",
+    "pokiPreferredDealWebExclusive": true,
+    "pokiIndicativeExclusiveTermYears": 5,
+    "pokiNonExclusiveFlatFeeRouteExists": true,
+    "decisionMade": false
+  },
+  "routeOrder": [
+    { "name": "owned search landing page", "state": "live", "url": "https://mythicalvoid.com/playable-now/" },
+    { "name": "Poki", "state": "high_upside_option_preserved_not_submitted" },
+    { "name": "itch.io", "state": "technical_package_ready_not_published" },
+    { "name": "YouTube", "state": "held_for_visual_quality" },
+    { "name": "CrazyGames", "state": "later_candidate" },
+    { "name": "Steam", "state": "not_now", "feeUsd": 100 }
+  ],
+  "boundaries": {
+    "externalPublishingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "bulkOutreachAuthorized": false,
+    "directChildContactAuthorized": false,
+    "imaginedArtMayBeCalledGameplay": false,
+    "portalAcceptanceMayBePromised": false,
+    "pokiAccessRequestAuthorized": false,
+    "webExclusivityMayBeAccepted": false
+  },
+  "sources": [
+    "https://itch.io/docs/creators/html5",
+    "https://itch.io/docs/creators/getting-started",
+    "https://developers.poki.com/guide",
+    "https://developers.poki.com/guide/thumbnail",
+    "https://developers.poki.com/share",
+    "https://developers.poki.com/guide/revenue-deal-types",
+    "https://developers.poki.com/guide/what-we-look-for",
+    "https://developer.crazygames.com/games",
+    "https://partner.steamgames.com/doc/gettingstarted/appfee"
+  ]
+}

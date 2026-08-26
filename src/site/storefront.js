@@ -82,7 +82,6 @@ function renderPressPage() {
                         ${playLink('Play the current game')}
                         <a class="button button-quiet" href="/press/mythical-void-fact-sheet.txt" download>Download the fact sheet</a>
                         <a class="button button-quiet" href="/resources/mythical-void-stem-creature-lab.pdf" download>Download the STEM activity</a>
-                        <a class="button button-quiet" href="/resources/mythical-void-play-share-card.pdf" download>Print and share the game</a>
                     </div>
                     <p class="press-art-disclosure">Hero image: AI-generated marketing illustration inspired by creature profiles from the genetics engine. It is not gameplay footage.</p>
                 </div>
@@ -121,134 +120,38 @@ function renderPressPage() {
                 </div>
             </section>
 
-            <section class="press-gameplay-section">
-                <div class="section-inner">
+            <section class="press-gameplay-section" id="media-quality-review">
+                <div class="section-inner press-review-layout">
                     <div class="press-section-heading press-heading-split">
-                        <div><p class="kicker">CAPTURED FROM THE GAME</p><h2>This is what players really see.</h2></div>
-                        <p>Every frame below was captured automatically from a tested Mythical Void build using an invented game state. No mock gameplay, private save or player identity is involved.</p>
+                        <div><p class="kicker">HUMAN VISUAL REVIEW</p><h2>The public media library is being rebuilt.</h2></div>
+                        <p>Earlier screenshots and videos were genuine captures, but that was not enough. The selected moments were unclear, the creature was sometimes unreadable, and several layouts did not look good at normal viewing size. They are no longer offered here as press or creator material.</p>
                     </div>
-                    <div class="press-proof-feature-grid">
-                        <figure class="press-gameplay-card press-video-card">
-                            <div class="press-video-shell">
-                                <video controls muted playsinline preload="metadata" poster="/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png" aria-label="A real in-game Project Beacon arrival moment in the Mythical Forest">
-                                    <source src="/press/gameplay-video/mythical-forest-authentic-gameplay.mp4" type="video/mp4">
-                                </video>
-                            </div>
-                            <figcaption><span>IN-GAME STORY MOMENT · 3.17 SECONDS</span><strong>Arrive in the Mythical Forest</strong><p>A coherent Project Beacon arrival recorded from the running game. It is not labelled as platforming or combat footage.</p><a href="/press/gameplay-video/mythical-forest-authentic-gameplay.mp4" download>Download the Forest arrival ↓</a></figcaption>
-                        </figure>
-                        <figure class="press-gameplay-card press-nasa-card">
-                            <img src="/press/gameplay/nasa-apollo11-real-space-discovery.png" alt="A real Mythical Void learning card showing a credited NASA Apollo 11 panorama, observation prompts and an imagined creature reaction" loading="lazy">
-                            <figcaption><span>REAL GAME + REAL NASA IMAGE</span><strong>Turn a space picture into a question</strong><p>The game clearly separates the Apollo 11 image and credit from the creature’s imagined reaction, then asks the player to observe, infer and check evidence.</p><a href="https://apod.nasa.gov/apod/ap240720.html" target="_blank" rel="noopener noreferrer">View the NASA source ↗</a><a href="/press/gameplay/nasa-apollo11-real-space-discovery.png" download>Download gameplay image ↓</a></figcaption>
-                        </figure>
+                    <div class="press-review-standard" aria-label="Visual publishing standard">
+                        <article><span>01</span><strong>One clear moment</strong><p>A person should understand what is happening without reading a paragraph first.</p></article>
+                        <article><span>02</span><strong>The creature must be visible</strong><p>No missing render, placeholder block, tiny silhouette or frame where the creature disappears.</p></article>
+                        <article><span>03</span><strong>Show real play</strong><p>Movement, choice, discovery or consequence—not a menu presented as if it were exciting gameplay.</p></article>
+                        <article><span>04</span><strong>Choose the frame by eye</strong><p>Clean composition, readable text, good contrast and a focal point that still works on a phone.</p></article>
+                        <article><span>05</span><strong>Watch the whole thing</strong><p>A named adult reviews every frame of every public video before it can be downloaded or shared.</p></article>
                     </div>
-                    <div class="press-gameplay-grid">
-                        <figure class="press-gameplay-card press-gameplay-wide">
-                            <img src="/press/gameplay/project-beacon-start.png" alt="The real Mythical Void opening screen showing Project Beacon and the Wanderer-77 crash site" loading="lazy">
-                            <figcaption><span>REAL RUNNING BUILD</span><strong>Begin Project Beacon</strong><p>The opening screen players reach before first contact.</p><a href="/press/gameplay/project-beacon-start.png" download>Download gameplay image ↓</a></figcaption>
-                        </figure>
-                        <figure class="press-gameplay-card">
-                            <img src="/press/gameplay/project-beacon-live-egg.png" alt="The real first-contact screen with an alien egg waiting above a signal platform" loading="lazy">
-                            <figcaption><span>REAL RUNNING BUILD</span><strong>First contact</strong><p>The live egg interaction at the Wanderer-77 crash site.</p><a href="/press/gameplay/project-beacon-live-egg.png" download>Download gameplay image ↓</a></figcaption>
-                        </figure>
-                        <figure class="press-gameplay-card press-gameplay-wide" id="real-creature-range">
-                            <img src="/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png" alt="Twelve real pixel creatures rendered by the running Mythical Void genetics and DNA engine" loading="lazy">
-                            <figcaption><span>12 REAL RENDERER OUTPUTS · 7 SPECIES</span><strong>Twelve real hatches. One running engine.</strong><p>Every creature in this branded proof layout is an exact export from the game renderer. The twelve were selected from 1,000 deliberately balanced engine runs to show visible range—not normal hatch odds or endless uniqueness.</p><a href="/creature-genetics/#meet-the-twelve">Meet all twelve creatures →</a><a href="/creature-field-guide/">Read their Project Beacon field stories →</a><a href="/press/gameplay/real-creature-showcase/renderer-manifest.json">Check the renderer record →</a></figcaption>
-                        </figure>
-                        <figure class="press-gameplay-card press-gameplay-wide">
-                            <img src="/press/gameplay/mythical-forest-arrival-wide.png" alt="The in-game Mythical Forest arrival with a distant Project Beacon tower" loading="lazy">
-                            <figcaption><span>RUNNING-BUILD STORY MOMENT</span><strong>Follow the signal</strong><p>A deliberately chosen arrival frame with one clear place, question and direction.</p><a href="/press/gameplay/mythical-forest-arrival-wide.png" download>Download the Forest arrival image ↓</a></figcaption>
-                        </figure>
+                    <div class="press-review-decision">
+                        <div><p class="kicker">CURRENT DECISION</p><h3>No gameplay download pack is approved.</h3><p>New material will appear only after the running game can produce a genuinely strong moment and that exact capture passes human review on desktop and phone.</p></div>
+                        <a class="button button-primary" href="/play/">See the current game for yourself →</a>
                     </div>
-                    <div class="press-social-release press-media-quality-hold" id="media-quality-review">
-                        <div class="press-section-heading press-heading-split">
-                            <div><p class="kicker">VISUAL QUALITY GATE</p><h2>The previous social video pack is withdrawn.</h2></div>
-                            <p>The files were technically genuine, but the creature was not rendered correctly and the chosen moments were not strong enough. We will not call a clip ready merely because it loads.</p>
-                        </div>
-                        <p class="press-social-note">A replacement pack will return only after every frame makes sense to a person: a readable creature, a clear focal moment, clean framing and an honest description of what the viewer is seeing.</p>
-                    </div>
-                    <div class="press-social-release" id="project-beacon-social-assets">
-                        <div class="press-section-heading press-heading-split">
-                            <div><p class="kicker">READY TO SHARE</p><h2>Tell the Project Beacon story.</h2></div>
-                            <p>Two finished layouts pair a real scene from the game with a working story link. They are ready for adults, press and creators to share.</p>
-                        </div>
-                        <div class="press-social-grid">
-                            <figure class="press-asset-card">
-                                <img src="/press/social/project-beacon-story-wide.png" alt="Wide Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame" loading="lazy">
-                                <figcaption><span>WIDE SOCIAL ARTWORK · REAL GAMEPLAY FRAME</span><strong>Project Beacon story — wide</strong><p>1200 × 630 PNG for link previews and wide posts. The framed scene is a real running-build capture using an invented test state.</p><a href="/press/social/project-beacon-story-wide.png" download>Download wide PNG ↓</a></figcaption>
-                            </figure>
-                            <figure class="press-asset-card">
-                                <img src="/press/social/project-beacon-story-square.png" alt="Square Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame" loading="lazy">
-                                <figcaption><span>SQUARE SOCIAL ARTWORK · REAL GAMEPLAY FRAME</span><strong>Project Beacon story — square</strong><p>1200 × 1200 PNG for square posts. The clean destination shown in the artwork is mythicalvoid.com/story.</p><a href="/press/social/project-beacon-story-square.png" download>Download square PNG ↓</a></figcaption>
-                            </figure>
-                        </div>
-                        <p class="press-social-note">These are branded sharing layouts, not raw screenshots. The image inside each layout is real gameplay; no player information is shown.</p>
-                        <div class="press-social-subsection" id="nasa-stem-social-assets">
-                            <div class="press-section-heading press-heading-split">
-                                <div><p class="kicker">SPACE DISCOVERY · READY TO SHARE</p><h2>Share a real-space question.</h2></div>
-                                <p>For adults, families, educators and creators: two finished layouts show how a real NASA public image can become a playful, optional discovery moment inside Mythical Void.</p>
-                            </div>
-                            <div class="press-social-grid">
-                                <figure class="press-asset-card">
-                                    <img src="/press/social/nasa-stem-discovery-wide.png" alt="Wide Mythical Void space-discovery artwork with a real game screen, credited Apollo 11 image and the words Real space, strange worlds, questions worth asking" loading="lazy">
-                                    <figcaption><span>WIDE SOCIAL ARTWORK · REAL GAME + NASA PUBLIC IMAGE</span><strong>Real space, imagined worlds — wide</strong><p>1200 × 630 PNG for link previews and wide posts. The framed screen comes from the running game and shows the image credit and the boundary between science and fiction.</p><a href="/press/social/nasa-stem-discovery-wide.png" download>Download wide PNG ↓</a></figcaption>
-                                </figure>
-                                <figure class="press-asset-card">
-                                    <img src="/press/social/nasa-stem-discovery-square.png" alt="Square Mythical Void space-discovery artwork with a real game screen, credited Apollo 11 image and an observation question" loading="lazy">
-                                    <figcaption><span>SQUARE SOCIAL ARTWORK · REAL GAME + NASA PUBLIC IMAGE</span><strong>Real space, imagined worlds — square</strong><p>1200 × 1200 PNG for square posts. The clean destination shown in the artwork is mythicalvoid.com/nasa-space-science.</p><a href="/press/social/nasa-stem-discovery-square.png" download>Download square PNG ↓</a></figcaption>
-                                </figure>
-                            </div>
-                            <p class="press-social-note">These are branded sharing layouts, not raw screenshots. The framed screen is real gameplay using a company-controlled test state and contains a credited NASA public image. NASA does not endorse Mythical Void. <a href="/nasa-space-science/">See how science and fiction are separated →</a></p>
-                        </div>
-                        <div class="press-social-subsection" id="father-son-story-social-assets">
-                            <div class="press-section-heading press-heading-split">
-                                <div><p class="kicker">STUDIO ORIGIN · READY TO SHARE</p><h2>Share where Mythical Void began.</h2></div>
-                                <p>Two finished layouts tell the true story of an Irish father-and-son experiment that grew into a playable creature adventure—without using a photograph, name or identifying detail of the child.</p>
-                            </div>
-                            <div class="press-social-grid">
-                                <figure class="press-asset-card">
-                                    <img src="/press/social/father-son-story-wide.png" alt="Wide Mythical Void founder-story artwork saying One enormous idea, built together, with the studio emblem and a real first-contact game frame" loading="lazy">
-                                    <figcaption><span>WIDE FOUNDER-STORY ARTWORK · REAL GAMEPLAY FRAME</span><strong>One enormous idea — wide</strong><p>1200 × 630 PNG for link previews and wide posts. It connects the father-and-son origin to the real playable result.</p><a href="/press/social/father-son-story-wide.png" download>Download wide PNG ↓</a></figcaption>
-                                </figure>
-                                <figure class="press-asset-card">
-                                    <img src="/press/social/father-son-story-square.png" alt="Square Mythical Void founder-story artwork saying One enormous idea, built together, with the studio emblem and a real first-contact game frame" loading="lazy">
-                                    <figcaption><span>SQUARE FOUNDER-STORY ARTWORK · REAL GAMEPLAY FRAME</span><strong>One enormous idea — square</strong><p>1200 × 1200 PNG for square posts. The clean destination shown in the artwork is mythicalvoid.com/studio.</p><a href="/press/social/father-son-story-square.png" download>Download square PNG ↓</a></figcaption>
-                                </figure>
-                            </div>
-                            <p class="press-social-note">These are founder-story sharing layouts, not raw screenshots. The background is an AI-generated marketing illustration, not gameplay. The framed screen is real gameplay using a company-controlled test state. No photograph, name or identifying detail of the child is used. <a href="/studio/">Read the father-and-son story →</a></p>
-                        </div>
-                    </div>
-                    <p class="press-gameplay-proof"><a href="/press/gameplay/manifest.json">View image build record →</a><a href="/press/gameplay-video/manifest.json">View video build record →</a></p>
+                    <p class="press-gameplay-proof"><a href="/press/visual-publication-register.json">View the visual review register →</a><a href="/press/gameplay/manifest.json">View the capture record →</a></p>
                 </div>
             </section>
 
             <section class="press-assets-section">
-                <div class="section-inner">
-                    <div class="press-section-heading press-heading-split">
-                        <div><p class="kicker">APPROVED ARTWORK</p><h2>Imagination with honest labels.</h2></div>
-                        <p>These files may be used when covering Mythical Void. Keep the supplied description with each image. Unlike the section above, these are artwork—not screenshots of play.</p>
+                <div class="section-inner press-brand-download">
+                    <div class="press-section-heading">
+                        <p class="kicker">BRAND FILE</p>
+                        <h2>One useful download while the image library is reviewed.</h2>
+                        <p>The transparent Mythical Void emblem remains available for factual coverage. Gameplay screenshots, videos and promotional scene artwork are deliberately withheld for now.</p>
                     </div>
-                    <div class="press-assets-grid">
-                        <figure class="press-asset-card press-asset-wide">
-                            <img src="/marketing/mythical-void-creature-universe-hero-v2.webp" alt="Many possible alien creature forms gathered in a luminous cosmic realm">
-                            <figcaption><span>MARKETING KEY ART</span><strong>A Universe of Creatures</strong><p>AI-generated marketing illustration inspired by profiles from the creature genetics engine. Not gameplay footage.</p><a href="/marketing/mythical-void-creature-universe-hero-v2.webp" download>Download image ↓</a></figcaption>
-                        </figure>
-                        <figure class="press-asset-card">
-                            <img src="/game/project-beacon-crash-site.webp" alt="The Wanderer-77 crash site in Mythical Void">
-                            <figcaption><span>CURRENT GAME-WORLD ART</span><strong>Wanderer-77 crash site</strong><p>A first-party asset used by the game. It does not demonstrate animation or a complete gameplay sequence.</p><a href="/game/project-beacon-crash-site.webp" download>Download image ↓</a></figcaption>
-                        </figure>
-                        <figure class="press-asset-card">
-                            <img src="/game/village/village-heart-command.webp" alt="The command area at the heart of the Fend village">
-                            <figcaption><span>CURRENT GAME-WORLD ART</span><strong>The Fend village heart</strong><p>A first-party environment asset used by the game. It does not show a completed restoration outcome.</p><a href="/game/village/village-heart-command.webp" download>Download image ↓</a></figcaption>
-                        </figure>
-                        <figure class="press-asset-card">
-                            <img src="/game/guardians/void-empress.webp" alt="The Void Empress guardian from Mythical Void">
-                            <figcaption><span>CURRENT GAME-WORLD ART</span><strong>The Void Empress</strong><p>A first-party guardian asset. In the story, the corruption is fought so the guardian can be restored.</p><a href="/game/guardians/void-empress.webp" download>Download image ↓</a></figcaption>
-                        </figure>
-                        <figure class="press-asset-card press-logo-asset">
-                            <div><img src="/marketing/mythical-void-emblem-v3.png" alt="Transparent Mythical Void creature emblem"></div>
-                            <figcaption><span>OFFICIAL BRAND ART</span><strong>Mythical Void emblem</strong><p>Transparent purple-and-gold emblem created with generative AI and professionally refined for the studio.</p><a href="/marketing/mythical-void-emblem-v3.png" download>Download transparent PNG ↓</a></figcaption>
-                        </figure>
-                    </div>
+                    <figure class="press-asset-card press-logo-asset">
+                        <div><img src="/marketing/mythical-void-emblem-v3.png" alt="Transparent Mythical Void creature emblem"></div>
+                        <figcaption><span>OFFICIAL BRAND ART</span><strong>Mythical Void emblem</strong><p>Transparent purple-and-gold emblem created with generative AI and professionally refined for the studio.</p><a href="/marketing/mythical-void-emblem-v3.png" download>Download transparent PNG ↓</a></figcaption>
+                    </figure>
                 </div>
             </section>
 
@@ -270,11 +173,10 @@ function renderPressPage() {
                 <div class="section-inner">
                     <p class="kicker">PLAY BEFORE YOU WRITE</p>
                     <h2>The signal is already live.</h2>
-                    <p>Mythical Void is available to try now. An official press contact channel is being prepared; until it opens, this page remains the canonical source for approved facts and artwork.</p>
+                    <p>Mythical Void is available to try now. An official press contact channel is being prepared; until it opens, this page remains the canonical source for approved facts and the current visual-review status.</p>
                     <div class="press-hero-actions">
                         ${playLink('Play Mythical Void')}
                         <a class="button button-quiet" href="/resources/mythical-void-stem-creature-lab.pdf" download>Get the free STEM activity</a>
-                        <a class="button button-quiet" href="/resources/mythical-void-play-share-card.pdf" download>Get the play-and-share card</a>
                         <a class="button button-quiet" href="/press/mythical-void-press-assets.json">View the media manifest</a>
                     </div>
                 </div>
@@ -319,7 +221,7 @@ function renderLegalPage(type) {
                     <h2>Online services</h2>
                     <p>Cloud Save uses Supabase. The game may also ask trusted outside services for public space-weather or game-help information. Like most online services, they may receive basic connection information such as an internet address.</p>
                     <h2>Optional website analytics</h2>
-                    <p>The public website may use Google Analytics to count visits and improve the shop window. It is off by default. If you choose “Allow analytics”, Google receives limited visit information for the public website only. It is not used in the game, and advertising features are switched off. You can choose “No thanks” instead.</p>
+                    <p>The public website may use Google Analytics to count visits and whether website buttons lead to the game or sharing. It is off by default. If you choose “Allow analytics”, Google receives the public page and general button area only. It does not receive a message recipient, contact detail, creature detail, game activity, or the extra information after a question mark in a web address. It is not used in the game, and advertising features are switched off. You can choose “No thanks” instead.</p>
                     <h2>Children</h2>
                     <p>Children can play without Cloud Save. A child should only use Cloud Save when a parent or guardian has given any permission required where they live.</p>
                     <h2>Contact</h2>
@@ -361,7 +263,7 @@ function renderStorefront() {
                     <span></span><span></span><span></span>
                 </button>
                 <nav class="site-nav" aria-label="Main navigation" data-menu>
-                    <a href="/playable-now/">See the game</a>
+                    <a href="/playable-now/#find-your-way">Find your game</a>
                     <a href="#adventure">The adventure</a>
                     <a href="#how-it-works">How it works</a>
                     <a href="#studio">The studio</a>
@@ -388,7 +290,7 @@ function renderStorefront() {
                                 <span data-share-label>Share the game</span>
                                 <span class="button-arrow" aria-hidden="true">↗</span>
                             </button>
-                            <a class="button button-quiet" href="/playable-now/">Watch real gameplay</a>
+                            <a class="button button-quiet" href="/playable-now/#find-your-way">Find your way in</a>
                         </div>
                         <p class="hero-share-status share-status" data-share-status aria-live="polite"></p>
                         <ul class="hero-genetics" aria-label="How this scene was made">
@@ -666,11 +568,12 @@ function renderStorefront() {
                 </div>
                 <nav aria-label="Footer navigation">
                     <a href="/play/">Play game</a>
-                    <a href="/playable-now/">See real gameplay</a>
+                    <a href="/playable-now/#find-your-way">Find your way in</a>
                     <a href="/press/">Press & creators</a>
                     <a href="/updates/">What's new</a>
                     <a href="/creature-genetics/">Creature genetics</a>
                     <a href="/nasa-space-science/">NASA & STEM</a>
+                    <a href="/educators/">For groups & educators</a>
                     <a href="/studio/">Our story</a>
                     <a href="/parents/">For grown-ups</a>
                     <a href="/privacy/">Privacy & safety</a>
@@ -687,6 +590,18 @@ function renderStorefront() {
 }
 
 function bindInteractions() {
+    const sourceAreaFor = (element) => {
+        if (element?.closest('header')) return 'header';
+        if (element?.closest('.hero, .press-hero')) return 'hero';
+        if (element?.closest('.playable-share-section, [data-share-section]')) return 'share_section';
+        if (element?.closest('.final-cta')) return 'final_cta';
+        if (element?.closest('footer')) return 'footer';
+        return 'content';
+    };
+    const trackPublicEvent = (eventName, element) => {
+        window.MythicalAnalytics?.track?.(eventName, { source_area: sourceAreaFor(element) });
+    };
+
     const menuButton = app.querySelector('[data-menu-button]');
     const menu = app.querySelector('[data-menu]');
 
@@ -757,12 +672,16 @@ function bindInteractions() {
         });
     });
 
+    app.querySelectorAll('a[href="/play/"]').forEach((link) => {
+        link.addEventListener('click', () => trackPublicEvent('play_selected', link));
+    });
+
     const shareButtons = [...app.querySelectorAll('[data-share-game]')];
     const shareStatuses = [...app.querySelectorAll('[data-share-status]')];
     const shareData = {
         title: 'Mythical Void',
-        text: 'Try Mythical Void — a free creature adventure you can play in your browser. No download or account needed.',
-        url: 'https://mythicalvoid.com/'
+        text: 'What are you in the mood for? Choose wonder, creation, challenge or story, then enter Mythical Void free in your browser.',
+        url: 'https://mythicalvoid.com/playable-now/#find-your-way'
     };
     const setShareStatus = (message) => {
         shareStatuses.forEach((status) => { status.textContent = message; });
@@ -781,14 +700,16 @@ function bindInteractions() {
                 if (navigator.share) {
                     await navigator.share(shareData);
                     setShareStatus('Thanks for sharing the signal.');
+                    trackPublicEvent('share_completed', button);
                     return;
                 }
 
                 await navigator.clipboard.writeText(shareData.url);
                 setShareStatus('Clean game link copied — no tracking code.');
+                trackPublicEvent('share_link_copied', button);
             } catch (error) {
                 if (error?.name !== 'AbortError') {
-                    setShareStatus('You can share mythicalvoid.com from your browser.');
+                    setShareStatus('You can share mythicalvoid.com/playable-now from your browser.');
                 }
             }
         });

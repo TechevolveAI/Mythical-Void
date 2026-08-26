@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "releaseId": "PROJECT-BEACON-CREATURE-FIELD-GUIDE-2026-08-26",
-  "state": "verified_live_production_release",
+  "state": "owned_site_profile_guide_ready_visuals_withdrawn_pending_rebuild",
   "publicRoute": "https://mythicalvoid.com/creature-field-guide/",
-  "purpose": "Turn twelve verified renderer creatures into a clear, memorable entrance to the six-realm Project Beacon universe without overstating what is currently playable.",
+  "purpose": "Turn twelve verified creature profiles into a clear entrance to the six-realm Project Beacon universe without promoting weak sprite or realm captures.",
   "sourceProof": {
     "fieldGuideSource": {
       "path": "src/data/creature-field-guide.json",
@@ -21,19 +21,19 @@
     },
     "publicPage": {
       "path": "public/creature-field-guide/index.html",
-      "sha256": "567771f459d5fe7a134ab69f1d6142a7134cd19a40e3e450b7330f6604a0810b"
+      "sha256": "bb00323535d281f7ca8466c7bd73362463fe76732896d09e83df3588554407eb"
     }
   },
   "coverage": {
     "realms": 6,
-    "verifiedCreatureRenders": 12,
+    "verifiedCreatureProfiles": 12,
     "sightingsPerRealm": 2,
     "guardians": 6,
     "projectBeaconQuestions": 6
   },
   "canonBoundary": {
     "currentGameFacts": [
-      "The exact creature renders and their genetics-profile traits",
+      "The structured creature genetics-profile traits",
       "The six realm names and their current guardians",
       "Project Beacon's established themes and central choice"
     ],
@@ -65,24 +65,25 @@
     "nasaRelationshipClaim": false,
     "contactCollectionEnabled": false,
     "trackingParametersPermitted": false,
-    "directMinorContactEnabled": false
+    "directMinorContactEnabled": false,
+    "weakCapturePromotionEnabled": false
   },
   "visualReview": {
-    "localDesktop": "passed_in_app_browser_1280x720_6_realms_12_cards_no_broken_images_no_horizontal_overflow",
-    "localPhone": "passed_headless_chrome_390x844_6_realms_12_cards_single_column_no_broken_images_no_horizontal_overflow",
-    "productionDesktop": "passed_in_app_browser_1280x720_6_realms_12_cards_no_broken_images_no_horizontal_overflow",
-    "productionPhone": "passed_headless_chrome_390x844_6_realms_12_cards_single_column_no_broken_images_no_horizontal_overflow"
+    "localDesktop": "required_for_rebuilt_profile_signal_layout",
+    "localPhone": "required_for_rebuilt_profile_signal_layout",
+    "productionDesktop": "pending",
+    "productionPhone": "pending"
   },
   "productionProof": {
-    "verifiedAt": "2026-08-26T12:20:00Z",
-    "pullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/108",
-    "mergeCommit": "49eb002c76b62a4aa0b0bf97a9f2fa664401923a",
-    "netlifyDeployId": "6a8ed9ad799e9700087043c6",
-    "netlifyState": "ready",
-    "publishedAt": "2026-08-26T12:19:32.089Z",
-    "livePageSha256": "567771f459d5fe7a134ab69f1d6142a7134cd19a40e3e450b7330f6604a0810b",
-    "liveDataSha256": "5ba2c814c7b030c0ffb9244cbaf5136f5e42b403ad36f15726f1e3f191bdcb74",
-    "liveFilesMatchCheckedRelease": true
+    "verifiedAt": null,
+    "pullRequest": null,
+    "mergeCommit": null,
+    "netlifyDeployId": null,
+    "netlifyState": "pending",
+    "publishedAt": null,
+    "livePageSha256": null,
+    "liveDataSha256": null,
+    "liveFilesMatchCheckedRelease": false
   },
   "authority": {
     "ownedWebsitePublicationAuthorized": true,

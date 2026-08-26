@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "releaseId": "SIGNAL-LOG-SYNDICATION-2026-08-14",
+  "releaseId": "SIGNAL-LOG-SYNDICATION-2026-08-26",
   "state": "complete_owned_site_release_waiting_for_production_verification",
   "source": {
     "path": "public/updates/releases.json",
-    "fingerprintSha256": "d36972f12257c4e259308c8d90991d810eaa3a6366220585a4da47810cd0380c",
+    "fingerprintSha256": "a7a40f420d7d4250966af61955f71ba400138d34dc07a293535e23beb730332e",
     "liveEntryCount": 12
   },
   "feeds": {
@@ -12,19 +12,19 @@
       "path": "public/updates/feed.xml",
       "url": "https://mythicalvoid.com/updates/feed.xml",
       "mimeType": "application/rss+xml; charset=utf-8",
-      "sha256": "50de9c67a72ad2aa16986ab388a4cf4fa7b731aeb6b8e3229cd2ee919194650d",
+      "sha256": "f7ff2970f913ed7f4f146d7e14420ddea90eef6b99dc51cefe4dfab3ceeb5376",
       "itemCount": 12
     },
     "json": {
       "path": "public/updates/feed.json",
       "url": "https://mythicalvoid.com/updates/feed.json",
       "mimeType": "application/feed+json; charset=utf-8",
-      "sha256": "bb864468d6701f6bc898acec9b4fff05107ec2235cdc6a8441f4eb157cdcd6cd",
+      "sha256": "b26580a263a0cda5d165ea14fe3eb096bb9a648277eedcdc92e48fb3e3baac91",
       "itemCount": 12
     }
   },
   "discovery": {
-    "publicPagesWithFeedMetadata": 9,
+    "publicPagesWithFeedMetadata": 10,
     "updatesPage": "https://mythicalvoid.com/updates/",
     "pressManifest": "https://mythicalvoid.com/press/mythical-void-press-assets.json",
     "machineReadableSiteGuide": "https://mythicalvoid.com/llms.txt"

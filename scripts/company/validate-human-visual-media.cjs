@@ -75,9 +75,11 @@ for (const weakLead of ['/press/gameplay/realm-reef.png', '/press/gameplay/villa
 requireValue(!page.includes('/press/gameplay/creature-cosmic-egg-reveal.png'), 'withdrawn hatch screenshot returned to Playable Now');
 requireValue(!press.includes('/press/gameplay/creature-cosmic-egg-reveal.png'), 'withdrawn hatch screenshot returned to the press gallery');
 
-requireValue(press.includes('The previous social video pack is withdrawn.'), 'public withdrawal notice is missing');
+requireValue(press.includes('The public media library is being rebuilt.'), 'public visual-library withdrawal notice is missing');
+requireValue(press.includes('No gameplay download pack is approved.'), 'public gameplay download decision is missing');
 requireValue(!press.includes('id="real-gameplay-social-video"'), 'withdrawn social pack is still exposed in the press room');
 requireValue(!press.includes('id="creator-download-kit"'), 'withdrawn creator download is still exposed in the press room');
+requireValue(!press.includes('<video'), 'withdrawn gameplay video is still embedded in the press room');
 requireValue(socialManifest.state === 'withdrawn_visual_quality_failed_do_not_publish', 'social-video manifest is not withdrawn');
 requireValue(creatorManifest.state === 'withdrawn_visual_quality_failed_do_not_publish', 'creator-kit manifest is not withdrawn');
 requireValue(socialManifest.authority?.ownedPressRoomPublicationAuthorized === false, 'withdrawn social media still permits owned press publication');

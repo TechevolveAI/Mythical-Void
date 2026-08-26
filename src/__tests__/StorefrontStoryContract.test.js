@@ -111,7 +111,7 @@ describe('storefront Project Beacon story contract', () => {
 
     test('publishes absolute social media assets and route-aware canonical metadata', () => {
         expect(metadata).toContain(
-            'content="https://mythicalvoid.com/press/social/mythical-void-share-wide.png"'
+            'content="https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp"'
         );
         expect(metadata).toContain(
             '<link rel="canonical" href="https://mythicalvoid.com/">'
@@ -164,13 +164,14 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('NASA does not endorse the game.');
         expect(storefront).toContain('Download the STEM activity');
         expect(storefront).toContain('/resources/mythical-void-stem-creature-lab.pdf');
-        expect(storefront).toContain('Print and share the game');
-        expect(storefront).toContain('Get the play-and-share card');
-        expect(storefront).toContain('/resources/mythical-void-play-share-card.pdf');
-        expect(storefront).toContain('Tell the Project Beacon story.');
-        expect(storefront).toContain('/press/social/project-beacon-story-wide.png');
-        expect(storefront).toContain('/press/social/project-beacon-story-square.png');
-        expect(storefront).toContain('These are branded sharing layouts, not raw screenshots.');
+        expect(storefront).not.toContain('Get the play-and-share card');
+        expect(storefront).not.toContain('/resources/mythical-void-play-share-card.pdf');
+        expect(storefront).not.toContain('Tell the Project Beacon story.');
+        expect(storefront).not.toContain('/press/social/project-beacon-story-wide.png');
+        expect(storefront).not.toContain('/press/social/project-beacon-story-square.png');
+        expect(storefront).toContain('The public media library is being rebuilt.');
+        expect(storefront).toContain('No gameplay download pack is approved.');
+        expect(storefront).toContain('The creature must be visible');
         expect(pressAssets.sharingResources).toEqual(expect.arrayContaining([
             expect.objectContaining({
                 kind: 'adult_led_printable_play_share_card',
@@ -184,14 +185,13 @@ describe('storefront Project Beacon story contract', () => {
         expect(pressFactSheet).toContain('PLAY THE CURRENT GAME');
         expect(pressFactSheet).toContain('father-and-son project');
         expect(pressFactSheet).not.toMatch(/\bcompanions?\b/i);
-        expect(storefront).toContain('This is what players really see.');
+        expect(storefront).not.toContain('This is what players really see.');
         expect(storefront).toContain('/press/gameplay/manifest.json');
-        expect(storefront).toContain('/press/gameplay-video/manifest.json');
-        expect(storefront).toContain('IN-GAME STORY MOMENT · 3.17 SECONDS');
-        expect(storefront).toContain('The previous social video pack is withdrawn.');
+        expect(storefront).not.toContain('/press/gameplay-video/manifest.json');
+        expect(storefront).not.toContain('IN-GAME STORY MOMENT · 3.17 SECONDS');
         expect(storefront).not.toContain('id="real-gameplay-social-video"');
         expect(storefront).not.toContain('id="creator-download-kit"');
-        expect(storefront).toContain('REAL GAME + REAL NASA IMAGE');
+        expect(storefront).not.toContain('REAL GAME + REAL NASA IMAGE');
         expect(pressAssets.gameplayProofManifest).toBe(
             'https://mythicalvoid.com/press/gameplay/manifest.json'
         );
@@ -218,8 +218,12 @@ describe('storefront Project Beacon story contract', () => {
             expect.objectContaining({ state: 'withdrawn_visual_quality_failed_do_not_publish' }),
             expect.objectContaining({ state: 'withdrawn_visual_quality_failed_do_not_publish' })
         ]));
-        expect(storefront).toContain('id="real-creature-range"');
-        expect(storefront).toContain('Twelve real hatches. One running engine.');
+        expect(storefront).not.toContain('id="real-creature-range"');
+        expect(storefront).not.toContain('Twelve real hatches. One running engine.');
+        expect(pressAssets.mediaLibrary).toEqual(expect.objectContaining({
+            state: 'withdrawn_pending_human_visual_rebuild_do_not_publish',
+            defaultAssetState: 'withdrawn_visual_quality_failed_do_not_publish'
+        }));
         expect(pressAssets.realCreatureShowcase).toEqual(expect.objectContaining({
             selectedFromEngineRuns: 1000,
             selectedCreatures: 12

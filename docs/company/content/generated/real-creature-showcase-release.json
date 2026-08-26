@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "state": "owned_site_release_visually_verified_waiting_for_production_verification",
+  "state": "withdrawn_visual_quality_failed_do_not_publish",
   "releaseDate": "2026-08-26",
   "page": "https://mythicalvoid.com/creature-genetics/#meet-the-twelve",
   "source": {
@@ -31,7 +31,7 @@
     "creatureSentienceClaimed": false
   },
   "authority": {
-    "ownedWebsitePublicationAuthorized": true,
+    "ownedWebsitePublicationAuthorized": false,
     "externalSocialPublicationAuthorized": false,
     "emailOrOutreachSendingAuthorized": false,
     "paidPromotionAuthorized": false,
@@ -43,8 +43,8 @@
   "verification": {
     "deterministicProfileBuildPassed": true,
     "deterministicSpriteCapturePassed": true,
-    "desktopVisualReviewPassed": true,
-    "phoneVisualReviewPassed": true,
+    "desktopVisualReviewPassed": false,
+    "phoneVisualReviewPassed": false,
     "productionUrlVerified": false
   }
 }

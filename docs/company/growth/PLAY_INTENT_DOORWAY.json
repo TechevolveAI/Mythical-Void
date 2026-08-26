@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "PLAY-INTENT-DOORWAY-2026-08-26",
+  "state": "owned_site_release_authorized_pending_production_verification",
+  "decisionServed": "Which honest reason for trying Mythical Void most often leads a visitor to choose Play?",
+  "publicRoute": "https://mythicalvoid.com/playable-now/",
+  "promises": [
+    {
+      "id": "wonder",
+      "button": "Show me something strange",
+      "promise": "Follow the signal into six impossible realms.",
+      "sourceArea": "intent_wonder"
+    },
+    {
+      "id": "create",
+      "button": "Let me make something",
+      "promise": "See what the creature engine makes with you.",
+      "sourceArea": "intent_create"
+    },
+    {
+      "id": "challenge",
+      "button": "Give me a mission",
+      "promise": "Recover the ship. Cross the realms. Free the guardians.",
+      "sourceArea": "intent_challenge"
+    },
+    {
+      "id": "story",
+      "button": "Make my choices matter",
+      "promise": "Project Beacon begins as an order and ends as your choice.",
+      "sourceArea": "intent_story"
+    }
+  ],
+  "measurement": {
+    "analyticsDefault": "denied",
+    "consentRequired": true,
+    "eventName": "play_selected",
+    "property": "source_area",
+    "choiceClickMeasured": false,
+    "choiceRememberedInBrowser": false,
+    "selectedPlaySourceSentAfterConsent": true,
+    "aggregatePlayEventStoredByAnalytics": true,
+    "individualJourneyBuilt": false,
+    "gameMeasured": false,
+    "reportingLanguage": "play selections, not people"
+  },
+  "sharing": {
+    "intentSpecificRoutes": true,
+    "routeLocation": "URL fragment only",
+    "allowedRouteWords": ["wonder", "create", "challenge", "story"],
+    "trackingCodeAdded": false,
+    "choiceSentToServer": false,
+    "choiceStoredAsProfile": false,
+    "recipientContactCollected": false
+  },
+  "decisionRules": {
+    "minimumConsentedPageViews": 50,
+    "minimumIntentPlaySelections": 10,
+    "earlyResult": "directional_only",
+    "ifOnePromiseLeads": "Use it as the first public sentence, then verify it again with a fresh period.",
+    "ifNoPromiseLeads": "Keep the balanced doorway and improve the game proof before changing the words.",
+    "neverInfer": [
+      "age",
+      "identity",
+      "personality",
+      "a child profile",
+      "retention",
+      "market prevalence"
+    ]
+  },
+  "visualBoundary": {
+    "approvedGameplayMoments": 0,
+    "requiredGameplayMoments": 4,
+    "newGameplayMediaPublished": false,
+    "imaginedArtCalledGameplay": false
+  },
+  "authority": {
+    "ownedWebsitePublicationAuthorized": true,
+    "externalSocialPublicationAuthorized": false,
+    "portalSubmissionAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "outreachAuthorized": false,
+    "externalAccountChangeAuthorized": false
+  },
+  "verification": {
+    "desktopReviewRequired": true,
+    "phoneReviewRequired": true,
+    "keyboardReviewRequired": true,
+    "productionCommit": null,
+    "productionDeployId": null
+  }
+}

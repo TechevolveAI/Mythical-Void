@@ -5,8 +5,8 @@
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "7e491cb6d62e47c2fbc99413958363d77b7a9f20179d0a552cc860ecd60fd947",
-    "liveEntryCount": 14,
+    "sourceFingerprint": "a7a40f420d7d4250966af61955f71ba400138d34dc07a293535e23beb730332e",
+    "liveEntryCount": 12,
     "latestSourceDate": "2026-08-26"
   },
   "purpose": "Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
@@ -32,6 +32,186 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-SIGNAL-019",
+      "sourceEntryId": "SIGNAL-019",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/playable-now/#find-your-way",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+        "alt": "Many imagined alien organisms gathered in a luminous Mythical Void realm",
+        "class": "ai_generated_marketing_illustration",
+        "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Send someone the part they might love\n\nWonder, creature creation, challenge and story now have their own clean way into Mythical Void, so a shared link can reopen the exact reason someone thought of you.\n\n• Choose one of the four honest reasons to play, then use Share this way in. The person receiving it sees the same answer and can enter the free browser game immediately.\n• The shared address contains only the public choice after the # sign. Mythical Void does not collect a recipient, create a profile or add a tracking code.\n• This improves word of mouth without bringing back the unclear screenshots or videos that remain withheld until four stronger gameplay moments pass human review.\n\nSee what changed: https://mythicalvoid.com/playable-now/#find-your-way\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 850
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Send someone the part they might love\n\nWonder, creature creation, challenge and story now have their own clean way into Mythical Void, so a shared link can reopen the exact reason someone thought of you.\n\nhttps://mythicalvoid.com/playable-now/#find-your-way\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 360
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Send someone the part they might love",
+          "body": "Mythical Void has a new live update: Send someone the part they might love.\n\nWonder, creature creation, challenge and story now have their own clean way into Mythical Void, so a shared link can reopen the exact reason someone thought of you.\n\nChoose one of the four honest reasons to play, then use Share this way in. The person receiving it sees the same answer and can enter the free browser game immediately. The shared address contains only the public choice after the # sign. Mythical Void does not collect a recipient, create a profile or add a tracking code. This improves word of mouth without bringing back the unclear screenshots or videos that remain withheld until four stronger gameplay moments pass human review.\n\nThe checked public destination is https://mythicalvoid.com/playable-now/#find-your-way\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 985,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
+    {
+      "id": "DRAFT-SIGNAL-018",
+      "sourceEntryId": "SIGNAL-018",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/playable-now/#main",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+        "alt": "Many imagined alien organisms gathered in a luminous Mythical Void realm",
+        "class": "ai_generated_marketing_illustration",
+        "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Choose the feeling you want before you play\n\nA new Mythical Void doorway now helps people looking for a game choose between wonder, creation, challenge and story before entering the free browser adventure.\n\n• Each choice explains the part of Mythical Void that best matches that mood, then offers one clean way into the playable game.\n• Choosing a mood does not create a profile or require an account. If optional website analytics were already allowed, only the chosen Play doorway is counted when Play is pressed.\n• The game remains outside website analytics, and the release does not use unfinished gameplay media, paid promotion or an invented audience claim.\n\nSee what changed: https://mythicalvoid.com/playable-now/#main\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 810
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Choose the feeling you want before you play\n\nA new Mythical Void doorway now helps people looking for a game choose between wonder, creation, challenge and story before entering the free browser adventure.\n\nhttps://mythicalvoid.com/playable-now/#main\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 353
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Choose the feeling you want before you play",
+          "body": "Mythical Void has a new live update: Choose the feeling you want before you play.\n\nA new Mythical Void doorway now helps people looking for a game choose between wonder, creation, challenge and story before entering the free browser adventure.\n\nEach choice explains the part of Mythical Void that best matches that mood, then offers one clean way into the playable game. Choosing a mood does not create a profile or require an account. If optional website analytics were already allowed, only the chosen Play doorway is counted when Play is pressed. The game remains outside website analytics, and the release does not use unfinished gameplay media, paid promotion or an invented audience claim.\n\nThe checked public destination is https://mythicalvoid.com/playable-now/#main\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 945,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
+    {
+      "id": "DRAFT-SIGNAL-017",
+      "sourceEntryId": "SIGNAL-017",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/studio/",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+        "alt": "Many imagined alien organisms gathered in a luminous Mythical Void realm",
+        "class": "ai_generated_marketing_illustration",
+        "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Four true Mythical stories can now travel\n\nVisitors can now pass on the playable game, father-and-son beginning, NASA and STEM activity, or ready-to-run group mission using the clean sharing choices already on their device.\n\n• Each page shares its own plain-language story and clean mythicalvoid.com address rather than sending everyone to one generic campaign link.\n• If device sharing is unavailable, the same control copies the page address. Mythical Void does not collect a recipient, contact detail or tracking code.\n• The first adult-facing founder post is ready for Kevin’s review without a new email address, paid advertising or a weak gameplay screenshot.\n\nSee what changed: https://mythicalvoid.com/studio/\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 800
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Four true Mythical stories can now travel\n\nVisitors can now pass on the playable game, father-and-son beginning, NASA and STEM activity, or ready-to-run group mission using the clean sharing choices already on their device.\n\nhttps://mythicalvoid.com/studio/\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 360
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Four true Mythical stories can now travel",
+          "body": "Mythical Void has a new live update: Four true Mythical stories can now travel.\n\nVisitors can now pass on the playable game, father-and-son beginning, NASA and STEM activity, or ready-to-run group mission using the clean sharing choices already on their device.\n\nEach page shares its own plain-language story and clean mythicalvoid.com address rather than sending everyone to one generic campaign link. If device sharing is unavailable, the same control copies the page address. Mythical Void does not collect a recipient, contact detail or tracking code. The first adult-facing founder post is ready for Kevin’s review without a new email address, paid advertising or a weak gameplay screenshot.\n\nThe checked public destination is https://mythicalvoid.com/studio/\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 935,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
+    {
+      "id": "DRAFT-SIGNAL-016",
+      "sourceEntryId": "SIGNAL-016",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/educators/",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/press/social/nasa-stem-discovery-wide.png",
+        "alt": "Mythical Void space-discovery artwork with a real game screen and credited NASA Apollo 11 image",
+        "class": "branded_social_artwork_with_authentic_gameplay_frame_and_nasa_public_image",
+        "disclosure": "Branded sharing artwork, not a raw screenshot. The framed screen is real gameplay using a company-controlled test state and contains a credited NASA public image; no player information is shown. NASA does not endorse Mythical Void."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "A free space-and-creature mission is ready to run\n\nParents, teachers, libraries and clubs now have one clear Mythical Void activity journey with a full 45-60 minute creature lab and a 20-minute group version.\n\n• Young designers begin with a credited NASA public clue, separate what they observe from what they imagine, then create an organism for a realm with impossible rules.\n• The activity asks them to test an adaptation under pressure and make a restoration choice, connecting scientific reasoning to the game’s wider story.\n• The printable resources need no signup, student account, contact collection or generative AI service. NASA does not endorse Mythical Void.\n\nSee what changed: https://mythicalvoid.com/educators/\n\nBranded sharing artwork, not a raw screenshot. The framed screen is real gameplay using a company-controlled test state and contains a credited NASA public image; no player information is shown. NASA does not endorse Mythical Void.",
+          "characterCount": 958
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: A free space-and-creature mission is ready to run\n\nParents, teachers, libraries and clubs now have one clear Mythical Void activity journey with a full 45-60 minute creature lab and a 20-minute group version.\n\nhttps://mythicalvoid.com/educators/\n\nBranded sharing artwork, not a raw screenshot. The framed screen is real gameplay using a company-controlled test state and contains a credited NASA public image; no player information is shown. NASA does not endorse Mythical Void.",
+          "characterCount": 497
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: A free space-and-creature mission is ready to run",
+          "body": "Mythical Void has a new live update: A free space-and-creature mission is ready to run.\n\nParents, teachers, libraries and clubs now have one clear Mythical Void activity journey with a full 45-60 minute creature lab and a 20-minute group version.\n\nYoung designers begin with a credited NASA public clue, separate what they observe from what they imagine, then create an organism for a realm with impossible rules. The activity asks them to test an adaptation under pressure and make a restoration choice, connecting scientific reasoning to the game’s wider story. The printable resources need no signup, student account, contact collection or generative AI service. NASA does not endorse Mythical Void.\n\nThe checked public destination is https://mythicalvoid.com/educators/\n\nMedia note: Branded sharing artwork, not a raw screenshot. The framed screen is real gameplay using a company-controlled test state and contains a credited NASA public image; no player information is shown. NASA does not endorse Mythical Void.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 1093,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-SIGNAL-014",
       "sourceEntryId": "SIGNAL-014",
@@ -81,7 +261,7 @@
       "id": "DRAFT-SIGNAL-013",
       "sourceEntryId": "SIGNAL-013",
       "sourcePublishedOn": "2026-08-26",
-      "destination": "https://mythicalvoid.com/creature-genetics/#meet-the-twelve",
+      "destination": "https://mythicalvoid.com/creature-genetics/#gene-spectrum",
       "trackingParameters": false,
       "media": {
         "sourcePath": "/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png",
@@ -93,21 +273,21 @@
         "professionalNetwork": {
           "channelRef": "CH-004",
           "format": "text_post_with_one_link",
-          "body": "Twelve real hatches show the engine’s range\n\nA new source-bound gallery shows twelve creatures made by the running Mythical Void genetics, DNA and pixel-rendering system—not concept art.\n\n• The engine was run 1,000 times with deliberately balanced rarity groups, then twelve results were selected for visible breadth across all seven current species and all five rarity levels.\n• The set covers all eleven genetics body families, nine head forms, six environmental auras and five personalities. Each card uses the exact sprite exported by the game renderer.\n• This is a range showcase, not a probability sample, a normal hatch-odds claim or a promise of endless mathematical uniqueness. The source profiles, image fingerprints and renderer build are open for checking.\n\nSee what changed: https://mythicalvoid.com/creature-genetics/#meet-the-twelve\n\nBranded proof layout, not a playable game scene. Every creature is an exact game-renderer export; the set was deliberately selected to show range and does not represent normal hatch odds.",
-          "characterCount": 1036
+          "body": "See how the creature engine shapes a hatch\n\nA clearer creature-engine guide now explains how form, markings, nature, affinity and rare changes combine—without asking weak sprite exports to carry the story.\n\n• The guide explains the current seven species signatures and eleven body families in plain language.\n• It separates the playable creature profile from wider imagined-universe artwork, so nobody has to guess what they are seeing.\n• The previous tiny sprite gallery was technically authentic but visually unhelpful, so it has been withdrawn pending stronger in-game captures.\n\nSee what changed: https://mythicalvoid.com/creature-genetics/#gene-spectrum\n\nBranded proof layout, not a playable game scene. Every creature is an exact game-renderer export; the set was deliberately selected to show range and does not represent normal hatch odds.",
+          "characterCount": 847
         },
         "videoCommunity": {
           "channelRef": "CH-002",
           "format": "text_community_post_with_one_link",
-          "body": "New from the Void: Twelve real hatches show the engine’s range\n\nA new source-bound gallery shows twelve creatures made by the running Mythical Void genetics, DNA and pixel-rendering system—not concept art.\n\nhttps://mythicalvoid.com/creature-genetics/#meet-the-twelve\n\nBranded proof layout, not a playable game scene. Every creature is an exact game-renderer export; the set was deliberately selected to show range and does not represent normal hatch odds.",
-          "characterCount": 455
+          "body": "New from the Void: See how the creature engine shapes a hatch\n\nA clearer creature-engine guide now explains how form, markings, nature, affinity and rare changes combine—without asking weak sprite exports to carry the story.\n\nhttps://mythicalvoid.com/creature-genetics/#gene-spectrum\n\nBranded proof layout, not a playable game scene. Every creature is an exact game-renderer export; the set was deliberately selected to show range and does not represent normal hatch odds.",
+          "characterCount": 472
         },
         "pressCreatorSourceNote": {
           "channelRef": "manual_personal_review_only",
           "format": "source_note_not_bulk_email",
-          "subject": "Mythical Void update: Twelve real hatches show the engine’s range",
-          "body": "Mythical Void has a new live update: Twelve real hatches show the engine’s range.\n\nA new source-bound gallery shows twelve creatures made by the running Mythical Void genetics, DNA and pixel-rendering system—not concept art.\n\nThe engine was run 1,000 times with deliberately balanced rarity groups, then twelve results were selected for visible breadth across all seven current species and all five rarity levels. The set covers all eleven genetics body families, nine head forms, six environmental auras and five personalities. Each card uses the exact sprite exported by the game renderer. This is a range showcase, not a probability sample, a normal hatch-odds claim or a promise of endless mathematical uniqueness. The source profiles, image fingerprints and renderer build are open for checking.\n\nThe checked public destination is https://mythicalvoid.com/creature-genetics/#meet-the-twelve\n\nMedia note: Branded proof layout, not a playable game scene. Every creature is an exact game-renderer export; the set was deliberately selected to show range and does not represent normal hatch odds.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
-          "characterCount": 1171,
+          "subject": "Mythical Void update: See how the creature engine shapes a hatch",
+          "body": "Mythical Void has a new live update: See how the creature engine shapes a hatch.\n\nA clearer creature-engine guide now explains how form, markings, nature, affinity and rare changes combine—without asking weak sprite exports to carry the story.\n\nThe guide explains the current seven species signatures and eleven body families in plain language. It separates the playable creature profile from wider imagined-universe artwork, so nobody has to guess what they are seeing. The previous tiny sprite gallery was technically authentic but visually unhelpful, so it has been withdrawn pending stronger in-game captures.\n\nThe checked public destination is https://mythicalvoid.com/creature-genetics/#gene-spectrum\n\nMedia note: Branded proof layout, not a playable game scene. Every creature is an exact game-renderer export; the set was deliberately selected to show range and does not represent normal hatch odds.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 982,
           "recipient": null
         }
       },
@@ -123,126 +303,36 @@
       }
     },
     {
-      "id": "DRAFT-SIGNAL-012",
-      "sourceEntryId": "SIGNAL-012",
+      "id": "DRAFT-SIGNAL-015",
+      "sourceEntryId": "SIGNAL-015",
       "sourcePublishedOn": "2026-08-26",
-      "destination": "https://mythicalvoid.com/press/#real-creature-hatch",
+      "destination": "https://mythicalvoid.com/playable-now/",
       "trackingParameters": false,
       "media": {
-        "sourcePath": "/press/gameplay/creature-cosmic-egg-reveal.png",
-        "alt": "A real generated pixel creature taking centre stage after hatching in Mythical Void",
-        "class": "authentic_running_build_screenshot",
-        "disclosure": "Captured from the real browser game using an invented Mythical Void test state; not marketing art. It shows one genetics result and no player identity or private save."
+        "sourcePath": "/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
+        "alt": "The in-game Mythical Forest arrival with a clear field brief and Project Beacon tower",
+        "class": "authentic_running_build_story_moment",
+        "disclosure": "Captured from the running Mythical Void game using an invented QA state. It is an in-game story moment, not a platforming or combat demonstration."
       },
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",
           "format": "text_post_with_one_link",
-          "body": "The real creature now takes centre stage\n\nThe first hatch now gives the generated pixel creature room to be seen before the player chooses a name, and the real result is available as checked gameplay proof.\n\n• The running genetics engine creates the creature shown in the new screenshot; no marketing illustration, replacement creature or private player state is used.\n• The creature is more than twice its previous display size, the field reading no longer overlaps and old egg instructions disappear when the hatch is complete.\n• The moment gives the player one clear next step. The screenshot proves one genuine hatch, not every possible creature form or an absolute uniqueness claim.\n\nSee what changed: https://mythicalvoid.com/press/#real-creature-hatch\n\nCaptured from the real browser game using an invented Mythical Void test state; not marketing art. It shows one genetics result and no player identity or private save.",
-          "characterCount": 927
+          "body": "A better standard for showing the game\n\nMythical Void has withdrawn a technically genuine but visually poor media set and introduced a human visual-review standard before any replacement can be published.\n\n• The black square seen in the old footage was a real missing-texture failure. The game now verifies that a creature texture exists before a level can use it.\n• The old screenshots, vertical, square and wide social videos are withdrawn. Passing technical file checks is no longer treated as visual approval.\n• A replacement must show one clear subject and action, keep the creature readable at phone size and be watched frame by frame by an adult reviewer.\n\nSee what changed: https://mythicalvoid.com/playable-now/\n\nCaptured from the running Mythical Void game using an invented QA state. It is an in-game story moment, not a platforming or combat demonstration.",
+          "characterCount": 868
         },
         "videoCommunity": {
           "channelRef": "CH-002",
           "format": "text_community_post_with_one_link",
-          "body": "New from the Void: The real creature now takes centre stage\n\nThe first hatch now gives the generated pixel creature room to be seen before the player chooses a name, and the real result is available as checked gameplay proof.\n\nhttps://mythicalvoid.com/press/#real-creature-hatch\n\nCaptured from the real browser game using an invented Mythical Void test state; not marketing art. It shows one genetics result and no player identity or private save.",
-          "characterCount": 447
+          "body": "New from the Void: A better standard for showing the game\n\nMythical Void has withdrawn a technically genuine but visually poor media set and introduced a human visual-review standard before any replacement can be published.\n\nhttps://mythicalvoid.com/playable-now/\n\nCaptured from the running Mythical Void game using an invented QA state. It is an in-game story moment, not a platforming or combat demonstration.",
+          "characterCount": 411
         },
         "pressCreatorSourceNote": {
           "channelRef": "manual_personal_review_only",
           "format": "source_note_not_bulk_email",
-          "subject": "Mythical Void update: The real creature now takes centre stage",
-          "body": "Mythical Void has a new live update: The real creature now takes centre stage.\n\nThe first hatch now gives the generated pixel creature room to be seen before the player chooses a name, and the real result is available as checked gameplay proof.\n\nThe running genetics engine creates the creature shown in the new screenshot; no marketing illustration, replacement creature or private player state is used. The creature is more than twice its previous display size, the field reading no longer overlaps and old egg instructions disappear when the hatch is complete. The moment gives the player one clear next step. The screenshot proves one genuine hatch, not every possible creature form or an absolute uniqueness claim.\n\nThe checked public destination is https://mythicalvoid.com/press/#real-creature-hatch\n\nMedia note: Captured from the real browser game using an invented Mythical Void test state; not marketing art. It shows one genetics result and no player identity or private save.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
-          "characterCount": 1062,
-          "recipient": null
-        }
-      },
-      "approval": {
-        "state": "blocked_missing_verified_channel_and_kevin_approval",
-        "kevinApprovalRequired": true,
-        "verifiedChannelRequired": true,
-        "adultReplyCoverageRequiredBeforeComments": true,
-        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
-        "approvedAt": null,
-        "scheduledAt": null,
-        "publishedAt": null
-      }
-    },
-    {
-      "id": "DRAFT-SIGNAL-011",
-      "sourceEntryId": "SIGNAL-011",
-      "sourcePublishedOn": "2026-08-26",
-      "destination": "https://mythicalvoid.com/press/#creator-download-kit",
-      "trackingParameters": false,
-      "media": {
-        "sourcePath": "/press/social-video/mythical-void-real-gameplay-wide-poster.png",
-        "alt": "Wide Mythical Void creator video poster with a complete real gameplay frame and the words The Void is waiting",
-        "class": "branded_social_video_poster_with_authentic_running_build_gameplay",
-        "disclosure": "Poster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown."
-      },
-      "drafts": {
-        "professionalNetwork": {
-          "channelRef": "CH-004",
-          "format": "text_post_with_one_link",
-          "body": "The creator kit is now one download\n\nAdults, press and creators can now collect the checked Mythical Void gameplay videos, posters, captions, emblem and facts in one clearly labelled package.\n\n• The package contains vertical, square and wide videos built around the same complete real gameplay frame, with matching posters and the media disclosure kept beside them.\n• A checked caption pack, official emblem, fact sheet and file-by-file package record remove the need to hunt through the website or guess which version is current.\n• A release checklist keeps official posting, spending, replies and child contact closed until an official channel, safeguarding cover and Kevin approval exist. No external post or message has been sent.\n\nSee what changed: https://mythicalvoid.com/press/#creator-download-kit\n\nPoster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.",
-          "characterCount": 982
-        },
-        "videoCommunity": {
-          "channelRef": "CH-002",
-          "format": "text_community_post_with_one_link",
-          "body": "New from the Void: The creator kit is now one download\n\nAdults, press and creators can now collect the checked Mythical Void gameplay videos, posters, captions, emblem and facts in one clearly labelled package.\n\nhttps://mythicalvoid.com/press/#creator-download-kit\n\nPoster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.",
-          "characterCount": 440
-        },
-        "pressCreatorSourceNote": {
-          "channelRef": "manual_personal_review_only",
-          "format": "source_note_not_bulk_email",
-          "subject": "Mythical Void update: The creator kit is now one download",
-          "body": "Mythical Void has a new live update: The creator kit is now one download.\n\nAdults, press and creators can now collect the checked Mythical Void gameplay videos, posters, captions, emblem and facts in one clearly labelled package.\n\nThe package contains vertical, square and wide videos built around the same complete real gameplay frame, with matching posters and the media disclosure kept beside them. A checked caption pack, official emblem, fact sheet and file-by-file package record remove the need to hunt through the website or guess which version is current. A release checklist keeps official posting, spending, replies and child contact closed until an official channel, safeguarding cover and Kevin approval exist. No external post or message has been sent.\n\nThe checked public destination is https://mythicalvoid.com/press/#creator-download-kit\n\nMedia note: Poster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
-          "characterCount": 1117,
-          "recipient": null
-        }
-      },
-      "approval": {
-        "state": "blocked_missing_verified_channel_and_kevin_approval",
-        "kevinApprovalRequired": true,
-        "verifiedChannelRequired": true,
-        "adultReplyCoverageRequiredBeforeComments": true,
-        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
-        "approvedAt": null,
-        "scheduledAt": null,
-        "publishedAt": null
-      }
-    },
-    {
-      "id": "DRAFT-SIGNAL-010",
-      "sourceEntryId": "SIGNAL-010",
-      "sourcePublishedOn": "2026-08-26",
-      "destination": "https://mythicalvoid.com/press/#real-gameplay-social-video",
-      "trackingParameters": false,
-      "media": {
-        "sourcePath": "/press/social-video/mythical-void-real-gameplay-square-poster.png",
-        "alt": "Square Mythical Void branded video poster with a complete real gameplay frame and the words Crash beyond mapped space, hatch something strange",
-        "class": "branded_social_video_poster_with_authentic_running_build_gameplay",
-        "disclosure": "Poster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown."
-      },
-      "drafts": {
-        "professionalNetwork": {
-          "channelRef": "CH-004",
-          "format": "text_post_with_one_link",
-          "body": "Real gameplay now fits every screen\n\nOne checked Mythical Void gameplay recording is now available as vertical, square and wide branded video, ready for adults, press and creators to review without changing what the game really shows.\n\n• Every version preserves the complete moving phone-game frame and adds branding only around it; no generated motion, replacement scenery, replacement interface or replacement audio is used.\n• The silent 19.58-second videos come in 1080 by 1920, 1080 by 1080 and 1920 by 1080 formats, with downloadable posters and an exact build record.\n• Three source-bound caption drafts use the clean Playable Now link, make no absolute uniqueness claim and remain unposted until an official channel and Kevin approval exist.\n\nSee what changed: https://mythicalvoid.com/press/#real-gameplay-social-video\n\nPoster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.",
-          "characterCount": 1002
-        },
-        "videoCommunity": {
-          "channelRef": "CH-002",
-          "format": "text_community_post_with_one_link",
-          "body": "New from the Void: Real gameplay now fits every screen\n\nOne checked Mythical Void gameplay recording is now available as vertical, square and wide branded video, ready for adults, press and creators to review without changing what the game really shows.\n\nhttps://mythicalvoid.com/press/#real-gameplay-social-video\n\nPoster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.",
-          "characterCount": 489
-        },
-        "pressCreatorSourceNote": {
-          "channelRef": "manual_personal_review_only",
-          "format": "source_note_not_bulk_email",
-          "subject": "Mythical Void update: Real gameplay now fits every screen",
-          "body": "Mythical Void has a new live update: Real gameplay now fits every screen.\n\nOne checked Mythical Void gameplay recording is now available as vertical, square and wide branded video, ready for adults, press and creators to review without changing what the game really shows.\n\nEvery version preserves the complete moving phone-game frame and adds branding only around it; no generated motion, replacement scenery, replacement interface or replacement audio is used. The silent 19.58-second videos come in 1080 by 1920, 1080 by 1080 and 1920 by 1080 formats, with downloadable posters and an exact build record. Three source-bound caption drafts use the clean Playable Now link, make no absolute uniqueness claim and remain unposted until an official channel and Kevin approval exist.\n\nThe checked public destination is https://mythicalvoid.com/press/#real-gameplay-social-video\n\nMedia note: Poster from a branded social edit containing the complete real gameplay frame. The surrounding words and layout are not gameplay. No player identity or private save is shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
-          "characterCount": 1137,
+          "subject": "Mythical Void update: A better standard for showing the game",
+          "body": "Mythical Void has a new live update: A better standard for showing the game.\n\nMythical Void has withdrawn a technically genuine but visually poor media set and introduced a human visual-review standard before any replacement can be published.\n\nThe black square seen in the old footage was a real missing-texture failure. The game now verifies that a creature texture exists before a level can use it. The old screenshots, vertical, square and wide social videos are withdrawn. Passing technical file checks is no longer treated as visual approval. A replacement must show one clear subject and action, keep the creature readable at phone size and be watched frame by frame by an adult reviewer.\n\nThe checked public destination is https://mythicalvoid.com/playable-now/\n\nMedia note: Captured from the running Mythical Void game using an invented QA state. It is an in-game story moment, not a platforming or combat demonstration.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 1003,
           "recipient": null
         }
       },
@@ -265,29 +355,29 @@
       "trackingParameters": false,
       "media": {
         "sourcePath": "/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
-        "alt": "Real Mythical Void gameplay in the Mythical Forest with platforming controls and route display",
-        "class": "authentic_running_build_screenshot",
-        "disclosure": "Poster captured from the real browser game using an invented test state; no generated frames, player identity or personal save information are shown."
+        "alt": "The in-game Mythical Forest arrival with a clear field brief and Project Beacon tower",
+        "class": "authentic_running_build_story_moment",
+        "disclosure": "Poster captured from the running browser game using an invented test state. It is a story moment, not a platforming or combat demonstration; no player identity or private save is shown."
       },
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",
           "format": "text_post_with_one_link",
-          "body": "See the real game before you play\n\nA new Mythical Void page gives unfamiliar players one clear view of the real browser game, what they do in it and why the project is different before asking them to play.\n\n• The page leads with a 19.58-second recording made directly from the running Mythical Forest level, with no generated frames or replacement scenery.\n• It explains the crash, creature, six realms, restoration, Sanctuary building and Project Beacon choice in plain language, with four real game screens as proof.\n• Every Play link goes directly to the free browser game without an account, download, email signup or tracking parameter.\n\nSee what changed: https://mythicalvoid.com/playable-now/\n\nPoster captured from the real browser game using an invented test state; no generated frames, player identity or personal save information are shown.",
-          "characterCount": 850
+          "body": "Understand the game before you play\n\nA Mythical Void guide now explains what a player actually does, why the creature matters and where the story leads—without relying on weak footage.\n\n• The page explains the crash, creature, six realms, restoration, Sanctuary building and Project Beacon choice in plain language.\n• Earlier screenshots and video were removed because they did not show clear, attractive moments of play even though the source files were genuine.\n• Every Play link goes directly to the free browser game without an account, download, email signup or tracking parameter.\n\nSee what changed: https://mythicalvoid.com/playable-now/\n\nPoster captured from the running browser game using an invented test state. It is a story moment, not a platforming or combat demonstration; no player identity or private save is shown.",
+          "characterCount": 831
         },
         "videoCommunity": {
           "channelRef": "CH-002",
           "format": "text_community_post_with_one_link",
-          "body": "New from the Void: See the real game before you play\n\nA new Mythical Void page gives unfamiliar players one clear view of the real browser game, what they do in it and why the project is different before asking them to play.\n\nhttps://mythicalvoid.com/playable-now/\n\nPoster captured from the real browser game using an invented test state; no generated frames, player identity or personal save information are shown.",
-          "characterCount": 415
+          "body": "New from the Void: Understand the game before you play\n\nA Mythical Void guide now explains what a player actually does, why the creature matters and where the story leads—without relying on weak footage.\n\nhttps://mythicalvoid.com/playable-now/\n\nPoster captured from the running browser game using an invented test state. It is a story moment, not a platforming or combat demonstration; no player identity or private save is shown.",
+          "characterCount": 430
         },
         "pressCreatorSourceNote": {
           "channelRef": "manual_personal_review_only",
           "format": "source_note_not_bulk_email",
-          "subject": "Mythical Void update: See the real game before you play",
-          "body": "Mythical Void has a new live update: See the real game before you play.\n\nA new Mythical Void page gives unfamiliar players one clear view of the real browser game, what they do in it and why the project is different before asking them to play.\n\nThe page leads with a 19.58-second recording made directly from the running Mythical Forest level, with no generated frames or replacement scenery. It explains the crash, creature, six realms, restoration, Sanctuary building and Project Beacon choice in plain language, with four real game screens as proof. Every Play link goes directly to the free browser game without an account, download, email signup or tracking parameter.\n\nThe checked public destination is https://mythicalvoid.com/playable-now/\n\nMedia note: Poster captured from the real browser game using an invented test state; no generated frames, player identity or personal save information are shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
-          "characterCount": 985,
+          "subject": "Mythical Void update: Understand the game before you play",
+          "body": "Mythical Void has a new live update: Understand the game before you play.\n\nA Mythical Void guide now explains what a player actually does, why the creature matters and where the story leads—without relying on weak footage.\n\nThe page explains the crash, creature, six realms, restoration, Sanctuary building and Project Beacon choice in plain language. Earlier screenshots and video were removed because they did not show clear, attractive moments of play even though the source files were genuine. Every Play link goes directly to the free browser game without an account, download, email signup or tracking parameter.\n\nThe checked public destination is https://mythicalvoid.com/playable-now/\n\nMedia note: Poster captured from the running browser game using an invented test state. It is a story moment, not a platforming or combat demonstration; no player identity or private save is shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 966,
           "recipient": null
         }
       },
@@ -333,96 +423,6 @@
           "subject": "Mythical Void update: The Signal Log can now travel",
           "body": "Mythical Void has a new live update: The Signal Log can now travel.\n\nThe checked Mythical Void release log is now available as an RSS feed for people and a JSON feed for future studio tools—without requiring an account or email signup.\n\nBoth feeds are built from the same checked source as the public Signal Log, so titles, links and media notes cannot quietly drift apart. Every item keeps a clean mythicalvoid.com destination, its artwork or gameplay disclosure and no tracking parameters. Following the feed happens in the reader a person chooses; Mythical Void does not collect an email address, account or recipient.\n\nThe checked public destination is https://mythicalvoid.com/updates/feed.xml\n\nMedia note: Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
           "characterCount": 928,
-          "recipient": null
-        }
-      },
-      "approval": {
-        "state": "blocked_missing_verified_channel_and_kevin_approval",
-        "kevinApprovalRequired": true,
-        "verifiedChannelRequired": true,
-        "adultReplyCoverageRequiredBeforeComments": true,
-        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
-        "approvedAt": null,
-        "scheduledAt": null,
-        "publishedAt": null
-      }
-    },
-    {
-      "id": "DRAFT-SIGNAL-007",
-      "sourceEntryId": "SIGNAL-007",
-      "sourcePublishedOn": "2026-08-14",
-      "destination": "https://mythicalvoid.com/press/#father-son-story-social-assets",
-      "trackingParameters": false,
-      "media": {
-        "sourcePath": "/press/social/father-son-story-square.png",
-        "alt": "Square Mythical Void founder-story artwork saying One enormous idea, built together, with the studio emblem and a real first-contact game frame",
-        "class": "branded_founder_story_artwork_with_ai_marketing_background_and_authentic_gameplay_frame",
-        "disclosure": "Founder-story sharing artwork, not a raw screenshot. The background is AI-generated marketing artwork, not gameplay; the framed screen is real gameplay using a company-controlled test state. No player information, photograph, name or identifying detail of the child is shown."
-      },
-      "drafts": {
-        "professionalNetwork": {
-          "channelRef": "CH-004",
-          "format": "text_post_with_one_link",
-          "body": "The father-and-son story is ready to share\n\nAdults, press and creators can now share wide or square artwork explaining how an Irish father-and-son experiment with imagination and generative AI tools became a playable browser game.\n\n• Both layouts use the clean mythicalvoid.com/studio address with no tracking code.\n• The background is labelled as AI-generated marketing artwork, while the framed first-contact screen is real gameplay.\n• No photograph, name or identifying detail of the child is used.\n\nSee what changed: https://mythicalvoid.com/press/#father-son-story-social-assets\n\nFounder-story sharing artwork, not a raw screenshot. The background is AI-generated marketing artwork, not gameplay; the framed screen is real gameplay using a company-controlled test state. No player information, photograph, name or identifying detail of the child is shown.",
-          "characterCount": 860
-        },
-        "videoCommunity": {
-          "channelRef": "CH-002",
-          "format": "text_community_post_with_one_link",
-          "body": "New from the Void: The father-and-son story is ready to share\n\nAdults, press and creators can now share wide or square artwork explaining how an Irish father-and-son experiment with imagination and generative AI tools became a playable browser game.\n\nhttps://mythicalvoid.com/press/#father-son-story-social-assets\n\nFounder-story sharing artwork, not a raw screenshot. The background is AI-generated marketing artwork, not gameplay; the framed screen is real gameplay using a company-controlled test state. No player information, photograph, name or identifying detail of the child is shown.",
-          "characterCount": 590
-        },
-        "pressCreatorSourceNote": {
-          "channelRef": "manual_personal_review_only",
-          "format": "source_note_not_bulk_email",
-          "subject": "Mythical Void update: The father-and-son story is ready to share",
-          "body": "Mythical Void has a new live update: The father-and-son story is ready to share.\n\nAdults, press and creators can now share wide or square artwork explaining how an Irish father-and-son experiment with imagination and generative AI tools became a playable browser game.\n\nBoth layouts use the clean mythicalvoid.com/studio address with no tracking code. The background is labelled as AI-generated marketing artwork, while the framed first-contact screen is real gameplay. No photograph, name or identifying detail of the child is used.\n\nThe checked public destination is https://mythicalvoid.com/press/#father-son-story-social-assets\n\nMedia note: Founder-story sharing artwork, not a raw screenshot. The background is AI-generated marketing artwork, not gameplay; the framed screen is real gameplay using a company-controlled test state. No player information, photograph, name or identifying detail of the child is shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
-          "characterCount": 995,
-          "recipient": null
-        }
-      },
-      "approval": {
-        "state": "blocked_missing_verified_channel_and_kevin_approval",
-        "kevinApprovalRequired": true,
-        "verifiedChannelRequired": true,
-        "adultReplyCoverageRequiredBeforeComments": true,
-        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
-        "approvedAt": null,
-        "scheduledAt": null,
-        "publishedAt": null
-      }
-    },
-    {
-      "id": "DRAFT-SIGNAL-006",
-      "sourceEntryId": "SIGNAL-006",
-      "sourcePublishedOn": "2026-08-14",
-      "destination": "https://mythicalvoid.com/press/#nasa-stem-social-assets",
-      "trackingParameters": false,
-      "media": {
-        "sourcePath": "/press/social/nasa-stem-discovery-square.png",
-        "alt": "Square Mythical Void space-discovery artwork with a real game screen, credited Apollo 11 image and an observation question",
-        "class": "branded_social_artwork_with_authentic_gameplay_frame_and_nasa_public_image",
-        "disclosure": "Branded sharing artwork built around a real gameplay screen containing a credited NASA public image; the complete layout is not a raw screenshot, no player information is shown, and NASA does not endorse Mythical Void."
-      },
-      "drafts": {
-        "professionalNetwork": {
-          "channelRef": "CH-004",
-          "format": "text_post_with_one_link",
-          "body": "A real-space sharing kit is ready\n\nAdults, families, educators and creators can now share wide or square Mythical Void artwork built around a real game screen and a credited NASA Apollo 11 image.\n\n• Both layouts use the clean mythicalvoid.com/nasa-space-science address with no tracking code.\n• The framed screen comes from the running game and clearly credits the NASA public image inside it.\n• The complete layouts are branded sharing artwork, not raw screenshots, and NASA does not endorse Mythical Void.\n\nSee what changed: https://mythicalvoid.com/press/#nasa-stem-social-assets\n\nBranded sharing artwork built around a real gameplay screen containing a credited NASA public image; the complete layout is not a raw screenshot, no player information is shown, and NASA does not endorse Mythical Void.",
-          "characterCount": 802
-        },
-        "videoCommunity": {
-          "channelRef": "CH-002",
-          "format": "text_community_post_with_one_link",
-          "body": "New from the Void: A real-space sharing kit is ready\n\nAdults, families, educators and creators can now share wide or square Mythical Void artwork built around a real game screen and a credited NASA Apollo 11 image.\n\nhttps://mythicalvoid.com/press/#nasa-stem-social-assets\n\nBranded sharing artwork built around a real gameplay screen containing a credited NASA public image; the complete layout is not a raw screenshot, no player information is shown, and NASA does not endorse Mythical Void.",
-          "characterCount": 491
-        },
-        "pressCreatorSourceNote": {
-          "channelRef": "manual_personal_review_only",
-          "format": "source_note_not_bulk_email",
-          "subject": "Mythical Void update: A real-space sharing kit is ready",
-          "body": "Mythical Void has a new live update: A real-space sharing kit is ready.\n\nAdults, families, educators and creators can now share wide or square Mythical Void artwork built around a real game screen and a credited NASA Apollo 11 image.\n\nBoth layouts use the clean mythicalvoid.com/nasa-space-science address with no tracking code. The framed screen comes from the running game and clearly credits the NASA public image inside it. The complete layouts are branded sharing artwork, not raw screenshots, and NASA does not endorse Mythical Void.\n\nThe checked public destination is https://mythicalvoid.com/press/#nasa-stem-social-assets\n\nMedia note: Branded sharing artwork built around a real gameplay screen containing a credited NASA public image; the complete layout is not a raw screenshot, no player information is shown, and NASA does not endorse Mythical Void.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
-          "characterCount": 937,
           "recipient": null
         }
       },
@@ -513,96 +513,6 @@
           "subject": "Mythical Void update: Share the game from the first screen",
           "body": "Mythical Void has a new live update: Share the game from the first screen.\n\nA new Share the game button now sits beside Play on the Mythical Void homepage, making it easier for someone who enjoys the idea to pass it on.\n\nOn supported phones and computers, the button opens the device's normal sharing choices. Where device sharing is unavailable, it copies the clean mythicalvoid.com address instead. The shared address contains no tracking code, and the Mythical Void control does not collect a recipient or contact details.\n\nThe checked public destination is https://mythicalvoid.com/\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
           "characterCount": 757,
-          "recipient": null
-        }
-      },
-      "approval": {
-        "state": "blocked_missing_verified_channel_and_kevin_approval",
-        "kevinApprovalRequired": true,
-        "verifiedChannelRequired": true,
-        "adultReplyCoverageRequiredBeforeComments": true,
-        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
-        "approvedAt": null,
-        "scheduledAt": null,
-        "publishedAt": null
-      }
-    },
-    {
-      "id": "DRAFT-SIGNAL-003",
-      "sourceEntryId": "SIGNAL-003",
-      "sourcePublishedOn": "2026-08-14",
-      "destination": "https://mythicalvoid.com/press/",
-      "trackingParameters": false,
-      "media": {
-        "sourcePath": "/press/social/project-beacon-story-square.png",
-        "alt": "Square Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame",
-        "class": "branded_social_artwork_with_authentic_gameplay_frame",
-        "disclosure": "Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown."
-      },
-      "drafts": {
-        "professionalNetwork": {
-          "channelRef": "CH-004",
-          "format": "text_post_with_one_link",
-          "body": "Project Beacon artwork is ready to share\n\nAdults, press and creators can now download polished square and wide Project Beacon artwork from the press room, built around a real game capture and a clean story link.\n\n• Both layouts show the clean mythicalvoid.com/story address with no tracking code.\n• The framed Project Beacon scene comes from the real running browser game using an invented test state.\n• The complete layouts are branded sharing artwork, not raw gameplay screenshots.\n\nSee what changed: https://mythicalvoid.com/press/\n\nBranded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.",
-          "characterCount": 677
-        },
-        "videoCommunity": {
-          "channelRef": "CH-002",
-          "format": "text_community_post_with_one_link",
-          "body": "New from the Void: Project Beacon artwork is ready to share\n\nAdults, press and creators can now download polished square and wide Project Beacon artwork from the press room, built around a real game capture and a clean story link.\n\nhttps://mythicalvoid.com/press/\n\nBranded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.",
-          "characterCount": 406
-        },
-        "pressCreatorSourceNote": {
-          "channelRef": "manual_personal_review_only",
-          "format": "source_note_not_bulk_email",
-          "subject": "Mythical Void update: Project Beacon artwork is ready to share",
-          "body": "Mythical Void has a new live update: Project Beacon artwork is ready to share.\n\nAdults, press and creators can now download polished square and wide Project Beacon artwork from the press room, built around a real game capture and a clean story link.\n\nBoth layouts show the clean mythicalvoid.com/story address with no tracking code. The framed Project Beacon scene comes from the real running browser game using an invented test state. The complete layouts are branded sharing artwork, not raw gameplay screenshots.\n\nThe checked public destination is https://mythicalvoid.com/press/\n\nMedia note: Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
-          "characterCount": 812,
-          "recipient": null
-        }
-      },
-      "approval": {
-        "state": "blocked_missing_verified_channel_and_kevin_approval",
-        "kevinApprovalRequired": true,
-        "verifiedChannelRequired": true,
-        "adultReplyCoverageRequiredBeforeComments": true,
-        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
-        "approvedAt": null,
-        "scheduledAt": null,
-        "publishedAt": null
-      }
-    },
-    {
-      "id": "DRAFT-SIGNAL-002",
-      "sourceEntryId": "SIGNAL-002",
-      "sourcePublishedOn": "2026-08-14",
-      "destination": "https://mythicalvoid.com/resources/mythical-void-play-share-card.pdf",
-      "trackingParameters": false,
-      "media": {
-        "sourcePath": "/marketing/mythical-void-creature-universe-hero-v2.webp",
-        "alt": "An imagined gathering of strange alien creatures in a luminous Mythical Void realm",
-        "class": "ai_generated_marketing_illustration",
-        "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay."
-      },
-      "drafts": {
-        "professionalNetwork": {
-          "channelRef": "CH-004",
-          "format": "text_post_with_one_link",
-          "body": "A new way to share the game\n\nAdults can now download a one-page Mythical Void card, print it or send it, and use its QR code to open the free browser game.\n\n• The QR code goes straight to mythicalvoid.com with no tracking code attached.\n• The card includes one real Project Beacon game screen.\n• The large creature-universe image is clearly labelled as generated artwork, not gameplay.\n\nSee what changed: https://mythicalvoid.com/resources/mythical-void-play-share-card.pdf\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
-          "characterCount": 557
-        },
-        "videoCommunity": {
-          "channelRef": "CH-002",
-          "format": "text_community_post_with_one_link",
-          "body": "New from the Void: A new way to share the game\n\nAdults can now download a one-page Mythical Void card, print it or send it, and use its QR code to open the free browser game.\n\nhttps://mythicalvoid.com/resources/mythical-void-play-share-card.pdf\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
-          "characterCount": 328
-        },
-        "pressCreatorSourceNote": {
-          "channelRef": "manual_personal_review_only",
-          "format": "source_note_not_bulk_email",
-          "subject": "Mythical Void update: A new way to share the game",
-          "body": "Mythical Void has a new live update: A new way to share the game.\n\nAdults can now download a one-page Mythical Void card, print it or send it, and use its QR code to open the free browser game.\n\nThe QR code goes straight to mythicalvoid.com with no tracking code attached. The card includes one real Project Beacon game screen. The large creature-universe image is clearly labelled as generated artwork, not gameplay.\n\nThe checked public destination is https://mythicalvoid.com/resources/mythical-void-play-share-card.pdf\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
-          "characterCount": 692,
           "recipient": null
         }
       },

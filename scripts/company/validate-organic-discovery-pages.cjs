@@ -8,12 +8,12 @@ const pages = [
     {
         route: '/playable-now/',
         file: 'public/playable-now/index.html',
-        required: ['See the real game. Then enter the Void.', '/press/gameplay-video/mythical-forest-authentic-gameplay.mp4', 'No download. No account.', 'NASA does not endorse Mythical Void.']
+        required: ['LOOKING FOR A NEW GAME? START HERE', 'Mythical Void is a free alien creature adventure.', 'No payment details', 'NASA does not endorse Mythical Void.']
     },
     {
         route: '/creature-genetics/',
         file: 'public/creature-genetics/index.html',
-        required: ['procedural genetics', 'does not promise', '/press/gameplay/creature-cosmic-egg-reveal.png']
+        required: ['structured identity', 'without promising impossible global uniqueness', 'tiny isolated exports did not help a person understand the game']
     },
     {
         route: '/nasa-space-science/',
@@ -71,8 +71,8 @@ for (const page of pages) {
     if (headings.length !== 1) errors.push(`${page.file}: expected exactly one h1`);
     if (!source.includes('href="/play/"')) errors.push(`${page.file}: no direct play link`);
     if (!source.includes('href="/"')) errors.push(`${page.file}: no canonical home link`);
-    if (!source.includes('src="/discovery.js"')) errors.push(`${page.file}: consent-aware analytics helper missing`);
-    if (!source.includes('rel="stylesheet" href="/discovery.css"')) errors.push(`${page.file}: shared presentation missing`);
+    if (!source.includes('src="/discovery.js')) errors.push(`${page.file}: consent-aware analytics helper missing`);
+    if (!source.includes('rel="stylesheet" href="/discovery.css')) errors.push(`${page.file}: shared presentation missing`);
     if (/\bcompanions?\b/i.test(source)) errors.push(`${page.file}: uses the retired companion wording`);
     if (/no two creatures alike|every creature is unique|infinite unique creatures/i.test(source)) {
         errors.push(`${page.file}: contains an unsupported uniqueness promise`);
@@ -101,8 +101,18 @@ if (release.authority?.paidSearchAuthorized !== false || release.authority?.link
     errors.push('organic discovery release: paid search and link outreach must remain off');
 }
 for (const page of pages) {
-    if (!(release.pages || []).some(item => item.route === page.route)) {
+    const releasePage = (release.pages || []).find(item => item.route === page.route);
+    if (!releasePage) {
         errors.push(`organic discovery release: missing ${page.route}`);
+        continue;
+    }
+    for (const proof of releasePage.proof || []) {
+        if (/^https:\/\//.test(proof)) continue;
+        if (/^public\/press\/gameplay(?:-video)?\//.test(proof)) {
+            errors.push(`organic discovery release: ${page.route} still depends on withdrawn media ${proof}`);
+        } else if (!fs.existsSync(path.join(root, proof))) {
+            errors.push(`organic discovery release: ${page.route} proof is missing: ${proof}`);
+        }
     }
 }
 

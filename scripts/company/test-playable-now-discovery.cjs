@@ -24,14 +24,15 @@ try {
     if (run('valid').status !== 0) throw new Error('valid playable-now release was rejected');
     checks += 1;
     for (const [name, replace] of [
-        ['missing-video', page => page.replace('/press/gameplay-video/mythical-forest-authentic-gameplay.mp4', '/missing.mp4')],
+        ['withdrawn-video-restored', page => page.replace('</main>', '<video src="/press/gameplay-video/mythical-forest-authentic-gameplay.mp4"></video></main>')],
         ['companion-wording', page => page.replace('alien creature', 'AI companion')],
-        ['uniqueness-promise', page => page.replace('strange alien creature', 'unique alien creature—every creature is unique')],
+        ['uniqueness-promise', page => page.replace('</main>', '<p>Every creature is unique.</p></main>')],
         ['tracked-play', page => page.replace('href="/play/"', 'href="/play/?utm_source=test"')],
         ['external-play', page => page.replaceAll('href="/play/"', 'href="https://example.com/play"')],
         ['missing-early-access', page => page.replaceAll('early-access', 'current').replaceAll('Early access', 'Available')],
         ['nasa-endorsement', page => page.replace('NASA does not endorse Mythical Void.', 'NASA endorses Mythical Void.')],
         ['contact-form', page => page.replace('</main>', '<form><input name="email"></form></main>')],
+        ['stale-sharing-script', page => page.replace('/discovery.js?v=20260826-intent-sharing', '/discovery.js?v=20260826-intent')],
         ['missing-art-boundary', page => page.replace('not gameplay', 'gameplay')],
         ['invalid-structured-data', page => page.replace('"@type": "VideoGame"', '"@type": VideoGame')]
     ]) {
@@ -42,7 +43,7 @@ try {
         ['wrong-page-proof', release => { release.page.sha256 = '0'.repeat(64); }],
         ['external-social-authority', release => { release.authority.externalSocialPublicationAuthorized = true; }],
         ['email-collection', release => { release.privacy.emailSignupEnabled = true; }],
-        ['invented-production-proof', release => { release.verification.productionUrlVerified = true; }]
+        ['invented-production-proof', release => { release.verification.productionCommit = '0'.repeat(40); }]
     ]) {
         const release = structuredClone(sourceRelease);
         mutate(release);

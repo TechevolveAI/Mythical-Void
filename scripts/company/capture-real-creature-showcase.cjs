@@ -8,10 +8,9 @@ const root = path.resolve(__dirname, '../..');
 const host = '127.0.0.1';
 const port = Number(process.env.MYTHICAL_SHOWCASE_PORT) || 8131;
 const baseUrl = `http://${host}:${port}`;
-const captureDir = path.join(
-    root,
-    'public/press/gameplay/real-creature-showcase'
-);
+const captureDir = process.env.MYTHICAL_SHOWCASE_CAPTURE_DIR
+    ? path.resolve(process.env.MYTHICAL_SHOWCASE_CAPTURE_DIR)
+    : path.join(root, '.visual-review', 'candidates', 'creature-showcase');
 
 const delay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 
@@ -33,6 +32,11 @@ async function main() {
     if (!fs.existsSync(path.join(root, 'dist/index.html'))) {
         throw new Error('Production build is missing. Run npm run build before capture.');
     }
+    const relativeToPublic = path.relative(path.join(root, 'public'), captureDir);
+    if (relativeToPublic === '' || (!relativeToPublic.startsWith('..') && !path.isAbsolute(relativeToPublic))) {
+        throw new Error('Creature showcase candidates cannot be captured inside public/.');
+    }
+    fs.mkdirSync(captureDir, { recursive: true });
     const viteBin = path.join(path.dirname(require.resolve('vite')), 'bin/vite.js');
     const preview = spawn(process.execPath, [
         viteBin,

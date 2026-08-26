@@ -2,15 +2,27 @@
   "schemaVersion": 1,
   "asOf": "2026-08-26",
   "status": "playable_states_defined_capture_pending",
+  "state": "no_launch_grade_gameplay_media_approved",
+  "purpose": "Create a small, honest set of gameplay moments that makes a child or grown-up want to understand and try Mythical Void.",
   "candidateDirectory": ".visual-review/candidates/",
   "candidateDirectoryIsWebsiteContent": false,
+  "currentVisualFinding": {
+    "source": "Kevin's direct testing feedback and a fresh full-size review of the current public capture set",
+    "finding": "The existing public media does not communicate the game well enough. Private replacement candidates must remain outside the website until an adult reviews every frame and Kevin approves the exact asset, wording and channel.",
+    "decision": "Keep the entire old media set withdrawn and block its direct public URLs. Do not replace it with another automatically accepted capture run."
+  },
   "authority": {
     "automationMayPrepareCandidates": true,
     "automationMayRejectObviousFaults": true,
     "automationMayApproveCandidates": false,
     "adultFrameReviewRequired": true,
     "kevinApprovalRequiredForExactAssetWordingAndChannel": true,
-    "externalPublicationAuthorized": false
+    "externalPublicationAuthorized": false,
+    "ownedWebsiteReplacementAuthorized": false,
+    "externalSocialPublicationAuthorized": false,
+    "creatorOutreachAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "externalActionTaken": false
   },
   "sharedCaptureContract": {
     "source": "real_running_production_build",
@@ -18,16 +30,8 @@
     "profileId": "MV-0813",
     "renderer": "player_facing_phaser_creature_renderer",
     "requiredViewports": [
-      {
-        "id": "phone",
-        "width": 390,
-        "height": 844
-      },
-      {
-        "id": "desktop",
-        "width": 1440,
-        "height": 810
-      }
+      { "id": "phone", "width": 390, "height": 844 },
+      { "id": "desktop", "width": 1440, "height": 810 }
     ],
     "minimumVisualBar": [
       "creature_body_recognisable_at_phone_size",
@@ -50,6 +54,53 @@
       "video_too_short_or_missing_frames"
     ]
   },
+  "requiredMoments": [
+    {
+      "id": "creature-helps",
+      "publicQuestion": "What can my creature and I do together?",
+      "shot": "The creature visibly helps the player solve or survive one clear obstacle.",
+      "mustShow": ["player and creature in the same frame", "one recognisable obstacle", "the creature's helpful action", "the immediate result"],
+      "currentState": "blocked_by_current_game_visual",
+      "evidence": "/press/gameplay/realm-mythicalforest.png",
+      "reason": "The current public creature presentation is too small and can look like a placeholder block beside the astronaut. Private replacement candidates await human review."
+    },
+    {
+      "id": "choice-changes-world",
+      "publicQuestion": "Do my choices actually matter?",
+      "shot": "One readable choice followed by a visible change in the world.",
+      "mustShow": ["the choice in plain words", "the changed place, creature or relationship", "no unexplained menu clutter"],
+      "currentState": "no_candidate_captured",
+      "evidence": null,
+      "reason": "No private candidate has completed adult review and Kevin approval."
+    },
+    {
+      "id": "strange-discovery",
+      "publicQuestion": "What is surprising about this universe?",
+      "shot": "The player and creature discover one memorable feature of an alien realm.",
+      "mustShow": ["player and creature in the same frame", "one unusual realm feature", "a composition understandable without a caption"],
+      "currentState": "no_candidate_captured",
+      "evidence": null,
+      "reason": "No private candidate has completed adult review and Kevin approval."
+    },
+    {
+      "id": "movement-with-life",
+      "publicQuestion": "Does this feel alive when it moves?",
+      "shot": "A short uninterrupted stretch of play with the creature continuously present.",
+      "mustShow": ["continuous creature rendering", "readable movement", "no menu takeover or dead time", "every frame watched at desktop and phone presentation size"],
+      "currentState": "blocked_by_current_game_visual",
+      "evidence": "/press/gameplay-video/mythical-forest-authentic-gameplay.mp4",
+      "reason": "The old public clip is an arrival screen and does not prove a strong stretch of play. Private replacement candidates await human review."
+    }
+  ],
+  "approvalRule": {
+    "requiredApprovedMoments": 4,
+    "approvedMomentCount": 0,
+    "readyForPublicLaunch": false,
+    "automationMay": ["run controlled play sessions", "capture candidates into the private review area", "check dimensions, missing files and known withdrawn paths", "prepare contact sheets and captions"],
+    "automationMayNot": ["approve visual quality", "move a candidate into public", "post to a social account", "describe a story screen or marketing illustration as gameplay"],
+    "adultReviewRequired": true,
+    "kevinApprovalRequiredBeforeExternalPublication": true
+  },
   "moments": [
     {
       "id": "VL-001",
@@ -57,15 +108,8 @@
       "purpose": "A nine-year-old can point to the frame and explain what the creature did and what changed.",
       "playableState": "sanctuary_worker_check_in_and_delivery",
       "plainLanguageBeat": "Nova maps food paths that regrow. The Sanctuary gains 5 happiness.",
-      "requiredEvidence": [
-        "astronaut_and_creature_face_one_obvious_problem_together",
-        "creature_action_is_recognisable",
-        "result_appears_in_the_same_uninterrupted_shot"
-      ],
-      "candidateAssets": {
-        "phone": "creature-helps-phone.png",
-        "desktop": "creature-helps-desktop.png"
-      },
+      "requiredEvidence": ["astronaut_and_creature_face_one_obvious_problem_together", "creature_action_is_recognisable", "result_appears_in_the_same_uninterrupted_shot"],
+      "candidateAssets": { "phone": "creature-helps-phone.png", "desktop": "creature-helps-desktop.png" },
       "implementationStatus": "playable_state_available",
       "reviewStatus": "capture_pending"
     },
@@ -75,17 +119,8 @@
       "purpose": "The visible world response carries more weight than the choice menu.",
       "playableState": "sanctuary_heart_choice",
       "plainLanguageBeat": "Clear the current first. The current moves again and a living route opens through the Sanctuary.",
-      "requiredEvidence": [
-        "choice_is_stated_in_plain_words",
-        "consequence_is_visible_after_the_menu_closes",
-        "world_or_relationship_change_persists"
-      ],
-      "candidateAssets": {
-        "phoneBefore": "choice-before-phone.png",
-        "phoneAfter": "choice-after-phone.png",
-        "desktopBefore": "choice-before-desktop.png",
-        "desktopAfter": "choice-after-desktop.png"
-      },
+      "requiredEvidence": ["choice_is_stated_in_plain_words", "consequence_is_visible_after_the_menu_closes", "world_or_relationship_change_persists"],
+      "candidateAssets": { "phoneBefore": "choice-before-phone.png", "phoneAfter": "choice-after-phone.png", "desktopBefore": "choice-before-desktop.png", "desktopAfter": "choice-after-desktop.png" },
       "implementationStatus": "playable_state_available",
       "reviewStatus": "capture_pending"
     },
@@ -95,15 +130,8 @@
       "purpose": "The frame could only belong to Mythical Void while still reading as playable game space.",
       "playableState": "village_heart_living_memory",
       "plainLanguageBeat": "The Village Heart remembers a choice as a visible current woven into the terrain.",
-      "requiredEvidence": [
-        "mythical_void_specific_memory_or_current_behavior",
-        "astronaut_and_creature_remain_visible",
-        "discovery_is_part_of_the_world_not_background_art"
-      ],
-      "candidateAssets": {
-        "phone": "strange-discovery-phone.png",
-        "desktop": "strange-discovery-desktop.png"
-      },
+      "requiredEvidence": ["mythical_void_specific_memory_or_current_behavior", "astronaut_and_creature_remain_visible", "discovery_is_part_of_the_world_not_background_art"],
+      "candidateAssets": { "phone": "strange-discovery-phone.png", "desktop": "strange-discovery-desktop.png" },
       "implementationStatus": "playable_state_available",
       "reviewStatus": "capture_pending"
     },
@@ -113,17 +141,8 @@
       "purpose": "A short continuous capture proves ordinary play without edits rescuing the result.",
       "playableState": "mythical_forest_normal_movement",
       "plainLanguageBeat": "Nova and the astronaut travel together through the living forest.",
-      "requiredEvidence": [
-        "continuous_normal_play",
-        "creature_stays_fully_rendered_and_recognisable",
-        "no_placeholder_missing_sprite_menu_dead_pause_or_explanatory_edit"
-      ],
-      "candidateAssets": {
-        "phoneVideo": "movement-alive-phone.mp4",
-        "phonePoster": "movement-alive-phone.png",
-        "desktopVideo": "movement-alive-desktop.mp4",
-        "desktopPoster": "movement-alive-desktop.png"
-      },
+      "requiredEvidence": ["continuous_normal_play", "creature_stays_fully_rendered_and_recognisable", "no_placeholder_missing_sprite_menu_dead_pause_or_explanatory_edit"],
+      "candidateAssets": { "phoneVideo": "movement-alive-phone.mp4", "phonePoster": "movement-alive-phone.png", "desktopVideo": "movement-alive-desktop.mp4", "desktopPoster": "movement-alive-desktop.png" },
       "implementationStatus": "capture_journey_ready",
       "reviewStatus": "capture_pending"
     }

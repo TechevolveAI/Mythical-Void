@@ -56,7 +56,7 @@ try {
         ['two-actions', value => { value.release.presentation.visibleNextActionCount = 2; }],
         ['small-phone-creature', value => { value.release.presentation.creatureBoundsPhone.width = 120; }],
         ['failed-phone-review', value => { value.release.verification.phoneVisualReviewPassed = false; }],
-        ['missing-playable-replacement', value => { value.playable = value.playable.replaceAll('/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png', '/missing.png'); }],
+        ['withdrawn-playable-proof-restored', value => { value.playable += '<img src="/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png">'; }],
         ['withdrawn-press-feature-exposed', value => { value.storefront += '<div id="real-creature-hatch"><img src="/press/gameplay/creature-cosmic-egg-reveal.png"></div>'; }],
         ['missing-press-record', value => { value.pressAssets.assets = value.pressAssets.assets.filter(item => !item.url.endsWith('creature-cosmic-egg-reveal.png')); }],
         ['withdrawn-machine-link-exposed', value => { value.llms += '\nSee one real creature generated and revealed by the running game: https://mythicalvoid.com/press/#real-creature-hatch'; }],

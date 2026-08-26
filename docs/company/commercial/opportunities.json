@@ -21,8 +21,8 @@
         "reversibility": "high"
       },
       "rationale": "Useful low-coupling browser distribution and page experiment once a portable ZIP build exists.",
-      "blockers": ["Portable base paths", "Iframe/CSP/CORS test", "Platform moderation owner", "Account and terms approval"],
-      "nextAction": "Request a portal-build feasibility spike; do not create or publish a listing yet."
+      "blockers": ["Four authentic gameplay moments approved", "D-018 distribution-rights choice", "Kevin-controlled account and terms approval"],
+      "nextAction": "Keep the tested direct-play package ready; do not publish until the visual gate passes and Kevin chooses itch.io-first learning rather than a Poki-first access request."
     },
     {
       "id": "OP-002",
@@ -52,7 +52,7 @@
       "organization": "Poki",
       "type": "distribution",
       "stage": "researched",
-      "source": "https://sdk.poki.com/new-requirements",
+      "source": "https://developers.poki.com/guide/revenue-deal-types",
       "contact": null,
       "outreachApproved": false,
       "contactedAt": null,
@@ -62,13 +62,13 @@
         "trustSafety": "low",
         "learning": "high",
         "economics": "medium",
-        "controlRights": "medium",
+        "controlRights": "low",
         "integration": "low",
         "reversibility": "medium"
       },
-      "rationale": "Large web-game distribution hypothesis with significant SDK, advertising, device, load, and policy dependencies.",
-      "blockers": ["Measure/optimize initial download", "16:9 cross-device QA", "SDK/privacy review", "Advertising decision", "Authentic static and animated thumbnails"],
-      "nextAction": "Defer submission; include requirements in the portal feasibility spike."
+      "rationale": "Potentially very large curated web reach and platform marketing, with significant quality, mobile, load, SDK, advertising and distribution-rights dependencies. Poki's preferred agreement is web-exclusive; already-live web games may instead receive a non-exclusive flat-fee offer.",
+      "blockers": ["Four authentic gameplay moments approved", "Opening minutes and mobile/desktop QA", "Load and file-size optimization", "SDK/privacy and advertising review", "D-018 web-exclusivity and commercial/legal review", "Named email/account and form approval"],
+      "nextAction": "Preserve the option while quality gates are closed; if Kevin chooses the reach bet, request access before itch.io publication and accept no terms without review."
     },
     {
       "id": "OP-004",
@@ -90,8 +90,8 @@
         "reversibility": "high"
       },
       "rationale": "Potential adult/general indie community feedback channel after packaging, ownership, and moderation readiness.",
-      "blockers": ["Portable iframe ZIP build", "Asset and music provenance", "Community moderation owner", "Account and terms approval"],
-      "nextAction": "Assess after itch.io packaging; keep identity/social APIs off."
+      "blockers": ["Four authentic gameplay moments approved", "First-minute quality and public-judgment readiness", "Asset, music and AI-use provenance", "Credits and moderation owner", "Account and terms approval"],
+      "nextAction": "Use the technically compatible package only after gameplay quality, rights and public-judgment readiness pass; keep identity and social APIs off."
     }
   ]
 }

@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "MYTHICAL-VISUAL-REVIEW-2026-08-26",
+  "state": "public_media_library_withdrawn_pending_rebuild",
+  "decision": "Do not publish or offer the previous screenshots, gameplay videos, social layouts, creator archive or play-and-share card as promotional material.",
+  "publicApproved": [
+    {
+      "path": "/marketing/mythical-void-emblem-v3.png",
+      "use": "Official transparent brand emblem",
+      "review": "approved"
+    },
+    {
+      "path": "/press/mythical-void-fact-sheet.txt",
+      "use": "Plain-text factual reference",
+      "review": "approved"
+    },
+    {
+      "path": "/resources/mythical-void-stem-creature-lab.pdf",
+      "use": "Adult-led educational activity, not gameplay promotion",
+      "review": "approved"
+    },
+    {
+      "path": "/resources/previews/stem-creature-lab-cover.png",
+      "use": "Accurate preview of the approved adult-led educational activity",
+      "review": "approved"
+    }
+  ],
+  "pressHero": {
+    "path": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+    "use": "Public-page atmosphere with a visible AI-generated marketing-art disclosure; never gameplay evidence",
+    "classification": "ai_generated_marketing_illustration_not_gameplay",
+    "review": "temporarily_retained_with_visible_disclosure"
+  },
+  "withdrawnPathFamilies": [
+    "/press/gameplay/",
+    "/press/gameplay-video/",
+    "/press/social/",
+    "/press/social-video/",
+    "/press/creator-kit/"
+  ],
+  "withdrawnIndividualPaths": [
+    "/resources/mythical-void-play-share-card.pdf",
+    "/resources/previews/play-share-card.png"
+  ],
+  "reviewFindings": [
+    "Some captures were technically real but did not explain the moment to a human viewer.",
+    "The creature was too small, unreadable, missing or reduced to a placeholder-like block in weak footage.",
+    "Menus and static arrival screens were presented where a meaningful act of play should have been shown.",
+    "Several layouts were crowded, aesthetically weak or dependent on captions to explain what the image failed to show.",
+    "Automated capture and file validation were incorrectly treated as substitutes for visual judgement."
+  ],
+  "replacementRequirements": [
+    "One clear subject and one understandable gameplay action or consequence.",
+    "The creature is fully rendered, visibly present and readable at phone size.",
+    "The player, creature and important obstacle or choice remain in the same understandable frame.",
+    "No debug state, placeholder, broken texture, clipped interface or unexplained visual noise.",
+    "Still frames are chosen by eye from a deliberate play session, not accepted merely because a capture script completed.",
+    "Every frame of every video is watched by a named adult reviewer at desktop and phone presentation sizes.",
+    "The caption accurately says whether the material is gameplay, a story screen, interface, renderer proof or imagined marketing art."
+  ],
+  "nextCaptureBrief": [
+    "A creature visibly helping the player solve or survive one clear situation.",
+    "A readable choice followed by an on-screen change that shows why the choice matters.",
+    "A discovery moment where the player, creature and surprising world detail are all visible.",
+    "A short uninterrupted stretch of movement with no missing sprite, menu takeover or dead time."
+  ],
+  "authority": {
+    "ownedPressRoomPublicationAuthorizedForApprovedListOnly": true,
+    "externalSocialPublicationAuthorized": false,
+    "creatorOutreachAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "kevinApprovalRequiredBeforeExternalPublication": true
+  }
+}

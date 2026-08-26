@@ -9,9 +9,10 @@ const root = path.resolve(__dirname, '../..');
 const host = '127.0.0.1';
 const port = Number(process.env.MYTHICAL_CAPTURE_PORT) || 8146;
 const baseUrl = `http://${host}:${port}`;
+const quarantineRoot = path.join(root, '.visual-review', 'candidates');
 const captureDir = process.env.MYTHICAL_CAPTURE_DIR
     ? path.resolve(process.env.MYTHICAL_CAPTURE_DIR)
-    : path.join(root, 'public/press/gameplay');
+    : path.join(quarantineRoot, 'latest');
 const captureGroup = process.env.MYTHICAL_CAPTURE_GROUP || 'all';
 const smokeScript = path.join(root, 'scripts/smoke-secondary-journeys.js');
 const expectedFiles = [
@@ -99,6 +100,11 @@ function gitValue(args) {
     return result.stdout.trim() || null;
 }
 
+function isInside(parent, child) {
+    const relative = path.relative(parent, child);
+    return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
 function writeManifest() {
     const manifestPath = path.join(captureDir, 'manifest.json');
     let previousManifest = null;
@@ -128,7 +134,8 @@ function writeManifest() {
         const capture = {
             id: `GP-${String(expectedFiles.indexOf(filename) + 1).padStart(3, '0')}`,
             filename,
-            publicPath: `/press/gameplay/${filename}`,
+            candidatePath: path.relative(root, absolutePath),
+            publicPath: null,
             sha256: createHash('sha256').update(buffer).digest('hex'),
             bytes: buffer.length,
             ...dimensions,
@@ -153,19 +160,19 @@ function writeManifest() {
         return capture;
     });
     const manifest = {
-        schemaVersion: 1,
+        schemaVersion: 2,
         asOf: new Date().toISOString(),
         sourceCommit: currentSourceCommit,
         sourceBranch: gitValue(['branch', '--show-current']),
         sourceRoute: '/play/',
-        captureMethod: 'Automated first-party browser journeys using a clean invented QA state.',
+        captureMethod: 'Automated first-party browser journeys using a clean invented QA state. Output remains in a private review quarantine.',
         captureSourcePolicy: 'The top-level sourceCommit records the build that last updated this manifest. Each capture has its own sourceCommit, which remains unchanged during partial recaptures.',
         captureSourceCommits: [...new Set(captures.map(capture => capture.sourceCommit).filter(Boolean))],
         rights: 'First-party Mythical Void game capture. Any embedded public NASA material retains the exact source and credit recorded on its capture.',
         privacy: 'No player name, child identity, account, message, notification or personal save data is used.',
         presentationBoundary: 'These are authentic screenshots of a running build. Some in-game art may have its own disclosed production provenance; none of these images is a generated gameplay mockup.',
-        approvalState: 'internal_review_required_before_public_promotion',
-        ownedWebsiteProofUseAuthorized: true,
+        approvalState: 'candidate_quarantine_human_review_required',
+        ownedWebsiteProofUseAuthorized: false,
         externalPromotionAuthorized: false,
         kevinApprovalRequiredBeforeExternalPublication: true,
         captures
@@ -181,6 +188,12 @@ async function main() {
     const distIndex = path.join(root, 'dist/index.html');
     if (!fs.existsSync(distIndex)) {
         throw new Error('Production build is missing. Run npm run build before capturing gameplay.');
+    }
+    if (isInside(path.join(root, 'public'), captureDir)) {
+        throw new Error(
+            'Gameplay capture output cannot point inside public/. Capture into ' +
+            '.visual-review/candidates, then promote only an approved exact asset.'
+        );
     }
     fs.mkdirSync(captureDir, { recursive: true });
     if (!['all', 'opening', 'realms', 'village', 'nasa'].includes(captureGroup)) {

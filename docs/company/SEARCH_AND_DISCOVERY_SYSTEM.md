@@ -1,9 +1,26 @@
 # Search and Discovery System
 
-**Status:** Technical foundation live; four useful owned-site discovery pages approved for release; search-engine account work still gated
-**Updated:** 14 August 2026
+**Status:** Technical foundation and five useful discovery pages live; the playable search doorway now starts with a game finder; search-engine account work still gated
+**Updated:** 26 August 2026
 
 ## Current release
+
+On 26 August, a fresh directional public-search sample still did not show a
+Mythical Void result for the checked name or category queries. Visible game
+pages commonly made three things unmistakable: what kind of game this is,
+whether it is free, and whether a download is needed. This is a pattern
+observation, not evidence of their ranking or success.
+
+The `/playable-now/` page now answers those questions on its first screen and
+asks one useful question: **What are you in the mood for?** A visitor can choose
+wonder, creation, challenge or story, or go straight to Play. Imagined artwork
+no longer occupies that decision screen. On a phone, the answer and Play button
+appear immediately beside the selected choice.
+
+The current machine-readable evidence is recorded in
+[`search/owned-discovery-release-2026-08-26.json`](search/owned-discovery-release-2026-08-26.json).
+It retains the sample limitations and does not claim that the site is indexed
+or ranked.
 
 The first useful discovery layer is now recorded in
 [`search/organic-discovery-release-2026-08-14.json`](search/organic-discovery-release-2026-08-14.json).

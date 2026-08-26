@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-26",
+  "status": "owned_search_entry_live_and_improved",
+  "plainLanguageOutcome": "Help people looking for a new game understand Mythical Void immediately, choose the kind of experience they want and reach Play without an account, download or tracked sharing link.",
+  "publicSearchCheck": {
+    "queries": [
+      "site:mythicalvoid.com Mythical Void",
+      "\"Mythical Void\" game",
+      "\"mythicalvoid.com\""
+    ],
+    "result": "no_mythical_void_result_seen",
+    "checkedOn": "2026-08-26",
+    "meaning": "The site has useful search files and readable pages, but it is not yet visibly findable in the checked public results."
+  },
+  "latestCategorySample": {
+    "checkedOn": "2026-08-26",
+    "queries": [
+      "free alien creature browser game no download",
+      "story choice creature browser game free"
+    ],
+    "mythicalVoidResultObserved": false,
+    "method": "Directional public search sample; not a complete index census or ranking tracker.",
+    "observedPattern": "Visible first-party game pages plainly led with the playable category and immediate-access facts such as free, browser and no download.",
+    "examples": [
+      "https://www.terraform-game.com/",
+      "https://dobudob.com/",
+      "https://beanlings.com/s/browser-pet-game",
+      "https://choicefall.com/"
+    ],
+    "limitation": "Results can vary by engine, place, language, time and personalisation. Absence in this sample does not prove global non-indexing."
+  },
+  "gameFinderImprovement": {
+    "route": "https://mythicalvoid.com/playable-now/#find-your-way",
+    "firstScreenQuestion": "What are you in the mood for?",
+    "choices": ["wonder", "creation", "challenge", "story"],
+    "plainCategory": "free alien creature browser game",
+    "accessFacts": ["free", "no download", "no account", "no payment details", "early access"],
+    "imaginedArtworkOnFirstScreen": false,
+    "directPlayAvailable": true,
+    "phoneChoicePlacesAnswerBesideSelection": true,
+    "intentSpecificSharing": {
+      "enabled": true,
+      "routes": [
+        "#find-your-way/wonder",
+        "#find-your-way/create",
+        "#find-your-way/challenge",
+        "#find-your-way/story"
+      ],
+      "sharedAnswerReopens": true,
+      "routeUsesFragmentOnly": true,
+      "choiceSentToServer": false,
+      "recipientContactCollected": false
+    },
+    "trackingAddressAdded": false,
+    "contactCollectionAdded": false
+  },
+  "searchEngineDiscovery": {
+    "robotsFile": "https://mythicalvoid.com/robots.txt",
+    "sitemap": "https://mythicalvoid.com/sitemap.xml",
+    "sitemapRouteCount": 13,
+    "indexNow": {
+      "ownershipFile": "/2d33a591a69d023517107abcaf6b7d52.txt",
+      "dryRunByDefault": true,
+      "productionSubmissionRequires": "--submit",
+      "submissionState": "accepted_pending_key_validation",
+      "submittedAt": "2026-08-26T17:20:54Z",
+      "responseStatus": 202,
+      "submittedUrlCount": 13,
+      "meaning": "IndexNow received the first notification and began checking the live ownership file. Acceptance is a discovery signal, not a promise that any search engine will show a page.",
+      "latestSubmission": {
+        "confirmedAt": "2026-08-26T21:15:56Z",
+        "accepted": true,
+        "responseStatus": 200,
+        "submittedUrlCount": 13,
+        "reason": "The shareable game-finder release added a new public Signal Log entry and refreshed both discovery feeds."
+      }
+    },
+    "googleSearchConsole": {
+      "state": "owner_access_needed_later",
+      "nextHumanStep": "Kevin verifies mythicalvoid.com in Google Search Console and submits sitemap.xml. This does not stop the owned-site release."
+    }
+  },
+  "publicWebsiteMeasurement": {
+    "googleTagId": "G-FTM4W73ECQ",
+    "previousCodeProblem": "The final letters were swapped in the website code.",
+    "consentRequired": true,
+    "advertisingEnabled": false,
+    "gameMeasured": false,
+    "events": ["play_selected", "share_completed", "share_link_copied"],
+    "eventDetails": ["source_page", "source_area", "transport_type"],
+    "excludedDetails": ["recipient", "contact detail", "creature detail", "game activity", "full URL", "query string", "user ID"]
+  },
+  "visualLaunch": {
+    "state": "waiting_for_game_iteration",
+    "requiredApprovedMoments": 4,
+    "currentApprovedMoments": 0,
+    "note": "The development team has received the four gameplay improvement points. No weak screenshot or video is released while the new build is being prepared."
+  }
+}
