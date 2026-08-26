@@ -41,7 +41,7 @@ export function getExpeditionAstronautTextureKey(
 
 export function getExpeditionFollowOffset(mode = 'topDown', facingRight = true) {
     if (mode === 'platformer') {
-        return { x: facingRight ? -68 : 68, y: 2 };
+        return { x: facingRight ? -92 : 92, y: 2 };
     }
 
     return { x: facingRight ? -58 : 58, y: 24 };
@@ -179,7 +179,7 @@ export class ExpeditionAstronaut {
         this.mode = mode;
         this.fieldKitRecovered = fieldKitRecovered;
         this.katanaUpgradeIds = normalizeKatanaUpgradeIds(katanaUpgradeIds);
-        this.followDistance = followDistance ?? (mode === 'platformer' ? 76 : 68);
+        this.followDistance = followDistance ?? (mode === 'platformer' ? 96 : 68);
         this.sprite = null;
         this.shadow = null;
         this.trail = [];
@@ -474,6 +474,20 @@ export class ExpeditionAstronaut {
         this.sprite.setFlipX(!facingRight);
         this.sprite.setRotation(isMoving ? Math.sin(this.elapsed * 0.01) * 0.025 : 0);
         this.sprite.y += bob * 0.08;
+
+        if (this.mode === 'platformer') {
+            const offsetX = this.sprite.x - this.target.x;
+            const offsetY = this.sprite.y - this.target.y;
+            const distance = Math.hypot(offsetX, offsetY);
+            const maximumDistance = this.followDistance + 8;
+            if (distance > maximumDistance) {
+                const scale = maximumDistance / distance;
+                this.sprite.setPosition(
+                    this.target.x + (offsetX * scale),
+                    this.target.y + (offsetY * scale)
+                );
+            }
+        }
 
         if (this.mode === 'platformer') {
             this.sprite.setDepth(898);

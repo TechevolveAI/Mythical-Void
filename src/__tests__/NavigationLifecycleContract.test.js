@@ -30,6 +30,20 @@ describe('Sanctuary navigation lifecycle', () => {
         expect(profile).toContain("SceneTransitionHelper.resumeScene(this, 'GameScene')");
     });
 
+    test('profile rendering recovers interrupted and legacy creature saves', () => {
+        const profile = read('scenes/CreatureProfileScene.js');
+
+        expect(profile).toContain(
+            'this.graphicsEngine.loadCreatureFromGameState(0)'
+        );
+        expect(profile).not.toContain(
+            '[CreatureProfileScene] No valid DNA or genes data available for creature'
+        );
+        expect(profile).not.toContain(
+            '[CreatureProfileScene] Failed to generate creature texture'
+        );
+    });
+
     test('never runs movement during a player-body restart gap', () => {
         const gameScene = read('scenes/GameScene.js');
 

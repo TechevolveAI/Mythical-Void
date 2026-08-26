@@ -352,12 +352,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     startTestMode() {
         console.log('[CrystalCavesLevel] TEST MODE - Spawning Crystal Golem');
 
-        if (this.player) {
-            this.player.setPosition(
-                CRYSTAL_GUARDIAN_ARENA.playerEntryX,
-                this.levelHeight - CRYSTAL_GUARDIAN_ARENA.playerBottomOffset
-            );
-        }
+        this.stageCrystalGuardianArenaEntry();
 
         this.showPlatformerMobileControls();
 
@@ -4350,10 +4345,14 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         );
         const y = this.levelHeight -
             CRYSTAL_GUARDIAN_ARENA.playerBottomOffset;
-        if (this.player.body?.reset) {
-            this.player.body.reset(x, y);
-        } else {
-            this.player.setPosition(x, y);
+        this.player.setPosition(x, y);
+        this.player.body?.updateFromGameObject?.();
+        const body = this.player.body;
+        const arena = this.getTraversalSupport?.('caves-guardian-arena');
+        if (body && arena?.body) {
+            this.player.x += x - body.center.x;
+            this.player.y += arena.body.top - body.bottom - 4;
+            body.updateFromGameObject?.();
         }
         this.player.setVelocity?.(0, 0);
         this.player.facingRight = true;

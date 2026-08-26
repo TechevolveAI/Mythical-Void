@@ -37,6 +37,63 @@ describe('release test gate', () => {
         expect(source).not.toContain('awaitPromise: true');
     });
 
+    test('browser smoke rejects console errors and failed same-origin requests', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+
+        expect(source).toContain("await session.call('Network.enable')");
+        expect(source).toContain("session.on('Runtime.consoleAPICalled'");
+        expect(source).toContain("session.on('Network.responseReceived'");
+        expect(source).toContain("session.on('Network.loadingFailed'");
+        expect(source).toContain('Browser health gate failed');
+        expect(source).toContain('sameOriginHttpFailures: 0');
+    });
+
+    test('visual launch stills require the real creature and astronaut in-frame', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+
+        expect(source).toContain('async function stageVillageVisualParty');
+        expect(source).toContain("'visual_launch_party'");
+        expect(source).toContain('state.profileId !== expectedProfileId');
+        expect(source).toContain('state.overlapArea > 0');
+        expect(source).toContain('boundsInsideSafeFrame(state.creatureBounds)');
+        expect(source).toContain('boundsInsideSafeFrame(state.astronautBounds)');
+        expect(source).toContain("stageVillageVisualParty(session, 'Village worker help')");
+        expect(source).toContain(
+            "stageVillageVisualParty(session, 'Village choice consequence')"
+        );
+        expect(source).toContain(
+            "stageVillageVisualParty(session, 'Village strange discovery')"
+        );
+        expect(source).toContain(
+            'const actorBounds = [state.creatureBounds, state.astronautBounds]'
+        );
+        expect(source).toContain('const movementSamples = []');
+        expect(source).toContain('Visual movement phone sample');
+        expect(source).toContain('Visual movement desktop sample');
+    });
+
+    test('production-preview journeys explicitly isolate reset cases', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+
+        expect(source).toContain("new URL(url).searchParams.get('reset') === 'true'");
+        expect(source).toContain('window.GameState?.reset?.();');
+        expect(source).toContain("localStorage.removeItem('mythical_creature_save');");
+    });
+
+    test('Sanctuary reload smoke proves persisted assignments before preview staging', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+        const releaseRunner = read('scripts/run-browser-smoke.js');
+
+        expect(source).toContain('const readVillageReloadState');
+        expect(source).toContain('Village reload persistence failed');
+        expect(source).toContain("current.scene.restart(previewData)");
+        expect(source).toContain("scene?.villageCommandPreview === 'complete'");
+        expect(source).toContain('Complete Village preview scene lifecycle');
+        expect(releaseRunner).toContain('[release-smoke] Shop Base Builder desktop reload suite');
+        expect(releaseRunner).toContain("SMOKE_VIEWPORT_WIDTH: '1440'");
+        expect(releaseRunner).toContain("SMOKE_VIEWPORT_HEIGHT: '810'");
+    });
+
     test('npm test is finite and the manual framework has an explicit command', () => {
         const packageJson = JSON.parse(read('package.json'));
 
@@ -253,6 +310,59 @@ describe('release test gate', () => {
             'framePacingSamples.every(sample => sample.p95FrameMs > 100)'
         );
         expect(source).toContain('p95FrameSamples: framePacingSamples.map(');
+    });
+
+    test('retries isolated interaction profiles without bypassing their gates', () => {
+        const source = read('scripts/run-browser-smoke.js');
+        const start = source.indexOf("console.log('\\n[release-smoke] Genuine interaction suite')");
+        const end = source.indexOf("console.log('\\n[release-smoke] Conservative campaign topology suite')");
+        const interactionSuite = source.slice(start, end);
+
+        expect(interactionSuite).toContain('await runNodeScriptWithRetry(');
+        expect(interactionSuite).toContain("SMOKE_MODE: 'interaction'");
+        expect(source).toContain('async function runNodeScriptWithRetry(');
+        expect(source).toContain('throw lastError;');
+    });
+
+    test('retries timing-sensitive guardian handoffs without bypassing them', () => {
+        const source = read('scripts/run-browser-smoke.js');
+        const start = source.indexOf(
+            "console.log('\\n[release-smoke] Guardian defeat, debrief, and installation suite')"
+        );
+        const end = source.indexOf(
+            "console.log('\\n[release-smoke] Final priority mobile journey suite')"
+        );
+        const handoffSuite = source.slice(start, end);
+
+        expect(handoffSuite).toContain('await runNodeScriptWithRetry(');
+        expect(handoffSuite).toContain("SMOKE_MODE: 'guardian-handoff'");
+        expect(handoffSuite).toContain(
+            'failures.push(`guardian-handoff:${smokeCase}: ${error.message}`)'
+        );
+    });
+
+    test('reports the URL for browser transport failures', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+
+        expect(source).toContain('const networkRequestUrls = new Map();');
+        expect(source).toContain("session.on('Network.requestWillBeSent'");
+        expect(source).toContain("session.on('Page.frameRequestedNavigation'");
+        expect(source).toContain(
+            'url: networkRequestUrls.get(params.requestId) || null'
+        );
+        expect(source).toContain('recentDocumentNavigations: params.type ===');
+    });
+
+    test('ignores only Netlify deploy-preview panel CSP blocks', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+
+        expect(source).toContain('isExpectedNetlifyPreviewPanelBlock');
+        expect(source).toContain("params.errorText === 'net::ERR_BLOCKED_BY_CSP'");
+        expect(source).toContain("'https://app.netlify.com/cdp/'");
+        expect(source).toContain('if (isExpectedNetlifyPreviewPanelBlock) return;');
+        expect(source).toContain(
+            '/^deploy-preview-\\d+--[^.]+\\.netlify\\.app$/'
+        );
     });
 
     test('Sanctuary lifecycle smoke uses the production scene transition path', () => {

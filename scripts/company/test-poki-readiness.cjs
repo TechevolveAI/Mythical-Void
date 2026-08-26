@@ -4,6 +4,9 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const { validatePokiReadiness } = require('./validate-poki-readiness.cjs');
+const {
+    normalizeVolatileManifestForCompression
+} = require('./measure-poki-candidate.cjs');
 
 const root = path.resolve(__dirname, '..', '..');
 const read = relativePath => fs.readFileSync(path.join(root, relativePath), 'utf8');
@@ -35,6 +38,29 @@ function rejected(name, expected, change) {
 assert.deepStrictEqual(check(), []);
 cases += 1;
 {
+    const manifest = {
+        schemaVersion: 1,
+        target: 'itch.io-html5',
+        sourceCommit: 'a'.repeat(40),
+        builtAt: '2026-08-26T21:00:00.000Z'
+    };
+    const laterManifest = {
+        ...manifest,
+        sourceCommit: 'b'.repeat(40),
+        builtAt: '2026-08-26T22:00:00.000Z'
+    };
+    const normalized = normalizeVolatileManifestForCompression(
+        'itch-package-manifest.json',
+        Buffer.from(JSON.stringify(manifest))
+    );
+    const normalizedLater = normalizeVolatileManifestForCompression(
+        'itch-package-manifest.json',
+        Buffer.from(JSON.stringify(laterManifest))
+    );
+    assert.deepStrictEqual(normalized, normalizedLater);
+    cases += 1;
+}
+{
     const recorded = clone(measurement);
     const fresh = clone(measurement);
     recorded.firstLoad.gzipEstimateBytes += 32;
@@ -52,5 +78,5 @@ rejected('fake tablet proof', 'tablet touch limitation', assessment => { assessm
 rejected('fake total pass', 'total-download', assessment => { assessment.readiness.find(item => item.id === 'total-download').state = 'provisional_pass'; });
 rejected('fake visual approval', 'human visual gate', (_a, _r, _f, visuals) => { visuals.requiredMoments[0].currentState = 'approved'; });
 
-assert.strictEqual(cases, 11);
-console.log('Poki readiness safeguards passed (11 cases).');
+assert.strictEqual(cases, 12);
+console.log('Poki readiness safeguards passed (12 cases).');

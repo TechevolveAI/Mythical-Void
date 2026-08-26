@@ -74,6 +74,8 @@ function buildPackage(directory = packageDir) {
         }
     }
 
+    const manifestPath = path.join(directory, 'itch-package-manifest.json');
+    fs.rmSync(manifestPath, { force: true });
     const beforeManifest = countPackage(directory);
     const manifest = {
         schemaVersion: 1,
@@ -106,12 +108,12 @@ function buildPackage(directory = packageDir) {
         }
     };
     fs.writeFileSync(
-        path.join(directory, 'itch-package-manifest.json'),
+        manifestPath,
         `${JSON.stringify(manifest, null, 2)}\n`
     );
 
     const manifestSha256 = crypto.createHash('sha256')
-        .update(fs.readFileSync(path.join(directory, 'itch-package-manifest.json')))
+        .update(fs.readFileSync(manifestPath))
         .digest('hex');
     return {
         packageDir: directory,

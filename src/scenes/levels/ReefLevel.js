@@ -3086,10 +3086,17 @@ class ReefLevel extends PlatformerLevelScene {
             REEF_GUARDIAN_ARENA.playerEntryX
         );
         const y = this.levelHeight - REEF_GUARDIAN_ARENA.playerBottomOffset;
-        if (this.player.body?.reset) {
-            this.player.body.reset(x, y);
-        } else {
-            this.player.setPosition(x, y);
+        // Preserve the custom body offset used by the full-size creature
+        // renderer. Arcade Body.reset() briefly treats the sprite origin as
+        // the body origin and can move the compact hitbox off the arena.
+        this.player.setPosition(x, y);
+        this.player.body?.updateFromGameObject?.();
+        const body = this.player.body;
+        const arena = this.getTraversalSupport?.('reef-guardian-arena');
+        if (body && arena?.body) {
+            this.player.x += x - body.center.x;
+            this.player.y += arena.body.top - body.bottom - 4;
+            body.updateFromGameObject?.();
         }
         this.player.setVelocity?.(0, 0);
         this.player.facingRight = true;
@@ -3761,8 +3768,10 @@ class ReefLevel extends PlatformerLevelScene {
     bossVoidLunge() {
         if (!this.bossBody) return;
 
-        const targetX = this.player.x;
-        const targetY = this.player.y;
+        // The authored creature artwork is larger than its compact gameplay
+        // hitbox. Aim at the body center so every rendered creature can be hit.
+        const targetX = this.player.body?.center?.x ?? this.player.x;
+        const targetY = this.player.body?.center?.y ?? this.player.y;
 
         this.createReefBossTelegraph({
             x: this.bossBody.x,

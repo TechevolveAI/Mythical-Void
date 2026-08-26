@@ -401,10 +401,10 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain("createElement('span', 'village-resource-icon')");
         expect(source).toContain('village-assignment-routine');
         expect(source).toContain('workerRoutine.emotionalPurpose');
-        expect(source).toContain('createCommunityPulse(snapshot)');
+        expect(source).toContain('createCommunityPulse(snapshot, this.companionPortraitRecord)');
         expect(source).toContain('village-community-pulse');
         expect(source).toContain('createVillageSupportImpactSummary(snapshot)');
-        expect(source).toContain('createResidentProposal(snapshot, visualDefinition)');
+        expect(source).toContain('createResidentProposal(\n                snapshot,\n                visualDefinition,\n                this.companionPortraitRecord');
         expect(source).toContain('village-resident-proposal');
         expect(source).toContain('formatCommunityMemberOption(creature)');
         expect(source).toContain("avatar.classList.add('is-authored-resident')");
@@ -615,7 +615,7 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('visiblePlotBasins.filter(basin => !basin.building).length');
         expect(world).toContain("setData('districtIdentityCount', visiblePlotBasins.length)");
         expect(world).toContain('visiblePlotBasins.map(basin => districtProfiles[basin.plotIndex].id)');
-        expect(world).toContain('const onboardingVisiblePlotCount = snapshot?.onboarding?.visiblePlotCount || 1;');
+        expect(world).toContain('const onboardingVisiblePlotCount = snapshot?.onboarding?.visiblePlotCount ?? 1;');
         expect(world).toContain('index < onboardingVisiblePlotCount;');
         expect(world).toContain("setData('villagePathResourceLanguage', 'resource_return_marks_v1')");
         expect(world).toContain("villageFlow.container.getData('villageFlowVisible') === true");
@@ -718,8 +718,9 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('createVillageNextActionBeacon(');
         expect(world).toContain('createVillageArrivalGuide(landmark, snapshot');
         expect(world).toContain("setData('villageArrivalGuide', true)");
-        expect(world).toContain("setData('villageArrivalMessage', 'BUILD A HOME TOGETHER')");
-        expect(world).toContain("setData('villageArrivalSteps', ['BUILD', 'INVITE', 'GROW'])");
+        expect(world).toContain(".setData('villageArrivalMessage', guideTitle)");
+        expect(world).toContain("meetingHeart ? ['OPEN HEART', 'REVEAL ROOT'] : ['BUILD', 'INVITE', 'GROW']");
+        expect(world).toContain("'MEET THE VILLAGE HEART'");
         expect(world).toContain("'BUILD  ·  INVITE  ·  GROW'");
         expect(world).toContain('drawVillageFoundationCradle(');
         expect(world).toContain('createVillageStructureStateSilhouette({');
@@ -776,6 +777,8 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain("setData('villageWorkerRouteStatus', true)");
         expect(world).toContain("worker.setData('cargoVisible', carrying)");
         expect(world).toContain("worker.setData('deliveryFeedback', delivering)");
+        expect(world).toContain('const copyX = viewportLeft + (viewportWidth / 2);');
+        expect(world).toContain("copy.setData('resonancePlacement', 'camera_center')");
         expect(world).toContain("? 'returning'");
         expect(world).toContain('playVillageHeartMemory(');
         expect(world).toContain("setData('interactionVerb', 'REMEMBER')");
@@ -984,6 +987,20 @@ describe('Village settlement gameplay contract', () => {
         expect(game).toContain("['empty', 'building', 'active', 'complete']");
         expect(scene).toContain("this.villageCommandPreview === 'complete'");
         expect(scene).toContain("['workshop', 'root_05', null]");
+        expect(scene).toContain("id: 'preview-mira'");
+        expect(scene).toContain("id: 'preview-sol'");
+        expect(scene).toContain('this.villageCommandPreviewState = previewState;');
+        expect(scene).toContain('this.graphicsEngine = new GraphicsEngine(this);');
+        expect(scene).toContain('this.createPlayer();');
+        expect(scene).toContain('this.createExpeditionAstronaut();');
+        expect(scene).toContain('if (this.villageCommandPreview) {');
+        expect(scene).toContain('this.sanctuaryDistricts = null;');
+        expect(scene).toContain("'visual_launch_party'");
+        expect(scene).toContain('Boolean(this.villageVisualPartyFormation)');
+        expect(scene).toContain(
+            'const stateStore = this.villageCommandPreviewState || window.GameState;'
+        );
+        expect(scene).toContain('save: this.villageCommandPreviewState === null');
         expect(scene).toContain('createFieldKitPreviewBackdrop({ includeShip = true } = {})');
         expect(scene).toContain("ship.setData('fieldKitPreviewShip', true)");
         expect(scene).not.toContain('this.createFieldKitPreviewBackdrop({ includeShip: false });');

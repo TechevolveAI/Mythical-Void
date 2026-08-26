@@ -40,10 +40,21 @@ function createBuildingArtwork(definitionId, {
     return artwork;
 }
 
-function createCreatureAvatar(creature) {
+function createCreatureAvatar(creature, portraitRecord = null) {
     const avatar = createElement('span', 'village-creature-avatar');
     const name = creature?.name || 'Creature';
     avatar.dataset.communityType = creature?.communityType || 'companion';
+    if (creature?.isPlayerCompanion && portraitRecord?.imageUrl) {
+        avatar.classList.add('is-living-portrait');
+        const image = createElement('img', 'village-creature-living-portrait');
+        image.src = portraitRecord.imageUrl;
+        image.alt = '';
+        image.decoding = 'async';
+        image.referrerPolicy = 'no-referrer';
+        avatar.append(image);
+        avatar.setAttribute('aria-hidden', 'true');
+        return avatar;
+    }
     if (
         creature?.communityType === 'rescued_resident' &&
         typeof creature?.artwork === 'string' &&
@@ -109,7 +120,7 @@ function createVillageViewTabs(snapshot, { activeView, onSelect } = {}) {
     return tabs;
 }
 
-function createCommunityShortcut(snapshot, { onSelect } = {}) {
+function createCommunityShortcut(snapshot, { onSelect, portraitRecord = null } = {}) {
     const community = snapshot?.community || {};
     const members = [
         ...(community.companions || []),
@@ -133,7 +144,9 @@ function createCommunityShortcut(snapshot, { onSelect } = {}) {
     );
 
     const portraits = createElement('span', 'village-community-shortcut-portraits');
-    members.slice(0, 3).forEach(member => portraits.append(createCreatureAvatar(member)));
+    members.slice(0, 3).forEach(member => portraits.append(
+        createCreatureAvatar(member, portraitRecord)
+    ));
     if (members.length > 3) {
         portraits.append(createElement(
             'span',
@@ -179,7 +192,7 @@ function getCommunityMemberStatus(member, snapshot) {
     return 'HOME · SIGNAL GARDEN';
 }
 
-function createCommunityDirectory(snapshot) {
+function createCommunityDirectory(snapshot, portraitRecord = null) {
     const community = snapshot?.community || {};
     const members = [...(community.companions || []), ...(community.residents || [])]
         .filter((member, index, roster) => (
@@ -261,7 +274,7 @@ function createCommunityDirectory(snapshot) {
                     )
                 )
             );
-            identity.append(createCreatureAvatar(member), identityCopy);
+            identity.append(createCreatureAvatar(member, portraitRecord), identityCopy);
             card.append(
                 identity,
                 createElement(
@@ -375,7 +388,7 @@ function createVillageVision() {
     return vision;
 }
 
-function createCommunityPulse(snapshot) {
+function createCommunityPulse(snapshot, portraitRecord = null) {
     const section = createElement('section', 'village-community-pulse');
     const home = snapshot?.home || {};
     const moment = snapshot?.communityMoments?.[0] || null;
@@ -385,7 +398,7 @@ function createCommunityPulse(snapshot) {
         moment.participants.forEach(participant => {
             const person = createElement('span', 'village-community-person');
             person.append(
-                createCreatureAvatar(participant),
+                createCreatureAvatar(participant, portraitRecord),
                 createElement('strong', '', participant.name),
                 createElement('span', '', participant.roleLabel)
             );
@@ -474,7 +487,7 @@ function createVillageSupportImpactSummary(snapshot) {
     return section;
 }
 
-function createResidentProposal(snapshot, definition) {
+function createResidentProposal(snapshot, definition, portraitRecord = null) {
     const proposal = getVillageResidentProposal(snapshot, {
         definitionId: definition?.id
     });
@@ -488,8 +501,9 @@ function createResidentProposal(snapshot, definition) {
             name: proposal.speakerName,
             role: proposal.speakerRole,
             artwork: proposal.speakerArtwork,
-            communityType: proposal.speakerCommunityType
-        }),
+            communityType: proposal.speakerCommunityType,
+            isPlayerCompanion: proposal.speakerCommunityType === 'player_companion'
+        }, portraitRecord),
         createElement(
             'span',
             'village-resident-proposal-speaker',
@@ -725,6 +739,73 @@ function createResourceLesson(snapshot) {
     return lesson;
 }
 
+function createHeartIntroduction(snapshot, portraitRecord, onAcknowledge) {
+    const companion = snapshot.roster?.find(creature => creature.isPlayerCompanion) ||
+        snapshot.roster?.[0] || { name: 'Your companion', isPlayerCompanion: true };
+    const section = createElement('section', 'village-heart-introduction');
+    section.setAttribute('data-testid', 'village-heart-introduction');
+
+    const identity = createElement('div', 'village-heart-introduction-identity');
+    identity.append(
+        createCreatureAvatar(companion, portraitRecord),
+        createElement('span', 'village-heart-introduction-link', 'YOU ARRIVED TOGETHER')
+    );
+
+    const copy = createElement('div', 'village-heart-introduction-copy');
+    copy.append(
+        createElement('span', 'village-guided-kicker', 'FIRST SANCTUARY OBJECTIVE · 1/4'),
+        createElement('h3', 'village-guided-title', 'MEET THE VILLAGE HEART'),
+        createElement(
+            'p',
+            'village-guided-detail',
+            'This living landmark keeps supplies for the whole Sanctuary. It will reveal only the next useful foundation.'
+        )
+    );
+
+    const cache = createElement('div', 'village-heart-starter-cache');
+    cache.append(createElement('strong', '', 'WANDERER-77 LANDING CACHE'));
+    VILLAGE_RESOURCE_DEFINITIONS.forEach(resource => {
+        const source = snapshot.onboarding?.resourceSources?.find(
+            entry => entry.id === resource.id
+        );
+        const item = createElement('span', 'village-heart-cache-resource');
+        const icon = createElement('i', 'village-resource-icon');
+        icon.dataset.resource = resource.id;
+        icon.setAttribute('aria-hidden', 'true');
+        item.append(
+            icon,
+            createElement('b', '', `${snapshot.resources[resource.id]} ${resource.label}`),
+            createElement('small', '', source?.currentSource || resource.starterSource)
+        );
+        cache.append(item);
+    });
+    copy.append(cache);
+
+    const action = createElement(
+        'button',
+        'village-guided-primary',
+        'REVEAL THE FIRST SAFE FOUNDATION'
+    );
+    action.type = 'button';
+    action.setAttribute('data-testid', 'village-heart-begin');
+    let lastTouchActivationAt = 0;
+    const activate = event => {
+        const now = Date.now();
+        if (event?.type === 'touchend') {
+            event.preventDefault();
+            lastTouchActivationAt = now;
+        } else if (now - lastTouchActivationAt < 500) {
+            return;
+        }
+        onAcknowledge?.();
+    };
+    action.addEventListener('touchend', activate, { passive: false });
+    action.addEventListener('click', activate);
+    copy.append(action);
+    section.append(identity, copy);
+    return section;
+}
+
 export default class VillageCommandPanel {
     constructor(scene) {
         this.scene = scene;
@@ -734,6 +815,7 @@ export default class VillageCommandPanel {
         this.onPlace = null;
         this.onAssign = null;
         this.onDecision = null;
+        this.onAcknowledge = null;
         this.onTick = null;
         this.onClose = null;
         this.selectedDefinitionId = null;
@@ -743,6 +825,7 @@ export default class VillageCommandPanel {
         this.guidedActionKey = null;
         this.statusMessage = '';
         this.lastDecisionResult = null;
+        this.companionPortraitRecord = null;
         this.activeView = 'plan';
         this.keyboardHandler = null;
         this.refreshTimer = null;
@@ -761,6 +844,7 @@ export default class VillageCommandPanel {
         onPlace,
         onAssign,
         onDecision,
+        onAcknowledge,
         onTick,
         onClose
     } = {}) {
@@ -772,6 +856,7 @@ export default class VillageCommandPanel {
         this.onPlace = onPlace;
         this.onAssign = onAssign;
         this.onDecision = onDecision;
+        this.onAcknowledge = onAcknowledge;
         this.onTick = onTick;
         this.onClose = onClose;
         this.statusMessage = '';
@@ -827,8 +912,62 @@ export default class VillageCommandPanel {
         return true;
     }
 
+    setCompanionPortrait(record) {
+        if (!record?.imageUrl || !this.root) return false;
+        this.companionPortraitRecord = record;
+        this.render();
+        return true;
+    }
+
     renderGuided(snapshot, definitionById) {
         const onboarding = snapshot.onboarding || {};
+        if (onboarding.stage === 'meet_heart') {
+            const shell = createElement('section', 'village-heart-sheet is-introduction');
+            const header = createElement('header', 'village-command-header village-guided-header');
+            const heading = createElement('div', 'village-command-heading-copy');
+            heading.append(
+                createElement('p', 'village-command-eyebrow', 'AWAKENED LANDMARK'),
+                createElement('h2', 'village-command-title', 'VILLAGE HEART')
+            );
+            const close = createElement('button', 'village-command-close compact-icon-button', '\u00d7');
+            close.type = 'button';
+            close.title = 'Return to the Sanctuary';
+            close.setAttribute('aria-label', 'Return to the Sanctuary');
+            close.addEventListener('click', () => this.destroy());
+            header.append(heading, close);
+            shell.append(
+                header,
+                createHeartIntroduction(
+                    snapshot,
+                    this.companionPortraitRecord,
+                    () => {
+                        const next = this.onAcknowledge?.();
+                        if (next) {
+                            this.snapshot = next;
+                            this.statusMessage = 'The first living root is now visible.';
+                            this.render();
+                        }
+                    }
+                )
+            );
+            const footer = createElement('footer', 'village-guided-footer');
+            footer.append(createElement(
+                'p',
+                'village-guided-lock-note',
+                'One objective at a time. The wider building plan stays hidden for now.'
+            ));
+            const returnButton = createElement(
+                'button',
+                'village-guided-secondary is-return',
+                'RETURN TO SANCTUARY'
+            );
+            returnButton.type = 'button';
+            returnButton.addEventListener('click', () => this.destroy());
+            footer.append(returnButton);
+            shell.append(footer);
+            this.root.append(shell);
+            return;
+        }
         const nextAction = snapshot.worldState?.nextAction || {
             type: 'review',
             label: 'SETTLEMENT ONLINE',
@@ -937,6 +1076,7 @@ export default class VillageCommandPanel {
 
         if (onboarding.showFullPlan) {
             shell.append(createCommunityShortcut(snapshot, {
+                portraitRecord: this.companionPortraitRecord,
                 onSelect: () => {
                     this.guided = false;
                     this.activeView = 'community';
@@ -985,7 +1125,7 @@ export default class VillageCommandPanel {
         }[intent];
         const actionCopy = !onboarding.firstLoopComplete
             ? {
-                kicker: `FIRST SANCTUARY LESSON · ${onboarding.step || 1}/${onboarding.totalSteps || 3}`,
+                kicker: `FIRST SANCTUARY LESSON · ${onboarding.step || 1}/${onboarding.totalSteps || 4}`,
                 title: onboarding.title || standardActionCopy?.title,
                 detail: onboarding.instruction || standardActionCopy?.detail
             }
@@ -1033,7 +1173,11 @@ export default class VillageCommandPanel {
                 createElement('p', 'village-guided-detail', actionCopy?.detail || nextAction.detail)
             );
 
-            const residentProposal = createResidentProposal(snapshot, visualDefinition);
+            const residentProposal = createResidentProposal(
+                snapshot,
+                visualDefinition,
+                this.companionPortraitRecord
+            );
             if (residentProposal && ['build', 'supplies'].includes(intent)) {
                 copy.append(residentProposal);
             }
@@ -1409,7 +1553,7 @@ export default class VillageCommandPanel {
                 resources,
                 status,
                 viewTabs,
-                createCommunityDirectory(snapshot)
+                createCommunityDirectory(snapshot, this.companionPortraitRecord)
             );
             this.root.append(shell);
             restoreScrollState();
@@ -1547,7 +1691,11 @@ export default class VillageCommandPanel {
         nextStep.setAttribute('aria-live', 'polite');
         plan.append(planHeader, nextStep);
         if (!contextualBuilding && !settlementComplete && selectedDefinition) {
-            const residentProposal = createResidentProposal(snapshot, selectedDefinition);
+            const residentProposal = createResidentProposal(
+                snapshot,
+                selectedDefinition,
+                this.companionPortraitRecord
+            );
             if (residentProposal) plan.append(residentProposal);
         }
 
@@ -1699,7 +1847,10 @@ export default class VillageCommandPanel {
                     )
                 );
                 summary.append(
-                    createCreatureAvatar(building.creature || snapshot.roster[0]),
+                    createCreatureAvatar(
+                        building.creature || snapshot.roster[0],
+                        this.companionPortraitRecord
+                    ),
                     summaryCopy
                 );
                 const controls = createElement('div', 'village-assignment-controls');
@@ -1752,12 +1903,12 @@ export default class VillageCommandPanel {
             shell.append(
                 phase,
                 createVillageSupportImpactSummary(snapshot),
-                createCommunityPulse(snapshot)
+                createCommunityPulse(snapshot, this.companionPortraitRecord)
             );
             if (heartDecision) shell.append(heartDecision);
             shell.append(createVillageVision());
         } else if (contextualBuilding?.definitionId === 'habitat') {
-            shell.append(createCommunityPulse(snapshot));
+            shell.append(createCommunityPulse(snapshot, this.companionPortraitRecord));
         }
         shell.append(body);
         this.root.append(shell);
@@ -1796,8 +1947,10 @@ export default class VillageCommandPanel {
         this.onPlace = null;
         this.onAssign = null;
         this.onDecision = null;
+        this.onAcknowledge = null;
         this.onTick = null;
         this.onClose = null;
+        this.companionPortraitRecord = null;
         closeHandler?.();
     }
 }

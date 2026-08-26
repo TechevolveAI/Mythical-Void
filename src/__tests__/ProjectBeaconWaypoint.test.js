@@ -217,7 +217,7 @@ describe('Project Beacon waypoint', () => {
         expect(resolveSanctuaryCurrentTarget(scene, { gameState }))
             .toEqual(expect.objectContaining({
                 missionId: 'sanctuary_village_arrival',
-                label: 'BUILD A HOME TOGETHER',
+                label: 'MEET VILLAGE HEART',
                 target: villageZone
             }));
 

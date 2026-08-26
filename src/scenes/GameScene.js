@@ -660,6 +660,7 @@ class GameScene extends Phaser.Scene {
         ].includes(data?.villageCommandPreview)
             ? data.villageCommandPreview
             : null;
+        this.villageCommandPreviewState = null;
         this.sanctuaryDecorationPreview = Number.isFinite(Number(data?.sanctuaryDecorationPreview))
             ? Math.max(0, Math.min(3, Math.floor(Number(data.sanctuaryDecorationPreview))))
             : null;
@@ -1708,6 +1709,10 @@ class GameScene extends Phaser.Scene {
 
     createVillageCommandPreview() {
         const now = Date.now();
+        this.sanctuaryZones = null;
+        this.sanctuaryDistricts = null;
+        this.generationAura = null;
+        this.orbitingParticles = [];
         const companions = [
             {
                 id: 'preview-nova',
@@ -1729,6 +1734,20 @@ class GameScene extends Phaser.Scene {
                 stats: { energy: 74, happiness: 90 },
                 personalityState: { axes: { temperament: -18 } },
                 cosmicAffinity: 'crystal'
+            },
+            {
+                id: 'preview-mira',
+                name: 'Mira',
+                stats: { energy: 70, happiness: 94 },
+                personalityState: { axes: { curiosity: 31, temperament: -12 } },
+                cosmicAffinity: 'moon'
+            },
+            {
+                id: 'preview-sol',
+                name: 'Sol',
+                stats: { energy: 81, happiness: 89 },
+                personalityState: { axes: { curiosity: 28, energy: 24 } },
+                cosmicAffinity: 'aurora'
             }
         ];
         const previewData = {
@@ -1764,6 +1783,7 @@ class GameScene extends Phaser.Scene {
             emit: () => {},
             getActiveCreature: () => previewData.creature
         };
+        this.villageCommandPreviewState = previewState;
         initializeVillageSettlement(previewState, { now, save: false });
 
         if (this.villageCommandPreview === 'building') {
@@ -1816,6 +1836,8 @@ class GameScene extends Phaser.Scene {
 
         const previewSnapshot = getVillageSnapshot(previewState);
         this.physics.world.setBounds(0, 0, this.worldWidth, this.worldHeight);
+        const GraphicsEngine = getGraphicsEngine();
+        this.graphicsEngine = new GraphicsEngine(this);
         this.worldBuilder = new WorldBuilder(this, this.graphicsEngine, {
             worldWidth: this.worldWidth,
             worldHeight: this.worldHeight
@@ -1833,6 +1855,8 @@ class GameScene extends Phaser.Scene {
             position: previewHeartPosition,
             size: { width: 150, height: 130 }
         }, previewSnapshot);
+        this.createPlayer();
+        this.createExpeditionAstronaut();
         this.setupVillageHeartCollision();
 
         if (window.MobileControls && this.forceMobileControls) {
@@ -1886,6 +1910,17 @@ class GameScene extends Phaser.Scene {
                 );
                 if (result.changed) this.villageDecisionMomentPending = result;
                 return result;
+            },
+            onAcknowledge: () => {
+                const snapshot = markVillageGuidanceSeen(previewState, {
+                    save: false
+                });
+                this.worldBuilder.refreshVillageSettlement(
+                    this.villageHeartLandmark,
+                    snapshot
+                );
+                this.offerVillageHeartInteraction(snapshot);
+                return snapshot;
             },
             onTick: () => {
                 const previous = getVillageSnapshot(previewState);
@@ -1983,9 +2018,18 @@ class GameScene extends Phaser.Scene {
             );
             return;
         }
-        this.openVillageCommand({
+        const previewOpened = this.openVillageCommand({
             guided: this.villageCommandPreview === 'empty'
         });
+        if (previewOpened) {
+            this.villageCommandPanel.setCompanionPortrait({
+                identityKey: 'preview_companion_23:baby:portrait',
+                stage: 'baby',
+                imageUrl: '/marketing/nova.webp',
+                assetRef: null,
+                storage: 'preview'
+            });
+        }
     }
 
     createSignalGardenPreview() {
@@ -6787,7 +6831,15 @@ class GameScene extends Phaser.Scene {
         const dy = this.player.y - landmark.zone.y;
         const distance = Math.hypot(dx, dy);
         const formationDistance = compact ? 162 : 190;
-        if (distance <= formationDistance) {
+        if (
+            Number.isFinite(this.villageVisualPartyFormation?.x) &&
+            Number.isFinite(this.villageVisualPartyFormation?.y)
+        ) {
+            follower?.setContextualFormation?.(
+                this.villageVisualPartyFormation,
+                'visual_launch_party'
+            );
+        } else if (distance <= formationDistance) {
             const fallbackX = this.player.flipX ? 1 : -1;
             const normalX = distance > 12 ? dx / distance : fallbackX;
             const normalY = distance > 12 ? dy / distance : 0;
@@ -6821,7 +6873,10 @@ class GameScene extends Phaser.Scene {
             partyPositions
         ) || null;
         landmark.zone
-            .setData('villagePartyFormationActive', distance <= formationDistance)
+            .setData(
+                'villagePartyFormationActive',
+                Boolean(this.villageVisualPartyFormation) || distance <= formationDistance
+            )
             .setData('villagePartyFormationDistance', formationDistance);
         return presence;
     }
@@ -9137,7 +9192,9 @@ class GameScene extends Phaser.Scene {
         if (!snapshot || !this.villageHeartLandmark?.zone) return null;
         const touchControlsVisible = this.hasVisibleTouchControls();
         const nextAction = snapshot.worldState?.nextAction;
+        const meetingHeart = snapshot.onboarding?.stage === 'meet_heart';
         const directPlotAction = Boolean(
+            !meetingHeart &&
             (this.sanctuaryFocusModeActive || this.nearVillageHeart) &&
             ['build', 'assign'].includes(nextAction?.type)
         );
@@ -9170,6 +9227,7 @@ class GameScene extends Phaser.Scene {
                     message: this.getVillageHeartInteractionPrompt(liveSnapshot),
                     ariaLabel: `${livePresentation.verb} ${livePresentation.label}`,
                     suppressWorldBeacon: Boolean(
+                        liveSnapshot?.onboarding?.stage !== 'meet_heart' &&
                         (this.sanctuaryFocusModeActive || this.nearVillageHeart) &&
                         ['build', 'assign'].includes(liveNextAction?.type)
                     )
@@ -9184,6 +9242,14 @@ class GameScene extends Phaser.Scene {
                 verb: 'DORMANT',
                 label: 'HATCH A COMPANION',
                 icon: '·'
+            };
+        }
+
+        if (snapshot.onboarding?.stage === 'meet_heart') {
+            return {
+                verb: 'OPEN',
+                label: 'MEET VILLAGE HEART',
+                icon: '+'
             };
         }
 
@@ -9232,6 +9298,12 @@ class GameScene extends Phaser.Scene {
     ) {
         if (!snapshot?.unlock?.unlocked) {
             return `Village Heart offline · ${snapshot?.unlock?.reason || 'Hatch a companion first'}`;
+        }
+
+        if (snapshot.onboarding?.stage === 'meet_heart') {
+            return touchControlsVisible
+                ? 'Tap the Village Heart · Reveal your first Sanctuary objective'
+                : 'Press SPACE at the Heart · Reveal your first Sanctuary objective';
         }
 
         const nextAction = snapshot.worldState?.nextAction;
@@ -9663,8 +9735,11 @@ class GameScene extends Phaser.Scene {
 
     reconcileVillageSettlementNow({ notify = true } = {}) {
         if (this._isShuttingDown || !this.villageHeartLandmark) return null;
-        const previous = getVillageSnapshot(window.GameState);
-        const snapshot = reconcileVillageSettlement(window.GameState);
+        const stateStore = this.villageCommandPreviewState || window.GameState;
+        const previous = getVillageSnapshot(stateStore);
+        const snapshot = reconcileVillageSettlement(stateStore, {
+            save: this.villageCommandPreviewState === null
+        });
         this.refreshVillageSettlementWorld(snapshot);
         if (notify) {
             this.notifyVillageProgress(previous, snapshot);
@@ -9745,6 +9820,16 @@ class GameScene extends Phaser.Scene {
                 }
                 return result;
             },
+            onAcknowledge: () => {
+                const guidedSnapshot = markVillageGuidanceSeen(window.GameState);
+                this.refreshVillageSettlementWorld(guidedSnapshot, { force: true });
+                this.offerVillageHeartInteraction(guidedSnapshot);
+                window.AudioManager?.playAchievement?.();
+                window.AchievementSystem?.recordEvent?.('story_interaction', {
+                    event: 'village_heart_met'
+                });
+                return guidedSnapshot;
+            },
             onTick: () => {
                 const previous = getVillageSnapshot(window.GameState);
                 const next = reconcileVillageSettlement(window.GameState);
@@ -9775,11 +9860,23 @@ class GameScene extends Phaser.Scene {
                 }
             }
         });
-        if (opened && !snapshot.state.guidanceSeen) {
-            const guidedSnapshot = markVillageGuidanceSeen(window.GameState);
-            this.refreshVillageSettlementWorld(guidedSnapshot, { force: true });
-        }
+        if (opened) void this.hydrateVillageCommandPortrait(this.villageCommandPanel);
         return opened;
+    }
+
+    async hydrateVillageCommandPortrait(panel) {
+        const mediaService = window.CompanionMediaService || companionMediaService;
+        if (!panel || !mediaService?.resolvePortrait) return false;
+        const stage = window.GameState?.get?.('creature.lifecycle.stage') || 'baby';
+        const record = await mediaService.resolvePortrait(stage).catch(() => null);
+        if (
+            !record?.imageUrl ||
+            this._isShuttingDown ||
+            this.villageCommandPanel !== panel
+        ) {
+            return false;
+        }
+        return panel.setCompanionPortrait(record);
     }
 
     handleFendResidentProximity(_player, zone) {
@@ -10284,7 +10381,9 @@ class GameScene extends Phaser.Scene {
                     storage: 'preview'
                 }
                 : null;
-            Promise.resolve(mediaService?.createCinematicStill?.(this, {
+            Promise.resolve((
+                mediaService?.createStoryMoment || mediaService?.createCinematicStill
+            )?.call(mediaService, this, {
                 momentId: expeditionDebrief
                     ? `guardian_debrief_${result.resident.id}`
                     : `guardian_trust_${result.resident.id}`,
@@ -15586,6 +15685,11 @@ class GameScene extends Phaser.Scene {
             return;
         }
         this.updateSanctuaryActorDepths();
+        if (this.villageCommandPreview) {
+            this.player.body.setVelocity(0, 0);
+            this.astronautFollower?.update(delta || this.game?.loop?.delta || 16.67);
+            return;
+        }
         this.updateSanctuaryPeripheralLabelVisibility();
 
         if (this.waypointPreview) {
@@ -18029,6 +18133,7 @@ class GameScene extends Phaser.Scene {
             return;
         }
         this._isShuttingDown = true;
+        this.villageCommandPreviewState = null;
         console.log('[GameScene] Shutting down - cleaning up event listeners');
         this.cancelVillageArrivalReveal();
         this.cancelRescuedResidentArrival();

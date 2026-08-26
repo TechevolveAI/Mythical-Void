@@ -626,6 +626,10 @@ export function getVillageWorldGuidance(snapshot) {
 }
 
 export function getVillageOnboardingState(snapshot = {}) {
+    // Existing settlements predate the explicit Heart introduction. Any saved
+    // structure is proof that the player already completed that lesson.
+    const heartMet = snapshot.state?.guidanceSeen === true ||
+        (snapshot.buildings?.length || 0) > 0;
     const forager = snapshot.buildings?.find(
         building => building.definitionId === 'forager_hut'
     ) || null;
@@ -637,45 +641,53 @@ export function getVillageOnboardingState(snapshot = {}) {
         ['sawmill', 'current_masonry'].includes(building.definitionId)
     )).length || 0;
     let stage = 'established';
-    let step = 3;
+    let step = 4;
     let title = 'GROW THE SANCTUARY';
     let instruction = 'Choose the next need at the Village Heart.';
 
-    if (!forager) {
-        stage = 'first_build';
+    if (!heartMet) {
+        stage = 'meet_heart';
         step = 1;
+        title = 'MEET THE VILLAGE HEART';
+        instruction = 'The Heart keeps shared supplies and reveals one safe foundation at a time.';
+    } else if (!forager) {
+        stage = 'first_build';
+        step = 2;
         title = 'BUILD ONE SAFE FOOD PATH';
-        instruction = 'Use Wanderer-77 salvage to build the Forager Hut at the first living root.';
+        instruction = 'Use the landing salvage to build a Forager Hut at the highlighted living root.';
     } else if (forager.status === 'constructing') {
         stage = 'first_construction';
-        step = 1;
+        step = 2;
         title = 'LET THE FIRST ROOT GROW';
         instruction = 'The Current is shaping the Forager Hut. Stay or continue exploring.';
     } else if (!forager.creature) {
         stage = 'first_helper';
-        step = 2;
+        step = 3;
         title = 'INVITE YOUR COMPANION';
         instruction = 'A structure only produces supplies when a creature chooses to help there.';
     } else if (!firstFoodDelivered) {
         stage = 'first_delivery';
-        step = 3;
+        step = 4;
         title = 'WATCH THE FIRST SAFE HARVEST';
         instruction = 'Your companion is returning food to the Heart without stripping the living patch.';
     } else if (secondarySupplyCount === 0) {
         stage = 'supply_choice';
-        step = 3;
+        step = 4;
         title = 'CHOOSE THE NEXT SUPPLY ROUTE';
         instruction = 'Restore wood from fallen timber or recover loose stone beside the Current.';
     }
 
-    const visiblePlotCount = snapshot.revealState?.visiblePlotCount ||
-        Math.min(VILLAGE_PLOTS.length, Math.max(1, (snapshot.buildings?.length || 0) + 1));
+    const visiblePlotCount = heartMet
+        ? snapshot.revealState?.visiblePlotCount ??
+            Math.min(VILLAGE_PLOTS.length, Math.max(1, (snapshot.buildings?.length || 0) + 1))
+        : snapshot.buildings?.length || 0;
     return {
         stage,
         step,
-        totalSteps: 3,
+        totalSteps: 4,
         title,
         instruction,
+        heartMet,
         firstLoopComplete,
         showFullPlan: firstLoopComplete,
         visiblePlotCount,

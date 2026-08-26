@@ -54,7 +54,11 @@ describe('Guardian trust-memory cinematic contract', () => {
     });
 
     test('keeps portrait loading non-blocking and destroys stale motion stills', () => {
-        expect(gameScene).toContain('Promise.resolve(mediaService?.createCinematicStill?.(this, {');
+        expect(gameScene).toContain(
+            'mediaService?.createStoryMoment || mediaService?.createCinematicStill'
+        );
+        expect(gameScene).toContain('Promise.resolve((');
+        expect(gameScene).toContain('?.call(mediaService, this, {');
         expect(gameScene).toContain('this.guardianTrustCinematicRequest === cinematicRequest');
         expect(gameScene).toContain('this.guardianTrustCinematic?.destroy?.();');
         expect(gameScene).toContain('Stored portrait continuity is an enhancement, never a blocker.');

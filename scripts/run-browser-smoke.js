@@ -153,6 +153,17 @@ async function main() {
         } catch (error) {
             failures.push(`village-ui: ${error.message}`);
         }
+        console.log('\n[release-smoke] Shop Base Builder desktop reload suite');
+        try {
+            await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                SMOKE_MODE: 'village-ui',
+                SMOKE_CASE: 'desktop',
+                SMOKE_VIEWPORT_WIDTH: '1440',
+                SMOKE_VIEWPORT_HEIGHT: '810'
+            });
+        } catch (error) {
+            failures.push(`village-ui:desktop: ${error.message}`);
+        }
 
         console.log('\n[release-smoke] First-session Start-to-egg viewport suite');
         const homeEntryViewports = [
@@ -198,7 +209,7 @@ async function main() {
         for (const smokeCase of interactionCases) {
             console.log(`[release-smoke] Interaction case: ${smokeCase}`);
             try {
-                await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                await runNodeScriptWithRetry('scripts/smoke-secondary-journeys.js', {
                     SMOKE_MODE: 'interaction',
                     SMOKE_CASE: smokeCase
                 });
@@ -246,7 +257,7 @@ async function main() {
         for (const smokeCase of guardianHandoffCases) {
             console.log(`[release-smoke] Guardian handoff case: ${smokeCase}`);
             try {
-                await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                await runNodeScriptWithRetry('scripts/smoke-secondary-journeys.js', {
                     SMOKE_MODE: 'guardian-handoff',
                     SMOKE_CASE: smokeCase
                 });

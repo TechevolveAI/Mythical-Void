@@ -124,7 +124,35 @@ describe('Expedition astronaut', () => {
 
         expect(getExpeditionFollowOffset('topDown', true)).toEqual({ x: -58, y: 24 });
         expect(getExpeditionFollowOffset('topDown', false)).toEqual({ x: 58, y: 24 });
-        expect(getExpeditionFollowOffset('platformer', true)).toEqual({ x: -68, y: 2 });
+        expect(getExpeditionFollowOffset('platformer', true)).toEqual({ x: -92, y: 2 });
+        expect(getExpeditionFollowOffset('platformer', false)).toEqual({ x: 92, y: 2 });
+    });
+
+    test('keeps the platformer astronaut visually separate from a wide creature', () => {
+        const { ExpeditionAstronaut, getExpeditionFollowOffset } =
+            loadExpeditionAstronaut();
+        const scene = createScene();
+        const target = {
+            active: true,
+            x: 200,
+            y: 300,
+            flipX: false,
+            body: {
+                velocity: { x: 0, y: 0 },
+                blocked: { down: true }
+            }
+        };
+        const follower = new ExpeditionAstronaut(scene, target, {
+            mode: 'platformer'
+        });
+        const creatureHalfWidth = 52.5;
+        const astronautHalfWidth = (74 * 0.78) / 2;
+        const formation = getExpeditionFollowOffset('platformer', true);
+
+        expect(follower.followDistance).toBe(96);
+        expect(Math.abs(formation.x)).toBeGreaterThan(
+            creatureHalfWidth + astronautHalfWidth
+        );
     });
 
     test('samples an actual travelled path rather than a straight-line shortcut', () => {
@@ -138,6 +166,32 @@ describe('Expedition astronaut', () => {
 
         expect(findExpeditionTrailTarget(trail, 35)).toEqual({ x: 80, y: 80 });
         expect(findExpeditionTrailTarget(trail, 200)).toEqual({ x: 60, y: 80 });
+    });
+
+    test('keeps the platformer astronaut within its readable follow range', () => {
+        const { ExpeditionAstronaut } = loadExpeditionAstronaut();
+        const scene = createScene();
+        const target = {
+            active: true,
+            x: 200,
+            y: 300,
+            flipX: false,
+            body: {
+                velocity: { x: 180, y: 0 },
+                blocked: { down: true }
+            }
+        };
+        const follower = new ExpeditionAstronaut(scene, target, {
+            mode: 'platformer'
+        });
+
+        target.x += 180;
+        follower.update(16);
+
+        expect(Math.hypot(
+            follower.sprite.x - target.x,
+            follower.sprite.y - target.y
+        )).toBeLessThanOrEqual(follower.followDistance + 8.001);
     });
 
     test('uses a contextual formation to keep the astronaut clear of a landmark', () => {

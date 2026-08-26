@@ -44,11 +44,27 @@ function category(relativePath) {
     return 'root';
 }
 
+function normalizeVolatileManifestForCompression(file, buffer) {
+    if (path.basename(file) !== 'itch-package-manifest.json') return buffer;
+
+    try {
+        const manifest = JSON.parse(buffer.toString('utf8'));
+        manifest.sourceCommit = '<source-commit>';
+        manifest.builtAt = '<build-time>';
+        return Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`);
+    } catch (_error) {
+        return buffer;
+    }
+}
+
 function sizes(file) {
     const buffer = fs.readFileSync(file);
     return {
         rawBytes: buffer.length,
-        gzipEstimateBytes: zlib.gzipSync(buffer, { level: 9 }).length
+        gzipEstimateBytes: zlib.gzipSync(
+            normalizeVolatileManifestForCompression(file, buffer),
+            { level: 9 }
+        ).length
     };
 }
 
@@ -154,4 +170,7 @@ function run() {
 
 if (require.main === module) run();
 
-module.exports = { measurePokiCandidate };
+module.exports = {
+    measurePokiCandidate,
+    normalizeVolatileManifestForCompression
+};

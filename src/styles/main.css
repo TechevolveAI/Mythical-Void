@@ -2770,6 +2770,21 @@ body.game-mode {
   box-shadow: 0 0 0 1px rgba(242, 193, 78, 0.5);
 }
 
+.village-creature-avatar.is-living-portrait {
+  overflow: hidden;
+  background: #07100f;
+  border-color: #f2c14e;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(113, 230, 177, 0.3);
+}
+
+.village-creature-living-portrait {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 32%;
+}
+
 .village-creature-portrait {
   position: absolute;
   inset: 0;
@@ -3057,6 +3072,89 @@ body.game-mode {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+.village-heart-introduction {
+  display: grid;
+  min-height: 360px;
+  grid-template-columns: minmax(210px, 0.72fr) minmax(300px, 1.28fr);
+  background: #050b0c;
+}
+
+.village-heart-introduction-identity {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
+  min-height: 300px;
+  padding: 24px;
+  background: #06110f;
+  border-right: 1px solid rgba(113, 230, 177, 0.18);
+}
+
+.village-heart-introduction-identity .village-creature-avatar {
+  width: 148px;
+  height: 148px;
+  flex-basis: 148px;
+  border-width: 3px;
+}
+
+.village-heart-introduction-link {
+  color: #8fe3cf;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.village-heart-introduction-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  padding: 24px;
+}
+
+.village-heart-starter-cache {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 18px;
+  padding: 12px;
+  background: #0b1715;
+  border: 1px solid rgba(242, 193, 78, 0.3);
+  border-radius: 5px;
+}
+
+.village-heart-starter-cache > strong {
+  grid-column: 1 / -1;
+  color: #f2c14e;
+  font-size: 9px;
+}
+
+.village-heart-cache-resource {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 7px;
+}
+
+.village-heart-cache-resource .village-resource-icon {
+  grid-row: 1 / 3;
+  width: 20px;
+  height: 20px;
+}
+
+.village-heart-cache-resource b {
+  color: #f4f4f4;
+  font-size: 9px;
+}
+
+.village-heart-cache-resource small {
+  overflow: hidden;
+  color: #8fe3cf;
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .village-guided-stage[data-intent='decision'] {
@@ -4115,6 +4213,53 @@ body.game-mode {
 
   .village-guided-stage {
     display: block;
+  }
+
+  .village-heart-introduction {
+    display: block;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .village-heart-introduction-identity {
+    min-height: 126px;
+    padding: 12px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(113, 230, 177, 0.18);
+  }
+
+  .village-heart-introduction-identity .village-creature-avatar {
+    width: 92px;
+    height: 92px;
+    flex-basis: 92px;
+  }
+
+  .village-heart-introduction-copy {
+    padding: 12px;
+  }
+
+  .village-heart-starter-cache {
+    gap: 6px;
+    margin-top: 12px;
+    padding: 8px;
+  }
+
+  .village-heart-cache-resource {
+    grid-template-columns: 17px minmax(0, 1fr);
+    gap: 2px 4px;
+  }
+
+  .village-heart-cache-resource .village-resource-icon {
+    width: 15px;
+    height: 15px;
+  }
+
+  .village-heart-cache-resource b {
+    font-size: 7px;
+  }
+
+  .village-heart-cache-resource small {
+    display: none;
   }
 
   .village-guided-visual {

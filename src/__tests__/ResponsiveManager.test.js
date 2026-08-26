@@ -58,4 +58,43 @@ describe('ResponsiveManager', () => {
         expect(ResponsiveManager.prototype.setupTouchToMouse).toBeUndefined();
         expect(ResponsiveManager.prototype.preventDefaults).toBeUndefined();
     });
+
+    test('does not resize Phaser while destroying responsive support', () => {
+        const manager = new ResponsiveManager();
+        const game = createGame();
+        manager.game = game;
+        manager.isMobile = false;
+
+        manager.destroy();
+
+        expect(game.scale.resize).not.toHaveBeenCalled();
+        expect(manager.game).toBeNull();
+        expect(manager.isDestroyed).toBe(true);
+    });
+
+    test('cancels a pending resize when destroyed', () => {
+        jest.useFakeTimers();
+        const manager = new ResponsiveManager();
+        const game = createGame();
+        manager.game = game;
+        manager.resizeHandler = manager.debounce(() => manager.handleResize(), 100);
+        manager.registerCleanup(() => manager.resizeHandler.cancel());
+
+        manager.resizeHandler();
+        manager.destroy();
+        jest.advanceTimersByTime(150);
+
+        expect(game.scale.resize).not.toHaveBeenCalled();
+        jest.useRealTimers();
+    });
+
+    test('ignores stale resize callbacks after destruction', () => {
+        const manager = new ResponsiveManager();
+        const game = createGame();
+        manager.game = game;
+        manager.isDestroyed = true;
+
+        expect(() => manager.handleResize()).not.toThrow();
+        expect(game.scale.resize).not.toHaveBeenCalled();
+    });
 });

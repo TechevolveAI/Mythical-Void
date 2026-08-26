@@ -1839,8 +1839,8 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     isPlayerInsideRouteChoiceZone(zone) {
-        const x = Number(this.player?.x);
-        const y = Number(this.player?.y);
+        const x = Number(this.player?.body?.center?.x ?? this.player?.x);
+        const y = Number(this.player?.body?.center?.y ?? this.player?.y);
         return Boolean(
             zone &&
             Number.isFinite(x) &&
@@ -2300,12 +2300,13 @@ class PlatformerLevelScene extends Phaser.Scene {
     /**
      * Create the player creature
      */
+    getPlayerSpawnGroundTopY() {
+        return this.levelHeight - 50;
+    }
+
     createPlayer() {
         const startX = 200;
-        // Ground platform starts at y = levelHeight - 50, with height 80
-        // So ground TOP surface is at y = levelHeight - 50
-        // Player body is ~55px tall, spawn player well above ground to ensure visibility
-        const groundTopY = this.levelHeight - 50;
+        const groundTopY = this.getPlayerSpawnGroundTopY();
         const startY = groundTopY - 80; // Player center 80px above ground top (generous buffer)
 
         // Generate creature texture using existing system

@@ -143,6 +143,20 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('timeoutMs: 4500');
     });
 
+    test('route-choice smoke stages a settled landing before reading the choice', () => {
+        const smoke = read('../../scripts/smoke-secondary-journeys.js');
+
+        expect(smoke).toContain(
+            'support.body.top - scene.player.body.bottom'
+        );
+        expect(smoke).toContain('scene.player.body.blocked.down = true;');
+        expect(smoke).toContain('scene.player.body.touching.down = true;');
+        expect(smoke).toContain('scene.updateOptionalRouteChoices?.();');
+        expect(smoke).toContain("message: 'Desktop no-touch Sanctuary reload'");
+        expect(smoke).toContain('waitForRemoval = false');
+        expect(smoke).toContain('waitForRemoval: true');
+    });
+
     test('authored movement survives a scene reset', () => {
         const PlatformerLevelScene = loadPlatformerLevelScene();
         const scene = new PlatformerLevelScene({
@@ -826,6 +840,12 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.forestFoliageLayer = this.add.graphics()');
         expect(source).toContain('targets: this.forestFoliageLayer');
         expect(source).toContain('this.forestBridgeLayer = this.add.graphics()');
+        expect(source).toContain('detachForestPhysicsSupport(platform)');
+        expect(source).toContain('platform.forestPhysicsOnly = true;');
+        expect(source).toContain('this.children.remove(platform);');
+        expect(source).toContain('this.detachForestPhysicsSupport(platformZone);');
+        expect(source).toContain('this.detachForestPhysicsSupport(branchPlatform);');
+        expect(source).toContain('this.detachForestPhysicsSupport(bridgeZone);');
         expect(source).toContain('startForestEnemyTrailRenderer()');
         expect(source).toContain('delay: this.isMobile ? 180 : 100');
         expect(source).toContain('sprite.x < view.left - 120');
@@ -915,8 +935,10 @@ describe('campaign traversal quality contracts', () => {
         expect(smokeSource).toContain('renderAttachedEnemyCount');
         expect(smokeSource).toContain('renderAttachedCueCount');
         expect(smokeSource).toContain('sleepingDetachedCount');
-        expect(smokeSource).toContain('displayCount: 215');
-        expect(smokeSource).toContain('state.displayCount > 225');
+        expect(smokeSource).toContain('displayCount: 150');
+        expect(smokeSource).toContain('state.displayCount > 150');
+        expect(smokeSource).toContain('physicsOnlySupportCount !== 73');
+        expect(smokeSource).toContain('physicsOnlySupportDisplayCount !== 0');
     });
 
     test('shared biome rendering batches ambient fields and uses a phone tier', () => {
@@ -934,7 +956,9 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("type: 'starField'");
         expect(source).toContain("type: 'floraField'");
         expect(source).toContain('shouldAnimateAmbientFields()');
+        expect(source).toContain('shouldUseContinuousAmbientEmitters()');
         expect(source).toContain("return this.performanceTier !== 'mobile'");
+        expect(source).toContain("type: 'dustField'");
         expect(source).toContain('layer.animate && this.shouldAnimateAmbientFields()');
         expect(source).toContain('this.config.effects.enableTwinkling &&');
         expect(source).toContain('this.config.effects.enableGentleFloat &&');
@@ -946,6 +970,7 @@ describe('campaign traversal quality contracts', () => {
             'utf8'
         );
         expect(smokeSource).toContain('sharedAmbientFieldTweenCount');
+        expect(smokeSource).toContain('framePacing.particleProcessors.length !== 0');
         expect(smokeSource).toContain("framePacing.performanceTier === 'mobile'");
     });
 
@@ -1133,12 +1158,37 @@ describe('campaign traversal quality contracts', () => {
         );
     });
 
+    test('shared route choices use the physics body rather than padded artwork', () => {
+        const source = read('PlatformerLevelScene.js');
+
+        expect(source).toContain(
+            'this.player?.body?.center?.x ?? this.player?.x'
+        );
+        expect(source).toContain(
+            'this.player?.body?.center?.y ?? this.player?.y'
+        );
+    });
+
     test('Stellar Reef spawns above its opening floating platform', () => {
         const source = read('levels/ReefLevel.js');
 
         expect(source).toContain('createPlayer() {');
         expect(source).toContain('this.player.setPosition(200, this.levelHeight - 290);');
         expect(source).toContain('this.player.setVelocity(0, 0);');
+    });
+
+    test('Mythical Forest spawns above its authored first ground section', () => {
+        const platformer = read('PlatformerLevelScene.js');
+        const forest = read('levels/MythicalForestLevel.js');
+        const smoke = read('../../scripts/smoke-secondary-journeys.js');
+
+        expect(platformer).toContain('getPlayerSpawnGroundTopY()');
+        expect(platformer).toContain('const groundTopY = this.getPlayerSpawnGroundTopY();');
+        expect(forest).toMatch(
+            /getPlayerSpawnGroundTopY\(\)\s*\{\s*return this\.levelHeight - 100;/
+        );
+        expect(smoke).toContain("scene?.getTraversalSupport?.('forest-ground-1')");
+        expect(smoke).toContain('playerGrounded &&');
     });
 
     test('Stellar Reef offers a finite resource detour that rejoins the route', () => {
@@ -1512,12 +1562,15 @@ describe('campaign traversal quality contracts', () => {
             "challengeLabel: 'HIGH JUMPS // 1-HIT WARD // FEWER GUARDS'"
         );
         expect(source).toContain("id: 'aurora_quiet_light'");
+        expect(source).toContain('claimQuietLightPickup(shelter = this.optionalRoutePickup)');
         expect(source).toContain("rewardLabel: 'QUIET LIGHT WARD // 1 HIT'");
         expect(source).toContain("this.grantOptionalRouteGuard('QUIET LIGHT WARD', 1)");
         expect(source).toContain("this.selectAuroraRoute('shadow_current')");
         expect(source).toContain('LAND + ALIGN');
         expect(source).toContain('this.phoenixLandingGuide = this.createTraversalLandingGuide(');
-        expect(source).toContain("this.isPlayerGroundedOnTraversalSupport(\n                    'aurora-quiet-step-3'");
+        expect(source).toContain(
+            "!this.isPlayerGroundedOnTraversalSupport('aurora-quiet-step-3')"
+        );
         expect(source).toContain('const routeBonus = this.consumeCurrentCharge();');
         expect(source).toContain('this.currentChargeAuraTween?.remove?.();');
         expect(source).toContain(
@@ -1542,6 +1595,9 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("id: 'forest_canopy_run'");
         expect(source).toContain("rewardLabel: 'CANOPY GUARD // 1 HIT'");
         expect(source).toContain("optionalRouteId: 'forest_canopy_run'");
+        expect(source).toContain(
+            "x: 2700,\n                y: this.levelHeight - 100 - 800 - 30,\n                hint: 'Tree 4 peak'"
+        );
         expect(source).toContain("this.grantOptionalRouteGuard('CANOPY GUARD', 1)");
         expect(source).toContain("this.getOptionalRouteStatusText(");
         expect(source).toContain("onMainSelected: () => this.selectForestRoute('main')");
@@ -1645,6 +1701,12 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("'final-rift-step-1'");
         expect(source).toContain("'final-rift-step-4'");
         expect(source).toContain(
+            "[1650, groundY - 100, 180, 'final-rift-step-1']"
+        );
+        expect(source).toContain(
+            "[1850, groundY - 190, 190, 'final-rift-step-2']"
+        );
+        expect(source).toContain(
             "[2180, groundY - 150, 260, 'final-rift-step-4']"
         );
         expect(source).toContain("mainLabel: 'LOW RIFT CROSSING →'");
@@ -1660,6 +1722,7 @@ describe('campaign traversal quality contracts', () => {
             "this.createPlatform(0, groundY, this.levelWidth, 80, 'solid');"
         );
         expect(source).toContain("id: 'final_trust_bridge'");
+        expect(source).toContain('claimBondReservePickup(reserve = this.optionalRoutePickup)');
         expect(source).toContain("mainSupportIds: ['final-rift-step-1']");
         expect(source).toContain("optionalSupportIds: ['final-trust-bridge-1']");
         expect(source).toContain("rejoinSupportIds: ['final-rift-step-4']");
@@ -2774,7 +2837,7 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('scene.player.setVelocity?.(0, 680)');
         expect(smoke).toContain('message: `${sceneName} live stomp collision`');
         expect(smoke).toContain('const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({');
-        expect(smoke).toContain('state.displayCount > 225');
+        expect(smoke).toContain('state.displayCount > 150');
         expect(smoke).toContain(
             'framePacing.displayCount > renderBudget.displayCount'
         );

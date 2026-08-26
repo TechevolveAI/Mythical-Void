@@ -547,8 +547,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
         // The low route requires readable, forgiving jumps over the fracture.
         // The Trust Bridge remains the harder high route and earns a rescue.
         const mainRiftRoute = [
-            [1650, groundY - 130, 130, 'final-rift-step-1'],
-            [1850, groundY - 240, 190, 'final-rift-step-2'],
+            [1650, groundY - 100, 180, 'final-rift-step-1'],
+            [1850, groundY - 190, 190, 'final-rift-step-2'],
             [2070, groundY - 210, 150, 'final-rift-step-3'],
             // Preserve the 2440 endpoint while overlapping the downhill handoff.
             [2180, groundY - 150, 260, 'final-rift-step-4']
@@ -749,29 +749,37 @@ class FinalVoidLevel extends PlatformerLevelScene {
             ease: 'Sine.easeInOut'
         });
 
-        this.optionalRoutePickupOverlap = this.physics.add.overlap(this.player, reserve, () => {
-            if (this.bondReserveReady || !reserve.active) return;
-            if (!this.isPlayerGroundedOnTraversalSupport('final-trust-bridge-1')) {
-                return;
-            }
+        this.optionalRoutePickupOverlap = this.physics.add.overlap(
+            this.player,
+            reserve,
+            () => this.claimBondReservePickup(reserve)
+        );
+    }
 
-            const rewardX = reserve.x;
-            const rewardY = reserve.y;
-            const claimed = this.recordOptionalRouteProgress('final_trust_bridge', {
-                x: rewardX,
-                y: rewardY
-            });
-            if (!claimed) return;
-            this.clearBondReservePickup();
-            window.FXLibrary?.stardustBurst?.(this, rewardX, rewardY, {
-                count: 22,
-                color: [0xA9F3E4, 0xF2C94C, 0xFFFFFF],
-                duration: 1000
-            });
-            window.AchievementSystem?.recordEvent?.('story_interaction', {
-                event: 'final_void_trust_bridge'
-            });
+    claimBondReservePickup(reserve = this.optionalRoutePickup) {
+        if (
+            this.bondReserveReady ||
+            !reserve?.active ||
+            !this.isPlayerGroundedOnTraversalSupport('final-trust-bridge-1')
+        ) return false;
+
+        const rewardX = reserve.x;
+        const rewardY = reserve.y;
+        const claimed = this.recordOptionalRouteProgress('final_trust_bridge', {
+            x: rewardX,
+            y: rewardY
         });
+        if (!claimed) return false;
+        this.clearBondReservePickup();
+        window.FXLibrary?.stardustBurst?.(this, rewardX, rewardY, {
+            count: 22,
+            color: [0xA9F3E4, 0xF2C94C, 0xFFFFFF],
+            duration: 1000
+        });
+        window.AchievementSystem?.recordEvent?.('story_interaction', {
+            event: 'final_void_trust_bridge'
+        });
+        return true;
     }
 
     clearBondReservePickup() {

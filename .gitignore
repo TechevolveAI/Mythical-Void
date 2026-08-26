@@ -33,6 +33,10 @@ pids
 *.seed
 *.pid.lock
 
+# Private visual-review output. Candidate captures require human review and
+# Kevin's explicit approval before any asset is copied into the public site.
+.visual-review/candidates/
+
 # Coverage directory used by tools like istanbul
 coverage/
 *.lcov
