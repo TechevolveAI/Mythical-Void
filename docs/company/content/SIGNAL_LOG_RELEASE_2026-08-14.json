@@ -3,11 +3,17 @@
   "id": "SIGNAL-LOG-RELEASE-2026-08-14",
   "state": "published_to_owned_website_and_live_verified",
   "publicUrl": "https://mythicalvoid.com/updates/",
-  "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/102",
-  "productionCommit": "07870dcd73d69ebdb34269fc566dc87b22250f4b",
-  "verifiedAt": "2026-08-26T09:16:39Z",
+  "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/103",
+  "productionCommit": "28cf9c6dbe65172c27b0b07a315d1fb958fb2a4b",
+  "verifiedAt": "2026-08-26T09:57:11Z",
   "purpose": "Give players, families, creators and search engines one plain-language source for meaningful Mythical Void releases, with a working destination for every note.",
   "liveEntries": [
+    {
+      "id": "SIGNAL-010",
+      "title": "Real gameplay now fits every screen",
+      "destination": "https://mythicalvoid.com/press/#real-gameplay-social-video",
+      "destinationStatusObserved": 200
+    },
     {
       "id": "SIGNAL-009",
       "title": "See the real game before you play",
@@ -78,8 +84,8 @@
     "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/86",
     "productionCommit": "bddd9b29d40c1b7f8798575219b0eacc6574a004",
     "generatedPack": "docs/company/content/generated/signal-log-release-pack.json",
-    "sourceEntryCount": 9,
-    "reviewDraftCount": 27,
+    "sourceEntryCount": 10,
+    "reviewDraftCount": 30,
     "draftTypesPerEntry": [
       "professional network post",
       "video community text post",
@@ -232,15 +238,15 @@
   },
   "signalLogSyndicationRelease": {
     "state": "published_to_owned_website_and_live_verified",
-    "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/102",
-    "productionCommit": "07870dcd73d69ebdb34269fc566dc87b22250f4b",
+    "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/103",
+    "productionCommit": "28cf9c6dbe65172c27b0b07a315d1fb958fb2a4b",
     "rssFeedUrl": "https://mythicalvoid.com/updates/feed.xml",
     "rssContentTypeObserved": "application/rss+xml; charset=utf-8",
-    "rssSha256": "f84d26deedd62b4b4c490daafdd4e6563f9aa596428938cafac5eb9055ffcdec",
+    "rssSha256": "57084c70fcab1b3ce09fea676e0f69a1397a8df6aa56f53190f0d2b3c0784b81",
     "jsonFeedUrl": "https://mythicalvoid.com/updates/feed.json",
     "jsonContentTypeObserved": "application/feed+json; charset=utf-8",
-    "jsonSha256": "5345dc4992959257dbf74c3f4dba381ddfe3c4402a7f0545860e4dd3462efc06",
-    "itemCount": 9,
+    "jsonSha256": "c067150c8939e6907c3eee380d3966af1869c375636f44187006a82d010e0c5f",
+    "itemCount": 10,
     "sourceBoundBuild": true,
     "accountRequired": false,
     "emailSignupEnabled": false,
@@ -248,6 +254,58 @@
     "trackingParametersPermitted": false,
     "externalSyndicationAuthorized": false,
     "autonomousSocialPostingAuthorized": false,
+    "externalActionPerformed": false
+  },
+  "authenticGameplaySocialKitRelease": {
+    "state": "published_to_owned_press_room_and_live_verified",
+    "productionPullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/103",
+    "productionCommit": "28cf9c6dbe65172c27b0b07a315d1fb958fb2a4b",
+    "pressRoomUrl": "https://mythicalvoid.com/press/#real-gameplay-social-video",
+    "manifestUrl": "https://mythicalvoid.com/press/social-video/manifest.json",
+    "captionPackUrl": "https://mythicalvoid.com/press/social-video/authentic-gameplay-caption-pack.json",
+    "sourceVideoSha256": "3b9aa5e41bef7f9b2b5529a3c3d3e1a3cc6448676cb0e2643d0e61bd6c418a8c",
+    "formats": [
+      {
+        "name": "vertical",
+        "dimensions": "1080x1920",
+        "sha256": "9b531598a59d2b71fd9012a1e015267452159e3515dbd942c676ca03d284874c",
+        "productionStatusObserved": 200,
+        "productionContentTypeObserved": "video/mp4"
+      },
+      {
+        "name": "square",
+        "dimensions": "1080x1080",
+        "sha256": "b5dba4bab6ae59a6e0fd22b5d250cb8ea26d8c9f45d4f7cf27523fa79eed927b",
+        "productionStatusObserved": 200,
+        "productionContentTypeObserved": "video/mp4"
+      },
+      {
+        "name": "wide",
+        "dimensions": "1920x1080",
+        "sha256": "e7c68a2343511786bd9486c54b98c9d1b39519e76944c761ac25dcf0bd718047",
+        "productionStatusObserved": 200,
+        "productionContentTypeObserved": "video/mp4"
+      }
+    ],
+    "durationSeconds": 19.58,
+    "captionDraftCount": 3,
+    "fullGameplayFramePreserved": true,
+    "generatedMotionUsed": false,
+    "replacementSceneryUsed": false,
+    "replacementInterfaceUsed": false,
+    "replacementAudioUsed": false,
+    "audio": "none",
+    "desktopVisualReviewPassed": true,
+    "phoneVisualReviewPassed": true,
+    "phoneWidth": 390,
+    "horizontalOverflowObserved": false,
+    "deterministicRebuildManifestMatched": true,
+    "trackingParametersPermitted": false,
+    "autonomousSocialPostingAuthorized": false,
+    "creatorOutreachSendingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "publicRepliesAuthorized": false,
+    "kevinApprovalRequiredBeforeExternalPublication": true,
     "externalActionPerformed": false
   },
   "playableNowDiscoveryRelease": {
@@ -298,8 +356,9 @@
     "browserWarningsOrErrorsObserved": false,
     "signalLogSafeguardCasesPassed": 9,
     "playableNowSafeguardCasesPassed": 15,
-    "fullTestSuitesPassed": 180,
-    "fullTestsPassed": 1653,
+    "authenticGameplaySocialKitSafeguardCasesPassed": 17,
+    "fullTestSuitesPassed": 181,
+    "fullTestsPassed": 1655,
     "productionPageVerified": true,
     "homepageLinkVerified": true,
     "sitemapEntryVerified": true

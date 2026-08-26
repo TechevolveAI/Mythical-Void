@@ -194,10 +194,14 @@ try {
     autoPostedPlayableNow.playableNowDiscoveryRelease.autonomousSocialPostingAuthorized = true;
     if (run('auto-posted-playable-now', { signalLog: autoPostedPlayableNow }).status === 0) throw new Error('Playable Now silently authorized external social posting.');
 
+    const autoPostedGameplayVideoKit = structuredClone(sources.signalLog);
+    autoPostedGameplayVideoKit.authenticGameplaySocialKitRelease.autonomousSocialPostingAuthorized = true;
+    if (run('auto-posted-gameplay-video-kit', { signalLog: autoPostedGameplayVideoKit }).status === 0) throw new Error('Authentic gameplay social kit silently authorized external social posting.');
+
     const staleDashboard = `${sources.dashboard}\nOutdated line.\n`;
     if (run('stale-dashboard', { dashboard: staleDashboard }).status === 0) throw new Error('A stale dashboard was accepted.');
 
-    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 30 drift and authority mutations checked.');
+    console.log('Founder launch command centre tests passed: valid snapshot, channel and Search Console transitions, plus 31 drift and authority mutations checked.');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }

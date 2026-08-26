@@ -100,6 +100,7 @@ function buildDashboard({ evidence, outreach, activation, itch, launch, trailer,
 - The first Project Beacon social release is live in the press room with ${signalLog.firstSocialRelease.assets.length} finished, downloadable images. Posting still waits for an official channel and Kevin's approval.
 - The NASA/STEM sharing release is live with ${signalLog.nasaStemSocialRelease.assets.length} downloadable images built around a real Apollo 11 game screen. The NASA source, non-endorsement and science-versus-fiction boundary are explicit; posting still waits for an official channel and Kevin's approval.
 - The father-and-son studio story now has ${signalLog.fatherSonStorySocialRelease.assets.length} downloadable sharing images and a purpose-built link preview. The marketing-art and real-game boundaries are labelled, and no photograph, name, quote, contact detail or identifying detail of the child is used.
+- The authentic-gameplay social kit is live in the press room with ${signalLog.authenticGameplaySocialKitRelease.formats.length} checked video shapes and ${signalLog.authenticGameplaySocialKitRelease.captionDraftCount} source-bound captions. Each edit keeps the complete real game frame visible; no social account, post, message, recipient or tracking link was created.
 - The game created its playable canvas during that check.
 - The real-gameplay page clearly separates game evidence from marketing artwork and carries the NASA non-endorsement boundary.${verifiedChannelLine}
 

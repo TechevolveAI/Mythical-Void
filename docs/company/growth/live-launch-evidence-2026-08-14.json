@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "id": "LIVE-LAUNCH-EVIDENCE-2026-08-14",
-  "checkedAt": "2026-08-26T09:16:39Z",
+  "checkedAt": "2026-08-26T09:57:11Z",
   "checkedBy": "Codex read-only production verification after Netlify publish",
   "productionBranch": "origin/main",
-  "productionCommit": "07870dcd73d69ebdb34269fc566dc87b22250f4b",
+  "productionCommit": "28cf9c6dbe65172c27b0b07a315d1fb958fb2a4b",
   "canonicalUrl": "https://mythicalvoid.com/",
   "result": "owned_discovery_live_game_entry_working",
   "socialPreviewMetadata": {
@@ -74,7 +74,12 @@
       "notFoundShown": false,
       "verified": true,
       "socialAssetCount": 6,
-      "socialArtworkLinked": true
+      "socialArtworkLinked": true,
+      "authenticSocialVideoCount": 3,
+      "socialVideoCaptionDraftCount": 3,
+      "socialVideoKitLinked": true,
+      "socialVideoFilesMatchedApprovedDigests": true,
+      "externalSocialPublicationAuthorized": false
     },
     {
       "route": "/story/",
@@ -94,13 +99,13 @@
       "resolvedUrl": "https://mythicalvoid.com/updates/",
       "notFoundShown": false,
       "verified": true,
-      "liveEntryCount": 9,
+      "liveEntryCount": 10,
       "rssFeedUrl": "https://mythicalvoid.com/updates/feed.xml",
       "rssContentTypeObserved": "application/rss+xml; charset=utf-8",
-      "rssItemCount": 9,
+      "rssItemCount": 10,
       "jsonFeedUrl": "https://mythicalvoid.com/updates/feed.json",
       "jsonContentTypeObserved": "application/feed+json; charset=utf-8",
-      "jsonItemCount": 9,
+      "jsonItemCount": 10,
       "feedFilesMatchedApprovedDigests": true,
       "homepageLinked": true,
       "sitemapListed": true,
@@ -157,12 +162,13 @@
     "This check proves that the named public pages loaded at the checked time; it does not prove search indexing, traffic, player satisfaction or uptime outside the check.",
     "One game canvas after five seconds proves that the game entry started; it does not prove every scene, device or complete playthrough.",
     "The story check proves its page, six real-game realm images, play link and sitemap entry were reachable; the unapproved trailer remains unlinked.",
-    "The Signal Log check proves its page, nine named release notes, homepage link, sitemap entry, RSS feed and JSON feed were reachable with the approved content types and files; it does not prove that anyone subscribed, read or acted on them.",
+    "The Signal Log check proves its page, ten named release notes, homepage link, sitemap entry, RSS feed and JSON feed were reachable with the approved content types and files; it does not prove that anyone subscribed, read or acted on them.",
     "The feeds require no account or email address and add no tracking parameters. They have not been submitted to an external directory or posted through an official social account.",
     "The social-preview check proves that eight static pages carried their recorded images, sizes and accessible image text; it does not prove how any third-party social platform cached, cropped or displayed them.",
     "The Playable Now check proves that its real-gameplay video, four named screenshots, early-access wording and three direct game links were reachable; it does not prove that a visitor watched, understood or played the game.",
     "The homepage check proves that two user-controlled share actions and the clean mythicalvoid.com destination were in the live storefront bundle; it does not prove that anyone shared the game or that a recipient opened it.",
-    "The press-room check proves that two Project Beacon, two NASA/STEM and two founder-story social images were linked and served as PNG files; it does not prove that any image was posted to an official social account or seen by an audience.",
+    "The press-room check proves that two Project Beacon, two NASA/STEM and two founder-story social images plus three authentic-gameplay social videos were linked and served with their recorded file types and fingerprints; it does not prove that any asset was posted to an official social account or seen by an audience.",
+    "The social-video check proves that vertical, square and wide silent edits, their posters, three source-bound captions and the clean Playable Now destination were reachable; the complete moving game frame is authentic but the surrounding branded layout is not gameplay.",
     "Prepared distribution and outreach work remains internal and unsubmitted."
   ]
 }
