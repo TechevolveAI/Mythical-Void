@@ -40,4 +40,25 @@ describe('Sanctuary navigation lifecycle', () => {
             /handleMovement\(\) \{[\s\S]*?!this\.player\?\.active[\s\S]*?!this\.player\.body\?\.enable[\s\S]*?return;/
         );
     });
+
+    test('owns and removes asynchronous world-data listeners across scene restarts', () => {
+        const gameScene = read('scenes/GameScene.js');
+
+        expect(gameScene).toContain('this.spaceWeatherEffectsHandler = null;');
+        expect(gameScene).toMatch(
+            /SpaceWeatherSystem\.on\(\s*'weatherUpdated',\s*this\.spaceWeatherEffectsHandler\s*\)/
+        );
+        expect(gameScene).toMatch(
+            /SpaceWeatherSystem\.off\(\s*'weatherUpdated',\s*this\.spaceWeatherEffectsHandler\s*\)/
+        );
+        expect(gameScene).not.toContain(
+            "window.SpaceWeatherSystem.off('weatherUpdated', this.applySpaceWeatherEffects);"
+        );
+        expect(gameScene).toMatch(
+            /await window\.SpaceWeatherSystem\.initialize\(\);\s*}\s*if \(this\._isShuttingDown\) return;/
+        );
+        expect(gameScene).toMatch(
+            /await window\.NASAContentSystem\.initialize\(\);\s*}\s*if \(this\._isShuttingDown\) return;/
+        );
+    });
 });

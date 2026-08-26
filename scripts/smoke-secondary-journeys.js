@@ -9168,6 +9168,55 @@ async function smokeSanctuaryNavigation(session, exceptions) {
         () => evaluate(session, `Boolean(window.mythicalGame.scene.getScene('GameScene')?.hamburgerMenu)`),
         { timeoutMs: 18000, message: 'Sanctuary navigation controls' }
     );
+    await waitFor(
+        () => evaluate(session, `window.SpaceWeatherSystem?.isInitialized === true`),
+        { timeoutMs: 18000, message: 'Sanctuary world-data initialization' }
+    );
+
+    const worldDataListenerLifecycle = await evaluate(session, `(async () => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const weather = window.SpaceWeatherSystem;
+        const nasa = window.NASAContentSystem;
+        const weatherBefore = weather?.listeners?.weatherUpdated?.length || 0;
+        const nasaBefore = nasa?.listeners?.issOverhead?.length || 0;
+        await scene.setupSpaceWeather();
+        await scene.setupSpaceWeather();
+        await scene.setupNASAContent();
+        await scene.setupNASAContent();
+        const weatherListeners = weather?.listeners?.weatherUpdated || [];
+        const nasaListeners = nasa?.listeners?.issOverhead || [];
+        return {
+            weatherBefore,
+            weatherAfter: weatherListeners.length,
+            weatherEffectHandlerMatches: weatherListeners.filter(
+                listener => listener === scene.spaceWeatherEffectsHandler
+            ).length,
+            creatureWeatherHandlerMatches: weatherListeners.filter(
+                listener => listener === scene.spaceWeatherHandler
+            ).length,
+            nasaBefore,
+            nasaAfter: nasaListeners.length,
+            nasaHandlerMatches: nasaListeners.filter(
+                listener => listener === scene.nasaIssOverheadHandler
+            ).length
+        };
+    })()`);
+    if (
+        worldDataListenerLifecycle.weatherBefore < 1 ||
+        worldDataListenerLifecycle.weatherAfter !==
+            worldDataListenerLifecycle.weatherBefore ||
+        worldDataListenerLifecycle.weatherEffectHandlerMatches !== 1 ||
+        worldDataListenerLifecycle.creatureWeatherHandlerMatches !== 1 ||
+        worldDataListenerLifecycle.nasaAfter !==
+            worldDataListenerLifecycle.nasaBefore ||
+        worldDataListenerLifecycle.nasaHandlerMatches !== 1
+    ) {
+        throw new Error(
+            `Sanctuary world-data listeners leaked: ${JSON.stringify(
+                worldDataListenerLifecycle
+            )}`
+        );
+    }
 
     const before = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
@@ -9252,7 +9301,7 @@ async function smokeSanctuaryNavigation(session, exceptions) {
             })}`
         );
     }
-    return { before, after };
+    return { before, after, worldDataListenerLifecycle };
 }
 
 async function smokeHubForestTransition(session, exceptions) {

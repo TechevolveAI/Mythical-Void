@@ -4226,6 +4226,7 @@ class GameScene extends Phaser.Scene {
 
         // Creature intelligence integrations
         this.spaceWeatherHandler = null;
+        this.spaceWeatherEffectsHandler = null;
         this.lastSpaceWeatherCheck = 0;
         this.currentTimeOfDay = null;
     }
@@ -5861,14 +5862,27 @@ class GameScene extends Phaser.Scene {
             if (!window.SpaceWeatherSystem.isInitialized) {
                 await window.SpaceWeatherSystem.initialize();
             }
+            if (this._isShuttingDown) return;
 
             // Apply current space weather effects
             this.applySpaceWeatherEffects();
 
-            // Listen for weather updates
-            window.SpaceWeatherSystem.on('weatherUpdated', (weather) => {
+            // Keep the exact callback so scene restarts cannot retain a dead
+            // Sanctuary and replay visual effects against destroyed objects.
+            if (this.spaceWeatherEffectsHandler) {
+                window.SpaceWeatherSystem.off(
+                    'weatherUpdated',
+                    this.spaceWeatherEffectsHandler
+                );
+            }
+            this.spaceWeatherEffectsHandler = (weather) => {
+                if (this._isShuttingDown) return;
                 this.applySpaceWeatherEffects(weather);
-            });
+            };
+            window.SpaceWeatherSystem.on(
+                'weatherUpdated',
+                this.spaceWeatherEffectsHandler
+            );
 
             console.log('[GameScene] Space weather system connected');
         } catch (error) {
@@ -5880,7 +5894,11 @@ class GameScene extends Phaser.Scene {
      * Apply visual effects based on current space weather
      */
     applySpaceWeatherEffects(weather = null) {
-        if (!window.SpaceWeatherSystem || !window.FXLibrary) return;
+        if (
+            this._isShuttingDown ||
+            !window.SpaceWeatherSystem ||
+            !window.FXLibrary
+        ) return;
 
         weather = weather || window.SpaceWeatherSystem.getWeather();
 
@@ -5933,6 +5951,7 @@ class GameScene extends Phaser.Scene {
             if (!window.NASAContentSystem.isInitialized) {
                 await window.NASAContentSystem.initialize();
             }
+            if (this._isShuttingDown) return;
 
             // Set up ISS overhead alert listener without accumulating handlers
             // when this long-lived scene is restarted.
@@ -18228,8 +18247,12 @@ class GameScene extends Phaser.Scene {
             this.skyTintEffect.destroy();
             this.skyTintEffect = null;
         }
-        if (window.SpaceWeatherSystem) {
-            window.SpaceWeatherSystem.off('weatherUpdated', this.applySpaceWeatherEffects);
+        if (window.SpaceWeatherSystem && this.spaceWeatherEffectsHandler) {
+            window.SpaceWeatherSystem.off(
+                'weatherUpdated',
+                this.spaceWeatherEffectsHandler
+            );
+            this.spaceWeatherEffectsHandler = null;
         }
 
         // Clean up NASA content
