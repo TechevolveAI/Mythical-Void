@@ -19,6 +19,8 @@ describe('Playable Now discovery page', () => {
         expect(page).toContain('Recorded directly from the running browser game');
         expect(page.match(/href="\/play\/"/g).length).toBeGreaterThanOrEqual(3);
         expect(page).not.toMatch(/[?&](?:utm_|fbclid|gclid)/i);
+        expect(page).toContain('/press/gameplay/creature-cosmic-egg-reveal.png');
+        expect(page).toContain('one real result, not every form');
     });
 
     test('keeps public language and claims inside the studio rules', () => {

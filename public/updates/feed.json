@@ -15,6 +15,19 @@
   ],
   "items": [
     {
+      "id": "https://mythicalvoid.com/updates/#signal-012",
+      "url": "https://mythicalvoid.com/updates/#signal-012",
+      "external_url": "https://mythicalvoid.com/press/#real-creature-hatch",
+      "title": "The real creature now takes centre stage",
+      "content_text": "The first hatch now gives the generated pixel creature room to be seen before the player chooses a name, and the real result is available as checked gameplay proof.\n\n• The running genetics engine creates the creature shown in the new screenshot; no marketing illustration, replacement creature or private player state is used.\n• The creature is more than twice its previous display size, the field reading no longer overlaps and old egg instructions disappear when the hatch is complete.\n• The moment gives the player one clear next step. The screenshot proves one genuine hatch, not every possible creature form or an absolute uniqueness claim.\n\nSee the live change: https://mythicalvoid.com/press/#real-creature-hatch\n\nMedia note: Captured from the real browser game using an invented Mythical Void test state; not marketing art. It shows one genetics result and no player identity or private save.",
+      "summary": "The first hatch now gives the generated pixel creature room to be seen before the player chooses a name, and the real result is available as checked gameplay proof.",
+      "image": "https://mythicalvoid.com/press/gameplay/creature-cosmic-egg-reveal.png",
+      "date_published": "2026-08-26T12:00:00.000Z",
+      "tags": [
+        "REAL CREATURE HATCH"
+      ]
+    },
+    {
       "id": "https://mythicalvoid.com/updates/#signal-011",
       "url": "https://mythicalvoid.com/updates/#signal-011",
       "external_url": "https://mythicalvoid.com/press/#creator-download-kit",

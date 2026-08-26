@@ -6,7 +6,7 @@
   "page": {
     "path": "public/playable-now/index.html",
     "publicUrl": "https://mythicalvoid.com/playable-now/",
-    "sha256": "0d1fefaa0acb203f4d9d290df2ab8590e29dd5069e8185686ee16d3ef7ffb9b6",
+    "sha256": "b0895eb3c72fd0976c48b9384cab084c713aea59b4d25c38a7be21bd206d7381",
     "canonical": "https://mythicalvoid.com/playable-now/",
     "directPlayLinkMinimum": 3,
     "structuredData": ["VideoGame", "VideoObject", "FAQPage"]
@@ -18,6 +18,8 @@
     "posterPath": "public/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png",
     "posterSha256": "7ad7b821bcf3c872804133f7c22da7ae3aa12cccfdea3dafc0d425224e164376",
     "screenshotCount": 4,
+    "hatchRevealPath": "public/press/gameplay/creature-cosmic-egg-reveal.png",
+    "hatchRevealSha256": "55943dfceb9debbc8f6c2f96cbcfacfd0afc7abc264c6cde0714c9be3690ed86",
     "generatedFramesUsed": false,
     "playerIdentityUsed": false,
     "personalSaveUsed": false

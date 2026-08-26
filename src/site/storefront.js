@@ -150,6 +150,10 @@ function renderPressPage() {
                             <img src="/press/gameplay/project-beacon-live-egg.png" alt="The real first-contact screen with an alien egg waiting above a signal platform" loading="lazy">
                             <figcaption><span>REAL RUNNING BUILD</span><strong>First contact</strong><p>The live egg interaction at the Wanderer-77 crash site.</p><a href="/press/gameplay/project-beacon-live-egg.png" download>Download gameplay image ↓</a></figcaption>
                         </figure>
+                        <figure class="press-gameplay-card press-gameplay-wide" id="real-creature-hatch">
+                            <img src="/press/gameplay/creature-cosmic-egg-reveal.png" alt="A real generated pixel creature taking centre stage after hatching in Mythical Void" loading="lazy">
+                            <figcaption><span>REAL RUNNING BUILD · REAL GENETICS RESULT</span><strong>Meet who answered</strong><p>This is one creature generated and revealed by the running game—not marketing art and not a promise that every possible form looks like this.</p><a href="/press/gameplay/creature-cosmic-egg-reveal.png" download>Download real hatch image ↓</a><a href="/press/gameplay/manifest.json">Check the build record →</a></figcaption>
+                        </figure>
                         <figure class="press-gameplay-card press-gameplay-portrait">
                             <img src="/press/gameplay/realm-mythicalforest.png" alt="Phone gameplay in the Mythical Forest with the astronaut, route display and touch controls" loading="lazy">
                             <figcaption><span>REAL PHONE GAMEPLAY</span><strong>Mythical Forest</strong><p>Platforming, route guidance and the astronaut’s on-screen controls.</p><a href="/press/gameplay/realm-mythicalforest.png" download>Download gameplay image ↓</a></figcaption>

@@ -4,23 +4,23 @@
   "state": "complete_owned_site_release_waiting_for_production_verification",
   "source": {
     "path": "public/updates/releases.json",
-    "fingerprintSha256": "965b9935804205c718d48312986079b5b4053ae7148c3e7e7e62917e5184d4d5",
-    "liveEntryCount": 11
+    "fingerprintSha256": "fd358b5269af91c1f11d3aadb631151a539de507637aa1cb61b84bbd07ebe881",
+    "liveEntryCount": 12
   },
   "feeds": {
     "rss": {
       "path": "public/updates/feed.xml",
       "url": "https://mythicalvoid.com/updates/feed.xml",
       "mimeType": "application/rss+xml; charset=utf-8",
-      "sha256": "baf7c262583c9ae602e58391eb3a02fadc82187db7059a3eaab82829b3ae440f",
-      "itemCount": 11
+      "sha256": "a2be1c38a3f9873d2ae4edead94fb0544e544a19c3be0c25559e6d879947af72",
+      "itemCount": 12
     },
     "json": {
       "path": "public/updates/feed.json",
       "url": "https://mythicalvoid.com/updates/feed.json",
       "mimeType": "application/feed+json; charset=utf-8",
-      "sha256": "3e736ae6e32d132bc64171b41ac150eed2049b4ca843e87e2abca1611023160d",
-      "itemCount": 11
+      "sha256": "353985cdd260936e6d6a3cce1906a91a4b4b42618796b80cce30f03bc8a6ce32",
+      "itemCount": 12
     }
   },
   "discovery": {

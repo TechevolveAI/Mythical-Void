@@ -57,7 +57,7 @@ requireValue(screenshotManifest.ownedWebsiteProofUseAuthorized === true && scree
 
 const screenshotPaths = [
     '/press/gameplay/project-beacon-start.png',
-    '/press/gameplay/creature-cosmic-egg-hatch.png',
+    '/press/gameplay/creature-cosmic-egg-reveal.png',
     '/press/gameplay/realm-reef.png',
     '/press/gameplay/village-base-builder.png'
 ];
