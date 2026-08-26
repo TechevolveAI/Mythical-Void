@@ -431,6 +431,160 @@ async function captureGameplayStill(session, filename) {
     return destination;
 }
 
+async function smokeRealCreatureShowcase(session, exceptions) {
+    if (!SMOKE_CAPTURE_DIR) {
+        throw new Error('SMOKE_CAPTURE_DIR is required for hatch-gallery mode');
+    }
+    await navigate(
+        session,
+        `${BASE_URL}/play/?testHatchGallery=showcase`
+    );
+    const exported = await waitFor(
+        () => evaluate(session, `(() => {
+            const manifestElement = document.getElementById('hatch-qa-manifest');
+            const exportElement = document.getElementById('hatch-qa-exports');
+            if (!manifestElement || !exportElement) return null;
+            const manifest = JSON.parse(manifestElement.textContent || '[]');
+            const images = JSON.parse(exportElement.textContent || '[]');
+            if (manifest.length !== 12 || images.length !== 12) return null;
+            return { manifest, images };
+        })()`),
+        { timeoutMs: 15000, message: 'twelve real rendered creature exports' }
+    );
+    if (exceptions.length) {
+        throw new Error(
+            `Real-creature showcase raised browser exceptions: ${exceptions.join(' | ')}`
+        );
+    }
+    await evaluate(session, `(() => {
+        document.querySelectorAll(
+            '.home-start-fallback, [data-mythical-home-start]'
+        ).forEach(element => element.remove());
+        return document.querySelectorAll(
+            '.home-start-fallback, [data-mythical-home-start]'
+        ).length;
+    })()`);
+    await delay(250);
+
+    fs.mkdirSync(SMOKE_CAPTURE_DIR, { recursive: true });
+    const imageRecords = exported.images.map(image => {
+        if (!/^data:image\/png;base64,/.test(image.dataUrl || '')) {
+            throw new Error(`Missing PNG export for ${image.id}`);
+        }
+        const bytes = Buffer.from(image.dataUrl.split(',')[1], 'base64');
+        const filename = String(image.imageFile || 'missing.png');
+        fs.writeFileSync(path.join(SMOKE_CAPTURE_DIR, filename), bytes);
+        return {
+            ...Object.fromEntries(
+                Object.entries(image).filter(([key]) => key !== 'dataUrl')
+            ),
+            filename,
+            bytes: bytes.length,
+            sha256: require('crypto').createHash('sha256').update(bytes).digest('hex')
+        };
+    });
+    const widePath = await captureGameplayStill(
+        session,
+        'real-creature-showcase-wide.png'
+    );
+    const wideBytes = fs.readFileSync(widePath);
+    const sourceCommit = spawnSync('git', ['rev-parse', 'HEAD'], {
+        cwd: path.resolve(__dirname, '..'),
+        encoding: 'utf8'
+    }).stdout.trim();
+    const rendererManifest = {
+        schemaVersion: 1,
+        state: 'captured_from_real_running_renderer_waiting_for_release_review',
+        sourceCommit,
+        sourceRoute: '/play/?testHatchGallery=showcase',
+        captureMethod: 'First-party headless browser capture from the production genetics, DNA and Phaser sprite renderer.',
+        selectedFromEngineRuns: 1000,
+        selectionBoundary: 'Twelve profiles were selected for breadth across deliberately balanced rarity runs. This is not a probability sample or an absolute uniqueness claim.',
+        rights: 'First-party Mythical Void game renderer output.',
+        privacy: 'No player identity, child identity, account, message, notification or personal save is used.',
+        presentationBoundary: 'Every creature image is exported from the real pixel renderer. The gallery frame is a branded proof layout, not a playable game scene.',
+        generatedMarketingArtworkUsed: false,
+        gallery: {
+            filename: 'real-creature-showcase-wide.png',
+            width: SMOKE_VIEWPORT_WIDTH,
+            height: SMOKE_VIEWPORT_HEIGHT,
+            bytes: wideBytes.length,
+            sha256: require('crypto').createHash('sha256').update(wideBytes).digest('hex')
+        },
+        creatures: imageRecords
+    };
+    fs.writeFileSync(
+        path.join(SMOKE_CAPTURE_DIR, 'renderer-manifest.json'),
+        `${JSON.stringify(rendererManifest, null, 2)}\n`
+    );
+    return {
+        profileCount: exported.manifest.length,
+        imageCount: imageRecords.length,
+        galleryBytes: wideBytes.length,
+        gallerySha256: rendererManifest.gallery.sha256,
+        sourceCommit
+    };
+}
+
+async function smokeCreatureShowcasePage(session, exceptions) {
+    if (!SMOKE_CAPTURE_DIR) {
+        throw new Error('SMOKE_CAPTURE_DIR is required for creature-showcase-page mode');
+    }
+    await session.call('Page.navigate', {
+        url: `${BASE_URL}/creature-genetics/index.html`
+    });
+    await waitFor(
+        () => evaluate(session, 'document.readyState === "complete"'),
+        { message: 'creature showcase page load' }
+    );
+    await evaluate(session, `(() => {
+        document.querySelectorAll('img[loading="lazy"]').forEach(image => {
+            image.loading = 'eager';
+        });
+        scrollTo(0, document.documentElement.scrollHeight);
+        return true;
+    })()`);
+    await delay(350);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const cards = document.querySelectorAll('.creature-specimen').length;
+            const imagesReady = [...document.images]
+                .every(image => image.complete && image.naturalWidth > 0);
+            return cards === 12 && imagesReady ? { cards, imagesReady } : null;
+        })()`),
+        { timeoutMs: 10000, message: 'creature showcase cards and images' }
+    );
+    const layout = await evaluate(session, `(() => {
+        document.documentElement.style.scrollBehavior = 'auto';
+        scrollTo(0, 0);
+        document.querySelector('.analytics-choice')?.remove();
+        const cardCount = document.querySelectorAll('.creature-specimen').length;
+        const brokenImages = [...document.images]
+            .filter(image => !image.complete || image.naturalWidth === 0)
+            .map(image => image.getAttribute('src'));
+        return {
+            viewport: { width: innerWidth, height: innerHeight },
+            cardCount,
+            brokenImages,
+            horizontalOverflow: document.documentElement.scrollWidth > innerWidth + 1,
+            heading: document.querySelector('h1')?.textContent?.trim() || '',
+            gridColumns: getComputedStyle(document.querySelector('.creature-showcase-grid')).gridTemplateColumns
+        };
+    })()`);
+    if (exceptions.length) {
+        throw new Error(`Creature showcase page raised browser exceptions: ${exceptions.join(' | ')}`);
+    }
+    if (layout.cardCount !== 12 || layout.brokenImages.length || layout.horizontalOverflow) {
+        throw new Error(`Creature showcase page layout failed: ${JSON.stringify(layout)}`);
+    }
+    await delay(150);
+    await captureGameplayStill(
+        session,
+        `creature-showcase-page-${SMOKE_VIEWPORT_WIDTH}x${SMOKE_VIEWPORT_HEIGHT}.png`
+    );
+    return layout;
+}
+
 async function startGameplayVideo(session) {
     if (!SMOKE_VIDEO_PATH || activeVideoCapture) return activeVideoCapture;
     if (!SMOKE_VIDEO_PATH.endsWith('.mp4')) {
@@ -17279,6 +17433,18 @@ async function main() {
         if (SMOKE_MODE === 'home-entry') {
             results.homeEntry = await smokeHomeStart(session, exceptions);
             process.stdout.write('PASS HomeStartToEgg\n');
+        } else if (SMOKE_MODE === 'hatch-gallery') {
+            results.hatchGallery = await smokeRealCreatureShowcase(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS RealCreatureShowcase\n');
+        } else if (SMOKE_MODE === 'creature-showcase-page') {
+            results.creatureShowcasePage = await smokeCreatureShowcasePage(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS CreatureShowcasePage\n');
         } else if (SMOKE_MODE === 'living-form-late') {
             results.livingFormLate = await smokeLateLivingFormArrival(
                 session,
@@ -17389,7 +17555,7 @@ async function main() {
         } else {
             throw new Error(
                 `Unknown SMOKE_MODE ${JSON.stringify(SMOKE_MODE)}. ` +
-                'Use home-entry, first-sanctuary, nasa-content, interaction, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, or guardian-pacing.'
+                'Use home-entry, hatch-gallery, first-sanctuary, nasa-content, interaction, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, or guardian-pacing.'
             );
         }
         console.log(JSON.stringify({

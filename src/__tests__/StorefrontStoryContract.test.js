@@ -195,12 +195,24 @@ describe('storefront Project Beacon story contract', () => {
         expect(pressAssets.gameplayVideoProofManifest).toBe(
             'https://mythicalvoid.com/press/gameplay-video/manifest.json'
         );
-        expect(pressAssets.assets).toHaveLength(21);
+        expect(pressAssets.assets).toHaveLength(34);
         expect(pressAssets.assets).toContainEqual(expect.objectContaining({
             name: 'Real creature hatch reveal',
             url: 'https://mythicalvoid.com/press/gameplay/creature-cosmic-egg-reveal.png',
             kind: 'authentic_running_build_screenshot'
         }));
+        expect(storefront).toContain('id="real-creature-range"');
+        expect(storefront).toContain('Twelve real hatches. One running engine.');
+        expect(pressAssets.realCreatureShowcase).toEqual(expect.objectContaining({
+            selectedFromEngineRuns: 1000,
+            selectedCreatures: 12
+        }));
+        expect(pressAssets.assets.filter(asset => (
+            asset.kind === 'authentic_running_game_renderer_export'
+        ))).toHaveLength(12);
+        expect(pressAssets.assets.filter(asset => (
+            asset.kind === 'branded_renderer_proof_layout_with_authentic_game_sprite_exports'
+        ))).toHaveLength(1);
         expect(pressAssets.authenticGameplaySocialKit).toEqual(expect.objectContaining({
             manifest: 'https://mythicalvoid.com/press/social-video/manifest.json',
             captionPack: 'https://mythicalvoid.com/press/social-video/authentic-gameplay-caption-pack.json'
