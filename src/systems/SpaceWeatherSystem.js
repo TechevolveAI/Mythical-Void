@@ -14,6 +14,10 @@ import { devLog, devWarn } from '../utils/devLogger.js';
 class SpaceWeatherSystem {
     constructor() {
         this.isInitialized = false;
+        this.initializationPromise = null;
+        this.refreshPromise = null;
+        this.lifecycleToken = 0;
+        this.refreshInterval = null;
         this.apiKey = null;
         this.baseUrl = 'https://api.nasa.gov/DONKI';
 
@@ -45,24 +49,39 @@ class SpaceWeatherSystem {
      * Initialize the space weather system
      */
     async initialize() {
-        // Get NASA API key from environment (optional - DEMO_KEY works for testing)
-        this.apiKey = window.envLoader?.get('NASA_API_KEY') || 'DEMO_KEY';
+        if (this.isInitialized) return this;
+        if (this.initializationPromise) return this.initializationPromise;
 
-        devLog('[SpaceWeather] Initializing with API key:',
-            this.apiKey === 'DEMO_KEY' ? 'DEMO_KEY (limited)' : '***' + this.apiKey.slice(-4));
+        const lifecycleToken = ++this.lifecycleToken;
+        const initialization = (async () => {
+            this.apiKey = window.envLoader?.get('NASA_API_KEY') || 'DEMO_KEY';
 
-        // Fetch initial data
-        await this.refresh();
+            devLog('[SpaceWeather] Initializing with API key:',
+                this.apiKey === 'DEMO_KEY'
+                    ? 'DEMO_KEY (limited)'
+                    : '***' + this.apiKey.slice(-4));
 
-        // Set up periodic refresh (every 4 hours)
-        this.refreshInterval = setInterval(() => {
-            this.refresh();
-        }, this.cache.cacheDuration);
+            await this.refresh();
+            if (lifecycleToken !== this.lifecycleToken) return this;
 
-        this.isInitialized = true;
-        devLog('[SpaceWeather] System initialized', this.currentWeather);
+            if (this.refreshInterval) clearInterval(this.refreshInterval);
+            this.refreshInterval = setInterval(() => {
+                this.refresh();
+            }, this.cache.cacheDuration);
 
-        return this;
+            this.isInitialized = true;
+            devLog('[SpaceWeather] System initialized', this.currentWeather);
+            return this;
+        })();
+        this.initializationPromise = initialization;
+
+        try {
+            return await initialization;
+        } finally {
+            if (this.initializationPromise === initialization) {
+                this.initializationPromise = null;
+            }
+        }
     }
 
     /**
@@ -76,28 +95,39 @@ class SpaceWeatherSystem {
             devLog('[SpaceWeather] Using cached data');
             return this.currentWeather;
         }
+        if (this.refreshPromise) return this.refreshPromise;
+
+        const lifecycleToken = this.lifecycleToken;
+        const refresh = (async () => {
+            try {
+                const [gstData, flrData] = await Promise.all([
+                    this.fetchGeomagnetic(),
+                    this.fetchSolarFlares()
+                ]);
+                if (lifecycleToken !== this.lifecycleToken) return this.currentWeather;
+
+                this.processWeatherData(gstData, flrData);
+                this.cache.data = { gstData, flrData };
+                this.cache.lastFetch = now;
+
+                this.emit('weatherUpdated', this.currentWeather);
+                devLog('[SpaceWeather] Weather updated from NASA', this.currentWeather);
+            } catch (error) {
+                if (lifecycleToken !== this.lifecycleToken) return this.currentWeather;
+                devWarn('[SpaceWeather] API fetch failed, using fallback:', error.message);
+                this.currentWeather = { ...this.fallbackWeather };
+                this.emit('weatherUpdated', this.currentWeather);
+            }
+
+            return this.currentWeather;
+        })();
+        this.refreshPromise = refresh;
 
         try {
-            const [gstData, flrData] = await Promise.all([
-                this.fetchGeomagnetic(),
-                this.fetchSolarFlares()
-            ]);
-
-            this.processWeatherData(gstData, flrData);
-
-            this.cache.data = { gstData, flrData };
-            this.cache.lastFetch = now;
-
-            this.emit('weatherUpdated', this.currentWeather);
-            devLog('[SpaceWeather] Weather updated from NASA', this.currentWeather);
-
-        } catch (error) {
-            devWarn('[SpaceWeather] API fetch failed, using fallback:', error.message);
-            this.currentWeather = { ...this.fallbackWeather };
-            this.emit('weatherUpdated', this.currentWeather);
+            return await refresh;
+        } finally {
+            if (this.refreshPromise === refresh) this.refreshPromise = null;
         }
-
-        return this.currentWeather;
     }
 
     /**
@@ -355,8 +385,12 @@ class SpaceWeatherSystem {
      * Clean up system
      */
     destroy() {
+        this.lifecycleToken += 1;
+        this.initializationPromise = null;
+        this.refreshPromise = null;
         if (this.refreshInterval) {
             clearInterval(this.refreshInterval);
+            this.refreshInterval = null;
         }
         this.listeners = {};
         this.isInitialized = false;

@@ -14,6 +14,8 @@ import { devLog, devWarn } from '../utils/devLogger.js';
 class NASAContentSystem {
     constructor() {
         this.isInitialized = false;
+        this.initializationPromise = null;
+        this.lifecycleToken = 0;
         this.apiKey = null;
         this.baseUrl = 'https://api.nasa.gov';
         // NASA archived the Mars Rover Photos API in 2025. Keep the learning
@@ -86,28 +88,37 @@ class NASAContentSystem {
      * Initialize the NASA content system
      */
     async initialize() {
-        this.apiKey = window.envLoader?.get('NASA_API_KEY') || 'DEMO_KEY';
+        if (this.isInitialized) return this;
+        if (this.initializationPromise) return this.initializationPromise;
 
-        // Log API key status (helpful for debugging)
-        if (this.apiKey === 'DEMO_KEY') {
-            console.warn('[NASAContent] Using DEMO_KEY - limited to 30 req/hr. Set VITE_NASA_API_KEY in environment for better limits.');
-        } else {
-            devLog('[NASAContent] Using custom API key: ***' + this.apiKey.slice(-4));
+        const lifecycleToken = ++this.lifecycleToken;
+        const initialization = (async () => {
+            this.apiKey = window.envLoader?.get('NASA_API_KEY') || 'DEMO_KEY';
+
+            if (this.apiKey === 'DEMO_KEY') {
+                console.warn('[NASAContent] Using DEMO_KEY - limited to 30 req/hr. Set VITE_NASA_API_KEY in environment for better limits.');
+            } else {
+                devLog('[NASAContent] Using custom API key: ***' + this.apiKey.slice(-4));
+            }
+
+            this.loadLastShownDate();
+            await this.prefetchDailyContent();
+            if (lifecycleToken !== this.lifecycleToken) return this;
+
+            this.startISSTracking();
+            this.isInitialized = true;
+            devLog('[NASAContent] System initialized');
+            return this;
+        })();
+        this.initializationPromise = initialization;
+
+        try {
+            return await initialization;
+        } finally {
+            if (this.initializationPromise === initialization) {
+                this.initializationPromise = null;
+            }
         }
-
-        // Load last shown date from storage
-        this.loadLastShownDate();
-
-        // Pre-fetch today's content
-        await this.prefetchDailyContent();
-
-        // Start ISS tracking (checks every 5 minutes)
-        this.startISSTracking();
-
-        this.isInitialized = true;
-        devLog('[NASAContent] System initialized');
-
-        return this;
     }
 
     /**
@@ -463,9 +474,14 @@ class NASAContentSystem {
      * Start ISS tracking interval
      */
     startISSTracking() {
+        if (this.issCheckInterval) {
+            clearInterval(this.issCheckInterval);
+            this.issCheckInterval = null;
+        }
+
         // Open Notify API only supports HTTP, which causes mixed content errors on HTTPS
         // Skip ISS tracking in production HTTPS environments
-        if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+        if (typeof window !== 'undefined' && window.location?.protocol === 'https:') {
             devLog('[NASAContent] ISS tracking disabled on HTTPS (API only supports HTTP)');
             return;
         }
@@ -581,8 +597,11 @@ class NASAContentSystem {
      * Clean up system
      */
     destroy() {
+        this.lifecycleToken += 1;
+        this.initializationPromise = null;
         if (this.issCheckInterval) {
             clearInterval(this.issCheckInterval);
+            this.issCheckInterval = null;
         }
         this.listeners = {};
         this.isInitialized = false;
