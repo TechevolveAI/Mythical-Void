@@ -59,7 +59,7 @@ try {
 invalid('public/playable-now/index.html', source => source.replace('data-intent-choice="story"', 'data-intent-choice="missing"'), 'page is missing story');
 invalid('public/playable-now/index.html', source => source.replace('href="/play/" data-intent-play', 'href="/play/?source=story" data-intent-play'), 'tracking address');
 invalid('public/discovery.js', source => source.replace("readChoice() !== 'granted'", 'false'), 'measurement is not stopped before consent');
-invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceStored": false', '"choiceStored": true'), 'choice collection boundary is invalid');
+invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceRememberedInBrowser": false', '"choiceRememberedInBrowser": true'), 'choice collection boundary is invalid');
 
 function interactiveResult(consent, choice) {
     const page = fs.readFileSync(path.join(root, 'public/playable-now/index.html'), 'utf8');
@@ -100,4 +100,3 @@ assert.strictEqual(denied.events.length, 0);
 
 assert.strictEqual(cases, 7);
 console.log('Play-intent doorway checks passed (7 scenarios).');
-

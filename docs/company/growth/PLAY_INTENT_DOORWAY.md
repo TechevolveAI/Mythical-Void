@@ -22,9 +22,12 @@ personality quiz and it does not pretend to know the visitor.
 
 ## What we can learn
 
-If optional website analytics have been allowed, the existing `play_selected`
-event records only which of the four Play buttons was used. The choice itself is
-not sent or stored. The game remains outside website analytics.
+The initial choice click is not sent anywhere. If optional website analytics
+have been allowed and the visitor then presses Play, the existing
+`play_selected` event records which of the four Play buttons was used. Google
+Analytics stores that small event, but Mythical does not remember the choice in
+the browser or build an individual profile from it. The game remains outside
+website analytics.
 
 This can answer one useful question: which truthful promise most often leads to
 a Play selection? It cannot tell us who selected it, why someone left, whether
@@ -37,7 +40,7 @@ as a direction to test again, not as a fact about the market.
 ## Safety and quality boundaries
 
 - No name, email, age, creature information or free text is collected.
-- No choice is remembered for a later visit.
+- No choice is remembered in the browser for a later visit.
 - No tracking code is added to the Play address.
 - No new screenshot or video is published while the authentic visual gate is
   still 0 of 4 approved moments.
@@ -50,4 +53,3 @@ as a direction to test again, not as a fact about the market.
 npm run validate:play-intent
 npm run test:play-intent
 ```
-

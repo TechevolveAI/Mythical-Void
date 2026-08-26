@@ -25,7 +25,7 @@ requireValue(plan.releaseId === 'PLAY-INTENT-DOORWAY-2026-08-26', 'release ident
 requireValue(plan.state === 'owned_site_release_authorized_pending_production_verification', 'release authority state is invalid');
 requireValue(plan.publicRoute === 'https://mythicalvoid.com/playable-now/', 'public route is invalid');
 requireValue(page.includes('What are you in the mood for?'), 'plain-language question is missing');
-requireValue(page.includes('Nothing is saved and no account is needed.'), 'public privacy promise is missing');
+requireValue(page.includes('It does not create a profile, and no account is needed.'), 'public privacy promise is missing');
 requireValue(page.includes('data-play-intent') && page.includes('data-intent-answer hidden'), 'progressive intent doorway is missing');
 requireValue(page.includes('<noscript>') && page.includes('Play Mythical Void free in your browser'), 'no-script Play route is missing');
 requireValue((page.match(/data-intent-choice=/g) || []).length === 4, 'intent doorway must contain exactly four choices');
@@ -50,7 +50,8 @@ requireValue(discovery.includes("track('play_selected'"), 'existing Play event i
 requireValue(!discovery.includes("track('intent_"), 'choice clicks must not create analytics events');
 requireValue(!discovery.includes("localStorage.setItem('play-intent"), 'the selected reason must not be stored');
 requireValue(plan.measurement?.eventName === 'play_selected' && plan.measurement?.property === 'source_area', 'measurement contract drifted');
-requireValue(plan.measurement?.choiceClickMeasured === false && plan.measurement?.choiceStored === false, 'choice collection boundary is invalid');
+requireValue(plan.measurement?.choiceClickMeasured === false && plan.measurement?.choiceRememberedInBrowser === false, 'choice collection boundary is invalid');
+requireValue(plan.measurement?.selectedPlaySourceSentAfterConsent === true && plan.measurement?.aggregatePlayEventStoredByAnalytics === true, 'consented Play-source storage is not stated honestly');
 requireValue(plan.measurement?.individualJourneyBuilt === false && plan.measurement?.gameMeasured === false, 'individual or game measurement must remain off');
 requireValue(plan.decisionRules?.minimumConsentedPageViews >= 50 && plan.decisionRules?.minimumIntentPlaySelections >= 10, 'minimum decision boundary is too weak');
 requireValue(plan.visualBoundary?.approvedGameplayMoments === 0 && plan.visualBoundary?.requiredGameplayMoments === 4, 'visual gate drifted');
@@ -70,9 +71,8 @@ console.log(JSON.stringify({
     motives: expected.map(item => item[0]),
     analyticsDefault: 'denied',
     eventName: 'play_selected',
-    choiceStored: false,
+    choiceRememberedInBrowser: false,
     gameMeasured: false,
     visualGate: '0/4',
     externalPublicationAuthorized: false
 }, null, 2));
-

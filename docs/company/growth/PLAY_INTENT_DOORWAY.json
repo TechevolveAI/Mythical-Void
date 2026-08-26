@@ -36,7 +36,9 @@
     "eventName": "play_selected",
     "property": "source_area",
     "choiceClickMeasured": false,
-    "choiceStored": false,
+    "choiceRememberedInBrowser": false,
+    "selectedPlaySourceSentAfterConsent": true,
+    "aggregatePlayEventStoredByAnalytics": true,
     "individualJourneyBuilt": false,
     "gameMeasured": false,
     "reportingLanguage": "play selections, not people"

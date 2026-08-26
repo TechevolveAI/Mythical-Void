@@ -6,7 +6,7 @@
   "page": {
     "path": "public/playable-now/index.html",
     "publicUrl": "https://mythicalvoid.com/playable-now/",
-    "sha256": "3ecbe9a5e423af7f37461888ae86f2be6f36ce9cb8147aa6863bef1ca3ea9981",
+    "sha256": "048d0afdfe91fe9840f7ead41362d9d14d64ac669e39d55e1966bce148618c79",
     "canonical": "https://mythicalvoid.com/playable-now/",
     "directPlayLinkMinimum": 3,
     "structuredData": ["VideoGame", "FAQPage"]
@@ -31,7 +31,8 @@
     "planPath": "docs/company/growth/PLAY_INTENT_DOORWAY.json",
     "choices": ["wonder", "create", "challenge", "story"],
     "choiceClickMeasured": false,
-    "choiceStored": false,
+    "choiceRememberedInBrowser": false,
+    "selectedPlaySourceSentAfterConsent": true,
     "playEvent": "play_selected",
     "playSourceProperty": "source_area"
   },
