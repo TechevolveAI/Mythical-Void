@@ -5,8 +5,8 @@
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "b570dffe8d411b1582f964698ba9d48942f0f2d21757643b5cbf1f0e94d4b81f",
-    "liveEntryCount": 11,
+    "sourceFingerprint": "a7a40f420d7d4250966af61955f71ba400138d34dc07a293535e23beb730332e",
+    "liveEntryCount": 12,
     "latestSourceDate": "2026-08-26"
   },
   "purpose": "Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
@@ -32,6 +32,51 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-SIGNAL-019",
+      "sourceEntryId": "SIGNAL-019",
+      "sourcePublishedOn": "2026-08-26",
+      "destination": "https://mythicalvoid.com/playable-now/#find-your-way",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+        "alt": "Many imagined alien organisms gathered in a luminous Mythical Void realm",
+        "class": "ai_generated_marketing_illustration",
+        "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Send someone the part they might love\n\nWonder, creature creation, challenge and story now have their own clean way into Mythical Void, so a shared link can reopen the exact reason someone thought of you.\n\n• Choose one of the four honest reasons to play, then use Share this way in. The person receiving it sees the same answer and can enter the free browser game immediately.\n• The shared address contains only the public choice after the # sign. Mythical Void does not collect a recipient, create a profile or add a tracking code.\n• This improves word of mouth without bringing back the unclear screenshots or videos that remain withheld until four stronger gameplay moments pass human review.\n\nSee what changed: https://mythicalvoid.com/playable-now/#find-your-way\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 850
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Send someone the part they might love\n\nWonder, creature creation, challenge and story now have their own clean way into Mythical Void, so a shared link can reopen the exact reason someone thought of you.\n\nhttps://mythicalvoid.com/playable-now/#find-your-way\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 360
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Send someone the part they might love",
+          "body": "Mythical Void has a new live update: Send someone the part they might love.\n\nWonder, creature creation, challenge and story now have their own clean way into Mythical Void, so a shared link can reopen the exact reason someone thought of you.\n\nChoose one of the four honest reasons to play, then use Share this way in. The person receiving it sees the same answer and can enter the free browser game immediately. The shared address contains only the public choice after the # sign. Mythical Void does not collect a recipient, create a profile or add a tracking code. This improves word of mouth without bringing back the unclear screenshots or videos that remain withheld until four stronger gameplay moments pass human review.\n\nThe checked public destination is https://mythicalvoid.com/playable-now/#find-your-way\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 985,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-SIGNAL-018",
       "sourceEntryId": "SIGNAL-018",

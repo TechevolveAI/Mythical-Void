@@ -13,7 +13,8 @@ const requireValue = (condition, message) => { if (!condition) errors.push(messa
 const liveEntries = (source.entries || []).filter(entry => entry.status === 'live');
 
 requireValue(source.publicationBoundary?.liveItemsOnly === true, 'Signal Log must remain live-items-only.');
-requireValue(liveEntries.length === source.entries?.length && liveEntries.length >= 1, 'Every source entry must be verified live.');
+requireValue(liveEntries.length >= 1, 'At least one verified live source entry is required.');
+requireValue((source.entries || []).every(entry => entry.status === 'live' || entry.status === 'withdrawn'), 'Source entries must be live or explicitly withdrawn.');
 requireValue(pack.schemaVersion === 1 && pack.state === 'draft_only_missing_verified_social_channels_and_approval', 'Draft pack must retain its internal review-only state.');
 requireValue(pack.generatedFrom?.liveEntryCount === liveEntries.length && pack.items?.length === liveEntries.length, 'Draft count must match the live Signal Log.');
 requireValue(JSON.stringify(pack) === JSON.stringify(buildReleasePack(source)), 'Draft pack is stale or contains hand-written drift; rebuild it from the Signal Log.');

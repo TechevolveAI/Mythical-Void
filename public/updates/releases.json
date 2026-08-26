@@ -17,6 +17,26 @@
   },
   "entries": [
     {
+      "id": "SIGNAL-019",
+      "publishedOn": "2026-08-26",
+      "status": "live",
+      "category": "PASS A GAME ON",
+      "title": "Send someone the part they might love",
+      "summary": "Wonder, creature creation, challenge and story now have their own clean way into Mythical Void, so a shared link can reopen the exact reason someone thought of you.",
+      "details": [
+        "Choose one of the four honest reasons to play, then use Share this way in. The person receiving it sees the same answer and can enter the free browser game immediately.",
+        "The shared address contains only the public choice after the # sign. Mythical Void does not collect a recipient, create a profile or add a tracking code.",
+        "This improves word of mouth without bringing back the unclear screenshots or videos that remain withheld until four stronger gameplay moments pass human review."
+      ],
+      "image": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "imageAlt": "Many imagined alien organisms gathered in a luminous Mythical Void realm",
+      "imageClass": "ai_generated_marketing_illustration",
+      "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay.",
+      "destination": "/playable-now/#find-your-way",
+      "linkText": "Choose and share a way in",
+      "download": false
+    },
+    {
       "id": "SIGNAL-018",
       "publishedOn": "2026-08-26",
       "status": "live",
