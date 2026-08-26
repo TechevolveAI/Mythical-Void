@@ -129,11 +129,11 @@
     {
       "id": "LT-006",
       "name": "Distribution and partnerships",
-      "status": "blocked",
+      "status": "partially_ready",
       "ready": false,
       "owner": "Distribution owner unassigned",
       "workflowRefs": ["A-007", "A-011", "A-032", "A-035"],
-      "decisionRefs": ["D-005", "D-014"],
+      "decisionRefs": ["D-005", "D-010", "D-014", "D-018"],
       "riskRefs": ["R-007"],
       "proofIds": ["PF-003", "PF-004", "PF-005"],
       "channelIds": [],
@@ -141,10 +141,10 @@
       "opportunityRefs": ["OP-001", "OP-002", "OP-003", "OP-004"],
       "handoffRefs": ["GDH-005"],
       "blockers": [
-        "Four portal candidates are researched only; no portable-build feasibility decision exists.",
-        "No outreach, account, terms, upload, SDK, rights, or commercial action is authorized."
+        "The itch.io direct-play package is tested, but the authentic visual gate remains 0/4 and D-018 must preserve the Poki-first versus itch.io-first rights choice.",
+        "No Poki request, portal publication, outreach, account, terms, exclusivity, SDK, rights, advertising, or commercial action is authorized."
       ],
-      "exitEvidence": "One evidence-ranked route with portable-build, rights, privacy, economics, integration, support, and scoped approval evidence."
+      "exitEvidence": "Four approved real gameplay moments, a reviewed first-minute and mobile experience, D-018 decision, selected route, rights/privacy/economics evidence, and an exact scoped approval."
     },
     {
       "id": "LT-007",
