@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "id": "SIGNAL-DRAFT-PACK-2026-08-26",
+  "id": "SIGNAL-DRAFT-PACK-2026-08-27",
   "state": "draft_only_missing_verified_social_channels_and_approval",
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "589a87421f13c02b474f65646080f050324ff0a7ebd3671478e9130d09159c74",
-    "liveEntryCount": 14,
-    "latestSourceDate": "2026-08-26"
+    "sourceFingerprint": "afbfad908ac5faeec28aa09c9213c3cd95b9a12d6ee531671e39ffa008a64249",
+    "liveEntryCount": 15,
+    "latestSourceDate": "2026-08-27"
   },
   "purpose": "Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
   "audienceBoundary": {
@@ -32,6 +32,51 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-SIGNAL-022",
+      "sourceEntryId": "SIGNAL-022",
+      "sourcePublishedOn": "2026-08-27",
+      "destination": "https://mythicalvoid.com/playable-now/#find-your-way/story",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/game/project-beacon-crash-site.webp",
+        "alt": "The Wanderer-77 crash site beneath an unfamiliar sky in Mythical Void",
+        "class": "game_world_art_not_gameplay",
+        "disclosure": "Game-world artwork used by Mythical Void; not a gameplay screenshot."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "The final signal can now travel\n\nAfter reaching the final Project Beacon epilogue, a player can now pass Mythical Void on using one clean public game link.\n\n• Sharing appears only after the player completes the final epilogue. It never opens automatically or interrupts the ending choice.\n• The shared message contains no save data, creature name, ending choice, identity, recipient, contact details or tracking code.\n• The finale credits now preserve the father-and-son beginning without publishing the child’s full name or exact age.\n\nSee what changed: https://mythicalvoid.com/playable-now/#find-your-way/story\n\nGame-world artwork used by Mythical Void; not a gameplay screenshot.",
+          "characterCount": 683
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: The final signal can now travel\n\nAfter reaching the final Project Beacon epilogue, a player can now pass Mythical Void on using one clean public game link.\n\nhttps://mythicalvoid.com/playable-now/#find-your-way/story\n\nGame-world artwork used by Mythical Void; not a gameplay screenshot.",
+          "characterCount": 304
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: The final signal can now travel",
+          "body": "Mythical Void has a new live update: The final signal can now travel.\n\nAfter reaching the final Project Beacon epilogue, a player can now pass Mythical Void on using one clean public game link.\n\nSharing appears only after the player completes the final epilogue. It never opens automatically or interrupts the ending choice. The shared message contains no save data, creature name, ending choice, identity, recipient, contact details or tracking code. The finale credits now preserve the father-and-son beginning without publishing the child’s full name or exact age.\n\nThe checked public destination is https://mythicalvoid.com/playable-now/#find-your-way/story\n\nMedia note: Game-world artwork used by Mythical Void; not a gameplay screenshot.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 818,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-SIGNAL-021",
       "sourceEntryId": "SIGNAL-021",

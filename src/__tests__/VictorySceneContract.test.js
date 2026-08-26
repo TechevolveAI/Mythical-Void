@@ -198,6 +198,29 @@ describe('VictoryScene campaign contract', () => {
         expect(victorySceneSource).toContain('KEEP PRIORITY');
     });
 
+    test('offers a privacy-safe share action only after the final epilogue', () => {
+        expect(victorySceneSource).toMatch(
+            /if \(isLastPage\) \{[\s\S]*'SHARE THE GAME'[\s\S]*shareCompletedAdventure\(label\)/
+        );
+        expect(victorySceneSource).toContain(
+            "url: 'https://mythicalvoid.com/playable-now/#find-your-way/story'"
+        );
+        expect(victorySceneSource).toContain('window.navigator?.share');
+        expect(victorySceneSource).toContain(
+            'window.navigator?.clipboard?.writeText'
+        );
+        expect(victorySceneSource).not.toMatch(
+            /async shareCompletedAdventure\(label\) \{[\s\S]*?GameState[\s\S]*?Return to hub/
+        );
+    });
+
+    test('keeps the child co-creator credit without publishing identity details', () => {
+        expect(victorySceneSource).toContain("'Kevin’s son'");
+        expect(victorySceneSource).toContain("'Co-Creator & Game Designer'");
+        expect(victorySceneSource.match(/Murphy/g)).toHaveLength(2);
+        expect(victorySceneSource).not.toMatch(/\(Age \d+\)/);
+    });
+
     test('supports isolated local previews for the choice and all priorities', () => {
         const gameSource = fs.readFileSync(
             path.join(__dirname, '../game.js'),

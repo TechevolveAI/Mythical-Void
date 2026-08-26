@@ -17,7 +17,7 @@ import { CAMPAIGN_INTENTS, recordCampaignLegacyCapsule, recordCampaignPriority }
 const SHARED_FINALE_PAGE = Object.freeze({
     log: 'UPLINK // HELD',
     title: 'NO COORDINATES LEAVE',
-    body: 'The return vector is sealed, not transmitted. Wanderer-77 can fly again, but leaving now would abandon a world still recovering. You and your companion remain in the Fend.',
+    body: 'The return vector is sealed, not transmitted. Wanderer-77 can fly again, but leaving now would abandon a world still recovering. You and your creature remain in the Fend.',
     fieldNote: 'A route home is not permission to expose someone else\'s home.'
 });
 
@@ -55,7 +55,7 @@ const PROJECT_BEACON_PRIORITIES = Object.freeze({
         accentText: '#7FC8FF',
         confirmation: [
             'Preserve a secret Earth route and recover the Sensei channel.',
-            'Ask your companion about travel only after every risk is known.'
+            'Ask your creature about travel only after every risk is known.'
         ],
         confirmLabel: 'PREPARE THE ROUTE',
         pages: [
@@ -69,7 +69,7 @@ const PROJECT_BEACON_PRIORITIES = Object.freeze({
             {
                 log: 'PASSAGE // NOT YET ASKED',
                 title: 'A WILLING PASSENGER',
-                body: 'The ship could support one companion after creature-tech adaptation. That is not consent. First you recover the Fend; later, your companion may choose whether Earth is part of their journey.',
+                body: 'The ship could support one creature after creature-tech adaptation. That is not consent. First you recover the Fend; later, your creature may choose whether Earth is part of their journey.',
                 fieldNote: 'A friend is never cargo, evidence, or a specimen.'
             }
         ]
@@ -814,24 +814,17 @@ export default class VictoryScene extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(100));
         currentY += lineHeight * 1.2;
 
-        // CAYDEN Murphy
-        credits.push(this.add.text(width / 2, currentY, 'CAYDEN Murphy', {
+        // Credit the father-and-son beginning without publishing child identity.
+        credits.push(this.add.text(width / 2, currentY, 'Kevin’s son', {
             fontSize: '28px',
             color: '#FFD700',
             fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(100));
         currentY += lineHeight * 0.7;
 
-        credits.push(this.add.text(width / 2, currentY, 'Creative Director & Game Designer', {
+        credits.push(this.add.text(width / 2, currentY, 'Co-Creator & Game Designer', {
             fontSize: '14px',
             color: '#B8A9C9'
-        }).setOrigin(0.5).setDepth(100));
-        currentY += lineHeight * 0.5;
-
-        credits.push(this.add.text(width / 2, currentY, '(Age 8)', {
-            fontSize: '12px',
-            color: '#9370DB',
-            fontStyle: 'italic'
         }).setOrigin(0.5).setDepth(100));
         currentY += sectionGap;
 
@@ -871,7 +864,7 @@ export default class VictoryScene extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(100));
         currentY += lineHeight * 0.8;
 
-        credits.push(this.add.text(width / 2, currentY, 'Phaser 3 • Vite • Claude AI', {
+        credits.push(this.add.text(width / 2, currentY, 'Phaser 3 • Vite • Generative AI tools', {
             fontSize: '14px',
             color: '#8B7FBB'
         }).setOrigin(0.5).setDepth(100));
@@ -1413,7 +1406,7 @@ export default class VictoryScene extends Phaser.Scene {
 
         const progress = this.add.text(
             width / 2,
-            height * 0.76,
+            height * (isLastPage ? 0.73 : 0.76),
             `${String(pageIndex + 1).padStart(2, '0')} / ${String(priority.pages.length).padStart(2, '0')}`,
             {
                 fontSize: '11px',
@@ -1426,15 +1419,22 @@ export default class VictoryScene extends Phaser.Scene {
             this.completeEndingEpilogue(choice);
             const buttonGap = Math.min(92, width * 0.24);
             this.createButton(
+                width / 2,
+                height * 0.78,
+                'SHARE THE GAME',
+                0x2F7E77,
+                ({ label }) => this.shareCompletedAdventure(label)
+            );
+            this.createButton(
                 width / 2 - buttonGap,
-                height * 0.84,
+                height * 0.87,
                 'SANCTUARY',
                 0x3F8A67,
                 () => this.returnToHub()
             );
             this.createButton(
                 width / 2 + buttonGap,
-                height * 0.84,
+                height * 0.87,
                 'NEW GAME+',
                 0x6F54A6,
                 () => this.showNewGamePlusConfirmation(choice)
@@ -1690,6 +1690,39 @@ export default class VictoryScene extends Phaser.Scene {
     }
 
     /**
+     * Let a player voluntarily pass on one clean public game link.
+     * No creature name, save data, ending choice, identity, or tracking is added.
+     */
+    async shareCompletedAdventure(label) {
+        const shareData = {
+            title: 'Mythical Void — a free alien creature adventure',
+            text: 'Hatch a strange creature, restore six living realms and decide what Project Beacon should become.',
+            url: 'https://mythicalvoid.com/playable-now/#find-your-way/story'
+        };
+
+        try {
+            if (typeof window.navigator?.share === 'function') {
+                await window.navigator.share(shareData);
+                label?.setText?.('SHARED ✓');
+                return 'shared';
+            }
+
+            if (typeof window.navigator?.clipboard?.writeText === 'function') {
+                await window.navigator.clipboard.writeText(shareData.url);
+                label?.setText?.('LINK COPIED ✓');
+                return 'copied';
+            }
+        } catch (error) {
+            if (error?.name === 'AbortError') {
+                return 'cancelled';
+            }
+        }
+
+        label?.setText?.('MYTHICALVOID.COM');
+        return 'shown';
+    }
+
+    /**
      * Return to hub world
      */
     returnToHub() {
@@ -1751,10 +1784,11 @@ export default class VictoryScene extends Phaser.Scene {
             if (window.AudioManager) {
                 window.AudioManager.playButtonClick?.();
             }
-            callback();
+            callback({ background: btn, label: btnText, zone });
         });
 
         this.elements.push(zone);
+        return { background: btn, label: btnText, zone };
     }
 
     /**

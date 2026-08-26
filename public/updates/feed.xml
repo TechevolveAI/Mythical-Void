@@ -5,13 +5,32 @@
     <link>https://mythicalvoid.com/updates/</link>
     <description>See what is newly live in Mythical Void: game stories, useful resources and honest release notes linked to the playable browser game.</description>
     <language>en-ie</language>
-    <lastBuildDate>Wed, 26 Aug 2026 12:00:00 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 27 Aug 2026 12:00:00 GMT</lastBuildDate>
     <atom:link href="https://mythicalvoid.com/updates/feed.xml" rel="self" type="application/rss+xml" />
     <image>
       <url>https://mythicalvoid.com/marketing/mythical-void-mark-192.png</url>
       <title>Mythical Void — The Signal Log</title>
       <link>https://mythicalvoid.com/updates/</link>
     </image>
+    <item>
+      <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-022</guid>
+      <title>The final signal can now travel</title>
+      <link>https://mythicalvoid.com/updates/#signal-022</link>
+      <pubDate>Thu, 27 Aug 2026 12:00:00 GMT</pubDate>
+      <category>PLAYER-TO-PLAYER</category>
+      <description>After reaching the final Project Beacon epilogue, a player can now pass Mythical Void on using one clean public game link.
+
+• Sharing appears only after the player completes the final epilogue. It never opens automatically or interrupts the ending choice.
+• The shared message contains no save data, creature name, ending choice, identity, recipient, contact details or tracking code.
+• The finale credits now preserve the father-and-son beginning without publishing the child’s full name or exact age.
+
+See the live change: https://mythicalvoid.com/playable-now/#find-your-way/story
+
+Media note: Game-world artwork used by Mythical Void; not a gameplay screenshot.</description>
+      <media:content url="https://mythicalvoid.com/game/project-beacon-crash-site.webp" type="image/webp" medium="image">
+        <media:description>The Wanderer-77 crash site beneath an unfamiliar sky in Mythical Void</media:description>
+      </media:content>
+    </item>
     <item>
       <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-021</guid>
       <title>Your saved adventure now has a clearer way back</title>

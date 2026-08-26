@@ -15,6 +15,19 @@
   ],
   "items": [
     {
+      "id": "https://mythicalvoid.com/updates/#signal-022",
+      "url": "https://mythicalvoid.com/updates/#signal-022",
+      "external_url": "https://mythicalvoid.com/playable-now/#find-your-way/story",
+      "title": "The final signal can now travel",
+      "content_text": "After reaching the final Project Beacon epilogue, a player can now pass Mythical Void on using one clean public game link.\n\n• Sharing appears only after the player completes the final epilogue. It never opens automatically or interrupts the ending choice.\n• The shared message contains no save data, creature name, ending choice, identity, recipient, contact details or tracking code.\n• The finale credits now preserve the father-and-son beginning without publishing the child’s full name or exact age.\n\nSee the live change: https://mythicalvoid.com/playable-now/#find-your-way/story\n\nMedia note: Game-world artwork used by Mythical Void; not a gameplay screenshot.",
+      "summary": "After reaching the final Project Beacon epilogue, a player can now pass Mythical Void on using one clean public game link.",
+      "image": "https://mythicalvoid.com/game/project-beacon-crash-site.webp",
+      "date_published": "2026-08-27T12:00:00.000Z",
+      "tags": [
+        "PLAYER-TO-PLAYER"
+      ]
+    },
+    {
       "id": "https://mythicalvoid.com/updates/#signal-021",
       "url": "https://mythicalvoid.com/updates/#signal-021",
       "external_url": "https://mythicalvoid.com/",

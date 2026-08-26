@@ -17,6 +17,26 @@
   },
   "entries": [
     {
+      "id": "SIGNAL-022",
+      "publishedOn": "2026-08-27",
+      "status": "live",
+      "category": "PLAYER-TO-PLAYER",
+      "title": "The final signal can now travel",
+      "summary": "After reaching the final Project Beacon epilogue, a player can now pass Mythical Void on using one clean public game link.",
+      "details": [
+        "Sharing appears only after the player completes the final epilogue. It never opens automatically or interrupts the ending choice.",
+        "The shared message contains no save data, creature name, ending choice, identity, recipient, contact details or tracking code.",
+        "The finale credits now preserve the father-and-son beginning without publishing the child’s full name or exact age."
+      ],
+      "image": "/game/project-beacon-crash-site.webp",
+      "imageAlt": "The Wanderer-77 crash site beneath an unfamiliar sky in Mythical Void",
+      "imageClass": "game_world_art_not_gameplay",
+      "disclosure": "Game-world artwork used by Mythical Void; not a gameplay screenshot.",
+      "destination": "/playable-now/#find-your-way/story",
+      "linkText": "Discover Project Beacon",
+      "download": false
+    },
+    {
       "id": "SIGNAL-021",
       "publishedOn": "2026-08-26",
       "status": "live",

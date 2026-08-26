@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "COMPLETION-SHARING-LOOP-2026-08-27",
+  "state": "owned_game_release_authorized_pending_production_verification",
+  "purpose": "Give a player who completes Project Beacon a natural, voluntary way to pass the free game on after a meaningful ending.",
+  "trigger": {
+    "scene": "VictoryScene",
+    "moment": "final_epilogue_page_after_priority_choice",
+    "automaticShare": false,
+    "automaticPrompt": false,
+    "playerActionRequired": true
+  },
+  "share": {
+    "title": "Mythical Void — a free alien creature adventure",
+    "text": "Hatch a strange creature, restore six living realms and decide what Project Beacon should become.",
+    "url": "https://mythicalvoid.com/playable-now/#find-your-way/story",
+    "trackingParametersAdded": false,
+    "nativeDeviceSharePreferred": true,
+    "clipboardFallback": true,
+    "plainAddressFallback": true
+  },
+  "privacy": {
+    "saveDataReadForShare": false,
+    "saveDataTransmitted": false,
+    "creatureNameIncluded": false,
+    "endingChoiceIncluded": false,
+    "completionClaimIncluded": false,
+    "playerIdentityIncluded": false,
+    "recipientCollected": false,
+    "contactDetailsCollected": false,
+    "newAnalyticsEventAdded": false
+  },
+  "childSafetyRemediation": {
+    "fullChildNameRemovedFromCredits": true,
+    "exactChildAgeRemovedFromCredits": true,
+    "relationshipCreditRetained": "Kevin’s son",
+    "roleCreditRetained": "Co-Creator & Game Designer"
+  },
+  "visualBoundary": {
+    "approvedGameplayMoments": 0,
+    "requiredGameplayMoments": 4,
+    "visualLaunchGateChanged": false
+  },
+  "authority": {
+    "ownedGamePublicationAuthorized": true,
+    "externalSocialPublicationAuthorized": false,
+    "emailOrOutreachSendingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "externalAccountChangeAuthorized": false,
+    "externalActionTaken": false
+  },
+  "verification": {
+    "automatedPrivacyTestRequired": true,
+    "endingLayoutReviewRequired": true,
+    "productionVerificationRequired": true,
+    "productionCommit": null,
+    "productionDeployId": null
+  }
+}
