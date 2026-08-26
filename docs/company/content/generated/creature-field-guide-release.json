@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "PROJECT-BEACON-CREATURE-FIELD-GUIDE-2026-08-26",
-  "state": "complete_owned_site_release_waiting_for_production_verification",
+  "state": "verified_live_production_release",
   "publicRoute": "https://mythicalvoid.com/creature-field-guide/",
   "purpose": "Turn twelve verified renderer creatures into a clear, memorable entrance to the six-realm Project Beacon universe without overstating what is currently playable.",
   "sourceProof": {
@@ -70,8 +70,19 @@
   "visualReview": {
     "localDesktop": "passed_in_app_browser_1280x720_6_realms_12_cards_no_broken_images_no_horizontal_overflow",
     "localPhone": "passed_headless_chrome_390x844_6_realms_12_cards_single_column_no_broken_images_no_horizontal_overflow",
-    "productionDesktop": "pending",
-    "productionPhone": "pending"
+    "productionDesktop": "passed_in_app_browser_1280x720_6_realms_12_cards_no_broken_images_no_horizontal_overflow",
+    "productionPhone": "passed_headless_chrome_390x844_6_realms_12_cards_single_column_no_broken_images_no_horizontal_overflow"
+  },
+  "productionProof": {
+    "verifiedAt": "2026-08-26T12:20:00Z",
+    "pullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/108",
+    "mergeCommit": "49eb002c76b62a4aa0b0bf97a9f2fa664401923a",
+    "netlifyDeployId": "6a8ed9ad799e9700087043c6",
+    "netlifyState": "ready",
+    "publishedAt": "2026-08-26T12:19:32.089Z",
+    "livePageSha256": "567771f459d5fe7a134ab69f1d6142a7134cd19a40e3e450b7330f6604a0810b",
+    "liveDataSha256": "5ba2c814c7b030c0ffb9244cbaf5136f5e42b403ad36f15726f1e3f191bdcb74",
+    "liveFilesMatchCheckedRelease": true
   },
   "authority": {
     "ownedWebsitePublicationAuthorized": true,
