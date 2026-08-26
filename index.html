@@ -40,7 +40,9 @@
         window.dataLayer = window.dataLayer || [];
         function gtag() { window.dataLayer.push(arguments); }
         window.gtag = window.gtag || gtag;
-        window.MYTHICAL_GOOGLE_TAG_ID = 'G-FTM4W73EQC';
+        window.MYTHICAL_GOOGLE_TAG_ID = 'G-FTM4W73ECQ';
+        var allowedEvents = ['play_selected', 'share_completed', 'share_link_copied'];
+        var allowedAreas = ['header', 'hero', 'content', 'share_section', 'final_cta', 'footer'];
         gtag('consent', 'default', {
             analytics_storage: 'denied',
             ad_storage: 'denied',
@@ -83,6 +85,17 @@
                     });
                 }
                 window.dispatchEvent(new CustomEvent('mythical:analytics-consent', { detail: { value: value } }));
+            },
+            track: function (eventName, details) {
+                if (this.getConsent() !== 'granted' || allowedEvents.indexOf(eventName) === -1) return false;
+                details = details || {};
+                var sourceArea = allowedAreas.indexOf(details.source_area) === -1 ? 'content' : details.source_area;
+                window.gtag('event', eventName, {
+                    source_page: path,
+                    source_area: sourceArea,
+                    transport_type: 'beacon'
+                });
+                return true;
             }
         };
     }());

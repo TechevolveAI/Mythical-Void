@@ -4,7 +4,7 @@ Status: code ready for the public release; live deployment and live measurement 
 
 The public shop window now has the Google tag requested for Mythical:
 
-`G-FTM4W73EQC`
+`G-FTM4W73ECQ`
 
 It is limited to the public pages before the game. The game does not load it.
 
@@ -13,7 +13,7 @@ It is limited to the public pages before the game. The game does not load it.
 The first time someone visits, they see a simple choice:
 
 - “No thanks” keeps analytics off.
-- “Allow analytics” allows a basic visit count for the public website.
+- “Allow analytics” allows a basic visit count and tells us when a public-site button leads to Play or Share.
 
 Analytics starts off. Advertising features start off. A visitor’s choice is kept in that browser so the question does not appear every time.
 
@@ -21,7 +21,7 @@ Analytics starts off. Advertising features start off. A visitor’s choice is ke
 
 The tag is not given a player name, email, age, child detail, account number, creature name, save data, story choice, or user ID. It uses the public page path rather than a full address with extra query details.
 
-It is not used to measure the game, follow children, build advertising audiences, or personalise adverts.
+It is not used to measure the game, follow children, build advertising audiences, or personalise adverts. Play and Share checks contain only the public page and a broad area such as the header or hero. They do not contain a recipient, contact detail, creature detail, game activity, full address, or search text.
 
 ## Checks completed
 

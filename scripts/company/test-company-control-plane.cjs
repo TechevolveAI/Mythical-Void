@@ -943,7 +943,7 @@ assert(output.runs.some(run => run.id === 'A-057' && run.summary.satisfiedActiva
 assert(output.runs.some(run => run.id === 'EVAL-A-057' && run.state === 'passed'));
 assert(output.runs.some(run => run.id === 'A-058' && run.state === 'gated'));
 assert(output.runs.some(run => run.id === 'A-058' && run.summary.tagImplementationReadyForReview === true));
-assert(output.runs.some(run => run.id === 'A-058' && run.summary.measurementId === 'G-FTM4W73EQC'));
+assert(output.runs.some(run => run.id === 'A-058' && run.summary.measurementId === 'G-FTM4W73ECQ'));
 assert(output.runs.some(run => run.id === 'A-058' && run.summary.scope === 'public_shop_window_only'));
 assert(output.runs.some(run => run.id === 'A-058' && run.summary.defaultConsent === 'denied'));
 assert(output.runs.some(run => run.id === 'A-058' && run.summary.visitorChoiceRequired === true));

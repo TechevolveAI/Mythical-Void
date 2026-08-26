@@ -7,8 +7,8 @@
   "riskRefs": ["R-001", "R-005", "R-011"],
   "workflowRefs": ["A-006", "A-018", "A-055", "A-058"],
   "tag": {
-    "measurementId": "G-FTM4W73EQC",
-    "scriptUrl": "https://www.googletagmanager.com/gtag/js?id=G-FTM4W73EQC",
+    "measurementId": "G-FTM4W73ECQ",
+    "scriptUrl": "https://www.googletagmanager.com/gtag/js?id=G-FTM4W73ECQ",
     "scope": "public_shop_window_only",
     "includedRoutes": ["/", "/privacy/", "/terms/"],
     "excludedRoutes": ["/play/", "/game/", "?testBoss"],

@@ -33,7 +33,7 @@ try {
     const baseline = execute(source);
     assert.strictEqual(baseline.status, 2);
     assert.strictEqual(baseline.output.tagImplementationReadyForReview, true);
-    assert.strictEqual(baseline.output.measurementId, 'G-FTM4W73EQC');
+    assert.strictEqual(baseline.output.measurementId, 'G-FTM4W73ECQ');
     assert.strictEqual(baseline.output.scope, 'public_shop_window_only');
     assert.strictEqual(baseline.output.defaultConsent, 'denied');
     assert.strictEqual(baseline.output.visitorChoiceRequired, true);
