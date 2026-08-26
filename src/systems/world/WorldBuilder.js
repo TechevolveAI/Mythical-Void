@@ -1946,7 +1946,7 @@ class WorldBuilder {
                     `${restoredCount} of ${VILLAGE_PLOTS.length} village roots restored`
             );
 
-        const onboardingVisiblePlotCount = snapshot?.onboarding?.visiblePlotCount || 1;
+        const onboardingVisiblePlotCount = snapshot?.onboarding?.visiblePlotCount ?? 1;
         this.drawVillageDistrictGround({
             terrain: districtTerrain,
             ecology: districtEcology,
@@ -4524,13 +4524,24 @@ class WorldBuilder {
             return false;
         }
 
+        const onboarding = snapshot?.onboarding || {};
+        const meetingHeart = onboarding.stage === 'meet_heart';
+        const guideTitle = meetingHeart
+            ? 'MEET THE VILLAGE HEART'
+            : 'BUILD A HOME TOGETHER';
+        const guideSteps = meetingHeart
+            ? 'OPEN HEART  ·  REVEAL FIRST ROOT'
+            : 'BUILD  ·  INVITE  ·  GROW';
         const guideX = landmark.zone.x + (compact ? 0 : -142);
         const guideY = landmark.zone.y + (compact ? 220 : 126);
         const guide = this.scene.add.container(guideX, guideY)
             .setDepth(guideY - 2)
             .setData('villageArrivalGuide', true)
-            .setData('villageArrivalMessage', 'BUILD A HOME TOGETHER')
-            .setData('villageArrivalSteps', ['BUILD', 'INVITE', 'GROW']);
+            .setData('villageArrivalMessage', guideTitle)
+            .setData(
+                'villageArrivalSteps',
+                meetingHeart ? ['OPEN HEART', 'REVEAL ROOT'] : ['BUILD', 'INVITE', 'GROW']
+            );
         const ground = this.scene.add.graphics();
         ground.fillStyle(0x071411, 0.78);
         ground.fillEllipse(0, 4, compact ? 188 : 220, compact ? 42 : 48);
@@ -4538,16 +4549,16 @@ class WorldBuilder {
         ground.beginPath();
         ground.arc(0, 5, compact ? 88 : 104, Math.PI * 1.08, Math.PI * 1.92);
         ground.strokePath();
-        [-1, 0, 1].forEach(stepIndex => {
+        (meetingHeart ? [-0.5, 0.5] : [-1, 0, 1]).forEach(stepIndex => {
             const stepX = stepIndex * (compact ? 41 : 48);
             ground.fillStyle(0x061310, 0.96);
             ground.fillCircle(stepX, 3, 7);
-            ground.lineStyle(1.5, stepIndex === 0 ? 0xF2C14E : 0x71E6B1, 0.78);
+            ground.lineStyle(1.5, stepIndex < 0 ? 0xF2C14E : 0x71E6B1, 0.78);
             ground.strokeCircle(stepX, 3, 5);
             ground.fillStyle(0xF4F4F4, 0.82);
             ground.fillCircle(stepX, 3, 1.5);
         });
-        const title = this.scene.add.text(0, -24, 'BUILD A HOME TOGETHER', {
+        const title = this.scene.add.text(0, -24, guideTitle, {
             fontSize: compact ? '9px' : '10px',
             fontFamily: 'Arial, sans-serif',
             fontStyle: 'bold',
@@ -4555,7 +4566,7 @@ class WorldBuilder {
             stroke: '#07100F',
             strokeThickness: 4
         }).setOrigin(0.5);
-        const steps = this.scene.add.text(0, compact ? 20 : 26, 'BUILD  ·  INVITE  ·  GROW', {
+        const steps = this.scene.add.text(0, compact ? 20 : 26, guideSteps, {
             fontSize: compact ? '7px' : '8px',
             fontFamily: 'Arial, sans-serif',
             fontStyle: 'bold',
@@ -5200,6 +5211,17 @@ class WorldBuilder {
         landmark.nextActionPreviewTween = null;
         landmark.nextActionTween = null;
         landmark.guidanceRoute = null;
+
+        if (snapshot?.onboarding?.stage === 'meet_heart') {
+            landmark.actionLabel
+                .setText('OPEN HEART')
+                .setAlpha(1)
+                .setColor('#F2C14E')
+                .setData('villageNextAction', 'meet_heart')
+                .setData('definitionId', null);
+            landmark.nextActionElement = landmark.actionLabel;
+            return true;
+        }
 
         if (action.type === 'decision' || action.type === 'supplies') {
             landmark.actionLabel

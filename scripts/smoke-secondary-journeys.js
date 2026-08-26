@@ -11269,6 +11269,8 @@ async function smokeVillageUi(session, exceptions) {
             guideSteps: guide?.getData?.('villageArrivalSteps') || [],
             statusText: landmark?.statusLabel?.text || '',
             nextAction: landmark?.snapshot?.worldState?.nextAction?.type || null,
+            actionPlacardVisible: landmark?.nextActionElement?.visible === true,
+            actionPlacardText: landmark?.nextActionElement?.text || '',
             restored: landmark?.snapshot?.worldState?.restored,
             heartPresentation: {
                 pulseProfile: landmark?.glow?.getData?.('villageHeartPulseProfile'),
@@ -11331,8 +11333,8 @@ async function smokeVillageUi(session, exceptions) {
     })()`);
     if (
         !firstArrivalWorld.guideActive ||
-        firstArrivalWorld.guideMessage !== 'BUILD A HOME TOGETHER' ||
-        JSON.stringify(firstArrivalWorld.guideSteps) !== JSON.stringify(['BUILD', 'INVITE', 'GROW']) ||
+        firstArrivalWorld.guideMessage !== 'MEET THE VILLAGE HEART' ||
+        JSON.stringify(firstArrivalWorld.guideSteps) !== JSON.stringify(['OPEN HEART', 'REVEAL ROOT']) ||
         (
             SMOKE_VIEWPORT_WIDTH <= 600
                 ? firstArrivalWorld.statusText !== 'TAP · 1 COMMUNITY · 0/5 ROOTS'
@@ -11340,6 +11342,8 @@ async function smokeVillageUi(session, exceptions) {
                     '0/5 ROOTS · 1 COMMUNITY · 0 REGIONAL ALLIES'
         ) ||
         firstArrivalWorld.nextAction !== 'build' ||
+        !firstArrivalWorld.actionPlacardVisible ||
+        firstArrivalWorld.actionPlacardText !== 'OPEN HEART' ||
         firstArrivalWorld.restored !== 0 ||
         firstArrivalWorld.heartPresentation.pulseProfile !== 'quiet_ambient' ||
         firstArrivalWorld.heartPresentation.ambientRole !== 'settlement_anchor' ||
@@ -11359,27 +11363,16 @@ async function smokeVillageUi(session, exceptions) {
         firstArrivalWorld.heartLife.tweenCount !== 3 ||
         firstArrivalWorld.foundationMaterials.length !== 5 ||
         firstArrivalWorld.ambientPlots.filter(
-            plot => plot.role === 'guided_foundation' &&
-                plot.containerRole === 'guided_foundation' &&
-                plot.anchorRole === 'guided_foundation' &&
-                plot.visible &&
-                plot.anchorVisible &&
-                plot.alpha === 1
-        ).length !== 1 ||
-        firstArrivalWorld.ambientPlots.filter(
             plot => plot.role === 'reserved_root' &&
                 plot.containerRole === 'reserved_root' &&
                 plot.anchorRole === 'reserved_root' &&
                 !plot.visible
-        ).length !== 4 ||
+        ).length !== 5 ||
         firstArrivalWorld.flowSignals.length !== 5 ||
-        firstArrivalWorld.flowSignals.filter(signal => signal.active && signal.visible).length !== 1 ||
-        firstArrivalWorld.flowSignals.filter(
-            signal => signal.role === 'guided_foundation' && signal.active
-        ).length !== 1 ||
+        firstArrivalWorld.flowSignals.filter(signal => signal.active || signal.visible).length !== 0 ||
         firstArrivalWorld.flowSignals.filter(
             signal => signal.role === 'quiet_background' && !signal.active
-        ).length !== 4 ||
+        ).length !== 5 ||
         firstArrivalWorld.foundationMaterials.some(
             material => material !== 'living_root_cradle_v2'
         ) ||
@@ -11388,12 +11381,9 @@ async function smokeVillageUi(session, exceptions) {
                 !cradle.ariaLabel?.includes('living root cradle')
         ) ||
         firstArrivalWorld.foundationCradles.filter(
-            cradle => cradle.state === 'available' && cradle.guided
-        ).length !== 1 ||
-        firstArrivalWorld.foundationCradles.filter(
             cradle => cradle.state === 'veiled' && !cradle.guided
-        ).length !== 4 ||
-        firstArrivalWorld.foundationCradles.filter(cradle => cradle.guided).length !== 1
+        ).length !== 5 ||
+        firstArrivalWorld.foundationCradles.some(cradle => cradle.guided)
     ) {
         throw new Error(
             `Village first-arrival world language failed: ${JSON.stringify(firstArrivalWorld)}`
@@ -11530,6 +11520,63 @@ async function smokeVillageUi(session, exceptions) {
             `Village arrival reveal did not restore gameplay: ${JSON.stringify(arrivalRecovery)}`
         );
     }
+    const heartIntroductionOpened = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        return scene?.openVillageCommand?.({ guided: true }) === true;
+    })()`);
+    if (!heartIntroductionOpened) {
+        throw new Error('Village Heart introduction could not open');
+    }
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            document.querySelector('[data-testid="village-heart-introduction"]') &&
+            document.querySelector('[data-testid="village-heart-begin"]')
+        )`),
+        { timeoutMs: 12000, message: 'Village Heart first objective' }
+    );
+    await evaluate(session, `document.querySelector(
+        '[data-testid="village-heart-begin"]'
+    )?.click()`);
+    await delay(500);
+    const heartAcknowledgement = await evaluate(session, `(() => {
+        const button = document.querySelector('[data-testid="village-heart-begin"]');
+        const bounds = button?.getBoundingClientRect?.();
+        const topTarget = bounds
+            ? document.elementFromPoint(
+                bounds.left + (bounds.width / 2),
+                bounds.top + (bounds.height / 2)
+            )
+            : null;
+        return {
+            guidanceSeen: window.GameState.get('world.village.guidanceSeen') === true,
+            introductionVisible: Boolean(document.querySelector(
+                '[data-testid="village-heart-introduction"]'
+            )),
+            proposalVisible: Boolean(document.querySelector('.village-resident-proposal')),
+            statusMessage: document.querySelector('.village-command-status')?.textContent?.trim() || '',
+            activeElement: document.activeElement?.getAttribute?.('data-testid') || '',
+            topTarget: topTarget?.getAttribute?.('data-testid') || topTarget?.className || '',
+            buttonBounds: bounds ? {
+                left: bounds.left,
+                top: bounds.top,
+                right: bounds.right,
+                bottom: bounds.bottom
+            } : null
+        };
+    })()`);
+    if (!heartAcknowledgement.guidanceSeen) {
+        throw new Error(
+            `Village Heart acknowledgement did not persist: ${JSON.stringify(heartAcknowledgement)}`
+        );
+    }
+    await waitFor(
+        () => evaluate(session, `(
+            window.GameState.get('world.village.guidanceSeen') === true &&
+            Boolean(document.querySelector('.village-resident-proposal'))
+        )`),
+        { timeoutMs: 12000, message: 'First safe foundation reveal' }
+    );
+    await evaluate(session, `document.querySelector('.village-command-close')?.click()`);
     const shopResult = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         scene.openShop();

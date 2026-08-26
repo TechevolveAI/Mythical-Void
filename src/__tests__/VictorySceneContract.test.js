@@ -242,8 +242,10 @@ describe('VictoryScene campaign contract', () => {
 
     test('reuses the protected companion portrait as a moving finale tableau', () => {
         expect(victorySceneSource).toContain(
-            'window.CompanionMediaService?.createCinematicStill?.(this, {'
+            'mediaService?.createStoryMoment || mediaService?.createCinematicStill'
         );
+        expect(victorySceneSource).toContain('Promise.resolve((');
+        expect(victorySceneSource).toContain('?.call(mediaService, this, {');
         expect(victorySceneSource).toContain(
             "momentId: 'beacon_reflection'"
         );

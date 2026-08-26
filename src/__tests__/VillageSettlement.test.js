@@ -209,11 +209,11 @@ describe('Village settlement phase one', () => {
         expect(snapshot.resources).toEqual({ wood: 72, stone: 52, food: 30 });
         expect(snapshot.state.starterSuppliesClaimed).toBe(true);
         expect(snapshot.onboarding).toEqual(expect.objectContaining({
-            stage: 'first_build',
+            stage: 'meet_heart',
             step: 1,
-            totalSteps: 3,
+            totalSteps: 4,
             showFullPlan: false,
-            visiblePlotCount: 1
+            visiblePlotCount: 0
         }));
         expect(snapshot.definitions.filter(definition => definition.placement.revealed)
             .map(definition => definition.id)).toEqual(['forager_hut']);
@@ -334,6 +334,11 @@ describe('Village settlement phase one', () => {
 
         expect(result.state.guidanceSeen).toBe(true);
         expect(result.resources).toEqual({ wood: 72, stone: 52, food: 30 });
+        expect(result.onboarding).toEqual(expect.objectContaining({
+            stage: 'first_build',
+            step: 2,
+            visiblePlotCount: 1
+        }));
         expect(gameState.save).toHaveBeenCalledTimes(2);
     });
 

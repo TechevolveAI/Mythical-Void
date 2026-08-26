@@ -577,7 +577,11 @@ export default class VictoryScene extends Phaser.Scene {
     showReflectionPhase(width, height) {
         this.clearNonEssentialElements();
         const mediaRequest = ++this.companionMediaRequest;
-        window.CompanionMediaService?.createCinematicStill?.(this, {
+        const mediaService = window.CompanionMediaService;
+        Promise.resolve((
+            mediaService?.createStoryMoment || mediaService?.createCinematicStill
+        )
+            ?.call(mediaService, this, {
             momentId: 'beacon_reflection',
             stage: window.GameState?.get('creature.lifecycle.stage') || 'baby',
             depth: 8,
@@ -587,7 +591,7 @@ export default class VictoryScene extends Phaser.Scene {
                 this.phase === 'reflection' &&
                 this.companionMediaRequest === mediaRequest
             )
-        }).then(tableau => {
+            })).then(tableau => {
             if (!tableau) return;
             if (
                 this.phase !== 'reflection' ||
@@ -597,9 +601,9 @@ export default class VictoryScene extends Phaser.Scene {
                 return;
             }
             this.elements.push(...tableau.elements);
-        }).catch(error => {
+            }).catch(error => {
             devLog('[VictoryScene] Living portrait tableau unavailable:', error.message);
-        });
+            });
 
         const isCompact = width < 600;
         const shipY = height * (isCompact ? 0.55 : 0.57);

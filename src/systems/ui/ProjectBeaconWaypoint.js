@@ -142,7 +142,7 @@ export function resolveSanctuaryCurrentTarget(scene, {
                 : 'sanctuary_village_arrival',
             label: villageDecisionReady
                 ? 'HEART CHOICE READY'
-                : 'BUILD A HOME TOGETHER',
+                : 'MEET VILLAGE HEART',
             color: villageDecisionReady ? 0xF2C14E : 0x71E6B1,
             target: scene.villageHeartLandmark.zone,
             source: 'sanctuary'
