@@ -3,6 +3,11 @@ const MAX_APPEARANCES = 32;
 const MOMENT_ID_PATTERN = /^[a-z0-9][a-z0-9:_-]{0,63}$/;
 const PORTRAIT_ASSET_REF_PATTERN = /^portrait-job-v1:[0-9a-f-]{36}$/i;
 const VIDEO_ASSET_REF_PATTERN = /^video-job-v1:[0-9a-f-]{36}$/i;
+const DEFAULT_MEDIA_TIMEOUTS = Object.freeze({
+    requestMs: 8000,
+    textureMs: 8000,
+    pollWindowMs: 180000
+});
 const COMPANION_VIDEO_MOMENTS = Object.freeze({
     first_forest_arrival: 'The companion enters the Mythical Forest beside Wanderer-77.',
     beacon_reflection: 'The companion witnesses the Beacon choice and the cost of returning home.',
@@ -35,12 +40,16 @@ function normalizeTimestamp(value) {
 }
 
 class CompanionMediaService {
-    constructor() {
+    constructor(options = {}) {
         this.textureLoads = new Map();
         this.preparedMoments = new Map();
         this.videoJobs = new Map();
         this.videoResolutions = new Map();
         this.videoUnavailableUntil = 0;
+        this.timeouts = {
+            ...DEFAULT_MEDIA_TIMEOUTS,
+            ...(options.timeouts || {})
+        };
     }
 
     createEmptyState() {
@@ -181,8 +190,18 @@ class CompanionMediaService {
         const existingLoad = this.textureLoads.get(textureKey);
         if (existingLoad) return existingLoad;
 
-        const load = new Promise((resolve, reject) => {
+        const load = new Promise(resolve => {
             const image = new Image();
+            let settled = false;
+            let timeoutId = null;
+            const finish = value => {
+                if (settled) return;
+                settled = true;
+                if (timeoutId !== null) clearTimeout(timeoutId);
+                image.onload = null;
+                image.onerror = null;
+                resolve(value);
+            };
             image.crossOrigin = 'anonymous';
             image.referrerPolicy = 'no-referrer';
             image.decoding = 'async';
@@ -191,13 +210,15 @@ class CompanionMediaService {
                     if (!scene.textures.exists(textureKey)) {
                         scene.textures.addImage(textureKey, image);
                     }
-                    resolve(textureKey);
+                    finish(textureKey);
                 } catch (error) {
-                    reject(error);
+                    finish(null);
                 }
             };
-            image.onerror = () => reject(
-                new Error('Companion portrait could not be loaded into the scene')
+            image.onerror = () => finish(null);
+            timeoutId = setTimeout(
+                () => finish(null),
+                this.timeouts.textureMs
             );
             image.src = record.imageUrl;
         }).finally(() => {
@@ -206,6 +227,47 @@ class CompanionMediaService {
 
         this.textureLoads.set(textureKey, load);
         return load;
+    }
+
+    async requestVideoJson(url, options = {}) {
+        const controller = typeof AbortController !== 'undefined'
+            ? new AbortController()
+            : null;
+        const requestOptions = controller
+            ? { ...options, signal: controller.signal }
+            : options;
+        let timeoutId = null;
+        const deadline = new Promise(resolve => {
+            timeoutId = setTimeout(() => {
+                controller?.abort?.();
+                resolve(null);
+            }, this.timeouts.requestMs);
+        });
+
+        try {
+            const request = (async () => {
+                try {
+                    const response = await fetch(url, requestOptions);
+                    const result = await response.json().catch(() => ({}));
+                    return { response, result };
+                } catch (error) {
+                    if (error?.name === 'AbortError' || error instanceof TypeError) {
+                        return null;
+                    }
+                    throw error;
+                }
+            })();
+            return await Promise.race([request, deadline]);
+        } finally {
+            if (timeoutId !== null) clearTimeout(timeoutId);
+        }
+    }
+
+    deferVideoRequests(durationMs = 60000) {
+        this.videoUnavailableUntil = Math.max(
+            this.videoUnavailableUntil || 0,
+            Date.now() + durationMs
+        );
     }
 
     getPreparedMomentKey(momentId, stage = null, record = null) {
@@ -384,18 +446,25 @@ class CompanionMediaService {
     async startGeneratedVideo({ momentId, portraitRecord }) {
         const accessToken = await window.LivingPortraitService?.getAccessToken?.();
         if (!accessToken) return null;
-        const response = await fetch('/.netlify/functions/generate-companion-video', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${accessToken}`
-            },
-            body: JSON.stringify({
-                momentId,
-                portraitAssetRef: portraitRecord.assetRef
-            })
-        });
-        const result = await response.json().catch(() => ({}));
+        const request = await this.requestVideoJson(
+            '/.netlify/functions/generate-companion-video',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${accessToken}`
+                },
+                body: JSON.stringify({
+                    momentId,
+                    portraitAssetRef: portraitRecord.assetRef
+                })
+            }
+        );
+        if (!request) {
+            this.deferVideoRequests();
+            return null;
+        }
+        const { response, result } = request;
         if (!response.ok) {
             if (response.status === 429) {
                 // A quota response is session-wide. Keep using the portrait
@@ -404,6 +473,8 @@ class CompanionMediaService {
                 this.videoUnavailableUntil = Date.now() + (30 * 60 * 1000);
             } else if (response.status >= 500) {
                 this.videoUnavailableUntil = Date.now() + (5 * 60 * 1000);
+            } else if ([401, 403, 404, 409].includes(response.status)) {
+                this.deferVideoRequests(5 * 60 * 1000);
             }
             if (
                 [401, 403, 404, 409, 429].includes(response.status) ||
@@ -439,7 +510,7 @@ class CompanionMediaService {
         const resolution = (async () => {
             const accessToken = await window.LivingPortraitService?.getAccessToken?.();
             if (!accessToken) return null;
-            const response = await fetch(
+            const request = await this.requestVideoJson(
                 `/.netlify/functions/generate-companion-video?assetRef=${
                     encodeURIComponent(record.assetRef)
                 }`,
@@ -450,7 +521,11 @@ class CompanionMediaService {
                     }
                 }
             );
-            const result = await response.json().catch(() => ({}));
+            if (!request) {
+                this.deferVideoRequests();
+                return null;
+            }
+            const { response, result } = request;
             if (!response.ok || result.status !== 'succeeded' || !result.videoUrl) {
                 return null;
             }
@@ -469,11 +544,11 @@ class CompanionMediaService {
     }) {
         const startedAt = Date.now();
         let pollCount = 0;
-        while (Date.now() - startedAt < 180000) {
+        while (Date.now() - startedAt < this.timeouts.pollWindowMs) {
             const delay = Math.min(8000, 2500 + pollCount * 500);
             await new Promise(resolve => setTimeout(resolve, delay));
             pollCount += 1;
-            const response = await fetch(
+            const request = await this.requestVideoJson(
                 `/.netlify/functions/generate-companion-video?assetRef=${
                     encodeURIComponent(assetRef)
                 }`,
@@ -484,7 +559,11 @@ class CompanionMediaService {
                     }
                 }
             );
-            const result = await response.json().catch(() => ({}));
+            if (!request) {
+                this.deferVideoRequests();
+                return null;
+            }
+            const { response, result } = request;
             if (!response.ok) return null;
             if (result.status === 'succeeded' && result.videoUrl) {
                 this.saveVideoRecord(momentId, portraitRecord, result);

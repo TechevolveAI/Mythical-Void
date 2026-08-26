@@ -33,6 +33,7 @@ function loadCompanionMediaService(sceneWindow, ImageClass = class {}) {
         Promise,
         Error,
         fetch: sceneWindow.fetch || jest.fn(),
+        AbortController: sceneWindow.AbortController || global.AbortController,
         setTimeout,
         clearTimeout
     };
@@ -353,6 +354,127 @@ describe('CompanionMediaService', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
         expect(service.videoUnavailableUntil).toBeGreaterThan(Date.now());
+    });
+
+    test('does not repeat video requests after an authorization failure', async () => {
+        const portrait = {
+            identityKey: 'identity-23',
+            stage: 'baby',
+            imageUrl: 'https://example.test/private-portrait.png',
+            assetRef: 'portrait-job-v1:42e1e046-c676-4fb9-91c9-1575dcb094ee'
+        };
+        const fetchMock = jest.fn(async () => ({
+            ok: false,
+            status: 401,
+            json: async () => ({ error: 'expired session' })
+        }));
+        const sceneWindow = {
+            GameState: createGameState(portrait),
+            fetch: fetchMock,
+            LivingPortraitService: {
+                hasUsableDisplayUrl: jest.fn(() => true),
+                getAccessToken: jest.fn(async () => 'expired-access-token')
+            }
+        };
+        const { CompanionMediaService } = loadCompanionMediaService(sceneWindow);
+        const service = new CompanionMediaService();
+
+        await service.prepareGeneratedVideo({
+            momentId: 'first_forest_arrival',
+            record: portrait
+        });
+        await service.prepareGeneratedVideo({
+            momentId: 'guardian_rescue',
+            record: portrait
+        });
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(service.videoUnavailableUntil).toBeGreaterThan(Date.now());
+    });
+
+    test('abandons a stalled video request so optional media cannot block story flow', async () => {
+        jest.useFakeTimers();
+        try {
+            const portrait = {
+                identityKey: 'identity-23',
+                stage: 'baby',
+                imageUrl: 'https://example.test/private-portrait.png',
+                assetRef: 'portrait-job-v1:42e1e046-c676-4fb9-91c9-1575dcb094ee'
+            };
+            const fetchMock = jest.fn(() => new Promise(() => {}));
+            const sceneWindow = {
+                GameState: createGameState(portrait),
+                fetch: fetchMock,
+                LivingPortraitService: {
+                    hasUsableDisplayUrl: jest.fn(() => true),
+                    getAccessToken: jest.fn(async () => 'private-access-token')
+                }
+            };
+            const { CompanionMediaService } = loadCompanionMediaService(sceneWindow);
+            const service = new CompanionMediaService({
+                timeouts: { requestMs: 50 }
+            });
+
+            const resultPromise = service.prepareGeneratedVideo({
+                momentId: 'first_forest_arrival',
+                record: portrait
+            });
+            await Promise.resolve();
+            await jest.advanceTimersByTimeAsync(50);
+
+            await expect(resultPromise).resolves.toBeNull();
+            expect(fetchMock).toHaveBeenCalledTimes(1);
+            expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
+            expect(service.videoJobs.size).toBe(0);
+            expect(service.videoUnavailableUntil).toBeGreaterThan(Date.now());
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    test('abandons a stalled portrait texture without blocking the cinematic fallback', async () => {
+        jest.useFakeTimers();
+        try {
+            const portrait = {
+                identityKey: 'identity-23',
+                stage: 'baby',
+                imageUrl: 'https://example.test/stalled-portrait.png',
+                assetRef: 'portrait-job-v1:42e1e046-c676-4fb9-91c9-1575dcb094ee'
+            };
+            class StalledImage {
+                set src(value) {
+                    this.currentSrc = value;
+                }
+            }
+            const sceneWindow = {
+                GameState: createGameState(portrait),
+                LivingPortraitService: {
+                    hasUsableDisplayUrl: jest.fn(() => true)
+                }
+            };
+            const { CompanionMediaService } = loadCompanionMediaService(
+                sceneWindow,
+                StalledImage
+            );
+            const service = new CompanionMediaService({
+                timeouts: { textureMs: 50 }
+            });
+            const scene = {
+                textures: {
+                    exists: jest.fn(() => false),
+                    addImage: jest.fn()
+                }
+            };
+
+            const resultPromise = service.ensureTexture(scene, portrait);
+            await jest.advanceTimersByTimeAsync(50);
+
+            await expect(resultPromise).resolves.toBeNull();
+            expect(scene.textures.addImage).not.toHaveBeenCalled();
+            expect(service.textureLoads.size).toBe(0);
+        } finally {
+            jest.useRealTimers();
+        }
     });
 
     test('uses a completed story video when available and keeps the portrait fallback', async () => {
