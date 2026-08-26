@@ -20,6 +20,8 @@ secrets/
 
 # Build outputs
 dist/
+dist-itch/
+release/
 build/
 .next/
 *.tgz

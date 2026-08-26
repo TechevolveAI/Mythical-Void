@@ -1,7 +1,7 @@
 {
   "id": "BOTTOM-OF-FUNNEL-001",
   "checkedOn": "2026-08-26",
-  "state": "owned_entry_live_itch_listing_prepared_visual_gate_closed",
+  "state": "owned_entry_live_itch_technical_package_ready_visual_gate_closed",
   "playerPromise": "A free browser adventure where you hatch a strange alien creature, cross six living realms and decide what Project Beacon should tell Earth. No download or account needed.",
   "primaryNextShelf": {
     "name": "itch.io",
@@ -21,11 +21,20 @@
       "clean creature reveal approved",
       "embedded browser package tested",
       "Kevin approves account and public listing"
-    ]
+    ],
+    "technicalEvidence": {
+      "buildCommand": "npm run package:itch",
+      "directPlay": true,
+      "nestedFrameTestPassed": true,
+      "fileCount": 85,
+      "extractedBytes": 46868954,
+      "latestArchiveBytes": 43051532,
+      "withdrawnMediaIncluded": false
+    }
   },
   "routeOrder": [
     { "name": "owned search landing page", "state": "live", "url": "https://mythicalvoid.com/playable-now/" },
-    { "name": "itch.io", "state": "prepared_not_published" },
+    { "name": "itch.io", "state": "technical_package_ready_not_published" },
     { "name": "YouTube", "state": "held_for_visual_quality" },
     { "name": "Poki", "state": "later_candidate" },
     { "name": "CrazyGames", "state": "later_candidate" },

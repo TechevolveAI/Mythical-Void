@@ -1,7 +1,8 @@
 const app = document.querySelector('#app');
 const path = window.location.pathname.replace(/\/+$/, '') || '/';
 const params = new URLSearchParams(window.location.search);
-const isGameRoute = path === '/play' || path === '/game' || params.has('testBoss');
+const isPortalBuild = import.meta.env.MODE === 'itch';
+const isGameRoute = isPortalBuild || path === '/play' || path === '/game' || params.has('testBoss');
 
 if (isGameRoute) {
     document.documentElement.classList.add('game-mode');

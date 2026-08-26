@@ -34,7 +34,8 @@
     (function () {
         var path = window.location.pathname.replace(/\/+$/, '') || '/';
         var params = new URLSearchParams(window.location.search);
-        var isGameRoute = path === '/play' || path === '/game' || params.has('testBoss');
+        var isPortalBuild = document.documentElement.dataset.distributionTarget === 'itch';
+        var isGameRoute = isPortalBuild || path === '/play' || path === '/game' || params.has('testBoss');
         if (isGameRoute) return;
 
         window.dataLayer = window.dataLayer || [];

@@ -1,0 +1,32 @@
+{
+  "id": "ITCH-CANDIDATE-001",
+  "checkedOn": "2026-08-26",
+  "state": "technical_package_ready_visual_and_account_approval_pending",
+  "buildCommand": "npm run package:itch",
+  "archive": "release/mythical-void-itch-html5.zip",
+  "entryPoint": "index.html",
+  "directPlay": true,
+  "listing": {
+    "title": "Mythical Void",
+    "shortDescription": "Hatch a strange alien creature, restore six living realms and decide what Project Beacon should tell Earth.",
+    "price": "free",
+    "donationRequest": false,
+    "display": "click_to_launch_fullscreen",
+    "mobileFriendlyClaimApproved": false
+  },
+  "visualGate": {
+    "approvedMoments": 0,
+    "requiredMoments": 4,
+    "coverApproved": false,
+    "trailerApproved": false
+  },
+  "boundaries": {
+    "externalPublicationAuthorized": false,
+    "platformTermsAccepted": false,
+    "paidPromotionAuthorized": false,
+    "directMessagesAuthorized": false,
+    "bulkOutreachAuthorized": false,
+    "hostedAiMediaPromisedInPortal": false,
+    "liveNasaDataGuaranteed": false
+  }
+}

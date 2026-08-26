@@ -23,7 +23,7 @@ The father-and-son beginning, creature engine, careful use of AI and NASA-inspir
 | Doorway | Why it matters | Mythical Void move | State |
 |---|---|---|---|
 | Google and other search engines | The player is already asking for a free browser, creature or indie game | Keep `/playable-now/` as the truthful search landing page and lead directly to play | Live |
-| itch.io | People browse specifically for new independent games; an account is free and HTML games can run in the browser | Prepare a complete listing and direct browser build | Prepared, not published |
+| itch.io | People browse specifically for new independent games; an account is free and HTML games can run in the browser | Use the tested direct-play package and prepared listing | Technically ready, not published |
 | YouTube | Players search for gameplay, reviews and “games to try” | Publish only after four real, excellent gameplay moments exist | Held for visual quality |
 | Poki | A large audience is already choosing a web game | Apply after the opening minutes, mobile play, loading and thumbnail all pass review | Later candidate |
 | CrazyGames | Another direct web-game shelf | Review its current portal requirements after an account is available; do not promise acceptance | Later candidate |
@@ -33,10 +33,12 @@ The father-and-son beginning, creature engine, careful use of AI and NASA-inspir
 
 It is the closest match for the game we have today. itch.io supports games that play directly in the browser. Its official guide says the project needs a ZIP with a top-level `index.html`, no more than 1,000 files, no more than 500 MB extracted, and relative file paths. A free account can create the page.
 
+The separate itch.io edition now opens directly into the game from a nested project folder. It contains 85 files, is about 47 MB unpacked and produces an upload ZIP of about 43 MB. The embedded test reached the real age-setting screen and loaded the game engine, creature systems, opening world image and opening cinematic without a missing game file.
+
 The public listing still waits for two things:
 
 - four approved, authentic gameplay moments, including one clean creature reveal;
-- a browser package tested inside an embedded frame, with no broken absolute paths.
+- Kevin’s approval to use an account he controls and accept the platform terms.
 
 This is a quality gate, not a marketing delay. A bad thumbnail or an inaccurate screenshot loses the player at exactly the point we are trying to win.
 

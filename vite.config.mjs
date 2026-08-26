@@ -19,7 +19,28 @@ import { defineConfig } from 'vite';
  * This keeps initial load fast even as more levels are added.
  */
 
-export default defineConfig(({ command }) => ({
+export default defineConfig(({ command, mode }) => {
+  const isItchBuild = mode === 'itch';
+
+  return {
+  // itch.io serves HTML games from a project folder rather than the root of a
+  // domain. Its build therefore needs relative application chunks and a clear
+  // marker that opens the game immediately instead of the studio website.
+  base: isItchBuild ? './' : '/',
+  plugins: isItchBuild
+    ? [{
+        name: 'mythical-void-itch-entry',
+        transformIndexHtml(html) {
+          return html
+            .replace('<html lang="en">', '<html lang="en" data-distribution-target="itch">')
+            .replace(
+              '<meta name="robots" content="index, follow, max-image-preview:large">',
+              '<meta name="robots" content="noindex, nofollow">'
+            )
+            .replace(/\s*<!-- Google tag:[\s\S]*?<\/script>/, '');
+        }
+      }]
+    : [],
   // Keep local diagnostics intact while removing non-actionable logging from
   // production chunks. Warnings and errors remain available to ErrorHandler.
   esbuild: command === 'build'
@@ -36,7 +57,7 @@ export default defineConfig(({ command }) => ({
     open: true
   },
   build: {
-    outDir: 'dist',
+    outDir: isItchBuild ? 'dist-itch' : 'dist',
     emptyOutDir: true,
     // Use esbuild for minification (Vite's default)
     // Terser's aggressive optimization was causing issues with Phaser's Color class
@@ -194,4 +215,5 @@ export default defineConfig(({ command }) => ({
     // Don't pre-bundle large dependencies that we're chunking
     exclude: []
   }
-}));
+  };
+});
