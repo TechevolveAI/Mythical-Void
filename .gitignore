@@ -35,6 +35,10 @@ pids
 coverage/
 *.lcov
 
+# Human-review quarantine for new screenshots and videos. Captures only move
+# into public/ after an adult has approved the exact asset.
+.visual-review/
+
 # Logs
 logs
 *.log
