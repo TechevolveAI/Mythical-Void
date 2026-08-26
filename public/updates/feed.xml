@@ -26,10 +26,7 @@
 
 See the live change: https://mythicalvoid.com/educators/
 
-Media note: Branded sharing artwork, not a raw screenshot. The framed screen is real gameplay using a company-controlled test state and contains a credited NASA public image; no player information is shown. NASA does not endorse Mythical Void.</description>
-      <media:content url="https://mythicalvoid.com/press/social/nasa-stem-discovery-wide.png" type="image/png" medium="image">
-        <media:description>Mythical Void space-discovery artwork with a real game screen and credited NASA Apollo 11 image</media:description>
-      </media:content>
+Visual note: the earlier media was withheld after human review.</description>
     </item>
     <item>
       <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-014</guid>
@@ -45,29 +42,23 @@ Media note: Branded sharing artwork, not a raw screenshot. The framed screen is 
 
 See the live change: https://mythicalvoid.com/creature-field-guide/
 
-Media note: Branded proof layout, not a playable game scene. Every creature is an exact export from the running game renderer. The field-guide stories are official universe material, not claims that these events are already playable quests.</description>
-      <media:content url="https://mythicalvoid.com/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png" type="image/png" medium="image">
-        <media:description>Twelve real pixel creatures from the Mythical Void renderer gathered in a luminous alien field-guide display</media:description>
-      </media:content>
+Visual note: the earlier media was withheld after human review.</description>
     </item>
     <item>
       <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-013</guid>
-      <title>Twelve real hatches show the engine’s range</title>
+      <title>See how the creature engine shapes a hatch</title>
       <link>https://mythicalvoid.com/updates/#signal-013</link>
       <pubDate>Wed, 26 Aug 2026 12:00:00 GMT</pubDate>
-      <category>REAL CREATURE RANGE</category>
-      <description>A new source-bound gallery shows twelve creatures made by the running Mythical Void genetics, DNA and pixel-rendering system—not concept art.
+      <category>CREATURE ENGINE</category>
+      <description>A clearer creature-engine guide now explains how form, markings, nature, affinity and rare changes combine—without asking weak sprite exports to carry the story.
 
-• The engine was run 1,000 times with deliberately balanced rarity groups, then twelve results were selected for visible breadth across all seven current species and all five rarity levels.
-• The set covers all eleven genetics body families, nine head forms, six environmental auras and five personalities. Each card uses the exact sprite exported by the game renderer.
-• This is a range showcase, not a probability sample, a normal hatch-odds claim or a promise of endless mathematical uniqueness. The source profiles, image fingerprints and renderer build are open for checking.
+• The guide explains the current seven species signatures and eleven body families in plain language.
+• It separates the playable creature profile from wider imagined-universe artwork, so nobody has to guess what they are seeing.
+• The previous tiny sprite gallery was technically authentic but visually unhelpful, so it has been withdrawn pending stronger in-game captures.
 
-See the live change: https://mythicalvoid.com/creature-genetics/#meet-the-twelve
+See the live change: https://mythicalvoid.com/creature-genetics/#gene-spectrum
 
-Media note: Branded proof layout, not a playable game scene. Every creature is an exact game-renderer export; the set was deliberately selected to show range and does not represent normal hatch odds.</description>
-      <media:content url="https://mythicalvoid.com/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png" type="image/png" medium="image">
-        <media:description>Twelve real pixel creatures rendered by the running Mythical Void genetics and DNA engine</media:description>
-      </media:content>
+Visual note: the earlier media was withheld after human review.</description>
     </item>
     <item>
       <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-015</guid>
@@ -75,37 +66,31 @@ Media note: Branded proof layout, not a playable game scene. Every creature is a
       <link>https://mythicalvoid.com/updates/#signal-015</link>
       <pubDate>Wed, 26 Aug 2026 12:00:00 GMT</pubDate>
       <category>VISUAL QUALITY</category>
-      <description>Mythical Void has withdrawn a technically genuine but visually poor video set, fixed the broken creature render behind it and replaced the public lead with one clear Forest arrival.
+      <description>Mythical Void has withdrawn a technically genuine but visually poor media set and introduced a human visual-review standard before any replacement can be published.
 
 • The black square seen in the old footage was a real missing-texture failure. The game now verifies that a creature texture exists before a level can use it.
-• The old vertical, square and wide social videos are withdrawn. Passing technical file checks is no longer treated as visual approval.
-• The new 3.17-second lead is a deliberately selected in-game Mythical Forest arrival. It is clearly labelled as a story moment, not as platforming or combat proof.
+• The old screenshots, vertical, square and wide social videos are withdrawn. Passing technical file checks is no longer treated as visual approval.
+• A replacement must show one clear subject and action, keep the creature readable at phone size and be watched frame by frame by an adult reviewer.
 
 See the live change: https://mythicalvoid.com/playable-now/
 
-Media note: Captured from the running Mythical Void game using an invented QA state. It is an in-game story moment, not a platforming or combat demonstration.</description>
-      <media:content url="https://mythicalvoid.com/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png" type="image/png" medium="image">
-        <media:description>The in-game Mythical Forest arrival with a clear field brief and Project Beacon tower</media:description>
-      </media:content>
+Visual note: the earlier media was withheld after human review.</description>
     </item>
     <item>
       <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-009</guid>
-      <title>See the real game before you play</title>
+      <title>Understand the game before you play</title>
       <link>https://mythicalvoid.com/updates/#signal-009</link>
       <pubDate>Wed, 26 Aug 2026 12:00:00 GMT</pubDate>
       <category>PLAYABLE NOW</category>
-      <description>A new Mythical Void page gives unfamiliar players one clear view of the real browser game, what they do in it and why the project is different before asking them to play.
+      <description>A Mythical Void guide now explains what a player actually does, why the creature matters and where the story leads—without relying on weak footage.
 
-• The page leads with a short, landscape Mythical Forest arrival recorded directly from the running game and labelled as an in-game story moment.
-• It explains the crash, creature, six realms, restoration, Sanctuary building and Project Beacon choice in plain language, with four deliberately selected game moments as proof.
+• The page explains the crash, creature, six realms, restoration, Sanctuary building and Project Beacon choice in plain language.
+• Earlier screenshots and video were removed because they did not show clear, attractive moments of play even though the source files were genuine.
 • Every Play link goes directly to the free browser game without an account, download, email signup or tracking parameter.
 
 See the live change: https://mythicalvoid.com/playable-now/
 
-Media note: Poster captured from the running browser game using an invented test state. It is a story moment, not a platforming or combat demonstration; no player identity or private save is shown.</description>
-      <media:content url="https://mythicalvoid.com/press/gameplay-video/mythical-forest-authentic-gameplay-poster.png" type="image/png" medium="image">
-        <media:description>The in-game Mythical Forest arrival with a clear field brief and Project Beacon tower</media:description>
-      </media:content>
+Visual note: the earlier media was withheld after human review.</description>
     </item>
     <item>
       <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-008</guid>
@@ -121,48 +106,7 @@ Media note: Poster captured from the running browser game using an invented test
 
 See the live change: https://mythicalvoid.com/updates/feed.xml
 
-Media note: Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.</description>
-      <media:content url="https://mythicalvoid.com/press/social/project-beacon-story-wide.png" type="image/png" medium="image">
-        <media:description>Wide Mythical Void Project Beacon sharing artwork with a real gameplay frame</media:description>
-      </media:content>
-    </item>
-    <item>
-      <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-007</guid>
-      <title>The father-and-son story is ready to share</title>
-      <link>https://mythicalvoid.com/updates/#signal-007</link>
-      <pubDate>Fri, 14 Aug 2026 12:00:00 GMT</pubDate>
-      <category>STUDIO STORY</category>
-      <description>Adults, press and creators can now share wide or square artwork explaining how an Irish father-and-son experiment with imagination and generative AI tools became a playable browser game.
-
-• Both layouts use the clean mythicalvoid.com/studio address with no tracking code.
-• The background is labelled as AI-generated marketing artwork, while the framed first-contact screen is real gameplay.
-• No photograph, name or identifying detail of the child is used.
-
-See the live change: https://mythicalvoid.com/press/#father-son-story-social-assets
-
-Media note: Founder-story sharing artwork, not a raw screenshot. The background is AI-generated marketing artwork, not gameplay; the framed screen is real gameplay using a company-controlled test state. No player information, photograph, name or identifying detail of the child is shown.</description>
-      <media:content url="https://mythicalvoid.com/press/social/father-son-story-square.png" type="image/png" medium="image">
-        <media:description>Square Mythical Void founder-story artwork saying One enormous idea, built together, with the studio emblem and a real first-contact game frame</media:description>
-      </media:content>
-    </item>
-    <item>
-      <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-006</guid>
-      <title>A real-space sharing kit is ready</title>
-      <link>https://mythicalvoid.com/updates/#signal-006</link>
-      <pubDate>Fri, 14 Aug 2026 12:00:00 GMT</pubDate>
-      <category>SPACE DISCOVERY</category>
-      <description>Adults, families, educators and creators can now share wide or square Mythical Void artwork built around a real game screen and a credited NASA Apollo 11 image.
-
-• Both layouts use the clean mythicalvoid.com/nasa-space-science address with no tracking code.
-• The framed screen comes from the running game and clearly credits the NASA public image inside it.
-• The complete layouts are branded sharing artwork, not raw screenshots, and NASA does not endorse Mythical Void.
-
-See the live change: https://mythicalvoid.com/press/#nasa-stem-social-assets
-
-Media note: Branded sharing artwork built around a real gameplay screen containing a credited NASA public image; the complete layout is not a raw screenshot, no player information is shown, and NASA does not endorse Mythical Void.</description>
-      <media:content url="https://mythicalvoid.com/press/social/nasa-stem-discovery-square.png" type="image/png" medium="image">
-        <media:description>Square Mythical Void space-discovery artwork with a real game screen, credited Apollo 11 image and an observation question</media:description>
-      </media:content>
+Visual note: the earlier media was withheld after human review.</description>
     </item>
     <item>
       <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-005</guid>
@@ -178,10 +122,7 @@ Media note: Branded sharing artwork built around a real gameplay screen containi
 
 See the live change: https://mythicalvoid.com/story/
 
-Media note: Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.</description>
-      <media:content url="https://mythicalvoid.com/press/social/project-beacon-story-wide.png" type="image/png" medium="image">
-        <media:description>Wide Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame</media:description>
-      </media:content>
+Visual note: the earlier media was withheld after human review.</description>
     </item>
     <item>
       <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-004</guid>
@@ -203,44 +144,6 @@ Media note: AI-generated marketing illustration inspired by the creature system;
       </media:content>
     </item>
     <item>
-      <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-003</guid>
-      <title>Project Beacon artwork is ready to share</title>
-      <link>https://mythicalvoid.com/updates/#signal-003</link>
-      <pubDate>Fri, 14 Aug 2026 12:00:00 GMT</pubDate>
-      <category>READY TO SHARE</category>
-      <description>Adults, press and creators can now download polished square and wide Project Beacon artwork from the press room, built around a real game capture and a clean story link.
-
-• Both layouts show the clean mythicalvoid.com/story address with no tracking code.
-• The framed Project Beacon scene comes from the real running browser game using an invented test state.
-• The complete layouts are branded sharing artwork, not raw gameplay screenshots.
-
-See the live change: https://mythicalvoid.com/press/
-
-Media note: Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.</description>
-      <media:content url="https://mythicalvoid.com/press/social/project-beacon-story-square.png" type="image/png" medium="image">
-        <media:description>Square Mythical Void sharing artwork headed Earth sent you looking for hope, with a real Project Beacon gameplay frame</media:description>
-      </media:content>
-    </item>
-    <item>
-      <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-002</guid>
-      <title>A new way to share the game</title>
-      <link>https://mythicalvoid.com/updates/#signal-002</link>
-      <pubDate>Fri, 14 Aug 2026 12:00:00 GMT</pubDate>
-      <category>SHARE THE SIGNAL</category>
-      <description>Adults can now download a one-page Mythical Void card, print it or send it, and use its QR code to open the free browser game.
-
-• The QR code goes straight to mythicalvoid.com with no tracking code attached.
-• The card includes one real Project Beacon game screen.
-• The large creature-universe image is clearly labelled as generated artwork, not gameplay.
-
-See the live change: https://mythicalvoid.com/resources/mythical-void-play-share-card.pdf
-
-Media note: AI-generated marketing illustration inspired by the creature system; not gameplay.</description>
-      <media:content url="https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp" type="image/webp" medium="image">
-        <media:description>An imagined gathering of strange alien creatures in a luminous Mythical Void realm</media:description>
-      </media:content>
-    </item>
-    <item>
       <guid isPermaLink="true">https://mythicalvoid.com/updates/#signal-001</guid>
       <title>The Project Beacon story is live</title>
       <link>https://mythicalvoid.com/updates/#signal-001</link>
@@ -254,10 +157,7 @@ Media note: AI-generated marketing illustration inspired by the creature system;
 
 See the live change: https://mythicalvoid.com/story/
 
-Media note: Captured from the real browser game using an invented test state; no player information is shown.</description>
-      <media:content url="https://mythicalvoid.com/press/gameplay/project-beacon-start.png" type="image/png" medium="image">
-        <media:description>Real Mythical Void gameplay showing the Project Beacon opening at the Wanderer-77 crash site</media:description>
-      </media:content>
+Visual note: the earlier media was withheld after human review.</description>
     </item>
   </channel>
 </rss>

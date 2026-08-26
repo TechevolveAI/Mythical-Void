@@ -63,7 +63,8 @@ for (const sighting of publicData.realms.flatMap(realm => realm.sightings)) {
 assert.strictEqual((publicHtml.match(/data-field-realm/g) || []).length, 6, 'HTML needs six marked realm sections.');
 assert.strictEqual((publicHtml.match(/class="field-sighting"/g) || []).length, 12, 'HTML needs twelve marked sighting cards.');
 assert.ok(/do not claim these twelve creatures or events are already playable quests/i.test(publicHtml), 'The page must make its playable-quest boundary obvious.');
-assert.ok(/every creature inside this display is an exact export from the running game renderer/i.test(publicHtml), 'The renderer disclosure is missing.');
+assert.ok(/earlier sprite and realm captures were real but poor at communicating the experience/i.test(publicHtml), 'The visual-withdrawal disclosure is missing.');
+assert.ok(!publicHtml.includes('/press/gameplay/'), 'The public field guide republishes withdrawn captures.');
 assert.ok(!/\bcompanions?\b/i.test(publicHtml), 'The page uses retired companion language.');
 assert.ok(!/no two creatures|every creature is unique|infinite(?:ly)? unique|unlimited unique/i.test(publicHtml), 'The page makes an unsupported uniqueness promise.');
 assert.ok(!/sentient|conscious ai|alive ai/i.test(publicHtml), 'The page makes an unsupported intelligence or sentience claim.');
@@ -82,23 +83,20 @@ for (const [file, fragment, label] of [
 
 const socialPreviews = JSON.parse(fs.readFileSync(path.join(root, 'public/press/mythical-void-social-previews.json'), 'utf8'));
 const socialPreview = socialPreviews.pages.find(page => page.route === '/creature-field-guide/');
-assert.strictEqual(socialPreview?.classification, 'branded_renderer_proof_layout_with_authentic_game_sprite_exports');
-assert.ok(/not a playable scene/i.test(socialPreview?.disclosure || '') && /playable quests/i.test(socialPreview?.disclosure || ''), 'Field-guide social preview lacks its renderer or canon boundary.');
+assert.strictEqual(socialPreview?.classification, 'ai_generated_marketing_illustration_not_gameplay');
+assert.ok(/not gameplay/i.test(socialPreview?.disclosure || ''), 'Field-guide social preview lacks its artwork boundary.');
 
-assert.strictEqual(release.state, 'verified_live_production_release');
+assert.strictEqual(release.state, 'owned_site_profile_guide_ready_visuals_withdrawn_pending_rebuild');
 assert.strictEqual(release.sourceProof.fieldGuideSource.sha256, sha256('src/data/creature-field-guide.json'));
 assert.strictEqual(release.sourceProof.rendererProfiles.sha256, sha256('public/press/gameplay/real-creature-showcase/source-profiles.json'));
 assert.strictEqual(release.sourceProof.publicData.sha256, sha256('public/creature-field-guide/field-guide.json'));
 assert.strictEqual(release.sourceProof.publicPage.sha256, sha256('public/creature-field-guide/index.html'));
-assert.deepStrictEqual(release.coverage, { realms: 6, verifiedCreatureRenders: 12, sightingsPerRealm: 2, guardians: 6, projectBeaconQuestions: 6 });
+assert.deepStrictEqual(release.coverage, { realms: 6, verifiedCreatureProfiles: 12, sightingsPerRealm: 2, guardians: 6, projectBeaconQuestions: 6 });
 assert.strictEqual(release.canonBoundary.changesPlayableQuestCanon, false);
 assert.strictEqual(release.safeguards.deterministicSourceBoundBuild, true);
 assert.strictEqual(release.safeguards.directMinorContactEnabled, false);
-assert.strictEqual(release.productionProof.mergeCommit, '49eb002c76b62a4aa0b0bf97a9f2fa664401923a');
-assert.strictEqual(release.productionProof.netlifyState, 'ready');
-assert.strictEqual(release.productionProof.livePageSha256, release.sourceProof.publicPage.sha256);
-assert.strictEqual(release.productionProof.liveDataSha256, release.sourceProof.publicData.sha256);
-assert.strictEqual(release.productionProof.liveFilesMatchCheckedRelease, true);
+assert.strictEqual(release.productionProof.netlifyState, 'pending');
+assert.strictEqual(release.productionProof.liveFilesMatchCheckedRelease, false);
 
 assert.strictEqual(source.authority.ownedWebsitePublicationAuthorized, true);
 assert.strictEqual(source.authority.changesPlayableQuestCanon, false);

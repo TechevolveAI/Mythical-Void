@@ -215,6 +215,12 @@ h3 { font-size: 1.45rem; }
     font-size: 0.86rem;
 }
 
+.stem-cover-visual img {
+    max-height: 600px;
+    object-fit: contain;
+    background: radial-gradient(circle at 50% 36%, rgba(167, 104, 255, 0.18), transparent 60%), #05030c;
+}
+
 .truth-strip {
     border-block: 1px solid var(--line);
     background: rgba(255, 255, 255, 0.025);
@@ -312,6 +318,30 @@ h3 { font-size: 1.45rem; }
     font-size: 0.78rem;
 }
 
+.signal-entry-no-media {
+    display: grid;
+    min-height: 270px;
+    place-content: center;
+    gap: 0.65rem;
+    padding: 2rem;
+    border: 1px solid rgba(118, 227, 207, 0.2);
+    border-radius: 1.35rem;
+    background:
+        radial-gradient(circle at 50% 50%, rgba(118, 227, 207, 0.13), transparent 36%),
+        repeating-linear-gradient(135deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 18px),
+        #090713;
+    text-align: center;
+}
+
+.signal-entry-no-media span {
+    color: var(--mint);
+    font-size: clamp(1.3rem, 3vw, 2.2rem);
+    font-weight: 950;
+    letter-spacing: 0.12em;
+}
+
+.signal-entry-no-media small { color: var(--muted); }
+
 .signal-entry-copy { padding: clamp(0.5rem, 2vw, 1.2rem); }
 .signal-entry-copy h2 { margin-bottom: 1rem; font-size: clamp(2rem, 4vw, 3.6rem); }
 .signal-entry-copy ul { margin: 1.3rem 0 1.6rem; padding-left: 1.2rem; color: var(--muted); }
@@ -389,6 +419,70 @@ h3 { font-size: 1.45rem; }
     object-fit: contain;
     background: #05030c;
 }
+
+.concept-visual {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7rem;
+    min-height: 390px;
+    overflow: hidden;
+    padding: clamp(1.4rem, 4vw, 2.8rem);
+    border: 1px solid rgba(118, 227, 207, 0.24);
+    border-radius: 1.25rem;
+    background:
+        radial-gradient(circle at 50% 42%, rgba(167, 104, 255, 0.25), transparent 35%),
+        linear-gradient(145deg, #05030c, #15102b);
+    text-align: center;
+}
+
+.concept-visual::before {
+    content: "";
+    position: absolute;
+    width: 250px;
+    height: 250px;
+    border: 1px solid rgba(118, 227, 207, 0.17);
+    border-radius: 50%;
+    box-shadow: 0 0 0 42px rgba(167, 104, 255, 0.035), 0 0 0 84px rgba(118, 227, 207, 0.025);
+}
+
+.concept-visual span,
+.concept-visual strong,
+.concept-visual i,
+.concept-visual small { position: relative; z-index: 1; }
+
+.concept-visual span {
+    padding: 0.7rem 0.85rem;
+    border: 1px solid rgba(118, 227, 207, 0.28);
+    border-radius: 999px;
+    color: var(--mint);
+    font-size: 0.72rem;
+    font-weight: 950;
+    letter-spacing: 0.1em;
+}
+
+.concept-visual strong {
+    color: var(--cream);
+    font-size: clamp(1.4rem, 3vw, 2.3rem);
+    letter-spacing: -0.02em;
+}
+
+.concept-visual i { color: var(--gold); font-style: normal; font-weight: 950; }
+.concept-visual small { flex-basis: 100%; margin-top: 1rem; color: #afa5bf; font-size: 0.65rem; font-weight: 850; letter-spacing: 0.12em; }
+
+.signal-contact-visual strong,
+.apollo-source-visual strong { flex-basis: 100%; }
+
+.beacon-choice-visual strong,
+.studio-build-visual strong,
+.creature-journey-visual strong { color: var(--gold); }
+
+.science-method-visual strong { padding: 0.75rem 0.9rem; border-radius: 999px; background: var(--gold); color: #151008; }
+.gene-spectrum-grid .card-number,
+.playable-value-grid .card-number { width: auto; padding-inline: 0.8rem; }
 
 .label {
     display: inline-flex;
@@ -552,6 +646,20 @@ details p { margin: 0.9rem 0 0; }
 .educator-resource-card h3 { margin-bottom: 0.8rem; font-size: clamp(1.7rem, 3vw, 2.4rem); }
 .educator-resource-card p { color: var(--muted); }
 .educator-resource-card .button { margin-top: auto; }
+.educator-resource-card > .resource-signal-mark {
+    display: grid;
+    min-height: 520px;
+    place-items: center;
+    padding: 1rem;
+    background:
+        radial-gradient(circle, rgba(118, 227, 207, 0.24), transparent 42%),
+        repeating-radial-gradient(circle, rgba(167, 104, 255, 0.12) 0 1px, transparent 2px 24px),
+        #05030c;
+    color: var(--mint);
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    font-weight: 950;
+    letter-spacing: 0.08em;
+}
 .educator-boundaries .card { min-height: 245px; }
 .playable-share-card {
     display: grid;
@@ -759,6 +867,7 @@ details p { margin: 0.9rem 0 0; }
     margin-bottom: 1.3rem;
 }
 .field-realm-context figure,
+.field-realm-signal,
 .field-realm-truth {
     margin: 0;
     border: 1px solid var(--line);
@@ -766,6 +875,22 @@ details p { margin: 0.9rem 0 0; }
     overflow: hidden;
     background: var(--panel);
 }
+.field-realm-signal {
+    display: grid;
+    min-height: 330px;
+    place-content: center;
+    gap: 0.65rem;
+    padding: 2rem;
+    background:
+        radial-gradient(circle at center, rgba(118, 227, 207, 0.18), transparent 34%),
+        repeating-radial-gradient(circle at center, rgba(167, 104, 255, 0.1) 0 1px, transparent 2px 35px),
+        #070511;
+    text-align: center;
+}
+.field-realm-signal span,
+.field-realm-signal small { color: var(--mint); font-size: 0.67rem; font-weight: 950; letter-spacing: 0.13em; }
+.field-realm-signal strong { color: var(--cream); font-size: clamp(2rem, 5vw, 4.8rem); line-height: 0.95; }
+.field-realm-signal small { color: var(--gold); }
 .field-realm-context figure { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
 .field-realm-context figure img { width: 100%; height: 330px; object-fit: cover; object-position: center top; }
 .field-realm-context figcaption {
@@ -813,13 +938,21 @@ details p { margin: 0.9rem 0 0; }
         radial-gradient(circle, color-mix(in srgb, var(--creature-colour) 25%, transparent), transparent 55%),
         linear-gradient(165deg, rgba(255,255,255,0.04), transparent);
 }
-.field-sighting-visual img {
-    width: auto;
-    max-width: 145px;
-    max-height: 230px;
-    image-rendering: pixelated;
-    filter: drop-shadow(0 1.2rem 1.4rem rgba(0,0,0,0.5));
+.field-sighting-glyph {
+    position: relative;
+    display: grid;
+    width: 150px;
+    height: 150px;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--creature-colour) 60%, white);
+    border-radius: 50%;
+    box-shadow: 0 0 45px color-mix(in srgb, var(--creature-colour) 28%, transparent);
 }
+.field-sighting-glyph i { position: absolute; inset: 16%; border: 1px solid color-mix(in srgb, var(--creature-colour) 75%, white); border-radius: 46% 54% 62% 38%; transform: rotate(24deg); }
+.field-sighting-glyph i:nth-child(2) { inset: 28%; transform: rotate(91deg); }
+.field-sighting-glyph i:nth-child(3) { inset: 40%; transform: rotate(151deg); }
+.field-sighting-glyph strong { position: relative; color: var(--cream); font-size: 2rem; }
+.field-sighting-visual > small { max-width: 150px; color: #8f85a2; font-size: 0.65rem; line-height: 1.4; text-align: center; }
 .field-sighting-id {
     position: absolute;
     top: 1rem;
@@ -947,6 +1080,8 @@ details p { margin: 0.9rem 0 0; }
     .mission-steps span { margin-bottom: 1.5rem; }
     .educator-resource-card { grid-template-columns: 1fr; min-height: 0; }
     .educator-resource-card > img { min-height: 0; max-height: 520px; object-fit: contain; }
+    .educator-resource-card > .resource-signal-mark { min-height: 290px; }
+    .concept-visual { min-height: 300px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

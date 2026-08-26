@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { buildJsonFeed, buildRssFeed, defaultJsonPath, defaultRssPath, defaultSourcePath } = require('./build-signal-feeds.cjs');
+const { isWithdrawnPublicVisual, readVisualPublicationRegister } = require('./visual-publication-policy.cjs');
 
 const root = path.resolve(__dirname, '../..');
 const sourcePath = process.argv[2] ? path.resolve(process.argv[2]) : defaultSourcePath;
@@ -17,6 +18,7 @@ const release = JSON.parse(fs.readFileSync(releasePath, 'utf8'));
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 const live = (source.entries || []).filter(entry => entry.status === 'live');
+const visualRegister = readVisualPublicationRegister();
 
 requireValue(source.publicationBoundary?.liveItemsOnly === true, 'only checked live items may be published');
 for (const [key, expected] of Object.entries({ commentsEnabled: false, contactCollectionEnabled: false, emailSignupEnabled: false, playerProfilesCreated: false, trackingParametersPermitted: false })) {
@@ -51,7 +53,13 @@ for (const [index, entry] of live.entries()) {
     seenIds.add(entry.id);
     requireValue(item?.id === `https://mythicalvoid.com/updates/#${entry.id.toLowerCase()}`, `${entry.id} order or ID drifted`);
     requireValue(item?.summary === entry.summary, `${entry.id} summary drifted`);
-    requireValue(item?.content_text?.includes(entry.disclosure), `${entry.id} lost its media disclosure`);
+    if (entry.image && !isWithdrawnPublicVisual(entry.image, visualRegister)) {
+        requireValue(item?.content_text?.includes(entry.disclosure), `${entry.id} lost its media disclosure`);
+        requireValue(Boolean(item?.image), `${entry.id} lost its approved image`);
+    } else {
+        requireValue(item?.content_text?.includes('withheld after human review'), `${entry.id} lost its visual-review note`);
+        requireValue(!item?.image, `${entry.id} republishes a withdrawn image`);
+    }
     requireValue(item?.external_url?.startsWith('https://mythicalvoid.com/'), `${entry.id} points outside Mythical Void`);
     requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(item?.external_url || ''), `${entry.id} contains tracking`);
 }

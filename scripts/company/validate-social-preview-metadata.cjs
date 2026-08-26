@@ -41,7 +41,7 @@ function imageDimensions(file, type) {
     return null;
 }
 
-requireValue(manifest.schemaVersion === 1 && manifest.state === 'route_specific_preview_metadata_bound_to_checked_assets', 'Social preview manifest identity or state is invalid.');
+requireValue(manifest.schemaVersion === 2 && manifest.state === 'human_reviewed_preview_fallback_while_gameplay_media_is_rebuilt', 'Social preview manifest identity or state is invalid.');
 requireValue(Array.isArray(manifest.pages) && manifest.pages.length === 10, 'Social preview manifest must cover exactly ten static public pages.');
 requireValue(new Set((manifest.pages || []).map(page => page.route)).size === manifest.pages?.length, 'Social preview routes must be unique.');
 
@@ -83,7 +83,7 @@ for (const page of manifest.pages || []) {
     requireValue(dimensions?.width === page.width && dimensions?.height === page.height, `${label} preview image dimensions do not match the real file.`);
     requireValue(fs.statSync(imageFile).size > 10_000, `${label} preview image is unexpectedly small.`);
 
-    if (page.classification === 'ai_generated_marketing_illustration') {
+    if (page.classification === 'ai_generated_marketing_illustration' || page.classification === 'ai_generated_marketing_illustration_not_gameplay') {
         requireValue(/not gameplay/i.test(page.disclosure || ''), `${label} generated artwork must be disclosed as not gameplay.`);
     }
     if ((page.classification || '').startsWith('branded_social_artwork_with_authentic_gameplay_frame')) {

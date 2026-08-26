@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { isWithdrawnPublicVisual, readVisualPublicationRegister } = require('./visual-publication-policy.cjs');
 
 const root = path.resolve(__dirname, '../..');
 const defaultSourcePath = path.join(root, 'public/updates/releases.json');
@@ -38,19 +39,24 @@ function itemUrl(entry) {
     return `${siteOrigin}/updates/#${entry.id.toLowerCase()}`;
 }
 
-function contentText(entry) {
-    return [
+function contentText(entry, register = readVisualPublicationRegister()) {
+    const lines = [
         entry.summary,
         '',
         ...entry.details.map(detail => `• ${detail}`),
         '',
-        `See the live change: ${ownedUrl(entry.destination)}`,
-        '',
-        `Media note: ${entry.disclosure}`
-    ].join('\n');
+        `See the live change: ${ownedUrl(entry.destination)}`
+    ];
+    if (entry.image && !isWithdrawnPublicVisual(entry.image, register)) {
+        lines.push('', `Media note: ${entry.disclosure}`);
+    } else {
+        lines.push('', 'Visual note: the earlier media was withheld after human review.');
+    }
+    return lines.join('\n');
 }
 
 function buildRssFeed(source) {
+    const register = readVisualPublicationRegister();
     const entries = (source.entries || []).filter(entry => entry.status === 'live');
     const latestDate = entries.map(entry => entry.publishedOn).sort().at(-1);
     const items = entries.map(entry => `    <item>
@@ -59,10 +65,10 @@ function buildRssFeed(source) {
       <link>${escapeXml(itemUrl(entry))}</link>
       <pubDate>${escapeXml(new Date(publicationTime(entry.publishedOn)).toUTCString())}</pubDate>
       <category>${escapeXml(entry.category)}</category>
-      <description>${escapeXml(contentText(entry))}</description>
+      <description>${escapeXml(contentText(entry, register))}</description>${entry.image && !isWithdrawnPublicVisual(entry.image, register) ? `
       <media:content url="${escapeXml(ownedUrl(entry.image))}" type="${escapeXml(mediaType(entry.image))}" medium="image">
         <media:description>${escapeXml(entry.imageAlt)}</media:description>
-      </media:content>
+      </media:content>` : ''}
     </item>`).join('\n');
 
     return `<?xml version="1.0" encoding="UTF-8"?>
@@ -86,6 +92,7 @@ ${items}
 }
 
 function buildJsonFeed(source) {
+    const register = readVisualPublicationRegister();
     const entries = (source.entries || []).filter(entry => entry.status === 'live');
     return `${JSON.stringify({
         version: 'https://jsonfeed.org/version/1.1',
@@ -102,9 +109,9 @@ function buildJsonFeed(source) {
             url: itemUrl(entry),
             external_url: ownedUrl(entry.destination),
             title: entry.title,
-            content_text: contentText(entry),
+            content_text: contentText(entry, register),
             summary: entry.summary,
-            image: ownedUrl(entry.image),
+            ...(!entry.image || isWithdrawnPublicVisual(entry.image, register) ? {} : { image: ownedUrl(entry.image) }),
             date_published: publicationTime(entry.publishedOn),
             tags: [entry.category]
         }))

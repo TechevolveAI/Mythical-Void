@@ -18,11 +18,16 @@
       "path": "/resources/mythical-void-stem-creature-lab.pdf",
       "use": "Adult-led educational activity, not gameplay promotion",
       "review": "approved"
+    },
+    {
+      "path": "/resources/previews/stem-creature-lab-cover.png",
+      "use": "Accurate preview of the approved adult-led educational activity",
+      "review": "approved"
     }
   ],
   "pressHero": {
     "path": "/marketing/mythical-void-creature-universe-hero-v2.webp",
-    "use": "Non-download press-page atmosphere only",
+    "use": "Public-page atmosphere with a visible AI-generated marketing-art disclosure; never gameplay evidence",
     "classification": "ai_generated_marketing_illustration_not_gameplay",
     "review": "temporarily_retained_with_visible_disclosure"
   },
@@ -34,7 +39,8 @@
     "/press/creator-kit/"
   ],
   "withdrawnIndividualPaths": [
-    "/resources/mythical-void-play-share-card.pdf"
+    "/resources/mythical-void-play-share-card.pdf",
+    "/resources/previews/play-share-card.png"
   ],
   "reviewFindings": [
     "Some captures were technically real but did not explain the moment to a human viewer.",

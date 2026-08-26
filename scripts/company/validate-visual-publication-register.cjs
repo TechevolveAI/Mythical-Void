@@ -12,7 +12,7 @@ const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 
 requireValue(register.state === 'public_media_library_withdrawn_pending_rebuild', 'visual register is not in the withdrawn rebuild state');
-requireValue(register.publicApproved?.length === 3, 'approved public list must remain deliberately small');
+requireValue(register.publicApproved?.length === 4, 'approved public list must remain deliberately small and explicit');
 requireValue(register.replacementRequirements?.length >= 7, 'replacement visual requirements are incomplete');
 requireValue(register.nextCaptureBrief?.length >= 4, 'replacement capture brief is incomplete');
 requireValue(register.authority?.externalSocialPublicationAuthorized === false, 'register must not authorize external social publication');
