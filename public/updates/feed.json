@@ -15,6 +15,19 @@
   ],
   "items": [
     {
+      "id": "https://mythicalvoid.com/updates/#signal-014",
+      "url": "https://mythicalvoid.com/updates/#signal-014",
+      "external_url": "https://mythicalvoid.com/creature-field-guide/",
+      "title": "Twelve creatures now have a place in the story",
+      "content_text": "A new Project Beacon field guide connects twelve verified game-renderer creatures to the six living realms, with their real traits and new official stories kept clearly separate.\n\n• Each realm now has two field sightings tied to a lesson already present in the game: listen, repair, keep routes open, protect warnings, use signals carefully and choose what should remain undisclosed.\n• Every creature image is an exact export from the running renderer, and every trait comes from its checked genetics and DNA profile rather than new marketing invention.\n• The names and short stories are official universe material, but they do not claim these twelve creatures or events are already playable quests. The current game and the wider field guide remain plainly labelled.\n\nSee the live change: https://mythicalvoid.com/creature-field-guide/\n\nMedia note: Branded proof layout, not a playable game scene. Every creature is an exact export from the running game renderer. The field-guide stories are official universe material, not claims that these events are already playable quests.",
+      "summary": "A new Project Beacon field guide connects twelve verified game-renderer creatures to the six living realms, with their real traits and new official stories kept clearly separate.",
+      "image": "https://mythicalvoid.com/press/gameplay/real-creature-showcase/real-creature-showcase-wide.png",
+      "date_published": "2026-08-26T12:00:00.000Z",
+      "tags": [
+        "CREATURE FIELD GUIDE"
+      ]
+    },
+    {
       "id": "https://mythicalvoid.com/updates/#signal-013",
       "url": "https://mythicalvoid.com/updates/#signal-013",
       "external_url": "https://mythicalvoid.com/creature-genetics/#meet-the-twelve",

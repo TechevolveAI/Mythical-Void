@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "id": "PROJECT-BEACON-FIELD-GUIDE-001",
+  "title": "Project Beacon Creature Field Guide",
+  "state": "official_field_guide_stories_source_bound_to_verified_renderer_profiles",
+  "purpose": "Give the twelve verified creature renders a memorable place in the Mythical Void universe while keeping engine facts, current game canon and new field-guide stories visibly separate.",
+  "canonBoundary": "Realm names, guardians, Project Beacon themes and creature profile traits are current game facts. The named creature stories are official field-guide lore, but they are not claims that these twelve creatures or events already appear as playable quests.",
+  "realms": [
+    {
+      "id": "mythical_forest",
+      "label": "Mythical Forest",
+      "number": "01",
+      "gameImage": "/press/gameplay/realm-mythicalforest.png",
+      "imageAlt": "Real Mythical Void phone gameplay in the Mythical Forest",
+      "guardian": "Elder Treant",
+      "guardianRole": "Forest Rootwarden",
+      "knownGameTruth": "The living Current begins to speak through roots and signals. The player learns that listening and protecting can matter more than taking.",
+      "projectBeaconQuestion": "Can a scientific record preserve a living voice instead of reducing it to a sample?",
+      "sourceRefs": ["src/systems/CurrentEcology.js", "src/systems/GuardianOutcomes.js", "src/config/project-beacon.json"],
+      "sightings": [
+        {
+          "creatureId": "MV-0846",
+          "name": "The Memory Gardener",
+          "storyStatus": "official_field_guide_story_not_currently_playable_quest",
+          "story": "Old forest signals gather in the dark patches across this small Crystal Elemental. It does not hoard them. Under moonlight, it carries each fading rhythm to a root that has forgotten how to answer, then waits—quiet and wise—until the Current begins again.",
+          "beaconNote": "A living archive may need a gardener, not an owner."
+        },
+        {
+          "creatureId": "MV-0715",
+          "name": "The Wyrm Who Reads the Roots",
+          "storyStatus": "official_field_guide_story_not_currently_playable_quest",
+          "story": "Circuit-like marks travel along this Stellar Wyrm as if the forest is writing through it. Its floating eyes follow different branches of the same signal. When Wanderer-77 first disturbs the roots, the curious Wyrm does not attack—it traces the new noise back to the crash.",
+          "beaconNote": "First contact begins when both sides notice the disturbance."
+        }
+      ]
+    },
+    {
+      "id": "crystal_caves",
+      "label": "Crystal Caves",
+      "number": "02",
+      "gameImage": "/press/gameplay/realm-crystalcaves.png",
+      "imageAlt": "Real Mythical Void phone gameplay in the Crystal Caves",
+      "guardian": "Crystal Guardian",
+      "guardianRole": "Cavern Resonance Keeper",
+      "knownGameTruth": "The cave is alive. Loose crystal can be gathered safely, but living resonance must be restored rather than extracted.",
+      "projectBeaconQuestion": "What changes when a needed resource is offered after rescue instead of taken by force?",
+      "sourceRefs": ["src/systems/RescuedResidents.js", "src/systems/GuardianOutcomes.js", "src/config/project-beacon.json"],
+      "sightings": [
+        {
+          "creatureId": "MV-0010",
+          "name": "The Prism That Would Not Be Taken",
+          "storyStatus": "official_field_guide_story_not_currently_playable_quest",
+          "story": "A ruby-bright body and prismatic sheen made this Cosmic Guardian look like the richest object in the cavern. Every extraction tool agreed. The gentle creature answered by standing between the drill and a wounded crystal seam, refusing to move until the scanner learned to recognise the cave as alive.",
+          "beaconNote": "Value is not permission."
+        },
+        {
+          "creatureId": "MV-0567",
+          "name": "The Quiet Facet",
+          "storyStatus": "official_field_guide_story_not_currently_playable_quest",
+          "story": "This wise Crystal Drake has no sharp silhouette and no interest in treasure. Its soft form settles beside unstable shards and hums at the cave’s hidden frequency. Miners once followed the loudest resonance. The Quiet Facet teaches them to listen for the note that is missing.",
+          "beaconNote": "A damaged system is sometimes revealed by silence."
+        }
+      ]
+    },
+    {
+      "id": "stellar_reef",
+      "label": "Stellar Reef",
+      "number": "03",
+      "gameImage": "/press/gameplay/realm-reef.png",
+      "imageAlt": "Real Mythical Void phone gameplay in the Stellar Reef",
+      "guardian": "Nyx'voral",
+      "guardianRole": "Reef Passage Guardian",
+      "knownGameTruth": "Restored signals align into routes through the Void. Reef life depends on passages that remain open for more than one traveller.",
+      "projectBeaconQuestion": "Is a route truly repaired if only the explorer can use it?",
+      "sourceRefs": ["src/systems/CollectibleManager.js", "src/systems/GuardianOutcomes.js", "src/config/project-beacon.json"],
+      "sightings": [
+        {
+          "creatureId": "MV-0171",
+          "name": "The Ring-Tide Courier",
+          "storyStatus": "official_field_guide_story_not_currently_playable_quest",
+          "story": "Floating rings turn around this playful Crystal Drake whenever two distant reef signals find each other. It races the tidal Current between settlements, carrying no message of its own. Its gift is keeping the path open long enough for every smaller voice to pass.",
+          "beaconNote": "Communication is infrastructure, not just information."
+        },
+        {
+          "creatureId": "MV-0249",
+          "name": "The Trail Beneath Water",
+          "storyStatus": "official_field_guide_story_not_currently_playable_quest",
+          "story": "The aquatic head of this serpentine Crystal Elemental senses pressure changes before the reef can show them. A flowing nebula trail marks the safest passage, then slowly disappears so predators cannot follow. The route is guidance, never a permanent claim on the water.",
+          "beaconNote": "A map can protect a place by knowing what not to reveal."
+        }
+      ]
+    },
+    {
+      "id": "void_peaks",
+      "label": "Void Peaks",
+      "number": "04",
+      "gameImage": "/press/gameplay/realm-voidpeaks.png",
+      "imageAlt": "Real Mythical Void phone gameplay in the Void Peaks",
+      "guardian": "Cosmic Titan",
+      "guardianRole": "Peak Warning Keeper",
+      "knownGameTruth": "Coordinated warnings move between living settlements. The player is allowed into a conversation that existed before the human arrived.",
+      "projectBeaconQuestion": "When you can hear a warning network, do you own its information—or owe it protection?",
+      "sourceRefs": ["src/systems/RescuedResidents.js", "src/systems/GuardianOutcomes.js", "src/config/project-beacon.json"],
+      "sightings": [
+        {
+          "creatureId": "MV-0257",
+          "name": "The Ember Cartographer",
+          "storyStatus": "official_field_guide_story_not_currently_playable_quest",
+          "story": "Crystal growths on this energetic Cosmic Guardian brighten before a ridge breaks. It runs the peaks in impossible angles, leaving short ember marks where the ground will not hold. The marks vanish after the danger passes; a warning should not become a border.",
+          "beaconNote": "Useful knowledge can remain shared without becoming owned."
+        },
+        {
+          "creatureId": "MV-0794",
+          "name": "The Warm Stone That Moved",
+          "storyStatus": "official_field_guide_story_not_currently_playable_quest",
+          "story": "A rough little shape sleeps among cold rocks until a warning crosses the Current. Then an ember aura wakes beneath its stone texture and it rolls toward the threatened settlement. Nobody remembers appointing the Nebula Sprite. The network simply knows who will answer.",
+          "beaconNote": "A community signal is strongest when help does not wait for command."
+        }
+      ]
+    },
+    {
+      "id": "aurora_depths",
+      "label": "Aurora Depths",
+      "number": "05",
+      "gameImage": "/press/gameplay/realm-auroradepths.png",
+      "imageAlt": "Real Mythical Void phone gameplay in the Aurora Depths",
+      "guardian": "Aurora Phoenix",
+      "guardianRole": "Aurora Renewal Guardian",
+      "knownGameTruth": "The long-range uplink comes within reach. Warm sky lanes carry signals the astronaut’s instruments first misunderstand.",
+      "projectBeaconQuestion": "What should a powerful transmitter say when its coordinates could bring both help and danger?",
+      "sourceRefs": ["src/systems/RescuedResidents.js", "src/systems/GuardianOutcomes.js", "src/config/project-beacon.json"],
+      "sightings": [
+        {
+          "creatureId": "MV-0813",
+          "name": "The Last Light Under Ice",
+          "storyStatus": "official_field_guide_story_not_currently_playable_quest",
+          "story": "This winged Aurora Phoenix carries a star affinity inside a shadow-soft aura. It disappears against the dark until the cold sky lane begins to fail, then opens its wings and becomes the smallest visible sunrise. Renewal here is not spectacle. It is a signal timed exactly when another life needs it.",
+          "beaconNote": "Hope can be precise without being loud."
+        },
+        {
+          "creatureId": "MV-0259",
+          "name": "The Circuit Listener",
+          "storyStatus": "official_field_guide_story_not_currently_playable_quest",
+          "story": "Golden circuit veins and bioluminescent patches turn this Void Stalker into a living receiver. It can hear the unfinished edge of a message—the fear, doubt or warning a machine cuts away. Beside the repaired uplink, it waits for the astronaut to understand that sending is only half of contact.",
+          "beaconNote": "A beacon that cannot listen is only a broadcast."
+        }
+      ]
+    },
+    {
+      "id": "final_void",
+      "label": "The Final Void",
+      "number": "06",
+      "gameImage": "/press/gameplay/realm-finalvoid.png",
+      "imageAlt": "Real Mythical Void phone gameplay in the Final Void",
+      "guardian": "Void Empress",
+      "guardianRole": "Void Boundary Guardian",
+      "knownGameTruth": "At the living boundary, Project Beacon must decide what Earth deserves to know and what this world deserves to keep.",
+      "projectBeaconQuestion": "Can returning home still be right if the route home exposes somebody else’s?",
+      "sourceRefs": ["src/systems/ProtectedReturnProtocol.js", "src/systems/GuardianOutcomes.js", "public/story/index.html"],
+      "sightings": [
+        {
+          "creatureId": "MV-0698",
+          "name": "The Little Void That Stayed",
+          "storyStatus": "official_field_guide_story_not_currently_playable_quest",
+          "story": "Scale armour protects a curious Nebula Sprite whose strange appendages resemble little flames. It can cross the boundary and leave, yet always returns to the place the instruments call empty. The creature knows what Project Beacon is still learning: an unmapped home is not an unoccupied one.",
+          "beaconNote": "Unknown does not mean unclaimed by life."
+        },
+        {
+          "creatureId": "MV-0153",
+          "name": "The Moon-Horn Witness",
+          "storyStatus": "official_field_guide_story_not_currently_playable_quest",
+          "story": "Branching cosmic horns hold the reflections of every restored realm. This playful, moon-bound Crystal Drake appears where the final signal divides: Earth in one direction, the Fend in another. It offers no answer. It keeps both lights visible while the astronaut chooses.",
+          "beaconNote": "A true witness preserves the choice instead of making it for you."
+        }
+      ]
+    }
+  ],
+  "authority": {
+    "ownedWebsitePublicationAuthorized": true,
+    "changesPlayableQuestCanon": false,
+    "externalSocialPublicationAuthorized": false,
+    "emailOrOutreachSendingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "publicRepliesAuthorized": false,
+    "directMinorContactAuthorized": false,
+    "kevinApprovalRequiredBeforeExternalPublication": true,
+    "externalActionTaken": false
+  }
+}

@@ -12,6 +12,7 @@ Play in a browser: https://mythicalvoid.com/play/
 See real gameplay and the game at a glance: https://mythicalvoid.com/playable-now/
 See one real creature generated and revealed by the running game: https://mythicalvoid.com/press/#real-creature-hatch
 See twelve real game-rendered creatures selected to show the current engine's range: https://mythicalvoid.com/creature-genetics/#meet-the-twelve
+Explore the source-bound Project Beacon creature field guide across all six realms: https://mythicalvoid.com/creature-field-guide/
 Privacy and safety: https://mythicalvoid.com/privacy/
 Terms of use: https://mythicalvoid.com/terms/
 Updates: https://mythicalvoid.com/updates/
@@ -36,6 +37,10 @@ Key facts:
 - The public twelve-creature showcase uses exact exports from the running game
   renderer. The set was selected from 1,000 deliberately balanced engine runs
   to show range; it does not represent normal hatch odds.
+- The Project Beacon Creature Field Guide places those twelve verified renders
+  across the six current realms. Their profile traits, realm names and guardians
+  are source-bound game facts. The named short stories are official universe
+  material, not claims that those events are already playable quests.
 - Optional, experimental tools, available only with adult approval, can create a
   creature portrait or short AI-made story scene. These moments add expression
   around the authored story and do not replace the game’s dialogue or important

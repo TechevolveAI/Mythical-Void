@@ -616,6 +616,183 @@ details p { margin: 0.9rem 0 0; }
     font-weight: 800;
 }
 
+/* Project Beacon creature field guide */
+.creature-field-guide-page {
+    background:
+        radial-gradient(circle at 20% 6%, rgba(89, 47, 168, 0.3), transparent 34rem),
+        radial-gradient(circle at 88% 16%, rgba(27, 142, 138, 0.18), transparent 34rem),
+        #07050d;
+}
+.field-guide-hero { padding-bottom: clamp(4rem, 8vw, 7rem); }
+.field-guide-hero h1 { font-size: clamp(3.4rem, 7.2vw, 7.2rem); }
+.field-guide-hero .hero-visual {
+    border-color: rgba(167, 104, 255, 0.4);
+    box-shadow: 0 2.8rem 8rem rgba(54, 15, 107, 0.48);
+}
+.field-boundary { padding: clamp(4rem, 8vw, 7rem) 0; }
+.field-boundary-card {
+    position: relative;
+    overflow: hidden;
+    padding: clamp(1.7rem, 5vw, 4rem);
+    border: 1px solid rgba(118, 227, 207, 0.35);
+    border-radius: 2rem;
+    background:
+        linear-gradient(120deg, rgba(118, 227, 207, 0.08), transparent 45%),
+        var(--panel);
+}
+.field-boundary-card::after {
+    content: "FIELD RECORD // SOURCE BOUND";
+    position: absolute;
+    right: 1.5rem;
+    top: 1.3rem;
+    color: rgba(255,255,255,0.17);
+    font-size: 0.65rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+}
+.field-boundary-card h2 { max-width: 850px; margin-bottom: 1.5rem; }
+.field-boundary-card > p:not(.kicker) { max-width: 900px; color: var(--muted); font-size: 1.03rem; }
+.field-route {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    margin-top: 1rem;
+    border: 1px solid var(--line);
+    border-radius: 1.2rem;
+    overflow: hidden;
+}
+.field-route a {
+    min-width: 0;
+    padding: 1rem 0.8rem;
+    border-right: 1px solid var(--line);
+    background: rgba(255,255,255,0.025);
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.78rem;
+    font-weight: 850;
+}
+.field-route a:last-child { border-right: 0; }
+.field-route a:hover,
+.field-route a:focus-visible { background: rgba(118, 227, 207, 0.09); color: var(--cream); }
+.field-route span { display: block; margin-bottom: 0.25rem; color: var(--mint); font-size: 0.66rem; letter-spacing: 0.12em; }
+.field-realm {
+    position: relative;
+    padding: clamp(4rem, 9vw, 8rem) 0;
+    border-top: 1px solid var(--line);
+    background:
+        radial-gradient(circle at 90% 10%, rgba(167, 104, 255, 0.12), transparent 30rem),
+        linear-gradient(180deg, rgba(255,255,255,0.018), transparent 35%);
+}
+.field-realm:nth-of-type(even) {
+    background:
+        radial-gradient(circle at 8% 20%, rgba(118, 227, 207, 0.1), transparent 30rem),
+        linear-gradient(180deg, rgba(255,255,255,0.018), transparent 35%);
+}
+.field-realm-header {
+    display: grid;
+    grid-template-columns: 125px minmax(0, 1fr);
+    align-items: end;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+.field-realm-number {
+    padding: 0.6rem 0;
+    border-block: 1px solid var(--mint);
+    color: var(--mint);
+    font-size: 0.72rem;
+    font-weight: 950;
+    letter-spacing: 0.14em;
+}
+.field-realm-header h2 { margin-bottom: 0; }
+.field-realm-context {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.85fr) minmax(0, 1.15fr);
+    gap: 1.3rem;
+    margin-bottom: 1.3rem;
+}
+.field-realm-context figure,
+.field-realm-truth {
+    margin: 0;
+    border: 1px solid var(--line);
+    border-radius: 1.6rem;
+    overflow: hidden;
+    background: var(--panel);
+}
+.field-realm-context figure { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+.field-realm-context figure img { width: 100%; height: 330px; object-fit: cover; object-position: center top; }
+.field-realm-context figcaption {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    padding: 0.8rem 0.4rem;
+    border-left: 1px solid var(--line);
+    color: #9e95af;
+    font-size: 0.67rem;
+    font-weight: 800;
+    line-height: 1.25;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+}
+.field-realm-truth { display: grid; align-content: center; padding: clamp(1.5rem, 4vw, 3.1rem); }
+.field-realm-truth span,
+.field-finale-card > span {
+    color: var(--gold);
+    font-size: 0.69rem;
+    font-weight: 950;
+    letter-spacing: 0.15em;
+}
+.field-realm-truth p { margin: 0.5rem 0 1.5rem; color: var(--muted); font-size: 1.05rem; }
+.field-realm-truth p:last-child { margin-bottom: 0; color: var(--cream); font-size: clamp(1.2rem, 2vw, 1.55rem); font-weight: 800; line-height: 1.4; }
+.field-sighting-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.3rem; }
+.field-sighting {
+    display: grid;
+    grid-template-columns: minmax(180px, 0.62fr) minmax(0, 1.38fr);
+    overflow: hidden;
+    min-height: 480px;
+    border: 1px solid color-mix(in srgb, var(--creature-colour) 44%, var(--line));
+    border-radius: 1.6rem;
+    background: #0b0815;
+    box-shadow: inset 0 1px rgba(255,255,255,0.05);
+}
+.field-sighting-visual {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 100%;
+    padding: 3rem 1rem 1.5rem;
+    border-right: 1px solid var(--line);
+    background:
+        radial-gradient(circle, color-mix(in srgb, var(--creature-colour) 25%, transparent), transparent 55%),
+        linear-gradient(165deg, rgba(255,255,255,0.04), transparent);
+}
+.field-sighting-visual img {
+    width: auto;
+    max-width: 145px;
+    max-height: 230px;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 1.2rem 1.4rem rgba(0,0,0,0.5));
+}
+.field-sighting-id {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    color: var(--mint);
+    font-size: 0.59rem;
+    font-weight: 950;
+    letter-spacing: 0.09em;
+}
+.field-sighting-copy { padding: 1.6rem; }
+.field-story-label { margin-bottom: 0.45rem; color: var(--pink); font-size: 0.65rem; font-weight: 950; letter-spacing: 0.14em; }
+.field-sighting-copy h3 { margin-bottom: 0.3rem; font-size: clamp(1.55rem, 3vw, 2.25rem); }
+.field-species { margin-bottom: 0.8rem; color: var(--mint); font-weight: 850; }
+.field-traits { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0 0 1.2rem; padding: 0; list-style: none; }
+.field-traits li { padding: 0.22rem 0.48rem; border: 1px solid var(--line); border-radius: 999px; color: #d9d1e8; font-size: 0.64rem; font-weight: 800; }
+.field-sighting-copy > p:not(.field-story-label):not(.field-species) { color: var(--muted); font-size: 0.91rem; }
+.field-sighting-copy blockquote { margin: 1.2rem 0 0; padding: 0.9rem 1rem; border-left: 3px solid var(--gold); background: rgba(255,213,106,0.06); color: #e9e0c8; font-size: 0.82rem; }
+.field-guide-finale { border-top: 1px solid var(--line); }
+.field-finale-card { display: grid; gap: 1rem; align-content: center; padding: clamp(1.5rem, 4vw, 3rem); border: 1px solid rgba(118,227,207,0.3); border-radius: 1.7rem; background: linear-gradient(145deg, rgba(118,227,207,0.1), rgba(167,104,255,0.08)); }
+.field-finale-card p { margin: 0; font-size: 1.2rem; font-weight: 750; }
+.field-text-link { color: var(--muted); font-weight: 800; text-align: center; }
+
 .site-footer { border-top: 1px solid var(--line); }
 .footer-inner { padding: 2.5rem 0; }
 .footer-links { display: flex; flex-wrap: wrap; gap: 0.8rem 1.3rem; margin: 1.5rem 0; }
@@ -671,6 +848,11 @@ details p { margin: 0.9rem 0 0; }
     .signal-timeline::before { display: none; }
     .creature-showcase-hero .hero-grid { grid-template-columns: 1fr; }
     .creature-showcase-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .field-route { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .field-route a:nth-child(3) { border-right: 0; }
+    .field-route a:nth-child(-n+3) { border-bottom: 1px solid var(--line); }
+    .field-realm-context { grid-template-columns: 1fr; }
+    .field-sighting-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 560px) {
@@ -691,6 +873,20 @@ details p { margin: 0.9rem 0 0; }
     .creature-showcase-grid { grid-template-columns: 1fr; }
     .creature-specimen { min-height: 0; }
     .creature-specimen-visual { min-height: 210px; }
+    .field-boundary-card::after { display: none; }
+    .field-route { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .field-route a,
+    .field-route a:nth-child(3) { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .field-route a:nth-child(even) { border-right: 0; }
+    .field-route a:nth-last-child(-n+2) { border-bottom: 0; }
+    .field-realm-header { grid-template-columns: 1fr; gap: 0.8rem; }
+    .field-realm-number { width: 110px; }
+    .field-realm-context figure { grid-template-columns: 1fr; }
+    .field-realm-context figure img { height: 300px; }
+    .field-realm-context figcaption { width: auto; border-top: 1px solid var(--line); border-left: 0; writing-mode: initial; transform: none; }
+    .field-sighting { grid-template-columns: 1fr; min-height: 0; }
+    .field-sighting-visual { min-height: 260px; border-right: 0; border-bottom: 1px solid var(--line); }
+    .field-sighting-visual img { max-width: 180px; max-height: 190px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -42,7 +42,7 @@ function imageDimensions(file, type) {
 }
 
 requireValue(manifest.schemaVersion === 1 && manifest.state === 'route_specific_preview_metadata_bound_to_checked_assets', 'Social preview manifest identity or state is invalid.');
-requireValue(Array.isArray(manifest.pages) && manifest.pages.length === 8, 'Social preview manifest must cover exactly eight static public pages.');
+requireValue(Array.isArray(manifest.pages) && manifest.pages.length === 9, 'Social preview manifest must cover exactly nine static public pages.');
 requireValue(new Set((manifest.pages || []).map(page => page.route)).size === manifest.pages?.length, 'Social preview routes must be unique.');
 
 for (const page of manifest.pages || []) {
@@ -88,6 +88,9 @@ for (const page of manifest.pages || []) {
     }
     if ((page.classification || '').startsWith('branded_social_artwork_with_authentic_gameplay_frame')) {
         requireValue(/not a raw screenshot/i.test(page.disclosure || '') && /real gameplay/i.test(page.disclosure || '') && /no player information/i.test(page.disclosure || ''), `${label} branded artwork must retain its gameplay and privacy disclosure.`);
+    }
+    if (page.classification === 'branded_renderer_proof_layout_with_authentic_game_sprite_exports') {
+        requireValue(/not a playable scene/i.test(page.disclosure || '') && /exact export/i.test(page.disclosure || '') && /running game renderer/i.test(page.disclosure || ''), `${label} renderer proof must retain its non-gameplay and authentic-export disclosure.`);
     }
     if (page.classification === 'branded_founder_story_artwork_with_ai_marketing_background_and_authentic_gameplay_frame') {
         requireValue(/not a raw screenshot/i.test(page.disclosure || '') && /not gameplay/i.test(page.disclosure || '') && /real gameplay/i.test(page.disclosure || '') && /no player information/i.test(page.disclosure || '') && /identifying detail of the child/i.test(page.disclosure || ''), `${label} founder-story artwork must retain its generated-art, real-gameplay, privacy and child-identity boundaries.`);
