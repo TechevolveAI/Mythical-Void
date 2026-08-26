@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "start": "vite",
-    "build": "npm run build:creature-showcase-profiles && npm run build:creature-field-guide && npm run build:signal-log && npm run validate:signal-log && npm run validate:signal-feeds && npm run validate:playable-now && npm run validate:visual-media && npm run validate:hatch-reveal && npm run validate:creature-showcase && npm run validate:creature-field-guide && npm run validate:gameplay-social-kit && npm run validate:creator-kit && vite build && node scripts/inject-build-timestamp.js && node scripts/verify-production-bundle.cjs",
+    "build": "npm run build:creature-showcase-profiles && npm run build:creature-field-guide && npm run build:signal-log && npm run validate:signal-log && npm run validate:signal-feeds && npm run validate:playable-now && npm run validate:visual-media && npm run validate:owned-sharing && npm run validate:social-previews && npm run validate:hatch-reveal && npm run validate:creature-showcase && npm run validate:creature-field-guide && npm run validate:gameplay-social-kit && npm run validate:creator-kit && vite build && node scripts/inject-build-timestamp.js && node scripts/verify-production-bundle.cjs",
     "build:creature-showcase-profiles": "node scripts/company/build-real-creature-showcase-profiles.cjs",
     "capture:creature-showcase": "node scripts/company/capture-real-creature-showcase.cjs",
     "validate:creature-showcase": "node scripts/company/validate-real-creature-showcase.cjs",
@@ -25,6 +25,7 @@
     "test:signal-release-pack": "node scripts/company/test-signal-release-pack.cjs",
     "validate:playable-now": "node scripts/company/validate-playable-now-discovery.cjs",
     "validate:visual-media": "node scripts/company/validate-human-visual-media.cjs",
+    "validate:owned-sharing": "node scripts/company/validate-owned-sharing-loop.cjs",
     "test:playable-now": "node scripts/company/test-playable-now-discovery.cjs",
     "validate:hatch-reveal": "node scripts/company/validate-hatch-reveal-release.cjs",
     "test:hatch-reveal": "node scripts/company/test-hatch-reveal-release.cjs",

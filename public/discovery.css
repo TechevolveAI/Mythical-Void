@@ -517,6 +517,19 @@ details p { margin: 0.9rem 0 0; }
 .playable-links { display: grid; justify-items: start; gap: 0.75rem; margin-top: 1.5rem; }
 .playable-art-boundary img { max-height: 520px; object-fit: cover; }
 .playable-social-note { margin: 1rem 0 0; color: #9188a3; font-size: 0.78rem; }
+.playable-share-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+    gap: clamp(2rem, 6vw, 6rem);
+    align-items: center;
+    padding-top: clamp(2rem, 4vw, 3.6rem);
+    padding-bottom: clamp(2rem, 4vw, 3.6rem);
+}
+.playable-share-card h2 { max-width: 760px; margin-bottom: 1rem; }
+.playable-share-card p { max-width: 690px; color: var(--muted); }
+.playable-share-actions { display: grid; justify-items: stretch; gap: 0.75rem; }
+.playable-share-actions .button { width: 100%; justify-content: center; }
+.playable-share-status { min-height: 1.35rem; margin: 0.25rem 0 0; color: var(--mint) !important; font-size: 0.86rem; font-weight: 800; text-align: center; }
 
 .creature-showcase-hero { padding-block: clamp(3.8rem, 7vw, 6.4rem); }
 .creature-showcase-hero .hero-grid {
@@ -843,6 +856,8 @@ details p { margin: 0.9rem 0 0; }
     .playable-journey { grid-template-columns: repeat(2, 1fr); }
     .playable-proof-grid { grid-template-columns: repeat(2, 1fr); }
     .playable-video-screen { min-height: auto; }
+    .playable-share-card { grid-template-columns: 1fr; }
+    .playable-share-actions { max-width: 440px; }
     .signal-entry { grid-template-columns: 1fr; }
     .signal-entry::before,
     .signal-timeline::before { display: none; }

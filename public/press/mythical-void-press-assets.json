@@ -110,6 +110,13 @@
       "description": "Withdrawn from public promotion after human visual review. Retained only as an exact running-build record of one hatch."
     },
     {
+      "name": "Mythical Void primary sharing preview",
+      "url": "https://mythicalvoid.com/press/social/mythical-void-share-wide.png",
+      "kind": "branded_share_preview_with_ai_generated_marketing_illustration",
+      "dimensions": "1200x630",
+      "description": "A deliberately simple link-preview image designed to remain readable at message and feed size. It uses AI-generated imagined-universe artwork inspired by the creature engine and is labelled as imagined universe art, not gameplay."
+    },
+    {
       "name": "Project Beacon story social artwork — wide",
       "url": "https://mythicalvoid.com/press/social/project-beacon-story-wide.png",
       "kind": "branded_social_artwork_with_authentic_gameplay_frame",
@@ -161,15 +168,17 @@
     },
     {
       "name": "Mythical Forest phone gameplay",
+      "state": "withdrawn_visual_quality_failed_do_not_publish",
       "url": "https://mythicalvoid.com/press/gameplay/realm-mythicalforest.png",
       "kind": "authentic_running_build_screenshot",
-      "description": "Real phone gameplay showing the astronaut, route display, platforming world and touch controls."
+      "description": "Withdrawn from public promotion because the phone frame is visually cluttered and does not present the gameplay clearly. Retained only as a running-build record."
     },
     {
       "name": "Village Heart builder",
+      "state": "withdrawn_visual_quality_failed_do_not_publish",
       "url": "https://mythicalvoid.com/press/gameplay/village-base-builder.png",
       "kind": "authentic_running_build_screenshot",
-      "description": "Real phone gameplay showing village resources, objectives and the Forager Hut."
+      "description": "Withdrawn from public promotion because the selected frame does not communicate the building experience clearly. Retained only as a running-build record."
     },
     {
       "name": "Twelve real creature hatches — wide proof layout",
@@ -298,6 +307,7 @@
     "Only assets labelled authentic_running_build_screenshot may be described as gameplay screenshots.",
     "The Forest video labelled authentic_running_build_story_moment must be described as an in-game story moment, not platforming or combat footage.",
     "The branded social videos and creator kit are withdrawn and must not be published or shared.",
+    "The Mythical Forest phone frame and Village Heart builder frame are withdrawn from promotion because they failed human visual review.",
     "Creature renderer exports may be described as authentic game-rendered creatures, but the branded twelve-creature proof layout is not a playable game scene and the selection must not be presented as normal hatch odds.",
     "Do not present marketing illustrations or game-world artwork as gameplay footage.",
     "Do not imply NASA endorsement or partnership.",

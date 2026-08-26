@@ -6,7 +6,7 @@
   "page": {
     "path": "public/playable-now/index.html",
     "publicUrl": "https://mythicalvoid.com/playable-now/",
-    "sha256": "48f0b854c51edca60c927560b654e3cb4c800f56f219cecaf70109e9a5f9f204",
+    "sha256": "dc46677175e9a04fd23f63009984c75327322b5267de3ae6c1f8b78b6a385d78",
     "canonical": "https://mythicalvoid.com/playable-now/",
     "directPlayLinkMinimum": 3,
     "structuredData": ["VideoGame", "VideoObject", "FAQPage"]
@@ -34,7 +34,8 @@
     "pressManifestListed": true,
     "machineReadableSiteGuideListed": true,
     "signalLogEntry": "SIGNAL-009",
-    "rssAndJsonFeedIncluded": true
+    "rssAndJsonFeedIncluded": true,
+    "cleanOwnedSharingJourney": true
   },
   "claimBoundaries": {
     "earlyAccessStated": true,

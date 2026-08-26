@@ -111,7 +111,7 @@ describe('storefront Project Beacon story contract', () => {
 
     test('publishes absolute social media assets and route-aware canonical metadata', () => {
         expect(metadata).toContain(
-            'content="https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp"'
+            'content="https://mythicalvoid.com/press/social/mythical-void-share-wide.png"'
         );
         expect(metadata).toContain(
             '<link rel="canonical" href="https://mythicalvoid.com/">'
@@ -198,7 +198,12 @@ describe('storefront Project Beacon story contract', () => {
         expect(pressAssets.gameplayVideoProofManifest).toBe(
             'https://mythicalvoid.com/press/gameplay-video/manifest.json'
         );
-        expect(pressAssets.assets).toHaveLength(34);
+        expect(pressAssets.assets).toHaveLength(35);
+        expect(pressAssets.assets).toContainEqual(expect.objectContaining({
+            name: 'Mythical Void primary sharing preview',
+            kind: 'branded_share_preview_with_ai_generated_marketing_illustration',
+            dimensions: '1200x630'
+        }));
         expect(pressAssets.assets).toContainEqual(expect.objectContaining({
             name: 'Real creature hatch reveal',
             url: 'https://mythicalvoid.com/press/gameplay/creature-cosmic-egg-reveal.png',
@@ -206,6 +211,13 @@ describe('storefront Project Beacon story contract', () => {
             state: 'withdrawn_visual_quality_failed_do_not_publish'
         }));
         expect(storefront).not.toContain('id="real-creature-hatch"');
+        expect(pressAssets.assets.filter(asset => [
+            'Mythical Forest phone gameplay',
+            'Village Heart builder'
+        ].includes(asset.name))).toEqual(expect.arrayContaining([
+            expect.objectContaining({ state: 'withdrawn_visual_quality_failed_do_not_publish' }),
+            expect.objectContaining({ state: 'withdrawn_visual_quality_failed_do_not_publish' })
+        ]));
         expect(storefront).toContain('id="real-creature-range"');
         expect(storefront).toContain('Twelve real hatches. One running engine.');
         expect(pressAssets.realCreatureShowcase).toEqual(expect.objectContaining({
