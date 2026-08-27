@@ -9163,6 +9163,295 @@ async function smokePurchasedEgg(session, exceptions) {
     return { ...state, reveal };
 }
 
+async function smokeFusionPodLifecycle(session, exceptions) {
+    exceptions.length = 0;
+    await navigate(session, `${BASE_URL}/play/?reset=true`);
+    await waitForScene(session, 'HatchingScene');
+
+    const seeded = await evaluate(session, `(() => {
+        const game = window.mythicalGame;
+        const state = window.GameState;
+        const genes = (id, rarity, element) => ({
+            id,
+            rarity,
+            species: 'nebulaSprite',
+            cosmicAffinity: { element },
+            personality: { primary: 'curious' }
+        });
+        const companion = (id, name, rarity, element) => ({
+            id,
+            name,
+            level: 5,
+            experience: 0,
+            genes: genes(id, rarity, element),
+            stats: { happiness: 92, energy: 90, health: 100 },
+            lifecycle: {
+                stage: 'adult',
+                birthDate: Date.now() - (3 * 24 * 60 * 60 * 1000)
+            },
+            bond: { level: 2, experience: 0 },
+            generation: 1,
+            parentIds: []
+        });
+        const companions = [
+            companion('smoke_fusion_nova', 'Nova', 'rare', 'nebula'),
+            companion('smoke_fusion_lumen', 'Lumen', 'uncommon', 'aurora')
+        ];
+        companions[0] = {
+            ...(state.get('creature') || {}),
+            ...companions[0],
+            hatched: true,
+            named: true
+        };
+        state.set('session.gameStarted', true);
+        state.set('creature', JSON.parse(JSON.stringify(companions[0])));
+        state.set('creature.hatched', true);
+        state.set('creature.named', true);
+        state.set('creatures', JSON.parse(JSON.stringify(companions)));
+        state.set('activeCreatureIndex', 0);
+        state.set('maxCreatures', 8);
+        state.set('breedingShrine.unlocked', true);
+        state.set('breedingShrine.unlockLevel', 5);
+        state.set('tutorial.controlsSeen', true);
+        state.set('tutorial.villageHeartArrivalSeen', true);
+        state.save();
+        const hatchingScene = game.scene.getScene('HatchingScene');
+        hatchingScene.scene.start('GameScene', {
+            biome: 'nebula',
+            forceMobileControls: true
+        });
+        return {
+            collectionSize: state.getCreatureCollection?.().length,
+            fusionUnlocked: state.getBreedingShrineStatus?.().unlocked === true
+        };
+    })()`);
+    if (seeded?.collectionSize !== 2 || !seeded?.fusionUnlocked) {
+        throw new Error(`Fusion smoke setup failed: ${JSON.stringify(seeded)}`);
+    }
+
+    try {
+        await waitForScene(session, 'GameScene', 30000);
+    } catch (error) {
+        const diagnostics = await evaluate(session, `(() => ({
+            activeScenes: window.mythicalGame?.scene?.getScenes?.(true)
+                ?.map(scene => scene.scene?.key || scene.sys?.settings?.key),
+            gameSceneStatus: window.mythicalGame?.scene?.getScene?.('GameScene')
+                ?.sys?.settings?.status,
+            currentScene: window.GameState?.get?.('session.currentScene'),
+            gameStarted: window.GameState?.get?.('session.gameStarted'),
+            creatureId: window.GameState?.get?.('creature.id'),
+            creatureHatched: window.GameState?.get?.('creature.hatched'),
+            creatureNamed: window.GameState?.get?.('creature.named'),
+            collectionSize: window.GameState?.getCreatureCollection?.().length
+        }))()`);
+        throw new Error(`${error.message}: ${JSON.stringify({ diagnostics, exceptions })}`);
+    }
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            window.mythicalGame.scene.getScene('GameScene')?.hamburgerMenu &&
+            window.mythicalGame.scene.getScene('GameScene')?.player?.body
+        )`),
+        { timeoutMs: 18000, message: 'Fusion Sanctuary controls' }
+    );
+
+    const openPod = async () => {
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            scene.hamburgerMenu.navigateToFusion();
+            return true;
+        })()`);
+        try {
+            await waitForScene(session, 'FusionPodScene', 30000);
+        } catch (error) {
+            const diagnostics = await evaluate(session, `(() => {
+                const game = window.mythicalGame;
+                const scene = game?.scene?.getScene?.('GameScene');
+                const pod = game?.scene?.getScene?.('FusionPodScene');
+                return {
+                    activeScenes: game?.scene?.getScenes?.(true)
+                        ?.map(item => item.scene?.key || item.sys?.settings?.key),
+                    sanctuaryActive: game?.scene?.isActive?.('GameScene'),
+                    sanctuaryPaused: game?.scene?.isPaused?.('GameScene'),
+                    opening: scene?._fusionPodOpening,
+                    fusionStatus: window.GameState?.getBreedingShrineStatus?.(),
+                    podStatus: pod?.sys?.settings?.status,
+                    podExists: Boolean(pod),
+                    cleanupComplete: pod?.cleanupComplete,
+                    podElements: pod?.elements?.length,
+                    loadingVisible: Boolean(document.querySelector('.loading-overlay:not(.hidden)')),
+                    interactionText: scene?.interactionText?.text || null
+                };
+            })()`);
+            throw new Error(`${error.message}: ${JSON.stringify({ diagnostics, exceptions })}`);
+        }
+        return waitFor(
+            () => evaluate(session, `(() => {
+                const game = window.mythicalGame;
+                const pod = game.scene.getScene('FusionPodScene');
+                if (!pod?.panelBounds || !pod?.slot1Elements?.hitZone) return null;
+                const bounds = pod.panelBounds;
+                return {
+                    fusionActive: game.scene.isActive('FusionPodScene'),
+                    sanctuaryPaused: game.scene.isPaused('GameScene'),
+                    panelInsideViewport:
+                        bounds.x >= 0 &&
+                        bounds.y >= 0 &&
+                        bounds.x + bounds.width <= pod.scale.width &&
+                        bounds.y + bounds.height <= pod.scale.height,
+                    panelBounds: bounds,
+                    viewport: { width: pod.scale.width, height: pod.scale.height }
+                };
+            })()`),
+            { timeoutMs: 18000, message: 'Fusion Pod touch layout' }
+        );
+    };
+
+    const firstOpen = await openPod();
+    if (
+        !firstOpen?.fusionActive ||
+        !firstOpen?.sanctuaryPaused ||
+        !firstOpen?.panelInsideViewport
+    ) {
+        throw new Error(`Fusion Pod did not preserve Sanctuary: ${JSON.stringify(firstOpen)}`);
+    }
+    const selectParent = async slotNum => {
+        const slot = await evaluate(session, `(() => {
+            const pod = window.mythicalGame.scene.getScene('FusionPodScene');
+            const bounds = pod?.slot${slotNum}Elements?.hitZone?.getBounds?.();
+            return bounds ? {
+                x: Math.round(bounds.centerX),
+                y: Math.round(bounds.centerY)
+            } : null;
+        })()`);
+        if (!slot) throw new Error(`Fusion slot ${slotNum} has no touch target`);
+        await touch(session, slot.x, slot.y);
+        await waitFor(
+            () => evaluate(session, `window.mythicalGame.scene.getScene('FusionPodScene')?.selectionModalOpen === true`),
+            { message: `Fusion slot ${slotNum} selector` }
+        );
+        const choice = await evaluate(session, `(() => {
+            const pod = window.mythicalGame.scene.getScene('FusionPodScene');
+            const zone = pod.selectionModalElements.find(element => (
+                element?.type === 'Zone' &&
+                element.input?.enabled !== false &&
+                element.active !== false
+            ));
+            const bounds = zone?.getBounds?.();
+            return bounds ? {
+                x: Math.round(bounds.centerX),
+                y: Math.round(bounds.centerY),
+                width: Math.round(bounds.width),
+                height: Math.round(bounds.height)
+            } : null;
+        })()`);
+        if (!choice || choice.width < 44 || choice.height < 44) {
+            throw new Error(`Fusion selector ${slotNum} has no usable row: ${JSON.stringify(choice)}`);
+        }
+        await touch(session, choice.x, choice.y);
+        await waitFor(
+            () => evaluate(session, `(() => {
+                const pod = window.mythicalGame.scene.getScene('FusionPodScene');
+                return Boolean(
+                    pod?.parent${slotNum}Data &&
+                    pod.selectionModalOpen === false
+                );
+            })()`),
+            { message: `Fusion parent ${slotNum} selection` }
+        );
+        return { slot, choice };
+    };
+
+    const parent1 = await selectParent(1);
+    const parent2 = await selectParent(2);
+    const ready = await evaluate(session, `(() => {
+        const pod = window.mythicalGame.scene.getScene('FusionPodScene');
+        const bounds = pod?.breedButtonHitZone?.getBounds?.();
+        return {
+            parent1: pod?.parent1Data?.id,
+            parent2: pod?.parent2Data?.id,
+            compatibility: pod?.compatibility?.percentage,
+            actionEnabled: pod?.breedButtonEnabled === true,
+            actionInteractive: pod?.breedButtonHitZone?.input?.enabled !== false,
+            actionBounds: bounds ? {
+                width: Math.round(bounds.width),
+                height: Math.round(bounds.height)
+            } : null
+        };
+    })()`);
+    if (
+        !ready.parent1 ||
+        !ready.parent2 ||
+        ready.parent1 === ready.parent2 ||
+        !Number.isFinite(ready.compatibility) ||
+        !ready.actionEnabled ||
+        !ready.actionInteractive ||
+        ready.actionBounds?.height < 44
+    ) {
+        throw new Error(`Fusion action did not become usable: ${JSON.stringify(ready)}`);
+    }
+
+    const closePod = async () => {
+        const close = await evaluate(session, `(() => {
+            const pod = window.mythicalGame.scene.getScene('FusionPodScene');
+            const button = pod?.children?.list?.find(child => (
+                child?.type === 'Text' && child.text === '✕' && child.active !== false
+            ));
+            const bounds = button?.getBounds?.();
+            return bounds ? {
+                x: Math.round(bounds.centerX),
+                y: Math.round(bounds.centerY)
+            } : null;
+        })()`);
+        if (!close) throw new Error('Fusion Pod close action was not reachable');
+        await touch(session, close.x, close.y);
+        await waitForScene(session, 'GameScene');
+        await waitFor(
+            () => evaluate(session, `!window.mythicalGame.scene.isActive('FusionPodScene')`),
+            { message: 'Fusion Pod closed' }
+        );
+        return close;
+    };
+
+    const firstClose = await closePod();
+    const secondOpen = await openPod();
+    const secondClose = await closePod();
+    const resumed = await evaluate(session, `(() => {
+        const game = window.mythicalGame;
+        const scene = game.scene.getScene('GameScene');
+        return {
+            active: game.scene.isActive('GameScene'),
+            paused: game.scene.isPaused('GameScene'),
+            fusionActive: game.scene.isActive('FusionPodScene'),
+            playerReady: Boolean(scene?.player?.body),
+            controlsReady: Boolean(scene?.mobileControls),
+            loadingVisible: Boolean(document.querySelector('.loading-overlay:not(.hidden)'))
+        };
+    })()`);
+    if (
+        !resumed.active ||
+        resumed.paused ||
+        resumed.fusionActive ||
+        !resumed.playerReady ||
+        !resumed.controlsReady ||
+        resumed.loadingVisible ||
+        exceptions.length
+    ) {
+        throw new Error(`Fusion Pod lifecycle left play blocked: ${JSON.stringify({ resumed, exceptions })}`);
+    }
+
+    return {
+        seeded,
+        firstOpen,
+        parent1,
+        parent2,
+        ready,
+        firstClose,
+        secondOpen,
+        secondClose,
+        resumed
+    };
+}
+
 async function smokeHomeStart(session, exceptions) {
     exceptions.length = 0;
     await navigate(session, `${BASE_URL}/play/`);
@@ -20339,6 +20628,12 @@ async function main() {
                 );
                 process.stdout.write(`PASS ${sceneName}\n`);
             }
+        } else if (SMOKE_MODE === 'fusion-pod-lifecycle') {
+            results.fusionPodLifecycle = await smokeFusionPodLifecycle(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS FusionPodLifecycle\n');
         } else if (SMOKE_MODE === 'traversal-topology') {
             results.traversalTopology = await smokeTraversalTopology(
                 session,
@@ -20418,7 +20713,7 @@ async function main() {
         } else {
             throw new Error(
                 `Unknown SMOKE_MODE ${JSON.stringify(SMOKE_MODE)}. ` +
-                'Use home-entry, hatch-gallery, first-sanctuary, nasa-content, interaction, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, void-portal-lifecycle, hub-forest-transition, village-ui, forest-arrival, visual-story-reel, or guardian-pacing.'
+                'Use home-entry, hatch-gallery, first-sanctuary, nasa-content, interaction, fusion-pod-lifecycle, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, void-portal-lifecycle, hub-forest-transition, village-ui, forest-arrival, visual-story-reel, or guardian-pacing.'
             );
         }
         const optionalVideoDisabled = await evaluate(

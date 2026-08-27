@@ -121,6 +121,7 @@
     "smoke:companion-video": "node scripts/smoke-companion-video-production.js",
     "generate:cinematic": "node scripts/generate-cinematic-assets.mjs",
     "smoke:interaction": "SMOKE_MODE=interaction node scripts/smoke-secondary-journeys.js",
+    "smoke:fusion-pod": "SMOKE_MODE=fusion-pod-lifecycle node scripts/smoke-secondary-journeys.js",
     "smoke:creature-field-guide": "SMOKE_MODE=creature-field-guide-page node scripts/smoke-secondary-journeys.js",
     "smoke:first-sanctuary": "SMOKE_MODE=first-sanctuary node scripts/smoke-secondary-journeys.js",
     "smoke:topology": "SMOKE_MODE=traversal-topology node scripts/smoke-secondary-journeys.js",

@@ -202,6 +202,18 @@ describe('release test gate', () => {
         expect(releaseRunner).toContain("SMOKE_VIEWPORT_HEIGHT: '810'");
     });
 
+    test('release smoke covers repeatable Fusion Pod navigation on phone and desktop', () => {
+        const smoke = read('scripts/smoke-secondary-journeys.js');
+        const releaseRunner = read('scripts/run-browser-smoke.js');
+
+        expect(smoke).toContain('async function smokeFusionPodLifecycle');
+        expect(smoke).toContain('const secondOpen = await openPod();');
+        expect(smoke).toContain("process.stdout.write('PASS FusionPodLifecycle\\n')");
+        expect(releaseRunner).toContain("SMOKE_MODE: 'fusion-pod-lifecycle'");
+        expect(releaseRunner).toContain("{ smokeCase: 'phone', width: 390, height: 844 }");
+        expect(releaseRunner).toContain("{ smokeCase: 'desktop', width: 1440, height: 900 }");
+    });
+
     test('npm test is finite and the manual framework has an explicit command', () => {
         const packageJson = JSON.parse(read('package.json'));
 
