@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "start": "vite",
+    "check:edge-functions": "deno check supabase/functions/delete-cloud-identity/index.ts supabase/functions/execute-fusion/index.ts supabase/functions/finalize-fusion/index.ts",
     "build:itch": "vite build --mode itch && node scripts/company/remove-withdrawn-public-media.cjs dist-itch && node scripts/company/build-itch-package.cjs && node scripts/company/validate-itch-package.cjs && npm run measure:poki && npm run validate:poki-readiness && npm run test:poki-readiness && npm run measure:youtube-playables && npm run validate:youtube-playables && npm run test:youtube-playables",
     "package:itch": "npm run build:itch && node scripts/company/create-itch-archive.cjs",
     "test:itch": "node scripts/company/test-itch-package.cjs",
