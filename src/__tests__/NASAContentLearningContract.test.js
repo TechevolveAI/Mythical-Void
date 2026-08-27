@@ -28,6 +28,7 @@ function loadNASAContentSystem(fetchMock = jest.fn()) {
         Date,
         Math,
         Promise,
+        URL,
         setInterval,
         clearInterval,
         setTimeout
@@ -62,6 +63,10 @@ describe('NASA discovery learning contract', () => {
         });
 
         expect(discovery.realDataLabel).toBe('REAL NASA IMAGE');
+        expect(discovery.imageUrl).toContain('/api/nasa-image?url=');
+        expect(decodeURIComponent(discovery.imageUrl)).toContain(
+            'https://apod.nasa.gov/apod/image/2407/a11pan1040226lftsm.jpg'
+        );
         expect(discovery.sourceUrl).toBe('https://apod.nasa.gov/apod/ap240720.html');
         expect(discovery.sourceCredit).toContain('NASA / Apollo 11 / Neil Armstrong');
         expect(discovery.storyBoundaryLabel).toBe('MYTHICAL VOID IMAGINES');
@@ -82,7 +87,10 @@ describe('NASA discovery learning contract', () => {
             camera: { full_name: 'Navigation Camera' }
         });
 
-        expect(discovery.imageUrl).toBe('https://mars.nasa.gov/example.jpg');
+        expect(discovery.imageUrl).toContain('/api/nasa-image?url=');
+        expect(decodeURIComponent(discovery.imageUrl)).toContain(
+            'https://mars.nasa.gov/example.jpg'
+        );
         expect(discovery.description).toContain('A sol is one Martian day.');
         expect(discovery.sourceCredit).toContain('NASA/JPL-Caltech');
         expect(discovery.realDataLabel).toBe('REAL NASA MARS IMAGE');
@@ -100,5 +108,8 @@ describe('NASA discovery learning contract', () => {
         expect(modalSource).toContain('SPACE SCIENTIST’S LOG');
         expect(modalSource).toContain("content.storyBoundaryLabel || 'MYTHICAL VOID IMAGINES'");
         expect(modalSource).toContain('Back to the adventure');
+        expect(modalSource).toContain('void this.loadAndDisplayImage');
+        expect(modalSource).toContain('NASA IMAGE TEMPORARILY UNAVAILABLE');
+        expect(modalSource).not.toContain('await this.loadAndDisplayImage');
     });
 });
