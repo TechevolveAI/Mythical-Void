@@ -1,15 +1,29 @@
 {
   "schemaVersion": 1,
   "asOf": "2026-08-27",
-  "status": "private_candidates_awaiting_adult_frame_review",
+  "status": "movement_candidate_rejected_recapture_required",
   "state": "no_launch_grade_gameplay_media_approved",
   "purpose": "Create a small, honest set of gameplay moments that makes a child or grown-up want to understand and try Mythical Void.",
   "candidateDirectory": ".visual-review/candidates/",
   "candidateDirectoryIsWebsiteContent": false,
   "currentVisualFinding": {
-    "source": "Automated phone and desktop capture of release candidate 1a69e78 plus obvious-fault screening of the prepared stills, movement footage and optional-video request boundary",
-    "finding": "The 17:47 private run uses the generated planetary Sanctuary biome, a visible creature action and payoff, a curved living route consequence, rising memory orbs, and the real player-facing creature renderer. Both viewports passed the technical visual contract with no modal interruption, actor overlap, fallback texture, runtime exception, failed request or optional-video request.",
-    "decision": "Keep every candidate private and request adult frame review. Automation has not approved any asset; Kevin must still approve the exact asset, wording and channel before publication outside the owned game."
+    "source": "Kevin's frame review of the private 17:47 movement candidate plus inspection of the capture contract that accepted it",
+    "finding": "The movement candidate technically preserved the renderer and actors but visually read as one jump in a mostly unchanged shot. The former twelve-pixel travel check did not prove sustained gameplay.",
+    "decision": "Reject VL-004, keep it private, and require a recapture with substantial world and camera travel, both movement directions, airborne and grounded play, and limited idle time. No asset is approved for publication."
+  },
+  "latestKevinReview": {
+    "runId": "2026-08-27T17-47-47-743Z",
+    "momentId": "VL-004",
+    "decision": "reject_and_recapture",
+    "reason": "The clip shows one jump and does not communicate sustained or varied gameplay.",
+    "requiredReplacementEvidence": [
+      "substantial_world_travel",
+      "camera_tracks_across_the_level",
+      "rightward_and_leftward_movement",
+      "airborne_and_grounded_play",
+      "no_extended_idle_section"
+    ],
+    "publicationAuthorized": false
   },
   "latestScreening": {
     "path": "docs/company/content/visual-screening-2026-08-27.json",
@@ -42,6 +56,7 @@
     "editorialScreening": "pending_adult_frame_review",
     "adultFrameReview": "pending",
     "kevinApproval": "not_requested",
+    "movementReview": "rejected_by_kevin_recapture_required",
     "publicationAuthorized": false
   },
   "sharedCaptureContract": {
@@ -77,6 +92,11 @@
       "choice_capture_omits_plain_pre_choice_options",
       "strange_discovery_does_not_link_both_actors",
       "movement_renderer_changes_between_frames",
+      "movement_world_travel_too_small",
+      "movement_camera_travel_too_small",
+      "movement_has_no_direction_change",
+      "movement_has_only_one_airborne_action",
+      "movement_idle_or_single_action_dominates",
       "capture_dimensions_wrong",
       "video_too_short_or_missing_frames"
     ]
@@ -132,9 +152,9 @@
       "publicQuestion": "Does this feel alive when it moves?",
       "shot": "A short uninterrupted stretch of play with the creature continuously present.",
       "mustShow": ["continuous creature rendering", "readable movement", "no menu takeover or dead time", "every frame watched at desktop and phone presentation size"],
-      "currentState": "candidate_under_human_review",
+      "currentState": "candidate_rejected_recapture_required",
       "evidence": ".visual-review/candidates/2026-08-27T17-47-47-743Z/movement-alive-phone.mp4",
-      "reason": "Automated screening confirms uninterrupted normal play with the same real creature renderer, actor separation and no modal, placeholder, dead pause or explanatory edit."
+      "reason": "Kevin rejected the clip because it reads as one jump rather than sustained gameplay. The replacement capture contract now requires measurable travel, a direction change, airborne and grounded play, and limited idle time."
     }
   ],
   "approvalRule": {
@@ -211,13 +231,22 @@
         "minimumFrames": 72,
         "minimumDurationSeconds": 6,
         "minimumActorGapPx": { "phone": 24, "desktop": 36 },
+        "minimumWorldTravelPx": 320,
+        "minimumCameraTravelPx": 180,
+        "minimumRightwardSamples": 3,
+        "minimumLeftwardSamples": 3,
+        "minimumAirborneSamples": 1,
+        "minimumAirbornePhases": 2,
+        "minimumGroundedSamples": 3,
+        "minimumMovingSampleRatio": 0.7,
+        "minimumDistinctMovementPhases": 4,
         "renderer": "player_facing_phaser_creature_renderer",
         "fallbackFramesAllowed": 0,
         "actorOverlapFramesAllowed": 0
       },
       "candidateAssets": { "phoneVideo": "movement-alive-phone.mp4", "phonePoster": "movement-alive-phone.png", "desktopVideo": "movement-alive-desktop.mp4", "desktopPoster": "movement-alive-desktop.png" },
-      "implementationStatus": "capture_journey_ready",
-      "reviewStatus": "candidate_under_human_review"
+      "implementationStatus": "capture_contract_revised_recapture_pending",
+      "reviewStatus": "candidate_rejected_by_kevin_recapture_required"
     }
   ]
 }

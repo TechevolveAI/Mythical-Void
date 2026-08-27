@@ -33,6 +33,21 @@ try {
     assert.notStrictEqual(run('candidate-path-traversal', plan => {
         plan.requiredMoments[0].evidence = '.visual-review/candidates/../public/new-candidate.png';
     }).status, 0);
+    assert.notStrictEqual(run('rejected-candidate-moved-public', plan => {
+        const movement = plan.requiredMoments.find(
+            moment => moment.id === 'movement-with-life'
+        );
+        movement.evidence = '/press/gameplay/rejected-movement.mp4';
+    }).status, 0);
+    assert.notStrictEqual(run('rejected-candidate-loses-kevin-decision', plan => {
+        plan.latestKevinReview.decision = 'pending';
+    }).status, 0);
+    assert.notStrictEqual(run('rejected-candidate-opens-publication', plan => {
+        plan.latestKevinReview.publicationAuthorized = true;
+    }).status, 0);
+    assert.notStrictEqual(run('private-run-loses-movement-rejection', plan => {
+        plan.latestPrivateCandidateRun.movementReview = 'pending';
+    }).status, 0);
     assert.notStrictEqual(run('approval-without-review', plan => {
         const moment = plan.requiredMoments[0];
         moment.currentState = 'approved';
@@ -47,7 +62,7 @@ try {
         moment.humanReview = { decision: 'approved', reviewedBy: 'Adult reviewer', desktopPassed: true, phonePassed: true };
         plan.approvalRule.approvedMomentCount = 1;
     }).status, 0);
-    console.log('Launch visual safeguards passed (current-state validation and 10 rejection cases).');
+    console.log('Launch visual safeguards passed (current-state validation and 14 rejection cases).');
 } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
 }

@@ -50,6 +50,12 @@ expectFailure('actors allowed to visually merge', value => {
 expectFailure('movement clip too short', value => {
     value.sharedCaptureContract.movementMinimumDurationSeconds = 3;
 });
+expectFailure('Kevin movement rejection missing', value => {
+    delete value.latestKevinReview;
+});
+expectFailure('Kevin rejection falsely authorizes publication', value => {
+    value.latestKevinReview.publicationAuthorized = true;
+});
 expectFailure('premature review claim', value => {
     value.moments[0].reviewStatus = 'approved';
 });
@@ -95,6 +101,18 @@ expectFailure('strange discovery omits rising memory rain', value => {
 });
 expectFailure('movement permits fallback frame', value => {
     value.moments[3].observableStateGate.fallbackFramesAllowed = 1;
+});
+expectFailure('movement accepts trivial world travel', value => {
+    value.moments[3].observableStateGate.minimumWorldTravelPx = 12;
+});
+expectFailure('movement accepts one direction', value => {
+    value.moments[3].observableStateGate.minimumLeftwardSamples = 0;
+});
+expectFailure('movement accepts one airborne action', value => {
+    value.moments[3].observableStateGate.minimumAirbornePhases = 1;
+});
+expectFailure('movement accepts mostly idle footage', value => {
+    value.moments[3].observableStateGate.minimumMovingSampleRatio = 0.1;
 });
 expectFailure('unimplemented substitute state', value => {
     value.moments[2].playableState = 'concept_art_only';
