@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "SIGNAL-LOG-SYNDICATION-2026-08-27-SPACE-SIGNAL",
-  "state": "owned_site_release_prepared",
+  "state": "complete_owned_site_release_production_verified",
   "source": {
     "path": "public/updates/releases.json",
     "fingerprintSha256": "d6b2b82474bf3c0e667df43e0f1596757739b665fcc65f7d96218643dddac45c",
@@ -46,5 +46,14 @@
     "socialPostingAuthorized": false,
     "externalActionTaken": false
   },
-  "productionVerification": null
+  "productionVerification": {
+    "commit": "dc0a77fc8a4f5457a2570ec18182ffe018533788",
+    "deployId": "6a8fc60c7b7e16000795c2b2",
+    "publishedAt": "2026-08-27T05:08:37.227Z",
+    "updatesPageHttpStatus": 200,
+    "signalEntryPresent": true,
+    "rssItemCount": 17,
+    "jsonItemCount": 17,
+    "productionVisualReview": "passed"
+  }
 }
