@@ -35,6 +35,12 @@ expectFailure('missing adult review', value => {
 expectFailure('missing phone visual bar', value => {
     value.sharedCaptureContract.minimumVisualBar = [];
 });
+expectFailure('actors allowed to visually merge', value => {
+    value.sharedCaptureContract.actorMinimumGapPx.phone = 0;
+});
+expectFailure('movement clip too short', value => {
+    value.sharedCaptureContract.movementMinimumDurationSeconds = 3;
+});
 expectFailure('premature review claim', value => {
     value.moments[0].reviewStatus = 'approved';
 });
@@ -66,8 +72,17 @@ expectFailure('substituted non-observable evidence', value => {
 expectFailure('caption-only help state', value => {
     value.moments[0].observableStateGate.result = 'dialogue_says_route_open';
 });
+expectFailure('help action detached from creature body', value => {
+    value.moments[0].observableStateGate.actionOrigin = 'floating_ui_icon';
+});
+expectFailure('choice consequence has no world effects', value => {
+    value.moments[1].observableStateGate.worldEffects = [];
+});
 expectFailure('unlinked strange discovery', value => {
     value.moments[2].observableStateGate.linkedActors = 0;
+});
+expectFailure('strange discovery omits rendered echoes', value => {
+    value.moments[2].observableStateGate.renderedActorEchoes = 0;
 });
 expectFailure('movement permits fallback frame', value => {
     value.moments[3].observableStateGate.fallbackFramesAllowed = 1;

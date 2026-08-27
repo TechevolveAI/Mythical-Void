@@ -1074,7 +1074,7 @@ export default class VillageCommandPanel {
             shell.append(status);
         }
 
-        if (onboarding.showFullPlan) {
+        if (onboarding.showFullPlan && intent !== 'decision') {
             shell.append(createCommunityShortcut(snapshot, {
                 portraitRecord: this.companionPortraitRecord,
                 onSelect: () => {
@@ -1355,7 +1355,7 @@ export default class VillageCommandPanel {
         shell.append(stage);
 
         const footer = createElement('footer', 'village-guided-footer');
-        if (onboarding.showFullPlan) {
+        if (onboarding.showFullPlan && intent !== 'decision') {
             const planner = createElement('button', 'village-guided-secondary', '\u2630  OPEN FULL PLAN');
             planner.type = 'button';
             planner.addEventListener('click', () => {
@@ -1366,7 +1366,7 @@ export default class VillageCommandPanel {
                 this.render();
             });
             footer.append(planner);
-        } else {
+        } else if (intent !== 'decision') {
             footer.append(createElement(
                 'p',
                 'village-guided-lock-note',

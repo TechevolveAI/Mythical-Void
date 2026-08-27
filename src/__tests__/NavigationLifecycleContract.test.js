@@ -86,4 +86,16 @@ describe('Sanctuary navigation lifecycle', () => {
             /await scene\.setupSpaceWeather\(\);\s*await scene\.setupNASAContent\(\);\s*const weatherBefore[\s\S]*?const nasaBefore[\s\S]*?await scene\.setupSpaceWeather\(\);\s*await scene\.setupNASAContent\(\);/
         );
     });
+
+    test('proves movement and joystick release after returning from navigation scenes', () => {
+        const smoke = fs.readFileSync(
+            path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
+            'utf8'
+        );
+
+        expect(smoke).toContain('post-navigation Sanctuary movement');
+        expect(smoke).toContain('post-navigation joystick release');
+        expect(smoke).toContain('Sanctuary navigation restored controls without live movement');
+        expect(smoke).toContain('movement.velocityX <= 20');
+    });
 });

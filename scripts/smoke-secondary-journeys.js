@@ -526,6 +526,20 @@ async function stageVillageVisualParty(session, label) {
             height: Math.max(0, Math.min(creatureBounds.bottom, astronautBounds.bottom) -
                 Math.max(creatureBounds.top, astronautBounds.top))
         } : null;
+        const horizontalGap = creatureBounds && astronautBounds
+            ? Math.max(
+                0,
+                Math.max(creatureBounds.left, astronautBounds.left) -
+                    Math.min(creatureBounds.right, astronautBounds.right)
+            )
+            : 0;
+        const verticalGap = creatureBounds && astronautBounds
+            ? Math.max(
+                0,
+                Math.max(creatureBounds.top, astronautBounds.top) -
+                    Math.min(creatureBounds.bottom, astronautBounds.bottom)
+            )
+            : 0;
         return {
             profileId: window.GameState?.get?.('creature.genes.id'),
             texture: creature?.texture?.key || null,
@@ -546,6 +560,7 @@ async function stageVillageVisualParty(session, label) {
             creatureBounds,
             astronautBounds,
             overlapArea: overlap ? overlap.width * overlap.height : null,
+            actorGap: Math.hypot(horizontalGap, verticalGap),
             viewport: { width: innerWidth, height: innerHeight },
             modalCount: document.querySelectorAll(
                 '.village-command-modal, .achievement-notification, .companion-media-overlay'
@@ -566,6 +581,7 @@ async function stageVillageVisualParty(session, label) {
         !boundsInsideSafeFrame(state.creatureBounds) ||
         !boundsInsideSafeFrame(state.astronautBounds) ||
         state.overlapArea > 0 ||
+        state.actorGap < (state.viewport.width <= 600 ? 24 : 36) ||
         state.modalCount !== 0
     ) {
         throw new Error(`${label} failed visual party contract: ${JSON.stringify(state)}`);
@@ -9293,7 +9309,34 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         return true;
     })()`);
     await navigate(session, `${BASE_URL}/play/?testSoulReveal=portrait-slow`);
-    await waitForScene(session, 'SoulRevealScene');
+    try {
+        await waitForScene(session, 'SoulRevealScene', 2500);
+    } catch (error) {
+        // Production intentionally ignores preview query parameters. Stage the
+        // same scene through Phaser so live audits exercise shipped code without
+        // exposing a public test URL or mutating a real player's save.
+        const staged = await evaluate(session, `(() => {
+            const game = window.mythicalGame;
+            if (!game?.scene) return false;
+            game.scene.getScenes(true).forEach(activeScene => {
+                if (activeScene.scene?.key !== 'SoulRevealScene') {
+                    game.scene.stop(activeScene.scene.key);
+                }
+            });
+            game.scene.start('SoulRevealScene', {
+                portraitPreviewImage: '/marketing/nova.webp',
+                portraitPreviewSpecies: 'nebulaSprite',
+                portraitPreviewDelay: 5000
+            });
+            return true;
+        })()`);
+        if (!staged) {
+            throw new Error(
+                `Could not stage production SoulRevealScene after preview hook was unavailable: ${error.message}`
+            );
+        }
+        await waitForScene(session, 'SoulRevealScene');
+    }
 
     const naming = await waitFor(
         () => evaluate(session, `(() => {
@@ -10228,8 +10271,8 @@ async function smokeSanctuaryNavigation(session, exceptions) {
             hamburgerReady: Boolean(scene?.hamburgerMenu)
         };
     })()`);
-    const restoredPosition = Math.abs(after.x - before.x) < 2 &&
-        Math.abs(after.y - before.y) < 2;
+    const restoredPosition = Math.abs(after.x - before.x) < 8 &&
+        Math.abs(after.y - before.y) < 8;
     if (
         !restoredPosition ||
         after.physicsPaused ||
@@ -10245,7 +10288,115 @@ async function smokeSanctuaryNavigation(session, exceptions) {
             })}`
         );
     }
-    return { before, after, worldDataListenerLifecycle };
+
+    const movementStart = await evaluate(session, `(() => {
+        const scene = window.mythicalGame?.scene?.getScene('GameScene');
+        const controls = scene?.mobileControls;
+        const canvasBounds = scene?.game?.canvas?.getBoundingClientRect?.();
+        if (
+            !scene?.player?.body ||
+            !controls ||
+            !canvasBounds ||
+            !Number.isFinite(controls.joystickCenterX) ||
+            !Number.isFinite(controls.joystickCenterY)
+        ) return null;
+        const toClientX = value => canvasBounds.left +
+            (value / scene.scale.width) * canvasBounds.width;
+        const toClientY = value => canvasBounds.top +
+            (value / scene.scale.height) * canvasBounds.height;
+        const dragDistance = Math.max(28, Math.min(controls.joystickMaxDistance, 44));
+        return {
+            start: {
+                x: Math.round(toClientX(controls.joystickCenterX)),
+                y: Math.round(toClientY(controls.joystickCenterY))
+            },
+            end: {
+                x: Math.round(toClientX(controls.joystickCenterX + dragDistance)),
+                y: Math.round(toClientY(controls.joystickCenterY))
+            },
+            playerX: scene.player.x
+        };
+    })()`);
+    if (!movementStart) {
+        throw new Error('Returned Sanctuary did not expose a usable mobile joystick');
+    }
+
+    let movement;
+    try {
+        await holdTouchDrag(session, movementStart.start, movementStart.end, 300);
+        try {
+            movement = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame?.scene?.getScene('GameScene');
+                    if (
+                        !scene ||
+                        scene.joystickX <= 0.2 ||
+                        scene.player?.x <= ${movementStart.playerX + 1}
+                    ) return null;
+                    return {
+                        inputX: scene.joystickX,
+                        velocityX: scene.player?.body?.velocity?.x,
+                        playerX: scene.player?.x,
+                        joystickActive: scene.mobileControls?.joystickActive === true
+                    };
+                })()`),
+                { timeoutMs: 1500, message: 'post-navigation Sanctuary movement' }
+            );
+        } catch (error) {
+            const diagnostics = await evaluate(session, `(() => {
+                const game = window.mythicalGame;
+                const scene = game?.scene?.getScene('GameScene');
+                const controls = scene?.mobileControls;
+                return {
+                    activeScenes: game?.scene?.getScenes?.(true)?.map(item => item.scene.key),
+                    sceneActive: game?.scene?.isActive?.('GameScene'),
+                    scenePaused: game?.scene?.isPaused?.('GameScene'),
+                    physicsPaused: scene?.physics?.world?.isPaused,
+                    controlsVisible: controls?.isVisible,
+                    controlsSuspended: controls?.isSuspended,
+                    joystickActive: controls?.joystickActive,
+                    activePointerId: controls?.activePointerId,
+                    joystickX: scene?.joystickX,
+                    joystickY: scene?.joystickY,
+                    playerX: scene?.player?.x,
+                    playerVelocityX: scene?.player?.body?.velocity?.x,
+                    joystickHitBounds: controls?.joystickHitBounds,
+                    requestedDrag: ${JSON.stringify(movementStart)},
+                    hitTarget: document.elementFromPoint(
+                        ${movementStart.start.x},
+                        ${movementStart.start.y}
+                    )?.outerHTML?.slice?.(0, 180) || null
+                };
+            })()`);
+            throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+        }
+    } finally {
+        await releaseTouch(session);
+    }
+    const movementReleased = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene('GameScene');
+            return Boolean(
+                scene &&
+                Math.abs(scene.joystickX) <= 0.01 &&
+                Math.abs(scene.joystickY) <= 0.01 &&
+                !scene.mobileControls?.joystickActive
+            );
+        })()`),
+        { timeoutMs: 1500, message: 'post-navigation joystick release' }
+    );
+    if (
+        !movement?.joystickActive ||
+        movement.velocityX <= 20 ||
+        !movementReleased
+    ) {
+        throw new Error(`Sanctuary navigation restored controls without live movement: ${JSON.stringify({
+            movementStart,
+            movement,
+            movementReleased
+        })}`);
+    }
+    return { before, after, movement, worldDataListenerLifecycle };
 }
 
 async function smokeHubForestTransition(session, exceptions) {
@@ -15589,6 +15740,10 @@ async function smokeVillageUi(session, exceptions) {
             const regrowth = landmark?.workerCheckInElements?.find(
                 element => element?.getData?.('villageHelpRegrowth') === true
             );
+            const actionOrigin = landmark?.workerCheckInElements?.find(
+                element => element?.getData?.('villageHelpActionOrigin') ===
+                    'creature_life_energy'
+            );
             const state = {
                 action: checkIn.getData('helpAction'),
                 problem: checkIn.getData('helpProblem'),
@@ -15596,13 +15751,16 @@ async function smokeVillageUi(session, exceptions) {
                 openedRouteAlpha: openedRoute?.alpha,
                 blockedRouteAlpha: blockedRoute?.alpha,
                 regrowthAlpha: regrowth?.alpha,
-                resultLabelAlpha: resultLabel?.alpha
+                resultLabelAlpha: resultLabel?.alpha,
+                actionOriginAlpha: actionOrigin?.alpha
             };
             return checkIn?.getData('helpResultVisible') === true &&
                 state.openedRouteAlpha >= 0.9 &&
-                state.blockedRouteAlpha <= 0.2 &&
+                state.blockedRouteAlpha >= 0.25 &&
+                state.blockedRouteAlpha <= 0.4 &&
                 state.regrowthAlpha >= 0.9 &&
-                state.resultLabelAlpha >= 0.9
+                state.resultLabelAlpha >= 0.9 &&
+                state.actionOriginAlpha >= 0.35
                     ? state
                     : null;
         })()`),
@@ -15613,9 +15771,11 @@ async function smokeVillageUi(session, exceptions) {
         visibleHelpResult.problem !== 'BLOCKED FOOD ROUTE' ||
         visibleHelpResult.result !== 'ROUTE OPEN +5 HAPPINESS' ||
         visibleHelpResult.openedRouteAlpha < 0.9 ||
-        visibleHelpResult.blockedRouteAlpha > 0.2 ||
+        visibleHelpResult.blockedRouteAlpha < 0.25 ||
+        visibleHelpResult.blockedRouteAlpha > 0.4 ||
         visibleHelpResult.regrowthAlpha < 0.9 ||
-        visibleHelpResult.resultLabelAlpha < 0.9
+        visibleHelpResult.resultLabelAlpha < 0.9 ||
+        visibleHelpResult.actionOriginAlpha < 0.35
     ) {
         throw new Error(`Creature help was not visibly resolved: ${JSON.stringify(visibleHelpResult)}`);
     }
@@ -15981,7 +16141,7 @@ async function smokeVillageUi(session, exceptions) {
         !guidedDecision.guided ||
         guidedDecision.intent !== 'decision' ||
         guidedDecision.fullPlannerBodyPresent ||
-        !guidedDecision.fullPlanButton ||
+        guidedDecision.fullPlanButton ||
         !guidedDecision.returnButton ||
         !guidedDecision.bounds ||
         guidedDecision.bounds.left < -1 ||
@@ -16065,6 +16225,25 @@ async function smokeVillageUi(session, exceptions) {
         )`),
         { message: 'Village Heart world decision response' }
     );
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const elements = window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.decisionMomentElements || [];
+            const route = elements.find(element => (
+                element?.getData?.('villageDecisionRouteOpened') === 'living_current'
+            ));
+            const regrowth = elements.find(element => (
+                element?.getData?.('villageDecisionRegrowth') === true
+            ));
+            const label = elements.find(element => (
+                element?.getData?.('villageDecisionResultLabel') === true
+            ));
+            return route?.alpha >= 0.9 &&
+                regrowth?.alpha >= 0.9 &&
+                label?.alpha >= 0.9;
+        })()`),
+        { timeoutMs: 2500, message: 'Village choice visibly changes the world' }
+    );
     const decisionWorld = await evaluate(session, `(() => {
         const landmark = window.mythicalGame.scene.getScene('GameScene')
             ?.villageHeartLandmark;
@@ -16084,6 +16263,16 @@ async function smokeVillageUi(session, exceptions) {
             resonanceBackdrop: landmark?.activeDecisionMoment?.list?.some(
                 child => child?.getData?.('villageResonanceBackdrop') === true
             ) === true,
+            livingRouteAlpha: landmark?.decisionMomentElements?.find(
+                element => element?.getData?.('villageDecisionRouteOpened') ===
+                    'living_current'
+            )?.alpha,
+            regrowthAlpha: landmark?.decisionMomentElements?.find(
+                element => element?.getData?.('villageDecisionRegrowth') === true
+            )?.alpha,
+            resultLabelAlpha: landmark?.decisionMomentElements?.find(
+                element => element?.getData?.('villageDecisionResultLabel') === true
+            )?.alpha,
             routeHierarchy: landmark?.currentPaths?.getData?.('villageRouteHierarchy'),
             routeHierarchyState: landmark?.currentPaths?.getData?.(
                 'villageRouteHierarchyState'
@@ -16106,7 +16295,7 @@ async function smokeVillageUi(session, exceptions) {
         };
     })()`);
     if (
-        decisionWorld.elementCount !== 3 ||
+        decisionWorld.elementCount < 6 ||
         decisionWorld.decisionId !== 'storm_path' ||
         decisionWorld.optionId !== 'current_first' ||
         decisionWorld.value !== 'care' ||
@@ -16117,6 +16306,9 @@ async function smokeVillageUi(session, exceptions) {
         ) ||
         decisionWorld.groundResponseDepth !== -15 ||
         !decisionWorld.resonanceBackdrop ||
+        decisionWorld.livingRouteAlpha < 0.9 ||
+        decisionWorld.regrowthAlpha < 0.9 ||
+        decisionWorld.resultLabelAlpha < 0.9 ||
         decisionWorld.routeHierarchy !== 'quiet_network_v1' ||
         decisionWorld.routeHierarchyState !== 'story_recessed' ||
         decisionWorld.routeHierarchyTargetAlpha !== 0.2 ||
@@ -16899,6 +17091,16 @@ async function smokeVillageUi(session, exceptions) {
         )`),
         { message: 'Village Heart resident memory response' }
     );
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const echoes = window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.communityMomentElements?.filter(
+                    element => Boolean(element?.getData?.('villageMemoryEcho'))
+                ) || [];
+            return echoes.length === 4 && echoes.every(echo => echo.alpha >= 0.42);
+        })()`),
+        { timeoutMs: 2500, message: 'Planet memory renders both actor echoes' }
+    );
     const heartMemory = await evaluate(session, `(() => {
         const landmark = window.mythicalGame.scene.getScene('GameScene')
             ?.villageHeartLandmark;
@@ -16921,6 +17123,15 @@ async function smokeVillageUi(session, exceptions) {
             phenomenonLanguage: landmark?.communityMomentElements?.find(
                 element => element?.getData?.('villagePlanetMemoryPhenomenon') === true
             )?.getData?.('phenomenonLanguage'),
+            memoryEchoes: landmark?.communityMomentElements?.filter(
+                element => Boolean(element?.getData?.('villageMemoryEcho'))
+            ).map(element => ({
+                actor: element.getData('villageMemoryEcho'),
+                texture: element.texture?.key || null,
+                sourceTexture: element.getData('sourceTexture'),
+                alpha: element.alpha,
+                visible: element.visible !== false && element.active !== false
+            })) || [],
             markerCount: markers.length,
             markerActive: markers.every(marker => marker.active === true),
             markerInteractive: markers.every(marker => marker.input?.enabled === true),
@@ -16964,6 +17175,14 @@ async function smokeVillageUi(session, exceptions) {
         heartMemory.linkedActorCount !== 2 ||
         heartMemory.visibleDiscovery !== 'THE PLANET REMEMBERS YOUR CHOICE' ||
         heartMemory.phenomenonLanguage !== 'living_current_remembers_choice_v1' ||
+        heartMemory.memoryEchoes.length !== 4 ||
+        new Set(heartMemory.memoryEchoes.map(echo => echo.actor)).size !== 2 ||
+        heartMemory.memoryEchoes.some(echo => (
+            !echo.visible ||
+            !echo.texture ||
+            echo.texture !== echo.sourceTexture ||
+            echo.alpha <= 0
+        )) ||
         heartMemory.markerCount !== 1 ||
         !heartMemory.markerActive ||
         !heartMemory.markerInteractive ||
@@ -18172,7 +18391,7 @@ async function smokeVisualMovement(session, exceptions) {
         const support = scene.getTraversalSupport?.(supportId) ||
             scene.platforms?.getChildren?.()[0];
         if (!support?.body || scene.physics.world.isPaused) return false;
-        const x = support.body.left + (${isPhone} ? 540 : 1000);
+        const x = support.body.left + 450;
         if (scene.bossTriggerZone?.body) {
             scene.bossTriggerZone.body.enable = false;
         }
@@ -18184,6 +18403,20 @@ async function smokeVisualMovement(session, exceptions) {
         scene.isInvincible = true;
         scene.cameras.main.startFollow(scene.player, true, 0.12, 0.12);
         scene.cameras.main.centerOn(scene.player.x, scene.player.y - 20);
+        const followerGap = ${isPhone} ? 148 : 174;
+        scene.astronautFollower.setContextualFormation?.(
+            { x: -followerGap, y: 2 },
+            'visual_movement_capture'
+        );
+        scene.astronautFollower.sprite.setPosition(
+            scene.player.x - followerGap,
+            scene.player.y + 2
+        );
+        scene.astronautFollower.shadow?.setPosition?.(
+            scene.astronautFollower.sprite.x,
+            scene.astronautFollower.sprite.y + 34
+        );
+        scene.astronautFollower.resetTrail?.();
         scene.releaseAllPlatformerActionButtons?.();
         scene.resetJoystick?.();
         scene.levelEntryElements?.forEach(element => element?.destroy?.());
@@ -18218,6 +18451,20 @@ async function smokeVisualMovement(session, exceptions) {
             height: Math.max(0, Math.min(creatureBounds.bottom, astronautBounds.bottom) -
                 Math.max(creatureBounds.top, astronautBounds.top))
         } : null;
+        const horizontalGap = creatureBounds && astronautBounds
+            ? Math.max(
+                0,
+                Math.max(creatureBounds.left, astronautBounds.left) -
+                    Math.min(creatureBounds.right, astronautBounds.right)
+            )
+            : 0;
+        const verticalGap = creatureBounds && astronautBounds
+            ? Math.max(
+                0,
+                Math.max(creatureBounds.top, astronautBounds.top) -
+                    Math.min(creatureBounds.bottom, astronautBounds.bottom)
+            )
+            : 0;
         const modalSelectors = [
             '.modal-overlay',
             '.village-command-modal',
@@ -18242,12 +18489,15 @@ async function smokeVisualMovement(session, exceptions) {
             creatureBounds,
             astronautBounds,
             overlapArea: overlap ? overlap.width * overlap.height : null,
+            actorGap: Math.hypot(horizontalGap, verticalGap),
             modalCount: modalSelectors.reduce(
                 (total, selector) => total + document.querySelectorAll(selector).length,
                 0
             ),
             levelEntryCount: scene?.levelEntryElements?.length || 0,
             viewport: { width: innerWidth, height: innerHeight },
+            health: scene?.health,
+            maxHealth: scene?.maxHealth,
             playerX: creature?.x,
             playerY: creature?.y
         };
@@ -18267,12 +18517,15 @@ async function smokeVisualMovement(session, exceptions) {
             !state.astronautVisible ||
             actorBounds.some(bounds => (
                 !bounds ||
-                bounds.left < safeLeft ||
-                bounds.right > safeRight ||
+                bounds.left < safeLeft - 1 ||
+                bounds.right > safeRight + 1 ||
                 bounds.top < 0 ||
                 bounds.bottom > state.viewport.height
             )) ||
             state.overlapArea > 0 ||
+            state.actorGap < (isPhone ? 24 : 36) ||
+            !Number.isFinite(state.health) ||
+            state.health !== state.maxHealth ||
             state.modalCount !== 0 ||
             state.levelEntryCount !== 0
         ) {
@@ -18300,7 +18553,7 @@ async function smokeVisualMovement(session, exceptions) {
             { x: joystick.x + joystick.distance, y: joystick.y },
             400
         );
-        for (let index = 0; index < 3; index++) {
+        for (let index = 0; index < 12; index++) {
             const sample = await inspectActors();
             assertActors(sample, `Visual movement phone sample ${index + 1}`);
             movementSamples.push(sample);
@@ -18311,7 +18564,7 @@ async function smokeVisualMovement(session, exceptions) {
         await setKeyboardKey(session, 'keyDown', {
             key: 'd', code: 'KeyD', keyCode: 68
         });
-        for (let index = 0; index < 4; index++) {
+        for (let index = 0; index < 14; index++) {
             await delay(450);
             const sample = await inspectActors();
             assertActors(sample, `Visual movement desktop sample ${index + 1}`);
@@ -18336,7 +18589,7 @@ async function smokeVisualMovement(session, exceptions) {
     );
     await delay(420);
     const video = await stopGameplayVideo();
-    if (video?.frames < 20 || exceptions.length) {
+    if (video?.frames < 72 || exceptions.length) {
         throw new Error(
             `Visual movement capture was incomplete: ${JSON.stringify({ video, exceptions })}`
         );

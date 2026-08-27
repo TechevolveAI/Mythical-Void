@@ -124,8 +124,8 @@ describe('Expedition astronaut', () => {
 
         expect(getExpeditionFollowOffset('topDown', true)).toEqual({ x: -58, y: 24 });
         expect(getExpeditionFollowOffset('topDown', false)).toEqual({ x: 58, y: 24 });
-        expect(getExpeditionFollowOffset('platformer', true)).toEqual({ x: -92, y: 2 });
-        expect(getExpeditionFollowOffset('platformer', false)).toEqual({ x: 92, y: 2 });
+        expect(getExpeditionFollowOffset('platformer', true)).toEqual({ x: -112, y: 2 });
+        expect(getExpeditionFollowOffset('platformer', false)).toEqual({ x: 112, y: 2 });
     });
 
     test('keeps the platformer astronaut visually separate from a wide creature', () => {
@@ -149,7 +149,7 @@ describe('Expedition astronaut', () => {
         const astronautHalfWidth = (74 * 0.78) / 2;
         const formation = getExpeditionFollowOffset('platformer', true);
 
-        expect(follower.followDistance).toBe(96);
+        expect(follower.followDistance).toBe(112);
         expect(Math.abs(formation.x)).toBeGreaterThan(
             creatureHalfWidth + astronautHalfWidth
         );

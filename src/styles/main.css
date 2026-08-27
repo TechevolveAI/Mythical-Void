@@ -3161,6 +3161,15 @@ body.game-mode {
   display: block;
 }
 
+.village-heart-sheet[data-intent='decision'] .village-guided-footer {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.village-guided-stage[data-intent='decision'] .village-decision-values,
+.village-guided-stage[data-intent='decision'] .village-decision-participants {
+  display: none;
+}
+
 .village-guided-visual {
   position: relative;
   min-height: 290px;
@@ -4347,6 +4356,28 @@ body.game-mode {
   .village-guided-stage .village-heart-decision {
     min-height: 0;
     padding: 12px;
+  }
+
+  .village-guided-stage[data-intent='decision'] .village-heart-decision {
+    gap: 7px;
+    padding: 10px;
+  }
+
+  .village-guided-stage[data-intent='decision'] .village-decision-options {
+    gap: 6px;
+  }
+
+  .village-guided-stage[data-intent='decision'] .village-decision-option {
+    min-height: 58px;
+    padding: 7px 9px;
+  }
+
+  .village-guided-stage[data-intent='decision'] .village-decision-option > span:last-child {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 9px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .village-guided-stage > .village-guided-primary {
