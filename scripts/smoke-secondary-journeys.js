@@ -13982,6 +13982,19 @@ async function smokeVillageUi(session, exceptions) {
                     'worldBackgroundEdgeColor'
                 ),
                 alpha: scene.worldBackground?.alpha,
+                biomePlate: (() => {
+                    const plate = scene.worldBuilder?.sanctuaryBiomeBackdrop;
+                    return {
+                        active: plate?.active === true,
+                        texture: plate?.texture?.key || null,
+                        profile: plate?.getData?.('sanctuaryBiomePlate') || null,
+                        source: plate?.getData?.('sanctuaryBiomePlateSource') || null,
+                        crop: plate?.getData?.('sanctuaryBiomePlateCrop') || null,
+                        alpha: plate?.alpha || 0,
+                        displayWidth: plate?.displayWidth || 0,
+                        displayHeight: plate?.displayHeight || 0
+                    };
+                })(),
                 screenBounds: (() => {
                     const bounds = scene.worldBackground?.getBounds?.();
                     if (!bounds) return null;
@@ -14416,6 +14429,17 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.sanctuaryBackground.currentThreadCount !== 34 ||
         integratedWorld.sanctuaryBackground.overscan < 320 ||
         integratedWorld.sanctuaryBackground.edgeColor !== 0x163B35 ||
+        !integratedWorld.sanctuaryBackground.biomePlate.active ||
+        integratedWorld.sanctuaryBackground.biomePlate.texture !==
+            'sanctuary-biome-backdrop-v1' ||
+        integratedWorld.sanctuaryBackground.biomePlate.profile !== 'living_basin_v1' ||
+        integratedWorld.sanctuaryBackground.biomePlate.source !==
+            'generated_environment_art' ||
+        integratedWorld.sanctuaryBackground.biomePlate.alpha < 0.9 ||
+        integratedWorld.sanctuaryBackground.biomePlate.displayWidth !== 2400 ||
+        integratedWorld.sanctuaryBackground.biomePlate.displayHeight < 2120 ||
+        integratedWorld.sanctuaryBackground.biomePlate.crop?.sourceWidth !== 1672 ||
+        integratedWorld.sanctuaryBackground.biomePlate.crop?.sourceHeight !== 941 ||
         !integratedWorld.sanctuaryBackground.screenBounds ||
         integratedWorld.sanctuaryBackground.screenBounds.bottom <
             integratedWorld.viewport.height ||
@@ -16580,7 +16604,7 @@ async function smokeVillageUi(session, exceptions) {
         visibleHelpResult.blockedRouteAlpha > 0.24 ||
         visibleHelpResult.regrowthAlpha < 0.9 ||
         visibleHelpResult.regrowthArtworkAlpha < 0.9 ||
-        visibleHelpResult.regrowthArtworkWidth < (SMOKE_VIEWPORT_WIDTH <= 600 ? 165 : 235) ||
+        visibleHelpResult.regrowthArtworkWidth < (SMOKE_VIEWPORT_WIDTH <= 600 ? 132 : 194) ||
         visibleHelpResult.resultLabelAlpha < 0.9 ||
         visibleHelpResult.actionOriginAlpha < 0.35
     ) {
@@ -17945,6 +17969,7 @@ async function smokeVillageUi(session, exceptions) {
                 element => element?.getData?.('villageMemoryRainDrop') === true
             ).map(element => ({
                 direction: element.getData('memoryRainDirection'),
+                visual: element.getData('memoryRainVisual'),
                 alpha: element.alpha,
                 visible: element.visible !== false && element.active !== false
             })) || [],
@@ -17996,7 +18021,9 @@ async function smokeVillageUi(session, exceptions) {
         heartMemory.phenomenonLanguage !== 'memory_rain_rises_v2' ||
         heartMemory.memoryRain.length < 16 ||
         heartMemory.memoryRain.some(drop => (
-            !drop.visible || drop.direction !== 'up'
+            !drop.visible ||
+            drop.direction !== 'up' ||
+            drop.visual !== 'rising_memory_orb'
         )) ||
         heartMemory.memoryFlora !== 'listening_reeds' ||
         heartMemory.markerCount !== 1 ||
@@ -19338,6 +19365,12 @@ async function smokeVisualMovement(session, exceptions) {
                 (total, selector) => total + document.querySelectorAll(selector).length,
                 0
             ),
+            modalDetails: modalSelectors.flatMap(selector => (
+                [...document.querySelectorAll(selector)].map(element => ({
+                    selector,
+                    text: (element.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 120)
+                }))
+            )),
             hatchingActive: window.mythicalGame.scene.isActive('HatchingScene'),
             hatchingStartVisible: (() => {
                 const hatching = window.mythicalGame.scene.getScene('HatchingScene');

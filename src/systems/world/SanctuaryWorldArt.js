@@ -1,4 +1,8 @@
 export const SANCTUARY_WORLD_ART = Object.freeze({
+    biomeBackdrop: Object.freeze({
+        key: 'sanctuary-biome-backdrop-v1',
+        url: '/game/sanctuary/sanctuary-biome-v1.webp'
+    }),
     currentBloomGrove: Object.freeze({
         key: 'sanctuary-current-bloom-grove',
         url: '/game/sanctuary/flora/current-bloom-grove.webp'

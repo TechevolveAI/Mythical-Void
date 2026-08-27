@@ -321,6 +321,7 @@ class HatchingScene extends Phaser.Scene {
 
     ensureHomeStartReady() {
         if (!this.sys?.isActive() || getGameState().get('session.gameStarted')) {
+            this.removeHomeStartFallback();
             return;
         }
 
@@ -374,6 +375,13 @@ class HatchingScene extends Phaser.Scene {
         const gameRoot = document.getElementById('game');
         if (!gameRoot) return;
 
+        // A stopped or restarted scene can lose its element reference before a
+        // delayed recovery callback runs. Never let that stale control survive
+        // into gameplay or become a second, inert start button.
+        gameRoot.querySelectorAll('[data-mythical-home-start]').forEach(element => {
+            element.remove();
+        });
+
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'home-start-fallback';
@@ -417,10 +425,15 @@ class HatchingScene extends Phaser.Scene {
         if (this.homeStartFallbackCleanup) {
             this.homeStartFallbackCleanup();
             this.homeStartFallbackCleanup = null;
-            return;
+        } else {
+            this.homeStartFallback?.remove();
+            this.homeStartFallback = null;
         }
-        this.homeStartFallback?.remove();
-        this.homeStartFallback = null;
+        if (typeof document !== 'undefined') {
+            document.querySelectorAll('[data-mythical-home-start]').forEach(element => {
+                element.remove();
+            });
+        }
     }
 
     loadThemeMusicInBackground() {
@@ -3254,6 +3267,8 @@ class HatchingScene extends Phaser.Scene {
     shutdown() {
         console.log('🧹 HatchingScene.shutdown() - Cleaning up scene resources');
 
+        this.homeStartRecoveryTimer?.remove?.();
+        this.homeStartRecoveryTimer = null;
         this.removeEggHatchFallback();
         this.removeHomeStartFallback();
 

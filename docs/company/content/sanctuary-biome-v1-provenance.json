@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "asset": "public/game/sanctuary/sanctuary-biome-v1.webp",
+  "createdAt": "2026-08-27",
+  "generator": "OpenAI built-in image generation",
+  "useCase": "Mythical Void Sanctuary in-game environment backdrop",
+  "prompt": "Use case: stylized-concept\nAsset type: 2D game-world biome backdrop for Mythical Void Sanctuary\nPrimary request: Create a polished, wide, oblique top-down alien planet landscape that feels like a real living planetary sanctuary, not outer space and not a UI diagram.\nScene/backdrop: A broad sheltered basin on an unfamiliar planet, with layered moss-like terrain, luminous mineral currents flowing through the ground, unusual ivory-and-teal alien trees, listening reed clusters, organic stone ridges, shallow reflective pools, and several naturally connected clearings. The central and lower-middle area must remain relatively uncluttered so a small astronaut and creature sprite can be clearly composited there during gameplay.\nStyle/medium: premium painterly 2D game environment art, richly textured and cohesive, readable at phone size, atmospheric depth but not photorealistic.\nComposition/framing: 16:9 wide landscape, oblique top-down game-map perspective, no horizon line, strongest detail around outer thirds, clear traversable center, paths feel naturally grown rather than drawn.\nLighting/mood: warm bioluminescent life against cool planetary twilight, hopeful, mysterious, welcoming.\nColor palette: balanced deep green, teal, white, charcoal, with restrained coral-red and warm gold accents.\nConstraints: background environment only; no characters, no buildings, no portals, no weapons, no text, no icons, no interface, no stars, no planets in sky, no empty space backdrop, no rectangular platforms, no painted arrows or route lines, no watermark. Avoid visual clutter in the central play area.",
+  "sourceDimensions": {
+    "width": 1672,
+    "height": 941
+  },
+  "delivery": {
+    "format": "webp",
+    "quality": 84,
+    "sizeBytes": 384210
+  },
+  "reviewState": "pending_adult_frame_review",
+  "externalPublicationAuthorized": false
+}

@@ -7313,10 +7313,10 @@ class WorldBuilder {
         const partyCenterY = linkedActors.length
             ? linkedActors.reduce((sum, actor) => sum + actor.y, 0) / linkedActors.length
             : markerY;
-        const memoryPoolX = Phaser.Math.Linear(markerX, partyCenterX, 0.58);
+        const memoryPoolX = Phaser.Math.Linear(markerX, partyCenterX, 0.76);
         const memoryPoolY = Phaser.Math.Linear(markerY, partyCenterY, 0.52);
-        const poolWidth = compact ? 188 : 270;
-        const poolHeight = compact ? 52 : 72;
+        const poolWidth = compact ? 164 : 236;
+        const poolHeight = compact ? 46 : 64;
         const memoryCrownY = memoryPoolY - (compact ? 150 : 210);
         phenomenon.fillStyle(0x061513, 0.92);
         phenomenon.fillEllipse(memoryPoolX, memoryPoolY, poolWidth, poolHeight);
@@ -7369,7 +7369,7 @@ class WorldBuilder {
                 SANCTUARY_WORLD_ART.listeningReeds.key
             )
                 .setOrigin(0.5, 0.78)
-                .setDisplaySize(compact ? 238 : 330, compact ? 159 : 220)
+                .setDisplaySize(compact ? 192 : 270, compact ? 128 : 180)
                 .setDepth(Math.max(1, memoryPoolY - 2))
                 .setAlpha(0)
                 .setData('villageMemoryFlora', 'listening_reeds')
@@ -7381,19 +7381,17 @@ class WorldBuilder {
                 memoryPoolX + lane * (compact ? 16 : 23),
                 memoryPoolY - (index % 5) * (compact ? 20 : 28)
             );
-            const glow = this.scene.add.ellipse(
+            const glow = this.scene.add.circle(
                 0,
                 0,
-                compact ? 13 : 17,
-                compact ? 25 : 32,
+                compact ? 8 : 10,
                 dropColor,
                 0.34
             );
-            const core = this.scene.add.ellipse(
+            const core = this.scene.add.circle(
                 0,
                 -2,
-                compact ? 6 : 8,
-                compact ? 17 : 22,
+                compact ? 3 : 4,
                 0xF4F4F4,
                 0.92
             );
@@ -7416,7 +7414,8 @@ class WorldBuilder {
                 .setDepth(Math.max(1, memoryPoolY + index * 0.01))
                 .setAlpha(0)
                 .setData('villageMemoryRainDrop', true)
-                .setData('memoryRainDirection', 'up');
+                .setData('memoryRainDirection', 'up')
+                .setData('memoryRainVisual', 'rising_memory_orb');
             drop.setBlendMode?.(Phaser.BlendModes.ADD);
             return drop;
         });
@@ -7437,7 +7436,7 @@ class WorldBuilder {
             landmark.zone.y - (compact ? 270 : 345)
         ).setDepth(landmark.zone.y + 15).setAlpha(0);
         const copyWidth = compact ? 252 : 350;
-        const copyHeight = compact ? 76 : 82;
+        const copyHeight = compact ? 96 : 94;
         const backdrop = this.createVillageResonanceBackdrop({
             width: copyWidth,
             height: copyHeight,
@@ -7446,10 +7445,10 @@ class WorldBuilder {
         });
         const speaker = this.scene.add.text(
             0,
-            -24,
+            -30,
             'THE RAIN IS RISING',
             {
-                fontSize: compact ? '8px' : '9px',
+                fontSize: compact ? '11px' : '12px',
                 fontFamily: 'Arial, sans-serif',
                 fontStyle: 'bold',
                 color: memory.value === 'care' ? '#8FE3CF' : '#F2C14E',
@@ -7457,8 +7456,8 @@ class WorldBuilder {
                 strokeThickness: 5
             }
         ).setOrigin(0.5);
-        const line = this.scene.add.text(0, 2, 'The Current remembers what you protected.', {
-            fontSize: compact ? '10px' : '12px',
+        const line = this.scene.add.text(0, 2, 'Memory rises from the ground and returns to the Heart.', {
+            fontSize: compact ? '12px' : '14px',
             fontFamily: 'Arial, sans-serif',
             color: '#F4F4F4',
             align: 'center',
@@ -7466,7 +7465,7 @@ class WorldBuilder {
             strokeThickness: 5,
             wordWrap: { width: compact ? 248 : 370 }
         }).setOrigin(0.5);
-        const value = this.scene.add.text(0, compact ? 27 : 30, memory.optionLabel, {
+        const value = this.scene.add.text(0, compact ? 36 : 35, memory.optionLabel, {
             fontSize: compact ? '7px' : '8px',
             fontFamily: 'Arial, sans-serif',
             fontStyle: 'bold',
@@ -7607,16 +7606,16 @@ class WorldBuilder {
             .setDepth(actionOriginY + 4)
             .setAlpha(0)
             .setData('villageHelpActionOrigin', 'creature_life_energy');
-        actionPulse.lineStyle(3, 0x8FE3CF, 0.92);
-        actionPulse.strokeCircle(0, 0, compact ? 27 : 34);
-        actionPulse.lineStyle(1, 0xF2C14E, 0.86);
-        actionPulse.strokeCircle(0, 0, compact ? 38 : 48);
+        actionPulse.lineStyle(3, 0x8FE3CF, 0.9);
+        actionPulse.strokeCircle(0, 0, compact ? 22 : 29);
+        actionPulse.lineStyle(1, 0xF2C14E, 0.78);
+        actionPulse.strokeCircle(0, 0, compact ? 31 : 40);
         actionPulse.fillStyle(0xF4F4F4, 0.95);
         [0, 90, 180, 270].forEach(angle => {
             const radians = Phaser.Math.DegToRad(angle);
             actionPulse.fillCircle(
-                Math.cos(radians) * (compact ? 31 : 40),
-                Math.sin(radians) * (compact ? 31 : 40),
+                Math.cos(radians) * (compact ? 27 : 35),
+                Math.sin(radians) * (compact ? 27 : 35),
                 compact ? 3 : 4
             );
         });
@@ -7760,12 +7759,12 @@ class WorldBuilder {
             SANCTUARY_WORLD_ART.currentBloomGrove.key
         )
             ? this.scene.add.image(
-                problemX + (compact ? 18 : 28),
-                problemY + (compact ? 25 : 34),
+                problemX + (compact ? 35 : 48),
+                problemY + (compact ? 18 : 26),
                 SANCTUARY_WORLD_ART.currentBloomGrove.key
             )
                 .setOrigin(0.5, 0.82)
-                .setDisplaySize(compact ? 178 : 252, compact ? 178 : 252)
+                .setDisplaySize(compact ? 142 : 204, compact ? 142 : 204)
                 .setDepth(problemY + 2)
                 .setAlpha(0)
                 .setData('villageHelpRegrowthArtwork', 'current_bloom_grove')
@@ -7781,9 +7780,9 @@ class WorldBuilder {
         }
 
         const result = this.scene.add.text(
-            Phaser.Math.Linear(actionOriginX, problemX, 0.42),
-            problemY + (compact ? 58 : 66),
-            `${checkIn.name.toUpperCase()} OPENED THE PATH`,
+            problemX + (compact ? 18 : 28),
+            problemY + (compact ? 61 : 74),
+            'SAFE PATH OPEN · +5 HAPPINESS',
             {
                 fontSize: compact ? '11px' : '14px',
                 fontFamily: 'Arial, sans-serif',
@@ -7798,7 +7797,7 @@ class WorldBuilder {
         const copy = this.scene.add.container(copyX, copyY)
             .setDepth(landmark.zone.y + 16)
             .setAlpha(0);
-        const copyHeight = checkIn.memory ? (compact ? 104 : 114) : (compact ? 78 : 84);
+        const copyHeight = checkIn.memory ? (compact ? 112 : 118) : (compact ? 94 : 96);
         const backdrop = this.createVillageResonanceBackdrop({
             width: ribbonWidth,
             height: copyHeight,
@@ -7808,10 +7807,10 @@ class WorldBuilder {
         });
         const identity = this.scene.add.text(
             0,
-            checkIn.memory ? -28 : -20,
-            `${checkIn.name.toUpperCase()} HELPS`,
+            checkIn.memory ? -32 : -28,
+            `${checkIn.name.toUpperCase()} CLEARS THE THORNS`,
             {
-                fontSize: compact ? '9px' : '10px',
+                fontSize: compact ? '11px' : '12px',
                 fontFamily: 'Arial, sans-serif',
                 fontStyle: 'bold',
                 color: '#F2C14E',
@@ -7819,8 +7818,8 @@ class WorldBuilder {
                 strokeThickness: 5
             }
         ).setOrigin(0.5);
-        const line = this.scene.add.text(0, checkIn.memory ? -5 : 1, `${checkIn.name} sends life into the blocked path.`, {
-            fontSize: compact ? '11px' : '13px',
+        const line = this.scene.add.text(0, -7, 'Life energy opens a safe food path.', {
+            fontSize: compact ? '12px' : '14px',
             fontFamily: 'Arial, sans-serif',
             color: '#F4F4F4',
             align: 'center',
@@ -7830,10 +7829,10 @@ class WorldBuilder {
         }).setOrigin(0.5);
         const routine = this.scene.add.text(
             0,
-            checkIn.memory ? 24 : 16,
-            'THE THORNS RELEASE',
+            checkIn.memory ? 22 : 15,
+            'THORNS RELEASE · NEW GROWTH APPEARS',
             {
-                fontSize: compact ? '7px' : '8px',
+                fontSize: compact ? '9px' : '10px',
                 fontFamily: 'Arial, sans-serif',
                 fontStyle: 'bold',
                 color: '#8FE3CF',
@@ -7843,8 +7842,8 @@ class WorldBuilder {
                 wordWrap: { width: copyWidth }
             }
         ).setOrigin(0.5);
-        const impact = this.scene.add.text(0, checkIn.memory ? 44 : 31, 'PATH OPEN · +5 HAPPINESS', {
-            fontSize: compact ? '9px' : '11px',
+        const impact = this.scene.add.text(0, checkIn.memory ? 44 : 35, 'SAFE PATH OPEN · +5 HAPPINESS', {
+            fontSize: compact ? '10px' : '12px',
             fontFamily: 'Arial, sans-serif',
             fontStyle: 'bold',
             color: '#F4F4F4',
@@ -7962,7 +7961,7 @@ class WorldBuilder {
             });
             const copyTween = this.scene.tweens.add({
                 targets: copy,
-                alpha: 0.24,
+                alpha: 0.88,
                 duration: 420,
                 ease: 'Sine.easeOut'
             });
@@ -8046,31 +8045,28 @@ class WorldBuilder {
             .setDepth(-14)
             .setAlpha(0)
             .setData('villageDecisionRouteOpened', 'living_current');
-        livingRoute.lineStyle(compact ? 28 : 40, 0x071A16, 0.92);
-        livingRoute.beginPath();
-        livingRoute.moveTo(heartX, heartY);
-        livingRoute.lineTo(
-            Phaser.Math.Linear(heartX, routeEnd.x, 0.48),
-            Math.min(heartY, routeEnd.y) - (compact ? 42 : 58)
-        );
-        livingRoute.lineTo(routeEnd.x, routeEnd.y);
-        livingRoute.strokePath();
-        livingRoute.lineStyle(compact ? 15 : 21, color, 0.9);
-        livingRoute.beginPath();
-        livingRoute.moveTo(heartX, heartY);
-        livingRoute.lineTo(
-            Phaser.Math.Linear(heartX, routeEnd.x, 0.48),
-            Math.min(heartY, routeEnd.y) - (compact ? 42 : 58)
-        );
-        livingRoute.lineTo(routeEnd.x, routeEnd.y);
-        livingRoute.strokePath();
-        livingRoute.lineStyle(2, 0xDFFFF5, 0.9);
-        livingRoute.strokePath();
+        const routePoints = Array.from({ length: 25 }, (_, index) => {
+            const progress = index / 24;
+            return {
+                x: Phaser.Math.Linear(heartX, routeEnd.x, progress),
+                y: Phaser.Math.Linear(heartY, routeEnd.y, progress) -
+                    Math.sin(progress * Math.PI) * (compact ? 42 : 58)
+            };
+        });
+        const strokeLivingRoute = (width, strokeColor, alpha) => {
+            livingRoute.lineStyle(width, strokeColor, alpha);
+            livingRoute.beginPath();
+            livingRoute.moveTo(routePoints[0].x, routePoints[0].y);
+            routePoints.slice(1).forEach(point => livingRoute.lineTo(point.x, point.y));
+            livingRoute.strokePath();
+        };
+        strokeLivingRoute(compact ? 16 : 22, 0x12352F, 0.56);
+        strokeLivingRoute(compact ? 8 : 11, color, 0.72);
+        strokeLivingRoute(2, 0xDFFFF5, 0.86);
         for (let step = 1; step <= 5; step += 1) {
             const progress = step / 6;
-            const x = Phaser.Math.Linear(heartX, routeEnd.x, progress);
-            const y = Phaser.Math.Linear(heartY, routeEnd.y, progress) -
-                Math.sin(progress * Math.PI) * (compact ? 42 : 58);
+            const point = routePoints[Math.round(progress * 24)];
+            const { x, y } = point;
             livingRoute.fillStyle(step % 2 === 0 ? 0xF2C14E : 0xF4F4F4, 0.98);
             livingRoute.fillCircle(x, y, step === 3 ? 7 : 4);
             livingRoute.fillStyle(0x8FE3CF, 0.94);
@@ -8115,7 +8111,7 @@ class WorldBuilder {
                 SANCTUARY_WORLD_ART.currentBloomGrove.key
             )
                 .setOrigin(0.5, 0.82)
-                .setDisplaySize(compact ? 210 : 300, compact ? 210 : 300)
+                .setDisplaySize(compact ? 176 : 252, compact ? 176 : 252)
                 .setDepth(routeEnd.y + 1)
                 .setAlpha(0)
                 .setData('villageDecisionWorldChange', 'current_bloom_grove')
@@ -8181,7 +8177,7 @@ class WorldBuilder {
             strokeThickness: 5
         }).setOrigin(0.5);
         const consequence = this.scene.add.text(0, 25, result.option.consequence, {
-            fontSize: compact ? '8px' : '9px',
+            fontSize: compact ? '10px' : '11px',
             fontFamily: 'Arial, sans-serif',
             color: '#F4F4F4',
             align: 'center',
@@ -10500,6 +10496,8 @@ class WorldBuilder {
         const isSanctuary = this.currentBiome === 'nebula';
         if (isSanctuary) {
             this.scene.cameras?.main?.setBackgroundColor?.('#163B35');
+            this.createSanctuaryBiomeBackdrop();
+            this.backgroundImage.setAlpha(0.38);
         }
         this.backgroundImage
             .setData(
@@ -10536,6 +10534,38 @@ class WorldBuilder {
             )
             .setData('worldBackgroundEdgeColor', isSanctuary ? 0x163B35 : null);
         return this.backgroundImage;
+    }
+
+    createSanctuaryBiomeBackdrop() {
+        if (this.sanctuaryBiomeBackdrop) return this.sanctuaryBiomeBackdrop;
+        const artwork = SANCTUARY_WORLD_ART.biomeBackdrop;
+        if (!artwork || !this.scene.textures?.exists?.(artwork.key)) return null;
+
+        const source = this.scene.textures.get(artwork.key)?.getSourceImage?.();
+        const sourceWidth = source?.width || 1672;
+        const sourceHeight = source?.height || 941;
+        const displayHeight = this.worldHeight + SANCTUARY_BACKGROUND_OVERSCAN;
+        const cropWidth = Math.min(
+            sourceWidth,
+            Math.round(sourceHeight * (this.worldWidth / displayHeight))
+        );
+        const cropX = Math.max(0, Math.round((sourceWidth - cropWidth) / 2));
+
+        this.sanctuaryBiomeBackdrop = this.scene.add.image(0, 0, artwork.key)
+            .setOrigin(0, 0)
+            .setCrop(cropX, 0, cropWidth, sourceHeight)
+            .setDisplaySize(this.worldWidth, displayHeight)
+            .setDepth(-1001)
+            .setAlpha(0.92)
+            .setData('sanctuaryBiomePlate', 'living_basin_v1')
+            .setData('sanctuaryBiomePlateSource', 'generated_environment_art')
+            .setData('sanctuaryBiomePlateCrop', {
+                x: cropX,
+                width: cropWidth,
+                sourceWidth,
+                sourceHeight
+            });
+        return this.sanctuaryBiomeBackdrop;
     }
 
     generateBackgroundTexture() {

@@ -148,9 +148,9 @@ describe('release test gate', () => {
         expect(world).toContain(".setData('villageHelpProblem', 'blocked_food_route')");
         expect(world).toContain(".setData('villageHelpResult', 'safe_food_route_open')");
         expect(world).toContain(".setData('villageHelpActionOrigin', 'creature_life_energy')");
-        expect(world).toContain('`${checkIn.name.toUpperCase()} OPENED THE PATH`');
+        expect(world).toContain("'SAFE PATH OPEN · +5 HAPPINESS'");
         expect(world).toContain('const obstacleScale = compact ? 1 : 1.18;');
-        expect(world).toContain("'THE THORNS RELEASE'");
+        expect(world).toContain("'THORNS RELEASE · NEW GROWTH APPEARS'");
         expect(world).toContain(".setData('villageHelpProblemLabel', true)");
         expect(world).toContain(".setData('villageDecisionRouteOpened', 'living_current')");
         expect(world).toContain(".setData('villageDecisionRegrowth', true)");
@@ -158,7 +158,10 @@ describe('release test gate', () => {
         expect(world).toContain(".setData('linkedActorCount', linkedActors.length)");
         expect(world).toContain(".setData('villageMemoryRainDrop', true)");
         expect(world).toContain(".setData('memoryRainDirection', 'up')");
+        expect(world).toContain(".setData('memoryRainVisual', 'rising_memory_orb')");
         expect(world).toContain(".setData('villageMemoryFlora', 'listening_reeds')");
+        expect(smoke).toContain("drop.visual !== 'rising_memory_orb'");
+        expect(smoke).toContain("'sanctuary-biome-backdrop-v1'");
         expect(capture).toContain("'village-heart-choice-mobile.png'");
         expect(capture).toContain('durationSeconds < 6');
         expect(capture).toContain('frameCount < 72');

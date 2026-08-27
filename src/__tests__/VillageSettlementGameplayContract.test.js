@@ -75,6 +75,10 @@ describe('Village settlement gameplay contract', () => {
                 asset
             ))).toBe(true);
         });
+        expect(fs.existsSync(path.join(
+            publicRoot,
+            'game/sanctuary/sanctuary-biome-v1.webp'
+        ))).toBe(true);
         [
             'living-sawmill.webp',
             'current-masonry.webp',
@@ -104,6 +108,7 @@ describe('Village settlement gameplay contract', () => {
         const zoneSource = read('systems/world/SanctuaryZones.js');
         const worldSource = read('systems/world/WorldBuilder.js');
         const sceneSource = read('scenes/GameScene.js');
+        const sanctuaryArtSource = read('systems/world/SanctuaryWorldArt.js');
         const parallaxSource = read('systems/ParallaxBiome.js');
         const biomes = JSON.parse(read('config/biomes.json'));
         const hudSource = read('scenes/controllers/GameSceneHudController.js');
@@ -241,6 +246,12 @@ describe('Village settlement gameplay contract', () => {
         expect(worldSource).toContain("isSanctuary ? 'living_alien_planet_v5' : 'cosmic_biome_v1'");
         expect(worldSource).toContain(".setData('worldBackgroundSurfaceType', isSanctuary ? 'alien_planet' : 'space')");
         expect(worldSource).toContain("this.scene.cameras?.main?.setBackgroundColor?.('#163B35')");
+        expect(worldSource).toContain('createSanctuaryBiomeBackdrop()');
+        expect(worldSource).toContain(".setData('sanctuaryBiomePlate', 'living_basin_v1')");
+        expect(worldSource).toContain(".setData('sanctuaryBiomePlateSource', 'generated_environment_art')");
+        expect(worldSource).toContain('this.backgroundImage.setAlpha(0.38);');
+        expect(sanctuaryArtSource).toContain("key: 'sanctuary-biome-backdrop-v1'");
+        expect(sanctuaryArtSource).toContain("url: '/game/sanctuary/sanctuary-biome-v1.webp'");
         expect(worldSource).toContain(".setData('worldBackgroundEdgeColor', isSanctuary ? 0x163B35 : null)");
         expect(worldSource).toContain('const SANCTUARY_BACKGROUND_OVERSCAN = 320;');
         expect(worldSource).toContain(".setData(\n                'worldBackgroundOverscan'");
