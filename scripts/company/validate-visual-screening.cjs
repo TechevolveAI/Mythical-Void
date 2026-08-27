@@ -32,7 +32,7 @@ requireValue(screening.source?.websiteAccessible === false, 'candidate run canno
 
 const boundary = screening.boundary || {};
 for (const [key, expected] of Object.entries({
-    technicalCaptureChecksPassed: false,
+    technicalCaptureChecksPassed: true,
     technicalChecksAreVisualApproval: false,
     automationMayRejectObviousFaults: true,
     automationMayApprove: false,
@@ -68,14 +68,16 @@ for (const moment of moments) {
     requireValue(moment.filesChecked.every(file => !file.includes('/') && /\.(?:png|mp4)$/.test(file)), `${moment.id} files must remain inside the private run`);
 }
 
-requireValue(screening.captureFailure?.stage === 'desktop_visual_movement', 'capture failure stage is missing');
-requireValue(screening.captureFailure?.reason === 'video_too_short_or_missing_frames', 'capture failure reason drifted');
+requireValue(screening.captureOutcome?.technicalState === 'passed', 'technical capture outcome must preserve the passing result');
+for (const viewport of ['phone', 'desktop']) {
+    const capture = screening.captureOutcome?.[viewport];
+    requireValue(Number(capture?.width) > 0 && Number(capture?.height) > 0, `${viewport} capture dimensions are missing`);
+    requireValue(Number(capture?.frames) >= 72, `${viewport} capture does not preserve the passing frame count`);
+    requireValue(Number(capture?.durationSeconds) >= 6, `${viewport} capture does not preserve the passing duration`);
+}
 requireValue(
-    Number(screening.captureFailure?.capturedFrames) <
-        Number(screening.captureFailure?.requiredMinimumFrames) &&
-    Number(screening.captureFailure?.capturedDurationSeconds) <
-        Number(screening.captureFailure?.requiredMinimumDurationSeconds),
-    'recorded desktop video must preserve the failing frame and duration evidence'
+    typeof screening.captureOutcome?.meaning === 'string' && screening.captureOutcome.meaning.length >= 80,
+    'capture outcome needs a plain explanation of the remaining visual failure'
 );
 requireValue(screening.nextGate?.recaptureAfterSourceChange === true, 'recapture must wait for a source change');
 requireValue(screening.nextGate?.kevinReviewsOnlyAfterObviousFaultsPass === true, 'Kevin must not review obvious failures');

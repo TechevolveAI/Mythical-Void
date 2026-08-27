@@ -29,9 +29,9 @@ try {
     assert.notStrictEqual(run('malformed-screening-id', value => { value.screeningId = 'latest'; }).status, 0);
     assert.notStrictEqual(run('external-publication', value => { value.boundary.externalPublicationAuthorized = true; }).status, 0);
     assert.notStrictEqual(run('skip-frame-review', value => { value.videoFrameReview.everyCapturedFrameScreened = false; }).status, 0);
-    assert.notStrictEqual(run('hide-capture-failure', value => {
-        value.captureFailure.capturedFrames = value.captureFailure.requiredMinimumFrames;
-        value.captureFailure.capturedDurationSeconds = value.captureFailure.requiredMinimumDurationSeconds;
+    assert.notStrictEqual(run('fake-technical-pass', value => {
+        value.captureOutcome.desktop.frames = 71;
+        value.captureOutcome.desktop.durationSeconds = 5.9;
     }).status, 0);
     assert.notStrictEqual(run('remove-recapture-direction', value => { value.moments[2].nextCaptureMustShow = ''; }).status, 0);
     console.log('Visual screening safeguards passed (current record and 10 rejection cases).');

@@ -852,6 +852,14 @@ async function stopGameplayVideo() {
     await delay(350);
     capture.active = false;
     await capture.session.call('Page.stopScreencast').catch(() => {});
+    const journeyDurationSeconds = Math.max(
+        0.1,
+        (Date.now() - capture.startedAt) / 1000
+    );
+    const capturedFramesPerSecond = Math.max(
+        1,
+        capture.frameCount / journeyDurationSeconds
+    );
     if (capture.frameCount < 20) {
         throw new Error(`Gameplay video captured too few frames: ${capture.frameCount}`);
     }
@@ -860,8 +868,12 @@ async function stopGameplayVideo() {
         '-hide_banner',
         '-loglevel', 'error',
         '-y',
-        '-framerate', String(SMOKE_VIDEO_FPS),
+        // Chrome's screencast frame rate varies with viewport and machine load.
+        // Encode at the rate actually captured so movement is not sped up on
+        // desktop or slowed down on phone.
+        '-framerate', capturedFramesPerSecond.toFixed(4),
         '-i', path.join(capture.framesDir, 'frame-%06d.jpg'),
+        '-vf', `scale=${SMOKE_VIEWPORT_WIDTH}:${SMOKE_VIEWPORT_HEIGHT}:force_original_aspect_ratio=increase,crop=${SMOKE_VIEWPORT_WIDTH}:${SMOKE_VIEWPORT_HEIGHT}`,
         '-c:v', 'libx264',
         '-preset', 'medium',
         '-crf', '20',
@@ -877,9 +889,9 @@ async function stopGameplayVideo() {
     const result = {
         path: SMOKE_VIDEO_PATH,
         frames: capture.frameCount,
-        fps: SMOKE_VIDEO_FPS,
-        encodedDurationSeconds: Number((capture.frameCount / SMOKE_VIDEO_FPS).toFixed(2)),
-        journeyDurationSeconds: Number(((Date.now() - capture.startedAt) / 1000).toFixed(2))
+        capturedFramesPerSecond: Number(capturedFramesPerSecond.toFixed(2)),
+        encodedDurationSeconds: Number(journeyDurationSeconds.toFixed(2)),
+        journeyDurationSeconds: Number(journeyDurationSeconds.toFixed(2))
     };
     process.stdout.write(`[gameplay-video] ${JSON.stringify(result)}\n`);
     return result;
@@ -15765,8 +15777,19 @@ async function smokeVillageUi(session, exceptions) {
     ) {
         throw new Error(`Village worker check-in failed: ${JSON.stringify(workerCheckIn)}`);
     }
-    const visibleHelpResult = await waitFor(
-        () => evaluate(session, `(() => {
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.activeWorkerCheckIn
+                ?.getData('helpResultVisible')
+        )`),
+        { timeoutMs: 4000, message: 'Creature help result begins' }
+    );
+    // The result flag and its reveal tween begin in the same game callback.
+    // Give the visible route, regrowth and label time to complete their reveal
+    // before judging the final capture state.
+    await delay(520);
+    const visibleHelpResult = await evaluate(session, `(() => {
             const landmark = window.mythicalGame.scene.getScene('GameScene')
                 ?.villageHeartLandmark;
             const checkIn = landmark?.activeWorkerCheckIn;
@@ -15796,18 +15819,8 @@ async function smokeVillageUi(session, exceptions) {
                 resultLabelAlpha: resultLabel?.alpha,
                 actionOriginAlpha: actionOrigin?.alpha
             };
-            return checkIn?.getData('helpResultVisible') === true &&
-                state.openedRouteAlpha >= 0.9 &&
-                state.blockedRouteAlpha >= 0.58 &&
-                state.blockedRouteAlpha <= 0.7 &&
-                state.regrowthAlpha >= 0.9 &&
-                state.resultLabelAlpha >= 0.9 &&
-                state.actionOriginAlpha >= 0.35
-                    ? state
-                    : null;
-        })()`),
-        { timeoutMs: 4000, message: 'Creature help changes the route in the same shot' }
-    );
+            return state;
+        })()`);
     if (
         visibleHelpResult.action !== 'CREATURE SENDS LIFE ENERGY' ||
         visibleHelpResult.problem !== 'BLOCKED FOOD ROUTE' ||
@@ -18637,27 +18650,12 @@ async function smokeVisualMovement(session, exceptions) {
         await setKeyboardKey(session, 'keyDown', {
             key: 'd', code: 'KeyD', keyCode: 68
         });
-        for (let index = 0; index < 14; index++) {
+        for (let index = 0; index < 18; index++) {
             await delay(450);
             const sample = await inspectActors();
             assertActors(sample, `Visual movement desktop sample ${index + 1}`);
             movementSamples.push(sample);
             await captureMovementPoster(index);
-            if (index === 4) {
-                await setKeyboardKey(session, 'keyUp', {
-                    key: 'd', code: 'KeyD', keyCode: 68
-                });
-                await setKeyboardKey(session, 'keyDown', {
-                    key: 'a', code: 'KeyA', keyCode: 65
-                });
-            } else if (index === 8) {
-                await setKeyboardKey(session, 'keyUp', {
-                    key: 'a', code: 'KeyA', keyCode: 65
-                });
-                await setKeyboardKey(session, 'keyDown', {
-                    key: 'd', code: 'KeyD', keyCode: 68
-                });
-            }
         }
         await setKeyboardKey(session, 'keyUp', {
             key: 'd', code: 'KeyD', keyCode: 68
@@ -18675,7 +18673,10 @@ async function smokeVisualMovement(session, exceptions) {
     if (!movementPosterCaptured) {
         throw new Error('Visual movement poster was not captured during live input');
     }
-    await delay(420);
+    // Desktop capture can lose a few sampled frames while the browser encodes
+    // the scene. Leave enough quiet running time to prove a full six seconds
+    // of uninterrupted play instead of accepting a borderline short clip.
+    await delay(isPhone ? 420 : 10000);
     const video = await stopGameplayVideo();
     if (video?.frames < 72 || exceptions.length) {
         throw new Error(

@@ -1,20 +1,20 @@
 {
   "schemaVersion": 1,
-  "screeningId": "VISUAL-SCREEN-2026-08-27-02",
-  "screenedAt": "2026-08-27T03:20:29+01:00",
-  "purpose": "Stop technically incomplete or visually confusing gameplay captures from reaching Kevin, the website, social channels or distribution partners.",
+  "screeningId": "VISUAL-SCREEN-2026-08-27-03",
+  "screenedAt": "2026-08-27T05:09:52+01:00",
+  "purpose": "Stop technically correct but visually weak gameplay captures from reaching Kevin, the website, social channels or distribution partners.",
   "source": {
-    "commit": "2d0114d82a5ea165a0b3b2abaa0e6e526618e996",
+    "commit": "3599733bfa5f62a17765554a6eb0d91e22516974",
     "route": "/play/",
     "profileId": "MV-0813",
     "renderer": "player_facing_phaser_creature_renderer",
-    "candidateRunId": "2026-08-27T03-15-00-000Z",
-    "candidateDirectory": ".visual-review/candidates/2026-08-27T03-15-00-000Z/",
-    "manifestSha256": "c8ebb9d839e4afb200696196b7ef1494c8b34c9b6d6f1e43433580e786750145",
+    "candidateRunId": "2026-08-27T04-40-00-000Z",
+    "candidateDirectory": ".visual-review/candidates/2026-08-27T04-40-00-000Z/",
+    "manifestSha256": "8a71ec7a20298e3442708243ec10f9bea8107209ac0dede58b2157f9ca314396",
     "websiteAccessible": false
   },
   "boundary": {
-    "technicalCaptureChecksPassed": false,
+    "technicalCaptureChecksPassed": true,
     "technicalChecksAreVisualApproval": false,
     "automationMayRejectObviousFaults": true,
     "automationMayApprove": false,
@@ -29,59 +29,62 @@
   "approvedMomentCount": 0,
   "requiredMomentCount": 4,
   "videoFrameReview": {
-    "phoneFramesChecked": 132,
-    "desktopFramesChecked": 53,
-    "totalFramesChecked": 185,
+    "phoneFramesChecked": 153,
+    "desktopFramesChecked": 147,
+    "totalFramesChecked": 300,
     "everyCapturedFrameScreened": true,
     "adultApprovalClaimed": false
   },
+  "improvementsConfirmed": [
+    "the_real_creature_remains_rendered_instead_of_becoming_a_square",
+    "the_astronaut_and_creature_remain_separate_and_visible",
+    "phone_and_desktop_video_dimensions_are_correct",
+    "both_videos_meet_the_minimum_frame_and_duration_checks",
+    "the_capture_runs_at_natural_speed_without_black_side_strips"
+  ],
   "moments": [
     {
       "id": "VL-001",
       "title": "THE CREATURE HELPS",
       "decision": "rejected",
       "filesChecked": ["creature-helps-phone.png", "creature-helps-desktop.png"],
-      "obviousFaults": ["large_explanation_box_covers_the_most_important_area", "helpful_action_reads_as_thin_interface_lines_and_small_text", "many_transparent_buildings_rings_and_status_marks_compete_for_attention", "a_new_player_cannot_see_one_clear_problem_action_and_result"],
-      "nextCaptureMustShow": "Stage one large foreground obstacle with the astronaut and creature beside it, show the creature perform one unmistakable physical action, and let the changed route or rescued object dominate the frame without explanation boxes or competing settlement overlays."
+      "obviousFaults": ["the_action_is_more_legible_but_the_scene_still_looks_flat_and_diagram_like", "the_small_top_instruction_card_is_not_readable_at_a_glance", "the_creature_and_result_do_not_dominate_the_composition", "the_frame_does_not_yet_create_a_strong_desire_to_play"],
+      "nextCaptureMustShow": "Keep the now-readable creature action, but stage it as a dramatic foreground event inside a richly layered place, with the creature and the changed route dominating the composition and almost no explanatory text."
     },
     {
       "id": "VL-002",
       "title": "A CHOICE CHANGES SOMETHING",
       "decision": "rejected",
       "filesChecked": ["choice-before-phone.png", "choice-after-phone.png", "choice-before-desktop.png", "choice-after-desktop.png"],
-      "obviousFaults": ["the_choice_words_are_readable_but_the_world_behind_them_is_visually_muddy", "the_after_state_is_mainly_white_lines_tiny_sprouts_and_a_recap_box", "the_before_and_after_worlds_are_too_similar_at_a_glance", "the_visible_consequence_cannot_be_understood_without_reading_copy"],
-      "nextCaptureMustShow": "Keep the short choice, then cut back to exactly the same clean camera position and transform a large recognisable area of terrain or structure so a child can spot the difference immediately without reading the recap."
+      "obviousFaults": ["the_before_view_is_still_dominated_by_a_large_interface_panel", "the_village_heart_and_surrounding_world_are_hard_to_parse", "the_after_state_is_clearer_but_still_looks_like_a_map_or_diagram", "the_visual_consequence_is_not_emotional_or_spectacular_enough_for_discovery_marketing"],
+      "nextCaptureMustShow": "Keep the plain choice, then return to the same clean camera position and make one large recognisable part of the world transform through colour, movement, life or structure so the result is felt before it is read."
     },
     {
       "id": "VL-003",
       "title": "A STRANGE DISCOVERY",
       "decision": "rejected",
       "filesChecked": ["strange-discovery-phone.png", "strange-discovery-desktop.png"],
-      "obviousFaults": ["the_discovery_reuses_the_same_crowded_village_scene", "memory_effects_resemble_targeting_lines_and_transparent_duplicates", "the_creature_astronaut_and_world_anchor_do_not_form_one_clear_focus", "no_impossible_alien_event_is_visually_legible"],
-      "nextCaptureMustShow": "Build one impossible alien event into a quiet playable space—such as liquid memory climbing, folded light opening or gravity changing direction—and frame both characters reacting to that single phenomenon with no settlement-map clutter."
+      "obviousFaults": ["both_actors_are_now_linked_but_the_transparent_echoes_resemble_targeting_or_debug_marks", "the_memory_current_is_not_understandable_without_the_small_copy", "the_repeated_figures_and_lines_compete_for_attention", "the_event_does_not_yet_feel_like_an_unforgettable_alien_discovery"],
+      "nextCaptureMustShow": "Replace the ring-and-echo treatment with one large impossible alien behaviour in the world, such as matter flowing upward or light folding into a path, and frame both characters reacting to it in a quiet uncluttered space."
     },
     {
       "id": "VL-004",
       "title": "MOVEMENT FEELS ALIVE",
       "decision": "rejected",
       "filesChecked": ["movement-alive-phone.png", "movement-alive-phone.mp4", "movement-alive-desktop.png", "movement-alive-desktop.mp4"],
-      "obviousFaults": ["the_phone_capture_contains_a_large_black_side_strip", "both_clips_are_dominated_by_empty_dark_space_and_clipped_platforms", "movement_reads_as_two_small_figures_sliding_along_a_flat_floor", "no_jump_obstacle_world_reaction_or_reward_occurs", "desktop_recording_failed_the_six_second_and_72_frame_minimum"],
-      "nextCaptureMustShow": "Record a complete six-to-ten-second route through a richly layered scene with intentional phone framing, one jump or obstacle, visible environmental life and a rewarding change, while both characters remain readable and the desktop capture meets the full frame floor."
+      "obviousFaults": ["the_environment_is_dark_flat_and_dominated_by_outlined_platform_shapes", "the_desktop_clip_changes_very_little_for_long_stretches", "tiny_labels_and_interface_marks_make_the_scene_feel_like_a_test_level", "there_is_no_clear_beginning_event_and_payoff", "ordinary_movement_does_not_produce_a_standout_promotional_moment"],
+      "nextCaptureMustShow": "Record a six-to-ten-second route through a richly layered alien biome with an immediate goal, one readable movement challenge, a living world reaction and a rewarding payoff while both characters stay large enough to recognise."
     }
   ],
-  "captureFailure": {
-    "stage": "desktop_visual_movement",
-    "reason": "video_too_short_or_missing_frames",
-    "requiredMinimumFrames": 72,
-    "requiredMinimumDurationSeconds": 6,
-    "capturedFrames": 53,
-    "capturedDurationSeconds": 4.42,
-    "journeyDurationSeconds": 16.39,
-    "meaning": "The capture run itself is not reliable enough to produce launch proof, and the complete phone plus partial desktop evidence also fails the human visual bar."
+  "captureOutcome": {
+    "technicalState": "passed",
+    "phone": { "width": 390, "height": 844, "frames": 153, "durationSeconds": 7.44 },
+    "desktop": { "width": 1440, "height": 810, "frames": 147, "durationSeconds": 22.89 },
+    "meaning": "The capture system is now reliable. The remaining failure is the human-facing quality and composition of the playable scenes, so editing or distribution cannot solve it."
   },
   "nextGate": {
     "owner": "game-development",
-    "request": "Treat marketing capture as part of the game presentation: simplify the village camera, remove overlapping map-like effects, make consequences physically large, compose the entire phone canvas without a black gutter, and build one short traversal route with a visible beginning, event and payoff.",
+    "request": "Treat each launch moment as a small piece of visual storytelling inside the game: larger readable actors, richer alien places, less interface clutter, and a clear action or transformation with an emotional payoff.",
     "recaptureAfterSourceChange": true,
     "kevinReviewsOnlyAfterObviousFaultsPass": true
   }

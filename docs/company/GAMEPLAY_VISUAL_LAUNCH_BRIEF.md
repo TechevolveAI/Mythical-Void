@@ -4,6 +4,8 @@ The old screenshots and videos are not being reused. They came from the real gam
 
 This is now a game-readiness problem, not a marketing-editing problem. Cropping, captions or AI artwork cannot honestly fix it.
 
+The corrected 27 August capture proves the technical faults can be removed: the real creature stays visible, both characters remain separate, the phone frame is complete and the videos meet their duration and frame checks. A complete review of all 300 captured frames still rejected all four moments. The scenes remain too dark, flat and diagram-like, with small labels and no strong visual beginning, event and payoff. The next work is therefore better playable staging and art direction—not another edit of the same material.
+
 ## What the game needs to make visible
 
 ### 1. The creature helps

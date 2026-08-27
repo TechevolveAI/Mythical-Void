@@ -7,14 +7,14 @@
   "candidateDirectory": ".visual-review/candidates/",
   "candidateDirectoryIsWebsiteContent": false,
   "currentVisualFinding": {
-    "source": "Kevin's direct testing feedback and a fresh full-size review of the current public capture set",
-    "finding": "The source-changed production capture still fails the public visual bar. The village is crowded with overlapping structures, rings, lines and text; the movement route is empty and dark; the phone frame has a black side strip; and the desktop video did not meet the minimum duration or frame count.",
-    "decision": "Keep the entire media set withdrawn. Reject the 03:15 private run before adult or Kevin review; no exact asset, wording or channel is approval-ready."
+    "source": "Kevin's direct testing feedback plus a complete automated editorial review of all stills and all 300 captured video frames from the corrected production build",
+    "finding": "The capture is now technically reliable: the creature stays rendered, the actors remain separate, the dimensions are correct and both videos meet their frame and duration checks. The playable scenes still fail the public visual bar because they are dark, flat, diagram-like, cluttered with tiny labels and missing a strong event or payoff.",
+    "decision": "Keep the entire media set withdrawn. Reject the 04:40 private run before adult or Kevin review; no exact asset, wording or channel is approval-ready."
   },
   "latestScreening": {
     "path": "docs/company/content/visual-screening-2026-08-27.json",
-    "sourceCommit": "2d0114d82a5ea165a0b3b2abaa0e6e526618e996",
-    "candidateRunId": "2026-08-27T03-15-00-000Z",
+    "sourceCommit": "3599733bfa5f62a17765554a6eb0d91e22516974",
+    "candidateRunId": "2026-08-27T04-40-00-000Z",
     "decision": "all_four_rejected_before_kevin_review",
     "kevinReviewRequested": false
   },
@@ -32,13 +32,13 @@
     "externalActionTaken": false
   },
   "latestPrivateCandidateRun": {
-    "runId": "2026-08-27T03-15-00-000Z",
-    "createdAt": "2026-08-27T03:20:29+01:00",
-    "sourceCommit": "2d0114d82a5ea165a0b3b2abaa0e6e526618e996",
+    "runId": "2026-08-27T04-40-00-000Z",
+    "createdAt": "2026-08-27T04:06:06.952Z",
+    "sourceCommit": "3599733bfa5f62a17765554a6eb0d91e22516974",
     "sourceProfileId": "MV-0813",
     "renderer": "player_facing_phaser_creature_renderer",
-    "manifest": ".visual-review/candidates/2026-08-27T03-15-00-000Z/manifest.json",
-    "automatedScreening": "failed_technical_and_obvious_visual_checks",
+    "manifest": ".visual-review/candidates/2026-08-27T04-40-00-000Z/manifest.json",
+    "automatedScreening": "passed_obvious_fault_checks_only",
     "editorialScreening": "rejected_obvious_visual_faults",
     "adultFrameReview": "not_requested",
     "kevinApproval": "not_requested",
@@ -88,8 +88,8 @@
       "shot": "The creature visibly helps the player solve or survive one clear obstacle.",
       "mustShow": ["player and creature in the same frame", "one recognisable obstacle", "the creature's helpful action", "the immediate result"],
       "currentState": "candidate_rejected_obvious_visual_faults",
-      "evidence": ".visual-review/candidates/2026-08-27T03-15-00-000Z/.working/village-phone/village-worker-check-in-mobile.png",
-      "reason": "The message box, map-like settlement layers and thin effects compete with the creature. A new player cannot see one clear problem, action and result."
+      "evidence": ".visual-review/candidates/2026-08-27T04-40-00-000Z/creature-helps-phone.png",
+      "reason": "The action is now understandable and the creature is visible, but the flat, diagram-like composition and tiny instruction card do not create a strong desire to play."
     },
     {
       "id": "choice-changes-world",
@@ -97,8 +97,8 @@
       "shot": "One readable choice followed by a visible change in the world.",
       "mustShow": ["the choice in plain words", "the changed place, creature or relationship", "no unexplained menu clutter"],
       "currentState": "candidate_rejected_obvious_visual_faults",
-      "evidence": ".visual-review/candidates/2026-08-27T03-15-00-000Z/.working/village-phone/village-heart-choice-mobile.png",
-      "reason": "The choice words are readable, but the after state is mainly thin lines, tiny sprouts and a recap box. The world change is not obvious without copy."
+      "evidence": ".visual-review/candidates/2026-08-27T04-40-00-000Z/choice-after-phone.png",
+      "reason": "The before screen remains interface-heavy and the clearer after state still looks like a map or diagram instead of an exciting transformation in a living world."
     },
     {
       "id": "strange-discovery",
@@ -106,8 +106,8 @@
       "shot": "The player and creature discover one memorable feature of an alien realm.",
       "mustShow": ["player and creature in the same frame", "one unusual realm feature", "a composition understandable without a caption"],
       "currentState": "candidate_rejected_obvious_visual_faults",
-      "evidence": ".visual-review/candidates/2026-08-27T03-15-00-000Z/.working/village-phone/village-heart-memory-mobile.png",
-      "reason": "The memory effect looks like targeting lines and transparent duplicates inside the same crowded village scene. No impossible alien discovery reads clearly."
+      "evidence": ".visual-review/candidates/2026-08-27T04-40-00-000Z/strange-discovery-phone.png",
+      "reason": "Both actors are linked to the event, but the transparent echoes and current still resemble targeting or debug geometry and are confusing without small copy."
     },
     {
       "id": "movement-with-life",
@@ -115,8 +115,8 @@
       "shot": "A short uninterrupted stretch of play with the creature continuously present.",
       "mustShow": ["continuous creature rendering", "readable movement", "no menu takeover or dead time", "every frame watched at desktop and phone presentation size"],
       "currentState": "candidate_rejected_obvious_visual_faults",
-      "evidence": ".visual-review/candidates/2026-08-27T03-15-00-000Z/.working/movement-phone/movement-alive-phone.mp4",
-      "reason": "The phone clip has a black side strip and both clips show small figures sliding across an empty dark route. The desktop capture also stopped below the duration and frame minimum."
+      "evidence": ".visual-review/candidates/2026-08-27T04-40-00-000Z/movement-alive-phone.mp4",
+      "reason": "Technical continuity now passes, but every frame review confirms a dark, flat test-level look, long stretches with little visual change and no clear beginning, event and payoff."
     }
   ],
   "approvalRule": {
