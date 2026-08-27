@@ -691,7 +691,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             secondaryY,
             resume
                 ? `[ BEACON ] ${resume.label} link restored`
-                : '[ REQUIRED ] Follow the Current through 3 Beacon anchors',
+                : '[ REQUIRED ] Walk through 3 glowing Beacons in order',
             {
             fontSize: font(16, 14),
             color: '#AAAAAA',
@@ -884,10 +884,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
             ? this.getOrderedRouteCompassText()
             : '';
         const title = this.isCompactObjectiveHUD
-            ? `ROUTE ${current}/3`
-            : `ROUTE ${current}/3 // ${nextAnchor}`;
+            ? `BEACON ${current}/3 // WALK INTO LIGHT`
+            : `BEACON ${current}/3 // WALK INTO ${nextAnchor}`;
 
-        return `${title}\n${compass || 'FOLLOW THE CURRENT →'}\n${optional}`;
+        return `${title}\n${compass || 'FOLLOW THE GOLD PULSE →'}\n${optional}`;
     }
 
     startFirstExpeditionDrill({ force = false } = {}) {
@@ -1353,12 +1353,26 @@ class MythicalForestLevel extends PlatformerLevelScene {
             this.drawBeaconCheckpoint(visual, anchorX, supportY, false);
 
             const label = this.add.text(anchorX, supportY - 118, anchor.label, {
-                fontSize: '11px',
+                fontSize: '13px',
                 color: '#7F9CA2',
                 fontStyle: 'bold',
                 stroke: '#071017',
                 strokeThickness: 3
             }).setOrigin(0.5).setDepth(86);
+
+            const actionPrompt = this.add.text(
+                anchorX,
+                supportY - 94,
+                '',
+                {
+                    fontSize: '12px',
+                    color: '#F2C94C',
+                    fontStyle: 'bold',
+                    align: 'center',
+                    stroke: '#071017',
+                    strokeThickness: 3
+                }
+            ).setOrigin(0.5).setDepth(87);
 
             const zone = this.createObjectiveTriggerZone(
                 anchorX,
@@ -1374,6 +1388,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 supportY,
                 visual,
                 label,
+                actionPrompt,
                 zone,
                 landingGuide: this.createTraversalLandingGuide(
                     supportId,
@@ -1412,6 +1427,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const glowAlpha = activated ? 0.3 : 0.12;
 
         graphics.fillStyle(color, glowAlpha);
+        graphics.fillRect(x - 12, groundY - 150, 24, 122);
         graphics.fillCircle(x, groundY - 62, 34);
         graphics.lineStyle(3, color, activated ? 1 : 0.65);
         graphics.strokeCircle(x, groundY - 62, 24);
@@ -1465,7 +1481,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         const anchorNumber = this.beaconAnchorsActivated;
         this.showFloatingText(
-            `PROJECT BEACON ANCHOR ${anchorNumber}/3`,
+            anchorNumber < 3
+                ? `BEACON ${anchorNumber}/3 ACTIVE\nFOLLOW THE NEXT GOLD PULSE →`
+                : 'BEACON 3/3 ACTIVE\nGUARDIAN ROUTE OPEN →',
             checkpoint.x,
             checkpoint.respawnY - 35,
             '#8FE3CF'
@@ -1511,11 +1529,27 @@ class MythicalForestLevel extends PlatformerLevelScene {
     }
 
     refreshForestRouteReadability() {
-        return this.refreshOrderedRouteSignals(
+        const refreshed = this.refreshOrderedRouteSignals(
             this.checkpointAnchors,
             this.beaconAnchorsActivated,
             { futureColor: '#7F9CA2' }
         );
+        this.checkpointAnchors.forEach(checkpoint => {
+            const complete = checkpoint.activated === true;
+            const next = !complete &&
+                checkpoint.index === this.beaconAnchorsActivated;
+            checkpoint.actionPrompt
+                ?.setText?.(
+                    complete
+                        ? `BEACON ${checkpoint.index + 1}/3 ACTIVE`
+                        : next
+                            ? 'WALK INTO THE LIGHT'
+                            : `BEACON ${checkpoint.index + 1}/3 LOCKED`
+                )
+                ?.setColor?.(complete ? '#8FE3CF' : (next ? '#F2C94C' : '#7F9CA2'))
+                ?.setAlpha?.(complete || next ? 1 : 0.42);
+        });
+        return refreshed;
     }
 
     restoreExpeditionRouteState(resume) {
@@ -3786,7 +3820,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
             x: guardianGateX,
             y: groundY - 72,
             title: 'ELDER GROVE',
-            getStatus: () => 'ALIGN 3 BEACON ANCHORS',
+            getStatus: () => this.forestRouteAligned
+                ? 'ROUTE OPEN // ENTER THE GROVE'
+                : `BEACONS ${this.beaconAnchorsActivated}/3 // WALK THROUGH THE LIGHTS`,
             isReady: () => this.forestRouteAligned,
             color: 0x9370DB,
             readyColor: 0x8FE3CF
@@ -3800,7 +3836,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                         const now = this.time.now;
                         if (now >= this.bossGateHintUntil) {
                             this.showFloatingText(
-                                'The guardian cannot hear us yet. Align the Beacon anchors.',
+                                'Walk through the 3 glowing Beacons in order. Follow the gold pulse.',
                                 this.player.x,
                                 this.player.y - 70,
                                 '#F2C94C'

@@ -121,6 +121,18 @@ describe('guardian encounter pacing contracts', () => {
             'const CRYSTAL_GUARDIAN_MOBILE_DISPLAY_HEIGHT = 170;'
         );
         expect(source).toContain('this.bossCombatReadyAt = this.time.now;');
+        expect(source).toContain(
+            'getCrystalOpeningCameraCenterX(camera = this.cameras?.main)'
+        );
+        expect(source).toContain(
+            'releaseCrystalOpeningCameraFraming(camera = this.cameras?.main)'
+        );
+        expect(source).toMatch(
+            /beginCrystalGuardianCombat[\s\S]*camera\.panEffect\?\.reset\?\.\(\);[\s\S]*camera\.stopFollow\(\);/
+        );
+        expect(source).toMatch(
+            /bossPerformAttack[\s\S]*this\.releaseCrystalOpeningCameraFraming\(\);[\s\S]*this\.boss\.isAttacking = true;/
+        );
         expect(source).toMatch(
             /beginCrystalGuardianCombat[\s\S]*this\.physics\.resume\(\);[\s\S]*this\.showPlatformerMobileControls\(\);[\s\S]*this\.startBossAI\(\);/
         );
@@ -157,7 +169,18 @@ describe('guardian encounter pacing contracts', () => {
             'const COSMIC_TITAN_MOBILE_DISPLAY_HEIGHT = 240;'
         );
         expect(source).toContain('this.bossCombatReadyAt = this.time.now;');
-        expect(source).toContain('camera.width * 0.35');
+        expect(source).toContain('getTitanOpeningCameraCenterX(camera = this.cameras?.main)');
+        expect(source).toContain('releaseTitanOpeningCameraFraming(camera = this.cameras?.main)');
+        expect(source).toContain('this.titanOpeningCameraFraming =');
+        expect(source).toMatch(
+            /updateCameraLead\(\)[\s\S]*this\.titanOpeningCameraFraming[\s\S]*camera\.scrollX = this\.getTitanOpeningCameraCenterX\(camera\)/
+        );
+        expect(source).toMatch(
+            /beginTitanCombat[\s\S]*camera\.panEffect\?\.reset\?\.\(\);[\s\S]*camera\.stopFollow\(\);/
+        );
+        expect(source).toMatch(
+            /performTitanAttack[\s\S]*this\.releaseTitanOpeningCameraFraming\(\);[\s\S]*this\.titanAttackLocked = true;/
+        );
         expect(source).toContain('this.clearGuardianGateState();');
         expect(source).toMatch(
             /beginTitanCombat[\s\S]*this\.physics\.resume\(\);[\s\S]*this\.showPlatformerMobileControls\(\);[\s\S]*this\.startTitanAttackLoop\(\);/

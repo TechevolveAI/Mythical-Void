@@ -413,7 +413,9 @@ describe('first expedition rescue loop', () => {
             'this.setCheckpoint(supportCheckpoint.x, supportCheckpoint.y, {'
         );
         expect(source).toContain('checkpointId: checkpoint.id');
-        expect(source).toContain('PROJECT BEACON ANCHOR ${anchorNumber}/3');
+        expect(source).toContain('BEACON ${anchorNumber}/3 ACTIVE');
+        expect(source).toContain("'WALK INTO THE LIGHT'");
+        expect(source).toContain('checkpoint.actionPrompt');
     });
 
     test('keeps Beacon anchors local and ordered while gating the guardian on alignment', () => {
@@ -435,7 +437,9 @@ describe('first expedition rescue loop', () => {
         expect(source).toContain('this.beaconAnchorsActivated++');
         expect(source).toContain('this.forestRouteAligned = true');
         expect(bossArena).toContain('if (!this.forestRouteAligned)');
-        expect(bossArena).toContain('Align the Beacon anchors.');
+        expect(bossArena).toContain(
+            'Walk through the 3 glowing Beacons in order.'
+        );
         expect(bossArena).toContain('const guardianGateX = 5520;');
         expect(bossArena).toContain('this.levelHeight / 2');
         expect(bossArena).not.toContain('triggerZone.destroy()');
@@ -452,8 +456,11 @@ describe('first expedition rescue loop', () => {
         expect(source).toContain(
             'this.createCampaignObjectiveDisplay('
         );
-        expect(source).toContain('FOLLOW THE CURRENT →');
-        expect(source).toContain('ROUTE ${current}/3 // ${nextAnchor}');
+        expect(source).toContain('FOLLOW THE GOLD PULSE →');
+        expect(source).toContain('BEACON ${current}/3 // WALK INTO ${nextAnchor}');
+        expect(source).toContain(
+            '[ REQUIRED ] Walk through 3 glowing Beacons in order'
+        );
         expect(source).toContain('STRIKE THE PURPLE CORRUPTION');
         expect(source).toContain('OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}');
         expect(source).toContain(
