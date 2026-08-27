@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "space-signal-return-loop-2026-08-27",
+  "status": "owned_release_ready",
+  "plainLanguageOutcome": "Give curious players, families and groups one honest reason to return: a changing real-space source, a short science mission and a new alien-creature question.",
+  "publicRoute": "https://mythicalvoid.com/space-signal/",
+  "apiRoute": "https://mythicalvoid.com/api/space-signal",
+  "source": {
+    "name": "NASA Astronomy Picture of the Day",
+    "api": "https://api.nasa.gov/planetary/apod",
+    "publicPage": "https://apod.nasa.gov/apod/astropix.html",
+    "fieldsUsed": ["title", "date"],
+    "fieldsNotRepublished": ["url", "hdurl", "explanation", "copyright"],
+    "reason": "APOD can include third-party copyrighted imagery. The public Mythical Void page links to the original source instead of automatically copying the daily image or explanation."
+  },
+  "experience": {
+    "realSectionLabel": "REAL NASA SOURCE",
+    "fictionSectionLabel": "MYTHICAL VOID IMAGINES",
+    "method": ["OBSERVE", "INFER", "CHECK"],
+    "dailyPromise": "The source is checked again through a cached server route. If it is unavailable, a checked Apollo 11 observation remains usable.",
+    "visualClass": "procedural_css_signal_field_not_nasa_media_not_gameplay",
+    "shareUrl": "https://mythicalvoid.com/space-signal/"
+  },
+  "privacy": {
+    "accountRequired": false,
+    "emailCollected": false,
+    "contactCollected": false,
+    "recipientCollected": false,
+    "playerProfileCreated": false,
+    "localStorageUsed": false,
+    "trackingParametersAdded": false,
+    "browserCallsNasaDirectly": false
+  },
+  "governance": {
+    "nasaEndorsementClaimed": false,
+    "nasaLogoUsed": false,
+    "dailyNasaImageRepublished": false,
+    "scienceAndFictionSeparated": true,
+    "fallbackAvailable": true,
+    "humanReviewRequiredForFutureRepublishedMedia": true
+  },
+  "successQuestions": [
+    "Did people open the Space Signal from the website?",
+    "Did they continue from the Space Signal into the game or Creature Lab?",
+    "Did returning visits grow after the route had time to be discovered?"
+  ],
+  "authority": {
+    "ownedWebsitePublicationAuthorized": true,
+    "socialPostingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "outreachAuthorized": false,
+    "nasaPartnershipClaimAuthorized": false
+  }
+}

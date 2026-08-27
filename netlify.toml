@@ -91,6 +91,17 @@
   to = "/updates/index.html"
   status = 200
 
+[[redirects]]
+  # Keep the changing real-space return doorway ahead of the SPA fallback.
+  from = "/space-signal"
+  to = "/space-signal/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/space-signal/"
+  to = "/space-signal/index.html"
+  status = 200
+
 # Withdrawn visual media must not remain reachable through an old direct link.
 # A file can remain in the internal release record without remaining public.
 [[redirects]]

@@ -11,6 +11,7 @@ const staticPagePaths = [
     'public/creature-genetics/index.html',
     'public/creature-field-guide/index.html',
     'public/nasa-space-science/index.html',
+    'public/space-signal/index.html',
     'public/parents/index.html',
     'public/educators/index.html',
     'public/studio/index.html',
@@ -45,8 +46,8 @@ function validateAiReadableDiscovery(inputs) {
     requireValue(llms.includes('Call the beings "creatures".'), 'public creature terminology is missing');
     requireValue(!/\bcompanions?\b/i.test(llms), 'retired companion wording is present in llms.txt');
     requireValue(!/every creature is unique|no two creatures|literally infinite|infinite unique/i.test(llms), 'unsupported creature-uniqueness promise is present in llms.txt');
-    requireValue(sitemapUrls.length === 14, `expected 14 canonical sitemap URLs, found ${sitemapUrls.length}`);
-    requireValue(truthfulLastModifiedCount === 14, `expected truthful lastmod evidence on all 14 sitemap entries, found ${truthfulLastModifiedCount}`);
+    requireValue(sitemapUrls.length === 15, `expected 15 canonical sitemap URLs, found ${sitemapUrls.length}`);
+    requireValue(truthfulLastModifiedCount === 15, `expected truthful lastmod evidence on all 15 sitemap entries, found ${truthfulLastModifiedCount}`);
     for (const url of sitemapUrls) requireValue(llms.includes(`](${url})`), `llms.txt is missing canonical sitemap route ${url}`);
     requireValue(llms.includes('](https://mythicalvoid.com/play/)'), 'llms.txt is missing the direct Play route');
 
@@ -97,7 +98,7 @@ function run() {
         valid: failures.length === 0,
         publicRoute: release.publicRoute,
         conventionState: release.convention?.state,
-        canonicalRouteCount: 14,
+        canonicalRouteCount: 15,
         rankingClaimAuthorized: release.release?.searchRankingClaimAuthorized,
         externalPostingAuthorized: release.release?.externalPostingAuthorized,
         failures

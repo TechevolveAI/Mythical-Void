@@ -25,6 +25,7 @@ This file is a concise guide to the canonical public information on mythicalvoid
 - [Creature genetics](https://mythicalvoid.com/creature-genetics/): The forms, colours, natures, cosmic affinities and rare changes used by the current creature system. The verified engine explanation begins at https://mythicalvoid.com/creature-genetics/#gene-spectrum.
 - [Project Beacon Creature Field Guide](https://mythicalvoid.com/creature-field-guide/): Twelve verified creature profiles across six realms, with new field-guide stories clearly separated from currently playable quests.
 - [NASA and space discovery](https://mythicalvoid.com/nasa-space-science/): Optional learning moments that use selected public NASA material with sources. NASA does not make or endorse Mythical Void.
+- [Today's Space Signal](https://mythicalvoid.com/space-signal/): A changing NASA APOD title and source link, a three-step observation mission and a clearly fictional creature-design question. Mythical Void does not automatically republish the daily image or explanation.
 
 ## Families, groups and studio
 

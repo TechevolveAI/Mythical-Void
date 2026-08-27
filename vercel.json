@@ -45,7 +45,15 @@
       "destination": "/updates/index.html"
     },
     {
-      "source": "/((?!assets/|marketing/|game/|audio/|updates/|playable-now/|hatch-challenge/|og\\.png|sw\\.js|apple-touch-icon\\.png).*)",
+      "source": "/space-signal",
+      "destination": "/space-signal/index.html"
+    },
+    {
+      "source": "/space-signal/",
+      "destination": "/space-signal/index.html"
+    },
+    {
+      "source": "/((?!assets/|marketing/|game/|audio/|updates/|space-signal/|playable-now/|hatch-challenge/|og\\.png|sw\\.js|apple-touch-icon\\.png).*)",
       "destination": "/index.html"
     }
   ],
