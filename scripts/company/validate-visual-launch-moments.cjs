@@ -79,12 +79,15 @@ function validateVisualLaunchMoments(document) {
             'private candidate manifest must remain in the review quarantine'
         );
         requireValue(
-            candidateRun.automatedScreening === 'passed_obvious_fault_checks_only' &&
+            [
+                'passed_obvious_fault_checks_only',
+                'failed_technical_and_obvious_visual_checks'
+            ].includes(candidateRun.automatedScreening) &&
             [
                 'pending_adult_frame_review',
                 'rejected_obvious_visual_faults'
             ].includes(candidateRun.editorialScreening) &&
-            candidateRun.adultFrameReview === 'pending' &&
+            ['pending', 'not_requested'].includes(candidateRun.adultFrameReview) &&
             candidateRun.kevinApproval === 'not_requested' &&
             candidateRun.publicationAuthorized === false,
             'candidate run cannot imply human approval or publication authority'
@@ -285,7 +288,8 @@ function validateVisualLaunchMoments(document) {
         (
             screeningMatchesCurrentRun &&
             currentRunRejected &&
-            candidateRun?.editorialScreening === 'rejected_obvious_visual_faults'
+            candidateRun?.editorialScreening === 'rejected_obvious_visual_faults' &&
+            ['pending', 'not_requested'].includes(candidateRun?.adultFrameReview)
         ) || (
             !screeningMatchesCurrentRun &&
             sourceChangedReplacementPending &&
