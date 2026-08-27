@@ -8,7 +8,11 @@ actually live on 26 August 2026.
 - The game, story, family guide, studio story, creature pages, NASA and STEM
   pages, press room, Signal Log and “find your way in” page are live.
 - The final step before Play now matches four common moods: wonder, creation,
-  challenge and story.
+  challenge and story, and turns each one into a clear three-step starter
+  mission.
+- The Hatch Challenge gives one player a clean way to invite somebody they
+  already know, play separately and compare what creatures hatch. It is not
+  multiplayer and collects no recipient or creature information.
 - The website can count which doorway led to Play only after optional website
   analytics were allowed. It does not build a player profile or measure inside
   the game.

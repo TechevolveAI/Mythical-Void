@@ -2,11 +2,11 @@
   "schemaVersion": 2,
   "releaseId": "PLAYABLE-NOW-VISUAL-TRUST-2026-08-26",
   "state": "owned_site_explanation_live_media_withdrawn_pending_rebuild",
-  "purpose": "Give someone actively looking for a new game an immediate, honest choice of wonder, creation, challenge or story, turn that choice into a concrete starter mission, and explain the playable game clearly while weak screenshots and video remain withheld.",
+  "purpose": "Give someone actively looking for a new game an immediate, honest choice of wonder, creation, challenge or story, turn that choice into a concrete starter mission, and give two people a truthful reason to compare what hatches while weak screenshots and video remain withheld.",
   "page": {
     "path": "public/playable-now/index.html",
     "publicUrl": "https://mythicalvoid.com/playable-now/",
-    "sha256": "ef9fe812204e94d8f689d725d18b6c1cbdd9750660564500dca67612bd910f36",
+    "sha256": "3c3a0a686888990588cdea9921a3abeeefcafa70229757d227ff612b477cb5be",
     "canonical": "https://mythicalvoid.com/playable-now/",
     "directPlayLinkMinimum": 3,
     "structuredData": ["VideoGame", "FAQPage"]
@@ -48,6 +48,18 @@
     "selectedPlaySourceSentAfterConsent": true,
     "playEvent": "play_selected",
     "playSourceProperty": "source_area"
+  },
+  "hatchChallenge": {
+    "planPath": "docs/company/growth/HATCH_CHALLENGE_LOOP.json",
+    "route": "https://mythicalvoid.com/playable-now/#hatch-challenge",
+    "participants": 2,
+    "multiplayerClaimed": false,
+    "differenceGuaranteed": false,
+    "accountRequired": false,
+    "contactCollected": false,
+    "creatureDataShared": false,
+    "trackingParametersAdded": false,
+    "directPlayRoute": "/play/"
   },
   "authority": {
     "ownedWebsitePublicationAuthorized": true,

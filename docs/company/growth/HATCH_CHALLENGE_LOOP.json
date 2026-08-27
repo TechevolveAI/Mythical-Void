@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "HATCH-CHALLENGE-2026-08-27",
+  "state": "owned_site_release_prepared",
+  "purpose": "Turn the creature engine into a simple person-to-person reason to start playing without pretending Mythical Void is multiplayer.",
+  "publicRoute": "https://mythicalvoid.com/playable-now/#hatch-challenge",
+  "promise": {
+    "headline": "Same signal. Two creatures. What will hatch?",
+    "participants": 2,
+    "steps": [
+      "Send one clean challenge link to someone already known to the sender",
+      "Each person plays in their own browser and reaches the first hatch",
+      "Compare form, colour, markings, nature, affinity and any rare change"
+    ],
+    "multiplayerClaimed": false,
+    "differenceGuaranteed": false,
+    "uploadRequired": false,
+    "accountRequired": false
+  },
+  "share": {
+    "title": "The Mythical Void Hatch Challenge",
+    "text": "Want to hatch the same mystery and compare what we get? Mythical Void is free in your browser—no download or account needed.",
+    "url": "https://mythicalvoid.com/playable-now/#hatch-challenge",
+    "trackingParametersAdded": false,
+    "nativeDeviceSharePreferred": true,
+    "clipboardFallback": true,
+    "automaticShare": false,
+    "playerActionRequired": true
+  },
+  "privacy": {
+    "recipientCollected": false,
+    "playerIdentityCollected": false,
+    "creatureDataReadForShare": false,
+    "creatureDataTransmitted": false,
+    "contactDetailsCollected": false,
+    "newAnalyticsEventAdded": false,
+    "existingConsentedAggregateShareEventsOnly": true
+  },
+  "visualBoundary": {
+    "newArtworkUsed": false,
+    "gameplayMediaUsed": false,
+    "approvedGameplayMoments": 0,
+    "requiredGameplayMoments": 4,
+    "visualLaunchGateChanged": false
+  },
+  "authority": {
+    "ownedWebsitePublicationAuthorized": true,
+    "externalSocialPublicationAuthorized": false,
+    "emailOrOutreachSendingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "externalAccountChangeAuthorized": false,
+    "externalActionTaken": false
+  },
+  "verification": {
+    "automatedPrivacyTestRequired": true,
+    "desktopVisualReviewRequired": true,
+    "phoneVisualReviewRequired": true,
+    "productionVerificationRequired": true,
+    "productionCommit": null,
+    "productionDeployId": null,
+    "verifiedAt": null,
+    "liveChallengeVisible": false,
+    "directDestination": "https://mythicalvoid.com/play/"
+  }
+}

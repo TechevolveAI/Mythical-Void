@@ -709,6 +709,28 @@ details p { margin: 0.9rem 0 0; }
 .play-intent-noscript { margin-top: 1rem; padding: 1rem; border-left: 3px solid var(--gold); background: rgba(255,213,106,0.06); }
 .play-intent-noscript a { color: var(--mint); font-weight: 900; }
 
+.hatch-challenge-section {
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 12% 18%, rgba(118, 227, 207, 0.13), transparent 26rem),
+        radial-gradient(circle at 90% 80%, rgba(167, 104, 255, 0.16), transparent 32rem),
+        #0d0919;
+}
+.hatch-challenge-shell { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr); gap: clamp(2rem, 7vw, 6rem); align-items: center; }
+.hatch-challenge-copy h2 { max-width: 780px; font-size: clamp(2.8rem, 5.2vw, 5.1rem); }
+.hatch-challenge-copy .section-lead { max-width: 680px; }
+.hatch-challenge-boundary { max-width: 680px; padding: 1rem 1.15rem; border-left: 3px solid var(--gold); background: rgba(255, 213, 106, 0.06); color: var(--muted); }
+.hatch-challenge-boundary strong { color: var(--gold); }
+.hatch-challenge-actions { align-items: stretch; }
+.hatch-challenge-actions .button { justify-content: center; }
+.hatch-challenge-copy > .playable-share-status { margin-top: 0.8rem; text-align: left; }
+.hatch-challenge-steps { display: grid; gap: 0.8rem; margin: 0; padding: 0; list-style: none; }
+.hatch-challenge-steps li { display: grid; grid-template-columns: 4.4rem minmax(0, 1fr); gap: 1.2rem; align-items: center; min-height: 128px; padding: 1.25rem; border: 1px solid var(--line); border-radius: 1.35rem; background: linear-gradient(135deg, rgba(255,255,255,0.065), rgba(255,255,255,0.014)); }
+.hatch-challenge-steps li:nth-child(2) { margin-left: clamp(0rem, 4vw, 3rem); border-color: rgba(118, 227, 207, 0.36); }
+.hatch-challenge-steps li > span { display: grid; place-items: center; width: 4.4rem; height: 4.4rem; border: 1px solid rgba(118, 227, 207, 0.44); border-radius: 50%; color: var(--mint); font-size: 0.78rem; font-weight: 950; letter-spacing: 0.08em; }
+.hatch-challenge-steps strong { display: block; margin-bottom: 0.3rem; color: var(--cream); font-size: 1.2rem; }
+.hatch-challenge-steps p { margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+
 .educator-hero { padding-block: clamp(3.2rem, 5vw, 5rem); }
 .educator-hero h1 { font-size: clamp(3.1rem, 5.4vw, 5.4rem); }
 .educator-hero .hero-visual { transform: rotate(-0.7deg); }
@@ -1129,6 +1151,8 @@ details p { margin: 0.9rem 0 0; }
     .play-intent-answer { grid-template-columns: 1fr; }
     .play-intent-mission { padding-top: 1.25rem; padding-left: 0; border-top: 1px solid rgba(118, 227, 207, 0.32); border-left: 0; }
     .play-intent-answer-actions { width: min(100%, 440px); }
+    .hatch-challenge-shell { grid-template-columns: 1fr; }
+    .hatch-challenge-actions { max-width: 520px; }
     .signal-entry { grid-template-columns: 1fr; }
     .signal-entry::before,
     .signal-timeline::before { display: none; }
@@ -1173,6 +1197,9 @@ details p { margin: 0.9rem 0 0; }
     .play-intent-skip > span,
     .play-intent-skip > a:not(.button) { width: 100%; }
     .play-intent-skip .button { width: 100%; }
+    .hatch-challenge-actions .button { width: 100%; }
+    .hatch-challenge-steps li,
+    .hatch-challenge-steps li:nth-child(2) { margin-left: 0; }
     .creature-showcase-grid { grid-template-columns: 1fr; }
     .creature-specimen { min-height: 0; }
     .creature-specimen-visual { min-height: 210px; }

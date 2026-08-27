@@ -156,6 +156,63 @@
     var copyButton = document.querySelector('[data-copy-game]');
     if (copyButton) copyButton.addEventListener('click', function () { copyCleanLink(shareStatus); });
 
+    var hatchChallenge = document.querySelector('[data-hatch-challenge]');
+    if (hatchChallenge) {
+        var hatchChallengeUrl = 'https://mythicalvoid.com/playable-now/#hatch-challenge';
+        var hatchChallengeData = {
+            title: 'The Mythical Void Hatch Challenge',
+            text: 'Want to hatch the same mystery and compare what we get? Mythical Void is free in your browser—no download or account needed.',
+            url: hatchChallengeUrl
+        };
+        var hatchChallengeShare = hatchChallenge.querySelector('[data-hatch-challenge-share]');
+        var hatchChallengeCopy = hatchChallenge.querySelector('[data-hatch-challenge-copy]');
+        var hatchChallengeStatus = hatchChallenge.querySelector('[data-hatch-challenge-status]');
+
+        function hatchChallengeAddress() {
+            try {
+                var parsed = new URL(hatchChallengeUrl);
+                return parsed.host + parsed.pathname + parsed.hash;
+            } catch (error) {
+                return hatchChallengeUrl;
+            }
+        }
+
+        async function copyHatchChallenge() {
+            try {
+                await navigator.clipboard.writeText(hatchChallengeUrl);
+                setShareStatus('Challenge link copied — no tracking code.', hatchChallengeStatus);
+                track('share_link_copied', 'share_section');
+            } catch (error) {
+                setShareStatus('Copy this address: ' + hatchChallengeAddress(), hatchChallengeStatus);
+            }
+        }
+
+        async function shareHatchChallenge() {
+            if (!navigator.share) {
+                await copyHatchChallenge();
+                return;
+            }
+            try {
+                await navigator.share(hatchChallengeData);
+                setShareStatus('Signal sent. Now see what hatches.', hatchChallengeStatus);
+                track('share_completed', 'share_section');
+            } catch (error) {
+                if (error && error.name !== 'AbortError') {
+                    setShareStatus('You can share ' + hatchChallengeAddress() + ' from your browser.', hatchChallengeStatus);
+                }
+            }
+        }
+
+        if (hatchChallengeShare) {
+            if (!navigator.share) {
+                var hatchChallengeLabel = hatchChallengeShare.querySelector('[data-hatch-challenge-label]');
+                if (hatchChallengeLabel) hatchChallengeLabel.textContent = 'Copy challenge link';
+            }
+            hatchChallengeShare.addEventListener('click', shareHatchChallenge);
+        }
+        if (hatchChallengeCopy) hatchChallengeCopy.addEventListener('click', copyHatchChallenge);
+    }
+
     var intentRoot = document.querySelector('[data-play-intent]');
     if (intentRoot) {
         var intentButtons = Array.from(intentRoot.querySelectorAll('[data-intent-choice]'));

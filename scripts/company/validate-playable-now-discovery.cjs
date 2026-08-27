@@ -37,7 +37,10 @@ requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(page), 'page contains a tracking
 requireValue(!/NASA (?:made|makes|endorses|partners with) Mythical Void/i.test(page), 'page implies a NASA relationship');
 requireValue(page.includes('data-share-game') && page.includes('data-copy-game') && page.includes('data-share-status'), 'clean sharing controls are missing');
 requireValue(page.includes('never asks for their contact details') && page.includes('adds no tracking code'), 'sharing privacy explanation is missing');
-requireValue(page.includes('/discovery.css?v=20260827-starter-missions') && page.includes('/discovery.js?v=20260827-starter-missions'), 'game-finder assets need a matching fresh cache version');
+requireValue(page.includes('/discovery.css?v=20260827-hatch-challenge') && page.includes('/discovery.js?v=20260827-hatch-challenge'), 'game-finder assets need a matching fresh cache version');
+requireValue(page.includes('id="hatch-challenge"') && page.includes('Same signal. Two creatures. What will hatch?'), 'Hatch Challenge is missing');
+requireValue(page.includes('<strong>This is not multiplayer.</strong>') && page.includes('nothing is uploaded') && page.includes('never asks who you invited'), 'Hatch Challenge boundaries are missing');
+for (const control of ['data-hatch-challenge-share', 'data-hatch-challenge-copy', 'data-hatch-challenge-status']) requireValue(page.includes(control), `Hatch Challenge control ${control} is missing`);
 
 for (const prefix of register.withdrawnPathFamilies) requireValue(!page.includes(prefix), `withdrawn path family ${prefix} is published on the page`);
 for (const publicPath of register.withdrawnIndividualPaths) requireValue(!page.includes(publicPath), `withdrawn asset ${publicPath} is published on the page`);
@@ -65,6 +68,10 @@ requireValue(release.playIntentDoorway?.choiceRequiredBeforePlay === false && re
 requireValue(release.playIntentDoorway?.starterMissionCount === 4 && release.playIntentDoorway?.stepsPerStarterMission === 3 && release.playIntentDoorway?.starterMissionRequiredBeforePlay === false, 'release must record four optional three-step starter missions');
 requireValue(JSON.stringify(release.playIntentDoorway?.shareRouteWords) === JSON.stringify(['wonder', 'create', 'challenge', 'story']), 'intent share route allowlist drifted');
 requireValue(release.playIntentDoorway?.sharedChoiceSentToServer === false && release.playIntentDoorway?.recipientContactCollected === false, 'intent sharing privacy boundary drifted');
+requireValue(release.hatchChallenge?.route === 'https://mythicalvoid.com/playable-now/#hatch-challenge', 'Hatch Challenge route is missing');
+requireValue(release.hatchChallenge?.participants === 2 && release.hatchChallenge?.multiplayerClaimed === false && release.hatchChallenge?.differenceGuaranteed === false, 'Hatch Challenge promise drifted');
+requireValue(release.hatchChallenge?.accountRequired === false && release.hatchChallenge?.contactCollected === false && release.hatchChallenge?.creatureDataShared === false && release.hatchChallenge?.trackingParametersAdded === false, 'Hatch Challenge privacy boundary drifted');
+requireValue(release.hatchChallenge?.directPlayRoute === '/play/', 'Hatch Challenge direct Play route drifted');
 for (const [key, expected] of Object.entries({ ownedWebsitePublicationAuthorized: true, externalSocialPublicationAuthorized: false, emailOrOutreachSendingAuthorized: false, paidPromotionAuthorized: false, publicRepliesAuthorized: false, externalActionTaken: false })) {
     requireValue(release.authority?.[key] === expected, `authority.${key} must be ${expected}`);
 }

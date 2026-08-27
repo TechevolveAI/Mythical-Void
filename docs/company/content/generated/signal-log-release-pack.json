@@ -5,8 +5,8 @@
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "afbfad908ac5faeec28aa09c9213c3cd95b9a12d6ee531671e39ffa008a64249",
-    "liveEntryCount": 15,
+    "sourceFingerprint": "1b92479b81dedb822f089ffb5f6b5a497d085b185d6bda4ffb96f751e8306312",
+    "liveEntryCount": 16,
     "latestSourceDate": "2026-08-27"
   },
   "purpose": "Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
@@ -32,6 +32,51 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-SIGNAL-023",
+      "sourceEntryId": "SIGNAL-023",
+      "sourcePublishedOn": "2026-08-27",
+      "destination": "https://mythicalvoid.com/playable-now/#hatch-challenge",
+      "trackingParameters": false,
+      "media": {
+        "sourcePath": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+        "alt": "Many imagined alien organisms gathered in a luminous Mythical Void realm",
+        "class": "ai_generated_marketing_illustration",
+        "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "The Hatch Challenge is ready\n\nOne player can now invite someone they know to begin the same Mythical Void mystery, hatch separately and compare what the creature engine makes.\n\n• The challenge is deliberately simple: send one clean link, each reach the first hatch in your own browser, then compare form, colour, markings, nature, affinity and any rare change.\n• Mythical Void remains a single-player game. The challenge does not claim multiplayer or guarantee that every result will be different.\n• No account, upload, recipient detail, creature data or tracking code is added to the invitation.\n\nSee what changed: https://mythicalvoid.com/playable-now/#hatch-challenge\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 754
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: The Hatch Challenge is ready\n\nOne player can now invite someone they know to begin the same Mythical Void mystery, hatch separately and compare what the creature engine makes.\n\nhttps://mythicalvoid.com/playable-now/#hatch-challenge\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 334
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: The Hatch Challenge is ready",
+          "body": "Mythical Void has a new live update: The Hatch Challenge is ready.\n\nOne player can now invite someone they know to begin the same Mythical Void mystery, hatch separately and compare what the creature engine makes.\n\nThe challenge is deliberately simple: send one clean link, each reach the first hatch in your own browser, then compare form, colour, markings, nature, affinity and any rare change. Mythical Void remains a single-player game. The challenge does not claim multiplayer or guarantee that every result will be different. No account, upload, recipient detail, creature data or tracking code is added to the invitation.\n\nThe checked public destination is https://mythicalvoid.com/playable-now/#hatch-challenge\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 889,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-SIGNAL-022",
       "sourceEntryId": "SIGNAL-022",
