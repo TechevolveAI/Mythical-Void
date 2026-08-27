@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "asOf": "2026-08-27",
-  "status": "private_candidates_rejected_recapture_required",
+  "status": "private_candidates_pending_adult_review",
   "state": "no_launch_grade_gameplay_media_approved",
   "purpose": "Create a small, honest set of gameplay moments that makes a child or grown-up want to understand and try Mythical Void.",
   "candidateDirectory": ".visual-review/candidates/",
@@ -9,7 +9,7 @@
   "currentVisualFinding": {
     "source": "Kevin's direct testing feedback and a fresh full-size review of the current public capture set",
     "finding": "The existing public media does not communicate the game well enough. Private replacement candidates must remain outside the website until an adult reviews every frame and Kevin approves the exact asset, wording and channel.",
-    "decision": "Keep the entire old media set withdrawn and block its direct public URLs. The 23:57 replacement run is also rejected before Kevin review because the action still depends on copy, the choice dominates the world, the discovery reads as an interface effect and movement lacks clean actor separation. Recapture only after the playable states clear the stricter visual gates."
+    "decision": "Keep the entire old media set withdrawn and block its direct public URLs. The rejected 23:57 run remains recorded. The source-bound 02:20 replacement passed automated obvious-fault checks and stays quarantined pending an adult review of every frame and Kevin's approval of the exact asset, wording and channel."
   },
   "latestScreening": {
     "path": "docs/company/content/visual-screening-2026-08-27.json",
@@ -32,14 +32,14 @@
     "externalActionTaken": false
   },
   "latestPrivateCandidateRun": {
-    "runId": "2026-08-26T23-57-56-859Z",
-    "createdAt": "2026-08-27T00:00:38.185Z",
-    "sourceCommit": "82b9d59ae2a006107480dbcba44f60e64c1a16ae",
+    "runId": "2026-08-27T02-20-00-000Z",
+    "createdAt": "2026-08-27T01:44:20.955Z",
+    "sourceCommit": "67c96b4022c196132fc81309c7c932a386a0e495",
     "sourceProfileId": "MV-0813",
     "renderer": "player_facing_phaser_creature_renderer",
-    "manifest": ".visual-review/candidates/2026-08-26T23-57-56-859Z/manifest.json",
+    "manifest": ".visual-review/candidates/2026-08-27T02-20-00-000Z/manifest.json",
     "automatedScreening": "passed_obvious_fault_checks_only",
-    "editorialScreening": "rejected_obvious_visual_faults",
+    "editorialScreening": "pending_adult_frame_review",
     "adultFrameReview": "pending",
     "kevinApproval": "not_requested",
     "publicationAuthorized": false
@@ -87,36 +87,36 @@
       "publicQuestion": "What can my creature and I do together?",
       "shot": "The creature visibly helps the player solve or survive one clear obstacle.",
       "mustShow": ["player and creature in the same frame", "one recognisable obstacle", "the creature's helpful action", "the immediate result"],
-      "currentState": "candidate_rejected_obvious_visual_faults",
-      "evidence": ".visual-review/candidates/2026-08-26T23-57-56-859Z/creature-helps-phone.png",
-      "reason": "Rejected before Kevin review: the frame still relies on the explanation panel and does not make the creature's action unmistakable without copy."
+      "currentState": "candidate_under_human_review",
+      "evidence": ".visual-review/candidates/2026-08-27T02-20-00-000Z/creature-helps-phone.png",
+      "reason": "Automated checks confirm the real creature visibly originates the life-energy action, the blocked route remains readable, and regrowth plus the opened route appear in the same frame. Adult visual review is still required."
     },
     {
       "id": "choice-changes-world",
       "publicQuestion": "Do my choices actually matter?",
       "shot": "One readable choice followed by a visible change in the world.",
       "mustShow": ["the choice in plain words", "the changed place, creature or relationship", "no unexplained menu clutter"],
-      "currentState": "candidate_rejected_obvious_visual_faults",
-      "evidence": ".visual-review/candidates/2026-08-26T23-57-56-859Z/choice-before-phone.png",
-      "reason": "Rejected before Kevin review: the choice sheet dominates the phone frame and the world consequence is not visually strong enough."
+      "currentState": "candidate_under_human_review",
+      "evidence": ".visual-review/candidates/2026-08-27T02-20-00-000Z/choice-before-phone.png",
+      "reason": "Automated checks confirm a compact plain-language choice followed by a bright living route, visible regrowth and a persistent memory. Adult visual review is still required."
     },
     {
       "id": "strange-discovery",
       "publicQuestion": "What is surprising about this universe?",
       "shot": "The player and creature discover one memorable feature of an alien realm.",
       "mustShow": ["player and creature in the same frame", "one unusual realm feature", "a composition understandable without a caption"],
-      "currentState": "candidate_rejected_obvious_visual_faults",
-      "evidence": ".visual-review/candidates/2026-08-26T23-57-56-859Z/strange-discovery-phone.png",
-      "reason": "Rejected before Kevin review: the current effect reads as interface lines instead of an impossible planetary discovery."
+      "currentState": "candidate_under_human_review",
+      "evidence": ".visual-review/candidates/2026-08-27T02-20-00-000Z/strange-discovery-phone.png",
+      "reason": "Automated checks confirm the living current creates four real-texture memory echoes linked to both visible actors at the Village Heart. Adult visual review is still required."
     },
     {
       "id": "movement-with-life",
       "publicQuestion": "Does this feel alive when it moves?",
       "shot": "A short uninterrupted stretch of play with the creature continuously present.",
       "mustShow": ["continuous creature rendering", "readable movement", "no menu takeover or dead time", "every frame watched at desktop and phone presentation size"],
-      "currentState": "candidate_rejected_obvious_visual_faults",
-      "evidence": ".visual-review/candidates/2026-08-26T23-57-56-859Z/movement-alive-phone.mp4",
-      "reason": "Rejected before Kevin review: the actors read too close together and the desktop clip is below the six-second uninterrupted-play floor."
+      "currentState": "candidate_under_human_review",
+      "evidence": ".visual-review/candidates/2026-08-27T02-20-00-000Z/movement-alive-phone.mp4",
+      "reason": "Automated checks confirm continuous real rendering, full health, clean actor separation, live input, and at least 72 frames over six seconds on both viewports. Adult review of every frame is still required."
     }
   ],
   "approvalRule": {
@@ -145,7 +145,7 @@
       },
       "candidateAssets": { "phone": "creature-helps-phone.png", "desktop": "creature-helps-desktop.png" },
       "implementationStatus": "playable_state_available",
-      "reviewStatus": "candidate_rejected_obvious_visual_faults"
+      "reviewStatus": "candidate_under_human_review"
     },
     {
       "id": "VL-002",
@@ -162,7 +162,7 @@
       },
       "candidateAssets": { "phoneBefore": "choice-before-phone.png", "phoneAfter": "choice-after-phone.png", "desktopBefore": "choice-before-desktop.png", "desktopAfter": "choice-after-desktop.png" },
       "implementationStatus": "playable_state_available",
-      "reviewStatus": "candidate_rejected_obvious_visual_faults"
+      "reviewStatus": "candidate_under_human_review"
     },
     {
       "id": "VL-003",
@@ -179,7 +179,7 @@
       },
       "candidateAssets": { "phone": "strange-discovery-phone.png", "desktop": "strange-discovery-desktop.png" },
       "implementationStatus": "playable_state_available",
-      "reviewStatus": "candidate_rejected_obvious_visual_faults"
+      "reviewStatus": "candidate_under_human_review"
     },
     {
       "id": "VL-004",
@@ -198,7 +198,7 @@
       },
       "candidateAssets": { "phoneVideo": "movement-alive-phone.mp4", "phonePoster": "movement-alive-phone.png", "desktopVideo": "movement-alive-desktop.mp4", "desktopPoster": "movement-alive-desktop.png" },
       "implementationStatus": "capture_journey_ready",
-      "reviewStatus": "candidate_rejected_obvious_visual_faults"
+      "reviewStatus": "candidate_under_human_review"
     }
   ]
 }
