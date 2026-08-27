@@ -4317,6 +4317,15 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             wordWrap: { width: width - 50 }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2000).setAlpha(0);
 
+        let atmosphereStarted = false;
+        const beginAtmosphere = () => {
+            if (atmosphereStarted || this.bossDefeated) return;
+            atmosphereStarted = true;
+            this.cancelGuardianTransition('crystal-guardian-atmosphere');
+            warningText.destroy();
+            this.triggerAtmosphereChange();
+        };
+
         // Fade in warning
         this.tweens.add({
             targets: warningText,
@@ -4324,11 +4333,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             duration: 500,
             yoyo: true,
             hold: 1500,
-            onComplete: () => {
-                warningText.destroy();
-                this.triggerAtmosphereChange();
-            }
+            onComplete: beginAtmosphere
         });
+        this.scheduleGuardianTransition(
+            'crystal-guardian-atmosphere',
+            2600,
+            beginAtmosphere
+        );
 
         // Play ominous sound
         if (window.AudioManager) {
@@ -4391,7 +4402,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         window.FeedbackManager?.cameraShake?.(this, 1500, 0.015);
 
         // After atmosphere change, spawn the boss
-        this.time.delayedCall(1500, () => {
+        this.scheduleGuardianTransition('crystal-guardian-spawn', 1500, () => {
+            if (this.boss?.active || this.bossDefeated) return;
             this.spawnCrystalGolem();
         });
     }
@@ -4541,9 +4553,17 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Create boss health bar
         this.createBossHealthBar();
 
-        this.time.delayedCall(500, () => {
+        this.scheduleGuardianTransition('crystal-guardian-pan-start', 500, () => {
             if (!this.player?.active || !this.cameras.main) return;
-            this.cameras.main.pan(
+            const camera = this.cameras.main;
+            let arenaEntrySettled = false;
+            const settleArenaEntry = () => {
+                if (arenaEntrySettled) return;
+                arenaEntrySettled = true;
+                this.cancelGuardianTransition('crystal-guardian-arena-pan');
+                this.beginCrystalGuardianCombat(camera);
+            };
+            camera.pan(
                 this.player.x,
                 this.player.y,
                 1000,
@@ -4551,9 +4571,14 @@ class CrystalCavesLevel extends PlatformerLevelScene {
                 true,
                 (camera, progress) => {
                     if (progress >= 0.999) {
-                        this.beginCrystalGuardianCombat(camera);
+                        settleArenaEntry();
                     }
                 }
+            );
+            this.scheduleGuardianTransition(
+                'crystal-guardian-arena-pan',
+                1500,
+                settleArenaEntry
             );
         });
 

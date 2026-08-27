@@ -3893,7 +3893,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         });
 
         // Spawn boss after atmosphere builds
-        this.time.delayedCall(1500, () => {
+        this.scheduleGuardianTransition('forest-guardian-spawn', 1500, () => {
+            if (this.boss?.active || this.bossDefeated) return;
             this.spawnElderTreant();
             this.physics.resume();
         });

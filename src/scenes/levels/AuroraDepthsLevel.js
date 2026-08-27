@@ -1648,8 +1648,9 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             onComplete: () => warningText.destroy()
         });
 
-        this.time.delayedCall(1200, () => {
+        this.scheduleGuardianTransition('aurora-guardian-spawn', 1200, () => {
             if (this.bossDefeated) return;
+            if (this.boss?.active) return;
             this.spawnShadowPhoenix();
             this.physics.resume();
         });

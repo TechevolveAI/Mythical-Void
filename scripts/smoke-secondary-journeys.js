@@ -2049,10 +2049,53 @@ async function touchDomButton(session, selector, {
     );
     await touch(session, point.x, point.y);
     if (waitForRemoval) {
-        await waitFor(
-            () => evaluate(session, `!document.querySelector(${JSON.stringify(selector)})`),
-            { timeoutMs, message: `${message} dismissal` }
-        );
+        try {
+            await waitFor(
+                () => evaluate(session, `!document.querySelector(${JSON.stringify(selector)})`),
+                { timeoutMs, message: `${message} dismissal` }
+            );
+        } catch (error) {
+            const diagnostics = await evaluate(session, `(() => ({
+                touchPoint: { x: ${point.x}, y: ${point.y} },
+                hitStack: document.elementsFromPoint(${point.x}, ${point.y}).map(element => ({
+                    tag: element.tagName,
+                    className: typeof element.className === 'string'
+                        ? element.className
+                        : '',
+                    pointerEvents: getComputedStyle(element).pointerEvents,
+                    zIndex: getComputedStyle(element).zIndex
+                })),
+                matches: [...document.querySelectorAll(${JSON.stringify(selector)})].map(button => {
+                    const bounds = button.getBoundingClientRect();
+                    const style = getComputedStyle(button);
+                    return {
+                        connected: button.isConnected,
+                        text: button.textContent?.trim() || '',
+                        pointerEvents: style.pointerEvents,
+                        display: style.display,
+                        visibility: style.visibility,
+                        opacity: style.opacity,
+                        bounds: {
+                            left: Math.round(bounds.left),
+                            right: Math.round(bounds.right),
+                            top: Math.round(bounds.top),
+                            bottom: Math.round(bounds.bottom)
+                        }
+                    };
+                }),
+                katanaModalOwners: window.mythicalGame?.scene?.getScenes(true)
+                    ?.filter(scene => scene?.katanaArtifactModal)
+                    ?.map(scene => ({
+                        scene: scene.scene?.key,
+                        hasDomElement: Boolean(scene.katanaArtifactModal?.domElement),
+                        hasRoot: Boolean(scene.katanaArtifactModal?.root),
+                        residentReleaseOpen: scene.residentReleaseOpen === true,
+                        pendingResidentContinuation:
+                            typeof scene.pendingResidentReleaseContinuation === 'function'
+                    })) || []
+            }))()`);
+            throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+        }
     }
     return point;
 }
@@ -11040,8 +11083,10 @@ async function startGuardianHandoffEncounter(session, step) {
         );
     }
 
-    const combatReady = await waitFor(
-        () => evaluate(session, `(() => {
+    let combatReady = null;
+    try {
+        combatReady = await waitFor(
+            () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
             const target = scene?.getBossCombatTarget?.();
             const snapshot = {
@@ -11068,12 +11113,37 @@ async function startGuardianHandoffEncounter(session, step) {
                 snapshot.bossHealth <= 0
             ) return null;
             return snapshot;
-        })()`),
-        {
-            timeoutMs: 10000,
-            message: `${step.sceneName} focused guardian combat readiness`
-        }
-    );
+            })()`),
+            {
+                timeoutMs: 10000,
+                message: `${step.sceneName} focused guardian combat readiness`
+            }
+        );
+    } catch (error) {
+        const diagnostics = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
+            const target = scene?.getBossCombatTarget?.();
+            return {
+                guardianId: scene?.guardianEncounter?.id || null,
+                bossHealth: Number(scene?.bossHealth),
+                targetActive: target?.active === true,
+                bossActive: scene?.boss?.active === true,
+                bossBodyActive: scene?.bossBody?.active === true,
+                bossFightActive: scene?.bossFightActive === true,
+                bossCombatReady: scene?.bossCombatReady === true,
+                bossDefeated: scene?.bossDefeated === true,
+                physicsPaused: scene?.physics?.world?.isPaused === true,
+                sceneTimePaused: scene?.time?.paused === true,
+                sceneTime: Number(scene?.time?.now),
+                cameraPanRunning: scene?.cameras?.main?.panEffect?.isRunning === true,
+                arenaPanTimerActive:
+                    scene?.reefGuardianArenaPanTimer?.hasDispatched === false,
+                arenaPanCompletionBound:
+                    typeof scene?.reefGuardianArenaPanCompleteHandler === 'function'
+            };
+        })()`);
+        throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+    }
     if (
         combatReady?.bossFightActive !== true ||
         combatReady.physicsPaused !== false ||
@@ -11388,7 +11458,11 @@ async function smokeGuardianHandoff(session, step, exceptions) {
 }
 
 async function smokeGuardianHandoffs(session, exceptions) {
-    const knownRoutes = ['all', ...CAMPAIGN_STATE_STEPS.map(step => step.route)];
+    const knownRoutes = [
+        'all',
+        'katana-upgrades',
+        ...CAMPAIGN_STATE_STEPS.map(step => step.route)
+    ];
     if (!knownRoutes.includes(SMOKE_CASE)) {
         throw new Error(
             `Unknown guardian-handoff SMOKE_CASE ${JSON.stringify(SMOKE_CASE)}. ` +
@@ -11396,9 +11470,11 @@ async function smokeGuardianHandoffs(session, exceptions) {
         );
     }
     const results = {};
-    for (const step of CAMPAIGN_STATE_STEPS.filter(
-        candidate => SMOKE_CASE === 'all' || candidate.route === SMOKE_CASE
-    )) {
+    for (const step of CAMPAIGN_STATE_STEPS.filter(candidate => (
+        SMOKE_CASE === 'all' ||
+        candidate.route === SMOKE_CASE ||
+        (SMOKE_CASE === 'katana-upgrades' && Boolean(candidate.katanaUpgradeId))
+    ))) {
         results[step.route] = await smokeGuardianHandoff(
             session,
             { ...step },

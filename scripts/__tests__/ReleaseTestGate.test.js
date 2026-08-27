@@ -274,6 +274,10 @@ describe('release test gate', () => {
         expect(source).toContain('real final Super Blast did not restore its guardian');
         expect(source).toContain('rescued resident continuation');
         expect(source).toContain("'.katana-artifact-continue'");
+        expect(source).toContain("'katana-upgrades'");
+        expect(source).toContain(
+            "SMOKE_CASE === 'katana-upgrades' && Boolean(candidate.katanaUpgradeId)"
+        );
         expect(source).toContain('visible completion action');
         expect(source).toContain('debrief installation action');
         expect(source).toContain('Wanderer-77 installation action');

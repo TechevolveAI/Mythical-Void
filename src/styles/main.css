@@ -4677,6 +4677,7 @@ body.game-mode {
   font-weight: 800;
   letter-spacing: 0;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .katana-artifact-continue:hover,

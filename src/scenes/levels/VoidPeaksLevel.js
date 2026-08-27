@@ -1881,8 +1881,9 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             }
         ).setOrigin(0.5).setScrollFactor(0).setDepth(2600);
 
-        this.time.delayedCall(900, () => {
+        this.scheduleGuardianTransition('peaks-guardian-spawn', 900, () => {
             warning.destroy();
+            if (this.boss?.active || this.bossDefeated) return;
             this.spawnCosmicTitan();
         });
     }
@@ -1939,9 +1940,17 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         this.bossHealth = this.bossMaxHealth;
         this.createBossHealthBar();
-        this.time.delayedCall(500, () => {
+        this.scheduleGuardianTransition('peaks-guardian-pan-start', 500, () => {
             if (!this.player?.active || !this.cameras.main) return;
-            this.cameras.main.pan(
+            const camera = this.cameras.main;
+            let arenaEntrySettled = false;
+            const settleArenaEntry = () => {
+                if (arenaEntrySettled) return;
+                arenaEntrySettled = true;
+                this.cancelGuardianTransition('peaks-guardian-arena-pan');
+                this.beginTitanCombat(camera);
+            };
+            camera.pan(
                 this.player.x,
                 this.player.y,
                 1000,
@@ -1949,9 +1958,14 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                 true,
                 (camera, progress) => {
                     if (progress >= 0.999) {
-                        this.beginTitanCombat(camera);
+                        settleArenaEntry();
                     }
                 }
+            );
+            this.scheduleGuardianTransition(
+                'peaks-guardian-arena-pan',
+                1500,
+                settleArenaEntry
             );
         });
     }

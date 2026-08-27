@@ -3138,28 +3138,44 @@ class ReefLevel extends PlatformerLevelScene {
             fontStyle: 'italic'
         }).setOrigin(0.5).setDepth(2001).setAlpha(0);
 
+        let bossIntroSettled = false;
+        const finishBossIntro = () => {
+            if (bossIntroSettled || !this.bossFightActive || this.bossDefeated) {
+                return;
+            }
+            bossIntroSettled = true;
+            this.cancelGuardianTransition('reef-guardian-spawn');
+            this.cancelGuardianTransition('reef-guardian-fade');
+            this.tweens.killTweensOf([darkness, bossTitle, bossSubtitle]);
+            darkness.destroy();
+            bossTitle.destroy();
+            bossSubtitle.destroy();
+            if (!this.boss?.active) {
+                this.spawnNyxvoral();
+            }
+        };
+
         // Animate intro
         this.tweens.add({
             targets: [bossTitle, bossSubtitle],
             alpha: 1,
             duration: 1200,
             onComplete: () => {
-                this.time.delayedCall(2500, () => {
+                this.scheduleGuardianTransition('reef-guardian-fade', 2500, () => {
                     this.tweens.add({
                         targets: [darkness, bossTitle, bossSubtitle],
                         alpha: 0,
                         duration: 600,
-                        onComplete: () => {
-                            darkness.destroy();
-                            bossTitle.destroy();
-                            bossSubtitle.destroy();
-
-                            this.spawnNyxvoral();
-                        }
+                        onComplete: finishBossIntro
                     });
                 });
             }
         });
+        this.scheduleGuardianTransition(
+            'reef-guardian-spawn',
+            5000,
+            finishBossIntro
+        );
 
         if (window.AudioManager?.playBossMusic) {
             window.AudioManager.playBossMusic();
@@ -3211,19 +3227,29 @@ class ReefLevel extends PlatformerLevelScene {
         this.createBossHealthBar();
 
         // Return to a composed arena view before enabling physics or attacks.
-        this.time.delayedCall(500, () => {
+        this.scheduleGuardianTransition('reef-guardian-pan-start', 500, () => {
             if (this.player && this.cameras.main) {
-                this.cameras.main.pan(
+                const camera = this.cameras.main;
+                let arenaEntrySettled = false;
+                const settleArenaEntry = () => {
+                    if (arenaEntrySettled) return;
+                    arenaEntrySettled = true;
+                    camera.off('camerapancomplete', settleArenaEntry);
+                    this.cancelGuardianTransition('reef-guardian-arena-pan');
+                    this.beginReefGuardianCombat(camera);
+                };
+                camera.once('camerapancomplete', settleArenaEntry);
+                camera.pan(
                     this.player.x,
                     this.player.y,
                     1000,
                     'Power2',
-                    true,
-                    (camera, progress) => {
-                        if (progress >= 0.999) {
-                            this.beginReefGuardianCombat(camera);
-                        }
-                    }
+                    true
+                );
+                this.scheduleGuardianTransition(
+                    'reef-guardian-arena-pan',
+                    1500,
+                    settleArenaEntry
                 );
             }
         });
