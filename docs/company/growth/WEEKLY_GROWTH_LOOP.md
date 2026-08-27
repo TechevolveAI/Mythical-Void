@@ -17,6 +17,8 @@ that Mythical already owns.
 - the sitemap, Signal Log, public feeds and important page links;
 - optional website measurement remains consent-led and outside the game;
 - whether stronger gameplay moments have passed human visual review;
+- the anonymous adult feedback pulse, treating responses as responses rather
+  than unique people and making no claim when the count is zero or too small;
 - which action is now possible without opening an account, contacting someone,
   spending money or accepting outside terms.
 
@@ -30,6 +32,15 @@ that Mythical already owns.
   never as a repeated ranking trick;
 - prepare one clear outside action for Kevin when a human account, approval or
   reply is required.
+
+When the protected environment is available, run:
+
+```bash
+npm run feedback:pulse:live
+```
+
+Only the aggregate brief may inform the weekly recommendation. Do not copy raw
+feedback rows into this repository or the task.
 
 ## What it may not do
 
