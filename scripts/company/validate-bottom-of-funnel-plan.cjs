@@ -20,6 +20,12 @@ const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 
 requireValue(plan.id === 'BOTTOM-OF-FUNNEL-001', 'distribution plan id is missing');
+requireValue(plan.checkedOn === '2026-08-27', 'player-decision review date is stale');
+requireValue(plan.playerDecisionModel?.sequence?.join('|') === 'wanted feeling|believable fit|real gameplay proof|trust|low-friction start', 'player-decision sequence is missing or out of order');
+requireValue(plan.playerDecisionModel?.supportingReasonsAfterGameIsClear?.includes('NASA-sourced STEM moments'), 'NASA/STEM must support rather than replace the playable promise');
+requireValue(plan.endOfFunnelRoute?.path?.at(-1) === 'meaningful action in the first minute', 'the funnel must end in meaningful play');
+requireValue(plan.endOfFunnelRoute?.mustNotInsert?.includes('account creation'), 'the low-friction account boundary is missing');
+requireValue(plan.endOfFunnelRoute?.firstReleaseEvidence?.includes('meaningful action or hatch reached'), 'first-value measurement is missing');
 requireValue(plan.readyFallbackShelf?.name === 'itch.io', 'itch.io must remain the ready fallback shelf');
 requireValue(plan.readyFallbackShelf?.publicationAuthorized === false, 'external publication must wait for Kevin');
 requireValue(plan.readyFallbackShelf?.rightsDecisionRequiredBeforePublication === true, 'the distribution-rights choice must happen before publication');
@@ -38,7 +44,7 @@ requireValue(plan.distributionRightsFork?.decisionMade === false, 'distribution 
 for (const field of ['externalPublishingAuthorized', 'paidPromotionAuthorized', 'bulkOutreachAuthorized', 'directChildContactAuthorized', 'imaginedArtMayBeCalledGameplay', 'portalAcceptanceMayBePromised', 'pokiAccessRequestAuthorized', 'webExclusivityMayBeAccepted']) {
     requireValue(plan.boundaries?.[field] === false, `boundary ${field} must remain false`);
 }
-for (const phrase of ['A free browser adventure', 'One important choice before itch.io', 'Why itch.io is first if Kevin chooses speed', 'Three to five real game images', 'No action is needed now', 'NASA endorsement']) {
+for (const phrase of ['A free browser adventure', 'What makes somebody start a game', 'The end of the funnel', 'The first distribution move', 'One important choice before itch.io', 'Why itch.io is first if Kevin chooses speed', 'Three to five real game images', 'No action is needed now', 'NASA endorsement']) {
     requireValue(planText.includes(phrase), `plain-language plan is missing: ${phrase}`);
 }
 for (const source of plan.sources || []) requireValue(planText.includes(source), `plain-language plan is missing source: ${source}`);

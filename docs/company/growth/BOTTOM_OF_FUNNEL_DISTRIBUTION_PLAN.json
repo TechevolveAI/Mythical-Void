@@ -1,8 +1,19 @@
 {
   "id": "BOTTOM-OF-FUNNEL-001",
-  "checkedOn": "2026-08-26",
+  "checkedOn": "2026-08-27",
   "state": "owned_entry_live_options_preserved_visual_gate_closed",
   "playerPromise": "A free browser adventure where you hatch a strange alien creature, cross six living realms and decide what Project Beacon should tell Earth. No download or account needed.",
+  "playerDecisionModel": {
+    "sequence": ["wanted feeling", "believable fit", "real gameplay proof", "trust", "low-friction start"],
+    "openingReasons": ["fun", "surprise", "escape", "challenge", "creativity", "story"],
+    "supportingReasonsAfterGameIsClear": ["AI-assisted creative process", "NASA-sourced STEM moments", "father-and-son origin"],
+    "primaryQuestion": "Did people who were already looking for a game begin this one and find the good part quickly?"
+  },
+  "endOfFunnelRoute": {
+    "path": ["useful search, shelf, video or recommendation", "truthful game page", "Play now", "meaningful action in the first minute"],
+    "mustNotInsert": ["studio history page", "email form", "account creation", "long AI explanation"],
+    "firstReleaseEvidence": ["listing or video seen", "Play pressed", "meaningful action or hatch reached", "return or clean-link share"]
+  },
   "readyFallbackShelf": {
     "name": "itch.io",
     "accountCost": "free",
@@ -70,6 +81,9 @@
     "https://developers.poki.com/guide/revenue-deal-types",
     "https://developers.poki.com/guide/what-we-look-for",
     "https://developer.crazygames.com/games",
-    "https://partner.steamgames.com/doc/gettingstarted/appfee"
+    "https://partner.steamgames.com/doc/gettingstarted/appfee",
+    "https://www.theesa.com/global-report-video-games-transcend-entertainment-affect-positive-change-in-players-lives/",
+    "https://www.biggamesmachine.com/wp-content/uploads/2025/02/BGM-YouTube-survey-2025.pdf",
+    "https://support.google.com/youtube/answer/9134402?hl=en"
   ]
 }

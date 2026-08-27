@@ -1,6 +1,72 @@
 # The shortest route from “I want a new game” to Mythical Void
 
-Status: working plan, checked 26 August 2026
+Status: working plan, checked 27 August 2026
+
+## What makes somebody start a game
+
+The decision is usually much simpler than the games industry makes it sound.
+A person starts a game when five things line up:
+
+1. **A feeling:** they want fun, surprise, escape, challenge, creativity or a
+   story.
+2. **A believable fit:** the game looks like the sort of experience they want
+   right now.
+3. **Proof:** they can see real play, not just promises or invented artwork.
+4. **Trust:** a friend, creator, game shelf or clear family-safe page removes
+   the fear that it will waste their time or be unsuitable.
+5. **Very little effort:** the Play button is obvious and the game begins
+   without a download, account or payment details.
+
+A 2025 survey across 21 countries found that fun, stress relief and keeping the
+mind active were the three leading reasons adults gave for playing. A separate
+US survey of people who watch gaming content found that YouTube was a major
+game-discovery route, while reviews, funny moments, trailers, Let's Plays and
+short videos were all commonly watched formats. These results are directional,
+not evidence about Mythical Void's own audience.
+
+This gives Mythical Void a simple job: sell the feeling first, prove it with
+real play, and make starting nearly instant. AI, NASA material and the
+father-and-son origin strengthen curiosity and trust after the player
+understands the game; they are not the opening reason to press Play.
+
+## The end of the funnel
+
+The bottom of the funnel is the moment somebody has already decided, “I want a
+new game.” We should meet them in four places:
+
+| Player thought | Where they are likely to look | Mythical Void answer |
+|---|---|---|
+| “Give me a free game I can play now” | Search or a browser-game shelf | Free browser adventure; no download or account; one direct Play button |
+| “Show me whether this is actually good” | YouTube, a creator, a review or a friend | One excellent piece of real gameplay with the creature and action clearly visible |
+| “I want something strange or creative” | Search, a recommendation or a game listing | Hatch a genuinely unusual alien creature; show the range truthfully |
+| “Is this suitable for our family?” | A parent-facing search or shared link | Clear controls, privacy, cost, age guidance and the father-and-son origin without identifying the child |
+
+The route should always be:
+
+> useful search, shelf, video or recommendation → truthful game page → Play
+> now → meaningful action in the first minute
+
+Do not insert a studio history page, email form, account creation or long AI
+explanation into that route.
+
+## The first distribution move
+
+Once the authentic visual gate passes, use one strong creature/action moment
+to make a matched set: game-shelf cover, three to five real screenshots, one
+short YouTube proof and the same direct-play promise on every page. First make
+the Poki-versus-itch.io choice described below. Do not spread weak or different
+messages across many channels.
+
+Judge the first release on four steps rather than likes or follower counts:
+
+1. the listing or video was seen;
+2. the person pressed Play;
+3. the person reached a meaningful action or hatch;
+4. the person returned or shared the clean game link.
+
+The first useful question is not “How many followers did we gain?” It is “Did
+people who were already looking for a game begin this one and find the good
+part quickly?”
 
 ## The decision we need to win
 
@@ -110,3 +176,9 @@ outreach or additional platforms.
 - What Poki looks for: https://developers.poki.com/guide/what-we-look-for
 - CrazyGames developer portal: https://developer.crazygames.com/games
 - Steam Direct fee: https://partner.steamgames.com/doc/gettingstarted/appfee
+
+## Sources used for the player-decision model
+
+- 2025 Global Power of Play report: https://www.theesa.com/global-report-video-games-transcend-entertainment-affect-positive-change-in-players-lives/
+- 2025 YouTube gaming survey: https://www.biggamesmachine.com/wp-content/uploads/2025/02/BGM-YouTube-survey-2025.pdf
+- YouTube Gaming discovery help: https://support.google.com/youtube/answer/9134402?hl=en
