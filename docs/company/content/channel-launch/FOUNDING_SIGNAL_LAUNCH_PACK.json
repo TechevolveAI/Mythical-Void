@@ -7,6 +7,9 @@
   "playUrl": "https://mythicalvoid.com/",
   "recommendedFirstChannel": "Kevin's existing professional profile, if confirmed",
   "reason": "The father-and-son beginning is personal, true and understandable before a viewer knows the game. An existing profile avoids waiting for a new mailbox, company account or paid campaign.",
+  "firstWeekCampaignRef": "docs/company/content/campaigns/playable-now-launch.json",
+  "firstWeekContentIds": ["PN-002", "PN-001", "PN-003"],
+  "firstWeekAutomaticLinkPreviewsOnly": true,
   "approvedVisual": {
     "path": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
     "usage": "automatic link preview from the studio page",

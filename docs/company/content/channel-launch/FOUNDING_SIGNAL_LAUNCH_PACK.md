@@ -50,6 +50,21 @@ remains clearly labelled as AI-generated marketing artwork rather than gameplay.
 
 Mythical Void is a free browser creature adventure that began as a father-and-son experiment with imagination and generative AI. Six living realms, creature genetics, restoration choices and optional NASA-powered discovery are playable now: https://mythicalvoid.com/
 
+## The rest of the first week
+
+If the first post is approved, the next two posts complete one short story:
+
+1. **Day 1 — why it exists:** the father-and-son beginning links to
+   `https://mythicalvoid.com/studio/`.
+2. **Day 3 — what it is:** the playable-now promise links to
+   `https://mythicalvoid.com/playable-now/`.
+3. **Day 5 — what makes it different:** the creature-system post links to
+   `https://mythicalvoid.com/creature-genetics/`.
+
+Use the automatic link preview only. Do not upload a gameplay screenshot or
+video. Each post still needs a separate complete-preview approval, a verified
+account and named reply coverage.
+
 ## Replies Kevin can use
 
 **What is it?**  

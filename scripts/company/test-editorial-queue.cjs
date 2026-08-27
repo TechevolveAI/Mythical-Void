@@ -25,7 +25,7 @@ try {
     assert.strictEqual(baseline.output.queueValid, true);
     assert.strictEqual(baseline.output.publicationReadyCount, 0);
     assert.strictEqual(baseline.output.externalPublishingAuthorized, false);
-    assert.deepStrictEqual(baseline.output.requiredMissingProofs, ['PF-003', 'PF-004', 'PF-005']);
+    assert.deepStrictEqual(baseline.output.requiredMissingProofs, ['PF-003', 'PF-004', 'PF-005', 'PF-006']);
     assert(baseline.output.results.some(item => item.id === 'CQ-006' && item.draftReady));
 
     const absoluteClaim = execute('absolute-claim', {

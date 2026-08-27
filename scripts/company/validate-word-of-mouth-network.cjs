@@ -22,6 +22,7 @@ const discovery = read('public/discovery.js');
 const discoveryCss = read('public/discovery.css');
 const pack = json('docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.json');
 const packText = read('docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.md');
+const firstWeekCampaign = json('docs/company/content/campaigns/playable-now-launch.json');
 const releases = json('public/updates/releases.json');
 const hatchChallenge = json('docs/company/growth/HATCH_CHALLENGE_LOOP.json');
 const familyGuide = json('docs/company/growth/FAMILY_GUIDE_RECOMMENDATION_LOOP.json');
@@ -110,6 +111,10 @@ if (familyGuide.state === 'owned_site_release_prepared') {
 
 requireValue(pack.id === 'FOUNDING-SIGNAL-001' && pack.state === 'owned_word_of_mouth_live_first_external_post_waits_for_kevin', 'founding launch pack state is invalid');
 requireValue(pack.primaryStoryUrl === 'https://mythicalvoid.com/studio/', 'founding launch pack must use the studio story');
+requireValue(pack.firstWeekCampaignRef === 'docs/company/content/campaigns/playable-now-launch.json', 'founding launch pack is not connected to the first-week campaign');
+requireValue(JSON.stringify(pack.firstWeekContentIds) === JSON.stringify(['PN-002', 'PN-001', 'PN-003']) && pack.firstWeekAutomaticLinkPreviewsOnly === true, 'founding launch pack first-week sequence is missing or unsafe');
+requireValue(JSON.stringify(firstWeekCampaign.firstWeekSequence?.map(item => item.contentId)) === JSON.stringify(pack.firstWeekContentIds), 'founding launch pack and first-week campaign have drifted apart');
+requireValue(firstWeekCampaign.authority?.publishingAuthorized === false && firstWeekCampaign.firstWeekPublishing?.commentsAndRepliesAuthorized === false, 'first-week campaign invents publishing or reply authority');
 requireValue(pack.livePreviewCheck?.url === 'https://mythicalvoid.com/studio/' && pack.livePreviewCheck?.title === 'The Father-and-Son Story | Mythical Void Studio', 'founding launch preview identity is missing');
 requireValue(pack.livePreviewCheck?.image === 'https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp' && pack.livePreviewCheck?.imageWidth === 1672 && pack.livePreviewCheck?.imageHeight === 941, 'founding launch preview image proof is missing');
 requireValue(pack.livePreviewCheck?.imageSha256 === '33900887fb56104c3fada02ccd965747b0dfab12be7b2c883c624ff8f448fc47', 'founding launch preview image fingerprint drifted');
@@ -124,6 +129,7 @@ requireValue(pack.nextChannel?.name === 'YouTube' && pack.nextChannel?.state ===
 for (const required of ['Nine-year-olds ask questions', 'No download or account is needed', 'NASA does not endorse Mythical Void', 'Do not continue a private conversation', 'exact public profile URL']) {
     requireValue(packText.includes(required), `founding launch copy is missing: ${required}`);
 }
+for (const required of ['The rest of the first week', 'https://mythicalvoid.com/playable-now/', 'https://mythicalvoid.com/creature-genetics/', 'Use the automatic link preview only']) requireValue(packText.includes(required), `founding launch first week is missing: ${required}`);
 requireValue(packText.includes('This exact preview is live and checked') && packText.includes('1672 × 941 pixels'), 'founding launch live-preview explanation is missing');
 requireValue(!/https:\/\/mythicalvoid\.com\/[^\s)`"]*[?&]/.test(packText), 'founding launch pack must use clean Mythical Void links');
 

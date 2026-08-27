@@ -36,10 +36,29 @@ try {
     if (runValidator(unknownClaim).status === 0) throw new Error('Unknown claim was accepted.');
 
     const wrongLink = structuredClone(campaign);
-    wrongLink.content[0].copy = wrongLink.content[0].copy.replace(campaign.canonicalUrl, 'https://example.com/');
+    wrongLink.content[0].copy = wrongLink.content[0].copy.replace(wrongLink.content[0].destinationUrl, 'https://example.com/');
     if (runValidator(wrongLink).status === 0) throw new Error('Unapproved destination was accepted.');
 
-    console.log('Playable Now launch tests passed: valid pack plus 5 unsafe mutations checked.');
+    const trackingLink = structuredClone(campaign);
+    trackingLink.content[0].destinationUrl += '?utm_source=social';
+    trackingLink.content[0].copy = trackingLink.content[0].copy.replace('https://mythicalvoid.com/playable-now/', trackingLink.content[0].destinationUrl);
+    if (runValidator(trackingLink).status === 0) throw new Error('Tracking destination was accepted.');
+
+    const blockedFirstWeekPost = structuredClone(campaign);
+    blockedFirstWeekPost.firstWeekSequence[2].contentId = 'PN-004';
+    if (runValidator(blockedFirstWeekPost).status === 0) throw new Error('A gameplay-blocked post was accepted into week one.');
+
+    const prematureReplies = structuredClone(campaign);
+    prematureReplies.firstWeekPublishing.commentsAndRepliesAuthorized = true;
+    if (runValidator(prematureReplies).status === 0) throw new Error('Premature reply authority was accepted.');
+
+    const wrongFirstWeekDestination = structuredClone(campaign);
+    const founder = wrongFirstWeekDestination.content.find(item => item.id === 'PN-002');
+    founder.copy = founder.copy.replace(founder.destinationUrl, 'https://mythicalvoid.com/parents/');
+    founder.destinationUrl = 'https://mythicalvoid.com/parents/';
+    if (runValidator(wrongFirstWeekDestination).status === 0) throw new Error('Wrong first-week destination was accepted.');
+
+    console.log('Playable Now launch tests passed: valid pack plus 9 unsafe mutations checked.');
 } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
 }

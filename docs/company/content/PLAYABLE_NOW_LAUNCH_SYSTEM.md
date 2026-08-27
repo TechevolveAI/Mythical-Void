@@ -23,11 +23,18 @@ This is not child-targeted behavioural advertising. Posts should be understandab
 
 ## The first four weeks
 
-### Week 1 — it is playable
+### Week 1 — one coherent introduction
 
-- Publish the short launch announcement.
-- Publish the father-and-son origin story on a professional channel.
-- Publish one short visual showing the breadth of the creature universe. Label the hero artwork as an AI-generated marketing illustration inspired by real genetics outputs, not gameplay.
+- **Day 1:** the father-and-son beginning, linking to `/studio/`.
+- **Day 3:** the plain “playable now” promise, linking to `/playable-now/`.
+- **Day 5:** the creature-genetics idea, linking to `/creature-genetics/`.
+
+All three use the reviewed automatic page preview of the creature-universe
+illustration. No gameplay image or video is uploaded. The illustration is
+labelled as AI-generated marketing artwork inspired by the genetics engine,
+not gameplay. Each post still needs Kevin’s exact-preview approval, a verified
+account, a named reply owner and backup, and a defined time when replies will
+be checked.
 
 ### Week 2 — prove the game
 

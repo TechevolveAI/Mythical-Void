@@ -23,6 +23,7 @@ const files = [
     'docs/company/growth/FAMILY_GUIDE_RECOMMENDATION_LOOP.json',
     'docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.json',
     'docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.md',
+    'docs/company/content/campaigns/playable-now-launch.json',
     'package.json'
 ];
 let caseCount = 0;
@@ -123,6 +124,7 @@ async function browserFamilyGuideCase({ nativeShare }) {
     invalid('public/discovery.js', source => source.split('shareCard.dataset.shareUrl').join("'https://example.com/'"), 'shareCard.dataset.shareUrl');
     invalid('docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.json', source => source.replace('"socialPublishingAuthorized": false', '"socialPublishingAuthorized": true'), 'socialPublishingAuthorized');
     invalid('docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.json', source => source.replace('"brokenImagesObserved": false', '"brokenImagesObserved": true'), 'founding launch preview visual check failed');
+    invalid('docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.json', source => source.replace('"PN-003"', '"PN-004"'), 'founding launch pack first-week sequence is missing or unsafe');
     invalid('public/updates/releases.json', source => source.replace('"id": "SIGNAL-017"', '"id": "SIGNAL-017-WITHDRAWN"'), 'Signal 017');
     invalid('public/updates/releases.json', source => source.replace('"id": "SIGNAL-023"', '"id": "SIGNAL-023-WITHDRAWN"'), 'Signal 023');
     invalid('docs/company/growth/HATCH_CHALLENGE_LOOP.json', source => source.replace('"multiplayerClaimed": false', '"multiplayerClaimed": true'), 'Hatch Challenge promise drifted');
@@ -178,8 +180,8 @@ async function browserFamilyGuideCase({ nativeShare }) {
     assert.strictEqual(familyCopied.copied, 'https://mythicalvoid.com/parents/');
     assert.strictEqual(familyCopied.status, 'Clean link copied — no tracking code.');
 
-    assert.strictEqual(caseCount, 17);
-    console.log('Word-of-mouth network evaluations passed (17 cases).');
+    assert.strictEqual(caseCount, 18);
+    console.log('Word-of-mouth network evaluations passed (18 cases).');
 })().catch(error => {
     console.error(error.stack || error.message);
     process.exit(1);
