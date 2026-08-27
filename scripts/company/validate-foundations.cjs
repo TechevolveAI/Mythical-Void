@@ -67,7 +67,7 @@ requireMatch(
 );
 requireMatch(
     llms,
-    /Privacy and safety: https:\/\/mythicalvoid\.com\/privacy\//,
+    /\[Privacy and safety\]\(https:\/\/mythicalvoid\.com\/privacy\/\)/,
     'llms.txt must link to privacy and safety information'
 );
 

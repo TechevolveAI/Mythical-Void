@@ -21,6 +21,43 @@ const correctId = 'G-FTM4W73ECQ';
 const incorrectId = 'G-FTM4W73EQC';
 const eventNames = ['play_selected', 'share_completed', 'share_link_copied'];
 
+const structuredData = [...index.matchAll(/<script\s+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)]
+    .map(match => {
+        try {
+            return JSON.parse(match[1]);
+        } catch {
+            failures.push('homepage contains invalid JSON-LD');
+            return null;
+        }
+    })
+    .filter(Boolean);
+const videoGame = structuredData.find(item => item['@type'] === 'VideoGame');
+const website = structuredData.find(item => item['@type'] === 'WebSite');
+
+if (!videoGame) failures.push('homepage VideoGame identity is missing');
+else {
+    if (videoGame['@id'] !== 'https://mythicalvoid.com/#video-game') failures.push('homepage VideoGame identity is not canonical');
+    if (videoGame.mainEntityOfPage !== 'https://mythicalvoid.com/') failures.push('homepage VideoGame does not identify the canonical page');
+    if (videoGame.creator?.['@id'] !== 'https://mythicalvoid.com/#studio') failures.push('homepage VideoGame creator is missing');
+    if (videoGame.potentialAction?.['@type'] !== 'PlayAction') failures.push('homepage direct Play action is missing');
+    if (videoGame.potentialAction?.target?.urlTemplate !== 'https://mythicalvoid.com/play/') failures.push('homepage Play action must use the clean direct game URL');
+    const actionPlatforms = videoGame.potentialAction?.target?.actionPlatform || [];
+    for (const platform of ['https://schema.org/DesktopWebPlatform', 'https://schema.org/MobileWebPlatform']) {
+        if (!actionPlatforms.includes(platform)) failures.push(`homepage Play action is missing ${platform}`);
+    }
+    if ('screenshot' in videoGame) failures.push('homepage VideoGame must not publish an unapproved gameplay screenshot');
+}
+
+if (!website) failures.push('homepage WebSite identity is missing');
+else {
+    if (website['@id'] !== 'https://mythicalvoid.com/#website') failures.push('homepage WebSite identity is not canonical');
+    if (website.url !== 'https://mythicalvoid.com/') failures.push('homepage WebSite URL is not canonical');
+    if (website.name !== 'Mythical Void') failures.push('homepage official site name must remain Mythical Void');
+    if (website.publisher?.['@id'] !== 'https://mythicalvoid.com/#studio') failures.push('homepage WebSite publisher is missing');
+    if (website.publisher?.logo?.url !== 'https://mythicalvoid.com/marketing/mythical-void-mark-512.png') failures.push('homepage WebSite publisher logo is missing');
+}
+if (!index.includes('<meta property="og:site_name" content="Mythical Void">')) failures.push('homepage social site name is missing');
+
 for (const [label, source] of [['index.html', index], ['public/discovery.js', discovery]]) {
     if (!source.includes(correctId)) failures.push(`${label}: user-supplied Google tag ID is missing`);
     if (source.includes(incorrectId)) failures.push(`${label}: swapped Google tag ID remains`);
@@ -43,7 +80,7 @@ for (const eventName of eventNames) {
 }
 if (!storefront.includes('share_link_copied')) failures.push('storefront: copied links are not measured');
 if (!storefront.includes('It is not used in the game')) failures.push('privacy page does not explain the game boundary');
-if (!storefront.includes('does not receive a message recipient')) failures.push('privacy page does not explain what sharing measurement excludes');
+if (!storefront.includes('does not send Google the full page you came from, a message recipient, contact detail, creature detail, game activity')) failures.push('privacy page does not explain what sharing measurement excludes');
 if (!consent.includes('whether website buttons lead to play or sharing')) failures.push('consent message does not describe the measurement');
 if (!index.includes("if (isGameRoute) return")) failures.push('game-route stop is missing');
 
@@ -58,7 +95,7 @@ if (!indexNow.includes("mode: 'dry_run'")) failures.push('IndexNow dry run is mi
 if (packageJson.scripts?.['submit:indexnow'] !== 'node scripts/company/submit-indexnow.cjs') failures.push('package.json: IndexNow command is missing');
 
 const sitemapUrls = [...sitemap.matchAll(/<loc>https:\/\/mythicalvoid\.com\/[^<]*<\/loc>/g)];
-if (sitemapUrls.length !== 13) failures.push(`sitemap should contain 13 public routes, found ${sitemapUrls.length}`);
+if (sitemapUrls.length !== 15) failures.push(`sitemap should contain 15 public routes, found ${sitemapUrls.length}`);
 
 if (failures.length) {
     console.error('Owned discovery release is not ready:\n');
@@ -74,5 +111,8 @@ console.log(JSON.stringify({
     eventNames,
     eventPropertyNames: ['source_page', 'source_area', 'transport_type'],
     indexNowDryRunDefault: true,
-    sitemapUrlCount: sitemapUrls.length
+    sitemapUrlCount: sitemapUrls.length,
+    officialSiteName: website?.name || null,
+    directPlayAction: videoGame?.potentialAction?.target?.urlTemplate || null,
+    gameplayScreenshotPublished: Boolean(videoGame && 'screenshot' in videoGame)
 }, null, 2));
