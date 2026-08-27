@@ -1,20 +1,20 @@
 {
   "schemaVersion": 1,
   "asOf": "2026-08-27",
-  "status": "private_candidates_rejected_before_adult_review",
+  "status": "latest_private_candidates_rejected_before_adult_review",
   "state": "no_launch_grade_gameplay_media_approved",
   "purpose": "Create a small, honest set of gameplay moments that makes a child or grown-up want to understand and try Mythical Void.",
   "candidateDirectory": ".visual-review/candidates/",
   "candidateDirectoryIsWebsiteContent": false,
   "currentVisualFinding": {
-    "source": "Kevin's direct testing feedback plus a complete automated editorial review of all stills and all 300 captured video frames from the corrected production build",
-    "finding": "The capture is now technically reliable: the creature stays rendered, the actors remain separate, the dimensions are correct and both videos meet their frame and duration checks. The playable scenes still fail the public visual bar because they are dark, flat, diagram-like, cluttered with tiny labels and missing a strong event or payoff.",
-    "decision": "Keep the entire media set withdrawn. Reject the 04:40 private run before adult or Kevin review; no exact asset, wording or channel is approval-ready."
+    "source": "Kevin's direct testing feedback plus a complete automated editorial review of all stills and all 230 captured video frames from the source-changed 10:07 private run",
+    "finding": "The forest now has real depth and the upward memory rain is more physical. The scenes still fail the public visual bar: realistic scenery, cartoon actors, flat map systems and detailed plant cutouts look like different games layered together. The creature is visible but its action is not; labels still explain what the scene should show; the movement sequence has no event or payoff.",
+    "decision": "Keep the entire media set withdrawn. Reject the 10:07 private run before adult or Kevin review; no exact asset, wording or channel is approval-ready."
   },
   "latestScreening": {
     "path": "docs/company/content/visual-screening-2026-08-27.json",
-    "sourceCommit": "3599733bfa5f62a17765554a6eb0d91e22516974",
-    "candidateRunId": "2026-08-27T04-40-00-000Z",
+    "sourceCommit": "024fe36012355e1e1bf75ea6650650c50d6346cc",
+    "candidateRunId": "2026-08-27T10-07-12-344Z",
     "decision": "all_four_rejected_before_kevin_review",
     "kevinReviewRequested": false
   },
@@ -32,12 +32,12 @@
     "externalActionTaken": false
   },
   "latestPrivateCandidateRun": {
-    "runId": "2026-08-27T04-40-00-000Z",
-    "createdAt": "2026-08-27T04:06:06.952Z",
-    "sourceCommit": "3599733bfa5f62a17765554a6eb0d91e22516974",
+    "runId": "2026-08-27T10-07-12-344Z",
+    "createdAt": "2026-08-27T10:10:35.432Z",
+    "sourceCommit": "024fe36012355e1e1bf75ea6650650c50d6346cc",
     "sourceProfileId": "MV-0813",
     "renderer": "player_facing_phaser_creature_renderer",
-    "manifest": ".visual-review/candidates/2026-08-27T04-40-00-000Z/manifest.json",
+    "manifest": ".visual-review/candidates/2026-08-27T10-07-12-344Z/manifest.json",
     "automatedScreening": "passed_obvious_fault_checks_only",
     "editorialScreening": "rejected_obvious_visual_faults",
     "adultFrameReview": "not_requested",
@@ -106,8 +106,8 @@
       "shot": "The creature visibly helps the player solve or survive one clear obstacle.",
       "mustShow": ["player and creature in the same frame", "one recognisable obstacle", "the creature's helpful action", "the immediate result"],
       "currentState": "candidate_rejected_obvious_visual_faults",
-      "evidence": ".visual-review/candidates/2026-08-27T04-40-00-000Z/creature-helps-phone.png",
-      "reason": "The action is now understandable and the creature is visible, but the flat, diagram-like composition and tiny instruction card do not create a strong desire to play."
+      "evidence": ".visual-review/candidates/2026-08-27T10-07-12-344Z/creature-helps-phone.png",
+      "reason": "The creature and result are visible, but the high-detail plant cutout, flat map world and cartoon actors do not share one visual style, and the creature's actual helping action is not shown."
     },
     {
       "id": "choice-changes-world",
@@ -115,8 +115,8 @@
       "shot": "One readable choice followed by a visible change in the world.",
       "mustShow": ["the choice in plain words", "the changed place, creature or relationship", "no unexplained menu clutter"],
       "currentState": "candidate_rejected_obvious_visual_faults",
-      "evidence": ".visual-review/candidates/2026-08-27T04-40-00-000Z/choice-after-phone.png",
-      "reason": "The before screen remains interface-heavy and the clearer after state still looks like a map or diagram instead of an exciting transformation in a living world."
+      "evidence": ".visual-review/candidates/2026-08-27T10-07-12-344Z/choice-after-phone.png",
+      "reason": "The choice words are readable, but the after state pastes a new cutout and bright connectors over the map instead of visibly transforming the existing world."
     },
     {
       "id": "strange-discovery",
@@ -124,8 +124,8 @@
       "shot": "The player and creature discover one memorable feature of an alien realm.",
       "mustShow": ["player and creature in the same frame", "one unusual realm feature", "a composition understandable without a caption"],
       "currentState": "candidate_rejected_obvious_visual_faults",
-      "evidence": ".visual-review/candidates/2026-08-27T04-40-00-000Z/strange-discovery-phone.png",
-      "reason": "Both actors are linked to the event, but the transparent echoes and current still resemble targeting or debug geometry and are confusing without small copy."
+      "evidence": ".visual-review/candidates/2026-08-27T10-07-12-344Z/strange-discovery-phone.png",
+      "reason": "The upward drops are more physical, but the small phenomenon is still buried among rings, lines and pasted plant art; neither character visibly reacts, so the caption still carries the meaning."
     },
     {
       "id": "movement-with-life",
@@ -133,8 +133,8 @@
       "shot": "A short uninterrupted stretch of play with the creature continuously present.",
       "mustShow": ["continuous creature rendering", "readable movement", "no menu takeover or dead time", "every frame watched at desktop and phone presentation size"],
       "currentState": "candidate_rejected_obvious_visual_faults",
-      "evidence": ".visual-review/candidates/2026-08-27T04-40-00-000Z/movement-alive-phone.mp4",
-      "reason": "Technical continuity now passes, but every frame review confirms a dark, flat test-level look, long stretches with little visual change and no clear beginning, event and payoff."
+      "evidence": ".visual-review/candidates/2026-08-27T10-07-12-344Z/movement-alive-phone.mp4",
+      "reason": "All 230 frames keep the creature rendered, but the realistic forest and cartoon sprites clash, the actors are tiny on desktop, a debug-like strip covers the ground and the journey has no obstacle, reaction or payoff."
     }
   ],
   "approvalRule": {
