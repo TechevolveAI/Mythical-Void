@@ -23,6 +23,13 @@ Not enabled by default: sending replies, contacting a child directly, storing ra
 
 Needed: choose the first channels, create them under the Mythical identity, reserve matching names, and name the person who approves posts.
 
+The exact no-extra-mailbox setup fields for LinkedIn and YouTube are ready in
+[`content/channel-launch/CHANNEL_OPENING_KIT_2026-08-27.md`](content/channel-launch/CHANNEL_OPENING_KIT_2026-08-27.md).
+LinkedIn can use Kevin's existing real profile to administer a free company
+Page. YouTube can use a Google Account Kevin already controls and a separate
+public Mythical Void channel name, provided YouTube is enabled for that
+account. Neither step requires another paid Google Workspace subscription.
+
 Enables: preparing channel-specific drafts, scheduling suggestions, and a review queue based on approved claims and real proof.
 
 Not enabled by default: publishing, replying to people, direct messaging, paid promotion, or creating new accounts.

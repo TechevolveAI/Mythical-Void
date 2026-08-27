@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "id": "CHANNEL-OPENING-KIT-001",
+  "asOf": "2026-08-27",
+  "state": "prepared_no_external_account_change",
+  "purpose": "Let Kevin open Mythical Void's first professional page and future video channel without buying another email service, inventing public claims or sharing passwords.",
+  "costPosition": {
+    "additionalGoogleWorkspaceSubscriptionRequired": false,
+    "linkedinCompanyPageCreationCost": "free",
+    "youtubeAccountRoute": "Use a Google Account Kevin already controls, provided YouTube is enabled for that account. The public channel can use the Mythical Void name.",
+    "warning": "A platform may offer optional paid products. None is required or authorized by this kit."
+  },
+  "channels": [
+    {
+      "channelRef": "CH-004",
+      "platform": "LinkedIn",
+      "kind": "Company Page",
+      "creationRoute": "Kevin's real personal LinkedIn profile creates and administers the separate company Page.",
+      "publicIdentity": {
+        "name": "Mythical Void",
+        "publicUrlCandidate": "linkedin.com/company/mythical-void",
+        "publicUrlAvailabilityVerified": false,
+        "website": "https://mythicalvoid.com/",
+        "industrySuggestion": "Computer Games",
+        "companySize": "Kevin selects the truthful value offered by LinkedIn; do not infer a staff count.",
+        "companyType": "Kevin selects the truthful legal status; do not imply incorporation or employees.",
+        "tagline": "A father-and-son studio building a free browser adventure of alien creatures, living worlds and meaningful choices.",
+        "about": "Mythical Void began in Ireland as a father-and-son project: Kevin and his nine-year-old son asking what imagination and generative AI tools could make possible. The result is a free browser adventure where players hatch strange alien creatures, cross six living realms, restore their guardians and decide what Project Beacon should tell Earth.\n\nWe are building Mythical as an AI-first, human-governed independent studio. AI helps us explore and create; people remain responsible for safety, story, public claims and important player choices. Selected public NASA material can appear in optional STEM discovery moments. NASA does not endorse Mythical Void.\n\nPlay: https://mythicalvoid.com/play/\nOur story: https://mythicalvoid.com/studio/"
+      },
+      "assets": {
+        "logo": "public/marketing/mythical-void-mark-512.png",
+        "coverSource": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
+        "coverRule": "Preview the final crop before use. It is AI-generated marketing artwork inspired by the creature engine, not gameplay."
+      },
+      "firstPublicAction": {
+        "preferredRoute": "Kevin may first publish the founder story from his existing professional profile; an official company Page is optional for that first post.",
+        "contentRef": "PN-002",
+        "campaignRef": "docs/company/content/campaigns/playable-now-launch.json",
+        "destination": "https://mythicalvoid.com/studio/",
+        "uploadedMediaRequired": false,
+        "automaticLinkPreviewOnly": true,
+        "state": "waiting_for_exact_profile_or_page_url_and_kevin_preview_approval"
+      }
+    },
+    {
+      "channelRef": "CH-002",
+      "platform": "YouTube",
+      "kind": "Business-name channel",
+      "creationRoute": "Use a Google Account Kevin already controls to create a channel with the Mythical Void public name. Use channel permissions for future helpers; never share the Google password.",
+      "publicIdentity": {
+        "name": "Mythical Void",
+        "handleCandidate": "@MythicalVoid",
+        "handleAvailabilityVerified": false,
+        "description": "Enter a free browser adventure where you hatch a strange alien creature, cross six living realms and decide what Project Beacon should tell Earth.\n\nMythical Void began in Ireland as a father-and-son project between Kevin and his nine-year-old son. We use generative AI as a creative tool, with people responsible for story, safety and important choices. Selected public NASA material can appear in optional STEM discovery moments. NASA does not endorse Mythical Void.\n\nPlay free: https://mythicalvoid.com/play/\nGame guide: https://mythicalvoid.com/playable-now/\nFor grown-ups: https://mythicalvoid.com/parents/"
+      },
+      "assets": {
+        "profileImage": "public/marketing/mythical-void-mark-512.png",
+        "banner": null,
+        "bannerRule": "Do not improvise a stretched crop. Approve a dedicated desktop, television and phone-safe banner before channel launch."
+      },
+      "releaseGate": {
+        "approvedAuthenticGameplayMoments": 0,
+        "requiredAuthenticGameplayMoments": 4,
+        "channelMayBeCreatedPrivately": true,
+        "videoPublicationReady": false,
+        "reason": "The channel may be reserved, but no trailer or gameplay-led launch should use the withdrawn weak visual pack."
+      }
+    }
+  ],
+  "ownership": {
+    "primaryOwner": "Kevin",
+    "backupOwner": "Unassigned",
+    "multiFactorAuthenticationRequired": true,
+    "recoveryVerified": false,
+    "passwordSharingPermitted": false,
+    "credentialsStoredInRepository": false,
+    "rule": "Record only the canonical public URL and named roles in the repository. Keep account addresses, recovery details and credentials outside it."
+  },
+  "moderation": {
+    "automatedRepliesAuthorized": false,
+    "directMessagesToChildrenPermitted": false,
+    "personalDataRequestsPermitted": false,
+    "publishOnlyWithNamedCoverage": true,
+    "firstPostCoverage": "Kevin or a named adult reviews public responses during the first 48 hours after publication.",
+    "childMessageRule": "Do not continue a private conversation that appears to be with a child. Do not request a name, age, school, location, image, voice or design."
+  },
+  "authority": {
+    "accountCreationAuthorized": false,
+    "platformTermsAcceptanceAuthorized": false,
+    "publishingAuthorized": false,
+    "replyingAuthorized": false,
+    "paidProductsAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "externalActionTaken": false
+  },
+  "kevinChecklist": [
+    "Choose whether the first founder post uses Kevin's existing LinkedIn profile or waits for a Mythical Void company Page.",
+    "If creating the Page, check the proposed LinkedIn public URL is available before confirming it.",
+    "If reserving YouTube, confirm YouTube is enabled on the existing Google Account and check the proposed handle is available.",
+    "Turn on multi-factor authentication and keep recovery details outside the repository.",
+    "Provide only the finished public URL; never paste a password or recovery code.",
+    "Name a backup owner before publishing from an official company channel.",
+    "Approve the complete first-post preview and a 48-hour response-coverage window."
+  ],
+  "sources": [
+    {
+      "name": "LinkedIn: Create a LinkedIn Page",
+      "url": "https://www.linkedin.com/help/linkedin/answer/a545752",
+      "supports": "A LinkedIn Page can be created for free from an existing LinkedIn account; the creator becomes its super admin."
+    },
+    {
+      "name": "LinkedIn: profiles and Pages",
+      "url": "https://www.linkedin.com/help/linkedin/answer/a6242790",
+      "supports": "A real personal profile is used to create and administer a separate organization Page."
+    },
+    {
+      "name": "YouTube: Create a channel",
+      "url": "https://support.google.com/youtube/answer/1646861?hl=en-GB",
+      "supports": "A Google Account can create a channel with a business or other name."
+    },
+    {
+      "name": "YouTube: channel permissions",
+      "url": "https://support.google.com/youtube/answer/9481328",
+      "supports": "Future helpers can receive scoped channel access without receiving the Google Account password."
+    }
+  ]
+}
