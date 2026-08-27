@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "LIVE-FIRST-IMPRESSION-001",
+  "checkedOn": "2026-08-27",
+  "liveSourceCommit": "538fcf26bc62aee998d1fb9ef5386a2b6672b0bb",
+  "result": "owned_entry_pass_game_return_visual_fail_external_launch_closed",
+  "scope": {
+    "homepageDesktop": { "width": 1280, "height": 720, "checked": true },
+    "homepagePhone": { "width": 390, "height": 844, "checked": true },
+    "gameFinderPhone": { "width": 390, "height": 844, "checked": true },
+    "returningGameDesktop": { "width": 1280, "height": 720, "checked": true },
+    "returningGamePhone": { "width": 390, "height": 844, "checked": true },
+    "freshFirstTimeGame": { "checked": false, "reason": "The controlled browser contained an existing saved adventure; no storage was inspected or changed." }
+  },
+  "passes": [
+    "Homepage promise and primary action are clear on desktop and phone",
+    "Creature-universe artwork becomes visible and distinctive",
+    "Game-finder access facts appear before optional mood choices",
+    "Public Play link reaches the live game",
+    "Sampled game load completed without a visible browser warning or error",
+    "Returning-player website wording changes Play to Continue"
+  ],
+  "conversionRisks": [
+    {
+      "id": "FI-001",
+      "severity": "launch_blocking_for_gameplay_led_distribution",
+      "finding": "The astronaut and creature overlap into a small block-like cluster in the sampled returning sanctuary view.",
+      "requiredProof": "Separate, recognisable player and creature silhouettes with visible creature life and action on desktop and phone."
+    },
+    {
+      "id": "FI-002",
+      "severity": "launch_blocking_for_gameplay_led_distribution",
+      "finding": "Several return notices compete before the player regains clear control.",
+      "requiredProof": "One primary return action, followed by delayed secondary notices after movement resumes."
+    },
+    {
+      "id": "FI-003",
+      "severity": "launch_blocking_for_phone_distribution",
+      "finding": "A dark rectangular layer dominates the sampled phone return view while interface elements appear behind or outside it.",
+      "requiredProof": "A composed phone return in which the world, creature, primary action and interface fit without clipping or a desktop-shaped slab."
+    },
+    {
+      "id": "FI-004",
+      "severity": "language_consistency",
+      "finding": "The live game return still exposes companion profile and Companion Link wording.",
+      "requiredProof": "Use creature consistently or record and review a deliberate story distinction."
+    },
+    {
+      "id": "FI-005",
+      "severity": "unverified_first_time_path",
+      "finding": "This run proves an existing saved-adventure return, not a clean first-time start.",
+      "requiredProof": "A fresh-browser Play-to-first-action review that does not inspect or retain player data."
+    }
+  ],
+  "visualGate": {
+    "approvedMoments": 0,
+    "requiredMoments": 4,
+    "returnSceneApprovedForPromotion": false,
+    "gameplayLedDistributionReady": false
+  },
+  "privacy": {
+    "savedStateInspected": false,
+    "savedNameRecorded": false,
+    "playerDetailsRecorded": false,
+    "screenshotsCommitted": false
+  },
+  "authority": {
+    "externalPublicationAuthorized": false,
+    "platformSubmissionAuthorized": false,
+    "socialPostingAuthorized": false,
+    "gameCodeChangeAuthorizedByThisRecord": false
+  }
+}
+

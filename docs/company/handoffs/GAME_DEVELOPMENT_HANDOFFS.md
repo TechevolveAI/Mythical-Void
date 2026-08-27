@@ -205,3 +205,45 @@ path, passes local SDK test-suite checks after access, uses platform saving and
 lifecycle controls, works across required shapes and input methods, starts
 within the platform limit, has complete rights evidence and reaches the 4/4
 human visual gate.
+
+## GDH-009 — Repair the live first impression after Play
+
+**Status:** launch-blocking presentation request; observed on the live returning
+route at commit `538fcf26bc62aee998d1fb9ef5386a2b6672b0bb`
+
+**Evidence:** the owned homepage and game-finder page were clear on desktop and
+phone, and the public Play link loaded the game without a sampled browser
+warning or error. The saved-adventure return did not meet the same standard:
+
+- **FI-001:** the astronaut and creature overlapped into a small block-like
+  cluster instead of reading as two living characters;
+- **FI-002:** sanctuary check-in, crystal and living-form notices competed
+  around the same return;
+- **FI-003:** on phone, a dark desktop-shaped layer dominated the view while
+  interface elements appeared behind or outside it;
+- **FI-004:** the live interface still exposed “companion profile” and
+  “Companion Link” wording;
+- **FI-005:** this was a returning visitor with an existing saved adventure, so
+  the clean first-time route remains unverified.
+
+**Request:** return two short, privacy-clean proofs on desktop and phone:
+
+1. a fresh visitor pressing Play and reaching the first meaningful action;
+2. a returning visitor pressing Continue and regaining clear control.
+
+In both, keep the astronaut and creature visually separate, give the creature
+a readable silhouette and visible life, show only one primary instruction at a
+time, delay secondary notices, compose the full phone view intentionally and
+use “creature” consistently unless a deliberate story distinction is recorded.
+
+**Constraints:** do not inspect or record a real save name, publish the sampled
+return scene, call a dark or clipped phone frame acceptable, or mark any of the
+four launch moments approved automatically.
+
+**Success:** an unfamiliar person can point to the creature, say what it is
+doing and identify the next action on desktop and phone; both fresh and
+returning paths pass human review; the result can then be considered for the
+separate 4/4 public visual gate.
+
+See
+[`growth/LIVE_DISCOVERY_TO_PLAY_AUDIT_2026-08-27.md`](../growth/LIVE_DISCOVERY_TO_PLAY_AUDIT_2026-08-27.md).
