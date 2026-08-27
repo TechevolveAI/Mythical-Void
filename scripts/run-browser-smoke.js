@@ -206,6 +206,28 @@ async function main() {
             failures.push(`first-sanctuary: ${error.message}`);
         }
 
+        console.log('\n[release-smoke] Late Living Portrait continuity suite');
+        try {
+            await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                SMOKE_MODE: 'living-form-late',
+                SMOKE_VIEWPORT_WIDTH: '390',
+                SMOKE_VIEWPORT_HEIGHT: '844'
+            });
+        } catch (error) {
+            failures.push(`living-form-late: ${error.message}`);
+        }
+
+        console.log('\n[release-smoke] NASA discovery fallback and learning suite');
+        try {
+            await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                SMOKE_MODE: 'nasa-content',
+                SMOKE_VIEWPORT_WIDTH: '390',
+                SMOKE_VIEWPORT_HEIGHT: '844'
+            });
+        } catch (error) {
+            failures.push(`nasa-content: ${error.message}`);
+        }
+
         console.log('\n[release-smoke] Genuine interaction suite');
         const interactionCases = [
             'egg',

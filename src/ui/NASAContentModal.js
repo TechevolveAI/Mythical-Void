@@ -17,6 +17,7 @@ class NASAContentModal {
         this.isAdvancing = false;
         this.dismissButton = null;
         this.previousDomContainerStyles = null;
+        this.imageLoadTimeout = null;
     }
 
     /**
@@ -131,25 +132,17 @@ class NASAContentModal {
         const imageMaxHeight = Math.min(width < 600 ? 220 : 280, panelHeight - 390);
 
         // Load and display image
-        let displayedImageHeight = imageMaxHeight;
-        try {
-            const displayedImage = await this.loadAndDisplayImage(
-                content.imageUrl,
-                centerX,
-                imageY,
-                imageMaxWidth,
-                imageMaxHeight
-            );
-            displayedImageHeight = displayedImage?.sceneHeight || imageMaxHeight;
-        } catch (e) {
-            // Show placeholder on error
-            const placeholder = this.scene.add.text(centerX, imageY + imageMaxHeight / 2,
-                '🌌 Image loading...', {
-                    fontSize: '18px',
-                    color: '#666666'
-                }).setOrigin(0.5).setScrollFactor(0).setDepth(16002);
-            this.elements.push(placeholder);
-        }
+        const displayedImageHeight = imageMaxHeight;
+        // The learning, source credit and dismiss action must never wait for a
+        // third-party image. The image resolves independently into either the
+        // official NASA asset or a clearly labelled local fallback.
+        void this.loadAndDisplayImage(
+            content.imageUrl,
+            centerX,
+            imageY,
+            imageMaxWidth,
+            imageMaxHeight
+        );
 
         // Description
         const descY = imageY + displayedImageHeight + 12;
@@ -324,12 +317,13 @@ class NASAContentModal {
      * Note: We don't use crossOrigin since we only need to display, not read pixels
      */
     async loadAndDisplayImage(url, x, y, maxWidth, maxHeight) {
-        return new Promise((resolve, reject) => {
-            console.log('[NASAModal] Loading image:', url);
+        return new Promise(resolve => {
 
             // Create HTML img element (no crossOrigin = can display any image)
             const img = document.createElement('img');
             img.referrerPolicy = 'no-referrer';
+            img.alt = 'Real NASA observation';
+            img.dataset.nasaSource = String(url || '');
 
             const canvas = this.scene.game?.canvas;
             const canvasBounds = canvas?.getBoundingClientRect?.() || {
@@ -367,61 +361,50 @@ class NASAContentModal {
             document.body.appendChild(img);
             this.htmlElements.push(img);
 
-            img.onload = () => {
-                console.log('[NASAModal] Image loaded! Size:', img.naturalWidth, 'x', img.naturalHeight);
+            let settled = false;
+            const finish = (isFallback = false) => {
+                if (settled) return;
+                settled = true;
+                if (this.imageLoadTimeout !== null) {
+                    clearTimeout(this.imageLoadTimeout);
+                    this.imageLoadTimeout = null;
+                }
                 img.style.backgroundColor = 'transparent';
                 requestAnimationFrame(() => {
                     const renderedHeight = img.getBoundingClientRect().height;
                     resolve({
-                        sceneHeight: renderedHeight / Math.max(scaleY, 0.001)
+                        sceneHeight: renderedHeight / Math.max(scaleY, 0.001),
+                        isFallback
                     });
                 });
             };
 
-            img.onerror = (e) => {
-                console.error('[NASAModal] Image FAILED to load!');
-                console.error('[NASAModal] URL:', url);
-                console.error('[NASAModal] Error event:', e);
-
-                // Show URL in placeholder for debugging
-                img.style.display = 'none';
-
-                // Create a text placeholder showing what went wrong
-                const placeholder = document.createElement('div');
-                placeholder.style.cssText = `
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -40%);
-                    width: ${maxWidth}px;
-                    height: ${maxHeight}px;
-                    background-color: #1A1A3E;
-                    border-radius: 10px;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    color: #888;
-                    font-family: Arial, sans-serif;
-                    font-size: 14px;
-                    text-align: center;
-                    padding: 20px;
-                    box-sizing: border-box;
-                    z-index: 10002;
-                `;
-                placeholder.innerHTML = `
-                    <div style="font-size: 48px; margin-bottom: 10px;">🌌</div>
-                    <div>Image couldn't load</div>
-                    <div style="font-size: 10px; color: #666; margin-top: 10px; word-break: break-all; max-width: 90%;">${url.substring(0, 100)}...</div>
-                `;
-                document.body.appendChild(placeholder);
-                this.htmlElements.push(placeholder);
-
-                reject(new Error('Failed to load image'));
+            const useFallback = () => {
+                if (img.dataset.fallbackApplied === 'true') {
+                    finish(true);
+                    return;
+                }
+                img.dataset.fallbackApplied = 'true';
+                img.alt = 'NASA image temporarily unavailable; source record remains below';
+                const fallback = [
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">',
+                    '<rect width="960" height="540" fill="#0d1026"/>',
+                    '<circle cx="190" cy="160" r="92" fill="#1d3154"/>',
+                    '<path d="M0 410 Q210 330 430 410 T960 385 V540 H0Z" fill="#293650"/>',
+                    '<text x="480" y="260" fill="#fff" font-family="Arial" font-size="32" font-weight="700" text-anchor="middle">NASA IMAGE TEMPORARILY UNAVAILABLE</text>',
+                    '<text x="480" y="308" fill="#8fe3cf" font-family="Arial" font-size="22" text-anchor="middle">The source record and credit remain below.</text>',
+                    '</svg>'
+                ].join('');
+                img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(fallback)}`;
             };
 
+            img.onload = () => finish(img.dataset.fallbackApplied === 'true');
+            img.onerror = useFallback;
+            this.imageLoadTimeout = setTimeout(useFallback, 8000);
+
             // Set src to start loading
-            img.src = url;
+            if (url) img.src = url;
+            else useFallback();
         });
     }
 
@@ -452,6 +435,10 @@ class NASAContentModal {
      * Cleanup all elements
      */
     cleanup() {
+        if (this.imageLoadTimeout !== null) {
+            clearTimeout(this.imageLoadTimeout);
+            this.imageLoadTimeout = null;
+        }
         // Cleanup Phaser elements
         this.elements.forEach(el => {
             if (el && el.destroy) {

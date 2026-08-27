@@ -245,8 +245,8 @@ class NASAContentSystem {
             type: 'apod',
             title: 'Real Space Discovery',
             subtitle: apod.title,
-            imageUrl: this.ensureHttps(apod.url),
-            hdUrl: this.ensureHttps(apod.hdurl),
+            imageUrl: this.buildImageDeliveryUrl(apod.url),
+            hdUrl: this.buildImageDeliveryUrl(apod.hdurl),
             description: this.simplifyDescription(apod.explanation),
             date: apod.date,
             realDataLabel: 'REAL NASA IMAGE',
@@ -274,7 +274,7 @@ class NASAContentSystem {
             type: 'mars',
             title: 'Real Space Discovery',
             subtitle: `${roverName} Rover — ${cameraName}`,
-            imageUrl: this.ensureHttps(mars.img_src),
+            imageUrl: this.buildImageDeliveryUrl(mars.img_src),
             description: `A real robot took this picture on Mars on Sol ${mars.sol}. A sol is one Martian day.`,
             date: mars.earth_date,
             realDataLabel: 'REAL NASA MARS IMAGE',
@@ -424,6 +424,34 @@ class NASAContentSystem {
     ensureHttps(url) {
         if (!url) return url;
         return url.replace(/^http:\/\//i, 'https://');
+    }
+
+    /**
+     * Deliver official NASA images through the same origin. Some NASA image
+     * hosts intermittently reject browser embedding even when their API and
+     * source page remain available; the bounded server route provides caching
+     * and a visible fallback without exposing an open proxy.
+     */
+    buildImageDeliveryUrl(url) {
+        const source = this.ensureHttps(url);
+        if (!source) return null;
+        try {
+            const parsed = new URL(source);
+            const hostname = parsed.hostname.toLowerCase();
+            if (
+                parsed.protocol !== 'https:' ||
+                (hostname !== 'nasa.gov' && !hostname.endsWith('.nasa.gov')) ||
+                parsed.username ||
+                parsed.password ||
+                parsed.port
+            ) {
+                return null;
+            }
+            parsed.hash = '';
+            return `/api/nasa-image?url=${encodeURIComponent(parsed.href)}`;
+        } catch (_error) {
+            return null;
+        }
     }
 
     /**
