@@ -75,9 +75,9 @@ function inspectVideo(file, expected) {
         stream.width !== expected.width ||
         stream.height !== expected.height ||
         !Number.isFinite(durationSeconds) ||
-        durationSeconds < 2 ||
+        durationSeconds < 6 ||
         !Number.isFinite(frameCount) ||
-        frameCount < 20
+        frameCount < 72
     ) {
         throw new Error(
             `Video failed dimensions, duration or frame count: ${JSON.stringify({
@@ -358,6 +358,17 @@ async function main() {
             sourceRoute: '/play/',
             sourceProfileId: shotList.sharedCaptureContract.profileId,
             renderer: shotList.sharedCaptureContract.renderer,
+            captureContract: {
+                minimumVisualBar: shotList.sharedCaptureContract.minimumVisualBar,
+                automaticRejectionChecks:
+                    shotList.sharedCaptureContract.automaticRejectionChecks,
+                actorMinimumGapPx:
+                    shotList.sharedCaptureContract.actorMinimumGapPx,
+                movementMinimumDurationSeconds:
+                    shotList.sharedCaptureContract.movementMinimumDurationSeconds,
+                movementMinimumFrames:
+                    shotList.sharedCaptureContract.movementMinimumFrames
+            },
             location: '.visual-review/candidates/',
             websiteAccessible: false,
             automatedScreening: {

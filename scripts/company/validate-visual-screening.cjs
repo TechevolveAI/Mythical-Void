@@ -12,13 +12,21 @@ const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 
 requireValue(screening.schemaVersion === 1, 'schemaVersion must be 1');
-requireValue(screening.screeningId === 'VISUAL-SCREEN-2026-08-27-01', 'screening identity drifted');
+requireValue(
+    /^VISUAL-SCREEN-\d{4}-\d{2}-\d{2}-\d{2}$/.test(screening.screeningId || ''),
+    'screening identity is malformed'
+);
 requireValue(/^[0-9a-f]{40}$/.test(screening.source?.commit || ''), 'source commit is missing');
 requireValue(screening.source?.route === '/play/', 'screening must come from the running game');
 requireValue(screening.source?.profileId === 'MV-0813', 'source creature profile drifted');
 requireValue(screening.source?.renderer === 'player_facing_phaser_creature_renderer', 'player renderer proof is missing');
 requireValue(screening.source?.candidateDirectory?.startsWith('.visual-review/candidates/'), 'candidate directory must remain private');
 requireValue(!screening.source?.candidateDirectory?.includes('public/'), 'candidate directory cannot be public');
+requireValue(
+    screening.source?.candidateDirectory ===
+        `.visual-review/candidates/${screening.source?.candidateRunId}/`,
+    'candidate run identity must match its private directory'
+);
 requireValue(/^[0-9a-f]{64}$/.test(screening.source?.manifestSha256 || ''), 'candidate manifest fingerprint is missing');
 requireValue(screening.source?.websiteAccessible === false, 'candidate run cannot be website-accessible');
 

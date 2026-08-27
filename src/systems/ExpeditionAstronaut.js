@@ -41,7 +41,7 @@ export function getExpeditionAstronautTextureKey(
 
 export function getExpeditionFollowOffset(mode = 'topDown', facingRight = true) {
     if (mode === 'platformer') {
-        return { x: facingRight ? -92 : 92, y: 2 };
+        return { x: facingRight ? -112 : 112, y: 2 };
     }
 
     return { x: facingRight ? -58 : 58, y: 24 };
@@ -179,7 +179,7 @@ export class ExpeditionAstronaut {
         this.mode = mode;
         this.fieldKitRecovered = fieldKitRecovered;
         this.katanaUpgradeIds = normalizeKatanaUpgradeIds(katanaUpgradeIds);
-        this.followDistance = followDistance ?? (mode === 'platformer' ? 96 : 68);
+        this.followDistance = followDistance ?? (mode === 'platformer' ? 112 : 68);
         this.sprite = null;
         this.shadow = null;
         this.trail = [];

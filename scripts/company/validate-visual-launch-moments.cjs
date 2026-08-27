@@ -105,6 +105,16 @@ function validateVisualLaunchMoments(document) {
         viewportIds.has('phone') && viewportIds.has('desktop'),
         'phone and desktop review viewports are required'
     );
+    requireValue(
+        contract.actorMinimumGapPx?.phone === 24 &&
+        contract.actorMinimumGapPx?.desktop === 36,
+        'phone and desktop actor-separation floors are required'
+    );
+    requireValue(
+        contract.movementMinimumDurationSeconds === 6 &&
+        contract.movementMinimumFrames === 72,
+        'movement must provide at least six seconds and 72 captured frames'
+    );
     const visualBar = new Set(contract.minimumVisualBar || []);
     for (const requirement of [
         'creature_body_recognisable_at_phone_size',
@@ -130,7 +140,9 @@ function validateVisualLaunchMoments(document) {
             observableStateGate: {
                 problem: 'blocked_food_route',
                 action: 'creature_sends_life_energy',
-                result: 'safe_food_route_open_with_regrowth_and_5_happiness'
+                result: 'safe_food_route_open_with_regrowth_and_5_happiness',
+                actionOrigin: 'creature_body',
+                resolvedObstacleRemainsReadable: true
             }
         },
         'VL-002': {
@@ -144,7 +156,12 @@ function validateVisualLaunchMoments(document) {
             observableStateGate: {
                 before: 'both_plain_language_options_visible_before_selection',
                 selection: 'clear_the_current_first',
-                after: 'living_route_reopens_and_memory_persists_in_world'
+                after: 'living_route_reopens_and_memory_persists_in_world',
+                worldEffects: [
+                    'bright_living_route',
+                    'visible_regrowth',
+                    'persistent_memory'
+                ]
             }
         },
         'VL-003': {
@@ -158,7 +175,8 @@ function validateVisualLaunchMoments(document) {
             observableStateGate: {
                 phenomenon: 'living_current_remembers_choice_v1',
                 linkedActors: 2,
-                worldAnchor: 'village_heart'
+                worldAnchor: 'village_heart',
+                renderedActorEchoes: 4
             }
         },
         'VL-004': {
@@ -170,7 +188,9 @@ function validateVisualLaunchMoments(document) {
                 'no_placeholder_missing_sprite_menu_dead_pause_or_explanatory_edit'
             ],
             observableStateGate: {
-                minimumFrames: 20,
+                minimumFrames: 72,
+                minimumDurationSeconds: 6,
+                minimumActorGapPx: { phone: 24, desktop: 36 },
                 renderer: 'player_facing_phaser_creature_renderer',
                 fallbackFramesAllowed: 0,
                 actorOverlapFramesAllowed: 0

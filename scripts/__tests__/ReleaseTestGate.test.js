@@ -55,6 +55,7 @@ describe('release test gate', () => {
         expect(source).toContain("'visual_launch_party'");
         expect(source).toContain('state.profileId !== expectedProfileId');
         expect(source).toContain('state.overlapArea > 0');
+        expect(source).toContain('state.actorGap < (state.viewport.width <= 600 ? 24 : 36)');
         expect(source).toContain('boundsInsideSafeFrame(state.creatureBounds)');
         expect(source).toContain('boundsInsideSafeFrame(state.astronautBounds)');
         expect(source).toContain("stageVillageVisualParty(session, 'Village worker help')");
@@ -70,6 +71,11 @@ describe('release test gate', () => {
         expect(source).toContain('const movementSamples = []');
         expect(source).toContain('Visual movement phone sample');
         expect(source).toContain('Visual movement desktop sample');
+        expect(source).toContain("'visual_movement_capture'");
+        expect(source).toContain('state.actorGap < (isPhone ? 24 : 36)');
+        expect(source).toContain('state.health !== state.maxHealth');
+        expect(source).toContain('const x = support.body.left + 450;');
+        expect(source).toContain("throw new Error('Visual movement poster was not captured during live input')");
     });
 
     test('private movement candidates include complete frame-review sheets', () => {
@@ -94,11 +100,19 @@ describe('release test gate', () => {
         expect(smoke).toContain("captureGameplayStill(session, 'village-heart-choice-mobile.png')");
         expect(smoke).toContain("heartMemory.visibleDiscovery !== 'THE PLANET REMEMBERS YOUR CHOICE'");
         expect(smoke).toContain("heartMemory.phenomenonLanguage !== 'living_current_remembers_choice_v1'");
+        expect(smoke).toContain('echoes.every(echo => echo.alpha >= 0.42)');
         expect(world).toContain(".setData('villageHelpProblem', 'blocked_food_route')");
         expect(world).toContain(".setData('villageHelpResult', 'safe_food_route_open')");
+        expect(world).toContain(".setData('villageHelpActionOrigin', 'creature_life_energy')");
+        expect(world).toContain(".setData('villageDecisionRouteOpened', 'living_current')");
+        expect(world).toContain(".setData('villageDecisionRegrowth', true)");
         expect(world).toContain(".setData('villagePlanetMemoryPhenomenon', true)");
         expect(world).toContain(".setData('linkedActorCount', linkedActors.length)");
+        expect(world).toContain(".setData('villageMemoryEcho', actorIndex === 0 ? 'creature' : 'astronaut')");
+        expect(world).toContain('alpha: { from: 0.28, to: echoIndex === 0 ? 0.68 : 0.5 }');
         expect(capture).toContain("'village-heart-choice-mobile.png'");
+        expect(capture).toContain('durationSeconds < 6');
+        expect(capture).toContain('frameCount < 72');
         expect(capture).not.toContain("'village-heart-choice-recap-mobile.png', `choice-before-");
     });
 
@@ -291,6 +305,10 @@ describe('release test gate', () => {
 
         expect(source).toContain('async function smokeFirstSanctuaryOnboarding');
         expect(source).toContain("SMOKE_MODE === 'first-sanctuary'");
+        expect(source).toContain("await waitForScene(session, 'SoulRevealScene', 2500)");
+        expect(source).toContain('Production intentionally ignores preview query parameters');
+        expect(source).toContain("game.scene.start('SoulRevealScene', {");
+        expect(source).toContain('Could not stage production SoulRevealScene');
         expect(source).toContain("'[data-testid=\"living-form-continue\"]'");
         expect(source).toContain('Project Beacon story page ${expectedPage}');
         expect(source).toContain('Story page ${page} response exceeded 1500ms');

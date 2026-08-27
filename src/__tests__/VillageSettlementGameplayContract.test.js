@@ -434,6 +434,7 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain("'THE NEXT USEFUL CHANGE'");
         expect(source).toContain("'CONTINUE WITH THE SANCTUARY'");
         expect(source).toContain('OPEN FULL PLAN');
+        expect(source).toContain("onboarding.showFullPlan && intent !== 'decision'");
         expect(source).toContain('createCommunityShortcut(snapshot');
         expect(source).toContain("'village-community-shortcut'");
         expect(source).toContain("'village-community-shortcut-portraits'");
@@ -512,6 +513,8 @@ describe('Village settlement gameplay contract', () => {
         expect(css).toContain('.village-heart-sheet');
         expect(css).toContain('.village-guided-stage');
         expect(css).toContain(".village-guided-stage[data-intent='decision']");
+        expect(css).toContain(".village-heart-sheet[data-intent='decision'] .village-guided-footer");
+        expect(css).toContain(".village-guided-stage[data-intent='decision'] .village-decision-values");
         expect(css).toContain('.village-guided-primary');
         expect(css).toContain('.village-community-pulse');
         expect(css).toContain('.village-community-home');
@@ -770,7 +773,7 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('landmark.nextActionRing?.setAlpha(storyMode ? 0 : 1);');
         expect(world).toContain("setData('villageDecisionGroundResponse', true)");
         expect(world).toContain("copy.setData('resonanceVerticalOffset', compact ? 360 : 330)");
-        expect(world).toContain("copy.setData('resonanceVerticalOffset', compact ? 375 : 345)");
+        expect(world).toContain("copy.setData('resonanceVerticalOffset', compact ? 270 : 345)");
         expect(world).toContain("setData('villageNextAction'");
         expect(world).toContain("setData('routeDirection', 'to_heart')");
         expect(world).toContain("setData('villageDeliveryPulse', true)");
