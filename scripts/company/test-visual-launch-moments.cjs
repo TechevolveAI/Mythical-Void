@@ -50,8 +50,8 @@ expectFailure('candidate renderer substitution', value => {
 expectFailure('candidate editorial rejection removed', value => {
     delete value.latestPrivateCandidateRun.editorialScreening;
 });
-expectFailure('candidate run drifted from screening', value => {
-    value.latestPrivateCandidateRun.runId = '2026-08-26T00-00-00-000Z';
+expectFailure('candidate source identity is malformed', value => {
+    value.latestPrivateCandidateRun.sourceCommit = 'not-a-commit';
 });
 expectFailure('rejected work sent to Kevin', value => {
     value.latestScreening.kevinReviewRequested = true;
@@ -62,6 +62,15 @@ expectFailure('substituted non-observable evidence', value => {
         'menu_is_visible',
         'background_looks_good'
     ];
+});
+expectFailure('caption-only help state', value => {
+    value.moments[0].observableStateGate.result = 'dialogue_says_route_open';
+});
+expectFailure('unlinked strange discovery', value => {
+    value.moments[2].observableStateGate.linkedActors = 0;
+});
+expectFailure('movement permits fallback frame', value => {
+    value.moments[3].observableStateGate.fallbackFramesAllowed = 1;
 });
 expectFailure('unimplemented substitute state', value => {
     value.moments[2].playableState = 'concept_art_only';

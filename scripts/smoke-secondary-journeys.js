@@ -15493,7 +15493,21 @@ async function smokeVillageUi(session, exceptions) {
     ) {
         throw new Error(`Village worker route was unavailable: ${JSON.stringify(workerRoute)}`);
     }
-    if (SMOKE_VIEWPORT_WIDTH <= 600) {
+    const workerVisualParty = SMOKE_CASE === 'visual-launch'
+        ? await stageVillageVisualParty(session, 'Village worker help')
+        : null;
+    if (workerVisualParty) {
+        const activated = await evaluate(session, `(() => {
+            const worker = window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark?.workerElements?.[0];
+            if (!worker?.input?.enabled) return false;
+            worker.emit('pointerdown');
+            return true;
+        })()`);
+        if (!activated) {
+            throw new Error('Village worker visual fixture could not activate its real pointer handler');
+        }
+    } else if (SMOKE_VIEWPORT_WIDTH <= 600) {
         await touch(session, workerRoute.x, workerRoute.y);
     } else {
         await tap(session, workerRoute.x, workerRoute.y);
@@ -15535,7 +15549,7 @@ async function smokeVillageUi(session, exceptions) {
         };
     })()`);
     if (
-        workerCheckIn.elementCount !== 3 ||
+        workerCheckIn.elementCount < 6 ||
         workerCheckIn.helperName !== 'Nova' ||
         workerCheckIn.buildingId !== 'forager_hut' ||
         workerCheckIn.routineCue !== 'MAPS SAFE FOOD PATHS' ||
@@ -15558,9 +15572,53 @@ async function smokeVillageUi(session, exceptions) {
     ) {
         throw new Error(`Village worker check-in failed: ${JSON.stringify(workerCheckIn)}`);
     }
-    const workerVisualParty = SMOKE_CASE === 'visual-launch'
-        ? await stageVillageVisualParty(session, 'Village worker help')
-        : null;
+    const visibleHelpResult = await waitFor(
+        () => evaluate(session, `(() => {
+            const landmark = window.mythicalGame.scene.getScene('GameScene')
+                ?.villageHeartLandmark;
+            const checkIn = landmark?.activeWorkerCheckIn;
+            const openedRoute = landmark?.workerCheckInElements?.find(
+                element => element?.getData?.('villageHelpResult') === 'safe_food_route_open'
+            );
+            const blockedRoute = landmark?.workerCheckInElements?.find(
+                element => element?.getData?.('villageHelpProblem') === 'blocked_food_route'
+            );
+            const resultLabel = landmark?.workerCheckInElements?.find(
+                element => element?.getData?.('villageHelpResultLabel') === true
+            );
+            const regrowth = landmark?.workerCheckInElements?.find(
+                element => element?.getData?.('villageHelpRegrowth') === true
+            );
+            const state = {
+                action: checkIn.getData('helpAction'),
+                problem: checkIn.getData('helpProblem'),
+                result: checkIn.getData('helpResult'),
+                openedRouteAlpha: openedRoute?.alpha,
+                blockedRouteAlpha: blockedRoute?.alpha,
+                regrowthAlpha: regrowth?.alpha,
+                resultLabelAlpha: resultLabel?.alpha
+            };
+            return checkIn?.getData('helpResultVisible') === true &&
+                state.openedRouteAlpha >= 0.9 &&
+                state.blockedRouteAlpha <= 0.2 &&
+                state.regrowthAlpha >= 0.9 &&
+                state.resultLabelAlpha >= 0.9
+                    ? state
+                    : null;
+        })()`),
+        { timeoutMs: 4000, message: 'Creature help changes the route in the same shot' }
+    );
+    if (
+        visibleHelpResult.action !== 'CREATURE SENDS LIFE ENERGY' ||
+        visibleHelpResult.problem !== 'BLOCKED FOOD ROUTE' ||
+        visibleHelpResult.result !== 'ROUTE OPEN +5 HAPPINESS' ||
+        visibleHelpResult.openedRouteAlpha < 0.9 ||
+        visibleHelpResult.blockedRouteAlpha > 0.2 ||
+        visibleHelpResult.regrowthAlpha < 0.9 ||
+        visibleHelpResult.resultLabelAlpha < 0.9
+    ) {
+        throw new Error(`Creature help was not visibly resolved: ${JSON.stringify(visibleHelpResult)}`);
+    }
     await captureGameplayStill(session, 'village-worker-check-in-mobile.png');
     await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
@@ -15934,6 +15992,7 @@ async function smokeVillageUi(session, exceptions) {
     ) {
         throw new Error(`Village guided Heart sheet failed: ${JSON.stringify(guidedDecision)}`);
     }
+    await captureGameplayStill(session, 'village-heart-choice-mobile.png');
 
     const decisionChoice = await evaluate(session, `(() => {
         const option = document.querySelector('.village-decision-option[data-value="care"]');
@@ -16815,6 +16874,9 @@ async function smokeVillageUi(session, exceptions) {
             `Village resident greeting edge clamp failed: ${JSON.stringify(residentGreetingEdgeClamp)}`
         );
     }
+    const discoveryVisualParty = SMOKE_CASE === 'visual-launch'
+        ? await stageVillageVisualParty(session, 'Village strange discovery')
+        : null;
     const followUpStarted = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         scene.worldBuilder.clearVillageDecisionMoment(scene.villageHeartLandmark);
@@ -16853,6 +16915,12 @@ async function smokeVillageUi(session, exceptions) {
             resonanceBackdrop: followUp?.list?.some(
                 child => child?.getData?.('villageResonanceBackdrop') === true
             ) === true,
+            planetMemoryPhenomenon: followUp?.getData('planetMemoryPhenomenon') === true,
+            linkedActorCount: followUp?.getData('linkedActorCount'),
+            visibleDiscovery: followUp?.getData('visibleDiscovery'),
+            phenomenonLanguage: landmark?.communityMomentElements?.find(
+                element => element?.getData?.('villagePlanetMemoryPhenomenon') === true
+            )?.getData?.('phenomenonLanguage'),
             markerCount: markers.length,
             markerActive: markers.every(marker => marker.active === true),
             markerInteractive: markers.every(marker => marker.input?.enabled === true),
@@ -16892,6 +16960,10 @@ async function smokeVillageUi(session, exceptions) {
         heartMemory.resonanceStyle !== 'current_ribbon' ||
         heartMemory.resonanceAnchor !== 'village_heart' ||
         !heartMemory.resonanceBackdrop ||
+        !heartMemory.planetMemoryPhenomenon ||
+        heartMemory.linkedActorCount !== 2 ||
+        heartMemory.visibleDiscovery !== 'THE PLANET REMEMBERS YOUR CHOICE' ||
+        heartMemory.phenomenonLanguage !== 'living_current_remembers_choice_v1' ||
         heartMemory.markerCount !== 1 ||
         !heartMemory.markerActive ||
         !heartMemory.markerInteractive ||
@@ -16908,9 +16980,6 @@ async function smokeVillageUi(session, exceptions) {
     ) {
         throw new Error(`Village Heart persistent memory failed: ${JSON.stringify(heartMemory)}`);
     }
-    const discoveryVisualParty = SMOKE_CASE === 'visual-launch'
-        ? await stageVillageVisualParty(session, 'Village strange discovery')
-        : null;
     await captureGameplayStill(session, 'village-heart-memory-mobile.png');
     if (SMOKE_CASE === 'visual-launch') {
         if (exceptions.length) {

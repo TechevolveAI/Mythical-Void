@@ -69,7 +69,10 @@ function validateVisualLaunchMoments(document) {
         );
         requireValue(
             candidateRun.automatedScreening === 'passed_obvious_fault_checks_only' &&
-            candidateRun.editorialScreening === 'rejected_obvious_visual_faults' &&
+            [
+                'pending_adult_frame_review',
+                'rejected_obvious_visual_faults'
+            ].includes(candidateRun.editorialScreening) &&
             candidateRun.adultFrameReview === 'pending' &&
             candidateRun.kevinApproval === 'not_requested' &&
             candidateRun.publicationAuthorized === false,
@@ -112,7 +115,12 @@ function validateVisualLaunchMoments(document) {
                 'astronaut_and_creature_face_one_obvious_problem_together',
                 'creature_action_is_recognisable',
                 'result_appears_in_the_same_uninterrupted_shot'
-            ]
+            ],
+            observableStateGate: {
+                problem: 'blocked_food_route',
+                action: 'creature_sends_life_energy',
+                result: 'safe_food_route_open_with_regrowth_and_5_happiness'
+            }
         },
         'VL-002': {
             playableState: 'sanctuary_heart_choice',
@@ -121,7 +129,12 @@ function validateVisualLaunchMoments(document) {
                 'choice_is_stated_in_plain_words',
                 'consequence_is_visible_after_the_menu_closes',
                 'world_or_relationship_change_persists'
-            ]
+            ],
+            observableStateGate: {
+                before: 'both_plain_language_options_visible_before_selection',
+                selection: 'clear_the_current_first',
+                after: 'living_route_reopens_and_memory_persists_in_world'
+            }
         },
         'VL-003': {
             playableState: 'village_heart_living_memory',
@@ -130,7 +143,12 @@ function validateVisualLaunchMoments(document) {
                 'mythical_void_specific_memory_or_current_behavior',
                 'astronaut_and_creature_remain_visible',
                 'discovery_is_part_of_the_world_not_background_art'
-            ]
+            ],
+            observableStateGate: {
+                phenomenon: 'living_current_remembers_choice_v1',
+                linkedActors: 2,
+                worldAnchor: 'village_heart'
+            }
         },
         'VL-004': {
             playableState: 'mythical_forest_normal_movement',
@@ -139,7 +157,13 @@ function validateVisualLaunchMoments(document) {
                 'continuous_normal_play',
                 'creature_stays_fully_rendered_and_recognisable',
                 'no_placeholder_missing_sprite_menu_dead_pause_or_explanatory_edit'
-            ]
+            ],
+            observableStateGate: {
+                minimumFrames: 20,
+                renderer: 'player_facing_phaser_creature_renderer',
+                fallbackFramesAllowed: 0,
+                actorOverlapFramesAllowed: 0
+            }
         }
     };
     const expectedIds = Object.keys(expectedMoments);
@@ -179,7 +203,17 @@ function validateVisualLaunchMoments(document) {
             `${label} observable evidence contract changed`
         );
         requireValue(
-            ['capture_pending', 'candidate_under_human_review', 'candidate_rejected_obvious_visual_faults'].includes(
+            Boolean(expected) &&
+            JSON.stringify(moment?.observableStateGate) ===
+                JSON.stringify(expected.observableStateGate),
+            `${label} observable state gate changed`
+        );
+        requireValue(
+            [
+                'capture_pending',
+                'candidate_under_human_review',
+                'candidate_rejected_obvious_visual_faults'
+            ].includes(
                 moment?.reviewStatus
             ),
             `${label} cannot claim review or approval before human review`
@@ -207,11 +241,26 @@ function validateVisualLaunchMoments(document) {
         document?.latestScreening?.kevinReviewRequested === false,
         'latest screening decision is missing or incorrectly asks Kevin to review rejected work'
     );
-    requireValue(
-        moments.every(moment => moment?.reviewStatus === 'candidate_rejected_obvious_visual_faults') &&
+    const screeningMatchesCurrentRun =
         candidateRun?.runId === document?.latestScreening?.candidateRunId &&
-        candidateRun?.sourceCommit === document?.latestScreening?.sourceCommit,
-        'latest rejected candidates must match the private run and screening record'
+        candidateRun?.sourceCommit === document?.latestScreening?.sourceCommit;
+    const currentRunRejected = moments.every(moment => (
+        moment?.reviewStatus === 'candidate_rejected_obvious_visual_faults'
+    ));
+    const sourceChangedReplacementPending = moments.every(moment => (
+        moment?.reviewStatus === 'candidate_under_human_review'
+    ));
+    requireValue(
+        (
+            screeningMatchesCurrentRun &&
+            currentRunRejected &&
+            candidateRun?.editorialScreening === 'rejected_obvious_visual_faults'
+        ) || (
+            !screeningMatchesCurrentRun &&
+            sourceChangedReplacementPending &&
+            candidateRun?.editorialScreening === 'pending_adult_frame_review'
+        ),
+        'current candidates must be either the recorded rejection or a source-changed private replacement pending human review'
     );
 
     return {

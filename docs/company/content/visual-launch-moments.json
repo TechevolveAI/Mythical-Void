@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "asOf": "2026-08-27",
-  "status": "latest_candidates_rejected_game_iteration_needed",
+  "status": "private_candidates_prepared_human_review_pending",
   "state": "no_launch_grade_gameplay_media_approved",
   "purpose": "Create a small, honest set of gameplay moments that makes a child or grown-up want to understand and try Mythical Void.",
   "candidateDirectory": ".visual-review/candidates/",
@@ -9,7 +9,7 @@
   "currentVisualFinding": {
     "source": "Kevin's direct testing feedback and a fresh full-size review of the current public capture set",
     "finding": "The existing public media does not communicate the game well enough. Private replacement candidates must remain outside the website until an adult reviews every frame and Kevin approves the exact asset, wording and channel.",
-    "decision": "Keep the entire old media set withdrawn and block its direct public URLs. The fresh 2026-08-27 candidate run also failed the obvious visual-quality screen, so do not ask Kevin to approve it and do not replace the old media with it."
+    "decision": "Keep the entire old media set withdrawn and block its direct public URLs. The rejected 23:25 run remains screening history. A source-changed 23:57 replacement run passed automated obvious-fault checks but remains private until adult frame review and Kevin's exact approval."
   },
   "latestScreening": {
     "path": "docs/company/content/visual-screening-2026-08-27.json",
@@ -32,14 +32,14 @@
     "externalActionTaken": false
   },
   "latestPrivateCandidateRun": {
-    "runId": "2026-08-26T23-25-13-280Z",
-    "createdAt": "2026-08-26T23:27:33.455Z",
-    "sourceCommit": "34ca036f77f7181b7ca578c740e565b4005d2969",
+    "runId": "2026-08-26T23-57-56-859Z",
+    "createdAt": "2026-08-27T00:00:38.185Z",
+    "sourceCommit": "82b9d59ae2a006107480dbcba44f60e64c1a16ae",
     "sourceProfileId": "MV-0813",
     "renderer": "player_facing_phaser_creature_renderer",
-    "manifest": ".visual-review/candidates/2026-08-26T23-25-13-280Z/manifest.json",
+    "manifest": ".visual-review/candidates/2026-08-26T23-57-56-859Z/manifest.json",
     "automatedScreening": "passed_obvious_fault_checks_only",
-    "editorialScreening": "rejected_obvious_visual_faults",
+    "editorialScreening": "pending_adult_frame_review",
     "adultFrameReview": "pending",
     "kevinApproval": "not_requested",
     "publicationAuthorized": false
@@ -70,6 +70,10 @@
       "actor_overlap",
       "action_outside_central_safe_frame",
       "modal_or_menu_interrupts_action",
+      "caption_only_proof_without_visible_world_action",
+      "choice_capture_omits_plain_pre_choice_options",
+      "strange_discovery_does_not_link_both_actors",
+      "movement_renderer_changes_between_frames",
       "capture_dimensions_wrong",
       "video_too_short_or_missing_frames"
     ]
@@ -80,36 +84,36 @@
       "publicQuestion": "What can my creature and I do together?",
       "shot": "The creature visibly helps the player solve or survive one clear obstacle.",
       "mustShow": ["player and creature in the same frame", "one recognisable obstacle", "the creature's helpful action", "the immediate result"],
-      "currentState": "candidate_rejected_obvious_visual_faults",
-      "evidence": ".visual-review/candidates/2026-08-26T23-25-13-280Z/creature-helps-phone.png",
-      "reason": "The latest technical capture is real, but the message box explains the action while covering the focal area; the creature's help and result are not visually obvious."
+      "currentState": "candidate_under_human_review",
+      "evidence": ".visual-review/candidates/2026-08-26T23-57-56-859Z/creature-helps-phone.png",
+      "reason": "A private phone and desktop candidate passed obvious-fault screening. Human visual review and Kevin approval remain pending."
     },
     {
       "id": "choice-changes-world",
       "publicQuestion": "Do my choices actually matter?",
       "shot": "One readable choice followed by a visible change in the world.",
       "mustShow": ["the choice in plain words", "the changed place, creature or relationship", "no unexplained menu clutter"],
-      "currentState": "candidate_rejected_obvious_visual_faults",
-      "evidence": ".visual-review/candidates/2026-08-26T23-25-13-280Z/choice-before-phone.png",
-      "reason": "The before frame is dominated by a large menu and the after frame changes too subtly for a child or new player to understand without explanation."
+      "currentState": "candidate_under_human_review",
+      "evidence": ".visual-review/candidates/2026-08-26T23-57-56-859Z/choice-before-phone.png",
+      "reason": "Private before-and-after candidates passed obvious-fault screening. Human visual review and Kevin approval remain pending."
     },
     {
       "id": "strange-discovery",
       "publicQuestion": "What is surprising about this universe?",
       "shot": "The player and creature discover one memorable feature of an alien realm.",
       "mustShow": ["player and creature in the same frame", "one unusual realm feature", "a composition understandable without a caption"],
-      "currentState": "candidate_rejected_obvious_visual_faults",
-      "evidence": ".visual-review/candidates/2026-08-26T23-25-13-280Z/strange-discovery-phone.png",
-      "reason": "The discovery frame repeats the same Sanctuary composition and reads as an interface effect rather than an unforgettable alien discovery."
+      "currentState": "candidate_under_human_review",
+      "evidence": ".visual-review/candidates/2026-08-26T23-57-56-859Z/strange-discovery-phone.png",
+      "reason": "A private phone and desktop candidate passed obvious-fault screening. Human visual review and Kevin approval remain pending."
     },
     {
       "id": "movement-with-life",
       "publicQuestion": "Does this feel alive when it moves?",
       "shot": "A short uninterrupted stretch of play with the creature continuously present.",
       "mustShow": ["continuous creature rendering", "readable movement", "no menu takeover or dead time", "every frame watched at desktop and phone presentation size"],
-      "currentState": "candidate_rejected_obvious_visual_faults",
-      "evidence": ".visual-review/candidates/2026-08-26T23-25-13-280Z/movement-alive-phone.mp4",
-      "reason": "The latest movement frame is mostly empty dark space with clipped level geometry, and a fresh six-realm capture stopped when the forest missed its mobile frame budget."
+      "currentState": "candidate_under_human_review",
+      "evidence": ".visual-review/candidates/2026-08-26T23-57-56-859Z/movement-alive-phone.mp4",
+      "reason": "Private phone and desktop movement candidates passed continuity screening. Every frame still requires adult review and Kevin approval."
     }
   ],
   "approvalRule": {
@@ -129,9 +133,14 @@
       "playableState": "sanctuary_worker_check_in_and_delivery",
       "plainLanguageBeat": "Nova maps food paths that regrow. The Sanctuary gains 5 happiness.",
       "requiredEvidence": ["astronaut_and_creature_face_one_obvious_problem_together", "creature_action_is_recognisable", "result_appears_in_the_same_uninterrupted_shot"],
+      "observableStateGate": {
+        "problem": "blocked_food_route",
+        "action": "creature_sends_life_energy",
+        "result": "safe_food_route_open_with_regrowth_and_5_happiness"
+      },
       "candidateAssets": { "phone": "creature-helps-phone.png", "desktop": "creature-helps-desktop.png" },
       "implementationStatus": "playable_state_available",
-      "reviewStatus": "candidate_rejected_obvious_visual_faults"
+      "reviewStatus": "candidate_under_human_review"
     },
     {
       "id": "VL-002",
@@ -140,9 +149,14 @@
       "playableState": "sanctuary_heart_choice",
       "plainLanguageBeat": "Clear the current first. The current moves again and a living route opens through the Sanctuary.",
       "requiredEvidence": ["choice_is_stated_in_plain_words", "consequence_is_visible_after_the_menu_closes", "world_or_relationship_change_persists"],
+      "observableStateGate": {
+        "before": "both_plain_language_options_visible_before_selection",
+        "selection": "clear_the_current_first",
+        "after": "living_route_reopens_and_memory_persists_in_world"
+      },
       "candidateAssets": { "phoneBefore": "choice-before-phone.png", "phoneAfter": "choice-after-phone.png", "desktopBefore": "choice-before-desktop.png", "desktopAfter": "choice-after-desktop.png" },
       "implementationStatus": "playable_state_available",
-      "reviewStatus": "candidate_rejected_obvious_visual_faults"
+      "reviewStatus": "candidate_under_human_review"
     },
     {
       "id": "VL-003",
@@ -151,9 +165,14 @@
       "playableState": "village_heart_living_memory",
       "plainLanguageBeat": "The Village Heart remembers a choice as a visible current woven into the terrain.",
       "requiredEvidence": ["mythical_void_specific_memory_or_current_behavior", "astronaut_and_creature_remain_visible", "discovery_is_part_of_the_world_not_background_art"],
+      "observableStateGate": {
+        "phenomenon": "living_current_remembers_choice_v1",
+        "linkedActors": 2,
+        "worldAnchor": "village_heart"
+      },
       "candidateAssets": { "phone": "strange-discovery-phone.png", "desktop": "strange-discovery-desktop.png" },
       "implementationStatus": "playable_state_available",
-      "reviewStatus": "candidate_rejected_obvious_visual_faults"
+      "reviewStatus": "candidate_under_human_review"
     },
     {
       "id": "VL-004",
@@ -162,9 +181,15 @@
       "playableState": "mythical_forest_normal_movement",
       "plainLanguageBeat": "Nova and the astronaut travel together through the living forest.",
       "requiredEvidence": ["continuous_normal_play", "creature_stays_fully_rendered_and_recognisable", "no_placeholder_missing_sprite_menu_dead_pause_or_explanatory_edit"],
+      "observableStateGate": {
+        "minimumFrames": 20,
+        "renderer": "player_facing_phaser_creature_renderer",
+        "fallbackFramesAllowed": 0,
+        "actorOverlapFramesAllowed": 0
+      },
       "candidateAssets": { "phoneVideo": "movement-alive-phone.mp4", "phonePoster": "movement-alive-phone.png", "desktopVideo": "movement-alive-desktop.mp4", "desktopPoster": "movement-alive-desktop.png" },
       "implementationStatus": "capture_journey_ready",
-      "reviewStatus": "candidate_rejected_obvious_visual_faults"
+      "reviewStatus": "candidate_under_human_review"
     }
   ]
 }

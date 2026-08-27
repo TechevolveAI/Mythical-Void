@@ -77,11 +77,23 @@ requireValue(plan.latestScreening?.candidateRunId === latestScreening?.source?.c
 requireValue(plan.latestScreening?.decision === 'all_four_rejected_before_kevin_review', 'latest visual screening must not imply approval');
 requireValue(plan.latestScreening?.kevinReviewRequested === false, 'rejected candidates must not be handed to Kevin as approval-ready');
 requireValue(latestScreening?.decision === 'reject_all_before_kevin_review' && latestScreening?.approvedMomentCount === 0, 'screening record does not preserve the 0/4 rejection');
-requireValue(plan.latestPrivateCandidateRun?.runId === plan.latestScreening?.candidateRunId, 'private candidate run drifted from the latest screening');
-requireValue(plan.latestPrivateCandidateRun?.sourceCommit === plan.latestScreening?.sourceCommit, 'private candidate source drifted from the latest screening');
-requireValue(plan.latestPrivateCandidateRun?.editorialScreening === 'rejected_obvious_visual_faults', 'private candidate run must preserve the editorial rejection');
-requireValue(plan.latestPrivateCandidateRun?.kevinApproval === 'not_requested', 'rejected private candidates must not be sent to Kevin');
-requireValue(plan.latestPrivateCandidateRun?.publicationAuthorized === false, 'rejected private candidates must remain unpublished');
+const screeningMatchesCurrentRun =
+    plan.latestPrivateCandidateRun?.runId === plan.latestScreening?.candidateRunId &&
+    plan.latestPrivateCandidateRun?.sourceCommit === plan.latestScreening?.sourceCommit;
+if (screeningMatchesCurrentRun) {
+    requireValue(
+        plan.latestPrivateCandidateRun?.editorialScreening === 'rejected_obvious_visual_faults',
+        'screened private candidate run must preserve the editorial rejection'
+    );
+} else {
+    requireValue(
+        plan.latestPrivateCandidateRun?.editorialScreening === 'pending_adult_frame_review' &&
+        moments.every(moment => moment.currentState === 'candidate_under_human_review'),
+        'source-changed replacement candidates must remain private and pending human review'
+    );
+}
+requireValue(plan.latestPrivateCandidateRun?.kevinApproval === 'not_requested', 'private candidates must not claim Kevin review or approval');
+requireValue(plan.latestPrivateCandidateRun?.publicationAuthorized === false, 'private candidates must remain unpublished');
 
 const approved = moments.filter(moment => moment.currentState === 'approved').length;
 requireValue(plan.approvalRule?.approvedMomentCount === approved, 'approved moment count drifted');
