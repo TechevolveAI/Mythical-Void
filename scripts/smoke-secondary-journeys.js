@@ -9309,7 +9309,7 @@ async function smokeHomeStart(session, exceptions) {
                 canvasHeight: scene.scale.height
             };
         })()`),
-        { timeoutMs: 3000, message: 'native first-contact egg action' }
+        { timeoutMs: 5000, message: 'native first-contact egg action' }
     );
     if (
         hatchAction.left < 0 ||

@@ -9,8 +9,9 @@ creature promise quickly and offers an obvious way to start on desktop and
 phone. The game also loaded from the public Play link without a sampled browser
 error.
 
-The fresh desktop route now reaches one clear Start button and a plain first-contact
-egg instruction. The first returning-player view inside the game is still not good enough for a
+The fresh route now reaches one clear Start button and a plain first-contact
+egg instruction on desktop and phone. A real click or tap begins hatching, and
+the progress message stays centred on both screen sizes. The first returning-player view inside the game is still not good enough for a
 large public launch. It is dark, crowded and difficult to understand at a
 glance. On phone, a large dark panel and several messages compete with the
 world. On desktop, the astronaut and creature overlap into a block-like shape,
@@ -23,11 +24,12 @@ This is now a game-presentation problem, not a homepage-redesign problem.
 - live homepage at 1280 × 720 and 390 × 844;
 - live “find your game” page at 390 × 844;
 - the public Play handoff into the game;
-- an isolated fresh desktop route through the age choice, Start button and first-contact egg;
+- an isolated fresh desktop and phone route through the age choice, Start button, first-contact egg and the beginning of hatching;
 - one existing saved-adventure return on desktop and phone;
 - visible warning and error messages from the sampled pages.
 
-The existing saved state was not opened or inspected. No saved name, player
+The existing saved state was not opened or inspected. The fresh checks used
+isolated temporary browser state which was not retained. No saved name, player
 detail, screenshot or browser data has been added to the repository.
 
 ## What worked
@@ -42,8 +44,9 @@ detail, screenshot or browser data has been added to the repository.
   without a visible browser warning or error.
 - Returning-player wording correctly changes Play to Continue when a saved
   adventure is present.
-- A fresh desktop visitor sees one Start button rather than two overlapping
-  versions, then a simple instruction to click the egg.
+- A fresh desktop or phone visitor sees one Start button rather than two
+  overlapping versions, then a simple instruction to click or tap the egg.
+  That real action begins hatching, with the progress message centred.
 
 ## What must improve before promotion
 
@@ -74,14 +77,11 @@ Public Mythical language now uses **creature**. The game interface should use
 the same word unless Game Development records a deliberate story reason for a
 different term.
 
-### 5. Prove both beginnings
+### 5. Prove the returning beginning
 
-The fresh desktop route is proven only as far as the first-contact egg. It does
-not yet prove a completed hatch or the same route on phone. Before promotion,
-separately review:
-
-- a completely fresh visitor from Play to the first meaningful action; and
-- a returning visitor from Continue to clear control of the creature.
+The fresh desktop and phone routes are now proven through the first meaningful
+action: clicking or tapping the egg begins hatching. Before promotion, review a
+returning visitor from Continue to clear control of a recognisable creature.
 
 ## Release decision
 
@@ -90,5 +90,5 @@ The website remains live. Outside gameplay-led promotion remains closed at
 thumbnail, trailer opening or platform-listing image.
 
 The next game build should return one short desktop and phone proof for the
-fresh route and the returning route. A person should be able to say what the
+returning route. A person should be able to say what the
 creature is doing and what the player should do next without an explanation.

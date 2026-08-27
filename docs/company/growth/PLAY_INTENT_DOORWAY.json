@@ -47,6 +47,31 @@
       "livePlainEggInstructionVerified": true
     }
   },
+  "latestHatchActionImprovement": {
+    "date": "2026-08-27",
+    "state": "live_production_verified",
+    "finding": "The visible egg instruction did not reliably receive a real browser click, and the hatching progress message used a fixed position that pushed it away from the centre on phone.",
+    "change": "Place one invisible, accessible click or tap target over the same visible egg, send it through the existing hatch action, remove it as soon as hatching begins, and centre the progress message for the current screen.",
+    "duplicateArtworkAdded": false,
+    "freshAudit": {
+      "isolatedLiveOriginUsed": true,
+      "desktopChecked": true,
+      "phoneChecked": true,
+      "accessibleEggLabelVerified": true,
+      "hatchStarted": true,
+      "progressCentred": true,
+      "savedPlayerDataInspected": false,
+      "existingPlayerDataChanged": false,
+      "temporaryTestStateRetained": false
+    },
+    "verification": {
+      "productionCommit": "bdb0939a29aa7fb92988df15de96005ddd9b0720",
+      "productionDeployId": "6a8ff435c229aa000913273b",
+      "desktopHatchActivationVerified": true,
+      "phoneHatchActivationVerified": true,
+      "nativeEggActionRemovedAfterActivation": true
+    }
+  },
   "promises": [
     {
       "id": "wonder",

@@ -86,6 +86,12 @@ if (plan.latestFreshStartImprovement?.state === 'owned_site_release_prepared') {
     requireValue(/^[0-9a-f]{40}$/.test(plan.latestFreshStartImprovement?.verification?.productionCommit || '') && /^[0-9a-f]{24}$/.test(plan.latestFreshStartImprovement?.verification?.productionDeployId || ''), 'live fresh-start production proof is missing');
     for (const field of ['livePublicCopyVerified', 'liveStartButtonSingleVisualVerified', 'livePlainEggInstructionVerified']) requireValue(plan.latestFreshStartImprovement?.verification?.[field] === true, `live fresh-start proof ${field} is missing`);
 }
+requireValue(plan.latestHatchActionImprovement?.state === 'live_production_verified', 'hatch-action improvement is not recorded as live');
+requireValue(/accessible click or tap target/i.test(plan.latestHatchActionImprovement?.change || '') && plan.latestHatchActionImprovement?.duplicateArtworkAdded === false, 'hatch-action improvement does not preserve the existing visible egg');
+for (const field of ['isolatedLiveOriginUsed', 'desktopChecked', 'phoneChecked', 'accessibleEggLabelVerified', 'hatchStarted', 'progressCentred']) requireValue(plan.latestHatchActionImprovement?.freshAudit?.[field] === true, `hatch-action audit ${field} is missing`);
+for (const field of ['savedPlayerDataInspected', 'existingPlayerDataChanged', 'temporaryTestStateRetained']) requireValue(plan.latestHatchActionImprovement?.freshAudit?.[field] === false, `hatch-action audit ${field} must remain false`);
+requireValue(plan.latestHatchActionImprovement?.verification?.productionCommit === 'bdb0939a29aa7fb92988df15de96005ddd9b0720' && plan.latestHatchActionImprovement?.verification?.productionDeployId === '6a8ff435c229aa000913273b', 'hatch-action production proof is missing or drifted');
+for (const field of ['desktopHatchActivationVerified', 'phoneHatchActivationVerified', 'nativeEggActionRemovedAfterActivation']) requireValue(plan.latestHatchActionImprovement?.verification?.[field] === true, `hatch-action proof ${field} is missing`);
 requireValue(plan.measurement?.choiceClickMeasured === false && plan.measurement?.choiceRememberedInBrowser === false, 'choice collection boundary is invalid');
 requireValue(plan.measurement?.selectedPlaySourceSentAfterConsent === true && plan.measurement?.aggregatePlayEventStoredByAnalytics === true, 'consented Play-source storage is not stated honestly');
 requireValue(plan.measurement?.individualJourneyBuilt === false && plan.measurement?.gameMeasured === false, 'individual or game measurement must remain off');

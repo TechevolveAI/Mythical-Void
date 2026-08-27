@@ -74,6 +74,7 @@ invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceRequiredBeforePlay": false', '"choiceRequiredBeforePlay": true'), 'visitors must be able to Play without completing the mood chooser');
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"productionDeployId": "6a8fd3bd0ac52a00080eb726"', '"productionDeployId": "unverified"'), 'production verification is missing or drifted');
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"savedPlayerDataInspected": false', '"savedPlayerDataInspected": true'), 'fresh-start audit savedPlayerDataInspected must remain false');
+invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"phoneHatchActivationVerified": true', '"phoneHatchActivationVerified": false'), 'hatch-action proof phoneHatchActivationVerified is missing');
 
 function interactiveResult(consent, choice, url = 'https://mythicalvoid.com/playable-now/', width = 1024) {
     const page = fs.readFileSync(path.join(root, 'public/playable-now/index.html'), 'utf8');
@@ -170,5 +171,5 @@ cases += 1;
 const directDenied = directPlayResult('denied');
 assert.strictEqual(directDenied.length, 0);
 
-assert.strictEqual(cases, 24);
-console.log('Play-intent doorway checks passed (24 scenarios).');
+assert.strictEqual(cases, 25);
+console.log('Play-intent doorway checks passed (25 scenarios).');
