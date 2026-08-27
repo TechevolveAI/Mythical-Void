@@ -326,6 +326,24 @@ async function main() {
             failures.push(`navigation-lifecycle: ${error.message}`);
         }
 
+        console.log('\n[release-smoke] Repeatable Fusion Pod lifecycle suite');
+        const fusionPodViewports = [
+            { smokeCase: 'phone', width: 390, height: 844 },
+            { smokeCase: 'desktop', width: 1440, height: 900 }
+        ];
+        for (const viewport of fusionPodViewports) {
+            try {
+                await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                    SMOKE_MODE: 'fusion-pod-lifecycle',
+                    SMOKE_CASE: viewport.smokeCase,
+                    SMOKE_VIEWPORT_WIDTH: String(viewport.width),
+                    SMOKE_VIEWPORT_HEIGHT: String(viewport.height)
+                });
+            } catch (error) {
+                failures.push(`fusion-pod-lifecycle:${viewport.smokeCase}: ${error.message}`);
+            }
+        }
+
         console.log('\n[release-smoke] Repeatable Void portal lifecycle suite');
         try {
             await runNodeScript('scripts/smoke-secondary-journeys.js', {

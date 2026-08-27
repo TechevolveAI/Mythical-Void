@@ -227,6 +227,7 @@ class FusionPodScene extends Phaser.Scene {
         console.log('[FusionPodScene] Creating fusion pod...');
 
         const { width, height } = this.scale;
+        this.releaseSanctuaryOpeningGuard();
         this.events?.once?.('shutdown', this.shutdown, this);
         this.events?.once?.('destroy', this.shutdown, this);
 
@@ -370,6 +371,10 @@ class FusionPodScene extends Phaser.Scene {
         }
 
         console.log('[FusionPodScene] Fusion pod created');
+    }
+
+    releaseSanctuaryOpeningGuard() {
+        this.scene?.get?.('GameScene')?.releaseFusionPodOpeningGuard?.();
     }
 
     isSharedFusionAvailable() {
@@ -2936,6 +2941,7 @@ class FusionPodScene extends Phaser.Scene {
     closeScene() {
         console.log('[FusionPodScene] Closing and returning to GameScene');
 
+        this.releaseSanctuaryOpeningGuard();
         this.shutdown();
         SceneTransitionHelper.stopScene(this, 'FusionPodScene');
 

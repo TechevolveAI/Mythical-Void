@@ -60,6 +60,28 @@ describe('GameStateManager', () => {
         });
     });
 
+    test('normalizes ability slots for partial companion bond records', () => {
+        manager.set('creature.bond', {
+            level: 2,
+            experience: 10
+        });
+
+        expect(manager.getBondStatus()).toEqual(expect.objectContaining({
+            level: 2,
+            experience: 10,
+            abilitySlots: {
+                slot1: true,
+                slot2: false,
+                slot3: false
+            },
+            equippedAbilities: {
+                slot1: null,
+                slot2: null,
+                slot3: null
+            }
+        }));
+    });
+
     test('resolves and acknowledges one committed Shared Fusion reveal', () => {
         const invitationId =
             '824363b2-d374-4b44-bf7f-1d7a177fa074';

@@ -319,6 +319,15 @@ describe('GameScene scene router', () => {
         expect(fusionSpy).toHaveBeenCalledTimes(1);
     });
 
+    test('releases the Fusion Pod opening guard from the scene lifecycle', () => {
+        const { scene } = createSceneInstance(GameScene, sceneWindow);
+        scene._fusionPodOpening = true;
+
+        scene.releaseFusionPodOpeningGuard();
+
+        expect(scene._fusionPodOpening).toBe(false);
+    });
+
     test('restores movement, physics, and input when returning from an overlay', () => {
         const { scene } = createSceneInstance(GameScene, sceneWindow);
         const resetKeys = jest.fn();

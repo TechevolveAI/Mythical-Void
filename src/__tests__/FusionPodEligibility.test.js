@@ -289,6 +289,19 @@ describe('Fusion Pod maturity requirements', () => {
         );
     });
 
+    test('releases the Sanctuary opening guard when the Pod becomes ready', () => {
+        const scene = new FusionPodScene();
+        const releaseFusionPodOpeningGuard = jest.fn();
+        scene.scene = {
+            get: jest.fn(() => ({ releaseFusionPodOpeningGuard }))
+        };
+
+        scene.releaseSanctuaryOpeningGuard();
+
+        expect(scene.scene.get).toHaveBeenCalledWith('GameScene');
+        expect(releaseFusionPodOpeningGuard).toHaveBeenCalledTimes(1);
+    });
+
     test('resumes the exact server-reserved result and stages its hatch', async () => {
         const scene = new FusionPodScene();
         const transaction = {

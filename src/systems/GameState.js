@@ -5541,15 +5541,27 @@ class GameStateManager {
      * @returns {Object} Bond status information
      */
     getBondStatus() {
-        const bond = this.get('creature.bond') || {
+        const storedBond = this.get('creature.bond') || {};
+        const bond = {
             level: 1,
             experience: 0,
             totalInteractions: 0,
             careActions: 0,
             conversations: 0,
             levelsCompleted: 0,
-            abilitySlots: { slot1: true, slot2: false, slot3: false },
-            equippedAbilities: { slot1: null, slot2: null, slot3: null }
+            ...storedBond,
+            abilitySlots: {
+                slot1: true,
+                slot2: false,
+                slot3: false,
+                ...(storedBond.abilitySlots || {})
+            },
+            equippedAbilities: {
+                slot1: null,
+                slot2: null,
+                slot3: null,
+                ...(storedBond.equippedAbilities || {})
+            }
         };
 
         const xpPerLevel = 50;

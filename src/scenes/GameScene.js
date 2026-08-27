@@ -14193,15 +14193,18 @@ class GameScene extends Phaser.Scene {
 
         console.log('[GameScene] Opening Fusion Pod');
 
-        this.sceneRouter.pauseAndLaunchScene('FusionPodScene', undefined, {
+        const opening = this.sceneRouter.pauseAndLaunchScene('FusionPodScene', undefined, {
             loadingMessage: 'Opening Fusion Pod...',
             sound: 'buttonClick'
         });
-
-        // Clear guard flag after a delay (FusionPodScene.create() will hide loading)
-        this.time.delayedCall(1000, () => {
-            this._fusionPodOpening = false;
+        Promise.resolve(opening).then(opened => {
+            if (opened === false) this.releaseFusionPodOpeningGuard();
         });
+        return opening;
+    }
+
+    releaseFusionPodOpeningGuard() {
+        this._fusionPodOpening = false;
     }
 
     // Backward-compatible route for the original Breeding Shrine shortcut.
