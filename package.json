@@ -134,6 +134,7 @@
     "smoke:void-portal": "SMOKE_MODE=void-portal-lifecycle node scripts/smoke-secondary-journeys.js",
     "smoke:journeys": "npm run smoke:interaction",
     "smoke:release": "npm run build && node scripts/run-browser-smoke.js",
+    "smoke:production": "MYTHICAL_VOID_SMOKE_URL=https://mythicalvoid.com node scripts/run-browser-smoke.js",
     "validate-flow": "node scripts/validate-game-flow.js",
     "pre-commit": "npm run validate-flow",
     "health-check": "echo 'Health endpoint not available in static build'",

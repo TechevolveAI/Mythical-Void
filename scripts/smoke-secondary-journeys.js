@@ -9582,33 +9582,59 @@ async function smokeHomeStart(session, exceptions) {
     }
     await captureGameplayStill(session, 'project-beacon-live-egg.png');
 
-    const hatchAction = await waitFor(
-        () => evaluate(session, `(() => {
+    let hatchAction = null;
+    try {
+        hatchAction = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame?.scene?.getScene('HatchingScene');
+                const button = document.querySelector('[data-mythical-egg-hatch="true"]');
+                const bounds = button?.getBoundingClientRect();
+                const style = button ? getComputedStyle(button) : null;
+                if (
+                    !scene?.egg?.active ||
+                    !button ||
+                    button.disabled ||
+                    !bounds ||
+                    style?.display === 'none' ||
+                    style?.visibility === 'hidden'
+                ) return null;
+                return {
+                    x: Math.round(bounds.left + (bounds.width / 2)),
+                    y: Math.round(bounds.top + (bounds.height / 2)),
+                    left: bounds.left,
+                    right: bounds.right,
+                    top: bounds.top,
+                    bottom: bounds.bottom,
+                    label: button.getAttribute('aria-label'),
+                    canvasWidth: scene.scale.width,
+                    canvasHeight: scene.scale.height
+                };
+            })()`),
+            { timeoutMs: 5000, message: 'native first-contact egg action' }
+        );
+    } catch (error) {
+        const diagnostic = await evaluate(session, `(() => {
             const scene = window.mythicalGame?.scene?.getScene('HatchingScene');
-            const button = document.querySelector('[data-mythical-egg-hatch="true"]');
-            const bounds = button?.getBoundingClientRect();
-            const style = button ? getComputedStyle(button) : null;
-            if (
-                !scene?.egg?.active ||
-                !button ||
-                !bounds ||
-                style?.display === 'none' ||
-                style?.visibility === 'hidden'
-            ) return null;
             return {
-                x: Math.round(bounds.left + (bounds.width / 2)),
-                y: Math.round(bounds.top + (bounds.height / 2)),
-                left: bounds.left,
-                right: bounds.right,
-                top: bounds.top,
-                bottom: bounds.bottom,
-                label: button.getAttribute('aria-label'),
-                canvasWidth: scene.scale.width,
-                canvasHeight: scene.scale.height
+                sceneActive: Boolean(window.mythicalGame?.scene?.isActive?.('HatchingScene')),
+                gameStarted: window.GameState?.get?.('session.gameStarted') === true,
+                eggActive: Boolean(scene?.egg?.active),
+                hatchingStarted: Boolean(scene?.hatchingStarted),
+                isHatching: Boolean(scene?.isHatching),
+                creatureAppeared: Boolean(scene?.creatureAppeared),
+                eggActionCount: document.querySelectorAll(
+                    '[data-mythical-egg-hatch="true"]'
+                ).length,
+                eggActionDisabled: Boolean(document.querySelector(
+                    '[data-mythical-egg-hatch="true"]'
+                )?.disabled),
+                homeActionCount: document.querySelectorAll(
+                    '[data-mythical-home-start="true"]'
+                ).length
             };
-        })()`),
-        { timeoutMs: 5000, message: 'native first-contact egg action' }
-    );
+        })()`);
+        throw new Error(`${error.message}: ${JSON.stringify(diagnostic)}`);
+    }
     if (
         hatchAction.left < 0 ||
         hatchAction.top < 0 ||

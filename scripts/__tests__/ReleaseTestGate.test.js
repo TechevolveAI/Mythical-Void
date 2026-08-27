@@ -460,6 +460,22 @@ describe('release test gate', () => {
         expect(source).toContain('frame budgets measure the game');
     });
 
+    test('full release smoke can target production without starting local Vite', () => {
+        const source = read('scripts/run-browser-smoke.js');
+        const packageJson = JSON.parse(read('package.json'));
+
+        expect(source).toContain("process.env.MYTHICAL_VOID_SMOKE_URL || ''");
+        expect(source).toContain('const managesLocalPreview = externalBaseUrl.length === 0;');
+        expect(source).toContain("externalBaseUrl || `http://${host}:${port}`");
+        expect(source).toContain("if (managesLocalPreview) {");
+        expect(source).toContain("' (external deployment)'");
+        expect(source).toContain('if (vite && viteExit)');
+        expect(source).toContain('if (vite && vite.exitCode === null');
+        expect(packageJson.scripts['smoke:production']).toBe(
+            'MYTHICAL_VOID_SMOKE_URL=https://mythicalvoid.com node scripts/run-browser-smoke.js'
+        );
+    });
+
     test('confirms a mobile frame-budget miss without weakening the limit', () => {
         const source = read('scripts/smoke-secondary-journeys.js');
 
