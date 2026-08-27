@@ -32,7 +32,7 @@ try {
         ['missing-early-access', page => page.replaceAll('early-access', 'current').replaceAll('Early access', 'Available')],
         ['nasa-endorsement', page => page.replace('NASA does not endorse Mythical Void.', 'NASA endorses Mythical Void.')],
         ['contact-form', page => page.replace('</main>', '<form><input name="email"></form></main>')],
-        ['stale-discovery-script', page => page.replace('/discovery.js?v=20260827-game-promise', '/discovery.js?v=20260827-starter-missions')],
+        ['stale-discovery-script', page => page.replace('/discovery.js?v=20260827-funnel-source', '/discovery.js?v=20260827-starter-missions')],
         ['missing-hatch-challenge', page => page.replace('id="hatch-challenge"', 'id="retired-hatch-challenge"')],
         ['multiplayer-misrepresentation', page => page.replace('<strong>This is not multiplayer.</strong>', '<strong>This is multiplayer.</strong>')],
         ['missing-art-boundary', page => page.replace('not gameplay', 'gameplay')],

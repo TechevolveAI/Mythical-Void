@@ -2,8 +2,13 @@
     var storageKey = 'mythical-analytics-consent';
     var tagId = 'G-FTM4W73ECQ';
     var currentPath = window.location.pathname;
-    var allowedEvents = ['play_selected', 'share_completed', 'share_link_copied'];
+    var allowedEvents = ['discovery_arrival', 'play_selected', 'share_completed', 'share_link_copied'];
     var allowedAreas = ['header', 'hero', 'content', 'share_section', 'final_cta', 'footer', 'intent_wonder', 'intent_create', 'intent_challenge', 'intent_story'];
+    var allowedEntrySources = ['direct_or_private', 'owned_site', 'search', 'game_shelf', 'social_or_creator', 'other_site'];
+    var searchDomains = ['google.com', 'google.ie', 'bing.com', 'duckduckgo.com', 'search.yahoo.com', 'ecosia.org'];
+    var gameShelfDomains = ['itch.io', 'poki.com', 'crazygames.com'];
+    var socialDomains = ['youtube.com', 'youtu.be', 'tiktok.com', 'instagram.com', 'facebook.com', 'x.com', 'twitter.com', 'linkedin.com', 'reddit.com'];
+    var arrivalEventSent = false;
     var intentMessages = {
         wonder: {
             title: 'Follow the signal into six impossible realms.',
@@ -96,12 +101,36 @@
         return 'content';
     }
 
+    function hostMatches(hostname, domains) {
+        return domains.some(function (domain) {
+            return hostname === domain || hostname.endsWith('.' + domain);
+        });
+    }
+
+    function classifyEntrySource(referrer) {
+        if (!referrer) return 'direct_or_private';
+        try {
+            var referrerUrl = new URL(referrer);
+            var hostname = referrerUrl.hostname.toLowerCase();
+            if (hostname === window.location.hostname.toLowerCase()) return 'owned_site';
+            if (hostMatches(hostname, searchDomains)) return 'search';
+            if (hostMatches(hostname, gameShelfDomains)) return 'game_shelf';
+            if (hostMatches(hostname, socialDomains)) return 'social_or_creator';
+        } catch (error) {
+            return 'other_site';
+        }
+        return 'other_site';
+    }
+
+    var entrySource = classifyEntrySource(document.referrer);
+
     function track(eventName, sourceArea) {
         if (readChoice() !== 'granted' || allowedEvents.indexOf(eventName) === -1) return false;
         var safeArea = allowedAreas.indexOf(sourceArea) === -1 ? 'content' : sourceArea;
         window.gtag('event', eventName, {
             source_page: currentPath,
             source_area: safeArea,
+            entry_source: allowedEntrySources.indexOf(entrySource) === -1 ? 'other_site' : entrySource,
             transport_type: 'beacon'
         });
         return true;
@@ -346,8 +375,13 @@
                 allow_google_signals: false,
                 allow_ad_personalization_signals: false,
                 page_location: window.location.origin + currentPath,
-                page_path: currentPath
+                page_path: currentPath,
+                page_referrer: ''
             });
+            if (currentPath === '/playable-now/' && !arrivalEventSent) {
+                arrivalEventSent = true;
+                track('discovery_arrival', 'hero');
+            }
         }
     }
 
@@ -381,7 +415,8 @@
         allow_google_signals: false,
         allow_ad_personalization_signals: false,
         page_location: window.location.origin + currentPath,
-        page_path: currentPath
+        page_path: currentPath,
+        page_referrer: ''
     });
 
     var tag = document.createElement('script');
@@ -398,7 +433,7 @@
     var notice = document.createElement('aside');
     notice.className = 'analytics-choice';
     notice.setAttribute('aria-label', 'Optional website analytics');
-    notice.innerHTML = '<strong>Help us improve the website?</strong><p>Allow private, advertising-free counting of page visits and whether website buttons lead to play or sharing. The game itself is not measured.</p><div class="analytics-actions"><button type="button" data-allow>Allow analytics</button><button type="button" data-deny>No thanks</button></div>';
+    notice.innerHTML = '<strong>Help us improve the website?</strong><p>Allow optional, advertising-free counting of page visits, the general route people arrived from, and whether website buttons lead to play or sharing. The game itself is not measured.</p><div class="analytics-actions"><button type="button" data-allow>Allow analytics</button><button type="button" data-deny>No thanks</button></div>';
     document.body.appendChild(notice);
 
     notice.querySelector('[data-allow]').addEventListener('click', function () {

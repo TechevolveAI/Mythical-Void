@@ -37,7 +37,7 @@ requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(page), 'page contains a tracking
 requireValue(!/NASA (?:made|makes|endorses|partners with) Mythical Void/i.test(page), 'page implies a NASA relationship');
 requireValue(page.includes('data-share-game') && page.includes('data-copy-game') && page.includes('data-share-status'), 'clean sharing controls are missing');
 requireValue(page.includes('never asks for their contact details') && page.includes('adds no tracking code'), 'sharing privacy explanation is missing');
-requireValue(page.includes('/discovery.css?v=20260827-game-promise') && page.includes('/discovery.js?v=20260827-game-promise'), 'game-finder assets need a matching fresh cache version');
+requireValue(page.includes('/discovery.css?v=20260827-funnel-source') && page.includes('/discovery.js?v=20260827-funnel-source'), 'game-finder assets need a matching fresh cache version');
 requireValue(page.includes('id="hatch-challenge"') && page.includes('Same signal. Two creatures. What will hatch?'), 'Hatch Challenge is missing');
 requireValue(page.includes('<strong>This is not multiplayer.</strong>') && page.includes('nothing is uploaded') && page.includes('never asks who you invited'), 'Hatch Challenge boundaries are missing');
 for (const control of ['data-hatch-challenge-share', 'data-hatch-challenge-copy', 'data-hatch-challenge-status']) requireValue(page.includes(control), `Hatch Challenge control ${control} is missing`);
@@ -73,6 +73,10 @@ requireValue(release.playIntentDoorway?.choiceRequiredBeforePlay === false && re
 requireValue(release.playIntentDoorway?.starterMissionCount === 4 && release.playIntentDoorway?.stepsPerStarterMission === 3 && release.playIntentDoorway?.starterMissionRequiredBeforePlay === false, 'release must record four optional three-step starter missions');
 requireValue(JSON.stringify(release.playIntentDoorway?.shareRouteWords) === JSON.stringify(['wonder', 'create', 'challenge', 'story']), 'intent share route allowlist drifted');
 requireValue(release.playIntentDoorway?.sharedChoiceSentToServer === false && release.playIntentDoorway?.recipientContactCollected === false, 'intent sharing privacy boundary drifted');
+requireValue(release.playIntentDoorway?.selectedPlaySourceSentAfterConsent === true && release.playIntentDoorway?.playEvent === 'play_selected' && release.playIntentDoorway?.playSourceProperty === 'source_area', 'Play measurement contract drifted');
+requireValue(release.playIntentDoorway?.arrivalEvent === 'discovery_arrival' && release.playIntentDoorway?.entrySourceProperty === 'entry_source', 'arrival measurement contract drifted');
+requireValue(release.playIntentDoorway?.entrySourceBuckets?.join('|') === 'direct_or_private|owned_site|search|game_shelf|social_or_creator|other_site', 'arrival source buckets drifted');
+requireValue(release.playIntentDoorway?.fullReferrerSent === false && release.playIntentDoorway?.gameMeasured === false, 'arrival measurement privacy boundary drifted');
 requireValue(release.hatchChallenge?.route === 'https://mythicalvoid.com/hatch-challenge/', 'Hatch Challenge route is missing');
 requireValue(release.hatchChallenge?.participants === 2 && release.hatchChallenge?.multiplayerClaimed === false && release.hatchChallenge?.differenceGuaranteed === false, 'Hatch Challenge promise drifted');
 requireValue(release.hatchChallenge?.accountRequired === false && release.hatchChallenge?.contactCollected === false && release.hatchChallenge?.creatureDataShared === false && release.hatchChallenge?.trackingParametersAdded === false, 'Hatch Challenge privacy boundary drifted');
@@ -83,9 +87,16 @@ for (const [key, expected] of Object.entries({ ownedWebsitePublicationAuthorized
 for (const [key, expected] of Object.entries({ accountRequired: false, emailSignupEnabled: false, contactCollectionEnabled: false, recipientCollectionEnabled: false, trackingParametersPermitted: false, analyticsDefault: 'denied' })) {
     requireValue(release.privacy?.[key] === expected, `privacy.${key} must be ${expected}`);
 }
+requireValue(release.privacy?.fullReferrerSent === false && release.privacy?.broadArrivalGroupOnly === true, 'privacy must preserve broad arrival groups without the full referrer');
 requireValue(release.verification?.productionVerificationRequired === true, 'production verification must remain required');
-requireValue(release.verification?.productionCommit === '133558cc5b0a7634f329b76edb3f2c79579183ae' && release.verification?.productionDeployId === '6a8fe76d3ba9af0007ca0615', 'production proof is missing or drifted');
-requireValue(release.verification?.directButtonVisible === true && release.verification?.directDestination === 'https://mythicalvoid.com/play/', 'live direct-Play proof is missing');
+if (release.verification?.state === 'prepared_for_owned_release') {
+    requireValue(release.verification?.productionCommit === null && release.verification?.productionDeployId === null && release.verification?.verifiedAt === null, 'prepared release must not invent production proof');
+    requireValue(release.verification?.liveMeasurementVerified === false && release.verification?.directButtonVisible === false && release.verification?.directDestination === null, 'prepared release must not claim live behaviour');
+} else {
+    requireValue(release.verification?.state === 'live_production_verified', 'production verification state is invalid');
+    requireValue(/^[0-9a-f]{40}$/.test(release.verification?.productionCommit || '') && /^[0-9a-f]{24}$/.test(release.verification?.productionDeployId || ''), 'production proof is missing or drifted');
+    requireValue(release.verification?.liveMeasurementVerified === true && release.verification?.directButtonVisible === true && release.verification?.directDestination === 'https://mythicalvoid.com/play/', 'live direct-Play or measurement proof is missing');
+}
 
 for (const [file, fragment, label] of [
     ['public/sitemap.xml', '<loc>https://mythicalvoid.com/playable-now/</loc>', 'sitemap'],

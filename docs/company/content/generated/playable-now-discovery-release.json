@@ -6,7 +6,7 @@
   "page": {
     "path": "public/playable-now/index.html",
     "publicUrl": "https://mythicalvoid.com/playable-now/",
-    "sha256": "51de26f1c26103e3714b89a0b3a3e0af83719dd631a7c20ee00623b8882090ee",
+    "sha256": "b201ede0693745db3a469fde38bfd5272a374259f06576d179a3bde614c91481",
     "canonical": "https://mythicalvoid.com/playable-now/",
     "directPlayLinkMinimum": 3,
     "structuredData": ["VideoGame", "FAQPage"]
@@ -35,6 +35,8 @@
     "contactCollectionEnabled": false,
     "recipientCollectionEnabled": false,
     "trackingParametersPermitted": false,
+    "fullReferrerSent": false,
+    "broadArrivalGroupOnly": true,
     "analyticsDefault": "denied"
   },
   "familyTrust": {
@@ -64,8 +66,13 @@
     "sharedChoiceSentToServer": false,
     "recipientContactCollected": false,
     "selectedPlaySourceSentAfterConsent": true,
+    "arrivalEvent": "discovery_arrival",
     "playEvent": "play_selected",
-    "playSourceProperty": "source_area"
+    "playSourceProperty": "source_area",
+    "entrySourceProperty": "entry_source",
+    "entrySourceBuckets": ["direct_or_private", "owned_site", "search", "game_shelf", "social_or_creator", "other_site"],
+    "fullReferrerSent": false,
+    "gameMeasured": false
   },
   "hatchChallenge": {
     "planPath": "docs/company/growth/HATCH_CHALLENGE_LOOP.json",
@@ -88,13 +95,20 @@
     "externalActionTaken": false
   },
   "verification": {
+    "state": "prepared_for_owned_release",
     "desktopVisualReviewRequired": true,
     "phoneVisualReviewRequired": true,
     "productionVerificationRequired": true,
-    "productionCommit": "133558cc5b0a7634f329b76edb3f2c79579183ae",
-    "productionDeployId": "6a8fe76d3ba9af0007ca0615",
-    "verifiedAt": "2026-08-27T07:33:22Z",
-    "directButtonVisible": true,
-    "directDestination": "https://mythicalvoid.com/play/"
+    "productionCommit": null,
+    "productionDeployId": null,
+    "verifiedAt": null,
+    "liveMeasurementVerified": false,
+    "directButtonVisible": false,
+    "directDestination": null,
+    "previousVerifiedRelease": {
+      "productionCommit": "133558cc5b0a7634f329b76edb3f2c79579183ae",
+      "productionDeployId": "6a8fe76d3ba9af0007ca0615",
+      "verifiedAt": "2026-08-27T07:33:22Z"
+    }
   }
 }

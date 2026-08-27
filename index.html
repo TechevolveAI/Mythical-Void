@@ -44,8 +44,36 @@
         function gtag() { window.dataLayer.push(arguments); }
         window.gtag = window.gtag || gtag;
         window.MYTHICAL_GOOGLE_TAG_ID = 'G-FTM4W73ECQ';
-        var allowedEvents = ['play_selected', 'share_completed', 'share_link_copied'];
+        var allowedEvents = ['discovery_arrival', 'play_selected', 'share_completed', 'share_link_copied'];
         var allowedAreas = ['header', 'hero', 'content', 'share_section', 'final_cta', 'footer', 'intent_wonder', 'intent_create', 'intent_challenge', 'intent_story'];
+        var allowedEntrySources = ['direct_or_private', 'owned_site', 'search', 'game_shelf', 'social_or_creator', 'other_site'];
+        var searchDomains = ['google.com', 'google.ie', 'bing.com', 'duckduckgo.com', 'search.yahoo.com', 'ecosia.org'];
+        var gameShelfDomains = ['itch.io', 'poki.com', 'crazygames.com'];
+        var socialDomains = ['youtube.com', 'youtu.be', 'tiktok.com', 'instagram.com', 'facebook.com', 'x.com', 'twitter.com', 'linkedin.com', 'reddit.com'];
+        var arrivalEventSent = false;
+
+        function hostMatches(hostname, domains) {
+            return domains.some(function (domain) {
+                return hostname === domain || hostname.endsWith('.' + domain);
+            });
+        }
+
+        function classifyEntrySource(referrer) {
+            if (!referrer) return 'direct_or_private';
+            try {
+                var referrerUrl = new URL(referrer);
+                var hostname = referrerUrl.hostname.toLowerCase();
+                if (hostname === window.location.hostname.toLowerCase()) return 'owned_site';
+                if (hostMatches(hostname, searchDomains)) return 'search';
+                if (hostMatches(hostname, gameShelfDomains)) return 'game_shelf';
+                if (hostMatches(hostname, socialDomains)) return 'social_or_creator';
+            } catch (error) {
+                return 'other_site';
+            }
+            return 'other_site';
+        }
+
+        var entrySource = classifyEntrySource(document.referrer);
         gtag('consent', 'default', {
             analytics_storage: 'denied',
             ad_storage: 'denied',
@@ -59,7 +87,8 @@
             allow_google_signals: false,
             allow_ad_personalization_signals: false,
             page_location: window.location.origin + path,
-            page_path: path
+            page_path: path,
+            page_referrer: ''
         });
         var tag = document.createElement('script');
         tag.async = true;
@@ -84,8 +113,13 @@
                         allow_google_signals: false,
                         allow_ad_personalization_signals: false,
                         page_location: window.location.origin + path,
-                        page_path: path
+                        page_path: path,
+                        page_referrer: ''
                     });
+                    if (path === '/' && !arrivalEventSent) {
+                        arrivalEventSent = true;
+                        this.track('discovery_arrival', { source_area: 'hero' });
+                    }
                 }
                 window.dispatchEvent(new CustomEvent('mythical:analytics-consent', { detail: { value: value } }));
             },
@@ -96,11 +130,16 @@
                 window.gtag('event', eventName, {
                     source_page: path,
                     source_area: sourceArea,
+                    entry_source: allowedEntrySources.indexOf(entrySource) === -1 ? 'other_site' : entrySource,
                     transport_type: 'beacon'
                 });
                 return true;
             }
         };
+        var savedChoice = window.MythicalAnalytics.getConsent();
+        if (savedChoice === 'granted' || savedChoice === 'denied') {
+            window.MythicalAnalytics.setConsent(savedChoice);
+        }
     }());
     </script>
     <script defer src="/returning-player.js?v=20260826-return-doorway"></script>
