@@ -20,6 +20,33 @@
     "choiceRequiredBeforePlay": false,
     "gameplayMediaPublished": false
   },
+  "latestFreshStartImprovement": {
+    "date": "2026-08-27",
+    "state": "owned_site_release_prepared",
+    "finding": "The Play button opened the game directly, but the words 'Start in one click' hid the first-time age choice, the reliable browser Start control sat over a second drawn version of itself, and the first egg instruction sounded more technical than it needed to.",
+    "change": "Tell first-time players about the age choice before they press Play, make the reliable Start control fully cover the second drawn button, and ask them simply to click or tap the egg to begin.",
+    "publicCopy": "Open the game in one click. First-time players choose an age range, then begin.",
+    "gameCopy": {
+      "desktop": "CLICK THE EGG TO BEGIN",
+      "mobile": "TAP EGG TO BEGIN"
+    },
+    "freshAudit": {
+      "isolatedLiveOriginUsed": true,
+      "savedPlayerDataInspected": false,
+      "savedPlayerDataChanged": false,
+      "adultAgePathUsed": true,
+      "ageChoiceReached": true,
+      "homeStartReached": true,
+      "firstContactReached": true
+    },
+    "verification": {
+      "productionCommit": null,
+      "productionDeployId": null,
+      "livePublicCopyVerified": false,
+      "liveStartButtonSingleVisualVerified": false,
+      "livePlainEggInstructionVerified": false
+    }
+  },
   "promises": [
     {
       "id": "wonder",

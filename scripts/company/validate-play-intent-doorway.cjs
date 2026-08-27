@@ -29,7 +29,7 @@ requireValue(page.includes('<h1>Hatch a strange alien creature. Save six living 
 requireValue(page.includes('<strong>What are you in the mood for?</strong>'), 'plain-language optional choice is missing');
 requireValue(page.includes('id="find-your-way"'), 'play-intent doorway needs a stable homepage destination');
 requireValue(page.includes('Free · No game ads · No chat with other players · No download · No account · No payment details · Early access'), 'public access and family trust promise is missing');
-requireValue(page.includes('class="play-intent-direct"') && page.includes('Start in one click. The four paths below are optional.'), 'first-screen direct Play choice is missing');
+requireValue(page.includes('class="play-intent-direct"') && page.includes('Open the game in one click. First-time players choose an age range, then begin.'), 'honest first-screen direct Play choice is missing');
 requireValue(page.includes('data-play-link data-source-area="hero"'), 'first-screen direct Play source is missing');
 requireValue(page.includes('data-play-intent') && page.includes('data-intent-answer hidden'), 'progressive intent doorway is missing');
 requireValue(page.includes('YOUR STARTER MISSION') && page.includes('data-intent-mission-title') && page.includes('data-intent-mission-steps') && page.includes('data-intent-finish'), 'starter mission bridge is missing');
@@ -75,6 +75,17 @@ requireValue(/three-step starter mission/i.test(plan.lastFunnelImprovement?.chan
 requireValue(plan.lastFunnelImprovement?.directPlaySourceArea === 'hero' && plan.measurement?.directPlaySourceArea === 'hero', 'direct Play source must use the existing privacy-safe hero value');
 requireValue(plan.latestFirstScreenImprovement?.headline === 'Hatch a strange alien creature. Save six living realms.', 'latest first-screen game promise is missing');
 requireValue(plan.latestFirstScreenImprovement?.choiceRequiredBeforePlay === false && plan.latestFirstScreenImprovement?.gameplayMediaPublished === false, 'latest first-screen improvement overstates the release or adds friction');
+requireValue(['owned_site_release_prepared', 'live_production_verified'].includes(plan.latestFreshStartImprovement?.state), 'fresh-start improvement state is invalid');
+requireValue(plan.latestFreshStartImprovement?.publicCopy === 'Open the game in one click. First-time players choose an age range, then begin.', 'fresh-start public promise drifted');
+requireValue(plan.latestFreshStartImprovement?.gameCopy?.desktop === 'CLICK THE EGG TO BEGIN' && plan.latestFreshStartImprovement?.gameCopy?.mobile === 'TAP EGG TO BEGIN', 'fresh-start game instruction drifted');
+for (const field of ['isolatedLiveOriginUsed', 'adultAgePathUsed', 'ageChoiceReached', 'homeStartReached', 'firstContactReached']) requireValue(plan.latestFreshStartImprovement?.freshAudit?.[field] === true, `fresh-start audit ${field} is missing`);
+for (const field of ['savedPlayerDataInspected', 'savedPlayerDataChanged']) requireValue(plan.latestFreshStartImprovement?.freshAudit?.[field] === false, `fresh-start audit ${field} must remain false`);
+if (plan.latestFreshStartImprovement?.state === 'owned_site_release_prepared') {
+    requireValue(plan.latestFreshStartImprovement?.verification?.productionCommit === null && plan.latestFreshStartImprovement?.verification?.productionDeployId === null && plan.latestFreshStartImprovement?.verification?.livePublicCopyVerified === false, 'prepared fresh-start improvement must not invent production proof');
+} else {
+    requireValue(/^[0-9a-f]{40}$/.test(plan.latestFreshStartImprovement?.verification?.productionCommit || '') && /^[0-9a-f]{24}$/.test(plan.latestFreshStartImprovement?.verification?.productionDeployId || ''), 'live fresh-start production proof is missing');
+    for (const field of ['livePublicCopyVerified', 'liveStartButtonSingleVisualVerified', 'livePlainEggInstructionVerified']) requireValue(plan.latestFreshStartImprovement?.verification?.[field] === true, `live fresh-start proof ${field} is missing`);
+}
 requireValue(plan.measurement?.choiceClickMeasured === false && plan.measurement?.choiceRememberedInBrowser === false, 'choice collection boundary is invalid');
 requireValue(plan.measurement?.selectedPlaySourceSentAfterConsent === true && plan.measurement?.aggregatePlayEventStoredByAnalytics === true, 'consented Play-source storage is not stated honestly');
 requireValue(plan.measurement?.individualJourneyBuilt === false && plan.measurement?.gameMeasured === false, 'individual or game measurement must remain off');

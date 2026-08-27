@@ -375,7 +375,7 @@ class HatchingScene extends Phaser.Scene {
         button.className = 'home-start-fallback';
         button.dataset.mythicalHomeStart = 'true';
         button.setAttribute('aria-label', firstSessionFraming.homeCta);
-        button.innerHTML = `<span aria-hidden="true">&#128640;</span><strong>${firstSessionFraming.homeCta}</strong>`;
+        button.innerHTML = `<span aria-hidden="true">&#10022;</span><strong>${firstSessionFraming.homeCta}</strong>`;
 
         const activate = (event) => {
             event.preventDefault();

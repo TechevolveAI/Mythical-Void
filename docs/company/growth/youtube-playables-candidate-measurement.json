@@ -12,8 +12,8 @@
   },
   "package": {
     "fileCount": 85,
-    "rawBytes": 46898884,
-    "gzipEstimateBytes": 43057816,
+    "rawBytes": 46898975,
+    "gzipEstimateBytes": 43057825,
     "totalHardLimitMet": true,
     "fileCountLimitMet": true,
     "largestFile": {
@@ -55,15 +55,15 @@
         "rawBytes": 820709
       },
       {
-        "path": "assets/gameplay-7BgSsHZ4.js",
+        "path": "assets/gameplay-BGsEhIzE.js",
         "rawBytes": 638775
       }
     ]
   },
   "firstLoad": {
     "resourceCount": 18,
-    "rawBytes": 7156765,
-    "gzipEstimateBytes": 3944470,
+    "rawBytes": 7156856,
+    "gzipEstimateBytes": 3944483,
     "hardLimitMet": true,
     "recommendedLimitMet": true,
     "limitation": "Deterministic local reconstruction, not a YouTube Developer Portal or five-second device test."
@@ -72,33 +72,33 @@
     "api.nasa.gov": {
       "fileCount": 1,
       "files": [
-        "assets/game-Bofs2joH.js"
+        "assets/game-Kvp1blBn.js"
       ]
     },
     "apod.nasa.gov": {
       "fileCount": 1,
       "files": [
-        "assets/game-Bofs2joH.js"
+        "assets/game-Kvp1blBn.js"
       ]
     },
     "mars.nasa.gov": {
       "fileCount": 1,
       "files": [
-        "assets/game-Bofs2joH.js"
+        "assets/game-Kvp1blBn.js"
       ]
     },
     "api.open-notify.org": {
       "fileCount": 1,
       "files": [
-        "assets/game-Bofs2joH.js"
+        "assets/game-Kvp1blBn.js"
       ]
     },
     "netlify/functions": {
       "fileCount": 3,
       "files": [
         "assets/core-DV82yIUh.js",
-        "assets/game-Bofs2joH.js",
-        "assets/gameplay-7BgSsHZ4.js"
+        "assets/game-Kvp1blBn.js",
+        "assets/gameplay-BGsEhIzE.js"
       ]
     }
   },
@@ -115,21 +115,21 @@
   },
   "incompatibleCurrentFeatureMarkers": {
     "nativeShareFiles": [
-      "assets/levels-hub-CoTruurh.js",
-      "assets/ui-components-CLIt3Rff.js"
+      "assets/levels-hub-BnmUUxdn.js",
+      "assets/ui-components-BgfyCmTv.js"
     ],
     "clipboardWriteFiles": [
-      "assets/levels-hub-CoTruurh.js",
-      "assets/ui-components-CLIt3Rff.js"
+      "assets/levels-hub-BnmUUxdn.js",
+      "assets/ui-components-BgfyCmTv.js"
     ],
     "localStorageFiles": [
-      "assets/config-DW-Y5j80.js",
+      "assets/config-Bqcvy_xn.js",
       "assets/core-DV82yIUh.js",
-      "assets/game-Bofs2joH.js",
-      "assets/gameplay-7BgSsHZ4.js",
-      "assets/onboarding-qTJw5xVm.js",
-      "assets/ui-components-CLIt3Rff.js",
-      "assets/utils-C5VGd4sG.js",
+      "assets/game-Kvp1blBn.js",
+      "assets/gameplay-BGsEhIzE.js",
+      "assets/onboarding-BUGl675q.js",
+      "assets/ui-components-BgfyCmTv.js",
+      "assets/utils-HB1A_-2f.js",
       "assets/vendor-phaser-DGEgCO3k.js"
     ]
   },

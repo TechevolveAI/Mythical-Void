@@ -8,16 +8,16 @@
   },
   "package": {
     "fileCount": 85,
-    "rawBytes": 46898884,
-    "gzipEstimateBytes": 43057816,
+    "rawBytes": 46898975,
+    "gzipEstimateBytes": 43057825,
     "advisoryTargetBytes": 8388608,
     "advisoryTargetMet": false,
-    "contentDigestSha256": "0ba00a258c33d3a07a6abc613507cbb978d2637a8a4be95a65c1e4207c256aa1"
+    "contentDigestSha256": "76a72af98c6b54700b0b1d07da4a2cc436a2bf9919091941a4771fc19d7c9156"
   },
   "firstLoad": {
     "resourceCount": 18,
-    "rawBytes": 7156765,
-    "gzipEstimateBytes": 3944470,
+    "rawBytes": 7156856,
+    "gzipEstimateBytes": 3944483,
     "advisoryTargetBytes": 5242880,
     "advisoryTargetMet": true,
     "resources": [
@@ -32,14 +32,14 @@
         "gzipEstimateBytes": 337161
       },
       {
-        "path": "assets/gameplay-7BgSsHZ4.js",
+        "path": "assets/gameplay-BGsEhIzE.js",
         "rawBytes": 638775,
-        "gzipEstimateBytes": 173636
+        "gzipEstimateBytes": 173634
       },
       {
-        "path": "assets/ui-components-CLIt3Rff.js",
+        "path": "assets/ui-components-BgfyCmTv.js",
         "rawBytes": 449349,
-        "gzipEstimateBytes": 123279
+        "gzipEstimateBytes": 123278
       },
       {
         "path": "assets/core-DV82yIUh.js",
@@ -47,39 +47,39 @@
         "gzipEstimateBytes": 103423
       },
       {
-        "path": "assets/game-Bofs2joH.js",
+        "path": "assets/game-Kvp1blBn.js",
         "rawBytes": 339224,
         "gzipEstimateBytes": 95354
       },
       {
-        "path": "assets/levels-hub-CoTruurh.js",
+        "path": "assets/levels-hub-BnmUUxdn.js",
         "rawBytes": 267966,
         "gzipEstimateBytes": 74673
       },
       {
-        "path": "assets/managers-DHeynQp_.js",
+        "path": "assets/managers-Bn2z2SS9.js",
         "rawBytes": 166170,
         "gzipEstimateBytes": 48903
       },
       {
-        "path": "assets/onboarding-qTJw5xVm.js",
-        "rawBytes": 138818,
-        "gzipEstimateBytes": 35767
+        "path": "assets/onboarding-BUGl675q.js",
+        "rawBytes": 138817,
+        "gzipEstimateBytes": 35763
       },
       {
-        "path": "assets/advanced-oRnAqOGN.js",
+        "path": "assets/advanced-DBB1H5pO.js",
         "rawBytes": 127386,
         "gzipEstimateBytes": 32353
       },
       {
-        "path": "assets/game-CH9SaTss.css",
-        "rawBytes": 105103,
-        "gzipEstimateBytes": 19620
+        "path": "assets/game-B1jU-gml.css",
+        "rawBytes": 105196,
+        "gzipEstimateBytes": 19638
       },
       {
-        "path": "assets/creature-ChaX2YCz.js",
+        "path": "assets/creature-DcBvsJUE.js",
         "rawBytes": 104625,
-        "gzipEstimateBytes": 33836
+        "gzipEstimateBytes": 33835
       },
       {
         "path": "game/project-beacon-crash-site.webp",
@@ -87,24 +87,24 @@
         "gzipEstimateBytes": 99677
       },
       {
-        "path": "assets/config-DW-Y5j80.js",
-        "rawBytes": 60946,
-        "gzipEstimateBytes": 21987
+        "path": "assets/config-Bqcvy_xn.js",
+        "rawBytes": 60945,
+        "gzipEstimateBytes": 21992
       },
       {
-        "path": "assets/utils-C5VGd4sG.js",
+        "path": "assets/utils-HB1A_-2f.js",
         "rawBytes": 27303,
-        "gzipEstimateBytes": 7594
+        "gzipEstimateBytes": 7596
       },
       {
         "path": "index.html",
         "rawBytes": 4068,
-        "gzipEstimateBytes": 1299
+        "gzipEstimateBytes": 1300
       },
       {
-        "path": "assets/index-DzPtorKL.js",
+        "path": "assets/index-BOQ04V6X.js",
         "rawBytes": 2117,
-        "gzipEstimateBytes": 1103
+        "gzipEstimateBytes": 1098
       },
       {
         "path": "marketing/mythical-void-mark-32.png",
@@ -116,8 +116,8 @@
   "categories": {
     "code_and_css": {
       "fileCount": 22,
-      "rawBytes": 4901087,
-      "gzipEstimateBytes": 1269361
+      "rawBytes": 4901178,
+      "gzipEstimateBytes": 1269369
     },
     "audio": {
       "fileCount": 2,
@@ -137,7 +137,7 @@
     "root": {
       "fileCount": 2,
       "rawBytes": 4964,
-      "gzipEstimateBytes": 1760
+      "gzipEstimateBytes": 1761
     },
     "marketing": {
       "fileCount": 25,
@@ -149,33 +149,33 @@
     "api.nasa.gov": {
       "fileCount": 1,
       "files": [
-        "assets/game-Bofs2joH.js"
+        "assets/game-Kvp1blBn.js"
       ]
     },
     "apod.nasa.gov": {
       "fileCount": 1,
       "files": [
-        "assets/game-Bofs2joH.js"
+        "assets/game-Kvp1blBn.js"
       ]
     },
     "mars.nasa.gov": {
       "fileCount": 1,
       "files": [
-        "assets/game-Bofs2joH.js"
+        "assets/game-Kvp1blBn.js"
       ]
     },
     "api.open-notify.org": {
       "fileCount": 1,
       "files": [
-        "assets/game-Bofs2joH.js"
+        "assets/game-Kvp1blBn.js"
       ]
     },
     "netlify/functions": {
       "fileCount": 3,
       "files": [
         "assets/core-DV82yIUh.js",
-        "assets/game-Bofs2joH.js",
-        "assets/gameplay-7BgSsHZ4.js"
+        "assets/game-Kvp1blBn.js",
+        "assets/gameplay-BGsEhIzE.js"
       ]
     }
   },

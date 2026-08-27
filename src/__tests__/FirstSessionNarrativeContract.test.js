@@ -41,6 +41,11 @@ describe('first-session Project Beacon framing', () => {
         expect(hatchText).toMatch(/gently/i);
         expect(hatchText).toMatch(/answered/i);
         expect(hatchText).not.toMatch(/specimen|extract|Earth comes first/i);
+        expect(framing.tapPromptDesktop).toBe('CLICK THE EGG TO BEGIN');
+        expect(framing.tapPromptMobile).toBe('TAP EGG TO BEGIN');
+        expect(framing.controlPrompt).toMatch(/^Click the egg or press SPACE to begin/);
+        expect(framing.journeyPrompt).toBe('Meet the creature → Name it → Explore the world');
+        expect(framing.controlPrompt).not.toMatch(/\/\//);
     });
 
     test('uses the shared canon instead of generic adventure copy', () => {

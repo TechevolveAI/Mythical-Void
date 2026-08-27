@@ -62,6 +62,7 @@ invalid('public/playable-now/index.html', source => source.replace('href="/play/
 invalid('public/playable-now/index.html', source => source.replace('data-intent-share data-source-area', 'data-missing-share data-source-area'), 'intent-specific sharing controls are missing');
 invalid('public/playable-now/index.html', source => source.replace('data-intent-mission-steps', 'data-missing-mission-steps'), 'starter mission bridge is missing');
 invalid('public/playable-now/index.html', source => source.replace('class="play-intent-direct"', 'class="play-intent-delayed"'), 'first-screen direct Play choice is missing');
+invalid('public/playable-now/index.html', source => source.replace('First-time players choose an age range, then begin.', 'Start instantly.'), 'honest first-screen direct Play choice is missing');
 invalid('public/playable-now/index.html', source => source.replace('data-play-link data-source-area="hero"', 'data-play-link data-source-area="unknown"'), 'first-screen direct Play source is missing');
 invalid('public/discovery.js', source => source.replace("readChoice() !== 'granted'", 'false'), 'measurement is not stopped before consent');
 invalid('public/discovery.js', source => source.replace('/^#find-your-way\\/(wonder|create|challenge|story)$/', '/^#find-your-way\\/(.*)$/'), 'shared intent routes are not restricted');
@@ -72,6 +73,7 @@ invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceSentToServer": false', '"choiceSentToServer": true'), 'choiceSentToServer must remain false');
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceRequiredBeforePlay": false', '"choiceRequiredBeforePlay": true'), 'visitors must be able to Play without completing the mood chooser');
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"productionDeployId": "6a8fd3bd0ac52a00080eb726"', '"productionDeployId": "unverified"'), 'production verification is missing or drifted');
+invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"savedPlayerDataInspected": false', '"savedPlayerDataInspected": true'), 'fresh-start audit savedPlayerDataInspected must remain false');
 
 function interactiveResult(consent, choice, url = 'https://mythicalvoid.com/playable-now/', width = 1024) {
     const page = fs.readFileSync(path.join(root, 'public/playable-now/index.html'), 'utf8');
@@ -168,5 +170,5 @@ cases += 1;
 const directDenied = directPlayResult('denied');
 assert.strictEqual(directDenied.length, 0);
 
-assert.strictEqual(cases, 22);
-console.log('Play-intent doorway checks passed (22 scenarios).');
+assert.strictEqual(cases, 24);
+console.log('Play-intent doorway checks passed (24 scenarios).');

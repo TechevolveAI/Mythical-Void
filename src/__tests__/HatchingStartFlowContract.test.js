@@ -17,6 +17,10 @@ const gameScene = fs.readFileSync(
     path.join(__dirname, '../scenes/GameScene.js'),
     'utf8'
 );
+const mainCss = fs.readFileSync(
+    path.join(__dirname, '../styles/main.css'),
+    'utf8'
+);
 
 describe('Hatching home start flow', () => {
     test('restarts immediately after persisting the first-session state', () => {
@@ -47,6 +51,16 @@ describe('Hatching home start flow', () => {
             ".querySelectorAll('[data-mythical-home-start=\"true\"]')"
         );
         expect(gameScene).toContain('.forEach(element => element.remove())');
+    });
+
+    test('presents the reliable native Start action as one complete button', () => {
+        expect(source).toContain('button.innerHTML = `<span aria-hidden="true">&#10022;</span>');
+        expect(mainCss).toContain('width: min(90vw, 400px);');
+        expect(mainCss).toContain('height: 108px;');
+        expect(mainCss).toContain('@media (max-height: 500px)');
+        expect(mainCss).toContain('height: 68px;');
+        expect(mainCss).toContain('border-radius: 28px;');
+        expect(mainCss).not.toContain('width: min(85vw, 340px);');
     });
 
     test('blocks a release unless real touches reach the egg across entry viewport classes', () => {

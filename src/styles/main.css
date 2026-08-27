@@ -130,9 +130,9 @@ body.game-mode {
   top: 50%;
   left: 50%;
   display: flex;
-  width: min(85vw, 340px);
-  min-height: max(58px, 8dvh);
-  max-height: 95px;
+  width: min(90vw, 400px);
+  height: 108px;
+  min-height: 68px;
   align-items: center;
   justify-content: center;
   gap: 10px;
@@ -140,8 +140,8 @@ body.game-mode {
   color: #ffffff;
   background: linear-gradient(180deg, #ff8a3d 0%, #d94e25 100%);
   border: 3px solid #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 0 0 7px rgba(255, 107, 53, 0.24), 0 8px 24px rgba(0, 0, 0, 0.45);
+  border-radius: 28px;
+  box-shadow: 0 0 0 9px rgba(255, 107, 53, 0.24), 0 12px 32px rgba(0, 0, 0, 0.58);
   font: 900 clamp(18px, 2.8vw, 28px)/1.05 'Poppins', 'Inter', system-ui, sans-serif;
   letter-spacing: 0;
   transform: translate(-50%, -50%);
@@ -151,7 +151,9 @@ body.game-mode {
 }
 
 .home-start-fallback span {
-  font-size: 1.25em;
+  color: #fff2b3;
+  font-size: 1.4em;
+  text-shadow: 0 0 18px rgba(255, 213, 79, 0.92);
 }
 
 .home-start-fallback:active {
@@ -161,6 +163,12 @@ body.game-mode {
 .home-start-fallback:focus-visible {
   outline: 3px solid #8fe3cf;
   outline-offset: 4px;
+}
+
+@media (max-height: 500px) {
+  .home-start-fallback {
+    height: 68px;
+  }
 }
 
 /* Utility classes */
