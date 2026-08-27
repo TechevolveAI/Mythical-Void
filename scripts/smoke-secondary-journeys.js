@@ -11012,6 +11012,44 @@ async function smokeSanctuaryNavigation(session, exceptions) {
         dismissed: achievementDismissed
     };
 
+    const competingMenuRoutes = await evaluate(session, `(async () => {
+        const game = window.mythicalGame;
+        const scene = game.scene.getScene('GameScene');
+        const inventoryOpening = scene.openInventory();
+        const shopOpening = scene.openShop();
+        await Promise.allSettled([inventoryOpening, shopOpening]);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return {
+            sanctuaryPaused: game.scene.isPaused('GameScene'),
+            inventoryActive: game.scene.isActive('InventoryScene'),
+            shopActive: game.scene.isActive('ShopScene'),
+            activeOverlayScenes: ['InventoryScene', 'ShopScene'].filter(
+                sceneKey => game.scene.isActive(sceneKey)
+            )
+        };
+    })()`);
+    if (
+        !competingMenuRoutes.sanctuaryPaused ||
+        competingMenuRoutes.activeOverlayScenes.length !== 1 ||
+        !competingMenuRoutes.inventoryActive
+    ) {
+        throw new Error(
+            `Competing Sanctuary menu routes launched together: ${JSON.stringify(
+                competingMenuRoutes
+            )}`
+        );
+    }
+    await evaluate(session, `(() => {
+        window.mythicalGame.scene.getScene('InventoryScene').exitInventory();
+        return true;
+    })()`);
+    await waitForScene(session, 'GameScene');
+    await waitFor(
+        () => evaluate(session, `!window.mythicalGame.scene.isActive('InventoryScene')`),
+        { message: 'Competing menu route winner closed' }
+    );
+    menuRouteLifecycle.competingRoutes = competingMenuRoutes;
+
     const after = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         return {

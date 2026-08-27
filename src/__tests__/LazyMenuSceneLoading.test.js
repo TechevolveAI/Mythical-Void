@@ -20,6 +20,7 @@ function loadRouter(sceneWindow) {
         console,
         Promise,
         Map,
+        Set,
         Error
     };
 
@@ -96,6 +97,82 @@ describe('lazy menu scene loading', () => {
 
         expect(manager.pause).toHaveBeenCalledTimes(1);
         expect(manager.launch).toHaveBeenCalledTimes(1);
+    });
+
+    test('rejects a competing menu route while the first scene chunk loads', async () => {
+        let finishLoading;
+        const loadScene = jest.fn(() => new Promise(resolve => {
+            finishLoading = resolve;
+        }));
+        const sceneWindow = {
+            SceneLoader: { loadScene },
+            UXEnhancements: {
+                showLoading: jest.fn(),
+                hideLoading: jest.fn()
+            }
+        };
+        const manager = {
+            pause: jest.fn(),
+            launch: jest.fn()
+        };
+        const game = { scene: { keys: {}, scenes: [] } };
+        const Router = loadRouter(sceneWindow);
+        const router = new Router({ scene: manager, game });
+
+        const inventoryOpening = router.pauseAndLaunchScene('InventoryScene');
+        const shopOpening = router.pauseAndLaunchScene('ShopScene');
+
+        await expect(shopOpening).resolves.toBe(false);
+        expect(loadScene).toHaveBeenCalledTimes(1);
+        expect(loadScene).toHaveBeenCalledWith(game, 'InventoryScene');
+
+        finishLoading(true);
+        await expect(inventoryOpening).resolves.toBe(true);
+
+        expect(manager.pause).toHaveBeenCalledTimes(1);
+        expect(manager.launch).toHaveBeenCalledTimes(1);
+        expect(manager.launch).toHaveBeenCalledWith('InventoryScene', undefined);
+    });
+
+    test('allows the next registered menu only after the first closes', async () => {
+        const activeScenes = new Set(['GameScene']);
+        const pausedScenes = new Set();
+        const globalSceneManager = {
+            keys: { InventoryScene: {}, ShopScene: {} },
+            scenes: [],
+            isActive: jest.fn(sceneKey => activeScenes.has(sceneKey)),
+            isPaused: jest.fn(sceneKey => pausedScenes.has(sceneKey))
+        };
+        const manager = {
+            pause: jest.fn(() => pausedScenes.add('GameScene')),
+            launch: jest.fn(sceneKey => activeScenes.add(sceneKey))
+        };
+        const game = { scene: globalSceneManager };
+        const Router = loadRouter({});
+        const router = new Router({
+            scene: manager,
+            game,
+            sys: { settings: { key: 'GameScene' } }
+        });
+
+        await expect(
+            router.pauseAndLaunchScene('InventoryScene')
+        ).resolves.toBe(true);
+        await expect(
+            router.pauseAndLaunchScene('ShopScene')
+        ).resolves.toBe(false);
+
+        expect(manager.launch).toHaveBeenCalledTimes(1);
+        expect(manager.launch).toHaveBeenCalledWith('InventoryScene', undefined);
+
+        activeScenes.delete('InventoryScene');
+        pausedScenes.delete('GameScene');
+
+        await expect(
+            router.pauseAndLaunchScene('ShopScene')
+        ).resolves.toBe(true);
+        expect(manager.launch).toHaveBeenCalledTimes(2);
+        expect(manager.launch).toHaveBeenLastCalledWith('ShopScene', undefined);
     });
 
     test('keeps the active scene running when a menu cannot load', async () => {
