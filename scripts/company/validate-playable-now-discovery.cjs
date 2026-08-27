@@ -79,7 +79,7 @@ for (const [key, expected] of Object.entries({ accountRequired: false, emailSign
     requireValue(release.privacy?.[key] === expected, `privacy.${key} must be ${expected}`);
 }
 requireValue(release.verification?.productionVerificationRequired === true, 'production verification must remain required');
-requireValue(release.verification?.productionCommit === '18e6e69b5c478859fb9db9a137f9a0d48dfcb86c' && release.verification?.productionDeployId === '6a8fac1d80c28500086236a1', 'production proof is missing or drifted');
+requireValue(release.verification?.productionCommit === '148ca62d0c466bd031a5529ae83389067bb4e342' && release.verification?.productionDeployId === '6a8fb0d5da9b150008b16ec2', 'production proof is missing or drifted');
 requireValue(release.verification?.directButtonVisible === true && release.verification?.directDestination === 'https://mythicalvoid.com/play/', 'live direct-Play proof is missing');
 
 for (const [file, fragment, label] of [

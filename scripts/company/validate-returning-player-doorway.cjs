@@ -62,7 +62,7 @@ for (const [key, expected] of Object.entries({
     gameActivityMeasured: false
 })) requireValue(release.measurement?.[key] === expected, `measurement.${key} must be ${expected}`);
 requireValue(release.visualBoundary?.approvedGameplayMoments === 0 && release.visualBoundary?.requiredGameplayMoments === 4 && release.visualBoundary?.visualLaunchGateChanged === false, 'visual gate drifted');
-requireValue(release.verification?.productionCommit === '18e6e69b5c478859fb9db9a137f9a0d48dfcb86c' && release.verification?.productionDeployId === '6a8fac1d80c28500086236a1', 'returning-player production proof is missing or drifted');
+requireValue(release.verification?.productionCommit === '148ca62d0c466bd031a5529ae83389067bb4e342' && release.verification?.productionDeployId === '6a8fb0d5da9b150008b16ec2', 'returning-player production proof is missing or drifted');
 requireValue(release.verification?.directButtonVisible === true && release.verification?.directDestination === 'https://mythicalvoid.com/play/', 'returning-player live route proof is missing');
 for (const [key, expected] of Object.entries({
     ownedWebsitePublicationAuthorized: true,

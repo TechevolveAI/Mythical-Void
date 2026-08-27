@@ -108,7 +108,7 @@ async function browserHatchChallengeCase({ nativeShare }) {
     invalid('public/updates/releases.json', source => source.replace('"id": "SIGNAL-017"', '"id": "SIGNAL-017-WITHDRAWN"'), 'Signal 017');
     invalid('public/updates/releases.json', source => source.replace('"id": "SIGNAL-023"', '"id": "SIGNAL-023-WITHDRAWN"'), 'Signal 023');
     invalid('docs/company/growth/HATCH_CHALLENGE_LOOP.json', source => source.replace('"multiplayerClaimed": false', '"multiplayerClaimed": true'), 'Hatch Challenge promise drifted');
-    invalid('docs/company/growth/HATCH_CHALLENGE_LOOP.json', source => source.replace('"state": "owned_site_release_prepared"', '"state": "live_production_verified"'), 'live Hatch Challenge production proof is missing');
+    invalid('docs/company/growth/HATCH_CHALLENGE_LOOP.json', source => source.replace('"productionDeployId": "6a8fb0d5da9b150008b16ec2"', '"productionDeployId": "unverified"'), 'live Hatch Challenge production proof is missing');
 
     caseCount += 1;
     const native = await browserShareCase({ nativeShare: true });
