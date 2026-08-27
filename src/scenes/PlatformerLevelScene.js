@@ -303,6 +303,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.routeHintUntil = 0;
         this.guardianGateState = null;
         this.guardianEncounter = null;
+        this.guardianTransitionGuards = new Map();
         this.guardianTeamSupport = {
             guardianId: null,
             guardianName: null,
@@ -1656,6 +1657,71 @@ class PlatformerLevelScene extends Phaser.Scene {
             guardianId: this.guardianEncounter.id
         });
         return true;
+    }
+
+    scheduleGuardianTransition(key, delay, callback, fallbackGrace = 600) {
+        if (typeof callback !== 'function') return null;
+        const transitionKey = String(key || 'guardian-transition');
+        this.cancelGuardianTransition(transitionKey);
+
+        const record = {
+            key: transitionKey,
+            settled: false,
+            sceneTimer: null,
+            wallTimer: null
+        };
+        const cleanup = () => {
+            if (record.sceneTimer?.hasDispatched === false) {
+                record.sceneTimer.remove?.();
+            }
+            record.sceneTimer = null;
+            if (record.wallTimer != null) {
+                window.clearTimeout(record.wallTimer);
+                record.wallTimer = null;
+            }
+            if (this.guardianTransitionGuards?.get(transitionKey) === record) {
+                this.guardianTransitionGuards.delete(transitionKey);
+            }
+        };
+        const settle = () => {
+            if (record.settled) return false;
+            if (this.sys?.isActive?.() === false) {
+                record.settled = true;
+                cleanup();
+                return false;
+            }
+            record.settled = true;
+            cleanup();
+            callback();
+            return true;
+        };
+
+        const safeDelay = Math.max(0, Number(delay) || 0);
+        record.sceneTimer = this.time?.delayedCall?.(safeDelay, settle) || null;
+        record.wallTimer = window.setTimeout(
+            settle,
+            safeDelay + Math.max(100, Number(fallbackGrace) || 600)
+        );
+        this.guardianTransitionGuards.set(transitionKey, record);
+        return record;
+    }
+
+    cancelGuardianTransition(key) {
+        const record = this.guardianTransitionGuards?.get(String(key));
+        if (!record) return false;
+        record.settled = true;
+        record.sceneTimer?.remove?.();
+        if (record.wallTimer != null) {
+            window.clearTimeout(record.wallTimer);
+        }
+        this.guardianTransitionGuards.delete(String(key));
+        return true;
+    }
+
+    cancelGuardianTransitions() {
+        [...(this.guardianTransitionGuards?.keys?.() || [])].forEach(key => {
+            this.cancelGuardianTransition(key);
+        });
     }
 
     canActivateOrderedRouteSignal(signal, signals, activatedCount, {
@@ -8265,6 +8331,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.clearTraversalLandingGuides();
         this.optionalRouteRewards?.clear?.();
         this.routeChoiceSequence = 0;
+        this.cancelGuardianTransitions();
         this.guardianEncounter = null;
         this.clearGuardianGateState();
 

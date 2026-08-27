@@ -8,6 +8,20 @@ function readLevel(fileName) {
 }
 
 describe('guardian encounter pacing contracts', () => {
+    test('shared guardian transitions cannot deadlock on a missed scene timer', () => {
+        const source = fs.readFileSync(
+            path.join(__dirname, '../scenes/PlatformerLevelScene.js'),
+            'utf8'
+        );
+
+        expect(source).toContain(
+            'scheduleGuardianTransition(key, delay, callback, fallbackGrace = 600)'
+        );
+        expect(source).toContain('record.sceneTimer = this.time?.delayedCall?.(');
+        expect(source).toContain('record.wallTimer = window.setTimeout(');
+        expect(source).toContain('this.cancelGuardianTransitions();');
+    });
+
     test('Reef attacks warn before danger and end in a real damage opening', () => {
         const source = readLevel('ReefLevel.js');
 
@@ -67,6 +81,16 @@ describe('guardian encounter pacing contracts', () => {
             /if \(isMobileLayout\) \{\s*this\.cameras\.main\.setZoom\(1\);/
         );
         expect(source).toContain('this.bossAttackPreviewTimer?.remove?.();');
+        expect(source).toContain(
+            "camera.once('camerapancomplete', settleArenaEntry);"
+        );
+        expect(source).toContain(
+            "this.scheduleGuardianTransition(\n                    'reef-guardian-arena-pan'"
+        );
+        expect(source).toContain(
+            "this.cancelGuardianTransition('reef-guardian-arena-pan')"
+        );
+        expect(source).toContain("'reef-guardian-spawn'");
     });
 
     test('Crystal frames the mobile arena before enabling controls or attacks', () => {

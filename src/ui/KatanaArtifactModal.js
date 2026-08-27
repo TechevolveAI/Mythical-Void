@@ -92,6 +92,7 @@ export default class KatanaArtifactModal {
         this.closeHandler = null;
         this.continueButton = null;
         this.keyboardHandler = null;
+        this.releaseGuardHandler = null;
         this.physicsWasPaused = false;
         this.restoreMobileControls = false;
         this.domContainer = null;
@@ -227,8 +228,31 @@ export default class KatanaArtifactModal {
         };
         button.addEventListener('click', this.closeHandler);
         button.addEventListener('pointerup', this.closeHandler);
+        button.addEventListener('touchend', this.closeHandler, { passive: false });
         this.continueButton = button;
         root.addEventListener('click', event => event.stopPropagation());
+
+        this.releaseGuardHandler = event => {
+            if (!this.domElement || !this.continueButton) return;
+            const point = event.changedTouches?.[0] || event;
+            const clientX = Number(point?.clientX);
+            const clientY = Number(point?.clientY);
+            if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return;
+            const bounds = this.continueButton.getBoundingClientRect();
+            if (
+                clientX < bounds.left ||
+                clientX > bounds.right ||
+                clientY < bounds.top ||
+                clientY > bounds.bottom
+            ) return;
+            event.stopImmediatePropagation?.();
+            this.closeHandler?.(event);
+        };
+        window.addEventListener('pointerup', this.releaseGuardHandler, true);
+        window.addEventListener('touchend', this.releaseGuardHandler, {
+            capture: true,
+            passive: false
+        });
 
         this.keyboardHandler = event => {
             if (!['Enter', ' ', 'Escape'].includes(event.key)) return;
@@ -262,11 +286,17 @@ export default class KatanaArtifactModal {
         if (this.continueButton && this.closeHandler) {
             this.continueButton.removeEventListener('click', this.closeHandler);
             this.continueButton.removeEventListener('pointerup', this.closeHandler);
+            this.continueButton.removeEventListener('touchend', this.closeHandler);
         }
         this.continueButton = null;
         if (this.keyboardHandler) {
             window.removeEventListener('keydown', this.keyboardHandler);
             this.keyboardHandler = null;
+        }
+        if (this.releaseGuardHandler) {
+            window.removeEventListener('pointerup', this.releaseGuardHandler, true);
+            window.removeEventListener('touchend', this.releaseGuardHandler, true);
+            this.releaseGuardHandler = null;
         }
         if (this.restoreMobileControls) {
             this.scene.mobileControls?.resume?.();

@@ -1444,8 +1444,9 @@ class FinalVoidLevel extends PlatformerLevelScene {
             onComplete: () => warningText.destroy()
         });
 
-        this.time.delayedCall(1200, () => {
+        this.scheduleGuardianTransition('final-guardian-spawn', 1200, () => {
             if (!this.bossFightActive || this.bossDefeated) return;
+            if (this.boss?.active) return;
             this.spawnVoidEmpress();
             this.physics.resume();
         });

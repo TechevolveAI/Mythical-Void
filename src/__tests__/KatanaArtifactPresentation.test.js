@@ -109,13 +109,29 @@ describe('katana artifact presentation', () => {
         expect(platformerSource).toContain('this.time.delayedCall(100, () => {');
     });
 
-    test('uses a one-shot pointer-native continuation on mobile', () => {
+    test('uses one-shot pointer and touch-native continuation routes on mobile', () => {
         expect(artifactSource).toContain(
             "button.addEventListener('pointerup', this.closeHandler)"
+        );
+        expect(artifactSource).toContain(
+            "button.addEventListener('touchend', this.closeHandler, { passive: false })"
         );
         expect(artifactSource).toContain('if (!this.domElement) return;');
         expect(artifactSource).toContain(
             "this.continueButton.removeEventListener('pointerup', this.closeHandler)"
+        );
+        expect(artifactSource).toContain(
+            "this.continueButton.removeEventListener('touchend', this.closeHandler)"
+        );
+        expect(artifactSource).toContain(
+            "window.addEventListener('pointerup', this.releaseGuardHandler, true)"
+        );
+        expect(artifactSource).toContain(
+            "window.addEventListener('touchend', this.releaseGuardHandler"
+        );
+        expect(artifactSource).toContain('event.stopImmediatePropagation?.()');
+        expect(artifactSource).toContain(
+            "window.removeEventListener('pointerup', this.releaseGuardHandler, true)"
         );
     });
 });
