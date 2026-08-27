@@ -8,6 +8,7 @@ const root = rootFlag === -1 ? path.resolve(__dirname, '..', '..') : path.resolv
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 const audit = JSON.parse(read('docs/company/search/search-visibility-audit-2026-08-27.json'));
 const indexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-08-27.json'));
+const changedPageIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-08-27-02.json'));
 const handoff = read('docs/company/search/SEARCH_CONSOLE_ACTIVATION.md');
 const report = read('docs/company/search/SEARCH_VISIBILITY_AUDIT_2026-08-27.md');
 const opportunityMap = JSON.parse(read('docs/company/search/search-opportunities.json'));
@@ -49,6 +50,13 @@ requireValue(indexNow.id === 'INDEXNOW-2026-08-27-01' && indexNow.host === 'myth
 requireValue(indexNow.accepted === true && indexNow.httpStatus === 200 && indexNow.urlCount === 14, 'IndexNow evidence does not preserve the accepted response');
 for (const field of ['personalDataSent', 'accountUsed', 'paidPromotionStarted']) requireValue(indexNow[field] === false, `IndexNow boundary ${field} must remain false`);
 requireValue(/does not prove/i.test(indexNow.meaning || ''), 'IndexNow evidence overstates what acceptance proves');
+requireValue(audit.indexNow?.latestMeaningfulChange?.record === 'docs/company/search/indexnow-submission-2026-08-27-02.json', 'latest changed-page notification evidence link is missing');
+requireValue(audit.indexNow?.latestMeaningfulChange?.accepted === true && audit.indexNow?.latestMeaningfulChange?.urlCount === 2 && audit.indexNow?.latestMeaningfulChange?.unchangedUrlsResubmitted === false, 'latest changed-page notification audit is incomplete');
+requireValue(changedPageIndexNow.id === 'INDEXNOW-2026-08-27-02' && changedPageIndexNow.host === 'mythicalvoid.com', 'changed-page IndexNow evidence identity is invalid');
+requireValue(changedPageIndexNow.accepted === true && changedPageIndexNow.httpStatus === 200 && changedPageIndexNow.urlCount === 2, 'changed-page IndexNow acceptance evidence is incomplete');
+requireValue(JSON.stringify(changedPageIndexNow.urls) === JSON.stringify(['https://mythicalvoid.com/', 'https://mythicalvoid.com/playable-now/']), 'changed-page IndexNow URL list drifted');
+requireValue(changedPageIndexNow.unchangedSitemapUrlsResubmitted === false && /does not prove/i.test(changedPageIndexNow.meaning || ''), 'changed-page IndexNow boundary is missing');
+for (const field of ['personalDataSent', 'accountUsed', 'paidPromotionStarted']) requireValue(changedPageIndexNow[field] === false, `changed-page IndexNow boundary ${field} must remain false`);
 
 requireValue(homepage.includes('<meta name="robots" content="index, follow, max-image-preview:large">'), 'homepage index instruction is missing');
 requireValue(homepage.includes('<link rel="canonical" href="https://mythicalvoid.com/">'), 'homepage canonical is missing');
@@ -83,5 +91,6 @@ console.log(JSON.stringify({
     liveOwnedSearchRoutes: opportunityMap.clusters.length,
     searchConsoleConnected: false,
     indexNowAccepted: true,
+    latestChangedPagesNotified: changedPageIndexNow.urlCount,
     externalActionTaken: true
 }, null, 2));

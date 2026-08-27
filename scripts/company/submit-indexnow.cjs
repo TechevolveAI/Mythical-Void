@@ -9,9 +9,34 @@ const host = 'mythicalvoid.com';
 const endpoint = 'https://api.indexnow.org/indexnow';
 const submit = process.argv.includes('--submit');
 
-if (process.argv.slice(2).some(argument => argument !== '--submit')) {
-    console.error('Usage: node scripts/company/submit-indexnow.cjs [--submit]');
-    process.exit(1);
+function requestedUrlsFromArguments(argumentsList) {
+    const requested = [];
+    for (let index = 0; index < argumentsList.length; index += 1) {
+        const argument = argumentsList[index];
+        if (argument === '--submit') continue;
+        if (argument !== '--url' || !argumentsList[index + 1]) {
+            throw new Error('Usage: node scripts/company/submit-indexnow.cjs [--submit] [--url /changed-page/ ...]');
+        }
+        requested.push(argumentsList[index + 1]);
+        index += 1;
+    }
+    return requested;
+}
+
+function selectCanonicalUrls(sitemapUrls, requestedUrls) {
+    if (!requestedUrls.length) return sitemapUrls;
+    const known = new Set(sitemapUrls);
+    const selected = [];
+    for (const requested of requestedUrls) {
+        const parsed = new URL(requested, `https://${host}`);
+        if (parsed.protocol !== 'https:' || parsed.host !== host || parsed.search || parsed.hash) {
+            throw new Error(`IndexNow URL must be a clean owned Mythical Void address: ${requested}`);
+        }
+        const canonical = parsed.href;
+        if (!known.has(canonical)) throw new Error(`IndexNow URL is not in the canonical sitemap: ${canonical}`);
+        if (!selected.includes(canonical)) selected.push(canonical);
+    }
+    return selected;
 }
 
 const keyPath = path.join(repositoryRoot, 'public', `${key}.txt`);
@@ -20,10 +45,11 @@ if (fs.readFileSync(keyPath, 'utf8').trim() !== key) {
 }
 
 const sitemap = fs.readFileSync(path.join(repositoryRoot, 'public', 'sitemap.xml'), 'utf8');
-const urlList = [...sitemap.matchAll(/<loc>(https:\/\/mythicalvoid\.com\/[^<]*)<\/loc>/g)].map(match => match[1]);
-if (urlList.length === 0 || urlList.some(url => new URL(url).host !== host)) {
+const sitemapUrls = [...sitemap.matchAll(/<loc>(https:\/\/mythicalvoid\.com\/[^<]*)<\/loc>/g)].map(match => match[1]);
+if (sitemapUrls.length === 0 || sitemapUrls.some(url => new URL(url).host !== host)) {
     throw new Error('The sitemap did not provide a safe list of Mythical Void URLs.');
 }
+const urlList = selectCanonicalUrls(sitemapUrls, requestedUrlsFromArguments(process.argv.slice(2)));
 
 const payload = {
     host,
@@ -58,3 +84,5 @@ if (!submit) {
     console.error(`IndexNow submission failed: ${error.message}`);
     process.exitCode = 1;
 });
+
+module.exports = { requestedUrlsFromArguments, selectCanonicalUrls };

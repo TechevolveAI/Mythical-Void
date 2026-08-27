@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "INDEXNOW-2026-08-27-02",
+  "submittedAt": "2026-08-27T05:44:09Z",
+  "host": "mythicalvoid.com",
+  "endpoint": "https://api.indexnow.org/indexnow",
+  "reason": "The homepage and game-finder page gained a verified optional install route that opens directly into the game.",
+  "urls": [
+    "https://mythicalvoid.com/",
+    "https://mythicalvoid.com/playable-now/"
+  ],
+  "urlCount": 2,
+  "httpStatus": 200,
+  "accepted": true,
+  "unchangedSitemapUrlsResubmitted": false,
+  "meaning": "Participating search engines accepted a notification for two genuinely changed owned pages. This does not prove that either page has been crawled, indexed or ranked.",
+  "personalDataSent": false,
+  "accountUsed": false,
+  "paidPromotionStarted": false
+}

@@ -42,7 +42,14 @@
     "urlCount": 14,
     "httpStatus": 200,
     "accepted": true,
-    "indexingClaimed": false
+    "indexingClaimed": false,
+    "latestMeaningfulChange": {
+      "record": "docs/company/search/indexnow-submission-2026-08-27-02.json",
+      "submittedAt": "2026-08-27T05:44:09Z",
+      "urlCount": 2,
+      "accepted": true,
+      "unchangedUrlsResubmitted": false
+    }
   },
   "nextAction": {
     "owner": "Kevin",

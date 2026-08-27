@@ -42,6 +42,10 @@ the official IndexNow endpoint. It accepted the submission with HTTP status
 exist. It does not guarantee crawling, indexing, placement or traffic, and it
 does not replace Google Search Console.
 
+After the installable-game release, only the two pages that genuinely changed
+were notified again: the homepage and Playable Now. IndexNow returned `200` at
+05:44 UTC. The other sitemap pages were not repeatedly resubmitted.
+
 ## The right next move
 
 Do not make lots of near-identical “free game” pages. The useful page already
