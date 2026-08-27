@@ -10,6 +10,7 @@ const root = path.resolve(__dirname, '..', '..');
 const validator = path.join(__dirname, 'validate-search-visibility-activation.cjs');
 const files = [
     'docs/company/search/search-visibility-audit-2026-08-27.json',
+    'docs/company/search/indexnow-submission-2026-08-27.json',
     'docs/company/search/SEARCH_VISIBILITY_AUDIT_2026-08-27.md',
     'docs/company/search/SEARCH_CONSOLE_ACTIVATION.md',
     'docs/company/search/search-opportunities.json',
@@ -67,6 +68,7 @@ invalidAudit('invented ranking', audit => { audit.verifiedEvidence.rankingPositi
 invalidAudit('premature sitemap authority', audit => { audit.authority.sitemapSubmissionAuthorized = true; }, 'sitemapSubmissionAuthorized');
 invalidAudit('paid search', audit => { audit.authority.paidSearchAuthorized = true; }, 'paidSearchAuthorized');
 invalidAudit('fabricated result', audit => { audit.sample.queries[0].mythicalResultObserved = true; }, 'sample result');
+invalidAudit('invented indexing', audit => { audit.indexNow.indexingClaimed = true; }, 'cannot be described as indexing');
 
 const robotsRoot = fixture(fixtureRoot => {
     fs.writeFileSync(path.join(fixtureRoot, 'public/robots.txt'), 'User-agent: *\nDisallow: /\n');
@@ -108,5 +110,5 @@ try {
     fs.rmSync(staleMapRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 9);
-console.log('Search visibility activation safeguards passed (9 cases).');
+assert.strictEqual(cases, 10);
+console.log('Search visibility activation safeguards passed (10 cases).');

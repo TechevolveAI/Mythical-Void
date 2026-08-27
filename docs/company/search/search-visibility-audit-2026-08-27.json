@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "SEARCH-VISIBILITY-2026-08-27",
   "checkedAt": "2026-08-27T01:51:00Z",
-  "state": "crawl_ready_visibility_unverified",
+  "state": "crawl_submission_accepted_visibility_unverified",
   "sample": {
     "method": "Directional current web-search sample, not a complete index report or stable rank tracker.",
     "queryCount": 4,
@@ -36,6 +36,14 @@
     "searchClicks": null,
     "rankingPosition": null
   },
+  "indexNow": {
+    "record": "docs/company/search/indexnow-submission-2026-08-27.json",
+    "submittedAt": "2026-08-27T05:23:28+01:00",
+    "urlCount": 14,
+    "httpStatus": 200,
+    "accepted": true,
+    "indexingClaimed": false
+  },
   "nextAction": {
     "owner": "Kevin",
     "action": "Open Google Search Console with the Google account that manages Mythical Void, add and verify the site, then approve one sitemap submission.",
@@ -44,13 +52,14 @@
     "fallback": "If automatic verification is unavailable, download the Search Console HTML verification file and give that exact file to Codex for an owned-site deployment."
   },
   "authority": {
+    "indexNowSubmissionAuthorized": true,
+    "indexNowSubmissionCompleted": true,
     "searchConsoleConnectionAuthorized": false,
     "ownershipVerificationAuthorized": false,
     "sitemapSubmissionAuthorized": false,
     "urlInspectionRequestAuthorized": false,
     "paidSearchAuthorized": false,
     "linkOutreachAuthorized": false,
-    "externalActionTaken": false
+    "externalActionTaken": true
   }
 }
-

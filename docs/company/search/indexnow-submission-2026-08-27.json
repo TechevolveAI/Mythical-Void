@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "INDEXNOW-2026-08-27-01",
+  "submittedAt": "2026-08-27T05:23:28+01:00",
+  "host": "mythicalvoid.com",
+  "endpoint": "https://api.indexnow.org/indexnow",
+  "source": "public/sitemap.xml",
+  "urlCount": 14,
+  "httpStatus": 200,
+  "accepted": true,
+  "meaning": "Participating search engines accepted the public URL notification. This does not prove that any page has been crawled, indexed or ranked.",
+  "personalDataSent": false,
+  "accountUsed": false,
+  "paidPromotionStarted": false
+}

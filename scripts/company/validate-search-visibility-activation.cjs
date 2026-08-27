@@ -7,6 +7,7 @@ const rootFlag = process.argv.indexOf('--root');
 const root = rootFlag === -1 ? path.resolve(__dirname, '..', '..') : path.resolve(process.argv[rootFlag + 1] || '');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 const audit = JSON.parse(read('docs/company/search/search-visibility-audit-2026-08-27.json'));
+const indexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-08-27.json'));
 const handoff = read('docs/company/search/SEARCH_CONSOLE_ACTIVATION.md');
 const report = read('docs/company/search/SEARCH_VISIBILITY_AUDIT_2026-08-27.md');
 const opportunityMap = JSON.parse(read('docs/company/search/search-opportunities.json'));
@@ -19,7 +20,7 @@ const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 
 requireValue(audit.id === 'SEARCH-VISIBILITY-2026-08-27', 'search visibility audit identity is missing');
-requireValue(audit.state === 'crawl_ready_visibility_unverified', 'search visibility state is overstated');
+requireValue(audit.state === 'crawl_submission_accepted_visibility_unverified', 'search visibility state is overstated');
 requireValue(audit.sample?.queryCount === 4 && audit.sample?.queries?.length === 4, 'four-query sample boundary is missing');
 requireValue(audit.sample?.queries?.every(item => item.mythicalResultObserved === false), 'sample result was changed without a new dated audit');
 requireValue(/cannot prove global non-indexing/i.test(audit.sample?.limitations || ''), 'search sample limitation is missing');
@@ -36,9 +37,18 @@ for (const field of ['searchConsoleConnected', 'sitemapSubmittedInSearchConsole'
 for (const field of ['indexedUrlCount', 'searchImpressions', 'searchClicks', 'rankingPosition']) {
     requireValue(audit.verifiedEvidence?.[field] === null, `${field} must remain null without Search Console evidence`);
 }
-for (const field of ['searchConsoleConnectionAuthorized', 'ownershipVerificationAuthorized', 'sitemapSubmissionAuthorized', 'urlInspectionRequestAuthorized', 'paidSearchAuthorized', 'linkOutreachAuthorized', 'externalActionTaken']) {
+for (const field of ['searchConsoleConnectionAuthorized', 'ownershipVerificationAuthorized', 'sitemapSubmissionAuthorized', 'urlInspectionRequestAuthorized', 'paidSearchAuthorized', 'linkOutreachAuthorized']) {
     requireValue(audit.authority?.[field] === false, `${field} must remain false`);
 }
+requireValue(audit.authority?.indexNowSubmissionAuthorized === true, 'IndexNow submission authority is missing');
+requireValue(audit.authority?.indexNowSubmissionCompleted === true && audit.authority?.externalActionTaken === true, 'accepted IndexNow action is not recorded');
+requireValue(audit.indexNow?.record === 'docs/company/search/indexnow-submission-2026-08-27.json', 'IndexNow evidence link is missing');
+requireValue(audit.indexNow?.accepted === true && audit.indexNow?.httpStatus === 200 && audit.indexNow?.urlCount === 14, 'IndexNow acceptance evidence is incomplete');
+requireValue(audit.indexNow?.indexingClaimed === false, 'IndexNow acceptance cannot be described as indexing');
+requireValue(indexNow.id === 'INDEXNOW-2026-08-27-01' && indexNow.host === 'mythicalvoid.com', 'IndexNow evidence identity is invalid');
+requireValue(indexNow.accepted === true && indexNow.httpStatus === 200 && indexNow.urlCount === 14, 'IndexNow evidence does not preserve the accepted response');
+for (const field of ['personalDataSent', 'accountUsed', 'paidPromotionStarted']) requireValue(indexNow[field] === false, `IndexNow boundary ${field} must remain false`);
+requireValue(/does not prove/i.test(indexNow.meaning || ''), 'IndexNow evidence overstates what acceptance proves');
 
 requireValue(homepage.includes('<meta name="robots" content="index, follow, max-image-preview:large">'), 'homepage index instruction is missing');
 requireValue(homepage.includes('<link rel="canonical" href="https://mythicalvoid.com/">'), 'homepage canonical is missing');
@@ -52,7 +62,7 @@ for (const url of ['https://mythicalvoid.com/', 'https://mythicalvoid.com/playab
 for (const phrase of ['**Cost:** free', 'does not require another Google Workspace subscription', 'Search Console is verified.', 'Do not paste passwords', 'Do not keep pressing Request indexing', 'does not authorize paid adverts']) {
     requireValue(handoff.includes(phrase), `Search Console handoff is missing: ${phrase}`);
 }
-for (const phrase of ['warning, not proof', 'There is no obvious public technical block', 'No ranking is claimed']) {
+for (const phrase of ['warning, not proof', 'There is no obvious public technical block', 'No ranking is claimed', 'official IndexNow endpoint', 'does not guarantee crawling']) {
     requireValue(report.includes(phrase), `plain-language audit is missing: ${phrase}`);
 }
 requireValue(packageJson.scripts?.['validate:search-visibility'] === 'node scripts/company/validate-search-visibility-activation.cjs', 'search visibility validator command is missing');
@@ -72,5 +82,6 @@ console.log(JSON.stringify({
     technicalCrawlChecksPassing: Object.keys(audit.liveTechnicalChecks).length,
     liveOwnedSearchRoutes: opportunityMap.clusters.length,
     searchConsoleConnected: false,
-    externalActionTaken: false
+    indexNowAccepted: true,
+    externalActionTaken: true
 }, null, 2));

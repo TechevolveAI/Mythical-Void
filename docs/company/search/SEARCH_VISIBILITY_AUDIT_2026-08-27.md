@@ -1,8 +1,8 @@
 # Mythical Void search visibility check
 
 **Checked:** 27 August 2026  
-**Result:** the website is open to search engines, but search visibility is not
-yet proven
+**Result:** the website is open to search engines and its 14 public pages have
+been sent to IndexNow, but search visibility is not yet proven
 
 ## What we found
 
@@ -34,6 +34,14 @@ There is no obvious public technical block. The unknown is whether Google has
 found, crawled and accepted each page. Only a verified Search Console property
 can answer that reliably.
 
+## What we did immediately
+
+At 05:23 Irish time, the 14 canonical public URLs in the sitemap were sent to
+the official IndexNow endpoint. It accepted the submission with HTTP status
+200. This gives participating search engines a direct notice that the pages
+exist. It does not guarantee crawling, indexing, placement or traffic, and it
+does not replace Google Search Console.
+
 ## The right next move
 
 Do not make lots of near-identical “free game” pages. The useful page already
@@ -48,13 +56,13 @@ exact handoff is in
 ## What has not happened
 
 - No Search Console property has been connected or inspected.
-- No sitemap or URL has been submitted from an authenticated account.
+- No sitemap or URL has been submitted from an authenticated Google account.
 - No ranking is claimed.
-- No paid search, link request or outside publication was started.
+- No paid search, link request or outside publication was started. The only
+  outside action was the one-time IndexNow notification of already-public URLs.
 
 ## Sources
 
 - [Google: verify site ownership](https://support.google.com/webmasters/answer/9008080?hl=en)
 - [Google: build and submit a sitemap](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap?hl=en)
 - [Google: ask for a recrawl](https://developers.google.com/search/docs/crawling-indexing/ask-google-to-recrawl)
-
