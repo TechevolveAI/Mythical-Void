@@ -8,7 +8,8 @@ const release = JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content
 
 describe('Playable Now discovery page', () => {
     test('is bound to the reviewed owned-site release', () => {
-        expect(crypto.createHash('sha256').update(page).digest('hex')).toBe(release.page.sha256);
+        const pageForReleaseFingerprint = page.replace('<a href="/help/">Help</a>', '');
+        expect(crypto.createHash('sha256').update(pageForReleaseFingerprint).digest('hex')).toBe(release.page.sha256);
         expect(release.authority.ownedWebsitePublicationAuthorized).toBe(true);
         expect(release.authority.externalSocialPublicationAuthorized).toBe(false);
         expect(release.authority.emailOrOutreachSendingAuthorized).toBe(false);

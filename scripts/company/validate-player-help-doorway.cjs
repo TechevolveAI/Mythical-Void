@@ -11,7 +11,9 @@ function loadCurrent(root = repositoryRoot) {
         parentsHtml: read('public/parents/index.html'),
         playableHtml: read('public/playable-now/index.html'),
         sitemap: read('public/sitemap.xml'),
-        llms: read('public/llms.txt')
+        llms: read('public/llms.txt'),
+        netlify: read('netlify.toml'),
+        vercel: read('vercel.json')
     };
 }
 
@@ -37,6 +39,8 @@ function validatePlayerHelpDoorway(input) {
     requireValue(input.playableHtml.includes('href="/help/">Help</a>'), 'Playable doorway footer must link to Help');
     requireValue(input.sitemap.includes('<loc>https://mythicalvoid.com/help/</loc>'), 'Sitemap must include Help');
     requireValue(input.llms.includes('[Help playing Mythical Void](https://mythicalvoid.com/help/)'), 'Machine-readable guide must include Help');
+    requireValue(input.netlify.includes('from = "/help/"') && input.netlify.includes('to = "/help/index.html"'), 'Netlify must route Help explicitly');
+    requireValue(input.vercel.includes('"source": "/help/"') && input.vercel.includes('"destination": "/help/index.html"'), 'Vercel must route Help explicitly');
 
     return failures;
 }

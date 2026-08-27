@@ -70,6 +70,16 @@
   status = 200
 
 [[redirects]]
+  from = "/help"
+  to = "/help/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/help/"
+  to = "/help/index.html"
+  status = 200
+
+[[redirects]]
   # Keep the dedicated Hatch Challenge preview ahead of the SPA fallback.
   from = "/hatch-challenge"
   to = "/hatch-challenge/index.html"

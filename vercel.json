@@ -29,6 +29,14 @@
       "destination": "/playable-now/index.html"
     },
     {
+      "source": "/help",
+      "destination": "/help/index.html"
+    },
+    {
+      "source": "/help/",
+      "destination": "/help/index.html"
+    },
+    {
       "source": "/hatch-challenge",
       "destination": "/hatch-challenge/index.html"
     },
@@ -53,7 +61,7 @@
       "destination": "/space-signal/index.html"
     },
     {
-      "source": "/((?!assets/|marketing/|game/|audio/|updates/|space-signal/|playable-now/|hatch-challenge/|manifest\\.webmanifest|og\\.png|sw\\.js|apple-touch-icon\\.png).*)",
+      "source": "/((?!assets/|marketing/|game/|audio/|updates/|space-signal/|playable-now/|hatch-challenge/|help/|manifest\\.webmanifest|og\\.png|sw\\.js|apple-touch-icon\\.png).*)",
       "destination": "/index.html"
     }
   ],
