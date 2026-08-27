@@ -79,7 +79,9 @@ for (const page of pages) {
         errors.push(`${page.file}: canonical URL does not match ${page.route}`);
     }
     if (headings.length !== 1) errors.push(`${page.file}: expected exactly one h1`);
-    if (!source.includes('href="/play/"')) errors.push(`${page.file}: no direct play link`);
+    if (!source.includes('href="/play/"') && !source.includes('href="/play/#hatch-challenge"')) {
+        errors.push(`${page.file}: no direct play link`);
+    }
     if (!source.includes('href="/"')) errors.push(`${page.file}: no canonical home link`);
     if (!source.includes('src="/discovery.js')) errors.push(`${page.file}: consent-aware analytics helper missing`);
     if (!source.includes('rel="stylesheet" href="/discovery.css')) errors.push(`${page.file}: shared presentation missing`);

@@ -1,13 +1,16 @@
 {
   "schemaVersion": 1,
   "releaseId": "HATCH-CHALLENGE-INVITATION-2026-08-27",
-  "state": "live_production_verified",
+  "state": "prepared_for_owned_game_release",
   "publicExperience": {
     "trigger": "first_named_creature_living_form_reveal",
     "buttonLabel": "INVITE SOMEONE",
     "title": "The Mythical Void Hatch Challenge",
     "text": "I just hatched an alien creature. Hatch yours from the same signal, then compare what the creature engine made.",
     "url": "https://mythicalvoid.com/hatch-challenge/",
+    "gameEntry": "/play/#hatch-challenge",
+    "invitedPlayerGuidance": true,
+    "comparisonAreas": ["form", "colour", "markings", "nature", "affinity", "rare changes"],
     "automaticShare": false,
     "continueRemainsPrimary": true
   },
@@ -17,17 +20,20 @@
     "creaturePortraitIncluded": false,
     "playerIdentityIncluded": false,
     "recipientCollected": false,
-    "trackingParametersAdded": false
+    "trackingParametersAdded": false,
+    "entryMarkerContainsUniqueIdentifier": false
   },
   "visualBoundary": {
     "unapprovedScreenshotUsed": false,
     "imageIncludedInShare": false
   },
   "verification": {
-    "productionCommit": "b30b5c503179b3a4be00d78c8e37fe5c8fccbe64",
-    "productionDeployId": "6a902c7d64438c0008c47950",
-    "productionPublishedAt": "2026-08-27T12:26:00.727Z",
-    "shareActionPresentInGameBundle": true,
-    "cleanShareUrlPresentInGameBundle": true
+    "productionCommit": null,
+    "productionDeployId": null,
+    "productionPublishedAt": null,
+    "shareActionPresentInGameBundle": false,
+    "cleanShareUrlPresentInGameBundle": false,
+    "challengeEntryPresentOnLandingPage": false,
+    "comparisonGuidancePresentInGameBundle": false
   }
 }

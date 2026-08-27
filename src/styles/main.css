@@ -395,6 +395,26 @@ body.game-mode {
   font-weight: 700;
 }
 
+.living-form-challenge {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  background: rgba(242, 193, 78, 0.07);
+  border-left: 2px solid #f2c14e;
+}
+
+.living-form-challenge-title {
+  display: block;
+  color: #f2c14e;
+  font-size: 9px;
+}
+
+.living-form-challenge-copy {
+  margin: 4px 0 0;
+  color: #c7d2d7;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
 .living-form-eyebrow {
   color: #8fe3cf;
   font-size: 11px;

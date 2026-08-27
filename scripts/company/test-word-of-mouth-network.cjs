@@ -127,6 +127,7 @@ async function browserFamilyGuideCase({ nativeShare }) {
     invalid('docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.json', source => source.replace('"PN-003"', '"PN-004"'), 'founding launch pack first-week sequence is missing or unsafe');
     invalid('public/updates/releases.json', source => source.replace('"id": "SIGNAL-017"', '"id": "SIGNAL-017-WITHDRAWN"'), 'Signal 017');
     invalid('public/updates/releases.json', source => source.replace('"id": "SIGNAL-023"', '"id": "SIGNAL-023-WITHDRAWN"'), 'Signal 023');
+    invalid('public/hatch-challenge/index.html', source => source.replaceAll('/play/#hatch-challenge', '/play/'), 'clean challenge entry');
     invalid('docs/company/growth/HATCH_CHALLENGE_LOOP.json', source => source.replace('"multiplayerClaimed": false', '"multiplayerClaimed": true'), 'Hatch Challenge promise drifted');
     invalid('docs/company/growth/HATCH_CHALLENGE_LOOP.json', source => source.replace('"productionDeployId": "6a8fb0d5da9b150008b16ec2"', '"productionDeployId": "unverified"'), 'live Hatch Challenge production proof is missing');
     invalid('docs/company/growth/FAMILY_GUIDE_RECOMMENDATION_LOOP.json', source => source.replace('"recipientCollected": false', '"recipientCollected": true'), 'family-guide privacy.recipientCollected');
@@ -180,8 +181,8 @@ async function browserFamilyGuideCase({ nativeShare }) {
     assert.strictEqual(familyCopied.copied, 'https://mythicalvoid.com/parents/');
     assert.strictEqual(familyCopied.status, 'Clean link copied — no tracking code.');
 
-    assert.strictEqual(caseCount, 18);
-    console.log('Word-of-mouth network evaluations passed (18 cases).');
+    assert.strictEqual(caseCount, 19);
+    console.log('Word-of-mouth network evaluations passed (19 cases).');
 })().catch(error => {
     console.error(error.stack || error.message);
     process.exit(1);

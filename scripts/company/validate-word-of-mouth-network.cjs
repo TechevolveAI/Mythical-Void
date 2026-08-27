@@ -69,7 +69,7 @@ requireValue(hatchPage.includes('<link rel="canonical" href="https://mythicalvoi
 requireValue(hatchPage.includes('data-share-url="https://mythicalvoid.com/hatch-challenge/"'), 'dedicated Hatch Challenge share URL is missing');
 requireValue(hatchPage.includes('This is not multiplayer.') && hatchPage.includes('never asks who you invited'), 'dedicated Hatch Challenge must explain its honest boundary');
 for (const control of ['data-hatch-challenge-share', 'data-hatch-challenge-copy', 'data-hatch-challenge-status']) requireValue(hatchPage.includes(control), `dedicated Hatch Challenge ${control} is missing`);
-requireValue(hatchPage.includes('href="/play/"') && !hatchPage.includes('<form'), 'dedicated Hatch Challenge must lead directly to play without collecting details');
+requireValue((hatchPage.match(/href="\/play\/#hatch-challenge"/g) || []).length >= 4 && !hatchPage.includes('<form'), 'dedicated Hatch Challenge must lead directly to the clean challenge entry without collecting details');
 requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(hatchPage), 'dedicated Hatch Challenge must use clean links');
 requireValue(discoveryCss.includes('.hatch-challenge-shell') && discoveryCss.includes('.hatch-challenge-steps'), 'Hatch Challenge layout is missing');
 requireValue(discoveryCss.includes('.hatch-challenge-actions .button { width: 100%; }') && discoveryCss.includes('.hatch-challenge-steps li:nth-child(2) { margin-left: 0; }'), 'Hatch Challenge phone layout is missing');

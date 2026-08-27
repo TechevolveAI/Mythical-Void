@@ -22,6 +22,9 @@ const SMOKE_TOUCH_PROTOCOL = process.env.SMOKE_TOUCH_PROTOCOL || 'dispatch';
 const SMOKE_SKIP_PREVIEW = process.env.SMOKE_SKIP_PREVIEW === '1';
 const SMOKE_VIEWPORT_WIDTH = Number(process.env.SMOKE_VIEWPORT_WIDTH) || 390;
 const SMOKE_VIEWPORT_HEIGHT = Number(process.env.SMOKE_VIEWPORT_HEIGHT) || 844;
+const SMOKE_ENTRY_HASH = process.env.SMOKE_ENTRY_HASH === 'hatch-challenge'
+    ? '#hatch-challenge'
+    : '';
 const CAMPAIGN_MOBILE_RENDER_BUDGETS = Object.freeze({
     mythicalForest: Object.freeze({
         displayCount: 150,
@@ -9438,7 +9441,7 @@ async function smokeLateLivingFormArrival(session, exceptions) {
 
 async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     exceptions.length = 0;
-    await navigate(session, `${BASE_URL}/play/`);
+    await navigate(session, `${BASE_URL}/play/${SMOKE_ENTRY_HASH}`);
     await waitForScene(session, 'HatchingScene');
     await evaluate(session, `(() => {
         localStorage.setItem('mythical_void_age_confirmed', 'true');
@@ -9446,7 +9449,10 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         localStorage.removeItem('mythical_creature_save');
         return true;
     })()`);
-    await navigate(session, `${BASE_URL}/play/?testSoulReveal=portrait-slow`);
+    await navigate(
+        session,
+        `${BASE_URL}/play/?testSoulReveal=portrait-slow${SMOKE_ENTRY_HASH}`
+    );
     try {
         await waitForScene(session, 'SoulRevealScene', 2500);
     } catch (error) {
@@ -9624,6 +9630,7 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
             const root = document.querySelector('[data-testid="living-form-handoff"]');
             const image = root?.querySelector('.living-form-image.is-ready');
             const source = root?.querySelector('.living-form-source')?.textContent?.trim();
+            const challenge = root?.querySelector('[data-testid="living-form-challenge"]');
             const button = root?.querySelector('[data-testid="living-form-continue"]');
             const bounds = button?.getBoundingClientRect?.();
             if (
@@ -9639,6 +9646,8 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
                 imageWidth: image.naturalWidth,
                 imageHeight: image.naturalHeight,
                 action: button.textContent?.trim(),
+                challengeVisible: Boolean(challenge),
+                challengeText: challenge?.textContent?.trim() || '',
                 viewportWidth: window.visualViewport?.width || window.innerWidth,
                 viewportHeight: window.visualViewport?.height || window.innerHeight,
                 actionBounds: {
@@ -9657,7 +9666,12 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         reveal.actionBounds.left < 0 ||
         reveal.actionBounds.right > reveal.viewportWidth ||
         reveal.actionBounds.top < 0 ||
-        reveal.actionBounds.bottom > reveal.viewportHeight
+        reveal.actionBounds.bottom > reveal.viewportHeight ||
+        (SMOKE_ENTRY_HASH && (
+            !reveal.challengeVisible ||
+            !reveal.challengeText.includes('Compare form, colour, markings')
+        )) ||
+        (!SMOKE_ENTRY_HASH && reveal.challengeVisible)
     ) {
         throw new Error(`Living-form handoff was incomplete: ${JSON.stringify(reveal)}`);
     }

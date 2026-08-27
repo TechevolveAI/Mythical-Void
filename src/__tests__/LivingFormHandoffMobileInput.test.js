@@ -79,6 +79,7 @@ describe('LivingFormHandoff mobile continuation', () => {
 
     afterEach(() => {
         document.body.innerHTML = '';
+        window.history.replaceState({}, '', '/');
         jest.restoreAllMocks();
     });
 
@@ -232,6 +233,36 @@ describe('LivingFormHandoff mobile continuation', () => {
 
         document.querySelector('[data-testid="living-form-continue"]').click();
         expect(onContinue).toHaveBeenCalledTimes(1);
+    });
+
+    test('an invited player sees the exact comparison guide after hatching', () => {
+        window.history.replaceState({}, '', '/play/#hatch-challenge');
+        const handoff = new LivingFormHandoff(createScene());
+        handoff.show({ name: 'Nova', species: 'nebulaSprite' });
+
+        const root = document.querySelector('[data-testid="living-form-handoff"]');
+        const guide = document.querySelector('[data-testid="living-form-challenge"]');
+        expect(root.dataset.hatchChallenge).toBe('active');
+        expect(guide.textContent).toContain('HATCH CHALLENGE // RESULT READY');
+        for (const area of ['form', 'colour', 'markings', 'nature', 'affinity', 'rare changes']) {
+            expect(guide.textContent.toLowerCase()).toContain(area);
+        }
+        expect(guide.textContent).toContain('Matching is possible');
+        expect(document.querySelector('[data-testid="living-form-continue"]'))
+            .not.toBeNull();
+        handoff.destroy();
+    });
+
+    test('the comparison guide stays out of an ordinary first hatch', () => {
+        window.history.replaceState({}, '', '/play/');
+        const handoff = new LivingFormHandoff(createScene());
+        handoff.show({ name: 'Nova', species: 'nebulaSprite' });
+
+        expect(document.querySelector('[data-testid="living-form-handoff"]')
+            .dataset.hatchChallenge).toBe('none');
+        expect(document.querySelector('[data-testid="living-form-challenge"]'))
+            .toBeNull();
+        handoff.destroy();
     });
 
     test('keyboard sharing never triggers the primary continue action', async () => {

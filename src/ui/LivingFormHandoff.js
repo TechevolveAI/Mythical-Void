@@ -78,11 +78,13 @@ export default class LivingFormHandoff {
         const safeStage = formatIdentifier(stage, 'BABY');
         const safeAffinity = formatIdentifier(affinity, 'STAR');
         const isLateReveal = mode === 'late_reveal';
+        const isHatchChallengeEntry = window.location?.hash === '#hatch-challenge';
         const { width, height } = this.scene.scale;
 
         const root = createElement('div', 'living-form-handoff');
         root.classList.toggle('is-portrait-pending', Boolean(portraitPromise));
         root.dataset.portraitState = portraitPromise ? 'developing' : 'offline';
+        root.dataset.hatchChallenge = isHatchChallengeEntry ? 'active' : 'none';
         this.updateViewportSize = () => {
             const viewport = window.visualViewport;
             const nextWidth = Math.max(1, Math.floor(
@@ -231,6 +233,20 @@ export default class LivingFormHandoff {
             facts.append(fact);
         });
         content.append(facts);
+
+        if (isHatchChallengeEntry) {
+            const challenge = createElement('aside', 'living-form-challenge');
+            challenge.setAttribute('data-testid', 'living-form-challenge');
+            challenge.append(
+                createElement('strong', 'living-form-challenge-title', 'HATCH CHALLENGE // RESULT READY'),
+                createElement(
+                    'p',
+                    'living-form-challenge-copy',
+                    'Compare form, colour, markings, nature, affinity and rare changes with the person who invited you. Matching is possible.'
+                )
+            );
+            content.append(challenge);
+        }
 
         const actions = createElement('footer', 'living-form-actions');
         actions.setAttribute('data-testid', 'living-form-actions');

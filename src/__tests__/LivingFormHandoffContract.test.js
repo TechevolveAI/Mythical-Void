@@ -151,4 +151,17 @@ describe('living form milestone handoff', () => {
         expect(handoffSource.indexOf("'living-form-share'")).toBeGreaterThan(-1);
         expect(handoffSource.indexOf("'living-form-continue'")).toBeGreaterThan(-1);
     });
+
+    test('turns the shared challenge into useful in-game comparison guidance', () => {
+        expect(handoffSource).toContain(
+            "window.location?.hash === '#hatch-challenge'"
+        );
+        expect(handoffSource).toContain('HATCH CHALLENGE // RESULT READY');
+        expect(handoffSource).toContain(
+            'Compare form, colour, markings, nature, affinity and rare changes'
+        );
+        expect(handoffSource).toContain('Matching is possible.');
+        expect(cssSource).toContain('.living-form-challenge');
+        expect(handoffSource).not.toContain('sessionStorage');
+    });
 });

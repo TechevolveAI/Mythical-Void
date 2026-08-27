@@ -9,6 +9,7 @@ const root = rootFlag === -1
     : path.resolve(process.argv[rootFlag + 1] || '');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 const handoff = read('src/ui/LivingFormHandoff.js');
+const hatchPage = read('public/hatch-challenge/index.html');
 const release = JSON.parse(read('docs/company/content/generated/hatch-challenge-invitation-release.json'));
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
@@ -32,8 +33,16 @@ for (const forbidden of ['GameState', 'creatureName', 'safeName', 'species', 'ge
 
 requireValue(release.publicExperience?.buttonLabel === 'INVITE SOMEONE', 'hatch challenge label drifted');
 requireValue(release.publicExperience?.url === 'https://mythicalvoid.com/hatch-challenge/', 'clean owned Hatch Challenge route drifted');
+requireValue(release.publicExperience?.gameEntry === '/play/#hatch-challenge', 'challenge game entry drifted');
+requireValue(release.publicExperience?.invitedPlayerGuidance === true, 'invited-player guidance is missing');
+requireValue(release.publicExperience?.comparisonAreas?.join('|') === 'form|colour|markings|nature|affinity|rare changes', 'comparison guidance drifted');
 requireValue(handoff.includes(`url: '${release.publicExperience.url}'`), 'implemented share route drifted');
+requireValue((hatchPage.match(/href="\/play\/#hatch-challenge"/g) || []).length >= 4, 'Hatch Challenge Play links must preserve the clean challenge entry');
+requireValue(handoff.includes("window.location?.hash === '#hatch-challenge'"), 'game does not recognize the clean challenge entry');
+requireValue(handoff.includes("'living-form-challenge'"), 'invited-player comparison panel is missing');
+for (const area of release.publicExperience.comparisonAreas) requireValue(handoff.toLowerCase().includes(area), `comparison area ${area} is missing from the game guidance`);
 requireValue(release.privacy?.trackingParametersAdded === false && release.visualBoundary?.imageIncludedInShare === false, 'tracking or an image must not be added');
+requireValue(release.privacy?.entryMarkerContainsUniqueIdentifier === false, 'challenge marker must not identify a player or invitation');
 for (const [key, expected] of Object.entries({
     creatureNameIncluded: false,
     creatureGeneticsIncluded: false,
@@ -48,12 +57,14 @@ if (release.state === 'live_production_verified') {
     requireValue(!Number.isNaN(Date.parse(release.verification?.productionPublishedAt || '')), 'verified release is missing its production time');
     requireValue(release.verification?.shareActionPresentInGameBundle === true, 'live bundle is missing the invitation action');
     requireValue(release.verification?.cleanShareUrlPresentInGameBundle === true, 'live bundle is missing the clean Hatch Challenge route');
+    requireValue(release.verification?.challengeEntryPresentOnLandingPage === true, 'live landing page is missing the challenge entry');
+    requireValue(release.verification?.comparisonGuidancePresentInGameBundle === true, 'live bundle is missing comparison guidance');
 }
 if (release.state === 'prepared_for_owned_game_release') {
     requireValue(release.verification?.productionCommit === null, 'pending release must not claim a production commit');
     requireValue(release.verification?.productionDeployId === null, 'pending release must not claim a production deploy');
     requireValue(release.verification?.productionPublishedAt === null, 'pending release must not claim a production time');
-    for (const key of ['shareActionPresentInGameBundle', 'cleanShareUrlPresentInGameBundle']) {
+    for (const key of ['shareActionPresentInGameBundle', 'cleanShareUrlPresentInGameBundle', 'challengeEntryPresentOnLandingPage', 'comparisonGuidancePresentInGameBundle']) {
         requireValue(release.verification?.[key] === false, `pending release must not claim ${key}`);
     }
 }
