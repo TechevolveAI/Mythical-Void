@@ -10140,6 +10140,9 @@ async function smokeSanctuaryNavigation(session, exceptions) {
         state.set('creature', creature);
         state.set('creatures', [creature]);
         state.set('activeCreatureIndex', 0);
+        state.set('tutorial.crashStorySeen', true);
+        state.set('tutorial.controlsSeen', true);
+        state.set('tutorial.villageHeartArrivalSeen', true);
         state.save();
         const hatchingScene = game.scene.getScene('HatchingScene');
         hatchingScene.scene.start('GameScene', {
@@ -10995,17 +10998,7 @@ async function startGuardianHandoffEncounter(session, step) {
         const accepted = scene.beginGuardianEncounter({
             ...encounter,
             start: () => {
-                scene.bossFightActive = true;
-                const spawn = {
-                    mythicalForest: 'spawnElderTreant',
-                    crystalCaves: 'spawnCrystalGolem',
-                    reef: 'spawnNyxvoral',
-                    voidPeaks: 'spawnCosmicTitan',
-                    auroraDepths: 'spawnShadowPhoenix',
-                    finalVoid: 'spawnVoidEmpress'
-                }[route];
-                scene[spawn]();
-                scene.physics.resume();
+                scene.startBossFight();
             }
         });
         return {
@@ -11035,13 +11028,14 @@ async function startGuardianHandoffEncounter(session, step) {
         );
     }
 
-    await delay(500);
-    const combatReady = await evaluate(session, `(() => {
+    const combatReady = await waitFor(
+        () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
             const target = scene?.getBossCombatTarget?.();
-            return {
+            const snapshot = {
                 guardianId: scene.guardianEncounter?.id || null,
                 bossHealth: Number(scene.bossHealth),
+                bossMaxHealth: Number(scene.bossMaxHealth),
                 targetActive: target?.active === true,
                 bossActive: scene?.boss?.active === true,
                 bossBodyActive: scene?.bossBody?.active === true,
@@ -11053,11 +11047,27 @@ async function startGuardianHandoffEncounter(session, step) {
                 levelStarted: scene?.levelStarted === true,
                 levelEntryDismissing: scene?.levelEntryDismissing === true
             };
-        })()`);
+            if (
+                !snapshot.targetActive ||
+                !snapshot.bossFightActive ||
+                snapshot.bossDefeated ||
+                snapshot.physicsPaused ||
+                !Number.isFinite(snapshot.bossHealth) ||
+                snapshot.bossHealth <= 0
+            ) return null;
+            return snapshot;
+        })()`),
+        {
+            timeoutMs: 10000,
+            message: `${step.sceneName} focused guardian combat readiness`
+        }
+    );
     if (
         combatReady?.bossFightActive !== true ||
         combatReady.physicsPaused !== false ||
-        combatReady.targetActive !== true
+        combatReady.targetActive !== true ||
+        combatReady.bossDefeated !== false ||
+        combatReady.bossHealth <= 0
     ) {
         throw new Error(
             `${step.sceneName} focused guardian did not become targetable: ` +
@@ -11717,7 +11727,39 @@ async function smokeSaveReloadJourney(session, exceptions) {
         () => evaluate(session, 'Boolean(window.mythicalGame?.scene)'),
         { timeoutMs: 20000, message: 'Save reload Phaser boot' }
     );
-    await waitForScene(session, 'GameScene', 30000);
+    try {
+        await waitForScene(session, 'GameScene', 30000);
+    } catch (error) {
+        const diagnostics = await evaluate(session, `(() => {
+            const state = window.GameState;
+            const persisted = JSON.parse(
+                localStorage.getItem(state?.saveKey || 'mythicalVoidSave') || '{}'
+            );
+            return {
+                activeScenes: window.mythicalGame?.scene?.getScenes?.(true)
+                    ?.map(scene => scene.scene?.key || scene.sys?.settings?.key),
+                currentScene: state?.get?.('session.currentScene'),
+                gameStarted: state?.get?.('session.gameStarted'),
+                creatureId: state?.get?.('creature.id'),
+                creatureName: state?.get?.('creature.name'),
+                creatureHatched: state?.get?.('creature.hatched'),
+                creatureNamed: state?.get?.('creature.named'),
+                genesId: state?.get?.('creature.genes.id'),
+                livingFormPending: state?.get?.('tutorial.livingFormPending'),
+                persistedGameStarted: persisted.session?.gameStarted,
+                persistedCreatureId: persisted.creature?.id,
+                persistedCreatureName: persisted.creature?.name,
+                persistedCreatureHatched: persisted.creature?.hatched,
+                persistedCreatureNamed: persisted.creature?.named,
+                persistedGenesId: persisted.creature?.genes?.id,
+                persistedLivingFormPending:
+                    persisted.tutorial?.livingFormPending
+            };
+        })()`);
+        throw new Error(
+            `${error.message}: ${JSON.stringify({ diagnostics, exceptions })}`
+        );
+    }
 
     const restored = await evaluate(session, `(() => {
         const state = window.GameState;

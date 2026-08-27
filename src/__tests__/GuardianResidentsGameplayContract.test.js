@@ -23,6 +23,15 @@ describe('Guardian resident gameplay contract', () => {
         'scenes/levels/FinalVoidLevel.js'
     ].map(read);
 
+    test('production guardian smoke enters combat through each real level lifecycle', () => {
+        const smoke = read('../scripts/smoke-secondary-journeys.js');
+
+        expect(smoke).toContain('scene.startBossFight();');
+        expect(smoke).toContain('snapshot.bossHealth <= 0');
+        expect(smoke).toContain('focused guardian combat readiness');
+        expect(smoke).not.toContain("reef: 'spawnNyxvoral'");
+    });
+
     test('records regional Guardian outcomes and frees a distinct creature', () => {
         expect(platformer).toContain('window.GuardianOutcomes');
         expect(platformer).toContain('?.recordGuardianOutcome?.(');

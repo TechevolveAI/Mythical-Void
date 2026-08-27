@@ -93,6 +93,9 @@ describe('Sanctuary navigation lifecycle', () => {
             'utf8'
         );
 
+        expect(smoke).toContain("state.set('tutorial.crashStorySeen', true)");
+        expect(smoke).toContain("state.set('tutorial.controlsSeen', true)");
+        expect(smoke).toContain("state.set('tutorial.villageHeartArrivalSeen', true)");
         expect(smoke).toContain('post-navigation Sanctuary movement');
         expect(smoke).toContain('post-navigation joystick release');
         expect(smoke).toContain('Sanctuary navigation restored controls without live movement');
