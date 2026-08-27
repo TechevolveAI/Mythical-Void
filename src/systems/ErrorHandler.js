@@ -638,15 +638,64 @@ class ErrorHandler {
             now - this.lastHealthySceneAt > 12000
         ) {
             this.noActiveSceneReported = true;
+            const recoveredScene = this.recoverNoActiveScene(game);
             this.captureOperationalEvent({
                 category: 'stuck_flow',
                 code: 'scene_no_active',
                 severity: 'error',
                 scene: this.lastHealthySceneKey,
                 phase: 'transition',
-                recovery: 'reload_offered',
+                recovery: recoveredScene ? 'retry_scheduled' : 'reload_offered',
                 userVisible: false
             });
+        }
+    }
+
+    getNoActiveSceneRecoveryTarget() {
+        const state = typeof window !== 'undefined' ? window.GameState : null;
+        if (!state || typeof state.get !== 'function') return 'HatchingScene';
+
+        const gameStarted = state.get('session.gameStarted') === true;
+        const creatureHatched = state.get('creature.hatched') === true;
+        const creatureName = state.get('creature.name');
+        const creatureNamed = state.get('creature.named') === true || (
+            typeof creatureName === 'string' &&
+            creatureName.length > 0 &&
+            creatureName !== 'Your Creature'
+        );
+        const creatureIdentity = state.get('creature.genes') ||
+            state.get('creature.genetics');
+
+        if (
+            gameStarted &&
+            creatureHatched &&
+            creatureNamed &&
+            creatureIdentity?.id
+        ) {
+            return state.get('tutorial.livingFormPending') === true
+                ? 'SoulRevealScene'
+                : 'GameScene';
+        }
+        return 'HatchingScene';
+    }
+
+    recoverNoActiveScene(game) {
+        const manager = game?.scene;
+        if (!manager || typeof manager.start !== 'function') return null;
+
+        const target = this.getNoActiveSceneRecoveryTarget();
+        try {
+            manager.start(
+                target,
+                target === 'SoulRevealScene'
+                    ? { resumeLivingForm: true }
+                    : undefined
+            );
+            this.lastHealthySceneAt = Date.now();
+            this.sceneStartDeadlines.set(target, Date.now() + 15000);
+            return target;
+        } catch (error) {
+            return null;
         }
     }
 

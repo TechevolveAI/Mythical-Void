@@ -269,6 +269,96 @@ describe('privacy-conscious runtime observability', () => {
         now.mockRestore();
     });
 
+    test('recovers a complete saved companion into the Sanctuary after a no-active-scene stall', () => {
+        const handler = new ErrorHandler();
+        const capture = jest.spyOn(handler, 'captureOperationalEvent').mockReturnValue(true);
+        const start = jest.fn();
+        const now = jest.spyOn(Date, 'now').mockReturnValue(100000);
+        window.GameState = {
+            get: jest.fn(path => ({
+                'session.gameStarted': true,
+                'creature.hatched': true,
+                'creature.named': true,
+                'creature.name': 'Nova',
+                'creature.genes': { id: 'nova-23' },
+                'tutorial.livingFormPending': false
+            })[path])
+        };
+        handler.lastHealthySceneAt = 87000;
+        handler.lastHealthySceneKey = 'GameScene';
+
+        handler.checkSceneHealth({
+            loop: { running: true },
+            scene: { getScenes: () => [], start }
+        });
+        handler.checkSceneHealth({
+            loop: { running: true },
+            scene: { getScenes: () => [], start }
+        });
+
+        expect(start).toHaveBeenCalledTimes(1);
+        expect(start).toHaveBeenCalledWith('GameScene', undefined);
+        expect(handler.sceneStartDeadlines.get('GameScene')).toBe(115000);
+        expect(capture).toHaveBeenCalledWith(expect.objectContaining({
+            code: 'scene_no_active',
+            recovery: 'retry_scheduled'
+        }));
+
+        delete window.GameState;
+        now.mockRestore();
+    });
+
+    test('recovers interrupted reveal and incomplete saves into their safe scenes', () => {
+        const handler = new ErrorHandler();
+        const start = jest.fn();
+        const values = {
+            'session.gameStarted': true,
+            'creature.hatched': true,
+            'creature.named': true,
+            'creature.name': 'Nova',
+            'creature.genes': { id: 'nova-23' },
+            'tutorial.livingFormPending': true
+        };
+        window.GameState = { get: jest.fn(path => values[path]) };
+
+        expect(handler.recoverNoActiveScene({ scene: { start } }))
+            .toBe('SoulRevealScene');
+        expect(start).toHaveBeenLastCalledWith('SoulRevealScene', {
+            resumeLivingForm: true
+        });
+
+        values['creature.genes'] = null;
+        expect(handler.recoverNoActiveScene({ scene: { start } }))
+            .toBe('HatchingScene');
+        expect(start).toHaveBeenLastCalledWith('HatchingScene', undefined);
+
+        delete window.GameState;
+    });
+
+    test('keeps reload recovery when the scene manager cannot restart a scene', () => {
+        const handler = new ErrorHandler();
+        const capture = jest.spyOn(handler, 'captureOperationalEvent').mockReturnValue(true);
+        const now = jest.spyOn(Date, 'now').mockReturnValue(100000);
+        handler.lastHealthySceneAt = 87000;
+        handler.lastHealthySceneKey = 'GameScene';
+
+        handler.checkSceneHealth({
+            loop: { running: true },
+            scene: {
+                getScenes: () => [],
+                start: () => {
+                    throw new Error('scene manager unavailable');
+                }
+            }
+        });
+
+        expect(capture).toHaveBeenCalledWith(expect.objectContaining({
+            code: 'scene_no_active',
+            recovery: 'reload_offered'
+        }));
+        now.mockRestore();
+    });
+
     test('does not classify an intentional pause as a stuck transition', () => {
         const handler = new ErrorHandler();
         const capture = jest.spyOn(handler, 'captureOperationalEvent').mockReturnValue(true);

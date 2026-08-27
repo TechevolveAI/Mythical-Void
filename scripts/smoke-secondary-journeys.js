@@ -10278,6 +10278,7 @@ async function smokeSanctuaryNavigation(session, exceptions) {
         state.set('creature', creature);
         state.set('creatures', [creature]);
         state.set('activeCreatureIndex', 0);
+        state.set('session.gameStarted', true);
         state.set('tutorial.crashStorySeen', true);
         state.set('tutorial.controlsSeen', true);
         state.set('tutorial.villageHeartArrivalSeen', true);
@@ -10939,11 +10940,81 @@ async function smokeSanctuaryNavigation(session, exceptions) {
             movementReleased
         })}`);
     }
+
+    const stalledSceneRecovery = await evaluate(session, `(() => {
+        const game = window.mythicalGame;
+        const handler = window.errorHandler;
+        if (
+            !game?.scene?.getScenes ||
+            !handler?.checkSceneHealth ||
+            !handler?.captureOperationalEvent
+        ) return null;
+
+        const events = [];
+        const originalCapture = handler.captureOperationalEvent;
+        handler.captureOperationalEvent = event => {
+            events.push({
+                code: event?.code,
+                recovery: event?.recovery,
+                scene: event?.scene
+            });
+            return true;
+        };
+        try {
+            for (const activeScene of game.scene.getScenes(true)) {
+                game.scene.stop(activeScene.scene.key);
+            }
+            handler.lastHealthySceneAt = Date.now() - 13000;
+            handler.lastHealthySceneKey = 'GameScene';
+            handler.noActiveSceneReported = false;
+            handler.checkSceneHealth(game);
+            return {
+                events,
+                deadlineSet: handler.sceneStartDeadlines?.has?.('GameScene') === true
+            };
+        } finally {
+            handler.captureOperationalEvent = originalCapture;
+        }
+    })()`);
+    if (
+        !stalledSceneRecovery?.deadlineSet ||
+        stalledSceneRecovery.events.length !== 1 ||
+        stalledSceneRecovery.events[0]?.code !== 'scene_no_active' ||
+        stalledSceneRecovery.events[0]?.recovery !== 'retry_scheduled'
+    ) {
+        throw new Error(
+            `No-active-scene recovery did not restart the Sanctuary: ${JSON.stringify(
+                stalledSceneRecovery
+            )}`
+        );
+    }
+    await waitForScene(session, 'GameScene', 30000);
+    const recoveredSanctuary = await waitFor(
+        () => evaluate(session, `(() => {
+            const game = window.mythicalGame;
+            const scene = game?.scene?.getScene('GameScene');
+            if (
+                !game?.scene?.isActive?.('GameScene') ||
+                !scene?.player?.body ||
+                !scene?.mobileControls ||
+                !scene?.hamburgerMenu
+            ) return null;
+            return {
+                active: true,
+                playerReady: true,
+                controlsReady: true,
+                hamburgerReady: true
+            };
+        })()`),
+        { timeoutMs: 18000, message: 'watchdog-restored Sanctuary play' }
+    );
     return {
         before,
         after,
         pauseResume: { pausedState, pauseWatchdog, resumedState },
         movement,
+        stalledSceneRecovery,
+        recoveredSanctuary,
         worldDataListenerLifecycle,
         menuRouteLifecycle
     };
