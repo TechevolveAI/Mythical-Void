@@ -4219,7 +4219,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     nextSignalIndex: nextSignal?.index,
                     nextSignalVisible: nextSignal?.visual?.visible !== false,
                     nextSignalAlpha: nextSignal?.visual?.alpha,
-                    nextSignalEmphasized: Boolean(nextSignal?.guidanceTween)
+                    nextSignalEmphasized: Boolean(nextSignal?.guidanceTween),
+                    nextSignalAction: nextSignal?.actionPrompt?.text || '',
+                    objective: scene?.getForestObjectiveText?.() || ''
                 };
             })(),
             actualFps: window.mythicalGame?.loop?.actualFps || 0,
@@ -4901,6 +4903,17 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         ) {
             throw new Error(
                 `${sceneName} has no readable opening route guidance: ${JSON.stringify(guidance)}`
+            );
+        }
+        if (
+            route === 'mythicalForest' &&
+            (
+                guidance.nextSignalAction !== 'WALK INTO THE LIGHT' ||
+                !guidance.objective.includes('WALK INTO')
+            )
+        ) {
+            throw new Error(
+                `${sceneName} does not explain the Beacon action: ${JSON.stringify(guidance)}`
             );
         }
     }

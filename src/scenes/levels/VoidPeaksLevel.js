@@ -172,6 +172,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossAttackPreviewTimer = null;
         this.bossCombatReady = false;
         this.bossCombatReadyAt = 0;
+        this.titanOpeningCameraFraming = false;
         this.bossPressureText = null;
         this.peakEncounterRhythm = [];
         this.levelEntryDismissing = false;
@@ -227,6 +228,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossAttackPreviewTimer = null;
         this.bossCombatReady = false;
         this.bossCombatReadyAt = 0;
+        this.titanOpeningCameraFraming = false;
         this.bossAttackPreview = [
             'gravityCrush',
             'starRain',
@@ -1784,6 +1786,59 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.updateBossIndicator();
     }
 
+    updateCameraLead() {
+        const camera = this.cameras?.main;
+        const keepTitanInOpeningFrame =
+            this.titanOpeningCameraFraming &&
+            this.bossFightActive &&
+            this.bossCombatReady &&
+            this.player?.active &&
+            this.boss?.active &&
+            (this.isMobile || camera?.width <= 480);
+
+        if (!keepTitanInOpeningFrame) {
+            super.updateCameraLead();
+            return;
+        }
+
+        camera.scrollX = this.getTitanOpeningCameraCenterX(camera) -
+            camera.width / 2;
+    }
+
+    getTitanOpeningCameraCenterX(camera = this.cameras?.main) {
+        if (!camera || !this.player || !this.boss) return 0;
+
+        return Phaser.Math.Clamp(
+            (this.player.x + this.boss.x) / 2,
+            camera.width / 2,
+            Math.max(camera.width / 2, this.levelWidth - camera.width / 2)
+        );
+    }
+
+    releaseTitanOpeningCameraFraming(camera = this.cameras?.main) {
+        if (!this.titanOpeningCameraFraming || !camera || !this.player) return;
+
+        const midpointOffset = this.boss?.active
+            ? -(this.boss.x - this.player.x) / 2
+            : -this.cameraLeadAmount;
+        const followOffset = Phaser.Math.Clamp(
+            midpointOffset,
+            -camera.width * 0.32,
+            camera.width * 0.32
+        );
+        this.titanOpeningCameraFraming = false;
+        this.currentCameraLeadX = followOffset;
+        this.targetCameraLeadX = followOffset;
+        camera.startFollow(
+            this.player,
+            true,
+            0.08,
+            0.1,
+            followOffset,
+            this.cameraBaseOffsetY
+        );
+    }
+
     collectItem(player, item) {
         if (item.fragmentIndex !== undefined) {
             const collectX = item.x;
@@ -1981,19 +2036,25 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossCombatReady = true;
         this.bossCombatReadyAt = this.time.now;
         this.titanAttackLocked = false;
-        if (this.isMobile || camera.width <= 480) {
-            this.cameraLeadAmount = Math.max(
-                this.cameraLeadAmount,
-                camera.width * 0.35
+        this.titanOpeningCameraFraming =
+            this.isMobile || camera.width <= 480;
+        if (this.titanOpeningCameraFraming) {
+            camera.panEffect?.reset?.();
+            camera.stopFollow();
+            camera.scrollX = this.getTitanOpeningCameraCenterX(camera) -
+                camera.width / 2;
+        } else {
+            camera.startFollow(
+                this.player,
+                true,
+                0.08,
+                0.1,
+                -this.cameraLeadAmount,
+                this.cameraBaseOffsetY
             );
+            this.currentCameraLeadX = -this.cameraLeadAmount;
+            this.targetCameraLeadX = -this.cameraLeadAmount;
         }
-        camera.startFollow(this.player, true, 0.08, 0.1);
-        camera.setFollowOffset(
-            -this.cameraLeadAmount,
-            this.cameraBaseOffsetY
-        );
-        this.currentCameraLeadX = -this.cameraLeadAmount;
-        this.targetCameraLeadX = -this.cameraLeadAmount;
         this.physics.resume();
         this.showPlatformerMobileControls();
         this.bossSubtitle?.setText?.(
@@ -2244,6 +2305,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         const attack = forcedAttack || Phaser.Utils.Array.GetRandom(attacks);
         const attackWindow = TITAN_ATTACK_WINDOWS[attack] || 1800;
         const attackTarget = { x: this.player.x, y: this.player.y };
+        this.releaseTitanOpeningCameraFraming();
         this.titanAttackLocked = true;
         this.broadcastTitanWarning(attack, attackTarget);
 
@@ -2465,6 +2527,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossFightActive = false;
         this.bossCombatReady = false;
         this.bossCombatReadyAt = 0;
+        this.titanOpeningCameraFraming = false;
         this.bossAttackTimer?.remove?.();
         this.bossAttackPreviewTimer?.remove?.();
         this.bossAttackPreviewTimer = null;
@@ -2633,6 +2696,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossAttackPreviewTimer = null;
         this.bossCombatReady = false;
         this.bossCombatReadyAt = 0;
+        this.titanOpeningCameraFraming = false;
         this.titanWarningTimer?.remove?.();
         this.titanWarningTimer = null;
         this.titanAttackUnlockTimer?.remove?.();

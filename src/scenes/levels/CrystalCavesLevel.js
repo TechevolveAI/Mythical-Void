@@ -193,6 +193,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.bossAttackPreviewTimer = null;
         this.bossCombatReady = false;
         this.bossCombatReadyAt = 0;
+        this.crystalOpeningCameraFraming = false;
         this.bossTargetScale = 1;
 
         this.spiderAttackWindupTimer = null;
@@ -287,6 +288,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.bossAttackPreviewTimer = null;
         this.bossCombatReady = false;
         this.bossCombatReadyAt = 0;
+        this.crystalOpeningCameraFraming = false;
         this.bossTargetScale = 1;
         this.bossAttackPreview = [
             'ground_slam',
@@ -4607,19 +4609,25 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         this.bossCombatReady = true;
         this.bossCombatReadyAt = this.time.now;
-        if (this.isMobile || camera.width <= 480) {
-            this.cameraLeadAmount = Math.max(
-                this.cameraLeadAmount,
-                camera.width * 0.2
+        this.crystalOpeningCameraFraming =
+            this.isMobile || camera.width <= 480;
+        if (this.crystalOpeningCameraFraming) {
+            camera.panEffect?.reset?.();
+            camera.stopFollow();
+            camera.scrollX = this.getCrystalOpeningCameraCenterX(camera) -
+                camera.width / 2;
+        } else {
+            camera.startFollow(
+                this.player,
+                true,
+                0.08,
+                0.1,
+                -this.cameraLeadAmount,
+                this.cameraBaseOffsetY
             );
+            this.currentCameraLeadX = -this.cameraLeadAmount;
+            this.targetCameraLeadX = -this.cameraLeadAmount;
         }
-        camera.startFollow(this.player, true, 0.08, 0.1);
-        camera.setFollowOffset(
-            -this.cameraLeadAmount,
-            this.cameraBaseOffsetY
-        );
-        this.currentCameraLeadX = -this.cameraLeadAmount;
-        this.targetCameraLeadX = -this.cameraLeadAmount;
         this.physics.resume();
         this.showPlatformerMobileControls();
         this.showBossAttackInstruction(
@@ -5030,6 +5038,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         const pacing = CRYSTAL_GUARDIAN_ATTACK_PACING[attackType] ||
             { windup: 650, recovery: 850, color: 0xFFD166 };
 
+        this.releaseCrystalOpeningCameraFraming();
         this.boss.isAttacking = true;
         this.boss.isRecovering = false;
         this.boss.setVelocityX(0);
@@ -5458,6 +5467,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.bossFightActive = false;
         this.bossCombatReady = false;
         this.bossCombatReadyAt = 0;
+        this.crystalOpeningCameraFraming = false;
 
         // Record guardian restoration for achievements.
         if (window.AchievementSystem?.recordEvent) {
@@ -5871,6 +5881,59 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.updateSlidePhysics();
     }
 
+    updateCameraLead() {
+        const camera = this.cameras?.main;
+        const keepGuardianInOpeningFrame =
+            this.crystalOpeningCameraFraming &&
+            this.bossFightActive &&
+            this.bossCombatReady &&
+            this.player?.active &&
+            this.boss?.active &&
+            (this.isMobile || camera?.width <= 480);
+
+        if (!keepGuardianInOpeningFrame) {
+            super.updateCameraLead();
+            return;
+        }
+
+        camera.scrollX = this.getCrystalOpeningCameraCenterX(camera) -
+            camera.width / 2;
+    }
+
+    getCrystalOpeningCameraCenterX(camera = this.cameras?.main) {
+        if (!camera || !this.player || !this.boss) return 0;
+
+        return Phaser.Math.Clamp(
+            (this.player.x + this.boss.x) / 2,
+            camera.width / 2,
+            Math.max(camera.width / 2, this.levelWidth - camera.width / 2)
+        );
+    }
+
+    releaseCrystalOpeningCameraFraming(camera = this.cameras?.main) {
+        if (!this.crystalOpeningCameraFraming || !camera || !this.player) return;
+
+        const midpointOffset = this.boss?.active
+            ? -(this.boss.x - this.player.x) / 2
+            : -this.cameraLeadAmount;
+        const followOffset = Phaser.Math.Clamp(
+            midpointOffset,
+            -camera.width * 0.32,
+            camera.width * 0.32
+        );
+        this.crystalOpeningCameraFraming = false;
+        this.currentCameraLeadX = followOffset;
+        this.targetCameraLeadX = followOffset;
+        camera.startFollow(
+            this.player,
+            true,
+            0.08,
+            0.1,
+            followOffset,
+            this.cameraBaseOffsetY
+        );
+    }
+
     /**
      * Apply slide physics when player is on slide platforms
      */
@@ -6026,6 +6089,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.bossAttackPreviewTimer = null;
         this.bossCombatReady = false;
         this.bossCombatReadyAt = 0;
+        this.crystalOpeningCameraFraming = false;
         this.clearCrystalBossPacing({ includePhase: true });
         this.bossInstructionTimer?.remove?.();
         this.bossInstructionTimer = null;
