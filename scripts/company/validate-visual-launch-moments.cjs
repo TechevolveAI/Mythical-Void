@@ -20,6 +20,7 @@ function validateVisualLaunchMoments(document) {
     };
     const authority = document?.authority || {};
     const contract = document?.sharedCaptureContract || {};
+    const captureProcess = document?.studioCaptureProcess || {};
     const candidateRun = document?.latestPrivateCandidateRun || null;
     const moments = Array.isArray(document?.moments) ? document.moments : [];
 
@@ -101,12 +102,15 @@ function validateVisualLaunchMoments(document) {
         'capture source, profile or renderer boundary changed'
     );
 
-    const viewportIds = new Set(
-        (contract.requiredViewports || []).map(viewport => viewport.id)
+    const viewports = new Map(
+        (contract.requiredViewports || []).map(viewport => [viewport.id, viewport])
     );
     requireValue(
-        viewportIds.has('phone') && viewportIds.has('desktop'),
-        'phone and desktop review viewports are required'
+        viewports.get('phone')?.width === 390 &&
+        viewports.get('phone')?.height === 844 &&
+        viewports.get('desktop')?.width === 1440 &&
+        viewports.get('desktop')?.height === 810,
+        'phone and desktop review dimensions are required'
     );
     requireValue(
         contract.actorMinimumGapPx?.phone === 24 &&
@@ -129,6 +133,53 @@ function validateVisualLaunchMoments(document) {
     ]) {
         requireValue(visualBar.has(requirement), `missing visual bar: ${requirement}`);
     }
+    const rejectionChecks = new Set(contract.automaticRejectionChecks || []);
+    for (const requirement of [
+        'uncaught_runtime_exception',
+        'failed_smoke_contract',
+        'fallback_or_missing_creature_texture',
+        'inactive_or_invisible_creature',
+        'astronaut_missing',
+        'actor_overlap',
+        'action_outside_central_safe_frame',
+        'modal_or_menu_interrupts_action',
+        'caption_only_proof_without_visible_world_action',
+        'choice_capture_omits_plain_pre_choice_options',
+        'strange_discovery_does_not_link_both_actors',
+        'movement_renderer_changes_between_frames',
+        'capture_dimensions_wrong',
+        'video_too_short_or_missing_frames'
+    ]) {
+        requireValue(
+            rejectionChecks.has(requirement),
+            `missing automatic rejection check: ${requirement}`
+        );
+    }
+    requireValue(
+        captureProcess.candidateRunDirectory === '.visual-review/candidates/' &&
+        captureProcess.candidateRunDirectoryIsWebsiteContent === false,
+        'studio candidates must remain in the private review directory'
+    );
+    requireValue(
+        captureProcess.automationMayPrepareCandidates === true &&
+        captureProcess.automationMayRejectObviousFaults === true &&
+        captureProcess.automationMayApproveCandidates === false,
+        'studio automation may prepare and reject but never approve candidates'
+    );
+    requireValue(
+        captureProcess.adultReview?.everyFrameMustBeWatched === true &&
+        captureProcess.adultReview?.decisionMustBeRecordedPerAsset === true &&
+        JSON.stringify(captureProcess.adultReview?.decisionOptions) ===
+            JSON.stringify(['approve_for_kevin_review', 'reject', 'recapture']),
+        'adult review must watch every frame and record a decision for each asset'
+    );
+    requireValue(
+        captureProcess.kevinApproval?.exactAssetRequired === true &&
+        captureProcess.kevinApproval?.exactWordingRequired === true &&
+        captureProcess.kevinApproval?.exactChannelRequired === true &&
+        captureProcess.kevinApproval?.requiredBeforeAnythingLeavesOwnedWebsite === true,
+        'Kevin must approve the exact asset, wording and channel before publication'
+    );
 
     requireValue(moments.length === 4, 'exactly four launch moments are required');
     const expectedMoments = {

@@ -35,6 +35,15 @@ expectFailure('missing adult review', value => {
 expectFailure('missing phone visual bar', value => {
     value.sharedCaptureContract.minimumVisualBar = [];
 });
+expectFailure('wrong phone capture dimensions', value => {
+    value.sharedCaptureContract.requiredViewports[0].width = 430;
+});
+expectFailure('missing automatic rejection rule', value => {
+    value.sharedCaptureContract.automaticRejectionChecks =
+        value.sharedCaptureContract.automaticRejectionChecks.filter(
+            check => check !== 'fallback_or_missing_creature_texture'
+        );
+});
 expectFailure('actors allowed to visually merge', value => {
     value.sharedCaptureContract.actorMinimumGapPx.phone = 0;
 });
@@ -92,6 +101,18 @@ expectFailure('unimplemented substitute state', value => {
 });
 expectFailure('nested public asset', value => {
     value.moments[0].candidateAssets.phone = '../public/creature.png';
+});
+expectFailure('adult skips captured frames', value => {
+    value.studioCaptureProcess.adultReview.everyFrameMustBeWatched = false;
+});
+expectFailure('adult decision is not recorded per asset', value => {
+    value.studioCaptureProcess.adultReview.decisionMustBeRecordedPerAsset = false;
+});
+expectFailure('automation approves a candidate', value => {
+    value.studioCaptureProcess.automationMayApproveCandidates = true;
+});
+expectFailure('Kevin approval omits the channel', value => {
+    value.studioCaptureProcess.kevinApproval.exactChannelRequired = false;
 });
 
 console.log(

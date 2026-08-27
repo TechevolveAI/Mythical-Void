@@ -81,6 +81,24 @@
       "video_too_short_or_missing_frames"
     ]
   },
+  "studioCaptureProcess": {
+    "candidateRunDirectory": ".visual-review/candidates/",
+    "candidateRunDirectoryIsWebsiteContent": false,
+    "automationMayPrepareCandidates": true,
+    "automationMayRejectObviousFaults": true,
+    "automationMayApproveCandidates": false,
+    "adultReview": {
+      "everyFrameMustBeWatched": true,
+      "decisionMustBeRecordedPerAsset": true,
+      "decisionOptions": ["approve_for_kevin_review", "reject", "recapture"]
+    },
+    "kevinApproval": {
+      "exactAssetRequired": true,
+      "exactWordingRequired": true,
+      "exactChannelRequired": true,
+      "requiredBeforeAnythingLeavesOwnedWebsite": true
+    }
+  },
   "requiredMoments": [
     {
       "id": "creature-helps",
