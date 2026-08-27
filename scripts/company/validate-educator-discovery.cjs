@@ -48,7 +48,11 @@ let structured;
 try { structured = JSON.parse(page.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1]); }
 catch (error) { failures.push(`structured data is invalid: ${error.message}`); }
 const graph = structured?.['@graph'] || [];
-requireValue(graph.some(item => item?.['@type'] === 'LearningResource' && item?.typicalAgeRange === '9-14' && item?.isAccessibleForFree === true), 'free LearningResource structured data is missing');
+const learningResource = graph.find(item => item?.['@type'] === 'LearningResource');
+requireValue(learningResource?.typicalAgeRange === '9-14' && learningResource?.isAccessibleForFree === true, 'free LearningResource structured data is missing');
+requireValue(learningResource?.dateModified === '2026-08-27', 'LearningResource updated date is missing');
+requireValue(learningResource?.provider?.['@id'] === 'https://mythicalvoid.com/#studio', 'LearningResource provider is missing');
+requireValue(learningResource?.encoding?.contentUrl === 'https://mythicalvoid.com/resources/mythical-void-stem-creature-lab.pdf' && learningResource?.encoding?.encodingFormat === 'application/pdf', 'LearningResource PDF information is missing');
 requireValue(graph.some(item => item?.['@type'] === 'FAQPage' && item?.mainEntity?.length >= 3), 'FAQ structured data is missing');
 
 for (const [relative, minimumBytes] of [
@@ -86,6 +90,7 @@ requireValue(releaseSignal?.status === 'live' && releaseSignal?.destination === 
 
 for (const [relative, fragment, label] of [
     ['public/sitemap.xml', '<loc>https://mythicalvoid.com/educators/</loc>', 'sitemap'],
+    ['public/sitemap.xml', '<loc>https://mythicalvoid.com/educators/</loc>\n    <lastmod>2026-08-27</lastmod>', 'fresh educator sitemap date'],
     ['public/llms.txt', 'https://mythicalvoid.com/educators/', 'machine-readable site guide'],
     ['public/parents/index.html', 'href="/educators/"', 'parent guide'],
     ['public/nasa-space-science/index.html', 'href="/educators/"', 'NASA and STEM page'],
