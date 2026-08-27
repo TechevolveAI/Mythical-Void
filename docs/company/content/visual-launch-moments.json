@@ -13,8 +13,8 @@
   },
   "latestScreening": {
     "path": "docs/company/content/visual-screening-2026-08-27.json",
-    "sourceCommit": "3599733bfa5f62a17765554a6eb0d91e22516974",
-    "candidateRunId": "2026-08-27T04-40-00-000Z",
+    "sourceCommit": "024fe36012355e1e1bf75ea6650650c50d6346cc",
+    "candidateRunId": "2026-08-27T10-07-12-344Z",
     "decision": "all_four_rejected_before_kevin_review",
     "kevinReviewRequested": false
   },

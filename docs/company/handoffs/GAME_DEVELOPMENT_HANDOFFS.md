@@ -274,3 +274,31 @@ Do not ask Kevin to review another set until the obvious faults are gone.
 
 The current rejection record is
 [`content/visual-screening-2026-08-27.json`](../content/visual-screening-2026-08-27.json).
+
+### 27 August 10:07 source-changed recapture
+
+The build at commit `024fe36012355e1e1bf75ea6650650c50d6346cc`
+was captured again after the latest creature-impact work. All 119 phone frames,
+111 desktop frames and ten stills were screened. The forest and memory-rain
+work are meaningful improvements, but the result remains blocked before Kevin
+or adult review:
+
+- the realistic forest, cartoon actors, flat map world and detailed plant
+  cutouts look like several visual styles layered together;
+- the creature is present, but its help happens between states rather than as
+  a visible action;
+- the choice is readable, but the result is pasted over the map instead of
+  transforming the place that was already there;
+- the rising drops are more physical, but too small and cluttered by rings,
+  lines and labels to become an unforgettable alien event;
+- the desktop actors are tiny, and a broad dark strip plus a bright measuring
+  line cover the playable ground;
+- all 230 movement frames show travel without an obstacle, world reaction or
+  payoff.
+
+**Next request:** stop adding isolated effects until the playable art direction
+is coherent. Build one short showcase route in one visual language. Make the
+creature large enough to read, show it perform a physical action, transform
+existing world art rather than adding a cutout, and end with a clear payoff.
+Remove the debug-like ground strip and nearly all explanatory labels before the
+next recapture.
