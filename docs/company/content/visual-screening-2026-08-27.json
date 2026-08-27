@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "screeningId": "VISUAL-SCREEN-2026-08-27-01",
+  "screenedAt": "2026-08-27T00:00:00+01:00",
+  "purpose": "Stop technically valid but confusing gameplay captures from reaching Kevin, the website, social channels or distribution partners.",
+  "source": {
+    "commit": "34ca036f77f7181b7ca578c740e565b4005d2969",
+    "route": "/play/",
+    "profileId": "MV-0813",
+    "renderer": "player_facing_phaser_creature_renderer",
+    "candidateRunId": "2026-08-26T23-25-13-280Z",
+    "candidateDirectory": ".visual-review/candidates/2026-08-26T23-25-13-280Z/",
+    "manifestSha256": "270c1d399a18ca2bf3d26a9eb28e1583f362a5e41d870a56b780fec94205f0b1",
+    "websiteAccessible": false
+  },
+  "boundary": {
+    "technicalCaptureChecksPassed": true,
+    "technicalChecksAreVisualApproval": false,
+    "automationMayRejectObviousFaults": true,
+    "automationMayApprove": false,
+    "kevinReviewRequested": false,
+    "adultFrameReviewCompleted": false,
+    "publicReplacementAuthorized": false,
+    "externalPublicationAuthorized": false,
+    "externalActionTaken": false
+  },
+  "decision": "reject_all_before_kevin_review",
+  "approvedMomentCount": 0,
+  "requiredMomentCount": 4,
+  "moments": [
+    {
+      "id": "VL-001",
+      "title": "THE CREATURE HELPS",
+      "decision": "rejected",
+      "filesChecked": ["creature-helps-phone.png", "creature-helps-desktop.png"],
+      "obviousFaults": ["explanation_box_covers_focal_area", "action_not_visible_without_copy", "result_not_visually_distinct", "background_competes_with_subject"],
+      "nextCaptureMustShow": "A visible danger or blocked route, the creature taking one unmistakable action, and the solved result in the same clean frame with no message box over the action."
+    },
+    {
+      "id": "VL-002",
+      "title": "A CHOICE CHANGES SOMETHING",
+      "decision": "rejected",
+      "filesChecked": ["choice-before-phone.png", "choice-after-phone.png", "choice-before-desktop.png", "choice-after-desktop.png"],
+      "obviousFaults": ["before_frame_is_mostly_menu", "after_change_is_too_subtle", "cause_and_effect_need_explanation", "paired_frames_do_not_create_a_clear_reveal"],
+      "nextCaptureMustShow": "A short choice in plain words followed by a dramatic persistent change to colour, route, structure, weather or creature behaviour that is obvious with the words removed."
+    },
+    {
+      "id": "VL-003",
+      "title": "A STRANGE DISCOVERY",
+      "decision": "rejected",
+      "filesChecked": ["strange-discovery-phone.png", "strange-discovery-desktop.png"],
+      "obviousFaults": ["repeats_choice_scene", "discovery_reads_as_interface_effect", "no_single_alien_wonder_is_the_focus", "composition_needs_caption_to_make_sense"],
+      "nextCaptureMustShow": "One impossible alien phenomenon occupying the visual focus—living gravity, liquid memory, folded light, migrating geometry or another realm-specific behaviour—with the astronaut and creature visibly reacting."
+    },
+    {
+      "id": "VL-004",
+      "title": "MOVEMENT FEELS ALIVE",
+      "decision": "rejected",
+      "filesChecked": ["movement-alive-phone.png", "movement-alive-phone.mp4", "movement-alive-desktop.png", "movement-alive-desktop.mp4"],
+      "obviousFaults": ["frame_is_mostly_empty_dark_space", "level_geometry_is_clipped_at_edge", "no_interesting_action_or_obstacle", "desktop_clip_is_only_3_17_seconds"],
+      "nextCaptureMustShow": "Six to ten uninterrupted seconds through a visually rich section containing readable terrain, one meaningful traversal action, environmental motion and the creature continuously present."
+    }
+  ],
+  "realmRecapture": {
+    "attempted": true,
+    "completed": false,
+    "stoppedAt": "mythicalForest",
+    "reason": "sustained_mobile_render_budget_failed",
+    "observed": {
+      "averageFps": 12.45,
+      "p95FrameMs": 133.4,
+      "phaserActualFps": 24.65,
+      "performanceTier": "mobile"
+    },
+    "meaning": "A replacement realm capture should not hide a performance problem. The gameplay scene needs another iteration before it can become launch proof."
+  },
+  "nextGate": {
+    "owner": "game-development",
+    "request": "Create four deliberately staged, still-authentic gameplay states that satisfy the nextCaptureMustShow directions and make the forest movement capture pass its sustained mobile budget.",
+    "recaptureAfterSourceChange": true,
+    "kevinReviewsOnlyAfterObviousFaultsPass": true
+  }
+}

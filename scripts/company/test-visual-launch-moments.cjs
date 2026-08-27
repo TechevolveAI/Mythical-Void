@@ -47,6 +47,15 @@ expectFailure('candidate publication authorization', value => {
 expectFailure('candidate renderer substitution', value => {
     value.latestPrivateCandidateRun.renderer = 'marketing_mock_renderer';
 });
+expectFailure('candidate editorial rejection removed', value => {
+    delete value.latestPrivateCandidateRun.editorialScreening;
+});
+expectFailure('candidate source identity is malformed', value => {
+    value.latestPrivateCandidateRun.sourceCommit = 'not-a-commit';
+});
+expectFailure('rejected work sent to Kevin', value => {
+    value.latestScreening.kevinReviewRequested = true;
+});
 expectFailure('substituted non-observable evidence', value => {
     value.moments[0].requiredEvidence = [
         'copy_explains_the_action',

@@ -60,11 +60,14 @@ try {
 invalid('public/playable-now/index.html', source => source.replace('data-intent-choice="story"', 'data-intent-choice="missing"'), 'page is missing story');
 invalid('public/playable-now/index.html', source => source.replace('href="/play/" data-intent-play', 'href="/play/?source=story" data-intent-play'), 'tracking address');
 invalid('public/playable-now/index.html', source => source.replace('data-intent-share data-source-area', 'data-missing-share data-source-area'), 'intent-specific sharing controls are missing');
+invalid('public/playable-now/index.html', source => source.replace('class="play-intent-direct"', 'class="play-intent-delayed"'), 'first-screen direct Play choice is missing');
+invalid('public/playable-now/index.html', source => source.replace('data-play-link data-source-area="hero"', 'data-play-link data-source-area="unknown"'), 'first-screen direct Play source is missing');
 invalid('public/discovery.js', source => source.replace("readChoice() !== 'granted'", 'false'), 'measurement is not stopped before consent');
 invalid('public/discovery.js', source => source.replace('/^#find-your-way\\/(wonder|create|challenge|story)$/', '/^#find-your-way\\/(.*)$/'), 'shared intent routes are not restricted');
 invalid('public/discovery.css', source => source.replace('scroll-margin-top: 82px', 'scroll-margin-top: 0'), 'does not preserve the 82px site header');
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceRememberedInBrowser": false', '"choiceRememberedInBrowser": true'), 'choice collection boundary is invalid');
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceSentToServer": false', '"choiceSentToServer": true'), 'choiceSentToServer must remain false');
+invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceRequiredBeforePlay": false', '"choiceRequiredBeforePlay": true'), 'visitors must be able to Play without completing the mood chooser');
 
 function interactiveResult(consent, choice, url = 'https://mythicalvoid.com/playable-now/') {
     const page = fs.readFileSync(path.join(root, 'public/playable-now/index.html'), 'utf8');
@@ -94,6 +97,21 @@ function interactiveResult(consent, choice, url = 'https://mythicalvoid.com/play
     };
 }
 
+function directPlayResult(consent) {
+    const page = fs.readFileSync(path.join(root, 'public/playable-now/index.html'), 'utf8');
+    const body = page.match(/<body[^>]*>([\s\S]*?)<script src="\/discovery\.js[^>]*><\/script>/)?.[1];
+    const dom = new JSDOM(`<!doctype html><body>${body}</body>`, {
+        url: 'https://mythicalvoid.com/playable-now/',
+        runScripts: 'outside-only'
+    });
+    if (consent) dom.window.localStorage.setItem('mythical-analytics-consent', consent);
+    const play = dom.window.document.querySelector('.play-intent-direct .button');
+    play.addEventListener('click', event => event.preventDefault());
+    dom.window.eval(fs.readFileSync(path.join(root, 'public/discovery.js'), 'utf8'));
+    play.click();
+    return dom.window.dataLayer.map(entry => Array.from(entry)).filter(entry => entry[0] === 'event');
+}
+
 cases += 1;
 const story = interactiveResult('granted', 'story');
 assert.strictEqual(story.answerHidden, false);
@@ -118,5 +136,15 @@ assert.strictEqual(sharedCreation.selected, 'create');
 assert.strictEqual(sharedCreation.hash, '#find-your-way/create');
 assert.strictEqual(sharedCreation.events.length, 0);
 
-assert.strictEqual(cases, 12);
-console.log('Play-intent doorway checks passed (12 scenarios).');
+cases += 1;
+const directGranted = directPlayResult('granted');
+assert.strictEqual(directGranted.length, 1);
+assert.strictEqual(directGranted[0][1], 'play_selected');
+assert.strictEqual(directGranted[0][2].source_area, 'hero');
+
+cases += 1;
+const directDenied = directPlayResult('denied');
+assert.strictEqual(directDenied.length, 0);
+
+assert.strictEqual(cases, 17);
+console.log('Play-intent doorway checks passed (17 scenarios).');

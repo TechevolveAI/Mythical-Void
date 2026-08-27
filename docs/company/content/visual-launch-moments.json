@@ -9,7 +9,14 @@
   "currentVisualFinding": {
     "source": "Kevin's direct testing feedback and a fresh full-size review of the current public capture set",
     "finding": "The existing public media does not communicate the game well enough. Private replacement candidates must remain outside the website until an adult reviews every frame and Kevin approves the exact asset, wording and channel.",
-    "decision": "Keep the entire old media set withdrawn and block its direct public URLs. Do not replace it with another automatically accepted capture run."
+    "decision": "Keep the entire old media set withdrawn and block its direct public URLs. The rejected 23:25 run remains screening history. A source-changed 23:57 replacement run passed automated obvious-fault checks but remains private until adult frame review and Kevin's exact approval."
+  },
+  "latestScreening": {
+    "path": "docs/company/content/visual-screening-2026-08-27.json",
+    "sourceCommit": "34ca036f77f7181b7ca578c740e565b4005d2969",
+    "candidateRunId": "2026-08-26T23-25-13-280Z",
+    "decision": "all_four_rejected_before_kevin_review",
+    "kevinReviewRequested": false
   },
   "authority": {
     "automationMayPrepareCandidates": true,
@@ -32,8 +39,9 @@
     "renderer": "player_facing_phaser_creature_renderer",
     "manifest": ".visual-review/candidates/2026-08-26T23-57-56-859Z/manifest.json",
     "automatedScreening": "passed_obvious_fault_checks_only",
+    "editorialScreening": "pending_adult_frame_review",
     "adultFrameReview": "pending",
-    "kevinApproval": "pending",
+    "kevinApproval": "not_requested",
     "publicationAuthorized": false
   },
   "sharedCaptureContract": {
