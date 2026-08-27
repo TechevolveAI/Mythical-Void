@@ -94,7 +94,9 @@ if (release.verification?.state === 'prepared_for_owned_release') {
     requireValue(release.verification?.liveMeasurementVerified === false && release.verification?.directButtonVisible === false && release.verification?.directDestination === null, 'prepared release must not claim live behaviour');
 } else {
     requireValue(release.verification?.state === 'live_production_verified', 'production verification state is invalid');
-    requireValue(/^[0-9a-f]{40}$/.test(release.verification?.productionCommit || '') && /^[0-9a-f]{24}$/.test(release.verification?.productionDeployId || ''), 'production proof is missing or drifted');
+    requireValue(/^[0-9a-f]{40}$/.test(release.verification?.productionCommit || '') && !/^0{40}$/.test(release.verification?.productionCommit || ''), 'production commit proof is missing or drifted');
+    requireValue(/^[0-9a-f]{24}$/.test(release.verification?.productionDeployId || '') && !/^0{24}$/.test(release.verification?.productionDeployId || ''), 'production deploy proof is missing or drifted');
+    requireValue(!Number.isNaN(Date.parse(release.verification?.verifiedAt || '')), 'production verification time is missing or invalid');
     requireValue(release.verification?.liveMeasurementVerified === true && release.verification?.directButtonVisible === true && release.verification?.directDestination === 'https://mythicalvoid.com/play/', 'live direct-Play or measurement proof is missing');
 }
 

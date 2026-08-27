@@ -95,16 +95,16 @@
     "externalActionTaken": false
   },
   "verification": {
-    "state": "prepared_for_owned_release",
+    "state": "live_production_verified",
     "desktopVisualReviewRequired": true,
     "phoneVisualReviewRequired": true,
     "productionVerificationRequired": true,
-    "productionCommit": null,
-    "productionDeployId": null,
-    "verifiedAt": null,
-    "liveMeasurementVerified": false,
-    "directButtonVisible": false,
-    "directDestination": null,
+    "productionCommit": "f84f86e931945e1a59a32966798bd3cefe4c0f14",
+    "productionDeployId": "6a9023e1603cdc0008274dae",
+    "verifiedAt": "2026-08-27T11:52:29Z",
+    "liveMeasurementVerified": true,
+    "directButtonVisible": true,
+    "directDestination": "https://mythicalvoid.com/play/",
     "previousVerifiedRelease": {
       "productionCommit": "133558cc5b0a7634f329b76edb3f2c79579183ae",
       "productionDeployId": "6a8fe76d3ba9af0007ca0615",
