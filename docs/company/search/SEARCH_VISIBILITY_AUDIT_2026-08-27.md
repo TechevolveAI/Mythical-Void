@@ -60,6 +60,13 @@ pass to another, only that changed page was notified. IndexNow returned `200` at
 07:05 UTC. The shared address contains no tracking code, and this acceptance
 still does not prove crawling, indexing, ranking or traffic.
 
+After the Playable Now promise was corrected to explain the first-time age
+choice, only that changed canonical page was notified. IndexNow returned `200`
+at 07:39 UTC. The game itself also gained one clear Start action and a simpler
+first-contact instruction, but `/play/` was not submitted because it is not a
+canonical sitemap page. Acceptance still does not prove crawling, indexing,
+ranking or traffic.
+
 ## The right next move
 
 Do not make lots of near-identical “free game” pages. The useful page already

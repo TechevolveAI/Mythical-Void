@@ -44,15 +44,15 @@
     "accepted": true,
     "indexingClaimed": false,
     "previousMeaningfulChange": {
-      "record": "docs/company/search/indexnow-submission-2026-08-27-04.json",
-      "submittedAt": "2026-08-27T06:47:48Z",
-      "urlCount": 2,
+      "record": "docs/company/search/indexnow-submission-2026-08-27-05.json",
+      "submittedAt": "2026-08-27T07:05:34Z",
+      "urlCount": 1,
       "accepted": true,
       "unchangedUrlsResubmitted": false
     },
     "latestMeaningfulChange": {
-      "record": "docs/company/search/indexnow-submission-2026-08-27-05.json",
-      "submittedAt": "2026-08-27T07:05:34Z",
+      "record": "docs/company/search/indexnow-submission-2026-08-27-06.json",
+      "submittedAt": "2026-08-27T07:39:06Z",
       "urlCount": 1,
       "accepted": true,
       "unchangedUrlsResubmitted": false
