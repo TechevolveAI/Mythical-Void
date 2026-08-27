@@ -56,6 +56,15 @@ catch (error) { failures.push(`structured data is invalid: ${error.message}`); }
 const types = Array.isArray(structured) ? structured.map(item => item?.['@type']) : [];
 for (const type of ['VideoGame', 'FAQPage']) requireValue(types.includes(type), `${type} structured data is missing`);
 requireValue(!types.includes('VideoObject'), 'withdrawn video must not remain in structured data');
+const structuredGame = Array.isArray(structured) ? structured.find(item => item?.['@type'] === 'VideoGame') : null;
+requireValue(structuredGame?.['@id'] === 'https://mythicalvoid.com/#video-game', 'structured game identity is missing');
+requireValue(structuredGame?.mainEntityOfPage === 'https://mythicalvoid.com/playable-now/', 'structured game does not identify the canonical decision page');
+requireValue(structuredGame?.creator?.['@id'] === 'https://mythicalvoid.com/#studio' && structuredGame?.creator?.url === 'https://mythicalvoid.com/studio/', 'structured game creator is missing or drifted');
+requireValue(structuredGame?.potentialAction?.['@type'] === 'PlayAction', 'structured direct Play action is missing');
+requireValue(structuredGame?.potentialAction?.target?.['@type'] === 'EntryPoint' && structuredGame?.potentialAction?.target?.urlTemplate === 'https://mythicalvoid.com/play/', 'structured Play target must use the clean owned game route');
+requireValue(structuredGame?.potentialAction?.target?.actionPlatform?.includes('https://schema.org/DesktopWebPlatform') && structuredGame?.potentialAction?.target?.actionPlatform?.includes('https://schema.org/MobileWebPlatform'), 'structured Play platforms are incomplete');
+requireValue(/modern JavaScript and WebGL-capable browser/.test(structuredGame?.softwareRequirements || ''), 'truthful browser requirements are missing');
+requireValue(!Object.hasOwn(structuredGame || {}, 'screenshot'), 'withdrawn or unapproved gameplay screenshots must not enter structured data');
 
 requireValue(sha256(Buffer.from(page)) === release.page?.sha256, 'page fingerprint drifted');
 requireValue(release.state === 'owned_site_explanation_live_media_withdrawn_pending_rebuild', 'release state must record the current visual decision');
@@ -66,6 +75,9 @@ requireValue(release.visualDecision?.sharingImageClassification === 'ai_generate
 requireValue(release.firstScreenMessage?.headline === 'Hatch a strange alien creature. Save six living realms.', 'release does not record the clear game promise');
 requireValue(release.firstScreenMessage?.moodChooserPreserved === true && release.firstScreenMessage?.directPlayPreserved === true, 'release lost the optional choice or direct Play route');
 requireValue(release.firstScreenMessage?.gameplayMediaAdded === false, 'release must not imply that gameplay media was added');
+requireValue(release.page?.structuredDirectPlay?.action === 'PlayAction' && release.page?.structuredDirectPlay?.target === 'https://mythicalvoid.com/play/' && release.page?.structuredDirectPlay?.entryPoint === true, 'release does not record the structured direct Play route');
+requireValue(release.page?.structuredDirectPlay?.desktopWeb === true && release.page?.structuredDirectPlay?.mobileWeb === true, 'release does not record the supported web entry points');
+requireValue(release.page?.structuredDirectPlay?.unapprovedScreenshotIncluded === false && release.page?.structuredDirectPlay?.rankingOrRichResultClaimed === false, 'structured discovery must not smuggle in an unapproved screenshot or a search-result promise');
 requireValue(release.familyTrust?.paidAdvertisingInCurrentGame === false && release.familyTrust?.publicPlayerProfiles === false && release.familyTrust?.chatWithOtherPlayers === false, 'release must record the current family trust boundaries');
 requireValue(release.familyTrust?.creatureDialogueAvailable === true && release.familyTrust?.creatureDialogueIsPersonToPersonChat === false, 'release must distinguish creature dialogue from person-to-person chat');
 requireValue(release.playIntentDoorway?.intentSpecificSharingEnabled === true && release.playIntentDoorway?.shareRouteLocation === 'URL fragment only', 'intent-specific sharing release is missing');

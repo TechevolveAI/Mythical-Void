@@ -6,10 +6,19 @@
   "page": {
     "path": "public/playable-now/index.html",
     "publicUrl": "https://mythicalvoid.com/playable-now/",
-    "sha256": "b201ede0693745db3a469fde38bfd5272a374259f06576d179a3bde614c91481",
+    "sha256": "de5f964c52cd4970b83a9a47e0bed71ed3735385e022758193e96c1bb1f27366",
     "canonical": "https://mythicalvoid.com/playable-now/",
     "directPlayLinkMinimum": 3,
-    "structuredData": ["VideoGame", "FAQPage"]
+    "structuredData": ["VideoGame", "FAQPage"],
+    "structuredDirectPlay": {
+      "action": "PlayAction",
+      "target": "https://mythicalvoid.com/play/",
+      "entryPoint": true,
+      "desktopWeb": true,
+      "mobileWeb": true,
+      "unapprovedScreenshotIncluded": false,
+      "rankingOrRichResultClaimed": false
+    }
   },
   "firstScreenMessage": {
     "eyebrow": "LOOKING FOR A NEW GAME? PLAY THIS ONE",
@@ -95,20 +104,20 @@
     "externalActionTaken": false
   },
   "verification": {
-    "state": "live_production_verified",
+    "state": "prepared_for_owned_release",
     "desktopVisualReviewRequired": true,
     "phoneVisualReviewRequired": true,
     "productionVerificationRequired": true,
-    "productionCommit": "f84f86e931945e1a59a32966798bd3cefe4c0f14",
-    "productionDeployId": "6a9023e1603cdc0008274dae",
-    "verifiedAt": "2026-08-27T11:52:29Z",
-    "liveMeasurementVerified": true,
-    "directButtonVisible": true,
-    "directDestination": "https://mythicalvoid.com/play/",
+    "productionCommit": null,
+    "productionDeployId": null,
+    "verifiedAt": null,
+    "liveMeasurementVerified": false,
+    "directButtonVisible": false,
+    "directDestination": null,
     "previousVerifiedRelease": {
-      "productionCommit": "133558cc5b0a7634f329b76edb3f2c79579183ae",
-      "productionDeployId": "6a8fe76d3ba9af0007ca0615",
-      "verifiedAt": "2026-08-27T07:33:22Z"
+      "productionCommit": "f84f86e931945e1a59a32966798bd3cefe4c0f14",
+      "productionDeployId": "6a9023e1603cdc0008274dae",
+      "verifiedAt": "2026-08-27T11:52:29Z"
     }
   }
 }

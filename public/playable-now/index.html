@@ -34,15 +34,37 @@
       {
         "@context": "https://schema.org",
         "@type": "VideoGame",
+        "@id": "https://mythicalvoid.com/#video-game",
         "name": "Mythical Void",
         "url": "https://mythicalvoid.com/playable-now/",
+        "mainEntityOfPage": "https://mythicalvoid.com/playable-now/",
         "gamePlatform": "Web browser",
         "playMode": "SinglePlayer",
         "applicationCategory": "Game",
+        "applicationSubCategory": "Creature adventure game",
+        "operatingSystem": "Any modern operating system with a supported web browser",
+        "softwareRequirements": "A modern JavaScript and WebGL-capable browser with an internet connection",
         "genre": ["Creature adventure", "Action adventure", "Science fantasy"],
         "description": "A free browser adventure about an astronaut, a genetically varied alien creature, six living realms and the future of Project Beacon.",
         "isFamilyFriendly": true,
         "inLanguage": "en",
+        "creator": {
+          "@type": "Organization",
+          "@id": "https://mythicalvoid.com/#studio",
+          "name": "Mythical Void",
+          "url": "https://mythicalvoid.com/studio/"
+        },
+        "potentialAction": {
+          "@type": "PlayAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://mythicalvoid.com/play/",
+            "actionPlatform": [
+              "https://schema.org/DesktopWebPlatform",
+              "https://schema.org/MobileWebPlatform"
+            ]
+          }
+        },
         "offers": {
           "@type": "Offer",
           "price": "0",
