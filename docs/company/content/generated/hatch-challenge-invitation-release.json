@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "HATCH-CHALLENGE-INVITATION-2026-08-27",
-  "state": "prepared_for_owned_game_release",
+  "state": "live_production_verified",
   "publicExperience": {
     "trigger": "first_named_creature_living_form_reveal",
     "buttonLabel": "INVITE SOMEONE",
@@ -24,10 +24,10 @@
     "imageIncludedInShare": false
   },
   "verification": {
-    "productionCommit": null,
-    "productionDeployId": null,
-    "productionPublishedAt": null,
-    "shareActionPresentInGameBundle": false,
-    "cleanShareUrlPresentInGameBundle": false
+    "productionCommit": "b30b5c503179b3a4be00d78c8e37fe5c8fccbe64",
+    "productionDeployId": "6a902c7d64438c0008c47950",
+    "productionPublishedAt": "2026-08-27T12:26:00.727Z",
+    "shareActionPresentInGameBundle": true,
+    "cleanShareUrlPresentInGameBundle": true
   }
 }
