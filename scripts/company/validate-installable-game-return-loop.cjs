@@ -53,7 +53,7 @@ requireValue(read('netlify.toml').includes('for = "/manifest.webmanifest"') && r
 requireValue(read('vercel.json').includes('"source": "/manifest.webmanifest"') && read('vercel.json').includes('application/manifest+json'), 'Vercel manifest content type is missing');
 requireValue(read('vite.config.mjs').includes('manifest\\.webmanifest') && read('vite.config.mjs').includes('pwa-install\\.js'), 'portable portal builds must remove owned-site install hooks');
 
-requireValue(release.status === 'owned_release_ready', 'installable-game release is not ready');
+requireValue(release.status === 'live', 'installable-game release is not recorded as live');
 for (const [key, expected] of Object.entries({
     automaticPrompt: false,
     browserSupportRequired: true,
@@ -72,6 +72,11 @@ for (const [key, expected] of Object.entries({
     analyticsEventAdded: false,
     trackingParametersAdded: false
 })) requireValue(release.privacy?.[key] === expected, `privacy.${key} must be ${expected}`);
+requireValue(release.productionEvidence?.commit === '75e414f72d87d4e3edab7a6ce9dbb9057014da71', 'production commit proof is missing');
+requireValue(release.productionEvidence?.netlifyDeployId === '6a8fcb8626021000084b82e8', 'production deploy proof is missing');
+requireValue(release.productionEvidence?.manifestHttpStatus === 200 && /^application\/manifest\+json/.test(release.productionEvidence?.manifestContentType || ''), 'live manifest response proof is missing');
+requireValue(release.productionEvidence?.icon192HttpStatus === 200 && release.productionEvidence?.icon512HttpStatus === 200 && release.productionEvidence?.gameRouteHttpStatus === 200, 'live icon or game-route proof is missing');
+requireValue(release.productionEvidence?.serviceWorkerBuildMarkerPresent === true && release.productionEvidence?.liveGameFinderContainsHiddenInstallCard === true && release.productionEvidence?.liveVisualReview === 'passed', 'live experience proof is incomplete');
 
 console.log(JSON.stringify({
     valid: failures.length === 0,

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "installable-game-return-loop-2026-08-27",
-  "status": "owned_release_ready",
+  "status": "live",
   "plainLanguageOutcome": "Let a player who already wants Mythical Void keep it on a supported device and return directly to the game.",
   "manifestUrl": "https://mythicalvoid.com/manifest.webmanifest",
   "startUrl": "https://mythicalvoid.com/play/",
@@ -33,5 +33,18 @@
     "appStoreSubmissionAuthorized": false,
     "socialPostingAuthorized": false,
     "paidPromotionAuthorized": false
+  },
+  "productionEvidence": {
+    "verifiedAt": "2026-08-27T05:33:53Z",
+    "commit": "75e414f72d87d4e3edab7a6ce9dbb9057014da71",
+    "netlifyDeployId": "6a8fcb8626021000084b82e8",
+    "manifestHttpStatus": 200,
+    "manifestContentType": "application/manifest+json; charset=utf-8",
+    "icon192HttpStatus": 200,
+    "icon512HttpStatus": 200,
+    "gameRouteHttpStatus": 200,
+    "serviceWorkerBuildMarkerPresent": true,
+    "liveGameFinderContainsHiddenInstallCard": true,
+    "liveVisualReview": "passed"
   }
 }
