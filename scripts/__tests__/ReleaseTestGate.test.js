@@ -48,6 +48,18 @@ describe('release test gate', () => {
         expect(source).toContain('sameOriginHttpFailures: 0');
     });
 
+    test('browser smoke proves disabled optional video never starts a request', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+
+        expect(source).toContain('const companionVideoRequests = []');
+        expect(source).toContain("'/.netlify/functions/generate-companion-video'");
+        expect(source).toContain('window.APIConfig?.isVideoEnabled?.() === false');
+        expect(source).toContain('Optional video feature gate failed');
+        expect(source).toContain(
+            'optionalVideoRequests: companionVideoRequests.length'
+        );
+    });
+
     test('visual launch stills require the real creature and astronaut in-frame', () => {
         const source = read('scripts/smoke-secondary-journeys.js');
 

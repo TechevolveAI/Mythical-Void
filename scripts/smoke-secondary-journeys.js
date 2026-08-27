@@ -20131,6 +20131,7 @@ async function main() {
         const networkFailures = [];
         const policyViolations = [];
         const networkRequestUrls = new Map();
+        const companionVideoRequests = [];
         const documentNavigationRequests = [];
         const smokeOrigin = new URL(BASE_URL).origin;
         const allowLocalStaticFunction404 =
@@ -20200,10 +20201,15 @@ async function main() {
         });
         session.on('Network.requestWillBeSent', params => {
             if (!params.requestId) return;
-            networkRequestUrls.set(
-                params.requestId,
-                params.request?.url || ''
-            );
+            const url = params.request?.url || '';
+            networkRequestUrls.set(params.requestId, url);
+            if (
+                sanitizeNetworkUrl(url).endsWith(
+                    '/.netlify/functions/generate-companion-video'
+                )
+            ) {
+                companionVideoRequests.push(sanitizeNetworkUrl(url));
+            }
         });
         session.on('Page.frameRequestedNavigation', params => {
             documentNavigationRequests.push({
@@ -20415,6 +20421,17 @@ async function main() {
                 'Use home-entry, hatch-gallery, first-sanctuary, nasa-content, interaction, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, void-portal-lifecycle, hub-forest-transition, village-ui, forest-arrival, visual-story-reel, or guardian-pacing.'
             );
         }
+        const optionalVideoDisabled = await evaluate(
+            session,
+            `window.APIConfig?.isVideoEnabled?.() === false`
+        );
+        if (optionalVideoDisabled && companionVideoRequests.length) {
+            throw new Error(
+                `Optional video feature gate failed: ${JSON.stringify({
+                    companionVideoRequests
+                })}`
+            );
+        }
         if (
             consoleErrors.length ||
             networkFailures.length ||
@@ -20433,7 +20450,8 @@ async function main() {
             sameOriginHttpFailures: 0,
             thirdPartyHttpFailures: 0,
             transportFailures: 0,
-            policyViolations: 0
+            policyViolations: 0,
+            optionalVideoRequests: companionVideoRequests.length
         };
         console.log(JSON.stringify({
             success: true,
