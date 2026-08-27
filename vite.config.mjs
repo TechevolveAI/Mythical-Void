@@ -43,7 +43,8 @@ export default defineConfig(({ command, mode }) => {
             )
             .replace(/\s*<!-- Google tag:[\s\S]*?<\/script>/, '')
             .replace(/\s*<link rel="manifest" href="(?:\/|\.\/)manifest\.webmanifest">/, '')
-            .replace(/\s*<script defer src="(?:\/|\.\/)pwa-install\.js[^>]*><\/script>/, '');
+            .replace(/\s*<script defer src="(?:\/|\.\/)pwa-install\.js[^>]*><\/script>/, '')
+            .replace(/\s*<script defer src="(?:\/|\.\/)returning-player\.js[^>]*><\/script>/, '');
         }
       }]
     : [],

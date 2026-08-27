@@ -43,6 +43,7 @@ function inspectItchPackage(directory) {
     requireValue(index.includes('data-distribution-target="itch"'), 'direct-play itch marker is missing');
     requireValue(index.includes('content="noindex, nofollow"'), 'portal build must not compete with the official website in search');
     requireValue(!index.includes('googletagmanager.com'), 'Google website analytics must not run inside the portal package');
+    requireValue(!index.includes('returning-player.js'), 'website returning-player doorway must not run inside the direct-play portal package');
     requireValue(manifest.target === 'itch.io-html5' && manifest.directPlay === true, 'manifest target or direct-play state is invalid');
     requireValue(manifest.releaseGates?.externalPublicationAuthorized === false, 'external publication must wait for Kevin');
     requireValue(manifest.releaseGates?.approvedAuthenticGameplayMoments === 0, 'visual gate must reflect the current 0/4 state');
@@ -72,6 +73,13 @@ function inspectItchPackage(directory) {
     }
     for (const asset of referencedAssets) {
         requireValue(fs.existsSync(path.join(directory, asset)), `referenced local asset is missing: ${asset}`);
+    }
+
+    for (const match of index.matchAll(/(?:src|href)="\.\/([^"?#]+)(?:[?#][^"]*)?"/g)) {
+        requireValue(
+            fs.existsSync(path.join(directory, decodeURIComponent(match[1]))),
+            `index references a missing local file: ${match[1]}`
+        );
     }
 
     return {

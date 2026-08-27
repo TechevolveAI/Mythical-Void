@@ -48,6 +48,7 @@ cases += 1;
 for (const [relative, mutate, expected] of [
     ['index.html', source => source.replace('data-distribution-target="itch"', ''), 'direct-play itch marker'],
     ['assets/main.js', source => `${source}\nconst broken="/game/world.webp";`, 'root-only local asset path'],
+    ['index.html', source => source.replace('</body>', '<script src="./returning-player.js?v=test"></script></body>'), 'website returning-player doorway'],
     ['itch-package-manifest.json', source => source.replace('"externalPublicationAuthorized":false', '"externalPublicationAuthorized":true'), 'external publication must wait'],
     ['game/world.webp', () => null, 'referenced local asset is missing']
 ]) {
@@ -64,5 +65,5 @@ for (const [relative, mutate, expected] of [
     cases += 1;
 }
 
-assert.strictEqual(cases, 7);
-console.log('itch.io package evaluations passed (7 cases).');
+assert.strictEqual(cases, 8);
+console.log('itch.io package evaluations passed (8 cases).');
