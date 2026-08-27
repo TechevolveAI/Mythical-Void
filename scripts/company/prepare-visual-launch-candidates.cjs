@@ -145,6 +145,7 @@ function runSmoke({
             SMOKE_CAPTURE_DIR: outputDir,
             SMOKE_VIDEO_PATH: videoPath || '',
             SMOKE_VIDEO_FPS: '12',
+            SMOKE_ALLOW_LOCAL_STATIC_FUNCTION_404: '1',
             SMOKE_SKIP_PREVIEW: mode === 'village-ui' ? '0' : '1'
         },
         encoding: 'utf8',

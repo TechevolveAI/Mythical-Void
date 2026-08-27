@@ -74,8 +74,29 @@ describe('release test gate', () => {
         expect(source).toContain("'visual_movement_capture'");
         expect(source).toContain('state.actorGap < (isPhone ? 24 : 36)');
         expect(source).toContain('state.health !== state.maxHealth');
-        expect(source).toContain('const x = support.body.left + 450;');
+        expect(source).toContain("const supportId = 'forest-tree-3-handoff';");
+        expect(source).toContain('const x = support.body.left + 300;');
+        expect(source).toContain('distance: Math.min(20, scene?.joystickMaxDistance || 20)');
+        expect(source).toContain('const followerGap = ${isPhone} ? 126 : 300;');
+        expect(source).toContain('const formationX = followerGap;');
+        expect(source).toContain('{ x: formationX, y: 2 }');
+        expect(source).toContain('scene.player.x + formation.x');
+        expect(source).toContain('follower.sprite.displayWidth * 0.92');
+        expect(source).toContain('for (let index = 0; index < 9; index++)');
+        expect(source).toContain('if (movementPosterCaptured || index !== 8) return;');
+        expect(source).toContain('if (index === 4)');
+        expect(source).toContain('} else if (index === 8)');
         expect(source).toContain("throw new Error('Visual movement poster was not captured during live input')");
+    });
+
+    test('private static preview only ignores its unavailable observability function', () => {
+        const smoke = read('scripts/smoke-secondary-journeys.js');
+        const capture = read('scripts/company/prepare-visual-launch-candidates.cjs');
+
+        expect(capture).toContain("SMOKE_ALLOW_LOCAL_STATIC_FUNCTION_404: '1'");
+        expect(smoke).toContain("process.env.SMOKE_ALLOW_LOCAL_STATIC_FUNCTION_404 === '1'");
+        expect(smoke).toContain("['127.0.0.1', 'localhost'].includes");
+        expect(smoke).toContain("new URL(url).pathname === '/.netlify/functions/observability-events'");
     });
 
     test('private movement candidates include complete frame-review sheets', () => {
@@ -114,6 +135,8 @@ describe('release test gate', () => {
         expect(world).toContain(".setData('villageHelpProblem', 'blocked_food_route')");
         expect(world).toContain(".setData('villageHelpResult', 'safe_food_route_open')");
         expect(world).toContain(".setData('villageHelpActionOrigin', 'creature_life_energy')");
+        expect(world).toContain("'ROUTE OPEN  +5'");
+        expect(world).toContain(".setData('villageHelpProblemLabel', true)");
         expect(world).toContain(".setData('villageDecisionRouteOpened', 'living_current')");
         expect(world).toContain(".setData('villageDecisionRegrowth', true)");
         expect(world).toContain(".setData('villagePlanetMemoryPhenomenon', true)");
