@@ -166,7 +166,7 @@ Avoid false-precision scoring. Use this decision order:
 2. **Critical journey blockage:** prioritize when credible evidence shows
    players cannot reach the intended value.
 3. **Strategic differentiation:** prioritize evidence that strengthens the
-   companion bond, living world, choice, or trust proposition.
+   creature bond, living world, choice, or trust proposition.
 4. **Repeated friction:** prioritize when recurrence crosses sources or
    methods.
 5. **Delight expansion:** scale moments that produce voluntary, healthy

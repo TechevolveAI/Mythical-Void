@@ -76,6 +76,7 @@ an AI-first, human-governed studio.
 - [Customer Evidence](registers/CUSTOMER_EVIDENCE.md)
 - [Machine-readable de-identified evidence](customer/evidence.json)
 - [Machine-readable growth experiment portfolio](growth/experiment-portfolio.json)
+- [Plain-language growth evidence scoreboard](growth/WHAT_WE_KNOW_ABOUT_GROWTH_2026-08-27.md)
 - [Machine-readable launch readiness plan](growth/launch-readiness.json)
 - [Launch readiness schema](growth/launch-readiness.schema.json)
 - [Machine-readable engagement lifecycle](engagement/lifecycle-programs.json)

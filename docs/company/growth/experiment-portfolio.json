@@ -12,53 +12,91 @@
     "stopRule": "Stop on safety, rights, privacy, deceptive-claim, unexpected-spend, or material technical-harm signals.",
     "externalRule": "No recruitment, deployment, collection, targeting, publication, outreach, account change, or spend is authorized by this portfolio."
   },
+  "evidenceSnapshot": {
+    "asOf": "2026-08-27",
+    "sourceRefs": [
+      "docs/company/search/search-visibility-audit-2026-08-27.json",
+      "docs/company/growth/LIVE_DISCOVERY_TO_PLAY_AUDIT_2026-08-27.json",
+      "docs/company/research/first-five-playtest.json",
+      "docs/company/customer/evidence.json",
+      "docs/company/content/visual-launch-moments.json"
+    ],
+    "syntheticProductionChecksAreCustomerEvidence": false,
+    "customerEvidenceCount": 0,
+    "firstFiveSessionsCompleted": 0,
+    "approvedGameplayMoments": 0,
+    "requiredGameplayMoments": 4,
+    "sampledSearchResultsObserved": 0,
+    "singleNextDecision": "Keep improving the returning-player presentation while Kevin connects Google Search Console and later approves the adult First Five test. Do not increase outside traffic until the four authentic gameplay moments pass human review.",
+    "unknownsThatRemainUnknown": [
+      "how many eligible people can currently discover Mythical Void",
+      "whether unfamiliar adults understand the promise without help",
+      "whether a real first-time player completes the hatch and bond",
+      "whether the current game creates enjoyment or a wish to continue",
+      "whether anyone returns or shares voluntarily"
+    ]
+  },
   "journeyStages": [
     {
       "id": "discover",
       "outcome": "An eligible person can find an accurate explanation of Mythical Void.",
-      "currentEvidence": ["A-001 public audit"],
+      "evidenceState": "owned_pages_live_search_visibility_unproven",
+      "currentEvidence": ["Canonical public pages and crawl files are live.", "IndexNow accepted the changed-page notices, but a four-query sample found no Mythical Void result and Search Console is not connected."],
+      "notYetProven": "Search indexing, impressions, rank and qualified discovery remain unknown.",
       "candidateSignals": ["public discovery checks", "moderated source recall"],
       "prohibitedShortcuts": ["behavioral targeting toward children", "bought audience lists", "unqualified reach as success"]
     },
     {
       "id": "understand",
       "outcome": "Players and guardians accurately understand the game, access model, and trust boundaries.",
-      "currentEvidence": [],
+      "evidenceState": "owned_copy_ready_no_customer_comprehension_evidence",
+      "currentEvidence": ["The owned site explains the game, free access, early-access state, creature language, family boundaries and NASA source boundary."],
+      "notYetProven": "No unfamiliar adult or guardian comprehension session has been completed.",
       "candidateSignals": ["moderated comprehension", "guardian task completion"],
       "prohibitedShortcuts": ["inference from impressions", "unstated AI or safety guarantees"]
     },
     {
       "id": "start",
       "outcome": "A person who chooses to play reaches a usable game load.",
-      "currentEvidence": [],
+      "evidenceState": "synthetic_production_path_verified_to_hatching_start",
+      "currentEvidence": ["An isolated production check reached the age choice, one Start action and the first egg on desktop and phone.", "A real click or tap began hatching and the progress message stayed centred."],
+      "notYetProven": "This is a controlled production check, not evidence that an unfamiliar person can begin without help.",
       "candidateSignals": ["moderated observation", "future M1 aggregate attempts"],
       "prohibitedShortcuts": ["identifying individual players", "session replay", "raw URL or referrer collection"]
     },
     {
       "id": "activate",
       "outcome": "A play attempt reaches the first meaningful hatch-and-bond moment.",
-      "currentEvidence": [],
+      "evidenceState": "hatching_start_verified_hatch_and_bond_unproven",
+      "currentEvidence": ["The production path is verified through hatching started on desktop and phone."],
+      "notYetProven": "A completed hatch, recognisable creature reveal and first bond have not passed a fresh human play check.",
       "candidateSignals": ["moderated observation", "future M1 aggregate attempts"],
       "prohibitedShortcuts": ["invented activation boundaries", "joined per-player funnels", "child profiling"]
     },
     {
       "id": "deepen",
-      "outcome": "The companion, restoration, and choice systems create demonstrated value.",
-      "currentEvidence": [],
+      "outcome": "The creature, restoration, and choice systems create demonstrated value.",
+      "evidenceState": "product_claims_exist_customer_value_unproven",
+      "currentEvidence": ["The running build and verified source support creature variation, six realms, restoration and Project Beacon story systems."],
+      "notYetProven": "There is no accepted customer evidence that these systems are understood, enjoyable or valuable.",
       "candidateSignals": ["moderated evidence", "future coarse milestone counts"],
       "prohibitedShortcuts": ["claiming invisible features", "using marketing illustrations as gameplay proof"]
     },
     {
       "id": "return",
       "outcome": "People voluntarily return because the experience remains valuable.",
-      "currentEvidence": [],
+      "evidenceState": "return_path_exists_visual_quality_failed",
+      "currentEvidence": ["A returning route exists, but the current desktop and phone presentation failed the live human-facing visual review."],
+      "notYetProven": "No voluntary return, retention or returning-player satisfaction is measured.",
       "candidateSignals": ["moderated follow-up only"],
       "prohibitedShortcuts": ["persistent identifiers before M2 approval", "dark patterns", "compulsive engagement design"]
     },
     {
       "id": "share_and_advocate",
       "outcome": "Adults and guardians voluntarily share authentic proof or participate in a safe feedback loop.",
-      "currentEvidence": [],
+      "evidenceState": "owned_share_routes_live_usage_unproven",
+      "currentEvidence": ["Clean owned sharing routes and the Hatch Challenge are live without contact collection or tracking parameters."],
+      "notYetProven": "No voluntary share, recommendation or advocacy outcome is measured.",
       "candidateSignals": ["moderated stated intent", "future approved aggregate referrals"],
       "prohibitedShortcuts": ["child identity exposure", "social pressure", "automatic posting", "unconsented contact enrichment"]
     }
@@ -66,16 +104,16 @@
   "experiments": [
     {
       "id": "E-001",
-      "title": "Owned discovery foundation",
+      "title": "Owned discovery visibility",
       "status": "gated_external_step",
-      "decisionServed": "Whether the canonical owned-site discovery foundation resolves the known technical findings.",
-      "hypothesis": "Serving valid discovery files and structured game metadata will remove the six-check A-001 major findings after an isolated release.",
+      "decisionServed": "Whether search engines discover and surface Mythical Void's canonical owned pages after the technical foundation is live.",
+      "hypothesis": "Clear canonical pages, crawl files and one verified sitemap submission will make search discovery observable without creating duplicate pages or paid traffic.",
       "audience": "Public web and search infrastructure; no recruited participant cohort",
       "journeyStageIds": ["discover"],
-      "intervention": "Release only the approved RM-001 discovery and safer-submission artifact.",
-      "comparison": "The recorded live A-001 baseline of 7 major and 4 minor findings.",
-      "primaryMeasure": "Major A-001 findings across the same six checks.",
-      "minimumUsefulEvidence": "One source-traceable post-release audit with all six checks and no regressions in privacy, terms, play, or submission copy.",
+      "intervention": "Keep the canonical pages technically crawlable, connect Search Console through Kevin's existing Google account, submit the sitemap once and inspect the homepage and Playable Now page.",
+      "comparison": "The 27 August four-query sample observed no Mythical Void result while authenticated Google index evidence remained unavailable.",
+      "primaryMeasure": "Authenticated indexed-page evidence and search impressions, reported without treating rank or impressions as playership.",
+      "minimumUsefulEvidence": "One Search Console inspection of the homepage and Playable Now page, followed by bounded seven-day and fourteen-day checks.",
       "dataMode": "public_read_only",
       "eventNames": [],
       "claimIds": ["CL-001", "CL-002", "CL-004", "CL-005"],
@@ -93,19 +131,19 @@
       "behavioralTargetingPermitted": false,
       "minorDirectOutreachPermitted": false,
       "guardrails": ["exact artifact digest", "isolated preview before production", "verified rollback", "no whole-tree deployment"],
-      "resultStatus": "baseline_only",
+      "resultStatus": "owned_release_complete_visibility_unverified",
       "decisionReady": false
     },
     {
       "id": "E-002",
-      "title": "Companion-led positioning comprehension",
+      "title": "Creature-led positioning comprehension",
       "status": "ready_not_recruiting",
-      "decisionServed": "Whether initial communications should lead with the companion bond rather than features or story alone.",
-      "hypothesis": "Companion-led positioning will produce clearer comprehension and stronger qualified play intent among adults than feature-led or story-led variants.",
+      "decisionServed": "Whether initial communications should lead with the creature relationship rather than features or story alone.",
+      "hypothesis": "Creature-led positioning will produce clearer comprehension and stronger qualified play intent among adults than feature-led or story-led variants.",
       "audience": "Consenting adults, including parents/guardians and adult creature/narrative-game players",
       "journeyStageIds": ["discover", "understand", "start"],
       "intervention": "Moderated comparison of three accurately bounded message concepts.",
-      "comparison": "Companion-led, feature-led, and story-led concepts presented in balanced order.",
+      "comparison": "Creature-led, feature-led, and story-led concepts presented in balanced order.",
       "primaryMeasure": "Accurate unaided comprehension plus qualified stated play intent, reported directionally rather than as market prevalence.",
       "minimumUsefulEvidence": "Ten completed adult sessions with source, order, contradictions, and facilitator notes reviewed under Round 001A.",
       "dataMode": "M3_moderated_deidentified",

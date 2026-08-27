@@ -5,17 +5,17 @@
 
 ## Recommended starting position
 
-> **Mythical Void is a living science-fiction creature adventure where a
-> one-of-one alien companion remembers how you care for it, helps restore a
+> **Mythical Void is a living science-fiction creature adventure where an
+> alien creature responds to how you care for it, helps restore a
 > threatened world, and changes what getting home means.**
 
 This is stronger than leading with “AI game” or “procedural graphics.” Those
 are enabling technologies, not the emotional reason to play. AI should become
-proof that the companion and world feel responsive, distinctive, and alive.
+proof that the creature and world feel responsive, distinctive, and alive.
 
 ### Message hierarchy
 
-1. **Emotional promise:** meet a companion that feels like yours alone.
+1. **Emotional promise:** meet a creature shaped by your shared journey.
 2. **Player activity:** explore and restore six living realms together.
 3. **Narrative tension:** Earth sent you to find resources; the world you find
    is alive.
@@ -30,7 +30,7 @@ proof that the companion and world feel responsive, distinctive, and alive.
 - “Your creature. Your choices. A world that remembers.”
 - “The first alien life to trust you is waiting.”
 - “You were sent to save Earth. First, decide what saving means.”
-- “No two companions. No two bonds. No two journeys.”
+- “Your creature begins with its own combination of traits. The journey shapes what happens next.”
 
 These are test variants, not a license to claim capabilities that are not
 visible in the current build.
@@ -43,9 +43,9 @@ than one generic persona.
 
 | Role | Initial hypothesis | What they need to believe | Best evidence |
 | --- | --- | --- | --- |
-| Core player | Creature-loving players roughly 8–14 | The companion is expressive; play is understandable and rewarding | A real hatch-to-bond gameplay moment |
+| Core player | Creature-loving players roughly 8–14 | The creature is expressive; play is understandable and rewarding | A real hatch-to-bond gameplay moment |
 | Trust gate | Parents/guardians | The game is safe, respectful, worthwhile, and transparent | Plain-language safety, privacy, and gameplay proof |
-| Adjacent player | Teens/adults who enjoy creature, cozy, and narrative games | The systems and story have enough depth to avoid feeling infantile | Choice, progression, world, and companion-memory proof |
+| Adjacent player | Teens/adults who enjoy creature, cozy, and narrative games | The systems and story have enough depth to avoid feeling infantile | Choice, progression, world, and creature-memory proof |
 | Amplifier | Family-friendly, creature-game, cozy-game, and narrative-game creators | Their audience will get a distinctive, watchable experience | A concise creator build and story hooks |
 | Industry amplifier | Indie game, procedural art, animation, and responsible-AI communities | Mythical demonstrates a credible new production/player model | Technical craft backed by shipped footage and honest limitations |
 | Partner | Platforms, publishers, family brands, education/culture partners | The product has audience fit, governance, and delivery reliability | Cohort evidence, trust package, roadmap, and team capability |
@@ -66,13 +66,13 @@ the brand into “a children's game.”
 ### Category
 
 Use familiar language first: **browser creature-raising action-adventure**.
-Then introduce the new layer: a **living companion and choice-driven science
+Then introduce the new layer: a **living creature and choice-driven science
 fiction world**.
 
 ### Differentiation stack
 
 1. One-of-one procedural creature identity.
-2. A companion relationship expressed through care, memory, agency, and shared
+2. A creature relationship expressed through care, memory, agency, and shared
    adventure.
 3. Restoration as both a world mechanic and ethical story premise.
 4. A complete mission arc rather than an isolated virtual-pet loop.
@@ -125,9 +125,9 @@ Goal: expand reach and validate how Mythical becomes a durable business.
 
 ## Growth loops to test
 
-### Companion identity loop
+### Creature identity loop
 
-Distinct companion -> emotionally meaningful moment -> player/parent chooses to
+Distinct creature -> emotionally meaningful moment -> player/parent chooses to
 share -> new person discovers the hatch experience.
 
 Guardrails: sharing must be voluntary, age-appropriate, privacy-preserving,
@@ -172,7 +172,7 @@ is told what changed -> higher-quality future participation.
    variants to intended players and parents. Measure accurate unaided recall,
    desire to play, concerns, and expected game type.
 2. **First meaningful moment:** observe whether players reach and understand
-   the first companion bond without facilitation.
+   the first creature bond without facilitation.
 3. **Proof-asset test:** compare hatch/bond, restoration, and mission-choice
    clips with small matched audiences. Measure qualified click-to-play and
    post-play response where lawful—not view count alone.
@@ -190,4 +190,3 @@ is told what changed -> higher-quality future participation.
 - monetization optimization before audience and retention evidence;
 - presenting simulated agent audiences as market validation;
 - claiming the studio or game is autonomous where a human review step exists.
-

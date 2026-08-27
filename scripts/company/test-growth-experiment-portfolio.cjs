@@ -67,7 +67,21 @@ try {
     assert.strictEqual(duplicate.status, 1);
     assert(duplicate.output.failures.some(failure => failure.includes('duplicate experiment ID')));
 
-    console.log('A-019 growth experiment portfolio evaluations passed (7 cases).');
+    const falseCustomerEvidence = execute('false-customer-evidence', {
+        ...portfolio,
+        evidenceSnapshot: { ...portfolio.evidenceSnapshot, syntheticProductionChecksAreCustomerEvidence: true }
+    });
+    assert.strictEqual(falseCustomerEvidence.status, 1);
+    assert(falseCustomerEvidence.output.failures.some(failure => failure.includes('must not be called customer evidence')));
+
+    const missingBoundary = execute('missing-boundary', {
+        ...portfolio,
+        journeyStages: portfolio.journeyStages.map(item => item.id === 'activate' ? { ...item, notYetProven: '' } : item)
+    });
+    assert.strictEqual(missingBoundary.status, 1);
+    assert(missingBoundary.output.failures.some(failure => failure.includes('activate lacks an explicit evidence boundary')));
+
+    console.log('A-019 growth experiment portfolio evaluations passed (9 cases).');
 } finally {
     fs.rmSync(temporaryDirectory, { recursive: true, force: true });
 }

@@ -24,6 +24,13 @@ const channels = load(path.join(repositoryRoot, 'docs/company/content/channels.j
 const automations = load(path.join(repositoryRoot, 'docs/company/automation/registry.json'), 'Automations').workflows || [];
 const risks = load(path.join(repositoryRoot, 'docs/company/operations/risks.json'), 'Risks').risks || [];
 const eventContract = load(path.join(repositoryRoot, 'docs/company/measurement/event-contract.json'), 'Event contract');
+const searchAudit = load(path.join(repositoryRoot, 'docs/company/search/search-visibility-audit-2026-08-27.json'), 'Search visibility audit');
+const liveAudit = load(path.join(repositoryRoot, 'docs/company/growth/LIVE_DISCOVERY_TO_PLAY_AUDIT_2026-08-27.json'), 'Live first-impression audit');
+const customerEvidence = load(path.join(repositoryRoot, 'docs/company/customer/evidence.json'), 'Customer evidence');
+const firstFive = load(path.join(repositoryRoot, 'docs/company/research/first-five-playtest.json'), 'First Five');
+const visualMoments = load(path.join(repositoryRoot, 'docs/company/content/visual-launch-moments.json'), 'Visual launch moments');
+const scoreboard = fs.readFileSync(path.join(repositoryRoot, 'docs/company/growth/WHAT_WE_KNOW_ABOUT_GROWTH_2026-08-27.md'), 'utf8');
+const scoreboardPlain = scoreboard.replace(/[*_`]/g, '').replace(/\s+/g, ' ');
 const decisions = fs.readFileSync(path.join(repositoryRoot, 'docs/company/registers/DECISIONS.md'), 'utf8');
 
 const maps = {
@@ -50,7 +57,35 @@ for (const [field, expected] of [
     if (portfolio[field] !== expected) failures.push(`${field} must remain false`);
 }
 if (portfolio.portfolioPolicy?.cadence !== 'evidence_and_milestone_led') failures.push('portfolio cadence must remain evidence and milestone led');
+if (/\bcompanions?\b/i.test(JSON.stringify(portfolio))) failures.push('retired companion wording remains in the growth experiment portfolio');
+const snapshot = portfolio.evidenceSnapshot || {};
+const requiredSnapshotRefs = [
+    'docs/company/search/search-visibility-audit-2026-08-27.json',
+    'docs/company/growth/LIVE_DISCOVERY_TO_PLAY_AUDIT_2026-08-27.json',
+    'docs/company/research/first-five-playtest.json',
+    'docs/company/customer/evidence.json',
+    'docs/company/content/visual-launch-moments.json'
+];
+if (JSON.stringify(snapshot.sourceRefs) !== JSON.stringify(requiredSnapshotRefs)) failures.push('growth evidence snapshot source list is missing or drifted');
+if (snapshot.syntheticProductionChecksAreCustomerEvidence !== false) failures.push('synthetic production checks must not be called customer evidence');
+if (snapshot.customerEvidenceCount !== (customerEvidence.records || []).length) failures.push('growth evidence snapshot customer count is stale');
+if (snapshot.firstFiveSessionsCompleted !== firstFive.currentOutcome?.sessionsCompleted) failures.push('growth evidence snapshot First Five count is stale');
+if (snapshot.approvedGameplayMoments !== visualMoments.approvalRule?.approvedMomentCount || snapshot.requiredGameplayMoments !== visualMoments.approvalRule?.requiredApprovedMoments) failures.push('growth evidence snapshot visual gate is stale');
+const sampledResultsObserved = (searchAudit.sample?.queries || []).filter(item => item.mythicalResultObserved).length;
+if (snapshot.sampledSearchResultsObserved !== sampledResultsObserved) failures.push('growth evidence snapshot search sample is stale');
+if (!Array.isArray(snapshot.unknownsThatRemainUnknown) || snapshot.unknownsThatRemainUnknown.length < 5) failures.push('growth evidence snapshot must preserve the main unknowns');
+if (typeof snapshot.singleNextDecision !== 'string' || !snapshot.singleNextDecision.includes('returning-player presentation') || !snapshot.singleNextDecision.includes('Search Console') || !snapshot.singleNextDecision.includes('four authentic gameplay moments')) failures.push('growth evidence snapshot next decision is incomplete');
 if (!Array.isArray(portfolio.journeyStages) || portfolio.journeyStages.length !== allowedStages.size) failures.push('all seven journey stages are required');
+
+const expectedEvidenceStates = {
+    discover: 'owned_pages_live_search_visibility_unproven',
+    understand: 'owned_copy_ready_no_customer_comprehension_evidence',
+    start: 'synthetic_production_path_verified_to_hatching_start',
+    activate: 'hatching_start_verified_hatch_and_bond_unproven',
+    deepen: 'product_claims_exist_customer_value_unproven',
+    return: 'return_path_exists_visual_quality_failed',
+    share_and_advocate: 'owned_share_routes_live_usage_unproven'
+};
 
 const stageIds = new Set();
 for (const stage of portfolio.journeyStages || []) {
@@ -58,7 +93,15 @@ for (const stage of portfolio.journeyStages || []) {
     if (stageIds.has(stage.id)) failures.push(`duplicate journey stage ${stage.id}`);
     stageIds.add(stage.id);
     for (const field of ['outcome']) if (typeof stage[field] !== 'string' || !stage[field].trim()) failures.push(`${stage.id} lacks ${field}`);
+    if (stage.evidenceState !== expectedEvidenceStates[stage.id]) failures.push(`${stage.id} evidence state is missing or stale`);
+    if (!Array.isArray(stage.currentEvidence) || stage.currentEvidence.length === 0) failures.push(`${stage.id} lacks current evidence`);
+    if (typeof stage.notYetProven !== 'string' || !stage.notYetProven.trim()) failures.push(`${stage.id} lacks an explicit evidence boundary`);
     if (!Array.isArray(stage.prohibitedShortcuts) || stage.prohibitedShortcuts.length === 0) failures.push(`${stage.id} lacks prohibited shortcuts`);
+}
+if (liveAudit.scope?.freshFirstTimeGame?.completedThrough !== 'hatching_started' || liveAudit.scope?.freshFirstTimeGame?.phoneChecked !== true) failures.push('growth start evidence no longer matches the live audit');
+if (liveAudit.visualGate?.approvedMoments !== 0 || liveAudit.visualGate?.requiredMoments !== 4 || liveAudit.visualGate?.gameplayLedDistributionReady !== false) failures.push('growth visual boundary no longer matches the live audit');
+for (const phrase of ['a working test is not a player', 'The honest scoreboard', 'A real click or tap began hatching', 'no accepted customer evidence', 'failed the human-facing visual review', 'does not require another Google Workspace subscription', 'adult-only First Five test', 'do they reach a creature moment they understand and want to continue?']) {
+    if (!scoreboardPlain.includes(phrase)) failures.push(`plain-language growth scoreboard is missing: ${phrase}`);
 }
 
 const ids = new Set();

@@ -13,7 +13,7 @@ qualitative study with ten consenting adults:
 
 - six parents or guardians;
 - four adult creature, cozy, or narrative-game players;
-- a balanced 4/3/3 assignment across the current, companion-led, and
+- a balanced 4/3/3 assignment across the current, creature-relationship-led, and
   story-led message cards.
 
 It does not estimate market size, prevalence, retention, or a child audience.
@@ -158,4 +158,3 @@ the adult purpose/sample and compensation ceiling, names the research owner,
 and provides approved restricted scheduling and safeguarding routes. A stable
 build, participant information/consent review, retention/deletion rule, and
 moderator dry run must then pass before invitations are sent.
-
