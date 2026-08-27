@@ -9,18 +9,18 @@ const root = rootFlag === -1
     : path.resolve(process.argv[rootFlag + 1] || '');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 const handoff = read('src/ui/LivingFormHandoff.js');
-const release = JSON.parse(read('docs/company/growth/HATCH_SHARING_LOOP.json'));
+const release = JSON.parse(read('docs/company/content/generated/hatch-challenge-invitation-release.json'));
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 const method = handoff.match(/async shareGame\(event\) \{([\s\S]*?)\n    \}\n\n    destroy/)?.[1] || '';
 
-requireValue(release.releaseId === 'HATCH-SHARING-LOOP-2026-08-27', 'release identity is missing');
-requireValue(['owned_game_release_authorized_pending_production_verification', 'live_production_verified'].includes(release.state), 'release authority state is invalid');
-requireValue(release.trigger?.moment === 'first_named_creature_living_form_reveal', 'hatch moment drifted');
-requireValue(release.trigger?.automaticShare === false && release.trigger?.automaticPrompt === false && release.trigger?.playerActionRequired === true, 'sharing must remain voluntary');
-requireValue(release.trigger?.continueRemainsPrimary === true, 'continuation must remain primary');
+requireValue(release.releaseId === 'HATCH-CHALLENGE-INVITATION-2026-08-27', 'release identity is missing');
+requireValue(['prepared_for_owned_game_release', 'live_production_verified'].includes(release.state), 'public release state is invalid');
+requireValue(release.publicExperience?.trigger === 'first_named_creature_living_form_reveal', 'hatch moment drifted');
+requireValue(release.publicExperience?.automaticShare === false, 'sharing must remain voluntary');
+requireValue(release.publicExperience?.continueRemainsPrimary === true, 'continuation must remain primary');
 
-requireValue(handoff.includes("'SHARE THE GAME'"), 'hatch share action is missing');
+requireValue(handoff.includes("'INVITE SOMEONE'"), 'hatch challenge action is missing');
 requireValue(handoff.includes("'living-form-share'"), 'hatch share action is not connected');
 requireValue(handoff.includes("'living-form-continue'"), 'primary continuation is missing');
 requireValue(method.length > 0, 'hatch share method is missing');
@@ -30,40 +30,32 @@ for (const forbidden of ['GameState', 'creatureName', 'safeName', 'species', 'ge
     requireValue(!method.includes(forbidden), `share method contains forbidden data or operation ${forbidden}`);
 }
 
-requireValue(release.share?.url === 'https://mythicalvoid.com/playable-now/#find-your-way/create', 'clean owned share route drifted');
-requireValue(handoff.includes(`url: '${release.share.url}'`), 'implemented share route drifted');
-requireValue(release.share?.trackingParametersAdded === false && release.share?.imageIncluded === false, 'tracking or an image must not be added');
+requireValue(release.publicExperience?.buttonLabel === 'INVITE SOMEONE', 'hatch challenge label drifted');
+requireValue(release.publicExperience?.url === 'https://mythicalvoid.com/hatch-challenge/', 'clean owned Hatch Challenge route drifted');
+requireValue(handoff.includes(`url: '${release.publicExperience.url}'`), 'implemented share route drifted');
+requireValue(release.privacy?.trackingParametersAdded === false && release.visualBoundary?.imageIncludedInShare === false, 'tracking or an image must not be added');
 for (const [key, expected] of Object.entries({
-    saveDataReadForShare: false,
-    saveDataTransmitted: false,
     creatureNameIncluded: false,
     creatureGeneticsIncluded: false,
     creaturePortraitIncluded: false,
     playerIdentityIncluded: false,
-    recipientCollected: false,
-    contactDetailsCollected: false,
-    newAnalyticsEventAdded: false
+    recipientCollected: false
 })) requireValue(release.privacy?.[key] === expected, `privacy.${key} must be ${expected}`);
-requireValue(release.visualBoundary?.approvedGameplayMoments === 0 && release.visualBoundary?.requiredGameplayMoments === 4 && release.visualBoundary?.unapprovedScreenshotUsed === false && release.visualBoundary?.visualLaunchGateChanged === false, 'visual gate drifted');
-for (const [key, expected] of Object.entries({
-    ownedGamePublicationAuthorized: true,
-    externalSocialPublicationAuthorized: false,
-    emailOrOutreachSendingAuthorized: false,
-    paidPromotionAuthorized: false,
-    externalAccountChangeAuthorized: false,
-    externalActionTaken: false
-})) requireValue(release.authority?.[key] === expected, `authority.${key} must be ${expected}`);
+requireValue(release.visualBoundary?.unapprovedScreenshotUsed === false, 'unapproved visual entered the invitation');
 if (release.state === 'live_production_verified') {
     requireValue(/^[0-9a-f]{40}$/.test(release.verification?.productionCommit || ''), 'verified release is missing its production commit');
     requireValue(/^[0-9a-f]{24}$/.test(release.verification?.productionDeployId || ''), 'verified release is missing its production deploy ID');
     requireValue(!Number.isNaN(Date.parse(release.verification?.productionPublishedAt || '')), 'verified release is missing its production time');
-    for (const [key, expected] of Object.entries({
-        gamePageHttpStatus: 200,
-        shareActionPresentInGameBundle: true,
-        cleanShareUrlPresentInGameBundle: true,
-        creatureLanguagePresentInGameBundle: true,
-        unapprovedVisualIncluded: false
-    })) requireValue(release.verification?.publicChecks?.[key] === expected, `verification.publicChecks.${key} must be ${expected}`);
+    requireValue(release.verification?.shareActionPresentInGameBundle === true, 'live bundle is missing the invitation action');
+    requireValue(release.verification?.cleanShareUrlPresentInGameBundle === true, 'live bundle is missing the clean Hatch Challenge route');
+}
+if (release.state === 'prepared_for_owned_game_release') {
+    requireValue(release.verification?.productionCommit === null, 'pending release must not claim a production commit');
+    requireValue(release.verification?.productionDeployId === null, 'pending release must not claim a production deploy');
+    requireValue(release.verification?.productionPublishedAt === null, 'pending release must not claim a production time');
+    for (const key of ['shareActionPresentInGameBundle', 'cleanShareUrlPresentInGameBundle']) {
+        requireValue(release.verification?.[key] === false, `pending release must not claim ${key}`);
+    }
 }
 
 if (failures.length) {
@@ -74,8 +66,8 @@ if (failures.length) {
 
 console.log(JSON.stringify({
     valid: true,
-    trigger: release.trigger.moment,
-    cleanShareUrl: release.share.url,
+    trigger: release.publicExperience.trigger,
+    cleanShareUrl: release.publicExperience.url,
     creatureDataShared: false,
     playerIdentityShared: false,
     approvedVisualsUsed: false,

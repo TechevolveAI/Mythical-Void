@@ -222,9 +222,9 @@ describe('LivingFormHandoff mobile continuation', () => {
         await new Promise(resolve => setTimeout(resolve, 0));
 
         expect(share).toHaveBeenCalledWith({
-            title: 'Mythical Void — a free alien creature adventure',
-            text: 'I just hatched a creature in Mythical Void. See what hatches for you in this free browser adventure.',
-            url: 'https://mythicalvoid.com/playable-now/#find-your-way/create'
+            title: 'The Mythical Void Hatch Challenge',
+            text: 'I just hatched an alien creature. Hatch yours from the same signal, then compare what the creature engine made.',
+            url: 'https://mythicalvoid.com/hatch-challenge/'
         });
         expect(JSON.stringify(share.mock.calls[0][0])).not.toContain('Nova');
         expect(onContinue).not.toHaveBeenCalled();
@@ -281,7 +281,7 @@ describe('LivingFormHandoff mobile continuation', () => {
         await new Promise(resolve => setTimeout(resolve, 0));
 
         expect(writeText).toHaveBeenCalledWith(
-            'https://mythicalvoid.com/playable-now/#find-your-way/create'
+            'https://mythicalvoid.com/hatch-challenge/'
         );
         expect(document.querySelector('[data-testid="living-form-share"]')
             .textContent).toBe('LINK COPIED ✓');

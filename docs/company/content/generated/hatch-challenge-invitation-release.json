@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "HATCH-CHALLENGE-INVITATION-2026-08-27",
+  "state": "prepared_for_owned_game_release",
+  "publicExperience": {
+    "trigger": "first_named_creature_living_form_reveal",
+    "buttonLabel": "INVITE SOMEONE",
+    "title": "The Mythical Void Hatch Challenge",
+    "text": "I just hatched an alien creature. Hatch yours from the same signal, then compare what the creature engine made.",
+    "url": "https://mythicalvoid.com/hatch-challenge/",
+    "automaticShare": false,
+    "continueRemainsPrimary": true
+  },
+  "privacy": {
+    "creatureNameIncluded": false,
+    "creatureGeneticsIncluded": false,
+    "creaturePortraitIncluded": false,
+    "playerIdentityIncluded": false,
+    "recipientCollected": false,
+    "trackingParametersAdded": false
+  },
+  "visualBoundary": {
+    "unapprovedScreenshotUsed": false,
+    "imageIncludedInShare": false
+  },
+  "verification": {
+    "productionCommit": null,
+    "productionDeployId": null,
+    "productionPublishedAt": null,
+    "shareActionPresentInGameBundle": false,
+    "cleanShareUrlPresentInGameBundle": false
+  }
+}

@@ -137,9 +137,9 @@ describe('living form milestone handoff', () => {
     });
 
     test('offers only a clean optional game link after hatching', () => {
-        expect(handoffSource).toContain("text: 'I just hatched a creature");
+        expect(handoffSource).toContain("text: 'I just hatched an alien creature");
         expect(handoffSource).toContain(
-            "url: 'https://mythicalvoid.com/playable-now/#find-your-way/create'"
+            "url: 'https://mythicalvoid.com/hatch-challenge/'"
         );
         expect(handoffSource).toContain('window.navigator?.share');
         expect(handoffSource).toContain(

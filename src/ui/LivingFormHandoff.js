@@ -21,9 +21,9 @@ function formatIdentifier(value, fallback) {
 }
 
 const HATCH_SHARE_DATA = Object.freeze({
-    title: 'Mythical Void — a free alien creature adventure',
-    text: 'I just hatched a creature in Mythical Void. See what hatches for you in this free browser adventure.',
-    url: 'https://mythicalvoid.com/playable-now/#find-your-way/create'
+    title: 'The Mythical Void Hatch Challenge',
+    text: 'I just hatched an alien creature. Hatch yours from the same signal, then compare what the creature engine made.',
+    url: 'https://mythicalvoid.com/hatch-challenge/'
 });
 
 export default class LivingFormHandoff {
@@ -263,13 +263,13 @@ export default class LivingFormHandoff {
         const shareButton = createElement(
             'button',
             'living-form-share',
-            'SHARE THE GAME'
+            'INVITE SOMEONE'
         );
         shareButton.type = 'button';
         shareButton.setAttribute('data-testid', 'living-form-share');
         shareButton.setAttribute(
             'aria-label',
-            'Share a clean link to Mythical Void'
+            'Invite someone to the Mythical Void Hatch Challenge'
         );
         shareButton.style.touchAction = 'manipulation';
         shareButton.style.webkitTapHighlightColor = 'transparent';
@@ -569,7 +569,7 @@ export default class LivingFormHandoff {
             this.shareButton.textContent = {
                 shared: 'SHARED ✓',
                 copied: 'LINK COPIED ✓',
-                cancelled: 'SHARE THE GAME',
+                cancelled: 'INVITE SOMEONE',
                 shown: 'MYTHICALVOID.COM'
             }[result];
             this.shareButton.disabled = false;
