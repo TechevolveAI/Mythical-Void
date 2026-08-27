@@ -11,8 +11,8 @@ const validator = path.join(__dirname, 'validate-search-visibility-activation.cj
 const files = [
     'docs/company/search/search-visibility-audit-2026-08-27.json',
     'docs/company/search/indexnow-submission-2026-08-27.json',
-    'docs/company/search/indexnow-submission-2026-08-27-03.json',
     'docs/company/search/indexnow-submission-2026-08-27-04.json',
+    'docs/company/search/indexnow-submission-2026-08-27-05.json',
     'docs/company/search/SEARCH_VISIBILITY_AUDIT_2026-08-27.md',
     'docs/company/search/SEARCH_CONSOLE_ACTIVATION.md',
     'docs/company/search/search-opportunities.json',

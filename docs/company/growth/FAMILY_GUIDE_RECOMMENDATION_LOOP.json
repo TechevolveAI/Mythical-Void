@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "FAMILY-GUIDE-RECOMMENDATION-2026-08-27",
-  "state": "owned_site_release_prepared",
+  "state": "live_production_verified",
   "purpose": "Help one parent, guardian or grown-up pass Mythical Void's checked family answers to another without collecting a recipient or adding tracking code.",
   "publicRoute": "https://mythicalvoid.com/parents/",
   "promise": {
@@ -29,11 +29,13 @@
   },
   "verification": {
     "productionVerificationRequired": true,
-    "productionCommit": null,
-    "productionDeployId": null,
-    "productionPublishedAt": null,
-    "liveShareCardVisible": false,
-    "liveCleanShareUrlVerified": false,
-    "liveFamilyPromiseVerified": false
+    "productionCommit": "44171ff5deced3892974e71fdd08410e7da058cc",
+    "productionDeployId": "6a8fe0d964973f0008ac0b57",
+    "productionPublishedAt": "2026-08-27T07:03:09.056Z",
+    "liveShareCardVisible": true,
+    "liveCleanShareUrlVerified": true,
+    "liveFamilyPromiseVerified": true,
+    "liveBrokenImageCount": 0,
+    "liveHorizontalOverflowObserved": false
   }
 }

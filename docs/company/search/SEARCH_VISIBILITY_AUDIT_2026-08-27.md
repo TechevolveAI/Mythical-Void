@@ -55,6 +55,11 @@ only those two changed pages were notified: Playable Now and For Grown-ups.
 IndexNow returned `200` at 06:47 UTC. No unchanged page was included. Acceptance
 still does not prove crawling, indexing, ranking or traffic.
 
+After the family guide gained a clean recommendation path for one grown-up to
+pass to another, only that changed page was notified. IndexNow returned `200` at
+07:05 UTC. The shared address contains no tracking code, and this acceptance
+still does not prove crawling, indexing, ranking or traffic.
+
 ## The right next move
 
 Do not make lots of near-identical “free game” pages. The useful page already
