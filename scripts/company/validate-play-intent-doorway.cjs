@@ -28,6 +28,8 @@ requireValue(plan.publicRoute === 'https://mythicalvoid.com/playable-now/', 'pub
 requireValue(page.includes('What are you in the mood for?'), 'plain-language question is missing');
 requireValue(page.includes('id="find-your-way"'), 'play-intent doorway needs a stable homepage destination');
 requireValue(page.includes('It does not create a profile, and no account is needed.'), 'public privacy promise is missing');
+requireValue(page.includes('class="play-intent-direct"') && page.includes('Ready now? Start immediately. The four paths below are optional.'), 'first-screen direct Play choice is missing');
+requireValue(page.includes('data-play-link data-source-area="hero"'), 'first-screen direct Play source is missing');
 requireValue(page.includes('data-play-intent') && page.includes('data-intent-answer hidden'), 'progressive intent doorway is missing');
 requireValue(page.includes('data-intent-share data-source-area') && page.includes('Share this way in') && page.includes('data-intent-share-status'), 'intent-specific sharing controls are missing');
 requireValue(page.includes('<noscript>') && page.includes('Play Mythical Void free in your browser'), 'no-script Play route is missing');
@@ -60,6 +62,8 @@ requireValue(discovery.includes("track('play_selected'"), 'existing Play event i
 requireValue(!discovery.includes("track('intent_"), 'choice clicks must not create analytics events');
 requireValue(!discovery.includes("localStorage.setItem('play-intent"), 'the selected reason must not be stored');
 requireValue(plan.measurement?.eventName === 'play_selected' && plan.measurement?.property === 'source_area', 'measurement contract drifted');
+requireValue(plan.lastFunnelImprovement?.choiceRequiredBeforePlay === false && plan.lastFunnelImprovement?.firstScreenDirectPlay === true, 'visitors must be able to Play without completing the mood chooser');
+requireValue(plan.lastFunnelImprovement?.directPlaySourceArea === 'hero' && plan.measurement?.directPlaySourceArea === 'hero', 'direct Play source must use the existing privacy-safe hero value');
 requireValue(plan.measurement?.choiceClickMeasured === false && plan.measurement?.choiceRememberedInBrowser === false, 'choice collection boundary is invalid');
 requireValue(plan.measurement?.selectedPlaySourceSentAfterConsent === true && plan.measurement?.aggregatePlayEventStoredByAnalytics === true, 'consented Play-source storage is not stated honestly');
 requireValue(plan.measurement?.individualJourneyBuilt === false && plan.measurement?.gameMeasured === false, 'individual or game measurement must remain off');
@@ -86,6 +90,8 @@ console.log(JSON.stringify({
     motives: expected.map(item => item[0]),
     analyticsDefault: 'denied',
     eventName: 'play_selected',
+    firstScreenDirectPlay: true,
+    choiceRequiredBeforePlay: false,
     choiceRememberedInBrowser: false,
     shareRoutes: expected.map(item => `#find-your-way/${item[0]}`),
     choiceSentToServer: false,

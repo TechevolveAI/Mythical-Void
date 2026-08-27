@@ -632,6 +632,9 @@ details p { margin: 0.9rem 0 0; }
 .play-intent-heading h2 { max-width: 760px; margin-bottom: 0; }
 .play-intent-heading h1 { font-size: clamp(3.25rem, 6vw, 5.5rem); }
 .play-intent-heading > div > p:not(.kicker) { max-width: 620px; margin-bottom: 0.35rem; color: var(--muted); font-size: 1.08rem; }
+.play-intent-direct { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem 1rem; margin-top: 1.3rem; }
+.play-intent-direct .button { flex: 0 0 auto; }
+.play-intent-direct small { max-width: 25rem; color: var(--muted); font-size: 0.8rem; line-height: 1.45; }
 .play-intent-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.8rem; }
 .play-intent-card {
     position: relative;
@@ -1149,6 +1152,10 @@ details p { margin: 0.9rem 0 0; }
     .playable-journey,
     .playable-proof-grid { grid-template-columns: 1fr; }
     .play-intent-grid { grid-template-columns: 1fr; }
+    .play-intent-direct { align-items: stretch; }
+    .play-intent-direct .button,
+    .play-intent-direct small { width: 100%; }
+    .play-intent-direct .button { justify-content: center; }
     .play-intent-card { min-height: 230px; }
     .play-intent-card > span { margin-bottom: 2.3rem; }
     .play-intent-answer-actions { width: 100%; }

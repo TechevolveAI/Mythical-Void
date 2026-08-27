@@ -4,6 +4,14 @@
   "state": "owned_site_release_authorized_pending_production_verification",
   "decisionServed": "Which honest reason for trying Mythical Void most often leads a visitor to choose Play?",
   "publicRoute": "https://mythicalvoid.com/playable-now/",
+  "lastFunnelImprovement": {
+    "date": "2026-08-27",
+    "finding": "The clearest direct Play action fell below the first screen unless a visitor noticed the header or selected a mood first.",
+    "change": "Place a direct Play action beside the free, no-download and no-account facts on the first screen while keeping the four mood paths optional.",
+    "choiceRequiredBeforePlay": false,
+    "firstScreenDirectPlay": true,
+    "directPlaySourceArea": "hero"
+  },
   "promises": [
     {
       "id": "wonder",
@@ -35,6 +43,7 @@
     "consentRequired": true,
     "eventName": "play_selected",
     "property": "source_area",
+    "directPlaySourceArea": "hero",
     "choiceClickMeasured": false,
     "choiceRememberedInBrowser": false,
     "selectedPlaySourceSentAfterConsent": true,

@@ -6,7 +6,7 @@
   "page": {
     "path": "public/playable-now/index.html",
     "publicUrl": "https://mythicalvoid.com/playable-now/",
-    "sha256": "e01095dd3ed51c5d9aec2cb2b8e9097b5b10ed96760576e3abdba3977374420a",
+    "sha256": "4d3480352dcd729be8bcbeb4825dfd8bfd9efc976329dd783024e70c3e3c01c0",
     "canonical": "https://mythicalvoid.com/playable-now/",
     "directPlayLinkMinimum": 3,
     "structuredData": ["VideoGame", "FAQPage"]
@@ -34,6 +34,9 @@
     "choices": ["wonder", "create", "challenge", "story"],
     "choiceClickMeasured": false,
     "choiceRememberedInBrowser": false,
+    "choiceRequiredBeforePlay": false,
+    "firstScreenDirectPlay": true,
+    "directPlaySourceArea": "hero",
     "intentSpecificSharingEnabled": true,
     "shareRouteLocation": "URL fragment only",
     "shareRouteWords": ["wonder", "create", "challenge", "story"],

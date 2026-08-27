@@ -32,7 +32,7 @@ try {
         ['missing-early-access', page => page.replaceAll('early-access', 'current').replaceAll('Early access', 'Available')],
         ['nasa-endorsement', page => page.replace('NASA does not endorse Mythical Void.', 'NASA endorses Mythical Void.')],
         ['contact-form', page => page.replace('</main>', '<form><input name="email"></form></main>')],
-        ['stale-return-script', page => page.replace('/discovery.js?v=20260826-return-doorway', '/discovery.js?v=20260826-intent-sharing')],
+        ['stale-return-script', page => page.replace('/discovery.js?v=20260827-direct-play', '/discovery.js?v=20260826-return-doorway')],
         ['missing-art-boundary', page => page.replace('not gameplay', 'gameplay')],
         ['invalid-structured-data', page => page.replace('"@type": "VideoGame"', '"@type": VideoGame')]
     ]) {

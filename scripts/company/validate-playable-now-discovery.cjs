@@ -37,7 +37,7 @@ requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(page), 'page contains a tracking
 requireValue(!/NASA (?:made|makes|endorses|partners with) Mythical Void/i.test(page), 'page implies a NASA relationship');
 requireValue(page.includes('data-share-game') && page.includes('data-copy-game') && page.includes('data-share-status'), 'clean sharing controls are missing');
 requireValue(page.includes('never asks for their contact details') && page.includes('adds no tracking code'), 'sharing privacy explanation is missing');
-requireValue(page.includes('/discovery.css?v=20260826-return-doorway') && page.includes('/discovery.js?v=20260826-return-doorway'), 'game-finder assets need a matching fresh cache version');
+requireValue(page.includes('/discovery.css?v=20260827-direct-play') && page.includes('/discovery.js?v=20260827-direct-play'), 'game-finder assets need a matching fresh cache version');
 
 for (const prefix of register.withdrawnPathFamilies) requireValue(!page.includes(prefix), `withdrawn path family ${prefix} is published on the page`);
 for (const publicPath of register.withdrawnIndividualPaths) requireValue(!page.includes(publicPath), `withdrawn asset ${publicPath} is published on the page`);
@@ -61,6 +61,7 @@ requireValue(release.visualDecision?.withdrawnGameplayMedia === true && release.
 requireValue(release.visualDecision?.firstScreenArtRemoved === true && release.visualDecision?.firstScreenExperience === 'interactive_game_finder', 'release must record the art-free first-screen decision');
 requireValue(release.visualDecision?.sharingImageClassification === 'ai_generated_marketing_illustration_not_gameplay', 'sharing-image boundary is missing');
 requireValue(release.playIntentDoorway?.intentSpecificSharingEnabled === true && release.playIntentDoorway?.shareRouteLocation === 'URL fragment only', 'intent-specific sharing release is missing');
+requireValue(release.playIntentDoorway?.choiceRequiredBeforePlay === false && release.playIntentDoorway?.firstScreenDirectPlay === true, 'release must preserve a direct first-screen Play route');
 requireValue(JSON.stringify(release.playIntentDoorway?.shareRouteWords) === JSON.stringify(['wonder', 'create', 'challenge', 'story']), 'intent share route allowlist drifted');
 requireValue(release.playIntentDoorway?.sharedChoiceSentToServer === false && release.playIntentDoorway?.recipientContactCollected === false, 'intent sharing privacy boundary drifted');
 for (const [key, expected] of Object.entries({ ownedWebsitePublicationAuthorized: true, externalSocialPublicationAuthorized: false, emailOrOutreachSendingAuthorized: false, paidPromotionAuthorized: false, publicRepliesAuthorized: false, externalActionTaken: false })) {
