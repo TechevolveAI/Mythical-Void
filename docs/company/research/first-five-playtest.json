@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "id": "FIRST-FIVE-001",
+  "state": "ready_after_gdh009_and_kevin_approval",
+  "purpose": "Check whether five unfamiliar adults can understand and begin the real game before gameplay-led promotion.",
+  "sessionMinutes": 12,
+  "audience": {
+    "adultsOnly": true,
+    "minimumAge": 18,
+    "targetCount": 5,
+    "priorMythicalFamiliarityPermitted": false,
+    "employeesOrCloseCollaboratorsPermitted": false,
+    "minorParticipationPermitted": false
+  },
+  "deviceMix": {
+    "desktopOrLaptop": 3,
+    "phone": 2
+  },
+  "entryGates": {
+    "gdh009Passed": false,
+    "stableBuildRef": null,
+    "kevinApprovedPurposeAndInvitations": false,
+    "adultInvitationCopyApproved": false,
+    "observerNamed": false
+  },
+  "sessionSlots": [
+    { "participantCode": "A1", "deviceClass": "desktop_or_laptop", "state": "unassigned", "result": null },
+    { "participantCode": "A2", "deviceClass": "desktop_or_laptop", "state": "unassigned", "result": null },
+    { "participantCode": "A3", "deviceClass": "desktop_or_laptop", "state": "unassigned", "result": null },
+    { "participantCode": "A4", "deviceClass": "phone", "state": "unassigned", "result": null },
+    { "participantCode": "A5", "deviceClass": "phone", "state": "unassigned", "result": null }
+  ],
+  "allowedResultFields": [
+    "load_succeeded",
+    "began_without_help",
+    "creature_unmistakable",
+    "first_meaningful_action_bucket",
+    "next_action_clear",
+    "phone_usable",
+    "wants_to_continue",
+    "deidentified_confusion_note",
+    "deidentified_recommendation_description"
+  ],
+  "prohibitedData": [
+    "name",
+    "contact_details",
+    "exact_age",
+    "exact_device",
+    "face",
+    "voice",
+    "video",
+    "audio",
+    "screen_recording",
+    "creature_name",
+    "save_data",
+    "location",
+    "account_information"
+  ],
+  "releaseRule": {
+    "loadSucceededMinimum": 5,
+    "beganWithoutHelpMinimum": 4,
+    "creatureUnmistakableMinimum": 4,
+    "meaningfulActionWithinSixMinutesMinimum": 4,
+    "nextActionClearMinimum": 4,
+    "phoneUsableMinimum": 2,
+    "wantsToContinueYesMinimum": 3,
+    "repeatedSevereIssueMaximum": 0,
+    "countsAreMarketPercentages": false,
+    "humanReviewCanFailRunDespiteCounts": true,
+    "failedRunMayBeDeletedOrRewritten": false
+  },
+  "currentOutcome": {
+    "sessionsCompleted": 0,
+    "gateEvaluated": false,
+    "gatePassed": false,
+    "externalClaimPermitted": false
+  },
+  "authority": {
+    "recruitmentAuthorized": false,
+    "participantContactAuthorized": false,
+    "recordingAuthorized": false,
+    "compensationAuthorized": false,
+    "minorContactAuthorized": false,
+    "externalPublicationAuthorized": false,
+    "platformSubmissionAuthorized": false,
+    "externalActionTaken": false
+  }
+}
+

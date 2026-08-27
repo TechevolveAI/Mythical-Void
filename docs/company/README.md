@@ -23,6 +23,7 @@ an AI-first, human-governed studio.
 - [YouTube Playables readiness assessment](growth/YOUTUBE_PLAYABLES_READINESS_ASSESSMENT.md)
 - [Adult-run game discovery shortlist](growth/ADULT_GAME_DISCOVERY_SHORTLIST_2026-08-27.md)
 - [Live discovery-to-play first-impression audit](growth/LIVE_DISCOVERY_TO_PLAY_AUDIT_2026-08-27.md)
+- [First Five adult playtest](research/FIRST_FIVE_PLAYTEST.md)
 - [“What do I feel like playing?” doorway](growth/PLAY_INTENT_DOORWAY.md)
 - [Support and Safeguarding Runbook](SUPPORT_AND_SAFEGUARDING_RUNBOOK.md)
 - [Safeguarding Activation and Escalation System](SAFEGUARDING_ACTIVATION_AND_ESCALATION_SYSTEM.md)

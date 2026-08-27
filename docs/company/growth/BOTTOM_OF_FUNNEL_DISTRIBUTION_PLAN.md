@@ -151,6 +151,11 @@ Before any large portal application, five people unfamiliar with the project sho
 - recognise that their creature can be different;
 - leave knowing why they might return.
 
+The exact adult-only twelve-minute check, fixed result fields and release rule
+are in the [First Five playtest](../research/FIRST_FIVE_PLAYTEST.md). It runs
+only after the post-Play presentation repair and Kevin-approved adult
+invitations; it does not recruit or record children.
+
 We record what happened, not what we hoped happened. No child is contacted privately and no identifying child information is collected.
 
 ## What Kevin will eventually need to approve
