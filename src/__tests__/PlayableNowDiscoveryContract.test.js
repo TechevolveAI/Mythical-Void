@@ -15,10 +15,12 @@ describe('Playable Now discovery page', () => {
     });
 
     test('explains the game clearly while weak media remains withdrawn', () => {
-        expect(page).toContain('LOOKING FOR A NEW GAME? PLAY THIS ONE');
+        expect(page).toContain('<title>Play a Free Alien Creature Game Online | Mythical Void</title>');
+        expect(page).toContain('Play Mythical Void free online in your browser');
+        expect(page).toContain('LOOKING FOR A NEW GAME? PLAY FREE ONLINE');
         expect(page).toContain('<h1>Hatch a strange alien creature. Save six living realms.</h1>');
         expect(page).toContain('<strong>What are you in the mood for?</strong>');
-        expect(page).toContain('Mythical Void is a free browser adventure with platforming, battles, building and story choices.');
+        expect(page).toContain('Mythical Void is a free online browser adventure with platforming, battles, building and story choices.');
         expect(page).toContain('Free · No game ads · No chat with other players · No download · No account · No payment details · Early access');
         expect(page.indexOf('id="find-your-way"')).toBeLessThan(page.indexOf('class="truth-strip"'));
         expect(page).not.toContain('<section class="hero playable-hero">');
@@ -29,6 +31,10 @@ describe('Playable Now discovery page', () => {
         expect(page).not.toContain('/press/gameplay-video/');
         expect(page).not.toContain('/press/gameplay/');
         expect(page).not.toContain('/press/gameplay/creature-cosmic-egg-reveal.png');
+        expect(page).toContain('"applicationCategory": "GameApplication"');
+        expect(page).toContain('"isAccessibleForFree": true');
+        expect(page).not.toContain('"aggregateRating"');
+        expect(page).not.toContain('"review"');
     });
 
     test('keeps public language and claims inside the studio rules', () => {
