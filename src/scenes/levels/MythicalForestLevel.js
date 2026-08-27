@@ -203,6 +203,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
             typeof data?.companionNamePreview === 'string'
                 ? data.companionNamePreview
                 : null;
+        this.forestArrivalPortraitPreview =
+            data?.forestArrivalPortraitPreview === true;
 
         // Reset level-specific state
         this.starFragmentsCollected = 0;
@@ -512,10 +514,42 @@ class MythicalForestLevel extends PlatformerLevelScene {
         skipZone.on('pointerdown', () => finish({ viewed: true }));
 
         const mediaService = window.CompanionMediaService || companionMediaService;
-        Promise.resolve(mediaService?.prepareCinematic?.(this, {
+        const portraitPreviewRecord = this.forestArrivalPortraitPreview
+            ? {
+                identityKey: 'preview_companion_23:baby:portrait',
+                stage: 'baby',
+                imageUrl: '/marketing/nova.webp',
+                assetRef: null,
+                storage: 'preview'
+            }
+            : null;
+        Promise.resolve((
+            mediaService?.createStoryMoment || mediaService?.createCinematicStill
+        )?.call(mediaService, this, {
             momentId: 'first_forest_arrival',
-            stage: window.GameState?.get?.('creature.lifecycle.stage') || 'baby'
-        })).catch(() => null);
+            stage: window.GameState?.get?.('creature.lifecycle.stage') || 'baby',
+            record: portraitPreviewRecord,
+            depth: depth + 1,
+            alpha: 0.78,
+            veilAlpha: 0.18,
+            duration: 7600,
+            isCurrent: () => (
+                !completed &&
+                this.forestArrivalRequest === requestId &&
+                this.sys?.isActive?.() !== false
+            )
+        })).then(tableau => {
+            if (!tableau) return;
+            if (
+                completed ||
+                this.forestArrivalRequest !== requestId ||
+                this.sys?.isActive?.() === false
+            ) {
+                tableau.destroy?.();
+                return;
+            }
+            scenicElements.push(...(tableau.elements || []));
+        }).catch(() => null);
 
         this.tweens.add({
             targets: [caption, continueText],

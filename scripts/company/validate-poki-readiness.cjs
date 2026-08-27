@@ -33,7 +33,11 @@ function validatePokiReadiness(assessment, recordedMeasurement, freshMeasurement
     requireValue(recordedMeasurement.firstLoad?.resourceCount === 18, 'opening dependency count drifted');
     requireValue(recordedMeasurement.firstLoad?.advisoryTargetMet === true, 'opening no longer fits the current advisory target');
     requireValue(recordedMeasurement.package?.advisoryTargetMet === false, 'full package gap is no longer reflected');
-    requireValue(recordedMeasurement.categories?.cinematics?.gzipEstimateBytes > 20_000_000, 'cinematic weight evidence is missing');
+    requireValue(
+        recordedMeasurement.categories?.cinematics?.fileCount >= 3 &&
+        recordedMeasurement.categories.cinematics.gzipEstimateBytes > 8_000_000,
+        'cinematic weight evidence is missing'
+    );
     requireValue(recordedMeasurement.categories?.audio?.gzipEstimateBytes > 8_000_000, 'audio weight evidence is missing');
     for (const marker of ['api.nasa.gov', 'apod.nasa.gov', 'mars.nasa.gov', 'api.open-notify.org', 'netlify/functions']) {
         requireValue(recordedMeasurement.externalServiceMarkers?.[marker]?.fileCount > 0, `external-service marker is missing: ${marker}`);
@@ -85,7 +89,7 @@ function validatePokiReadiness(assessment, recordedMeasurement, freshMeasurement
     for (const command of ['npm run measure:poki', 'npm run validate:poki-readiness', 'npm run test:poki-readiness']) {
         requireValue(packageJson.scripts?.['build:itch']?.includes(command), `portal build does not run ${command}`);
     }
-    for (const phrase of ['GDH-007', '3.75 MB', '41 MB', 'no SDK, advertising, upload or platform request is authorized']) {
+    for (const phrase of ['GDH-007', '3.75 MB', '28.1 MiB', 'no SDK, advertising, upload or platform request is authorized']) {
         requireValue(handoff.includes(phrase), `game-development handoff is missing: ${phrase}`);
     }
 

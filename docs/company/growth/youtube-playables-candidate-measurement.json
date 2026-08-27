@@ -12,24 +12,16 @@
   },
   "package": {
     "fileCount": 87,
-    "rawBytes": 47539504,
-    "gzipEstimateBytes": 43534334,
+    "rawBytes": 33507674,
+    "gzipEstimateBytes": 29502065,
     "totalHardLimitMet": true,
     "fileCountLimitMet": true,
     "largestFile": {
-      "path": "game/cinematics/mythical-forest-arrival-loop.mp4",
-      "rawBytes": 11252009
+      "path": "audio/theme-music.mp3",
+      "rawBytes": 5695783
     },
     "individualHardLimitMet": true,
     "filesAbove512KiBRecommendation": [
-      {
-        "path": "game/cinematics/mythical-forest-arrival-loop.mp4",
-        "rawBytes": 11252009
-      },
-      {
-        "path": "game/cinematics/village-heart-loop.mp4",
-        "rawBytes": 7975297
-      },
       {
         "path": "audio/theme-music.mp3",
         "rawBytes": 5695783
@@ -37,6 +29,10 @@
       {
         "path": "audio/theme-music.ogg",
         "rawBytes": 3679592
+      },
+      {
+        "path": "game/cinematics/mythical-forest-arrival-loop.mp4",
+        "rawBytes": 2757273
       },
       {
         "path": "game/cinematics/fend-crash-site-loop.mp4",
@@ -47,6 +43,10 @@
         "rawBytes": 2530370
       },
       {
+        "path": "game/cinematics/village-heart-loop.mp4",
+        "rawBytes": 2431345
+      },
+      {
         "path": "assets/vendor-phaser-DGEgCO3k.js",
         "rawBytes": 1478412
       },
@@ -55,15 +55,15 @@
         "rawBytes": 820709
       },
       {
-        "path": "assets/gameplay-YGj2dsI4.js",
-        "rawBytes": 641226
+        "path": "assets/gameplay-OngHXrGf.js",
+        "rawBytes": 641921
       }
     ]
   },
   "firstLoad": {
     "resourceCount": 18,
-    "rawBytes": 7165655,
-    "gzipEstimateBytes": 3947062,
+    "rawBytes": 7168857,
+    "gzipEstimateBytes": 3947761,
     "hardLimitMet": true,
     "recommendedLimitMet": true,
     "limitation": "Deterministic local reconstruction, not a YouTube Developer Portal or five-second device test."
@@ -72,33 +72,33 @@
     "api.nasa.gov": {
       "fileCount": 1,
       "files": [
-        "assets/game-D-HG6ayw.js"
+        "assets/game-D2BjZMUc.js"
       ]
     },
     "apod.nasa.gov": {
       "fileCount": 1,
       "files": [
-        "assets/game-D-HG6ayw.js"
+        "assets/game-D2BjZMUc.js"
       ]
     },
     "mars.nasa.gov": {
       "fileCount": 1,
       "files": [
-        "assets/game-D-HG6ayw.js"
+        "assets/game-D2BjZMUc.js"
       ]
     },
     "api.open-notify.org": {
       "fileCount": 1,
       "files": [
-        "assets/game-D-HG6ayw.js"
+        "assets/game-D2BjZMUc.js"
       ]
     },
     "netlify/functions": {
       "fileCount": 3,
       "files": [
         "assets/core-Dh_Pncq8.js",
-        "assets/game-D-HG6ayw.js",
-        "assets/gameplay-YGj2dsI4.js"
+        "assets/game-D2BjZMUc.js",
+        "assets/gameplay-OngHXrGf.js"
       ]
     }
   },
@@ -115,22 +115,22 @@
   },
   "incompatibleCurrentFeatureMarkers": {
     "nativeShareFiles": [
-      "assets/levels-hub-U661r7gL.js",
-      "assets/ui-components-CQ7HqDs8.js"
+      "assets/levels-hub-B2MpUgHs.js",
+      "assets/ui-components-C2JitpL0.js"
     ],
     "clipboardWriteFiles": [
-      "assets/levels-hub-U661r7gL.js",
-      "assets/ui-components-CQ7HqDs8.js"
+      "assets/levels-hub-B2MpUgHs.js",
+      "assets/ui-components-C2JitpL0.js"
     ],
     "localStorageFiles": [
-      "assets/config-oYjRL4Mm.js",
+      "assets/config-CjR4eLXl.js",
       "assets/core-Dh_Pncq8.js",
-      "assets/game-D-HG6ayw.js",
-      "assets/gameplay-YGj2dsI4.js",
+      "assets/game-D2BjZMUc.js",
+      "assets/gameplay-OngHXrGf.js",
       "assets/index-CznJTxPB.js",
-      "assets/onboarding-DnC0-uMb.js",
-      "assets/ui-components-CQ7HqDs8.js",
-      "assets/utils-uBL9z0X6.js",
+      "assets/onboarding-DplP1j9m.js",
+      "assets/ui-components-C2JitpL0.js",
+      "assets/utils-CWxsUhy-.js",
       "assets/vendor-phaser-DGEgCO3k.js"
     ]
   },

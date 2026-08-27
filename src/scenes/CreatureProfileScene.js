@@ -1302,6 +1302,16 @@ export default class CreatureProfileScene extends Phaser.Scene {
                     y,
                     result.textureKey
                 ).setDisplaySize(size - 8, size - 8).setDepth(10);
+                this.tweens.add({
+                    targets: portrait,
+                    y: y - 3,
+                    scaleX: portrait.scaleX * 1.025,
+                    scaleY: portrait.scaleY * 1.025,
+                    duration: 2600,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
                 placeholder.destroy();
                 this.profilePortraitUnsubscribe?.();
                 this.profilePortraitUnsubscribe = null;

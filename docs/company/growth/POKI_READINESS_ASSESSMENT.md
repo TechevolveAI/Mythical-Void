@@ -24,7 +24,7 @@ worth preparing seriously.
 | --- | --- | --- |
 | Does the game reach something playable quickly? | Yes: one clear egg interaction | Provisional pass |
 | Is the first download lean? | About 3.75 MB estimated | Provisional pass |
-| Is the whole delivery lean? | About 41 MB estimated against Poki's 8 MB guidance | Needs major progressive loading |
+| Is the whole delivery lean? | About 28.1 MiB estimated against Poki's 8 MB guidance | Needs major progressive loading |
 | Does it work without outside services? | The bundle still contains NASA, Open Notify and Mythical-hosted function routes | Needs a true portal mode |
 | Does it fill desktop, phone and tablet screens? | Yes in the private layout review | Provisional pass |
 | Are real tablet touch controls proven? | Not yet | Test required |

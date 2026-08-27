@@ -136,8 +136,8 @@ release.
 
 **Evidence:** the direct portal build now reaches one clear egg interaction on
 desktop and phone. Its reconstructed opening download is about 3.75 MB, but the
-full delivery is about 41 MB compressed: roughly 24.5 MB of cinematics and 9.3
-MB of audio. The built game still contains outside NASA, Open Notify and
+full delivery is about 28.1 MiB compressed: roughly 10.0 MiB of cinematics and
+8.8 MiB of audio. The built game still contains outside NASA, Open Notify and
 Mythical-hosted function routes. The authentic visual gate is 0/4, incognito
 saving and real tablet touch switching are unverified, and no Poki SDK is
 present or approved.

@@ -478,6 +478,28 @@ body.game-mode {
   object-fit: cover;
 }
 
+.living-form-image.is-generated-portrait.is-ready {
+  animation: living-form-breathing-frame 7s ease-in-out infinite alternate;
+  transform-origin: 52% 48%;
+  will-change: transform;
+}
+
+@keyframes living-form-breathing-frame {
+  from {
+    transform: scale(1.01) translate3d(-0.3%, 0.2%, 0);
+  }
+  to {
+    transform: scale(1.055) translate3d(0.7%, -0.45%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .living-form-image.is-generated-portrait.is-ready {
+    animation: none;
+    transform: none;
+  }
+}
+
 .living-form-handoff.has-portrait-failure .living-form-media {
   background: #071014;
 }
