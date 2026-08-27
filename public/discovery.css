@@ -723,6 +723,8 @@ details p { margin: 0.9rem 0 0; }
 .play-intent-direct { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem 1rem; margin-top: 1.3rem; }
 .play-intent-direct .button { flex: 0 0 auto; }
 .play-intent-direct small { max-width: 25rem; color: var(--muted); font-size: 0.8rem; line-height: 1.45; }
+.play-intent-choice-prompt { margin: 0 0 1rem; color: var(--muted); font-size: 0.92rem; }
+.play-intent-choice-prompt strong { color: var(--cream); font-size: 1.02rem; }
 .play-intent-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.8rem; }
 .play-intent-card {
     position: relative;

@@ -25,10 +25,11 @@ const expected = [
 requireValue(plan.releaseId === 'PLAY-INTENT-DOORWAY-2026-08-26', 'release identity is missing');
 requireValue(plan.state === 'owned_site_release_live_verified', 'release authority state is invalid');
 requireValue(plan.publicRoute === 'https://mythicalvoid.com/playable-now/', 'public route is invalid');
-requireValue(page.includes('What are you in the mood for?'), 'plain-language question is missing');
+requireValue(page.includes('<h1>Hatch a strange alien creature. Save six living realms.</h1>'), 'clear first-screen game promise is missing');
+requireValue(page.includes('<strong>What are you in the mood for?</strong>'), 'plain-language optional choice is missing');
 requireValue(page.includes('id="find-your-way"'), 'play-intent doorway needs a stable homepage destination');
-requireValue(page.includes('It does not create a profile, and no account is needed.'), 'public privacy promise is missing');
-requireValue(page.includes('class="play-intent-direct"') && page.includes('Ready now? Start immediately. The four paths below are optional.'), 'first-screen direct Play choice is missing');
+requireValue(page.includes('Free · No download · No account · No payment details · Early access'), 'public access promise is missing');
+requireValue(page.includes('class="play-intent-direct"') && page.includes('Start in one click. The four paths below are optional.'), 'first-screen direct Play choice is missing');
 requireValue(page.includes('data-play-link data-source-area="hero"'), 'first-screen direct Play source is missing');
 requireValue(page.includes('data-play-intent') && page.includes('data-intent-answer hidden'), 'progressive intent doorway is missing');
 requireValue(page.includes('YOUR STARTER MISSION') && page.includes('data-intent-mission-title') && page.includes('data-intent-mission-steps') && page.includes('data-intent-finish'), 'starter mission bridge is missing');
@@ -72,6 +73,8 @@ requireValue(plan.measurement?.eventName === 'play_selected' && plan.measurement
 requireValue(plan.lastFunnelImprovement?.choiceRequiredBeforePlay === false && plan.lastFunnelImprovement?.firstScreenDirectPlay === true, 'visitors must be able to Play without completing the mood chooser');
 requireValue(/three-step starter mission/i.test(plan.lastFunnelImprovement?.change || ''), 'latest funnel improvement does not record the starter mission bridge');
 requireValue(plan.lastFunnelImprovement?.directPlaySourceArea === 'hero' && plan.measurement?.directPlaySourceArea === 'hero', 'direct Play source must use the existing privacy-safe hero value');
+requireValue(plan.latestFirstScreenImprovement?.headline === 'Hatch a strange alien creature. Save six living realms.', 'latest first-screen game promise is missing');
+requireValue(plan.latestFirstScreenImprovement?.choiceRequiredBeforePlay === false && plan.latestFirstScreenImprovement?.gameplayMediaPublished === false, 'latest first-screen improvement overstates the release or adds friction');
 requireValue(plan.measurement?.choiceClickMeasured === false && plan.measurement?.choiceRememberedInBrowser === false, 'choice collection boundary is invalid');
 requireValue(plan.measurement?.selectedPlaySourceSentAfterConsent === true && plan.measurement?.aggregatePlayEventStoredByAnalytics === true, 'consented Play-source storage is not stated honestly');
 requireValue(plan.measurement?.individualJourneyBuilt === false && plan.measurement?.gameMeasured === false, 'individual or game measurement must remain off');

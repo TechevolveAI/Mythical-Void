@@ -15,9 +15,10 @@ describe('Playable Now discovery page', () => {
     });
 
     test('explains the game clearly while weak media remains withdrawn', () => {
-        expect(page).toContain('LOOKING FOR A NEW GAME? START HERE');
-        expect(page).toContain('<h1>What are you in the mood for?</h1>');
-        expect(page).toContain('Mythical Void is a free alien creature adventure.');
+        expect(page).toContain('LOOKING FOR A NEW GAME? PLAY THIS ONE');
+        expect(page).toContain('<h1>Hatch a strange alien creature. Save six living realms.</h1>');
+        expect(page).toContain('<strong>What are you in the mood for?</strong>');
+        expect(page).toContain('Mythical Void is a free browser adventure with platforming, battles, building and story choices.');
         expect(page).toContain('Free · No download · No account · No payment details · Early access');
         expect(page.indexOf('id="find-your-way"')).toBeLessThan(page.indexOf('class="truth-strip"'));
         expect(page).not.toContain('<section class="hero playable-hero">');

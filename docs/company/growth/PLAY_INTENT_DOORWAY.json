@@ -12,6 +12,14 @@
     "firstScreenDirectPlay": true,
     "directPlaySourceArea": "hero"
   },
+  "latestFirstScreenImprovement": {
+    "date": "2026-08-27",
+    "finding": "The live route opened the game in under one second, but the main headline asked about mood before clearly saying what Mythical Void is.",
+    "change": "Lead with the alien-creature and six-realm game promise, keep the direct Play button beside it, and move the mood question into the optional choice prompt.",
+    "headline": "Hatch a strange alien creature. Save six living realms.",
+    "choiceRequiredBeforePlay": false,
+    "gameplayMediaPublished": false
+  },
   "promises": [
     {
       "id": "wonder",

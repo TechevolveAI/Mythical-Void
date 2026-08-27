@@ -683,7 +683,7 @@ function bindInteractions() {
     const shareStatuses = [...app.querySelectorAll('[data-share-status]')];
     const shareData = {
         title: 'Mythical Void',
-        text: 'What are you in the mood for? Choose wonder, creation, challenge or story, then enter Mythical Void free in your browser.',
+        text: 'Hatch a strange alien creature, cross six living realms and shape Project Beacon in Mythical Void free in your browser.',
         url: 'https://mythicalvoid.com/playable-now/#find-your-way'
     };
     const setShareStatus = (message) => {

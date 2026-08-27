@@ -2,14 +2,22 @@
   "schemaVersion": 2,
   "releaseId": "PLAYABLE-NOW-VISUAL-TRUST-2026-08-26",
   "state": "owned_site_explanation_live_media_withdrawn_pending_rebuild",
-  "purpose": "Give someone actively looking for a new game an immediate, honest choice of wonder, creation, challenge or story, turn that choice into a concrete starter mission, and give two people a truthful reason to compare what hatches while weak screenshots and video remain withheld.",
+  "purpose": "Tell someone actively looking for a new game exactly what Mythical Void is, offer an immediate clean Play route, then let them choose wonder, creation, challenge or story while weak screenshots and video remain withheld.",
   "page": {
     "path": "public/playable-now/index.html",
     "publicUrl": "https://mythicalvoid.com/playable-now/",
-    "sha256": "d6c1762788757f3bd41d75e0f38cc3641f2a5668b9c8b749861a6a7748cee52a",
+    "sha256": "6390c972ec64a0a1f8a6f156955013a3d93b521c6466b1d1ce25420f5b837eaa",
     "canonical": "https://mythicalvoid.com/playable-now/",
     "directPlayLinkMinimum": 3,
     "structuredData": ["VideoGame", "FAQPage"]
+  },
+  "firstScreenMessage": {
+    "eyebrow": "LOOKING FOR A NEW GAME? PLAY THIS ONE",
+    "headline": "Hatch a strange alien creature. Save six living realms.",
+    "reason": "The previous mood question asked the visitor to make another decision before clearly stating the game promise.",
+    "moodChooserPreserved": true,
+    "directPlayPreserved": true,
+    "gameplayMediaAdded": false
   },
   "visualDecision": {
     "registerPath": "public/press/visual-publication-register.json",
