@@ -2,6 +2,10 @@
 
 Status: the owned website loop is live; the first outside post waits only for Kevin to confirm the account and approve the complete preview.
 
+The live studio page and its sharing preview were checked on 27 August. The
+headline, description and wide creature-universe image all load as intended;
+no broken image or horizontal page overflow was observed.
+
 ## Why this story goes first
 
 Mythical Void needs a human beginning before it needs a stream of product announcements. The clearest true story is that a father and his nine-year-old son used imagination and generative AI tools to see whether they could build the game they talked about together.
@@ -38,6 +42,9 @@ If it makes you think of someone who loves creatures, strange worlds, games or s
 - Picture label: AI-generated marketing artwork inspired by creature-engine profiles; not gameplay
 - No uploaded screenshot, gameplay clip or child photograph
 - No tracking code
+
+This exact preview is live and checked. The artwork is 1672 × 941 pixels and
+remains clearly labelled as AI-generated marketing artwork rather than gameplay.
 
 ## Short follow-up
 

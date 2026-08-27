@@ -13,6 +13,21 @@
     "classification": "ai_generated_marketing_illustration_not_gameplay",
     "disclosure": "AI-generated marketing artwork inspired by creature-engine profiles; not gameplay."
   },
+  "livePreviewCheck": {
+    "checkedAt": "2026-08-27T07:47:12Z",
+    "sourceCommit": "661cc07ea5c72109576eed5901f92203e6fc4f71",
+    "sourceDeployId": "6a8fea1c07447f0008946419",
+    "url": "https://mythicalvoid.com/studio/",
+    "title": "The Father-and-Son Story | Mythical Void Studio",
+    "description": "How Kevin and his nine-year-old son's ideas became creatures, worlds and a playable browser adventure.",
+    "image": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
+    "imageAlt": "An imagined luminous universe filled with many possible alien creature forms",
+    "imageWidth": 1672,
+    "imageHeight": 941,
+    "imageSha256": "33900887fb56104c3fada02ccd965747b0dfab12be7b2c883c624ff8f448fc47",
+    "brokenImagesObserved": false,
+    "horizontalOverflowObserved": false
+  },
   "ownedShareRoutes": [
     {
       "route": "/playable-now/",

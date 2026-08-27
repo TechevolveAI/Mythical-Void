@@ -110,6 +110,10 @@ if (familyGuide.state === 'owned_site_release_prepared') {
 
 requireValue(pack.id === 'FOUNDING-SIGNAL-001' && pack.state === 'owned_word_of_mouth_live_first_external_post_waits_for_kevin', 'founding launch pack state is invalid');
 requireValue(pack.primaryStoryUrl === 'https://mythicalvoid.com/studio/', 'founding launch pack must use the studio story');
+requireValue(pack.livePreviewCheck?.url === 'https://mythicalvoid.com/studio/' && pack.livePreviewCheck?.title === 'The Father-and-Son Story | Mythical Void Studio', 'founding launch preview identity is missing');
+requireValue(pack.livePreviewCheck?.image === 'https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp' && pack.livePreviewCheck?.imageWidth === 1672 && pack.livePreviewCheck?.imageHeight === 941, 'founding launch preview image proof is missing');
+requireValue(pack.livePreviewCheck?.imageSha256 === '33900887fb56104c3fada02ccd965747b0dfab12be7b2c883c624ff8f448fc47', 'founding launch preview image fingerprint drifted');
+requireValue(pack.livePreviewCheck?.brokenImagesObserved === false && pack.livePreviewCheck?.horizontalOverflowObserved === false, 'founding launch preview visual check failed');
 requireValue(Array.isArray(pack.ownedShareRoutes) && pack.ownedShareRoutes.length === 6, 'launch pack must list six owned share routes');
 for (const page of pages) requireValue(pack.ownedShareRoutes.some(item => item.route === page.route), `launch pack is missing ${page.route}`);
 requireValue(pack.ownedShareRoutes.some(item => item.route === '/hatch-challenge/'), 'launch pack is missing the Hatch Challenge route');
@@ -120,6 +124,7 @@ requireValue(pack.nextChannel?.name === 'YouTube' && pack.nextChannel?.state ===
 for (const required of ['Nine-year-olds ask questions', 'No download or account is needed', 'NASA does not endorse Mythical Void', 'Do not continue a private conversation', 'exact public profile URL']) {
     requireValue(packText.includes(required), `founding launch copy is missing: ${required}`);
 }
+requireValue(packText.includes('This exact preview is live and checked') && packText.includes('1672 × 941 pixels'), 'founding launch live-preview explanation is missing');
 requireValue(!/https:\/\/mythicalvoid\.com\/[^\s)`"]*[?&]/.test(packText), 'founding launch pack must use clean Mythical Void links');
 
 const release = releases.entries?.find(entry => entry.id === 'SIGNAL-017');
