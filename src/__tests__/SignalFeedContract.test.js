@@ -17,7 +17,7 @@ describe('public Signal feeds', () => {
         for (const item of feed.items) {
             expect(item.external_url).toMatch(/^https:\/\/mythicalvoid\.com\//);
             expect(item.external_url).not.toMatch(/[?&](?:utm_|fbclid|gclid)/i);
-            expect(item.content_text).toMatch(/(?:Media note:|Visual note: the earlier media was withheld after human review)/);
+            expect(item.content_text).toMatch(/(?:Media note:|Visual note: Mythical Void procedural signal artwork|Visual note: the earlier media was withheld after human review)/);
         }
     });
 

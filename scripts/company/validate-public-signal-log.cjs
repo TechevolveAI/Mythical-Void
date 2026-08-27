@@ -11,7 +11,7 @@ const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
 const page = fs.readFileSync(pagePath, 'utf8');
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
-const allowedKeys = new Set(['id', 'publishedOn', 'status', 'category', 'title', 'summary', 'details', 'image', 'imageAlt', 'imageClass', 'disclosure', 'destination', 'linkText', 'download']);
+const allowedKeys = new Set(['id', 'publishedOn', 'status', 'category', 'title', 'summary', 'details', 'image', 'imageAlt', 'imageClass', 'visualKind', 'visualAlt', 'disclosure', 'destination', 'linkText', 'download']);
 const liveEntries = (data.entries || []).filter(entry => entry.status === 'live');
 
 requireValue(data.schemaVersion === 1, 'schemaVersion must be 1');
@@ -32,8 +32,17 @@ for (const [index, entry] of (data.entries || []).entries()) {
     requireValue(/^\d{4}-\d{2}-\d{2}$/.test(entry?.publishedOn || ''), `${label} has an invalid publication date`);
     requireValue(!Number.isNaN(Date.parse(`${entry.publishedOn}T00:00:00Z`)), `${label} has an impossible publication date`);
     requireValue(Array.isArray(entry?.details) && entry.details.length === 3, `${label} must contain three checkable details`);
-    requireValue(/^\/(?!\/)/.test(entry?.image || ''), `${label} image must be an owned path`);
-    requireValue(fs.existsSync(path.join(root, 'public', entry.image.replace(/^\//, ''))), `${label} image does not exist`);
+    const hasImage = Boolean(entry?.image);
+    const hasSpaceSignalVisual = entry?.visualKind === 'space_signal';
+    requireValue(hasImage || hasSpaceSignalVisual, `${label} needs an approved image or supported code-native visual`);
+    if (hasImage) {
+        requireValue(/^\/(?!\/)/.test(entry.image), `${label} image must be an owned path`);
+        requireValue(fs.existsSync(path.join(root, 'public', entry.image.replace(/^\//, ''))), `${label} image does not exist`);
+    }
+    if (hasSpaceSignalVisual) {
+        requireValue(!entry.image && /not a NASA image/i.test(entry?.disclosure || '') && /not gameplay/i.test(entry?.disclosure || ''), `${label} Space Signal visual lacks its source and gameplay boundary`);
+        requireValue(typeof entry?.visualAlt === 'string' && entry.visualAlt.length >= 20, `${label} Space Signal visual needs useful alternative text`);
+    }
     requireValue(/^\/(?!\/)/.test(entry?.destination || ''), `${label} destination must be an owned path`);
     requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(entry?.destination || ''), `${label} contains a tracking parameter`);
     requireValue(!/\bcompanions?\b/i.test(JSON.stringify(entry)), `${label} uses retired companion wording`);

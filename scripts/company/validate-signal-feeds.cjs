@@ -62,6 +62,9 @@ for (const [index, entry] of live.entries()) {
     if (entry.image && !isWithdrawnPublicVisual(entry.image, visualRegister)) {
         requireValue(item?.content_text?.includes(entry.disclosure), `${entry.id} lost its media disclosure`);
         requireValue(Boolean(item?.image), `${entry.id} lost its approved image`);
+    } else if (entry.visualKind === 'space_signal') {
+        requireValue(item?.content_text?.includes(entry.disclosure), `${entry.id} lost its code-native visual disclosure`);
+        requireValue(!item?.image, `${entry.id} represents a code-native visual as a feed image`);
     } else {
         requireValue(item?.content_text?.includes('withheld after human review'), `${entry.id} lost its visual-review note`);
         requireValue(!item?.image, `${entry.id} republishes a withdrawn image`);

@@ -49,6 +49,8 @@ function contentText(entry, register = readVisualPublicationRegister()) {
     ];
     if (entry.image && !isWithdrawnPublicVisual(entry.image, register)) {
         lines.push('', `Media note: ${entry.disclosure}`);
+    } else if (entry.visualKind === 'space_signal') {
+        lines.push('', `Visual note: ${entry.disclosure}`);
     } else {
         lines.push('', 'Visual note: the earlier media was withheld after human review.');
     }

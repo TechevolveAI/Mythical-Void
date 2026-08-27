@@ -23,6 +23,25 @@ function displayDate(value) {
     }).format(new Date(`${value}T00:00:00Z`)).toUpperCase();
 }
 
+function visualMarkup(entry, index, register) {
+    if (entry.image && !isWithdrawnPublicVisual(entry.image, register)) {
+        return `<figure class="signal-entry-image">
+                    <img src="${escapeHtml(entry.image)}" alt="${escapeHtml(entry.imageAlt)}" loading="${index === 0 ? 'eager' : 'lazy'}">
+                    <figcaption>${escapeHtml(entry.disclosure)}</figcaption>
+                </figure>`;
+    }
+    if (entry.visualKind === 'space_signal') {
+        return `<figure class="signal-entry-space-visual" role="img" aria-label="${escapeHtml(entry.visualAlt)}">
+                    <div class="signal-entry-space-orbits" aria-hidden="true"><i></i><i></i><i></i><span></span><span></span><span></span></div>
+                    <strong>REAL SPACE</strong>
+                    <em>→</em>
+                    <strong>IMPOSSIBLE LIFE</strong>
+                    <figcaption>${escapeHtml(entry.disclosure)}</figcaption>
+                </figure>`;
+    }
+    return '<div class="signal-entry-no-media"><span>VISUAL WITHHELD</span><small>Awaiting a stronger human-reviewed moment.</small></div>';
+}
+
 function buildSignalLog(data) {
     const register = readVisualPublicationRegister();
     const entries = (data.entries || []).filter(entry => entry.status === 'live');
@@ -39,18 +58,14 @@ function buildSignalLog(data) {
             headline: entry.title,
             datePublished: entry.publishedOn,
             url: `https://mythicalvoid.com/updates/#${entry.id.toLowerCase()}`,
-            ...(!isWithdrawnPublicVisual(entry.image, register) ? { image: `https://mythicalvoid.com${entry.image}` } : {}),
+            ...(entry.image && !isWithdrawnPublicVisual(entry.image, register) ? { image: `https://mythicalvoid.com${entry.image}` } : {}),
             description: entry.summary
         }))
     };
     const cards = entries.map((entry, index) => {
-        const hasApprovedVisual = entry.image && !isWithdrawnPublicVisual(entry.image, register);
         return `
             <article class="signal-entry${index === 0 ? ' signal-entry-latest' : ''}" id="${escapeHtml(entry.id.toLowerCase())}">
-                ${hasApprovedVisual ? `<figure class="signal-entry-image">
-                    <img src="${escapeHtml(entry.image)}" alt="${escapeHtml(entry.imageAlt)}" loading="${index === 0 ? 'eager' : 'lazy'}">
-                    <figcaption>${escapeHtml(entry.disclosure)}</figcaption>
-                </figure>` : '<div class="signal-entry-no-media"><span>VISUAL WITHHELD</span><small>Awaiting a stronger human-reviewed moment.</small></div>'}
+                ${visualMarkup(entry, index, register)}
                 <div class="signal-entry-copy">
                     <div class="signal-entry-meta"><span>${escapeHtml(entry.category)}</span><time datetime="${escapeHtml(entry.publishedOn)}">${escapeHtml(displayDate(entry.publishedOn))}</time></div>
                     <h2>${escapeHtml(entry.title)}</h2>
@@ -121,4 +136,4 @@ if (require.main === module) {
     console.log(`Built ${outputPath} from ${count} live Signal Log entries.`);
 }
 
-module.exports = { buildSignalLog, defaultDataPath, defaultOutputPath };
+module.exports = { buildSignalLog, defaultDataPath, defaultOutputPath, visualMarkup };

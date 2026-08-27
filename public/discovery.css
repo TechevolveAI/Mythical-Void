@@ -318,6 +318,94 @@ h3 { font-size: 1.45rem; }
     font-size: 0.78rem;
 }
 
+.signal-entry-space-visual {
+    position: relative;
+    display: grid;
+    min-height: 310px;
+    margin: 0;
+    place-content: center;
+    gap: 0.15rem;
+    overflow: hidden;
+    border: 1px solid rgba(118, 227, 207, 0.28);
+    border-radius: 1.35rem;
+    background:
+        radial-gradient(circle at 50% 42%, rgba(255, 213, 106, 0.16), transparent 9%),
+        radial-gradient(circle at 50% 42%, rgba(167, 104, 255, 0.27), transparent 31%),
+        linear-gradient(145deg, #100927, #06050d 68%);
+    text-align: center;
+}
+
+.signal-entry-space-visual > strong,
+.signal-entry-space-visual > em {
+    position: relative;
+    z-index: 2;
+    color: var(--mint);
+    font-size: clamp(1.05rem, 2.4vw, 1.7rem);
+    font-style: normal;
+    font-weight: 950;
+    letter-spacing: 0.12em;
+}
+
+.signal-entry-space-visual > em {
+    color: var(--gold);
+    font-size: 1.05rem;
+}
+
+.signal-entry-space-visual figcaption {
+    position: absolute;
+    z-index: 2;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(5, 4, 12, 0.74);
+    color: var(--muted);
+    font-size: 0.72rem;
+}
+
+.signal-entry-space-orbits,
+.signal-entry-space-orbits i {
+    position: absolute;
+    top: 42%;
+    left: 50%;
+    border: 1px solid rgba(118, 227, 207, 0.24);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.signal-entry-space-orbits {
+    width: min(260px, 74%);
+    aspect-ratio: 1;
+    box-shadow: 0 0 70px rgba(167, 104, 255, 0.16);
+}
+
+.signal-entry-space-orbits::before {
+    content: "";
+    position: absolute;
+    inset: 38%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 36% 32%, #fff7d0, var(--gold) 13%, #8d49ff 36%, #170733 72%);
+    box-shadow: 0 0 32px rgba(167, 104, 255, 0.82);
+}
+
+.signal-entry-space-orbits i:nth-child(1) { width: 76%; height: 76%; }
+.signal-entry-space-orbits i:nth-child(2) { width: 50%; height: 50%; border-color: rgba(167, 104, 255, 0.42); }
+.signal-entry-space-orbits i:nth-child(3) { width: 28%; height: 28%; border-color: rgba(255, 213, 106, 0.36); }
+
+.signal-entry-space-orbits span {
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 16px currentColor;
+}
+
+.signal-entry-space-orbits span:nth-of-type(1) { top: 10%; left: 25%; }
+.signal-entry-space-orbits span:nth-of-type(2) { top: 49%; right: -4px; background: var(--gold); }
+.signal-entry-space-orbits span:nth-of-type(3) { bottom: 7%; left: 34%; background: #a768ff; }
+
 .signal-entry-no-media {
     display: grid;
     min-height: 270px;

@@ -17,6 +17,25 @@
   },
   "entries": [
     {
+      "id": "SIGNAL-024",
+      "publishedOn": "2026-08-27",
+      "status": "live",
+      "category": "REAL SPACE, IMPOSSIBLE LIFE",
+      "title": "Today’s Space Signal is live",
+      "summary": "A changing Mythical Void doorway now begins with one real NASA astronomy source, a three-step observation mission and a clearly fictional question about life in another dimension.",
+      "details": [
+        "Each signal asks visitors to observe, infer and check before imagining what kind of alien creature could sense that pattern and how it might move.",
+        "The page reads only the APOD title and date, then links to NASA’s original page for the picture, explanation and full credit information.",
+        "No signup, email, child profile or republished daily image is involved. NASA does not make, approve or endorse Mythical Void."
+      ],
+      "visualKind": "space_signal",
+      "visualAlt": "A decorative Mythical Void signal field with orbiting points around a glowing centre",
+      "disclosure": "Mythical Void procedural signal artwork; not a NASA image and not gameplay.",
+      "destination": "/space-signal/",
+      "linkText": "Open today’s Space Signal",
+      "download": false
+    },
+    {
       "id": "SIGNAL-023",
       "publishedOn": "2026-08-27",
       "status": "live",
