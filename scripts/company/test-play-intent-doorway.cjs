@@ -71,7 +71,7 @@ invalid('public/discovery.css', source => source.replace('.play-intent-mission {
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceRememberedInBrowser": false', '"choiceRememberedInBrowser": true'), 'choice collection boundary is invalid');
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceSentToServer": false', '"choiceSentToServer": true'), 'choiceSentToServer must remain false');
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceRequiredBeforePlay": false', '"choiceRequiredBeforePlay": true'), 'visitors must be able to Play without completing the mood chooser');
-invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"productionDeployId": "6a8f7e953ba9af0007b02b5b"', '"productionDeployId": "unverified"'), 'production verification is missing or drifted');
+invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"productionDeployId": "6a8fa6c9f898e400089916c1"', '"productionDeployId": "unverified"'), 'production verification is missing or drifted');
 
 function interactiveResult(consent, choice, url = 'https://mythicalvoid.com/playable-now/', width = 1024) {
     const page = fs.readFileSync(path.join(root, 'public/playable-now/index.html'), 'utf8');
