@@ -47,9 +47,9 @@
   "verification": {
     "automatedPrivacyTestRequired": true,
     "productionVerificationRequired": true,
-    "productionCommit": "350418e971550856babbefb8fa974eed1766c941",
-    "productionDeployId": "6a8f7e953ba9af0007b02b5b",
-    "verifiedAt": "2026-08-27T00:04:00Z",
+    "productionCommit": "18e6e69b5c478859fb9db9a137f9a0d48dfcb86c",
+    "productionDeployId": "6a8fac1d80c28500086236a1",
+    "verifiedAt": "2026-08-27T03:18:00Z",
     "directButtonVisible": true,
     "directDestination": "https://mythicalvoid.com/play/"
   }

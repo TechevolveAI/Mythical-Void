@@ -17,6 +17,26 @@
   },
   "entries": [
     {
+      "id": "SIGNAL-023",
+      "publishedOn": "2026-08-27",
+      "status": "live",
+      "category": "HATCH TOGETHER, PLAY SEPARATELY",
+      "title": "The Hatch Challenge is ready",
+      "summary": "One player can now invite someone they know to begin the same Mythical Void mystery, hatch separately and compare what the creature engine makes.",
+      "details": [
+        "The challenge is deliberately simple: send one clean link, each reach the first hatch in your own browser, then compare form, colour, markings, nature, affinity and any rare change.",
+        "Mythical Void remains a single-player game. The challenge does not claim multiplayer or guarantee that every result will be different.",
+        "No account, upload, recipient detail, creature data or tracking code is added to the invitation."
+      ],
+      "image": "/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "imageAlt": "Many imagined alien organisms gathered in a luminous Mythical Void realm",
+      "imageClass": "ai_generated_marketing_illustration",
+      "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay.",
+      "destination": "/playable-now/#hatch-challenge",
+      "linkText": "Try the Hatch Challenge",
+      "download": false
+    },
+    {
       "id": "SIGNAL-022",
       "publishedOn": "2026-08-27",
       "status": "live",

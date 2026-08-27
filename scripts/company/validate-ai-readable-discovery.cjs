@@ -35,7 +35,8 @@ function validateAiReadableDiscovery(inputs) {
     requireValue(Buffer.byteLength(llms, 'utf8') <= 12 * 1024, 'llms.txt is too large to remain a concise orientation file');
     requireValue(llms.includes('This file is a concise guide to the canonical public information'), 'llms.txt does not explain its limited purpose');
     requireValue(llms.includes('It is not a permission file, an age rating, a promise of search inclusion'), 'llms.txt overstates what the convention can do');
-    requireValue(llms.includes('Last reviewed: 26 August 2026.'), 'llms.txt review date is missing');
+    requireValue(llms.includes('Last reviewed: 27 August 2026.'), 'llms.txt review date is missing');
+    requireValue(llms.includes('](https://mythicalvoid.com/playable-now/#hatch-challenge)') && llms.includes('It is not multiplayer') && llms.includes('does not require an account or upload'), 'Hatch Challenge discovery or boundary is missing');
     requireValue(llms.includes('NASA does not make or endorse Mythical Void.'), 'NASA non-endorsement is missing');
     requireValue(llms.includes('does not currently claim a formal age rating'), 'formal age-rating boundary is missing');
     requireValue(llms.includes('AI-generated marketing artwork') && llms.includes('must not be described as gameplay'), 'visual-truth boundary is missing');

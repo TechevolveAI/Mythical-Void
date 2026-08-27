@@ -2,11 +2,11 @@
   "schemaVersion": 2,
   "releaseId": "PLAYABLE-NOW-VISUAL-TRUST-2026-08-26",
   "state": "owned_site_explanation_live_media_withdrawn_pending_rebuild",
-  "purpose": "Give someone actively looking for a new game an immediate, honest choice of wonder, creation, challenge or story, then explain the playable game clearly while weak screenshots and video remain withheld.",
+  "purpose": "Give someone actively looking for a new game an immediate, honest choice of wonder, creation, challenge or story, turn that choice into a concrete starter mission, and give two people a truthful reason to compare what hatches while weak screenshots and video remain withheld.",
   "page": {
     "path": "public/playable-now/index.html",
     "publicUrl": "https://mythicalvoid.com/playable-now/",
-    "sha256": "4d3480352dcd729be8bcbeb4825dfd8bfd9efc976329dd783024e70c3e3c01c0",
+    "sha256": "3c3a0a686888990588cdea9921a3abeeefcafa70229757d227ff612b477cb5be",
     "canonical": "https://mythicalvoid.com/playable-now/",
     "directPlayLinkMinimum": 3,
     "structuredData": ["VideoGame", "FAQPage"]
@@ -35,6 +35,9 @@
     "choiceClickMeasured": false,
     "choiceRememberedInBrowser": false,
     "choiceRequiredBeforePlay": false,
+    "starterMissionCount": 4,
+    "stepsPerStarterMission": 3,
+    "starterMissionRequiredBeforePlay": false,
     "firstScreenDirectPlay": true,
     "directPlaySourceArea": "hero",
     "intentSpecificSharingEnabled": true,
@@ -45,6 +48,18 @@
     "selectedPlaySourceSentAfterConsent": true,
     "playEvent": "play_selected",
     "playSourceProperty": "source_area"
+  },
+  "hatchChallenge": {
+    "planPath": "docs/company/growth/HATCH_CHALLENGE_LOOP.json",
+    "route": "https://mythicalvoid.com/playable-now/#hatch-challenge",
+    "participants": 2,
+    "multiplayerClaimed": false,
+    "differenceGuaranteed": false,
+    "accountRequired": false,
+    "contactCollected": false,
+    "creatureDataShared": false,
+    "trackingParametersAdded": false,
+    "directPlayRoute": "/play/"
   },
   "authority": {
     "ownedWebsitePublicationAuthorized": true,
@@ -58,9 +73,9 @@
     "desktopVisualReviewRequired": true,
     "phoneVisualReviewRequired": true,
     "productionVerificationRequired": true,
-    "productionCommit": "350418e971550856babbefb8fa974eed1766c941",
-    "productionDeployId": "6a8f7e953ba9af0007b02b5b",
-    "verifiedAt": "2026-08-27T00:04:00Z",
+    "productionCommit": "18e6e69b5c478859fb9db9a137f9a0d48dfcb86c",
+    "productionDeployId": "6a8fac1d80c28500086236a1",
+    "verifiedAt": "2026-08-27T03:18:00Z",
     "directButtonVisible": true,
     "directDestination": "https://mythicalvoid.com/play/"
   }

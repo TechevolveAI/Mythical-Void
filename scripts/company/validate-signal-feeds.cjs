@@ -33,6 +33,12 @@ requireValue(release.source?.fingerprintSha256 === sourceFingerprint, 'release r
 requireValue(release.source?.liveEntryCount === live.length, 'release record live count drifted');
 requireValue(release.feeds?.rss?.sha256 === rssSha256 && release.feeds?.rss?.itemCount === live.length, 'release record RSS proof drifted');
 requireValue(release.feeds?.json?.sha256 === jsonSha256 && release.feeds?.json?.itemCount === live.length, 'release record JSON proof drifted');
+requireValue(['owned_site_release_prepared', 'complete_owned_site_release_production_verified'].includes(release.state), 'release state is invalid');
+if (release.state === 'owned_site_release_prepared') {
+    requireValue(release.productionVerification === null, 'prepared feed release must not invent production proof');
+} else {
+    requireValue(release.productionVerification?.commit === '18e6e69b5c478859fb9db9a137f9a0d48dfcb86c' && release.productionVerification?.deployId === '6a8fac1d80c28500086236a1' && release.productionVerification?.updatesPageHttpStatus === 200 && release.productionVerification?.signalEntryPresent === true, 'live feed production proof is missing');
+}
 for (const [key, expected] of Object.entries({ ownedWebsitePublicationAuthorized: true, externalSyndicationAuthorized: false, emailSendingAuthorized: false, socialPostingAuthorized: false, externalActionTaken: false })) {
     requireValue(release.authority?.[key] === expected, `release authority.${key} must be ${expected}`);
 }

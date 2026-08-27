@@ -8,6 +8,7 @@ This file is a concise guide to the canonical public information on mythicalvoid
 
 - [Mythical Void home](https://mythicalvoid.com/): The main playable game page and current public introduction.
 - [Find your way into Mythical Void](https://mythicalvoid.com/playable-now/): Choose wonder, creation, challenge or story, then go directly to the free game.
+- [Try the Hatch Challenge](https://mythicalvoid.com/playable-now/#hatch-challenge): Invite one person you know, each hatch a creature in your own browser, then compare the results. It is not multiplayer and does not require an account or upload.
 - [Play Mythical Void](https://mythicalvoid.com/play/): Open the current browser game.
 - [The Project Beacon story](https://mythicalvoid.com/story/): Understand the crash, six realms, their guardians and the final choice.
 
@@ -64,4 +65,4 @@ RSS updates feed: https://mythicalvoid.com/updates/feed.xml
 
 JSON updates feed: https://mythicalvoid.com/updates/feed.json
 
-Last reviewed: 26 August 2026.
+Last reviewed: 27 August 2026.

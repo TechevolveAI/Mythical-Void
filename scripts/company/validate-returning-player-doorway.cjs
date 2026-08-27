@@ -41,7 +41,7 @@ requireValue(storefront.includes('MythicalReturningPlayer?.apply(app)'), 'render
 requireValue(storefrontCss.includes('.returning-player-note') && storefrontCss.includes('[hidden]'), 'homepage return styling is missing');
 
 requireValue(playable.includes('/returning-player.js?v=20260827-direct-play'), 'new-game doorway does not load the return helper');
-requireValue(playable.indexOf('/returning-player.js?v=20260827-direct-play') < playable.indexOf('/discovery.js?v=20260827-direct-play'), 'return helper must load before the game-finder script');
+requireValue(playable.indexOf('/returning-player.js?v=20260827-direct-play') < playable.indexOf('/discovery.js?v=20260827-hatch-challenge'), 'return helper must load before the game-finder script');
 requireValue((playable.match(/data-play-link/g) || []).length >= 4, 'new-game doorway needs four return-aware Play controls');
 requireValue(playable.includes('data-returning-player-note hidden'), 'new-game doorway welcome-back note is missing');
 requireValue(discovery.includes("isReturningPlayer() ? 'Continue your adventure' : message.cta"), 'choosing a mood overwrites the returning-player label');
@@ -62,7 +62,7 @@ for (const [key, expected] of Object.entries({
     gameActivityMeasured: false
 })) requireValue(release.measurement?.[key] === expected, `measurement.${key} must be ${expected}`);
 requireValue(release.visualBoundary?.approvedGameplayMoments === 0 && release.visualBoundary?.requiredGameplayMoments === 4 && release.visualBoundary?.visualLaunchGateChanged === false, 'visual gate drifted');
-requireValue(release.verification?.productionCommit === '350418e971550856babbefb8fa974eed1766c941' && release.verification?.productionDeployId === '6a8f7e953ba9af0007b02b5b', 'returning-player production proof is missing or drifted');
+requireValue(release.verification?.productionCommit === '18e6e69b5c478859fb9db9a137f9a0d48dfcb86c' && release.verification?.productionDeployId === '6a8fac1d80c28500086236a1', 'returning-player production proof is missing or drifted');
 requireValue(release.verification?.directButtonVisible === true && release.verification?.directDestination === 'https://mythicalvoid.com/play/', 'returning-player live route proof is missing');
 for (const [key, expected] of Object.entries({
     ownedWebsitePublicationAuthorized: true,
