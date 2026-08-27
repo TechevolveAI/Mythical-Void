@@ -2,6 +2,7 @@
 /// <reference lib="dom" />
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { getSupabaseRuntimeKeys } from '../_shared/supabase-keys.ts';
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -484,9 +485,8 @@ Deno.serve(async (request) => {
         return jsonResponse(401, { error: 'Authentication required' });
     }
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const publishableKey = Deno.env.get('SUPABASE_ANON_KEY');
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !publishableKey || !serviceRoleKey) {
+    const { publishableKey, secretKey } = getSupabaseRuntimeKeys();
+    if (!supabaseUrl || !publishableKey || !secretKey) {
         return jsonResponse(500, { error: 'Fusion execution is not configured' });
     }
 
@@ -525,7 +525,7 @@ Deno.serve(async (request) => {
     if (userResult.error || !userResult.data.user) {
         return jsonResponse(401, { error: 'Cloud identity could not be verified' });
     }
-    const serviceClient = createClient(supabaseUrl, serviceRoleKey, {
+    const serviceClient = createClient(supabaseUrl, secretKey, {
         auth: {
             persistSession: false,
             autoRefreshToken: false

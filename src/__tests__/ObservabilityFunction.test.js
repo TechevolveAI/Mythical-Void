@@ -75,6 +75,21 @@ describe('privacy observability Netlify collector', () => {
         expect(JSON.stringify(rows)).not.toMatch(/user_id|session|creature|message|stack|latitude|longitude/i);
     });
 
+    test('prefers the independently rotatable secret key over the legacy fallback', async () => {
+        process.env.SUPABASE_SECRET_KEY = 'rotatable-secret-key';
+        process.env.SUPABASE_SERVICE_ROLE_KEY = 'legacy-service-role-key';
+        const adminClient = createAdminClient();
+        const createClient = jest.fn(() => adminClient);
+        observabilityFunction._internal.setRuntime({ createClient, now: () => NOW });
+
+        const response = await observabilityFunction.handler(request({
+            events: [VALID_EVENT]
+        }));
+
+        expect(response.statusCode).toBe(202);
+        expect(createClient.mock.calls[0][1]).toBe('rotatable-secret-key');
+    });
+
     test('accepts an in-flight legacy event and applies the function fallback marker', async () => {
         const adminClient = createAdminClient();
         observabilityFunction._internal.setRuntime({

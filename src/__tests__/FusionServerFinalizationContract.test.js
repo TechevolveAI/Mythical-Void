@@ -27,7 +27,7 @@ describe('Fusion server finalization contract', () => {
             "request.headers.get('Authorization')"
         );
         expect(functionSource).toContain('callerClient.auth.getUser()');
-        expect(functionSource).toContain('SUPABASE_SERVICE_ROLE_KEY');
+        expect(functionSource).toContain('getSupabaseRuntimeKeys');
     });
 
     test('locks operation and save before one atomic lineage commit', () => {

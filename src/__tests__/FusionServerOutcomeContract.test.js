@@ -61,7 +61,7 @@ describe('Fusion server outcome contract', () => {
         expect(functionSource).toContain(
             "'stage_fusion_operation_result'"
         );
-        expect(functionSource).toContain('SUPABASE_SERVICE_ROLE_KEY');
+        expect(functionSource).toContain('getSupabaseRuntimeKeys');
         expect(functionSource).toContain(
             'p_user_id: userResult.data.user.id'
         );

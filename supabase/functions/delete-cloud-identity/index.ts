@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { getSupabaseRuntimeKeys } from '../_shared/supabase-keys.ts';
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -17,7 +18,7 @@ function jsonResponse(status: number, body: Record<string, unknown>) {
 }
 
 async function removeAllMediaFiles(
-    adminClient: ReturnType<typeof createClient>,
+    storage: ReturnType<typeof createClient>['storage'],
     userId: string,
     bucket: 'creature-portraits' | 'companion-videos'
 ) {
@@ -26,7 +27,7 @@ async function removeAllMediaFiles(
 
     while (true) {
         const { data: portraitFiles, error: listError } =
-            await adminClient.storage
+            await storage
                 .from(bucket)
                 .list(userId, { limit: pageSize, offset: 0 });
         if (listError) throw listError;
@@ -34,7 +35,7 @@ async function removeAllMediaFiles(
 
         const paths = portraitFiles.map(file => `${userId}/${file.name}`);
         for (let index = 0; index < paths.length; index += removalBatchSize) {
-            const { error: storageError } = await adminClient.storage
+            const { error: storageError } = await storage
                 .from(bucket)
                 .remove(paths.slice(index, index + removalBatchSize));
             if (storageError) throw storageError;
@@ -58,9 +59,8 @@ Deno.serve(async (request) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const publishableKey = Deno.env.get('SUPABASE_ANON_KEY');
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !publishableKey || !serviceRoleKey) {
+    const { publishableKey, secretKey } = getSupabaseRuntimeKeys();
+    if (!supabaseUrl || !publishableKey || !secretKey) {
         return jsonResponse(500, { error: 'Cloud deletion is not configured' });
     }
 
@@ -85,7 +85,7 @@ Deno.serve(async (request) => {
         return jsonResponse(403, { error: 'Only anonymous cloud identities can self-delete' });
     }
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+    const adminClient = createClient(supabaseUrl, secretKey, {
         auth: {
             persistSession: false,
             autoRefreshToken: false
@@ -93,8 +93,8 @@ Deno.serve(async (request) => {
     });
 
     try {
-        await removeAllMediaFiles(adminClient, user.id, 'companion-videos');
-        await removeAllMediaFiles(adminClient, user.id, 'creature-portraits');
+        await removeAllMediaFiles(adminClient.storage, user.id, 'companion-videos');
+        await removeAllMediaFiles(adminClient.storage, user.id, 'creature-portraits');
     } catch (mediaError) {
         console.error(
             '[delete-cloud-identity] Living media deletion failed:',
