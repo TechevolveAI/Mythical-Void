@@ -512,11 +512,9 @@ function renderStorefront() {
                     <div>
                         <p>Draw a guardian, name its powers, and tell us which world it protects. For a young designer, a parent or guardian must send the idea. Please do not include the child's surname, face, voice, school, location, or contact details.</p>
                             <span class="button button-outline button-disabled">Design submissions open soon</span>
-                        <p class="community-feedback-note">Played already? A parent, guardian, or adult player will soon be able to help us improve the next version. Our feedback channel is being prepared now:</p>
-                        <div class="feedback-links" aria-label="Feedback options">
-                            <span>Tell us what worked</span>
-                            <span>Tell us what was confusing</span>
-                            <span>Share an idea</span>
+                        <p class="community-feedback-note">Played already? An adult player, parent, guardian or educator can now give us a one-minute anonymous feedback pulse. It uses fixed choices only—no name, email address or written story.</p>
+                        <div class="feedback-links" aria-label="Adult feedback">
+                            <a href="/feedback/">Tell us what worked and what needs attention →</a>
                         </div>
                     </div>
                 </div>

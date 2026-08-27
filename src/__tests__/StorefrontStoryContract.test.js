@@ -136,9 +136,11 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('optional learning moments');
     });
 
-    test('does not promise contact channels before they exist', () => {
+    test('keeps unavailable contact routes closed while opening fixed adult feedback', () => {
         expect(storefront).toContain('Our parent and guardian contact channel is being prepared');
-        expect(storefront).toContain('Our feedback channel is being prepared now');
+        expect(storefront).toContain('one-minute anonymous feedback pulse');
+        expect(storefront).toContain('href="/feedback/"');
+        expect(storefront).not.toContain('Our feedback channel is being prepared now');
         expect(storefront).not.toContain('mailto:hello@mythicalvoid.com');
         expect(storefront).not.toContain('mailto:parents@mythicalvoid.com');
     });

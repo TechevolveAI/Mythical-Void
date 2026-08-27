@@ -9,12 +9,12 @@
     "shortNotice": "© 2026 Tech Evolve AI"
   },
   "privacyPolicy": {
-    "lastUpdated": "2026-07-30",
+    "lastUpdated": "2026-08-27",
     "title": "Privacy Policy",
     "sections": [
       {
         "heading": "Information We Collect",
-        "content": "By default, Mythical Void stores your creatures, progress, and preferences locally on your device using browser localStorage. If you explicitly enable optional Cloud Save, a versioned copy of your game progress, an anonymous account identifier, and save timestamps are sent to our Supabase database so your progress can be recovered. Cloud Save is disabled by default. If an eligible 16+ profile chooses personalized living media, bounded creature traits and an optional pixel-creature reference image are sent for image generation. A protected Living Portrait may then be used as the visual reference for a short personalized story video. The player-given creature name is not included in either request."
+        "content": "By default, Mythical Void stores your creatures, progress, and preferences locally on your device using browser localStorage. If you explicitly enable optional Cloud Save, a versioned copy of your game progress, an anonymous account identifier, and save timestamps are sent to our Supabase database so your progress can be recovered. Cloud Save is disabled by default. If an eligible 16+ profile chooses personalized living media, bounded creature traits and an optional pixel-creature reference image are sent for image generation. A protected Living Portrait may then be used as the visual reference for a short personalized story video. The player-given creature name is not included in either request. An optional adult feedback pulse stores only fixed-choice answers, the submission time and the current release identifier. It does not ask for a name, email address, free-text answer, exact age or child details."
       },
       {
         "heading": "Local Storage",
@@ -22,11 +22,15 @@
       },
       {
         "heading": "Third-Party Services",
-        "content": "Mythical Void uses the following external services:\n• Supabase: When Cloud Save or eligible personalized living media is enabled, Supabase provides anonymous authentication, private storage, and database storage and maintains security and service logs.\n• Replicate: For an eligible 16+ request, Replicate processes bounded creature appearance traits and an optional pixel-creature reference image to create a Living Portrait. That protected portrait may be used as the reference for a short story video. We do not send the player-given creature name, email address, location, or account credentials to either model.\n• NASA APIs: We fetch publicly available astronomical images and data. No game profile is sent to NASA.\n• Netlify: Our game and protected application functions are hosted on Netlify, which maintains standard server access logs such as IP addresses and timestamps."
+        "content": "Mythical Void uses the following external services:\n• Supabase: When Cloud Save, eligible personalized living media or the adult feedback pulse is used, Supabase provides anonymous authentication, private storage, database storage or fixed-choice feedback storage and maintains security and service logs.\n• Replicate: For an eligible 16+ request, Replicate processes bounded creature appearance traits and an optional pixel-creature reference image to create a Living Portrait. That protected portrait may be used as the reference for a short story video. We do not send the player-given creature name, email address, location, or account credentials to either model.\n• NASA APIs: We fetch publicly available astronomical images and data. No game profile is sent to NASA.\n• Netlify: Our game and protected application functions are hosted on Netlify, which maintains standard server access logs such as IP addresses and timestamps."
       },
       {
         "heading": "Children's Privacy",
-        "content": "Mythical Void is designed for players of all ages, including children. No account is required and local play remains available without Cloud Save. Cloud Save and personalized external AI features are unavailable to profiles that identify as under 16 in this release. The selected age range stays on the device. We do not intentionally request a child's email address, exact birth date, or physical location."
+        "content": "Mythical Void is designed for players of all ages, including children. No account is required and local play remains available without Cloud Save. Cloud Save and personalized external AI features are unavailable to profiles that identify as under 16 in this release. The selected age range stays on the device. We do not intentionally request a child's email address, exact birth date, or physical location. The separate feedback pulse is only for adults aged 18 or over. It uses fixed choices, does not request child details, and rejects a submission unless the adult confirmation is selected."
+      },
+      {
+        "heading": "Adult Feedback",
+        "content": "The optional adult feedback pulse requires an adult confirmation and records six fixed-choice answers, the submission time and the current release identifier. It does not create an account or store a name, email address, free-text answer, exact age, user or session identifier, creature name, device detail or location in the feedback record. The fixed-choice record is kept for no more than 180 days and is available only to the protected server role. Standard Netlify and Supabase service and security logs remain subject to their own operational retention."
       },
       {
         "heading": "Data Security",

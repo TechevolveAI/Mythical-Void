@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "FIRST-50-001",
+  "state": "prepared_waiting_for_first_five_and_kevin_approval",
+  "purpose": "Move from private product proof to the first 50 adult or guardian invitations without multiplying a weak first impression.",
+  "publicPromise": "Hatch a strange alien creature, cross six living realms and decide what Project Beacon should tell Earth. Mythical Void is free in your browser—no download or account needed.",
+  "routes": {
+    "decisionPage": "https://mythicalvoid.com/playable-now/",
+    "play": "https://mythicalvoid.com/play/",
+    "adultFeedback": "https://mythicalvoid.com/feedback/",
+    "hatchChallenge": "https://mythicalvoid.com/hatch-challenge/"
+  },
+  "ladder": [
+    {
+      "stage": "first_five",
+      "cumulativeInvitationTarget": 5,
+      "audience": "unfamiliar adults only",
+      "method": "observed twelve-minute First Five protocol",
+      "canStart": false,
+      "exit": "First Five release gate passes"
+    },
+    {
+      "stage": "first_fifteen",
+      "cumulativeInvitationTarget": 15,
+      "audience": "adults and guardians Kevin already has a legitimate way to reach",
+      "method": "one Kevin-approved message; no automation or repeated reminder",
+      "canStart": false,
+      "exit": "no repeated severe trust, safety or presentation issue"
+    },
+    {
+      "stage": "first_fifty",
+      "cumulativeInvitationTarget": 50,
+      "audience": "adults and guardians in one approved high-intent place",
+      "method": "one truthful route chosen after the platform decision",
+      "canStart": false,
+      "exit": "review play, hatch, return, share and fixed-choice feedback evidence"
+    }
+  ],
+  "evidence": {
+    "allowedAggregateSignals": [
+      "page_view",
+      "play_selected",
+      "hatch_completed",
+      "share_completed",
+      "share_link_copied",
+      "adult_fixed_choice_feedback"
+    ],
+    "mayClaimUniquePeopleFromAnonymousEvents": false,
+    "mayClaimEndToEndConversionFromSeparateAnonymousEvents": false,
+    "likesOrFollowerCountsAreReleaseEvidence": false
+  },
+  "pauseFor": [
+    "creature is hard to see",
+    "first action is repeatedly confusing",
+    "phone controls or layout are unusable",
+    "repeated severe safety or trust concern",
+    "public visuals do not resemble the game"
+  ],
+  "privacy": {
+    "adultOrGuardianInvitationsOnly": true,
+    "publicRecruitmentOfChildren": false,
+    "contactDataStoredInRepository": false,
+    "feedbackUsesFreeText": false,
+    "feedbackRetentionDays": 180
+  },
+  "authority": {
+    "ownedPagesMayRemainLive": true,
+    "invitationsAuthorized": false,
+    "externalPostsAuthorized": false,
+    "directMessagesAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "platformSubmissionAuthorized": false,
+    "platformTermsAuthorized": false,
+    "kevinApprovalRequiredForExactInvitationAndDestination": true
+  }
+}

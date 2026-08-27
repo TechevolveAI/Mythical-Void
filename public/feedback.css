@@ -1,0 +1,40 @@
+.feedback-page { background: #f6f0df; color: #17142e; }
+.feedback-page .site-header .brand span { color: #fffaf0; }
+.feedback-hero { padding: clamp(4rem, 8vw, 7rem) 0; background: radial-gradient(circle at 82% 18%, rgba(117, 232, 207, .2), transparent 28%), #090711; color: #fffaf0; }
+.feedback-hero-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(16rem, .5fr); gap: clamp(2rem, 6vw, 6rem); align-items: center; }
+.feedback-hero h1 { max-width: 10ch; margin: .4rem 0 1.2rem; font-size: clamp(3.6rem, 8vw, 7.8rem); line-height: .91; letter-spacing: -.06em; }
+.feedback-lead { max-width: 42rem; color: rgba(255, 250, 240, .78); font-size: clamp(1.1rem, 2vw, 1.4rem); line-height: 1.65; }
+.feedback-boundary { max-width: 44rem; margin-top: 2rem; padding: 1.2rem 1.4rem; border: 1px solid rgba(117, 232, 207, .35); border-radius: 1.25rem; background: rgba(117, 232, 207, .07); }
+.feedback-boundary p { margin: .45rem 0 0; color: rgba(255, 250, 240, .72); }
+.feedback-mark { margin: 0; text-align: center; }
+.feedback-mark img { display: block; width: min(100%, 18rem); aspect-ratio: 1; margin: 0 auto; border-radius: 2.2rem; box-shadow: 0 2rem 6rem rgba(100, 44, 183, .34); }
+.feedback-mark figcaption { margin-top: 1rem; color: rgba(255, 250, 240, .66); font-size: .9rem; }
+.feedback-form-section { padding: clamp(3.5rem, 8vw, 7rem) 0; }
+.feedback-shell { max-width: 68rem; }
+.feedback-shell form { display: grid; gap: 1.5rem; }
+.feedback-shell fieldset { margin: 0; padding: clamp(1.3rem, 3vw, 2rem); border: 1px solid rgba(23, 20, 46, .15); border-radius: 1.7rem; background: rgba(255, 255, 255, .72); box-shadow: 0 1rem 3rem rgba(52, 38, 22, .06); }
+.feedback-shell legend { padding: 0 .4rem; font-size: clamp(1.2rem, 2.5vw, 1.65rem); font-weight: 800; }
+.feedback-shell legend span { margin-right: .65rem; color: #6b4cd6; font-size: .82rem; letter-spacing: .12em; }
+.feedback-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; margin-top: 1rem; }
+.feedback-options label, .adult-confirmation { display: flex; gap: .8rem; align-items: flex-start; padding: 1rem 1.1rem; border: 1px solid rgba(23, 20, 46, .14); border-radius: 1rem; background: #fffdf8; cursor: pointer; transition: border-color .16s ease, transform .16s ease, background .16s ease; }
+.feedback-options label:hover, .adult-confirmation:hover { transform: translateY(-1px); border-color: #6b4cd6; }
+.feedback-options label:has(input:checked), .adult-confirmation:has(input:checked) { border-color: #6b4cd6; background: #f0eaff; box-shadow: inset 0 0 0 1px #6b4cd6; }
+.feedback-options input, .adult-confirmation input { flex: 0 0 auto; width: 1.15rem; height: 1.15rem; margin-top: .15rem; accent-color: #6b4cd6; }
+.feedback-options strong, .feedback-options small, .adult-confirmation strong, .adult-confirmation small { display: block; }
+.feedback-options small, .adult-confirmation small { margin-top: .28rem; color: #676279; line-height: 1.45; }
+.compact-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.three-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.adult-confirmation { margin-top: .5rem; border-color: rgba(107, 76, 214, .35); }
+.feedback-submit { display: flex; gap: 1.2rem; align-items: center; flex-wrap: wrap; }
+.feedback-submit p { margin: 0; }
+.feedback-submit a { color: #4d378f; font-weight: 700; }
+.feedback-status { min-height: 1.6rem; margin: 0; color: #8c273f; font-weight: 700; }
+.feedback-thanks { padding: clamp(2rem, 5vw, 4rem); border-radius: 2rem; background: #090711; color: #fffaf0; box-shadow: 0 2rem 6rem rgba(23, 20, 46, .16); outline: none; }
+.feedback-thanks h2 { max-width: 15ch; margin: .5rem 0 1rem; font-size: clamp(2.4rem, 5vw, 4.5rem); line-height: 1; }
+.feedback-thanks > p:not(.kicker) { max-width: 40rem; color: rgba(255, 250, 240, .72); font-size: 1.1rem; }
+@media (max-width: 760px) {
+    .feedback-hero-grid { grid-template-columns: 1fr; }
+    .feedback-mark { display: none; }
+    .feedback-options, .compact-options, .three-options { grid-template-columns: 1fr; }
+    .feedback-hero h1 { font-size: clamp(3.4rem, 17vw, 5.4rem); }
+}

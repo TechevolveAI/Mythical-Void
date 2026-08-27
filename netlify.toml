@@ -102,6 +102,17 @@
   to = "/space-signal/index.html"
   status = 200
 
+[[redirects]]
+  # Keep the adult-only fixed-choice feedback page ahead of the SPA fallback.
+  from = "/feedback"
+  to = "/feedback/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/feedback/"
+  to = "/feedback/index.html"
+  status = 200
+
 # Withdrawn visual media must not remain reachable through an old direct link.
 # A file can remain in the internal release record without remaining public.
 [[redirects]]
