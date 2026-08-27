@@ -75,6 +75,7 @@ describe('release test gate', () => {
         expect(source).toContain('state.actorGap < (isPhone ? 24 : 36)');
         expect(source).toContain('state.health !== state.maxHealth');
         expect(source).toContain('const x = support.body.left + 450;');
+        expect(source).toContain("throw new Error('Visual movement poster was not captured during live input')");
     });
 
     test('visual launch proof waits for observable gameplay consequences', () => {

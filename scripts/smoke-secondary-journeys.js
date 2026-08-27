@@ -18537,6 +18537,15 @@ async function smokeVisualMovement(session, exceptions) {
     assertActors(before, 'Visual movement opening');
     await startGameplayVideo(session);
     const movementSamples = [];
+    let movementPosterCaptured = false;
+    const captureMovementPoster = async index => {
+        if (movementPosterCaptured || index !== 2) return;
+        await captureGameplayStill(
+            session,
+            isPhone ? 'movement-alive-phone.png' : 'movement-alive-desktop.png'
+        );
+        movementPosterCaptured = true;
+    };
 
     if (isPhone) {
         const joystick = await evaluate(session, `(() => {
@@ -18557,6 +18566,7 @@ async function smokeVisualMovement(session, exceptions) {
             const sample = await inspectActors();
             assertActors(sample, `Visual movement phone sample ${index + 1}`);
             movementSamples.push(sample);
+            await captureMovementPoster(index);
             await delay(450);
         }
         await releaseTouch(session);
@@ -18569,6 +18579,7 @@ async function smokeVisualMovement(session, exceptions) {
             const sample = await inspectActors();
             assertActors(sample, `Visual movement desktop sample ${index + 1}`);
             movementSamples.push(sample);
+            await captureMovementPoster(index);
         }
         await setKeyboardKey(session, 'keyUp', {
             key: 'd', code: 'KeyD', keyCode: 68
@@ -18583,10 +18594,9 @@ async function smokeVisualMovement(session, exceptions) {
         );
     }
 
-    await captureGameplayStill(
-        session,
-        isPhone ? 'movement-alive-phone.png' : 'movement-alive-desktop.png'
-    );
+    if (!movementPosterCaptured) {
+        throw new Error('Visual movement poster was not captured during live input');
+    }
     await delay(420);
     const video = await stopGameplayVideo();
     if (video?.frames < 72 || exceptions.length) {
