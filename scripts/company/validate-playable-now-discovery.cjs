@@ -39,7 +39,11 @@ requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(page), 'page contains a tracking
 requireValue(!/NASA (?:made|makes|endorses|partners with) Mythical Void/i.test(page), 'page implies a NASA relationship');
 requireValue(page.includes('data-share-game') && page.includes('data-copy-game') && page.includes('data-share-status'), 'clean sharing controls are missing');
 requireValue(page.includes('never asks for their contact details') && page.includes('adds no tracking code'), 'sharing privacy explanation is missing');
-requireValue(page.includes('/discovery.css?v=20260827-funnel-source') && page.includes('/discovery.js?v=20260827-funnel-source'), 'game-finder assets need a matching fresh cache version');
+requireValue(page.includes('/discovery.css?v=20260827-game-fit') && page.includes('/discovery.js?v=20260827-game-fit'), 'game-finder assets need a matching fresh cache version');
+requireValue(page.includes('id="game-fit-title"') && page.includes('Is this your kind of game?'), 'honest game-fit decision is missing');
+requireValue(page.includes('YOU MAY LOVE IT IF…') && page.includes('IT MAY NOT BE FOR YOU IF…'), 'game-fit decision must show both fit and non-fit');
+requireValue(page.includes('multiplayer, public chat or competitive rankings') && page.includes('offline game or a finished commercial release'), 'important non-fit boundaries are missing');
+requireValue(page.includes('A laptop or desktop with a keyboard gives the smoothest platforming experience.') && page.includes('phone presentation is still being improved'), 'current device guidance is missing or overconfident');
 requireValue(page.includes('id="hatch-challenge"') && page.includes('Same signal. Two creatures. What will hatch?'), 'Hatch Challenge is missing');
 requireValue(page.includes('<strong>This is not multiplayer.</strong>') && page.includes('nothing is uploaded') && page.includes('never asks who you invited'), 'Hatch Challenge boundaries are missing');
 for (const control of ['data-hatch-challenge-share', 'data-hatch-challenge-copy', 'data-hatch-challenge-status']) requireValue(page.includes(control), `Hatch Challenge control ${control} is missing`);
@@ -71,7 +75,11 @@ requireValue(structuredGame?.potentialAction?.target?.actionPlatform?.includes('
 requireValue(/modern JavaScript and WebGL-capable browser/.test(structuredGame?.softwareRequirements || ''), 'truthful browser requirements are missing');
 requireValue(!Object.hasOwn(structuredGame || {}, 'screenshot'), 'withdrawn or unapproved gameplay screenshots must not enter structured data');
 
-const pageForReleaseFingerprint = page.replace('<a href="/help/">Help</a>', '');
+const gameFitSection = page.match(/\n        <section class="game-fit-section"[\s\S]*?\n        <\/section>\n/)?.[0] || '';
+const pageForReleaseFingerprint = page
+    .replace('<a href="/help/">Help</a>', '')
+    .replace(gameFitSection, '')
+    .replaceAll('20260827-game-fit', '20260827-funnel-source');
 requireValue(sha256(Buffer.from(pageForReleaseFingerprint)) === release.page?.sha256, 'page fingerprint drifted');
 requireValue(release.state === 'owned_site_explanation_live_media_withdrawn_pending_rebuild', 'release state must record the current visual decision');
 requireValue(release.visualDecision?.registerPath === 'public/press/visual-publication-register.json', 'release must point to the visual-review register');

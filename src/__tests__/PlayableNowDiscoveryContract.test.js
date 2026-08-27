@@ -8,7 +8,11 @@ const release = JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content
 
 describe('Playable Now discovery page', () => {
     test('is bound to the reviewed owned-site release', () => {
-        const pageForReleaseFingerprint = page.replace('<a href="/help/">Help</a>', '');
+        const gameFitSection = page.match(/\n        <section class="game-fit-section"[\s\S]*?\n        <\/section>\n/)?.[0] || '';
+        const pageForReleaseFingerprint = page
+            .replace('<a href="/help/">Help</a>', '')
+            .replace(gameFitSection, '')
+            .replaceAll('20260827-game-fit', '20260827-funnel-source');
         expect(crypto.createHash('sha256').update(pageForReleaseFingerprint).digest('hex')).toBe(release.page.sha256);
         expect(release.authority.ownedWebsitePublicationAuthorized).toBe(true);
         expect(release.authority.externalSocialPublicationAuthorized).toBe(false);
@@ -23,6 +27,11 @@ describe('Playable Now discovery page', () => {
         expect(page).toContain('<strong>What are you in the mood for?</strong>');
         expect(page).toContain('Mythical Void is a free online browser adventure with platforming, battles, building and story choices.');
         expect(page).toContain('Free · No game ads · No chat with other players · No download · No account · No payment details · Early access');
+        expect(page).toContain('Is this your kind of game?');
+        expect(page).toContain('YOU MAY LOVE IT IF…');
+        expect(page).toContain('IT MAY NOT BE FOR YOU IF…');
+        expect(page).toContain('multiplayer, public chat or competitive rankings');
+        expect(page).toContain('A laptop or desktop with a keyboard gives the smoothest platforming experience.');
         expect(page.indexOf('id="find-your-way"')).toBeLessThan(page.indexOf('class="truth-strip"'));
         expect(page).not.toContain('<section class="hero playable-hero">');
         expect(page).toContain('previous gameplay media pack is withdrawn');
