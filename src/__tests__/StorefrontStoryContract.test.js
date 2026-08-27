@@ -97,6 +97,15 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('real engine hatches explored');
         expect(storefront).toContain('A universe of creatures');
         expect(storefront).toContain('Every hatch opens a new possibility.');
+        expect(storefront).toContain(
+            'Hatch one alien creature shaped by body, colour, nature, cosmic affinity and rare changes.'
+        );
+        expect(storefront).toContain(
+            'Cross six living realms together. Decide what Project Beacon should tell Earth.'
+        );
+        expect(storefront).not.toContain(
+            'What arrives from the Void will be truly yours.'
+        );
         expect(storefront).not.toMatch(/\bcompanions?\b/i);
         expect(storefront).toContain(
             '/marketing/mythical-void-creature-universe-hero-v2.webp'

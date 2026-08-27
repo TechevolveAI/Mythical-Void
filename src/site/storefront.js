@@ -283,7 +283,7 @@ function renderStorefront() {
                     <div class="hero-copy-block">
                         <p class="kicker"><span></span> A universe of creatures</p>
                         <h1>One universe. <em>Every hatch opens a new possibility.</em></h1>
-                        <p class="hero-copy">Every hatch mixes body, colour, personality, cosmic power and rare mutations. What arrives from the Void will be truly yours.</p>
+                        <p class="hero-copy">Hatch one alien creature shaped by body, colour, nature, cosmic affinity and rare changes. Cross six living realms together. Decide what Project Beacon should tell Earth.</p>
                         <div class="hero-actions">
                             ${playLink('Play now — it’s free')}
                             <button class="button button-quiet button-share" type="button" data-share-game>
