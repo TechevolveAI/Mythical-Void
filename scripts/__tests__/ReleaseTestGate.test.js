@@ -76,6 +76,11 @@ describe('release test gate', () => {
         expect(source).toContain('state.health !== state.maxHealth');
         expect(source).toContain("const supportId = 'forest-tree-3-handoff';");
         expect(source).toContain('const x = support.body.left + 300;');
+        expect(source).not.toContain("...(${isPhone} ? { platformerPreviewSize: 'mobile' } : {})");
+        expect(source).toContain('Math.abs(state.canvas.bottom - state.viewport.height) > 1');
+        expect(source).toContain('state.cameraViewport.height !== state.viewport.height');
+        expect(source).toContain('scene.optionalRouteRewards?.forEach(route => {');
+        expect(source).toContain('route?.choice?.mainMarker?.setVisible?.(false);');
         expect(source).toContain('distance: Math.min(20, scene?.joystickMaxDistance || 20)');
         expect(source).toContain('const followerGap = ${isPhone} ? 126 : 300;');
         expect(source).toContain('const formationX = followerGap;');
