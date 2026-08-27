@@ -45,6 +45,9 @@ npm run smoke:release
 # Full local release gate: finite tests, production build, then both smoke layers
 npm run test:release
 
+# Run the complete browser journey gate against the deployed production game
+npm run smoke:production
+
 # Validate critical game flow (pre-commit hook)
 npm run validate-flow
 ```
@@ -66,6 +69,9 @@ test suites. `ReleaseTestGate.test.js` fails if one is introduced.
   executable.
 - Port `8125` available, or `MYTHICAL_VOID_SMOKE_PORT` set to another free port.
 - The smoke runner builds the production bundle and serves it through `vite preview`.
+- Set `MYTHICAL_VOID_SMOKE_URL` to run the same complete journey gate against an
+  existing deployment without starting or stopping a local Vite process. The
+  `smoke:production` command targets `https://mythicalvoid.com`.
 - A browser fixture starts each level directly to keep the suite finite. Touch/key
   events then dismiss the real entry UI and exercise the real mobile controls. This
   verifies entry and immediate controls, not traversal or completion of the level.

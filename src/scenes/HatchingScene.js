@@ -90,6 +90,8 @@ class HatchingScene extends Phaser.Scene {
         this.homeStartFallbackCleanup = null;
         this.eggHatchFallback = null;
         this.eggHatchFallbackCleanup = null;
+        this.eggHatchReadyAt = 0;
+        this.eggHatchReadyTimer = null;
         this.portraitPromise = null;
         this.portraitError = null;
 
@@ -1294,7 +1296,24 @@ class HatchingScene extends Phaser.Scene {
         // native button sits over the existing egg and calls the same guarded
         // hatch path. It adds no second egg and gives keyboard users a real
         // labelled control.
+        // A mobile browser can synthesize a click after the Start touch has
+        // already restarted this scene. Keep that single gesture from also
+        // activating the newly created egg.
+        const inputHandoffDelayMs = this.isEggHatch ? 0 : 450;
+        this.eggHatchReadyAt = inputHandoffDelayMs > 0
+            ? Date.now() + inputHandoffDelayMs
+            : 0;
         this.createEggHatchFallback();
+        this.eggHatchReadyTimer?.remove?.();
+        if (inputHandoffDelayMs > 0) {
+            this.eggHatchReadyTimer = this.time.delayedCall(inputHandoffDelayMs, () => {
+                this.eggHatchReadyAt = 0;
+                if (this.eggHatchFallback?.isConnected) {
+                    this.eggHatchFallback.disabled = false;
+                }
+                this.eggHatchReadyTimer = null;
+            });
+        }
 
         // Create floating animation for the egg
         this.tweens.add({
@@ -1315,6 +1334,7 @@ class HatchingScene extends Phaser.Scene {
         if (
             !this.sys?.isActive() ||
             !this.egg?.active ||
+            Date.now() < this.eggHatchReadyAt ||
             this.hatchingStarted ||
             this.creatureAppeared
         ) {
@@ -1337,6 +1357,7 @@ class HatchingScene extends Phaser.Scene {
         button.type = 'button';
         button.className = 'egg-hatch-fallback';
         button.dataset.mythicalEggHatch = 'true';
+        button.disabled = Date.now() < this.eggHatchReadyAt;
         const prompt = MobileHelpers.isMobile() || this.scale.width < 600
             ? firstSessionFraming.tapPromptMobile
             : firstSessionFraming.tapPromptDesktop;
@@ -3269,6 +3290,9 @@ class HatchingScene extends Phaser.Scene {
 
         this.homeStartRecoveryTimer?.remove?.();
         this.homeStartRecoveryTimer = null;
+        this.eggHatchReadyTimer?.remove?.();
+        this.eggHatchReadyTimer = null;
+        this.eggHatchReadyAt = 0;
         this.removeEggHatchFallback();
         this.removeHomeStartFallback();
 
@@ -3408,7 +3432,11 @@ class HatchingScene extends Phaser.Scene {
         }
 
         // Check for space key to start cinematic hatch or transition
-        if (this.spaceKey && Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
+        if (
+            this.spaceKey &&
+            Date.now() >= this.eggHatchReadyAt &&
+            Phaser.Input.Keyboard.JustDown(this.spaceKey)
+        ) {
             if (this.egg && !this.isHatching && !this.creatureAppeared) {
                 this.startCinematicHatch();
             } else if (this.creatureAppeared) {

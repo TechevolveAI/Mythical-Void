@@ -6,7 +6,11 @@ const path = require('path');
 const projectRoot = path.resolve(__dirname, '..');
 const host = process.env.MYTHICAL_VOID_SMOKE_HOST || '127.0.0.1';
 const port = Number(process.env.MYTHICAL_VOID_SMOKE_PORT) || 8125;
-const baseUrl = `http://${host}:${port}`;
+const externalBaseUrl = String(process.env.MYTHICAL_VOID_SMOKE_URL || '')
+    .trim()
+    .replace(/\/+$/, '');
+const managesLocalPreview = externalBaseUrl.length === 0;
+const baseUrl = externalBaseUrl || `http://${host}:${port}`;
 const startupTimeoutMs = 20000;
 const configuredProcessCooldownMs = Number(
     process.env.MYTHICAL_VOID_SMOKE_PROCESS_COOLDOWN_MS
@@ -33,7 +37,7 @@ async function waitForServer() {
         await delay(200);
     }
     throw new Error(
-        `Vite did not become ready at ${baseUrl}` +
+        `Smoke target did not become ready at ${baseUrl}` +
         (lastError ? `: ${lastError.message}` : '')
     );
 }
@@ -105,35 +109,41 @@ async function runNodeScriptWithRetry(script, extraEnv = {}, attempts = 2) {
 }
 
 async function main() {
-    const viteBin = path.join(
-        path.dirname(require.resolve('vite')),
-        'bin/vite.js'
-    );
-    const vite = spawn(process.execPath, [
-        viteBin,
-        'preview',
-        '--host',
-        host,
-        '--port',
-        String(port),
-        '--strictPort'
-    ], {
-        cwd: projectRoot,
-        env: process.env,
-        stdio: ['ignore', 'inherit', 'inherit']
-    });
-
+    let vite = null;
     let viteExit = null;
-    vite.once('exit', (code, signal) => {
-        viteExit = { code, signal };
-    });
+    if (managesLocalPreview) {
+        const viteBin = path.join(
+            path.dirname(require.resolve('vite')),
+            'bin/vite.js'
+        );
+        vite = spawn(process.execPath, [
+            viteBin,
+            'preview',
+            '--host',
+            host,
+            '--port',
+            String(port),
+            '--strictPort'
+        ], {
+            cwd: projectRoot,
+            env: process.env,
+            stdio: ['ignore', 'inherit', 'inherit']
+        });
+        vite.once('exit', (code, signal) => {
+            viteExit = { code, signal };
+        });
+    }
 
     try {
+        console.log(
+            `[release-smoke] Target ${baseUrl}` +
+            (managesLocalPreview ? ' (managed local preview)' : ' (external deployment)')
+        );
         await waitForServer();
-        if (viteExit) {
+        if (vite && viteExit) {
             throw new Error(`Vite exited before smoke execution: ${JSON.stringify(viteExit)}`);
         }
-        if (vite.exitCode !== null || vite.signalCode !== null) {
+        if (vite && (vite.exitCode !== null || vite.signalCode !== null)) {
             throw new Error(
                 `Release smoke does not own ${baseUrl}; choose a free MYTHICAL_VOID_SMOKE_PORT`
             );
@@ -400,14 +410,14 @@ async function main() {
         }
         console.log('\n[release-smoke-result] pass');
     } finally {
-        if (vite.exitCode === null && vite.signalCode === null) {
+        if (vite && vite.exitCode === null && vite.signalCode === null) {
             vite.kill('SIGTERM');
             await Promise.race([
                 new Promise(resolve => vite.once('exit', resolve)),
                 delay(1500)
             ]);
         }
-        if (vite.exitCode === null && vite.signalCode === null) {
+        if (vite && vite.exitCode === null && vite.signalCode === null) {
             vite.kill('SIGKILL');
         }
     }

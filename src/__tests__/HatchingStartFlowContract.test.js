@@ -54,6 +54,15 @@ describe('Hatching home start flow', () => {
         expect(activationFlow).toContain('const activate = event => this.activateEggHatch(event);');
         expect(activationFlow).toContain('this.hatchingStarted ||');
         expect(activationFlow).toContain('this.creatureAppeared');
+        expect(createEggFlow).toContain(
+            'const inputHandoffDelayMs = this.isEggHatch ? 0 : 450;'
+        );
+        expect(createEggFlow).toContain('if (inputHandoffDelayMs > 0) {');
+        expect(createEggFlow).toContain('this.eggHatchFallback.disabled = false;');
+        expect(activationFlow).toContain('Date.now() < this.eggHatchReadyAt');
+        expect(activationFlow).toContain(
+            'button.disabled = Date.now() < this.eggHatchReadyAt;'
+        );
         expect(source).toContain('this.removeEggHatchFallback();');
         expect(mainCss).toContain('.egg-hatch-fallback {');
         expect(mainCss).toContain('top: 45%;');
@@ -127,6 +136,9 @@ describe('Hatching home start flow', () => {
         expect(smoke).toContain('Number.POSITIVE_INFINITY');
         expect(smoke).toContain('data-mythical-home-start');
         expect(smoke).toContain('native first-contact egg action');
+        expect(smoke).toContain('hatchingStarted: Boolean(scene?.hatchingStarted)');
+        expect(smoke).toContain('eggActionCount: document.querySelectorAll(');
+        expect(smoke).toContain('button.disabled ||');
         expect(smoke).toContain('data-mythical-egg-hatch');
         expect(smoke).toContain('first-contact egg touch to begin hatching');
         expect(smoke).toContain('progressX: scene.progressText?.x');
