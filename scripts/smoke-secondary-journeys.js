@@ -64,6 +64,8 @@ const SMOKE_VIDEO_PATH = process.env.SMOKE_VIDEO_PATH
     ? path.resolve(process.env.SMOKE_VIDEO_PATH)
     : null;
 const SMOKE_VIDEO_FPS = Number(process.env.SMOKE_VIDEO_FPS) || 12;
+const SMOKE_HARDWARE_ACCELERATED_CAPTURE =
+    process.env.SMOKE_HARDWARE_ACCELERATED_CAPTURE === '1';
 let activeTouchPoint = { x: 0, y: 0 };
 let activeTouchIdentifier = null;
 let nextTouchIdentifier = 1;
@@ -842,7 +844,9 @@ async function startGameplayVideo(session) {
         framesDir,
         frameCount: 0,
         startedAt: Date.now(),
-        session
+        session,
+        pendingFrameWrites: [],
+        frameWriteError: null
     };
     activeVideoCapture = capture;
     session.on('Page.screencastFrame', params => {
@@ -852,10 +856,13 @@ async function startGameplayVideo(session) {
         if (!capture.active) return;
         capture.frameCount++;
         const filename = `frame-${String(capture.frameCount).padStart(6, '0')}.jpg`;
-        fs.writeFileSync(
+        const pendingWrite = fs.promises.writeFile(
             path.join(framesDir, filename),
             Buffer.from(params.data, 'base64')
-        );
+        ).catch(error => {
+            capture.frameWriteError ||= error;
+        });
+        capture.pendingFrameWrites.push(pendingWrite);
     });
     await session.call('Page.startScreencast', {
         format: 'jpeg',
@@ -876,6 +883,12 @@ async function stopGameplayVideo() {
     await delay(350);
     capture.active = false;
     await capture.session.call('Page.stopScreencast').catch(() => {});
+    await Promise.all(capture.pendingFrameWrites);
+    if (capture.frameWriteError) {
+        throw new Error(
+            `Gameplay video frame write failed: ${capture.frameWriteError.message}`
+        );
+    }
     const journeyDurationSeconds = Math.max(
         0.1,
         (Date.now() - capture.startedAt) / 1000
@@ -19685,7 +19698,7 @@ async function smokeVisualMovement(session, exceptions) {
         const support = scene.getTraversalSupport?.(supportId) ||
             scene.platforms?.getChildren?.()[0];
         if (!support?.body || scene.physics.world.isPaused) return false;
-        const x = support.body.left + 1700;
+        const x = support.body.left + (${isPhone} ? 1700 : 1300);
         if (scene.bossTriggerZone?.body) {
             scene.bossTriggerZone.body.enable = false;
         }
@@ -19695,10 +19708,31 @@ async function smokeVisualMovement(session, exceptions) {
         scene.player.body.updateFromGameObject();
         scene.player.setVelocity(0, 0);
         scene.isInvincible = true;
-        scene.cameras.main.startFollow(scene.player, true, 0.12, 0.12);
-        scene.cameras.main.centerOn(scene.player.x, scene.player.y - 20);
-        const followerGap = ${isPhone} ? 150 : 400;
+        const cameraFollowLerp = ${isPhone} ? 0.2 : 0.12;
+        const cameraFollowTarget = ${isPhone}
+            ? scene.add.zone(scene.player.x + 30, scene.player.y, 1, 1)
+                .setVisible(false)
+            : scene.player;
+        if (${isPhone}) {
+            scene.events.on('update', () => {
+                cameraFollowTarget.setPosition(
+                    scene.player.x + 30,
+                    scene.player.y
+                );
+            });
+        }
+        scene.cameras.main.startFollow(
+            cameraFollowTarget,
+            true,
+            cameraFollowLerp,
+            cameraFollowLerp
+        );
+        scene.cameras.main.centerOn(cameraFollowTarget.x, scene.player.y - 20);
+        const followerGap = ${isPhone} ? 138 : 160;
         const formationX = followerGap;
+        if (!${isPhone}) {
+            scene.astronautFollower.followDistance = followerGap;
+        }
         scene.astronautFollower.setContextualFormation?.(
             { x: formationX, y: 2 },
             'visual_movement_capture'
@@ -19737,9 +19771,10 @@ async function smokeVisualMovement(session, exceptions) {
             scene.player.x + formation.x,
             scene.player.y + formation.y
         );
+        const followerScale = 0.86;
         follower.sprite.setDisplaySize(
-            follower.sprite.displayWidth * 0.86,
-            follower.sprite.displayHeight * 0.86
+            follower.sprite.displayWidth * followerScale,
+            follower.sprite.displayHeight * followerScale
         );
         follower.shadow?.setPosition?.(
             follower.sprite.x,
@@ -19858,7 +19893,14 @@ async function smokeVisualMovement(session, exceptions) {
             ) || null,
             scenicBackdropAlpha: scene?.forestScenicBackdrop?.alpha || 0,
             playerX: creature?.x,
-            playerY: creature?.y
+            playerY: creature?.y,
+            velocityX: creature?.body?.velocity?.x || 0,
+            velocityY: creature?.body?.velocity?.y || 0,
+            grounded: Boolean(
+                creature?.body?.blocked?.down ||
+                creature?.body?.touching?.down
+            ),
+            cameraScrollX: camera?.scrollX || 0
         };
     })()`);
 
@@ -19911,47 +19953,82 @@ async function smokeVisualMovement(session, exceptions) {
     await startGameplayVideo(session);
     const movementSamples = [];
     let movementPosterCaptured = false;
-    const captureMovementPoster = async index => {
-        if (movementPosterCaptured || index !== 5) return;
+    const captureMovementPoster = async () => {
+        if (movementPosterCaptured || movementSamples.length !== 6) return;
         await captureGameplayStill(
             session,
             isPhone ? 'movement-alive-phone.png' : 'movement-alive-desktop.png'
         );
         movementPosterCaptured = true;
     };
+    const recordMovementSample = async phase => {
+        const sample = await inspectActors();
+        assertActors(
+            sample,
+            `Visual movement ${phase} sample ${movementSamples.length + 1}`
+        );
+        movementSamples.push({ ...sample, phase });
+        await captureMovementPoster();
+    };
 
     if (isPhone) {
         const joystick = await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            const maxDistance = scene?.joystickMaxDistance || 45;
             return {
                 x: scene?.joystickCenterX,
                 y: scene?.joystickCenterY,
-                distance: Math.min(20, scene?.joystickMaxDistance || 20)
+                distance: Math.max(32, maxDistance * 0.85)
             };
         })()`);
         await holdTouchDrag(
             session,
             { x: joystick.x, y: joystick.y },
             { x: joystick.x + joystick.distance, y: joystick.y },
-            400
+            120
         );
-        for (let index = 0; index < 9; index++) {
+        for (let index = 0; index < 10; index++) {
             if (index === 2) {
                 await evaluate(session, `window.mythicalGame.scene
                     .getScene('MythicalForestLevel')?.executeJump?.()`);
             }
-            const sample = await inspectActors();
-            assertActors(sample, `Visual movement phone sample ${index + 1}`);
-            movementSamples.push(sample);
-            await captureMovementPoster(index);
-            await delay(450);
+            await delay(300);
+            await recordMovementSample(
+                index >= 2 && index <= 4 ? 'right_jump' : 'right_travel'
+            );
+        }
+        await releaseTouch(session);
+        await delay(180);
+        await evaluate(session, `(() => {
+            const follower = window.mythicalGame.scene
+                .getScene('MythicalForestLevel')?.astronautFollower;
+            follower?.setContextualFormation?.(
+                { x: 120, y: 2 },
+                'visual_movement_capture'
+            );
+        })()`);
+        await holdTouchDrag(
+            session,
+            { x: joystick.x, y: joystick.y },
+            { x: joystick.x - joystick.distance, y: joystick.y },
+            120
+        );
+        for (let index = 0; index < 6; index++) {
+            if (index === 1) {
+                await evaluate(session, `window.mythicalGame.scene
+                    .getScene('MythicalForestLevel')?.executeJump?.()`);
+            }
+            await delay(300);
+            await recordMovementSample(
+                index >= 1 && index <= 3 ? 'left_jump' : 'left_return'
+            );
         }
         await releaseTouch(session);
     } else {
         await setKeyboardKey(session, 'keyDown', {
             key: 'd', code: 'KeyD', keyCode: 68
         });
-        for (let index = 0; index < 18; index++) {
+        for (let index = 0; index < 10; index++) {
             if (index === 3) {
                 await setKeyboardKey(session, 'keyDown', {
                     key: ' ', code: 'Space', keyCode: 32
@@ -19961,32 +20038,100 @@ async function smokeVisualMovement(session, exceptions) {
                     key: ' ', code: 'Space', keyCode: 32
                 });
             }
-            await delay(450);
-            const sample = await inspectActors();
-            assertActors(sample, `Visual movement desktop sample ${index + 1}`);
-            movementSamples.push(sample);
-            await captureMovementPoster(index);
+            await delay(300);
+            await recordMovementSample(
+                index >= 3 && index <= 5 ? 'right_jump' : 'right_travel'
+            );
         }
         await setKeyboardKey(session, 'keyUp', {
             key: 'd', code: 'KeyD', keyCode: 68
+        });
+        await delay(180);
+        await setKeyboardKey(session, 'keyDown', {
+            key: 'a', code: 'KeyA', keyCode: 65
+        });
+        for (let index = 0; index < 6; index++) {
+            if (index === 1) {
+                await setKeyboardKey(session, 'keyDown', {
+                    key: ' ', code: 'Space', keyCode: 32
+                });
+                await delay(90);
+                await setKeyboardKey(session, 'keyUp', {
+                    key: ' ', code: 'Space', keyCode: 32
+                });
+            }
+            await delay(300);
+            await recordMovementSample(
+                index >= 1 && index <= 3 ? 'left_jump' : 'left_return'
+            );
+        }
+        await setKeyboardKey(session, 'keyUp', {
+            key: 'a', code: 'KeyA', keyCode: 65
         });
     }
     await delay(180);
     const after = await inspectActors();
     assertActors(after, 'Visual movement closing');
-    if (!(after.playerX > before.playerX + 12)) {
+    const playerXs = [before, ...movementSamples, after].map(
+        sample => Number(sample.playerX) || 0
+    );
+    const cameraXs = [before, ...movementSamples, after].map(
+        sample => Number(sample.cameraScrollX) || 0
+    );
+    const movingSampleCount = movementSamples.filter(sample => (
+        Math.abs(sample.velocityX) >= 80 || Math.abs(sample.velocityY) >= 80
+    )).length;
+    const movementEvidence = {
+        worldTravel: Math.max(...playerXs) - Math.min(...playerXs),
+        cameraTravel: Math.max(...cameraXs) - Math.min(...cameraXs),
+        rightwardSamples: movementSamples.filter(
+            sample => sample.velocityX >= 80
+        ).length,
+        leftwardSamples: movementSamples.filter(
+            sample => sample.velocityX <= -80
+        ).length,
+        airborneSamples: movementSamples.filter(
+            sample => !sample.grounded && Math.abs(sample.velocityY) >= 40
+        ).length,
+        groundedSamples: movementSamples.filter(sample => sample.grounded).length,
+        airbornePhaseCount: new Set(
+            movementSamples
+                .filter(sample => (
+                    !sample.grounded && Math.abs(sample.velocityY) >= 40
+                ))
+                .map(sample => sample.phase)
+        ).size,
+        movingSampleRatio: Number(
+            (movingSampleCount / movementSamples.length).toFixed(3)
+        ),
+        phases: [...new Set(movementSamples.map(sample => sample.phase))]
+    };
+    if (
+        movementEvidence.worldTravel < 320 ||
+        movementEvidence.cameraTravel < 180 ||
+        movementEvidence.rightwardSamples < 3 ||
+        movementEvidence.leftwardSamples < 3 ||
+        movementEvidence.airborneSamples < 1 ||
+        movementEvidence.airbornePhaseCount < 2 ||
+        movementEvidence.groundedSamples < 3 ||
+        movementEvidence.movingSampleRatio < 0.7 ||
+        movementEvidence.phases.length < 4
+    ) {
         throw new Error(
-            `Visual movement did not show continuous travel: ${JSON.stringify({ before, after })}`
+            `Visual movement did not show sustained varied travel: ${JSON.stringify({
+                movementEvidence,
+                before,
+                after
+            })}`
         );
     }
 
     if (!movementPosterCaptured) {
         throw new Error('Visual movement poster was not captured during live input');
     }
-    // Desktop capture can lose a few sampled frames while the browser encodes
-    // the scene. Leave enough quiet running time to prove a full six seconds
-    // of uninterrupted play instead of accepting a borderline short clip.
-    await delay(isPhone ? 420 : 10000);
+    // Preserve the final live frame long enough for Chrome's variable-rate
+    // screencast to clear the six-second review floor without adding dead time.
+    await delay(600);
     const video = await stopGameplayVideo();
     if (video?.frames < 72 || exceptions.length) {
         throw new Error(
@@ -19999,6 +20144,7 @@ async function smokeVisualMovement(session, exceptions) {
         before,
         movementSamples,
         after,
+        movementEvidence,
         video
     };
 }
@@ -20427,11 +20573,9 @@ async function main() {
         throw new Error(`Chrome was not found at ${CHROME_PATH}`);
     }
     const profileDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mythical-void-cdp-'));
-    const chrome = spawn(CHROME_PATH, [
+    const chromeArgs = [
         '--headless=new',
         '--enable-webgl',
-        '--use-angle=swiftshader',
-        '--enable-unsafe-swiftshader',
         '--ignore-gpu-blocklist',
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
@@ -20444,7 +20588,13 @@ async function main() {
         `--user-data-dir=${profileDir}`,
         `--window-size=${SMOKE_VIEWPORT_WIDTH},${SMOKE_VIEWPORT_HEIGHT}`,
         'about:blank'
-    ], { stdio: ['ignore', 'ignore', 'ignore'] });
+    ];
+    if (!SMOKE_HARDWARE_ACCELERATED_CAPTURE) {
+        chromeArgs.splice(2, 0, '--use-angle=swiftshader', '--enable-unsafe-swiftshader');
+    }
+    const chrome = spawn(CHROME_PATH, chromeArgs, {
+        stdio: ['ignore', 'ignore', 'ignore']
+    });
 
     let session = null;
     try {

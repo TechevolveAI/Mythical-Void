@@ -81,27 +81,53 @@ describe('release test gate', () => {
             'const actorBounds = [state.creatureBounds, state.astronautBounds]'
         );
         expect(source).toContain('const movementSamples = []');
-        expect(source).toContain('Visual movement phone sample');
-        expect(source).toContain('Visual movement desktop sample');
+        expect(source).toContain('`Visual movement ${phase} sample ${movementSamples.length + 1}`');
+        expect(source).toContain("'right_travel'");
+        expect(source).toContain("'right_jump'");
+        expect(source).toContain("'left_return'");
+        expect(source).toContain("'left_jump'");
         expect(source).toContain("'visual_movement_capture'");
         expect(source).toContain('state.actorGap < (isPhone ? 24 : 36)');
         expect(source).toContain('state.health !== state.maxHealth');
         expect(source).toContain("const supportId = 'forest-ground-6';");
-        expect(source).toContain('const x = support.body.left + 1700;');
+        expect(source).toContain(
+            'const x = support.body.left + (${isPhone} ? 1700 : 1300);'
+        );
         expect(source).not.toContain("...(${isPhone} ? { platformerPreviewSize: 'mobile' } : {})");
         expect(source).toContain('Math.abs(state.canvas.bottom - state.viewport.height) > 1');
         expect(source).toContain('state.cameraViewport.height !== state.viewport.height');
         expect(source).toContain('scene.optionalRouteRewards?.forEach(route => {');
         expect(source).toContain('route?.choice?.mainMarker?.setVisible?.(false);');
-        expect(source).toContain('distance: Math.min(20, scene?.joystickMaxDistance || 20)');
-        expect(source).toContain('const followerGap = ${isPhone} ? 150 : 400;');
+        expect(source).toContain('const maxDistance = scene?.joystickMaxDistance || 45;');
+        expect(source).toContain('distance: Math.max(32, maxDistance * 0.85)');
+        expect(source).toContain('const cameraFollowLerp = ${isPhone} ? 0.2 : 0.12;');
+        expect(source).toContain('scene.add.zone(scene.player.x + 30, scene.player.y, 1, 1)');
+        expect(source).toContain('scene.player.x + 30,');
+        expect(source).toContain('scene.cameras.main.centerOn(cameraFollowTarget.x');
+        expect(source).toContain('const followerGap = ${isPhone} ? 138 : 160;');
+        expect(source).toContain('scene.astronautFollower.followDistance = followerGap;');
         expect(source).toContain('const formationX = followerGap;');
         expect(source).toContain('{ x: formationX, y: 2 }');
         expect(source).toContain('scene.player.x + formation.x');
-        expect(source).toContain('follower.sprite.displayWidth * 0.86');
-        expect(source).toContain('for (let index = 0; index < 9; index++)');
-        expect(source).toContain('for (let index = 0; index < 18; index++)');
-        expect(source).toContain('if (movementPosterCaptured || index !== 5) return;');
+        expect(source).toContain('const followerScale = 0.86;');
+        expect(source).toContain('follower.sprite.displayWidth * followerScale');
+        expect(source).toContain("{ x: 120, y: 2 },");
+        expect(source).toContain('for (let index = 0; index < 10; index++)');
+        expect(source).toContain('for (let index = 0; index < 6; index++)');
+        expect(source).toContain("? 'left_jump' : 'left_return'");
+        expect(source).toContain(
+            'if (movementPosterCaptured || movementSamples.length !== 6) return;'
+        );
+        expect(source).toContain('movementEvidence.worldTravel < 320');
+        expect(source).toContain('movementEvidence.cameraTravel < 180');
+        expect(source).toContain('movementEvidence.rightwardSamples < 3');
+        expect(source).toContain('movementEvidence.leftwardSamples < 3');
+        expect(source).toContain('movementEvidence.airborneSamples < 1');
+        expect(source).toContain('movementEvidence.airbornePhaseCount < 2');
+        expect(source).toContain('movementEvidence.groundedSamples < 3');
+        expect(source).toContain('movementEvidence.movingSampleRatio < 0.7');
+        expect(source).toContain('movementEvidence.phases.length < 4');
+        expect(source).not.toContain('after.playerX > before.playerX + 12');
         expect(source).toContain("window.mythicalGame.scene.stop('HatchingScene');");
         expect(source).toContain('state.hatchingStartVisible ||');
         expect(source).toContain("'.home-start-fallback'");
@@ -123,12 +149,22 @@ describe('release test gate', () => {
 
     test('private movement candidates include complete frame-review sheets', () => {
         const capture = read('scripts/company/prepare-visual-launch-candidates.cjs');
+        const smoke = read('scripts/smoke-secondary-journeys.js');
         expect(capture).toContain('function createFrameReviewSheets(videoRecord)');
         expect(capture).toContain('everyFrameIncluded: true');
         expect(capture).toContain('adultApprovalGranted: false');
         expect(capture).toContain("path.join(candidateRoot, 'frame-review')");
         expect(capture).toContain('Math.ceil(\n        videoRecord.frameCount / settings.framesPerSheet');
         expect(capture).toContain('const videoFrameReviewAids = files');
+        expect(smoke).toContain('pendingFrameWrites: []');
+        expect(smoke).toContain('fs.promises.writeFile(');
+        expect(smoke).toContain('await Promise.all(capture.pendingFrameWrites);');
+        expect(smoke).toContain('Gameplay video frame write failed');
+        expect(smoke).toContain('SMOKE_HARDWARE_ACCELERATED_CAPTURE');
+        expect(smoke).toContain('if (!SMOKE_HARDWARE_ACCELERATED_CAPTURE)');
+        expect(capture).toContain(
+            "SMOKE_HARDWARE_ACCELERATED_CAPTURE: mode === 'visual-movement'"
+        );
     });
 
     test('failed visual captures leave a private rejection record', () => {

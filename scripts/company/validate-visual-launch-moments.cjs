@@ -22,6 +22,7 @@ function validateVisualLaunchMoments(document) {
     const contract = document?.sharedCaptureContract || {};
     const captureProcess = document?.studioCaptureProcess || {};
     const candidateRun = document?.latestPrivateCandidateRun || null;
+    const kevinReview = document?.latestKevinReview || null;
     const moments = Array.isArray(document?.moments) ? document.moments : [];
 
     requireValue(document?.schemaVersion === 1, 'schemaVersion must be 1');
@@ -90,10 +91,21 @@ function validateVisualLaunchMoments(document) {
             ].includes(candidateRun.editorialScreening) &&
             ['pending', 'not_requested'].includes(candidateRun.adultFrameReview) &&
             candidateRun.kevinApproval === 'not_requested' &&
+            candidateRun.movementReview ===
+                'rejected_by_kevin_recapture_required' &&
             candidateRun.publicationAuthorized === false,
             'candidate run cannot imply human approval or publication authority'
         );
     }
+    requireValue(
+        kevinReview?.runId === candidateRun?.runId &&
+        kevinReview?.momentId === 'VL-004' &&
+        kevinReview?.decision === 'reject_and_recapture' &&
+        Array.isArray(kevinReview?.requiredReplacementEvidence) &&
+        kevinReview.requiredReplacementEvidence.length === 5 &&
+        kevinReview?.publicationAuthorized === false,
+        'Kevin movement rejection and recapture requirements must be recorded'
+    );
     requireValue(
         contract.source === 'real_running_production_build' &&
         contract.fixture === 'company_controlled_real_creature_profile' &&
@@ -147,6 +159,11 @@ function validateVisualLaunchMoments(document) {
         'choice_capture_omits_plain_pre_choice_options',
         'strange_discovery_does_not_link_both_actors',
         'movement_renderer_changes_between_frames',
+        'movement_world_travel_too_small',
+        'movement_camera_travel_too_small',
+        'movement_has_no_direction_change',
+        'movement_has_only_one_airborne_action',
+        'movement_idle_or_single_action_dominates',
         'capture_dimensions_wrong',
         'video_too_short_or_missing_frames'
     ]) {
@@ -236,7 +253,7 @@ function validateVisualLaunchMoments(document) {
         },
         'VL-004': {
             playableState: 'mythical_forest_normal_movement',
-            implementationStatus: 'capture_journey_ready',
+            implementationStatus: 'capture_contract_revised_recapture_pending',
             evidence: [
                 'continuous_normal_play',
                 'creature_stays_fully_rendered_and_recognisable',
@@ -246,6 +263,15 @@ function validateVisualLaunchMoments(document) {
                 minimumFrames: 72,
                 minimumDurationSeconds: 6,
                 minimumActorGapPx: { phone: 24, desktop: 36 },
+                minimumWorldTravelPx: 320,
+                minimumCameraTravelPx: 180,
+                minimumRightwardSamples: 3,
+                minimumLeftwardSamples: 3,
+                minimumAirborneSamples: 1,
+                minimumAirbornePhases: 2,
+                minimumGroundedSamples: 3,
+                minimumMovingSampleRatio: 0.7,
+                minimumDistinctMovementPhases: 4,
                 renderer: 'player_facing_phaser_creature_renderer',
                 fallbackFramesAllowed: 0,
                 actorOverlapFramesAllowed: 0
@@ -298,13 +324,18 @@ function validateVisualLaunchMoments(document) {
             [
                 'capture_pending',
                 'candidate_under_human_review',
-                'candidate_rejected_obvious_visual_faults'
+                'candidate_rejected_obvious_visual_faults',
+                'candidate_rejected_by_kevin_recapture_required'
             ].includes(
                 moment?.reviewStatus
             ),
             `${label} cannot claim review or approval before human review`
         );
-        if (['candidate_under_human_review', 'candidate_rejected_obvious_visual_faults'].includes(moment?.reviewStatus)) {
+        if ([
+            'candidate_under_human_review',
+            'candidate_rejected_obvious_visual_faults',
+            'candidate_rejected_by_kevin_recapture_required'
+        ].includes(moment?.reviewStatus)) {
             requireValue(
                 Boolean(candidateRun),
                 `${label} needs a recorded private candidate run`
@@ -334,7 +365,12 @@ function validateVisualLaunchMoments(document) {
         moment?.reviewStatus === 'candidate_rejected_obvious_visual_faults'
     ));
     const sourceChangedReplacementPending = moments.every(moment => (
-        moment?.reviewStatus === 'candidate_under_human_review'
+        moment?.reviewStatus === 'candidate_under_human_review' ||
+        (
+            moment?.id === 'VL-004' &&
+            moment?.reviewStatus ===
+                'candidate_rejected_by_kevin_recapture_required'
+        )
     ));
     requireValue(
         (

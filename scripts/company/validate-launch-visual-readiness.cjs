@@ -22,6 +22,11 @@ const cleanupSource = fs.readFileSync(path.join(root, 'scripts/company/remove-wi
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 const privateCandidatePrefix = '.visual-review/candidates/';
+const privateCandidateStates = [
+    'candidate_under_human_review',
+    'candidate_rejected_obvious_visual_faults',
+    'candidate_rejected_recapture_required'
+];
 const isPrivateCandidate = value => (
     typeof value === 'string' &&
     value.startsWith(privateCandidatePrefix) &&
@@ -41,9 +46,14 @@ for (const moment of moments) {
     requireValue(moment.publicQuestion?.length >= 15, `${moment.id} needs a plain public question`);
     requireValue(moment.shot?.length >= 35, `${moment.id} needs a deliberate shot description`);
     requireValue(moment.mustShow?.length >= 3, `${moment.id} needs at least three visible requirements`);
-    requireValue(['blocked_by_current_game_visual', 'no_candidate_captured', 'candidate_under_human_review', 'candidate_rejected_obvious_visual_faults', 'approved'].includes(moment.currentState), `${moment.id} has an invalid state`);
+    requireValue([
+        'blocked_by_current_game_visual',
+        'no_candidate_captured',
+        ...privateCandidateStates,
+        'approved'
+    ].includes(moment.currentState), `${moment.id} has an invalid state`);
     if (moment.evidence) {
-        if (['candidate_under_human_review', 'candidate_rejected_obvious_visual_faults'].includes(moment.currentState)) {
+        if (privateCandidateStates.includes(moment.currentState)) {
             requireValue(
                 isPrivateCandidate(moment.evidence),
                 `${moment.id} candidate evidence must remain in private review`
@@ -88,8 +98,26 @@ if (screeningMatchesCurrentRun) {
 } else {
     requireValue(
         plan.latestPrivateCandidateRun?.editorialScreening === 'pending_adult_frame_review' &&
-        moments.every(moment => moment.currentState === 'candidate_under_human_review'),
-        'source-changed replacement candidates must remain private and pending human review'
+        moments.every(moment => [
+            'candidate_under_human_review',
+            'candidate_rejected_recapture_required'
+        ].includes(moment.currentState)),
+        'source-changed candidates must remain private, pending review, or explicitly rejected for recapture'
+    );
+}
+const kevinRejectedMoments = moments.filter(
+    moment => moment.currentState === 'candidate_rejected_recapture_required'
+);
+if (kevinRejectedMoments.length) {
+    requireValue(
+        plan.latestKevinReview?.decision === 'reject_and_recapture' &&
+        plan.latestKevinReview?.publicationAuthorized === false,
+        'Kevin-rejected candidates must preserve the rejection and closed publication authority'
+    );
+    requireValue(
+        plan.latestPrivateCandidateRun?.movementReview ===
+            'rejected_by_kevin_recapture_required',
+        'the private candidate run must preserve Kevin\'s movement rejection'
     );
 }
 requireValue(plan.latestPrivateCandidateRun?.kevinApproval === 'not_requested', 'private candidates must not claim Kevin review or approval');
