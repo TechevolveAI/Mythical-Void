@@ -1,0 +1,110 @@
+{
+  "id": "YOUTUBE-PLAYABLES-READINESS-001",
+  "checkedOn": "2026-08-27",
+  "state": "high_upside_not_ready_for_interest_request",
+  "decision": "prepare_separate_candidate_no_external_action",
+  "plainLanguageOutcome": "YouTube Playables could put Mythical Void directly inside a place where people already discover games. Phaser and the current package shape are promising, but an honest general-audience 13+ decision, a no-network edition, YouTube-managed saving and controls, full touch and resize proof, rights clearance, strong real visuals and an official channel are all still required.",
+  "measurementSource": "docs/company/growth/youtube-playables-candidate-measurement.json",
+  "valueCase": [
+    "The player can move from YouTube discovery into play without leaving YouTube.",
+    "Phaser is explicitly listed as a framework used for YouTube Playables.",
+    "The current portable package fits the published hard size and file-count limits as a structural proxy.",
+    "The creature hatch, realm restoration and Project Beacon choice could support discovery, return and sharing through YouTube's own surfaces."
+  ],
+  "readiness": [
+    {
+      "id": "framework-and-package-shape",
+      "state": "provisional_pass",
+      "evidence": "Phaser is supported in principle. The current structural proxy has 85 files, a roughly 3.8 MB reconstructed first load, a roughly 47 MB raw total and no file above 30 MB.",
+      "nextProof": "Build and measure an actual YouTube Playables edition in the official test suite after access."
+    },
+    {
+      "id": "audience-fit",
+      "state": "decision_and_professional_review_required",
+      "evidence": "YouTube Playables must not be specifically made for children and must be suitable for a general audience aged 13+. Mythical Void currently also serves families and ages 9-14 activities.",
+      "nextProof": "Confirm whether a separate honest general-audience 13+ edition fits the product, safeguarding and applicable professional guidance without relabelling the owned family experience."
+    },
+    {
+      "id": "no-external-calls",
+      "state": "gap",
+      "evidence": "The built proxy contains NASA, Open Notify and Mythical-hosted function markers. YouTube currently forbids outside calls.",
+      "nextProof": "A dedicated build contains no non-YouTube network route and the complete core adventure works with bundled assets only."
+    },
+    {
+      "id": "platform-saving-and-lifecycle",
+      "state": "not_started_not_authorized",
+      "evidence": "The package has no ytgame SDK markers and uses browser storage. Required ready, cloud-save, pause, resume and audio handling are absent.",
+      "nextProof": "After access and approval, use one isolated adapter for YouTube ready, save, audio and lifecycle controls and pass the official tests."
+    },
+    {
+      "id": "disallowed-current-features",
+      "state": "gap",
+      "evidence": "The current game includes native sharing, clipboard writing and hosted optional features that cannot appear in a Playables edition.",
+      "nextProof": "The separate edition removes sharing prompts, clipboard writes, external links, separate agreements, login-like screens and every outside service."
+    },
+    {
+      "id": "touch-resize-and-five-second-start",
+      "state": "unverified",
+      "evidence": "Phone and desktop opening layout has prior local evidence, but all required aspect ratios, real touch, resize-state preservation and a five-second device start have not been proved.",
+      "nextProof": "Pass touch and mouse play across narrow, square and wide viewports and the official performance test on representative devices."
+    },
+    {
+      "id": "rights-and-nasa-stem",
+      "state": "review_required",
+      "evidence": "YouTube requires all art, music, trademark, personality and other rights to be cleared. Live NASA calls cannot run, although selected bundled material may remain only with verified rights, source and credit.",
+      "nextProof": "Complete a platform-specific rights manifest and preserve the no-endorsement boundary."
+    },
+    {
+      "id": "visual-click-proof",
+      "state": "blocked",
+      "evidence": "The authentic gameplay gate remains 0 of 4. Playables thumbnails cannot contain logos or misrepresent the game.",
+      "nextProof": "Approve four excellent real gameplay moments and create the required unbranded thumbnail shapes from actual play."
+    },
+    {
+      "id": "official-channel-and-interest-form",
+      "state": "missing_not_authorized",
+      "evidence": "No official Mythical Void YouTube channel or channel administrator is recorded, developer access is early access, and no interest form has been submitted.",
+      "nextProof": "Kevin establishes or identifies the official channel and later approves one exact interest-form preview after all earlier gates pass."
+    }
+  ],
+  "gameDevelopmentHandoff": [
+    "Design an isolated youtube-playables build mode without changing the owned family game.",
+    "Remove all non-YouTube network calls, in-game sharing, clipboard writing, external links, login-like screens and separate agreements from that mode.",
+    "Keep selected NASA/STEM material only as rights-checked bundled content with source, credit and no-endorsement wording.",
+    "Define one adapter boundary for ytgame ready, cloud-save, pause, resume and audio functions, but do not connect it before access and approval.",
+    "Prove touch, mouse, resize-state preservation and readable rendering across narrow, square and wide viewports.",
+    "Return four excellent authentic moments and unbranded gameplay thumbnails after the human visual gate passes."
+  ],
+  "interestRequestDraft": {
+    "state": "incomplete_not_authorized",
+    "gameTitle": "Mythical Void",
+    "studio": "Mythical",
+    "country": "Ireland",
+    "contactName": "Kevin",
+    "contactEmail": null,
+    "officialYouTubeChannel": null,
+    "liveGameUrl": "https://mythicalvoid.com/play/",
+    "pitch": "Hatch an alien creature shaped by a structured genetics system, restore six living realms and decide what Project Beacon should tell Earth in a free Phaser browser adventure.",
+    "submissionMade": false
+  },
+  "authority": {
+    "officialChannelConfirmed": false,
+    "interestRequestAuthorized": false,
+    "gameUploadAuthorized": false,
+    "sdkIntegrationAuthorized": false,
+    "advertisingAuthorized": false,
+    "platformTermsAcceptanceAuthorized": false,
+    "audienceClassificationApproved": false,
+    "externalActionTaken": false
+  },
+  "sources": [
+    "https://developers.google.com/youtube/gaming/playables",
+    "https://support.google.com/youtube/answer/14328604?hl=en",
+    "https://developers.google.com/youtube/gaming/playables/certification/requirements_stability",
+    "https://developers.google.com/youtube/gaming/playables/certification/requirements_design",
+    "https://developers.google.com/youtube/gaming/playables/certification/requirements_privacydata",
+    "https://developers.google.com/youtube/gaming/playables/certification/requirements_trustsafety",
+    "https://developers.google.com/youtube/gaming/playables/certification/requirements_integration",
+    "https://developers.google.com/youtube/gaming/playables/reference/sdk"
+  ]
+}

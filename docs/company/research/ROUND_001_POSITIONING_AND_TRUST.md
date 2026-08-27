@@ -14,7 +14,7 @@ or first-session barrier before Mythical scales discovery.
 This round does not estimate market size or prove retention. It answers:
 
 1. What game do people believe Mythical Void is before playing?
-2. Which promise—companion, living-world story, or feature breadth—creates the
+2. Which promise—creature relationship, living-world story, or feature breadth—creates the
    clearest qualified desire to play?
 3. Can adults responsible for younger players find and accurately explain cost,
    accounts, data, AI, combat, and contact?
@@ -51,7 +51,7 @@ and contact data remain in a separate restricted system.
 
 | ID | Hypothesis | Evidence that supports it | Evidence that weakens it |
 | --- | --- | --- | --- |
-| RH-001 | Companion-led positioning produces the clearest accurate expectation and strongest qualified intent | Participants recall relationship, describe actual play accurately, and want to reach the hatch/bond moment | They expect a chat toy, pet simulator only, or capabilities not present |
+| RH-001 | Creature-led positioning produces the clearest accurate expectation and strongest qualified intent | Participants recall the creature relationship, describe actual play accurately, and want to reach the hatch/bond moment | They expect an AI friend, pet simulator only, or capabilities not present |
 | RH-002 | Story-led positioning differentiates the game without making it sound text-heavy | Participants recall Earth/living-world tension and still expect active play | They expect a visual novel or cannot explain what they do |
 | RH-003 | Current trust information lets parents make an informed first-play decision | Parents find and accurately explain all six trust topics without moderator help | They incorrectly state what data/AI/accounts/cost involve or cannot find answers |
 | RH-004 | The first playable experience pays off the chosen promise | Post-play description matches pre-play expectation and names a concrete meaningful moment | Promise feels absent, delayed, confusing, or contradicted |
@@ -64,19 +64,19 @@ three and ask for a preference until the unaided comprehension task is complete.
 ### M-A — current brand lead
 
 > **Your creature. Your journey.**  
-> Bond with an alien companion, restore six living realms, and decide what home
+> Hatch an alien creature, restore six living realms, and decide what home
 > means in a free browser adventure.
 
-### M-B — companion lead
+### M-B — creature relationship lead
 
-> **A companion shaped by the journey you share.**  
+> **A creature shaped by the journey you share.**
 > Hatch an alien creature, learn how it responds to your care and choices, and
 > explore a living world together.
 
 ### M-C — story lead
 
 > **You were sent to help Earth. The world you found was alive.**  
-> Restore six threatened realms beside an alien companion—and decide what
+> Restore six threatened realms beside an alien creature—and decide what
 > Project Beacon should become.
 
 All three are hypotheses. M-B must not be shortened to a sentience or unlimited
@@ -147,7 +147,7 @@ Do not collect or copy the creature name into the shared research record.
 ### Debrief — 7 minutes
 
 - What was the most memorable moment?
-- What did the companion seem able to do?
+- What did the creature seem able to do?
 - What did you expect that did not happen?
 - What would you do next?
 - What would stop you returning or recommending it?
@@ -161,7 +161,7 @@ Do not collect or copy the creature name into the shared research record.
 | Differentiation recall | None or generic | One vague distinction | Concrete truthful distinction |
 | Trust task | Incorrect/unfindable | Found with confusion | Found and accurately explained |
 | Start success | Cannot begin | Begins with help/friction | Begins independently |
-| Companion payoff | No meaningful evidence noticed | Prompted/vague evidence | Independently names concrete behavior/moment |
+| Creature payoff | No meaningful evidence noticed | Prompted/vague evidence | Independently names concrete behavior/moment |
 | Next-step clarity | Does not know what to do | General idea | Clear intended next action |
 
 Scores organize observation; participant words and behavior remain the
@@ -196,4 +196,3 @@ evidence. Do not average these into a market KPI.
 - later, safeguarding owner and approved minor-participant process for 001B.
 
 Do not begin recruitment from child-facing channels or contact minors directly.
-

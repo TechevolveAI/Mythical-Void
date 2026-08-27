@@ -36,6 +36,7 @@ for (const [key, expected] of Object.entries({
     technicalChecksAreVisualApproval: false,
     automationMayRejectObviousFaults: true,
     automationMayApprove: false,
+    automatedEditorialFrameReviewCompleted: true,
     kevinReviewRequested: false,
     adultFrameReviewCompleted: false,
     publicReplacementAuthorized: false,
@@ -45,6 +46,10 @@ for (const [key, expected] of Object.entries({
 
 requireValue(screening.decision === 'reject_all_before_kevin_review', 'screening must preserve the rejection decision');
 requireValue(screening.approvedMomentCount === 0 && screening.requiredMomentCount === 4, 'visual gate must remain 0/4');
+requireValue(screening.videoFrameReview?.phoneFramesChecked === 102, 'phone frame review count drifted');
+requireValue(screening.videoFrameReview?.desktopFramesChecked === 36, 'desktop frame review count drifted');
+requireValue(screening.videoFrameReview?.totalFramesChecked === 138 && screening.videoFrameReview?.everyCapturedFrameScreened === true, 'complete video frame screening is missing');
+requireValue(screening.videoFrameReview?.adultApprovalClaimed === false, 'automated rejection cannot claim adult approval');
 const moments = Array.isArray(screening.moments) ? screening.moments : [];
 const requiredIds = ['VL-001', 'VL-002', 'VL-003', 'VL-004'];
 requireValue(moments.length === 4 && new Set(moments.map(moment => moment.id)).size === 4, 'screening must contain four distinct moments');

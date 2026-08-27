@@ -633,6 +633,13 @@ body.game-mode {
   color: #f2c14e;
 }
 
+.living-form-button-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
+  gap: 9px;
+}
+
+.living-form-share,
 .living-form-continue {
   position: relative;
   z-index: 3;
@@ -654,11 +661,26 @@ body.game-mode {
   -webkit-tap-highlight-color: transparent;
 }
 
+.living-form-share {
+  color: #d8fffa;
+  background: transparent;
+  border-color: rgba(143, 227, 207, 0.62);
+  font-size: 10px;
+}
+
+.living-form-share:hover,
+.living-form-share:focus-visible,
 .living-form-continue:hover,
 .living-form-continue:focus-visible {
   outline: 2px solid #ffffff;
   outline-offset: 2px;
   filter: brightness(1.08);
+}
+
+.living-form-share:disabled {
+  color: #8fa7a2;
+  border-color: rgba(143, 227, 207, 0.28);
+  cursor: wait;
 }
 
 .living-form-continue:disabled {
@@ -855,6 +877,11 @@ body.game-mode {
     min-height: 44px;
     flex: 0 0 44px;
   }
+
+  .living-form-share {
+    min-height: 44px;
+    font-size: 9px;
+  }
 }
 
 @media (max-height: 520px) and (orientation: landscape) {
@@ -910,6 +937,7 @@ body.game-mode {
       16px;
   }
 
+  .living-form-share,
   .living-form-continue {
     min-height: 44px;
     padding: 8px 10px;

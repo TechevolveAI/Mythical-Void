@@ -47,7 +47,7 @@
   },
   "messageCards": [
     { "id": "M-A", "name": "Current brand lead", "assignmentTarget": 4 },
-    { "id": "M-B", "name": "Companion lead", "assignmentTarget": 3 },
+    { "id": "M-B", "name": "Creature relationship lead", "assignmentTarget": 3 },
     { "id": "M-C", "name": "Story lead", "assignmentTarget": 3 }
   ],
   "sessionSlots": [

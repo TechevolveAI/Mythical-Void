@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "HATCH-SHARING-LOOP-2026-08-27",
+  "state": "live_production_verified",
+  "purpose": "Give a player a gentle, voluntary way to pass Mythical Void on immediately after the first creature reveal.",
+  "trigger": {
+    "screen": "LivingFormHandoff",
+    "moment": "first_named_creature_living_form_reveal",
+    "automaticShare": false,
+    "automaticPrompt": false,
+    "playerActionRequired": true,
+    "continueRemainsPrimary": true
+  },
+  "share": {
+    "buttonLabel": "SHARE THE GAME",
+    "title": "Mythical Void — a free alien creature adventure",
+    "text": "I just hatched a creature in Mythical Void. See what hatches for you in this free browser adventure.",
+    "url": "https://mythicalvoid.com/playable-now/#find-your-way/create",
+    "trackingParametersAdded": false,
+    "nativeDeviceSharePreferred": true,
+    "clipboardFallback": true,
+    "imageIncluded": false
+  },
+  "privacy": {
+    "saveDataReadForShare": false,
+    "saveDataTransmitted": false,
+    "creatureNameIncluded": false,
+    "creatureGeneticsIncluded": false,
+    "creaturePortraitIncluded": false,
+    "playerIdentityIncluded": false,
+    "recipientCollected": false,
+    "contactDetailsCollected": false,
+    "newAnalyticsEventAdded": false
+  },
+  "visualBoundary": {
+    "approvedGameplayMoments": 0,
+    "requiredGameplayMoments": 4,
+    "unapprovedScreenshotUsed": false,
+    "visualLaunchGateChanged": false
+  },
+  "authority": {
+    "ownedGamePublicationAuthorized": true,
+    "externalSocialPublicationAuthorized": false,
+    "emailOrOutreachSendingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "externalAccountChangeAuthorized": false,
+    "externalActionTaken": false
+  },
+  "verification": {
+    "automatedPrivacyTestRequired": true,
+    "desktopLayoutReviewRequired": true,
+    "mobileLayoutReviewRequired": true,
+    "productionVerificationRequired": true,
+    "productionCommit": "4cba647a6f420cb29aace2f337b229fccfb9a70a",
+    "productionDeployId": "6a8f840bbf5b1e0008dd3cc9",
+    "productionPublishedAt": "2026-08-27T00:26:57.517Z",
+    "publicChecks": {
+      "gamePageHttpStatus": 200,
+      "shareActionPresentInGameBundle": true,
+      "cleanShareUrlPresentInGameBundle": true,
+      "creatureLanguagePresentInGameBundle": true,
+      "unapprovedVisualIncluded": false
+    }
+  }
+}

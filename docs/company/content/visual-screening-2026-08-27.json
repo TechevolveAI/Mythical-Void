@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
-  "screeningId": "VISUAL-SCREEN-2026-08-27-02",
-  "screenedAt": "2026-08-27T00:00:00+01:00",
+  "screeningId": "VISUAL-SCREEN-2026-08-27-01",
+  "screenedAt": "2026-08-27T01:39:00+01:00",
   "purpose": "Stop technically valid but confusing gameplay captures from reaching Kevin, the website, social channels or distribution partners.",
   "source": {
-    "commit": "82b9d59ae2a006107480dbcba44f60e64c1a16ae",
+    "commit": "29cbb781f15916bf51bcab38a620b84cf52d5ce7",
     "route": "/play/",
     "profileId": "MV-0813",
     "renderer": "player_facing_phaser_creature_renderer",
-    "candidateRunId": "2026-08-26T23-57-56-859Z",
-    "candidateDirectory": ".visual-review/candidates/2026-08-26T23-57-56-859Z/",
-    "manifestSha256": "b85bd661aa633326f876ddd9dc2bdf918fe1a33709e5abf74bee6d6bc062f7a6",
+    "candidateRunId": "2026-08-27-post-visibility",
+    "candidateDirectory": ".visual-review/candidates/2026-08-27-post-visibility/",
+    "manifestSha256": "51303630550e6b65bd866a55892e522ab8daea0e447899232bab758d6f5021ea",
     "websiteAccessible": false
   },
   "boundary": {
@@ -18,6 +18,7 @@
     "technicalChecksAreVisualApproval": false,
     "automationMayRejectObviousFaults": true,
     "automationMayApprove": false,
+    "automatedEditorialFrameReviewCompleted": true,
     "kevinReviewRequested": false,
     "adultFrameReviewCompleted": false,
     "publicReplacementAuthorized": false,
@@ -27,38 +28,45 @@
   "decision": "reject_all_before_kevin_review",
   "approvedMomentCount": 0,
   "requiredMomentCount": 4,
+  "videoFrameReview": {
+    "phoneFramesChecked": 102,
+    "desktopFramesChecked": 36,
+    "totalFramesChecked": 138,
+    "everyCapturedFrameScreened": true,
+    "adultApprovalClaimed": false
+  },
   "moments": [
     {
       "id": "VL-001",
       "title": "THE CREATURE HELPS",
       "decision": "rejected",
       "filesChecked": ["creature-helps-phone.png", "creature-helps-desktop.png"],
-      "obviousFaults": ["explanation_box_still_carries_the_action", "action_not_unmistakable_without_copy", "resolved_obstacle_is_barely_visible", "background_competes_with_subject"],
-      "nextCaptureMustShow": "A visible danger or blocked route, the creature taking one unmistakable action, and the solved result in the same clean frame with no message box over the action."
+      "obviousFaults": ["explanation_box_dominates_the_frame", "helpful_action_reads_as_a_thin_interface_effect", "no_visible_obstacle_connects_action_to_result", "transparent_buildings_and_status_marks_create_visual_clutter"],
+      "nextCaptureMustShow": "Move one real blocked route or danger into the foreground, make the creature's physical action large and unmistakable, show the route visibly change, and keep explanatory copy away from the action."
     },
     {
       "id": "VL-002",
       "title": "A CHOICE CHANGES SOMETHING",
       "decision": "rejected",
       "filesChecked": ["choice-before-phone.png", "choice-after-phone.png", "choice-before-desktop.png", "choice-after-desktop.png"],
-      "obviousFaults": ["before_frame_is_mostly_menu", "after_change_is_too_subtle", "cause_and_effect_need_explanation", "paired_frames_do_not_create_a_clear_reveal"],
-      "nextCaptureMustShow": "A short choice in plain words followed by a dramatic persistent change to colour, route, structure, weather or creature behaviour that is obvious with the words removed."
+      "obviousFaults": ["before_frame_is_mostly_an_administration_menu", "after_change_is_only_a_thin_glowing_line", "terrain_colour_and_structures_barely_change", "paired_frames_still_need_copy_to_explain_cause_and_effect"],
+      "nextCaptureMustShow": "After the short plain-language choice closes, transform a large part of the playable world—dead route to living route, still current to moving current, or another persistent change visible without reading the recap."
     },
     {
       "id": "VL-003",
       "title": "A STRANGE DISCOVERY",
       "decision": "rejected",
       "filesChecked": ["strange-discovery-phone.png", "strange-discovery-desktop.png"],
-      "obviousFaults": ["repeats_choice_scene", "discovery_reads_as_interface_lines", "no_single_alien_wonder_is_the_focus", "composition_needs_caption_to_make_sense"],
-      "nextCaptureMustShow": "One impossible alien phenomenon occupying the visual focus—living gravity, liquid memory, folded light, migrating geometry or another realm-specific behaviour—with the astronaut and creature visibly reacting."
+      "obviousFaults": ["repeats_the_same_choice_location", "phenomenon_reads_as_targeting_lines", "no_impossible_alien_behaviour_is_visible", "focus_is_split_between_many_similar_transparent_structures"],
+      "nextCaptureMustShow": "Build one impossible physical event into the playable world—liquid memory climbing upward, folded light opening a route, migrating geometry, or living gravity—with both actors visibly reacting to it."
     },
     {
       "id": "VL-004",
       "title": "MOVEMENT FEELS ALIVE",
       "decision": "rejected",
       "filesChecked": ["movement-alive-phone.png", "movement-alive-phone.mp4", "movement-alive-desktop.png", "movement-alive-desktop.mp4"],
-      "obviousFaults": ["frame_is_mostly_empty_dark_space", "astronaut_and_creature_read_too_close_together", "no_interesting_action_or_obstacle", "desktop_clip_is_only_3_seconds"],
-      "nextCaptureMustShow": "Six to ten uninterrupted seconds through a visually rich section containing readable terrain, one meaningful traversal action, environmental motion and the creature continuously present."
+      "obviousFaults": ["all_138_frames_are_dominated_by_empty_dark_space", "actors_barely_change_position", "platform_geometry_is_clipped_at_the_edge", "no_jump_obstacle_or_environmental_event_occurs", "desktop_clip_is_only_three_seconds"],
+      "nextCaptureMustShow": "Record six to ten uninterrupted seconds through a complete richly layered section, including a jump or obstacle, moving environmental life, readable platforms and the creature continuously moving beside the astronaut."
     }
   ],
   "realmRecapture": {
@@ -76,7 +84,7 @@
   },
   "nextGate": {
     "owner": "game-development",
-    "request": "Create four deliberately staged, still-authentic gameplay states that satisfy the nextCaptureMustShow directions and make the forest movement capture pass its sustained mobile budget.",
+    "request": "Treat marketing capture as a gameplay presentation feature: stage one foreground action, one dramatic world transformation, one impossible alien phenomenon and one rich traversal route. The current effects prove state changes but still do not tell those stories visually.",
     "recaptureAfterSourceChange": true,
     "kevinReviewsOnlyAfterObviousFaultsPass": true
   }

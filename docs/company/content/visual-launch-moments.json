@@ -8,13 +8,13 @@
   "candidateDirectoryIsWebsiteContent": false,
   "currentVisualFinding": {
     "source": "Kevin's direct testing feedback and a fresh full-size review of the current public capture set",
-    "finding": "The existing public media does not communicate the game well enough. Private replacement candidates must remain outside the website until an adult reviews every frame and Kevin approves the exact asset, wording and channel.",
-    "decision": "Keep the entire old media set withdrawn and block its direct public URLs. The rejected 23:57 run remains recorded. The source-bound 02:20 replacement passed automated obvious-fault checks and stays quarantined pending an adult review of every frame and Kevin's approval of the exact asset, wording and channel."
+    "finding": "The post-visibility production capture was technically valid but still too confusing for a new player. A source-changed replacement now clears automated obvious-fault checks, but it remains private until an adult reviews every frame and Kevin approves the exact asset, wording and channel.",
+    "decision": "Keep the entire old media set withdrawn. Preserve the completed post-visibility rejection and quarantine the source-bound 02:20 replacement pending adult frame review; no exact asset, wording or channel is approval-ready."
   },
   "latestScreening": {
     "path": "docs/company/content/visual-screening-2026-08-27.json",
-    "sourceCommit": "82b9d59ae2a006107480dbcba44f60e64c1a16ae",
-    "candidateRunId": "2026-08-26T23-57-56-859Z",
+    "sourceCommit": "29cbb781f15916bf51bcab38a620b84cf52d5ce7",
+    "candidateRunId": "2026-08-27-post-visibility",
     "decision": "all_four_rejected_before_kevin_review",
     "kevinReviewRequested": false
   },
