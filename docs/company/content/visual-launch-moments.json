@@ -25,12 +25,12 @@
     "externalActionTaken": false
   },
   "latestPrivateCandidateRun": {
-    "runId": "2026-08-26T23-12-25-934Z",
-    "createdAt": "2026-08-26T23:14:59.063Z",
-    "sourceCommit": "ef1f60f1975d193e3d449879899c0b512b062c19",
+    "runId": "2026-08-26T23-57-56-859Z",
+    "createdAt": "2026-08-27T00:00:38.185Z",
+    "sourceCommit": "82b9d59ae2a006107480dbcba44f60e64c1a16ae",
     "sourceProfileId": "MV-0813",
     "renderer": "player_facing_phaser_creature_renderer",
-    "manifest": ".visual-review/candidates/2026-08-26T23-12-25-934Z/manifest.json",
+    "manifest": ".visual-review/candidates/2026-08-26T23-57-56-859Z/manifest.json",
     "automatedScreening": "passed_obvious_fault_checks_only",
     "adultFrameReview": "pending",
     "kevinApproval": "pending",
@@ -77,7 +77,7 @@
       "shot": "The creature visibly helps the player solve or survive one clear obstacle.",
       "mustShow": ["player and creature in the same frame", "one recognisable obstacle", "the creature's helpful action", "the immediate result"],
       "currentState": "candidate_under_human_review",
-      "evidence": ".visual-review/candidates/2026-08-26T23-12-25-934Z/creature-helps-phone.png",
+      "evidence": ".visual-review/candidates/2026-08-26T23-57-56-859Z/creature-helps-phone.png",
       "reason": "A private phone and desktop candidate passed obvious-fault screening. Human visual review and Kevin approval remain pending."
     },
     {
@@ -86,7 +86,7 @@
       "shot": "One readable choice followed by a visible change in the world.",
       "mustShow": ["the choice in plain words", "the changed place, creature or relationship", "no unexplained menu clutter"],
       "currentState": "candidate_under_human_review",
-      "evidence": ".visual-review/candidates/2026-08-26T23-12-25-934Z/choice-before-phone.png",
+      "evidence": ".visual-review/candidates/2026-08-26T23-57-56-859Z/choice-before-phone.png",
       "reason": "Private before-and-after candidates passed obvious-fault screening. Human visual review and Kevin approval remain pending."
     },
     {
@@ -95,7 +95,7 @@
       "shot": "The player and creature discover one memorable feature of an alien realm.",
       "mustShow": ["player and creature in the same frame", "one unusual realm feature", "a composition understandable without a caption"],
       "currentState": "candidate_under_human_review",
-      "evidence": ".visual-review/candidates/2026-08-26T23-12-25-934Z/strange-discovery-phone.png",
+      "evidence": ".visual-review/candidates/2026-08-26T23-57-56-859Z/strange-discovery-phone.png",
       "reason": "A private phone and desktop candidate passed obvious-fault screening. Human visual review and Kevin approval remain pending."
     },
     {
@@ -104,7 +104,7 @@
       "shot": "A short uninterrupted stretch of play with the creature continuously present.",
       "mustShow": ["continuous creature rendering", "readable movement", "no menu takeover or dead time", "every frame watched at desktop and phone presentation size"],
       "currentState": "candidate_under_human_review",
-      "evidence": ".visual-review/candidates/2026-08-26T23-12-25-934Z/movement-alive-phone.mp4",
+      "evidence": ".visual-review/candidates/2026-08-26T23-57-56-859Z/movement-alive-phone.mp4",
       "reason": "Private phone and desktop movement candidates passed continuity screening. Every frame still requires adult review and Kevin approval."
     }
   ],
