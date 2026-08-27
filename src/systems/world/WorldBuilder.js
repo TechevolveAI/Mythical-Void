@@ -7306,7 +7306,7 @@ class WorldBuilder {
             .setAlpha(0)
             .setData('villagePlanetMemoryPhenomenon', true)
             .setData('linkedActorCount', linkedActors.length)
-            .setData('phenomenonLanguage', 'living_current_remembers_choice_v1');
+            .setData('phenomenonLanguage', 'memory_rain_rises_v2');
         const partyCenterX = linkedActors.length
             ? linkedActors.reduce((sum, actor) => sum + actor.x, 0) / linkedActors.length
             : markerX;
@@ -7315,97 +7315,122 @@ class WorldBuilder {
             : markerY;
         const memoryPoolX = Phaser.Math.Linear(markerX, partyCenterX, 0.58);
         const memoryPoolY = Phaser.Math.Linear(markerY, partyCenterY, 0.52);
-        const poolWidth = compact ? 142 : 190;
-        const poolHeight = compact ? 62 : 82;
-        phenomenon.fillStyle(0x07100F, 0.88);
+        const poolWidth = compact ? 188 : 270;
+        const poolHeight = compact ? 52 : 72;
+        const memoryCrownY = memoryPoolY - (compact ? 150 : 210);
+        phenomenon.fillStyle(0x061513, 0.92);
         phenomenon.fillEllipse(memoryPoolX, memoryPoolY, poolWidth, poolHeight);
-        phenomenon.fillStyle(0x493B76, 0.58);
-        phenomenon.fillEllipse(memoryPoolX, memoryPoolY, poolWidth * 0.78, poolHeight * 0.72);
-        phenomenon.fillStyle(color, 0.34);
-        phenomenon.fillEllipse(memoryPoolX, memoryPoolY, poolWidth * 0.54, poolHeight * 0.46);
-        phenomenon.lineStyle(compact ? 5 : 7, 0x8FE3CF, 0.74);
-        phenomenon.strokeEllipse(memoryPoolX, memoryPoolY, poolWidth * 0.9, poolHeight * 0.8);
-        phenomenon.lineStyle(2, 0xF2C14E, 0.84);
-        phenomenon.strokeEllipse(
-            memoryPoolX + (compact ? 8 : 12),
-            memoryPoolY - (compact ? 3 : 5),
-            poolWidth * 0.52,
-            poolHeight * 0.38
-        );
-        linkedActors.forEach((actor, actorIndex) => {
-            const actorColor = actorIndex === 0 ? 0x71E6B1 : 0xF4F4F4;
-            const points = Array.from({ length: 7 }, (_, index) => {
-                const progress = index / 6;
-                return {
-                    x: Phaser.Math.Linear(memoryPoolX, actor.x, progress),
-                    y: Phaser.Math.Linear(memoryPoolY, actor.y - 5, progress) +
-                        Math.sin(progress * Math.PI) *
-                            (actorIndex === 0 ? -1 : 1) * (compact ? 12 : 18)
-                };
-            });
-            phenomenon.lineStyle(compact ? 10 : 14, 0x07100F, 0.58);
+        phenomenon.fillStyle(0x256C62, 0.7);
+        phenomenon.fillEllipse(memoryPoolX, memoryPoolY, poolWidth * 0.82, poolHeight * 0.7);
+        phenomenon.fillStyle(color, 0.5);
+        phenomenon.fillEllipse(memoryPoolX, memoryPoolY, poolWidth * 0.58, poolHeight * 0.42);
+        const drawMemoryRibbonPath = () => {
+            const start = {
+                x: memoryPoolX - poolWidth * 0.24,
+                y: memoryPoolY - 2
+            };
+            const control = {
+                x: memoryPoolX + poolWidth * 0.38,
+                y: memoryPoolY - (compact ? 76 : 108)
+            };
+            const end = { x: markerX, y: memoryCrownY };
             phenomenon.beginPath();
-            phenomenon.moveTo(points[0].x, points[0].y);
-            points.slice(1).forEach(point => phenomenon.lineTo(point.x, point.y));
-            phenomenon.strokePath();
-            phenomenon.lineStyle(compact ? 3 : 4, actorColor, 0.72);
-            phenomenon.beginPath();
-            phenomenon.moveTo(points[0].x, points[0].y);
-            points.slice(1).forEach(point => phenomenon.lineTo(point.x, point.y));
-            phenomenon.strokePath();
-            for (let step = 1; step <= 4; step += 1) {
-                const point = points[step];
-                phenomenon.fillStyle(step === 2 ? 0xF2C14E : actorColor, 0.88);
-                phenomenon.fillCircle(point.x, point.y, step === 2 ? 4 : 2.5);
+            phenomenon.moveTo(start.x, start.y);
+            for (let step = 1; step <= 14; step += 1) {
+                const t = step / 14;
+                const inverse = 1 - t;
+                phenomenon.lineTo(
+                    (inverse * inverse * start.x) +
+                        (2 * inverse * t * control.x) +
+                        (t * t * end.x),
+                    (inverse * inverse * start.y) +
+                        (2 * inverse * t * control.y) +
+                        (t * t * end.y)
+                );
             }
-        });
+            phenomenon.strokePath();
+        };
+        phenomenon.lineStyle(compact ? 18 : 24, 0x07100F, 0.46);
+        drawMemoryRibbonPath();
+        phenomenon.lineStyle(compact ? 7 : 10, 0x8FE3CF, 0.88);
+        drawMemoryRibbonPath();
+        phenomenon.lineStyle(2, 0xF4F4F4, 0.92);
+        drawMemoryRibbonPath();
+        phenomenon.fillStyle(0xF2C14E, 0.94);
+        phenomenon.fillCircle(markerX, memoryCrownY, compact ? 9 : 12);
         phenomenon.setBlendMode?.(Phaser.BlendModes.SCREEN);
 
-        const memoryEchoes = [];
-        const memoryEchoTweens = [];
-        linkedActors.forEach((actor, actorIndex) => {
-            const textureKey = actor?.texture?.key;
-            const frameName = actor?.frame?.name;
-            if (!textureKey || !this.scene.textures?.exists?.(textureKey)) return;
-            [0.22, 0.42].forEach((progress, echoIndex) => {
-                const echo = this.scene.add.image(
-                    memoryPoolX +
-                        (actorIndex === 0 ? 1 : -1) *
-                        (compact ? 23 : 32) * (echoIndex + 0.55),
-                    memoryPoolY + (compact ? 3 : 5) + echoIndex * (compact ? 5 : 7),
-                    textureKey,
-                    frameName
-                )
-                    .setOrigin(actor.originX ?? 0.5, actor.originY ?? 0.5)
-                    .setFlipX(actor.flipX === true)
-                    .setAngle(actor.angle || 0)
-                    .setDepth(Math.max(1, memoryPoolY + 1 + echoIndex))
-                    .setAlpha(0)
-                    .setTint(actorIndex === 0 ? 0x71E6B1 : 0xF2C14E)
-                    .setData('villageMemoryEcho', actorIndex === 0 ? 'creature' : 'astronaut')
-                    .setData('sourceTexture', textureKey)
-                    .setData('echoIndex', echoIndex);
-                if (actor.displayWidth > 0 && actor.displayHeight > 0) {
-                    const reflectionScale = echoIndex === 0 ? 0.46 : 0.32;
-                    echo.setDisplaySize(
-                        actor.displayWidth * reflectionScale,
-                        actor.displayHeight * reflectionScale
-                    );
-                }
-                echo.setBlendMode?.(Phaser.BlendModes.SCREEN);
-                memoryEchoes.push(echo);
-                memoryEchoTweens.push(this.scene.tweens.add({
-                    targets: echo,
-                    alpha: { from: 0.16, to: echoIndex === 0 ? 0.42 : 0.3 },
-                    scaleX: { from: echo.scaleX * 0.98, to: echo.scaleX * 1.04 },
-                    scaleY: { from: echo.scaleY * 0.98, to: echo.scaleY * 1.04 },
-                    duration: 980 + echoIndex * 170,
-                    yoyo: true,
-                    repeat: 2,
-                    ease: 'Sine.easeInOut'
-                }));
-            });
+        const memoryFlora = this.scene.textures?.exists?.(
+            SANCTUARY_WORLD_ART.listeningReeds.key
+        )
+            ? this.scene.add.image(
+                memoryPoolX,
+                memoryPoolY + (compact ? 24 : 34),
+                SANCTUARY_WORLD_ART.listeningReeds.key
+            )
+                .setOrigin(0.5, 0.78)
+                .setDisplaySize(compact ? 238 : 330, compact ? 159 : 220)
+                .setDepth(Math.max(1, memoryPoolY - 2))
+                .setAlpha(0)
+                .setData('villageMemoryFlora', 'listening_reeds')
+            : null;
+        const memoryRainDrops = Array.from({ length: compact ? 16 : 22 }, (_, index) => {
+            const lane = (index % 8) - 3.5;
+            const dropColor = index % 4 === 0 ? 0xF2C14E : 0x8FE3CF;
+            const drop = this.scene.add.container(
+                memoryPoolX + lane * (compact ? 16 : 23),
+                memoryPoolY - (index % 5) * (compact ? 20 : 28)
+            );
+            const glow = this.scene.add.ellipse(
+                0,
+                0,
+                compact ? 13 : 17,
+                compact ? 25 : 32,
+                dropColor,
+                0.34
+            );
+            const core = this.scene.add.ellipse(
+                0,
+                -2,
+                compact ? 6 : 8,
+                compact ? 17 : 22,
+                0xF4F4F4,
+                0.92
+            );
+            const firstTrail = this.scene.add.circle(
+                0,
+                compact ? 15 : 19,
+                compact ? 3 : 4,
+                dropColor,
+                0.78
+            );
+            const secondTrail = this.scene.add.circle(
+                0,
+                compact ? 23 : 29,
+                compact ? 1.5 : 2,
+                0xF4F4F4,
+                0.68
+            );
+            drop.add([glow, core, firstTrail, secondTrail]);
+            drop
+                .setDepth(Math.max(1, memoryPoolY + index * 0.01))
+                .setAlpha(0)
+                .setData('villageMemoryRainDrop', true)
+                .setData('memoryRainDirection', 'up');
+            drop.setBlendMode?.(Phaser.BlendModes.ADD);
+            return drop;
         });
+        const memoryRainTweens = memoryRainDrops.map((drop, index) => (
+            this.scene.tweens.add({
+                targets: drop,
+                y: drop.y - (compact ? 145 : 205),
+                alpha: { from: 0.22, to: index % 4 === 0 ? 0.96 : 0.72 },
+                delay: (index % 7) * 95,
+                duration: 1250 + (index % 5) * 120,
+                repeat: 2,
+                ease: 'Sine.easeIn'
+            })
+        ));
 
         const copy = this.scene.add.container(
             landmark.zone.x,
@@ -7422,7 +7447,7 @@ class WorldBuilder {
         const speaker = this.scene.add.text(
             0,
             -24,
-            'THE PLANET REPLAYS YOUR CHOICE',
+            'THE RAIN IS RISING',
             {
                 fontSize: compact ? '8px' : '9px',
                 fontFamily: 'Arial, sans-serif',
@@ -7432,7 +7457,7 @@ class WorldBuilder {
                 strokeThickness: 5
             }
         ).setOrigin(0.5);
-        const line = this.scene.add.text(0, 2, 'A living current carries your footprints back to the Heart.', {
+        const line = this.scene.add.text(0, 2, 'The Current remembers what you protected.', {
             fontSize: compact ? '10px' : '12px',
             fontFamily: 'Arial, sans-serif',
             color: '#F4F4F4',
@@ -7459,10 +7484,10 @@ class WorldBuilder {
         copy.setData('resonanceVerticalOffset', compact ? 270 : 345);
         copy.setData('planetMemoryPhenomenon', true);
         copy.setData('linkedActorCount', linkedActors.length);
-        copy.setData('visibleDiscovery', 'THE PLANET REMEMBERS YOUR CHOICE');
+        copy.setData('visibleDiscovery', 'THE RAIN IS RISING');
 
         const revealTween = this.scene.tweens.add({
-            targets: [pulse, phenomenon, copy],
+            targets: [pulse, phenomenon, copy, ...(memoryFlora ? [memoryFlora] : [])],
             alpha: 1,
             duration: 360,
             ease: 'Sine.easeOut'
@@ -7480,13 +7505,14 @@ class WorldBuilder {
         landmark.communityMomentElements = [
             pulse,
             phenomenon,
-            ...memoryEchoes,
+            ...(memoryFlora ? [memoryFlora] : []),
+            ...memoryRainDrops,
             copy
         ];
         landmark.communityMomentTweens = [
             revealTween,
             pulseTween,
-            ...memoryEchoTweens
+            ...memoryRainTweens
         ];
         landmark.activeCommunityMoment = copy;
         this.scene.setSanctuaryMomentFocus?.(true, {
@@ -7496,7 +7522,13 @@ class WorldBuilder {
         landmark.communityMomentTimer = this.scene.time.delayedCall(5600, () => {
             if (landmark.activeCommunityMoment !== copy) return;
             const fadeTween = this.scene.tweens.add({
-                targets: [pulse, phenomenon, ...memoryEchoes, copy],
+                targets: [
+                    pulse,
+                    phenomenon,
+                    ...(memoryFlora ? [memoryFlora] : []),
+                    ...memoryRainDrops,
+                    copy
+                ],
                 alpha: 0,
                 duration: 420,
                 onComplete: () => this.clearVillageCommunityMoment(landmark)
@@ -7724,10 +7756,34 @@ class WorldBuilder {
             regrowth.fillCircle(bloomX, bloomY, compact ? 4 : 5);
         });
 
+        const regrowthArtwork = this.scene.textures?.exists?.(
+            SANCTUARY_WORLD_ART.currentBloomGrove.key
+        )
+            ? this.scene.add.image(
+                problemX + (compact ? 18 : 28),
+                problemY + (compact ? 25 : 34),
+                SANCTUARY_WORLD_ART.currentBloomGrove.key
+            )
+                .setOrigin(0.5, 0.82)
+                .setDisplaySize(compact ? 178 : 252, compact ? 178 : 252)
+                .setDepth(problemY + 2)
+                .setAlpha(0)
+                .setData('villageHelpRegrowthArtwork', 'current_bloom_grove')
+            : null;
+        if (regrowthArtwork) {
+            regrowthArtwork
+                .setData('villageHelpRegrowthTargetScaleX', regrowthArtwork.scaleX)
+                .setData('villageHelpRegrowthTargetScaleY', regrowthArtwork.scaleY)
+                .setScale(
+                    regrowthArtwork.scaleX * 0.42,
+                    regrowthArtwork.scaleY * 0.42
+                );
+        }
+
         const result = this.scene.add.text(
             Phaser.Math.Linear(actionOriginX, problemX, 0.42),
             problemY + (compact ? 58 : 66),
-            'PATH OPEN  +5 HAPPINESS',
+            `${checkIn.name.toUpperCase()} OPENED THE PATH`,
             {
                 fontSize: compact ? '11px' : '14px',
                 fontFamily: 'Arial, sans-serif',
@@ -7863,6 +7919,7 @@ class WorldBuilder {
             blockedLabel,
             openedRoute,
             regrowth,
+            ...(regrowthArtwork ? [regrowthArtwork] : []),
             result,
             copy
         ];
@@ -7881,15 +7938,40 @@ class WorldBuilder {
                 duration: 360,
                 ease: 'Sine.easeOut'
             });
+            const regrowthArtworkTween = regrowthArtwork
+                ? this.scene.tweens.add({
+                    targets: regrowthArtwork,
+                    alpha: 0.98,
+                    scaleX: regrowthArtwork.getData(
+                        'villageHelpRegrowthTargetScaleX'
+                    ),
+                    scaleY: regrowthArtwork.getData(
+                        'villageHelpRegrowthTargetScaleY'
+                    ),
+                    duration: 640,
+                    ease: 'Back.easeOut'
+                })
+                : null;
             const obstacleTween = this.scene.tweens.add({
                 targets: [blockedRoute, blockedLabel],
-                alpha: 0.64,
-                scaleX: 1.12,
-                scaleY: 1.12,
-                duration: 360,
+                alpha: 0.18,
+                scaleX: 1.22,
+                scaleY: 0.72,
+                duration: 520,
                 ease: 'Sine.easeOut'
             });
-            landmark.workerCheckInTweens.push(routeTween, obstacleTween);
+            const copyTween = this.scene.tweens.add({
+                targets: copy,
+                alpha: 0.24,
+                duration: 420,
+                ease: 'Sine.easeOut'
+            });
+            landmark.workerCheckInTweens.push(
+                routeTween,
+                obstacleTween,
+                copyTween,
+                ...(regrowthArtworkTween ? [regrowthArtworkTween] : [])
+            );
         });
         landmark.workerCheckInTimer = this.scene.time.delayedCall(6500, () => {
             if (landmark.activeWorkerCheckIn !== copy) return;
@@ -8024,6 +8106,27 @@ class WorldBuilder {
             routeRegrowth.fillCircle(bloomX, bloomY, compact ? 4 : 6);
         });
 
+        const routeGrove = this.scene.textures?.exists?.(
+            SANCTUARY_WORLD_ART.currentBloomGrove.key
+        )
+            ? this.scene.add.image(
+                routeEnd.x,
+                routeEnd.y + (compact ? 28 : 40),
+                SANCTUARY_WORLD_ART.currentBloomGrove.key
+            )
+                .setOrigin(0.5, 0.82)
+                .setDisplaySize(compact ? 210 : 300, compact ? 210 : 300)
+                .setDepth(routeEnd.y + 1)
+                .setAlpha(0)
+                .setData('villageDecisionWorldChange', 'current_bloom_grove')
+            : null;
+        if (routeGrove) {
+            routeGrove
+                .setData('villageDecisionTargetScaleX', routeGrove.scaleX)
+                .setData('villageDecisionTargetScaleY', routeGrove.scaleY)
+                .setScale(routeGrove.scaleX * 0.28, routeGrove.scaleY * 0.28);
+        }
+
         const routeLabel = this.scene.add.text(
             routeEnd.x,
             routeEnd.y + (compact ? 38 : 48),
@@ -8062,7 +8165,7 @@ class WorldBuilder {
             kind: 'heart_decision'
         });
         const kicker = this.scene.add.text(0, -15, 'YOUR CHOICE CHANGED THIS PLACE', {
-            fontSize: compact ? '8px' : '9px',
+            fontSize: compact ? '10px' : '12px',
             fontFamily: 'Arial, sans-serif',
             fontStyle: 'bold',
             color: result.option.value === 'care' ? '#8FE3CF' : '#F2C14E',
@@ -8101,6 +8204,16 @@ class WorldBuilder {
             duration: 420,
             ease: 'Sine.easeOut'
         });
+        const groveTween = routeGrove
+            ? this.scene.tweens.add({
+                targets: routeGrove,
+                alpha: 0.98,
+                scaleX: routeGrove.getData('villageDecisionTargetScaleX'),
+                scaleY: routeGrove.getData('villageDecisionTargetScaleY'),
+                duration: 760,
+                ease: 'Back.easeOut'
+            })
+            : null;
         const pulseTween = this.scene.tweens.add({
             targets: pulse,
             scaleX: { from: 0.82, to: 1.12 },
@@ -8116,10 +8229,15 @@ class WorldBuilder {
             pulse,
             livingRoute,
             routeRegrowth,
+            ...(routeGrove ? [routeGrove] : []),
             routeLabel,
             copy
         ];
-        landmark.decisionMomentTweens = [revealTween, pulseTween];
+        landmark.decisionMomentTweens = [
+            revealTween,
+            pulseTween,
+            ...(groveTween ? [groveTween] : [])
+        ];
         landmark.activeDecisionMoment = copy;
         this.scene.setSanctuaryMomentFocus?.(true, {
             kind: 'decision',
@@ -8128,7 +8246,15 @@ class WorldBuilder {
         landmark.decisionMomentTimer = this.scene.time.delayedCall(5200, () => {
             if (landmark.activeDecisionMoment !== copy) return;
             const fadeTween = this.scene.tweens.add({
-                targets: [paths, pulse, livingRoute, routeRegrowth, routeLabel, copy],
+                targets: [
+                    paths,
+                    pulse,
+                    livingRoute,
+                    routeRegrowth,
+                    routeLabel,
+                    copy,
+                    ...(routeGrove ? [routeGrove] : [])
+                ],
                 alpha: 0,
                 duration: 420,
                 onComplete: () => this.clearVillageDecisionMoment(landmark)

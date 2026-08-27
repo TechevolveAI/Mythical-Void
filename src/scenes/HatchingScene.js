@@ -164,6 +164,8 @@ class HatchingScene extends Phaser.Scene {
             return;
         }
 
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
+
         // Stop all other scenes to ensure clean display
         const scenesToStop = ['GameScene', 'InventoryScene', 'ShopScene'];
         SceneTransitionHelper.stopScenes(this, scenesToStop);
@@ -3253,6 +3255,7 @@ class HatchingScene extends Phaser.Scene {
         console.log('🧹 HatchingScene.shutdown() - Cleaning up scene resources');
 
         this.removeEggHatchFallback();
+        this.removeHomeStartFallback();
 
         // 1. Clean up tap to hatch text
         if (this.tapToHatchText) {

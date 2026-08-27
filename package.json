@@ -124,6 +124,7 @@
     "smoke:guardian-handoff": "SMOKE_MODE=guardian-handoff node scripts/smoke-secondary-journeys.js",
     "smoke:state-contract": "SMOKE_MODE=state-contract node scripts/smoke-secondary-journeys.js",
     "smoke:village-ui": "SMOKE_MODE=village-ui node scripts/smoke-secondary-journeys.js",
+    "smoke:void-portal": "SMOKE_MODE=void-portal-lifecycle node scripts/smoke-secondary-journeys.js",
     "smoke:journeys": "npm run smoke:interaction",
     "smoke:release": "npm run build && node scripts/run-browser-smoke.js",
     "validate-flow": "node scripts/validate-game-flow.js",

@@ -130,7 +130,6 @@ class NASAContentSystem {
             }
 
             this.loadLastShownDate();
-            await this.prefetchDailyContent();
             if (lifecycleToken !== this.lifecycleToken) return this;
 
             this.startISSTracking();
@@ -197,21 +196,6 @@ class NASAContentSystem {
         } catch (e) {
             devWarn('[NASAContent] Failed to reset daily content');
             return false;
-        }
-    }
-
-    /**
-     * Pre-fetch today's content in background
-     */
-    async prefetchDailyContent() {
-        try {
-            await Promise.all([
-                this.fetchAPOD(),
-                this.fetchMarsPhoto()
-            ]);
-            devLog('[NASAContent] Daily content prefetched');
-        } catch (error) {
-            devWarn('[NASAContent] Failed to prefetch:', error.message);
         }
     }
 
