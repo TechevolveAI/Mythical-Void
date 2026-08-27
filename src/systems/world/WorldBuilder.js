@@ -3521,7 +3521,8 @@ class WorldBuilder {
         {
             immediate = false,
             presentationMode = active ? 'action' : 'ambient',
-            focusPlotIdOverride
+            focusPlotIdOverride,
+            storyKind = null
         } = {}
     ) {
         if (!landmark?.zone) return false;
@@ -3529,9 +3530,22 @@ class WorldBuilder {
         landmark.focusTweens = [];
         landmark.focusModeActive = Boolean(active);
         landmark.presentationMode = active ? presentationMode : 'ambient';
+        landmark.storyFocusKind = active && presentationMode === 'story'
+            ? storyKind
+            : null;
 
         const action = landmark.snapshot?.worldState?.nextAction || null;
         const storyMode = Boolean(active && presentationMode === 'story');
+        const cinematicStory = storyMode && ['resident', 'decision', 'memory'].includes(
+            landmark.storyFocusKind
+        );
+        const actorOnlyStory = cinematicStory && landmark.storyFocusKind === 'resident';
+        [
+            landmark.districtTerrain,
+            landmark.districtEcology,
+            landmark.districtPulse,
+            landmark.districtThresholds
+        ].forEach(layer => layer?.setVisible?.(!cinematicStory));
         const ambientFocusPlotId = !active && ['build', 'assign'].includes(action?.type)
             ? action.plotId
             : null;
@@ -3588,7 +3602,13 @@ class WorldBuilder {
             const baseAlpha = !active
                 ? ambientAlpha
                 : storyMode
-                    ? primary ? 0.86 : compactPresentation ? 0.34 : 0.42
+                    ? actorOnlyStory
+                        ? 0
+                        : primary
+                        ? 0.94
+                        : cinematicStory
+                            ? 0
+                            : compactPresentation ? 0.34 : 0.42
                     : primary
                         ? 1
                         : presentation.plotState === 'constructing'
@@ -3651,7 +3671,7 @@ class WorldBuilder {
                                 ? compactPresentation ? 0.1 : 0.14
                                 : 0.12
                     : storyMode
-                        ? primary ? 0.82 : 0.12
+                        ? actorOnlyStory ? 0 : primary ? 0.86 : cinematicStory ? 0 : 0.12
                         : primary ? 1 : 0.18;
             presentation.districtAnchor
                 ?.setData('villageFocusPrimary', primary)
@@ -3693,7 +3713,7 @@ class WorldBuilder {
                         ? 0.96
                         : primary ? 0.92 : compactPresentation ? 0.76 : 0.78
                     : storyMode
-                        ? primary ? 0.78 : 0.24
+                        ? actorOnlyStory ? 0 : primary ? 0.9 : cinematicStory ? 0 : 0.24
                         : primary
                             ? 1
                             : focusPlotId
@@ -3725,7 +3745,11 @@ class WorldBuilder {
         const heartAlpha = !active
             ? heartIsPrimary ? heartBaseAlpha : heartBaseAlpha * 0.88
             : storyMode
-                ? heartIsPrimary ? heartBaseAlpha : heartBaseAlpha * 0.62
+                ? actorOnlyStory
+                    ? heartBaseAlpha * 0.04
+                    : heartIsPrimary
+                    ? heartBaseAlpha
+                    : heartBaseAlpha * 0.62
                 : focusPlotId
                     ? heartBaseAlpha * 0.78
                     : heartBaseAlpha;
@@ -3767,11 +3791,11 @@ class WorldBuilder {
         landmark.zone.setInteractive?.({ useHandCursor: true });
         const compactHeart = this.scene.scale.width <= 600;
         const labelAlpha = compactHeart
-            ? storyMode ? 0.24 : active ? 0.96 : 0.62
-            : storyMode ? 0.3 : active ? 0.8 : 0.18;
+            ? storyMode ? cinematicStory ? 0 : 0.24 : active ? 0.96 : 0.62
+            : storyMode ? cinematicStory ? 0 : 0.3 : active ? 0.8 : 0.18;
         const statusAlpha = compactHeart
-            ? storyMode ? 0.12 : active ? 0.78 : 0.48
-            : storyMode ? 0.16 : active ? 0.68 : 0;
+            ? storyMode ? cinematicStory ? 0 : 0.12 : active ? 0.78 : 0.48
+            : storyMode ? cinematicStory ? 0 : 0.16 : active ? 0.68 : 0;
         landmark.label
             ?.setData('villageVisibilityBaseAlpha', labelAlpha)
             .setAlpha(labelAlpha);
@@ -3779,11 +3803,15 @@ class WorldBuilder {
             ?.setData('villageVisibilityBaseAlpha', statusAlpha)
             .setAlpha(statusAlpha);
         this.setVillagePartyPresence(landmark, landmark.partyPositions || []);
-        landmark.heartCaption?.setAlpha(storyMode ? 0.44 : active ? 0.9 : 0.42);
-        landmark.arrivalGuide?.setAlpha(storyMode ? 0.12 : active ? 0.82 : 0.24);
+        landmark.heartCaption?.setAlpha(
+            storyMode ? cinematicStory ? 0 : 0.44 : active ? 0.9 : 0.42
+        );
+        landmark.arrivalGuide?.setAlpha(
+            storyMode ? cinematicStory ? 0 : 0.12 : active ? 0.82 : 0.24
+        );
         if (landmark.commonsLife) {
             const commonsAlpha = storyMode
-                ? heartIsPrimary ? 0.38 : 0.16
+                ? cinematicStory ? 0.06 : heartIsPrimary ? 0.38 : 0.16
                 : active && focusPlotId
                     ? 0.46
                     : 0.86;
@@ -3798,7 +3826,7 @@ class WorldBuilder {
             ) || 0.9;
             const routineAlpha = baseAlpha * (
                 storyMode
-                    ? heartIsPrimary ? 0.42 : 0.18
+                    ? cinematicStory ? 0.04 : heartIsPrimary ? 0.42 : 0.18
                     : active && focusPlotId
                         ? 0.5
                         : 1
@@ -3816,7 +3844,9 @@ class WorldBuilder {
             const lifeAlpha = memoryWeaveEmpty
                 ? 0
                 : lifeBaseAlpha * (storyMode
-                    ? heartIsPrimary ? 0.54 : 0.24
+                    ? cinematicStory
+                        ? heartIsPrimary ? 0.4 : 0.05
+                        : heartIsPrimary ? 0.54 : 0.24
                     : active && focusPlotId
                         ? 0.58
                         : 1);
@@ -3873,7 +3903,7 @@ class WorldBuilder {
                     ? 'heart_support'
                     : 'ambient_network';
         const routeHierarchyAlpha = {
-            story_recessed: 0.2,
+            story_recessed: cinematicStory ? 0.035 : 0.2,
             target_support: compactRoutes ? 0.34 : 0.38,
             heart_support: compactRoutes ? 0.46 : 0.52,
             ambient_network: compactRoutes ? 0.66 : 0.72
@@ -3886,7 +3916,7 @@ class WorldBuilder {
         landmark.heartMemoryElements?.forEach(element => {
             const memoryMarker = Boolean(element?.getData?.('villageHeartMemory'));
             const memoryAlpha = storyMode
-                ? memoryMarker ? 0.3 : 0.1
+                ? cinematicStory ? memoryMarker ? 0.08 : 0.015 : memoryMarker ? 0.3 : 0.1
                 : focusPlotId
                     ? memoryMarker ? 0.24 : 0.08
                     : active
@@ -3903,6 +3933,8 @@ class WorldBuilder {
                 storyMode ? 0.22 : active ? 0.52 : 1
             );
         });
+        transition(landmark.glow, actorOnlyStory ? 0 : 1);
+        transition(landmark.restorationRoots, actorOnlyStory ? 0 : 1);
         transition(landmark.heartArtwork, heartAlpha);
         transition(landmark.heart, heartAlpha);
         return true;
@@ -7275,30 +7307,54 @@ class WorldBuilder {
             .setData('villagePlanetMemoryPhenomenon', true)
             .setData('linkedActorCount', linkedActors.length)
             .setData('phenomenonLanguage', 'living_current_remembers_choice_v1');
+        const partyCenterX = linkedActors.length
+            ? linkedActors.reduce((sum, actor) => sum + actor.x, 0) / linkedActors.length
+            : markerX;
+        const partyCenterY = linkedActors.length
+            ? linkedActors.reduce((sum, actor) => sum + actor.y, 0) / linkedActors.length
+            : markerY;
+        const memoryPoolX = Phaser.Math.Linear(markerX, partyCenterX, 0.58);
+        const memoryPoolY = Phaser.Math.Linear(markerY, partyCenterY, 0.52);
+        const poolWidth = compact ? 142 : 190;
+        const poolHeight = compact ? 62 : 82;
+        phenomenon.fillStyle(0x07100F, 0.88);
+        phenomenon.fillEllipse(memoryPoolX, memoryPoolY, poolWidth, poolHeight);
+        phenomenon.fillStyle(0x493B76, 0.58);
+        phenomenon.fillEllipse(memoryPoolX, memoryPoolY, poolWidth * 0.78, poolHeight * 0.72);
+        phenomenon.fillStyle(color, 0.34);
+        phenomenon.fillEllipse(memoryPoolX, memoryPoolY, poolWidth * 0.54, poolHeight * 0.46);
+        phenomenon.lineStyle(compact ? 5 : 7, 0x8FE3CF, 0.74);
+        phenomenon.strokeEllipse(memoryPoolX, memoryPoolY, poolWidth * 0.9, poolHeight * 0.8);
+        phenomenon.lineStyle(2, 0xF2C14E, 0.84);
+        phenomenon.strokeEllipse(
+            memoryPoolX + (compact ? 8 : 12),
+            memoryPoolY - (compact ? 3 : 5),
+            poolWidth * 0.52,
+            poolHeight * 0.38
+        );
         linkedActors.forEach((actor, actorIndex) => {
             const actorColor = actorIndex === 0 ? 0x71E6B1 : 0xF4F4F4;
-            phenomenon.lineStyle(3, color, 0.72);
+            phenomenon.lineStyle(compact ? 13 : 17, 0x07100F, 0.78);
             phenomenon.beginPath();
-            phenomenon.moveTo(markerX, markerY);
-            const midX = (markerX + actor.x) / 2;
-            const midY = Math.min(markerY, actor.y) - (compact ? 34 : 48);
+            phenomenon.moveTo(memoryPoolX, memoryPoolY);
+            const midX = (memoryPoolX + actor.x) / 2;
+            const midY = Math.min(memoryPoolY, actor.y) - (compact ? 22 : 32);
             phenomenon.lineTo(midX, midY);
-            phenomenon.lineTo(actor.x, actor.y - 12);
+            phenomenon.lineTo(actor.x, actor.y - 10);
             phenomenon.strokePath();
-            phenomenon.lineStyle(2, actorColor, 0.82);
-            phenomenon.strokeEllipse(
-                actor.x,
-                actor.y - 8,
-                compact ? 62 : 72,
-                compact ? 30 : 36
-            );
-            for (let step = 1; step <= 3; step += 1) {
-                const progress = step / 4;
-                const x = Phaser.Math.Linear(markerX, actor.x, progress);
-                const y = Phaser.Math.Linear(markerY, actor.y - 12, progress) -
-                    Math.sin(progress * Math.PI) * (compact ? 28 : 40);
+            phenomenon.lineStyle(compact ? 5 : 7, actorColor, 0.86);
+            phenomenon.beginPath();
+            phenomenon.moveTo(memoryPoolX, memoryPoolY);
+            phenomenon.lineTo(midX, midY);
+            phenomenon.lineTo(actor.x, actor.y - 10);
+            phenomenon.strokePath();
+            for (let step = 1; step <= 4; step += 1) {
+                const progress = step / 5;
+                const x = Phaser.Math.Linear(memoryPoolX, actor.x, progress);
+                const y = Phaser.Math.Linear(memoryPoolY, actor.y - 10, progress) -
+                    Math.sin(progress * Math.PI) * (compact ? 18 : 26);
                 phenomenon.fillStyle(step === 2 ? 0xF2C14E : actorColor, 0.95);
-                phenomenon.fillCircle(x, y, step === 2 ? 5 : 3);
+                phenomenon.fillCircle(x, y, step === 2 ? 5 : 3.5);
             }
         });
         phenomenon.setBlendMode?.(Phaser.BlendModes.ADD);
@@ -7359,7 +7415,7 @@ class WorldBuilder {
         const speaker = this.scene.add.text(
             0,
             -24,
-            `${memory.speakerName.toUpperCase()} REMEMBERS`,
+            'THE GROUND REMEMBERS',
             {
                 fontSize: compact ? '8px' : '9px',
                 fontFamily: 'Arial, sans-serif',
@@ -7532,11 +7588,40 @@ class WorldBuilder {
             .setDepth(Math.min(actionOriginY, problemY) - 2)
             .setAlpha(1)
             .setData('villageHelpProblem', 'blocked_food_route');
-        blockedRoute.lineStyle(5, 0xC73A3A, 0.78);
-        blockedRoute.lineBetween(problemX - 18, problemY - 13, problemX + 18, problemY + 13);
-        blockedRoute.lineBetween(problemX - 18, problemY + 13, problemX + 18, problemY - 13);
-        blockedRoute.lineStyle(2, 0xF2C14E, 0.82);
-        blockedRoute.strokeCircle(problemX, problemY, compact ? 25 : 29);
+        blockedRoute.fillStyle(0x09120F, 0.96);
+        blockedRoute.fillTriangle(
+            problemX - 32, problemY + 18,
+            problemX - 8, problemY - 27,
+            problemX + 5, problemY + 18
+        );
+        blockedRoute.fillTriangle(
+            problemX - 4, problemY + 18,
+            problemX + 17, problemY - 22,
+            problemX + 34, problemY + 18
+        );
+        blockedRoute.lineStyle(4, 0xC73A3A, 0.9);
+        blockedRoute.beginPath();
+        blockedRoute.moveTo(problemX - 11, problemY - 20);
+        blockedRoute.lineTo(problemX + 1, problemY - 5);
+        blockedRoute.lineTo(problemX - 5, problemY + 9);
+        blockedRoute.lineTo(problemX + 12, problemY + 17);
+        blockedRoute.strokePath();
+        blockedRoute.lineStyle(2, 0xF2C14E, 0.78);
+        blockedRoute.strokeEllipse(problemX, problemY + 19, 76, 18);
+        const blockedLabel = this.scene.add.text(
+            problemX,
+            problemY - (compact ? 38 : 46),
+            'BLOCKED',
+            {
+                fontSize: compact ? '9px' : '11px',
+                fontFamily: 'Arial, sans-serif',
+                fontStyle: 'bold',
+                color: '#FF7777',
+                stroke: '#07100F',
+                strokeThickness: 5
+            }
+        ).setOrigin(0.5).setDepth(Math.min(actionOriginY, problemY) + 3)
+            .setData('villageHelpProblemLabel', true);
 
         const openedRoute = this.scene.add.graphics()
             .setDepth(Math.min(actionOriginY, problemY) - 1)
@@ -7595,7 +7680,7 @@ class WorldBuilder {
         const result = this.scene.add.text(
             problemX,
             problemY + (compact ? 34 : 40),
-            'CREATURE OPENED THE ROUTE  +5',
+            'ROUTE OPEN  +5',
             {
                 fontSize: compact ? '9px' : '11px',
                 fontFamily: 'Arial, sans-serif',
@@ -7698,7 +7783,7 @@ class WorldBuilder {
         copy.setData('helpResultVisible', false);
 
         const revealTween = this.scene.tweens.add({
-            targets: [path, pulse, actionPulse, copy, blockedRoute],
+            targets: [pulse, actionPulse, copy, blockedRoute, blockedLabel],
             alpha: 1,
             duration: 340,
             ease: 'Sine.easeOut'
@@ -7728,6 +7813,7 @@ class WorldBuilder {
             pulse,
             actionPulse,
             blockedRoute,
+            blockedLabel,
             openedRoute,
             regrowth,
             result,
@@ -7749,10 +7835,10 @@ class WorldBuilder {
                 ease: 'Sine.easeOut'
             });
             const obstacleTween = this.scene.tweens.add({
-                targets: blockedRoute,
-                alpha: 0.34,
-                scaleX: 1.35,
-                scaleY: 1.35,
+                targets: [blockedRoute, blockedLabel],
+                alpha: 0.64,
+                scaleX: 1.12,
+                scaleY: 1.12,
                 duration: 360,
                 ease: 'Sine.easeOut'
             });

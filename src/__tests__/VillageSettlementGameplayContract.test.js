@@ -646,8 +646,8 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('const commonsAlpha = storyMode');
         expect(world).toContain(".setData('villagePresentationMode', landmark.presentationMode)");
         expect(world).toContain('const labelAlpha = compactHeart');
-        expect(world).toContain('? storyMode ? 0.24 : active ? 0.96 : 0.62');
-        expect(world).toContain('? storyMode ? 0.12 : active ? 0.78 : 0.48');
+        expect(world).toContain('? storyMode ? cinematicStory ? 0 : 0.24 : active ? 0.96 : 0.62');
+        expect(world).toContain('? storyMode ? cinematicStory ? 0 : 0.12 : active ? 0.78 : 0.48');
         expect(world).toContain('`TAP · ${sanctuaryCommunityCount} COMMUNITY · ${restoredCount}/${VILLAGE_PLOTS.length} ROOTS`');
         expect(world).toContain('`${sanctuaryCommunityCount} COMMUNITY · ${regionalGuardianCount} REGIONAL ALLIES`');
         expect(village).toContain('export const VILLAGE_GROWTH_PROFILES');
@@ -918,6 +918,16 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain(".setData('villageFocusPrimary', primary)");
         expect(world).toContain("presentationMode = active ? 'action' : 'ambient'");
         expect(world).toContain("presentationMode === 'story'");
+        expect(world).toContain('storyKind = null');
+        expect(world).toContain("['resident', 'decision', 'memory'].includes(");
+        expect(world).toContain('landmark.storyFocusKind');
+        expect(world).toContain("const actorOnlyStory = cinematicStory && landmark.storyFocusKind === 'resident';");
+        expect(world).toContain('? actorOnlyStory');
+        expect(world).toContain('layer?.setVisible?.(!cinematicStory)');
+        expect(world).toContain('transition(landmark.glow, actorOnlyStory ? 0 : 1)');
+        expect(world).toContain("'THE GROUND REMEMBERS'");
+        expect(village).toContain("checkInLine: 'Three food patches are safe. I left one to regrow.'");
+        expect(scene).toContain('storyKind: active ? kind : null');
         expect(world).toContain("presentation.plotState === 'constructing'");
         expect(world).toContain('setVillagePlayerProximity(landmark, plotId = null)');
         expect(world).toContain(".setData('villagePlayerNearby', playerNearby)");

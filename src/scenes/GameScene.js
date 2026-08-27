@@ -9348,7 +9348,8 @@ class GameScene extends Phaser.Scene {
             {
                 immediate: !active,
                 presentationMode: nextMode,
-                focusPlotIdOverride: active ? plotId : undefined
+                focusPlotIdOverride: active ? plotId : undefined,
+                storyKind: active ? kind : null
             }
         );
         this.villageHeartLandmark.zone

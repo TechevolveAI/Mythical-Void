@@ -254,7 +254,7 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
             cue: 'MAPS SAFE FOOD PATHS',
             carriedResource: 'food',
             emotionalPurpose: 'Leaves enough living growth for tomorrow.',
-            checkInLine: 'I found three patches we can eat from. I marked the fourth so it can recover.'
+            checkInLine: 'Three food patches are safe. I left one to regrow.'
         })
     }),
     Object.freeze({
