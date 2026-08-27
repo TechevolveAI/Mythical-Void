@@ -162,6 +162,7 @@ function buildFieldGuideHtml(data) {
     <meta name="twitter:image:alt" content="An imagined luminous universe filled with many possible alien creature forms">
     <link rel="canonical" href="https://mythicalvoid.com/creature-field-guide/">
     <link rel="describedby" type="text/markdown" href="https://mythicalvoid.com/llms.txt">
+    <link rel="manifest" href="/manifest.webmanifest">
     <link rel="alternate" type="application/rss+xml" title="Mythical Void — The Signal Log" href="https://mythicalvoid.com/updates/feed.xml">
     <link rel="alternate" type="application/feed+json" title="Mythical Void — The Signal Log" href="https://mythicalvoid.com/updates/feed.json">
     <link rel="icon" type="image/png" sizes="32x32" href="/marketing/mythical-void-mark-32.png">
@@ -180,6 +181,7 @@ function buildFieldGuideHtml(data) {
         <section class="content-section field-guide-finale"><div class="section-inner split"><div><p class="kicker">THE FINAL RECORD IS YOURS</p><h2>Observe. Repair. Protect. Then decide what should be known.</h2><p>Project Beacon begins as a way home. Each realm changes the meaning of that mission. By the final boundary, discovery is no longer only about what humanity can learn. It is about what humanity can be trusted to carry.</p></div><div class="field-finale-card"><span>READY TO BEGIN?</span><p>Wanderer-77 is down. The first signal is waiting in the Mythical Forest.</p><a class="button button-primary" href="/play/">Play now — it’s free →</a><a class="field-text-link" href="/story/">Read the main story</a></div></div></section>
     </main>
     <footer class="site-footer"><div class="footer-inner"><a class="brand" href="/"><img src="/marketing/mythical-void-emblem-v3.png" alt=""><span>MYTHICAL VOID</span></a><div class="footer-links"><a href="/play/">Play</a><a href="/story/">Story</a><a href="/creature-genetics/">Creature engine</a><a href="/press/">Press room</a><a href="/updates/">Signal Log</a><a href="/parents/">For grown-ups</a></div><small>Built in Ireland by a father and his nine-year-old son—with imagination, careful AI and a lot of questions.</small></div></footer>
+    <script src="/pwa-install.js?v=20260827-installable-game"></script>
 </body>
 </html>`;
 }

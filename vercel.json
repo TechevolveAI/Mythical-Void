@@ -53,11 +53,18 @@
       "destination": "/space-signal/index.html"
     },
     {
-      "source": "/((?!assets/|marketing/|game/|audio/|updates/|space-signal/|playable-now/|hatch-challenge/|og\\.png|sw\\.js|apple-touch-icon\\.png).*)",
+      "source": "/((?!assets/|marketing/|game/|audio/|updates/|space-signal/|playable-now/|hatch-challenge/|manifest\\.webmanifest|og\\.png|sw\\.js|apple-touch-icon\\.png).*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
+    {
+      "source": "/manifest.webmanifest",
+      "headers": [
+        { "key": "Content-Type", "value": "application/manifest+json; charset=utf-8" },
+        { "key": "Cache-Control", "value": "public, max-age=300, must-revalidate" }
+      ]
+    },
     {
       "source": "/updates/feed.xml",
       "headers": [

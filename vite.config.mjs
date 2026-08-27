@@ -37,7 +37,9 @@ export default defineConfig(({ command, mode }) => {
               '<meta name="robots" content="index, follow, max-image-preview:large">',
               '<meta name="robots" content="noindex, nofollow">'
             )
-            .replace(/\s*<!-- Google tag:[\s\S]*?<\/script>/, '');
+            .replace(/\s*<!-- Google tag:[\s\S]*?<\/script>/, '')
+            .replace(/\s*<link rel="manifest" href="(?:\/|\.\/)manifest\.webmanifest">/, '')
+            .replace(/\s*<script defer src="(?:\/|\.\/)pwa-install\.js[^>]*><\/script>/, '');
         }
       }]
     : [],

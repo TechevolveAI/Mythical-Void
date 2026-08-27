@@ -101,6 +101,7 @@ function buildSignalLog(data) {
     <meta name="twitter:image:alt" content="An imagined luminous universe filled with many possible alien creature forms">
     <link rel="canonical" href="${escapeHtml(data.page.canonicalUrl)}">
     <link rel="describedby" type="text/markdown" href="https://mythicalvoid.com/llms.txt">
+    <link rel="manifest" href="/manifest.webmanifest">
     <link rel="alternate" type="application/rss+xml" title="Mythical Void — The Signal Log" href="https://mythicalvoid.com/updates/feed.xml">
     <link rel="alternate" type="application/feed+json" title="Mythical Void — The Signal Log" href="https://mythicalvoid.com/updates/feed.json">
     <link rel="icon" type="image/png" sizes="32x32" href="/marketing/mythical-void-mark-32.png">
@@ -120,6 +121,7 @@ function buildSignalLog(data) {
         <section class="final-cta"><div class="section-inner"><p class="kicker">THE CURRENT BUILD IS WAITING</p><h2>Read the signal. Then enter the Void.</h2><p>The browser game is free to start, with no download or account needed.</p><div class="hero-actions"><a class="button button-primary" href="/play/">Play Mythical Void →</a><a class="button button-quiet" href="/story/">Follow Project Beacon</a></div></div></section>
     </main>
     <footer class="site-footer"><div class="footer-inner"><a class="brand" href="/"><img src="/marketing/mythical-void-emblem-v3.png" alt=""><span>MYTHICAL VOID</span></a><nav class="footer-links" aria-label="Footer navigation"><a href="/updates/">What's new</a><a href="/story/">The story</a><a href="/creature-genetics/">Creature genetics</a><a href="/educators/">For groups & educators</a><a href="/nasa-space-science/">NASA & STEM</a><a href="/parents/">For grown-ups</a><a href="/press/">Press & creators</a><a href="/privacy/">Privacy & safety</a></nav><small>© 2026 Mythical Void. Made in Ireland for curious minds everywhere.</small></div></footer>
+    <script src="/pwa-install.js?v=20260827-installable-game"></script>
     <script src="/discovery.js"></script>
 </body>
 </html>

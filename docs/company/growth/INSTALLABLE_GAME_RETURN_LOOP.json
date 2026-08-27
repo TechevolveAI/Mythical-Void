@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "installable-game-return-loop-2026-08-27",
+  "status": "owned_release_ready",
+  "plainLanguageOutcome": "Let a player who already wants Mythical Void keep it on a supported device and return directly to the game.",
+  "manifestUrl": "https://mythicalvoid.com/manifest.webmanifest",
+  "startUrl": "https://mythicalvoid.com/play/",
+  "experience": {
+    "automaticPrompt": false,
+    "browserSupportRequired": true,
+    "userButtonRequired": true,
+    "opensDirectlyIntoGame": true,
+    "normalBrowserPlayRemainsAvailable": true,
+    "fullOfflinePlayClaimed": false,
+    "installationGuaranteed": false
+  },
+  "privacy": {
+    "accountRequired": false,
+    "emailCollected": false,
+    "contactCollected": false,
+    "playerProfileCreated": false,
+    "installChoiceStoredByMythical": false,
+    "analyticsEventAdded": false,
+    "trackingParametersAdded": false
+  },
+  "visuals": {
+    "icon": "public/marketing/mythical-void-mark-512.png",
+    "newGameplayScreenshotPublished": false,
+    "generatedArtworkPresentedAsGameplay": false
+  },
+  "authority": {
+    "ownedWebsitePublicationAuthorized": true,
+    "appStoreSubmissionAuthorized": false,
+    "socialPostingAuthorized": false,
+    "paidPromotionAuthorized": false
+  }
+}
