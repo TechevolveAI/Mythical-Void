@@ -44,7 +44,9 @@ requireValue(llms.includes('[Today\'s Space Signal](https://mythicalvoid.com/spa
 requireValue(netlify.includes('from = "/space-signal/"') && netlify.includes('to = "/space-signal/index.html"'), 'Netlify route is missing');
 requireValue(vercel.includes('"source": "/space-signal/"') && vercel.includes('"destination": "/space-signal/index.html"'), 'Vercel route is missing');
 
-requireValue(release.status === 'owned_release_ready', 'release status is not ready');
+requireValue(release.status === 'live', 'release is not recorded as live');
+requireValue(release.productionEvidence?.pageReturned === 200, 'public page verification is missing');
+requireValue(release.productionEvidence?.desktopVisualReview === 'passed', 'production visual review is missing');
 requireValue(release.source?.fieldsUsed?.join(',') === 'title,date', 'release uses more NASA fields than intended');
 requireValue(release.source?.fieldsNotRepublished?.includes('copyright'), 'release omits the APOD rights boundary');
 for (const [key, expected] of Object.entries({

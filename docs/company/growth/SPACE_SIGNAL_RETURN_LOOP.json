@@ -1,7 +1,19 @@
 {
   "schemaVersion": 1,
   "releaseId": "space-signal-return-loop-2026-08-27",
-  "status": "owned_release_ready",
+  "status": "live",
+  "verifiedAt": "2026-08-27T04:54:00Z",
+  "productionEvidence": {
+    "commit": "ee94f45999997544ebad759c9868c93d9d964475",
+    "netlifyDeploy": "6a8fc268038a660008f8093c",
+    "pageReturned": 200,
+    "liveTitle": "Colorful Aurora over Icelandic Waterfall",
+    "liveSourceHost": "apod.nasa.gov",
+    "desktopVisualReview": "passed",
+    "dailyNasaImageRepublished": false,
+    "indexNowAccepted": true,
+    "indexNowUrlCount": 15
+  },
   "plainLanguageOutcome": "Give curious players, families and groups one honest reason to return: a changing real-space source, a short science mission and a new alien-creature question.",
   "publicRoute": "https://mythicalvoid.com/space-signal/",
   "apiRoute": "https://mythicalvoid.com/api/space-signal",
