@@ -8,7 +8,7 @@ const pages = [
     {
         route: '/playable-now/',
         file: 'public/playable-now/index.html',
-        required: ['LOOKING FOR A NEW GAME? PLAY THIS ONE', 'Hatch a strange alien creature. Save six living realms.', 'Mythical Void is a free browser adventure', 'No payment details', 'NASA does not endorse Mythical Void.']
+        required: ['LOOKING FOR A NEW GAME? PLAY FREE ONLINE', 'Hatch a strange alien creature. Save six living realms.', 'Mythical Void is a free online browser adventure', 'No payment details', 'NASA does not endorse Mythical Void.']
     },
     {
         route: '/hatch-challenge/',

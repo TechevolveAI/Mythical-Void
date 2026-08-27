@@ -6,10 +6,17 @@
   "page": {
     "path": "public/playable-now/index.html",
     "publicUrl": "https://mythicalvoid.com/playable-now/",
-    "sha256": "de5f964c52cd4970b83a9a47e0bed71ed3735385e022758193e96c1bb1f27366",
+    "sha256": "980d0773c3b4eebfd03081976f374f9bd8b128a7fc6db1dfbed1768aed7c8f78",
     "canonical": "https://mythicalvoid.com/playable-now/",
     "directPlayLinkMinimum": 3,
     "structuredData": ["VideoGame", "FAQPage"],
+    "searchClassification": {
+      "pageTitle": "Play a Free Alien Creature Game Online | Mythical Void",
+      "applicationCategory": "GameApplication",
+      "freeOfferPrice": 0,
+      "ratingOrReviewClaimed": false,
+      "richResultClaimed": false
+    },
     "structuredDirectPlay": {
       "action": "PlayAction",
       "target": "https://mythicalvoid.com/play/",
@@ -21,7 +28,7 @@
     }
   },
   "firstScreenMessage": {
-    "eyebrow": "LOOKING FOR A NEW GAME? PLAY THIS ONE",
+    "eyebrow": "LOOKING FOR A NEW GAME? PLAY FREE ONLINE",
     "headline": "Hatch a strange alien creature. Save six living realms.",
     "reason": "The previous mood question asked the visitor to make another decision before clearly stating the game promise.",
     "moodChooserPreserved": true,

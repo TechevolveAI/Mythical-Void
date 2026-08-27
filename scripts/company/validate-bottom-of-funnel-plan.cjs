@@ -48,7 +48,7 @@ for (const phrase of ['A free browser adventure', 'What makes somebody start a g
     requireValue(planText.includes(phrase), `plain-language plan is missing: ${phrase}`);
 }
 for (const source of plan.sources || []) requireValue(planText.includes(source), `plain-language plan is missing source: ${source}`);
-for (const phrase of ['LOOKING FOR A NEW GAME? PLAY THIS ONE', 'Hatch a strange alien creature. Save six living realms.', 'Free · No game ads · No chat with other players · No download · No account · No payment details · Early access', 'Hatch a creature shaped by genetics']) {
+for (const phrase of ['LOOKING FOR A NEW GAME? PLAY FREE ONLINE', 'Hatch a strange alien creature. Save six living realms.', 'Free · No game ads · No chat with other players · No download · No account · No payment details · Early access', 'Hatch a creature shaped by genetics']) {
     requireValue(playable.includes(phrase), `playable search doorway is missing: ${phrase}`);
 }
 requireValue(playable.indexOf('id="find-your-way"') < playable.indexOf('class="truth-strip"'), 'the owned search doorway is not the first main decision');

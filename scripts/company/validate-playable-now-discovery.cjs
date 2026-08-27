@@ -18,10 +18,12 @@ const sha256 = value => crypto.createHash('sha256').update(value).digest('hex');
 
 requireValue(page.includes('<link rel="canonical" href="https://mythicalvoid.com/playable-now/">'), 'canonical URL is missing');
 requireValue(page.includes('<meta name="robots" content="index, follow, max-image-preview:large'), 'page must remain indexable');
+requireValue(page.includes('<title>Play a Free Alien Creature Game Online | Mythical Void</title>'), 'high-intent page title is missing');
+requireValue(page.includes('content="Play Mythical Void free online in your browser'), 'high-intent page description is missing');
 requireValue((page.match(/<h1(?:\s[^>]*)?>/g) || []).length === 1, 'page must have exactly one main heading');
-requireValue(page.includes('LOOKING FOR A NEW GAME? PLAY THIS ONE') && page.includes('<h1>Hatch a strange alien creature. Save six living realms.</h1>'), 'search-first game promise is missing from the first screen');
+requireValue(page.includes('LOOKING FOR A NEW GAME? PLAY FREE ONLINE') && page.includes('<h1>Hatch a strange alien creature. Save six living realms.</h1>'), 'search-first game promise is missing from the first screen');
 requireValue(page.indexOf('id="find-your-way"') < page.indexOf('class="truth-strip"'), 'the game finder must remain the first main section');
-requireValue(page.includes('Mythical Void is a free browser adventure with platforming, battles, building and story choices.'), 'plain playable category is missing from the first screen');
+requireValue(page.includes('Mythical Void is a free online browser adventure with platforming, battles, building and story choices.'), 'plain playable category is missing from the first screen');
 requireValue(page.includes('Free · No game ads · No chat with other players · No download · No account · No payment details · Early access'), 'first-screen access and family trust answer is missing');
 requireValue(page.includes('Early access') && /still (?:growing|in early access)/i.test(page), 'early-access boundary is missing');
 requireValue(page.includes('NASA does not endorse Mythical Void.'), 'NASA non-endorsement is missing');
@@ -60,6 +62,9 @@ const structuredGame = Array.isArray(structured) ? structured.find(item => item?
 requireValue(structuredGame?.['@id'] === 'https://mythicalvoid.com/#video-game', 'structured game identity is missing');
 requireValue(structuredGame?.mainEntityOfPage === 'https://mythicalvoid.com/playable-now/', 'structured game does not identify the canonical decision page');
 requireValue(structuredGame?.creator?.['@id'] === 'https://mythicalvoid.com/#studio' && structuredGame?.creator?.url === 'https://mythicalvoid.com/studio/', 'structured game creator is missing or drifted');
+requireValue(structuredGame?.applicationCategory === 'GameApplication', 'structured game category must identify a game application');
+requireValue(structuredGame?.isAccessibleForFree === true && structuredGame?.offers?.price === 0, 'structured game must describe its free access truthfully');
+requireValue(!Object.hasOwn(structuredGame || {}, 'aggregateRating') && !Object.hasOwn(structuredGame || {}, 'review'), 'structured game must not invent a rating or review');
 requireValue(structuredGame?.potentialAction?.['@type'] === 'PlayAction', 'structured direct Play action is missing');
 requireValue(structuredGame?.potentialAction?.target?.['@type'] === 'EntryPoint' && structuredGame?.potentialAction?.target?.urlTemplate === 'https://mythicalvoid.com/play/', 'structured Play target must use the clean owned game route');
 requireValue(structuredGame?.potentialAction?.target?.actionPlatform?.includes('https://schema.org/DesktopWebPlatform') && structuredGame?.potentialAction?.target?.actionPlatform?.includes('https://schema.org/MobileWebPlatform'), 'structured Play platforms are incomplete');
@@ -73,6 +78,9 @@ requireValue(release.visualDecision?.withdrawnGameplayMedia === true && release.
 requireValue(release.visualDecision?.firstScreenArtRemoved === true && release.visualDecision?.firstScreenExperience === 'interactive_game_finder', 'release must record the art-free first-screen decision');
 requireValue(release.visualDecision?.sharingImageClassification === 'ai_generated_marketing_illustration_not_gameplay', 'sharing-image boundary is missing');
 requireValue(release.firstScreenMessage?.headline === 'Hatch a strange alien creature. Save six living realms.', 'release does not record the clear game promise');
+requireValue(release.firstScreenMessage?.eyebrow === 'LOOKING FOR A NEW GAME? PLAY FREE ONLINE', 'release does not record the high-intent doorway wording');
+requireValue(release.page?.searchClassification?.applicationCategory === 'GameApplication' && release.page?.searchClassification?.freeOfferPrice === 0, 'release does not record the truthful free game classification');
+requireValue(release.page?.searchClassification?.ratingOrReviewClaimed === false && release.page?.searchClassification?.richResultClaimed === false, 'release must not invent reviews or promise a search result');
 requireValue(release.firstScreenMessage?.moodChooserPreserved === true && release.firstScreenMessage?.directPlayPreserved === true, 'release lost the optional choice or direct Play route');
 requireValue(release.firstScreenMessage?.gameplayMediaAdded === false, 'release must not imply that gameplay media was added');
 requireValue(release.page?.structuredDirectPlay?.action === 'PlayAction' && release.page?.structuredDirectPlay?.target === 'https://mythicalvoid.com/play/' && release.page?.structuredDirectPlay?.entryPoint === true, 'release does not record the structured direct Play route');
