@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "INDEXNOW-2026-08-27-03",
+  "submittedAt": "2026-08-27T06:07:35Z",
+  "host": "mythicalvoid.com",
+  "endpoint": "https://api.indexnow.org/indexnow",
+  "reason": "The Playable Now game-finder gained a clearer first-screen promise that names the alien creature and six-realm adventure before the optional mood choices.",
+  "urls": [
+    "https://mythicalvoid.com/playable-now/"
+  ],
+  "urlCount": 1,
+  "httpStatus": 200,
+  "accepted": true,
+  "unchangedSitemapUrlsResubmitted": false,
+  "meaning": "Participating search engines accepted a notification for the one genuinely changed owned page. This does not prove that the page has been crawled, indexed or ranked.",
+  "personalDataSent": false,
+  "accountUsed": false,
+  "paidPromotionStarted": false
+}

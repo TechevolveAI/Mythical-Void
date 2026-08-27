@@ -85,7 +85,7 @@ for (const field of ['trackingCodeAdded', 'choiceSentToServer', 'choiceStoredAsP
 }
 requireValue(plan.decisionRules?.minimumConsentedPageViews >= 50 && plan.decisionRules?.minimumIntentPlaySelections >= 10, 'minimum decision boundary is too weak');
 requireValue(plan.visualBoundary?.approvedGameplayMoments === 0 && plan.visualBoundary?.requiredGameplayMoments === 4, 'visual gate drifted');
-requireValue(plan.verification?.productionCommit === '148ca62d0c466bd031a5529ae83389067bb4e342' && plan.verification?.productionDeployId === '6a8fb0d5da9b150008b16ec2', 'production verification is missing or drifted');
+requireValue(plan.verification?.productionCommit === '5bd1581a91074f64b9823388074eb3ea349d323a' && plan.verification?.productionDeployId === '6a8fd3bd0ac52a00080eb726', 'production verification is missing or drifted');
 requireValue(plan.verification?.directButtonVisible === true && plan.verification?.directDestination === 'https://mythicalvoid.com/play/', 'live direct-Play proof is missing');
 for (const field of ['externalSocialPublicationAuthorized', 'portalSubmissionAuthorized', 'paidPromotionAuthorized', 'outreachAuthorized', 'externalAccountChangeAuthorized']) {
     requireValue(plan.authority?.[field] === false, `${field} must remain false`);

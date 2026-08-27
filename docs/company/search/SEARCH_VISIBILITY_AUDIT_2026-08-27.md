@@ -46,6 +46,10 @@ After the installable-game release, only the two pages that genuinely changed
 were notified again: the homepage and Playable Now. IndexNow returned `200` at
 05:44 UTC. The other sitemap pages were not repeatedly resubmitted.
 
+After the Playable Now first screen was rewritten to state the game promise
+before asking about mood, only that one changed page was notified. IndexNow
+returned `200` at 06:07 UTC. No unchanged page was included.
+
 ## The right next move
 
 Do not make lots of near-identical “free game” pages. The useful page already
