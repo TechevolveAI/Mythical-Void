@@ -70,6 +70,17 @@
   status = 200
 
 [[redirects]]
+  # Keep the dedicated Hatch Challenge preview ahead of the SPA fallback.
+  from = "/hatch-challenge"
+  to = "/hatch-challenge/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/hatch-challenge/"
+  to = "/hatch-challenge/index.html"
+  status = 200
+
+[[redirects]]
   # Keep the public Signal Log ahead of the SPA fallback.
   from = "/updates"
   to = "/updates/index.html"

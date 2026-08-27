@@ -48,22 +48,29 @@ requireValue(!discovery.includes('mailto:') && !discovery.includes('tel:'), 'sha
 requireValue(discovery.includes("shareUrl = 'https://mythicalvoid.com/playable-now/#find-your-way/' + intentId"), 'game-finder word of mouth is not specific to the chosen reason');
 requireValue(discovery.includes("window.history.replaceState(null, '', cleanAddress.pathname + cleanAddress.search + cleanAddress.hash)"), 'game-finder sharing must keep a clean owned URL');
 for (const required of [
-    "var hatchChallengeUrl = 'https://mythicalvoid.com/playable-now/#hatch-challenge'",
+    "var hatchChallengeUrl = 'https://mythicalvoid.com/hatch-challenge/'",
     'navigator.share(hatchChallengeData)',
     'navigator.clipboard.writeText(hatchChallengeUrl)',
     "track('share_completed', 'share_section')",
     "track('share_link_copied', 'share_section')"
 ]) requireValue(discovery.includes(required), `public/discovery.js: Hatch Challenge is missing ${required}`);
 const playable = read('public/playable-now/index.html');
+const hatchPage = read('public/hatch-challenge/index.html');
 requireValue(playable.includes('id="hatch-challenge"') && playable.includes('data-hatch-challenge'), 'Hatch Challenge section is missing');
 requireValue(playable.includes('This is not multiplayer.') && playable.includes('never asks who you invited'), 'Hatch Challenge must explain its honest boundary');
 requireValue(!/every (?:possible )?creature is unique|guaranteed different/i.test(playable), 'Hatch Challenge must not guarantee a unique result');
+requireValue(hatchPage.includes('<link rel="canonical" href="https://mythicalvoid.com/hatch-challenge/">'), 'dedicated Hatch Challenge canonical URL is missing');
+requireValue(hatchPage.includes('data-share-url="https://mythicalvoid.com/hatch-challenge/"'), 'dedicated Hatch Challenge share URL is missing');
+requireValue(hatchPage.includes('This is not multiplayer.') && hatchPage.includes('never asks who you invited'), 'dedicated Hatch Challenge must explain its honest boundary');
+for (const control of ['data-hatch-challenge-share', 'data-hatch-challenge-copy', 'data-hatch-challenge-status']) requireValue(hatchPage.includes(control), `dedicated Hatch Challenge ${control} is missing`);
+requireValue(hatchPage.includes('href="/play/"') && !hatchPage.includes('<form'), 'dedicated Hatch Challenge must lead directly to play without collecting details');
+requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(hatchPage), 'dedicated Hatch Challenge must use clean links');
 requireValue(discoveryCss.includes('.hatch-challenge-shell') && discoveryCss.includes('.hatch-challenge-steps'), 'Hatch Challenge layout is missing');
 requireValue(discoveryCss.includes('.hatch-challenge-actions .button { width: 100%; }') && discoveryCss.includes('.hatch-challenge-steps li:nth-child(2) { margin-left: 0; }'), 'Hatch Challenge phone layout is missing');
 
 requireValue(hatchChallenge.releaseId === 'HATCH-CHALLENGE-2026-08-27', 'Hatch Challenge release identity is invalid');
 requireValue(['owned_site_release_prepared', 'live_production_verified'].includes(hatchChallenge.state), 'Hatch Challenge release state is invalid');
-requireValue(hatchChallenge.publicRoute === 'https://mythicalvoid.com/playable-now/#hatch-challenge', 'Hatch Challenge public route drifted');
+requireValue(hatchChallenge.publicRoute === 'https://mythicalvoid.com/hatch-challenge/', 'Hatch Challenge public route drifted');
 requireValue(hatchChallenge.promise?.participants === 2 && hatchChallenge.promise?.multiplayerClaimed === false && hatchChallenge.promise?.differenceGuaranteed === false, 'Hatch Challenge promise drifted');
 for (const field of ['recipientCollected', 'playerIdentityCollected', 'creatureDataReadForShare', 'creatureDataTransmitted', 'contactDetailsCollected', 'newAnalyticsEventAdded']) {
     requireValue(hatchChallenge.privacy?.[field] === false, `Hatch Challenge privacy.${field} must remain false`);
@@ -83,7 +90,7 @@ requireValue(pack.id === 'FOUNDING-SIGNAL-001' && pack.state === 'owned_word_of_
 requireValue(pack.primaryStoryUrl === 'https://mythicalvoid.com/studio/', 'founding launch pack must use the studio story');
 requireValue(Array.isArray(pack.ownedShareRoutes) && pack.ownedShareRoutes.length === 5, 'launch pack must list five owned share routes');
 for (const page of pages) requireValue(pack.ownedShareRoutes.some(item => item.route === page.route), `launch pack is missing ${page.route}`);
-requireValue(pack.ownedShareRoutes.some(item => item.route === '/playable-now/#hatch-challenge'), 'launch pack is missing the Hatch Challenge route');
+requireValue(pack.ownedShareRoutes.some(item => item.route === '/hatch-challenge/'), 'launch pack is missing the Hatch Challenge route');
 for (const field of ['socialPublishingAuthorized', 'paidPromotionAuthorized', 'bulkOutreachAuthorized', 'directChildContactAuthorized', 'recipientCollectionEnabled', 'trackingParametersEnabled', 'weakGameplayVisualPermitted']) {
     requireValue(pack.boundaries?.[field] === false, `launch boundary ${field} must remain false`);
 }
@@ -97,7 +104,7 @@ const release = releases.entries?.find(entry => entry.id === 'SIGNAL-017');
 requireValue(release?.status === 'live' && release?.destination === '/studio/', 'Signal 017 must be a live owned release');
 requireValue(release?.image === '/marketing/mythical-void-creature-universe-hero-v2.webp' && /not gameplay/i.test(release?.disclosure || ''), 'Signal 017 needs the approved artwork and disclosure');
 const hatchRelease = releases.entries?.find(entry => entry.id === 'SIGNAL-023');
-requireValue(hatchRelease?.status === 'live' && hatchRelease?.destination === '/playable-now/#hatch-challenge', 'Signal 023 must publish the Hatch Challenge on the owned Signal Log');
+requireValue(hatchRelease?.status === 'live' && hatchRelease?.destination === '/hatch-challenge/', 'Signal 023 must publish the Hatch Challenge on the owned Signal Log');
 requireValue(hatchRelease?.image === '/marketing/mythical-void-creature-universe-hero-v2.webp' && /not gameplay/i.test(hatchRelease?.disclosure || ''), 'Signal 023 needs the approved artwork and disclosure');
 requireValue(packageJson.scripts?.build?.includes('validate:word-of-mouth'), 'production build must run the word-of-mouth validator');
 

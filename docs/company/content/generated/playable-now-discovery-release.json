@@ -6,7 +6,7 @@
   "page": {
     "path": "public/playable-now/index.html",
     "publicUrl": "https://mythicalvoid.com/playable-now/",
-    "sha256": "3c3a0a686888990588cdea9921a3abeeefcafa70229757d227ff612b477cb5be",
+    "sha256": "56bca2d69f5401d545584a7580ca20b5f166ff5f887cc0fbc46298f56a8c9732",
     "canonical": "https://mythicalvoid.com/playable-now/",
     "directPlayLinkMinimum": 3,
     "structuredData": ["VideoGame", "FAQPage"]
@@ -51,7 +51,7 @@
   },
   "hatchChallenge": {
     "planPath": "docs/company/growth/HATCH_CHALLENGE_LOOP.json",
-    "route": "https://mythicalvoid.com/playable-now/#hatch-challenge",
+    "route": "https://mythicalvoid.com/hatch-challenge/",
     "participants": 2,
     "multiplayerClaimed": false,
     "differenceGuaranteed": false,

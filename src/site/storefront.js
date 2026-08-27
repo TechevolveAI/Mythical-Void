@@ -570,6 +570,7 @@ function renderStorefront() {
                 <nav aria-label="Footer navigation">
                     <a href="/play/">Play game</a>
                     <a href="/playable-now/#find-your-way">Find your way in</a>
+                    <a href="/hatch-challenge/">Hatch Challenge</a>
                     <a href="/press/">Press & creators</a>
                     <a href="/updates/">What's new</a>
                     <a href="/creature-genetics/">Creature genetics</a>

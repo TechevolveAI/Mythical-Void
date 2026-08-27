@@ -19,7 +19,7 @@
       "purpose": "share the playable game"
     },
     {
-      "route": "/playable-now/#hatch-challenge",
+      "route": "/hatch-challenge/",
       "purpose": "invite one known person to compare what hatches without claiming multiplayer"
     },
     {

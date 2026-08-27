@@ -29,6 +29,14 @@
       "destination": "/playable-now/index.html"
     },
     {
+      "source": "/hatch-challenge",
+      "destination": "/hatch-challenge/index.html"
+    },
+    {
+      "source": "/hatch-challenge/",
+      "destination": "/hatch-challenge/index.html"
+    },
+    {
       "source": "/updates",
       "destination": "/updates/index.html"
     },
@@ -37,7 +45,7 @@
       "destination": "/updates/index.html"
     },
     {
-      "source": "/((?!assets/|marketing/|game/|audio/|updates/|playable-now/|og\\.png|sw\\.js|apple-touch-icon\\.png).*)",
+      "source": "/((?!assets/|marketing/|game/|audio/|updates/|playable-now/|hatch-challenge/|og\\.png|sw\\.js|apple-touch-icon\\.png).*)",
       "destination": "/index.html"
     }
   ],

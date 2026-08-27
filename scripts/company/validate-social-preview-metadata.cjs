@@ -42,7 +42,7 @@ function imageDimensions(file, type) {
 }
 
 requireValue(manifest.schemaVersion === 2 && manifest.state === 'human_reviewed_preview_fallback_while_gameplay_media_is_rebuilt', 'Social preview manifest identity or state is invalid.');
-requireValue(Array.isArray(manifest.pages) && manifest.pages.length === 10, 'Social preview manifest must cover exactly ten static public pages.');
+requireValue(Array.isArray(manifest.pages) && manifest.pages.length === 11, 'Social preview manifest must cover exactly eleven static public pages.');
 requireValue(new Set((manifest.pages || []).map(page => page.route)).size === manifest.pages?.length, 'Social preview routes must be unique.');
 
 for (const page of manifest.pages || []) {

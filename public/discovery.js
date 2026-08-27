@@ -158,7 +158,7 @@
 
     var hatchChallenge = document.querySelector('[data-hatch-challenge]');
     if (hatchChallenge) {
-        var hatchChallengeUrl = 'https://mythicalvoid.com/playable-now/#hatch-challenge';
+        var hatchChallengeUrl = 'https://mythicalvoid.com/hatch-challenge/';
         var hatchChallengeData = {
             title: 'The Mythical Void Hatch Challenge',
             text: 'Want to hatch the same mystery and compare what we get? Mythical Void is free in your browser—no download or account needed.',

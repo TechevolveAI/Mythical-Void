@@ -7,6 +7,7 @@ const repositoryRoot = path.resolve(__dirname, '..', '..');
 const discoveryLink = '<link rel="describedby" type="text/markdown" href="https://mythicalvoid.com/llms.txt">';
 const staticPagePaths = [
     'public/playable-now/index.html',
+    'public/hatch-challenge/index.html',
     'public/creature-genetics/index.html',
     'public/creature-field-guide/index.html',
     'public/nasa-space-science/index.html',
@@ -36,7 +37,7 @@ function validateAiReadableDiscovery(inputs) {
     requireValue(llms.includes('This file is a concise guide to the canonical public information'), 'llms.txt does not explain its limited purpose');
     requireValue(llms.includes('It is not a permission file, an age rating, a promise of search inclusion'), 'llms.txt overstates what the convention can do');
     requireValue(llms.includes('Last reviewed: 27 August 2026.'), 'llms.txt review date is missing');
-    requireValue(llms.includes('](https://mythicalvoid.com/playable-now/#hatch-challenge)') && llms.includes('It is not multiplayer') && llms.includes('does not require an account or upload'), 'Hatch Challenge discovery or boundary is missing');
+    requireValue(llms.includes('](https://mythicalvoid.com/hatch-challenge/)') && llms.includes('It is not multiplayer') && llms.includes('does not require an account or upload'), 'Hatch Challenge discovery or boundary is missing');
     requireValue(llms.includes('NASA does not make or endorse Mythical Void.'), 'NASA non-endorsement is missing');
     requireValue(llms.includes('does not currently claim a formal age rating'), 'formal age-rating boundary is missing');
     requireValue(llms.includes('AI-generated marketing artwork') && llms.includes('must not be described as gameplay'), 'visual-truth boundary is missing');
@@ -44,8 +45,8 @@ function validateAiReadableDiscovery(inputs) {
     requireValue(llms.includes('Call the beings "creatures".'), 'public creature terminology is missing');
     requireValue(!/\bcompanions?\b/i.test(llms), 'retired companion wording is present in llms.txt');
     requireValue(!/every creature is unique|no two creatures|literally infinite|infinite unique/i.test(llms), 'unsupported creature-uniqueness promise is present in llms.txt');
-    requireValue(sitemapUrls.length === 13, `expected 13 canonical sitemap URLs, found ${sitemapUrls.length}`);
-    requireValue(truthfulLastModifiedCount === 13, `expected truthful lastmod evidence on all 13 sitemap entries, found ${truthfulLastModifiedCount}`);
+    requireValue(sitemapUrls.length === 14, `expected 14 canonical sitemap URLs, found ${sitemapUrls.length}`);
+    requireValue(truthfulLastModifiedCount === 14, `expected truthful lastmod evidence on all 14 sitemap entries, found ${truthfulLastModifiedCount}`);
     for (const url of sitemapUrls) requireValue(llms.includes(`](${url})`), `llms.txt is missing canonical sitemap route ${url}`);
     requireValue(llms.includes('](https://mythicalvoid.com/play/)'), 'llms.txt is missing the direct Play route');
 
@@ -96,7 +97,7 @@ function run() {
         valid: failures.length === 0,
         publicRoute: release.publicRoute,
         conventionState: release.convention?.state,
-        canonicalRouteCount: 13,
+        canonicalRouteCount: 14,
         rankingClaimAuthorized: release.release?.searchRankingClaimAuthorized,
         externalPostingAuthorized: release.release?.externalPostingAuthorized,
         failures

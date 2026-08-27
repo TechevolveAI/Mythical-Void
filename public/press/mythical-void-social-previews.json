@@ -28,6 +28,18 @@
       "disclosure": "AI-generated marketing artwork inspired by the creature system. It is not gameplay and is not used as evidence of the current game build."
     },
     {
+      "route": "/hatch-challenge/",
+      "htmlPath": "public/hatch-challenge/index.html",
+      "imagePath": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "imageUrl": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
+      "imageType": "image/webp",
+      "width": 1672,
+      "height": 941,
+      "alt": "An imagined luminous universe filled with many possible alien creature forms",
+      "classification": "ai_generated_marketing_illustration_not_gameplay",
+      "disclosure": "AI-generated marketing artwork inspired by the creature system. It is not gameplay and is not used as evidence of the current game build."
+    },
+    {
       "route": "/story/",
       "htmlPath": "public/story/index.html",
       "imagePath": "public/marketing/mythical-void-creature-universe-hero-v2.webp",

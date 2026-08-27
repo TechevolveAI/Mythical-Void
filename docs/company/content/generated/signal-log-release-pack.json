@@ -5,7 +5,7 @@
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "1b92479b81dedb822f089ffb5f6b5a497d085b185d6bda4ffb96f751e8306312",
+    "sourceFingerprint": "bf1f1f434ff8ec01116e88ade34f146d758a0303e17a9dffe33a737bf45ffbbe",
     "liveEntryCount": 16,
     "latestSourceDate": "2026-08-27"
   },
@@ -36,7 +36,7 @@
       "id": "DRAFT-SIGNAL-023",
       "sourceEntryId": "SIGNAL-023",
       "sourcePublishedOn": "2026-08-27",
-      "destination": "https://mythicalvoid.com/playable-now/#hatch-challenge",
+      "destination": "https://mythicalvoid.com/hatch-challenge/",
       "trackingParameters": false,
       "media": {
         "sourcePath": "/marketing/mythical-void-creature-universe-hero-v2.webp",
@@ -48,21 +48,21 @@
         "professionalNetwork": {
           "channelRef": "CH-004",
           "format": "text_post_with_one_link",
-          "body": "The Hatch Challenge is ready\n\nOne player can now invite someone they know to begin the same Mythical Void mystery, hatch separately and compare what the creature engine makes.\n\n• The challenge is deliberately simple: send one clean link, each reach the first hatch in your own browser, then compare form, colour, markings, nature, affinity and any rare change.\n• Mythical Void remains a single-player game. The challenge does not claim multiplayer or guarantee that every result will be different.\n• No account, upload, recipient detail, creature data or tracking code is added to the invitation.\n\nSee what changed: https://mythicalvoid.com/playable-now/#hatch-challenge\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
-          "characterCount": 754
+          "body": "The Hatch Challenge is ready\n\nOne player can now invite someone they know to begin the same Mythical Void mystery, hatch separately and compare what the creature engine makes.\n\n• The challenge is deliberately simple: send one clean link, each reach the first hatch in your own browser, then compare form, colour, markings, nature, affinity and any rare change.\n• Mythical Void remains a single-player game. The challenge does not claim multiplayer or guarantee that every result will be different.\n• No account, upload, recipient detail, creature data or tracking code is added to the invitation.\n\nSee what changed: https://mythicalvoid.com/hatch-challenge/\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 741
         },
         "videoCommunity": {
           "channelRef": "CH-002",
           "format": "text_community_post_with_one_link",
-          "body": "New from the Void: The Hatch Challenge is ready\n\nOne player can now invite someone they know to begin the same Mythical Void mystery, hatch separately and compare what the creature engine makes.\n\nhttps://mythicalvoid.com/playable-now/#hatch-challenge\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
-          "characterCount": 334
+          "body": "New from the Void: The Hatch Challenge is ready\n\nOne player can now invite someone they know to begin the same Mythical Void mystery, hatch separately and compare what the creature engine makes.\n\nhttps://mythicalvoid.com/hatch-challenge/\n\nAI-generated marketing illustration inspired by the creature system; not gameplay.",
+          "characterCount": 321
         },
         "pressCreatorSourceNote": {
           "channelRef": "manual_personal_review_only",
           "format": "source_note_not_bulk_email",
           "subject": "Mythical Void update: The Hatch Challenge is ready",
-          "body": "Mythical Void has a new live update: The Hatch Challenge is ready.\n\nOne player can now invite someone they know to begin the same Mythical Void mystery, hatch separately and compare what the creature engine makes.\n\nThe challenge is deliberately simple: send one clean link, each reach the first hatch in your own browser, then compare form, colour, markings, nature, affinity and any rare change. Mythical Void remains a single-player game. The challenge does not claim multiplayer or guarantee that every result will be different. No account, upload, recipient detail, creature data or tracking code is added to the invitation.\n\nThe checked public destination is https://mythicalvoid.com/playable-now/#hatch-challenge\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
-          "characterCount": 889,
+          "body": "Mythical Void has a new live update: The Hatch Challenge is ready.\n\nOne player can now invite someone they know to begin the same Mythical Void mystery, hatch separately and compare what the creature engine makes.\n\nThe challenge is deliberately simple: send one clean link, each reach the first hatch in your own browser, then compare form, colour, markings, nature, affinity and any rare change. Mythical Void remains a single-player game. The challenge does not claim multiplayer or guarantee that every result will be different. No account, upload, recipient detail, creature data or tracking code is added to the invitation.\n\nThe checked public destination is https://mythicalvoid.com/hatch-challenge/\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 876,
           "recipient": null
         }
       },

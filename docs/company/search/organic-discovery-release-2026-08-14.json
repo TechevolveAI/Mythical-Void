@@ -28,6 +28,13 @@
       "proof": ["public/playable-now/index.html", "docs/company/growth/PLAY_INTENT_DOORWAY.json", "public/press/visual-publication-register.json"]
     },
     {
+      "route": "/hatch-challenge/",
+      "audience": "Players and families who want a simple shared reason to begin the game without needing multiplayer or an account",
+      "intent": "Invite one known person, hatch separately and compare the creature-engine ingredients honestly",
+      "claimIds": ["CL-001", "CL-002", "CL-005", "CL-008"],
+      "proof": ["public/hatch-challenge/index.html", "docs/company/growth/HATCH_CHALLENGE_LOOP.json", "src/systems/CreatureGenetics.js"]
+    },
+    {
       "route": "/creature-genetics/",
       "audience": "Players, creature-game fans, creators and game developers",
       "intent": "Understand the varied creature genetics and the boundary between the playable form and wider artwork",

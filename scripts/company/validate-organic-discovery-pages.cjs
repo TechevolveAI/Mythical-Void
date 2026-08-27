@@ -11,6 +11,11 @@ const pages = [
         required: ['LOOKING FOR A NEW GAME? START HERE', 'Mythical Void is a free alien creature adventure.', 'No payment details', 'NASA does not endorse Mythical Void.']
     },
     {
+        route: '/hatch-challenge/',
+        file: 'public/hatch-challenge/index.html',
+        required: ['A MYSTERY FOR TWO', 'This is not multiplayer.', 'does not promise that every possible hatch is globally unique', 'never asks who you invited']
+    },
+    {
         route: '/creature-genetics/',
         file: 'public/creature-genetics/index.html',
         required: ['structured identity', 'without promising impossible global uniqueness', 'tiny isolated exports did not help a person understand the game']

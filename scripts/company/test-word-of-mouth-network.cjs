@@ -11,6 +11,7 @@ const repositoryRoot = path.resolve(__dirname, '..', '..');
 const validator = path.join(__dirname, 'validate-word-of-mouth-network.cjs');
 const files = [
     'public/playable-now/index.html',
+    'public/hatch-challenge/index.html',
     'public/studio/index.html',
     'public/nasa-space-science/index.html',
     'public/educators/index.html',
@@ -70,7 +71,7 @@ async function browserShareCase({ nativeShare }) {
 
 async function browserHatchChallengeCase({ nativeShare }) {
     const html = '<!doctype html><body><section data-hatch-challenge><button data-hatch-challenge-share><span data-hatch-challenge-label>Invite someone to hatch</span></button><button data-hatch-challenge-copy>Copy challenge link</button><p data-hatch-challenge-status></p></section></body>';
-    const dom = new JSDOM(html, { url: 'https://mythicalvoid.com/playable-now/#hatch-challenge', runScripts: 'outside-only' });
+    const dom = new JSDOM(html, { url: 'https://mythicalvoid.com/hatch-challenge/', runScripts: 'outside-only' });
     dom.window.localStorage.setItem('mythical-analytics-consent', 'denied');
     let shared = null;
     let copied = null;
@@ -107,7 +108,7 @@ async function browserHatchChallengeCase({ nativeShare }) {
     invalid('public/updates/releases.json', source => source.replace('"id": "SIGNAL-017"', '"id": "SIGNAL-017-WITHDRAWN"'), 'Signal 017');
     invalid('public/updates/releases.json', source => source.replace('"id": "SIGNAL-023"', '"id": "SIGNAL-023-WITHDRAWN"'), 'Signal 023');
     invalid('docs/company/growth/HATCH_CHALLENGE_LOOP.json', source => source.replace('"multiplayerClaimed": false', '"multiplayerClaimed": true'), 'Hatch Challenge promise drifted');
-    invalid('docs/company/growth/HATCH_CHALLENGE_LOOP.json', source => source.replace('"productionDeployId": "6a8fac1d80c28500086236a1"', '"productionDeployId": "unverified"'), 'live Hatch Challenge production proof is missing');
+    invalid('docs/company/growth/HATCH_CHALLENGE_LOOP.json', source => source.replace('"state": "owned_site_release_prepared"', '"state": "live_production_verified"'), 'live Hatch Challenge production proof is missing');
 
     caseCount += 1;
     const native = await browserShareCase({ nativeShare: true });
@@ -130,7 +131,7 @@ async function browserHatchChallengeCase({ nativeShare }) {
     assert.strictEqual(JSON.stringify(hatchNative.shared), JSON.stringify({
         title: 'The Mythical Void Hatch Challenge',
         text: 'Want to hatch the same mystery and compare what we get? Mythical Void is free in your browser—no download or account needed.',
-        url: 'https://mythicalvoid.com/playable-now/#hatch-challenge'
+        url: 'https://mythicalvoid.com/hatch-challenge/'
     }));
     assert.strictEqual(hatchNative.copied, null);
     assert.strictEqual(hatchNative.status, 'Signal sent. Now see what hatches.');
@@ -138,7 +139,7 @@ async function browserHatchChallengeCase({ nativeShare }) {
     caseCount += 1;
     const hatchCopied = await browserHatchChallengeCase({ nativeShare: false });
     assert.strictEqual(hatchCopied.shared, null);
-    assert.strictEqual(hatchCopied.copied, 'https://mythicalvoid.com/playable-now/#hatch-challenge');
+    assert.strictEqual(hatchCopied.copied, 'https://mythicalvoid.com/hatch-challenge/');
     assert.strictEqual(hatchCopied.label, 'Copy challenge link');
     assert.strictEqual(hatchCopied.status, 'Challenge link copied — no tracking code.');
 
