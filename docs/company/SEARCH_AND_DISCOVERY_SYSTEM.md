@@ -1,9 +1,22 @@
 # Search and Discovery System
 
-**Status:** Technical foundation, useful discovery pages and a concise AI-readable site guide prepared for the owned website; search-engine account work still gated
-**Updated:** 26 August 2026
+**Status:** Owned discovery pages are live and crawlable; verified search-engine visibility is still unknown
+**Updated:** 27 August 2026
 
 ## Current release
+
+On 27 August, a new directional search check still did not show Mythical Void
+for the checked brand, site-restricted or category searches. The live homepage,
+Playable Now page, robots file and sitemap all returned successfully. Crawling
+is allowed, the sitemap is named in `robots.txt`, and canonical addresses are
+present. This means there is no obvious public technical block, but it does not
+prove that Google has indexed the pages.
+
+The evidence and limitations are recorded in
+[`search/SEARCH_VISIBILITY_AUDIT_2026-08-27.md`](search/SEARCH_VISIBILITY_AUDIT_2026-08-27.md).
+The next useful step is the free, Kevin-controlled
+[`Search Console activation`](search/SEARCH_CONSOLE_ACTIVATION.md), not another
+set of near-duplicate landing pages. No authenticated submission has happened.
 
 On 26 August, a fresh directional public-search sample still did not show a
 Mythical Void result for the checked name or category queries. Visible game
@@ -44,9 +57,10 @@ metadata, and an entry in the sitemap.
 
 This release does not submit a sitemap, connect a webmaster account, claim a
 ranking, buy traffic, or ask another site for a link. Those remain separate
-external actions. The original opportunity map below remains the dated
-11 August research baseline rather than pretending that its old search sample
-has been refreshed.
+external actions. The original search sample inside the opportunity map remains
+dated 11 August. The page states were reconciled on 27 August so they no longer
+call live pages unreleased or proposed. The separate current visibility audit
+carries the new search sample.
 
 ## 1. Objective
 
@@ -85,8 +99,8 @@ Adjacent first-party product pages surfaced with direct category language:
 
 These are discovery-pattern observations, not endorsements, market-share
 evidence, or permission to copy positioning. Mythical's strongest truthful
-space appears to be the combination of immediate browser access, companion
-bond, restoration adventure, Project Beacon choice, and responsible operating
+space appears to be the combination of immediate browser access, creature
+relationship, restoration adventure, Project Beacon choice, and responsible operating
 boundaries. Authentic gameplay proof is still required before broad category
 content.
 
@@ -96,7 +110,7 @@ content.
 Branded truth
   -> canonical home / play / privacy / terms
   -> explicit category and access language
-  -> authentic companion / restoration / choice proof
+  -> authentic creature / restoration / choice proof
   -> parent and guardian trust explanation
   -> bounded craft / procedural / AI explanation
   -> evidence-led updates and earned references
@@ -108,7 +122,7 @@ The initial query clusters are:
    pages.
 2. **Browser creature adventure** — explain the actual playable category and
    immediate-access model.
-3. **Companion bond and genetics** — show concrete hatch, bond, memory, and
+3. **Creature relationship and genetics** — show concrete hatch, care, memory, and
    procedural variation without absolute uniqueness claims.
 4. **Living world and choice** — demonstrate restoration and Project Beacon
    through real gameplay.

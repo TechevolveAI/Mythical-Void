@@ -36,11 +36,14 @@ for (const match of decisionsText.matchAll(/\| (D-\d{3}) \|/g)) dependencyIds.ad
 for (const match of handoffsText.matchAll(/## (GDH-\d{3})/g)) dependencyIds.add(match[1]);
 
 if (map.schemaVersion !== 1) failures.push('schemaVersion must be 1');
-if (map.status !== 'foundation_gated') failures.push('status must remain foundation_gated');
-for (const field of ['publicationAuthorized', 'searchSubmissionAuthorized', 'paidSearchAuthorized', 'linkOutreachAuthorized', 'behavioralTargetingPermitted', 'rankingClaimsPermitted']) {
+if (map.status !== 'owned_pages_live_submission_gated') failures.push('status must reflect live owned pages and gated search submission');
+if (map.ownedWebsitePublicationAuthorized !== true) failures.push('owned website publication authority is missing');
+for (const field of ['additionalSearchPublicationAuthorized', 'searchSubmissionAuthorized', 'paidSearchAuthorized', 'linkOutreachAuthorized', 'behavioralTargetingPermitted', 'rankingClaimsPermitted']) {
     if (map[field] !== false) failures.push(`${field} must remain false`);
 }
 if (!/^\d{4}-\d{2}-\d{2}T/.test(map.observedAt || '')) failures.push('observedAt must be an ISO timestamp');
+if (!/^\d{4}-\d{2}-\d{2}T/.test(map.reconciledAt || '')) failures.push('reconciledAt must be an ISO timestamp');
+if (map.currentVisibilityAuditRef !== 'docs/company/search/search-visibility-audit-2026-08-27.json') failures.push('current visibility audit reference is missing');
 if (!Number.isInteger(map.sample?.queryCount) || map.sample.queryCount < 4) failures.push('search sample must record at least four queries');
 if (!Array.isArray(map.sample?.queries) || map.sample.queries.length !== map.sample.queryCount) failures.push('sample queryCount must match queries');
 if (map.sample?.verifiedWebmasterSourceConnected !== false) failures.push('verified webmaster source must remain disconnected');
@@ -61,6 +64,11 @@ for (const [index, cluster] of (map.clusters || []).entries()) {
     if (!['P0', 'P1', 'P2'].includes(cluster?.priority)) failures.push(`${label} has invalid priority`);
     if (!['navigational', 'category_discovery', 'feature_and_emotional_discovery', 'story_and_gameplay_discovery', 'trust_and_eligibility', 'company_and_technical_discovery'].includes(cluster?.intent)) failures.push(`${label} has invalid intent`);
     if (!['existing_live', 'existing_local_unreleased', 'proposed_not_created'].includes(cluster?.targetState)) failures.push(`${label} has invalid targetState`);
+    if (cluster.targetState === 'existing_live') {
+        if (cluster.liveOwnedPage !== true) failures.push(`${label} must identify its live owned page`);
+        const targetFile = cluster.targetPath === '/' ? 'index.html' : `public${cluster.targetPath}index.html`;
+        if (!fs.existsSync(path.join(repositoryRoot, targetFile))) failures.push(`${label} claims a live page that is missing: ${targetFile}`);
+    }
     for (const field of ['name', 'audience', 'pagePurpose']) if (typeof cluster?.[field] !== 'string' || !cluster[field].trim()) failures.push(`${label} lacks ${field}`);
     if (!/^\/(?:[^?#]*)$/.test(cluster?.targetPath || '')) failures.push(`${label} targetPath must be a canonical path without query or fragment`);
     if (!Array.isArray(cluster.queryExamples) || cluster.queryExamples.length < 2) failures.push(`${label} needs at least two query examples`);
@@ -80,7 +88,7 @@ for (const [index, cluster] of (map.clusters || []).entries()) {
     const missingProofs = (cluster.proofIds || []).map(id => known.proofIds.get(id)).filter(item => item && item.status !== 'approved').map(item => item.id);
     const channelBlocked = (cluster.channelIds || []).map(id => known.channelIds.get(id)).some(channel => channel && (!channel.publishingCredential || !channel.measurementReady));
     const targetMissing = cluster.targetState === 'proposed_not_created';
-    const publicationReady = cluster.publicationReady && cluster.contentReady && !missingProofs.length && !channelBlocked && !targetMissing && map.publicationAuthorized;
+    const publicationReady = cluster.publicationReady && cluster.contentReady && !missingProofs.length && !channelBlocked && !targetMissing && map.additionalSearchPublicationAuthorized;
     const searchSubmissionReady = cluster.searchSubmissionReady && publicationReady && map.searchSubmissionAuthorized && map.sample.verifiedWebmasterSourceConnected;
     if (cluster.contentReady && missingProofs.length) failures.push(`${label} claims content readiness while required proof is missing`);
     results.push({
@@ -97,7 +105,7 @@ for (const [index, cluster] of (map.clusters || []).entries()) {
             ...(missingProofs.length ? ['approved_gameplay_proof'] : []),
             ...(channelBlocked ? ['channel_measurement_and_publishing'] : []),
             ...(targetMissing ? ['page_not_created'] : []),
-            ...(!map.publicationAuthorized ? ['publication_approval_and_release'] : []),
+            ...(!map.additionalSearchPublicationAuthorized ? ['additional_search_publication_approval'] : []),
             ...(!map.sample.verifiedWebmasterSourceConnected ? ['verified_webmaster_access'] : [])
         ]
     });
@@ -108,22 +116,26 @@ for (const id of ['SEO-001', 'SEO-002', 'SEO-003', 'SEO-004', 'SEO-005', 'SEO-00
 
 const publicationReady = results.filter(item => item.publicationReady);
 const submissionReady = results.filter(item => item.searchSubmissionReady);
+const liveOwnedPages = results.filter(item => item.targetState === 'existing_live');
+if (/\bcompanion\b/i.test(JSON.stringify(map))) failures.push('retired companion wording remains in the current search map');
 console.log(JSON.stringify({
     workflow: 'A-021',
     mode: 'internal search opportunity and evidence assurance',
     mapValid: failures.length === 0,
-    publicationAuthorized: false,
+    ownedWebsitePublicationAuthorized: true,
+    additionalSearchPublicationAuthorized: false,
     searchSubmissionAuthorized: false,
     paidSearchAuthorized: false,
     verifiedWebmasterSourceConnected: map.sample?.verifiedWebmasterSourceConnected === true,
     sampledBrandedResultObserved: map.sample?.brandedResultObserved === true,
     sampledSiteRestrictedResultObserved: map.sample?.siteRestrictedResultObserved === true,
     clusterCount: results.length,
+    liveOwnedPageCount: liveOwnedPages.length,
     publicationReadyClusterCount: publicationReady.length,
     searchSubmissionReadyClusterCount: submissionReady.length,
     results,
     failures,
-    nextAction: 'Review and release RM-001, verify indexing through restricted webmaster access, then use adult research and authentic gameplay proof to decide which useful canonical pages to build.'
+    nextAction: 'Kevin verifies the free Search Console property; after separate approval, submit the existing sitemap once and inspect the homepage and Playable Now page.'
 }, null, 2));
 
 if (failures.length) process.exitCode = 1;

@@ -24,7 +24,12 @@ function validateAiReadableDiscovery(inputs) {
         llms, release, rootIndex, staticPages, builderSources, sitemap, packageJson
     } = inputs;
     const sitemapUrls = [...sitemap.matchAll(/<loc>(https:\/\/mythicalvoid\.com\/[^<]*)<\/loc>/g)].map(match => match[1]);
-    const lastModifiedCount = [...sitemap.matchAll(/<lastmod>2026-08-26<\/lastmod>/g)].length;
+    const sitemapEntries = [...sitemap.matchAll(/<url>([\s\S]*?)<\/url>/g)].map(match => match[1]);
+    const today = new Date().toISOString().slice(0, 10);
+    const truthfulLastModifiedCount = sitemapEntries.filter(entry => {
+        const dates = [...entry.matchAll(/<lastmod>(\d{4}-\d{2}-\d{2})<\/lastmod>/g)].map(match => match[1]);
+        return dates.length === 1 && dates[0] <= today;
+    }).length;
 
     requireValue(llms.startsWith('# Mythical Void\n'), 'llms.txt must begin with one clear Mythical Void heading');
     requireValue(Buffer.byteLength(llms, 'utf8') <= 12 * 1024, 'llms.txt is too large to remain a concise orientation file');
@@ -39,7 +44,7 @@ function validateAiReadableDiscovery(inputs) {
     requireValue(!/\bcompanions?\b/i.test(llms), 'retired companion wording is present in llms.txt');
     requireValue(!/every creature is unique|no two creatures|literally infinite|infinite unique/i.test(llms), 'unsupported creature-uniqueness promise is present in llms.txt');
     requireValue(sitemapUrls.length === 13, `expected 13 canonical sitemap URLs, found ${sitemapUrls.length}`);
-    requireValue(lastModifiedCount === 13, `expected truthful lastmod evidence on all 13 sitemap entries, found ${lastModifiedCount}`);
+    requireValue(truthfulLastModifiedCount === 13, `expected truthful lastmod evidence on all 13 sitemap entries, found ${truthfulLastModifiedCount}`);
     for (const url of sitemapUrls) requireValue(llms.includes(`](${url})`), `llms.txt is missing canonical sitemap route ${url}`);
     requireValue(llms.includes('](https://mythicalvoid.com/play/)'), 'llms.txt is missing the direct Play route');
 

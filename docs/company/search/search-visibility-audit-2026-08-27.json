@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "SEARCH-VISIBILITY-2026-08-27",
+  "checkedAt": "2026-08-27T01:51:00Z",
+  "state": "crawl_ready_visibility_unverified",
+  "sample": {
+    "method": "Directional current web-search sample, not a complete index report or stable rank tracker.",
+    "queryCount": 4,
+    "queries": [
+      { "query": "Mythical Void game", "mythicalResultObserved": false },
+      { "query": "site:mythicalvoid.com Mythical Void", "mythicalResultObserved": false },
+      { "query": "free browser alien creature game", "mythicalResultObserved": false },
+      { "query": "family friendly browser creature adventure game", "mythicalResultObserved": false }
+    ],
+    "limitations": "Results vary by engine, location, time, language, device and personalization. This sample cannot prove global non-indexing or a ranking position."
+  },
+  "liveTechnicalChecks": {
+    "homepageHttpStatus": 200,
+    "playableNowHttpStatus": 200,
+    "robotsHttpStatus": 200,
+    "sitemapHttpStatus": 200,
+    "robotsAllowsCrawling": true,
+    "robotsNamesSitemap": true,
+    "homepageAllowsIndexing": true,
+    "homepageCanonicalPresent": true,
+    "playableNowCanonicalPresent": true,
+    "sitemapUsesAbsoluteCanonicalUrls": true
+  },
+  "verifiedEvidence": {
+    "searchConsoleConnected": false,
+    "sitemapSubmittedInSearchConsole": false,
+    "homepageInspectedInSearchConsole": false,
+    "playableNowInspectedInSearchConsole": false,
+    "indexedUrlCount": null,
+    "searchImpressions": null,
+    "searchClicks": null,
+    "rankingPosition": null
+  },
+  "nextAction": {
+    "owner": "Kevin",
+    "action": "Open Google Search Console with the Google account that manages Mythical Void, add and verify the site, then approve one sitemap submission.",
+    "cost": "free",
+    "accountCreationRequired": false,
+    "fallback": "If automatic verification is unavailable, download the Search Console HTML verification file and give that exact file to Codex for an owned-site deployment."
+  },
+  "authority": {
+    "searchConsoleConnectionAuthorized": false,
+    "ownershipVerificationAuthorized": false,
+    "sitemapSubmissionAuthorized": false,
+    "urlInspectionRequestAuthorized": false,
+    "paidSearchAuthorized": false,
+    "linkOutreachAuthorized": false,
+    "externalActionTaken": false
+  }
+}
+

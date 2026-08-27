@@ -23,14 +23,15 @@ try {
     assert.strictEqual(baseline.status, 2);
     assert.strictEqual(baseline.output.mapValid, true);
     assert.strictEqual(baseline.output.clusterCount, 6);
+    assert.strictEqual(baseline.output.liveOwnedPageCount, 6);
     assert.strictEqual(baseline.output.publicationReadyClusterCount, 0);
     assert.strictEqual(baseline.output.searchSubmissionReadyClusterCount, 0);
     assert.strictEqual(baseline.output.sampledBrandedResultObserved, false);
     assert.strictEqual(baseline.output.verifiedWebmasterSourceConnected, false);
 
-    const publish = execute('publication-authorized', { ...source, publicationAuthorized: true });
+    const publish = execute('publication-authorized', { ...source, additionalSearchPublicationAuthorized: true });
     assert.strictEqual(publish.status, 1);
-    assert(publish.output.failures.some(failure => failure.includes('publicationAuthorized')));
+    assert(publish.output.failures.some(failure => failure.includes('additionalSearchPublicationAuthorized')));
 
     const fabricatedRank = execute('fabricated-rank', {
         ...source,

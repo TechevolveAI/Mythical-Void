@@ -45,6 +45,7 @@ rejected('missing-route', 'canonical sitemap route', value => { value.llms = val
 rejected('stale-page-link', 'does not advertise', value => { value.staticPages['public/story/index.html'] = value.staticPages['public/story/index.html'].replace(/\s*<link rel="describedby"[^>]+>/, ''); });
 rejected('builder-regression', 'will remove', value => { value.builderSources['scripts/company/build-public-signal-log.cjs'] = value.builderSources['scripts/company/build-public-signal-log.cjs'].replace(/\s*<link rel="describedby"[^>]+>/, ''); });
 rejected('fake-citation', 'aiCitationClaimAuthorized', value => { value.release.release.aiCitationClaimAuthorized = true; });
+rejected('missing-lastmod', 'truthful lastmod evidence', value => { value.sitemap = value.sitemap.replace(/\s*<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/, ''); });
 
-assert.strictEqual(cases, 11);
-console.log('AI-readable discovery safeguards passed (11 cases).');
+assert.strictEqual(cases, 12);
+console.log('AI-readable discovery safeguards passed (12 cases).');
