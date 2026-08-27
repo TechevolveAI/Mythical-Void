@@ -76,7 +76,7 @@ requireValue(hatchChallenge.verification?.productionVerificationRequired === tru
 if (hatchChallenge.state === 'owned_site_release_prepared') {
     requireValue(hatchChallenge.verification?.productionCommit === null && hatchChallenge.verification?.productionDeployId === null && hatchChallenge.verification?.liveChallengeVisible === false, 'prepared Hatch Challenge must not invent production proof');
 } else {
-    requireValue(/^[0-9a-f]{40}$/.test(hatchChallenge.verification?.productionCommit || '') && /^[0-9a-f]{24}$/.test(hatchChallenge.verification?.productionDeployId || '') && hatchChallenge.verification?.liveChallengeVisible === true, 'live Hatch Challenge production proof is missing');
+    requireValue(hatchChallenge.verification?.productionCommit === '18e6e69b5c478859fb9db9a137f9a0d48dfcb86c' && hatchChallenge.verification?.productionDeployId === '6a8fac1d80c28500086236a1' && hatchChallenge.verification?.liveChallengeVisible === true, 'live Hatch Challenge production proof is missing');
 }
 
 requireValue(pack.id === 'FOUNDING-SIGNAL-001' && pack.state === 'owned_word_of_mouth_live_first_external_post_waits_for_kevin', 'founding launch pack state is invalid');

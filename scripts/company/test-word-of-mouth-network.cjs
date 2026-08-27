@@ -107,6 +107,7 @@ async function browserHatchChallengeCase({ nativeShare }) {
     invalid('public/updates/releases.json', source => source.replace('"id": "SIGNAL-017"', '"id": "SIGNAL-017-WITHDRAWN"'), 'Signal 017');
     invalid('public/updates/releases.json', source => source.replace('"id": "SIGNAL-023"', '"id": "SIGNAL-023-WITHDRAWN"'), 'Signal 023');
     invalid('docs/company/growth/HATCH_CHALLENGE_LOOP.json', source => source.replace('"multiplayerClaimed": false', '"multiplayerClaimed": true'), 'Hatch Challenge promise drifted');
+    invalid('docs/company/growth/HATCH_CHALLENGE_LOOP.json', source => source.replace('"productionDeployId": "6a8fac1d80c28500086236a1"', '"productionDeployId": "unverified"'), 'live Hatch Challenge production proof is missing');
 
     caseCount += 1;
     const native = await browserShareCase({ nativeShare: true });
@@ -141,8 +142,8 @@ async function browserHatchChallengeCase({ nativeShare }) {
     assert.strictEqual(hatchCopied.label, 'Copy challenge link');
     assert.strictEqual(hatchCopied.status, 'Challenge link copied — no tracking code.');
 
-    assert.strictEqual(caseCount, 11);
-    console.log('Word-of-mouth network evaluations passed (11 cases).');
+    assert.strictEqual(caseCount, 12);
+    console.log('Word-of-mouth network evaluations passed (12 cases).');
 })().catch(error => {
     console.error(error.stack || error.message);
     process.exit(1);

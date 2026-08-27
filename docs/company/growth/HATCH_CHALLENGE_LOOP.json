@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "HATCH-CHALLENGE-2026-08-27",
-  "state": "owned_site_release_prepared",
+  "state": "live_production_verified",
   "purpose": "Turn the creature engine into a simple person-to-person reason to start playing without pretending Mythical Void is multiplayer.",
   "publicRoute": "https://mythicalvoid.com/playable-now/#hatch-challenge",
   "promise": {
@@ -56,10 +56,10 @@
     "desktopVisualReviewRequired": true,
     "phoneVisualReviewRequired": true,
     "productionVerificationRequired": true,
-    "productionCommit": null,
-    "productionDeployId": null,
-    "verifiedAt": null,
-    "liveChallengeVisible": false,
+    "productionCommit": "18e6e69b5c478859fb9db9a137f9a0d48dfcb86c",
+    "productionDeployId": "6a8fac1d80c28500086236a1",
+    "verifiedAt": "2026-08-27T03:18:00Z",
+    "liveChallengeVisible": true,
     "directDestination": "https://mythicalvoid.com/play/"
   }
 }

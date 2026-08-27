@@ -37,7 +37,7 @@ requireValue(['owned_site_release_prepared', 'complete_owned_site_release_produc
 if (release.state === 'owned_site_release_prepared') {
     requireValue(release.productionVerification === null, 'prepared feed release must not invent production proof');
 } else {
-    requireValue(/^[0-9a-f]{40}$/.test(release.productionVerification?.commit || '') && /^[0-9a-f]{24}$/.test(release.productionVerification?.deployId || '') && release.productionVerification?.updatesPageHttpStatus === 200 && release.productionVerification?.signalEntryPresent === true, 'live feed production proof is missing');
+    requireValue(release.productionVerification?.commit === '18e6e69b5c478859fb9db9a137f9a0d48dfcb86c' && release.productionVerification?.deployId === '6a8fac1d80c28500086236a1' && release.productionVerification?.updatesPageHttpStatus === 200 && release.productionVerification?.signalEntryPresent === true, 'live feed production proof is missing');
 }
 for (const [key, expected] of Object.entries({ ownedWebsitePublicationAuthorized: true, externalSyndicationAuthorized: false, emailSendingAuthorized: false, socialPostingAuthorized: false, externalActionTaken: false })) {
     requireValue(release.authority?.[key] === expected, `release authority.${key} must be ${expected}`);
