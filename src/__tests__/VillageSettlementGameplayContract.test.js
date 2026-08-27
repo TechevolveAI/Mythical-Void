@@ -925,7 +925,7 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('? actorOnlyStory');
         expect(world).toContain('layer?.setVisible?.(!cinematicStory)');
         expect(world).toContain('transition(landmark.glow, actorOnlyStory ? 0 : 1)');
-        expect(world).toContain("'THE PLANET REPLAYS YOUR CHOICE'");
+        expect(world).toContain("'THE RAIN IS RISING'");
         expect(world).toContain("'THE LIVING PATH IS OPEN'");
         expect(village).toContain("checkInLine: 'Three food patches are safe. I left one to regrow.'");
         expect(scene).toContain('storyKind: active ? kind : null');

@@ -3057,7 +3057,9 @@ async function smokeFinalVoidRiftCrossing(session) {
             { timeoutMs: 2500, message: 'Final Void rift crossing start' }
         );
 
-        for (const supportId of supportIds) {
+        for (let supportIndex = 0; supportIndex < supportIds.length; supportIndex += 1) {
+            const supportId = supportIds[supportIndex];
+            const remainingSupportIds = supportIds.slice(supportIndex);
             const shouldJump = supportId !== 'final-rift-step-4';
             await setKeyboardKey(session, 'keyDown', {
                 key: 'd', code: 'KeyD', keyCode: 68
@@ -3150,14 +3152,16 @@ async function smokeFinalVoidRiftCrossing(session) {
                 landing = await waitFor(
                     () => evaluate(session, `(() => {
                         const scene = window.mythicalGame.scene.getScene('FinalVoidLevel');
-                        const support = scene.platforms.getChildren().find(
-                            item => item.traversalId === ${JSON.stringify(supportId)}
-                        );
+                        const routeSupportIds = ${JSON.stringify(remainingSupportIds)};
                         const body = scene.player?.body;
+                        const support = scene.platforms.getChildren().find(item => (
+                            routeSupportIds.includes(item.traversalId) &&
+                            item?.body &&
+                            body?.right > item.body.left + 5 &&
+                            body?.left < item.body.right - 5
+                        ));
                         if (!support?.body || !body) return null;
-                        const onSupport = body.right > support.body.left + 5 &&
-                            body.left < support.body.right - 5 &&
-                            Math.abs(body.bottom - support.body.top) <= 7 &&
+                        const onSupport = Math.abs(body.bottom - support.body.top) <= 7 &&
                             (body.blocked.down || scene.isGrounded);
                         return onSupport ? {
                             supportId: support.traversalId,
@@ -3166,7 +3170,7 @@ async function smokeFinalVoidRiftCrossing(session) {
                             supportTop: Math.round(support.body.top)
                         } : null;
                     })()`),
-                    { timeoutMs: 2400, message: `${supportId} grounded landing` }
+                    { timeoutMs: 4000, message: `${supportId} grounded landing` }
                 );
             } catch (error) {
                 const diagnostics = await evaluate(session, `(() => {
@@ -3200,6 +3204,8 @@ async function smokeFinalVoidRiftCrossing(session) {
                 throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
             }
             landings.push({ launch, landing });
+            const landedIndex = supportIds.indexOf(landing.supportId);
+            if (landedIndex > supportIndex) supportIndex = landedIndex;
             await delay(90);
         }
     } finally {
@@ -10396,6 +10402,299 @@ async function smokeSanctuaryNavigation(session, exceptions) {
         { message: 'Creature Profile scene closed' }
     );
 
+    await evaluate(session, `(async () => {
+        const menu = window.mythicalGame.scene.getScene('GameScene').hamburgerMenu;
+        await menu.navigateToAchievements();
+        return true;
+    })()`);
+    await waitForScene(session, 'AchievementMenuScene');
+    const achievementsState = await evaluate(session, `(() => ({
+        sanctuaryPaused: window.mythicalGame.scene.isPaused('GameScene'),
+        menuActive: window.mythicalGame.scene.isActive('AchievementMenuScene')
+    }))()`);
+    if (!achievementsState.sanctuaryPaused || !achievementsState.menuActive) {
+        throw new Error(
+            `Achievements did not preserve Sanctuary state: ${JSON.stringify(achievementsState)}`
+        );
+    }
+    await evaluate(session, `(() => {
+        window.mythicalGame.scene.getScene('AchievementMenuScene').closeMenu();
+        return true;
+    })()`);
+    await waitForScene(session, 'GameScene');
+    await waitFor(
+        () => evaluate(session, `!window.mythicalGame.scene.isActive('AchievementMenuScene')`),
+        { message: 'Achievements scene closed' }
+    );
+
+    await evaluate(session, `(async () => {
+        const menu = window.mythicalGame.scene.getScene('GameScene').hamburgerMenu;
+        await menu.navigateToShop();
+        return true;
+    })()`);
+    await waitForScene(session, 'ShopScene');
+    const shopState = await evaluate(session, `(() => ({
+        sanctuaryPaused: window.mythicalGame.scene.isPaused('GameScene'),
+        shopActive: window.mythicalGame.scene.isActive('ShopScene')
+    }))()`);
+    if (!shopState.sanctuaryPaused || !shopState.shopActive) {
+        throw new Error(`Shop did not preserve Sanctuary state: ${JSON.stringify(shopState)}`);
+    }
+    await evaluate(session, `(() => {
+        window.mythicalGame.scene.getScene('ShopScene').exitShop();
+        return true;
+    })()`);
+    await waitForScene(session, 'GameScene');
+    await waitFor(
+        () => evaluate(session, `!window.mythicalGame.scene.isActive('ShopScene')`),
+        { message: 'Shop scene closed' }
+    );
+
+    const overlayRoutes = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const menu = scene.hamburgerMenu;
+        const routes = [
+            ['beaconLog', 'showBeaconLog', 'beaconLogModal'],
+            ['settings', 'showSettings', 'settingsModal'],
+            ['cloudSave', 'showCloudSaveSettings', 'cloudSaveModal'],
+            ['legal', 'showLegalDocuments', 'legalModal']
+        ];
+        const results = {};
+        for (const [key, showMethod, modalKey] of routes) {
+            results[key] = [];
+            for (let visit = 1; visit <= 2; visit++) {
+                menu[showMethod]();
+                const modal = menu[modalKey];
+                const shown = {
+                    visible: modal?.isVisible === true,
+                    elementCount: modal?.elements?.length || 0,
+                    physicsPaused: Boolean(scene.physics?.world?.isPaused)
+                };
+                modal?.hide?.();
+                results[key].push({
+                    visit,
+                    shown,
+                    hidden: {
+                        visible: modal?.isVisible === true,
+                        elementCount: modal?.elements?.length || 0,
+                        physicsPaused: Boolean(scene.physics?.world?.isPaused)
+                    }
+                });
+            }
+        }
+        menu.showCreatureSwitcher();
+        const switcherVisible = scene.creatureSwitcher?.isVisible === true;
+        scene.creatureSwitcher?.hide?.();
+        return {
+            routes: results,
+            creatureSwitcher: {
+                visible: switcherVisible,
+                hidden: scene.creatureSwitcher?.isVisible === false
+            }
+        };
+    })()`);
+    const invalidOverlayRoute = Object.entries(overlayRoutes.routes || {}).find(
+        ([key, visits]) =>
+            visits.length !== 2 ||
+            visits.some(({ shown, hidden }) =>
+                !shown.visible ||
+                shown.elementCount < 1 ||
+                hidden.visible ||
+                hidden.elementCount !== 0 ||
+                hidden.physicsPaused
+            )
+    );
+    if (
+        invalidOverlayRoute ||
+        !overlayRoutes.creatureSwitcher?.visible ||
+        !overlayRoutes.creatureSwitcher?.hidden
+    ) {
+        throw new Error(
+            `Sanctuary overlay route did not cleanly reopen and close: ${JSON.stringify({
+                invalidOverlayRoute,
+                overlayRoutes
+            })}`
+        );
+    }
+    const menuRouteLifecycle = {
+        achievements: achievementsState,
+        shop: shopState,
+        overlays: overlayRoutes
+    };
+
+    const achievementToast = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        const notification = scene.achievementNotification;
+        notification.show({
+            id: 'smoke_mobile_dismiss',
+            name: 'Signal Reader',
+            tier: 'BRONZE',
+            tierInfo: { name: 'Bronze' },
+            rewards: { coins: 23 },
+            rewardClaimed: true
+        });
+        const zone = notification.dismissZone;
+        const point = zone?.getWorldTransformMatrix?.().transformPoint(0, 0);
+        if (!notification.isVisible || !zone || !point) return null;
+        const cameraZoom = scene.cameras?.main?.zoom || 1;
+        return {
+            x: scene.scale.width / 2,
+            y: notification.toastScreenY,
+            worldX: point.x,
+            worldY: point.y,
+            cameraZoom,
+            width: zone.width,
+            height: zone.height,
+            visible: notification.isVisible
+        };
+    })()`);
+    if (
+        !achievementToast?.visible ||
+        achievementToast.width < 300 ||
+        achievementToast.height < 90 ||
+        achievementToast.x < 0 ||
+        achievementToast.x > SMOKE_VIEWPORT_WIDTH ||
+        achievementToast.y < 0 ||
+        achievementToast.y > SMOKE_VIEWPORT_HEIGHT
+    ) {
+        throw new Error(
+            `Achievement toast was not a mobile-safe dismiss target: ${JSON.stringify(achievementToast)}`
+        );
+    }
+    // Let Phaser register the newly-created interactive child and complete the
+    // short entrance tween before exercising the same touch a player makes.
+    await delay(400);
+    await touch(session, achievementToast.x, achievementToast.y);
+    let achievementDismissed;
+    try {
+        achievementDismissed = await waitFor(
+            () => evaluate(session, `(() => {
+                const notification = window.mythicalGame.scene
+                    .getScene('GameScene')?.achievementNotification;
+                return Boolean(
+                    notification &&
+                    !notification.isVisible &&
+                    !notification.container &&
+                    !notification.currentNotification
+                );
+            })()`),
+            { timeoutMs: 1500, message: 'mobile achievement toast dismissal' }
+        );
+    } catch (error) {
+        const diagnostics = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            const notification = scene?.achievementNotification;
+            const zone = notification?.dismissZone;
+            const pointer = scene?.input?.activePointer;
+            const canvasBounds = scene?.game?.canvas?.getBoundingClientRect?.();
+            const camera = scene?.cameras?.main;
+            const worldPoint = pointer && camera
+                ? camera.getWorldPoint(pointer.x, pointer.y)
+                : null;
+            const inputPoint = worldPoint && zone && camera ? {
+                x: worldPoint.x + camera.scrollX * zone.scrollFactorX - camera.scrollX,
+                y: worldPoint.y + camera.scrollY * zone.scrollFactorY - camera.scrollY
+            } : null;
+            const matrix = zone?.getWorldTransformMatrix?.();
+            const localPoint = matrix && inputPoint
+                ? matrix.applyInverse(inputPoint.x, inputPoint.y)
+                : null;
+            return {
+                target: ${JSON.stringify(achievementToast)},
+                pointer: pointer && { x: pointer.x, y: pointer.y, isDown: pointer.isDown },
+                domTarget: document.elementFromPoint(
+                    ${achievementToast.x},
+                    ${achievementToast.y}
+                )?.tagName || null,
+                canvas: canvasBounds && {
+                    left: canvasBounds.left,
+                    top: canvasBounds.top,
+                    width: canvasBounds.width,
+                    height: canvasBounds.height
+                },
+                input: {
+                    enabled: scene?.input?.enabled,
+                    topOnly: scene?.input?.topOnly,
+                    listCount: scene?.input?._list?.length,
+                    zoneRegistered: scene?.input?._list?.includes(zone),
+                    zoneEnabled: zone?.input?.enabled,
+                    zoneCandidate: scene?.input?.manager?.inputCandidate?.(
+                        zone,
+                        scene?.cameras?.main
+                    ),
+                    zoneDirectHits: pointer && zone
+                        ? scene.input.manager.hitTest(
+                            pointer,
+                            [zone],
+                            scene.cameras.main,
+                            []
+                        ).length
+                        : 0,
+                    camerasBelowPointer: pointer
+                        ? scene.input.cameras.getCamerasBelowPointer(pointer).length
+                        : 0,
+                    zoneHitArea: zone?.input?.hitArea && {
+                        x: zone.input.hitArea.x,
+                        y: zone.input.hitArea.y,
+                        width: zone.input.hitArea.width,
+                        height: zone.input.hitArea.height
+                    }
+                },
+                camera: scene?.cameras?.main && {
+                    zoom: scene.cameras.main.zoom,
+                    scrollX: scene.cameras.main.scrollX,
+                    scrollY: scene.cameras.main.scrollY,
+                    worldPoint,
+                    inputPoint,
+                    localPoint,
+                    normalizedPoint: localPoint && zone ? {
+                        x: localPoint.x + zone.displayOriginX,
+                        y: localPoint.y + zone.displayOriginY
+                    } : null,
+                    matrix: matrix && {
+                        a: matrix.a,
+                        b: matrix.b,
+                        c: matrix.c,
+                        d: matrix.d,
+                        tx: matrix.tx,
+                        ty: matrix.ty
+                    }
+                },
+                notification: {
+                    visible: notification?.isVisible,
+                    closing: notification?.closing,
+                    containerDepth: notification?.container?.depth,
+                    containerX: notification?.container?.x,
+                    containerY: notification?.container?.y,
+                    containerScale: notification?.container?.scale,
+                    containerScrollFactorX: notification?.container?.scrollFactorX,
+                    contentDepth: notification?.contentContainer?.depth,
+                    contentY: notification?.contentContainer?.y,
+                    contentAlpha: notification?.contentContainer?.alpha,
+                    contentScale: notification?.contentContainer?.scale,
+                    zoneDepth: zone?.depth,
+                    zoneParentDepth: zone?.parentContainer?.depth,
+                    zoneScrollFactorX: zone?.scrollFactorX,
+                    zoneScrollFactorY: zone?.scrollFactorY,
+                    zoneVisible: zone?.visible,
+                    zoneActive: zone?.active
+                },
+                hits: pointer ? scene.input.hitTestPointer(pointer).map(item => ({
+                    type: item?.type,
+                    depth: item?.depth,
+                    parentDepth: item?.parentContainer?.depth,
+                    achievementTarget:
+                        item?.getData?.('achievementDismissTarget') === true
+                })) : []
+            };
+        })()`);
+        throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+    }
+    menuRouteLifecycle.achievementToast = {
+        target: achievementToast,
+        dismissed: achievementDismissed
+    };
+
     const after = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('GameScene');
         return {
@@ -10645,8 +10944,185 @@ async function smokeSanctuaryNavigation(session, exceptions) {
         after,
         pauseResume: { pausedState, pauseWatchdog, resumedState },
         movement,
-        worldDataListenerLifecycle
+        worldDataListenerLifecycle,
+        menuRouteLifecycle
     };
+}
+
+async function smokeVoidPortalLifecycle(session, exceptions) {
+    exceptions.length = 0;
+    await navigate(session, `${BASE_URL}/play/?reset=true`);
+    await waitForScene(session, 'HatchingScene');
+    await evaluate(session, `(() => {
+        const game = window.mythicalGame;
+        const state = window.GameState;
+        const creature = {
+            ...(state.get('creature') || {}),
+            id: 'smoke_void_nova',
+            name: 'Nova',
+            hatched: true,
+            named: true,
+            genes: {
+                id: 'smoke_void_genes_23',
+                personality: { primary: 'curious' },
+                cosmicAffinity: { element: 'nebula' }
+            },
+            stats: { happiness: 92, energy: 90 }
+        };
+        state.set('creature', creature);
+        state.set('creatures', [creature]);
+        state.set('activeCreatureIndex', 0);
+        state.set('tutorial.crashStorySeen', true);
+        state.set('tutorial.controlsSeen', true);
+        state.set('tutorial.villageHeartArrivalSeen', true);
+        state.save();
+        game.scene.getScene('HatchingScene').scene.start('GameScene', {
+            biome: 'nebula',
+            forceMobileControls: true
+        });
+        return true;
+    })()`);
+    await waitForScene(session, 'GameScene', 30000);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene('GameScene');
+            return Boolean(
+                scene?.player?.body &&
+                scene?.voidPortal &&
+                scene?.sanctuaryZones &&
+                scene?.mobileControls
+            );
+        })()`),
+        { timeoutMs: 18000, message: 'repeatable Void portal setup' }
+    );
+
+    const journeys = [];
+    for (let visit = 1; visit <= 2; visit++) {
+        const ready = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame?.scene?.getScene('GameScene');
+                if (
+                    !scene?.scene?.isActive?.() ||
+                    scene.voidEntryCooldown ||
+                    !scene.player?.body ||
+                    !scene.voidPortal
+                ) return null;
+                return {
+                    playerX: scene.player.x,
+                    playerY: scene.player.y,
+                    portalX: scene.voidPortal.x,
+                    portalY: scene.voidPortal.y
+                };
+            })()`),
+            { timeoutMs: 5000, message: `Void portal visit ${visit} ready` }
+        );
+
+        const triggered = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            scene.player.setPosition(scene.voidPortal.x, scene.voidPortal.y);
+            scene.player.setVelocity?.(0, 0);
+            scene.handleVoidPortalProximity(scene.player, scene.voidPortal);
+            return {
+                nearVoidPortal: scene.nearVoidPortal,
+                voidPullActive: scene.voidPullActive,
+                voidEntryCooldown: scene.voidEntryCooldown
+            };
+        })()`);
+        if (
+            triggered?.nearVoidPortal !== true ||
+            triggered?.voidPullActive !== true ||
+            triggered?.voidEntryCooldown !== false
+        ) {
+            throw new Error(
+                `Void portal visit ${visit} did not start its pull: ` +
+                JSON.stringify({ ready, triggered })
+            );
+        }
+
+        await waitForScene(session, 'VoidMiniGameScene', 9000);
+        const entered = await waitFor(
+            () => evaluate(session, `(() => {
+                const game = window.mythicalGame;
+                const scene = game?.scene?.getScene('VoidMiniGameScene');
+                if (!scene?.scene?.isActive?.() || !scene?.player?.body) return null;
+                return {
+                    active: scene.isGameActive === true,
+                    returnPosition: scene.returnPosition,
+                    sanctuaryActive: game.scene.isActive('GameScene')
+                };
+            })()`),
+            { timeoutMs: 5000, message: `Void portal visit ${visit} entry` }
+        );
+        if (
+            entered.active !== true ||
+            entered.sanctuaryActive !== false ||
+            !Number.isFinite(entered.returnPosition?.x) ||
+            !Number.isFinite(entered.returnPosition?.y)
+        ) {
+            throw new Error(
+                `Void portal visit ${visit} did not reach live play: ` +
+                JSON.stringify(entered)
+            );
+        }
+
+        await evaluate(session, `(() => {
+            window.mythicalGame.scene.getScene('VoidMiniGameScene').returnToSanctuary();
+            return true;
+        })()`);
+        await waitForScene(session, 'GameScene', 10000);
+        const returned = await waitFor(
+            () => evaluate(session, `(() => {
+                const game = window.mythicalGame;
+                const scene = game?.scene?.getScene('GameScene');
+                if (
+                    !scene?.scene?.isActive?.() ||
+                    scene.voidEntryCooldown ||
+                    !scene.player?.body ||
+                    !scene.voidPortal ||
+                    !scene.mobileControls
+                ) return null;
+                return {
+                    playerX: scene.player.x,
+                    playerY: scene.player.y,
+                    portalX: scene.voidPortal.x,
+                    portalY: scene.voidPortal.y,
+                    portalDistance: Phaser.Math.Distance.Between(
+                        scene.player.x,
+                        scene.player.y,
+                        scene.voidPortal.x,
+                        scene.voidPortal.y
+                    ),
+                    voidPullActive: scene.voidPullActive,
+                    nearVoidPortal: scene.nearVoidPortal,
+                    miniGameActive: game.scene.isActive('VoidMiniGameScene'),
+                    physicsPaused: Boolean(scene.physics?.world?.isPaused)
+                };
+            })()`),
+            { timeoutMs: 6000, message: `Void portal visit ${visit} return` }
+        );
+        if (
+            returned.portalDistance <= 120 ||
+            returned.voidPullActive ||
+            returned.nearVoidPortal ||
+            returned.miniGameActive ||
+            returned.physicsPaused ||
+            Math.abs(returned.playerX - entered.returnPosition.x) > 20 ||
+            Math.abs(returned.playerY - entered.returnPosition.y) > 40
+        ) {
+            throw new Error(
+                `Void portal visit ${visit} did not restore safe Sanctuary play: ` +
+                JSON.stringify({ entered, returned })
+            );
+        }
+        journeys.push({ visit, ready, triggered, entered, returned });
+    }
+
+    if (exceptions.length) {
+        throw new Error(
+            `Void portal lifecycle raised browser exceptions: ${exceptions.join(' | ')}`
+        );
+    }
+    return { journeys };
 }
 
 async function smokeHubForestTransition(session, exceptions) {
@@ -16056,7 +16532,7 @@ async function smokeVillageUi(session, exceptions) {
     // The result flag and its reveal tween begin in the same game callback.
     // Give the visible route, regrowth and label time to complete their reveal
     // before judging the final capture state.
-    await delay(520);
+    await delay(760);
     const visibleHelpResult = await evaluate(session, `(() => {
             const landmark = window.mythicalGame.scene.getScene('GameScene')
                 ?.villageHeartLandmark;
@@ -16073,6 +16549,10 @@ async function smokeVillageUi(session, exceptions) {
             const regrowth = landmark?.workerCheckInElements?.find(
                 element => element?.getData?.('villageHelpRegrowth') === true
             );
+            const regrowthArtwork = landmark?.workerCheckInElements?.find(
+                element => element?.getData?.('villageHelpRegrowthArtwork') ===
+                    'current_bloom_grove'
+            );
             const actionOrigin = landmark?.workerCheckInElements?.find(
                 element => element?.getData?.('villageHelpActionOrigin') ===
                     'creature_life_energy'
@@ -16084,6 +16564,8 @@ async function smokeVillageUi(session, exceptions) {
                 openedRouteAlpha: openedRoute?.alpha,
                 blockedRouteAlpha: blockedRoute?.alpha,
                 regrowthAlpha: regrowth?.alpha,
+                regrowthArtworkAlpha: regrowthArtwork?.alpha,
+                regrowthArtworkWidth: regrowthArtwork?.displayWidth,
                 resultLabelAlpha: resultLabel?.alpha,
                 actionOriginAlpha: actionOrigin?.alpha
             };
@@ -16094,9 +16576,11 @@ async function smokeVillageUi(session, exceptions) {
         visibleHelpResult.problem !== 'BLOCKED FOOD ROUTE' ||
         visibleHelpResult.result !== 'ROUTE OPEN +5 HAPPINESS' ||
         visibleHelpResult.openedRouteAlpha < 0.9 ||
-        visibleHelpResult.blockedRouteAlpha < 0.58 ||
-        visibleHelpResult.blockedRouteAlpha > 0.7 ||
+        visibleHelpResult.blockedRouteAlpha < 0.14 ||
+        visibleHelpResult.blockedRouteAlpha > 0.24 ||
         visibleHelpResult.regrowthAlpha < 0.9 ||
+        visibleHelpResult.regrowthArtworkAlpha < 0.9 ||
+        visibleHelpResult.regrowthArtworkWidth < (SMOKE_VIEWPORT_WIDTH <= 600 ? 165 : 235) ||
         visibleHelpResult.resultLabelAlpha < 0.9 ||
         visibleHelpResult.actionOriginAlpha < 0.35
     ) {
@@ -16561,8 +17045,13 @@ async function smokeVillageUi(session, exceptions) {
             const label = elements.find(element => (
                 element?.getData?.('villageDecisionResultLabel') === true
             ));
+            const grove = elements.find(element => (
+                element?.getData?.('villageDecisionWorldChange') ===
+                    'current_bloom_grove'
+            ));
             return route?.alpha >= 0.9 &&
                 regrowth?.alpha >= 0.9 &&
+                grove?.alpha >= 0.9 &&
                 label?.alpha >= 0.9;
         })()`),
         { timeoutMs: 2500, message: 'Village choice visibly changes the world' }
@@ -16593,6 +17082,10 @@ async function smokeVillageUi(session, exceptions) {
             regrowthAlpha: landmark?.decisionMomentElements?.find(
                 element => element?.getData?.('villageDecisionRegrowth') === true
             )?.alpha,
+            grove: landmark?.decisionMomentElements?.find(
+                element => element?.getData?.('villageDecisionWorldChange') ===
+                    'current_bloom_grove'
+            ) ? 'current_bloom_grove' : null,
             resultLabelAlpha: landmark?.decisionMomentElements?.find(
                 element => element?.getData?.('villageDecisionResultLabel') === true
             )?.alpha,
@@ -16631,6 +17124,7 @@ async function smokeVillageUi(session, exceptions) {
         !decisionWorld.resonanceBackdrop ||
         decisionWorld.livingRouteAlpha < 0.9 ||
         decisionWorld.regrowthAlpha < 0.9 ||
+        decisionWorld.grove !== 'current_bloom_grove' ||
         decisionWorld.resultLabelAlpha < 0.9 ||
         decisionWorld.routeHierarchy !== 'quiet_network_v1' ||
         decisionWorld.routeHierarchyState !== 'story_recessed' ||
@@ -17416,13 +17910,14 @@ async function smokeVillageUi(session, exceptions) {
     );
     await waitFor(
         () => evaluate(session, `(() => {
-            const echoes = window.mythicalGame.scene.getScene('GameScene')
+            const drops = window.mythicalGame.scene.getScene('GameScene')
                 ?.villageHeartLandmark?.communityMomentElements?.filter(
-                    element => Boolean(element?.getData?.('villageMemoryEcho'))
+                    element => element?.getData?.('villageMemoryRainDrop') === true
                 ) || [];
-            return echoes.length === 4 && echoes.every(echo => echo.alpha >= 0.24);
+            return drops.length >= 16 &&
+                drops.filter(drop => drop.alpha >= 0.5).length >= 8;
         })()`),
-        { timeoutMs: 2500, message: 'Planet memory renders both actor echoes' }
+        { timeoutMs: 2500, message: 'Planet memory rain rises through the world' }
     );
     const heartMemory = await evaluate(session, `(() => {
         const landmark = window.mythicalGame.scene.getScene('GameScene')
@@ -17446,15 +17941,16 @@ async function smokeVillageUi(session, exceptions) {
             phenomenonLanguage: landmark?.communityMomentElements?.find(
                 element => element?.getData?.('villagePlanetMemoryPhenomenon') === true
             )?.getData?.('phenomenonLanguage'),
-            memoryEchoes: landmark?.communityMomentElements?.filter(
-                element => Boolean(element?.getData?.('villageMemoryEcho'))
+            memoryRain: landmark?.communityMomentElements?.filter(
+                element => element?.getData?.('villageMemoryRainDrop') === true
             ).map(element => ({
-                actor: element.getData('villageMemoryEcho'),
-                texture: element.texture?.key || null,
-                sourceTexture: element.getData('sourceTexture'),
+                direction: element.getData('memoryRainDirection'),
                 alpha: element.alpha,
                 visible: element.visible !== false && element.active !== false
             })) || [],
+            memoryFlora: landmark?.communityMomentElements?.find(
+                element => Boolean(element?.getData?.('villageMemoryFlora'))
+            )?.getData?.('villageMemoryFlora') || null,
             markerCount: markers.length,
             markerActive: markers.every(marker => marker.active === true),
             markerInteractive: markers.every(marker => marker.input?.enabled === true),
@@ -17496,16 +17992,13 @@ async function smokeVillageUi(session, exceptions) {
         !heartMemory.resonanceBackdrop ||
         !heartMemory.planetMemoryPhenomenon ||
         heartMemory.linkedActorCount !== 2 ||
-        heartMemory.visibleDiscovery !== 'THE PLANET REMEMBERS YOUR CHOICE' ||
-        heartMemory.phenomenonLanguage !== 'living_current_remembers_choice_v1' ||
-        heartMemory.memoryEchoes.length !== 4 ||
-        new Set(heartMemory.memoryEchoes.map(echo => echo.actor)).size !== 2 ||
-        heartMemory.memoryEchoes.some(echo => (
-            !echo.visible ||
-            !echo.texture ||
-            echo.texture !== echo.sourceTexture ||
-            echo.alpha <= 0
+        heartMemory.visibleDiscovery !== 'THE RAIN IS RISING' ||
+        heartMemory.phenomenonLanguage !== 'memory_rain_rises_v2' ||
+        heartMemory.memoryRain.length < 16 ||
+        heartMemory.memoryRain.some(drop => (
+            !drop.visible || drop.direction !== 'up'
         )) ||
+        heartMemory.memoryFlora !== 'listening_reeds' ||
         heartMemory.markerCount !== 1 ||
         !heartMemory.markerActive ||
         !heartMemory.markerInteractive ||
@@ -18709,11 +19202,12 @@ async function smokeVisualMovement(session, exceptions) {
     const started = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
         if (!scene?.player?.body || !scene?.astronautFollower?.sprite) return false;
-        const supportId = 'forest-tree-3-handoff';
+        window.mythicalGame.scene.stop('HatchingScene');
+        const supportId = 'forest-ground-6';
         const support = scene.getTraversalSupport?.(supportId) ||
             scene.platforms?.getChildren?.()[0];
         if (!support?.body || scene.physics.world.isPaused) return false;
-        const x = support.body.left + 300;
+        const x = support.body.left + 1700;
         if (scene.bossTriggerZone?.body) {
             scene.bossTriggerZone.body.enable = false;
         }
@@ -18725,7 +19219,7 @@ async function smokeVisualMovement(session, exceptions) {
         scene.isInvincible = true;
         scene.cameras.main.startFollow(scene.player, true, 0.12, 0.12);
         scene.cameras.main.centerOn(scene.player.x, scene.player.y - 20);
-        const followerGap = ${isPhone} ? 132 : 340;
+        const followerGap = ${isPhone} ? 150 : 400;
         const formationX = followerGap;
         scene.astronautFollower.setContextualFormation?.(
             { x: formationX, y: 2 },
@@ -18744,6 +19238,7 @@ async function smokeVisualMovement(session, exceptions) {
         scene.resetJoystick?.();
         scene.levelEntryElements?.forEach(element => element?.destroy?.());
         scene.levelEntryElements = [];
+        scene.objectiveDisplay?.setVisible?.(false);
         scene.optionalRouteRewards?.forEach(route => {
             route?.marker?.setVisible?.(false);
             route?.choice?.mainMarker?.setVisible?.(false);
@@ -18765,8 +19260,8 @@ async function smokeVisualMovement(session, exceptions) {
             scene.player.y + formation.y
         );
         follower.sprite.setDisplaySize(
-            follower.sprite.displayWidth * 0.92,
-            follower.sprite.displayHeight * 0.92
+            follower.sprite.displayWidth * 0.86,
+            follower.sprite.displayHeight * 0.86
         );
         follower.shadow?.setPosition?.(
             follower.sprite.x,
@@ -18817,7 +19312,8 @@ async function smokeVisualMovement(session, exceptions) {
             '.modal-overlay',
             '.village-command-modal',
             '.achievement-notification',
-            '.companion-media-overlay'
+            '.companion-media-overlay',
+            '.home-start-fallback'
         ];
         return {
             active: scene?.scene?.isActive?.() === true,
@@ -18842,6 +19338,16 @@ async function smokeVisualMovement(session, exceptions) {
                 (total, selector) => total + document.querySelectorAll(selector).length,
                 0
             ),
+            hatchingActive: window.mythicalGame.scene.isActive('HatchingScene'),
+            hatchingStartVisible: (() => {
+                const hatching = window.mythicalGame.scene.getScene('HatchingScene');
+                return Boolean(
+                    hatching?.sys?.isActive?.() &&
+                    hatching?.startButton?.active &&
+                    hatching.startButton.visible !== false &&
+                    hatching.startButton.alpha > 0
+                );
+            })(),
             levelEntryCount: scene?.levelEntryElements?.length || 0,
             viewport: { width: innerWidth, height: innerHeight },
             canvas: (() => {
@@ -18863,6 +19369,10 @@ async function smokeVisualMovement(session, exceptions) {
             } : null,
             health: scene?.health,
             maxHealth: scene?.maxHealth,
+            scenicBackdrop: scene?.forestScenicBackdrop?.getData?.(
+                'forestScenicBackdrop'
+            ) || null,
+            scenicBackdropAlpha: scene?.forestScenicBackdrop?.alpha || 0,
             playerX: creature?.x,
             playerY: creature?.y
         };
@@ -18901,7 +19411,11 @@ async function smokeVisualMovement(session, exceptions) {
             state.actorGap < (isPhone ? 24 : 36) ||
             !Number.isFinite(state.health) ||
             state.health !== state.maxHealth ||
+            state.scenicBackdrop !== 'living_forest_depth_v1' ||
+            state.scenicBackdropAlpha < 0.6 ||
             state.modalCount !== 0 ||
+            state.hatchingActive ||
+            state.hatchingStartVisible ||
             state.levelEntryCount !== 0
         ) {
             throw new Error(`${label} failed visual actor contract: ${JSON.stringify(state)}`);
@@ -18914,7 +19428,7 @@ async function smokeVisualMovement(session, exceptions) {
     const movementSamples = [];
     let movementPosterCaptured = false;
     const captureMovementPoster = async index => {
-        if (movementPosterCaptured || index !== 8) return;
+        if (movementPosterCaptured || index !== 5) return;
         await captureGameplayStill(
             session,
             isPhone ? 'movement-alive-phone.png' : 'movement-alive-desktop.png'
@@ -18938,6 +19452,10 @@ async function smokeVisualMovement(session, exceptions) {
             400
         );
         for (let index = 0; index < 9; index++) {
+            if (index === 2) {
+                await evaluate(session, `window.mythicalGame.scene
+                    .getScene('MythicalForestLevel')?.executeJump?.()`);
+            }
             const sample = await inspectActors();
             assertActors(sample, `Visual movement phone sample ${index + 1}`);
             movementSamples.push(sample);
@@ -18950,6 +19468,15 @@ async function smokeVisualMovement(session, exceptions) {
             key: 'd', code: 'KeyD', keyCode: 68
         });
         for (let index = 0; index < 18; index++) {
+            if (index === 3) {
+                await setKeyboardKey(session, 'keyDown', {
+                    key: ' ', code: 'Space', keyCode: 32
+                });
+                await delay(90);
+                await setKeyboardKey(session, 'keyUp', {
+                    key: ' ', code: 'Space', keyCode: 32
+                });
+            }
             await delay(450);
             const sample = await inspectActors();
             assertActors(sample, `Visual movement desktop sample ${index + 1}`);
@@ -19471,6 +19998,7 @@ async function main() {
         const exceptions = [];
         const consoleErrors = [];
         const networkFailures = [];
+        const policyViolations = [];
         const networkRequestUrls = new Map();
         const documentNavigationRequests = [];
         const smokeOrigin = new URL(BASE_URL).origin;
@@ -19485,6 +20013,24 @@ async function main() {
             }
             return argument?.description || argument?.type || 'unknown';
         };
+        const sanitizeNetworkUrl = value => {
+            try {
+                const parsed = new URL(value);
+                return `${parsed.origin}${parsed.pathname}`;
+            } catch (error) {
+                return 'unknown';
+            }
+        };
+        const recordPolicyViolation = value => {
+            const text = String(value || '');
+            if (
+                /permissions policy violation/i.test(text) &&
+                /geolocation/i.test(text) &&
+                !policyViolations.includes('geolocation_blocked')
+            ) {
+                policyViolations.push('geolocation_blocked');
+            }
+        };
         session.on('Runtime.exceptionThrown', params => {
             exceptions.push(
                 params.exceptionDetails?.exception?.description ||
@@ -19493,23 +20039,32 @@ async function main() {
             );
         });
         session.on('Runtime.consoleAPICalled', params => {
-            if (params.type !== 'error') return;
-            consoleErrors.push((params.args || []).map(formatConsoleArgument).join(' '));
+            const message = (params.args || [])
+                .map(formatConsoleArgument)
+                .join(' ');
+            recordPolicyViolation(message);
+            if (params.type === 'error') consoleErrors.push(message);
+        });
+        session.on('Log.entryAdded', params => {
+            recordPolicyViolation(params.entry?.text);
         });
         session.on('Network.responseReceived', params => {
             const status = Number(params.response?.status) || 0;
             const url = params.response?.url || '';
-            if (status < 400 || !url.startsWith(smokeOrigin)) return;
+            if (status < 400) return;
             if (
                 allowLocalStaticFunction404 &&
                 status === 404 &&
+                url.startsWith(smokeOrigin) &&
                 new URL(url).pathname === '/.netlify/functions/observability-events'
             ) return;
             networkFailures.push({
-                kind: 'http',
+                kind: url.startsWith(smokeOrigin)
+                    ? 'http'
+                    : 'third_party_http',
                 status,
                 type: params.type || 'Other',
-                url
+                url: sanitizeNetworkUrl(url)
             });
         });
         session.on('Network.requestWillBeSent', params => {
@@ -19547,7 +20102,9 @@ async function main() {
                 errorText: params.errorText || 'request failed',
                 type: params.type || 'Other',
                 requestId: params.requestId || null,
-                url: networkRequestUrls.get(params.requestId) || null,
+                url: sanitizeNetworkUrl(
+                    networkRequestUrls.get(params.requestId) || ''
+                ),
                 recentDocumentNavigations: params.type === 'Document'
                     ? [...documentNavigationRequests]
                     : undefined
@@ -19686,6 +20243,12 @@ async function main() {
                 exceptions
             );
             process.stdout.write('PASS SanctuaryNavigationLifecycle\n');
+        } else if (SMOKE_MODE === 'void-portal-lifecycle') {
+            results.voidPortalLifecycle = await smokeVoidPortalLifecycle(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS VoidPortalLifecycle\n');
         } else if (SMOKE_MODE === 'hub-forest-transition') {
             results.hubForestTransition = await smokeHubForestTransition(
                 session,
@@ -19718,21 +20281,28 @@ async function main() {
         } else {
             throw new Error(
                 `Unknown SMOKE_MODE ${JSON.stringify(SMOKE_MODE)}. ` +
-                'Use home-entry, hatch-gallery, first-sanctuary, nasa-content, interaction, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, hub-forest-transition, village-ui, forest-arrival, visual-story-reel, or guardian-pacing.'
+                'Use home-entry, hatch-gallery, first-sanctuary, nasa-content, interaction, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, void-portal-lifecycle, hub-forest-transition, village-ui, forest-arrival, visual-story-reel, or guardian-pacing.'
             );
         }
-        if (consoleErrors.length || networkFailures.length) {
+        if (
+            consoleErrors.length ||
+            networkFailures.length ||
+            policyViolations.length
+        ) {
             throw new Error(
                 `Browser health gate failed: ${JSON.stringify({
                     consoleErrors,
-                    networkFailures
+                    networkFailures,
+                    policyViolations
                 })}`
             );
         }
         results.browserHealth = {
             consoleErrors: 0,
             sameOriginHttpFailures: 0,
-            transportFailures: 0
+            thirdPartyHttpFailures: 0,
+            transportFailures: 0,
+            policyViolations: 0
         };
         console.log(JSON.stringify({
             success: true,

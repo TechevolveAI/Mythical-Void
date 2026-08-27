@@ -105,6 +105,12 @@ describe('AchievementNotification', () => {
     test('grants immediately and a mobile pointer-up always dismisses the toast', () => {
         const { AchievementNotification, claimReward } = loadNotification();
         const { scene, zones, tweenConfigs } = createScene();
+        scene.cameras.main = {
+            zoom: 0.85,
+            scrollX: 905,
+            scrollY: 478,
+            getWorldPoint: (x, y) => ({ x: x + 905, y: y + 478 })
+        };
         const notification = new AchievementNotification(scene);
 
         notification.show({
@@ -119,6 +125,9 @@ describe('AchievementNotification', () => {
         expect(notification.blocksStory).toBe(false);
         expect(notification.isVisible).toBe(true);
         expect(zones).toHaveLength(1);
+        expect(zones[0].setScrollFactor).toHaveBeenCalledWith(0);
+        expect(scene.add.zone).toHaveBeenCalledWith(195, 70, 330, 98);
+        expect(zones[0].setDepth).toHaveBeenCalledWith(18001);
 
         zones[0].handlers.pointerup();
         expect(notification.closing).toBe(true);
@@ -129,6 +138,7 @@ describe('AchievementNotification', () => {
 
         expect(notification.isVisible).toBe(false);
         expect(notification.container).toBeNull();
+        expect(notification.dismissZone).toBeNull();
     });
 
     test('caps visual backlog while granting every unlocked reward', () => {

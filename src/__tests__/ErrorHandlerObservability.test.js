@@ -300,6 +300,21 @@ describe('privacy-conscious runtime observability', () => {
         now.mockRestore();
     });
 
+    test('dismisses error cards idempotently without warning about a stale node', () => {
+        jest.useFakeTimers();
+        const handler = new ErrorHandler();
+        const element = document.createElement('div');
+        document.body.appendChild(element);
+
+        expect(handler.dismissErrorElement(element)).toBe(true);
+        jest.advanceTimersByTime(300);
+        expect(document.body.contains(element)).toBe(false);
+        expect(handler.dismissErrorElement(element)).toBe(false);
+        expect(consoleWarn).not.toHaveBeenCalledWith(
+            '[ErrorHandler] Element already removed from DOM'
+        );
+    });
+
     test('maps unrecognized scene keys to unknown', async () => {
         const send = jest.fn(okResponse);
         const transport = new PrivacyObservabilityTransport({

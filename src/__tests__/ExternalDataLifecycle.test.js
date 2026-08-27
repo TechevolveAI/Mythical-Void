@@ -54,7 +54,7 @@ function successfulResponse(payload = []) {
 }
 
 describe('external data singleton lifecycle', () => {
-    test('NASA initialization shares one request and one tracking interval', async () => {
+    test('NASA initialization stays network-quiet and shares one tracking interval', async () => {
         const fetchMock = jest.fn(async () => successfulResponse({
             media_type: 'image',
             title: 'Test APOD',
@@ -80,7 +80,7 @@ describe('external data singleton lifecycle', () => {
             system.initialize()
         ]);
 
-        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).not.toHaveBeenCalled();
         expect(setIntervalMock).toHaveBeenCalledTimes(1);
         expect(system.isInitialized).toBe(true);
         system.destroy();
@@ -88,7 +88,7 @@ describe('external data singleton lifecycle', () => {
         expect(system.issCheckInterval).toBeNull();
     });
 
-    test('NASA teardown prevents an in-flight initialization from reactivating', async () => {
+    test('NASA daily content remains an explicit on-demand request', async () => {
         let finishRequest;
         const fetchMock = jest.fn(() => new Promise(resolve => {
             finishRequest = resolve;
@@ -102,15 +102,18 @@ describe('external data singleton lifecycle', () => {
         );
         const system = new System();
 
-        const initialization = system.initialize();
+        await system.initialize();
+        expect(fetchMock).not.toHaveBeenCalled();
+
+        const dailyContent = system.getDailyContentQueue();
         await Promise.resolve();
         await Promise.resolve();
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        system.destroy();
         finishRequest(successfulResponse({ media_type: 'image' }));
-        await initialization;
+        await dailyContent;
 
-        expect(setIntervalMock).not.toHaveBeenCalled();
+        expect(setIntervalMock).toHaveBeenCalledTimes(1);
+        system.destroy();
         expect(system.isInitialized).toBe(false);
     });
 
@@ -135,15 +138,15 @@ describe('external data singleton lifecycle', () => {
             system.initialize(),
             system.initialize()
         ]);
-        expect(fetchMock).toHaveBeenCalledTimes(2);
-        expect(setIntervalMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(setIntervalMock).not.toHaveBeenCalled();
 
         system.cache.data = null;
         await Promise.all([system.refresh(), system.refresh(), system.refresh()]);
-        expect(fetchMock).toHaveBeenCalledTimes(4);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
 
         system.destroy();
-        expect(clearIntervalMock).toHaveBeenCalledWith(77);
+        expect(clearIntervalMock).not.toHaveBeenCalled();
         expect(system.refreshInterval).toBeNull();
     });
 
@@ -163,13 +166,14 @@ describe('external data singleton lifecycle', () => {
         const weatherUpdated = jest.fn();
         system.on('weatherUpdated', weatherUpdated);
 
-        const initialization = system.initialize();
+        await system.initialize();
+        const refresh = system.refresh();
         await Promise.resolve();
         await Promise.resolve();
         expect(pendingRequests).toHaveLength(2);
         system.destroy();
         pendingRequests.forEach(resolve => resolve(successfulResponse([])));
-        await initialization;
+        await refresh;
 
         expect(setIntervalMock).not.toHaveBeenCalled();
         expect(weatherUpdated).not.toHaveBeenCalled();

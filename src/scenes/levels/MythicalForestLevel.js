@@ -305,6 +305,39 @@ class MythicalForestLevel extends PlatformerLevelScene {
         );
     }
 
+    createBackground() {
+        super.createBackground();
+
+        if (!this.textures?.exists?.(FOREST_ARRIVAL_TEXTURE)) return;
+
+        const camera = this.cameras.main;
+        const coverWidth = Math.max(camera.width, camera.height * (16 / 9));
+        const coverHeight = Math.max(camera.height, camera.width * (9 / 16));
+        this.forestScenicBackdrop = this.add.image(
+            camera.width / 2,
+            camera.height / 2,
+            FOREST_ARRIVAL_TEXTURE
+        )
+            .setOrigin(0.5)
+            .setDisplaySize(coverWidth, coverHeight)
+            .setScrollFactor(0)
+            .setDepth(-1)
+            .setAlpha(this.isMobile ? 0.62 : 0.72)
+            .setData('forestScenicBackdrop', 'living_forest_depth_v1');
+
+        this.forestScenicVeil = this.add.rectangle(
+            camera.width / 2,
+            camera.height / 2,
+            coverWidth,
+            coverHeight,
+            0x061513,
+            this.isMobile ? 0.22 : 0.16
+        )
+            .setScrollFactor(0)
+            .setDepth(0)
+            .setData('forestScenicVeil', true);
+    }
+
     create() {
         super.create();
 
@@ -5322,6 +5355,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestArenaAmbientTimer?.remove?.();
         this.forestArenaAmbientTimer = null;
         [
+            'forestScenicBackdrop',
+            'forestScenicVeil',
             'forestGroundLayer',
             'forestVoidLayer',
             'forestVoidMoteLayer',

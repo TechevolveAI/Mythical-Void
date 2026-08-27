@@ -304,6 +304,15 @@ async function main() {
             failures.push(`navigation-lifecycle: ${error.message}`);
         }
 
+        console.log('\n[release-smoke] Repeatable Void portal lifecycle suite');
+        try {
+            await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                SMOKE_MODE: 'void-portal-lifecycle'
+            });
+        } catch (error) {
+            failures.push(`void-portal-lifecycle: ${error.message}`);
+        }
+
         console.log('\n[release-smoke] Hub-to-Forest transition suite');
         try {
             await runNodeScript('scripts/smoke-secondary-journeys.js', {

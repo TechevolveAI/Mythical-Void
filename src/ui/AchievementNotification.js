@@ -10,6 +10,8 @@
 
 import { devLog } from '../utils/devLogger.js';
 
+const ACHIEVEMENT_TOAST_DEPTH = 18000;
+
 class AchievementNotification {
     constructor(scene) {
         this.scene = scene;
@@ -18,6 +20,8 @@ class AchievementNotification {
         this.queue = [];
         this.currentNotification = null;
         this.autoDismissTimer = null;
+        this.dismissZone = null;
+        this.toastScreenY = 0;
         this.destroyed = false;
         this.closing = false;
         this.blocksStory = false;
@@ -99,7 +103,7 @@ class AchievementNotification {
 
         // Create container
         this.container = this.scene.add.container(screenSpace.x, screenSpace.y);
-        this.container.setDepth(10000);
+        this.container.setDepth(ACHIEVEMENT_TOAST_DEPTH);
         this.container.setScrollFactor(0);
         this.container.setScale(uiScale);
         this.contentContainer = this.scene.add.container(0, 0);
@@ -112,7 +116,7 @@ class AchievementNotification {
         this.overlay = this.scene.add.graphics()
             .setPosition(screenSpace.x, screenSpace.y)
             .setScrollFactor(0)
-            .setDepth(9999)
+            .setDepth(ACHIEVEMENT_TOAST_DEPTH - 1)
             .setVisible(false)
             .setAlpha(0)
             .setData('achievementBackdropMode', 'non_blocking');
@@ -193,11 +197,21 @@ class AchievementNotification {
         this.contentContainer.add(closeText);
 
         // The full toast is a generous mobile-safe dismiss target.
-        const dismissZone = this.scene.add.zone(0, 0, modalWidth, modalHeight)
+        this.toastScreenY = compact ? 70 : 66;
+        const inputCenter = this.getInputSpacePoint(centerX, this.toastScreenY);
+        const dismissZone = this.scene.add.zone(
+            inputCenter.x,
+            inputCenter.y,
+            modalWidth,
+            modalHeight
+        )
+            .setScrollFactor(0)
+            .setScale(uiScale)
+            .setDepth(ACHIEVEMENT_TOAST_DEPTH + 1)
             .setInteractive({ useHandCursor: true })
             .setData('achievementDismissTarget', true)
             .setData('ariaLabel', `Dismiss ${achievement.name} achievement`);
-        this.contentContainer.add(dismissZone);
+        this.dismissZone = dismissZone;
         dismissZone.on('pointerup', () => {
             this.claimAndClose(achievement);
         });
@@ -275,7 +289,27 @@ class AchievementNotification {
             .setScrollFactor(0)
             .setVisible(false)
             .setAlpha(0);
+        const inputCenter = this.getInputSpacePoint(
+            screenSpace.width / 2,
+            this.toastScreenY
+        );
+        this.dismissZone
+            ?.setPosition(inputCenter.x, inputCenter.y)
+            .setScale(screenSpace.scale)
+            .setScrollFactor(0);
         return true;
+    }
+
+    getInputSpacePoint(screenX, screenY) {
+        const camera = this.scene.cameras?.main;
+        if (typeof camera?.getWorldPoint !== 'function') {
+            return { x: screenX, y: screenY };
+        }
+        const worldPoint = camera.getWorldPoint(screenX, screenY);
+        return {
+            x: worldPoint.x - (camera.scrollX || 0),
+            y: worldPoint.y - (camera.scrollY || 0)
+        };
     }
 
     getScreenSpaceTransform() {
@@ -425,6 +459,10 @@ class AchievementNotification {
         if (this.overlay) {
             this.overlay.destroy();
             this.overlay = null;
+        }
+        if (this.dismissZone) {
+            this.dismissZone.destroy();
+            this.dismissZone = null;
         }
     }
 

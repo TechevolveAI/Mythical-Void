@@ -1145,12 +1145,12 @@ class ErrorHandler {
      * Dismiss error element with animation
      */
     dismissErrorElement(element) {
-        if (!element) return;
+        if (!element) return false;
 
-        // Check if element still exists in DOM
+        // Manual dismissal and the auto-dismiss timer can race. Treat repeated
+        // calls as a successful no-op instead of manufacturing console noise.
         if (!element.parentNode || !document.body.contains(element)) {
-            console.warn('[ErrorHandler] Element already removed from DOM');
-            return;
+            return false;
         }
 
         element.style.animation = 'fadeOut 0.3s ease-out';
@@ -1160,6 +1160,7 @@ class ErrorHandler {
                 element.remove();
             }
         }, 300);
+        return true;
     }
 
     /**

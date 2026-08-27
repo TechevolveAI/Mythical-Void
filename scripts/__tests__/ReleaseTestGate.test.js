@@ -74,22 +74,28 @@ describe('release test gate', () => {
         expect(source).toContain("'visual_movement_capture'");
         expect(source).toContain('state.actorGap < (isPhone ? 24 : 36)');
         expect(source).toContain('state.health !== state.maxHealth');
-        expect(source).toContain("const supportId = 'forest-tree-3-handoff';");
-        expect(source).toContain('const x = support.body.left + 300;');
+        expect(source).toContain("const supportId = 'forest-ground-6';");
+        expect(source).toContain('const x = support.body.left + 1700;');
         expect(source).not.toContain("...(${isPhone} ? { platformerPreviewSize: 'mobile' } : {})");
         expect(source).toContain('Math.abs(state.canvas.bottom - state.viewport.height) > 1');
         expect(source).toContain('state.cameraViewport.height !== state.viewport.height');
         expect(source).toContain('scene.optionalRouteRewards?.forEach(route => {');
         expect(source).toContain('route?.choice?.mainMarker?.setVisible?.(false);');
         expect(source).toContain('distance: Math.min(20, scene?.joystickMaxDistance || 20)');
-        expect(source).toContain('const followerGap = ${isPhone} ? 132 : 340;');
+        expect(source).toContain('const followerGap = ${isPhone} ? 150 : 400;');
         expect(source).toContain('const formationX = followerGap;');
         expect(source).toContain('{ x: formationX, y: 2 }');
         expect(source).toContain('scene.player.x + formation.x');
-        expect(source).toContain('follower.sprite.displayWidth * 0.92');
+        expect(source).toContain('follower.sprite.displayWidth * 0.86');
         expect(source).toContain('for (let index = 0; index < 9; index++)');
         expect(source).toContain('for (let index = 0; index < 18; index++)');
-        expect(source).toContain('if (movementPosterCaptured || index !== 8) return;');
+        expect(source).toContain('if (movementPosterCaptured || index !== 5) return;');
+        expect(source).toContain("window.mythicalGame.scene.stop('HatchingScene');");
+        expect(source).toContain('state.hatchingStartVisible ||');
+        expect(source).toContain("'.home-start-fallback'");
+        expect(source).toContain(
+            'drops.filter(drop => drop.alpha >= 0.5).length >= 8'
+        );
         expect(source).toContain("throw new Error('Visual movement poster was not captured during live input')");
     });
 
@@ -129,18 +135,20 @@ describe('release test gate', () => {
         const capture = read('scripts/company/prepare-visual-launch-candidates.cjs');
 
         expect(smoke).toContain("message: 'Creature help result begins'");
-        expect(smoke).toContain('await delay(520);');
+        expect(smoke).toContain('await delay(760);');
         expect(smoke).toContain("visibleHelpResult.action !== 'CREATURE SENDS LIFE ENERGY'");
         expect(smoke).toContain("visibleHelpResult.problem !== 'BLOCKED FOOD ROUTE'");
         expect(smoke).toContain("visibleHelpResult.result !== 'ROUTE OPEN +5 HAPPINESS'");
         expect(smoke).toContain("captureGameplayStill(session, 'village-heart-choice-mobile.png')");
-        expect(smoke).toContain("heartMemory.visibleDiscovery !== 'THE PLANET REMEMBERS YOUR CHOICE'");
-        expect(smoke).toContain("heartMemory.phenomenonLanguage !== 'living_current_remembers_choice_v1'");
-        expect(smoke).toContain('echoes.every(echo => echo.alpha >= 0.24)');
+        expect(smoke).toContain("heartMemory.visibleDiscovery !== 'THE RAIN IS RISING'");
+        expect(smoke).toContain("heartMemory.phenomenonLanguage !== 'memory_rain_rises_v2'");
+        expect(smoke).toContain(
+            'drops.filter(drop => drop.alpha >= 0.5).length >= 8'
+        );
         expect(world).toContain(".setData('villageHelpProblem', 'blocked_food_route')");
         expect(world).toContain(".setData('villageHelpResult', 'safe_food_route_open')");
         expect(world).toContain(".setData('villageHelpActionOrigin', 'creature_life_energy')");
-        expect(world).toContain("'PATH OPEN  +5 HAPPINESS'");
+        expect(world).toContain('`${checkIn.name.toUpperCase()} OPENED THE PATH`');
         expect(world).toContain('const obstacleScale = compact ? 1 : 1.18;');
         expect(world).toContain("'THE THORNS RELEASE'");
         expect(world).toContain(".setData('villageHelpProblemLabel', true)");
@@ -148,9 +156,9 @@ describe('release test gate', () => {
         expect(world).toContain(".setData('villageDecisionRegrowth', true)");
         expect(world).toContain(".setData('villagePlanetMemoryPhenomenon', true)");
         expect(world).toContain(".setData('linkedActorCount', linkedActors.length)");
-        expect(world).toContain(".setData('villageMemoryEcho', actorIndex === 0 ? 'creature' : 'astronaut')");
-        expect(world).toContain('const reflectionScale = echoIndex === 0 ? 0.46 : 0.32;');
-        expect(world).toContain('alpha: { from: 0.16, to: echoIndex === 0 ? 0.42 : 0.3 }');
+        expect(world).toContain(".setData('villageMemoryRainDrop', true)");
+        expect(world).toContain(".setData('memoryRainDirection', 'up')");
+        expect(world).toContain(".setData('villageMemoryFlora', 'listening_reeds')");
         expect(capture).toContain("'village-heart-choice-mobile.png'");
         expect(capture).toContain('durationSeconds < 6');
         expect(capture).toContain('frameCount < 72');
@@ -365,6 +373,17 @@ describe('release test gate', () => {
         expect(vite).toContain('__MYTHICAL_RELEASE_ID__: JSON.stringify(releaseId)');
     });
 
+    test('browser health rejects sanitized third-party failures and policy violations', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+
+        expect(source).toContain("? 'http'");
+        expect(source).toContain(": 'third_party_http'");
+        expect(source).toContain('sanitizeNetworkUrl(url)');
+        expect(source).toContain("policyViolations.push('geolocation_blocked')");
+        expect(source).toContain('thirdPartyHttpFailures: 0');
+        expect(source).toContain('policyViolations: 0');
+    });
+
     test('release smoke proves the living portrait handoff reaches playable Sanctuary', () => {
         const source = read('scripts/smoke-secondary-journeys.js');
         const release = read('scripts/run-browser-smoke.js');
@@ -462,8 +481,9 @@ describe('release test gate', () => {
         expect(source).toContain("session.on('Network.requestWillBeSent'");
         expect(source).toContain("session.on('Page.frameRequestedNavigation'");
         expect(source).toContain(
-            'url: networkRequestUrls.get(params.requestId) || null'
+            "networkRequestUrls.get(params.requestId) || ''"
         );
+        expect(source).toContain('sanitizeNetworkUrl(');
         expect(source).toContain('recentDocumentNavigations: params.type ===');
     });
 

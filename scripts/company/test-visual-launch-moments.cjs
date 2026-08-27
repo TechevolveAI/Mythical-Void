@@ -90,8 +90,8 @@ expectFailure('choice consequence has no world effects', value => {
 expectFailure('unlinked strange discovery', value => {
     value.moments[2].observableStateGate.linkedActors = 0;
 });
-expectFailure('strange discovery omits rendered echoes', value => {
-    value.moments[2].observableStateGate.renderedActorEchoes = 0;
+expectFailure('strange discovery omits rising memory rain', value => {
+    value.moments[2].observableStateGate.upwardMemoryDropsMinimum = 0;
 });
 expectFailure('movement permits fallback frame', value => {
     value.moments[3].observableStateGate.fallbackFramesAllowed = 1;

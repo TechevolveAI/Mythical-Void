@@ -88,6 +88,11 @@ describe('Hatching home start flow', () => {
         expect(source).toContain('createHomeStartFallback()');
         expect(source).toContain("button.dataset.mythicalHomeStart = 'true';");
         expect(source).toContain('this.removeHomeStartFallback();');
+        expect(source).toContain(
+            'this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);'
+        );
+        const shutdown = source.slice(source.indexOf('    shutdown() {'));
+        expect(shutdown).toContain('this.removeHomeStartFallback();');
         expect(gameScene).toContain(
             ".querySelectorAll('[data-mythical-home-start=\"true\"]')"
         );

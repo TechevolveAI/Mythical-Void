@@ -89,13 +89,12 @@ class SpaceWeatherSystem {
                     ? 'DEMO_KEY (limited)'
                     : '***' + this.apiKey.slice(-4));
 
-            await this.refresh();
+            // Space weather enriches the atmosphere but is not required for
+            // play. Start from the authored fallback and fetch only when an
+            // explicit feature requests fresh data, so a public NASA rate
+            // limit can never delay or pollute normal gameplay.
+            this.currentWeather = { ...this.fallbackWeather };
             if (lifecycleToken !== this.lifecycleToken) return this;
-
-            if (this.refreshInterval) clearInterval(this.refreshInterval);
-            this.refreshInterval = setInterval(() => {
-                this.refresh();
-            }, this.cache.cacheDuration);
 
             this.isInitialized = true;
             devLog('[SpaceWeather] System initialized', this.currentWeather);

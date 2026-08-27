@@ -227,10 +227,11 @@ function validateVisualLaunchMoments(document) {
                 'discovery_is_part_of_the_world_not_background_art'
             ],
             observableStateGate: {
-                phenomenon: 'living_current_remembers_choice_v1',
+                phenomenon: 'memory_rain_rises_v2',
                 linkedActors: 2,
                 worldAnchor: 'village_heart',
-                renderedActorEchoes: 4
+                upwardMemoryDropsMinimum: 16,
+                livingFlora: 'listening_reeds'
             }
         },
         'VL-004': {
