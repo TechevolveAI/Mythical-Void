@@ -7,8 +7,8 @@
   "candidateDirectory": ".visual-review/candidates/",
   "candidateDirectoryIsWebsiteContent": false,
   "currentVisualFinding": {
-    "source": "Automated phone and desktop capture of the corrected production build plus obvious-fault screening of the prepared stills and movement footage",
-    "finding": "The 10:34 private run uses a generated planetary Sanctuary biome, a visible creature action and payoff, a curved living route consequence, rising memory orbs, and the real player-facing creature renderer. Both viewports passed the technical visual contract with no modal interruption, actor overlap, fallback texture, runtime exception or failed request.",
+    "source": "Automated phone and desktop capture of release candidate 9c7dda4 plus obvious-fault screening of the prepared stills, movement footage and optional-video request boundary",
+    "finding": "The 16:14 private run uses the generated planetary Sanctuary biome, a visible creature action and payoff, a curved living route consequence, rising memory orbs, and the real player-facing creature renderer. Both viewports passed the technical visual contract with no modal interruption, actor overlap, fallback texture, runtime exception, failed request or optional-video request.",
     "decision": "Keep every candidate private and request adult frame review. Automation has not approved any asset; Kevin must still approve the exact asset, wording and channel before publication outside the owned game."
   },
   "latestScreening": {
@@ -32,12 +32,12 @@
     "externalActionTaken": false
   },
   "latestPrivateCandidateRun": {
-    "runId": "2026-08-27T10-34-55-430Z",
-    "createdAt": "2026-08-27T10:34:55.430Z",
-    "sourceCommit": "7face52f96d38a72b73495c6139912c62c576d10",
+    "runId": "2026-08-27T16-14-51-878Z",
+    "createdAt": "2026-08-27T16:18:19.220Z",
+    "sourceCommit": "9c7dda483b184d69a27b6f73ae4c505cf7004764",
     "sourceProfileId": "MV-0813",
     "renderer": "player_facing_phaser_creature_renderer",
-    "manifest": ".visual-review/candidates/2026-08-27T10-34-55-430Z/manifest.json",
+    "manifest": ".visual-review/candidates/2026-08-27T16-14-51-878Z/manifest.json",
     "automatedScreening": "passed_obvious_fault_checks_only",
     "editorialScreening": "pending_adult_frame_review",
     "adultFrameReview": "pending",
@@ -106,7 +106,7 @@
       "shot": "The creature visibly helps the player solve or survive one clear obstacle.",
       "mustShow": ["player and creature in the same frame", "one recognisable obstacle", "the creature's helpful action", "the immediate result"],
       "currentState": "candidate_under_human_review",
-      "evidence": ".visual-review/candidates/2026-08-27T10-34-55-430Z/creature-helps-phone.png",
+      "evidence": ".visual-review/candidates/2026-08-27T16-14-51-878Z/creature-helps-phone.png",
       "reason": "Automated screening confirms the real creature, its life-energy action, the cleared route and the +5 happiness result remain visible together at phone size."
     },
     {
@@ -115,7 +115,7 @@
       "shot": "One readable choice followed by a visible change in the world.",
       "mustShow": ["the choice in plain words", "the changed place, creature or relationship", "no unexplained menu clutter"],
       "currentState": "candidate_under_human_review",
-      "evidence": ".visual-review/candidates/2026-08-27T10-34-55-430Z/choice-after-phone.png",
+      "evidence": ".visual-review/candidates/2026-08-27T16-14-51-878Z/choice-after-phone.png",
       "reason": "Automated screening confirms the plain-language choice is followed by a menu-free living route, regrowth and persistent world response."
     },
     {
@@ -124,7 +124,7 @@
       "shot": "The player and creature discover one memorable feature of an alien realm.",
       "mustShow": ["player and creature in the same frame", "one unusual realm feature", "a composition understandable without a caption"],
       "currentState": "candidate_under_human_review",
-      "evidence": ".visual-review/candidates/2026-08-27T10-34-55-430Z/strange-discovery-phone.png",
+      "evidence": ".visual-review/candidates/2026-08-27T16-14-51-878Z/strange-discovery-phone.png",
       "reason": "Automated screening confirms the astronaut and creature remain visible while memory rises as luminous orbs from listening flora into the Village Heart."
     },
     {
@@ -133,7 +133,7 @@
       "shot": "A short uninterrupted stretch of play with the creature continuously present.",
       "mustShow": ["continuous creature rendering", "readable movement", "no menu takeover or dead time", "every frame watched at desktop and phone presentation size"],
       "currentState": "candidate_under_human_review",
-      "evidence": ".visual-review/candidates/2026-08-27T10-34-55-430Z/movement-alive-phone.mp4",
+      "evidence": ".visual-review/candidates/2026-08-27T16-14-51-878Z/movement-alive-phone.mp4",
       "reason": "Automated screening confirms uninterrupted normal play with the same real creature renderer, actor separation and no modal, placeholder, dead pause or explanatory edit."
     }
   ],
