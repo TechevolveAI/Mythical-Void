@@ -50,6 +50,11 @@ After the Playable Now first screen was rewritten to state the game promise
 before asking about mood, only that one changed page was notified. IndexNow
 returned `200` at 06:07 UTC. No unchanged page was included.
 
+After the Play and family guides made the current-release trust boundary clear,
+only those two changed pages were notified: Playable Now and For Grown-ups.
+IndexNow returned `200` at 06:47 UTC. No unchanged page was included. Acceptance
+still does not prove crawling, indexing, ranking or traffic.
+
 ## The right next move
 
 Do not make lots of near-identical “free game” pages. The useful page already

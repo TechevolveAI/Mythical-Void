@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "INDEXNOW-2026-08-27-04",
+  "submittedAt": "2026-08-27T06:47:48Z",
+  "host": "mythicalvoid.com",
+  "endpoint": "https://api.indexnow.org/indexnow",
+  "reason": "The Playable Now and family guide pages gained a clearer current-release promise: no paid game advertising, no public player profiles and no chat with other players.",
+  "urls": [
+    "https://mythicalvoid.com/playable-now/",
+    "https://mythicalvoid.com/parents/"
+  ],
+  "urlCount": 2,
+  "httpStatus": 200,
+  "accepted": true,
+  "unchangedSitemapUrlsResubmitted": false,
+  "meaning": "Participating search engines accepted a notification for the two genuinely changed owned pages. This does not prove that either page has been crawled, indexed or ranked.",
+  "personalDataSent": false,
+  "accountUsed": false,
+  "paidPromotionStarted": false
+}

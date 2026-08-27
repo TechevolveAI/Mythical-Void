@@ -91,9 +91,9 @@
     "desktopVisualReviewRequired": true,
     "phoneVisualReviewRequired": true,
     "productionVerificationRequired": true,
-    "productionCommit": "5bd1581a91074f64b9823388074eb3ea349d323a",
-    "productionDeployId": "6a8fd3bd0ac52a00080eb726",
-    "verifiedAt": "2026-08-27T06:07:20Z",
+    "productionCommit": "2b01be3c5212ce1b6fae4a03b6326bac6897d256",
+    "productionDeployId": "6a8fdcdc0f0b010008934013",
+    "verifiedAt": "2026-08-27T06:46:02Z",
     "directButtonVisible": true,
     "directDestination": "https://mythicalvoid.com/play/"
   }

@@ -1,6 +1,6 @@
 # The family trust doorway
 
-Status: owned-site improvement in production review  
+Status: live and production-verified
 Routes: `https://mythicalvoid.com/playable-now/` and `https://mythicalvoid.com/parents/`
 
 ## Why this matters
@@ -36,4 +36,3 @@ dialogue must never be represented as another human player.
 This change does not claim a formal age rating, universal suitability or that
 no data is ever processed. It does not authorize advertising, outside posting,
 platform submission or contact with a child.
-
