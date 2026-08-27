@@ -74,6 +74,54 @@ body.game-mode {
   touch-action: none;
 }
 
+.game-manual-pause-overlay {
+  position: fixed;
+  z-index: 2147480100;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 22px;
+  padding: max(24px, var(--sat)) max(24px, var(--sar)) max(24px, var(--sab)) max(24px, var(--sal));
+  background: rgba(2, 8, 8, 0.82);
+  backdrop-filter: blur(4px);
+}
+
+.game-manual-pause-title {
+  padding: 0 18px 10px;
+  color: #ffffff;
+  border-bottom: 3px solid #71e6b1;
+  font: 800 28px/1 'Poppins', 'Inter', system-ui, sans-serif;
+  letter-spacing: 0;
+  text-shadow: 3px 0 0 #b92f3c;
+}
+
+.game-manual-pause-resume {
+  min-width: 164px;
+  min-height: 52px;
+  padding: 12px 20px;
+  color: #ffffff;
+  background: #07100f;
+  border: 2px solid #71e6b1;
+  border-radius: 6px;
+  box-shadow: 4px 4px 0 #b92f3c;
+  font: 800 16px/1 'Poppins', 'Inter', system-ui, sans-serif;
+  letter-spacing: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.game-manual-pause-resume:focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 4px;
+}
+
+.game-manual-pause-resume:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 #b92f3c;
+}
+
 /* Native first-session action: the route into the game must not depend on a
    WebGL draw or Phaser receiving both halves of a mobile pointer gesture. */
 .home-start-fallback {

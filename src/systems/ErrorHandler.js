@@ -10,6 +10,7 @@ const OBSERVABILITY_QUEUE_LIMIT = 20;
 const OBSERVABILITY_BATCH_LIMIT = 10;
 const OBSERVABILITY_DEDUPE_MS = 30000;
 const OBSERVABILITY_EVENT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const OBSERVABILITY_DEPLOYMENT_ID_PATTERN = /^[A-Za-z0-9_-]{1,80}$/;
 
 const OBSERVABILITY_CATEGORIES = new Set([
     'runtime',
@@ -103,14 +104,29 @@ const OBSERVABILITY_EVENT_KEYS = new Set([
     'recovery',
     'connectivity',
     'viewport_class',
-    'user_visible'
+    'user_visible',
+    'deployment_id'
 ]);
+const OBSERVABILITY_LEGACY_EVENT_KEYS = new Set(
+    [...OBSERVABILITY_EVENT_KEYS].filter(key => key !== 'deployment_id')
+);
 
 function getDefaultStorage() {
     try {
         return typeof localStorage !== 'undefined' ? localStorage : null;
     } catch (error) {
         return null;
+    }
+}
+
+function getClientDeploymentId() {
+    try {
+        const value = typeof __MYTHICAL_RELEASE_ID__ !== 'undefined'
+            ? __MYTHICAL_RELEASE_ID__
+            : 'local';
+        return OBSERVABILITY_DEPLOYMENT_ID_PATTERN.test(value) ? value : 'unknown';
+    } catch (error) {
+        return 'unknown';
     }
 }
 
@@ -233,7 +249,8 @@ class PrivacyObservabilityTransport {
             recovery,
             connectivity: getConnectivity(),
             viewport_class: getViewportClass(),
-            user_visible: summary.userVisible === true
+            user_visible: summary.userVisible === true,
+            deployment_id: getClientDeploymentId()
         };
     }
 
@@ -265,6 +282,10 @@ class PrivacyObservabilityTransport {
             if (!Array.isArray(stored)) return [];
             return stored
                 .filter(event => this.isValidStoredEvent(event))
+                .map(event => ({
+                    ...event,
+                    deployment_id: event.deployment_id || getClientDeploymentId()
+                }))
                 .slice(-OBSERVABILITY_QUEUE_LIMIT);
         } catch (error) {
             return [];
@@ -274,8 +295,11 @@ class PrivacyObservabilityTransport {
     isValidStoredEvent(event) {
         if (!event || typeof event !== 'object' || Array.isArray(event)) return false;
         const keys = Object.keys(event);
-        return keys.length === OBSERVABILITY_EVENT_KEYS.size &&
-            keys.every(key => OBSERVABILITY_EVENT_KEYS.has(key)) &&
+        const currentKeys = keys.length === OBSERVABILITY_EVENT_KEYS.size &&
+            keys.every(key => OBSERVABILITY_EVENT_KEYS.has(key));
+        const legacyKeys = keys.length === OBSERVABILITY_LEGACY_EVENT_KEYS.size &&
+            keys.every(key => OBSERVABILITY_LEGACY_EVENT_KEYS.has(key));
+        return (currentKeys || legacyKeys) &&
             event.schema_version === OBSERVABILITY_SCHEMA_VERSION &&
             OBSERVABILITY_EVENT_ID_PATTERN.test(event.event_id || '') &&
             Number.isFinite(Date.parse(event.occurred_at)) &&
@@ -287,6 +311,10 @@ class PrivacyObservabilityTransport {
             OBSERVABILITY_RECOVERY.has(event.recovery) &&
             OBSERVABILITY_CONNECTIVITY.has(event.connectivity) &&
             OBSERVABILITY_VIEWPORT_CLASSES.has(event.viewport_class) &&
+            (
+                event.deployment_id === undefined ||
+                OBSERVABILITY_DEPLOYMENT_ID_PATTERN.test(event.deployment_id)
+            ) &&
             typeof event.user_visible === 'boolean';
     }
 
@@ -369,6 +397,8 @@ class ErrorHandler {
         this.sceneStartDeadlines = new Map();
         this.observedScenes = new WeakSet();
         this.lastHealthySceneAt = Date.now();
+        this.lastHealthySceneKey = 'unknown';
+        this.intentionalPauseScene = null;
         this.noActiveSceneReported = false;
         this.cloudStatus = null;
         this.cloudSyncStartedAt = null;
@@ -547,6 +577,7 @@ class ErrorHandler {
         scene.events.on('create', () => {
             this.sceneStartDeadlines.delete(sceneKey);
             this.lastHealthySceneAt = Date.now();
+            this.lastHealthySceneKey = sceneKey;
             this.noActiveSceneReported = false;
         });
         scene.events.on('shutdown', () => {
@@ -582,6 +613,18 @@ class ErrorHandler {
 
         if (activeScenes.length > 0) {
             this.lastHealthySceneAt = now;
+            this.lastHealthySceneKey = normalizeScene(
+                activeScenes[activeScenes.length - 1]
+            );
+            if (this.intentionalPauseScene === this.lastHealthySceneKey) {
+                this.intentionalPauseScene = null;
+            }
+            this.noActiveSceneReported = false;
+            return;
+        }
+
+        if (this.isIntentionalPauseHealthy(game)) {
+            this.lastHealthySceneAt = now;
             this.noActiveSceneReported = false;
             return;
         }
@@ -599,12 +642,44 @@ class ErrorHandler {
                 category: 'stuck_flow',
                 code: 'scene_no_active',
                 severity: 'error',
-                scene: 'unknown',
+                scene: this.lastHealthySceneKey,
                 phase: 'transition',
                 recovery: 'reload_offered',
                 userVisible: false
             });
         }
+    }
+
+    setIntentionalPause(scene, paused) {
+        const sceneKey = normalizeScene(scene);
+        if (paused && sceneKey !== 'unknown') {
+            this.intentionalPauseScene = sceneKey;
+            this.lastHealthySceneKey = sceneKey;
+            this.lastHealthySceneAt = Date.now();
+            this.noActiveSceneReported = false;
+            return true;
+        }
+        if (!paused && (
+            sceneKey === 'unknown' ||
+            this.intentionalPauseScene === sceneKey
+        )) {
+            this.intentionalPauseScene = null;
+        }
+        return false;
+    }
+
+    isIntentionalPauseHealthy(game) {
+        const sceneKey = this.intentionalPauseScene;
+        if (!sceneKey) return false;
+        try {
+            const paused = game.scene?.isPaused?.(sceneKey) === true ||
+                game.scene?.getScene?.(sceneKey)?.scene?.isPaused?.() === true;
+            if (paused) return true;
+        } catch (error) {
+            // A stale pause marker is cleared below and normal health checks resume.
+        }
+        this.intentionalPauseScene = null;
+        return false;
     }
 
     checkCloudSaveHealth() {

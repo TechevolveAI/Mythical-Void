@@ -12,8 +12,8 @@
   },
   "package": {
     "fileCount": 85,
-    "rawBytes": 46895466,
-    "gzipEstimateBytes": 43056943,
+    "rawBytes": 46898884,
+    "gzipEstimateBytes": 43057816,
     "totalHardLimitMet": true,
     "fileCountLimitMet": true,
     "largestFile": {
@@ -62,8 +62,8 @@
   },
   "firstLoad": {
     "resourceCount": 18,
-    "rawBytes": 7153347,
-    "gzipEstimateBytes": 3943597,
+    "rawBytes": 7156765,
+    "gzipEstimateBytes": 3944470,
     "hardLimitMet": true,
     "recommendedLimitMet": true,
     "limitation": "Deterministic local reconstruction, not a YouTube Developer Portal or five-second device test."
@@ -72,32 +72,32 @@
     "api.nasa.gov": {
       "fileCount": 1,
       "files": [
-        "assets/game-C9qqlXul.js"
+        "assets/game-Bofs2joH.js"
       ]
     },
     "apod.nasa.gov": {
       "fileCount": 1,
       "files": [
-        "assets/game-C9qqlXul.js"
+        "assets/game-Bofs2joH.js"
       ]
     },
     "mars.nasa.gov": {
       "fileCount": 1,
       "files": [
-        "assets/game-C9qqlXul.js"
+        "assets/game-Bofs2joH.js"
       ]
     },
     "api.open-notify.org": {
       "fileCount": 1,
       "files": [
-        "assets/game-C9qqlXul.js"
+        "assets/game-Bofs2joH.js"
       ]
     },
     "netlify/functions": {
       "fileCount": 3,
       "files": [
-        "assets/core-DKOxVVP7.js",
-        "assets/game-C9qqlXul.js",
+        "assets/core-DV82yIUh.js",
+        "assets/game-Bofs2joH.js",
         "assets/gameplay-7BgSsHZ4.js"
       ]
     }
@@ -124,8 +124,8 @@
     ],
     "localStorageFiles": [
       "assets/config-DW-Y5j80.js",
-      "assets/core-DKOxVVP7.js",
-      "assets/game-C9qqlXul.js",
+      "assets/core-DV82yIUh.js",
+      "assets/game-Bofs2joH.js",
       "assets/gameplay-7BgSsHZ4.js",
       "assets/onboarding-qTJw5xVm.js",
       "assets/ui-components-CLIt3Rff.js",

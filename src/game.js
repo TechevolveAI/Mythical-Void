@@ -36,6 +36,94 @@ const cloneConfig = (config) => {
     return JSON.parse(JSON.stringify(config));
 };
 
+const MANUAL_PAUSE_OVERLAY_ID = 'game-manual-pause-overlay';
+let manualPauseSceneKey = null;
+
+function removeManualPauseOverlay() {
+    document.getElementById(MANUAL_PAUSE_OVERLAY_ID)?.remove();
+}
+
+function resumeManualPause(game) {
+    const overlay = document.getElementById(MANUAL_PAUSE_OVERLAY_ID);
+    const sceneKey = manualPauseSceneKey || overlay?.dataset?.sceneKey;
+    if (!sceneKey || !game?.scene) {
+        manualPauseSceneKey = null;
+        removeManualPauseOverlay();
+        return false;
+    }
+
+    let resumed = false;
+    try {
+        if (game.scene.isPaused?.(sceneKey)) {
+            game.scene.resume(sceneKey);
+            resumed = true;
+        }
+    } catch (error) {
+        resumed = false;
+    }
+
+    window.errorHandler?.setIntentionalPause?.(sceneKey, false);
+    manualPauseSceneKey = null;
+    removeManualPauseOverlay();
+    return resumed;
+}
+
+function showManualPauseOverlay(game, sceneKey) {
+    removeManualPauseOverlay();
+    const overlay = document.createElement('div');
+    overlay.id = MANUAL_PAUSE_OVERLAY_ID;
+    overlay.className = 'game-manual-pause-overlay';
+    overlay.dataset.sceneKey = sceneKey;
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Game paused');
+
+    const title = document.createElement('strong');
+    title.className = 'game-manual-pause-title';
+    title.textContent = 'PAUSED';
+    const resume = document.createElement('button');
+    resume.type = 'button';
+    resume.className = 'game-manual-pause-resume';
+    resume.dataset.testid = 'game-manual-pause-resume';
+    resume.textContent = 'RESUME';
+    resume.addEventListener('click', () => resumeManualPause(game));
+    overlay.append(title, resume);
+    document.body.appendChild(overlay);
+    resume.focus({ preventScroll: true });
+}
+
+function toggleManualPause(game) {
+    if (!game?.scene) return false;
+    if (manualPauseSceneKey) return resumeManualPause(game);
+
+    let activeScenes = [];
+    try {
+        activeScenes = game.scene.getScenes?.(true) || [];
+    } catch (error) {
+        return false;
+    }
+    const scene = [...activeScenes].reverse().find(candidate =>
+        candidate?.scene?.key &&
+        candidate.scene.isActive?.() === true &&
+        candidate.scene.isPaused?.() !== true
+    );
+    const sceneKey = scene?.scene?.key;
+    if (!sceneKey) return false;
+
+    try {
+        game.scene.pause(sceneKey);
+        manualPauseSceneKey = sceneKey;
+        window.errorHandler?.setIntentionalPause?.(sceneKey, true);
+        showManualPauseOverlay(game, sceneKey);
+        return true;
+    } catch (error) {
+        manualPauseSceneKey = null;
+        window.errorHandler?.setIntentionalPause?.(sceneKey, false);
+        removeManualPauseOverlay();
+        return false;
+    }
+}
+
 async function startSceneWhenReady(game, sceneKey, data = undefined, options = {}) {
     const { stopScenes = [] } = options;
 
@@ -2732,22 +2820,11 @@ function setupKeyboardShortcuts(game) {
             }
         }
 
-        // Escape to pause/unpause
-        if (event.key === 'Escape') {
-            if (game && game.scene) {
-                try {
-                    const activeScene = game.scene.getScenes(true)[0];
-                    if (activeScene && activeScene.scene.isActive()) {
-                        if (activeScene.scene.isPaused()) {
-                            activeScene.scene.resume();
-                        } else {
-                            activeScene.scene.pause();
-                        }
-                    }
-                } catch (e) {
-                    // Scene might be transitioning, ignore pause request
-                }
-            }
+        // Escape toggles only the scene paused by this control. Other paused
+        // scenes may belong to menus or transitions and must remain untouched.
+        if (event.key === 'Escape' && !event.repeat) {
+            event.preventDefault();
+            toggleManualPause(game);
         }
     });
 }
