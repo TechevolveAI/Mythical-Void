@@ -18506,8 +18506,7 @@ async function smokeVisualMovement(session, exceptions) {
         await window.SceneLoader.loadScene(game, 'MythicalForestLevel');
         game.scene.start('MythicalForestLevel', {
             entryPreview: true,
-            forceMobileControls: ${isPhone},
-            ...(${isPhone} ? { platformerPreviewSize: 'mobile' } : {})
+            forceMobileControls: ${isPhone}
         });
         return true;
     })()`);
@@ -18553,6 +18552,11 @@ async function smokeVisualMovement(session, exceptions) {
         scene.resetJoystick?.();
         scene.levelEntryElements?.forEach(element => element?.destroy?.());
         scene.levelEntryElements = [];
+        scene.optionalRouteRewards?.forEach(route => {
+            route?.marker?.setVisible?.(false);
+            route?.choice?.mainMarker?.setVisible?.(false);
+            route?.choice?.returnMarker?.setVisible?.(false);
+        });
         return true;
     })()`);
     if (!started) {
@@ -18648,6 +18652,23 @@ async function smokeVisualMovement(session, exceptions) {
             ),
             levelEntryCount: scene?.levelEntryElements?.length || 0,
             viewport: { width: innerWidth, height: innerHeight },
+            canvas: (() => {
+                const bounds = scene?.game?.canvas?.getBoundingClientRect?.();
+                return bounds ? {
+                    left: bounds.left,
+                    top: bounds.top,
+                    right: bounds.right,
+                    bottom: bounds.bottom,
+                    width: bounds.width,
+                    height: bounds.height
+                } : null;
+            })(),
+            cameraViewport: camera ? {
+                x: camera.x,
+                y: camera.y,
+                width: camera.width,
+                height: camera.height
+            } : null,
             health: scene?.health,
             maxHealth: scene?.maxHealth,
             playerX: creature?.x,
@@ -18662,6 +18683,16 @@ async function smokeVisualMovement(session, exceptions) {
         if (
             !state.active ||
             state.paused ||
+            !state.canvas ||
+            Math.abs(state.canvas.left) > 1 ||
+            Math.abs(state.canvas.top) > 1 ||
+            Math.abs(state.canvas.right - state.viewport.width) > 1 ||
+            Math.abs(state.canvas.bottom - state.viewport.height) > 1 ||
+            !state.cameraViewport ||
+            state.cameraViewport.x !== 0 ||
+            state.cameraViewport.y !== 0 ||
+            state.cameraViewport.width !== state.viewport.width ||
+            state.cameraViewport.height !== state.viewport.height ||
             state.profileId !== profile.genes.id ||
             !state.textureExists ||
             state.fallback ||
