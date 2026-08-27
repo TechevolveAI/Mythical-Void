@@ -43,6 +43,7 @@ requireValue(map.currentTruth?.ownedGameLive === true, 'owned game state is stal
 requireValue(map.currentTruth?.itchPackageReady === true && itch.directPlay === true, 'itch.io package readiness is not grounded');
 requireValue(map.currentTruth?.itchListingPublished === false, 'itch.io must not be presented as published');
 requireValue(map.currentTruth?.pokiAccessRequested === false, 'Poki access must not be presented as requested');
+requireValue(map.currentTruth?.youtubePlayablesInterestRequested === false, 'YouTube Playables interest must not be presented as requested');
 requireValue(map.currentTruth?.approvedAuthenticVisualMoments === visuals.approvalRule?.approvedMomentCount, 'approved visual count does not match the visual register');
 requireValue(map.currentTruth?.requiredAuthenticVisualMoments === visuals.approvalRule?.requiredApprovedMoments, 'required visual count does not match the visual register');
 requireValue(map.recommendation?.afterVisualGate?.includes('Ask Kevin to choose'), 'Kevin distribution-rights decision is missing');
@@ -72,7 +73,7 @@ requireValue(itchRoute?.knownTerms?.pokiExclusiveUpsidePreservedAfterPublication
 requireValue(itchRoute?.knownTerms?.firstPublicReleaseGetsOneMostRecentMoment === true, 'itch.io first-release discovery moment is missing');
 
 for (const field of [
-    'pokiAccessRequestAuthorized', 'itchPublicationAuthorized', 'newgroundsPublicationAuthorized',
+    'pokiAccessRequestAuthorized', 'youtubePlayablesInterestRequestAuthorized', 'itchPublicationAuthorized', 'newgroundsPublicationAuthorized',
     'communityPostingAuthorized', 'socialPublishingAuthorized', 'platformTermsAcceptanceAuthorized',
     'webExclusivityAcceptanceAuthorized', 'sdkIntegrationAuthorized', 'paidPromotionAuthorized',
     'directChildContactAuthorized', 'externalActionTaken'
@@ -83,6 +84,7 @@ for (const route of map.secondaryRoutes || []) {
     requireValue(Boolean(route.name && route.role && route.state && route.rule), `${route.name || 'secondary route'} is incomplete`);
 }
 requireValue((map.secondaryRoutes || []).some(route => route.name === 'Newgrounds' && route.rule.includes('public judgment')), 'Newgrounds judgment risk is missing');
+requireValue((map.secondaryRoutes || []).some(route => route.name === 'YouTube Playables' && route.state === 'high_upside_separate_13_plus_candidate_required' && route.rule.includes('separate no-network build')), 'YouTube Playables preparation boundary is missing');
 requireValue((map.secondaryRoutes || []).some(route => route.name.includes('r/WebGames') && route.rule.includes('Do not treat a community as a free advert board')), 'community participation boundary is missing');
 
 const requiredSources = [
@@ -91,10 +93,13 @@ const requiredSources = [
     'https://developers.poki.com/guide/game-thumbnail',
     'https://itch.io/docs/creators/quality-guidelines',
     'https://itch.io/docs/creators/getting-indexed',
-    'https://www.newgrounds.com/wiki/help-information/content-submission/games-and-movies'
+    'https://www.newgrounds.com/wiki/help-information/content-submission/games-and-movies',
+    'https://developers.google.com/youtube/gaming/playables',
+    'https://developers.google.com/youtube/gaming/playables/certification/requirements_privacydata',
+    'https://developers.google.com/youtube/gaming/playables/certification/requirements_trustsafety'
 ];
 for (const source of requiredSources) requireValue(map.sources?.includes(source), `required source is missing: ${source}`);
-for (const phrase of ['What the Poki check found', '3.75 MB compressed', '41 MB compressed', 'not ready to submit, preserve the option', 'The important choice we nearly missed', 'For maximum upside', '0 of 4 approved moments', 'Why itch.io is still first if speed wins']) {
+for (const phrase of ['What the Poki check found', '3.75 MB compressed', '41 MB compressed', 'not ready to submit, preserve the option', 'The important choice we nearly missed', 'For maximum upside', '0 of 4 approved moments', 'YouTube Playables', 'Why itch.io is still first if speed wins']) {
     requireValue(mapText.includes(phrase), `plain-language map is missing: ${phrase}`);
 }
 requireValue(decisions.includes('| D-018 |'), 'D-018 distribution-rights decision is missing');

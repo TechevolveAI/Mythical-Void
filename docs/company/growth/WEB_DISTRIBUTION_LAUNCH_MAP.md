@@ -1,6 +1,6 @@
 # Where Mythical Void should appear when someone wants a new game
 
-**Checked:** 26 August 2026  
+**Checked:** 27 August 2026
 **Current position:** keep the important options open; publish nowhere new yet
 
 ## The simple answer
@@ -14,6 +14,14 @@ real play:
 
 The tested itch.io game package is ready. The artwork is not: the authentic
 gameplay gate remains at **0 of 4 approved moments**.
+
+A third, unusually valuable route is now worth preparing: **YouTube
+Playables**. It could let somebody discover and start Mythical Void inside
+YouTube itself. The current Phaser package fits the published hard size limits,
+but Playables requires a separate general-audience 13+ edition with no outside
+calls, no in-game sharing and YouTube-managed saving. No interest request has
+been made. The full assessment is in
+[`YOUTUBE_PLAYABLES_READINESS_ASSESSMENT.md`](YOUTUBE_PLAYABLES_READINESS_ASSESSMENT.md).
 
 ## What the Poki check found
 
@@ -67,6 +75,7 @@ large option while itch.io remains a ready fallback.
 | --- | --- | --- | --- |
 | Poki | A very large audience is actively choosing a web game | Excellent opening play, mobile quality, fast loading, truthful square thumbnail, account details, agreement review | Valuable option preserved; not submitted |
 | itch.io | People deliberately browse for unusual independent games | The ready ZIP, truthful cover, real screenshots, accurate tags and AI disclosure, Kevin-controlled account | Technically ready; not published |
+| YouTube Playables | People can discover and immediately play games inside YouTube | Honest 13+ audience decision, separate no-network build, YouTube saving and controls, touch/resize proof, official channel | High-upside preparation route; not requested |
 | YouTube | People compare gameplay and decide what looks worth trying | Four excellent real moments, a clear official channel and comment coverage | Held for visual quality |
 | Newgrounds | People play and judge new HTML5 games | Strong first minutes, correct credits and rights, real presentation and an account | Technically plausible; quality gated |
 | Browser-game communities | People deliberately try links recommended by other humans | Genuine participation, current-rule review and a good game—not an automated advert | Relationship gated |
@@ -108,3 +117,7 @@ published, and a weak or incomplete page should not be launched early.
 - [itch.io search and browse guidance](https://itch.io/docs/creators/getting-indexed)
 - [Newgrounds HTML5 submission and judgment](https://www.newgrounds.com/wiki/help-information/content-submission/games-and-movies)
 - [CrazyGames developer portal](https://developer.crazygames.com/games)
+- [YouTube Playables developer guide](https://developers.google.com/youtube/gaming/playables)
+- [YouTube Playables requirements](https://developers.google.com/youtube/gaming/playables/certification/requirements_stability)
+- [YouTube Playables privacy requirements](https://developers.google.com/youtube/gaming/playables/certification/requirements_privacydata)
+- [YouTube Playables trust and audience requirements](https://developers.google.com/youtube/gaming/playables/certification/requirements_trustsafety)

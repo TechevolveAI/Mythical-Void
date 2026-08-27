@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "target": "youtube-playables-readiness-candidate-not-a-playables-build",
+  "sourcePackage": "dist-itch structural proxy",
+  "measurementLimits": {
+    "initialMustBeBelowBytes": 31457280,
+    "initialShouldBeBelowBytes": 15728640,
+    "totalMustBeBelowBytes": 262144000,
+    "individualMustBeBelowBytes": 31457280,
+    "individualShouldBeBelowBytes": 524288,
+    "maximumFileCount": 8000
+  },
+  "package": {
+    "fileCount": 85,
+    "rawBytes": 46885786,
+    "gzipEstimateBytes": 43054001,
+    "totalHardLimitMet": true,
+    "fileCountLimitMet": true,
+    "largestFile": {
+      "path": "game/cinematics/mythical-forest-arrival-loop.mp4",
+      "rawBytes": 11252009
+    },
+    "individualHardLimitMet": true,
+    "filesAbove512KiBRecommendation": [
+      {
+        "path": "game/cinematics/mythical-forest-arrival-loop.mp4",
+        "rawBytes": 11252009
+      },
+      {
+        "path": "game/cinematics/village-heart-loop.mp4",
+        "rawBytes": 7975297
+      },
+      {
+        "path": "audio/theme-music.mp3",
+        "rawBytes": 5695783
+      },
+      {
+        "path": "audio/theme-music.ogg",
+        "rawBytes": 3679592
+      },
+      {
+        "path": "game/cinematics/fend-crash-site-loop.mp4",
+        "rawBytes": 2738626
+      },
+      {
+        "path": "game/cinematics/mythical-forest-arrival.png",
+        "rawBytes": 2530370
+      },
+      {
+        "path": "assets/vendor-phaser-DGEgCO3k.js",
+        "rawBytes": 1478412
+      },
+      {
+        "path": "marketing/mythical-void-emblem-v3.png",
+        "rawBytes": 820709
+      },
+      {
+        "path": "assets/gameplay-BRzYUgrZ.js",
+        "rawBytes": 633392
+      }
+    ]
+  },
+  "firstLoad": {
+    "resourceCount": 18,
+    "rawBytes": 7145182,
+    "gzipEstimateBytes": 3941113,
+    "hardLimitMet": true,
+    "recommendedLimitMet": true,
+    "limitation": "Deterministic local reconstruction, not a YouTube Developer Portal or five-second device test."
+  },
+  "externalServiceMarkers": {
+    "api.nasa.gov": {
+      "fileCount": 1,
+      "files": [
+        "assets/game-yVItSNGT.js"
+      ]
+    },
+    "apod.nasa.gov": {
+      "fileCount": 1,
+      "files": [
+        "assets/game-yVItSNGT.js"
+      ]
+    },
+    "mars.nasa.gov": {
+      "fileCount": 1,
+      "files": [
+        "assets/game-yVItSNGT.js"
+      ]
+    },
+    "api.open-notify.org": {
+      "fileCount": 1,
+      "files": [
+        "assets/game-yVItSNGT.js"
+      ]
+    },
+    "netlify/functions": {
+      "fileCount": 3,
+      "files": [
+        "assets/core-DKOxVVP7.js",
+        "assets/game-yVItSNGT.js",
+        "assets/gameplay-BRzYUgrZ.js"
+      ]
+    }
+  },
+  "platformIntegrationMarkers": {
+    "ytgameNamespace": false,
+    "inPlayablesEnvironment": false,
+    "firstFrameReady": false,
+    "gameReady": false,
+    "cloudLoad": false,
+    "cloudSave": false,
+    "systemPause": false,
+    "systemResume": false,
+    "audioSetting": false
+  },
+  "incompatibleCurrentFeatureMarkers": {
+    "nativeShareFiles": [
+      "assets/levels-hub-BbanLdog.js",
+      "assets/ui-components-CWuokT1g.js"
+    ],
+    "clipboardWriteFiles": [
+      "assets/levels-hub-BbanLdog.js",
+      "assets/ui-components-CWuokT1g.js"
+    ],
+    "localStorageFiles": [
+      "assets/config-DW-Y5j80.js",
+      "assets/core-DKOxVVP7.js",
+      "assets/game-yVItSNGT.js",
+      "assets/gameplay-BRzYUgrZ.js",
+      "assets/onboarding-DlNf8j2R.js",
+      "assets/ui-components-CWuokT1g.js",
+      "assets/utils-C6IxoM0t.js",
+      "assets/vendor-phaser-DGEgCO3k.js"
+    ]
+  },
+  "interpretation": "Size and Phaser format are promising. This is not a YouTube Playables build and does not prove audience, SDK, privacy, touch, resize, rights, visual or certification readiness."
+}

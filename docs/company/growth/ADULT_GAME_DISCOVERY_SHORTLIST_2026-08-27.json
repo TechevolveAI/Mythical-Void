@@ -1,0 +1,81 @@
+{
+  "id": "ADULT-GAME-DISCOVERY-001",
+  "checkedOn": "2026-08-27",
+  "state": "research_only_visual_and_authority_gated",
+  "externalActionAuthorized": false,
+  "minimumEntryGate": ["4 of 4 authentic gameplay moments approved", "one approved gameplay video", "truthful playable link and claims pack", "named adult reply coverage", "Kevin approves one exact route and pitch"],
+  "candidates": [
+    {
+      "rank": 1,
+      "name": "Alpha Beta Gamer",
+      "state": "strong_fit_prepare_after_visual_gate",
+      "source": "https://www.alphabetagamer.com/contact-us/",
+      "reason": "Explicitly invites in-development games, requires free public access for site features and appreciates footage and images.",
+      "verifiedSubmissionRoute": true,
+      "coverageGuaranteed": false,
+      "outreachApproved": false
+    },
+    {
+      "rank": 2,
+      "name": "IndieGameInn",
+      "state": "strong_fit_requires_kevin_voice_and_reply_coverage",
+      "source": "https://www.indiegameinn.com/",
+      "reason": "Free reviewed developer presentations; allows careful AI-assisted work but requires cohesive human oversight, cleared media and substantive commentary.",
+      "verifiedSubmissionRoute": true,
+      "coverageGuaranteed": false,
+      "outreachApproved": false
+    },
+    {
+      "rank": 3,
+      "name": "Indie Games Developer",
+      "state": "medium_fit_verify_form_after_visual_gate",
+      "source": "https://devcentral.indiegamesdeveloper.com/submit-your-game/",
+      "reason": "Offers free editorial consideration for indie games with a stated queue and no guarantee of coverage.",
+      "verifiedSubmissionRoute": true,
+      "coverageGuaranteed": false,
+      "outreachApproved": false
+    },
+    {
+      "rank": 4,
+      "name": "I Dream of Indie Games",
+      "state": "relevant_audience_no_verified_submission_route",
+      "source": "https://www.idreamofindie.com/about",
+      "reason": "Active outlet focused on reviews, lists and visibility for smaller independent games; no clear official submission route verified.",
+      "verifiedSubmissionRoute": false,
+      "coverageGuaranteed": false,
+      "outreachApproved": false
+    },
+    {
+      "rank": 5,
+      "name": "Best Indie Games / ClemmyGames",
+      "state": "active_but_steam_weighted_later_fit",
+      "source": "https://steamcommunity.com/groups/ClemmyGames",
+      "reason": "Active indie discovery channel and curator with 2026 showcases, but the visible route is Steam-oriented and Mythical is currently a browser game.",
+      "verifiedSubmissionRoute": false,
+      "coverageGuaranteed": false,
+      "outreachApproved": false
+    }
+  ],
+  "respectfulExclusions": [
+    {
+      "name": "Wholesome Games",
+      "state": "do_not_pitch_current_project",
+      "source": "https://wholesomegames.com/",
+      "reason": "Its official site states opposition to AI-generated art, while Mythical openly uses generative AI in its creative process."
+    },
+    {
+      "name": "Wanderbots",
+      "state": "do_not_contact",
+      "source": "https://www.youtube.com/@wanderbots/about",
+      "reason": "The public channel description asks not to be contacted about games made with generative AI."
+    }
+  ],
+  "boundaries": {
+    "bulkOutreachAuthorized": false,
+    "automatedFollowUpAuthorized": false,
+    "paidCoverageAuthorized": false,
+    "childInterviewAuthorized": false,
+    "weakOrImaginedArtMayBePresentedAsGameplay": false,
+    "personalContactScrapingAuthorized": false
+  }
+}

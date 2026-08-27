@@ -164,3 +164,44 @@ removing the NASA/STEM layer from the owned game.
 ad-block and slow-load reviews; the first action remains clear; delivery weight
 is materially reduced; every outside request is absent or separately approved;
 and the operating thread receives exact evidence without any platform action.
+
+## GDH-008 — Prepare a separate YouTube Playables candidate boundary
+
+**Status:** high-upside preparation request; no SDK connection, audience
+classification, channel creation, interest form, upload, advertising or terms
+are authorized
+
+**Evidence:** YouTube currently supports Phaser games and allows a first bundle
+below 30 MB, a total below 250 MB, individual files below 30 MB and no more
+than 8,000 files. The current structural proxy fits those hard limits: about
+3.8 MB reconstructed first load, about 47 MB raw total, an 11 MB largest file
+and 85 files. It is still incompatible because it has no YouTube integration,
+uses browser saving, contains native sharing and clipboard actions, and retains
+NASA, Open Notify and Mythical-hosted network routes. YouTube also requires
+Playables to be general-audience 13+ and not specifically made for children.
+
+**Request:** design an isolated `youtube-playables` mode that:
+
+- makes no outside calls and keeps the complete core adventure playable with
+  bundled assets;
+- keeps rights-checked NASA/STEM material bundled and credited without a live
+  call or endorsement implication;
+- removes in-game sharing, clipboard writing, external links, login-like
+  screens and separate agreements;
+- defines one adapter for YouTube ready, cloud-save, pause, resume and audio
+  controls without connecting it before access and approval;
+- preserves state across resize and supports touch and mouse across narrow,
+  square and wide viewports;
+- returns an exact list of content, rights and audience changes required for an
+  honest general-audience 13+ edition.
+
+**Constraints:** do not relabel or weaken the owned family game, remove its
+NASA/STEM layer, install or activate advertising, create a channel, submit an
+interest form or accept terms. Do not claim a Playables package exists or that
+the interest form is authorized.
+
+**Success:** the separate candidate contains no non-YouTube network or share
+path, passes local SDK test-suite checks after access, uses platform saving and
+lifecycle controls, works across required shapes and input methods, starts
+within the platform limit, has complete rights evidence and reaches the 4/4
+human visual gate.

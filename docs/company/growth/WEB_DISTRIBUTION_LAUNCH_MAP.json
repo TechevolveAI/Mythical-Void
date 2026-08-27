@@ -1,6 +1,6 @@
 {
   "id": "WEB-DISTRIBUTION-001",
-  "checkedOn": "2026-08-26",
+  "checkedOn": "2026-08-27",
   "state": "options_preserved_no_external_action",
   "purpose": "Put Mythical Void where people are already choosing a new game without accidentally giving away distribution rights or launching with weak visual proof.",
   "currentTruth": {
@@ -8,6 +8,7 @@
     "itchPackageReady": true,
     "itchListingPublished": false,
     "pokiAccessRequested": false,
+    "youtubePlayablesInterestRequested": false,
     "approvedAuthenticVisualMoments": 0,
     "requiredAuthenticVisualMoments": 4,
     "externalChannelAccountsConfirmed": 0,
@@ -91,41 +92,48 @@
   "secondaryRoutes": [
     {
       "rank": 1,
+      "name": "YouTube Playables",
+      "role": "Let a general-audience 13+ player discover and start the game directly inside YouTube.",
+      "state": "high_upside_separate_13_plus_candidate_required",
+      "rule": "Do not submit or relabel the family game. Require an honest general-audience 13+ decision, a separate no-network build, YouTube saving and lifecycle controls, touch and resize proof, cleared rights, approved authentic visuals, an official channel and Kevin approval."
+    },
+    {
+      "rank": 2,
       "name": "YouTube",
       "role": "Show authentic gameplay to people comparing games before trying one.",
       "state": "held_for_4_of_4_visual_gate_and_official_channel",
       "rule": "No trailers or Shorts made from the withdrawn captures or from imagined art presented as gameplay."
     },
     {
-      "rank": 2,
+      "rank": 3,
       "name": "Newgrounds",
       "role": "A direct HTML5 game shelf with an established games community.",
       "state": "technically_plausible_quality_and_account_gated",
       "rule": "New submissions face public judgment and can be removed for a low score; use only after the first minutes, rights, credits and presentation are strong."
     },
     {
-      "rank": 3,
+      "rank": 4,
       "name": "r/WebGames and relevant browser-game communities",
       "role": "Human discussion with people who deliberately try browser games.",
       "state": "relationship_and_rules_gated",
       "rule": "Do not treat a community as a free advert board. Lead with the playable experience and human craft, disclose AI honestly, read current rules immediately before posting, and do not use automated promotional copy."
     },
     {
-      "rank": 4,
+      "rank": 5,
       "name": "Game Jolt",
       "role": "A game page plus ongoing creator/community activity.",
       "state": "signed_in_technical_verification_needed",
       "rule": "Do not create a profile or promise browser-package support until the current signed-in add-game flow and terms are checked."
     },
     {
-      "rank": 5,
+      "rank": 6,
       "name": "CrazyGames",
       "role": "Potential larger web-game distribution.",
       "state": "later_platform_review",
       "rule": "Require current SDK, privacy, advertising, audience, rights and commercial review before any submission."
     },
     {
-      "rank": 6,
+      "rank": 7,
       "name": "Steam",
       "role": "A later downloadable release with strong buying intent.",
       "state": "not_current_build_strategy",
@@ -142,6 +150,7 @@
   ],
   "authority": {
     "pokiAccessRequestAuthorized": false,
+    "youtubePlayablesInterestRequestAuthorized": false,
     "itchPublicationAuthorized": false,
     "newgroundsPublicationAuthorized": false,
     "communityPostingAuthorized": false,
@@ -164,6 +173,10 @@
     "https://itch.io/docs/creators/quality-guidelines",
     "https://itch.io/docs/creators/getting-indexed",
     "https://www.newgrounds.com/wiki/help-information/content-submission/games-and-movies",
-    "https://developer.crazygames.com/games"
+    "https://developer.crazygames.com/games",
+    "https://developers.google.com/youtube/gaming/playables",
+    "https://developers.google.com/youtube/gaming/playables/certification/requirements_stability",
+    "https://developers.google.com/youtube/gaming/playables/certification/requirements_privacydata",
+    "https://developers.google.com/youtube/gaming/playables/certification/requirements_trustsafety"
   ]
 }

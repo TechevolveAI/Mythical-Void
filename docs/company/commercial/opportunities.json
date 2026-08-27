@@ -92,6 +92,29 @@
       "rationale": "Potential adult/general indie community feedback channel after packaging, ownership, and moderation readiness.",
       "blockers": ["Four authentic gameplay moments approved", "First-minute quality and public-judgment readiness", "Asset, music and AI-use provenance", "Credits and moderation owner", "Account and terms approval"],
       "nextAction": "Use the technically compatible package only after gameplay quality, rights and public-judgment readiness pass; keep identity and social APIs off."
+    },
+    {
+      "id": "OP-005",
+      "organization": "YouTube Playables",
+      "type": "distribution",
+      "stage": "researched",
+      "source": "https://developers.google.com/youtube/gaming/playables",
+      "contact": null,
+      "outreachApproved": false,
+      "contactedAt": null,
+      "fit": {
+        "audience": "high",
+        "product": "medium",
+        "trustSafety": "medium",
+        "learning": "high",
+        "economics": "unknown",
+        "controlRights": "unknown",
+        "integration": "low",
+        "reversibility": "medium"
+      },
+      "rationale": "Potential direct play inside YouTube search, Home and the Playables shelf. Phaser and the current package shape are promising, but the route requires an honest general-audience 13+ edition, no outside calls, platform saving and lifecycle integration, full rights, strong visuals and early-access selection.",
+      "blockers": ["Honest general-audience 13+ decision and professional review", "Separate no-network Playables mode", "YouTube saving, ready, pause, resume and audio integration", "Touch, resize and five-second start proof", "Four authentic gameplay moments approved", "Official channel and administrator", "Kevin-approved interest form and later terms review"],
+      "nextAction": "Prepare and test the no-network edition boundary without connecting the SDK or submitting the early-access interest form."
     }
   ]
 }
