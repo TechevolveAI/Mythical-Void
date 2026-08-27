@@ -9,6 +9,8 @@
 
     var allowedFields = [
         'audienceRole',
+        'discoverySource',
+        'tryReason',
         'journey',
         'overall',
         'bestPart',
@@ -26,7 +28,7 @@
         }
 
         var formData = new FormData(form);
-        var payload = { schemaVersion: 1, adultConfirmed: formData.get('adultConfirmed') === 'true' };
+        var payload = { schemaVersion: 2, adultConfirmed: formData.get('adultConfirmed') === 'true' };
         allowedFields.forEach(function (field) {
             payload[field] = String(formData.get(field) || '');
         });

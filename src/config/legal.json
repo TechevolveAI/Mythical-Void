@@ -30,7 +30,7 @@
       },
       {
         "heading": "Adult Feedback",
-        "content": "The optional adult feedback pulse requires an adult confirmation and records six fixed-choice answers, the submission time and the current release identifier. It does not create an account or store a name, email address, free-text answer, exact age, user or session identifier, creature name, device detail or location in the feedback record. The fixed-choice record is kept for no more than 180 days and is available only to the protected server role. Standard Netlify and Supabase service and security logs remain subject to their own operational retention."
+        "content": "The optional adult feedback pulse requires an adult confirmation and records eight fixed-choice answers, including broad choices for how the adult found Mythical Void and what made them want to try it, plus the submission time and current release identifier. It does not store a referring address or create an account, and it does not store a name, email address, free-text answer, exact age, user or session identifier, creature name, device detail or location in the feedback record. The fixed-choice record is kept for no more than 180 days and is available only to the protected server role. Standard Netlify and Supabase service and security logs remain subject to their own operational retention."
       },
       {
         "heading": "Data Security",

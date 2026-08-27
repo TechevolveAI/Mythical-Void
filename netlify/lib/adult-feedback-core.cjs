@@ -3,7 +3,7 @@ const { createClient } = require('@supabase/supabase-js');
 const SUPABASE_PROJECT_URL = 'https://mkcmdbzcihjgidjuypqe.supabase.co';
 const MAX_BODY_BYTES = 1200;
 const RELEASE_PATTERN = /^[A-Za-z0-9_-]{1,80}$/;
-const EXPECTED_KEYS = new Set([
+const EXPECTED_KEYS_V1 = new Set([
     'schemaVersion',
     'adultConfirmed',
     'audienceRole',
@@ -13,6 +13,11 @@ const EXPECTED_KEYS = new Set([
     'nextImprovement',
     'recommendation'
 ]);
+const EXPECTED_KEYS_V2 = new Set([
+    ...EXPECTED_KEYS_V1,
+    'discoverySource',
+    'tryReason'
+]);
 const ALLOWED = Object.freeze({
     audienceRole: new Set(['adult_player', 'parent_guardian', 'educator', 'other_adult']),
     journey: new Set(['not_started', 'started', 'hatched', 'explored', 'restored']),
@@ -21,6 +26,14 @@ const ALLOWED = Object.freeze({
     nextImprovement: new Set(['creature_visibility', 'instructions', 'controls', 'phone_layout', 'performance', 'story_clarity', 'more_content', 'nothing_yet']),
     recommendation: new Set(['yes', 'maybe', 'no'])
 });
+const DISCOVERY_SOURCES = new Set([
+    'friend_family', 'search', 'social_video', 'school_library_club',
+    'website_creator', 'knew_founder_studio', 'not_sure'
+]);
+const TRY_REASONS = new Set([
+    'creature_hatch', 'world_story', 'missions_action', 'nasa_stem',
+    'free_easy_start', 'father_son_story', 'hatch_invitation', 'not_sure'
+]);
 
 const defaultRuntime = Object.freeze({ createClient });
 let runtime = { ...defaultRuntime };
@@ -60,13 +73,24 @@ function parseBody(event) {
 function validateFeedback(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
     const keys = Object.keys(value);
-    if (keys.length !== EXPECTED_KEYS.size || !keys.every(key => EXPECTED_KEYS.has(key))) return null;
-    if (value.schemaVersion !== 1 || value.adultConfirmed !== true) return null;
+    const expectedKeys = value.schemaVersion === 1
+        ? EXPECTED_KEYS_V1
+        : value.schemaVersion === 2
+            ? EXPECTED_KEYS_V2
+            : null;
+    if (!expectedKeys || keys.length !== expectedKeys.size || !keys.every(key => expectedKeys.has(key))) return null;
+    if (value.adultConfirmed !== true) return null;
     for (const [field, choices] of Object.entries(ALLOWED)) {
         if (!choices.has(value[field])) return null;
     }
+    if (value.schemaVersion === 2 && (
+        !DISCOVERY_SOURCES.has(value.discoverySource) ||
+        !TRY_REASONS.has(value.tryReason)
+    )) return null;
     return {
         audience_role: value.audienceRole,
+        discovery_source: value.schemaVersion === 2 ? value.discoverySource : 'not_asked',
+        try_reason: value.schemaVersion === 2 ? value.tryReason : 'not_asked',
         journey: value.journey,
         overall: value.overall,
         best_part: value.bestPart,

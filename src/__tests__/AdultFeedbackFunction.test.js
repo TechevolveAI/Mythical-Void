@@ -1,9 +1,11 @@
 const feedbackFunction = require('../../netlify/lib/adult-feedback-core.cjs');
 
 const VALID_FEEDBACK = Object.freeze({
-    schemaVersion: 1,
+    schemaVersion: 2,
     adultConfirmed: true,
     audienceRole: 'adult_player',
+    discoverySource: 'friend_family',
+    tryReason: 'creature_hatch',
     journey: 'hatched',
     overall: 'promising',
     bestPart: 'creature',
@@ -52,6 +54,8 @@ describe('adult-only fixed-choice feedback collector', () => {
         const row = adminClient.insert.mock.calls[0][0];
         expect(row).toEqual({
             audience_role: 'adult_player',
+            discovery_source: 'friend_family',
+            try_reason: 'creature_hatch',
             journey: 'hatched',
             overall: 'promising',
             best_part: 'creature',
@@ -62,16 +66,34 @@ describe('adult-only fixed-choice feedback collector', () => {
         expect(JSON.stringify(row)).not.toMatch(/name|email|user|session|ip|message|story|device|location/i);
     });
 
+    test('accepts a cached version-one form without inventing a discovery answer', async () => {
+        const adminClient = createAdminClient();
+        feedbackFunction._internal.setRuntime({ createClient: () => adminClient });
+        const legacy = { ...VALID_FEEDBACK, schemaVersion: 1 };
+        delete legacy.discoverySource;
+        delete legacy.tryReason;
+
+        const response = await feedbackFunction.handler(request(legacy));
+
+        expect(response.statusCode).toBe(201);
+        expect(adminClient.insert.mock.calls[0][0]).toEqual(expect.objectContaining({
+            discovery_source: 'not_asked',
+            try_reason: 'not_asked'
+        }));
+    });
+
     test('rejects a missing adult confirmation, free text and unknown choices', async () => {
         const createClient = jest.fn();
         feedbackFunction._internal.setRuntime({ createClient });
         const noAdult = await feedbackFunction.handler(request({ ...VALID_FEEDBACK, adultConfirmed: false }));
         const freeText = await feedbackFunction.handler(request({ ...VALID_FEEDBACK, comment: 'My child is called Nova' }));
         const unknown = await feedbackFunction.handler(request({ ...VALID_FEEDBACK, bestPart: 'anything I type' }));
+        const unknownSource = await feedbackFunction.handler(request({ ...VALID_FEEDBACK, discoverySource: 'private_message_from_someone' }));
 
         expect(noAdult.statusCode).toBe(400);
         expect(freeText.statusCode).toBe(400);
         expect(unknown.statusCode).toBe(400);
+        expect(unknownSource.statusCode).toBe(400);
         expect(createClient).not.toHaveBeenCalled();
     });
 
