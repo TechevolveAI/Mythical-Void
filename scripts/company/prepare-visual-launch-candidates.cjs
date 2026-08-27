@@ -54,6 +54,20 @@ function pngDimensions(file) {
     };
 }
 
+function listRelativeFiles(directory) {
+    if (!fs.existsSync(directory)) return [];
+    const files = [];
+    const visit = current => {
+        for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+            const absolute = path.join(current, entry.name);
+            if (entry.isDirectory()) visit(absolute);
+            else files.push(path.relative(candidateRoot, absolute));
+        }
+    };
+    visit(directory);
+    return files.sort();
+}
+
 function inspectVideo(file, expected) {
     const result = spawnSync('ffprobe', [
         '-v', 'error',
@@ -402,6 +416,35 @@ async function main() {
         process.stdout.write(
             `Visual launch candidates prepared for human review: ${candidateRoot}\n`
         );
+    } catch (error) {
+        const failureManifest = {
+            schemaVersion: 1,
+            runId,
+            createdAt: new Date().toISOString(),
+            sourceCommit: gitValue(['rev-parse', 'HEAD']),
+            sourceBranch: gitValue(['branch', '--show-current']),
+            sourceRoute: '/play/',
+            sourceProfileId: shotList.sharedCaptureContract.profileId,
+            renderer: shotList.sharedCaptureContract.renderer,
+            location: '.visual-review/candidates/',
+            websiteAccessible: false,
+            captureState: 'failed_before_candidate_preparation_completed',
+            technicalCaptureChecksPassed: false,
+            failure: {
+                message: error.message,
+                stack: error.stack || null
+            },
+            partialEvidenceFiles: listRelativeFiles(workingRoot),
+            automationDecision: 'reject_before_human_review',
+            adultApprovalGranted: false,
+            kevinReviewRequested: false,
+            publicationAuthorized: false
+        };
+        fs.writeFileSync(
+            path.join(candidateRoot, 'manifest.json'),
+            `${JSON.stringify(failureManifest, null, 2)}\n`
+        );
+        throw error;
     } finally {
         preview.kill('SIGTERM');
         await delay(300);

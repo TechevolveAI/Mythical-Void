@@ -208,8 +208,8 @@ human visual gate.
 
 ## GDH-009 — Repair the live first impression after Play
 
-**Status:** launch-blocking presentation request; observed on the live returning
-route at commit `538fcf26bc62aee998d1fb9ef5386a2b6672b0bb`
+**Status:** launch-blocking presentation request; fresh source-changed capture
+rejected at commit `2d0114d82a5ea165a0b3b2abaa0e6e526618e996`
 
 **Evidence:** the owned homepage and game-finder page were clear on desktop and
 phone, and the public Play link loaded the game without a sampled browser
@@ -247,3 +247,30 @@ separate 4/4 public visual gate.
 
 See
 [`growth/LIVE_DISCOVERY_TO_PLAY_AUDIT_2026-08-27.md`](../growth/LIVE_DISCOVERY_TO_PLAY_AUDIT_2026-08-27.md).
+
+### 27 August recapture result
+
+The controlled `03:15` run used the real `MV-0813` creature renderer on phone
+and desktop. All 132 phone video frames and all 53 captured desktop frames were
+screened. It remains blocked:
+
+- the village is a map-like stack of transparent buildings, rings, labels and
+  thin connecting lines, so the creature's help is not the main event;
+- the choice is readable, but its consequence is too small and too similar to
+  the before state;
+- the claimed living memory looks like targeting lines and duplicates, not an
+  impossible alien discovery;
+- the phone movement view contains a black side strip and large empty areas;
+- movement reads as two small figures sliding across a flat floor, with no
+  obstacle, jump, world reaction or payoff;
+- desktop capture produced only 53 frames / 4.42 seconds during a 16.39-second
+  journey, below the 72-frame / six-second floor.
+
+**Next request:** simplify the visual hierarchy before recapture. Build one
+short showcase route with a clear beginning, one creature-led event and one
+large payoff; make the alien phenomenon physical rather than diagram-like;
+compose the whole phone canvas; then return both fresh and saved-player proof.
+Do not ask Kevin to review another set until the obvious faults are gone.
+
+The current rejection record is
+[`content/visual-screening-2026-08-27.json`](../content/visual-screening-2026-08-27.json).

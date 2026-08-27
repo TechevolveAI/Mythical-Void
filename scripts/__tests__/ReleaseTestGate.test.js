@@ -88,6 +88,16 @@ describe('release test gate', () => {
         expect(capture).toContain('const videoFrameReviewAids = files');
     });
 
+    test('failed visual captures leave a private rejection record', () => {
+        const capture = read('scripts/company/prepare-visual-launch-candidates.cjs');
+        expect(capture).toContain("captureState: 'failed_before_candidate_preparation_completed'");
+        expect(capture).toContain('technicalCaptureChecksPassed: false');
+        expect(capture).toContain("automationDecision: 'reject_before_human_review'");
+        expect(capture).toContain('partialEvidenceFiles: listRelativeFiles(workingRoot)');
+        expect(capture).toContain('kevinReviewRequested: false');
+        expect(capture).toContain('publicationAuthorized: false');
+    });
+
     test('visual launch proof waits for observable gameplay consequences', () => {
         const smoke = read('scripts/smoke-secondary-journeys.js');
         const world = read('src/systems/world/WorldBuilder.js');

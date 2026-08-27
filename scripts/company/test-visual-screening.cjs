@@ -29,7 +29,10 @@ try {
     assert.notStrictEqual(run('malformed-screening-id', value => { value.screeningId = 'latest'; }).status, 0);
     assert.notStrictEqual(run('external-publication', value => { value.boundary.externalPublicationAuthorized = true; }).status, 0);
     assert.notStrictEqual(run('skip-frame-review', value => { value.videoFrameReview.everyCapturedFrameScreened = false; }).status, 0);
-    assert.notStrictEqual(run('hide-performance-failure', value => { value.realmRecapture.completed = true; }).status, 0);
+    assert.notStrictEqual(run('hide-capture-failure', value => {
+        value.captureFailure.capturedFrames = value.captureFailure.requiredMinimumFrames;
+        value.captureFailure.capturedDurationSeconds = value.captureFailure.requiredMinimumDurationSeconds;
+    }).status, 0);
     assert.notStrictEqual(run('remove-recapture-direction', value => { value.moments[2].nextCaptureMustShow = ''; }).status, 0);
     console.log('Visual screening safeguards passed (current record and 10 rejection cases).');
 } finally {

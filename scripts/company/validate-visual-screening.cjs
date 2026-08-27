@@ -32,7 +32,7 @@ requireValue(screening.source?.websiteAccessible === false, 'candidate run canno
 
 const boundary = screening.boundary || {};
 for (const [key, expected] of Object.entries({
-    technicalCaptureChecksPassed: true,
+    technicalCaptureChecksPassed: false,
     technicalChecksAreVisualApproval: false,
     automationMayRejectObviousFaults: true,
     automationMayApprove: false,
@@ -46,9 +46,15 @@ for (const [key, expected] of Object.entries({
 
 requireValue(screening.decision === 'reject_all_before_kevin_review', 'screening must preserve the rejection decision');
 requireValue(screening.approvedMomentCount === 0 && screening.requiredMomentCount === 4, 'visual gate must remain 0/4');
-requireValue(screening.videoFrameReview?.phoneFramesChecked === 102, 'phone frame review count drifted');
-requireValue(screening.videoFrameReview?.desktopFramesChecked === 36, 'desktop frame review count drifted');
-requireValue(screening.videoFrameReview?.totalFramesChecked === 138 && screening.videoFrameReview?.everyCapturedFrameScreened === true, 'complete video frame screening is missing');
+requireValue(Number(screening.videoFrameReview?.phoneFramesChecked) > 0, 'phone frame review count is missing');
+requireValue(Number(screening.videoFrameReview?.desktopFramesChecked) > 0, 'desktop frame review count is missing');
+requireValue(
+    screening.videoFrameReview?.totalFramesChecked ===
+        screening.videoFrameReview?.phoneFramesChecked +
+        screening.videoFrameReview?.desktopFramesChecked &&
+    screening.videoFrameReview?.everyCapturedFrameScreened === true,
+    'complete video frame screening is missing'
+);
 requireValue(screening.videoFrameReview?.adultApprovalClaimed === false, 'automated rejection cannot claim adult approval');
 const moments = Array.isArray(screening.moments) ? screening.moments : [];
 const requiredIds = ['VL-001', 'VL-002', 'VL-003', 'VL-004'];
@@ -62,10 +68,15 @@ for (const moment of moments) {
     requireValue(moment.filesChecked.every(file => !file.includes('/') && /\.(?:png|mp4)$/.test(file)), `${moment.id} files must remain inside the private run`);
 }
 
-requireValue(screening.realmRecapture?.attempted === true && screening.realmRecapture?.completed === false, 'failed realm recapture evidence is missing');
-requireValue(screening.realmRecapture?.reason === 'sustained_mobile_render_budget_failed', 'realm failure reason drifted');
-requireValue(Number(screening.realmRecapture?.observed?.averageFps) < 20, 'recorded mobile frame-rate evidence is not the failing observation');
-requireValue(Number(screening.realmRecapture?.observed?.p95FrameMs) > 50, 'recorded p95 frame-time evidence is not the failing observation');
+requireValue(screening.captureFailure?.stage === 'desktop_visual_movement', 'capture failure stage is missing');
+requireValue(screening.captureFailure?.reason === 'video_too_short_or_missing_frames', 'capture failure reason drifted');
+requireValue(
+    Number(screening.captureFailure?.capturedFrames) <
+        Number(screening.captureFailure?.requiredMinimumFrames) &&
+    Number(screening.captureFailure?.capturedDurationSeconds) <
+        Number(screening.captureFailure?.requiredMinimumDurationSeconds),
+    'recorded desktop video must preserve the failing frame and duration evidence'
+);
 requireValue(screening.nextGate?.recaptureAfterSourceChange === true, 'recapture must wait for a source change');
 requireValue(screening.nextGate?.kevinReviewsOnlyAfterObviousFaultsPass === true, 'Kevin must not review obvious failures');
 
@@ -75,7 +86,7 @@ console.log(JSON.stringify({
     rejectedMoments: moments.filter(moment => moment.decision === 'rejected').length,
     approvedMoments: screening.approvedMomentCount,
     kevinReviewRequested: boundary.kevinReviewRequested,
-    realmRecaptureCompleted: screening.realmRecapture?.completed === true,
+    technicalCaptureChecksPassed: boundary.technicalCaptureChecksPassed,
     externalPublicationAuthorized: boundary.externalPublicationAuthorized,
     failures
 }, null, 2));
