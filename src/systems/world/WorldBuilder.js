@@ -7334,30 +7334,32 @@ class WorldBuilder {
         );
         linkedActors.forEach((actor, actorIndex) => {
             const actorColor = actorIndex === 0 ? 0x71E6B1 : 0xF4F4F4;
-            phenomenon.lineStyle(compact ? 13 : 17, 0x07100F, 0.78);
+            const points = Array.from({ length: 7 }, (_, index) => {
+                const progress = index / 6;
+                return {
+                    x: Phaser.Math.Linear(memoryPoolX, actor.x, progress),
+                    y: Phaser.Math.Linear(memoryPoolY, actor.y - 5, progress) +
+                        Math.sin(progress * Math.PI) *
+                            (actorIndex === 0 ? -1 : 1) * (compact ? 12 : 18)
+                };
+            });
+            phenomenon.lineStyle(compact ? 10 : 14, 0x07100F, 0.58);
             phenomenon.beginPath();
-            phenomenon.moveTo(memoryPoolX, memoryPoolY);
-            const midX = (memoryPoolX + actor.x) / 2;
-            const midY = Math.min(memoryPoolY, actor.y) - (compact ? 22 : 32);
-            phenomenon.lineTo(midX, midY);
-            phenomenon.lineTo(actor.x, actor.y - 10);
+            phenomenon.moveTo(points[0].x, points[0].y);
+            points.slice(1).forEach(point => phenomenon.lineTo(point.x, point.y));
             phenomenon.strokePath();
-            phenomenon.lineStyle(compact ? 5 : 7, actorColor, 0.86);
+            phenomenon.lineStyle(compact ? 3 : 4, actorColor, 0.72);
             phenomenon.beginPath();
-            phenomenon.moveTo(memoryPoolX, memoryPoolY);
-            phenomenon.lineTo(midX, midY);
-            phenomenon.lineTo(actor.x, actor.y - 10);
+            phenomenon.moveTo(points[0].x, points[0].y);
+            points.slice(1).forEach(point => phenomenon.lineTo(point.x, point.y));
             phenomenon.strokePath();
             for (let step = 1; step <= 4; step += 1) {
-                const progress = step / 5;
-                const x = Phaser.Math.Linear(memoryPoolX, actor.x, progress);
-                const y = Phaser.Math.Linear(memoryPoolY, actor.y - 10, progress) -
-                    Math.sin(progress * Math.PI) * (compact ? 18 : 26);
-                phenomenon.fillStyle(step === 2 ? 0xF2C14E : actorColor, 0.95);
-                phenomenon.fillCircle(x, y, step === 2 ? 5 : 3.5);
+                const point = points[step];
+                phenomenon.fillStyle(step === 2 ? 0xF2C14E : actorColor, 0.88);
+                phenomenon.fillCircle(point.x, point.y, step === 2 ? 4 : 2.5);
             }
         });
-        phenomenon.setBlendMode?.(Phaser.BlendModes.ADD);
+        phenomenon.setBlendMode?.(Phaser.BlendModes.SCREEN);
 
         const memoryEchoes = [];
         const memoryEchoTweens = [];
@@ -7367,31 +7369,36 @@ class WorldBuilder {
             if (!textureKey || !this.scene.textures?.exists?.(textureKey)) return;
             [0.22, 0.42].forEach((progress, echoIndex) => {
                 const echo = this.scene.add.image(
-                    Phaser.Math.Linear(actor.x, markerX, progress),
-                    Phaser.Math.Linear(actor.y, markerY, progress * 0.72) -
-                        (compact ? 5 : 8) * echoIndex,
+                    memoryPoolX +
+                        (actorIndex === 0 ? 1 : -1) *
+                        (compact ? 23 : 32) * (echoIndex + 0.55),
+                    memoryPoolY + (compact ? 3 : 5) + echoIndex * (compact ? 5 : 7),
                     textureKey,
                     frameName
                 )
                     .setOrigin(actor.originX ?? 0.5, actor.originY ?? 0.5)
                     .setFlipX(actor.flipX === true)
                     .setAngle(actor.angle || 0)
-                    .setDepth(Math.max(1, actor.y - 4 - echoIndex))
+                    .setDepth(Math.max(1, memoryPoolY + 1 + echoIndex))
                     .setAlpha(0)
                     .setTint(actorIndex === 0 ? 0x71E6B1 : 0xF2C14E)
                     .setData('villageMemoryEcho', actorIndex === 0 ? 'creature' : 'astronaut')
                     .setData('sourceTexture', textureKey)
                     .setData('echoIndex', echoIndex);
                 if (actor.displayWidth > 0 && actor.displayHeight > 0) {
-                    echo.setDisplaySize(actor.displayWidth, actor.displayHeight);
+                    const reflectionScale = echoIndex === 0 ? 0.46 : 0.32;
+                    echo.setDisplaySize(
+                        actor.displayWidth * reflectionScale,
+                        actor.displayHeight * reflectionScale
+                    );
                 }
                 echo.setBlendMode?.(Phaser.BlendModes.SCREEN);
                 memoryEchoes.push(echo);
                 memoryEchoTweens.push(this.scene.tweens.add({
                     targets: echo,
-                    alpha: { from: 0.28, to: echoIndex === 0 ? 0.68 : 0.5 },
-                    scaleX: { from: echo.scaleX * 0.96, to: echo.scaleX * 1.08 },
-                    scaleY: { from: echo.scaleY * 0.96, to: echo.scaleY * 1.08 },
+                    alpha: { from: 0.16, to: echoIndex === 0 ? 0.42 : 0.3 },
+                    scaleX: { from: echo.scaleX * 0.98, to: echo.scaleX * 1.04 },
+                    scaleY: { from: echo.scaleY * 0.98, to: echo.scaleY * 1.04 },
                     duration: 980 + echoIndex * 170,
                     yoyo: true,
                     repeat: 2,
@@ -7404,8 +7411,8 @@ class WorldBuilder {
             landmark.zone.x,
             landmark.zone.y - (compact ? 270 : 345)
         ).setDepth(landmark.zone.y + 15).setAlpha(0);
-        const copyWidth = compact ? 278 : 410;
-        const copyHeight = compact ? 102 : 108;
+        const copyWidth = compact ? 252 : 350;
+        const copyHeight = compact ? 76 : 82;
         const backdrop = this.createVillageResonanceBackdrop({
             width: copyWidth,
             height: copyHeight,
@@ -7415,7 +7422,7 @@ class WorldBuilder {
         const speaker = this.scene.add.text(
             0,
             -24,
-            'THE GROUND REMEMBERS',
+            'THE PLANET REPLAYS YOUR CHOICE',
             {
                 fontSize: compact ? '8px' : '9px',
                 fontFamily: 'Arial, sans-serif',
@@ -7425,7 +7432,7 @@ class WorldBuilder {
                 strokeThickness: 5
             }
         ).setOrigin(0.5);
-        const line = this.scene.add.text(0, 0, `"${memory.line}"`, {
+        const line = this.scene.add.text(0, 2, 'A living current carries your footprints back to the Heart.', {
             fontSize: compact ? '10px' : '12px',
             fontFamily: 'Arial, sans-serif',
             color: '#F4F4F4',
@@ -7434,7 +7441,7 @@ class WorldBuilder {
             strokeThickness: 5,
             wordWrap: { width: compact ? 248 : 370 }
         }).setOrigin(0.5);
-        const value = this.scene.add.text(0, compact ? 35 : 38, memory.optionLabel, {
+        const value = this.scene.add.text(0, compact ? 27 : 30, memory.optionLabel, {
             fontSize: compact ? '7px' : '8px',
             fontFamily: 'Arial, sans-serif',
             fontStyle: 'bold',
@@ -7588,30 +7595,54 @@ class WorldBuilder {
             .setDepth(Math.min(actionOriginY, problemY) - 2)
             .setAlpha(1)
             .setData('villageHelpProblem', 'blocked_food_route');
-        blockedRoute.fillStyle(0x09120F, 0.96);
-        blockedRoute.fillTriangle(
-            problemX - 32, problemY + 18,
-            problemX - 8, problemY - 27,
-            problemX + 5, problemY + 18
+        const obstacleScale = compact ? 1 : 1.18;
+        blockedRoute.fillStyle(0x07100F, 0.76);
+        blockedRoute.fillEllipse(
+            problemX,
+            problemY + 19,
+            104 * obstacleScale,
+            32 * obstacleScale
         );
-        blockedRoute.fillTriangle(
-            problemX - 4, problemY + 18,
-            problemX + 17, problemY - 22,
-            problemX + 34, problemY + 18
-        );
-        blockedRoute.lineStyle(4, 0xC73A3A, 0.9);
+        [
+            { x: -31, y: 7, radius: 24 },
+            { x: 0, y: -2, radius: 29 },
+            { x: 31, y: 8, radius: 22 }
+        ].forEach((rock, index) => {
+            blockedRoute.fillStyle(index === 1 ? 0x263532 : 0x1A2927, 1);
+            blockedRoute.fillCircle(
+                problemX + (rock.x * obstacleScale),
+                problemY + (rock.y * obstacleScale),
+                rock.radius * obstacleScale
+            );
+            blockedRoute.lineStyle(2, 0x58756B, 0.84);
+            blockedRoute.strokeCircle(
+                problemX + (rock.x * obstacleScale),
+                problemY + (rock.y * obstacleScale),
+                rock.radius * obstacleScale
+            );
+        });
+        blockedRoute.lineStyle(compact ? 6 : 8, 0x6B2838, 0.94);
         blockedRoute.beginPath();
-        blockedRoute.moveTo(problemX - 11, problemY - 20);
-        blockedRoute.lineTo(problemX + 1, problemY - 5);
-        blockedRoute.lineTo(problemX - 5, problemY + 9);
-        blockedRoute.lineTo(problemX + 12, problemY + 17);
+        blockedRoute.moveTo(problemX - (48 * obstacleScale), problemY - 18);
+        blockedRoute.lineTo(problemX + (48 * obstacleScale), problemY + 22);
+        blockedRoute.moveTo(problemX - (44 * obstacleScale), problemY + 24);
+        blockedRoute.lineTo(problemX + (44 * obstacleScale), problemY - 20);
         blockedRoute.strokePath();
-        blockedRoute.lineStyle(2, 0xF2C14E, 0.78);
-        blockedRoute.strokeEllipse(problemX, problemY + 19, 76, 18);
+        blockedRoute.fillStyle(0xF06A6A, 0.95);
+        [-34, -12, 13, 35].forEach((offset, index) => {
+            blockedRoute.fillTriangle(
+                problemX + (offset * obstacleScale),
+                problemY + (index % 2 ? -15 : 11),
+                problemX + ((offset + 7) * obstacleScale),
+                problemY + (index % 2 ? -25 : 21),
+                problemX + ((offset + 12) * obstacleScale),
+                problemY + (index % 2 ? -11 : 8)
+            );
+        });
         const blockedLabel = this.scene.add.text(
             problemX,
             problemY - (compact ? 38 : 46),
-            'BLOCKED',
+            'THORN WALL',
             {
                 fontSize: compact ? '9px' : '11px',
                 fontFamily: 'Arial, sans-serif',
@@ -7627,62 +7658,78 @@ class WorldBuilder {
             .setDepth(Math.min(actionOriginY, problemY) - 1)
             .setAlpha(0.08)
             .setData('villageHelpResult', 'safe_food_route_open');
-        openedRoute.lineStyle(5, 0x71E6B1, 0.82);
+        const routeEndX = problemX + ((compact ? 72 : 108) / zoom);
+        const routeEndY = problemY - ((compact ? 20 : 30) / zoom);
+        const routeMidX = Phaser.Math.Linear(actionOriginX, routeEndX, 0.55);
+        const routeMidY = Math.min(actionOriginY, routeEndY) -
+            ((compact ? 28 : 42) / zoom);
+        openedRoute.lineStyle(compact ? 20 : 28, 0x0A211C, 0.92);
         openedRoute.beginPath();
         openedRoute.moveTo(actionOriginX, actionOriginY);
-        openedRoute.lineTo(problemX, problemY - (compact ? 5 : 8));
-        openedRoute.lineTo(
-            problemX + ((compact ? 52 : 72) / zoom),
-            problemY - ((compact ? 18 : 26) / zoom)
-        );
+        openedRoute.lineTo(routeMidX, routeMidY);
+        openedRoute.lineTo(routeEndX, routeEndY);
         openedRoute.strokePath();
-        openedRoute.lineStyle(1, 0xF4F4F4, 0.72);
+        openedRoute.lineStyle(compact ? 10 : 14, 0x71E6B1, 0.92);
         openedRoute.beginPath();
         openedRoute.moveTo(actionOriginX, actionOriginY);
-        openedRoute.lineTo(problemX, problemY - (compact ? 5 : 8));
-        openedRoute.lineTo(
-            problemX + ((compact ? 52 : 72) / zoom),
-            problemY - ((compact ? 18 : 26) / zoom)
-        );
+        openedRoute.lineTo(routeMidX, routeMidY);
+        openedRoute.lineTo(routeEndX, routeEndY);
         openedRoute.strokePath();
-        for (let step = 1; step <= 4; step += 1) {
-            const progress = step / 5;
-            const x = Phaser.Math.Linear(actionOriginX, problemX, progress);
-            const y = Phaser.Math.Linear(actionOriginY, problemY, progress) -
-                Math.sin(progress * Math.PI) * ((compact ? 12 : 18) / zoom);
-            openedRoute.fillStyle(step === 4 ? 0xF2C14E : 0x8FE3CF, 0.96);
-            openedRoute.fillCircle(x, y, step === 4 ? 5 : 3);
+        openedRoute.lineStyle(2, 0xF4F4F4, 0.88);
+        openedRoute.beginPath();
+        openedRoute.moveTo(actionOriginX, actionOriginY);
+        openedRoute.lineTo(routeMidX, routeMidY);
+        openedRoute.lineTo(routeEndX, routeEndY);
+        openedRoute.strokePath();
+        for (let step = 1; step <= 6; step += 1) {
+            const progress = step / 7;
+            const x = progress < 0.55
+                ? Phaser.Math.Linear(actionOriginX, routeMidX, progress / 0.55)
+                : Phaser.Math.Linear(routeMidX, routeEndX, (progress - 0.55) / 0.45);
+            const y = progress < 0.55
+                ? Phaser.Math.Linear(actionOriginY, routeMidY, progress / 0.55)
+                : Phaser.Math.Linear(routeMidY, routeEndY, (progress - 0.55) / 0.45);
+            openedRoute.fillStyle(step === 6 ? 0xF2C14E : 0xD8FFF3, 0.98);
+            openedRoute.fillCircle(x, y, step === 6 ? 7 : 3.5);
+            openedRoute.fillStyle(0x71E6B1, 0.92);
+            openedRoute.fillEllipse(x - 5, y - 5, 9, 4);
         }
-        openedRoute.setBlendMode?.(Phaser.BlendModes.ADD);
 
         const regrowth = this.scene.add.graphics()
             .setDepth(problemY + 4)
             .setAlpha(0)
             .setData('villageHelpRegrowth', true);
         regrowth.lineStyle(3, 0x71E6B1, 0.95);
-        [-16, 0, 16].forEach((offset, index) => {
-            const stemHeight = compact ? 22 + (index * 5) : 30 + (index * 6);
+        [-28, -10, 10, 29].forEach((offset, index) => {
+            const stemHeight = compact ? 30 + (index % 2) * 10 : 40 + (index % 2) * 13;
             regrowth.lineBetween(
                 problemX + offset,
-                problemY + 14,
+                problemY + 22,
                 problemX + offset + (index - 1) * 4,
-                problemY + 14 - stemHeight
+                problemY + 22 - stemHeight
             );
-            regrowth.fillStyle(index === 1 ? 0xF2C14E : 0x8FE3CF, 0.95);
-            regrowth.fillCircle(
-                problemX + offset + (index - 1) * 6,
-                problemY + 10 - stemHeight,
-                compact ? 6 : 8
-            );
+            const bloomX = problemX + offset + (index - 1) * 5;
+            const bloomY = problemY + 18 - stemHeight;
+            regrowth.fillStyle(index === 1 ? 0xF2C14E : 0x8FE3CF, 0.98);
+            [0, 90, 180, 270].forEach(angle => {
+                const radians = Phaser.Math.DegToRad(angle);
+                regrowth.fillEllipse(
+                    bloomX + Math.cos(radians) * (compact ? 7 : 9),
+                    bloomY + Math.sin(radians) * (compact ? 7 : 9),
+                    compact ? 8 : 11,
+                    compact ? 5 : 7
+                );
+            });
+            regrowth.fillStyle(0xF4F4F4, 1);
+            regrowth.fillCircle(bloomX, bloomY, compact ? 4 : 5);
         });
-        regrowth.setBlendMode?.(Phaser.BlendModes.ADD);
 
         const result = this.scene.add.text(
-            problemX,
-            problemY + (compact ? 34 : 40),
-            'ROUTE OPEN  +5',
+            Phaser.Math.Linear(actionOriginX, problemX, 0.42),
+            problemY + (compact ? 58 : 66),
+            'PATH OPEN  +5 HAPPINESS',
             {
-                fontSize: compact ? '9px' : '11px',
+                fontSize: compact ? '11px' : '14px',
                 fontFamily: 'Arial, sans-serif',
                 fontStyle: 'bold',
                 color: '#F4F4F4',
@@ -7695,7 +7742,7 @@ class WorldBuilder {
         const copy = this.scene.add.container(copyX, copyY)
             .setDepth(landmark.zone.y + 16)
             .setAlpha(0);
-        const copyHeight = checkIn.memory ? (compact ? 112 : 122) : (compact ? 88 : 96);
+        const copyHeight = checkIn.memory ? (compact ? 104 : 114) : (compact ? 78 : 84);
         const backdrop = this.createVillageResonanceBackdrop({
             width: ribbonWidth,
             height: copyHeight,
@@ -7705,8 +7752,8 @@ class WorldBuilder {
         });
         const identity = this.scene.add.text(
             0,
-            checkIn.memory ? -31 : -24,
-            `${checkIn.name.toUpperCase()} // ${checkIn.roleLabel}`,
+            checkIn.memory ? -28 : -20,
+            `${checkIn.name.toUpperCase()} HELPS`,
             {
                 fontSize: compact ? '9px' : '10px',
                 fontFamily: 'Arial, sans-serif',
@@ -7716,8 +7763,8 @@ class WorldBuilder {
                 strokeThickness: 5
             }
         ).setOrigin(0.5);
-        const line = this.scene.add.text(0, checkIn.memory ? -8 : -3, `"${checkIn.line}"`, {
-            fontSize: compact ? '10px' : '12px',
+        const line = this.scene.add.text(0, checkIn.memory ? -5 : 1, `${checkIn.name} sends life into the blocked path.`, {
+            fontSize: compact ? '11px' : '13px',
             fontFamily: 'Arial, sans-serif',
             color: '#F4F4F4',
             align: 'center',
@@ -7727,8 +7774,8 @@ class WorldBuilder {
         }).setOrigin(0.5);
         const routine = this.scene.add.text(
             0,
-            checkIn.memory ? 22 : 18,
-            checkIn.routineCue,
+            checkIn.memory ? 24 : 16,
+            'THE THORNS RELEASE',
             {
                 fontSize: compact ? '7px' : '8px',
                 fontFamily: 'Arial, sans-serif',
@@ -7740,8 +7787,8 @@ class WorldBuilder {
                 wordWrap: { width: copyWidth }
             }
         ).setOrigin(0.5);
-        const impact = this.scene.add.text(0, checkIn.memory ? 43 : 34, checkIn.impact, {
-            fontSize: compact ? '8px' : '9px',
+        const impact = this.scene.add.text(0, checkIn.memory ? 44 : 31, 'PATH OPEN · +5 HAPPINESS', {
+            fontSize: compact ? '9px' : '11px',
             fontFamily: 'Arial, sans-serif',
             fontStyle: 'bold',
             color: '#F4F4F4',
@@ -7917,7 +7964,7 @@ class WorldBuilder {
             .setDepth(-14)
             .setAlpha(0)
             .setData('villageDecisionRouteOpened', 'living_current');
-        livingRoute.lineStyle(compact ? 11 : 15, 0x0B2A24, 0.9);
+        livingRoute.lineStyle(compact ? 28 : 40, 0x071A16, 0.92);
         livingRoute.beginPath();
         livingRoute.moveTo(heartX, heartY);
         livingRoute.lineTo(
@@ -7926,7 +7973,7 @@ class WorldBuilder {
         );
         livingRoute.lineTo(routeEnd.x, routeEnd.y);
         livingRoute.strokePath();
-        livingRoute.lineStyle(compact ? 5 : 7, color, 0.94);
+        livingRoute.lineStyle(compact ? 15 : 21, color, 0.9);
         livingRoute.beginPath();
         livingRoute.moveTo(heartX, heartY);
         livingRoute.lineTo(
@@ -7935,24 +7982,25 @@ class WorldBuilder {
         );
         livingRoute.lineTo(routeEnd.x, routeEnd.y);
         livingRoute.strokePath();
-        livingRoute.lineStyle(1, 0xF4F4F4, 0.9);
+        livingRoute.lineStyle(2, 0xDFFFF5, 0.9);
         livingRoute.strokePath();
         for (let step = 1; step <= 5; step += 1) {
             const progress = step / 6;
             const x = Phaser.Math.Linear(heartX, routeEnd.x, progress);
             const y = Phaser.Math.Linear(heartY, routeEnd.y, progress) -
                 Math.sin(progress * Math.PI) * (compact ? 42 : 58);
-            livingRoute.fillStyle(step % 2 === 0 ? 0xF2C14E : 0xF4F4F4, 0.96);
-            livingRoute.fillCircle(x, y, step === 3 ? 5 : 3);
+            livingRoute.fillStyle(step % 2 === 0 ? 0xF2C14E : 0xF4F4F4, 0.98);
+            livingRoute.fillCircle(x, y, step === 3 ? 7 : 4);
+            livingRoute.fillStyle(0x8FE3CF, 0.94);
+            livingRoute.fillEllipse(x - 7, y - 6, compact ? 10 : 14, compact ? 5 : 7);
         }
-        livingRoute.setBlendMode?.(Phaser.BlendModes.ADD);
 
         const routeRegrowth = this.scene.add.graphics()
             .setDepth(routeEnd.y + 3)
             .setAlpha(0)
             .setData('villageDecisionRegrowth', true);
-        [-24, -8, 10, 27].forEach((offset, index) => {
-            const height = (compact ? 28 : 38) + (index % 2) * 10;
+        [-42, -22, 0, 23, 44].forEach((offset, index) => {
+            const height = (compact ? 34 : 48) + (index % 2) * 14;
             routeRegrowth.lineStyle(3, 0x71E6B1, 0.94);
             routeRegrowth.lineBetween(
                 routeEnd.x + offset,
@@ -7960,21 +8008,28 @@ class WorldBuilder {
                 routeEnd.x + offset + (index % 2 ? 5 : -4),
                 routeEnd.y + 15 - height
             );
-            routeRegrowth.fillStyle(index === 2 ? 0xF2C14E : 0x8FE3CF, 0.96);
-            routeRegrowth.fillCircle(
-                routeEnd.x + offset + (index % 2 ? 8 : -7),
-                routeEnd.y + 10 - height,
-                compact ? 6 : 8
-            );
+            const bloomX = routeEnd.x + offset + (index % 2 ? 8 : -7);
+            const bloomY = routeEnd.y + 10 - height;
+            routeRegrowth.fillStyle(index === 2 ? 0xF2C14E : 0x8FE3CF, 0.98);
+            [0, 90, 180, 270].forEach(angle => {
+                const radians = Phaser.Math.DegToRad(angle);
+                routeRegrowth.fillEllipse(
+                    bloomX + Math.cos(radians) * (compact ? 7 : 10),
+                    bloomY + Math.sin(radians) * (compact ? 7 : 10),
+                    compact ? 9 : 13,
+                    compact ? 5 : 7
+                );
+            });
+            routeRegrowth.fillStyle(0xF4F4F4, 1);
+            routeRegrowth.fillCircle(bloomX, bloomY, compact ? 4 : 6);
         });
-        routeRegrowth.setBlendMode?.(Phaser.BlendModes.ADD);
 
         const routeLabel = this.scene.add.text(
             routeEnd.x,
             routeEnd.y + (compact ? 38 : 48),
-            'LIVING ROUTE OPEN',
+            'THE LIVING PATH OPENS',
             {
-                fontSize: compact ? '10px' : '12px',
+                fontSize: compact ? '12px' : '16px',
                 fontFamily: 'Arial, sans-serif',
                 fontStyle: 'bold',
                 color: '#F4F4F4',
@@ -7998,15 +8053,15 @@ class WorldBuilder {
             heartX,
             heartY - (compact ? 360 : 330)
         ).setDepth(landmark.zone.y + 16).setAlpha(0);
-        const copyWidth = compact ? 290 : 420;
-        const copyHeight = compact ? 98 : 104;
+        const copyWidth = compact ? 250 : 340;
+        const copyHeight = compact ? 64 : 72;
         const backdrop = this.createVillageResonanceBackdrop({
             width: copyWidth,
             height: copyHeight,
             accent: color,
             kind: 'heart_decision'
         });
-        const kicker = this.scene.add.text(0, -25, 'THE VILLAGE HEART REMEMBERS', {
+        const kicker = this.scene.add.text(0, -15, 'YOUR CHOICE CHANGED THIS PLACE', {
             fontSize: compact ? '8px' : '9px',
             fontFamily: 'Arial, sans-serif',
             fontStyle: 'bold',
@@ -8014,15 +8069,15 @@ class WorldBuilder {
             stroke: '#07100F',
             strokeThickness: 5
         }).setOrigin(0.5);
-        const title = this.scene.add.text(0, -6, result.option.label, {
-            fontSize: compact ? '11px' : '14px',
+        const title = this.scene.add.text(0, 8, 'THE LIVING PATH IS OPEN', {
+            fontSize: compact ? '12px' : '15px',
             fontFamily: 'Arial, sans-serif',
             fontStyle: 'bold',
             color: '#F4F4F4',
             stroke: '#07100F',
             strokeThickness: 5
         }).setOrigin(0.5);
-        const consequence = this.scene.add.text(0, 17, result.option.consequence, {
+        const consequence = this.scene.add.text(0, 25, result.option.consequence, {
             fontSize: compact ? '8px' : '9px',
             fontFamily: 'Arial, sans-serif',
             color: '#F4F4F4',

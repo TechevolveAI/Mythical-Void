@@ -685,9 +685,6 @@ async function smokeRealCreatureShowcase(session, exceptions) {
 }
 
 async function smokeCreatureShowcasePage(session, exceptions) {
-    if (!SMOKE_CAPTURE_DIR) {
-        throw new Error('SMOKE_CAPTURE_DIR is required for creature-showcase-page mode');
-    }
     await session.call('Page.navigate', {
         url: `${BASE_URL}/creature-genetics/index.html`
     });
@@ -705,41 +702,65 @@ async function smokeCreatureShowcasePage(session, exceptions) {
     await delay(350);
     await waitFor(
         () => evaluate(session, `(() => {
-            const cards = document.querySelectorAll('.creature-specimen').length;
+            const heroImage = document.querySelector('.creature-showcase-hero img');
             const imagesReady = [...document.images]
                 .every(image => image.complete && image.naturalWidth > 0);
-            return cards === 12 && imagesReady ? { cards, imagesReady } : null;
+            return heroImage?.complete && heroImage.naturalWidth > 0 && imagesReady
+                ? { heroImageReady: true, imagesReady }
+                : null;
         })()`),
-        { timeoutMs: 10000, message: 'creature showcase cards and images' }
+        { timeoutMs: 10000, message: 'creature genetics page images' }
     );
     const layout = await evaluate(session, `(() => {
         document.documentElement.style.scrollBehavior = 'auto';
         scrollTo(0, 0);
         document.querySelector('.analytics-choice')?.remove();
-        const cardCount = document.querySelectorAll('.creature-specimen').length;
+        const heroImage = document.querySelector('.creature-showcase-hero img');
         const brokenImages = [...document.images]
             .filter(image => !image.complete || image.naturalWidth === 0)
             .map(image => image.getAttribute('src'));
+        const withdrawalNote = [...document.querySelectorAll('.story-proof-note')]
+            .find(element => /old sprite gallery is gone/i.test(
+                element.textContent || ''
+            ));
         return {
             viewport: { width: innerWidth, height: innerHeight },
-            cardCount,
+            heroImageReady: Boolean(
+                heroImage?.complete && heroImage.naturalWidth > 0
+            ),
+            withdrawnSpecimenCount:
+                document.querySelectorAll('.creature-specimen').length,
+            withdrawalNoteVisible: Boolean(
+                withdrawalNote &&
+                withdrawalNote.getBoundingClientRect().height > 0
+            ),
+            directPlayLinkCount:
+                document.querySelectorAll('a[href="/play/"]').length,
             brokenImages,
             horizontalOverflow: document.documentElement.scrollWidth > innerWidth + 1,
-            heading: document.querySelector('h1')?.textContent?.trim() || '',
-            gridColumns: getComputedStyle(document.querySelector('.creature-showcase-grid')).gridTemplateColumns
+            heading: document.querySelector('h1')?.textContent?.trim() || ''
         };
     })()`);
     if (exceptions.length) {
         throw new Error(`Creature showcase page raised browser exceptions: ${exceptions.join(' | ')}`);
     }
-    if (layout.cardCount !== 12 || layout.brokenImages.length || layout.horizontalOverflow) {
+    if (
+        !layout.heroImageReady ||
+        layout.withdrawnSpecimenCount !== 0 ||
+        !layout.withdrawalNoteVisible ||
+        layout.directPlayLinkCount < 1 ||
+        layout.brokenImages.length ||
+        layout.horizontalOverflow
+    ) {
         throw new Error(`Creature showcase page layout failed: ${JSON.stringify(layout)}`);
     }
-    await delay(150);
-    await captureGameplayStill(
-        session,
-        `creature-showcase-page-${SMOKE_VIEWPORT_WIDTH}x${SMOKE_VIEWPORT_HEIGHT}.png`
-    );
+    if (SMOKE_CAPTURE_DIR) {
+        await delay(150);
+        await captureGameplayStill(
+            session,
+            `creature-showcase-page-${SMOKE_VIEWPORT_WIDTH}x${SMOKE_VIEWPORT_HEIGHT}.png`
+        );
+    }
     return layout;
 }
 
@@ -17228,7 +17249,7 @@ async function smokeVillageUi(session, exceptions) {
                 ?.villageHeartLandmark?.communityMomentElements?.filter(
                     element => Boolean(element?.getData?.('villageMemoryEcho'))
                 ) || [];
-            return echoes.length === 4 && echoes.every(echo => echo.alpha >= 0.42);
+            return echoes.length === 4 && echoes.every(echo => echo.alpha >= 0.24);
         })()`),
         { timeoutMs: 2500, message: 'Planet memory renders both actor echoes' }
     );
@@ -18533,7 +18554,7 @@ async function smokeVisualMovement(session, exceptions) {
         scene.isInvincible = true;
         scene.cameras.main.startFollow(scene.player, true, 0.12, 0.12);
         scene.cameras.main.centerOn(scene.player.x, scene.player.y - 20);
-        const followerGap = ${isPhone} ? 126 : 300;
+        const followerGap = ${isPhone} ? 132 : 340;
         const formationX = followerGap;
         scene.astronautFollower.setContextualFormation?.(
             { x: formationX, y: 2 },

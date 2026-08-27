@@ -38,6 +38,10 @@ describe('katana artifact presentation', () => {
         path.join(__dirname, '../scenes/levels/AuroraDepthsLevel.js'),
         'utf8'
     );
+    const stylesSource = fs.readFileSync(
+        path.join(__dirname, '../styles/main.css'),
+        'utf8'
+    );
 
     test('selects artwork from canonical installed upgrades', () => {
         const { getKatanaArtifactPresentation } = loadPresentationResolver();
@@ -133,5 +137,11 @@ describe('katana artifact presentation', () => {
         expect(artifactSource).toContain(
             "window.removeEventListener('pointerup', this.releaseGuardHandler, true)"
         );
+    });
+
+    test('reserves the artwork height so the mobile continuation does not move under touch', () => {
+        expect(stylesSource).toContain('height: clamp(220px, 42dvh, 344px);');
+        expect(stylesSource).toContain('height: clamp(138px, 31dvh, 192px);');
+        expect(stylesSource).not.toContain('max-height: 42dvh;');
     });
 });

@@ -4530,8 +4530,8 @@ body.game-mode {
 .katana-artifact-media {
   position: relative;
   display: grid;
-  min-height: 220px;
-  max-height: 42dvh;
+  width: 100%;
+  height: clamp(220px, 42dvh, 344px);
   place-items: center;
   overflow: hidden;
   background: #030608;
@@ -4542,7 +4542,6 @@ body.game-mode {
   display: block;
   width: 100%;
   height: 100%;
-  max-height: 42dvh;
   object-fit: contain;
   user-select: none;
 }
@@ -4768,11 +4767,11 @@ body.game-mode {
 
   .katana-artifact-media,
   .katana-artifact-media img {
-    max-height: 31dvh;
+    height: clamp(138px, 31dvh, 192px);
   }
 
   .katana-artifact-media {
-    min-height: 138px;
+    min-height: 0;
   }
 
   .katana-artifact-header {
