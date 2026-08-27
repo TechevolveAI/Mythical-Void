@@ -20,7 +20,7 @@ const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 
 requireValue(release.releaseId === 'RETURNING-PLAYER-DOORWAY-2026-08-26', 'release identity is missing');
-requireValue(release.state === 'owned_site_release_authorized_pending_production_verification', 'release authority state is invalid');
+requireValue(release.state === 'owned_site_release_live_verified', 'release authority state is invalid');
 requireValue(release.destination === 'https://mythicalvoid.com/play/', 'return destination drifted');
 requireValue(JSON.stringify(release.publicRoutes) === JSON.stringify(['https://mythicalvoid.com/', 'https://mythicalvoid.com/playable-now/']), 'public route list drifted');
 
@@ -62,6 +62,8 @@ for (const [key, expected] of Object.entries({
     gameActivityMeasured: false
 })) requireValue(release.measurement?.[key] === expected, `measurement.${key} must be ${expected}`);
 requireValue(release.visualBoundary?.approvedGameplayMoments === 0 && release.visualBoundary?.requiredGameplayMoments === 4 && release.visualBoundary?.visualLaunchGateChanged === false, 'visual gate drifted');
+requireValue(release.verification?.productionCommit === '350418e971550856babbefb8fa974eed1766c941' && release.verification?.productionDeployId === '6a8f7e953ba9af0007b02b5b', 'returning-player production proof is missing or drifted');
+requireValue(release.verification?.directButtonVisible === true && release.verification?.directDestination === 'https://mythicalvoid.com/play/', 'returning-player live route proof is missing');
 for (const [key, expected] of Object.entries({
     ownedWebsitePublicationAuthorized: true,
     externalSocialPublicationAuthorized: false,

@@ -23,7 +23,7 @@ const expected = [
 ];
 
 requireValue(plan.releaseId === 'PLAY-INTENT-DOORWAY-2026-08-26', 'release identity is missing');
-requireValue(plan.state === 'owned_site_release_authorized_pending_production_verification', 'release authority state is invalid');
+requireValue(plan.state === 'owned_site_release_live_verified', 'release authority state is invalid');
 requireValue(plan.publicRoute === 'https://mythicalvoid.com/playable-now/', 'public route is invalid');
 requireValue(page.includes('What are you in the mood for?'), 'plain-language question is missing');
 requireValue(page.includes('id="find-your-way"'), 'play-intent doorway needs a stable homepage destination');
@@ -74,6 +74,8 @@ for (const field of ['trackingCodeAdded', 'choiceSentToServer', 'choiceStoredAsP
 }
 requireValue(plan.decisionRules?.minimumConsentedPageViews >= 50 && plan.decisionRules?.minimumIntentPlaySelections >= 10, 'minimum decision boundary is too weak');
 requireValue(plan.visualBoundary?.approvedGameplayMoments === 0 && plan.visualBoundary?.requiredGameplayMoments === 4, 'visual gate drifted');
+requireValue(plan.verification?.productionCommit === '350418e971550856babbefb8fa974eed1766c941' && plan.verification?.productionDeployId === '6a8f7e953ba9af0007b02b5b', 'production verification is missing or drifted');
+requireValue(plan.verification?.directButtonVisible === true && plan.verification?.directDestination === 'https://mythicalvoid.com/play/', 'live direct-Play proof is missing');
 for (const field of ['externalSocialPublicationAuthorized', 'portalSubmissionAuthorized', 'paidPromotionAuthorized', 'outreachAuthorized', 'externalAccountChangeAuthorized']) {
     requireValue(plan.authority?.[field] === false, `${field} must remain false`);
 }

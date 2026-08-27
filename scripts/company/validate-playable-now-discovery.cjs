@@ -71,7 +71,8 @@ for (const [key, expected] of Object.entries({ accountRequired: false, emailSign
     requireValue(release.privacy?.[key] === expected, `privacy.${key} must be ${expected}`);
 }
 requireValue(release.verification?.productionVerificationRequired === true, 'production verification must remain required');
-requireValue(release.verification?.productionCommit === null && release.verification?.productionDeployId === null, 'production proof must remain empty until this release is live');
+requireValue(release.verification?.productionCommit === '350418e971550856babbefb8fa974eed1766c941' && release.verification?.productionDeployId === '6a8f7e953ba9af0007b02b5b', 'production proof is missing or drifted');
+requireValue(release.verification?.directButtonVisible === true && release.verification?.directDestination === 'https://mythicalvoid.com/play/', 'live direct-Play proof is missing');
 
 for (const [file, fragment, label] of [
     ['public/sitemap.xml', '<loc>https://mythicalvoid.com/playable-now/</loc>', 'sitemap'],

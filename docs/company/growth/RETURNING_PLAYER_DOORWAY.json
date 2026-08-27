@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "RETURNING-PLAYER-DOORWAY-2026-08-26",
-  "state": "owned_site_release_authorized_pending_production_verification",
+  "state": "owned_site_release_live_verified",
   "purpose": "Help a person who has already played get back to their own browser adventure without making them search for the game again.",
   "publicRoutes": [
     "https://mythicalvoid.com/",
@@ -47,7 +47,10 @@
   "verification": {
     "automatedPrivacyTestRequired": true,
     "productionVerificationRequired": true,
-    "productionCommit": null,
-    "productionDeployId": null
+    "productionCommit": "350418e971550856babbefb8fa974eed1766c941",
+    "productionDeployId": "6a8f7e953ba9af0007b02b5b",
+    "verifiedAt": "2026-08-27T00:04:00Z",
+    "directButtonVisible": true,
+    "directDestination": "https://mythicalvoid.com/play/"
   }
 }

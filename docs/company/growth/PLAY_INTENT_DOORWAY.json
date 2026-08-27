@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "PLAY-INTENT-DOORWAY-2026-08-26",
-  "state": "owned_site_release_authorized_pending_production_verification",
+  "state": "owned_site_release_live_verified",
   "decisionServed": "Which honest reason for trying Mythical Void most often leads a visitor to choose Play?",
   "publicRoute": "https://mythicalvoid.com/playable-now/",
   "lastFunnelImprovement": {
@@ -94,7 +94,10 @@
     "desktopReviewRequired": true,
     "phoneReviewRequired": true,
     "keyboardReviewRequired": true,
-    "productionCommit": null,
-    "productionDeployId": null
+    "productionCommit": "350418e971550856babbefb8fa974eed1766c941",
+    "productionDeployId": "6a8f7e953ba9af0007b02b5b",
+    "verifiedAt": "2026-08-27T00:04:00Z",
+    "directButtonVisible": true,
+    "directDestination": "https://mythicalvoid.com/play/"
   }
 }

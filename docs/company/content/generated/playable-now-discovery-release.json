@@ -58,7 +58,10 @@
     "desktopVisualReviewRequired": true,
     "phoneVisualReviewRequired": true,
     "productionVerificationRequired": true,
-    "productionCommit": null,
-    "productionDeployId": null
+    "productionCommit": "350418e971550856babbefb8fa974eed1766c941",
+    "productionDeployId": "6a8f7e953ba9af0007b02b5b",
+    "verifiedAt": "2026-08-27T00:04:00Z",
+    "directButtonVisible": true,
+    "directDestination": "https://mythicalvoid.com/play/"
   }
 }

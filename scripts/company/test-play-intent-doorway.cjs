@@ -68,6 +68,7 @@ invalid('public/discovery.css', source => source.replace('scroll-margin-top: 82p
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceRememberedInBrowser": false', '"choiceRememberedInBrowser": true'), 'choice collection boundary is invalid');
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceSentToServer": false', '"choiceSentToServer": true'), 'choiceSentToServer must remain false');
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceRequiredBeforePlay": false', '"choiceRequiredBeforePlay": true'), 'visitors must be able to Play without completing the mood chooser');
+invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"productionDeployId": "6a8f7e953ba9af0007b02b5b"', '"productionDeployId": "unverified"'), 'production verification is missing or drifted');
 
 function interactiveResult(consent, choice, url = 'https://mythicalvoid.com/playable-now/') {
     const page = fs.readFileSync(path.join(root, 'public/playable-now/index.html'), 'utf8');
@@ -146,5 +147,5 @@ cases += 1;
 const directDenied = directPlayResult('denied');
 assert.strictEqual(directDenied.length, 0);
 
-assert.strictEqual(cases, 17);
-console.log('Play-intent doorway checks passed (17 scenarios).');
+assert.strictEqual(cases, 18);
+console.log('Play-intent doorway checks passed (18 scenarios).');
