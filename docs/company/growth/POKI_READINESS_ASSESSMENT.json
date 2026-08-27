@@ -47,7 +47,7 @@
     {
       "id": "total-download",
       "state": "gap",
-      "evidence": "The full package is about 43.0 MB by deterministic gzip estimate, far above Poki's 8 MB good-web-game guidance. Cinematics account for about 24.5 MB and audio about 9.3 MB.",
+      "evidence": "The full package is about 28.1 MiB by deterministic gzip estimate, above Poki's 8 MB good-web-game guidance. Cinematics account for about 10.0 MiB and audio about 8.8 MiB.",
       "nextProof": "Create a progressive portal build that downloads only the opening and first playable area, then measure the complete delivery plan."
     },
     {
@@ -95,7 +95,7 @@
   ],
   "gameDevelopmentHandoff": [
     "Build an isolated portal mode with optional NASA, Open Notify, hosted AI, cloud saves and Mythical-hosted functions off by default; the core game must remain complete without them.",
-    "Progressively load later cinematics, music and realm art after the first playable action instead of including the whole 43 MB delivery up front.",
+    "Progressively load later cinematics, music and realm art after the first playable action instead of including the whole 28.1 MiB delivery up front.",
     "Prove private-browsing save failure is graceful, tablet touch controls switch correctly, the game stays playable with an ad blocker and the first minutes work on slower hardware.",
     "Keep the immediate egg interaction, make every early cutscene skippable and replace text walls with gradual visual teaching.",
     "Design a Poki-only SDK adapter but do not install, connect or activate advertising until Kevin, privacy and commercial review explicitly approve it.",

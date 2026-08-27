@@ -256,8 +256,8 @@
   VITE_ENABLE_API_FEATURES = "true"
   ENABLE_AI_PORTRAITS = "true"
   VITE_ENABLE_AI_PORTRAITS = "true"
-  ENABLE_AI_VIDEOS = "false"
-  VITE_ENABLE_AI_VIDEOS = "false"
+  ENABLE_AI_VIDEOS = "true"
+  VITE_ENABLE_AI_VIDEOS = "true"
 
 [context.deploy-preview.environment]
   NODE_ENV = "staging"
@@ -265,8 +265,8 @@
   VITE_ENABLE_API_FEATURES = "true"
   ENABLE_AI_PORTRAITS = "true"
   VITE_ENABLE_AI_PORTRAITS = "true"
-  ENABLE_AI_VIDEOS = "false"
-  VITE_ENABLE_AI_VIDEOS = "false"
+  ENABLE_AI_VIDEOS = "true"
+  VITE_ENABLE_AI_VIDEOS = "true"
 
 [context.branch-deploy.environment]
   NODE_ENV = "development"
@@ -274,8 +274,8 @@
   VITE_ENABLE_API_FEATURES = "true"
   ENABLE_AI_PORTRAITS = "true"
   VITE_ENABLE_AI_PORTRAITS = "true"
-  ENABLE_AI_VIDEOS = "false"
-  VITE_ENABLE_AI_VIDEOS = "false"
+  ENABLE_AI_VIDEOS = "true"
+  VITE_ENABLE_AI_VIDEOS = "true"
 
 # Form handling (future use for feedback/contact forms)
 [forms]

@@ -19499,16 +19499,20 @@ async function smokeForestArrival(session, exceptions) {
         window.GameState.set('story.projectBeacon.firstForestCinematicVersion', 0);
         game.scene.getScenes(true).forEach(active => game.scene.stop(active.scene.key));
         await window.SceneLoader.loadScene(game, 'MythicalForestLevel');
-        game.scene.start('MythicalForestLevel');
+        game.scene.start('MythicalForestLevel', {
+            forestArrivalPortraitPreview: true
+        });
         return true;
     })()`);
     await waitForScene(session, 'MythicalForestLevel');
     await waitFor(
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
-            return Boolean(scene?.forestArrivalElements?.length);
+            return scene?.forestArrivalElements?.some?.(item => (
+                item?.texture?.key?.startsWith?.('companion-media-')
+            )) === true;
         })()`),
-        { message: 'permanent Forest field brief' }
+        { timeoutMs: 12000, message: 'personalized Forest field brief' }
     );
 
     const brief = await evaluate(session, `(() => {
@@ -19521,6 +19525,9 @@ async function smokeForestArrival(session, exceptions) {
             permanentBackdropPresent: scene.forestArrivalElements.some(item => (
                 item.texture?.key === 'mythicalForestArrival' || item.type === 'Video'
             )),
+            companionPortraitPresent: scene.forestArrivalElements.some(item => (
+                item?.texture?.key?.startsWith?.('companion-media-')
+            )),
             physicsPaused: scene.physics.world.isPaused
         };
     })()`);
@@ -19528,6 +19535,7 @@ async function smokeForestArrival(session, exceptions) {
         !brief.active ||
         !brief.fieldBriefVisible ||
         !brief.permanentBackdropPresent ||
+        !brief.companionPortraitPresent ||
         !brief.physicsPaused
     ) {
         throw new Error(`Forest field brief did not render: ${JSON.stringify(brief)}`);

@@ -1,7 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const ORIGIN = 'https://mythicalvoid.com';
+const ORIGIN = (
+    process.env.MYTHICAL_VOID_MEDIA_SMOKE_ORIGIN ||
+    'https://mythicalvoid.com'
+).replace(/\/+$/, '');
 const PORTRAIT_ENDPOINT = `${ORIGIN}/.netlify/functions/generate-ai-art`;
 const VIDEO_ENDPOINT = `${ORIGIN}/.netlify/functions/generate-companion-video`;
 const SPEC_PATH = '/private/tmp/mythical-void-portrait-specimen.json';

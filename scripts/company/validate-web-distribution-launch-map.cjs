@@ -99,7 +99,7 @@ const requiredSources = [
     'https://developers.google.com/youtube/gaming/playables/certification/requirements_trustsafety'
 ];
 for (const source of requiredSources) requireValue(map.sources?.includes(source), `required source is missing: ${source}`);
-for (const phrase of ['What the Poki check found', '3.75 MB compressed', '41 MB compressed', 'not ready to submit, preserve the option', 'The important choice we nearly missed', 'For maximum upside', '0 of 4 approved moments', 'YouTube Playables', 'Why itch.io is still first if speed wins']) {
+for (const phrase of ['What the Poki check found', '3.75 MB compressed', '28.1 MiB compressed', 'not ready to submit, preserve the option', 'The important choice we nearly missed', 'For maximum upside', '0 of 4 approved moments', 'YouTube Playables', 'Why itch.io is still first if speed wins']) {
     requireValue(mapText.includes(phrase), `plain-language map is missing: ${phrase}`);
 }
 requireValue(decisions.includes('| D-018 |'), 'D-018 distribution-rights decision is missing');

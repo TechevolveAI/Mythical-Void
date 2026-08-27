@@ -62,7 +62,10 @@ describe('secondary journey reliability contract', () => {
         expect(forest).toContain('createForestArrivalMotionBackdrop');
         expect(forest).toContain('A signal is moving through the forest.');
         expect(forest).toContain('clearForestArrivalBackdrop()');
-        expect(forest).toContain('prepareCinematic?.(this');
+        expect(forest).toContain(
+            'mediaService?.createStoryMoment || mediaService?.createCinematicStill'
+        );
+        expect(forest).toContain('scenicElements.push(...(tableau.elements || []))');
         expect(forest).not.toContain('Promise.race([presentation, timeout])');
     });
 
