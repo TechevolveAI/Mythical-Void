@@ -99,23 +99,23 @@ def section_label(pdf, number, title, y):
 
 
 def cover(pdf):
-    pdf.setFillColor(INK)
+    pdf.setFillColor(CREAM)
     pdf.rect(0, 0, PAGE_W, PAGE_H, fill=1, stroke=0)
 
-    pdf.setFillColor(DEEP_PURPLE)
-    pdf.circle(PAGE_W - 70, PAGE_H - 75, 150, fill=1, stroke=0)
+    pdf.setFillColor(LILAC)
+    pdf.circle(PAGE_W - 42, PAGE_H - 35, 105, fill=1, stroke=0)
     pdf.setFillColor(PURPLE)
-    pdf.circle(PAGE_W - 38, PAGE_H - 42, 83, fill=1, stroke=0)
+    pdf.circle(PAGE_W - 32, PAGE_H - 26, 58, fill=1, stroke=0)
     pdf.setFillColor(MINT)
-    pdf.circle(PAGE_W - 60, PAGE_H - 52, 32, fill=1, stroke=0)
+    pdf.circle(PAGE_W - 48, PAGE_H - 40, 24, fill=1, stroke=0)
     pdf.setFillColor(GOLD)
-    pdf.circle(0, 145, 60, fill=1, stroke=0)
+    pdf.circle(0, 88, 44, fill=1, stroke=0)
 
-    pdf.setFillColor(MINT)
+    pdf.setFillColor(PURPLE)
     pdf.setFont("Helvetica-Bold", 10)
     pdf.drawString(42, PAGE_H - 55, "MYTHICAL VOID STEM CREATURE LAB")
 
-    pdf.setFillColor(CREAM)
+    pdf.setFillColor(INK)
     pdf.setFont("Helvetica-Bold", 34)
     pdf.drawString(42, PAGE_H - 118, "Invent an organism")
     pdf.drawString(42, PAGE_H - 158, "from another dimension")
@@ -128,34 +128,45 @@ def cover(pdf):
         360,
         size=12,
         leading=16,
-        color=HexColor("#E8E1F5"),
+        color=GREY,
     )
 
-    rounded_box(pdf, 44, PAGE_H - 354, 340, 74, HexColor("#17112D"), stroke=HexColor("#4A3E66"), radius=14)
-    pdf.setFillColor(GOLD)
+    rounded_box(pdf, 44, PAGE_H - 354, 340, 74, white, stroke=LILAC, radius=14)
+    pdf.setFillColor(PURPLE)
     pdf.setFont("Helvetica-Bold", 10)
     pdf.drawString(60, PAGE_H - 304, "GOOD FOR")
-    pdf.setFillColor(CREAM)
+    pdf.setFillColor(INK)
     pdf.setFont("Helvetica-Bold", 13)
     pdf.drawString(60, PAGE_H - 325, "Ages 9-14  |  Families  |  Clubs  |  Classrooms")
-    pdf.setFillColor(HexColor("#BEB6D1"))
+    pdf.setFillColor(GREY)
     pdf.setFont("Helvetica", 9)
     pdf.drawString(60, PAGE_H - 343, "Suggested time: 45-60 minutes. Adult-led for younger designers.")
 
-    pdf.setFillColor(CREAM)
+    pdf.setFillColor(INK)
     pdf.setFont("Helvetica-Bold", 11)
-    pdf.drawString(44, 242, "YOU WILL NEED")
-    draw_text(pdf, "A pencil, colours, this activity sheet, and one real NASA image or learning page.", 44, 220, 340, size=10.5, leading=14, color=HexColor("#E8E1F5"))
+    pdf.drawString(44, 404, "ADULT SETUP")
+    draw_text(pdf, "1. Open one credited NASA image or learning page.", 44, 380, 360, size=10.5, leading=14, color=GREY)
+    draw_text(pdf, "2. Ask what is visible before anyone invents an explanation.", 44, 350, 360, size=10.5, leading=14, color=GREY)
+    draw_text(pdf, "3. Keep the space clue real and let the organism become wonderfully strange.", 44, 320, 360, size=10.5, leading=14, color=GREY)
+
+    pdf.setFillColor(INK)
+    pdf.setFont("Helvetica-Bold", 11)
+    pdf.drawString(44, 258, "YOU WILL NEED")
+    draw_text(pdf, "A pencil, colours, this activity sheet, and one real NASA image or learning page.", 44, 236, 340, size=10.5, leading=14, color=GREY)
+    pdf.setFillColor(PURPLE)
+    pdf.setFont("Helvetica-Bold", 9)
+    pdf.drawString(44, 196, "PRINT TIP")
+    draw_text(pdf, "The activity pages are designed to work in colour or black and white.", 44, 179, 320, size=9.5, leading=13, color=GREY)
 
     if LOGO.exists():
         logo = ImageReader(str(LOGO))
-        pdf.drawImage(logo, PAGE_W - 184, 72, width=126, height=203, mask="auto", preserveAspectRatio=True)
+        pdf.drawImage(logo, PAGE_W - 164, 76, width=96, height=155, mask="auto", preserveAspectRatio=True)
 
-    pdf.setFillColor(HexColor("#BEB6D1"))
+    pdf.setFillColor(GREY)
     pdf.setFont("Helvetica", 8.5)
-    pdf.drawString(44, 73, "Real space starts the question. Your imagination builds the world.")
-    pdf.drawString(44, 57, "Mythical Void is independent and is not endorsed by NASA.")
-    page_footer(pdf, 1, dark=True)
+    pdf.drawString(44, 88, "Real space starts the question. Your imagination builds the world.")
+    pdf.drawString(44, 72, "Mythical Void is independent and is not endorsed by NASA.")
+    page_footer(pdf, 1)
     pdf.showPage()
 
 
@@ -237,7 +248,7 @@ def organism_page(pdf):
     draw_x = 240
     draw_w = PAGE_W - draw_x - 38
     rounded_box(pdf, trait_x, 92, trait_w, 618, white, stroke=PALE_GREY, radius=14)
-    rounded_box(pdf, draw_x, 270, draw_w, 440, HexColor("#17112D"), stroke=PURPLE, radius=18, width=1.4)
+    rounded_box(pdf, draw_x, 270, draw_w, 440, white, stroke=PURPLE, radius=18, width=1.4)
 
     pdf.setFillColor(PURPLE)
     pdf.setFont("Helvetica-Bold", 9)
@@ -263,19 +274,19 @@ def organism_page(pdf):
             checkbox(pdf, 54 + column * 78, y - row * 19, choice, width=74, size=7.4)
         y -= 69
 
-    pdf.setFillColor(MINT)
+    pdf.setFillColor(PURPLE)
     pdf.setFont("Helvetica-Bold", 9)
     pdf.drawString(draw_x + 18, 680, "DRAW THE LIVING SYSTEM - NOT JUST ITS OUTSIDE")
-    pdf.setFillColor(HexColor("#C8C0D8"))
+    pdf.setFillColor(GREY)
     pdf.setFont("Helvetica", 8)
     pdf.drawString(draw_x + 18, 662, "Show energy, senses, movement and the part that changes under pressure.")
 
-    pdf.setStrokeColor(HexColor("#493E65"))
+    pdf.setStrokeColor(HexColor("#BDB8C7"))
     pdf.setDash(2, 4)
     pdf.circle(draw_x + draw_w * 0.50, 478, 100, fill=0, stroke=1)
     pdf.circle(draw_x + draw_w * 0.50, 478, 52, fill=0, stroke=1)
     pdf.setDash()
-    pdf.setFillColor(HexColor("#7A7190"))
+    pdf.setFillColor(GREY)
     pdf.setFont("Helvetica-Oblique", 9)
     pdf.drawCentredString(draw_x + draw_w * 0.50, 476, "Your impossible organism begins here")
 
@@ -338,16 +349,16 @@ def test_page(pdf):
     pdf.setFont("Helvetica-Bold", 22)
     pdf.drawString(76, 325, "Make a story choice")
 
-    rounded_box(pdf, 38, 143, PAGE_W - 76, 156, HexColor("#17112D"), stroke=PURPLE, radius=16, width=1.2)
-    pdf.setFillColor(CREAM)
+    rounded_box(pdf, 38, 143, PAGE_W - 76, 156, HexColor("#F3EEFF"), stroke=PURPLE, radius=16, width=1.2)
+    pdf.setFillColor(INK)
     pdf.setFont("Helvetica-Bold", 12)
     pdf.drawString(54, 270, "The Void has distorted your organism. It is dangerous - but it may also be frightened.")
-    draw_text(pdf, "Your task is restoration, not destruction. What does the player need to understand before choosing what to do?", 54, 249, PAGE_W - 108, size=9.2, leading=13, color=HexColor("#D8D0E6"))
-    pdf.setFillColor(MINT)
+    draw_text(pdf, "Your task is restoration, not destruction. What does the player need to understand before choosing what to do?", 54, 249, PAGE_W - 108, size=9.2, leading=13, color=GREY)
+    pdf.setFillColor(HexColor("#148675"))
     pdf.setFont("Helvetica-Bold", 8.5)
     pdf.drawString(54, 208, "THE CLUE THAT CHANGES THE PLAYER'S MIND")
     write_lines(pdf, 54, 192, 224, 3, 18)
-    pdf.setFillColor(GOLD)
+    pdf.setFillColor(HexColor("#9A6500"))
     pdf.setFont("Helvetica-Bold", 8.5)
     pdf.drawString(316, 208, "THE RESTORATION ACTION")
     write_lines(pdf, 316, 192, 224, 3, 18)

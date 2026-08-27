@@ -1,13 +1,14 @@
 {
   "schemaVersion": 1,
   "created": "2026-08-14",
+  "lastReviewed": "2026-08-27",
   "title": "Mythical Void STEM Creature Lab",
   "state": "approved_for_owned_website_release",
   "audience": "Ages 9-14, families, clubs and classrooms",
   "format": "Four-page A4 printable PDF",
   "sourceFile": "scripts/company/build-mythical-void-stem-creature-lab.py",
   "outputFile": "output/pdf/mythical-void-stem-creature-lab.pdf",
-  "sha256": "f729101b0fda59ce94325d2bd0dd4e27239dd8bec7599ccf7d70717827d6301b",
+  "sha256": "093c11344ab302e7071b45ed98da34d2096323e9d0a2f5c98124d8ee6e32ef01",
   "publicPath": "/resources/mythical-void-stem-creature-lab.pdf",
   "learningArc": [
     "Observe a real space clue",
@@ -38,6 +39,12 @@
     "childPrivacyInstructionIncluded": true,
     "retiredCompanionWordingAllowed": false,
     "globalUniquenessPromiseAllowed": false
+  },
+  "printDesign": {
+    "inkHeavyPages": 0,
+    "lightDrawingArea": true,
+    "blackAndWhiteFriendly": true,
+    "adultSetupOnCover": true
   },
   "artDisclosure": "Brand emblem created with generative AI and refined for Mythical Void. Activity words and learning design are human-reviewed."
 }
