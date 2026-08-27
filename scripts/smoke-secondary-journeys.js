@@ -10368,6 +10368,115 @@ async function smokeSanctuaryNavigation(session, exceptions) {
         );
     }
 
+    const pauseProbeReady = await evaluate(session, `(() => {
+        const handler = window.errorHandler;
+        if (!handler || typeof handler.captureOperationalEvent !== 'function') return false;
+        handler.__smokePauseEvents = [];
+        handler.__smokeOriginalCaptureOperationalEvent = handler.captureOperationalEvent;
+        handler.captureOperationalEvent = function capturePauseProbe(event) {
+            this.__smokePauseEvents.push({
+                code: event?.code,
+                scene: event?.scene,
+                recovery: event?.recovery
+            });
+            return this.__smokeOriginalCaptureOperationalEvent.call(this, event);
+        };
+        return true;
+    })()`);
+    if (!pauseProbeReady) throw new Error('Pause watchdog probe could not attach');
+
+    await setKeyboardKey(session, 'keyDown', {
+        key: 'Escape',
+        code: 'Escape',
+        keyCode: 27
+    });
+    await setKeyboardKey(session, 'keyUp', {
+        key: 'Escape',
+        code: 'Escape',
+        keyCode: 27
+    });
+    const pausedState = await waitFor(
+        () => evaluate(session, `(() => {
+            const game = window.mythicalGame;
+            const overlay = document.getElementById('game-manual-pause-overlay');
+            if (
+                !game?.scene?.isPaused?.('GameScene') ||
+                !overlay ||
+                window.errorHandler?.intentionalPauseScene !== 'GameScene'
+            ) return null;
+            return {
+                paused: true,
+                overlayVisible: overlay.getBoundingClientRect().height > 0,
+                title: overlay.querySelector('.game-manual-pause-title')?.textContent,
+                resumeAction: overlay.querySelector(
+                    '[data-testid="game-manual-pause-resume"]'
+                )?.textContent
+            };
+        })()`),
+        { timeoutMs: 2000, message: 'intentional Sanctuary pause' }
+    );
+
+    // Hold beyond the no-active-scene threshold. A deliberate pause must not
+    // be reported as the stuck transition that previously stranded players.
+    await delay(13000);
+    const pauseWatchdog = await evaluate(session, `(() => ({
+        paused: window.mythicalGame?.scene?.isPaused?.('GameScene') === true,
+        intentionalScene: window.errorHandler?.intentionalPauseScene || null,
+        stuckEvents: (window.errorHandler?.__smokePauseEvents || []).filter(
+            event => event.code === 'scene_no_active'
+        )
+    }))()`);
+
+    await setKeyboardKey(session, 'keyDown', {
+        key: 'Escape',
+        code: 'Escape',
+        keyCode: 27
+    });
+    await setKeyboardKey(session, 'keyUp', {
+        key: 'Escape',
+        code: 'Escape',
+        keyCode: 27
+    });
+    const resumedState = await waitFor(
+        () => evaluate(session, `(() => {
+            const game = window.mythicalGame;
+            if (
+                !game?.scene?.isActive?.('GameScene') ||
+                game.scene.isPaused?.('GameScene') ||
+                document.getElementById('game-manual-pause-overlay')
+            ) return null;
+            return {
+                active: true,
+                paused: false,
+                intentionalScene: window.errorHandler?.intentionalPauseScene || null
+            };
+        })()`),
+        { timeoutMs: 2000, message: 'Escape resumes Sanctuary play' }
+    );
+    await evaluate(session, `(() => {
+        const handler = window.errorHandler;
+        if (handler?.__smokeOriginalCaptureOperationalEvent) {
+            handler.captureOperationalEvent = handler.__smokeOriginalCaptureOperationalEvent;
+            delete handler.__smokeOriginalCaptureOperationalEvent;
+        }
+        return true;
+    })()`);
+    if (
+        !pausedState.overlayVisible ||
+        pausedState.title !== 'PAUSED' ||
+        pausedState.resumeAction !== 'RESUME' ||
+        !pauseWatchdog.paused ||
+        pauseWatchdog.intentionalScene !== 'GameScene' ||
+        pauseWatchdog.stuckEvents.length !== 0 ||
+        resumedState.intentionalScene !== null
+    ) {
+        throw new Error(`Sanctuary pause lifecycle failed: ${JSON.stringify({
+            pausedState,
+            pauseWatchdog,
+            resumedState
+        })}`);
+    }
+
     const movementStart = await evaluate(session, `(() => {
         const scene = window.mythicalGame?.scene?.getScene('GameScene');
         const controls = scene?.mobileControls;
@@ -10475,7 +10584,13 @@ async function smokeSanctuaryNavigation(session, exceptions) {
             movementReleased
         })}`);
     }
-    return { before, after, movement, worldDataListenerLifecycle };
+    return {
+        before,
+        after,
+        pauseResume: { pausedState, pauseWatchdog, resumedState },
+        movement,
+        worldDataListenerLifecycle
+    };
 }
 
 async function smokeHubForestTransition(session, exceptions) {

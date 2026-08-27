@@ -21,8 +21,12 @@ import { defineConfig } from 'vite';
 
 export default defineConfig(({ command, mode }) => {
   const isItchBuild = mode === 'itch';
+  const releaseId = process.env.COMMIT_REF || process.env.DEPLOY_ID || 'local';
 
   return {
+  define: {
+    __MYTHICAL_RELEASE_ID__: JSON.stringify(releaseId)
+  },
   // itch.io serves HTML games from a project folder rather than the root of a
   // domain. Its build therefore needs relative application chunks and a clear
   // marker that opens the game immediately instead of the studio website.

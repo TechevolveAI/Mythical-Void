@@ -57,7 +57,8 @@ describe('privacy-conscious runtime observability', () => {
             scene: 'GameScene',
             recovery: 'local_fallback',
             connectivity: expect.stringMatching(/^(online|offline|unknown)$/),
-            viewport_class: expect.stringMatching(/^(compact|medium|wide|unknown)$/)
+            viewport_class: expect.stringMatching(/^(compact|medium|wide|unknown)$/),
+            deployment_id: 'local'
         });
         expect(body).not.toContain('Nova');
         expect(body).not.toContain('child@example.com');
@@ -97,6 +98,7 @@ describe('privacy-conscious runtime observability', () => {
             'category',
             'code',
             'connectivity',
+            'deployment_id',
             'event_id',
             'occurred_at',
             'phase',
@@ -110,6 +112,31 @@ describe('privacy-conscious runtime observability', () => {
 
         await transport.flush();
         expect(localStorage.getItem(OBSERVABILITY_STORAGE_KEY)).toBeNull();
+    });
+
+    test('upgrades a valid legacy queue entry with the current release marker', () => {
+        localStorage.setItem(OBSERVABILITY_STORAGE_KEY, JSON.stringify([{
+            schema_version: 1,
+            event_id: '824363b2-d374-4b44-bf7f-1d7a177fa074',
+            occurred_at: '2026-08-11T11:59:30.000Z',
+            category: 'runtime',
+            code: 'runtime_uncaught',
+            severity: 'error',
+            scene: 'GameScene',
+            phase: 'runtime',
+            recovery: 'reload_offered',
+            connectivity: 'online',
+            viewport_class: 'compact',
+            user_visible: false
+        }]));
+        const transport = new PrivacyObservabilityTransport({
+            storage: localStorage,
+            fetch: jest.fn(okResponse)
+        });
+
+        expect(transport.readQueue()).toEqual([
+            expect.objectContaining({ deployment_id: 'local' })
+        ]);
     });
 
     test('disables optional delivery after a permanent missing-endpoint response', async () => {
@@ -209,6 +236,7 @@ describe('privacy-conscious runtime observability', () => {
         const capture = jest.spyOn(handler, 'captureOperationalEvent').mockReturnValue(true);
         const now = jest.spyOn(Date, 'now').mockReturnValue(100000);
         handler.lastHealthySceneAt = 87000;
+        handler.lastHealthySceneKey = 'GameScene';
 
         handler.checkSceneHealth({
             loop: { running: true },
@@ -227,7 +255,8 @@ describe('privacy-conscious runtime observability', () => {
 
         expect(capture).toHaveBeenCalledWith(expect.objectContaining({
             code: 'scene_no_active',
-            category: 'stuck_flow'
+            category: 'stuck_flow',
+            scene: 'GameScene'
         }));
         expect(capture).toHaveBeenCalledWith(expect.objectContaining({
             code: 'cloud_sync_failed',
@@ -237,6 +266,37 @@ describe('privacy-conscious runtime observability', () => {
         expect(capture.mock.calls.filter(([event]) => event.code === 'cloud_sync_failed')).toHaveLength(1);
 
         delete window.CloudSave;
+        now.mockRestore();
+    });
+
+    test('does not classify an intentional pause as a stuck transition', () => {
+        const handler = new ErrorHandler();
+        const capture = jest.spyOn(handler, 'captureOperationalEvent').mockReturnValue(true);
+        const now = jest.spyOn(Date, 'now').mockReturnValue(100000);
+        let paused = true;
+        const game = {
+            loop: { running: true },
+            scene: {
+                getScenes: () => [],
+                isPaused: key => key === 'GameScene' && paused,
+                getScene: () => ({ scene: { isPaused: () => paused } })
+            }
+        };
+
+        expect(handler.setIntentionalPause('GameScene', true)).toBe(true);
+        handler.lastHealthySceneAt = 87000;
+        handler.checkSceneHealth(game);
+        expect(capture).not.toHaveBeenCalled();
+        expect(handler.intentionalPauseScene).toBe('GameScene');
+
+        paused = false;
+        now.mockReturnValue(113000);
+        handler.checkSceneHealth(game);
+        expect(handler.intentionalPauseScene).toBeNull();
+        expect(capture).toHaveBeenCalledWith(expect.objectContaining({
+            code: 'scene_no_active',
+            scene: 'GameScene'
+        }));
         now.mockRestore();
     });
 

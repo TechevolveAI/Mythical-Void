@@ -13,7 +13,8 @@ const VALID_EVENT = Object.freeze({
     recovery: 'local_fallback',
     connectivity: 'online',
     viewport_class: 'compact',
-    user_visible: false
+    user_visible: false,
+    deployment_id: 'client_commit_23'
 });
 
 function request(body, options = {}) {
@@ -69,9 +70,26 @@ describe('privacy observability Netlify collector', () => {
         expect(rows[0]).toEqual(expect.objectContaining({
             id: VALID_EVENT.event_id,
             code: 'cloud_sync_failed',
-            deployment_id: 'deploy_23'
+            deployment_id: 'client_commit_23'
         }));
         expect(JSON.stringify(rows)).not.toMatch(/user_id|session|creature|message|stack|latitude|longitude/i);
+    });
+
+    test('accepts an in-flight legacy event and applies the function fallback marker', async () => {
+        const adminClient = createAdminClient();
+        observabilityFunction._internal.setRuntime({
+            createClient: () => adminClient,
+            now: () => NOW
+        });
+        const legacyEvent = { ...VALID_EVENT };
+        delete legacyEvent.deployment_id;
+
+        const response = await observabilityFunction.handler(request({
+            events: [legacyEvent]
+        }));
+
+        expect(response.statusCode).toBe(202);
+        expect(adminClient.upsert.mock.calls[0][0][0].deployment_id).toBe('deploy_23');
     });
 
     test('rejects missing or cross-origin requests', async () => {
@@ -102,12 +120,16 @@ describe('privacy observability Netlify collector', () => {
         const arbitraryScene = await observabilityFunction.handler(request({
             events: [{ ...VALID_EVENT, scene: 'Nova secret room' }]
         }));
+        const arbitraryDeployment = await observabilityFunction.handler(request({
+            events: [{ ...VALID_EVENT, deployment_id: 'commit contains spaces' }]
+        }));
         const staleTimestamp = await observabilityFunction.handler(request({
             events: [{ ...VALID_EVENT, occurred_at: '2026-08-01T12:00:00.000Z' }]
         }));
 
         expect(withFreeText.statusCode).toBe(400);
         expect(arbitraryScene.statusCode).toBe(400);
+        expect(arbitraryDeployment.statusCode).toBe(400);
         expect(staleTimestamp.statusCode).toBe(400);
         expect(createClient).not.toHaveBeenCalled();
     });

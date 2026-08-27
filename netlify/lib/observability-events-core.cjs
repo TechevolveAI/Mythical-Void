@@ -82,6 +82,7 @@ const RECOVERIES = new Set([
 const CONNECTIVITY = new Set(['online', 'offline', 'unknown']);
 const VIEWPORT_CLASSES = new Set(['compact', 'medium', 'wide', 'unknown']);
 const EVENT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const DEPLOYMENT_ID_PATTERN = /^[A-Za-z0-9_-]{1,80}$/;
 const EVENT_KEYS = new Set([
     'schema_version',
     'event_id',
@@ -94,8 +95,12 @@ const EVENT_KEYS = new Set([
     'recovery',
     'connectivity',
     'viewport_class',
-    'user_visible'
+    'user_visible',
+    'deployment_id'
 ]);
+const LEGACY_EVENT_KEYS = new Set(
+    [...EVENT_KEYS].filter(key => key !== 'deployment_id')
+);
 
 const defaultRuntime = Object.freeze({
     createClient,
@@ -166,7 +171,11 @@ function isTimestampAllowed(value) {
 function validateEvent(event) {
     if (!event || typeof event !== 'object' || Array.isArray(event)) return null;
     const keys = Object.keys(event);
-    if (keys.some(key => !EVENT_KEYS.has(key)) || keys.length !== EVENT_KEYS.size) {
+    const currentKeys = keys.length === EVENT_KEYS.size &&
+        keys.every(key => EVENT_KEYS.has(key));
+    const legacyKeys = keys.length === LEGACY_EVENT_KEYS.size &&
+        keys.every(key => LEGACY_EVENT_KEYS.has(key));
+    if (!currentKeys && !legacyKeys) {
         return null;
     }
     if (
@@ -181,6 +190,10 @@ function validateEvent(event) {
         !RECOVERIES.has(event.recovery) ||
         !CONNECTIVITY.has(event.connectivity) ||
         !VIEWPORT_CLASSES.has(event.viewport_class) ||
+        (
+            event.deployment_id !== undefined &&
+            !DEPLOYMENT_ID_PATTERN.test(event.deployment_id)
+        ) ||
         typeof event.user_visible !== 'boolean'
     ) {
         return null;
@@ -198,13 +211,13 @@ function validateEvent(event) {
         connectivity: event.connectivity,
         viewport_class: event.viewport_class,
         user_visible: event.user_visible,
-        deployment_id: getDeploymentId()
+        deployment_id: event.deployment_id || getDeploymentId()
     };
 }
 
 function getDeploymentId() {
     const value = process.env.DEPLOY_ID || process.env.COMMIT_REF || 'unknown';
-    return /^[A-Za-z0-9_-]{1,80}$/.test(value) ? value : 'unknown';
+    return DEPLOYMENT_ID_PATTERN.test(value) ? value : 'unknown';
 }
 
 async function handler(event) {

@@ -344,6 +344,27 @@ describe('release test gate', () => {
         expect(source).toContain('[release-smoke-result] pass');
     });
 
+    test('release smoke proves an intentional pause survives the watchdog and resumes play', () => {
+        const smoke = read('scripts/smoke-secondary-journeys.js');
+        const game = read('src/game.js');
+        const handler = read('src/systems/ErrorHandler.js');
+        const vite = read('vite.config.mjs');
+
+        expect(game).toContain('function toggleManualPause(game)');
+        expect(game).toContain('function resumeManualPause(game)');
+        expect(game).toContain("event.key === 'Escape' && !event.repeat");
+        expect(game).toContain("window.errorHandler?.setIntentionalPause?.(sceneKey, true)");
+        expect(game).not.toContain('if (activeScene && activeScene.scene.isActive())');
+        expect(handler).toContain('isIntentionalPauseHealthy(game)');
+        expect(handler).toContain('scene: this.lastHealthySceneKey');
+        expect(smoke).toContain("key: 'Escape'");
+        expect(smoke).toContain("await delay(13000);");
+        expect(smoke).toContain("event => event.code === 'scene_no_active'");
+        expect(smoke).toContain("message: 'Escape resumes Sanctuary play'");
+        expect(vite).toContain("process.env.COMMIT_REF || process.env.DEPLOY_ID || 'local'");
+        expect(vite).toContain('__MYTHICAL_RELEASE_ID__: JSON.stringify(releaseId)');
+    });
+
     test('release smoke proves the living portrait handoff reaches playable Sanctuary', () => {
         const source = read('scripts/smoke-secondary-journeys.js');
         const release = read('scripts/run-browser-smoke.js');
