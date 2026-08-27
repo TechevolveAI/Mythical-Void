@@ -95,7 +95,7 @@ if (!indexNow.includes("mode: 'dry_run'")) failures.push('IndexNow dry run is mi
 if (packageJson.scripts?.['submit:indexnow'] !== 'node scripts/company/submit-indexnow.cjs') failures.push('package.json: IndexNow command is missing');
 
 const sitemapUrls = [...sitemap.matchAll(/<loc>https:\/\/mythicalvoid\.com\/[^<]*<\/loc>/g)];
-if (sitemapUrls.length !== 15) failures.push(`sitemap should contain 15 public routes, found ${sitemapUrls.length}`);
+if (sitemapUrls.length !== 16) failures.push(`sitemap should contain 16 public routes, found ${sitemapUrls.length}`);
 
 if (failures.length) {
     console.error('Owned discovery release is not ready:\n');

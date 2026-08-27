@@ -576,6 +576,7 @@ function renderStorefront() {
                     <a href="/educators/">For groups & educators</a>
                     <a href="/studio/">Our story</a>
                     <a href="/parents/">For grown-ups</a>
+                    <a href="/help/">Help</a>
                     <a href="/privacy/">Privacy & safety</a>
                     <a href="/terms/">Terms</a>
                         <span class="footer-link-muted">Contact opens soon</span>

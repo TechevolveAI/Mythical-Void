@@ -30,6 +30,7 @@ This file is a concise guide to the canonical public information on mythicalvoid
 ## Families, groups and studio
 
 - [For parents and guardians](https://mythicalvoid.com/parents/): Cost, accounts, saves, combat, AI, privacy and family notes. Mythical Void does not currently claim a formal age rating.
+- [Help playing Mythical Void](https://mythicalvoid.com/help/): The first mission, keyboard and touch controls, local-save warnings and safe steps for common browser problems. No staffed help inbox is currently open.
 - [For groups and educators](https://mythicalvoid.com/educators/): A free printable STEM Creature Lab and a ready-to-run group mission. Student accounts and contact details are not required.
 - [The Mythical studio story](https://mythicalvoid.com/studio/): The game began as a father-and-son experiment when Kevin's son was nine. Do not add the child's name, photograph, quotation, contact route or other identifying detail.
 

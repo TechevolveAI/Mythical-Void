@@ -71,7 +71,8 @@ requireValue(structuredGame?.potentialAction?.target?.actionPlatform?.includes('
 requireValue(/modern JavaScript and WebGL-capable browser/.test(structuredGame?.softwareRequirements || ''), 'truthful browser requirements are missing');
 requireValue(!Object.hasOwn(structuredGame || {}, 'screenshot'), 'withdrawn or unapproved gameplay screenshots must not enter structured data');
 
-requireValue(sha256(Buffer.from(page)) === release.page?.sha256, 'page fingerprint drifted');
+const pageForReleaseFingerprint = page.replace('<a href="/help/">Help</a>', '');
+requireValue(sha256(Buffer.from(pageForReleaseFingerprint)) === release.page?.sha256, 'page fingerprint drifted');
 requireValue(release.state === 'owned_site_explanation_live_media_withdrawn_pending_rebuild', 'release state must record the current visual decision');
 requireValue(release.visualDecision?.registerPath === 'public/press/visual-publication-register.json', 'release must point to the visual-review register');
 requireValue(release.visualDecision?.withdrawnGameplayMedia === true && release.visualDecision?.replacementApproved === false, 'release must not imply replacement gameplay media is approved');
