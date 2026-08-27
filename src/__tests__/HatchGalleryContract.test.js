@@ -10,6 +10,10 @@ describe('local hatch renderer gallery contract', () => {
         path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
         'utf8'
     );
+    const releaseSmokeSource = fs.readFileSync(
+        path.join(__dirname, '../../scripts/run-browser-smoke.js'),
+        'utf8'
+    );
 
     test('uses the production genetics, DNA, and sprite renderer without saving', () => {
         const gallerySource = gameSource
@@ -33,7 +37,14 @@ describe('local hatch renderer gallery contract', () => {
         expect(smokeSource).toContain("SMOKE_MODE === 'hatch-gallery'");
         expect(smokeSource).toContain("SMOKE_MODE === 'creature-showcase-page'");
         expect(smokeSource).toContain('horizontalOverflow');
-        expect(smokeSource).toContain("document.querySelectorAll('.creature-specimen').length");
+        expect(smokeSource).toContain('withdrawnSpecimenCount');
+        expect(smokeSource).toContain('withdrawalNoteVisible');
+        expect(smokeSource).toContain('directPlayLinkCount');
+        expect(smokeSource).toContain('/old sprite gallery is gone/i');
+        expect(smokeSource).toContain('layout.withdrawnSpecimenCount !== 0');
+        expect(releaseSmokeSource).toContain(
+            "SMOKE_MODE: 'creature-showcase-page'"
+        );
         expect(smokeSource).toContain("'.home-start-fallback, [data-mythical-home-start]'");
         expect(gallerySource).not.toContain('GameState.save');
         expect(gallerySource).not.toContain('localStorage');
