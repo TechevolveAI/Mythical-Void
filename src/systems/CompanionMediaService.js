@@ -270,6 +270,10 @@ class CompanionMediaService {
         );
     }
 
+    isVideoGenerationEnabled() {
+        return window.APIConfig?.isVideoEnabled?.() === true;
+    }
+
     getPreparedMomentKey(momentId, stage = null, record = null) {
         const currentRecord = record || window.GameState?.getCreaturePortrait?.(stage);
         const identity = currentRecord?.identityKey || currentRecord?.assetRef || stage || 'current';
@@ -284,7 +288,9 @@ class CompanionMediaService {
         const existing = this.preparedMoments.get(preparedKey);
         if (existing) return existing;
 
-        this.prepareGeneratedVideo({ momentId, stage, record }).catch(() => null);
+        if (this.isVideoGenerationEnabled()) {
+            this.prepareGeneratedVideo({ momentId, stage, record }).catch(() => null);
+        }
 
         const preparation = Promise.resolve(record || this.resolvePortrait(stage))
             .then(async portraitRecord => {
@@ -412,6 +418,7 @@ class CompanionMediaService {
         stage = null,
         record = null
     } = {}) {
+        if (!this.isVideoGenerationEnabled()) return null;
         if (Date.now() < (this.videoUnavailableUntil || 0)) return null;
         if (!MOMENT_ID_PATTERN.test(momentId || '')) return null;
         if (!isSupportedVideoMoment(momentId)) return null;
@@ -659,7 +666,10 @@ class CompanionMediaService {
             momentId,
             portraitRecord.identityKey
         );
-        if (storedVideo?.status === 'succeeded') {
+        if (
+            this.isVideoGenerationEnabled() &&
+            storedVideo?.status === 'succeeded'
+        ) {
             const video = await this.createCinematicVideo(scene, {
                 ...options,
                 record: portraitRecord,
@@ -691,7 +701,10 @@ class CompanionMediaService {
         // Start optional video work without making the playable story wait for it.
         // The portrait tableau is the immediate, deterministic fallback on mobile,
         // reduced-motion devices, restricted accounts, and provider failure.
-        if (isSupportedVideoMoment(momentId)) {
+        if (
+            this.isVideoGenerationEnabled() &&
+            isSupportedVideoMoment(momentId)
+        ) {
             this.prepareGeneratedVideo({ momentId, stage, record }).catch(() => null);
         }
         const preparedKey = this.getPreparedMomentKey(momentId, stage, record);

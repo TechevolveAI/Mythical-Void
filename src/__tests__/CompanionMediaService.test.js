@@ -3,6 +3,11 @@ const path = require('path');
 const vm = require('vm');
 
 function loadCompanionMediaService(sceneWindow, ImageClass = class {}) {
+    if (!sceneWindow.APIConfig) {
+        sceneWindow.APIConfig = {
+            isVideoEnabled: jest.fn(() => true)
+        };
+    }
     const filePath = path.join(
         __dirname,
         '../systems/CompanionMediaService.js'
@@ -320,6 +325,39 @@ describe('CompanionMediaService', () => {
         expect(service.videoUnavailableUntil).toBeGreaterThan(Date.now());
     });
 
+    test('does not contact optional video services when the client gate is disabled', async () => {
+        const portrait = {
+            identityKey: 'identity-23',
+            stage: 'baby',
+            imageUrl: 'https://example.test/private-portrait.png',
+            assetRef: 'portrait-job-v1:42e1e046-c676-4fb9-91c9-1575dcb094ee'
+        };
+        const fetchMock = jest.fn();
+        const sceneWindow = {
+            APIConfig: {
+                isVideoEnabled: jest.fn(() => false)
+            },
+            GameState: createGameState(portrait),
+            fetch: fetchMock,
+            LivingPortraitService: {
+                hasUsableDisplayUrl: jest.fn(() => true),
+                getAccessToken: jest.fn(async () => 'private-access-token')
+            }
+        };
+        const { CompanionMediaService } = loadCompanionMediaService(sceneWindow);
+        const service = new CompanionMediaService();
+
+        await expect(service.prepareGeneratedVideo({
+            momentId: 'first_forest_arrival',
+            record: portrait
+        })).resolves.toBeNull();
+
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(
+            sceneWindow.LivingPortraitService.getAccessToken
+        ).not.toHaveBeenCalled();
+    });
+
     test('backs off silently when the optional video provider is unavailable', async () => {
         const portrait = {
             identityKey: 'identity-23',
@@ -527,5 +565,63 @@ describe('CompanionMediaService', () => {
         expect(result.renderMode).toBe('generated_video');
         expect(service.createCinematicVideo).toHaveBeenCalled();
         expect(service.createCinematicStill).not.toHaveBeenCalled();
+    });
+
+    test('uses the portrait immediately when video is disabled despite a stored clip', async () => {
+        const portrait = {
+            identityKey: 'identity-23',
+            stage: 'baby',
+            imageUrl: 'https://example.test/private-portrait.png',
+            assetRef: 'portrait-job-v1:42e1e046-c676-4fb9-91c9-1575dcb094ee'
+        };
+        const gameState = createGameState(portrait);
+        gameState.state.story.companionMedia = {
+            schemaVersion: 2,
+            appearances: {},
+            videos: {
+                stored: {
+                    momentId: 'guardian_rescue_elder_treant',
+                    identityKey: portrait.identityKey,
+                    stage: 'baby',
+                    portraitAssetRef: portrait.assetRef,
+                    assetRef: 'video-job-v1:824363b2-d374-4b44-bf7f-1d7a177fa074',
+                    status: 'succeeded',
+                    provider: 'Google Gemini',
+                    model: 'veo-3.1-generate-preview',
+                    shotVersion: 1,
+                    generatedAt: Date.now()
+                }
+            }
+        };
+        const sceneWindow = {
+            APIConfig: {
+                isVideoEnabled: jest.fn(() => false)
+            },
+            GameState: gameState,
+            LivingPortraitService: {
+                hasUsableDisplayUrl: jest.fn(() => true),
+                getAccessToken: jest.fn(async () => 'private-access-token')
+            }
+        };
+        const { CompanionMediaService } = loadCompanionMediaService(sceneWindow);
+        const service = new CompanionMediaService();
+        service.createCinematicVideo = jest.fn(async () => ({
+            renderMode: 'generated_video'
+        }));
+        service.createCinematicStill = jest.fn(async () => ({
+            renderMode: 'motion_still'
+        }));
+
+        const result = await service.createStoryMoment({}, {
+            momentId: 'guardian_rescue_elder_treant',
+            stage: 'baby'
+        });
+
+        expect(result.renderMode).toBe('motion_still');
+        expect(service.createCinematicVideo).not.toHaveBeenCalled();
+        expect(service.createCinematicStill).toHaveBeenCalled();
+        expect(
+            sceneWindow.LivingPortraitService.getAccessToken
+        ).not.toHaveBeenCalled();
     });
 });

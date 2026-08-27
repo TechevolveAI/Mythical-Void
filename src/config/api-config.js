@@ -33,6 +33,10 @@ class APIConfig {
             this.config.apiFeaturesEnabled &&
             window.envLoader.getBool('ENABLE_AI_PORTRAITS', false)
         );
+        this.config.aiVideosEnabled = (
+            this.config.aiPortraitsEnabled &&
+            window.envLoader.getBool('ENABLE_AI_VIDEOS', false)
+        );
         this.config.replicateConfigured = this.config.aiPortraitsEnabled;
 
         this.initialized = true;
@@ -66,6 +70,10 @@ class APIConfig {
         return this.initialized && this.config.aiPortraitsEnabled === true;
     }
 
+    isVideoEnabled() {
+        return this.initialized && this.config.aiVideosEnabled === true;
+    }
+
     /**
      * Get public configuration info (no secrets exposed)
      */
@@ -76,6 +84,11 @@ class APIConfig {
                 available: this.isEnabled(),
                 status: this.isEnabled() ? 'enabled' : 'disabled',
                 euAiActCompliance: 'Images labeled as AI-generated'
+            },
+            personalizedVideo: {
+                available: this.isVideoEnabled(),
+                status: this.isVideoEnabled() ? 'enabled' : 'disabled',
+                fallback: 'Living portrait motion still'
             },
             creatureChat: {
                 provider: 'None (pre-written responses)',
