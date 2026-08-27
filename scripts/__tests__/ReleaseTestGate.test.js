@@ -72,6 +72,16 @@ describe('release test gate', () => {
         expect(source).toContain('Visual movement desktop sample');
     });
 
+    test('private movement candidates include complete frame-review sheets', () => {
+        const capture = read('scripts/company/prepare-visual-launch-candidates.cjs');
+        expect(capture).toContain('function createFrameReviewSheets(videoRecord)');
+        expect(capture).toContain('everyFrameIncluded: true');
+        expect(capture).toContain('adultApprovalGranted: false');
+        expect(capture).toContain("path.join(candidateRoot, 'frame-review')");
+        expect(capture).toContain('Math.ceil(\n        videoRecord.frameCount / settings.framesPerSheet');
+        expect(capture).toContain('const videoFrameReviewAids = files');
+    });
+
     test('visual launch proof waits for observable gameplay consequences', () => {
         const smoke = read('scripts/smoke-secondary-journeys.js');
         const world = read('src/systems/world/WorldBuilder.js');

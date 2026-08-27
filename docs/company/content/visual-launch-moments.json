@@ -8,13 +8,13 @@
   "candidateDirectoryIsWebsiteContent": false,
   "currentVisualFinding": {
     "source": "Kevin's direct testing feedback and a fresh full-size review of the current public capture set",
-    "finding": "The existing public media does not communicate the game well enough. Private replacement candidates must remain outside the website until an adult reviews every frame and Kevin approves the exact asset, wording and channel.",
-    "decision": "Keep the entire old media set withdrawn and block its direct public URLs. The rejected 23:25 run remains screening history. A source-changed 23:57 replacement run passed automated obvious-fault checks but remains private until adult frame review and Kevin's exact approval."
+    "finding": "The current production build now makes the intended states technically visible, but the fresh phone and desktop captures still do not communicate them clearly or beautifully enough for a new player.",
+    "decision": "Keep the entire old media set withdrawn and reject the new post-visibility run before Kevin review. All 138 video frames were screened; no exact asset, wording or channel is approval-ready."
   },
   "latestScreening": {
     "path": "docs/company/content/visual-screening-2026-08-27.json",
-    "sourceCommit": "34ca036f77f7181b7ca578c740e565b4005d2969",
-    "candidateRunId": "2026-08-26T23-25-13-280Z",
+    "sourceCommit": "29cbb781f15916bf51bcab38a620b84cf52d5ce7",
+    "candidateRunId": "2026-08-27-post-visibility",
     "decision": "all_four_rejected_before_kevin_review",
     "kevinReviewRequested": false
   },
@@ -32,14 +32,14 @@
     "externalActionTaken": false
   },
   "latestPrivateCandidateRun": {
-    "runId": "2026-08-26T23-57-56-859Z",
-    "createdAt": "2026-08-27T00:00:38.185Z",
-    "sourceCommit": "82b9d59ae2a006107480dbcba44f60e64c1a16ae",
+    "runId": "2026-08-27-post-visibility",
+    "createdAt": "2026-08-27T00:35:50.723Z",
+    "sourceCommit": "29cbb781f15916bf51bcab38a620b84cf52d5ce7",
     "sourceProfileId": "MV-0813",
     "renderer": "player_facing_phaser_creature_renderer",
-    "manifest": ".visual-review/candidates/2026-08-26T23-57-56-859Z/manifest.json",
+    "manifest": ".visual-review/candidates/2026-08-27-post-visibility/manifest.json",
     "automatedScreening": "passed_obvious_fault_checks_only",
-    "editorialScreening": "pending_adult_frame_review",
+    "editorialScreening": "rejected_obvious_visual_faults",
     "adultFrameReview": "pending",
     "kevinApproval": "not_requested",
     "publicationAuthorized": false
@@ -84,36 +84,36 @@
       "publicQuestion": "What can my creature and I do together?",
       "shot": "The creature visibly helps the player solve or survive one clear obstacle.",
       "mustShow": ["player and creature in the same frame", "one recognisable obstacle", "the creature's helpful action", "the immediate result"],
-      "currentState": "candidate_under_human_review",
-      "evidence": ".visual-review/candidates/2026-08-26T23-57-56-859Z/creature-helps-phone.png",
-      "reason": "A private phone and desktop candidate passed obvious-fault screening. Human visual review and Kevin approval remain pending."
+      "currentState": "candidate_rejected_obvious_visual_faults",
+      "evidence": ".visual-review/candidates/2026-08-27-post-visibility/creature-helps-phone.png",
+      "reason": "The creature is visible, but its help reads as a small interface effect with no clear obstacle or physical result. The explanatory panel and transparent settlement marks compete with the action."
     },
     {
       "id": "choice-changes-world",
       "publicQuestion": "Do my choices actually matter?",
       "shot": "One readable choice followed by a visible change in the world.",
       "mustShow": ["the choice in plain words", "the changed place, creature or relationship", "no unexplained menu clutter"],
-      "currentState": "candidate_under_human_review",
-      "evidence": ".visual-review/candidates/2026-08-26T23-57-56-859Z/choice-before-phone.png",
-      "reason": "Private before-and-after candidates passed obvious-fault screening. Human visual review and Kevin approval remain pending."
+      "currentState": "candidate_rejected_obvious_visual_faults",
+      "evidence": ".visual-review/candidates/2026-08-27-post-visibility/choice-before-phone.png",
+      "reason": "The choice is readable, but the before frame is mostly a management screen and the after frame changes only a thin glowing route. The consequence is not dramatic without explanation."
     },
     {
       "id": "strange-discovery",
       "publicQuestion": "What is surprising about this universe?",
       "shot": "The player and creature discover one memorable feature of an alien realm.",
       "mustShow": ["player and creature in the same frame", "one unusual realm feature", "a composition understandable without a caption"],
-      "currentState": "candidate_under_human_review",
-      "evidence": ".visual-review/candidates/2026-08-26T23-57-56-859Z/strange-discovery-phone.png",
-      "reason": "A private phone and desktop candidate passed obvious-fault screening. Human visual review and Kevin approval remain pending."
+      "currentState": "candidate_rejected_obvious_visual_faults",
+      "evidence": ".visual-review/candidates/2026-08-27-post-visibility/strange-discovery-phone.png",
+      "reason": "The new memory state is present, but it looks like targeting lines over the same settlement rather than an impossible alien phenomenon worth discovering."
     },
     {
       "id": "movement-with-life",
       "publicQuestion": "Does this feel alive when it moves?",
       "shot": "A short uninterrupted stretch of play with the creature continuously present.",
       "mustShow": ["continuous creature rendering", "readable movement", "no menu takeover or dead time", "every frame watched at desktop and phone presentation size"],
-      "currentState": "candidate_under_human_review",
-      "evidence": ".visual-review/candidates/2026-08-26T23-57-56-859Z/movement-alive-phone.mp4",
-      "reason": "Private phone and desktop movement candidates passed continuity screening. Every frame still requires adult review and Kevin approval."
+      "currentState": "candidate_rejected_obvious_visual_faults",
+      "evidence": ".visual-review/candidates/2026-08-27-post-visibility/movement-alive-phone.mp4",
+      "reason": "All 138 phone and desktop frames keep the creature rendered, but the actors barely move across an empty dark route with clipped edge geometry and no meaningful traversal action."
     }
   ],
   "approvalRule": {
@@ -140,7 +140,7 @@
       },
       "candidateAssets": { "phone": "creature-helps-phone.png", "desktop": "creature-helps-desktop.png" },
       "implementationStatus": "playable_state_available",
-      "reviewStatus": "candidate_under_human_review"
+      "reviewStatus": "candidate_rejected_obvious_visual_faults"
     },
     {
       "id": "VL-002",
@@ -156,7 +156,7 @@
       },
       "candidateAssets": { "phoneBefore": "choice-before-phone.png", "phoneAfter": "choice-after-phone.png", "desktopBefore": "choice-before-desktop.png", "desktopAfter": "choice-after-desktop.png" },
       "implementationStatus": "playable_state_available",
-      "reviewStatus": "candidate_under_human_review"
+      "reviewStatus": "candidate_rejected_obvious_visual_faults"
     },
     {
       "id": "VL-003",
@@ -172,7 +172,7 @@
       },
       "candidateAssets": { "phone": "strange-discovery-phone.png", "desktop": "strange-discovery-desktop.png" },
       "implementationStatus": "playable_state_available",
-      "reviewStatus": "candidate_under_human_review"
+      "reviewStatus": "candidate_rejected_obvious_visual_faults"
     },
     {
       "id": "VL-004",
@@ -189,7 +189,7 @@
       },
       "candidateAssets": { "phoneVideo": "movement-alive-phone.mp4", "phonePoster": "movement-alive-phone.png", "desktopVideo": "movement-alive-desktop.mp4", "desktopPoster": "movement-alive-desktop.png" },
       "implementationStatus": "capture_journey_ready",
-      "reviewStatus": "candidate_under_human_review"
+      "reviewStatus": "candidate_rejected_obvious_visual_faults"
     }
   ]
 }

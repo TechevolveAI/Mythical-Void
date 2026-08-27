@@ -8,6 +8,10 @@ const defaultPath = path.join(
     root,
     'docs/company/content/visual-launch-moments.json'
 );
+const candidateCaptureSource = fs.readFileSync(
+    path.join(root, 'scripts/company/prepare-visual-launch-candidates.cjs'),
+    'utf8'
+);
 
 function validateVisualLaunchMoments(document) {
     const failures = [];
@@ -52,6 +56,13 @@ function validateVisualLaunchMoments(document) {
     requireValue(
         authority.externalPublicationAuthorized === false,
         'external publication must remain unauthorized'
+    );
+    requireValue(
+        candidateCaptureSource.includes('function createFrameReviewSheets(videoRecord)') &&
+        candidateCaptureSource.includes('everyFrameIncluded: true') &&
+        candidateCaptureSource.includes('adultApprovalGranted: false') &&
+        candidateCaptureSource.includes("path.join(candidateRoot, 'frame-review')"),
+        'private video candidates must include complete non-approving frame-review sheets'
     );
     if (candidateRun) {
         requireValue(

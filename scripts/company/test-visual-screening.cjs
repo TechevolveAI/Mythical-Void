@@ -26,9 +26,10 @@ try {
     assert.notStrictEqual(run('send-to-kevin', value => { value.boundary.kevinReviewRequested = true; }).status, 0);
     assert.notStrictEqual(run('public-directory', value => { value.source.candidateDirectory = 'public/review/'; }).status, 0);
     assert.notStrictEqual(run('external-publication', value => { value.boundary.externalPublicationAuthorized = true; }).status, 0);
+    assert.notStrictEqual(run('skip-frame-review', value => { value.videoFrameReview.everyCapturedFrameScreened = false; }).status, 0);
     assert.notStrictEqual(run('hide-performance-failure', value => { value.realmRecapture.completed = true; }).status, 0);
     assert.notStrictEqual(run('remove-recapture-direction', value => { value.moments[2].nextCaptureMustShow = ''; }).status, 0);
-    console.log('Visual screening safeguards passed (current record and 7 rejection cases).');
+    console.log('Visual screening safeguards passed (current record and 8 rejection cases).');
 } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
 }

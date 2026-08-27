@@ -208,6 +208,60 @@ function recordVideo(file, momentId, viewportId) {
     };
 }
 
+function createFrameReviewSheets(videoRecord) {
+    const settings = videoRecord.viewportId === 'phone'
+        ? { scale: '156:338', tile: '5x4', framesPerSheet: 20 }
+        : { scale: '360:203', tile: '4x3', framesPerSheet: 12 };
+    const outputDir = path.join(candidateRoot, 'frame-review');
+    fs.mkdirSync(outputDir, { recursive: true });
+    const outputPattern = path.join(
+        outputDir,
+        `${videoRecord.viewportId}-sheet-%02d.png`
+    );
+    const result = spawnSync('ffmpeg', [
+        '-loglevel', 'error',
+        '-y',
+        '-i', path.join(candidateRoot, videoRecord.filename),
+        '-vf', `scale=${settings.scale},tile=${settings.tile}:nb_frames=${settings.framesPerSheet}`,
+        '-fps_mode', 'passthrough',
+        outputPattern
+    ], { encoding: 'utf8' });
+    if (result.status !== 0) {
+        throw new Error(
+            `Frame review sheet generation failed: ${result.stderr || result.stdout}`
+        );
+    }
+    const prefix = `${videoRecord.viewportId}-sheet-`;
+    const sheets = fs.readdirSync(outputDir)
+        .filter(file => file.startsWith(prefix) && file.endsWith('.png'))
+        .sort();
+    const expectedSheetCount = Math.ceil(
+        videoRecord.frameCount / settings.framesPerSheet
+    );
+    if (sheets.length !== expectedSheetCount) {
+        throw new Error(
+            `Frame review coverage drifted: ${JSON.stringify({
+                viewportId: videoRecord.viewportId,
+                frameCount: videoRecord.frameCount,
+                expectedSheetCount,
+                actualSheetCount: sheets.length
+            })}`
+        );
+    }
+    return {
+        viewportId: videoRecord.viewportId,
+        sourceVideo: videoRecord.filename,
+        sourceFrameCount: videoRecord.frameCount,
+        framesPerSheet: settings.framesPerSheet,
+        everyFrameIncluded: true,
+        adultApprovalGranted: false,
+        sheets: sheets.map(filename => ({
+            filename: `frame-review/${filename}`,
+            sha256: sha256(path.join(outputDir, filename))
+        }))
+    };
+}
+
 async function main() {
     if (!fs.existsSync(path.join(root, 'dist/index.html'))) {
         throw new Error('Production build is missing. Run npm run build first.');
@@ -291,6 +345,9 @@ async function main() {
             ));
         }
 
+        const videoFrameReviewAids = files
+            .filter(file => file.role === 'continuous_normal_play')
+            .map(createFrameReviewSheets);
         fs.rmSync(workingRoot, { recursive: true, force: true });
         const manifest = {
             schemaVersion: 1,
@@ -316,6 +373,7 @@ async function main() {
                 decision: null,
                 notes: null
             },
+            videoFrameReviewAids,
             kevinApproval: {
                 state: 'pending',
                 exactAssetApproved: false,
