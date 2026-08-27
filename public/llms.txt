@@ -38,6 +38,7 @@ This file is a concise guide to the canonical public information on mythicalvoid
 - [The Signal Log](https://mythicalvoid.com/updates/): Meaningful releases with working public destinations, plus RSS and JSON feeds.
 - [Press and creator facts](https://mythicalvoid.com/press/): Current game facts, rights notes and media-use boundaries.
 - The game is playable and still in early access.
+- The current game contains no paid advertising. It is single-player, with no public player profiles or chat with other players. Players can use human-authored in-game responses to talk to their creature; that is not person-to-person chat.
 - Progress is stored in the player's browser by default.
 - The current twelve-creature showcase uses exact exports from the running game renderer. It was selected from 1,000 deliberately balanced engine runs to show the system's range, not normal hatch odds.
 - The named field-guide stories expand the official universe but are not presented as currently playable quests.

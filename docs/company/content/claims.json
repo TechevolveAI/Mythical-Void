@@ -91,6 +91,20 @@
       "status": "qualified",
       "approvedText": "The game can use selected NASA public space data for optional discovery moments.",
       "conditions": "Do not imply NASA endorsement, an official NASA product, guaranteed live availability, or that fictional material is real scientific data."
+    },
+    {
+      "id": "CL-014",
+      "class": "C1",
+      "status": "usable",
+      "approvedText": "The current game contains no paid advertising.",
+      "conditions": "Current release only. Recheck the production build, dependencies and public pages before every future use. Do not turn this into a promise about every future Mythical offering."
+    },
+    {
+      "id": "CL-015",
+      "class": "C1",
+      "status": "usable",
+      "approvedText": "The current game is single-player, with no public player profiles or chat with other players.",
+      "conditions": "Do not shorten this to ‘no chat’: the game includes human-authored creature dialogue. Recheck before any multiplayer, social or public-profile feature is released."
     }
   ]
 }

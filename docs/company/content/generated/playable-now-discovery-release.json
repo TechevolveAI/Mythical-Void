@@ -6,7 +6,7 @@
   "page": {
     "path": "public/playable-now/index.html",
     "publicUrl": "https://mythicalvoid.com/playable-now/",
-    "sha256": "6390c972ec64a0a1f8a6f156955013a3d93b521c6466b1d1ce25420f5b837eaa",
+    "sha256": "44ca9de4f0be2c0ae5118857424ac08ee3a5f37463d740fc8bea14e65085c2e2",
     "canonical": "https://mythicalvoid.com/playable-now/",
     "directPlayLinkMinimum": 3,
     "structuredData": ["VideoGame", "FAQPage"]
@@ -36,6 +36,16 @@
     "recipientCollectionEnabled": false,
     "trackingParametersPermitted": false,
     "analyticsDefault": "denied"
+  },
+  "familyTrust": {
+    "planPath": "docs/company/growth/FAMILY_TRUST_DOORWAY.md",
+    "paidAdvertisingInCurrentGame": false,
+    "publicPlayerProfiles": false,
+    "chatWithOtherPlayers": false,
+    "creatureDialogueAvailable": true,
+    "creatureDialogueIsPersonToPersonChat": false,
+    "formalAgeRatingClaimed": false,
+    "futureReleaseRecheckRequired": true
   },
   "playIntentDoorway": {
     "planPath": "docs/company/growth/PLAY_INTENT_DOORWAY.json",

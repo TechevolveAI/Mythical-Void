@@ -28,7 +28,7 @@ requireValue(plan.publicRoute === 'https://mythicalvoid.com/playable-now/', 'pub
 requireValue(page.includes('<h1>Hatch a strange alien creature. Save six living realms.</h1>'), 'clear first-screen game promise is missing');
 requireValue(page.includes('<strong>What are you in the mood for?</strong>'), 'plain-language optional choice is missing');
 requireValue(page.includes('id="find-your-way"'), 'play-intent doorway needs a stable homepage destination');
-requireValue(page.includes('Free · No download · No account · No payment details · Early access'), 'public access promise is missing');
+requireValue(page.includes('Free · No game ads · No chat with other players · No download · No account · No payment details · Early access'), 'public access and family trust promise is missing');
 requireValue(page.includes('class="play-intent-direct"') && page.includes('Start in one click. The four paths below are optional.'), 'first-screen direct Play choice is missing');
 requireValue(page.includes('data-play-link data-source-area="hero"'), 'first-screen direct Play source is missing');
 requireValue(page.includes('data-play-intent') && page.includes('data-intent-answer hidden'), 'progressive intent doorway is missing');

@@ -22,7 +22,7 @@ requireValue((page.match(/<h1(?:\s[^>]*)?>/g) || []).length === 1, 'page must ha
 requireValue(page.includes('LOOKING FOR A NEW GAME? PLAY THIS ONE') && page.includes('<h1>Hatch a strange alien creature. Save six living realms.</h1>'), 'search-first game promise is missing from the first screen');
 requireValue(page.indexOf('id="find-your-way"') < page.indexOf('class="truth-strip"'), 'the game finder must remain the first main section');
 requireValue(page.includes('Mythical Void is a free browser adventure with platforming, battles, building and story choices.'), 'plain playable category is missing from the first screen');
-requireValue(page.includes('Free · No download · No account · No payment details · Early access'), 'first-screen access answer is missing');
+requireValue(page.includes('Free · No game ads · No chat with other players · No download · No account · No payment details · Early access'), 'first-screen access and family trust answer is missing');
 requireValue(page.includes('Early access') && /still (?:growing|in early access)/i.test(page), 'early-access boundary is missing');
 requireValue(page.includes('NASA does not endorse Mythical Void.'), 'NASA non-endorsement is missing');
 requireValue(page.includes('AI-generated marketing artwork') && page.includes('It is not gameplay.'), 'marketing-art boundary is missing');
@@ -66,6 +66,8 @@ requireValue(release.visualDecision?.sharingImageClassification === 'ai_generate
 requireValue(release.firstScreenMessage?.headline === 'Hatch a strange alien creature. Save six living realms.', 'release does not record the clear game promise');
 requireValue(release.firstScreenMessage?.moodChooserPreserved === true && release.firstScreenMessage?.directPlayPreserved === true, 'release lost the optional choice or direct Play route');
 requireValue(release.firstScreenMessage?.gameplayMediaAdded === false, 'release must not imply that gameplay media was added');
+requireValue(release.familyTrust?.paidAdvertisingInCurrentGame === false && release.familyTrust?.publicPlayerProfiles === false && release.familyTrust?.chatWithOtherPlayers === false, 'release must record the current family trust boundaries');
+requireValue(release.familyTrust?.creatureDialogueAvailable === true && release.familyTrust?.creatureDialogueIsPersonToPersonChat === false, 'release must distinguish creature dialogue from person-to-person chat');
 requireValue(release.playIntentDoorway?.intentSpecificSharingEnabled === true && release.playIntentDoorway?.shareRouteLocation === 'URL fragment only', 'intent-specific sharing release is missing');
 requireValue(release.playIntentDoorway?.choiceRequiredBeforePlay === false && release.playIntentDoorway?.firstScreenDirectPlay === true, 'release must preserve a direct first-screen Play route');
 requireValue(release.playIntentDoorway?.starterMissionCount === 4 && release.playIntentDoorway?.stepsPerStarterMission === 3 && release.playIntentDoorway?.starterMissionRequiredBeforePlay === false, 'release must record four optional three-step starter missions');
