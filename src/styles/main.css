@@ -171,6 +171,31 @@ body.game-mode {
   }
 }
 
+/* Reliable activation area for the Phaser-rendered first-contact egg. It is
+   intentionally transparent: the game draws the one visible egg underneath. */
+.egg-hatch-fallback {
+  position: fixed;
+  z-index: 2147480000;
+  top: 45%;
+  left: 50%;
+  width: clamp(150px, 22vmin, 240px);
+  aspect-ratio: 1;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.egg-hatch-fallback:focus-visible {
+  outline: 4px solid #ffffff;
+  outline-offset: 6px;
+  box-shadow: 0 0 0 10px rgba(143, 227, 207, 0.42);
+}
+
 /* Utility classes */
 .glass-panel {
   background-color: rgba(255, 255, 255, 0.1);

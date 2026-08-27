@@ -869,6 +869,9 @@ class GameScene extends Phaser.Scene {
                 document
                     .querySelectorAll('[data-mythical-home-start="true"]')
                     .forEach(element => element.remove());
+                document
+                    .querySelectorAll('[data-mythical-egg-hatch="true"]')
+                    .forEach(element => element.remove());
             }
             this.removeStaleAuxiliaryCameras();
             prefetchKatanaArtifactArtwork();

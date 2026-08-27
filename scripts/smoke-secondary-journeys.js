@@ -9283,10 +9283,66 @@ async function smokeHomeStart(session, exceptions) {
         throw new Error(`Home Start reached a non-interactive egg: ${JSON.stringify(advanced)}`);
     }
     await captureGameplayStill(session, 'project-beacon-live-egg.png');
+
+    const hatchAction = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene('HatchingScene');
+            const button = document.querySelector('[data-mythical-egg-hatch="true"]');
+            const bounds = button?.getBoundingClientRect();
+            const style = button ? getComputedStyle(button) : null;
+            if (
+                !scene?.egg?.active ||
+                !button ||
+                !bounds ||
+                style?.display === 'none' ||
+                style?.visibility === 'hidden'
+            ) return null;
+            return {
+                x: Math.round(bounds.left + (bounds.width / 2)),
+                y: Math.round(bounds.top + (bounds.height / 2)),
+                left: bounds.left,
+                right: bounds.right,
+                top: bounds.top,
+                bottom: bounds.bottom,
+                label: button.getAttribute('aria-label'),
+                canvasWidth: scene.scale.width,
+                canvasHeight: scene.scale.height
+            };
+        })()`),
+        { timeoutMs: 3000, message: 'native first-contact egg action' }
+    );
+    if (
+        hatchAction.left < 0 ||
+        hatchAction.top < 0 ||
+        hatchAction.right > hatchAction.canvasWidth ||
+        hatchAction.bottom > hatchAction.canvasHeight ||
+        !/^(?:CLICK THE EGG|TAP EGG) TO BEGIN$/.test(hatchAction.label || '')
+    ) {
+        throw new Error(`Native egg action is outside the viewport or mislabelled: ${JSON.stringify(hatchAction)}`);
+    }
+
+    await touch(session, hatchAction.x, hatchAction.y);
+    const hatching = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene('HatchingScene');
+            if (!scene?.hatchingStarted || !scene?.isHatching) return null;
+            return {
+                started: true,
+                progress: scene.hatchingProgress,
+                nativeActionRemaining: Boolean(document.querySelector('[data-mythical-egg-hatch="true"]')),
+                progressX: scene.progressText?.x,
+                expectedX: scene.scale.width / 2
+            };
+        })()`),
+        { timeoutMs: 3000, message: 'first-contact egg touch to begin hatching' }
+    );
+    if (hatching.nativeActionRemaining || Math.abs(hatching.progressX - hatching.expectedX) > 2) {
+        throw new Error(`Hatch feedback is stale or off-centre: ${JSON.stringify(hatching)}`);
+    }
     if (exceptions.length) {
         throw new Error(`Home Start raised browser exceptions: ${exceptions.join(' | ')}`);
     }
-    return { start, recovery, advanced };
+    return { start, recovery, advanced, hatchAction, hatching };
 }
 
 async function smokeLateLivingFormArrival(session, exceptions) {

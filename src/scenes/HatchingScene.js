@@ -88,6 +88,8 @@ class HatchingScene extends Phaser.Scene {
         this.nextHomeStartHealthCheck = 0;
         this.homeStartFallback = null;
         this.homeStartFallbackCleanup = null;
+        this.eggHatchFallback = null;
+        this.eggHatchFallbackCleanup = null;
         this.portraitPromise = null;
         this.portraitError = null;
 
@@ -1267,28 +1269,17 @@ class HatchingScene extends Phaser.Scene {
         this.egg.on('pointerdown', () => {
             console.log('🥚 EGG CLICKED! Starting hatching sequence...');
 
-            if (!this.hatchingStarted && !this.creatureAppeared) {
-                MobileHelpers.vibrate(30); // Gentle haptic feedback
-
-                // Hide "Tap to Hatch" text on first click
-                if (this.tapToHatchText) {
-                    this.tweens.add({
-                        targets: this.tapToHatchText,
-                        alpha: 0,
-                        scale: 0.8,
-                        duration: 300,
-                        onComplete: () => {
-                            this.tapToHatchText.destroy();
-                            this.tapToHatchText = null;
-                        }
-                    });
-                }
-
-                this.startHatching();
-            } else {
+            if (!this.activateEggHatch()) {
                 console.log('🥚 Egg click ignored - hatching already in progress or creature appeared');
             }
         });
+
+        // The egg remains a Phaser image, but the actual first action should
+        // not fail if a browser loses a canvas pointer event. This transparent
+        // native button sits over the existing egg and calls the same guarded
+        // hatch path. It adds no second egg and gives keyboard users a real
+        // labelled control.
+        this.createEggHatchFallback();
 
         // Create floating animation for the egg
         this.tweens.add({
@@ -1300,6 +1291,71 @@ class HatchingScene extends Phaser.Scene {
             repeat: -1
         });
 
+    }
+
+    activateEggHatch(event) {
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
+
+        if (
+            !this.sys?.isActive() ||
+            !this.egg?.active ||
+            this.hatchingStarted ||
+            this.creatureAppeared
+        ) {
+            return false;
+        }
+
+        MobileHelpers.vibrate(30);
+        this.startHatching();
+        return true;
+    }
+
+    createEggHatchFallback() {
+        if (typeof document === 'undefined') return;
+
+        this.removeEggHatchFallback();
+        const gameRoot = document.getElementById('game');
+        if (!gameRoot) return;
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'egg-hatch-fallback';
+        button.dataset.mythicalEggHatch = 'true';
+        const prompt = MobileHelpers.isMobile() || this.scale.width < 600
+            ? firstSessionFraming.tapPromptMobile
+            : firstSessionFraming.tapPromptDesktop;
+        button.setAttribute('aria-label', prompt);
+        button.title = prompt;
+
+        const activate = event => this.activateEggHatch(event);
+        button.addEventListener('click', activate);
+        gameRoot.appendChild(button);
+
+        this.eggHatchFallback = button;
+        const cleanup = () => {
+            this.events?.off?.(Phaser.Scenes.Events.SHUTDOWN, cleanup);
+            button.removeEventListener('click', activate);
+            button.remove();
+            if (this.eggHatchFallback === button) {
+                this.eggHatchFallback = null;
+            }
+            if (this.eggHatchFallbackCleanup === cleanup) {
+                this.eggHatchFallbackCleanup = null;
+            }
+        };
+        this.eggHatchFallbackCleanup = cleanup;
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, cleanup);
+    }
+
+    removeEggHatchFallback() {
+        if (this.eggHatchFallbackCleanup) {
+            this.eggHatchFallbackCleanup();
+            this.eggHatchFallbackCleanup = null;
+            return;
+        }
+        this.eggHatchFallback?.remove();
+        this.eggHatchFallback = null;
     }
 
     setupInput() {
@@ -1531,14 +1587,16 @@ class HatchingScene extends Phaser.Scene {
         this.createControlPanel();
 
         // Progress text (hidden initially)
-        this.progressText = this.add.text(400, 450, '', {
-            fontSize: '24px',
+        const progressFontSize = Math.max(18, Math.min(24, width * 0.055));
+        this.progressText = this.add.text(centerX, height * 0.57, '', {
+            fontSize: `${progressFontSize}px`,
             color: '#FFD54F',
             stroke: '#000000',
             strokeThickness: 3,
             align: 'center',
             fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            wordWrap: { width: Math.max(260, width - 40) }
         }).setOrigin(0.5).setVisible(false);
 
         // Adventure text removed - replaced by Keep/Reroll UI
@@ -1586,6 +1644,9 @@ class HatchingScene extends Phaser.Scene {
 
 
     startHatching() {
+        if (this.hatchingStarted || this.creatureAppeared || !this.egg?.active) return;
+
+        this.removeEggHatchFallback();
         this.hatchingStarted = true;
         this.isHatching = true;
         this.instructionText.setVisible(false);
@@ -3190,6 +3251,8 @@ class HatchingScene extends Phaser.Scene {
      */
     shutdown() {
         console.log('🧹 HatchingScene.shutdown() - Cleaning up scene resources');
+
+        this.removeEggHatchFallback();
 
         // 1. Clean up tap to hatch text
         if (this.tapToHatchText) {

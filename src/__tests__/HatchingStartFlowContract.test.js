@@ -34,6 +34,47 @@ describe('Hatching home start flow', () => {
         expect(startFlow).not.toContain('this.time.delayedCall(100');
     });
 
+    test('gives the visible first-contact egg one reliable native activation area', () => {
+        const createEggFlow = source.slice(
+            source.indexOf('createEgg() {'),
+            source.indexOf('\n    setupInput() {', source.indexOf('createEgg() {'))
+        );
+        const activationFlow = source.slice(
+            source.indexOf('activateEggHatch(event)'),
+            source.indexOf('\n    setupInput() {', source.indexOf('activateEggHatch(event)'))
+        );
+
+        expect(createEggFlow).toContain('this.activateEggHatch()');
+        expect(createEggFlow).toContain('this.createEggHatchFallback();');
+        expect(activationFlow).toContain("button.dataset.mythicalEggHatch = 'true';");
+        expect(activationFlow).toContain('MobileHelpers.isMobile() || this.scale.width < 600');
+        expect(activationFlow).toContain('? firstSessionFraming.tapPromptMobile');
+        expect(activationFlow).toContain(': firstSessionFraming.tapPromptDesktop;');
+        expect(activationFlow).toContain("button.setAttribute('aria-label', prompt);");
+        expect(activationFlow).toContain('const activate = event => this.activateEggHatch(event);');
+        expect(activationFlow).toContain('this.hatchingStarted ||');
+        expect(activationFlow).toContain('this.creatureAppeared');
+        expect(source).toContain('this.removeEggHatchFallback();');
+        expect(mainCss).toContain('.egg-hatch-fallback {');
+        expect(mainCss).toContain('top: 45%;');
+        expect(mainCss).toContain('width: clamp(150px, 22vmin, 240px);');
+        expect(mainCss).toContain('background: transparent;');
+        expect(mainCss).toContain('.egg-hatch-fallback:focus-visible');
+        expect(gameScene).toContain('.querySelectorAll(\'[data-mythical-egg-hatch="true"]\')');
+    });
+
+    test('keeps hatch progress centred and readable on a phone', () => {
+        const uiFlow = source.slice(
+            source.indexOf('createUI() {'),
+            source.indexOf('\n    createControlPanel() {', source.indexOf('createUI() {'))
+        );
+
+        expect(uiFlow).toContain("this.add.text(centerX, height * 0.57, '', {");
+        expect(uiFlow).toContain('const progressFontSize = Math.max(18, Math.min(24, width * 0.055));');
+        expect(uiFlow).toContain('wordWrap: { width: Math.max(260, width - 40) }');
+        expect(uiFlow).not.toContain("this.add.text(400, 450, '', {");
+    });
+
     test('does not depend on a fade tween to commit the Start action', () => {
         const releaseFlow = source.slice(
             source.indexOf('onStartRelease(buttonContainer'),
@@ -75,6 +116,10 @@ describe('Hatching home start flow', () => {
         expect(smoke).toContain('.setPosition(-500, -500)');
         expect(smoke).toContain('Number.POSITIVE_INFINITY');
         expect(smoke).toContain('data-mythical-home-start');
+        expect(smoke).toContain('native first-contact egg action');
+        expect(smoke).toContain('data-mythical-egg-hatch');
+        expect(smoke).toContain('first-contact egg touch to begin hatching');
+        expect(smoke).toContain('progressX: scene.progressText?.x');
         expect(source).toContain('this.nextHomeStartHealthCheck = time + 500;');
         expect(releaseSmoke).toContain("smokeCase: 'phone'");
         expect(releaseSmoke).toContain("smokeCase: 'mobile-landscape'");
