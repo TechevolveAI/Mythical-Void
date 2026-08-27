@@ -201,6 +201,93 @@ describe('LivingFormHandoff mobile continuation', () => {
         }
     );
 
+    test('sharing sends only the clean public game invitation', async () => {
+        const share = jest.fn().mockResolvedValue(undefined);
+        Object.defineProperty(window.navigator, 'share', {
+            configurable: true,
+            value: share
+        });
+        const onContinue = jest.fn();
+        const handoff = new LivingFormHandoff(createScene());
+        handoff.show({
+            name: 'Nova',
+            species: 'nebulaSprite',
+            onContinue
+        });
+
+        const shareButton = document.querySelector(
+            '[data-testid="living-form-share"]'
+        );
+        shareButton.click();
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        expect(share).toHaveBeenCalledWith({
+            title: 'Mythical Void — a free alien creature adventure',
+            text: 'I just hatched a creature in Mythical Void. See what hatches for you in this free browser adventure.',
+            url: 'https://mythicalvoid.com/playable-now/#find-your-way/create'
+        });
+        expect(JSON.stringify(share.mock.calls[0][0])).not.toContain('Nova');
+        expect(onContinue).not.toHaveBeenCalled();
+        expect(shareButton.textContent).toBe('SHARED ✓');
+
+        document.querySelector('[data-testid="living-form-continue"]').click();
+        expect(onContinue).toHaveBeenCalledTimes(1);
+    });
+
+    test('keyboard sharing never triggers the primary continue action', async () => {
+        const share = jest.fn().mockResolvedValue(undefined);
+        Object.defineProperty(window.navigator, 'share', {
+            configurable: true,
+            value: share
+        });
+        const onContinue = jest.fn();
+        const handoff = new LivingFormHandoff(createScene());
+        handoff.show({
+            name: 'Nova',
+            species: 'nebulaSprite',
+            onContinue
+        });
+        const shareButton = document.querySelector(
+            '[data-testid="living-form-share"]'
+        );
+        shareButton.focus();
+        shareButton.dispatchEvent(new KeyboardEvent('keydown', {
+            key: 'Enter',
+            bubbles: true,
+            cancelable: true
+        }));
+        shareButton.click();
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        expect(share).toHaveBeenCalledTimes(1);
+        expect(onContinue).not.toHaveBeenCalled();
+        handoff.destroy();
+    });
+
+    test('clipboard fallback copies only the clean game address', async () => {
+        const writeText = jest.fn().mockResolvedValue(undefined);
+        Object.defineProperty(window.navigator, 'share', {
+            configurable: true,
+            value: undefined
+        });
+        Object.defineProperty(window.navigator, 'clipboard', {
+            configurable: true,
+            value: { writeText }
+        });
+        const handoff = new LivingFormHandoff(createScene());
+        handoff.show({ name: 'Nova', species: 'nebulaSprite' });
+
+        document.querySelector('[data-testid="living-form-share"]').click();
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        expect(writeText).toHaveBeenCalledWith(
+            'https://mythicalvoid.com/playable-now/#find-your-way/create'
+        );
+        expect(document.querySelector('[data-testid="living-form-share"]')
+            .textContent).toBe('LINK COPIED ✓');
+        handoff.destroy();
+    });
+
     test('the reveal scene explicitly enables DOM input before showing the handoff', () => {
         const source = fs.readFileSync(
             path.join(__dirname, '../scenes/SoulRevealScene.js'),

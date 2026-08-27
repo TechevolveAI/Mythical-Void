@@ -46,7 +46,7 @@ describe('living form milestone handoff', () => {
             'this.portraitPromise.catch(() => {});'
         );
         expect(handoffSource).toContain(
-            'The living portrait can be retried from the Companion Archive.'
+            'The living portrait can be retried from the Creature Archive.'
         );
         expect(handoffSource).toContain(
             'window.LivingPortraitService?.describeError?.(error)'
@@ -66,6 +66,9 @@ describe('living form milestone handoff', () => {
         );
         expect(handoffSource).toContain(
             "continueButton.setAttribute('data-testid', 'living-form-continue')"
+        );
+        expect(handoffSource).toContain(
+            "shareButton.setAttribute('data-testid', 'living-form-share')"
         );
         expect(cssSource).toContain('.living-form-handoff');
         expect(cssSource).toContain('.living-form-actions');
@@ -128,8 +131,24 @@ describe('living form milestone handoff', () => {
             'Temporary image links are not saved.'
         );
         expect(handoffSource).toContain(
-            'The pixel form remains the companion you play beside.'
+            'The pixel form remains the creature you play beside.'
         );
         expect(handoffSource).toContain('LIVING PORTRAIT RETRY AVAILABLE');
+    });
+
+    test('offers only a clean optional game link after hatching', () => {
+        expect(handoffSource).toContain("text: 'I just hatched a creature");
+        expect(handoffSource).toContain(
+            "url: 'https://mythicalvoid.com/playable-now/#find-your-way/create'"
+        );
+        expect(handoffSource).toContain('window.navigator?.share');
+        expect(handoffSource).toContain(
+            'window.navigator.clipboard.writeText(HATCH_SHARE_DATA.url)'
+        );
+        expect(handoffSource).not.toContain('gtag(');
+        expect(handoffSource).not.toContain('sendBeacon(');
+        expect(handoffSource).not.toContain('files:');
+        expect(handoffSource.indexOf("'living-form-share'")).toBeGreaterThan(-1);
+        expect(handoffSource.indexOf("'living-form-continue'")).toBeGreaterThan(-1);
     });
 });

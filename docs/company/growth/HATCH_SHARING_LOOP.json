@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "HATCH-SHARING-LOOP-2026-08-27",
+  "state": "owned_game_release_authorized_pending_production_verification",
+  "purpose": "Give a player a gentle, voluntary way to pass Mythical Void on immediately after the first creature reveal.",
+  "trigger": {
+    "screen": "LivingFormHandoff",
+    "moment": "first_named_creature_living_form_reveal",
+    "automaticShare": false,
+    "automaticPrompt": false,
+    "playerActionRequired": true,
+    "continueRemainsPrimary": true
+  },
+  "share": {
+    "buttonLabel": "SHARE THE GAME",
+    "title": "Mythical Void — a free alien creature adventure",
+    "text": "I just hatched a creature in Mythical Void. See what hatches for you in this free browser adventure.",
+    "url": "https://mythicalvoid.com/playable-now/#find-your-way/create",
+    "trackingParametersAdded": false,
+    "nativeDeviceSharePreferred": true,
+    "clipboardFallback": true,
+    "imageIncluded": false
+  },
+  "privacy": {
+    "saveDataReadForShare": false,
+    "saveDataTransmitted": false,
+    "creatureNameIncluded": false,
+    "creatureGeneticsIncluded": false,
+    "creaturePortraitIncluded": false,
+    "playerIdentityIncluded": false,
+    "recipientCollected": false,
+    "contactDetailsCollected": false,
+    "newAnalyticsEventAdded": false
+  },
+  "visualBoundary": {
+    "approvedGameplayMoments": 0,
+    "requiredGameplayMoments": 4,
+    "unapprovedScreenshotUsed": false,
+    "visualLaunchGateChanged": false
+  },
+  "authority": {
+    "ownedGamePublicationAuthorized": true,
+    "externalSocialPublicationAuthorized": false,
+    "emailOrOutreachSendingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "externalAccountChangeAuthorized": false,
+    "externalActionTaken": false
+  },
+  "verification": {
+    "automatedPrivacyTestRequired": true,
+    "desktopLayoutReviewRequired": true,
+    "mobileLayoutReviewRequired": true,
+    "productionVerificationRequired": true,
+    "productionCommit": null,
+    "productionDeployId": null,
+    "productionPublishedAt": null,
+    "publicChecks": null
+  }
+}

@@ -20,6 +20,12 @@ function formatIdentifier(value, fallback) {
         .toUpperCase();
 }
 
+const HATCH_SHARE_DATA = Object.freeze({
+    title: 'Mythical Void — a free alien creature adventure',
+    text: 'I just hatched a creature in Mythical Void. See what hatches for you in this free browser adventure.',
+    url: 'https://mythicalvoid.com/playable-now/#find-your-way/create'
+});
+
 export default class LivingFormHandoff {
     constructor(scene) {
         this.scene = scene;
@@ -35,6 +41,9 @@ export default class LivingFormHandoff {
         this.keyboardHandler = null;
         this.continueHandler = null;
         this.continueButton = null;
+        this.shareButton = null;
+        this.shareHandler = null;
+        this.shareInProgress = false;
         this.continueActivated = false;
         this.renderToken = 0;
         this.pixelReferenceImage = null;
@@ -64,7 +73,7 @@ export default class LivingFormHandoff {
             return false;
         }
 
-        const safeName = normalizeDisplayText(name, 'Companion', 20);
+        const safeName = normalizeDisplayText(name, 'Creature', 20);
         const safeSpecies = formatIdentifier(species, 'UNKNOWN SPECIES');
         const safeStage = formatIdentifier(stage, 'BABY');
         const safeAffinity = formatIdentifier(affinity, 'STAR');
@@ -203,8 +212,8 @@ export default class LivingFormHandoff {
                 'p',
                 'living-form-description',
                 isLateReveal
-                    ? 'The field scan has finished. This is the same companion you hatched, interpreted beyond the pixel suit display.'
-                    : 'The pixel form remains the companion you play beside. This field study imagines the same life beyond the suit display.'
+                    ? 'The field scan has finished. This is the same creature you hatched, interpreted beyond the pixel suit display.'
+                    : 'The pixel form remains the creature you play beside. This field study imagines the same life beyond the suit display.'
             )
         );
 
@@ -250,6 +259,21 @@ export default class LivingFormHandoff {
         this.status.setAttribute('aria-live', 'polite');
         actions.append(this.status);
 
+        const buttonRow = createElement('div', 'living-form-button-row');
+        const shareButton = createElement(
+            'button',
+            'living-form-share',
+            'SHARE THE GAME'
+        );
+        shareButton.type = 'button';
+        shareButton.setAttribute('data-testid', 'living-form-share');
+        shareButton.setAttribute(
+            'aria-label',
+            'Share a clean link to Mythical Void'
+        );
+        shareButton.style.touchAction = 'manipulation';
+        shareButton.style.webkitTapHighlightColor = 'transparent';
+
         const continueButton = createElement(
             'button',
             'living-form-continue',
@@ -263,7 +287,8 @@ export default class LivingFormHandoff {
         continueButton.setAttribute('data-testid', 'living-form-continue');
         continueButton.style.touchAction = 'manipulation';
         continueButton.style.webkitTapHighlightColor = 'transparent';
-        actions.append(continueButton);
+        buttonRow.append(shareButton, continueButton);
+        actions.append(buttonRow);
 
         if (portraitPromise && !isLateReveal) {
             actions.append(createElement(
@@ -279,6 +304,8 @@ export default class LivingFormHandoff {
         this.isVisible = true;
         this.continueActivated = false;
         this.continueButton = continueButton;
+        this.shareButton = shareButton;
+        this.shareInProgress = false;
         this.keepVisibleOnContinue = Boolean(keepVisibleOnContinue);
         this.onPortraitShown = typeof onPortraitShown === 'function'
             ? onPortraitShown
@@ -298,8 +325,16 @@ export default class LivingFormHandoff {
             passive: false
         });
         continueButton.addEventListener('click', this.continueHandler);
+        this.shareHandler = event => this.shareGame(event);
+        shareButton.addEventListener('click', this.shareHandler);
         this.keyboardHandler = event => {
             if (!this.isVisible || !['Enter', ' ', 'Escape'].includes(event.key)) {
+                return;
+            }
+            if (
+                event.key !== 'Escape'
+                && event.target?.closest?.('button') !== continueButton
+            ) {
                 return;
             }
             event.preventDefault();
@@ -323,7 +358,7 @@ export default class LivingFormHandoff {
         ) ? referenceImage : null;
         if (!portraitPromise) {
             this.status.textContent =
-                'No personal data was sent. The living portrait can be retried from the Companion Archive.';
+                'No personal data was sent. The living portrait can be retried from the Creature Archive.';
         }
 
         if (portraitPromise) {
@@ -381,6 +416,7 @@ export default class LivingFormHandoff {
         this.continueButton.disabled = true;
         this.continueButton.setAttribute('aria-busy', 'true');
         this.continueButton.textContent = 'ENTERING SANCTUARY...';
+        if (this.shareButton) this.shareButton.disabled = true;
         if (this.actionKicker) {
             this.actionKicker.textContent = 'ROUTE CONFIRMED // SANCTUARY OPENING';
         }
@@ -481,7 +517,7 @@ export default class LivingFormHandoff {
                 );
                 this.sourceLabel.textContent = 'PROTECTED LIVING PORTRAIT';
                 this.status.textContent =
-                    'Exact interpretation secured to this companion record. Temporary image links are not saved.';
+                    'Exact interpretation secured to this creature record. Temporary image links are not saved.';
                 this.status.classList.remove('is-fallback');
                 window.AudioManager?.playLevelUp?.();
             }
@@ -490,13 +526,57 @@ export default class LivingFormHandoff {
             if (!this.isVisible || token !== this.renderToken) return;
             this.mediaFallback?.classList.remove('is-hidden');
             this.status.textContent =
-                'Visual study offline. The living portrait can retry from the Companion Archive.';
+                'Visual study offline. The living portrait can retry from the Creature Archive.';
             this.status.classList.add('is-fallback');
             this.root.dataset.portraitState = 'retry';
             this.sourceLabel.textContent = 'LIVING PORTRAIT RETRY AVAILABLE';
             this.root?.classList.add('has-portrait-failure');
         };
         this.image.src = imageUrl;
+    }
+
+    /**
+     * Offer a voluntary word-of-mouth moment without exposing the creature,
+     * player, save, portrait, or genetics. The device chooses the destination.
+     */
+    async shareGame(event) {
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
+        if (!this.isVisible || !this.shareButton || this.shareInProgress) {
+            return 'unavailable';
+        }
+
+        this.shareInProgress = true;
+        this.shareButton.disabled = true;
+        this.shareButton.setAttribute('aria-busy', 'true');
+
+        let result = 'shown';
+        try {
+            if (typeof window.navigator?.share === 'function') {
+                await window.navigator.share(HATCH_SHARE_DATA);
+                result = 'shared';
+            } else if (
+                typeof window.navigator?.clipboard?.writeText === 'function'
+            ) {
+                await window.navigator.clipboard.writeText(HATCH_SHARE_DATA.url);
+                result = 'copied';
+            }
+        } catch (error) {
+            if (error?.name === 'AbortError') result = 'cancelled';
+        }
+
+        if (this.isVisible && this.shareButton) {
+            this.shareButton.textContent = {
+                shared: 'SHARED ✓',
+                copied: 'LINK COPIED ✓',
+                cancelled: 'SHARE THE GAME',
+                shown: 'MYTHICALVOID.COM'
+            }[result];
+            this.shareButton.disabled = false;
+            this.shareButton.removeAttribute('aria-busy');
+        }
+        this.shareInProgress = false;
+        return result;
     }
 
     destroy() {
@@ -531,6 +611,12 @@ export default class LivingFormHandoff {
         this.pixelReferenceImage = null;
         this.continueButton = null;
         this.continueHandler = null;
+        if (this.shareButton && this.shareHandler) {
+            this.shareButton.removeEventListener('click', this.shareHandler);
+        }
+        this.shareButton = null;
+        this.shareHandler = null;
+        this.shareInProgress = false;
         this.onPortraitShown = null;
         this.portraitShownIdentity = null;
         this.keepVisibleOnContinue = false;
