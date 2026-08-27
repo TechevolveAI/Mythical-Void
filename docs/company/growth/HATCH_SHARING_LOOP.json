@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "HATCH-SHARING-LOOP-2026-08-27",
-  "state": "owned_game_release_authorized_pending_production_verification",
+  "state": "live_production_verified",
   "purpose": "Give a player a gentle, voluntary way to pass Mythical Void on immediately after the first creature reveal.",
   "trigger": {
     "screen": "LivingFormHandoff",
@@ -51,9 +51,15 @@
     "desktopLayoutReviewRequired": true,
     "mobileLayoutReviewRequired": true,
     "productionVerificationRequired": true,
-    "productionCommit": null,
-    "productionDeployId": null,
-    "productionPublishedAt": null,
-    "publicChecks": null
+    "productionCommit": "4cba647a6f420cb29aace2f337b229fccfb9a70a",
+    "productionDeployId": "6a8f840bbf5b1e0008dd3cc9",
+    "productionPublishedAt": "2026-08-27T00:26:57.517Z",
+    "publicChecks": {
+      "gamePageHttpStatus": 200,
+      "shareActionPresentInGameBundle": true,
+      "cleanShareUrlPresentInGameBundle": true,
+      "creatureLanguagePresentInGameBundle": true,
+      "unapprovedVisualIncluded": false
+    }
   }
 }

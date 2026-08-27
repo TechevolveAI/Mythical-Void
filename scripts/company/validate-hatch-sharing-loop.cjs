@@ -53,6 +53,18 @@ for (const [key, expected] of Object.entries({
     externalAccountChangeAuthorized: false,
     externalActionTaken: false
 })) requireValue(release.authority?.[key] === expected, `authority.${key} must be ${expected}`);
+if (release.state === 'live_production_verified') {
+    requireValue(/^[0-9a-f]{40}$/.test(release.verification?.productionCommit || ''), 'verified release is missing its production commit');
+    requireValue(/^[0-9a-f]{24}$/.test(release.verification?.productionDeployId || ''), 'verified release is missing its production deploy ID');
+    requireValue(!Number.isNaN(Date.parse(release.verification?.productionPublishedAt || '')), 'verified release is missing its production time');
+    for (const [key, expected] of Object.entries({
+        gamePageHttpStatus: 200,
+        shareActionPresentInGameBundle: true,
+        cleanShareUrlPresentInGameBundle: true,
+        creatureLanguagePresentInGameBundle: true,
+        unapprovedVisualIncluded: false
+    })) requireValue(release.verification?.publicChecks?.[key] === expected, `verification.publicChecks.${key} must be ${expected}`);
+}
 
 if (failures.length) {
     console.error('Hatch sharing loop is not ready:\n');
