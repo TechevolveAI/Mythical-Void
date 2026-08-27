@@ -8,6 +8,8 @@ export default class GameSceneSceneRouter {
     constructor(gameScene) {
         this.gameScene = gameScene;
         this.pendingTransitions = new Map();
+        this.activeTransition = null;
+        this.managedDestinationScenes = new Set();
     }
 
     get sceneManager() {
@@ -51,14 +53,43 @@ export default class GameSceneSceneRouter {
         );
     }
 
+    isSourceSceneReady() {
+        const sceneKey = this.gameScene?.sys?.settings?.key;
+        const manager = this.gameScene?.game?.scene;
+        if (
+            !sceneKey ||
+            typeof manager?.isActive !== 'function' ||
+            typeof manager?.isPaused !== 'function'
+        ) {
+            return true;
+        }
+        return manager.isActive(sceneKey) && !manager.isPaused(sceneKey);
+    }
+
+    hasManagedDestinationOpen() {
+        const manager = this.gameScene?.game?.scene;
+        if (!manager) return false;
+        return [...this.managedDestinationScenes].some(sceneKey => (
+            manager.isActive?.(sceneKey) || manager.isPaused?.(sceneKey)
+        ));
+    }
+
     runWhenReady(sceneKey, transition, options = {}) {
         const {
             loadingMessage = null,
             sound = null
         } = options;
 
-        if (this.pendingTransitions.has(sceneKey)) {
-            return this.pendingTransitions.get(sceneKey);
+        const existing = this.pendingTransitions.get(sceneKey);
+        if (existing) {
+            return existing;
+        }
+        if (
+            this.activeTransition ||
+            !this.isSourceSceneReady() ||
+            this.hasManagedDestinationOpen()
+        ) {
+            return Promise.resolve(false);
         }
 
         this.playSound(sound);
@@ -66,37 +97,46 @@ export default class GameSceneSceneRouter {
 
         const executeTransition = () => {
             transition();
+            this.managedDestinationScenes.add(sceneKey);
             return true;
         };
         const loader = window.SceneLoader;
+        let operation;
 
         if (!loader?.loadScene || this.isSceneRegistered(sceneKey)) {
             try {
-                return Promise.resolve(executeTransition());
+                operation = Promise.resolve(executeTransition());
             } catch (error) {
                 console.error(`[SceneRouter] Failed to open ${sceneKey}:`, error);
                 window.UXEnhancements?.hideLoading?.();
-                return Promise.resolve(false);
+                operation = Promise.resolve(false);
             }
+        } else {
+            operation = loader.loadScene(this.gameScene.game, sceneKey)
+                .then(loaded => {
+                    if (!loaded) {
+                        throw new Error(`${sceneKey} could not be loaded`);
+                    }
+                    return executeTransition();
+                })
+                .catch(error => {
+                    console.error(`[SceneRouter] Failed to open ${sceneKey}:`, error);
+                    window.UXEnhancements?.hideLoading?.();
+                    return false;
+                });
         }
 
-        const pending = loader.loadScene(this.gameScene.game, sceneKey)
-            .then(loaded => {
-                if (!loaded) {
-                    throw new Error(`${sceneKey} could not be loaded`);
-                }
-                return executeTransition();
-            })
-            .catch(error => {
-                console.error(`[SceneRouter] Failed to open ${sceneKey}:`, error);
-                window.UXEnhancements?.hideLoading?.();
-                return false;
-            })
-            .finally(() => {
+        let pending;
+        pending = operation.finally(() => {
+            if (this.pendingTransitions.get(sceneKey) === pending) {
                 this.pendingTransitions.delete(sceneKey);
-            });
-
+            }
+            if (this.activeTransition?.promise === pending) {
+                this.activeTransition = null;
+            }
+        });
         this.pendingTransitions.set(sceneKey, pending);
+        this.activeTransition = { sceneKey, promise: pending };
         return pending;
     }
 
