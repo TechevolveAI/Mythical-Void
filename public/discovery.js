@@ -8,6 +8,13 @@
         wonder: {
             title: 'Follow the signal into six impossible realms.',
             copy: 'Begin at the wreck of Wanderer-77, meet a life form Earth has never seen and discover what each living world is trying to protect.',
+            missionTitle: 'Find the first impossible thing.',
+            missionSteps: [
+                'Recover Wanderer-77\'s field kit.',
+                'Follow the living signal beyond the crash.',
+                'Reach the Mythical Forest and notice one thing Earth\'s maps cannot explain.'
+            ],
+            finish: 'You can point to the moment the journey stopped feeling like an ordinary rescue mission.',
             cta: 'Enter the unknown',
             shareText: 'Want a free game full of strange alien worlds? This is your way into Mythical Void—no download or account needed.',
             sourceArea: 'intent_wonder'
@@ -15,6 +22,13 @@
         create: {
             title: 'See what the creature engine makes with you.',
             copy: 'Your hatch combines form, colour, markings, personality, cosmic affinity and the possibility of a rare change—then carries that identity into the story.',
+            missionTitle: 'Hatch a creature and begin its story.',
+            missionSteps: [
+                'Recover the field kit at the crash site.',
+                'Care for the life form until it hatches.',
+                'Give the creature a name and take it through the first gate.'
+            ],
+            finish: 'Your creature is moving through the story beside the astronaut.',
             cta: 'See what hatches',
             shareText: 'Want to hatch a strange alien creature shaped by a genetics engine? This is your way into Mythical Void—free in your browser.',
             sourceArea: 'intent_create'
@@ -22,6 +36,13 @@
         challenge: {
             title: 'Recover the ship. Cross the realms. Free the guardians.',
             copy: 'Run, leap, investigate and fight beside your creature. The guardians are trapped by the corruption; the mission is to release them, not destroy them.',
+            missionTitle: 'Release the first guardian.',
+            missionSteps: [
+                'Recover Wanderer-77 and hatch the creature.',
+                'Run and leap across the Mythical Forest rootway.',
+                'Clear the purple corruption holding the Elder Treant.'
+            ],
+            finish: 'The first guardian is restored rather than defeated.',
             cta: 'Take the first mission',
             shareText: 'Want a free browser mission with six alien realms to cross and restore? This is your way into Mythical Void.',
             sourceArea: 'intent_challenge'
@@ -29,6 +50,13 @@
         story: {
             title: 'Project Beacon begins as an order and ends as your choice.',
             copy: 'Earth sent you to find hope. What you discover changes the mission, and the final message home is yours to decide.',
+            missionTitle: 'Find out why the mission changes.',
+            missionSteps: [
+                'Answer the first signal from the wreckage.',
+                'Earn the creature\'s trust and enter the Mythical Forest.',
+                'Keep going until Project Beacon no longer feels like a simple order from Earth.'
+            ],
+            finish: 'You can explain why discovery and responsibility have become the same problem.',
             cta: 'Begin Project Beacon',
             shareText: 'Want a science-fiction game where the final message to Earth is your choice? This is your way into Mythical Void—free in your browser.',
             sourceArea: 'intent_story'
@@ -136,6 +164,9 @@
         var intentTitle = intentRoot.querySelector('[data-intent-title]');
         var intentCopy = intentRoot.querySelector('[data-intent-copy]');
         var intentCta = intentRoot.querySelector('[data-intent-cta]');
+        var intentMissionTitle = intentRoot.querySelector('[data-intent-mission-title]');
+        var intentMissionSteps = intentRoot.querySelector('[data-intent-mission-steps]');
+        var intentFinish = intentRoot.querySelector('[data-intent-finish]');
         var intentPlay = intentRoot.querySelector('[data-intent-play]');
         var intentShare = intentRoot.querySelector('[data-intent-share]');
         var intentShareStatus = intentRoot.querySelector('[data-intent-share-status]');
@@ -152,7 +183,7 @@
         function selectIntent(button, updateAddress, scrollAnswer) {
             var intentId = button && button.dataset.intentChoice;
             var message = intentMessages[intentId];
-            if (!message || !intentAnswer || !intentTitle || !intentCopy || !intentCta || !intentPlay) return;
+            if (!message || !intentAnswer || !intentTitle || !intentCopy || !intentCta || !intentPlay || !intentMissionTitle || !intentMissionSteps || !intentFinish) return;
             intentButtons.forEach(function (candidate) {
                 var selected = candidate === button;
                 candidate.classList.toggle('active', selected);
@@ -160,6 +191,18 @@
             });
             intentTitle.textContent = message.title;
             intentCopy.textContent = message.copy;
+            intentMissionTitle.textContent = message.missionTitle;
+            intentMissionSteps.replaceChildren();
+            message.missionSteps.forEach(function (step, index) {
+                var item = document.createElement('li');
+                var number = document.createElement('span');
+                number.textContent = String(index + 1).padStart(2, '0');
+                var text = document.createElement('strong');
+                text.textContent = step;
+                item.append(number, text);
+                intentMissionSteps.appendChild(item);
+            });
+            intentFinish.textContent = message.finish;
             intentCta.textContent = isReturningPlayer() ? 'Continue your adventure' : message.cta;
             intentPlay.dataset.sourceArea = message.sourceArea;
             if (intentShare) intentShare.dataset.sourceArea = message.sourceArea;

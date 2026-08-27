@@ -20,6 +20,14 @@ Mythical Void:
 Each choice gives one short explanation and one clean Play button. It is not a
 personality quiz and it does not pretend to know the visitor.
 
+Each answer now also turns the promise into a starter mission: three real
+things to do in the current game and one plain finish line. Wonder points toward
+the first impossible discovery; creation toward hatching and naming a creature;
+challenge toward restoring the Elder Treant; and story toward understanding why
+Project Beacon stops being a simple order from Earth. This closes the gap
+between “that sounds interesting” and “I know what I am trying to do.” It does
+not add a score, deadline, profile or invented quest.
+
 Each answer also has a clean “Share this way in” link. A wonder link reopens
 the wonder answer; creation, challenge and story do the same. The choice lives
 only in the address after `#` so the receiving page can reopen it. It is not

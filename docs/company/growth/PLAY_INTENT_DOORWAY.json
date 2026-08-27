@@ -6,8 +6,8 @@
   "publicRoute": "https://mythicalvoid.com/playable-now/",
   "lastFunnelImprovement": {
     "date": "2026-08-27",
-    "finding": "The clearest direct Play action fell below the first screen unless a visitor noticed the header or selected a mood first.",
-    "change": "Place a direct Play action beside the free, no-download and no-account facts on the first screen while keeping the four mood paths optional.",
+    "finding": "The mood cards explained why somebody might care, but still left the visitor to invent what their first play session should achieve.",
+    "change": "Give each optional mood path a concrete three-step starter mission and visible finish line, while preserving the immediate first-screen Play action.",
     "choiceRequiredBeforePlay": false,
     "firstScreenDirectPlay": true,
     "directPlaySourceArea": "hero"
@@ -17,25 +17,45 @@
       "id": "wonder",
       "button": "Show me something strange",
       "promise": "Follow the signal into six impossible realms.",
-      "sourceArea": "intent_wonder"
+      "sourceArea": "intent_wonder",
+      "starterMission": {
+        "title": "Find the first impossible thing.",
+        "steps": ["Recover the field kit", "Follow the living signal", "Reach the Mythical Forest and notice what Earth's maps cannot explain"],
+        "finish": "The journey no longer feels like an ordinary rescue mission."
+      }
     },
     {
       "id": "create",
       "button": "Let me make something",
       "promise": "See what the creature engine makes with you.",
-      "sourceArea": "intent_create"
+      "sourceArea": "intent_create",
+      "starterMission": {
+        "title": "Hatch a creature and begin its story.",
+        "steps": ["Recover the field kit", "Care for the life form until it hatches", "Name the creature and take it through the first gate"],
+        "finish": "The creature is moving through the story beside the astronaut."
+      }
     },
     {
       "id": "challenge",
       "button": "Give me a mission",
       "promise": "Recover the ship. Cross the realms. Free the guardians.",
-      "sourceArea": "intent_challenge"
+      "sourceArea": "intent_challenge",
+      "starterMission": {
+        "title": "Release the first guardian.",
+        "steps": ["Recover the ship and hatch the creature", "Cross the Mythical Forest rootway", "Clear the corruption holding the Elder Treant"],
+        "finish": "The first guardian is restored rather than defeated."
+      }
     },
     {
       "id": "story",
       "button": "Make my choices matter",
       "promise": "Project Beacon begins as an order and ends as your choice.",
-      "sourceArea": "intent_story"
+      "sourceArea": "intent_story",
+      "starterMission": {
+        "title": "Find out why the mission changes.",
+        "steps": ["Answer the first signal", "Earn the creature's trust and enter the Mythical Forest", "Continue until Project Beacon no longer feels like a simple order"],
+        "finish": "Discovery and responsibility have become the same problem."
+      }
     }
   ],
   "measurement": {
