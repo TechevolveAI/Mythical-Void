@@ -83,9 +83,8 @@ describe('release test gate', () => {
         expect(source).toContain('scene.player.x + formation.x');
         expect(source).toContain('follower.sprite.displayWidth * 0.92');
         expect(source).toContain('for (let index = 0; index < 9; index++)');
+        expect(source).toContain('for (let index = 0; index < 18; index++)');
         expect(source).toContain('if (movementPosterCaptured || index !== 8) return;');
-        expect(source).toContain('if (index === 4)');
-        expect(source).toContain('} else if (index === 8)');
         expect(source).toContain("throw new Error('Visual movement poster was not captured during live input')");
     });
 
@@ -124,7 +123,8 @@ describe('release test gate', () => {
         const world = read('src/systems/world/WorldBuilder.js');
         const capture = read('scripts/company/prepare-visual-launch-candidates.cjs');
 
-        expect(smoke).toContain('Creature help changes the route in the same shot');
+        expect(smoke).toContain("message: 'Creature help result begins'");
+        expect(smoke).toContain('await delay(520);');
         expect(smoke).toContain("visibleHelpResult.action !== 'CREATURE SENDS LIFE ENERGY'");
         expect(smoke).toContain("visibleHelpResult.problem !== 'BLOCKED FOOD ROUTE'");
         expect(smoke).toContain("visibleHelpResult.result !== 'ROUTE OPEN +5 HAPPINESS'");
