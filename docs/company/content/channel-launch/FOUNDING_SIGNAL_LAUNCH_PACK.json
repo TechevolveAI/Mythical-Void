@@ -23,6 +23,10 @@
       "purpose": "invite one known person to compare what hatches without claiming multiplayer"
     },
     {
+      "route": "/parents/",
+      "purpose": "help one grown-up pass the checked family guide to another"
+    },
+    {
       "route": "/studio/",
       "purpose": "share the father-and-son beginning"
     },

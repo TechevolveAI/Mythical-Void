@@ -13,6 +13,7 @@ const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 const pages = [
     { file: 'public/playable-now/index.html', route: '/playable-now/', url: 'https://mythicalvoid.com/playable-now/#find-your-way', subject: 'playable game' },
+    { file: 'public/parents/index.html', route: '/parents/', url: 'https://mythicalvoid.com/parents/', subject: 'family guide' },
     { file: 'public/studio/index.html', route: '/studio/', url: 'https://mythicalvoid.com/studio/', subject: 'father-and-son beginning' },
     { file: 'public/nasa-space-science/index.html', route: '/nasa-space-science/', url: 'https://mythicalvoid.com/nasa-space-science/', subject: 'STEM Creature Lab' },
     { file: 'public/educators/index.html', route: '/educators/', url: 'https://mythicalvoid.com/educators/', subject: 'group mission' }
@@ -23,6 +24,7 @@ const pack = json('docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PA
 const packText = read('docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.md');
 const releases = json('public/updates/releases.json');
 const hatchChallenge = json('docs/company/growth/HATCH_CHALLENGE_LOOP.json');
+const familyGuide = json('docs/company/growth/FAMILY_GUIDE_RECOMMENDATION_LOOP.json');
 const packageJson = json('package.json');
 
 for (const page of pages) {
@@ -34,6 +36,9 @@ for (const page of pages) {
     for (const control of ['data-share-game', 'data-copy-game', 'data-share-status']) requireValue(source.includes(control), `${page.file}: ${control} is missing`);
     requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(source), `${page.file}: tracking code is not permitted`);
 }
+const parentGuidePage = read('public/parents/index.html');
+requireValue(parentGuidePage.includes('no public player profiles or chat with other players, and no account needed to begin'), 'family-guide share description must carry the checked trust promise');
+requireValue(parentGuidePage.includes('does not ask who receives the link') && parentGuidePage.includes('adds no tracking code'), 'family-guide recommendation privacy promise is missing');
 
 for (const required of [
     'shareCard.dataset.shareUrl',
@@ -86,9 +91,26 @@ if (hatchChallenge.state === 'owned_site_release_prepared') {
     requireValue(hatchChallenge.verification?.productionCommit === '148ca62d0c466bd031a5529ae83389067bb4e342' && hatchChallenge.verification?.productionDeployId === '6a8fb0d5da9b150008b16ec2' && hatchChallenge.verification?.liveChallengeVisible === true, 'live Hatch Challenge production proof is missing');
 }
 
+requireValue(familyGuide.releaseId === 'FAMILY-GUIDE-RECOMMENDATION-2026-08-27', 'family-guide recommendation release identity is invalid');
+requireValue(['owned_site_release_prepared', 'live_production_verified'].includes(familyGuide.state), 'family-guide recommendation release state is invalid');
+requireValue(familyGuide.publicRoute === 'https://mythicalvoid.com/parents/', 'family-guide recommendation route drifted');
+requireValue(familyGuide.promise?.noGameAds === true && familyGuide.promise?.noPublicProfiles === true && familyGuide.promise?.noChatWithOtherPlayers === true && familyGuide.promise?.noAccountNeededToBegin === true, 'family-guide trust promise drifted');
+for (const field of ['recipientCollected', 'contactDetailsCollected', 'trackingParametersAdded', 'creatureDataRead', 'saveDataRead']) {
+    requireValue(familyGuide.privacy?.[field] === false, `family-guide privacy.${field} must remain false`);
+}
+for (const field of ['externalSocialPublicationAuthorized', 'emailOrOutreachSendingAuthorized', 'paidPromotionAuthorized', 'externalAccountChangeAuthorized', 'externalActionTaken']) {
+    requireValue(familyGuide.authority?.[field] === false, `family-guide authority.${field} must remain false`);
+}
+requireValue(familyGuide.verification?.productionVerificationRequired === true, 'family-guide production verification boundary drifted');
+if (familyGuide.state === 'owned_site_release_prepared') {
+    requireValue(familyGuide.verification?.productionCommit === null && familyGuide.verification?.productionDeployId === null && familyGuide.verification?.liveShareCardVisible === false, 'prepared family-guide recommendation must not invent production proof');
+} else {
+    requireValue(/^[0-9a-f]{40}$/.test(familyGuide.verification?.productionCommit || '') && /^[0-9a-f]{24}$/.test(familyGuide.verification?.productionDeployId || '') && familyGuide.verification?.liveShareCardVisible === true, 'live family-guide production proof is missing');
+}
+
 requireValue(pack.id === 'FOUNDING-SIGNAL-001' && pack.state === 'owned_word_of_mouth_live_first_external_post_waits_for_kevin', 'founding launch pack state is invalid');
 requireValue(pack.primaryStoryUrl === 'https://mythicalvoid.com/studio/', 'founding launch pack must use the studio story');
-requireValue(Array.isArray(pack.ownedShareRoutes) && pack.ownedShareRoutes.length === 5, 'launch pack must list five owned share routes');
+requireValue(Array.isArray(pack.ownedShareRoutes) && pack.ownedShareRoutes.length === 6, 'launch pack must list six owned share routes');
 for (const page of pages) requireValue(pack.ownedShareRoutes.some(item => item.route === page.route), `launch pack is missing ${page.route}`);
 requireValue(pack.ownedShareRoutes.some(item => item.route === '/hatch-challenge/'), 'launch pack is missing the Hatch Challenge route');
 for (const field of ['socialPublishingAuthorized', 'paidPromotionAuthorized', 'bulkOutreachAuthorized', 'directChildContactAuthorized', 'recipientCollectionEnabled', 'trackingParametersEnabled', 'weakGameplayVisualPermitted']) {

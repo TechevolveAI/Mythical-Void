@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "FAMILY-GUIDE-RECOMMENDATION-2026-08-27",
+  "state": "owned_site_release_prepared",
+  "purpose": "Help one parent, guardian or grown-up pass Mythical Void's checked family answers to another without collecting a recipient or adding tracking code.",
+  "publicRoute": "https://mythicalvoid.com/parents/",
+  "promise": {
+    "freeBrowserPlay": true,
+    "noGameAds": true,
+    "noPublicProfiles": true,
+    "noChatWithOtherPlayers": true,
+    "noAccountNeededToBegin": true,
+    "creatureDialogueIsPersonToPersonChat": false
+  },
+  "privacy": {
+    "recipientCollected": false,
+    "contactDetailsCollected": false,
+    "trackingParametersAdded": false,
+    "creatureDataRead": false,
+    "saveDataRead": false
+  },
+  "authority": {
+    "ownedWebsitePublicationAuthorized": true,
+    "externalSocialPublicationAuthorized": false,
+    "emailOrOutreachSendingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "externalAccountChangeAuthorized": false,
+    "externalActionTaken": false
+  },
+  "verification": {
+    "productionVerificationRequired": true,
+    "productionCommit": null,
+    "productionDeployId": null,
+    "productionPublishedAt": null,
+    "liveShareCardVisible": false,
+    "liveCleanShareUrlVerified": false,
+    "liveFamilyPromiseVerified": false
+  }
+}

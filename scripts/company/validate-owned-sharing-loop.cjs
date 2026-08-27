@@ -16,6 +16,7 @@ const discovery = text('public/discovery.js');
 const storefront = text('src/site/storefront.js');
 const sharePages = [
     ['public/playable-now/index.html', 'https://mythicalvoid.com/playable-now/#find-your-way'],
+    ['public/parents/index.html', 'https://mythicalvoid.com/parents/'],
     ['public/studio/index.html', 'https://mythicalvoid.com/studio/'],
     ['public/nasa-space-science/index.html', 'https://mythicalvoid.com/nasa-space-science/'],
     ['public/educators/index.html', 'https://mythicalvoid.com/educators/']
@@ -48,6 +49,9 @@ for (const [pagePath, destination] of sharePages) {
     requireValue(page.includes('data-share-title=') && page.includes('data-share-text='), `${pagePath} needs a useful share title and description.`);
     requireValue(page.includes('data-share-game') && page.includes('data-copy-game') && page.includes('data-share-status'), `${pagePath} needs native share, copy and accessible status controls.`);
 }
+const parents = text('public/parents/index.html');
+requireValue(parents.includes('no public player profiles or chat with other players') && parents.includes('no account needed to begin'), 'The family-guide share message must carry the checked trust promise.');
+requireValue(parents.includes('does not ask who receives the link') && parents.includes('adds no tracking code'), 'The family-guide sharing privacy promise is missing.');
 requireValue(discovery.includes("shareCard.dataset.shareUrl"), 'Sharing must read the reviewed destination from each page.');
 requireValue(discovery.includes('navigator.share(shareData)'), 'Native device sharing is missing.');
 requireValue(discovery.includes('navigator.clipboard.writeText(shareUrl)'), 'Clipboard fallback is missing.');

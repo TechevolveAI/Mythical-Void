@@ -41,6 +41,9 @@ function validateFamilyTrustDoorway(input) {
     requireValue(input.parentsHtml.includes('No public profiles or chat with other players'), 'parent quick answers must state the other-player boundary');
     requireValue(input.parentsHtml.includes('not a conversation with another person'), 'parent FAQ must distinguish creature dialogue from person-to-person chat');
     requireValue(input.parentsHtml.includes('no game adverts, public player profiles or chat with other players'), 'parent search description must carry the family trust promise');
+    requireValue(input.parentsHtml.includes('data-share-url="https://mythicalvoid.com/parents/"'), 'parent guide must provide its own clean recommendation link');
+    requireValue(input.parentsHtml.includes('no public player profiles or chat with other players, and no account needed to begin'), 'parent recommendation message must carry the checked trust promise');
+    requireValue(input.parentsHtml.includes('does not ask who receives the link') && input.parentsHtml.includes('adds no tracking code'), 'parent recommendation must explain its privacy boundary');
 
     requireValue(input.playableHtml.includes('No game ads · No chat with other players'), 'Play doorway must show the ad and other-player boundaries before Play');
     requireValue(input.playableHtml.includes('no game ads, download, account, public profile or chat with other players'), 'Play doorway search description must carry the trust promise');
@@ -83,4 +86,3 @@ if (require.main === module) {
 }
 
 module.exports = { collectRuntimeSources, loadCurrent, validateFamilyTrustDoorway };
-
