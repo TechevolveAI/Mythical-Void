@@ -15,7 +15,9 @@ const requireValue = (condition, message) => { if (!condition) failures.push(mes
 
 requireValue(audit.id === 'LIVE-FIRST-IMPRESSION-001', 'audit identity is missing');
 requireValue(audit.result === 'owned_entry_pass_game_return_visual_fail_external_launch_closed', 'audit result overstates live quality');
-requireValue(audit.scope?.freshFirstTimeGame?.checked === false, 'fresh first-time play must remain unverified until separately observed');
+requireValue(audit.scope?.freshFirstTimeGame?.checked === true, 'fresh first-time desktop route must record the observed production check');
+requireValue(audit.scope?.freshFirstTimeGame?.completedThrough === 'first_contact_egg' && audit.scope?.freshFirstTimeGame?.meaningfulActionOrHatchReached === false && audit.scope?.freshFirstTimeGame?.phoneChecked === false, 'fresh first-time evidence overstates what was observed');
+requireValue(audit.scope?.freshFirstTimeGame?.savedPlayerDataInspected === false && audit.scope?.freshFirstTimeGame?.savedPlayerDataChanged === false, 'fresh first-time evidence crossed the saved-data boundary');
 requireValue(audit.scope?.returningGameDesktop?.checked === true && audit.scope?.returningGamePhone?.checked === true, 'returning route viewport evidence is incomplete');
 requireValue(audit.conversionRisks?.length === 5, 'five observed conversion risks are required');
 for (const id of ['FI-001', 'FI-002', 'FI-003', 'FI-004', 'FI-005']) requireValue(audit.conversionRisks?.some(item => item.id === id), `missing conversion risk ${id}`);
@@ -43,4 +45,3 @@ console.log(JSON.stringify({
     visualGate: '0/4',
     externalPublicationAuthorized: false
 }, null, 2));
-

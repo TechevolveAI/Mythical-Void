@@ -2,7 +2,8 @@
   "schemaVersion": 1,
   "id": "LIVE-FIRST-IMPRESSION-001",
   "checkedOn": "2026-08-27",
-  "liveSourceCommit": "538fcf26bc62aee998d1fb9ef5386a2b6672b0bb",
+  "liveSourceCommit": "133558cc5b0a7634f329b76edb3f2c79579183ae",
+  "liveSourceDeployId": "6a8fe76d3ba9af0007ca0615",
   "result": "owned_entry_pass_game_return_visual_fail_external_launch_closed",
   "scope": {
     "homepageDesktop": { "width": 1280, "height": 720, "checked": true },
@@ -10,7 +11,17 @@
     "gameFinderPhone": { "width": 390, "height": 844, "checked": true },
     "returningGameDesktop": { "width": 1280, "height": 720, "checked": true },
     "returningGamePhone": { "width": 390, "height": 844, "checked": true },
-    "freshFirstTimeGame": { "checked": false, "reason": "The controlled browser contained an existing saved adventure; no storage was inspected or changed." }
+    "freshFirstTimeGame": {
+      "checked": true,
+      "origin": "isolated production deploy",
+      "viewport": { "width": 1280, "height": 720 },
+      "adultAgePathUsed": true,
+      "completedThrough": "first_contact_egg",
+      "meaningfulActionOrHatchReached": false,
+      "phoneChecked": false,
+      "savedPlayerDataInspected": false,
+      "savedPlayerDataChanged": false
+    }
   },
   "passes": [
     "Homepage promise and primary action are clear on desktop and phone",
@@ -18,7 +29,8 @@
     "Game-finder access facts appear before optional mood choices",
     "Public Play link reaches the live game",
     "Sampled game load completed without a visible browser warning or error",
-    "Returning-player website wording changes Play to Continue"
+    "Returning-player website wording changes Play to Continue",
+    "A fresh isolated desktop route reaches one clear Start action and a plain first-contact egg instruction"
   ],
   "conversionRisks": [
     {
@@ -48,8 +60,8 @@
     {
       "id": "FI-005",
       "severity": "unverified_first_time_path",
-      "finding": "This run proves an existing saved-adventure return, not a clean first-time start.",
-      "requiredProof": "A fresh-browser Play-to-first-action review that does not inspect or retain player data."
+      "finding": "The fresh desktop route now reaches first contact cleanly, but this run did not complete the hatch or prove the first meaningful action on phone.",
+      "requiredProof": "Complete a fresh desktop-and-phone Play-to-hatch review without inspecting or retaining player data."
     }
   ],
   "visualGate": {
@@ -71,4 +83,3 @@
     "gameCodeChangeAuthorizedByThisRecord": false
   }
 }
-
