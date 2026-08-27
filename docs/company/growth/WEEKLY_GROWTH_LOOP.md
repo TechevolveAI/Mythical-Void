@@ -12,6 +12,8 @@ that Mythical already owns.
 - the live game and public website are reachable;
 - the journey from “I want a new game” to Play still works;
 - whether Mythical Void appears in public branded and relevant game searches;
+- the accepted 27 August IndexNow submission after seven and fourteen days,
+  without resubmitting unchanged URLs or calling acceptance “indexing”;
 - the sitemap, Signal Log, public feeds and important page links;
 - optional website measurement remains consent-led and outside the game;
 - whether stronger gameplay moments have passed human visual review;
@@ -24,6 +26,8 @@ that Mythical already owns.
   Kevin’s standing direction;
 - improve truthful words, search information, links, release notes and operating
   records;
+- notify IndexNow only when a canonical public URL is genuinely new or changed,
+  never as a repeated ranking trick;
 - prepare one clear outside action for Kevin when a human account, approval or
   reply is required.
 
