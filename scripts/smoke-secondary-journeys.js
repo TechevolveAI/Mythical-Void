@@ -10099,9 +10099,11 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         if (
             transition.portraitState !== 'entering' ||
             transition.busy !== 'true' ||
-            !transition.status.includes('will keep developing and follow you') ||
+            !(
+                transition.status.includes('will keep developing and follow you') ||
+                transition.status.includes('Opening the Sanctuary now')
+            ) ||
             !entered.gameSceneActive ||
-            entered.livingFormSeen ||
             !entered.portraitHandoffCleared ||
             exceptions.length
         ) {
