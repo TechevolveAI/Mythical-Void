@@ -7,6 +7,10 @@ describe('living portrait modern Netlify runtime', () => {
         '../../netlify/functions/generate-ai-art.mjs'
     );
     const adapterSource = fs.readFileSync(adapterPath, 'utf8');
+    const netlifyConfig = fs.readFileSync(
+        path.join(__dirname, '../../netlify.toml'),
+        'utf8'
+    );
 
     test('uses a modern ESM default handler so AI Gateway variables are available', () => {
         expect(adapterSource).toContain("import { GoogleGenAI } from '@google/genai'");
@@ -28,5 +32,13 @@ describe('living portrait modern Netlify runtime', () => {
         expect(adapterSource).toContain('queryStringParameters:');
         expect(adapterSource).toContain('event.body = await request.text()');
         expect(adapterSource).toContain('status: result.statusCode');
+    });
+
+    test('packages every server-only ESM dependency in the function artifact', () => {
+        expect(netlifyConfig).toContain('[functions]');
+        expect(netlifyConfig).toContain('node_bundler = "esbuild"');
+        expect(netlifyConfig).toContain(
+            'external_node_modules = ["@google/genai", "@supabase/supabase-js", "ws"]'
+        );
     });
 });

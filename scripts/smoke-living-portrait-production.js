@@ -38,9 +38,22 @@ function fail(message) {
 }
 
 async function readJson(response) {
-    const result = await response.json().catch(() => ({}));
+    const responseText = await response.text();
+    let result = {};
+    try {
+        result = responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+        result = {};
+    }
     if (!response.ok) {
-        fail(result.error || `Portrait service error (${response.status})`);
+        const requestId = response.headers.get('x-nf-request-id');
+        fail(result.error || [
+            `Portrait service error (${response.status})`,
+            requestId ? `request ${requestId}` : null,
+            responseText && !result.error
+                ? responseText.replace(/\s+/g, ' ').slice(0, 180)
+                : null
+        ].filter(Boolean).join(': '));
     }
     return result;
 }

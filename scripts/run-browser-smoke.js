@@ -216,6 +216,18 @@ async function main() {
             failures.push(`first-sanctuary: ${error.message}`);
         }
 
+        console.log('\n[release-smoke] Portrait failure Sanctuary escape suite');
+        try {
+            await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                SMOKE_MODE: 'first-sanctuary',
+                SMOKE_CASE: 'failure-handoff',
+                SMOKE_VIEWPORT_WIDTH: '390',
+                SMOKE_VIEWPORT_HEIGHT: '844'
+            });
+        } catch (error) {
+            failures.push(`first-sanctuary:failure-handoff: ${error.message}`);
+        }
+
         console.log('\n[release-smoke] Late Living Portrait continuity suite');
         try {
             await runNodeScript('scripts/smoke-secondary-journeys.js', {

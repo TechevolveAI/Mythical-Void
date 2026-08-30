@@ -147,6 +147,61 @@ describe('LivingFormHandoff mobile continuation', () => {
         )).toBeNull();
     });
 
+    test('keeps the mobile Sanctuary route outside Phaser clipping', () => {
+        const handoff = new LivingFormHandoff(createScene());
+        handoff.show({
+            name: 'Nova',
+            species: 'nebulaSprite',
+            portraitPromise: new Promise(() => {})
+        });
+
+        const root = document.querySelector('[data-testid="living-form-handoff"]');
+        const dock = document.querySelector('[data-testid="living-form-mobile-dock"]');
+        const button = document.querySelector(
+            '[data-testid="living-form-mobile-continue"]'
+        );
+        expect(dock?.parentElement).toBe(document.body);
+        expect(root?.contains(dock)).toBe(false);
+        expect(button?.disabled).toBe(false);
+        expect(button?.textContent).toBe('ENTER SANCTUARY NOW');
+
+        handoff.destroy();
+        expect(document.querySelector('[data-testid="living-form-mobile-dock"]'))
+            .toBeNull();
+    });
+
+    test('the fixed mobile action enters once and acknowledges the tap', () => {
+        const onContinue = jest.fn();
+        const handoff = new LivingFormHandoff(createScene());
+        handoff.show({
+            name: 'Nova',
+            species: 'nebulaSprite',
+            portraitPromise: new Promise(() => {}),
+            keepVisibleOnContinue: true,
+            onContinue
+        });
+        const button = document.querySelector(
+            '[data-testid="living-form-mobile-continue"]'
+        );
+
+        button.dispatchEvent(new Event('touchend', {
+            bubbles: true,
+            cancelable: true
+        }));
+        button.dispatchEvent(new Event('click', {
+            bubbles: true,
+            cancelable: true
+        }));
+
+        expect(onContinue).toHaveBeenCalledTimes(1);
+        expect(button.disabled).toBe(true);
+        expect(button.getAttribute('aria-busy')).toBe('true');
+        expect(button.textContent).toBe('ENTERING SANCTUARY...');
+        expect(document.querySelector('.living-form-mobile-status').textContent)
+            .toBe('ROUTE CONFIRMED');
+        handoff.destroy();
+    });
+
     test('the first Sanctuary transition stays visible and acknowledges the tap', () => {
         const onContinue = jest.fn();
         const handoff = new LivingFormHandoff(createScene());
@@ -424,6 +479,46 @@ describe('LivingFormHandoff mobile continuation', () => {
         }));
         handoff.image.onload();
         expect(onPortraitShown).toHaveBeenCalledTimes(1);
+        handoff.destroy();
+    });
+
+    test('portrait failure stops developing and leaves both routes available', async () => {
+        const onContinue = jest.fn();
+        const handoff = new LivingFormHandoff(createScene());
+        handoff.show({
+            name: 'Nova',
+            species: 'nebulaSprite',
+            portraitPromise: Promise.reject(new Error('Portrait service failed')),
+            keepVisibleOnContinue: true,
+            onContinue
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        const root = document.querySelector('[data-testid="living-form-handoff"]');
+        const desktopButton = document.querySelector(
+            '[data-testid="living-form-continue"]'
+        );
+        const mobileButton = document.querySelector(
+            '[data-testid="living-form-mobile-continue"]'
+        );
+        expect(root.dataset.portraitState).toBe('retry');
+        expect(root.classList.contains('is-portrait-pending')).toBe(false);
+        expect(document.querySelector('.living-form-spinner')).toBeNull();
+        expect(document.querySelector('.living-form-progress')).toBeNull();
+        expect(document.querySelector('.living-form-loading-title').textContent)
+            .toBe('PORTRAIT WILL RETRY');
+        expect(document.querySelector('.living-form-loading-detail').textContent)
+            .toBe('Continue now. Nothing is lost.');
+        expect(document.querySelector('.living-form-mobile-status').textContent)
+            .toContain('SANCTUARY READY');
+        expect(desktopButton.textContent).toBe('ENTER SANCTUARY');
+        expect(mobileButton.textContent).toBe('ENTER SANCTUARY');
+        expect(desktopButton.disabled).toBe(false);
+        expect(mobileButton.disabled).toBe(false);
+
+        mobileButton.click();
+        expect(onContinue).toHaveBeenCalledTimes(1);
         handoff.destroy();
     });
 });

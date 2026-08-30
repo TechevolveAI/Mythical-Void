@@ -9726,7 +9726,9 @@ async function smokeLateLivingFormArrival(session, exceptions) {
         () => evaluate(session, `(() => {
             const root = document.querySelector('[data-testid="living-form-handoff"]');
             const image = root?.querySelector('.living-form-image.is-ready');
-            const action = root?.querySelector('[data-testid="living-form-continue"]');
+            const action = document.querySelector(
+                '[data-testid="living-form-mobile-continue"]'
+            ) || root?.querySelector('[data-testid="living-form-continue"]');
             const bounds = action?.getBoundingClientRect?.();
             if (
                 !root ||
@@ -9762,7 +9764,7 @@ async function smokeLateLivingFormArrival(session, exceptions) {
         throw new Error(`Late living-form reveal was unsafe: ${JSON.stringify(reveal)}`);
     }
     await captureGameplayStill(session, 'living-form-late-arrival-mobile.png');
-    await touchDomButton(session, '[data-testid="living-form-continue"]', {
+    await touchDomButton(session, '[data-testid="living-form-mobile-continue"]', {
         message: 'Continue after late living-form reveal'
     });
     await waitFor(
@@ -9792,7 +9794,9 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     })()`);
     await navigate(
         session,
-        `${BASE_URL}/play/?testSoulReveal=portrait-slow${SMOKE_ENTRY_HASH}`
+        `${BASE_URL}/play/?testSoulReveal=${
+            SMOKE_CASE === 'failure-handoff' ? 'fallback' : 'portrait-slow'
+        }${SMOKE_ENTRY_HASH}`
     );
     try {
         await waitForScene(session, 'SoulRevealScene', 2500);
@@ -9809,8 +9813,11 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
                 }
             });
             game.scene.start('SoulRevealScene', {
-                portraitPreviewImage: '/marketing/nova.webp',
+                portraitPreviewImage: ${JSON.stringify(
+                    SMOKE_CASE === 'failure-handoff' ? null : '/marketing/nova.webp'
+                )},
                 portraitPreviewSpecies: 'nebulaSprite',
+                portraitPreviewFailure: ${SMOKE_CASE === 'failure-handoff'},
                 portraitPreviewDelay: 5000
             });
             return true;
@@ -9863,13 +9870,53 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         message: 'Reveal Living Form action'
     });
 
+    if (SMOKE_CASE === 'failure-handoff') {
+        const fallback = await waitFor(
+            () => evaluate(session, `(() => {
+                const root = document.querySelector('[data-testid="living-form-handoff"]');
+                const button = document.querySelector(
+                    '[data-testid="living-form-mobile-continue"]'
+                );
+                const bounds = button?.getBoundingClientRect?.();
+                if (root?.dataset?.portraitState !== 'retry' || !bounds) return null;
+                return {
+                    action: button.textContent?.trim(),
+                    disabled: button.disabled,
+                    title: root.querySelector('.living-form-loading-title')?.textContent?.trim(),
+                    spinnerVisible: Boolean(root.querySelector('.living-form-spinner')),
+                    viewportHeight: window.visualViewport?.height || window.innerHeight,
+                    actionBottom: Math.round(bounds.bottom)
+                };
+            })()`),
+            { timeoutMs: 8000, message: 'portrait failure fallback route' }
+        );
+        if (
+            fallback.action !== 'ENTER SANCTUARY' ||
+            fallback.disabled ||
+            fallback.title !== 'PORTRAIT WILL RETRY' ||
+            fallback.spinnerVisible ||
+            fallback.actionBottom > fallback.viewportHeight
+        ) {
+            throw new Error(`Portrait failure blocked Sanctuary: ${JSON.stringify(fallback)}`);
+        }
+        await touchDomButton(session, '[data-testid="living-form-mobile-continue"]', {
+            message: 'Enter Sanctuary after portrait failure'
+        });
+        await waitForScene(session, 'GameScene');
+        return { naming, fallback };
+    }
+
     const pendingReveal = await waitFor(
         () => evaluate(session, `(() => {
             const root = document.querySelector('[data-testid="living-form-handoff"]');
             const spinner = root?.querySelector('.living-form-spinner');
             const detail = root?.querySelector('.living-form-loading-detail');
-            const button = root?.querySelector('[data-testid="living-form-continue"]');
-            const actions = root?.querySelector('[data-testid="living-form-actions"]');
+            const button = document.querySelector(
+                '[data-testid="living-form-mobile-continue"]'
+            ) || root?.querySelector('[data-testid="living-form-continue"]');
+            const actions = document.querySelector(
+                '[data-testid="living-form-mobile-dock"]'
+            ) || root?.querySelector('[data-testid="living-form-actions"]');
             const bounds = button?.getBoundingClientRect?.();
             const actionDockBounds = actions?.getBoundingClientRect?.();
             const viewportHeight = window.visualViewport?.height || window.innerHeight;
@@ -9919,13 +9966,15 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     await captureGameplayStill(session, 'first-living-form-developing-mobile.png');
 
     if (SMOKE_CASE === 'pending-handoff') {
-        await touchDomButton(session, '[data-testid="living-form-continue"]', {
+        await touchDomButton(session, '[data-testid="living-form-mobile-continue"]', {
             message: 'Enter Sanctuary while living portrait develops'
         });
         const transition = await waitFor(
             () => evaluate(session, `(() => {
                 const root = document.querySelector('[data-testid="living-form-handoff"]');
-                const button = root?.querySelector('[data-testid="living-form-continue"]');
+                const button = document.querySelector(
+                    '[data-testid="living-form-mobile-continue"]'
+                ) || root?.querySelector('[data-testid="living-form-continue"]');
                 if (
                     !root?.classList?.contains('is-transitioning') ||
                     button?.textContent?.trim() !== 'ENTERING SANCTUARY...' ||
@@ -9972,7 +10021,9 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
             const image = root?.querySelector('.living-form-image.is-ready');
             const source = root?.querySelector('.living-form-source')?.textContent?.trim();
             const challenge = root?.querySelector('[data-testid="living-form-challenge"]');
-            const button = root?.querySelector('[data-testid="living-form-continue"]');
+            const button = document.querySelector(
+                '[data-testid="living-form-mobile-continue"]'
+            ) || root?.querySelector('[data-testid="living-form-continue"]');
             const bounds = button?.getBoundingClientRect?.();
             if (
                 !root ||
@@ -10019,7 +10070,7 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     await captureGameplayStill(session, 'first-living-form-mobile.png');
 
     const handoffStartedAt = Date.now();
-    await touchDomButton(session, '[data-testid="living-form-continue"]', {
+    await touchDomButton(session, '[data-testid="living-form-mobile-continue"]', {
         message: 'Enter Sanctuary action'
     });
     await waitForScene(session, 'GameScene');
@@ -10293,7 +10344,9 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
             () => evaluate(session, `(() => {
             const root = document.querySelector('[data-testid="living-form-handoff"]');
             const image = root?.querySelector('.living-form-image.is-ready');
-            const action = root?.querySelector('[data-testid="living-form-continue"]');
+            const action = document.querySelector(
+                '[data-testid="living-form-mobile-continue"]'
+            ) || root?.querySelector('[data-testid="living-form-continue"]');
             const bounds = action?.getBoundingClientRect?.();
             if (
                 !root ||
@@ -10317,7 +10370,9 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
             const scene = window.mythicalGame?.scene?.getScene('GameScene');
             const root = document.querySelector('[data-testid="living-form-handoff"]');
             const image = root?.querySelector('.living-form-image');
-            const action = root?.querySelector('[data-testid="living-form-continue"]');
+            const action = document.querySelector(
+                '[data-testid="living-form-mobile-continue"]'
+            ) || root?.querySelector('[data-testid="living-form-continue"]');
             const actionBounds = action?.getBoundingClientRect?.();
             const rootBounds = root?.getBoundingClientRect?.();
             const canvasBounds = scene?.game?.canvas?.getBoundingClientRect?.();
@@ -10389,7 +10444,7 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         throw new Error(`Late living-form reveal was incomplete: ${JSON.stringify(lateReveal)}`);
     }
     await captureGameplayStill(session, 'first-living-form-late-arrival-mobile.png');
-    await touchDomButton(session, '[data-testid="living-form-continue"]', {
+    await touchDomButton(session, '[data-testid="living-form-mobile-continue"]', {
         message: 'Continue exploring after late living-form reveal'
     });
 
