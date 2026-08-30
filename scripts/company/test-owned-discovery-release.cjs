@@ -76,7 +76,8 @@ invalid('src/site/storefront.js', source => source.replace('does not send Google
 invalid('scripts/company/submit-indexnow.cjs', source => source.replace("const submit = process.argv.includes('--submit')", 'const submit = true'), 'not behind an explicit flag');
 invalid('public/2d33a591a69d023517107abcaf6b7d52.txt', () => 'wrong-key\n', 'ownership file is missing or incorrect');
 invalid('index.html', source => source.replace('"@type": "WebSite"', '"@type": "Thing"'), 'homepage WebSite identity is missing');
-invalid('index.html', source => source.replace('"name": "Mythical Void",\n      "alternateName"', '"name": "Mythical Void Portal",\n      "alternateName"'), 'official site name must remain Mythical Void');
+invalid('index.html', source => source.replace('"name": "Mythical Void",\n          "alternateName": "mythicalvoid.com"', '"name": "Mythical Void Portal",\n          "alternateName": "mythicalvoid.com"'), 'official site name must remain Mythical Void');
+invalid('index.html', source => source.replace('"@type": "Organization"', '"@type": "Thing"'), 'homepage Organization identity is missing');
 invalid('index.html', source => source.replace('"urlTemplate": "https://mythicalvoid.com/play/"', '"urlTemplate": "https://mythicalvoid.com/play/?campaign=search"'), 'clean direct game URL');
 invalid('index.html', source => source.replace('"offers": {', '"screenshot": "https://mythicalvoid.com/unapproved-gameplay.png",\n      "offers": {'), 'must not publish an unapproved gameplay screenshot');
 
@@ -105,5 +106,5 @@ assert.deepStrictEqual(JSON.parse(JSON.stringify(playSelected[2])), {
     transport_type: 'beacon'
 });
 
-assert.strictEqual(cases, 13);
-console.log('Owned discovery release evaluations passed (13 cases).');
+assert.strictEqual(cases, 14);
+console.log('Owned discovery release evaluations passed (14 cases).');

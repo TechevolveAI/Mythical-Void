@@ -71,6 +71,8 @@ invalidAudit('premature sitemap authority', audit => { audit.authority.sitemapSu
 invalidAudit('paid search', audit => { audit.authority.paidSearchAuthorized = true; }, 'paidSearchAuthorized');
 invalidAudit('fabricated result', audit => { audit.sample.queries[0].mythicalResultObserved = true; }, 'sample result');
 invalidAudit('invented indexing', audit => { audit.indexNow.indexingClaimed = true; }, 'cannot be described as indexing');
+invalidAudit('invented result count', audit => { audit.sample.officialSiteResultCountClaimed = true; }, 'must not invent a result count');
+invalidAudit('premature identity deployment', audit => { audit.homepageIdentityMarkup.productionState = 'live'; }, 'must not be described as live');
 
 const robotsRoot = fixture(fixtureRoot => {
     fs.writeFileSync(path.join(fixtureRoot, 'public/robots.txt'), 'User-agent: *\nDisallow: /\n');
@@ -112,5 +114,5 @@ try {
     fs.rmSync(staleMapRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 10);
-console.log('Search visibility activation safeguards passed (10 cases).');
+assert.strictEqual(cases, 12);
+console.log('Search visibility activation safeguards passed (12 cases).');

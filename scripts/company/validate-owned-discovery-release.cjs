@@ -31,14 +31,17 @@ const structuredData = [...index.matchAll(/<script\s+type=["']application\/ld\+j
         }
     })
     .filter(Boolean);
-const videoGame = structuredData.find(item => item['@type'] === 'VideoGame');
-const website = structuredData.find(item => item['@type'] === 'WebSite');
+const structuredNodes = structuredData.flatMap(item => Array.isArray(item['@graph']) ? item['@graph'] : [item]);
+const videoGame = structuredNodes.find(item => item['@type'] === 'VideoGame');
+const website = structuredNodes.find(item => item['@type'] === 'WebSite');
+const organization = structuredNodes.find(item => item['@type'] === 'Organization');
 
 if (!videoGame) failures.push('homepage VideoGame identity is missing');
 else {
     if (videoGame['@id'] !== 'https://mythicalvoid.com/#video-game') failures.push('homepage VideoGame identity is not canonical');
-    if (videoGame.mainEntityOfPage !== 'https://mythicalvoid.com/') failures.push('homepage VideoGame does not identify the canonical page');
+    if (videoGame.mainEntityOfPage?.['@id'] !== 'https://mythicalvoid.com/#website') failures.push('homepage VideoGame does not link to the canonical WebSite');
     if (videoGame.creator?.['@id'] !== 'https://mythicalvoid.com/#studio') failures.push('homepage VideoGame creator is missing');
+    if (videoGame.publisher?.['@id'] !== 'https://mythicalvoid.com/#studio') failures.push('homepage VideoGame publisher is missing');
     if (videoGame.potentialAction?.['@type'] !== 'PlayAction') failures.push('homepage direct Play action is missing');
     if (videoGame.potentialAction?.target?.urlTemplate !== 'https://mythicalvoid.com/play/') failures.push('homepage Play action must use the clean direct game URL');
     const actionPlatforms = videoGame.potentialAction?.target?.actionPlatform || [];
@@ -54,7 +57,12 @@ else {
     if (website.url !== 'https://mythicalvoid.com/') failures.push('homepage WebSite URL is not canonical');
     if (website.name !== 'Mythical Void') failures.push('homepage official site name must remain Mythical Void');
     if (website.publisher?.['@id'] !== 'https://mythicalvoid.com/#studio') failures.push('homepage WebSite publisher is missing');
-    if (website.publisher?.logo?.url !== 'https://mythicalvoid.com/marketing/mythical-void-mark-512.png') failures.push('homepage WebSite publisher logo is missing');
+}
+if (!organization) failures.push('homepage Organization identity is missing');
+else {
+    if (organization['@id'] !== 'https://mythicalvoid.com/#studio') failures.push('homepage Organization identity is not canonical');
+    if (organization.url !== 'https://mythicalvoid.com/studio/') failures.push('homepage Organization URL is not canonical');
+    if (organization.logo?.url !== 'https://mythicalvoid.com/marketing/mythical-void-mark-512.png') failures.push('homepage Organization logo is missing');
 }
 if (!index.includes('<meta property="og:site_name" content="Mythical Void">')) failures.push('homepage social site name is missing');
 
