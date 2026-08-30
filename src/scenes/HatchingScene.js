@@ -722,6 +722,7 @@ class HatchingScene extends Phaser.Scene {
 
             // Mark game as started
             state.set('session.gameStarted', true);
+            state.recordOpeningMilestone?.('hatch_started');
             console.log('✅ Set gameStarted to true');
 
             // NOTE: Do NOT reset creature collection here!
@@ -3124,6 +3125,7 @@ class HatchingScene extends Phaser.Scene {
             this.showCriticalError('Creature identity could not be saved');
             return;
         }
+        state.recordOpeningMilestone?.('creature_hatched');
         state.set('creature.hatchTransaction', null);
 
         // CRITICAL: Force save to localStorage immediately
@@ -4859,6 +4861,7 @@ class HatchingScene extends Phaser.Scene {
 
         // Mark game as started - CRITICAL for game flow validation
         GameState.set('session.gameStarted', true);
+        GameState.recordOpeningMilestone?.('hatch_started');
         console.log('✅ Set gameStarted to true');
 
         // NOTE: Do NOT reset creature collection here!

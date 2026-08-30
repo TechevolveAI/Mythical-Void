@@ -3,6 +3,127 @@
  * Handles player progression, world state, creature data, and persistence
  */
 
+const OPENING_MILESTONES = Object.freeze([
+    'not_started',
+    'hatch_started',
+    'creature_hatched',
+    'creature_named',
+    'sanctuary_entered',
+    'story_completed',
+    'controls_completed',
+    'first_objective_ready'
+]);
+const OPENING_PORTRAIT_STATUSES = Object.freeze([
+    'not_requested',
+    'pending',
+    'ready',
+    'retry'
+]);
+const openingMilestoneIndex = milestone => OPENING_MILESTONES.indexOf(milestone);
+
+function createOpeningJourney() {
+    return {
+        schemaVersion: 1,
+        milestone: 'not_started',
+        completedMilestones: [],
+        startedAt: null,
+        updatedAt: null,
+        recoveryCount: 0,
+        portrait: { status: 'not_requested', updatedAt: null }
+    };
+}
+
+function deriveOpeningMilestone(state = {}) {
+    const tutorial = state.tutorial || {};
+    const creature = state.creature || {};
+    let milestone = 'not_started';
+    if (state.session?.gameStarted === true) milestone = 'hatch_started';
+    if (creature.hatched === true) milestone = 'creature_hatched';
+    if (
+        creature.named === true ||
+        (typeof creature.name === 'string' &&
+            creature.name.trim() && creature.name !== 'Your Creature')
+    ) milestone = 'creature_named';
+    if (
+        tutorial.crashStorySeen === true ||
+        tutorial.controlsSeen === true ||
+        tutorial.villageHeartArrivalSeen === true
+    ) milestone = 'sanctuary_entered';
+    if (tutorial.crashStorySeen === true) milestone = 'story_completed';
+    if (tutorial.controlsSeen === true) milestone = 'controls_completed';
+    if (tutorial.villageHeartArrivalSeen === true) milestone = 'first_objective_ready';
+    return milestone;
+}
+
+function reconcileOpeningJourney(state = {}, now = Date.now()) {
+    const tutorial = state.tutorial || {};
+    const existing = tutorial.openingJourney || {};
+    const completedIndex = Array.isArray(existing.completedMilestones)
+        ? existing.completedMilestones.reduce(
+            (highest, milestone) => Math.max(highest, openingMilestoneIndex(milestone)),
+            0
+        )
+        : 0;
+    const currentIndex = Math.max(
+        0,
+        openingMilestoneIndex(existing.milestone),
+        openingMilestoneIndex(deriveOpeningMilestone(state)),
+        completedIndex
+    );
+    let portraitStatus = OPENING_PORTRAIT_STATUSES.includes(existing.portrait?.status)
+        ? existing.portrait.status
+        : 'not_requested';
+    if (tutorial.livingFormSeen === true) portraitStatus = 'ready';
+    else if (portraitStatus !== 'ready' && tutorial.livingFormPending === true) {
+        portraitStatus = 'pending';
+    }
+    return {
+        schemaVersion: 1,
+        milestone: OPENING_MILESTONES[currentIndex],
+        completedMilestones: OPENING_MILESTONES.slice(1, currentIndex + 1),
+        startedAt: Number(existing.startedAt) || (
+            currentIndex > 0 ? Number(state.savedAt) || now : null
+        ),
+        updatedAt: Number(existing.updatedAt) || (
+            currentIndex > 0 ? Number(state.savedAt) || now : null
+        ),
+        recoveryCount: Math.max(0, Number(existing.recoveryCount) || 0),
+        portrait: {
+            status: portraitStatus,
+            updatedAt: Number(existing.portrait?.updatedAt) || (
+                portraitStatus === 'not_requested' ? null : now
+            )
+        }
+    };
+}
+
+function advanceOpeningJourney(state, milestone, now = Date.now()) {
+    const targetIndex = openingMilestoneIndex(milestone);
+    if (targetIndex < 0) throw new Error(`Unknown opening milestone: ${milestone}`);
+    const current = reconcileOpeningJourney(state, now);
+    if (targetIndex <= openingMilestoneIndex(current.milestone)) return current;
+    return {
+        ...current,
+        milestone,
+        completedMilestones: OPENING_MILESTONES.slice(1, targetIndex + 1),
+        startedAt: current.startedAt || now,
+        updatedAt: now
+    };
+}
+
+function updateOpeningPortrait(state, status, now = Date.now()) {
+    if (!OPENING_PORTRAIT_STATUSES.includes(status)) {
+        throw new Error(`Unknown opening portrait status: ${status}`);
+    }
+    const current = reconcileOpeningJourney(state, now);
+    if (current.portrait.status === 'ready' && status !== 'ready') return current;
+    return {
+        ...current,
+        portrait: { status, updatedAt: now },
+        updatedAt: now
+    };
+}
+
 // GAME VERSION - Increment when making breaking changes to save data schema
 const GAME_VERSION = '1.1.0'; // Format: major.minor.patch
 const SAVE_BACKUP_LIMIT = 3;
@@ -872,7 +993,8 @@ class GameStateManager {
                 evolutionSeen: false,
                 departureSeen: false,
                 abandonmentSeen: false,
-                breedingUnlockSeen: false
+                breedingUnlockSeen: false,
+                openingJourney: createOpeningJourney()
             }
         };
     }
@@ -4002,9 +4124,48 @@ class GameStateManager {
         this.migrateCreaturePortability(migrated);
         this.migratePortraitReferences(migrated);
         this.migrateFusionPortability(migrated);
+        migrated.tutorial = migrated.tutorial || {};
+        migrated.tutorial.openingJourney = reconcileOpeningJourney(migrated);
 
         console.log(`[GameState] Migration complete: ${fromVersion} → ${GAME_VERSION}`);
         return migrated;
+    }
+
+    getOpeningJourney() {
+        const journey = reconcileOpeningJourney(this.state);
+        this.state.tutorial = this.state.tutorial || {};
+        this.state.tutorial.openingJourney = journey;
+        return JSON.parse(JSON.stringify(journey));
+    }
+
+    getOpeningResumeTarget() {
+        const journey = this.getOpeningJourney();
+        if (
+            openingMilestoneIndex(journey.milestone) <
+            openingMilestoneIndex('creature_hatched')
+        ) return 'HatchingScene';
+        if (
+            journey.milestone === 'creature_hatched' ||
+            (journey.milestone === 'creature_named' &&
+                this.get('tutorial.livingFormPending') === true)
+        ) return 'SoulRevealScene';
+        return 'GameScene';
+    }
+
+    recordOpeningMilestone(milestone) {
+        const journey = advanceOpeningJourney(this.state, milestone);
+        this.state.tutorial = this.state.tutorial || {};
+        this.state.tutorial.openingJourney = journey;
+        this.emit('openingJourneyAdvanced', { milestone, journey });
+        return JSON.parse(JSON.stringify(journey));
+    }
+
+    recordOpeningPortraitStatus(status) {
+        const journey = updateOpeningPortrait(this.state, status);
+        this.state.tutorial = this.state.tutorial || {};
+        this.state.tutorial.openingJourney = journey;
+        this.emit('openingPortraitStatusChanged', { status, journey });
+        return JSON.parse(JSON.stringify(journey));
     }
 
     migratePortraitReferences(data) {

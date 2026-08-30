@@ -256,6 +256,7 @@ class OnboardingManager {
 
         const completeCrashStory = () => {
             window.GameState?.set('tutorial.crashStorySeen', true);
+            window.GameState?.recordOpeningMilestone?.('story_completed');
             window.GameState?.save?.();
             onComplete();
         };

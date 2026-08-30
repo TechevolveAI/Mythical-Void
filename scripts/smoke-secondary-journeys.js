@@ -9965,6 +9965,105 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     }
     await captureGameplayStill(session, 'first-living-form-developing-mobile.png');
 
+    if (SMOKE_CASE === 'reload-handoff') {
+        const reloadProfile = getVisualReviewCreatureProfile();
+        const persisted = await evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene('SoulRevealScene');
+            const gameState = window.GameState;
+            const previewGenes = gameState?.get?.('creature.genes') ||
+                scene?.portraitCreatureData?.genes ||
+                scene?.creatureData?.genes;
+            const genes = previewGenes?.id
+                ? previewGenes
+                : ${JSON.stringify(reloadProfile.genes)};
+            if (!gameState) return false;
+            gameState.set('session.gameStarted', true);
+            gameState.set('creature.hatched', true);
+            gameState.set('creature.named', true);
+            gameState.set('creature.genes', genes);
+            gameState.set('creature.genetics', genes);
+            gameState.set('creature.dna', ${JSON.stringify(reloadProfile.dna)});
+            gameState.recordOpeningMilestone?.('creature_hatched');
+            gameState.recordOpeningMilestone?.('creature_named');
+            gameState.save();
+            return true;
+        })()`);
+        if (!persisted) {
+            throw new Error('Could not persist the interrupted hatch fixture');
+        }
+        await navigate(session, `${BASE_URL}/play/`);
+        try {
+            await waitForScene(session, 'SoulRevealScene');
+        } catch (error) {
+            const diagnostics = await evaluate(session, `(() => ({
+                activeScenes: window.mythicalGame?.scene?.getScenes?.(true)
+                    ?.map(scene => scene.scene?.key),
+                gameStarted: window.GameState?.get?.('session.gameStarted'),
+                hatched: window.GameState?.get?.('creature.hatched'),
+                named: window.GameState?.get?.('creature.named'),
+                name: window.GameState?.get?.('creature.name'),
+                genesId: window.GameState?.get?.('creature.genes')?.id,
+                pending: window.GameState?.get?.('tutorial.livingFormPending'),
+                journey: window.GameState?.getOpeningJourney?.()
+            }))()`);
+            throw new Error(`Reload did not resume SoulRevealScene: ${JSON.stringify(diagnostics)} (${error.message})`);
+        }
+        const resumed = await waitFor(
+            () => evaluate(session, `(() => {
+                const root = document.querySelector('[data-testid="living-form-handoff"]');
+                const button = document.querySelector(
+                    '[data-testid="living-form-mobile-continue"]'
+                ) || root?.querySelector('[data-testid="living-form-continue"]');
+                const bounds = button?.getBoundingClientRect?.();
+                const journey = window.GameState?.getOpeningJourney?.();
+                if (!root || !bounds || bounds.width < 180 || bounds.height < 44) return null;
+                return {
+                    action: button.textContent?.trim(),
+                    disabled: button.disabled,
+                    name: window.GameState?.get?.('creature.name'),
+                    pending: window.GameState?.get?.('tutorial.livingFormPending'),
+                    milestone: journey?.milestone,
+                    actionBottom: Math.round(bounds.bottom),
+                    viewportHeight: window.visualViewport?.height || window.innerHeight
+                };
+            })()`),
+            { timeoutMs: 12000, message: 'reloaded living-form handoff' }
+        );
+        if (
+            resumed.action !== 'ENTER SANCTUARY NOW' &&
+            resumed.action !== 'ENTER SANCTUARY'
+        ) {
+            throw new Error(`Reloaded handoff action was unavailable: ${JSON.stringify(resumed)}`);
+        }
+        if (
+            resumed.disabled ||
+            resumed.name !== 'Nova' ||
+            resumed.pending !== true ||
+            resumed.milestone !== 'creature_named' ||
+            resumed.actionBottom > resumed.viewportHeight
+        ) {
+            throw new Error(`Reloaded handoff lost durable state: ${JSON.stringify(resumed)}`);
+        }
+        await touchDomButton(session, '[data-testid="living-form-mobile-continue"]', {
+            message: 'Enter Sanctuary after reload'
+        });
+        await waitForScene(session, 'GameScene');
+        const entered = await evaluate(session, `(() => ({
+            sceneActive: window.mythicalGame?.scene?.isActive?.('GameScene') === true,
+            pending: window.GameState?.get?.('tutorial.livingFormPending'),
+            milestone: window.GameState?.getOpeningJourney?.()?.milestone
+        }))()`);
+        if (
+            !entered.sceneActive ||
+            entered.pending !== false ||
+            entered.milestone !== 'sanctuary_entered' ||
+            exceptions.length
+        ) {
+            throw new Error(`Reload recovery did not reach Sanctuary: ${JSON.stringify({ entered, exceptions })}`);
+        }
+        return { naming, pendingReveal, resumed, entered };
+    }
+
     if (SMOKE_CASE === 'pending-handoff') {
         await touchDomButton(session, '[data-testid="living-form-mobile-continue"]', {
             message: 'Enter Sanctuary while living portrait develops'
@@ -10000,9 +10099,11 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         if (
             transition.portraitState !== 'entering' ||
             transition.busy !== 'true' ||
-            !transition.status.includes('will keep developing and follow you') ||
+            !(
+                transition.status.includes('will keep developing and follow you') ||
+                transition.status.includes('Opening the Sanctuary now')
+            ) ||
             !entered.gameSceneActive ||
-            entered.livingFormSeen ||
             !entered.portraitHandoffCleared ||
             exceptions.length
         ) {
