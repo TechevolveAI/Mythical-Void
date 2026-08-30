@@ -68,12 +68,16 @@ describe('living form milestone handoff', () => {
             "continueButton.setAttribute('data-testid', 'living-form-continue')"
         );
         expect(handoffSource).toContain(
+            "'data-testid',\n            'living-form-mobile-continue'"
+        );
+        expect(handoffSource).toContain(
             "shareButton.setAttribute('data-testid', 'living-form-share')"
         );
         expect(cssSource).toContain('.living-form-handoff');
         expect(cssSource).toContain('.living-form-actions');
         expect(cssSource).toContain('--living-form-action-reserve');
-        expect(cssSource).toContain('position: absolute;');
+        expect(cssSource).toContain('.living-form-mobile-dock');
+        expect(cssSource).toContain('position: fixed;');
         expect(cssSource).toContain('min-height: var(--living-form-action-reserve);');
         expect(cssSource).toContain('.living-form-spinner');
         expect(cssSource).toContain('.living-form-progress');
@@ -94,11 +98,12 @@ describe('living form milestone handoff', () => {
             "portraitPreviewSpecies: 'nebulaSprite'"
         );
         expect(handoffSource).toContain(
-            "continueButton.addEventListener('pointerup'"
+            "button.addEventListener('pointerup', this.continueHandler)"
         );
         expect(handoffSource).toContain(
-            "continueButton.addEventListener('touchend'"
+            "button.addEventListener('touchend', this.continueHandler"
         );
+        expect(handoffSource).toContain('document.body.append(mobileDock)');
         expect(handoffSource).toContain('ENTER SANCTUARY NOW');
         expect(handoffSource).toContain('ENTERING SANCTUARY...');
         expect(handoffSource).toContain('keepVisibleOnContinue');
@@ -133,7 +138,7 @@ describe('living form milestone handoff', () => {
         expect(handoffSource).toContain(
             'The pixel form remains the creature you play beside.'
         );
-        expect(handoffSource).toContain('LIVING PORTRAIT RETRY AVAILABLE');
+        expect(handoffSource).toContain('LIVING PORTRAIT // RETRY AVAILABLE');
     });
 
     test('offers only a clean optional game link after hatching', () => {

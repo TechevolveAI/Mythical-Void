@@ -34,6 +34,7 @@ export default class LivingFormHandoff {
         this.image = null;
         this.mediaFallback = null;
         this.loadingDetail = null;
+        this.loadingTitle = null;
         this.sourceLabel = null;
         this.status = null;
         this.title = null;
@@ -41,6 +42,11 @@ export default class LivingFormHandoff {
         this.keyboardHandler = null;
         this.continueHandler = null;
         this.continueButton = null;
+        this.continueButtons = [];
+        this.continueReadyLabel = 'ENTER SANCTUARY';
+        this.mobileDock = null;
+        this.mobileDockStatus = null;
+        this.mobileContinueButton = null;
         this.shareButton = null;
         this.shareHandler = null;
         this.shareInProgress = false;
@@ -159,24 +165,24 @@ export default class LivingFormHandoff {
                 'living-form-loading-detail',
                 `Building ${safeName}'s anatomy, markings, and cosmic traits.`
             );
+            this.loadingTitle = createElement(
+                'strong',
+                'living-form-loading-title',
+                'LIVING FORM DEVELOPING'
+            );
             this.mediaFallback.append(
                 spinner,
-                createElement(
-                    'strong',
-                    'living-form-loading-title',
-                    'LIVING FORM DEVELOPING'
-                ),
+                this.loadingTitle,
                 progress,
                 this.loadingDetail
             );
         } else {
-            this.mediaFallback.append(
-                createElement(
-                    'strong',
-                    'living-form-loading-title',
-                    'LIVING FORM OFFLINE'
-                )
+            this.loadingTitle = createElement(
+                'strong',
+                'living-form-loading-title',
+                'LIVING FORM OFFLINE'
             );
+            this.mediaFallback.append(this.loadingTitle);
         }
         this.mediaFallback.setAttribute('role', 'status');
         this.mediaFallback.setAttribute('aria-live', 'polite');
@@ -306,6 +312,30 @@ export default class LivingFormHandoff {
         buttonRow.append(shareButton, continueButton);
         actions.append(buttonRow);
 
+        const mobileDock = createElement('aside', 'living-form-mobile-dock');
+        mobileDock.setAttribute('aria-label', 'Sanctuary route');
+        mobileDock.setAttribute('data-testid', 'living-form-mobile-dock');
+        this.mobileDockStatus = createElement(
+            'p',
+            'living-form-mobile-status',
+            portraitPromise
+                ? 'PORTRAIT DEVELOPING // SANCTUARY READY'
+                : 'SANCTUARY ROUTE READY'
+        );
+        const mobileContinueButton = createElement(
+            'button',
+            'living-form-mobile-continue',
+            continueButton.textContent
+        );
+        mobileContinueButton.type = 'button';
+        mobileContinueButton.setAttribute(
+            'data-testid',
+            'living-form-mobile-continue'
+        );
+        mobileContinueButton.style.touchAction = 'manipulation';
+        mobileContinueButton.style.webkitTapHighlightColor = 'transparent';
+        mobileDock.append(this.mobileDockStatus, mobileContinueButton);
+
         if (portraitPromise && !isLateReveal) {
             actions.append(createElement(
                 'p',
@@ -320,6 +350,12 @@ export default class LivingFormHandoff {
         this.isVisible = true;
         this.continueActivated = false;
         this.continueButton = continueButton;
+        this.mobileDock = mobileDock;
+        this.mobileContinueButton = mobileContinueButton;
+        this.continueButtons = [continueButton, mobileContinueButton];
+        this.continueReadyLabel = isLateReveal
+            ? 'CONTINUE EXPLORING'
+            : 'ENTER SANCTUARY';
         this.shareButton = shareButton;
         this.shareInProgress = false;
         this.keepVisibleOnContinue = Boolean(keepVisibleOnContinue);
@@ -336,11 +372,13 @@ export default class LivingFormHandoff {
             if (!this.keepVisibleOnContinue) this.destroy();
             continueAction?.();
         };
-        continueButton.addEventListener('pointerup', this.continueHandler);
-        continueButton.addEventListener('touchend', this.continueHandler, {
-            passive: false
+        this.continueButtons.forEach(button => {
+            button.addEventListener('pointerup', this.continueHandler);
+            button.addEventListener('touchend', this.continueHandler, {
+                passive: false
+            });
+            button.addEventListener('click', this.continueHandler);
         });
-        continueButton.addEventListener('click', this.continueHandler);
         this.shareHandler = event => this.shareGame(event);
         shareButton.addEventListener('click', this.shareHandler);
         this.keyboardHandler = event => {
@@ -349,7 +387,7 @@ export default class LivingFormHandoff {
             }
             if (
                 event.key !== 'Escape'
-                && event.target?.closest?.('button') !== continueButton
+                && !this.continueButtons.includes(event.target?.closest?.('button'))
             ) {
                 return;
             }
@@ -360,6 +398,10 @@ export default class LivingFormHandoff {
         this.resizeHandler = () => this.updateViewportSize?.();
         window.addEventListener('resize', this.resizeHandler);
         window.visualViewport?.addEventListener?.('resize', this.resizeHandler);
+
+        // Keep the mobile route control outside Phaser's transformed DOM tree.
+        // iOS Safari can otherwise clip the action below the visible viewport.
+        document.body.append(mobileDock);
 
         this.domElement = this.scene.add.dom(width / 2, height / 2, root)
             .setOrigin(0.5)
@@ -401,21 +443,7 @@ export default class LivingFormHandoff {
                     });
                 })
                 .catch(error => {
-                    this.portraitPending = false;
-                    this.clearStatusTimers();
-                    if (!this.isVisible) return;
-                    const serviceMessage =
-                        window.LivingPortraitService?.describeError?.(error) ||
-                        'Living portrait unavailable. A retry has been scheduled.';
-                    this.status.textContent = `${serviceMessage} ` +
-                        'Enter the Sanctuary whenever you are ready.';
-                    this.status.classList.add('is-fallback');
-                    this.root.dataset.portraitState = 'retry';
-                    this.sourceLabel.textContent =
-                        error?.code === 'new_identity_quota'
-                            ? 'LIVING PORTRAIT // RETRY SCHEDULED'
-                            : 'LIVING PORTRAIT // RETRY AVAILABLE';
-                    this.root?.classList.add('has-portrait-failure');
+                    this.markPortraitUnavailable(error);
                 });
         }
 
@@ -429,9 +457,15 @@ export default class LivingFormHandoff {
         this.clearStatusTimers();
         this.root.classList.add('is-transitioning');
         this.root.dataset.portraitState = 'entering';
-        this.continueButton.disabled = true;
-        this.continueButton.setAttribute('aria-busy', 'true');
-        this.continueButton.textContent = 'ENTERING SANCTUARY...';
+        this.continueButtons.forEach(button => {
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+            button.textContent = 'ENTERING SANCTUARY...';
+        });
+        this.mobileDock?.classList.add('is-transitioning');
+        if (this.mobileDockStatus) {
+            this.mobileDockStatus.textContent = 'ROUTE CONFIRMED';
+        }
         if (this.shareButton) this.shareButton.disabled = true;
         if (this.actionKicker) {
             this.actionKicker.textContent = 'ROUTE CONFIRMED // SANCTUARY OPENING';
@@ -470,6 +504,45 @@ export default class LivingFormHandoff {
         this.statusTimers = [];
     }
 
+    setContinueLabel(label) {
+        this.continueButtons.forEach(button => {
+            if (!button.disabled) button.textContent = label;
+        });
+    }
+
+    markPortraitUnavailable(error = null) {
+        this.portraitPending = false;
+        this.clearStatusTimers();
+        if (!this.isVisible || !this.root) return;
+        const serviceMessage =
+            window.LivingPortraitService?.describeError?.(error) ||
+            'Living portrait unavailable. A retry has been scheduled.';
+        this.root.classList.remove('is-portrait-pending');
+        this.root.classList.add('has-portrait-failure');
+        this.root.dataset.portraitState = 'retry';
+        this.mediaFallback?.classList.add('is-retry');
+        this.mediaFallback?.querySelector?.('.living-form-spinner')?.remove?.();
+        this.mediaFallback?.querySelector?.('.living-form-progress')?.remove?.();
+        if (this.loadingTitle) this.loadingTitle.textContent = 'PORTRAIT WILL RETRY';
+        if (this.loadingDetail) {
+            this.loadingDetail.textContent = 'Continue now. Nothing is lost.';
+        }
+        this.status.textContent = `${serviceMessage} ` +
+            'Enter the Sanctuary whenever you are ready.';
+        this.status.classList.add('is-fallback');
+        this.sourceLabel.textContent =
+            error?.code === 'new_identity_quota'
+                ? 'LIVING PORTRAIT // RETRY SCHEDULED'
+                : 'LIVING PORTRAIT // RETRY AVAILABLE';
+        this.actionKicker.textContent = 'SANCTUARY READY // PORTRAIT WILL RETRY';
+        if (this.mobileDockStatus) {
+            this.mobileDockStatus.textContent =
+                'PORTRAIT RETRIES LATER // SANCTUARY READY';
+        }
+        this.setContinueLabel(this.continueReadyLabel);
+        this.root.querySelector?.('.living-form-continue-note')?.remove?.();
+    }
+
     createProgressStep(label, stateClass = '') {
         const step = createElement(
             'span',
@@ -502,12 +575,14 @@ export default class LivingFormHandoff {
             if (isGenerated) {
                 this.root.dataset.portraitState = 'ready';
                 this.root?.classList.remove('is-portrait-pending');
-                if (this.continueButton?.textContent === 'ENTER SANCTUARY NOW') {
-                    this.continueButton.textContent = 'ENTER SANCTUARY';
-                    this.root?.querySelector?.('.living-form-continue-note')?.remove?.();
-                }
+                this.setContinueLabel(this.continueReadyLabel);
+                this.root?.querySelector?.('.living-form-continue-note')?.remove?.();
                 if (this.actionKicker) {
                     this.actionKicker.textContent = 'LIVING FORM READY // SANCTUARY OPEN';
+                }
+                if (this.mobileDockStatus) {
+                    this.mobileDockStatus.textContent =
+                        'LIVING FORM READY // SANCTUARY OPEN';
                 }
                 window.CompanionMediaService?.recordAppearance?.(
                     'first_living_form',
@@ -541,12 +616,9 @@ export default class LivingFormHandoff {
         this.image.onerror = () => {
             if (!this.isVisible || token !== this.renderToken) return;
             this.mediaFallback?.classList.remove('is-hidden');
-            this.status.textContent =
-                'Visual study offline. The living portrait can retry from the Creature Archive.';
-            this.status.classList.add('is-fallback');
-            this.root.dataset.portraitState = 'retry';
-            this.sourceLabel.textContent = 'LIVING PORTRAIT RETRY AVAILABLE';
-            this.root?.classList.add('has-portrait-failure');
+            this.markPortraitUnavailable(
+                new Error('Visual study offline. The living portrait can retry from the Creature Archive.')
+            );
         };
         this.image.src = imageUrl;
     }
@@ -613,6 +685,12 @@ export default class LivingFormHandoff {
             this.resizeHandler = null;
         }
         this.updateViewportSize = null;
+        this.continueButtons.forEach(button => {
+            button.removeEventListener('pointerup', this.continueHandler);
+            button.removeEventListener('touchend', this.continueHandler);
+            button.removeEventListener('click', this.continueHandler);
+        });
+        this.mobileDock?.remove?.();
         this.image?.removeAttribute?.('src');
         this.domElement?.destroy?.();
         this.domElement = null;
@@ -620,12 +698,18 @@ export default class LivingFormHandoff {
         this.image = null;
         this.mediaFallback = null;
         this.loadingDetail = null;
+        this.loadingTitle = null;
         this.sourceLabel = null;
         this.status = null;
         this.title = null;
         this.actionKicker = null;
         this.pixelReferenceImage = null;
         this.continueButton = null;
+        this.continueButtons = [];
+        this.continueReadyLabel = 'ENTER SANCTUARY';
+        this.mobileDock = null;
+        this.mobileDockStatus = null;
+        this.mobileContinueButton = null;
         this.continueHandler = null;
         if (this.shareButton && this.shareHandler) {
             this.shareButton.removeEventListener('click', this.shareHandler);

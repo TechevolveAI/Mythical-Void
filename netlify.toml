@@ -12,6 +12,11 @@
   # Functions directory for serverless functions (future use)
   functions = "netlify/functions"
 
+[functions]
+  # Preserve server-only SDKs in each deployed function artifact.
+  node_bundler = "esbuild"
+  external_node_modules = ["@google/genai", "@supabase/supabase-js", "ws"]
+
 [build.environment]
   # Build-time environment variables
   NODE_VERSION = "22"
