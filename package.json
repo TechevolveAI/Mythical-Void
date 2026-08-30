@@ -67,6 +67,7 @@
     "test:first-five": "node scripts/company/test-first-five-playtest.cjs",
     "validate:search-visibility": "node scripts/company/validate-search-visibility-activation.cjs",
     "test:search-visibility": "node scripts/company/test-search-visibility-activation.cjs",
+    "capture:rootwake-private": "node scripts/company/capture-rootwake-sequence.cjs",
     "test:visual-launch": "node scripts/company/test-visual-launch-moments.cjs",
     "validate:public-visual-trust": "node scripts/company/validate-public-visual-trust.cjs",
     "validate:visual-publication": "node scripts/company/validate-visual-publication-register.cjs",

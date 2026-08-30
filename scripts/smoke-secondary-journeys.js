@@ -20326,6 +20326,396 @@ async function smokeVisualMovement(session, exceptions) {
     };
 }
 
+async function smokeRootwakeSequence(session, exceptions) {
+    if (!SMOKE_VIDEO_PATH) {
+        throw new Error('SMOKE_VIDEO_PATH is required for rootwake-sequence mode');
+    }
+    exceptions.length = 0;
+    const profile = getVisualReviewCreatureProfile();
+    const isPhone = SMOKE_VIEWPORT_WIDTH <= 600;
+
+    await navigate(session, `${BASE_URL}/play/?reset=true`);
+    await waitForScene(session, 'HatchingScene');
+    await evaluate(session, `(async () => {
+        const profile = ${JSON.stringify(profile)};
+        const state = window.GameState;
+        state.set('creature', {
+            ...state.get('creature'),
+            id: profile.genes.id,
+            name: 'Nova',
+            hatched: true,
+            named: true,
+            genes: profile.genes,
+            genetics: profile.genes,
+            dna: profile.dna,
+            species: profile.species,
+            rarity: profile.rarity,
+            textureName: null,
+            lifecycle: {
+                ...(state.get('creature.lifecycle') || {}),
+                stage: 'baby'
+            }
+        });
+        state.set('creatures', [state.get('creature')]);
+        state.set('activeCreatureIndex', 0);
+        state.set('tutorial.controlsSeen', true);
+        state.set('story.projectBeacon.firstForestCinematicVersion', 2);
+        state.set('story.projectBeacon.firstExpeditionDrill', {
+            completed: true,
+            completedAt: new Date().toISOString()
+        });
+        state.set('story.projectBeacon.forestRootwakeCrossing', null);
+        const game = window.mythicalGame;
+        game.scene.getScenes(true).forEach(active => game.scene.stop(active.scene.key));
+        await window.SceneLoader.loadScene(game, 'MythicalForestLevel');
+        game.scene.start('MythicalForestLevel', {
+            entryPreview: true,
+            forceMobileControls: ${isPhone}
+        });
+        return true;
+    })()`);
+    await waitForScene(session, 'MythicalForestLevel');
+    await delay(500);
+    await tap(session, Math.round(SMOKE_VIEWPORT_WIDTH / 2), 140);
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            return Boolean(
+                scene?.player?.body &&
+                scene?.astronautFollower?.sprite?.active &&
+                scene?.rootwakeCrossing &&
+                !scene.physics.world.isPaused
+            );
+        })()`),
+        { timeoutMs: 15000, message: 'Rootwake playable scene' }
+    );
+
+    const staged = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+        const support = scene?.getTraversalSupport?.('forest-ground-1');
+        if (!scene?.player?.body || !support?.body) return false;
+        window.mythicalGame.scene.stop('HatchingScene');
+        scene.player.setPosition(205, scene.player.y);
+        scene.player.body.updateFromGameObject();
+        scene.player.y += support.body.top - scene.player.body.bottom;
+        scene.player.body.updateFromGameObject();
+        scene.player.setVelocity(0, 0);
+        scene.player.body.blocked.down = true;
+        scene.player.body.touching.down = true;
+        scene.isInvincible = true;
+        scene.levelEntryElements?.forEach(element => element?.destroy?.());
+        scene.levelEntryElements = [];
+        scene.optionalRouteRewards?.forEach(route => {
+            route?.marker?.setVisible?.(false);
+            route?.choice?.mainMarker?.setVisible?.(false);
+            route?.choice?.returnMarker?.setVisible?.(false);
+        });
+        scene.cameras.main.startFollow(scene.player, true, 0.14, 0.14);
+        scene.cameras.main.centerOn(scene.player.x + 70, scene.player.y - 30);
+        scene.astronautFollower.setContextualFormation?.(
+            { x: ${isPhone ? -95 : -125}, y: 2 },
+            'rootwake_sequence_capture'
+        );
+        scene.astronautFollower.sprite.setPosition(
+            scene.player.x - ${isPhone ? 95 : 125},
+            scene.player.y + 2
+        );
+        scene.astronautFollower.resetTrail?.();
+        scene.releaseAllPlatformerActionButtons?.();
+        scene.resetJoystick?.();
+        return true;
+    })()`);
+    if (!staged) throw new Error('Rootwake sequence could not be staged');
+    await delay(700);
+
+    const inspect = () => evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+        const creature = scene?.player;
+        const astronaut = scene?.astronautFollower?.sprite;
+        const camera = scene?.cameras?.main;
+        const worldView = camera?.worldView;
+        const controlReserve = ${isPhone ? 142 : 20};
+        const actorFrame = actor => {
+            if (!actor || !worldView || !camera) return null;
+            const screenX = (actor.x - worldView.x) * camera.zoom;
+            const screenY = (actor.y - worldView.y) * camera.zoom;
+            return {
+                screenX,
+                screenY,
+                displayWidth: (actor.displayWidth || 0) * camera.zoom,
+                displayHeight: (actor.displayHeight || 0) * camera.zoom,
+                inCleanFrame: screenX >= 18 &&
+                    screenX <= camera.width - 18 &&
+                    screenY >= 74 &&
+                    screenY <= camera.height - controlReserve
+            };
+        };
+        const creatureFrame = actorFrame(creature);
+        const astronautFrame = actorFrame(astronaut);
+        const actorSeparation = creature && astronaut
+            ? Phaser.Math.Distance.Between(
+                creature.x,
+                creature.y,
+                astronaut.x,
+                astronaut.y
+            ) * (camera?.zoom || 1)
+            : 0;
+        return {
+            rootwake: scene?.getRootwakeCrossingSnapshot?.(),
+            playerX: creature?.x,
+            playerY: creature?.y,
+            velocityX: creature?.body?.velocity?.x || 0,
+            velocityY: creature?.body?.velocity?.y || 0,
+            creatureActive: creature?.active === true && creature?.visible !== false &&
+                creature?.alpha > 0 && creature?.displayWidth > 40,
+            astronautActive: astronaut?.active === true && astronaut?.visible !== false &&
+                astronaut?.alpha > 0,
+            texture: creature?.texture?.key || null,
+            textureExists: Boolean(
+                creature?.texture?.key && scene?.textures?.exists?.(creature.texture.key)
+            ),
+            fallback: creature?.texture?.key === 'platformerCreature' ||
+                creature?.texture?.key === '__MISSING',
+            cameraX: camera?.scrollX || 0,
+            cameraZoom: camera?.zoom || 0,
+            creatureFrame,
+            astronautFrame,
+            actorSeparation,
+            modalCount: document.querySelectorAll(
+                '.modal-overlay, .achievement-notification, .companion-media-overlay'
+            ).length,
+            physicsPaused: scene?.physics?.world?.isPaused === true,
+            hatchingActive: window.mythicalGame.scene.isActive('HatchingScene')
+        };
+    })()`);
+
+    const stateBefore = await inspect();
+    if (
+        stateBefore.rootwake?.state !== 'dormant' ||
+        stateBefore.rootwake?.action !== 'creature_resonance_slam' ||
+        stateBefore.rootwake?.platformCount !== 5 ||
+        !stateBefore.creatureActive ||
+        !stateBefore.astronautActive ||
+        !stateBefore.textureExists ||
+        stateBefore.fallback ||
+        !stateBefore.creatureFrame?.inCleanFrame ||
+        !stateBefore.astronautFrame?.inCleanFrame ||
+        stateBefore.actorSeparation < 48 ||
+        stateBefore.modalCount ||
+        stateBefore.physicsPaused ||
+        stateBefore.hatchingActive
+    ) {
+        throw new Error(`Rootwake opening state failed: ${JSON.stringify(stateBefore)}`);
+    }
+
+    await startGameplayVideo(session);
+    if (isPhone) {
+        const joystick = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            return {
+                x: scene.joystickCenterX,
+                y: scene.joystickCenterY,
+                distance: Math.max(32, (scene.joystickMaxDistance || 45) * 0.88)
+            };
+        })()`);
+        await holdTouchDrag(
+            session,
+            { x: joystick.x, y: joystick.y },
+            { x: joystick.x + joystick.distance, y: joystick.y },
+            120
+        );
+    } else {
+        await setKeyboardKey(session, 'keyDown', {
+            key: 'd', code: 'KeyD', keyCode: 68
+        });
+    }
+
+    await waitFor(
+        () => evaluate(session, `window.mythicalGame.scene
+            .getScene('MythicalForestLevel')?.rootwakeCrossing?.state === 'awakening'`),
+        { timeoutMs: 5000, message: 'creature begins Rootwake action' }
+    );
+    if (isPhone) await releaseTouch(session);
+    else {
+        await setKeyboardKey(session, 'keyUp', {
+            key: 'd', code: 'KeyD', keyCode: 68
+        });
+    }
+
+    await delay(820);
+    if (SMOKE_CAPTURE_DIR) {
+        await captureGameplayStill(
+            session,
+            isPhone
+                ? 'rootwake-transformation-phone.png'
+                : 'rootwake-transformation-desktop.png'
+        );
+    }
+    const transformationState = await inspect();
+    if (
+        transformationState.rootwake?.state !== 'awakening' ||
+        transformationState.rootwake?.transformationProgress !== 0 ||
+        !transformationState.creatureActive ||
+        !transformationState.astronautActive ||
+        !transformationState.creatureFrame?.inCleanFrame ||
+        !transformationState.astronautFrame?.inCleanFrame ||
+        transformationState.actorSeparation < 48
+    ) {
+        throw new Error(
+            `Rootwake transformation state failed: ${JSON.stringify(transformationState)}`
+        );
+    }
+
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            const state = scene?.getRootwakeCrossingSnapshot?.();
+            return state?.state === 'awake' &&
+                state.settledPlatformCount === 5 &&
+                state.gravityWeatherCount >= ${isPhone ? 5 : 8};
+        })()`),
+        { timeoutMs: 5000, message: 'Rootwake world transformation settles' }
+    );
+    const stateAfter = await inspect();
+    if (
+        stateAfter.rootwake?.phenomenon !== 'gravity_seed_rain_rises' ||
+        stateAfter.rootwake?.worldChange !== 'five_layer_crossing_raised' ||
+        stateAfter.rootwake?.settledPlatformCount !== 5 ||
+        !stateAfter.rootwake?.playerPresent ||
+        !stateAfter.rootwake?.astronautPresent ||
+        !stateAfter.creatureFrame?.inCleanFrame ||
+        !stateAfter.astronautFrame?.inCleanFrame ||
+        stateAfter.actorSeparation < 48
+    ) {
+        throw new Error(`Rootwake settled state failed: ${JSON.stringify(stateAfter)}`);
+    }
+    if (SMOKE_CAPTURE_DIR) {
+        await captureGameplayStill(
+            session,
+            isPhone
+                ? 'rootwake-awake-phone.png'
+                : 'rootwake-awake-desktop.png'
+        );
+    }
+
+    const continuousCreatureSamples = [];
+    const traversalStartX = stateAfter.playerX;
+    if (isPhone) {
+        const joystick = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            return {
+                x: scene.joystickCenterX,
+                y: scene.joystickCenterY,
+                distance: Math.max(32, (scene.joystickMaxDistance || 45) * 0.9)
+            };
+        })()`);
+        await holdTouchDrag(
+            session,
+            { x: joystick.x, y: joystick.y },
+            { x: joystick.x + joystick.distance, y: joystick.y },
+            120
+        );
+    } else {
+        await setKeyboardKey(session, 'keyDown', {
+            key: 'd', code: 'KeyD', keyCode: 68
+        });
+    }
+
+    for (let index = 0; index < 12; index += 1) {
+        if ([0, 3, 6].includes(index)) {
+            await evaluate(session, `window.mythicalGame.scene
+                .getScene('MythicalForestLevel')?.executeJump?.()`);
+        }
+        await delay(280);
+        const sample = await inspect();
+        continuousCreatureSamples.push(sample);
+        if (
+            !sample.creatureActive ||
+            !sample.astronautActive ||
+            !sample.textureExists ||
+            sample.fallback ||
+            !sample.creatureFrame?.inCleanFrame ||
+            !sample.astronautFrame?.inCleanFrame ||
+            sample.actorSeparation < 48 ||
+            sample.modalCount ||
+            sample.physicsPaused ||
+            sample.playerY > 1180
+        ) {
+            throw new Error(
+                `Rootwake traversal lost playable continuity: ${JSON.stringify(sample)}`
+            );
+        }
+    }
+    if (isPhone) await releaseTouch(session);
+    else {
+        await setKeyboardKey(session, 'keyUp', {
+            key: 'd', code: 'KeyD', keyCode: 68
+        });
+    }
+
+    const traversalEnd = await inspect();
+    const traversalEvidence = {
+        worldTravel: Math.max(
+            ...continuousCreatureSamples.map(sample => sample.playerX),
+            traversalEnd.playerX
+        ) - traversalStartX,
+        cameraTravel: Math.max(
+            ...continuousCreatureSamples.map(sample => sample.cameraX),
+            traversalEnd.cameraX
+        ) - Math.min(
+            ...continuousCreatureSamples.map(sample => sample.cameraX),
+            stateAfter.cameraX
+        ),
+        airborneSamples: continuousCreatureSamples.filter(sample => (
+            Math.abs(sample.velocityY) > 40
+        )).length,
+        continuousSamples: continuousCreatureSamples.length
+    };
+    if (
+        traversalEvidence.worldTravel < 420 ||
+        traversalEvidence.cameraTravel < 150 ||
+        traversalEvidence.airborneSamples < 3 ||
+        continuousCreatureSamples.some(sample => (
+            !sample.creatureActive ||
+            !sample.astronautActive ||
+            !sample.creatureFrame?.inCleanFrame ||
+            !sample.astronautFrame?.inCleanFrame ||
+            sample.actorSeparation < 48 ||
+            sample.fallback
+        ))
+    ) {
+        throw new Error(
+            `Rootwake traversal evidence failed: ${JSON.stringify(traversalEvidence)}`
+        );
+    }
+    if (SMOKE_CAPTURE_DIR) {
+        await captureGameplayStill(
+            session,
+            isPhone
+                ? 'rootwake-traversal-phone.png'
+                : 'rootwake-traversal-desktop.png'
+        );
+    }
+    await delay(700);
+    const video = await stopGameplayVideo();
+    if (video?.frames < 72 || exceptions.length) {
+        throw new Error(
+            `Rootwake private capture failed: ${JSON.stringify({ video, exceptions })}`
+        );
+    }
+    return {
+        profileId: profile.id,
+        rendererProfileId: profile.genes.id,
+        stateBefore,
+        transformationState,
+        stateAfter,
+        traversalEvidence,
+        traversalEnd,
+        video,
+        publicationAuthorized: false
+    };
+}
+
 const GUARDIAN_PACING_CASES = Object.freeze([
     {
         sceneName: 'MythicalForestLevel',
@@ -21096,6 +21486,12 @@ async function main() {
                 exceptions
             );
             process.stdout.write('PASS VisualMovement\n');
+        } else if (SMOKE_MODE === 'rootwake-sequence') {
+            results.rootwakeSequence = await smokeRootwakeSequence(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS RootwakeSequence\n');
         } else if (SMOKE_MODE === 'guardian-pacing') {
             results.guardianPacing = await smokeGuardianPacing(
                 session,
@@ -21104,7 +21500,7 @@ async function main() {
         } else {
             throw new Error(
                 `Unknown SMOKE_MODE ${JSON.stringify(SMOKE_MODE)}. ` +
-                'Use home-entry, hatch-gallery, first-sanctuary, nasa-content, interaction, fusion-pod-lifecycle, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, void-portal-lifecycle, hub-forest-transition, village-ui, forest-arrival, visual-story-reel, or guardian-pacing.'
+                'Use home-entry, hatch-gallery, first-sanctuary, nasa-content, interaction, fusion-pod-lifecycle, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, void-portal-lifecycle, hub-forest-transition, village-ui, forest-arrival, visual-story-reel, visual-movement, rootwake-sequence, or guardian-pacing.'
             );
         }
         const optionalVideoDisabled = await evaluate(

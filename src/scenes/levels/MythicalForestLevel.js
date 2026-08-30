@@ -18,6 +18,17 @@ const ELDER_TREANT_ASSET = '/game/guardians/elder-treant.webp';
 const ELDER_TREANT_DISPLAY_HEIGHT = 310;
 const FOREST_ARRIVAL_TEXTURE = 'mythicalForestArrival';
 const FOREST_ARRIVAL_CINEMATIC_VERSION = 2;
+const FOREST_ROOTWAKE_STATE_PATH =
+    'story.projectBeacon.forestRootwakeCrossing';
+const FOREST_ROOTWAKE_VERSION = 1;
+
+const ROOTWAKE_PLATFORM_CONFIGS = Object.freeze([
+    Object.freeze({ id: 'rootwake-step-1', x: 438, width: 108, rise: 46 }),
+    Object.freeze({ id: 'rootwake-step-2', x: 548, width: 126, rise: 118 }),
+    Object.freeze({ id: 'rootwake-step-3', x: 672, width: 144, rise: 190 }),
+    Object.freeze({ id: 'rootwake-step-4', x: 790, width: 126, rise: 116 }),
+    Object.freeze({ id: 'rootwake-step-5', x: 882, width: 104, rise: 44 })
+]);
 
 const FOREST_GROUND_SECTIONS = Object.freeze([
     Object.freeze({ id: 'forest-ground-1', x: 0, width: 400 }),
@@ -138,6 +149,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestEnemyOverlap = null;
         this.forestCoinLayer = null;
         this.forestCoinLayerTween = null;
+        this.rootwakeCrossing = null;
+        this.rootwakeSequenceActive = false;
+        this.rootwakeElements = [];
+        this.rootwakeGravityWeather = [];
 
         // Cosmic trees - the core of this level
         this.cosmicTrees = [];
@@ -266,6 +281,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestEnemyOverlap = null;
         this.forestCoinLayer = null;
         this.forestCoinLayerTween = null;
+        this.rootwakeCrossing = null;
+        this.rootwakeSequenceActive = false;
+        this.rootwakeElements = [];
+        this.rootwakeGravityWeather = [];
 
         // Reset cosmic trees and platforms
         this.cosmicTrees = [];
@@ -896,6 +915,17 @@ class MythicalForestLevel extends PlatformerLevelScene {
             ? this.getOptionalRouteStatusText('forest_canopy_run', optionalFallback)
             : optionalFallback;
 
+        if (this.rootwakeCrossing && !this.rootwakeCrossing.awakened) {
+            return 'WAKE THE ROOTWAY\nMOVE TO THE PULSING ROOTLIGHT\nYOUR CREATURE CAN CHANGE THIS PLACE';
+        }
+
+        if (
+            this.rootwakeCrossing?.awakened &&
+            this.time.now < (this.rootwakeCrossing.revealUntil || 0)
+        ) {
+            return 'ROOTWAY OPEN\nCROSS THE LIVING STEPS\nTHE SEEDS ARE FALLING UP';
+        }
+
         if (this.bossDefeated) {
             return `CURRENT RESTORED\nTHE GUARDIAN IS SAFE\n${optional}`;
         }
@@ -1151,6 +1181,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
             powerProfile,
             drill.knot
         );
+        this.time.delayedCall(380, () => {
+            this.awakenRootwakeCrossing({ powerProfile });
+        });
 
         if (drill.knot?.active) {
             this.tweens.killTweensOf(drill.knot);
@@ -1252,6 +1285,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
     update(time, delta) {
         super.update(time, delta);
         if (this.levelCompletionActive) return;
+        this.updateRootwakeCrossing();
         this.updateForestEnemyActivation();
         if (this.forestEnemyAISchedulerActive) this.updateForestEnemyAI();
         this.updateForestEnemyMotion(time);
@@ -1327,6 +1361,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         // Create the 6 cosmic trees - the core vertical platforming
         this.createCosmicTrees();
+
+        // The first gap is changed by the creature, not crossed by a bridge
+        // that was inexplicably present before the player arrived.
+        this.createRootwakeCrossing();
 
         // Add enemies throughout the level
         this.createEnemies();
@@ -1829,6 +1867,541 @@ class MythicalForestLevel extends PlatformerLevelScene {
         } else {
             moteLayer.setPosition(0, -4).setAlpha(0.58);
         }
+    }
+
+    createRootwakeCrossing() {
+        const groundY = this.levelHeight - 100;
+        const saved = window.GameState?.get?.(FOREST_ROOTWAKE_STATE_PATH);
+        const awakened = saved?.awakened === true;
+        const powerProfile = buildCreaturePowerProfile(window.GameState, {
+            context: 'fend'
+        });
+        const color = powerProfile.color || 0x8FE3CF;
+        const worldLayer = this.add.graphics().setDepth(42);
+        const rootlight = this.add.graphics()
+            .setPosition(382, groundY - 28)
+            .setDepth(58)
+            .setData('rootwakeActionOrigin', 'creature_power_receiver');
+
+        rootlight.fillStyle(0x230A38, 0.95);
+        rootlight.fillTriangle(-22, 20, 0, -34, 22, 20);
+        rootlight.fillStyle(color, awakened ? 0.9 : 0.32);
+        rootlight.fillCircle(0, -4, awakened ? 12 : 8);
+        rootlight.lineStyle(3, awakened ? color : 0x7F5A91, 0.9);
+        rootlight.strokeCircle(0, -4, 18);
+
+        const platforms = ROOTWAKE_PLATFORM_CONFIGS.map((config, index) => {
+            const targetTop = groundY - config.rise;
+            const targetY = targetTop + 10;
+            const visual = this.add.graphics()
+                .setPosition(
+                    config.x,
+                    awakened ? targetY : this.levelHeight + 110 + index * 26
+                )
+                .setAlpha(awakened ? 1 : 0.08)
+                .setDepth(48)
+                .setData('rootwakePlatform', true)
+                .setData('rootwakePlatformId', config.id)
+                .setData('rootwakeWorldState', awakened ? 'awake' : 'dormant');
+            this.drawRootwakePlatform(visual, config.width, color, awakened);
+
+            const zone = this.add.zone(config.x, targetY, config.width, 20);
+            this.physics.add.existing(zone, true);
+            this.configureForestClimbSupport(zone);
+            zone.traversalId = config.id;
+            zone.setData('rootwakePlatform', true);
+            zone.body.enable = awakened;
+            this.platforms.add(zone);
+            this.detachForestPhysicsSupport(zone);
+
+            return {
+                ...config,
+                index,
+                targetTop,
+                targetY,
+                visual,
+                zone,
+                settled: awakened
+            };
+        });
+
+        const crossing = {
+            version: FOREST_ROOTWAKE_VERSION,
+            state: awakened ? 'awake' : 'dormant',
+            awakened,
+            color,
+            powerProfile,
+            groundY,
+            worldLayer,
+            rootlight,
+            platforms,
+            trigger: null,
+            transformationProgress: awakened ? 1 : 0,
+            phenomenon: 'gravity_seed_rain_rises',
+            action: 'creature_resonance_slam',
+            worldChange: 'five_layer_crossing_raised'
+        };
+        this.rootwakeCrossing = crossing;
+        this.rootwakeElements.push(worldLayer, rootlight);
+        this.drawRootwakeWorldState(awakened);
+
+        if (awakened) {
+            this.startRootwakeGravityWeather();
+            return crossing;
+        }
+
+        crossing.trigger = this.createObjectiveTriggerZone(
+            365,
+            groundY - 70,
+            { width: 90, height: 220 }
+        );
+        crossing.trigger.setData('rootwakeTrigger', true);
+        this.physics.add.overlap(this.player, crossing.trigger, () => {
+            if (!this.firstExpeditionDrill?.active) {
+                this.awakenRootwakeCrossing();
+            }
+        });
+
+        this.tweens.add({
+            targets: rootlight,
+            alpha: { from: 0.48, to: 1 },
+            scaleX: { from: 0.9, to: 1.08 },
+            scaleY: { from: 0.9, to: 1.08 },
+            duration: 850,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        return crossing;
+    }
+
+    drawRootwakePlatform(graphics, width, color, awakened) {
+        graphics.clear();
+        const alpha = awakened ? 1 : 0.34;
+        const half = width / 2;
+
+        // A living root shelf, not a generic floating rectangle.
+        graphics.fillStyle(0x102B29, 0.96 * alpha);
+        graphics.beginPath();
+        graphics.moveTo(-half, -7);
+        graphics.lineTo(-half + 16, -17);
+        graphics.lineTo(half - 18, -15);
+        graphics.lineTo(half, -4);
+        graphics.lineTo(half - 17, 9);
+        graphics.lineTo(8, 13);
+        graphics.lineTo(-half + 20, 8);
+        graphics.closePath();
+        graphics.fillPath();
+        graphics.lineStyle(4, color, 0.98 * alpha);
+        graphics.strokePath();
+
+        graphics.fillStyle(color, 0.2 * alpha);
+        graphics.fillEllipse(0, -3, width * 0.72, 16);
+        graphics.lineStyle(3, color, 0.82 * alpha);
+        [-0.28, 0, 0.3].forEach((ratio, index) => {
+            const rootX = width * ratio;
+            graphics.beginPath();
+            graphics.moveTo(rootX, 8);
+            graphics.lineTo(rootX + (index - 1) * 8, 24 + index * 7);
+            graphics.lineTo(rootX + (index - 1) * 15, 34 + index * 5);
+            graphics.strokePath();
+        });
+        graphics.fillStyle(0xFFFFFF, 0.88 * alpha);
+        graphics.fillCircle(-width * 0.2, -4, 3);
+        graphics.fillCircle(width * 0.18, -3, 2);
+        graphics.fillStyle(color, alpha);
+        graphics.fillCircle(-half + 10, -5, 7);
+        graphics.fillCircle(half - 12, -4, 6);
+    }
+
+    drawRootwakeWorldState(awakened) {
+        const crossing = this.rootwakeCrossing;
+        if (!crossing?.worldLayer) return false;
+        const { worldLayer, groundY, color, platforms } = crossing;
+        worldLayer.clear();
+
+        if (!awakened) {
+            worldLayer.lineStyle(5, 0x542D68, 0.34);
+            worldLayer.beginPath();
+            worldLayer.moveTo(382, groundY - 20);
+            worldLayer.lineTo(455, groundY + 34);
+            worldLayer.lineTo(610, groundY + 62);
+            worldLayer.lineTo(770, groundY + 42);
+            worldLayer.lineTo(900, groundY - 12);
+            worldLayer.strokePath();
+            worldLayer.lineStyle(2, 0xB686C8, 0.35);
+            worldLayer.strokeCircle(650, groundY + 30, 54);
+            return true;
+        }
+
+        worldLayer.fillStyle(color, 0.13);
+        worldLayer.fillEllipse(655, groundY - 106, 570, 350);
+        worldLayer.lineStyle(20, 0x0A2424, 0.9);
+        worldLayer.beginPath();
+        worldLayer.moveTo(380, groundY - 18);
+        platforms.forEach(platform => {
+            worldLayer.lineTo(platform.x, platform.targetY + 8);
+        });
+        worldLayer.lineTo(915, groundY - 8);
+        worldLayer.strokePath();
+        worldLayer.lineStyle(6, color, 0.78);
+        worldLayer.strokePath();
+        worldLayer.lineStyle(2, 0xFFFFFF, 0.8);
+        platforms.forEach((platform, index) => {
+            worldLayer.strokeCircle(
+                platform.x,
+                platform.targetY,
+                24 + (index % 2) * 7
+            );
+        });
+
+        // Broken concentric arcs show matter moving upward through a local
+        // gravity inversion. Nothing on Earth behaves this way.
+        worldLayer.lineStyle(4, 0xD9C7FF, 0.54);
+        [80, 126, 174].forEach((radius, index) => {
+            worldLayer.beginPath();
+            worldLayer.arc(
+                655,
+                groundY - 92,
+                radius,
+                Phaser.Math.DegToRad(205 + index * 8),
+                Phaser.Math.DegToRad(322 - index * 7),
+                false
+            );
+            worldLayer.strokePath();
+        });
+        return true;
+    }
+
+    updateRootwakeCrossing() {
+        const crossing = this.rootwakeCrossing;
+        if (!crossing) return false;
+
+        if (crossing.awakened) {
+            if (
+                crossing.cameraLocked &&
+                Math.abs(this.player?.body?.velocity?.x || 0) > 20
+            ) {
+                this.releaseRootwakeCinematicCamera();
+            }
+            if (
+                crossing.formationActive &&
+                (this.player?.x || 0) >= 1040
+            ) {
+                this.astronautFollower?.setContextualFormation?.(null);
+                crossing.formationActive = false;
+            }
+            return false;
+        }
+
+        if (
+            this.rootwakeSequenceActive ||
+            this.firstExpeditionDrill?.active ||
+            !this.player?.active
+        ) {
+            return false;
+        }
+        if (this.player.x >= 326 && this.player.x <= 405) {
+            return this.awakenRootwakeCrossing();
+        }
+        return false;
+    }
+
+    awakenRootwakeCrossing({ powerProfile = null, persist = true } = {}) {
+        const crossing = this.rootwakeCrossing;
+        if (!crossing || crossing.awakened || this.rootwakeSequenceActive) {
+            return false;
+        }
+
+        const profile = powerProfile || crossing.powerProfile ||
+            buildCreaturePowerProfile(window.GameState, { context: 'fend' });
+        const color = profile.color || crossing.color || 0x8FE3CF;
+        const camera = this.cameras.main;
+        const actionX = this.player?.x || 330;
+        const actionY = this.player?.y || crossing.groundY - 55;
+        const previousInvincible = this.isInvincible === true;
+        const controlsWereVisible = this.platformerControlsVisible === true;
+
+        this.rootwakeSequenceActive = true;
+        crossing.state = 'awakening';
+        crossing.transformationProgress = 0;
+        crossing.trigger?.destroy?.();
+        crossing.trigger = null;
+        this.recoveryInputLockedUntil = Math.max(
+            Number(this.recoveryInputLockedUntil) || 0,
+            this.time.now + 2100
+        );
+        this.isInvincible = true;
+        this.player?.setVelocityX?.(0);
+        this.player?.setVelocityY?.(-340);
+        this.player?.setTint?.(color);
+        this.astronautFollower?.setContextualFormation?.(
+            { x: this.isMobile ? 88 : 112, y: 4 },
+            'rootwake_witness'
+        );
+        crossing.formationActive = true;
+        if (this.astronautFollower?.sprite?.active) {
+            this.astronautFollower.sprite.setPosition(
+                actionX + (this.isMobile ? 88 : 112),
+                actionY + 4
+            );
+            this.astronautFollower.resetTrail?.();
+        }
+        if (controlsWereVisible) this.hidePlatformerMobileControls?.();
+        camera?.stopFollow?.();
+        camera?.setZoom?.(1);
+        camera?.pan?.(
+            this.isMobile ? 445 : 610,
+            crossing.groundY - 150,
+            280,
+            'Sine.easeOut'
+        );
+        crossing.cameraLocked = true;
+
+        const bodyPulse = this.add.graphics()
+            .setPosition(actionX, actionY)
+            .setDepth(170)
+            .setData('rootwakeCreatureAction', 'resonance_slam');
+        bodyPulse.lineStyle(6, color, 0.95);
+        bodyPulse.strokeCircle(0, 0, 22);
+        bodyPulse.lineStyle(2, 0xFFFFFF, 0.9);
+        bodyPulse.strokeCircle(0, 0, 34);
+        this.rootwakeElements.push(bodyPulse);
+        this.tweens.add({
+            targets: bodyPulse,
+            alpha: 0,
+            scaleX: 5.5,
+            scaleY: 5.5,
+            duration: 900,
+            ease: 'Cubic.easeOut',
+            onComplete: () => bodyPulse.destroy()
+        });
+
+        this.time.delayedCall(360, () => {
+            if (!this.rootwakeSequenceActive || !this.player?.active) return;
+            this.player.setVelocityY(330);
+        });
+
+        this.time.delayedCall(610, () => {
+            if (!this.rootwakeSequenceActive || !this.scene.isActive()) return;
+            camera?.shake?.(420, 0.012);
+            window.FeedbackManager?.cameraFlash?.(this, 260, 143, 227, 207);
+            window.FXLibrary?.stardustBurst?.(this, actionX, actionY, {
+                count: this.isMobile ? 20 : 32,
+                color: [color, 0x8FE3CF, 0xFFFFFF],
+                duration: 1200
+            });
+            this.emitRootwakeGravitySeeds(color);
+            this.drawRootwakeWorldState(true);
+            crossing.worldLayer.setAlpha(0);
+            this.tweens.add({
+                targets: crossing.worldLayer,
+                alpha: 1,
+                duration: 900,
+                ease: 'Sine.easeOut'
+            });
+            crossing.platforms.forEach((platform, index) => {
+                this.drawRootwakePlatform(
+                    platform.visual,
+                    platform.width,
+                    color,
+                    true
+                );
+                platform.visual.setData('rootwakeWorldState', 'awakening');
+                this.tweens.add({
+                    targets: platform.visual,
+                    y: platform.targetY,
+                    alpha: 1,
+                    duration: 620,
+                    delay: index * 95,
+                    ease: 'Back.easeOut',
+                    onComplete: () => {
+                        platform.settled = true;
+                        platform.zone.body.enable = true;
+                        platform.visual.setData('rootwakeWorldState', 'awake');
+                    }
+                });
+            });
+            this.tweens.killTweensOf(crossing.rootlight);
+            crossing.rootlight.setAlpha(1).setScale(1);
+            this.tweens.add({
+                targets: crossing.rootlight,
+                scaleX: 1.75,
+                scaleY: 1.75,
+                duration: 320,
+                yoyo: true,
+                ease: 'Cubic.easeOut'
+            });
+        });
+
+        this.time.delayedCall(1750, () => {
+            if (!this.rootwakeSequenceActive || !this.scene.isActive()) return;
+            crossing.awakened = true;
+            crossing.state = 'awake';
+            crossing.transformationProgress = 1;
+            crossing.platforms.forEach(platform => {
+                platform.zone.body.enable = true;
+                platform.settled = true;
+                platform.visual.setPosition(platform.x, platform.targetY);
+                platform.visual.setAlpha(1);
+                platform.visual.setData('rootwakeWorldState', 'awake');
+            });
+            this.player?.clearTint?.();
+            this.isInvincible = previousInvincible;
+            this.rootwakeSequenceActive = false;
+            this.startRootwakeGravityWeather();
+            camera?.setZoom?.(1);
+            if (controlsWereVisible) this.showPlatformerMobileControls?.();
+            crossing.revealUntil = this.time.now + 4500;
+            this.showFloatingText(
+                'ROOTWAKE CROSSING',
+                650,
+                crossing.groundY - 310,
+                '#E9FFF8'
+            );
+
+            if (persist && window.GameState) {
+                window.GameState.set(FOREST_ROOTWAKE_STATE_PATH, {
+                    version: FOREST_ROOTWAKE_VERSION,
+                    awakened: true,
+                    awakenedAt: new Date().toISOString(),
+                    action: crossing.action,
+                    phenomenon: crossing.phenomenon,
+                    worldChange: crossing.worldChange
+                });
+                recordCreaturePowerEvent(window.GameState, {
+                    eventId: 'forest_rootwake_crossing',
+                    powerId: profile.affinityPower.id,
+                    context: 'fend',
+                    magnitude: 'major',
+                    outcome: 'gravity_path_raised',
+                    save: false
+                });
+                window.GameState.save?.();
+            }
+            window.AchievementSystem?.recordEvent?.('story_interaction', {
+                event: 'forest_rootwake_crossing_awakened'
+            });
+            window.AudioManager?.playAchievement?.();
+            this.syncCampaignObjectiveDisplay({ force: true });
+        });
+        return true;
+    }
+
+    releaseRootwakeCinematicCamera() {
+        const crossing = this.rootwakeCrossing;
+        if (!crossing?.cameraLocked) return false;
+        const camera = this.cameras.main;
+        crossing.cameraLocked = false;
+        camera?.setZoom?.(1);
+        camera?.startFollow?.(this.player, true, 0.08, 0.1);
+        camera?.setDeadzone?.(
+            camera.width * 0.1,
+            camera.height * 0.35
+        );
+        camera?.setFollowOffset?.(
+            this.currentCameraLeadX || 0,
+            this.cameraBaseOffsetY || 0
+        );
+        return true;
+    }
+
+    emitRootwakeGravitySeeds(color) {
+        const crossing = this.rootwakeCrossing;
+        if (!crossing) return [];
+        const count = this.isMobile ? 16 : 26;
+        const seeds = [];
+        for (let index = 0; index < count; index += 1) {
+            const ratio = (index + 0.5) / count;
+            const x = 420 + ratio * 470;
+            const seed = this.add.ellipse(
+                x,
+                crossing.groundY + 70 + (index % 4) * 18,
+                8 + (index % 3) * 2,
+                18 + (index % 4) * 3,
+                index % 2 === 0 ? color : 0xD9C7FF,
+                0.92
+            ).setDepth(72)
+                .setStrokeStyle(2, 0xFFFFFF, 0.72)
+                .setBlendMode(Phaser.BlendModes.ADD)
+                .setData('alienPhenomenon', crossing.phenomenon)
+                .setData('gravityDirection', 'up');
+            seeds.push(seed);
+            this.rootwakeElements.push(seed);
+            this.tweens.add({
+                targets: seed,
+                x: x + Math.sin(index * 1.7) * 42,
+                y: crossing.groundY - 280 - (index % 5) * 40,
+                angle: index % 2 === 0 ? 180 : -180,
+                alpha: 0,
+                duration: 1100 + (index % 5) * 140,
+                delay: (index % 6) * 65,
+                ease: 'Cubic.easeOut',
+                onComplete: () => seed.destroy()
+            });
+        }
+        return seeds;
+    }
+
+    startRootwakeGravityWeather() {
+        const crossing = this.rootwakeCrossing;
+        if (!crossing || this.rootwakeGravityWeather.length) return false;
+        const count = this.isMobile ? 5 : 8;
+        for (let index = 0; index < count; index += 1) {
+            const x = 460 + index * (400 / Math.max(1, count - 1));
+            const seed = this.add.ellipse(
+                x,
+                crossing.groundY + 42,
+                7 + (index % 2) * 2,
+                16 + (index % 3) * 3,
+                index % 2 === 0 ? crossing.color : 0xD9C7FF,
+                0.72
+            ).setDepth(44)
+                .setStrokeStyle(2, 0xFFFFFF, 0.56)
+                .setBlendMode(Phaser.BlendModes.ADD)
+                .setData('alienPhenomenon', crossing.phenomenon)
+                .setData('gravityDirection', 'up')
+                .setData('rootwakeAmbientLife', true);
+            this.rootwakeGravityWeather.push(seed);
+            this.rootwakeElements.push(seed);
+            this.tweens.add({
+                targets: seed,
+                y: {
+                    from: crossing.groundY + 38 + (index % 3) * 14,
+                    to: crossing.groundY - 250 - (index % 4) * 28
+                },
+                x: { from: x - 10, to: x + 12 },
+                alpha: { from: 0.16, to: 0.82 },
+                duration: 2400 + index * 180,
+                delay: index * 210,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+        return true;
+    }
+
+    getRootwakeCrossingSnapshot() {
+        const crossing = this.rootwakeCrossing;
+        if (!crossing) return null;
+        return {
+            version: crossing.version,
+            state: crossing.state,
+            awakened: crossing.awakened,
+            action: crossing.action,
+            phenomenon: crossing.phenomenon,
+            worldChange: crossing.worldChange,
+            transformationProgress: crossing.transformationProgress,
+            platformCount: crossing.platforms.length,
+            settledPlatformCount: crossing.platforms.filter(
+                platform => platform.settled && platform.zone?.body?.enable
+            ).length,
+            gravityWeatherCount: this.rootwakeGravityWeather.filter(
+                seed => seed?.active
+            ).length,
+            playerPresent: this.player?.active === true,
+            astronautPresent: this.astronautFollower?.sprite?.active === true
+        };
     }
 
     /**
@@ -3607,8 +4180,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
     createTreeBridges() {
         this.forestBridgeLayer = this.add.graphics().setDepth(15);
         const bridges = [
-            // From Tree 1 to Tree 2
-            { x1: 450, x2: 1050, y: this.levelHeight - 350, type: 'static' },
+            // The first gap is crossed by the creature-raised Rootwake route.
+            // Tree 1's branches remain as the optional high-skill path.
             // From Tree 2 to Tree 3
             { x1: 1400, x2: 1900, y: this.levelHeight - 450, type: 'vine' },
             // From Tree 3 to Tree 4
@@ -5343,6 +5916,19 @@ class MythicalForestLevel extends PlatformerLevelScene {
             checkpoint.label?.destroy?.();
         });
         this.checkpointAnchors = [];
+        this.rootwakeCrossing?.trigger?.destroy?.();
+        this.rootwakeCrossing?.platforms?.forEach(platform => {
+            platform.zone?.destroy?.();
+        });
+        this.rootwakeElements.forEach(element => {
+            this.tweens?.killTweensOf?.(element);
+            element?.destroy?.();
+        });
+        this.rootwakeElements = [];
+        this.rootwakeGravityWeather = [];
+        this.rootwakeCrossing = null;
+        this.rootwakeSequenceActive = false;
+        this.player?.clearTint?.();
 
         // Clean up boss
         if (this.boss) {
