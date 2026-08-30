@@ -23,9 +23,11 @@ const requireValue = (condition, message) => { if (!condition) failures.push(mes
 
 requireValue(audit.id === 'SEARCH-VISIBILITY-2026-08-27', 'search visibility audit identity is missing');
 requireValue(audit.state === 'crawl_submission_accepted_visibility_unverified', 'search visibility state is overstated');
-requireValue(audit.sample?.queryCount === 4 && audit.sample?.queries?.length === 4, 'four-query sample boundary is missing');
+requireValue(audit.sample?.queryCount === 8 && audit.sample?.queries?.length === 8, 'eight-query sample boundary is missing');
 requireValue(audit.sample?.queries?.every(item => item.mythicalResultObserved === false), 'sample result was changed without a new dated audit');
 requireValue(/cannot prove global non-indexing/i.test(audit.sample?.limitations || ''), 'search sample limitation is missing');
+requireValue(audit.sample?.officialSiteResultCountClaimed === false, 'directional search sample must not invent a result count');
+requireValue(audit.sample?.unrelatedOrUnverifiedBrandProfileObserved === true, 'brand-confusion observation is missing');
 requireValue(opportunityMap.status === 'owned_pages_live_submission_gated', 'search opportunity map has a stale state');
 requireValue(opportunityMap.clusters?.length === 6 && opportunityMap.clusters.every(item => item.targetState === 'existing_live' && item.liveOwnedPage === true), 'search opportunity map does not reflect the six live owned routes');
 requireValue(!/\bcompanion\b/i.test(JSON.stringify(opportunityMap)), 'retired companion wording remains in the search opportunity map');
@@ -64,6 +66,19 @@ for (const field of ['personalDataSent', 'accountUsed', 'paidPromotionStarted'])
 
 requireValue(homepage.includes('<meta name="robots" content="index, follow, max-image-preview:large">'), 'homepage index instruction is missing');
 requireValue(homepage.includes('<link rel="canonical" href="https://mythicalvoid.com/">'), 'homepage canonical is missing');
+for (const phrase of [
+    '"@type": "WebSite"',
+    '"@id": "https://mythicalvoid.com/#website"',
+    '"name": "Mythical Void"',
+    '"alternateName": "mythicalvoid.com"',
+    '"@type": "Organization"',
+    '"@id": "https://mythicalvoid.com/#studio"',
+    '"@id": "https://mythicalvoid.com/#video-game"',
+    '"publisher": { "@id": "https://mythicalvoid.com/#studio" }'
+]) requireValue(homepage.includes(phrase), `homepage identity markup is missing: ${phrase}`);
+requireValue(audit.homepageIdentityMarkup?.productionState === 'prepared_not_deployed', 'homepage identity markup must not be described as live before deployment');
+requireValue(audit.homepageIdentityMarkup?.websiteNodePresent === true && audit.homepageIdentityMarkup?.studioNodePresent === true && audit.homepageIdentityMarkup?.gameLinkedToWebsiteAndStudio === true, 'homepage identity markup record is incomplete');
+requireValue(audit.homepageIdentityMarkup?.indexingOrRankingClaimed === false, 'homepage identity markup must not claim indexing or ranking');
 requireValue(playable.includes('<link rel="canonical" href="https://mythicalvoid.com/playable-now/">'), 'Playable Now canonical is missing');
 requireValue(robots.includes('User-agent: *') && robots.includes('Allow: /'), 'robots crawl permission is missing');
 requireValue(robots.includes('Sitemap: https://mythicalvoid.com/sitemap.xml'), 'robots sitemap line is missing');
@@ -89,7 +104,7 @@ if (failures.length) {
 console.log(JSON.stringify({
     valid: true,
     state: audit.state,
-    sampledQueries: 4,
+    sampledQueries: 8,
     sampledMythicalResults: 0,
     technicalCrawlChecksPassing: Object.keys(audit.liveTechnicalChecks).length,
     liveOwnedSearchRoutes: opportunityMap.clusters.length,

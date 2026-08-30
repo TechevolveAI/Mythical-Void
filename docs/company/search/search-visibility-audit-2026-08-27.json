@@ -1,18 +1,24 @@
 {
   "schemaVersion": 1,
   "id": "SEARCH-VISIBILITY-2026-08-27",
-  "checkedAt": "2026-08-27T01:51:00Z",
+  "checkedAt": "2026-08-30T05:47:14Z",
   "state": "crawl_submission_accepted_visibility_unverified",
   "sample": {
     "method": "Directional current web-search sample, not a complete index report or stable rank tracker.",
-    "queryCount": 4,
+    "queryCount": 8,
     "queries": [
       { "query": "Mythical Void game", "mythicalResultObserved": false },
       { "query": "site:mythicalvoid.com Mythical Void", "mythicalResultObserved": false },
-      { "query": "free browser alien creature game", "mythicalResultObserved": false },
-      { "query": "family friendly browser creature adventure game", "mythicalResultObserved": false }
+      { "query": "\"Mythical Void\" \"alien creature\"", "mythicalResultObserved": false },
+      { "query": "free alien creature browser game Mythical Void", "mythicalResultObserved": false },
+      { "query": "site:mythicalvoid.com", "mythicalResultObserved": false },
+      { "query": "mythicalvoid.com", "mythicalResultObserved": false },
+      { "query": "\"Mythical Void\" \"Project Beacon\"", "mythicalResultObserved": false },
+      { "query": "site:mythicalvoid.com/creature-genetics", "mythicalResultObserved": false }
     ],
-    "limitations": "Results vary by engine, location, time, language, device and personalization. This sample cannot prove global non-indexing or a ranking position."
+    "officialSiteResultCountClaimed": false,
+    "unrelatedOrUnverifiedBrandProfileObserved": true,
+    "limitations": "Results vary by engine, location, time, language, device and personalization. This sample cannot prove global non-indexing, a result count or a ranking position."
   },
   "liveTechnicalChecks": {
     "homepageHttpStatus": 200,
@@ -35,6 +41,23 @@
     "searchImpressions": null,
     "searchClicks": null,
     "rankingPosition": null
+  },
+  "homepageIdentityMarkup": {
+    "preparedAt": "2026-08-30T05:47:14Z",
+    "productionState": "prepared_not_deployed",
+    "websiteNodePresent": true,
+    "preferredSiteName": "Mythical Void",
+    "alternateSiteName": "mythicalvoid.com",
+    "studioNodePresent": true,
+    "gameLinkedToWebsiteAndStudio": true,
+    "indexingOrRankingClaimed": false
+  },
+  "searchConsoleAccessCheck": {
+    "record": "docs/company/search/search-console-read-only-check-2026-08-28.json",
+    "signedIn": true,
+    "mythicalVoidPropertyAccessible": false,
+    "welcomeScreenObserved": true,
+    "externalMutationPerformed": false
   },
   "indexNow": {
     "record": "docs/company/search/indexnow-submission-2026-08-27.json",

@@ -146,68 +146,67 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "VideoGame",
-      "@id": "https://mythicalvoid.com/#video-game",
-      "name": "Mythical Void",
-      "url": "https://mythicalvoid.com/",
-      "mainEntityOfPage": "https://mythicalvoid.com/",
-      "image": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
-      "description": "A free browser creature adventure about recovering Wanderer-77, restoring six living realms, and deciding what Project Beacon should tell Earth.",
-      "genre": ["Action-adventure", "Creature raising", "Science fantasy"],
-      "playMode": "SinglePlayer",
-      "applicationCategory": "Game",
-      "gamePlatform": "Web browser",
-      "inLanguage": "en",
-      "operatingSystem": "Any modern web browser",
-      "isFamilyFriendly": true,
-      "creator": {
-        "@type": "Organization",
-        "@id": "https://mythicalvoid.com/#studio",
-        "name": "Mythical Void",
-        "url": "https://mythicalvoid.com/studio/"
-      },
-      "potentialAction": {
-        "@type": "PlayAction",
-        "target": {
-          "@type": "EntryPoint",
-          "urlTemplate": "https://mythicalvoid.com/play/",
-          "actionPlatform": [
-            "https://schema.org/DesktopWebPlatform",
-            "https://schema.org/MobileWebPlatform"
-          ]
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://mythicalvoid.com/#website",
+          "name": "Mythical Void",
+          "alternateName": "mythicalvoid.com",
+          "url": "https://mythicalvoid.com/",
+          "description": "The official website for Mythical Void, a free browser creature adventure.",
+          "inLanguage": "en",
+          "publisher": { "@id": "https://mythicalvoid.com/#studio" }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://mythicalvoid.com/#studio",
+          "name": "Mythical Void",
+          "url": "https://mythicalvoid.com/studio/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://mythicalvoid.com/marketing/mythical-void-mark-512.png",
+            "width": 512,
+            "height": 512
+          },
+          "description": "An independent Irish father-and-son game studio project building imaginative browser adventures with careful use of generative AI tools."
+        },
+        {
+          "@type": "VideoGame",
+          "@id": "https://mythicalvoid.com/#video-game",
+          "name": "Mythical Void",
+          "url": "https://mythicalvoid.com/",
+          "mainEntityOfPage": { "@id": "https://mythicalvoid.com/#website" },
+          "publisher": { "@id": "https://mythicalvoid.com/#studio" },
+          "creator": { "@id": "https://mythicalvoid.com/#studio" },
+          "image": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
+          "description": "A free browser creature adventure about recovering Wanderer-77, restoring six living realms, and deciding what Project Beacon should tell Earth.",
+          "genre": ["Action-adventure", "Creature raising", "Science fantasy"],
+          "playMode": "SinglePlayer",
+          "applicationCategory": "Game",
+          "gamePlatform": "Web browser",
+          "inLanguage": "en",
+          "operatingSystem": "Any modern web browser",
+          "isFamilyFriendly": true,
+          "potentialAction": {
+            "@type": "PlayAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://mythicalvoid.com/play/",
+              "actionPlatform": [
+                "https://schema.org/DesktopWebPlatform",
+                "https://schema.org/MobileWebPlatform"
+              ]
+            }
+          },
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "EUR",
+            "availability": "https://schema.org/InStock",
+            "url": "https://mythicalvoid.com/play/"
+          }
         }
-      },
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "EUR",
-        "availability": "https://schema.org/InStock",
-        "url": "https://mythicalvoid.com/play/"
-      }
-    }
-    </script>
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "@id": "https://mythicalvoid.com/#website",
-      "url": "https://mythicalvoid.com/",
-      "name": "Mythical Void",
-      "alternateName": "Mythical Void Game",
-      "description": "The official website for Mythical Void, a free browser creature adventure.",
-      "inLanguage": "en",
-      "publisher": {
-        "@type": "Organization",
-        "@id": "https://mythicalvoid.com/#studio",
-        "name": "Mythical Void",
-        "url": "https://mythicalvoid.com/studio/",
-        "logo": {
-          "@type": "ImageObject",
-          "url": "https://mythicalvoid.com/marketing/mythical-void-mark-512.png",
-          "width": 512,
-          "height": 512
-        }
-      }
+      ]
     }
     </script>
 </head>

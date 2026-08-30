@@ -1,21 +1,29 @@
 # Mythical Void search visibility check
 
-**Checked:** 27 August 2026  
-**Result:** the website is open to search engines and its 14 public pages have
-been sent to IndexNow, but search visibility is not yet proven
+**Latest check:** 30 August 2026
+**Result:** the website is open to search engines, but even exact-name search
+visibility is not yet proven
 
 ## What we found
 
-A small current search check did not show Mythical Void for:
+A fresh eight-search check did not show the official Mythical Void website for:
 
 - `Mythical Void game`;
 - `site:mythicalvoid.com Mythical Void`;
-- `free browser alien creature game`;
-- `family friendly browser creature adventure game`.
+- `"Mythical Void" "alien creature"`;
+- `free alien creature browser game Mythical Void`;
+- `site:mythicalvoid.com`;
+- `mythicalvoid.com`;
+- `"Mythical Void" "Project Beacon"`;
+- `site:mythicalvoid.com/creature-genetics`.
 
 This is a warning, not proof that every Mythical Void page is absent from every
 search engine. Search results vary by place, device, language and time, and the
 public discovery pages are very new.
+
+An unrelated or unverified profile using the same words did appear. It is not
+being treated as an official Mythical Void channel. No result count or ranking
+has been invented from this directional check.
 
 ## What is working
 
@@ -34,7 +42,14 @@ There is no obvious public technical block. The unknown is whether Google has
 found, crawled and accepted each page. Only a verified Search Console property
 can answer that reliably.
 
-## What we did immediately
+The homepage identity markup has now been improved in the private release
+branch. It links three things explicitly: the preferred site name, the
+independent studio project and the browser game. It also gives the domain as a
+backup site name and points to the preferred logo. This follows Google's site
+name guidance, but it is not described as live until it is deployed and it
+cannot guarantee indexing or ranking.
+
+## What IndexNow proves—and does not prove
 
 At 05:23 Irish time, the 14 canonical public URLs in the sitemap were sent to
 the official IndexNow endpoint. It accepted the submission with HTTP status

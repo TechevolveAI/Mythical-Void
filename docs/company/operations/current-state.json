@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "weekEnding": "2026-08-11",
   "preparedBy": "Company task",
-  "evidenceFreshness": "Repository and public site checked 2026-08-11",
+  "evidenceFreshness": "Repository, production site, search sample, game package, visual review and operating records checked through 2026-08-30",
   "executive": {
     "outcome": "The public Mythical Void website has been rebuilt as a clearer, warmer shop window while the company system keeps publication and other outward actions under human approval.",
     "materialChange": "The home page now explains the creature, adventure, story, choice, and family safeguards in plain language before handing players to /play/. A-055 checks public wording. A-056 sorts invented questions and feedback into safe human routes, A-057 prepares source-linked candidate replies, and A-058 adds a consent-gated Google tag to the public pages only.",
@@ -13,11 +13,11 @@
   "scorecard": [
     {
       "measure": "Public discovery checks",
-      "current": "7 major and 4 minor live findings across 6 checks",
-      "target": "0 major after coordinated deployment",
-      "trend": "Baseline",
-      "confidence": "High",
-      "decisionOwner": "GDH-001 / release owner"
+      "current": "The production site serves real robots, sitemap, canonical, structured game data and AI-readable discovery files; IndexNow accepted the latest homepage submission. A fresh eight-query search sample still showed no official Mythical Void website result. Clearer linked site, studio and game identity markup is prepared and tested but not deployed, and Google Search Console is not connected.",
+      "target": "Owned result found by name and at least one relevant play-intent query, with Search Console evidence when Kevin activates it",
+      "trend": "Technical foundation live; search visibility not yet earned",
+      "confidence": "High for live files and sampled search; no Search Console performance evidence",
+      "decisionOwner": "Search visibility workflow / Kevin for Search Console"
     },
     {
       "measure": "Product activation",
@@ -541,9 +541,9 @@
   "experiments": [
     {
       "id": "E-001",
-      "signal": "Local discovery solution complete; live baseline still fails.",
-      "guardrail": "No crawl traps introduced locally; foundation validator passes.",
-      "recommendation": "Deploy through coordinated release, submit sitemap, rerun A-001."
+      "signal": "Owned discovery files and clearer play-intent pages are live; IndexNow accepted the homepage, but an eight-query public search sample still showed no official Mythical Void website result. Clearer linked site, studio and game identity markup is prepared and tested but not deployed.",
+      "guardrail": "No popularity or ranking claim; Search Console is not connected and sampled search is directional only.",
+      "recommendation": "Keep the pages stable, activate Search Console when Kevin is ready, and earn real mentions and play evidence rather than creating more thin pages."
     },
     {
       "id": "E-002 to E-004",
