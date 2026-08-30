@@ -5303,6 +5303,7 @@ class GameScene extends Phaser.Scene {
         window.AudioManager?.playSound?.('current_harmony', 0.9);
         if (!force) {
             window.GameState?.set('tutorial.villageHeartArrivalSeen', true);
+            window.GameState?.recordOpeningMilestone?.('first_objective_ready');
             window.GameState?.save?.();
         }
 

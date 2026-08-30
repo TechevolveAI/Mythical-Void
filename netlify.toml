@@ -4,7 +4,7 @@
 [build]
   # Build command - Vite production build
   # Netlify installs the locked dependencies before this command runs.
-  command = "npm run test:deploy && npm run build"
+  command = "npm run gate:onboarding:static && npm run test:deploy && npm run build"
 
   # Publish directory - Vite builds to dist folder
   publish = "dist"

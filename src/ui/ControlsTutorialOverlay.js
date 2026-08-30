@@ -238,6 +238,7 @@ export default class ControlsTutorialOverlay {
 
         // Mark as seen
         window.GameState?.set('tutorial.controlsSeen', true);
+        window.GameState?.recordOpeningMilestone?.('controls_completed');
         window.GameState?.save();
 
         // Cleanup

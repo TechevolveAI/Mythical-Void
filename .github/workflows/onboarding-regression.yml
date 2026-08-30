@@ -1,0 +1,47 @@
+name: Onboarding regression firewall
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/onboarding-regression.yml'
+      - 'netlify/functions/**'
+      - 'netlify.toml'
+      - 'package-lock.json'
+      - 'package.json'
+      - 'scripts/run-onboarding-golden-path.js'
+      - 'scripts/smoke-secondary-journeys.js'
+      - 'scripts/verify-netlify-function-runtime.cjs'
+      - 'src/game.js'
+      - 'src/scenes/GameScene.js'
+      - 'src/scenes/HatchingScene.js'
+      - 'src/scenes/SoulRevealScene.js'
+      - 'src/systems/GameState.js'
+      - 'src/systems/OnboardingManager.js'
+      - 'src/ui/ControlsTutorialOverlay.js'
+      - 'src/ui/LivingFormHandoff.js'
+      - 'src/__tests__/**'
+  push:
+    branches: [main]
+
+concurrency:
+  group: onboarding-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  opening-journey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run gate:onboarding:static
+      - run: npm run build:onboarding-ci
+      - name: Run golden browser journeys
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+          MYTHICAL_VOID_SMOKE_PROCESS_COOLDOWN_MS: 100
+        run: npm run smoke:onboarding-golden

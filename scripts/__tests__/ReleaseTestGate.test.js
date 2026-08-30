@@ -265,7 +265,7 @@ describe('release test gate', () => {
         const netlifyConfig = read('netlify.toml');
 
         expect(netlifyConfig).toContain(
-            'command = "npm run test:deploy && npm run build"'
+            'command = "npm run gate:onboarding:static && npm run test:deploy && npm run build"'
         );
     });
 

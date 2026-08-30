@@ -1296,6 +1296,8 @@ export default class SoulRevealScene extends Phaser.Scene {
         window.GameState?.set('creature.name', finalName);
         window.GameState?.set('creature.named', true);
         window.GameState?.set('tutorial.livingFormPending', true);
+        window.GameState?.recordOpeningMilestone?.('creature_named');
+        window.GameState?.recordOpeningPortraitStatus?.('pending');
 
         // CRITICAL: Add creature to collection for multi-creature support
         const collectionStatus = window.GameState?.getCollectionStatus?.() || { hasSpace: true };
@@ -1356,6 +1358,7 @@ export default class SoulRevealScene extends Phaser.Scene {
     transitionToGame() {
         this.livingFormHandoff?.beginTransition?.();
         window.GameState?.set('tutorial.livingFormPending', false);
+        window.GameState?.recordOpeningMilestone?.('sanctuary_entered');
         window.GameState?.save?.();
         this.cameras.main.fadeOut(360, 0, 0, 0);
 
@@ -1385,6 +1388,7 @@ export default class SoulRevealScene extends Phaser.Scene {
             onPortraitShown: record => {
                 if (!record?.imageUrl) return;
                 window.GameState?.set('tutorial.livingFormSeen', true);
+                window.GameState?.recordOpeningPortraitStatus?.('ready');
                 window.GameState?.save?.();
             },
             onContinue: () => this.transitionToGame()
