@@ -2,24 +2,6 @@ name: Onboarding regression firewall
 
 on:
   pull_request:
-    paths:
-      - '.github/workflows/onboarding-regression.yml'
-      - 'netlify/functions/**'
-      - 'netlify.toml'
-      - 'package-lock.json'
-      - 'package.json'
-      - 'scripts/run-onboarding-golden-path.js'
-      - 'scripts/smoke-secondary-journeys.js'
-      - 'scripts/verify-netlify-function-runtime.cjs'
-      - 'src/game.js'
-      - 'src/scenes/GameScene.js'
-      - 'src/scenes/HatchingScene.js'
-      - 'src/scenes/SoulRevealScene.js'
-      - 'src/systems/GameState.js'
-      - 'src/systems/OnboardingManager.js'
-      - 'src/ui/ControlsTutorialOverlay.js'
-      - 'src/ui/LivingFormHandoff.js'
-      - 'src/__tests__/**'
   push:
     branches: [main]
 
