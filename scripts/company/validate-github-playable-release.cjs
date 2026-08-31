@@ -33,8 +33,7 @@ for (const phrase of [
     '[Start the game directly](https://mythicalvoid.com/play/)',
     '[Read the family guide](https://mythicalvoid.com/parents/)',
     'No download, account, payment details, game adverts or public chat are needed.',
-    'father-and-son experiment',
-    'nine-year-old son',
+    'father-and-son project',
     'NASA does not make or endorse Mythical Void.',
     'People remain responsible for the story, safety boundaries, public claims and important choices.',
     'this release contains no gameplay media',
@@ -43,10 +42,11 @@ for (const phrase of [
 
 requireValue(!/!\[[^\]]*\]\([^)]*\)|<img\b|<video\b|youtube\.com|youtu\.be|utm_|[?&](?:ref|source|campaign)=/i.test(body), 'release body contains media, video or tracking parameters');
 requireValue(!/unique creature|no two creatures|infinite creatures|NASA-powered|NASA game|perfect for children|safe for all|award|best game/i.test(body), 'release body contains an unsupported or inflated claim');
+requireValue(!/\b(?:nine|9)[ -]year[ -]old\b/i.test(body), 'release body exposes a child\'s exact age');
 
 const truth = contract.truth || {};
 for (const field of ['earlyAccessDisclosed', 'freeBrowserPlayClaimed', 'noDownloadClaimed', 'noAccountClaimed', 'noPaymentDetailsClaimed', 'noGameAdsClaimed', 'noPublicChatClaimed']) requireValue(truth[field] === true, `truth.${field} must be true`);
-for (const field of ['nasaEndorsementClaimed', 'generatedArtworkPresentedAsGameplay', 'gameplayMediaAttached', 'downloadableBuildAttached', 'popularityOrRankingClaimed']) requireValue(truth[field] === false, `truth.${field} must be false`);
+for (const field of ['childExactAgeDisclosed', 'nasaEndorsementClaimed', 'generatedArtworkPresentedAsGameplay', 'gameplayMediaAttached', 'downloadableBuildAttached', 'popularityOrRankingClaimed']) requireValue(truth[field] === false, `truth.${field} must be false`);
 
 const authority = contract.authority || {};
 requireValue(authority.ownedPublicRepositoryReleaseAuthorized === true, 'owned GitHub release authority is missing');

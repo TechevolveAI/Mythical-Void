@@ -27,6 +27,7 @@
     "noPaymentDetailsClaimed": true,
     "noGameAdsClaimed": true,
     "noPublicChatClaimed": true,
+    "childExactAgeDisclosed": false,
     "nasaEndorsementClaimed": false,
     "generatedArtworkPresentedAsGameplay": false,
     "gameplayMediaAttached": false,
