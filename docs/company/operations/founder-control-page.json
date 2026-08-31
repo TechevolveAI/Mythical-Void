@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "id": "FOUNDER-CONTROL-001",
+  "asOf": "2026-08-31",
+  "state": "live_with_creature_visual_growth_hold",
+  "plainLanguagePage": "docs/company/FOUNDER_CONTROL_PAGE.md",
+  "purpose": "Give Kevin one plain-English source of truth for what is live, what is deliberately stopped, what the evidence actually proves, and the single decision that unlocks the next stage of Mythical Void.",
+  "live": {
+    "websiteAndGame": {
+      "state": "live",
+      "websiteUrl": "https://mythicalvoid.com/",
+      "playUrl": "https://mythicalvoid.com/play/",
+      "productionSourceCommit": "e9293f09d2ed5332d5538c05f051560d29e4d5e3",
+      "productionDeployId": "6a951fc9e33f9100083fb699",
+      "technicalFirstContactRepairLive": true,
+      "creatureArtworkHumanApproved": false
+    },
+    "githubEarlyAccessRelease": {
+      "state": "published_and_verified",
+      "url": "https://github.com/TechevolveAI/Mythical-Void/releases/tag/early-access-2026-08-31",
+      "gameplayMediaAttached": false,
+      "downloadableBuildAttached": false
+    },
+    "adultFeedback": {
+      "state": "owned_route_live",
+      "individualRowsStoredInThisRecord": false,
+      "automaticPublicRepliesAllowed": false,
+      "childContactAllowed": false
+    },
+    "websiteAnalytics": {
+      "state": "consent_gated_website_tag_live",
+      "gameExcluded": true,
+      "googlePropertyVerified": false,
+      "measurementTrustedForDecisions": false
+    }
+  },
+  "held": {
+    "firstFive": {
+      "state": "held_for_creature_first_impression",
+      "sessionsCompleted": 0,
+      "acceptedCustomerEvidence": 0,
+      "invitationsMayBegin": false
+    },
+    "gameplayPromotion": {
+      "state": "held_for_human_visual_approval",
+      "screenshotsMayPublish": false,
+      "videosMayPublish": false,
+      "founderPostMayPublish": false
+    },
+    "outsidePlatforms": {
+      "state": "not_submitted",
+      "platformTermsAccepted": false,
+      "platformSdkActivated": false
+    }
+  },
+  "known": {
+    "officialResultsObservedInLatestPublicSearchSample": 0,
+    "searchConsoleConnected": false,
+    "firstFiveSessionsCompleted": 0,
+    "acceptedCustomerEvidence": 0,
+    "websiteVisitMayBeCalledPlayer": false,
+    "githubViewMayBeCalledPlay": false,
+    "enjoymentClaimPermitted": false,
+    "retentionClaimPermitted": false,
+    "conversionClaimPermitted": false,
+    "growthClaimPermitted": false
+  },
+  "currentDecisions": [
+    {
+      "id": "FD-001",
+      "owner": "Kevin",
+      "question": "Choose the visual anchor for a creature people can love and recognise.",
+      "waysToUnlock": [
+        "Provide one to three visual references for the feeling, material and personality.",
+        "Approve a professional concept-artist brief as the direction; any paid work still requires separate spend approval."
+      ]
+    }
+  ],
+  "unlockSequence": [
+    "one_private_real_creature_proof",
+    "automated_obvious_fault_rejection",
+    "adult_human_visual_review",
+    "five_adult_first_five_test",
+    "one_small_evidence_led_public_route"
+  ],
+  "helpfulNotBlocking": {
+    "searchConsoleConnection": {
+      "cost": "free",
+      "existingGoogleAccountMayBeUsed": true,
+      "authorized": false
+    }
+  },
+  "languageAndSafety": {
+    "publicCreatureTerm": "creatures",
+    "companionTermAllowed": false,
+    "childExactAgeAllowed": false,
+    "childNamePhotoOrContactAllowed": false,
+    "generatedArtworkMayBeCalledGameplay": false,
+    "generatedSupportLabel": "AI-created interpretation — not gameplay",
+    "nasaEndorsementClaimed": false
+  },
+  "authority": {
+    "publicPostAuthorized": false,
+    "directContactAuthorized": false,
+    "spendAuthorized": false,
+    "newAccountAuthorized": false,
+    "platformTermsAuthorized": false,
+    "platformSubmissionAuthorized": false,
+    "childContactAuthorized": false
+  },
+  "sources": [
+    "docs/company/NOW_NEXT_LATER.md",
+    "docs/company/reviews/FIRST_CONTACT_VISUAL_REVIEW_2026-08-31.json",
+    "docs/company/research/first-five-playtest.json",
+    "docs/company/search/search-visibility-audit-2026-08-27.json",
+    "docs/company/growth/GITHUB_PLAYABLE_RELEASE.json",
+    "docs/company/growth/BOTTOM_OF_FUNNEL_DISTRIBUTION_PLAN.json",
+    "docs/company/content/visual-launch-moments.json",
+    "docs/company/automation/website-analytics-tag.json"
+  ]
+}

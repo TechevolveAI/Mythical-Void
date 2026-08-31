@@ -65,7 +65,8 @@ invalidJson('invented product pass', plan => { plan.entryGates.gdh009Passed = tr
 invalidJson('invented build', plan => { plan.entryGates.stableBuildRef = 'not-approved'; }, 'no approved stable build');
 invalidJson('invented deploy', plan => { plan.entryGates.productionDeployId = 'not-approved'; }, 'no approved stable build');
 invalidJson('invented human approval', plan => { plan.entryGates.adultHumanVisualReviewPassed = true; }, 'visual approval must remain false');
-invalidJson('deployed rejected candidate', plan => { plan.currentHold.candidateDeployed = true; }, 'must not permit deployment');
+invalidJson('hidden live technical repair', plan => { plan.currentHold.candidateDeployed = false; }, 'must not be hidden');
+invalidJson('invented promotion from deployment', plan => { plan.currentHold.promotionMayBegin = true; }, 'must not permit invitations or promotion');
 invalidJson('premature Kevin approval', plan => { plan.entryGates.kevinApprovedPurposeAndInvitations = true; }, 'must remain false');
 invalidJson('filled result', plan => { plan.sessionSlots[0].state = 'complete'; plan.sessionSlots[0].result = {}; }, 'must remain empty');
 invalidJson('external authority', plan => { plan.authority.participantContactAuthorized = true; }, 'participantContactAuthorized');
@@ -98,5 +99,5 @@ try {
     fs.rmSync(invitationRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 14);
-console.log('First Five playtest safeguards passed (14 cases).');
+assert.strictEqual(cases, 15);
+console.log('First Five playtest safeguards passed (15 cases).');
