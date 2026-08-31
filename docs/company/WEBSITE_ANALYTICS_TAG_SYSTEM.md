@@ -1,6 +1,6 @@
 # Mythical’s website visit counter
 
-Status: code ready for the public release; live deployment and live measurement still need checking.
+Status: live on the public website; Google-property receipt still needs checking.
 
 The public shop window now has the Google tag requested for Mythical:
 
@@ -35,11 +35,22 @@ The source checker confirms:
 - both production hosting policies allow the required Google files; and
 - the privacy page explains the choice.
 
-The independent check covers 25 cases. The public website tests still pass, and the release package now includes the consent helper and both hosting policy changes.
+The independent check covers 28 cases. The public website tests still pass, and the release package includes the consent helper and both hosting policy changes.
+
+## What the live check proved
+
+On 31 August 2026, the current production release was checked directly:
+
+- the homepage loaded the correct Google tag script;
+- the privacy explanation was live; and
+- the game runtime did not load a Google tag script.
+
+The browser already held a visitor choice, so no browser data was deleted and
+the first-visit banner was not replayed. No Google Analytics report was opened.
 
 ## Before we trust live numbers
 
-The live site still needs a check that:
+The remaining property-side check must prove that:
 
 1. the public pages load the tag;
 2. the game does not;
@@ -47,7 +58,9 @@ The live site still needs a check that:
 4. “Allow analytics” sends only the public page visit; and
 5. advertising remains off.
 
-Kevin should also confirm the Google property, who can remove the tag, and the chosen retention setting. A live number is not treated as company truth until those checks are recorded.
+Kevin should also confirm the Google property, who can remove the tag, and the
+chosen retention setting. Until then, no missing count is called zero interest
+and no visible count is treated as a player, a child, conversion or retention.
 
 ## Files
 

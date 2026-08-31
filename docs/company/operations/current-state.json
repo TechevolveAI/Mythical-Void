@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "weekEnding": "2026-08-11",
   "preparedBy": "Company task",
-  "evidenceFreshness": "Repository, production site, search sample, game package, visual review and operating records checked through 2026-08-30",
+  "evidenceFreshness": "Repository, production site, search sample, game package, visual review and operating records checked through 2026-08-31",
   "executive": {
     "outcome": "The public Mythical Void website has been rebuilt as a clearer, warmer shop window while the company system keeps publication and other outward actions under human approval.",
-    "materialChange": "The home page now explains the creature, adventure, story, choice, and family safeguards in plain language before handing players to /play/. A-055 checks public wording. A-056 sorts invented questions and feedback into safe human routes, A-057 prepares source-linked candidate replies, and A-058 adds a consent-gated Google tag to the public pages only.",
+    "materialChange": "The home page now explains the creature, adventure, story, choice, and family safeguards in plain language before handing players to /play/. A-055 checks public wording. A-056 sorts invented questions and feedback into safe human routes, A-057 prepares source-linked candidate replies, and A-058 now records the consent-gated Google tag as live on the public pages and absent from the game runtime while property-side evidence remains untrusted.",
     "biggestLearning": "Children, teenagers, and parents need the direct answer first. Incoming questions also need a clear human destination before any inbox automation is connected.",
-    "biggestRisk": "Connecting analytics, inboxes, public automation, or variable-cost AI/growth execution before privacy, safeguarding, financial, and approval gates are operational.",
+    "biggestRisk": "Treating unverified Google-property counts as player truth, or connecting inboxes, public automation, or variable-cost AI/growth execution before privacy, safeguarding, financial, and approval gates are operational.",
     "recommendation": "Resolve KDP-001 safeguarding ownership first, then confirm the AG-001/AG-010 internal operating cell and finance/release ownership before activating production protected history, authenticated delivery, tools, or spend."
   },
   "scorecard": [
@@ -21,7 +21,7 @@
     },
     {
       "measure": "Product activation",
-      "current": "Not instrumented",
+      "current": "The game is not instrumented. The consent-gated public website tag is live, but a fresh consent journey and Google-property event receipt have not been verified, so its numbers are not trusted.",
       "target": "Approved definition and lawful aggregate signal",
       "trend": "Not available",
       "confidence": "Not available",
@@ -531,11 +531,11 @@
       "followUp": "Name the support and knowledge owners, review the eight source records, approve the exact wording, and keep inbox connection and sending as separate human decisions"
     },
     {
-      "evidence": "A-058 checked the user-supplied Google tag ID G-FTM4W73ECQ, consent denied by default, visitor choice, advertising features off, public-page scope, game exclusion, canonical path, both hosting policies, and 17 prohibited data fields. It passed 25 independent cases. Live results still need a property-side check before they are treated as trusted.",
-      "source": "A-058 website analytics tag contract, public source checks, hosting policies, and independent evaluation 2026-08-11",
-      "confidence": "High for the checked source files and declared consent rules; the live domain, Google property, visitor behaviour, retention, and production response have not yet been verified",
-      "implication": "Mythical can measure whether its public shop window helps visitors only after they choose analytics, without adding Google tracking to the game.",
-      "followUp": "Confirm the live domain and Google property, review retention and privacy wording, deploy the isolated package, and perform the no-consent, no-thanks, allow-analytics, and game-exclusion checks"
+      "evidence": "A-058 checked the user-supplied Google tag ID G-FTM4W73ECQ, consent denied by default, visitor choice, advertising features off, public-page scope, game exclusion, canonical path, both hosting policies, 17 prohibited data fields, and current production deployment 6a950b240857220008661510. A direct live check found the tag script on the homepage, the privacy wording live, and no tag script loaded by the game runtime. It passed 28 independent cases. Google-property receipt remains unverified.",
+      "source": "A-058 website analytics tag contract, public source checks, hosting policies, production commit 00e43be414e4e91d7477a666bd4cb17e57448d2c, Netlify deployment 6a950b240857220008661510, direct live browser observation, and independent evaluation 2026-08-31",
+      "confidence": "High for the checked source files, declared consent rules, current deployment, homepage tag presence, live privacy wording, and game-runtime exclusion; the current browser already held a prior choice and no Google Analytics property, fresh first-visit journey, retention setting, or received event was inspected",
+      "implication": "The tag is live only on Mythical's public shop window, but deployment must not be confused with trusted measurement. No count may guide growth until property-side consent and receipt are checked.",
+      "followUp": "Kevin confirms the Mythical Void Google Analytics property, retention choice and removal owner; then run one fresh private-browser no-consent, no-thanks and allow-analytics journey while checking the exact property-side events. Until then, treat missing data as unknown and visible counts as untrusted."
     }
   ],
   "experiments": [

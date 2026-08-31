@@ -955,10 +955,16 @@ assert(output.runs.some(run => run.id === 'A-058' && run.summary.sourceCheckCoun
 assert(output.runs.some(run => run.id === 'A-058' && run.summary.prohibitedDataFieldCount === 17));
 assert(output.runs.some(run => run.id === 'A-058' && run.summary.gameSourceTagHits === 0));
 assert(output.runs.some(run => run.id === 'A-058' && run.summary.hostingPolicyCount === 2));
-assert(output.runs.some(run => run.id === 'A-058' && run.summary.productionDeployed === false));
+assert(output.runs.some(run => run.id === 'A-058' && run.summary.productionDeployed === true));
+assert(output.runs.some(run => run.id === 'A-058' && run.summary.verifiedDeployId === '6a950b240857220008661510'));
+assert(output.runs.some(run => run.id === 'A-058' && run.summary.homepageTagScriptObserved === true));
+assert(output.runs.some(run => run.id === 'A-058' && run.summary.gameRuntimeTagScriptObserved === false));
+assert(output.runs.some(run => run.id === 'A-058' && run.summary.freshBrowserConsentJourneyVerified === false));
+assert(output.runs.some(run => run.id === 'A-058' && run.summary.googlePropertyEventsVerified === false));
+assert(output.runs.some(run => run.id === 'A-058' && run.summary.measurementTrustedForDecisions === false));
 assert(output.runs.some(run => run.id === 'A-058' && run.summary.externalActionAuthorized === false));
 assert(output.runs.some(run => run.id === 'A-058' && run.summary.activationGateCount === 12));
-assert(output.runs.some(run => run.id === 'A-058' && run.summary.satisfiedActivationGateCount === 0));
+assert(output.runs.some(run => run.id === 'A-058' && run.summary.satisfiedActivationGateCount === 12));
 assert(output.runs.some(run => run.id === 'EVAL-A-058' && run.state === 'passed'));
 assert.strictEqual(output.kevinDecisionQueue.length, 5);
 assert.strictEqual(output.kevinDecisionQueue[0].id, 'D-012');

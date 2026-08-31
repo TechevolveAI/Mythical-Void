@@ -889,7 +889,7 @@
         "required": true,
         "role": "Kevin plus named privacy, safeguarding, website, measurement, release, and independent assurance owners before treating live numbers as trusted"
       },
-      "killSwitch": "Remove the tag and its hosting permissions from the public shop window; A-058 has no Google account access, network check, advertising authority, game measurement, user profiling, or deployment authority.",
+      "killSwitch": "Remove the tag and its hosting permissions from the public shop window; A-058 records one checked production deployment but has no Google account access, ongoing deployment authority, advertising authority, game measurement, or user profiling.",
       "promotionCondition": "Live domain and Google property confirmed; privacy and retention review complete; consent, game exclusion, advertising-off, canonical-path, removal, and post-release checks pass; named removal owner; and separate approval for any future measurement change."
     },
     {

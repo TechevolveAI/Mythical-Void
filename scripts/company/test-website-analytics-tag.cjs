@@ -31,7 +31,7 @@ function invalid(mutate, expectedFailure) {
 try {
     caseCount += 1;
     const baseline = execute(source);
-    assert.strictEqual(baseline.status, 2);
+    assert.strictEqual(baseline.status, 0);
     assert.strictEqual(baseline.output.tagImplementationReadyForReview, true);
     assert.strictEqual(baseline.output.measurementId, 'G-FTM4W73ECQ');
     assert.strictEqual(baseline.output.scope, 'public_shop_window_only');
@@ -45,10 +45,16 @@ try {
     assert.strictEqual(baseline.output.prohibitedDataFieldCount, 17);
     assert.strictEqual(baseline.output.gameSourceTagHits, 0);
     assert.strictEqual(baseline.output.hostingPolicyCount, 2);
-    assert.strictEqual(baseline.output.productionDeployed, false);
+    assert.strictEqual(baseline.output.productionDeployed, true);
+    assert.strictEqual(baseline.output.verifiedDeployId, '6a950b240857220008661510');
+    assert.strictEqual(baseline.output.homepageTagScriptObserved, true);
+    assert.strictEqual(baseline.output.gameRuntimeTagScriptObserved, false);
+    assert.strictEqual(baseline.output.freshBrowserConsentJourneyVerified, false);
+    assert.strictEqual(baseline.output.googlePropertyEventsVerified, false);
+    assert.strictEqual(baseline.output.measurementTrustedForDecisions, false);
     assert.strictEqual(baseline.output.externalActionAuthorized, false);
     assert.strictEqual(baseline.output.activationGateCount, 12);
-    assert.strictEqual(baseline.output.satisfiedActivationGateCount, 0);
+    assert.strictEqual(baseline.output.satisfiedActivationGateCount, 12);
 
     invalid(value => { value.tag.measurementId = 'G-OTHER'; }, 'measurementId');
     invalid(value => { value.tag.scriptUrl = 'https://example.test/tag'; }, 'scriptUrl');
@@ -62,9 +68,12 @@ try {
     invalid(value => { value.sourceChecks[0].path = 'wrong.html'; }, 'source check 1');
     invalid(value => { value.prohibitedData.pop(); }, 'prohibitedData');
     invalid(value => { value.activationGates.pop(); }, 'activationGates');
-    invalid(value => { value.activationGates[0].satisfied = true; }, 'activation gate 1');
+    invalid(value => { value.activationGates[0].satisfied = false; }, 'activation gate 1');
     invalid(value => { value.tagImplementationReadyForReview = false; }, 'tagImplementationReadyForReview');
-    invalid(value => { value.productionDeployed = true; }, 'productionDeployed');
+    invalid(value => { value.productionDeployed = false; }, 'productionDeployed');
+    invalid(value => { value.productionEvidence.homepageTagScriptObserved = false; }, 'live homepage tag observation');
+    invalid(value => { value.productionEvidence.gameRuntimeTagScriptObserved = true; }, 'live game runtime');
+    invalid(value => { value.productionEvidence.measurementTrustedForDecisions = true; }, 'measurementTrustedForDecisions');
     invalid(value => { value.externalActionAuthorized = true; }, 'externalActionAuthorized');
     invalid(value => { value.authority.productionDeploymentAuthorizedByKevin = false; }, 'productionDeploymentAuthorizedByKevin');
     invalid(value => { value.nextDecision = 'Deploy.'; }, 'nextDecision is incomplete');
@@ -75,8 +84,8 @@ try {
     invalid(value => { value.purpose = 'Tag.'; }, 'purpose is incomplete');
     invalid(value => { value.tag.pageViewBeforeChoice = true; }, 'pageViewBeforeChoice');
 
-    assert.strictEqual(caseCount, 25);
-    console.log('A-058 website analytics tag evaluations passed (25 cases).');
+    assert.strictEqual(caseCount, 28);
+    console.log('A-058 website analytics tag evaluations passed (28 cases).');
 } finally {
     fs.rmSync(temporaryDirectory, { recursive: true, force: true });
 }

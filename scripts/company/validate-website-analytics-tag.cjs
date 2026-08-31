@@ -27,7 +27,7 @@ const failures = [];
 
 if (contract.schemaVersion !== 1) failures.push('schemaVersion must be 1');
 if (!/^\d{4}-\d{2}-\d{2}$/.test(contract.asOf || '')) failures.push('asOf must be an ISO date');
-if (contract.status !== 'consent_gated_public_shop_window_tag_ready_for_production_review') failures.push('status is invalid');
+if (contract.status !== 'consent_gated_public_shop_window_tag_live_property_verification_pending') failures.push('status is invalid');
 if (typeof contract.purpose !== 'string' || contract.purpose.length < 500) failures.push('purpose is incomplete');
 exactSet(contract.decisionRefs, ['D-003', 'D-004', 'D-015'], 'decisionRefs', failures);
 exactSet(contract.riskRefs, ['R-001', 'R-005', 'R-011'], 'riskRefs', failures);
@@ -44,6 +44,7 @@ if (contract.authority?.productionDeploymentAuthorizedByKevin !== true) failures
 requireFalse(contract.authority, authorityFields.filter(field => field !== 'productionDeploymentAuthorizedByKevin'), 'authority', failures, false);
 
 const tag = contract.tag || {};
+const productionEvidence = contract.productionEvidence || {};
 if (tag.measurementId !== 'G-FTM4W73ECQ') failures.push('measurementId is invalid');
 if (tag.scriptUrl !== 'https://www.googletagmanager.com/gtag/js?id=G-FTM4W73ECQ') failures.push('scriptUrl is invalid');
 if (tag.scope !== 'public_shop_window_only') failures.push('scope is invalid');
@@ -52,6 +53,16 @@ exactSet(tag.excludedRoutes, ['/play/', '/game/', '?testBoss'], 'excludedRoutes'
 for (const field of ['defaultAnalyticsStorage', 'defaultAdStorage', 'defaultAdUserData', 'defaultAdPersonalization']) if (tag[field] !== 'denied') failures.push(`${field} must be denied`);
 requireFalse(tag, ['allowGoogleSignals', 'allowAdPersonalizationSignals', 'pageViewBeforeChoice'], 'tag', failures);
 requireTrue(tag, ['visitorChoiceRequired', 'pageLocationUsesCanonicalPathOnly'], 'tag', failures);
+if (productionEvidence.checkedOn !== '2026-08-31') failures.push('production evidence date is stale');
+if (productionEvidence.productionUrl !== 'https://mythicalvoid.com/') failures.push('production URL is invalid');
+if (!/^[0-9a-f]{40}$/.test(productionEvidence.verifiedSourceCommit || '')) failures.push('verified source commit is invalid');
+if (!/^[0-9a-f]{24}$/.test(productionEvidence.verifiedDeployId || '')) failures.push('verified deploy id is invalid');
+if (productionEvidence.deployState !== 'ready') failures.push('verified deploy must be ready');
+if (productionEvidence.homepageTagScriptObserved !== true || productionEvidence.homepageTagScriptUrl !== tag.scriptUrl) failures.push('live homepage tag observation is invalid');
+if (productionEvidence.gameRuntimeTagScriptObserved !== false) failures.push('live game runtime must not load the tag script');
+if (productionEvidence.privacyAnalyticsWordingObserved !== true) failures.push('live privacy wording was not observed');
+requireFalse(productionEvidence, ['freshBrowserConsentJourneyVerified', 'googlePropertyEventsVerified', 'measurementTrustedForDecisions'], 'productionEvidence', failures);
+if (typeof productionEvidence.limitation !== 'string' || productionEvidence.limitation.length < 250) failures.push('production evidence limitation is incomplete');
 
 const sourcePaths = ['index.html', 'src/site/analytics-consent.js', 'src/site/storefront.js', 'src/site/storefront.css', 'netlify.toml', 'vercel.json'];
 const expectedSourceChecks = sourcePaths.map((pathName, index) => `GA-${String(index + 1).padStart(3, '0')}`);
@@ -93,15 +104,16 @@ if (!indexText.includes('if (isGameRoute) return')) failures.push('index.html mu
 exactSet(contract.prohibitedData, ['user_id', 'account_id', 'email', 'name', 'age', 'age_band', 'birth_date', 'child_data', 'creature_id', 'creature_name', 'game_save', 'story_choice', 'full_url', 'query_string', 'raw_referrer', 'ip_address', 'advertising_id'], 'prohibitedData', failures);
 const gateCount = Array.isArray(contract.activationGates) ? contract.activationGates.length : 0;
 if (gateCount !== 12) failures.push('activationGates must contain 12 gates');
-for (let index = 0; index < 12; index += 1) if (contract.activationGates?.[index]?.id !== `GA-G${String(index + 1).padStart(2, '0')}` || contract.activationGates?.[index]?.satisfied !== false) failures.push(`activation gate ${index + 1} must remain unsatisfied`);
+for (let index = 0; index < 12; index += 1) if (contract.activationGates?.[index]?.id !== `GA-G${String(index + 1).padStart(2, '0')}` || contract.activationGates?.[index]?.satisfied !== true) failures.push(`activation gate ${index + 1} must remain satisfied`);
 requireTrue(contract, ['tagImplementationReadyForReview'], 'contract', failures);
-requireFalse(contract, ['productionDeployed', 'externalActionAuthorized'], 'contract', failures);
+requireTrue(contract, ['productionDeployed'], 'contract', failures);
+requireFalse(contract, ['externalActionAuthorized'], 'contract', failures);
 if (typeof contract.nextDecision !== 'string' || contract.nextDecision.length < 500) failures.push('nextDecision is incomplete');
 
 const tagImplementationReadyForReview = failures.length === 0;
 const output = {
     workflow: 'A-058',
-    mode: 'offline source and hosting-policy check for consent-gated public Google tag; no network check or deployment claim',
+    mode: 'offline source assurance plus recorded live deployment evidence; Google-property receipt remains unverified',
     tagImplementationReadyForReview,
     measurementId: tag.measurementId,
     scope: tag.scope,
@@ -115,7 +127,13 @@ const output = {
     prohibitedDataFieldCount: (contract.prohibitedData || []).length,
     gameSourceTagHits: 0,
     hostingPolicyCount: 2,
-    productionDeployed: false,
+    productionDeployed: contract.productionDeployed === true,
+    verifiedDeployId: productionEvidence.verifiedDeployId,
+    homepageTagScriptObserved: productionEvidence.homepageTagScriptObserved,
+    gameRuntimeTagScriptObserved: productionEvidence.gameRuntimeTagScriptObserved,
+    freshBrowserConsentJourneyVerified: productionEvidence.freshBrowserConsentJourneyVerified,
+    googlePropertyEventsVerified: productionEvidence.googlePropertyEventsVerified,
+    measurementTrustedForDecisions: productionEvidence.measurementTrustedForDecisions,
     externalActionAuthorized: false,
     activationGateCount: gateCount,
     satisfiedActivationGateCount: (contract.activationGates || []).filter(item => item.satisfied).length,
@@ -124,4 +142,4 @@ const output = {
 };
 console.log(JSON.stringify(output, null, 2));
 if (failures.length) process.exitCode = 1;
-else process.exitCode = 2;
+else process.exitCode = 0;

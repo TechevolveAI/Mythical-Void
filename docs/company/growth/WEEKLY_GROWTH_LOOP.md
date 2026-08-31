@@ -15,7 +15,8 @@ that Mythical already owns.
 - the accepted 27 August IndexNow submission after seven and fourteen days,
   without resubmitting unchanged URLs or calling acceptance “indexing”;
 - the sitemap, Signal Log, public feeds and important page links;
-- optional website measurement remains consent-led and outside the game;
+- optional website measurement remains consent-led and outside the game, and
+  its live deployment record is not mistaken for verified Google-property data;
 - whether stronger gameplay moments have passed human visual review;
 - the anonymous adult feedback pulse, treating responses as responses rather
   than unique people and making no claim when the count is zero or too small;
