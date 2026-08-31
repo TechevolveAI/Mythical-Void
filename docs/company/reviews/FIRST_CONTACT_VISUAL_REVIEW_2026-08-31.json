@@ -50,6 +50,16 @@
     "adultHumanApprovalRequested": false,
     "adultHumanApprovalPassed": false
   },
+  "laterProductionOverride": {
+    "authorizedByKevin": true,
+    "scope": "Deploy the technical first-contact presentation repair already merged through protected main.",
+    "candidateIsAncestorOfProductionMain": true,
+    "productionSourceCommit": "e9293f09d2ed5332d5538c05f051560d29e4d5e3",
+    "productionDeployId": "6a951fc9e33f9100083fb699",
+    "visualApprovalGranted": false,
+    "firstFiveReleased": false,
+    "gameplayPromotionReleased": false
+  },
   "nextProof": {
     "requiresApprovedArtDirection": true,
     "requirements": [

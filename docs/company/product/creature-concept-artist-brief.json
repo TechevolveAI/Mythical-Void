@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "id": "CREATURE-CONCEPT-ARTIST-BRIEF-001",
+  "asOf": "2026-08-31",
+  "state": "prepared_for_kevin_approval_no_external_action",
+  "briefPath": "docs/company/product/CREATURE_CONCEPT_ARTIST_BRIEF.md",
+  "objective": "Find one lovable, unmistakably alien and small-screen-readable visual language before producing more creature variations.",
+  "audience": ["children", "teenagers", "families"],
+  "firstDelivery": {
+    "explorationDirections": ["living_current", "memory_matter", "private_gravity"],
+    "silhouettesPerDirection": 4,
+    "totalSilhouettes": 12,
+    "phoneProofWidthPx": 96,
+    "labelFreeDecisionSheet": true,
+    "kevinSelectionMaximum": 3,
+    "stopWhenNonePass": true,
+    "colourOrRenderingAuthorized": false
+  },
+  "secondDelivery": {
+    "startsOnlyAfterKevinSelects": true,
+    "views": ["side", "three_quarter"],
+    "checks": ["solid_black", "greyscale", "three_realm_material", "phone_game_mockup"],
+    "motionMoments": ["rest", "notice", "gather_force", "contact", "recover"],
+    "relatedIdentityExamples": 3,
+    "runtimeIntegrationAuthorized": false
+  },
+  "mustReadAs": ["one_connected_organism", "alive", "alien", "appealing", "physically_coherent"],
+  "dominantReadsToReject": [
+    "earth_animal",
+    "human_or_superhero",
+    "familiar_fantasy_monster",
+    "plant_or_rock_pile",
+    "portal_or_symbol",
+    "vehicle_weapon_or_furniture",
+    "round_mascot_or_toy",
+    "purple_glow_tentacle_or_many_eye_cliche"
+  ],
+  "humanApproval": {
+    "automationMayRejectObviousFaults": true,
+    "automationMayApproveVisualQuality": false,
+    "kevinApprovesDirection": true,
+    "separateAdultApprovesGameplayFrames": true
+  },
+  "rights": {
+    "provenanceRequired": true,
+    "aiAssistanceMustBeRecorded": true,
+    "livingArtistImitationAllowed": false,
+    "unlicensedReferenceAllowed": false,
+    "childExactAgeOrIdentityAllowed": false,
+    "generatedConceptMayBeCalledGameplay": false
+  },
+  "authority": {
+    "artistContactAuthorized": false,
+    "spendAuthorized": false,
+    "contractAuthorized": false,
+    "imageGenerationAuthorized": false,
+    "gameCodeChangeAuthorized": false,
+    "runtimeIntegrationAuthorized": false,
+    "pushAuthorized": false,
+    "deployAuthorized": false,
+    "publicationAuthorized": false,
+    "platformUseAuthorized": false
+  }
+}

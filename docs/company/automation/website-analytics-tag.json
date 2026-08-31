@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "asOf": "2026-08-31",
-  "status": "consent_gated_public_shop_window_tag_live_property_verification_pending",
-  "purpose": "Describe the small Google tag used on Mythical’s public shop window. The tag is not part of the game. It starts with analytics and advertising storage turned off, asks visitors before enabling analytics, sends only a simple public-page visit after an affirmative choice, turns advertising features off, and never receives a game save, creature name, account number, email, age, child detail, full query string, or user ID from Mythical. A visitor can say no. The tag is checked in the page source, the consent helper, the public privacy page, and both production hosting policies before release.",
+  "status": "consent_gated_public_shop_window_tag_live_property_verified_governance_review_pending",
+  "purpose": "Describe the small Google tag used on Mythical’s public shop window. The tag is not part of the game. It starts with analytics and advertising storage turned off, asks visitors before enabling analytics, explicitly sends only narrow public-page, Play and Share events after an affirmative choice, turns advertising features off, and never receives a game save, creature name, account number, email, age, child detail, full query string, or user ID from Mythical. Google Analytics also creates basic service events after consent, and the property currently has optional enhanced measurement enabled; that wider setting is recorded as a governance gap, not silently described as minimal. A visitor can say no. The tag is checked in the page source, consent helper, public privacy page, production hosting policies and the signed-in Google property.",
   "decisionRefs": ["D-003", "D-004", "D-015"],
   "riskRefs": ["R-001", "R-005", "R-011"],
   "workflowRefs": ["A-006", "A-018", "A-055", "A-058"],
@@ -41,9 +41,33 @@
     "gameRuntimeTagScriptObserved": false,
     "privacyAnalyticsWordingObserved": true,
     "freshBrowserConsentJourneyVerified": false,
-    "googlePropertyEventsVerified": false,
+    "googlePropertyEventsVerified": true,
     "measurementTrustedForDecisions": false,
-    "limitation": "The current browser already held a prior visitor choice, so this check did not delete browser data or replay the first-visit banner. No Google Analytics property, Realtime report, retention setting, or exported event row was inspected. Deployment is proven; correct property-side receipt remains unproven."
+    "limitation": "The signed-in property, data stream, measurement ID, data-flow state, event report and retention screen were inspected read-only. The browser already held a prior visitor choice, so this check did not delete browser data or replay the first-visit banner. The report cannot prove which visit produced which event, and the observed totals are likely dominated by development checks. No export was used and no count may be called players, plays, conversion, retention, enjoyment or growth."
+  },
+  "propertySideEvidence": {
+    "checkedOn": "2026-08-31",
+    "inspectionMode": "signed_in_read_only_browser",
+    "accountName": "TechEvolveAI",
+    "propertyName": "TechEvolveAI",
+    "streamName": "Mythical Void",
+    "streamUrl": "https://www.mythicalvoid.com",
+    "streamId": "15420950256",
+    "measurementId": "G-FTM4W73ECQ",
+    "dataCollectionActiveInPast48Hours": true,
+    "enhancedMeasurementEnabled": true,
+    "activeEnhancedMeasurementsObserved": ["page_views", "scrolls", "outbound_clicks"],
+    "observedReportPeriod": "2026-08-03_to_2026-08-30",
+    "observedEventCount": 17,
+    "observedTotalUsers": 1,
+    "observedSessionCount": 5,
+    "observedEventNames": ["discovery_arrival", "session_start", "scroll", "user_engagement", "first_visit"],
+    "eventDataRetention": "2_months",
+    "userDataRetention": "14_months",
+    "resetUserRetentionOnNewActivity": true,
+    "propertySettingsChangeAuthorized": false,
+    "propertySettingsChangeMade": false,
+    "interpretation": "This proves the owned stream is receiving data. It does not prove five players or five independent visits: the single reported user and the current direct sessions may be Kevin or Codex checks. The scroll event proves optional enhanced measurement is broader than the intended narrow explicit event set."
   },
   "sourceChecks": [
     { "id": "GA-001", "path": "index.html", "purpose": "tag id, consent default, and game exclusion" },
@@ -71,5 +95,5 @@
   "tagImplementationReadyForReview": true,
   "productionDeployed": true,
   "externalActionAuthorized": false,
-  "nextDecision": "Deployment is no longer the question: the correct Google tag is present on the live public homepage, the privacy wording is live, and the game runtime does not load the tag script. Before any number is trusted, Kevin must open the Google Analytics property he controls and confirm the property belongs to Mythical Void, the retention choice is appropriate, and a fresh private-browser test produces no event before consent, no event after “No thanks”, and only the allowed canonical public-page and broad Play or Share events after “Allow analytics”. The person who can remove the tag must also be named. Until that property-side check is complete, absence of data must not be called zero interest, and any visible count must not be used as a player, child, conversion, retention, or advertising claim."
+  "nextDecision": "The correct Google property and stream are now confirmed, the measurement ID matches, data is flowing, and the game runtime remains excluded. Before any number is trusted, Kevin must approve the intended minimal property settings: remove optional enhanced interactions such as scroll and outbound-click measurement unless there is a clear need, decide whether fourteen months is appropriate for user data, and name the person who can remove the tag. After that, a fresh first-visit test must prove no event before consent, no event after “No thanks”, and only the approved public-page and broad Play or Share events after “Allow analytics”. The currently visible 17 events, one user and five sessions must not be called players, plays, conversion, retention, enjoyment or growth."
 }

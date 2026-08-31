@@ -27,7 +27,7 @@ const failures = [];
 
 if (contract.schemaVersion !== 1) failures.push('schemaVersion must be 1');
 if (!/^\d{4}-\d{2}-\d{2}$/.test(contract.asOf || '')) failures.push('asOf must be an ISO date');
-if (contract.status !== 'consent_gated_public_shop_window_tag_live_property_verification_pending') failures.push('status is invalid');
+if (contract.status !== 'consent_gated_public_shop_window_tag_live_property_verified_governance_review_pending') failures.push('status is invalid');
 if (typeof contract.purpose !== 'string' || contract.purpose.length < 500) failures.push('purpose is incomplete');
 exactSet(contract.decisionRefs, ['D-003', 'D-004', 'D-015'], 'decisionRefs', failures);
 exactSet(contract.riskRefs, ['R-001', 'R-005', 'R-011'], 'riskRefs', failures);
@@ -61,8 +61,23 @@ if (productionEvidence.deployState !== 'ready') failures.push('verified deploy m
 if (productionEvidence.homepageTagScriptObserved !== true || productionEvidence.homepageTagScriptUrl !== tag.scriptUrl) failures.push('live homepage tag observation is invalid');
 if (productionEvidence.gameRuntimeTagScriptObserved !== false) failures.push('live game runtime must not load the tag script');
 if (productionEvidence.privacyAnalyticsWordingObserved !== true) failures.push('live privacy wording was not observed');
-requireFalse(productionEvidence, ['freshBrowserConsentJourneyVerified', 'googlePropertyEventsVerified', 'measurementTrustedForDecisions'], 'productionEvidence', failures);
+requireFalse(productionEvidence, ['freshBrowserConsentJourneyVerified', 'measurementTrustedForDecisions'], 'productionEvidence', failures);
+if (productionEvidence.googlePropertyEventsVerified !== true) failures.push('Google property event receipt must reflect the read-only property inspection');
 if (typeof productionEvidence.limitation !== 'string' || productionEvidence.limitation.length < 250) failures.push('production evidence limitation is incomplete');
+
+const property = contract.propertySideEvidence || {};
+if (property.checkedOn !== '2026-08-31' || property.inspectionMode !== 'signed_in_read_only_browser') failures.push('property inspection evidence is invalid');
+if (property.accountName !== 'TechEvolveAI' || property.propertyName !== 'TechEvolveAI') failures.push('property account identity is invalid');
+if (property.streamName !== 'Mythical Void' || property.streamUrl !== 'https://www.mythicalvoid.com') failures.push('property stream identity is invalid');
+if (property.streamId !== '15420950256' || property.measurementId !== tag.measurementId) failures.push('property stream or measurement id is invalid');
+if (property.dataCollectionActiveInPast48Hours !== true) failures.push('property data-flow evidence is missing');
+if (property.enhancedMeasurementEnabled !== true) failures.push('observed enhanced-measurement state is missing');
+exactSet(property.activeEnhancedMeasurementsObserved, ['page_views', 'scrolls', 'outbound_clicks'], 'activeEnhancedMeasurementsObserved', failures);
+if (property.observedReportPeriod !== '2026-08-03_to_2026-08-30' || property.observedEventCount !== 17 || property.observedTotalUsers !== 1 || property.observedSessionCount !== 5) failures.push('property report observation is invalid');
+exactSet(property.observedEventNames, ['discovery_arrival', 'session_start', 'scroll', 'user_engagement', 'first_visit'], 'observedEventNames', failures);
+if (property.eventDataRetention !== '2_months' || property.userDataRetention !== '14_months' || property.resetUserRetentionOnNewActivity !== true) failures.push('property retention observation is invalid');
+requireFalse(property, ['propertySettingsChangeAuthorized', 'propertySettingsChangeMade'], 'propertySideEvidence', failures);
+if (typeof property.interpretation !== 'string' || property.interpretation.length < 250) failures.push('property evidence interpretation is incomplete');
 
 const sourcePaths = ['index.html', 'src/site/analytics-consent.js', 'src/site/storefront.js', 'src/site/storefront.css', 'netlify.toml', 'vercel.json'];
 const expectedSourceChecks = sourcePaths.map((pathName, index) => `GA-${String(index + 1).padStart(3, '0')}`);
@@ -81,8 +96,8 @@ for (const required of [
     'G-FTM4W73ECQ', 'analytics_storage: \'denied\'', 'ad_storage: \'denied\'', 'ad_user_data: \'denied\'', 'ad_personalization: \'denied\'',
     "send_page_view: false", "allow_google_signals: false", "allow_ad_personalization_signals: false", "path === '/play'", "path === '/game'", "params.has('testBoss')", 'www.googletagmanager.com/gtag/js'
 ]) if (!indexText.includes(required)) failures.push(`index.html missing ${required}`);
-for (const required of ['Allow analytics', 'No thanks', 'mythical-analytics-consent', 'setConsent', 'analytics-consent']) if (!consentText.includes(required)) failures.push(`analytics consent helper missing ${required}`);
-for (const required of ['mountAnalyticsConsent', 'Optional website analytics', 'off by default', 'not used in the game']) if (!storefrontText.includes(required)) failures.push(`storefront missing ${required}`);
+for (const required of ['Allow analytics', 'No thanks', 'mythical-analytics-consent', 'setConsent', 'analytics-consent', 'whether people reach a lower part of a page']) if (!consentText.includes(required)) failures.push(`analytics consent helper missing ${required}`);
+for (const required of ['mountAnalyticsConsent', 'Optional website analytics', 'off by default', 'not used in the game', 'whether a visitor reaches a lower part of a public page', 'basic visit and session events after permission is given']) if (!storefrontText.includes(required)) failures.push(`storefront missing ${required}`);
 for (const required of ['analytics-consent', 'analytics-consent-actions', 'analytics-consent-yes']) if (!storefrontCss.includes(required)) failures.push(`storefront style missing ${required}`);
 for (const policy of [netlifyText, vercelText]) {
     if (!policy.includes('https://www.googletagmanager.com')) failures.push('hosting policy must allow Google tag script');
@@ -113,7 +128,7 @@ if (typeof contract.nextDecision !== 'string' || contract.nextDecision.length < 
 const tagImplementationReadyForReview = failures.length === 0;
 const output = {
     workflow: 'A-058',
-    mode: 'offline source assurance plus recorded live deployment evidence; Google-property receipt remains unverified',
+    mode: 'offline source assurance plus signed-in read-only property evidence; consent and minimal-setting review remain pending',
     tagImplementationReadyForReview,
     measurementId: tag.measurementId,
     scope: tag.scope,
@@ -133,6 +148,11 @@ const output = {
     gameRuntimeTagScriptObserved: productionEvidence.gameRuntimeTagScriptObserved,
     freshBrowserConsentJourneyVerified: productionEvidence.freshBrowserConsentJourneyVerified,
     googlePropertyEventsVerified: productionEvidence.googlePropertyEventsVerified,
+    propertyStreamName: property.streamName,
+    propertyMeasurementIdMatched: property.measurementId === tag.measurementId,
+    propertyDataFlowing: property.dataCollectionActiveInPast48Hours,
+    enhancedMeasurementEnabled: property.enhancedMeasurementEnabled,
+    propertySettingsChanged: property.propertySettingsChangeMade,
     measurementTrustedForDecisions: productionEvidence.measurementTrustedForDecisions,
     externalActionAuthorized: false,
     activationGateCount: gateCount,

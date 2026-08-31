@@ -28,9 +28,10 @@ actually live on 31 August 2026.
 
 ## Next — earn the first human signal
 
-- The First Five adult test is held. A private repair fixed the first-contact
-  layout, but the real creature still looked like a soft or blurry mascot and
-  did not support its alien classification. The candidate was not deployed.
+- The First Five adult test is held. The first-contact layout repair is now live,
+  but the real creature still looked like a soft or blurry mascot and did not
+  support its alien classification. Deployment fixed presentation faults; it
+  did not give the creature artwork human visual approval.
 - Game Development has stopped at the creature art-direction boundary. The
   next proof needs one approved visual direction, the same identity on phone
   and desktop and one normal in-play frame before a person reviews it.
