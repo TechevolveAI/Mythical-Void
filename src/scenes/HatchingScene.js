@@ -2772,6 +2772,7 @@ class HatchingScene extends Phaser.Scene {
         if (!window.raritySystem) {
             console.warn('hatch:warn [HatchingScene] RaritySystem not available, using default generation');
             this.creatureGenetics = window.CreatureGenetics.generateCreatureGenetics();
+            this.attachMendelianGenome();
             this.rarityInfo = { name: 'Unknown', emoji: '🔮', displayColor: '#9370DB' };
             return;
         }
@@ -2805,6 +2806,7 @@ class HatchingScene extends Phaser.Scene {
 
         // Generate creature with the rolled rarity
         this.creatureGenetics = window.CreatureGenetics.generateCreatureGenetics(rarity);
+        this.attachMendelianGenome();
 
         // Store rarity info for UI
         this.rarityInfo = window.raritySystem.getRarityInfo(rarity);
@@ -2938,6 +2940,17 @@ class HatchingScene extends Phaser.Scene {
             console.error('hatch:error [HatchingScene] Stack trace:', error.stack);
             return null;
         }
+    }
+
+    attachMendelianGenome() {
+        if (!this.creatureGenetics || !window.BreedingEngine?.resolveCreatureGenes) {
+            return;
+        }
+        this.creatureGenetics.mendelianGenes =
+            window.BreedingEngine.resolveCreatureGenes({
+                id: this.creatureGenetics.id,
+                genes: this.creatureGenetics
+            });
     }
 
     /**
