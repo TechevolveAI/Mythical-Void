@@ -168,6 +168,31 @@ describe('privacy-conscious runtime observability', () => {
         expect(send).toHaveBeenCalledTimes(1);
     });
 
+    test('does not initialize or send website observability for a self-contained portal build', async () => {
+        const send = jest.fn(okResponse);
+        const transport = new PrivacyObservabilityTransport({
+            storage: localStorage,
+            fetch: send,
+            deliveryEnabled: false
+        });
+
+        transport.initialize();
+        const captured = transport.capture({
+            category: 'runtime',
+            code: 'runtime_uncaught',
+            severity: 'error',
+            scene: 'GameScene',
+            phase: 'runtime',
+            recovery: 'continued'
+        });
+
+        expect(captured).toBe(false);
+        expect(transport.deliveryDisabled).toBe(true);
+        expect(transport.queue).toEqual([]);
+        expect(send).not.toHaveBeenCalled();
+        expect(localStorage.getItem(OBSERVABILITY_STORAGE_KEY)).toBeNull();
+    });
+
     test('cancels queued delivery retries when the transport is destroyed', async () => {
         jest.useFakeTimers();
         const send = jest.fn().mockResolvedValue({ ok: false });
