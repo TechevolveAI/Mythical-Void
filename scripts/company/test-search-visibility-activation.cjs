@@ -114,5 +114,44 @@ try {
     fs.rmSync(staleMapRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 12);
-console.log('Search visibility activation safeguards passed (12 cases).');
+const missingStaticEntryRoot = fixture(fixtureRoot => {
+    const target = path.join(fixtureRoot, 'index.html');
+    fs.writeFileSync(target, fs.readFileSync(target, 'utf8').replace('data-static-search-entry', 'data-missing-search-entry'));
+});
+try {
+    const result = execute(missingStaticEntryRoot);
+    assert.strictEqual(result.status, 1);
+    assert(result.stderr.includes('plain homepage entry'));
+    cases += 1;
+} finally {
+    fs.rmSync(missingStaticEntryRoot, { recursive: true, force: true });
+}
+
+const hiddenGameRouteRoot = fixture(fixtureRoot => {
+    const target = path.join(fixtureRoot, 'index.html');
+    fs.writeFileSync(target, fs.readFileSync(target, 'utf8').replace('html[data-initial-route="game"] .site-entry-fallback', 'html[data-wrong-route="game"] .site-entry-fallback'));
+});
+try {
+    const result = execute(hiddenGameRouteRoot);
+    assert.strictEqual(result.status, 1);
+    assert(result.stderr.includes('plain homepage entry'));
+    cases += 1;
+} finally {
+    fs.rmSync(hiddenGameRouteRoot, { recursive: true, force: true });
+}
+
+const companionRoot = fixture(fixtureRoot => {
+    const target = path.join(fixtureRoot, 'index.html');
+    fs.writeFileSync(target, fs.readFileSync(target, 'utf8').replace('alien creature shaped by a genetics system', 'alien companion shaped by a genetics system'));
+});
+try {
+    const result = execute(companionRoot);
+    assert.strictEqual(result.status, 1);
+    assert(result.stderr.includes('retired or unsupported creature wording'));
+    cases += 1;
+} finally {
+    fs.rmSync(companionRoot, { recursive: true, force: true });
+}
+
+assert.strictEqual(cases, 15);
+console.log('Search visibility activation safeguards passed (15 cases).');

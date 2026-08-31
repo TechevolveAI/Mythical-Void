@@ -31,6 +31,66 @@
     <link rel="icon" type="image/png" sizes="64x64" href="/marketing/mythical-void-mark-64.png">
     <link rel="apple-touch-icon" sizes="192x192" href="/marketing/mythical-void-mark-192.png">
     <title>Mythical Void | Free Creature Adventure Browser Game</title>
+    <style>
+        .site-entry-fallback {
+            min-height: 100svh;
+            box-sizing: border-box;
+            display: grid;
+            place-items: center;
+            padding: clamp(32px, 7vw, 96px);
+            background:
+                radial-gradient(circle at 78% 18%, rgba(118, 227, 207, 0.14), transparent 32%),
+                radial-gradient(circle at 18% 82%, rgba(172, 102, 255, 0.14), transparent 34%),
+                #090711;
+            color: #fff8ec;
+            font-family: Inter, ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif;
+        }
+        html[data-initial-route="game"] .site-entry-fallback,
+        html[data-distribution-target="itch"] .site-entry-fallback { display: none; }
+        .site-entry-fallback__inner { width: min(850px, 100%); }
+        .site-entry-fallback__kicker {
+            margin: 0 0 18px;
+            color: #76e3cf;
+            font-size: clamp(13px, 1.6vw, 17px);
+            font-weight: 800;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+        .site-entry-fallback h1 {
+            max-width: 820px;
+            margin: 0;
+            font-size: clamp(42px, 8vw, 88px);
+            line-height: 0.98;
+            letter-spacing: -0.045em;
+        }
+        .site-entry-fallback__copy {
+            max-width: 720px;
+            margin: 26px 0 0;
+            color: #d7d1e5;
+            font-size: clamp(18px, 2.3vw, 24px);
+            line-height: 1.5;
+        }
+        .site-entry-fallback__facts {
+            margin: 20px 0 0;
+            color: #ffcb68;
+            font-weight: 750;
+            line-height: 1.6;
+        }
+        .site-entry-fallback__actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+        .site-entry-fallback__actions a {
+            display: inline-flex;
+            align-items: center;
+            min-height: 50px;
+            box-sizing: border-box;
+            padding: 0 24px;
+            border: 1px solid rgba(255, 248, 236, 0.28);
+            border-radius: 999px;
+            color: #fff8ec;
+            font-weight: 800;
+            text-decoration: none;
+        }
+        .site-entry-fallback__actions a:first-child { border-color: #76e3cf; background: #76e3cf; color: #090711; }
+    </style>
     <!-- Google tag: public shop window only; analytics stays off until a visitor allows it. -->
     <script>
     (function () {
@@ -38,6 +98,7 @@
         var params = new URLSearchParams(window.location.search);
         var isPortalBuild = document.documentElement.dataset.distributionTarget === 'itch';
         var isGameRoute = isPortalBuild || path === '/play' || path === '/game' || params.has('testBoss');
+        document.documentElement.dataset.initialRoute = isGameRoute ? 'game' : 'site';
         if (isGameRoute) return;
 
         window.dataLayer = window.dataLayer || [];
@@ -211,7 +272,21 @@
     </script>
 </head>
 <body>
-    <div id="app"></div>
+    <div id="app">
+        <main class="site-entry-fallback" data-static-search-entry>
+            <div class="site-entry-fallback__inner">
+                <p class="site-entry-fallback__kicker">Free creature adventure · play in your browser</p>
+                <h1>Hatch something strange. Restore six living realms.</h1>
+                <p class="site-entry-fallback__copy">Mythical Void is a single-player action adventure about a crashed astronaut and an alien creature shaped by a genetics system. Cross worlds damaged by the Void, restore their guardians and decide what Project Beacon should tell Earth.</p>
+                <p class="site-entry-fallback__facts">Free to play · No download · No account needed</p>
+                <nav class="site-entry-fallback__actions" aria-label="Start Mythical Void">
+                    <a href="/play/">Play Mythical Void →</a>
+                    <a href="/playable-now/">See what you do in the game</a>
+                    <a href="/parents/">Read the family guide</a>
+                </nav>
+            </div>
+        </main>
+    </div>
     <script defer src="/pwa-install.js?v=20260827-installable-game"></script>
     <script type="module" src="/src/main.js"></script>
 </body>
