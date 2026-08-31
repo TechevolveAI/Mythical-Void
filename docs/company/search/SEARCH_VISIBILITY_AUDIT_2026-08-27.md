@@ -1,6 +1,6 @@
 # Mythical Void search visibility check
 
-**Latest check:** 30 August 2026
+**Latest check:** 31 August 2026
 **Result:** the website is open to search engines, but even exact-name search
 visibility is not yet proven
 
@@ -20,6 +20,11 @@ A fresh eight-search check did not show the official Mythical Void website for:
 This is a warning, not proof that every Mythical Void page is absent from every
 search engine. Search results vary by place, device, language and time, and the
 public discovery pages are very new.
+
+A second four-search sample on 31 August again found no official result for the
+exact name, the site-specific name, a free alien-creature browser game search,
+or a NASA STEM game search. This remains directional evidence, not a global
+index count or ranking claim.
 
 An unrelated or unverified profile using the same words did appear. It is not
 being treated as an official Mythical Void channel. No result count or ranking
@@ -42,12 +47,19 @@ There is no obvious public technical block. The unknown is whether Google has
 found, crawled and accepted each page. Only a verified Search Console property
 can answer that reliably.
 
-The homepage identity markup has now been improved in the private release
-branch. It links three things explicitly: the preferred site name, the
-independent studio project and the browser game. It also gives the domain as a
-backup site name and points to the preferred logo. This follows Google's site
-name guidance, but it is not described as live until it is deployed and it
-cannot guarantee indexing or ranking.
+The homepage identity markup is live. It links three things explicitly: the
+preferred site name, the independent studio project and the browser game. It
+also gives the domain as a backup site name and points to the preferred logo.
+This follows Google's site-name guidance, but it cannot guarantee indexing or
+ranking.
+
+The public GitHub project was also missing both a description and a website
+address, while its README opened with developer language rather than the game.
+The public project now has an accurate description, a direct Play homepage and
+seven relevant discovery topics. A reviewed README change prepares the plain
+game promise, clean Play, family and press links, the father-and-son origin,
+and the NASA and visual-honesty boundaries; that source still waits for its
+normal protected merge.
 
 ## What IndexNow proves—and does not prove
 
@@ -95,7 +107,8 @@ exact handoff is in
 
 ## What has not happened
 
-- No Search Console property has been connected or inspected.
+- A signed-in read-only check found no Mythical Void Search Console property;
+  no property was added or changed.
 - No sitemap or URL has been submitted from an authenticated Google account.
 - No ranking is claimed.
 - No paid search, link request or outside publication was started. The only

@@ -1,6 +1,34 @@
 # Mythical Void
 
-A creature-raising action-adventure and its public storefront, built as one Vite deployment. The website is served at `/` and the Phaser game starts at `/play/`.
+**A free browser adventure where you hatch a strange alien creature, cross six
+living realms and decide what Project Beacon should tell Earth.**
+
+[Play Mythical Void](https://mythicalvoid.com/playable-now/) ·
+[Start the game](https://mythicalvoid.com/play/) ·
+[Family guide](https://mythicalvoid.com/parents/) ·
+[Press and creator facts](https://mythicalvoid.com/press/)
+
+No download, account, payment details, game adverts or public chat are needed.
+The game is in early access and works in a modern desktop or mobile browser.
+
+Recover Wanderer-77, hatch and name an alien creature shaped by a genetics
+system, cross six living realms, release guardians trapped by the Void, build a
+shared sanctuary and decide what Project Beacon should become.
+
+Mythical Void began in Ireland as a father-and-son experiment: Kevin and his
+nine-year-old son exploring what imagination and generative AI tools could make
+possible. Optional NASA-sourced material opens a doorway from the fictional
+universe into real space discovery; NASA does not make or endorse the game.
+
+AI helps this tiny independent studio explore, build and test. People remain
+responsible for the story, safety boundaries, public claims and important
+choices. Generated universe artwork is never presented as gameplay.
+
+## Developer documentation
+
+The public website is served at `/` and the Phaser game starts at `/play/`.
+The detailed notes below support development and testing; historical plans in
+`archive/` may not describe the current game.
 
 ## 📁 Documentation Structure
 

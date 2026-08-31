@@ -22,12 +22,15 @@ const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 
 requireValue(audit.id === 'SEARCH-VISIBILITY-2026-08-27', 'search visibility audit identity is missing');
-requireValue(audit.state === 'crawl_submission_accepted_visibility_unverified', 'search visibility state is overstated');
+requireValue(audit.state === 'owned_identity_live_public_github_metadata_live_readme_prepared_search_console_absent', 'search visibility state is stale or overstated');
 requireValue(audit.sample?.queryCount === 8 && audit.sample?.queries?.length === 8, 'eight-query sample boundary is missing');
 requireValue(audit.sample?.queries?.every(item => item.mythicalResultObserved === false), 'sample result was changed without a new dated audit');
 requireValue(/cannot prove global non-indexing/i.test(audit.sample?.limitations || ''), 'search sample limitation is missing');
 requireValue(audit.sample?.officialSiteResultCountClaimed === false, 'directional search sample must not invent a result count');
 requireValue(audit.sample?.unrelatedOrUnverifiedBrandProfileObserved === true, 'brand-confusion observation is missing');
+requireValue(audit.latestPublicSample?.queryCount === 4 && audit.latestPublicSample?.queries?.length === 4, 'latest four-query sample boundary is missing');
+requireValue(audit.latestPublicSample?.queries?.every(item => item.mythicalResultObserved === false), 'latest public sample result was changed without new evidence');
+requireValue(audit.latestPublicSample?.officialSiteResultCountClaimed === false && /cannot prove global non-indexing/i.test(audit.latestPublicSample?.limitations || ''), 'latest public sample limitation is missing');
 requireValue(opportunityMap.status === 'owned_pages_live_submission_gated', 'search opportunity map has a stale state');
 requireValue(opportunityMap.clusters?.length === 6 && opportunityMap.clusters.every(item => item.targetState === 'existing_live' && item.liveOwnedPage === true), 'search opportunity map does not reflect the six live owned routes');
 requireValue(!/\bcompanion\b/i.test(JSON.stringify(opportunityMap)), 'retired companion wording remains in the search opportunity map');
@@ -89,9 +92,19 @@ for (const phrase of [
     '"@id": "https://mythicalvoid.com/#video-game"',
     '"publisher": { "@id": "https://mythicalvoid.com/#studio" }'
 ]) requireValue(homepage.includes(phrase), `homepage identity markup is missing: ${phrase}`);
-requireValue(audit.homepageIdentityMarkup?.productionState === 'prepared_not_deployed', 'homepage identity markup must not be described as live before deployment');
+requireValue(audit.homepageIdentityMarkup?.productionState === 'live', 'homepage identity markup live state is stale');
+requireValue(/^[0-9a-f]{40}$/.test(audit.homepageIdentityMarkup?.verifiedProductionCommit || ''), 'homepage identity production commit is missing');
+requireValue(/^[0-9a-f]{24}$/.test(audit.homepageIdentityMarkup?.verifiedProductionDeployId || ''), 'homepage identity production deploy is missing');
 requireValue(audit.homepageIdentityMarkup?.websiteNodePresent === true && audit.homepageIdentityMarkup?.studioNodePresent === true && audit.homepageIdentityMarkup?.gameLinkedToWebsiteAndStudio === true, 'homepage identity markup record is incomplete');
 requireValue(audit.homepageIdentityMarkup?.indexingOrRankingClaimed === false, 'homepage identity markup must not claim indexing or ranking');
+requireValue(audit.searchConsoleAccessCheck?.signedIn === true && audit.searchConsoleAccessCheck?.mythicalVoidPropertyAccessible === false && audit.searchConsoleAccessCheck?.finishVerificationListContainsMythicalVoid === false && audit.searchConsoleAccessCheck?.externalMutationPerformed === false, 'read-only Search Console absence check is incomplete');
+requireValue(audit.publicGitHubDoorway?.repository === 'https://github.com/TechevolveAI/Mythical-Void' && audit.publicGitHubDoorway?.repositoryPublic === true, 'public GitHub doorway repository record is missing');
+requireValue(audit.publicGitHubDoorway?.previousDescriptionPresent === false && audit.publicGitHubDoorway?.previousHomepagePresent === false, 'public GitHub doorway baseline is missing');
+requireValue(audit.publicGitHubDoorway?.descriptionLive === 'Free browser adventure: hatch an alien creature, cross six living realms, and shape Project Beacon. No download or account.', 'public GitHub description evidence is missing');
+requireValue(audit.publicGitHubDoorway?.homepageLive === 'https://mythicalvoid.com/playable-now/', 'public GitHub homepage evidence is missing');
+requireValue(JSON.stringify(audit.publicGitHubDoorway?.topicsLive) === JSON.stringify(['browser-game', 'creature-game', 'indie-game', 'javascript', 'phaser', 'science-fiction', 'stem']), 'public GitHub topic evidence is missing');
+requireValue(audit.publicGitHubDoorway?.readmePlayLinkPrepared === true && audit.publicGitHubDoorway?.readmeFamilyAndPressLinksPrepared === true && audit.publicGitHubDoorway?.truthAndVisualBoundariesPrepared === true, 'public GitHub doorway preparation is incomplete');
+requireValue(audit.publicGitHubDoorway?.metadataUpdatePendingReviewedMerge === false && audit.publicGitHubDoorway?.readmeUpdatePendingReviewedMerge === true && audit.publicGitHubDoorway?.indexingOrRankingClaimed === false, 'public GitHub doorway authority boundary is missing');
 requireValue(playable.includes('<link rel="canonical" href="https://mythicalvoid.com/playable-now/">'), 'Playable Now canonical is missing');
 requireValue(robots.includes('User-agent: *') && robots.includes('Allow: /'), 'robots crawl permission is missing');
 requireValue(robots.includes('Sitemap: https://mythicalvoid.com/sitemap.xml'), 'robots sitemap line is missing');
@@ -117,10 +130,13 @@ if (failures.length) {
 console.log(JSON.stringify({
     valid: true,
     state: audit.state,
-    sampledQueries: 8,
+    sampledQueries: 12,
     sampledMythicalResults: 0,
     technicalCrawlChecksPassing: Object.keys(audit.liveTechnicalChecks).length,
     staticHomepageEntryPresent: true,
+    homepageIdentityMarkupLive: true,
+    publicGitHubMetadataLive: true,
+    publicGitHubReadmePrepared: true,
     liveOwnedSearchRoutes: opportunityMap.clusters.length,
     searchConsoleConnected: false,
     indexNowAccepted: true,

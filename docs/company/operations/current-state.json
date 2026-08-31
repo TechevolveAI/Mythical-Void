@@ -13,7 +13,7 @@
   "scorecard": [
     {
       "measure": "Public discovery checks",
-      "current": "The production site serves real robots, sitemap, canonical, structured game data and AI-readable discovery files; IndexNow accepted the latest homepage submission. A fresh eight-query search sample still showed no official Mythical Void website result. Clearer linked site, studio and game identity markup is prepared and tested but not deployed, and Google Search Console is not connected.",
+      "current": "The production site serves real robots, sitemap, canonical, structured game data and AI-readable discovery files; IndexNow accepted the latest homepage submission. The linked site, studio and game identity is live. The latest four-query public sample still showed no official Mythical Void result, and a signed-in read-only check found no Mythical Void Search Console property. The public GitHub project now has an accurate game description, direct Play homepage and discovery topics; its Play-first README change is prepared for reviewed release.",
       "target": "Owned result found by name and at least one relevant play-intent query, with Search Console evidence when Kevin activates it",
       "trend": "Technical foundation live; search visibility not yet earned",
       "confidence": "High for live files and sampled search; no Search Console performance evidence",
@@ -541,7 +541,7 @@
   "experiments": [
     {
       "id": "E-001",
-      "signal": "Owned discovery files and clearer play-intent pages are live; IndexNow accepted the homepage, but an eight-query public search sample still showed no official Mythical Void website result. Clearer linked site, studio and game identity markup is prepared and tested but not deployed.",
+      "signal": "Owned discovery files, clearer play-intent pages and linked site, studio and game identity are live; IndexNow accepted the homepage, but the latest four-query public sample still showed no official Mythical Void result. The public GitHub project now has an accurate game description, direct Play homepage and discovery topics; its truthful README correction is prepared for reviewed release.",
       "guardrail": "No popularity or ranking claim; Search Console is not connected and sampled search is directional only.",
       "recommendation": "Keep the pages stable, activate Search Console when Kevin is ready, and earn real mentions and play evidence rather than creating more thin pages."
     },

@@ -17,6 +17,7 @@ const files = [
     'src/site/storefront.js',
     'src/site/analytics-consent.js',
     'scripts/company/submit-indexnow.cjs',
+    'README.md',
     'package.json'
 ];
 let cases = 0;
@@ -64,6 +65,7 @@ try {
     assert.strictEqual(output.sitemapUrlCount, 16);
     assert.strictEqual(output.officialSiteName, 'Mythical Void');
     assert.strictEqual(output.directPlayAction, 'https://mythicalvoid.com/play/');
+    assert.strictEqual(output.githubDoorwayReady, true);
     assert.strictEqual(output.gameplayScreenshotPublished, false);
 } finally {
     fs.rmSync(baselineRoot, { recursive: true, force: true });
@@ -80,6 +82,8 @@ invalid('index.html', source => source.replace('"name": "Mythical Void",\n      
 invalid('index.html', source => source.replace('"@type": "Organization"', '"@type": "Thing"'), 'homepage Organization identity is missing');
 invalid('index.html', source => source.replace('"urlTemplate": "https://mythicalvoid.com/play/"', '"urlTemplate": "https://mythicalvoid.com/play/?campaign=search"'), 'clean direct game URL');
 invalid('index.html', source => source.replace('"offers": {', '"screenshot": "https://mythicalvoid.com/unapproved-gameplay.png",\n      "offers": {'), 'must not publish an unapproved gameplay screenshot');
+invalid('README.md', source => source.replace('[Play Mythical Void](https://mythicalvoid.com/playable-now/)', 'Play sometime'), 'public GitHub doorway is missing');
+invalid('README.md', source => source.replace('NASA does not make or endorse the game', 'NASA makes the game'), 'NASA boundary');
 
 function measurementFixture(consentChoice) {
     const dom = new JSDOM('<!doctype html><a href="/play/" id="play"><span id="play-label">Play</span></a>', {
@@ -106,5 +110,5 @@ assert.deepStrictEqual(JSON.parse(JSON.stringify(playSelected[2])), {
     transport_type: 'beacon'
 });
 
-assert.strictEqual(cases, 14);
-console.log('Owned discovery release evaluations passed (14 cases).');
+assert.strictEqual(cases, 16);
+console.log('Owned discovery release evaluations passed (16 cases).');

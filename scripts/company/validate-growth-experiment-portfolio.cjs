@@ -74,7 +74,7 @@ if (snapshot.approvedGameplayMoments !== visualMoments.approvalRule?.approvedMom
 const sampledResultsObserved = (searchAudit.sample?.queries || []).filter(item => item.mythicalResultObserved).length;
 if (snapshot.sampledSearchResultsObserved !== sampledResultsObserved) failures.push('growth evidence snapshot search sample is stale');
 if (!Array.isArray(snapshot.unknownsThatRemainUnknown) || snapshot.unknownsThatRemainUnknown.length < 5) failures.push('growth evidence snapshot must preserve the main unknowns');
-if (typeof snapshot.singleNextDecision !== 'string' || !snapshot.singleNextDecision.includes('returning-player presentation') || !snapshot.singleNextDecision.includes('Search Console') || !snapshot.singleNextDecision.includes('four authentic gameplay moments')) failures.push('growth evidence snapshot next decision is incomplete');
+if (typeof snapshot.singleNextDecision !== 'string' || !snapshot.singleNextDecision.includes('public GitHub Play doorway') || !snapshot.singleNextDecision.includes('Search Console') || !snapshot.singleNextDecision.includes('four authentic gameplay moments')) failures.push('growth evidence snapshot next decision is incomplete');
 if (!Array.isArray(portfolio.journeyStages) || portfolio.journeyStages.length !== allowedStages.size) failures.push('all seven journey stages are required');
 
 const expectedEvidenceStates = {
