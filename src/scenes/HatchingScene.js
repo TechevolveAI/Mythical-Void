@@ -94,6 +94,8 @@ class HatchingScene extends Phaser.Scene {
         this.eggHatchReadyTimer = null;
         this.portraitPromise = null;
         this.portraitError = null;
+        this.firstContactGuidance = null;
+        this.firstContactPlatformShift = 0;
 
         // Set egg hatching properties from passed data
         const pendingHatch = window.GameState?.get?.('creature.hatchTransaction');
@@ -2418,14 +2420,16 @@ class HatchingScene extends Phaser.Scene {
             // MOBILE-RESPONSIVE creature positioning
             const { width, height } = this.scale;
             const centerX = width / 2;
-            const creatureY = height * 0.43;
-            const targetScale = width < 600 ? Math.min(2.3, width / 160) : 2.6;
+            const layout = this.getFirstContactLayout(!this.isEggHatch);
+            const creatureY = layout.creatureY;
+            const targetScale = layout.creatureScale;
 
             // Create the enhanced creature with the new texture
             this.creature = this.add.image(centerX, creatureY, creatureResult.textureName);
             this.creature.setScale(1.5);
             this.creature.setAlpha(0);
             this.creature.setDepth(20);
+            this.applyFirstContactCreaturePresentation(this.creature, layout);
 
             // Store genetics data on the sprite for later access
             this.creature.genetics = this.creatureGenetics;
@@ -2462,10 +2466,15 @@ class HatchingScene extends Phaser.Scene {
 
                     // Show post-hatch tutorial hint and mark tutorial as seen
                     if (!this.hasSeenTutorial()) {
-                        this.time.delayedCall(500, () => {
-                            this.showTutorialHint('postHatch');
+                        if (window.rerollSystem) {
+                            // The first-contact guidance below now owns this step.
                             this.markTutorialSeen();
-                        });
+                        } else {
+                            this.time.delayedCall(500, () => {
+                                this.showTutorialHint('postHatch');
+                                this.markTutorialSeen();
+                            });
+                        }
                     }
                 }
             });
@@ -2491,13 +2500,15 @@ class HatchingScene extends Phaser.Scene {
             // MOBILE-RESPONSIVE fallback creature positioning
             const { width, height } = this.scale;
             const centerX = width / 2;
-            const creatureY = height * 0.43;
-            const targetScale = width < 600 ? Math.min(2.3, width / 160) : 2.6;
+            const layout = this.getFirstContactLayout(!this.isEggHatch);
+            const creatureY = layout.creatureY;
+            const targetScale = layout.creatureScale;
 
             this.creature = this.add.image(centerX, creatureY, 'enhancedCreature0');
             this.creature.setScale(1.5);
             this.creature.setAlpha(0);
             this.creature.setDepth(20);
+            this.applyFirstContactCreaturePresentation(this.creature, layout);
 
             this.tweens.add({
                 targets: this.creature,
@@ -3447,6 +3458,68 @@ class HatchingScene extends Phaser.Scene {
         }
     }
 
+    getFirstContactLayout(canReroll = true) {
+        const { width, height } = this.scale;
+        const isCompact = width < 600;
+        const bannerY = Math.max(isCompact ? 22 : 28, height * 0.04);
+        const bannerHeight = isCompact ? 108 : 98;
+        const creatureY = Phaser.Math.Clamp(
+            height * (isCompact ? 0.395 : 0.405),
+            bannerY + bannerHeight + (isCompact ? 145 : 175),
+            height * 0.48
+        );
+        const platformY = creatureY + (isCompact ? 145 : 162);
+        const guidanceY = platformY + (isCompact ? 58 : 60);
+        const scanY = canReroll ? guidanceY + (isCompact ? 61 : 58) : null;
+        const buttonHeight = isCompact ? 56 : 54;
+        const buttonY = Math.min(
+            canReroll ? scanY + (isCompact ? 49 : 46) : guidanceY + 48,
+            height - buttonHeight - (isCompact ? 26 : 32)
+        );
+        const buttonGap = isCompact ? 12 : 20;
+        const buttonWidth = canReroll
+            ? Math.min(isCompact ? 166 : 190, (width - 44 - buttonGap) / 2)
+            : Math.min(isCompact ? 250 : 240, width - 44);
+
+        return {
+            width,
+            height,
+            isCompact,
+            centerX: width / 2,
+            bannerY,
+            bannerWidth: Math.min(width - (isCompact ? 22 : 48), 620),
+            bannerHeight,
+            creatureY,
+            creatureScale: isCompact ? Math.min(3.05, width / 125) : 3.15,
+            platformY,
+            guidanceY,
+            guidanceWidth: Math.min(width - (isCompact ? 30 : 56), 620),
+            scanY,
+            buttonY,
+            buttonHeight,
+            buttonGap,
+            buttonWidth
+        };
+    }
+
+    applyFirstContactCreaturePresentation(creature, layout) {
+        if (!creature) return;
+
+        creature.setPosition(layout.centerX, layout.creatureY);
+        creature.setBlendMode(Phaser.BlendModes.SCREEN);
+        creature.clearMask?.(true);
+
+        const targetShift = layout.platformY - (layout.height * 0.65);
+        const shiftDelta = targetShift - this.firstContactPlatformShift;
+        if (shiftDelta !== 0) {
+            this.cosmicPlatform?.setY?.((this.cosmicPlatform.y || 0) + shiftDelta);
+            (this.platformParticles || []).forEach(particle => {
+                if (particle) particle.y += shiftDelta;
+            });
+            this.firstContactPlatformShift = targetShift;
+        }
+    }
+
     /**
      * Show rarity announcement banner
      */
@@ -3466,37 +3539,54 @@ class HatchingScene extends Phaser.Scene {
             const rarityInfo = this.rarityInfo;
 
             // MOBILE-RESPONSIVE rarity banner
-            const { width, height } = this.scale;
-            const centerX = width / 2;
-            const isCompact = width < 600;
-            const bannerWidth = Math.min(width - 24, 620);
-            const bannerHeight = isCompact ? 90 : 84;
+            const canReroll = this.isEggHatch
+                ? false
+                : Boolean(window.rerollSystem?.canReroll?.());
+            const layout = this.getFirstContactLayout(canReroll);
+            const {
+                centerX,
+                isCompact,
+                bannerWidth,
+                bannerHeight,
+                bannerY
+            } = layout;
             const bannerX = centerX - (bannerWidth / 2);
-            const bannerY = height * 0.055;
 
             // Responsive font sizes
-            const titleSize = isCompact ? 17 : 22;
-            const subtitleSize = isCompact ? 12 : 15;
+            const titleSize = isCompact ? 17 : 21;
+            const subtitleSize = isCompact ? 12 : 14;
 
             // The classification result owns the header area while this decision is open.
             [this.hatchTitleText, this.hatchSubtitleText, this.instructionText, this.progressText]
                 .forEach(element => element?.setVisible(false));
+            if (this.tutorialHintText) {
+                this.tweens.killTweensOf(this.tutorialHintText);
+                this.tutorialHintText.destroy();
+                this.tutorialHintText = null;
+            }
 
             // Create banner background
             const bannerBg = this.add.graphics();
-            bannerBg.fillStyle(0x000000, 0.8);
-            bannerBg.fillRoundedRect(bannerX, bannerY, bannerWidth, bannerHeight, 10);
-            bannerBg.lineStyle(3, parseInt(rarityInfo.displayColor.replace('#', '0x')));
-            bannerBg.strokeRoundedRect(bannerX, bannerY, bannerWidth, bannerHeight, 10);
+            bannerBg.fillStyle(0x03151a, 0.66);
+            bannerBg.fillRoundedRect(bannerX, bannerY, bannerWidth, bannerHeight, 8);
+            bannerBg.lineStyle(1, parseInt(rarityInfo.displayColor.replace('#', '0x')), 0.8);
+            bannerBg.strokeRoundedRect(bannerX, bannerY, bannerWidth, bannerHeight, 8);
+
+            const eyebrowText = this.add.text(centerX, bannerY + (isCompact ? 17 : 16), 'FIRST CONTACT', {
+                fontSize: `${isCompact ? 10 : 11}px`,
+                color: '#8FE3D4',
+                fontStyle: 'bold',
+                fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif'
+            }).setOrigin(0.5);
 
             // Rarity title
-            const rarityText = this.add.text(centerX, bannerY + (bannerHeight * 0.32), 'FIELD CLASSIFICATION', {
+            const rarityText = this.add.text(centerX, bannerY + (bannerHeight * 0.45), 'FIELD CLASSIFICATION', {
                 fontSize: `${titleSize}px`,
                 color: rarityInfo.displayColor,
                 fontStyle: 'bold',
                 fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
                 stroke: '#000000',
-                strokeThickness: 3
+                strokeThickness: 2
             }).setOrigin(0.5);
 
             // One readable field line: rarity, organism family and temperament.
@@ -3504,7 +3594,7 @@ class HatchingScene extends Phaser.Scene {
                 .replace(/([a-z])([A-Z])/g, '$1 $2')
                 .replace(/[_-]+/g, ' ')
                 .replace(/\b\w/g, letter => letter.toUpperCase());
-            const speciesText = this.add.text(centerX, bannerY + (bannerHeight * 0.72), `${rarityInfo.name.toUpperCase()} SIGNAL · ${formatFieldTerm(this.creatureGenetics.species)} · ${formatFieldTerm(this.creatureGenetics.personality.core)}`, {
+            const speciesText = this.add.text(centerX, bannerY + (bannerHeight * 0.76), `${rarityInfo.name.toUpperCase()} SIGNAL · ${formatFieldTerm(this.creatureGenetics.species)} · ${formatFieldTerm(this.creatureGenetics.personality.core)}`, {
                 fontSize: `${subtitleSize}px`,
                 color: '#FFFFFF',
                 fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
@@ -3513,19 +3603,19 @@ class HatchingScene extends Phaser.Scene {
             }).setOrigin(0.5);
 
             // Animate banner
-            [bannerBg, rarityText, speciesText].forEach(element => {
+            [bannerBg, eyebrowText, rarityText, speciesText].forEach(element => {
                 element.setAlpha(0);
                 this.tweens.add({
                     targets: element,
                     alpha: 1,
-                    y: element.y + 10,
-                    duration: 600,
-                    ease: 'Back.easeOut'
+                    duration: 450,
+                    ease: 'Sine.easeOut'
                 });
             });
 
             // Store references for cleanup
-            this.rarityBanner = { bannerBg, rarityText, speciesText };
+            this.rarityBanner = { bannerBg, eyebrowText, rarityText, speciesText };
+            this.applyFirstContactCreaturePresentation(this.creature, layout);
 
         } catch (error) {
             console.error('hatch:error [HatchingScene] Error in showRarityReveal:', error);
@@ -3569,18 +3659,17 @@ class HatchingScene extends Phaser.Scene {
             }
 
             // MOBILE-RESPONSIVE button positioning
-            const { width, height } = this.scale;
-            const centerX = width / 2;
+            const { width } = this.scale;
             const isMobile = width < 600;
+            const layout = this.getFirstContactLayout(canReroll);
+            const { centerX } = layout;
 
             // Responsive sizing
-            const buttonWidth = canReroll
-                ? (isMobile ? Math.min(width * 0.43, 164) : 180)
-                : (isMobile ? Math.min(width * 0.72, 250) : 220);
-            const buttonHeight = isMobile ? Math.min(height * 0.07, 54) : 54;
-            const buttonSpacing = isMobile ? width * 0.035 : 32;
-            const buttonY = height * 0.79;
-            const fontSize = Math.max(13, Math.min(18, width * 0.04));
+            const buttonWidth = layout.buttonWidth;
+            const buttonHeight = layout.buttonHeight;
+            const buttonSpacing = layout.buttonGap;
+            const buttonY = layout.buttonY;
+            const fontSize = isMobile ? 13 : 16;
 
             // Calculate button positions (centered pair)
             const keepX = canReroll ?
@@ -3590,10 +3679,10 @@ class HatchingScene extends Phaser.Scene {
 
             // KEEP button
             const keepBg = this.add.graphics();
-            keepBg.fillStyle(0x228B22, 0.9);
-            keepBg.fillRoundedRect(keepX, buttonY, buttonWidth, buttonHeight, 10);
-            keepBg.lineStyle(3, 0xFFD54F);
-            keepBg.strokeRoundedRect(keepX, buttonY, buttonWidth, buttonHeight, 10);
+            keepBg.fillStyle(0x146b55, 0.96);
+            keepBg.fillRoundedRect(keepX, buttonY, buttonWidth, buttonHeight, 8);
+            keepBg.lineStyle(2, 0xFFD54F);
+            keepBg.strokeRoundedRect(keepX, buttonY, buttonWidth, buttonHeight, 8);
 
             const keepLabel = canReroll ? 'CONFIRM CONTACT' : 'MEET THIS CREATURE';
             const keepText = this.add.text(keepX + (buttonWidth / 2), buttonY + (buttonHeight / 2), keepLabel, {
@@ -3612,10 +3701,10 @@ class HatchingScene extends Phaser.Scene {
             let rerollBg, rerollText, rerollZone;
             if (canReroll) {
                 rerollBg = this.add.graphics();
-                rerollBg.fillStyle(0x4169E1, 0.9);
-                rerollBg.fillRoundedRect(rerollX, buttonY, buttonWidth, buttonHeight, 10);
-                rerollBg.lineStyle(3, 0xFFD54F);
-                rerollBg.strokeRoundedRect(rerollX, buttonY, buttonWidth, buttonHeight, 10);
+                rerollBg.fillStyle(0x273c74, 0.96);
+                rerollBg.fillRoundedRect(rerollX, buttonY, buttonWidth, buttonHeight, 8);
+                rerollBg.lineStyle(2, 0x8FE3D4);
+                rerollBg.strokeRoundedRect(rerollX, buttonY, buttonWidth, buttonHeight, 8);
 
                 rerollText = this.add.text(rerollX + (buttonWidth / 2), buttonY + (buttonHeight / 2), 'RESCAN SIGNAL', {
                     fontSize: `${fontSize}px`,
@@ -3631,12 +3720,13 @@ class HatchingScene extends Phaser.Scene {
 
             // Advice text
             const advice = canReroll ? window.rerollSystem.getRerollAdvice(this.creatureGenetics.rarity) : null;
-            const adviceFontSize = Math.max(12, Math.min(14, width * 0.034));
-            const adviceText = advice ? this.add.text(centerX, height * 0.715, `SCAN ESTIMATE // ${advice.message}`, {
+            const adviceFontSize = isMobile ? 12 : 14;
+            const adviceText = advice ? this.add.text(centerX, layout.scanY, `SCAN ESTIMATE · ${advice.message}`, {
                 fontSize: `${adviceFontSize}px`,
                 color: '#FFD54F',
                 align: 'center',
-                wordWrap: { width: width * 0.9 }
+                fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
+                wordWrap: { width: layout.guidanceWidth }
             }).setOrigin(0.5) : null;
 
             // Tutorial hint for first-time players
@@ -3645,17 +3735,35 @@ class HatchingScene extends Phaser.Scene {
             const hasSeenRerollTutorial = gameState.get('tutorial.rerollSeen') || false;
 
             if (!hasSeenRerollTutorial && canReroll) {
-                const tutorialFontSize = Math.max(13, Math.min(15, width * 0.036));
-                tutorialHint = this.add.text(centerX, height * 0.625,
-                    'Confirm this first-contact reading, or spend your one rescan before the signal stabilizes.', {
+                const tutorialFontSize = isMobile ? 13 : 15;
+                const guidanceHeight = isMobile ? 48 : 46;
+                const guidanceBg = this.add.graphics();
+                guidanceBg.fillStyle(0x04171b, 0.72);
+                guidanceBg.fillRoundedRect(
+                    centerX - (layout.guidanceWidth / 2),
+                    layout.guidanceY - (guidanceHeight / 2),
+                    layout.guidanceWidth,
+                    guidanceHeight,
+                    8
+                );
+                guidanceBg.lineStyle(1, 0x8FE3D4, 0.45);
+                guidanceBg.strokeRoundedRect(
+                    centerX - (layout.guidanceWidth / 2),
+                    layout.guidanceY - (guidanceHeight / 2),
+                    layout.guidanceWidth,
+                    guidanceHeight,
+                    8
+                );
+                tutorialHint = this.add.text(centerX, layout.guidanceY,
+                    'One rescan remains. Accept this reading, or ask the beacon to look again.', {
                     fontSize: `${tutorialFontSize}px`,
                     color: '#FFFFFF',
-                    backgroundColor: 'rgba(7, 20, 24, 0.88)',
-                    padding: { x: 12, y: 9 },
                     align: 'center',
-                    fontFamily: 'Arial, sans-serif',
-                    wordWrap: { width: width * 0.85 }
+                    fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
+                    wordWrap: { width: layout.guidanceWidth - 24 }
                 }).setOrigin(0.5).setAlpha(0);
+                guidanceBg.setAlpha(0);
+                this.firstContactGuidance = { guidanceBg, tutorialHint };
 
                 // Mark tutorial as seen
                 gameState.set('tutorial.rerollSeen', true);
@@ -3670,6 +3778,7 @@ class HatchingScene extends Phaser.Scene {
                 elements.push(rerollBg, rerollText);
             }
             if (tutorialHint) {
+                elements.push(this.firstContactGuidance.guidanceBg);
                 elements.push(tutorialHint);
             }
 
@@ -3690,17 +3799,17 @@ class HatchingScene extends Phaser.Scene {
                 const dims = this.keepButtonDims;
                 keepBg.clear();
                 keepBg.fillStyle(0x32CD32, 0.9);
-                keepBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
-                keepBg.lineStyle(3, 0xFFD54F);
-                keepBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
+                keepBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 8);
+                keepBg.lineStyle(2, 0xFFD54F);
+                keepBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 8);
             });
             keepZone.on('pointerout', () => {
                 const dims = this.keepButtonDims;
                 keepBg.clear();
-                keepBg.fillStyle(0x228B22, 0.9);
-                keepBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
-                keepBg.lineStyle(3, 0xFFD54F);
-                keepBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
+                keepBg.fillStyle(0x146b55, 0.96);
+                keepBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 8);
+                keepBg.lineStyle(2, 0xFFD54F);
+                keepBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 8);
             });
 
             if (canReroll) {
@@ -3713,17 +3822,17 @@ class HatchingScene extends Phaser.Scene {
                     const dims = this.rerollButtonDims;
                     rerollBg.clear();
                     rerollBg.fillStyle(0x6495ED, 0.9);
-                    rerollBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
-                    rerollBg.lineStyle(3, 0xFFD54F);
-                    rerollBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
+                    rerollBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 8);
+                    rerollBg.lineStyle(2, 0x8FE3D4);
+                    rerollBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 8);
                 });
                 rerollZone.on('pointerout', () => {
                     const dims = this.rerollButtonDims;
                     rerollBg.clear();
-                    rerollBg.fillStyle(0x4169E1, 0.9);
-                    rerollBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
-                    rerollBg.lineStyle(3, 0xFFD54F);
-                    rerollBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 10);
+                    rerollBg.fillStyle(0x273c74, 0.96);
+                    rerollBg.fillRoundedRect(dims.x, dims.y, dims.w, dims.h, 8);
+                    rerollBg.lineStyle(2, 0x8FE3D4);
+                    rerollBg.strokeRoundedRect(dims.x, dims.y, dims.w, dims.h, 8);
                 });
 
                 this.rerollUI = { rerollBg, rerollText, rerollZone };
@@ -3892,14 +4001,16 @@ class HatchingScene extends Phaser.Scene {
         // MOBILE-RESPONSIVE rerolled creature positioning
         const { width, height } = this.scale;
         const centerX = width / 2;
-        const creatureY = height * 0.43;
-        const targetScale = width < 600 ? Math.min(2.3, width / 160) : 2.6;
+        const layout = this.getFirstContactLayout(false);
+        const creatureY = layout.creatureY;
+        const targetScale = layout.creatureScale;
 
         this.creature = this.add.image(centerX, creatureY, creatureResult.textureName);
         this.creature.setScale(1.5);
         this.creature.setAlpha(0);
         this.creature.setDepth(20);
         this.creature.genetics = this.creatureGenetics;
+        this.applyFirstContactCreaturePresentation(this.creature, layout);
 
         // Fade in new creature with audio feedback
         this.tweens.add({
@@ -3950,17 +4061,18 @@ class HatchingScene extends Phaser.Scene {
      */
     showFinalKeepButton() {
         // MOBILE-RESPONSIVE final keep button (after reroll)
-        const { width, height } = this.scale;
-        const centerX = width / 2;
-        const isMobile = width < 600;
+        const { width } = this.scale;
+        const layout = this.getFirstContactLayout(false);
+        const { centerX } = layout;
+        const isMobile = layout.isCompact;
 
         // Button sizing
-        const buttonWidth = isMobile ? Math.min(width * 0.65, 180) : 150;
-        const buttonHeight = isMobile ? Math.min(height * 0.08, 60) : 50;
+        const buttonWidth = layout.buttonWidth;
+        const buttonHeight = layout.buttonHeight;
         const buttonX = centerX - (buttonWidth / 2);
-        const buttonY = height * 0.78;
-        const fontSize = Math.max(18, Math.min(20, width * 0.048));
-        const textFontSize = Math.max(14, Math.min(16, width * 0.04));
+        const buttonY = layout.buttonY;
+        const fontSize = isMobile ? 14 : 17;
+        const textFontSize = isMobile ? 13 : 15;
 
         const keepBg = this.add.graphics();
         keepBg.fillStyle(0x228B22, 0.9);
@@ -3976,7 +4088,7 @@ class HatchingScene extends Phaser.Scene {
 
         const keepZone = this.add.zone(buttonX, buttonY, buttonWidth, buttonHeight).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
 
-        const finalText = this.add.text(centerX, height * 0.7, 'SIGNAL LOCKED // RESCAN COMPLETE', {
+        const finalText = this.add.text(centerX, layout.guidanceY, 'SIGNAL LOCKED · RESCAN COMPLETE', {
             fontSize: `${textFontSize}px`,
             color: '#90EE90',
             wordWrap: { width: width * 0.9 }
@@ -4068,6 +4180,10 @@ class HatchingScene extends Phaser.Scene {
         if (this.adviceText) {
             this.adviceText.destroy();
             this.adviceText = null;
+        }
+        if (this.firstContactGuidance) {
+            Object.values(this.firstContactGuidance).forEach(el => el && el.destroy());
+            this.firstContactGuidance = null;
         }
         if (this.finalText) {
             this.finalText.destroy();

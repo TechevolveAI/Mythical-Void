@@ -23,7 +23,8 @@ describe('first-contact hatch presentation', () => {
         expect(sceneSource).toContain("'FIELD CLASSIFICATION'");
         expect(sceneSource).toContain('CONFIRM CONTACT');
         expect(sceneSource).toContain('RESCAN SIGNAL');
-        expect(sceneSource).toContain('before the signal stabilizes');
+        expect(sceneSource).toContain('One rescan remains. Accept this reading');
+        expect(sceneSource).toContain('SCAN ESTIMATE · ${advice.message}');
         expect(sceneSource).not.toContain('✓ KEEP');
         expect(sceneSource).not.toContain("'🔄 REROLL', {");
         expect(sceneSource).not.toContain('Great choice!');
@@ -41,13 +42,34 @@ describe('first-contact hatch presentation', () => {
     });
 
     test('makes the creature the focus and removes finished egg instructions', () => {
-        expect(sceneSource.match(/const targetScale = width < 600 \? Math\.min\(2\.3, width \/ 160\) : 2\.6/g)).toHaveLength(3);
+        expect(sceneSource.match(/const targetScale = layout\.creatureScale/g)).toHaveLength(3);
+        expect(sceneSource).toContain('creature.setBlendMode(Phaser.BlendModes.SCREEN)');
+        expect(sceneSource).toContain('creature.clearMask?.(true)');
+        expect(sceneSource).not.toContain('creature.setMask(');
+        expect(sceneSource).not.toContain('creatureMaskWidth');
+        expect(sceneSource).not.toContain('creatureMaskHeight');
         expect(sceneSource).toContain('this.tapToHatchText.destroy()');
         expect(sceneSource).toContain('Object.values(this.controlPanelElements || {}).forEach');
         expect(sceneSource).toContain('const advice = canReroll ?');
         expect(sceneSource).toContain('const adviceText = advice ?');
         expect(sceneSource).toContain('this.controlPanelElements = { panelBg, controlText, journeyText }');
         expect(sceneSource).toContain("const keepLabel = canReroll ? 'CONFIRM CONTACT' : 'MEET THIS CREATURE'");
+    });
+
+    test('uses one phone-first layout for the full reveal reading order', () => {
+        expect(sceneSource).toContain('getFirstContactLayout(canReroll = true)');
+        expect(sceneSource).toContain('bannerHeight = isCompact ? 108 : 98');
+        expect(sceneSource).toContain('const guidanceY = platformY +');
+        expect(sceneSource).toContain('const scanY = canReroll ? guidanceY +');
+        expect(sceneSource).toContain('const buttonY = Math.min(');
+        expect(sceneSource).toContain("'FIRST CONTACT'");
+        expect(sceneSource).toContain('this.firstContactGuidance = { guidanceBg, tutorialHint }');
+        expect(sceneSource).toContain('this.tweens.killTweensOf(this.tutorialHintText)');
+        expect(sceneSource).toContain('if (window.rerollSystem)');
+        expect(sceneSource).toContain('The first-contact guidance below now owns this step.');
+        expect(sceneSource).not.toContain('height * 0.625');
+        expect(sceneSource).not.toContain('height * 0.715');
+        expect(sceneSource).not.toContain('height * 0.79');
     });
 
     test('positions sparkles and confirmation from the active viewport', () => {
