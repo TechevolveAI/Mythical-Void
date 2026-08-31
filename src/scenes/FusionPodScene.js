@@ -1472,13 +1472,16 @@ class FusionPodScene extends Phaser.Scene {
             return;
         }
 
-        const genes1 = this.parent1Data.genes || this.parent1Data.dna;
-        const genes2 = this.parent2Data.genes || this.parent2Data.dna;
-
-        if (window.BreedingEngine && genes1?.mendelianGenes && genes2?.mendelianGenes) {
+        if (window.BreedingEngine?.resolveCreatureGenes) {
+            const genes1 = window.BreedingEngine.resolveCreatureGenes(
+                this.parent1Data
+            );
+            const genes2 = window.BreedingEngine.resolveCreatureGenes(
+                this.parent2Data
+            );
             this.compatibility = window.BreedingEngine.getBreedingCompatibility(
-                genes1.mendelianGenes,
-                genes2.mendelianGenes
+                genes1,
+                genes2
             );
         } else {
             this.compatibility = getFallbackFusionCompatibility(
@@ -1912,6 +1915,7 @@ class FusionPodScene extends Phaser.Scene {
         this.time.delayedCall(2000, async () => {
             try {
                 let offspringGenes;
+                let offspringInheritance = null;
                 let birthResult = { events: [], effects: {}, hasRareEvent: false };
                 const restorePreflightRandom =
                     window.FusionAuthority?.enterDeterministicRandomScope?.(
@@ -1919,17 +1923,18 @@ class FusionPodScene extends Phaser.Scene {
                         window.Phaser
                     );
                 try {
-                    const parent1Genes = this.parent1Data.genes?.mendelianGenes ||
-                        window.BreedingEngine?.generateInitialGenes();
-                    const parent2Genes = this.parent2Data.genes?.mendelianGenes ||
-                        window.BreedingEngine?.generateInitialGenes();
+                    const parent1Genes = window.BreedingEngine
+                        ?.resolveCreatureGenes?.(this.parent1Data);
+                    const parent2Genes = window.BreedingEngine
+                        ?.resolveCreatureGenes?.(this.parent2Data);
 
-                    offspringGenes = window.BreedingEngine
-                        ? window.BreedingEngine.breedCreatures(
+                    const breedingResult = window.BreedingEngine
+                        ?.breedCreaturesWithLineage?.(
                             parent1Genes,
                             parent2Genes
-                        )
-                        : parent1Genes;
+                        );
+                    offspringGenes = breedingResult?.genes || parent1Genes;
+                    offspringInheritance = breedingResult?.inheritance || null;
 
                     if (window.BirthEventSystem) {
                         birthResult = window.BirthEventSystem.rollBirthEvents(
@@ -2010,14 +2015,21 @@ class FusionPodScene extends Phaser.Scene {
                     console.log('[FusionPodScene] 👯 TWIN BIRTH! Creating two creatures...');
 
                     // Create TWO separate offspring with individual characteristics
-                    const twin1Result = this.createOffspringData(offspringGenes);
+                    const twin1Result = this.createOffspringData(
+                        offspringGenes,
+                        offspringInheritance
+                    );
 
                     // Generate different genes for twin 2 (another breeding roll)
-                    const twin2MendelianGenes = window.BreedingEngine?.breedCreatures(
-                        this.parent1Data.genes?.mendelianGenes || window.BreedingEngine?.generateInitialGenes(),
-                        this.parent2Data.genes?.mendelianGenes || window.BreedingEngine?.generateInitialGenes()
-                    ) || offspringGenes;
-                    const twin2Result = this.createOffspringData(twin2MendelianGenes);
+                    const twin2BreedingResult = window.BreedingEngine
+                        ?.breedCreaturesWithLineage?.(
+                            window.BreedingEngine.resolveCreatureGenes(this.parent1Data),
+                            window.BreedingEngine.resolveCreatureGenes(this.parent2Data)
+                        );
+                    const twin2Result = this.createOffspringData(
+                        twin2BreedingResult?.genes || offspringGenes,
+                        twin2BreedingResult?.inheritance || offspringInheritance
+                    );
 
                     // Give twins unique identifiers and slight variations
                     twin1Result.offspringData.isTwin = true;
@@ -2090,7 +2102,10 @@ class FusionPodScene extends Phaser.Scene {
 
                     } else {
                     // Standard single offspring
-                    const result = this.createOffspringData(offspringGenes);
+                    const result = this.createOffspringData(
+                        offspringGenes,
+                        offspringInheritance
+                    );
 
                     // Apply birth event effects to offspring
                     if (birthResult.events.length > 0) {
@@ -2454,7 +2469,7 @@ class FusionPodScene extends Phaser.Scene {
         return messages[result.reason] || 'Fusion could not begin.';
     }
 
-    createOffspringData(mendelianGenes) {
+    createOffspringData(mendelianGenes, inheritance = null) {
         this.fusionOffspringSequence = (this.fusionOffspringSequence || 0) + 1;
         const deterministicGenesId = [
             'genes',
@@ -2491,17 +2506,24 @@ class FusionPodScene extends Phaser.Scene {
         const offspringRarity = rarities[offspringRarityIdx];
 
         // Determine which traits came from which parent
-        const inheritedTraits = this.determineInheritedTraits(mendelianGenes);
+        const inheritedTraits = this.determineInheritedTraits(
+            mendelianGenes,
+            inheritance
+        );
 
         // Get phenotype and visual config from BreedingEngine
         let phenotype = null;
         let breedingVisualConfig = null;
         if (window.BreedingEngine) {
             phenotype = window.BreedingEngine.getPhenotype(mendelianGenes);
-            breedingVisualConfig = window.BreedingEngine.getVisualConfigFromPhenotype(phenotype, {
-                parent1: this.parent1Data.genes || this.parent1Data.dna,
-                parent2: this.parent2Data.genes || this.parent2Data.dna
-            });
+            breedingVisualConfig = window.BreedingEngine.getVisualConfigFromPhenotype(
+                phenotype,
+                {
+                    parent1: this.parent1Data.genes || this.parent1Data.dna,
+                    parent2: this.parent2Data.genes || this.parent2Data.dna
+                },
+                offspringRarity
+            );
         }
 
         // CRITICAL: Generate a full creature using CreatureGenetics to get proper traits
@@ -2537,7 +2559,8 @@ class FusionPodScene extends Phaser.Scene {
             },
             // Store Mendelian genes for breeding continuity
             mendelianGenes: mendelianGenes,
-            phenotype: phenotype
+            phenotype: phenotype,
+            inheritance: inheritance || inheritedTraits.details
         };
 
         return {
@@ -2562,21 +2585,61 @@ class FusionPodScene extends Phaser.Scene {
         };
     }
 
-    determineInheritedTraits(mendelianGenes) {
-        // Simplified trait inheritance display
+    determineInheritedTraits(mendelianGenes, recordedInheritance = null) {
         const traits = {
             fromParent1: [],
-            fromParent2: []
+            fromParent2: [],
+            details: {}
         };
 
-        // Randomly assign visible traits to parents for display
-        const traitNames = ['Body Shape', 'Eye Color', 'Pattern', 'Markings'];
-        traitNames.forEach((trait, idx) => {
-            if (idx % 2 === 0) {
-                traits.fromParent1.push(trait);
-            } else {
-                traits.fromParent2.push(trait);
+        const parent1Genes = window.BreedingEngine?.resolveCreatureGenes?.(
+            this.parent1Data
+        ) || {};
+        const parent2Genes = window.BreedingEngine?.resolveCreatureGenes?.(
+            this.parent2Data
+        ) || {};
+        const definitions = window.BreedingEngine?.traitDefinitions || {};
+
+        Object.keys(definitions).forEach(traitKey => {
+            const childAlleles = Array.isArray(mendelianGenes?.[traitKey])
+                ? mendelianGenes[traitKey]
+                : [];
+            const explicit = recordedInheritance?.[traitKey];
+            const parent1Allele = explicit?.parent1Allele || childAlleles.find(
+                allele => parent1Genes[traitKey]?.includes(allele)
+            ) || null;
+            const parent2Allele = explicit?.parent2Allele || childAlleles.find(
+                allele => parent2Genes[traitKey]?.includes(allele) &&
+                    allele !== parent1Allele
+            ) || childAlleles.find(
+                allele => parent2Genes[traitKey]?.includes(allele)
+            ) || null;
+            const traitName = definitions[traitKey].name;
+            const expressedAllele = explicit?.expressedAllele ||
+                window.BreedingEngine.getPhenotype({
+                    [traitKey]: childAlleles
+                })[traitKey];
+            const expressedFrom = explicit?.expressedFrom || (
+                parent1Allele === parent2Allele
+                    ? 'both'
+                    : expressedAllele === parent1Allele
+                        ? 'parent1'
+                        : 'parent2'
+            );
+
+            if (expressedFrom === 'parent1' || expressedFrom === 'both') {
+                traits.fromParent1.push(traitName);
             }
+            if (expressedFrom === 'parent2' || expressedFrom === 'both') {
+                traits.fromParent2.push(traitName);
+            }
+            traits.details[traitKey] = {
+                trait: traitName,
+                parent1Allele,
+                parent2Allele,
+                expressedAllele,
+                expressedFrom
+            };
         });
 
         return traits;

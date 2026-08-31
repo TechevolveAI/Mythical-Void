@@ -2307,14 +2307,17 @@ export default class InventoryScene extends Phaser.Scene {
                     x: savedPos?.x || 400,
                     y: savedPos?.y || 300
                 };
-                const hatchTransaction = {
-                    schemaVersion: 1,
-                    status: 'reserved',
-                    eggType: eggTypeToHatch,
-                    spawnPosition: reservedSpawnPosition,
-                    reservedAt: Date.now()
-                };
-                window.GameState?.set('creature.hatchTransaction', hatchTransaction);
+                const reservation = window.InventoryManager
+                    ?.reserveEggForHatching?.(
+                        this.selectedSlot,
+                        reservedSpawnPosition
+                    );
+                if (!reservation?.success) {
+                    throw new Error(
+                        reservation?.reason ||
+                        'The selected egg could not be reserved for hatching'
+                    );
+                }
 
                 // Clean up dialog
                 console.log('[InventoryScene] Cleaning up dialog elements...');
@@ -2323,21 +2326,6 @@ export default class InventoryScene extends Phaser.Scene {
                 });
                 console.log('[InventoryScene] Dialog elements cleaned up');
 
-                // Remove item from inventory
-                if (window.InventoryManager) {
-                    const removed = window.InventoryManager.removeItem(this.selectedSlot, 1);
-                    console.log('[InventoryScene] Item removed from inventory:', removed);
-                    if (!removed) {
-                        window.GameState?.set('creature.hatchTransaction', null);
-                        window.GameState?.save();
-                        throw new Error('The selected egg could not be reserved for hatching');
-                    }
-                }
-
-                // Persist the reservation in the same durable save as the egg
-                // removal. HatchingScene consumes it after identity commit.
-                window.GameState?.save();
-
                 // Confirm sanctuary continuity, then transition to hatching.
                 console.log('[InventoryScene] Starting sanctuary hatch transition:', eggTypeToHatch);
                 this.showSanctuaryHatchTransition(eggTypeToHatch, reservedSpawnPosition);
@@ -2345,23 +2333,20 @@ export default class InventoryScene extends Phaser.Scene {
                 console.error('[InventoryScene] ERROR in hatch handler:', err);
                 console.error('[InventoryScene] Error stack:', err.stack);
 
-                // Emergency fallback - try to transition directly
-                console.log('[InventoryScene] Attempting emergency fallback transition...');
-                try {
-                    window.GameState?.set('creature.hatched', false);
-                    window.GameState?.set('creature.named', false);
-                    window.GameState?.save();
-
-                    if (this.game?.scene) {
-                        this.game.scene.stop('GameScene');
-                    }
-                    this.scene.start('HatchingScene', {
-                        isEggHatch: true,
-                        eggType: item.eggType || 'cosmic',
-                        spawnPosition: { x: 400, y: 300 }
-                    });
-                } catch (fallbackErr) {
-                    console.error('[InventoryScene] Fallback also failed:', fallbackErr);
+                const pendingHatch = window.GameState?.get(
+                    'creature.hatchTransaction'
+                );
+                if (pendingHatch?.status === 'reserved') {
+                    this.showSanctuaryHatchTransition(
+                        pendingHatch.eggType,
+                        pendingHatch.spawnPosition
+                    );
+                } else {
+                    hatchTriggered = false;
+                    this.showMessage(
+                        'The egg is still in your inventory. Please try again.',
+                        0xFF6B6B
+                    );
                 }
             }
         };
@@ -2762,35 +2747,31 @@ export default class InventoryScene extends Phaser.Scene {
         } catch (err) {
             console.error('[InventoryScene] Error in sanctuary hatch transition:', err);
 
-            // Emergency fallback - skip animation and go directly to HatchingScene
             try {
-                // Complete state reset
-                window.GameState?.set('creature.hatched', false);
-                window.GameState?.set('creature.named', false);
-                window.GameState?.set('creature.genes', null);
-                window.GameState?.set('creature.name', null);
-                window.GameState?.set('creature.textureName', null);
-                window.GameState?.set('creature.dna', null);
-                window.GameState?.set('creature.personality', null);
-                window.GameState?.set('creature.personalityState', null);
-                window.GameState?.set('creature.stats', {
-                    happiness: 100,
-                    energy: 100,
-                    health: 100
-                });
-                window.GameState?.save();
+                const pendingHatch = window.GameState?.get(
+                    'creature.hatchTransaction'
+                );
+                if (pendingHatch?.status !== 'reserved') {
+                    this.showMessage(
+                        'The egg is still in your inventory. Please try again.',
+                        0xFF6B6B
+                    );
+                    return;
+                }
 
                 const sceneManager = this.game?.scene;
                 if (sceneManager) {
                     sceneManager.stop('GameScene');
                     sceneManager.start('HatchingScene', {
                         isEggHatch: true,
-                        eggType: eggType || 'cosmic',
-                        spawnPosition: { x: 400, y: 300 }
+                        eggType: pendingHatch.eggType || eggType || 'cosmic',
+                        spawnPosition: pendingHatch.spawnPosition ||
+                            reservedSpawnPosition ||
+                            { x: 400, y: 300 }
                     });
                 }
             } catch (fallbackErr) {
-                console.error('[InventoryScene] Emergency fallback also failed:', fallbackErr);
+                console.error('[InventoryScene] Reserved hatch recovery failed:', fallbackErr);
             }
         }
     }

@@ -10,6 +10,10 @@ describe('interruption-safe hatching', () => {
         path.join(__dirname, '../scenes/InventoryScene.js'),
         'utf8'
     );
+    const inventoryManagerSource = fs.readFileSync(
+        path.join(__dirname, '../systems/InventoryManager.js'),
+        'utf8'
+    );
 
     test('commits the hatched flag only after genetics are stored', () => {
         const animationComplete = hatchingSource.slice(
@@ -37,8 +41,12 @@ describe('interruption-safe hatching', () => {
     });
 
     test('persists and resumes an inventory egg reservation', () => {
-        expect(inventorySource).toContain("status: 'reserved'");
-        expect(inventorySource).toContain("window.GameState?.set('creature.hatchTransaction'");
+        expect(inventoryManagerSource).toContain('reserveEggForHatching(');
+        expect(inventoryManagerSource).toContain("status: 'reserved'");
+        expect(inventoryManagerSource).toContain(
+            "window.GameState?.set('creature.hatchTransaction'"
+        );
+        expect(inventorySource).toContain('reserveEggForHatching?.(');
         expect(hatchingSource).toContain("pendingHatch?.status === 'reserved'");
         expect(hatchingSource).toContain("state.set('creature.hatchTransaction', null)");
         expect(hatchingSource).toContain(
@@ -50,6 +58,12 @@ describe('interruption-safe hatching', () => {
         );
         expect(inventorySource).toContain(
             'this.pendingTimeouts.push(hatchLaunchTimeout);'
+        );
+        expect(inventorySource).not.toContain(
+            "window.GameState?.set('creature.hatched', false)"
+        );
+        expect(inventorySource).not.toContain(
+            "window.GameState?.set('creature.named', false)"
         );
     });
 });

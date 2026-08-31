@@ -142,6 +142,60 @@ function parentColors(parent: JsonObject) {
     return asObject(traits.colorGenome);
 }
 
+function parentMutations(parent: JsonObject) {
+    const genes = asObject(parent.genes);
+    const traits = asObject(genes.traits);
+    const features = asObject(traits.features);
+    return Array.isArray(features.wackyMutations)
+        ? features.wackyMutations.map(asObject)
+        : [];
+}
+
+function inheritParentMutations(
+    parent1: JsonObject,
+    parent2: JsonObject,
+    rarity: string,
+    random: () => number
+) {
+    const byType = new Map<string, JsonObject>();
+    [...parentMutations(parent1), ...parentMutations(parent2)]
+        .forEach(mutation => {
+            const type = String(mutation.type || '');
+            if (!type) return;
+            const current = byType.get(type);
+            if (
+                !current ||
+                Number(mutation.dominance) > Number(current.dominance)
+            ) {
+                byType.set(type, mutation);
+            }
+        });
+    const maxByRarity: Record<string, number> = {
+        common: 1,
+        uncommon: 2,
+        rare: 2,
+        epic: 3,
+        legendary: 4
+    };
+    return [...byType.values()]
+        .filter(mutation => (
+            random() < Math.max(0, Math.min(0.95,
+                Number(mutation.dominance || 0.5) * 0.7
+            ))
+        ))
+        .map(mutation => ({
+            ...mutation,
+            inherited: true,
+            intensity: Math.max(0.2, Math.min(0.9,
+                Number(mutation.intensity || 0.5) + (random() - 0.5) * 0.2
+            )),
+            dominance: Math.max(0.2, Math.min(0.95,
+                Number(mutation.dominance || 0.5) + (random() - 0.5) * 0.15
+            ))
+        }))
+        .slice(0, maxByRarity[rarity] || 2);
+}
+
 function blendHex(first: number, second: number, ratio: number) {
     const mix = (shift: number) => Math.round(
         ((first >> shift) & 0xFF) * (1 - ratio) +
@@ -150,35 +204,206 @@ function blendHex(first: number, second: number, ratio: number) {
     return (mix(16) << 16) | (mix(8) << 8) | mix(0);
 }
 
+const mendelianTraits: Record<string, {
+    name: string;
+    variations: Record<string, { dominant: boolean }>;
+}> = {
+    bodyShape: {
+        name: 'Body Shape',
+        variations: {
+            slender: { dominant: false },
+            normal: { dominant: true },
+            stocky: { dominant: false }
+        }
+    },
+    eyeColor: {
+        name: 'Eye Color',
+        variations: {
+            blue: { dominant: false },
+            green: { dominant: false },
+            amber: { dominant: true },
+            violet: { dominant: true }
+        }
+    },
+    pattern: {
+        name: 'Pattern',
+        variations: {
+            solid: { dominant: true },
+            spotted: { dominant: false },
+            striped: { dominant: false }
+        }
+    },
+    horns: {
+        name: 'Horns',
+        variations: {
+            none: { dominant: false },
+            small: { dominant: true },
+            large: { dominant: true }
+        }
+    },
+    tail: {
+        name: 'Tail',
+        variations: {
+            short: { dominant: false },
+            medium: { dominant: true },
+            long: { dominant: false }
+        }
+    },
+    earShape: {
+        name: 'Ear Shape',
+        variations: {
+            rounded: { dominant: true },
+            pointed: { dominant: false }
+        }
+    },
+    maneLength: {
+        name: 'Mane Length',
+        variations: {
+            short: { dominant: false },
+            medium: { dominant: true },
+            long: { dominant: false }
+        }
+    }
+};
+
+function deterministicIndex(seed: string, length: number) {
+    const hash = fingerprint(seed).split(':').pop() || '0';
+    return length > 0 ? parseInt(hash, 16) % length : 0;
+}
+
+function visibleMendelianAllele(
+    traitKey: string,
+    genes: JsonObject,
+    variations: string[]
+) {
+    const traits = asObject(genes.traits);
+    const bodyShape = String(asObject(traits.bodyShape).type || '').toLowerCase();
+    const features = asObject(traits.features);
+    const mutations = Array.isArray(features.wackyMutations)
+        ? features.wackyMutations.map(value => String(asObject(value).type || ''))
+        : [];
+    if (traitKey === 'bodyShape') {
+        if (/slender|serpentine|avian/.test(bodyShape)) return 'slender';
+        if (/stocky|sturdy|quadruped/.test(bodyShape)) return 'stocky';
+        return 'normal';
+    }
+    if (traitKey === 'pattern') {
+        const markings = asObject(features.markings);
+        const pattern = String(markings.pattern || '').toLowerCase();
+        if (/spot|speck|dot/.test(pattern)) return 'spotted';
+        if (/stripe|band|line/.test(pattern)) return 'striped';
+        return 'solid';
+    }
+    if (traitKey === 'horns') {
+        return mutations.includes('cosmic_horns') ? 'large' : 'none';
+    }
+    if (traitKey === 'tail') {
+        if (/serpentine|fish|reptil/.test(bodyShape)) return 'long';
+        return mutations.includes('phantom_limbs') ? 'medium' : 'short';
+    }
+    if (traitKey === 'maneLength' && mutations.includes('feather_mane')) {
+        return 'long';
+    }
+    return variations[deterministicIndex(
+        `${stableStringify({
+            id: genes.id || null,
+            species: genes.species || null,
+            rarity: genes.rarity || null,
+            bodyShape,
+            traits
+        })}:${traitKey}:expressed`,
+        variations.length
+    )];
+}
+
+function resolveMendelian(parent: JsonObject) {
+    const genes = asObject(parent.genes);
+    const stored = asObject(genes.mendelianGenes);
+    const seed = stableStringify({
+        creatureId: parent.id || null,
+        geneticId: genes.id || null,
+        species: genes.species || null,
+        rarity: genes.rarity || parent.rarity || null,
+        traits: genes.traits || null,
+        affinity: genes.cosmicAffinity || parent.cosmicAffinity || null,
+        personality: genes.personality || parent.personality || null
+    });
+
+    return Object.fromEntries(Object.entries(mendelianTraits).map(
+        ([traitKey, definition]) => {
+            const variations = Object.keys(definition.variations);
+            const storedAlleles = Array.isArray(stored[traitKey])
+                ? (stored[traitKey] as unknown[])
+                    .filter(value => variations.includes(String(value)))
+                    .map(String)
+                    .slice(0, 2)
+                : [];
+            const alleles = [...storedAlleles];
+            if (alleles.length < 2) {
+                alleles.push(visibleMendelianAllele(
+                    traitKey,
+                    genes,
+                    variations
+                ));
+            }
+            if (alleles.length < 2) {
+                alleles.push(variations[deterministicIndex(
+                    `${seed}:${traitKey}:carrier`,
+                    variations.length
+                )]);
+            }
+            return [traitKey, alleles.slice(0, 2).sort()];
+        }
+    ));
+}
+
+function phenotypeFor(genes: Record<string, string[]>) {
+    return Object.fromEntries(Object.entries(mendelianTraits).map(
+        ([traitKey, definition]) => {
+            const variations = Object.keys(definition.variations);
+            const alleles = Array.isArray(genes[traitKey])
+                ? genes[traitKey]
+                : [variations[0], variations[0]];
+            const first = variations.includes(alleles[0])
+                ? alleles[0]
+                : variations[0];
+            const second = variations.includes(alleles[1])
+                ? alleles[1]
+                : variations[0];
+            const firstDominant = definition.variations[first].dominant;
+            const secondDominant = definition.variations[second].dominant;
+            return [traitKey, firstDominant || !secondDominant ? first : second];
+        }
+    ));
+}
+
 function crossoverMendelian(
     parent1: JsonObject,
     parent2: JsonObject,
     random: () => number
 ) {
-    const defaults: Record<string, string[]> = {
-        bodyShape: ['balanced', 'compact'],
-        eyeColor: ['cosmicBlue', 'violet'],
-        pattern: ['solid', 'speckled'],
-        horns: ['none', 'small'],
-        tail: ['short', 'flowing'],
-        earShape: ['round', 'pointed'],
-        maneLength: ['short', 'medium']
-    };
-    const p1 = asObject(asObject(parent1.genes).mendelianGenes);
-    const p2 = asObject(asObject(parent2.genes).mendelianGenes);
-
-    return Object.fromEntries(Object.keys(defaults).map(key => {
-        const first = Array.isArray(p1[key]) && (p1[key] as unknown[]).length
-            ? p1[key] as string[]
-            : defaults[key];
-        const second = Array.isArray(p2[key]) && (p2[key] as unknown[]).length
-            ? p2[key] as string[]
-            : defaults[key];
-        return [key, [
-            pick(first, random),
-            pick(second, random)
-        ].sort()];
+    const p1 = resolveMendelian(parent1);
+    const p2 = resolveMendelian(parent2);
+    const inheritance: Record<string, JsonObject> = {};
+    const genes = Object.fromEntries(Object.keys(mendelianTraits).map(key => {
+        const parent1Allele = pick(p1[key], random);
+        const parent2Allele = pick(p2[key], random);
+        const childAlleles = [parent1Allele, parent2Allele].sort();
+        const expressedAllele = phenotypeFor({ [key]: childAlleles })[key];
+        inheritance[key] = {
+            trait: mendelianTraits[key].name,
+            parent1Allele,
+            parent2Allele,
+            expressedAllele,
+            expressedFrom: parent1Allele === parent2Allele
+                ? 'both'
+                : expressedAllele === parent1Allele
+                    ? 'parent1'
+                    : 'parent2'
+        };
+        return [key, childAlleles];
     }));
+    return { genes, inheritance };
 }
 
 const eventDefinitions = [
@@ -359,9 +584,33 @@ function createOutcome(context: JsonObject) {
             colorValue(p2Colors.accent, 0x80DEEA),
             individualRandom()
         );
-        const mendelianGenes = crossoverMendelian(
+        const crossover = crossoverMendelian(
             parent1,
             parent2,
+            individualRandom
+        );
+        const mendelianGenes = crossover.genes;
+        const phenotype = phenotypeFor(mendelianGenes);
+        const eyeColors: Record<string, number> = {
+            blue: 0x4169E1,
+            green: 0x228B22,
+            amber: 0xFF8C00,
+            violet: 0x8A2BE2
+        };
+        const bodyTypes: Record<string, string> = {
+            slender: 'slender',
+            normal: 'balanced',
+            stocky: 'sturdy'
+        };
+        const markingPatterns: Record<string, string> = {
+            solid: 'none',
+            spotted: 'spots',
+            striped: 'stripes'
+        };
+        const inheritedMutations = inheritParentMutations(
+            parent1,
+            parent2,
+            rarity,
             individualRandom
         );
         const genes = {
@@ -390,31 +639,35 @@ function createOutcome(context: JsonObject) {
                     colorComplexity: 0.55 + individualRandom() * 0.35
                 },
                 bodyShape: {
-                    type: String(mendelianGenes.bodyShape?.[0] || 'balanced'),
+                    type: bodyTypes[String(phenotype.bodyShape)] || 'balanced',
                     intensity: 0.4 + individualRandom() * 0.4
                 },
                 features: {
-                    eyeType: {
-                        type: 'round',
-                        size: 0.85 + individualRandom() * 0.3,
-                        shine: 0.7 + individualRandom() * 0.3
+                    eyes: {
+                        size: 'medium',
+                        color: eyeColors[String(phenotype.eyeColor)] || 0x4169E1,
+                        glow: 0.7 + individualRandom() * 0.3
                     },
                     wings: {
                         type: individualRandom() < 0.5 ? 'feathered' : 'energy',
-                        size: 0.65 + individualRandom() * 0.35
+                        span: 0.65 + individualRandom() * 0.35,
+                        shimmer: 0.5 + individualRandom() * 0.5
                     },
-                    markings: [],
-                    wackyMutations: []
+                    markings: {
+                        pattern: markingPatterns[String(phenotype.pattern)] || 'none',
+                        intensity: phenotype.pattern === 'solid' ? 0 : 0.7,
+                        opacity: 0.65,
+                        scale: 0.5,
+                        distribution: 'balanced'
+                    },
+                    specialFeatures: [],
+                    wackyMutations: inheritedMutations
                 },
                 breedingVisuals: null
             },
             mendelianGenes,
-            phenotype: Object.fromEntries(
-                Object.entries(mendelianGenes).map(([key, alleles]) => [
-                    key,
-                    (alleles as string[])[0]
-                ])
-            )
+            phenotype,
+            inheritance: crossover.inheritance
         };
         const dualAffinity = events.some(event => event.id === 'dualAffinity') &&
             p1Affinity &&
@@ -427,8 +680,19 @@ function createOutcome(context: JsonObject) {
             generation,
             rarity,
             inheritedTraits: {
-                fromParent1: ['Body Shape', 'Pattern'],
-                fromParent2: ['Eye Color', 'Markings']
+                fromParent1: Object.values(crossover.inheritance)
+                    .filter(value => (
+                        value.expressedFrom === 'parent1' ||
+                        value.expressedFrom === 'both'
+                    ))
+                    .map(value => String(value.trait)),
+                fromParent2: Object.values(crossover.inheritance)
+                    .filter(value => (
+                        value.expressedFrom === 'parent2' ||
+                        value.expressedFrom === 'both'
+                    ))
+                    .map(value => String(value.trait)),
+                details: crossover.inheritance
             },
             parentIds: [String(parent1.id), String(parent2.id)],
             offspringBonus: {
