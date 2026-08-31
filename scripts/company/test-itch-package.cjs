@@ -24,8 +24,15 @@ function fixture() {
     fs.writeFileSync(path.join(root, 'itch-package-manifest.json'), JSON.stringify({
         target: 'itch.io-html5',
         directPlay: true,
-        experience: { accountRequired: false, paymentRequired: false, optionalHostedAiPortraitsAndVideosPromised: false },
-        releaseGates: { externalPublicationAuthorized: false, approvedAuthenticGameplayMoments: 0, requiredAuthenticGameplayMoments: 4 }
+        experience: { accountRequired: false, paymentRequired: false, websiteObservabilityDeliveryEnabled: false, optionalHostedAiPortraitsAndVideosPromised: false },
+        releaseGates: {
+            externalPublicationAuthorized: false,
+            approvedAuthenticGameplayMoments: 0,
+            recommendedAuthenticGameplayMoments: 4,
+            requiredAuthenticGameplayMomentsForInitialPublication: 0,
+            screenshotsAttached: 0,
+            initialReleaseMayLaunchWithoutScreenshots: true
+        }
     }));
     return root;
 }
@@ -50,6 +57,7 @@ for (const [relative, mutate, expected] of [
     ['assets/main.js', source => `${source}\nconst broken="/game/world.webp";`, 'root-only local asset path'],
     ['index.html', source => source.replace('</body>', '<script src="./returning-player.js?v=test"></script></body>'), 'website returning-player doorway'],
     ['itch-package-manifest.json', source => source.replace('"externalPublicationAuthorized":false', '"externalPublicationAuthorized":true'), 'external publication must wait'],
+    ['itch-package-manifest.json', source => source.replace('"websiteObservabilityDeliveryEnabled":false', '"websiteObservabilityDeliveryEnabled":true'), 'website-only observability delivery'],
     ['game/world.webp', () => null, 'referenced local asset is missing']
 ]) {
     const root = fixture();
@@ -65,5 +73,5 @@ for (const [relative, mutate, expected] of [
     cases += 1;
 }
 
-assert.strictEqual(cases, 8);
-console.log('itch.io package evaluations passed (8 cases).');
+assert.strictEqual(cases, 9);
+console.log('itch.io package evaluations passed (9 cases).');

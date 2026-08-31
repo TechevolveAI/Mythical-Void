@@ -11,6 +11,9 @@ const OBSERVABILITY_BATCH_LIMIT = 10;
 const OBSERVABILITY_DEDUPE_MS = 30000;
 const OBSERVABILITY_EVENT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const OBSERVABILITY_DEPLOYMENT_ID_PATTERN = /^[A-Za-z0-9_-]{1,80}$/;
+const OBSERVABILITY_DELIVERY_ENABLED = typeof __MYTHICAL_OBSERVABILITY_DELIVERY_ENABLED__ === 'boolean'
+    ? __MYTHICAL_OBSERVABILITY_DELIVERY_ENABLED__
+    : true;
 
 const OBSERVABILITY_CATEGORIES = new Set([
     'runtime',
@@ -175,13 +178,21 @@ class PrivacyObservabilityTransport {
         this.retryTimer = null;
         this.recentFingerprints = new Map();
         this.initialized = false;
-        this.deliveryDisabled = false;
+        this.deliveryDisabled = options.deliveryEnabled === false || !OBSERVABILITY_DELIVERY_ENABLED;
         this.boundFlush = () => this.flush();
     }
 
     initialize() {
         if (this.initialized) return;
         this.initialized = true;
+
+        // Portal builds are self-contained and must not repeatedly call a
+        // website-only collection endpoint that does not exist on the host.
+        if (this.deliveryDisabled) {
+            this.queue = [];
+            return;
+        }
+
         this.queue = this.readQueue();
         this.persistQueue();
 

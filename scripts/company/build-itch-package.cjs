@@ -80,7 +80,7 @@ function buildPackage(directory = packageDir) {
     const manifest = {
         schemaVersion: 1,
         target: 'itch.io-html5',
-        state: 'technical_candidate_visual_and_account_approval_pending',
+        state: 'technical_candidate_no_screenshot_page_ready_account_cover_and_rights_approval_pending',
         sourceCommit: sourceCommit(),
         builtAt: new Date().toISOString(),
         entryPoint: 'index.html',
@@ -96,6 +96,7 @@ function buildPackage(directory = packageDir) {
             localProgress: true,
             accountRequired: false,
             paymentRequired: false,
+            websiteObservabilityDeliveryEnabled: false,
             optionalHostedAiPortraitsAndVideosPromised: false,
             liveNasaDataGuaranteed: false
         },
@@ -103,7 +104,10 @@ function buildPackage(directory = packageDir) {
             externalPublicationAuthorized: false,
             kevinAccountApprovalRequired: true,
             approvedAuthenticGameplayMoments: 0,
-            requiredAuthenticGameplayMoments: 4,
+            recommendedAuthenticGameplayMoments: 4,
+            requiredAuthenticGameplayMomentsForInitialPublication: 0,
+            screenshotsAttached: 0,
+            initialReleaseMayLaunchWithoutScreenshots: true,
             platformTermsAccepted: false
         }
     };

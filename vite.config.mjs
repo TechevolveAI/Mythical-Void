@@ -25,7 +25,8 @@ export default defineConfig(({ command, mode }) => {
 
   return {
   define: {
-    __MYTHICAL_RELEASE_ID__: JSON.stringify(releaseId)
+    __MYTHICAL_RELEASE_ID__: JSON.stringify(releaseId),
+    __MYTHICAL_OBSERVABILITY_DELIVERY_ENABLED__: JSON.stringify(!isItchBuild)
   },
   // itch.io serves HTML games from a project folder rather than the root of a
   // domain. Its build therefore needs relative application chunks and a clear

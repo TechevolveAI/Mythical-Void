@@ -46,9 +46,10 @@ function inspectItchPackage(directory) {
     requireValue(!index.includes('returning-player.js'), 'website returning-player doorway must not run inside the direct-play portal package');
     requireValue(manifest.target === 'itch.io-html5' && manifest.directPlay === true, 'manifest target or direct-play state is invalid');
     requireValue(manifest.releaseGates?.externalPublicationAuthorized === false, 'external publication must wait for Kevin');
-    requireValue(manifest.releaseGates?.approvedAuthenticGameplayMoments === 0, 'visual gate must reflect the current 0/4 state');
-    requireValue(manifest.releaseGates?.requiredAuthenticGameplayMoments === 4, 'four authentic gameplay moments are required');
+    requireValue(manifest.releaseGates?.approvedAuthenticGameplayMoments === 0 && manifest.releaseGates?.recommendedAuthenticGameplayMoments === 4, 'visual evidence must reflect the current 0/4 recommendation');
+    requireValue(manifest.releaseGates?.requiredAuthenticGameplayMomentsForInitialPublication === 0 && manifest.releaseGates?.screenshotsAttached === 0 && manifest.releaseGates?.initialReleaseMayLaunchWithoutScreenshots === true, 'the honest no-screenshot initial release path is missing');
     requireValue(manifest.experience?.accountRequired === false && manifest.experience?.paymentRequired === false, 'free no-account boundary drifted');
+    requireValue(manifest.experience?.websiteObservabilityDeliveryEnabled === false, 'website-only observability delivery must be disabled inside the portal package');
     requireValue(manifest.experience?.optionalHostedAiPortraitsAndVideosPromised === false, 'third-party package must not promise hosted AI media');
     for (const forbidden of ['playable-now', 'studio', 'resources', 'updates', 'discovery.js', 'sitemap.xml']) {
         requireValue(!fs.existsSync(path.join(directory, forbidden)), `website-only content survived the portal package: ${forbidden}`);
@@ -90,7 +91,7 @@ function inspectItchPackage(directory) {
         referencedAssetCount: referencedAssets.size,
         directPlay: manifest.directPlay,
         externalPublicationAuthorized: manifest.releaseGates?.externalPublicationAuthorized,
-        visualGate: `${manifest.releaseGates?.approvedAuthenticGameplayMoments}/${manifest.releaseGates?.requiredAuthenticGameplayMoments}`,
+        visualEvidence: `${manifest.releaseGates?.approvedAuthenticGameplayMoments}/${manifest.releaseGates?.recommendedAuthenticGameplayMoments} recommended`,
         failures
     };
 }
