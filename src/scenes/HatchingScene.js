@@ -94,7 +94,6 @@ class HatchingScene extends Phaser.Scene {
         this.eggHatchReadyTimer = null;
         this.portraitPromise = null;
         this.portraitError = null;
-        this.firstContactCreatureMask = null;
         this.firstContactGuidance = null;
         this.firstContactPlatformShift = 0;
 
@@ -3330,8 +3329,6 @@ class HatchingScene extends Phaser.Scene {
             this.creature.destroy();
             this.creature = null;
         }
-        this.firstContactCreatureMask?.destroy?.();
-        this.firstContactCreatureMask = null;
 
         // 4. Clean up clouds group
         if (this.clouds) {
@@ -3494,8 +3491,6 @@ class HatchingScene extends Phaser.Scene {
             bannerHeight,
             creatureY,
             creatureScale: isCompact ? Math.min(3.05, width / 125) : 3.15,
-            creatureMaskWidth: isCompact ? Math.min(214, width * 0.56) : 244,
-            creatureMaskHeight: isCompact ? 232 : 268,
             platformY,
             guidanceY,
             guidanceWidth: Math.min(width - (isCompact ? 30 : 56), 620),
@@ -3512,18 +3507,7 @@ class HatchingScene extends Phaser.Scene {
 
         creature.setPosition(layout.centerX, layout.creatureY);
         creature.setBlendMode(Phaser.BlendModes.SCREEN);
-
-        this.firstContactCreatureMask?.destroy?.();
-        const maskShape = this.make.graphics({ x: 0, y: 0, add: false });
-        maskShape.fillStyle(0xffffff, 1);
-        maskShape.fillEllipse(
-            layout.centerX,
-            layout.creatureY,
-            layout.creatureMaskWidth,
-            layout.creatureMaskHeight
-        );
-        creature.setMask(maskShape.createGeometryMask());
-        this.firstContactCreatureMask = maskShape;
+        creature.clearMask?.(true);
 
         const targetShift = layout.platformY - (layout.height * 0.65);
         const shiftDelta = targetShift - this.firstContactPlatformShift;

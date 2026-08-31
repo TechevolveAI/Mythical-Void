@@ -44,8 +44,10 @@ describe('first-contact hatch presentation', () => {
     test('makes the creature the focus and removes finished egg instructions', () => {
         expect(sceneSource.match(/const targetScale = layout\.creatureScale/g)).toHaveLength(3);
         expect(sceneSource).toContain('creature.setBlendMode(Phaser.BlendModes.SCREEN)');
-        expect(sceneSource).toContain('maskShape.fillEllipse(');
-        expect(sceneSource).toContain('creature.setMask(maskShape.createGeometryMask())');
+        expect(sceneSource).toContain('creature.clearMask?.(true)');
+        expect(sceneSource).not.toContain('creature.setMask(');
+        expect(sceneSource).not.toContain('creatureMaskWidth');
+        expect(sceneSource).not.toContain('creatureMaskHeight');
         expect(sceneSource).toContain('this.tapToHatchText.destroy()');
         expect(sceneSource).toContain('Object.values(this.controlPanelElements || {}).forEach');
         expect(sceneSource).toContain('const advice = canReroll ?');
