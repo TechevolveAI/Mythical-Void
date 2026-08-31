@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "GITHUB-PLAYABLE-RELEASE-001",
+  "asOf": "2026-08-31",
+  "state": "ready_for_publication_after_protected_merge",
+  "purpose": "Create the first public release on Mythical Void's existing GitHub project so a visitor or search engine can find a dated, truthful statement that the game is playable now. The release leads to the owned Play doorway, uses no weak gameplay media, does not distribute a second build, and does not claim that a release view is a player or that GitHub will create discovery.",
+  "release": {
+    "repository": "TechevolveAI/Mythical-Void",
+    "tagName": "early-access-2026-08-31",
+    "title": "Mythical Void is playable now — Early Access",
+    "bodyPath": "docs/company/content/github-release/PLAYABLE_NOW_RELEASE.md",
+    "targetBranch": "main",
+    "prerelease": true,
+    "latestRelease": false,
+    "draft": false,
+    "assets": [],
+    "expectedUrl": "https://github.com/TechevolveAI/Mythical-Void/releases/tag/early-access-2026-08-31"
+  },
+  "truth": {
+    "playUrl": "https://mythicalvoid.com/playable-now/",
+    "directGameUrl": "https://mythicalvoid.com/play/",
+    "familyUrl": "https://mythicalvoid.com/parents/",
+    "earlyAccessDisclosed": true,
+    "freeBrowserPlayClaimed": true,
+    "noDownloadClaimed": true,
+    "noAccountClaimed": true,
+    "noPaymentDetailsClaimed": true,
+    "noGameAdsClaimed": true,
+    "noPublicChatClaimed": true,
+    "nasaEndorsementClaimed": false,
+    "generatedArtworkPresentedAsGameplay": false,
+    "gameplayMediaAttached": false,
+    "downloadableBuildAttached": false,
+    "popularityOrRankingClaimed": false
+  },
+  "authority": {
+    "ownedPublicRepositoryReleaseAuthorized": true,
+    "authorityBasis": "Kevin's continuing instruction to get Mythical Void known and playable, his standing autonomy instruction for owned growth work, and his earlier direction to get approved work live.",
+    "newAccountAuthorized": false,
+    "platformTermsAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "directOutreachAuthorized": false,
+    "childContactAuthorized": false,
+    "thirdPartyPostingAuthorized": false
+  },
+  "gates": [
+    { "id": "GR-G01", "name": "Existing public repository confirmed", "satisfied": true },
+    { "id": "GR-G02", "name": "No conflicting release or tag confirmed", "satisfied": true },
+    { "id": "GR-G03", "name": "Plain game promise checked", "satisfied": true },
+    { "id": "GR-G04", "name": "Clean owned Play links checked", "satisfied": true },
+    { "id": "GR-G05", "name": "Early-access boundary checked", "satisfied": true },
+    { "id": "GR-G06", "name": "NASA and AI boundaries checked", "satisfied": true },
+    { "id": "GR-G07", "name": "No gameplay media or download attached", "satisfied": true },
+    { "id": "GR-G08", "name": "Protected source checks required", "satisfied": true },
+    { "id": "GR-G09", "name": "Release points to reviewed main commit", "satisfied": false },
+    { "id": "GR-G10", "name": "Public release readback verified", "satisfied": false }
+  ],
+  "publicationAuthorized": true,
+  "publicationCompleted": false,
+  "measurementBoundary": "A GitHub release view, reaction, download or repository visit is not a player, a completed game session, enjoyment, retention or recommendation. Public GitHub numbers and consented aggregate website events describe separate actions and cannot be joined into a person-level journey. No conversion rate, audience size or product-value claim may be inferred from them.",
+  "rollback": "Delete the GitHub release and its tag if the wording, target, links or boundaries differ from this reviewed record. Removing a release cannot erase screenshots, quotes or cached copies made by others after publication.",
+  "nextDecision": "After protected merge, create exactly one prerelease using the reviewed body and point the tag at the reviewed main commit. Attach no files or media. Read the public release back and verify the title, tag, prerelease state, target commit, clean owned links and absence of assets. Search Console and the First Five adult test remain separate higher-value evidence steps."
+}
