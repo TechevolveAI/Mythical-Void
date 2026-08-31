@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const rootFlag = process.argv.indexOf('--root');
 const root = rootFlag === -1 ? path.resolve(__dirname, '..', '..') : path.resolve(process.argv[rootFlag + 1] || '');
@@ -14,7 +15,7 @@ const requireValue = (condition, message) => { if (!condition) failures.push(mes
 
 requireValue(contract.schemaVersion === 1 && contract.id === 'GITHUB-PLAYABLE-RELEASE-001', 'release identity is invalid');
 requireValue(contract.asOf === '2026-08-31', 'release evidence date is stale');
-requireValue(contract.state === 'ready_for_publication_after_protected_merge', 'release state is invalid');
+requireValue(contract.state === 'published_and_verified', 'release state is invalid');
 requireValue(typeof contract.purpose === 'string' && contract.purpose.length >= 300, 'release purpose is incomplete');
 
 const release = contract.release || {};
@@ -51,13 +52,22 @@ for (const field of ['childExactAgeDisclosed', 'nasaEndorsementClaimed', 'genera
 const authority = contract.authority || {};
 requireValue(authority.ownedPublicRepositoryReleaseAuthorized === true, 'owned GitHub release authority is missing');
 for (const field of ['newAccountAuthorized', 'platformTermsAuthorized', 'paidPromotionAuthorized', 'directOutreachAuthorized', 'childContactAuthorized', 'thirdPartyPostingAuthorized']) requireValue(authority[field] === false, `authority.${field} must remain false`);
-requireValue(contract.publicationAuthorized === true && contract.publicationCompleted === false, 'publication boundary is invalid before release');
+requireValue(contract.publicationAuthorized === true && contract.publicationCompleted === true, 'publication boundary is invalid after release');
 requireValue(Array.isArray(contract.gates) && contract.gates.length === 10, 'ten release gates are required');
 for (let index = 0; index < 10; index += 1) {
     const gate = contract.gates?.[index];
     requireValue(gate?.id === `GR-G${String(index + 1).padStart(2, '0')}`, `release gate ${index + 1} id is invalid`);
-    requireValue(gate?.satisfied === (index < 8), `release gate ${index + 1} state is invalid before publication`);
+    requireValue(gate?.satisfied === true, `release gate ${index + 1} state is invalid after publication`);
 }
+const publicEvidence = contract.publicEvidence || {};
+requireValue(publicEvidence.releaseId === 379540846, 'public release id is invalid');
+requireValue(publicEvidence.url === release.expectedUrl, 'public release URL is invalid');
+requireValue(publicEvidence.tagName === release.tagName, 'public release tag is invalid');
+requireValue(publicEvidence.targetCommit === 'eac3b8d202420aa5e2d175addcd3bfca70dfc5ae', 'public release target commit is invalid');
+requireValue(publicEvidence.title === release.title, 'public release title is invalid');
+requireValue(publicEvidence.publishedAt === '2026-08-31T06:05:48Z', 'public release time is invalid');
+requireValue(publicEvidence.prerelease === true && publicEvidence.draft === false && publicEvidence.assetCount === 0, 'public release status is invalid');
+requireValue(publicEvidence.bodySha256 === crypto.createHash('sha256').update(body).digest('hex'), 'public release body hash is invalid');
 requireValue(typeof contract.measurementBoundary === 'string' && contract.measurementBoundary.length >= 250, 'measurement boundary is incomplete');
 requireValue(typeof contract.rollback === 'string' && contract.rollback.length >= 180, 'rollback is incomplete');
 requireValue(typeof contract.nextDecision === 'string' && contract.nextDecision.length >= 300, 'next decision is incomplete');
@@ -78,6 +88,7 @@ console.log(JSON.stringify({
     satisfiedGateCount: contract.gates.filter(gate => gate.satisfied).length,
     publicationAuthorized: contract.publicationAuthorized,
     publicationCompleted: contract.publicationCompleted,
+    publicUrl: publicEvidence.url,
     weakGameplayMediaPublished: false,
     newAccountRequired: false
 }, null, 2));

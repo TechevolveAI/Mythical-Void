@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "GITHUB-PLAYABLE-RELEASE-001",
   "asOf": "2026-08-31",
-  "state": "ready_for_publication_after_protected_merge",
+  "state": "published_and_verified",
   "purpose": "Create the first public release on Mythical Void's existing GitHub project so a visitor or search engine can find a dated, truthful statement that the game is playable now. The release leads to the owned Play doorway, uses no weak gameplay media, does not distribute a second build, and does not claim that a release view is a player or that GitHub will create discovery.",
   "release": {
     "repository": "TechevolveAI/Mythical-Void",
@@ -53,12 +53,24 @@
     { "id": "GR-G06", "name": "NASA and AI boundaries checked", "satisfied": true },
     { "id": "GR-G07", "name": "No gameplay media or download attached", "satisfied": true },
     { "id": "GR-G08", "name": "Protected source checks required", "satisfied": true },
-    { "id": "GR-G09", "name": "Release points to reviewed main commit", "satisfied": false },
-    { "id": "GR-G10", "name": "Public release readback verified", "satisfied": false }
+    { "id": "GR-G09", "name": "Release points to reviewed main commit", "satisfied": true },
+    { "id": "GR-G10", "name": "Public release readback verified", "satisfied": true }
   ],
   "publicationAuthorized": true,
-  "publicationCompleted": false,
+  "publicationCompleted": true,
+  "publicEvidence": {
+    "releaseId": 379540846,
+    "url": "https://github.com/TechevolveAI/Mythical-Void/releases/tag/early-access-2026-08-31",
+    "tagName": "early-access-2026-08-31",
+    "targetCommit": "eac3b8d202420aa5e2d175addcd3bfca70dfc5ae",
+    "title": "Mythical Void is playable now — Early Access",
+    "publishedAt": "2026-08-31T06:05:48Z",
+    "prerelease": true,
+    "draft": false,
+    "assetCount": 0,
+    "bodySha256": "7e0938857922ea71120b01562d0cfccca044948b2a77cf6661cab5667dae574e"
+  },
   "measurementBoundary": "A GitHub release view, reaction, download or repository visit is not a player, a completed game session, enjoyment, retention or recommendation. Public GitHub numbers and consented aggregate website events describe separate actions and cannot be joined into a person-level journey. No conversion rate, audience size or product-value claim may be inferred from them.",
   "rollback": "Delete the GitHub release and its tag if the wording, target, links or boundaries differ from this reviewed record. Removing a release cannot erase screenshots, quotes or cached copies made by others after publication.",
-  "nextDecision": "After protected merge, create exactly one prerelease using the reviewed body and point the tag at the reviewed main commit. Attach no files or media. Read the public release back and verify the title, tag, prerelease state, target commit, clean owned links and absence of assets. Search Console and the First Five adult test remain separate higher-value evidence steps."
+  "nextDecision": "Leave this release unchanged unless a factual error or broken owned link is found. Treat GitHub views as release-page interest only, never as players or successful sessions. Add gameplay media only after a person approves strong real-game moments. The higher-value next steps remain connecting Mythical Void to Google Search Console and completing the First Five adult play test; both require separate evidence and decisions."
 }
