@@ -1,4 +1,5 @@
 # Netlify redirects for SPA routing
 /api/observability-events    /.netlify/functions/observability-events    200!
+/api/live-presence           /.netlify/functions/live-presence           200!
 /api/*                       /.netlify/functions/:splat                  200!
 /*    /index.html   200

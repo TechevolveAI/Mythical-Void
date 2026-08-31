@@ -12,6 +12,7 @@ describe('storefront and game deployment integration', () => {
     const netlify = read('netlify.toml');
     const publishedRedirects = read('public/_redirects');
     const observabilityFunction = read('netlify/functions/observability-events.mjs');
+    const livePresenceFunction = read('netlify/functions/live-presence.mjs');
     const vercel = JSON.parse(read('vercel.json'));
     const supabaseOrigin = envExample.match(
         /^VITE_SUPABASE_URL=(https:\/\/[^\s]+)$/m
@@ -117,6 +118,23 @@ describe('storefront and game deployment integration', () => {
         );
         expect(publishedRedirects.indexOf(publishedGenericAlias)).toBeLessThan(
             publishedRedirects.indexOf(publishedSpaFallback)
+        );
+    });
+
+    test('keeps the live presence API alias ahead of the generic API redirect', () => {
+        const explicitAlias = 'from = "/api/live-presence"';
+        const genericAlias = 'from = "/api/*"';
+
+        expect(netlify).toContain(
+            'to = "/.netlify/functions/live-presence"'
+        );
+        expect(netlify.indexOf(explicitAlias)).toBeGreaterThan(-1);
+        expect(netlify.indexOf(explicitAlias)).toBeLessThan(
+            netlify.indexOf(genericAlias)
+        );
+        expect(livePresenceFunction).not.toContain("path: '/api/live-presence'");
+        expect(publishedRedirects).toContain(
+            '/api/live-presence           /.netlify/functions/live-presence           200!'
         );
     });
 });
