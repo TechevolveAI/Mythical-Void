@@ -169,6 +169,48 @@ class CloudSaveManager {
         return user;
     }
 
+    async adoptAuthenticatedSession(user, options = {}) {
+        const { preferRemote = true } = options;
+        if (!user?.id) {
+            throw new Error('A verified account session is required.');
+        }
+
+        this.clearSyncTimer();
+        this.pendingSave = null;
+        this.currentUser = user;
+        this.remoteRevision = 0;
+        this.lastError = null;
+        this.lastConflict = null;
+
+        if (!this.isEnabled() || !this.isConfigured()) {
+            return this.getStatus();
+        }
+        if (!preferRemote) {
+            return this.synchronize();
+        }
+
+        this.status = 'syncing';
+        try {
+            await this.withSyncLock(async () => {
+                const remoteSave = await this.fetchRemoteSave(user.id);
+                if (remoteSave) {
+                    this.remoteRevision = Number(remoteSave.revision) || 0;
+                    await this.restoreRemoteSave(remoteSave.game_state);
+                } else {
+                    await this.upload(this.createLocalSnapshot(), 0);
+                }
+            });
+        } catch (error) {
+            this.status = this.isRevisionConflict(error) ? 'conflict' : 'error';
+            this.lastError = error;
+            this.lastConflict = this.isRevisionConflict(error)
+                ? this.normalizeRevisionConflict(error)
+                : null;
+            throw error;
+        }
+        return this.getStatus();
+    }
+
     async synchronize() {
         if (!this.isEnabled() || !this.isConfigured()) {
             return this.getStatus();

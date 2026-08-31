@@ -488,7 +488,7 @@ async function initializeCloudSaves() {
         auth: {
             persistSession: true,
             autoRefreshToken: true,
-            detectSessionInUrl: false
+            detectSessionInUrl: true
         }
     });
 
@@ -497,6 +497,11 @@ async function initializeCloudSaves() {
         gameState: GameState
     });
     window.CloudSave = cloudSaveManager;
+
+    window.DurableAccountService?.installRecoveryFlow?.({
+        client,
+        cloudSave: cloudSaveManager
+    });
 
     await cloudSaveManager.initialize();
     console.info('[CloudSave] Ready:', cloudSaveManager.getStatus());

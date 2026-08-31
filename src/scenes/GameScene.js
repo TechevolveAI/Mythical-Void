@@ -90,6 +90,7 @@ import CompanionEarthMemoryModal from '../ui/CompanionEarthMemoryModal.js';
 import SenseiMemoryModal from '../ui/SenseiMemoryModal.js';
 import ShipEvidenceBoardModal from '../ui/ShipEvidenceBoardModal.js';
 import CurrentVeilModal from '../ui/CurrentVeilModal.js';
+import SharedCreatureCareModal from '../ui/SharedCreatureCareModal.js';
 import VillageCommandPanel from '../ui/VillageCommandPanel.js';
 import { recordCampaignLegacyCapsule } from '../systems/CampaignLegacy.js';
 import { getHomecomingHandoffSnapshot } from '../systems/HomecomingHandoff.js';
@@ -301,6 +302,11 @@ class GameScene extends Phaser.Scene {
         this.senseiMemoryModal = null;
         this.shipEvidenceBoardModal = null;
         this.currentVeilModal = null;
+        this.sharedCreatureCareModal = null;
+        this.sharedGuardianshipService = null;
+        this.sharedGuardianshipStopWatching = null;
+        this.sharedGuardianshipHabitatElements = [];
+        this.sharedGuardianshipProjection = null;
         this.recoveryLogModal = null;
         this.shipEvidencePreview = null;
         this.shipEvidencePreviewSize = null;
@@ -1194,6 +1200,7 @@ class GameScene extends Phaser.Scene {
             this.createExpeditionAstronaut();
             this.createLivingSignals();
             this.trackWorldArrival();
+            void this.initializeSharedGuardianshipHabitat();
             
             // Set up camera to follow player
             this.setupCamera();
@@ -8032,6 +8039,168 @@ class GameScene extends Phaser.Scene {
             });
             this.rosterElements.push(hitArea);
         }
+    }
+
+    async initializeSharedGuardianshipHabitat() {
+        if (
+            this.currentBiome !== 'nebula' ||
+            !window.SharedGuardianship?.isEnabled?.() ||
+            !window.SharedGuardianshipService
+        ) {
+            return;
+        }
+        this.sharedGuardianshipService?.destroy?.();
+        this.sharedGuardianshipService = new window.SharedGuardianshipService({
+            cloudSave: window.CloudSave,
+            gameState: window.GameState
+        });
+        try {
+            const availability = await this.sharedGuardianshipService.getAvailability();
+            if (!availability.accountStatus?.permanent) return;
+            const cached = window.GameState?.get?.(
+                'sharedGuardianship.projections'
+            )?.[0];
+            if (cached) this.renderSharedGuardianshipHabitat(cached);
+            const projections = await this.sharedGuardianshipService.refreshAll();
+            const projection = projections[0] || null;
+            if (!projection) {
+                this.destroySharedGuardianshipHabitat();
+                return;
+            }
+            this.renderSharedGuardianshipHabitat(projection);
+            this.sharedGuardianshipStopWatching =
+                this.sharedGuardianshipService.watch(
+                    projection.sharedCreatureId,
+                    (next, error) => {
+                        if (next) this.updateSharedGuardianshipProjection(next);
+                        else if (error) {
+                            this.sharedGuardianshipHabitatStatus?.setText?.(
+                                'CONNECTION PAUSED'
+                            );
+                        }
+                    }
+                );
+        } catch (error) {
+            console.warn(
+                '[GameScene] Shared habitat is using its last safe state:',
+                error?.message
+            );
+        }
+    }
+
+    getSharedGuardianshipHabitatPosition() {
+        const anchor = this.fusionPodLandmark?.zone ||
+            this.villageHeartLandmark?.zone ||
+            { x: this.worldWidth / 2, y: this.worldHeight / 2 };
+        const candidate = {
+            x: Phaser.Math.Clamp(Number(anchor.x) + 230, 180, this.worldWidth - 180),
+            y: Phaser.Math.Clamp(Number(anchor.y) + 90, 180, this.worldHeight - 180)
+        };
+        return this.sanctuaryZones?.getSafeSpawnPosition?.(candidate) || candidate;
+    }
+
+    renderSharedGuardianshipHabitat(projection) {
+        this.destroySharedGuardianshipHabitat();
+        if (!projection?.genes || this._isShuttingDown) return;
+        this.sharedGuardianshipProjection = projection;
+        const { x, y } = this.getSharedGuardianshipHabitatPosition();
+        const ground = this.add.graphics().setDepth(y - 18);
+        ground.fillStyle(0x071411, 0.74);
+        ground.fillEllipse(x, y + 18, 170, 68);
+        ground.lineStyle(3, 0x71e6b1, 0.7);
+        ground.strokeEllipse(x, y + 18, 170, 68);
+        ground.lineStyle(1, 0xf2c14e, 0.48);
+        ground.strokeEllipse(x, y + 18, 118, 44);
+
+        const stage = projection.lifecycle?.stage || 'baby';
+        const render = this.graphicsEngine.createRandomizedSpaceMythicCreature(
+            projection.genes,
+            0,
+            stage
+        );
+        const shadow = this.add.ellipse(x, y + 16, 64, 20, 0x000000, 0.42)
+            .setDepth(y - 4);
+        const creature = this.add.sprite(x, y - 17, render.textureName)
+            .setScale(0.92)
+            .setDepth(y + 2)
+            .setInteractive({ useHandCursor: true });
+        const name = this.add.text(x, y + 57, projection.name.toUpperCase(), {
+            fontSize: '13px',
+            color: '#F4F7F6',
+            fontStyle: 'bold',
+            backgroundColor: '#071411CC',
+            padding: { x: 8, y: 4 }
+        }).setOrigin(0.5).setDepth(y + 5);
+        const status = this.add.text(x, y + 79, 'SHARED HABITAT // TAP TO CARE', {
+            fontSize: '10px',
+            color: '#8FE3CF',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(y + 5);
+        const zone = this.add.zone(x, y, 190, 130)
+            .setDepth(y + 8)
+            .setInteractive({ useHandCursor: true });
+        const open = () => this.openSharedCreatureCare();
+        zone.on('pointerdown', open);
+        creature.on('pointerdown', open);
+        const idleTween = this.tweens.add({
+            targets: creature,
+            y: creature.y - 5,
+            duration: 1350,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.InOut'
+        });
+        this.sharedGuardianshipHabitatStatus = status;
+        this.sharedGuardianshipHabitatElements = [
+            ground,
+            shadow,
+            creature,
+            name,
+            status,
+            zone
+        ];
+        this.sharedGuardianshipHabitatTween = idleTween;
+    }
+
+    updateSharedGuardianshipProjection(projection) {
+        if (!projection || this._isShuttingDown) return;
+        const identityChanged =
+            this.sharedGuardianshipProjection?.sharedCreatureId !==
+                projection.sharedCreatureId ||
+            this.sharedGuardianshipProjection?.name !== projection.name;
+        this.sharedGuardianshipProjection = projection;
+        this.sharedGuardianshipHabitatStatus?.setText?.(
+            'SHARED HABITAT // TOGETHER'
+        );
+        if (identityChanged) this.renderSharedGuardianshipHabitat(projection);
+    }
+
+    openSharedCreatureCare() {
+        if (
+            this.sharedCreatureCareModal ||
+            !this.sharedGuardianshipProjection ||
+            !this.sharedGuardianshipService
+        ) return false;
+        this.sharedCreatureCareModal = new SharedCreatureCareModal(this, {
+            service: this.sharedGuardianshipService,
+            projection: this.sharedGuardianshipProjection,
+            onUpdate: projection => this.updateSharedGuardianshipProjection(projection),
+            onClose: () => {
+                this.sharedCreatureCareModal = null;
+            }
+        });
+        return this.sharedCreatureCareModal.show();
+    }
+
+    destroySharedGuardianshipHabitat() {
+        this.sharedGuardianshipHabitatTween?.stop?.();
+        this.sharedGuardianshipHabitatTween = null;
+        this.sharedGuardianshipHabitatElements?.forEach(element => {
+            element?.removeAllListeners?.();
+            element?.destroy?.();
+        });
+        this.sharedGuardianshipHabitatElements = [];
+        this.sharedGuardianshipHabitatStatus = null;
     }
 
     /**
@@ -18220,6 +18389,13 @@ class GameScene extends Phaser.Scene {
         this.shipEvidenceBoardModal = null;
         this.currentVeilModal?.destroy?.();
         this.currentVeilModal = null;
+        this.sharedCreatureCareModal?.destroy?.();
+        this.sharedCreatureCareModal = null;
+        this.sharedGuardianshipStopWatching?.();
+        this.sharedGuardianshipStopWatching = null;
+        this.sharedGuardianshipService?.destroy?.();
+        this.sharedGuardianshipService = null;
+        this.destroySharedGuardianshipHabitat();
         this.villageCommandPanel?.destroy?.();
         this.villageCommandPanel = null;
         this.villageReconcileTimer?.remove?.();

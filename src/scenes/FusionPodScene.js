@@ -14,6 +14,7 @@
 import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
 import FusionConsentModal from '../ui/FusionConsentModal.js';
 import SharedFusionModal from '../ui/SharedFusionModal.js';
+import SharedGuardianshipModal from '../ui/SharedGuardianshipModal.js';
 const Phaser = typeof window !== 'undefined' ? window.Phaser : undefined;
 const FUSION_ELIGIBLE_STAGES = new Set(['adult', 'elder']);
 const FUSION_ADULT_AGE_MS = 2 * 24 * 60 * 60 * 1000;
@@ -183,6 +184,7 @@ class FusionPodScene extends Phaser.Scene {
         this.cleanupComplete = false;
         this.fusionConsentModal = null;
         this.sharedFusionModal = null;
+        this.sharedGuardianshipModal = null;
         this.fusionConsentReceipt = null;
         this.previewConsentOnly = false;
         this.previewSharedFusionAvailable = false;
@@ -275,7 +277,8 @@ class FusionPodScene extends Phaser.Scene {
             .filter(entry => entry.eligible)
             .map(entry => entry.creature);
         const sharedFusionAvailable =
-            this.isSharedFusionAvailable();
+            this.isSharedFusionAvailable() ||
+            this.isSharedGuardianshipAvailable();
 
         if (collection.length < 2 && !sharedFusionAvailable) {
             this.showRequirementNotMet(width, height, 'need_creatures', {
@@ -393,8 +396,19 @@ class FusionPodScene extends Phaser.Scene {
             )?.available === true;
     }
 
+    isSharedGuardianshipAvailable() {
+        if (this.previewSharedFusionAvailable) return false;
+        if (this.previewCreatures || !window.SharedGuardianship?.isEnabled?.()) {
+            return false;
+        }
+        return window.SharedGuardianship
+            .getSharedGuardianshipAvailability?.(window.CloudSave)
+            ?.available === true;
+    }
+
     createSharedFusionButton() {
-        if (!this.isSharedFusionAvailable()) return;
+        const sharedGuardianshipAvailable = this.isSharedGuardianshipAvailable();
+        if (!sharedGuardianshipAvailable && !this.isSharedFusionAvailable()) return;
         const width = 58;
         const height = 50;
         const x = this.panelBounds.x + 7;
@@ -431,7 +445,7 @@ class FusionPodScene extends Phaser.Scene {
         const label = this.add.text(
             x + width / 2,
             y + height / 2,
-            'LINK',
+            sharedGuardianshipAvailable ? 'SHARE' : 'LINK',
             {
                 fontSize: '10px',
                 color: '#FFFFFF',
@@ -448,14 +462,17 @@ class FusionPodScene extends Phaser.Scene {
             .setInteractive({ useHandCursor: true });
         let tooltip = null;
         hitZone.on('pointerdown', () => {
-            this.openSharedFusion();
+            if (sharedGuardianshipAvailable) this.openSharedGuardianship();
+            else this.openSharedFusion();
         });
         hitZone.on('pointerover', () => {
             draw(true);
             tooltip = this.add.text(
                 x,
                 y - 8,
-                'Protected Shared Fusion',
+                sharedGuardianshipAvailable
+                    ? 'One creature in two Sanctuaries'
+                    : 'Protected Shared Fusion',
                 {
                     fontSize: '10px',
                     color: '#FFFFFF',
@@ -470,6 +487,32 @@ class FusionPodScene extends Phaser.Scene {
             tooltip = null;
         });
         this.elements.push(background, label, hitZone);
+    }
+
+    openSharedGuardianship() {
+        if (
+            this.sharedGuardianshipModal ||
+            !this.isSharedGuardianshipAvailable()
+        ) {
+            return false;
+        }
+        const parents = this.getFusionCollection().filter(creature => (
+            window.FusionConsent
+                ?.getFusionCompanionReadiness?.(creature)?.willing
+        ));
+        if (parents.length < 1) return false;
+        this.sharedGuardianshipModal = new SharedGuardianshipModal(this);
+        return this.sharedGuardianshipModal.show({
+            parents,
+            onClose: () => {
+                this.sharedGuardianshipModal = null;
+                this.updateBreedButton();
+            },
+            onComplete: () => {
+                this.sharedGuardianshipModal = null;
+                this.closeScene();
+            }
+        });
     }
 
     openSharedFusion() {
@@ -1718,7 +1761,10 @@ class FusionPodScene extends Phaser.Scene {
 
     createBreedButton(width, height) {
         const buttonY = this.layout.action.y;
-        const sharedLinkLane = this.isSharedFusionAvailable() ? 65 : 0;
+        const sharedLinkLane = (
+            this.isSharedFusionAvailable() ||
+            this.isSharedGuardianshipAvailable()
+        ) ? 65 : 0;
         const actionX = this.layout.action.x + sharedLinkLane;
         const actionWidth = this.layout.action.width - sharedLinkLane;
         const centerX = actionX + actionWidth / 2;
@@ -3056,6 +3102,8 @@ class FusionPodScene extends Phaser.Scene {
         this.fusionConsentModal = null;
         this.sharedFusionModal?.destroy?.();
         this.sharedFusionModal = null;
+        this.sharedGuardianshipModal?.destroy?.();
+        this.sharedGuardianshipModal = null;
 
         this.elements.forEach(el => {
             try {

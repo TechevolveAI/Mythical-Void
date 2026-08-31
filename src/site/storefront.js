@@ -218,18 +218,25 @@ function renderLegalPage(type) {
                     <p>You do not need an account, email address, or payment information to begin playing Mythical Void.</p>
                     <h2>Game saves</h2>
                     <p>Your creature and progress stay in this browser by default. If you choose to turn on Cloud Save, an anonymous account number, your saved game, and the times it was saved are stored securely. A parent PIN and local safety history are never included.</p>
+                    <h2>Shared Guardianship</h2>
+                    <p>Shared Guardianship is an optional connected feature for players who confirm they are 16 or older. It requires a verified email account so the same shared creature can safely return on both guardians' devices. Email and credentials stay in Supabase Auth and are never shown to the other guardian.</p>
+                    <p>Each guardian can see the shared creature's approved name, traits, care state, neutral Guardian A or Guardian B activity summaries, and recent shared moments. The feature has no chat, public profile, player search, location sharing, contact import or online-presence display. Private invitation codes expire after 30 minutes and should only be sent to someone you know.</p>
+                    <p>Expired and cancelled invitation records are retained for no more than 30 days, join-attempt records for no more than 24 hours, and player-visible care history is bounded to the latest 100 events. A shared creature remains while at least one guardian keeps it. Leaving removes that guardian's access and direct attribution; deleting an account revokes its participation.</p>
                     <h2>Online services</h2>
                     <p>Cloud Save uses Supabase. The game may also ask trusted outside services for public space-weather or game-help information. Like most online services, they may receive basic connection information such as an internet address.</p>
                     <h2>Optional website analytics</h2>
                     <p>The public website may use Google Analytics to count visits, the general route people arrived from—such as search, a game shelf, social media, another Mythical Void page or a direct link—whether a visitor reaches a lower part of a public page, and whether website buttons lead to the game or sharing. It is off by default. If you choose “Allow analytics”, Google receives the public page, that broad arrival group, the general button area and the normal connection and device information used by web analytics. Google may also create basic visit and session events after permission is given. Mythical Void does not send Google the full page you came from, a message recipient, contact detail, creature detail, game activity, or the extra information after a question mark in a web address. It is not used in the game, and advertising features are switched off. You can choose “No thanks” instead.</p>
                     <h2>Children</h2>
-                    <p>Children can play without Cloud Save. A child should only use Cloud Save when a parent or guardian has given any permission required where they live.</p>
+                    <p>Children can play the solo game without an account. Cloud Save is available only to profiles that confirm they are 16 or older. Shared Guardianship also requires a verified account and is unavailable to under-16 profiles.</p>
                     <h2>Contact</h2>
                     <p>Our parent and guardian contact channel is being prepared. When it opens, messages will be used only to reply and to keep young players safe.</p>
                 ` : `
                     <p>Mythical Void is an early-access browser game for personal play.</p>
                     <h2>Your save</h2>
                     <p>Your progress stays in this browser by default. Cloud Save may be available, but we cannot promise that it will always work without interruption.</p>
+                    <h2>Shared Guardianship</h2>
+                    <p>This optional 16+ feature creates one shared creature for two verified accounts. Each person contributes one willing adult creature and must separately agree before the child is created. Either guardian may care for the shared creature independently. A guardian may leave, but cannot remove the other guardian, transfer the creature, expose the other's account identity or delete the creature while the other guardian remains.</p>
+                    <p>Private codes are single-use and time-limited. Do not post them publicly. Shared Guardianship does not provide chat, public matching, account search or live location and presence.</p>
                     <h2>Play fairly</h2>
                     <p>Please do not disrupt the game, pretend to be the Mythical Void team, or sell the game's artwork and content as your own.</p>
                     <h2>Early access</h2>
