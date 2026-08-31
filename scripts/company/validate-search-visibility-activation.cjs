@@ -67,6 +67,19 @@ for (const field of ['personalDataSent', 'accountUsed', 'paidPromotionStarted'])
 requireValue(homepage.includes('<meta name="robots" content="index, follow, max-image-preview:large">'), 'homepage index instruction is missing');
 requireValue(homepage.includes('<link rel="canonical" href="https://mythicalvoid.com/">'), 'homepage canonical is missing');
 for (const phrase of [
+    'data-static-search-entry',
+    'Hatch something strange. Restore six living realms.',
+    'alien creature shaped by a genetics system',
+    'decide what Project Beacon should tell Earth',
+    'Free to play · No download · No account needed',
+    'href="/play/"',
+    'href="/playable-now/"',
+    'href="/parents/"',
+    "document.documentElement.dataset.initialRoute = isGameRoute ? 'game' : 'site'",
+    'html[data-initial-route="game"] .site-entry-fallback'
+]) requireValue(homepage.includes(phrase), `plain homepage entry is missing: ${phrase}`);
+requireValue(!/\bcompanions?\b|every creature is unique|no two creatures|infinite creatures|truly yours/i.test(homepage), 'homepage contains retired or unsupported creature wording');
+for (const phrase of [
     '"@type": "WebSite"',
     '"@id": "https://mythicalvoid.com/#website"',
     '"name": "Mythical Void"',
@@ -107,6 +120,7 @@ console.log(JSON.stringify({
     sampledQueries: 8,
     sampledMythicalResults: 0,
     technicalCrawlChecksPassing: Object.keys(audit.liveTechnicalChecks).length,
+    staticHomepageEntryPresent: true,
     liveOwnedSearchRoutes: opportunityMap.clusters.length,
     searchConsoleConnected: false,
     indexNowAccepted: true,
