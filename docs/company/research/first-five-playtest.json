@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "FIRST-FIVE-001",
-  "state": "ready_for_kevin_approval",
+  "state": "held_for_creature_first_impression",
   "purpose": "Check whether five unfamiliar adults can understand and begin the real game before gameplay-led promotion.",
   "sessionMinutes": 12,
   "audience": {
@@ -17,10 +17,12 @@
     "phone": 2
   },
   "entryGates": {
-    "gdh009Passed": true,
-    "stableBuildRef": "b20ec3fe835c9db202ea23d4bbc0d420da3999f8",
-    "productionDeployId": "6a950415032ea30008d9bc28",
-    "adultVisualReviewPassed": true,
+    "gdh009Passed": false,
+    "stableBuildRef": null,
+    "productionDeployId": null,
+    "companyVisualPreflightPassed": false,
+    "adultHumanVisualReviewPassed": false,
+    "blockingReviewRef": "docs/company/reviews/FIRST_CONTACT_VISUAL_REVIEW_2026-08-31.json",
     "kevinApprovedPurposeAndInvitations": false,
     "adultInvitationCopyApproved": false,
     "observerNamed": false
@@ -76,6 +78,13 @@
     "gateEvaluated": false,
     "gatePassed": false,
     "externalClaimPermitted": false
+  },
+  "currentHold": {
+    "reason": "The latest private first-contact repair fixed layout faults but the real runtime creature still failed the obvious visual-quality preflight on phone and desktop.",
+    "candidateSourceCommit": "ad4e4599316b327627ff83a5e1fb387ec0d5802d",
+    "candidateDeployed": false,
+    "invitationsMayBegin": false,
+    "promotionMayBegin": false
   },
   "authority": {
     "recruitmentAuthorized": false,

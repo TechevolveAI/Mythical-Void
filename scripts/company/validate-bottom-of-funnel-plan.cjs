@@ -22,7 +22,7 @@ const requireValue = (condition, message) => { if (!condition) failures.push(mes
 
 requireValue(plan.id === 'BOTTOM-OF-FUNNEL-001', 'distribution plan id is missing');
 requireValue(plan.checkedOn === '2026-08-31', 'player-decision review date is stale');
-requireValue(plan.state === 'owned_entry_live_first_five_and_itch_page_ready_for_kevin_decisions', 'distribution plan state is stale');
+requireValue(plan.state === 'owned_entry_live_first_five_held_itch_candidate_waiting', 'distribution plan state is stale');
 requireValue(plan.playerDecisionModel?.sequence?.join('|') === 'wanted feeling|believable fit|real gameplay proof|trust|low-friction start', 'player-decision sequence is missing or out of order');
 requireValue(plan.playerDecisionModel?.supportingReasonsAfterGameIsClear?.includes('NASA-sourced STEM moments'), 'NASA/STEM must support rather than replace the playable promise');
 requireValue(plan.endOfFunnelRoute?.path?.at(-1) === 'meaningful action in the first minute', 'the funnel must end in meaningful play');
@@ -48,6 +48,7 @@ requireValue(plan.distributionRightsFork?.pokiIndicativeExclusiveTermYears === 5
 requireValue(plan.distributionRightsFork?.companyRecommendation === 'itch.io_first_for_learning_after_first_five', 'the company distribution recommendation is missing');
 requireValue(plan.distributionRightsFork?.decisionMade === false, 'distribution decision must remain open');
 requireValue(plan.firstFive?.state === firstFive.state && plan.firstFive?.peopleContacted === 0, 'First Five readiness state is stale');
+requireValue(plan.firstFive?.blockingReview === firstFive.entryGates?.blockingReviewRef && plan.firstFive?.invitationsMayBegin === false, 'First Five visual hold is missing from distribution');
 requireValue(firstFive.entryGates?.kevinApprovedPurposeAndInvitations === false && firstFive.authority?.participantContactAuthorized === false, 'First Five must remain waiting for Kevin approval');
 for (const field of ['externalPublishingAuthorized', 'paidPromotionAuthorized', 'bulkOutreachAuthorized', 'directChildContactAuthorized', 'imaginedArtMayBeCalledGameplay', 'portalAcceptanceMayBePromised', 'pokiAccessRequestAuthorized', 'webExclusivityMayBeAccepted']) {
     requireValue(plan.boundaries?.[field] === false, `boundary ${field} must remain false`);
@@ -84,7 +85,7 @@ if (failures.length) {
 console.log(JSON.stringify({
     valid: true,
     ownedSearchDoorway: 'live',
-    recommendedFirstAction: 'First Five adult playtest after Kevin approval',
+    recommendedFirstAction: 'approve creature art direction and pass the first-contact visual gate',
     recommendedFirstPublicShelf: 'itch.io after First Five and Kevin distribution approval',
     readyFallbackShelf: 'itch.io',
     itchTechnicalPackageReady: true,

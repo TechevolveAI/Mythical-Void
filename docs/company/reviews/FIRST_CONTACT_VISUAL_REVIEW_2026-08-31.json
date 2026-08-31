@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "id": "FIRST-CONTACT-VISUAL-REVIEW-2026-08-31-AD4E459",
+  "reviewedOn": "2026-08-31",
+  "state": "rejected_before_human_approval",
+  "reviewType": "company_obvious_fault_preflight",
+  "candidate": {
+    "sourceCommit": "ad4e4599316b327627ff83a5e1fb387ec0d5802d",
+    "baselineCommit": "c901002d74eb6d70f6d4b7c6ef445cc6db526bc9",
+    "evidenceManifestId": "FIRST-CONTACT-COMPLETE-SILHOUETTE-2026-08-31",
+    "privateEvidencePath": "/private/tmp/mythical-first-contact-repair/.visual-review/first-contact-repair-final",
+    "phoneEvidenceSha256": "da10196bb0b36aae5cc7d3a5ec292ec71dcfce7e1bd45ccaf63d7fa50e057424",
+    "desktopEvidenceSha256": "b16ffdeeb193f651a43354fac4e524c7adadf378e2b4366833e6bd5700a6c50c"
+  },
+  "technicalPasses": [
+    "The rectangular texture plate is absent",
+    "The full runtime creature texture is visible without an arbitrary crop",
+    "The responsive reading order is clear",
+    "No text or button overlap is visible",
+    "The main actions are readable on phone and desktop"
+  ],
+  "visualFailures": [
+    {
+      "id": "FCV-001",
+      "viewport": "phone",
+      "finding": "The creature reads as a blurry animal-like mascot with merged facial parts rather than a clear alien living form.",
+      "claimMismatch": "The image does not visually support the displayed Epic signal and Nebula Sprite classification."
+    },
+    {
+      "id": "FCV-002",
+      "viewport": "desktop",
+      "finding": "The creature reads as a small, soft, flat green mascot or bug inside a ring rather than a convincing living alien.",
+      "claimMismatch": "The image does not visually support the displayed Stellar Wyrm classification."
+    },
+    {
+      "id": "FCV-003",
+      "viewport": "both",
+      "finding": "The classification language promises more character, material and otherworldliness than the runtime image delivers.",
+      "claimMismatch": "A technically intact texture is not yet a strong first contact."
+    }
+  ],
+  "decision": {
+    "result": "reject_and_hold_first_five",
+    "preserveResponsiveLayoutWork": true,
+    "deployCandidate": false,
+    "useForFirstFive": false,
+    "useForScreenshots": false,
+    "useForMarketing": false,
+    "publishCandidate": false,
+    "adultHumanApprovalRequested": false,
+    "adultHumanApprovalPassed": false
+  },
+  "nextProof": {
+    "requiresApprovedArtDirection": true,
+    "requirements": [
+      "One deterministic identity shown at both 390 by 844 and 1280 by 720",
+      "The real creature remains immediately readable at phone size",
+      "The visible form supports its generated classification",
+      "Material, depth and connected anatomy remain coherent without pet, animal, portal or marker cues",
+      "One normal in-play frame proves the same identity survives outside the reveal",
+      "Generated universe artwork is not presented as gameplay",
+      "A person must approve the final frames before First Five invitations can begin"
+    ]
+  },
+  "authority": {
+    "newArtDirectionAuthorized": false,
+    "gameCodeChangeAuthorized": false,
+    "pushAuthorized": false,
+    "deployAuthorized": false,
+    "publicationAuthorized": false,
+    "participantContactAuthorized": false
+  }
+}

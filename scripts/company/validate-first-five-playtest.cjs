@@ -7,6 +7,7 @@ const rootFlag = process.argv.indexOf('--root');
 const root = rootFlag === -1 ? path.resolve(__dirname, '..', '..') : path.resolve(process.argv[rootFlag + 1] || '');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 const plan = JSON.parse(read('docs/company/research/first-five-playtest.json'));
+const visualReview = JSON.parse(read('docs/company/reviews/FIRST_CONTACT_VISUAL_REVIEW_2026-08-31.json'));
 const copy = read('docs/company/research/FIRST_FIVE_PLAYTEST.md');
 const invitation = read('docs/company/research/FIRST_FIVE_INVITATION_AND_SCORECARD_2026-08-31.md');
 const round = read('docs/company/research/ROUND_001_POSITIONING_AND_TRUST.md');
@@ -16,14 +17,15 @@ const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 
 requireValue(plan.id === 'FIRST-FIVE-001', 'playtest identity is missing');
-requireValue(plan.state === 'ready_for_kevin_approval', 'playtest state does not match the reviewed production gate');
+requireValue(plan.state === 'held_for_creature_first_impression', 'playtest state must remain held after the rejected first-contact proof');
 requireValue(plan.sessionMinutes === 12, 'session must remain twelve minutes');
 requireValue(plan.audience?.adultsOnly === true && plan.audience?.minimumAge === 18 && plan.audience?.targetCount === 5, 'adult-only five-person boundary is missing');
 requireValue(plan.audience?.minorParticipationPermitted === false, 'minor participation must remain off');
 requireValue(plan.deviceMix?.desktopOrLaptop === 3 && plan.deviceMix?.phone === 2, 'device mix must remain three desktop and two phone sessions');
-requireValue(plan.entryGates?.gdh009Passed === true && plan.entryGates?.adultVisualReviewPassed === true, 'reviewed first-contact product gate is missing');
-requireValue(plan.entryGates?.stableBuildRef === 'b20ec3fe835c9db202ea23d4bbc0d420da3999f8', 'stable production build proof is missing');
-requireValue(plan.entryGates?.productionDeployId === '6a950415032ea30008d9bc28', 'stable production deploy proof is missing');
+requireValue(plan.entryGates?.gdh009Passed === false, 'GDH-009 must not be marked passed after the rejected first-contact proof');
+requireValue(plan.entryGates?.stableBuildRef === null && plan.entryGates?.productionDeployId === null, 'no approved stable build or deploy may be recorded while the visual gate is held');
+requireValue(plan.entryGates?.companyVisualPreflightPassed === false && plan.entryGates?.adultHumanVisualReviewPassed === false, 'visual approval must remain false');
+requireValue(plan.entryGates?.blockingReviewRef === 'docs/company/reviews/FIRST_CONTACT_VISUAL_REVIEW_2026-08-31.json', 'blocking visual review reference is missing');
 for (const gate of ['kevinApprovedPurposeAndInvitations', 'adultInvitationCopyApproved', 'observerNamed']) {
     requireValue(plan.entryGates?.[gate] === false, `${gate} must remain false before Kevin starts the test`);
 }
@@ -37,9 +39,11 @@ for (const [index, slot] of (plan.sessionSlots || []).entries()) {
 for (const field of ['name', 'contact_details', 'exact_age', 'face', 'voice', 'screen_recording', 'creature_name', 'save_data', 'location', 'account_information']) requireValue(plan.prohibitedData?.includes(field), `prohibited data field is missing: ${field}`);
 for (const field of ['recruitmentAuthorized', 'participantContactAuthorized', 'recordingAuthorized', 'compensationAuthorized', 'minorContactAuthorized', 'externalPublicationAuthorized', 'platformSubmissionAuthorized', 'externalActionTaken']) requireValue(plan.authority?.[field] === false, `authority ${field} must remain false`);
 requireValue(plan.currentOutcome?.sessionsCompleted === 0 && plan.currentOutcome?.gateEvaluated === false && plan.currentOutcome?.gatePassed === false, 'results are falsely claimed before sessions');
+requireValue(plan.currentHold?.candidateSourceCommit === 'ad4e4599316b327627ff83a5e1fb387ec0d5802d', 'rejected candidate source is missing');
+requireValue(plan.currentHold?.candidateDeployed === false && plan.currentHold?.invitationsMayBegin === false && plan.currentHold?.promotionMayBegin === false, 'held candidate must not permit deployment, invitations or promotion');
 requireValue(plan.releaseRule?.loadSucceededMinimum === 5 && plan.releaseRule?.beganWithoutHelpMinimum === 4 && plan.releaseRule?.creatureUnmistakableMinimum === 4 && plan.releaseRule?.meaningfulActionWithinSixMinutesMinimum === 4 && plan.releaseRule?.nextActionClearMinimum === 4 && plan.releaseRule?.phoneUsableMinimum === 2 && plan.releaseRule?.wantsToContinueYesMinimum === 3, 'release thresholds drifted');
 requireValue(plan.releaseRule?.countsAreMarketPercentages === false && plan.releaseRule?.humanReviewCanFailRunDespiteCounts === true && plan.releaseRule?.failedRunMayBeDeletedOrRewritten === false, 'honest interpretation boundary is missing');
-for (const phrase of ['five adults', 'twelve-minute product check', 'testing the game, not you', 'Do not explain the game', 'The release rule', 'not audience percentages', 'The test has not started']) requireValue(copy.includes(phrase), `plain-language protocol is missing: ${phrase}`);
+for (const phrase of ['creature’s first impression is not ready', 'five adults', 'twelve-minute product check', 'testing the game, not you', 'Do not explain the game', 'The release rule', 'not audience percentages', 'The test has not started', 'invitations must not begin', 'ad4e4599316b327627ff83a5e1fb387ec0d5802d']) requireValue(copy.includes(phrase), `plain-language protocol is missing: ${phrase}`);
 for (const phrase of ['father-and-son project', 'testing the game, not you', 'Nothing is recorded', 'Do not invite children', 'A1', 'A5', 'The invitation remains unapproved']) requireValue(invitation.includes(phrase), `invitation or scorecard is missing: ${phrase}`);
 requireValue(invitation.includes('https://mythicalvoid.com/'), 'invitation session does not use the clean production entry');
 requireValue(!/\bcompanions?\b/i.test(invitation), 'outdated companion wording remains in the First Five invitation');
@@ -47,6 +51,16 @@ requireValue(!/\bcompanion\b/i.test(`${round}\n${JSON.stringify(operations)}`), 
 requireValue(round.includes('creature relationship lead') && operations.messageCards?.some(card => card.id === 'M-B' && card.name === 'Creature relationship lead'), 'creature-led research framing is incomplete');
 requireValue(packageJson.scripts?.['validate:first-five'] === 'node scripts/company/validate-first-five-playtest.cjs', 'repeatable First Five validator command is missing');
 requireValue(packageJson.scripts?.['test:first-five'] === 'node scripts/company/test-first-five-playtest.cjs', 'First Five safeguard command is missing');
+
+requireValue(visualReview.id === 'FIRST-CONTACT-VISUAL-REVIEW-2026-08-31-AD4E459', 'first-contact visual review identity is missing');
+requireValue(visualReview.state === 'rejected_before_human_approval' && visualReview.reviewType === 'company_obvious_fault_preflight', 'first-contact review state is invalid');
+requireValue(visualReview.candidate?.sourceCommit === plan.currentHold?.candidateSourceCommit, 'first-contact review source does not match the held candidate');
+requireValue(visualReview.technicalPasses?.length === 5 && visualReview.visualFailures?.length === 3, 'first-contact review evidence is incomplete');
+for (const id of ['FCV-001', 'FCV-002', 'FCV-003']) requireValue(visualReview.visualFailures?.some(item => item.id === id), `missing visual failure ${id}`);
+for (const field of ['deployCandidate', 'useForFirstFive', 'useForScreenshots', 'useForMarketing', 'publishCandidate', 'adultHumanApprovalRequested', 'adultHumanApprovalPassed']) requireValue(visualReview.decision?.[field] === false, `visual decision ${field} must remain false`);
+requireValue(visualReview.decision?.result === 'reject_and_hold_first_five' && visualReview.decision?.preserveResponsiveLayoutWork === true, 'first-contact decision is incomplete');
+requireValue(visualReview.nextProof?.requiresApprovedArtDirection === true && visualReview.nextProof?.requirements?.length === 7, 'next proof boundary is incomplete');
+for (const field of ['newArtDirectionAuthorized', 'gameCodeChangeAuthorized', 'pushAuthorized', 'deployAuthorized', 'publicationAuthorized', 'participantContactAuthorized']) requireValue(visualReview.authority?.[field] === false, `visual review authority ${field} must remain false`);
 
 const contactAuditPlan = JSON.parse(JSON.stringify(plan));
 delete contactAuditPlan.entryGates?.stableBuildRef;
