@@ -9734,6 +9734,7 @@ async function smokeLateLivingFormArrival(session, exceptions) {
                 !root ||
                 !image?.complete ||
                 image.naturalWidth < 256 ||
+                source !== 'PROTECTED LIVING PORTRAIT' ||
                 !bounds ||
                 bounds.width < 180 ||
                 bounds.height < 44
@@ -9784,12 +9785,20 @@ async function smokeLateLivingFormArrival(session, exceptions) {
 
 async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     exceptions.length = 0;
+    const firstContactProfile = getVisualReviewCreatureProfile();
     await navigate(session, `${BASE_URL}/play/${SMOKE_ENTRY_HASH}`);
     await waitForScene(session, 'HatchingScene');
     await evaluate(session, `(() => {
         localStorage.setItem('mythical_void_age_confirmed', 'true');
         localStorage.setItem('mythical_void_age_group', 'age_18_plus');
         localStorage.removeItem('mythical_creature_save');
+        const profile = ${JSON.stringify(firstContactProfile)};
+        window.GameState?.set?.('creature.genes', profile.genes);
+        window.GameState?.set?.('creature.genetics', profile.genes);
+        window.GameState?.set?.('creature.dna', profile.dna);
+        window.GameState?.set?.('creature.lifecycle.stage', 'baby');
+        window.GameState?.set?.('creature.textureName', null);
+        window.GameState?.save?.();
         return true;
     })()`);
     await navigate(
@@ -9879,10 +9888,23 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
                 );
                 const bounds = button?.getBoundingClientRect?.();
                 if (root?.dataset?.portraitState !== 'retry' || !bounds) return null;
+                const revealScene = window.mythicalGame?.scene?.getScene?.(
+                    'SoulRevealScene'
+                );
+                const localImage = root.querySelector('.living-form-image');
                 return {
                     action: button.textContent?.trim(),
                     disabled: button.disabled,
                     title: root.querySelector('.living-form-loading-title')?.textContent?.trim(),
+                    localCreatureVisible: Boolean(root.querySelector(
+                        '.living-form-image.is-pixel-reference.is-ready'
+                    )),
+                    imageClass: localImage?.className || null,
+                    imageSourceLength: localImage?.getAttribute?.('src')?.length || 0,
+                    imageNaturalWidth: localImage?.naturalWidth || 0,
+                    referenceLength: revealScene?.portraitReferenceImage?.length || 0,
+                    creatureTexture: revealScene?.creature?.texture?.key || null,
+                    creatureFrameReady: Boolean(revealScene?.creature?.frame),
                     spinnerVisible: Boolean(root.querySelector('.living-form-spinner')),
                     viewportHeight: window.visualViewport?.height || window.innerHeight,
                     actionBottom: Math.round(bounds.bottom)
@@ -9893,7 +9915,8 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         if (
             fallback.action !== 'ENTER SANCTUARY' ||
             fallback.disabled ||
-            fallback.title !== 'PORTRAIT WILL RETRY' ||
+            fallback.title !== 'FULL PORTRAIT WILL RETRY' ||
+            !fallback.localCreatureVisible ||
             fallback.spinnerVisible ||
             fallback.actionBottom > fallback.viewportHeight
         ) {
@@ -10130,6 +10153,7 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
                 !root ||
                 !image?.complete ||
                 image.naturalWidth < 256 ||
+                source !== 'PROTECTED LIVING PORTRAIT' ||
                 !bounds ||
                 bounds.width < 180 ||
                 bounds.height < 44

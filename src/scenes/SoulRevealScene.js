@@ -30,6 +30,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         this.portraitPromise = null;
         this.portraitError = null;
         this.livingFormHandoff = null;
+        this.graphicsEngine = null;
         this.previousDomContainerStyles = null;
         this.viewportResizeHandler = null;
         this.compactNamingScrim = null;
@@ -75,6 +76,7 @@ export default class SoulRevealScene extends Phaser.Scene {
 
         // Get creature data
         this.loadCreatureData();
+        this.ensureCreatureTexture();
         if (this.portraitPreviewFailure) {
             this.portraitPromise = new Promise((resolve, reject) => {
                 this.time.delayedCall(
@@ -213,6 +215,42 @@ export default class SoulRevealScene extends Phaser.Scene {
         devLog('[SoulRevealScene] Creature data loaded:', this.creatureData);
         devLog('[SoulRevealScene] Soul phrase:', this.soulPhrase.phrase);
         devLog('[SoulRevealScene] Innate ability:', this.innateAbility?.name);
+    }
+
+    /**
+     * Saved texture keys refer to Phaser's in-memory texture cache and do not
+     * survive a refresh. Rebuild the same deterministic creature from its
+     * persisted DNA/genes before first contact instead of showing an empty
+     * portrait surface.
+     */
+    ensureCreatureTexture() {
+        const currentTexture = this.creatureData?.textureName;
+        if (currentTexture && this.textures.exists(currentTexture)) {
+            return currentTexture;
+        }
+
+        if (typeof window.GraphicsEngine !== 'function') {
+            return null;
+        }
+
+        try {
+            this.graphicsEngine ||= new window.GraphicsEngine(this);
+            const rendered = this.graphicsEngine.loadCreatureFromGameState?.(0);
+            const textureName = typeof rendered === 'string'
+                ? rendered
+                : rendered?.textureName;
+            if (!textureName || !this.textures.exists(textureName)) {
+                return null;
+            }
+            this.creatureData.textureName = textureName;
+            return textureName;
+        } catch (error) {
+            console.warn(
+                '[SoulRevealScene] Creature texture recovery failed:',
+                error.message
+            );
+            return null;
+        }
     }
 
     /**
@@ -501,20 +539,23 @@ export default class SoulRevealScene extends Phaser.Scene {
     }
 
     beginLivingPortraitPrewarm() {
-        if (
-            this.portraitPromise ||
-            !this.creature
-        ) {
+        if (!this.creature) {
             return;
         }
 
+        this.portraitReferenceImage ||= (
+            window.LivingPortraitService?.captureReference?.(this.creature)
+            || null
+        );
+        // The local capture is also the guaranteed first-contact visual when
+        // remote portrait generation is unavailable. Capture it before any
+        // remote eligibility or identity checks.
+        if (this.portraitPromise) {
+            return;
+        }
         if (!this.portraitCreatureData?.genes) {
             return;
         }
-
-        this.portraitReferenceImage =
-            window.LivingPortraitService?.captureReference?.(this.creature)
-            || null;
         const job = window.LivingPortraitService?.prewarm?.({
             creatureData: this.portraitCreatureData,
             sprite: this.creature,
@@ -1499,6 +1540,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         this.compactNamingPrompt = null;
         this.livingFormHandoff?.destroy?.();
         this.livingFormHandoff = null;
+        this.graphicsEngine = null;
         this.authoredPortraitPreload = null;
         this.htmlInput = null;
         this.restoreDomContainerStyles();
