@@ -1,5 +1,6 @@
 import './storefront.css';
 import { mountAnalyticsConsent } from './analytics-consent.js';
+import { mountLivePresence } from './live-presence.js';
 
 const showcaseScenes = [
     { name: 'Shared Habitat', image: '/game/village/shared-habitat.webp', detail: 'The Fend', mission: 'Build a home' },
@@ -226,6 +227,8 @@ function renderLegalPage(type) {
                     <p>Cloud Save uses Supabase. The game may also ask trusted outside services for public space-weather or game-help information. Like most online services, they may receive basic connection information such as an internet address.</p>
                     <h2>Optional website analytics</h2>
                     <p>The public website may use Google Analytics to count visits, the general route people arrived from—such as search, a game shelf, social media, another Mythical Void page or a direct link—whether a visitor reaches a lower part of a public page, and whether website buttons lead to the game or sharing. It is off by default. If you choose “Allow analytics”, Google receives the public page, that broad arrival group, the general button area and the normal connection and device information used by web analytics. Google may also create basic visit and session events after permission is given. Mythical Void does not send Google the full page you came from, a message recipient, contact detail, creature detail, game activity, or the extra information after a question mark in a web address. It is not used in the game, and advertising features are switched off. You can choose “No thanks” instead.</p>
+                    <h2>Playing now signal</h2>
+                    <p>The small “playing now” signal on the public website is an approximate count of game tabs that have checked in during the previous 90 seconds. A game tab sends a temporary random code; the server immediately turns it into a one-way value and keeps only that value and its latest check-in time. It does not include a name, account, creature, game choices or Google Analytics data. A check-in stops counting after 90 seconds and is deleted during a later signal check. The website shows a range rather than inventing players or exposing an exact crowd.</p>
                     <h2>Children</h2>
                     <p>Children can play the solo game without an account. Cloud Save is available only to profiles that confirm they are 16 or older. Shared Guardianship also requires a verified account and is unavailable to under-16 profiles.</p>
                     <h2>Contact</h2>
@@ -286,6 +289,11 @@ function renderStorefront() {
             <section class="hero" id="hero">
                 <img class="hero-world" src="/marketing/mythical-void-creature-universe-hero-v2.webp" alt="Alien creatures reimagined from the body shapes and mutations supported by the Mythical Void genetics engine" fetchpriority="high">
                 <div class="hero-veil" aria-hidden="true"></div>
+                <div class="live-presence" data-live-presence data-state="loading" aria-live="polite">
+                    <span class="live-presence-pulse" aria-hidden="true"></span>
+                    <span data-live-presence-copy>Checking the live signal…</span>
+                    <span class="live-presence-note">Approximate active game sessions</span>
+                </div>
                 <div class="hero-inner">
                     <div class="hero-copy-block">
                         <p class="kicker"><span></span> A universe of creatures</p>
@@ -595,6 +603,7 @@ function renderStorefront() {
 
     window.MythicalReturningPlayer?.apply(app);
     bindInteractions();
+    mountLivePresence(app);
     mountAnalyticsConsent();
 }
 

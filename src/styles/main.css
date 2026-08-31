@@ -787,19 +787,30 @@ body.game-mode {
 }
 
 .living-form-image.is-pixel-reference {
-  width: min(28%, 240px);
+  width: min(48%, 360px);
   height: auto;
-  max-height: 42%;
-  padding: 14px;
+  max-height: 68%;
   object-fit: contain;
-  background: #0b1114;
-  border: 1px solid rgba(143, 227, 207, 0.32);
-  border-radius: 4px;
+  background: transparent;
+  border: 0;
+  filter:
+    drop-shadow(0 18px 16px rgba(0, 0, 0, 0.62))
+    drop-shadow(0 0 18px rgba(143, 227, 207, 0.24));
   image-rendering: pixelated;
 }
 
 .living-form-image.is-pixel-reference.is-ready {
-  opacity: 0.78;
+  opacity: 1;
+  animation: living-form-local-signal 2.8s ease-in-out infinite alternate;
+}
+
+@keyframes living-form-local-signal {
+  from {
+    transform: translate3d(0, 2px, 0) scale(0.98);
+  }
+  to {
+    transform: translate3d(0, -5px, 0) scale(1.02);
+  }
 }
 
 .living-form-image.is-generated-portrait {
@@ -824,6 +835,7 @@ body.game-mode {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .living-form-image.is-pixel-reference.is-ready,
   .living-form-image.is-generated-portrait.is-ready {
     animation: none;
     transform: none;

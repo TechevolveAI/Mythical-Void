@@ -5,9 +5,12 @@ create table if not exists public.live_game_presence (
         check (session_hash ~ '^[0-9a-f]{64}$')
 );
 alter table public.live_game_presence enable row level security;
+
 revoke all on table public.live_game_presence from public, anon, authenticated;
+
 create index if not exists live_game_presence_last_seen_idx
     on public.live_game_presence (last_seen_at);
+
 create or replace function public.touch_live_game_presence(
     p_session_hash text default null,
     p_active_seconds integer default 90
@@ -43,10 +46,12 @@ begin
     return active_count;
 end;
 $$;
+
 revoke all on function public.touch_live_game_presence(text, integer)
     from public, anon, authenticated;
 grant execute on function public.touch_live_game_presence(text, integer)
     to service_role;
+
 comment on table public.live_game_presence is
     'Short-lived, one-way anonymous game-session heartbeats used for the approximate Playing now website signal.';
 comment on function public.touch_live_game_presence(text, integer) is

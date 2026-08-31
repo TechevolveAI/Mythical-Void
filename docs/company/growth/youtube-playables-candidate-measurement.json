@@ -12,8 +12,8 @@
   },
   "package": {
     "fileCount": 86,
-    "rawBytes": 33321807,
-    "gzipEstimateBytes": 29454337,
+    "rawBytes": 33321856,
+    "gzipEstimateBytes": 29454342,
     "totalHardLimitMet": true,
     "fileCountLimitMet": true,
     "largestFile": {
@@ -62,8 +62,8 @@
   },
   "firstLoad": {
     "resourceCount": 18,
-    "rawBytes": 7186126,
-    "gzipEstimateBytes": 3952510,
+    "rawBytes": 7186175,
+    "gzipEstimateBytes": 3952515,
     "hardLimitMet": true,
     "recommendedLimitMet": true,
     "limitation": "Deterministic local reconstruction, not a YouTube Developer Portal or five-second device test."
