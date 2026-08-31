@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "id": "SEARCH-VISIBILITY-2026-08-27",
-  "checkedAt": "2026-08-30T05:47:14Z",
-  "state": "crawl_submission_accepted_visibility_unverified",
+  "checkedAt": "2026-08-31T05:35:13Z",
+  "state": "owned_identity_live_public_github_metadata_live_readme_prepared_search_console_absent",
   "sample": {
     "method": "Directional current web-search sample, not a complete index report or stable rank tracker.",
     "queryCount": 8,
@@ -18,6 +18,19 @@
     ],
     "officialSiteResultCountClaimed": false,
     "unrelatedOrUnverifiedBrandProfileObserved": true,
+    "limitations": "Results vary by engine, location, time, language, device and personalization. This sample cannot prove global non-indexing, a result count or a ranking position."
+  },
+  "latestPublicSample": {
+    "checkedAt": "2026-08-31T05:35:13Z",
+    "method": "Directional current web-search sample, not a complete index report or stable rank tracker.",
+    "queryCount": 4,
+    "queries": [
+      { "query": "site:mythicalvoid.com Mythical Void", "mythicalResultObserved": false },
+      { "query": "\"Mythical Void\" game", "mythicalResultObserved": false },
+      { "query": "free alien creature game browser", "mythicalResultObserved": false },
+      { "query": "NASA STEM game kids browser", "mythicalResultObserved": false }
+    ],
+    "officialSiteResultCountClaimed": false,
     "limitations": "Results vary by engine, location, time, language, device and personalization. This sample cannot prove global non-indexing, a result count or a ranking position."
   },
   "liveTechnicalChecks": {
@@ -44,7 +57,9 @@
   },
   "homepageIdentityMarkup": {
     "preparedAt": "2026-08-30T05:47:14Z",
-    "productionState": "prepared_not_deployed",
+    "productionState": "live",
+    "verifiedProductionCommit": "7dbd0d7e73ab693ef8dc6c86102aeb3b679ad3fe",
+    "verifiedProductionDeployId": "6a95104d638e700008a8e8f0",
     "websiteNodePresent": true,
     "preferredSiteName": "Mythical Void",
     "alternateSiteName": "mythicalvoid.com",
@@ -54,10 +69,27 @@
   },
   "searchConsoleAccessCheck": {
     "record": "docs/company/search/search-console-read-only-check-2026-08-28.json",
+    "recheckedAt": "2026-08-31T05:35:13Z",
     "signedIn": true,
     "mythicalVoidPropertyAccessible": false,
     "welcomeScreenObserved": true,
+    "finishVerificationListContainsMythicalVoid": false,
     "externalMutationPerformed": false
+  },
+  "publicGitHubDoorway": {
+    "repository": "https://github.com/TechevolveAI/Mythical-Void",
+    "repositoryPublic": true,
+    "previousDescriptionPresent": false,
+    "previousHomepagePresent": false,
+    "descriptionLive": "Free browser adventure: hatch an alien creature, cross six living realms, and shape Project Beacon. No download or account.",
+    "homepageLive": "https://mythicalvoid.com/playable-now/",
+    "topicsLive": ["browser-game", "creature-game", "indie-game", "javascript", "phaser", "science-fiction", "stem"],
+    "readmePlayLinkPrepared": true,
+    "readmeFamilyAndPressLinksPrepared": true,
+    "truthAndVisualBoundariesPrepared": true,
+    "metadataUpdatePendingReviewedMerge": false,
+    "readmeUpdatePendingReviewedMerge": true,
+    "indexingOrRankingClaimed": false
   },
   "indexNow": {
     "record": "docs/company/search/indexnow-submission-2026-08-27.json",

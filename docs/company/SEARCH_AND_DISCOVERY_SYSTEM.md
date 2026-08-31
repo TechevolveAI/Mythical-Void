@@ -1,12 +1,13 @@
 # Search and Discovery System
 
 **Status:** Owned discovery pages are live and crawlable; verified search-engine visibility is still unknown
-**Updated:** 27 August 2026
+**Updated:** 31 August 2026
 
 ## Current release
 
-On 27 August, a new directional search check still did not show Mythical Void
-for the checked brand, site-restricted or category searches. The live homepage,
+On 31 August, a further four-query directional search check still did not show
+Mythical Void for the exact name, site-restricted name, alien-creature browser
+game or NASA STEM game searches. The live homepage,
 Playable Now page, robots file and sitemap all returned successfully. Crawling
 is allowed, the sitemap is named in `robots.txt`, and canonical addresses are
 present. This means there is no obvious public technical block, but it does not
@@ -16,7 +17,16 @@ The evidence and limitations are recorded in
 [`search/SEARCH_VISIBILITY_AUDIT_2026-08-27.md`](search/SEARCH_VISIBILITY_AUDIT_2026-08-27.md).
 The next useful step is the free, Kevin-controlled
 [`Search Console activation`](search/SEARCH_CONSOLE_ACTIVATION.md), not another
-set of near-duplicate landing pages. No authenticated submission has happened.
+set of near-duplicate landing pages. A signed-in read-only check found no
+Mythical Void property, and no account change or authenticated submission was
+made.
+
+The homepage's site, studio and game identity is live. The public GitHub
+project now has a clear game description, a direct Play homepage and accurate
+topics. Its reviewed README change prepares the plain game promise and direct
+Play, family and press links instead of opening only with developer language.
+This is one credible owned reference, not a backlink campaign or a claim that
+search engines will rank the game.
 
 On 26 August, a fresh directional public-search sample still did not show a
 Mythical Void result for the checked name or category queries. Visible game

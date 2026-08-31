@@ -1,6 +1,6 @@
 # What we actually know about growth
 
-**Checked:** 27 August 2026  
+**Checked:** 31 August 2026
 **Rule:** a working test is not a player, a page view is not enjoyment, and an
 impression is not a recommendation.
 
@@ -8,7 +8,7 @@ impression is not a recommendation.
 
 | Part of the journey | What is proven | What is still unknown |
 | --- | --- | --- |
-| Find Mythical Void | The public pages, sitemap and search information are live. IndexNow accepted notices for the changed pages. | A small four-search check found no Mythical Void result. Google indexing, search impressions and useful discovery are not proven. |
+| Find Mythical Void | The public pages, sitemap, site identity and search information are live. IndexNow accepted notices for the changed pages. A truthful Play-first doorway is prepared for the public GitHub project. | The latest four-search check again found no official Mythical Void result. A signed-in read-only check found no Mythical Void Search Console property. Google indexing, impressions and useful discovery are not proven. |
 | Understand the game | The website explains the creature, six realms, story, free browser access, early-access state and family boundaries. | No unfamiliar adult or guardian has completed the comprehension check. |
 | Start playing | An isolated production check reached the age choice, one Start action and the egg on desktop and phone. A real click or tap began hatching. | We do not yet know whether an unfamiliar person can do this without help. |
 | Reach the first payoff | Hatching can be started reliably. | A completed hatch, recognisable creature reveal and first bond have not passed a fresh human play check. |
@@ -21,6 +21,10 @@ impression is not a recommendation.
 Mythical does not need another near-duplicate “free game” page. It needs the
 game to make a brilliant first impression, followed by a small amount of real
 adult evidence.
+
+The public GitHub project was an avoidable gap: it had no description, no
+website address and no immediate route to Play. Correcting that owned doorway
+is useful, but it cannot replace Search Console or a real game shelf.
 
 The current order is:
 

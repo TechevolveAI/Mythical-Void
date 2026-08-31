@@ -17,6 +17,7 @@ const consent = read('src/site/analytics-consent.js');
 const indexNow = read('scripts/company/submit-indexnow.cjs');
 const packageJson = JSON.parse(read('package.json'));
 const sitemap = read('public/sitemap.xml');
+const readme = read('README.md');
 const correctId = 'G-FTM4W73ECQ';
 const incorrectId = 'G-FTM4W73EQC';
 const eventNames = ['play_selected', 'share_completed', 'share_link_copied'];
@@ -102,6 +103,18 @@ if (!indexNow.includes("const submit = process.argv.includes('--submit')")) fail
 if (!indexNow.includes("mode: 'dry_run'")) failures.push('IndexNow dry run is missing');
 if (packageJson.scripts?.['submit:indexnow'] !== 'node scripts/company/submit-indexnow.cjs') failures.push('package.json: IndexNow command is missing');
 
+for (const required of [
+    '[Play Mythical Void](https://mythicalvoid.com/playable-now/)',
+    '[Start the game](https://mythicalvoid.com/play/)',
+    '[Family guide](https://mythicalvoid.com/parents/)',
+    'No download, account, payment details, game adverts or public chat are needed.',
+    'Generated universe artwork is never presented as gameplay.'
+]) {
+    if (!readme.includes(required)) failures.push(`public GitHub doorway is missing: ${required}`);
+}
+if (!readme.includes('father-and-son experiment') || !readme.includes('nine-year-old son')) failures.push('public GitHub doorway is missing the founding story');
+if (!readme.includes('NASA does not make or endorse the game')) failures.push('public GitHub doorway is missing the NASA boundary');
+
 const sitemapUrls = [...sitemap.matchAll(/<loc>https:\/\/mythicalvoid\.com\/[^<]*<\/loc>/g)];
 if (sitemapUrls.length !== 16) failures.push(`sitemap should contain 16 public routes, found ${sitemapUrls.length}`);
 
@@ -122,5 +135,6 @@ console.log(JSON.stringify({
     sitemapUrlCount: sitemapUrls.length,
     officialSiteName: website?.name || null,
     directPlayAction: videoGame?.potentialAction?.target?.urlTemplate || null,
+    githubDoorwayReady: true,
     gameplayScreenshotPublished: Boolean(videoGame && 'screenshot' in videoGame)
 }, null, 2));

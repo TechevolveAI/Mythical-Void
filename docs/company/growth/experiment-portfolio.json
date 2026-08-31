@@ -13,7 +13,7 @@
     "externalRule": "No recruitment, deployment, collection, targeting, publication, outreach, account change, or spend is authorized by this portfolio."
   },
   "evidenceSnapshot": {
-    "asOf": "2026-08-27",
+    "asOf": "2026-08-31",
     "sourceRefs": [
       "docs/company/search/search-visibility-audit-2026-08-27.json",
       "docs/company/growth/LIVE_DISCOVERY_TO_PLAY_AUDIT_2026-08-27.json",
@@ -27,7 +27,7 @@
     "approvedGameplayMoments": 0,
     "requiredGameplayMoments": 4,
     "sampledSearchResultsObserved": 0,
-    "singleNextDecision": "Keep improving the returning-player presentation while Kevin connects Google Search Console and later approves the adult First Five test. Do not increase outside traffic until the four authentic gameplay moments pass human review.",
+    "singleNextDecision": "Release the truthful public GitHub Play doorway, then Kevin connects Google Search Console and later approves the adult First Five test. Do not increase outside traffic until the four authentic gameplay moments pass human review.",
     "unknownsThatRemainUnknown": [
       "how many eligible people can currently discover Mythical Void",
       "whether unfamiliar adults understand the promise without help",
@@ -41,7 +41,7 @@
       "id": "discover",
       "outcome": "An eligible person can find an accurate explanation of Mythical Void.",
       "evidenceState": "owned_pages_live_search_visibility_unproven",
-      "currentEvidence": ["Canonical public pages and crawl files are live.", "IndexNow accepted the changed-page notices, but a four-query sample found no Mythical Void result and Search Console is not connected."],
+      "currentEvidence": ["Canonical public pages, crawl files and linked site, studio and game identity are live.", "IndexNow accepted the changed-page notices, but the latest four-query sample found no official Mythical Void result and a signed-in read-only check found no Mythical Void Search Console property.", "A truthful Play-first doorway is prepared for the public GitHub project, which previously had no description or homepage."],
       "notYetProven": "Search indexing, impressions, rank and qualified discovery remain unknown.",
       "candidateSignals": ["public discovery checks", "moderated source recall"],
       "prohibitedShortcuts": ["behavioral targeting toward children", "bought audience lists", "unqualified reach as success"]

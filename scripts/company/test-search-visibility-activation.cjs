@@ -70,9 +70,12 @@ invalidAudit('invented ranking', audit => { audit.verifiedEvidence.rankingPositi
 invalidAudit('premature sitemap authority', audit => { audit.authority.sitemapSubmissionAuthorized = true; }, 'sitemapSubmissionAuthorized');
 invalidAudit('paid search', audit => { audit.authority.paidSearchAuthorized = true; }, 'paidSearchAuthorized');
 invalidAudit('fabricated result', audit => { audit.sample.queries[0].mythicalResultObserved = true; }, 'sample result');
+invalidAudit('fabricated latest result', audit => { audit.latestPublicSample.queries[0].mythicalResultObserved = true; }, 'latest public sample result');
 invalidAudit('invented indexing', audit => { audit.indexNow.indexingClaimed = true; }, 'cannot be described as indexing');
 invalidAudit('invented result count', audit => { audit.sample.officialSiteResultCountClaimed = true; }, 'must not invent a result count');
-invalidAudit('premature identity deployment', audit => { audit.homepageIdentityMarkup.productionState = 'live'; }, 'must not be described as live');
+invalidAudit('stale identity state', audit => { audit.homepageIdentityMarkup.productionState = 'prepared_not_deployed'; }, 'live state is stale');
+invalidAudit('invented Search Console property', audit => { audit.searchConsoleAccessCheck.mythicalVoidPropertyAccessible = true; }, 'Search Console absence check');
+invalidAudit('stale GitHub metadata record', audit => { audit.publicGitHubDoorway.metadataUpdatePendingReviewedMerge = true; }, 'authority boundary');
 
 const robotsRoot = fixture(fixtureRoot => {
     fs.writeFileSync(path.join(fixtureRoot, 'public/robots.txt'), 'User-agent: *\nDisallow: /\n');
@@ -153,5 +156,5 @@ try {
     fs.rmSync(companionRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 15);
-console.log('Search visibility activation safeguards passed (15 cases).');
+assert.strictEqual(cases, 18);
+console.log('Search visibility activation safeguards passed (18 cases).');
