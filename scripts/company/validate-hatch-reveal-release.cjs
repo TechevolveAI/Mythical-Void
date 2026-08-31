@@ -80,7 +80,12 @@ const publicWords = `${playable}\n${storefront}\n${JSON.stringify(signalEntry ||
 requireValue(!/\bcompanions?\b/i.test(publicWords), 'retired companion wording is present');
 requireValue(!/no two creatures|every creature is unique|infinite unique/i.test(publicWords), 'an unsupported creature-uniqueness promise is present');
 requireValue(!/NASA (?:made|makes|endorses|partners with) Mythical Void/i.test(publicWords), 'a NASA relationship is implied');
-requireValue(scene.includes('const targetScale = width < 600 ? Math.min(2.3, width / 160) : 2.6'), 'large creature presentation rule is missing');
+const centralizedScaleRule = 'creatureScale: isCompact ? Math.min(3.05, width / 125) : 3.15';
+const centralizedScaleConsumers = scene.match(/const targetScale = layout\.creatureScale/g) || [];
+requireValue(
+    scene.includes(centralizedScaleRule) && centralizedScaleConsumers.length === 3,
+    'large creature presentation rule is missing'
+);
 requireValue(scene.includes("const keepLabel = canReroll ? 'CONFIRM CONTACT' : 'MEET THIS CREATURE'"), 'single clear hatch action is missing');
 for (const check of ['eggInstructionVisible', 'tapPromptVisible', 'controlPanelVisible', 'scanEstimateVisible', 'classificationOverlapsDetail', 'minimumCreatureWidth']) {
     requireValue(smoke.includes(check), `automated hatch check ${check} is missing`);
