@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "candidateId": "ITCH-COVER-001",
+  "state": "adult_reviewed_waiting_for_kevin_approval",
+  "createdFrom": {
+    "method": "HTML and CSS composition using an existing approved Mythical Void emblem",
+    "emblemPath": "public/marketing/mythical-void-emblem-v3.png",
+    "emblemSha256": "727245608b576923688b91fe200a88444eb68d1eb089ce63f70b418306c41cb8",
+    "generatedGameplayUsed": false,
+    "gameplayScreenshotClaimed": false
+  },
+  "outputs": [
+    {
+      "path": "docs/company/content/review/itch-cover/mythical-void-itch-cover-630x500.png",
+      "width": 630,
+      "height": 500,
+      "sha256": "a3ec5f661f20eac1d89399fa4a0e9d81b079d41939f4702d25f46cb3cc94e987"
+    },
+    {
+      "path": "docs/company/content/review/itch-cover/mythical-void-itch-cover-315x250.png",
+      "width": 315,
+      "height": 250,
+      "sha256": "306fe4b393691801b19afaba3b501f862491f137464b1272357dff344fac0863"
+    }
+  ],
+  "review": {
+    "adultVisualReviewPassed": true,
+    "thumbnailLegible": true,
+    "explicitNotGameplayLabelVisible": true,
+    "kevinApproved": false
+  },
+  "authority": {
+    "uploaded": false,
+    "published": false,
+    "externalPublicationAuthorized": false
+  }
+}

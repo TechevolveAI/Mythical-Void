@@ -1,6 +1,6 @@
 # Mythical Void — itch.io release candidate
 
-Status: technically packaged; publication and visuals still waiting
+Status: technically packaged; an honest no-screenshot page is ready for Kevin’s review
 
 ## What now exists
 
@@ -14,9 +14,9 @@ The package is automatically stopped if it exceeds itch.io’s current limits of
 
 ## Listing copy
 
-This section is the ready-to-paste page draft. It is complete enough to review,
-but it must not be pasted into a public platform until the visual and
-distribution decisions below are complete.
+This section is the ready-to-paste page draft. It must not be pasted into a
+public platform until Kevin approves the distribution route, cover, account
+action and platform terms.
 
 **Title:** Mythical Void
 
@@ -65,46 +65,70 @@ This first portal package focuses on the main creature adventure. Optional hoste
 
 The father-and-son beginning and careful use of AI belong on the project page, but the first screen must sell the playable game.
 
-## Still closed
+## What is ready and what is still closed
 
-- Cover image: blocked until it closely resembles the actual game.
-- Gameplay images: 0 of 4 approved.
+- Cover image: one 630 × 500 brand cover has passed adult visual review and is
+  waiting for Kevin’s exact approval. It uses the approved purple-and-gold
+  emblem and says “BRAND COVER · NOT GAMEPLAY”.
+- Gameplay images: 0 of 4 recommended images approved. None will be attached
+  to the first page.
 - Trailer: blocked until every frame passes human review.
 - Public itch.io page: not created or published.
 - Platform terms: not accepted on Kevin’s behalf.
 
-## The four image slots
+## The four future image slots
 
-The page already knows what its four gameplay images must prove. None has a
-file attached yet:
+itch.io recommends three to five screenshots, but its current indexing baseline
+requires a public page, a cover and a purchasable, downloadable or browser-
+playable project; screenshots are not listed as a baseline requirement. Its
+quality guide says screenshots are recommended “if applicable”. Because our
+existing screenshots failed human review, the honest first page will use none.
+Good images can be added later without relaunching the game.
+
+The future image plan remains:
 
 1. The creature visibly helps during one clear obstacle.
 2. A plain choice creates a visible change in the world.
 3. The player and creature discover something memorable in an alien realm.
 4. A continuous stretch of play keeps the creature visible and the action readable.
 
-The cover is a separate 630 × 500 image. It must resemble the actual game and
-cannot be replaced by the imagined creature-universe illustration. A file path
-cannot be added to any of these slots until the same moment is approved in the
+The cover is a separate 630 × 500 brand image, not a gameplay claim. A file
+path cannot be added to a gameplay slot until that moment is approved in the
 human visual register at both desktop and phone size.
 
 ## Final page check
 
-Before the page can be created, all of these must be true:
+Before the page can be created or published, all of these must be true:
 
 - the distribution choice D-018 is made;
 - Kevin provides or approves the itch.io account;
-- the cover and all four gameplay moments pass human review;
+- Kevin approves the reviewed cover;
 - the direct-play ZIP is rebuilt and checked from the approved commit;
 - the live platform choices still match the draft tags and settings;
 - Kevin approves the complete preview and the platform terms.
+
+Four screenshots are still the quality target, but they are no longer a false
+requirement for creating the first honest listing.
 
 Until then, the listing is ready for review—not ready for publication.
 
 ## The eventual approval question
 
-When the four gameplay moments pass review:
+When Kevin chooses the itch.io-first route:
 
 > Kevin, shall I use an itch.io account you control to upload this tested package and publish the prepared free game page?
 
 That approval will apply only to itch.io. It will not permit advertising, direct messages, bulk outreach or publication on another platform.
+
+## Official platform evidence checked 31 August 2026
+
+- `https://itch.io/docs/creators/html5` — HTML5 projects use a ZIP with a
+  top-level `index.html`, relative paths and the stated file/size limits.
+- `https://itch.io/docs/creators/getting-started` — a 630 × 500 cover is the
+  recommended larger version of the required 315:250 aspect ratio; three to
+  five screenshots are recommended.
+- `https://itch.io/docs/creators/getting-indexed` — baseline indexing requires
+  Public visibility, a cover, and a playable/downloadable/purchasable project.
+- `https://itch.io/docs/creators/quality-guidelines` — screenshots are
+  recommended where applicable and all page content must accurately represent
+  the project.
