@@ -37,8 +37,12 @@ requireValue(live.githubEarlyAccessRelease?.state === release.state && live.gith
 requireValue(live.githubEarlyAccessRelease?.gameplayMediaAttached === false && live.githubEarlyAccessRelease?.downloadableBuildAttached === false, 'weak release media or download is falsely recorded');
 
 requireValue(analytics.productionEvidence?.homepageTagScriptObserved === true && analytics.productionEvidence?.gameRuntimeTagScriptObserved === false, 'analytics deployment boundary does not match evidence');
-requireValue(analytics.productionEvidence?.googlePropertyEventsVerified === false && analytics.productionEvidence?.measurementTrustedForDecisions === false, 'unverified analytics must remain untrusted');
-requireValue(live.websiteAnalytics?.gameExcluded === true && live.websiteAnalytics?.googlePropertyVerified === false && live.websiteAnalytics?.measurementTrustedForDecisions === false, 'founder analytics boundary is invalid');
+requireValue(analytics.productionEvidence?.googlePropertyEventsVerified === true && analytics.productionEvidence?.measurementTrustedForDecisions === false, 'property receipt must be recorded without trusting analytics outcomes');
+requireValue(analytics.propertySideEvidence?.streamName === 'Mythical Void' && analytics.propertySideEvidence?.measurementId === 'G-FTM4W73ECQ' && analytics.propertySideEvidence?.dataCollectionActiveInPast48Hours === true, 'signed-in Mythical Void property evidence is missing');
+requireValue(analytics.propertySideEvidence?.enhancedMeasurementEnabled === true && analytics.propertySideEvidence?.propertySettingsChangeMade === false, 'observed analytics privacy gap or no-change boundary is missing');
+requireValue(live.websiteAnalytics?.gameExcluded === true && live.websiteAnalytics?.googlePropertyVerified === true && live.websiteAnalytics?.measurementIdMatched === true && live.websiteAnalytics?.dataFlowing === true && live.websiteAnalytics?.enhancedMeasurementEnabled === true && live.websiteAnalytics?.freshConsentJourneyVerified === false && live.websiteAnalytics?.measurementTrustedForDecisions === false, 'founder analytics boundary is invalid');
+requireValue(control.helpfulNotBlocking?.analyticsPrivacyReview?.enhancedMeasurementReviewRequired === true && control.helpfulNotBlocking?.analyticsPrivacyReview?.eventDataRetention === '2 months' && control.helpfulNotBlocking?.analyticsPrivacyReview?.userDataRetention === '14 months', 'analytics privacy review is incomplete');
+requireValue(control.helpfulNotBlocking?.analyticsPrivacyReview?.settingsChangeAuthorized === false && control.helpfulNotBlocking?.analyticsPrivacyReview?.settingsChangeMade === false, 'analytics settings must not change without approval');
 
 requireValue(firstFive.state === 'held_for_creature_first_impression', 'First Five source is no longer held');
 requireValue(firstFive.currentOutcome?.sessionsCompleted === 0 && firstFive.currentHold?.invitationsMayBegin === false && firstFive.currentHold?.promotionMayBegin === false, 'First Five activity is falsely claimed or authorized');
@@ -81,6 +85,7 @@ for (const phrase of [
     'Choose the visual anchor for a creature people can love and recognise.',
     'A person—not an automated check—must approve it.',
     'NASA does not make or endorse Mythical Void.',
+    'No setting has been changed.',
     'Kevin controls public posts'
 ]) requireValue(normalizedPage.includes(phrase), `plain-language founder page is missing: ${phrase}`);
 requireValue(!/\bcompanions?\b/i.test(page), 'outdated companion wording appears on the founder page');

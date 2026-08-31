@@ -50,7 +50,12 @@ try {
     assert.strictEqual(baseline.output.homepageTagScriptObserved, true);
     assert.strictEqual(baseline.output.gameRuntimeTagScriptObserved, false);
     assert.strictEqual(baseline.output.freshBrowserConsentJourneyVerified, false);
-    assert.strictEqual(baseline.output.googlePropertyEventsVerified, false);
+    assert.strictEqual(baseline.output.googlePropertyEventsVerified, true);
+    assert.strictEqual(baseline.output.propertyStreamName, 'Mythical Void');
+    assert.strictEqual(baseline.output.propertyMeasurementIdMatched, true);
+    assert.strictEqual(baseline.output.propertyDataFlowing, true);
+    assert.strictEqual(baseline.output.enhancedMeasurementEnabled, true);
+    assert.strictEqual(baseline.output.propertySettingsChanged, false);
     assert.strictEqual(baseline.output.measurementTrustedForDecisions, false);
     assert.strictEqual(baseline.output.externalActionAuthorized, false);
     assert.strictEqual(baseline.output.activationGateCount, 12);
@@ -74,6 +79,9 @@ try {
     invalid(value => { value.productionEvidence.homepageTagScriptObserved = false; }, 'live homepage tag observation');
     invalid(value => { value.productionEvidence.gameRuntimeTagScriptObserved = true; }, 'live game runtime');
     invalid(value => { value.productionEvidence.measurementTrustedForDecisions = true; }, 'measurementTrustedForDecisions');
+    invalid(value => { value.propertySideEvidence.measurementId = 'G-WRONG'; }, 'property stream or measurement id');
+    invalid(value => { value.propertySideEvidence.observedEventNames.pop(); }, 'observedEventNames');
+    invalid(value => { value.propertySideEvidence.propertySettingsChangeMade = true; }, 'propertySettingsChangeMade');
     invalid(value => { value.externalActionAuthorized = true; }, 'externalActionAuthorized');
     invalid(value => { value.authority.productionDeploymentAuthorizedByKevin = false; }, 'productionDeploymentAuthorizedByKevin');
     invalid(value => { value.nextDecision = 'Deploy.'; }, 'nextDecision is incomplete');
@@ -84,8 +92,8 @@ try {
     invalid(value => { value.purpose = 'Tag.'; }, 'purpose is incomplete');
     invalid(value => { value.tag.pageViewBeforeChoice = true; }, 'pageViewBeforeChoice');
 
-    assert.strictEqual(caseCount, 28);
-    console.log('A-058 website analytics tag evaluations passed (28 cases).');
+    assert.strictEqual(caseCount, 31);
+    console.log('A-058 website analytics tag evaluations passed (31 cases).');
 } finally {
     fs.rmSync(temporaryDirectory, { recursive: true, force: true });
 }

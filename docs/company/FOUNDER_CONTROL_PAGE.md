@@ -19,8 +19,11 @@ detailed evidence; it turns that evidence into the decisions that matter now.
 - **Adult feedback is available:** adults can send feedback through the owned
   website. No child contact or automatic public reply is allowed.
 - **The Google tag is live on the website only:** it stays out of the game and
-  waits for optional permission. Its Google-side results have not been checked,
-  so its numbers are not trusted for decisions.
+  waits for optional permission. The signed-in Google property is the Mythical
+  Void stream, the tag ID matches and Google says data is flowing. Google is
+  also automatically recording extra interactions such as scrolling, and the
+  fresh consent journey has not been checked, so its numbers are not yet trusted
+  for decisions.
 
 ## What is deliberately stopped
 
@@ -78,6 +81,10 @@ Connecting Mythical Void to Google Search Console is free and can use Kevin's
 existing Google account. It will help us see whether the site appears in search,
 but it should not distract from fixing the creature's first impression.
 
+The Google Analytics property also needs one short privacy decision: approve a
+minimal setting that removes optional automatic interactions and confirm whether
+fourteen months is acceptable for user data. No setting has been changed.
+
 ## Rules that stay fixed
 
 - Use **creatures** in public language.
@@ -90,4 +97,3 @@ but it should not distract from fixing the creature's first impression.
   Void.
 - Kevin controls public posts, direct contact, spending, accounts, outside
   platform terms and important safety decisions.
-

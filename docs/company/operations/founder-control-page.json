@@ -28,9 +28,13 @@
       "childContactAllowed": false
     },
     "websiteAnalytics": {
-      "state": "consent_gated_website_tag_live",
+      "state": "property_identity_and_data_flow_verified_governance_review_pending",
       "gameExcluded": true,
-      "googlePropertyVerified": false,
+      "googlePropertyVerified": true,
+      "measurementIdMatched": true,
+      "dataFlowing": true,
+      "enhancedMeasurementEnabled": true,
+      "freshConsentJourneyVerified": false,
       "measurementTrustedForDecisions": false
     }
   },
@@ -88,6 +92,13 @@
       "cost": "free",
       "existingGoogleAccountMayBeUsed": true,
       "authorized": false
+    },
+    "analyticsPrivacyReview": {
+      "enhancedMeasurementReviewRequired": true,
+      "eventDataRetention": "2 months",
+      "userDataRetention": "14 months",
+      "settingsChangeAuthorized": false,
+      "settingsChangeMade": false
     }
   },
   "languageAndSafety": {
