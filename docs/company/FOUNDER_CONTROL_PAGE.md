@@ -60,6 +60,9 @@ Kevin can unlock this in either of two ways:
 2. Approve a professional concept-artist brief as the next direction. Any paid
    work would still need separate approval before money is spent.
 
+The prepared brief is [here](product/CREATURE_CONCEPT_ARTIST_BRIEF.md). Approving
+the brief authorizes a direction, not artist contact, a contract or spending.
+
 The next proof must show one real creature identity on phone, desktop and in
 normal play. It must look alive, alien and appealing without reading as a pet,
 ordinary animal, portal, marker or object. A person—not an automated check—must

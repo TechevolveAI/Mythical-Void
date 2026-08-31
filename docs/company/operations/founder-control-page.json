@@ -77,7 +77,8 @@
       "waysToUnlock": [
         "Provide one to three visual references for the feeling, material and personality.",
         "Approve a professional concept-artist brief as the direction; any paid work still requires separate spend approval."
-      ]
+      ],
+      "preparedDecisionArtifact": "docs/company/product/CREATURE_CONCEPT_ARTIST_BRIEF.md"
     }
   ],
   "unlockSequence": [
