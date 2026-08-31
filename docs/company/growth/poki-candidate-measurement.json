@@ -8,16 +8,16 @@
   },
   "package": {
     "fileCount": 86,
-    "rawBytes": 33317542,
-    "gzipEstimateBytes": 29452846,
+    "rawBytes": 33317591,
+    "gzipEstimateBytes": 29452855,
     "advisoryTargetBytes": 8388608,
     "advisoryTargetMet": false,
-    "contentDigestSha256": "abf8a41e9f73b454866427664669bd961863a25156d8560fd837996d2d98c636"
+    "contentDigestSha256": "c9425ab63e34f5fd7052696f9a1cc98f8ec15f43ac6428cc1ed75a7f23f41a1e"
   },
   "firstLoad": {
     "resourceCount": 18,
-    "rawBytes": 7181233,
-    "gzipEstimateBytes": 3950937,
+    "rawBytes": 7181282,
+    "gzipEstimateBytes": 3950947,
     "advisoryTargetBytes": 5242880,
     "advisoryTargetMet": true,
     "resources": [
@@ -99,12 +99,12 @@
       {
         "path": "index.html",
         "rawBytes": 9111,
-        "gzipEstimateBytes": 2671
+        "gzipEstimateBytes": 2672
       },
       {
-        "path": "assets/index-CnfGcBWv.js",
-        "rawBytes": 2117,
-        "gzipEstimateBytes": 1103
+        "path": "assets/index-DZpsFM-t.js",
+        "rawBytes": 2166,
+        "gzipEstimateBytes": 1112
       },
       {
         "path": "marketing/mythical-void-mark-32.png",
@@ -116,8 +116,8 @@
   "categories": {
     "code_and_css": {
       "fileCount": 22,
-      "rawBytes": 4935463,
-      "gzipEstimateBytes": 1279012
+      "rawBytes": 4935512,
+      "gzipEstimateBytes": 1279021
     },
     "audio": {
       "fileCount": 2,

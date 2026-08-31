@@ -39,6 +39,13 @@
   force = true
 
 [[redirects]]
+  # Privacy-safe, approximate count of game tabs active in the last 90 seconds.
+  from = "/api/live-presence"
+  to = "/.netlify/functions/live-presence"
+  status = 200
+  force = true
+
+[[redirects]]
   # Handle API routes (when implemented)
   from = "/api/*"
   to = "/.netlify/functions/:splat"
