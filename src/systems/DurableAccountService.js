@@ -215,6 +215,23 @@ export class DurableAccountService {
         return { requested: true };
     }
 
+    clearSharedCreatureCache() {
+        const gameState = this.cloudSave?.gameState ||
+            (typeof window !== 'undefined' ? window.GameState : null);
+        gameState?.set?.('sharedGuardianship.projections', []);
+        gameState?.set?.('sharedGuardianship.lastSyncedAt', 0);
+    }
+
+    async signOut() {
+        if (!this.isConfigured()) return { signedOut: true };
+        const { error } = await this.client.auth.signOut({ scope: 'local' });
+        if (error) throw this.normalizeError(error, 'This device could not sign out.');
+        this.clearSharedCreatureCache();
+        this.cloudSave?.disable?.();
+        if (this.cloudSave) this.cloudSave.currentUser = null;
+        return { signedOut: true };
+    }
+
     static installRecoveryFlow(options = {}) {
         if (typeof window === 'undefined' || typeof document === 'undefined') return;
         const url = new URL(window.location.href);

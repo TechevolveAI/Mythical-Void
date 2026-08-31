@@ -139,6 +139,28 @@
   gap: 9px;
 }
 
+.shared-guardianship-empty,
+.shared-guardianship-access {
+  margin: 0;
+  padding: 14px;
+  border: 1px solid rgba(143, 227, 207, 0.24);
+  border-radius: 6px;
+  color: #d4dfdc;
+  background: #0b1a20;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.shared-guardianship-access {
+  display: grid;
+  gap: 10px;
+}
+
+.shared-guardianship-access h3,
+.shared-guardianship-access p {
+  margin: 0;
+}
+
 .shared-guardianship-care-grid,
 .shared-guardianship-care-summary {
   display: grid;
@@ -269,6 +291,15 @@
 
 .shared-guardianship-secondary { color: #e9eeee; background: #10262a; }
 .shared-guardianship-primary:disabled { opacity: 0.42; cursor: default; }
+
+.shared-guardianship-modal button:focus-visible,
+.shared-guardianship-modal input:focus-visible,
+.shared-guardianship-modal a:focus-visible,
+.durable-account-recovery button:focus-visible,
+.durable-account-recovery input:focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 2px;
+}
 
 .shared-guardianship-consent {
   display: grid;

@@ -168,9 +168,14 @@ async function run() {
             );
         }
 
+        const createKey = `invite_${randomUUID().replace(/-/g, '')}`;
         const created = await clients[0].rpc(
             'create_shared_guardianship_invitation',
-            { p_parent_id: parentIds[0], p_expected_revision: 1 }
+            {
+                p_parent_id: parentIds[0],
+                p_expected_revision: 1,
+                p_idempotency_key: createKey
+            }
         );
         assert(
             !created.error &&
@@ -179,6 +184,21 @@ async function run() {
             `Invitation creation failed: ${created.error?.message}`
         );
         invitationId = created.data.invitationId;
+        const createReplay = await clients[0].rpc(
+            'create_shared_guardianship_invitation',
+            {
+                p_parent_id: parentIds[0],
+                p_expected_revision: 1,
+                p_idempotency_key: createKey
+            }
+        );
+        assert(
+            !createReplay.error &&
+                createReplay.data?.invitationId === invitationId &&
+                createReplay.data?.code === created.data.code &&
+                createReplay.data?.replay === true,
+            `Invitation retry did not return the original private code: ${createReplay.error?.message}`
+        );
 
         const directRead = await clients[0]
             .from('shared_guardianship_invitations')
@@ -201,6 +221,20 @@ async function run() {
                 !JSON.stringify(joined.data).includes('Smoke Host') &&
                 !JSON.stringify(joined.data).includes(parentIds[0]),
             `Invitation join or privacy projection failed: ${joined.error?.message}`
+        );
+        const joinReplay = await clients[1].rpc(
+            'join_shared_guardianship_invitation',
+            {
+                p_code: created.data.code,
+                p_parent_id: parentIds[1],
+                p_expected_revision: 1
+            }
+        );
+        assert(
+            !joinReplay.error &&
+                joinReplay.data?.invitationId === invitationId &&
+                joinReplay.data?.replay === true,
+            `Invitation join retry was not idempotent: ${joinReplay.error?.message}`
         );
 
         const hostConfirmed = await clients[0].rpc(
@@ -289,6 +323,35 @@ async function run() {
             'A nonparticipant could read the shared creature.'
         );
 
+        for (let attempt = 0; attempt < 8; attempt += 1) {
+            const guessed = await clients[2].rpc(
+                'join_shared_guardianship_invitation',
+                {
+                    p_code: randomBytes(6).toString('hex').toUpperCase(),
+                    p_parent_id: 'missing-parent',
+                    p_expected_revision: 1
+                }
+            );
+            assert(
+                !guessed.error &&
+                    guessed.data?.errorCode === 'shared_guardianship_invitation_unavailable',
+                `Private-code attempt ${attempt + 1} did not fail safely.`
+            );
+        }
+        const rateLimited = await clients[2].rpc(
+            'join_shared_guardianship_invitation',
+            {
+                p_code: randomBytes(6).toString('hex').toUpperCase(),
+                p_parent_id: 'missing-parent',
+                p_expected_revision: 1
+            }
+        );
+        assert(
+            !rateLimited.error &&
+                rateLimited.data?.errorCode === 'shared_guardianship_join_rate_limited',
+            'Private-code guessing attempts were not durably rate limited.'
+        );
+
         const careKey = `care_tend_${randomUUID().replace(/-/g, '')}`;
         const hostCare = await clients[0].rpc('perform_shared_guardianship_care', {
             p_creature_id: sharedCreatureId,
@@ -311,33 +374,41 @@ async function run() {
             `Idempotent care failed: ${hostCare.error?.message || hostReplay.error?.message}`
         );
 
-        const staleGuestCare = await clients[1].rpc(
-            'perform_shared_guardianship_care',
-            {
+        const concurrentCareKeys = [
+            `care_play_${randomUUID().replace(/-/g, '')}`,
+            `care_rest_${randomUUID().replace(/-/g, '')}`
+        ];
+        const concurrentCare = await Promise.all([
+            clients[0].rpc('perform_shared_guardianship_care', {
                 p_creature_id: sharedCreatureId,
                 p_action: 'play',
-                p_idempotency_key: `care_play_${randomUUID().replace(/-/g, '')}`,
-                p_expected_revision: 1
-            }
-        );
+                p_idempotency_key: concurrentCareKeys[0],
+                p_expected_revision: 2
+            }),
+            clients[1].rpc('perform_shared_guardianship_care', {
+                p_creature_id: sharedCreatureId,
+                p_action: 'rest',
+                p_idempotency_key: concurrentCareKeys[1],
+                p_expected_revision: 2
+            })
+        ]);
         assert(
-            Boolean(staleGuestCare.error) &&
-                staleGuestCare.error.message.includes('shared_guardianship_revision_conflict'),
-            'A stale write was not rejected.'
+            concurrentCare.every(result => !result.error) &&
+                concurrentCare.some(result => result.data?.rebased === true) &&
+                Math.max(...concurrentCare.map(result => result.data?.revision || 0)) === 4,
+            `Compatible simultaneous care did not serialize safely: ${concurrentCare.map(result => result.error?.message).filter(Boolean).join('; ')}`
         );
-        const guestRefresh = await clients[1].rpc(
-            'get_shared_guardianship_projection',
-            { p_creature_id: sharedCreatureId }
-        );
-        const guestCare = await clients[1].rpc('perform_shared_guardianship_care', {
+        const staleCare = await clients[1].rpc('perform_shared_guardianship_care', {
             p_creature_id: sharedCreatureId,
             p_action: 'play',
             p_idempotency_key: `care_play_${randomUUID().replace(/-/g, '')}`,
-            p_expected_revision: guestRefresh.data?.revision
+            p_expected_revision: 1
         });
         assert(
-            !guestCare.error && guestCare.data?.revision === 3,
-            `Guest care failed after refresh: ${guestCare.error?.message}`
+            !staleCare.error &&
+                staleCare.data?.conflict === true &&
+                staleCare.data?.revision === 4,
+            `A stale client did not receive the newest projection: ${staleCare.error?.message}`
         );
 
         await clients[0].auth.signOut({ scope: 'local' });
@@ -357,14 +428,19 @@ async function run() {
         );
         assert(
             !converged.error &&
-                converged.data?.revision === 3 &&
-                converged.data?.care?.curiosity === guestCare.data?.care?.curiosity,
+                converged.data?.revision === 4 &&
+                converged.data?.care?.curiosity === staleCare.data?.care?.curiosity,
             `Reconnect did not converge: ${converged.error?.message}`
         );
 
         const guestMuted = await clients[1].rpc(
             'set_shared_guardianship_notifications',
-            { p_creature_id: sharedCreatureId, p_muted: true }
+            {
+                p_creature_id: sharedCreatureId,
+                p_muted: true,
+                p_idempotency_key: `notice_${randomUUID().replace(/-/g, '')}`,
+                p_expected_revision: 4
+            }
         );
         const hostUnmuted = await reconnectedHost.rpc(
             'get_shared_guardianship_projection',
@@ -373,12 +449,21 @@ async function run() {
         assert(
             !guestMuted.error &&
                 guestMuted.data?.notificationsMuted === true &&
+                guestMuted.data?.revision === 5 &&
                 hostUnmuted.data?.notificationsMuted === false,
             'Participant-scoped notification preference failed.'
         );
 
+        const hostLeaveKey = `leave_${randomUUID().replace(/-/g, '')}`;
         const hostLeft = await reconnectedHost.rpc('leave_shared_guardianship', {
-            p_creature_id: sharedCreatureId
+            p_creature_id: sharedCreatureId,
+            p_idempotency_key: hostLeaveKey,
+            p_expected_revision: 5
+        });
+        const hostLeaveReplay = await reconnectedHost.rpc('leave_shared_guardianship', {
+            p_creature_id: sharedCreatureId,
+            p_idempotency_key: hostLeaveKey,
+            p_expected_revision: 5
         });
         const revokedRead = await reconnectedHost.rpc(
             'get_shared_guardianship_projection',
@@ -391,36 +476,51 @@ async function run() {
         assert(
             !hostLeft.error &&
                 hostLeft.data?.left === true &&
+                hostLeft.data?.remainingGuardians === 1 &&
+                hostLeaveReplay.data?.replay === true &&
                 Boolean(revokedRead.error) &&
                 !survivorRead.error &&
-                survivorRead.data?.status === 'active',
+                survivorRead.data?.status === 'active' &&
+                survivorRead.data?.guardianCount === 1,
             'Departure did not revoke only the departing guardian.'
         );
+        const finalLeaveKey = `leave_${randomUUID().replace(/-/g, '')}`;
         const lastGuardianLeave = await clients[1].rpc(
             'leave_shared_guardianship',
-            { p_creature_id: sharedCreatureId }
+            {
+                p_creature_id: sharedCreatureId,
+                p_idempotency_key: finalLeaveKey,
+                p_expected_revision: survivorRead.data?.revision
+            }
         );
         assert(
-            Boolean(lastGuardianLeave.error) &&
-                lastGuardianLeave.error.message.includes('shared_guardianship_last_guardian_required'),
-            'The final guardian was allowed to orphan the shared creature.'
+            !lastGuardianLeave.error &&
+                lastGuardianLeave.data?.left === true &&
+                lastGuardianLeave.data?.remainingGuardians === 0 &&
+                lastGuardianLeave.data?.archived === true,
+            `The final guardian could not leave safely: ${lastGuardianLeave.error?.message}`
         );
 
         console.log(JSON.stringify({
             verifiedPermanentAccounts: true,
             ageAndPolicyGate: true,
             hashedExpiringCode: true,
+            invitationCreateReplay: true,
+            invitationJoinReplay: true,
             dualGuardianConsent: true,
             oneCanonicalChild: true,
             participantScopedProjection: true,
             nonparticipantDenied: true,
+            durableJoinRateLimit: true,
             idempotentCare: true,
-            staleWriteRejected: true,
+            compatibleConcurrentCare: true,
+            staleWriteReturnedLatestProjection: true,
             bidirectionalConvergence: true,
             reconnectConvergence: true,
             privateNotificationPreference: true,
             departureRevokesOnlyLeaver: true,
-            finalGuardianProtected: true
+            departureReplaySafe: true,
+            finalGuardianArchivesSafely: true
         }));
     } finally {
         if (sharedCreatureId) {

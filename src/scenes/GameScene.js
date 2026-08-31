@@ -8185,6 +8185,12 @@ class GameScene extends Phaser.Scene {
             service: this.sharedGuardianshipService,
             projection: this.sharedGuardianshipProjection,
             onUpdate: projection => this.updateSharedGuardianshipProjection(projection),
+            onAccessRevoked: () => {
+                this.sharedGuardianshipStopWatching?.();
+                this.sharedGuardianshipStopWatching = null;
+                this.sharedGuardianshipProjection = null;
+                this.destroySharedGuardianshipHabitat();
+            },
             onClose: () => {
                 this.sharedCreatureCareModal = null;
             }

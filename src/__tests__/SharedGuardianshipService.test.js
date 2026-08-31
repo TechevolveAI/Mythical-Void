@@ -55,6 +55,7 @@ function projection(overrides = {}) {
         care: { comfort: 80, curiosity: 60, energy: 70 },
         revision: 3,
         status: 'active',
+        guardianCount: 2,
         guardianRole: 'host',
         guardianLabel: 'Guardian A',
         notificationsMuted: false,
@@ -129,7 +130,9 @@ describe('SharedGuardianshipService', () => {
         });
         expect(rpc.mock.calls.filter(([name]) => name === 'attest_shared_guardianship_eligibility')).toHaveLength(1);
         expect(rpc).toHaveBeenCalledWith('create_shared_guardianship_invitation', {
-            p_parent_id: 'parent-1', p_expected_revision: 7
+            p_parent_id: 'parent-1',
+            p_expected_revision: 7,
+            p_idempotency_key: 'invite_f7d62d73663f4f3195e6d0175eb00b2a'
         });
     });
 
@@ -150,6 +153,73 @@ describe('SharedGuardianshipService', () => {
         expect(values).toHaveLength(1);
         expect(gameState.values['sharedGuardianship.projections']).toHaveLength(1);
         expect(normalizeProjection({ ...projection(), sharedCreatureId: 'forged' })).toBeNull();
+    });
+
+    test('keeps an invitation key across an ambiguous network retry', async () => {
+        let attempts = 0;
+        const { service, rpc } = harness(async name => {
+            if (name === 'attest_shared_guardianship_eligibility') {
+                return { data: { eligible: true }, error: null };
+            }
+            attempts += 1;
+            if (attempts === 1) {
+                return { data: null, error: { message: 'network unavailable' } };
+            }
+            return {
+                data: {
+                    invitationId,
+                    role: 'host',
+                    status: 'waiting',
+                    ownParentId: 'parent-1',
+                    code: '12AB-34CD-56EF'
+                },
+                error: null
+            };
+        });
+        const parent = { id: 'parent-1', lifecycle: { stage: 'adult' } };
+        await expect(service.create(parent)).rejects.toMatchObject({
+            code: 'shared_guardianship_service_error'
+        });
+        await service.create(parent);
+        const creates = rpc.mock.calls.filter(([name]) => (
+            name === 'create_shared_guardianship_invitation'
+        ));
+        expect(creates).toHaveLength(2);
+        expect(creates[0][1].p_idempotency_key).toBe(
+            creates[1][1].p_idempotency_key
+        );
+    });
+
+    test('turns a server conflict projection into a friendly refresh error', async () => {
+        const { service, gameState } = harness(async name => {
+            if (name === 'attest_shared_guardianship_eligibility') {
+                return { data: { eligible: true }, error: null };
+            }
+            return {
+                data: projection({ revision: 8, conflict: true }),
+                error: null
+            };
+        });
+        await expect(service.care(creatureId, 'rest', 3)).rejects.toMatchObject({
+            code: 'shared_guardianship_revision_conflict',
+            latestProjection: expect.objectContaining({ revision: 8 })
+        });
+        expect(gameState.values['sharedGuardianship.projections'][0].revision).toBe(8);
+    });
+
+    test('maps committed rate-limit responses as errors rather than invitations', async () => {
+        const { service } = harness(async name => {
+            if (name === 'attest_shared_guardianship_eligibility') {
+                return { data: { eligible: true }, error: null };
+            }
+            return {
+                data: { errorCode: 'shared_guardianship_join_rate_limited' },
+                error: null
+            };
+        });
+        await expect(service.join('12AB-34CD-56EF', {
+            id: 'parent-1', lifecycle: { stage: 'adult' }
+        })).rejects.toMatchObject({ code: 'shared_guardianship_join_rate_limited' });
     });
 
     test('maps stale-command errors to safe player language', () => {

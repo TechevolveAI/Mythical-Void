@@ -188,6 +188,7 @@ class FusionPodScene extends Phaser.Scene {
         this.fusionConsentReceipt = null;
         this.previewConsentOnly = false;
         this.previewSharedFusionAvailable = false;
+        this.previewSharedGuardianshipAccount = false;
     }
 
     init(data = {}) {
@@ -218,6 +219,10 @@ class FusionPodScene extends Phaser.Scene {
         this.previewSharedFusionAvailable = Boolean(
             this.previewCreatures &&
             data.previewSharedFusionAvailable
+        );
+        this.previewSharedGuardianshipAccount = Boolean(
+            this.previewCreatures &&
+            data.previewSharedGuardianshipAccount
         );
     }
 
@@ -309,6 +314,10 @@ class FusionPodScene extends Phaser.Scene {
         this.createSharedFusionButton();
         this.createCloseButton(width);
 
+        if (this.previewSharedGuardianshipAccount) {
+            this.time.delayedCall(80, () => this.openSharedGuardianship());
+        }
+
         if (this.previewConsentOnly) {
             this.time.delayedCall(80, () => {
                 const eligible = this.getAdultCreatures(
@@ -397,6 +406,7 @@ class FusionPodScene extends Phaser.Scene {
     }
 
     isSharedGuardianshipAvailable() {
+        if (this.previewSharedGuardianshipAccount) return true;
         if (this.previewSharedFusionAvailable) return false;
         if (this.previewCreatures || !window.SharedGuardianship?.isEnabled?.()) {
             return false;
@@ -500,8 +510,20 @@ class FusionPodScene extends Phaser.Scene {
             window.FusionConsent
                 ?.getFusionCompanionReadiness?.(creature)?.willing
         ));
-        if (parents.length < 1) return false;
-        this.sharedGuardianshipModal = new SharedGuardianshipModal(this);
+        const previewAccount = this.previewSharedGuardianshipAccount
+            ? {
+                getStatus: async () => ({
+                    configured: true,
+                    authenticated: true,
+                    permanent: false,
+                    verified: false,
+                    anonymous: true
+                })
+            }
+            : null;
+        this.sharedGuardianshipModal = new SharedGuardianshipModal(this, {
+            ...(previewAccount ? { account: previewAccount } : {})
+        });
         return this.sharedGuardianshipModal.show({
             parents,
             onClose: () => {

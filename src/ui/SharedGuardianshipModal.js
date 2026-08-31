@@ -2,7 +2,17 @@ function element(tagName, className, text = null) {
     const node = document.createElement(tagName);
     node.className = className;
     if (text !== null) node.textContent = text;
+    if (className === 'shared-guardianship-notice') {
+        node.setAttribute('role', 'status');
+        node.setAttribute('aria-live', 'polite');
+    }
     return node;
+}
+
+function focusableElements(root) {
+    return [...root.querySelectorAll(
+        'button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+    )].filter(node => !node.hidden && node.getAttribute('aria-hidden') !== 'true');
 }
 
 function button(className, text, onClick) {
@@ -39,6 +49,7 @@ export default class SharedGuardianshipModal {
         this.busy = false;
         this.pollTimer = null;
         this.keyboardHandler = null;
+        this.previousFocus = null;
         this.consentChecked = false;
         this.policyChecked = false;
         this.onClose = null;
@@ -53,6 +64,7 @@ export default class SharedGuardianshipModal {
         this.selectedParentId = this.parents[0]?.id || null;
         this.onClose = onClose;
         this.onComplete = onComplete;
+        this.previousFocus = document.activeElement;
         const { width, height } = this.scene.scale;
         this.root = element('div', 'shared-guardianship-modal');
         this.root.style.width = `${width}px`;
@@ -75,16 +87,36 @@ export default class SharedGuardianshipModal {
         this.root.append(shell);
         this.root.addEventListener('pointerdown', event => event.stopPropagation());
         this.keyboardHandler = event => {
-            if (event.key === 'Escape') this.close();
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                this.close();
+                return;
+            }
+            if (event.key !== 'Tab' || !this.root) return;
+            const focusable = focusableElements(this.root);
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            if (focusable.length === 0) {
+                this.root.focus();
+                return;
+            }
+            const activeIndex = focusable.indexOf(document.activeElement);
+            const nextIndex = event.shiftKey
+                ? (activeIndex <= 0 ? focusable.length - 1 : activeIndex - 1)
+                : (activeIndex < 0 || activeIndex === focusable.length - 1 ? 0 : activeIndex + 1);
+            focusable[nextIndex].focus();
         };
-        window.addEventListener('keydown', this.keyboardHandler);
+        this.root.addEventListener('keydown', this.keyboardHandler, true);
         this.domElement = this.scene.add.dom(width / 2, height / 2, this.root)
             .setOrigin(0.5)
             .setScrollFactor(0)
             .setDepth(17900);
         const container = this.domElement.node?.parentElement;
         if (container) container.style.zIndex = '17900';
-        requestAnimationFrame(() => this.root?.classList.add('is-visible'));
+        requestAnimationFrame(() => {
+            this.root?.classList.add('is-visible');
+            focusableElements(this.root)[0]?.focus({ preventScroll: true });
+        });
         this.start();
         return true;
     }
@@ -107,6 +139,8 @@ export default class SharedGuardianshipModal {
     renderBusy(label) {
         this.clear();
         const busy = element('div', 'shared-guardianship-busy');
+        busy.setAttribute('role', 'status');
+        busy.setAttribute('aria-live', 'polite');
         const pulse = element('span', 'shared-guardianship-pulse');
         pulse.setAttribute('aria-hidden', 'true');
         busy.append(pulse, element('p', '', label));
@@ -279,10 +313,19 @@ export default class SharedGuardianshipModal {
         );
         const tabs = element('div', 'shared-guardianship-tabs');
         tabs.append(
-            button(`shared-guardianship-tab${this.mode === 'create' ? ' is-active' : ''}`, 'INVITE SOMEONE', () => { this.mode = 'create'; this.renderHome(); }),
-            button(`shared-guardianship-tab${this.mode === 'join' ? ' is-active' : ''}`, 'JOIN SOMEONE', () => { this.mode = 'join'; this.renderHome(); })
+            button(`shared-guardianship-tab${this.mode === 'create' ? ' is-active' : ''}`, 'CREATE PRIVATE CODE', () => { this.mode = 'create'; this.renderHome(); }),
+            button(`shared-guardianship-tab${this.mode === 'join' ? ' is-active' : ''}`, 'ENTER PRIVATE CODE', () => { this.mode = 'join'; this.renderHome(); })
         );
         const parentList = element('div', 'shared-guardianship-parent-list');
+        if (this.parents.length === 0) {
+            parentList.append(
+                element(
+                    'p',
+                    'shared-guardianship-empty',
+                    'Raise one creature to adulthood and confirm that it is willing to contribute to Fusion. Then return here.'
+                )
+            );
+        }
         this.parents.forEach(parent => {
             const choice = button(`shared-guardianship-parent${parent.id === this.selectedParentId ? ' is-selected' : ''}`, '', () => {
                 this.selectedParentId = parent.id;
@@ -539,8 +582,12 @@ export default class SharedGuardianshipModal {
         if (!this.root) return;
         this.stopPolling();
         this.service?.destroy?.();
-        window.removeEventListener('keydown', this.keyboardHandler);
+        this.root.removeEventListener('keydown', this.keyboardHandler, true);
         this.domElement?.destroy?.();
+        if (this.previousFocus?.isConnected) {
+            this.previousFocus.focus({ preventScroll: true });
+        }
+        this.previousFocus = null;
         this.root = null;
         this.body = null;
         if (notify) this.onClose?.();

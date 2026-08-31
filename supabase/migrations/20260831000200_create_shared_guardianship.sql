@@ -14,6 +14,7 @@ create table if not exists public.shared_guardianship_profiles (
 create table if not exists public.shared_guardianship_invitations (
     invitation_id uuid primary key default gen_random_uuid(),
     code_hash text not null unique check (code_hash ~ '^[0-9a-f]{64}$'),
+    create_idempotency_key text not null check (create_idempotency_key ~ '^[A-Za-z0-9_-]{8,120}$'),
     host_user_id uuid not null references auth.users(id) on delete cascade,
     guest_user_id uuid references auth.users(id) on delete cascade,
     host_parent_id text not null check (host_parent_id ~ '^[A-Za-z0-9_-]{1,180}$'),
@@ -44,6 +45,9 @@ create table if not exists public.shared_guardianship_invitations (
         (guest_user_id is not null and guest_parent_id is not null and guest_parent_fingerprint is not null and guest_parent_record is not null and guest_save_revision is not null)
     )
 );
+
+create unique index if not exists shared_guardianship_invite_create_replay_idx
+    on public.shared_guardianship_invitations(host_user_id, create_idempotency_key);
 
 create table if not exists public.shared_guardianship_join_attempts (
     attempt_id bigint generated always as identity primary key,
@@ -108,10 +112,22 @@ create table if not exists public.shared_guardianship_events (
     unique (creature_id, idempotency_key)
 );
 
+create table if not exists public.shared_guardianship_commands (
+    command_id uuid primary key default gen_random_uuid(),
+    creature_id uuid not null references public.shared_guardianship_creatures(creature_id) on delete cascade,
+    actor_user_id uuid references auth.users(id) on delete set null,
+    idempotency_key text not null check (idempotency_key ~ '^[A-Za-z0-9_-]{8,120}$'),
+    command_kind text not null check (command_kind in ('care', 'notifications', 'leave')),
+    result jsonb not null default '{}'::jsonb check (jsonb_typeof(result) = 'object') check (octet_length(result::text) <= 8192),
+    created_at timestamptz not null default timezone('utc', now()),
+    unique (creature_id, idempotency_key)
+);
+
 create index if not exists shared_guardianship_invite_host_live_idx on public.shared_guardianship_invitations(host_user_id, expires_at desc);
 create index if not exists shared_guardianship_invite_guest_live_idx on public.shared_guardianship_invitations(guest_user_id, expires_at desc) where guest_user_id is not null;
 create index if not exists shared_guardianship_join_attempts_idx on public.shared_guardianship_join_attempts(user_id, attempted_at desc);
 create index if not exists shared_guardianship_events_creature_idx on public.shared_guardianship_events(creature_id, after_revision desc);
+create index if not exists shared_guardianship_commands_created_idx on public.shared_guardianship_commands(created_at);
 create unique index if not exists shared_guardianship_one_active_per_user_idx
 on public.shared_guardianship_participants(user_id)
 where status = 'active';
@@ -130,6 +146,8 @@ alter table public.shared_guardianship_parentage enable row level security;
 alter table public.shared_guardianship_parentage force row level security;
 alter table public.shared_guardianship_events enable row level security;
 alter table public.shared_guardianship_events force row level security;
+alter table public.shared_guardianship_commands enable row level security;
+alter table public.shared_guardianship_commands force row level security;
 
 revoke all on table public.shared_guardianship_profiles from anon, authenticated;
 revoke all on table public.shared_guardianship_invitations from anon, authenticated;
@@ -138,6 +156,7 @@ revoke all on table public.shared_guardianship_creatures from anon, authenticate
 revoke all on table public.shared_guardianship_participants from anon, authenticated;
 revoke all on table public.shared_guardianship_parentage from anon, authenticated;
 revoke all on table public.shared_guardianship_events from anon, authenticated;
+revoke all on table public.shared_guardianship_commands from anon, authenticated;
 
 create or replace function public.shared_guardianship_user_is_permanent(p_user_id uuid)
 returns boolean
@@ -293,7 +312,8 @@ $$;
 
 create or replace function public.create_shared_guardianship_invitation(
     p_parent_id text,
-    p_expected_revision bigint
+    p_expected_revision bigint,
+    p_idempotency_key text
 )
 returns jsonb
 language plpgsql
@@ -308,8 +328,21 @@ declare
     v_code text;
     v_hash text;
     v_invitation public.shared_guardianship_invitations;
-    v_attempt integer := 0;
 begin
+    if p_idempotency_key !~ '^[A-Za-z0-9_-]{8,120}$' then
+        raise exception 'shared_guardianship_request_invalid' using errcode = '22023';
+    end if;
+    select * into v_invitation
+    from public.shared_guardianship_invitations
+    where host_user_id = v_user_id
+      and create_idempotency_key = p_idempotency_key;
+    if found then
+        v_code := upper(substr(encode(extensions.digest(v_user_id::text || ':' || p_idempotency_key, 'sha256'), 'hex'), 1, 12));
+        return public.shared_guardianship_invitation_view(v_invitation, v_user_id) || jsonb_build_object(
+            'code', substr(v_code,1,4) || '-' || substr(v_code,5,4) || '-' || substr(v_code,9,4),
+            'replay', true
+        );
+    end if;
     if not exists (select 1 from public.shared_guardianship_profiles where user_id = v_user_id) then
         raise exception 'shared_guardianship_eligibility_required' using errcode = '42501';
     end if;
@@ -340,20 +373,19 @@ begin
     end if;
     v_parent := public.shared_fusion_parent_record(v_game_state, p_parent_id);
     if v_parent is null then raise exception 'shared_guardianship_parent_unavailable' using errcode = '42501'; end if;
-    loop
-        v_attempt := v_attempt + 1;
-        v_code := upper(encode(extensions.gen_random_bytes(6), 'hex'));
-        v_hash := encode(extensions.digest(v_code, 'sha256'), 'hex');
-        exit when not exists (select 1 from public.shared_guardianship_invitations where code_hash = v_hash);
-        if v_attempt >= 5 then raise exception 'shared_guardianship_code_generation_failed' using errcode = '40001'; end if;
-    end loop;
+    v_code := upper(substr(encode(extensions.digest(v_user_id::text || ':' || p_idempotency_key, 'sha256'), 'hex'), 1, 12));
+    v_hash := encode(extensions.digest(v_code, 'sha256'), 'hex');
+    if exists (select 1 from public.shared_guardianship_invitations where code_hash = v_hash) then
+        raise exception 'shared_guardianship_code_generation_failed' using errcode = '40001';
+    end if;
     insert into public.shared_guardianship_invitations(
-        code_hash, host_user_id, host_parent_id, host_parent_fingerprint, host_parent_record, host_save_revision
+        code_hash, create_idempotency_key, host_user_id, host_parent_id, host_parent_fingerprint, host_parent_record, host_save_revision
     ) values (
-        v_hash, v_user_id, p_parent_id, md5(v_parent::text), v_parent, v_revision
+        v_hash, p_idempotency_key, v_user_id, p_parent_id, md5(v_parent::text), v_parent, v_revision
     ) returning * into v_invitation;
     return public.shared_guardianship_invitation_view(v_invitation, v_user_id) || jsonb_build_object(
-        'code', substr(v_code,1,4) || '-' || substr(v_code,5,4) || '-' || substr(v_code,9,4)
+        'code', substr(v_code,1,4) || '-' || substr(v_code,5,4) || '-' || substr(v_code,9,4),
+        'replay', false
     );
 end;
 $$;
@@ -387,14 +419,29 @@ begin
     delete from public.shared_guardianship_join_attempts where attempted_at < timezone('utc', now()) - interval '24 hours';
     select count(*) into v_attempts from public.shared_guardianship_join_attempts
     where user_id = v_user_id and attempted_at > timezone('utc', now()) - interval '10 minutes';
-    if v_attempts >= 8 then raise exception 'shared_guardianship_join_rate_limited' using errcode = '22023'; end if;
+    if v_attempts >= 8 then
+        return jsonb_build_object(
+            'errorCode', 'shared_guardianship_join_rate_limited',
+            'retryAfterSeconds', 600
+        );
+    end if;
     insert into public.shared_guardianship_join_attempts(user_id) values (v_user_id);
-    if v_compact !~ '^[0-9A-F]{12}$' then raise exception 'shared_guardianship_invitation_unavailable' using errcode = '22023'; end if;
+    if v_compact !~ '^[0-9A-F]{12}$' then
+        return jsonb_build_object('errorCode', 'shared_guardianship_invitation_unavailable');
+    end if;
     v_hash := encode(extensions.digest(v_compact, 'sha256'), 'hex');
     select * into v_invitation from public.shared_guardianship_invitations
     where code_hash = v_hash for update;
-    if not found or v_invitation.status <> 'waiting' or v_invitation.expires_at <= timezone('utc', now()) or v_invitation.host_user_id = v_user_id then
-        raise exception 'shared_guardianship_invitation_unavailable' using errcode = '22023';
+    if not found or v_invitation.expires_at <= timezone('utc', now()) or v_invitation.host_user_id = v_user_id then
+        return jsonb_build_object('errorCode', 'shared_guardianship_invitation_unavailable');
+    end if;
+    if v_invitation.guest_user_id = v_user_id
+        and v_invitation.status in ('paired','ready','executing','staged','committed') then
+        return public.shared_guardianship_invitation_view(v_invitation, v_user_id)
+            || jsonb_build_object('replay', true);
+    end if;
+    if v_invitation.status <> 'waiting' or v_invitation.guest_user_id is not null then
+        return jsonb_build_object('errorCode', 'shared_guardianship_invitation_unavailable');
     end if;
     select revision, game_state into v_revision, v_game_state
     from public.game_saves where user_id = v_user_id and save_slot = 'primary' for update;
@@ -413,7 +460,8 @@ begin
     where invitation_id = v_invitation.invitation_id and status = 'waiting'
     returning * into v_invitation;
     if not found then raise exception 'shared_guardianship_invitation_unavailable' using errcode = '40001'; end if;
-    return public.shared_guardianship_invitation_view(v_invitation, v_user_id);
+    return public.shared_guardianship_invitation_view(v_invitation, v_user_id)
+        || jsonb_build_object('replay', false);
 end;
 $$;
 
@@ -473,7 +521,16 @@ begin
     if not found then raise exception 'shared_guardianship_cloud_save_required' using errcode = '22023'; end if;
     v_parent := public.shared_fusion_parent_record(v_game_state, v_parent_id);
     if v_parent is null or md5(v_parent::text) <> v_fingerprint then
-        raise exception 'shared_guardianship_parent_changed' using errcode = '40001';
+        update public.shared_guardianship_invitations
+        set host_confirmed_at = null,
+            guest_confirmed_at = null,
+            status = 'cancelled',
+            updated_at = timezone('utc', now())
+        where invitation_id = p_invitation_id;
+        return jsonb_build_object(
+            'errorCode', 'shared_guardianship_parent_changed',
+            'cancelled', true
+        );
     end if;
     if v_user_id = v_invitation.host_user_id then
         update public.shared_guardianship_invitations set host_confirmed_at = coalesce(host_confirmed_at, timezone('utc', now())), host_save_revision = v_revision,
@@ -707,7 +764,9 @@ begin
     return jsonb_build_object(
         'schemaVersion',1,'sharedCreatureId',v_creature.creature_id,'runtimeId',v_creature.runtime_id,'name',v_creature.name,
         'genes',v_creature.genes,'lifecycle',v_creature.lifecycle,'care',v_creature.care_state,'revision',v_creature.revision,
-        'status',v_creature.status,'guardianRole',v_participant.role,'guardianLabel',v_participant.guardian_label,
+        'status',v_creature.status,
+        'guardianCount',(select count(*)::integer from public.shared_guardianship_participants where creature_id = p_creature_id and status = 'active'),
+        'guardianRole',v_participant.role,'guardianLabel',v_participant.guardian_label,
         'notificationsMuted',v_participant.notifications_muted,'history',v_history,'updatedAt',v_creature.updated_at
     );
 end;
@@ -746,22 +805,36 @@ declare
     v_user_id uuid := public.shared_guardianship_require_eligible_user();
     v_creature public.shared_guardianship_creatures;
     v_participant public.shared_guardianship_participants;
+    v_command public.shared_guardianship_commands;
     v_comfort integer;
     v_curiosity integer;
     v_energy integer;
     v_summary text;
+    v_rebased boolean := false;
     v_now_ms bigint := floor(extract(epoch from timezone('utc', now())) * 1000)::bigint;
 begin
     if p_action not in ('tend','play','rest') or p_idempotency_key !~ '^[A-Za-z0-9_-]{8,120}$' then raise exception 'shared_guardianship_action_invalid' using errcode = '22023'; end if;
     select * into v_participant from public.shared_guardianship_participants
-    where creature_id = p_creature_id and user_id = v_user_id and status = 'active';
+    where creature_id = p_creature_id and user_id = v_user_id and status = 'active' for update;
     if not found then raise exception 'shared_guardianship_access_denied' using errcode = '42501'; end if;
-    if exists (select 1 from public.shared_guardianship_events where creature_id = p_creature_id and actor_user_id = v_user_id and idempotency_key = p_idempotency_key) then
-        return public.get_shared_guardianship_projection(p_creature_id) || jsonb_build_object('replay',true);
-    end if;
     select * into v_creature from public.shared_guardianship_creatures where creature_id = p_creature_id and status = 'active' for update;
     if not found then raise exception 'shared_guardianship_creature_not_found' using errcode = '22023'; end if;
-    if p_expected_revision is null or p_expected_revision <> v_creature.revision then raise exception 'shared_guardianship_revision_conflict' using errcode = '40001'; end if;
+    select * into v_command from public.shared_guardianship_commands
+    where creature_id = p_creature_id and idempotency_key = p_idempotency_key;
+    if found then
+        if v_command.actor_user_id is distinct from v_user_id or v_command.command_kind <> 'care' then
+            raise exception 'shared_guardianship_action_invalid' using errcode = '22023';
+        end if;
+        return public.get_shared_guardianship_projection(p_creature_id)
+            || jsonb_build_object('replay',true,'rebased',false);
+    end if;
+    if p_expected_revision is null
+        or p_expected_revision > v_creature.revision
+        or p_expected_revision < v_creature.revision - 1 then
+        return public.get_shared_guardianship_projection(p_creature_id)
+            || jsonb_build_object('conflict',true,'replay',false,'rebased',false);
+    end if;
+    v_rebased := p_expected_revision = v_creature.revision - 1;
     v_comfort := least(100,greatest(0,coalesce((v_creature.care_state->>'comfort')::integer,50) + case when p_action='tend' then 8 when p_action='rest' then 3 else 2 end));
     v_curiosity := least(100,greatest(0,coalesce((v_creature.care_state->>'curiosity')::integer,50) + case when p_action='play' then 8 when p_action='tend' then 2 else 1 end));
     v_energy := least(100,greatest(0,coalesce((v_creature.care_state->>'energy')::integer,50) + case when p_action='rest' then 10 when p_action='play' then -4 else 2 end));
@@ -772,6 +845,8 @@ begin
     where creature_id = p_creature_id returning * into v_creature;
     insert into public.shared_guardianship_events(creature_id,actor_user_id,actor_label,idempotency_key,event_kind,summary,payload,before_revision,after_revision)
     values (p_creature_id,v_user_id,v_participant.guardian_label,p_idempotency_key,p_action,v_summary,jsonb_build_object('action',p_action),v_creature.revision-1,v_creature.revision);
+    insert into public.shared_guardianship_commands(creature_id,actor_user_id,idempotency_key,command_kind,result)
+    values (p_creature_id,v_user_id,p_idempotency_key,'care',jsonb_build_object('acceptedRevision',v_creature.revision));
     delete from public.shared_guardianship_events
     where event_id in (
         select event_id from public.shared_guardianship_events
@@ -779,11 +854,23 @@ begin
         order by after_revision desc
         offset 100
     );
-    return public.get_shared_guardianship_projection(p_creature_id) || jsonb_build_object('replay',false);
+    delete from public.shared_guardianship_commands
+    where command_id in (
+        select command_id from public.shared_guardianship_commands
+        where creature_id = p_creature_id
+        order by created_at desc
+        offset 100
+    );
+    return public.get_shared_guardianship_projection(p_creature_id)
+        || jsonb_build_object('replay',false,'rebased',v_rebased);
 end;
 $$;
 
-create or replace function public.leave_shared_guardianship(p_creature_id uuid)
+create or replace function public.leave_shared_guardianship(
+    p_creature_id uuid,
+    p_idempotency_key text,
+    p_expected_revision bigint
+)
 returns jsonb
 language plpgsql
 security definer
@@ -793,22 +880,56 @@ declare
     v_user_id uuid := public.shared_guardianship_require_eligible_user();
     v_participant public.shared_guardianship_participants;
     v_creature public.shared_guardianship_creatures;
+    v_command public.shared_guardianship_commands;
+    v_remaining integer;
+    v_result jsonb;
 begin
+    if p_idempotency_key !~ '^[A-Za-z0-9_-]{8,120}$' then
+        raise exception 'shared_guardianship_action_invalid' using errcode = '22023';
+    end if;
+    select * into v_command from public.shared_guardianship_commands
+    where creature_id = p_creature_id and idempotency_key = p_idempotency_key;
+    if found then
+        if v_command.actor_user_id is distinct from v_user_id or v_command.command_kind <> 'leave' then
+            raise exception 'shared_guardianship_action_invalid' using errcode = '22023';
+        end if;
+        return v_command.result || jsonb_build_object('replay',true);
+    end if;
     select * into v_participant from public.shared_guardianship_participants
     where creature_id = p_creature_id and user_id = v_user_id and status = 'active' for update;
     if not found then raise exception 'shared_guardianship_access_denied' using errcode = '42501'; end if;
-    if not exists (select 1 from public.shared_guardianship_participants where creature_id = p_creature_id and user_id <> v_user_id and status = 'active') then
-        raise exception 'shared_guardianship_last_guardian_required' using errcode = '22023';
+    select * into v_creature from public.shared_guardianship_creatures
+    where creature_id = p_creature_id and status = 'active' for update;
+    if not found then raise exception 'shared_guardianship_creature_not_found' using errcode = '22023'; end if;
+    if p_expected_revision is null or p_expected_revision <> v_creature.revision then
+        return public.get_shared_guardianship_projection(p_creature_id)
+            || jsonb_build_object('conflict',true,'replay',false);
     end if;
-    select * into v_creature from public.shared_guardianship_creatures where creature_id = p_creature_id for update;
+    select count(*)::integer into v_remaining
+    from public.shared_guardianship_participants
+    where creature_id = p_creature_id
+      and user_id <> v_user_id
+      and status = 'active';
     update public.shared_guardianship_events set actor_user_id = null
     where creature_id = p_creature_id and actor_user_id = v_user_id;
-    delete from public.shared_guardianship_participants
-    where creature_id = p_creature_id and user_id = v_user_id;
-    update public.shared_guardianship_creatures set revision = revision + 1, updated_at = timezone('utc', now())
+    update public.shared_guardianship_creatures set
+        revision = revision + 1,
+        status = case when v_remaining = 0 then 'archived' else status end,
+        updated_at = timezone('utc', now())
     where creature_id = p_creature_id returning * into v_creature;
     insert into public.shared_guardianship_events(creature_id,actor_user_id,actor_label,idempotency_key,event_kind,summary,before_revision,after_revision)
     values (p_creature_id,null,v_participant.guardian_label,'departure_' || replace(gen_random_uuid()::text,'-',''),'departure',v_participant.guardian_label || ' left Shared Guardianship.',v_creature.revision-1,v_creature.revision);
+    v_result := jsonb_build_object(
+        'left',true,
+        'sharedCreatureId',p_creature_id,
+        'revision',v_creature.revision,
+        'remainingGuardians',v_remaining,
+        'archived',v_remaining = 0
+    );
+    insert into public.shared_guardianship_commands(creature_id,actor_user_id,idempotency_key,command_kind,result)
+    values (p_creature_id,v_user_id,p_idempotency_key,'leave',v_result);
+    delete from public.shared_guardianship_participants
+    where creature_id = p_creature_id and user_id = v_user_id;
     delete from public.shared_guardianship_events
     where event_id in (
         select event_id from public.shared_guardianship_events
@@ -816,7 +937,7 @@ begin
         order by after_revision desc
         offset 100
     );
-    return jsonb_build_object('left',true,'sharedCreatureId',p_creature_id,'revision',v_creature.revision);
+    return v_result || jsonb_build_object('replay',false);
 end;
 $$;
 
@@ -833,16 +954,23 @@ begin
     select * into v_invitation from public.shared_guardianship_invitations
     where invitation_id = p_invitation_id and (host_user_id = v_user_id or guest_user_id = v_user_id) for update;
     if not found then raise exception 'shared_guardianship_invitation_not_found' using errcode = '42501'; end if;
+    if v_invitation.status = 'cancelled' then
+        return public.shared_guardianship_invitation_view(v_invitation,v_user_id)
+            || jsonb_build_object('replay',true);
+    end if;
     if v_invitation.status not in ('waiting','paired','ready') then raise exception 'shared_guardianship_invitation_locked' using errcode = '22023'; end if;
     update public.shared_guardianship_invitations set status = 'cancelled', updated_at = timezone('utc', now())
     where invitation_id = p_invitation_id returning * into v_invitation;
-    return public.shared_guardianship_invitation_view(v_invitation,v_user_id);
+    return public.shared_guardianship_invitation_view(v_invitation,v_user_id)
+        || jsonb_build_object('replay',false);
 end;
 $$;
 
 create or replace function public.set_shared_guardianship_notifications(
     p_creature_id uuid,
-    p_muted boolean
+    p_muted boolean,
+    p_idempotency_key text,
+    p_expected_revision bigint
 )
 returns jsonb
 language plpgsql
@@ -851,16 +979,46 @@ set search_path = ''
 as $$
 declare
     v_user_id uuid := public.shared_guardianship_require_eligible_user();
+    v_participant public.shared_guardianship_participants;
+    v_creature public.shared_guardianship_creatures;
+    v_command public.shared_guardianship_commands;
+    v_rebased boolean := false;
 begin
+    if p_idempotency_key !~ '^[A-Za-z0-9_-]{8,120}$' then
+        raise exception 'shared_guardianship_action_invalid' using errcode = '22023';
+    end if;
+    select * into v_participant from public.shared_guardianship_participants
+    where creature_id = p_creature_id and user_id = v_user_id and status = 'active' for update;
+    if not found then raise exception 'shared_guardianship_access_denied' using errcode = '42501'; end if;
+    select * into v_creature from public.shared_guardianship_creatures
+    where creature_id = p_creature_id and status = 'active' for update;
+    if not found then raise exception 'shared_guardianship_creature_not_found' using errcode = '22023'; end if;
+    select * into v_command from public.shared_guardianship_commands
+    where creature_id = p_creature_id and idempotency_key = p_idempotency_key;
+    if found then
+        if v_command.actor_user_id is distinct from v_user_id or v_command.command_kind <> 'notifications' then
+            raise exception 'shared_guardianship_action_invalid' using errcode = '22023';
+        end if;
+        return public.get_shared_guardianship_projection(p_creature_id)
+            || jsonb_build_object('replay',true,'rebased',false);
+    end if;
+    if p_expected_revision is null
+        or p_expected_revision > v_creature.revision
+        or p_expected_revision < v_creature.revision - 1 then
+        return public.get_shared_guardianship_projection(p_creature_id)
+            || jsonb_build_object('conflict',true,'replay',false,'rebased',false);
+    end if;
+    v_rebased := p_expected_revision = v_creature.revision - 1;
     update public.shared_guardianship_participants
     set notifications_muted = coalesce(p_muted, false)
-    where creature_id = p_creature_id
-      and user_id = v_user_id
-      and status = 'active';
-    if not found then
-        raise exception 'shared_guardianship_access_denied' using errcode = '42501';
-    end if;
-    return public.get_shared_guardianship_projection(p_creature_id);
+    where creature_id = p_creature_id and user_id = v_user_id;
+    update public.shared_guardianship_creatures
+    set revision = revision + 1, updated_at = timezone('utc', now())
+    where creature_id = p_creature_id returning * into v_creature;
+    insert into public.shared_guardianship_commands(creature_id,actor_user_id,idempotency_key,command_kind,result)
+    values (p_creature_id,v_user_id,p_idempotency_key,'notifications',jsonb_build_object('acceptedRevision',v_creature.revision));
+    return public.get_shared_guardianship_projection(p_creature_id)
+        || jsonb_build_object('replay',false,'rebased',v_rebased);
 end;
 $$;
 
@@ -892,21 +1050,60 @@ create trigger archive_orphaned_shared_guardianship_after_participant_change
 after delete or update of status on public.shared_guardianship_participants
 for each row execute function public.archive_orphaned_shared_guardianship();
 
+create or replace function public.purge_shared_guardianship_retention()
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+    v_join_attempts integer;
+    v_invitations integer;
+    v_commands integer;
+begin
+    update public.shared_guardianship_invitations
+    set status = 'expired', updated_at = timezone('utc', now())
+    where status in ('waiting','paired','ready')
+      and expires_at <= timezone('utc', now());
+
+    delete from public.shared_guardianship_join_attempts
+    where attempted_at < timezone('utc', now()) - interval '24 hours';
+    get diagnostics v_join_attempts = row_count;
+
+    delete from public.shared_guardianship_invitations
+    where status in ('cancelled','expired','committed')
+      and coalesce(committed_at, updated_at) < timezone('utc', now()) - interval '30 days';
+    get diagnostics v_invitations = row_count;
+
+    delete from public.shared_guardianship_commands
+    where created_at < timezone('utc', now()) - interval '30 days';
+    get diagnostics v_commands = row_count;
+
+    return jsonb_build_object(
+        'joinAttemptsDeleted',v_join_attempts,
+        'invitationsDeleted',v_invitations,
+        'commandsDeleted',v_commands
+    );
+end;
+$$;
+
 revoke all on function public.shared_guardianship_user_is_permanent(uuid) from public;
 revoke all on function public.shared_guardianship_require_user() from public;
 revoke all on function public.shared_guardianship_user_is_eligible(uuid) from public;
 revoke all on function public.shared_guardianship_require_eligible_user() from public;
 revoke all on function public.shared_guardianship_invitation_view(public.shared_guardianship_invitations,uuid) from public;
 revoke all on function public.archive_orphaned_shared_guardianship() from public;
+revoke all on function public.purge_shared_guardianship_retention() from public;
 revoke all on function public.resolve_shared_guardianship_execution(uuid,uuid) from public;
 revoke all on function public.get_shared_guardianship_execution_context(uuid,text) from public;
 revoke all on function public.stage_shared_guardianship_result(uuid,text,text,jsonb,jsonb) from public;
 grant execute on function public.resolve_shared_guardianship_execution(uuid,uuid) to service_role;
 grant execute on function public.get_shared_guardianship_execution_context(uuid,text) to service_role;
 grant execute on function public.stage_shared_guardianship_result(uuid,text,text,jsonb,jsonb) to service_role;
+grant execute on function public.purge_shared_guardianship_retention() to service_role;
 
 revoke all on function public.attest_shared_guardianship_eligibility(text,text,text) from public;
-revoke all on function public.create_shared_guardianship_invitation(text,bigint) from public;
+revoke all on function public.create_shared_guardianship_invitation(text,bigint,text) from public;
 revoke all on function public.join_shared_guardianship_invitation(text,text,bigint) from public;
 revoke all on function public.get_shared_guardianship_invitation(uuid) from public;
 revoke all on function public.confirm_shared_guardianship_invitation(uuid) from public;
@@ -914,12 +1111,12 @@ revoke all on function public.submit_shared_guardianship_name(uuid,text) from pu
 revoke all on function public.get_shared_guardianship_projection(uuid) from public;
 revoke all on function public.list_shared_guardianship_creatures() from public;
 revoke all on function public.perform_shared_guardianship_care(uuid,text,text,bigint) from public;
-revoke all on function public.leave_shared_guardianship(uuid) from public;
+revoke all on function public.leave_shared_guardianship(uuid,text,bigint) from public;
 revoke all on function public.cancel_shared_guardianship_invitation(uuid) from public;
-revoke all on function public.set_shared_guardianship_notifications(uuid,boolean) from public;
+revoke all on function public.set_shared_guardianship_notifications(uuid,boolean,text,bigint) from public;
 
 grant execute on function public.attest_shared_guardianship_eligibility(text,text,text) to authenticated;
-grant execute on function public.create_shared_guardianship_invitation(text,bigint) to authenticated;
+grant execute on function public.create_shared_guardianship_invitation(text,bigint,text) to authenticated;
 grant execute on function public.join_shared_guardianship_invitation(text,text,bigint) to authenticated;
 grant execute on function public.get_shared_guardianship_invitation(uuid) to authenticated;
 grant execute on function public.confirm_shared_guardianship_invitation(uuid) to authenticated;
@@ -927,10 +1124,11 @@ grant execute on function public.submit_shared_guardianship_name(uuid,text) to a
 grant execute on function public.get_shared_guardianship_projection(uuid) to authenticated;
 grant execute on function public.list_shared_guardianship_creatures() to authenticated;
 grant execute on function public.perform_shared_guardianship_care(uuid,text,text,bigint) to authenticated;
-grant execute on function public.leave_shared_guardianship(uuid) to authenticated;
+grant execute on function public.leave_shared_guardianship(uuid,text,bigint) to authenticated;
 grant execute on function public.cancel_shared_guardianship_invitation(uuid) to authenticated;
-grant execute on function public.set_shared_guardianship_notifications(uuid,boolean) to authenticated;
+grant execute on function public.set_shared_guardianship_notifications(uuid,boolean,text,bigint) to authenticated;
 
 comment on table public.shared_guardianship_creatures is 'Canonical one-child Shared Guardianship state; clients receive participant-scoped projections only.';
 comment on table public.shared_guardianship_participants is 'Private access grants. Emails and account profile data are never copied here.';
 comment on table public.shared_guardianship_events is 'Bounded idempotent care history using neutral guardian labels only.';
+comment on table public.shared_guardianship_commands is 'Private bounded command receipts used for safe retries; never exposed to peers.';

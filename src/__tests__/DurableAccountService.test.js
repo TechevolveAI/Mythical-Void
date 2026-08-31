@@ -41,13 +41,18 @@ function harness(options = {}) {
         updateUser: jest.fn(async payload => ({ data: { user: sessionUser }, error: null, payload })),
         verifyOtp: jest.fn(async () => ({ data: {}, error: null })),
         signInWithPassword: jest.fn(async () => ({ data: { user: sessionUser }, error: null })),
+        signOut: jest.fn(async () => ({ error: null })),
         resetPasswordForEmail: jest.fn(async () => ({ data: {}, error: null }))
     };
+    const gameState = { set: jest.fn() };
     const cloudSave = {
         client: { auth },
+        gameState,
+        currentUser: sessionUser,
         ensureSession: jest.fn(async () => ({ id: 'anonymous-user', is_anonymous: true })),
         adoptAuthenticatedSession: jest.fn(async () => ({ status: 'synced' })),
-        synchronize: jest.fn(async () => ({ status: 'synced' }))
+        synchronize: jest.fn(async () => ({ status: 'synced' })),
+        disable: jest.fn()
     };
     return {
         auth,
@@ -109,6 +114,18 @@ describe('DurableAccountService', () => {
             'guardian@example.test',
             { redirectTo: 'https://mythicalvoid.com/play/?accountRecovery=1' }
         );
+    });
+
+    test('sign-out removes shared projections from this device and leaves solo local play intact', async () => {
+        const { service, auth, cloudSave } = harness();
+        await service.signOut();
+        expect(auth.signOut).toHaveBeenCalledWith({ scope: 'local' });
+        expect(cloudSave.gameState.set).toHaveBeenCalledWith(
+            'sharedGuardianship.projections',
+            []
+        );
+        expect(cloudSave.disable).toHaveBeenCalledTimes(1);
+        expect(cloudSave.currentUser).toBeNull();
     });
 
     test('rejects invalid email and short passwords before an auth request', async () => {

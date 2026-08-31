@@ -1,10 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const migration = fs.readFileSync(path.join(
+const migration = [
+    '20260831000200_create_shared_guardianship.sql',
+    '20260831000300_rate_limit_shared_guardianship.sql'
+].map(file => fs.readFileSync(path.join(
     __dirname,
-    '../../supabase/migrations/20260831000200_create_shared_guardianship.sql'
-), 'utf8');
+    `../../supabase/migrations/${file}`
+), 'utf8')).join('\n');
 const edgeFunction = fs.readFileSync(path.join(
     __dirname,
     '../../supabase/functions/execute-fusion/index.ts'
@@ -22,7 +25,8 @@ describe('Shared Guardianship server and governance contract', () => {
             'shared_guardianship_creatures',
             'shared_guardianship_participants',
             'shared_guardianship_parentage',
-            'shared_guardianship_events'
+            'shared_guardianship_events',
+            'shared_guardianship_commands'
         ].forEach(table => {
             expect(migration).toContain(`alter table public.${table} force row level security`);
             expect(migration).toContain(`revoke all on table public.${table} from anon, authenticated`);
@@ -48,9 +52,11 @@ describe('Shared Guardianship server and governance contract', () => {
 
     test('uses revision checks and idempotency for shared care', () => {
         expect(migration).toContain('unique (creature_id, idempotency_key)');
-        expect(migration).toContain('p_expected_revision <> v_creature.revision');
-        expect(migration).toContain("raise exception 'shared_guardianship_revision_conflict'");
-        expect(migration).toContain("return public.get_shared_guardianship_projection(p_creature_id) || jsonb_build_object('replay',true)");
+        expect(migration).toContain('p_expected_revision < v_creature.revision - 1');
+        expect(migration).toContain("jsonb_build_object('conflict',true,'replay',false,'rebased',false)");
+        expect(migration).toContain("jsonb_build_object('replay',true,'rebased',false)");
+        expect(migration).toContain("v_rebased := p_expected_revision = v_creature.revision - 1");
+        expect(migration).toContain("command_kind in ('care', 'notifications', 'leave')");
     });
 
     test('bounds abuse records, history and departing-guardian attribution', () => {
@@ -59,6 +65,19 @@ describe('Shared Guardianship server and governance contract', () => {
         expect(migration).toContain('offset 100');
         expect(migration).toContain('update public.shared_guardianship_events set actor_user_id = null');
         expect(migration).toContain('archive_orphaned_shared_guardianship_after_participant_change');
+        expect(migration).toContain('purge_shared_guardianship_retention');
+        expect(migration).toContain("status = case when v_remaining = 0 then 'archived' else status end");
+        expect(migration).toContain('enforce_shared_guardianship_invitation_rate_before_insert');
+        expect(migration).toContain("command_kind = 'care' then 30 else 10");
+        expect(migration).toContain("new.command_kind = 'leave'");
+    });
+
+    test('persists guessing attempts and makes invitation creation and joining retryable', () => {
+        expect(migration).toContain('create_idempotency_key text not null');
+        expect(migration).toContain('shared_guardianship_invite_create_replay_idx');
+        expect(migration).toContain("'errorCode', 'shared_guardianship_invitation_unavailable'");
+        expect(migration).toContain("v_invitation.guest_user_id = v_user_id");
+        expect(migration).toContain("jsonb_build_object('replay', true)");
     });
 
     test('keeps service-role generation behind a participant-scoped invitation', () => {

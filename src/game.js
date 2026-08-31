@@ -2258,7 +2258,7 @@ async function initializeGame() {
 
         // Local, non-saving Fusion Pod previews for maturity requirements and selection QA.
         const testFusion = urlParams.get('testFusion');
-        if (isLocalPreview && ['eligible', 'ready', 'journey', 'blocked', 'hatch', 'consent'].includes(testFusion)) {
+        if (isLocalPreview && ['eligible', 'ready', 'journey', 'blocked', 'hatch', 'consent', 'guardianship'].includes(testFusion)) {
             game.events.once('ready', () => {
                 setTimeout(() => {
                     const now = Date.now();
@@ -2291,7 +2291,7 @@ async function initializeGame() {
                             }
                         };
                     };
-                    const previewCreatures = ['eligible', 'ready', 'journey', 'hatch', 'consent'].includes(testFusion)
+                    const previewCreatures = ['eligible', 'ready', 'journey', 'hatch', 'consent', 'guardianship'].includes(testFusion)
                         ? [
                             createPreviewCreature('preview_adult', 'Stardust', 'adult', 3, 'rare'),
                             createPreviewCreature('preview_elder', 'Moonglow', 'elder', 12, 'epic'),
@@ -2345,7 +2345,8 @@ async function initializeGame() {
                         previewCreatures,
                         previewAutoSelect: ['ready', 'journey'].includes(testFusion),
                         previewAutoStart: testFusion === 'journey',
-                        previewConsentOnly: testFusion === 'consent'
+                        previewConsentOnly: testFusion === 'consent',
+                        previewSharedGuardianshipAccount: testFusion === 'guardianship'
                     });
                 }, 100);
             });

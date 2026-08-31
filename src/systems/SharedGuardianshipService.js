@@ -67,6 +67,7 @@ function normalizeProjection(value) {
         care: structuredCloneSafe(value.care || {}),
         revision: Number(value.revision),
         status: String(value.status || 'active'),
+        guardianCount: Math.max(1, Math.min(2, Number(value.guardianCount) || 1)),
         guardianRole: ['host','guest'].includes(value.guardianRole) ? value.guardianRole : null,
         guardianLabel: ['Guardian A','Guardian B'].includes(value.guardianLabel) ? value.guardianLabel : null,
         notificationsMuted: value.notificationsMuted === true,
@@ -79,7 +80,10 @@ function normalizeProjection(value) {
                 createdAt: entry.createdAt || null
             }))
             : [],
-        updatedAt: value.updatedAt || null
+        updatedAt: value.updatedAt || null,
+        replay: value.replay === true,
+        rebased: value.rebased === true,
+        conflict: value.conflict === true
     };
 }
 
@@ -132,7 +136,9 @@ export class SharedGuardianshipService {
             cloudSave: this.cloudSave
         });
         this.pollers = new Map();
+        this.pendingCommandKeys = new Map();
         this.attestedUserId = null;
+        this.pendingCreationKey = null;
     }
 
     getExpectedRevision() {
@@ -149,13 +155,15 @@ export class SharedGuardianshipService {
         const source = [error?.code,error?.message,error?.details,error?.hint].filter(Boolean).join(' ');
         const known = [
             'shared_guardianship_permanent_identity_required','shared_guardianship_eligibility_required',
-            'shared_guardianship_limit_reached','shared_guardianship_invitation_limit','shared_guardianship_join_rate_limited',
+            'shared_guardianship_limit_reached','shared_guardianship_invitation_limit','shared_guardianship_invitation_rate_limited',
+            'shared_guardianship_join_rate_limited','shared_guardianship_action_rate_limited',
             'shared_guardianship_invitation_unavailable','shared_guardianship_cloud_save_required',
             'shared_guardianship_parent_unavailable','shared_guardianship_parent_changed',
             'shared_guardianship_invitation_not_found','shared_guardianship_invitation_not_confirmable',
             'shared_guardianship_invitation_locked','shared_guardianship_result_not_ready',
             'shared_guardianship_name_invalid','shared_guardianship_access_denied',
-            'shared_guardianship_revision_conflict','shared_guardianship_last_guardian_required','save_revision_conflict'
+            'shared_guardianship_revision_conflict','shared_guardianship_action_invalid',
+            'shared_guardianship_request_invalid','save_revision_conflict'
         ];
         const code = known.find(entry => source.includes(entry)) || 'shared_guardianship_service_error';
         const messages = {
@@ -163,7 +171,9 @@ export class SharedGuardianshipService {
             shared_guardianship_eligibility_required: 'Review the Shared Guardianship privacy promise first.',
             shared_guardianship_limit_reached: 'This account already cares for a shared creature.',
             shared_guardianship_invitation_limit: 'Finish or cancel the current private invitation first.',
+            shared_guardianship_invitation_rate_limited: 'Too many private links were created. Wait an hour and try again.',
             shared_guardianship_join_rate_limited: 'Too many code attempts. Wait ten minutes and try again.',
+            shared_guardianship_action_rate_limited: 'Too many shared actions happened at once. Wait a minute and try again.',
             shared_guardianship_invitation_unavailable: 'That private code is unavailable or has expired.',
             shared_guardianship_cloud_save_required: 'Sync this Sanctuary before continuing.',
             shared_guardianship_parent_unavailable: 'That creature is not ready to contribute to Fusion.',
@@ -175,7 +185,8 @@ export class SharedGuardianshipService {
             shared_guardianship_name_invalid: 'Choose one of the protected creature names.',
             shared_guardianship_access_denied: 'This shared creature is not available to this account.',
             shared_guardianship_revision_conflict: 'The other Sanctuary changed first. Updating this view now.',
-            shared_guardianship_last_guardian_required: 'The final guardian cannot leave the creature without a home.',
+            shared_guardianship_action_invalid: 'That shared action could not be verified. Refresh and try again.',
+            shared_guardianship_request_invalid: 'That private request could not be verified. Refresh and try again.',
             save_revision_conflict: 'The Sanctuary changed. Sync and review the pairing again.',
             shared_guardianship_service_error: 'Shared Guardianship is temporarily unavailable.'
         };
@@ -185,6 +196,13 @@ export class SharedGuardianshipService {
     async invoke(name, params = {}) {
         const { data, error } = await this.cloudSave.client.rpc(name, params);
         if (error) throw this.mapError(error);
+        if (data?.errorCode) {
+            throw this.mapError({
+                code: data.errorCode,
+                message: data.errorCode,
+                details: data
+            });
+        }
         return data;
     }
 
@@ -222,13 +240,36 @@ export class SharedGuardianshipService {
         return parent.id;
     }
 
+    commandKey(scope, prefix, supplied = null) {
+        if (supplied) return supplied;
+        if (!this.pendingCommandKeys.has(scope)) {
+            this.pendingCommandKeys.set(scope, `${prefix}_${randomId()}`);
+        }
+        return this.pendingCommandKeys.get(scope);
+    }
+
+    clearCommandKey(scope, error = null) {
+        if (
+            !error ||
+            error.code === 'shared_guardianship_revision_conflict' ||
+            error.code === 'shared_guardianship_action_invalid' ||
+            error.code === 'shared_guardianship_access_denied'
+        ) {
+            this.pendingCommandKeys.delete(scope);
+        }
+    }
+
     async create(parent) {
         await this.ensureReady();
+        this.pendingCreationKey ||= `invite_${randomId()}`;
         const data = await this.invoke('create_shared_guardianship_invitation', {
             p_parent_id: this.parentId(parent),
-            p_expected_revision: this.getExpectedRevision()
+            p_expected_revision: this.getExpectedRevision(),
+            p_idempotency_key: this.pendingCreationKey
         });
-        return normalizeInvitation(data);
+        const invitation = normalizeInvitation(data);
+        if (invitation) this.pendingCreationKey = null;
+        return invitation;
     }
 
     async join(code, parent) {
@@ -293,34 +334,103 @@ export class SharedGuardianshipService {
         return projection;
     }
 
-    async care(creatureId, action, expectedRevision) {
-        await this.ensureReady();
-        const idempotencyKey = `care_${action}_${randomId()}`;
-        const projection = normalizeProjection(await this.invoke('perform_shared_guardianship_care', {
-            p_creature_id: creatureId,
-            p_action: action,
-            p_idempotency_key: idempotencyKey,
-            p_expected_revision: expectedRevision
-        }));
+    storeProjection(projection) {
+        if (!projection) return null;
+        const current = this.gameState?.get?.('sharedGuardianship.projections') || [];
+        const next = [
+            ...current.filter(entry => entry.sharedCreatureId !== projection.sharedCreatureId),
+            projection
+        ];
+        this.gameState?.set?.('sharedGuardianship.projections', next);
+        this.gameState?.set?.('sharedGuardianship.lastSyncedAt', Date.now());
         return projection;
     }
 
-    async setNotificationsMuted(creatureId, muted) {
-        await this.ensureReady();
-        return normalizeProjection(await this.invoke(
-            'set_shared_guardianship_notifications',
-            {
-                p_creature_id: creatureId,
-                p_muted: muted === true
-            }
-        ));
+    commandProjection(data) {
+        const projection = this.storeProjection(normalizeProjection(data));
+        if (!projection) {
+            throw new SharedGuardianshipError(
+                'invalid_projection',
+                'The shared creature returned an invalid state.'
+            );
+        }
+        if (data?.conflict === true) {
+            const conflict = new SharedGuardianshipError(
+                'shared_guardianship_revision_conflict',
+                'The other Sanctuary changed first. This view is now up to date.'
+            );
+            conflict.latestProjection = projection;
+            throw conflict;
+        }
+        return projection;
     }
 
-    async leave(creatureId) {
+    async care(creatureId, action, expectedRevision, idempotencyKey = null) {
         await this.ensureReady();
-        const result = await this.invoke('leave_shared_guardianship', { p_creature_id: creatureId });
-        await this.refreshAll();
-        return result;
+        const scope = `care:${creatureId}:${action}`;
+        const commandKey = this.commandKey(scope, `care_${action}`, idempotencyKey);
+        try {
+            const data = await this.invoke('perform_shared_guardianship_care', {
+                p_creature_id: creatureId,
+                p_action: action,
+                p_idempotency_key: commandKey,
+                p_expected_revision: expectedRevision
+            });
+            const projection = this.commandProjection(data);
+            this.clearCommandKey(scope);
+            return projection;
+        } catch (error) {
+            this.clearCommandKey(scope, error);
+            throw error;
+        }
+    }
+
+    async setNotificationsMuted(creatureId, muted, expectedRevision, idempotencyKey = null) {
+        await this.ensureReady();
+        const scope = `notifications:${creatureId}:${muted === true}`;
+        const commandKey = this.commandKey(scope, 'notice', idempotencyKey);
+        try {
+            const data = await this.invoke('set_shared_guardianship_notifications', {
+                p_creature_id: creatureId,
+                p_muted: muted === true,
+                p_idempotency_key: commandKey,
+                p_expected_revision: expectedRevision
+            });
+            const projection = this.commandProjection(data);
+            this.clearCommandKey(scope);
+            return projection;
+        } catch (error) {
+            this.clearCommandKey(scope, error);
+            throw error;
+        }
+    }
+
+    async leave(creatureId, expectedRevision, idempotencyKey = null) {
+        await this.ensureReady();
+        const scope = `leave:${creatureId}`;
+        const commandKey = this.commandKey(scope, 'leave', idempotencyKey);
+        try {
+            const result = await this.invoke('leave_shared_guardianship', {
+                p_creature_id: creatureId,
+                p_idempotency_key: commandKey,
+                p_expected_revision: expectedRevision
+            });
+            if (result?.conflict === true) {
+                const latestProjection = this.storeProjection(normalizeProjection(result));
+                const conflict = new SharedGuardianshipError(
+                    'shared_guardianship_revision_conflict',
+                    'The shared creature changed. Review the latest state before leaving.'
+                );
+                conflict.latestProjection = latestProjection;
+                throw conflict;
+            }
+            await this.refreshAll();
+            this.clearCommandKey(scope);
+            return result;
+        } catch (error) {
+            this.clearCommandKey(scope, error);
+            throw error;
+        }
     }
 
     async cancel(invitationId) {
@@ -357,6 +467,7 @@ export class SharedGuardianshipService {
     destroy() {
         for (const timer of this.pollers.values()) window.clearInterval(timer);
         this.pollers.clear();
+        this.pendingCommandKeys.clear();
     }
 }
 
