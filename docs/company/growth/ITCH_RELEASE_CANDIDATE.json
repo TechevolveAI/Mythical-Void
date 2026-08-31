@@ -1,7 +1,7 @@
 {
   "id": "ITCH-CANDIDATE-001",
-  "checkedOn": "2026-08-26",
-  "state": "technical_package_ready_visual_and_account_approval_pending",
+  "checkedOn": "2026-08-31",
+  "state": "technical_package_ready_no_screenshot_page_ready_cover_account_rights_and_terms_approval_pending",
   "buildCommand": "npm run package:itch",
   "archive": "release/mythical-void-itch-html5.zip",
   "entryPoint": "index.html",
@@ -55,13 +55,22 @@
   "visualGate": {
     "sourceOfTruth": "docs/company/content/visual-launch-moments.json",
     "approvedMoments": 0,
-    "requiredMoments": 4,
+    "recommendedMoments": 4,
+    "requiredMomentsForInitialPublication": 0,
+    "screenshotsAttached": 0,
+    "initialReleaseMayLaunchWithoutScreenshots": true,
     "cover": {
-      "state": "waiting_for_approved_cover",
-      "assetPath": null,
+      "state": "adult_reviewed_waiting_for_kevin_approval",
+      "assetPath": "docs/company/content/review/itch-cover/mythical-void-itch-cover-630x500.png",
+      "thumbnailAssetPath": "docs/company/content/review/itch-cover/mythical-void-itch-cover-315x250.png",
+      "sha256": "a3ec5f661f20eac1d89399fa4a0e9d81b079d41939f4702d25f46cb3cc94e987",
+      "thumbnailSha256": "306fe4b393691801b19afaba3b501f862491f137464b1272357dff344fac0863",
       "requiredWidth": 630,
       "requiredHeight": 500,
-      "mustResembleActualGame": true
+      "mustResembleActualGame": true,
+      "explicitlyMarkedNotGameplay": true,
+      "adultVisualReviewPassed": true,
+      "kevinApproved": false
     },
     "screenshotSlots": [
       {
@@ -95,10 +104,11 @@
     }
   },
   "reviewGate": {
-    "state": "ready_for_human_review_when_visual_gate_passes",
+    "state": "ready_for_kevin_review",
     "distributionDecisionId": "D-018",
     "distributionDecisionMade": false,
     "itchAccountAccessProvided": false,
+    "coverApprovedByKevin": false,
     "pageCreated": false,
     "readyForPublication": false,
     "kevinApprovalRequired": true

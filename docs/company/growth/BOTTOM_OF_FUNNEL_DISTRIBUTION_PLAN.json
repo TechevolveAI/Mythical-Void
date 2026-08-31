@@ -1,7 +1,7 @@
 {
   "id": "BOTTOM-OF-FUNNEL-001",
-  "checkedOn": "2026-08-27",
-  "state": "owned_entry_live_options_preserved_visual_gate_closed",
+  "checkedOn": "2026-08-31",
+  "state": "owned_entry_live_first_five_and_itch_page_ready_for_kevin_decisions",
   "playerPromise": "A free browser adventure where you hatch a strange alien creature, cross six living realms and decide what Project Beacon should tell Earth. No download or account needed.",
   "playerDecisionModel": {
     "sequence": ["wanted feeling", "believable fit", "real gameplay proof", "trust", "low-friction start"],
@@ -26,29 +26,38 @@
       "maximumExtractedFiles": 1000,
       "maximumExtractedSizeMb": 500,
       "recommendedCover": "630x500",
-      "recommendedAuthenticScreenshots": "3-5"
+      "recommendedAuthenticScreenshots": "3-5",
+      "requiredScreenshotsForInitialHonestPage": 0
     },
     "gates": [
-      "four authentic gameplay moments approved",
-      "clean creature reveal approved",
+      "reviewed brand cover approved by Kevin",
       "embedded browser package tested",
       "Kevin chooses itch.io-first learning or a Poki-first access request",
-      "Kevin approves account and public listing"
+      "Kevin approves an account under his control",
+      "Kevin approves the final page preview and platform terms"
     ],
     "technicalEvidence": {
       "buildCommand": "npm run package:itch",
       "directPlay": true,
       "nestedFrameTestPassed": true,
-      "fileCount": 85,
-      "extractedBytes": 46868954,
-      "latestArchiveBytes": 43051532,
+      "fileCount": 86,
+      "extractedBytes": 33317542,
+      "lastValidatedArchiveBytes": 29456384,
       "withdrawnMediaIncluded": false
+    },
+    "visualEvidence": {
+      "coverState": "adult_reviewed_waiting_for_kevin_approval",
+      "coverPath": "docs/company/content/review/itch-cover/mythical-void-itch-cover-630x500.png",
+      "gameplayScreenshotsAttached": 0,
+      "recommendedFutureGameplayScreenshots": 4,
+      "brandCoverExplicitlyMarkedNotGameplay": true
     }
   },
   "distributionRightsFork": {
     "decisionId": "D-018",
-    "decisionDue": "after 4 of 4 authentic visuals, first-minute, mobile and loading gates pass",
-    "recommendedSequence": "Request Poki access first to preserve the larger curated-reach option; use the ready itch.io release if Poki is not a fit or acceptable terms are not offered.",
+    "decisionDue": "before an itch.io publication or Poki access request",
+    "recommendedSequence": "Run the private First Five adult playtest first. If the opening works, use itch.io for fast learning unless Kevin chooses to preserve the possible Poki web-exclusive route instead.",
+    "companyRecommendation": "itch.io_first_for_learning_after_first_five",
     "pokiPreferredDealWebExclusive": true,
     "pokiIndicativeExclusiveTermYears": 5,
     "pokiNonExclusiveFlatFeeRouteExists": true,
@@ -57,7 +66,7 @@
   "routeOrder": [
     { "name": "owned search landing page", "state": "live", "url": "https://mythicalvoid.com/playable-now/" },
     { "name": "Poki", "state": "high_upside_option_preserved_not_submitted" },
-    { "name": "itch.io", "state": "technical_package_ready_not_published" },
+    { "name": "itch.io", "state": "package_copy_and_reviewed_cover_ready_not_published" },
     { "name": "YouTube", "state": "held_for_visual_quality" },
     { "name": "CrazyGames", "state": "later_candidate" },
     { "name": "Steam", "state": "not_now", "feeUsd": 100 }
@@ -72,9 +81,20 @@
     "pokiAccessRequestAuthorized": false,
     "webExclusivityMayBeAccepted": false
   },
+  "firstFive": {
+    "state": "ready_for_kevin_approval",
+    "adultParticipantsOnly": true,
+    "peopleContacted": 0,
+    "recordingUsed": false,
+    "identifyingInformationCollected": false,
+    "requiredBeforeRecommendedItchRelease": true
+  },
   "sources": [
     "https://itch.io/docs/creators/html5",
     "https://itch.io/docs/creators/getting-started",
+    "https://itch.io/docs/creators/getting-indexed",
+    "https://itch.io/docs/creators/quality-guidelines",
+    "https://itch.io/docs/creators/access-control",
     "https://developers.poki.com/guide",
     "https://developers.poki.com/guide/thumbnail",
     "https://developers.poki.com/share",

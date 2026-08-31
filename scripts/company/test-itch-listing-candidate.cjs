@@ -13,7 +13,7 @@ const clone = value => JSON.parse(JSON.stringify(value));
 let cases = 0;
 
 function valid(candidate = source, plan = visualPlan, text = copy) {
-    return validateItchListing(candidate, plan, text);
+    return validateItchListing(candidate, plan, text, { root });
 }
 
 function rejected(name, expectedFailure, change) {
@@ -33,11 +33,15 @@ rejected('external publication', 'boundary externalPublicationAuthorized', candi
 rejected('fake approval count', 'approved visual count', candidate => { candidate.visualGate.approvedMoments = 4; });
 rejected('unapproved screenshot', 'attached an unapproved image', candidate => { candidate.visualGate.screenshotSlots[0].assetPath = '/marketing/imagined-art.webp'; });
 rejected('missing required moment', 'one distinct screenshot slot', candidate => { candidate.visualGate.screenshotSlots.pop(); });
+rejected('invented screenshot requirement', 'must not invent a screenshot requirement', candidate => { candidate.visualGate.requiredMomentsForInitialPublication = 4; });
+rejected('fake cover hash', 'cover hash', candidate => { candidate.visualGate.cover.sha256 = '0'.repeat(64); });
+rejected('premature cover approval', 'waiting for Kevin', candidate => { candidate.visualGate.cover.kevinApproved = true; });
 rejected('retired wording', 'retired companion wording', candidate => { candidate.listing.shortDescription = 'Find your AI companion.'; });
 rejected('unsupported uniqueness', 'unsupported creature-uniqueness promise', candidate => { candidate.listing.playerPromise = 'Every creature is unique.'; });
 rejected('unverified phone claim', 'mobile-friendly', candidate => { candidate.listing.mobileFriendlyClaimApproved = true; });
 rejected('invented account access', 'invents an account or page', candidate => { candidate.reviewGate.itchAccountAccessProvided = true; });
 rejected('page created without authority', 'invents an account or page', candidate => { candidate.reviewGate.pageCreated = true; });
+rejected('invented Kevin approval', 'invents Kevin cover approval', candidate => { candidate.reviewGate.coverApprovedByKevin = true; });
 
-assert.strictEqual(cases, 10);
-console.log('itch.io listing safeguards passed (10 cases).');
+assert.strictEqual(cases, 14);
+console.log('itch.io listing safeguards passed (14 cases).');

@@ -1,6 +1,6 @@
 # The shortest route from “I want a new game” to Mythical Void
 
-Status: working plan, checked 27 August 2026
+Status: owned search is live; the private First Five check and the first itch.io page are ready for Kevin's decisions, checked 31 August 2026
 
 ## What makes somebody start a game
 
@@ -51,11 +51,12 @@ explanation into that route.
 
 ## The first distribution move
 
-Once the authentic visual gate passes, use one strong creature/action moment
-to make a matched set: game-shelf cover, three to five real screenshots, one
-short YouTube proof and the same direct-play promise on every page. First make
-the Poki-versus-itch.io choice described below. Do not spread weak or different
-messages across many channels.
+Start with the private First Five check. If unfamiliar adults can understand
+the opening and reach something meaningful, Kevin can choose the first public
+shelf. The itch.io package, page copy and reviewed brand cover are ready for
+that decision. The first page can honestly launch without screenshots; weak or
+misleading gameplay images must not be used just to fill a gallery. Four strong
+real-game images and one short video remain the quality target for later.
 
 Judge the first release on four steps rather than likes or follower counts:
 
@@ -102,24 +103,37 @@ with an indicative five-year term. It also describes a non-exclusive flat-fee
 route for games already live on other web platforms. Publishing on itch.io
 first could therefore change the kind of Poki opportunity available later.
 
-The visual gate is still closed, so no immediate decision is needed. When it
-passes, Kevin should choose between a Poki-first access request and an
-itch.io-first learning release. For maximum upside, the current recommendation
-is to request Poki access first and keep the prepared itch.io release as the
-fallback. No form submission, exclusivity or terms are authorized.
+The decision is now needed before either external route is used. My company
+recommendation is to run the private First Five check, then use itch.io for
+fast learning if the opening works. That gives Mythical Void a real shelf and
+real player behaviour without waiting for a perfect media campaign. Kevin can
+instead choose a Poki-first request if preserving the possible web-exclusive
+route matters more. No form submission, exclusivity, account action or terms
+are authorised yet.
 
 ## Why itch.io is first if Kevin chooses speed
 
 It is the closest match for the game we have today. itch.io supports games that play directly in the browser. Its official guide says the project needs a ZIP with a top-level `index.html`, no more than 1,000 files, no more than 500 MB extracted, and relative file paths. A free account can create the page.
 
-The separate itch.io edition now opens directly into the game from a nested project folder. It contains 85 files, is about 47 MB unpacked and produces an upload ZIP of about 43 MB. The embedded test reached the real age-setting screen and loaded the game engine, creature systems, opening world image and opening cinematic without a missing game file.
+The separate itch.io edition now opens directly into the game from a nested
+project folder. The latest measured build contains 86 files and 33,317,542
+bytes of game data; the last checked upload ZIP was 29,456,384 bytes. The
+embedded test reached the real age-setting screen and loaded the game engine,
+creature systems, opening world image and opening cinematic without a missing
+game file.
 
-The public listing still waits for two things:
+The public listing still waits for these decisions:
 
-- four approved, authentic gameplay moments, including one clean creature reveal;
-- Kevin’s approval to use an account he controls and accept the platform terms.
+- Kevin chooses itch.io-first learning or a Poki-first request;
+- Kevin approves the reviewed brand cover;
+- Kevin provides or approves an itch.io account under his control;
+- Kevin reviews the final draft and accepts the platform terms himself.
 
-This is a quality gate, not a marketing delay. A bad thumbnail or an inaccurate screenshot loses the player at exactly the point we are trying to win.
+itch.io recommends three to five screenshots, but its current indexing baseline
+does not list screenshots as a requirement. Because our existing gameplay
+images did not pass human review, the first honest page attaches none. The
+reviewed 630 × 500 cover is brand art, visibly labelled “BRAND COVER · NOT
+GAMEPLAY”. Four good real-game images can be added later.
 
 ## The itch.io listing draft
 
@@ -133,9 +147,12 @@ This is a quality gate, not a marketing delay. A bad thumbnail or an inaccurate 
 
 **Price:** Free, with no donation request in the first release.
 
-**Cover:** A truthful, striking image that resembles the actual creature and game world. itch.io recommends 630 × 500 pixels.
+**Cover:** The reviewed 630 × 500 purple-and-gold Mythical Void brand cover,
+waiting for Kevin’s approval. It is explicitly marked as brand art, not
+gameplay.
 
-**Screenshots:** Three to five real game images. Do not use imagined universe art as gameplay.
+**Screenshots:** None on the first page. Add three to five real game images only
+after they pass human review. Never use imagined universe art as gameplay.
 
 **Controls:** State the real keyboard, mouse and touch controls only after the packaged build is checked.
 
@@ -152,28 +169,35 @@ Before any large portal application, five people unfamiliar with the project sho
 - leave knowing why they might return.
 
 The exact adult-only twelve-minute check, fixed result fields and release rule
-are in the [First Five playtest](../research/FIRST_FIVE_PLAYTEST.md). It runs
-only after the post-Play presentation repair and Kevin-approved adult
-invitations; it does not recruit or record children.
+are in the [First Five playtest](../research/FIRST_FIVE_PLAYTEST.md). The fixed
+first-contact presentation is now live and the check is ready for Kevin’s
+approval. It does not recruit or record children, and nobody has been contacted.
 
 We record what happened, not what we hoped happened. No child is contacted privately and no identifying child information is collected.
 
-## What Kevin will eventually need to approve
+## What Kevin now needs to approve
 
-No action is needed now. When the visual gate passes, ask Kevin for one
-distribution decision:
+There are two small gates, in this order:
+
+1. Approve the adult-only First Five invitation so we can learn whether the
+   opening works for people who do not know the project.
+2. Choose the first public route:
 
 > Should we preserve maximum upside by asking Poki to consider the game first,
 > or publish the prepared itch.io page now for faster learning?
 
-That decision does not itself authorize a form submission, public listing,
-platform terms, exclusivity, ads, paid promotion, direct messages, bulk
-outreach or additional platforms.
+If itch.io is chosen, Kevin must separately approve the reviewed cover, the
+account under his control, the final page preview and the platform terms. No
+decision here authorises exclusivity, ads, paid promotion, direct messages,
+bulk outreach or another platform.
 
 ## Sources used for the current platform facts
 
 - itch.io HTML5 upload guide: https://itch.io/docs/creators/html5
 - itch.io first project guide: https://itch.io/docs/creators/getting-started
+- itch.io indexing guide: https://itch.io/docs/creators/getting-indexed
+- itch.io quality guide: https://itch.io/docs/creators/quality-guidelines
+- itch.io access-control guide: https://itch.io/docs/creators/access-control
 - Poki web-game guide: https://developers.poki.com/guide
 - Poki thumbnail guide: https://developers.poki.com/guide/thumbnail
 - Poki developer application: https://developers.poki.com/share
