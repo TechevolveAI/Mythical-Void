@@ -128,6 +128,179 @@ class BreedingEngine {
     }
 
     /**
+     * Return a complete, valid Mendelian genome for any creature record.
+     *
+     * Older hatch-born creatures predate the Mendelian fields used by Fusion.
+     * Their genes must be derived from immutable identity and visible traits,
+     * never regenerated from Math.random when the Pod opens.
+     */
+    resolveCreatureGenes(creatureOrGenes) {
+        const creature = creatureOrGenes && typeof creatureOrGenes === 'object'
+            ? creatureOrGenes
+            : {};
+        const genetics = creature.genes || creature.genetics || creature.dna || creature;
+        const directMendelianGenes = Object.keys(this.traitDefinitions).some(
+            traitKey => Array.isArray(creature?.[traitKey])
+        ) ? creature : null;
+        const storedGenes = genetics?.mendelianGenes ||
+            creature.mendelianGenes || directMendelianGenes;
+        const derivedGenes = this.deriveMendelianGenes(creature, genetics);
+
+        return Object.fromEntries(
+            Object.keys(this.traitDefinitions).map(traitKey => {
+                const validVariations = Object.keys(
+                    this.traitDefinitions[traitKey].variations
+                );
+                const storedAlleles = Array.isArray(storedGenes?.[traitKey])
+                    ? storedGenes[traitKey].filter(allele => (
+                        validVariations.includes(allele)
+                    )).slice(0, 2)
+                    : [];
+                const alleles = [...storedAlleles];
+                for (const allele of derivedGenes[traitKey]) {
+                    if (alleles.length >= 2) break;
+                    alleles.push(allele);
+                }
+                while (alleles.length < 2) {
+                    alleles.push(validVariations[0]);
+                }
+                return [traitKey, alleles.sort()];
+            })
+        );
+    }
+
+    deriveMendelianGenes(creature, genetics) {
+        const stableIdentity = {
+            creatureId: creature?.id || null,
+            geneticId: genetics?.id || null,
+            dnaId: creature?.dna?.id || null,
+            species: genetics?.species || null,
+            rarity: genetics?.rarity || creature?.rarity || null,
+            bodyShape: genetics?.traits?.bodyShape?.type || null,
+            eyeColor: genetics?.traits?.features?.eyes?.color || null,
+            markings: genetics?.traits?.features?.markings || null,
+            colorGenome: genetics?.traits?.colorGenome || null,
+            cosmicAffinity: genetics?.cosmicAffinity?.element ||
+                genetics?.cosmicAffinity || creature?.cosmicAffinity || null,
+            personality: genetics?.personality?.core || creature?.personality || null
+        };
+        const seed = this.stableStringify(stableIdentity);
+
+        return Object.fromEntries(
+            Object.keys(this.traitDefinitions).map(traitKey => {
+                const variations = Object.keys(
+                    this.traitDefinitions[traitKey].variations
+                );
+                const visibleAllele = this.getVisibleAllele(
+                    traitKey,
+                    genetics,
+                    variations
+                );
+                const first = visibleAllele || variations[
+                    this.deterministicIndex(`${seed}:${traitKey}:expressed`, variations.length)
+                ];
+                const second = variations[
+                    this.deterministicIndex(`${seed}:${traitKey}:carrier`, variations.length)
+                ];
+                return [traitKey, [first, second].sort()];
+            })
+        );
+    }
+
+    getVisibleAllele(traitKey, genetics, variations) {
+        const traits = genetics?.traits || {};
+        const breedingVisuals = traits.breedingVisuals || {};
+        const mutations = traits.features?.wackyMutations || [];
+        const mutationTypes = new Set(
+            mutations.map(mutation => mutation?.type).filter(Boolean)
+        );
+
+        if (traitKey === 'bodyShape') {
+            const bodyType = String(
+                breedingVisuals.bodyMods?.shape?.type ||
+                traits.bodyShape?.type || ''
+            ).toLowerCase();
+            if (/slender|serpentine|avian/.test(bodyType)) return 'slender';
+            if (/stocky|sturdy|quadruped/.test(bodyType)) return 'stocky';
+            return 'normal';
+        }
+        if (traitKey === 'eyeColor') {
+            const color = breedingVisuals.eyeColor || traits.features?.eyes?.color;
+            if (Number.isFinite(Number(color))) {
+                return this.closestEyeColor(Number(color));
+            }
+        }
+        if (traitKey === 'pattern') {
+            const pattern = String(
+                breedingVisuals.bodyMods?.pattern?.type ||
+                traits.features?.markings?.pattern || ''
+            ).toLowerCase();
+            if (/spot|speck|dot/.test(pattern)) return 'spotted';
+            if (/stripe|band|line/.test(pattern)) return 'striped';
+            return 'solid';
+        }
+        if (traitKey === 'horns') {
+            if (mutationTypes.has('cosmic_horns')) return 'large';
+            return 'none';
+        }
+        if (traitKey === 'tail') {
+            const bodyType = String(traits.bodyShape?.type || '').toLowerCase();
+            if (/serpentine|fish|reptil/.test(bodyType)) return 'long';
+            return mutationTypes.has('phantom_limbs') ? 'medium' : 'short';
+        }
+        if (traitKey === 'maneLength' && mutationTypes.has('feather_mane')) {
+            return 'long';
+        }
+
+        return variations.includes(breedingVisuals?.[traitKey])
+            ? breedingVisuals[traitKey]
+            : null;
+    }
+
+    closestEyeColor(color) {
+        const channels = value => [
+            (value >> 16) & 0xFF,
+            (value >> 8) & 0xFF,
+            value & 0xFF
+        ];
+        const target = channels(color);
+        return Object.entries(this.traitDefinitions.eyeColor.variations)
+            .map(([name, definition]) => {
+                const candidate = channels(definition.color || 0);
+                const distance = candidate.reduce((total, channel, index) => (
+                    total + ((channel - target[index]) ** 2)
+                ), 0);
+                return { name, distance };
+            })
+            .sort((left, right) => (
+                left.distance - right.distance || left.name.localeCompare(right.name)
+            ))[0].name;
+    }
+
+    stableStringify(value) {
+        if (value === null || typeof value !== 'object') {
+            return JSON.stringify(value);
+        }
+        if (Array.isArray(value)) {
+            return `[${value.map(item => this.stableStringify(item)).join(',')}]`;
+        }
+        return `{${Object.keys(value)
+            .filter(key => value[key] !== undefined)
+            .sort()
+            .map(key => `${JSON.stringify(key)}:${this.stableStringify(value[key])}`)
+            .join(',')}}`;
+    }
+
+    deterministicIndex(seed, length) {
+        let hash = 0x811c9dc5;
+        for (let index = 0; index < seed.length; index += 1) {
+            hash ^= seed.charCodeAt(index);
+            hash = Math.imul(hash, 0x01000193);
+        }
+        return length > 0 ? (hash >>> 0) % length : 0;
+    }
+
+    /**
      * Get expressed phenotype from genotype
      * Handles missing/malformed genes gracefully
      */
@@ -188,34 +361,21 @@ class BreedingEngine {
      * Now handles missing/null genes gracefully by generating defaults
      */
     breedCreatures(parent1Genes, parent2Genes) {
-        const offspringGenes = {};
+        return this.breedCreaturesWithLineage(parent1Genes, parent2Genes).genes;
+    }
 
-        // Ensure we have valid gene objects - generate defaults if needed
-        const safeParent1Genes = parent1Genes && typeof parent1Genes === 'object'
-            ? parent1Genes
-            : this.generateInitialGenes();
-        const safeParent2Genes = parent2Genes && typeof parent2Genes === 'object'
-            ? parent2Genes
-            : this.generateInitialGenes();
+    breedCreaturesWithLineage(parent1Genes, parent2Genes) {
+        const offspringGenes = {};
+        const inheritance = {};
+        const safeParent1Genes = this.resolveCreatureGenes(parent1Genes);
+        const safeParent2Genes = this.resolveCreatureGenes(parent2Genes);
 
         Object.keys(this.traitDefinitions).forEach(traitKey => {
             // Get alleles from each parent, using generated defaults if missing
             const variations = Object.keys(this.traitDefinitions[traitKey].variations);
 
-            // Safely get parent alleles - generate random if missing for this trait
-            let parent1Alleles = safeParent1Genes[traitKey];
-            if (!Array.isArray(parent1Alleles) || parent1Alleles.length < 2) {
-                const a1 = variations[Math.floor(Math.random() * variations.length)];
-                const a2 = variations[Math.floor(Math.random() * variations.length)];
-                parent1Alleles = [a1, a2];
-            }
-
-            let parent2Alleles = safeParent2Genes[traitKey];
-            if (!Array.isArray(parent2Alleles) || parent2Alleles.length < 2) {
-                const a1 = variations[Math.floor(Math.random() * variations.length)];
-                const a2 = variations[Math.floor(Math.random() * variations.length)];
-                parent2Alleles = [a1, a2];
-            }
+            const parent1Alleles = safeParent1Genes[traitKey];
+            const parent2Alleles = safeParent2Genes[traitKey];
 
             // Each parent contributes one allele randomly
             const alleleFromParent1 = parent1Alleles[Math.floor(Math.random() * parent1Alleles.length)];
@@ -225,10 +385,25 @@ class BreedingEngine {
             const validAllele1 = variations.includes(alleleFromParent1) ? alleleFromParent1 : variations[0];
             const validAllele2 = variations.includes(alleleFromParent2) ? alleleFromParent2 : variations[0];
 
-            offspringGenes[traitKey] = [validAllele1, validAllele2].sort();
+            const childAlleles = [validAllele1, validAllele2].sort();
+            offspringGenes[traitKey] = childAlleles;
+            const expressedAllele = this.getPhenotype({
+                [traitKey]: childAlleles
+            })[traitKey];
+            inheritance[traitKey] = {
+                trait: this.traitDefinitions[traitKey].name,
+                parent1Allele: validAllele1,
+                parent2Allele: validAllele2,
+                expressedAllele,
+                expressedFrom: validAllele1 === validAllele2
+                    ? 'both'
+                    : expressedAllele === validAllele1
+                        ? 'parent1'
+                        : 'parent2'
+            };
         });
 
-        return offspringGenes;
+        return { genes: offspringGenes, inheritance };
     }
 
     /**
@@ -402,7 +577,11 @@ class BreedingEngine {
      * @param {Object} parentGenetics - Parent genetics for mutation inheritance
      * @returns {Object} Visual configuration for GraphicsEngine
      */
-    getVisualConfigFromPhenotype(phenotype, parentGenetics = null) {
+    getVisualConfigFromPhenotype(
+        phenotype,
+        parentGenetics = null,
+        offspringRarity = 'common'
+    ) {
         // Handle null/undefined phenotype
         const safePhenotype = phenotype || {};
 
@@ -418,7 +597,10 @@ class BreedingEngine {
                 pattern: this.mapPatternTrait(safePhenotype.pattern)
             },
             eyeColor: this.traitDefinitions.eyeColor?.variations[safePhenotype.eyeColor]?.color || 0x4169E1,
-            inheritedMutations: this.inheritMutationsFromParents(parentGenetics)
+            inheritedMutations: this.inheritMutationsFromParents(
+                parentGenetics,
+                offspringRarity
+            )
         };
     }
 
@@ -498,7 +680,7 @@ class BreedingEngine {
      * @param {Object} parentGenetics - Object containing parent1 and parent2 genetics
      * @returns {Array} Inherited mutations for offspring
      */
-    inheritMutationsFromParents(parentGenetics) {
+    inheritMutationsFromParents(parentGenetics, offspringRarity = 'common') {
         if (!parentGenetics) return [];
 
         const parent1Mutations = parentGenetics.parent1?.traits?.features?.wackyMutations || [];
@@ -509,7 +691,7 @@ class BreedingEngine {
             return window.CreatureGenetics.inheritWackyMutations(
                 parent1Mutations,
                 parent2Mutations,
-                'common' // Default rarity, can be overridden
+                offspringRarity
             );
         }
 
@@ -531,4 +713,11 @@ class BreedingEngine {
 }
 
 // Export for use in other modules
-window.BreedingEngine = new BreedingEngine();
+const breedingEngine = new BreedingEngine();
+if (typeof window !== 'undefined') {
+    window.BreedingEngine = breedingEngine;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { BreedingEngine, breedingEngine };
+}

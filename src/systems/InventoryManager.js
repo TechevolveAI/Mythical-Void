@@ -240,6 +240,50 @@ class InventoryManager {
     }
 
     /**
+     * Reserve one owned egg for HatchingScene before leaving the inventory.
+     * The reservation is written before removeItem saves, so a refresh cannot
+     * consume an egg without leaving a resumable hatch transaction.
+     */
+    reserveEggForHatching(slot, spawnPosition = null) {
+        const item = this.getItem(slot);
+        if (!item || item.type !== 'egg') {
+            return { success: false, reason: 'egg_not_found' };
+        }
+        if (window.GameState?.get('creature.hatchTransaction')?.status === 'reserved') {
+            return { success: false, reason: 'hatch_already_reserved' };
+        }
+
+        const safePosition = {
+            x: Number.isFinite(Number(spawnPosition?.x))
+                ? Number(spawnPosition.x)
+                : 400,
+            y: Number.isFinite(Number(spawnPosition?.y))
+                ? Number(spawnPosition.y)
+                : 300
+        };
+        const transaction = {
+            schemaVersion: 1,
+            status: 'reserved',
+            eggType: item.eggType || 'cosmic',
+            eggItemId: item.id,
+            inventorySlot: slot,
+            spawnPosition: safePosition,
+            reservedAt: Date.now()
+        };
+        window.GameState?.set('creature.hatchTransaction', transaction);
+
+        if (!this.removeItem(slot, 1)) {
+            window.GameState?.set('creature.hatchTransaction', null);
+            window.GameState?.save?.();
+            return { success: false, reason: 'egg_remove_failed' };
+        }
+
+        window.GameState?.save?.();
+        this.events.emit('eggReservedForHatching', { transaction });
+        return { success: true, transaction };
+    }
+
+    /**
      * Use item from inventory
      * @param {number} slot - Inventory slot index
      * @returns {boolean} - Success status

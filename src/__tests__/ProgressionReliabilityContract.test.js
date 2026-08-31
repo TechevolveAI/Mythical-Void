@@ -8,6 +8,7 @@ function read(relativePath) {
 describe('secondary journey reliability contract', () => {
     const hub = read('scenes/HubWorldScene.js');
     const inventory = read('scenes/InventoryScene.js');
+    const inventoryManager = read('systems/InventoryManager.js');
     const forest = read('scenes/levels/MythicalForestLevel.js');
     const loader = read('utils/SceneLoader.js');
 
@@ -40,7 +41,9 @@ describe('secondary journey reliability contract', () => {
     });
 
     test('starts purchased egg hatching from a durable reservation', () => {
-        expect(inventory).toContain("status: 'reserved'");
+        expect(inventoryManager).toContain('reserveEggForHatching(');
+        expect(inventoryManager).toContain("status: 'reserved'");
+        expect(inventory).toContain('reserveEggForHatching?.(');
         expect(inventory).toContain('const launchReservedHatch = () => {');
         expect(inventory).toContain("sceneManager.start('HatchingScene', {");
         expect(inventory).toContain(
