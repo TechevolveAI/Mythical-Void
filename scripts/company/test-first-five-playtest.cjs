@@ -10,6 +10,7 @@ const root = path.resolve(__dirname, '..', '..');
 const validator = path.join(__dirname, 'validate-first-five-playtest.cjs');
 const files = [
     'docs/company/research/first-five-playtest.json',
+    'docs/company/reviews/FIRST_CONTACT_VISUAL_REVIEW_2026-08-31.json',
     'docs/company/research/FIRST_FIVE_PLAYTEST.md',
     'docs/company/research/FIRST_FIVE_INVITATION_AND_SCORECARD_2026-08-31.md',
     'docs/company/research/ROUND_001_POSITIONING_AND_TRUST.md',
@@ -60,9 +61,11 @@ try {
 }
 
 invalidJson('child audience', plan => { plan.audience.minorParticipationPermitted = true; }, 'minor participation');
-invalidJson('missing product gate', plan => { plan.entryGates.gdh009Passed = false; }, 'product gate');
-invalidJson('invented build', plan => { plan.entryGates.stableBuildRef = 'not-approved'; }, 'production build proof');
-invalidJson('invented deploy', plan => { plan.entryGates.productionDeployId = 'not-approved'; }, 'production deploy proof');
+invalidJson('invented product pass', plan => { plan.entryGates.gdh009Passed = true; }, 'must not be marked passed');
+invalidJson('invented build', plan => { plan.entryGates.stableBuildRef = 'not-approved'; }, 'no approved stable build');
+invalidJson('invented deploy', plan => { plan.entryGates.productionDeployId = 'not-approved'; }, 'no approved stable build');
+invalidJson('invented human approval', plan => { plan.entryGates.adultHumanVisualReviewPassed = true; }, 'visual approval must remain false');
+invalidJson('deployed rejected candidate', plan => { plan.currentHold.candidateDeployed = true; }, 'must not permit deployment');
 invalidJson('premature Kevin approval', plan => { plan.entryGates.kevinApprovedPurposeAndInvitations = true; }, 'must remain false');
 invalidJson('filled result', plan => { plan.sessionSlots[0].state = 'complete'; plan.sessionSlots[0].result = {}; }, 'must remain empty');
 invalidJson('external authority', plan => { plan.authority.participantContactAuthorized = true; }, 'participantContactAuthorized');
@@ -95,5 +98,5 @@ try {
     fs.rmSync(invitationRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 12);
-console.log('First Five playtest safeguards passed (12 cases).');
+assert.strictEqual(cases, 14);
+console.log('First Five playtest safeguards passed (14 cases).');

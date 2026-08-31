@@ -1,7 +1,7 @@
 # Mythical Void: what happens next
 
 This is the short, plain-English view of the company plan. It reflects what is
-actually live on 26 August 2026.
+actually live on 31 August 2026.
 
 ## Now — help the right people find and try the game
 
@@ -22,17 +22,30 @@ actually live on 26 August 2026.
 - A weekly growth check now returns to this task every Monday morning. It checks
   production, search visibility, the journey to Play and the strongest next
   action.
+- The public GitHub project now describes the game clearly and has a verified
+  early-access release leading to Play. It contains no weak screenshots, video
+  or downloadable second build.
 
-## Next — send the first human signal
+## Next — earn the first human signal
+
+- The First Five adult test is held. A private repair fixed the first-contact
+  layout, but the real creature still looked like a soft or blurry mascot and
+  did not support its alien classification. The candidate was not deployed.
+- Game Development has stopped at the creature art-direction boundary. The
+  next proof needs one approved visual direction, the same identity on phone
+  and desktop and one normal in-play frame before a person reviews it.
+- Nobody should be invited and no gameplay-led promotion should begin while
+  this first impression is held.
 
 - The strongest first outside story is the true beginning: a father and his
-  nine-year-old son exploring what imagination and generative AI tools could
-  turn into a real game.
+  son exploring what imagination and generative AI tools could turn into a
+  real game.
 - A complete text-first founder post is ready. It can come from Kevin’s existing
   professional profile, so a new Mythical mailbox or company social account is
   not needed first.
-- Kevin needs to confirm the profile and approve the complete preview before it
-  is posted. Replies remain a human responsibility.
+- Keep that post prepared until the first-contact gate passes. Kevin then needs
+  to confirm the profile and approve the complete preview before it is posted.
+  Replies remain a human responsibility.
 - Google Search Console read access is still needed to see real search queries,
   indexing and crawl problems. This does not stop other work.
 

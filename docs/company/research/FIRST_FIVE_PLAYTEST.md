@@ -1,6 +1,6 @@
 # The First Five playtest
 
-**State:** the game gate is ready; invitations wait for Kevin’s approval
+**State:** held; the creature’s first impression is not ready
 
 ## Why this comes before promotion
 
@@ -115,8 +115,16 @@ never delete or rewrite the earlier result to make it look successful.
 
 ## Current boundary
 
-The test has not started. The repaired first-contact presentation is live in
-production at commit `b20ec3fe835c9db202ea23d4bbc0d420da3999f8`
-(deploy `6a950415032ea30008d9bc28`) and passed adult review on phone and desktop.
-Kevin has not approved the invitation, named the observer or contacted any
-participant. No result has been recorded.
+The test has not started and invitations must not begin. A private repair at
+commit `ad4e4599316b327627ff83a5e1fb387ec0d5802d` removed the rectangular
+texture plate and fixed the responsive layout, but the creature itself failed
+the company’s obvious-fault review on phone and desktop. It still reads as a
+soft or blurry mascot rather than the alien living form promised by its
+classification. The candidate was not deployed.
+
+The full decision is recorded in
+[`FIRST_CONTACT_VISUAL_REVIEW_2026-08-31.json`](../reviews/FIRST_CONTACT_VISUAL_REVIEW_2026-08-31.json).
+A new proof needs an approved creature art direction, the same real identity on
+phone and desktop, one normal in-play frame and approval by a person. Kevin has
+not approved the invitation, named the observer or contacted any participant.
+No result has been recorded.

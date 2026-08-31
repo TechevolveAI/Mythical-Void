@@ -1,7 +1,7 @@
 {
   "id": "BOTTOM-OF-FUNNEL-001",
   "checkedOn": "2026-08-31",
-  "state": "owned_entry_live_first_five_and_itch_page_ready_for_kevin_decisions",
+  "state": "owned_entry_live_first_five_held_itch_candidate_waiting",
   "playerPromise": "A free browser adventure where you hatch a strange alien creature, cross six living realms and decide what Project Beacon should tell Earth. No download or account needed.",
   "playerDecisionModel": {
     "sequence": ["wanted feeling", "believable fit", "real gameplay proof", "trust", "low-friction start"],
@@ -82,12 +82,14 @@
     "webExclusivityMayBeAccepted": false
   },
   "firstFive": {
-    "state": "ready_for_kevin_approval",
+    "state": "held_for_creature_first_impression",
+    "blockingReview": "docs/company/reviews/FIRST_CONTACT_VISUAL_REVIEW_2026-08-31.json",
     "adultParticipantsOnly": true,
     "peopleContacted": 0,
     "recordingUsed": false,
     "identifyingInformationCollected": false,
-    "requiredBeforeRecommendedItchRelease": true
+    "requiredBeforeRecommendedItchRelease": true,
+    "invitationsMayBegin": false
   },
   "sources": [
     "https://itch.io/docs/creators/html5",

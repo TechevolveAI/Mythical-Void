@@ -169,19 +169,23 @@ Before any large portal application, five people unfamiliar with the project sho
 - leave knowing why they might return.
 
 The exact adult-only twelve-minute check, fixed result fields and release rule
-are in the [First Five playtest](../research/FIRST_FIVE_PLAYTEST.md). The fixed
-first-contact presentation is now live and the check is ready for Kevin’s
-approval. It does not recruit or record children, and nobody has been contacted.
+are in the [First Five playtest](../research/FIRST_FIVE_PLAYTEST.md). The latest
+private first-contact repair fixed its layout but failed the creature-quality
+preflight, so the check is held before invitations. It does not recruit or
+record children, and nobody has been contacted.
 
 We record what happened, not what we hoped happened. No child is contacted privately and no identifying child information is collected.
 
 ## What Kevin now needs to approve
 
-There are two small gates, in this order:
+There are three gates, in this order:
 
-1. Approve the adult-only First Five invitation so we can learn whether the
-   opening works for people who do not know the project.
-2. Choose the first public route:
+1. Approve a creature art direction for the next private first-contact proof.
+   The rejected layout repair must not be deployed or used with testers.
+2. After that proof passes human review, approve the adult-only First Five
+   invitation so we can learn whether the opening works for people who do not
+   know the project.
+3. After the First Five passes, choose the first public route:
 
 > Should we preserve maximum upside by asking Poki to consider the game first,
 > or publish the prepared itch.io page now for faster learning?

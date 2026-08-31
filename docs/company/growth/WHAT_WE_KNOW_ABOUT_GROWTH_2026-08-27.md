@@ -8,10 +8,10 @@ impression is not a recommendation.
 
 | Part of the journey | What is proven | What is still unknown |
 | --- | --- | --- |
-| Find Mythical Void | The public pages, sitemap, site identity and search information are live. IndexNow accepted notices for the changed pages. A truthful Play-first doorway is prepared for the public GitHub project. | The latest four-search check again found no official Mythical Void result. A signed-in read-only check found no Mythical Void Search Console property. Google indexing, impressions and useful discovery are not proven. |
+| Find Mythical Void | The public pages, sitemap, site identity and search information are live. IndexNow accepted notices for the changed pages. The public GitHub project now has a truthful Play-first description and a verified early-access release with no weak gameplay media attached. | The latest four-search check again found no official Mythical Void result. A signed-in read-only check found no Mythical Void Search Console property. Google indexing, impressions and useful discovery are not proven. |
 | Understand the game | The website explains the creature, six realms, story, free browser access, early-access state and family boundaries. | No unfamiliar adult or guardian has completed the comprehension check. |
 | Start playing | An isolated production check reached the age choice, one Start action and the egg on desktop and phone. A real click or tap began hatching. | We do not yet know whether an unfamiliar person can do this without help. |
-| Reach the first payoff | Hatching can be started reliably. | A completed hatch, recognisable creature reveal and first bond have not passed a fresh human play check. |
+| Reach the first payoff | Hatching can be started reliably. A private repair removed the rectangular creature plate and fixed the first-contact layout. | The repaired creature still failed the obvious visual-quality preflight on phone and desktop, so it was not deployed. A completed hatch, recognisable creature reveal and first bond have not passed a fresh human play check. |
 | Find lasting value | The running build contains creature variation, six realms, restoration and the Project Beacon story. | There is no accepted customer evidence that these parts are understood, enjoyable or valuable. |
 | Return | A saved-adventure route exists. | The current returning view failed the human-facing visual review, and no voluntary return is measured. |
 | Share or recommend | Clean sharing routes and the Hatch Challenge are live without collecting a contact or adding tracking codes. | No voluntary share or recommendation has been observed or measured. |
@@ -22,14 +22,15 @@ Mythical does not need another near-duplicate “free game” page. It needs the
 game to make a brilliant first impression, followed by a small amount of real
 adult evidence.
 
-The public GitHub project was an avoidable gap: it had no description, no
-website address and no immediate route to Play. Correcting that owned doorway
-is useful, but it cannot replace Search Console or a real game shelf.
+The public GitHub gap is now closed: the project has a clear description,
+website address, direct route to Play and a dated early-access release. This is
+useful, but it cannot replace Search Console, a real game shelf or evidence that
+an unfamiliar person wants to continue.
 
 The current order is:
 
-1. Game Development improves the returning-player view and produces four
-   excellent, authentic gameplay moments.
+1. Game Development waits for an approved creature art direction, then proves
+   one excellent first contact and one clear in-play view on phone and desktop.
 2. Kevin connects Google Search Console using the existing Google account so
    we can see whether Google has found the site. This is free and does not
    require another Google Workspace subscription.
