@@ -6,6 +6,9 @@
 const BUILD_TIMESTAMP = '__BUILD_TIMESTAMP__'; // Will be replaced during build
 const CACHE_VERSION = BUILD_TIMESTAMP !== '__BUILD_TIMESTAMP__' ? BUILD_TIMESTAMP : Date.now();
 const CACHE_NAME = `mythical-creature-v${CACHE_VERSION}`;
+const RELEASE_READY_MESSAGE = 'MYTHICAL_VOID_RELEASE_READY';
+const RELEASE_ACK_MESSAGE = 'MYTHICAL_VOID_RELEASE_ACK';
+const releaseAcknowledgements = new Set();
 
 const IS_DEVELOPMENT = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
 
@@ -26,25 +29,72 @@ self.addEventListener('install', function(event) {
   }
 });
 
+self.addEventListener('message', function(event) {
+  if (
+    event.data?.type === RELEASE_ACK_MESSAGE &&
+    String(event.data.version) === String(CACHE_VERSION) &&
+    event.source?.id
+  ) {
+    releaseAcknowledgements.add(event.source.id);
+  }
+});
+
 self.addEventListener('activate', function(event) {
   console.log('[ServiceWorker] Activating:', CACHE_NAME);
 
-  // Take control of all clients immediately
-  event.waitUntil(self.clients.claim());
+  event.waitUntil((async function() {
+    // Take control immediately and remove every prior release cache.
+    await self.clients.claim();
+    const cacheNames = await caches.keys();
+    await Promise.all(
+      cacheNames.map(function(cacheName) {
+        if (cacheName !== CACHE_NAME) {
+          console.log('[ServiceWorker] Deleting old cache:', cacheName);
+          return caches.delete(cacheName);
+        }
+        return null;
+      })
+    );
 
-  // CRITICAL: Delete ALL old caches to force fresh content
-  event.waitUntil(
-    caches.keys().then(function(cacheNames) {
-      return Promise.all(
-        cacheNames.map(function(cacheName) {
-          if (cacheName !== CACHE_NAME) {
-            console.log('[ServiceWorker] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
+    const clients = await self.clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    });
+    clients.forEach(function(client) {
+      client.postMessage({
+        type: RELEASE_READY_MESSAGE,
+        version: String(CACHE_VERSION)
+      });
+    });
+
+    // Current clients acknowledge and reload themselves. A legacy game client
+    // has no message handler, so refresh only that visible game route once.
+    await new Promise(function(resolve) {
+      setTimeout(resolve, 1200);
+    });
+    const currentClients = await self.clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    });
+    await Promise.all(currentClients.map(async function(client) {
+      if (
+        releaseAcknowledgements.has(client.id) ||
+        client.visibilityState !== 'visible' ||
+        typeof client.navigate !== 'function'
+      ) {
+        return;
+      }
+      const clientUrl = new URL(client.url);
+      const isGameRoute = clientUrl.origin === self.location.origin &&
+        /^\/(?:play|game)(?:\/|$)/.test(clientUrl.pathname);
+      if (!isGameRoute) return;
+      try {
+        await client.navigate(client.url);
+      } catch (_error) {
+        // A closed or concurrently navigating client needs no recovery.
+      }
+    }));
+  })());
 });
 
 self.addEventListener('fetch', function(event) {
