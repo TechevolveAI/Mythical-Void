@@ -80,9 +80,11 @@
     "externalClaimPermitted": false
   },
   "currentHold": {
-    "reason": "The latest private first-contact repair fixed layout faults but the real runtime creature still failed the obvious visual-quality preflight on phone and desktop.",
+    "reason": "The first-contact repair is live and fixes layout faults, but the real runtime creature still failed the visual-quality preflight on phone and desktop. Technical deployment is not human visual approval.",
     "candidateSourceCommit": "ad4e4599316b327627ff83a5e1fb387ec0d5802d",
-    "candidateDeployed": false,
+    "candidateDeployed": true,
+    "productionSourceCommit": "e9293f09d2ed5332d5538c05f051560d29e4d5e3",
+    "productionDeployId": "6a951fc9e33f9100083fb699",
     "invitationsMayBegin": false,
     "promotionMayBegin": false
   },
