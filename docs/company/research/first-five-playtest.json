@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "FIRST-FIVE-001",
-  "state": "ready_after_gdh009_and_kevin_approval",
+  "state": "ready_for_kevin_approval",
   "purpose": "Check whether five unfamiliar adults can understand and begin the real game before gameplay-led promotion.",
   "sessionMinutes": 12,
   "audience": {
@@ -17,8 +17,10 @@
     "phone": 2
   },
   "entryGates": {
-    "gdh009Passed": false,
-    "stableBuildRef": null,
+    "gdh009Passed": true,
+    "stableBuildRef": "b20ec3fe835c9db202ea23d4bbc0d420da3999f8",
+    "productionDeployId": "6a950415032ea30008d9bc28",
+    "adultVisualReviewPassed": true,
     "kevinApprovedPurposeAndInvitations": false,
     "adultInvitationCopyApproved": false,
     "observerNamed": false
@@ -86,4 +88,3 @@
     "externalActionTaken": false
   }
 }
-

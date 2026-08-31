@@ -11,6 +11,7 @@ const validator = path.join(__dirname, 'validate-first-five-playtest.cjs');
 const files = [
     'docs/company/research/first-five-playtest.json',
     'docs/company/research/FIRST_FIVE_PLAYTEST.md',
+    'docs/company/research/FIRST_FIVE_INVITATION_AND_SCORECARD_2026-08-31.md',
     'docs/company/research/ROUND_001_POSITIONING_AND_TRUST.md',
     'docs/company/research/round-001a-operations.json',
     'package.json'
@@ -59,8 +60,10 @@ try {
 }
 
 invalidJson('child audience', plan => { plan.audience.minorParticipationPermitted = true; }, 'minor participation');
-invalidJson('premature gate', plan => { plan.entryGates.gdh009Passed = true; }, 'entry gate');
-invalidJson('invented build', plan => { plan.entryGates.stableBuildRef = 'not-approved'; }, 'entry gate');
+invalidJson('missing product gate', plan => { plan.entryGates.gdh009Passed = false; }, 'product gate');
+invalidJson('invented build', plan => { plan.entryGates.stableBuildRef = 'not-approved'; }, 'production build proof');
+invalidJson('invented deploy', plan => { plan.entryGates.productionDeployId = 'not-approved'; }, 'production deploy proof');
+invalidJson('premature Kevin approval', plan => { plan.entryGates.kevinApprovedPurposeAndInvitations = true; }, 'must remain false');
 invalidJson('filled result', plan => { plan.sessionSlots[0].state = 'complete'; plan.sessionSlots[0].result = {}; }, 'must remain empty');
 invalidJson('external authority', plan => { plan.authority.participantContactAuthorized = true; }, 'participantContactAuthorized');
 invalidJson('weakened threshold', plan => { plan.releaseRule.creatureUnmistakableMinimum = 3; }, 'thresholds drifted');
@@ -79,6 +82,18 @@ try {
     fs.rmSync(wordingRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 9);
-console.log('First Five playtest safeguards passed (9 cases).');
+const invitationRoot = fixture(fixtureRoot => {
+    const target = path.join(fixtureRoot, 'docs/company/research/FIRST_FIVE_INVITATION_AND_SCORECARD_2026-08-31.md');
+    fs.writeFileSync(target, fs.readFileSync(target, 'utf8').replace('Do not invite children.', 'Invite anyone.'));
+});
+try {
+    const result = execute(invitationRoot);
+    assert.strictEqual(result.status, 1);
+    assert(result.stderr.includes('Do not invite children'));
+    cases += 1;
+} finally {
+    fs.rmSync(invitationRoot, { recursive: true, force: true });
+}
 
+assert.strictEqual(cases, 12);
+console.log('First Five playtest safeguards passed (12 cases).');

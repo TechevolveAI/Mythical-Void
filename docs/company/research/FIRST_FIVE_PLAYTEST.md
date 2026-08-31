@@ -1,6 +1,6 @@
 # The First Five playtest
 
-**State:** ready to run after the next stable game build and Kevin’s approval
+**State:** the game gate is ready; invitations wait for Kevin’s approval
 
 ## Why this comes before promotion
 
@@ -22,7 +22,8 @@ before it is multiplied by promotion.
 - no employee, close collaborator or person already familiar with the game is
   counted in the five.
 
-Kevin can invite suitable adults personally after approving the exact message.
+Kevin can invite suitable adults personally after approving the exact message
+in [the invitation and scorecard](FIRST_FIVE_INVITATION_AND_SCORECARD_2026-08-31.md).
 There is no public recruitment post, mailing list, advertising or automated
 follow-up.
 
@@ -114,6 +115,8 @@ never delete or rewrite the earlier result to make it look successful.
 
 ## Current boundary
 
-The test has not started. The target build is not yet named, the post-Play
-first-impression repair in GDH-009 has not passed, and Kevin has not approved
-invitations. No participant has been contacted and no result has been recorded.
+The test has not started. The repaired first-contact presentation is live in
+production at commit `b20ec3fe835c9db202ea23d4bbc0d420da3999f8`
+(deploy `6a950415032ea30008d9bc28`) and passed adult review on phone and desktop.
+Kevin has not approved the invitation, named the observer or contacted any
+participant. No result has been recorded.
