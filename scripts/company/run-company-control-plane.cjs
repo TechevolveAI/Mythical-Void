@@ -1394,7 +1394,13 @@ function compact(parsed) {
         'prohibitedDataFieldCount',
         'gameSourceTagHits',
         'hostingPolicyCount',
-        'productionDeployed'
+        'productionDeployed',
+        'verifiedDeployId',
+        'homepageTagScriptObserved',
+        'gameRuntimeTagScriptObserved',
+        'freshBrowserConsentJourneyVerified',
+        'googlePropertyEventsVerified',
+        'measurementTrustedForDecisions'
     ];
     const summary = {};
     for (const key of keys) {
