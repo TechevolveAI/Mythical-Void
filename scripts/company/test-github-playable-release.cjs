@@ -78,6 +78,7 @@ invalid('gameplay image', mutateBody(source => `${source}\n![Gameplay](gameplay.
 invalid('NASA endorsement', mutateBody(source => source.replace('NASA does not make or endorse Mythical Void.', 'This is a NASA-powered game.')), 'missing: NASA does not');
 invalid('uniqueness claim', mutateBody(source => source.replace('an alien creature shaped by a genetics system', 'a unique creature shaped by a genetics system')), 'unsupported or inflated');
 invalid('missing family link', mutateBody(source => source.replace('[Read the family guide](https://mythicalvoid.com/parents/)', 'Family details coming soon')), 'missing: [Read the family guide]');
+invalid('child exact age', mutateBody(source => source.replace('father-and-son project', 'father-and-son project with his nine-year-old son')), "exposes a child's exact age");
 
-assert.strictEqual(cases, 11);
-console.log('GitHub playable release safeguards passed (11 cases).');
+assert.strictEqual(cases, 12);
+console.log('GitHub playable release safeguards passed (12 cases).');

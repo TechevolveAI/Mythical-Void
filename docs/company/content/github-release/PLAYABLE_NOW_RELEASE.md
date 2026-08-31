@@ -20,9 +20,8 @@ platforming experience; touch controls are also available.
 
 ## A small beginning with a big idea
 
-Mythical Void began in Ireland as a father-and-son experiment: Kevin and his
-nine-year-old son exploring what imagination and generative AI tools could make
-possible.
+Mythical Void began in Ireland as a father-and-son project, exploring what
+imagination and generative AI tools could make possible.
 
 Optional NASA-sourced material opens a doorway from the fictional universe
 into real space discovery. NASA does not make or endorse Mythical Void.
