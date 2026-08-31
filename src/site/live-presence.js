@@ -3,6 +3,11 @@ const HEARTBEAT_MS = 30_000;
 const POLL_MS = 30_000;
 const SESSION_STORAGE_KEY = 'mythical-live-presence-session';
 
+function shouldUseLivePresence(location = window.location) {
+    const hostname = location?.hostname?.toLowerCase();
+    return hostname !== 'localhost' && hostname !== '127.0.0.1' && hostname !== '::1';
+}
+
 function createSessionId() {
     const cryptoApi = globalThis.crypto;
     if (typeof cryptoApi?.randomUUID === 'function') return cryptoApi.randomUUID();
@@ -49,6 +54,11 @@ export function mountLivePresence(root = document) {
     const element = root.querySelector('[data-live-presence]');
     const copy = element?.querySelector('[data-live-presence-copy]');
     if (!element || !copy) return () => {};
+    if (!shouldUseLivePresence()) {
+        copy.textContent = 'Early access is live';
+        element.dataset.state = 'unavailable';
+        return () => {};
+    }
 
     let timer = null;
     const refresh = async () => {
@@ -79,6 +89,7 @@ export function mountLivePresence(root = document) {
 }
 
 export function startGamePresence() {
+    if (!shouldUseLivePresence()) return () => {};
     const sessionId = getSessionId();
     let timer = null;
     const heartbeat = async () => {
@@ -111,5 +122,6 @@ export function startGamePresence() {
 
 export const _internal = {
     createSessionId,
-    presenceMessage
+    presenceMessage,
+    shouldUseLivePresence
 };

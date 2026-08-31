@@ -57,4 +57,11 @@ describe('truthful live-player signal contract', () => {
         expect(client).toContain("copy.textContent = 'Early access is live'");
         expect(client).not.toContain('Math.random() *');
     });
+
+    test('does not create broken presence requests on local test servers', () => {
+        expect(client).toContain("hostname !== 'localhost'");
+        expect(client).toContain("hostname !== '127.0.0.1'");
+        expect(client).toContain("hostname !== '::1'");
+        expect(client).toContain('if (!shouldUseLivePresence()) return () => {}');
+    });
 });
