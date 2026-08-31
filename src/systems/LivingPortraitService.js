@@ -888,7 +888,9 @@ class LivingPortraitService {
                     maxY = Math.max(maxY, y);
                 }
             }
-            if (maxX < minX || maxY < minY) return null;
+            if (maxX < minX || maxY < minY) {
+                return this.captureTextureFrameReference(sprite);
+            }
 
             const cropPadding = 2;
             const cropX = Math.max(0, minX - cropPadding);
@@ -925,6 +927,35 @@ class LivingPortraitService {
         } catch (error) {
             console.warn(
                 '[LivingPortraitService] Creature reference capture failed:',
+                error.message
+            );
+            return this.captureTextureFrameReference(sprite);
+        }
+    }
+
+    /**
+     * Phaser-generated WebGL textures can have an empty CPU-side source canvas
+     * even though the GPU texture is visible. TextureManager.getBase64 reads
+     * the rendered frame and gives first contact a reliable local fallback.
+     */
+    captureTextureFrameReference(sprite) {
+        try {
+            const texture = sprite?.texture;
+            const textureKey = texture?.key;
+            const frameName = sprite?.frame?.name;
+            const dataUrl = texture?.manager?.getBase64?.(
+                textureKey,
+                frameName,
+                'image/png'
+            );
+            return (
+                typeof dataUrl === 'string'
+                && /^data:image\/png;base64,/.test(dataUrl)
+                && dataUrl.length <= 350000
+            ) ? dataUrl : null;
+        } catch (error) {
+            console.warn(
+                '[LivingPortraitService] Texture-frame capture failed:',
                 error.message
             );
             return null;
