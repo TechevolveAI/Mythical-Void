@@ -19,7 +19,7 @@ describe('Final Void expedition culmination', () => {
         expect(finalVoidSource).toContain('this.bondAnchorsActivated === 3');
         expect(finalVoidSource).toContain('this.finalSignalReady = true');
         expect(finalVoidSource).toMatch(
-            /createEmpressGate\(\)[\s\S]*if \(!this\.finalSignalReady\)[\s\S]*BOND SIGNALS REQUIRED[\s\S]*this\.beginGuardianEncounter\(\{[\s\S]*id: 'void_empress'[\s\S]*start: \(\) => this\.startBossFight\(\)/
+            /createEmpressGate\(\)[\s\S]*if \(!this\.finalSignalReady\)[\s\S]*BOND MARKERS REQUIRED[\s\S]*this\.beginGuardianEncounter\(\{[\s\S]*id: 'void_empress'[\s\S]*start: \(\) => this\.startBossFight\(\)/
         );
     });
 
@@ -29,7 +29,7 @@ describe('Final Void expedition culmination', () => {
             'Project Beacon finds a route to Earth - and an open door back here.',
             '${companionName} stands beside you. No command was needed.'
         ].forEach(line => expect(finalVoidSource).toContain(line));
-        expect(finalVoidSource).toContain('ROUTE PROTECTED // NO SIGNAL TRANSMITTED');
+        expect(finalVoidSource).toContain('ROUTE PROTECTED // NO MESSAGE TRANSMITTED');
         expect(finalVoidSource).toContain(
             'Number(ecology?.restoredCount)'
         );
@@ -178,9 +178,9 @@ describe('Final Void expedition culmination', () => {
             'ecologyResult.networkStatus.toUpperCase()'
         );
         expect(finalVoidSource).toContain(
-            '`${networkResult} - COMMAND MODULE RECOVERED\\nUPLINK HELD - NO SIGNAL SENT`'
+            '`${networkResult} - COMMAND MODULE RECOVERED\\nUPLINK HELD - NO MESSAGE SENT`'
         );
-        expect(finalVoidSource).toContain('UPLINK HELD - NO SIGNAL SENT');
+        expect(finalVoidSource).toContain('UPLINK HELD - NO MESSAGE SENT');
         expect(finalVoidSource).toContain('Guardian Gift: Command Module');
         expect(finalVoidSource).toContain('GUARDIAN GIFT // COMMAND MODULE');
         expect(finalVoidSource).toContain(

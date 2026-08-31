@@ -2647,7 +2647,7 @@ export default class InventoryScene extends Phaser.Scene {
             }
         }
 
-        const signalText = this.add.text(width / 2, height / 2 + 75, `${creatureName} answers a second signal.`, {
+        const signalText = this.add.text(width / 2, height / 2 + 75, `${creatureName} answers a second call.`, {
             fontSize: '24px',
             color: '#8FE3CF',
             fontStyle: 'bold',

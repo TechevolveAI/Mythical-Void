@@ -14,7 +14,7 @@
       "imageAlt": "Real Mythical Void phone gameplay in the Mythical Forest",
       "guardian": "Elder Treant",
       "guardianRole": "Forest Rootwarden",
-      "knownGameTruth": "The living Current begins to speak through roots and signals. The player learns that listening and protecting can matter more than taking.",
+      "knownGameTruth": "The living Current begins to speak through roots and changing patterns. The player learns that listening and protecting can matter more than taking.",
       "projectBeaconQuestion": "Can a scientific record preserve a living voice instead of reducing it to a sample?",
       "sourceRefs": ["src/systems/CurrentEcology.js", "src/systems/GuardianOutcomes.js", "src/config/project-beacon.json"],
       "sightings": [
@@ -22,14 +22,14 @@
           "creatureId": "MV-0846",
           "name": "The Memory Gardener",
           "storyStatus": "official_field_guide_story_not_currently_playable_quest",
-          "story": "Old forest signals gather in the dark patches across this small Crystal Elemental. It does not hoard them. Under moonlight, it carries each fading rhythm to a root that has forgotten how to answer, then waits—quiet and wise—until the Current begins again.",
+          "story": "Old forest memories gather in the dark patches across this small Crystal Elemental. It does not hoard them. Under moonlight, it carries each fading rhythm to a root that has forgotten how to answer, then waits—quiet and wise—until the Current begins again.",
           "beaconNote": "A living archive may need a gardener, not an owner."
         },
         {
           "creatureId": "MV-0715",
           "name": "The Wyrm Who Reads the Roots",
           "storyStatus": "official_field_guide_story_not_currently_playable_quest",
-          "story": "Circuit-like marks travel along this Stellar Wyrm as if the forest is writing through it. Its floating eyes follow different branches of the same signal. When Wanderer-77 first disturbs the roots, the curious Wyrm does not attack—it traces the new noise back to the crash.",
+          "story": "Circuit-like marks travel along this Stellar Wyrm as if the forest is writing through it. Its floating eyes follow different branches of the same trail. When Wanderer-77 first disturbs the roots, the curious Wyrm does not attack—it traces the new noise back to the crash.",
           "beaconNote": "First contact begins when both sides notice the disturbance."
         }
       ]
@@ -70,7 +70,7 @@
       "imageAlt": "Real Mythical Void phone gameplay in the Stellar Reef",
       "guardian": "Nyx'voral",
       "guardianRole": "Reef Passage Guardian",
-      "knownGameTruth": "Restored signals align into routes through the Void. Reef life depends on passages that remain open for more than one traveller.",
+      "knownGameTruth": "Restored paths align into routes through the Void. Reef life depends on passages that remain open for more than one traveller.",
       "projectBeaconQuestion": "Is a route truly repaired if only the explorer can use it?",
       "sourceRefs": ["src/systems/CollectibleManager.js", "src/systems/GuardianOutcomes.js", "src/config/project-beacon.json"],
       "sightings": [
@@ -78,7 +78,7 @@
           "creatureId": "MV-0171",
           "name": "The Ring-Tide Courier",
           "storyStatus": "official_field_guide_story_not_currently_playable_quest",
-          "story": "Floating rings turn around this playful Crystal Drake whenever two distant reef signals find each other. It races the tidal Current between settlements, carrying no message of its own. Its gift is keeping the path open long enough for every smaller voice to pass.",
+          "story": "Floating rings turn around this playful Crystal Drake whenever two distant reef paths meet. It races the tidal Current between settlements, carrying no message of its own. Its gift is keeping the path open long enough for every smaller voice to pass.",
           "beaconNote": "Communication is infrastructure, not just information."
         },
         {
@@ -114,7 +114,7 @@
           "name": "The Warm Stone That Moved",
           "storyStatus": "official_field_guide_story_not_currently_playable_quest",
           "story": "A rough little shape sleeps among cold rocks until a warning crosses the Current. Then an ember aura wakes beneath its stone texture and it rolls toward the threatened settlement. Nobody remembers appointing the Nebula Sprite. The network simply knows who will answer.",
-          "beaconNote": "A community signal is strongest when help does not wait for command."
+          "beaconNote": "A community is strongest when help does not wait for command."
         }
       ]
     },
@@ -126,7 +126,7 @@
       "imageAlt": "Real Mythical Void phone gameplay in the Aurora Depths",
       "guardian": "Aurora Phoenix",
       "guardianRole": "Aurora Renewal Guardian",
-      "knownGameTruth": "The long-range uplink comes within reach. Warm sky lanes carry signals the astronaut’s instruments first misunderstand.",
+      "knownGameTruth": "The long-range uplink comes within reach. Warm sky lanes carry readings the astronaut’s instruments first misunderstand.",
       "projectBeaconQuestion": "What should a powerful transmitter say when its coordinates could bring both help and danger?",
       "sourceRefs": ["src/systems/RescuedResidents.js", "src/systems/GuardianOutcomes.js", "src/config/project-beacon.json"],
       "sightings": [
@@ -134,7 +134,7 @@
           "creatureId": "MV-0813",
           "name": "The Last Light Under Ice",
           "storyStatus": "official_field_guide_story_not_currently_playable_quest",
-          "story": "This winged Aurora Phoenix carries a star affinity inside a shadow-soft aura. It disappears against the dark until the cold sky lane begins to fail, then opens its wings and becomes the smallest visible sunrise. Renewal here is not spectacle. It is a signal timed exactly when another life needs it.",
+          "story": "This winged Aurora Phoenix carries a star affinity inside a shadow-soft aura. It disappears against the dark until the cold sky lane begins to fail, then opens its wings and becomes the smallest visible sunrise. Renewal here is not spectacle. It is a gesture timed exactly when another life needs it.",
           "beaconNote": "Hope can be precise without being loud."
         },
         {
@@ -169,7 +169,7 @@
           "creatureId": "MV-0153",
           "name": "The Moon-Horn Witness",
           "storyStatus": "official_field_guide_story_not_currently_playable_quest",
-          "story": "Branching cosmic horns hold the reflections of every restored realm. This playful, moon-bound Crystal Drake appears where the final signal divides: Earth in one direction, the Fend in another. It offers no answer. It keeps both lights visible while the astronaut chooses.",
+          "story": "Branching cosmic horns hold the reflections of every restored realm. This playful, moon-bound Crystal Drake appears where the final path divides: Earth in one direction, the Fend in another. It offers no answer. It keeps both lights visible while the astronaut chooses.",
           "beaconNote": "A true witness preserves the choice instead of making it for you."
         }
       ]

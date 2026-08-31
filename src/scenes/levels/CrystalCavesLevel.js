@@ -4274,7 +4274,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         if (now < this.coreGateHintUntil) return;
 
         const message = !this.caveRouteAligned
-            ? 'The Core signal is incomplete. Align the Beacon anchors.'
+            ? 'The Core route is incomplete. Align the Beacon anchors.'
             : 'Your companion still hears the fractured grove.';
         this.showFloatingText(message, this.player.x, this.player.y - 70, '#F2C94C');
         window.FeedbackManager?.cameraFlash?.(this, 180, 242, 193, 78);

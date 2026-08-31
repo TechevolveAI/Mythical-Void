@@ -63,7 +63,7 @@ describe('secondary journey reliability contract', () => {
         expect(forest).toContain('CINEMATIC_MEDIA.mythicalForestArrival.url');
         expect(forest).toContain('FOREST_ARRIVAL_TEXTURE');
         expect(forest).toContain('createForestArrivalMotionBackdrop');
-        expect(forest).toContain('A signal is moving through the forest.');
+        expect(forest).toContain('Something is moving through the forest.');
         expect(forest).toContain('clearForestArrivalBackdrop()');
         expect(forest).toContain(
             'mediaService?.createStoryMoment || mediaService?.createCinematicStill'

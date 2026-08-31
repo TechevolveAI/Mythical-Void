@@ -101,7 +101,7 @@ describe('Fusion Pod Sanctuary landmark', () => {
         );
         expect(dormant).toEqual(expect.objectContaining({
             state: 'dormant',
-            statusLabel: 'TWO LIVING SIGNALS REQUIRED',
+            statusLabel: 'TWO CREATURES REQUIRED',
             canOpen: false
         }));
         expect(formatFusionPodLandmarkObjective(dormant)).toContain(
@@ -139,7 +139,7 @@ describe('Fusion Pod Sanctuary landmark', () => {
         );
         expect(maturing).toEqual(expect.objectContaining({
             state: 'maturing',
-            statusLabel: 'ADULT SIGNALS 1/2',
+            statusLabel: 'ADULT CREATURES 1/2',
             canOpen: true
         }));
 
@@ -155,7 +155,7 @@ describe('Fusion Pod Sanctuary landmark', () => {
         expect(ready).toEqual(expect.objectContaining({
             state: 'ready',
             tone: 'ready',
-            statusLabel: 'TWO ADULT SIGNALS READY'
+            statusLabel: 'TWO ADULT CREATURES READY'
         }));
 
         const sharedReady = getFusionPodLandmarkSnapshot(

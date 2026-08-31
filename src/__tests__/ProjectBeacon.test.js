@@ -105,7 +105,7 @@ describe('Project Beacon opening', () => {
 
         expect(campaignText).toMatch(/protecting home/i);
         expect(campaignText).toMatch(/conversation no human has heard/i);
-        expect(campaignText).toMatch(/signal could also reveal this world/i);
+        expect(campaignText).toMatch(/message could also reveal this world/i);
         expect(campaignText).toMatch(/not ready to name the choice/i);
         expect(campaignText).not.toMatch(/return to Earth|stay in the Void|choose Earth|choose the Void/i);
     });

@@ -1,7 +1,7 @@
 'use strict';
 
-const FALLBACK_SIGNAL = Object.freeze({
-    signalDate: '2024-07-20',
+const FALLBACK_DISCOVERY = Object.freeze({
+    observationDate: '2024-07-20',
     title: 'Apollo 11 Landing Panorama',
     sourceUrl: 'https://apod.nasa.gov/apod/ap240720.html'
 });
@@ -44,9 +44,9 @@ function visualSeed(value) {
     return hash >>> 0;
 }
 
-function buildSignal({ title, signalDate, sourceUrl, live }) {
-    const safeTitle = cleanTitle(title) || FALLBACK_SIGNAL.title;
-    const safeDate = validDate(signalDate) ? signalDate : FALLBACK_SIGNAL.signalDate;
+function buildDiscovery({ title, observationDate, sourceUrl, live }) {
+    const safeTitle = cleanTitle(title) || FALLBACK_DISCOVERY.title;
+    const safeDate = validDate(observationDate) ? observationDate : FALLBACK_DISCOVERY.observationDate;
     const safeSource = /^https:\/\/apod\.nasa\.gov\/apod\//.test(String(sourceUrl || ''))
         ? sourceUrl
         : sourceUrlForDate(safeDate);
@@ -54,9 +54,9 @@ function buildSignal({ title, signalDate, sourceUrl, live }) {
     return {
         schemaVersion: 1,
         status: live ? 'live' : 'saved-observation',
-        signalDate: safeDate,
+        observationDate: safeDate,
         title: safeTitle,
-        signalCode: `APOD-${safeDate.replace(/-/g, '')}`,
+        observationCode: `APOD-${safeDate.replace(/-/g, '')}`,
         visualSeed: visualSeed(`${safeDate}:${safeTitle}`),
         source: {
             label: 'NASA Astronomy Picture of the Day',
@@ -78,7 +78,7 @@ function buildSignal({ title, signalDate, sourceUrl, live }) {
     };
 }
 
-async function fetchTodaySignal() {
+async function fetchTodayDiscovery() {
     const env = runtime.env() || {};
     const apiKey = env.NASA_API_KEY || env.VITE_NASA_API_KEY || 'DEMO_KEY';
     const controller = typeof AbortController !== 'undefined'
@@ -94,13 +94,13 @@ async function fetchTodaySignal() {
         if (!response?.ok) throw new Error(`NASA APOD returned ${response?.status || 'no response'}`);
         const data = await response.json();
         const title = cleanTitle(data?.title);
-        const signalDate = String(data?.date || '');
-        if (!title || !validDate(signalDate)) throw new Error('NASA APOD response was incomplete');
+        const observationDate = String(data?.date || '');
+        if (!title || !validDate(observationDate)) throw new Error('NASA APOD response was incomplete');
 
-        return buildSignal({
+        return buildDiscovery({
             title,
-            signalDate,
-            sourceUrl: sourceUrlForDate(signalDate),
+            observationDate,
+            sourceUrl: sourceUrlForDate(observationDate),
             live: true
         });
     } finally {
@@ -127,18 +127,18 @@ async function handler(event = {}) {
         };
     }
 
-    let signal;
+    let discovery;
     try {
-        signal = await fetchTodaySignal();
+        discovery = await fetchTodayDiscovery();
     } catch (_error) {
-        signal = buildSignal({
-            ...FALLBACK_SIGNAL,
+        discovery = buildDiscovery({
+            ...FALLBACK_DISCOVERY,
             live: false
         });
     }
 
     const payload = {
-        ...signal,
+        ...discovery,
         servedOn: runtime.now().toISOString().slice(0, 10)
     };
 
@@ -150,8 +150,8 @@ async function handler(event = {}) {
 }
 
 module.exports = {
-    FALLBACK_SIGNAL,
-    buildSignal,
+    FALLBACK_DISCOVERY,
+    buildDiscovery,
     cleanTitle,
     handler,
     sourceUrlForDate,

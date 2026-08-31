@@ -43,7 +43,7 @@ export const PROTECTED_RETURN_STEPS = Object.freeze([
         summary:
             'Record the First Listening and remove automatic uplink authority from the prepared packet.',
         appliedSummary:
-            'The packet is sealed and usable later, but no signal has left the Fend.'
+            'The packet is sealed and usable later, but no message has left the Fend.'
     })
 ]);
 

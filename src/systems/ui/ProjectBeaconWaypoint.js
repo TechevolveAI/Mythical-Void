@@ -5,7 +5,7 @@ const WAYPOINTS = Object.freeze({
         color: 0x6FE7DD
     }),
     beacon_living_signals: Object.freeze({
-        label: 'LIVING SIGNAL',
+        label: 'SIGNS OF LIFE',
         targetKey: 'nearestLivingSignal',
         color: 0x8FE3CF
     }),

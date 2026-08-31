@@ -62,8 +62,8 @@ requireValue(!llms.includes('https://mythicalvoid.com/press/#real-creature-hatch
 
 const pressAsset = pressAssets.assets?.find(item => item.url === 'https://mythicalvoid.com/press/gameplay/creature-cosmic-egg-reveal.png');
 requireValue(pressAsset?.kind === 'authentic_running_build_screenshot' && pressAsset?.state === 'withdrawn_visual_quality_failed_do_not_publish' && /Retained only as an exact running-build record/i.test(pressAsset?.description || ''), 'the press asset record does not retain the withdrawn state');
-const signalEntry = signal.entries?.find(entry => entry.id === 'SIGNAL-012');
-requireValue(!signalEntry && release.ownedSiteDiscovery?.signalLogEntry === null && release.ownedSiteDiscovery?.rssAndJsonFeedIncluded === false, 'the withdrawn hatch screenshot is still promoted in the Signal Log or feeds');
+const signalEntry = signal.entries?.find(entry => entry.id === 'UPDATE-012');
+requireValue(!signalEntry && release.ownedSiteDiscovery?.signalLogEntry === null && release.ownedSiteDiscovery?.rssAndJsonFeedIncluded === false, 'the withdrawn hatch screenshot is still promoted in the Latest News or feeds');
 
 for (const [field, expected] of Object.entries({ provesOneRealHatch: true, provesEveryPossibleForm: false, absoluteUniquenessClaimed: false, generatedMarketingArtworkCalledGameplay: false, creatureSentienceClaimed: false })) {
     requireValue(release.claimBoundaries?.[field] === expected, `claimBoundaries.${field} must be ${expected}`);

@@ -365,7 +365,7 @@ describe('Village settlement gameplay contract', () => {
             "verb: 'REST'",
             "label: 'TOGETHER'",
             "label: 'FUSION POD'",
-            "label: 'SIGNAL GARDEN'",
+            "label: 'MEMORY GARDEN'",
             "verb: 'TALK'",
             "verb: 'STABILIZE'"
         ].forEach(copy => expect(sceneSource).toContain(copy));

@@ -41,7 +41,7 @@ try {
         ['child-photo', release => { release.identityBoundary.childPhotoUsed = true; }, () => {}],
         ['child-name', release => { release.identityBoundary.childNameUsed = true; }, () => {}],
         ['external-action', release => { release.authority.externalActionPerformed = true; }, () => {}],
-        ['source-pack-drift', () => {}, source => { source.items.find(item => item.id === 'DRAFT-SIGNAL-007').drafts.videoCommunity.body += ' New claim.'; }]
+        ['source-pack-drift', () => {}, source => { source.items.find(item => item.id === 'DRAFT-UPDATE-007').drafts.videoCommunity.body += ' New claim.'; }]
     ];
     for (const [name, mutateRelease, mutateSource] of failures) if (run(name, mutateRelease, mutateSource).status === 0) throw new Error(`${name} mutation was accepted.`);
     console.log(`Founder-story social release safeguards passed (${failures.length} failure cases).`);

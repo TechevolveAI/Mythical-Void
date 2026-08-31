@@ -1590,7 +1590,7 @@ async function initializeGame() {
             });
         }
 
-        // Local, non-mutating Signal Garden stage previews.
+        // Local, non-mutating Memory Garden stage previews.
         const testGarden = urlParams.get('testGarden');
         if (isLocalPreview && ['seed', 'sprout', 'bud', 'bloom'].includes(testGarden)) {
             game.events.once('ready', () => {
@@ -1940,7 +1940,7 @@ async function initializeGame() {
                             {
                                 icon: '✦',
                                 creatureName: 'Nova',
-                                result: 'Mapped a new current path near the Signal Garden.'
+                                result: 'Mapped a new current path near the Memory Garden.'
                             },
                             {
                                 icon: '◇',

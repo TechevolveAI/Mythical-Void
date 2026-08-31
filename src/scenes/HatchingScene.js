@@ -1792,7 +1792,7 @@ class HatchingScene extends Phaser.Scene {
         const rarityConfig = this.rarityConfig?.[rarityKey] || this.rarityConfig?.common || {};
         const hatchEffects = rarityConfig.hatchingEffects || {};
         const celebrationMsg = rarityConfig.celebrationMessage ||
-            'First contact confirmed. A living signal has answered.';
+            'First contact confirmed. A living creature has answered.';
 
         // Play celebration sound
         if (window.AudioManager) {
@@ -1869,7 +1869,7 @@ class HatchingScene extends Phaser.Scene {
         const { width, height } = this.scale;
 
         // Get rarity display name and visual config
-        const displayName = rarityConfig.displayName || 'Living Signal';
+        const displayName = rarityConfig.displayName || 'Living Form';
         const visualConfig = rarityConfig.visual || {};
         const frameColor = visualConfig.frame ? parseInt(visualConfig.frame.replace('#', ''), 16) : 0x7CFC00;
         const badge = visualConfig.badge || '✨';
@@ -2079,7 +2079,7 @@ class HatchingScene extends Phaser.Scene {
 
         // Create vision message with more emphasis
         const visionMessageY = width < 600 ? height * 0.72 : height * 0.1;
-        const visionMessage = this.add.text(centerX, visionMessageY, visionConfig.visionMessage || 'PROJECTED MATURITY // SIGNAL POTENTIAL', {
+        const visionMessage = this.add.text(centerX, visionMessageY, visionConfig.visionMessage || 'PROJECTED MATURITY // GROWTH POTENTIAL', {
             fontSize: width < 600 ? '20px' : '26px',
             color: '#FFD700',
             fontStyle: 'bold italic',
@@ -3607,7 +3607,7 @@ class HatchingScene extends Phaser.Scene {
                 .replace(/([a-z])([A-Z])/g, '$1 $2')
                 .replace(/[_-]+/g, ' ')
                 .replace(/\b\w/g, letter => letter.toUpperCase());
-            const speciesText = this.add.text(centerX, bannerY + (bannerHeight * 0.76), `${rarityInfo.name.toUpperCase()} SIGNAL · ${formatFieldTerm(this.creatureGenetics.species)} · ${formatFieldTerm(this.creatureGenetics.personality.core)}`, {
+            const speciesText = this.add.text(centerX, bannerY + (bannerHeight * 0.76), `${rarityInfo.name.toUpperCase()} LIFE FORM · ${formatFieldTerm(this.creatureGenetics.species)} · ${formatFieldTerm(this.creatureGenetics.personality.core)}`, {
                 fontSize: `${subtitleSize}px`,
                 color: '#FFFFFF',
                 fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
@@ -3719,7 +3719,7 @@ class HatchingScene extends Phaser.Scene {
                 rerollBg.lineStyle(2, 0x8FE3D4);
                 rerollBg.strokeRoundedRect(rerollX, buttonY, buttonWidth, buttonHeight, 8);
 
-                rerollText = this.add.text(rerollX + (buttonWidth / 2), buttonY + (buttonHeight / 2), 'RESCAN SIGNAL', {
+                rerollText = this.add.text(rerollX + (buttonWidth / 2), buttonY + (buttonHeight / 2), 'RESCAN CREATURE', {
                     fontSize: `${fontSize}px`,
                     color: '#FFFFFF',
                     fontStyle: 'bold'
@@ -4101,7 +4101,7 @@ class HatchingScene extends Phaser.Scene {
 
         const keepZone = this.add.zone(buttonX, buttonY, buttonWidth, buttonHeight).setOrigin(0, 0).setInteractive({ cursor: 'pointer' });
 
-        const finalText = this.add.text(centerX, layout.guidanceY, 'SIGNAL LOCKED · RESCAN COMPLETE', {
+        const finalText = this.add.text(centerX, layout.guidanceY, 'CREATURE LOCKED · RESCAN COMPLETE', {
             fontSize: `${textFontSize}px`,
             color: '#90EE90',
             wordWrap: { width: width * 0.9 }

@@ -183,7 +183,7 @@ export default class SharedFusionModal {
         const signalLabel = element(
             'p',
             'shared-fusion-section-label',
-            'YOUR WILLING SIGNAL'
+            'YOUR WILLING CREATURE'
         );
         const parentList = element(
             'div',
@@ -248,7 +248,7 @@ export default class SharedFusionModal {
             });
             const join = button(
                 'shared-fusion-primary',
-                'PAIR SIGNAL',
+                'PAIR CREATURES',
                 () => this.join(code.value)
             );
             actionArea.append(code, join);
@@ -299,7 +299,7 @@ export default class SharedFusionModal {
     async join(code) {
         if (this.busy) return;
         this.busy = true;
-        this.renderBusy('PAIRING CURRENT SIGNALS');
+        this.renderBusy('PAIRING CREATURES');
         try {
             this.invitation = await this.service.join(
                 code,
@@ -333,7 +333,7 @@ export default class SharedFusionModal {
             element(
                 'p',
                 'shared-fusion-section-label',
-                'PAIRED SIGNAL'
+                'PAIRED CREATURE'
             ),
             element(
                 'strong',
@@ -380,7 +380,7 @@ export default class SharedFusionModal {
                 element(
                     'p',
                     'shared-fusion-status',
-                    'AWAITING SECOND SIGNAL'
+                    'AWAITING SECOND CREATURE'
                 ),
                 code
             );
@@ -458,7 +458,7 @@ export default class SharedFusionModal {
 
         if (status === 'staged') {
             if (!this.execution) {
-                this.renderBusy('RESTORING YOUR SIBLING SIGNAL');
+                this.renderBusy('RESTORING THE NEW CREATURE');
                 this.execute();
                 return;
             }
@@ -546,7 +546,7 @@ export default class SharedFusionModal {
             element(
                 'span',
                 'shared-fusion-result-meta',
-                `${String(data.rarity || 'common').toUpperCase()} // GEN ${Number(data.generation) || 2} // SIGNAL ${this.execution.compatibilityScore}%`
+                `${String(data.rarity || 'common').toUpperCase()} // GEN ${Number(data.generation) || 2} // MATCH ${this.execution.compatibilityScore}%`
             )
         );
         if (this.invitation.ownNameSubmitted) {
@@ -655,7 +655,7 @@ export default class SharedFusionModal {
             element(
                 'p',
                 'shared-fusion-reveal-copy',
-                'A linked sibling signal is now safe in another sanctuary.'
+                'A linked sibling creature is now safe in another sanctuary.'
             )
         );
         this.body.append(

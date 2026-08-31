@@ -1,8 +1,8 @@
-const spaceSignalCore = require('../../netlify/lib/space-signal-core.cjs');
+const spaceDiscoveryCore = require('../../netlify/lib/space-discovery-core.cjs');
 
-const { handler, _internal } = spaceSignalCore;
+const { handler, _internal } = spaceDiscoveryCore;
 
-describe('public Space Signal function', () => {
+describe('public Space Discovery function', () => {
     afterEach(() => {
         _internal.setRuntime({
             fetch: (...args) => globalThis.fetch(...args),
@@ -37,7 +37,7 @@ describe('public Space Signal function', () => {
         expect(response.statusCode).toBe(200);
         expect(payload.status).toBe('live');
         expect(payload.title).toBe('A Strange Nebula');
-        expect(payload.signalDate).toBe('2026-08-27');
+        expect(payload.observationDate).toBe('2026-08-27');
         expect(payload.source.url).toBe('https://apod.nasa.gov/apod/ap260827.html');
         expect(payload.boundaries.nasaImageRepublished).toBe(false);
         expect(payload.boundaries.nasaEndorsementClaimed).toBe(false);
@@ -69,7 +69,7 @@ describe('public Space Signal function', () => {
             fetch: jest.fn(async () => ({
                 ok: true,
                 status: 200,
-                json: async () => ({ title: 'A Signal', date: '2026-08-27' })
+                json: async () => ({ title: 'A Discovery', date: '2026-08-27' })
             })),
             now: () => new Date('2026-08-27T12:00:00Z'),
             env: () => ({})

@@ -24,7 +24,7 @@ const CAMPAIGN_ROUTE = Object.freeze([
         completionNumber: 3,
         debriefId: 'beacon_debrief_3',
         label: 'Stellar Reef',
-        action: 'Restore the reef route and answer the traveler signals.'
+        action: 'Restore the reef route and answer the traveller calls.'
     }),
     Object.freeze({
         gateId: 'void_peaks',

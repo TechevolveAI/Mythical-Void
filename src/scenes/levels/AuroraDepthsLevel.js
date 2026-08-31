@@ -1110,7 +1110,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         const toast = this.add.text(
             width / 2,
             toastY,
-            'Follow the lit platforms. Align 3 prisms. Do not send the signal to Earth.',
+            'Follow the lit platforms. Align 3 prisms. Do not send the coordinates to Earth.',
             {
                 fontSize: isMobileLayout ? '15px' : '18px',
                 color: '#F2C94C',
@@ -2601,7 +2601,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         window.FeedbackManager?.cameraFlash?.(this, 420, 169, 243, 228);
         window.FeedbackManager?.cameraShake?.(this, 350, 0.012);
         this.showFloatingText(
-            'PHOENIX SIGNAL STABLE',
+            'PHOENIX ROUTE STABLE',
             this.boss?.x || 4400,
             (this.boss?.y || 550) - 100,
             '#A9F3E4'

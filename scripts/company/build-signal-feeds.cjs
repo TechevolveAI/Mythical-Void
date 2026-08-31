@@ -9,7 +9,7 @@ const defaultSourcePath = path.join(root, 'public/updates/releases.json');
 const defaultRssPath = path.join(root, 'public/updates/feed.xml');
 const defaultJsonPath = path.join(root, 'public/updates/feed.json');
 const siteOrigin = 'https://mythicalvoid.com';
-const feedTitle = 'Mythical Void — The Signal Log';
+const feedTitle = 'Mythical Void — The Latest News';
 
 function escapeXml(value) {
     return String(value)
@@ -49,7 +49,7 @@ function contentText(entry, register = readVisualPublicationRegister()) {
     ];
     if (entry.image && !isWithdrawnPublicVisual(entry.image, register)) {
         lines.push('', `Media note: ${entry.disclosure}`);
-    } else if (entry.visualKind === 'space_signal') {
+    } else if (entry.visualKind === 'space_discovery') {
         lines.push('', `Visual note: ${entry.disclosure}`);
     } else {
         lines.push('', 'Visual note: the earlier media was withheld after human review.');
@@ -130,7 +130,7 @@ if (require.main === module) {
     fs.writeFileSync(rssPath, buildRssFeed(source));
     fs.writeFileSync(jsonPath, buildJsonFeed(source));
     const count = (source.entries || []).filter(entry => entry.status === 'live').length;
-    console.log(`Built RSS and JSON feeds from ${count} verified Signal Log entries.`);
+    console.log(`Built RSS and JSON feeds from ${count} verified Latest News entries.`);
 }
 
 module.exports = {

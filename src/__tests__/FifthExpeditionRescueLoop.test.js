@@ -123,7 +123,7 @@ describe('fifth expedition rescue loop', () => {
         expect(source).toContain('height < 620 ? Math.min(142, height * 0.38)');
         expect(source).toContain('y: toastY - 20');
         expect(source).toContain(
-            'Follow the lit platforms. Align 3 prisms. Do not send the signal to Earth.'
+            'Follow the lit platforms. Align 3 prisms. Do not send the coordinates to Earth.'
         );
         expect(source).toContain('this.createCampaignObjectiveDisplay(');
         expect(source).toContain('QUIET ALIGNMENT ${current}/3 // ${nextPrism}');
@@ -197,7 +197,7 @@ describe('fifth expedition rescue loop', () => {
         expect(defeat).toContain('this.boss.body.enable = false');
         expect(defeat).toContain('this.bossBody.body.enable = false');
         expect(defeat).toContain('this.bossAITimer?.remove?.()');
-        expect(defeat).toContain('PHOENIX SIGNAL STABLE');
+        expect(defeat).toContain('PHOENIX ROUTE STABLE');
     });
 
     test('uses a dedicated Phoenix combat body independent of transparent artwork', () => {

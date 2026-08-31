@@ -198,7 +198,7 @@ export function getProjectBeaconLog(gameState) {
             : 'Recover the next Wanderer-77 system.';
         directiveDetail = 'Restore the guardian, protect the living network, and bring the ship system home.';
     } else if (!currentMission && recoveredSystems === systems.length && !commandModuleRecovered) {
-        phase = 'FINAL SIGNAL LOCATED';
+        phase = 'FINAL MESSAGE READY';
         directive = 'Enter the Final Void.';
         directiveDetail = 'Five living systems are aligned. Reach the source without breaking the bond network.';
     } else if (!currentMission && commandModuleRecovered && !uplinkRestored) {
@@ -208,7 +208,7 @@ export function getProjectBeaconLog(gameState) {
     } else if (!currentMission && uplinkRestored && !priority) {
         phase = 'PRIORITY PENDING';
         directive = 'Choose what Wanderer-77 prepares first.';
-        directiveDetail = 'Coordinates are protected and departure is deferred. No signal leaves the Fend.';
+        directiveDetail = 'Coordinates are protected and departure is deferred. No message leaves the Fend.';
     } else if (!currentMission && priority) {
         const priorityLabels = {
             remain_and_defend: 'Defend First',

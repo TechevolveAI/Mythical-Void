@@ -37,7 +37,7 @@ const PROJECT_BEACON_PRIORITIES = Object.freeze({
             {
                 log: 'SANCTUARY // MOBILISING',
                 title: 'A WORLD STILL HURTING',
-                body: 'Signals rise from damaged regions beyond the Sanctuary. The communities know Wanderer-77 as the first human who listened before taking. Recovery becomes the next mission.',
+                body: 'Calls for help rise from damaged regions beyond the Sanctuary. The communities know Wanderer-77 as the first human who listened before taking. Recovery becomes the next mission.',
                 fieldNote: 'I came here looking for life. Life found me first.'
             },
             {
@@ -90,7 +90,7 @@ const PROJECT_BEACON_PRIORITIES = Object.freeze({
                 log: 'BLACK BOX // SECURED',
                 title: 'PROOF WITHOUT A MAP',
                 body: 'The ship holds proof of survival and discovery without exposing the Fend. Before contact, both worlds will need evidence, boundaries, and people prepared to listen.',
-                fieldNote: 'Good technology carries responsibility with the signal.'
+                fieldNote: 'Good technology carries responsibility with the message.'
             },
             {
                 log: 'CONTACT // DEFERRED',
@@ -610,7 +610,7 @@ export default class VictoryScene extends Phaser.Scene {
         this.ship?.setPosition(width / 2, shipY);
         this.ship?.setScale(isCompact ? 0.75 : 0.9);
 
-        const title = this.add.text(width / 2, height * 0.11, 'NO SIGNAL HAS LEFT', {
+        const title = this.add.text(width / 2, height * 0.11, 'NO MESSAGE HAS LEFT', {
             fontSize: Math.min(28, width * 0.07) + 'px',
             color: '#FFD700',
             fontStyle: 'bold',
@@ -622,9 +622,9 @@ export default class VictoryScene extends Phaser.Scene {
         const reflectionCopy = this.gameStats.highPowerReveal
             ? `${this.gameStats.creatureName} held five living systems together.\n` +
                 'On Earth, that power would be detectable across a city.\n' +
-                'Project Beacon can reach Earth. No signal has left.'
+                'Project Beacon can reach Earth. No message has left.'
             : 'Project Beacon can reach Earth.\n' +
-                'The same signal could reveal this world.\n' +
+                'The same message could reveal this world.\n' +
                 'For the first time, the directive waits for you.';
         const reflection = this.add.text(
             width / 2,
@@ -1277,7 +1277,7 @@ export default class VictoryScene extends Phaser.Scene {
         const warning = this.add.text(
             width / 2,
             height * 0.33,
-            'This decides what you prepare first. No signal is sent.',
+            'This decides what you prepare first. No message is sent.',
             {
                 fontSize: isCompact ? '14px' : '16px',
                 color: '#F2C14E',

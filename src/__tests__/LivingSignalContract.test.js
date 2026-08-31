@@ -41,7 +41,7 @@ describe('Living Signal first-session contract', () => {
         expect(gameSceneSource).toContain('nearest.distance > 150');
         expect(gameSceneSource).toContain('Not an Earth transmission');
         expect(gameSceneSource).toContain(
-            'LIVING SIGNAL // LISTEN TOGETHER'
+            'SIGNS OF LIFE // LISTEN TOGETHER'
         );
         expect(gameSceneSource).toContain('LISTENING ${percent}% // HOLD STILL');
         expect(gameSceneSource).toContain('this.livingSignalDwellMs / 800');

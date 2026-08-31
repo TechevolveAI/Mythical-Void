@@ -845,7 +845,7 @@ describe('Village settlement phase one', () => {
         expect(village.getVillageResidentWorldPresence(snapshot, 'pebble'))
             .toEqual(expect.objectContaining({
                 location: 'signal_garden',
-                locationLabel: 'SIGNAL GARDEN',
+                locationLabel: 'MEMORY GARDEN',
                 representedInVillage: false
             }));
     });

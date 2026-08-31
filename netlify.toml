@@ -46,6 +46,20 @@
   force = true
 
 [[redirects]]
+  # Plain-language public alias for the cached daily NASA-backed discovery.
+  from = "/api/space-discovery"
+  to = "/.netlify/functions/space-discovery"
+  status = 200
+  force = true
+
+[[redirects]]
+  # Keep old bookmarks working while the public name changes.
+  from = "/api/space-signal"
+  to = "/.netlify/functions/space-discovery"
+  status = 200
+  force = true
+
+[[redirects]]
   # Handle API routes (when implemented)
   from = "/api/*"
   to = "/.netlify/functions/:splat"
@@ -103,7 +117,7 @@
   status = 200
 
 [[redirects]]
-  # Keep the public Signal Log ahead of the SPA fallback.
+  # Keep the public Latest News ahead of the SPA fallback.
   from = "/updates"
   to = "/updates/index.html"
   status = 200
@@ -115,14 +129,21 @@
 
 [[redirects]]
   # Keep the changing real-space return doorway ahead of the SPA fallback.
-  from = "/space-signal"
-  to = "/space-signal/index.html"
+  from = "/space-discovery"
+  to = "/space-discovery/index.html"
   status = 200
 
 [[redirects]]
-  from = "/space-signal/"
-  to = "/space-signal/index.html"
+  from = "/space-discovery/"
+  to = "/space-discovery/index.html"
   status = 200
+
+[[redirects]]
+  # Preserve old shared links after the public feature was renamed.
+  from = "/space-signal/*"
+  to = "/space-discovery/"
+  status = 301
+  force = true
 
 [[redirects]]
   # Keep the adult-only fixed-choice feedback page ahead of the SPA fallback.

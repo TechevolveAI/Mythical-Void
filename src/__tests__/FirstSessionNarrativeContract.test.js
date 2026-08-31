@@ -15,7 +15,7 @@ describe('first-session Project Beacon framing', () => {
             name: 'Wanderer-77',
             flightNumber: 23,
             registry: 'W77-23',
-            signalChannel: 'BEACON CHANNEL 23',
+            signalChannel: 'BEACON LINK 23',
             livery: ['#D72638', '#050505', '#FFFFFF', '#138A36']
         }));
         expect(framing.homeCta).toBe('BEGIN PROJECT BEACON');
@@ -37,7 +37,7 @@ describe('first-session Project Beacon framing', () => {
         ].join(' ');
 
         expect(hatchText).toMatch(/first contact/i);
-        expect(hatchText).toMatch(/living signal/i);
+        expect(hatchText).toMatch(/something living/i);
         expect(hatchText).toMatch(/gently/i);
         expect(hatchText).toMatch(/answered/i);
         expect(hatchText).not.toMatch(/specimen|extract|Earth comes first/i);

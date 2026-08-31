@@ -1,6 +1,6 @@
 {
   "version": "https://jsonfeed.org/version/1.1",
-  "title": "Mythical Void — The Signal Log",
+  "title": "Mythical Void — The Latest News",
   "home_page_url": "https://mythicalvoid.com/updates/",
   "feed_url": "https://mythicalvoid.com/updates/feed.json",
   "description": "See what is newly live in Mythical Void: game stories, useful resources and honest release notes linked to the playable browser game.",
@@ -15,11 +15,11 @@
   ],
   "items": [
     {
-      "id": "https://mythicalvoid.com/updates/#signal-024",
-      "url": "https://mythicalvoid.com/updates/#signal-024",
-      "external_url": "https://mythicalvoid.com/space-signal/",
-      "title": "Today’s Space Signal is live",
-      "content_text": "A changing Mythical Void doorway now begins with one real NASA astronomy source, a three-step observation mission and a clearly fictional question about life in another dimension.\n\n• Each signal asks visitors to observe, infer and check before imagining what kind of alien creature could sense that pattern and how it might move.\n• The page reads only the APOD title and date, then links to NASA’s original page for the picture, explanation and full credit information.\n• No signup, email, child profile or republished daily image is involved. NASA does not make, approve or endorse Mythical Void.\n\nSee the live change: https://mythicalvoid.com/space-signal/\n\nVisual note: Mythical Void procedural signal artwork; not a NASA image and not gameplay.",
+      "id": "https://mythicalvoid.com/updates/#update-024",
+      "url": "https://mythicalvoid.com/updates/#update-024",
+      "external_url": "https://mythicalvoid.com/space-discovery/",
+      "title": "Today’s Space Discovery is live",
+      "content_text": "A changing Mythical Void doorway now begins with one real NASA astronomy source, a three-step observation mission and a clearly fictional question about life in another dimension.\n\n• Each visit asks visitors to observe, infer and check before imagining what kind of alien creature could sense that pattern and how it might move.\n• The page reads only the APOD title and date, then links to NASA’s original page for the picture, explanation and full credit information.\n• No signup, email, child profile or republished daily image is involved. NASA does not make, approve or endorse Mythical Void.\n\nSee the live change: https://mythicalvoid.com/space-discovery/\n\nVisual note: Mythical Void procedural star-map artwork; not a NASA image and not gameplay.",
       "summary": "A changing Mythical Void doorway now begins with one real NASA astronomy source, a three-step observation mission and a clearly fictional question about life in another dimension.",
       "date_published": "2026-08-27T12:00:00.000Z",
       "tags": [
@@ -27,8 +27,8 @@
       ]
     },
     {
-      "id": "https://mythicalvoid.com/updates/#signal-023",
-      "url": "https://mythicalvoid.com/updates/#signal-023",
+      "id": "https://mythicalvoid.com/updates/#update-023",
+      "url": "https://mythicalvoid.com/updates/#update-023",
       "external_url": "https://mythicalvoid.com/hatch-challenge/",
       "title": "The Hatch Challenge is ready",
       "content_text": "One player can now invite someone they know to begin the same Mythical Void mystery, hatch separately and compare what the creature engine makes.\n\n• The challenge is deliberately simple: send one clean link, each reach the first hatch in your own browser, then compare form, colour, markings, nature, affinity and any rare change.\n• Mythical Void remains a single-player game. The challenge does not claim multiplayer or guarantee that every result will be different.\n• No account, upload, recipient detail, creature data or tracking code is added to the invitation.\n\nSee the live change: https://mythicalvoid.com/hatch-challenge/\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.",
@@ -40,10 +40,10 @@
       ]
     },
     {
-      "id": "https://mythicalvoid.com/updates/#signal-022",
-      "url": "https://mythicalvoid.com/updates/#signal-022",
+      "id": "https://mythicalvoid.com/updates/#update-022",
+      "url": "https://mythicalvoid.com/updates/#update-022",
       "external_url": "https://mythicalvoid.com/playable-now/#find-your-way/story",
-      "title": "The final signal can now travel",
+      "title": "The final message can now travel",
       "content_text": "After reaching the final Project Beacon epilogue, a player can now pass Mythical Void on using one clean public game link.\n\n• Sharing appears only after the player completes the final epilogue. It never opens automatically or interrupts the ending choice.\n• The shared message contains no save data, creature name, ending choice, identity, recipient, contact details or tracking code.\n• The finale credits now preserve the father-and-son beginning without publishing the child’s full name or exact age.\n\nSee the live change: https://mythicalvoid.com/playable-now/#find-your-way/story\n\nMedia note: Game-world artwork used by Mythical Void; not a gameplay screenshot.",
       "summary": "After reaching the final Project Beacon epilogue, a player can now pass Mythical Void on using one clean public game link.",
       "image": "https://mythicalvoid.com/game/project-beacon-crash-site.webp",
@@ -53,11 +53,11 @@
       ]
     },
     {
-      "id": "https://mythicalvoid.com/updates/#signal-021",
-      "url": "https://mythicalvoid.com/updates/#signal-021",
+      "id": "https://mythicalvoid.com/updates/#update-021",
+      "url": "https://mythicalvoid.com/updates/#update-021",
       "external_url": "https://mythicalvoid.com/",
       "title": "Your saved adventure now has a clearer way back",
-      "content_text": "When Mythical Void notices its own save name in the same browser, the website changes Play to Continue and gives that player a direct way back into the game.\n\n• The website checks only whether the Mythical Void save name exists. It does not open, read or change the saved adventure.\n• The signal stays in the browser: it is not sent to Mythical Void, added to analytics or used to identify the player.\n• If browser storage is blocked or there is no save, the normal new-player experience remains unchanged. No account is needed in either case.\n\nSee the live change: https://mythicalvoid.com/\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.",
+      "content_text": "When Mythical Void notices its own save name in the same browser, the website changes Play to Continue and gives that player a direct way back into the game.\n\n• The website checks only whether the Mythical Void save name exists. It does not open, read or change the saved adventure.\n• The choice stays in the browser: it is not sent to Mythical Void, added to analytics or used to identify the player.\n• If browser storage is blocked or there is no save, the normal new-player experience remains unchanged. No account is needed in either case.\n\nSee the live change: https://mythicalvoid.com/\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.",
       "summary": "When Mythical Void notices its own save name in the same browser, the website changes Play to Continue and gives that player a direct way back into the game.",
       "image": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
       "date_published": "2026-08-26T12:00:00.000Z",
@@ -66,8 +66,8 @@
       ]
     },
     {
-      "id": "https://mythicalvoid.com/updates/#signal-020",
-      "url": "https://mythicalvoid.com/updates/#signal-020",
+      "id": "https://mythicalvoid.com/updates/#update-020",
+      "url": "https://mythicalvoid.com/updates/#update-020",
       "external_url": "https://mythicalvoid.com/llms.txt",
       "title": "One truthful guide now points to the whole game",
       "content_text": "A concise public guide now helps people, search tools and AI systems find Mythical Void’s canonical play, story, creature, family, NASA and studio pages without guessing what is real.\n\n• The guide states what players do today, where to play free and which public pages are the clearest sources for each part of the game.\n• It also states the boundaries directly: no absolute creature-uniqueness promise, NASA endorsement, formal age rating, imagined artwork called gameplay or identifying detail about the child in the founder story.\n• This proposed web convention does not control crawlers or promise search inclusion, ranking or AI citations. The real pages, sitemap, structured game facts and human review remain authoritative.\n\nSee the live change: https://mythicalvoid.com/llms.txt\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.",
@@ -79,8 +79,8 @@
       ]
     },
     {
-      "id": "https://mythicalvoid.com/updates/#signal-019",
-      "url": "https://mythicalvoid.com/updates/#signal-019",
+      "id": "https://mythicalvoid.com/updates/#update-019",
+      "url": "https://mythicalvoid.com/updates/#update-019",
       "external_url": "https://mythicalvoid.com/playable-now/#find-your-way",
       "title": "Send someone the part they might love",
       "content_text": "Wonder, creature creation, challenge and story now have their own clean way into Mythical Void, so a shared link can reopen the exact reason someone thought of you.\n\n• Choose one of the four honest reasons to play, then use Share this way in. The person receiving it sees the same answer and can enter the free browser game immediately.\n• The shared address contains only the public choice after the # sign. Mythical Void does not collect a recipient, create a profile or add a tracking code.\n• This improves word of mouth without bringing back the unclear screenshots or videos that remain withheld until four stronger gameplay moments pass human review.\n\nSee the live change: https://mythicalvoid.com/playable-now/#find-your-way\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.",
@@ -92,8 +92,8 @@
       ]
     },
     {
-      "id": "https://mythicalvoid.com/updates/#signal-018",
-      "url": "https://mythicalvoid.com/updates/#signal-018",
+      "id": "https://mythicalvoid.com/updates/#update-018",
+      "url": "https://mythicalvoid.com/updates/#update-018",
       "external_url": "https://mythicalvoid.com/playable-now/#main",
       "title": "Choose the feeling you want before you play",
       "content_text": "A new Mythical Void doorway now helps people looking for a game choose between wonder, creation, challenge and story before entering the free browser adventure.\n\n• Each choice explains the part of Mythical Void that best matches that mood, then offers one clean way into the playable game.\n• Choosing a mood does not create a profile or require an account. If optional website analytics were already allowed, only the chosen Play doorway is counted when Play is pressed.\n• The game remains outside website analytics, and the release does not use unfinished gameplay media, paid promotion or an invented audience claim.\n\nSee the live change: https://mythicalvoid.com/playable-now/#main\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.",
@@ -105,8 +105,8 @@
       ]
     },
     {
-      "id": "https://mythicalvoid.com/updates/#signal-017",
-      "url": "https://mythicalvoid.com/updates/#signal-017",
+      "id": "https://mythicalvoid.com/updates/#update-017",
+      "url": "https://mythicalvoid.com/updates/#update-017",
       "external_url": "https://mythicalvoid.com/studio/",
       "title": "Four true Mythical stories can now travel",
       "content_text": "Visitors can now pass on the playable game, father-and-son beginning, NASA and STEM activity, or ready-to-run group mission using the clean sharing choices already on their device.\n\n• Each page shares its own plain-language story and clean mythicalvoid.com address rather than sending everyone to one generic campaign link.\n• If device sharing is unavailable, the same control copies the page address. Mythical Void does not collect a recipient, contact detail or tracking code.\n• The first adult-facing founder post is ready for Kevin’s review without a new email address, paid advertising or a weak gameplay screenshot.\n\nSee the live change: https://mythicalvoid.com/studio/\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.",
@@ -114,12 +114,12 @@
       "image": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
       "date_published": "2026-08-26T12:00:00.000Z",
       "tags": [
-        "PASS THE SIGNAL ON"
+        "SHARE THE GAME"
       ]
     },
     {
-      "id": "https://mythicalvoid.com/updates/#signal-016",
-      "url": "https://mythicalvoid.com/updates/#signal-016",
+      "id": "https://mythicalvoid.com/updates/#update-016",
+      "url": "https://mythicalvoid.com/updates/#update-016",
       "external_url": "https://mythicalvoid.com/educators/",
       "title": "A free space-and-creature mission is ready to run",
       "content_text": "Parents, teachers, libraries and clubs now have one clear Mythical Void activity journey with a full 45-60 minute creature lab and a 20-minute group version.\n\n• Young designers begin with a credited NASA public clue, separate what they observe from what they imagine, then create an organism for a realm with impossible rules.\n• The activity asks them to test an adaptation under pressure and make a restoration choice, connecting scientific reasoning to the game’s wider story.\n• The printable resources need no signup, student account, contact collection or generative AI service. NASA does not endorse Mythical Void.\n\nSee the live change: https://mythicalvoid.com/educators/\n\nVisual note: the earlier media was withheld after human review.",
@@ -130,11 +130,11 @@
       ]
     },
     {
-      "id": "https://mythicalvoid.com/updates/#signal-014",
-      "url": "https://mythicalvoid.com/updates/#signal-014",
+      "id": "https://mythicalvoid.com/updates/#update-014",
+      "url": "https://mythicalvoid.com/updates/#update-014",
       "external_url": "https://mythicalvoid.com/creature-field-guide/",
       "title": "Twelve creatures now have a place in the story",
-      "content_text": "A new Project Beacon field guide connects twelve verified game-renderer creatures to the six living realms, with their real traits and new official stories kept clearly separate.\n\n• Each realm now has two field sightings tied to a lesson already present in the game: listen, repair, keep routes open, protect warnings, use signals carefully and choose what should remain undisclosed.\n• Every creature image is an exact export from the running renderer, and every trait comes from its checked genetics and DNA profile rather than new marketing invention.\n• The names and short stories are official universe material, but they do not claim these twelve creatures or events are already playable quests. The current game and the wider field guide remain plainly labelled.\n\nSee the live change: https://mythicalvoid.com/creature-field-guide/\n\nVisual note: the earlier media was withheld after human review.",
+      "content_text": "A new Project Beacon field guide connects twelve verified game-renderer creatures to the six living realms, with their real traits and new official stories kept clearly separate.\n\n• Each realm now has two field sightings tied to a lesson already present in the game: listen, repair, keep routes open, protect warnings, use messages carefully and choose what should remain undisclosed.\n• Every creature image is an exact export from the running renderer, and every trait comes from its checked genetics and DNA profile rather than new marketing invention.\n• The names and short stories are official universe material, but they do not claim these twelve creatures or events are already playable quests. The current game and the wider field guide remain plainly labelled.\n\nSee the live change: https://mythicalvoid.com/creature-field-guide/\n\nVisual note: the earlier media was withheld after human review.",
       "summary": "A new Project Beacon field guide connects twelve verified game-renderer creatures to the six living realms, with their real traits and new official stories kept clearly separate.",
       "date_published": "2026-08-26T12:00:00.000Z",
       "tags": [
@@ -142,8 +142,8 @@
       ]
     },
     {
-      "id": "https://mythicalvoid.com/updates/#signal-013",
-      "url": "https://mythicalvoid.com/updates/#signal-013",
+      "id": "https://mythicalvoid.com/updates/#update-013",
+      "url": "https://mythicalvoid.com/updates/#update-013",
       "external_url": "https://mythicalvoid.com/creature-genetics/#gene-spectrum",
       "title": "See how the creature engine shapes a hatch",
       "content_text": "A clearer creature-engine guide now explains how form, markings, nature, affinity and rare changes combine—without asking weak sprite exports to carry the story.\n\n• The guide explains the current seven species signatures and eleven body families in plain language.\n• It separates the playable creature profile from wider imagined-universe artwork, so nobody has to guess what they are seeing.\n• The previous tiny sprite gallery was technically authentic but visually unhelpful, so it has been withdrawn pending stronger in-game captures.\n\nSee the live change: https://mythicalvoid.com/creature-genetics/#gene-spectrum\n\nVisual note: the earlier media was withheld after human review.",
@@ -154,8 +154,8 @@
       ]
     },
     {
-      "id": "https://mythicalvoid.com/updates/#signal-015",
-      "url": "https://mythicalvoid.com/updates/#signal-015",
+      "id": "https://mythicalvoid.com/updates/#update-015",
+      "url": "https://mythicalvoid.com/updates/#update-015",
       "external_url": "https://mythicalvoid.com/playable-now/",
       "title": "A better standard for showing the game",
       "content_text": "Mythical Void has withdrawn a technically genuine but visually poor media set and introduced a human visual-review standard before any replacement can be published.\n\n• The black square seen in the old footage was a real missing-texture failure. The game now verifies that a creature texture exists before a level can use it.\n• The old screenshots, vertical, square and wide social videos are withdrawn. Passing technical file checks is no longer treated as visual approval.\n• A replacement must show one clear subject and action, keep the creature readable at phone size and be watched frame by frame by an adult reviewer.\n\nSee the live change: https://mythicalvoid.com/playable-now/\n\nVisual note: the earlier media was withheld after human review.",
@@ -166,8 +166,8 @@
       ]
     },
     {
-      "id": "https://mythicalvoid.com/updates/#signal-009",
-      "url": "https://mythicalvoid.com/updates/#signal-009",
+      "id": "https://mythicalvoid.com/updates/#update-009",
+      "url": "https://mythicalvoid.com/updates/#update-009",
       "external_url": "https://mythicalvoid.com/playable-now/",
       "title": "Understand the game before you play",
       "content_text": "A Mythical Void guide now explains what a player actually does, why the creature matters and where the story leads—without relying on weak footage.\n\n• The page explains the crash, creature, six realms, restoration, Sanctuary building and Project Beacon choice in plain language.\n• Earlier screenshots and video were removed because they did not show clear, attractive moments of play even though the source files were genuine.\n• Every Play link goes directly to the free browser game without an account, download, email signup or tracking parameter.\n\nSee the live change: https://mythicalvoid.com/playable-now/\n\nVisual note: the earlier media was withheld after human review.",
@@ -178,20 +178,20 @@
       ]
     },
     {
-      "id": "https://mythicalvoid.com/updates/#signal-008",
-      "url": "https://mythicalvoid.com/updates/#signal-008",
+      "id": "https://mythicalvoid.com/updates/#update-008",
+      "url": "https://mythicalvoid.com/updates/#update-008",
       "external_url": "https://mythicalvoid.com/updates/feed.xml",
-      "title": "The Signal Log can now travel",
-      "content_text": "The checked Mythical Void release log is now available as an RSS feed for people and a JSON feed for future studio tools—without requiring an account or email signup.\n\n• Both feeds are built from the same checked source as the public Signal Log, so titles, links and media notes cannot quietly drift apart.\n• Every item keeps a clean mythicalvoid.com destination, its artwork or gameplay disclosure and no tracking parameters.\n• Following the feed happens in the reader a person chooses; Mythical Void does not collect an email address, account or recipient.\n\nSee the live change: https://mythicalvoid.com/updates/feed.xml\n\nVisual note: the earlier media was withheld after human review.",
+      "title": "The Latest News can now travel",
+      "content_text": "The checked Mythical Void release log is now available as an RSS feed for people and a JSON feed for future studio tools—without requiring an account or email signup.\n\n• Both feeds are built from the same checked source as the public Latest News, so titles, links and media notes cannot quietly drift apart.\n• Every item keeps a clean mythicalvoid.com destination, its artwork or gameplay disclosure and no tracking parameters.\n• Following the feed happens in the reader a person chooses; Mythical Void does not collect an email address, account or recipient.\n\nSee the live change: https://mythicalvoid.com/updates/feed.xml\n\nVisual note: the earlier media was withheld after human review.",
       "summary": "The checked Mythical Void release log is now available as an RSS feed for people and a JSON feed for future studio tools—without requiring an account or email signup.",
       "date_published": "2026-08-14T12:00:00.000Z",
       "tags": [
-        "FOLLOW THE SIGNAL"
+        "STUDIO NEWS"
       ]
     },
     {
-      "id": "https://mythicalvoid.com/updates/#signal-005",
-      "url": "https://mythicalvoid.com/updates/#signal-005",
+      "id": "https://mythicalvoid.com/updates/#update-005",
+      "url": "https://mythicalvoid.com/updates/#update-005",
       "external_url": "https://mythicalvoid.com/story/",
       "title": "Shared links now carry the right picture",
       "content_text": "The Project Beacon story and other important Mythical Void pages now give social apps a clearer image, description and accessible image text when someone shares a link.\n\n• The Project Beacon story now uses its purpose-built wide sharing artwork instead of a generic or easily cropped image.\n• Seven public pages carry checked image sizes and matching alternative text for large link previews.\n• Every preview keeps its clean mythicalvoid.com destination and the artwork-versus-gameplay boundary.\n\nSee the live change: https://mythicalvoid.com/story/\n\nVisual note: the earlier media was withheld after human review.",
@@ -202,8 +202,8 @@
       ]
     },
     {
-      "id": "https://mythicalvoid.com/updates/#signal-004",
-      "url": "https://mythicalvoid.com/updates/#signal-004",
+      "id": "https://mythicalvoid.com/updates/#update-004",
+      "url": "https://mythicalvoid.com/updates/#update-004",
       "external_url": "https://mythicalvoid.com/",
       "title": "Share the game from the first screen",
       "content_text": "A new Share the game button now sits beside Play on the Mythical Void homepage, making it easier for someone who enjoys the idea to pass it on.\n\n• On supported phones and computers, the button opens the device's normal sharing choices.\n• Where device sharing is unavailable, it copies the clean mythicalvoid.com address instead.\n• The shared address contains no tracking code, and the Mythical Void control does not collect a recipient or contact details.\n\nSee the live change: https://mythicalvoid.com/\n\nMedia note: AI-generated marketing illustration inspired by the creature system; not gameplay.",
@@ -215,8 +215,8 @@
       ]
     },
     {
-      "id": "https://mythicalvoid.com/updates/#signal-001",
-      "url": "https://mythicalvoid.com/updates/#signal-001",
+      "id": "https://mythicalvoid.com/updates/#update-001",
+      "url": "https://mythicalvoid.com/updates/#update-001",
       "external_url": "https://mythicalvoid.com/story/",
       "title": "The Project Beacon story is live",
       "content_text": "A new spoiler-light story page now explains the crash of Wanderer-77, first contact, six living realms and the choice waiting at the heart of Project Beacon.\n\n• Six realm images come from the real running game.\n• The page explains why the guardians are restored rather than destroyed.\n• The ending remains for players to discover themselves.\n\nSee the live change: https://mythicalvoid.com/story/\n\nVisual note: the earlier media was withheld after human review.",

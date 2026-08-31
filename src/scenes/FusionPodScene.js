@@ -654,7 +654,7 @@ class FusionPodScene extends Phaser.Scene {
 
         if (reason === 'locked') {
             icon = '◈';
-            title = 'Signal Not Yet Stable';
+            title = 'Creature Not Yet Ready';
             const currentLevel = Number(context) || 1;
             message = `The Fusion Pod responds at companion Level 5.\n\nCurrent level: ${currentLevel}/5\n\nContinue expeditions and strengthen the bond.`;
         } else if (reason === 'need_creatures') {
@@ -2449,7 +2449,7 @@ class FusionPodScene extends Phaser.Scene {
             invalid_parents: 'Choose two different creatures.',
             ineligible_parents: 'Both creatures must be adults or elders.',
             collection_capacity: result.required === 2
-                ? 'Twin signal detected, but two collection spaces are required.'
+                ? 'Twin creature found, but two collection spaces are required.'
                 : 'Your creature collection is full.',
             transaction_unavailable: 'Fusion records are unavailable. Please return and try again.',
             transaction_not_found: 'Fusion record was interrupted. Please return and try again.',

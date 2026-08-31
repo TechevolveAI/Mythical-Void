@@ -60,7 +60,7 @@ requireValue(!fieldGuide.includes('<img src="/press/'), 'field guide still displ
 requireValue((fieldGuide.match(/field-sighting-glyph/g) || []).length === 12, 'field guide must use twelve non-deceptive profile signals while images are withheld');
 
 const signalLog = read('public/updates/index.html');
-requireValue((signalLog.match(/signal-entry-no-media/g) || []).length >= 1, 'Signal Log does not visibly mark withdrawn historical media');
+requireValue((signalLog.match(/signal-entry-no-media/g) || []).length >= 1, 'Latest News does not visibly mark withdrawn historical media');
 
 console.log(JSON.stringify({
     valid: failures.length === 0,

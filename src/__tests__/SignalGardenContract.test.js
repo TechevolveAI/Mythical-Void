@@ -13,7 +13,7 @@ const hatchingSource = read('scenes/HatchingScene.js');
 
 describe('Signal Garden sanctuary contract', () => {
     test('replaces the locked placeholder with an interactive Sanctuary landmark', () => {
-        expect(zonesSource).toContain("name: 'Signal Garden'");
+        expect(zonesSource).toContain("name: 'Memory Garden'");
         expect(zonesSource).toContain("onInteract: 'tendSignalGarden'");
         expect(zonesSource).toContain('locked: false');
         expect(zonesSource).not.toContain('(Coming Soon)');

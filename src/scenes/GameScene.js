@@ -978,7 +978,7 @@ class GameScene extends Phaser.Scene {
 
             if (this.signalGardenPreview) {
                 this.createSignalGardenPreview();
-                console.log('[GameScene] Signal Garden preview created successfully');
+                console.log('[GameScene] Memory Garden preview created successfully');
                 return;
             }
 
@@ -2062,7 +2062,7 @@ class GameScene extends Phaser.Scene {
             );
         }
 
-        const heading = this.add.text(width / 2, Math.max(42, height * 0.12), 'PROJECT BEACON // SIGNAL GARDEN', {
+        const heading = this.add.text(width / 2, Math.max(42, height * 0.12), 'PROJECT BEACON // MEMORY GARDEN', {
             fontSize: width < 600 ? '16px' : '20px',
             fontFamily: 'Arial, sans-serif',
             color: '#D8FFF0',
@@ -2094,8 +2094,8 @@ class GameScene extends Phaser.Scene {
                 x: width / 2,
                 y: Math.min(height - 105, height * 0.68)
             },
-            name: 'Signal Garden',
-            description: 'Nurture a living signal with your companion.',
+            name: 'Memory Garden',
+            description: 'Grow a shared memory with your creature.',
             interactRadius: 115
         }, this.signalGardenPreview);
         if (this.communityPreview !== null) {
@@ -2487,7 +2487,7 @@ class GameScene extends Phaser.Scene {
         const heading = this.add.text(
             width / 2,
             Math.max(34, height * 0.08),
-            'PROJECT BEACON // LIVING SIGNAL',
+            'PROJECT BEACON // SIGNS OF LIFE',
             {
                 fontSize: width < 600 ? '15px' : '20px',
                 fontFamily: 'Arial, sans-serif',
@@ -2609,7 +2609,7 @@ class GameScene extends Phaser.Scene {
             51,
             observed
                 ? `CURRENT LINKED // ${progress}/${total}`
-                : 'LIVING SIGNAL // LISTEN TOGETHER',
+                : 'SIGNS OF LIFE // LISTEN TOGETHER',
             {
                 fontSize: '10px',
                 fontFamily: 'Arial, sans-serif',
@@ -2722,7 +2722,7 @@ class GameScene extends Phaser.Scene {
         }
 
         signal.listeningProgress?.setVisible?.(false);
-        signal.label?.setText('LIVING SIGNAL // LISTEN TOGETHER');
+        signal.label?.setText('SIGNS OF LIFE // LISTEN TOGETHER');
         signal.label?.setColor('#D8FFF0');
     }
 
@@ -4600,7 +4600,7 @@ class GameScene extends Phaser.Scene {
             dormant: {
                 state: 'dormant',
                 tone: 'dormant',
-                statusLabel: 'TWO LIVING SIGNALS REQUIRED'
+                statusLabel: 'TWO CREATURES REQUIRED'
             },
             calibrating: {
                 state: 'calibrating',
@@ -4610,12 +4610,12 @@ class GameScene extends Phaser.Scene {
             maturing: {
                 state: 'maturing',
                 tone: 'calibrating',
-                statusLabel: 'ADULT SIGNALS 1/2'
+                statusLabel: 'ADULT CREATURES 1/2'
             },
             ready: {
                 state: 'ready',
                 tone: 'ready',
-                statusLabel: 'TWO ADULT SIGNALS READY'
+                statusLabel: 'TWO ADULT CREATURES READY'
             }
         };
 
@@ -9068,7 +9068,7 @@ class GameScene extends Phaser.Scene {
     }
 
     /**
-     * Handle player proximity to the Signal Garden.
+     * Handle player proximity to the Memory Garden.
      */
     getFusionPodWorldSnapshot() {
         const sharedAvailable = window.SharedFusionInvitation
@@ -9137,7 +9137,7 @@ class GameScene extends Phaser.Scene {
         if (this.nearSignalGarden) return;
 
         this.nearSignalGarden = true;
-        console.log('[GameScene] Player near Signal Garden');
+        console.log('[GameScene] Player near Memory Garden');
         const community = getFendCommunitySnapshot(window.GameState);
         const culture = getFendCultureSnapshot(window.GameState);
         const action = culture.ready
@@ -9157,14 +9157,14 @@ class GameScene extends Phaser.Scene {
                     ? { verb: 'REVIEW', label: culture.selectedPriority.shortLabel }
                     : community.complete
                         ? { verb: 'TEND', label: 'LIVING COMMONS' }
-                        : { verb: 'TEND', label: 'SIGNAL GARDEN' };
+                        : { verb: 'TEND', label: 'MEMORY GARDEN' };
         this.offerSanctuaryInteraction({
             id: 'signalGarden',
             target: this.signalGarden?.zone,
             message: `Press SPACE · ${action}`,
             icon: '🌱',
             ...presentation,
-            ownerLabel: 'SIGNAL GARDEN',
+            ownerLabel: 'MEMORY GARDEN',
             worldPrompt: true,
             tone: 0x71E6B1,
             priority: 32,
@@ -10164,7 +10164,7 @@ class GameScene extends Phaser.Scene {
             color: '#F2C14E',
             fontStyle: 'bold'
         });
-        addText(top + 103, 'LIVES IN THE SIGNAL GARDEN', {
+        addText(top + 103, 'LIVES IN THE MEMORY GARDEN', {
             fontSize: compact ? '10px' : '12px',
             color: '#8FE3CF',
             fontStyle: 'bold'
@@ -14384,7 +14384,7 @@ class GameScene extends Phaser.Scene {
         });
         this.showCreatureResponse(result.signal.companionLine);
         this.showFloatingText(
-            `SIGNAL ${result.progress}/${result.total} +4 Bond`,
+            `CLUE ${result.progress}/${result.total} +4 Bond`,
             signal.x,
             signal.y - 55,
             '#8FE3CF'
@@ -15330,7 +15330,7 @@ class GameScene extends Phaser.Scene {
                 this.signalGarden.zone.y
             );
             if (distToGarden <= GARDEN_INTERACT_DISTANCE) {
-                console.log('[GameScene] Distance fallback: Player within range of Signal Garden');
+                console.log('[GameScene] Distance fallback: Player within range of Memory Garden');
                 this.nearSignalGarden = true;
             }
         }
@@ -15517,7 +15517,7 @@ class GameScene extends Phaser.Scene {
         }
 
         if (this.nearSignalGarden) {
-            console.log('[GameScene] Tending Signal Garden from SPACE handler');
+            console.log('[GameScene] Tending Memory Garden from SPACE handler');
             this.tendSignalGarden();
             return;
         }
@@ -15905,7 +15905,7 @@ class GameScene extends Phaser.Scene {
                 'nearSignalGarden'
             )) {
                 if (distance > this.getInteractionDistance('signalGarden').clear) {
-                    console.log('[GameScene] Player moved away from Signal Garden, distance:', distance);
+                    console.log('[GameScene] Player moved away from Memory Garden, distance:', distance);
                     this.nearSignalGarden = false;
                     const replacement = this.withdrawSanctuaryInteraction('signalGarden');
                     if (!replacement) this.hideInteractionHint();
@@ -17750,7 +17750,7 @@ class GameScene extends Phaser.Scene {
         const subtitle = this.add.text(
             contentX,
             panelY + (shortPanel ? 42 : 48),
-            'TWO SIGNALS // KINSHIP PROTOCOL',
+            'TWO CREATURES // KINSHIP PROTOCOL',
             {
             fontSize: compact || shortPanel ? '11px' : '12px',
             color: '#71E6B1',
@@ -17820,7 +17820,7 @@ class GameScene extends Phaser.Scene {
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         const btnY = panelY + panelHeight - (shortPanel ? 30 : 42);
-        const btn = this.add.text(width / 2, btnY, 'LOG SIGNAL', {
+        const btn = this.add.text(width / 2, btnY, 'LOG DISCOVERY', {
             fontSize: compact ? '15px' : '16px',
             color: '#FFFFFF',
             backgroundColor: '#3FAE62',

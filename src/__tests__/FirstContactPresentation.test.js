@@ -12,7 +12,7 @@ describe('first-contact hatch presentation', () => {
     test('frames maturity as a projection instead of a guaranteed destiny', () => {
         const reveal = evolutionConfig.hatching.visionReveal;
 
-        expect(reveal.visionMessage).toBe('PROJECTED MATURITY // SIGNAL POTENTIAL');
+        expect(reveal.visionMessage).toBe('PROJECTED MATURITY // GROWTH POTENTIAL');
         expect(reveal.transitionMessage).toContain('One possible future');
         expect(reveal.babyRevealMessage).toBe('FIRST CONTACT // PRESENT FORM');
         expect(sceneSource).not.toContain('magnificent destiny');
@@ -22,7 +22,7 @@ describe('first-contact hatch presentation', () => {
     test('treats the result as a field reading and the alternative as a rescan', () => {
         expect(sceneSource).toContain("'FIELD CLASSIFICATION'");
         expect(sceneSource).toContain('CONFIRM CONTACT');
-        expect(sceneSource).toContain('RESCAN SIGNAL');
+        expect(sceneSource).toContain('RESCAN CREATURE');
         expect(sceneSource).toContain('One rescan remains. Accept this reading');
         expect(sceneSource).toContain('SCAN ESTIMATE · ${advice.message}');
         expect(sceneSource).not.toContain('✓ KEEP');
@@ -38,7 +38,7 @@ describe('first-contact hatch presentation', () => {
         );
         expect(sceneSource).toContain('element?.setVisible(false)');
         expect(sceneSource).toContain("'FIELD CLASSIFICATION'");
-        expect(sceneSource).toContain('SIGNAL · ${formatFieldTerm(this.creatureGenetics.species)}');
+        expect(sceneSource).toContain('LIFE FORM · ${formatFieldTerm(this.creatureGenetics.species)}');
     });
 
     test('makes the creature the focus and removes finished egg instructions', () => {
@@ -83,7 +83,7 @@ describe('first-contact hatch presentation', () => {
         Object.values(rarityConfig)
             .filter(entry => entry?.celebrationMessage)
             .forEach(entry => {
-                expect(entry.displayName).toMatch(/Signal$/);
+                expect(entry.displayName).toMatch(/Life Form$/);
                 expect(entry.celebrationMessage).toMatch(/^First contact confirmed\./);
                 expect(entry.celebrationMessage).not.toMatch(
                     /lovely|wonderful|delightfully|wow|incredible|friend/i

@@ -204,7 +204,7 @@ describe('second expedition rescue loop', () => {
         expect(core).toContain('if (!this.canActivateCrystalCore())');
         expect(core.indexOf('if (!this.canActivateCrystalCore())'))
             .toBeLessThan(core.indexOf('this.crystalCoreFound = true'));
-        expect(source).toContain('The Core signal is incomplete. Align the Beacon anchors.');
+        expect(source).toContain('The Core route is incomplete. Align the Beacon anchors.');
         expect(source).toContain('Your companion still hears the fractured grove.');
         expect(source).toContain('Touch to Answer the Guardian');
         expect(source).toContain("{ text: 'Beacon Route Aligned', done: this.caveRouteAligned }");

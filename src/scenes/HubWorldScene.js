@@ -99,7 +99,7 @@ const EXPEDITION_CHECKPOINTS_BY_GATE = Object.freeze({
         levelId: 'reef_1',
         levelStateId: 'cosmicReef',
         checkpoints: [
-            ['reef_waypoint_1', 'Drift Signal'],
+            ['reef_waypoint_1', 'Drift Marker'],
             ['reef_waypoint_2', 'Traveler Relay'],
             ['reef_waypoint_3', 'Passage Vector']
         ]
@@ -131,7 +131,7 @@ const EXPEDITION_CHECKPOINTS_BY_GATE = Object.freeze({
         checkpoints: [
             ['final_bond_1', 'Living Systems'],
             ['final_bond_2', 'Return Route'],
-            ['final_bond_3', 'Trust Signal']
+            ['final_bond_3', 'Trust Marker']
         ]
     }
 });

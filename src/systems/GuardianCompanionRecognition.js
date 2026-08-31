@@ -18,7 +18,7 @@ const AFFINITY_LABELS = Object.freeze({
 
 const GUARDIAN_OBSERVATIONS = Object.freeze({
     elder_treant: ({ name, signature }) =>
-        `${name}, I can feel your ${signature} in the signal beneath these roots.`,
+        `${name}, I can feel your ${signature} in the Current beneath these roots.`,
     crystal_golem: ({ name, signature }) =>
         `${name}, these shards remember the frequency of your ${signature}.`,
     nyxvoral: ({ name, signature }) =>
@@ -42,7 +42,7 @@ function cleanText(value, fallback, maxLength = 40) {
     return normalized ? normalized.slice(0, maxLength) : fallback;
 }
 
-function humanize(value, fallback = 'unfamiliar signal') {
+function humanize(value, fallback = 'unfamiliar presence') {
     const clean = cleanText(value, '', 48)
         .replace(/[_-]+/g, ' ')
         .replace(/\s+/g, ' ')
@@ -94,7 +94,7 @@ function selectSignature({ genes, dna, affinityLabel, identitySeed }) {
             values: hybrid && hybrid !== 'single species' ? [hybrid] : []
         },
         { kind: 'body', values: body ? [`${body} form`] : [] },
-        { kind: 'affinity', values: [`${affinityLabel.toLowerCase()} signal`] }
+        { kind: 'affinity', values: [`${affinityLabel.toLowerCase()} presence`] }
     ];
     const selectedGroup = groups.find(group => group.values.length > 0);
     const index = hashString(identitySeed) % selectedGroup.values.length;

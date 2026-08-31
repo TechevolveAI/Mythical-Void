@@ -38,7 +38,7 @@ export const FEND_COMMONS_PRIORITIES = Object.freeze([
         decisionLine:
             'First, we extend the warning. Every settlement deserves time to choose its own response.',
         companionLine:
-            'Your companion gives the relay a living signal that cannot be mistaken for an order.'
+            'Your companion gives the relay a living voice that cannot be mistaken for an order.'
     })
 ]);
 

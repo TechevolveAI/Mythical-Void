@@ -1,5 +1,8 @@
 # Netlify redirects for SPA routing
 /api/observability-events    /.netlify/functions/observability-events    200!
 /api/live-presence           /.netlify/functions/live-presence           200!
+/api/space-discovery         /.netlify/functions/space-discovery          200!
+/api/space-signal            /.netlify/functions/space-discovery          200!
 /api/*                       /.netlify/functions/:splat                  200!
+/space-signal/*              /space-discovery/                            301!
 /*    /index.html   200

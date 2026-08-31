@@ -61,7 +61,7 @@ describe('VictoryScene campaign contract', () => {
         expect(victorySceneSource).toContain(
             'UPLINK READY  //  TRANSMISSION HELD'
         );
-        expect(victorySceneSource).toContain('NO SIGNAL HAS LEFT');
+        expect(victorySceneSource).toContain('NO MESSAGE HAS LEFT');
         expect(victorySceneSource).not.toContain('INITIATING LAUNCH');
         expect(victorySceneSource).not.toContain('JOURNEY TO THE STARS');
         expect(victorySceneSource).not.toContain('showLaunchPhase');
@@ -79,7 +79,7 @@ describe('VictoryScene campaign contract', () => {
             'On Earth, that power would be detectable across a city.'
         );
         expect(victorySceneSource).toContain(
-            'Project Beacon can reach Earth. No signal has left.'
+            'Project Beacon can reach Earth. No message has left.'
         );
     });
 
@@ -182,7 +182,7 @@ describe('VictoryScene campaign contract', () => {
 
     test('requires confirmation and exposes a protected New Game+ handoff', () => {
         expect(victorySceneSource).toContain(
-            'This decides what you prepare first. No signal is sent.'
+            'This decides what you prepare first. No message is sent.'
         );
         expect(victorySceneSource).toContain('GO BACK');
         expect(victorySceneSource).toContain('REPLAY PROJECT BEACON?');

@@ -19,13 +19,13 @@ requireValue(data.page?.canonicalUrl === 'https://mythicalvoid.com/updates/', 'c
 for (const [field, expected] of Object.entries({ liveItemsOnly: true, commentsEnabled: false, contactCollectionEnabled: false, emailSignupEnabled: false, playerProfilesCreated: false, trackingParametersPermitted: false })) {
     requireValue(data.publicationBoundary?.[field] === expected, `publicationBoundary.${field} must be ${expected}`);
 }
-requireValue(liveEntries.length >= 2, 'Signal Log needs at least two real live entries');
+requireValue(liveEntries.length >= 2, 'Latest News needs at least two real live entries');
 
 const ids = new Set();
 for (const [index, entry] of (data.entries || []).entries()) {
     const label = entry?.id || `entries[${index}]`;
     for (const key of Object.keys(entry || {})) if (!allowedKeys.has(key)) failures.push(`${label} contains unsupported field ${key}`);
-    requireValue(/^SIGNAL-\d{3}$/.test(entry?.id || ''), `${label} has an invalid ID`);
+    requireValue(/^UPDATE-\d{3}$/.test(entry?.id || ''), `${label} has an invalid ID`);
     requireValue(!ids.has(entry?.id), `${label} is duplicated`);
     ids.add(entry?.id);
     requireValue(entry?.status === 'live' || entry?.status === 'withdrawn', `${label} has an unsupported publication status`);
@@ -33,15 +33,15 @@ for (const [index, entry] of (data.entries || []).entries()) {
     requireValue(!Number.isNaN(Date.parse(`${entry.publishedOn}T00:00:00Z`)), `${label} has an impossible publication date`);
     requireValue(Array.isArray(entry?.details) && entry.details.length === 3, `${label} must contain three checkable details`);
     const hasImage = Boolean(entry?.image);
-    const hasSpaceSignalVisual = entry?.visualKind === 'space_signal';
+    const hasSpaceSignalVisual = entry?.visualKind === 'space_discovery';
     requireValue(hasImage || hasSpaceSignalVisual, `${label} needs an approved image or supported code-native visual`);
     if (hasImage) {
         requireValue(/^\/(?!\/)/.test(entry.image), `${label} image must be an owned path`);
         requireValue(fs.existsSync(path.join(root, 'public', entry.image.replace(/^\//, ''))), `${label} image does not exist`);
     }
     if (hasSpaceSignalVisual) {
-        requireValue(!entry.image && /not a NASA image/i.test(entry?.disclosure || '') && /not gameplay/i.test(entry?.disclosure || ''), `${label} Space Signal visual lacks its source and gameplay boundary`);
-        requireValue(typeof entry?.visualAlt === 'string' && entry.visualAlt.length >= 20, `${label} Space Signal visual needs useful alternative text`);
+        requireValue(!entry.image && /not a NASA image/i.test(entry?.disclosure || '') && /not gameplay/i.test(entry?.disclosure || ''), `${label} Space Discovery visual lacks its source and gameplay boundary`);
+        requireValue(typeof entry?.visualAlt === 'string' && entry.visualAlt.length >= 20, `${label} Space Discovery visual needs useful alternative text`);
     }
     requireValue(/^\/(?!\/)/.test(entry?.destination || ''), `${label} destination must be an owned path`);
     requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(entry?.destination || ''), `${label} contains a tracking parameter`);
@@ -56,12 +56,12 @@ for (const [index, entry] of (data.entries || []).entries()) {
     if (entry?.imageClass === 'branded_founder_story_artwork_with_ai_marketing_background_and_authentic_gameplay_frame') requireValue(/founder-story sharing artwork/i.test(entry?.disclosure || '') && /not a raw screenshot/i.test(entry?.disclosure || '') && /not gameplay/i.test(entry?.disclosure || '') && /real gameplay/i.test(entry?.disclosure || '') && /no player information/i.test(entry?.disclosure || '') && /identifying detail of the child/i.test(entry?.disclosure || ''), `${label} founder-story artwork lacks its generated-art, gameplay, privacy or child-identity boundary`);
 }
 
-requireValue(page === buildSignalLog(data), 'Signal Log page is stale; rebuild it from releases.json');
+requireValue(page === buildSignalLog(data), 'Latest News page is stale; rebuild it from releases.json');
 requireValue(page.includes('<meta name="robots" content="index, follow, max-image-preview:large">'), 'page must be indexable');
 requireValue(page.includes('<script type="application/ld+json">'), 'page needs structured data');
 requireValue(page.includes('rel="alternate" type="application/rss+xml"'), 'page must advertise its RSS feed');
 requireValue(page.includes('rel="alternate" type="application/feed+json"'), 'page must advertise its JSON feed');
-requireValue(page.includes('href="/updates/feed.xml">Follow the Signal</a>'), 'page must give people a visible way to follow the Signal');
+requireValue(page.includes('href="/updates/feed.xml">Follow the news</a>'), 'page must give people a visible way to follow the news');
 requireValue(page.includes('href="/updates/feed.json">JSON feed</a>'), 'page must explain the machine-readable feed');
 requireValue(page.includes('No vague promises and no invented player numbers.'), 'page must state its evidence boundary plainly');
 requireValue(!/\bcompanions?\b/i.test(page), 'public page uses retired companion wording');

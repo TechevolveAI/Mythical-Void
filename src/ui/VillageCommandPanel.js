@@ -189,7 +189,7 @@ function getCommunityMemberStatus(member, snapshot) {
     if (assignment) return `HELPING AT ${assignment.definition?.shortLabel || 'A STRUCTURE'}`;
     if (member.isPlayerCompanion) return 'TRAVELS WITH YOU';
     if (snapshot?.home?.unlocked) return 'HOME · SHARED HABITAT';
-    return 'HOME · SIGNAL GARDEN';
+    return 'HOME · MEMORY GARDEN';
 }
 
 function createCommunityDirectory(snapshot, portraitRecord = null) {
@@ -1306,7 +1306,7 @@ export default class VillageCommandPanel {
                 progressBlock.append(
                     createElement('strong', '', `${progress}% SHAPED`),
                     track,
-                    createElement('span', '', 'You can return to the world. The Heart will signal when it is ready.')
+                    createElement('span', '', 'You can return to the world. The Heart will light up when it is ready.')
                 );
                 copy.append(progressBlock);
             } else if (intent === 'supplies' && selectedDefinition) {

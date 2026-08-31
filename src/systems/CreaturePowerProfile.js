@@ -33,7 +33,7 @@ export const CREATURE_POWER_DEFINITIONS = Object.freeze({
         partnershipMove: Object.freeze({
             id: 'beacon_flare',
             name: 'Beacon Flare',
-            effect: 'Combines the suit scanner and stellar light into a precise rescue signal.'
+            effect: 'Combines the suit scanner and stellar light into a precise rescue beam.'
         }),
         highPowerReveal: Object.freeze({
             id: 'daybreak_event',

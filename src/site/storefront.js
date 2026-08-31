@@ -65,7 +65,7 @@ function renderPressPage() {
                 <div class="press-header-actions">
                     <a href="/">Main website</a>
                     <a href="/playable-now/">Game at a glance</a>
-                    <a href="/updates/feed.xml">Signal feed</a>
+                    <a href="/updates/feed.xml">News feed</a>
                     ${playLink('Play now', 'button button-small')}
                 </div>
             </div>
@@ -173,7 +173,7 @@ function renderPressPage() {
             <section class="press-contact-section">
                 <div class="section-inner">
                     <p class="kicker">PLAY BEFORE YOU WRITE</p>
-                    <h2>The signal is already live.</h2>
+                    <h2>The website is already live.</h2>
                     <p>Mythical Void is available to try now. An official press contact channel is being prepared; until it opens, this page remains the canonical source for approved facts and the current visual-review status.</p>
                     <div class="press-hero-actions">
                         ${playLink('Play Mythical Void')}
@@ -223,8 +223,8 @@ function renderLegalPage(type) {
                     <p>Cloud Save uses Supabase. The game may also ask trusted outside services for public space-weather or game-help information. Like most online services, they may receive basic connection information such as an internet address.</p>
                     <h2>Optional website analytics</h2>
                     <p>The public website may use Google Analytics to count visits, the general route people arrived from—such as search, a game shelf, social media, another Mythical Void page or a direct link—whether a visitor reaches a lower part of a public page, and whether website buttons lead to the game or sharing. It is off by default. If you choose “Allow analytics”, Google receives the public page, that broad arrival group, the general button area and the normal connection and device information used by web analytics. Google may also create basic visit and session events after permission is given. Mythical Void does not send Google the full page you came from, a message recipient, contact detail, creature detail, game activity, or the extra information after a question mark in a web address. It is not used in the game, and advertising features are switched off. You can choose “No thanks” instead.</p>
-                    <h2>Playing now signal</h2>
-                    <p>The small “playing now” signal on the public website is an approximate count of game tabs that have checked in during the previous 90 seconds. A game tab sends a temporary random code; the server immediately turns it into a one-way value and keeps only that value and its latest check-in time. It does not include a name, account, creature, game choices or Google Analytics data. A check-in stops counting after 90 seconds and is deleted during a later signal check. The website shows a range rather than inventing players or exposing an exact crowd.</p>
+                    <h2>Playing now</h2>
+                    <p>The small “playing now” display on the public website uses an approximate count of game tabs that have checked in during the previous 90 seconds. A game tab sends a temporary random code; the server immediately turns it into a one-way value and keeps only that value and its latest check-in time. It does not include a name, account, creature, game choices or Google Analytics data. A check-in stops counting after 90 seconds and is deleted during a later check. When nobody is playing, the display describes fictional creature activity inside the game world instead of inventing players.</p>
                     <h2>Children</h2>
                     <p>Children can play without Cloud Save. A child should only use Cloud Save when a parent or guardian has given any permission required where they live.</p>
                     <h2>Contact</h2>
@@ -284,8 +284,8 @@ function renderStorefront() {
                 <div class="hero-veil" aria-hidden="true"></div>
                 <div class="live-presence" data-live-presence data-state="loading" aria-live="polite">
                     <span class="live-presence-pulse" aria-hidden="true"></span>
-                    <span data-live-presence-copy>Checking the live signal…</span>
-                    <span class="live-presence-note">Approximate active game sessions</span>
+                    <span data-live-presence-copy>Creatures are waking in the Void…</span>
+                    <span class="live-presence-note" data-live-presence-note>Activity inside the game world</span>
                 </div>
                 <div class="hero-inner">
                     <div class="hero-copy-block">
@@ -332,7 +332,7 @@ function renderStorefront() {
                                 <span class="recovery-ship"><i></i></span>
                             </div>
                             <h3>Recover what survived</h3>
-                            <p>Wanderer-77 is down. Find the field kit, read the signal, and begin Project Beacon from the crash site.</p>
+                            <p>Wanderer-77 is down. Find the field kit, read the strange message, and begin Project Beacon from the crash site.</p>
                         </article>
                         <div class="path-line" aria-hidden="true">···</div>
                         <article class="path-card path-card-explore">
@@ -373,7 +373,7 @@ function renderStorefront() {
                         <article class="system-card"><span class="system-index">01</span><h3>Genetics with real variety</h3><p>Creature genetics combine species, colours, body shapes, personalities, rarity, and cosmic affinities. Your creature is built from a profile—not picked from one poster.</p><a href="/creature-genetics/">Explore creature genetics →</a><a href="/creature-field-guide/">Enter the creature universe →</a></article>
                         <article class="system-card"><span class="system-index">02</span><h3>A living browser world</h3><p>Phaser 3 is the game engine underneath the adventure. It lets the movement, exploration, battles, guardians, village, and story scenes happen right in your browser.</p><a href="/play/">Enter the Fend →</a></article>
                         <article class="system-card"><span class="system-index">03</span><h3>Story moments made for your friend</h3><p>Optional, experimental tools, available only with adult approval, can turn your creature’s identity into a living portrait or a short AI-made scene. These moments add wonder; the main story and its choices are still written and checked by people.</p><a href="/parents/">Read the family notes →</a></article>
-                        <article class="system-card"><span class="system-index">04</span><h3>Real space science</h3><p>The game can bring in NASA’s public space data, including astronomy pictures and space-weather signals. A changing public Space Signal now gives curious players one real observation and one impossible creature question to explore.</p><a href="/space-signal/">Open today's Space Signal →</a><a href="/nasa-space-science/">See the STEM promise →</a></article>
+                        <article class="system-card"><span class="system-index">04</span><h3>Real space science</h3><p>The game can bring in NASA’s public space data, including astronomy pictures and space-weather readings. A changing public Space Discovery now gives curious players one real observation and one impossible creature question to explore.</p><a href="/space-discovery/">Open today's Space Discovery →</a><a href="/nasa-space-science/">See the STEM promise →</a></article>
                     </div>
                 </div>
             </section>
@@ -435,13 +435,13 @@ function renderStorefront() {
                             <li><span>6</span> lost guardians</li>
                             <li><span>1</span> friend beside you</li>
                         </ul>
-                        ${playLink('Answer the signal')}
+                        ${playLink('Follow the clue')}
                     </div>
                     <div class="guardian-card">
                         <span class="guardian-warning">THE VOID HAS FOUND IT</span>
                         <img src="/game/guardians/void-empress.webp" alt="The Void Empress guardian from the game" loading="lazy">
                         <div>
-                            <strong>Corruption signal: unstable</strong>
+                            <strong>Corruption level: unstable</strong>
                             <span>Clear the pressure. Let the guardian return.</span>
                         </div>
                     </div>
@@ -549,7 +549,7 @@ function renderStorefront() {
             <section class="final-cta">
                 <img src="/game/project-beacon-crash-site.webp" alt="" loading="lazy">
                 <div class="final-cta-copy">
-                    <p class="kicker">THE SIGNAL IS GETTING STRONGER</p>
+                    <p class="kicker">THE VOID IS WAKING</p>
                     <h2>Your creature is waiting.</h2>
                     <p>Free to play. No download. No account needed.</p>
                     <div class="final-cta-actions">
@@ -710,7 +710,7 @@ function bindInteractions() {
             try {
                 if (navigator.share) {
                     await navigator.share(shareData);
-                    setShareStatus('Thanks for sharing the signal.');
+                    setShareStatus('Thanks for sharing Mythical Void.');
                     trackPublicEvent('share_completed', button);
                     return;
                 }

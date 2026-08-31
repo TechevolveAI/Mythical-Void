@@ -88,7 +88,7 @@ describe('Wanderer-77 expedition diagnostics', () => {
             hazardLabel: 'RESONANCE SPIKES',
             ecologyAvailable: false,
             forecastAvailable: false,
-            statusLabel: 'WANDERER-77 LOCAL SCAN // NO SIGNAL SENT'
+            statusLabel: 'WANDERER-77 LOCAL SCAN // NOTHING SENT TO EARTH'
         }));
         expect(snapshot.lines[0]).toBe('ROUTE // ECHO TUNNELS NARROW');
         expect(snapshot.lines[1]).toBe('CURRENT // INSTALL RESONANCE HULL');

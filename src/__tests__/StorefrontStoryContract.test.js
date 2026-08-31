@@ -139,7 +139,7 @@ describe('storefront Project Beacon story contract', () => {
     test('explains the NASA connection as a child-friendly STEM layer', () => {
         expect(storefront).toContain('Real space science');
         expect(storefront).toContain('NASA’s public space data');
-        expect(storefront).toContain('space-weather signals');
+        expect(storefront).toContain('space-weather readings');
         expect(storefront).toContain('See the STEM promise');
         expect(storefront).toContain('How does NASA fit into the game?');
         expect(storefront).toContain('optional learning moments');

@@ -333,7 +333,7 @@ const ACHIEVEMENT_DEFINITIONS = {
                 rewards: { coins: 150 }
             },
             PLATINUM: {
-                description: 'Discover 15 realms, Sanctuary places, and living signals',
+                description: 'Discover 15 realms, Sanctuary places, and signs of life',
                 requirement: 15,
                 rewards: { stardust: 100 }
             }

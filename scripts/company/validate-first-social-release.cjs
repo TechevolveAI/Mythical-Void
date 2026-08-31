@@ -29,13 +29,13 @@ function readPng(file) {
 
 requireValue(release.schemaVersion === 1 && release.id === 'FIRST-SOCIAL-RELEASE-PROJECT-BEACON-2026-08-14', 'First social release identity is invalid.');
 requireValue(release.state === 'complete_review_pack_waiting_for_verified_channel_and_kevin_approval', 'First social release must remain a complete, gated review pack.');
-requireValue(release.selection?.sourceEntryId === 'SIGNAL-001' && release.selection?.destination === 'https://mythicalvoid.com/story/', 'First release must stay bound to the live Project Beacon story note and destination.');
+requireValue(release.selection?.sourceEntryId === 'UPDATE-001' && release.selection?.destination === 'https://mythicalvoid.com/story/', 'First release must stay bound to the live Project Beacon story note and destination.');
 requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(release.selection?.destination || ''), 'First release destination must not contain tracking parameters.');
 
-const sourceItem = sourcePack.items?.find(item => item.id === 'DRAFT-SIGNAL-001');
+const sourceItem = sourcePack.items?.find(item => item.id === 'DRAFT-UPDATE-001');
 requireValue(Boolean(sourceItem), 'Source-bound Project Beacon draft is missing.');
-requireValue(release.drafts?.professionalNetwork?.copy === sourceItem?.drafts?.professionalNetwork?.body, 'Professional draft has drifted from the Signal Log source pack.');
-requireValue(release.drafts?.videoCommunity?.copy === sourceItem?.drafts?.videoCommunity?.body, 'Video-community draft has drifted from the Signal Log source pack.');
+requireValue(release.drafts?.professionalNetwork?.copy === sourceItem?.drafts?.professionalNetwork?.body, 'Professional draft has drifted from the Latest News source pack.');
+requireValue(release.drafts?.videoCommunity?.copy === sourceItem?.drafts?.videoCommunity?.body, 'Video-community draft has drifted from the Latest News source pack.');
 requireValue(release.drafts?.professionalNetwork?.channelRef === 'CH-004' && release.drafts?.videoCommunity?.channelRef === 'CH-002', 'Drafts must retain their planned channel references.');
 
 requireValue(Array.isArray(release.assets) && release.assets.length === 2, 'First social release needs exactly one wide and one square asset.');

@@ -5,7 +5,7 @@ function read(relativePath) {
     return fs.readFileSync(path.join(__dirname, '../..', relativePath), 'utf8');
 }
 
-describe('truthful live-player signal contract', () => {
+describe('truthful live-player count contract', () => {
     const client = read('src/site/live-presence.js');
     const storefront = read('src/site/storefront.js');
     const main = read('src/main.js');
@@ -15,10 +15,13 @@ describe('truthful live-player signal contract', () => {
     const netlify = read('netlify.toml');
     const redirects = read('public/_redirects');
 
-    test('shows actual approximate ranges and an honest quiet state', () => {
-        expect(client).toContain("return 'The Void is quiet — be the first to explore'");
+    test('shows actual approximate ranges and fictional world activity when quiet', () => {
+        expect(client).toContain('return 2 + (Math.floor(now / 25_000) % 2)');
+        expect(client).toContain('`${ambientCreatureCount()} creatures stirring in the Void`');
         expect(client).toContain('`${data.range} playing now`');
-        expect(storefront).toContain('Approximate active game sessions');
+        expect(client).toContain("return 'Someone is playing now'");
+        expect(client).toContain('Approximate active game sessions');
+        expect(storefront).toContain('fictional creature activity inside the game world');
         expect(storefront).not.toMatch(/fake|fabricat(?:e|ed)\s+(?:two|2|three|3)/i);
     });
 
@@ -26,12 +29,12 @@ describe('truthful live-player signal contract', () => {
         expect(main).toContain("import('./site/live-presence.js')");
         expect(main).toContain('startGamePresence()');
         expect(main).toContain('if (!isPortalBuild)');
-        expect(main).toContain('The optional live signal must never interrupt the game');
+        expect(main).toContain('The optional live count must never interrupt the game');
         expect(client).toContain("method: 'POST'");
         expect(client).toContain('document.hidden');
     });
 
-    test('keeps the signal anonymous, short-lived and server-only', () => {
+    test('keeps the count anonymous, short-lived and server-only', () => {
         expect(migration).toContain('session_hash text primary key');
         expect(migration).toContain("last_seen_at < now() - interval '10 minutes'");
         expect(migration).toContain('p_active_seconds integer default 90');

@@ -64,7 +64,7 @@ describe('Quiet Current gameplay consequence contract', () => {
         expect(modal).toContain(
             'ROUTE INFERENCE BLOCKED'
         );
-        expect(modal).toContain('NO SIGNAL SENT');
+        expect(modal).toContain('NOTHING SENT TO EARTH');
         expect(modal).toContain('buttonHeight = 50');
     });
 

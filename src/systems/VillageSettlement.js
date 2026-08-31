@@ -188,7 +188,7 @@ export const VILLAGE_HEART_DECISION_DEFINITIONS = Object.freeze([
     }),
     Object.freeze({
         id: 'unknown_tool',
-        title: 'A TOOL WITH AN UNKNOWN SIGNAL',
+        title: 'A TOOL WITH AN UNKNOWN PURPOSE',
         situation: 'The Workshop has combined human hardware with creature knowledge. Nobody yet knows how the Current will answer it.',
         requiredBuildingIds: Object.freeze(['habitat', 'workshop']),
         minimumWorkers: 2,
@@ -386,7 +386,7 @@ export const VILLAGE_BUILDING_DEFINITIONS = Object.freeze([
             accent: 0x8FE3CF,
             secondary: 0xD94B4B,
             motion: 'dual_signal_orbit',
-            activityCue: 'TWO SIGNALS IN AGREEMENT',
+            activityCue: 'TWO CREATURES IN AGREEMENT',
             worldChange: 'Human tools and creature knowledge illuminate the same circuit.'
         }),
         completionCopy: 'Human tools and creature knowledge now share one table.',
@@ -1563,7 +1563,7 @@ export function getVillageResidentWorldPresence(snapshot = {}, residentId = null
         return {
             residentId: null,
             location: 'signal_garden',
-            locationLabel: 'SIGNAL GARDEN',
+            locationLabel: 'MEMORY GARDEN',
             representedInVillage: false
         };
     }
@@ -1609,7 +1609,7 @@ export function getVillageResidentWorldPresence(snapshot = {}, residentId = null
     return {
         residentId,
         location: 'signal_garden',
-        locationLabel: 'SIGNAL GARDEN',
+        locationLabel: 'MEMORY GARDEN',
         representedInVillage: false
     };
 }

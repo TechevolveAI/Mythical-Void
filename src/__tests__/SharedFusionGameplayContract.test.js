@@ -61,7 +61,7 @@ describe('Shared Fusion gameplay contract', () => {
     test('implements private create, join, review, confirmation, naming, and recovery', () => {
         [
             'CREATE PRIVATE CODE',
-            'PAIR SIGNAL',
+            'PAIR CREATURES',
             'CONFIRM THIS PAIRING',
             'STABILIZING LINKED SIBLINGS',
             'SECURE NAME',

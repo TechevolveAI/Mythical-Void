@@ -839,7 +839,7 @@ export default class SoulRevealScene extends Phaser.Scene {
         const comparisonText = this.add.text(
             panelX + panelWidth - 15,
             affinityY + 2,
-            `SIGNAL ${powerPercent}%`,
+            `POWER ${powerPercent}%`,
             {
                 fontSize: '11px',
                 fontFamily: 'Arial, sans-serif',
@@ -1249,7 +1249,7 @@ export default class SoulRevealScene extends Phaser.Scene {
                 this.elements.push(this.compactNamingPrompt);
             }
             this.compactNamingPrompt
-                .setText('NAME THIS LIVING SIGNAL')
+                .setText('NAME THIS CREATURE')
                 .setPosition(width / 2, layout.inputTop - 23)
                 .setVisible(true);
         } else {

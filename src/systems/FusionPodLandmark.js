@@ -63,7 +63,7 @@ export function getFusionPodLandmarkSnapshot(
         collection.length >= 2;
 
     let state = 'dormant';
-    let statusLabel = 'TWO LIVING SIGNALS REQUIRED';
+    let statusLabel = 'TWO CREATURES REQUIRED';
     let interactionLabel = 'Inspect dormant Fusion Pod';
     let tone = 'dormant';
 
@@ -107,17 +107,17 @@ export function getFusionPodLandmarkSnapshot(
             : 'ready';
         statusLabel = state === 'shared_ready'
             ? 'PROTECTED LINK READY'
-            : 'TWO ADULT SIGNALS READY';
+            : 'TWO ADULT CREATURES READY';
         interactionLabel = 'Open Fusion Pod';
         tone = 'ready';
     } else if (status.unlocked) {
         state = 'maturing';
         statusLabel = collection.length < 2
-            ? `LIVING SIGNALS ${collection.length}/2`
-            : `ADULT SIGNALS ${adultCount}/2`;
+            ? `CREATURES ${collection.length}/2`
+            : `ADULT CREATURES ${adultCount}/2`;
         interactionLabel = collection.length < 2
             ? `Fusion needs another companion ${collection.length}/2`
-            : `Fusion adult signals ${adultCount}/2`;
+            : `Fusion adult creatures ${adultCount}/2`;
         tone = 'calibrating';
     }
 

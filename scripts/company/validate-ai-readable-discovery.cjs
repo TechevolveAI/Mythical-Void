@@ -11,7 +11,7 @@ const staticPagePaths = [
     'public/creature-genetics/index.html',
     'public/creature-field-guide/index.html',
     'public/nasa-space-science/index.html',
-    'public/space-signal/index.html',
+    'public/space-discovery/index.html',
     'public/parents/index.html',
     'public/educators/index.html',
     'public/studio/index.html',

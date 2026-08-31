@@ -279,7 +279,7 @@ describe('LivingFormHandoff mobile continuation', () => {
 
         expect(share).toHaveBeenCalledWith({
             title: 'The Mythical Void Hatch Challenge',
-            text: 'I just hatched an alien creature. Hatch yours from the same signal, then compare what the creature engine made.',
+            text: 'I just hatched an alien creature. Hatch yours from the same starting point, then compare what the creature engine made.',
             url: 'https://mythicalvoid.com/hatch-challenge/'
         });
         expect(JSON.stringify(share.mock.calls[0][0])).not.toContain('Nova');

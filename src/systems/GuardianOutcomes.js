@@ -66,7 +66,7 @@ export const GUARDIAN_OUTCOME_DEFINITIONS = Object.freeze([
         artwork: '/game/guardians/shadow-phoenix.webp',
         accent: '#F2C14E',
         regionRole: 'Aurora Renewal Guardian',
-        outcomeLine: 'Returns to the Aurora Depths as its renewal signal.'
+        outcomeLine: 'Returns to the Aurora Depths as its renewal light.'
     }),
     Object.freeze({
         guardianId: 'void_empress',
@@ -78,7 +78,7 @@ export const GUARDIAN_OUTCOME_DEFINITIONS = Object.freeze([
         artwork: '/game/guardians/void-empress.webp',
         accent: '#8FE3CF',
         regionRole: 'Void Boundary Guardian',
-        outcomeLine: 'Remains at the boundary where the living signal was restored.'
+        outcomeLine: 'Remains at the boundary where life was restored.'
     })
 ]);
 

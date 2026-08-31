@@ -255,7 +255,7 @@ function getSystemRows(gameState, capabilities) {
                 ? 'danger'
                 : 'pending',
             detail: capabilities.longRangeUplink === 'held_exposure_risk'
-                ? 'Activation could expose the Fend. No signal has been sent.'
+                ? 'Activation could expose the Fend. No message has been sent.'
                 : 'Mission Control cannot be contacted.'
         }
     ];
@@ -436,7 +436,7 @@ export function getShipEvidenceSnapshot(gameState) {
 
 export function formatShipEvidenceObjective(snapshot) {
     if (snapshot?.complete) {
-        return 'Ship archive reviewed. No signal transmitted and travel remains undecided.';
+        return 'Ship archive reviewed. No message transmitted and travel remains undecided.';
     }
     if (snapshot?.ready) {
         return `Review Wanderer-77 ship and evidence board: ${snapshot.reviewedCount}/${snapshot.totalSections}.`;

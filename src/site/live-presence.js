@@ -33,11 +33,21 @@ function getSessionId() {
     }
 }
 
+function ambientCreatureCount(now = Date.now()) {
+    return 2 + (Math.floor(now / 25_000) % 2);
+}
+
 function presenceMessage(data) {
     if (data?.status === 'one') return 'Someone is playing now';
     if (data?.range) return `${data.range} playing now`;
-    if (data?.status === 'quiet') return 'The Void is quiet — be the first to explore';
+    if (data?.status === 'quiet') return `${ambientCreatureCount()} creatures stirring in the Void`;
     return 'Early access is live';
+}
+
+function presenceNote(data) {
+    if (data?.status === 'quiet') return 'Activity inside the game world';
+    if (data?.status === 'one' || data?.range) return 'Approximate active game sessions';
+    return 'Free to play in your browser';
 }
 
 async function requestPresence(options = {}) {
@@ -53,6 +63,7 @@ async function requestPresence(options = {}) {
 export function mountLivePresence(root = document) {
     const element = root.querySelector('[data-live-presence]');
     const copy = element?.querySelector('[data-live-presence-copy]');
+    const note = element?.querySelector('[data-live-presence-note]');
     if (!element || !copy) return () => {};
     if (!shouldUseLivePresence()) {
         copy.textContent = 'Early access is live';
@@ -65,9 +76,11 @@ export function mountLivePresence(root = document) {
         try {
             const data = await requestPresence();
             copy.textContent = presenceMessage(data);
+            if (note) note.textContent = presenceNote(data);
             element.dataset.state = data.status || 'unavailable';
         } catch (error) {
             copy.textContent = 'Early access is live';
+            if (note) note.textContent = presenceNote();
             element.dataset.state = 'unavailable';
         }
     };
@@ -122,6 +135,8 @@ export function startGamePresence() {
 
 export const _internal = {
     createSessionId,
+    ambientCreatureCount,
     presenceMessage,
+    presenceNote,
     shouldUseLivePresence
 };

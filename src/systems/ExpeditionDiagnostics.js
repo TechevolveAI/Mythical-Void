@@ -200,7 +200,7 @@ export function getExpeditionDiagnosticSnapshot(
         statusLabel: verified
             ? 'WANDERER-77 LOCAL SCAN // VERIFIED'
             : routeAvailable
-                ? 'WANDERER-77 LOCAL SCAN // NO SIGNAL SENT'
+                ? 'WANDERER-77 LOCAL SCAN // NOTHING SENT TO EARTH'
                 : 'WANDERER-77 DIAGNOSTICS OFFLINE',
         decisionCue: routeAvailable
             ? getDecisionCue(definition, current)

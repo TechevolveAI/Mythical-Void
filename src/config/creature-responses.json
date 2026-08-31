@@ -1,7 +1,7 @@
 {
   "happy": {
     "feed": [
-      "That helped. My signal feels steady again.",
+      "That helped. I feel steady again.",
       "Good choice. I can hear the Current more clearly now."
     ],
     "play": [
@@ -10,7 +10,7 @@
     ],
     "rest": [
       "The quiet reached deeper than I expected.",
-      "My signal is balanced. We can move when you are ready."
+      "I feel balanced. We can move when you are ready."
     ],
     "combat": [
       "The danger passed. Check the Current before we move.",
@@ -21,11 +21,11 @@
       "The trail feels alive again. Let us follow it."
     ],
     "flower": [
-      "These grew after the signal returned. That is not a coincidence.",
+      "These grew after the Current returned. That is not a coincidence.",
       "The roots remember where the Current used to run."
     ],
     "coin": [
-      "Your instruments value the object. I am more interested in the signal around it.",
+      "Your instruments value the object. I am more interested in what is moving around it.",
       "Keep it if it helps the mission. Do not miss what is growing beside it."
     ],
     "shop": [
@@ -43,7 +43,7 @@
       "Better. Not ready, but better."
     ],
     "play": [
-      "Later. My signal is too faint to pretend otherwise.",
+      "Later. I am too tired to pretend otherwise.",
       "I want to, but rest is the honest choice."
     ],
     "rest": [
@@ -55,13 +55,13 @@
       "That cost more energy than it looked. We should stop."
     ],
     "default": [
-      "My signal is dimming. I need a quiet place to recover.",
+      "My strength is fading. I need a quiet place to recover.",
       "The Fend is loud when I am tired. Give me a moment."
     ]
   },
   "nervous": {
     "feed": [
-      "That helps. The strange signal is still there.",
+      "That helps. The strange feeling is still there.",
       "My energy is steadier. I still want to approach carefully."
     ],
     "play": [
@@ -78,7 +78,7 @@
     ],
     "exploration": [
       "The route ahead feels wrong. Let me choose our next step.",
-      "Slow down. The living signal is warning us, not calling us."
+      "Slow down. Something living is warning us, not calling us."
     ],
     "default": [
       "Something in the Current changed. Stay close, but let me listen.",
@@ -99,11 +99,11 @@
       "Wait. There is a second rhythm under the wind."
     ],
     "combat": [
-      "That guardian reacted to the signal, not to us.",
+      "That guardian reacted to the disturbance, not to us.",
       "Did you see the light change before it moved?"
     ],
     "exploration": [
-      "That signal does not match the others. I want a closer look.",
+      "That pattern does not match the others. I want a closer look.",
       "There is a path here, but it was made by something living."
     ],
     "flower": [
@@ -126,7 +126,7 @@
   "grateful": {
     "feed": [
       "You noticed what I needed without making it a command.",
-      "Thank you. My signal is stronger."
+      "Thank you. I feel stronger."
     ],
     "play": [
       "You made space for my choice. I will remember that.",
@@ -151,7 +151,7 @@
       "That was fast. Now come and see this."
     ],
     "play": [
-      "Race you to the next signal. No jetpack advantage.",
+      "Race you to the next clue. No jetpack advantage.",
       "I found a route your map insists does not exist."
     ],
     "rest": [
@@ -164,7 +164,7 @@
     ],
     "exploration": [
       "The Current is moving again. Come on, before the trail changes.",
-      "There is life ahead. More than one signal."
+      "There is life ahead. More than one creature."
     ],
     "default": [
       "Something just answered from beyond the ridge.",
@@ -190,7 +190,7 @@
     ],
     "default": [
       "I can continue, but I should not. We need a short recovery stop.",
-      "My signal is stretched thin. Shelter first."
+      "I am stretched thin. Shelter first."
     ]
   },
   "peaceful": {
@@ -255,7 +255,7 @@
   },
   "calm": {
     "feed": [
-      "That is enough. My signal is stable.",
+      "That is enough. I feel steady.",
       "Energy restored. Judgment unchanged."
     ],
     "play": [
@@ -272,10 +272,10 @@
     ],
     "exploration": [
       "Read the terrain before the mission marker.",
-      "The signal is stable. We can approach without forcing it."
+      "The creature is calm. We can approach without forcing it."
     ],
     "default": [
-      "No rush. Read the signal, then choose.",
+      "No rush. Look carefully, then choose.",
       "We have time to make a better decision."
     ]
   }

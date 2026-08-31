@@ -24,14 +24,14 @@ function readPng(file) {
 
 requireValue(release.schemaVersion === 1 && release.id === 'FATHER-SON-STORY-SOCIAL-RELEASE-2026-08-14', 'Founder-story release identity is invalid.');
 requireValue(release.state === 'complete_review_pack_waiting_for_verified_channel_and_kevin_approval', 'Founder-story release must remain a gated review pack.');
-requireValue(release.selection?.sourceEntryId === 'SIGNAL-007', 'Founder-story release must stay bound to SIGNAL-007.');
+requireValue(release.selection?.sourceEntryId === 'UPDATE-007', 'Founder-story release must stay bound to UPDATE-007.');
 requireValue(release.selection?.destination === 'https://mythicalvoid.com/press/#father-son-story-social-assets' && release.selection?.storyDestination === 'https://mythicalvoid.com/studio/', 'Founder-story owned destinations have drifted.');
 requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(JSON.stringify(release.selection || {})), 'Founder-story destinations must not contain tracking parameters.');
 
-const sourceItem = sourcePack.items?.find(item => item.id === 'DRAFT-SIGNAL-007');
+const sourceItem = sourcePack.items?.find(item => item.id === 'DRAFT-UPDATE-007');
 requireValue(Boolean(sourceItem), 'Source-bound founder-story draft is missing.');
-requireValue(release.drafts?.professionalNetwork?.copy === sourceItem?.drafts?.professionalNetwork?.body, 'Professional draft has drifted from SIGNAL-007.');
-requireValue(release.drafts?.videoCommunity?.copy === sourceItem?.drafts?.videoCommunity?.body, 'Video-community draft has drifted from SIGNAL-007.');
+requireValue(release.drafts?.professionalNetwork?.copy === sourceItem?.drafts?.professionalNetwork?.body, 'Professional draft has drifted from UPDATE-007.');
+requireValue(release.drafts?.videoCommunity?.copy === sourceItem?.drafts?.videoCommunity?.body, 'Video-community draft has drifted from UPDATE-007.');
 requireValue(release.drafts?.professionalNetwork?.channelRef === 'CH-004' && release.drafts?.videoCommunity?.channelRef === 'CH-002', 'Drafts must retain their planned channel references.');
 
 requireValue(Array.isArray(release.assets) && release.assets.length === 2, 'Founder-story release needs exactly one wide and one square asset.');

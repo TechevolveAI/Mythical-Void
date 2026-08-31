@@ -76,9 +76,9 @@ for (const [file, fragment, label] of [
     ['public/story/index.html', 'href="/creature-field-guide/"', 'story-page discovery'],
     ['public/creature-genetics/index.html', 'href="/creature-field-guide/"', 'creature-page discovery'],
     ['src/site/storefront.js', 'href="/creature-field-guide/"', 'homepage and press discovery'],
-    ['public/updates/releases.json', '"id": "SIGNAL-014"', 'Signal Log release'],
-    ['public/updates/feed.xml', '/updates/#signal-014', 'RSS discovery'],
-    ['public/updates/feed.json', '/updates/#signal-014', 'JSON Feed discovery']
+    ['public/updates/releases.json', '"id": "UPDATE-014"', 'Latest News release'],
+    ['public/updates/feed.xml', '/updates/#update-014', 'RSS discovery'],
+    ['public/updates/feed.json', '/updates/#update-014', 'JSON Feed discovery']
 ]) assert.ok(fs.readFileSync(path.join(root, file), 'utf8').includes(fragment), `${label} is missing.`);
 
 const socialPreviews = JSON.parse(fs.readFileSync(path.join(root, 'public/press/mythical-void-social-previews.json'), 'utf8'));

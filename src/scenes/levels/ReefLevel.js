@@ -450,7 +450,7 @@ class ReefLevel extends PlatformerLevelScene {
         // Story text
         const storyText = this.add.text(width / 2, y(125),
             'Ancient star-travelers crossed these living currents.\n' +
-            'The Void broke their route into scattered signals.\n' +
+            'The Void broke their route into scattered pieces.\n' +
             'Your instruments hear noise. Your companion hears a path.', {
             fontSize: font(12, 11),
             color: '#9370DB',
@@ -1222,7 +1222,7 @@ class ReefLevel extends PlatformerLevelScene {
         }
 
         const nextWaypoint = [
-            'DRIFT SIGNAL',
+            'DRIFT MARKER',
             'TRAVELER RELAY',
             'PASSAGE VECTOR'
         ][this.beaconAnchorsActivated] || 'PASSAGE VECTOR';
@@ -1240,8 +1240,8 @@ class ReefLevel extends PlatformerLevelScene {
     getReefRouteStatusText() {
         if (this.reefRouteChoice === 'main') {
             return this.reefCurrentEdgeReady
-                ? 'SIGNAL CURRENT // NEXT KATANA HIT +2 READY'
-                : 'SIGNAL CURRENT // CURRENT EDGE SPENT';
+                ? 'CURRENT BOOST // NEXT KATANA HIT +2 READY'
+                : 'CURRENT BOOST // CURRENT EDGE SPENT';
         }
         return this.getOptionalRouteStatusText(
             'reef_star_trench',
@@ -1250,13 +1250,13 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     getDriveCompassText() {
-        if (!this.player) return 'FOLLOW THE CYAN DRIVE SIGNAL';
+        if (!this.player) return 'FOLLOW THE CYAN CURRENT';
         const driveX = Number(this.shipPart?.x) || 2800;
         const driveY = Number(this.shipPart?.y) || this.levelHeight - 950;
         const dx = driveX - Number(this.player.x);
         const dy = driveY - Number(this.player.y);
         const distance = Math.max(0, Math.round(Math.hypot(dx, dy) / 50) * 50);
-        if (distance <= 180) return `DRIVE SIGNAL CLOSE // ${distance}m`;
+        if (distance <= 180) return `CURRENT CLOSE // ${distance}m`;
         const directions = [];
         if (Math.abs(dx) > 90) directions.push(dx > 0 ? 'RIGHT' : 'LEFT');
         if (Math.abs(dy) > 90) directions.push(dy > 0 ? 'DOWN' : 'UP');
@@ -1460,7 +1460,7 @@ class ReefLevel extends PlatformerLevelScene {
         const waypoints = [
             {
                 id: 'reef_waypoint_1',
-                label: 'DRIFT SIGNAL',
+                label: 'DRIFT MARKER',
                 activationSupportIds: ['reef-drift-relay']
             },
             {
@@ -1650,7 +1650,7 @@ class ReefLevel extends PlatformerLevelScene {
         if (this.beaconAnchorsActivated === 1) {
             this.time.delayedCall(650, () => {
                 this.showFloatingText(
-                    `${companionName}: "This signal did not come from Earth."`,
+                    `${companionName}: "This message did not come from Earth."`,
                     anchor.x,
                     anchor.y - 126,
                     '#D6EEF2'
@@ -1725,7 +1725,7 @@ class ReefLevel extends PlatformerLevelScene {
         const label = this.add.text(
             520,
             this.levelHeight - 430,
-            'DRIFT SIGNAL 01  →',
+            'DRIFT MARKER 01  →',
             {
                 fontSize: '12px',
                 color: '#F2C94C',
@@ -1759,7 +1759,7 @@ class ReefLevel extends PlatformerLevelScene {
         current.retired = true;
         current.pulseTween?.remove?.();
         current.pulseTween = null;
-        current.label?.setText?.('DRIFT SIGNAL LINKED');
+        current.label?.setText?.('DRIFT MARKER LINKED');
         current.label?.setColor?.('#8FE3CF');
         this.tweens.add({
             targets: [current.visual, current.label].filter(Boolean),
@@ -1794,9 +1794,9 @@ class ReefLevel extends PlatformerLevelScene {
             required: 2,
             rewardLabel: 'FREE SUPER BLAST',
             marker: optionalRoute,
-            returnLabel: 'STAR TRENCH RETURN ↑ // SIGNAL ROUTE →',
+            returnLabel: 'STAR TRENCH RETURN ↑ // DRIFT ROUTE →',
             choice: {
-                mainLabel: 'SIGNAL CURRENT →',
+                mainLabel: 'CURRENT BOOST →',
                 mainTradeoff: 'FAST + PATROLS\nEARNS: NEXT KATANA HIT +2',
                 challengeLabel: 'DEEP WATER + 2 RELICS',
                 mainMarker: mainRoute,
@@ -3024,7 +3024,7 @@ class ReefLevel extends PlatformerLevelScene {
                     if (now >= this.bossGateHintUntil) {
                         const message = missingRoute
                             ? 'The passage is unreadable. Synchronize the waypoints.'
-                            : 'The Drive signal is still behind us.';
+                            : 'The moving Current is still behind us.';
                         this.showFloatingText(
                             message,
                             this.player.x,

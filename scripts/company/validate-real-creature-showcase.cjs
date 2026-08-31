@@ -71,8 +71,8 @@ requireValue(press.realCreatureShowcase?.selectedFromEngineRuns === 1000 && pres
 requireValue(press.realCreatureShowcase?.state === 'withdrawn_visual_quality_failed_do_not_publish', 'press showcase is not marked as withdrawn from promotion');
 const preview = previews.pages.find(item => item.route === '/creature-genetics/');
 requireValue(preview?.imagePath === 'public/marketing/mythical-void-creature-universe-hero-v2.webp' && preview?.classification === 'ai_generated_marketing_illustration_not_gameplay' && /not gameplay/i.test(preview?.disclosure || ''), 'creature page social preview is not bound to the approved temporary fallback');
-const signal = signals.entries.find(item => item.id === 'SIGNAL-013');
-requireValue(signal?.status === 'live' && signal?.destination === '/creature-genetics/#gene-spectrum', 'SIGNAL-013 is missing or drifted');
+const signal = signals.entries.find(item => item.id === 'UPDATE-013');
+requireValue(signal?.status === 'live' && signal?.destination === '/creature-genetics/#gene-spectrum', 'UPDATE-013 is missing or drifted');
 
 for (const [field, expected] of Object.entries({ allImagesAreExactRunningRendererExports: true, galleryFrameIsAPlayableGameScene: false, selectionRepresentsNormalHatchOdds: false, absoluteUniquenessClaimed: false, generatedMarketingArtworkUsed: false, creatureSentienceClaimed: false })) {
     requireValue(release.claimBoundaries?.[field] === expected, `claimBoundaries.${field} must be ${expected}`);

@@ -1,8 +1,8 @@
-import spaceSignalCore from '../lib/space-signal-core.cjs';
+import spaceDiscoveryCore from '../lib/space-discovery-core.cjs';
 
-const { handler } = spaceSignalCore;
+const { handler } = spaceDiscoveryCore;
 
-export default async function spaceSignal(request) {
+export default async function spaceDiscovery(request) {
     const result = await handler({ httpMethod: request.method });
     return new Response(result.body || '', {
         status: result.statusCode || 500,

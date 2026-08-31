@@ -41,7 +41,7 @@ try {
         ['fake-nasa-relationship', release => { release.purpose += ' An official NASA partnership.'; }, () => {}],
         ['missing-nasa-label', release => { release.qualityEvidence.nasaPublicImageLabelShownInArtwork = false; }, () => {}],
         ['external-action', release => { release.authority.externalActionPerformed = true; }, () => {}],
-        ['source-pack-drift', () => {}, source => { source.items.find(item => item.id === 'DRAFT-SIGNAL-006').drafts.videoCommunity.body += ' New claim.'; }]
+        ['source-pack-drift', () => {}, source => { source.items.find(item => item.id === 'DRAFT-UPDATE-006').drafts.videoCommunity.body += ' New claim.'; }]
     ];
     for (const [name, mutateRelease, mutateSource] of failures) if (run(name, mutateRelease, mutateSource).status === 0) throw new Error(`${name} mutation was accepted.`);
     console.log(`NASA/STEM social release safeguards passed (${failures.length} failure cases).`);

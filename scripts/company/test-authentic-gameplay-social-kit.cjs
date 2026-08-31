@@ -44,6 +44,6 @@ expectFailure('paid promotion', values => { values.release.authority.paidPromoti
 expectFailure('invented production proof', values => { values.release.verification.productionUrlsVerified = true; });
 expectFailure('withdrawn press section exposed again', values => { values.pressSource += '<div id="real-gameplay-social-video"></div>'; });
 expectFailure('withdrawn machine-readable link exposed again', values => { values.llms += '\nAuthentic gameplay social video kit: https://mythicalvoid.com/press/#real-gameplay-social-video'; });
-expectFailure('withdrawn Signal release exposed again', values => { values.signal.entries.push({ id: 'SIGNAL-010', status: 'live' }); });
+expectFailure('withdrawn Signal release exposed again', values => { values.signal.entries.push({ id: 'UPDATE-010', status: 'live' }); });
 
 console.log('Withdrawn gameplay social kit tests passed: exact files retained and 17 media, claims, authority and accidental re-publication failures rejected.');

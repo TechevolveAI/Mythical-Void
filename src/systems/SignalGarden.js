@@ -7,11 +7,11 @@ export const SIGNAL_GARDEN_STAGES = Object.freeze([
 
 const STAGE_MESSAGES = Object.freeze({
     sprout: 'A tiny light leans toward your companion.',
-    bud: 'The sprout answers the signals you restored.',
+    bud: 'The sprout answers the memories you restored.',
     bloom: 'It blooms in colors neither world made alone.'
 });
 
-const DAILY_RETURN_MESSAGE = 'The signal bloom has enough light for today. Come back tomorrow.';
+const DAILY_RETURN_MESSAGE = 'The memory bloom has enough light for today. Come back tomorrow.';
 const MATURE_TENDING_MESSAGE = 'The bloom brightens when you arrive together.';
 
 function normalizeTimestamp(value) {

@@ -16,7 +16,7 @@ if (isGameRoute) {
                 import('./site/live-presence.js')
                     .then(({ startGamePresence }) => startGamePresence())
                     .catch(() => {
-                        // The optional live signal must never interrupt the game.
+                        // The optional live count must never interrupt the game.
                     });
             }
         })

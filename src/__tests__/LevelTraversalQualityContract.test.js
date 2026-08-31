@@ -1202,7 +1202,7 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain(
             "challengeLabel: 'DEEP WATER + 2 RELICS'"
         );
-        expect(source).toContain("returnLabel: 'STAR TRENCH RETURN ↑ // SIGNAL ROUTE →'");
+        expect(source).toContain("returnLabel: 'STAR TRENCH RETURN ↑ // DRIFT ROUTE →'");
         expect(source).toContain('this.freeSpecialAttackCharges += 1;');
         expect(source).toContain('createAbyssAscentCurrent()');
         expect(source).toContain('this.activeReefAscentCurrent = {');
@@ -1782,7 +1782,7 @@ describe('campaign traversal quality contracts', () => {
         [
             'levels/ReefLevel.js',
             "id: 'reef_star_trench'",
-            "mainLabel: 'SIGNAL CURRENT →'",
+            "mainLabel: 'CURRENT BOOST →'",
             "mainTradeoff: 'FAST + PATROLS\\nEARNS: NEXT KATANA HIT +2'",
             "challengeLabel: 'DEEP WATER + 2 RELICS'"
         ],
@@ -2170,11 +2170,11 @@ describe('campaign traversal quality contracts', () => {
 
         expect(scene.setOrderedRouteGuidance(signals, 0)).toBe(true);
         expect(scene.getOrderedRouteCompassText()).toBe(
-            'SIGNAL RIGHT + UP // 1050m'
+            'CLUE RIGHT + UP // 1050m'
         );
 
         scene.player = { x: 1180, y: 700 };
-        expect(scene.getOrderedRouteCompassText()).toBe('SIGNAL CLOSE // 50m');
+        expect(scene.getOrderedRouteCompassText()).toBe('CLUE CLOSE // 50m');
     });
 
     test('ordered route guidance supports level-specific completion properties', () => {
@@ -2192,7 +2192,7 @@ describe('campaign traversal quality contracts', () => {
 
         expect(scene.getNextOrderedRouteSignal()).toBe(signals[1]);
         expect(scene.getOrderedRouteCompassText()).toBe(
-            'SIGNAL RIGHT + UP // 550m'
+            'CLUE RIGHT + UP // 550m'
         );
     });
 
@@ -2634,7 +2634,7 @@ describe('campaign traversal quality contracts', () => {
         const shared = read('PlatformerLevelScene.js');
 
         expect(source).toContain('this.createOpeningSignalCurrent();');
-        expect(source).toContain('DRIFT SIGNAL 01  →');
+        expect(source).toContain('DRIFT MARKER 01  →');
         expect(source).toContain('x: 335');
         expect(source).toContain('[departureCue.x, departureCue.y]');
         expect(source).toContain('const isMobile = this.isMobile || (');
@@ -2642,7 +2642,7 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('↑ BUTTON SWIMS UP');
         expect(source).toContain('visual.lineTo(destinationX, destinationY);');
         expect(source).toContain('this.retireOpeningSignalCurrent();');
-        expect(source).toContain("current.label?.setText?.('DRIFT SIGNAL LINKED')");
+        expect(source).toContain("current.label?.setText?.('DRIFT MARKER LINKED')");
         expect(shared).toContain("supportId: 'reef-opening-3'");
         expect(shared).toContain('this.getTraversalSupportCheckpoint?.(');
         expect(shared).toContain('supportTop + 5');
