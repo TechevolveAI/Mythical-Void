@@ -4,7 +4,8 @@ const path = require('path');
 const migration = [
     '20260831000200_create_shared_guardianship.sql',
     '20260831000300_rate_limit_shared_guardianship.sql',
-    '20260901000100_require_guardianship_password_identity.sql'
+    '20260901000100_require_guardianship_password_identity.sql',
+    '20260901000200_fix_guardianship_child_reservation.sql'
 ].map(file => fs.readFileSync(path.join(
     __dirname,
     `../../supabase/migrations/${file}`
@@ -51,6 +52,14 @@ describe('Shared Guardianship server and governance contract', () => {
         expect(migration).toContain('source_invitation_id uuid unique');
         expect(migration).toContain('child_id uuid unique');
         expect(migration).toContain("jsonb_array_length(coalesce(p_result->'offspring','[]'::jsonb)) <> 1");
+    });
+
+    test('allows a pending child reservation but enforces committed-child integrity', () => {
+        expect(migration).toContain('drop constraint if exists shared_guardianship_invitation_child_fk');
+        expect(migration).toContain('assert_committed_guardianship_child_exists');
+        expect(migration).toContain("new.status = 'committed'");
+        expect(migration).toContain('shared_guardianship_committed_child_missing');
+        expect(migration).toContain('clear_guardianship_child_reservation_on_delete');
     });
 
     test('uses revision checks and idempotency for shared care', () => {
