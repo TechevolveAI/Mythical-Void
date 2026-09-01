@@ -11,10 +11,13 @@
     var pendingPrompt = null;
     var serviceWorkerRegistration = null;
     var serviceWorkerReloading = false;
-    var serviceWorkerControlledAtLoad = Boolean(navigator.serviceWorker?.controller);
+    var documentRelease = document
+        .querySelector('meta[name="mythical-void-release"]')
+        ?.getAttribute('content') || '';
+    var productionRelease = /^(?:www\.)?mythicalvoid\.com$/.test(window.location.hostname);
 
     function reloadForCurrentRelease() {
-        if (!serviceWorkerControlledAtLoad || serviceWorkerReloading) return;
+        if (serviceWorkerReloading) return;
         serviceWorkerReloading = true;
         window.location.reload();
     }
@@ -37,11 +40,21 @@
     if ('serviceWorker' in navigator && (window.isSecureContext || /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname))) {
         navigator.serviceWorker.addEventListener('message', function (event) {
             if (event.data?.type !== 'MYTHICAL_VOID_RELEASE_READY') return;
+            var workerRelease = String(event.data.version || '');
+            var documentIsCurrent = !productionRelease
+                || (
+                    documentRelease
+                    && documentRelease !== '__BUILD_TIMESTAMP__'
+                    && documentRelease === workerRelease
+                );
+            if (!documentIsCurrent) {
+                reloadForCurrentRelease();
+                return;
+            }
             event.source?.postMessage?.({
                 type: 'MYTHICAL_VOID_RELEASE_ACK',
-                version: String(event.data.version || '')
+                version: workerRelease
             });
-            reloadForCurrentRelease();
         });
         navigator.serviceWorker.addEventListener('controllerchange', function () {
             reloadForCurrentRelease();
