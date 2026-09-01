@@ -17,9 +17,10 @@ The feature is unavailable unless all of these gates are true:
 2. Cloud Save is enabled and its latest save is committed;
 3. the Supabase session is permanent, not anonymous;
 4. the email identity is verified;
-5. both guardians accepted the current consent and privacy versions;
-6. production manual identity linking and email delivery were smoke tested;
-7. the release feature flag is enabled.
+5. the identity has a password credential for recovery and deletion confirmation;
+6. both guardians accepted the current consent and privacy versions;
+7. production manual identity linking and email delivery were smoke tested;
+8. the release feature flag is enabled.
 
 Solo play, local saving and ordinary Fusion remain usable if any gate is false.
 
@@ -38,6 +39,8 @@ Solo play, local saving and ordinary Fusion remain usable if any gate is false.
   creature, expose the other guardian's identity or erase shared history.
 - Account deletion revokes participation and removes unnecessary attribution.
   Immutable parentage retains only non-identifying lineage fingerprints.
+- Permanent account deletion requires explicit typed confirmation and a password
+  sign-in no more than five minutes before the server command.
 
 ## Data Retention
 
@@ -66,6 +69,7 @@ Solo play, local saving and ordinary Fusion remain usable if any gate is false.
 | Revoked user replay | Active-participant check inside every command transaction |
 | Peer identity exposure | Never return email, provider, user ID or save data |
 | Account takeover | Verified email, password policy, reset flow and Supabase session controls |
+| Accidental account deletion | Typed deletion phrase, recent password proof and server-side recency check |
 | Service outage | Last safe cache remains visible; solo game never waits on shared services |
 
 ## Change Control

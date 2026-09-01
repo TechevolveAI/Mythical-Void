@@ -61,6 +61,13 @@ export class DurableAccountService {
                 error
             );
         }
+        if (source.includes('deletion requires recent')) {
+            return new DurableAccountError(
+                'account_deletion_reauthentication_required',
+                'Sign in with the current password again, then retry deletion.',
+                error
+            );
+        }
         if (source.includes('expired') || source.includes('token')) {
             return new DurableAccountError(
                 'verification_invalid',
@@ -261,6 +268,51 @@ export class DurableAccountService {
         this.cloudSave?.disable?.();
         if (this.cloudSave) this.cloudSave.currentUser = null;
         return { signedOut: true };
+    }
+
+    async deleteAccount(passwordValue, confirmationValue) {
+        const password = normalizedPassword(passwordValue);
+        if (!password || String(confirmationValue || '').trim() !== 'DELETE') {
+            throw new DurableAccountError(
+                'account_deletion_confirmation_required',
+                'Enter your password and type DELETE exactly.'
+            );
+        }
+        const { data: current, error: currentError } =
+            await this.client.auth.getUser();
+        const email = normalizedEmail(current?.user?.email);
+        if (currentError || !email || current?.user?.is_anonymous === true) {
+            throw new DurableAccountError(
+                'account_deletion_unavailable',
+                'This permanent account could not be verified.'
+            );
+        }
+        const { error: signInError } = await this.client.auth.signInWithPassword({
+            email,
+            password
+        });
+        if (signInError) {
+            throw this.normalizeError(signInError, 'The password was not accepted.');
+        }
+        const { error: deleteError } = await this.client.functions.invoke(
+            'delete-cloud-identity',
+            { body: { confirmation: 'DELETE_PERMANENT_ACCOUNT' } }
+        );
+        if (deleteError) {
+            throw this.normalizeError(
+                deleteError,
+                'The account could not be deleted. Nothing else was changed.'
+            );
+        }
+        this.clearSharedCreatureCache();
+        this.cloudSave?.disable?.();
+        if (this.cloudSave) this.cloudSave.currentUser = null;
+        try {
+            await this.client.auth.signOut({ scope: 'local' });
+        } catch (_) {
+            // The server has already deleted the identity.
+        }
+        return { deleted: true };
     }
 
     static installRecoveryFlow(options = {}) {

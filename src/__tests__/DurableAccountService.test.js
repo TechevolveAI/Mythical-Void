@@ -45,9 +45,12 @@ function harness(options = {}) {
         signOut: jest.fn(async () => ({ error: null })),
         resetPasswordForEmail: jest.fn(async () => ({ data: {}, error: null }))
     };
+    const functions = {
+        invoke: jest.fn(async () => ({ data: { deleted: true }, error: null }))
+    };
     const gameState = { set: jest.fn() };
     const cloudSave = {
-        client: { auth },
+        client: { auth, functions },
         gameState,
         currentUser: sessionUser,
         ensureSession: jest.fn(async () => ({ id: 'anonymous-user', is_anonymous: true })),
@@ -58,7 +61,8 @@ function harness(options = {}) {
     return {
         auth,
         cloudSave,
-        service: new DurableAccountService({ client: { auth }, cloudSave })
+        functions,
+        service: new DurableAccountService({ client: { auth, functions }, cloudSave })
     };
 }
 
@@ -161,6 +165,37 @@ describe('DurableAccountService', () => {
         );
         expect(cloudSave.disable).toHaveBeenCalledTimes(1);
         expect(cloudSave.currentUser).toBeNull();
+    });
+
+    test('permanent account deletion requires fresh password proof and explicit words', async () => {
+        const { service, auth, functions, cloudSave } = harness();
+
+        await service.deleteAccount('a-long-safe-password', 'DELETE');
+
+        expect(auth.signInWithPassword).toHaveBeenCalledWith({
+            email: 'guardian@example.test',
+            password: 'a-long-safe-password'
+        });
+        expect(functions.invoke).toHaveBeenCalledWith(
+            'delete-cloud-identity',
+            { body: { confirmation: 'DELETE_PERMANENT_ACCOUNT' } }
+        );
+        expect(cloudSave.gameState.set).toHaveBeenCalledWith(
+            'sharedGuardianship.projections',
+            []
+        );
+        expect(cloudSave.disable).toHaveBeenCalledTimes(1);
+    });
+
+    test('does not contact auth when account deletion confirmation is incomplete', async () => {
+        const { service, auth, functions } = harness();
+
+        await expect(service.deleteAccount('a-long-safe-password', 'delete'))
+            .rejects.toMatchObject({
+                code: 'account_deletion_confirmation_required'
+            });
+        expect(auth.signInWithPassword).not.toHaveBeenCalled();
+        expect(functions.invoke).not.toHaveBeenCalled();
     });
 
     test('rejects invalid email and short passwords before an auth request', async () => {

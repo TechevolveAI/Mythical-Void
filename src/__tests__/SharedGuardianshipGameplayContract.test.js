@@ -58,6 +58,9 @@ describe('Shared Guardianship gameplay contract', () => {
         expect(care).toContain('this.projection.guardianCount > 1');
         expect(care).toContain('SIGN OUT OF THIS DEVICE');
         expect(care).toContain('this.service.account.signOut()');
+        expect(care).toContain('Delete account and shared access');
+        expect(care).toContain('DELETE ACCOUNT PERMANENTLY');
+        expect(care).toContain('this.service.account.deleteAccount(');
     });
 
     test('has a bounded mobile layout and durable account recovery surface', () => {
@@ -77,6 +80,8 @@ describe('Shared Guardianship gameplay contract', () => {
     test('public privacy and terms explain the connected feature plainly', () => {
         expect(legal).toContain('<h2>Shared Guardianship</h2>');
         expect(legal).toContain('requires a verified email account');
+        expect(legal).toContain('permanently delete their account');
+        expect(legal).toContain('confirming the current password');
         expect(legal).toContain('has no chat, public profile, player search');
         expect(legal).toContain('A guardian may leave');
     });
