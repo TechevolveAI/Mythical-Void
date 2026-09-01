@@ -354,7 +354,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         const checklist = this.add.text(contentLeft, y(220), `${
             resume
                 ? `[ BEACON ] ${resume.label} link restored`
-                : '[ ] Reach the creature signal network'
+                : '[ ] Reach the creature trail network'
         }\n[ ] Stabilize the Cosmic Titan\n[ OPTIONAL ] Collect Star Fragments (0/5)`, {
             fontSize: font(16, 14),
             color: '#CCCCCC',
@@ -1150,7 +1150,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         const title = this.isCompactObjectiveHUD
             ? `WARNING ${current}/3`
             : `WARNING ${current}/3 // ${nextRelay}`;
-        return `${title}\n${compass || 'CLIMB TOWARD THE SIGNAL'}\n${optional}`;
+        return `${title}\n${compass || 'CLIMB TOWARD THE CLUE'}\n${optional}`;
     }
 
     createSignalRelays() {
@@ -1581,7 +1581,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         }
         const awarded = window.InventoryManager?.addItem?.({
             id: 'peak_signal_egg',
-            name: 'Signal Egg',
+            name: 'Strange Egg',
             type: 'egg',
             rarity: 'rare',
             description: 'An egg warmed by the warning calls exchanged across the Void Peaks.',
@@ -1880,7 +1880,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             if (signalEggAwarded) {
                 this.time.delayedCall(450, () => {
                     this.showFloatingText(
-                        'ALL SIGNAL FRAGMENTS - EGG AWAKENED',
+                        'ALL FRAGMENTS - EGG AWAKENED',
                         collectX,
                         collectY - 75,
                         '#8FE3CF'
@@ -2554,7 +2554,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.boss?.setTint?.(0x8FE3CF);
         window.FeedbackManager?.cameraFlash?.(this, 450, 143, 227, 207);
         this.showFloatingText(
-            'TITAN SIGNAL STABLE',
+            'TITAN ROUTE STABLE',
             this.boss?.x || 4720,
             (this.boss?.y || 415) - 110,
             '#8FE3CF'

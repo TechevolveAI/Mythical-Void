@@ -125,8 +125,8 @@ async function browserFamilyGuideCase({ nativeShare }) {
     invalid('docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.json', source => source.replace('"socialPublishingAuthorized": false', '"socialPublishingAuthorized": true'), 'socialPublishingAuthorized');
     invalid('docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.json', source => source.replace('"brokenImagesObserved": false', '"brokenImagesObserved": true'), 'founding launch preview visual check failed');
     invalid('docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.json', source => source.replace('"PN-003"', '"PN-004"'), 'founding launch pack first-week sequence is missing or unsafe');
-    invalid('public/updates/releases.json', source => source.replace('"id": "SIGNAL-017"', '"id": "SIGNAL-017-WITHDRAWN"'), 'Signal 017');
-    invalid('public/updates/releases.json', source => source.replace('"id": "SIGNAL-023"', '"id": "SIGNAL-023-WITHDRAWN"'), 'Signal 023');
+    invalid('public/updates/releases.json', source => source.replace('"id": "UPDATE-017"', '"id": "UPDATE-017-WITHDRAWN"'), 'Signal 017');
+    invalid('public/updates/releases.json', source => source.replace('"id": "UPDATE-023"', '"id": "UPDATE-023-WITHDRAWN"'), 'Signal 023');
     invalid('public/hatch-challenge/index.html', source => source.replaceAll('/play/#hatch-challenge', '/play/'), 'clean challenge entry');
     invalid('docs/company/growth/HATCH_CHALLENGE_LOOP.json', source => source.replace('"multiplayerClaimed": false', '"multiplayerClaimed": true'), 'Hatch Challenge promise drifted');
     invalid('docs/company/growth/HATCH_CHALLENGE_LOOP.json', source => source.replace('"productionDeployId": "6a8fb0d5da9b150008b16ec2"', '"productionDeployId": "unverified"'), 'live Hatch Challenge production proof is missing');

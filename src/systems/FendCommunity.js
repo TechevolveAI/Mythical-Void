@@ -211,14 +211,14 @@ export function formatFendCommunityObjective(snapshot) {
         return 'The Living Commons is established. The Fend can answer together.';
     }
     if (nextProject.ready) {
-        return `${nextProject.label} is ready. Contribute at the Signal Garden.`;
+        return `${nextProject.label} is ready. Contribute at the Memory Garden.`;
     }
 
     const requirementLabels = {
         gardenTends: 'garden tends',
         restoredRegions: 'restored regions',
         careActions: 'care actions',
-        observedSignals: 'living signals',
+        observedSignals: 'signs of life',
         highPowerRescues: 'creature rescue witnessed',
         uplinkRestored: 'Wanderer-77 uplink held'
     };

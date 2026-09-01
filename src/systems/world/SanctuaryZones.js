@@ -5,7 +5,7 @@
  * - Shop Area: The Cosmic Boutique
  * - Hub Gate: Portal to other worlds
  * - Living Area: Where creatures roam
- * - Signal Garden: A shared living-signal sanctuary
+ * - Memory Garden: A shared living-signal sanctuary
  */
 
 class SanctuaryZones {
@@ -60,8 +60,8 @@ class SanctuaryZones {
                 color: 0x9370DB
             },
             gardenPlot: {
-                name: 'Signal Garden',
-                description: 'Nurture a living signal with your companion.',
+                name: 'Memory Garden',
+                description: 'Grow a shared memory with your creature.',
                 bounds: { x: padding, y: h - 400, width: 300, height: 300 },
                 center: { x: 200, y: h - 250 },
                 icon: '🌱',
@@ -140,8 +140,8 @@ class SanctuaryZones {
                 size: { width: 180, height: 140 },
                 interactable: true,
                 interactRadius: 115,
-                name: 'Signal Garden',
-                description: 'Nurture a living signal with your companion.',
+                name: 'Memory Garden',
+                description: 'Grow a shared memory with your creature.',
                 onInteract: 'tendSignalGarden'
             },
             villageHeart: {

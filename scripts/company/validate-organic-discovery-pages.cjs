@@ -26,9 +26,9 @@ const pages = [
         required: ['NASA does not endorse Mythical Void', 'Observe', 'Infer', 'Check', 'https://apod.nasa.gov/apod/ap240720.html', '/resources/mythical-void-stem-creature-lab.pdf', 'Invent an organism from another dimension']
     },
     {
-        route: '/space-signal/',
-        file: 'public/space-signal/index.html',
-        required: ["TODAY'S SPACE SIGNAL", 'REAL NASA SOURCE', 'MYTHICAL VOID IMAGINES', 'NOT A NASA IMAGE', 'NASA does not make, approve or endorse Mythical Void']
+        route: '/space-discovery/',
+        file: 'public/space-discovery/index.html',
+        required: ["TODAY'S SPACE DISCOVERY", 'REAL NASA SOURCE', 'MYTHICAL VOID IMAGINES', 'NOT A NASA IMAGE', 'NASA does not make, approve or endorse Mythical Void']
     },
     {
         route: '/parents/',

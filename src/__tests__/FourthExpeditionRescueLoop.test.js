@@ -97,8 +97,8 @@ describe('fourth expedition rescue loop', () => {
         const source = readLevel();
 
         expect(source).toContain("id: 'peak_signal_egg'");
-        expect(source).toContain("name: 'Signal Egg'");
-        expect(source).toContain('ALL SIGNAL FRAGMENTS - EGG AWAKENED');
+        expect(source).toContain("name: 'Strange Egg'");
+        expect(source).toContain('ALL FRAGMENTS - EGG AWAKENED');
         expect(source).toContain('this.cosmicEggAwarded = true');
         expect(source).toContain('peakSignalEggAwarded: this.cosmicEggAwarded === true');
         expect(source).toContain('this.hasPeakSignalEgg()');
@@ -189,7 +189,7 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain("'< TITAN'");
         expect(source).toContain('this.bossIndicator?.setVisible?.(false)');
         expect(source).toContain('WARNING LINE ONLINE // WATCH FOR ATTACK CALLS');
-        expect(source).toContain('TITAN SIGNAL STABLE');
+        expect(source).toContain('TITAN ROUTE STABLE');
         expect(source).toContain('COSMIC TITAN RESTORED');
         expect(source).toContain('WARNING NETWORK RESTORED');
         expect(source).toContain("Titan's Gift: Hull Plating");

@@ -11,8 +11,8 @@ const source = JSON.parse(fs.readFileSync(path.join(root, 'public/updates/releas
 const rss = fs.readFileSync(path.join(root, 'public/updates/feed.xml'), 'utf8');
 const json = fs.readFileSync(path.join(root, 'public/updates/feed.json'), 'utf8');
 const cases = [
-    ['stale RSS', value => value.replace('The Signal Log can now travel', 'Old title'), json],
-    ['stale JSON', rss, value => value.replace('The Signal Log can now travel', 'Old title')],
+    ['stale RSS', value => value.replace('The Latest News can now travel', 'Old title'), json],
+    ['stale JSON', rss, value => value.replace('The Latest News can now travel', 'Old title')],
     ['missing JSON item', rss, value => { const parsed = JSON.parse(value); parsed.items.pop(); return `${JSON.stringify(parsed, null, 2)}\n`; }]
 ];
 let passed = 0;

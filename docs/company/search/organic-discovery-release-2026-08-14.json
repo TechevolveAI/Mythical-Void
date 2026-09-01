@@ -49,11 +49,11 @@
       "proof": ["public/nasa-space-science/index.html", "public/resources/mythical-void-stem-creature-lab.pdf", "https://apod.nasa.gov/apod/ap240720.html"]
     },
     {
-      "route": "/space-signal/",
+      "route": "/space-discovery/",
       "audience": "Curious players, families, groups and educators looking for a small reason to return",
       "intent": "Open one changing real-space source, use a three-step observation mission and carry a clearly fictional creature question into the game",
       "claimIds": ["CL-001", "CL-002", "CL-013"],
-      "proof": ["public/space-signal/index.html", "netlify/lib/space-signal-core.cjs", "docs/company/growth/SPACE_SIGNAL_RETURN_LOOP.json", "https://api.nasa.gov/planetary/apod"]
+      "proof": ["public/space-discovery/index.html", "netlify/lib/space-discovery-core.cjs", "docs/company/growth/SPACE_SIGNAL_RETURN_LOOP.json", "https://api.nasa.gov/planetary/apod"]
     },
     {
       "route": "/parents/",

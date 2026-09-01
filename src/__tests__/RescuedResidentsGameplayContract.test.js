@@ -17,7 +17,7 @@ describe('rescued resident gameplay contract', () => {
     test('releases a non-boss resident at the shared completion boundary', () => {
         expect(platformer).toContain('?.recordRescuedResident?.(');
         expect(platformer).toContain('showRescuedResidentReleaseMoment');
-        expect(platformer).toContain('PROJECT BEACON // LIFE SIGNAL RELEASED');
+        expect(platformer).toContain('PROJECT BEACON // LIFE FOUND');
         expect(platformer).toContain(
             'WELCOME ${resident.name.toUpperCase()} TO THE SANCTUARY'
         );
@@ -62,7 +62,7 @@ describe('rescued resident gameplay contract', () => {
         expect(gameScene).toContain('SANCTUARY // COMMUNITY');
         expect(gameScene).toContain('THEIR WORK CHANGES THE NEXT EXPEDITION');
         expect(gameScene).toContain('resident.contributionLine');
-        expect(gameScene).toContain('LIVES IN THE SIGNAL GARDEN');
+        expect(gameScene).toContain('LIVES IN THE MEMORY GARDEN');
         expect(gameScene).toContain(".setData('rescuedResidentAuthoredPortrait', true)");
         expect(gameScene).toContain('rescued_resident_check_in');
     });

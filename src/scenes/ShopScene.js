@@ -552,7 +552,7 @@ export default class ShopScene extends Phaser.Scene {
             name: 'Base Builder',
             description: unlocked
                 ? `Build with field supplies: ${resources.wood} wood, ${resources.stone} stone, ${resources.food} food.`
-                : 'Hatch a companion first. Their signal will bring the Base Builder online.',
+                : 'Hatch a companion first. Their presence will bring the Base Builder online.',
             icon: '🏡',
             type: 'village',
             price: null,
@@ -1674,7 +1674,7 @@ export default class ShopScene extends Phaser.Scene {
                 {
                     id: 'stellar_egg',
                     name: 'Stellar Egg',
-                    description: 'Hatch another companion from an uncommon-or-higher stellar signal.',
+                    description: 'Hatch another companion from an uncommon-or-higher stellar creature.',
                     icon: '🌟',
                     price: 1000,
                     type: 'egg',

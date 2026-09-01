@@ -152,7 +152,7 @@ describe('Fusion presentation contracts', () => {
 
     test('places Fusion inside the Fend story and states parent continuity', () => {
         expect(gameSource).toContain('FEND CURRENT ARCHIVE');
-        expect(gameSource).toContain('TWO SIGNALS // KINSHIP PROTOCOL');
+        expect(gameSource).toContain('TWO CREATURES // KINSHIP PROTOCOL');
         expect(gameSource).toContain('FUSION PRESERVES BOTH PARENTS');
         expect(gameSource).toContain(
             'Your first lineage will light a permanent Kinship Beacon here.'

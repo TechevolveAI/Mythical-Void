@@ -7,7 +7,7 @@
   "sourceProof": {
     "fieldGuideSource": {
       "path": "src/data/creature-field-guide.json",
-      "sha256": "641c54372fd387161efc34f29e2c75e4c5e23baf85f5ca38cb6ed9ca9ce82624"
+      "sha256": "9c78cc49c38f37e4e778e789803a0520061263f4ea7f4bd8202ef913689a12f0"
     },
     "rendererProfiles": {
       "path": "public/press/gameplay/real-creature-showcase/source-profiles.json",
@@ -17,11 +17,11 @@
     },
     "publicData": {
       "path": "public/creature-field-guide/field-guide.json",
-      "sha256": "5ba2c814c7b030c0ffb9244cbaf5136f5e42b403ad36f15726f1e3f191bdcb74"
+      "sha256": "b9dd252a54e8ffea2c2867f093a417c61ca247b46a1e4fd991018cc809ab8558"
     },
     "publicPage": {
       "path": "public/creature-field-guide/index.html",
-      "sha256": "0103d8a0425d2fe6c89f4c78b046304ca1930449cff8190655de04988113e936"
+      "sha256": "fbf942974c3ff54b30c8df4df0d8b47307390a33a68d345ae0ba961b1589790e"
     }
   },
   "coverage": {
@@ -52,7 +52,7 @@
     "homepageLinkAdded": true,
     "pressRoomLinkAdded": true,
     "routeSpecificSocialPreviewAdded": true,
-    "signalLogEntry": "SIGNAL-014",
+    "signalLogEntry": "UPDATE-014",
     "rssAndJsonFeedsUpdated": true
   },
   "safeguards": {

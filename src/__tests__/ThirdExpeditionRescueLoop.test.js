@@ -58,7 +58,7 @@ describe('third expedition rescue loop', () => {
         const source = readLevel();
 
         expect(source).toContain('const companionName = this.getCompanionName()');
-        expect(source).toContain('This signal did not come from Earth.');
+        expect(source).toContain('This message did not come from Earth.');
         expect(source).toContain('It is a traveler relay. Someone crossed before us.');
         expect(source).toContain('I can hold the route open. Stay with me.');
         expect(source).toContain('this.reefRouteAligned = true');

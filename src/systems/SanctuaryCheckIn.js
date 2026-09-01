@@ -1,16 +1,16 @@
 const CHECK_IN_LINES = Object.freeze({
     curious: Object.freeze([
-        '{name} has been comparing the Signal Garden pulse with a new light beyond the hull.',
+        '{name} has been comparing the Memory Garden pulse with a new light beyond the hull.',
         '{name} meets you beside a trail of carefully inspected Current motes.',
         '{name} has found a change in the clearing and waits for you to examine it together.'
     ]),
     playful: Object.freeze([
         '{name} has mapped a looping route around the landing struts and is waiting for another run.',
-        '{name} has rearranged three harmless signal stones into a pattern only they understand.',
+        '{name} has rearranged three harmless pattern stones into a pattern only they understand.',
         '{name} circles the garden once, then falls into step beside you.'
     ]),
     gentle: Object.freeze([
-        '{name} waits beside the Signal Garden, keeping the smallest new growth out of the wind.',
+        '{name} waits beside the Memory Garden, keeping the smallest new growth out of the wind.',
         '{name} has stayed close to the quieter residents and meets you without leaving them behind.',
         '{name} answers your return with a calm pulse through the bond.'
     ]),
@@ -22,7 +22,7 @@ const CHECK_IN_LINES = Object.freeze({
     energetic: Object.freeze([
         '{name} has already crossed the clearing twice and is ready to move.',
         '{name} meets you at the ship ramp with a fresh route through the Sanctuary.',
-        '{name} has spent the cycle testing the safe boundary and returns at your signal.'
+        '{name} has spent the cycle testing the safe boundary and returns when you call.'
     ])
 });
 

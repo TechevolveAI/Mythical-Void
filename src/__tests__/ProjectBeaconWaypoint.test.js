@@ -126,7 +126,7 @@ describe('Project Beacon waypoint', () => {
             objective: { target: 3 }
         }, { x: 10, y: 10 });
 
-        expect(result.label).toBe('LIVING SIGNAL 1/3');
+        expect(result.label).toBe('SIGNS OF LIFE 1/3');
         expect(result.target).toBe(nearest);
     });
 

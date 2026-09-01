@@ -44,7 +44,7 @@
     "publicUpdates": "https://mythicalvoid.com/updates/",
     "rss": "https://mythicalvoid.com/updates/feed.xml",
     "jsonFeed": "https://mythicalvoid.com/updates/feed.json",
-    "sourcePolicy": "Both feeds are generated from the same checked live-release source as the public Signal Log. They contain no email signup, recipient collection or tracking parameters."
+    "sourcePolicy": "Both feeds are generated from the same checked live-release source as the public Latest News. They contain no email signup, recipient collection or tracking parameters."
   },
   "educatorResources": [
     {

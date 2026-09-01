@@ -33,10 +33,10 @@ const CARE_PROFILES = Object.freeze({
 
 const CARE_REACTIONS = Object.freeze({
     curious: Object.freeze({
-        feed: 'This ration has no Current in it, yet my signal steadies. I want to understand why.',
+        feed: 'This ration has no Current in it, yet I feel steadier. I want to understand why.',
         play: 'Change the pattern next time. I want to see what the Current does when we improvise.',
         rest: 'The quieter we become, the more of the planet I can hear.',
-        pet: 'Your hand changes the signal around me. Stay there while I trace it.'
+        pet: 'Your hand changes the feeling around me. Stay there while I trace it.'
     }),
     playful: Object.freeze({
         feed: 'Good. Now I have enough energy to choose the next route.',
@@ -46,9 +46,9 @@ const CARE_REACTIONS = Object.freeze({
     }),
     gentle: Object.freeze({
         feed: 'That is enough. Leave some near the garden in case another life reaches us.',
-        play: 'Slower this time. I want the smaller signals to remain near us.',
+        play: 'Slower this time. I want the smaller creatures to remain near us.',
         rest: 'The Sanctuary feels balanced when neither of us is forcing the next step.',
-        pet: 'Your signal is calmer now. Mine is answering it.'
+        pet: 'You are calmer now. I can feel it too.'
     }),
     wise: Object.freeze({
         feed: 'Energy restored. We should spend it on the route that changes the least.',
@@ -57,7 +57,7 @@ const CARE_REACTIONS = Object.freeze({
         pet: 'Contact carries memory here. The Current will remember this moment differently.'
     }),
     energetic: Object.freeze({
-        feed: 'Signal stable. I can reach the far boundary and return before the light changes.',
+        feed: 'I feel steady. I can reach the far boundary and return before the light changes.',
         play: 'Again. This time I take the outside line and you try to keep up.',
         rest: 'Stopping is useful when it gives the next movement a direction.',
         pet: 'I can stay still for this. Briefly.'
@@ -65,27 +65,27 @@ const CARE_REACTIONS = Object.freeze({
 });
 
 const CARE_REPETITION_REACTIONS = Object.freeze({
-    curious: 'We repeated that signal. Change one part next time so I can compare what happens.',
+    curious: 'We repeated that rhythm. Change one part next time so I can compare what happens.',
     playful: 'Same move twice? I am changing the rules before the next round.',
-    gentle: 'That rhythm is enough for now. We can leave some quiet for the smaller signals.',
-    wise: 'Repetition changes what a signal means. Let this one settle before we add another.',
+    gentle: 'That rhythm is enough for now. We can leave some quiet for the smaller creatures.',
+    wise: 'Repetition changes what a rhythm means. Let this one settle before we add another.',
     energetic: 'Pattern logged. Give the next cycle a different direction.'
 });
 
 const CARE_RESONANCE_REACTIONS = Object.freeze({
-    curious: 'You remembered which signal helps me think. I noticed.',
+    curious: 'You remembered what helps me think. I noticed.',
     playful: 'You remembered my rhythm. Good. Now I can make the next part less predictable.',
-    gentle: 'You read my signal before choosing. That makes the Sanctuary feel steadier.',
+    gentle: 'You read my mood before choosing. That makes the Sanctuary feel steadier.',
     wise: 'You recognized the rhythm I return to. Trust begins in details like that.',
-    energetic: 'You found the signal that clears my path. I am ready for the boundary again.'
+    energetic: 'You found what clears my path. I am ready for the boundary again.'
 });
 
 const CARE_STEADY_REACTIONS = Object.freeze({
-    curious: 'My signal is steady. We can spend the next cycle investigating the Sanctuary.',
+    curious: 'I feel steady. We can spend the next cycle investigating the Sanctuary.',
     playful: 'I am fully charged. Save the next move for somewhere with more room.',
     gentle: 'I have enough. Let us check whether another life in the Sanctuary needs this more.',
     wise: 'The cycle is balanced. More is not always better.',
-    energetic: 'Signal stable. The useful thing now is movement with a purpose.'
+    energetic: 'I feel steady. The useful thing now is movement with a purpose.'
 });
 
 function normalizeCore(genetics) {
@@ -119,7 +119,7 @@ export function getCreatureCareReaction(actionType, genetics, context = {}) {
         return CARE_RESONANCE_REACTIONS[profile.personalityCore];
     }
     return CARE_REACTIONS[profile.personalityCore]?.[actionType]
-        || 'That changed my signal. Give me a moment to understand it.';
+        || 'That changed how I feel. Give me a moment to understand it.';
 }
 
 export {

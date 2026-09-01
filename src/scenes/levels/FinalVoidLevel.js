@@ -124,7 +124,7 @@ const FINAL_ENCOUNTER_PLAN = Object.freeze([
  * FinalVoidLevel - The ultimate boss encounter
  *
  * Story: At reality's edge, five restored systems answer the companion
- * together. Their shared signal reveals both a route to Earth and the danger
+ * together. Their shared promise reveals both a route to Earth and the danger
  * of exposing this world before the Void Empress severs the line.
  *
  * Features:
@@ -420,7 +420,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
         entryElements.push(mission);
 
-        const objective = this.add.text(width / 2, y(178), `Carry ${companionName}'s shared signal to the Command Module`, {
+        const objective = this.add.text(width / 2, y(178), `Carry ${companionName}'s shared promise to the Command Module`, {
             fontSize: font(20, 17),
             color: '#F2C94C',
             fontStyle: 'bold',
@@ -685,7 +685,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             required: 1,
             rewardLabel: 'BOND RESERVE // 1 RESCUE',
             marker: trustBridgeMarker,
-            returnLabel: 'DESCEND TO TRUST SIGNAL →',
+            returnLabel: 'DESCEND TO TRUST MARKER →',
             choice: {
                 mainLabel: 'LOW RIFT CROSSING →',
                 mainTradeoff: 'SHORT JUMPS // RIFT DAMAGE + 2 GUARDS',
@@ -859,14 +859,14 @@ class FinalVoidLevel extends PlatformerLevelScene {
         const nextSignal = [
             'LIVING SYSTEMS',
             'RETURN ROUTE',
-            'TRUST SIGNAL'
-        ][this.bondAnchorsActivated] || 'TRUST SIGNAL';
+            'TRUST MARKER'
+        ][this.bondAnchorsActivated] || 'TRUST MARKER';
         const current = Math.min(this.bondAnchorsActivated + 1, 3);
         const compass = this.getOrderedRouteCompassText();
         const title = this.isCompactObjectiveHUD
             ? `BOND ${current}/3`
             : `BOND ${current}/3 // ${nextSignal}`;
-        return `${title}\n${compass || 'FOLLOW THE SHARED SIGNAL'}\nCURRENT // ${networkState}${optional}`;
+        return `${title}\n${compass || 'FOLLOW THE SHARED TRAIL'}\nCURRENT // ${networkState}${optional}`;
     }
 
     showObjectiveToast() {
@@ -875,7 +875,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         const toast = this.add.text(
             width / 2,
             isMobileLayout ? 165 : 90,
-            'Follow the shared signal to reality\'s edge',
+            'Follow the shared promise to reality\'s edge',
             {
                 fontSize: isMobileLayout ? '16px' : '18px',
                 color: '#F2C94C',
@@ -980,7 +980,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 id: 'final_bond_3',
                 x: 2350,
                 y: 600,
-                label: 'TRUST SIGNAL',
+                label: 'TRUST MARKER',
                 activationSupportIds: ['final-rift-step-4']
             }
         ];
@@ -1085,7 +1085,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             this.bondAnchors,
             this.bondAnchorsActivated,
             {
-                fallbackLabel: 'FOLLOW THE BOND SIGNALS',
+                fallbackLabel: 'FOLLOW THE BOND MARKERS',
                 hintOffsetY: -125
             }
         )) {
@@ -1110,7 +1110,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         });
 
         this.showFloatingText(
-            `BOND SIGNAL ${this.bondAnchorsActivated}/3`,
+            `BOND MARKER ${this.bondAnchorsActivated}/3`,
             anchor.x,
             anchor.y - 125,
             '#F2C94C'
@@ -1141,7 +1141,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             this.finalSignalReady = true;
             this.time.delayedCall(1350, () => {
                 this.showFloatingText(
-                    'ROUTE PROTECTED // NO SIGNAL TRANSMITTED',
+                    'ROUTE PROTECTED // NO MESSAGE TRANSMITTED',
                     anchor.x,
                     anchor.y - 205,
                     '#F2C94C'
@@ -1302,7 +1302,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             x: gateX,
             y: gateY,
             title: 'EMPRESS SEAL',
-            getStatus: () => `BOND SIGNALS ${this.bondAnchorsActivated}/3`,
+            getStatus: () => `BOND MARKERS ${this.bondAnchorsActivated}/3`,
             isReady: () => this.finalSignalReady,
             color: 0xDA70D6,
             readyColor: 0xA9F3E4,
@@ -1323,7 +1323,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 if (this.time.now >= this.bossGateHintUntil) {
                     this.bossGateHintUntil = this.time.now + 1800;
                     this.showFloatingText(
-                        `BOND SIGNALS REQUIRED: ${this.bondAnchorsActivated}/3`,
+                        `BOND MARKERS REQUIRED: ${this.bondAnchorsActivated}/3`,
                         gateX - 90,
                         gateY - 205,
                         '#DA70D6'
@@ -3053,7 +3053,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             ].join(' ')
             : 'BEACON LINE RESTORED';
         const subtitleText = this.add.text(width / 2, y(145),
-            `${networkResult} - COMMAND MODULE RECOVERED\nUPLINK HELD - NO SIGNAL SENT`, {
+            `${networkResult} - COMMAND MODULE RECOVERED\nUPLINK HELD - NO MESSAGE SENT`, {
             fontSize: font(24, 19),
             color: '#8FE3CF',
             align: 'center',

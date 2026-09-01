@@ -33,8 +33,8 @@
   },
   "items": [
     {
-      "id": "DRAFT-SIGNAL-023",
-      "sourceEntryId": "SIGNAL-023",
+      "id": "DRAFT-UPDATE-023",
+      "sourceEntryId": "UPDATE-023",
       "sourcePublishedOn": "2026-08-27",
       "destination": "https://mythicalvoid.com/hatch-challenge/",
       "trackingParameters": false,
@@ -78,8 +78,8 @@
       }
     },
     {
-      "id": "DRAFT-SIGNAL-022",
-      "sourceEntryId": "SIGNAL-022",
+      "id": "DRAFT-UPDATE-022",
+      "sourceEntryId": "UPDATE-022",
       "sourcePublishedOn": "2026-08-27",
       "destination": "https://mythicalvoid.com/playable-now/#find-your-way/story",
       "trackingParameters": false,
@@ -123,8 +123,8 @@
       }
     },
     {
-      "id": "DRAFT-SIGNAL-021",
-      "sourceEntryId": "SIGNAL-021",
+      "id": "DRAFT-UPDATE-021",
+      "sourceEntryId": "UPDATE-021",
       "sourcePublishedOn": "2026-08-26",
       "destination": "https://mythicalvoid.com/",
       "trackingParameters": false,
@@ -168,8 +168,8 @@
       }
     },
     {
-      "id": "DRAFT-SIGNAL-020",
-      "sourceEntryId": "SIGNAL-020",
+      "id": "DRAFT-UPDATE-020",
+      "sourceEntryId": "UPDATE-020",
       "sourcePublishedOn": "2026-08-26",
       "destination": "https://mythicalvoid.com/llms.txt",
       "trackingParameters": false,
@@ -213,8 +213,8 @@
       }
     },
     {
-      "id": "DRAFT-SIGNAL-019",
-      "sourceEntryId": "SIGNAL-019",
+      "id": "DRAFT-UPDATE-019",
+      "sourceEntryId": "UPDATE-019",
       "sourcePublishedOn": "2026-08-26",
       "destination": "https://mythicalvoid.com/playable-now/#find-your-way",
       "trackingParameters": false,
@@ -258,8 +258,8 @@
       }
     },
     {
-      "id": "DRAFT-SIGNAL-018",
-      "sourceEntryId": "SIGNAL-018",
+      "id": "DRAFT-UPDATE-018",
+      "sourceEntryId": "UPDATE-018",
       "sourcePublishedOn": "2026-08-26",
       "destination": "https://mythicalvoid.com/playable-now/#main",
       "trackingParameters": false,
@@ -303,8 +303,8 @@
       }
     },
     {
-      "id": "DRAFT-SIGNAL-017",
-      "sourceEntryId": "SIGNAL-017",
+      "id": "DRAFT-UPDATE-017",
+      "sourceEntryId": "UPDATE-017",
       "sourcePublishedOn": "2026-08-26",
       "destination": "https://mythicalvoid.com/studio/",
       "trackingParameters": false,
@@ -348,8 +348,8 @@
       }
     },
     {
-      "id": "DRAFT-SIGNAL-016",
-      "sourceEntryId": "SIGNAL-016",
+      "id": "DRAFT-UPDATE-016",
+      "sourceEntryId": "UPDATE-016",
       "sourcePublishedOn": "2026-08-26",
       "destination": "https://mythicalvoid.com/educators/",
       "trackingParameters": false,
@@ -393,8 +393,8 @@
       }
     },
     {
-      "id": "DRAFT-SIGNAL-014",
-      "sourceEntryId": "SIGNAL-014",
+      "id": "DRAFT-UPDATE-014",
+      "sourceEntryId": "UPDATE-014",
       "sourcePublishedOn": "2026-08-26",
       "destination": "https://mythicalvoid.com/creature-field-guide/",
       "trackingParameters": false,
@@ -438,8 +438,8 @@
       }
     },
     {
-      "id": "DRAFT-SIGNAL-013",
-      "sourceEntryId": "SIGNAL-013",
+      "id": "DRAFT-UPDATE-013",
+      "sourceEntryId": "UPDATE-013",
       "sourcePublishedOn": "2026-08-26",
       "destination": "https://mythicalvoid.com/creature-genetics/#gene-spectrum",
       "trackingParameters": false,
@@ -483,8 +483,8 @@
       }
     },
     {
-      "id": "DRAFT-SIGNAL-015",
-      "sourceEntryId": "SIGNAL-015",
+      "id": "DRAFT-UPDATE-015",
+      "sourceEntryId": "UPDATE-015",
       "sourcePublishedOn": "2026-08-26",
       "destination": "https://mythicalvoid.com/playable-now/",
       "trackingParameters": false,
@@ -528,8 +528,8 @@
       }
     },
     {
-      "id": "DRAFT-SIGNAL-009",
-      "sourceEntryId": "SIGNAL-009",
+      "id": "DRAFT-UPDATE-009",
+      "sourceEntryId": "UPDATE-009",
       "sourcePublishedOn": "2026-08-26",
       "destination": "https://mythicalvoid.com/playable-now/",
       "trackingParameters": false,
@@ -573,8 +573,8 @@
       }
     },
     {
-      "id": "DRAFT-SIGNAL-008",
-      "sourceEntryId": "SIGNAL-008",
+      "id": "DRAFT-UPDATE-008",
+      "sourceEntryId": "UPDATE-008",
       "sourcePublishedOn": "2026-08-14",
       "destination": "https://mythicalvoid.com/updates/feed.xml",
       "trackingParameters": false,
@@ -618,8 +618,8 @@
       }
     },
     {
-      "id": "DRAFT-SIGNAL-005",
-      "sourceEntryId": "SIGNAL-005",
+      "id": "DRAFT-UPDATE-005",
+      "sourceEntryId": "UPDATE-005",
       "sourcePublishedOn": "2026-08-14",
       "destination": "https://mythicalvoid.com/story/",
       "trackingParameters": false,
@@ -663,8 +663,8 @@
       }
     },
     {
-      "id": "DRAFT-SIGNAL-004",
-      "sourceEntryId": "SIGNAL-004",
+      "id": "DRAFT-UPDATE-004",
+      "sourceEntryId": "UPDATE-004",
       "sourcePublishedOn": "2026-08-14",
       "destination": "https://mythicalvoid.com/",
       "trackingParameters": false,
@@ -708,8 +708,8 @@
       }
     },
     {
-      "id": "DRAFT-SIGNAL-001",
-      "sourceEntryId": "SIGNAL-001",
+      "id": "DRAFT-UPDATE-001",
+      "sourceEntryId": "UPDATE-001",
       "sourcePublishedOn": "2026-08-14",
       "destination": "https://mythicalvoid.com/story/",
       "trackingParameters": false,

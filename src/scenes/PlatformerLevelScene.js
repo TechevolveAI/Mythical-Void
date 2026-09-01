@@ -144,7 +144,7 @@ const EXPEDITION_CHECKPOINT_PRESENTATION = Object.freeze({
     ReefLevel: {
         levelStateId: 'cosmicReef',
         checkpoints: [
-            ['reef_waypoint_1', 'Drift Signal'],
+            ['reef_waypoint_1', 'Drift Marker'],
             ['reef_waypoint_2', 'Traveler Relay'],
             ['reef_waypoint_3', 'Passage Vector']
         ]
@@ -170,7 +170,7 @@ const EXPEDITION_CHECKPOINT_PRESENTATION = Object.freeze({
         checkpoints: [
             ['final_bond_1', 'Living Systems'],
             ['final_bond_2', 'Return Route'],
-            ['final_bond_3', 'Trust Signal']
+            ['final_bond_3', 'Trust Marker']
         ]
     }
 });
@@ -1725,7 +1725,7 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     canActivateOrderedRouteSignal(signal, signals, activatedCount, {
-        fallbackLabel = 'FOLLOW THE SIGNAL',
+        fallbackLabel = 'FOLLOW THE CLUE',
         hintOffsetY = -100
     } = {}) {
         if (signal?.index === activatedCount) return true;
@@ -1815,12 +1815,12 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (!Number.isFinite(dx) || !Number.isFinite(dy)) return '';
 
         const range = Math.max(0, Math.round(Math.hypot(dx, dy) / 50) * 50);
-        if (range <= nearDistance) return `SIGNAL CLOSE // ${range}m`;
+        if (range <= nearDistance) return `CLUE CLOSE // ${range}m`;
 
         const directions = [];
         if (Math.abs(dx) > 90) directions.push(dx > 0 ? 'RIGHT' : 'LEFT');
         if (Math.abs(dy) > 90) directions.push(dy > 0 ? 'DOWN' : 'UP');
-        return `SIGNAL ${directions.join(' + ') || 'CLOSE'} // ${range}m`;
+        return `CLUE ${directions.join(' + ') || 'CLOSE'} // ${range}m`;
     }
 
     registerOptionalRouteReward({
@@ -8585,7 +8585,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         const header = this.add.text(
             compact ? centerX : width * 0.06,
             compact ? 30 : height * 0.12,
-            'PROJECT BEACON // LIFE SIGNAL RELEASED',
+            'PROJECT BEACON // LIFE FOUND',
             {
                 fontFamily: 'Arial, sans-serif',
                 fontSize: compact ? '12px' : '16px',

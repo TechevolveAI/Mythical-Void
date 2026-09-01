@@ -3,6 +3,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "redirects": [
+    { "source": "/space-signal/:path*", "destination": "/space-discovery/", "permanent": true },
     { "source": "/press/gameplay/:path*", "destination": "/press/", "permanent": false },
     { "source": "/press/gameplay-video/:path*", "destination": "/press/", "permanent": false },
     { "source": "/press/social/:path*", "destination": "/press/", "permanent": false },
@@ -53,15 +54,15 @@
       "destination": "/updates/index.html"
     },
     {
-      "source": "/space-signal",
-      "destination": "/space-signal/index.html"
+      "source": "/space-discovery",
+      "destination": "/space-discovery/index.html"
     },
     {
-      "source": "/space-signal/",
-      "destination": "/space-signal/index.html"
+      "source": "/space-discovery/",
+      "destination": "/space-discovery/index.html"
     },
     {
-      "source": "/((?!assets/|marketing/|game/|audio/|updates/|space-signal/|playable-now/|hatch-challenge/|help/|manifest\\.webmanifest|og\\.png|sw\\.js|apple-touch-icon\\.png).*)",
+      "source": "/((?!assets/|marketing/|game/|audio/|updates/|space-discovery/|playable-now/|hatch-challenge/|help/|manifest\\.webmanifest|og\\.png|sw\\.js|apple-touch-icon\\.png).*)",
       "destination": "/index.html"
     }
   ],

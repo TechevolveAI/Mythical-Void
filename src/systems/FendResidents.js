@@ -17,7 +17,7 @@ export const FEND_RESIDENT_DEFINITIONS = Object.freeze([
             title: 'Shelter Calibration',
             briefing:
                 'Tune the shelter anchors while your companion checks the living roots beneath them.',
-            objective: 'Tend the Signal Garden once after speaking with Kiri.',
+            objective: 'Tend the Memory Garden once after speaking with Kiri.',
             actionLine: 'Human instruments above. Creature senses below. Neither works alone.',
             completionLine:
                 'The anchors are steady and the roots are still breathing. This can be a refuge.',
@@ -61,13 +61,13 @@ export const FEND_RESIDENT_DEFINITIONS = Object.freeze([
         color: 0x101616,
         accent: 0xF2C14E,
         introduction:
-            'Three signals, three warnings, one route. Your crash made noise. Listening is how we answer it.',
+            'Three clues, three warnings, one route. Your crash made noise. Listening is how we answer it.',
         request: Object.freeze({
             id: 'relay_three_signals',
             title: 'Three-Voice Relay',
             briefing:
-                'Bring all three Living Signal patterns to the relay so no settlement has to cross the Fend blind.',
-            objective: 'Observe all three Living Signals, then return to Tovan.',
+                'Bring all three signs-of-life patterns to the relay so no settlement has to cross the Fend blind.',
+            objective: 'Observe all three signs of life, then return to Tovan.',
             actionLine: 'Your field receiver aligns the pattern. Your companion translates the living response.',
             completionLine:
                 'The relay carries warnings, not orders. Any settlement can answer, and any settlement can refuse.',

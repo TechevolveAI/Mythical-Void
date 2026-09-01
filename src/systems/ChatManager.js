@@ -220,7 +220,7 @@ class ChatManager {
     getFallbackOptions() {
         return [
             'What changed while I was away?',
-            'How is your signal?',
+            'How are you feeling?',
             'Which route would you choose?',
             'Do you need food, movement, or quiet?'
         ];

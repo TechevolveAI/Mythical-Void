@@ -12,12 +12,12 @@ const errors = [];
 const requireValue = (condition, message) => { if (!condition) errors.push(message); };
 const liveEntries = (source.entries || []).filter(entry => entry.status === 'live');
 
-requireValue(source.publicationBoundary?.liveItemsOnly === true, 'Signal Log must remain live-items-only.');
+requireValue(source.publicationBoundary?.liveItemsOnly === true, 'Latest News must remain live-items-only.');
 requireValue(liveEntries.length >= 1, 'At least one verified live source entry is required.');
 requireValue((source.entries || []).every(entry => entry.status === 'live' || entry.status === 'withdrawn'), 'Source entries must be live or explicitly withdrawn.');
 requireValue(pack.schemaVersion === 1 && pack.state === 'draft_only_missing_verified_social_channels_and_approval', 'Draft pack must retain its internal review-only state.');
-requireValue(pack.generatedFrom?.liveEntryCount === liveEntries.length && pack.items?.length === liveEntries.length, 'Draft count must match the live Signal Log.');
-requireValue(JSON.stringify(pack) === JSON.stringify(buildReleasePack(source)), 'Draft pack is stale or contains hand-written drift; rebuild it from the Signal Log.');
+requireValue(pack.generatedFrom?.liveEntryCount === liveEntries.length && pack.items?.length === liveEntries.length, 'Draft count must match the live Latest News.');
+requireValue(JSON.stringify(pack) === JSON.stringify(buildReleasePack(source)), 'Draft pack is stale or contains hand-written drift; rebuild it from the Latest News.');
 
 for (const [field, expected] of Object.entries({
     socialAccountsVerified: false,
@@ -35,7 +35,7 @@ const entryMap = new Map(liveEntries.map(entry => [entry.id, entry]));
 for (const item of pack.items || []) {
     const entry = entryMap.get(item.sourceEntryId);
     const label = item.id || 'draft item';
-    requireValue(Boolean(entry), `${label} has no live Signal Log source.`);
+    requireValue(Boolean(entry), `${label} has no live Latest News source.`);
     requireValue(/^https:\/\/mythicalvoid\.com\//.test(item.destination || ''), `${label} destination must stay on mythicalvoid.com.`);
     requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(item.destination || '') && item.trackingParameters === false, `${label} must not add tracking parameters.`);
     requireValue(item.media?.sourcePath === entry?.image && item.media?.alt === entry?.imageAlt && item.media?.class === entry?.imageClass && item.media?.disclosure === entry?.disclosure, `${label} media must stay source-bound.`);

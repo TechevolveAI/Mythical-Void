@@ -350,14 +350,14 @@ class CarePanelManager {
 
     getActionCopy(actionType) {
         const friendly = {
-            feed: 'takes the ration and steadies their signal.',
+            feed: 'takes the ration and helps them feel steady.',
             play: 'joins the movement exercise.',
             rest: 'settles into a quiet recovery cycle.',
             pet: 'answers the contact with a steady pulse.',
-            clean: 'returns with a clearer signal.',
+            clean: 'returns with a clearer head.',
             stats: 'stats ready'
         };
-        return friendly[actionType] || 'responds to the care signal.';
+        return friendly[actionType] || 'responds to your care.';
     }
 
     updateSignal() {

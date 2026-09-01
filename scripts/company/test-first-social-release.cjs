@@ -41,7 +41,7 @@ try {
         ['child-targeting', release => { release.audience.childTargetedAdvertising = true; }, () => {}],
         ['generated-art', release => { release.qualityEvidence.generatedMarketingArtworkUsed = true; }, () => {}],
         ['external-action', release => { release.authority.externalActionPerformed = true; }, () => {}],
-        ['source-pack-drift', () => {}, source => { source.items.find(item => item.id === 'DRAFT-SIGNAL-001').drafts.videoCommunity.body += ' New claim.'; }]
+        ['source-pack-drift', () => {}, source => { source.items.find(item => item.id === 'DRAFT-UPDATE-001').drafts.videoCommunity.body += ' New claim.'; }]
     ];
 
     for (const [name, mutateRelease, mutateSource] of failures) {

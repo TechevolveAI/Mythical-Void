@@ -32,7 +32,7 @@ try {
     assert.notStrictEqual(run('opened-comments', data => { data.publicationBoundary.commentsEnabled = true; }).status, 0);
     assert.notStrictEqual(run('unsupported-field', data => { data.entries[0].email = 'hello@example.com'; }).status, 0);
     assert.notStrictEqual(run('stale', value => value, true).status, 0);
-    console.log('Public Signal Log safeguards passed (9 cases).');
+    console.log('Public Latest News safeguards passed (9 cases).');
 } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
 }

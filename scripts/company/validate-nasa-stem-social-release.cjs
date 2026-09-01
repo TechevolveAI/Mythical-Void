@@ -24,15 +24,15 @@ function readPng(file) {
 
 requireValue(release.schemaVersion === 1 && release.id === 'NASA-STEM-SOCIAL-RELEASE-2026-08-14', 'NASA/STEM release identity is invalid.');
 requireValue(release.state === 'complete_review_pack_waiting_for_verified_channel_and_kevin_approval', 'NASA/STEM release must remain a gated review pack.');
-requireValue(release.selection?.sourceEntryId === 'SIGNAL-006', 'NASA/STEM release must stay bound to SIGNAL-006.');
+requireValue(release.selection?.sourceEntryId === 'UPDATE-006', 'NASA/STEM release must stay bound to UPDATE-006.');
 requireValue(release.selection?.destination === 'https://mythicalvoid.com/press/#nasa-stem-social-assets' && release.selection?.educationalDestination === 'https://mythicalvoid.com/nasa-space-science/', 'NASA/STEM owned destinations have drifted.');
 requireValue(release.selection?.nasaSourceUrl === 'https://apod.nasa.gov/apod/ap240720.html', 'Apollo 11 source URL has drifted.');
 requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(JSON.stringify(release.selection || {})), 'NASA/STEM destinations must not contain tracking parameters.');
 
-const sourceItem = sourcePack.items?.find(item => item.id === 'DRAFT-SIGNAL-006');
+const sourceItem = sourcePack.items?.find(item => item.id === 'DRAFT-UPDATE-006');
 requireValue(Boolean(sourceItem), 'Source-bound NASA/STEM draft is missing.');
-requireValue(release.drafts?.professionalNetwork?.copy === sourceItem?.drafts?.professionalNetwork?.body, 'Professional draft has drifted from SIGNAL-006.');
-requireValue(release.drafts?.videoCommunity?.copy === sourceItem?.drafts?.videoCommunity?.body, 'Video-community draft has drifted from SIGNAL-006.');
+requireValue(release.drafts?.professionalNetwork?.copy === sourceItem?.drafts?.professionalNetwork?.body, 'Professional draft has drifted from UPDATE-006.');
+requireValue(release.drafts?.videoCommunity?.copy === sourceItem?.drafts?.videoCommunity?.body, 'Video-community draft has drifted from UPDATE-006.');
 requireValue(release.drafts?.professionalNetwork?.channelRef === 'CH-004' && release.drafts?.videoCommunity?.channelRef === 'CH-002', 'Drafts must retain their planned channel references.');
 
 requireValue(Array.isArray(release.assets) && release.assets.length === 2, 'NASA/STEM release needs exactly one wide and one square asset.');

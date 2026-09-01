@@ -731,7 +731,7 @@ function buildChapterRows(record, portrait, fieldMemories) {
                     .replace(/_/g, ' ')
                     .toUpperCase(),
                 detail: creature.lineage.origin === 'shared_fusion'
-                    ? `Generation ${creature.lineage.generation} // one local parent record + ${creature.lineage.protectedParentCount} protected parent signal`
+                    ? `Generation ${creature.lineage.generation} // one local parent record + ${creature.lineage.protectedParentCount} protected parent record`
                     : creature.lineage.origin === 'fusion'
                     ? `Generation ${creature.lineage.generation} // ${creature.lineage.parentIds.length} parent records`
                     : 'First-generation Fend hatch record.'

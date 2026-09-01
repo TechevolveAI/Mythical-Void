@@ -21,7 +21,7 @@ describe('Welcome Back living portrait continuity', () => {
 
     test('keeps the return report usable when no portrait is stored', () => {
         expect(sceneSource).toContain('window.FXLibrary?.ambientSparkles');
-        expect(sceneSource).toContain("companion.record ? 'SIGNAL\\nRESOLVING' : 'PIXEL\\nIDENTITY'");
+        expect(sceneSource).toContain("companion.record ? 'CREATURE\\nRETURNING' : 'PIXEL\\nIDENTITY'");
         expect(sceneSource).toContain('if (!companion.record) return;');
         expect(sceneSource).toContain("placeholder.setText('PORTRAIT\\nIN ARCHIVE')");
     });

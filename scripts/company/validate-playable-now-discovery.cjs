@@ -44,7 +44,7 @@ requireValue(page.includes('id="game-fit-title"') && page.includes('Is this your
 requireValue(page.includes('YOU MAY LOVE IT IF…') && page.includes('IT MAY NOT BE FOR YOU IF…'), 'game-fit decision must show both fit and non-fit');
 requireValue(page.includes('multiplayer, public chat or competitive rankings') && page.includes('offline game or a finished commercial release'), 'important non-fit boundaries are missing');
 requireValue(page.includes('A laptop or desktop with a keyboard gives the smoothest platforming experience.') && page.includes('phone presentation is still being improved'), 'current device guidance is missing or overconfident');
-requireValue(page.includes('id="hatch-challenge"') && page.includes('Same signal. Two creatures. What will hatch?'), 'Hatch Challenge is missing');
+requireValue(page.includes('id="hatch-challenge"') && page.includes('Same starting point. Two creatures. What will hatch?'), 'Hatch Challenge is missing');
 requireValue(page.includes('<strong>This is not multiplayer.</strong>') && page.includes('nothing is uploaded') && page.includes('never asks who you invited'), 'Hatch Challenge boundaries are missing');
 for (const control of ['data-hatch-challenge-share', 'data-hatch-challenge-copy', 'data-hatch-challenge-status']) requireValue(page.includes(control), `Hatch Challenge control ${control} is missing`);
 
@@ -136,8 +136,8 @@ for (const [file, fragment, label] of [
     ['vercel.json', '"source": "/playable-now/"', 'Vercel route']
 ]) requireValue(fs.readFileSync(path.join(root, file), 'utf8').includes(fragment), `${label} discovery is missing`);
 
-const signal = signalSource.entries?.find(entry => entry.id === 'SIGNAL-015');
-requireValue(signal?.status === 'live' && signal?.destination === '/playable-now/', 'SIGNAL-015 is missing or drifted');
+const signal = signalSource.entries?.find(entry => entry.id === 'UPDATE-015');
+requireValue(signal?.status === 'live' && signal?.destination === '/playable-now/', 'UPDATE-015 is missing or drifted');
 requireValue(fs.readFileSync(path.join(root, 'public/updates/feed.xml'), 'utf8').includes('A better standard for showing the game'), 'RSS feed is missing the visual-quality correction');
 requireValue(JSON.parse(fs.readFileSync(path.join(root, 'public/updates/feed.json'), 'utf8')).items?.some(item => item.external_url === 'https://mythicalvoid.com/playable-now/'), 'JSON feed is missing the playable page');
 

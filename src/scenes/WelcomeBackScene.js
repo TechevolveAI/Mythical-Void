@@ -273,7 +273,7 @@ class WelcomeBackScene extends Phaser.Scene {
             color: '#FFFFFF',
             fontStyle: 'bold'
         }).setDepth(102);
-        const signal = this.add.text(copyX, top + 27, 'LIVING FORM // RETURN SIGNAL', {
+        const signal = this.add.text(copyX, top + 27, 'LIVING FORM // RETURNING FRIEND', {
             fontSize: '10px',
             color: '#F2C14E',
             fontStyle: 'bold'
@@ -296,7 +296,7 @@ class WelcomeBackScene extends Phaser.Scene {
         const placeholder = this.add.text(
             portraitX,
             portraitY,
-            companion.record ? 'SIGNAL\nRESOLVING' : 'PIXEL\nIDENTITY',
+            companion.record ? 'CREATURE\nRETURNING' : 'PIXEL\nIDENTITY',
             {
                 fontSize: '8px',
                 color: companion.record ? '#8FE3CF' : '#7F9695',

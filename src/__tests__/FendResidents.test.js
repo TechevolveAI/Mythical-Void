@@ -144,7 +144,7 @@ describe('FendResidents', () => {
         expect(accepted.snapshot.activeResident.id).toBe('kiri');
         expect(accepted.snapshot.activeResident.ready).toBe(false);
         expect(formatFendResidentObjective(accepted.snapshot)).toContain(
-            'Tend the Signal Garden'
+            'Tend the Memory Garden'
         );
 
         gameState.evidence.gardenTends = 5;

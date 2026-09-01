@@ -22,7 +22,7 @@ class CareSystem {
         this.careActions = {
             feed: {
                 name: 'Feed',
-                description: 'Share a field ration to steady the companion signal',
+                description: 'Share a field ration to steady the creature’s strength',
                 happinessBonus: 15,
                 dailyLimit: 3,
                 icon: '🍎',
@@ -46,7 +46,7 @@ class CareSystem {
             },
             pet: {
                 name: 'Connect',
-                description: 'Share a calm signal with your companion',
+                description: 'Share a calm moment with your companion',
                 happinessBonus: 8,
                 dailyLimit: -1,
                 icon: '◇',
@@ -302,12 +302,12 @@ class CareSystem {
                 ? profile.preferredAction
                 : profile.secondaryAction;
             needLabel = 'VARIATION REQUEST';
-            reason = 'The same care signal was repeated; this companion is asking for a different rhythm.';
+            reason = 'The same care rhythm was repeated; this companion is asking for a different rhythm.';
         } else if (Number(status?.happiness) < 65) {
             needLabel = 'CONNECTION REQUEST';
-            reason = 'The companion signal is quieter and responds best to its natural care rhythm.';
+            reason = 'The creature is calmer and responds best to its natural care rhythm.';
         } else if (Number(status?.happiness) >= 90) {
-            needLabel = 'STEADY SIGNAL';
+            needLabel = 'STEADY AGAIN';
             reason = 'The companion is steady; care is optional and never an obligation.';
         }
 
@@ -394,10 +394,10 @@ class CareSystem {
      * Get happiness level description
      */
     getHappinessDescription(happiness) {
-        if (happiness >= 80) return { level: 'resonant', description: 'Companion signal is bright and responsive.', color: '#FFD700' };
-        if (happiness >= 65) return { level: 'steady', description: 'Companion signal is steady.', color: '#90EE90' };
-        if (happiness >= 50) return { level: 'settled', description: 'Companion signal is settled.', color: '#87CEEB' };
-        if (happiness >= 35) return { level: 'quiet', description: 'Companion signal is quiet.', color: '#FFA500' };
+        if (happiness >= 80) return { level: 'resonant', description: 'Companion creature is bright and responsive.', color: '#FFD700' };
+        if (happiness >= 65) return { level: 'steady', description: 'Companion creature is steady.', color: '#90EE90' };
+        if (happiness >= 50) return { level: 'settled', description: 'Companion creature is settled.', color: '#87CEEB' };
+        if (happiness >= 35) return { level: 'quiet', description: 'Companion creature is quiet.', color: '#FFA500' };
         if (happiness >= 20) return { level: 'withdrawn', description: 'Companion is keeping close to the Sanctuary.', color: '#FF8A8A' };
         return { level: 'recovering', description: 'Companion is in a protected recovery cycle.', color: '#C78BFF' };
     }
@@ -451,13 +451,13 @@ class CareSystem {
         if (status.happiness < 50) {
             recommendations.push({
                 type: 'normal',
-                message: 'Companion signal is quiet. Choose a care action when you are ready.',
+                message: 'Companion creature is quiet. Choose a care action when you are ready.',
                 actions: ['feed', 'play']
             });
         } else if (status.happiness < 80) {
             recommendations.push({
                 type: 'normal',
-                message: 'A shared care cycle could make the companion signal easier to read.',
+                message: 'A shared care cycle could make the creature’s needs easier to read.',
                 actions: ['feed', 'play', 'rest']
             });
         }

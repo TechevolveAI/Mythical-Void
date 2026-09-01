@@ -478,7 +478,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const caption = this.add.text(
             width / 2,
             height * 0.78,
-            'A signal is moving through the forest. Follow it and find out who needs help.',
+            'Something is moving through the forest. Follow it and find out who needs help.',
             {
                 fontSize: width < 600 ? '17px' : '24px',
                 color: '#FFFFFF',

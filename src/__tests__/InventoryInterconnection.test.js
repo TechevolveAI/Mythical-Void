@@ -62,7 +62,7 @@ describe('shop, inventory, and field-kit interconnection', () => {
             'No companion is replaced or consumed.'
         );
         expect(inventorySource).toContain(
-            'answers a second signal.'
+            'answers a second call.'
         );
         expect(inventorySource).not.toContain('replace your current companion');
         expect(inventorySource).not.toContain('will be gone forever');

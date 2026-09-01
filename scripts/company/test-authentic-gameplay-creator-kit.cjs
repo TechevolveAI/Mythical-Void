@@ -41,7 +41,7 @@ expectFailure('invented external action', values => { values.release.authority.e
 expectFailure('withdrawn press room download exposed again', values => { values.pressSource += '<div id="creator-download-kit"></div>'; });
 expectFailure('withdrawn machine discovery exposed again', values => { values.llms += '\nOne-download creator kit: https://mythicalvoid.com/press/creator-kit/mythical-void-authentic-gameplay-creator-kit.zip'; });
 expectFailure('missing press asset record', values => { delete values.pressAssets.creatorDownloadKit; });
-expectFailure('withdrawn Signal entry exposed again', values => { values.signal.entries.push({ id: 'SIGNAL-011', status: 'live' }); });
+expectFailure('withdrawn Signal entry exposed again', values => { values.signal.entries.push({ id: 'UPDATE-011', status: 'live' }); });
 expectFailure('missing phone visual proof', values => { values.release.verification.phoneHorizontalOverflowObserved = true; });
 expectFailure('invented production proof', values => { values.release.verification.productionUrlVerified = true; });
 

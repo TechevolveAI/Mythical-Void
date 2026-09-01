@@ -63,7 +63,7 @@
   "discoverability": {
     "pressRoomSectionPrepared": true,
     "pressAssetManifestPrepared": true,
-    "signalLogEntry": "SIGNAL-010",
+    "signalLogEntry": "UPDATE-010",
     "rssAndJsonFeedIncluded": true
   },
   "verification": {

@@ -60,7 +60,7 @@ try {
         ['withdrawn-press-feature-exposed', value => { value.storefront += '<div id="real-creature-hatch"><img src="/press/gameplay/creature-cosmic-egg-reveal.png"></div>'; }],
         ['missing-press-record', value => { value.pressAssets.assets = value.pressAssets.assets.filter(item => !item.url.endsWith('creature-cosmic-egg-reveal.png')); }],
         ['withdrawn-machine-link-exposed', value => { value.llms += '\nSee one real creature generated and revealed by the running game: https://mythicalvoid.com/press/#real-creature-hatch'; }],
-        ['withdrawn-signal-exposed', value => { value.signal.entries.push({ id: 'SIGNAL-012', status: 'live' }); }],
+        ['withdrawn-signal-exposed', value => { value.signal.entries.push({ id: 'UPDATE-012', status: 'live' }); }],
         ['owned-site-publication-reopened', value => { value.release.authority.ownedWebsitePublicationAuthorized = true; }],
         ['human-rejection-removed', value => { delete value.release.currentHumanReview; }],
         ['mock-classification', value => { value.manifest.captures.find(item => item.id === 'GP-013').classification = 'generated_mockup'; }]

@@ -26,9 +26,9 @@ requireValue((page.match(/<h1(?:\s[^>]*)?>/g) || []).length === 1, 'page must ha
 requireValue(page.includes('Turn one real space clue into a whole new life-form.'), 'plain first-screen promise is missing');
 requireValue(page.includes('families, classrooms, libraries and clubs'), 'the intended adult-led audiences are not clear');
 requireValue(page.includes('No signup · No student accounts · No contact collection'), 'first-screen privacy boundary is missing');
-requireValue(page.includes('45-60 min') && page.includes('20-minute signal sprint'), 'both full and short routes must be clear');
+requireValue(page.includes('45-60 min') && page.includes('20-minute discovery sprint'), 'both full and short routes must be clear');
 requireValue(page.includes('The aim is not to draw the prettiest alien.'), 'the reason-first design principle is missing');
-for (const step of ['Observe a real signal', 'Change the rules', 'Build for survival', 'Apply pressure', 'Make the story choice']) {
+for (const step of ['Study a real observation', 'Change the rules', 'Build for survival', 'Apply pressure', 'Make the story choice']) {
     requireValue(page.includes(step), `mission step is missing: ${step}`);
 }
 requireValue(page.includes('/resources/mythical-void-stem-creature-lab.pdf'), 'STEM Creature Lab link is missing');
@@ -85,8 +85,8 @@ requireValue(press.educatorPageUrl === 'https://mythicalvoid.com/educators/', 'p
 requireValue(press.educatorResources?.some(item => item.pageUrl === 'https://mythicalvoid.com/educators/'), 'press manifest does not connect the activity to its guide');
 
 const signals = json('public/updates/releases.json');
-const releaseSignal = signals.entries?.find(item => item.id === 'SIGNAL-016');
-requireValue(releaseSignal?.status === 'live' && releaseSignal?.destination === '/educators/', 'educator Signal Log entry is missing or drifted');
+const releaseSignal = signals.entries?.find(item => item.id === 'UPDATE-016');
+requireValue(releaseSignal?.status === 'live' && releaseSignal?.destination === '/educators/', 'educator Latest News entry is missing or drifted');
 
 for (const [relative, fragment, label] of [
     ['public/sitemap.xml', '<loc>https://mythicalvoid.com/educators/</loc>', 'sitemap'],
@@ -95,9 +95,9 @@ for (const [relative, fragment, label] of [
     ['public/parents/index.html', 'href="/educators/"', 'parent guide'],
     ['public/nasa-space-science/index.html', 'href="/educators/"', 'NASA and STEM page'],
     ['src/site/storefront.js', 'href="/educators/">For groups & educators</a>', 'homepage footer'],
-    ['public/updates/index.html', 'href="/educators/"', 'public Signal Log'],
-    ['public/updates/feed.xml', '/updates/#signal-016', 'RSS feed'],
-    ['public/updates/feed.json', '/updates/#signal-016', 'JSON feed'],
+    ['public/updates/index.html', 'href="/educators/"', 'public Latest News'],
+    ['public/updates/feed.xml', '/updates/#update-016', 'RSS feed'],
+    ['public/updates/feed.json', '/updates/#update-016', 'JSON feed'],
     ['package.json', 'validate:educator-discovery', 'production build']
 ]) requireValue(text(relative).includes(fragment), `${label} discovery is missing`);
 

@@ -48,7 +48,7 @@ describe('Signal Garden', () => {
             companionLine: 'A tiny light leans toward your companion.'
         }));
         expect(second.stage).toBe('bud');
-        expect(second.companionLine).toBe('The sprout answers the signals you restored.');
+        expect(second.companionLine).toBe('The sprout answers the memories you restored.');
         expect(third.stage).toBe('bloom');
         expect(third.companionLine).toBe('It blooms in colors neither world made alone.');
         expect(third.state.tendCount).toBe(3);

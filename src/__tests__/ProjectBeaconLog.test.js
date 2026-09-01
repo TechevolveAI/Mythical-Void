@@ -606,7 +606,7 @@ describe('Project Beacon mission log', () => {
             collected: allSystemIds,
             uplinkRestored: false,
             priority: null,
-            phase: 'FINAL SIGNAL LOCATED',
+            phase: 'FINAL MESSAGE READY',
             directive: 'Enter the Final Void.'
         },
         {

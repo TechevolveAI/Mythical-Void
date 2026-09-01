@@ -5,7 +5,7 @@
     "name": "Wanderer-77",
     "flightNumber": 23,
     "registry": "W77-23",
-    "signalChannel": "BEACON CHANNEL 23",
+    "signalChannel": "BEACON LINK 23",
     "livery": [
       "#D72638",
       "#050505",
@@ -26,7 +26,7 @@
       {
         "icon": "✨",
         "title": "CONNECT",
-        "description": "Answer a living\nsignal"
+        "description": "Find the hidden\ncreature"
       },
       {
         "icon": "📡",
@@ -36,15 +36,15 @@
     ],
     "hatchTitle": "FIRST CONTACT",
     "hatchSubtitle": "PROJECT BEACON // WANDERER-77",
-    "firstHatchPrompt": "A living signal answers beside the wreck.\nApproach gently. You are not alone.",
-    "returningHatchPrompt": "The living signal is inside the egg. Approach gently.",
+    "firstHatchPrompt": "Something living answers beside the wreck.\nApproach gently. You are not alone.",
+    "returningHatchPrompt": "Something living is inside the egg. Approach gently.",
     "tapPromptDesktop": "CLICK THE EGG TO BEGIN",
     "tapPromptMobile": "TAP EGG TO BEGIN",
     "controlPrompt": "Click the egg or press SPACE to begin • Move with WASD or Arrow keys later",
     "journeyPrompt": "Meet the creature → Name it → Explore the world",
     "tutorialHints": {
-      "preHatch": "Tip: Tap the egg gently to answer the living signal.",
-      "hatching": "The signal is answering. Stay close.",
+      "preHatch": "Tip: Tap the egg gently to let the creature know you are there.",
+      "hatching": "The creature is answering. Stay close.",
       "postHatch": "First contact confirmed. Learn who answered, then choose a name."
     }
   },
@@ -81,7 +81,7 @@
       "title": "FIELD PLAN",
       "subtitle": "Immediate Field Plan",
       "icon": "🥋",
-      "content": "Stabilize the hatchling. Earn its trust. Recover your field kit. Survey the nearby signals. Find a safe route from the crash site.\n\nSensei always said to begin with your footing. He probably meant on the ground.",
+      "content": "Stabilize the hatchling. Earn its trust. Recover your field kit. Look for nearby signs of life. Find a safe route from the crash site.\n\nSensei always said to begin with your footing. He probably meant on the ground.",
       "color": "#BFA6FF"
     }
   ],
@@ -131,13 +131,13 @@
     },
     {
       "id": "beacon_living_signals",
-      "name": "Survey Living Signals",
+      "name": "Look for Signs of Life",
       "objectiveLabel": "LISTEN AT 3 MARKED PULSES",
       "description": "Listen at all three pulses with your companion. They are traces of the planet's living Current, not transmissions from Earth.",
       "briefing": "These pulses are not messages from Earth. They move through the planet's living Current, and your companion recognizes them like familiar voices. Walk into each pulse and hold position while your companion listens.",
       "fieldNote": "Three readings. No samples until I understand what I am touching.",
-      "guidanceDesktop": "Follow the LIVING SIGNAL marker. Walk into the pulse and hold position until it answers.",
-      "guidanceMobile": "Follow the LIVING SIGNAL marker. Use the joystick to enter the pulse, then hold position.",
+      "guidanceDesktop": "Follow the SIGNS OF LIFE marker. Walk into the glow and hold position until something answers.",
+      "guidanceMobile": "Follow the SIGNS OF LIFE marker. Use the joystick to enter the glow, then hold position.",
       "icon": "🔍",
       "type": "story",
       "objective": {
@@ -272,7 +272,7 @@
         "id": "aurora_depths",
         "label": "Aurora Depths"
       },
-      "finding": "Distant signals answer your companion's call. They are not random echoes. They are coordinated warnings moving between living settlements.",
+      "finding": "Distant settlements answer your creature's call. These are not random echoes. Warnings are moving between living communities.",
       "companionMoment": "Your companion keeps you close while the replies arrive, allowing you inside a conversation no human has heard.",
       "fieldNote": "Trust is not something you collect. It is something you return."
     },
@@ -282,7 +282,7 @@
       "title": "THE BEACON CAN BE HEARD",
       "icon": "🌍",
       "color": "#F2C14E",
-      "finding": "Five systems are online. The uplink can reach Earth, but its signal could also reveal this world to everyone listening.",
+      "finding": "Five systems are online. The uplink can reach Earth, but its message could also reveal this world to everyone listening.",
       "companionMoment": "Your companion recognizes Earth's symbol on the console and steps closer instead of backing away.",
       "fieldNote": "The mission is larger than the directive now. I am not ready to name the choice, only to admit it exists."
     }

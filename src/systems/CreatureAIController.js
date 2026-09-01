@@ -26,7 +26,7 @@ const ALLOWED_TOPICS = Object.freeze({
     FEELINGS: ['happy', 'sleepy', 'nervous', 'curious', 'grateful', 'excited', 'tired', 'peaceful', 'playful', 'calm'],
     GAME_ELEMENTS: [
         'flowers', 'coins', 'wisps', 'enemies', 'shop', 'trees', 'rocks',
-        'world', 'home', 'fend', 'current', 'living signals', 'wanderer-77',
+        'world', 'home', 'fend', 'current', 'signs of life', 'wanderer-77',
         'astronaut', 'shelter', 'relay', 'realms'
     ],
     CARE_ACTIONS: ['feed', 'play', 'rest', 'pet', 'groom', 'care'],
@@ -178,13 +178,13 @@ class CreatureAIController {
                 default: [SAFE_DEFAULT_RESPONSE]
             },
             sleepy: {
-                default: ['My signal is dimming. I need a quiet place to recover.']
+                default: ['I am growing tired. I need a quiet place to recover.']
             },
             nervous: {
                 default: ['Something in the Current changed. Stay close, but let me listen.']
             },
             curious: {
-                default: ['That signal does not match the others. I want a closer look.']
+                default: ['That pattern does not match the others. I want a closer look.']
             },
             grateful: {
                 default: ['You listened before acting. I noticed.']
@@ -202,7 +202,7 @@ class CreatureAIController {
                 default: ['The Current is quiet here. Not empty. Quiet.']
             },
             calm: {
-                default: ['No rush. Read the signal, then choose.']
+                default: ['No rush. Look carefully, then choose.']
             }
         };
     }

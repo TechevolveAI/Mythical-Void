@@ -116,7 +116,7 @@ export default class CurrentVeilModal {
         addText(
             contentRight - 30,
             top + 24,
-            'NO SIGNAL SENT',
+            'NOTHING SENT TO EARTH',
             {
                 fontSize: compact ? '9px' : '11px',
                 color: '#EF767A',

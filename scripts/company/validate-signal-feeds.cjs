@@ -62,7 +62,7 @@ for (const [index, entry] of live.entries()) {
     if (entry.image && !isWithdrawnPublicVisual(entry.image, visualRegister)) {
         requireValue(item?.content_text?.includes(entry.disclosure), `${entry.id} lost its media disclosure`);
         requireValue(Boolean(item?.image), `${entry.id} lost its approved image`);
-    } else if (entry.visualKind === 'space_signal') {
+    } else if (entry.visualKind === 'space_discovery') {
         requireValue(item?.content_text?.includes(entry.disclosure), `${entry.id} lost its code-native visual disclosure`);
         requireValue(!item?.image, `${entry.id} represents a code-native visual as a feed image`);
     } else {
@@ -84,8 +84,8 @@ for (const file of ['index.html', 'public/playable-now/index.html', 'public/hatc
     requireValue(text.includes('rel="alternate" type="application/feed+json"'), `${file} does not advertise JSON Feed`);
 }
 for (const [file, fragment, label] of [
-    ['public/updates/index.html', 'href="/updates/feed.xml">Follow the Signal</a>', 'visible follow link'],
-    ['src/site/storefront.js', 'href="/updates/feed.xml">Signal feed</a>', 'press-room feed link'],
+    ['public/updates/index.html', 'href="/updates/feed.xml">Follow the news</a>', 'visible follow link'],
+    ['src/site/storefront.js', 'href="/updates/feed.xml">News feed</a>', 'press-room feed link'],
     ['public/llms.txt', 'RSS updates feed: https://mythicalvoid.com/updates/feed.xml', 'llms RSS link'],
     ['public/llms.txt', 'JSON updates feed: https://mythicalvoid.com/updates/feed.json', 'llms JSON link'],
     ['public/press/mythical-void-press-assets.json', '"rss": "https://mythicalvoid.com/updates/feed.xml"', 'press manifest RSS link'],

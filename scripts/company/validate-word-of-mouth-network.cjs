@@ -109,7 +109,7 @@ if (familyGuide.state === 'owned_site_release_prepared') {
     requireValue(/^[0-9a-f]{40}$/.test(familyGuide.verification?.productionCommit || '') && /^[0-9a-f]{24}$/.test(familyGuide.verification?.productionDeployId || '') && familyGuide.verification?.liveShareCardVisible === true, 'live family-guide production proof is missing');
 }
 
-requireValue(pack.id === 'FOUNDING-SIGNAL-001' && pack.state === 'owned_word_of_mouth_live_first_external_post_waits_for_kevin', 'founding launch pack state is invalid');
+requireValue(pack.id === 'FOUNDING-UPDATE-001' && pack.state === 'owned_word_of_mouth_live_first_external_post_waits_for_kevin', 'founding launch pack state is invalid');
 requireValue(pack.primaryStoryUrl === 'https://mythicalvoid.com/studio/', 'founding launch pack must use the studio story');
 requireValue(pack.firstWeekCampaignRef === 'docs/company/content/campaigns/playable-now-launch.json', 'founding launch pack is not connected to the first-week campaign');
 requireValue(JSON.stringify(pack.firstWeekContentIds) === JSON.stringify(['PN-002', 'PN-001', 'PN-003']) && pack.firstWeekAutomaticLinkPreviewsOnly === true, 'founding launch pack first-week sequence is missing or unsafe');
@@ -133,11 +133,11 @@ for (const required of ['The rest of the first week', 'https://mythicalvoid.com/
 requireValue(packText.includes('This exact preview is live and checked') && packText.includes('1672 × 941 pixels'), 'founding launch live-preview explanation is missing');
 requireValue(!/https:\/\/mythicalvoid\.com\/[^\s)`"]*[?&]/.test(packText), 'founding launch pack must use clean Mythical Void links');
 
-const release = releases.entries?.find(entry => entry.id === 'SIGNAL-017');
+const release = releases.entries?.find(entry => entry.id === 'UPDATE-017');
 requireValue(release?.status === 'live' && release?.destination === '/studio/', 'Signal 017 must be a live owned release');
 requireValue(release?.image === '/marketing/mythical-void-creature-universe-hero-v2.webp' && /not gameplay/i.test(release?.disclosure || ''), 'Signal 017 needs the approved artwork and disclosure');
-const hatchRelease = releases.entries?.find(entry => entry.id === 'SIGNAL-023');
-requireValue(hatchRelease?.status === 'live' && hatchRelease?.destination === '/hatch-challenge/', 'Signal 023 must publish the Hatch Challenge on the owned Signal Log');
+const hatchRelease = releases.entries?.find(entry => entry.id === 'UPDATE-023');
+requireValue(hatchRelease?.status === 'live' && hatchRelease?.destination === '/hatch-challenge/', 'Signal 023 must publish the Hatch Challenge on the owned Latest News');
 requireValue(hatchRelease?.image === '/marketing/mythical-void-creature-universe-hero-v2.webp' && /not gameplay/i.test(hatchRelease?.disclosure || ''), 'Signal 023 needs the approved artwork and disclosure');
 requireValue(packageJson.scripts?.build?.includes('validate:word-of-mouth'), 'production build must run the word-of-mouth validator');
 

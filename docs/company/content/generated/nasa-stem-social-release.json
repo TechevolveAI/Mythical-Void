@@ -4,9 +4,9 @@
   "state": "complete_review_pack_waiting_for_verified_channel_and_kevin_approval",
   "purpose": "Give Mythical Void a truthful adult-facing sharing pack that connects a real game screen, a credited NASA public image and an optional observation activity without blurring science and fiction.",
   "selection": {
-    "sourceEntryId": "SIGNAL-006",
+    "sourceEntryId": "UPDATE-006",
     "sourcePack": "docs/company/content/generated/signal-log-release-pack.json",
-    "publicSignalUrl": "https://mythicalvoid.com/updates/#signal-006",
+    "publicSignalUrl": "https://mythicalvoid.com/updates/#update-006",
     "destination": "https://mythicalvoid.com/press/#nasa-stem-social-assets",
     "educationalDestination": "https://mythicalvoid.com/nasa-space-science/",
     "nasaSourceUrl": "https://apod.nasa.gov/apod/ap240720.html",
@@ -46,13 +46,13 @@
   ],
   "drafts": {
     "professionalNetwork": {
-      "sourceDraftPath": "items[DRAFT-SIGNAL-006].drafts.professionalNetwork.body",
+      "sourceDraftPath": "items[DRAFT-UPDATE-006].drafts.professionalNetwork.body",
       "channelRef": "CH-004",
       "assetId": "NASA-STEM-SOCIAL-WIDE",
       "copy": "A real-space sharing kit is ready\n\nAdults, families, educators and creators can now share wide or square Mythical Void artwork built around a real game screen and a credited NASA Apollo 11 image.\n\n• Both layouts use the clean mythicalvoid.com/nasa-space-science address with no tracking code.\n• The framed screen comes from the running game and clearly credits the NASA public image inside it.\n• The complete layouts are branded sharing artwork, not raw screenshots, and NASA does not endorse Mythical Void.\n\nSee what changed: https://mythicalvoid.com/press/#nasa-stem-social-assets\n\nBranded sharing artwork built around a real gameplay screen containing a credited NASA public image; the complete layout is not a raw screenshot, no player information is shown, and NASA does not endorse Mythical Void."
     },
     "videoCommunity": {
-      "sourceDraftPath": "items[DRAFT-SIGNAL-006].drafts.videoCommunity.body",
+      "sourceDraftPath": "items[DRAFT-UPDATE-006].drafts.videoCommunity.body",
       "channelRef": "CH-002",
       "assetId": "NASA-STEM-SOCIAL-SQUARE",
       "copy": "New from the Void: A real-space sharing kit is ready\n\nAdults, families, educators and creators can now share wide or square Mythical Void artwork built around a real game screen and a credited NASA Apollo 11 image.\n\nhttps://mythicalvoid.com/press/#nasa-stem-social-assets\n\nBranded sharing artwork built around a real gameplay screen containing a credited NASA public image; the complete layout is not a raw screenshot, no player information is shown, and NASA does not endorse Mythical Void."

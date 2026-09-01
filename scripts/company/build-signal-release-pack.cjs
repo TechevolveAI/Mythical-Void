@@ -42,7 +42,7 @@ function buildReleasePack(source) {
             liveEntryCount: liveEntries.length,
             latestSourceDate: latestDate
         },
-        purpose: 'Turn each checked Signal Log note into consistent review drafts without posting, messaging, scheduling or inventing claims.',
+        purpose: 'Turn each checked Latest News note into consistent review drafts without posting, messaging, scheduling or inventing claims.',
         audienceBoundary: {
             intendedReaders: ['general players', 'parents and guardians', 'adult creators', 'press', 'industry and partners'],
             childTargetedAdvertising: false,
@@ -119,7 +119,7 @@ if (require.main === module) {
     const pack = buildReleasePack(source);
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
     fs.writeFileSync(outputPath, `${JSON.stringify(pack, null, 2)}\n`);
-    console.log(`Built ${outputPath} from ${pack.items.length} verified Signal Log entries.`);
+    console.log(`Built ${outputPath} from ${pack.items.length} verified Latest News entries.`);
 }
 
 module.exports = { buildReleasePack, defaultOutputPath, defaultSourcePath, sourceFingerprint };

@@ -61,7 +61,7 @@ export const SHIP_RECONSTRUCTION_STEPS = Object.freeze([
         partId: 'aurora_reactor',
         partName: 'Aurora Reactor',
         label: 'UPLINK HOLD',
-        summary: 'Power the Project Beacon antenna while keeping its signal physically held.',
+        summary: 'Power the Project Beacon antenna while keeping its message safely held.',
         installedSummary:
             'Long-range contact remains physically held. Reactor power now supports a local stellar forecast without sending Fend coordinates.',
         capabilities: Object.freeze({
@@ -562,7 +562,7 @@ export function serviceCompanionAtPoweredBerth(gameState, {
 
 export function formatShipReconstructionObjective(snapshot) {
     if (snapshot?.complete) {
-        return 'Wanderer-77 reconstruction complete. No launch, signal, or travel decision has been made.';
+        return 'Wanderer-77 reconstruction complete. No launch, message or travel decision has been made.';
     }
     if (snapshot?.readyStep) {
         return `Install ${snapshot.readyStep.partName}: ${snapshot.completedCount}/${snapshot.totalSteps} systems calibrated.`;

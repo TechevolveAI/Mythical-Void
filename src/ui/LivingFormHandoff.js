@@ -22,7 +22,7 @@ function formatIdentifier(value, fallback) {
 
 const HATCH_SHARE_DATA = Object.freeze({
     title: 'The Mythical Void Hatch Challenge',
-    text: 'I just hatched an alien creature. Hatch yours from the same signal, then compare what the creature engine made.',
+    text: 'I just hatched an alien creature. Hatch yours from the same starting point, then compare what the creature engine made.',
     url: 'https://mythicalvoid.com/hatch-challenge/'
 });
 

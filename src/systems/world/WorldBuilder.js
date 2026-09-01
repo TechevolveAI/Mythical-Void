@@ -618,7 +618,7 @@ class WorldBuilder {
             },
             {
                 zoneId: 'gardenPlot',
-                label: 'SIGNAL GARDEN',
+                label: 'MEMORY GARDEN',
                 x: zones.gardenPlot.center.x,
                 y: zones.gardenPlot.bounds.y + 14,
                 tone: 0x8FE3CF
@@ -8728,7 +8728,7 @@ class WorldBuilder {
     }
 
     /**
-     * Create the Signal Garden and its stage-specific living growth.
+     * Create the Memory Garden and its stage-specific living growth.
      */
     createSignalGarden(landmarkData, stageOverride = null) {
         const centerX = landmarkData.position.x;
@@ -8756,7 +8756,7 @@ class WorldBuilder {
         const community = this.scene.add.graphics().setPosition(centerX, centerY);
         community.setDepth(centerY);
 
-        const label = this.scene.add.text(centerX, centerY - 102, 'SIGNAL GARDEN', {
+        const label = this.scene.add.text(centerX, centerY - 102, 'MEMORY GARDEN', {
             fontSize: '13px',
             fontFamily: 'Arial, sans-serif',
             color: '#D8FFF0',
@@ -8971,7 +8971,7 @@ class WorldBuilder {
                 ? 'FEND COMMONS'
                 : stage > 0
                     ? `FEND SETTLEMENT  ${stage}/4`
-                    : 'SIGNAL GARDEN'
+                    : 'MEMORY GARDEN'
             )
             .setY(garden.zone.y - (
                 stage >= 4 ? 145 : stage >= 3 ? 122 : 102
@@ -9740,8 +9740,8 @@ class WorldBuilder {
                     ? `${resident.name.toUpperCase()} WILL REPORT TO ${nextLocationLabel}\nTAP TO CONTINUE`
                     : `${resident.name.toUpperCase()} WILL REPORT TO ${nextLocationLabel} · CLICK TO CONTINUE`
                 : compact
-                    ? `FIND ${resident.name.toUpperCase()} AT SIGNAL GARDEN\nTAP TO CONTINUE`
-                    : `FIND ${resident.name.toUpperCase()} AT THE SIGNAL GARDEN · CLICK TO CONTINUE`,
+                    ? `FIND ${resident.name.toUpperCase()} AT MEMORY GARDEN\nTAP TO CONTINUE`
+                    : `FIND ${resident.name.toUpperCase()} AT THE MEMORY GARDEN · CLICK TO CONTINUE`,
             {
                 fontSize: compact ? '9px' : '10px',
                 fontFamily: 'Arial, sans-serif',
@@ -9786,7 +9786,7 @@ class WorldBuilder {
                     `${resident.contributionLine} ${
                         nextLocation !== 'signal_garden'
                             ? `${resident.name} will report to ${nextLocationLabel}.`
-                            : `Find ${resident.name} at the Signal Garden.`
+                            : `Find ${resident.name} at the Memory Garden.`
                     } Tap to continue.`
             );
         entry.figure?.setAlpha?.(0.18);

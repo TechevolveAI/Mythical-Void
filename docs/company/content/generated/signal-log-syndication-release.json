@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "releaseId": "SIGNAL-LOG-SYNDICATION-2026-08-27-SPACE-SIGNAL",
+  "releaseId": "LATEST-NEWS-SYNDICATION-2026-08-27-SPACE-DISCOVERY",
   "state": "complete_owned_site_release_production_verified",
   "source": {
     "path": "public/updates/releases.json",
-    "fingerprintSha256": "d6b2b82474bf3c0e667df43e0f1596757739b665fcc65f7d96218643dddac45c",
+    "fingerprintSha256": "27ed31b15863e845a3df0f66c5a5356b4bf84717952a7c706f30bc4b95060603",
     "liveEntryCount": 17
   },
   "feeds": {
@@ -12,14 +12,14 @@
       "path": "public/updates/feed.xml",
       "url": "https://mythicalvoid.com/updates/feed.xml",
       "mimeType": "application/rss+xml; charset=utf-8",
-      "sha256": "2101bffc50d8171ed6250b067ffc982f3dafe650499f7f96d4593f9449829293",
+      "sha256": "adc7a1e2469b90acb8cc8631a43f59eee00a8b6986e54b096d882a45765ba007",
       "itemCount": 17
     },
     "json": {
       "path": "public/updates/feed.json",
       "url": "https://mythicalvoid.com/updates/feed.json",
       "mimeType": "application/feed+json; charset=utf-8",
-      "sha256": "1c064a616a0654d8c808e7112417c5c5d13f010ea2765c46fcd68eba9d55840d",
+      "sha256": "6082e6e878b76ede54e570c2629da911e396eb81ee3cba710ea74a97096f0d88",
       "itemCount": 17
     }
   },

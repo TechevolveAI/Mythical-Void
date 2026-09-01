@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "page": {
-    "title": "Mythical Void Updates | The Signal Log",
+    "title": "Mythical Void Updates | The Latest News",
     "description": "See what is newly live in Mythical Void: game stories, useful resources and honest release notes linked to the playable browser game.",
     "canonicalUrl": "https://mythicalvoid.com/updates/",
     "heading": "What changed in the Void.",
@@ -17,26 +17,26 @@
   },
   "entries": [
     {
-      "id": "SIGNAL-024",
+      "id": "UPDATE-024",
       "publishedOn": "2026-08-27",
       "status": "live",
       "category": "REAL SPACE, IMPOSSIBLE LIFE",
-      "title": "Today’s Space Signal is live",
+      "title": "Today’s Space Discovery is live",
       "summary": "A changing Mythical Void doorway now begins with one real NASA astronomy source, a three-step observation mission and a clearly fictional question about life in another dimension.",
       "details": [
-        "Each signal asks visitors to observe, infer and check before imagining what kind of alien creature could sense that pattern and how it might move.",
+        "Each visit asks visitors to observe, infer and check before imagining what kind of alien creature could sense that pattern and how it might move.",
         "The page reads only the APOD title and date, then links to NASA’s original page for the picture, explanation and full credit information.",
         "No signup, email, child profile or republished daily image is involved. NASA does not make, approve or endorse Mythical Void."
       ],
-      "visualKind": "space_signal",
-      "visualAlt": "A decorative Mythical Void signal field with orbiting points around a glowing centre",
-      "disclosure": "Mythical Void procedural signal artwork; not a NASA image and not gameplay.",
-      "destination": "/space-signal/",
-      "linkText": "Open today’s Space Signal",
+      "visualKind": "space_discovery",
+      "visualAlt": "A decorative Mythical Void star map with orbiting points around a glowing centre",
+      "disclosure": "Mythical Void procedural star-map artwork; not a NASA image and not gameplay.",
+      "destination": "/space-discovery/",
+      "linkText": "Open today’s Space Discovery",
       "download": false
     },
     {
-      "id": "SIGNAL-023",
+      "id": "UPDATE-023",
       "publishedOn": "2026-08-27",
       "status": "live",
       "category": "HATCH TOGETHER, PLAY SEPARATELY",
@@ -56,11 +56,11 @@
       "download": false
     },
     {
-      "id": "SIGNAL-022",
+      "id": "UPDATE-022",
       "publishedOn": "2026-08-27",
       "status": "live",
       "category": "PLAYER-TO-PLAYER",
-      "title": "The final signal can now travel",
+      "title": "The final message can now travel",
       "summary": "After reaching the final Project Beacon epilogue, a player can now pass Mythical Void on using one clean public game link.",
       "details": [
         "Sharing appears only after the player completes the final epilogue. It never opens automatically or interrupts the ending choice.",
@@ -76,7 +76,7 @@
       "download": false
     },
     {
-      "id": "SIGNAL-021",
+      "id": "UPDATE-021",
       "publishedOn": "2026-08-26",
       "status": "live",
       "category": "EASIER TO COME BACK",
@@ -84,7 +84,7 @@
       "summary": "When Mythical Void notices its own save name in the same browser, the website changes Play to Continue and gives that player a direct way back into the game.",
       "details": [
         "The website checks only whether the Mythical Void save name exists. It does not open, read or change the saved adventure.",
-        "The signal stays in the browser: it is not sent to Mythical Void, added to analytics or used to identify the player.",
+        "The choice stays in the browser: it is not sent to Mythical Void, added to analytics or used to identify the player.",
         "If browser storage is blocked or there is no save, the normal new-player experience remains unchanged. No account is needed in either case."
       ],
       "image": "/marketing/mythical-void-creature-universe-hero-v2.webp",
@@ -96,7 +96,7 @@
       "download": false
     },
     {
-      "id": "SIGNAL-020",
+      "id": "UPDATE-020",
       "publishedOn": "2026-08-26",
       "status": "live",
       "category": "CLEARER ONLINE DISCOVERY",
@@ -116,7 +116,7 @@
       "download": false
     },
     {
-      "id": "SIGNAL-019",
+      "id": "UPDATE-019",
       "publishedOn": "2026-08-26",
       "status": "live",
       "category": "PASS A GAME ON",
@@ -136,7 +136,7 @@
       "download": false
     },
     {
-      "id": "SIGNAL-018",
+      "id": "UPDATE-018",
       "publishedOn": "2026-08-26",
       "status": "live",
       "category": "FIND YOUR NEXT GAME",
@@ -156,10 +156,10 @@
       "download": false
     },
     {
-      "id": "SIGNAL-017",
+      "id": "UPDATE-017",
       "publishedOn": "2026-08-26",
       "status": "live",
-      "category": "PASS THE SIGNAL ON",
+      "category": "SHARE THE GAME",
       "title": "Four true Mythical stories can now travel",
       "summary": "Visitors can now pass on the playable game, father-and-son beginning, NASA and STEM activity, or ready-to-run group mission using the clean sharing choices already on their device.",
       "details": [
@@ -176,7 +176,7 @@
       "download": false
     },
     {
-      "id": "SIGNAL-016",
+      "id": "UPDATE-016",
       "publishedOn": "2026-08-26",
       "status": "live",
       "category": "CREATURE MISSION FOR GROUPS",
@@ -196,14 +196,14 @@
       "download": false
     },
     {
-      "id": "SIGNAL-014",
+      "id": "UPDATE-014",
       "publishedOn": "2026-08-26",
       "status": "live",
       "category": "CREATURE FIELD GUIDE",
       "title": "Twelve creatures now have a place in the story",
       "summary": "A new Project Beacon field guide connects twelve verified game-renderer creatures to the six living realms, with their real traits and new official stories kept clearly separate.",
       "details": [
-        "Each realm now has two field sightings tied to a lesson already present in the game: listen, repair, keep routes open, protect warnings, use signals carefully and choose what should remain undisclosed.",
+        "Each realm now has two field sightings tied to a lesson already present in the game: listen, repair, keep routes open, protect warnings, use messages carefully and choose what should remain undisclosed.",
         "Every creature image is an exact export from the running renderer, and every trait comes from its checked genetics and DNA profile rather than new marketing invention.",
         "The names and short stories are official universe material, but they do not claim these twelve creatures or events are already playable quests. The current game and the wider field guide remain plainly labelled."
       ],
@@ -216,7 +216,7 @@
       "download": false
     },
     {
-      "id": "SIGNAL-013",
+      "id": "UPDATE-013",
       "publishedOn": "2026-08-26",
       "status": "live",
       "category": "CREATURE ENGINE",
@@ -236,7 +236,7 @@
       "download": false
     },
     {
-      "id": "SIGNAL-015",
+      "id": "UPDATE-015",
       "publishedOn": "2026-08-26",
       "status": "live",
       "category": "VISUAL QUALITY",
@@ -256,7 +256,7 @@
       "download": false
     },
     {
-      "id": "SIGNAL-009",
+      "id": "UPDATE-009",
       "publishedOn": "2026-08-26",
       "status": "live",
       "category": "PLAYABLE NOW",
@@ -276,14 +276,14 @@
       "download": false
     },
     {
-      "id": "SIGNAL-008",
+      "id": "UPDATE-008",
       "publishedOn": "2026-08-14",
       "status": "live",
-      "category": "FOLLOW THE SIGNAL",
-      "title": "The Signal Log can now travel",
+      "category": "STUDIO NEWS",
+      "title": "The Latest News can now travel",
       "summary": "The checked Mythical Void release log is now available as an RSS feed for people and a JSON feed for future studio tools—without requiring an account or email signup.",
       "details": [
-        "Both feeds are built from the same checked source as the public Signal Log, so titles, links and media notes cannot quietly drift apart.",
+        "Both feeds are built from the same checked source as the public Latest News, so titles, links and media notes cannot quietly drift apart.",
         "Every item keeps a clean mythicalvoid.com destination, its artwork or gameplay disclosure and no tracking parameters.",
         "Following the feed happens in the reader a person chooses; Mythical Void does not collect an email address, account or recipient."
       ],
@@ -292,11 +292,11 @@
       "imageClass": "branded_social_artwork_with_authentic_gameplay_frame",
       "disclosure": "Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown.",
       "destination": "/updates/feed.xml",
-      "linkText": "Open the Signal feed",
+      "linkText": "Open the news feed",
       "download": false
     },
     {
-      "id": "SIGNAL-007",
+      "id": "UPDATE-007",
       "publishedOn": "2026-08-14",
       "status": "withdrawn",
       "category": "STUDIO STORY",
@@ -316,7 +316,7 @@
       "download": false
     },
     {
-      "id": "SIGNAL-006",
+      "id": "UPDATE-006",
       "publishedOn": "2026-08-14",
       "status": "withdrawn",
       "category": "SPACE DISCOVERY",
@@ -336,7 +336,7 @@
       "download": false
     },
     {
-      "id": "SIGNAL-005",
+      "id": "UPDATE-005",
       "publishedOn": "2026-08-14",
       "status": "live",
       "category": "CLEARER SHARING",
@@ -356,7 +356,7 @@
       "download": false
     },
     {
-      "id": "SIGNAL-004",
+      "id": "UPDATE-004",
       "publishedOn": "2026-08-14",
       "status": "live",
       "category": "EASIER TO SHARE",
@@ -376,7 +376,7 @@
       "download": false
     },
     {
-      "id": "SIGNAL-003",
+      "id": "UPDATE-003",
       "publishedOn": "2026-08-14",
       "status": "withdrawn",
       "category": "READY TO SHARE",
@@ -396,10 +396,10 @@
       "download": false
     },
     {
-      "id": "SIGNAL-002",
+      "id": "UPDATE-002",
       "publishedOn": "2026-08-14",
       "status": "withdrawn",
-      "category": "SHARE THE SIGNAL",
+      "category": "SHARE THE GAME",
       "title": "A new way to share the game",
       "summary": "Adults can now download a one-page Mythical Void card, print it or send it, and use its QR code to open the free browser game.",
       "details": [
@@ -416,7 +416,7 @@
       "download": true
     },
     {
-      "id": "SIGNAL-001",
+      "id": "UPDATE-001",
       "publishedOn": "2026-08-14",
       "status": "live",
       "category": "WORLD & STORY",

@@ -4,9 +4,9 @@
   "state": "complete_review_pack_waiting_for_verified_channel_and_kevin_approval",
   "purpose": "Give Mythical Void one complete, truthful first social release built around real gameplay and a live story destination.",
   "selection": {
-    "sourceEntryId": "SIGNAL-001",
+    "sourceEntryId": "UPDATE-001",
     "sourcePack": "docs/company/content/generated/signal-log-release-pack.json",
-    "publicSignalUrl": "https://mythicalvoid.com/updates/#signal-001",
+    "publicSignalUrl": "https://mythicalvoid.com/updates/#update-001",
     "destination": "https://mythicalvoid.com/story/",
     "reason": "Project Beacon explains the emotional centre of the game, links to a spoiler-light live page and can be shown with authentic running-build gameplay rather than generated marketing artwork."
   },
@@ -44,13 +44,13 @@
   ],
   "drafts": {
     "professionalNetwork": {
-      "sourceDraftPath": "items[DRAFT-SIGNAL-001].drafts.professionalNetwork.body",
+      "sourceDraftPath": "items[DRAFT-UPDATE-001].drafts.professionalNetwork.body",
       "channelRef": "CH-004",
       "assetId": "PROJECT-BEACON-SOCIAL-WIDE",
       "copy": "The Project Beacon story is live\n\nA new spoiler-light story page now explains the crash of Wanderer-77, first contact, six living realms and the choice waiting at the heart of Project Beacon.\n\n• Six realm images come from the real running game.\n• The page explains why the guardians are restored rather than destroyed.\n• The ending remains for players to discover themselves.\n\nSee what changed: https://mythicalvoid.com/story/\n\nCaptured from the real browser game using an invented test state; no player information is shown."
     },
     "videoCommunity": {
-      "sourceDraftPath": "items[DRAFT-SIGNAL-001].drafts.videoCommunity.body",
+      "sourceDraftPath": "items[DRAFT-UPDATE-001].drafts.videoCommunity.body",
       "channelRef": "CH-002",
       "assetId": "PROJECT-BEACON-SOCIAL-SQUARE",
       "copy": "New from the Void: The Project Beacon story is live\n\nA new spoiler-light story page now explains the crash of Wanderer-77, first contact, six living realms and the choice waiting at the heart of Project Beacon.\n\nhttps://mythicalvoid.com/story/\n\nCaptured from the real browser game using an invented test state; no player information is shown."

@@ -30,7 +30,7 @@ describe('expedition diagnostics gameplay contract', () => {
 
     test('keeps route choice local and explicitly non-transmitting', () => {
         expect(diagnostics).toContain(
-            'WANDERER-77 LOCAL SCAN // NO SIGNAL SENT'
+            'WANDERER-77 LOCAL SCAN // NOTHING SENT TO EARTH'
         );
         expect(hub).toContain('getGateDiagnostics(gateId)');
         expect(hub).toContain('diagnostics.lines.forEach');

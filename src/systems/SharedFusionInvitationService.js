@@ -414,11 +414,11 @@ export class SharedFusionInvitationService {
             shared_fusion_invitation_not_found:
                 'This Shared Fusion invitation is no longer available.',
             shared_fusion_invitation_not_confirmable:
-                'Both Current signals must be paired before confirmation.',
+                'Both creatures must be paired before confirmation.',
             shared_fusion_invitation_locked:
                 'This Shared Fusion has already entered synthesis.',
             shared_fusion_result_not_ready:
-                'The linked sibling signal is not ready for naming.',
+                'The linked sibling creature is not ready for naming.',
             shared_fusion_name_replay_mismatch:
                 'This sibling already has a different protected name.',
             invalid_shared_fusion_name:

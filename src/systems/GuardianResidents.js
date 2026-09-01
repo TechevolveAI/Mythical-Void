@@ -49,7 +49,7 @@ export const GUARDIAN_RESIDENT_DEFINITIONS = Object.freeze([
         task: Object.freeze({
             id: 'root_listening',
             title: 'Root Listening',
-            objective: 'Inspect the Signal Garden roots once after accepting.',
+            objective: 'Inspect the Memory Garden roots once after accepting.',
             briefing: 'Help me compare the garden pulse with the roots below the ship.',
             evidenceKey: 'gardenVisits',
             mode: 'delta',
@@ -117,7 +117,7 @@ export const GUARDIAN_RESIDENT_DEFINITIONS = Object.freeze([
                 })
             ]),
             responses: Object.freeze([
-                'The shards are answering one another instead of competing for the signal.',
+                'The shards are answering one another instead of competing for control.',
                 'That frequency will protect the new growth without draining it.'
             ])
         }),
@@ -201,8 +201,8 @@ export const GUARDIAN_RESIDENT_DEFINITIONS = Object.freeze([
         task: Object.freeze({
             id: 'passage_survey',
             title: 'Passage Survey',
-            objective: 'Observe all three Living Signals in the Sanctuary.',
-            briefing: 'Learn all three local signals. A safe passage begins by knowing who already uses it.',
+            objective: 'Observe all three signs of life in the Sanctuary.',
+            briefing: 'Learn all three local patterns. A safe passage begins by knowing who already uses it.',
             evidenceKey: 'observedSignals',
             mode: 'total',
             target: 3,
@@ -378,7 +378,7 @@ export const GUARDIAN_RESIDENT_DEFINITIONS = Object.freeze([
             intervention: 'I felt the impact in {expedition}. {companion} stood again before the ridge stopped answering.'
         }),
         rescueMemory:
-            'The crushing signal has lifted. Strength can hold a boundary without turning it into a prison.',
+            'The crushing pressure has lifted. Strength can hold a boundary without turning it into a prison.',
         dialogue: Object.freeze([
             'The northern boundary shifted twenty-three handspans. I have steadied it.',
             'Your martial stance is small but structurally sound. The Sensei taught you well.',
@@ -399,7 +399,7 @@ export const GUARDIAN_RESIDENT_DEFINITIONS = Object.freeze([
         routineCue: 'LISTENING TO CURRENT',
         ambientLines: Object.freeze([
             'Six voices. None erased.',
-            'The quietest signal has not finished speaking.',
+            'The quietest voice has not finished speaking.',
             'Agreement is not the same as sameness.'
         ]),
         routineCare: Object.freeze({
@@ -409,7 +409,7 @@ export const GUARDIAN_RESIDENT_DEFINITIONS = Object.freeze([
             steps: Object.freeze([
                 Object.freeze({
                     action: 'Wait for every voice',
-                    feedback: 'Six signals emerge when the strongest one is not answered first.'
+                    feedback: 'Six paths emerge when the strongest one is not answered first.'
                 }),
                 Object.freeze({
                     action: 'Record each separately',
@@ -527,7 +527,7 @@ export const GUARDIAN_SOCIAL_EXCHANGES = Object.freeze([
         cue: 'BOUNDARY + CHORUS',
         variants: Object.freeze([
             Object.freeze({
-                cosmic_titan: 'The boundary holds, but one quiet signal waits outside.',
+                cosmic_titan: 'The boundary holds, but one quiet voice waits outside.',
                 void_empress: 'Open the listening path. A boundary can ask before it guards.'
             }),
             Object.freeze({

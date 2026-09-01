@@ -48,13 +48,13 @@ describe('Creature care voice', () => {
         ));
 
         expect(new Set(reactions).size).toBe(5);
-        expect(reactions.join(' ')).toMatch(/Current|route|movement|signal/i);
+        expect(reactions.join(' ')).toMatch(/Current|route|movement|feeling/i);
         expect(reactions.join(' ')).not.toMatch(/giggles|adorable|best friend|loves cuddles/i);
     });
 
     test('falls back safely for incomplete older genetics', () => {
         expect(getCreatureCareProfile(null).personalityCore).toBe('curious');
-        expect(getCreatureCareReaction('unknown', null)).toMatch(/signal/i);
+        expect(getCreatureCareReaction('unknown', null)).toMatch(/feel/i);
     });
 
     test('remembers repeated care and asks for a different rhythm', () => {
@@ -85,7 +85,7 @@ describe('Creature care voice', () => {
         });
 
         expect(new Set(responses).size).toBe(5);
-        expect(responses.join(' ')).toMatch(/remembered|recognized|read my signal/i);
+        expect(responses.join(' ')).toMatch(/remembered|recognized|read my mood/i);
         expect(responses.join(' ')).not.toMatch(/need you|never leave|best friend|love me/i);
     });
 
