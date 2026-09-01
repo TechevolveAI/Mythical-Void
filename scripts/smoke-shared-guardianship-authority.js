@@ -23,6 +23,19 @@ function assert(condition, message) {
     if (!condition) fail(message);
 }
 
+async function describeFunctionFailure(result) {
+    if (!result?.error) return '';
+    let detail = result.error.message || 'unknown function error';
+    try {
+        const response = result.error.context;
+        const body = response?.clone
+            ? await response.clone().json()
+            : null;
+        if (body?.error) detail += `: ${String(body.error).slice(0, 240)}`;
+    } catch {}
+    return detail;
+}
+
 function parentState(parentId, name, affinity, rarity, generation) {
     const now = Date.now();
     return {
@@ -266,6 +279,9 @@ async function run() {
         const guestExecution = await clients[1].functions.invoke('execute-fusion', {
             body: { guardianshipInvitationId: invitationId }
         });
+        const executionFailure = await describeFunctionFailure(
+            hostExecution.error ? hostExecution : guestExecution
+        );
         assert(
             !hostExecution.error &&
                 !guestExecution.error &&
@@ -276,7 +292,7 @@ async function run() {
                 JSON.stringify(hostExecution.data?.offspring?.offspringGenes) ===
                     JSON.stringify(guestExecution.data?.offspring?.offspringGenes) &&
                 guestExecution.data?.replay === true,
-            `Canonical execution or replay failed: ${hostExecution.error?.message || guestExecution.error?.message}`
+            `Canonical execution or replay failed: ${executionFailure}`
         );
 
         const hostNamed = await clients[0].rpc('submit_shared_guardianship_name', {
