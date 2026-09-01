@@ -3,7 +3,8 @@ const path = require('path');
 
 const migration = [
     '20260831000200_create_shared_guardianship.sql',
-    '20260831000300_rate_limit_shared_guardianship.sql'
+    '20260831000300_rate_limit_shared_guardianship.sql',
+    '20260901000100_require_guardianship_password_identity.sql'
 ].map(file => fs.readFileSync(path.join(
     __dirname,
     `../../supabase/migrations/${file}`
@@ -37,6 +38,8 @@ describe('Shared Guardianship server and governance contract', () => {
 
     test('enforces durable identity, current 16+ consent and no self pairing', () => {
         expect(migration).toContain('account.is_anonymous is false');
+        expect(migration).toContain("coalesce(account.encrypted_password, '') <> ''");
+        expect(migration).toContain('Client metadata is intentionally not trusted');
         expect(migration).toContain("profile.age_band in ('age_16_17', 'age_18_plus')");
         expect(migration).toContain("profile.terms_version = 'shared-guardianship-2026-08-31'");
         expect(migration).toContain('check (guest_user_id is null or guest_user_id <> host_user_id)');
