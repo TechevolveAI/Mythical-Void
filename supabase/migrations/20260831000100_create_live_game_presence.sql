@@ -4,6 +4,7 @@ create table if not exists public.live_game_presence (
     constraint live_game_presence_hash_format
         check (session_hash ~ '^[0-9a-f]{64}$')
 );
+
 alter table public.live_game_presence enable row level security;
 
 revoke all on table public.live_game_presence from public, anon, authenticated;
