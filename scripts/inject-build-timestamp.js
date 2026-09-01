@@ -10,6 +10,7 @@ const path = require('path');
 
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 const SW_PATH = path.join(DIST_DIR, 'sw.js');
+const INDEX_PATH = path.join(DIST_DIR, 'index.html');
 
 // Generate timestamp
 const buildTimestamp = Date.now();
@@ -31,4 +32,17 @@ swContent = swContent.replace('__BUILD_TIMESTAMP__', buildTimestamp);
 // Write back
 fs.writeFileSync(SW_PATH, swContent, 'utf8');
 
-console.log('[Build] ✅ Build timestamp injected successfully');
+if (!fs.existsSync(INDEX_PATH)) {
+  console.error('[Build] index.html not found; release handshake cannot be bound');
+  process.exit(1);
+}
+
+let indexContent = fs.readFileSync(INDEX_PATH, 'utf8');
+if (!indexContent.includes('__BUILD_TIMESTAMP__')) {
+  console.error('[Build] index.html release marker placeholder not found');
+  process.exit(1);
+}
+indexContent = indexContent.replace('__BUILD_TIMESTAMP__', buildTimestamp);
+fs.writeFileSync(INDEX_PATH, indexContent, 'utf8');
+
+console.log('[Build] ✅ Build timestamp injected into worker and document');
