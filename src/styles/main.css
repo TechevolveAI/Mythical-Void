@@ -366,7 +366,9 @@
   .shared-guardianship-parent-list,
   .shared-guardianship-name-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .shared-guardianship-care-grid,
-  .shared-guardianship-care-summary { grid-template-columns: 1fr; }
+  .shared-guardianship-care-summary { gap: 6px; }
+  .shared-guardianship-care,
+  .shared-guardianship-stat { min-height: 64px; padding: 7px 4px; font-size: 12px; }
   .shared-guardianship-intro h3,
   .shared-guardianship-complete h3,
   .shared-guardianship-naming h3 { font-size: 19px; }

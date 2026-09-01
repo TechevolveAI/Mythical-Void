@@ -9,7 +9,7 @@
     "shortNotice": "© 2026 Tech Evolve AI"
   },
   "privacyPolicy": {
-    "lastUpdated": "2026-08-27",
+    "lastUpdated": "2026-09-01",
     "title": "Privacy Policy",
     "sections": [
       {
@@ -29,12 +29,16 @@
         "content": "Mythical Void is designed for players of all ages, including children. No account is required and local play remains available without Cloud Save. Cloud Save and personalized external AI features are unavailable to profiles that identify as under 16 in this release. The selected age range stays on the device. We do not intentionally request a child's email address, exact birth date, or physical location. The separate feedback pulse is only for adults aged 18 or over. It uses fixed choices, does not request child details, and rejects a submission unless the adult confirmation is selected."
       },
       {
+        "heading": "Shared Guardianship",
+        "content": "Shared Guardianship is optional and available only to profiles that confirm they are 16 or older. It requires private Cloud Save plus a verified email account and password. Each person contributes one willing adult creature and separately agrees before one shared child is created. The other guardian can see only the shared creature's approved name, traits, care state, neutral Guardian A or Guardian B activity summaries, and recent shared moments. They cannot see your email, password, account details, unrelated creatures, solo save, location or online presence. The feature has no chat, public profile, player search, contact import or free-text messages. Private codes expire after 30 minutes and should be sent only to someone you know."
+      },
+      {
         "heading": "Adult Feedback",
         "content": "The optional adult feedback pulse requires an adult confirmation and records eight fixed-choice answers, including broad choices for how the adult found Mythical Void and what made them want to try it, plus the submission time and current release identifier. It does not store a referring address or create an account, and it does not store a name, email address, free-text answer, exact age, user or session identifier, creature name, device detail or location in the feedback record. The fixed-choice record is kept for no more than 180 days and is available only to the protected server role. Standard Netlify and Supabase service and security logs remain subject to their own operational retention."
       },
       {
         "heading": "Data Security",
-        "content": "Local saves remain under your device's control. Optional cloud saves are protected through authenticated access and database policies that restrict each player to their own record. Living Portrait and personalized story-video files are copied into private storage; save files contain protected asset references rather than storage paths or expiring access links. Guardian PIN data and local safety audit history are excluded from cloud uploads. You can disable Cloud Save without deleting the existing copy, or delete the remote save, protected living media, and anonymous cloud identity from the in-game settings."
+        "content": "Local saves remain under your device's control. Optional cloud saves and shared creatures are protected through authenticated access and database policies that restrict records to their participants. Living Portrait and personalized story-video files are copied into private storage; save files contain protected asset references rather than storage paths or expiring access links. Guardian PIN data and local safety audit history are excluded from cloud uploads. You can sign out of a Shared Guardianship account without deleting your solo local game. You can also permanently delete your account after confirming the current password and typing DELETE. Deletion ends your shared access and removes direct account attribution and protected media. A remaining guardian keeps the shared creature; with no guardian it rests in a private archive. Non-identifying lineage fingerprints may remain so the creature's origin is not falsified."
       },
       {
         "heading": "Changes to This Policy",
@@ -47,7 +51,7 @@
     ]
   },
   "termsOfService": {
-    "lastUpdated": "2026-01-23",
+    "lastUpdated": "2026-09-01",
     "title": "Terms of Service",
     "sections": [
       {
@@ -65,6 +69,10 @@
       {
         "heading": "Permitted Use",
         "content": "You are granted a limited, non-exclusive license to:\n• Play Mythical Void for personal, non-commercial entertainment\n• Share screenshots and videos of your gameplay (with credit to Mythical Void)\n• Stream or create content featuring the game"
+      },
+      {
+        "heading": "Shared Guardianship",
+        "content": "Shared Guardianship is an optional 16+ feature for two verified accounts. Each person contributes one willing adult creature and must separately agree before one shared child is created. Either guardian may care for the creature independently. A guardian may leave or permanently delete their own account after password confirmation, but cannot remove the other guardian, expose the other's account identity, transfer the creature or delete it while the other guardian remains. Private codes are single-use and time-limited. Do not post them publicly. The feature does not provide chat, public matching, account search, contact import, live location or online presence."
       },
       {
         "heading": "Prohibited Conduct",

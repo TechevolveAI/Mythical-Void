@@ -14,6 +14,7 @@ describe('Shared Guardianship gameplay contract', () => {
     const care = read('ui/SharedCreatureCareModal.js');
     const css = read('styles/main.css');
     const legal = read('site/storefront.js');
+    const inGameLegal = JSON.parse(read('config/legal.json'));
     const game = read('game.js');
 
     test('keeps story, levels, chat and public discovery outside MVP', () => {
@@ -64,6 +65,8 @@ describe('Shared Guardianship gameplay contract', () => {
         expect(care).toContain('this.service.account.deleteAccount(');
         expect(service).toContain('if (stopped || inFlight) return;');
         expect(service).toContain('if (!stopped) callback(null, error);');
+        expect(modal).toContain('this.busy || this.pollInFlight');
+        expect(modal).toContain('generation !== this.pollGeneration');
     });
 
     test('has a bounded mobile layout and durable account recovery surface', () => {
@@ -78,6 +81,8 @@ describe('Shared Guardianship gameplay contract', () => {
         expect(game).toContain("testFusion === 'guardianship'");
         expect(pod).toContain('previewSharedGuardianshipAccount');
         expect(pod).toContain('previewAccess: true');
+        expect(game).toContain("urlParams.get('testSharedGuardianship')");
+        expect(game).toContain("['care', 'access', 'delete']");
     });
 
     test('public privacy and terms explain the connected feature plainly', () => {
@@ -87,5 +92,15 @@ describe('Shared Guardianship gameplay contract', () => {
         expect(legal).toContain('confirming the current password');
         expect(legal).toContain('has no chat, public profile, player search');
         expect(legal).toContain('A guardian may leave');
+        const privacy = inGameLegal.privacyPolicy.sections.find(
+            section => section.heading === 'Shared Guardianship'
+        );
+        const terms = inGameLegal.termsOfService.sections.find(
+            section => section.heading === 'Shared Guardianship'
+        );
+        expect(privacy.content).toContain('verified email account and password');
+        expect(privacy.content).toContain('cannot see your email');
+        expect(terms.content).toContain('optional 16+ feature');
+        expect(terms.content).toContain('cannot remove the other guardian');
     });
 });

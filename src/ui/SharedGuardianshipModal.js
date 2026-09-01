@@ -49,6 +49,8 @@ export default class SharedGuardianshipModal {
         this.invitation = null;
         this.busy = false;
         this.pollTimer = null;
+        this.pollInFlight = false;
+        this.pollGeneration = 0;
         this.keyboardHandler = null;
         this.previousFocus = null;
         this.consentChecked = false;
@@ -605,11 +607,14 @@ export default class SharedGuardianshipModal {
 
     startPolling() {
         this.stopPolling();
+        const generation = this.pollGeneration;
         this.pollTimer = window.setInterval(async () => {
-            if (!this.invitation || this.busy) return;
+            if (!this.invitation || this.busy || this.pollInFlight) return;
+            this.pollInFlight = true;
             try {
                 const previous = this.invitation;
                 const current = await this.service.get(previous.invitationId);
+                if (generation !== this.pollGeneration || !this.root) return;
                 current.code = previous.code;
                 if (JSON.stringify(current) !== JSON.stringify(previous)) {
                     this.invitation = current;
@@ -617,6 +622,10 @@ export default class SharedGuardianshipModal {
                 }
             } catch (_) {
                 // Keep the safe local view and retry; solo gameplay is never blocked.
+            } finally {
+                if (generation === this.pollGeneration) {
+                    this.pollInFlight = false;
+                }
             }
         }, 2500);
     }
@@ -624,6 +633,8 @@ export default class SharedGuardianshipModal {
     stopPolling() {
         if (this.pollTimer) window.clearInterval(this.pollTimer);
         this.pollTimer = null;
+        this.pollGeneration++;
+        this.pollInFlight = false;
     }
 
     async cancel() {

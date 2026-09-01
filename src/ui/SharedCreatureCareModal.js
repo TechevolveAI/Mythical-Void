@@ -114,6 +114,19 @@ export default class SharedCreatureCareModal {
         close.setAttribute('aria-label', 'Close shared creature habitat');
         header.append(heading, close);
         const body = element('div', 'shared-guardianship-body');
+        if (this.manageAccess) {
+            body.append(
+                element(
+                    'p',
+                    'shared-guardianship-helper',
+                    'Manage this device or permanently remove your account. Shared creature continuity is protected when access changes.'
+                ),
+                this.accountAccessPanel()
+            );
+            shell.append(header, body);
+            this.root.append(shell);
+            return;
+        }
         body.append(
             element('p', 'shared-guardianship-helper', 'This is the same creature in both Sanctuaries. Care from either guardian changes this one shared life.'),
             this.careSummary()
@@ -144,64 +157,11 @@ export default class SharedCreatureCareModal {
             element('span', '', 'Mute optional shared activity notices')
         );
         body.append(notificationSetting);
-        if (this.manageAccess) {
-            const access = element('section', 'shared-guardianship-access');
-            access.append(element('h3', '', 'Account access'));
-            if (this.confirmDeleteAccount) {
-                const password = document.createElement('input');
-                password.className = 'shared-guardianship-input';
-                password.type = 'password';
-                password.autocomplete = 'current-password';
-                password.placeholder = 'Account password';
-                password.setAttribute('aria-label', 'Account password');
-                password.value = this.deletePassword;
-                password.addEventListener('input', () => {
-                    this.deletePassword = password.value;
-                });
-                const confirmation = document.createElement('input');
-                confirmation.className = 'shared-guardianship-input';
-                confirmation.type = 'text';
-                confirmation.autocomplete = 'off';
-                confirmation.placeholder = 'Type DELETE';
-                confirmation.setAttribute('aria-label', 'Type DELETE to confirm');
-                confirmation.value = this.deleteConfirmation;
-                confirmation.addEventListener('input', () => {
-                    this.deleteConfirmation = confirmation.value;
-                });
-                access.append(
-                    element('p', '', 'Delete this account permanently? Shared access ends immediately. Your solo game stays on this device. A surviving guardian keeps the shared creature; with no guardian it rests in the archive.'),
-                    password,
-                    confirmation,
-                    button('shared-guardianship-secondary', 'DELETE ACCOUNT PERMANENTLY', () => this.deleteAccount()),
-                    button('shared-guardianship-text-button', 'Cancel account deletion', () => {
-                        this.confirmDeleteAccount = false;
-                        this.deletePassword = '';
-                        this.deleteConfirmation = '';
-                        this.render();
-                    })
-                );
-            } else {
-                access.append(
-                    element('p', '', 'Signing out removes this shared creature from this device. Your solo local game remains here, and the shared creature returns after you sign in again.'),
-                    button('shared-guardianship-secondary', 'SIGN OUT OF THIS DEVICE', () => this.signOut()),
-                    button('shared-guardianship-text-button', 'Delete account and shared access', () => {
-                        this.confirmDeleteAccount = true;
-                        this.render();
-                    }),
-                    button('shared-guardianship-text-button', 'Back', () => {
-                        this.manageAccess = false;
-                        this.render();
-                    })
-                );
-            }
-            body.append(access);
-        } else {
-            body.append(button('shared-guardianship-text-button', 'Account & privacy', () => {
-                this.manageAccess = true;
-                this.confirmLeave = false;
-                this.render();
-            }));
-        }
+        body.append(button('shared-guardianship-text-button', 'Account & privacy', () => {
+            this.manageAccess = true;
+            this.confirmLeave = false;
+            this.render();
+        }));
         if (this.confirmLeave) {
             const leave = element('section', 'shared-guardianship-consent');
             leave.append(
@@ -226,6 +186,59 @@ export default class SharedCreatureCareModal {
         }
         shell.append(header, body);
         this.root.append(shell);
+    }
+
+    accountAccessPanel() {
+        const access = element('section', 'shared-guardianship-access');
+        access.append(element('h3', '', 'Account access'));
+        if (this.confirmDeleteAccount) {
+            const password = document.createElement('input');
+            password.className = 'shared-guardianship-input';
+            password.type = 'password';
+            password.autocomplete = 'current-password';
+            password.placeholder = 'Account password';
+            password.setAttribute('aria-label', 'Account password');
+            password.value = this.deletePassword;
+            password.addEventListener('input', () => {
+                this.deletePassword = password.value;
+            });
+            const confirmation = document.createElement('input');
+            confirmation.className = 'shared-guardianship-input';
+            confirmation.type = 'text';
+            confirmation.autocomplete = 'off';
+            confirmation.placeholder = 'Type DELETE';
+            confirmation.setAttribute('aria-label', 'Type DELETE to confirm');
+            confirmation.value = this.deleteConfirmation;
+            confirmation.addEventListener('input', () => {
+                this.deleteConfirmation = confirmation.value;
+            });
+            access.append(
+                element('p', '', 'Delete this account permanently? Shared access ends immediately. Your solo game stays on this device. A surviving guardian keeps the shared creature; with no guardian it rests in the archive.'),
+                password,
+                confirmation,
+                button('shared-guardianship-secondary', 'DELETE ACCOUNT PERMANENTLY', () => this.deleteAccount()),
+                button('shared-guardianship-text-button', 'Cancel account deletion', () => {
+                    this.confirmDeleteAccount = false;
+                    this.deletePassword = '';
+                    this.deleteConfirmation = '';
+                    this.render();
+                })
+            );
+        } else {
+            access.append(
+                element('p', '', 'Signing out removes this shared creature from this device. Your solo local game remains here, and the shared creature returns after you sign in again.'),
+                button('shared-guardianship-secondary', 'SIGN OUT OF THIS DEVICE', () => this.signOut()),
+                button('shared-guardianship-text-button', 'Delete account and shared access', () => {
+                    this.confirmDeleteAccount = true;
+                    this.render();
+                }),
+                button('shared-guardianship-text-button', 'Back to shared habitat', () => {
+                    this.manageAccess = false;
+                    this.render();
+                })
+            );
+        }
+        return access;
     }
 
     careSummary() {
