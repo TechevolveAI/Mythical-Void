@@ -95,15 +95,20 @@ export class DurableAccountService {
         const user = refresh
             ? result.data?.user
             : result.data?.session?.user;
+        const identityVerified = Boolean(
+            user?.id &&
+            user.is_anonymous !== true &&
+            user.email &&
+            user.email_confirmed_at
+        );
+        const passwordReady = user?.user_metadata
+            ?.mythical_void_password_ready === true;
         return {
             configured: true,
             authenticated: Boolean(user?.id),
-            permanent: Boolean(
-                user?.id &&
-                user.is_anonymous !== true &&
-                user.email &&
-                user.email_confirmed_at
-            ),
+            permanent: identityVerified && passwordReady,
+            identityVerified,
+            passwordReady,
             verified: Boolean(user?.email_confirmed_at),
             anonymous: user?.is_anonymous === true,
             userId: user?.id || null
@@ -127,7 +132,20 @@ export class DurableAccountService {
         }
         const status = await this.getStatus({ refresh: true });
         if (status.permanent) return { emailSent: false, alreadyPermanent: true };
-        const { error } = await this.client.auth.updateUser({ email });
+        if (status.identityVerified) {
+            return {
+                emailSent: false,
+                alreadyPermanent: false,
+                passwordRequired: true
+            };
+        }
+        const { error } = await this.client.auth.updateUser(
+            { email },
+            {
+                emailRedirectTo:
+                    `${window.location.origin}/play/?sharedGuardianshipAccount=1`
+            }
+        );
         if (error) throw this.normalizeError(error, 'Verification email could not be sent.');
         return { emailSent: true, alreadyPermanent: false };
     }
@@ -165,7 +183,10 @@ export class DurableAccountService {
                 'Verify the email before choosing a password.'
             );
         }
-        const { data, error } = await this.client.auth.updateUser({ password });
+        const { data, error } = await this.client.auth.updateUser({
+            password,
+            data: { mythical_void_password_ready: true }
+        });
         if (error) throw this.normalizeError(error);
         if (data?.user?.id && this.cloudSave?.adoptAuthenticatedSession) {
             await this.cloudSave.adoptAuthenticatedSession(data.user, {
@@ -191,12 +212,22 @@ export class DurableAccountService {
             password
         });
         if (error || !data?.user?.id) throw this.normalizeError(error);
+        const marked = await this.client.auth.updateUser({
+            data: { mythical_void_password_ready: true }
+        });
+        if (marked.error) {
+            throw this.normalizeError(
+                marked.error,
+                'The account opened, but its recovery status could not be confirmed.'
+            );
+        }
+        const durableUser = marked.data?.user || data.user;
         if (this.cloudSave?.adoptAuthenticatedSession) {
-            await this.cloudSave.adoptAuthenticatedSession(data.user, {
+            await this.cloudSave.adoptAuthenticatedSession(durableUser, {
                 preferRemote: true
             });
         } else {
-            if (this.cloudSave) this.cloudSave.currentUser = data.user;
+            if (this.cloudSave) this.cloudSave.currentUser = durableUser;
             await this.cloudSave?.synchronize?.();
         }
         return this.getStatus({ refresh: true });
@@ -301,7 +332,10 @@ export class DurableAccountService {
             save.disabled = true;
             status.textContent = 'Saving the new password...';
             try {
-                const { data, error } = await service.client.auth.updateUser({ password });
+                const { data, error } = await service.client.auth.updateUser({
+                    password,
+                    data: { mythical_void_password_ready: true }
+                });
                 if (error) throw service.normalizeError(error);
                 if (data?.user?.id && service.cloudSave?.adoptAuthenticatedSession) {
                     await service.cloudSave.adoptAuthenticatedSession(data.user, {

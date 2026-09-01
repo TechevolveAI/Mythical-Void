@@ -30,7 +30,8 @@ function harness(options = {}) {
         id: 'verified-user',
         email: 'guardian@example.test',
         email_confirmed_at: '2026-08-31T12:00:00Z',
-        is_anonymous: false
+        is_anonymous: false,
+        user_metadata: { mythical_void_password_ready: true }
     };
     const auth = {
         getSession: jest.fn(async () => ({
@@ -83,7 +84,13 @@ describe('DurableAccountService', () => {
         await service.beginUpgrade('Guardian@Example.test');
 
         expect(cloudSave.ensureSession).toHaveBeenCalledTimes(1);
-        expect(auth.updateUser).toHaveBeenCalledWith({ email: 'guardian@example.test' });
+        expect(auth.updateUser).toHaveBeenCalledWith(
+            { email: 'guardian@example.test' },
+            {
+                emailRedirectTo:
+                    'https://mythicalvoid.com/play/?sharedGuardianshipAccount=1'
+            }
+        );
         expect(auth.signInWithPassword).not.toHaveBeenCalled();
     });
 
@@ -91,7 +98,10 @@ describe('DurableAccountService', () => {
         const { service, auth, cloudSave } = harness();
         await service.finishUpgrade('a-long-safe-password');
 
-        expect(auth.updateUser).toHaveBeenCalledWith({ password: 'a-long-safe-password' });
+        expect(auth.updateUser).toHaveBeenCalledWith({
+            password: 'a-long-safe-password',
+            data: { mythical_void_password_ready: true }
+        });
         expect(cloudSave.adoptAuthenticatedSession).toHaveBeenCalledWith(
             expect.objectContaining({ id: 'verified-user' }),
             { preferRemote: false }
@@ -99,12 +109,37 @@ describe('DurableAccountService', () => {
     });
 
     test('sign-in adopts the durable account and prefers its canonical remote save', async () => {
-        const { service, cloudSave } = harness();
+        const { service, cloudSave, auth } = harness();
         await service.signIn('guardian@example.test', 'a-long-safe-password');
+        expect(auth.updateUser).toHaveBeenCalledWith({
+            data: { mythical_void_password_ready: true }
+        });
         expect(cloudSave.adoptAuthenticatedSession).toHaveBeenCalledWith(
             expect.objectContaining({ id: 'verified-user' }),
             { preferRemote: true }
         );
+    });
+
+    test('does not treat verified email without a recovery password as complete', async () => {
+        const { service } = harness({ sessionUser: {
+            id: 'verified-user',
+            email: 'guardian@example.test',
+            email_confirmed_at: '2026-08-31T12:00:00Z',
+            is_anonymous: false,
+            user_metadata: {}
+        }});
+        await expect(service.getStatus({ refresh: true })).resolves.toEqual(
+            expect.objectContaining({
+                permanent: false,
+                identityVerified: true,
+                passwordReady: false
+            })
+        );
+        await expect(service.beginUpgrade('guardian@example.test')).resolves.toEqual({
+            emailSent: false,
+            alreadyPermanent: false,
+            passwordRequired: true
+        });
     });
 
     test('password reset returns to the dedicated recovery flow without revealing account existence', async () => {

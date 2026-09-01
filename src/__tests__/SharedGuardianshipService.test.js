@@ -16,9 +16,10 @@ function loadModule() {
         .replace("import contract from '../config/sharedGuardianship.json';", `const contract = ${JSON.stringify(contract)};`)
         .replace('export class SharedGuardianshipError', 'class SharedGuardianshipError')
         .replace('export function getSharedGuardianshipAvailability', 'function getSharedGuardianshipAvailability')
+        .replace('export function getSharedGuardianshipEntryAvailability', 'function getSharedGuardianshipEntryAvailability')
         .replace('export class SharedGuardianshipService', 'class SharedGuardianshipService')
         .replace(/if \(typeof window !== 'undefined'\) \{[\s\S]*$/, '')
-        .concat('\nmodule.exports = { SharedGuardianshipService, SharedGuardianshipError, normalizeCode, normalizeInvitation, normalizeProjection, getSharedGuardianshipAvailability, isSharedGuardianshipEnabled, contract };');
+        .concat('\nmodule.exports = { SharedGuardianshipService, SharedGuardianshipError, normalizeCode, normalizeInvitation, normalizeProjection, getSharedGuardianshipAvailability, getSharedGuardianshipEntryAvailability, isSharedGuardianshipEnabled, contract };');
     const sandbox = {
         module: { exports: {} }, exports: {}, console, Date, Promise, Map, Set,
         Object, Array, Number, String, Math, JSON, Error, Uint8Array,
@@ -41,6 +42,7 @@ function loadModule() {
 const {
     SharedGuardianshipService,
     getSharedGuardianshipAvailability,
+    getSharedGuardianshipEntryAvailability,
     normalizeCode,
     normalizeProjection
 } = loadModule();
@@ -89,7 +91,10 @@ function harness(rpcImpl = null) {
         synchronize: jest.fn(async () => undefined),
         client: {
             rpc,
-            auth: { getUser: jest.fn(async () => ({ data: { user: { id: 'guardian-a' } }, error: null })) },
+            auth: {
+                getSession: jest.fn(async () => ({ data: { session: null }, error: null })),
+                getUser: jest.fn(async () => ({ data: { user: { id: 'guardian-a' } }, error: null }))
+            },
             functions: { invoke: jest.fn(async () => ({ data: { status: 'staged' }, error: null })) }
         }
     };
@@ -111,6 +116,18 @@ describe('SharedGuardianshipService', () => {
         expect(getSharedGuardianshipAvailability({ ...base, isAgeEligible: () => false })).toMatchObject({ available: false, reason: 'age_restricted' });
         expect(getSharedGuardianshipAvailability({ ...base, isEnabled: () => false })).toMatchObject({ available: false, reason: 'cloud_save_required' });
         expect(getSharedGuardianshipAvailability(base, { permanent: false })).toMatchObject({ available: false, reason: 'account_required' });
+    });
+
+    test('lets an eligible player reach the explanation before Cloud Save is enabled', () => {
+        const base = harness().cloudSave;
+        expect(getSharedGuardianshipEntryAvailability({
+            ...base,
+            isEnabled: () => false
+        })).toMatchObject({ available: true, reason: null });
+        expect(getSharedGuardianshipEntryAvailability({
+            ...base,
+            isAgeEligible: () => false
+        })).toMatchObject({ available: false, reason: 'age_restricted' });
     });
 
     test('normalizes the 48-bit code and rejects malformed values', () => {

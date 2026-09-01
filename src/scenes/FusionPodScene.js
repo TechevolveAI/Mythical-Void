@@ -412,7 +412,7 @@ class FusionPodScene extends Phaser.Scene {
             return false;
         }
         return window.SharedGuardianship
-            .getSharedGuardianshipAvailability?.(window.CloudSave)
+            .getSharedGuardianshipEntryAvailability?.(window.CloudSave)
             ?.available === true;
     }
 
@@ -522,7 +522,9 @@ class FusionPodScene extends Phaser.Scene {
             }
             : null;
         this.sharedGuardianshipModal = new SharedGuardianshipModal(this, {
-            ...(previewAccount ? { account: previewAccount } : {})
+            ...(previewAccount
+                ? { account: previewAccount, previewAccess: true }
+                : {})
         });
         return this.sharedGuardianshipModal.show({
             parents,

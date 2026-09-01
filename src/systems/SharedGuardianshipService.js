@@ -127,6 +127,17 @@ export function getSharedGuardianshipAvailability(cloudSave, accountStatus = nul
     return { available: reason === null, reason, contract };
 }
 
+export function getSharedGuardianshipEntryAvailability(cloudSave) {
+    let reason = null;
+    if (!isSharedGuardianshipEnabled()) reason = 'feature_disabled';
+    else if (cloudSave?.isAgeEligible?.() !== true) reason = 'age_restricted';
+    else if (
+        !cloudSave?.isConfigured?.() ||
+        typeof cloudSave?.client?.auth?.getSession !== 'function'
+    ) reason = 'service_unavailable';
+    return { available: reason === null, reason, contract };
+}
+
 export class SharedGuardianshipService {
     constructor(options = {}) {
         this.cloudSave = options.cloudSave || window.CloudSave || null;
@@ -478,6 +489,7 @@ if (typeof window !== 'undefined') {
         normalizeInvitation,
         normalizeProjection,
         isEnabled: isSharedGuardianshipEnabled,
+        getSharedGuardianshipEntryAvailability,
         getSharedGuardianshipAvailability
     };
     window.SharedGuardianshipService = SharedGuardianshipService;

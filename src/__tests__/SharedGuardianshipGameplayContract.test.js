@@ -29,6 +29,7 @@ describe('Shared Guardianship gameplay contract', () => {
     test('offers the protected flow through Fusion while preserving legacy Fusion', () => {
         expect(pod).toContain('isSharedGuardianshipAvailable');
         expect(pod).toContain('window.SharedGuardianship?.isEnabled?.()');
+        expect(pod).toContain('getSharedGuardianshipEntryAvailability');
         expect(pod).toContain('new SharedGuardianshipModal(this, {');
         expect(pod).toContain("sharedGuardianshipAvailable ? 'SHARE' : 'LINK'");
         expect(pod).toContain('this.isSharedFusionAvailable()');
@@ -36,6 +37,8 @@ describe('Shared Guardianship gameplay contract', () => {
 
     test('explains one creature, two devices, eligibility and exact consent', () => {
         expect(modal).toContain('One creature. Two Sanctuaries.');
+        expect(modal).toContain('ENABLE PRIVATE SAVE & CONTINUE');
+        expect(modal).toContain('this.cloudSave.enable({');
         expect(modal).toContain('I am 16 or older');
         expect(modal).toContain('I understand this creates one shared creature');
         expect(modal).toContain("privacyLink.href = '/privacy/'");
@@ -68,6 +71,7 @@ describe('Shared Guardianship gameplay contract', () => {
         expect(care).toContain("setAttribute('aria-live', 'polite')");
         expect(game).toContain("testFusion === 'guardianship'");
         expect(pod).toContain('previewSharedGuardianshipAccount');
+        expect(pod).toContain('previewAccess: true');
     });
 
     test('public privacy and terms explain the connected feature plainly', () => {

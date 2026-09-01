@@ -36,6 +36,7 @@ export default class SharedGuardianshipModal {
             gameState: this.gameState,
             account: this.account
         });
+        this.previewAccess = options.previewAccess === true;
         this.root = null;
         this.body = null;
         this.domElement = null;
@@ -52,6 +53,7 @@ export default class SharedGuardianshipModal {
         this.previousFocus = null;
         this.consentChecked = false;
         this.policyChecked = false;
+        this.cloudConsentChecked = false;
         this.onClose = null;
         this.onComplete = null;
     }
@@ -72,6 +74,7 @@ export default class SharedGuardianshipModal {
         this.root.setAttribute('role', 'dialog');
         this.root.setAttribute('aria-modal', 'true');
         this.root.setAttribute('aria-label', 'Shared Guardianship');
+        this.root.dataset.testid = 'shared-guardianship-modal';
         const shell = element('section', 'shared-guardianship-shell');
         const header = element('header', 'shared-guardianship-header');
         const heading = element('div', 'shared-guardianship-heading');
@@ -128,8 +131,27 @@ export default class SharedGuardianshipModal {
     async start() {
         this.renderBusy('CHECKING YOUR SANCTUARY');
         try {
+            const entry = this.previewAccess
+                ? { available: true }
+                : window.SharedGuardianship
+                    ?.getSharedGuardianshipEntryAvailability?.(this.cloudSave);
+            if (!entry?.available) {
+                throw new Error(entry?.reason === 'age_restricted'
+                    ? 'Shared Guardianship is available only to profiles confirmed as 16 or older.'
+                    : 'Shared Guardianship is temporarily unavailable.');
+            }
+            if (!this.previewAccess && this.cloudSave?.isEnabled?.() !== true) {
+                this.renderCloudGate();
+                return;
+            }
             const status = await this.account.getStatus({ refresh: true });
-            if (!status.permanent) this.renderAccountGate();
+            if (!status.permanent) {
+                if (status.identityVerified && !status.passwordReady) {
+                    this.accountMode = 'create';
+                    this.accountStep = 'password';
+                }
+                this.renderAccountGate();
+            }
             else this.renderHome();
         } catch (error) {
             this.renderError(error);
@@ -147,10 +169,72 @@ export default class SharedGuardianshipModal {
         this.body.append(busy);
     }
 
+    renderCloudGate(notice = '') {
+        this.stopPolling();
+        this.clear();
+        const panel = element('section', 'shared-guardianship-intro');
+        panel.dataset.testid = 'shared-guardianship-cloud-gate';
+        panel.append(
+            element('h3', '', 'Keep this Sanctuary available on both devices'),
+            element('p', '', 'Shared Guardianship needs private Cloud Save so one creature can stay synchronized for the same two verified people. Solo play still works without it.'),
+            element('p', 'shared-guardianship-boundary', '16+ ONLY // PRIVATE SAVE // NO CHAT')
+        );
+        const consent = element('label', 'shared-guardianship-consent');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = this.cloudConsentChecked;
+        const copy = element('span', '', 'Enable private Cloud Save for game progress and Shared Guardianship. The other guardian never sees account details or unrelated save data.');
+        const links = element('span', 'shared-guardianship-policy-links');
+        const privacy = document.createElement('a');
+        privacy.href = '/privacy/';
+        privacy.target = '_blank';
+        privacy.rel = 'noopener';
+        privacy.textContent = 'Privacy';
+        copy.append(document.createElement('br'));
+        links.append(privacy);
+        copy.append(links);
+        consent.append(checkbox, copy);
+        const enable = button(
+            'shared-guardianship-primary',
+            'ENABLE PRIVATE SAVE & CONTINUE',
+            () => this.enableCloudSave()
+        );
+        enable.dataset.testid = 'shared-guardianship-enable-cloud';
+        enable.disabled = !this.cloudConsentChecked;
+        checkbox.addEventListener('change', () => {
+            this.cloudConsentChecked = checkbox.checked;
+            enable.disabled = !this.cloudConsentChecked;
+        });
+        this.body.append(panel, consent, enable);
+        if (notice) {
+            this.body.append(element('p', 'shared-guardianship-notice', notice));
+        }
+    }
+
+    async enableCloudSave() {
+        if (this.busy || !this.cloudConsentChecked) return;
+        this.busy = true;
+        this.renderBusy('SECURING THIS SANCTUARY');
+        try {
+            await this.cloudSave.enable({
+                consentConfirmed: true,
+                policyVersion: window.SharedGuardianship.contract.privacyVersion
+            });
+            await this.start();
+        } catch (error) {
+            this.renderCloudGate(
+                error?.message || 'Private Cloud Save could not be enabled. Your local game is safe.'
+            );
+        } finally {
+            this.busy = false;
+        }
+    }
+
     renderAccountGate(notice = '') {
         this.stopPolling();
         this.clear();
         const intro = element('section', 'shared-guardianship-intro');
+        intro.dataset.testid = 'shared-guardianship-account-gate';
         intro.append(
             element('h3', '', 'Keep one shared creature safe on both devices'),
             element('p', '', 'Shared Guardianship needs a verified account so your creature can return to the same two people after a device is changed or lost.'),
@@ -221,10 +305,12 @@ export default class SharedGuardianshipModal {
         this.busy = true;
         this.renderBusy('SENDING VERIFICATION');
         try {
-            await this.account.beginUpgrade(email);
+            const result = await this.account.beginUpgrade(email);
             this.pendingEmail = String(email).trim().toLowerCase();
-            this.accountStep = 'verify';
-            this.renderAccountGate('Verification sent. Your game remains playable while you check it.');
+            this.accountStep = result?.passwordRequired ? 'password' : 'verify';
+            this.renderAccountGate(result?.passwordRequired
+                ? 'Email verified. Choose a password to finish.'
+                : 'Verification sent. Your game remains playable while you check it.');
         } catch (error) {
             this.accountStep = 'email';
             this.renderAccountGate(error.message);
@@ -252,7 +338,7 @@ export default class SharedGuardianshipModal {
     async checkVerified() {
         try {
             const status = await this.account.getStatus({ refresh: true });
-            if (!status.permanent) {
+            if (!status.identityVerified) {
                 this.renderAccountGate('The verification has not reached this browser yet. Try the email link again.');
                 return;
             }
@@ -306,6 +392,7 @@ export default class SharedGuardianshipModal {
         this.clear();
         this.invitation = null;
         const intro = element('section', 'shared-guardianship-intro');
+        intro.dataset.testid = 'shared-guardianship-home';
         intro.append(
             element('h3', '', 'One creature. Two Sanctuaries.'),
             element('p', '', 'Each person contributes one willing adult creature. The Fusion Pod creates one child that remains visible and cared for on both devices.'),
