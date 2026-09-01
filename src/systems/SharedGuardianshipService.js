@@ -452,31 +452,44 @@ export class SharedGuardianshipService {
     watch(creatureId, callback, intervalMs = 3000) {
         this.stopWatching(creatureId);
         let lastRevision = 0;
+        let inFlight = false;
+        let stopped = false;
         const poll = async () => {
+            if (stopped || inFlight) return;
+            inFlight = true;
             try {
                 const projection = await this.getProjection(creatureId);
-                if (projection.revision !== lastRevision) {
+                if (!stopped && projection.revision !== lastRevision) {
                     lastRevision = projection.revision;
                     callback(projection, null);
                 }
             } catch (error) {
-                callback(null, error);
+                if (!stopped) callback(null, error);
+            } finally {
+                inFlight = false;
             }
         };
         poll();
         const timer = window.setInterval(poll, Math.max(2000, intervalMs));
-        this.pollers.set(creatureId, timer);
+        this.pollers.set(creatureId, {
+            timer,
+            stop: () => { stopped = true; }
+        });
         return () => this.stopWatching(creatureId);
     }
 
     stopWatching(creatureId) {
-        const timer = this.pollers.get(creatureId);
-        if (timer) window.clearInterval(timer);
+        const poller = this.pollers.get(creatureId);
+        poller?.stop?.();
+        if (poller?.timer) window.clearInterval(poller.timer);
         this.pollers.delete(creatureId);
     }
 
     destroy() {
-        for (const timer of this.pollers.values()) window.clearInterval(timer);
+        for (const poller of this.pollers.values()) {
+            poller?.stop?.();
+            if (poller?.timer) window.clearInterval(poller.timer);
+        }
         this.pollers.clear();
         this.pendingCommandKeys.clear();
     }

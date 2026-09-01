@@ -8,6 +8,7 @@ function read(relativePath) {
 describe('Shared Guardianship gameplay contract', () => {
     const config = JSON.parse(read('config/sharedGuardianship.json'));
     const pod = read('scenes/FusionPodScene.js');
+    const service = read('systems/SharedGuardianshipService.js');
     const sanctuary = read('scenes/GameScene.js');
     const modal = read('ui/SharedGuardianshipModal.js');
     const care = read('ui/SharedCreatureCareModal.js');
@@ -61,6 +62,8 @@ describe('Shared Guardianship gameplay contract', () => {
         expect(care).toContain('Delete account and shared access');
         expect(care).toContain('DELETE ACCOUNT PERMANENTLY');
         expect(care).toContain('this.service.account.deleteAccount(');
+        expect(service).toContain('if (stopped || inFlight) return;');
+        expect(service).toContain('if (!stopped) callback(null, error);');
     });
 
     test('has a bounded mobile layout and durable account recovery surface', () => {
