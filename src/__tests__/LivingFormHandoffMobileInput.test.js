@@ -438,6 +438,29 @@ describe('LivingFormHandoff mobile continuation', () => {
         jest.useRealTimers();
     });
 
+    test('an unavailable portrait still shows the exact local creature', () => {
+        const referenceImage = 'data:image/png;base64,iVBORw0KGgo=';
+        const handoff = new LivingFormHandoff(createScene());
+        handoff.show({
+            name: 'Nova',
+            species: 'nebulaSprite',
+            referenceImage
+        });
+
+        handoff.image.onload();
+
+        expect(handoff.image.src).toBe(referenceImage);
+        expect(handoff.image.classList.contains('is-pixel-reference')).toBe(true);
+        expect(handoff.image.classList.contains('is-ready')).toBe(true);
+        expect(document.querySelector('.living-form-source').textContent)
+            .toBe('LOCAL CREATURE SIGNAL');
+        expect(document.querySelector('.living-form-loading-title').textContent)
+            .not.toBe('LIVING FORM OFFLINE');
+        expect(document.querySelector('[data-testid="living-form-continue"]')
+            .disabled).toBe(false);
+        handoff.destroy();
+    });
+
     test('a protected portrait visibly replaces the pixel reference', async () => {
         const imageUrl =
             'https://mkcmdbzcihjgidjuypqe.supabase.co/storage/v1/object/sign/creature-portraits/portrait.jpg';
@@ -507,9 +530,9 @@ describe('LivingFormHandoff mobile continuation', () => {
         expect(document.querySelector('.living-form-spinner')).toBeNull();
         expect(document.querySelector('.living-form-progress')).toBeNull();
         expect(document.querySelector('.living-form-loading-title').textContent)
-            .toBe('PORTRAIT WILL RETRY');
+            .toBe('FULL PORTRAIT WILL RETRY');
         expect(document.querySelector('.living-form-loading-detail').textContent)
-            .toBe('Continue now. Nothing is lost.');
+            .toContain('Continue now; nothing is lost.');
         expect(document.querySelector('.living-form-mobile-status').textContent)
             .toContain('SANCTUARY READY');
         expect(desktopButton.textContent).toBe('ENTER SANCTUARY');

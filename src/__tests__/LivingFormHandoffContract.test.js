@@ -19,10 +19,12 @@ const gameSource = fs.readFileSync(
 );
 
 describe('living form milestone handoff', () => {
-    test('keeps the pixel identity private while the living portrait develops', () => {
-        expect(handoffSource).not.toContain(
+    test('keeps the exact local creature visible while the living portrait develops', () => {
+        expect(handoffSource).toContain(
             'this.setArtwork(this.pixelReferenceImage'
         );
+        expect(handoffSource).toContain("source: 'local_creature_reference'");
+        expect(handoffSource).not.toContain('LIVING FORM OFFLINE');
         expect(handoffSource).toContain('LIVING FORM DEVELOPING');
         expect(handoffSource).toContain(
             "source: 'protected_living_portrait'"
@@ -46,7 +48,7 @@ describe('living form milestone handoff', () => {
             'this.portraitPromise.catch(() => {});'
         );
         expect(handoffSource).toContain(
-            'The living portrait can be retried from the Creature Archive.'
+            'the full living portrait can retry from the Creature Archive.'
         );
         expect(handoffSource).toContain(
             'window.LivingPortraitService?.describeError?.(error)'
@@ -58,6 +60,30 @@ describe('living form milestone handoff', () => {
             "window.CompanionMediaService?.recordAppearance?.(\n                    'first_living_form',"
         );
         expect(handoffSource).toContain('continueAction?.();');
+        expect(handoffSource).toContain(
+            'this.image.decode?.().then(revealArtwork)'
+        );
+    });
+
+    test('rebuilds an expired Phaser texture before first contact', () => {
+        expect(soulSource).toContain('this.ensureCreatureTexture();');
+        expect(soulSource).toContain(
+            'this.graphicsEngine.loadCreatureFromGameState?.(0)'
+        );
+        expect(soulSource).toContain(
+            'this.creatureData.textureName = textureName;'
+        );
+    });
+
+    test('captures the local creature even when a portrait request already exists', () => {
+        const captureIndex = soulSource.indexOf(
+            'window.LivingPortraitService?.captureReference?.(this.creature)'
+        );
+        const existingPromiseGuard = soulSource.indexOf(
+            'if (this.portraitPromise) {'
+        );
+        expect(captureIndex).toBeGreaterThan(-1);
+        expect(existingPromiseGuard).toBeGreaterThan(captureIndex);
     });
 
     test('uses one full-viewport responsive surface with safe controls', () => {
@@ -83,7 +109,7 @@ describe('living form milestone handoff', () => {
         expect(cssSource).toContain('.living-form-progress');
         expect(cssSource).toContain('@keyframes living-form-spin');
         expect(cssSource).toContain('.living-form-image.is-pixel-reference');
-        expect(cssSource).toContain('width: min(28%, 240px)');
+        expect(cssSource).toContain('width: min(48%, 360px)');
         expect(cssSource).toContain('.living-form-image.is-generated-portrait');
         expect(cssSource).toContain('min-height: 48px');
         expect(cssSource).toContain('touch-action: manipulation');

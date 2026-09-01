@@ -180,9 +180,14 @@ export default class LivingFormHandoff {
             this.loadingTitle = createElement(
                 'strong',
                 'living-form-loading-title',
-                'LIVING FORM OFFLINE'
+                'LOCAL CREATURE SIGNAL'
             );
-            this.mediaFallback.append(this.loadingTitle);
+            this.loadingDetail = createElement(
+                'span',
+                'living-form-loading-detail',
+                'The exact creature you hatched remains available without a network connection.'
+            );
+            this.mediaFallback.append(this.loadingTitle, this.loadingDetail);
         }
         this.mediaFallback.setAttribute('role', 'status');
         this.mediaFallback.setAttribute('aria-live', 'polite');
@@ -414,9 +419,20 @@ export default class LivingFormHandoff {
             typeof referenceImage === 'string'
             && /^data:image\/png;base64,/.test(referenceImage)
         ) ? referenceImage : null;
+        if (this.pixelReferenceImage) {
+            this.setArtwork(this.pixelReferenceImage, {
+                source: 'local_creature_reference',
+                alt: `Local creature signal for ${safeName}`
+            });
+        }
         if (!portraitPromise) {
             this.status.textContent =
-                'No personal data was sent. The living portrait can be retried from the Creature Archive.';
+                'No personal data was sent. This exact local creature remains playable; the full living portrait can retry from the Creature Archive.';
+            this.actionKicker.textContent = 'LOCAL SIGNAL READY // SANCTUARY OPEN';
+            if (this.mobileDockStatus) {
+                this.mobileDockStatus.textContent =
+                    'LOCAL SIGNAL READY // SANCTUARY OPEN';
+            }
         }
 
         if (portraitPromise) {
@@ -523,9 +539,10 @@ export default class LivingFormHandoff {
         this.mediaFallback?.classList.add('is-retry');
         this.mediaFallback?.querySelector?.('.living-form-spinner')?.remove?.();
         this.mediaFallback?.querySelector?.('.living-form-progress')?.remove?.();
-        if (this.loadingTitle) this.loadingTitle.textContent = 'PORTRAIT WILL RETRY';
+        if (this.loadingTitle) this.loadingTitle.textContent = 'FULL PORTRAIT WILL RETRY';
         if (this.loadingDetail) {
-            this.loadingDetail.textContent = 'Continue now. Nothing is lost.';
+            this.loadingDetail.textContent =
+                'The exact local creature remains visible. Continue now; nothing is lost.';
         }
         this.status.textContent = `${serviceMessage} ` +
             'Enter the Sanctuary whenever you are ready.';
@@ -559,15 +576,21 @@ export default class LivingFormHandoff {
         if (!this.image || typeof imageUrl !== 'string') return;
         const token = ++this.renderToken;
         const isGenerated = source === 'protected_living_portrait';
+        const isLocalReference = source === 'local_creature_reference';
         this.image.classList.remove(
             'is-ready',
             'is-generated-portrait',
             'is-pixel-reference'
         );
-        this.image.classList.add('is-generated-portrait');
-        this.root?.classList.remove('shows-pixel-reference');
-        this.image.onload = () => {
+        this.image.classList.add(
+            isGenerated ? 'is-generated-portrait' : 'is-pixel-reference'
+        );
+        this.root?.classList.toggle('shows-pixel-reference', isLocalReference);
+        let artworkRevealed = false;
+        const revealArtwork = () => {
+            if (artworkRevealed) return;
             if (!this.isVisible || token !== this.renderToken) return;
+            artworkRevealed = true;
             this.image.alt = alt;
             this.image.classList.add('is-ready');
             this.mediaFallback?.classList.add('is-hidden');
@@ -611,16 +634,47 @@ export default class LivingFormHandoff {
                     'Exact interpretation secured to this creature record. Temporary image links are not saved.';
                 this.status.classList.remove('is-fallback');
                 window.AudioManager?.playLevelUp?.();
+            } else if (isLocalReference) {
+                if (
+                    !this.portraitPending
+                    && !this.root.classList.contains('has-portrait-failure')
+                ) {
+                    this.root.dataset.portraitState = 'local';
+                }
+                this.sourceLabel.textContent = this.portraitPending
+                    ? 'LOCAL CREATURE SIGNAL // FULL PORTRAIT FORMING'
+                    : 'LOCAL CREATURE SIGNAL';
             }
         };
+        this.image.onload = revealArtwork;
         this.image.onerror = () => {
             if (!this.isVisible || token !== this.renderToken) return;
+            if (isGenerated && this.pixelReferenceImage) {
+                this.setArtwork(this.pixelReferenceImage, {
+                    source: 'local_creature_reference',
+                    alt: 'Local creature signal'
+                });
+                this.markPortraitUnavailable(
+                    new Error('Visual study offline. The living portrait can retry from the Creature Archive.')
+                );
+                return;
+            }
             this.mediaFallback?.classList.remove('is-hidden');
+            if (this.loadingTitle) {
+                this.loadingTitle.textContent = 'CREATURE SIGNAL SECURED';
+            }
+            if (this.loadingDetail) {
+                this.loadingDetail.textContent =
+                    'Enter the Sanctuary. Your playable creature remains safe in the game.';
+            }
             this.markPortraitUnavailable(
                 new Error('Visual study offline. The living portrait can retry from the Creature Archive.')
             );
         };
         this.image.src = imageUrl;
+        // Cached data URLs can be decoded before some WebKit/Chromium paths
+        // dispatch `load`. Decode provides a second, idempotent readiness path.
+        this.image.decode?.().then(revealArtwork).catch(() => {});
     }
 
     /**

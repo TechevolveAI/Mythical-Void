@@ -141,7 +141,10 @@ describe('background living portrait generation', () => {
 
         expect(source).toContain('const size = 512;');
         expect(source).toContain('sourceContext.getImageData(');
-        expect(source).toContain('if (maxX < minX || maxY < minY) return null;');
+        expect(source).toContain(
+            'return this.captureTextureFrameReference(sprite);'
+        );
+        expect(source).toContain("texture?.manager?.getBase64?.(");
         expect(source).toContain('cropWidth');
         expect(source).toContain('cropHeight');
     });
@@ -741,7 +744,7 @@ describe('background living portrait generation', () => {
         );
         expect(soulSource).toContain('this.portraitReferenceImage');
         expect(handoffSource).toContain('LIVING FORM DEVELOPING');
-        expect(handoffSource).not.toContain(
+        expect(handoffSource).toContain(
             'this.setArtwork(this.pixelReferenceImage'
         );
         expect(handoffSource).not.toContain('/marketing/');

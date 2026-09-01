@@ -263,10 +263,24 @@
     Cache-Control = "public, max-age=300, must-revalidate"
 
 [[headers]]
-  for = "/*.js"
+  for = "/assets/*.js"
   [headers.values]
     Content-Type = "application/javascript; charset=utf-8"
     Cache-Control = "public, max-age=31536000, immutable"
+
+# Release-control scripts must always be revalidated. They deliberately keep
+# stable URLs because the browser and installed PWA use them as update anchors.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Content-Type = "application/javascript; charset=utf-8"
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/pwa-install.js"
+  [headers.values]
+    Content-Type = "application/javascript; charset=utf-8"
+    Cache-Control = "no-cache, no-store, must-revalidate"
 
 # Headers for HTML files (always check for updates)
 [[headers]]
