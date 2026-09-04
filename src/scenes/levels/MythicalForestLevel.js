@@ -389,9 +389,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
     }
 
     shouldShowFirstForestArrivalCinematic() {
-        return Number(window.GameState?.get?.(
+        const authoredArrivalUnseen = Number(window.GameState?.get?.(
             'story.projectBeacon.firstForestCinematicVersion'
         )) < FOREST_ARRIVAL_CINEMATIC_VERSION;
+        const generatedArrivalReady = (
+            window.CompanionMediaService || companionMediaService
+        )?.hasUnviewedGeneratedVideo?.('first_forest_arrival') === true;
+        return authoredArrivalUnseen || generatedArrivalReady;
     }
 
     clearForestArrivalBackdrop() {
