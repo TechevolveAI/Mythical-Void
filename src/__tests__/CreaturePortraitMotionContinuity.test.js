@@ -40,8 +40,11 @@ describe('creature portrait motion continuity', () => {
         expect(profile).toContain('repeat: -1');
     });
 
-    test('keeps provider video optional while portrait motion remains guaranteed', () => {
+    test('enables protected production video while keeping non-production builds safe', () => {
         const disabledContexts = netlify.match(/VITE_ENABLE_AI_VIDEOS = "false"/g) || [];
-        expect(disabledContexts).toHaveLength(4);
+        expect(disabledContexts).toHaveLength(3);
+        expect(netlify).toContain('[context.production.environment]');
+        expect(netlify).toContain('VITE_ENABLE_AI_VIDEOS = "true"');
+        expect(netlify).toContain('VIDEO_PROVIDER = "replicate"');
     });
 });

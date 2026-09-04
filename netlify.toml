@@ -303,8 +303,9 @@
   VITE_ENABLE_API_FEATURES = "true"
   ENABLE_AI_PORTRAITS = "true"
   VITE_ENABLE_AI_PORTRAITS = "true"
-  ENABLE_AI_VIDEOS = "false"
-  VITE_ENABLE_AI_VIDEOS = "false"
+  ENABLE_AI_VIDEOS = "true"
+  VITE_ENABLE_AI_VIDEOS = "true"
+  VIDEO_PROVIDER = "replicate"
 
 [context.deploy-preview.environment]
   NODE_ENV = "staging"
