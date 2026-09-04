@@ -100,7 +100,12 @@ export function getMobileControlLayout({
     const compact = width < 380;
     const edge = compact ? 8 : 10;
     const dockHeight = clamp(Math.round(width * 0.31), 112, 128);
-    const dockTop = Math.max(0, height - safeArea.bottom - dockHeight);
+    // iOS browsers can report a zero safe-area inset while their bottom
+    // gesture chrome still owns the final screen pixels. Keep the usable
+    // controls above that cancellation-prone strip on every touch browser.
+    const bottomInset = Math.max(safeArea.bottom, compact ? 18 : 20);
+    const dockBottom = height - bottomInset;
+    const dockTop = Math.max(0, dockBottom - dockHeight);
     const rowGap = compact ? 8 : 10;
     const secondarySize = compact ? 42 : 46;
     const primarySize = compact ? 48 : 52;
@@ -108,7 +113,7 @@ export function getMobileControlLayout({
     const rightX = width - safeArea.right - edge - maxSize / 2;
     const leftX = rightX - maxSize - rowGap;
     const topY = dockTop + edge + maxSize / 2;
-    const bottomY = height - safeArea.bottom - edge - maxSize / 2;
+    const bottomY = dockBottom - edge - maxSize / 2;
     const joystickRadius = compact ? 44 : 48;
     const joystickX = safeArea.left + edge + joystickRadius;
     const leftShelfRight = Math.round(Math.min(
@@ -125,7 +130,8 @@ export function getMobileControlLayout({
         edge,
         dockHeight,
         dockTop,
-        dockBottom: height - safeArea.bottom,
+        dockBottom,
+        bottomInset,
         safeArea,
         secondarySize,
         primarySize,

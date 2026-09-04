@@ -464,6 +464,10 @@ describe('release test gate', () => {
         expect(source).toContain('playable Sanctuary after onboarding');
         expect(source).toContain('first Sanctuary joystick movement');
         expect(source).toContain('first Sanctuary joystick release');
+        expect(source).toContain('first Sanctuary downward joystick movement');
+        expect(source).toContain('first Sanctuary downward joystick release');
+        expect(source).toContain('first Sanctuary hamburger opens on touch down');
+        expect(source).toContain('Network.setUserAgentOverride');
         expect(source).toContain('First Sanctuary controls did not reach live play');
         expect(release).toContain("SMOKE_MODE: 'first-sanctuary'");
         expect(release).toContain("SMOKE_VIEWPORT_WIDTH: '390'");

@@ -22,6 +22,7 @@ const SMOKE_TOUCH_PROTOCOL = process.env.SMOKE_TOUCH_PROTOCOL || 'dispatch';
 const SMOKE_SKIP_PREVIEW = process.env.SMOKE_SKIP_PREVIEW === '1';
 const SMOKE_VIEWPORT_WIDTH = Number(process.env.SMOKE_VIEWPORT_WIDTH) || 390;
 const SMOKE_VIEWPORT_HEIGHT = Number(process.env.SMOKE_VIEWPORT_HEIGHT) || 844;
+const SMOKE_USER_AGENT = process.env.SMOKE_USER_AGENT || '';
 const SMOKE_ENTRY_HASH = process.env.SMOKE_ENTRY_HASH === 'hatch-challenge'
     ? '#hatch-challenge'
     : '';
@@ -10683,6 +10684,113 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         })}`);
     }
 
+    const downwardStart = await evaluate(session, `(() => {
+        const scene = window.mythicalGame?.scene?.getScene('GameScene');
+        const controls = scene?.mobileControls;
+        const canvasBounds = scene?.game?.canvas?.getBoundingClientRect?.();
+        if (!scene?.player?.body || !controls || !canvasBounds) return null;
+        const toClientX = value => canvasBounds.left +
+            (value / scene.scale.width) * canvasBounds.width;
+        const toClientY = value => canvasBounds.top +
+            (value / scene.scale.height) * canvasBounds.height;
+        const dragDistance = Math.max(28, Math.min(controls.joystickMaxDistance, 44));
+        return {
+            start: {
+                x: Math.round(toClientX(controls.joystickCenterX)),
+                y: Math.round(toClientY(controls.joystickCenterY))
+            },
+            end: {
+                x: Math.round(toClientX(controls.joystickCenterX)),
+                y: Math.round(toClientY(controls.joystickCenterY + dragDistance))
+            },
+            playerY: scene.player.y
+        };
+    })()`);
+    if (!downwardStart) {
+        throw new Error('Playable Sanctuary did not expose a downward joystick route');
+    }
+
+    let downwardMovement;
+    try {
+        await holdTouchDrag(session, downwardStart.start, downwardStart.end, 300);
+        downwardMovement = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame?.scene?.getScene('GameScene');
+                if (!scene || scene.joystickY <= 0.2) return null;
+                return {
+                    inputY: scene.joystickY,
+                    velocityY: scene.player?.body?.velocity?.y,
+                    playerY: scene.player?.y,
+                    joystickActive: scene.mobileControls?.joystickActive === true,
+                    inputSource: scene.mobileControls?.joystickInputSource
+                };
+            })()`),
+            { timeoutMs: 1500, message: 'first Sanctuary downward joystick movement' }
+        );
+    } finally {
+        await releaseTouch(session);
+    }
+
+    const downwardReleased = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene('GameScene');
+            if (
+                !scene ||
+                Math.abs(scene.joystickX) > 0.01 ||
+                Math.abs(scene.joystickY) > 0.01 ||
+                scene.mobileControls?.joystickActive
+            ) return null;
+            return true;
+        })()`),
+        { timeoutMs: 1500, message: 'first Sanctuary downward joystick release' }
+    );
+    if (
+        !downwardMovement?.joystickActive ||
+        downwardMovement.velocityY <= 20 ||
+        downwardMovement.playerY <= downwardStart.playerY + 1 ||
+        !downwardReleased
+    ) {
+        throw new Error(`First Sanctuary downward controls did not move the player: ${JSON.stringify({
+            downwardStart,
+            downwardMovement,
+            downwardReleased
+        })}`);
+    }
+
+    const hamburgerPoint = await evaluate(session, `(() => {
+        const scene = window.mythicalGame?.scene?.getScene('GameScene');
+        const button = scene?.hamburgerMenu?.menuButton;
+        const canvasBounds = scene?.game?.canvas?.getBoundingClientRect?.();
+        if (!button || !canvasBounds) return null;
+        return {
+            x: Math.round(canvasBounds.left + (button.x / scene.scale.width) * canvasBounds.width),
+            y: Math.round(canvasBounds.top + (button.y / scene.scale.height) * canvasBounds.height)
+        };
+    })()`);
+    if (!hamburgerPoint) {
+        throw new Error('Playable Sanctuary did not expose the hamburger touch target');
+    }
+    try {
+        await holdTouchDrag(session, hamburgerPoint, hamburgerPoint, 50);
+        await waitFor(
+            () => evaluate(session, `(
+                window.mythicalGame?.scene?.getScene('GameScene')?.hamburgerMenu?.isOpen === true
+            )`),
+            { timeoutMs: 1500, message: 'first Sanctuary hamburger opens on touch down' }
+        );
+    } finally {
+        await releaseTouch(session);
+    }
+    const hamburgerOpened = await evaluate(session, `(() => {
+        const menu = window.mythicalGame?.scene?.getScene('GameScene')?.hamburgerMenu;
+        const opened = menu?.isOpen === true;
+        menu?.close?.();
+        return opened;
+    })()`);
+    if (!hamburgerOpened) {
+        throw new Error('First Sanctuary hamburger did not open from a touch press');
+    }
+
     return {
         naming,
         pendingReveal,
@@ -10691,7 +10799,9 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         storyAdvanceMs,
         controlsReadyMs,
         gameplay,
-        movement
+        movement,
+        downwardMovement,
+        hamburgerOpened
     };
 }
 
@@ -21202,6 +21312,11 @@ async function main() {
         await session.call('Runtime.enable');
         await session.call('Log.enable');
         await session.call('Network.enable');
+        if (SMOKE_USER_AGENT) {
+            await session.call('Network.setUserAgentOverride', {
+                userAgent: SMOKE_USER_AGENT
+            });
+        }
         await session.call('Page.bringToFront');
         await session.call('Emulation.setFocusEmulationEnabled', {
             enabled: true

@@ -292,6 +292,71 @@ describe('MobileControls pointer ownership', () => {
         expect(moveEvent.preventDefault).toHaveBeenCalled();
     });
 
+    test('uses only native touch ownership for iOS joystick drags', () => {
+        const MobileControls = loadMobileControls({
+            navigator: {
+                maxTouchPoints: 5,
+                userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0) CriOS/140.0 Mobile'
+            }
+        });
+        const { scene, events } = createScene();
+        const controls = new MobileControls(scene);
+        attachControlFixtures(controls);
+        controls.setupCanvasJoystickInput();
+
+        const pointerDown = events.find(evt => evt.type === 'pointerdown');
+        const touchStart = events.find(evt => evt.type === 'touchstart');
+        const pointerUp = events.find(evt => evt.type === 'pointerup');
+
+        pointerDown.handler({
+            pointerId: 1,
+            pointerType: 'touch',
+            preventDefault: jest.fn(),
+            stopImmediatePropagation: jest.fn()
+        });
+        expect(controls.joystickActive).toBe(false);
+
+        touchStart.handler({
+            changedTouches: [{ identifier: 1, clientX: 40, clientY: 780 }],
+            preventDefault: jest.fn(),
+            stopImmediatePropagation: jest.fn()
+        });
+        expect(controls.joystickActive).toBe(true);
+        expect(controls.joystickInputSource).toBe('touch');
+
+        pointerUp.handler({
+            pointerId: 1,
+            pointerType: 'touch',
+            preventDefault: jest.fn(),
+            stopImmediatePropagation: jest.fn()
+        });
+        expect(controls.joystickActive).toBe(true);
+    });
+
+    test('keeps pointer ownership for Android touch input', () => {
+        const MobileControls = loadMobileControls({
+            navigator: {
+                maxTouchPoints: 5,
+                userAgent: 'Mozilla/5.0 (Linux; Android 13; SM-S901B) Chrome/140 Mobile'
+            }
+        });
+        const { scene, events } = createScene();
+        const controls = new MobileControls(scene);
+        attachControlFixtures(controls);
+        controls.setupCanvasJoystickInput();
+
+        events.find(evt => evt.type === 'pointerdown').handler({
+            pointerId: 7,
+            pointerType: 'touch',
+            preventDefault: jest.fn(),
+            stopImmediatePropagation: jest.fn()
+        });
+
+        expect(controls.joystickActive).toBe(true);
+        expect(controls.activePointerId).toBe(7);
+        expect(controls.joystickInputSource).toBe('pointer');
+    });
+
     test('only resets joystick when the active pointer ends', () => {
         const MobileControls = loadMobileControls();
         const { scene, events } = createScene();
