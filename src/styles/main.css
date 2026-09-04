@@ -16,6 +16,25 @@
   --sar: env(safe-area-inset-right, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px);
+  --mvw: 100vw;
+  --mvh: 100dvh;
+  --mvo-top: 0px;
+  --mvo-right: 0px;
+  --mvo-bottom: 0px;
+  --mvo-left: 0px;
+}
+
+.game-render-recovery {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    color: #ffffff;
+    background: #071517;
+    font: 700 18px/1.4 Arial, sans-serif;
+    text-align: center;
 }
 
 /* Base styles */

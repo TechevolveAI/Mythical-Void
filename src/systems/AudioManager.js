@@ -23,6 +23,8 @@ class AudioManager {
         // Mobile audio unlock state
         this.audioUnlocked = false;
         this.unlockHandler = null;
+        this.audioVisibilityHandler = null;
+        this.audioPageShowHandler = null;
     }
 
     /**
@@ -86,6 +88,7 @@ class AudioManager {
 
             // Set up mobile audio unlock (auto-resume on first user interaction)
             this.setupMobileAudioUnlock();
+            this.setupAudioLifecycleRecovery();
 
             this.initialized = true;
             console.log('✅ AudioManager initialized');
@@ -101,15 +104,20 @@ class AudioManager {
     setupMobileAudioUnlock() {
         if (!this.audioContext) return;
 
+        this.removeUnlockListeners();
+        this.audioUnlocked = this.audioContext.state === 'running';
+
         // Create unlock handler that resumes audio context on first interaction
         this.unlockHandler = () => {
-            if (this.audioUnlocked) return;
+            if (this.audioUnlocked && this.audioContext?.state === 'running') return;
 
-            if (this.audioContext && this.audioContext.state === 'suspended') {
+            if (this.audioContext && ['suspended', 'interrupted'].includes(this.audioContext.state)) {
                 this.audioContext.resume().then(() => {
                     console.log('[AudioManager] 🔊 Audio unlocked on mobile');
                     this.audioUnlocked = true;
                     this.removeUnlockListeners();
+                }).catch(() => {
+                    this.audioUnlocked = false;
                 });
             } else {
                 this.audioUnlocked = true;
@@ -124,6 +132,25 @@ class AudioManager {
         });
 
         console.log('[AudioManager] Mobile audio unlock listeners added');
+    }
+
+    setupAudioLifecycleRecovery() {
+        if (!this.audioContext || typeof document === 'undefined') return;
+
+        this.audioVisibilityHandler = () => {
+            if (document.visibilityState !== 'visible') return;
+            this.rearmAudioAfterInterruption();
+        };
+        this.audioPageShowHandler = () => this.rearmAudioAfterInterruption();
+
+        document.addEventListener('visibilitychange', this.audioVisibilityHandler);
+        window.addEventListener?.('pageshow', this.audioPageShowHandler);
+    }
+
+    rearmAudioAfterInterruption() {
+        if (!this.audioContext || this.audioContext.state === 'running') return;
+        this.audioUnlocked = false;
+        this.setupMobileAudioUnlock();
     }
 
     /**
@@ -3343,6 +3370,14 @@ class AudioManager {
 
         // Remove mobile audio unlock listeners
         this.removeUnlockListeners();
+        if (this.audioVisibilityHandler) {
+            document.removeEventListener('visibilitychange', this.audioVisibilityHandler);
+            this.audioVisibilityHandler = null;
+        }
+        if (this.audioPageShowHandler) {
+            window.removeEventListener?.('pageshow', this.audioPageShowHandler);
+            this.audioPageShowHandler = null;
+        }
 
         // Clear music nodes
         this.musicNodes = null;

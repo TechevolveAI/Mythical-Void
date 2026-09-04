@@ -1789,7 +1789,8 @@ class HatchingScene extends Phaser.Scene {
 
         // Get rarity-specific effects configuration
         const rarityKey = this.creatureDNA?.raritySignature || 'common';
-        const rarityConfig = this.rarityConfig?.[rarityKey] || this.rarityConfig?.common || {};
+        const rarityConfigKey = rarityKey === 'uncommon' ? 'unusual' : rarityKey;
+        const rarityConfig = this.rarityConfig?.[rarityConfigKey] || this.rarityConfig?.common || {};
         const hatchEffects = rarityConfig.hatchingEffects || {};
         const celebrationMsg = rarityConfig.celebrationMessage ||
             'First contact confirmed. A living creature has answered.';
@@ -2530,37 +2531,15 @@ class HatchingScene extends Phaser.Scene {
                 genetics: this.creatureGenetics,
                 rarity: this.creatureGenetics.rarity
             });
-
-            // Show rarity announcement and reroll options
-            this.time.delayedCall(1500, () => {
-                console.log('hatch:info [HatchingScene] Showing rarity reveal and reroll options');
-                this.showRarityReveal();
-                this.showRerollOptions();
-            });
-        } else {
-            // Fallback: Show old adventure text behavior
-            console.warn('hatch:warn [HatchingScene] RerollSystem not available, using simple transition');
-            this.time.delayedCall(1500, () => {
-                // MOBILE-RESPONSIVE continue text
-                const { width, height } = this.scale;
-                const centerX = width / 2;
-                const fontSize = Math.max(16, Math.min(20, width * 0.048));
-
-                const continueText = this.add.text(centerX, height * 0.88, '✨ Press SPACE to continue! ✨', {
-                    fontSize: `${fontSize}px`,
-                    color: '#FFD54F',
-                    stroke: '#000000',
-                    strokeThickness: 2,
-                    wordWrap: { width: width * 0.9 }
-                }).setOrigin(0.5);
-
-                this.tweens.add({
-                    targets: continueText,
-                    alpha: { from: 0, to: 1 },
-                    duration: 500
-                });
-            });
         }
+
+        // Classification is local game data and must never disappear because an
+        // optional reroll or hosted-media service is unavailable.
+        this.time.delayedCall(650, () => {
+            console.log('hatch:info [HatchingScene] Showing classification and genetic trait');
+            this.showRarityReveal();
+            this.showRerollOptions();
+        });
 
         console.log('hatch:info [HatchingScene] === showCreature() complete ===');
     }
@@ -3585,7 +3564,7 @@ class HatchingScene extends Phaser.Scene {
             bannerBg.lineStyle(1, parseInt(rarityInfo.displayColor.replace('#', '0x')), 0.8);
             bannerBg.strokeRoundedRect(bannerX, bannerY, bannerWidth, bannerHeight, 8);
 
-            const eyebrowText = this.add.text(centerX, bannerY + (isCompact ? 17 : 16), 'FIRST CONTACT', {
+            const eyebrowText = this.add.text(centerX, bannerY + (isCompact ? 17 : 16), 'FIELD CLASSIFICATION', {
                 fontSize: `${isCompact ? 10 : 11}px`,
                 color: '#8FE3D4',
                 fontStyle: 'bold',
@@ -3593,7 +3572,7 @@ class HatchingScene extends Phaser.Scene {
             }).setOrigin(0.5);
 
             // Rarity title
-            const rarityText = this.add.text(centerX, bannerY + (bannerHeight * 0.45), 'FIELD CLASSIFICATION', {
+            const rarityText = this.add.text(centerX, bannerY + (bannerHeight * 0.43), `${rarityInfo.name.toUpperCase()} SIGNAL`, {
                 fontSize: `${titleSize}px`,
                 color: rarityInfo.displayColor,
                 fontStyle: 'bold',
@@ -3607,7 +3586,11 @@ class HatchingScene extends Phaser.Scene {
                 .replace(/([a-z])([A-Z])/g, '$1 $2')
                 .replace(/[_-]+/g, ' ')
                 .replace(/\b\w/g, letter => letter.toUpperCase());
-            const speciesText = this.add.text(centerX, bannerY + (bannerHeight * 0.76), `${rarityInfo.name.toUpperCase()} LIFE FORM · ${formatFieldTerm(this.creatureGenetics.species)} · ${formatFieldTerm(this.creatureGenetics.personality.core)}`, {
+            const specialFeature = this.creatureGenetics.traits?.features?.specialFeatures?.[0]?.type ||
+                this.creatureGenetics.traits?.features?.wackyMutations?.[0]?.type ||
+                this.creatureGenetics.cosmicAffinity?.element ||
+                this.creatureGenetics.personality?.core;
+            const speciesText = this.add.text(centerX, bannerY + (bannerHeight * 0.75), `${formatFieldTerm(this.creatureGenetics.species)} · ${formatFieldTerm(this.creatureGenetics.personality?.core)}\nGENETIC TRAIT · ${formatFieldTerm(specialFeature)}`, {
                 fontSize: `${subtitleSize}px`,
                 color: '#FFFFFF',
                 fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif',
@@ -3648,18 +3631,15 @@ class HatchingScene extends Phaser.Scene {
      */
     showRerollOptions() {
         try {
-            if (!window.rerollSystem) {
-                console.error('hatch:error [HatchingScene] RerollSystem not available');
-                return;
-            }
-
             if (!this.creatureGenetics || !this.creatureGenetics.rarity) {
                 console.error('hatch:error [HatchingScene] Creature genetics or rarity missing for reroll options');
                 return;
             }
 
             // Disable reroll for egg hatching
-            const canReroll = this.isEggHatch ? false : window.rerollSystem.canReroll();
+            const canReroll = this.isEggHatch
+                ? false
+                : Boolean(window.rerollSystem?.canReroll?.());
 
             console.log('hatch:info [HatchingScene] Reroll check:', {
                 isEggHatch: this.isEggHatch,
@@ -3877,7 +3857,7 @@ class HatchingScene extends Phaser.Scene {
         this.cleanupRerollUI();
 
         // End reroll session
-        window.rerollSystem.endHatchSession();
+        window.rerollSystem?.endHatchSession?.();
 
         const { width, height } = this.scale;
         const confirmText = this.add.text(width / 2, height * 0.7, 'CONTACT CONFIRMED', {

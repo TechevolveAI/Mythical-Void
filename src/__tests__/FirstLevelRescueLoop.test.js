@@ -436,6 +436,8 @@ describe('first expedition rescue loop', () => {
         expect(source).toContain('this.canActivateOrderedRouteSignal(');
         expect(source).toContain('this.beaconAnchorsActivated++');
         expect(source).toContain('this.forestRouteAligned = true');
+        expect(source).toContain('this.beginAutomaticGuardianAwakening(checkpoint);');
+        expect(source).toContain('ALL THREE BEACONS ANSWERED');
         expect(bossArena).toContain('if (!this.forestRouteAligned)');
         expect(bossArena).toContain(
             'Walk through the 3 glowing Beacons in order.'
@@ -677,7 +679,7 @@ describe('first expedition rescue loop', () => {
 
         expect(source).toContain('Free the guardian and recover the Forest Core');
         expect(source).toContain('STRIKE PURPLE CORRUPTION // FREE THE GUARDIAN');
-        expect(source).toContain('THE GUARDIAN IS IN PAIN');
+        expect(source).toContain('THE GUARDIAN AWAKENS');
         expect(source).toContain('ELDER TREANT RESTORED');
         expect(source).toContain("Guardian's Gift: Forest Core");
         expect(source).not.toContain(

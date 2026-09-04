@@ -18,7 +18,8 @@ function loadRescuedResidents() {
                 getPendingRescuedResidentArrival,
                 acknowledgeRescuedResidentArrival,
                 interactWithRescuedResident,
-                getRescuedResidentByLevel
+                getRescuedResidentByLevel,
+                getRescuedResidentGenetics
             };
         `);
     const sandbox = {
@@ -73,12 +74,44 @@ describe('RescuedResidents', () => {
             'finalVoid'
         ]);
         residents.RESCUED_RESIDENT_DEFINITIONS.forEach(entry => {
-            expect(entry.artwork).toMatch(/\.webp$/);
+            expect(['rare', 'epic', 'legendary']).toContain(entry.visualRarity);
+            expect(entry.signatureTrait).toBeTruthy();
             expect(entry.role).toBeTruthy();
             expect(entry.releaseLine).toBeTruthy();
             expect(entry.sanctuaryLine).toBeTruthy();
             expect(entry.supportLabel).toBeTruthy();
         });
+    });
+
+    test('derives a stable rare Phaser identity from player genetics', () => {
+        const gameState = createGameState();
+        gameState.state.creature = {
+            genetics: {
+                id: 'player-23',
+                rarity: 'common',
+                species: 'nebulaSprite',
+                traits: {
+                    bodyShape: { type: 'balanced', intensity: 0.5 },
+                    colorGenome: {
+                        primary: 0x123456,
+                        secondary: 0x654321,
+                        accent: 0xFFFFFF,
+                        shimmerIntensity: 0.2
+                    },
+                    features: { specialFeatures: [], wackyMutations: [] }
+                },
+                personality: { core: 'playful' },
+                cosmicAffinity: { element: 'star', powerLevel: 0.4 }
+            }
+        };
+
+        const first = residents.getRescuedResidentGenetics(gameState, 'bloom');
+        const second = residents.getRescuedResidentGenetics(gameState, 'bloom');
+        expect(first).toEqual(second);
+        expect(first.id).toBe('resident_bloom_v1');
+        expect(first.rarity).toBe('rare');
+        expect(first.traits.colorGenome.primary).toBe(0xE7A3C7);
+        expect(first.traits.features.specialFeatures[0].type).toBe('root_resonance');
     });
 
     test('records a rescue once and persists its release history', () => {
@@ -146,7 +179,7 @@ describe('RescuedResidents', () => {
         expect(residents.getPendingRescuedResidentArrival(gameState)).toBeNull();
         expect(gameState.state.world.rescuedResidents).toEqual(
             expect.objectContaining({
-                schemaVersion: 3,
+                schemaVersion: 4,
                 sanctuaryArrivalSeenIds: ['bloom'],
                 lastSanctuaryArrivalId: 'bloom',
                 lastSanctuaryArrivalAt: '2026-08-10T12:05:00.000Z'

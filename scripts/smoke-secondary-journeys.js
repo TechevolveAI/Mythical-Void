@@ -9726,6 +9726,7 @@ async function smokeLateLivingFormArrival(session, exceptions) {
         () => evaluate(session, `(() => {
             const root = document.querySelector('[data-testid="living-form-handoff"]');
             const image = root?.querySelector('.living-form-image.is-ready');
+            const source = root?.querySelector('.living-form-source')?.textContent?.trim();
             const action = document.querySelector(
                 '[data-testid="living-form-mobile-continue"]'
             ) || root?.querySelector('[data-testid="living-form-continue"]');

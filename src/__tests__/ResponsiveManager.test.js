@@ -47,6 +47,36 @@ describe('ResponsiveManager', () => {
         expect(text.setFontSize).not.toHaveBeenCalled();
     });
 
+    test('does not resize WebGL while the mobile keyboard changes the visual viewport', () => {
+        const manager = new ResponsiveManager();
+        const game = createGame();
+        manager.game = game;
+        manager.lastGameSize = { width: 390, height: 844 };
+        window.mobileViewportController = {
+            update: () => ({
+                layoutWidth: 390,
+                layoutHeight: 844,
+                visualWidth: 390,
+                visualHeight: 470,
+                keyboardOpen: true,
+                bottomOcclusion: 374
+            })
+        };
+
+        manager.handleResize();
+
+        expect(game.scale.resize).not.toHaveBeenCalled();
+        expect(game.events.emit).toHaveBeenCalledWith(
+            'resize',
+            expect.objectContaining({
+                width: 390,
+                height: 844,
+                viewportState: expect.objectContaining({ keyboardOpen: true })
+            })
+        );
+        delete window.mobileViewportController;
+    });
+
     test('does not synthesize mouse events from native touch input', () => {
         const manager = new ResponsiveManager();
         manager.addTouchStyles = jest.fn(() => false);

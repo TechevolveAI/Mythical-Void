@@ -1,4 +1,4 @@
-export const RESCUED_RESIDENTS_SCHEMA_VERSION = 3;
+export const RESCUED_RESIDENTS_SCHEMA_VERSION = 4;
 
 export const RESCUED_RESIDENT_DEFINITIONS = Object.freeze([
     Object.freeze({
@@ -7,8 +7,8 @@ export const RESCUED_RESIDENT_DEFINITIONS = Object.freeze([
         name: 'Bloom',
         role: 'Root Forager',
         kind: 'bloom',
-        artwork: '/marketing/bloom%202.webp',
-        textureKey: 'rescued-resident-bloom-art',
+        visualRarity: 'rare',
+        signatureTrait: 'root resonance',
         color: 0xE7A3C7,
         accent: 0x71E6B1,
         releaseLine: 'The cage was blocking the root paths Bloom uses to carry food between shelters.',
@@ -25,8 +25,8 @@ export const RESCUED_RESIDENT_DEFINITIONS = Object.freeze([
         name: 'Pebble',
         role: 'Shard Finder',
         kind: 'pebble',
-        artwork: '/marketing/pebble%202.webp',
-        textureKey: 'rescued-resident-pebble-art',
+        visualRarity: 'rare',
+        signatureTrait: 'crystal memory',
         color: 0xB98A68,
         accent: 0x63E5E8,
         releaseLine: 'Pebble knows which loose crystals are safe to gather and which are still alive.',
@@ -43,8 +43,8 @@ export const RESCUED_RESIDENT_DEFINITIONS = Object.freeze([
         name: 'Zephyr',
         role: 'Current Courier',
         kind: 'zephyr',
-        artwork: '/marketing/zephyr%202.webp',
-        textureKey: 'rescued-resident-zephyr-art',
+        visualRarity: 'epic',
+        signatureTrait: 'current wake',
         color: 0xE98843,
         accent: 0x49E6D3,
         releaseLine: 'Zephyr carried warnings between reef settlements until the broken Current trapped them.',
@@ -61,8 +61,8 @@ export const RESCUED_RESIDENT_DEFINITIONS = Object.freeze([
         name: 'Wisp',
         role: 'Ridge Lookout',
         kind: 'wisp',
-        artwork: '/marketing/wisp%202.webp',
-        textureKey: 'rescued-resident-wisp-art',
+        visualRarity: 'rare',
+        signatureTrait: 'void refraction',
         color: 0x8C77C8,
         accent: 0xF2C14E,
         releaseLine: 'Wisp was contained for warning travelers away from unstable ridge crossings.',
@@ -79,8 +79,8 @@ export const RESCUED_RESIDENT_DEFINITIONS = Object.freeze([
         name: 'Luna',
         role: 'Aurora Surveyor',
         kind: 'luna',
-        artwork: '/marketing/luna%202.webp',
-        textureKey: 'rescued-resident-luna-art',
+        visualRarity: 'epic',
+        signatureTrait: 'aurora sight',
         color: 0x53A6D8,
         accent: 0xF4D35E,
         releaseLine: 'Luna can read warm sky lanes the extraction instruments register only as waste heat.',
@@ -97,8 +97,8 @@ export const RESCUED_RESIDENT_DEFINITIONS = Object.freeze([
         name: 'Nova',
         role: 'Memory Keeper',
         kind: 'nova',
-        artwork: '/marketing/nova%202.webp',
-        textureKey: 'rescued-resident-nova-art',
+        visualRarity: 'legendary',
+        signatureTrait: 'memory current',
         color: 0x8FE3CF,
         accent: 0xF2C14E,
         releaseLine: 'Nova kept the names of lives the extraction record reduced to empty coordinates.',
@@ -117,6 +117,61 @@ const RESIDENT_BY_LEVEL = new Map(
 const RESIDENT_BY_ID = new Map(
     RESCUED_RESIDENT_DEFINITIONS.map(resident => [resident.id, resident])
 );
+
+function cloneValue(value) {
+    if (!value || typeof value !== 'object') return value;
+    return JSON.parse(JSON.stringify(value));
+}
+
+function getPlayerGenetics(gameState) {
+    const active = gameState?.getActiveCreature?.();
+    return active?.genes ||
+        gameState?.get?.('creature.genetics') ||
+        gameState?.get?.('creature.genes') ||
+        null;
+}
+
+export function getRescuedResidentGenetics(gameState, residentOrId) {
+    const resident = typeof residentOrId === 'string'
+        ? RESIDENT_BY_ID.get(residentOrId)
+        : residentOrId;
+    const source = getPlayerGenetics(gameState);
+    if (!resident || !source?.traits?.colorGenome || !source?.traits?.features) {
+        return null;
+    }
+
+    const genetics = cloneValue(source);
+    const originalColors = genetics.traits.colorGenome;
+    genetics.id = `resident_${resident.id}_v1`;
+    genetics.rarity = resident.visualRarity;
+    genetics.generatedAt = genetics.generatedAt || 0;
+    genetics.traits.colorGenome = {
+        ...originalColors,
+        primary: resident.color,
+        secondary: resident.accent,
+        accent: originalColors.accent ?? 0xF2C14E,
+        shimmerIntensity: Math.max(0.65, Number(originalColors.shimmerIntensity) || 0)
+    };
+    genetics.traits.features = {
+        ...genetics.traits.features,
+        specialFeatures: [{
+            type: resident.signatureTrait.replaceAll(' ', '_'),
+            intensity: resident.visualRarity === 'legendary' ? 1 : 0.82,
+            variant: resident.id,
+            animation: 'pulse'
+        }]
+    };
+    genetics.personality = {
+        ...(genetics.personality || {}),
+        core: resident.villageTraits[0]
+    };
+    genetics.cosmicAffinity = {
+        ...(genetics.cosmicAffinity || {}),
+        element: resident.villageTraits[2],
+        powerLevel: resident.visualRarity === 'legendary' ? 1 : 0.82
+    };
+    return genetics;
+}
 
 function normalizeTimestamp(value) {
     return typeof value === 'string' && value.trim()
@@ -196,6 +251,7 @@ export function getRescuedResidentSnapshot(gameState) {
         .filter(resident => state.rescuedIds.includes(resident.id))
         .map(resident => ({
             ...resident,
+            genetics: getRescuedResidentGenetics(gameState, resident),
             interactionCount: state.interactions[resident.id] || 0,
             residencyStatus: state.residency[resident.id]?.status || 'resident',
             arrivedAt: state.residency[resident.id]?.arrivedAt || null
@@ -225,6 +281,7 @@ export function getRescuedResidentSnapshot(gameState) {
         state,
         residents: RESCUED_RESIDENT_DEFINITIONS.map(resident => ({
             ...resident,
+            genetics: getRescuedResidentGenetics(gameState, resident),
             rescued: state.rescuedIds.includes(resident.id),
             interactionCount: state.interactions[resident.id] || 0,
             residencyStatus: state.residency[resident.id]?.status || null,
@@ -265,7 +322,10 @@ export function recordRescuedResident(gameState, levelId, {
     }
     return {
         changed,
-        resident,
+        resident: {
+            ...resident,
+            genetics: getRescuedResidentGenetics(gameState, resident)
+        },
         snapshot: getRescuedResidentSnapshot(gameState)
     };
 }
@@ -353,6 +413,7 @@ if (typeof window !== 'undefined') {
         getPendingRescuedResidentArrival,
         acknowledgeRescuedResidentArrival,
         interactWithRescuedResident,
-        getRescuedResidentByLevel
+        getRescuedResidentByLevel,
+        getRescuedResidentGenetics
     };
 }

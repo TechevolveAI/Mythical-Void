@@ -26,6 +26,7 @@ import './utils/Logger.js';
 import './utils/DevTools.js';
 import './utils/SceneLoader.js';
 import './utils/ChunkPreloader.js';
+import './utils/WebGLContextGuard.js';
 
 // ============================================
 // CONFIGURATION
@@ -40,6 +41,7 @@ import './systems/ErrorHandler.js';
 import './systems/InputValidator.js';
 import './systems/UITheme.js';
 import './systems/MemoryManager.js';
+import './systems/MobileViewportController.js';
 import './systems/ResponsiveManager.js';
 import './systems/UXEnhancements.js';
 import './systems/FusionConsent.js';

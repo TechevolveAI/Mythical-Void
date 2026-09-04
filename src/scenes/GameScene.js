@@ -491,20 +491,6 @@ class GameScene extends Phaser.Scene {
             }
         });
 
-        const rescuedResidentIds = new Set(
-            getRescuedResidentSnapshot(window.GameState)
-                .rescued
-                .map(resident => resident.id)
-        );
-        RESCUED_RESIDENT_DEFINITIONS.forEach(resident => {
-            if (
-                rescuedResidentIds.has(resident.id) &&
-                !this.textures.exists(resident.textureKey)
-            ) {
-                this.load.image(resident.textureKey, resident.artwork);
-            }
-        });
-
         Object.values(VILLAGE_BUILDING_ARTWORK).forEach(artwork => {
             if (!this.textures.exists(artwork.key)) {
                 this.load.image(artwork.key, artwork.url);
@@ -10194,13 +10180,20 @@ class GameScene extends Phaser.Scene {
         );
         portraitFrame.setData('rescuedResidentPortraitFrame', true);
         elements.push(portraitFrame);
-        if (this.textures.exists(resident.textureKey)) {
+        const residentTexture = resident.genetics
+            ? this.graphicsEngine?.createRandomizedSpaceMythicCreature?.(
+                resident.genetics,
+                0,
+                'juvenile'
+            )?.textureName
+            : null;
+        if (residentTexture && this.textures.exists(residentTexture)) {
             const portrait = this.add.image(
                 portraitBounds.x + (portraitBounds.width / 2),
                 portraitBounds.y + (portraitBounds.height / 2),
-                resident.textureKey
+                residentTexture
             ).setScrollFactor(0).setDepth(depth + 2)
-                .setData('rescuedResidentAuthoredPortrait', true);
+                .setData('rescuedResidentRuntimeCreature', true);
             portrait.setScale(Math.min(
                 (portraitBounds.width - 10) / Math.max(1, portrait.width),
                 (portraitBounds.height - 10) / Math.max(1, portrait.height)
