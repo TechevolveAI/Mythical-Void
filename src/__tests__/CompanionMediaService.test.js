@@ -164,6 +164,46 @@ describe('CompanionMediaService', () => {
         ]);
     });
 
+    test('reports a completed generated video until that creature has viewed it', () => {
+        const portrait = {
+            identityKey: 'identity-23',
+            stage: 'baby',
+            assetRef: 'portrait-job-v1:42e1e046-c676-4fb9-91c9-1575dcb094ee'
+        };
+        const gameState = createGameState(portrait);
+        const { CompanionMediaService } = loadCompanionMediaService({
+            GameState: gameState
+        });
+        const service = new CompanionMediaService();
+
+        service.saveVideoRecord('first_forest_arrival', portrait, {
+            assetRef: 'video-job-v1:824363b2-d374-4b44-bf7f-1d7a177fa074',
+            status: 'succeeded',
+            provider: 'replicate',
+            model: 'google/veo-3.1-fast',
+            shotVersion: 1
+        });
+
+        expect(service.hasUnviewedGeneratedVideo('first_forest_arrival'))
+            .toBe(true);
+
+        service.recordAppearance(
+            'first_forest_arrival',
+            portrait,
+            'motion_still'
+        );
+        expect(service.hasUnviewedGeneratedVideo('first_forest_arrival'))
+            .toBe(true);
+
+        service.recordAppearance(
+            'first_forest_arrival',
+            portrait,
+            'generated_video'
+        );
+        expect(service.hasUnviewedGeneratedVideo('first_forest_arrival'))
+            .toBe(false);
+    });
+
     test('loads the portrait once as a scene texture and creates a moving tableau', async () => {
         const portrait = {
             identityKey: 'identity-23',

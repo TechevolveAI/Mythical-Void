@@ -165,6 +165,22 @@ class CompanionMediaService {
         ));
     }
 
+    hasUnviewedGeneratedVideo(momentId, record = null) {
+        if (!this.isVideoGenerationEnabled()) return false;
+        const portraitRecord = record || window.GameState?.getCreaturePortrait?.();
+        if (!portraitRecord?.identityKey) return false;
+
+        const state = this.getState();
+        const video = this.getVideoRecord(momentId, portraitRecord.identityKey);
+        if (video?.status !== 'succeeded') return false;
+
+        return !Object.values(state.appearances).some(appearance => (
+            appearance.momentId === momentId &&
+            appearance.identityKey === portraitRecord.identityKey &&
+            appearance.renderMode === 'generated_video'
+        ));
+    }
+
     async resolvePortrait(stage = null) {
         const record = window.GameState?.getCreaturePortrait?.(stage);
         if (!record) return null;
