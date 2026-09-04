@@ -30,6 +30,9 @@ describe('rescued resident gameplay contract', () => {
         expect(worldBuilder).toContain("'COMMUNITY'");
         expect(worldBuilder).toContain('zone.body?.updateFromGameObject?.()');
         expect(worldBuilder).toContain("'single_world_location_v2'");
+        expect(worldBuilder).toContain('createRandomizedSpaceMythicCreature?.(');
+        expect(gameScene).toContain(".setData('rescuedResidentRuntimeCreature', true)");
+        expect(platformer).not.toContain('rescuedResident.resident.artwork');
         expect(worldBuilder).toContain('presence.representedInVillage && !arrivalPending');
         expect(gameScene).toContain('this.refreshSanctuaryResidentPresence(nextSnapshot);');
         expect(gameState).toContain('rescuedResidents: {');
@@ -63,7 +66,7 @@ describe('rescued resident gameplay contract', () => {
         expect(gameScene).toContain('THEIR WORK CHANGES THE NEXT EXPEDITION');
         expect(gameScene).toContain('resident.contributionLine');
         expect(gameScene).toContain('LIVES IN THE MEMORY GARDEN');
-        expect(gameScene).toContain(".setData('rescuedResidentAuthoredPortrait', true)");
+        expect(gameScene).toContain(".setData('rescuedResidentRuntimeCreature', true)");
         expect(gameScene).toContain('rescued_resident_check_in');
     });
 

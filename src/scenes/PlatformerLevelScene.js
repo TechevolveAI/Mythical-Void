@@ -487,22 +487,10 @@ class PlatformerLevelScene extends Phaser.Scene {
 
     preload() {
         this.preloadGuardianTeamSupportArtwork();
-        this.preloadRescuedResidentArtwork();
     }
 
     preloadRescuedResidentArtwork() {
-        const campaignLevelId = CAMPAIGN_LEVEL_BY_SCENE_LEVEL[this.levelId];
-        const resident = window.RescuedResidents
-            ?.getRescuedResidentByLevel?.(campaignLevelId);
-        if (
-            !resident?.artwork ||
-            !resident.textureKey ||
-            this.textures.exists(resident.textureKey)
-        ) {
-            return false;
-        }
-        this.load.image(resident.textureKey, resident.artwork);
-        return true;
+        return false;
     }
 
     preloadGuardianTeamSupportArtwork() {
@@ -8595,21 +8583,16 @@ class PlatformerLevelScene extends Phaser.Scene {
         ).setOrigin(compact ? 0.5 : 0, 0.5).setScrollFactor(0).setDepth(depth + 3);
         elements.push(header);
 
-        const pixel = this.add.graphics();
-        pixel.fillStyle(resident.color, 1);
-        pixel.fillRoundedRect(artX - 32, artY - 30, 64, 70, 12);
-        pixel.fillStyle(0xF4F4F4, 1);
-        pixel.fillCircle(artX - 13, artY - 8, 10);
-        pixel.fillCircle(artX + 13, artY - 8, 10);
-        pixel.fillStyle(0x101616, 1);
-        pixel.fillCircle(artX - 12, artY - 8, 4);
-        pixel.fillCircle(artX + 14, artY - 8, 4);
-        pixel.setScrollFactor(0).setDepth(depth + 2);
-        elements.push(pixel);
-
+        const residentTexture = resident.genetics
+            ? this.graphicsEngine?.createRandomizedSpaceMythicCreature?.(
+                resident.genetics,
+                0,
+                'juvenile'
+            )?.textureName
+            : null;
         let artwork = null;
-        if (this.textures.exists(resident.textureKey)) {
-            artwork = this.add.image(artX, artY, resident.textureKey)
+        if (residentTexture && this.textures.exists(residentTexture)) {
+            artwork = this.add.image(artX, artY, residentTexture)
                 .setScrollFactor(0)
                 .setDepth(depth + 2)
                 .setAlpha(0);
@@ -8710,7 +8693,6 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.time.delayedCall(700, () => {
             if (!this.residentReleaseOpen) return;
             this.tweens.add({ targets: cage, alpha: 0, scaleX: 1.35, duration: 500 });
-            this.tweens.add({ targets: pixel, alpha: artwork ? 0 : 1, duration: 450 });
             if (artwork) {
                 this.tweens.add({ targets: artwork, alpha: 1, duration: 700 });
             }
@@ -9106,8 +9088,7 @@ class PlatformerLevelScene extends Phaser.Scene {
                     newlyRescued: rescuedResident.changed,
                     role: rescuedResident.resident.role,
                     kind: rescuedResident.resident.kind,
-                    artwork: rescuedResident.resident.artwork,
-                    textureKey: rescuedResident.resident.textureKey,
+                    genetics: rescuedResident.resident.genetics,
                     color: rescuedResident.resident.color,
                     accent: rescuedResident.resident.accent,
                     releaseLine: rescuedResident.resident.releaseLine,

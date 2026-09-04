@@ -9531,8 +9531,18 @@ class WorldBuilder {
             const shadow = this.scene.add.ellipse(0, 20, 40, 11, 0x101616, 0.38);
             let figure;
             let figureScale = 1;
-            if (this.scene.textures.exists(definition.textureKey)) {
-                figure = this.scene.add.image(0, -3, definition.textureKey);
+            const genetics = snapshot?.residents?.find(
+                resident => resident.id === definition.id
+            )?.genetics;
+            const residentTexture = genetics
+                ? this.graphicsEngine?.createRandomizedSpaceMythicCreature?.(
+                    genetics,
+                    index % 4,
+                    'juvenile'
+                )?.textureName
+                : null;
+            if (residentTexture && this.scene.textures.exists(residentTexture)) {
+                figure = this.scene.add.image(0, -3, residentTexture);
                 figureScale = Math.min(
                     58 / Math.max(1, figure.width),
                     64 / Math.max(1, figure.height)
@@ -9676,8 +9686,15 @@ class WorldBuilder {
         });
 
         let portrait = null;
-        if (this.scene.textures.exists(resident.textureKey)) {
-            portrait = this.scene.add.image(0, -3, resident.textureKey);
+        const residentTexture = resident.genetics
+            ? this.graphicsEngine?.createRandomizedSpaceMythicCreature?.(
+                resident.genetics,
+                1,
+                'juvenile'
+            )?.textureName
+            : null;
+        if (residentTexture && this.scene.textures.exists(residentTexture)) {
+            portrait = this.scene.add.image(0, -3, residentTexture);
             const maxSize = compact ? 112 : 136;
             portrait.setScale(Math.min(
                 maxSize / Math.max(1, portrait.width),

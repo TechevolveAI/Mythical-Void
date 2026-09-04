@@ -7,11 +7,26 @@ const parseInset = (value) => {
 
 export function getSafeAreaInsets(root = document.documentElement) {
     const style = getComputedStyle(root);
+    const viewport = typeof window !== 'undefined'
+        ? window.mobileViewportController?.getSnapshot?.()
+        : null;
     return {
-        top: parseInset(style.getPropertyValue('--sat')),
-        right: parseInset(style.getPropertyValue('--sar')),
-        bottom: parseInset(style.getPropertyValue('--sab')),
-        left: parseInset(style.getPropertyValue('--sal'))
+        top: Math.max(
+            parseInset(style.getPropertyValue('--sat')),
+            Number(viewport?.offsetTop) || 0
+        ),
+        right: Math.max(
+            parseInset(style.getPropertyValue('--sar')),
+            Number(viewport?.rightOcclusion) || 0
+        ),
+        bottom: Math.max(
+            parseInset(style.getPropertyValue('--sab')),
+            viewport?.keyboardOpen ? 0 : Number(viewport?.bottomOcclusion) || 0
+        ),
+        left: Math.max(
+            parseInset(style.getPropertyValue('--sal')),
+            Number(viewport?.offsetLeft) || 0
+        )
     };
 }
 

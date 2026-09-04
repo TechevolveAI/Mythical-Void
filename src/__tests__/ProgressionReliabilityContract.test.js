@@ -59,10 +59,11 @@ describe('secondary journey reliability contract', () => {
         expect(forest).toContain("momentId: 'first_forest_arrival'");
         expect(forest).toContain('PROJECT BEACON // FIELD BRIEF');
         expect(forest).toContain("'story.projectBeacon.firstForestCinematicSeen'");
-        expect(forest).toContain('FOREST_ARRIVAL_CINEMATIC_VERSION = 2');
+        expect(forest).toContain('FOREST_ARRIVAL_CINEMATIC_VERSION = 3');
         expect(forest).toContain('CINEMATIC_MEDIA.mythicalForestArrival.url');
         expect(forest).toContain('FOREST_ARRIVAL_TEXTURE');
         expect(forest).toContain('createForestArrivalMotionBackdrop');
+        expect(forest).toContain('createRuntimeForestArrivalActors');
         expect(forest).toContain('Something is moving through the forest.');
         expect(forest).toContain('clearForestArrivalBackdrop()');
         expect(forest).toContain(

@@ -21,6 +21,8 @@ describe('first-contact hatch presentation', () => {
 
     test('treats the result as a field reading and the alternative as a rescan', () => {
         expect(sceneSource).toContain("'FIELD CLASSIFICATION'");
+        expect(sceneSource).toContain('`${rarityInfo.name.toUpperCase()} SIGNAL`');
+        expect(sceneSource).toContain('GENETIC TRAIT · ${formatFieldTerm(specialFeature)}');
         expect(sceneSource).toContain('CONFIRM CONTACT');
         expect(sceneSource).toContain('RESCAN CREATURE');
         expect(sceneSource).toContain('One rescan remains. Accept this reading');
@@ -38,7 +40,7 @@ describe('first-contact hatch presentation', () => {
         );
         expect(sceneSource).toContain('element?.setVisible(false)');
         expect(sceneSource).toContain("'FIELD CLASSIFICATION'");
-        expect(sceneSource).toContain('LIFE FORM · ${formatFieldTerm(this.creatureGenetics.species)}');
+        expect(sceneSource).toContain('${formatFieldTerm(this.creatureGenetics.species)} ·');
     });
 
     test('makes the creature the focus and removes finished egg instructions', () => {
@@ -62,10 +64,11 @@ describe('first-contact hatch presentation', () => {
         expect(sceneSource).toContain('const guidanceY = platformY +');
         expect(sceneSource).toContain('const scanY = canReroll ? guidanceY +');
         expect(sceneSource).toContain('const buttonY = Math.min(');
-        expect(sceneSource).toContain("'FIRST CONTACT'");
+        expect(sceneSource).toContain("'FIELD CLASSIFICATION'");
         expect(sceneSource).toContain('this.firstContactGuidance = { guidanceBg, tutorialHint }');
         expect(sceneSource).toContain('this.tweens.killTweensOf(this.tutorialHintText)');
-        expect(sceneSource).toContain('if (window.rerollSystem)');
+        expect(sceneSource).toContain('if (window.rerollSystem && this.creatureGenetics)');
+        expect(sceneSource).toContain('Classification is local game data');
         expect(sceneSource).toContain('The first-contact guidance below now owns this step.');
         expect(sceneSource).not.toContain('height * 0.625');
         expect(sceneSource).not.toContain('height * 0.715');

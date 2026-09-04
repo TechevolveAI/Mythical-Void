@@ -756,13 +756,15 @@ async function initializeGame() {
 
         // Game configuration - MOBILE-FIRST PORTRAIT LAYOUT
         // iPhone 12 dimensions: 390x844 (portrait), but we use dynamic sizing
-        const viewportWidth = Math.max(
+        const viewportState = window.mobileViewportController
+            ?.getSnapshot?.();
+        const viewportWidth = viewportState?.layoutWidth || Math.max(
             1,
-            Math.floor(window.visualViewport?.width || window.innerWidth)
+            Math.floor(window.innerWidth)
         );
-        const viewportHeight = Math.max(
+        const viewportHeight = viewportState?.layoutHeight || Math.max(
             1,
-            Math.floor(window.visualViewport?.height || window.innerHeight)
+            Math.floor(window.innerHeight)
         );
         const config = {
             type: Phaser.AUTO,
@@ -811,6 +813,10 @@ async function initializeGame() {
                         const canvas = game.canvas;
                         if (canvas) {
                             canvas.classList.add('ready');
+                            if (window.WebGLContextGuard) {
+                                window.webGLContextGuard = new window.WebGLContextGuard();
+                                window.webGLContextGuard.attach(canvas);
+                            }
                         }
 
                         const loadingScreen = document.getElementById('loading-screen');

@@ -815,7 +815,8 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('{ x1: 3260, x2: 3500');
         expect(source).toContain('{ x1: 3800, x2: 4050');
         expect(source).toContain('{ x1: 4050, x2: 4300');
-        expect(source).toContain("const spawnX = this.testMode ? width / 2 + 200 : 5900;");
+        expect(source).toContain('const mobileVisibleOffset = Math.min(180');
+        expect(source).toContain(': Math.min(5900, (this.player?.x || 5520) + mobileVisibleOffset)');
     });
 
     test('Forest names and closes both route-critical bridge handoffs', () => {

@@ -22,6 +22,7 @@ class ResponsiveManager {
         this.fullscreenButton = null;
         this.fullscreenChangeHandler = null;
         this.isDestroyed = false;
+        this.lastGameSize = null;
     }
 
     /**
@@ -117,15 +118,17 @@ class ResponsiveManager {
         if (this.isDestroyed || !this.game) return;
 
         try {
-            const viewport = window.visualViewport;
-            const windowWidth = Math.max(
-                1,
-                Math.floor(viewport?.width || window.innerWidth)
-            );
-            const windowHeight = Math.max(
-                1,
-                Math.floor(viewport?.height || window.innerHeight)
-            );
+            const viewportState = window.mobileViewportController
+                ?.update?.() || {
+                    layoutWidth: Math.max(1, Math.floor(window.innerWidth)),
+                    layoutHeight: Math.max(1, Math.floor(window.innerHeight)),
+                    visualWidth: Math.max(1, Math.floor(window.innerWidth)),
+                    visualHeight: Math.max(1, Math.floor(window.innerHeight)),
+                    keyboardOpen: false,
+                    bottomOcclusion: 0
+                };
+            const windowWidth = viewportState.layoutWidth;
+            const windowHeight = viewportState.layoutHeight;
 
             // RESIZE mode must use the real viewport. Forcing a minimum 4:3
             // game size crops portrait screens and can leave the canvas blank.
@@ -138,8 +141,20 @@ class ResponsiveManager {
             const newHeight = windowHeight;
 
             // Update Phaser game size
-            if (this.game.scale && typeof this.game.scale.resize === 'function') {
+            const sizeChanged = !this.lastGameSize ||
+                this.lastGameSize.width !== newWidth ||
+                this.lastGameSize.height !== newHeight;
+            // Mobile keyboards and collapsing browser bars alter the visual
+            // viewport repeatedly. Resizing WebGL for those transient events
+            // causes clipped overlays and context pressure on iOS WebKit.
+            if (
+                !viewportState.keyboardOpen &&
+                sizeChanged &&
+                this.game.scale &&
+                typeof this.game.scale.resize === 'function'
+            ) {
                 this.game.scale.resize(newWidth, newHeight);
+                this.lastGameSize = { width: newWidth, height: newHeight };
             }
 
             // Center the game canvas
@@ -152,7 +167,8 @@ class ResponsiveManager {
                     height: newHeight,
                     scale: this.currentScale,
                     windowWidth,
-                    windowHeight
+                    windowHeight,
+                    viewportState
                 });
             }
 

@@ -17,7 +17,7 @@ const ELDER_TREANT_TEXTURE = 'elderTreant';
 const ELDER_TREANT_ASSET = '/game/guardians/elder-treant.webp';
 const ELDER_TREANT_DISPLAY_HEIGHT = 310;
 const FOREST_ARRIVAL_TEXTURE = 'mythicalForestArrival';
-const FOREST_ARRIVAL_CINEMATIC_VERSION = 2;
+const FOREST_ARRIVAL_CINEMATIC_VERSION = 3;
 const FOREST_ROOTWAKE_STATE_PATH =
     'story.projectBeacon.forestRootwakeCrossing';
 const FOREST_ROOTWAKE_VERSION = 1;
@@ -177,6 +177,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.checkpointAnchors = [];
         this.beaconAnchorsActivated = 0;
         this.forestRouteAligned = false;
+        this.guardianAwakeningStarted = false;
         this.bossTriggerZone = null;
         this.bossGateHintUntil = 0;
         this.objectiveDisplay = null;
@@ -304,6 +305,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.checkpointAnchors = [];
         this.beaconAnchorsActivated = 0;
         this.forestRouteAligned = false;
+        this.guardianAwakeningStarted = false;
         this.bossTriggerZone = null;
         this.bossGateHintUntil = 0;
         this.objectiveDisplay = null;
@@ -429,6 +431,81 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
     }
 
+    createRuntimeForestArrivalActors(width, height, depth) {
+        const elements = [];
+        const playerTexture = this.player?.texture?.key;
+        if (!playerTexture || !this.textures.exists(playerTexture)) return elements;
+
+        const compact = width < 600;
+        const groundY = height * (compact ? 0.64 : 0.67);
+        const creatureX = width * (compact ? 0.34 : 0.4);
+        const astronautX = width * (compact ? 0.69 : 0.62);
+        const shadow = this.add.ellipse(
+            creatureX,
+            groundY + 28,
+            compact ? 72 : 94,
+            compact ? 16 : 20,
+            0x000000,
+            0.46
+        ).setScrollFactor(0).setDepth(depth);
+        const creature = this.add.image(creatureX, groundY, playerTexture)
+            .setScrollFactor(0)
+            .setDepth(depth + 1);
+        const creatureScale = Math.min(
+            compact ? 2.15 : 2.45,
+            (compact ? width * 0.3 : height * 0.28) /
+                Math.max(1, creature.height)
+        );
+        creature.setScale(creatureScale);
+        elements.push(shadow, creature);
+
+        const astronautTexture = this.astronautFollower?.sprite?.texture?.key;
+        if (astronautTexture && this.textures.exists(astronautTexture)) {
+            const astronautShadow = this.add.ellipse(
+                astronautX,
+                groundY + 30,
+                compact ? 42 : 54,
+                compact ? 12 : 15,
+                0x000000,
+                0.42
+            ).setScrollFactor(0).setDepth(depth);
+            const astronaut = this.add.image(
+                astronautX,
+                groundY,
+                astronautTexture
+            ).setScrollFactor(0).setDepth(depth + 1);
+            const astronautScale = Math.min(
+                compact ? 1.35 : 1.6,
+                (compact ? height * 0.15 : height * 0.22) /
+                    Math.max(1, astronaut.height)
+            );
+            astronaut.setScale(astronautScale);
+            elements.push(astronautShadow, astronaut);
+            this.tweens.add({
+                targets: astronaut,
+                y: groundY - (compact ? 7 : 10),
+                duration: 900,
+                delay: 850,
+                yoyo: true,
+                repeat: 1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+
+        this.tweens.add({
+            targets: creature,
+            x: creatureX + (compact ? 32 : 55),
+            y: groundY - (compact ? 18 : 24),
+            angle: { from: -3, to: 5 },
+            duration: 950,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Sine.easeInOut',
+            onUpdate: () => shadow.setPosition(creature.x, groundY + 28)
+        });
+        return elements;
+    }
+
     showFirstForestArrivalCinematic(onComplete) {
         const requestId = ++this.forestArrivalRequest;
         const { width, height } = this.cameras.main;
@@ -458,6 +535,15 @@ class MythicalForestLevel extends PlatformerLevelScene {
             backgroundImage
         );
         if (motionBackdrop) scenicElements.push(motionBackdrop);
+        scenicElements.push(...this.createRuntimeForestArrivalActors(
+            width,
+            height,
+            depth + 3
+        ));
+        window.AudioManager?.playVisionReveal?.();
+        this.time.delayedCall(850, () => {
+            if (!completed) window.AudioManager?.playCreatureCurious?.();
+        });
 
         const background = this.add.graphics()
             .fillStyle(0x020706, 0.38)
@@ -1592,12 +1678,63 @@ class MythicalForestLevel extends PlatformerLevelScene {
                     '#F2C94C'
                 );
             });
+            this.beginAutomaticGuardianAwakening(checkpoint);
             window.AchievementSystem?.recordEvent?.('story_interaction', {
                 event: 'forest_route_aligned'
             });
         }
 
         window.AudioManager?.playAchievement?.();
+    }
+
+    beginAutomaticGuardianAwakening(checkpoint) {
+        if (
+            this.guardianAwakeningStarted ||
+            this.bossFightActive ||
+            this.bossDefeated
+        ) {
+            return false;
+        }
+
+        this.guardianAwakeningStarted = true;
+        this.bossTriggerZone?.destroy?.();
+        this.bossTriggerZone = null;
+        this.resetJoystick?.();
+        this.clearVirtualJumpInput?.();
+        this.player?.setVelocity?.(0, 0);
+
+        const camera = this.cameras.main;
+        camera?.fadeOut?.(220, 8, 20, 18);
+        this.time.delayedCall(260, () => {
+            if (!this.scene.isActive() || this.bossDefeated) return;
+
+            const entranceX = 5520;
+            const entranceY = this.levelHeight - 170;
+            this.player?.setPosition?.(entranceX, entranceY);
+            this.player?.setVelocity?.(0, 0);
+            if (this.astronautFollower?.sprite?.active) {
+                this.astronautFollower.sprite.setPosition(entranceX - 76, entranceY - 6);
+                this.astronautFollower.resetTrail?.();
+            }
+            camera?.startFollow?.(this.player, true, 0.12, 0.12);
+            camera?.fadeIn?.(320, 8, 20, 18);
+
+            this.showFloatingText(
+                'ALL THREE BEACONS ANSWERED\nTHE GUARDIAN AWAKENS',
+                entranceX + 40,
+                entranceY - 115,
+                '#F2C94C'
+            );
+
+            const guardianEntered = this.beginGuardianEncounter({
+                id: 'elder_treant',
+                title: 'ELDER TREANT',
+                checkpoint: { x: entranceX, y: entranceY },
+                start: () => this.startBossFight()
+            });
+            if (!guardianEntered) this.guardianAwakeningStarted = false;
+        });
+        return true;
     }
 
     refreshForestRouteReadability() {
@@ -1649,6 +1786,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
             rejoined: Number(resume.checkpointIndex) >= 2
         });
         this.syncCampaignObjectiveDisplay();
+        if (this.forestRouteAligned && !this.bossDefeated) {
+            this.beginAutomaticGuardianAwakening(
+                this.checkpointAnchors[this.checkpointAnchors.length - 1]
+            );
+        }
         return true;
     }
 
@@ -4528,21 +4670,21 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         // Warning text
         const { width, height } = this.cameras.main;
-        const warningText = this.add.text(width / 2, height / 2, '⚠ THE GUARDIAN IS IN PAIN ⚠', {
-            fontSize: '32px',
+        const warningText = this.add.text(width / 2, height / 2, 'THE GUARDIAN AWAKENS', {
+            fontSize: width < 600 ? '24px' : '32px',
             color: '#FF4500',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 4
+            strokeThickness: 4,
+            align: 'center',
+            wordWrap: { width: Math.max(250, width - 48) }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2000);
 
         // Screen shake
         window.FeedbackManager?.cameraShake?.(this, 1500, 0.015);
 
         // Play boss intro sound
-        if (window.AudioManager) {
-            window.AudioManager.playError();
-        }
+        window.AudioManager?.playBossIntro?.();
 
         // Fade out warning
         this.tweens.add({
@@ -4891,7 +5033,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         // Spawn position - center of screen for test mode, or boss arena (Tree 6 area)
         const { width, height } = this.cameras.main;
-        const spawnX = this.testMode ? width / 2 + 200 : 5900;
+        const mobileVisibleOffset = Math.min(180, Math.max(120, width * 0.34));
+        const spawnX = this.testMode
+            ? width / 2 + mobileVisibleOffset
+            : Math.min(5900, (this.player?.x || 5520) + mobileVisibleOffset);
         const spawnY = this.levelHeight - 220;
 
         // Create boss sprite
