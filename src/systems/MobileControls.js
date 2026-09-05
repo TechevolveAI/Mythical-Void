@@ -29,6 +29,7 @@ class MobileControls {
         this.joystickMaxDistance = 50;
         this.deadZone = 0.15; // 15% dead zone - movements within this range return 0
         this.activePointerId = null; // Track which pointer activated joystick
+        this.joystickInputSource = null;
         this.joystickActivatedAt = 0;
         this.lastJoystickMagnitude = 0;
         this.minimumFlickDuration = 140;
@@ -372,6 +373,7 @@ class MobileControls {
         // Reset joystick state
         this.joystickActive = false;
         this.activePointerId = null;
+        this.joystickInputSource = null;
     }
 
     /**
@@ -616,7 +618,12 @@ class MobileControls {
             return normalizedPointerId === this.activePointerId;
         };
 
-        const activateJoystick = (event, point) => {
+        const isIosTouchPointer = event => (
+            event?.pointerType === 'touch' &&
+            /iPhone|iPad|iPod|CriOS|FxiOS/i.test(navigator.userAgent || '')
+        );
+
+        const activateJoystick = (event, point, inputSource = 'pointer') => {
             const normalizedPoint = point;
             if (!normalizedPoint || !this.isJoystickHit(normalizedPoint)) {
                 return false;
@@ -628,6 +635,7 @@ class MobileControls {
             this.clearPendingJoystickReset();
             this.joystickActive = true;
             this.activePointerId = normalizedPointerId;
+            this.joystickInputSource = inputSource;
             this.joystickActivatedAt = performance.now();
             this.lastJoystickMagnitude = 0;
             this.updateJoystickFromPointer(normalizedPoint);
@@ -636,9 +644,11 @@ class MobileControls {
                 // Keep legacy string-assertion compatibility by attempting both raw and
                 // normalized pointer IDs. Some environments report string IDs even when
                 // the runtime expects numeric values, so we guard conversion explicitly.
-                canvas.setPointerCapture?.(event.pointerId);
-                if (event.pointerId !== normalizedPointerId) {
-                    canvas.setPointerCapture?.(normalizedPointerId);
+                if (inputSource === 'pointer') {
+                    canvas.setPointerCapture?.(event.pointerId);
+                    if (event.pointerId !== normalizedPointerId) {
+                        canvas.setPointerCapture?.(normalizedPointerId);
+                    }
                 }
             } catch (error) {
                 devLog('[MobileControls] Pointer capture unavailable');
@@ -665,6 +675,10 @@ class MobileControls {
 
         this.canvasPointerDownHandler = event => {
             if (this.isSuspended || this.activePointerId !== null) return;
+            // Every iOS browser uses WebKit. Let its native Touch Events own
+            // the joystick so a synthetic pointercancel/lostpointercapture
+            // cannot reset a still-held downward drag.
+            if (isIosTouchPointer(event)) return;
             const point = this.getCanvasGamePoint(event);
             if (!this.isJoystickHit(point)) return;
 
@@ -686,12 +700,14 @@ class MobileControls {
             // from action buttons or creating sticky/strobing behavior.
 
             if (!this.joystickActive || !isJoystickPointer(eventPointerId)) return;
+            if (this.joystickInputSource && this.joystickInputSource !== 'pointer') return;
             event.preventDefault();
             event.stopImmediatePropagation();
             this.updateJoystickFromPointer(point);
         };
 
         this.canvasPointerUpHandler = event => {
+            if (this.joystickInputSource && this.joystickInputSource !== 'pointer') return;
             if (!isJoystickPointer(getPointerId(event.pointerId))) return;
             event.preventDefault();
             event.stopImmediatePropagation();
@@ -707,12 +723,13 @@ class MobileControls {
                 if (identifier === null || !this.isJoystickHit(point)) continue;
                 event.preventDefault();
                 event.stopImmediatePropagation?.();
-                activateJoystick({ pointerId: identifier }, point);
+                activateJoystick({ pointerId: identifier }, point, 'touch');
                 return;
             }
         };
         this.canvasTouchMoveHandler = event => {
             if (!this.joystickActive || this.activePointerId === null) return;
+            if (this.joystickInputSource && this.joystickInputSource !== 'touch') return;
             const touches = event.touches || event.changedTouches || [];
             for (let index = 0; index < touches.length; index += 1) {
                 const touch = touches[index];
@@ -729,6 +746,7 @@ class MobileControls {
         };
         this.canvasTouchEndHandler = event => {
             if (!this.joystickActive || this.activePointerId === null) return;
+            if (this.joystickInputSource && this.joystickInputSource !== 'touch') return;
 
             const changed = event.changedTouches || [];
             for (let i = 0; i < changed.length; i += 1) {
@@ -743,6 +761,7 @@ class MobileControls {
         };
         this.canvasTouchCancelHandler = event => {
             if (!this.joystickActive || this.activePointerId === null) return;
+            if (this.joystickInputSource && this.joystickInputSource !== 'touch') return;
             const changed = event.changedTouches || [];
             for (let index = 0; index < changed.length; index += 1) {
                 if (getPointerId(changed[index]?.identifier) !== this.activePointerId) {
@@ -755,12 +774,14 @@ class MobileControls {
             }
         };
         this.canvasPointerCancelHandler = event => {
+            if (this.joystickInputSource && this.joystickInputSource !== 'pointer') return;
             const eventPointerId = getPointerId(event.pointerId);
             if (isJoystickPointer(eventPointerId)) {
                 this.resetJoystick(true);
             }
         };
         this.canvasLostPointerCaptureHandler = event => {
+            if (this.joystickInputSource && this.joystickInputSource !== 'pointer') return;
             const eventPointerId = getPointerId(event.pointerId);
             if (isJoystickPointer(eventPointerId)) {
                 this.finishJoystickInput(this.activePointerId);
@@ -770,6 +791,7 @@ class MobileControls {
         // Phaser pointer events can miss a release if the finger exits the canvas.
         // Keep direct fallbacks that also filter by joystick pointer ID.
         this.scenePointerUpHandler = (pointer) => {
+            if (this.joystickInputSource && this.joystickInputSource !== 'pointer') return;
             const pointerId = getPointerId(pointer?.id);
             if (!this.joystickActive || pointerId === null || pointerId !== this.activePointerId) return;
             this.finishJoystickInput(pointerId);
@@ -778,6 +800,7 @@ class MobileControls {
         this.scene.input.on('pointerup', this.scenePointerUpHandler);
         this.windowPointerUpHandler = (event) => {
             if (!this.joystickActive) return;
+            if (this.joystickInputSource && this.joystickInputSource !== 'pointer') return;
             const eventPointerId = getPointerId(event?.pointerId);
             if (eventPointerId === null || this.activePointerId === null || eventPointerId !== this.activePointerId) {
                 return;
@@ -803,6 +826,7 @@ class MobileControls {
         };
         this.windowPointerCancelHandler = (event) => {
             if (!this.joystickActive) return;
+            if (this.joystickInputSource && this.joystickInputSource !== 'pointer') return;
             const eventPointerId = getPointerId(event?.pointerId);
             if (eventPointerId === null || this.activePointerId === null || eventPointerId !== this.activePointerId) {
                 return;
@@ -879,11 +903,16 @@ class MobileControls {
         }
         const elapsed = performance.now() - this.joystickActivatedAt;
         const remainingPulse = this.minimumFlickDuration - elapsed;
+        const inputSource = this.joystickInputSource;
         this.joystickActive = false;
         this.activePointerId = null;
+        this.joystickInputSource = null;
 
         try {
-            if (canvas?.hasPointerCapture?.(normalizedPointerId)) {
+            if (
+                inputSource === 'pointer' &&
+                canvas?.hasPointerCapture?.(normalizedPointerId)
+            ) {
                 canvas.releasePointerCapture(normalizedPointerId);
             }
         } catch (error) {
@@ -949,6 +978,7 @@ class MobileControls {
         this.clearPendingJoystickReset();
         this.joystickActive = false;
         this.activePointerId = null;
+        this.joystickInputSource = null;
         this.lastJoystickMagnitude = 0;
 
         // Immediately snap thumb back to center (no tween for responsiveness)

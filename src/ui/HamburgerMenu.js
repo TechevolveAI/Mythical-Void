@@ -51,6 +51,9 @@ export default class HamburgerMenu {
         this.cloudSaveModal = null;
         this.beaconLogModal = null;
         this.settingsModal = null;
+        this.nativeTouchCanvas = null;
+        this.nativeTouchStartHandler = null;
+        this.lastMenuActivationAt = -Infinity;
     }
 
     /**
@@ -113,15 +116,47 @@ export default class HamburgerMenu {
         hitZone.setDepth(15000); // Higher than MobileControls (10000) to ensure it's touchable
         hitZone.setInteractive({ useHandCursor: false }); // No cursor for mobile
 
-        // Handle both pointerdown and pointerup for better mobile compatibility
-        hitZone.on('pointerdown', () => {
-            devLog('[HamburgerMenu] Button tapped! (pointerdown)');
+        const activateMenu = event => {
+            const now = performance.now();
+            if (now - this.lastMenuActivationAt < 220) return;
+            this.lastMenuActivationAt = now;
+            event?.preventDefault?.();
+            event?.stopPropagation?.();
+            event?.stopImmediatePropagation?.();
+            devLog('[HamburgerMenu] Button pressed - toggling menu');
+            this.toggle();
+        };
+
+        // Activate on the initial press. Mobile WebKit can omit pointerup when
+        // a finger shifts slightly or browser chrome changes during the tap.
+        hitZone.on('pointerdown', (_pointer, _x, _y, event) => {
+            activateMenu(event);
         });
 
-        hitZone.on('pointerup', () => {
-            devLog('[HamburgerMenu] Button released! (pointerup) - toggling menu');
-            this.toggle();
-        });
+        // Phaser's pointer bridge can also lose the initial pointer event on
+        // iOS after browser chrome or orientation changes. Handle the native
+        // touch start at the canvas and deduplicate it with Phaser above.
+        const canvas = this.scene.game?.canvas;
+        if (canvas) {
+            this.nativeTouchCanvas = canvas;
+            this.nativeTouchStartHandler = event => {
+                const touch = event.changedTouches?.[0];
+                const bounds = canvas.getBoundingClientRect?.();
+                if (!touch || !bounds?.width || !bounds?.height) return;
+                const gameX = ((touch.clientX - bounds.left) / bounds.width) * width;
+                const gameY = ((touch.clientY - bounds.top) / bounds.height) * height;
+                const halfHitSize = (buttonSize + touchPadding) / 2;
+                if (
+                    Math.abs(gameX - buttonX) > halfHitSize ||
+                    Math.abs(gameY - buttonY) > halfHitSize
+                ) return;
+                activateMenu(event);
+            };
+            canvas.addEventListener('touchstart', this.nativeTouchStartHandler, {
+                capture: true,
+                passive: false
+            });
+        }
 
         hitZone.on('pointerover', () => {
             buttonBg.clear();
@@ -755,6 +790,15 @@ export default class HamburgerMenu {
      */
     destroy() {
         this.close();
+        if (this.nativeTouchCanvas && this.nativeTouchStartHandler) {
+            this.nativeTouchCanvas.removeEventListener(
+                'touchstart',
+                this.nativeTouchStartHandler,
+                { capture: true }
+            );
+        }
+        this.nativeTouchCanvas = null;
+        this.nativeTouchStartHandler = null;
         this.cloudSaveModal?.destroy();
         this.cloudSaveModal = null;
         this.beaconLogModal?.destroy();

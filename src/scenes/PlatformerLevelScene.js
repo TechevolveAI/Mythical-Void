@@ -2839,7 +2839,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             : this.scale.height;
         const safeArea = this.getSafeAreaInsets();
         const layout = getMobileControlLayout({ width, height, safeArea });
-        const bottomSafeMargin = safeArea.bottom;
+        const bottomSafeMargin = layout.bottomInset;
         const controlZoneHeight = layout.dockHeight;
         const controlZoneTop = layout.dockTop;
 

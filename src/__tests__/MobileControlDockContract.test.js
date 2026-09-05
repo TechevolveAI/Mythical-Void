@@ -60,6 +60,22 @@ describe('shared mobile control dock', () => {
         expect(layout.visualShelf.centerGapWidth).toBeGreaterThanOrEqual(44);
     });
 
+    test.each(viewports)('reserves browser gesture clearance at %ix%i', (
+        width,
+        height
+    ) => {
+        const layout = getMobileControlLayout({
+            width,
+            height,
+            safeArea: { top: 0, right: 0, bottom: 0, left: 0 }
+        });
+
+        expect(layout.bottomInset).toBeGreaterThanOrEqual(18);
+        expect(layout.dockBottom).toBeLessThanOrEqual(height - 18);
+        expect(layout.joystick.y + layout.joystick.maxDistance)
+            .toBeLessThan(layout.dockBottom);
+    });
+
     test.each(viewports)('keeps the interaction prompt above the dock at %ix%i', (
         width,
         height
@@ -241,6 +257,10 @@ describe('shared mobile control dock', () => {
             path.join(__dirname, '../systems/ResponsiveManager.js'),
             'utf8'
         );
+        const hamburgerSource = fs.readFileSync(
+            path.join(__dirname, '../ui/HamburgerMenu.js'),
+            'utf8'
+        );
 
         expect(mobileSource).toContain('getMobileControlLayout');
         expect(mobileSource).toContain('getJoystickVector');
@@ -272,6 +292,11 @@ describe('shared mobile control dock', () => {
         expect(responsiveSource).not.toContain("new MouseEvent('mousedown'");
         expect(responsiveSource).not.toContain("new MouseEvent('mousemove'");
         expect(responsiveSource).not.toContain("new MouseEvent('mouseup'");
+        expect(hamburgerSource).toContain("hitZone.on('pointerdown'");
+        expect(hamburgerSource).not.toContain("hitZone.on('pointerup'");
+        expect(hamburgerSource).toContain("canvas.addEventListener('touchstart'");
+        expect(hamburgerSource).toContain('this.lastMenuActivationAt < 220');
+        expect(hamburgerSource).toContain("removeEventListener(\n                'touchstart'");
     });
 
     test('all campaign levels use the shared responsive objective display', () => {
