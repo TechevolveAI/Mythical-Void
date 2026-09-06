@@ -994,7 +994,7 @@ class GameScene extends Phaser.Scene {
 
             if (this.livingSignalPreview) {
                 this.createLivingSignalPreview();
-                console.log('[GameScene] Living Signal preview created successfully');
+                console.log('[GameScene] Signs of Life preview created successfully');
                 return;
             }
 

@@ -453,7 +453,7 @@ describe('LivingFormHandoff mobile continuation', () => {
         expect(handoff.image.classList.contains('is-pixel-reference')).toBe(true);
         expect(handoff.image.classList.contains('is-ready')).toBe(true);
         expect(document.querySelector('.living-form-source').textContent)
-            .toBe('LOCAL CREATURE SIGNAL');
+            .toBe('LOCAL CREATURE VIEW');
         expect(document.querySelector('.living-form-loading-title').textContent)
             .not.toBe('LIVING FORM OFFLINE');
         expect(document.querySelector('[data-testid="living-form-continue"]')
