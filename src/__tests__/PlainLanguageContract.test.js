@@ -51,6 +51,20 @@ describe('plain-language public story', () => {
         expect(offenders).toEqual([]);
     });
 
+    test('keeps changing public-page messages and player-facing game screens clear', () => {
+        const files = [
+            'public/discovery.js',
+            'src/scenes/HatchingScene.js',
+            'src/ui/LivingFormHandoff.js',
+            'src/systems/CreatureAIController.js'
+        ];
+        const offenders = files.filter(file => /\bsignals?\b/i.test(
+            fs.readFileSync(path.join(root, file), 'utf8')
+        ));
+
+        expect(offenders).toEqual([]);
+    });
+
     test('uses clear words for different situations', () => {
         const storefront = fs.readFileSync(path.join(root, 'src/site/storefront.js'), 'utf8');
         const projectBeacon = fs.readFileSync(path.join(root, 'src/config/project-beacon.json'), 'utf8');

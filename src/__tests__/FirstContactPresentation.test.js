@@ -21,7 +21,9 @@ describe('first-contact hatch presentation', () => {
 
     test('treats the result as a field reading and the alternative as a rescan', () => {
         expect(sceneSource).toContain("'FIELD CLASSIFICATION'");
-        expect(sceneSource).toContain('`${rarityInfo.name.toUpperCase()} SIGNAL`');
+        expect(sceneSource).toContain('const rarityLabel = rarityInfo.displayName');
+        expect(sceneSource).toContain('rarityLabel.toUpperCase()');
+        expect(sceneSource).not.toMatch(/\bsignals?\b/i);
         expect(sceneSource).toContain('GENETIC TRAIT · ${formatFieldTerm(specialFeature)}');
         expect(sceneSource).toContain('CONFIRM CONTACT');
         expect(sceneSource).toContain('RESCAN CREATURE');

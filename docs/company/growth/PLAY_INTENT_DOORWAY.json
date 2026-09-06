@@ -76,11 +76,11 @@
     {
       "id": "wonder",
       "button": "Show me something strange",
-      "promise": "Follow the signal into six impossible realms.",
+      "promise": "Follow the mystery into six impossible realms.",
       "sourceArea": "intent_wonder",
       "starterMission": {
         "title": "Find the first impossible thing.",
-        "steps": ["Recover the field kit", "Follow the living signal", "Reach the Mythical Forest and notice what Earth's maps cannot explain"],
+        "steps": ["Recover the field kit", "Follow the signs of life", "Reach the Mythical Forest and notice what Earth's maps cannot explain"],
         "finish": "The journey no longer feels like an ordinary rescue mission."
       }
     },
@@ -113,7 +113,7 @@
       "sourceArea": "intent_story",
       "starterMission": {
         "title": "Find out why the mission changes.",
-        "steps": ["Answer the first signal", "Earn the creature's trust and enter the Mythical Forest", "Continue until Project Beacon no longer feels like a simple order"],
+        "steps": ["Read the first message", "Earn the creature's trust and enter the Mythical Forest", "Continue until Project Beacon no longer feels like a simple order"],
         "finish": "Discovery and responsibility have become the same problem."
       }
     }

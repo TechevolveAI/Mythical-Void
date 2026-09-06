@@ -180,7 +180,7 @@ export default class LivingFormHandoff {
             this.loadingTitle = createElement(
                 'strong',
                 'living-form-loading-title',
-                'LOCAL CREATURE SIGNAL'
+                'LOCAL CREATURE VIEW'
             );
             this.loadingDetail = createElement(
                 'span',
@@ -422,16 +422,16 @@ export default class LivingFormHandoff {
         if (this.pixelReferenceImage) {
             this.setArtwork(this.pixelReferenceImage, {
                 source: 'local_creature_reference',
-                alt: `Local creature signal for ${safeName}`
+                alt: `Local playable creature view for ${safeName}`
             });
         }
         if (!portraitPromise) {
             this.status.textContent =
                 'No personal data was sent. This exact local creature remains playable; the full living portrait can retry from the Creature Archive.';
-            this.actionKicker.textContent = 'LOCAL SIGNAL READY // SANCTUARY OPEN';
+            this.actionKicker.textContent = 'LOCAL CREATURE READY // SANCTUARY OPEN';
             if (this.mobileDockStatus) {
                 this.mobileDockStatus.textContent =
-                    'LOCAL SIGNAL READY // SANCTUARY OPEN';
+                    'LOCAL CREATURE READY // SANCTUARY OPEN';
             }
         }
 
@@ -642,8 +642,8 @@ export default class LivingFormHandoff {
                     this.root.dataset.portraitState = 'local';
                 }
                 this.sourceLabel.textContent = this.portraitPending
-                    ? 'LOCAL CREATURE SIGNAL // FULL PORTRAIT FORMING'
-                    : 'LOCAL CREATURE SIGNAL';
+                    ? 'LOCAL CREATURE VIEW // FULL PORTRAIT FORMING'
+                    : 'LOCAL CREATURE VIEW';
             }
         };
         this.image.onload = revealArtwork;
@@ -652,7 +652,7 @@ export default class LivingFormHandoff {
             if (isGenerated && this.pixelReferenceImage) {
                 this.setArtwork(this.pixelReferenceImage, {
                     source: 'local_creature_reference',
-                    alt: 'Local creature signal'
+                    alt: 'Local playable creature view'
                 });
                 this.markPortraitUnavailable(
                     new Error('Visual study offline. The living portrait can retry from the Creature Archive.')
@@ -661,7 +661,7 @@ export default class LivingFormHandoff {
             }
             this.mediaFallback?.classList.remove('is-hidden');
             if (this.loadingTitle) {
-                this.loadingTitle.textContent = 'CREATURE SIGNAL SECURED';
+                this.loadingTitle.textContent = 'CREATURE READY';
             }
             if (this.loadingDetail) {
                 this.loadingDetail.textContent =
