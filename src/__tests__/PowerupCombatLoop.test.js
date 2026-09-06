@@ -156,6 +156,10 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
             'const getVillageSupportSummary = () => [];'
         )
         .replace(
+            "import { resolveTextureContactGeometry } from '../systems/CreatureContactGeometry.js';",
+            'const resolveTextureContactGeometry = () => null;'
+        )
+        .replace(
             'export default PlatformerLevelScene;',
             'module.exports = PlatformerLevelScene;'
         );

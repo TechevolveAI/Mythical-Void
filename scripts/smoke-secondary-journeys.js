@@ -8304,7 +8304,7 @@ async function smokeTraversalTopology(session, levels, exceptions) {
             )?.pathSupportIds?.at?.(-1) !== 'caves-grove-step' ||
             audit?.flow?.targets?.find(
                 target => target.id === 'caves_anchor_3'
-            )?.pathSupportIds?.at?.(-1) !== 'caves-guardian-left' ||
+            )?.pathSupportIds?.at?.(-1) !== 'caves-guardian-approach' ||
             Number(crystalCoreFlow?.jumpCount) > 3 ||
             crystalCoreFlow?.pathSupportIds?.at?.(-2) !== 'caves-guardian-approach' ||
             crystalCoreFlow?.pathSupportIds?.at?.(-1) !== 'caves-core-refuge'

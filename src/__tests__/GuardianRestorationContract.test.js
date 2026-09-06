@@ -77,7 +77,7 @@ describe('guardian restoration campaign contract', () => {
 
         expect(campaignSource).toContain('Guardian Reward');
         expect(campaignSource).toContain('VOID EMPRESS RESTORED');
-        expect(campaignSource).toContain('CRYSTAL SPIDER CALMED');
+        expect(campaignSource).toContain('CORRUPTION BROKEN // PATH CLEAR');
     });
 
     test('provides a local non-mutating final restoration preview', () => {

@@ -150,7 +150,9 @@ describe('mid-campaign guardian artwork', () => {
         expect(source).toContain('CRYSTAL_GUARDIAN_DISPLAY_HEIGHT / this.boss.height');
         expect(source).toContain('this.boss.width * 0.48');
         expect(source).toContain('this.boss.height * 0.68');
-        expect(source).toContain('this.bossTargetScale * 0.88');
+        expect(source).toContain(
+            'CRYSTAL_GUARDIAN_MOBILE_DISPLAY_HEIGHT / this.boss.height'
+        );
     });
 
     test('Stellar Reef keeps Nyx\'voral animated, phase-readable, and fallback-safe', () => {
