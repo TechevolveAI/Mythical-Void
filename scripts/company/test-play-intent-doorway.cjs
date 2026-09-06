@@ -148,7 +148,7 @@ assert.match(story.title, /Project Beacon/);
 assert.strictEqual(story.cta, 'Begin Project Beacon');
 assert.match(story.missionTitle, /mission changes/i);
 assert.strictEqual(story.missionSteps.length, 3);
-assert.match(story.missionSteps[0], /first signal/i);
+assert.match(story.missionSteps[0], /first message/i);
 assert.match(story.finish, /discovery and responsibility/i);
 assert.strictEqual(story.selected, 'story');
 assert.strictEqual(story.hash, '#find-your-way/story');

@@ -3571,8 +3571,9 @@ class HatchingScene extends Phaser.Scene {
                 fontFamily: 'Poppins, Inter, system-ui, -apple-system, sans-serif'
             }).setOrigin(0.5);
 
-            // Rarity title
-            const rarityText = this.add.text(centerX, bannerY + (bannerHeight * 0.43), `${rarityInfo.name.toUpperCase()} SIGNAL`, {
+            // Use the plain-language classification supplied by the rarity config.
+            const rarityLabel = rarityInfo.displayName || `${rarityInfo.name} Life Form`;
+            const rarityText = this.add.text(centerX, bannerY + (bannerHeight * 0.43), rarityLabel.toUpperCase(), {
                 fontSize: `${titleSize}px`,
                 color: rarityInfo.displayColor,
                 fontStyle: 'bold',

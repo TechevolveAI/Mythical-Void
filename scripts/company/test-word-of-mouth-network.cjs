@@ -140,7 +140,7 @@ async function browserFamilyGuideCase({ nativeShare }) {
         url: 'https://mythicalvoid.com/studio/'
     }));
     assert.strictEqual(native.copied, null);
-    assert.strictEqual(native.status, 'Thanks for passing the signal on.');
+    assert.strictEqual(native.status, 'Thanks for sharing the game.');
 
     caseCount += 1;
     const copied = await browserShareCase({ nativeShare: false });
@@ -156,7 +156,7 @@ async function browserFamilyGuideCase({ nativeShare }) {
         url: 'https://mythicalvoid.com/hatch-challenge/'
     }));
     assert.strictEqual(hatchNative.copied, null);
-    assert.strictEqual(hatchNative.status, 'Signal sent. Now see what hatches.');
+    assert.strictEqual(hatchNative.status, 'Challenge shared. Now see what hatches.');
 
     caseCount += 1;
     const hatchCopied = await browserHatchChallengeCase({ nativeShare: false });
@@ -173,7 +173,7 @@ async function browserFamilyGuideCase({ nativeShare }) {
         url: 'https://mythicalvoid.com/parents/'
     }));
     assert.strictEqual(familyNative.copied, null);
-    assert.strictEqual(familyNative.status, 'Thanks for passing the signal on.');
+    assert.strictEqual(familyNative.status, 'Thanks for sharing the game.');
 
     caseCount += 1;
     const familyCopied = await browserFamilyGuideCase({ nativeShare: false });

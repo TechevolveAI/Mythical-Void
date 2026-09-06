@@ -11,12 +11,12 @@
     var arrivalEventSent = false;
     var intentMessages = {
         wonder: {
-            title: 'Follow the signal into six impossible realms.',
+            title: 'Follow the mystery into six impossible realms.',
             copy: 'Begin at the wreck of Wanderer-77, meet a life form Earth has never seen and discover what each living world is trying to protect.',
             missionTitle: 'Find the first impossible thing.',
             missionSteps: [
                 'Recover Wanderer-77\'s field kit.',
-                'Follow the living signal beyond the crash.',
+                'Follow the signs of life beyond the crash.',
                 'Reach the Mythical Forest and notice one thing Earth\'s maps cannot explain.'
             ],
             finish: 'You can point to the moment the journey stopped feeling like an ordinary rescue mission.',
@@ -57,7 +57,7 @@
             copy: 'Earth sent you to find hope. What you discover changes the mission, and the final message home is yours to decide.',
             missionTitle: 'Find out why the mission changes.',
             missionSteps: [
-                'Answer the first signal from the wreckage.',
+                'Read the first message from the wreckage.',
                 'Earn the creature\'s trust and enter the Mythical Forest.',
                 'Keep going until Project Beacon no longer feels like a simple order from Earth.'
             ],
@@ -162,7 +162,7 @@
         }
         try {
             await navigator.share(shareData);
-            setShareStatus('Thanks for passing the signal on.', statusTarget);
+            setShareStatus('Thanks for sharing the game.', statusTarget);
             track('share_completed', sourceAreaFor(sourceElement));
         } catch (error) {
             if (error && error.name !== 'AbortError') {
@@ -223,7 +223,7 @@
             }
             try {
                 await navigator.share(hatchChallengeData);
-                setShareStatus('Signal sent. Now see what hatches.', hatchChallengeStatus);
+                setShareStatus('Challenge shared. Now see what hatches.', hatchChallengeStatus);
                 track('share_completed', 'share_section');
             } catch (error) {
                 if (error && error.name !== 'AbortError') {
