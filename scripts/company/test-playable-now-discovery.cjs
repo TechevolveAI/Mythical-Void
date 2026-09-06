@@ -32,7 +32,7 @@ try {
         ['missing-early-access', page => page.replaceAll('early-access', 'current').replaceAll('Early access', 'Available')],
         ['nasa-endorsement', page => page.replace('NASA does not endorse Mythical Void.', 'NASA endorses Mythical Void.')],
         ['contact-form', page => page.replace('</main>', '<form><input name="email"></form></main>')],
-        ['stale-discovery-script', page => page.replace('/discovery.js?v=20260827-game-fit', '/discovery.js?v=20260827-starter-missions')],
+        ['stale-discovery-script', page => page.replace('/discovery.js?v=20260906-plain-language', '/discovery.js?v=20260827-game-fit')],
         ['missing-fit-boundary', page => page.replace('IT MAY NOT BE FOR YOU IF…', 'MORE REASONS TO PLAY')],
         ['overconfident-phone-fit', page => page.replace('phone presentation is still being improved', 'phone presentation is perfect')],
         ['missing-hatch-challenge', page => page.replace('id="hatch-challenge"', 'id="retired-hatch-challenge"')],

@@ -12,7 +12,8 @@ describe('Playable Now discovery page', () => {
         const pageForReleaseFingerprint = page
             .replace('<a href="/help/">Help</a>', '')
             .replace(gameFitSection, '')
-            .replaceAll('20260827-game-fit', '20260827-funnel-source');
+            .replaceAll('20260827-game-fit', '20260827-funnel-source')
+            .replaceAll('20260906-plain-language', '20260827-funnel-source');
         expect(crypto.createHash('sha256').update(pageForReleaseFingerprint).digest('hex')).toBe(release.page.sha256);
         expect(release.authority.ownedWebsitePublicationAuthorized).toBe(true);
         expect(release.authority.externalSocialPublicationAuthorized).toBe(false);
