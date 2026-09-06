@@ -18,6 +18,7 @@ import {
 } from '../systems/SenseiMemory.js';
 import { companionMediaService } from '../systems/CompanionMediaService.js';
 import { getVillageGameplayEffects, getVillageSupportSummary } from '../systems/VillageSettlement.js';
+import { resolveTextureContactGeometry } from '../systems/CreatureContactGeometry.js';
 
 const BOSS_REWARD_KEY_BY_LEVEL = Object.freeze({
     crystalCaves: 'crystalGolem',
@@ -2405,32 +2406,50 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.player.setBounce(0);
         this.player.setDrag(100, 0);
 
-        // Get actual texture dimensions for proper physics body sizing
+        // Get actual texture dimensions for proper physics body sizing.
         const textureWidth = this.player.width;
         const textureHeight = this.player.height;
 
-        // MOBILE UX FIX: Physics body aligned to visual "feet" of creature
-        // The body should be at the VERY bottom of the sprite so creature
-        // visually sits ON TOP of platforms, not floating or embedded
-        //
-        // Body sizing: small hitbox for precise platforming
-        const bodyWidth = Math.min(28, textureWidth * 0.35);  // Narrower for tighter platforming
-        const bodyHeight = Math.min(40, textureHeight * 0.40); // Shorter body
-
-        // CRITICAL: Creature textures have significant padding for visual effects
-        // (cosmic auras, sparkles, etc). The actual creature visual is centered in the texture.
-        // We need to offset the physics body to align with where the creature's FEET appear.
-        //
-        // For a 220x260 texture with 60x80 creature centered:
-        // - The creature visual sits in the center
-        // - We need physics body to align with the visual creature's feet
-        // - Testing showed 90px was too much (creature below platform), trying ~55-60px
-        const estimatedBottomPadding = Math.min(55, textureHeight * 0.22); // Reduced from 90px - creature was below platforms
-        const offsetX = (textureWidth - bodyWidth) / 2;
-        const offsetY = textureHeight - bodyHeight - estimatedBottomPadding;
+        // Creature textures include phenotype-dependent transparent padding and
+        // isolated sparkles. Read the connected visible body rows instead of
+        // guessing one global bottom padding for every creature.
+        const visible = resolveTextureContactGeometry(this.textures, textureName);
+        const visibleWidth = visible?.width || textureWidth * 0.35;
+        const visibleHeight = visible?.height || textureHeight * 0.4;
+        const bodyWidth = Math.max(22, Math.min(32, visibleWidth * 0.52));
+        const bodyHeight = Math.max(30, Math.min(44, visibleHeight * 0.56));
+        const contactY = visible?.contactY ??
+            textureHeight - Math.min(55, textureHeight * 0.22);
+        const centerX = visible?.centerX ?? textureWidth / 2;
+        const offsetX = Phaser.Math.Clamp(
+            centerX - bodyWidth / 2,
+            0,
+            Math.max(0, textureWidth - bodyWidth)
+        );
+        const offsetY = Phaser.Math.Clamp(
+            contactY - bodyHeight,
+            0,
+            Math.max(0, textureHeight - bodyHeight)
+        );
 
         this.player.body.setSize(bodyWidth, bodyHeight);
         this.player.body.setOffset(offsetX, offsetY);
+        this.playerContactGeometry = visible;
+        this.normalBodyWidth = bodyWidth;
+        this.normalBodyHeight = bodyHeight;
+        this.normalBodyOffsetX = offsetX;
+        this.normalBodyOffsetY = offsetY;
+        this.duckBodyHeight = Math.max(22, Math.min(30, bodyHeight * 0.72));
+
+        // Spawn from the resolved body contact, not from an assumed 80px
+        // texture height. This prevents padded phenotypes from starting inside
+        // or above the first support when a biome uses a deeper terrain slab.
+        this.player.body.updateFromGameObject?.();
+        const spawnAdjustment = groundTopY - this.player.body.bottom - 1;
+        if (Number.isFinite(spawnAdjustment)) {
+            this.player.y += spawnAdjustment;
+            this.player.body.updateFromGameObject?.();
+        }
 
         // Anchor point adjustment for visual grounding
         // Default origin is 0.5, 0.5 (center). Keep this for proper flip behavior.
@@ -2440,7 +2459,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.player.setDepth(900);
         this.player.facingRight = true;
 
-        console.log(`[PlatformerLevel] Player created at (${startX}, ${startY})`);
+        console.log(`[PlatformerLevel] Player created at (${startX}, ${this.player.y})`);
         console.log(`[PlatformerLevel] Texture size: ${textureWidth}x${textureHeight}, Body: ${bodyWidth}x${bodyHeight}, Offset: (${offsetX}, ${offsetY})`);
     }
 
@@ -5222,8 +5241,12 @@ class PlatformerLevelScene extends Phaser.Scene {
                 this.isDucking = true;
 
                 // Shrink hitbox (lower height, keeping feet planted)
-                this.player.body.setSize(40, this.duckBodyHeight);
-                this.player.body.setOffset(10, 15 + (this.normalBodyHeight - this.duckBodyHeight));
+                this.player.body.setSize(this.normalBodyWidth, this.duckBodyHeight);
+                this.player.body.setOffset(
+                    this.normalBodyOffsetX,
+                    this.normalBodyOffsetY +
+                        (this.normalBodyHeight - this.duckBodyHeight)
+                );
 
                 // Visual squash for duck
                 this.player.setScale(1, 0.6);
@@ -5240,8 +5263,14 @@ class PlatformerLevelScene extends Phaser.Scene {
                 this.isDucking = false;
 
                 // Restore normal hitbox
-                this.player.body.setSize(40, this.normalBodyHeight);
-                this.player.body.setOffset(10, 15);
+                this.player.body.setSize(
+                    this.normalBodyWidth,
+                    this.normalBodyHeight
+                );
+                this.player.body.setOffset(
+                    this.normalBodyOffsetX,
+                    this.normalBodyOffsetY
+                );
 
                 // Restore normal scale
                 this.player.setScale(1, 1);

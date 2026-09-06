@@ -59,15 +59,15 @@ describe('second expedition rescue loop', () => {
         expect(source).toContain("id: 'caves_anchor_1'");
         expect(source).toContain("id: 'caves_anchor_2'");
         expect(source).toContain("id: 'caves_anchor_3'");
-        expect(source).toContain('PROJECT BEACON ANCHOR ${anchorNumber}/3');
+        expect(source).toContain('PULSE ${anchorNumber}/3 FOUND');
         expect(source).toContain("activationSupportIds: ['caves-echo-upper']");
         expect(source).toContain("activationSupportIds: ['caves-grove-step']");
-        expect(source).toContain("activationSupportIds: ['caves-guardian-left']");
+        expect(source).toContain("activationSupportIds: ['caves-guardian-approach']");
         expect(source).toContain('this.getTraversalSupportCheckpoint(');
         expect(source).toContain('this.setCheckpoint(supportCheckpoint.x, supportCheckpoint.y, {');
     });
 
-    test('keeps cave anchors local, ordered, and aligned with the full Beacon route', () => {
+    test('keeps cave pulses local, ordered, and automatic on contact', () => {
         const source = readLevel();
         const checkpoints = source.match(
             /createBeaconCheckpoints\(\)\s*\{([\s\S]*?)\n    \}\n\n    drawCaveBeacon/
@@ -76,15 +76,13 @@ describe('second expedition rescue loop', () => {
         expect(checkpoints).toContain('this.createObjectiveTriggerZone(');
         expect(checkpoints).toContain('{ width: 150, height: 190 }');
         expect(checkpoints).toContain('this.canActivateOrderedRouteSignal(');
-        expect(checkpoints).toContain('this.isPlayerGroundedOnTraversalSupport(');
-        expect(checkpoints.indexOf('this.canActivateOrderedRouteSignal(')).toBeLessThan(
-            checkpoints.indexOf('this.isPlayerGroundedOnTraversalSupport(')
-        );
+        expect(checkpoints).not.toContain('this.isPlayerGroundedOnTraversalSupport(');
         expect(checkpoints).toContain('this.refreshCaveRouteReadability();');
         expect(source).toContain('this.canActivateOrderedRouteSignal(');
         expect(source).toContain('this.beaconAnchorsActivated++');
         expect(source).toContain('this.caveRouteAligned = true');
         expect(source).toContain("event: 'crystal_route_aligned'");
+        expect(source).toContain('this.awakenCorruptedGuardian();');
     });
 
     test('powers a named Crystal Lift after route alignment while retaining recovery steps', () => {
@@ -114,7 +112,7 @@ describe('second expedition rescue loop', () => {
         expect(source).toContain('powerProfile.color');
         expect(source).toContain("event: 'crystal_grove_tended'");
         expect(source).toContain('LIVING PULSE RESTORED');
-        expect(source).toContain('[ REQUIRED ] Reach the fractured grove');
+        expect(source).toContain('[ 2 ] Fight through the living cave');
     });
 
     test('keeps all five Star Fragments collectible before the Core finale', () => {
@@ -129,19 +127,21 @@ describe('second expedition rescue loop', () => {
         expect(Number(finalFragment[1])).toBeLessThan(Number(core[1]));
     });
 
-    test('frames the cave guardian outcome as restoration rather than destruction', () => {
+    test('defeats the corruption while keeping the living Guardian visible', () => {
         const source = readLevel();
 
-        expect(source).toContain('THE CAVE GUARDIAN IS HURTING');
-        expect(source).toContain('CRYSTAL GUARDIAN // WOUNDED');
-        expect(source).toContain('STRIKE THE UNSTABLE PULSE');
+        expect(source).toContain('CORRUPTION HAS THE GUARDIAN');
+        expect(source).toContain('CORRUPTED CRYSTAL GUARDIAN');
+        expect(source).toContain('ATTACK THE MAGENTA CORRUPTION');
         expect(source).toContain(
-            'UNSTABLE PULSE // ${unstablePulse}/${this.bossMaxHealth}'
+            'CORRUPTION // ${unstablePulse}/${this.bossMaxHealth}'
         );
-        expect(source).toContain('UNSTABLE PULSE // STABLE');
-        expect(source).toContain('`PULSE -${finalAmount}`');
-        expect(source).toContain('GUARDIAN PULSE STABLE');
-        expect(source).toContain('CRYSTAL GUARDIAN RESTORED');
+        expect(source).toContain('CORRUPTION // BROKEN');
+        expect(source).toContain('`CORRUPTION -${finalAmount}`');
+        expect(source).toContain('CORRUPTION DEFEATED');
+        expect(source).toContain('GUARDIAN FREED');
+        expect(source).toContain('this.boss?.clearTint?.();');
+        expect(source).not.toContain('if (this.boss) this.boss.destroy();');
         expect(source).toContain('Guardian Gifts: Crystal Core');
         expect(source).toContain("katanaUpgradeId: 'crystal_edge'");
         expect(source).not.toContain('💎 CRYSTAL GOLEM DEFEATED 💎');
@@ -194,29 +194,29 @@ describe('second expedition rescue loop', () => {
         const CrystalCavesLevel = loadLevelClass();
         const scene = new CrystalCavesLevel();
         const core = source.match(
-            /createCrystalCoreEngine\(\)\s*\{([\s\S]*?)\n    \}\n\n    canActivateCrystalCore/
+            /awakenCorruptedGuardian\(\)\s*\{([\s\S]*?)\n    \}\n\n    refreshCaveRouteReadability/
         )?.[1] || '';
         const gate = source.match(
             /canActivateCrystalCore\(\)\s*\{([\s\S]*?)\n    \}\n\n    getCrystalCoreHintText/
         )?.[1] || '';
 
         expect(gate).toContain('this.caveRouteAligned && this.crystalWoundTended');
-        expect(core).toContain('if (!this.canActivateCrystalCore())');
-        expect(core.indexOf('if (!this.canActivateCrystalCore())'))
-            .toBeLessThan(core.indexOf('this.crystalCoreFound = true'));
-        expect(source).toContain('The Core route is incomplete. Align the Beacon anchors.');
-        expect(source).toContain('Your companion still hears the fractured grove.');
-        expect(source).toContain('Touch to Answer the Guardian');
+        expect(core).toContain('!this.caveRouteAligned');
+        expect(core).toContain('!this.crystalWoundTended');
+        expect(core).toContain('this.crystalCoreFound = true');
+        expect(source).toContain('Follow the next cyan pulse.');
+        expect(source).toContain('Reach the living fracture with your companion.');
+        expect(source).toContain('Guardian awakening');
         expect(source).toContain("{ text: 'Beacon Route Aligned', done: this.caveRouteAligned }");
 
         expect(scene.canActivateCrystalCore()).toBe(false);
-        expect(scene.getCrystalCoreHintText()).toBe('Align the Beacon anchors');
+        expect(scene.getCrystalCoreHintText()).toBe('Follow the 3 pulses');
         scene.caveRouteAligned = true;
         expect(scene.canActivateCrystalCore()).toBe(false);
-        expect(scene.getCrystalCoreHintText()).toBe('Tend the fractured grove');
+        expect(scene.getCrystalCoreHintText()).toBe('Reach the fractured grove');
         scene.crystalWoundTended = true;
         expect(scene.canActivateCrystalCore()).toBe(true);
-        expect(scene.getCrystalCoreHintText()).toBe('Touch to Answer the Guardian');
+        expect(scene.getCrystalCoreHintText()).toBe('Guardian awakening');
     });
 
     test('makes the cave entry keyboard accessible and single-fire', () => {
@@ -240,11 +240,12 @@ describe('second expedition rescue loop', () => {
 
         expect(source).toContain('const barY = isMobileLayout ? 118 : 55');
         expect(source).toContain('this.createCampaignObjectiveDisplay(');
-        expect(source).toContain('FOLLOW THE CAVE PULSE →');
+        expect(source).toContain('FOLLOW THE CYAN LIGHT →');
         expect(source).toContain('FRACTURED GROVE AHEAD');
         expect(source).toContain('REACH IT TOGETHER →');
-        expect(source).toContain('USE THE CRYSTAL LIFT ↑');
-        expect(source).toContain('STRIKE THE UNSTABLE PULSE');
+        expect(source).toContain('GUARDIAN AWAKENING');
+        expect(source).toContain('GET READY');
+        expect(source).toContain('ATTACK THE MAGENTA CORRUPTION');
         expect(source).toContain('OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}');
         expect(source).toContain(
             '!(this.isCompactObjectiveHUD && this.bossFightActive)'
@@ -307,7 +308,7 @@ describe('second expedition rescue loop', () => {
         expect(scene.shouldAnimateCrystalRouteDecorations()).toBe(true);
     });
 
-    test('changes the live objective from route-finding to companion rescue and guardian contact', () => {
+    test('changes the live objective from pulse finding to a clear corruption fight', () => {
         const CrystalCavesLevel = loadLevelClass();
         const scene = new CrystalCavesLevel();
         scene.starFragmentsCollected = 0;
@@ -318,15 +319,15 @@ describe('second expedition rescue loop', () => {
         scene.bossFightActive = false;
         scene.bossDefeated = false;
 
-        expect(scene.getCrystalObjectiveText()).toContain('ROUTE 1/3 // ECHO PASS');
+        expect(scene.getCrystalObjectiveText()).toContain('PULSE 1/3 // ECHO PASS');
         scene.beaconAnchorsActivated = 2;
         expect(scene.getCrystalObjectiveText()).toContain('FRACTURED GROVE AHEAD');
         scene.crystalWoundTended = true;
-        expect(scene.getCrystalObjectiveText()).toContain('ROUTE 3/3 // GUARDIAN THRESHOLD');
+        expect(scene.getCrystalObjectiveText()).toContain('PULSE 3/3 // GUARDIAN THRESHOLD');
         scene.beaconAnchorsActivated = 3;
         scene.caveRouteAligned = true;
-        expect(scene.getCrystalObjectiveText()).toContain('CRYSTAL CORE AHEAD');
+        expect(scene.getCrystalObjectiveText()).toContain('GUARDIAN AWAKENING');
         scene.bossFightActive = true;
-        expect(scene.getCrystalObjectiveText()).toContain('STABILIZE THE GUARDIAN');
+        expect(scene.getCrystalObjectiveText()).toContain('DEFEAT THE CORRUPTION');
     });
 });

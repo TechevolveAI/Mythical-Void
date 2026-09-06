@@ -27,10 +27,10 @@ been made. The full assessment is in
 
 The opening is promising. A private local review reached the **FIRST CONTACT**
 egg interaction immediately on desktop and phone, and the first download is
-about **3.75 MB compressed**. That is inside Poki's current suggestion of about
+about **3.77 MB compressed**. That is inside Poki's current suggestion of about
 5 MB for the first download.
 
-The complete delivery is not ready. It is about **28.1 MiB compressed**, compared
+The complete delivery is not ready. It is about **28.4 MiB compressed**, compared
 with Poki's current suggestion of about 8 MB for a good web game. Most of the
 extra weight is later films and music. The build also still knows about outside
 NASA, Open Notify and Mythical-hosted services; real tablet touch, denied

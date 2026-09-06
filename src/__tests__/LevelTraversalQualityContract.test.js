@@ -988,10 +988,11 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("destinationId: 'caves-core-refuge'");
         expect(source).toContain("activationSupportIds: ['caves-echo-upper']");
         expect(source).toContain("activationSupportIds: ['caves-grove-step']");
-        expect(source).toContain("activationSupportIds: ['caves-guardian-left']");
+        expect(source).toContain("activationSupportIds: ['caves-guardian-approach']");
         expect(source).toContain("fallbackLabel: 'FOLLOW THE BEACON ANCHORS'");
-        expect(source).toContain('this.isPlayerGroundedOnTraversalSupport(');
+        expect(source).toContain('this.awakenCorruptedGuardian();');
         expect(source).toContain('this.getTraversalSupportCheckpoint(');
+        expect(source).not.toContain('this.createSlidePlatform(\'caves-slide-1\'');
     });
 
     test('Crystal Caves batches route coins without collectible physics bodies', () => {
@@ -1004,9 +1005,10 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('redrawCaveCrystalField()');
         expect(source).toContain('this.caveCrystalField.push(crystal);');
         expect(source).toContain('!Number.isFinite(crystal.lastDrawnAlpha)');
-        expect(source).toContain('this.caveParallaxLayers.push(graphics);');
-        expect(source).toContain("graphics.caveAmbientRole = 'brokenLantern';");
-        expect(source).toContain("graphics.caveAmbientRole = 'minerSkeleton';");
+        expect(source).toContain('this.caveParallaxLayers.push(backdrop);');
+        expect(source).toContain('createPressureRemnant(x, y, scale = 1)');
+        expect(source).toContain('createCurrentVent(x, y, scale = 1)');
+        expect(source).not.toContain('this.createMinecart(350');
         expect(source).toContain('if (!this.isMobile) {');
         expect(source).not.toContain("const coin = this.collectibles.create(x, y, textureKey);");
         expect(source).not.toContain('targets: coin,');
@@ -1512,7 +1514,7 @@ describe('campaign traversal quality contracts', () => {
 
     test.each([
         ['levels/MythicalForestLevel.js', "title: 'ELDER GROVE'"],
-        ['levels/CrystalCavesLevel.js', "title: 'CRYSTAL CORE'"],
+        ['levels/CrystalCavesLevel.js', "title: 'GUARDIAN CHAMBER'"],
         ['levels/ReefLevel.js', "title: 'STELLAR PASSAGE'"],
         ['levels/VoidPeaksLevel.js', "title: 'TITAN PASS'"],
         ['levels/AuroraDepthsLevel.js', "title: 'PHOENIX SHIELD'"],
@@ -1633,7 +1635,7 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("supportId: 'caves-spider-arena'");
         expect(source).toContain("supportId: 'caves-guardian-approach'");
         expect(source).toContain("lane: 'main'");
-        expect(source).toContain("lane: 'optional'");
+        expect(source).toContain("lane: 'shared'");
         expect(source).toContain('enemy.encounterAirborne = true;');
         expect(source).toContain('enemy.encounterBeat = encounter.beat;');
         expect(source).toContain(
@@ -1657,7 +1659,7 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('crystalFocusReady');
         expect(source).toContain('onNextRangedDamageConsumed()');
         expect(source).toContain('shouldAnimateCrystalRouteDecorations()');
-        expect(source).toContain('{ depth: 84, animate: animateRouteDecorations }');
+        expect(source).toContain('landingGuide: null');
         expect(source).toContain('!this.bossFightActive');
         expect(source).toContain("this.grantOptionalRouteGuard('CRYSTAL WARD', 1)");
         expect(source).not.toContain('this.activateShield();');
@@ -2767,7 +2769,7 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain("target.id === 'caves_anchor_3'");
         expect(smoke).toContain("'caves-echo-upper'");
         expect(smoke).toContain("'caves-grove-step'");
-        expect(smoke).toContain("'caves-guardian-left'");
+        expect(smoke).toContain("'caves-guardian-approach'");
         expect(smoke).toContain('peaksFlowFailed');
         expect(smoke).toContain("target.id === 'peaks_relay_1'");
         expect(smoke).toContain("'peak-lower-relay-overlook'");
