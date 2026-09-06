@@ -39,7 +39,7 @@ requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(page), 'page contains a tracking
 requireValue(!/NASA (?:made|makes|endorses|partners with) Mythical Void/i.test(page), 'page implies a NASA relationship');
 requireValue(page.includes('data-share-game') && page.includes('data-copy-game') && page.includes('data-share-status'), 'clean sharing controls are missing');
 requireValue(page.includes('never asks for their contact details') && page.includes('adds no tracking code'), 'sharing privacy explanation is missing');
-requireValue(page.includes('/discovery.css?v=20260827-game-fit') && page.includes('/discovery.js?v=20260827-game-fit'), 'game-finder assets need a matching fresh cache version');
+requireValue(page.includes('/discovery.css?v=20260827-game-fit') && page.includes('/discovery.js?v=20260906-plain-language'), 'game-finder assets need fresh cache versions');
 requireValue(page.includes('id="game-fit-title"') && page.includes('Is this your kind of game?'), 'honest game-fit decision is missing');
 requireValue(page.includes('YOU MAY LOVE IT IF…') && page.includes('IT MAY NOT BE FOR YOU IF…'), 'game-fit decision must show both fit and non-fit');
 requireValue(page.includes('multiplayer, public chat or competitive rankings') && page.includes('offline game or a finished commercial release'), 'important non-fit boundaries are missing');
@@ -79,7 +79,8 @@ const gameFitSection = page.match(/\n        <section class="game-fit-section"[\
 const pageForReleaseFingerprint = page
     .replace('<a href="/help/">Help</a>', '')
     .replace(gameFitSection, '')
-    .replaceAll('20260827-game-fit', '20260827-funnel-source');
+    .replaceAll('20260827-game-fit', '20260827-funnel-source')
+    .replaceAll('20260906-plain-language', '20260827-funnel-source');
 requireValue(sha256(Buffer.from(pageForReleaseFingerprint)) === release.page?.sha256, 'page fingerprint drifted');
 requireValue(release.state === 'owned_site_explanation_live_media_withdrawn_pending_rebuild', 'release state must record the current visual decision');
 requireValue(release.visualDecision?.registerPath === 'public/press/visual-publication-register.json', 'release must point to the visual-review register');
