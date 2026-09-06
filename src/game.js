@@ -17,6 +17,8 @@ import PlatformerLevelScene from './scenes/PlatformerLevelScene.js';
 import VictoryScene from './scenes/VictoryScene.js';
 import CloudSaveSettingsModal from './ui/CloudSaveSettingsModal.js';
 import SharedFusionModal from './ui/SharedFusionModal.js';
+import SharedGuardianshipModal from './ui/SharedGuardianshipModal.js';
+import SharedCreatureCareModal from './ui/SharedCreatureCareModal.js';
 import PageVisibilityController from './utils/PageVisibilityController.js';
 // Individual levels are lazy loaded via SceneLoader when player enters them
 // This reduces initial bundle size by ~200KB (each level is ~40-60KB)
@@ -488,7 +490,7 @@ async function initializeCloudSaves() {
         auth: {
             persistSession: true,
             autoRefreshToken: true,
-            detectSessionInUrl: false
+            detectSessionInUrl: true
         }
     });
 
@@ -497,6 +499,11 @@ async function initializeCloudSaves() {
         gameState: GameState
     });
     window.CloudSave = cloudSaveManager;
+
+    window.DurableAccountService?.installRecoveryFlow?.({
+        client,
+        cloudSave: cloudSaveManager
+    });
 
     await cloudSaveManager.initialize();
     console.info('[CloudSave] Ready:', cloudSaveManager.getStatus());
@@ -2259,7 +2266,7 @@ async function initializeGame() {
 
         // Local, non-saving Fusion Pod previews for maturity requirements and selection QA.
         const testFusion = urlParams.get('testFusion');
-        if (isLocalPreview && ['eligible', 'ready', 'journey', 'blocked', 'hatch', 'consent'].includes(testFusion)) {
+        if (isLocalPreview && ['eligible', 'ready', 'journey', 'blocked', 'hatch', 'consent', 'guardianship'].includes(testFusion)) {
             game.events.once('ready', () => {
                 setTimeout(() => {
                     const now = Date.now();
@@ -2292,7 +2299,7 @@ async function initializeGame() {
                             }
                         };
                     };
-                    const previewCreatures = ['eligible', 'ready', 'journey', 'hatch', 'consent'].includes(testFusion)
+                    const previewCreatures = ['eligible', 'ready', 'journey', 'hatch', 'consent', 'guardianship'].includes(testFusion)
                         ? [
                             createPreviewCreature('preview_adult', 'Stardust', 'adult', 3, 'rare'),
                             createPreviewCreature('preview_elder', 'Moonglow', 'elder', 12, 'epic'),
@@ -2346,7 +2353,8 @@ async function initializeGame() {
                         previewCreatures,
                         previewAutoSelect: ['ready', 'journey'].includes(testFusion),
                         previewAutoStart: testFusion === 'journey',
-                        previewConsentOnly: testFusion === 'consent'
+                        previewConsentOnly: testFusion === 'consent',
+                        previewSharedGuardianshipAccount: testFusion === 'guardianship'
                     });
                 }, 100);
             });
@@ -2594,6 +2602,225 @@ async function initializeGame() {
                 }, 100);
             };
             showSharedFusionPreview();
+        }
+
+        // Local, non-saving Shared Guardianship previews for responsive and
+        // governance QA. These routes never call Supabase or mutate a save.
+        const testSharedGuardianship = urlParams.get('testSharedGuardianship');
+        if (
+            isLocalPreview &&
+            [
+                'cloud',
+                'account',
+                'home',
+                'waiting',
+                'paired',
+                'naming',
+                'care',
+                'access',
+                'delete'
+            ].includes(testSharedGuardianship)
+        ) {
+            let guardianshipPreviewBootChecks = 0;
+            const showGuardianshipPreview = () => {
+                if (!game.isBooted) {
+                    guardianshipPreviewBootChecks++;
+                    if (guardianshipPreviewBootChecks <= 60) {
+                        setTimeout(showGuardianshipPreview, 50);
+                    }
+                    return;
+                }
+                setTimeout(() => {
+                    const now = Date.now();
+                    const parent = {
+                        id: 'preview_guardian_parent',
+                        name: 'Stardust',
+                        rarity: 'rare',
+                        generation: 1,
+                        hatchTime: now - 6 * 24 * 60 * 60 * 1000,
+                        lifecycle: {
+                            birthDate: now - 6 * 24 * 60 * 60 * 1000,
+                            stage: 'adult'
+                        },
+                        stats: { happiness: 91 },
+                        mood: { current: 'steady' },
+                        genes: {
+                            rarity: 'rare',
+                            cosmicAffinity: { element: 'crystal' }
+                        }
+                    };
+                    const sharedCreatureId = 'shared_preview_beacon_23';
+                    let projection = {
+                        sharedCreatureId,
+                        name: 'Beacon',
+                        rarity: 'epic',
+                        generation: 2,
+                        guardianCount: 2,
+                        revision: 7,
+                        notificationsMuted: false,
+                        care: {
+                            comfort: 82,
+                            curiosity: 74,
+                            energy: 91
+                        },
+                        history: [
+                            { summary: 'Stardust tended Beacon.' },
+                            { summary: 'The other guardian played with Beacon.' }
+                        ]
+                    };
+                    let invitation = {
+                        invitationId: '824363b2-d374-4b44-bf7f-1d7a177fa077',
+                        role: 'host',
+                        status: testSharedGuardianship === 'naming'
+                            ? 'staged'
+                            : testSharedGuardianship,
+                        code: testSharedGuardianship === 'waiting'
+                            ? '23AF-BEAC-077A'
+                            : null,
+                        peerSignal: ['paired', 'naming'].includes(testSharedGuardianship)
+                            ? {
+                                rarity: 'epic',
+                                affinity: 'verdant',
+                                generation: 2
+                            }
+                            : null,
+                        hostConfirmed: testSharedGuardianship === 'naming',
+                        guestConfirmed: testSharedGuardianship === 'naming',
+                        ownNameChoice: null,
+                        peerNameChoice: testSharedGuardianship === 'naming'
+                            ? 'Beacon'
+                            : null,
+                        nameAgreed: false,
+                        sharedCreatureId
+                    };
+                    const account = {
+                        async getStatus() {
+                            return {
+                                configured: true,
+                                authenticated: true,
+                                permanent: testSharedGuardianship !== 'account',
+                                identityVerified: testSharedGuardianship !== 'account',
+                                passwordReady: testSharedGuardianship !== 'account'
+                            };
+                        },
+                        async signOut() {},
+                        async deleteAccount() {}
+                    };
+                    const service = {
+                        account,
+                        async create() {
+                            invitation = { ...invitation, status: 'waiting', code: '23AF-BEAC-077A' };
+                            return invitation;
+                        },
+                        async join() {
+                            invitation = {
+                                ...invitation,
+                                status: 'paired',
+                                code: null,
+                                peerSignal: {
+                                    rarity: 'epic',
+                                    affinity: 'verdant',
+                                    generation: 2
+                                }
+                            };
+                            return invitation;
+                        },
+                        async get() { return invitation; },
+                        async confirm() { return invitation; },
+                        async execute() { return invitation; },
+                        async chooseName(_invitationId, name) {
+                            invitation = {
+                                ...invitation,
+                                ownNameChoice: name,
+                                nameAgreed: name === invitation.peerNameChoice,
+                                status: name === invitation.peerNameChoice
+                                    ? 'committed'
+                                    : invitation.status
+                            };
+                            return invitation;
+                        },
+                        async cancel() { return invitation; },
+                        async getProjection() { return projection; },
+                        async care(_creatureId, action) {
+                            const careKey = action === 'play'
+                                ? 'curiosity'
+                                : action === 'rest'
+                                    ? 'energy'
+                                    : 'comfort';
+                            projection = {
+                                ...projection,
+                                revision: projection.revision + 1,
+                                care: {
+                                    ...projection.care,
+                                    [careKey]: Math.min(100, projection.care[careKey] + 8)
+                                },
+                                history: [
+                                    { summary: `You chose ${action} for Beacon.` },
+                                    ...projection.history
+                                ]
+                            };
+                            return projection;
+                        },
+                        async setNotificationsMuted(_creatureId, muted) {
+                            projection = {
+                                ...projection,
+                                revision: projection.revision + 1,
+                                notificationsMuted: muted
+                            };
+                            return projection;
+                        },
+                        async leave() {},
+                        watch() { return () => {}; },
+                        destroy() {}
+                    };
+
+                    game.scene.stop('HatchingScene');
+                    game.scene.start('FusionPodScene', {
+                        previewCreatures: [parent, { ...parent, id: 'preview_guardian_peer', name: 'Moonglow' }]
+                    });
+                    setTimeout(() => {
+                        const scene = game.scene.getScene('FusionPodScene');
+                        window.__sharedGuardianshipPreview?.destroy?.();
+                        if (['care', 'access', 'delete'].includes(testSharedGuardianship)) {
+                            const modal = new SharedCreatureCareModal(scene, {
+                                service,
+                                projection
+                            });
+                            window.__sharedGuardianshipPreview = modal;
+                            modal.show();
+                            if (testSharedGuardianship !== 'care') {
+                                modal.manageAccess = true;
+                                modal.confirmDeleteAccount = testSharedGuardianship === 'delete';
+                                modal.render();
+                            }
+                            return;
+                        }
+                        const cloudSave = {
+                            isEnabled: () => testSharedGuardianship !== 'cloud',
+                            async enable() {}
+                        };
+                        const modal = new SharedGuardianshipModal(scene, {
+                            account,
+                            service,
+                            cloudSave,
+                            previewAccess: true
+                        });
+                        window.__sharedGuardianshipPreview = modal;
+                        modal.show({ parents: [parent] });
+                        setTimeout(() => {
+                            if (testSharedGuardianship === 'cloud') {
+                                modal.renderCloudGate();
+                            } else if (testSharedGuardianship === 'home') {
+                                modal.renderHome();
+                            } else if (['waiting', 'paired', 'naming'].includes(testSharedGuardianship)) {
+                                modal.invitation = invitation;
+                                modal.renderInvitation();
+                            }
+                        }, 20);
+                    }, 150);
+                }, 100);
+            };
+            showGuardianshipPreview();
         }
 
         if (!hasLocalQaRoute) {

@@ -867,6 +867,11 @@ class GameStateManager {
                     }
                 }
             },
+            sharedGuardianship: {
+                schemaVersion: 1,
+                projections: [],
+                lastSyncedAt: null
+            },
             dailyBonus: {
                 lastLoginDate: null,
                 currentStreak: 0,
@@ -4260,6 +4265,27 @@ class GameStateManager {
                 completedOperationIds: [],
                 pendingReveal: null
             };
+
+        const sharedGuardianshipSystem = typeof globalThis !== 'undefined'
+            ? globalThis.SharedGuardianship
+            : null;
+        const sharedGuardianship = data.sharedGuardianship &&
+            typeof data.sharedGuardianship === 'object'
+            ? data.sharedGuardianship
+            : {};
+        data.sharedGuardianship = {
+            schemaVersion: 1,
+            projections: Array.isArray(sharedGuardianship.projections) &&
+                typeof sharedGuardianshipSystem?.normalizeProjection === 'function'
+                ? sharedGuardianship.projections
+                    .map(entry => sharedGuardianshipSystem.normalizeProjection(entry))
+                    .filter(Boolean)
+                    .slice(0, 1)
+                : [],
+            lastSyncedAt: Number.isFinite(sharedGuardianship.lastSyncedAt)
+                ? Math.max(0, sharedGuardianship.lastSyncedAt)
+                : null
+        };
 
         const seenReconciliations = new Set();
         shrine.reconciliationQueue = (

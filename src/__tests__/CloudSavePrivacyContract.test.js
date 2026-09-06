@@ -119,7 +119,7 @@ describe('Cloud Save privacy contract', () => {
         );
     });
 
-    test('deletes anonymous identities only through an authenticated server function', () => {
+    test('deletes identities only through an authenticated server function', () => {
         const functionSource = fs.readFileSync(
             path.join(
                 __dirname,
@@ -129,7 +129,12 @@ describe('Cloud Save privacy contract', () => {
         );
 
         expect(functionSource).toContain('callerClient.auth.getUser()');
-        expect(functionSource).toContain('if (!user.is_anonymous)');
+        expect(functionSource).toContain(
+            "body.confirmation !== 'DELETE_PERMANENT_ACCOUNT'"
+        );
+        expect(functionSource).toContain(
+            'Date.now() - lastSignInAt <= 5 * 60 * 1000'
+        );
         expect(functionSource).toContain('removeAllMediaFiles');
         expect(functionSource).toContain('removalBatchSize = 100');
         expect(functionSource).toContain("'creature-portraits'");
