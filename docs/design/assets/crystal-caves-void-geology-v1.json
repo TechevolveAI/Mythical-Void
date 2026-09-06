@@ -1,0 +1,16 @@
+{
+  "asset": "public/game/levels/crystal-caves/void-geology-background-v1.webp",
+  "purpose": "Original painted background for the rebuilt Crystal Caves level",
+  "createdAt": "2026-09-06",
+  "generator": "OpenAI built-in image generation",
+  "sourceImage": null,
+  "promptSummary": "A production-ready 2D side-scrolling Crystal Caves background with deep parallax space, porous dark void rock, pale displaced mineral slabs, cyan subsurface fissures and restrained magenta corruption. Alien planetary geology only; no characters, text, interface, human mines, mine carts, lanterns, tools or ruins.",
+  "researchReferences": [
+    "https://europa.nasa.gov/resources/118/chaotic-terrain-on-europa-in-very-high-resolution/",
+    "https://europa.nasa.gov/resources/76/landscapes-and-features-of-europa/",
+    "https://science.nasa.gov/photojournal/tiger-stripes-on-enceladus-fracture-zones-and-plumes-sources/"
+  ],
+  "referenceImagesCopied": false,
+  "humanReview": "Accepted for private gameplay integration pending responsive scene verification",
+  "notes": "Original fictional synthesis. The astronomy references informed geological vocabulary; no NASA image is embedded in the asset."
+}
