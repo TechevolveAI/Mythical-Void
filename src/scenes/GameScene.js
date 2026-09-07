@@ -2595,7 +2595,7 @@ class GameScene extends Phaser.Scene {
             51,
             observed
                 ? `CURRENT LINKED // ${progress}/${total}`
-                : 'SIGNS OF LIFE // LISTEN TOGETHER',
+                : 'LIFE CALL // STAND TOGETHER',
             {
                 fontSize: '10px',
                 fontFamily: 'Arial, sans-serif',
@@ -2708,7 +2708,7 @@ class GameScene extends Phaser.Scene {
         }
 
         signal.listeningProgress?.setVisible?.(false);
-        signal.label?.setText('SIGNS OF LIFE // LISTEN TOGETHER');
+        signal.label?.setText('LIFE CALL // STAND TOGETHER');
         signal.label?.setColor('#D8FFF0');
     }
 

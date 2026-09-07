@@ -193,10 +193,13 @@ describe('plain-language public story', () => {
     });
 
     test('uses clear words for different situations', () => {
+        const gameScene = fs.readFileSync(path.join(root, 'src/scenes/GameScene.js'), 'utf8');
         const storefront = fs.readFileSync(path.join(root, 'src/site/storefront.js'), 'utf8');
         const projectBeacon = fs.readFileSync(path.join(root, 'src/config/project-beacon.json'), 'utf8');
         const spacePage = fs.readFileSync(path.join(root, 'public/space-discovery/index.html'), 'utf8');
 
+        expect(gameScene).toContain('LIFE CALL // STAND TOGETHER');
+        expect(gameScene).not.toContain('SIGNS OF LIFE // LISTEN TOGETHER');
         expect(storefront).toContain('read the strange message');
         expect(storefront).toContain('Follow the clue');
         expect(projectBeacon).toContain('Look for Signs of Life');
