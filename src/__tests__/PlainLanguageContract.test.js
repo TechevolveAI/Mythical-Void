@@ -36,8 +36,11 @@ const PLAYER_COPY_SYSTEM_FILES = [
     'src/systems/CampaignLegacy.js',
     'src/systems/CollectibleManager.js',
     'src/systems/CompanionConsent.js',
+    'src/systems/CompanionMediaService.js',
+    'src/systems/CompanionEarthMemory.js',
     'src/systems/CompanionIdentityArchive.js',
     'src/systems/CreatureAI.js',
+    'src/systems/CreatureAIController.js',
     'src/systems/CurrentEcology.js',
     'src/systems/CurrentVeilMission.js',
     'src/systems/FendCulture.js',
@@ -52,6 +55,7 @@ const PLAYER_COPY_SYSTEM_FILES = [
     'src/systems/KidMode.js',
     'src/systems/LivingPortraitService.js',
     'src/systems/ProtectedReturnProtocol.js',
+    'src/systems/ProjectBeaconStory.js',
     'src/systems/QuestManager.js',
     'src/systems/RemainAndDefendCampaign.js',
     'src/systems/SanctuaryCheckIn.js',
@@ -188,8 +192,38 @@ describe('plain-language public story', () => {
             fs.readFileSync(path.join(root, 'src/systems/GuardianResidents.js'), 'utf8')
         ].join('\n');
         expect(compatibilitySources).toContain('generate-companion-video');
+        expect(compatibilitySources).toContain('COMPANION_MEDIA_SCHEMA_VERSION');
+        expect(compatibilitySources).toContain('story.companionMedia');
         expect(compatibilitySources).toContain('player_companion');
         expect(compatibilitySources).toContain("replaceAll('{companion}'");
+    });
+
+    test('keeps generated creature output clear without renaming compatibility APIs', () => {
+        const mediaService = fs.readFileSync(
+            path.join(root, 'src/systems/CompanionMediaService.js'),
+            'utf8'
+        );
+        const dialogueController = fs.readFileSync(
+            path.join(root, 'src/systems/CreatureAIController.js'),
+            'utf8'
+        );
+
+        expect(mediaService).toContain(
+            'The creature enters the Mythical Forest beside Wanderer-77.'
+        );
+        expect(mediaService).not.toContain('The companion enters');
+        expect(dialogueController).toContain(
+            'You are an intelligent alien creature in Mythical Void'
+        );
+        expect(dialogueController).not.toContain(
+            'You are an intelligent alien companion in Mythical Void'
+        );
+
+        // These names are persisted or externally called and remain compatible.
+        expect(mediaService).toContain('class CompanionMediaService');
+        expect(mediaService).toContain('generate-companion-video');
+        expect(mediaService).toContain("'story.companionMedia'");
+        expect(dialogueController).toContain('class CreatureAIController');
     });
 
     test('uses clear words for different situations', () => {
