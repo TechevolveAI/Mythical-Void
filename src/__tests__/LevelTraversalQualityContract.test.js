@@ -183,6 +183,20 @@ describe('campaign traversal quality contracts', () => {
         expect(scene.coyoteTime).toBe(150);
     });
 
+    test('touch direction reversals cross zero in one gameplay frame', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({
+            key: 'ResponsiveDirectionTest',
+            movement: {
+                playerAcceleration: 0.15
+            }
+        });
+
+        expect(scene.getResponsiveHorizontalVelocity(180, -180)).toBeCloseTo(-63);
+        expect(scene.getResponsiveHorizontalVelocity(-180, 180)).toBeCloseTo(63);
+        expect(scene.getResponsiveHorizontalVelocity(0, 180)).toBeCloseTo(27);
+    });
+
     test('vertical joystick input is exposed only for two-axis levels', () => {
         const PlatformerLevelScene = loadPlatformerLevelScene();
         const createThumb = () => ({
@@ -474,6 +488,51 @@ describe('campaign traversal quality contracts', () => {
                 velocity: { y: 760 }
             }
         }, enemy)).toBe('stomp');
+    });
+
+    test('a swept stomp resolves when a thin enemy is crossed between frames', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'SweptStompFallbackTest' });
+        const enemy = {
+            active: true,
+            stompable: true,
+            stompContactLockedUntil: 0,
+            body: {
+                enable: true,
+                left: 90,
+                right: 130,
+                top: 175,
+                bottom: 195,
+                height: 20,
+                center: { y: 185 },
+                prev: { y: 175 }
+            }
+        };
+        scene.player = {
+            active: true,
+            x: 110,
+            body: {
+                enable: true,
+                left: 96,
+                right: 124,
+                top: 160,
+                bottom: 204,
+                height: 44,
+                center: { y: 182 },
+                prev: { y: 110 },
+                velocity: { x: 0, y: 720 }
+            },
+            setVelocityY: jest.fn()
+        };
+        scene.enemies = { getChildren: () => [enemy] };
+        scene.time = { now: 1000 };
+        scene.jumpVelocity = -460;
+        scene.damageEnemy = jest.fn(() => true);
+        scene.showFloatingText = jest.fn();
+
+        expect(scene.resolveSweptEnemyStomps()).toBe(1);
+        expect(scene.damageEnemy).toHaveBeenCalledTimes(1);
+        expect(enemy.stompContactLockedUntil).toBe(1220);
     });
 
     test('collision normals preserve edge stomps but upward contact remains harmful', () => {
@@ -938,7 +997,7 @@ describe('campaign traversal quality contracts', () => {
         expect(smokeSource).toContain('sleepingDetachedCount');
         expect(smokeSource).toContain('displayCount: 150');
         expect(smokeSource).toContain('state.displayCount > 150');
-        expect(smokeSource).toContain('physicsOnlySupportCount !== 73');
+        expect(smokeSource).toContain('physicsOnlySupportCount !== 78');
         expect(smokeSource).toContain('physicsOnlySupportDisplayCount !== 0');
     });
 
@@ -2737,12 +2796,23 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.retireTraversalLandingGuide(anchor);');
     });
 
+    test('Mythical Forest audits the mandatory Rootwake crossing as a world change', () => {
+        const source = read('levels/MythicalForestLevel.js');
+
+        expect(source).toContain('zone.traversalAuditEnabled = true;');
+        expect(source).toContain("groundBeforeRootwake.traversalLinks = ['rootwake-step-1'];");
+        expect(source).toContain("platforms[index + 1]?.id || groundAfterRootwake?.traversalId");
+        expect(source).toContain("id: 'forest-tree-2-handoff'");
+    });
+
     test('release smoke completes every campaign route instead of checking only its opening', () => {
+        const base = read('PlatformerLevelScene.js');
         const smoke = fs.readFileSync(
             path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
             'utf8'
         );
 
+        expect(base).toContain('y: this.player?.body?.bottom ?? this.player?.y');
         expect(smoke).toContain('audit?.flow?.strandingSupportCount !== 0');
         expect(smoke).toContain('smokeVoidPeaksReturnCurrents(session)');
         expect(smoke).toContain('smokeCrystalCoreLift(session)');

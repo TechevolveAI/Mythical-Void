@@ -413,7 +413,7 @@ describe('first expedition rescue loop', () => {
             'this.setCheckpoint(supportCheckpoint.x, supportCheckpoint.y, {'
         );
         expect(source).toContain('checkpointId: checkpoint.id');
-        expect(source).toContain('BEACON ${anchorNumber}/3 ACTIVE');
+        expect(source).toContain('FOREST LIGHT ${anchorNumber}/3 FOUND');
         expect(source).toContain("'WALK INTO THE LIGHT'");
         expect(source).toContain('checkpoint.actionPrompt');
     });
@@ -437,10 +437,10 @@ describe('first expedition rescue loop', () => {
         expect(source).toContain('this.beaconAnchorsActivated++');
         expect(source).toContain('this.forestRouteAligned = true');
         expect(source).toContain('this.beginAutomaticGuardianAwakening(checkpoint);');
-        expect(source).toContain('ALL THREE BEACONS ANSWERED');
+        expect(source).toContain('ALL 3 FOREST LIGHTS FOUND');
         expect(bossArena).toContain('if (!this.forestRouteAligned)');
         expect(bossArena).toContain(
-            'Walk through the 3 glowing Beacons in order.'
+            'Find all 3 forest lights. The Guardian wakes after the third.'
         );
         expect(bossArena).toContain('const guardianGateX = 5520;');
         expect(bossArena).toContain('this.levelHeight / 2');
@@ -459,9 +459,9 @@ describe('first expedition rescue loop', () => {
             'this.createCampaignObjectiveDisplay('
         );
         expect(source).toContain('FOLLOW THE GOLD PULSE →');
-        expect(source).toContain('BEACON ${current}/3 // WALK INTO ${nextAnchor}');
+        expect(source).toContain('FOREST LIGHT ${current}/3 // WALK INTO THE GLOW AT ${nextAnchor}');
         expect(source).toContain(
-            '[ REQUIRED ] Walk through 3 glowing Beacons in order'
+            '[ REQUIRED ] Follow 3 forest lights. The Guardian wakes after the third.'
         );
         expect(source).toContain('STRIKE THE PURPLE CORRUPTION');
         expect(source).toContain('OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}');

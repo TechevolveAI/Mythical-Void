@@ -23,9 +23,13 @@ function loadTraversalTopology() {
     return sandbox.module.exports;
 }
 
-function support(id, left, right, top, { enabled = true } = {}) {
+function support(id, left, right, top, {
+    enabled = true,
+    traversalAuditEnabled = false
+} = {}) {
     return {
         traversalId: id,
+        traversalAuditEnabled,
         body: {
             enable: enabled,
             left,
@@ -200,6 +204,8 @@ describe('campaign traversal topology', () => {
 
         expect(result.passed).toBe(true);
         expect(result.coverage).toBe(1);
+        expect(result.flow.comfortCoverage).toBe(1);
+        expect(result.flow.comfortUnreachableSupportIds).toEqual([]);
         expect(result.unreachableTargets).toEqual([]);
         expect(result.targets[0].label).toBe('FIRST SIGNAL');
         expect(result.flow.strandingSupportCount).toBe(0);
@@ -495,6 +501,27 @@ describe('campaign traversal topology', () => {
         expect(result.passed).toBe(true);
         expect(result.spawnSupportId).toBe('start');
         expect(result.reachableSupportCount).toBe(2);
+    });
+
+    test('includes disabled support only for a guaranteed world change', () => {
+        const result = analyzeTraversalTopology({
+            movement,
+            spawn: { x: 80, y: 700 },
+            supports: [
+                support('start', 0, 260, 700),
+                support('mandatory-crossing', 290, 520, 650, {
+                    enabled: false,
+                    traversalAuditEnabled: true
+                }),
+                support('finish', 550, 850, 700)
+            ],
+            targets: [
+                { id: 'guardian', x: 740, y: 620, width: 120, height: 180 }
+            ]
+        });
+
+        expect(result.passed).toBe(true);
+        expect(result.targets[0].pathSupportIds).toContain('mandatory-crossing');
     });
 
     test('does not rely on collapsing platforms for required progression', () => {

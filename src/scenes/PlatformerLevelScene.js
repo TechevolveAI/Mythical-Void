@@ -1310,7 +1310,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             targets,
             spawn: {
                 x: this.player?.x,
-                y: this.player?.y
+                y: this.player?.body?.bottom ?? this.player?.y
             },
             movement: {
                 gravityY: this.gravityY,
@@ -4061,6 +4061,61 @@ class PlatformerLevelScene extends Phaser.Scene {
         return 'contact';
     }
 
+    resolveSweptEnemyStomps() {
+        const playerBody = this.player?.body;
+        const enemies = this.enemies?.getChildren?.() || [];
+        if (
+            !playerBody?.enable ||
+            (Number(playerBody.velocity?.y) || 0) < 0 ||
+            enemies.length === 0
+        ) {
+            return 0;
+        }
+
+        const previousPlayerTop = Number(
+            playerBody.prev?.y ?? playerBody.prevFrame?.y
+        );
+        const playerHeight = Math.max(1, Number(playerBody.height) || 1);
+        const previousPlayerBottom = Number.isFinite(previousPlayerTop)
+            ? previousPlayerTop + playerHeight
+            : Number.NaN;
+        if (!Number.isFinite(previousPlayerBottom)) return 0;
+
+        let resolved = 0;
+        enemies.forEach(enemy => {
+            const enemyBody = enemy?.body;
+            if (
+                enemy?.active === false ||
+                !enemyBody?.enable ||
+                enemy.stompable === false ||
+                this.time.now < (Number(enemy.stompContactLockedUntil) || 0)
+            ) {
+                return;
+            }
+
+            const enemyTop = Number(enemyBody.top);
+            const enemyBottom = Number(enemyBody.bottom);
+            const tolerance = Math.max(
+                8,
+                Math.min(18, (Number(enemyBody.height) || 1) * 0.28)
+            );
+            const crossedTop = previousPlayerBottom <= enemyTop + tolerance &&
+                playerBody.bottom >= enemyTop - tolerance &&
+                playerBody.bottom <= enemyBottom + playerHeight;
+            const horizontalOverlap = playerBody.right > enemyBody.left + 2 &&
+                playerBody.left < enemyBody.right - 2;
+
+            if (
+                crossedTop &&
+                horizontalOverlap &&
+                this.resolveEnemyContact(this.player, enemy) === 'stomp'
+            ) {
+                resolved += 1;
+            }
+        });
+        return resolved;
+    }
+
     getEnemyStompFeedback(enemy, {
         damageApplied = true,
         stompDamage
@@ -4953,6 +5008,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.handleJump(time);
         }
 
+        this.resolveSweptEnemyStomps();
         this.updateEnemyCombatReadability();
         this.updatePatrolEnemyMovement();
         this.updateOptionalRouteChoices();
@@ -5176,6 +5232,20 @@ class PlatformerLevelScene extends Phaser.Scene {
      * More responsive but less twitchy than instant velocity
      * Supports both keyboard and virtual joystick input
      */
+    getResponsiveHorizontalVelocity(currentVelocity, targetVelocity) {
+        const current = Number(currentVelocity) || 0;
+        const target = Number(targetVelocity) || 0;
+        const reversing = current * target < 0;
+
+        // A direction change must feel immediate on touch. Interpolating from
+        // the previous run direction creates a perceptible neutral/sticky beat
+        // on lower-frequency mobile browser frames.
+        if (reversing) {
+            return target * Math.max(0.35, this.playerAcceleration);
+        }
+        return current + (target - current) * this.playerAcceleration;
+    }
+
     handleMovement() {
         const leftPressed = this.cursors.left.isDown || this.wasdKeys.A.isDown;
         const rightPressed = this.cursors.right.isDown || this.wasdKeys.D.isDown;
@@ -5192,7 +5262,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             const speedMultiplier = virtualLeft ? Math.min(1, Math.abs(this.virtualJoystickX) * 1.5) : 1;
             const targetVel = -currentMaxSpeed * speedMultiplier;
             const currentVel = this.player.body.velocity.x;
-            const newVel = currentVel + (targetVel - currentVel) * this.playerAcceleration;
+            const newVel = this.getResponsiveHorizontalVelocity(currentVel, targetVel);
             this.player.setVelocityX(newVel);
             this.player.facingRight = false;
         } else if (rightPressed || virtualRight) {
@@ -5200,7 +5270,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             const speedMultiplier = virtualRight ? Math.min(1, Math.abs(this.virtualJoystickX) * 1.5) : 1;
             const targetVel = currentMaxSpeed * speedMultiplier;
             const currentVel = this.player.body.velocity.x;
-            const newVel = currentVel + (targetVel - currentVel) * this.playerAcceleration;
+            const newVel = this.getResponsiveHorizontalVelocity(currentVel, targetVel);
             this.player.setVelocityX(newVel);
             this.player.facingRight = true;
         } else {

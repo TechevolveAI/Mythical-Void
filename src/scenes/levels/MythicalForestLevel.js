@@ -582,7 +582,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const continueText = this.add.text(
             width / 2,
             height * 0.9,
-            'TAP TO BEGIN',
+            width < 600 ? 'TAP TO BEGIN' : 'CLICK OR PRESS ENTER',
             {
                 fontSize: width < 600 ? '12px' : '14px',
                 color: '#B9DAD7',
@@ -596,11 +596,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
             .setInteractive({ useHandCursor: true });
         foregroundElements.push(background, status, caption, continueText, skipZone);
         this.forestArrivalElements = scenicElements;
+        let enterKey = null;
 
         const finish = ({ viewed = false } = {}) => {
             if (completed) return false;
             completed = true;
             this.forestArrivalRequest += 1;
+            enterKey?.removeAllListeners?.();
             if (viewed) {
                 window.GameState?.set?.(
                     'story.projectBeacon.firstForestCinematicSeen',
@@ -621,6 +623,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
             return true;
         };
         skipZone.on('pointerdown', () => finish({ viewed: true }));
+        if (width >= 600 && this.input?.keyboard) {
+            enterKey = this.input.keyboard.addKey(
+                Phaser.Input.Keyboard.KeyCodes.ENTER
+            );
+            enterKey.once('down', () => finish({ viewed: true }));
+        }
 
         const mediaService = window.CompanionMediaService || companionMediaService;
         const portraitPreviewRecord = this.forestArrivalPortraitPreview
@@ -833,8 +841,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
             contentLeft,
             secondaryY,
             resume
-                ? `[ BEACON ] ${resume.label} link restored`
-                : '[ REQUIRED ] Walk through 3 glowing Beacons in order',
+                ? `[ BEACON ] ${resume.label} link restored // follow the next forest light`
+                : '[ REQUIRED ] Follow 3 forest lights. The Guardian wakes after the third.',
             {
             fontSize: font(16, 14),
             color: '#AAAAAA',
@@ -1006,7 +1014,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             : optionalFallback;
 
         if (this.rootwakeCrossing && !this.rootwakeCrossing.awakened) {
-            return 'WAKE THE ROOTWAY\nMOVE TO THE PULSING ROOTLIGHT\nYOUR CREATURE CAN CHANGE THIS PLACE';
+            return 'ROOTWAY BLOCKED\nGO RIGHT // WALK INTO THE PULSING ROOTLIGHT\nYOUR CREATURE WILL OPEN THE WAY';
         }
 
         if (
@@ -1038,8 +1046,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
             ? this.getOrderedRouteCompassText()
             : '';
         const title = this.isCompactObjectiveHUD
-            ? `BEACON ${current}/3 // WALK INTO LIGHT`
-            : `BEACON ${current}/3 // WALK INTO ${nextAnchor}`;
+            ? `FOREST LIGHT ${current}/3 // WALK INTO THE GLOW`
+            : `FOREST LIGHT ${current}/3 // WALK INTO THE GLOW AT ${nextAnchor}`;
 
         return `${title}\n${compass || 'FOLLOW THE GOLD PULSE →'}\n${optional}`;
     }
@@ -1644,8 +1652,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const anchorNumber = this.beaconAnchorsActivated;
         this.showFloatingText(
             anchorNumber < 3
-                ? `BEACON ${anchorNumber}/3 ACTIVE\nFOLLOW THE NEXT GOLD PULSE →`
-                : 'BEACON 3/3 ACTIVE\nGUARDIAN ROUTE OPEN →',
+                ? `FOREST LIGHT ${anchorNumber}/3 FOUND\nFOLLOW THE NEXT GOLD LIGHT →`
+                : 'ALL 3 FOREST LIGHTS FOUND\nTHE GUARDIAN IS WAKING',
             checkpoint.x,
             checkpoint.respawnY - 35,
             '#8FE3CF'
@@ -1724,7 +1732,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             camera?.fadeIn?.(320, 8, 20, 18);
 
             this.showFloatingText(
-                'ALL THREE BEACONS ANSWERED\nTHE GUARDIAN AWAKENS',
+                'ALL 3 FOREST LIGHTS FOUND\nTHE GUARDIAN AWAKENS',
                 entranceX + 40,
                 entranceY - 115,
                 '#F2C94C'
@@ -1754,10 +1762,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
             checkpoint.actionPrompt
                 ?.setText?.(
                     complete
-                        ? `BEACON ${checkpoint.index + 1}/3 ACTIVE`
+                        ? `LIGHT ${checkpoint.index + 1}/3 FOUND`
                         : next
                             ? 'WALK INTO THE LIGHT'
-                            : `BEACON ${checkpoint.index + 1}/3 LOCKED`
+                            : `LIGHT ${checkpoint.index + 1}/3 AHEAD`
                 )
                 ?.setColor?.(complete ? '#8FE3CF' : (next ? '#F2C94C' : '#7F9CA2'))
                 ?.setAlpha?.(complete || next ? 1 : 0.42);
@@ -2055,6 +2063,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
             this.physics.add.existing(zone, true);
             this.configureForestClimbSupport(zone);
             zone.traversalId = config.id;
+            // This collision becomes active after the mandatory Rootwake beat.
+            // Include the guaranteed crossing in static traversal verification.
+            zone.traversalAuditEnabled = true;
             zone.setData('rootwakePlatform', true);
             zone.body.enable = awakened;
             this.platforms.add(zone);
@@ -2069,6 +2080,16 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 zone,
                 settled: awakened
             };
+        });
+        const groundBeforeRootwake = this.getTraversalSupport('forest-ground-1');
+        const groundAfterRootwake = this.getTraversalSupport('forest-ground-2');
+        if (groundBeforeRootwake) {
+            groundBeforeRootwake.traversalLinks = ['rootwake-step-1'];
+        }
+        platforms.forEach((platform, index) => {
+            platform.zone.traversalLinks = [
+                platforms[index + 1]?.id || groundAfterRootwake?.traversalId
+            ].filter(Boolean);
         });
 
         const crossing = {
@@ -4329,6 +4350,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
             // The first gap is crossed by the creature-raised Rootwake route.
             // Tree 1's branches remain as the optional high-skill path.
             // From Tree 2 to Tree 3
+            {
+                x1: 1120,
+                x2: 1400,
+                y: this.levelHeight - 460,
+                type: 'static',
+                id: 'forest-tree-2-handoff'
+            },
             { x1: 1400, x2: 1900, y: this.levelHeight - 450, type: 'vine' },
             // From Tree 3 to Tree 4
             {
@@ -4575,7 +4603,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             title: 'ELDER GROVE',
             getStatus: () => this.forestRouteAligned
                 ? 'ROUTE OPEN // ENTER THE GROVE'
-                : `BEACONS ${this.beaconAnchorsActivated}/3 // WALK THROUGH THE LIGHTS`,
+                : `FOREST LIGHTS ${this.beaconAnchorsActivated}/3 // FOLLOW THE GOLD GLOW`,
             isReady: () => this.forestRouteAligned,
             color: 0x9370DB,
             readyColor: 0x8FE3CF
@@ -4589,7 +4617,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                         const now = this.time.now;
                         if (now >= this.bossGateHintUntil) {
                             this.showFloatingText(
-                                'Walk through the 3 glowing Beacons in order. Follow the gold pulse.',
+                                'Find all 3 forest lights. The Guardian wakes after the third.',
                                 this.player.x,
                                 this.player.y - 70,
                                 '#F2C94C'
