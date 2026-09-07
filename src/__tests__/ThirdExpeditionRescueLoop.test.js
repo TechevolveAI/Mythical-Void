@@ -239,8 +239,9 @@ describe('third expedition rescue loop', () => {
     test('separates compact objective and guardian UI from mobile controls', () => {
         const source = readLevel();
 
-        expect(source).toContain('const y = isMobileLayout ? 118 : 55');
-        expect(source).toContain('this.isMobile || width <= 480 || height < 620');
+        expect(source).toContain('const y = isMobileLayout ? 96 : 55');
+        expect(source).toContain('this.forceMobileControls ||');
+        expect(source).toContain('screenWidth <= 480');
         expect(source).toContain('this.createCampaignObjectiveDisplay(');
         expect(source).toContain('ROUTE ${current}/3 // ${nextWaypoint}');
         expect(source).toContain('PASSAGE GUARDIAN AHEAD');

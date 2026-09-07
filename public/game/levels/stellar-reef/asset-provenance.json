@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "createdAt": "2026-09-07",
+  "scope": "Stellar Reef in-game environment",
+  "generator": "OpenAI built-in image generation",
+  "humanDirection": "Codex implementation pass under Kevin Murphy's approved level-improvement goal",
+  "assets": [
+    {
+      "path": "cosmic-reef-background-v1.webp",
+      "purpose": "Painted dimensional-ocean parallax background",
+      "sourcePromptSummary": "Alien cosmic reef inside a dimensional ocean; side-framed crystalline tissue and currents; quiet central gameplay corridor; no characters, UI, text, or familiar Earth species.",
+      "processing": "Generated RGB PNG resized to 1600x900 and converted to WebP quality 78."
+    },
+    {
+      "path": "cosmic-reef-platform-v1.webp",
+      "purpose": "Transparent living-mineral terrain shelf",
+      "sourcePromptSummary": "One connected side-view alien reef ledge with a readable top edge, substantial underside, crystal ribs, tissue fronds, and internal Current veins; no characters, UI, or text.",
+      "processing": "Generated RGBA PNG cropped to the authored terrain body, resized to 1024x258, and converted to alpha WebP quality 82."
+    }
+  ],
+  "rights": {
+    "projectUseApproved": true,
+    "thirdPartySourceMaterial": false,
+    "watermarkPresent": false
+  },
+  "publication": {
+    "marketingAsset": false,
+    "publicPromotionApproved": false
+  }
+}

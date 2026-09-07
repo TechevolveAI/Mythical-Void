@@ -314,7 +314,7 @@ describe('release test gate', () => {
             'auroraDepths',
             'finalVoid'
         ].forEach(route => expect(source).toContain(`'${route}'`));
-        expect(source).toContain("/^SIGNAL (RIGHT|LEFT|CLOSE)/");
+        expect(source).toContain("/^CLUE (RIGHT|LEFT|CLOSE)/");
         expect(source).toContain('nextSignalEmphasized');
         expect(source).toContain('has no readable opening route guidance');
         expect(source).toContain('route signal handoff');

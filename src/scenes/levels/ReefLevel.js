@@ -3,7 +3,13 @@ import PlatformerLevelScene from '../PlatformerLevelScene.js';
 const NYXVORAL_TEXTURE = 'nyxvoralArtwork';
 const NYXVORAL_ASSET = '/game/guardians/nyxvoral.webp';
 const NYXVORAL_DISPLAY_WIDTH = 430;
-const NYXVORAL_MOBILE_DISPLAY_WIDTH = 300;
+const NYXVORAL_MOBILE_DISPLAY_WIDTH = 176;
+const STELLAR_REEF_BACKGROUND_TEXTURE = 'stellarReefCosmicBackground';
+const STELLAR_REEF_BACKGROUND_ASSET =
+    '/game/levels/stellar-reef/cosmic-reef-background-v1.webp';
+const STELLAR_REEF_PLATFORM_TEXTURE = 'stellarReefLivingShelf';
+const STELLAR_REEF_PLATFORM_ASSET =
+    '/game/levels/stellar-reef/cosmic-reef-platform-v1.webp';
 
 const REEF_GUARDIAN_ATTACK_WINDOWS = Object.freeze({
     voidLunge: 2600,
@@ -30,7 +36,14 @@ const REEF_GUARDIAN_ARENA = Object.freeze({
     playerBottomOffset: 360,
     bossBottomOffset: 500,
     openingGraceMs: 3000,
-    contactDamage: 1
+    contactDamage: 1,
+    mobileZoom: 1,
+    mobileCameraLeadRatio: 0.25,
+    mobileTeamGap: 100,
+    mobileTeamOffsetX: -30,
+    mobileTeamOffsetY: -115,
+    mobileBossOffsetX: -16,
+    desktopTeamGap: 172
 });
 
 const REEF_ENCOUNTER_PLAN = Object.freeze([
@@ -230,6 +243,14 @@ class ReefLevel extends PlatformerLevelScene {
     preload() {
         super.preload();
         this.load.image(NYXVORAL_TEXTURE, NYXVORAL_ASSET);
+        this.load.image(
+            STELLAR_REEF_BACKGROUND_TEXTURE,
+            STELLAR_REEF_BACKGROUND_ASSET
+        );
+        this.load.image(
+            STELLAR_REEF_PLATFORM_TEXTURE,
+            STELLAR_REEF_PLATFORM_ASSET
+        );
     }
 
     init(data) {
@@ -934,8 +955,24 @@ class ReefLevel extends PlatformerLevelScene {
             bg.fillRect(0, i * (this.levelHeight / steps), this.levelWidth, this.levelHeight / steps + 2);
         }
 
-        // Add distant cosmic structures
-        this.createCosmicStructures();
+        if (this.textures.exists(STELLAR_REEF_BACKGROUND_TEXTURE)) {
+            const panelWidth = 2000;
+            const panelHeight = 1125;
+            this.reefPaintedBackground = [0, 1, 2].map(index => {
+                const panel = this.add.image(
+                    panelWidth * index + panelWidth / 2,
+                    this.levelHeight / 2,
+                    STELLAR_REEF_BACKGROUND_TEXTURE
+                );
+                panel.setDisplaySize(panelWidth, panelHeight);
+                panel.setFlipX(index % 2 === 1);
+                panel.setDepth(-950);
+                panel.setAlpha(0.78);
+                return panel;
+            });
+        } else {
+            this.createCosmicStructures();
+        }
     }
 
     /**
@@ -1101,10 +1138,28 @@ class ReefLevel extends PlatformerLevelScene {
         oneWay = false,
         traversalLinks = []
     } = {}) {
-        const platform = this.add.graphics();
         const height = 35;
+        let platform;
 
-        if (type === 'crystal') {
+        if (this.textures.exists(STELLAR_REEF_PLATFORM_TEXTURE)) {
+            const visualWidth = width + 20;
+            const visualHeight = Math.max(58, visualWidth * (258 / 1024));
+            platform = this.add.image(
+                x + width / 2,
+                y,
+                STELLAR_REEF_PLATFORM_TEXTURE
+            );
+            platform.setOrigin(0.5, 0);
+            platform.setDisplaySize(visualWidth, visualHeight);
+            if (type === 'void') platform.setTint(0xB8D9EF);
+            if (type === 'relic') platform.setTint(0xFFE0A3);
+            if (type === 'arena') platform.setTint(0xD7A7C8);
+            platform.reefAuthoredTerrain = true;
+        } else {
+            platform = this.add.graphics();
+        }
+
+        if (platform.type === 'Graphics' && type === 'crystal') {
             // Crystalline void platform - purple/magenta
             platform.fillStyle(0x9B30FF, 0.7);
             platform.fillRoundedRect(x, y, width, height, 8);
@@ -1127,7 +1182,7 @@ class ReefLevel extends PlatformerLevelScene {
             platform.fillStyle(0x9B30FF, 0.15);
             platform.fillRoundedRect(x - 8, y - 8, width + 16, height + 16, 12);
 
-        } else if (type === 'void') {
+        } else if (platform.type === 'Graphics' && type === 'void') {
             // Void energy platform - cyan/blue
             platform.fillStyle(0x0066AA, 0.6);
             platform.fillRoundedRect(x, y, width, height, 10);
@@ -1143,7 +1198,7 @@ class ReefLevel extends PlatformerLevelScene {
             platform.fillStyle(0x00FFFF, 0.1);
             platform.fillRoundedRect(x - 5, y - 5, width + 10, height + 10, 12);
 
-        } else if (type === 'relic') {
+        } else if (platform.type === 'Graphics' && type === 'relic') {
             // Special platform for ship part - golden
             platform.fillStyle(0x4A3000, 0.8);
             platform.fillRoundedRect(x, y, width, height, 10);
@@ -1156,7 +1211,7 @@ class ReefLevel extends PlatformerLevelScene {
             platform.fillStyle(0xFFD700, 0.2);
             platform.fillRoundedRect(x - 10, y - 10, width + 20, height + 20, 15);
 
-        } else if (type === 'arena') {
+        } else if (platform.type === 'Graphics' && type === 'arena') {
             // Boss arena - ominous void
             platform.fillStyle(0x1A0020, 0.95);
             platform.fillRoundedRect(x, y, width, height + 30, 15);
@@ -1186,6 +1241,10 @@ class ReefLevel extends PlatformerLevelScene {
         body.traversalId = id;
         body.traversalLinks = [...traversalLinks];
         body.platformType = oneWay ? 'one-way' : 'solid';
+        body.reefTerrainVisual = platform;
+        if (platform.reefAuthoredTerrain) {
+            platform.y += body.body.top - platform.getBounds().top;
+        }
         if (oneWay) {
             body.body.checkCollision.down = false;
             body.body.checkCollision.left = false;
@@ -1212,7 +1271,7 @@ class ReefLevel extends PlatformerLevelScene {
             return `STELLAR PASSAGE RESTORED\nTHE GUARDIAN IS SAFE\n${routeStatus}`;
         }
         if (this.bossFightActive) {
-            return `STABILIZE NYX'VORAL\nCURRENT-LINKED KATANA ACTIVE\n${routeStatus}`;
+            return `BREAK THE VOID HOLD\nSTRIKE WHEN THE CURRENT OPENS\n${routeStatus}`;
         }
         if (this.reefRouteAligned && this.shipPartCollected) {
             return `PASSAGE GUARDIAN AHEAD\nENTER THE OPEN CURRENT →\n${routeStatus}`;
@@ -1231,10 +1290,13 @@ class ReefLevel extends PlatformerLevelScene {
             ? 'DIMENSIONAL DRIVE // SECURED'
             : 'HOLD JUMP TO SWIM UP';
         const compass = this.getOrderedRouteCompassText();
+        const routeDirection = this.beaconAnchorsActivated === 0
+            ? 'SWIM RIGHT + UP // FOLLOW THE GOLD CURRENT'
+            : compass;
         const title = this.isCompactObjectiveHUD
             ? `ROUTE ${current}/3`
             : `ROUTE ${current}/3 // ${nextWaypoint}`;
-        return `${title}\n${compass || drive}\n${routeStatus}`;
+        return `${title}\n${routeDirection || drive}\n${routeStatus}`;
     }
 
     getReefRouteStatusText() {
@@ -1667,6 +1729,7 @@ class ReefLevel extends PlatformerLevelScene {
             });
         } else if (this.beaconAnchorsActivated === 3) {
             this.reefRouteAligned = true;
+            this.retireCompletedReefRouteGuidance();
             this.time.delayedCall(650, () => {
                 this.showFloatingText(
                     `${companionName}: "I can hold the route open. Stay with me."`,
@@ -1678,6 +1741,7 @@ class ReefLevel extends PlatformerLevelScene {
             window.AchievementSystem?.recordEvent?.('story_interaction', {
                 event: 'reef_route_aligned'
             });
+            this.scheduleAutomaticReefGuardianAwakening();
         }
 
         window.AudioManager?.playAchievement?.();
@@ -1691,6 +1755,18 @@ class ReefLevel extends PlatformerLevelScene {
                 futureColor: '#667F94'
             }
         );
+    }
+
+    retireCompletedReefRouteGuidance() {
+        if (!this.reefRouteAligned) return false;
+
+        this.beaconAnchors.forEach(anchor => {
+            anchor.guidanceTween?.remove?.();
+            anchor.guidanceTween = null;
+            anchor.label?.setVisible?.(false);
+            anchor.visual?.setAlpha?.(0.14);
+        });
+        return true;
     }
 
     createOpeningSignalCurrent() {
@@ -2124,6 +2200,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.restoreReefRouteState(resume.routeState, {
             rejoined: Number(resume.checkpointIndex) >= 1
         });
+        this.retireCompletedReefRouteGuidance();
         this.syncCampaignObjectiveDisplay();
         return true;
     }
@@ -2978,6 +3055,7 @@ class ReefLevel extends PlatformerLevelScene {
         // This pickup just marks it visually
         this.dimensionalDriveFound = true;
         this.refreshPersistedExpeditionRouteState();
+        this.scheduleAutomaticReefGuardianAwakening();
 
         this.time.delayedCall(700, () => {
             this.showFloatingText(
@@ -3007,9 +3085,11 @@ class ReefLevel extends PlatformerLevelScene {
             x: REEF_GUARDIAN_ARENA.triggerX,
             y: this.levelHeight - 470,
             title: 'STELLAR PASSAGE',
-            getStatus: () => !this.reefRouteAligned
-                ? 'SYNCHRONIZE 3 WAYPOINTS'
-                : 'RECOVER DIMENSIONAL DRIVE',
+            getStatus: () => {
+                if (!this.reefRouteAligned) return 'SYNCHRONIZE 3 WAYPOINTS';
+                if (!this.shipPartCollected) return 'RECOVER DIMENSIONAL DRIVE';
+                return 'PASSAGE OPEN // GUARDIAN WAKING';
+            },
             isReady: () => this.reefRouteAligned && this.shipPartCollected,
             color: 0x9B30FF,
             readyColor: 0x8FE3CF
@@ -3036,21 +3116,58 @@ class ReefLevel extends PlatformerLevelScene {
                     }
                     return;
                 }
-                const guardianEntered = this.beginGuardianEncounter({
-                    id: 'nyxvoral',
-                    title: "NYX'VORAL",
-                    checkpoint: {
-                        x: REEF_GUARDIAN_ARENA.playerEntryX,
-                        y: this.levelHeight - REEF_GUARDIAN_ARENA.playerBottomOffset
-                    },
-                    start: () => this.startBossFight()
-                });
-                if (!guardianEntered) return;
-
-                this.bossTriggerZone?.destroy?.();
-                this.bossTriggerZone = null;
+                this.enterReefGuardianEncounter();
             }
         });
+    }
+
+    scheduleAutomaticReefGuardianAwakening() {
+        if (
+            !this.reefRouteAligned ||
+            !this.shipPartCollected ||
+            this.bossFightActive ||
+            this.bossDefeated
+        ) {
+            return false;
+        }
+
+        this.scheduleGuardianTransition('reef-automatic-awakening', 850, () => {
+            if (!this.enterReefGuardianEncounter()) return;
+            this.showFloatingText(
+                'PASSAGE OPEN // NYX\'VORAL AWAKENS',
+                REEF_GUARDIAN_ARENA.playerEntryX,
+                this.levelHeight - 465,
+                '#F2C94C'
+            );
+        });
+        return true;
+    }
+
+    enterReefGuardianEncounter() {
+        if (
+            !this.reefRouteAligned ||
+            !this.shipPartCollected ||
+            this.bossFightActive ||
+            this.bossDefeated
+        ) {
+            return false;
+        }
+
+        const guardianEntered = this.beginGuardianEncounter({
+            id: 'nyxvoral',
+            title: "NYX'VORAL",
+            checkpoint: {
+                x: REEF_GUARDIAN_ARENA.playerEntryX,
+                y: this.levelHeight - REEF_GUARDIAN_ARENA.playerBottomOffset
+            },
+            start: () => this.startBossFight()
+        });
+        if (!guardianEntered) return false;
+
+        this.retireCompletedReefRouteGuidance();
+        this.bossTriggerZone?.destroy?.();
+        this.bossTriggerZone = null;
+        return true;
     }
 
     /**
@@ -3100,6 +3217,32 @@ class ReefLevel extends PlatformerLevelScene {
         }
         this.player.setVelocity?.(0, 0);
         this.player.facingRight = true;
+        const follower = this.astronautFollower;
+        const astronaut = follower?.sprite;
+        if (astronaut?.active) {
+            const isMobileArena = this.isMobile ||
+                this.cameras.main.width <= 480;
+            const teamGap = isMobileArena
+                ? REEF_GUARDIAN_ARENA.mobileTeamGap
+                : REEF_GUARDIAN_ARENA.desktopTeamGap;
+            const formationX = isMobileArena
+                ? REEF_GUARDIAN_ARENA.mobileTeamOffsetX
+                : -teamGap;
+            const formationY = isMobileArena
+                ? REEF_GUARDIAN_ARENA.mobileTeamOffsetY
+                : 2;
+            follower.followDistance = teamGap;
+            follower.setContextualFormation?.(
+                { x: formationX, y: formationY },
+                'reef_guardian_team'
+            );
+            follower.resetTrail?.();
+            astronaut.setPosition(
+                this.player.x + formationX,
+                this.player.y + formationY
+            );
+            follower.shadow?.setPosition?.(astronaut.x, astronaut.y + 34);
+        }
         this.currentCameraLeadX = -this.cameraLeadAmount;
         this.targetCameraLeadX = -this.cameraLeadAmount;
         return true;
@@ -3186,13 +3329,14 @@ class ReefLevel extends PlatformerLevelScene {
      * Spawn Nyx'voral the Void Serpent
      */
     spawnNyxvoral() {
-        const bossX = REEF_GUARDIAN_ARENA.bossX;
+        const isMobileArena = this.isMobile ||
+            this.cameras.main.width <= 480;
+        const bossX = REEF_GUARDIAN_ARENA.bossX +
+            (isMobileArena ? REEF_GUARDIAN_ARENA.mobileBossOffsetX : 0);
         const bossY = this.levelHeight - REEF_GUARDIAN_ARENA.bossBottomOffset;
 
         if (this.textures.exists(NYXVORAL_TEXTURE)) {
             this.boss = this.add.image(bossX, bossY, NYXVORAL_TEXTURE);
-            const isMobileArena = this.isMobile ||
-                this.cameras.main.width <= 480;
             const displayWidth = isMobileArena
                 ? NYXVORAL_MOBILE_DISPLAY_WIDTH
                 : NYXVORAL_DISPLAY_WIDTH;
@@ -3267,9 +3411,11 @@ class ReefLevel extends PlatformerLevelScene {
         this.bossCombatReadyAt = this.time.now;
         this.bossAttackLocked = false;
         if (this.isMobile || camera.width <= 480) {
+            this.tweens.killTweensOf(camera);
+            camera.setZoom(REEF_GUARDIAN_ARENA.mobileZoom);
             this.cameraLeadAmount = Math.max(
                 this.cameraLeadAmount,
-                camera.width * 0.2
+                camera.width * REEF_GUARDIAN_ARENA.mobileCameraLeadRatio
             );
         }
         camera.startFollow(this.player, true, 0.08, 0.1);
@@ -3400,12 +3546,18 @@ class ReefLevel extends PlatformerLevelScene {
     createBossHealthBar() {
         // Use SCREEN coordinates (center of camera view)
         const screenWidth = this.cameras.main.width;
-        const barWidth = Math.min(350, screenWidth - 60);
-        const barHeight = 28;
-        const x = (screenWidth - barWidth) / 2;
         const screenHeight = this.cameras.main.height;
-        const isMobileLayout = this.isMobile || screenWidth <= 480 || screenHeight < 620;
-        const y = isMobileLayout ? 118 : 55;
+        const isMobileLayout = this.isMobile ||
+            this.forceMobileControls ||
+            this.platformerPreviewSize === 'mobile' ||
+            screenWidth <= 480 ||
+            screenHeight < 620;
+        const barWidth = isMobileLayout
+            ? Math.min(286, screenWidth - 96)
+            : Math.min(350, screenWidth - 60);
+        const barHeight = isMobileLayout ? 21 : 28;
+        const x = (screenWidth - barWidth) / 2;
+        const y = isMobileLayout ? 96 : 55;
 
         // Boss UI container for all elements
         this.bossUI = this.add.container(0, 0);
@@ -3414,7 +3566,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         // Boss name with enhanced visibility
         this.bossNameText = this.add.text(screenWidth / 2, y - 28, 'NYX\'VORAL // TRAPPED', {
-            fontSize: isMobileLayout ? '18px' : '24px',
+            fontSize: isMobileLayout ? '16px' : '24px',
             color: '#A9F3E4',
             fontStyle: 'bold',
             stroke: '#2D0050',
@@ -3471,7 +3623,8 @@ class ReefLevel extends PlatformerLevelScene {
         this.bossBarConfig = { x, y: y + 5, width: barWidth, height: barHeight };
 
         if (isMobileLayout) {
-            this.cameras.main.setZoom(1);
+            this.tweens.killTweensOf(this.cameras.main);
+            this.cameras.main.setZoom(REEF_GUARDIAN_ARENA.mobileZoom);
         } else {
             this.tweens.add({
                 targets: this.cameras.main,
@@ -3972,6 +4125,19 @@ class ReefLevel extends PlatformerLevelScene {
     updateBoss(time, delta) {
         if (!this.boss || !this.bossBody) return;
 
+        const camera = this.cameras.main;
+        const compactArena = this.isMobile ||
+            this.forceMobileControls ||
+            this.platformerPreviewSize === 'mobile' ||
+            camera.width <= 480;
+        if (
+            compactArena &&
+            Math.abs(camera.zoom - REEF_GUARDIAN_ARENA.mobileZoom) > 0.001
+        ) {
+            this.tweens.killTweensOf(camera);
+            camera.setZoom(REEF_GUARDIAN_ARENA.mobileZoom);
+        }
+
         if (this.bossUsesArtwork) {
             this.boss.setPosition(this.bossBody.x, this.bossBody.y);
             if (this.bossArtworkPhase !== this.bossPhase) {
@@ -4290,17 +4456,49 @@ class ReefLevel extends PlatformerLevelScene {
     }
 
     showFloatingText(text, x, y, color = '#FFFFFF') {
-        const floatText = this.add.text(x, y, text, {
-            fontSize: '16px',
+        const camera = this.cameras?.main;
+        const viewportWidth = camera?.width || this.scale?.width || 390;
+        const viewportHeight = camera?.height || this.scale?.height || 720;
+        const isCheckpointRecovery = text === 'BACK AT CHECKPOINT';
+        const horizontalPadding = viewportWidth <= 480 ? 18 : 28;
+        const maximumTextWidth = Math.max(
+            120,
+            Math.min(320, viewportWidth - horizontalPadding * 2)
+        );
+        const displayX = isCheckpointRecovery ? viewportWidth / 2 : x;
+        const displayY = isCheckpointRecovery
+            ? Math.min(430, viewportHeight * 0.56)
+            : y;
+        const floatText = this.add.text(displayX, displayY, text, {
+            fontSize: viewportWidth <= 480 ? '14px' : '16px',
             color: color,
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 4
+            strokeThickness: 4,
+            align: 'center',
+            wordWrap: { width: maximumTextWidth }
         }).setOrigin(0.5).setDepth(500);
+
+        if (isCheckpointRecovery) {
+            floatText.setScrollFactor(0);
+        } else {
+            const viewLeft = camera?.worldView?.left ?? camera?.scrollX ?? 0;
+            const viewRight = camera?.worldView?.right ??
+                viewLeft + viewportWidth;
+            const halfWidth = Math.min(
+                maximumTextWidth / 2,
+                floatText.width / 2
+            );
+            floatText.x = Phaser.Math.Clamp(
+                x,
+                viewLeft + horizontalPadding + halfWidth,
+                viewRight - horizontalPadding - halfWidth
+            );
+        }
 
         this.tweens.add({
             targets: floatText,
-            y: y - 60,
+            y: displayY - (isCheckpointRecovery ? 36 : 60),
             alpha: 0,
             duration: 1800,
             onComplete: () => floatText.destroy()

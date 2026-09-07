@@ -22,6 +22,8 @@ describe('Rootwake Crossing gameplay contract', () => {
         );
         expect(levelSource).toContain("zone.traversalId = config.id;");
         expect(levelSource).toContain('platform.zone.body.enable = true;');
+        expect(levelSource).toContain('const collisionHeight = 96;');
+        expect(levelSource).toContain('targetTop + collisionHeight / 2');
     });
 
     test('makes the real creature action cause the visible world change', () => {
@@ -29,6 +31,8 @@ describe('Rootwake Crossing gameplay contract', () => {
         expect(levelSource).toContain("worldChange: 'five_layer_crossing_raised'");
         expect(levelSource).toContain("setData('rootwakeCreatureAction', 'resonance_slam')");
         expect(levelSource).toContain('this.player?.setVelocityY?.(-340);');
+        expect(levelSource).toContain('const witnessOffsetX = this.isMobile ? -72 : -112;');
+        expect(levelSource).toContain('this.isMobile ? 372 : 610');
         expect(levelSource).toContain('this.emitRootwakeGravitySeeds(color);');
         expect(levelSource).toContain('this.drawRootwakeWorldState(true);');
         expect(levelSource).toContain("eventId: 'forest_rootwake_crossing'");
@@ -46,6 +50,15 @@ describe('Rootwake Crossing gameplay contract', () => {
         expect(levelSource).toContain('getRootwakeCrossingSnapshot()');
         expect(levelSource).not.toContain('generate-ai-art');
         expect(levelSource).not.toContain('generated interpretation');
+    });
+
+    test('cannot remain stuck if the one-shot completion timer is dropped', () => {
+        expect(levelSource).toContain('crossing.completesAt = this.time.now + 1750;');
+        expect(levelSource).toContain('crossing.completeAwakening = completeAwakening;');
+        expect(levelSource).toContain('this.time.delayedCall(1750, completeAwakening);');
+        expect(levelSource).toMatch(
+            /this\.rootwakeSequenceActive[\s\S]*this\.time\.now >= crossing\.completesAt[\s\S]*crossing\.completeAwakening\?\.\(\)/
+        );
     });
 
     test('private capture proves transformation and continuous traversal', () => {
