@@ -2244,7 +2244,7 @@ class WorldBuilder {
                     ? `TAP · ${sanctuaryCommunityCount} COMMUNITY · ${restoredCount}/${VILLAGE_PLOTS.length} ROOTS`
                     : `${restoredCount}/${VILLAGE_PLOTS.length} ROOTS · ` +
                         `${sanctuaryCommunityCount} COMMUNITY · ${regionalGuardianCount} REGIONAL ALLIES`
-                : 'HATCH A COMPANION TO WAKE IT'
+                : 'HATCH A CREATURE TO WAKE IT'
             )
             .setFontSize(compactSettlement ? '8px' : '9px')
             .setPosition(landmark.zone.x, landmark.zone.y + (compactSettlement ? 105 : 138))
@@ -2262,7 +2262,7 @@ class WorldBuilder {
                 unlocked
                     ? `Open the Village Heart. ${sanctuaryCommunityCount} creatures live here. ` +
                         `${regionalGuardianCount} Guardians protect their regions.`
-                    : 'Village Heart dormant. Hatch a companion to wake it.'
+                    : 'Village Heart dormant. Hatch a creature to wake it.'
             );
 
         landmark.pulseTween = this.scene.tweens.add({
@@ -5676,7 +5676,7 @@ class WorldBuilder {
         }
 
         activity.add(routine);
-        activity.setData('helperName', building?.creature?.name || 'Companion');
+        activity.setData('helperName', building?.creature?.name || 'Creature');
         activity.setData('routine', building.definitionId);
         activity.setData('villageActivityProfile', building.definition?.worldProfile?.identity);
         activity.setData('villageActivityMotion', building.definition?.worldProfile?.motion);
@@ -8277,7 +8277,7 @@ class WorldBuilder {
         const snapshot = landmark?.snapshot;
         if (!snapshot?.unlock?.unlocked) {
             this.scene.showInteractionHint?.(
-                snapshot?.unlock?.reason || 'Hatch a companion to wake the Village Heart'
+                snapshot?.unlock?.reason || 'Hatch a creature to wake the Village Heart'
             );
             if (typeof window !== 'undefined') {
                 window.AudioManager?.playError?.();

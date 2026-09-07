@@ -189,7 +189,7 @@ export default class CompanionConsentModal {
         });
         addText(
             top + 110,
-            'You explain the risks. Your companion decides what may be revealed and when power may be used.',
+            'You explain the risks. Your creature decides what may be revealed and when power may be used.',
             {
                 fontSize: compact ? '12px' : '14px',
                 color: '#BFD8D2',
@@ -317,10 +317,10 @@ export default class CompanionConsentModal {
         addText(
             top + (compact ? 250 : 278),
             topic.id === 'evidence'
-                ? 'Wanderer-77 may prove the astronaut survived. The companion and Fend remain undisclosed.'
+                ? 'Wanderer-77 may prove the astronaut survived. The creature and Fend remain undisclosed.'
                 : topic.id === 'route'
                     ? 'The return vector stays sealed. No Fend coordinates enter an Earth record.'
-                    : "Restraint protects secrecy. Saving a life remains the companion's choice.",
+                    : "Restraint protects secrecy. Saving a life remains the creature's choice.",
             {
                 fontSize: compact ? '12px' : '14px',
                 color: '#BFD8D2',
@@ -351,7 +351,7 @@ export default class CompanionConsentModal {
         });
         addText(
             top + (compact ? 145 : 160),
-            "Earth may learn that the astronaut survived. The Fend's coordinates and the companion's existence remain protected.",
+            "Earth may learn that the astronaut survived. The Fend's coordinates and the creature's existence remain protected.",
             {
                 fontSize: compact ? '13px' : '16px',
                 color: '#F4F4F4',
@@ -370,7 +370,7 @@ export default class CompanionConsentModal {
         );
         addText(
             top + (compact ? 350 : 388),
-            "TRAVEL REMAINS YOUR COMPANION'S FUTURE CHOICE",
+            "TRAVEL REMAINS YOUR CREATURE'S FUTURE CHOICE",
             {
                 fontSize: compact ? '10px' : '12px',
                 color: '#8FE3CF',

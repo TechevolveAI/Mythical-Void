@@ -10,7 +10,7 @@ export const SHIP_RECONSTRUCTION_STEPS = Object.freeze([
         label: 'LIVING POWER LATTICE',
         summary: 'Seat the Forest Core without severing its bond to the Current.',
         installedSummary:
-            'Cabin power and one protected berth are restored. The berth can service your companion after each expedition; travel support is still only a prototype.',
+            'Cabin power and one protected berth are restored. The berth can care for your creature after each expedition; travel support is still only a prototype.',
         capabilities: Object.freeze({
             passengerCapacity: 1,
             creatureLifeSupport: 'prototype_required'

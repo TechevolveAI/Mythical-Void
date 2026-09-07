@@ -61,7 +61,7 @@ class CarePanelManager {
         bg.setVisible(false);
         this.panelElements.push(bg);
 
-        const title = this.scene.add.text(this.panelCenterX, 57, 'COMPANION LINK', {
+        const title = this.scene.add.text(this.panelCenterX, 57, 'CREATURE CARE', {
             fontSize: '18px',
             color: '#FFFFFF',
             fontFamily: 'Poppins, Arial, sans-serif',
@@ -166,7 +166,7 @@ class CarePanelManager {
             this.updateSignal();
             this.updateButtons();
             if (window.UXEnhancements) {
-                window.UXEnhancements.announce('Companion link open. Choose a care action.');
+                window.UXEnhancements.announce('Creature care open. Choose a care action.');
             }
         }
         return this.panelVisible;
@@ -392,7 +392,7 @@ class CarePanelManager {
 
     updateHint() {
         if (!this.hintText || !this.careSystem) {
-            this.hintText?.setText('Companion link unavailable');
+            this.hintText?.setText('Creature care unavailable');
             return;
         }
         const status = this.careSystem.getCareStatus();
@@ -404,7 +404,7 @@ class CarePanelManager {
         const rhythm = signal?.recommendedAction
             ? ` • ${signal.needLabel}: ${signal.recommendedAction}`
             : '';
-        this.hintText.setText(`TAB: Companion Link • Feed ${feedLeft} • Play ${playLeft}${rhythm}`);
+        this.hintText.setText(`TAB: Creature Care • Feed ${feedLeft} • Play ${playLeft}${rhythm}`);
     }
 
     destroy() {

@@ -211,7 +211,7 @@ export default class SharedFusionModal {
                 element(
                     'span',
                     'shared-fusion-parent-name',
-                    parent.name || 'Companion'
+                    parent.name || 'Creature'
                 ),
                 element(
                     'span',

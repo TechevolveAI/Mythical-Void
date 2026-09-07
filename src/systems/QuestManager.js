@@ -213,7 +213,7 @@ class QuestManager {
                 },
                 {
                     id: 'creature_reach_level_10',
-                    name: 'Seasoned Companion',
+                    name: 'Seasoned Creature Keeper',
                     description: 'Reach creature level 10',
                     icon: '🌟',
                     type: 'creature',

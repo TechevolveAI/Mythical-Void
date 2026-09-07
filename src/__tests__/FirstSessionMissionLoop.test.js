@@ -299,7 +299,7 @@ describe('first-session Project Beacon mission loop', () => {
             "const isMobile = width < 600 ||"
         );
         expect(controlsSource).toContain(
-            'Tap companion: Care, Chat, Profile.'
+            'Tap creature: Care, Chat, Profile.'
         );
         expect(controlsSource).toContain(
             "fontSize: isMobile ? '17px' : '30px'"

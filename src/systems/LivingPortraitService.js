@@ -339,10 +339,10 @@ class LivingPortraitService {
                     ? `in about ${minutes} minute${minutes === 1 ? '' : 's'}`
                     : `in about ${Math.ceil(minutes / 60)} hour${Math.ceil(minutes / 60) === 1 ? '' : 's'}`;
             return `New living portrait capacity returns ${availability}. ` +
-                'This companion remains playable and can retry from the Companion Archive.';
+                'This creature remains playable and can retry from the Creature Archive.';
         }
         if (status.retryable) {
-            return 'The protected portrait can retry from the Companion Archive. ' +
+            return 'The protected portrait can retry from the Creature Archive. ' +
                 'The pixel identity remains secured.';
         }
         return error?.message || 'Living portrait unavailable. Pixel identity remains secured.';

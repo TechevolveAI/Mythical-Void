@@ -140,7 +140,7 @@ export default class SoulRevealScene extends Phaser.Scene {
             this.beginLivingPortraitPrewarm();
         }
 
-        const creatureName = window.GameState?.get('creature.name') || 'Companion';
+        const creatureName = window.GameState?.get('creature.name') || 'Creature';
         this.time.delayedCall(50, () => {
             this.showLivingPortraitHandoff(creatureName);
         });

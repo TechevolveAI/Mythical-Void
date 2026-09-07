@@ -386,8 +386,8 @@ export default class HubWorldScene extends Phaser.Scene {
             return false;
         }
         const companionName = String(
-            window.GameState?.get?.('creature.name') || 'Your companion'
-        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your companion';
+            window.GameState?.get?.('creature.name') || 'Your creature'
+        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your creature';
 
         (window.CompanionMediaService || companionMediaService)
             ?.prepareCinematic?.(this, {
@@ -452,7 +452,7 @@ export default class HubWorldScene extends Phaser.Scene {
         const companion = this.add.text(
             centerX,
             panelY + panelHeight * (isMobile ? 0.61 : 0.59),
-            `COMPANION // ${companionName}: "${handoff.companionMoment}"`,
+            `CREATURE // ${companionName}: "${handoff.companionMoment}"`,
             {
                 fontSize: isMobile ? '11px' : '12px',
                 fontFamily: 'Arial, sans-serif',
@@ -599,8 +599,8 @@ export default class HubWorldScene extends Phaser.Scene {
         const restoredGuardianName =
             GUARDIAN_NAME_BY_LEVEL[debrief.levelId] || null;
         const companionName = String(
-            window.GameState?.get?.('creature.name') || 'Your companion'
-        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your companion';
+            window.GameState?.get?.('creature.name') || 'Your creature'
+        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your creature';
 
         const overlay = this.add.graphics();
         overlay.fillStyle(0x02030A, 0.9);
@@ -682,7 +682,7 @@ export default class HubWorldScene extends Phaser.Scene {
         const companionLabel = this.add.text(
             centerX,
             panelY + panelHeight * 0.575,
-            `${companionName.toUpperCase()} // COMPANION RECORD`,
+            `${companionName.toUpperCase()} // CREATURE RECORD`,
             {
                 fontSize: isMobile ? '10px' : '11px',
                 color: '#8FE3CF',

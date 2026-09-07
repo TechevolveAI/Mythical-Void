@@ -28,8 +28,8 @@ export const SENSEI_MEMORY_DEFINITIONS = Object.freeze([
         quote:
             '"Trust begins with how you enter."',
         relevance:
-            'The companion offered help before Project Beacon had language for intelligent life. Attention must come before assumption.',
-        unlockReason: 'First expedition completed or companion rescue witnessed.',
+            'The creature offered help before Project Beacon had language for intelligent life. Attention must come before assumption.',
+        unlockReason: 'First expedition completed or creature rescue witnessed.',
         lessonId: null
     }),
     Object.freeze({

@@ -299,8 +299,8 @@ function getEvidenceRows(gameState, capabilities, current) {
             status: hatched ? 'VERIFIED // PROTECTED' : 'UNCONFIRMED',
             tone: hatched ? 'protected' : 'pending',
             detail: hatched
-                ? 'A companion is a person and witness, never evidence the astronaut owns.'
-                : 'No living companion is recorded.'
+                ? 'A creature is a person and witness, never evidence the astronaut owns.'
+                : 'No living creature is recorded.'
         },
         {
             id: 'power',
@@ -339,12 +339,12 @@ function getBoundaryRows(gameState, capabilities, consent) {
         },
         {
             id: 'disclosure',
-            label: 'COMPANION DISCLOSURE',
+            label: 'CREATURE DISCLOSURE',
             status: consent.complete ? disclosureStatus : 'REVIEW REQUIRED',
             tone: consent.complete ? 'protected' : 'pending',
             detail: consent.complete
-                ? 'The companion is not a sample, passenger manifest, or proof of discovery.'
-                : 'Disclosure boundaries must be reviewed with the companion.'
+                ? 'The creature is not a sample, passenger manifest, or proof of discovery.'
+                : 'Disclosure boundaries must be reviewed with the creature.'
         },
         {
             id: 'travel',
@@ -354,7 +354,7 @@ function getBoundaryRows(gameState, capabilities, consent) {
                 consent.record?.travelStatus
             ) ? 'protected' : 'pending',
             detail: capabilities.passengerCapacity > 0
-                ? 'A seat exists, but travel remains the companion\'s future choice.'
+                ? 'A seat exists, but travel remains the creature\'s future choice.'
                 : 'No passenger decision can be requested without safe support.'
         },
         {

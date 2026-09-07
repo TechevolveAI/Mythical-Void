@@ -178,7 +178,7 @@ describe('ProtectedReturnProtocol', () => {
         });
         expect(
             getProtectedReturnSnapshot(noConsent).nextStep.requirement
-        ).toContain('active companion');
+        ).toContain('active creature');
 
         const noListening = createGameState({
             cultureComplete: false,

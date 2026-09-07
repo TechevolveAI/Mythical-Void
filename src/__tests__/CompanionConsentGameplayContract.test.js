@@ -25,11 +25,11 @@ describe('Companion consent gameplay contract', () => {
 
     test('lets the companion set route, evidence, and power boundaries', () => {
         expect(modal).toContain(
-            'You explain the risks. Your companion decides'
+            'You explain the risks. Your creature decides'
         );
         expect(modal).toContain('RECORD THIS BOUNDARY');
         expect(modal).toContain(
-            "TRAVEL REMAINS YOUR COMPANION'S FUTURE CHOICE"
+            "TRAVEL REMAINS YOUR CREATURE'S FUTURE CHOICE"
         );
         expect(modal).toContain(
             'A safe seat is not an invitation.'

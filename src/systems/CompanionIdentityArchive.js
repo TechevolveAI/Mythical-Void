@@ -16,7 +16,7 @@ export const COMPANION_IDENTITY_CHAPTERS = Object.freeze([
         order: 2,
         label: 'LIVING FORM',
         title: 'HOW THE FEND SEES THEM',
-        summary: 'Pixel form, living portrait provenance, and every recorded life stage belong to one companion.'
+        summary: 'Pixel form, living portrait provenance, and every recorded life stage belong to one creature.'
     }),
     Object.freeze({
         id: 'shared_journey',
@@ -543,7 +543,7 @@ export function buildPortableCompanionRecord(gameState) {
             id: creatureId,
             name: normalizeText(
                 getValue(gameState, 'creature.name', null),
-                'Unnamed Companion',
+                'Unnamed Creature',
                 24
             ),
             species: normalizeIdentifier(
@@ -655,7 +655,7 @@ function buildChapterRows(record, portrait, fieldMemories) {
     return {
         identity: [
             {
-                label: 'COMPANION',
+                label: 'CREATURE',
                 value: creature.name,
                 detail: `${creature.species.replace(/_/g, ' ')} // ${creature.rarity.toUpperCase()}`
             },
@@ -690,7 +690,7 @@ function buildChapterRows(record, portrait, fieldMemories) {
             {
                 label: 'TRANSFER RULE',
                 value: 'PROVENANCE ONLY',
-                detail: 'Temporary image URLs never enter the portable companion record.'
+                detail: 'Temporary image URLs never enter the portable creature record.'
             }
         ],
         shared_journey: [

@@ -1254,7 +1254,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         drill.active = false;
         const ui = this.firstExpeditionDrillUI;
-        const companionName = drill.companionName || 'Your companion';
+        const companionName = drill.companionName || 'Your creature';
         const powerProfile = buildCreaturePowerProfile(window.GameState, {
             context: 'fend'
         });

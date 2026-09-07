@@ -387,7 +387,7 @@ describe('Fusion Pod maturity requirements', () => {
         );
 
         expect(source).toContain(
-            'Two stable signatures form a new lineage. Both companions remain with you.'
+            'Two stable life patterns form a new lineage. Both creatures remain with you.'
         );
         expect(source).toContain('previewAutoSelect');
         expect(source).toContain("'generation_failed'");

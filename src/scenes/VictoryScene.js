@@ -81,7 +81,7 @@ const PROJECT_BEACON_PRIORITIES = Object.freeze({
         accentText: '#FF9A9A',
         confirmation: [
             'Build evidence, safeguards, and shared rules before any disclosure.',
-            'Give the Fend and your companion a veto over what Earth learns.'
+            'Give the Fend and your creature a veto over what Earth learns.'
         ],
         confirmLabel: 'BUILD THE PROTOCOL',
         pages: [

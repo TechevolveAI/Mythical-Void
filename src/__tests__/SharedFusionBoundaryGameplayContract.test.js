@@ -32,7 +32,7 @@ describe('Shared Fusion boundary gameplay contract', () => {
         expect(modal).toContain('APPROACHES WILLINGLY');
         expect(modal).toContain('LOCAL SANCTUARY ONLY');
         expect(modal).toContain(
-            'both keepers, both companions, and a protected server invitation'
+            'both keepers, both creatures, and a protected server invitation'
         );
         expect(consent).toContain("'public_matchmaking'");
         expect(consent).toContain("'player_search'");

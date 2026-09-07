@@ -34,7 +34,7 @@ export const COMPANION_BOUNDARY_TOPICS = Object.freeze([
         risk:
             'On Earth, power at this scale could be detected across a city even when it saves lives.',
         question:
-            'When should a hidden companion use their full power?',
+            'When should a hidden creature use their full power?',
         boundary:
             'I will stay hidden when I can. If hiding would cost a life, I choose the life.',
         outcome: 'emergency_life_first'
@@ -288,7 +288,7 @@ export function getCompanionConsentSnapshot(gameState) {
 
 export function formatCompanionConsentObjective(snapshot) {
     if (snapshot?.complete) {
-        return "Earth boundaries recorded. Travel remains your companion's future choice.";
+        return "Earth boundaries recorded. Travel remains your creature's future choice.";
     }
     if (snapshot?.ready) {
         return `Review Earth boundaries at Wanderer-77: ${snapshot.reviewedCount}/${snapshot.totalTopics}.`;

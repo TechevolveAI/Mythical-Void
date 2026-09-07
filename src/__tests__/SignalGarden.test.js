@@ -45,7 +45,7 @@ describe('Signal Garden', () => {
             success: true,
             stage: 'sprout',
             isNewStage: true,
-            companionLine: 'A tiny light leans toward your companion.'
+            companionLine: 'A tiny light leans toward your creature.'
         }));
         expect(second.stage).toBe('bud');
         expect(second.companionLine).toBe('The sprout answers the memories you restored.');

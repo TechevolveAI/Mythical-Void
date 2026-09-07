@@ -105,7 +105,7 @@ describe('Fusion Pod Sanctuary landmark', () => {
             canOpen: false
         }));
         expect(formatFusionPodLandmarkObjective(dormant)).toContain(
-            'Rescue a second companion'
+            'Rescue a second creature'
         );
 
         const calibrating = getFusionPodLandmarkSnapshot(

@@ -987,7 +987,7 @@ export default class InventoryScene extends Phaser.Scene {
         this.katanaArtifactModal = new KatanaArtifactModal(this);
         const shown = this.katanaArtifactModal.show({
             fieldKit,
-            creatureName: window.GameState?.get?.('creature.name') || 'Your companion',
+            creatureName: window.GameState?.get?.('creature.name') || 'Your creature',
             context: 'inventory',
             onClose: () => {
                 this.katanaArtifactModal = null;
@@ -2216,7 +2216,7 @@ export default class InventoryScene extends Phaser.Scene {
         // Info text
         const infoText = isStellar
             ? 'Stellar eggs exclude common field classifications.'
-            : 'The new hatch joins your sanctuary as another companion.';
+            : 'The new hatch joins your Sanctuary as another creature.';
         const info = this.add.text(width / 2, panelY + 220, infoText, {
             fontSize: isMobile ? '13px' : '15px',
             color: '#CCCCCC',
@@ -2225,7 +2225,7 @@ export default class InventoryScene extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(202);
 
         // Final confirmation text
-        const confirm = this.add.text(width / 2, panelY + 260, 'No companion is replaced or consumed.', {
+        const confirm = this.add.text(width / 2, panelY + 260, 'No creature is replaced or consumed.', {
             fontSize: isMobile ? '12px' : '14px',
             color: '#FFFFFF',
             fontStyle: 'italic'

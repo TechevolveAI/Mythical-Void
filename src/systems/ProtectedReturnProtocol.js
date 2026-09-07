@@ -31,9 +31,9 @@ export const PROTECTED_RETURN_STEPS = Object.freeze([
         label: 'LIVING WITNESS',
         title: 'SEAL LIVING-WORLD EVIDENCE',
         summary:
-            'Apply the companion-reviewed boundary: survival may be proved, but no life is offered as evidence.',
+            'Apply the creature-approved boundary: survival may be proved, but no life is offered as evidence.',
         appliedSummary:
-            'Companion identity, the Current, extreme power, and Fend locations are protected findings.'
+            'Creature identity, the Current, extreme power, and Fend locations are protected findings.'
     }),
     Object.freeze({
         id: 'uplink_hold',
@@ -178,7 +178,7 @@ function getStepRequirement(stepId, context) {
                 'astronaut_survival_only'
         )
             ? null
-            : 'Review route, evidence, and power boundaries with the active companion.';
+            : 'Review route, evidence, and power boundaries with the active creature.';
     }
     if (stepId === 'uplink_hold') {
         return context.culture.complete

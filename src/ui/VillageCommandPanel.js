@@ -89,9 +89,9 @@ function formatCommunityMemberOption(creature) {
         }`;
     }
     if (creature?.isPlayerCompanion) {
-        return `${creature.name} - your companion`;
+        return `${creature.name} - your creature`;
     }
-    return `${creature?.name || 'Companion'} - companion`;
+    return `${creature?.name || 'Creature'} - creature`;
 }
 
 function createVillageViewTabs(snapshot, { activeView, onSelect } = {}) {
@@ -210,7 +210,7 @@ function createCommunityDirectory(snapshot, portraitRecord = null) {
         createElement(
             'p',
             'village-community-directory-intro',
-            'Your companion and creatures you rescue live and work here by choice. Restored Guardians protect their own regions; they do not move into the Sanctuary.'
+            'Your creature and the creatures you rescue live and work here by choice. Restored Guardians protect their own regions; they do not move into the Sanctuary.'
         )
     );
     const counts = createElement('div', 'village-community-directory-counts');
@@ -256,10 +256,10 @@ function createCommunityDirectory(snapshot, portraitRecord = null) {
                     'span',
                     'village-community-member-type',
                     member.isPlayerCompanion
-                        ? 'YOUR COMPANION'
+                        ? 'YOUR CREATURE'
                         : isRescuedResident
                             ? 'RESCUED RESIDENT'
-                            : 'COMPANION'
+                            : 'CREATURE'
                 ),
                 createElement('strong', 'village-community-member-name', member.name || 'Unnamed creature'),
                 createElement(
@@ -270,7 +270,7 @@ function createCommunityDirectory(snapshot, portraitRecord = null) {
                             ? 'Expedition Partner'
                             : isRescuedResident
                                 ? 'Sanctuary Resident'
-                                : 'Companion'
+                                : 'Creature'
                     )
                 )
             );
@@ -423,7 +423,7 @@ function createCommunityPulse(snapshot, portraitRecord = null) {
             'village-community-line',
             moment
                 ? moment.line
-                : 'When rescued residents or companions help at different structures, their knowledge meets at the Heart.'
+                : 'When rescued residents or creatures help at different structures, their knowledge meets at the Heart.'
         ),
         createElement(
             'span',
@@ -510,7 +510,7 @@ function createResidentProposal(snapshot, definition, portraitRecord = null) {
             `${proposal.speakerName.toUpperCase()} · ${
                 proposal.speakerCommunityType === 'rescued_resident'
                     ? 'RESCUED RESIDENT'
-                    : 'COMPANION'
+                    : 'CREATURE'
             }`
         )
     );
@@ -741,7 +741,7 @@ function createResourceLesson(snapshot) {
 
 function createHeartIntroduction(snapshot, portraitRecord, onAcknowledge) {
     const companion = snapshot.roster?.find(creature => creature.isPlayerCompanion) ||
-        snapshot.roster?.[0] || { name: 'Your companion', isPlayerCompanion: true };
+        snapshot.roster?.[0] || { name: 'Your creature', isPlayerCompanion: true };
     const section = createElement('section', 'village-heart-introduction');
     section.setAttribute('data-testid', 'village-heart-introduction');
 
@@ -1505,7 +1505,7 @@ export default class VillageCommandPanel {
                             : 'Choose a structure. You will see its immediate benefit before spending supplies.'
                         : settlementComplete
                             ? 'Phase one is online. Review relationships, invite helpers, or prepare for the next expedition.'
-                            : 'Choose what to restore next, or invite a companion to help at a completed building.'
+                            : 'Choose what to restore next, or invite a creature to help at a completed building.'
                     : snapshot.unlock.reason
             )
         );
@@ -1807,7 +1807,7 @@ export default class VillageCommandPanel {
         assignments.append(createElement(
             'h3',
             'village-section-title',
-            contextualBuilding ? 'INVITE A RESIDENT OR COMPANION' : 'COMMUNITY HELP'
+            contextualBuilding ? 'INVITE A RESIDENT OR CREATURE' : 'COMMUNITY HELP'
         ));
         const assignable = snapshot.buildings.filter(
             building => building.status === 'complete' && building.definition.production
@@ -1816,13 +1816,13 @@ export default class VillageCommandPanel {
             assignments.append(createElement(
                 'p',
                 'village-empty-state',
-                'Complete a producer structure to invite a resident or companion contribution.'
+                'Complete a producer structure to invite a resident or creature contribution.'
             ));
         } else if (snapshot.roster.length === 0) {
             assignments.append(createElement(
                 'p',
                 'village-empty-state',
-                'No resident or companion is available for settlement work.'
+                'No resident or creature is available for settlement work.'
             ));
         } else {
             assignable.forEach(building => {

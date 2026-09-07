@@ -304,7 +304,7 @@ describe('Project Beacon campaign debrief state', () => {
         expect(hubSource).toContain('if (!debrief.isPreview)');
         expect(hubSource).toContain('NEXT EXPEDITION:');
         expect(hubSource).toContain('SANCTUARY RETURN:');
-        expect(hubSource).toContain('COMPANION RECORD');
+        expect(hubSource).toContain('CREATURE RECORD');
         expect(hubSource).toContain('`INSTALL ${partName.toUpperCase()}`');
         expect(hubSource).toContain("this.scene.start('GameScene', {");
         expect(hubSource).toContain('shipReconstructionHandoff: true');

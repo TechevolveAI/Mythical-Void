@@ -82,7 +82,7 @@
       "default": {
         "primaryAction": "pet",
         "secondaryActions": ["feed", "play"],
-        "helpText": "Give your stellar companion some love!"
+        "helpText": "Give your stellar creature some love!"
       }
     },
     "transitionEffects": {

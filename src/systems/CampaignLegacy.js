@@ -528,8 +528,8 @@ export function buildCampaignLegacyCapsule(gameState, {
         companion: {
             id: normalizeText(genes?.id, 'companion', 96),
             name: normalizeText(
-                getValue(gameState, 'creature.name', 'Companion'),
-                'Companion',
+                getValue(gameState, 'creature.name', 'Creature'),
+                'Creature',
                 32
             ),
             species: normalizeText(genes?.species, 'unknown', 64),

@@ -53,13 +53,13 @@ describe('shop, inventory, and field-kit interconnection', () => {
 
     test('preserves existing companions when another egg is hatched', () => {
         expect(shopSource).toContain(
-            'preserve both family records in your sanctuary'
+            'preserve both family records in your Sanctuary'
         );
         expect(inventorySource).toContain(
             "'s family record stays safe."
         );
         expect(inventorySource).toContain(
-            'No companion is replaced or consumed.'
+            'No creature is replaced or consumed.'
         );
         expect(inventorySource).toContain(
             'answers a second call.'

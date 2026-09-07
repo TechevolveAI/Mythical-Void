@@ -74,10 +74,10 @@ export const GUARDIAN_RESIDENT_DEFINITIONS = Object.freeze([
             intervention: 'My roots caught the path in {expedition}. {companion} trusted the bridge before the ground was certain.'
         }),
         rescueMemory:
-            'The pressure in my roots is quiet now. Your companion heard the forest before your instruments did.',
+            'The pressure in my roots is quiet now. Your creature heard the forest before your instruments did.',
         dialogue: Object.freeze([
             'New roots are testing the soil beneath Wanderer-77. I will warn you before they touch the hull.',
-            'Your small companion asks large questions. That is usually how a forest begins.',
+            'Your small creature asks large questions. That is usually how a forest begins.',
             'A rescued place should become shelter for the next life that arrives.'
         ])
     }),
@@ -1019,8 +1019,8 @@ export function createGuardianExpeditionDebrief(
 ) {
     if (!resident?.expeditionDebrief || !expedition?.levelId) return null;
     const companionName = typeof gameState?.get?.('creature.name') === 'string'
-        ? gameState.get('creature.name').trim().slice(0, 24) || 'Your companion'
-        : 'Your companion';
+        ? gameState.get('creature.name').trim().slice(0, 24) || 'Your creature'
+        : 'Your creature';
     const template = expedition.interventionCount > 0
         ? resident.expeditionDebrief.intervention
         : resident.expeditionDebrief.steady;

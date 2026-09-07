@@ -11,7 +11,7 @@ export const CURRENT_VEIL_ANCHORS = Object.freeze([
         label: 'ROOT ECHO',
         title: 'TRAILHEAD ROOT',
         summary:
-            'Match the companion pulse to the oldest trail root so the route rhythm cannot be isolated.',
+            "Match your creature's pulse to the oldest trail root so the route stays connected.",
         stabilizedSummary:
             'The trail root now answers as part of the whole Fend.',
         color: 0xD94B4B,

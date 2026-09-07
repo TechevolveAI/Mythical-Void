@@ -115,7 +115,7 @@ export default class CompanionIdentityArchiveModal {
             createElement(
                 'p',
                 'companion-archive-eyebrow',
-                'FEND CURRENT ARCHIVE // COMPANION RECORD'
+                'FEND CURRENT ARCHIVE // CREATURE RECORD'
             ),
             createElement(
                 'h2',
@@ -134,12 +134,12 @@ export default class CompanionIdentityArchiveModal {
             'X'
         );
         close.type = 'button';
-        close.setAttribute('aria-label', 'Close companion record');
+        close.setAttribute('aria-label', 'Close creature record');
         close.addEventListener('click', () => this.destroy());
         header.append(headingGroup, privacy, close);
 
         const tabs = createElement('nav', 'companion-archive-tabs');
-        tabs.setAttribute('aria-label', 'Companion record chapters');
+        tabs.setAttribute('aria-label', 'Creature record chapters');
         snapshot.chapters.forEach(entry => {
             const tab = createElement(
                 'button',

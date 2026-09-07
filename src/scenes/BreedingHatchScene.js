@@ -1331,7 +1331,7 @@ class BreedingHatchScene extends Phaser.Scene {
         }
 
         // Prompt text
-        const promptText = this.add.text(width / 2, promptY - 40, 'Name both new companions:', {
+        const promptText = this.add.text(width / 2, promptY - 40, 'Name both new creatures:', {
             fontSize: '16px',
             color: '#FFD700',
             fontStyle: 'bold'
@@ -1695,7 +1695,7 @@ class BreedingHatchScene extends Phaser.Scene {
         const promptY = height - 100;
 
         // Name your offspring text
-        const promptText = this.add.text(width / 2, promptY - 30, 'Name the new companion:', {
+        const promptText = this.add.text(width / 2, promptY - 30, 'Name the new creature:', {
             fontSize: '16px',
             color: '#FFD700',
             fontStyle: 'bold'
