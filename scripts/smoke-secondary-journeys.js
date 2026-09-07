@@ -8057,6 +8057,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
             const gate = scene?.guardianGateState;
             const automaticForest = ${JSON.stringify(route)} === 'mythicalForest';
+            const guardianAlreadyActive = scene?.bossFightActive === true &&
+                scene?.guardianEncounter?.active === true;
             if (
                 !scene?.player ||
                 (automaticForest
@@ -8128,7 +8130,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     start: () => scene.startBossFight()
                 }) === true;
                 if (!guardianStarted) return null;
-            } else if (!automaticForest) {
+            } else if (!automaticForest && !guardianAlreadyActive) {
                 scene.player.setPosition(gate.x, gate.y);
                 scene.player.setVelocity?.(0, 0);
             }

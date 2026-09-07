@@ -3090,6 +3090,38 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('Aurora Quiet Light returned after reload');
     });
 
+    test('campaign smoke defines active Guardian state before gate setup uses it', () => {
+        const smoke = fs.readFileSync(
+            path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
+            'utf8'
+        );
+        const setupStart = smoke.indexOf(
+            'const guardianEntrySetup = await evaluate(session'
+        );
+        const setupEnd = smoke.indexOf(
+            'const guardianEntry = await waitFor(',
+            setupStart
+        );
+        const setup = smoke.slice(setupStart, setupEnd);
+        const declaration = setup.indexOf(
+            'const guardianAlreadyActive = scene?.bossFightActive === true &&'
+        );
+        const gateCondition = setup.indexOf(
+            ': !guardianAlreadyActive && !gate?.ready'
+        );
+
+        expect(setupStart).toBeGreaterThanOrEqual(0);
+        expect(setupEnd).toBeGreaterThan(setupStart);
+        expect(declaration).toBeGreaterThanOrEqual(0);
+        expect(gateCondition).toBeGreaterThan(declaration);
+        expect(setup).toContain(
+            'scene?.guardianEncounter?.active === true;'
+        );
+        expect(setup).toContain(
+            '} else if (!automaticForest && !guardianAlreadyActive) {'
+        );
+    });
+
     test('keeps the Peaks opening clear and proves both route rewards independently', () => {
         const base = read('PlatformerLevelScene.js');
         const smoke = read('../../scripts/smoke-secondary-journeys.js');
