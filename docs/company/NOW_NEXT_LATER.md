@@ -33,10 +33,14 @@ actually live or prepared on 8 September 2026.
   project easier to classify; they do not prove that anyone saw or played it.
 - The release hand-off now refreshes every Latest News draft during the normal
   build and reduces the whole backlog to one next audience move. It caught and
-  repaired a real one-release gap. The public Latest News now contains 19 live
-  entries, including the press-room release, and the current first move remains
+  repaired a real one-release gap. The public Latest News now contains 20 live
+  entries, including the homepage Hatch Challenge release, and the current first move remains
   one text-only r/WebGames post. Nothing was posted and Kevin keeps control of
   the account and replies.
+- The owned-search notice now reads both public sitemaps and requires every live
+  submission to name its changed pages. The homepage, Latest News and the new
+  UPDATE-027 page were accepted in one bounded notice. Acceptance is not
+  crawling, indexing, ranking, visits, play or growth.
 - GitHub's 14-day traffic view on 8 September showed two repository-page views
   and one unique view. Clone totals are excluded because development and
   automation can create them. GitHub remains a useful proof shelf, but this is

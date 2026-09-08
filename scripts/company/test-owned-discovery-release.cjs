@@ -76,6 +76,8 @@ invalid('public/discovery.js', source => source.replace("readChoice() !== 'grant
 invalid('index.html', source => source.replace("if (isGameRoute) return", '// removed'), 'game-route stop is missing');
 invalid('src/site/storefront.js', source => source.replace('does not send Google the full page you came from, a message recipient, contact detail, creature detail, game activity', 'sends Google sharing details'), 'sharing measurement excludes');
 invalid('scripts/company/submit-indexnow.cjs', source => source.replace("const submit = process.argv.includes('--submit')", 'const submit = true'), 'not behind an explicit flag');
+invalid('scripts/company/submit-indexnow.cjs', source => source.replace("path.join(repositoryRoot, 'public', 'updates', 'sitemap.xml')", "path.join(repositoryRoot, 'public', 'missing.xml')"), 'canonical Latest News sitemap');
+invalid('scripts/company/submit-indexnow.cjs', source => source.replace('A live IndexNow submission requires at least one explicitly changed --url.', 'Live submission can send every page.'), 'require named changed pages');
 invalid('public/2d33a591a69d023517107abcaf6b7d52.txt', () => 'wrong-key\n', 'ownership file is missing or incorrect');
 invalid('index.html', source => source.replace('"@type": "WebSite"', '"@type": "Thing"'), 'homepage WebSite identity is missing');
 invalid('index.html', source => source.replace('"name": "Mythical Void",\n          "alternateName": "mythicalvoid.com"', '"name": "Mythical Void Portal",\n          "alternateName": "mythicalvoid.com"'), 'official site name must remain Mythical Void');
@@ -112,5 +114,5 @@ assert.deepStrictEqual(JSON.parse(JSON.stringify(playSelected[2])), {
     transport_type: 'beacon'
 });
 
-assert.strictEqual(cases, 18);
-console.log('Owned discovery release evaluations passed (18 cases).');
+assert.strictEqual(cases, 20);
+console.log('Owned discovery release evaluations passed (20 cases).');

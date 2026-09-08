@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "INDEXNOW-2026-09-08-HATCH-NEWS",
+  "submittedAt": "2026-09-08T17:52:14Z",
+  "host": "mythicalvoid.com",
+  "endpoint": "https://api.indexnow.org/indexnow",
+  "reason": "The homepage gained a live Hatch Challenge invitation, the Latest News index gained a twentieth checked entry, and UPDATE-027 became a new permanent canonical page.",
+  "urls": [
+    "https://mythicalvoid.com/",
+    "https://mythicalvoid.com/updates/",
+    "https://mythicalvoid.com/updates/update-027/"
+  ],
+  "urlCount": 3,
+  "canonicalSitemapCount": 2,
+  "httpStatus": 200,
+  "accepted": true,
+  "unchangedSitemapUrlsResubmitted": false,
+  "meaning": "Participating search engines accepted a notice for three genuinely changed owned pages. This does not prove that any page was crawled, indexed, ranked, visited, shared or used to start a game.",
+  "personalDataSent": false,
+  "accountUsed": false,
+  "paidPromotionStarted": false
+}

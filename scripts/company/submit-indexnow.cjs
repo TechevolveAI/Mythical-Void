@@ -44,17 +44,28 @@ if (fs.readFileSync(keyPath, 'utf8').trim() !== key) {
     throw new Error('The public IndexNow ownership file does not match the release key.');
 }
 
-const sitemap = fs.readFileSync(path.join(repositoryRoot, 'public', 'sitemap.xml'), 'utf8');
-const sitemapUrls = [...sitemap.matchAll(/<loc>(https:\/\/mythicalvoid\.com\/[^<]*)<\/loc>/g)].map(match => match[1]);
+const sitemapFiles = [
+    path.join(repositoryRoot, 'public', 'sitemap.xml'),
+    path.join(repositoryRoot, 'public', 'updates', 'sitemap.xml')
+];
+const sitemapUrls = [...new Set(sitemapFiles.flatMap(file => {
+    const sitemap = fs.readFileSync(file, 'utf8');
+    return [...sitemap.matchAll(/<loc>(https:\/\/mythicalvoid\.com\/[^<]*)<\/loc>/g)].map(match => match[1]);
+}))];
 if (sitemapUrls.length === 0 || sitemapUrls.some(url => new URL(url).host !== host)) {
-    throw new Error('The sitemap did not provide a safe list of Mythical Void URLs.');
+    throw new Error('The canonical sitemaps did not provide a safe list of Mythical Void URLs.');
 }
-const urlList = selectCanonicalUrls(sitemapUrls, requestedUrlsFromArguments(process.argv.slice(2)));
+const requestedUrls = requestedUrlsFromArguments(process.argv.slice(2));
+if (submit && requestedUrls.length === 0) {
+    throw new Error('A live IndexNow submission requires at least one explicitly changed --url.');
+}
+const urlList = selectCanonicalUrls(sitemapUrls, requestedUrls);
 
 const payload = {
     host,
     key,
     keyLocation: `https://${host}/${key}.txt`,
+    canonicalSitemapCount: sitemapFiles.length,
     urlList
 };
 

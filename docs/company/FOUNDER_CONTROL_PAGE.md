@@ -57,6 +57,10 @@ detailed evidence; it turns that evidence into the decisions that matter now.
 - The website, game, public release and feedback route are available.
 - The latest recorded public search sample found **no official Mythical Void
   result**. This does not prove the site is missing everywhere.
+- The homepage, Latest News and new UPDATE-027 page were sent once through the
+  owned changed-page notice after the search tool was taught to read both
+  canonical sitemaps. The service accepted the notice; that is not proof of
+  crawling, indexing, ranking, visits, play or growth.
 - Google Search Console is not connected, so we cannot yet see trustworthy
   search queries or indexing information.
 - The First Five has completed **0 sessions** and contains **0 accepted customer
