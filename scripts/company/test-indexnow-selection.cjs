@@ -35,10 +35,19 @@ expectDryRun(
     ['--url', 'https://mythicalvoid.com/playable-now/', '--url', '/playable-now/'],
     ['https://mythicalvoid.com/playable-now/']
 );
+expectDryRun(
+    ['--url', '/updates/update-027/', '--url', '/updates/', '--url', '/'],
+    [
+        'https://mythicalvoid.com/updates/update-027/',
+        'https://mythicalvoid.com/updates/',
+        'https://mythicalvoid.com/'
+    ]
+);
 expectRejected(['--url', 'https://example.com/'], 'clean owned Mythical Void address');
 expectRejected(['--url', '/playable-now/?campaign=one'], 'clean owned Mythical Void address');
 expectRejected(['--url', '/not-a-canonical-page/'], 'not in the canonical sitemap');
+expectRejected(['--submit'], 'requires at least one explicitly changed --url');
 expectRejected(['--other'], 'Usage:');
 
-assert.strictEqual(cases, 6);
-console.log('Changed-page IndexNow safeguards passed (6 cases).');
+assert.strictEqual(cases, 8);
+console.log('Changed-page IndexNow safeguards passed (8 cases across both canonical sitemaps).');

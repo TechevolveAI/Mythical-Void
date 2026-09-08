@@ -105,6 +105,8 @@ else {
 }
 if (!indexNow.includes("const submit = process.argv.includes('--submit')")) failures.push('IndexNow external submission is not behind an explicit flag');
 if (!indexNow.includes("mode: 'dry_run'")) failures.push('IndexNow dry run is missing');
+if (!indexNow.includes("path.join(repositoryRoot, 'public', 'updates', 'sitemap.xml')")) failures.push('IndexNow does not include the canonical Latest News sitemap');
+if (!indexNow.includes('A live IndexNow submission requires at least one explicitly changed --url.')) failures.push('IndexNow live submission does not require named changed pages');
 if (packageJson.scripts?.['submit:indexnow'] !== 'node scripts/company/submit-indexnow.cjs') failures.push('package.json: IndexNow command is missing');
 
 for (const required of [

@@ -98,6 +98,13 @@ first-contact instruction, but `/play/` was not submitted because it is not a
 canonical sitemap page. Acceptance still does not prove crawling, indexing,
 ranking or traffic.
 
+On 8 September, the search workflow was extended to read both the main sitemap
+and the separate Latest News sitemap. It now refuses a live notice unless every
+changed URL is named. The homepage, Latest News index and new permanent
+UPDATE-027 page were the only pages named; IndexNow returned `200` at 17:52
+UTC. No unchanged sitemap page was included. Acceptance still does not prove
+crawling, indexing, ranking, visits, sharing, play or growth.
+
 ## The right next move
 
 Do not make lots of near-identical “free game” pages. The useful page already
