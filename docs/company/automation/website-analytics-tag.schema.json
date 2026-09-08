@@ -7,7 +7,7 @@
   "properties": {
     "schemaVersion": { "const": 1 },
     "asOf": { "type": "string", "format": "date" },
-    "status": { "const": "consent_gated_public_shop_window_tag_live_property_verification_pending" },
+    "status": { "const": "consent_gated_public_shop_window_tag_live_property_verified_governance_review_pending" },
     "purpose": { "type": "string", "minLength": 500 },
     "decisionRefs": { "type": "array", "items": { "type": "string" }, "minItems": 3, "maxItems": 3 },
     "riskRefs": { "type": "array", "items": { "type": "string" }, "minItems": 3, "maxItems": 3 },
@@ -20,9 +20,9 @@
     "tagImplementationReadyForReview": { "const": true },
     "productionEvidence": {
       "type": "object",
-      "required": ["checkedOn", "productionUrl", "verifiedSourceCommit", "verifiedDeployId", "deployState", "homepageTagScriptObserved", "homepageTagScriptUrl", "gameRuntimeTagScriptObserved", "privacyAnalyticsWordingObserved", "freshBrowserConsentJourneyVerified", "googlePropertyEventsVerified", "measurementTrustedForDecisions", "limitation"],
+      "required": ["checkedOn", "productionUrl", "verifiedSourceCommit", "verifiedDeployId", "deployState", "homepageTagScriptObserved", "homepageTagScriptUrl", "gameRuntimeTagScriptObserved", "privacyAnalyticsWordingObserved", "freshBrowserConsentJourneyVerified", "consentJourneyEvidence", "googlePropertyEventsVerified", "measurementTrustedForDecisions", "limitation"],
       "properties": {
-        "checkedOn": { "const": "2026-08-31" },
+        "checkedOn": { "const": "2026-09-08" },
         "productionUrl": { "const": "https://mythicalvoid.com/" },
         "verifiedSourceCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
         "verifiedDeployId": { "type": "string", "pattern": "^[0-9a-f]{24}$" },
@@ -31,8 +31,9 @@
         "homepageTagScriptUrl": { "const": "https://www.googletagmanager.com/gtag/js?id=G-FTM4W73ECQ" },
         "gameRuntimeTagScriptObserved": { "const": false },
         "privacyAnalyticsWordingObserved": { "const": true },
-        "freshBrowserConsentJourneyVerified": { "const": false },
-        "googlePropertyEventsVerified": { "const": false },
+        "freshBrowserConsentJourneyVerified": { "const": true },
+        "consentJourneyEvidence": { "type": "object" },
+        "googlePropertyEventsVerified": { "const": true },
         "measurementTrustedForDecisions": { "const": false },
         "limitation": { "type": "string", "minLength": 250 }
       },

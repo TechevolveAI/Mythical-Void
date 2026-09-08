@@ -82,6 +82,7 @@ mutateControl('authorize screenshots', value => { value.held.gameplayPromotion.s
 mutateControl('invent search result', value => { value.known.officialResultsObservedInLatestPublicSearchSample = 1; }, 'search results are falsely claimed');
 mutateControl('invent player meaning', value => { value.known.websiteVisitMayBeCalledPlayer = true; }, 'websiteVisitMayBeCalledPlayer');
 mutateControl('trust unverified analytics', value => { value.live.websiteAnalytics.measurementTrustedForDecisions = true; }, 'founder analytics boundary');
+mutateControl('hide fresh consent proof', value => { value.live.websiteAnalytics.freshConsentJourneyVerified = false; }, 'founder analytics boundary');
 mutateControl('authorize public post', value => { value.authority.publicPostAuthorized = true; }, 'publicPostAuthorized');
 mutateControl('authorize spend', value => { value.authority.spendAuthorized = true; }, 'spendAuthorized');
 mutateControl('add second current decision', value => { value.currentDecisions.push({ id: 'FD-002' }); }, 'exactly one current founder decision');
@@ -114,5 +115,5 @@ try {
     fs.rmSync(privacyRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 16);
-console.log('Founder control safeguards passed (16 cases).');
+assert.strictEqual(cases, 17);
+console.log('Founder control safeguards passed (17 cases).');

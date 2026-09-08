@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-08-31",
+  "asOf": "2026-09-08",
   "status": "consent_gated_public_shop_window_tag_live_property_verified_governance_review_pending",
   "purpose": "Describe the small Google tag used on Mythical’s public shop window. The tag is not part of the game. It starts with analytics and advertising storage turned off, asks visitors before enabling analytics, explicitly sends only narrow public-page, Play and Share events after an affirmative choice, turns advertising features off, and never receives a game save, creature name, account number, email, age, child detail, full query string, or user ID from Mythical. Google Analytics also creates basic service events after consent, and the property currently has optional enhanced measurement enabled; that wider setting is recorded as a governance gap, not silently described as minimal. A visitor can say no. The tag is checked in the page source, consent helper, public privacy page, production hosting policies and the signed-in Google property.",
   "decisionRefs": ["D-003", "D-004", "D-015"],
@@ -31,19 +31,33 @@
     "externalActionAuthorized": false
   },
   "productionEvidence": {
-    "checkedOn": "2026-08-31",
+    "checkedOn": "2026-09-08",
     "productionUrl": "https://mythicalvoid.com/",
-    "verifiedSourceCommit": "00e43be414e4e91d7477a666bd4cb17e57448d2c",
-    "verifiedDeployId": "6a950b240857220008661510",
+    "verifiedSourceCommit": "119a03e366bf215ff6c8d3fa3336e899eab3c1b9",
+    "verifiedDeployId": "6a9fe657740ba20008b6d9a7",
     "deployState": "ready",
     "homepageTagScriptObserved": true,
     "homepageTagScriptUrl": "https://www.googletagmanager.com/gtag/js?id=G-FTM4W73ECQ",
     "gameRuntimeTagScriptObserved": false,
     "privacyAnalyticsWordingObserved": true,
-    "freshBrowserConsentJourneyVerified": false,
+    "freshBrowserConsentJourneyVerified": true,
+    "consentJourneyEvidence": {
+      "method": "fresh_ephemeral_chrome_profile_against_live_production",
+      "freshChoiceShown": true,
+      "eventQueueBeforeChoiceCount": 0,
+      "deniedChoicePersistedAcrossReload": true,
+      "eventQueueAfterDenyCount": 0,
+      "grantedChoicePersisted": true,
+      "approvedEventsQueuedAfterAllow": ["discovery_arrival"],
+      "gameTagScriptCount": 0,
+      "gameGoogleRequestCount": 0,
+      "sameOriginFailureCount": 0,
+      "googleTransportObservedInTestBrowser": false,
+      "transportLimitation": "The clean automated Chrome profile could not execute the third-party Google tag script, matching the known Google Tag Manager block in the broad production smoke. The test therefore proves Mythical's visible choice, saved refusal and permission states, event-queue boundary, and game exclusion, but it does not prove that this particular test event reached Google. Earlier signed-in property evidence separately proves that the correct stream has received data."
+    },
     "googlePropertyEventsVerified": true,
     "measurementTrustedForDecisions": false,
-    "limitation": "The signed-in property, data stream, measurement ID, data-flow state, event report and retention screen were inspected read-only. The browser already held a prior visitor choice, so this check did not delete browser data or replay the first-visit banner. The report cannot prove which visit produced which event, and the observed totals are likely dominated by development checks. No export was used and no count may be called players, plays, conversion, retention, enjoyment or growth."
+    "limitation": "A fresh temporary browser profile replayed the public choice on 8 September 2026. It showed the choice, queued no event before a decision, retained No thanks across reload with no event, retained Allow analytics and queued only discovery_arrival, and loaded no Google tag or Google request inside the game. The test browser itself blocked the third-party Google script, so this run did not prove transport to Google. Earlier signed-in property inspection separately proved that the correct stream had received data. No export was used, enhanced measurement remains enabled, and no count may be called players, plays, conversion, retention, enjoyment or growth."
   },
   "propertySideEvidence": {
     "checkedOn": "2026-08-31",
@@ -95,5 +109,5 @@
   "tagImplementationReadyForReview": true,
   "productionDeployed": true,
   "externalActionAuthorized": false,
-  "nextDecision": "The correct Google property and stream are now confirmed, the measurement ID matches, data is flowing, and the game runtime remains excluded. Before any number is trusted, Kevin must approve the intended minimal property settings: remove optional enhanced interactions such as scroll and outbound-click measurement unless there is a clear need, decide whether fourteen months is appropriate for user data, and name the person who can remove the tag. After that, a fresh first-visit test must prove no event before consent, no event after “No thanks”, and only the approved public-page and broad Play or Share events after “Allow analytics”. The currently visible 17 events, one user and five sessions must not be called players, plays, conversion, retention, enjoyment or growth."
+  "nextDecision": "The correct Google property and stream are confirmed, the measurement ID matches, data has flowed, the fresh website choice journey now passes, and the game runtime remains excluded. Before any number is trusted for decisions, Kevin must approve the intended minimal property settings: remove optional enhanced interactions such as scroll and outbound-click measurement unless there is a clear need, decide whether fourteen months is appropriate for user data, and name the person who can remove the tag. A future approved GA4 export must be checked before the growth pulse runs. The currently visible historic totals and this test visit must not be called players, plays, conversion, retention, enjoyment or growth."
 }

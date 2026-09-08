@@ -21,7 +21,7 @@
     },
     {
       "measure": "Product activation",
-      "current": "The game is not instrumented. The consent-gated public website tag is live, but a fresh consent journey and Google-property event receipt have not been verified, so its numbers are not trusted.",
+      "current": "The game is not instrumented. The consent-gated public website tag is live. A fresh temporary browser proved the website choice and event boundary, and the signed-in Google property separately showed data flow. The test browser did not prove Google transport, enhanced measurement remains enabled, and the numbers are not trusted.",
       "target": "Approved definition and lawful aggregate signal",
       "trend": "Not available",
       "confidence": "Not available",
@@ -531,11 +531,11 @@
       "followUp": "Name the support and knowledge owners, review the eight source records, approve the exact wording, and keep inbox connection and sending as separate human decisions"
     },
     {
-      "evidence": "A-058 checked the user-supplied Google tag ID G-FTM4W73ECQ, consent denied by default, visitor choice, advertising features off, public-page scope, game exclusion, canonical path, both hosting policies, 17 prohibited data fields, and current production deployment 6a950b240857220008661510. A direct live check found the tag script on the homepage, the privacy wording live, and no tag script loaded by the game runtime. It passed 28 independent cases. Google-property receipt remains unverified.",
-      "source": "A-058 website analytics tag contract, public source checks, hosting policies, production commit 00e43be414e4e91d7477a666bd4cb17e57448d2c, Netlify deployment 6a950b240857220008661510, direct live browser observation, and independent evaluation 2026-08-31",
-      "confidence": "High for the checked source files, declared consent rules, current deployment, homepage tag presence, live privacy wording, and game-runtime exclusion; the current browser already held a prior choice and no Google Analytics property, fresh first-visit journey, retention setting, or received event was inspected",
-      "implication": "The tag is live only on Mythical's public shop window, but deployment must not be confused with trusted measurement. No count may guide growth until property-side consent and receipt are checked.",
-      "followUp": "Kevin confirms the Mythical Void Google Analytics property, retention choice and removal owner; then run one fresh private-browser no-consent, no-thanks and allow-analytics journey while checking the exact property-side events. Until then, treat missing data as unknown and visible counts as untrusted."
+      "evidence": "A-058 checked Google tag G-FTM4W73ECQ, consent denied by default, visitor choice, advertising features off, public-page scope, game exclusion, canonical paths, both hosting policies, 17 prohibited data fields, and production deployment 6a9fe657740ba20008b6d9a7. On 8 September a fresh temporary Chrome profile showed the choice, queued zero events before a decision, kept No thanks across reload with zero events, queued only discovery_arrival after Allow analytics, and loaded zero Google scripts or requests in the game. The same test browser blocked Google's third-party script, so it did not re-prove delivery. Earlier signed-in inspection separately found the correct Mythical Void property, matching tag, data flow and 17 historic events.",
+      "source": "A-058 website analytics tag contract, repeatable fresh-consent browser smoke, public source checks, hosting policies, production commit 119a03e366bf215ff6c8d3fa3336e899eab3c1b9, Netlify deployment 6a9fe657740ba20008b6d9a7, signed-in read-only Google property inspection, and independent evaluation 2026-09-08",
+      "confidence": "High for Mythical's visible choice, stored refusal and permission states, event queue rules, current deployment, homepage tag presence, privacy wording, and game exclusion. The clean test browser blocked Google transport; enhanced measurement and retention remain pending governance choices, and no approved GA4 export has been examined.",
+      "implication": "The website consent boundary is now repeatably testable and the tag remains outside the game. This still does not turn website counts into player or growth evidence.",
+      "followUp": "Kevin decides whether to disable optional enhanced interactions, whether fourteen months is appropriate for user data, and who owns tag removal. Run the growth pulse only after an approved GA4 export is available; until then, treat missing data as unknown and visible counts as untrusted."
     }
   ],
   "experiments": [

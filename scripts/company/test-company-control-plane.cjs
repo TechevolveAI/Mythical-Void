@@ -956,11 +956,11 @@ assert(output.runs.some(run => run.id === 'A-058' && run.summary.prohibitedDataF
 assert(output.runs.some(run => run.id === 'A-058' && run.summary.gameSourceTagHits === 0));
 assert(output.runs.some(run => run.id === 'A-058' && run.summary.hostingPolicyCount === 2));
 assert(output.runs.some(run => run.id === 'A-058' && run.summary.productionDeployed === true));
-assert(output.runs.some(run => run.id === 'A-058' && run.summary.verifiedDeployId === '6a950b240857220008661510'));
+assert(output.runs.some(run => run.id === 'A-058' && run.summary.verifiedDeployId === '6a9fe657740ba20008b6d9a7'));
 assert(output.runs.some(run => run.id === 'A-058' && run.summary.homepageTagScriptObserved === true));
 assert(output.runs.some(run => run.id === 'A-058' && run.summary.gameRuntimeTagScriptObserved === false));
-assert(output.runs.some(run => run.id === 'A-058' && run.summary.freshBrowserConsentJourneyVerified === false));
-assert(output.runs.some(run => run.id === 'A-058' && run.summary.googlePropertyEventsVerified === false));
+assert(output.runs.some(run => run.id === 'A-058' && run.summary.freshBrowserConsentJourneyVerified === true));
+assert(output.runs.some(run => run.id === 'A-058' && run.summary.googlePropertyEventsVerified === true));
 assert(output.runs.some(run => run.id === 'A-058' && run.summary.measurementTrustedForDecisions === false));
 assert(output.runs.some(run => run.id === 'A-058' && run.summary.externalActionAuthorized === false));
 assert(output.runs.some(run => run.id === 'A-058' && run.summary.activationGateCount === 12));

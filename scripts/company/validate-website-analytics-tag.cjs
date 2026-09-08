@@ -53,7 +53,7 @@ exactSet(tag.excludedRoutes, ['/play/', '/game/', '?testBoss'], 'excludedRoutes'
 for (const field of ['defaultAnalyticsStorage', 'defaultAdStorage', 'defaultAdUserData', 'defaultAdPersonalization']) if (tag[field] !== 'denied') failures.push(`${field} must be denied`);
 requireFalse(tag, ['allowGoogleSignals', 'allowAdPersonalizationSignals', 'pageViewBeforeChoice'], 'tag', failures);
 requireTrue(tag, ['visitorChoiceRequired', 'pageLocationUsesCanonicalPathOnly'], 'tag', failures);
-if (productionEvidence.checkedOn !== '2026-08-31') failures.push('production evidence date is stale');
+if (productionEvidence.checkedOn !== '2026-09-08') failures.push('production evidence date is stale');
 if (productionEvidence.productionUrl !== 'https://mythicalvoid.com/') failures.push('production URL is invalid');
 if (!/^[0-9a-f]{40}$/.test(productionEvidence.verifiedSourceCommit || '')) failures.push('verified source commit is invalid');
 if (!/^[0-9a-f]{24}$/.test(productionEvidence.verifiedDeployId || '')) failures.push('verified deploy id is invalid');
@@ -61,9 +61,19 @@ if (productionEvidence.deployState !== 'ready') failures.push('verified deploy m
 if (productionEvidence.homepageTagScriptObserved !== true || productionEvidence.homepageTagScriptUrl !== tag.scriptUrl) failures.push('live homepage tag observation is invalid');
 if (productionEvidence.gameRuntimeTagScriptObserved !== false) failures.push('live game runtime must not load the tag script');
 if (productionEvidence.privacyAnalyticsWordingObserved !== true) failures.push('live privacy wording was not observed');
-requireFalse(productionEvidence, ['freshBrowserConsentJourneyVerified', 'measurementTrustedForDecisions'], 'productionEvidence', failures);
+requireTrue(productionEvidence, ['freshBrowserConsentJourneyVerified'], 'productionEvidence', failures);
+requireFalse(productionEvidence, ['measurementTrustedForDecisions'], 'productionEvidence', failures);
 if (productionEvidence.googlePropertyEventsVerified !== true) failures.push('Google property event receipt must reflect the read-only property inspection');
 if (typeof productionEvidence.limitation !== 'string' || productionEvidence.limitation.length < 250) failures.push('production evidence limitation is incomplete');
+const consentJourney = productionEvidence.consentJourneyEvidence || {};
+if (consentJourney.method !== 'fresh_ephemeral_chrome_profile_against_live_production') failures.push('fresh consent journey method is invalid');
+requireTrue(consentJourney, ['freshChoiceShown', 'deniedChoicePersistedAcrossReload', 'grantedChoicePersisted'], 'consentJourneyEvidence', failures);
+if (consentJourney.eventQueueBeforeChoiceCount !== 0 || consentJourney.eventQueueAfterDenyCount !== 0) failures.push('consent journey queued an event before permission');
+exactSet(consentJourney.approvedEventsQueuedAfterAllow, ['discovery_arrival'], 'approvedEventsQueuedAfterAllow', failures);
+if (consentJourney.gameTagScriptCount !== 0 || consentJourney.gameGoogleRequestCount !== 0) failures.push('consent journey leaked Google analytics into the game');
+if (consentJourney.sameOriginFailureCount !== 0) failures.push('consent journey had a same-origin failure');
+if (consentJourney.googleTransportObservedInTestBrowser !== false) failures.push('test-browser Google transport must not be invented');
+if (typeof consentJourney.transportLimitation !== 'string' || consentJourney.transportLimitation.length < 250) failures.push('consent transport limitation is incomplete');
 
 const property = contract.propertySideEvidence || {};
 if (property.checkedOn !== '2026-08-31' || property.inspectionMode !== 'signed_in_read_only_browser') failures.push('property inspection evidence is invalid');
@@ -92,6 +102,8 @@ const storefrontText = read('src/site/storefront.js');
 const storefrontCss = read('src/site/storefront.css');
 const netlifyText = read('netlify.toml');
 const vercelText = read('vercel.json');
+const consentSmokeText = read('scripts/company/smoke-website-analytics-consent.cjs');
+const packageJson = loadJson(path.join(repositoryRoot, 'package.json'), 'Package manifest');
 for (const required of [
     'G-FTM4W73ECQ', 'analytics_storage: \'denied\'', 'ad_storage: \'denied\'', 'ad_user_data: \'denied\'', 'ad_personalization: \'denied\'',
     "send_page_view: false", "allow_google_signals: false", "allow_ad_personalization_signals: false", "path === '/play'", "path === '/game'", "params.has('testBoss')", 'www.googletagmanager.com/gtag/js'
@@ -115,6 +127,8 @@ function collectSourceText(directory, pieces = []) {
 const gameSourceText = collectSourceText(path.join(repositoryRoot, 'src')).join('\n');
 if (gameSourceText.includes('G-FTM4W73ECQ') || gameSourceText.includes('googletagmanager.com/gtag/js')) failures.push('game source must not contain the Google tag');
 if (!indexText.includes('if (isGameRoute) return')) failures.push('index.html must stop before loading the tag on game routes');
+if (packageJson.scripts?.['smoke:website-analytics-consent'] !== 'node scripts/company/smoke-website-analytics-consent.cjs') failures.push('fresh consent smoke command is missing');
+for (const required of ['collectionRequestsBeforeChoice', 'deniedChoicePersisted', 'approvedArrivalQueued', 'gameGoogleRequestCount', 'not evidence of a player']) if (!consentSmokeText.includes(required)) failures.push(`fresh consent smoke missing ${required}`);
 
 exactSet(contract.prohibitedData, ['user_id', 'account_id', 'email', 'name', 'age', 'age_band', 'birth_date', 'child_data', 'creature_id', 'creature_name', 'game_save', 'story_choice', 'full_url', 'query_string', 'raw_referrer', 'ip_address', 'advertising_id'], 'prohibitedData', failures);
 const gateCount = Array.isArray(contract.activationGates) ? contract.activationGates.length : 0;
@@ -128,7 +142,7 @@ if (typeof contract.nextDecision !== 'string' || contract.nextDecision.length < 
 const tagImplementationReadyForReview = failures.length === 0;
 const output = {
     workflow: 'A-058',
-    mode: 'offline source assurance plus signed-in read-only property evidence; consent and minimal-setting review remain pending',
+    mode: 'offline source assurance plus fresh live consent journey and signed-in read-only property evidence; minimal-setting review remains pending',
     tagImplementationReadyForReview,
     measurementId: tag.measurementId,
     scope: tag.scope,
