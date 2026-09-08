@@ -8,16 +8,16 @@
   },
   "package": {
     "fileCount": 92,
-    "rawBytes": 34614862,
-    "gzipEstimateBytes": 30726507,
+    "rawBytes": 34616143,
+    "gzipEstimateBytes": 30726917,
     "advisoryTargetBytes": 8388608,
     "advisoryTargetMet": false,
-    "contentDigestSha256": "0384508f88ca8f3ef2b26e6da4e3c39c0f78da6b549a9d46c3b1eee3dec6f30a"
+    "contentDigestSha256": "c2bb0e81256a735f680a45d21e99f998e06a2e2fef1023687f354fb59b133305"
   },
   "firstLoad": {
     "resourceCount": 18,
-    "rawBytes": 7201467,
-    "gzipEstimateBytes": 3957568,
+    "rawBytes": 7201988,
+    "gzipEstimateBytes": 3957669,
     "advisoryTargetBytes": 5242880,
     "advisoryTargetMet": true,
     "resources": [
@@ -32,12 +32,12 @@
         "gzipEstimateBytes": 337161
       },
       {
-        "path": "assets/gameplay-DC3efgv-.js",
+        "path": "assets/gameplay-CmYs5ahE.js",
         "rawBytes": 643033,
-        "gzipEstimateBytes": 175127
+        "gzipEstimateBytes": 175129
       },
       {
-        "path": "assets/ui-components-B8xDXLWl.js",
+        "path": "assets/ui-components-Dl_aGZRz.js",
         "rawBytes": 454790,
         "gzipEstimateBytes": 124547
       },
@@ -47,27 +47,27 @@
         "gzipEstimateBytes": 104908
       },
       {
-        "path": "assets/game-Duv-LVIC.js",
+        "path": "assets/game-C97UWjwm.js",
         "rawBytes": 346370,
-        "gzipEstimateBytes": 97622
+        "gzipEstimateBytes": 97625
       },
       {
-        "path": "assets/levels-hub-Ca-g00Iw.js",
+        "path": "assets/levels-hub-CvAKBdPZ.js",
         "rawBytes": 270726,
         "gzipEstimateBytes": 75811
       },
       {
-        "path": "assets/managers-CAZ1iX12.js",
+        "path": "assets/managers-BCEojQeC.js",
         "rawBytes": 167800,
-        "gzipEstimateBytes": 49499
+        "gzipEstimateBytes": 49500
       },
       {
-        "path": "assets/onboarding-CRYUk31u.js",
+        "path": "assets/onboarding-BKefPekT.js",
         "rawBytes": 144280,
-        "gzipEstimateBytes": 37272
+        "gzipEstimateBytes": 37273
       },
       {
-        "path": "assets/advanced-CoFB7UgS.js",
+        "path": "assets/advanced-BKhInxWM.js",
         "rawBytes": 128219,
         "gzipEstimateBytes": 32652
       },
@@ -92,17 +92,17 @@
         "gzipEstimateBytes": 22461
       },
       {
-        "path": "assets/utils-DS1WWLuA.js",
-        "rawBytes": 29219,
-        "gzipEstimateBytes": 8203
+        "path": "assets/utils-Bib8MCj5.js",
+        "rawBytes": 29740,
+        "gzipEstimateBytes": 8296
       },
       {
         "path": "index.html",
         "rawBytes": 9404,
-        "gzipEstimateBytes": 2768
+        "gzipEstimateBytes": 2769
       },
       {
-        "path": "assets/index-C9Smv_3m.js",
+        "path": "assets/index-waQLiQSL.js",
         "rawBytes": 2166,
         "gzipEstimateBytes": 1110
       },
@@ -116,8 +116,8 @@
   "categories": {
     "code_and_css": {
       "fileCount": 22,
-      "rawBytes": 4965961,
-      "gzipEstimateBytes": 1289056
+      "rawBytes": 4967242,
+      "gzipEstimateBytes": 1289465
     },
     "audio": {
       "fileCount": 2,
@@ -137,7 +137,7 @@
     "root": {
       "fileCount": 2,
       "rawBytes": 10533,
-      "gzipEstimateBytes": 3323
+      "gzipEstimateBytes": 3324
     },
     "marketing": {
       "fileCount": 27,
@@ -149,33 +149,33 @@
     "api.nasa.gov": {
       "fileCount": 1,
       "files": [
-        "assets/game-Duv-LVIC.js"
+        "assets/game-C97UWjwm.js"
       ]
     },
     "apod.nasa.gov": {
       "fileCount": 1,
       "files": [
-        "assets/game-Duv-LVIC.js"
+        "assets/game-C97UWjwm.js"
       ]
     },
     "mars.nasa.gov": {
       "fileCount": 1,
       "files": [
-        "assets/game-Duv-LVIC.js"
+        "assets/game-C97UWjwm.js"
       ]
     },
     "api.open-notify.org": {
       "fileCount": 1,
       "files": [
-        "assets/game-Duv-LVIC.js"
+        "assets/game-C97UWjwm.js"
       ]
     },
     "netlify/functions": {
       "fileCount": 3,
       "files": [
         "assets/core-BSuriwdr.js",
-        "assets/game-Duv-LVIC.js",
-        "assets/gameplay-DC3efgv-.js"
+        "assets/game-C97UWjwm.js",
+        "assets/gameplay-CmYs5ahE.js"
       ]
     }
   },

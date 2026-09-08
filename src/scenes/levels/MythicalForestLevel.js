@@ -12,6 +12,7 @@ import {
 } from '../../systems/CreaturePowerProfile.js';
 import { companionMediaService } from '../../systems/CompanionMediaService.js';
 import { CINEMATIC_MEDIA, shouldPlayCinematicMedia } from '../../config/cinematic-media.js';
+import { shareGuardianRestoration } from '../../utils/GuardianRestorationShare.js';
 
 const ELDER_TREANT_TEXTURE = 'elderTreant';
 const ELDER_TREANT_ASSET = '/game/guardians/elder-treant.webp';
@@ -6003,8 +6004,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
      */
     showBossVictory() {
         this.bindLevelCompletionReturn();
+        this.syncCampaignObjectiveDisplay({ visible: false, force: true });
+        this.combatJuice?.comboDisplay?.setVisible?.(false);
+        this.combatJuice?.comboMultiplierDisplay?.setVisible?.(false);
 
-        const layout = this.getLevelModalLayout({ maxWidth: 420, maxHeight: 370 });
+        const layout = this.getLevelModalLayout({ maxWidth: 420, maxHeight: 430 });
         const {
             width, panelWidth, panelHeight, panelX, panelY,
             contentWidth, y, font, buttonPadding
@@ -6106,8 +6110,36 @@ class MythicalForestLevel extends PlatformerLevelScene {
             }
         ).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
+        if (completionResult?.firstCompletion === true) {
+            const inviteBtn = this.add.text(width / 2, y(340), '[ INVITE SOMEONE ]', {
+                fontSize: font(16, 14),
+                color: '#160B2E',
+                backgroundColor: '#8FE3CF',
+                padding: buttonPadding
+            }).setOrigin(0.5).setScrollFactor(0).setDepth(2502).setInteractive();
+
+            let invitationInProgress = false;
+            inviteBtn.on('pointerover', () => inviteBtn.setColor('#3B156B'));
+            inviteBtn.on('pointerout', () => inviteBtn.setColor('#160B2E'));
+            inviteBtn.on('pointerdown', async () => {
+                if (invitationInProgress) return;
+                invitationInProgress = true;
+                inviteBtn.disableInteractive();
+
+                const result = await shareGuardianRestoration(window.navigator);
+                inviteBtn.setText({
+                    shared: '[ INVITATION SHARED ]',
+                    copied: '[ LINK COPIED ]',
+                    cancelled: '[ INVITE SOMEONE ]',
+                    shown: '[ MYTHICALVOID.COM ]'
+                }[result]);
+                inviteBtn.setInteractive();
+                invitationInProgress = false;
+            });
+        }
+
         // Continue button
-        const continueBtn = this.add.text(width / 2, y(320), '[ RETURN TO HUB ]', {
+        const continueBtn = this.add.text(width / 2, y(390), '[ RETURN TO HUB ]', {
             fontSize: font(18, 16),
             color: '#FFFFFF',
             backgroundColor: '#228B22',

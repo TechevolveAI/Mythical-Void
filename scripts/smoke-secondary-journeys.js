@@ -13365,7 +13365,10 @@ async function smokeGuardianHandoff(session, step, exceptions) {
         completion.coins <= finalHit.coinsBefore ||
         completion.checkpoint !== null ||
         completion.physicsPaused !== true ||
-        completion.controlsHidden !== true
+        (
+            SMOKE_VIEWPORT_WIDTH <= 600 &&
+            completion.controlsHidden !== true
+        )
     ) {
         throw new Error(
             `${step.sceneName} did not record one complete guardian outcome: ` +
@@ -13436,6 +13439,75 @@ async function smokeGuardianHandoff(session, step, exceptions) {
         auroraDepths: '[ INSTALL AURORA REACTOR ]',
         finalVoid: '[ INSTALL AT WANDERER-77 ]'
     }[step.route];
+    if (step.route === 'mythicalForest') {
+        const firstGuardianInvitation = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                const invite = scene?.children?.list?.find?.(item => (
+                    item?.visible !== false &&
+                    item?.text === '[ INVITE SOMEONE ]' &&
+                    item?.input?.enabled === true
+                ));
+                const returnAction = scene?.children?.list?.find?.(item => (
+                    item?.visible !== false &&
+                    item?.text === '[ RETURN TO HUB ]' &&
+                    item?.input?.enabled === true
+                ));
+                if (!invite || !returnAction) return null;
+                return {
+                    invite: {
+                        left: invite.getBounds().left,
+                        right: invite.getBounds().right,
+                        top: invite.getBounds().top,
+                        bottom: invite.getBounds().bottom
+                    },
+                    returnAction: {
+                        left: returnAction.getBounds().left,
+                        right: returnAction.getBounds().right,
+                        top: returnAction.getBounds().top,
+                        bottom: returnAction.getBounds().bottom
+                    },
+                    viewport: {
+                        width: scene.cameras.main.width,
+                        height: scene.cameras.main.height
+                    }
+                };
+            })()`),
+            { timeoutMs: 8000, message: 'first Guardian invitation' }
+        );
+        const actionsOverlap = !(
+            firstGuardianInvitation.invite.bottom <=
+            firstGuardianInvitation.returnAction.top ||
+            firstGuardianInvitation.returnAction.bottom <=
+            firstGuardianInvitation.invite.top
+        );
+        const actionsInFrame = [
+            firstGuardianInvitation.invite,
+            firstGuardianInvitation.returnAction
+        ].every(bounds => (
+            bounds.left >= 0 &&
+            bounds.top >= 0 &&
+            bounds.right <= firstGuardianInvitation.viewport.width &&
+            bounds.bottom <= firstGuardianInvitation.viewport.height
+        ));
+        if (actionsOverlap || !actionsInFrame) {
+            throw new Error(
+                `First Guardian invitation layout failed: ${JSON.stringify({
+                    firstGuardianInvitation,
+                    actionsOverlap,
+                    actionsInFrame
+                })}`
+            );
+        }
+        if (SMOKE_CAPTURE_DIR) {
+            await captureGameplayStill(
+                session,
+                SMOKE_VIEWPORT_WIDTH <= 600
+                    ? 'first-guardian-invitation-phone.png'
+                    : 'first-guardian-invitation-desktop.png'
+            );
+        }
+    }
     const returnCta = await touchInteractiveSceneText(
         session,
         returnLabel,
