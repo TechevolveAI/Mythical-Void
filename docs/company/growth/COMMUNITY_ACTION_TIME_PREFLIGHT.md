@@ -24,7 +24,7 @@ The two Reddit observations must be made by an adult in a normal browser:
 Then run:
 
 ```sh
-npm run community:preflight -- --action-time /private/tmp/mythical-webgames-approval.json
+npm run community:preflight -- --action-time /private/tmp/mythical-webgames-approval.json --write-receipt /private/tmp/mythical-webgames-ready.json
 ```
 
 The action-time command refuses stale approval, stale rules, a duplicate,
@@ -34,4 +34,7 @@ checks and owned-site checks last two hours.
 
 Even a passing result does not publish. It means a person may paste the exact
 prepared link post into the confirmed adult account. Kevin remains responsible
-for replies. A post view is not a player, and a website visit is not a play.
+for replies. The private receipt contains no account name, password or cookie.
+After the post is genuinely visible, follow the separate publication handoff
+guide to record its public link and start the two-day and seven-day reviews. A
+post view is not a player, and a website visit is not a play.
