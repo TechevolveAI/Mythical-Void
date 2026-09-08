@@ -69,8 +69,11 @@ if (release.state === 'live_production_verified') {
     requireValue(release.verification?.challengeEntryPresentOnLandingPage === true, 'live landing page is missing the challenge entry');
     requireValue(release.verification?.comparisonGuidancePresentInGameBundle === true, 'live bundle is missing comparison guidance');
     requireValue(release.verification?.persistentMenuCandidate?.sourceReady === true, 'persistent invitation candidate source is missing');
-    requireValue(release.verification?.persistentMenuCandidate?.productionCommit === null, 'pending persistent invitation must not claim a production commit');
-    requireValue(release.verification?.persistentMenuCandidate?.productionDeployId === null, 'pending persistent invitation must not claim a production deploy');
+    requireValue(/^[0-9a-f]{40}$/.test(release.verification?.persistentMenuCandidate?.sourceCommit || ''), 'persistent invitation is missing its source commit');
+    requireValue(/^[0-9a-f]{40}$/.test(release.verification?.persistentMenuCandidate?.productionCommit || ''), 'persistent invitation is missing its production commit');
+    requireValue(/^[0-9a-f]{24}$/.test(release.verification?.persistentMenuCandidate?.productionDeployId || ''), 'persistent invitation is missing its production deploy');
+    requireValue(!Number.isNaN(Date.parse(release.verification?.persistentMenuCandidate?.productionPublishedAt || '')), 'persistent invitation is missing its production time');
+    requireValue(release.verification?.persistentMenuCandidate?.sourceAndProductionTreesMatch === true, 'persistent invitation source and production trees were not matched');
 }
 if (release.state === 'prepared_for_owned_game_release') {
     requireValue(release.verification?.productionCommit === null, 'pending release must not claim a production commit');

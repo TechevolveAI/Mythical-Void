@@ -324,14 +324,14 @@ function renderStorefront() {
                         <p class="hero-copy">Hatch one alien creature shaped by body, colour, nature, cosmic affinity and rare changes. Cross six living realms together. Decide what Project Beacon should tell Earth.</p>
                         <div class="hero-actions">
                             ${playLink('Play now — it’s free')}
-                            <button class="button button-quiet button-share" type="button" data-share-game>
-                                <span data-share-label>Share the game</span>
+                            <button class="button button-quiet button-share" type="button" data-share-hatch-challenge>
+                                <span data-hatch-share-label>Invite someone to hatch</span>
                                 <span class="button-arrow" aria-hidden="true">↗</span>
                             </button>
                             <a class="button button-quiet" href="/playable-now/#find-your-way">Find your way in</a>
                         </div>
                         <p class="returning-player-note" data-returning-player-note hidden><strong>Welcome back.</strong> Your saved adventure is still in this browser. Continue where you left off.</p>
-                        <p class="hero-share-status share-status" data-share-status aria-live="polite"></p>
+                        <p class="hero-share-status share-status" data-hatch-share-status aria-live="polite"></p>
                         <a class="hero-latest-update" href="/updates/" data-latest-update hidden>
                             <span class="hero-latest-label">NEW IN THE GAME</span>
                             <span class="hero-latest-copy">
@@ -726,6 +726,38 @@ function bindInteractions() {
     app.querySelectorAll('a[href="/play/"]').forEach((link) => {
         link.addEventListener('click', () => trackPublicEvent('play_selected', link));
     });
+
+    const hatchShareButton = app.querySelector('[data-share-hatch-challenge]');
+    const hatchShareStatus = app.querySelector('[data-hatch-share-status]');
+    const hatchShareData = {
+        title: 'The Mythical Void Hatch Challenge',
+        text: 'Want to hatch the same mystery and compare what we get? Mythical Void is free in your browser—no download or account needed.',
+        url: 'https://mythicalvoid.com/hatch-challenge/'
+    };
+
+    if (hatchShareButton) {
+        const hatchShareLabel = hatchShareButton.querySelector('[data-hatch-share-label]');
+        if (!navigator.share && hatchShareLabel) hatchShareLabel.textContent = 'Copy Hatch Challenge';
+
+        hatchShareButton.addEventListener('click', async () => {
+            try {
+                if (navigator.share) {
+                    await navigator.share(hatchShareData);
+                    if (hatchShareStatus) hatchShareStatus.textContent = 'Challenge shared. Now see what hatches.';
+                    trackPublicEvent('share_completed', hatchShareButton);
+                    return;
+                }
+
+                await navigator.clipboard.writeText(hatchShareData.url);
+                if (hatchShareStatus) hatchShareStatus.textContent = 'Challenge link copied — no tracking code.';
+                trackPublicEvent('share_link_copied', hatchShareButton);
+            } catch (error) {
+                if (error?.name !== 'AbortError' && hatchShareStatus) {
+                    hatchShareStatus.textContent = 'You can share mythicalvoid.com/hatch-challenge from your browser.';
+                }
+            }
+        });
+    }
 
     const shareButtons = [...app.querySelectorAll('[data-share-game]')];
     const shareStatuses = [...app.querySelectorAll('[data-share-status]')];
