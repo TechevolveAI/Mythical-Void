@@ -15,6 +15,8 @@ const visualScreening = load('docs/company/content/visual-screening-2026-08-27.j
 const search = load('docs/company/search/search-visibility-audit-2026-08-27.json');
 const release = load('docs/company/growth/GITHUB_PLAYABLE_RELEASE.json');
 const analytics = load('docs/company/automation/website-analytics-tag.json');
+const community = load('docs/company/growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08.json');
+const attention = load('docs/company/growth/OWNED_CHANNEL_ATTENTION_2026-09-08.json');
 const scoreboard = read('docs/company/growth/WHAT_WE_KNOW_ABOUT_GROWTH_2026-08-27.md');
 const firstFivePage = read('docs/company/research/FIRST_FIVE_PLAYTEST.md');
 const homepage = read('index.html');
@@ -33,16 +35,21 @@ const latestMaterialWebsiteRelease = {
 };
 
 requireValue(control.schemaVersion === 1 && control.id === 'FOUNDER-CONTROL-001', 'founder control identity is invalid');
-requireValue(control.asOf === '2026-09-08' && control.state === 'live_with_creature_visual_growth_hold', 'founder control state or date is invalid');
+requireValue(control.asOf === '2026-09-08' && control.state === 'live_one_community_test_ready', 'founder control state or date is invalid');
 requireValue(control.plainLanguagePage === 'docs/company/FOUNDER_CONTROL_PAGE.md', 'plain-language page path is invalid');
 
 const live = control.live || {};
 requireValue(live.websiteAndGame?.state === 'live', 'website and game must be recorded as live');
 requireValue(live.websiteAndGame?.websiteUrl === 'https://mythicalvoid.com/' && live.websiteAndGame?.playUrl === 'https://mythicalvoid.com/play/', 'clean owned website links are missing');
-requireValue(live.websiteAndGame?.productionSourceCommit === 'e9293f09d2ed5332d5538c05f051560d29e4d5e3' && live.websiteAndGame?.productionDeployId === '6a951fc9e33f9100083fb699', 'current production evidence is missing');
+requireValue(live.websiteAndGame?.technicalFirstContactProductionSourceCommit === 'e9293f09d2ed5332d5538c05f051560d29e4d5e3' && live.websiteAndGame?.technicalFirstContactProductionDeployId === '6a951fc9e33f9100083fb699', 'technical first-contact production evidence is missing');
 requireValue(live.websiteAndGame?.technicalFirstContactRepairLive === true, 'live first-contact repair is hidden');
 requireValue(live.websiteAndGame?.creatureArtworkHumanApproved === false, 'deployment must not be treated as visual approval');
-requireValue(firstFive.currentHold?.candidateDeployed === true && firstFive.currentHold?.productionSourceCommit === live.websiteAndGame?.productionSourceCommit && firstFive.currentHold?.productionDeployId === live.websiteAndGame?.productionDeployId, 'First Five and founder production evidence disagree');
+requireValue(firstFive.currentHold?.candidateDeployed === true && firstFive.currentHold?.productionSourceCommit === live.websiteAndGame?.technicalFirstContactProductionSourceCommit && firstFive.currentHold?.productionDeployId === live.websiteAndGame?.technicalFirstContactProductionDeployId, 'First Five and founder first-contact production evidence disagree');
+const lastObservedProduction = live.websiteAndGame?.lastObservedProduction || {};
+requireValue(/^2026-09-08T/.test(lastObservedProduction.checkedAt || '') && /^[0-9a-f]{40}$/.test(lastObservedProduction.sourceCommit || '') && /^[0-9a-f]{24}$/.test(lastObservedProduction.deployId || ''), 'latest observed production identity is invalid');
+requireValue(lastObservedProduction.state === 'ready' && lastObservedProduction.published === true, 'latest observed production is not proven ready and published');
+const latestGameRelease = live.websiteAndGame?.latestGameRelease || {};
+requireValue(latestGameRelease.pullRequest === 197 && latestGameRelease.mergeCommit === '867db60674440297e92c323dd80cc85d57389752' && latestGameRelease.containedInLastObservedProduction === true, 'latest game release is missing from the production record');
 for (const [field, expected] of Object.entries(latestMaterialWebsiteRelease)) {
     requireValue(live.websiteAndGame?.latestMaterialWebsiteRelease?.[field] === expected, `founder latest material website release ${field} is stale`);
     requireValue(firstFive.currentHold?.latestMaterialWebsiteRelease?.[field] === expected, `First Five latest material website release ${field} is stale`);
@@ -69,7 +76,7 @@ requireValue(firstFive.state === 'held_for_creature_first_impression', 'First Fi
 requireValue(firstFive.currentOutcome?.sessionsCompleted === 0 && firstFive.currentHold?.invitationsMayBegin === false && firstFive.currentHold?.promotionMayBegin === false, 'First Five activity is falsely claimed or authorized');
 requireValue(control.held?.firstFive?.state === firstFive.state && control.held?.firstFive?.sessionsCompleted === 0 && control.held?.firstFive?.acceptedCustomerEvidence === 0 && control.held?.firstFive?.invitationsMayBegin === false, 'founder First Five hold is invalid');
 requireValue(visualReview.state === 'rejected_before_human_approval' && visualReview.decision?.adultHumanApprovalPassed === false, 'latest first-contact visual decision is misrepresented');
-requireValue(visualReview.laterProductionOverride?.productionSourceCommit === live.websiteAndGame?.productionSourceCommit && visualReview.laterProductionOverride?.productionDeployId === live.websiteAndGame?.productionDeployId, 'later production override is missing or inconsistent');
+requireValue(visualReview.laterProductionOverride?.productionSourceCommit === live.websiteAndGame?.technicalFirstContactProductionSourceCommit && visualReview.laterProductionOverride?.productionDeployId === live.websiteAndGame?.technicalFirstContactProductionDeployId, 'later first-contact production override is missing or inconsistent');
 requireValue(visualReview.laterProductionOverride?.visualApprovalGranted === false && visualReview.laterProductionOverride?.firstFiveReleased === false && visualReview.laterProductionOverride?.gameplayPromotionReleased === false, 'technical deployment is being confused with visual or growth approval');
 requireValue(visualScreening.decision === 'reject_all_before_kevin_review' && visualScreening.approvedMomentCount === 0 && visualScreening.requiredMomentCount === 4, 'launch visual hold is misrepresented');
 requireValue(control.held?.gameplayPromotion?.state === 'held_for_human_visual_approval', 'gameplay promotion must remain held');
@@ -81,12 +88,20 @@ requireValue(observedResults === 0 && control.known?.officialResultsObservedInLa
 requireValue(search.searchConsoleAccessCheck?.mythicalVoidPropertyAccessible === false && control.known?.searchConsoleConnected === false, 'Search Console access is falsely claimed');
 requireValue(control.known?.firstFiveSessionsCompleted === 0 && control.known?.acceptedCustomerEvidence === 0, 'customer evidence is falsely claimed');
 for (const field of ['websiteVisitMayBeCalledPlayer', 'githubViewMayBeCalledPlay', 'enjoymentClaimPermitted', 'retentionClaimPermitted', 'conversionClaimPermitted', 'growthClaimPermitted']) requireValue(control.known?.[field] === false, `unsupported outcome claim is enabled: ${field}`);
+requireValue(attention.observations?.repositoryViews?.count === 2 && attention.observations?.repositoryViews?.uniques === 1, 'owned attention source is inconsistent');
+requireValue(control.known?.githubRepositoryViewsInRecordedFourteenDayWindow === attention.observations?.repositoryViews?.count && control.known?.githubUniqueRepositoryViewsInRecordedFourteenDayWindow === attention.observations?.repositoryViews?.uniques, 'founder GitHub attention evidence is stale');
+requireValue(control.known?.githubClonesMayBeUsedAsAudienceEvidence === false && attention.observations?.repositoryClones?.useForAudienceDecisions === false, 'GitHub clones are being treated as audience evidence');
 
 requireValue(Array.isArray(control.currentDecisions) && control.currentDecisions.length === 1, 'there must be exactly one current founder decision');
-requireValue(control.currentDecisions?.[0]?.id === 'FD-001' && control.currentDecisions?.[0]?.owner === 'Kevin', 'current founder decision identity is invalid');
-requireValue(control.currentDecisions?.[0]?.question === 'Choose the visual anchor for a creature people can love and recognise.', 'current founder decision has drifted');
-requireValue(control.currentDecisions?.[0]?.waysToUnlock?.length === 2, 'founder decision must offer two clear ways forward');
-requireValue(control.unlockSequence?.length === 5 && control.unlockSequence?.[2] === 'adult_human_visual_review' && control.unlockSequence?.[3] === 'five_adult_first_five_test', 'safe unlock sequence is invalid');
+requireValue(control.currentDecisions?.[0]?.id === 'FD-002' && control.currentDecisions?.[0]?.owner === 'Kevin', 'current founder decision identity is invalid');
+requireValue(control.currentDecisions?.[0]?.question === 'Approve one direct-link r/WebGames post from an existing adult account and personally cover replies for seven days?', 'current founder decision has drifted');
+requireValue(control.currentDecisions?.[0]?.preparedDecisionArtifact === 'docs/company/growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08.md' && control.currentDecisions?.[0]?.requires?.length === 3 && control.currentDecisions?.[0]?.postAuthorized === false, 'current community decision is incomplete or pre-authorized');
+requireValue(control.heldDecisions?.some(decision => decision.id === 'FD-001' && decision.preparedDecisionArtifact === 'docs/company/product/CREATURE_CONCEPT_ARTIST_BRIEF.md'), 'important creature decision was lost');
+requireValue(control.unlockSequence?.length === 5 && control.unlockSequence?.[2] === 'run_action_time_preflight' && control.unlockSequence?.[4] === 'record_day_two_and_day_seven_observations', 'community unlock sequence is invalid');
+requireValue(control.firstFiveUnlockSequence?.length === 5 && control.firstFiveUnlockSequence?.[2] === 'adult_human_visual_review' && control.firstFiveUnlockSequence?.[3] === 'five_adult_first_five_test', 'First Five unlock sequence is invalid');
+requireValue(community.state === 'one_direct_link_post_ready_waiting_for_kevin' && community.authority?.externalPostMade === false && community.authority?.externalPostingAuthorized === false, 'community source is not ready and held');
+requireValue(control.communityExperiment?.id === 'WEBGAMES-FIRST-RUN-001' && control.communityExperiment?.state === 'waiting_for_existing_account_and_action_time_approval' && control.communityExperiment?.postMade === false, 'founder community experiment state is invalid');
+requireValue(control.communityExperiment?.oneRouteAtATime === true && control.communityExperiment?.nextRouteBeforeSevenDayReadAllowed === false && control.communityExperiment?.humanRepliesOnly === true && control.communityExperiment?.fakeEngagementAllowed === false, 'community experiment safety boundary is invalid');
 
 requireValue(control.languageAndSafety?.publicCreatureTerm === 'creatures' && control.languageAndSafety?.companionTermAllowed === false, 'public creature language boundary is invalid');
 requireValue(control.languageAndSafety?.childExactAgeAllowed === false && control.languageAndSafety?.childNamePhotoOrContactAllowed === false, 'child privacy boundary is invalid');
@@ -103,8 +118,11 @@ for (const phrase of [
     '0 sessions',
     '0 accepted customer evidence',
     'The one decision that matters now',
-    'Choose the visual anchor for a creature people can love and recognise.',
-    'A person—not an automated check—must approve it.',
+    'Approve one direct-link r/WebGames test from an adult Reddit account.',
+    'Nothing has been posted.',
+    '2 repository views from 1 person',
+    'The important product decision that remains held',
+    'A person—not an automated check—must approve it',
     'NASA does not make or endorse Mythical Void.',
     'No setting has been changed.',
     'Kevin controls public posts'
@@ -123,7 +141,7 @@ const searchExperiment = (currentState.experiments || []).find(item => item.id =
 requireValue(discoveryScore?.current?.includes('official website now links back to that verified public project'), 'current-state scorecard still describes the reciprocal project link as merely prepared');
 requireValue(searchExperiment?.signal?.includes('official website now links back to that verified public project'), 'current-state search experiment still describes the reciprocal project link as merely prepared');
 
-requireValue(Array.isArray(control.sources) && control.sources.length === 8, 'founder control sources are incomplete');
+requireValue(Array.isArray(control.sources) && control.sources.length === 10, 'founder control sources are incomplete');
 for (const source of control.sources || []) requireValue(fs.existsSync(path.join(root, source)), `founder control source does not exist: ${source}`);
 requireValue(packageJson.scripts?.['validate:founder-control'] === 'node scripts/company/validate-founder-control-page.cjs', 'founder control validator command is missing');
 requireValue(packageJson.scripts?.['test:founder-control'] === 'node scripts/company/test-founder-control-page.cjs', 'founder control safeguard command is missing');
@@ -138,10 +156,14 @@ console.log(JSON.stringify({
     valid: true,
     state: control.state,
     liveWebsite: true,
+    latestGameReleasePullRequest: latestGameRelease.pullRequest,
     technicalRepairLive: true,
     creatureArtworkHumanApproved: false,
     firstFiveSessionsCompleted: 0,
     acceptedCustomerEvidence: 0,
     currentDecisionCount: 1,
+    currentDecisionId: control.currentDecisions[0].id,
+    heldDecisionCount: control.heldDecisions.length,
+    communityPostMade: false,
     externalAuthorityGranted: false
 }, null, 2));

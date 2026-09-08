@@ -21,6 +21,10 @@ detailed evidence; it turns that evidence into the decisions that matter now.
   without weak screenshots, a second download or inflated claims. The website
   and public project now link to each other, making the official identity
   clearer to people and search tools.
+- **The latest game repair is live:** the Mythical Forest crossing and mobile
+  creature grounding release is contained in the current production build.
+- **The press room and Latest News feeds are live:** journalists, creators and
+  feed readers have permanent, checked pages to follow without an account.
 - **Adult feedback is available:** adults can send feedback through the owned
   website. No child contact or automatic public reply is allowed.
 - **The Google tag is live on the website only:** it stays out of the game and
@@ -56,6 +60,9 @@ detailed evidence; it turns that evidence into the decisions that matter now.
   evidence**.
 - Website visits, GitHub views and feedback-page visits are not players, plays,
   enjoyment, retention, recommendations, conversion or growth.
+- GitHub recorded **2 repository views from 1 person** in its latest fourteen-day
+  window. Clone totals were excluded because development and automated systems
+  can create them. GitHub is currently proof of the project, not an audience.
 - r/WebGames is a verified fit for one direct-link test: it requires a playable
   browser game, direct link, no required download or sign-up and no referral
   link. Its page showed about 19,000 weekly visitors on 8 September, but that is
@@ -64,41 +71,44 @@ detailed evidence; it turns that evidence into the decisions that matter now.
 
 ## The one decision that matters now
 
-**Choose the visual anchor for a creature people can love and recognise.**
+**Approve one direct-link r/WebGames test from an adult Reddit account.**
 
-Kevin can unlock this in either of two ways:
+The game, link preview, title, first comment, truth checks and observation plan
+are ready. Nothing has been posted. To run it, Kevin needs to:
 
-1. Give the studio one to three visual references that capture the feeling,
-   material and personality he wants; or
-2. Approve a professional concept-artist brief as the next direction. Any paid
-   work would still need separate approval before money is spent.
+1. Confirm an existing adult Reddit account, or separately approve making one
+   and personally accept its terms.
+2. Approve the exact prepared post at the moment it will be published.
+3. Confirm he can read and answer public replies for seven days.
 
-The prepared brief is [here](product/CREATURE_CONCEPT_ARTIST_BRIEF.md). Approving
-the brief authorizes a direction, not artist contact, a contract or spending.
-
-The next proof must show one real creature identity on phone, desktop and in
-normal play. It must look alive, alien and appealing without reading as a pet,
-ordinary animal, portal, marker or object. A person—not an automated check—must
-approve it.
+The post costs nothing. It asks one useful question about what felt clear or
+confusing in the first minute. It includes no gameplay attachment, tracking
+code, invented praise or player claim. Replies remain human-written. The exact
+copy and stop rules are in
+[the community discovery plan](growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08.md).
 
 ## What happens after that decision
 
-1. Build one private creature proof from the approved direction.
-2. Reject obvious faults automatically, then have a person review the real
-   frames.
-3. If it passes, run the five-adult First Five test.
-4. Use what those adults actually do and say to improve the game.
-5. Only then choose one small public route: the founder story, an approved
-   gameplay moment or one suitable browser-game platform.
+1. Recheck the community rules, duplicate search, live game and link preview.
+2. Publish the one direct link only after the three confirmations above.
+3. Record public totals and anonymous aggregate website evidence after two days
+   and seven days without calling visits players.
+4. Do not cross-post while this first read is running.
+5. Decide whether to stop, improve the first minute or prepare the already
+   drafted Phaser Showcase topic.
 
-## One growth experiment ready for Kevin
+## The important product decision that remains held
 
-The first forum test is prepared as one direct link in r/WebGames. It contains
-no gameplay image, tracking code or inflated claim. Kevin must approve the
-exact post, choose an existing adult Reddit account or separately approve a new
-one, and confirm that he will handle replies. The full preview and stop rules
-are in
-[the community discovery plan](growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08.md).
+The creature artwork still needs a visual direction people can love and
+recognise. Kevin can provide one to three references for feeling, material and
+personality, or approve the prepared
+[concept-artist brief](product/CREATURE_CONCEPT_ARTIST_BRIEF.md). Artist contact,
+contracts and spending would each remain separate decisions.
+
+The next creature proof must show one real identity on phone, desktop and in
+normal play. It must look alive, alien and appealing without reading as a pet,
+ordinary animal, portal, marker or object. A person—not an automated check—must
+approve it before the First Five test or gameplay-led promotion begins.
 
 ## Helpful, but not blocking
 

@@ -63,7 +63,7 @@ requireValue(!/\bcompanions?\b/i.test(brief), 'outdated companion wording appear
 requireValue(!/\b(?:nine|9)[ -]year[ -]old\b/i.test(brief), 'the creature brief exposes a child\'s exact age');
 requireValue(!/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(brief), 'the creature brief contains contact data');
 
-requireValue(founder.currentDecisions?.length === 1 && founder.currentDecisions?.[0]?.preparedDecisionArtifact === contract.briefPath, 'founder control does not point to the prepared brief');
+requireValue(founder.heldDecisions?.some(decision => decision.id === 'FD-001' && decision.preparedDecisionArtifact === contract.briefPath), 'founder control does not preserve the prepared creature brief');
 requireValue(packageJson.scripts?.['validate:creature-art-brief'] === 'node scripts/company/validate-creature-concept-artist-brief.cjs', 'creature art brief validator command is missing');
 requireValue(packageJson.scripts?.['test:creature-art-brief'] === 'node scripts/company/test-creature-concept-artist-brief.cjs', 'creature art brief safeguard command is missing');
 
@@ -82,4 +82,3 @@ console.log(JSON.stringify({
     automationMayApproveVisualQuality: false,
     externalAuthorityGranted: false
 }, null, 2));
-

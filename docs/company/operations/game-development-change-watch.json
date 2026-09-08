@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-09-08T15:30:25.457Z",
+  "repository": "TechevolveAI/Mythical-Void",
+  "baselineRef": "origin/main",
+  "baselineCommit": "d894e29ead14ac9d1587c6e22cbbc22deed0c4c5",
+  "candidateRef": "HEAD",
+  "candidateCommit": "d894e29ead14ac9d1587c6e22cbbc22deed0c4c5",
+  "mergeBase": "d894e29ead14ac9d1587c6e22cbbc22deed0c4c5",
+  "baselineIsAncestor": true,
+  "changedFiles": [],
+  "playerVisibleFiles": [],
+  "portalFiles": [],
+  "action": "no_change",
+  "nextStep": "No new game-development change needs company review.",
+  "boundaries": {
+    "privateReviewOnly": true,
+    "passingTestsAreVisualApproval": false,
+    "generatedArtworkIsGameplayApproval": false,
+    "publicationAuthorized": false,
+    "deploymentAuthorized": false,
+    "portalSubmissionAuthorized": false
+  }
+}
