@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-08-11T13:57:07Z",
+  "asOf": "2026-09-08T00:00:00Z",
   "status": "public_audit_complete_verification_gated",
   "purpose": "Establish which Mythical public properties and social accounts can be safely treated as official before any account creation, connection, publication, reply, moderation, measurement, or impersonation response.",
   "authority": {
@@ -28,6 +28,15 @@
     "twitterAccountOwnershipEvidencePresent": false,
     "officialSocialAccountCandidateCount": 0,
     "confirmedOfficialSocialAccountCount": 0,
+    "socialIdentityReservationRef": "docs/company/content/channel-launch/SOCIAL_IDENTITY_RESERVATION_2026-09-08.json",
+    "preferredHandleCandidate": "PlayMythicalVoid",
+    "fallbackHandleCandidate": "MythicalVoidGame",
+    "candidateHandleAvailabilityConfirmed": false,
+    "exactMythicalVoidHandleCollisionObservedOn": [
+      "YouTube",
+      "Instagram",
+      "TikTok"
+    ],
     "unrelatedOrAmbiguousResultsObserved": true,
     "conclusion": "No official Mythical Void social account was confirmed by the sampled public site and exact-name/domain searches. This is evidence of an unresolved inventory, not evidence that no account exists.",
     "methods": [
@@ -99,7 +108,7 @@
       "measurementReady": false,
       "publishReady": false,
       "impersonationReviewRequired": true,
-      "nextAction": "Kevin provides the exact existing YouTube channel URL or confirms none exists; then verify admin/recovery ownership without connecting publishing access."
+      "nextAction": "Kevin approves the PlayMythicalVoid handle family, then checks it inside YouTube and confirms ownership, recovery and multi-factor security without sharing credentials."
     },
     {
       "channelRef": "CH-003",
@@ -114,7 +123,7 @@
       "measurementReady": false,
       "publishReady": false,
       "impersonationReviewRequired": true,
-      "nextAction": "Inventory exact existing Instagram/TikTok/other short-form URLs before choosing or reserving any handle."
+      "nextAction": "After the YouTube identity decision, Kevin may check PlayMythicalVoid on Instagram and TikTok; reserve nothing without ownership, recovery, multi-factor security and human moderation."
     },
     {
       "channelRef": "CH-004",
@@ -129,7 +138,7 @@
       "measurementReady": false,
       "publishReady": false,
       "impersonationReviewRequired": true,
-      "nextAction": "Kevin provides an exact existing company-page URL or confirms none exists; distinguish company identity from a founder profile."
+      "nextAction": "Use Kevin's existing founder profile first. If a separate Page is wanted, check play-mythical-void and then mythical-void-game inside LinkedIn before claiming either."
     },
     {
       "channelRef": "CH-005",
