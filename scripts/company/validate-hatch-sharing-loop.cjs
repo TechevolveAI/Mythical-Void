@@ -78,6 +78,11 @@ requireValue(storefront.includes('data-share-hatch-challenge') && storefront.inc
 requireValue(storefront.includes("url: 'https://mythicalvoid.com/hatch-challenge/'"), 'homepage invitation lost the clean Hatch Challenge URL');
 requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(storefront.match(/const hatchShareData = \{[\s\S]*?\n\s*\};/)?.[0] || ''), 'homepage invitation contains tracking code');
 requireValue((hatchPage.match(/href="\/play\/#hatch-challenge"/g) || []).length >= 4, 'Hatch Challenge Play links must preserve the clean challenge entry');
+const heroStart = hatchPage.indexOf('class="button button-primary hatch-challenge-start"');
+const heroShare = hatchPage.indexOf('data-hatch-challenge-share');
+const heroBoundary = hatchPage.indexOf('class="hatch-challenge-boundary"');
+requireValue(heroStart !== -1 && heroStart < heroShare && heroShare < heroBoundary, 'Hatch Challenge first screen must lead with Start, keep invitation secondary and show the privacy boundary afterwards');
+requireValue(hatchPage.includes('<span data-play-label>Start the challenge</span>'), 'Hatch Challenge first screen needs a plain Start action');
 requireValue(handoff.includes("window.location?.hash === '#hatch-challenge'"), 'game does not recognize the clean challenge entry');
 requireValue(handoff.includes("'living-form-challenge'"), 'invited-player comparison panel is missing');
 for (const area of release.publicExperience.comparisonAreas) requireValue(handoff.toLowerCase().includes(area), `comparison area ${area} is missing from the game guidance`);
