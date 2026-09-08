@@ -63,8 +63,9 @@ handle replies. Do not contact children.
 
 1. **Phaser Showcase:** a good second route for technical feedback. Its official
    forum welcomes finished and work-in-progress Phaser games and asks for a
-   game link. The prepared title is: `[WIP] Mythical Void — a father-and-son
-   Phaser browser adventure`.
+   game link. The complete text-only topic is now prepared in
+   `PHASER_SHOWCASE_ACTIVATION_2026-09-08.md`. It waits until the first
+   r/WebGames seven-day read finishes or Kevin explicitly cancels that route.
 2. **itch.io:** the strongest prepared game shelf. The HTML5 package exists,
    but publishing needs an adult-controlled account, acceptance of the current
    terms, Kevin's approval of the cover and accurate generative-AI disclosure.

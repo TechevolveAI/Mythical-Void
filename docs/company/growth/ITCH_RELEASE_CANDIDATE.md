@@ -26,8 +26,8 @@ action and platform terms.
 
 **Full description:**
 
-Wanderer-77 has crashed beyond mapped space. Recover the field kit, follow a
-strange signal and hatch an alien creature shaped by genetics, cosmic affinity
+Wanderer-77 has crashed beyond mapped space. Recover the field kit, read a
+strange message and hatch an alien creature shaped by genetics, cosmic affinity
 and rare changes.
 
 Together, cross six living realms, release their guardians from the Void,
