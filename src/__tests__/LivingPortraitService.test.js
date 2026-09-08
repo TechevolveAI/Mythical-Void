@@ -4,7 +4,7 @@ const vm = require('vm');
 
 function loadService({
     featureEnabled = true,
-    ageEligible = true,
+    ageGroup = 'age_18_plus',
     existingPortrait = null,
     fetchImpl = null,
     authImpl = null,
@@ -17,6 +17,18 @@ function loadService({
         '../systems/LivingPortraitService.js'
     );
     const source = fs.readFileSync(filePath, 'utf8')
+        .replace(
+            "import { getCreatureMediaEligibility } from './CreatureMediaPrivacy.js';",
+            `const getCreatureMediaEligibility = () => ({\n` +
+                `    eligible: ${featureEnabled} && ${JSON.stringify([
+                    'age_under_13',
+                    'age_13_15',
+                    'age_16_17',
+                    'age_18_plus'
+                ])}.includes(${JSON.stringify(ageGroup)}),\n` +
+                `    reason: null\n` +
+                `});`
+        )
         .replace(
             'export { LivingPortraitService };',
             'module.exports = { LivingPortraitService, livingPortraitService };'
@@ -83,14 +95,11 @@ function loadService({
             APIConfig: {
                 isEnabled: jest.fn(() => featureEnabled)
             },
-            CloudSaveManager: {
-                isAgeGroupEligible: jest.fn(() => ageEligible)
-            },
             CloudSave: {
                 client: { auth }
             },
             localStorage: {
-                getItem: jest.fn(() => 'age_18_plus')
+                getItem: jest.fn(() => ageGroup)
             },
             CreaturePortraitSpec: {
                 create: jest.fn(portraitSpecFactory || (() => ({
@@ -162,11 +171,19 @@ describe('background living portrait generation', () => {
         expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    test('does not start automatic generation for an under-16 profile', () => {
-        const { service, fetchMock } = loadService({ ageEligible: false });
+    test('allows creature-only generation for an under-16 profile', async () => {
+        const { service, fetchMock } = loadService({
+            ageGroup: 'age_under_13'
+        });
 
-        expect(service.prewarm({ creatureData })).toBeNull();
-        expect(fetchMock).not.toHaveBeenCalled();
+        await service.prewarm({
+            creatureData,
+            referenceImage: 'data:image/png;base64,iVBORw0KGgo=',
+            source: 'post_hatch'
+        });
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        const requestBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+        expect(requestBody).not.toHaveProperty('ageGroup');
     });
 
     test('deduplicates hatch and modal requests for the same creature stage', async () => {
@@ -213,7 +230,7 @@ describe('background living portrait generation', () => {
             'Bearer private-session-token'
         );
         const requestBody = JSON.parse(request.body);
-        expect(requestBody.ageGroup).toBe('age_18_plus');
+        expect(requestBody).not.toHaveProperty('ageGroup');
         expect(requestBody.referenceImage).toBe(referenceImage);
         expect(gameState.emit).toHaveBeenCalledWith(
             'creaturePortraitGenerationStarted',

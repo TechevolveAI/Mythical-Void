@@ -630,8 +630,8 @@ describe('first-session Project Beacon mission loop', () => {
             APIConfig: {
                 isEnabled: jest.fn(() => true)
             },
-            CloudSaveManager: {
-                isAgeGroupEligible: jest.fn(() => true)
+            LivingPortraitService: {
+                getEligibility: jest.fn(() => ({ eligible: true }))
             },
             localStorage: {
                 getItem: jest.fn(() => 'age_18_plus')
@@ -651,13 +651,13 @@ describe('first-session Project Beacon mission loop', () => {
         ]);
     });
 
-    test('keeps external portrait generation off for under-16 profiles', () => {
+    test('offers creature-only portrait generation for under-16 profiles', () => {
         const CreatureRadialMenu = loadCreatureRadialMenu({
             APIConfig: {
                 isEnabled: jest.fn(() => true)
             },
-            CloudSaveManager: {
-                isAgeGroupEligible: jest.fn(() => false)
+            LivingPortraitService: {
+                getEligibility: jest.fn(() => ({ eligible: true }))
             },
             localStorage: {
                 getItem: jest.fn(() => 'age_13_15')
@@ -665,7 +665,9 @@ describe('first-session Project Beacon mission loop', () => {
         });
         const menu = new CreatureRadialMenu({});
 
-        expect(menu.menuItems.find(item => item.id === 'ai_art')).toBeUndefined();
+        expect(menu.menuItems.find(item => item.id === 'ai_art')).toEqual(
+            expect.objectContaining({ label: 'AI Art' })
+        );
     });
 
     test('keeps the radial menu inside a narrow camera view', () => {

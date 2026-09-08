@@ -20,10 +20,11 @@ describe('Cloud Save privacy contract', () => {
             'age_16_17',
             'age_18_plus'
         ]);
-        expect(under13Option.notice).toMatch(/stay on this device/i);
-        expect(teenOption.notice).toMatch(/saved on this device/i);
+        expect(under13Option.notice).toMatch(/stays on this device/i);
+        expect(teenOption.notice).toMatch(/stays on this device/i);
         expect(childrenSection.content).toMatch(/under 16/i);
         expect(childrenSection.content).toMatch(/unavailable/i);
+        expect(childrenSection.content).toMatch(/not personalized to the child/i);
         const collectionSection = legal.privacyPolicy.sections.find(
             section => section.heading === 'Information We Collect'
         );
@@ -31,13 +32,13 @@ describe('Cloud Save privacy contract', () => {
             section => section.heading === 'Data Security'
         );
         expect(collectionSection.content).toMatch(
-            /player-given creature name is not included/i
+            /do not send the player-given creature name/i
         );
         expect(securitySection.content).toMatch(
             /protected asset reference/i
         );
         expect(securitySection.content).toMatch(/Living Portrait/i);
-        expect(securitySection.content).toMatch(/personalized story-video/i);
+        expect(securitySection.content).toMatch(/Creature Story Scene/i);
     });
 
     test('renders a local-save-only state instead of guardian self-attestation', () => {

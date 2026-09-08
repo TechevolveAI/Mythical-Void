@@ -13,6 +13,10 @@ function loadCompanionMediaService(sceneWindow, ImageClass = class {}) {
         '../systems/CompanionMediaService.js'
     );
     const source = fs.readFileSync(filePath, 'utf8')
+        .replace(
+            "import companionVideoMomentsConfig from '../config/companion-video-moments.json';",
+            `const companionVideoMomentsConfig = ${JSON.stringify(require('../config/companion-video-moments.json'))};`
+        )
         .replace(/export\s*\{[\s\S]*?\};\s*$/, '')
         .concat(`
             module.exports = {

@@ -85,7 +85,7 @@ class APIConfig {
                 status: this.isEnabled() ? 'enabled' : 'disabled',
                 euAiActCompliance: 'Images labeled as AI-generated'
             },
-            personalizedVideo: {
+            creatureStoryVideo: {
                 available: this.isVideoEnabled(),
                 status: this.isVideoEnabled() ? 'enabled' : 'disabled',
                 fallback: 'Living portrait motion still'

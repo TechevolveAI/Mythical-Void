@@ -33,7 +33,7 @@ describe('cinematic media integration', () => {
         expect(villagePanel).toContain('BUILD A HOME TOGETHER');
     });
 
-    test('plays personalized clips silently and inline on mobile', () => {
+    test('plays creature story clips silently and inline on mobile', () => {
         const companionMedia = readSource('src/systems/CompanionMediaService.js');
 
         expect(companionMedia).toContain("video.setMute?.(true)");

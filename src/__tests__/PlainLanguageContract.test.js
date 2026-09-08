@@ -203,14 +203,18 @@ describe('plain-language public story', () => {
             path.join(root, 'src/systems/CompanionMediaService.js'),
             'utf8'
         );
+        const videoMoments = JSON.parse(fs.readFileSync(
+            path.join(root, 'src/config/companion-video-moments.json'),
+            'utf8'
+        ));
         const dialogueController = fs.readFileSync(
             path.join(root, 'src/systems/CreatureAIController.js'),
             'utf8'
         );
 
-        expect(mediaService).toContain(
-            'The creature enters the Mythical Forest beside Wanderer-77.'
-        );
+        expect(videoMoments.moments.find(
+            moment => moment.key === 'first_forest_arrival'
+        ).action).toContain('The creature takes two cautious steps');
         expect(mediaService).not.toContain('The companion enters');
         expect(dialogueController).toContain(
             'You are an intelligent alien creature in Mythical Void'

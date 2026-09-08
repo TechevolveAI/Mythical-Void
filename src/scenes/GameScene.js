@@ -290,6 +290,8 @@ class GameScene extends Phaser.Scene {
         this.livingPortraitNoticeTimer = null;
         this.livingPortraitNoticePendingIdentity = null;
         this.deferredLivingPortraitRecord = null;
+        this.creatureVideoReadyNotice = null;
+        this.creatureVideoNoticeTimer = null;
         this.nearCurrentVeilAnchorId = null;
         this.currentVeilOverlapColliders = [];
         this.residentExchangeElements = [];
@@ -1426,6 +1428,9 @@ class GameScene extends Phaser.Scene {
                     return;
                 }
                 void this.maybeShowLivingPortraitReadyNotice();
+            });
+            this.time.delayedCall(2600, () => {
+                this.maybeShowCreatureVideoReadyNotice();
             });
 
             // Set up periodic timers for achievements and tutorials
@@ -5096,6 +5101,7 @@ class GameScene extends Phaser.Scene {
             this.controlsTutorial?.isVisible ||
             this.storyModalElements?.length ||
             this.greetingElements?.length ||
+            this.creatureVideoReadyNotice ||
             this.livingSignalMomentElements?.length ||
             this.questTracker?.storyBannerElements?.length ||
             this.achievementNotification?.blocksStory === true ||
@@ -14935,12 +14941,129 @@ class GameScene extends Phaser.Scene {
         this.deferredLivingPortraitRecord = null;
     }
 
+    maybeShowCreatureVideoReadyNotice({ attempt = 0 } = {}) {
+        if (this._isShuttingDown || !this.sys?.isActive?.()) return false;
+        const mediaService = window.CompanionMediaService ||
+            companionMediaService;
+        const ready = mediaService?.getUnviewedGeneratedVideos?.()?.[0];
+        if (!ready || this.creatureVideoReadyNotice) return false;
+        if (this.isLivingPortraitNoticeBlocked()) {
+            if (attempt >= 12) return false;
+            this.creatureVideoNoticeTimer?.remove?.();
+            this.creatureVideoNoticeTimer = this.time.delayedCall(
+                1500,
+                () => this.maybeShowCreatureVideoReadyNotice({
+                    attempt: attempt + 1
+                })
+            );
+            return false;
+        }
+
+        const { width, height } = this.scale;
+        const compact = width < 620;
+        const panelWidth = Math.min(compact ? width - 24 : 430, 430);
+        const panelHeight = compact ? 92 : 98;
+        const noticeY = Math.max(160, Math.min(height * 0.24, 200));
+        const container = this.add.container(width / 2, noticeY)
+            .setScrollFactor(0)
+            .setDepth(15910)
+            .setAlpha(0);
+        const panel = this.add.graphics();
+        panel.fillStyle(0x081312, 0.98);
+        panel.fillRoundedRect(
+            -panelWidth / 2,
+            -panelHeight / 2,
+            panelWidth,
+            panelHeight,
+            7
+        );
+        panel.lineStyle(2, 0xF2C14E, 1);
+        panel.strokeRoundedRect(
+            -panelWidth / 2,
+            -panelHeight / 2,
+            panelWidth,
+            panelHeight,
+            7
+        );
+        panel.setInteractive(
+            new Phaser.Geom.Rectangle(
+                -panelWidth / 2,
+                -panelHeight / 2,
+                panelWidth,
+                panelHeight
+            ),
+            Phaser.Geom.Rectangle.Contains
+        );
+        const left = -panelWidth / 2 + 20;
+        const title = this.add.text(
+            left,
+            -26,
+            'CREATURE STORY SCENE READY',
+            {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: compact ? '13px' : '15px',
+                fontStyle: 'bold',
+                color: '#F2C14E'
+            }
+        );
+        const copy = this.add.text(left, 0, ready.label, {
+            fontFamily: 'Arial, sans-serif',
+            fontSize: compact ? '12px' : '13px',
+            color: '#F4F4F4',
+            wordWrap: { width: panelWidth - 40 }
+        });
+        const action = this.add.text(
+            panelWidth / 2 - 20,
+            29,
+            'TAP TO WATCH',
+            {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: '10px',
+                fontStyle: 'bold',
+                color: '#8FE3CF'
+            }
+        ).setOrigin(1, 0.5);
+        container.add([panel, title, copy, action]);
+
+        let dismissed = false;
+        const dismiss = ({ openArchive = false } = {}) => {
+            if (dismissed) return;
+            dismissed = true;
+            this.tweens.killTweensOf(container);
+            container.destroy?.(true);
+            this.creatureVideoReadyNotice = null;
+            if (openArchive) {
+                this.openCreatureProfile({
+                    initialIdentityArchiveChapter: 'shared_journey'
+                });
+            }
+        };
+        panel.on('pointerup', () => dismiss({ openArchive: true }));
+        this.tweens.add({
+            targets: container,
+            alpha: 1,
+            y: noticeY + 8,
+            duration: 280,
+            ease: 'Sine.easeOut'
+        });
+        this.creatureVideoReadyNotice = { container, destroy: dismiss };
+        window.AudioManager?.playAchievement?.();
+        return true;
+    }
+
+    destroyCreatureVideoReadyNotice() {
+        this.creatureVideoNoticeTimer?.remove?.();
+        this.creatureVideoNoticeTimer = null;
+        this.creatureVideoReadyNotice?.destroy?.();
+        this.creatureVideoReadyNotice = null;
+    }
+
     /**
      * Open creature profile scene
      */
-    openCreatureProfile() {
+    openCreatureProfile(data = undefined) {
         console.log('[GameScene] Opening creature profile');
-        this.sceneRouter.pauseAndLaunchScene('CreatureProfileScene', undefined, {
+        this.sceneRouter.pauseAndLaunchScene('CreatureProfileScene', data, {
             loadingMessage: 'Opening creature profile...',
             sound: 'buttonClick'
         });
@@ -14950,10 +15073,9 @@ class GameScene extends Phaser.Scene {
      * Open AI Art generator modal
      */
     openAIArt() {
-        const ageGroup = localStorage.getItem('mythical_void_age_group');
-        if (!window.CloudSaveManager?.isAgeGroupEligible?.(ageGroup)) {
+        if (!window.LivingPortraitService?.getEligibility?.().eligible) {
             this.showFloatingText(
-                'Living Portraits require the 16+ privacy setting',
+                'Choose an age range before creating creature media',
                 this.player?.x || this.scale.width / 2,
                 (this.player?.y || this.scale.height / 2) - 70,
                 '#FFCC66'
@@ -16684,6 +16806,11 @@ class GameScene extends Phaser.Scene {
                 void this.maybeShowLivingPortraitReadyNotice(record);
             }
         );
+        this.registerGameStateListener('companionVideoStatus', record => {
+            if (record?.status === 'succeeded') {
+                this.maybeShowCreatureVideoReadyNotice();
+            }
+        });
 
         const pendingDiscovery = window.GameState?.syncFusionDiscovery?.();
         if (pendingDiscovery?.shouldIntroduce) {
@@ -18267,6 +18394,7 @@ class GameScene extends Phaser.Scene {
         this.guardianTrustCinematic?.destroy?.();
         this.guardianTrustCinematic = null;
         this.destroyLivingPortraitReadyNotice();
+        this.destroyCreatureVideoReadyNotice();
         this.closeFendCommonsListening?.();
         this.fendListeningElements = [];
         this.fendListeningOpen = false;

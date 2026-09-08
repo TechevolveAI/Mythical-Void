@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "promptVersion": "creature-story-video-v2",
+  "shotVersion": 2,
+  "providerDataContract": {
+    "purpose": "Create a short scene about a fictional game creature.",
+    "allowed": [
+      "synthetic_creature_image",
+      "bounded_creature_stage",
+      "developer_authored_scene_prompt"
+    ],
+    "prohibited": [
+      "player_name",
+      "creature_name",
+      "account_id",
+      "user_id",
+      "age_or_age_band",
+      "email",
+      "location",
+      "ip_address",
+      "device_information",
+      "voice",
+      "player_photo",
+      "free_text",
+      "save_history",
+      "friend_data"
+    ]
+  },
+  "sharedPrompt": {
+    "identity": "Use the input image as the exact identity reference for this fictional creature. Preserve its face, silhouette, anatomy, colours, markings and life stage without redesigning it.",
+    "continuity": "Wanderer-77 may appear only where the scene description requests the astronaut. Keep the creature as the clear subject and preserve the same creature identity for the whole shot.",
+    "motion": "Use natural breathing, weight, blinking and purposeful body movement. Keep anatomy physically coherent with no morphing or duplicated parts.",
+    "camera": "One continuous, stable cinematic wildlife shot with a slow low camera move, readable action and restrained depth of field.",
+    "world": "The Fend is a warm, strange, habitable alien planet with living Current, damp terrain, moving air and practical environmental contact.",
+    "style": "Premium live-action science-fantasy, emotionally warm and wondrous without becoming childish, cartoon-like or frightening.",
+    "exclusions": "No dialogue, subtitles, logos, text, weapons, additional creatures, transformation, pixel art, cartoon rendering, human children or real people."
+  },
+  "moments": [
+    {
+      "key": "first_forest_arrival",
+      "match": "exact",
+      "playerLabel": "First steps in the Mythical Forest",
+      "location": "the Mythical Forest trail beyond the damaged Wanderer-77",
+      "action": "The creature takes two cautious steps onto bioluminescent forest ground, tests the living Current with one paw or contact limb, then looks back toward Wanderer-77, visible from behind at the edge of frame.",
+      "trigger": "Prepared after the first creature portrait is ready; first shown on Forest arrival if complete, otherwise delivered to the Creature Archive when ready.",
+      "fallback": "Immediate moving portrait tableau; gameplay never waits."
+    },
+    {
+      "key": "beacon_reflection",
+      "match": "exact",
+      "playerLabel": "The Beacon decision",
+      "location": "the Project Beacon overlook at dusk, above a recovering region of the Fend",
+      "action": "The creature stands beside the quiet Beacon as living light travels from the landscape into it. Wanderer-77 watches from a separate position while considering the responsibility of returning to Earth.",
+      "trigger": "Prepared when the finale reflection begins and delivered immediately or through the Creature Archive when ready.",
+      "fallback": "Immediate moving portrait tableau; the ending remains playable."
+    },
+    {
+      "key": "guardian_rescue",
+      "match": "prefix",
+      "prefix": "guardian_rescue_",
+      "playerLabel": "A guardian chooses freedom",
+      "location": "the newly opened rescue enclosure in the region just completed",
+      "action": "The creature approaches the opened enclosure, pauses so the freed guardian can choose, then leads it toward the distant warm lights of the Sanctuary. Wanderer-77 remains visible behind them without blocking either creature.",
+      "trigger": "Prepared as soon as the guardian rescue is confirmed, including when the resident-release panel owns the immediate screen.",
+      "fallback": "The authored rescue moment appears immediately; the generated scene arrives later in the Creature Archive."
+    },
+    {
+      "key": "guardian_trust",
+      "match": "prefix",
+      "prefix": "guardian_trust_",
+      "playerLabel": "Trust in the Sanctuary",
+      "location": "the Sanctuary beside living roots and established alien vegetation",
+      "action": "The creature and the welcomed Sanctuary resident exchange a calm recognition through posture, distance and a small mirrored movement. Wanderer-77 observes from a respectful separate position.",
+      "trigger": "Prepared when the resident trust event is recorded and delivered immediately or through the Creature Archive when ready.",
+      "fallback": "Immediate moving portrait tableau; Sanctuary interaction continues."
+    },
+    {
+      "key": "guardian_debrief",
+      "match": "prefix",
+      "prefix": "guardian_debrief_",
+      "playerLabel": "What the expedition changed",
+      "location": "a Sanctuary recovery overlook above the changed region",
+      "action": "The creature and the Sanctuary resident inspect the recovering region together. A visible environmental response acknowledges what their expedition changed while Wanderer-77 records the result from behind.",
+      "trigger": "Prepared when the resident expedition debrief is recorded and delivered immediately or through the Creature Archive when ready.",
+      "fallback": "Immediate moving portrait tableau; rewards and progression continue."
+    }
+  ]
+}

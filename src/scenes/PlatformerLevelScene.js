@@ -9213,6 +9213,26 @@ class PlatformerLevelScene extends Phaser.Scene {
         const residentReleaseShown = this.showRescuedResidentReleaseMoment(
             this.levelCompletionResult.rescuedResident
         );
+        if (
+            residentReleaseShown &&
+            this.levelCompletionResult.guardianOutcome?.changed
+        ) {
+            const guardianId = String(
+                this.levelCompletionResult.guardianOutcome.guardianId ||
+                'guardian'
+            )
+                .toLowerCase()
+                .replace(/[^a-z0-9_-]/g, '_')
+                .slice(0, 32);
+            (window.CompanionMediaService || companionMediaService)
+                ?.prepareGeneratedVideo?.({
+                    momentId: `guardian_rescue_${guardianId}`,
+                    stage: window.GameState?.get?.(
+                        'creature.lifecycle.stage'
+                    ) || 'baby'
+                })
+                ?.catch?.(() => null);
+        }
         if (!residentReleaseShown) {
             this.showCompanionGuardianRescueTableau(
                 this.levelCompletionResult.guardianOutcome

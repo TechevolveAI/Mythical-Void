@@ -1,3 +1,5 @@
+import { getCreatureMediaEligibility } from './CreatureMediaPrivacy.js';
+
 /**
  * LivingPortraitService
  *
@@ -53,23 +55,7 @@ class LivingPortraitService {
     }
 
     getEligibility() {
-        if (!window.APIConfig?.isEnabled?.()) {
-            return { eligible: false, reason: 'feature_disabled' };
-        }
-
-        let ageGroup = null;
-        try {
-            ageGroup = window.localStorage?.getItem?.(
-                'mythical_void_age_group'
-            );
-        } catch (error) {
-            return { eligible: false, reason: 'storage_unavailable' };
-        }
-        if (!window.CloudSaveManager?.isAgeGroupEligible?.(ageGroup)) {
-            return { eligible: false, reason: 'age_restricted' };
-        }
-
-        return { eligible: true, reason: null };
+        return getCreatureMediaEligibility();
     }
 
     getActiveJob(stage = 'baby') {
@@ -364,8 +350,8 @@ class LivingPortraitService {
     } = {}) {
         const eligibility = this.getEligibility();
         if (!eligibility.eligible) {
-            const message = eligibility.reason === 'age_restricted'
-                ? 'Living Portraits require the 16+ privacy setting'
+            const message = eligibility.reason === 'age_selection_required'
+                ? 'Choose an age range before creating creature media'
                 : 'Living Portraits are unavailable in this build';
             return Promise.reject(new Error(message));
         }
@@ -466,17 +452,6 @@ class LivingPortraitService {
     async runJob({ job, portraitSpec, referenceImage }) {
         try {
             const accessToken = await this.getAccessToken();
-            let ageGroup = null;
-            try {
-                ageGroup = window.localStorage?.getItem?.(
-                    'mythical_void_age_group'
-                );
-            } catch (error) {
-                throw new LivingPortraitError(
-                    'Private portrait preferences are unavailable',
-                    { code: 'storage_unavailable', retryable: false }
-                );
-            }
             const { response, result: initialResult } = await this.requestJson(
                 '/.netlify/functions/generate-ai-art',
                 {
@@ -488,8 +463,7 @@ class LivingPortraitService {
                     body: JSON.stringify({
                         style: job.style,
                         portraitSpec,
-                        referenceImage,
-                        ageGroup
+                        referenceImage
                     })
                 },
                 {
@@ -630,7 +604,7 @@ class LivingPortraitService {
     }
 
     async getAccessToken() {
-        const client = window.CloudSave?.client;
+        const client = window.CreatureMediaClient || window.CloudSave?.client;
         if (!client?.auth) {
             throw new Error('Private portrait authentication is unavailable');
         }
@@ -702,8 +676,8 @@ class LivingPortraitService {
         const eligibility = this.getEligibility();
         if (!eligibility.eligible) {
             throw new Error(
-                eligibility.reason === 'age_restricted'
-                    ? 'Living Portraits require the 16+ privacy setting'
+                eligibility.reason === 'age_selection_required'
+                    ? 'Choose an age range before opening creature media'
                     : 'Living Portraits are unavailable in this build'
             );
         }

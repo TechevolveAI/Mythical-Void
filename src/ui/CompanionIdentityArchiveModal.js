@@ -239,7 +239,9 @@ export default class CompanionIdentityArchiveModal {
             const replay = createElement(
                 'button',
                 'companion-archive-memory-action',
-                `REPLAY LATEST // ${latestMemory.label}`
+                `${latestMemory.videoReady ? 'WATCH NEW' : 'REPLAY LATEST'} // ${
+                    latestMemory.label
+                }`
             );
             replay.type = 'button';
             replay.addEventListener('click', () => {

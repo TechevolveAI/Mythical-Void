@@ -42,6 +42,7 @@ export default class CreatureProfileScene extends Phaser.Scene {
         this.profilePortraitUnsubscribe = null;
         this.fieldMemoryReplay = null;
         this.fieldMemoryReplayRequest = 0;
+        this.initialIdentityArchiveChapter = null;
     }
 
     init(data) {
@@ -64,6 +65,10 @@ export default class CreatureProfileScene extends Phaser.Scene {
             data?.profilePortraitPreviewSize === 'mobile'
                 ? 'mobile'
                 : null;
+        this.initialIdentityArchiveChapter = data?.initialIdentityArchiveChapter ===
+            'shared_journey'
+            ? 'shared_journey'
+            : null;
         this.profilePortraitUnsubscribe?.();
         this.profilePortraitUnsubscribe = null;
     }
@@ -100,6 +105,14 @@ export default class CreatureProfileScene extends Phaser.Scene {
 
         // Set up input
         this.setupInput();
+
+        if (this.initialIdentityArchiveChapter) {
+            this.time.delayedCall(120, () => {
+                this.showCompanionIdentityArchive({
+                    chapterId: this.initialIdentityArchiveChapter
+                });
+            });
+        }
 
         // Play sound
         if (window.AudioManager) {
@@ -455,7 +468,10 @@ export default class CreatureProfileScene extends Phaser.Scene {
             }
             : null;
 
-        Promise.resolve(mediaService?.createCinematicStill?.(this, {
+        const createMoment = this.identityArchivePreview
+            ? mediaService?.createCinematicStill?.bind(mediaService)
+            : mediaService?.createStoryMoment?.bind(mediaService);
+        Promise.resolve(createMoment?.(this, {
             momentId: memory.momentId,
             stage: gameState.get?.('creature.lifecycle.stage') || 'baby',
             record: previewRecord,

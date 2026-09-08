@@ -1,5 +1,5 @@
 /**
- * Authenticated personalized story-video gateway.
+ * Authenticated creature story-video gateway.
  *
  * Provider credentials, prediction IDs, source storage paths, and output
  * storage paths never leave this function. The browser receives only opaque
@@ -7,6 +7,7 @@
  */
 
 const { createClient } = require('@supabase/supabase-js');
+const videoMomentConfig = require('../../src/config/companion-video-moments.json');
 
 const REPLICATE_API_BASE = 'https://api.replicate.com/v1';
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
@@ -15,6 +16,7 @@ const DEFAULT_GEMINI_VIDEO_MODEL = 'veo-3.1-generate-preview';
 const SUPABASE_PROJECT_URL = 'https://mkcmdbzcihjgidjuypqe.supabase.co';
 const PORTRAIT_BUCKET = 'creature-portraits';
 const VIDEO_BUCKET = 'companion-videos';
+const VIDEO_INPUT_BUCKET = 'creature-media-inputs';
 const PORTRAIT_REF_PREFIX = 'portrait-job-v1:';
 const VIDEO_REF_PREFIX = 'video-job-v1:';
 const OUTPUT_TTL_SECONDS = 55 * 60;
@@ -22,14 +24,10 @@ const MAX_BODY_BYTES = 12000;
 const MAX_PORTRAIT_BYTES = 12 * 1024 * 1024;
 const MAX_OUTPUT_BYTES = 50 * 1024 * 1024;
 const DAILY_LIMIT = 2;
-const SHOT_VERSION = 1;
+const SHOT_VERSION = videoMomentConfig.shotVersion;
 const JOB_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MOMENT_ID_PATTERN = /^[a-z0-9][a-z0-9:_-]{0,63}$/;
 const GEMINI_OPERATION_PATTERN = /^[A-Za-z0-9._~-]+(?:\/[A-Za-z0-9._~-]+)+$/;
-const ALLOWED_MOMENTS = new Set([
-    'first_forest_arrival',
-    'beacon_reflection'
-]);
 const TERMINAL_STATUSES = new Set(['succeeded', 'failed', 'canceled']);
 
 function classifyGeminiFailure(error) {
@@ -54,6 +52,7 @@ const defaultRuntime = Object.freeze({
     now: () => Date.now()
 });
 let runtime = { ...defaultRuntime };
+let replicateCredentialVerifiedUntil = 0;
 
 function isEnabled() {
     return process.env.ENABLE_API_FEATURES === 'true' &&
@@ -125,6 +124,32 @@ function getAdminClient() {
     );
 }
 
+function getReservationClient(event) {
+    const accessToken = getBearerToken(event);
+    const publicKey = process.env.SUPABASE_PUBLISHABLE_KEY ||
+        process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+        process.env.SUPABASE_ANON_KEY;
+    if (!accessToken || !publicKey) {
+        const error = new Error('Video ownership service is not configured');
+        error.statusCode = 503;
+        throw error;
+    }
+    return runtime.createClient(
+        process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || SUPABASE_PROJECT_URL,
+        publicKey,
+        {
+            global: {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            },
+            auth: {
+                persistSession: false,
+                autoRefreshToken: false,
+                detectSessionInUrl: false
+            }
+        }
+    );
+}
+
 async function authenticate(event, adminClient) {
     const token = getBearerToken(event);
     if (!token) {
@@ -140,23 +165,6 @@ async function authenticate(event, adminClient) {
         throw error;
     }
     return user;
-}
-
-async function assertEligible(adminClient, userId) {
-    const { data, error } = await adminClient
-        .from('player_privacy_profiles')
-        .select('age_group, ai_media_enabled')
-        .eq('user_id', userId)
-        .maybeSingle();
-    if (
-        error ||
-        !data?.ai_media_enabled ||
-        !['age_16_17', 'age_18_plus'].includes(data.age_group)
-    ) {
-        const restricted = new Error('Personalized videos require the 16+ privacy setting');
-        restricted.statusCode = 403;
-        throw restricted;
-    }
 }
 
 async function getOwnedPortrait(adminClient, userId, portraitJobId) {
@@ -218,9 +226,25 @@ async function updateOwnedJob(adminClient, userId, jobId, values) {
     return data;
 }
 
-async function reserveJob(adminClient, userId, portraitJobId, momentId) {
-    const { data, error } = await adminClient.rpc('reserve_companion_video_job', {
-        p_user_id: userId,
+async function failOwnedJob(adminClient, userId, jobId, errorCode) {
+    const values = {
+        status: 'failed',
+        error_code: errorCode,
+        counts_toward_daily_limit: false,
+        completed_at: new Date(runtime.now()).toISOString()
+    };
+    try {
+        return await updateOwnedJob(adminClient, userId, jobId, values);
+    } catch (error) {
+        // Allows a safe rollback window while the migration and function deploy
+        // propagate independently. The job still closes even on the old schema.
+        const { counts_toward_daily_limit, ...legacyValues } = values;
+        return updateOwnedJob(adminClient, userId, jobId, legacyValues);
+    }
+}
+
+async function reserveJob(reservationClient, portraitJobId, momentId) {
+    const { data, error } = await reservationClient.rpc('reserve_companion_video_job', {
         p_portrait_job_id: portraitJobId,
         p_moment_id: momentId,
         p_shot_version: SHOT_VERSION,
@@ -233,9 +257,8 @@ async function reserveJob(adminClient, userId, portraitJobId, momentId) {
     }
     if (data.allowed !== true) {
         const messages = {
-            age_restricted: 'Personalized videos require the 16+ privacy setting',
             portrait_unavailable: 'Living portrait is not ready for video',
-            rate_limited: 'Daily personalized video limit reached'
+            rate_limited: 'Daily creature story-video limit reached'
         };
         const denied = new Error(messages[data.reason] || 'Video generation is unavailable');
         denied.statusCode = data.reason === 'rate_limited'
@@ -246,41 +269,100 @@ async function reserveJob(adminClient, userId, portraitJobId, momentId) {
     return data;
 }
 
-async function signPortraitInput(adminClient, portrait) {
-    const { data, error } = await adminClient.storage
+async function prepareOpaquePortraitInput(adminClient, userId, job, portrait) {
+    const { data: source, error: downloadError } = await adminClient.storage
         .from(PORTRAIT_BUCKET)
-        .createSignedUrl(portrait.storage_path, 15 * 60);
-    if (error || !data?.signedUrl) {
-        const storageError = new Error('Living portrait could not be prepared for video');
-        storageError.statusCode = 503;
-        throw storageError;
+        .download(portrait.storage_path);
+    if (downloadError || !source?.arrayBuffer) {
+        const error = new Error('Living portrait could not be prepared for video');
+        error.statusCode = 503;
+        throw error;
     }
-    return data.signedUrl;
+    const bytes = Buffer.from(await source.arrayBuffer());
+    const mimeType = String(source.type || 'image/webp').toLowerCase();
+    const extensions = {
+        'image/webp': 'webp',
+        'image/png': 'png',
+        'image/jpeg': 'jpg'
+    };
+    const extension = extensions[mimeType];
+    if (!extension || !bytes.length || bytes.length > MAX_PORTRAIT_BYTES) {
+        const error = new Error('Living portrait source is invalid');
+        error.statusCode = 503;
+        throw error;
+    }
+    const inputPath = `${job.id}.${extension}`;
+    const { error: uploadError } = await adminClient.storage
+        .from(VIDEO_INPUT_BUCKET)
+        .upload(inputPath, bytes, {
+            contentType: mimeType,
+            cacheControl: '900',
+            upsert: true
+        });
+    if (uploadError) {
+        const error = new Error('Living portrait could not be isolated for video');
+        error.statusCode = 503;
+        throw error;
+    }
+    let updatedJob;
+    try {
+        updatedJob = await updateOwnedJob(adminClient, userId, job.id, {
+            input_storage_path: inputPath
+        });
+    } catch (error) {
+        await adminClient.storage
+            .from(VIDEO_INPUT_BUCKET)
+            .remove([inputPath])
+            .catch(() => null);
+        throw error;
+    }
+    const { data, error: signError } = await adminClient.storage
+        .from(VIDEO_INPUT_BUCKET)
+        .createSignedUrl(inputPath, 20 * 60);
+    if (signError || !data?.signedUrl) {
+        const error = new Error('Living portrait could not be isolated for video');
+        error.statusCode = 503;
+        throw error;
+    }
+    return { portraitUrl: data.signedUrl, job: updatedJob };
+}
+
+async function removeOpaquePortraitInput(adminClient, job) {
+    if (!job?.input_storage_path) return;
+    await adminClient.storage
+        .from(VIDEO_INPUT_BUCKET)
+        .remove([job.input_storage_path])
+        .catch(() => null);
 }
 
 function isAllowedMoment(momentId) {
-    return ALLOWED_MOMENTS.has(momentId) ||
-        /^guardian_(?:rescue|trust|debrief)_[a-z0-9_-]{1,32}$/.test(momentId);
+    return Boolean(resolveMomentDefinition(momentId));
+}
+
+function resolveMomentDefinition(momentId) {
+    return videoMomentConfig.moments.find(moment => (
+        moment.match === 'exact'
+            ? moment.key === momentId
+            : moment.match === 'prefix' && momentId.startsWith(moment.prefix)
+    )) || null;
 }
 
 function buildPrompt(momentId, stage) {
-    const momentCopy = momentId === 'first_forest_arrival'
-        ? 'The companion takes two cautious steps from the edge of a damaged spacecraft into a bioluminescent forest, then looks back with trust toward its astronaut companion, Wanderer-77, who is visible only from behind at the edge of frame.'
-        : momentId === 'beacon_reflection'
-            ? 'The companion stands beside a quiet beacon at dusk, watching its living light move through the landscape while Wanderer-77 considers the responsibility of returning home.'
-            : momentId.startsWith('guardian_rescue_')
-                ? 'The companion approaches a newly opened rescue enclosure, pauses to let the freed guardian choose, then walks with it toward the warm lights of the Sanctuary.'
-                : momentId.startsWith('guardian_trust_')
-                    ? 'The companion shares a calm recognition with a Sanctuary resident beside living roots, with a gentle exchange of trust expressed through posture and eye contact.'
-                    : 'The companion and a Sanctuary resident look over a recovering region together, communicating shared purpose through small, natural gestures.';
+    const moment = resolveMomentDefinition(momentId);
+    if (!moment) return null;
+    const shared = videoMomentConfig.sharedPrompt;
     return [
-        'Use the input image as the exact identity reference for this creature.',
-        `Preserve its face, silhouette, anatomy, colors, markings, and ${stage} life stage without redesigning it.`,
-        'A single continuous cinematic wildlife shot in the Mythical Forest on the alien world called the Fend.',
-        momentCopy,
-        'Subtle breathing, natural weight, blinking, moving foliage, drifting Current motes, damp ground reflections, restrained wonder, emotionally warm but not childish.',
-        'Slow low camera push, realistic lens behavior, premium live-action science-fantasy film, physically coherent motion.',
-        'No dialogue, no subtitles, no logos, no text, no weapons, no extra creatures, no transformation, no morphing, no pixel art, no cartoon rendering.'
+        `PROMPT VERSION // ${videoMomentConfig.promptVersion}`,
+        shared.identity,
+        `The reference depicts the creature at its ${stage} life stage.`,
+        shared.continuity,
+        `LOCATION // ${moment.location}.`,
+        `ACTION // ${moment.action}`,
+        shared.motion,
+        shared.world,
+        shared.camera,
+        shared.style,
+        shared.exclusions
     ].join(' ');
 }
 
@@ -330,6 +412,19 @@ async function callReplicate(path, options = {}) {
         throw error;
     }
     return payload;
+}
+
+async function verifyReplicateCredential() {
+    if (runtime.now() < replicateCredentialVerifiedUntil) return true;
+    await callReplicate('/account', { method: 'GET' });
+    replicateCredentialVerifiedUntil = runtime.now() + (5 * 60 * 1000);
+    return true;
+}
+
+async function preflightProvider() {
+    if (getProviderPreference() === 'replicate') {
+        await verifyReplicateCredential();
+    }
 }
 
 async function startReplicatePrediction(portraitUrl, momentId, stage) {
@@ -549,7 +644,7 @@ async function signStoredVideo(adminClient, job) {
         .from(VIDEO_BUCKET)
         .createSignedUrl(job.storage_path, OUTPUT_TTL_SECONDS);
     if (error || !data?.signedUrl) {
-        const storageError = new Error('Personalized video could not be opened');
+        const storageError = new Error('Creature story-video could not be opened');
         storageError.statusCode = 503;
         throw storageError;
     }
@@ -634,6 +729,7 @@ async function persistOutput(adminClient, userId, job, prediction) {
         error_code: null,
         completed_at: new Date(runtime.now()).toISOString()
     });
+    await removeOpaquePortraitInput(adminClient, job);
     return signStoredVideo(adminClient, stored);
 }
 
@@ -697,12 +793,13 @@ async function pollPrediction(job) {
 async function resultForJob(adminClient, userId, job) {
     if (job.status === 'succeeded') return signStoredVideo(adminClient, job);
     if (job.status === 'failed' || job.status === 'canceled') {
+        await removeOpaquePortraitInput(adminClient, job);
         return {
             success: false,
             status: job.status,
             jobId: job.id,
             assetRef: createVideoRef(job.id),
-            error: 'Personalized video generation failed'
+            error: 'Creature story-video generation failed'
         };
     }
     if (!job.provider_prediction_id) {
@@ -718,17 +815,14 @@ async function resultForJob(adminClient, userId, job) {
         return persistOutput(adminClient, userId, job, prediction);
     }
     if (TERMINAL_STATUSES.has(prediction.status)) {
-        await updateOwnedJob(adminClient, userId, job.id, {
-            status: prediction.status,
-            error_code: 'provider_failed',
-            completed_at: new Date(runtime.now()).toISOString()
-        });
+        await failOwnedJob(adminClient, userId, job.id, 'provider_failed');
+        await removeOpaquePortraitInput(adminClient, job);
         return {
             success: false,
             status: prediction.status,
             jobId: job.id,
             assetRef: createVideoRef(job.id),
-            error: 'Personalized video generation failed'
+            error: 'Creature story-video generation failed'
         };
     }
     if (job.status !== prediction.status) {
@@ -746,7 +840,7 @@ async function resultForJob(adminClient, userId, job) {
 
 exports.handler = async event => {
     if (!isEnabled()) {
-        return json(404, { success: false, error: 'Personalized video generation is not enabled' });
+        return json(404, { success: false, error: 'Creature story-video generation is not enabled' });
     }
     if (!isSameOrigin(event)) {
         return json(403, { success: false, error: 'Cross-origin requests are not allowed' });
@@ -768,7 +862,6 @@ exports.handler = async event => {
             if (!JOB_ID_PATTERN.test(jobId || '')) {
                 return json(400, { success: false, error: 'Invalid video reference' });
             }
-            await assertEligible(adminClient, user.id);
             const job = await getOwnedJob(adminClient, user.id, jobId);
             const result = await resultForJob(adminClient, user.id, job);
             return json(result.status === 'succeeded' ? 200 : 202, result);
@@ -794,23 +887,30 @@ exports.handler = async event => {
         if (!portraitJobId) {
             return json(400, { success: false, error: 'Invalid living portrait reference' });
         }
-        await assertEligible(adminClient, user.id);
         const portrait = await getOwnedPortrait(adminClient, user.id, portraitJobId);
+        const reservationClient = getReservationClient(event);
+        await preflightProvider();
         const reservation = await reserveJob(
-            adminClient,
-            user.id,
+            reservationClient,
             portraitJobId,
             momentId
         );
         activeJobId = reservation.job_id;
         ownsActiveJob = reservation.reused !== true;
-        const job = await getOwnedJob(adminClient, user.id, activeJobId);
+        let job = await getOwnedJob(adminClient, user.id, activeJobId);
         if (reservation.reused === true) {
             const reused = await resultForJob(adminClient, user.id, job);
             return json(reused.status === 'succeeded' ? 200 : 202, reused);
         }
 
-        const portraitUrl = await signPortraitInput(adminClient, portrait);
+        const preparedInput = await prepareOpaquePortraitInput(
+            adminClient,
+            user.id,
+            job,
+            portrait
+        );
+        job = preparedInput.job;
+        const portraitUrl = preparedInput.portraitUrl;
         const prediction = await startPrediction(portraitUrl, momentId, portrait.stage);
         if (!prediction?.id) {
             const error = new Error('Video provider returned an invalid job');
@@ -820,6 +920,11 @@ exports.handler = async event => {
         if (prediction.status === 'succeeded') {
             const result = await persistOutput(adminClient, user.id, job, prediction);
             return json(200, result);
+        }
+        if (TERMINAL_STATUSES.has(prediction.status)) {
+            const error = new Error('Video provider could not create this scene');
+            error.statusCode = 502;
+            throw error;
         }
         await updateOwnedJob(adminClient, user.id, job.id, {
             status: prediction.status === 'processing' ? 'processing' : 'starting',
@@ -839,11 +944,15 @@ exports.handler = async event => {
         });
     } catch (error) {
         if (adminClient && user?.id && activeJobId && ownsActiveJob) {
-            await updateOwnedJob(adminClient, user.id, activeJobId, {
-                status: 'failed',
-                error_code: 'request_failed',
-                completed_at: new Date(runtime.now()).toISOString()
-            }).catch(() => {});
+            const job = await getOwnedJob(adminClient, user.id, activeJobId)
+                .catch(() => null);
+            await failOwnedJob(
+                adminClient,
+                user.id,
+                activeJobId,
+                'request_failed'
+            ).catch(() => {});
+            await removeOpaquePortraitInput(adminClient, job);
         }
         if (error.statusCode >= 500 || error.statusCode === 429) {
             const logFailure = [429, 503].includes(error.statusCode)
@@ -872,10 +981,12 @@ exports._internal = {
     getProviderPreference,
     normalizeGeminiOperation,
     parseRef,
+    resolveMomentDefinition,
     setRuntime(overrides) {
         runtime = { ...runtime, ...overrides };
     },
     resetRuntime() {
         runtime = { ...defaultRuntime };
+        replicateCredentialVerifiedUntil = 0;
     }
 };

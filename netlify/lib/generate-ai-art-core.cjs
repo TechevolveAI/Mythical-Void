@@ -23,7 +23,6 @@ const DAILY_GENERATION_LIMIT = (() => {
 })();
 const JOB_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PORTRAIT_ASSET_REF_PREFIX = 'portrait-job-v1:';
-const ALLOWED_AGE_GROUPS = new Set(['age_16_17', 'age_18_plus']);
 const ALLOWED_STYLES = new Set(['cinematic', 'storybook', 'cosmic', 'watercolor']);
 const ALLOWED_SPECIES = new Set([
     'stellarWyrm',
@@ -285,6 +284,32 @@ function getAdminClient() {
             detectSessionInUrl: false
         }
     });
+}
+
+function getReservationClient(event) {
+    const accessToken = getBearerToken(event);
+    const publicKey = process.env.SUPABASE_PUBLISHABLE_KEY ||
+        process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+        process.env.SUPABASE_ANON_KEY;
+    if (!accessToken || !publicKey) {
+        const error = new Error('Portrait ownership service is not configured');
+        error.statusCode = 503;
+        throw error;
+    }
+    return runtime.createClient(
+        process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || SUPABASE_PROJECT_URL,
+        publicKey,
+        {
+            global: {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            },
+            auth: {
+                persistSession: false,
+                autoRefreshToken: false,
+                detectSessionInUrl: false
+            }
+        }
+    );
 }
 
 async function authenticate(event, adminClient) {
@@ -817,51 +842,8 @@ async function getPrediction(predictionId) {
     return callReplicate(`/predictions/${encodeURIComponent(predictionId)}`);
 }
 
-async function upsertAgeAssertion(adminClient, userId, ageGroup) {
-    if (!ALLOWED_AGE_GROUPS.has(ageGroup)) {
-        const error = new Error('Living Portraits require the 16+ privacy setting');
-        error.statusCode = 403;
-        throw error;
-    }
-
-    const timestamp = new Date(runtime.now()).toISOString();
-    const { error } = await adminClient
-        .from('player_privacy_profiles')
-        .upsert({
-            user_id: userId,
-            age_group: ageGroup,
-            ai_media_enabled: true,
-            assertion_version: 1,
-            asserted_at: timestamp,
-            updated_at: timestamp
-        }, { onConflict: 'user_id' });
-    if (error) {
-        const serviceError = new Error('Portrait authorization could not be saved');
-        serviceError.statusCode = 503;
-        throw serviceError;
-    }
-}
-
-async function assertEligibleProfile(adminClient, userId) {
-    const { data, error } = await adminClient
-        .from('player_privacy_profiles')
-        .select('age_group, ai_media_enabled')
-        .eq('user_id', userId)
-        .maybeSingle();
-    if (
-        error ||
-        !data?.ai_media_enabled ||
-        !ALLOWED_AGE_GROUPS.has(data.age_group)
-    ) {
-        const restricted = new Error('Living Portraits require the 16+ privacy setting');
-        restricted.statusCode = 403;
-        throw restricted;
-    }
-}
-
-async function reserveJob(adminClient, userId, spec, style) {
-    const { data, error } = await adminClient.rpc('reserve_creature_portrait_job', {
-        p_user_id: userId,
+async function reserveJob(reservationClient, spec, style) {
+    const { data, error } = await reservationClient.rpc('reserve_creature_portrait_job', {
         p_identity_key: spec.identityKey,
         p_stage: spec.stage,
         p_style: style,
@@ -876,7 +858,7 @@ async function reserveJob(adminClient, userId, spec, style) {
         const limited = new Error(
             data.reason === 'rate_limited'
                 ? 'Daily Living Portrait limit reached'
-                : 'Living Portraits require the 16+ privacy setting'
+                : 'Creature media is temporarily unavailable'
         );
         limited.statusCode = data.reason === 'rate_limited' ? 429 : 403;
         if (data.reason === 'rate_limited') {
@@ -1130,7 +1112,6 @@ exports.handler = async event => {
                         : 'Invalid portrait job ID'
                 });
             }
-            await assertEligibleProfile(adminClient, user.id);
             const job = await getOwnedJob(adminClient, user.id, jobId);
             const result = await resultForJob(adminClient, user.id, job);
             return json(statusCodeForJobResult(result), result);
@@ -1155,11 +1136,10 @@ exports.handler = async event => {
             return json(400, { success: false, error: 'Invalid creature identity' });
         }
         const referenceImage = parseReferenceImage(body.referenceImage);
-        await upsertAgeAssertion(adminClient, user.id, body.ageGroup);
 
+        const reservationClient = getReservationClient(event);
         const reservation = await reserveJob(
-            adminClient,
-            user.id,
+            reservationClient,
             body.portraitSpec,
             style
         );
