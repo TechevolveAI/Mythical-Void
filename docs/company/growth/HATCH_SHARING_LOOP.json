@@ -30,6 +30,18 @@
     "productionDeployId": "6aa03482d8d12800082c59a3",
     "productionPublishedAt": "2026-09-08T16:26:38.333Z"
   },
+  "homepageEntry": {
+    "state": "live_production_verified",
+    "screen": "homepage hero",
+    "buttonLabel": "Invite someone to hatch",
+    "automaticShare": false,
+    "sameCleanChallengeUrl": true,
+    "continueRemainsPrimary": true,
+    "sourceCommit": "2f27a384f6cfa4438e392b8ddbf6e744b5108e47",
+    "productionCommit": "02e76598a7ea0c7769b85627a67115dc5f19a034",
+    "productionDeployId": "6aa03b1c6b8c9a0008c5d4ad",
+    "productionPublishedAt": "2026-09-08T16:46:54.447Z"
+  },
   "privacy": {
     "saveDataReadForShare": false,
     "saveDataTransmitted": false,

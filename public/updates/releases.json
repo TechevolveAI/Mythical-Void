@@ -17,6 +17,40 @@
   },
   "entries": [
     {
+      "id": "UPDATE-027",
+      "publishedOn": "2026-09-08",
+      "status": "live",
+      "category": "HATCH TOGETHER",
+      "title": "Invite someone to hatch from the homepage",
+      "summary": "The first screen now gives visitors a clear way to send the Mythical Void Hatch Challenge to someone they know, using one clean link and no made-up popularity claim.",
+      "details": [
+        "The new homepage button opens the device’s normal sharing choice, or copies the clean Hatch Challenge address when sharing is unavailable.",
+        "Each person still plays separately in their own browser. Mythical Void remains single-player and does not pretend that other people are currently playing.",
+        "The invitation contains no recipient, creature, save or player information, and it adds no tracking code. The existing Play button remains the main action."
+      ],
+      "visualKind": "text_only_release",
+      "visualAlt": "A text-only update card announcing the new Mythical Void homepage Hatch Challenge invitation",
+      "disclosure": "Text-only release note about a live owned-site invitation; no screenshot or generated image is attached.",
+      "destination": "/hatch-challenge/",
+      "linkText": "Invite someone to hatch",
+      "download": false,
+      "releaseProof": {
+        "sourceCommit": "2f27a384f6cfa4438e392b8ddbf6e744b5108e47",
+        "productionMergeCommit": "02e76598a7ea0c7769b85627a67115dc5f19a034",
+        "productionDeployId": "6aa03b1c6b8c9a0008c5d4ad",
+        "productionPublishedAt": "2026-09-08T16:46:54.447Z",
+        "checkedUrl": "https://mythicalvoid.com/play/",
+        "checkedHttpStatus": 200,
+        "ownedPageCheckedUrl": "https://mythicalvoid.com/hatch-challenge/",
+        "ownedPageCheckedHttpStatus": 200,
+        "homepageInvitationObserved": true,
+        "sourceAndProductionTreesMatch": true,
+        "gameplayVisualApproved": false,
+        "mediaAttached": false,
+        "claimBoundary": "The source, production deploy and live browser check prove that the invitation is available. They do not prove visual quality, play, enjoyment or growth, and they do not prove that anybody has shared it."
+      }
+    },
+    {
       "id": "UPDATE-026",
       "publishedOn": "2026-09-08",
       "status": "live",
