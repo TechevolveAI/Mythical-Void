@@ -58,7 +58,14 @@
     "productionDeployId": "6a951fc9e33f9100083fb699",
     "visualApprovalGranted": false,
     "firstFiveReleased": false,
-    "gameplayPromotionReleased": false
+    "gameplayPromotionReleased": false,
+    "latestMaterialWebsiteRelease": {
+      "checkedOn": "2026-09-08",
+      "sourceCommit": "4d91246dcc9d630a68075b379b4c8b26a72ed99a",
+      "deployId": "6a9fa8c322df6a0008a96302",
+      "firstContactRepairStillPresent": true,
+      "visualApprovalGranted": false
+    }
   },
   "nextProof": {
     "requiresApprovedArtDirection": true,

@@ -85,6 +85,13 @@
     "candidateDeployed": true,
     "productionSourceCommit": "e9293f09d2ed5332d5538c05f051560d29e4d5e3",
     "productionDeployId": "6a951fc9e33f9100083fb699",
+    "latestMaterialWebsiteRelease": {
+      "checkedOn": "2026-09-08",
+      "sourceCommit": "4d91246dcc9d630a68075b379b4c8b26a72ed99a",
+      "deployId": "6a9fa8c322df6a0008a96302",
+      "technicalRepairStillLive": true,
+      "creatureArtworkHumanApproved": false
+    },
     "invitationsMayBegin": false,
     "promotionMayBegin": false
   },

@@ -18,7 +18,9 @@ detailed evidence; it turns that evidence into the decisions that matter now.
   specific words such as message, clue, current, route and life call. The
   corrected live game file was checked directly after deployment.
 - **A GitHub early-access release is live:** it leads people to the browser game
-  without weak screenshots, a second download or inflated claims.
+  without weak screenshots, a second download or inflated claims. The website
+  and public project now link to each other, making the official identity
+  clearer to people and search tools.
 - **Adult feedback is available:** adults can send feedback through the owned
   website. No child contact or automatic public reply is allowed.
 - **The Google tag is live on the website only:** it stays out of the game and
