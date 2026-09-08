@@ -45,8 +45,14 @@ requireValue(plan.readyFallbackShelf?.visualEvidence?.gameplayScreenshotsAttache
 requireValue(plan.routeOrder?.find(route => route.name === 'itch.io')?.state === 'package_copy_and_reviewed_cover_ready_not_published', 'itch.io route state is stale');
 requireValue(plan.routeOrder?.[0]?.url === 'https://mythicalvoid.com/playable-now/', 'the owned search doorway must stay first and live');
 requireValue(plan.routeOrder?.[1]?.name === 'r/WebGames' && plan.routeOrder?.[1]?.state === 'one_direct_link_test_ready_not_published', 'r/WebGames is not the next bounded route');
+requireValue(plan.routeOrder?.[2]?.name === 'Phaser Showcase' && plan.routeOrder?.[2]?.state === 'second_forum_waiting_for_first_community_read', 'Phaser Showcase is not held as the second forum');
 requireValue(plan.routeOrder?.find(route => route.name === 'YouTube')?.state === 'held_for_visual_quality', 'YouTube must remain behind the visual gate');
 requireValue(plan.routeOrder?.find(route => route.name === 'Poki')?.state === 'high_upside_option_preserved_not_submitted', 'Poki option state is stale');
+requireValue(plan.routeOrder?.find(route => route.name === 'Newgrounds')?.state === 'later_html5_shelf_waiting_for_visual_rights_and_account_review', 'Newgrounds is missing its later-shelf gates');
+requireValue(plan.routeOrder?.find(route => route.name === 'r/playmygame')?.state === 'not_a_drop_and_run_route_requires_real_community_participation', 'r/playmygame community-participation boundary is missing');
+requireValue(plan.communityAndShelfPolicy?.oneExternalExperimentAtATime === true && plan.communityAndShelfPolicy?.automaticCrossPosting === false && plan.communityAndShelfPolicy?.copiedCommunityPostsPermitted === false, 'one-at-a-time community policy is missing');
+requireValue(/public judgement/i.test(plan.communityAndShelfPolicy?.newgroundsBoundary || '') && /rights review/i.test(plan.communityAndShelfPolicy?.newgroundsBoundary || ''), 'Newgrounds judgement and rights boundary is missing');
+requireValue(/real participation/i.test(plan.communityAndShelfPolicy?.playMyGameBoundary || ''), 'r/playmygame participation boundary is missing');
 requireValue(plan.distributionRightsFork?.decisionId === 'D-018', 'distribution rights decision is missing');
 requireValue(plan.distributionRightsFork?.pokiPreferredDealWebExclusive === true, 'Poki web exclusivity fact is missing');
 requireValue(plan.distributionRightsFork?.pokiIndicativeExclusiveTermYears === 5, 'Poki indicative term is missing');
@@ -58,7 +64,7 @@ requireValue(firstFive.entryGates?.kevinApprovedPurposeAndInvitations === false 
 for (const field of ['externalPublishingAuthorized', 'paidPromotionAuthorized', 'bulkOutreachAuthorized', 'directChildContactAuthorized', 'imaginedArtMayBeCalledGameplay', 'portalAcceptanceMayBePromised', 'pokiAccessRequestAuthorized', 'webExclusivityMayBeAccepted']) {
     requireValue(plan.boundaries?.[field] === false, `boundary ${field} must remain false`);
 }
-for (const phrase of ['A free browser adventure', 'What makes somebody start a game', 'The end of the funnel', 'The first distribution move', 'Run one careful direct-link test in r/WebGames', 'One important choice before itch.io', 'Why itch.io is first if Kevin chooses speed', 'None on the first page', 'What Kevin now needs to approve', 'NASA endorsement']) {
+for (const phrase of ['A free browser adventure', 'What makes somebody start a game', 'The end of the funnel', 'The first distribution move', 'Run one careful direct-link test in r/WebGames', 'Do not turn forums into a posting list', 'r/playmygame is not a place to paste the same announcement next', 'Newgrounds is a possible later shelf', 'One important choice before itch.io', 'Why itch.io is first if Kevin chooses speed', 'None on the first page', 'What Kevin now needs to approve', 'NASA endorsement']) {
     requireValue(planText.includes(phrase), `plain-language plan is missing: ${phrase}`);
 }
 for (const source of plan.sources || []) requireValue(planText.includes(source), `plain-language plan is missing source: ${source}`);

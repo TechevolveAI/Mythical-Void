@@ -26,33 +26,33 @@ and avoids pasting the same announcement across several communities.
 
 **Title**
 
-> [WIP] Mythical Void — a father-and-son Phaser browser adventure
+> [WIP] Mythical Void — a father-and-son creature adventure made with Phaser
 
 **Body**
 
-> Hello Phaser community — I’m Kevin, building Mythical Void in Ireland. It
-> began as a father-and-son project with my nine-year-old son: we wanted to see
-> what imagination and generative AI tools could help us turn into a real game.
+> Hi, I’m Kevin. My son and I started Mythical Void at home to see what
+> imagination and today’s AI tools could help us make together. It has grown
+> into a free browser game built with Phaser 3.
 >
-> You can play the current early-access build here:
+> Play it here:
 > https://mythicalvoid.com/play/
 >
-> It is a free single-player Phaser 3 browser adventure. You recover a crashed
-> expedition, hatch a genetically varied alien creature, cross six living
-> realms, fight the corruption holding their guardians and decide what Project
-> Beacon should tell Earth. There is no download or account required to start.
+> You crash beyond mapped space, hatch an alien creature, explore six strange
+> worlds and free Guardians trapped by the Void. What you do helps decide what
+> Project Beacon tells Earth. It starts straight away, with no download or
+> account.
 >
-> I’d especially value practical feedback on two things:
-> 1. Is the first minute clear without explanation?
-> 2. Do movement and controls feel understandable on the device you tried?
+> If you try it, I would love two honest answers:
+> 1. Was the first minute clear without an explanation?
+> 2. Did movement and the controls make sense on the device you used?
 >
-> Generative AI is part of our small studio’s creative process, but this link is
-> the real running Phaser game, not a generated video or mock-up. Some optional
-> discovery moments use credited public NASA material; NASA does not endorse
-> Mythical Void.
+> This link opens the real running game. Generative AI is one of the tools we
+> use to explore and build, but people make the story, safety and release
+> decisions. Some optional space-discovery moments use credited public NASA
+> material; NASA does not endorse Mythical Void.
 >
-> The public screenshot and video pack is being rebuilt, so I am deliberately
-> not attaching weak media to this post. I’ll read and answer replies myself.
+> I am not attaching our current screenshots or videos because I do not think
+> they show the game well enough yet. I will read and answer replies myself.
 > Thank you for trying it.
 
 This is a text topic with one clean game link. It carries no tracking query,
