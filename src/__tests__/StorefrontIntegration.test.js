@@ -28,6 +28,18 @@ describe('storefront and game deployment integration', () => {
         expect(main).toContain("import('./game.js')");
     });
 
+    test('surfaces the newest verified release without trusting outside feed content', () => {
+        expect(storefront).toContain("fetch('/updates/feed.json'");
+        expect(storefront).toContain('destination.origin === siteOrigin');
+        expect(storefront).toContain("destination.pathname !== '/updates/'");
+        expect(storefront).toContain('/^#update-\\d+$/.test(destination.hash)');
+        expect(storefront).toContain('title.textContent = String(item.title)');
+        expect(storefront).toContain('summary.textContent = String(item.summary)');
+        expect(storefront).toContain('NEW IN THE GAME');
+        expect(storefront).toContain('Read what changed');
+        expect(storefront).not.toContain('innerHTML = item.');
+    });
+
     test('links the official website back to the verified public project', () => {
         expect(storefront).toContain(
             'href="https://github.com/TechevolveAI/Mythical-Void" rel="me noopener noreferrer">Public project</a>'
