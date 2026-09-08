@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "id": "RELEASE-TO-AUDIENCE-QUEUE-2026-09-08",
+  "state": "one_text_only_community_move_waiting_for_kevin",
+  "purpose": "Turn checked releases and prepared community work into one clear next move, while keeping accounts, replies and publication under human control.",
+  "generatedFrom": {
+    "liveLatestNewsEntries": 17,
+    "preparedReleaseDrafts": 51,
+    "approvedGameplayVisuals": 0,
+    "verifiedExternalPublishingChannels": 0,
+    "sourceFingerprints": {
+      "releases": "27ed31b15863e845a3df0f66c5a5356b4bf84717952a7c706f30bc4b95060603",
+      "releasePack": "f1bdc6c2c99f33209f7a4b62594eb1cf0ef06a0f92fd956e973e4b8ca5b725cf",
+      "communityRun": "0cea1981de4e2f1e82d2db894777b17d3fa360731d4c2dd2451dfc0d3a702334",
+      "phaserShowcase": "5f1332dbf9d1c452ae29e242fc868b61d8825f26a8b7f875ec1444597033b636",
+      "channels": "61c95b390a608c5fbbc256008bfa12783068cf2fdf859880035fd653fec8f4f3",
+      "visualPlan": "bf7a822e276bc49fce14bbee7ed2c771720d6ac8cf623ce43d7aba0e33aa4fbf",
+      "socialIdentity": "adc7a0f404ea6248d9ebb8a8ebb8b02158dac612dde37603c92e045887fef989"
+    }
+  },
+  "nextMove": {
+    "rank": 1,
+    "id": "WEBGAMES-FIRST-RUN-001",
+    "route": "r/WebGames",
+    "state": "waiting_for_kevin_action_time_approval",
+    "whyThisIsNext": "It reaches people actively looking for browser games, uses the live game link, needs no weak artwork and runs as one measured experiment rather than a spray of posts.",
+    "exactPost": {
+      "format": "direct_link",
+      "title": "Mythical Void — hatch an alien creature and explore six living realms [HTML5]",
+      "url": "https://mythicalvoid.com/play/",
+      "firstComment": "My son and I began Mythical Void as a father-and-son experiment: what could imagination and generative AI tools help us turn into a real game? It is now a free early-access browser adventure built in Phaser. You hatch an alien creature, cross six strange realms and decide what Project Beacon should become. No download or account is needed. If you try it, the most useful thing you can tell me is where the first minute felt clear or confusing. I am the developer, and I will read and answer replies myself."
+    },
+    "mediaAttached": false,
+    "trackingParametersPresent": false,
+    "approvalNeeded": [
+      "Kevin confirms the adult Reddit account to use.",
+      "Kevin approves this exact title, link and first comment at the time of posting.",
+      "Kevin confirms that he can read and answer replies himself."
+    ],
+    "automationMayDoNow": [
+      "Recheck the current community rules and duplicate search immediately before an approved post.",
+      "Check that the live game opens and the opening journey still works.",
+      "Record anonymous totals at day 2 and day 7 after a real post."
+    ],
+    "automationMayNotDo": [
+      "Open or use Kevin’s account without his confirmation.",
+      "Publish, reply, ask for votes or create fake activity.",
+      "Call post views or website visits players or plays."
+    ]
+  },
+  "afterThat": {
+    "rank": 2,
+    "id": "PHASER-SHOWCASE-001",
+    "route": "Phaser Showcase",
+    "state": "waiting_until_first_community_read_finishes_or_is_cancelled",
+    "exactTopic": {
+      "format": "text_topic_with_clean_direct_game_link",
+      "title": "[WIP] Mythical Void — a father-and-son Phaser browser adventure",
+      "body": "Hello Phaser community — I’m Kevin, building Mythical Void in Ireland. It began as a father-and-son project with my nine-year-old son: we wanted to see what imagination and generative AI tools could help us turn into a real game.\n\nYou can play the current early-access build here:\nhttps://mythicalvoid.com/play/\n\nIt is a free single-player Phaser 3 browser adventure. You recover a crashed expedition, hatch a genetically varied alien creature, cross six living realms, fight the corruption holding their guardians and decide what Project Beacon should tell Earth. There is no download or account required to start.\n\nI’d especially value practical feedback on two things:\n1. Is the first minute clear without explanation?\n2. Do movement and controls feel understandable on the device you tried?\n\nGenerative AI is part of our small studio’s creative process, but this link is the real running Phaser game, not a generated video or mock-up. Some optional discovery moments use credited public NASA material; NASA does not endorse Mythical Void.\n\nThe public screenshot and video pack is being rebuilt, so I am deliberately not attaching weak media to this post. I’ll read and answer replies myself. Thank you for trying it.",
+      "directGameUrl": "https://mythicalvoid.com/play/",
+      "mediaAttached": false,
+      "trackingParametersPresent": false,
+      "claims": [
+        "work in progress",
+        "free single-player Phaser 3 browser adventure",
+        "no download or account required to start",
+        "father-and-son beginning",
+        "generative AI used in a human-led creative process",
+        "NASA does not endorse Mythical Void"
+      ],
+      "feedbackQuestions": [
+        "Is the first minute clear without explanation?",
+        "Do movement and controls feel understandable on the device you tried?"
+      ]
+    },
+    "reason": "One route at a time makes the learning understandable and avoids repeating the same promotion across communities.",
+    "nextRequiredAction": "Finish or explicitly cancel the first r/WebGames read, then Kevin confirms an existing adult Phaser forum account, accepts any current terms himself, approves this exact topic at action time and remains available to answer replies."
+  },
+  "latestReleaseDraft": {
+    "sourceEntryId": "UPDATE-024",
+    "title": "Today’s Space Discovery is live",
+    "state": "prepared_not_publishable_until_an_official_channel_is_confirmed",
+    "selectionReason": "Newest checked release that can travel as text without depending on gameplay media.",
+    "professionalNetworkDraft": {
+      "channelRef": "CH-004",
+      "format": "text_post_with_one_link",
+      "body": "Today’s Space Discovery is live\n\nA changing Mythical Void doorway now begins with one real NASA astronomy source, a three-step observation mission and a clearly fictional question about life in another dimension.\n\n• Each visit asks visitors to observe, infer and check before imagining what kind of alien creature could sense that pattern and how it might move.\n• The page reads only the APOD title and date, then links to NASA’s original page for the picture, explanation and full credit information.\n• No signup, email, child profile or republished daily image is involved. NASA does not make, approve or endorse Mythical Void.\n\nSee what changed: https://mythicalvoid.com/space-discovery/\n\nMythical Void procedural star-map artwork; not a NASA image and not gameplay.",
+      "characterCount": 769
+    },
+    "destination": "https://mythicalvoid.com/space-discovery/",
+    "approvalState": "blocked_missing_verified_channel_and_kevin_approval"
+  },
+  "holds": [
+    {
+      "area": "gameplay-led social and video",
+      "state": "held",
+      "reason": "no_launch_grade_gameplay_media_approved",
+      "releaseCondition": "A person approves the exact real-game moment, wording and channel."
+    },
+    {
+      "area": "official social accounts",
+      "state": "held",
+      "reason": "0 official accounts confirmed",
+      "releaseCondition": "Kevin approves the PlayMythicalVoid handle family, then checks and claims it himself on the first chosen platform with recovery and multi-factor security in place."
+    },
+    {
+      "area": "second community post",
+      "state": "held",
+      "reason": "One community experiment at a time keeps the learning honest and avoids spam.",
+      "releaseCondition": "Finish the r/WebGames seven-day read or explicitly cancel that route."
+    }
+  ],
+  "truthRules": [
+    "A post view is not a player.",
+    "A website visit is not a play.",
+    "A click does not prove enjoyment.",
+    "A comment does not prove retention.",
+    "One post does not prove growth.",
+    "Do not store account names, comment text, private messages or personal details in this record."
+  ],
+  "authority": {
+    "accountCreationAuthorized": false,
+    "platformTermsAcceptanceAuthorized": false,
+    "externalPublishingAuthorized": false,
+    "automatedRepliesAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "fakeEngagementAuthorized": false,
+    "childContactAuthorized": false,
+    "externalActionTaken": false
+  }
+}

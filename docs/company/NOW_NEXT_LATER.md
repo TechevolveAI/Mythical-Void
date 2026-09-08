@@ -28,6 +28,11 @@ actually live or prepared on 8 September 2026.
 - The public GitHub project now describes the game clearly and has a verified
   early-access release leading to Play. It contains no weak screenshots, video
   or downloadable second build.
+- The release hand-off now refreshes every Latest News draft during the normal
+  build and reduces the whole backlog to one next audience move. It caught and
+  repaired a real one-release gap: 17 live updates now produce 51 matching
+  source drafts. The current first move remains one text-only r/WebGames post;
+  nothing was posted and Kevin keeps control of the account and replies.
 
 ## Next — earn the first human evidence
 

@@ -151,6 +151,8 @@ an AI-first, human-governed studio.
 - [Machine-readable gameplay proof production plan](content/proof-production.json)
 - [Gameplay proof production schema](content/proof-production.schema.json)
 - [Editorial and campaign queue](content/editorial-queue.json)
+- [Release-to-audience hand-off](content/RELEASE_TO_AUDIENCE_HANDOFF.md)
+- [Current generated release-to-audience queue](content/generated/release-to-audience-queue.json)
 - [Commercial opportunity pipeline](commercial/opportunities.json)
 - [Commercial qualification register](commercial/qualification.json)
 - [Commercial qualification schema](commercial/qualification.schema.json)
