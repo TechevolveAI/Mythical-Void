@@ -185,6 +185,23 @@
     var copyButton = document.querySelector('[data-copy-game]');
     if (copyButton) copyButton.addEventListener('click', function () { copyCleanLink(shareStatus); });
 
+    var embedCopyButton = document.querySelector('[data-copy-embed]');
+    if (embedCopyButton) {
+        var embedCode = document.getElementById(embedCopyButton.dataset.copyEmbed || '');
+        var embedStatus = document.querySelector('[data-embed-status]');
+        embedCopyButton.addEventListener('click', async function () {
+            var value = embedCode && ('value' in embedCode ? embedCode.value : embedCode.textContent);
+            if (!value) return;
+            try {
+                await navigator.clipboard.writeText(value);
+                setShareStatus('Website badge copied. It contains one clean link and no tracking code.', embedStatus);
+            } catch (error) {
+                if (embedCode.select) embedCode.select();
+                setShareStatus('Select the badge code above and copy it.', embedStatus);
+            }
+        });
+    }
+
     var hatchChallenge = document.querySelector('[data-hatch-challenge]');
     if (hatchChallenge) {
         var hatchChallengeUrl = 'https://mythicalvoid.com/hatch-challenge/';

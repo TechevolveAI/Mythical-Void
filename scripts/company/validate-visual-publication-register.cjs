@@ -12,7 +12,7 @@ const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 
 requireValue(register.state === 'public_media_library_withdrawn_pending_rebuild', 'visual register is not in the withdrawn rebuild state');
-requireValue(register.publicApproved?.length === 4, 'approved public list must remain deliberately small and explicit');
+requireValue(register.publicApproved?.length === 5, 'approved public list must remain deliberately small and explicit');
 requireValue(register.replacementRequirements?.length >= 7, 'replacement visual requirements are incomplete');
 requireValue(register.nextCaptureBrief?.length >= 4, 'replacement capture brief is incomplete');
 requireValue(register.authority?.externalSocialPublicationAuthorized === false, 'register must not authorize external social publication');
@@ -48,6 +48,8 @@ for (const forbidden of [
 ]) requireValue(!storefront.includes(forbidden), `withdrawn public visual or claim remains in the press room: ${forbidden}`);
 
 requireValue(storefront.includes('/marketing/mythical-void-emblem-v3.png'), 'approved emblem download is missing');
+requireValue(pressManifest.mediaLibrary?.approvedPublicDownloads?.includes('https://mythicalvoid.com/press/embed/mythical-void-play-badge.svg'), 'the official website badge is not explicitly approved');
+requireValue(register.publicApproved?.some(item => item.path === '/press/embed/mythical-void-play-badge.svg' && /no gameplay image or tracking code/i.test(item.use || '')), 'the website badge boundary is missing');
 requireValue(storefront.includes('AI-generated marketing illustration') && storefront.includes('It is not gameplay footage.'), 'press hero needs a plain artwork disclosure');
 
 console.log(JSON.stringify({

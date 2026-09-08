@@ -23,6 +23,11 @@
       "path": "/resources/previews/stem-creature-lab-cover.png",
       "use": "Accurate preview of the approved adult-led educational activity",
       "review": "approved"
+    },
+    {
+      "path": "/press/embed/mythical-void-play-badge.svg",
+      "use": "Code-authored official website badge linking directly to the game; no gameplay image or tracking code",
+      "review": "approved_for_owned_press_room_and_truthful_external_embedding"
     }
   ],
   "pressHero": {

@@ -3,6 +3,8 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '../..');
 const press = fs.readFileSync(path.join(root, 'public/press/index.html'), 'utf8');
+const discovery = fs.readFileSync(path.join(root, 'public/discovery.js'), 'utf8');
+const playBadge = fs.readFileSync(path.join(root, 'public/press/embed/mythical-void-play-badge.svg'), 'utf8');
 const sitemap = fs.readFileSync(path.join(root, 'public/sitemap.xml'), 'utf8');
 const netlify = fs.readFileSync(path.join(root, 'netlify.toml'), 'utf8');
 const redirects = fs.readFileSync(path.join(root, 'public/_redirects'), 'utf8');
@@ -27,7 +29,7 @@ describe('press and creator search doorway', () => {
         expect(press).toContain('TRY IT BEFORE YOU WRITE');
         expect(press).toContain('follow the crash-site story, hatch and name a creature, then move together in the Sanctuary');
         expect(press).toContain('Was the first minute clear without an explanation?');
-        expect((press.match(/href="\/play\/"/g) || [])).toHaveLength(5);
+        expect((press.match(/href="\/play\/"/g) || [])).toHaveLength(6);
         expect(press).toContain('data-public-action="play"');
         expect(press).not.toContain('utm_');
     });
@@ -36,6 +38,19 @@ describe('press and creator search doorway', () => {
         expect(press).toContain('/marketing/mythical-void-emblem-v3.png');
         expect(press).toContain('/press/mythical-void-fact-sheet.txt');
         expect(press).toContain('/resources/mythical-void-stem-creature-lab.pdf');
+        expect(press).toContain('/press/embed/mythical-void-play-badge.svg');
+        expect(press).toContain('Add a Play button to your website.');
+        expect(press).toContain('data-copy-embed="mythical-void-embed-code"');
+        expect(press).toContain('https://mythicalvoid.com/play/');
+        expect(press).toContain('It contains no script, tracking code or gameplay claim.');
+        expect(press).toContain('src="/discovery.js?v=20260908-press-badge"');
+        expect(discovery).toContain("document.querySelector('[data-copy-embed]')");
+        expect(discovery).toContain('navigator.clipboard.writeText(value)');
+        expect(playBadge).toContain('width="720" height="220"');
+        expect(playBadge).toContain('<title id="title">Play Mythical Void</title>');
+        expect(playBadge).toContain('Free browser adventure · No download or account');
+        expect(playBadge).not.toContain('<script');
+        expect(playBadge).not.toContain('<image');
         expect(press).toContain('No gameplay download pack is approved.');
         expect(press).not.toContain('/press/gameplay/');
         expect(press).not.toContain('/press/gameplay-video/');

@@ -180,6 +180,8 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('NASA does not endorse the game.');
         expect(storefront).toContain('Download the STEM activity');
         expect(storefront).toContain('/resources/mythical-void-stem-creature-lab.pdf');
+        expect(storefront).toContain('/press/embed/mythical-void-play-badge.svg');
+        expect(storefront).toContain('no script, tracking code or gameplay image');
         expect(storefront).not.toContain('Get the play-and-share card');
         expect(storefront).not.toContain('/resources/mythical-void-play-share-card.pdf');
         expect(storefront).not.toContain('Tell the Project Beacon story.');
@@ -214,7 +216,12 @@ describe('storefront Project Beacon story contract', () => {
         expect(pressAssets.gameplayVideoProofManifest).toBe(
             'https://mythicalvoid.com/press/gameplay-video/manifest.json'
         );
-        expect(pressAssets.assets).toHaveLength(35);
+        expect(pressAssets.assets).toHaveLength(36);
+        expect(pressAssets.assets).toContainEqual(expect.objectContaining({
+            name: 'Play Mythical Void website badge',
+            kind: 'code_authored_official_brand_badge',
+            dimensions: '720x220'
+        }));
         expect(pressAssets.assets).toContainEqual(expect.objectContaining({
             name: 'Mythical Void primary sharing preview',
             kind: 'branded_share_preview_with_ai_generated_marketing_illustration',
