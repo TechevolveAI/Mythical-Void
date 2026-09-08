@@ -2,6 +2,11 @@
 # Following 12-factor app principles and Vibe Coding Playbook best practices
 
 [build]
+  # Preserve hosted build capacity for changes that can alter the public site.
+  # The script skips only a narrow set of private studio-record updates and
+  # deliberately builds whenever its inputs are missing or uncertain.
+  ignore = "node ./scripts/netlify-ignore-build.cjs"
+
   # Build command - Vite production build
   # Netlify installs the locked dependencies before this command runs.
   command = "npm run gate:onboarding:static && npm run test:deploy && npm run build"
