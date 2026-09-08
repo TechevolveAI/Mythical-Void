@@ -11,6 +11,7 @@ const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 const handoff = read('src/ui/LivingFormHandoff.js');
 const menu = read('src/ui/HamburgerMenu.js');
 const shareHelper = read('src/utils/HatchChallengeShare.js');
+const storefront = read('src/site/storefront.js');
 const hatchPage = read('public/hatch-challenge/index.html');
 const release = JSON.parse(read('docs/company/content/generated/hatch-challenge-invitation-release.json'));
 const failures = [];
@@ -46,6 +47,12 @@ requireValue(release.publicExperience?.persistentEntry?.buttonLabel === 'Invite 
 requireValue(release.publicExperience?.persistentEntry?.automaticShare === false, 'persistent invitation must remain voluntary');
 requireValue(menu.includes("key: 'invite', label: 'Invite someone'"), 'Sanctuary menu invitation is missing');
 requireValue(menu.includes('shareHatchChallenge(window.navigator)'), 'Sanctuary menu is not using the shared clean invitation');
+requireValue(release.publicExperience?.homepageEntry?.state === 'live_production_verified', 'homepage invitation is not recorded as live');
+requireValue(release.publicExperience?.homepageEntry?.buttonLabel === 'Invite someone to hatch', 'homepage invitation label drifted');
+requireValue(release.publicExperience?.homepageEntry?.automaticShare === false && release.publicExperience?.homepageEntry?.continueRemainsPrimary === true, 'homepage invitation must remain voluntary and secondary to Play');
+requireValue(storefront.includes('data-share-hatch-challenge') && storefront.includes('Invite someone to hatch'), 'homepage Hatch Challenge invitation is missing');
+requireValue(storefront.includes("url: 'https://mythicalvoid.com/hatch-challenge/'"), 'homepage invitation lost the clean Hatch Challenge URL');
+requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(storefront.match(/const hatchShareData = \{[\s\S]*?\n\s*\};/)?.[0] || ''), 'homepage invitation contains tracking code');
 requireValue((hatchPage.match(/href="\/play\/#hatch-challenge"/g) || []).length >= 4, 'Hatch Challenge Play links must preserve the clean challenge entry');
 requireValue(handoff.includes("window.location?.hash === '#hatch-challenge'"), 'game does not recognize the clean challenge entry');
 requireValue(handoff.includes("'living-form-challenge'"), 'invited-player comparison panel is missing');
@@ -74,6 +81,11 @@ if (release.state === 'live_production_verified') {
     requireValue(/^[0-9a-f]{24}$/.test(release.verification?.persistentMenuCandidate?.productionDeployId || ''), 'persistent invitation is missing its production deploy');
     requireValue(!Number.isNaN(Date.parse(release.verification?.persistentMenuCandidate?.productionPublishedAt || '')), 'persistent invitation is missing its production time');
     requireValue(release.verification?.persistentMenuCandidate?.sourceAndProductionTreesMatch === true, 'persistent invitation source and production trees were not matched');
+    requireValue(/^[0-9a-f]{40}$/.test(release.verification?.homepageCandidate?.sourceCommit || ''), 'homepage invitation is missing its source commit');
+    requireValue(/^[0-9a-f]{40}$/.test(release.verification?.homepageCandidate?.productionCommit || ''), 'homepage invitation is missing its production commit');
+    requireValue(/^[0-9a-f]{24}$/.test(release.verification?.homepageCandidate?.productionDeployId || ''), 'homepage invitation is missing its production deploy');
+    requireValue(!Number.isNaN(Date.parse(release.verification?.homepageCandidate?.productionPublishedAt || '')), 'homepage invitation is missing its production time');
+    requireValue(release.verification?.homepageCandidate?.sourceAndProductionTreesMatch === true && release.verification?.homepageCandidate?.phoneAndDesktopReviewed === true && release.verification?.homepageCandidate?.liveHomepageObserved === true, 'homepage invitation production proof is incomplete');
 }
 if (release.state === 'prepared_for_owned_game_release') {
     requireValue(release.verification?.productionCommit === null, 'pending release must not claim a production commit');

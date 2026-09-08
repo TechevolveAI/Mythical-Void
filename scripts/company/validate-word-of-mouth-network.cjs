@@ -20,6 +20,7 @@ const pages = [
 ];
 const discovery = read('public/discovery.js');
 const discoveryCss = read('public/discovery.css');
+const storefront = read('src/site/storefront.js');
 const pack = json('docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.json');
 const packText = read('docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.md');
 const firstWeekCampaign = json('docs/company/content/campaigns/playable-now-launch.json');
@@ -102,6 +103,10 @@ for (const field of ['recipientCollected', 'playerIdentityCollected', 'creatureD
     requireValue(hatchChallenge.privacy?.[field] === false, `Hatch Challenge privacy.${field} must remain false`);
 }
 requireValue(hatchChallenge.visualBoundary?.newArtworkUsed === false && hatchChallenge.visualBoundary?.gameplayMediaUsed === false && hatchChallenge.visualBoundary?.visualLaunchGateChanged === false, 'Hatch Challenge visual boundary drifted');
+requireValue(hatchChallenge.homepageEntry?.state === 'live_production_verified' && hatchChallenge.homepageEntry?.buttonLabel === 'Invite someone to hatch', 'homepage Hatch Challenge entry is missing from the release record');
+requireValue(hatchChallenge.homepageEntry?.automaticShare === false && hatchChallenge.homepageEntry?.continueRemainsPrimary === true && hatchChallenge.homepageEntry?.sameCleanChallengeUrl === true, 'homepage Hatch Challenge entry must remain voluntary, clean and secondary to Play');
+requireValue(hatchChallenge.homepageEntry?.sourceCommit === '2f27a384f6cfa4438e392b8ddbf6e744b5108e47' && hatchChallenge.homepageEntry?.productionCommit === '02e76598a7ea0c7769b85627a67115dc5f19a034' && hatchChallenge.homepageEntry?.productionDeployId === '6aa03b1c6b8c9a0008c5d4ad', 'homepage Hatch Challenge production proof is missing');
+requireValue(storefront.includes('data-share-hatch-challenge') && storefront.includes('Invite someone to hatch') && storefront.includes("url: 'https://mythicalvoid.com/hatch-challenge/'"), 'homepage Hatch Challenge implementation is missing');
 for (const field of ['externalSocialPublicationAuthorized', 'emailOrOutreachSendingAuthorized', 'paidPromotionAuthorized', 'externalAccountChangeAuthorized', 'externalActionTaken']) {
     requireValue(hatchChallenge.authority?.[field] === false, `Hatch Challenge authority.${field} must remain false`);
 }
@@ -159,6 +164,9 @@ requireValue(release?.image === '/marketing/mythical-void-creature-universe-hero
 const hatchRelease = releases.entries?.find(entry => entry.id === 'UPDATE-023');
 requireValue(hatchRelease?.status === 'live' && hatchRelease?.destination === '/hatch-challenge/', 'Signal 023 must publish the Hatch Challenge on the owned Latest News');
 requireValue(hatchRelease?.image === '/marketing/mythical-void-creature-universe-hero-v2.webp' && /not gameplay/i.test(hatchRelease?.disclosure || ''), 'Signal 023 needs the approved artwork and disclosure');
+const homepageHatchRelease = releases.entries?.find(entry => entry.id === 'UPDATE-027');
+requireValue(homepageHatchRelease?.status === 'live' && homepageHatchRelease?.destination === '/hatch-challenge/' && homepageHatchRelease?.visualKind === 'text_only_release', 'Update 027 must publish the live homepage Hatch Challenge invitation');
+requireValue(homepageHatchRelease?.releaseProof?.sourceCommit === '2f27a384f6cfa4438e392b8ddbf6e744b5108e47' && homepageHatchRelease?.releaseProof?.productionMergeCommit === '02e76598a7ea0c7769b85627a67115dc5f19a034' && homepageHatchRelease?.releaseProof?.productionDeployId === '6aa03b1c6b8c9a0008c5d4ad', 'Update 027 homepage invitation proof is missing');
 requireValue(packageJson.scripts?.build?.includes('validate:word-of-mouth'), 'production build must run the word-of-mouth validator');
 
 if (failures.length) {

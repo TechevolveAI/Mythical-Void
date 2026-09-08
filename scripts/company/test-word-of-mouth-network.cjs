@@ -22,6 +22,7 @@ const files = [
     'public/educators/index.html',
     'public/discovery.js',
     'public/discovery.css',
+    'src/site/storefront.js',
     'public/updates/releases.json',
     'docs/company/growth/HATCH_CHALLENGE_LOOP.json',
     'docs/company/growth/FAMILY_GUIDE_RECOMMENDATION_LOOP.json',
@@ -152,6 +153,9 @@ async function browserUpdateShareCase({ nativeShare }) {
     invalid('public/hatch-challenge/index.html', source => source.replaceAll('/play/#hatch-challenge', '/play/'), 'clean challenge entry');
     invalid('docs/company/growth/HATCH_CHALLENGE_LOOP.json', source => source.replace('"multiplayerClaimed": false', '"multiplayerClaimed": true'), 'Hatch Challenge promise drifted');
     invalid('docs/company/growth/HATCH_CHALLENGE_LOOP.json', source => source.replace('"productionDeployId": "6a8fb0d5da9b150008b16ec2"', '"productionDeployId": "unverified"'), 'live Hatch Challenge production proof is missing');
+    invalid('docs/company/growth/HATCH_CHALLENGE_LOOP.json', source => source.replace('"buttonLabel": "Invite someone to hatch"', '"buttonLabel": "Share"'), 'homepage Hatch Challenge entry is missing');
+    invalid('src/site/storefront.js', source => source.replaceAll('data-share-hatch-challenge', 'data-share-retired'), 'homepage Hatch Challenge implementation is missing');
+    invalid('public/updates/releases.json', source => source.replace('"id": "UPDATE-027"', '"id": "UPDATE-027-WITHDRAWN"'), 'Update 027');
     invalid('docs/company/growth/FAMILY_GUIDE_RECOMMENDATION_LOOP.json', source => source.replace('"recipientCollected": false', '"recipientCollected": true'), 'family-guide privacy.recipientCollected');
 
     caseCount += 1;
@@ -216,8 +220,8 @@ async function browserUpdateShareCase({ nativeShare }) {
     assert.strictEqual(updateCopied.label, 'Copy update link');
     assert.strictEqual(updateCopied.status, 'Clean link copied — no tracking code.');
 
-    assert.strictEqual(caseCount, 22);
-    console.log('Word-of-mouth network evaluations passed (22 cases).');
+    assert.strictEqual(caseCount, 25);
+    console.log('Word-of-mouth network evaluations passed (25 cases).');
 })().catch(error => {
     console.error(error.stack || error.message);
     process.exit(1);

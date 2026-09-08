@@ -13,6 +13,22 @@
       <link>https://mythicalvoid.com/updates/</link>
     </image>
     <item>
+      <guid isPermaLink="true">https://mythicalvoid.com/updates/#update-027</guid>
+      <title>Invite someone to hatch from the homepage</title>
+      <link>https://mythicalvoid.com/updates/#update-027</link>
+      <pubDate>Tue, 08 Sep 2026 12:00:00 GMT</pubDate>
+      <category>HATCH TOGETHER</category>
+      <description>The first screen now gives visitors a clear way to send the Mythical Void Hatch Challenge to someone they know, using one clean link and no made-up popularity claim.
+
+• The new homepage button opens the device’s normal sharing choice, or copies the clean Hatch Challenge address when sharing is unavailable.
+• Each person still plays separately in their own browser. Mythical Void remains single-player and does not pretend that other people are currently playing.
+• The invitation contains no recipient, creature, save or player information, and it adds no tracking code. The existing Play button remains the main action.
+
+See the live change: https://mythicalvoid.com/hatch-challenge/
+
+Visual note: Text-only release note about a live owned-site invitation; no screenshot or generated image is attached.</description>
+    </item>
+    <item>
       <guid isPermaLink="true">https://mythicalvoid.com/updates/#update-026</guid>
       <title>The press room now has its own front door</title>
       <link>https://mythicalvoid.com/updates/#update-026</link>

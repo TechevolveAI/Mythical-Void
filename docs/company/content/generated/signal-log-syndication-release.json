@@ -1,26 +1,26 @@
 {
   "schemaVersion": 1,
-  "releaseId": "LATEST-NEWS-SYNDICATION-2026-09-08-PRESS-ROOM",
-  "state": "complete_owned_site_release_production_verified",
+  "releaseId": "LATEST-NEWS-SYNDICATION-2026-09-08-HOMEPAGE-HATCH",
+  "state": "owned_site_release_prepared",
   "source": {
     "path": "public/updates/releases.json",
-    "fingerprintSha256": "1d473f9036cc19e9a3f62057c22f7d8a9feb85c0d136ee8066d748bf9877db42",
-    "liveEntryCount": 19
+    "fingerprintSha256": "c7c0ebb20d3d4bf87424387c01a81272fc8be83f089ee4cb2f59080898a46734",
+    "liveEntryCount": 20
   },
   "feeds": {
     "rss": {
       "path": "public/updates/feed.xml",
       "url": "https://mythicalvoid.com/updates/feed.xml",
       "mimeType": "application/rss+xml; charset=utf-8",
-      "sha256": "e3f2e7b312ed4d1c4048298e83f8eae0a010e287635f605516dbf035e6a234f9",
-      "itemCount": 19
+      "sha256": "f97c684805a1a1903bed019ac9fcc093a96a4945e88496c978da74bba4af1c02",
+      "itemCount": 20
     },
     "json": {
       "path": "public/updates/feed.json",
       "url": "https://mythicalvoid.com/updates/feed.json",
       "mimeType": "application/feed+json; charset=utf-8",
-      "sha256": "80c5e0e2216fd6567ca3df04feef4554486f7f6c8db937870eae3a87b16e0879",
-      "itemCount": 19
+      "sha256": "41e3be0f44e24fe2c4192743681121452b6fa5490544acd02830a4063c966555",
+      "itemCount": 20
     }
   },
   "discovery": {
@@ -46,22 +46,5 @@
     "socialPostingAuthorized": false,
     "externalActionTaken": false
   },
-  "productionVerification": {
-    "commit": "d46bc2458347c28925547139200edca8565dfd1d",
-    "deployId": "6aa0185b1e60f7000879670f",
-    "publishedAt": "2026-09-08T14:16:27.852Z",
-    "permalink": "https://6aa0185b1e60f7000879670f--mythicalvoid.netlify.app",
-    "updatesPageHttpStatus": 200,
-    "permanentEntryHttpStatus": 200,
-    "rssHttpStatus": 200,
-    "jsonHttpStatus": 200,
-    "pressRoomHttpStatus": 200,
-    "playDoorwayHttpStatus": 200,
-    "latestEntryId": "UPDATE-026",
-    "latestEntryPresent": true,
-    "rssItemCount": 19,
-    "jsonItemCount": 19,
-    "productionPresentationReview": "text_only_no_gameplay_media",
-    "claimBoundary": "HTTP availability and feed contents were verified. This does not prove subscribers, readership, visits, play, enjoyment or growth."
-  }
+  "productionVerification": null
 }

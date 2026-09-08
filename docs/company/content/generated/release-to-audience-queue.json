@@ -4,13 +4,13 @@
   "state": "one_text_only_community_move_waiting_for_kevin",
   "purpose": "Turn checked releases and prepared community work into one clear next move, while keeping accounts, replies and publication under human control.",
   "generatedFrom": {
-    "liveLatestNewsEntries": 19,
-    "preparedReleaseDrafts": 57,
+    "liveLatestNewsEntries": 20,
+    "preparedReleaseDrafts": 60,
     "approvedGameplayVisuals": 0,
     "verifiedExternalPublishingChannels": 0,
     "sourceFingerprints": {
-      "releases": "1d473f9036cc19e9a3f62057c22f7d8a9feb85c0d136ee8066d748bf9877db42",
-      "releasePack": "82e9f91581ec695d56711de2ca51414b293a178b89acef480acb4808e3a5240b",
+      "releases": "c7c0ebb20d3d4bf87424387c01a81272fc8be83f089ee4cb2f59080898a46734",
+      "releasePack": "44a6d64533970d1cb64d672d460e1be32999406a02217ee3a61af47ce3bec098",
       "communityRun": "f4dbc6dd7705bd90ccb98384acfe3032f54ef7fcf78d96f17657bfadb6a226a5",
       "phaserShowcase": "7e6976bfa25dcd3c47b2806153d72f41ae7ed80a40c65fe304eadd9acd0438da",
       "channels": "61c95b390a608c5fbbc256008bfa12783068cf2fdf859880035fd653fec8f4f3",
@@ -80,30 +80,31 @@
     "nextRequiredAction": "Finish or explicitly cancel the first r/WebGames read, then Kevin confirms an existing adult Phaser forum account, accepts any current terms himself, approves this exact topic at action time and remains available to answer replies."
   },
   "latestReleaseDraft": {
-    "sourceEntryId": "UPDATE-026",
-    "title": "The press room now has its own front door",
+    "sourceEntryId": "UPDATE-027",
+    "title": "Invite someone to hatch from the homepage",
     "state": "prepared_not_publishable_until_an_official_channel_is_confirmed",
     "selectionReason": "Newest checked release that can travel as text without depending on gameplay media.",
     "professionalNetworkDraft": {
       "channelRef": "CH-004",
       "format": "text_post_with_one_link",
-      "body": "The press room now has its own front door\n\nA dedicated public page now gives writers, creators and curious players a clear route to the real game, approved facts and the small set of assets that are safe to use.\n\n• The page explains the playable browser adventure, the father-and-son beginning, the creature engine, the six realms, the careful use of AI and the optional NASA-based learning layer.\n• It leads directly to the live game and offers only the approved emblem, fact sheet and STEM activity. The earlier gameplay media pack remains withheld because it did not pass human visual review.\n• The press address now has its own title and canonical identity before JavaScript runs. This helps people and search tools understand the page, but it does not prove indexing, coverage, visits or play.\n\nSee what changed: https://mythicalvoid.com/press/\n\nText-only release note about a live owned-site page; no screenshot or generated image is attached.",
-      "characterCount": 949
+      "body": "Invite someone to hatch from the homepage\n\nThe first screen now gives visitors a clear way to send the Mythical Void Hatch Challenge to someone they know, using one clean link and no made-up popularity claim.\n\n• The new homepage button opens the device’s normal sharing choice, or copies the clean Hatch Challenge address when sharing is unavailable.\n• Each person still plays separately in their own browser. Mythical Void remains single-player and does not pretend that other people are currently playing.\n• The invitation contains no recipient, creature, save or player information, and it adds no tracking code. The existing Play button remains the main action.\n\nSee what changed: https://mythicalvoid.com/hatch-challenge/\n\nText-only release note about a live owned-site invitation; no screenshot or generated image is attached.",
+      "characterCount": 832
     },
-    "destination": "https://mythicalvoid.com/press/",
+    "destination": "https://mythicalvoid.com/hatch-challenge/",
     "releaseProof": {
-      "sourceCommit": "bcabb7f4a8c7eb8d510be0c4351111d695bd4677",
-      "productionMergeCommit": "270263bed94375097de87295e21978b1d540b7dc",
-      "productionDeployId": "6aa00e02db1f0400088e8e4b",
-      "productionPublishedAt": "2026-09-08T13:32:12.340Z",
+      "sourceCommit": "2f27a384f6cfa4438e392b8ddbf6e744b5108e47",
+      "productionMergeCommit": "02e76598a7ea0c7769b85627a67115dc5f19a034",
+      "productionDeployId": "6aa03b1c6b8c9a0008c5d4ad",
+      "productionPublishedAt": "2026-09-08T16:46:54.447Z",
       "checkedUrl": "https://mythicalvoid.com/play/",
       "checkedHttpStatus": 200,
-      "ownedPageCheckedUrl": "https://mythicalvoid.com/press/",
+      "ownedPageCheckedUrl": "https://mythicalvoid.com/hatch-challenge/",
       "ownedPageCheckedHttpStatus": 200,
-      "rawHtmlIdentityVerified": true,
+      "homepageInvitationObserved": true,
+      "sourceAndProductionTreesMatch": true,
       "gameplayVisualApproved": false,
       "mediaAttached": false,
-      "claimBoundary": "The source, production deploy and live raw HTML prove that the press page exists with its own identity. They do not prove visual quality, play, enjoyment or growth; they also do not prove indexing, attention or playership."
+      "claimBoundary": "The source, production deploy and live browser check prove that the invitation is available. They do not prove visual quality, play, enjoyment or growth, and they do not prove that anybody has shared it."
     },
     "approvalState": "blocked_missing_verified_channel_and_kevin_approval"
   },

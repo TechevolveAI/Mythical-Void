@@ -15,6 +15,18 @@
   ],
   "items": [
     {
+      "id": "https://mythicalvoid.com/updates/#update-027",
+      "url": "https://mythicalvoid.com/updates/#update-027",
+      "external_url": "https://mythicalvoid.com/hatch-challenge/",
+      "title": "Invite someone to hatch from the homepage",
+      "content_text": "The first screen now gives visitors a clear way to send the Mythical Void Hatch Challenge to someone they know, using one clean link and no made-up popularity claim.\n\n• The new homepage button opens the device’s normal sharing choice, or copies the clean Hatch Challenge address when sharing is unavailable.\n• Each person still plays separately in their own browser. Mythical Void remains single-player and does not pretend that other people are currently playing.\n• The invitation contains no recipient, creature, save or player information, and it adds no tracking code. The existing Play button remains the main action.\n\nSee the live change: https://mythicalvoid.com/hatch-challenge/\n\nVisual note: Text-only release note about a live owned-site invitation; no screenshot or generated image is attached.",
+      "summary": "The first screen now gives visitors a clear way to send the Mythical Void Hatch Challenge to someone they know, using one clean link and no made-up popularity claim.",
+      "date_published": "2026-09-08T12:00:00.000Z",
+      "tags": [
+        "HATCH TOGETHER"
+      ]
+    },
+    {
       "id": "https://mythicalvoid.com/updates/#update-026",
       "url": "https://mythicalvoid.com/updates/#update-026",
       "external_url": "https://mythicalvoid.com/press/",
