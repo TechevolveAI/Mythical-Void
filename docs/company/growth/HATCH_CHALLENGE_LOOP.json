@@ -60,13 +60,25 @@
   },
   "visualBoundary": {
     "newArtworkUsed": true,
-    "newArtworkState": "source_ready_for_owned_release",
+    "newArtworkState": "live_on_production_alias_from_promoted_deploy_preview",
     "newArtworkKind": "ai_assisted_code_authored_brand_art_not_gameplay",
     "imageModelUsed": false,
     "gameplayMediaUsed": false,
     "approvedGameplayMoments": 0,
     "requiredGameplayMoments": 4,
-    "visualLaunchGateChanged": false
+    "visualLaunchGateChanged": false,
+    "liveAliasProof": {
+      "sourceCommit": "e389c16f554a36241046e8041237b81b5f90c61a",
+      "mainMergeCommit": "dfb8a50b2474e547f3948a85d2c453a1023fd1f7",
+      "deployId": "6aa05568df287e0008fb35df",
+      "deployContext": "deploy-preview",
+      "promotionMethod": "restoreSiteDeploy",
+      "productionAlias": "https://mythicalvoid.com",
+      "promotedAt": "2026-09-08T18:40:36.924Z",
+      "liveAliasVerifiedAt": "2026-09-08T18:44:13Z",
+      "liveImageSha256": "5030a304f7f81b5b7d6284a0100efaef35eec1ff534db0744adbf4de5a7662f7",
+      "liveBrowserErrorCount": 0
+    }
   },
   "authority": {
     "ownedWebsitePublicationAuthorized": true,
