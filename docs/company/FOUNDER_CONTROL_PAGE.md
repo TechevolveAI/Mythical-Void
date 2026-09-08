@@ -23,6 +23,9 @@ detailed evidence; it turns that evidence into the decisions that matter now.
   clearer to people and search tools.
 - **The latest game repair is live:** the Mythical Forest crossing and mobile
   creature grounding release is contained in the current production build.
+- **The invitation is live:** the homepage now gives people a clear way to
+  invite someone else to hatch a creature, and the Sanctuary invitation still
+  works. Both use the clean Hatch Challenge link and make no popularity claim.
 - **The press room and Latest News feeds are live:** journalists, creators and
   feed readers have permanent, checked pages to follow without an account.
 - **Adult feedback is available:** adults can send feedback through the owned
@@ -80,6 +83,37 @@ are ready. Nothing has been posted. To run it, Kevin needs to:
    and personally accept its terms.
 2. Approve the exact prepared post at the moment it will be published.
 3. Confirm he can read and answer public replies for seven days.
+
+The exact one-line approval is:
+
+> I have an existing adult Reddit account, I approve the exact title, link and
+> first comment below now, and I can personally answer replies for seven days.
+
+That approval lasts 30 minutes. It still does not publish anything by itself.
+The rules, duplicate search, live game, preview and opening journey are checked
+again before the final posting step.
+
+**Exact title**
+
+> Mythical Void — hatch an alien creature and explore six strange worlds
+
+**Exact direct link**
+
+> https://mythicalvoid.com/play/
+
+**Exact first comment**
+
+> My son and I started Mythical Void at home to see what imagination and
+> generative AI tools could make possible. It became a free early-access
+> browser adventure: hatch your own alien creature, explore six strange worlds
+> and free Guardians trapped by the Void. Your choices decide what Project
+> Beacon becomes. It starts straight away — no download or account.
+>
+> AI is one tool, not a substitute for care. The game has been tested and
+> reworked; people decide what is released.
+>
+> If you try it, what felt clear or confusing in the first minute? I will read
+> and answer replies myself. The link picture is our brand emblem, not gameplay.
 
 The post costs nothing. It asks one useful question about what felt clear or
 confusing in the first minute. It includes no gameplay attachment, tracking

@@ -23,15 +23,18 @@ const homepage = read('index.html');
 const storefront = read('src/site/storefront.js');
 const currentState = load('docs/company/operations/current-state.json');
 const packageJson = load('package.json');
-const normalizedPage = page.replace(/\*\*/g, '').replace(/\s+/g, ' ');
+const normalizedPage = page.replace(/^>\s?/gm, '').replace(/\*\*/g, '').replace(/\s+/g, ' ');
 const normalizedScoreboard = scoreboard.replace(/\*\*/g, '').replace(/\s+/g, ' ');
 const normalizedFirstFivePage = firstFivePage.replace(/\*\*/g, '').replace(/\s+/g, ' ');
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 const latestMaterialWebsiteRelease = {
     checkedOn: '2026-09-08',
-    sourceCommit: '4d91246dcc9d630a68075b379b4c8b26a72ed99a',
-    deployId: '6a9fa8c322df6a0008a96302'
+    sourceCommit: '2f27a384f6cfa4438e392b8ddbf6e744b5108e47',
+    protectedMainMergeCommit: '02e76598a7ea0c7769b85627a67115dc5f19a034',
+    deployId: '6aa03b1c6b8c9a0008c5d4ad',
+    publishedAt: '2026-09-08T16:46:54.447Z',
+    sourceAndProductionTreesMatch: true
 };
 
 requireValue(control.schemaVersion === 1 && control.id === 'FOUNDER-CONTROL-001', 'founder control identity is invalid');
@@ -48,6 +51,7 @@ requireValue(firstFive.currentHold?.candidateDeployed === true && firstFive.curr
 const lastObservedProduction = live.websiteAndGame?.lastObservedProduction || {};
 requireValue(/^2026-09-08T/.test(lastObservedProduction.checkedAt || '') && /^[0-9a-f]{40}$/.test(lastObservedProduction.sourceCommit || '') && /^[0-9a-f]{24}$/.test(lastObservedProduction.deployId || ''), 'latest observed production identity is invalid');
 requireValue(lastObservedProduction.state === 'ready' && lastObservedProduction.published === true, 'latest observed production is not proven ready and published');
+requireValue(lastObservedProduction.sourceCommit === latestMaterialWebsiteRelease.protectedMainMergeCommit && lastObservedProduction.deployId === latestMaterialWebsiteRelease.deployId, 'latest observed production does not match the live website release');
 const latestGameRelease = live.websiteAndGame?.latestGameRelease || {};
 requireValue(latestGameRelease.pullRequest === 197 && latestGameRelease.mergeCommit === '867db60674440297e92c323dd80cc85d57389752' && latestGameRelease.containedInLastObservedProduction === true, 'latest game release is missing from the production record');
 for (const [field, expected] of Object.entries(latestMaterialWebsiteRelease)) {
@@ -56,6 +60,7 @@ for (const [field, expected] of Object.entries(latestMaterialWebsiteRelease)) {
     requireValue(visualReview.laterProductionOverride?.latestMaterialWebsiteRelease?.[field] === expected, `visual review latest material website release ${field} is stale`);
 }
 requireValue(live.websiteAndGame?.latestMaterialWebsiteRelease?.officialProjectReciprocalLinkLive === true, 'founder control hides the live reciprocal project link');
+requireValue(live.websiteAndGame?.latestMaterialWebsiteRelease?.homepageHatchInvitationLive === true && live.websiteAndGame?.latestMaterialWebsiteRelease?.persistentGameInvitationStillLive === true, 'the live Hatch Challenge invitations are missing');
 requireValue(firstFive.currentHold?.latestMaterialWebsiteRelease?.technicalRepairStillLive === true && firstFive.currentHold?.latestMaterialWebsiteRelease?.creatureArtworkHumanApproved === false, 'First Five confuses the live technical repair with artwork approval');
 requireValue(visualReview.laterProductionOverride?.latestMaterialWebsiteRelease?.firstContactRepairStillPresent === true && visualReview.laterProductionOverride?.latestMaterialWebsiteRelease?.visualApprovalGranted === false, 'visual review confuses current production with artwork approval');
 requireValue(homepage.includes('href="https://github.com/TechevolveAI/Mythical-Void"') && storefront.includes('href="https://github.com/TechevolveAI/Mythical-Void"'), 'the live website source does not reciprocally link the verified public project');
@@ -96,6 +101,7 @@ requireValue(Array.isArray(control.currentDecisions) && control.currentDecisions
 requireValue(control.currentDecisions?.[0]?.id === 'FD-002' && control.currentDecisions?.[0]?.owner === 'Kevin', 'current founder decision identity is invalid');
 requireValue(control.currentDecisions?.[0]?.question === 'Approve one direct-link r/WebGames post from an existing adult account and personally cover replies for seven days?', 'current founder decision has drifted');
 requireValue(control.currentDecisions?.[0]?.preparedDecisionArtifact === 'docs/company/growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08.md' && control.currentDecisions?.[0]?.requires?.length === 3 && control.currentDecisions?.[0]?.postAuthorized === false, 'current community decision is incomplete or pre-authorized');
+requireValue(control.currentDecisions?.[0]?.exactApprovalMessage === 'I have an existing adult Reddit account, I approve the exact title, link and first comment below now, and I can personally answer replies for seven days.' && control.currentDecisions?.[0]?.approvalWindowMinutes === 30, 'the exact short-lived community approval is missing');
 requireValue(control.heldDecisions?.some(decision => decision.id === 'FD-001' && decision.preparedDecisionArtifact === 'docs/company/product/CREATURE_CONCEPT_ARTIST_BRIEF.md'), 'important creature decision was lost');
 requireValue(control.unlockSequence?.length === 5 && control.unlockSequence?.[2] === 'run_action_time_preflight' && control.unlockSequence?.[4] === 'record_day_two_and_day_seven_observations', 'community unlock sequence is invalid');
 requireValue(control.firstFiveUnlockSequence?.length === 5 && control.firstFiveUnlockSequence?.[2] === 'adult_human_visual_review' && control.firstFiveUnlockSequence?.[3] === 'five_adult_first_five_test', 'First Five unlock sequence is invalid');
@@ -119,6 +125,9 @@ for (const phrase of [
     '0 accepted customer evidence',
     'The one decision that matters now',
     'Approve one direct-link r/WebGames test from an adult Reddit account.',
+    'I have an existing adult Reddit account, I approve the exact title, link and first comment below now, and I can personally answer replies for seven days.',
+    'Mythical Void — hatch an alien creature and explore six strange worlds',
+    'https://mythicalvoid.com/play/',
     'Nothing has been posted.',
     '2 repository views from 1 person',
     'The important product decision that remains held',

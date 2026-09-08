@@ -11,9 +11,10 @@
     "whyThisOne": "The community is specifically for games that play directly in a normal web browser without downloads or sign-up, which matches Mythical Void's live game.",
     "observedAudience": {
       "weeklyVisitorsShown": 19000,
+      "weeklyContributionsShown": 836,
       "observedOn": "2026-09-08",
       "approximate": true,
-      "meaning": "A changing community-page estimate, not guaranteed reach and not a player count."
+      "meaning": "Changing community-page estimates, not guaranteed reach, posts, replies or player counts."
     },
     "verifiedRules": {
       "browserPlayableRequired": true,
@@ -29,6 +30,17 @@
       "checkedOn": "2026-09-08",
       "existingResultObserved": false,
       "limitation": "A read-only community search can miss deleted, renamed or unindexed posts. Check once more immediately before posting."
+    },
+    "latestReadOnlyVerification": {
+      "checkedAt": "2026-09-08T16:52:53Z",
+      "method": "normal_browser_visible_review",
+      "rulesVisibleAndMatchedPreparedPlan": true,
+      "duplicateSearchVisible": true,
+      "existingMythicalVoidResultObserved": false,
+      "weeklyVisitorsShown": 19000,
+      "weeklyContributionsShown": 836,
+      "machineReadableRedditCheckHttpStatus": 403,
+      "limitation": "Reddit blocked the machine-readable check, so the current evidence comes from the visible adult browser review. Recheck in the browser immediately before posting."
     },
     "communityClimate": {
       "checkedOn": "2026-09-08",
@@ -145,6 +157,13 @@
     "accountCreationAuthorized": false,
     "humanReplyCoverageConfirmed": false
   },
+  "fallbackReadOnlyVerification": {
+    "checkedAt": "2026-09-08T16:52:53Z",
+    "route": "Phaser Showcase",
+    "rulesVisible": true,
+    "exactMythicalVoidResultObserved": false,
+    "sequenceBoundary": "This remains second. Do not use it until the r/WebGames seven-day read is complete or r/WebGames is explicitly cancelled."
+  },
   "authority": {
     "externalPostMade": false,
     "externalPostingAuthorized": false,
@@ -162,6 +181,7 @@
     "https://www.reddit.com/r/WebGames/search/?q=%22Mythical%20Void%22&restrict_sr=1&sort=new",
     "https://www.reddit.com/r/WebGames/comments/1ryldz4/looking_for_opinions_on_ai_made_web_games/",
     "https://phaser.discourse.group/t/welcome-to-the-phaser-showcase-forum/19",
+    "https://phaser.discourse.group/search?q=%22Mythical%20Void%22%20%23showcase",
     "https://www.html5gamedevs.com/forum/8-game-showcase/",
     "https://itch.io/docs/creators/getting-indexed",
     "https://itch.io/docs/creators/quality-guidelines",

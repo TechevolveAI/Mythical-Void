@@ -95,6 +95,8 @@ mutateControl('pretend community post happened', value => { value.communityExper
 mutateControl('allow fake engagement', value => { value.communityExperiment.fakeEngagementAllowed = true; }, 'community experiment safety boundary is invalid');
 mutateControl('stale latest website release', value => { value.live.websiteAndGame.latestMaterialWebsiteRelease.deployId = 'stale'; }, 'founder latest material website release deployId is stale');
 mutateControl('hide reciprocal project link', value => { value.live.websiteAndGame.latestMaterialWebsiteRelease.officialProjectReciprocalLinkLive = false; }, 'live reciprocal project link');
+mutateControl('hide homepage invitation', value => { value.live.websiteAndGame.latestMaterialWebsiteRelease.homepageHatchInvitationLive = false; }, 'live Hatch Challenge invitations');
+mutateControl('remove exact approval', value => { value.currentDecisions[0].exactApprovalMessage = 'approve'; }, 'exact short-lived community approval');
 
 const wordingRoot = fixture(fixtureRoot => {
     const target = path.join(fixtureRoot, 'docs/company/FOUNDER_CONTROL_PAGE.md');
@@ -122,5 +124,5 @@ try {
     fs.rmSync(privacyRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 19);
-console.log('Founder control safeguards passed (19 cases).');
+assert.strictEqual(cases, 21);
+console.log('Founder control safeguards passed (21 cases).');
