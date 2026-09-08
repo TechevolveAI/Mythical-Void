@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "OWNED-CHANNEL-ATTENTION-001",
+  "checkedAt": "2026-09-08T14:50:14Z",
+  "channel": "GitHub public repository",
+  "repository": "TechevolveAI/Mythical-Void",
+  "sourceWindow": {
+    "start": "2026-08-25",
+    "end": "2026-09-07",
+    "days": 14,
+    "note": "GitHub returned its rolling daily traffic window. The partial capture day was not included in the returned series."
+  },
+  "observations": {
+    "repositoryViews": {
+      "count": 2,
+      "uniques": 1,
+      "meaning": "Repository-page views only. They are not website visits, players, plays, enjoyment, retention or growth."
+    },
+    "repositoryClones": {
+      "count": 856,
+      "uniques": 323,
+      "useForAudienceDecisions": false,
+      "reason": "Clone totals can include development work, continuous integration and other automated retrieval. They are excluded from audience and play claims."
+    },
+    "popularReferrers": [],
+    "popularPaths": [
+      {
+        "path": "/TechevolveAI/Mythical-Void",
+        "title": "Overview",
+        "count": 1,
+        "uniques": 1
+      },
+      {
+        "path": "/TechevolveAI/Mythical-Void/compare/codex/level-flow-pass",
+        "title": "/compare/codex/level-flow-pass",
+        "count": 1,
+        "uniques": 1
+      }
+    ]
+  },
+  "interpretation": {
+    "finding": "The public repository is a useful proof and search shelf, but this window does not show meaningful audience attention arriving through GitHub.",
+    "decision": "Do not spend the next growth cycle polishing an already-complete GitHub listing. Keep it accurate and move the next test to a place where adults are already looking for browser games.",
+    "nextMove": "One direct-link r/WebGames post remains the highest-impact prepared test. It still needs Kevin's adult account confirmation, exact action-time approval and personal reply coverage."
+  },
+  "truthRules": [
+    "A repository view is not a player or a play.",
+    "A clone is not a person, a player or evidence of interest.",
+    "A popular path count does not prove that somebody started the game.",
+    "An empty referrer list does not prove that no outside link exists.",
+    "This fourteen-day snapshot does not prove growth or the absence of future discovery."
+  ],
+  "sources": [
+    "https://api.github.com/repos/TechevolveAI/Mythical-Void/traffic/views",
+    "https://api.github.com/repos/TechevolveAI/Mythical-Void/traffic/clones",
+    "https://api.github.com/repos/TechevolveAI/Mythical-Void/traffic/popular/referrers",
+    "https://api.github.com/repos/TechevolveAI/Mythical-Void/traffic/popular/paths"
+  ],
+  "authority": {
+    "readOnlyEvidenceCollection": true,
+    "repositoryChangedByMeasurement": false,
+    "externalPostMade": false,
+    "accountOpened": false,
+    "platformTermsAccepted": false,
+    "outreachPerformed": false,
+    "paidPromotionStarted": false
+  }
+}

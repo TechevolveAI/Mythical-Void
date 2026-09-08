@@ -23,21 +23,26 @@ game to make a brilliant first impression, followed by a small amount of real
 adult evidence.
 
 The public GitHub gap is now closed: the project has a clear description,
-website address, direct route to Play and a dated early-access release. This is
-useful, but it cannot replace Search Console, a real game shelf or evidence that
-an unfamiliar person wants to continue.
+website address, direct route to Play and a dated early-access release. A
+read-only check of GitHub's 14-day repository traffic on 8 September showed two
+repository-page views and one unique view. The much larger clone count is
+excluded because development work, automated checks and other retrieval can
+create clones. A view or clone is not a player or a play. GitHub is currently a
+useful proof and search shelf, not evidence of an audience.
 
 The current order is:
 
 1. Game Development waits for an approved creature art direction, then proves
    one excellent first contact and one clear in-play view on phone and desktop.
-2. Kevin connects Google Search Console using the existing Google account so
+2. Run the prepared one-post r/WebGames test when Kevin confirms the adult
+   account, approves the exact text at action time and can answer replies.
+3. Kevin connects Google Search Console using the existing Google account so
    we can see whether Google has found the site. This is free and does not
    require another Google Workspace subscription.
-3. When the game presentation gate passes and Kevin approves invitations, run
+4. When the game presentation gate passes and Kevin approves invitations, run
    the adult-only First Five test: three desktop or laptop sessions and two
    phone sessions.
-4. Only then decide whether to request Poki access first or publish the ready
+5. Only then decide whether to request Poki access first or publish the ready
    itch.io build for faster learning.
 
 ## What we must not claim yet
