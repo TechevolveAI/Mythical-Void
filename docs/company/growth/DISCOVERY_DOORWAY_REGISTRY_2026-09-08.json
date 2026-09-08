@@ -393,6 +393,76 @@
       ]
     }
   ],
+  "screenedNotQueued": [
+    {
+      "id": "browsergames-reddit",
+      "name": "r/BrowserGames",
+      "state": "not_available_community_private",
+      "whyNotQueued": "The visible community page says only approved members can view or participate, so it is not a usable public discovery route.",
+      "nextReviewTrigger": "Recheck only if the community becomes publicly viewable again; do not request private access merely to promote the game.",
+      "sources": [
+        {
+          "url": "https://www.reddit.com/r/BrowserGames/",
+          "observedOn": "2026-09-08",
+          "finding": "The signed-out community page displayed that r/BrowserGames is private and only approved members can view or take part."
+        }
+      ]
+    },
+    {
+      "id": "slowden",
+      "name": "SlowDen",
+      "state": "not_queued_immediate_publication_frame_and_ad_environment_unresolved",
+      "whyNotQueued": "Its public form says a submitted game goes live immediately inside an iframe. Mythical Void currently refuses all third-party framing, while SlowDen says its catalogue is not children-only, it does not age-rate games and advertising inside games may be served by a partner it cannot preview or filter.",
+      "currentOwnedGameAllowsThirdPartyFraming": false,
+      "submissionPublishesImmediately": true,
+      "submissionCollectsAdultEmail": true,
+      "nextReviewTrigger": "Consider only after Kevin explicitly chooses this distribution environment and a technical, privacy, advertising, rights and family-safety review approves the exact integration. Do not weaken framing protection merely to obtain a listing.",
+      "sources": [
+        {
+          "url": "https://slowden.com/submit/",
+          "observedOn": "2026-09-08",
+          "finding": "The public form asks for the game link, description, maker name, adult email and a rights confirmation; it says the listing goes live immediately and the game runs inside an iframe."
+        },
+        {
+          "url": "https://slowden.com/safety/",
+          "observedOn": "2026-09-08",
+          "finding": "SlowDen says it is not children-only, does not age-rate games and cannot preview or filter advertising served inside partner game frames."
+        }
+      ]
+    },
+    {
+      "id": "playmategames",
+      "name": "PlayMateGames",
+      "state": "not_queued_audience_frame_privacy_and_listing_terms_unverified",
+      "whyNotQueued": "The public developer form looks structurally relevant but no trustworthy audience evidence was found, a game may open in a new page or a frame, and the public policies permit advertising, analytics and international processing. A submission would transmit Kevin's email and a message before the exact listing arrangement is known.",
+      "currentOwnedGameAllowsThirdPartyFraming": false,
+      "submissionPublishesImmediately": false,
+      "submissionCollectsAdultEmail": true,
+      "nextReviewTrigger": "Ask for a written answer about link-out versus framing, advertising around the game, developer content rights, removal and any AI disclosure before Kevin considers a submission. Any inquiry or form submission still needs action-time approval.",
+      "sources": [
+        {
+          "url": "https://www.playmategames.com/developers",
+          "observedOn": "2026-09-08",
+          "finding": "The public form accepts a browser-game link and message, requires an email, offers no placement guarantee and says a non-production mirror or ZIP may be requested."
+        },
+        {
+          "url": "https://www.playmategames.com/information-for-parents",
+          "observedOn": "2026-09-08",
+          "finding": "The family page says games may start in a new page or frame and that the site may use cookies and advertising."
+        },
+        {
+          "url": "https://www.playmategames.com/privacy",
+          "observedOn": "2026-09-08",
+          "finding": "The policy says developer-form email and message content are received, and describes usage data, advertising, analytics, service providers and possible international processing."
+        },
+        {
+          "url": "https://www.playmategames.com/terms",
+          "observedOn": "2026-09-08",
+          "finding": "The visible terms describe a general-audience service intended for people at least 13 or with required guardian involvement, and allow games to be changed or removed. They do not provide a complete developer-listing agreement."
+        }
+      ]
+    }
+  ],
   "authority": {
     "externalPostMade": false,
     "externalPublishingAuthorized": false,

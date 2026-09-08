@@ -6,7 +6,8 @@ outside post or game submission was made.
 ## The answer in one minute
 
 We now have thirteen places recorded where somebody might discover Mythical
-Void. They are not a list to blast with the same advert.
+Void, plus three more that were checked and deliberately not added to the
+queue. They are not a list to blast with the same advert.
 
 The order is:
 
@@ -53,6 +54,28 @@ one clean link and no tracking code. It is brand art, not gameplay.
 - **Newgrounds** remains unsuitable while its AI-thumbnail, authored-work,
   rights and outside-call rules are unresolved for this game.
 
+## Checked, but not admitted to the queue
+
+- **r/BrowserGames** is currently private. The signed-out page says only
+  approved members can view or take part, so it is not a public discovery
+  route. Do not request private access merely to promote Mythical Void.
+- **SlowDen** says a normal submission goes live immediately and the game runs
+  in an iframe. Mythical Void currently blocks all third-party framing. SlowDen
+  also says it is not children-only, does not provide age ratings and cannot
+  preview or filter advertising served inside partner game frames. That mix
+  needs an explicit distribution, family-safety, privacy, advertising and
+  rights decision before it can be considered.
+- **PlayMateGames** has a relevant public developer form, but a game may open
+  in a new page or a frame, a submission sends an adult email and message, and
+  the public policies permit advertising, analytics and international data
+  processing. No reliable audience evidence or complete developer-listing
+  agreement was found. Ask the unanswered questions first; do not submit the
+  game on the strength of a promising form alone.
+
+These are evidence-led exclusions, not claims that the sites are bad. A route
+can return to review when its exact technical, audience and family boundaries
+are clear.
+
 ## Rules for every route
 
 - One community experiment at a time.
@@ -88,3 +111,10 @@ The machine-readable register is
 - https://developers.poki.com/guide/what-we-look-for
 - https://developers.poki.com/guide/revenue-deal-types
 - https://developer.crazygames.com/games
+- https://www.reddit.com/r/BrowserGames/
+- https://slowden.com/submit/
+- https://slowden.com/safety/
+- https://www.playmategames.com/developers
+- https://www.playmategames.com/information-for-parents
+- https://www.playmategames.com/privacy
+- https://www.playmategames.com/terms

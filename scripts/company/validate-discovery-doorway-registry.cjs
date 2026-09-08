@@ -52,6 +52,19 @@ requireValue(/excluded_for_now/.test(routes.find(route => route.id === 'newgroun
 requireValue(routes.find(route => route.id === 'poki')?.state === 'option_preserved_not_submitted', 'Poki option state is invalid');
 requireValue(/later_waiting/.test(routes.find(route => route.id === 'crazygames')?.state || ''), 'CrazyGames must remain a later review');
 
+const screenedNotQueued = registry.screenedNotQueued || [];
+requireValue(screenedNotQueued.length === 3, 'three additional routes must remain explicitly screened outside the queue');
+requireValue(new Set(screenedNotQueued.map(route => route.id)).size === screenedNotQueued.length, 'screened route ids must be unique');
+requireValue(screenedNotQueued.find(route => route.id === 'browsergames-reddit')?.state === 'not_available_community_private', 'private r/BrowserGames must not enter the public queue');
+const slowDen = screenedNotQueued.find(route => route.id === 'slowden');
+requireValue(slowDen?.submissionPublishesImmediately === true, 'SlowDen immediate-publication boundary is missing');
+requireValue(slowDen?.currentOwnedGameAllowsThirdPartyFraming === false, 'SlowDen framing incompatibility is missing');
+requireValue(/advertising|ad environment/i.test(`${slowDen?.whyNotQueued || ''} ${slowDen?.nextReviewTrigger || ''}`), 'SlowDen advertising review is missing');
+const playMateGames = screenedNotQueued.find(route => route.id === 'playmategames');
+requireValue(playMateGames?.submissionCollectsAdultEmail === true, 'PlayMateGames email-transmission boundary is missing');
+requireValue(playMateGames?.currentOwnedGameAllowsThirdPartyFraming === false, 'PlayMateGames framing boundary is missing');
+requireValue(/action-time approval/i.test(playMateGames?.nextReviewTrigger || ''), 'PlayMateGames form must remain behind action-time approval');
+
 for (const route of routes) {
     requireValue(Boolean(route.id && route.name && route.kind && route.audienceIntent && route.state && route.nextNeed), `${route.id || 'route'} is incomplete`);
     requireValue(Array.isArray(route.sources) && route.sources.length > 0, `${route.id || 'route'} has no source evidence`);
@@ -62,6 +75,17 @@ for (const route of routes) {
     }
     if (route.needs?.adultAccount || route.needs?.termsAcceptance) {
         requireValue(!/^(?:published|submitted|live)(?:_|$)/.test(route.state), `${route.id} claims publication before account or terms approval`);
+    }
+}
+
+for (const route of screenedNotQueued) {
+    requireValue(Boolean(route.id && route.name && route.state && route.whyNotQueued && route.nextReviewTrigger), `${route.id || 'screened route'} is incomplete`);
+    requireValue(!/^ready|published|submitted/.test(route.state), `${route.id} was incorrectly admitted or activated`);
+    requireValue(Array.isArray(route.sources) && route.sources.length > 0, `${route.id} has no source evidence`);
+    for (const source of route.sources || []) {
+        requireValue(/^https:\/\//.test(source.url || ''), `${route.id} has a non-HTTPS source`);
+        requireValue(source.observedOn === registry.checkedOn, `${route.id} source date is stale`);
+        requireValue(Boolean(source.finding), `${route.id} source finding is missing`);
     }
 }
 
@@ -90,10 +114,15 @@ for (const phrase of [
     'IndieDB', 'HTML5 Game Devs', 'TIGSource DevLog', 'Game Jolt', 'r/playmygame',
     'r/IndieGaming', 'r/IndieGames', 'Newgrounds', 'Poki', 'CrazyGames',
     'One community experiment at a time', 'A post view is not a player',
-    'Generated art is disclosed and never presented as gameplay'
+    'Generated art is disclosed and never presented as gameplay',
+    'Checked, but not admitted to the queue', 'r/BrowserGames', 'SlowDen',
+    'PlayMateGames', 'blocks all third-party framing'
 ]) requireValue(copy.includes(phrase), `plain-language registry is missing: ${phrase}`);
 for (const route of routes) {
     for (const source of route.sources || []) requireValue(copy.includes(source.url), `plain-language registry is missing source: ${source.url}`);
+}
+for (const route of screenedNotQueued) {
+    for (const source of route.sources || []) requireValue(copy.includes(source.url), `plain-language registry is missing screened source: ${source.url}`);
 }
 
 requireValue(packageJson.scripts?.['validate:discovery-doorways'] === 'node scripts/company/validate-discovery-doorway-registry.cjs', 'discovery doorway validation command is missing');
@@ -109,6 +138,7 @@ if (errors.length) {
 console.log(JSON.stringify({
     valid: true,
     checkedRoutes: routes.length,
+    screenedNotQueued: screenedNotQueued.length,
     immediateRoute: immediate[0].name,
     externalActionTaken: false,
     nextRequiredAction: registry.nextRequiredAction

@@ -81,7 +81,9 @@ detailed evidence; it turns that evidence into the decisions that matter now.
   a changing community estimate—not reach and not a player count. A community
   search showed no existing Mythical Void post.
 - Thirteen discovery routes have now been checked and put in a deliberate
-  order. The first remains r/WebGames. A complete IndieDB page pack is also
+  order. Three more were screened and kept out: r/BrowserGames is private, and
+  two directory-style portals still have framing, advertising, age, privacy or
+  listing questions. The first real route remains r/WebGames. A complete IndieDB page pack is also
   ready for later: it contains honest game copy, the father-and-son beginning,
   clear AI and NASA wording, and only approved brand art. No IndieDB account was
   opened, no terms were accepted and no page was created or published.
