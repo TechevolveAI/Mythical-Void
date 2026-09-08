@@ -33,6 +33,7 @@ published.state = 'seven_day_read_in_progress';
 Object.assign(published.approval, {
     existingAdultAccountConfirmed: true,
     exactPostApprovedAtActionTime: true,
+    exactPostApprovedAt: '2026-09-08T11:58:00.000Z',
     approvedBy: 'Kevin',
     replyCoverageConfirmed: true
 });
@@ -55,9 +56,15 @@ published.publication = {
 published.observations.day2.dueAt = '2026-09-10T12:00:00.000Z';
 published.observations.day7.dueAt = '2026-09-15T12:00:00.000Z';
 assert.deepStrictEqual(validateCommunityRun({ ...base, run: published }), []);
+const stalePreflight = clone(published);
+stalePreflight.preflight.rulesRecheckedAt = '2026-09-08T08:00:00.000Z';
+assert(validateCommunityRun({ ...base, run: stalePreflight }).some(failure => failure.includes('rules check must be fresh')));
+const undatedApproval = clone(published);
+undatedApproval.approval.exactPostApprovedAt = null;
+assert(validateCommunityRun({ ...base, run: undatedApproval }).some(failure => failure.includes('action-time gate')));
 assert.deepStrictEqual(statusForRun(published, new Date('2026-09-09T12:00:00Z')).observationsDue, []);
 assert.deepStrictEqual(statusForRun(published, new Date('2026-09-10T12:00:00Z')).observationsDue, ['day2']);
 published.observations.day2.checkedAt = '2026-09-10T12:05:00.000Z';
 assert.deepStrictEqual(statusForRun(published, new Date('2026-09-15T12:00:00Z')).observationsDue, ['day7']);
 
-console.log('Community discovery run safeguards passed (12 cases).');
+console.log('Community discovery run safeguards passed (14 cases).');

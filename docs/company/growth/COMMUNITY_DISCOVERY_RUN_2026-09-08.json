@@ -16,6 +16,7 @@
     "newAccountAuthorized": false,
     "termsAcceptanceAuthorized": false,
     "exactPostApprovedAtActionTime": false,
+    "exactPostApprovedAt": null,
     "approvedBy": null,
     "adultReplyOwner": "Kevin",
     "replyCoverageConfirmed": false

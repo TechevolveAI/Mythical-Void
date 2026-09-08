@@ -7,6 +7,7 @@ const RUN_PATH = 'docs/company/growth/COMMUNITY_DISCOVERY_RUN_2026-09-08.json';
 const PLAN_PATH = 'docs/company/growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08.json';
 
 const nullableWholeNumber = value => value === null || (Number.isInteger(value) && value >= 0);
+const validOptionalDate = value => value === null || Boolean(Date.parse(value));
 
 function validateCommunityRun({ run, plan }) {
     const failures = [];
@@ -28,9 +29,11 @@ function validateCommunityRun({ run, plan }) {
     requireValue(preflight.automaticLinkPreviewCheckedAt === null || Boolean(Date.parse(preflight.automaticLinkPreviewCheckedAt)), 'automatic link preview check time is invalid');
     requireValue(preflight.automaticLinkPreviewHttpStatus === null || preflight.automaticLinkPreviewHttpStatus === 200, 'automatic link preview status must be null or 200');
     requireValue(preflight.automaticLinkPreviewMatchesExpected === null || preflight.automaticLinkPreviewMatchesExpected === true, 'automatic link preview cannot be recorded as mismatched');
+    requireValue(validOptionalDate(approval.exactPostApprovedAt), 'exact post approval time is invalid');
 
     const actionReady = approval.existingAdultAccountConfirmed === true &&
         approval.exactPostApprovedAtActionTime === true &&
+        approval.exactPostApprovedAt !== null &&
         approval.approvedBy === 'Kevin' &&
         approval.adultReplyOwner === 'Kevin' &&
         approval.replyCoverageConfirmed === true &&
@@ -48,6 +51,19 @@ function validateCommunityRun({ run, plan }) {
         requireValue(actionReady, 'publication is recorded without every action-time gate');
         requireValue(/^https:\/\/(?:www\.)?reddit\.com\/r\/WebGames\/comments\//.test(publication.postUrl || ''), 'publication needs the real r/WebGames post URL');
         requireValue(Boolean(Date.parse(publication.publishedAt || '')), 'publication needs a valid time');
+        const publishedAt = Date.parse(publication.publishedAt || '');
+        const freshnessRules = [
+            ['exact post approval', approval.exactPostApprovedAt, 30 * 60 * 1000],
+            ['rules check', preflight.rulesRecheckedAt, 2 * 60 * 60 * 1000],
+            ['duplicate check', preflight.duplicateRecheckedAt, 2 * 60 * 60 * 1000],
+            ['live game check', preflight.liveGameCheckedAt, 2 * 60 * 60 * 1000],
+            ['opening journey check', preflight.openingJourneyPassedAt, 2 * 60 * 60 * 1000],
+            ['automatic link preview check', preflight.automaticLinkPreviewCheckedAt, 2 * 60 * 60 * 1000]
+        ];
+        for (const [label, checkedAt, maximumAge] of freshnessRules) {
+            const checkedAtTime = Date.parse(checkedAt || '');
+            requireValue(Number.isFinite(checkedAtTime) && checkedAtTime <= publishedAt && publishedAt - checkedAtTime <= maximumAge, `${label} must be fresh and completed before publication`);
+        }
     } else {
         requireValue(publication.postUrl === null && publication.publishedAt === null, 'an unpublished run cannot have a post URL or time');
     }
