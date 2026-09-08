@@ -8,6 +8,11 @@ detailed evidence; it turns that evidence into the decisions that matter now.
 - **The game is playable:** the website and browser game are live at
   [mythicalvoid.com](https://mythicalvoid.com/) and
   [Play Mythical Void](https://mythicalvoid.com/play/).
+- **The direct game link now introduces itself correctly:** `/play/` has its own
+  web address and share identity, while keeping the approved brand card clearly
+  labelled as brand art rather than gameplay. The community launch check now
+  tests this exact page instead of allowing a healthy homepage to hide a broken
+  game link.
 - **The first-contact layout repair is live:** the creature is larger, centred
   and no longer shown on a rectangular block. This was a technical improvement,
   not approval of the creature artwork.
@@ -85,8 +90,9 @@ detailed evidence; it turns that evidence into the decisions that matter now.
 
 **Approve one direct-link r/WebGames test from an adult Reddit account.**
 
-The game, link preview, title, first comment, truth checks and observation plan
-are ready. Nothing has been posted. To run it, Kevin needs to:
+The game, direct-link identity, link preview, title, first comment, truth checks
+and observation plan are ready. Nothing has been posted. To run it, Kevin needs
+to:
 
 1. Confirm an existing adult Reddit account, or separately approve making one
    and personally accept its terms.

@@ -30,3 +30,18 @@ This is a capacity guard, not a release shortcut. It does not deploy, change a
 hosting plan, spend money, weaken tests, or treat an internal record as public.
 When Netlify's allowance becomes available again, real player-facing changes
 will still receive the normal production checks.
+
+## What happened later that day
+
+Netlify also skipped production deploy `6aa0732848e62100096cde30` for protected
+main commit `f3622d644f14f962e7852d1c033c1ac85510bb1c`, this time after a real public
+change. The exact PR build had already passed the required checks as ready
+deploy `6aa07296dca6c000088eae8c`. That immutable build was promoted to production,
+then the live homepage and `/play/` addresses were checked independently.
+
+This is an emergency capacity path, not the normal release path. Reuse it only
+when the production build was skipped solely for exhausted credits, the exact
+PR deploy is ready, the PR is merged through protected main with no additional
+content, and the live result is checked afterwards. Never promote a failed,
+unreviewed, stale or source-mismatched preview. Restoring a previous deploy does
+not prove that a later source change is live.

@@ -11,6 +11,7 @@ const {
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const LIVE_ORIGIN = 'https://mythicalvoid.com';
+const EXPECTED_GAME_URL = `${LIVE_ORIGIN}/play/`;
 const RULES_URL = 'https://www.reddit.com/r/WebGames/about/rules';
 const DUPLICATE_URL = 'https://www.reddit.com/r/WebGames/search/?q=%22Mythical%20Void%22&restrict_sr=1&sort=new';
 const EXPECTED_PREVIEW = `${LIVE_ORIGIN}/marketing/mythical-void-brand-link-card-v1.png`;
@@ -52,6 +53,40 @@ function parseMeta(html, attribute, name) {
     return html.match(expression)?.[1] || null;
 }
 
+function parseLink(html, rel) {
+    const escaped = rel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const expression = new RegExp(`<link\\s+[^>]*rel=["']${escaped}["'][^>]*href=["']([^"']+)["'][^>]*>`, 'i');
+    return html.match(expression)?.[1] || null;
+}
+
+function evaluateDirectPlayDocument(status, html) {
+    const previewUrl = parseMeta(html, 'property', 'og:image');
+    const previewAlt = parseMeta(html, 'property', 'og:image:alt');
+    const openGraphUrl = parseMeta(html, 'property', 'og:url');
+    const canonicalUrl = parseLink(html, 'canonical');
+    const entryIdentity = parseMeta(html, 'name', 'mythical-entry');
+    const liveGameOk = status === 200 &&
+        html.includes("path === '/play'") &&
+        /<script\s+type=["']module["'][^>]+src=["']\/assets\/index-[^"']+\.js["']/.test(html) &&
+        /<title>[^<]*Mythical Void[^<]*<\/title>/i.test(html);
+    const previewMetadataOk = status === 200 &&
+        entryIdentity === 'direct-play' &&
+        canonicalUrl === EXPECTED_GAME_URL &&
+        openGraphUrl === EXPECTED_GAME_URL &&
+        previewUrl === EXPECTED_PREVIEW &&
+        /brand art.+not gameplay/i.test(previewAlt || '');
+
+    return {
+        liveGameOk,
+        previewMetadataOk,
+        previewUrl,
+        previewAlt,
+        openGraphUrl,
+        canonicalUrl,
+        entryIdentity
+    };
+}
+
 function freshnessFailure(value, nowMs, maximumAgeMs, label) {
     const checkedAt = Date.parse(value || '');
     if (!Number.isFinite(checkedAt)) return `${label} is missing or invalid`;
@@ -81,7 +116,7 @@ function evaluatePreflight({ run, plan, actionEvidence, probes, openingJourneyPa
     const expectedPostHash = preparedPostSha256(run.preparedPost || {});
 
     if (run.publication?.posted !== false) failures.push('the first community run is already published');
-    if (run.preparedPost?.url !== `${LIVE_ORIGIN}/play/`) failures.push('the prepared post lost the clean game link');
+    if (run.preparedPost?.url !== EXPECTED_GAME_URL) failures.push('the prepared post lost the clean game link');
     if (!probes.liveGameOk) failures.push('the live game doorway failed');
     if (!probes.previewMetadataOk) failures.push('the automatic preview metadata failed');
     if (!probes.previewImageOk) failures.push('the automatic preview image failed');
@@ -147,28 +182,13 @@ function evaluatePreflight({ run, plan, actionEvidence, probes, openingJourneyPa
 }
 
 async function probePublicState(fetchImpl = fetch) {
-    const playResponse = await fetchImpl(`${LIVE_ORIGIN}/play/`, {
+    const playResponse = await fetchImpl(EXPECTED_GAME_URL, {
         method: 'GET',
         redirect: 'follow',
         headers: { Accept: 'text/html' }
     });
     const playHtml = await playResponse.text();
-    const liveGameOk = playResponse.status === 200 &&
-        playHtml.includes("path === '/play'") &&
-        /<script\s+type=["']module["'][^>]+src=["']\/assets\/index-[^"']+\.js["']/.test(playHtml) &&
-        /<title>[^<]*Mythical Void[^<]*<\/title>/i.test(playHtml);
-
-    const homepageResponse = await fetchImpl(`${LIVE_ORIGIN}/`, {
-        method: 'GET',
-        redirect: 'follow',
-        headers: { Accept: 'text/html' }
-    });
-    const homepageHtml = await homepageResponse.text();
-    const previewUrl = parseMeta(homepageHtml, 'property', 'og:image');
-    const previewAlt = parseMeta(homepageHtml, 'property', 'og:image:alt');
-    const previewMetadataOk = homepageResponse.status === 200 &&
-        previewUrl === EXPECTED_PREVIEW &&
-        /brand art.+not gameplay/i.test(previewAlt || '');
+    const directPlay = evaluateDirectPlayDocument(playResponse.status, playHtml);
 
     const previewResponse = await fetchImpl(EXPECTED_PREVIEW, {
         method: 'GET',
@@ -198,11 +218,14 @@ async function probePublicState(fetchImpl = fetch) {
     return {
         checkedAt: new Date().toISOString(),
         liveGameStatus: playResponse.status,
-        liveGameOk,
-        previewMetadataStatus: homepageResponse.status,
-        previewMetadataOk,
-        previewUrl,
-        previewAlt,
+        liveGameOk: directPlay.liveGameOk,
+        previewMetadataStatus: playResponse.status,
+        previewMetadataOk: directPlay.previewMetadataOk,
+        previewUrl: directPlay.previewUrl,
+        previewAlt: directPlay.previewAlt,
+        openGraphUrl: directPlay.openGraphUrl,
+        canonicalUrl: directPlay.canonicalUrl,
+        entryIdentity: directPlay.entryIdentity,
         previewImageStatus: previewResponse.status,
         previewImageBytes: previewBytes.length,
         previewImageOk,
@@ -314,11 +337,14 @@ module.exports = {
     APPROVAL_MAX_AGE_MS,
     CHECK_MAX_AGE_MS,
     DUPLICATE_URL,
+    EXPECTED_GAME_URL,
     EXPECTED_PREVIEW,
     RULES_URL,
+    evaluateDirectPlayDocument,
     evaluatePreflight,
     freshnessFailure,
     parseArguments,
+    parseLink,
     parseMeta,
     preparedPostSha256,
     probePublicState,
