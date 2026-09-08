@@ -5,6 +5,10 @@ const handoffSource = fs.readFileSync(
     path.join(__dirname, '../ui/LivingFormHandoff.js'),
     'utf8'
 );
+const hatchChallengeShareSource = fs.readFileSync(
+    path.join(__dirname, '../utils/HatchChallengeShare.js'),
+    'utf8'
+);
 const soulSource = fs.readFileSync(
     path.join(__dirname, '../scenes/SoulRevealScene.js'),
     'utf8'
@@ -168,17 +172,23 @@ describe('living form milestone handoff', () => {
     });
 
     test('offers only a clean optional game link after hatching', () => {
-        expect(handoffSource).toContain("text: 'I just hatched an alien creature");
-        expect(handoffSource).toContain(
+        expect(hatchChallengeShareSource).toContain(
+            "text: 'I just hatched an alien creature"
+        );
+        expect(hatchChallengeShareSource).toContain(
             "url: 'https://mythicalvoid.com/hatch-challenge/'"
         );
-        expect(handoffSource).toContain('window.navigator?.share');
-        expect(handoffSource).toContain(
-            'window.navigator.clipboard.writeText(HATCH_SHARE_DATA.url)'
+        expect(hatchChallengeShareSource).toContain('navigatorValue?.share');
+        expect(hatchChallengeShareSource).toContain(
+            'navigatorValue.clipboard.writeText('
         );
-        expect(handoffSource).not.toContain('gtag(');
-        expect(handoffSource).not.toContain('sendBeacon(');
-        expect(handoffSource).not.toContain('files:');
+        expect(hatchChallengeShareSource).toContain(
+            'HATCH_CHALLENGE_SHARE_DATA.url'
+        );
+        expect(hatchChallengeShareSource).not.toContain('gtag(');
+        expect(hatchChallengeShareSource).not.toContain('sendBeacon(');
+        expect(hatchChallengeShareSource).not.toContain('files:');
+        expect(handoffSource).toContain('shareHatchChallenge(window.navigator)');
         expect(handoffSource.indexOf("'living-form-share'")).toBeGreaterThan(-1);
         expect(handoffSource.indexOf("'living-form-continue'")).toBeGreaterThan(-1);
     });

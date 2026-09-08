@@ -9,11 +9,14 @@ const root = rootFlag === -1
     : path.resolve(process.argv[rootFlag + 1] || '');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 const handoff = read('src/ui/LivingFormHandoff.js');
+const menu = read('src/ui/HamburgerMenu.js');
+const shareHelper = read('src/utils/HatchChallengeShare.js');
 const hatchPage = read('public/hatch-challenge/index.html');
 const release = JSON.parse(read('docs/company/content/generated/hatch-challenge-invitation-release.json'));
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 const method = handoff.match(/async shareGame\(event\) \{([\s\S]*?)\n    \}\n\n    destroy/)?.[1] || '';
+const helperMethod = shareHelper.match(/export async function shareHatchChallenge\([\s\S]*?\n\}/)?.[0] || '';
 
 requireValue(release.releaseId === 'HATCH-CHALLENGE-INVITATION-2026-08-27', 'release identity is missing');
 requireValue(['prepared_for_owned_game_release', 'live_production_verified'].includes(release.state), 'public release state is invalid');
@@ -25,10 +28,11 @@ requireValue(handoff.includes("'INVITE SOMEONE'"), 'hatch challenge action is mi
 requireValue(handoff.includes("'living-form-share'"), 'hatch share action is not connected');
 requireValue(handoff.includes("'living-form-continue'"), 'primary continuation is missing');
 requireValue(method.length > 0, 'hatch share method is missing');
-requireValue(method.includes('window.navigator?.share') && method.includes('window.navigator?.clipboard?.writeText'), 'native share or clipboard fallback is missing');
-requireValue(method.includes("error?.name === 'AbortError'") && method.includes("result = 'cancelled'"), 'cancelled device sharing is not handled quietly');
+requireValue(method.includes('shareHatchChallenge(window.navigator)'), 'first reveal is not using the shared clean invitation');
+requireValue(helperMethod.includes('navigatorValue?.share') && helperMethod.includes('navigatorValue?.clipboard?.writeText'), 'native share or clipboard fallback is missing');
+requireValue(helperMethod.includes("error?.name === 'AbortError'") && helperMethod.includes("return 'cancelled'"), 'cancelled device sharing is not handled quietly');
 for (const forbidden of ['GameState', 'creatureName', 'safeName', 'species', 'genetics', 'portrait', 'localStorage', 'sessionStorage', 'fetch(', 'sendBeacon(', 'gtag(', 'dataLayer', 'XMLHttpRequest', 'files:']) {
-    requireValue(!method.includes(forbidden), `share method contains forbidden data or operation ${forbidden}`);
+    requireValue(!helperMethod.includes(forbidden), `share method contains forbidden data or operation ${forbidden}`);
 }
 
 requireValue(release.publicExperience?.buttonLabel === 'INVITE SOMEONE', 'hatch challenge label drifted');
@@ -36,7 +40,12 @@ requireValue(release.publicExperience?.url === 'https://mythicalvoid.com/hatch-c
 requireValue(release.publicExperience?.gameEntry === '/play/#hatch-challenge', 'challenge game entry drifted');
 requireValue(release.publicExperience?.invitedPlayerGuidance === true, 'invited-player guidance is missing');
 requireValue(release.publicExperience?.comparisonAreas?.join('|') === 'form|colour|markings|nature|affinity|rare changes', 'comparison guidance drifted');
-requireValue(handoff.includes(`url: '${release.publicExperience.url}'`), 'implemented share route drifted');
+requireValue(shareHelper.includes(`url: '${release.publicExperience.url}'`), 'implemented share route drifted');
+requireValue(release.publicExperience?.persistentEntry?.screen === 'Sanctuary menu', 'persistent invitation screen is missing');
+requireValue(release.publicExperience?.persistentEntry?.buttonLabel === 'Invite someone', 'persistent invitation label drifted');
+requireValue(release.publicExperience?.persistentEntry?.automaticShare === false, 'persistent invitation must remain voluntary');
+requireValue(menu.includes("key: 'invite', label: 'Invite someone'"), 'Sanctuary menu invitation is missing');
+requireValue(menu.includes('shareHatchChallenge(window.navigator)'), 'Sanctuary menu is not using the shared clean invitation');
 requireValue((hatchPage.match(/href="\/play\/#hatch-challenge"/g) || []).length >= 4, 'Hatch Challenge Play links must preserve the clean challenge entry');
 requireValue(handoff.includes("window.location?.hash === '#hatch-challenge'"), 'game does not recognize the clean challenge entry');
 requireValue(handoff.includes("'living-form-challenge'"), 'invited-player comparison panel is missing');
@@ -59,6 +68,9 @@ if (release.state === 'live_production_verified') {
     requireValue(release.verification?.cleanShareUrlPresentInGameBundle === true, 'live bundle is missing the clean Hatch Challenge route');
     requireValue(release.verification?.challengeEntryPresentOnLandingPage === true, 'live landing page is missing the challenge entry');
     requireValue(release.verification?.comparisonGuidancePresentInGameBundle === true, 'live bundle is missing comparison guidance');
+    requireValue(release.verification?.persistentMenuCandidate?.sourceReady === true, 'persistent invitation candidate source is missing');
+    requireValue(release.verification?.persistentMenuCandidate?.productionCommit === null, 'pending persistent invitation must not claim a production commit');
+    requireValue(release.verification?.persistentMenuCandidate?.productionDeployId === null, 'pending persistent invitation must not claim a production deploy');
 }
 if (release.state === 'prepared_for_owned_game_release') {
     requireValue(release.verification?.productionCommit === null, 'pending release must not claim a production commit');

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "releaseId": "HATCH-SHARING-LOOP-2026-08-27",
   "state": "live_production_verified",
-  "purpose": "Give a player a gentle, voluntary way to pass Mythical Void on immediately after the first creature reveal.",
+  "purpose": "Give a player a gentle, voluntary way to pass Mythical Void on after the first creature reveal and later from the Sanctuary menu.",
   "trigger": {
     "screen": "LivingFormHandoff",
     "moment": "first_named_creature_living_form_reveal",
@@ -12,14 +12,20 @@
     "continueRemainsPrimary": true
   },
   "share": {
-    "buttonLabel": "SHARE THE GAME",
-    "title": "Mythical Void — a free alien creature adventure",
-    "text": "I just hatched a creature in Mythical Void. See what hatches for you in this free browser adventure.",
-    "url": "https://mythicalvoid.com/playable-now/#find-your-way/create",
+    "buttonLabel": "INVITE SOMEONE",
+    "title": "The Mythical Void Hatch Challenge",
+    "text": "I just hatched an alien creature. Hatch yours from the same starting point, then compare what the creature engine made.",
+    "url": "https://mythicalvoid.com/hatch-challenge/",
     "trackingParametersAdded": false,
     "nativeDeviceSharePreferred": true,
     "clipboardFallback": true,
     "imageIncluded": false
+  },
+  "persistentEntry": {
+    "state": "prepared_for_owned_game_release",
+    "screen": "Sanctuary menu",
+    "buttonLabel": "Invite someone",
+    "automaticShare": false
   },
   "privacy": {
     "saveDataReadForShare": false,

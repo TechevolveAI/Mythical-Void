@@ -5,7 +5,7 @@
   "purpose": "Turn the creature engine into a simple person-to-person reason to start playing without pretending Mythical Void is multiplayer.",
   "publicRoute": "https://mythicalvoid.com/hatch-challenge/",
   "promise": {
-    "headline": "Same signal. Two creatures. What will hatch?",
+    "headline": "Same starting point. Two creatures. What will hatch?",
     "participants": 2,
     "steps": [
       "Send one clean challenge link to someone already known to the sender",
@@ -26,6 +26,13 @@
     "clipboardFallback": true,
     "automaticShare": false,
     "playerActionRequired": true
+  },
+  "persistentEntry": {
+    "state": "prepared_for_owned_game_release",
+    "screen": "Sanctuary menu",
+    "buttonLabel": "Invite someone",
+    "automaticShare": false,
+    "sameCleanChallengeUrl": true
   },
   "privacy": {
     "recipientCollected": false,
