@@ -125,7 +125,8 @@ for (const required of [
 ]) {
     if (!normalizedReadme.includes(required)) failures.push(`public GitHub doorway is missing: ${required}`);
 }
-if (!normalizedReadme.includes('father-and-son experiment') || !normalizedReadme.includes('nine-year-old son')) failures.push('public GitHub doorway is missing the founding story');
+if (!normalizedReadme.includes('father-and-son experiment') || !normalizedReadme.includes('Kevin and his son')) failures.push('public GitHub doorway is missing the founding story');
+if (/\b(?:nine|9)[ -]year[ -]old\b/i.test(readme)) failures.push("public GitHub doorway publishes the founder's child's exact age");
 if (!normalizedReadme.includes('NASA does not make or endorse the game')) failures.push('public GitHub doorway is missing the NASA boundary');
 if (/World Size:\s*1600x1200|20 trees|30 rocks|40 interactive flowers|Canvas Size:\s*800x600/i.test(readme)) failures.push('public GitHub doorway still describes the obsolete prototype world');
 if (/\bcompanions?\b|\bsignal\b/i.test(readme)) failures.push('public GitHub doorway uses retired player-facing wording');

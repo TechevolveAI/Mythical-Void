@@ -6,7 +6,7 @@ The activity is for ages 9-14, families, clubs and classrooms. It is adult-led f
 
 ## The simple story
 
-Mythical Void began when Kevin and his nine-year-old son explored what imagination and generative AI tools could make possible. The STEM Creature Lab turns that same starting question into something other families and classrooms can try.
+Mythical Void began when Kevin and his son explored what imagination and generative AI tools could make possible. The STEM Creature Lab turns that same starting question into something other families and classrooms can try.
 
 The science and fiction stay clearly separate:
 
@@ -21,7 +21,7 @@ Mythical Void is independent. NASA does not endorse the game or the activity.
 
 **A real space clue. An impossible world. A creature nobody expected.**
 
-Mythical Void began as a father-and-son question: what could a nine-year-old's imagination and today's creative tools make possible?
+Mythical Void began as a father-and-son question: what could a child's imagination and today's creative tools make possible?
 
 We have turned that question into a free STEM Creature Lab for ages 9-14. Start with a real NASA image, invent an organism from another dimension, then test the idea like a scientist and a game designer.
 
@@ -49,7 +49,7 @@ There is a new angle on Mythical Void beyond the playable browser game: a free a
 
 ## A five-piece social sequence
 
-1. **The origin:** Kevin and his nine-year-old son asking what imagination and generative AI could build together.
+1. **The origin:** Kevin and his son asking what imagination and generative AI could build together.
 2. **The real clue:** show how observing comes before guessing. Use a credited NASA source, never cropped away from its credit.
 3. **The impossible organism:** share one blank activity page or an adult-created example, not a child's work.
 4. **The test:** explain the difference between an observation, a fictional idea and a prediction.

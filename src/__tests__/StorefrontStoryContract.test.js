@@ -83,12 +83,14 @@ describe('storefront Project Beacon story contract', () => {
     });
 
     test('tells the true father-and-son origin of the studio', () => {
-        expect(storefront).toContain('A dad. His nine-year-old son.');
+        expect(storefront).toContain('A dad. His son.');
         expect(storefront).toContain('father-and-son project');
-        expect(storefront).toContain('Kevin and his nine-year-old son');
+        expect(storefront).toContain('Kevin and his son');
         expect(storefront).toContain('generative AI tools');
         expect(storefront).toContain('Imagination still leads');
         expect(storefront).toContain('Children deserve care');
+        expect(storefront).not.toMatch(/\b(?:nine|9)[ -]year[ -]old\b/i);
+        expect(pressFactSheet).not.toMatch(/\b(?:nine|9)[ -]year[ -]old\b/i);
     });
 
     test('turns real genetics runs into an immersive creature-universe hero', () => {

@@ -18,7 +18,7 @@ detailed evidence; it turns that evidence into the decisions that matter now.
   not approval of the creature artwork.
 - **The public story is live:** people can read the father-and-son beginning,
   the family guide, the NASA and STEM explanation, the updates and the game
-  story without creating an account.
+  story without creating an account. It does not publish the child’s exact age.
 - **The game now speaks more plainly:** player-facing screens use creature and
   specific words such as message, clue, current, route and life call. The
   corrected live game file was checked directly after deployment.

@@ -60,6 +60,9 @@ rejected('child direct messages', 'private child contact must remain forbidden',
 rejected('retired wording', 'companion wording', value => {
     value.channels[0].publicIdentity.tagline = 'A universe of companions.';
 });
+rejected('child exact age', "child's exact age", value => {
+    value.channels[0].publicIdentity.about = value.channels[0].publicIdentity.about.replace('Kevin and his son', 'Kevin and his nine-year-old son');
+});
 rejected('false uniqueness promise', 'unsupported creature claim', value => {
     value.channels[1].publicIdentity.description = 'Every creature is unique. NASA does not endorse Mythical Void.';
 });

@@ -66,7 +66,7 @@ SAFE EDITORIAL USE
 Adults, journalists and creators may use these assets for truthful coverage of Mythical Void when the media truth above is kept clear. Do not describe the branded layout as raw gameplay. Do not imply that NASA endorses Mythical Void. Do not claim that every creature is globally unique, sentient or conscious.
 
 CHILD SAFEGUARDING
-The studio story may say that Mythical Void began as a father-and-son project and that the son was nine when it began. Do not add a child's name, photograph, quotation, contact route or identifying detail. Do not invite children to contact the studio directly.
+The studio story may say that Mythical Void began as a father-and-son project. Do not publish the child's exact age or add a child's name, photograph, quotation, contact route or identifying detail. Do not invite children to contact the studio directly.
 
 OFFICIAL MYTHICAL VOID POSTS
 Publishing through an official Mythical Void social account still requires Kevin's approval. Follow OFFICIAL_CHANNEL_RELEASE_CHECKLIST.txt before an official post.
@@ -125,7 +125,7 @@ If any box cannot be checked, stop and ask Kevin before publishing.
         contents: contentRecords,
         mediaTruth: 'The complete moving game frame is real Mythical Void gameplay. The surrounding branded layout is not gameplay. No generated motion, replacement scenery, replacement interface or replacement audio was added.',
         authority: {
-            truthfulEditorialUsePermitted: true,
+            truthfulEditorialUsePermitted: false,
             officialMythicalVoidSocialPublicationAuthorized: false,
             kevinApprovalRequiredBeforeOfficialPublication: true,
             creatorOutreachSendingAuthorized: false,
@@ -165,7 +165,8 @@ If any box cannot be checked, stop and ask Kevin before publishing.
     const outerManifest = {
         schemaVersion: 1,
         releaseId: packageManifest.releaseId,
-        state: 'owned_press_room_release_waiting_for_external_channel_and_kevin_approval',
+        state: 'withdrawn_visual_quality_failed_do_not_publish',
+        withdrawalReason: 'The package contains the withdrawn social video set and must not be used or shared.',
         archive: {
             filename: path.basename(archivePath),
             publicUrl: `https://mythicalvoid.com/press/creator-kit/${path.basename(archivePath)}`,
@@ -180,7 +181,7 @@ If any box cannot be checked, stop and ask Kevin before publishing.
         ].sort((a, b) => a.path.localeCompare(b.path)),
         mediaSourceManifest: 'https://mythicalvoid.com/press/social-video/manifest.json',
         cleanPlayUrl: packageManifest.cleanPlayUrl,
-        permissions: 'Adults, press and creators may use the package for truthful editorial coverage when the included media disclosures are preserved.',
+        permissions: 'Withdrawn. Do not publish, share or use this package.',
         authority: packageManifest.authority
     };
     writeText(manifestPath, `${JSON.stringify(outerManifest, null, 2)}\n`);

@@ -7,6 +7,9 @@ actually live or prepared on 8 September 2026.
 
 - The game, story, family guide, studio story, creature pages, NASA and STEM
   pages, press room, updates and “find your way in” page are live.
+- The public father-and-son story keeps its warmth without publishing the
+  child’s exact age. The same privacy rule now covers the website, press facts,
+  public project page and prepared channel copy.
 - Player-facing screens now use **creature** and clear words such as message,
   clue, current, route and life call instead of vague repeated terms. The
   corrected production files were checked directly after release.

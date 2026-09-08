@@ -106,7 +106,7 @@ function validate(values) {
     const captionsPath = 'mythical-void-creator-kit/captions/authentic-gameplay-caption-pack.json';
     const emblemPath = 'mythical-void-creator-kit/brand/mythical-void-emblem-v3.png';
     const factSheetPath = 'mythical-void-creator-kit/facts/mythical-void-fact-sheet.txt';
-    requireValue(sha256(files.get(captionsPath) || Buffer.alloc(0)) === 'd4ba65588da0f0e559e0b55e8372bc37738f915be5571b9fec71a7976e8c9567', 'archived caption pack changed from the exact withdrawn package record');
+    requireValue(sha256(files.get(captionsPath) || Buffer.alloc(0)) === sha256(captionsBuffer), 'caption pack is not the checked public withdrawal record');
     let publicCaptions = {};
     try { publicCaptions = JSON.parse(captionsBuffer.toString('utf8')); } catch (error) { failures.push('public caption withdrawal record is not valid JSON'); }
     requireValue(publicCaptions.state === 'withdrawn_visual_quality_failed_do_not_publish' && publicCaptions.authority?.publicPressRoomPublicationAuthorized === false, 'public captions are not withdrawn');
@@ -120,7 +120,8 @@ function validate(values) {
     const readme = (files.get('mythical-void-creator-kit/README.txt') || Buffer.alloc(0)).toString('utf8');
     const checklist = (files.get('mythical-void-creator-kit/OFFICIAL_CHANNEL_RELEASE_CHECKLIST.txt') || Buffer.alloc(0)).toString('utf8');
     requireValue(/complete moving game frame.+real Mythical Void gameplay/i.test(readme) && /surrounding branded layout is not gameplay/i.test(readme) && /No generated motion/i.test(readme), 'README lost its authentic-gameplay disclosure');
-    requireValue(/father-and-son/i.test(readme) && /son was nine/i.test(readme) && /Do not add a child's name, photograph, quotation, contact route or identifying detail/i.test(readme), 'README lost the careful founder-story and child boundary');
+    requireValue(/father-and-son/i.test(readme) && /Do not publish the child's exact age/i.test(readme) && /Do not invite children to contact the studio directly/i.test(readme), 'README lost the careful founder-story and child boundary');
+    requireValue(!/\b(?:nine|9)[ -]year[ -]old\b/i.test(readme), "README publishes the founder's child's exact age");
     requireValue(/Kevin has approved the exact video, caption and channel/i.test(checklist) && /Comments and direct messages remain closed/i.test(checklist) && /No child is invited to contact the studio directly/i.test(checklist) && /No paid promotion/i.test(checklist), 'official-channel checklist lost an approval, safeguarding, contact or spending gate');
     const publicWords = JSON.stringify({ manifest, packageManifest, pressAssets, signal, release, readme, checklist });
     requireValue(!/\bcompanions?\b/i.test(publicWords), 'creator kit public wording must call them creatures');
