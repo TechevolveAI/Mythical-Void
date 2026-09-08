@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "preparedPostSha256": "",
+  "existingAdultAccountConfirmed": false,
+  "exactPostApprovedAt": null,
+  "approvedBy": null,
+  "adultReplyOwner": null,
+  "replyCoverageConfirmed": false,
+  "rules": {
+    "checkedAt": null,
+    "sourceUrl": "https://www.reddit.com/r/WebGames/about/rules",
+    "allPreparedRulesStillPresent": false
+  },
+  "duplicate": {
+    "checkedAt": null,
+    "sourceUrl": "https://www.reddit.com/r/WebGames/search/?q=%22Mythical%20Void%22&restrict_sr=1&sort=new",
+    "mythicalVoidPostObserved": null
+  }
+}
