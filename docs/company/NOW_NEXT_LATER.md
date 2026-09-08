@@ -1,12 +1,15 @@
 # Mythical Void: what happens next
 
 This is the short, plain-English view of the company plan. It reflects what is
-actually live on 31 August 2026.
+actually live or prepared on 8 September 2026.
 
 ## Now — help the right people find and try the game
 
 - The game, story, family guide, studio story, creature pages, NASA and STEM
-  pages, press room, Signal Log and “find your way in” page are live.
+  pages, press room, updates and “find your way in” page are live.
+- Player-facing screens now use **creature** and clear words such as message,
+  clue, current, route and life call instead of repeatedly saying companion or
+  signal. The corrected production files were checked directly after release.
 - The final step before Play now matches four common moods: wonder, creation,
   challenge and story, and turns each one into a clear three-step starter
   mission.
@@ -26,7 +29,7 @@ actually live on 31 August 2026.
   early-access release leading to Play. It contains no weak screenshots, video
   or downloadable second build.
 
-## Next — earn the first human signal
+## Next — earn the first human evidence
 
 - The First Five adult test is held. The first-contact layout repair is now live,
   but the real creature still looked like a soft or blurry mascot and did not
@@ -49,6 +52,11 @@ actually live on 31 August 2026.
   Replies remain a human responsibility.
 - Google Search Console read access is still needed to see real search queries,
   indexing and crawl problems. This does not stop other work.
+- One respectful r/WebGames post is now fully prepared. That community is made
+  for direct-play browser games, and the prepared post uses the real game URL,
+  no tracking link and no invented audience claim. No post or account change
+  has been made. Kevin still needs to approve the exact post, confirm the adult
+  Reddit account to use and own the replies.
 
 ## Held until the game looks good in public
 

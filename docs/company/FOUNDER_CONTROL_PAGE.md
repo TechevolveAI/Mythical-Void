@@ -1,6 +1,6 @@
 # Mythical Void: founder control page
 
-This is the short, honest view of the studio on 31 August 2026. It replaces no
+This is the short, honest view of the studio on 8 September 2026. It replaces no
 detailed evidence; it turns that evidence into the decisions that matter now.
 
 ## What is live
@@ -12,8 +12,11 @@ detailed evidence; it turns that evidence into the decisions that matter now.
   and no longer shown on a rectangular block. This was a technical improvement,
   not approval of the creature artwork.
 - **The public story is live:** people can read the father-and-son beginning,
-  the family guide, the NASA and STEM explanation, the Signal Log and the game
+  the family guide, the NASA and STEM explanation, the updates and the game
   story without creating an account.
+- **The game now speaks more plainly:** player-facing screens use creature and
+  specific words such as message, clue, current, route and life call. The
+  corrected live game file was checked directly after deployment.
 - **A GitHub early-access release is live:** it leads people to the browser game
   without weak screenshots, a second download or inflated claims.
 - **Adult feedback is available:** adults can send feedback through the owned
@@ -48,6 +51,11 @@ detailed evidence; it turns that evidence into the decisions that matter now.
   evidence**.
 - Website visits, GitHub views and feedback-page visits are not players, plays,
   enjoyment, retention, recommendations, conversion or growth.
+- r/WebGames is a verified fit for one direct-link test: it requires a playable
+  browser game, direct link, no required download or sign-up and no referral
+  link. Its page showed about 19,000 weekly visitors on 8 September, but that is
+  a changing community estimate—not reach and not a player count. A community
+  search showed no existing Mythical Void post.
 
 ## The one decision that matters now
 
@@ -77,6 +85,15 @@ approve it.
 4. Use what those adults actually do and say to improve the game.
 5. Only then choose one small public route: the founder story, an approved
    gameplay moment or one suitable browser-game platform.
+
+## One growth experiment ready for Kevin
+
+The first forum test is prepared as one direct link in r/WebGames. It contains
+no gameplay image, tracking code or inflated claim. Kevin must approve the
+exact post, choose an existing adult Reddit account or separately approve a new
+one, and confirm that he will handle replies. The full preview and stop rules
+are in
+[the community discovery plan](growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08.md).
 
 ## Helpful, but not blocking
 
