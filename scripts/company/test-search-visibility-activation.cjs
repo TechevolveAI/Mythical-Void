@@ -79,6 +79,8 @@ invalidAudit('invented result count', audit => { audit.sample.officialSiteResult
 invalidAudit('stale identity state', audit => { audit.homepageIdentityMarkup.productionState = 'prepared_not_deployed'; }, 'live state is stale');
 invalidAudit('invented Search Console property', audit => { audit.searchConsoleAccessCheck.mythicalVoidPropertyAccessible = true; }, 'Search Console absence check');
 invalidAudit('stale GitHub metadata record', audit => { audit.publicGitHubDoorway.metadataUpdatePendingReviewedMerge = true; }, 'authority boundary');
+invalidAudit('missing current GitHub discovery topic', audit => { audit.publicGitHubDoorway.topicsLive = audit.publicGitHubDoorway.topicsLive.filter(topic => topic !== 'html5-game'); }, 'topic evidence');
+invalidAudit('invented GitHub discovery result', audit => { audit.publicGitHubDoorway.topicExpansionMeaning = 'The new topics have increased plays and ranking.'; }, 'topic meaning boundary');
 
 const fabricatedFollowUpRoot = fixture(fixtureRoot => {
     const target = path.join(fixtureRoot, 'docs/company/search/search-visibility-follow-up-2026-09-08.json');
@@ -187,5 +189,5 @@ try {
     fs.rmSync(companionRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 21);
-console.log('Search visibility activation safeguards passed (21 cases).');
+assert.strictEqual(cases, 23);
+console.log('Search visibility activation safeguards passed (23 cases).');
