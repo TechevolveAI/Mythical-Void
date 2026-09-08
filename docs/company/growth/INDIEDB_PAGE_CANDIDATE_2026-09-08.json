@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "id": "INDIEDB-PAGE-CANDIDATE-2026-09-08",
+  "checkedOn": "2026-09-08",
+  "state": "copy_and_rights_packet_ready_waiting_for_adult_account_terms_form_check_and_final_preview",
+  "purpose": "Prepare one accurate IndieDB game profile that can lead adults to the official Mythical Void website, without opening an account, accepting terms or publishing on Kevin's behalf.",
+  "platform": {
+    "name": "IndieDB",
+    "kind": "public_independent_game_profile",
+    "profileCreationUrl": "https://www.indiedb.com/games/add",
+    "intendedRoute": "official_website_link",
+    "uploadedBuildPlanned": false,
+    "audienceSizeClaimed": false,
+    "playerCountClaimed": false
+  },
+  "listing": {
+    "title": "Mythical Void",
+    "developmentStatus": "Early access / in development",
+    "platform": "Web browser",
+    "engine": "Phaser 3",
+    "genresToConfirmInForm": [
+      "Adventure",
+      "Platformer"
+    ],
+    "officialWebsite": "https://mythicalvoid.com/",
+    "playUrl": "https://mythicalvoid.com/play/",
+    "pressRoom": "https://mythicalvoid.com/press/",
+    "shortDescription": "Hatch a genetically varied alien creature, cross six living realms and decide what Project Beacon should tell Earth.",
+    "opening": "Crash beyond mapped space. Discover what survived. Mythical Void is a free browser adventure with no download or account needed to start.",
+    "fullDescription": "Wanderer-77 has crashed beyond mapped space. Recover the field kit, read a strange message and hatch an alien creature shaped by genetics, cosmic affinity and rare changes. Cross six living realms, free their guardians from the Void, build a sanctuary and decide what Project Beacon should tell Earth. Mythical Void is a free, single-player browser adventure in early access. Generative AI is part of our small studio's creative process, but people remain responsible for the story, safety, public claims and important choices. Some optional learning moments use clearly credited public NASA material. Mythical Void is independent and is not made, approved or endorsed by NASA.",
+    "keyFeatures": [
+      "Hatch and care for a creature shaped by procedural genetics.",
+      "Run, leap, explore and fight through six living realms.",
+      "Free guardians from the corruption holding them.",
+      "Build a sanctuary and decide what Project Beacon should become.",
+      "Play free in a modern browser with no download or account needed to start."
+    ],
+    "studioStory": "Mythical Void began in Ireland as a father-and-son project: a parent and his young son exploring what imagination and generative AI tools could make possible. Their conversations grew into strange creatures, living worlds and a playable adventure.",
+    "aiDisclosure": "Generative AI supports parts of the studio's creative process and some optional expressive features. People remain responsible for the story, safety, public claims and important choices.",
+    "nasaDisclosure": "Some optional learning moments use clearly credited public NASA material. Mythical Void is independent and is not made, approved or endorsed by NASA.",
+    "accessFacts": [
+      "free",
+      "single player",
+      "plays in a modern browser",
+      "no download needed to start",
+      "no account needed to start",
+      "keyboard recommended for platforming"
+    ],
+    "claimBoundaries": {
+      "formalAgeRatingClaimed": false,
+      "globalCreatureUniquenessClaimed": false,
+      "sentientCreaturesClaimed": false,
+      "fullyAutonomousStudioClaimed": false,
+      "nasaPartnershipClaimed": false,
+      "audienceOrPopularityClaimed": false
+    }
+  },
+  "mediaGate": {
+    "sourceOfTruth": "public/press/visual-publication-register.json",
+    "approvedGameplayMoments": 0,
+    "screenshotsAttached": 0,
+    "videosAttached": 0,
+    "approvedBrandAssets": [
+      {
+        "repositoryPath": "public/marketing/mythical-void-emblem-v3.png",
+        "publicUrl": "https://mythicalvoid.com/marketing/mythical-void-emblem-v3.png",
+        "classification": "official_ai_assisted_and_professionally_refined_brand_emblem_not_gameplay",
+        "proposedUse": "Game profile emblem only, if the signed-in form accepts its dimensions and transparent background."
+      },
+      {
+        "repositoryPath": "public/press/embed/mythical-void-play-badge.svg",
+        "publicUrl": "https://mythicalvoid.com/press/embed/mythical-void-play-badge.svg",
+        "classification": "code_authored_official_website_badge_not_gameplay",
+        "proposedUse": "External website badge only if IndieDB permits it; preserve the clean direct link and wording."
+      }
+    ],
+    "withheld": [
+      "gameplay screenshots",
+      "gameplay video",
+      "generated creature-universe art presented as gameplay",
+      "withdrawn press and social media families"
+    ],
+    "rule": "Do not upload a screenshot or video until the exact file has passed human visual review and appears as approved in the visual publication register."
+  },
+  "signedInFormReview": {
+    "completed": false,
+    "exactRequiredFields": null,
+    "externalWebsiteFieldConfirmed": false,
+    "profileImageDimensionsConfirmed": false,
+    "headerImageDimensionsConfirmed": false,
+    "aiDisclosureFieldConfirmed": false,
+    "teamOrDeveloperProfileRequirementConfirmed": false,
+    "uploadedBuildRequiredConfirmed": false,
+    "note": "The public add-game page is member-only while signed out. These fields must be checked inside Kevin's existing or approved adult account before any page is saved."
+  },
+  "termsReview": {
+    "source": "https://www.indiedb.com/terms-of-use",
+    "checkedOn": "2026-09-08",
+    "summaryForFounderReview": [
+      "Using the service is conditional on accepting its terms, and an account may be required.",
+      "Material submitted to a game profile is public, and the uploader is responsible for having the rights to use it.",
+      "The terms say the uploader keeps ownership but grants the service a broad worldwide, non-exclusive, royalty-free licence to host, distribute and promote submitted material.",
+      "Children under 13 may not use the service; this listing must be controlled by Kevin's adult account.",
+      "Kevin must read and decide whether to accept the current terms. This summary is an operational checklist, not legal advice."
+    ],
+    "accepted": false,
+    "acceptedByKevin": false,
+    "legalAdviceProvided": false
+  },
+  "releaseGate": {
+    "copyPrepared": true,
+    "rightsPacketPrepared": true,
+    "adultAccountAvailable": false,
+    "signedInFormChecked": false,
+    "exactMediaRightsConfirmedAtUpload": false,
+    "aiDisclosurePlacedInPreview": false,
+    "finalPreviewApprovedByKevin": false,
+    "pageSaved": false,
+    "pagePublished": false,
+    "readyForPublication": false
+  },
+  "authority": {
+    "accountOpeningAuthorized": false,
+    "accountOpened": false,
+    "platformTermsAcceptanceAuthorized": false,
+    "platformTermsAccepted": false,
+    "externalUploadAuthorized": false,
+    "externalPublishingAuthorized": false,
+    "pageCreated": false,
+    "pagePublished": false,
+    "paidPromotionAuthorized": false,
+    "directOutreachAuthorized": false,
+    "automatedRepliesAuthorized": false,
+    "childAccountAuthorized": false
+  },
+  "sourceEvidence": [
+    {
+      "url": "https://www.indiedb.com/how-to",
+      "observedOn": "2026-09-08",
+      "finding": "IndieDB invites game teams to create public profiles with news, images, videos, downloads, comments and links."
+    },
+    {
+      "url": "https://www.indiedb.com/games/add",
+      "observedOn": "2026-09-08",
+      "finding": "The add-game doorway requires a signed-in member account, so exact fields and media sizes are not yet verified."
+    },
+    {
+      "url": "https://www.indiedb.com/terms-of-use",
+      "observedOn": "2026-09-08",
+      "finding": "The terms set account, public-content, rights and licence responsibilities that Kevin must review before submission."
+    }
+  ],
+  "nextRequiredAction": "Kevin uses an existing or approved adult IndieDB account, reviews the current terms and permits a read-only signed-in form check. Do not save or publish the page during that check."
+}

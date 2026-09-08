@@ -17,7 +17,7 @@
       "channels": "61c95b390a608c5fbbc256008bfa12783068cf2fdf859880035fd653fec8f4f3",
       "visualPlan": "bf7a822e276bc49fce14bbee7ed2c771720d6ac8cf623ce43d7aba0e33aa4fbf",
       "socialIdentity": "adc7a0f404ea6248d9ebb8a8ebb8b02158dac612dde37603c92e045887fef989",
-      "discoveryDoorways": "e70f1b2b0aa94259048ead7ef9af797c608a04e1c4efc2e53ce256f060c0e745"
+      "discoveryDoorways": "57b75958c55f3c2f6249a9bdeb57f36635021b9faf927abf02375929f99bee32"
     }
   },
   "nextMove": {
@@ -100,8 +100,8 @@
         "order": 4,
         "name": "IndieDB",
         "kind": "searchable_game_profile",
-        "state": "research_verified_waiting_for_account_terms_rights_and_page_preview",
-        "nextNeed": "Review the signed-in game-page form and current terms, then prepare one accurate page using the website link and approved brand material."
+        "state": "page_packet_ready_waiting_for_adult_account_terms_signed_in_form_check_and_final_preview",
+        "nextNeed": "Kevin reviews the current terms and permits a read-only check of the signed-in game-page form; the prepared page must not be saved or published until he approves the final preview."
       },
       {
         "order": 5,

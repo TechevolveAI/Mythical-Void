@@ -30,6 +30,7 @@ try {
         ['playmygame-ready', value => { value.routes.find(route => route.id === 'playmygame').state = 'ready_waiting_for_kevin_action_time_approval'; }],
         ['indiegaming-ready', value => { value.routes.find(route => route.id === 'indiegaming-reddit').state = 'ready_waiting_for_kevin_action_time_approval'; }],
         ['missing-source', value => { value.routes.find(route => route.id === 'indiedb').sources = []; }],
+        ['missing-indiedb-packet', value => { value.routes.find(route => route.id === 'indiedb').preparedArtifact = null; }],
         ['stale-source', value => { value.routes.find(route => route.id === 'game-jolt').sources[0].observedOn = '2026-08-01'; }],
         ['cross-posts', value => { value.executionRules.noCopiedCrossPosts = false; }],
         ['automated-replies', value => { value.executionRules.noAutomatedReplies = false; }],

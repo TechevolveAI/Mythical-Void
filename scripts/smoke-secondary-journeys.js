@@ -12,6 +12,7 @@ const DEBUG_PORT = Number(process.env.CHROME_DEBUG_PORT) ||
     (9300 + (process.pid % 500));
 const WAIT_STEP_MS = 100;
 const CDP_TIMEOUT_MS = Number(process.env.SMOKE_CDP_TIMEOUT_MS) || 15000;
+const CHROME_START_TIMEOUT_MS = Number(process.env.SMOKE_CHROME_START_TIMEOUT_MS) || 30000;
 const SMOKE_MODE = process.env.SMOKE_MODE || 'interaction';
 const SMOKE_CASE = process.env.SMOKE_CASE || 'all';
 const SMOKE_TRACE = process.env.SMOKE_TRACE === '1';
@@ -22148,6 +22149,7 @@ async function main() {
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
         '--disable-renderer-backgrounding',
+        '--disable-dev-shm-usage',
         '--no-sandbox',
         '--hide-scrollbars',
         '--no-first-run',
@@ -22170,7 +22172,7 @@ async function main() {
             const response = await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/list`);
             const targets = await response.json();
             return targets.find(item => item.type === 'page') || null;
-        }, { timeoutMs: 10000, message: 'Chrome DevTools target' });
+        }, { timeoutMs: CHROME_START_TIMEOUT_MS, message: 'Chrome DevTools target' });
 
         session = new CdpSession(target.webSocketDebuggerUrl);
         await session.connect();
