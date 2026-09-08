@@ -1,6 +1,6 @@
 {
   "id": "WEB-DISTRIBUTION-001",
-  "checkedOn": "2026-08-27",
+  "checkedOn": "2026-09-08",
   "state": "options_preserved_no_external_action",
   "purpose": "Put Mythical Void where people are already choosing a new game without accidentally giving away distribution rights or launching with weak visual proof.",
   "currentTruth": {
@@ -25,10 +25,10 @@
     "measurementSource": "docs/company/growth/poki-candidate-measurement.json",
     "decision": "no_go_yet_preserve_option",
     "openingReview": "One clear FIRST CONTACT egg interaction reached immediately on desktop and phone in a private local review.",
-    "firstLoadGzipEstimateBytes": 3956856,
+    "firstLoadGzipEstimateBytes": 3956787,
     "firstLoadAdvisoryTargetBytes": 5242880,
     "firstLoadTargetMet": true,
-    "totalGzipEstimateBytes": 29753013,
+    "totalGzipEstimateBytes": 30352863,
     "totalAdvisoryTargetBytes": 8388608,
     "totalTargetMet": false,
     "outsideServicesIsolated": false,

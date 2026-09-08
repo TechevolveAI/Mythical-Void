@@ -30,7 +30,7 @@ requireValue(plan.endOfFunnelRoute?.mustNotInsert?.includes('account creation'),
 requireValue(plan.endOfFunnelRoute?.firstReleaseEvidence?.includes('meaningful action or hatch reached'), 'first-value measurement is missing');
 requireValue(plan.firstCommunityExperiment?.name === 'r/WebGames' && plan.firstCommunityExperiment?.state === 'one_direct_link_post_ready_waiting_for_kevin', 'first community experiment is missing');
 requireValue(plan.firstCommunityExperiment?.runRef === 'docs/company/growth/COMMUNITY_DISCOVERY_RUN_2026-09-08.json', 'first community experiment is detached from its run record');
-requireValue(plan.firstCommunityExperiment?.directPlayUrl === 'https://mythicalvoid.com/play/' && plan.firstCommunityExperiment?.gameplayMediaAttached === false && plan.firstCommunityExperiment?.trackingParametersAttached === false, 'first community experiment is not a clean text-only direct-play route');
+requireValue(plan.firstCommunityExperiment?.directPlayUrl === 'https://mythicalvoid.com/play/' && plan.firstCommunityExperiment?.gameplayMediaAttached === false && plan.firstCommunityExperiment?.manualMediaAttached === false && plan.firstCommunityExperiment?.automaticLinkPreview === 'approved_emblem_brand_card_clearly_marked_not_gameplay' && plan.firstCommunityExperiment?.trackingParametersAttached === false, 'first community experiment is not a clean direct-play route with a truthful automatic preview');
 requireValue(plan.firstCommunityExperiment?.externalPostMade === false && plan.firstCommunityExperiment?.publicationAuthorized === false, 'first community experiment overstates external action');
 requireValue(plan.readyFallbackShelf?.name === 'itch.io', 'itch.io must remain the ready fallback shelf');
 requireValue(plan.readyFallbackShelf?.publicationAuthorized === false, 'external publication must wait for Kevin');
@@ -39,7 +39,7 @@ requireValue(plan.readyFallbackShelf?.requirements?.requiredScreenshotsForInitia
 requireValue(plan.readyFallbackShelf?.gates?.includes('reviewed brand cover approved by Kevin'), 'Kevin cover approval gate is missing');
 requireValue(plan.readyFallbackShelf?.gates?.includes('embedded browser package tested'), 'the embedded build gate is missing');
 requireValue(plan.readyFallbackShelf?.technicalEvidence?.nestedFrameTestPassed === true, 'the nested frame test evidence is missing');
-requireValue(plan.readyFallbackShelf?.technicalEvidence?.fileCount === 86 && plan.readyFallbackShelf?.technicalEvidence?.extractedBytes === 33317542, 'the latest portal measurement is stale');
+requireValue(plan.readyFallbackShelf?.technicalEvidence?.fileCount === 88 && plan.readyFallbackShelf?.technicalEvidence?.extractedBytes === 34234277, 'the latest portal measurement is stale');
 requireValue(plan.readyFallbackShelf?.technicalEvidence?.withdrawnMediaIncluded === false, 'withdrawn media must remain outside the portal package');
 requireValue(plan.readyFallbackShelf?.visualEvidence?.gameplayScreenshotsAttached === 0 && plan.readyFallbackShelf?.visualEvidence?.brandCoverExplicitlyMarkedNotGameplay === true, 'itch visual evidence is not truthful');
 requireValue(plan.routeOrder?.find(route => route.name === 'itch.io')?.state === 'package_copy_and_reviewed_cover_ready_not_published', 'itch.io route state is stale');

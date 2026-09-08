@@ -1,19 +1,22 @@
 {
   "schemaVersion": 2,
-  "state": "human_reviewed_preview_fallback_while_gameplay_media_is_rebuilt",
-  "purpose": "Keep shared links truthful while withdrawn screenshots and videos are replaced with stronger, human-reviewed gameplay moments.",
+  "state": "mixed_truthful_previews_while_gameplay_media_is_rebuilt",
+  "purpose": "Keep shared links truthful while withdrawn screenshots and videos are replaced with stronger, human-reviewed gameplay moments. The main application shell uses a clearly labelled brand card; static story pages retain their disclosed imagined-universe fallback.",
   "pages": [
     {
       "route": "/",
       "htmlPath": "index.html",
-      "imagePath": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
-      "imageUrl": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
-      "imageType": "image/webp",
-      "width": 1672,
-      "height": 941,
-      "alt": "An imagined luminous universe filled with many possible alien creature forms",
-      "classification": "ai_generated_marketing_illustration_not_gameplay",
-      "disclosure": "AI-generated marketing artwork inspired by the creature system. It is not gameplay and is not used as evidence of the current game build."
+      "imagePath": "public/marketing/mythical-void-brand-link-card-v1.png",
+      "imageUrl": "https://mythicalvoid.com/marketing/mythical-void-brand-link-card-v1.png",
+      "imageType": "image/png",
+      "width": 1200,
+      "height": 630,
+      "alt": "Mythical Void brand card for a free alien-creature browser adventure; brand art, not gameplay",
+      "classification": "code_authored_brand_card_with_approved_emblem_not_gameplay",
+      "disclosure": "Code-authored brand card using the approved Mythical Void emblem. The card says Brand art — not gameplay and makes no visual claim about the running game.",
+      "sourceTemplate": "scripts/company/mythical-void-brand-link-card.html",
+      "sourceEmblem": "public/marketing/mythical-void-emblem-v3.png",
+      "sha256": "39fe2dec3d0ab8aea7c2a45b7c1de7b79b55b0521a253e927f766fa3a9b6a096"
     },
     {
       "route": "/playable-now/",
@@ -144,8 +147,8 @@
     },
     {
       "route": "all listed routes",
-      "currentState": "A single approved imagined-universe image is used as a truthful temporary fallback.",
-      "boundary": "Do not describe it as gameplay. Route-specific previews require fresh human visual review before publication."
+      "currentState": "The main application shell uses a labelled brand card. Static story pages use a disclosed imagined-universe image as a temporary fallback.",
+      "boundary": "Do not describe either preview as gameplay. Route-specific gameplay previews require fresh human visual review before publication."
     }
   ],
   "authority": {

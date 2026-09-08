@@ -38,6 +38,7 @@ try {
         ['retired-companion-word', queue => { queue.nextMove.exactPost.firstComment += ' Meet your companion.'; }],
         ['vague-signal-word', queue => { queue.nextMove.exactPost.firstComment += ' Follow the signal.'; }],
         ['skip-first-community', queue => { queue.nextMove.route = 'Phaser Showcase'; }],
+        ['wrong-automatic-preview', queue => { queue.nextMove.automaticLinkPreviewExpected = 'https://mythicalvoid.com/marketing/unreviewed.png'; }],
         ['invented-visual-approval', queue => { queue.generatedFrom.approvedGameplayVisuals = 1; }]
     ];
 

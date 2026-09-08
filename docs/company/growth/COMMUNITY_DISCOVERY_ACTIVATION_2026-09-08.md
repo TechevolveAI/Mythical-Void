@@ -34,12 +34,18 @@ https://mythicalvoid.com/play/
 > imagination and generative AI tools help us turn into a real game? It is now
 > a free early-access browser adventure built in Phaser. You hatch an alien
 > creature, cross six strange realms and decide what Project Beacon should
-> become. No download or account is needed. If you try it, the most useful
-> thing you can tell me is where the first minute felt clear or confusing. I am
-> the developer, and I will read and answer replies myself.
+> become. We have just rebuilt Crystal Caves around a clearer three-pulse route
+> before its corrupted Guardian awakens. No download or account is needed. The
+> link preview uses our brand emblem and is clearly marked as not gameplay. If
+> you try it, the most useful thing you can tell me is where the first minute
+> felt clear or confusing. I am the developer, and I will read and answer
+> replies myself.
 
 The post itself is the direct game link. There is no tracking code, referral
 link, fabricated audience claim, gameplay image or generated image attached.
+Reddit will still make an automatic preview from the link. That preview must be
+the labelled Mythical Void brand card, not the imagined-universe homepage art
+and not a gameplay claim. Check it again immediately before posting.
 
 ## What happens after the post
 

@@ -11,9 +11,9 @@
     "maximumFileCount": 8000
   },
   "package": {
-    "fileCount": 87,
-    "rawBytes": 33633606,
-    "gzipEstimateBytes": 29752863,
+    "fileCount": 88,
+    "rawBytes": 34234277,
+    "gzipEstimateBytes": 30352863,
     "totalHardLimitMet": true,
     "fileCountLimitMet": true,
     "largestFile": {
@@ -57,13 +57,17 @@
       {
         "path": "assets/gameplay-CMocbMFW.js",
         "rawBytes": 642708
+      },
+      {
+        "path": "marketing/mythical-void-brand-link-card-v1.png",
+        "rawBytes": 600450
       }
     ]
   },
   "firstLoad": {
     "resourceCount": 18,
-    "rawBytes": 7199150,
-    "gzipEstimateBytes": 3956724,
+    "rawBytes": 7199371,
+    "gzipEstimateBytes": 3956787,
     "hardLimitMet": true,
     "recommendedLimitMet": true,
     "limitation": "Deterministic local reconstruction, not a YouTube Developer Portal or five-second device test."
