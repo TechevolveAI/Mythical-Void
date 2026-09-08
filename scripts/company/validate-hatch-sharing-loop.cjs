@@ -91,7 +91,7 @@ for (const [key, expected] of Object.entries({
     recipientCollected: false
 })) requireValue(release.privacy?.[key] === expected, `privacy.${key} must be ${expected}`);
 requireValue(release.visualBoundary?.unapprovedScreenshotUsed === false, 'unapproved visual entered the invitation');
-requireValue(['source_ready_for_owned_release', 'live_production_verified'].includes(preview.state), 'Hatch Challenge preview state is invalid');
+requireValue(['source_ready_for_owned_release', 'live_on_production_alias_from_promoted_deploy_preview'].includes(preview.state), 'Hatch Challenge preview state is invalid');
 requireValue(preview.path === 'public/marketing/mythical-void-hatch-challenge-card-v1.jpg', 'Hatch Challenge preview path drifted');
 requireValue(preview.publicUrl === 'https://mythicalvoid.com/marketing/mythical-void-hatch-challenge-card-v1.jpg', 'Hatch Challenge preview URL drifted');
 requireValue(preview.sourcePath === 'scripts/company/hatch-challenge-link-card.html', 'Hatch Challenge preview source path drifted');
@@ -113,9 +113,10 @@ requireValue(hatchPage.includes('AI-assisted brand artwork created for the Hatch
 if (preview.state === 'source_ready_for_owned_release') {
     requireValue(preview.productionCommit === null && preview.productionDeployId === null && preview.productionVerifiedAt === null, 'unreleased Hatch Challenge preview must not claim production proof');
 } else {
-    requireValue(/^[0-9a-f]{40}$/.test(preview.productionCommit || ''), 'live Hatch Challenge preview is missing its production commit');
-    requireValue(/^[0-9a-f]{24}$/.test(preview.productionDeployId || ''), 'live Hatch Challenge preview is missing its production deploy');
-    requireValue(!Number.isNaN(Date.parse(preview.productionVerifiedAt || '')), 'live Hatch Challenge preview is missing its production verification time');
+    requireValue(/^[0-9a-f]{40}$/.test(preview.sourceCommit || '') && /^[0-9a-f]{40}$/.test(preview.mainMergeCommit || ''), 'live Hatch Challenge preview is missing its source or merge commit');
+    requireValue(/^[0-9a-f]{24}$/.test(preview.deployId || '') && preview.deployContext === 'deploy-preview' && preview.promotionMethod === 'restoreSiteDeploy', 'promoted Hatch Challenge preview context is missing');
+    requireValue(preview.productionAlias === 'https://mythicalvoid.com' && !Number.isNaN(Date.parse(preview.promotedAt || '')) && !Number.isNaN(Date.parse(preview.liveAliasVerifiedAt || '')), 'Hatch Challenge production-alias proof is incomplete');
+    requireValue(preview.livePageMetadataObserved === true && preview.liveImageFingerprintMatched === true && preview.liveBrowserErrorCount === 0, 'Hatch Challenge live-alias browser proof is incomplete');
 }
 if (release.state === 'live_production_verified') {
     requireValue(/^[0-9a-f]{40}$/.test(release.verification?.productionCommit || ''), 'verified release is missing its production commit');

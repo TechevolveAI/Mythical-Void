@@ -83,8 +83,8 @@ invalidText(
 );
 invalidText(
     'docs/company/content/generated/hatch-challenge-invitation-release.json',
-    source => source.replace('"state": "source_ready_for_owned_release"', '"state": "live_production_verified"'),
-    'live Hatch Challenge preview is missing its production commit'
+    source => source.replace('"sourceCommit": "e389c16f554a36241046e8041237b81b5f90c61a"', '"sourceCommit": null'),
+    'live Hatch Challenge preview is missing its source or merge commit'
 );
 
 caseCount += 1;
