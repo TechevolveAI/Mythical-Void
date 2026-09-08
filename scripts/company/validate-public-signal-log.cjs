@@ -2,7 +2,14 @@
 
 const fs = require('fs');
 const path = require('path');
-const { buildSignalLog, defaultDataPath, defaultOutputPath } = require('./build-public-signal-log.cjs');
+const {
+    buildReleasePage,
+    buildSignalLog,
+    buildUpdatesSitemap,
+    defaultDataPath,
+    defaultOutputPath,
+    releaseUrl
+} = require('./build-public-signal-log.cjs');
 
 const root = path.resolve(__dirname, '../..');
 const dataPath = process.argv[2] ? path.resolve(process.argv[2]) : defaultDataPath;
@@ -78,13 +85,37 @@ requireValue(page.includes('href="/updates/feed.json">JSON feed</a>'), 'page mus
 requireValue(page.includes('No vague promises and no invented player numbers.'), 'page must state its evidence boundary plainly');
 requireValue(!/\bcompanions?\b/i.test(page), 'public page uses retired companion wording');
 
+const updatesDir = path.dirname(defaultOutputPath);
+const updatesSitemapPath = path.join(updatesDir, 'sitemap.xml');
+const updatesSitemap = fs.existsSync(updatesSitemapPath) ? fs.readFileSync(updatesSitemapPath, 'utf8') : '';
+requireValue(updatesSitemap === buildUpdatesSitemap(data), 'Latest News sitemap is stale or missing');
+for (const entry of liveEntries) {
+    const entryPagePath = path.join(updatesDir, entry.id.toLowerCase(), 'index.html');
+    const entryPage = fs.existsSync(entryPagePath) ? fs.readFileSync(entryPagePath, 'utf8') : '';
+    requireValue(entryPage === buildReleasePage(data, entry), `${entry.id} permanent release page is stale or missing`);
+    requireValue(entryPage.includes(`<link rel="canonical" href="${releaseUrl(entry)}">`), `${entry.id} permanent release page lost its canonical address`);
+    requireValue(entryPage.includes('<meta property="og:type" content="article">'), `${entry.id} permanent release page lost its article preview`);
+    requireValue(entryPage.includes('Brand art, not gameplay.'), `${entry.id} permanent release page lost its preview disclosure`);
+    requireValue(!/\bcompanions?\b/i.test(entryPage), `${entry.id} permanent release page uses retired companion wording`);
+    requireValue(!/\b\d[\d,.]*\s+(?:players|customers|downloads|followers|visits)\b/i.test(entryPage), `${entry.id} permanent release page contains an unverified audience metric`);
+    let entryStructured;
+    try {
+        entryStructured = JSON.parse(entryPage.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1]);
+    } catch (error) {
+        failures.push(`${entry.id} permanent release page structured data is invalid: ${error.message}`);
+    }
+    requireValue(entryStructured?.['@type'] === 'Article' && entryStructured?.mainEntityOfPage === releaseUrl(entry), `${entry.id} permanent release page structured data is incomplete`);
+}
+
 for (const [file, expectedText, label] of [
     ['public/sitemap.xml', '<loc>https://mythicalvoid.com/updates/</loc>', 'sitemap'],
     ['netlify.toml', 'from = "/updates/"', 'Netlify route'],
     ['vercel.json', '"source": "/updates/"', 'Vercel route'],
     ['src/site/storefront.js', 'href="/updates/">What\'s new', 'homepage link'],
     ['public/llms.txt', 'RSS updates feed: https://mythicalvoid.com/updates/feed.xml', 'machine-readable RSS discovery link'],
-    ['public/llms.txt', 'JSON updates feed: https://mythicalvoid.com/updates/feed.json', 'machine-readable JSON discovery link']
+    ['public/llms.txt', 'JSON updates feed: https://mythicalvoid.com/updates/feed.json', 'machine-readable JSON discovery link'],
+    ['public/llms.txt', '[Latest News sitemap](https://mythicalvoid.com/updates/sitemap.xml)', 'Latest News sitemap discovery link'],
+    ['public/robots.txt', 'Sitemap: https://mythicalvoid.com/updates/sitemap.xml', 'robots Latest News sitemap declaration']
 ]) requireValue(fs.readFileSync(path.join(root, file), 'utf8').includes(expectedText), `${label} is missing`);
 
 let structured;
@@ -94,11 +125,13 @@ try {
     failures.push(`structured data is invalid: ${error.message}`);
 }
 requireValue(structured?.['@type'] === 'CollectionPage' && structured?.hasPart?.length === liveEntries.length, 'structured data must describe every live entry');
+requireValue(structured?.hasPart?.every((entry, index) => entry.url === releaseUrl(liveEntries[index])), 'structured data must link every live entry to its permanent page');
 
 console.log(JSON.stringify({
     route: '/updates/',
     valid: failures.length === 0,
     liveEntryCount: liveEntries.length,
+    permanentReleasePageCount: liveEntries.length,
     commentsEnabled: false,
     contactCollectionEnabled: false,
     trackingParametersPermitted: false,

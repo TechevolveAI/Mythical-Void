@@ -61,6 +61,7 @@ This file is a concise guide to the canonical public information on mythicalvoid
 - [Privacy and safety](https://mythicalvoid.com/privacy/)
 - [Terms](https://mythicalvoid.com/terms/)
 - [XML sitemap](https://mythicalvoid.com/sitemap.xml)
+- [Latest News sitemap](https://mythicalvoid.com/updates/sitemap.xml)
 - [Latest News RSS](https://mythicalvoid.com/updates/feed.xml)
 - [Latest News JSON](https://mythicalvoid.com/updates/feed.json)
 
