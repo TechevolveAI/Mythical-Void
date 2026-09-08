@@ -86,6 +86,11 @@ invalidText(
     source => source.replace('"sourceCommit": "e389c16f554a36241046e8041237b81b5f90c61a"', '"sourceCommit": null'),
     'live Hatch Challenge preview is missing its source or merge commit'
 );
+invalidText(
+    'public/hatch-challenge/index.html',
+    source => source.replace('class="button button-primary hatch-challenge-start"', 'class="button button-quiet"'),
+    'Hatch Challenge first screen must lead with Start'
+);
 
 caseCount += 1;
 const missingAssetRoot = fixture();
@@ -98,5 +103,5 @@ try {
     fs.rmSync(missingAssetRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(caseCount, 7);
-console.log('Hatch sharing loop evaluations passed (7 cases).');
+assert.strictEqual(caseCount, 8);
+console.log('Hatch sharing loop evaluations passed (8 cases).');

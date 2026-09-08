@@ -1080,9 +1080,11 @@ details p { margin: 0.9rem 0 0; }
 .hatch-challenge-copy .section-lead { max-width: 680px; }
 .hatch-challenge-boundary { max-width: 680px; padding: 1rem 1.15rem; border-left: 3px solid var(--gold); background: rgba(255, 213, 106, 0.06); color: var(--muted); }
 .hatch-challenge-boundary strong { color: var(--gold); }
-.hatch-challenge-actions { align-items: stretch; }
+.hatch-challenge-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; max-width: 680px; }
+.hatch-challenge-start { grid-column: 1 / -1; }
 .hatch-challenge-actions .button { justify-content: center; }
-.hatch-challenge-copy > .playable-share-status { margin-top: 0.8rem; text-align: left; }
+.hatch-challenge-copy > .playable-share-status { min-height: 1.25rem; margin: 0.65rem 0 0; text-align: left; }
+.hatch-challenge-copy > .hatch-challenge-boundary { margin-top: 0.35rem; }
 .hatch-challenge-steps { display: grid; gap: 0.8rem; margin: 0; padding: 0; list-style: none; }
 .hatch-challenge-steps li { display: grid; grid-template-columns: 4.4rem minmax(0, 1fr); gap: 1.2rem; align-items: center; min-height: 128px; padding: 1.25rem; border: 1px solid var(--line); border-radius: 1.35rem; background: linear-gradient(135deg, rgba(255,255,255,0.065), rgba(255,255,255,0.014)); }
 .hatch-challenge-steps li:nth-child(2) { margin-left: clamp(0rem, 4vw, 3rem); border-color: rgba(118, 227, 207, 0.36); }
@@ -1574,6 +1576,10 @@ details p { margin: 0.9rem 0 0; }
     .play-intent-skip > a:not(.button) { width: 100%; }
     .play-intent-skip .button { width: 100%; }
     .hatch-challenge-actions .button { width: 100%; }
+    .hatch-challenge-actions { grid-template-columns: 1fr; }
+    .hatch-challenge-start { grid-column: auto; }
+    .hatch-challenge-page .hatch-challenge-section { padding-block: 2.8rem; }
+    .hatch-challenge-page .hatch-challenge-copy h1 { max-width: 100%; font-size: clamp(2.45rem, 11vw, 2.8rem); }
     .hatch-challenge-steps li,
     .hatch-challenge-steps li:nth-child(2) { margin-left: 0; }
     .hatch-ingredient-grid { grid-template-columns: 1fr; }
