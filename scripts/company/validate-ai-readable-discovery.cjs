@@ -38,12 +38,13 @@ function validateAiReadableDiscovery(inputs) {
     requireValue(Buffer.byteLength(llms, 'utf8') <= 12 * 1024, 'llms.txt is too large to remain a concise orientation file');
     requireValue(llms.includes('This file is a concise guide to the canonical public information'), 'llms.txt does not explain its limited purpose');
     requireValue(llms.includes('It is not a permission file, an age rating, a promise of search inclusion'), 'llms.txt overstates what the convention can do');
-    requireValue(llms.includes('Last reviewed: 27 August 2026.'), 'llms.txt review date is missing');
+    requireValue(llms.includes('Last reviewed: 9 September 2026.'), 'llms.txt review date is missing');
     requireValue(llms.includes('](https://mythicalvoid.com/hatch-challenge/)') && llms.includes('It is not multiplayer') && llms.includes('does not require an account or upload'), 'Hatch Challenge discovery or boundary is missing');
     requireValue(llms.includes('NASA does not make or endorse Mythical Void.'), 'NASA non-endorsement is missing');
     requireValue(llms.includes('does not currently claim a formal age rating'), 'formal age-rating boundary is missing');
     requireValue(llms.includes('AI-generated marketing artwork') && llms.includes('must not be described as gameplay'), 'visual-truth boundary is missing');
-    requireValue(llms.includes("Do not add the child's name, photograph, quotation, contact route or other identifying detail."), 'child identity boundary is missing');
+    requireValue(llms.includes("Do not add the child's name, exact age, photograph, quotation, contact route or other identifying detail."), 'child identity boundary is missing');
+    requireValue(!/(?:nine[- ]year[- ]old|nine years old|son was nine|\bage\s+9\b)/i.test(llms), 'child exact age is present in llms.txt');
     requireValue(llms.includes('Call the beings "creatures".'), 'public creature terminology is missing');
     requireValue(!/\bcompanions?\b/i.test(llms), 'retired companion wording is present in llms.txt');
     requireValue(!/every creature is unique|no two creatures|literally infinite|infinite unique/i.test(llms), 'unsupported creature-uniqueness promise is present in llms.txt');

@@ -23,20 +23,24 @@ function readPng(file) {
 }
 
 requireValue(release.schemaVersion === 1 && release.id === 'FATHER-SON-STORY-SOCIAL-RELEASE-2026-08-14', 'Founder-story release identity is invalid.');
-requireValue(release.state === 'complete_review_pack_waiting_for_verified_channel_and_kevin_approval', 'Founder-story release must remain a gated review pack.');
+requireValue(release.state === 'withdrawn_visual_quality_failed_do_not_publish', 'Founder-story release must remain withdrawn.');
 requireValue(release.selection?.sourceEntryId === 'UPDATE-007', 'Founder-story release must stay bound to UPDATE-007.');
 requireValue(release.selection?.destination === 'https://mythicalvoid.com/press/#father-son-story-social-assets' && release.selection?.storyDestination === 'https://mythicalvoid.com/studio/', 'Founder-story owned destinations have drifted.');
 requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(JSON.stringify(release.selection || {})), 'Founder-story destinations must not contain tracking parameters.');
 
-const sourceItem = sourcePack.items?.find(item => item.id === 'DRAFT-UPDATE-007');
-requireValue(Boolean(sourceItem), 'Source-bound founder-story draft is missing.');
-requireValue(release.drafts?.professionalNetwork?.copy === sourceItem?.drafts?.professionalNetwork?.body, 'Professional draft has drifted from UPDATE-007.');
-requireValue(release.drafts?.videoCommunity?.copy === sourceItem?.drafts?.videoCommunity?.body, 'Video-community draft has drifted from UPDATE-007.');
-requireValue(release.drafts?.professionalNetwork?.channelRef === 'CH-004' && release.drafts?.videoCommunity?.channelRef === 'CH-002', 'Drafts must retain their planned channel references.');
+requireValue(!sourcePack.items?.some(item => item.id === 'DRAFT-UPDATE-007'), 'Withdrawn founder-story drafts must not re-enter the active release pack.');
+requireValue(release.drafts?.professionalNetwork?.sourceDraftPath === null && release.drafts?.videoCommunity?.sourceDraftPath === null, 'Withdrawn drafts must not claim an active source binding.');
+requireValue(release.drafts?.professionalNetwork?.state === 'withdrawn_do_not_publish' && release.drafts?.videoCommunity?.state === 'withdrawn_do_not_publish', 'Founder-story drafts must remain withdrawn.');
+requireValue(release.drafts?.professionalNetwork?.channelRef === 'CH-004' && release.drafts?.videoCommunity?.channelRef === 'CH-002', 'Draft history must retain its planned channel references.');
+for (const [name, draft] of Object.entries(release.drafts || {})) {
+    const digest = crypto.createHash('sha256').update(draft.copy || '').digest('hex');
+    requireValue(digest === draft.historicalCopySha256, `${name} withdrawn copy has changed.`);
+}
 
 requireValue(Array.isArray(release.assets) && release.assets.length === 2, 'Founder-story release needs exactly one wide and one square asset.');
 for (const asset of release.assets || []) {
     const file = path.join(root, asset.path || '');
+    requireValue(asset.state === 'withdrawn_visual_quality_failed_do_not_publish', `${asset.id || 'asset'} must remain withdrawn.`);
     requireValue(fs.existsSync(file), `${asset.id || 'asset'} file is missing.`);
     if (!fs.existsSync(file)) continue;
     const png = readPng(file);
@@ -56,24 +60,26 @@ requireValue(!/\bcompanions?\b/i.test(allText), 'Founder-story release uses reti
 requireValue(!/no two creatures|every creature is unique|infinite unique/i.test(allText), 'Founder-story release contains an unsupported uniqueness promise.');
 requireValue(!/\b\d[\d,.]*\s+(?:players|customers|downloads|followers|visits)\b/i.test(allText), 'Founder-story release contains an unverified audience metric.');
 requireValue(release.audience?.childTargetedAdvertising === false && release.audience?.behaviouralTargeting === false && release.audience?.directMinorContact === false, 'Child targeting, behavioural targeting and direct minor contact must remain off.');
-requireValue(release.identityBoundary?.childPhotoUsed === false && release.identityBoundary?.childNameUsed === false && release.identityBoundary?.childDirectQuoteUsed === false && release.identityBoundary?.childContactDetailUsed === false && release.identityBoundary?.childIdentifyingDetailUsed === false && release.identityBoundary?.futureExpansionRequiresKevinReview === true, 'The child-identity boundary must remain closed and Kevin-gated.');
-requireValue(release.identityBoundary?.approvedPublicDetail === "Kevin's son was nine years old when the project began", 'The public child detail must stay narrow and exact.');
-requireValue(release.qualityEvidence?.wideArtworkVisuallyReviewed === true && release.qualityEvidence?.squareArtworkVisuallyReviewed === true && release.qualityEvidence?.browserWarningsOrErrorsObserved === false, 'Both artworks must retain clean visual-review evidence.');
+requireValue(release.identityBoundary?.childPhotoUsed === false && release.identityBoundary?.childNameUsed === false && release.identityBoundary?.childDirectQuoteUsed === false && release.identityBoundary?.childContactDetailUsed === false && release.identityBoundary?.childIdentifyingDetailUsed === false && release.identityBoundary?.childExactAgeUsed === false && release.identityBoundary?.futureExpansionRequiresKevinReview === true, 'The child-identity boundary must remain closed and Kevin-gated.');
+requireValue(release.identityBoundary?.approvedPublicDetail === 'Kevin and his son began Mythical Void together at home', 'The public father-and-son detail must stay narrow and non-identifying.');
+requireValue(!/(?:nine[- ]year[- ]old|nine years old|son was nine|\bage\s+9\b)/i.test(allText), 'The founder-story release exposes the child\'s exact age.');
+requireValue(release.qualityEvidence?.wideArtworkVisuallyReviewed === true && release.qualityEvidence?.squareArtworkVisuallyReviewed === true && release.qualityEvidence?.browserWarningsOrErrorsObserved === false, 'Both artworks must retain their historical review evidence.');
 requireValue(release.qualityEvidence?.realGameplayLabelShownInArtwork === true && release.qualityEvidence?.marketingArtworkNotGameplayDisclosureShown === true && release.qualityEvidence?.childIdentityBoundaryShown === true && release.qualityEvidence?.trackingParametersUsed === false, 'Artwork must retain its gameplay, marketing-art, child-identity and clean-link boundaries.');
+requireValue(release.withdrawal?.currentPublicUseApproved === false && release.withdrawal?.humanGameplayVisualApproval === false && release.withdrawal?.replacementRequiresFreshHumanVisualApproval === true, 'The founder-story withdrawal and replacement gate are incomplete.');
+requireValue(release.withdrawal?.publicPathFamilyRedirectedToPressRoom === '/press/social/' && /withdrawn visual library/i.test(release.withdrawal?.reason || ''), 'The withdrawn public path and reason are missing.');
 
 for (const [field, expected] of Object.entries({ officialSocialAccountVerified: false, contentApproved: false, channelApproved: false, publishingAuthorized: false, schedulingAuthorized: false, replyingAuthorized: false, paidPromotionAuthorized: false, externalActionPerformed: false })) requireValue(release.authority?.[field] === expected, `authority.${field} must remain ${expected}.`);
 requireValue(release.authority?.approvedBy === null && release.authority?.approvedAt === null && release.authority?.publishedAt === null, 'Approval and publication evidence must not be invented.');
-requireValue(/Kevin sees the exact artwork, copy, destination, audience, child-identity boundary and engagement setting/i.test((release.releaseOrder || []).join(' ')), 'Release order must retain Kevin\'s complete-preview gate.');
-requireValue(/adult reply coverage/i.test((release.releaseOrder || []).join(' ')), 'Release order must retain adult reply coverage.');
+requireValue(/Do not publish these drafts or assets/i.test((release.releaseOrder || []).join(' ')), 'Release order must prohibit use of the withdrawn pack.');
+requireValue(/fresh complete preview and Kevin's action-time approval/i.test((release.releaseOrder || []).join(' ')), 'Release order must require a fresh preview and Kevin approval.');
+requireValue(/exact age/i.test((release.releaseOrder || []).join(' ')), 'Release order must protect the child\'s exact age.');
 
 const storefront = fs.readFileSync(path.join(root, 'src/site/storefront.js'), 'utf8');
 const pressManifest = JSON.parse(fs.readFileSync(path.join(root, 'public/press/mythical-void-press-assets.json'), 'utf8'));
 const preview = fs.readFileSync(path.join(root, 'scripts/company/father-son-story-social-card.html'), 'utf8');
-for (const asset of release.assets || []) {
-    const publicPath = `/${asset.path.replace(/^public\//, '')}`;
-    requireValue(storefront.includes(publicPath), `${asset.id} is not offered in the public press room.`);
-    requireValue(pressManifest.assets?.some(entry => entry.url === asset.publicUrl && entry.kind === asset.classification), `${asset.id} is missing from the press manifest.`);
-}
+requireValue(!storefront.includes('/press/social/father-son-story-wide.png') && !storefront.includes('/press/social/father-son-story-square.png'), 'Withdrawn founder-story assets are offered in the public press room.');
+requireValue(pressManifest.mediaLibrary?.state === 'withdrawn_pending_human_visual_rebuild_do_not_publish' && pressManifest.mediaLibrary?.defaultAssetState === 'withdrawn_visual_quality_failed_do_not_publish', 'Press manifest does not apply the withdrawn default to the historical founder-story entries.');
+for (const asset of release.assets || []) requireValue((pressManifest.mediaLibrary?.approvedPublicDownloads || []).every(url => url !== asset.publicUrl), `${asset.id} is incorrectly approved for public download.`);
 requireValue(preview.includes('REAL GAMEPLAY') && preview.includes('AI-generated marketing illustration, not gameplay') && preview.includes('No image or identifying detail of the child is used.'), 'Artwork source must retain its gameplay, marketing-art and child-identity labels.');
 
 if (errors.length) {
@@ -82,4 +88,4 @@ if (errors.length) {
     process.exit(1);
 }
 
-console.log('Founder-story social release valid: 2 checked artworks, 2 source-bound drafts, child identity protected, no outward authority.');
+console.log('Founder-story social release valid: 2 historical artworks and drafts withdrawn, child identity protected, no outward authority.');

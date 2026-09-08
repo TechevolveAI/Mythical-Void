@@ -28,6 +28,7 @@ try {
     const failures = [
         ['wrong-digest', release => { release.assets[0].sha256 = '0'.repeat(64); }, () => {}],
         ['wrong-dimensions', release => { release.assets[1].height = 1080; }, () => {}],
+        ['reopens-withdrawn-asset', release => { release.assets[0].state = 'approved'; }, () => {}],
         ['weak-disclosure', release => { release.assets[0].disclosure = 'Founder artwork.'; }, () => {}],
         ['copy-drift', release => { release.drafts.professionalNetwork.copy += '\nBiggest launch ever.'; }, () => {}],
         ['tracking-link', release => { release.selection.destination += '?utm_source=linkedin'; }, () => {}],
@@ -40,8 +41,11 @@ try {
         ['child-targeting', release => { release.audience.childTargetedAdvertising = true; }, () => {}],
         ['child-photo', release => { release.identityBoundary.childPhotoUsed = true; }, () => {}],
         ['child-name', release => { release.identityBoundary.childNameUsed = true; }, () => {}],
+        ['child-exact-age-flag', release => { release.identityBoundary.childExactAgeUsed = true; }, () => {}],
+        ['child-exact-age-copy', release => { release.identityBoundary.approvedPublicDetail = 'Kevin began Mythical Void with his nine-year-old son'; }, () => {}],
+        ['reopens-public-use', release => { release.withdrawal.currentPublicUseApproved = true; }, () => {}],
         ['external-action', release => { release.authority.externalActionPerformed = true; }, () => {}],
-        ['source-pack-drift', () => {}, source => { source.items.find(item => item.id === 'DRAFT-UPDATE-007').drafts.videoCommunity.body += ' New claim.'; }]
+        ['withdrawn-draft-reintroduced', () => {}, source => { source.items.push({ id: 'DRAFT-UPDATE-007' }); }]
     ];
     for (const [name, mutateRelease, mutateSource] of failures) if (run(name, mutateRelease, mutateSource).status === 0) throw new Error(`${name} mutation was accepted.`);
     console.log(`Founder-story social release safeguards passed (${failures.length} failure cases).`);

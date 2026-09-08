@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "FATHER-SON-STORY-SOCIAL-RELEASE-2026-08-14",
-  "state": "complete_review_pack_waiting_for_verified_channel_and_kevin_approval",
+  "state": "withdrawn_visual_quality_failed_do_not_publish",
   "purpose": "Give Mythical Void a truthful adult-facing sharing pack about the father-and-son origin of the studio while protecting the child's identity and distinguishing marketing artwork from real gameplay.",
   "selection": {
     "sourceEntryId": "UPDATE-007",
@@ -23,12 +23,14 @@
     "childDirectQuoteUsed": false,
     "childContactDetailUsed": false,
     "childIdentifyingDetailUsed": false,
-    "approvedPublicDetail": "Kevin's son was nine years old when the project began",
+    "approvedPublicDetail": "Kevin and his son began Mythical Void together at home",
+    "childExactAgeUsed": false,
     "futureExpansionRequiresKevinReview": true
   },
   "assets": [
     {
       "id": "FATHER-SON-STORY-WIDE",
+      "state": "withdrawn_visual_quality_failed_do_not_publish",
       "path": "public/press/social/father-son-story-wide.png",
       "publicUrl": "https://mythicalvoid.com/press/social/father-son-story-wide.png",
       "width": 1200,
@@ -42,6 +44,7 @@
     },
     {
       "id": "FATHER-SON-STORY-SQUARE",
+      "state": "withdrawn_visual_quality_failed_do_not_publish",
       "path": "public/press/social/father-son-story-square.png",
       "publicUrl": "https://mythicalvoid.com/press/social/father-son-story-square.png",
       "width": 1200,
@@ -56,22 +59,26 @@
   ],
   "drafts": {
     "professionalNetwork": {
-      "sourceDraftPath": "items[DRAFT-UPDATE-007].drafts.professionalNetwork.body",
+      "sourceDraftPath": null,
+      "state": "withdrawn_do_not_publish",
+      "historicalCopySha256": "4407d454cf7bbdee271c1de4013da53e8f5d3c799c9258849fbe7bd799e93ded",
       "channelRef": "CH-004",
       "assetId": "FATHER-SON-STORY-WIDE",
       "copy": "The father-and-son story is ready to share\n\nAdults, press and creators can now share wide or square artwork explaining how an Irish father-and-son experiment with imagination and generative AI tools became a playable browser game.\n\n• Both layouts use the clean mythicalvoid.com/studio address with no tracking code.\n• The background is labelled as AI-generated marketing artwork, while the framed first-contact screen is real gameplay.\n• No photograph, name or identifying detail of the child is used.\n\nSee what changed: https://mythicalvoid.com/press/#father-son-story-social-assets\n\nFounder-story sharing artwork, not a raw screenshot. The background is AI-generated marketing artwork, not gameplay; the framed screen is real gameplay using a company-controlled test state. No player information, photograph, name or identifying detail of the child is shown."
     },
     "videoCommunity": {
-      "sourceDraftPath": "items[DRAFT-UPDATE-007].drafts.videoCommunity.body",
+      "sourceDraftPath": null,
+      "state": "withdrawn_do_not_publish",
+      "historicalCopySha256": "b110672cd59a6df1137e9829618747df6ca0f5f94ec6caa403388bdc29bd83e7",
       "channelRef": "CH-002",
       "assetId": "FATHER-SON-STORY-SQUARE",
       "copy": "New from the Void: The father-and-son story is ready to share\n\nAdults, press and creators can now share wide or square artwork explaining how an Irish father-and-son experiment with imagination and generative AI tools became a playable browser game.\n\nhttps://mythicalvoid.com/press/#father-son-story-social-assets\n\nFounder-story sharing artwork, not a raw screenshot. The background is AI-generated marketing artwork, not gameplay; the framed screen is real gameplay using a company-controlled test state. No player information, photograph, name or identifying detail of the child is shown."
     }
   },
   "releaseOrder": [
-    "Use the professional-network version first if a verified company Page exists and its public replies can stay closed or staffed.",
-    "Use the video-community version only after the official video channel is verified and adult reply coverage is active.",
-    "Keep both versions unpublished until Kevin sees the exact artwork, copy, destination, audience, child-identity boundary and engagement setting together."
+    "Do not publish these drafts or assets. Their gameplay frame belongs to the withdrawn visual library.",
+    "A replacement needs newly approved real-game imagery, a fresh complete preview and Kevin's action-time approval.",
+    "Keep the father-and-son story, but do not publish the child's name, exact age, photograph, quotation or contact details."
   ],
   "qualityEvidence": {
     "wideArtworkVisuallyReviewed": true,
@@ -83,6 +90,13 @@
     "marketingArtworkNotGameplayDisclosureShown": true,
     "childIdentityBoundaryShown": true,
     "trackingParametersUsed": false
+  },
+  "withdrawal": {
+    "currentPublicUseApproved": false,
+    "humanGameplayVisualApproval": false,
+    "reason": "The founder-story layouts contain a gameplay frame from the withdrawn visual library and must not be used for promotion.",
+    "publicPathFamilyRedirectedToPressRoom": "/press/social/",
+    "replacementRequiresFreshHumanVisualApproval": true
   },
   "authority": {
     "officialSocialAccountVerified": false,

@@ -51,6 +51,13 @@ for (const preview of previews.pages || []) {
     requireValue(fs.existsSync(path.join(root, preview.imagePath)), `${preview.route} social preview file is missing`);
 }
 
+const founderStoryPack = JSON.parse(read('docs/company/content/generated/father-son-story-social-release.json'));
+requireValue(founderStoryPack.state === 'withdrawn_visual_quality_failed_do_not_publish', 'old founder-story social pack is not withdrawn');
+requireValue(founderStoryPack.identityBoundary?.childExactAgeUsed === false, 'old founder-story social pack permits the child exact age');
+requireValue(!/(?:nine[- ]year[- ]old|nine years old|son was nine|\bage\s+9\b)/i.test(JSON.stringify(founderStoryPack)), 'old founder-story social pack exposes the child exact age');
+requireValue((founderStoryPack.assets || []).every(asset => asset.state === 'withdrawn_visual_quality_failed_do_not_publish'), 'old founder-story artwork is not fully withdrawn');
+requireValue((founderStoryPack.drafts && Object.values(founderStoryPack.drafts) || []).every(draft => draft.state === 'withdrawn_do_not_publish'), 'old founder-story drafts are not fully withdrawn');
+
 const playable = read('public/playable-now/index.html');
 requireValue(playable.includes('previous gameplay media pack is withdrawn'), 'Playable Now does not explain the current media decision');
 requireValue(playable.includes('creature stays visible') && playable.includes('watched every frame'), 'Playable Now does not state the replacement quality bar');

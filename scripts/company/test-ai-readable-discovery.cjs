@@ -40,12 +40,13 @@ rejected('ranking-claim', 'searchRankingClaimAuthorized', value => { value.relea
 rejected('missing-nasa-boundary', 'NASA non-endorsement', value => { value.llms = value.llms.replace('NASA does not make or endorse Mythical Void.', 'NASA powers the game.'); });
 rejected('invented-uniqueness', 'unsupported creature-uniqueness', value => { value.llms += '\nEvery creature is unique.\n'; });
 rejected('retired-wording', 'retired companion wording', value => { value.llms += '\nCreature companion.\n'; });
-rejected('missing-child-boundary', 'child identity boundary', value => { value.llms = value.llms.replace("Do not add the child's name, photograph, quotation, contact route or other identifying detail.", 'Tell the family story.'); });
+rejected('missing-child-boundary', 'child identity boundary', value => { value.llms = value.llms.replace("Do not add the child's name, exact age, photograph, quotation, contact route or other identifying detail.", 'Tell the family story.'); });
+rejected('child-exact-age', 'child exact age', value => { value.llms += '\nKevin began the game with his nine-year-old son.\n'; });
 rejected('missing-route', 'canonical sitemap route', value => { value.llms = value.llms.replace('](https://mythicalvoid.com/parents/)', '](https://example.com/parents/)'); });
 rejected('stale-page-link', 'does not advertise', value => { value.staticPages['public/story/index.html'] = value.staticPages['public/story/index.html'].replace(/\s*<link rel="describedby"[^>]+>/, ''); });
 rejected('builder-regression', 'will remove', value => { value.builderSources['scripts/company/build-public-signal-log.cjs'] = value.builderSources['scripts/company/build-public-signal-log.cjs'].replace(/\s*<link rel="describedby"[^>]+>/g, ''); });
 rejected('fake-citation', 'aiCitationClaimAuthorized', value => { value.release.release.aiCitationClaimAuthorized = true; });
 rejected('missing-lastmod', 'truthful lastmod evidence', value => { value.sitemap = value.sitemap.replace(/\s*<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/, ''); });
 
-assert.strictEqual(cases, 12);
-console.log('AI-readable discovery safeguards passed (12 cases).');
+assert.strictEqual(cases, 13);
+console.log('AI-readable discovery safeguards passed (13 cases).');
