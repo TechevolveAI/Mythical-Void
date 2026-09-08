@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "id": "PHASER-SHOWCASE-001",
+  "checkedOn": "2026-09-08",
+  "state": "exact_topic_ready_waiting_for_first_community_read_account_and_action_time_approval",
+  "purpose": "Reach people who already build and test Phaser games, ask for useful first-minute feedback and lead them directly to the live game without using weak media.",
+  "community": {
+    "name": "Phaser Showcase",
+    "url": "https://phaser.discourse.group/c/showcase/7",
+    "rulesUrl": "https://phaser.discourse.group/t/welcome-to-the-phaser-showcase-forum/19",
+    "currentFit": "The official Showcase welcomes finished and work-in-progress Phaser creations, asks WIP topics to use the WIP label and asks creators to link to the game.",
+    "recentActivityObserved": true,
+    "recentActivityObservedOn": "2026-09-08",
+    "recentActivityMeaning": "Recent Showcase topics were visible in 2026. This proves the forum is active, not that Mythical Void will receive views, replies or players."
+  },
+  "sequence": {
+    "order": 2,
+    "comesAfter": "COMMUNITY_DISCOVERY_RUN_2026-09-08.json",
+    "earliestState": "after_the_r_webgames_seven_day_read_is_recorded_or_that_route_is_explicitly_cancelled",
+    "reason": "One route at a time makes the learning understandable and avoids repeating the same promotion across communities."
+  },
+  "preparedTopic": {
+    "format": "text_topic_with_clean_direct_game_link",
+    "title": "[WIP] Mythical Void — a father-and-son Phaser browser adventure",
+    "body": "Hello Phaser community — I’m Kevin, building Mythical Void in Ireland. It began as a father-and-son project with my nine-year-old son: we wanted to see what imagination and generative AI tools could help us turn into a real game.\n\nYou can play the current early-access build here:\nhttps://mythicalvoid.com/play/\n\nIt is a free single-player Phaser 3 browser adventure. You recover a crashed expedition, hatch a genetically varied alien creature, cross six living realms, fight the corruption holding their guardians and decide what Project Beacon should tell Earth. There is no download or account required to start.\n\nI’d especially value practical feedback on two things:\n1. Is the first minute clear without explanation?\n2. Do movement and controls feel understandable on the device you tried?\n\nGenerative AI is part of our small studio’s creative process, but this link is the real running Phaser game, not a generated video or mock-up. Some optional discovery moments use credited public NASA material; NASA does not endorse Mythical Void.\n\nThe public screenshot and video pack is being rebuilt, so I am deliberately not attaching weak media to this post. I’ll read and answer replies myself. Thank you for trying it.",
+    "directGameUrl": "https://mythicalvoid.com/play/",
+    "mediaAttached": false,
+    "trackingParametersPresent": false,
+    "claims": [
+      "work in progress",
+      "free single-player Phaser 3 browser adventure",
+      "no download or account required to start",
+      "father-and-son beginning",
+      "generative AI used in a human-led creative process",
+      "NASA does not endorse Mythical Void"
+    ],
+    "feedbackQuestions": [
+      "Is the first minute clear without explanation?",
+      "Do movement and controls feel understandable on the device you tried?"
+    ]
+  },
+  "preflight": {
+    "firstCommunityReadCompleteOrCancelled": false,
+    "rulesRecheckedAt": null,
+    "duplicateSearchCheckedAt": null,
+    "duplicateTopicObserved": null,
+    "existingAdultAccountConfirmed": false,
+    "platformTermsAcceptedByKevin": false,
+    "exactTopicApprovedAtActionTime": false,
+    "approvedBy": null,
+    "adultReplyOwner": "Kevin",
+    "replyCoverageConfirmed": false,
+    "liveGameCheckedAt": null,
+    "liveGameHttpStatus": null,
+    "openingJourneyPassedAt": null
+  },
+  "aftercare": {
+    "recordOnly": [
+      "public topic URL and publication time",
+      "public topic view and reply totals when shown",
+      "consented website referrals classified as social or creator when available",
+      "anonymous adult feedback total for the website, forum, newsletter or creator route"
+    ],
+    "neverInfer": [
+      "players from topic views",
+      "plays from website visits",
+      "enjoyment from link clicks",
+      "retention from replies",
+      "growth from one forum topic"
+    ],
+    "privacy": "Do not copy usernames, reply text, direct messages, device details or personal information into company records. Summarise repeated adult feedback without identifying anyone."
+  },
+  "stopRules": [
+    "Do not publish before the first r/WebGames read is complete or that route is explicitly cancelled.",
+    "Do not create a Phaser forum account or accept its terms for Kevin.",
+    "Do not attach the withdrawn screenshot or video pack.",
+    "Do not ask for likes, manufacture replies or post automated answers.",
+    "Do not turn criticism into an argument; thank the person and record repeated adult findings anonymously.",
+    "Do not contact children or move a public reply into a private conversation that appears to involve a child."
+  ],
+  "authority": {
+    "externalTopicCreated": false,
+    "externalPostingAuthorized": false,
+    "accountOpened": false,
+    "accountOpeningAuthorized": false,
+    "platformTermsAccepted": false,
+    "mediaPublicationAuthorized": false,
+    "automatedRepliesAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "fakeEngagementAuthorized": false,
+    "childContactAuthorized": false
+  },
+  "nextRequiredAction": "Finish or explicitly cancel the first r/WebGames read, then Kevin confirms an existing adult Phaser forum account, accepts any current terms himself, approves this exact topic at action time and remains available to answer replies."
+}

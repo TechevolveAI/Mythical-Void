@@ -62,6 +62,11 @@ actually live or prepared on 8 September 2026.
   rules/duplicate/game checks and Kevin's action-time approval. Day-2 and
   day-7 observations cannot be entered early, and views remain separate from
   visits, play starts and feedback.
+- The second route is now ready too: one text-only topic in the official Phaser
+  Showcase with the real game link and two useful questions about the first
+  minute and controls. It carries no weak screenshot, tracking code or invented
+  audience claim. It waits until the Reddit read is finished or cancelled, and
+  still needs Kevin's account, terms and action-time approval.
 
 ## Held until the game looks good in public
 

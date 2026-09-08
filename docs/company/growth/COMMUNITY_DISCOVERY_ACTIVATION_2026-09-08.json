@@ -84,6 +84,9 @@
       "source": "https://phaser.discourse.group/t/welcome-to-the-phaser-showcase-forum/19",
       "reason": "The official Phaser forum welcomes finished and work-in-progress Phaser games and asks creators to link the game.",
       "preparedTitle": "[WIP] Mythical Void — a father-and-son Phaser browser adventure",
+      "activationRecord": "docs/company/growth/PHASER_SHOWCASE_ACTIVATION_2026-09-08.json",
+      "preparedBodyReady": true,
+      "sequenceBoundary": "Wait until the r/WebGames seven-day read is complete or that route is explicitly cancelled.",
       "visualBoundary": "Do not attach gameplay media until a person has approved it."
     },
     {
