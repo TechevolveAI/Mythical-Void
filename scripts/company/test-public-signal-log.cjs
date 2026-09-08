@@ -40,6 +40,12 @@ try {
         assert(page.includes(`<link rel="canonical" href="${releaseUrl(entry)}">`));
         assert(page.includes(`"mainEntityOfPage": "${releaseUrl(entry)}"`));
         assert(page.includes('Brand art, not gameplay.'));
+        assert(page.includes(`data-share-url="${releaseUrl(entry)}"`));
+        assert(page.includes('data-share-game'));
+        assert(page.includes('data-copy-game'));
+        assert(page.includes('data-copy-label="Copy update link"'));
+        assert(page.includes('data-share-success="Thanks for sharing this update."'));
+        assert(!/[?&](?:utm_|fbclid|gclid)/i.test(page));
         assert(!/\bcompanions?\b/i.test(page));
     }
     assert.strictEqual(run('valid').status, 0);

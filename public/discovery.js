@@ -162,7 +162,7 @@
         }
         try {
             await navigator.share(shareData);
-            setShareStatus('Thanks for sharing the game.', statusTarget);
+            setShareStatus(shareCard.dataset.shareSuccess || 'Thanks for sharing the game.', statusTarget);
             track('share_completed', sourceAreaFor(sourceElement));
         } catch (error) {
             if (error && error.name !== 'AbortError') {
@@ -175,7 +175,7 @@
     if (shareButton) {
         if (!navigator.share) {
             var shareLabel = shareButton.querySelector('[data-share-label]');
-            if (shareLabel) shareLabel.textContent = 'Copy game link';
+            if (shareLabel) shareLabel.textContent = shareButton.dataset.copyLabel || 'Copy game link';
         }
         shareButton.addEventListener('click', async function () {
             await shareCleanLink(shareStatus, shareButton);
