@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "id": "WEBGAMES-FIRST-RUN-001",
+  "preparedOn": "2026-09-08",
+  "state": "waiting_for_existing_account_and_action_time_approval",
+  "planRef": "docs/company/growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08.json",
+  "community": "r/WebGames",
+  "preparedPost": {
+    "format": "direct_link",
+    "title": "Mythical Void — hatch an alien creature and explore six living realms [HTML5]",
+    "url": "https://mythicalvoid.com/play/",
+    "firstComment": "My son and I began Mythical Void as a father-and-son experiment: what could imagination and generative AI tools help us turn into a real game? It is now a free early-access browser adventure built in Phaser. You hatch an alien creature, cross six strange realms and decide what Project Beacon should become. No download or account is needed. If you try it, the most useful thing you can tell me is where the first minute felt clear or confusing. I am the developer, and I will read and answer replies myself."
+  },
+  "approval": {
+    "existingAdultAccountConfirmed": false,
+    "newAccountAuthorized": false,
+    "termsAcceptanceAuthorized": false,
+    "exactPostApprovedAtActionTime": false,
+    "approvedBy": null,
+    "adultReplyOwner": "Kevin",
+    "replyCoverageConfirmed": false
+  },
+  "preflight": {
+    "rulesRecheckedAt": null,
+    "duplicateRecheckedAt": null,
+    "duplicateObserved": null,
+    "liveGameCheckedAt": null,
+    "liveGameHttpStatus": null,
+    "openingJourneyPassedAt": null,
+    "cleanDirectLink": true,
+    "trackingParametersPresent": false,
+    "gameplayMediaAttached": false
+  },
+  "publication": {
+    "posted": false,
+    "postUrl": null,
+    "publishedAt": null
+  },
+  "observations": {
+    "day2": {
+      "dueAt": null,
+      "checkedAt": null,
+      "platformViews": null,
+      "publicCommentCount": null,
+      "consentedRedditReferrals": null,
+      "anonymousAdultForumFeedbackCount": null
+    },
+    "day7": {
+      "dueAt": null,
+      "checkedAt": null,
+      "platformViews": null,
+      "publicCommentCount": null,
+      "consentedRedditReferrals": null,
+      "anonymousAdultForumFeedbackCount": null
+    }
+  },
+  "truthRules": [
+    "A post view is not a player.",
+    "A website visit is not a play.",
+    "A click does not prove enjoyment.",
+    "A comment does not prove retention.",
+    "One post does not prove growth.",
+    "Do not store account names, comment text, private messages or personal details in this record."
+  ],
+  "nextRequiredAction": "Kevin confirms an existing adult Reddit account, approves the exact post at action time and confirms he can answer replies."
+}

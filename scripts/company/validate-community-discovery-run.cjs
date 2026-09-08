@@ -1,0 +1,99 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+
+const RUN_PATH = 'docs/company/growth/COMMUNITY_DISCOVERY_RUN_2026-09-08.json';
+const PLAN_PATH = 'docs/company/growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08.json';
+
+const nullableWholeNumber = value => value === null || (Number.isInteger(value) && value >= 0);
+
+function validateCommunityRun({ run, plan }) {
+    const failures = [];
+    const requireValue = (condition, message) => { if (!condition) failures.push(message); };
+    const planPost = plan.firstExperiment?.preparedPost || {};
+    const post = run.preparedPost || {};
+    const approval = run.approval || {};
+    const preflight = run.preflight || {};
+    const publication = run.publication || {};
+
+    requireValue(run.schemaVersion === 1 && run.id === 'WEBGAMES-FIRST-RUN-001', 'community run identity is missing');
+    requireValue(run.planRef === PLAN_PATH && run.community === plan.firstExperiment?.community, 'community run is detached from its approved plan');
+    requireValue(post.format === planPost.format && post.title === planPost.title && post.url === planPost.url && post.firstComment === planPost.firstComment, 'prepared post no longer matches the reviewed plan');
+    requireValue(post.title?.startsWith('Mythical Void'), 'post title must start with the game name');
+    requireValue(post.url === 'https://mythicalvoid.com/play/' && !/[?#]/.test(post.url || ''), 'post must use the clean direct game URL');
+    requireValue(!/\bcompanions?\b|\bsignals?\b/i.test(`${post.title || ''} ${post.firstComment || ''}`), 'retired public wording appears in the post');
+    requireValue(preflight.cleanDirectLink === true && preflight.trackingParametersPresent === false && preflight.gameplayMediaAttached === false, 'clean text-only post boundary changed');
+
+    const actionReady = approval.existingAdultAccountConfirmed === true &&
+        approval.exactPostApprovedAtActionTime === true &&
+        approval.approvedBy === 'Kevin' &&
+        approval.adultReplyOwner === 'Kevin' &&
+        approval.replyCoverageConfirmed === true &&
+        preflight.rulesRecheckedAt !== null &&
+        preflight.duplicateRecheckedAt !== null &&
+        preflight.duplicateObserved === false &&
+        preflight.liveGameCheckedAt !== null &&
+        preflight.liveGameHttpStatus === 200 &&
+        preflight.openingJourneyPassedAt !== null;
+
+    if (publication.posted === true) {
+        requireValue(actionReady, 'publication is recorded without every action-time gate');
+        requireValue(/^https:\/\/(?:www\.)?reddit\.com\/r\/WebGames\/comments\//.test(publication.postUrl || ''), 'publication needs the real r/WebGames post URL');
+        requireValue(Boolean(Date.parse(publication.publishedAt || '')), 'publication needs a valid time');
+    } else {
+        requireValue(publication.postUrl === null && publication.publishedAt === null, 'an unpublished run cannot have a post URL or time');
+    }
+
+    for (const [label, observation] of Object.entries(run.observations || {})) {
+        requireValue(['day2', 'day7'].includes(label), `unexpected observation ${label}`);
+        for (const field of ['platformViews', 'publicCommentCount', 'consentedRedditReferrals', 'anonymousAdultForumFeedbackCount']) {
+            requireValue(nullableWholeNumber(observation[field]), `${label}.${field} must be null or a non-negative whole number`);
+        }
+        if (!publication.posted) requireValue(Object.values(observation).every(value => value === null), `${label} evidence cannot exist before publication`);
+        if (observation.checkedAt !== null) requireValue(Boolean(Date.parse(observation.checkedAt || '')) && Boolean(Date.parse(observation.dueAt || '')), `${label} needs valid due and checked times`);
+    }
+
+    if (publication.posted && Date.parse(publication.publishedAt)) {
+        for (const [label, days] of [['day2', 2], ['day7', 7]]) {
+            const expected = new Date(Date.parse(publication.publishedAt) + days * 86400000).toISOString();
+            requireValue(run.observations?.[label]?.dueAt === expected, `${label} due time must be derived from the real publication time`);
+        }
+    }
+
+    const truth = (run.truthRules || []).join(' ');
+    for (const phrase of ['view is not a player', 'visit is not a play', 'does not prove enjoyment', 'does not prove retention', 'does not prove growth']) {
+        requireValue(truth.toLowerCase().includes(phrase), `truth rule is missing: ${phrase}`);
+    }
+    requireValue(!/user(name)?|handle|commentText|comment_text|privateMessage|private_message/i.test(Object.keys(run.observations?.day2 || {}).join(' ')), 'personal or message-level fields are not allowed');
+    requireValue(/existing adult Reddit account/i.test(run.nextRequiredAction || '') && /answer replies/i.test(run.nextRequiredAction || ''), 'next human action is unclear');
+
+    return failures;
+}
+
+function loadFromRoot(root) {
+    const readJson = relative => JSON.parse(fs.readFileSync(path.join(root, relative), 'utf8'));
+    return { run: readJson(RUN_PATH), plan: readJson(PLAN_PATH) };
+}
+
+function main() {
+    const root = path.resolve(__dirname, '..', '..');
+    const inputs = loadFromRoot(root);
+    const failures = validateCommunityRun(inputs);
+    if (failures.length) {
+        console.error('Community discovery run is unsafe or inconsistent:\n');
+        failures.forEach(failure => console.error(`- ${failure}`));
+        process.exit(1);
+    }
+    console.log(JSON.stringify({
+        valid: true,
+        community: inputs.run.community,
+        state: inputs.run.state,
+        posted: inputs.run.publication.posted,
+        postUrl: inputs.run.publication.postUrl,
+        nextRequiredAction: inputs.run.nextRequiredAction
+    }, null, 2));
+}
+
+if (require.main === module) main();
+module.exports = { RUN_PATH, PLAN_PATH, validateCommunityRun, loadFromRoot };

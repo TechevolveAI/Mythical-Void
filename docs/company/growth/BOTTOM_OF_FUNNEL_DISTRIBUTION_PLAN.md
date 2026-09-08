@@ -1,6 +1,8 @@
 # The shortest route from “I want a new game” to Mythical Void
 
-Status: owned search is live; the private First Five check and the first itch.io page are ready for Kevin's decisions, checked 31 August 2026
+Status: owned search is live; one direct-link r/WebGames test is ready for
+Kevin; the private First Five and itch.io page remain held, checked 8 September
+2026
 
 ## What makes somebody start a game
 
@@ -51,12 +53,23 @@ explanation into that route.
 
 ## The first distribution move
 
-Start with the private First Five check. If unfamiliar adults can understand
-the opening and reach something meaningful, Kevin can choose the first public
-shelf. The itch.io package, page copy and reviewed brand cover are ready for
-that decision. The first page can honestly launch without screenshots; weak or
-misleading gameplay images must not be used just to fill a gallery. Four strong
-real-game images and one short video remain the quality target for later.
+Run one careful direct-link test in r/WebGames. The community is specifically
+for games that play in a normal browser, so Mythical Void can go straight to
+the real game without a download or account. This test uses no screenshot,
+video, generated art, tracking code or popularity claim, so it does not pretend
+that the unresolved gameplay-media gate has passed.
+
+The exact title, first comment and seven-day record are prepared. Before the
+post, recheck the live rules, search for a duplicate, check the live game and
+opening, confirm an existing adult account, ask Kevin to approve the exact post
+at that moment and confirm he can answer replies. Do not cross-post during the
+seven-day read.
+
+The private First Five remains the next product-understanding check. If
+unfamiliar adults can understand the opening and reach something meaningful,
+Kevin can then choose the first public shelf. The itch.io package, page copy
+and reviewed brand cover are ready for that later decision. Weak or misleading
+gameplay images must not be used just to fill a gallery.
 
 Judge the first release on four steps rather than likes or follower counts:
 
@@ -90,6 +103,7 @@ The father-and-son beginning, creature engine, careful use of AI and NASA-inspir
 | Doorway | Why it matters | Mythical Void move | State |
 |---|---|---|---|
 | Google and other search engines | The player is already asking for a free browser, creature or indie game | Keep `/playable-now/` as the truthful search landing page and lead directly to play | Live |
+| r/WebGames | Adults are already asking for games that work immediately in a browser | Make one disclosed direct-link post and read the result for seven days | Ready, not posted |
 | itch.io | People browse specifically for new independent games; an account is free and HTML games can run in the browser | Use the tested direct-play package and prepared listing | Technically ready, not published |
 | YouTube | Players search for gameplay, reviews and “games to try” | Publish only after four real, excellent gameplay moments exist | Held for visual quality |
 | Poki | A very large audience is already choosing a web game | Preserve the option; its preferred deals can require web exclusivity, so decide before itch.io publication | High-upside option, not submitted |
@@ -178,14 +192,17 @@ We record what happened, not what we hoped happened. No child is contacted priva
 
 ## What Kevin now needs to approve
 
-There are three gates, in this order:
+There are four decisions, in this order:
 
-1. Approve a creature art direction for the next private first-contact proof.
+1. Confirm an existing adult Reddit account, approve the exact r/WebGames post
+   at posting time and confirm Kevin can answer replies. This approves only one
+   post and no cross-posting.
+2. Approve a creature art direction for the next private first-contact proof.
    The rejected layout repair must not be deployed or used with testers.
-2. After that proof passes human review, approve the adult-only First Five
+3. After that proof passes human review, approve the adult-only First Five
    invitation so we can learn whether the opening works for people who do not
    know the project.
-3. After the First Five passes, choose the first public route:
+4. After the First Five passes, choose the first public shelf:
 
 > Should we preserve maximum upside by asking Poki to consider the game first,
 > or publish the prepared itch.io page now for faster learning?
@@ -215,3 +232,4 @@ bulk outreach or another platform.
 - 2025 Global Power of Play report: https://www.theesa.com/global-report-video-games-transcend-entertainment-affect-positive-change-in-players-lives/
 - 2025 YouTube gaming survey: https://www.biggamesmachine.com/wp-content/uploads/2025/02/BGM-YouTube-survey-2025.pdf
 - YouTube Gaming discovery help: https://support.google.com/youtube/answer/9134402?hl=en
+- r/WebGames rules: https://www.reddit.com/r/WebGames/about/rules
