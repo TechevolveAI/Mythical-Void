@@ -33,18 +33,31 @@ requireValue(release.source?.fingerprintSha256 === sourceFingerprint, 'release r
 requireValue(release.source?.liveEntryCount === live.length, 'release record live count drifted');
 requireValue(release.feeds?.rss?.sha256 === rssSha256 && release.feeds?.rss?.itemCount === live.length, 'release record RSS proof drifted');
 requireValue(release.feeds?.json?.sha256 === jsonSha256 && release.feeds?.json?.itemCount === live.length, 'release record JSON proof drifted');
-requireValue(['owned_site_release_prepared', 'complete_owned_site_release_production_verified'].includes(release.state), 'release state is invalid');
+requireValue([
+    'owned_site_release_prepared',
+    'complete_owned_site_release_production_verified',
+    'complete_owned_site_release_alias_verified_from_promoted_preview'
+].includes(release.state), 'release state is invalid');
 if (release.state === 'owned_site_release_prepared') {
     requireValue(release.productionVerification === null, 'prepared feed release must not invent production proof');
 } else {
     const production = release.productionVerification || {};
-    requireValue(/^[0-9a-f]{40}$/.test(production.commit || ''), 'live feed production commit is missing');
+    const productionCommit = production.commit || production.mergeCommit;
+    requireValue(/^[0-9a-f]{40}$/.test(productionCommit || ''), 'live feed production commit is missing');
     requireValue(/^[0-9a-f]{24}$/.test(production.deployId || ''), 'live feed production deploy ID is missing');
     requireValue(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(production.publishedAt || ''), 'live feed production time is missing');
     requireValue(production.updatesPageHttpStatus === 200 && production.playDoorwayHttpStatus === 200, 'live feed public doorways were not both checked');
     requireValue(production.latestEntryId === live[0]?.id && production.latestEntryPresent === true, 'live feed latest entry proof is missing');
     requireValue(production.rssItemCount === live.length && production.jsonItemCount === live.length, 'live feed production counts drifted');
     requireValue(production.productionPresentationReview === 'text_only_no_gameplay_media', 'live feed release must preserve its text-only presentation boundary');
+    if (release.state === 'complete_owned_site_release_alias_verified_from_promoted_preview') {
+        requireValue(/^[0-9a-f]{40}$/.test(production.sourceCommit || ''), 'promoted preview source commit is missing');
+        requireValue(production.mergeTreeMatchesSourceTree === true, 'promoted preview was not proven tree-identical to merged main');
+        requireValue(production.deployContextReportedByNetlify === 'deploy-preview', 'promoted preview context must be recorded honestly');
+        requireValue(production.promotionMethod === 'tested_pr_preview_restored_to_production_alias_after_main_build_was_skipped_for_account_credit_usage', 'promoted preview method is missing');
+        requireValue(production.productionAlias === 'https://mythicalvoid.com', 'production alias proof is missing');
+        requireValue(production.liveFilesMatchSourceSha256 === true, 'live promoted files were not proven source-identical');
+    }
 }
 for (const [key, expected] of Object.entries({ ownedWebsitePublicationAuthorized: true, externalSyndicationAuthorized: false, emailSendingAuthorized: false, socialPostingAuthorized: false, externalActionTaken: false })) {
     requireValue(release.authority?.[key] === expected, `release authority.${key} must be ${expected}`);
