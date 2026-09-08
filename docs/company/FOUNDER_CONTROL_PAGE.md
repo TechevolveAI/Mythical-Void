@@ -75,6 +75,11 @@ detailed evidence; it turns that evidence into the decisions that matter now.
   link. Its page showed about 19,000 weekly visitors on 8 September, but that is
   a changing community estimate—not reach and not a player count. A community
   search showed no existing Mythical Void post.
+- Thirteen discovery routes have now been checked and put in a deliberate
+  order. The first remains r/WebGames. A complete IndieDB page pack is also
+  ready for later: it contains honest game copy, the father-and-son beginning,
+  clear AI and NASA wording, and only approved brand art. No IndieDB account was
+  opened, no terms were accepted and no page was created or published.
 
 ## The one decision that matters now
 
@@ -134,6 +139,19 @@ copy and stop rules are in
 4. Do not cross-post while this first read is running.
 5. Decide whether to stop, improve the first minute or prepare the already
    drafted Phaser Showcase topic.
+
+## What is ready behind the first community test
+
+- **Phaser Showcase:** one honest text-only topic is prepared. It waits until
+  the Reddit read is finished or cancelled.
+- **IndieDB:** the full game-page copy and rights checklist are prepared. It
+  waits for Kevin to review the current terms and permit a read-only signed-in
+  form check. That check must not save or publish a page.
+- **itch.io:** the technical package and no-screenshot page remain prepared,
+  but the wider distribution choice and visual-quality gate are still open.
+
+Preparing later routes does not permit cross-posting. The first real audience
+read still happens in one place at a time.
 
 ## The important product decision that remains held
 

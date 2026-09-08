@@ -23,6 +23,8 @@ const files = [
     'docs/company/growth/BOTTOM_OF_FUNNEL_DISTRIBUTION_PLAN.json',
     'docs/company/growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08.json',
     'docs/company/growth/OWNED_CHANNEL_ATTENTION_2026-09-08.json',
+    'docs/company/growth/DISCOVERY_DOORWAY_REGISTRY_2026-09-08.json',
+    'docs/company/growth/INDIEDB_PAGE_CANDIDATE_2026-09-08.json',
     'docs/company/content/visual-launch-moments.json',
     'docs/company/automation/website-analytics-tag.json',
     'index.html',
@@ -93,6 +95,8 @@ mutateControl('authorize spend', value => { value.authority.spendAuthorized = tr
 mutateControl('add second current decision', value => { value.currentDecisions.push({ id: 'FD-002' }); }, 'exactly one current founder decision');
 mutateControl('pretend community post happened', value => { value.communityExperiment.postMade = true; }, 'founder community experiment state is invalid');
 mutateControl('allow fake engagement', value => { value.communityExperiment.fakeEngagementAllowed = true; }, 'community experiment safety boundary is invalid');
+mutateControl('invent IndieDB account', value => { value.preparedDiscoveryRoutes.indieDb.accountOpened = true; }, 'founder IndieDB accountOpened');
+mutateControl('invent IndieDB publication', value => { value.preparedDiscoveryRoutes.indieDb.pagePublished = true; }, 'founder IndieDB pagePublished');
 mutateControl('stale latest website release', value => { value.live.websiteAndGame.latestMaterialWebsiteRelease.deployId = 'stale'; }, 'founder latest material website release deployId is stale');
 mutateControl('hide reciprocal project link', value => { value.live.websiteAndGame.latestMaterialWebsiteRelease.officialProjectReciprocalLinkLive = false; }, 'live reciprocal project link');
 mutateControl('hide homepage invitation', value => { value.live.websiteAndGame.latestMaterialWebsiteRelease.homepageHatchInvitationLive = false; }, 'live Hatch Challenge invitations');
@@ -124,5 +128,5 @@ try {
     fs.rmSync(privacyRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 21);
-console.log('Founder control safeguards passed (21 cases).');
+assert.strictEqual(cases, 23);
+console.log('Founder control safeguards passed (23 cases).');
