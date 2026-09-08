@@ -6,10 +6,13 @@ const path = require('path');
 const { loadFromRoot } = require('./validate-community-discovery-run.cjs');
 const {
     DUPLICATE_URL,
+    EXPECTED_GAME_URL,
     EXPECTED_PREVIEW,
     RULES_URL,
+    evaluateDirectPlayDocument,
     evaluatePreflight,
     parseArguments,
+    parseLink,
     parseMeta,
     preparedPostSha256,
     unexpectedEvidenceFields
@@ -102,6 +105,38 @@ assert.strictEqual(
     EXPECTED_PREVIEW
 );
 cases += 1;
+assert.strictEqual(
+    parseLink(`<link rel="canonical" href="${EXPECTED_GAME_URL}">`, 'canonical'),
+    EXPECTED_GAME_URL
+);
+
+const directPlayHtml = `<!doctype html>
+<html><head>
+<title>Mythical Void | Free Creature Adventure Browser Game</title>
+<meta name="mythical-entry" content="direct-play">
+<meta property="og:url" content="${EXPECTED_GAME_URL}">
+<meta property="og:image" content="${EXPECTED_PREVIEW}">
+<meta property="og:image:alt" content="Mythical Void brand art — not gameplay">
+<link rel="canonical" href="${EXPECTED_GAME_URL}">
+</head><body><script>const path = '/play'; if (path === '/play') {}</script>
+<script type="module" src="/assets/index-example.js"></script></body></html>`;
+cases += 1;
+assert.deepStrictEqual(evaluateDirectPlayDocument(200, directPlayHtml), {
+    liveGameOk: true,
+    previewMetadataOk: true,
+    previewUrl: EXPECTED_PREVIEW,
+    previewAlt: 'Mythical Void brand art — not gameplay',
+    openGraphUrl: EXPECTED_GAME_URL,
+    canonicalUrl: EXPECTED_GAME_URL,
+    entryIdentity: 'direct-play'
+});
+
+cases += 1;
+assert.strictEqual(
+    evaluateDirectPlayDocument(200, directPlayHtml.replaceAll(EXPECTED_GAME_URL, 'https://mythicalvoid.com/')).previewMetadataOk,
+    false
+);
+cases += 1;
 assert.strictEqual(preparedPostSha256(run.preparedPost).length, 64);
 
 cases += 1;
@@ -133,5 +168,5 @@ assert.throws(() => parseArguments(['--write-receipt', path.join(root, 'receipt.
 assert.throws(() => parseArguments(['--action-time', '/private/tmp/action.json', '--write-receipt', path.join(root, 'receipt.json')]), /outside the repository/);
 assert.strictEqual(parseArguments(['--action-time', '/private/tmp/action.json', '--write-receipt', '/private/tmp/receipt.json', '--at', '2026-09-08T12:00:00Z']).receiptPath, '/private/tmp/receipt.json');
 
-assert.strictEqual(cases, 24);
-console.log('Community action-time preflight safeguards passed (24 cases).');
+assert.strictEqual(cases, 27);
+console.log('Community action-time preflight safeguards passed (27 cases).');
