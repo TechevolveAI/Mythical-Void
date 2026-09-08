@@ -37,6 +37,16 @@ const cases = [
         expected: 'first comment is too long'
     },
     {
+        name: 'rejects AI disclosure without evidence of care',
+        mutate(plan) { plan.firstExperiment.preparedPost.firstComment = plan.firstExperiment.preparedPost.firstComment.replace('The game has been tested and reworked; ', ''); },
+        expected: 'low-effort AI concern'
+    },
+    {
+        name: 'rejects treating a divided discussion as a community rule',
+        mutate(plan) { plan.firstExperiment.communityClimate.status = 'official_rule_banning_ai'; },
+        expected: 'community climate is missing or overstated'
+    },
+    {
         name: 'rejects a duplicate post',
         mutate(plan) { plan.firstExperiment.duplicateCheck.existingResultObserved = true; },
         expected: 'duplicate search no longer supports a first post'
