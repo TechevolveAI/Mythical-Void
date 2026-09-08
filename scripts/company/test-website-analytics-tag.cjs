@@ -46,10 +46,10 @@ try {
     assert.strictEqual(baseline.output.gameSourceTagHits, 0);
     assert.strictEqual(baseline.output.hostingPolicyCount, 2);
     assert.strictEqual(baseline.output.productionDeployed, true);
-    assert.strictEqual(baseline.output.verifiedDeployId, '6a950b240857220008661510');
+    assert.strictEqual(baseline.output.verifiedDeployId, '6a9fe657740ba20008b6d9a7');
     assert.strictEqual(baseline.output.homepageTagScriptObserved, true);
     assert.strictEqual(baseline.output.gameRuntimeTagScriptObserved, false);
-    assert.strictEqual(baseline.output.freshBrowserConsentJourneyVerified, false);
+    assert.strictEqual(baseline.output.freshBrowserConsentJourneyVerified, true);
     assert.strictEqual(baseline.output.googlePropertyEventsVerified, true);
     assert.strictEqual(baseline.output.propertyStreamName, 'Mythical Void');
     assert.strictEqual(baseline.output.propertyMeasurementIdMatched, true);
@@ -78,6 +78,8 @@ try {
     invalid(value => { value.productionDeployed = false; }, 'productionDeployed');
     invalid(value => { value.productionEvidence.homepageTagScriptObserved = false; }, 'live homepage tag observation');
     invalid(value => { value.productionEvidence.gameRuntimeTagScriptObserved = true; }, 'live game runtime');
+    invalid(value => { value.productionEvidence.freshBrowserConsentJourneyVerified = false; }, 'freshBrowserConsentJourneyVerified');
+    invalid(value => { value.productionEvidence.consentJourneyEvidence.eventQueueAfterDenyCount = 1; }, 'queued an event before permission');
     invalid(value => { value.productionEvidence.measurementTrustedForDecisions = true; }, 'measurementTrustedForDecisions');
     invalid(value => { value.propertySideEvidence.measurementId = 'G-WRONG'; }, 'property stream or measurement id');
     invalid(value => { value.propertySideEvidence.observedEventNames.pop(); }, 'observedEventNames');
@@ -92,8 +94,8 @@ try {
     invalid(value => { value.purpose = 'Tag.'; }, 'purpose is incomplete');
     invalid(value => { value.tag.pageViewBeforeChoice = true; }, 'pageViewBeforeChoice');
 
-    assert.strictEqual(caseCount, 31);
-    console.log('A-058 website analytics tag evaluations passed (31 cases).');
+    assert.strictEqual(caseCount, 33);
+    console.log('A-058 website analytics tag evaluations passed (33 cases).');
 } finally {
     fs.rmSync(temporaryDirectory, { recursive: true, force: true });
 }

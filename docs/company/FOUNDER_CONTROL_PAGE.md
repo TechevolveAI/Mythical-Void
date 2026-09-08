@@ -26,9 +26,12 @@ detailed evidence; it turns that evidence into the decisions that matter now.
 - **The Google tag is live on the website only:** it stays out of the game and
   waits for optional permission. The signed-in Google property is the Mythical
   Void stream, the tag ID matches and Google says data is flowing. Google is
-  also automatically recording extra interactions such as scrolling, and the
-  fresh consent journey has not been checked, so its numbers are not yet trusted
-  for decisions.
+  also automatically recording extra interactions such as scrolling. A fresh
+  temporary browser now proves that no event is queued before a choice or after
+  “No thanks”, that only the approved arrival event is queued after “Allow
+  analytics”, and that the game remains excluded. The test browser blocked
+  Google’s own script, so delivery was not re-proved in that run. The numbers
+  are still not trusted for decisions.
 
 ## What is deliberately stopped
 

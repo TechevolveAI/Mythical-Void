@@ -40,7 +40,7 @@
       "measurementIdMatched": true,
       "dataFlowing": true,
       "enhancedMeasurementEnabled": true,
-      "freshConsentJourneyVerified": false,
+      "freshConsentJourneyVerified": true,
       "measurementTrustedForDecisions": false
     }
   },
