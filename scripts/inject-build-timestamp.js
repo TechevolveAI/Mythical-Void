@@ -7,6 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { writeDirectPlayEntry } = require('./build-direct-play-entry.cjs');
 
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 const SW_PATH = path.join(DIST_DIR, 'sw.js');
@@ -45,4 +46,11 @@ if (!indexContent.includes('__BUILD_TIMESTAMP__')) {
 indexContent = indexContent.replace('__BUILD_TIMESTAMP__', buildTimestamp);
 fs.writeFileSync(INDEX_PATH, indexContent, 'utf8');
 
-console.log('[Build] ✅ Build timestamp injected into worker and document');
+// Give the direct game route its own crawler-visible identity after the
+// release marker is final. The HTML still boots the exact same game bundle.
+const directPlayEntry = writeDirectPlayEntry(DIST_DIR);
+
+console.log(
+  '[Build] ✅ Build timestamp injected; direct Play entry written:',
+  directPlayEntry.outputPath
+);
