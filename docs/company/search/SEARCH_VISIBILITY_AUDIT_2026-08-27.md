@@ -105,6 +105,13 @@ UPDATE-027 page were the only pages named; IndexNow returned `200` at 17:52
 UTC. No unchanged sitemap page was included. Acceptance still does not prove
 crawling, indexing, ranking, visits, sharing, play or growth.
 
+Later that day, the Hatch Challenge first screen changed materially: Start now
+comes before the invitation choices, the opening explanation is simpler and the
+phone spacing is tighter. Only `https://mythicalvoid.com/hatch-challenge/` was
+notified. IndexNow returned `200` at 22:48 UTC. No unchanged page was included,
+and acceptance still does not prove crawling, indexing, ranking, visits,
+sharing, play or growth.
+
 ## The right next move
 
 Do not make lots of near-identical “free game” pages. The useful page already

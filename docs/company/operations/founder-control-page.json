@@ -15,29 +15,32 @@
       "technicalFirstContactRepairLive": true,
       "creatureArtworkHumanApproved": false,
       "lastObservedProduction": {
-        "checkedAt": "2026-09-08T16:46:54Z",
-        "sourceCommit": "02e76598a7ea0c7769b85627a67115dc5f19a034",
-        "deployId": "6aa03b1c6b8c9a0008c5d4ad",
+        "checkedAt": "2026-09-08T22:44:17Z",
+        "sourceCommit": "61285d765ef203126b7d97853e6c2e250550da89",
+        "protectedMainMergeCommit": "9db7bc0b8dc867a0cab679dc6457034724e05c35",
+        "deployId": "6aa08ecd48e6210009720364",
         "state": "ready",
         "published": true
       },
       "latestGameRelease": {
-        "pullRequest": 197,
-        "mergeCommit": "867db60674440297e92c323dd80cc85d57389752",
-        "mergedAt": "2026-09-08T10:27:30Z",
-        "title": "Stabilize Forest progression and mobile grounding",
+        "pullRequest": 231,
+        "mergeCommit": "7c20a0a95d7da431b75f7c1740d544c74b796afb",
+        "mergedAt": "2026-09-08T22:20:30Z",
+        "title": "Add first Guardian invitation",
         "containedInLastObservedProduction": true
       },
       "latestMaterialWebsiteRelease": {
         "checkedOn": "2026-09-08",
-        "sourceCommit": "2f27a384f6cfa4438e392b8ddbf6e744b5108e47",
-        "protectedMainMergeCommit": "02e76598a7ea0c7769b85627a67115dc5f19a034",
-        "deployId": "6aa03b1c6b8c9a0008c5d4ad",
-        "publishedAt": "2026-09-08T16:46:54.447Z",
+        "sourceCommit": "61285d765ef203126b7d97853e6c2e250550da89",
+        "protectedMainMergeCommit": "9db7bc0b8dc867a0cab679dc6457034724e05c35",
+        "deployId": "6aa08ecd48e6210009720364",
+        "publishedAt": "2026-09-08T22:44:17.119Z",
         "sourceAndProductionTreesMatch": true,
         "officialProjectReciprocalLinkLive": true,
         "homepageHatchInvitationLive": true,
-        "persistentGameInvitationStillLive": true
+        "persistentGameInvitationStillLive": true,
+        "firstGuardianInvitationLive": true,
+        "hatchChallengeStartIsPrimary": true
       }
     },
     "githubEarlyAccessRelease": {

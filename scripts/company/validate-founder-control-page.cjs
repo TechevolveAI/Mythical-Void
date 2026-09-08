@@ -32,10 +32,10 @@ const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 const latestMaterialWebsiteRelease = {
     checkedOn: '2026-09-08',
-    sourceCommit: '2f27a384f6cfa4438e392b8ddbf6e744b5108e47',
-    protectedMainMergeCommit: '02e76598a7ea0c7769b85627a67115dc5f19a034',
-    deployId: '6aa03b1c6b8c9a0008c5d4ad',
-    publishedAt: '2026-09-08T16:46:54.447Z',
+    sourceCommit: '61285d765ef203126b7d97853e6c2e250550da89',
+    protectedMainMergeCommit: '9db7bc0b8dc867a0cab679dc6457034724e05c35',
+    deployId: '6aa08ecd48e6210009720364',
+    publishedAt: '2026-09-08T22:44:17.119Z',
     sourceAndProductionTreesMatch: true
 };
 
@@ -53,9 +53,9 @@ requireValue(firstFive.currentHold?.candidateDeployed === true && firstFive.curr
 const lastObservedProduction = live.websiteAndGame?.lastObservedProduction || {};
 requireValue(/^2026-09-08T/.test(lastObservedProduction.checkedAt || '') && /^[0-9a-f]{40}$/.test(lastObservedProduction.sourceCommit || '') && /^[0-9a-f]{24}$/.test(lastObservedProduction.deployId || ''), 'latest observed production identity is invalid');
 requireValue(lastObservedProduction.state === 'ready' && lastObservedProduction.published === true, 'latest observed production is not proven ready and published');
-requireValue(lastObservedProduction.sourceCommit === latestMaterialWebsiteRelease.protectedMainMergeCommit && lastObservedProduction.deployId === latestMaterialWebsiteRelease.deployId, 'latest observed production does not match the live website release');
+requireValue(lastObservedProduction.sourceCommit === latestMaterialWebsiteRelease.sourceCommit && lastObservedProduction.protectedMainMergeCommit === latestMaterialWebsiteRelease.protectedMainMergeCommit && lastObservedProduction.deployId === latestMaterialWebsiteRelease.deployId, 'latest observed production does not match the live website release');
 const latestGameRelease = live.websiteAndGame?.latestGameRelease || {};
-requireValue(latestGameRelease.pullRequest === 197 && latestGameRelease.mergeCommit === '867db60674440297e92c323dd80cc85d57389752' && latestGameRelease.containedInLastObservedProduction === true, 'latest game release is missing from the production record');
+requireValue(latestGameRelease.pullRequest === 231 && latestGameRelease.mergeCommit === '7c20a0a95d7da431b75f7c1740d544c74b796afb' && latestGameRelease.containedInLastObservedProduction === true, 'latest game release is missing from the production record');
 for (const [field, expected] of Object.entries(latestMaterialWebsiteRelease)) {
     requireValue(live.websiteAndGame?.latestMaterialWebsiteRelease?.[field] === expected, `founder latest material website release ${field} is stale`);
     requireValue(firstFive.currentHold?.latestMaterialWebsiteRelease?.[field] === expected, `First Five latest material website release ${field} is stale`);
@@ -63,6 +63,7 @@ for (const [field, expected] of Object.entries(latestMaterialWebsiteRelease)) {
 }
 requireValue(live.websiteAndGame?.latestMaterialWebsiteRelease?.officialProjectReciprocalLinkLive === true, 'founder control hides the live reciprocal project link');
 requireValue(live.websiteAndGame?.latestMaterialWebsiteRelease?.homepageHatchInvitationLive === true && live.websiteAndGame?.latestMaterialWebsiteRelease?.persistentGameInvitationStillLive === true, 'the live Hatch Challenge invitations are missing');
+requireValue(live.websiteAndGame?.latestMaterialWebsiteRelease?.firstGuardianInvitationLive === true && live.websiteAndGame?.latestMaterialWebsiteRelease?.hatchChallengeStartIsPrimary === true, 'the latest live word-of-mouth journey is missing');
 requireValue(firstFive.currentHold?.latestMaterialWebsiteRelease?.technicalRepairStillLive === true && firstFive.currentHold?.latestMaterialWebsiteRelease?.creatureArtworkHumanApproved === false, 'First Five confuses the live technical repair with artwork approval');
 requireValue(visualReview.laterProductionOverride?.latestMaterialWebsiteRelease?.firstContactRepairStillPresent === true && visualReview.laterProductionOverride?.latestMaterialWebsiteRelease?.visualApprovalGranted === false, 'visual review confuses current production with artwork approval');
 requireValue(homepage.includes('href="https://github.com/TechevolveAI/Mythical-Void"') && storefront.includes('href="https://github.com/TechevolveAI/Mythical-Void"'), 'the live website source does not reciprocally link the verified public project');
