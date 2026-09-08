@@ -56,6 +56,7 @@ published.publication = {
 };
 published.observations.day2.dueAt = '2026-09-10T12:00:00.000Z';
 published.observations.day7.dueAt = '2026-09-15T12:00:00.000Z';
+published.nextRequiredAction = 'Kevin answers replies himself. At the two-day and seven-day dates, record public aggregate evidence only.';
 assert.deepStrictEqual(validateCommunityRun({ ...base, run: published }), []);
 const stalePreflight = clone(published);
 stalePreflight.preflight.rulesRecheckedAt = '2026-09-08T08:00:00.000Z';

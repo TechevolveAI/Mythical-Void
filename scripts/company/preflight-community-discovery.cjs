@@ -242,11 +242,21 @@ function runOpeningJourney() {
 function parseArguments(values) {
     const actionIndex = values.indexOf('--action-time');
     const atIndex = values.indexOf('--at');
+    const receiptIndex = values.indexOf('--write-receipt');
     const actionPath = actionIndex === -1 ? null : path.resolve(values[actionIndex + 1] || '');
+    const receiptPath = receiptIndex === -1 ? null : path.resolve(values[receiptIndex + 1] || '');
     const now = atIndex === -1 ? new Date() : new Date(values[atIndex + 1]);
     if (actionIndex !== -1 && !values[actionIndex + 1]) throw new Error('--action-time needs a private evidence file');
+    if (receiptIndex !== -1 && !values[receiptIndex + 1]) throw new Error('--write-receipt needs a private output file');
+    if (receiptPath && !actionPath) throw new Error('--write-receipt is only available with --action-time');
+    if (receiptPath) {
+        const relative = path.relative(ROOT, receiptPath);
+        if (relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative))) {
+            throw new Error('the action-time receipt must stay outside the repository');
+        }
+    }
     if (!Number.isFinite(now.getTime())) throw new Error('--at needs a valid ISO date and time');
-    return { actionPath, now };
+    return { actionPath, receiptPath, now };
 }
 
 async function main() {
@@ -268,20 +278,28 @@ async function main() {
         now: options.now
     });
 
-    console.log(JSON.stringify({
+    const output = {
+        receiptVersion: 1,
         workflow: 'WEBGAMES-FIRST-RUN-001',
         checkedAt: options.now.toISOString(),
         community: run.community,
         preparedPost: run.preparedPost,
+        actionEvidence: actionEvidence ? JSON.parse(JSON.stringify(actionEvidence)) : null,
         publicProbes: probes,
         openingJourney: opening,
         ...result,
+        receiptWritten: options.receiptPath && result.actionReady ? options.receiptPath : null,
         next: result.actionReady
             ? 'Every preflight gate passes. A person may publish the exact prepared post from the confirmed adult account; this command did not post it.'
             : 'Keep publication held and complete only the listed human actions or failed checks.'
-    }, null, 2));
+    };
 
-    if (result.failures.length) process.exitCode = 1;
+    if (options.receiptPath && result.actionReady) {
+        fs.writeFileSync(options.receiptPath, `${JSON.stringify(output, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
+    }
+    console.log(JSON.stringify(output, null, 2));
+
+    if (result.failures.length || (options.receiptPath && !result.actionReady)) process.exitCode = 1;
     else process.exitCode = 0;
 }
 
@@ -300,6 +318,7 @@ module.exports = {
     RULES_URL,
     evaluatePreflight,
     freshnessFailure,
+    parseArguments,
     parseMeta,
     preparedPostSha256,
     probePublicState,

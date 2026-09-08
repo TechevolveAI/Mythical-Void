@@ -9,6 +9,7 @@ const {
     EXPECTED_PREVIEW,
     RULES_URL,
     evaluatePreflight,
+    parseArguments,
     parseMeta,
     preparedPostSha256,
     unexpectedEvidenceFields
@@ -127,5 +128,10 @@ assert.strictEqual(packageJson.scripts['community:preflight'], 'node scripts/com
 assert.strictEqual(packageJson.scripts['test:community-preflight'], 'node scripts/company/test-community-discovery-preflight.cjs');
 assert(packageJson.scripts.build.includes('npm run test:community-preflight'));
 
-assert.strictEqual(cases, 23);
-console.log('Community action-time preflight safeguards passed (23 cases).');
+cases += 1;
+assert.throws(() => parseArguments(['--write-receipt', path.join(root, 'receipt.json')]), /only available with --action-time/);
+assert.throws(() => parseArguments(['--action-time', '/private/tmp/action.json', '--write-receipt', path.join(root, 'receipt.json')]), /outside the repository/);
+assert.strictEqual(parseArguments(['--action-time', '/private/tmp/action.json', '--write-receipt', '/private/tmp/receipt.json', '--at', '2026-09-08T12:00:00Z']).receiptPath, '/private/tmp/receipt.json');
+
+assert.strictEqual(cases, 24);
+console.log('Community action-time preflight safeguards passed (24 cases).');

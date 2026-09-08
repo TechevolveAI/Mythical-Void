@@ -90,7 +90,11 @@ function validateCommunityRun({ run, plan }) {
         requireValue(truth.toLowerCase().includes(phrase), `truth rule is missing: ${phrase}`);
     }
     requireValue(!/user(name)?|handle|commentText|comment_text|privateMessage|private_message/i.test(Object.keys(run.observations?.day2 || {}).join(' ')), 'personal or message-level fields are not allowed');
-    requireValue(/existing adult Reddit account/i.test(run.nextRequiredAction || '') && /answer replies/i.test(run.nextRequiredAction || ''), 'next human action is unclear');
+    if (publication.posted) {
+        requireValue(/Kevin answers replies/i.test(run.nextRequiredAction || '') && /two-day and seven-day/i.test(run.nextRequiredAction || ''), 'post-publication human action is unclear');
+    } else {
+        requireValue(/existing adult Reddit account/i.test(run.nextRequiredAction || '') && /answer replies/i.test(run.nextRequiredAction || ''), 'next human action is unclear');
+    }
 
     return failures;
 }
