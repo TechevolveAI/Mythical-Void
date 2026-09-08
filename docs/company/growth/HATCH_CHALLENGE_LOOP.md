@@ -8,7 +8,7 @@ personalities, affinities and mutations.
 
 The Hatch Challenge turns that into one simple invitation:
 
-> Same signal. Two creatures. What will hatch?
+> Same starting point. Two creatures. What will hatch?
 
 One person sends a clean link to someone they already know. Both begin in their
 own browser, reach the first hatch and compare what appeared.
@@ -23,6 +23,10 @@ own browser, reach the first hatch and compare what appeared.
 
 The Continue button remains available for an existing player, and Start my
 hatch always uses the clean owned `/play/` route.
+
+After the first reveal, the same clean invitation remains available from the
+Sanctuary menu. It is never shown automatically and never includes the
+creature, player, save or recipient.
 
 ## Why this comes before social accounts
 

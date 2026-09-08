@@ -1,3 +1,5 @@
+import { shareHatchChallenge } from '../utils/HatchChallengeShare.js';
+
 function createElement(tagName, className, text = null) {
     const element = document.createElement(tagName);
     element.className = className;
@@ -19,12 +21,6 @@ function formatIdentifier(value, fallback) {
         .replace(/[_-]+/g, ' ')
         .toUpperCase();
 }
-
-const HATCH_SHARE_DATA = Object.freeze({
-    title: 'The Mythical Void Hatch Challenge',
-    text: 'I just hatched an alien creature. Hatch yours from the same starting point, then compare what the creature engine made.',
-    url: 'https://mythicalvoid.com/hatch-challenge/'
-});
 
 export default class LivingFormHandoff {
     constructor(scene) {
@@ -692,20 +688,7 @@ export default class LivingFormHandoff {
         this.shareButton.disabled = true;
         this.shareButton.setAttribute('aria-busy', 'true');
 
-        let result = 'shown';
-        try {
-            if (typeof window.navigator?.share === 'function') {
-                await window.navigator.share(HATCH_SHARE_DATA);
-                result = 'shared';
-            } else if (
-                typeof window.navigator?.clipboard?.writeText === 'function'
-            ) {
-                await window.navigator.clipboard.writeText(HATCH_SHARE_DATA.url);
-                result = 'copied';
-            }
-        } catch (error) {
-            if (error?.name === 'AbortError') result = 'cancelled';
-        }
+        const result = await shareHatchChallenge(window.navigator);
 
         if (this.isVisible && this.shareButton) {
             this.shareButton.textContent = {

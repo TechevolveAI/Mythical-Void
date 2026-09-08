@@ -11414,15 +11414,54 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     } finally {
         await releaseTouch(session);
     }
-    const hamburgerOpened = await evaluate(session, `(() => {
-        const menu = window.mythicalGame?.scene?.getScene('GameScene')?.hamburgerMenu;
-        const opened = menu?.isOpen === true;
-        menu?.close?.();
-        return opened;
+    const hamburgerState = await evaluate(session, `(() => {
+        const scene = window.mythicalGame?.scene?.getScene('GameScene');
+        const menu = scene?.hamburgerMenu;
+        const inviteItem = menu?.menuItems?.find?.(item => item?.key === 'invite');
+        const inviteLabel = scene?.children?.list?.find?.(
+            item => item?.visible === true && item?.text === 'Invite someone'
+        );
+        const bounds = inviteLabel?.getBounds?.();
+        return {
+            opened: menu?.isOpen === true,
+            inviteActionPresent: typeof inviteItem?.action === 'function',
+            inviteLabelPresent: Boolean(inviteLabel),
+            inviteLabelBounds: bounds ? {
+                left: bounds.left,
+                top: bounds.top,
+                right: bounds.right,
+                bottom: bounds.bottom
+            } : null,
+            viewport: scene?.scale ? {
+                width: scene.scale.width,
+                height: scene.scale.height
+            } : null
+        };
     })()`);
-    if (!hamburgerOpened) {
-        throw new Error('First Sanctuary hamburger did not open from a touch press');
+    const inviteBounds = hamburgerState?.inviteLabelBounds;
+    const inviteViewport = hamburgerState?.viewport;
+    if (
+        !hamburgerState?.opened ||
+        !hamburgerState.inviteActionPresent ||
+        !hamburgerState.inviteLabelPresent ||
+        !inviteBounds ||
+        !inviteViewport ||
+        inviteBounds.left < 0 ||
+        inviteBounds.top < 0 ||
+        inviteBounds.right > inviteViewport.width ||
+        inviteBounds.bottom > inviteViewport.height
+    ) {
+        throw new Error(
+            `First Sanctuary invitation menu is not readable: ${JSON.stringify(hamburgerState)}`
+        );
     }
+    await captureGameplayStill(
+        session,
+        'first-sanctuary-invite-menu-mobile.png'
+    );
+    await evaluate(session, `(
+        window.mythicalGame?.scene?.getScene('GameScene')?.hamburgerMenu?.close?.()
+    )`);
 
     return {
         naming,
@@ -11434,7 +11473,8 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         gameplay,
         movement,
         downwardMovement,
-        hamburgerOpened
+        hamburgerOpened: hamburgerState.opened,
+        persistentInvitation: hamburgerState
     };
 }
 

@@ -8,6 +8,7 @@ import LegalDocumentsModal from './LegalDocumentsModal.js';
 import CloudSaveSettingsModal from './CloudSaveSettingsModal.js';
 import ProjectBeaconLogModal from './ProjectBeaconLogModal.js';
 import SettingsModal from './SettingsModal.js';
+import { shareHatchChallenge } from '../utils/HatchChallengeShare.js';
 
 export default class HamburgerMenu {
     constructor(scene) {
@@ -28,6 +29,7 @@ export default class HamburgerMenu {
             { key: 'hub', label: 'Hub World', icon: '🌌', shortcut: 'H', action: () => this.navigateToHub() },
             { key: 'fusion', label: 'Fusion Pod', icon: '🧬', shortcut: 'B', action: () => this.navigateToFusion() },
             { key: 'collection', label: 'Switch Creature', icon: '🔄', shortcut: 'C', action: () => this.showCreatureSwitcher() },
+            { key: 'invite', label: 'Invite someone', icon: '↗', shortcut: null, action: () => this.inviteSomeone() },
             { key: 'spacenews', label: 'Space News', icon: '🚀', shortcut: 'N', action: () => this.showSpaceNews() },
             { key: 'settings', label: 'Settings', icon: '⚙️', shortcut: 'O', action: () => this.showSettings() },
             { key: 'cloudsave', label: 'Cloud Save', icon: '☁️', shortcut: 'V', action: () => this.showCloudSaveSettings() },
@@ -54,6 +56,7 @@ export default class HamburgerMenu {
         this.nativeTouchCanvas = null;
         this.nativeTouchStartHandler = null;
         this.lastMenuActivationAt = -Infinity;
+        this.invitationInProgress = false;
     }
 
     /**
@@ -425,6 +428,26 @@ export default class HamburgerMenu {
         } else if (this.scene.creatureSwitcher) {
             this.scene.creatureSwitcher.show();
         }
+    }
+
+    /**
+     * Keep the clean Hatch Challenge invitation available after the reveal.
+     * The shared message never includes the player, creature, save or recipient.
+     */
+    async inviteSomeone() {
+        if (this.invitationInProgress) return 'unavailable';
+        this.invitationInProgress = true;
+
+        const result = await shareHatchChallenge(window.navigator);
+        const messages = {
+            shared: 'Invitation shared',
+            copied: 'Hatch Challenge link copied',
+            shown: 'Share mythicalvoid.com/hatch-challenge'
+        };
+        if (messages[result]) this.showToast(messages[result]);
+
+        this.invitationInProgress = false;
+        return result;
     }
 
     /**

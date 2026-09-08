@@ -10,6 +10,10 @@ function loadLivingFormHandoff() {
     const source = fs.readFileSync(filePath, 'utf8');
     const transformed = source
         .replace(
+            "import { shareHatchChallenge } from '../utils/HatchChallengeShare.js';",
+            ''
+        )
+        .replace(
             /import \{[\s\S]*?\} from '\.\.\/systems\/CompanionIdentityArchive\.js';/,
             'const AUTHORED_COMPANION_STUDIES = {};'
         )
@@ -31,6 +35,26 @@ function loadLivingFormHandoff() {
         exports: {},
         document,
         window,
+        shareHatchChallenge: async navigatorValue => {
+            const invitation = {
+                title: 'The Mythical Void Hatch Challenge',
+                text: 'I just hatched an alien creature. Hatch yours from the same starting point, then compare what the creature engine made.',
+                url: 'https://mythicalvoid.com/hatch-challenge/'
+            };
+            try {
+                if (typeof navigatorValue?.share === 'function') {
+                    await navigatorValue.share(invitation);
+                    return 'shared';
+                }
+                if (typeof navigatorValue?.clipboard?.writeText === 'function') {
+                    await navigatorValue.clipboard.writeText(invitation.url);
+                    return 'copied';
+                }
+            } catch (error) {
+                if (error?.name === 'AbortError') return 'cancelled';
+            }
+            return 'shown';
+        },
         requestAnimationFrame: callback => {
             callback();
             return 1;

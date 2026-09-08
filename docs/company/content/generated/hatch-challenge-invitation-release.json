@@ -6,11 +6,17 @@
     "trigger": "first_named_creature_living_form_reveal",
     "buttonLabel": "INVITE SOMEONE",
     "title": "The Mythical Void Hatch Challenge",
-    "text": "I just hatched an alien creature. Hatch yours from the same signal, then compare what the creature engine made.",
+    "text": "I just hatched an alien creature. Hatch yours from the same starting point, then compare what the creature engine made.",
     "url": "https://mythicalvoid.com/hatch-challenge/",
     "gameEntry": "/play/#hatch-challenge",
     "invitedPlayerGuidance": true,
     "comparisonAreas": ["form", "colour", "markings", "nature", "affinity", "rare changes"],
+    "persistentEntry": {
+      "screen": "Sanctuary menu",
+      "buttonLabel": "Invite someone",
+      "automaticShare": false,
+      "usesSameCleanInvitation": true
+    },
     "automaticShare": false,
     "continueRemainsPrimary": true
   },
@@ -34,6 +40,12 @@
     "shareActionPresentInGameBundle": true,
     "cleanShareUrlPresentInGameBundle": true,
     "challengeEntryPresentOnLandingPage": true,
-    "comparisonGuidancePresentInGameBundle": true
+    "comparisonGuidancePresentInGameBundle": true,
+    "persistentMenuCandidate": {
+      "sourceReady": true,
+      "productionCommit": null,
+      "productionDeployId": null,
+      "productionPublishedAt": null
+    }
   }
 }
