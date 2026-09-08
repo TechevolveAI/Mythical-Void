@@ -156,6 +156,17 @@
   to = "/feedback/index.html"
   status = 200
 
+[[redirects]]
+  # Serve a page-specific press document instead of the homepage SPA shell.
+  from = "/press"
+  to = "/press/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/press/"
+  to = "/press/index.html"
+  status = 200
+
 # Withdrawn visual media must not remain reachable through an old direct link.
 # A file can remain in the internal release record without remaining public.
 [[redirects]]

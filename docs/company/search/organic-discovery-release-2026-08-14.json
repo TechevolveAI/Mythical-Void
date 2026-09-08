@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "SEARCH-RELEASE-2026-08-14",
-  "asOf": "2026-08-14",
+  "asOf": "2026-09-08",
   "state": "approved_for_owned_website_release",
   "purpose": "Give players, parents, educators, creators and press useful ways to discover Mythical Void without waiting for social accounts or paid promotion.",
   "authority": {
@@ -68,6 +68,13 @@
       "intent": "Understand the father-and-son origin and how a small human-led studio uses generative AI tools",
       "claimIds": ["CL-001", "CL-002", "CL-004", "CL-005"],
       "proof": ["public/studio/index.html", "docs/company/content/technology-proof-map.json"]
+    },
+    {
+      "route": "/press/",
+      "audience": "Press, creators, reviewers and partners who need a quick, reliable account of the current game",
+      "intent": "Understand the playable game, try its opening, use approved facts and downloads, and see the current media-quality boundary without relying on homepage JavaScript",
+      "claimIds": ["CL-001", "CL-002", "CL-004", "CL-005", "CL-013"],
+      "proof": ["public/press/index.html", "public/press/mythical-void-fact-sheet.txt", "public/press/visual-publication-register.json", "docs/company/search/press-search-doorway-2026-09-08.json"]
     }
   ],
   "releaseChecks": [
