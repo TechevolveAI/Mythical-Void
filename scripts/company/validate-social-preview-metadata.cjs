@@ -39,6 +39,22 @@ function imageDimensions(file, type) {
         if (format === 'VP8X') return { width: 1 + bytes.readUIntLE(24, 3), height: 1 + bytes.readUIntLE(27, 3) };
         return null;
     }
+    if (type === 'image/jpeg') {
+        if (bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+        let offset = 2;
+        while (offset + 8 < bytes.length) {
+            if (bytes[offset] !== 0xff) { offset += 1; continue; }
+            const marker = bytes[offset + 1];
+            if (marker === 0xd8 || marker === 0xd9) { offset += 2; continue; }
+            const length = bytes.readUInt16BE(offset + 2);
+            if (length < 2 || offset + length + 2 > bytes.length) return null;
+            if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) {
+                return { height: bytes.readUInt16BE(offset + 5), width: bytes.readUInt16BE(offset + 7) };
+            }
+            offset += length + 2;
+        }
+        return null;
+    }
     return null;
 }
 
@@ -98,6 +114,19 @@ for (const page of manifest.pages || []) {
             requireValue(template.includes('BRAND ART — NOT GAMEPLAY') && template.includes('../../public/marketing/mythical-void-emblem-v3.png'), `${label} rendered brand-card source has lost its visible boundary or approved emblem.`);
         }
         requireValue(/^[0-9a-f]{64}$/.test(page.sha256 || '') && crypto.createHash('sha256').update(fs.readFileSync(imageFile)).digest('hex') === page.sha256, `${label} brand-card fingerprint does not match the reviewed file.`);
+    }
+    if (page.classification === 'ai_assisted_code_authored_brand_art_not_gameplay') {
+        const templateFile = path.join(siteRoot, page.sourceTemplate || '');
+        const emblemFile = path.join(siteRoot, page.sourceEmblem || '');
+        requireValue(label === '/hatch-challenge/', `${label} Hatch Challenge brand-art classification is only approved for its dedicated page.`);
+        requireValue(/AI-assisted code-authored brand artwork/i.test(page.disclosure || '') && /not gameplay/i.test(page.disclosure || ''), `${label} Hatch Challenge card must retain its creation and not-gameplay disclosure.`);
+        requireValue(page.imageModelUsed === false && page.playerOrCreatureDataUsed === false, `${label} Hatch Challenge preview provenance drifted.`);
+        requireValue(fs.existsSync(templateFile) && fs.existsSync(emblemFile), `${label} Hatch Challenge card source or approved emblem is missing.`);
+        if (fs.existsSync(templateFile)) {
+            const template = fs.readFileSync(templateFile, 'utf8');
+            requireValue(template.includes('BRAND ART · NOT GAMEPLAY') && template.includes('/marketing/mythical-void-emblem-v3.png'), `${label} Hatch Challenge card source lost its visible boundary or approved emblem.`);
+        }
+        requireValue(/^[0-9a-f]{64}$/.test(page.sha256 || '') && crypto.createHash('sha256').update(fs.readFileSync(imageFile)).digest('hex') === page.sha256, `${label} Hatch Challenge card fingerprint does not match the reviewed file.`);
     }
     if ((page.classification || '').startsWith('branded_social_artwork_with_authentic_gameplay_frame')) {
         requireValue(/not a raw screenshot/i.test(page.disclosure || '') && /real gameplay/i.test(page.disclosure || '') && /no player information/i.test(page.disclosure || ''), `${label} branded artwork must retain its gameplay and privacy disclosure.`);

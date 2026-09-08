@@ -7,12 +7,12 @@
     "externalServices": "Static markers in built HTML, CSS and application JavaScript; a marker is a compatibility risk, not proof that a request fired."
   },
   "package": {
-    "fileCount": 91,
-    "rawBytes": 34530785,
-    "gzipEstimateBytes": 30644499,
+    "fileCount": 92,
+    "rawBytes": 34614862,
+    "gzipEstimateBytes": 30726507,
     "advisoryTargetBytes": 8388608,
     "advisoryTargetMet": false,
-    "contentDigestSha256": "08cfb09778fe68de943d4b1571d6910745bf33e962ec3e065963369cd2f9d3aa"
+    "contentDigestSha256": "0384508f88ca8f3ef2b26e6da4e3c39c0f78da6b549a9d46c3b1eee3dec6f30a"
   },
   "firstLoad": {
     "resourceCount": 18,
@@ -140,9 +140,9 @@
       "gzipEstimateBytes": 3323
     },
     "marketing": {
-      "fileCount": 26,
-      "rawBytes": 2898429,
-      "gzipEstimateBytes": 2843608
+      "fileCount": 27,
+      "rawBytes": 2982506,
+      "gzipEstimateBytes": 2925616
     }
   },
   "externalServiceMarkers": {

@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const rootFlag = process.argv.indexOf('--root');
 const root = rootFlag === -1
@@ -16,6 +17,29 @@ const hatchPage = read('public/hatch-challenge/index.html');
 const release = JSON.parse(read('docs/company/content/generated/hatch-challenge-invitation-release.json'));
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
+const preview = release.visualBoundary?.socialPreview || {};
+const previewAbsolute = path.join(root, preview.path || '');
+const previewSourceAbsolute = path.join(root, preview.sourcePath || '');
+const previewBuffer = fs.existsSync(previewAbsolute) ? fs.readFileSync(previewAbsolute) : null;
+const previewSource = fs.existsSync(previewSourceAbsolute) ? fs.readFileSync(previewSourceAbsolute, 'utf8') : '';
+const previewSha256 = previewBuffer ? crypto.createHash('sha256').update(previewBuffer).digest('hex') : '';
+const jpegDimensions = buffer => {
+    if (!buffer || buffer[0] !== 0xff || buffer[1] !== 0xd8) return null;
+    let offset = 2;
+    while (offset + 8 < buffer.length) {
+        if (buffer[offset] !== 0xff) { offset += 1; continue; }
+        const marker = buffer[offset + 1];
+        if (marker === 0xd8 || marker === 0xd9) { offset += 2; continue; }
+        const length = buffer.readUInt16BE(offset + 2);
+        if (length < 2 || offset + length + 2 > buffer.length) return null;
+        if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) {
+            return { height: buffer.readUInt16BE(offset + 5), width: buffer.readUInt16BE(offset + 7) };
+        }
+        offset += length + 2;
+    }
+    return null;
+};
+const actualPreviewDimensions = jpegDimensions(previewBuffer);
 const method = handoff.match(/async shareGame\(event\) \{([\s\S]*?)\n    \}\n\n    destroy/)?.[1] || '';
 const helperMethod = shareHelper.match(/export async function shareHatchChallenge\([\s\S]*?\n\}/)?.[0] || '';
 
@@ -67,6 +91,32 @@ for (const [key, expected] of Object.entries({
     recipientCollected: false
 })) requireValue(release.privacy?.[key] === expected, `privacy.${key} must be ${expected}`);
 requireValue(release.visualBoundary?.unapprovedScreenshotUsed === false, 'unapproved visual entered the invitation');
+requireValue(['source_ready_for_owned_release', 'live_production_verified'].includes(preview.state), 'Hatch Challenge preview state is invalid');
+requireValue(preview.path === 'public/marketing/mythical-void-hatch-challenge-card-v1.jpg', 'Hatch Challenge preview path drifted');
+requireValue(preview.publicUrl === 'https://mythicalvoid.com/marketing/mythical-void-hatch-challenge-card-v1.jpg', 'Hatch Challenge preview URL drifted');
+requireValue(preview.sourcePath === 'scripts/company/hatch-challenge-link-card.html', 'Hatch Challenge preview source path drifted');
+requireValue(preview.width === 1200 && preview.height === 630, 'Hatch Challenge preview recorded dimensions drifted');
+requireValue(actualPreviewDimensions?.width === 1200 && actualPreviewDimensions?.height === 630, 'Hatch Challenge preview must be an actual 1200 x 630 JPEG');
+requireValue(previewSha256 === preview.sha256, 'Hatch Challenge preview fingerprint drifted');
+requireValue(preview.classification === 'ai_assisted_code_authored_brand_art_not_gameplay', 'Hatch Challenge preview classification drifted');
+requireValue(preview.aiAssistanceUsed === true && preview.imageModelUsed === false, 'Hatch Challenge preview creation record is incomplete');
+requireValue(preview.gameplayUsed === false && preview.playerOrCreatureDataUsed === false, 'Hatch Challenge preview must not contain gameplay or player/creature data');
+requireValue(preview.agentVisualPreflightPassed === true && preview.humanGameplayApprovalClaimed === false, 'Hatch Challenge preview review boundary drifted');
+for (const phrase of ['Same starting point.', 'Two creatures.', 'What will hatch?', 'PLAY FREE · NO ACCOUNT', 'BRAND ART · NOT GAMEPLAY']) {
+    requireValue(previewSource.includes(phrase), `Hatch Challenge preview source is missing: ${phrase}`);
+}
+requireValue(hatchPage.includes(`<meta property="og:image" content="${preview.publicUrl}">`), 'Hatch Challenge Open Graph preview is missing');
+requireValue(hatchPage.includes('<meta property="og:image:type" content="image/jpeg">') && hatchPage.includes('<meta property="og:image:width" content="1200">') && hatchPage.includes('<meta property="og:image:height" content="630">'), 'Hatch Challenge Open Graph preview metadata drifted');
+requireValue(hatchPage.includes(`<meta name="twitter:image" content="${preview.publicUrl}">`), 'Hatch Challenge Twitter preview is missing');
+requireValue(hatchPage.includes('Hatch Challenge brand artwork showing two different imagined cosmic eggs'), 'Hatch Challenge preview description is missing');
+requireValue(hatchPage.includes('AI-assisted brand artwork created for the Hatch Challenge. It is not gameplay.'), 'Hatch Challenge page disclosure is missing');
+if (preview.state === 'source_ready_for_owned_release') {
+    requireValue(preview.productionCommit === null && preview.productionDeployId === null && preview.productionVerifiedAt === null, 'unreleased Hatch Challenge preview must not claim production proof');
+} else {
+    requireValue(/^[0-9a-f]{40}$/.test(preview.productionCommit || ''), 'live Hatch Challenge preview is missing its production commit');
+    requireValue(/^[0-9a-f]{24}$/.test(preview.productionDeployId || ''), 'live Hatch Challenge preview is missing its production deploy');
+    requireValue(!Number.isNaN(Date.parse(preview.productionVerifiedAt || '')), 'live Hatch Challenge preview is missing its production verification time');
+}
 if (release.state === 'live_production_verified') {
     requireValue(/^[0-9a-f]{40}$/.test(release.verification?.productionCommit || ''), 'verified release is missing its production commit');
     requireValue(/^[0-9a-f]{24}$/.test(release.verification?.productionDeployId || ''), 'verified release is missing its production deploy ID');
@@ -109,6 +159,7 @@ console.log(JSON.stringify({
     creatureDataShared: false,
     playerIdentityShared: false,
     approvedVisualsUsed: false,
+    ownedBrandPreviewPrepared: true,
     visualGate: '0/4',
     externalPublicationAuthorized: false
 }, null, 2));

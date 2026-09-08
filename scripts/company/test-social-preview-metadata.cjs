@@ -49,6 +49,15 @@ try {
     assert.notStrictEqual(run('state-drift', manifest => { manifest.state = 'gameplay_media_approved'; }).status, 0);
     assert.notStrictEqual(run('brand-card-hash-drift', manifest => { manifest.pages[0].sha256 = '0'.repeat(64); }).status, 0);
     assert.notStrictEqual(run('brand-card-disclosure-drift', manifest => { manifest.pages[0].disclosure = 'Official game artwork.'; }).status, 0);
+    assert.notStrictEqual(run('hatch-card-hash-drift', manifest => { manifest.pages.find(page => page.route === '/hatch-challenge/').sha256 = '0'.repeat(64); }).status, 0);
+    assert.notStrictEqual(run('hatch-card-provenance-drift', manifest => { manifest.pages.find(page => page.route === '/hatch-challenge/').imageModelUsed = true; }).status, 0);
+    assert.notStrictEqual(run('hatch-card-invalid-jpeg', value => value, (site, manifest) => {
+        const page = manifest.pages.find(item => item.route === '/hatch-challenge/');
+        const file = path.join(site, page.imagePath);
+        const bytes = fs.readFileSync(file);
+        bytes[0] = 0;
+        fs.writeFileSync(file, bytes);
+    }).status, 0);
     assert.notStrictEqual(run('missing-renderer-proof-boundary', manifest => { manifest.pages.find(page => page.route === '/creature-field-guide/').disclosure = 'A collection of creatures.'; }).status, 0);
     assert.notStrictEqual(run('hidden-press-limit', manifest => { manifest.knownLimitations = []; }).status, 0);
     assert.notStrictEqual(run('opened-social-authority', manifest => { manifest.authority.autonomousSocialPostingAuthorized = true; }).status, 0);
@@ -66,7 +75,7 @@ try {
         const page = manifest.pages.find(item => item.route === '/nasa-space-science/');
         fs.rmSync(path.join(site, page.imagePath));
     }).status, 0);
-    console.log('Social preview metadata safeguards passed (14 failure cases).');
+    console.log('Social preview metadata safeguards passed (17 failure cases).');
 } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
 }

@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mythical Void Hatch Challenge sharing card</title>
+    <style>
+        :root {
+            --night: #070611;
+            --cream: #fff8e8;
+            --mist: #c9c3d9;
+            --mint: #79e5cf;
+            --gold: #ffd465;
+            --violet: #ad68ff;
+            --pink: #ff7da8;
+            font-family: "Avenir Next", Avenir, Inter, system-ui, sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        html,
+        body {
+            width: 1200px;
+            height: 630px;
+            margin: 0;
+            overflow: hidden;
+            background: var(--night);
+        }
+
+        body {
+            color: var(--cream);
+            background:
+                radial-gradient(circle at 87% 23%, rgba(173,104,255,.27), transparent 27%),
+                radial-gradient(circle at 71% 78%, rgba(121,229,207,.16), transparent 33%),
+                linear-gradient(135deg, #070611 0%, #0c0a1c 58%, #120a24 100%);
+        }
+
+        .card {
+            position: relative;
+            display: grid;
+            width: 100%;
+            height: 100%;
+            grid-template-columns: minmax(0, 1.15fr) 430px;
+            gap: 34px;
+            padding: 40px 48px 36px;
+            isolation: isolate;
+        }
+
+        .card::before {
+            position: absolute;
+            z-index: -2;
+            inset: 0;
+            content: "";
+            opacity: .2;
+            background-image:
+                linear-gradient(rgba(255,255,255,.12) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.12) 1px, transparent 1px);
+            background-size: 72px 72px;
+            mask-image: linear-gradient(90deg, transparent 42%, #000 76%);
+        }
+
+        .stars {
+            position: absolute;
+            z-index: -1;
+            inset: 0;
+            opacity: .7;
+            background-image:
+                radial-gradient(circle, var(--mint) 0 2px, transparent 2.8px),
+                radial-gradient(circle, var(--gold) 0 1.5px, transparent 2.4px),
+                radial-gradient(circle, rgba(255,255,255,.75) 0 1px, transparent 1.8px);
+            background-position: 86px 112px, 27px 24px, 54px 68px;
+            background-size: 238px 197px, 311px 253px, 149px 137px;
+        }
+
+        .copy {
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .brand-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            font-size: 19px;
+            font-weight: 950;
+            letter-spacing: .14em;
+        }
+
+        .brand img {
+            width: 38px;
+            height: 50px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 13px rgba(173,104,255,.62));
+        }
+
+        .challenge-tag {
+            color: var(--mint);
+            font-size: 12px;
+            font-weight: 950;
+            letter-spacing: .16em;
+        }
+
+        .kicker {
+            margin: 0 0 15px;
+            color: var(--mint);
+            font-size: 15px;
+            font-weight: 950;
+            letter-spacing: .16em;
+        }
+
+        h1 {
+            max-width: 690px;
+            margin: 0;
+            font-family: "Arial Rounded MT Bold", "Avenir Next", ui-rounded, system-ui, sans-serif;
+            font-size: 68px;
+            line-height: .92;
+            letter-spacing: -.055em;
+        }
+
+        h1 em {
+            color: var(--gold);
+            font-style: normal;
+        }
+
+        .summary {
+            max-width: 680px;
+            margin: 20px 0 0;
+            color: var(--mist);
+            font-size: 20px;
+            font-weight: 650;
+            line-height: 1.4;
+        }
+
+        .footer-row {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .play-pill {
+            display: inline-flex;
+            min-height: 48px;
+            align-items: center;
+            padding: 0 20px;
+            border-radius: 999px;
+            background: var(--mint);
+            color: #09141a;
+            font-size: 13px;
+            font-weight: 950;
+            letter-spacing: .055em;
+        }
+
+        .url {
+            color: var(--cream);
+            font-size: 17px;
+            font-weight: 900;
+        }
+
+        .visual {
+            position: relative;
+            display: flex;
+            min-width: 0;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .orbit {
+            position: absolute;
+            width: 420px;
+            height: 420px;
+            border: 1px solid rgba(121,229,207,.25);
+            border-radius: 50%;
+            box-shadow: 0 0 90px rgba(105,64,227,.28), inset 0 0 65px rgba(121,229,207,.06);
+        }
+
+        .orbit::before,
+        .orbit::after {
+            position: absolute;
+            border-radius: 50%;
+            content: "";
+        }
+
+        .orbit::before {
+            width: 12px;
+            height: 12px;
+            left: 21px;
+            top: 102px;
+            background: var(--gold);
+            box-shadow: 0 0 21px rgba(255,212,101,.9);
+        }
+
+        .orbit::after {
+            width: 9px;
+            height: 9px;
+            right: 31px;
+            bottom: 74px;
+            background: var(--mint);
+            box-shadow: 0 0 20px rgba(121,229,207,.9);
+        }
+
+        .hatches {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 22px;
+            align-items: end;
+            margin-top: -10px;
+        }
+
+        .hatch {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .egg {
+            position: relative;
+            width: 165px;
+            height: 232px;
+            overflow: hidden;
+            border: 3px solid rgba(255,255,255,.67);
+            border-radius: 52% 48% 47% 53% / 64% 64% 36% 36%;
+            background: #131225;
+            box-shadow: 0 21px 38px rgba(0,0,0,.42);
+        }
+
+        .egg::before {
+            position: absolute;
+            inset: 13px;
+            border: 1px solid rgba(255,255,255,.45);
+            border-radius: inherit;
+            content: "";
+        }
+
+        .egg::after {
+            position: absolute;
+            width: 52px;
+            height: 52px;
+            border: 2px solid rgba(255,255,255,.68);
+            transform: rotate(45deg);
+            content: "";
+        }
+
+        .egg-one {
+            transform: rotate(-4deg) translateY(9px);
+            border-color: rgba(121,229,207,.95);
+            background:
+                linear-gradient(137deg, transparent 42%, rgba(255,255,255,.88) 43% 45%, transparent 46%),
+                linear-gradient(47deg, transparent 54%, rgba(255,212,101,.85) 55% 57%, transparent 58%),
+                radial-gradient(circle at 40% 35%, #fff1a7 0 5%, transparent 6%),
+                linear-gradient(145deg, #0c665f, #133850 48%, #121126);
+            box-shadow: 0 0 48px rgba(121,229,207,.35), 0 21px 38px rgba(0,0,0,.42);
+        }
+
+        .egg-one::after {
+            left: 54px;
+            top: 92px;
+            border-color: rgba(255,212,101,.8);
+            box-shadow: 0 0 25px rgba(255,212,101,.45);
+        }
+
+        .egg-two {
+            transform: rotate(5deg) translateY(-6px);
+            border-color: rgba(173,104,255,.95);
+            background:
+                radial-gradient(ellipse at 36% 30%, rgba(255,255,255,.72) 0 3%, transparent 4%),
+                repeating-radial-gradient(ellipse at 58% 54%, transparent 0 16px, rgba(255,125,168,.58) 18px 21px, transparent 23px 35px),
+                linear-gradient(155deg, #682897, #291264 53%, #10112c);
+            box-shadow: 0 0 52px rgba(173,104,255,.42), 0 21px 38px rgba(0,0,0,.42);
+        }
+
+        .egg-two::after {
+            width: 64px;
+            height: 64px;
+            right: 36px;
+            top: 83px;
+            border-radius: 50%;
+            border-color: rgba(255,125,168,.72);
+            box-shadow: 0 0 28px rgba(255,125,168,.42);
+        }
+
+        .hatch strong {
+            color: var(--cream);
+            font-size: 11px;
+            font-weight: 950;
+            letter-spacing: .14em;
+        }
+
+        .mystery {
+            position: absolute;
+            z-index: 3;
+            bottom: 57px;
+            left: 50%;
+            padding: 10px 15px;
+            transform: translateX(-50%);
+            border: 1px solid rgba(255,212,101,.5);
+            border-radius: 999px;
+            background: rgba(7,6,17,.9);
+            color: var(--gold);
+            font-size: 11px;
+            font-weight: 950;
+            letter-spacing: .12em;
+            white-space: nowrap;
+        }
+
+        .disclosure {
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            color: #aaa3bc;
+            font-size: 10px;
+            font-weight: 850;
+            letter-spacing: .1em;
+        }
+    </style>
+</head>
+<body>
+    <main class="card" aria-label="Mythical Void Hatch Challenge sharing artwork">
+        <div class="stars" aria-hidden="true"></div>
+        <section class="copy">
+            <div class="brand-row">
+                <div class="brand"><img src="/marketing/mythical-void-emblem-v3.png" alt=""><span>MYTHICAL VOID</span></div>
+                <span class="challenge-tag">HATCH CHALLENGE</span>
+            </div>
+            <div>
+                <p class="kicker">A MYSTERY FOR TWO</p>
+                <h1>Same starting point. <em>Two creatures.</em> What will hatch?</h1>
+                <p class="summary">Invite someone you know. Hatch separately. Compare what the creature engine makes.</p>
+            </div>
+            <div class="footer-row">
+                <span class="play-pill">PLAY FREE · NO ACCOUNT</span>
+                <span class="url">mythicalvoid.com/hatch-challenge</span>
+            </div>
+        </section>
+        <section class="visual" aria-label="Two different imagined cosmic eggs">
+            <div class="orbit" aria-hidden="true"></div>
+            <div class="hatches">
+                <div class="hatch"><div class="egg egg-one" aria-hidden="true"></div><strong>YOUR HATCH</strong></div>
+                <div class="hatch"><div class="egg egg-two" aria-hidden="true"></div><strong>THEIR HATCH</strong></div>
+            </div>
+            <span class="mystery">ONE CLUE · TWO POSSIBILITIES</span>
+            <span class="disclosure">BRAND ART · NOT GAMEPLAY</span>
+        </section>
+    </main>
+</body>
+</html>
