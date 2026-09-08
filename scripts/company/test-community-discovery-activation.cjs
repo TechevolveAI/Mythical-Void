@@ -17,6 +17,16 @@ const cases = [
         expected: 'changing audience estimate needs its limits'
     },
     {
+        name: 'rejects missing visible browser verification',
+        mutate(plan) { plan.firstExperiment.latestReadOnlyVerification.rulesVisibleAndMatchedPreparedPlan = false; },
+        expected: 'visible rule or duplicate check is incomplete'
+    },
+    {
+        name: 'rejects hiding the blocked machine check',
+        mutate(plan) { plan.firstExperiment.latestReadOnlyVerification.machineReadableRedditCheckHttpStatus = 200; },
+        expected: 'blocked machine check is not recorded honestly'
+    },
+    {
         name: 'rejects a tracked game link',
         mutate(plan) { plan.firstExperiment.preparedPost.url = 'https://mythicalvoid.com/play/?from=reddit'; },
         expected: 'clean direct game URL'

@@ -11,10 +11,13 @@ direct game link possible, require the title to begin with the game's name,
 forbid referral links and do not allow the same game to be reposted within
 three months.
 
-The community page showed about 19,000 weekly visitors when checked. That is a
-changing Reddit estimate, not guaranteed reach and not a player count. A search
-inside the community showed no existing result for “Mythical Void,” but this
-must be checked once more immediately before posting.
+The community page showed about 19,000 weekly visitors and 836 weekly
+contributions when checked in a normal browser. Those are changing Reddit
+estimates, not guaranteed reach, posts, replies or player counts. A visible
+search inside the community showed no existing result for “Mythical Void,” but
+this must be checked once more immediately before posting. Reddit returned 403
+to the machine-readable check, so the visible browser review is the current
+evidence rather than an automated Reddit claim.
 
 There is also an active community discussion about AI-made web games. The
 visible replies are sharply against rushed, low-effort work. Some people make
@@ -106,12 +109,22 @@ adult Reddit account he wants to use, and agree to own the replies. Creating a
 new account or accepting terms is a separate decision. Nothing should be posted
 until those three points are clear.
 
+Kevin can give those three confirmations without rewriting any copy by sending:
+
+> I have an existing adult Reddit account, I approve the exact title, link and
+> first comment below now, and I can personally answer replies for seven days.
+
+That approval lasts 30 minutes and does not publish anything by itself. The
+rules, duplicate search, live game, preview and opening journey are checked
+again before the final posting step.
+
 ## Current sources
 
 - https://www.reddit.com/r/WebGames/about/rules
 - https://www.reddit.com/r/WebGames/search/?q=%22Mythical%20Void%22&restrict_sr=1&sort=new
 - https://www.reddit.com/r/WebGames/comments/1ryldz4/looking_for_opinions_on_ai_made_web_games/
 - https://phaser.discourse.group/t/welcome-to-the-phaser-showcase-forum/19
+- https://phaser.discourse.group/search?q=%22Mythical%20Void%22%20%23showcase
 - https://www.html5gamedevs.com/forum/8-game-showcase/
 - https://itch.io/docs/creators/getting-indexed
 - https://itch.io/docs/creators/quality-guidelines

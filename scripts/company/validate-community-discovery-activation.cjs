@@ -19,7 +19,8 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
     requireValue(experiment.community === 'r/WebGames', 'the first bounded experiment must remain r/WebGames');
     requireValue(experiment.rulesUrl === 'https://www.reddit.com/r/WebGames/about/rules', 'the live community rules source is missing');
     requireValue(experiment.observedAudience?.weeklyVisitorsShown === 19000, 'the dated audience observation is missing');
-    requireValue(experiment.observedAudience?.approximate === true && /not guaranteed reach/i.test(experiment.observedAudience?.meaning || '') && /not a player count/i.test(experiment.observedAudience?.meaning || ''), 'the changing audience estimate needs its limits');
+    requireValue(experiment.observedAudience?.weeklyContributionsShown === 836, 'the dated contribution observation is missing');
+    requireValue(experiment.observedAudience?.approximate === true && /not guaranteed reach/i.test(experiment.observedAudience?.meaning || '') && /player counts/i.test(experiment.observedAudience?.meaning || ''), 'the changing audience estimate needs its limits');
 
     const rules = experiment.verifiedRules || {};
     for (const field of ['browserPlayableRequired', 'directGameLinkRequired', 'downloadRequiredForbidden', 'signupRequiredForbidden', 'referralLinksForbidden', 'titleMustStartWithGameName']) {
@@ -28,6 +29,11 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
     requireValue(rules.minimumMonthsBeforeRepost === 3, 'the three-month repost rule is missing');
     requireValue(experiment.duplicateCheck?.existingResultObserved === false, 'the duplicate search no longer supports a first post');
     requireValue(experiment.duplicateCheck?.checkedOn === plan.checkedOn, 'the duplicate search date is stale');
+    const latestCheck = experiment.latestReadOnlyVerification || {};
+    requireValue(latestCheck.checkedAt === '2026-09-08T16:52:53Z' && latestCheck.method === 'normal_browser_visible_review', 'the latest visible community verification is missing');
+    requireValue(latestCheck.rulesVisibleAndMatchedPreparedPlan === true && latestCheck.duplicateSearchVisible === true && latestCheck.existingMythicalVoidResultObserved === false, 'the visible rule or duplicate check is incomplete');
+    requireValue(latestCheck.weeklyVisitorsShown === 19000 && latestCheck.weeklyContributionsShown === 836, 'the visible community estimates are incomplete');
+    requireValue(latestCheck.machineReadableRedditCheckHttpStatus === 403 && /visible adult browser review/i.test(latestCheck.limitation || ''), 'the blocked machine check is not recorded honestly');
     requireValue(experiment.communityClimate?.status === 'active_discussion_not_a_rule', 'the AI-game community climate is missing or overstated');
     requireValue(/low-effort AI-made games/i.test(experiment.communityClimate?.finding || '') && /opinion is divided/i.test(experiment.communityClimate?.finding || ''), 'the divided community response to AI-made games is not recorded honestly');
     requireValue(/tested and reworked/i.test(experiment.communityClimate?.launchResponse || '') && /Do not argue with criticism/i.test(experiment.communityClimate?.launchResponse || ''), 'the respectful response to the community climate is missing');
@@ -62,6 +68,8 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
 
     requireValue(plan.nextRoutes?.map(route => route.name).join('|') === 'Phaser Showcase|itch.io|HTML5 Game Devs Showcase', 'the sequenced follow-on routes changed');
     requireValue(plan.nextRoutes?.find(route => route.name === 'itch.io')?.state.includes('publication_waiting'), 'itch.io publication must remain waiting');
+    requireValue(plan.fallbackReadOnlyVerification?.route === 'Phaser Showcase' && plan.fallbackReadOnlyVerification?.rulesVisible === true && plan.fallbackReadOnlyVerification?.exactMythicalVoidResultObserved === false, 'the current Phaser fallback verification is missing');
+    requireValue(/remains second/i.test(plan.fallbackReadOnlyVerification?.sequenceBoundary || ''), 'the one-route-at-a-time boundary is missing from the fallback check');
     requireValue(plan.excludedForNow?.some(route => route.name === 'Newgrounds' && /AI-generated thumbnails/i.test(route.reason || '')), 'the current Newgrounds risk is missing');
     requireValue(plan.founderDecision?.postAuthorized === false && plan.founderDecision?.humanReplyCoverageConfirmed === false, 'Kevin decision boundary is missing');
 
@@ -70,9 +78,10 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
     }
 
     requireValue(feedbackHtml.includes('value="website_creator"><span>A game website, forum, newsletter or creator</span>'), 'adult feedback cannot identify the community route');
-    for (const phrase of ['No post, account or outside contact has been made.', 'not guaranteed reach and not a player count', 'active community discussion about AI-made web games', 'This discussion is not a rule.', 'A post view is not a player.', 'cannot identify Reddit on its own', 'The one approval needed']) {
+    for (const phrase of ['No post, account or outside contact has been made.', 'not guaranteed reach, posts, replies or player counts', 'Reddit returned 403', 'active community discussion about AI-made web games', 'This discussion is not a rule.', 'A post view is not a player.', 'cannot identify Reddit on its own', 'The one approval needed']) {
         requireValue(copy.includes(phrase), `plain-language plan is missing: ${phrase}`);
     }
+    requireValue(copy.replace(/^>\s?/gm, '').replace(/\s+/g, ' ').includes('I have an existing adult Reddit account, I approve the exact title, link and first comment below now, and I can personally answer replies for seven days.'), 'plain-language plan is missing the exact short-lived approval message');
     requireValue(/It is not proof\s+that Reddit sent a particular visit\./.test(copy), 'plain-language plan is missing the Reddit attribution limit');
     for (const source of plan.sources || []) requireValue(copy.includes(source), `plain-language plan is missing source: ${source}`);
     requireValue(packageJson.scripts?.['validate:community-discovery']?.includes('validate-community-discovery-activation.cjs'), 'community validation command is missing');
