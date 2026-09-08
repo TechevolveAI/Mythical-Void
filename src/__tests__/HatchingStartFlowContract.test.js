@@ -17,6 +17,10 @@ const gameScene = fs.readFileSync(
     path.join(__dirname, '../scenes/GameScene.js'),
     'utf8'
 );
+const platformerScene = fs.readFileSync(
+    path.join(__dirname, '../scenes/PlatformerLevelScene.js'),
+    'utf8'
+);
 const mainCss = fs.readFileSync(
     path.join(__dirname, '../styles/main.css'),
     'utf8'
@@ -111,6 +115,12 @@ describe('Hatching home start flow', () => {
             ".querySelectorAll('[data-mythical-home-start=\"true\"]')"
         );
         expect(gameScene).toContain('.forEach(element => element.remove())');
+        expect(platformerScene).toContain(
+            ".querySelectorAll('[data-mythical-home-start=\"true\"]')"
+        );
+        expect(platformerScene).toContain(
+            ".querySelectorAll('[data-mythical-egg-hatch=\"true\"]')"
+        );
     });
 
     test('presents the reliable native Start action as one complete button', () => {

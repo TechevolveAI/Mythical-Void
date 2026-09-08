@@ -141,6 +141,27 @@ describe('campaign traversal quality contracts', () => {
             'entry effects retired within render budget'
         );
         expect(smoke).toContain('timeoutMs: 4500');
+        expect(smoke).toContain("forestSupport.body.left + 90");
+        expect(smoke).toContain(
+            "'story.projectBeacon.forestRootwakeCrossing'"
+        );
+        expect(smoke).toContain(
+            "message: 'Forest Rootwake begins from player movement'"
+        );
+        expect(smoke).toContain("state.rootwakeInitial?.state !== 'dormant'");
+        expect(smoke).toContain(
+            "message: 'Forest Rootwake completes and restores controls'"
+        );
+        expect(smoke).toContain("forestRootwake.objective.includes('ROOTWAY OPEN')");
+        expect(read('levels/MythicalForestLevel.js')).toContain(
+            'this.time.now + 1750'
+        );
+        expect(read('levels/MythicalForestLevel.js')).toContain(
+            'crossing.revealUntil = this.time.now + 12000;'
+        );
+        expect(read('levels/MythicalForestLevel.js')).toContain(
+            'this.rootwakeCrossing.revealUntil = 0;'
+        );
     });
 
     test('route-choice smoke stages a settled landing before reading the choice', () => {
@@ -181,6 +202,20 @@ describe('campaign traversal quality contracts', () => {
         expect(scene.jumpVelocity).toBe(-460);
         expect(scene.playerAcceleration).toBe(0.22);
         expect(scene.coyoteTime).toBe(150);
+    });
+
+    test('touch direction reversals cross zero in one gameplay frame', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({
+            key: 'ResponsiveDirectionTest',
+            movement: {
+                playerAcceleration: 0.15
+            }
+        });
+
+        expect(scene.getResponsiveHorizontalVelocity(180, -180)).toBeCloseTo(-63);
+        expect(scene.getResponsiveHorizontalVelocity(-180, 180)).toBeCloseTo(63);
+        expect(scene.getResponsiveHorizontalVelocity(0, 180)).toBeCloseTo(27);
     });
 
     test('vertical joystick input is exposed only for two-axis levels', () => {
@@ -474,6 +509,51 @@ describe('campaign traversal quality contracts', () => {
                 velocity: { y: 760 }
             }
         }, enemy)).toBe('stomp');
+    });
+
+    test('a swept stomp resolves when a thin enemy is crossed between frames', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'SweptStompFallbackTest' });
+        const enemy = {
+            active: true,
+            stompable: true,
+            stompContactLockedUntil: 0,
+            body: {
+                enable: true,
+                left: 90,
+                right: 130,
+                top: 175,
+                bottom: 195,
+                height: 20,
+                center: { y: 185 },
+                prev: { y: 175 }
+            }
+        };
+        scene.player = {
+            active: true,
+            x: 110,
+            body: {
+                enable: true,
+                left: 96,
+                right: 124,
+                top: 160,
+                bottom: 204,
+                height: 44,
+                center: { y: 182 },
+                prev: { y: 110 },
+                velocity: { x: 0, y: 720 }
+            },
+            setVelocityY: jest.fn()
+        };
+        scene.enemies = { getChildren: () => [enemy] };
+        scene.time = { now: 1000 };
+        scene.jumpVelocity = -460;
+        scene.damageEnemy = jest.fn(() => true);
+        scene.showFloatingText = jest.fn();
+
+        expect(scene.resolveSweptEnemyStomps()).toBe(1);
+        expect(scene.damageEnemy).toHaveBeenCalledTimes(1);
+        expect(enemy.stompContactLockedUntil).toBe(1220);
     });
 
     test('collision normals preserve edge stomps but upward contact remains harmful', () => {
@@ -938,7 +1018,14 @@ describe('campaign traversal quality contracts', () => {
         expect(smokeSource).toContain('sleepingDetachedCount');
         expect(smokeSource).toContain('displayCount: 150');
         expect(smokeSource).toContain('state.displayCount > 150');
-        expect(smokeSource).toContain('physicsOnlySupportCount !== 73');
+        expect(source).toContain(
+            'const compactWorldLabels = this.isMobile ||'
+        );
+        expect(source).toContain('const label = !compactWorldLabels');
+        expect(source).toContain('const actionPrompt = compactWorldLabels');
+        expect(source).toContain('setText(value) {');
+        expect(source).toContain(': anchor.label;');
+        expect(smokeSource).toContain('physicsOnlySupportCount !== 78');
         expect(smokeSource).toContain('physicsOnlySupportDisplayCount !== 0');
     });
 
@@ -1041,15 +1128,31 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('setReefEnemyRenderAttached(enemy, attached)');
         expect(source).toContain('this.reefTrailParticles.length >= particleLimit');
         expect(source).toContain('updatePlayerCosmicTrail(delta)');
+        expect(source).toContain("'/game/levels/stellar-reef/cosmic-reef-background-v1.webp'");
+        expect(source).toContain("'/game/levels/stellar-reef/cosmic-reef-platform-v1.webp'");
+        expect(source).toContain('platform.reefAuthoredTerrain = true;');
+        expect(source).toContain('body.reefTerrainVisual = platform;');
+        expect(source).toContain('retireCompletedReefRouteGuidance() {');
+        expect(source).toContain('anchor.label?.setVisible?.(false);');
+        expect(source).toContain("const isCheckpointRecovery = text === 'BACK AT CHECKPOINT';");
+        expect(source).toContain('wordWrap: { width: maximumTextWidth }');
         expect(source).not.toContain('targets: trail');
         expect(source).not.toContain('this.nebulaParticles.push(wisp);');
         expect(source).not.toContain('this.voidRifts.push(rift);');
         expect(smokeSource).toContain('state.reefEnemyRuntime?.scheduledEnemyCount !== 8');
         expect(smokeSource).toContain('state.reefEnemyRuntime?.physicsOnlyBodyCount !== 34');
         expect(smokeSource).toContain('state.reefEnemyRuntime?.physicsOnlyDisplayCount !== 0');
+        expect(smokeSource).toContain('state.reefEnvironmentRendering?.backgroundPanelCount !== 3');
+        expect(smokeSource).toContain('state.reefEnvironmentRendering?.topMismatchIds?.length !== 0');
         expect(smokeSource).toContain('async function smokeReefTrailBudget(session)');
         expect(smokeSource).toContain('result.peak.particleCount !== 8');
         expect(smokeSource).toContain('result.peak.tweenDelta !== 0');
+        expect(smokeSource).toContain(
+            'forceMobileControls: ${SMOKE_VIEWPORT_WIDTH <= 600}'
+        );
+        expect(smokeSource).toContain(
+            "SMOKE_VIEWPORT_WIDTH <= 600 ? 'mobile' : null"
+        );
         expect(smokeSource).toContain('displayCount: 150');
         expect(smokeSource).toContain('activeTweenCount: 16');
     });
@@ -2735,14 +2838,29 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("activationSupportIds: ['reef-passage-vector']");
         expect(source).toContain('this.getTraversalSupportCheckpoint(');
         expect(source).toContain('this.retireTraversalLandingGuide(anchor);');
+        expect(source).toContain('this.scheduleAutomaticReefGuardianAwakening();');
+        expect(source).toContain('enterReefGuardianEncounter()');
+        expect(source).toContain("return 'PASSAGE OPEN // GUARDIAN WAKING';");
+        expect(source).toContain('BREAK THE VOID HOLD');
+    });
+
+    test('Mythical Forest audits the mandatory Rootwake crossing as a world change', () => {
+        const source = read('levels/MythicalForestLevel.js');
+
+        expect(source).toContain('zone.traversalAuditEnabled = true;');
+        expect(source).toContain("groundBeforeRootwake.traversalLinks = ['rootwake-step-1'];");
+        expect(source).toContain("platforms[index + 1]?.id || groundAfterRootwake?.traversalId");
+        expect(source).toContain("id: 'forest-tree-2-handoff'");
     });
 
     test('release smoke completes every campaign route instead of checking only its opening', () => {
+        const base = read('PlatformerLevelScene.js');
         const smoke = fs.readFileSync(
             path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
             'utf8'
         );
 
+        expect(base).toContain('y: this.player?.body?.bottom ?? this.player?.y');
         expect(smoke).toContain('audit?.flow?.strandingSupportCount !== 0');
         expect(smoke).toContain('smokeVoidPeaksReturnCurrents(session)');
         expect(smoke).toContain('smokeCrystalCoreLift(session)');
@@ -2970,6 +3088,38 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('Aurora Quiet Light pickup collision');
         expect(smoke).toContain('Aurora charge returned after reload');
         expect(smoke).toContain('Aurora Quiet Light returned after reload');
+    });
+
+    test('campaign smoke defines active Guardian state before gate setup uses it', () => {
+        const smoke = fs.readFileSync(
+            path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
+            'utf8'
+        );
+        const setupStart = smoke.indexOf(
+            'const guardianEntrySetup = await evaluate(session'
+        );
+        const setupEnd = smoke.indexOf(
+            'const guardianEntry = await waitFor(',
+            setupStart
+        );
+        const setup = smoke.slice(setupStart, setupEnd);
+        const declaration = setup.indexOf(
+            'const guardianAlreadyActive = scene?.bossFightActive === true &&'
+        );
+        const gateCondition = setup.indexOf(
+            ': !guardianAlreadyActive && !gate?.ready'
+        );
+
+        expect(setupStart).toBeGreaterThanOrEqual(0);
+        expect(setupEnd).toBeGreaterThan(setupStart);
+        expect(declaration).toBeGreaterThanOrEqual(0);
+        expect(gateCondition).toBeGreaterThan(declaration);
+        expect(setup).toContain(
+            'scene?.guardianEncounter?.active === true;'
+        );
+        expect(setup).toContain(
+            '} else if (!automaticForest && !guardianAlreadyActive) {'
+        );
     });
 
     test('keeps the Peaks opening clear and proves both route rewards independently', () => {

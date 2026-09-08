@@ -61,8 +61,24 @@ describe('guardian encounter pacing contracts', () => {
         );
         expect(source).toContain('!this.bossCombatReady ||');
         expect(source).toContain('openingGraceMs: 3000');
-        expect(source).toContain('const NYXVORAL_MOBILE_DISPLAY_WIDTH = 300;');
-        expect(source).toContain('camera.width * 0.2');
+        expect(source).toContain('const NYXVORAL_MOBILE_DISPLAY_WIDTH = 176;');
+        expect(source).toContain('mobileZoom: 1');
+        expect(source).toContain('mobileCameraLeadRatio: 0.25');
+        expect(source).toContain('mobileTeamGap: 100');
+        expect(source).toContain('mobileTeamOffsetX: -30');
+        expect(source).toContain('mobileTeamOffsetY: -115');
+        expect(source).toContain('mobileBossOffsetX: -16');
+        expect(source).toContain('desktopTeamGap: 172');
+        expect(source).toContain("this.platformerPreviewSize === 'mobile'");
+        expect(source).toContain('this.tweens.killTweensOf(this.cameras.main);');
+        expect(source).toContain(
+            'Math.abs(camera.zoom - REEF_GUARDIAN_ARENA.mobileZoom) > 0.001'
+        );
+        expect(source).toContain("'reef_guardian_team'");
+        expect(source).toContain('this.retireCompletedReefRouteGuidance();');
+        expect(source).toContain(
+            'camera.width * REEF_GUARDIAN_ARENA.mobileCameraLeadRatio'
+        );
         expect(source).toContain('this.bossCombatReadyAt = this.time.now;');
         expect(source).toMatch(
             /this\.bossAttackPreviewTimer = this\.time\.delayedCall\([\s\S]*REEF_GUARDIAN_ARENA\.openingGraceMs/
@@ -77,8 +93,8 @@ describe('guardian encounter pacing contracts', () => {
         expect(source).toContain(
             'const targetY = this.player.body?.center?.y ?? this.player.y;'
         );
-        expect(source).toMatch(
-            /if \(isMobileLayout\) \{\s*this\.cameras\.main\.setZoom\(1\);/
+        expect(source).toContain(
+            'this.cameras.main.setZoom(REEF_GUARDIAN_ARENA.mobileZoom);'
         );
         expect(source).toContain('this.bossAttackPreviewTimer?.remove?.();');
         expect(source).toContain(

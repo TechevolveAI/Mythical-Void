@@ -68,6 +68,9 @@ describe('secondary journey reliability contract', () => {
         expect(forest).toContain('createForestArrivalMotionBackdrop');
         expect(forest).toContain('createRuntimeForestArrivalActors');
         expect(forest).toContain('Something is moving through the forest.');
+        expect(forest).toContain("width < 600 ? 'TAP TO BEGIN' : 'CLICK OR PRESS ENTER'");
+        expect(forest).toContain('Phaser.Input.Keyboard.KeyCodes.ENTER');
+        expect(forest).toContain("enterKey.once('down', () => finish({ viewed: true }))");
         expect(forest).toContain('clearForestArrivalBackdrop()');
         expect(forest).toContain(
             'mediaService?.createStoryMoment || mediaService?.createCinematicStill'

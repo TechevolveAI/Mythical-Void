@@ -19,7 +19,7 @@ function normalizeSupport(support, index) {
     const bottom = finite(body?.bottom, centerY + height / 2);
 
     if (
-        body?.enable === false ||
+        (body?.enable === false && support?.traversalAuditEnabled !== true) ||
         support?.active === false ||
         right - left < 12 ||
         bottom - top < 4
@@ -624,6 +624,10 @@ function analyzeTraversalTopology({
         playerHalfWidth,
         playerHeight
     });
+    const comfortReachable = reachableFrom(
+        comfortAdjacency,
+        [spawnSupport.index]
+    );
     const comfortFlow = analyzeOrderedTargetFlow({
         supports,
         targets,
@@ -673,6 +677,12 @@ function analyzeTraversalTopology({
             strandingSupportIds,
             strandingSupportCount,
             comfortPassed: comfortFlow.passed,
+            comfortCoverage: supports.length
+                ? comfortReachable.size / supports.length
+                : 0,
+            comfortUnreachableSupportIds: supports
+                .filter(support => !comfortReachable.has(support.index))
+                .map(support => support.id),
             uncomfortableTargetIds,
             optionalComfortPassed: comfortFlow.optionalPassed,
             uncomfortableOptionalTargetIds,

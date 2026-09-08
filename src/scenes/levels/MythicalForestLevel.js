@@ -26,8 +26,8 @@ const ROOTWAKE_PLATFORM_CONFIGS = Object.freeze([
     Object.freeze({ id: 'rootwake-step-1', x: 438, width: 108, rise: 46 }),
     Object.freeze({ id: 'rootwake-step-2', x: 548, width: 126, rise: 118 }),
     Object.freeze({ id: 'rootwake-step-3', x: 672, width: 144, rise: 190 }),
-    Object.freeze({ id: 'rootwake-step-4', x: 790, width: 126, rise: 116 }),
-    Object.freeze({ id: 'rootwake-step-5', x: 882, width: 104, rise: 44 })
+    Object.freeze({ id: 'rootwake-step-4', x: 742, width: 228, rise: 116 }),
+    Object.freeze({ id: 'rootwake-step-5', x: 858, width: 176, rise: 44 })
 ]);
 
 const FOREST_GROUND_SECTIONS = Object.freeze([
@@ -582,7 +582,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const continueText = this.add.text(
             width / 2,
             height * 0.9,
-            'TAP TO BEGIN',
+            width < 600 ? 'TAP TO BEGIN' : 'CLICK OR PRESS ENTER',
             {
                 fontSize: width < 600 ? '12px' : '14px',
                 color: '#B9DAD7',
@@ -596,11 +596,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
             .setInteractive({ useHandCursor: true });
         foregroundElements.push(background, status, caption, continueText, skipZone);
         this.forestArrivalElements = scenicElements;
+        let enterKey = null;
 
         const finish = ({ viewed = false } = {}) => {
             if (completed) return false;
             completed = true;
             this.forestArrivalRequest += 1;
+            enterKey?.removeAllListeners?.();
             if (viewed) {
                 window.GameState?.set?.(
                     'story.projectBeacon.firstForestCinematicSeen',
@@ -621,6 +623,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
             return true;
         };
         skipZone.on('pointerdown', () => finish({ viewed: true }));
+        if (width >= 600 && this.input?.keyboard) {
+            enterKey = this.input.keyboard.addKey(
+                Phaser.Input.Keyboard.KeyCodes.ENTER
+            );
+            enterKey.once('down', () => finish({ viewed: true }));
+        }
 
         const mediaService = window.CompanionMediaService || companionMediaService;
         const portraitPreviewRecord = this.forestArrivalPortraitPreview
@@ -833,8 +841,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
             contentLeft,
             secondaryY,
             resume
-                ? `[ BEACON ] ${resume.label} link restored`
-                : '[ REQUIRED ] Walk through 3 glowing Beacons in order',
+                ? `[ BEACON ] ${resume.label} link restored // follow the next forest light`
+                : '[ REQUIRED ] Follow 3 forest lights. The Guardian wakes after the third.',
             {
             fontSize: font(16, 14),
             color: '#AAAAAA',
@@ -1006,7 +1014,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             : optionalFallback;
 
         if (this.rootwakeCrossing && !this.rootwakeCrossing.awakened) {
-            return 'WAKE THE ROOTWAY\nMOVE TO THE PULSING ROOTLIGHT\nYOUR CREATURE CAN CHANGE THIS PLACE';
+            return 'ROOTWAY BLOCKED\nGO RIGHT // WALK INTO THE PULSING ROOTLIGHT\nYOUR CREATURE WILL OPEN THE WAY';
         }
 
         if (
@@ -1038,8 +1046,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
             ? this.getOrderedRouteCompassText()
             : '';
         const title = this.isCompactObjectiveHUD
-            ? `BEACON ${current}/3 // WALK INTO LIGHT`
-            : `BEACON ${current}/3 // WALK INTO ${nextAnchor}`;
+            ? `FOREST LIGHT ${current}/3 // WALK INTO THE GLOW`
+            : `FOREST LIGHT ${current}/3 // WALK INTO THE GLOW AT ${nextAnchor}`;
 
         return `${title}\n${compass || 'FOLLOW THE GOLD PULSE →'}\n${optional}`;
     }
@@ -1514,27 +1522,44 @@ class MythicalForestLevel extends PlatformerLevelScene {
             visual.setDepth(85);
             this.drawBeaconCheckpoint(visual, anchorX, supportY, false);
 
-            const label = this.add.text(anchorX, supportY - 118, anchor.label, {
-                fontSize: '13px',
-                color: '#7F9CA2',
-                fontStyle: 'bold',
-                stroke: '#071017',
-                strokeThickness: 3
-            }).setOrigin(0.5).setDepth(86);
-
-            const actionPrompt = this.add.text(
-                anchorX,
-                supportY - 94,
-                '',
-                {
-                    fontSize: '12px',
-                    color: '#F2C94C',
+            // The compact objective already names the next light on phones.
+            // Keep one in-world label for orientation and avoid two distant,
+            // unreadable text objects competing for the mobile render budget.
+            const compactWorldLabels = this.isMobile ||
+                (Number(this.cameras?.main?.width) || 0) <= 480;
+            const label = !compactWorldLabels
+                ? this.add.text(anchorX, supportY - 118, anchor.label, {
+                    fontSize: '13px',
+                    color: '#7F9CA2',
                     fontStyle: 'bold',
-                    align: 'center',
                     stroke: '#071017',
                     strokeThickness: 3
+                }).setOrigin(0.5).setDepth(86)
+                : anchor.label;
+
+            const actionPrompt = compactWorldLabels
+                ? {
+                    text: '',
+                    setText(value) {
+                        this.text = value;
+                        return this;
+                    },
+                    setColor() { return this; },
+                    setAlpha() { return this; }
                 }
-            ).setOrigin(0.5).setDepth(87);
+                : this.add.text(
+                    anchorX,
+                    supportY - 94,
+                    '',
+                    {
+                        fontSize: '12px',
+                        color: '#F2C94C',
+                        fontStyle: 'bold',
+                        align: 'center',
+                        stroke: '#071017',
+                        strokeThickness: 3
+                    }
+                ).setOrigin(0.5).setDepth(87);
 
             const zone = this.createObjectiveTriggerZone(
                 anchorX,
@@ -1622,6 +1647,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         checkpoint.zone?.destroy?.();
         checkpoint.zone = null;
         this.beaconAnchorsActivated++;
+        if (this.rootwakeCrossing?.awakened) {
+            this.rootwakeCrossing.revealUntil = 0;
+        }
         this.drawBeaconCheckpoint(
             checkpoint.visual,
             checkpoint.x,
@@ -1644,8 +1672,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const anchorNumber = this.beaconAnchorsActivated;
         this.showFloatingText(
             anchorNumber < 3
-                ? `BEACON ${anchorNumber}/3 ACTIVE\nFOLLOW THE NEXT GOLD PULSE →`
-                : 'BEACON 3/3 ACTIVE\nGUARDIAN ROUTE OPEN →',
+                ? `FOREST LIGHT ${anchorNumber}/3 FOUND\nFOLLOW THE NEXT GOLD LIGHT →`
+                : 'ALL 3 FOREST LIGHTS FOUND\nTHE GUARDIAN IS WAKING',
             checkpoint.x,
             checkpoint.respawnY - 35,
             '#8FE3CF'
@@ -1724,7 +1752,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             camera?.fadeIn?.(320, 8, 20, 18);
 
             this.showFloatingText(
-                'ALL THREE BEACONS ANSWERED\nTHE GUARDIAN AWAKENS',
+                'ALL 3 FOREST LIGHTS FOUND\nTHE GUARDIAN AWAKENS',
                 entranceX + 40,
                 entranceY - 115,
                 '#F2C94C'
@@ -1754,10 +1782,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
             checkpoint.actionPrompt
                 ?.setText?.(
                     complete
-                        ? `BEACON ${checkpoint.index + 1}/3 ACTIVE`
+                        ? `LIGHT ${checkpoint.index + 1}/3 FOUND`
                         : next
                             ? 'WALK INTO THE LIGHT'
-                            : `BEACON ${checkpoint.index + 1}/3 LOCKED`
+                            : `LIGHT ${checkpoint.index + 1}/3 AHEAD`
                 )
                 ?.setColor?.(complete ? '#8FE3CF' : (next ? '#F2C94C' : '#7F9CA2'))
                 ?.setAlpha?.(complete || next ? 1 : 0.42);
@@ -2051,10 +2079,23 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 .setData('rootwakeWorldState', awakened ? 'awake' : 'dormant');
             this.drawRootwakePlatform(visual, config.width, color, awakened);
 
-            const zone = this.add.zone(config.x, targetY, config.width, 20);
+            // Keep the authored top edge while extending the one-way body
+            // downward. Thin 20px bodies can be skipped between frames on a
+            // throttled phone or browser tab even when the player visibly
+            // lands on the root.
+            const collisionHeight = 96;
+            const zone = this.add.zone(
+                config.x,
+                targetTop + collisionHeight / 2,
+                config.width,
+                collisionHeight
+            );
             this.physics.add.existing(zone, true);
             this.configureForestClimbSupport(zone);
             zone.traversalId = config.id;
+            // This collision becomes active after the mandatory Rootwake beat.
+            // Include the guaranteed crossing in static traversal verification.
+            zone.traversalAuditEnabled = true;
             zone.setData('rootwakePlatform', true);
             zone.body.enable = awakened;
             this.platforms.add(zone);
@@ -2069,6 +2110,16 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 zone,
                 settled: awakened
             };
+        });
+        const groundBeforeRootwake = this.getTraversalSupport('forest-ground-1');
+        const groundAfterRootwake = this.getTraversalSupport('forest-ground-2');
+        if (groundBeforeRootwake) {
+            groundBeforeRootwake.traversalLinks = ['rootwake-step-1'];
+        }
+        platforms.forEach((platform, index) => {
+            platform.zone.traversalLinks = [
+                platforms[index + 1]?.id || groundAfterRootwake?.traversalId
+            ].filter(Boolean);
         });
 
         const crossing = {
@@ -2223,6 +2274,14 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const crossing = this.rootwakeCrossing;
         if (!crossing) return false;
 
+        if (
+            this.rootwakeSequenceActive &&
+            Number.isFinite(crossing.completesAt) &&
+            this.time.now >= crossing.completesAt
+        ) {
+            return crossing.completeAwakening?.() || false;
+        }
+
         if (crossing.awakened) {
             if (
                 crossing.cameraLocked &&
@@ -2267,29 +2326,35 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const actionY = this.player?.y || crossing.groundY - 55;
         const previousInvincible = this.isInvincible === true;
         const controlsWereVisible = this.platformerControlsVisible === true;
+        const witnessOffsetX = this.isMobile ? -72 : -112;
 
         this.rootwakeSequenceActive = true;
         crossing.state = 'awakening';
         crossing.transformationProgress = 0;
+        crossing.completesAt = this.time.now + 1750;
         crossing.trigger?.destroy?.();
         crossing.trigger = null;
         this.recoveryInputLockedUntil = Math.max(
             Number(this.recoveryInputLockedUntil) || 0,
-            this.time.now + 2100
+            this.time.now + 1750
         );
         this.isInvincible = true;
         this.player?.setVelocityX?.(0);
         this.player?.setVelocityY?.(-340);
         this.player?.setTint?.(color);
         this.astronautFollower?.setContextualFormation?.(
-            { x: this.isMobile ? 88 : 112, y: 4 },
+            { x: witnessOffsetX, y: 4 },
             'rootwake_witness'
         );
         crossing.formationActive = true;
         if (this.astronautFollower?.sprite?.active) {
+            const followerAnchor = this.astronautFollower.getTargetAnchor?.() || {
+                x: actionX,
+                y: actionY
+            };
             this.astronautFollower.sprite.setPosition(
-                actionX + (this.isMobile ? 88 : 112),
-                actionY + 4
+                actionX + witnessOffsetX,
+                followerAnchor.y + 4
             );
             this.astronautFollower.resetTrail?.();
         }
@@ -2297,7 +2362,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         camera?.stopFollow?.();
         camera?.setZoom?.(1);
         camera?.pan?.(
-            this.isMobile ? 445 : 610,
+            this.isMobile ? 372 : 610,
             crossing.groundY - 150,
             280,
             'Sine.easeOut'
@@ -2380,11 +2445,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
             });
         });
 
-        this.time.delayedCall(1750, () => {
+        const completeAwakening = () => {
             if (!this.rootwakeSequenceActive || !this.scene.isActive()) return;
             crossing.awakened = true;
             crossing.state = 'awake';
             crossing.transformationProgress = 1;
+            crossing.completesAt = 0;
+            crossing.completeAwakening = null;
             crossing.platforms.forEach(platform => {
                 platform.zone.body.enable = true;
                 platform.settled = true;
@@ -2398,13 +2465,18 @@ class MythicalForestLevel extends PlatformerLevelScene {
             this.startRootwakeGravityWeather();
             camera?.setZoom?.(1);
             if (controlsWereVisible) this.showPlatformerMobileControls?.();
-            crossing.revealUntil = this.time.now + 4500;
-            this.showFloatingText(
-                'ROOTWAKE CROSSING',
-                650,
-                crossing.groundY - 310,
-                '#E9FFF8'
-            );
+            // Keep the world-change instruction visible long enough for a
+            // phone player to recover from the staged beat and start moving.
+            // Reaching the first forest light retires it immediately.
+            crossing.revealUntil = this.time.now + 12000;
+            if (!this.isMobile) {
+                this.showFloatingText(
+                    'ROOTWAKE CROSSING',
+                    650,
+                    crossing.groundY - 310,
+                    '#E9FFF8'
+                );
+            }
 
             if (persist && window.GameState) {
                 window.GameState.set(FOREST_ROOTWAKE_STATE_PATH, {
@@ -2430,7 +2502,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
             });
             window.AudioManager?.playAchievement?.();
             this.syncCampaignObjectiveDisplay({ force: true });
-        });
+            return true;
+        };
+        crossing.completeAwakening = completeAwakening;
+        this.time.delayedCall(1750, completeAwakening);
         return true;
     }
 
@@ -4329,6 +4404,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
             // The first gap is crossed by the creature-raised Rootwake route.
             // Tree 1's branches remain as the optional high-skill path.
             // From Tree 2 to Tree 3
+            {
+                x1: 1120,
+                x2: 1400,
+                y: this.levelHeight - 460,
+                type: 'static',
+                id: 'forest-tree-2-handoff'
+            },
             { x1: 1400, x2: 1900, y: this.levelHeight - 450, type: 'vine' },
             // From Tree 3 to Tree 4
             {
@@ -4575,7 +4657,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             title: 'ELDER GROVE',
             getStatus: () => this.forestRouteAligned
                 ? 'ROUTE OPEN // ENTER THE GROVE'
-                : `BEACONS ${this.beaconAnchorsActivated}/3 // WALK THROUGH THE LIGHTS`,
+                : `FOREST LIGHTS ${this.beaconAnchorsActivated}/3 // FOLLOW THE GOLD GLOW`,
             isReady: () => this.forestRouteAligned,
             color: 0x9370DB,
             readyColor: 0x8FE3CF
@@ -4589,7 +4671,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                         const now = this.time.now;
                         if (now >= this.bossGateHintUntil) {
                             this.showFloatingText(
-                                'Walk through the 3 glowing Beacons in order. Follow the gold pulse.',
+                                'Find all 3 forest lights. The Guardian wakes after the third.',
                                 this.player.x,
                                 this.player.y - 70,
                                 '#F2C94C'

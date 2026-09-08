@@ -8,13 +8,16 @@ function loadExpeditionAstronaut() {
     const transformed = source
         .replace('export function getExpeditionFollowOffset', 'function getExpeditionFollowOffset')
         .replace('export function findExpeditionTrailTarget', 'function findExpeditionTrailTarget')
+        .replace('export function getExpeditionTargetAnchor', 'function getExpeditionTargetAnchor')
+        .replace('export function getExpeditionAstronautContactY', 'function getExpeditionAstronautContactY')
         .replace('export function getExpeditionAstronautTextureKey', 'function getExpeditionAstronautTextureKey')
         .replace('export class ExpeditionAstronaut', 'class ExpeditionAstronaut')
         .replace('export default ExpeditionAstronaut;', '')
         .concat(
             '\nmodule.exports = {' +
             ' ExpeditionAstronaut, getExpeditionFollowOffset,' +
-            ' findExpeditionTrailTarget, getExpeditionAstronautTextureKey };'
+            ' findExpeditionTrailTarget, getExpeditionTargetAnchor,' +
+            ' getExpeditionAstronautContactY, getExpeditionAstronautTextureKey };'
         );
     const sandbox = {
         module: { exports: {} },
@@ -169,7 +172,8 @@ describe('Expedition astronaut', () => {
     });
 
     test('keeps the platformer astronaut within its readable follow range', () => {
-        const { ExpeditionAstronaut } = loadExpeditionAstronaut();
+        const { ExpeditionAstronaut, getExpeditionTargetAnchor } =
+            loadExpeditionAstronaut();
         const scene = createScene();
         const target = {
             active: true,
@@ -187,11 +191,74 @@ describe('Expedition astronaut', () => {
 
         target.x += 180;
         follower.update(16);
+        const targetAnchor = getExpeditionTargetAnchor(target, 'platformer');
 
         expect(Math.hypot(
-            follower.sprite.x - target.x,
-            follower.sprite.y - target.y
+            follower.sprite.x - targetAnchor.x,
+            follower.sprite.y - targetAnchor.y
         )).toBeLessThanOrEqual(follower.followDistance + 8.001);
+    });
+
+    test('grounds platformer astronaut feet on the creature physics support', () => {
+        const {
+            ExpeditionAstronaut,
+            getExpeditionTargetAnchor,
+            getExpeditionAstronautContactY
+        } = loadExpeditionAstronaut();
+        const scene = createScene();
+        const target = {
+            active: true,
+            x: 200,
+            y: 978,
+            flipX: false,
+            body: {
+                bottom: 1100,
+                velocity: { x: 0, y: 0 },
+                blocked: { down: true }
+            }
+        };
+        const follower = new ExpeditionAstronaut(scene, target, {
+            mode: 'platformer'
+        });
+        const targetAnchor = getExpeditionTargetAnchor(target, 'platformer');
+        const contactY = getExpeditionAstronautContactY(
+            follower.sprite,
+            'platformer'
+        );
+
+        expect(targetAnchor.y).toBeGreaterThan(1075);
+        expect(targetAnchor.y).toBeLessThan(1090);
+        expect(contactY).toBeCloseTo(1102, 4);
+        expect(follower.getContactY()).toBeCloseTo(1102, 4);
+        expect(follower.shadow.y).toBeCloseTo(1102, 4);
+    });
+
+    test('preserves grounded contact when a platformer target teleports', () => {
+        const { ExpeditionAstronaut } = loadExpeditionAstronaut();
+        const scene = createScene();
+        const target = {
+            active: true,
+            x: 200,
+            y: 300,
+            flipX: false,
+            body: {
+                bottom: 350,
+                velocity: { x: 0, y: 0 },
+                blocked: { down: true }
+            }
+        };
+        const follower = new ExpeditionAstronaut(scene, target, {
+            mode: 'platformer'
+        });
+
+        target.x = 900;
+        target.y = 500;
+        target.body.bottom = 560;
+        follower.update(16);
+
+        expect(follower.sprite.x).toBe(788);
+        expect(follower.getContactY()).toBeCloseTo(562, 2);
+        expect(follower.shadow.y).toBeCloseTo(562, 2);
     });
 
     test('uses a contextual formation to keep the astronaut clear of a landmark', () => {
