@@ -21,13 +21,17 @@ const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 
 requireValue(plan.id === 'BOTTOM-OF-FUNNEL-001', 'distribution plan id is missing');
-requireValue(plan.checkedOn === '2026-08-31', 'player-decision review date is stale');
-requireValue(plan.state === 'owned_entry_live_first_five_held_itch_candidate_waiting', 'distribution plan state is stale');
+requireValue(plan.checkedOn === '2026-09-08', 'player-decision review date is stale');
+requireValue(plan.state === 'owned_entry_live_one_webgames_test_ready_first_five_held_itch_candidate_waiting', 'distribution plan state is stale');
 requireValue(plan.playerDecisionModel?.sequence?.join('|') === 'wanted feeling|believable fit|real gameplay proof|trust|low-friction start', 'player-decision sequence is missing or out of order');
 requireValue(plan.playerDecisionModel?.supportingReasonsAfterGameIsClear?.includes('NASA-sourced STEM moments'), 'NASA/STEM must support rather than replace the playable promise');
 requireValue(plan.endOfFunnelRoute?.path?.at(-1) === 'meaningful action in the first minute', 'the funnel must end in meaningful play');
 requireValue(plan.endOfFunnelRoute?.mustNotInsert?.includes('account creation'), 'the low-friction account boundary is missing');
 requireValue(plan.endOfFunnelRoute?.firstReleaseEvidence?.includes('meaningful action or hatch reached'), 'first-value measurement is missing');
+requireValue(plan.firstCommunityExperiment?.name === 'r/WebGames' && plan.firstCommunityExperiment?.state === 'one_direct_link_post_ready_waiting_for_kevin', 'first community experiment is missing');
+requireValue(plan.firstCommunityExperiment?.runRef === 'docs/company/growth/COMMUNITY_DISCOVERY_RUN_2026-09-08.json', 'first community experiment is detached from its run record');
+requireValue(plan.firstCommunityExperiment?.directPlayUrl === 'https://mythicalvoid.com/play/' && plan.firstCommunityExperiment?.gameplayMediaAttached === false && plan.firstCommunityExperiment?.trackingParametersAttached === false, 'first community experiment is not a clean text-only direct-play route');
+requireValue(plan.firstCommunityExperiment?.externalPostMade === false && plan.firstCommunityExperiment?.publicationAuthorized === false, 'first community experiment overstates external action');
 requireValue(plan.readyFallbackShelf?.name === 'itch.io', 'itch.io must remain the ready fallback shelf');
 requireValue(plan.readyFallbackShelf?.publicationAuthorized === false, 'external publication must wait for Kevin');
 requireValue(plan.readyFallbackShelf?.rightsDecisionRequiredBeforePublication === true, 'the distribution-rights choice must happen before publication');
@@ -40,6 +44,7 @@ requireValue(plan.readyFallbackShelf?.technicalEvidence?.withdrawnMediaIncluded 
 requireValue(plan.readyFallbackShelf?.visualEvidence?.gameplayScreenshotsAttached === 0 && plan.readyFallbackShelf?.visualEvidence?.brandCoverExplicitlyMarkedNotGameplay === true, 'itch visual evidence is not truthful');
 requireValue(plan.routeOrder?.find(route => route.name === 'itch.io')?.state === 'package_copy_and_reviewed_cover_ready_not_published', 'itch.io route state is stale');
 requireValue(plan.routeOrder?.[0]?.url === 'https://mythicalvoid.com/playable-now/', 'the owned search doorway must stay first and live');
+requireValue(plan.routeOrder?.[1]?.name === 'r/WebGames' && plan.routeOrder?.[1]?.state === 'one_direct_link_test_ready_not_published', 'r/WebGames is not the next bounded route');
 requireValue(plan.routeOrder?.find(route => route.name === 'YouTube')?.state === 'held_for_visual_quality', 'YouTube must remain behind the visual gate');
 requireValue(plan.routeOrder?.find(route => route.name === 'Poki')?.state === 'high_upside_option_preserved_not_submitted', 'Poki option state is stale');
 requireValue(plan.distributionRightsFork?.decisionId === 'D-018', 'distribution rights decision is missing');
@@ -53,7 +58,7 @@ requireValue(firstFive.entryGates?.kevinApprovedPurposeAndInvitations === false 
 for (const field of ['externalPublishingAuthorized', 'paidPromotionAuthorized', 'bulkOutreachAuthorized', 'directChildContactAuthorized', 'imaginedArtMayBeCalledGameplay', 'portalAcceptanceMayBePromised', 'pokiAccessRequestAuthorized', 'webExclusivityMayBeAccepted']) {
     requireValue(plan.boundaries?.[field] === false, `boundary ${field} must remain false`);
 }
-for (const phrase of ['A free browser adventure', 'What makes somebody start a game', 'The end of the funnel', 'The first distribution move', 'One important choice before itch.io', 'Why itch.io is first if Kevin chooses speed', 'None on the first page', 'What Kevin now needs to approve', 'NASA endorsement']) {
+for (const phrase of ['A free browser adventure', 'What makes somebody start a game', 'The end of the funnel', 'The first distribution move', 'Run one careful direct-link test in r/WebGames', 'One important choice before itch.io', 'Why itch.io is first if Kevin chooses speed', 'None on the first page', 'What Kevin now needs to approve', 'NASA endorsement']) {
     requireValue(planText.includes(phrase), `plain-language plan is missing: ${phrase}`);
 }
 for (const source of plan.sources || []) requireValue(planText.includes(source), `plain-language plan is missing source: ${source}`);
@@ -85,7 +90,7 @@ if (failures.length) {
 console.log(JSON.stringify({
     valid: true,
     ownedSearchDoorway: 'live',
-    recommendedFirstAction: 'approve creature art direction and pass the first-contact visual gate',
+    recommendedFirstAction: 'confirm an existing adult Reddit account and approve one r/WebGames post at action time',
     recommendedFirstPublicShelf: 'itch.io after First Five and Kevin distribution approval',
     readyFallbackShelf: 'itch.io',
     itchTechnicalPackageReady: true,

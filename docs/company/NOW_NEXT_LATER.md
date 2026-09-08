@@ -57,6 +57,11 @@ actually live or prepared on 8 September 2026.
   no tracking link and no invented audience claim. No post or account change
   has been made. Kevin still needs to approve the exact post, confirm the adult
   Reddit account to use and own the replies.
+- Its durable run record now lives beside the plan. A repeatable check refuses
+  to record a post without the real Reddit address, publication time, fresh
+  rules/duplicate/game checks and Kevin's action-time approval. Day-2 and
+  day-7 observations cannot be entered early, and views remain separate from
+  visits, play starts and feedback.
 
 ## Held until the game looks good in public
 

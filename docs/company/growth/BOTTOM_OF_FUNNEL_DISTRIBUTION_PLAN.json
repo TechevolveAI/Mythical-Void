@@ -1,7 +1,7 @@
 {
   "id": "BOTTOM-OF-FUNNEL-001",
-  "checkedOn": "2026-08-31",
-  "state": "owned_entry_live_first_five_held_itch_candidate_waiting",
+  "checkedOn": "2026-09-08",
+  "state": "owned_entry_live_one_webgames_test_ready_first_five_held_itch_candidate_waiting",
   "playerPromise": "A free browser adventure where you hatch a strange alien creature, cross six living realms and decide what Project Beacon should tell Earth. No download or account needed.",
   "playerDecisionModel": {
     "sequence": ["wanted feeling", "believable fit", "real gameplay proof", "trust", "low-friction start"],
@@ -13,6 +13,19 @@
     "path": ["useful search, shelf, video or recommendation", "truthful game page", "Play now", "meaningful action in the first minute"],
     "mustNotInsert": ["studio history page", "email form", "account creation", "long AI explanation"],
     "firstReleaseEvidence": ["listing or video seen", "Play pressed", "meaningful action or hatch reached", "return or clean-link share"]
+  },
+  "firstCommunityExperiment": {
+    "name": "r/WebGames",
+    "state": "one_direct_link_post_ready_waiting_for_kevin",
+    "planRef": "docs/company/growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08.json",
+    "runRef": "docs/company/growth/COMMUNITY_DISCOVERY_RUN_2026-09-08.json",
+    "directPlayUrl": "https://mythicalvoid.com/play/",
+    "gameplayMediaAttached": false,
+    "trackingParametersAttached": false,
+    "externalPostMade": false,
+    "publicationAuthorized": false,
+    "reasonItCanPrecedeTheVisualGate": "The post links directly to the real playable game and uses no screenshot, video or generated artwork. The visual hold still applies to every media-led route.",
+    "learningWindowDays": 7
   },
   "readyFallbackShelf": {
     "name": "itch.io",
@@ -65,6 +78,7 @@
   },
   "routeOrder": [
     { "name": "owned search landing page", "state": "live", "url": "https://mythicalvoid.com/playable-now/" },
+    { "name": "r/WebGames", "state": "one_direct_link_test_ready_not_published", "url": "https://mythicalvoid.com/play/" },
     { "name": "Poki", "state": "high_upside_option_preserved_not_submitted" },
     { "name": "itch.io", "state": "package_copy_and_reviewed_cover_ready_not_published" },
     { "name": "YouTube", "state": "held_for_visual_quality" },
@@ -106,6 +120,7 @@
     "https://partner.steamgames.com/doc/gettingstarted/appfee",
     "https://www.theesa.com/global-report-video-games-transcend-entertainment-affect-positive-change-in-players-lives/",
     "https://www.biggamesmachine.com/wp-content/uploads/2025/02/BGM-YouTube-survey-2025.pdf",
-    "https://support.google.com/youtube/answer/9134402?hl=en"
+    "https://support.google.com/youtube/answer/9134402?hl=en",
+    "https://www.reddit.com/r/WebGames/about/rules"
   ]
 }
