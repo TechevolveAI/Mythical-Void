@@ -53,13 +53,18 @@ For seven days, record only what can genuinely be seen:
 
 - the live post address and time;
 - the post's views and comments if Reddit shows them;
-- consented website visits that show Reddit as the referrer, if available;
+- consented website arrivals in the broad “social or creator” group, if
+  available; this cannot identify Reddit on its own;
 - anonymous adult feedback that chooses “A game website, forum, newsletter or
   creator.”
 
 A post view is not a player. A website visit is not a play. A click is not
 enjoyment. One post is not growth. The useful question is whether this route
 brings any people who reach the game and give useful adult feedback.
+
+Because no other outside post runs during this seven-day read, a change in the
+broad “social or creator” group is useful directional context. It is not proof
+that Reddit sent a particular visit.
 
 Do not ask for votes, manufacture replies, automate responses or cross-post the
 same message during the first seven-day read. Kevin or another named adult must

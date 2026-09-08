@@ -47,6 +47,8 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
     requireValue(experiment.preflight?.automaticLinkPreviewRequired === 'https://mythicalvoid.com/marketing/mythical-void-brand-link-card-v1.png' && /not gameplay/i.test(experiment.preflight?.automaticLinkPreviewClassification || ''), 'the labelled brand-card preview boundary is missing');
     requireValue(experiment.preflight?.trackingParametersAllowed === false, 'tracking parameters must remain off');
     requireValue(experiment.measurement?.neverInfer?.length === 5, 'honest measurement boundaries are incomplete');
+    requireValue(experiment.measurement?.record?.some(item => /broad social_or_creator group/i.test(item) && /does not identify Reddit/i.test(item)), 'privacy-safe social-or-creator measurement boundary is missing');
+    requireValue(!/name Reddit as the referrer|show Reddit as the referrer/i.test(JSON.stringify(experiment.measurement || {})), 'measurement must not claim unavailable Reddit-specific attribution');
     requireValue(experiment.stopRules?.some(rule => /fake engagement/i.test(rule)), 'the fake-engagement stop rule is missing');
     requireValue(experiment.stopRules?.some(rule => /three months/i.test(rule)), 'the repost stop rule is missing');
     requireValue(experiment.stopRules?.some(rule => /no bot replies/i.test(rule)), 'the human reply rule is missing');
@@ -61,9 +63,10 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
     }
 
     requireValue(feedbackHtml.includes('value="website_creator"><span>A game website, forum, newsletter or creator</span>'), 'adult feedback cannot identify the community route');
-    for (const phrase of ['No post, account or outside contact has been made.', 'not guaranteed reach and not a player count', 'A post view is not a player.', 'The one approval needed']) {
+    for (const phrase of ['No post, account or outside contact has been made.', 'not guaranteed reach and not a player count', 'A post view is not a player.', 'cannot identify Reddit on its own', 'The one approval needed']) {
         requireValue(copy.includes(phrase), `plain-language plan is missing: ${phrase}`);
     }
+    requireValue(/It is not proof\s+that Reddit sent a particular visit\./.test(copy), 'plain-language plan is missing the Reddit attribution limit');
     for (const source of plan.sources || []) requireValue(copy.includes(source), `plain-language plan is missing source: ${source}`);
     requireValue(packageJson.scripts?.['validate:community-discovery']?.includes('validate-community-discovery-activation.cjs'), 'community validation command is missing');
     requireValue(packageJson.scripts?.['test:community-discovery']?.includes('test-community-discovery-activation.cjs'), 'community safeguard command is missing');

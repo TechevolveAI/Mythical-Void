@@ -47,6 +47,11 @@ const cases = [
         expected: 'labelled brand-card preview boundary is missing'
     },
     {
+        name: 'rejects unavailable Reddit-specific attribution',
+        mutate(plan) { plan.firstExperiment.measurement.record[2] = 'consented website visits that name Reddit as the referrer when available'; },
+        expected: 'privacy-safe social-or-creator measurement boundary is missing'
+    },
+    {
         name: 'rejects premature publication authority',
         mutate(plan) { plan.founderDecision.postAuthorized = true; },
         expected: 'Kevin decision boundary is missing'

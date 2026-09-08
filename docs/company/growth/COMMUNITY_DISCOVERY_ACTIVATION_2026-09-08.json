@@ -61,7 +61,7 @@
       "record": [
         "post URL and publication time",
         "platform views and comments when shown",
-        "consented website visits that name Reddit as the referrer when available",
+        "consented website arrivals in the broad social_or_creator group when available; this group does not identify Reddit on its own",
         "anonymous adult feedback choosing the game website or forum option"
       ],
       "neverInfer": [
@@ -71,7 +71,7 @@
         "retention from comments",
         "growth from one post"
       ],
-      "learningQuestion": "Did this direct browser-game community send any people who reached the game and gave useful adult feedback?"
+      "learningQuestion": "While this is the only outside community experiment running, did the broad social_or_creator arrival group change and did any useful anonymous adult feedback arrive? This is directional context, not proof that Reddit sent a visit."
     },
     "stopRules": [
       "Do not ask for votes or create fake engagement.",
