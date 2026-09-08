@@ -112,6 +112,15 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain(
             '/marketing/mythical-void-creature-universe-hero-v2.webp'
         );
+        expect(storefront).toContain('hero-mobile-window');
+        expect(storefront).toContain('IMAGINED CREATURE UNIVERSE');
+        expect(storefront).toContain('Artwork inspired by real creature hatches — not gameplay.');
+        expect(styles).toMatch(
+            /@media \(max-width: 620px\)[\s\S]*?\.hero-mobile-window\s*\{[\s\S]*?display:\s*block/
+        );
+        expect(styles).toMatch(
+            /\.hero-copy-block > \.hero-actions \{ order: 4; \}[\s\S]*?\.hero-copy-block > \.hero-copy \{ order: 5; \}/
+        );
         expect(styles).toMatch(
             /\.hero\s*\{[\s\S]*?height:\s*min\(860px,\s*100svh\)/
         );

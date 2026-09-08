@@ -94,7 +94,7 @@ for (const eventName of eventNames) {
 if (!storefront.includes('share_link_copied')) failures.push('storefront: copied links are not measured');
 if (!storefront.includes('It is not used in the game')) failures.push('privacy page does not explain the game boundary');
 if (!storefront.includes('does not send Google the full page you came from, a message recipient, contact detail, creature detail, game activity')) failures.push('privacy page does not explain what sharing measurement excludes');
-if (!consent.includes('whether website buttons lead to play or sharing')) failures.push('consent message does not describe the measurement');
+if (!consent.includes('helps people reach Play')) failures.push('consent message does not describe the measurement');
 if (!index.includes("if (isGameRoute) return")) failures.push('game-route stop is missing');
 
 const keyMatch = indexNow.match(/const key = '([a-zA-Z0-9-]{8,128})'/);

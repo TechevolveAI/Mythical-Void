@@ -323,6 +323,10 @@ function renderStorefront() {
                 </div>
                 <div class="hero-inner">
                     <div class="hero-copy-block">
+                        <figure class="hero-mobile-window">
+                            <img src="/marketing/mythical-void-creature-universe-hero-v2.webp" alt="">
+                            <figcaption><strong>IMAGINED CREATURE UNIVERSE</strong><span>Artwork inspired by real creature hatches — not gameplay.</span></figcaption>
+                        </figure>
                         <p class="kicker"><span></span> A universe of creatures</p>
                         <h1>One universe. <em>Every hatch opens a new possibility.</em></h1>
                         <p class="hero-copy">Hatch one alien creature shaped by body, colour, nature, cosmic affinity and rare changes. Cross six living realms together. Decide what Project Beacon should tell Earth.</p>
