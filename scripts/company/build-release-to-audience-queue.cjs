@@ -13,6 +13,7 @@ const defaults = {
     channels: path.join(root, 'docs/company/content/channels.json'),
     visualPlan: path.join(root, 'docs/company/content/visual-launch-moments.json'),
     socialIdentity: path.join(root, 'docs/company/content/channel-launch/SOCIAL_IDENTITY_RESERVATION_2026-09-08.json'),
+    discoveryDoorways: path.join(root, 'docs/company/growth/DISCOVERY_DOORWAY_REGISTRY_2026-09-08.json'),
     output: path.join(root, 'docs/company/content/generated/release-to-audience-queue.json')
 };
 
@@ -25,7 +26,7 @@ function fingerprint(value) {
 }
 
 function buildReleaseToAudienceQueue(inputs) {
-    const { releases, releasePack, communityRun, phaserShowcase, channels, visualPlan, socialIdentity } = inputs;
+    const { releases, releasePack, communityRun, phaserShowcase, channels, visualPlan, socialIdentity, discoveryDoorways } = inputs;
     const liveEntries = (releases.entries || []).filter(entry => entry.status === 'live');
     const liveById = new Map(liveEntries.map(entry => [entry.id, entry]));
     const approvedVisuals = (visualPlan.moments || []).filter(moment => moment.reviewStatus === 'approved_by_adult');
@@ -45,6 +46,7 @@ function buildReleaseToAudienceQueue(inputs) {
             preparedReleaseDrafts: (releasePack.items || []).length * 3,
             approvedGameplayVisuals: approvedVisuals.length,
             verifiedExternalPublishingChannels: verifiedExternalChannels.length,
+            checkedDiscoveryDoorways: (discoveryDoorways.routes || []).length,
             sourceFingerprints: {
                 releases: fingerprint(releases),
                 releasePack: fingerprint(releasePack),
@@ -52,7 +54,8 @@ function buildReleaseToAudienceQueue(inputs) {
                 phaserShowcase: fingerprint(phaserShowcase),
                 channels: fingerprint(channels),
                 visualPlan: fingerprint(visualPlan),
-                socialIdentity: fingerprint(socialIdentity)
+                socialIdentity: fingerprint(socialIdentity),
+                discoveryDoorways: fingerprint(discoveryDoorways)
             }
         },
         nextMove: {
@@ -91,6 +94,20 @@ function buildReleaseToAudienceQueue(inputs) {
             exactTopic: phaserShowcase.preparedTopic,
             reason: phaserShowcase.sequence.reason,
             nextRequiredAction: phaserShowcase.nextRequiredAction
+        },
+        widerDoorwayQueue: {
+            source: 'docs/company/growth/DISCOVERY_DOORWAY_REGISTRY_2026-09-08.json',
+            checkedOn: discoveryDoorways.checkedOn,
+            checkedRoutes: (discoveryDoorways.routes || []).length,
+            immediateRoutes: (discoveryDoorways.routes || []).filter(route => route.state === 'ready_waiting_for_kevin_action_time_approval').map(route => route.name),
+            laterRoutes: (discoveryDoorways.routes || []).slice(2).map(route => ({
+                order: route.order,
+                name: route.name,
+                kind: route.kind,
+                state: route.state,
+                nextNeed: route.nextNeed
+            })),
+            rule: 'This is an ordered opportunity queue, not permission to cross-post. Recheck current rules and request action-time approval for every outside move.'
         },
         latestReleaseDraft: newestTextFirstItem ? {
             sourceEntryId: newestTextFirstItem.sourceEntryId,
@@ -144,7 +161,8 @@ function loadDefaults() {
         phaserShowcase: readJson(defaults.phaserShowcase),
         channels: readJson(defaults.channels),
         visualPlan: readJson(defaults.visualPlan),
-        socialIdentity: readJson(defaults.socialIdentity)
+        socialIdentity: readJson(defaults.socialIdentity),
+        discoveryDoorways: readJson(defaults.discoveryDoorways)
     };
 }
 

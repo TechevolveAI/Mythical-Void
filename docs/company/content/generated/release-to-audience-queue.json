@@ -8,6 +8,7 @@
     "preparedReleaseDrafts": 60,
     "approvedGameplayVisuals": 0,
     "verifiedExternalPublishingChannels": 0,
+    "checkedDiscoveryDoorways": 13,
     "sourceFingerprints": {
       "releases": "c7c0ebb20d3d4bf87424387c01a81272fc8be83f089ee4cb2f59080898a46734",
       "releasePack": "44a6d64533970d1cb64d672d460e1be32999406a02217ee3a61af47ce3bec098",
@@ -15,7 +16,8 @@
       "phaserShowcase": "7e6976bfa25dcd3c47b2806153d72f41ae7ed80a40c65fe304eadd9acd0438da",
       "channels": "61c95b390a608c5fbbc256008bfa12783068cf2fdf859880035fd653fec8f4f3",
       "visualPlan": "bf7a822e276bc49fce14bbee7ed2c771720d6ac8cf623ce43d7aba0e33aa4fbf",
-      "socialIdentity": "adc7a0f404ea6248d9ebb8a8ebb8b02158dac612dde37603c92e045887fef989"
+      "socialIdentity": "adc7a0f404ea6248d9ebb8a8ebb8b02158dac612dde37603c92e045887fef989",
+      "discoveryDoorways": "e70f1b2b0aa94259048ead7ef9af797c608a04e1c4efc2e53ce256f060c0e745"
     }
   },
   "nextMove": {
@@ -78,6 +80,94 @@
     },
     "reason": "One route at a time makes the learning understandable and avoids repeating the same promotion across communities.",
     "nextRequiredAction": "Finish or explicitly cancel the first r/WebGames read, then Kevin confirms an existing adult Phaser forum account, accepts any current terms himself, approves this exact topic at action time and remains available to answer replies."
+  },
+  "widerDoorwayQueue": {
+    "source": "docs/company/growth/DISCOVERY_DOORWAY_REGISTRY_2026-09-08.json",
+    "checkedOn": "2026-09-08",
+    "checkedRoutes": 13,
+    "immediateRoutes": [
+      "r/WebGames"
+    ],
+    "laterRoutes": [
+      {
+        "order": 3,
+        "name": "itch.io",
+        "kind": "searchable_game_shelf",
+        "state": "package_ready_waiting_for_first_five_rights_choice_account_terms_and_page_approval",
+        "nextNeed": "Complete the private First Five, decide itch.io-first versus preserving the Poki option, then Kevin approves the page, cover, disclosure and current terms."
+      },
+      {
+        "order": 4,
+        "name": "IndieDB",
+        "kind": "searchable_game_profile",
+        "state": "research_verified_waiting_for_account_terms_rights_and_page_preview",
+        "nextNeed": "Review the signed-in game-page form and current terms, then prepare one accurate page using the website link and approved brand material."
+      },
+      {
+        "order": 5,
+        "name": "HTML5 Game Devs Showcase",
+        "kind": "developer_community",
+        "state": "waiting_for_approved_real_game_media_account_and_topic_approval",
+        "nextNeed": "Approve real gameplay images first, then prepare a specific feedback topic and confirm an adult reply owner."
+      },
+      {
+        "order": 6,
+        "name": "TIGSource DevLog",
+        "kind": "long_running_developer_community",
+        "state": "watch_waiting_for_current_rules_account_and_sustained_human_cadence",
+        "nextNeed": "Confirm current forum rules and use only if Kevin wants to maintain a genuine development diary rather than make one promotional post."
+      },
+      {
+        "order": 7,
+        "name": "Game Jolt",
+        "kind": "game_profile_and_social_shelf",
+        "state": "research_incomplete_waiting_for_signed_in_requirements_terms_and_visual_policy",
+        "nextNeed": "Review current signed-in publishing requirements, content rules and AI-art policy before preparing any game page."
+      },
+      {
+        "order": 8,
+        "name": "r/playmygame",
+        "kind": "playtest_community",
+        "state": "held_current_AI_policy_unfavourable_and_participation_required",
+        "nextNeed": "Do not post. Reconsider only after a fresh moderator-rule review shows Mythical Void is welcome and Kevin has genuinely contributed useful feedback to other games."
+      },
+      {
+        "order": 9,
+        "name": "r/IndieGaming",
+        "kind": "indie_game_community",
+        "state": "excluded_current_no_AI_rule",
+        "nextNeed": "Do not post while the community's current no-AI rule conflicts with Mythical Void's disclosed development process."
+      },
+      {
+        "order": 10,
+        "name": "r/IndieGames",
+        "kind": "indie_game_community",
+        "state": "held_until_current_AI_and_promotion_rules_are_explicitly_confirmed",
+        "nextNeed": "Do not post. Current removals show hostility to AI-generated art, and the exact current rule must be confirmed before any future consideration."
+      },
+      {
+        "order": 11,
+        "name": "Newgrounds",
+        "kind": "uploaded_game_shelf",
+        "state": "excluded_for_now_due_AI_thumbnail_rights_and_external_call_risk",
+        "nextNeed": "Do not submit until authored contribution, rights, third-party calls and a real-game thumbnail can satisfy current rules cleanly."
+      },
+      {
+        "order": 12,
+        "name": "Poki",
+        "kind": "curated_browser_game_portal",
+        "state": "option_preserved_not_submitted",
+        "nextNeed": "Pass the visual and first-minute gates, then Kevin decides whether to make a bounded access request before publishing on itch.io."
+      },
+      {
+        "order": 13,
+        "name": "CrazyGames",
+        "kind": "curated_browser_game_portal",
+        "state": "later_waiting_for_portal_SDK_ad_privacy_rights_and_commercial_review",
+        "nextNeed": "Review the current developer portal, SDK, advertising, privacy, rights and commercial requirements before any submission work."
+      }
+    ],
+    "rule": "This is an ordered opportunity queue, not permission to cross-post. Recheck current rules and request action-time approval for every outside move."
   },
   "latestReleaseDraft": {
     "sourceEntryId": "UPDATE-027",

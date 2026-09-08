@@ -17,6 +17,7 @@ requireValue(queue.generatedFrom?.liveLatestNewsEntries === inputs.releasePack.g
 requireValue(queue.generatedFrom?.preparedReleaseDrafts === queue.generatedFrom?.liveLatestNewsEntries * 3, 'Every live update must have exactly three prepared source drafts.');
 requireValue(queue.generatedFrom?.approvedGameplayVisuals === 0, 'Queue must not invent gameplay visual approval.');
 requireValue(queue.generatedFrom?.verifiedExternalPublishingChannels === 0, 'Queue must not invent a verified external publishing channel.');
+requireValue(queue.generatedFrom?.checkedDiscoveryDoorways === 13, 'The wider discovery queue is incomplete.');
 requireValue(queue.nextMove?.route === 'r/WebGames' && queue.nextMove?.state === 'waiting_for_kevin_action_time_approval', 'The one agreed first community route is missing or out of order.');
 requireValue(queue.nextMove?.exactPost?.url === 'https://mythicalvoid.com/play/', 'First route must use the clean direct game link.');
 requireValue(queue.nextMove?.mediaAttached === false && queue.nextMove?.manualMediaAttached === false && queue.nextMove?.trackingParametersPresent === false, 'First route must remain free of attached media and tracking.');
@@ -24,6 +25,10 @@ requireValue(queue.nextMove?.automaticLinkPreviewExpected === 'https://mythicalv
 requireValue(queue.nextMove?.automaticLinkPreviewCheckedAt === null, 'Unpublished queue must not invent a live automatic-preview check.');
 requireValue(queue.nextMove?.approvalNeeded?.length === 3, 'Kevin account, exact-post and reply-coverage decisions must all remain explicit.');
 requireValue(queue.afterThat?.route === 'Phaser Showcase' && /waiting_until_first_community_read/.test(queue.afterThat?.state || ''), 'The second community route must wait for the first read.');
+requireValue(queue.widerDoorwayQueue?.source === 'docs/company/growth/DISCOVERY_DOORWAY_REGISTRY_2026-09-08.json', 'The wider doorway queue is detached from its checked source.');
+requireValue(queue.widerDoorwayQueue?.checkedRoutes === 13 && queue.widerDoorwayQueue?.laterRoutes?.length === 11, 'The wider doorway queue count is incomplete.');
+requireValue(queue.widerDoorwayQueue?.immediateRoutes?.join('|') === 'r/WebGames', 'The wider queue must expose exactly one immediate route.');
+requireValue(/not permission to cross-post/i.test(queue.widerDoorwayQueue?.rule || ''), 'The wider queue is missing its no-cross-post boundary.');
 requireValue(queue.latestReleaseDraft?.sourceEntryId === expected.latestReleaseDraft?.sourceEntryId, 'The current text-first Latest News hand-off has drifted.');
 requireValue(queue.latestReleaseDraft?.state === 'prepared_not_publishable_until_an_official_channel_is_confirmed', 'Latest release draft must not imply publication readiness.');
 requireValue(queue.latestReleaseDraft?.releaseProof?.gameplayVisualApproved === false && queue.latestReleaseDraft?.releaseProof?.mediaAttached === false, 'Latest release hand-off must retain its visual and media boundary.');
