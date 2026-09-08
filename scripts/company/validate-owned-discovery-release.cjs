@@ -18,6 +18,7 @@ const indexNow = read('scripts/company/submit-indexnow.cjs');
 const packageJson = JSON.parse(read('package.json'));
 const sitemap = read('public/sitemap.xml');
 const readme = read('README.md');
+const normalizedReadme = readme.replace(/\s+/g, ' ');
 const correctId = 'G-FTM4W73ECQ';
 const incorrectId = 'G-FTM4W73EQC';
 const eventNames = ['play_selected', 'share_completed', 'share_link_copied'];
@@ -109,14 +110,23 @@ if (packageJson.scripts?.['submit:indexnow'] !== 'node scripts/company/submit-in
 for (const required of [
     '[Play Mythical Void](https://mythicalvoid.com/playable-now/)',
     '[Start the game](https://mythicalvoid.com/play/)',
+    '[Latest game updates](https://mythicalvoid.com/updates/)',
     '[Family guide](https://mythicalvoid.com/parents/)',
+    '[Player help](https://mythicalvoid.com/help/)',
     'No download, account, payment details, game adverts or public chat are needed.',
+    'The six current realms are Mythical Forest, Crystal Caves, Stellar Reef, Void',
+    'Recover the field kit and read the message.',
+    'it does not promise that every creature is globally unique.',
+    '[RSS feed](https://mythicalvoid.com/updates/feed.xml)',
+    '[official press and creator room](https://mythicalvoid.com/press/)',
     'Generated universe artwork is never presented as gameplay.'
 ]) {
-    if (!readme.includes(required)) failures.push(`public GitHub doorway is missing: ${required}`);
+    if (!normalizedReadme.includes(required)) failures.push(`public GitHub doorway is missing: ${required}`);
 }
-if (!readme.includes('father-and-son experiment') || !readme.includes('nine-year-old son')) failures.push('public GitHub doorway is missing the founding story');
-if (!readme.includes('NASA does not make or endorse the game')) failures.push('public GitHub doorway is missing the NASA boundary');
+if (!normalizedReadme.includes('father-and-son experiment') || !normalizedReadme.includes('nine-year-old son')) failures.push('public GitHub doorway is missing the founding story');
+if (!normalizedReadme.includes('NASA does not make or endorse the game')) failures.push('public GitHub doorway is missing the NASA boundary');
+if (/World Size:\s*1600x1200|20 trees|30 rocks|40 interactive flowers|Canvas Size:\s*800x600/i.test(readme)) failures.push('public GitHub doorway still describes the obsolete prototype world');
+if (/\bcompanions?\b|\bsignal\b/i.test(readme)) failures.push('public GitHub doorway uses retired player-facing wording');
 
 const sitemapUrls = [...sitemap.matchAll(/<loc>https:\/\/mythicalvoid\.com\/[^<]*<\/loc>/g)];
 if (sitemapUrls.length !== 16) failures.push(`sitemap should contain 16 public routes, found ${sitemapUrls.length}`);

@@ -83,7 +83,9 @@ invalid('index.html', source => source.replace('"@type": "Organization"', '"@typ
 invalid('index.html', source => source.replace('"urlTemplate": "https://mythicalvoid.com/play/"', '"urlTemplate": "https://mythicalvoid.com/play/?campaign=search"'), 'clean direct game URL');
 invalid('index.html', source => source.replace('"offers": {', '"screenshot": "https://mythicalvoid.com/unapproved-gameplay.png",\n      "offers": {'), 'must not publish an unapproved gameplay screenshot');
 invalid('README.md', source => source.replace('[Play Mythical Void](https://mythicalvoid.com/playable-now/)', 'Play sometime'), 'public GitHub doorway is missing');
-invalid('README.md', source => source.replace('NASA does not make or endorse the game', 'NASA makes the game'), 'NASA boundary');
+invalid('README.md', source => source.replace(/NASA does not make or endorse\s+the game/, 'NASA makes the game'), 'NASA boundary');
+invalid('README.md', source => source.replace('[Latest game updates](https://mythicalvoid.com/updates/)', 'Updates coming soon'), 'public GitHub doorway is missing');
+invalid('README.md', source => `${source}\nWorld Size: 1600x1200\n20 trees\n30 rocks\n40 interactive flowers\n`, 'obsolete prototype world');
 
 function measurementFixture(consentChoice) {
     const dom = new JSDOM('<!doctype html><a href="/play/" id="play"><span id="play-label">Play</span></a>', {
@@ -110,5 +112,5 @@ assert.deepStrictEqual(JSON.parse(JSON.stringify(playSelected[2])), {
     transport_type: 'beacon'
 });
 
-assert.strictEqual(cases, 16);
-console.log('Owned discovery release evaluations passed (16 cases).');
+assert.strictEqual(cases, 18);
+console.log('Owned discovery release evaluations passed (18 cases).');
