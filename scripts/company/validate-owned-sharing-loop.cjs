@@ -27,18 +27,27 @@ const register = readVisualPublicationRegister();
 const scripts = json('package.json').scripts;
 const fallbackPath = 'public/marketing/mythical-void-creature-universe-hero-v2.webp';
 const fallbackBytes = read(fallbackPath);
+const brandCardPath = 'public/marketing/mythical-void-brand-link-card-v1.png';
+const brandCardBytes = read(brandCardPath);
 
 requireValue(fallbackBytes.subarray(0, 4).toString('ascii') === 'RIFF' && fallbackBytes.subarray(8, 12).toString('ascii') === 'WEBP', 'Temporary sharing fallback must be a real WebP image.');
 requireValue(fallbackBytes.length > 400_000, 'Temporary sharing fallback is unexpectedly small.');
 requireValue(!isWithdrawnPublicVisual('/marketing/mythical-void-creature-universe-hero-v2.webp', register), 'Temporary sharing fallback is marked withdrawn.');
 
-for (const route of ['/', '/playable-now/']) {
-    const page = previews.pages.find(item => item.route === route);
-    requireValue(page?.imagePath === fallbackPath, `${route} is not bound to the approved temporary fallback.`);
-    requireValue(page?.imageUrl === 'https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp', `${route} sharing image URL is incorrect.`);
-    requireValue(page?.width === 1672 && page?.height === 941 && page?.imageType === 'image/webp', `${route} sharing image facts are incorrect.`);
-    requireValue(page?.classification === 'ai_generated_marketing_illustration_not_gameplay' && /not gameplay/i.test(page?.disclosure || ''), `${route} must retain the imagined-art boundary.`);
-}
+requireValue(brandCardBytes.subarray(0, 8).toString('hex') === '89504e470d0a1a0a', 'Main application sharing card must be a real PNG image.');
+requireValue(brandCardBytes.length > 100_000, 'Main application sharing card is unexpectedly small.');
+requireValue(!isWithdrawnPublicVisual('/marketing/mythical-void-brand-link-card-v1.png', register), 'Main application sharing card is marked withdrawn.');
+
+const rootPreview = previews.pages.find(item => item.route === '/');
+requireValue(rootPreview?.imagePath === brandCardPath && rootPreview?.imageUrl === 'https://mythicalvoid.com/marketing/mythical-void-brand-link-card-v1.png', 'Main application shell is not bound to the labelled brand card.');
+requireValue(rootPreview?.width === 1200 && rootPreview?.height === 630 && rootPreview?.imageType === 'image/png', 'Main application sharing-card facts are incorrect.');
+requireValue(rootPreview?.classification === 'code_authored_brand_card_with_approved_emblem_not_gameplay' && /brand art.+not gameplay/i.test(rootPreview?.disclosure || ''), 'Main application sharing card must retain its brand-art boundary.');
+
+const playableNowPreview = previews.pages.find(item => item.route === '/playable-now/');
+requireValue(playableNowPreview?.imagePath === fallbackPath, '/playable-now/ is not bound to the approved temporary fallback.');
+requireValue(playableNowPreview?.imageUrl === 'https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp', '/playable-now/ sharing image URL is incorrect.');
+requireValue(playableNowPreview?.width === 1672 && playableNowPreview?.height === 941 && playableNowPreview?.imageType === 'image/webp', '/playable-now/ sharing image facts are incorrect.');
+requireValue(playableNowPreview?.classification === 'ai_generated_marketing_illustration_not_gameplay' && /not gameplay/i.test(playableNowPreview?.disclosure || ''), '/playable-now/ must retain the imagined-art boundary.');
 
 requireValue(playable.includes('data-share-game') && playable.includes('data-copy-game') && playable.includes('data-share-status'), 'Playable Now needs native share, copy and accessible status controls.');
 requireValue(playable.includes('never asks for their contact details') && playable.includes('adds no tracking code'), 'The sharing privacy promise is missing.');
@@ -79,8 +88,9 @@ if (failures.length) {
 
 console.log(JSON.stringify({
     valid: true,
-    preview: fallbackPath,
-    dimensions: '1672x941',
+    applicationPreview: brandCardPath,
+    applicationPreviewDimensions: '1200x630',
+    staticFallbackPreview: fallbackPath,
     cleanDestination: 'https://mythicalvoid.com/playable-now/#find-your-way',
     intentSpecificDestinations: ['wonder', 'create', 'challenge', 'story'].map(intent => `https://mythicalvoid.com/playable-now/#find-your-way/${intent}`),
     sharePageCount: sharePages.length,

@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const repositoryRoot = path.resolve(__dirname, '../..');
 const manifestPath = process.argv[2]
@@ -41,7 +42,7 @@ function imageDimensions(file, type) {
     return null;
 }
 
-requireValue(manifest.schemaVersion === 2 && manifest.state === 'human_reviewed_preview_fallback_while_gameplay_media_is_rebuilt', 'Social preview manifest identity or state is invalid.');
+requireValue(manifest.schemaVersion === 2 && manifest.state === 'mixed_truthful_previews_while_gameplay_media_is_rebuilt', 'Social preview manifest identity or state is invalid.');
 requireValue(Array.isArray(manifest.pages) && manifest.pages.length === 11, 'Social preview manifest must cover exactly eleven static public pages.');
 requireValue(new Set((manifest.pages || []).map(page => page.route)).size === manifest.pages?.length, 'Social preview routes must be unique.');
 
@@ -85,6 +86,18 @@ for (const page of manifest.pages || []) {
 
     if (page.classification === 'ai_generated_marketing_illustration' || page.classification === 'ai_generated_marketing_illustration_not_gameplay') {
         requireValue(/not gameplay/i.test(page.disclosure || ''), `${label} generated artwork must be disclosed as not gameplay.`);
+    }
+    if (page.classification === 'code_authored_brand_card_with_approved_emblem_not_gameplay') {
+        const templateFile = path.join(siteRoot, page.sourceTemplate || '');
+        const emblemFile = path.join(siteRoot, page.sourceEmblem || '');
+        requireValue(label === '/', `${label} brand-card classification is only approved for the main application shell.`);
+        requireValue(/brand art.+not gameplay/i.test(page.disclosure || ''), `${label} brand card must retain its not-gameplay disclosure.`);
+        requireValue(fs.existsSync(templateFile) && fs.existsSync(emblemFile), `${label} brand-card source or approved emblem is missing.`);
+        if (fs.existsSync(templateFile)) {
+            const template = fs.readFileSync(templateFile, 'utf8');
+            requireValue(template.includes('BRAND ART — NOT GAMEPLAY') && template.includes('../../public/marketing/mythical-void-emblem-v3.png'), `${label} rendered brand-card source has lost its visible boundary or approved emblem.`);
+        }
+        requireValue(/^[0-9a-f]{64}$/.test(page.sha256 || '') && crypto.createHash('sha256').update(fs.readFileSync(imageFile)).digest('hex') === page.sha256, `${label} brand-card fingerprint does not match the reviewed file.`);
     }
     if ((page.classification || '').startsWith('branded_social_artwork_with_authentic_gameplay_frame')) {
         requireValue(/not a raw screenshot/i.test(page.disclosure || '') && /real gameplay/i.test(page.disclosure || '') && /no player information/i.test(page.disclosure || ''), `${label} branded artwork must retain its gameplay and privacy disclosure.`);

@@ -21,6 +21,11 @@ function prepareSite(name) {
         fs.mkdirSync(path.dirname(imageTarget), { recursive: true });
         fs.copyFileSync(path.join(root, page.htmlPath), htmlTarget);
         if (!fs.existsSync(imageTarget)) fs.copyFileSync(path.join(root, page.imagePath), imageTarget);
+        for (const sourcePath of [page.sourceTemplate, page.sourceEmblem].filter(Boolean)) {
+            const sourceTarget = path.join(site, sourcePath);
+            fs.mkdirSync(path.dirname(sourceTarget), { recursive: true });
+            if (!fs.existsSync(sourceTarget)) fs.copyFileSync(path.join(root, sourcePath), sourceTarget);
+        }
     }
     return site;
 }
@@ -42,6 +47,8 @@ try {
     assert.notStrictEqual(run('unsafe-generated-label', manifest => { manifest.pages.find(page => page.classification === 'ai_generated_marketing_illustration_not_gameplay').disclosure = 'Beautiful game image.'; }).status, 0);
     assert.notStrictEqual(run('missing-route', manifest => { manifest.pages.pop(); }).status, 0);
     assert.notStrictEqual(run('state-drift', manifest => { manifest.state = 'gameplay_media_approved'; }).status, 0);
+    assert.notStrictEqual(run('brand-card-hash-drift', manifest => { manifest.pages[0].sha256 = '0'.repeat(64); }).status, 0);
+    assert.notStrictEqual(run('brand-card-disclosure-drift', manifest => { manifest.pages[0].disclosure = 'Official game artwork.'; }).status, 0);
     assert.notStrictEqual(run('missing-renderer-proof-boundary', manifest => { manifest.pages.find(page => page.route === '/creature-field-guide/').disclosure = 'A collection of creatures.'; }).status, 0);
     assert.notStrictEqual(run('hidden-press-limit', manifest => { manifest.knownLimitations = []; }).status, 0);
     assert.notStrictEqual(run('opened-social-authority', manifest => { manifest.authority.autonomousSocialPostingAuthorized = true; }).status, 0);
@@ -59,7 +66,7 @@ try {
         const page = manifest.pages.find(item => item.route === '/nasa-space-science/');
         fs.rmSync(path.join(site, page.imagePath));
     }).status, 0);
-    console.log('Social preview metadata safeguards passed (12 failure cases).');
+    console.log('Social preview metadata safeguards passed (14 failure cases).');
 } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
 }

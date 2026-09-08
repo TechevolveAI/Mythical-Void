@@ -42,6 +42,11 @@ const cases = [
         expected: 'authority fakeEngagementAuthorized must remain false'
     },
     {
+        name: 'rejects an undisclosed automatic preview',
+        mutate(plan) { plan.firstExperiment.preflight.automaticLinkPreviewClassification = 'official game screenshot'; },
+        expected: 'labelled brand-card preview boundary is missing'
+    },
+    {
         name: 'rejects premature publication authority',
         mutate(plan) { plan.founderDecision.postAuthorized = true; },
         expected: 'Kevin decision boundary is missing'

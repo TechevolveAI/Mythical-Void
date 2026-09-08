@@ -23,7 +23,11 @@ function validateCommunityRun({ run, plan }) {
     requireValue(post.title?.startsWith('Mythical Void'), 'post title must start with the game name');
     requireValue(post.url === 'https://mythicalvoid.com/play/' && !/[?#]/.test(post.url || ''), 'post must use the clean direct game URL');
     requireValue(!/\bcompanions?\b|\bsignals?\b/i.test(`${post.title || ''} ${post.firstComment || ''}`), 'retired public wording appears in the post');
-    requireValue(preflight.cleanDirectLink === true && preflight.trackingParametersPresent === false && preflight.gameplayMediaAttached === false, 'clean text-only post boundary changed');
+    requireValue(preflight.cleanDirectLink === true && preflight.trackingParametersPresent === false && preflight.gameplayMediaAttached === false && preflight.manualMediaAttached === false, 'clean direct-link post boundary changed');
+    requireValue(preflight.automaticLinkPreviewExpected === 'https://mythicalvoid.com/marketing/mythical-void-brand-link-card-v1.png', 'truthful automatic link preview is missing');
+    requireValue(preflight.automaticLinkPreviewCheckedAt === null || Boolean(Date.parse(preflight.automaticLinkPreviewCheckedAt)), 'automatic link preview check time is invalid');
+    requireValue(preflight.automaticLinkPreviewHttpStatus === null || preflight.automaticLinkPreviewHttpStatus === 200, 'automatic link preview status must be null or 200');
+    requireValue(preflight.automaticLinkPreviewMatchesExpected === null || preflight.automaticLinkPreviewMatchesExpected === true, 'automatic link preview cannot be recorded as mismatched');
 
     const actionReady = approval.existingAdultAccountConfirmed === true &&
         approval.exactPostApprovedAtActionTime === true &&
@@ -35,7 +39,10 @@ function validateCommunityRun({ run, plan }) {
         preflight.duplicateObserved === false &&
         preflight.liveGameCheckedAt !== null &&
         preflight.liveGameHttpStatus === 200 &&
-        preflight.openingJourneyPassedAt !== null;
+        preflight.openingJourneyPassedAt !== null &&
+        preflight.automaticLinkPreviewCheckedAt !== null &&
+        preflight.automaticLinkPreviewHttpStatus === 200 &&
+        preflight.automaticLinkPreviewMatchesExpected === true;
 
     if (publication.posted === true) {
         requireValue(actionReady, 'publication is recorded without every action-time gate');

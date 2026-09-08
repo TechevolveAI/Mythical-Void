@@ -7,17 +7,17 @@
     "externalServices": "Static markers in built HTML, CSS and application JavaScript; a marker is a compatibility risk, not proof that a request fired."
   },
   "package": {
-    "fileCount": 87,
-    "rawBytes": 33633606,
-    "gzipEstimateBytes": 29752863,
+    "fileCount": 88,
+    "rawBytes": 34234277,
+    "gzipEstimateBytes": 30352863,
     "advisoryTargetBytes": 8388608,
     "advisoryTargetMet": false,
-    "contentDigestSha256": "4bef113ef0cf4ca26dc14f3d295c157dad4ef81967043bd07bea9c5294092be0"
+    "contentDigestSha256": "9531d0d0149d029406163f4466d484478a662364025f2d8aa3effac6f5a46d99"
   },
   "firstLoad": {
     "resourceCount": 18,
-    "rawBytes": 7199150,
-    "gzipEstimateBytes": 3956724,
+    "rawBytes": 7199371,
+    "gzipEstimateBytes": 3956787,
     "advisoryTargetBytes": 5242880,
     "advisoryTargetMet": true,
     "resources": [
@@ -98,8 +98,8 @@
       },
       {
         "path": "index.html",
-        "rawBytes": 9183,
-        "gzipEstimateBytes": 2705
+        "rawBytes": 9404,
+        "gzipEstimateBytes": 2768
       },
       {
         "path": "assets/index-BsxAm38o.js",
@@ -136,13 +136,13 @@
     },
     "root": {
       "fileCount": 2,
-      "rawBytes": 10312,
-      "gzipEstimateBytes": 3259
+      "rawBytes": 10533,
+      "gzipEstimateBytes": 3322
     },
     "marketing": {
-      "fileCount": 25,
-      "rawBytes": 2297979,
-      "gzipEstimateBytes": 2243671
+      "fileCount": 26,
+      "rawBytes": 2898429,
+      "gzipEstimateBytes": 2843608
     }
   },
   "externalServiceMarkers": {

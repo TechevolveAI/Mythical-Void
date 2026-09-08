@@ -17,6 +17,7 @@ const invalidCases = [
     ['early result', run => { run.observations.day2.platformViews = 10; }, 'before publication'],
     ['negative count', run => { run.observations.day7.publicCommentCount = -1; }, 'non-negative whole number'],
     ['retired wording', run => { run.preparedPost.firstComment += ' A companion follows the signal.'; }, 'prepared post no longer matches'],
+    ['mismatched automatic preview', run => { run.preflight.automaticLinkPreviewMatchesExpected = false; }, 'cannot be recorded as mismatched'],
     ['missing truth rules', run => { run.truthRules = []; }, 'truth rule is missing']
 ];
 
@@ -41,7 +42,10 @@ Object.assign(published.preflight, {
     duplicateObserved: false,
     liveGameCheckedAt: '2026-09-08T11:47:00.000Z',
     liveGameHttpStatus: 200,
-    openingJourneyPassedAt: '2026-09-08T11:55:00.000Z'
+    openingJourneyPassedAt: '2026-09-08T11:55:00.000Z',
+    automaticLinkPreviewCheckedAt: '2026-09-08T11:48:00.000Z',
+    automaticLinkPreviewHttpStatus: 200,
+    automaticLinkPreviewMatchesExpected: true
 });
 published.publication = {
     posted: true,

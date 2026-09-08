@@ -63,6 +63,9 @@ function buildReleaseToAudienceQueue(inputs) {
             whyThisIsNext: 'It reaches people actively looking for browser games, uses the live game link, needs no weak artwork and runs as one measured experiment rather than a spray of posts.',
             exactPost: communityRun.preparedPost,
             mediaAttached: communityRun.preflight.gameplayMediaAttached,
+            manualMediaAttached: communityRun.preflight.manualMediaAttached,
+            automaticLinkPreviewExpected: communityRun.preflight.automaticLinkPreviewExpected,
+            automaticLinkPreviewCheckedAt: communityRun.preflight.automaticLinkPreviewCheckedAt,
             trackingParametersPresent: communityRun.preflight.trackingParametersPresent,
             approvalNeeded: [
                 'Kevin confirms the adult Reddit account to use.',

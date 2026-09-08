@@ -21,10 +21,12 @@
     "runRef": "docs/company/growth/COMMUNITY_DISCOVERY_RUN_2026-09-08.json",
     "directPlayUrl": "https://mythicalvoid.com/play/",
     "gameplayMediaAttached": false,
+    "manualMediaAttached": false,
+    "automaticLinkPreview": "approved_emblem_brand_card_clearly_marked_not_gameplay",
     "trackingParametersAttached": false,
     "externalPostMade": false,
     "publicationAuthorized": false,
-    "reasonItCanPrecedeTheVisualGate": "The post links directly to the real playable game and uses no screenshot, video or generated artwork. The visual hold still applies to every media-led route.",
+    "reasonItCanPrecedeTheVisualGate": "The post links directly to the real playable game, attaches no screenshot, video or generated artwork, and uses a labelled emblem-only brand card for the automatic link preview. The visual hold still applies to every media-led route.",
     "learningWindowDays": 7
   },
   "readyFallbackShelf": {

@@ -36,11 +36,15 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
     requireValue(/father-and-son experiment/i.test(prepared.firstComment || '') && /generative AI tools/i.test(prepared.firstComment || ''), 'the true origin and AI assistance disclosure are missing');
     requireValue(/early-access browser adventure/i.test(prepared.firstComment || '') && /built in Phaser/i.test(prepared.firstComment || ''), 'the game state and Phaser context are missing');
     requireValue(/No download or account is needed/i.test(prepared.firstComment || ''), 'the low-friction promise is missing');
+    requireValue(/Crystal Caves.+three-pulse route.+corrupted Guardian awakens/i.test(prepared.firstComment || ''), 'the current Crystal Caves reason to try the game is missing');
+    requireValue(/brand emblem.+not gameplay/i.test(prepared.firstComment || ''), 'the automatic link preview disclosure is missing');
     requireValue(/first minute felt clear or confusing/i.test(prepared.firstComment || ''), 'the one useful feedback question is missing');
 
     requireValue(experiment.preflight?.freshOpeningJourneyRequired === true, 'a fresh live journey is required before posting');
     requireValue(experiment.preflight?.checkDuplicateImmediatelyBeforePosting === true, 'the last duplicate check is missing');
     requireValue(experiment.preflight?.adultReplyOwnerRequired === true, 'adult reply ownership is missing');
+    requireValue(experiment.preflight?.manualMediaAttachmentAllowed === false, 'manual media must remain off');
+    requireValue(experiment.preflight?.automaticLinkPreviewRequired === 'https://mythicalvoid.com/marketing/mythical-void-brand-link-card-v1.png' && /not gameplay/i.test(experiment.preflight?.automaticLinkPreviewClassification || ''), 'the labelled brand-card preview boundary is missing');
     requireValue(experiment.preflight?.trackingParametersAllowed === false, 'tracking parameters must remain off');
     requireValue(experiment.measurement?.neverInfer?.length === 5, 'honest measurement boundaries are incomplete');
     requireValue(experiment.stopRules?.some(rule => /fake engagement/i.test(rule)), 'the fake-engagement stop rule is missing');
