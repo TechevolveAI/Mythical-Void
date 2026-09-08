@@ -7,6 +7,7 @@ const { isWithdrawnPublicVisual, readVisualPublicationRegister } = require('./vi
 const root = path.resolve(__dirname, '../..');
 const defaultDataPath = path.join(root, 'public/updates/releases.json');
 const defaultOutputPath = path.join(root, 'public/updates/index.html');
+const defaultMainSitemapPath = path.join(root, 'public/sitemap.xml');
 const siteOrigin = 'https://mythicalvoid.com';
 
 function escapeHtml(value) {
@@ -166,6 +167,21 @@ ${urls}
 `;
 }
 
+function latestPublishedDate(data) {
+    const dates = (data.entries || [])
+        .filter(entry => entry.status === 'live')
+        .map(entry => entry.publishedOn)
+        .sort();
+    return dates.at(-1);
+}
+
+function syncMainUpdatesLastmod(sitemap, publishedOn) {
+    const updatesEntry = /(<loc>https:\/\/mythicalvoid\.com\/updates\/<\/loc>\s*<lastmod>)(\d{4}-\d{2}-\d{2})(<\/lastmod>)/;
+    if (!publishedOn) throw new Error('Cannot update the main sitemap without a live Latest News publication date.');
+    if (!updatesEntry.test(sitemap)) throw new Error('The main sitemap is missing the Latest News entry.');
+    return sitemap.replace(updatesEntry, (_match, before, _oldDate, after) => `${before}${publishedOn}${after}`);
+}
+
 function buildSignalLog(data) {
     const register = readVisualPublicationRegister();
     const entries = (data.entries || []).filter(entry => entry.status === 'live');
@@ -269,7 +285,11 @@ if (require.main === module) {
         fs.writeFileSync(path.join(entryDir, 'index.html'), buildReleasePage(data, entry));
     }
     fs.writeFileSync(path.join(outputDir, 'sitemap.xml'), buildUpdatesSitemap(data));
-    console.log(`Built ${outputPath}, ${liveEntries.length} release pages and the updates sitemap.`);
+    if (outputPath === defaultOutputPath) {
+        const mainSitemap = fs.readFileSync(defaultMainSitemapPath, 'utf8');
+        fs.writeFileSync(defaultMainSitemapPath, syncMainUpdatesLastmod(mainSitemap, latestPublishedDate(data)));
+    }
+    console.log(`Built ${outputPath}, ${liveEntries.length} release pages and the updates sitemap; refreshed the main sitemap date.`);
 }
 
 module.exports = {
@@ -277,8 +297,11 @@ module.exports = {
     buildSignalLog,
     buildUpdatesSitemap,
     defaultDataPath,
+    defaultMainSitemapPath,
     defaultOutputPath,
+    latestPublishedDate,
     releasePath,
     releaseUrl,
+    syncMainUpdatesLastmod,
     visualMarkup
 };

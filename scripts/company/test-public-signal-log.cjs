@@ -9,8 +9,10 @@ const {
     buildReleasePage,
     buildSignalLog,
     buildUpdatesSitemap,
+    latestPublishedDate,
     releasePath,
-    releaseUrl
+    releaseUrl,
+    syncMainUpdatesLastmod
 } = require('./build-public-signal-log.cjs');
 
 const root = path.resolve(__dirname, '../..');
@@ -32,6 +34,11 @@ try {
     const liveEntries = source.entries.filter(entry => entry.status === 'live');
     const permanentUrls = liveEntries.map(releaseUrl);
     const sitemap = buildUpdatesSitemap(source);
+    const oldMainSitemap = `<url>\n<loc>https://mythicalvoid.com/updates/</loc>\n<lastmod>2026-08-26</lastmod>\n</url>`;
+    const currentMainSitemap = syncMainUpdatesLastmod(oldMainSitemap, latestPublishedDate(source));
+    assert(currentMainSitemap.includes(`<lastmod>${latestPublishedDate(source)}</lastmod>`));
+    assert(!currentMainSitemap.includes('<lastmod>2026-08-26</lastmod>'));
+    assert.throws(() => syncMainUpdatesLastmod('<urlset></urlset>', latestPublishedDate(source)), /missing the Latest News entry/);
     assert.strictEqual(new Set(permanentUrls).size, liveEntries.length);
     assert.strictEqual((sitemap.match(/<url>/g) || []).length, liveEntries.length);
     for (const entry of liveEntries) {
