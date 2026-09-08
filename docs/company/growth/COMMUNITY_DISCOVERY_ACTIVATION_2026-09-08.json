@@ -30,11 +30,18 @@
       "existingResultObserved": false,
       "limitation": "A read-only community search can miss deleted, renamed or unindexed posts. Check once more immediately before posting."
     },
+    "communityClimate": {
+      "checkedOn": "2026-09-08",
+      "source": "https://www.reddit.com/r/WebGames/comments/1ryldz4/looking_for_opinions_on_ai_made_web_games/",
+      "status": "active_discussion_not_a_rule",
+      "finding": "The visible discussion is strongly critical of rushed or low-effort AI-made games. Some participants distinguish careful AI-assisted work from one-prompt output, but opinion is divided.",
+      "launchResponse": "Lead with the playable game, disclose AI assistance plainly, state that the build has been tested and reworked, attach no generated promotion, and ask for one specific first-minute answer. Do not argue with criticism."
+    },
     "preparedPost": {
       "format": "direct_link",
       "title": "Mythical Void — hatch an alien creature and explore six strange worlds",
       "url": "https://mythicalvoid.com/play/",
-      "firstComment": "My son and I started Mythical Void by asking what imagination and generative AI tools could help us build together. It grew into a free early-access browser adventure where you hatch your own alien creature, explore six strange worlds and free Guardians trapped by the Void. Your choices decide what Project Beacon becomes. It starts straight away — no download or account.\n\nIf you try it, I would value one honest answer: what felt clear or confusing in the first minute? I made the game and will read and answer replies myself. The automatic link picture is our brand emblem, not gameplay.",
+      "firstComment": "My son and I started Mythical Void at home to see what imagination and generative AI tools could make possible. It became a free early-access browser adventure: hatch your own alien creature, explore six strange worlds and free Guardians trapped by the Void. Your choices decide what Project Beacon becomes. It starts straight away — no download or account.\n\nAI is one tool, not a substitute for care. The game has been tested and reworked; people decide what is released.\n\nIf you try it, what felt clear or confusing in the first minute? I will read and answer replies myself. The link picture is our brand emblem, not gameplay.",
       "claims": [
         "free early-access browser game",
         "no download",
@@ -153,6 +160,7 @@
   "sources": [
     "https://www.reddit.com/r/WebGames/about/rules",
     "https://www.reddit.com/r/WebGames/search/?q=%22Mythical%20Void%22&restrict_sr=1&sort=new",
+    "https://www.reddit.com/r/WebGames/comments/1ryldz4/looking_for_opinions_on_ai_made_web_games/",
     "https://phaser.discourse.group/t/welcome-to-the-phaser-showcase-forum/19",
     "https://www.html5gamedevs.com/forum/8-game-showcase/",
     "https://itch.io/docs/creators/getting-indexed",

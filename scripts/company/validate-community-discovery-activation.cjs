@@ -28,6 +28,9 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
     requireValue(rules.minimumMonthsBeforeRepost === 3, 'the three-month repost rule is missing');
     requireValue(experiment.duplicateCheck?.existingResultObserved === false, 'the duplicate search no longer supports a first post');
     requireValue(experiment.duplicateCheck?.checkedOn === plan.checkedOn, 'the duplicate search date is stale');
+    requireValue(experiment.communityClimate?.status === 'active_discussion_not_a_rule', 'the AI-game community climate is missing or overstated');
+    requireValue(/low-effort AI-made games/i.test(experiment.communityClimate?.finding || '') && /opinion is divided/i.test(experiment.communityClimate?.finding || ''), 'the divided community response to AI-made games is not recorded honestly');
+    requireValue(/tested and reworked/i.test(experiment.communityClimate?.launchResponse || '') && /Do not argue with criticism/i.test(experiment.communityClimate?.launchResponse || ''), 'the respectful response to the community climate is missing');
 
     requireValue(prepared.format === 'direct_link', 'the prepared Reddit post must remain a direct link');
     requireValue(prepared.title?.startsWith('Mythical Void'), 'the post title must start with the game name');
@@ -39,6 +42,7 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
     requireValue(/no download or account/i.test(prepared.firstComment || ''), 'the low-friction promise is missing');
     requireValue(/brand emblem, not gameplay/i.test(prepared.firstComment || ''), 'the automatic link preview disclosure is missing');
     requireValue(/what felt clear or confusing in the first minute/i.test(prepared.firstComment || ''), 'the one useful feedback question is missing');
+    requireValue(/not a substitute for care/i.test(prepared.firstComment || '') && /tested and reworked/i.test(prepared.firstComment || '') && /people decide what is released/i.test(prepared.firstComment || ''), 'the post does not answer the low-effort AI concern plainly');
     requireValue((prepared.title || '').length <= 90, 'the post title is too long');
     requireValue((prepared.firstComment || '').trim().split(/\s+/).length <= 110, 'the first comment is too long');
     requireValue(!/\[HTML5\]|built in Phaser|three-pulse route/i.test(`${prepared.title || ''} ${prepared.firstComment || ''}`), 'the first community message has drifted back into technical release-note language');
@@ -66,7 +70,7 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
     }
 
     requireValue(feedbackHtml.includes('value="website_creator"><span>A game website, forum, newsletter or creator</span>'), 'adult feedback cannot identify the community route');
-    for (const phrase of ['No post, account or outside contact has been made.', 'not guaranteed reach and not a player count', 'A post view is not a player.', 'cannot identify Reddit on its own', 'The one approval needed']) {
+    for (const phrase of ['No post, account or outside contact has been made.', 'not guaranteed reach and not a player count', 'active community discussion about AI-made web games', 'This discussion is not a rule.', 'A post view is not a player.', 'cannot identify Reddit on its own', 'The one approval needed']) {
         requireValue(copy.includes(phrase), `plain-language plan is missing: ${phrase}`);
     }
     requireValue(/It is not proof\s+that Reddit sent a particular visit\./.test(copy), 'plain-language plan is missing the Reddit attribution limit');

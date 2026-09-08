@@ -16,6 +16,14 @@ changing Reddit estimate, not guaranteed reach and not a player count. A search
 inside the community showed no existing result for “Mythical Void,” but this
 must be checked once more immediately before posting.
 
+There is also an active community discussion about AI-made web games. The
+visible replies are sharply against rushed, low-effort work. Some people make
+a distinction between careful AI-assisted development and one-prompt output,
+but opinion is divided. This discussion is not a rule. It is a clear warning
+that the game must speak for itself: use the direct playable link, disclose AI
+plainly, attach no generated promotional picture and do not argue with honest
+criticism.
+
 This is a better first forum than a broad announcement because the people there
 have already said, in effect, “give me a game I can play in my browser.” The
 link can go straight to the real game:
@@ -30,16 +38,17 @@ https://mythicalvoid.com/play/
 
 **First comment from Kevin**
 
-> My son and I started Mythical Void by asking what imagination and generative
-> AI tools could help us build together. It grew into a free early-access
-> browser adventure where you hatch your own alien creature, explore six
-> strange worlds and free Guardians trapped by the Void. Your choices decide
-> what Project Beacon becomes. It starts straight away — no download or
-> account.
+> My son and I started Mythical Void at home to see what imagination and
+> generative AI tools could make possible. It became a free early-access
+> browser adventure: hatch your own alien creature, explore six strange worlds
+> and free Guardians trapped by the Void. Your choices decide what Project
+> Beacon becomes. It starts straight away — no download or account.
 >
-> If you try it, I would value one honest answer: what felt clear or confusing
-> in the first minute? I made the game and will read and answer replies myself.
-> The automatic link picture is our brand emblem, not gameplay.
+> AI is one tool, not a substitute for care. The game has been tested and
+> reworked; people decide what is released.
+>
+> If you try it, what felt clear or confusing in the first minute? I will read
+> and answer replies myself. The link picture is our brand emblem, not gameplay.
 
 The post itself is the direct game link. There is no tracking code, referral
 link, fabricated audience claim, gameplay image or generated image attached.
@@ -101,6 +110,7 @@ until those three points are clear.
 
 - https://www.reddit.com/r/WebGames/about/rules
 - https://www.reddit.com/r/WebGames/search/?q=%22Mythical%20Void%22&restrict_sr=1&sort=new
+- https://www.reddit.com/r/WebGames/comments/1ryldz4/looking_for_opinions_on_ai_made_web_games/
 - https://phaser.discourse.group/t/welcome-to-the-phaser-showcase-forum/19
 - https://www.html5gamedevs.com/forum/8-game-showcase/
 - https://itch.io/docs/creators/getting-indexed
