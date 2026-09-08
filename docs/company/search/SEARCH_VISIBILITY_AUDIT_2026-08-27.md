@@ -1,6 +1,6 @@
 # Mythical Void search visibility check
 
-**Latest check:** 31 August 2026
+**Latest check:** 8 September 2026
 **Result:** the website is open to search engines, but even exact-name search
 visibility is not yet proven
 
@@ -25,6 +25,12 @@ A second four-search sample on 31 August again found no official result for the
 exact name, the site-specific name, a free alien-creature browser game search,
 or a NASA STEM game search. This remains directional evidence, not a global
 index count or ranking claim.
+
+The first scheduled follow-up ran on 8 September, eight days after that
+baseline. The same four branded and broad-intent searches again showed no
+official Mythical Void result in this sample. The dated evidence is in
+[`SEARCH_VISIBILITY_FOLLOW_UP_2026-09-08.md`](SEARCH_VISIBILITY_FOLLOW_UP_2026-09-08.md).
+The second check must not run before 15 September.
 
 An unrelated or unverified profile using the same words did appear. It is not
 being treated as an official Mythical Void channel. No result count or ranking
@@ -53,13 +59,11 @@ also gives the domain as a backup site name and points to the preferred logo.
 This follows Google's site-name guidance, but it cannot guarantee indexing or
 ranking.
 
-The public GitHub project was also missing both a description and a website
-address, while its README opened with developer language rather than the game.
-The public project now has an accurate description, a direct Play homepage and
-seven relevant discovery topics. A reviewed README change prepares the plain
-game promise, clean Play, family and press links, the father-and-son origin,
-and the NASA and visual-honesty boundaries; that source still waits for its
-normal protected merge.
+The public GitHub project now has an accurate description, a direct Play
+homepage, seven relevant discovery topics and a live Play-first README. The
+official website now prepares a visible Public project link and names the same
+repository in its structured studio information, so the two real properties
+confirm each other.
 
 ## What IndexNow proves—and does not prove
 

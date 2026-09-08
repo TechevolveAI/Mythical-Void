@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "id": "SEARCH-VISIBILITY-2026-08-27",
-  "checkedAt": "2026-08-31T05:35:13Z",
-  "state": "owned_identity_live_public_github_metadata_live_readme_prepared_search_console_absent",
+  "checkedAt": "2026-09-08T06:10:00Z",
+  "state": "owned_identity_live_public_github_live_first_follow_up_complete_search_console_absent",
   "sample": {
     "method": "Directional current web-search sample, not a complete index report or stable rank tracker.",
     "queryCount": 8,
@@ -32,6 +32,17 @@
     ],
     "officialSiteResultCountClaimed": false,
     "limitations": "Results vary by engine, location, time, language, device and personalization. This sample cannot prove global non-indexing, a result count or a ranking position."
+  },
+  "firstScheduledFollowUp": {
+    "record": "docs/company/search/search-visibility-follow-up-2026-09-08.json",
+    "checkedAt": "2026-09-08T06:10:00Z",
+    "daysSinceBaseline": 8,
+    "queryCount": 4,
+    "officialResultObserved": false,
+    "comparison": "No official result was observed in either the 31 August sample or this first scheduled follow-up.",
+    "nextCheckNotBefore": "2026-09-15",
+    "resultCountClaimed": false,
+    "rankingClaimed": false
   },
   "liveTechnicalChecks": {
     "homepageHttpStatus": 200,
@@ -88,7 +99,9 @@
     "readmeFamilyAndPressLinksPrepared": true,
     "truthAndVisualBoundariesPrepared": true,
     "metadataUpdatePendingReviewedMerge": false,
-    "readmeUpdatePendingReviewedMerge": true,
+    "readmeUpdatePendingReviewedMerge": false,
+    "readmeLive": true,
+    "reciprocalOfficialWebsiteLinkPrepared": true,
     "indexingOrRankingClaimed": false
   },
   "indexNow": {

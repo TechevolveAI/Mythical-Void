@@ -28,6 +28,12 @@ describe('storefront and game deployment integration', () => {
         expect(main).toContain("import('./game.js')");
     });
 
+    test('links the official website back to the verified public project', () => {
+        expect(storefront).toContain(
+            'href="https://github.com/TechevolveAI/Mythical-Void" rel="me noopener noreferrer">Public project</a>'
+        );
+    });
+
     test('privacy and terms routes remain inside the same SPA', () => {
         expect(storefront).toContain('href="/privacy/"');
         expect(storefront).toContain('href="/terms/"');

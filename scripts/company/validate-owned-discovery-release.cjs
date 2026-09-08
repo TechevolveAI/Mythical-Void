@@ -64,8 +64,11 @@ else {
     if (organization['@id'] !== 'https://mythicalvoid.com/#studio') failures.push('homepage Organization identity is not canonical');
     if (organization.url !== 'https://mythicalvoid.com/studio/') failures.push('homepage Organization URL is not canonical');
     if (organization.logo?.url !== 'https://mythicalvoid.com/marketing/mythical-void-mark-512.png') failures.push('homepage Organization logo is missing');
+    if (JSON.stringify(organization.sameAs) !== JSON.stringify(['https://github.com/TechevolveAI/Mythical-Void'])) failures.push('homepage Organization official public project link is missing');
 }
 if (!index.includes('<meta property="og:site_name" content="Mythical Void">')) failures.push('homepage social site name is missing');
+if (!index.includes('href="https://github.com/TechevolveAI/Mythical-Void" rel="me noopener noreferrer"')) failures.push('homepage visible official public project link is missing');
+if (!storefront.includes('href="https://github.com/TechevolveAI/Mythical-Void" rel="me noopener noreferrer">Public project</a>')) failures.push('rendered storefront official public project link is missing');
 
 for (const [label, source] of [['index.html', index], ['public/discovery.js', discovery]]) {
     if (!source.includes(correctId)) failures.push(`${label}: user-supplied Google tag ID is missing`);
