@@ -12,6 +12,16 @@ function statusForRun(run, now = new Date()) {
         };
     }
 
+    if (run.observations?.day7?.checkedAt) {
+        return {
+            state: 'seven_day_read_complete',
+            postUrl: run.publication.postUrl,
+            publishedAt: run.publication.publishedAt,
+            observationsDue: [],
+            next: run.nextRequiredAction
+        };
+    }
+
     const observationsDue = [];
     for (const label of ['day2', 'day7']) {
         const observation = run.observations[label];

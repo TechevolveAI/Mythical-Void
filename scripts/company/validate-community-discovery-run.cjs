@@ -8,6 +8,8 @@ const PLAN_PATH = 'docs/company/growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08
 
 const nullableWholeNumber = value => value === null || (Number.isInteger(value) && value >= 0);
 const validOptionalDate = value => value === null || Boolean(Date.parse(value));
+const metricFields = ['platformViews', 'publicCommentCount', 'consentedSocialOrCreatorArrivals', 'anonymousAdultForumFeedbackCount'];
+const observationFields = ['dueAt', 'checkedAt', ...metricFields, 'unavailable'];
 
 function validateCommunityRun({ run, plan }) {
     const failures = [];
@@ -70,12 +72,29 @@ function validateCommunityRun({ run, plan }) {
 
     for (const [label, observation] of Object.entries(run.observations || {})) {
         requireValue(['day2', 'day7'].includes(label), `unexpected observation ${label}`);
-        for (const field of ['platformViews', 'publicCommentCount', 'consentedSocialOrCreatorArrivals', 'anonymousAdultForumFeedbackCount']) {
+        requireValue(
+            Object.keys(observation).length === observationFields.length &&
+                observationFields.every(field => Object.prototype.hasOwnProperty.call(observation, field)),
+            `${label} must contain aggregate observation fields only`
+        );
+        const unavailable = observation.unavailable || [];
+        requireValue(Array.isArray(unavailable) && unavailable.every(field => metricFields.includes(field)) && new Set(unavailable).size === unavailable.length, `${label}.unavailable is invalid`);
+        for (const field of metricFields) {
             requireValue(nullableWholeNumber(observation[field]), `${label}.${field} must be null or a non-negative whole number`);
         }
         requireValue(!Object.prototype.hasOwnProperty.call(observation, 'consentedRedditReferrals'), `${label} must not claim Reddit-specific referral attribution`);
-        if (!publication.posted) requireValue(Object.values(observation).every(value => value === null), `${label} evidence cannot exist before publication`);
-        if (observation.checkedAt !== null) requireValue(Boolean(Date.parse(observation.checkedAt || '')) && Boolean(Date.parse(observation.dueAt || '')), `${label} needs valid due and checked times`);
+        if (!publication.posted) requireValue(observation.dueAt === null && observation.checkedAt === null && metricFields.every(field => observation[field] === null) && unavailable.length === 0, `${label} evidence cannot exist before publication`);
+        if (observation.checkedAt !== null) {
+            const checkedTime = Date.parse(observation.checkedAt || '');
+            const dueTime = Date.parse(observation.dueAt || '');
+            requireValue(Number.isFinite(checkedTime) && Number.isFinite(dueTime), `${label} needs valid due and checked times`);
+            requireValue(Number.isFinite(checkedTime) && Number.isFinite(dueTime) && checkedTime >= dueTime, `${label} cannot be checked before it is due`);
+            for (const field of metricFields) {
+                requireValue(observation[field] === null ? unavailable.includes(field) : !unavailable.includes(field), `${label}.${field} availability is inconsistent`);
+            }
+        } else {
+            requireValue(metricFields.every(field => observation[field] === null) && unavailable.length === 0, `${label} contains totals before it was checked`);
+        }
     }
 
     if (publication.posted && Date.parse(publication.publishedAt)) {
@@ -89,8 +108,12 @@ function validateCommunityRun({ run, plan }) {
     for (const phrase of ['view is not a player', 'visit is not a play', 'does not prove enjoyment', 'does not prove retention', 'does not prove growth', 'social_or_creator website arrival does not prove that reddit sent it']) {
         requireValue(truth.toLowerCase().includes(phrase), `truth rule is missing: ${phrase}`);
     }
-    requireValue(!/user(name)?|handle|commentText|comment_text|privateMessage|private_message/i.test(Object.keys(run.observations?.day2 || {}).join(' ')), 'personal or message-level fields are not allowed');
-    if (publication.posted) {
+    requireValue(!/user(name)?|handle|commentText|comment_text|privateMessage|private_message/i.test(Object.values(run.observations || {}).flatMap(observation => Object.keys(observation || {})).join(' ')), 'personal or message-level fields are not allowed');
+    if (publication.posted && run.observations?.day7?.checkedAt) {
+        requireValue(/Kevin may then stop/i.test(run.nextRequiredAction || '') && /Phaser Showcase/i.test(run.nextRequiredAction || ''), 'completed-read decision is unclear');
+    } else if (publication.posted && run.observations?.day2?.checkedAt) {
+        requireValue(/Kevin answers replies/i.test(run.nextRequiredAction || '') && /seven-day/i.test(run.nextRequiredAction || ''), 'seven-day follow-up action is unclear');
+    } else if (publication.posted) {
         requireValue(/Kevin answers replies/i.test(run.nextRequiredAction || '') && /two-day and seven-day/i.test(run.nextRequiredAction || ''), 'post-publication human action is unclear');
     } else {
         requireValue(/existing adult Reddit account/i.test(run.nextRequiredAction || '') && /answer replies/i.test(run.nextRequiredAction || ''), 'next human action is unclear');

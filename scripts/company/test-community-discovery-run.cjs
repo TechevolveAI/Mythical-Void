@@ -19,6 +19,7 @@ const invalidCases = [
     ['retired wording', run => { run.preparedPost.firstComment += ' A companion follows the signal.'; }, 'prepared post no longer matches'],
     ['mismatched automatic preview', run => { run.preflight.automaticLinkPreviewMatchesExpected = false; }, 'cannot be recorded as mismatched'],
     ['invented Reddit attribution', run => { run.observations.day2.consentedRedditReferrals = null; }, 'must not claim Reddit-specific referral attribution'],
+    ['individual comment text', run => { run.observations.day7.commentText = 'A private reply'; }, 'aggregate observation fields only'],
     ['missing truth rules', run => { run.truthRules = []; }, 'truth rule is missing']
 ];
 
@@ -64,9 +65,26 @@ assert(validateCommunityRun({ ...base, run: stalePreflight }).some(failure => fa
 const undatedApproval = clone(published);
 undatedApproval.approval.exactPostApprovedAt = null;
 assert(validateCommunityRun({ ...base, run: undatedApproval }).some(failure => failure.includes('action-time gate')));
+const unavailableMismatch = clone(published);
+unavailableMismatch.observations.day2.checkedAt = '2026-09-10T12:05:00.000Z';
+unavailableMismatch.nextRequiredAction = 'Kevin answers replies himself. Wait for the seven-day observation.';
+assert(validateCommunityRun({ ...base, run: unavailableMismatch }).some(failure => failure.includes('availability is inconsistent')));
+const earlyObservation = clone(published);
+earlyObservation.observations.day2.checkedAt = '2026-09-10T11:59:00.000Z';
+for (const field of ['platformViews', 'publicCommentCount', 'consentedSocialOrCreatorArrivals', 'anonymousAdultForumFeedbackCount']) earlyObservation.observations.day2[field] = 0;
+earlyObservation.nextRequiredAction = 'Kevin answers replies himself. Wait for the seven-day observation.';
+assert(validateCommunityRun({ ...base, run: earlyObservation }).some(failure => failure.includes('cannot be checked before it is due')));
+const validUnavailable = clone(published);
+validUnavailable.observations.day2.checkedAt = '2026-09-10T12:05:00.000Z';
+validUnavailable.observations.day2.platformViews = 0;
+validUnavailable.observations.day2.publicCommentCount = 0;
+validUnavailable.observations.day2.anonymousAdultForumFeedbackCount = 0;
+validUnavailable.observations.day2.unavailable = ['consentedSocialOrCreatorArrivals'];
+validUnavailable.nextRequiredAction = 'Kevin answers replies himself. Wait for the seven-day observation.';
+assert.deepStrictEqual(validateCommunityRun({ ...base, run: validUnavailable }), []);
 assert.deepStrictEqual(statusForRun(published, new Date('2026-09-09T12:00:00Z')).observationsDue, []);
 assert.deepStrictEqual(statusForRun(published, new Date('2026-09-10T12:00:00Z')).observationsDue, ['day2']);
 published.observations.day2.checkedAt = '2026-09-10T12:05:00.000Z';
 assert.deepStrictEqual(statusForRun(published, new Date('2026-09-15T12:00:00Z')).observationsDue, ['day7']);
 
-console.log('Community discovery run safeguards passed (15 cases).');
+console.log('Community discovery run safeguards passed (19 cases).');
