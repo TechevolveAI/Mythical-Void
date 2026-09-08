@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="220" viewBox="0 0 720 220" role="img" aria-labelledby="title description">
+  <title id="title">Play Mythical Void</title>
+  <desc id="description">A dark purple Mythical Void website badge inviting people to hatch an alien creature and play free in a browser.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#090711"/>
+      <stop offset="0.58" stop-color="#17102f"/>
+      <stop offset="1" stop-color="#071f24"/>
+    </linearGradient>
+    <linearGradient id="core" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe58e"/>
+      <stop offset="1" stop-color="#ffbd35"/>
+    </linearGradient>
+    <linearGradient id="void" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d59cff"/>
+      <stop offset="0.48" stop-color="#8d4dff"/>
+      <stop offset="1" stop-color="#4b1ba8"/>
+    </linearGradient>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect x="3" y="3" width="714" height="214" rx="30" fill="url(#background)" stroke="#5ce4ce" stroke-width="6"/>
+  <path d="M0 165 C128 126 206 226 353 178 C492 132 585 199 720 153 V220 H0Z" fill="#5ce4ce" opacity="0.08"/>
+  <circle cx="111" cy="110" r="70" fill="#8d4dff" opacity="0.12"/>
+  <circle cx="111" cy="110" r="50" fill="#090711" stroke="#9a57ff" stroke-width="3"/>
+  <path d="M111 46 C124 62 135 78 132 95 C149 83 159 93 154 109 C168 106 174 118 165 129 C154 143 136 150 111 174 C87 150 68 143 57 129 C48 118 54 106 68 109 C63 93 74 83 90 95 C87 78 98 62 111 46Z" fill="url(#void)" stroke="#c68bff" stroke-width="4" filter="url(#glow)"/>
+  <path d="M111 88 C129 101 134 119 125 136 C121 144 116 151 111 159 C105 151 101 144 97 136 C88 119 93 101 111 88Z" fill="url(#core)"/>
+  <circle cx="111" cy="119" r="8" fill="#fff9d9"/>
+  <path d="M111 106 L115 116 L126 119 L115 123 L111 134 L107 123 L96 119 L107 116Z" fill="#fff" opacity="0.95"/>
+  <circle cx="82" cy="67" r="4" fill="#5ce4ce"/>
+  <circle cx="151" cy="73" r="3" fill="#ffd56a"/>
+  <circle cx="160" cy="148" r="4" fill="#5ce4ce"/>
+
+  <text x="205" y="67" fill="#78ead8" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" letter-spacing="4">MYTHICAL VOID</text>
+  <text x="205" y="111" fill="#fffaf0" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="800">Hatch an alien creature.</text>
+  <text x="205" y="143" fill="#c7bfd6" font-family="Arial, Helvetica, sans-serif" font-size="18">Free browser adventure · No download or account</text>
+  <rect x="518" y="164" width="164" height="38" rx="19" fill="#78ead8"/>
+  <text x="600" y="190" text-anchor="middle" fill="#071a1d" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="800">PLAY NOW  →</text>
+</svg>

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-08",
+  "updated": "2026-09",
   "canonicalPressRoom": "https://mythicalvoid.com/press/",
   "playUrl": "https://mythicalvoid.com/play/",
   "playableNowUrl": "https://mythicalvoid.com/playable-now/",
@@ -11,7 +11,8 @@
     "approvedPublicDownloads": [
       "https://mythicalvoid.com/marketing/mythical-void-emblem-v3.png",
       "https://mythicalvoid.com/press/mythical-void-fact-sheet.txt",
-      "https://mythicalvoid.com/resources/mythical-void-stem-creature-lab.pdf"
+      "https://mythicalvoid.com/resources/mythical-void-stem-creature-lab.pdf",
+      "https://mythicalvoid.com/press/embed/mythical-void-play-badge.svg"
     ],
     "rule": "Every image, screenshot, video, social layout and archive listed below is withdrawn from press, creator and social use unless its exact URL appears in approvedPublicDownloads.",
     "reason": "Authenticity alone did not make the earlier material understandable or attractive. Several captures had an unreadable or missing creature, weak composition, cluttered interface or a moment that did not demonstrate play.",
@@ -315,6 +316,13 @@
       "url": "https://mythicalvoid.com/marketing/mythical-void-emblem-v3.png",
       "kind": "ai_generated_and_refined_brand_art",
       "description": "Transparent official purple-and-gold studio emblem."
+    },
+    {
+      "name": "Play Mythical Void website badge",
+      "url": "https://mythicalvoid.com/press/embed/mythical-void-play-badge.svg",
+      "kind": "code_authored_official_brand_badge",
+      "dimensions": "720x220",
+      "description": "A lightweight official website badge that links directly to the free browser game. It contains no script, tracking code or gameplay image."
     }
   ],
   "permissions": "Assets not marked withdrawn may be used in truthful editorial coverage of Mythical Void with their descriptions and disclosures preserved.",

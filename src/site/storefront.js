@@ -176,12 +176,16 @@ function renderPressPage() {
                 <div class="section-inner press-brand-download">
                     <div class="press-section-heading">
                         <p class="kicker">BRAND FILE</p>
-                        <h2>One useful download while the image library is reviewed.</h2>
-                        <p>The transparent Mythical Void emblem remains available for factual coverage. Gameplay screenshots, videos and promotional scene artwork are deliberately withheld for now.</p>
+                        <h2>Useful brand files while the image library is reviewed.</h2>
+                        <p>The transparent Mythical Void emblem and a simple Play badge remain available for factual coverage. Gameplay screenshots, videos and promotional scene artwork are deliberately withheld for now.</p>
                     </div>
                     <figure class="press-asset-card press-logo-asset">
                         <div><img src="/marketing/mythical-void-emblem-v3.png" alt="Transparent Mythical Void creature emblem"></div>
                         <figcaption><span>OFFICIAL BRAND ART</span><strong>Mythical Void emblem</strong><p>Transparent purple-and-gold emblem created with generative AI and professionally refined for the studio.</p><a href="/marketing/mythical-void-emblem-v3.png" download>Download transparent PNG ↓</a></figcaption>
+                    </figure>
+                    <figure class="press-asset-card press-logo-asset">
+                        <div><img src="/press/embed/mythical-void-play-badge.svg" alt="Play Mythical Void: hatch an alien creature in a free browser adventure"></div>
+                        <figcaption><span>WEBSITE BADGE</span><strong>Link directly to the game</strong><p>Code-authored official brand art with no script, tracking code or gameplay image.</p><a href="/press/embed/mythical-void-play-badge.svg" download>Download SVG ↓</a></figcaption>
                     </figure>
                 </div>
             </section>
