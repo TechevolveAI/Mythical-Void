@@ -8,6 +8,7 @@ const playBadge = fs.readFileSync(path.join(root, 'public/press/embed/mythical-v
 const sitemap = fs.readFileSync(path.join(root, 'public/sitemap.xml'), 'utf8');
 const netlify = fs.readFileSync(path.join(root, 'netlify.toml'), 'utf8');
 const redirects = fs.readFileSync(path.join(root, 'public/_redirects'), 'utf8');
+const visualRegister = require('../../public/press/visual-publication-register.json');
 const release = require('../../docs/company/search/press-search-doorway-2026-09-08.json');
 const indexNow = require('../../docs/company/search/indexnow-submission-2026-09-08-press.json');
 
@@ -56,6 +57,28 @@ describe('press and creator search doorway', () => {
         expect(press).not.toContain('/press/gameplay-video/');
         expect(press).not.toContain('/press/social-video/');
         expect(press).not.toContain('/press/creator-kit/');
+    });
+
+    test('redirects every withdrawn media link before the homepage fallback', () => {
+        const fallbackIndex = redirects.indexOf('/*    /index.html   200');
+        expect(fallbackIndex).toBeGreaterThan(-1);
+
+        for (const prefix of visualRegister.withdrawnPathFamilies) {
+            const route = `${prefix}*`;
+            const routeIndex = redirects.indexOf(route);
+            expect(routeIndex).toBeGreaterThan(-1);
+            expect(routeIndex).toBeLessThan(fallbackIndex);
+            expect(redirects.split('\n').find(line => line.trimStart().startsWith(route)))
+                .toMatch(/\s\/press\/\s+302!\s*$/);
+        }
+
+        for (const publicPath of visualRegister.withdrawnIndividualPaths) {
+            const routeIndex = redirects.indexOf(publicPath);
+            expect(routeIndex).toBeGreaterThan(-1);
+            expect(routeIndex).toBeLessThan(fallbackIndex);
+            expect(redirects.split('\n').find(line => line.trimStart().startsWith(publicPath)))
+                .toMatch(/\s\/press\/\s+302!\s*$/);
+        }
     });
 
     test('keeps the public story and claims safe', () => {

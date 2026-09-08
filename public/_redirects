@@ -7,4 +7,13 @@
 /space-signal/*              /space-discovery/                            301!
 /press                       /press/index.html                            200
 /press/                      /press/index.html                            200
+# Old direct links to withdrawn visual media must resolve to the honest press
+# room before the SPA fallback. The files remain private release evidence only.
+/press/gameplay/*             /press/                                     302!
+/press/gameplay-video/*       /press/                                     302!
+/press/social/*               /press/                                     302!
+/press/social-video/*         /press/                                     302!
+/press/creator-kit/*          /press/                                     302!
+/resources/mythical-void-play-share-card.pdf  /press/                     302!
+/resources/previews/play-share-card.png       /press/                     302!
 /*    /index.html   200
