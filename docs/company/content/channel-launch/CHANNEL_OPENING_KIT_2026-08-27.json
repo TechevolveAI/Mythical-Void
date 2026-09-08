@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "CHANNEL-OPENING-KIT-001",
-  "asOf": "2026-08-27",
+  "asOf": "2026-09-08",
   "state": "prepared_no_external_account_change",
   "purpose": "Let Kevin open Mythical Void's first professional page and future video channel without buying another email service, inventing public claims or sharing passwords.",
   "costPosition": {
@@ -18,7 +18,8 @@
       "creationRoute": "Kevin's real personal LinkedIn profile creates and administers the separate company Page.",
       "publicIdentity": {
         "name": "Mythical Void",
-        "publicUrlCandidate": "linkedin.com/company/mythical-void",
+        "publicUrlCandidate": "linkedin.com/company/play-mythical-void",
+        "fallbackPublicUrlCandidate": "linkedin.com/company/mythical-void-game",
         "publicUrlAvailabilityVerified": false,
         "website": "https://mythicalvoid.com/",
         "industrySuggestion": "Computer Games",
@@ -49,7 +50,8 @@
       "creationRoute": "Use a Google Account Kevin already controls to create a channel with the Mythical Void public name. Use channel permissions for future helpers; never share the Google password.",
       "publicIdentity": {
         "name": "Mythical Void",
-        "handleCandidate": "@MythicalVoid",
+        "handleCandidate": "@PlayMythicalVoid",
+        "fallbackHandleCandidate": "@MythicalVoidGame",
         "handleAvailabilityVerified": false,
         "description": "Enter a free browser adventure where you hatch a strange alien creature, cross six living realms and decide what Project Beacon should tell Earth.\n\nMythical Void began in Ireland as a father-and-son project between Kevin and his nine-year-old son. We use generative AI as a creative tool, with people responsible for story, safety and important choices. Selected public NASA material can appear in optional STEM discovery moments. NASA does not endorse Mythical Void.\n\nPlay free: https://mythicalvoid.com/play/\nGame guide: https://mythicalvoid.com/playable-now/\nFor grown-ups: https://mythicalvoid.com/parents/"
       },

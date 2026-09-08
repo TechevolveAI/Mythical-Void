@@ -27,7 +27,7 @@ and [use YouTube channel permissions](https://support.google.com/youtube/answer/
 
 1. **Start with Kevin's existing professional profile.** The father-and-son
    story is personal, understandable and already has a checked website
-   preview. This gets the first signal out without waiting for a company Page.
+   preview. This shares the first story without waiting for a company Page.
 2. **Create the Mythical Void LinkedIn Page when Kevin wants the separate
    studio identity.** It can then hold company, studio, responsible-AI and
    partner updates.
@@ -40,7 +40,7 @@ and [use YouTube channel permissions](https://support.google.com/youtube/answer/
 | Field | Use |
 |---|---|
 | Name | Mythical Void |
-| Public address | `linkedin.com/company/mythical-void` — candidate only; check availability |
+| Public address | Try `linkedin.com/company/play-mythical-void`, then `linkedin.com/company/mythical-void-game`; neither is confirmed available |
 | Website | `https://mythicalvoid.com/` |
 | Industry | Computer Games |
 | Company size | Choose the truthful option shown by LinkedIn; do not invent a team size |
@@ -75,7 +75,7 @@ and [use YouTube channel permissions](https://support.google.com/youtube/answer/
 | Field | Use |
 |---|---|
 | Channel name | Mythical Void |
-| Handle | `@MythicalVoid` — candidate only; check availability |
+| Handle | Try `@PlayMythicalVoid`, then `@MythicalVoidGame`; neither is confirmed available |
 | Profile image | `public/marketing/mythical-void-mark-512.png` |
 | Banner | Leave unpublished until a dedicated desktop, television and phone-safe crop is approved |
 | Owner | Kevin |

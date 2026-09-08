@@ -67,6 +67,11 @@ actually live or prepared on 8 September 2026.
   minute and controls. It carries no weak screenshot, tracking code or invented
   audience claim. It waits until the Reddit read is finished or cancelled, and
   still needs Kevin's account, terms and action-time approval.
+- The public social identity is now clear before any account is opened. Keep
+  **Mythical Void** as the display name, try **PlayMythicalVoid** as the shared
+  handle and use **MythicalVoidGame** only if needed. The exact MythicalVoid
+  handle is already used by unrelated accounts. Neither proposed handle is
+  claimed as available until Kevin checks it inside each platform.
 
 ## Held until the game looks good in public
 

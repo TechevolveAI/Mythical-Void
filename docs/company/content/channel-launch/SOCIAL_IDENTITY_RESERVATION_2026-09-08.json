@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "id": "SOCIAL-IDENTITY-RESERVATION-001",
+  "checkedOn": "2026-09-08",
+  "state": "identity_plan_ready_no_account_change",
+  "purpose": "Give Mythical Void one recognisable public identity across channels without claiming somebody else's account, opening accounts for Kevin or publishing before the studio is ready.",
+  "canonicalIdentity": {
+    "displayName": "Mythical Void",
+    "website": "https://mythicalvoid.com/",
+    "primaryHandle": "PlayMythicalVoid",
+    "fallbackHandle": "MythicalVoidGame",
+    "availabilityConfirmed": false,
+    "rule": "Keep the display name Mythical Void. Check the handle inside each platform at the moment Kevin creates the account; a missing public profile does not prove availability."
+  },
+  "publicAudit": {
+    "officialAccountsConfirmed": 0,
+    "exactNameFindings": [
+      { "platform": "YouTube", "address": "https://www.youtube.com/@MythicalVoid", "observation": "An unrelated channel uses the exact handle.", "ours": false },
+      { "platform": "Instagram", "address": "https://www.instagram.com/mythicalvoid/", "observation": "An unrelated or reserved profile uses the exact handle.", "ours": false },
+      { "platform": "TikTok", "address": "https://www.tiktok.com/@mythicalvoid", "observation": "An unrelated account uses the exact handle.", "ours": false },
+      { "platform": "LinkedIn", "address": "https://www.linkedin.com/company/mythical-void", "observation": "The public address returned an unavailable page. That does not prove the address can be claimed.", "ours": false },
+      { "platform": "Discord", "address": null, "observation": "An unrelated community using the Mythical Void name was visible in public search.", "ours": false }
+    ],
+    "candidateHandleObservations": [
+      { "handle": "PlayMythicalVoid", "publicProfileObservedOnYouTubeInstagramOrTikTok": false, "availabilityConfirmed": false },
+      { "handle": "MythicalVoidGame", "publicProfileObservedOnYouTubeInstagramOrTikTok": false, "availabilityConfirmed": false }
+    ],
+    "rule": "Do not contact, challenge, copy or imply ownership of unrelated accounts. Use the full game name and official website to make the real studio easy to recognise."
+  },
+  "openingOrder": [
+    { "order": 1, "route": "Kevin's existing LinkedIn profile", "reason": "It can tell the true father-and-son beginning without opening another account.", "accountCreationRequired": false, "publishingReady": false },
+    { "order": 2, "route": "LinkedIn company Page", "proposedAddress": "linkedin.com/company/play-mythical-void", "fallbackAddress": "linkedin.com/company/mythical-void-game", "accountCreationRequired": true, "publishingReady": false },
+    { "order": 3, "route": "YouTube identity reservation", "proposedHandle": "@PlayMythicalVoid", "fallbackHandle": "@MythicalVoidGame", "accountCreationRequired": true, "publishingReady": false, "reason": "Reserve a consistent identity, but publish no video until four real gameplay moments pass human review." },
+    { "order": 4, "route": "Instagram and TikTok identity reservation", "proposedHandle": "@PlayMythicalVoid", "fallbackHandle": "@MythicalVoidGame", "accountCreationRequired": true, "publishingReady": false, "reason": "Only reserve these if Kevin can own recovery, multi-factor security and human moderation." },
+    { "order": 5, "route": "Discord", "accountCreationRequired": true, "publishingReady": false, "state": "deferred", "reason": "The name collision and child-safety moderation burden make this a poor first channel." }
+  ],
+  "kevinActionChecklist": [
+    "Approve PlayMythicalVoid as the first handle to try and MythicalVoidGame as the fallback.",
+    "Check availability inside each platform before confirming the account.",
+    "Use an account Kevin already controls where the platform permits it; no second Google Workspace subscription is required for YouTube.",
+    "Accept platform terms personally and keep passwords, recovery addresses and codes outside the repository.",
+    "Turn on multi-factor authentication and name a trusted adult backup before publishing.",
+    "Return only the finished public address so the website can link to the verified official account."
+  ],
+  "publicationRules": [
+    "Do not add a social link to the website until Kevin has confirmed ownership of the exact account.",
+    "Do not publish weak gameplay images or videos.",
+    "Use creature, message, clue, current or route in public writing instead of companion or signal.",
+    "Generated artwork must be labelled and must never be presented as gameplay.",
+    "NASA does not endorse Mythical Void.",
+    "Replies are written or approved by a named adult; do not automate conversations with children.",
+    "Never invent followers, reactions, players or popularity."
+  ],
+  "authority": {
+    "accountCreationAuthorized": false,
+    "platformTermsAcceptanceAuthorized": false,
+    "publishingAuthorized": false,
+    "replyingAuthorized": false,
+    "automatedRepliesAuthorized": false,
+    "paidProductsAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "childContactAuthorized": false,
+    "externalActionTaken": false
+  },
+  "nextRequiredAction": "Kevin approves the PlayMythicalVoid handle family, then checks and claims it himself on the first chosen platform with recovery and multi-factor security in place."
+}
