@@ -23,6 +23,7 @@ const requireValue = (condition, message) => { if (!condition) failures.push(mes
 requireValue(plan.id === 'BOTTOM-OF-FUNNEL-001', 'distribution plan id is missing');
 requireValue(plan.checkedOn === '2026-09-08', 'player-decision review date is stale');
 requireValue(plan.state === 'owned_entry_live_one_webgames_test_ready_first_five_held_itch_candidate_waiting', 'distribution plan state is stale');
+requireValue(plan.discoveryDoorwayRegistry === 'docs/company/growth/DISCOVERY_DOORWAY_REGISTRY_2026-09-08.json', 'wider discovery doorway register is missing');
 requireValue(plan.playerDecisionModel?.sequence?.join('|') === 'wanted feeling|believable fit|real gameplay proof|trust|low-friction start', 'player-decision sequence is missing or out of order');
 requireValue(plan.playerDecisionModel?.supportingReasonsAfterGameIsClear?.includes('NASA-sourced STEM moments'), 'NASA/STEM must support rather than replace the playable promise');
 requireValue(plan.endOfFunnelRoute?.path?.at(-1) === 'meaningful action in the first minute', 'the funnel must end in meaningful play');
@@ -49,10 +50,10 @@ requireValue(plan.routeOrder?.[2]?.name === 'Phaser Showcase' && plan.routeOrder
 requireValue(plan.routeOrder?.find(route => route.name === 'YouTube')?.state === 'held_for_visual_quality', 'YouTube must remain behind the visual gate');
 requireValue(plan.routeOrder?.find(route => route.name === 'Poki')?.state === 'high_upside_option_preserved_not_submitted', 'Poki option state is stale');
 requireValue(plan.routeOrder?.find(route => route.name === 'Newgrounds')?.state === 'later_html5_shelf_waiting_for_visual_rights_and_account_review', 'Newgrounds is missing its later-shelf gates');
-requireValue(plan.routeOrder?.find(route => route.name === 'r/playmygame')?.state === 'not_a_drop_and_run_route_requires_real_community_participation', 'r/playmygame community-participation boundary is missing');
+requireValue(plan.routeOrder?.find(route => route.name === 'r/playmygame')?.state === 'held_current_AI_policy_unfavourable_and_participation_required', 'r/playmygame AI-policy and community-participation hold is missing');
 requireValue(plan.communityAndShelfPolicy?.oneExternalExperimentAtATime === true && plan.communityAndShelfPolicy?.automaticCrossPosting === false && plan.communityAndShelfPolicy?.copiedCommunityPostsPermitted === false, 'one-at-a-time community policy is missing');
 requireValue(/public judgement/i.test(plan.communityAndShelfPolicy?.newgroundsBoundary || '') && /rights review/i.test(plan.communityAndShelfPolicy?.newgroundsBoundary || ''), 'Newgrounds judgement and rights boundary is missing');
-requireValue(/real participation/i.test(plan.communityAndShelfPolicy?.playMyGameBoundary || ''), 'r/playmygame participation boundary is missing');
+requireValue(/real participation/i.test(plan.communityAndShelfPolicy?.playMyGameBoundary || '') && /AI-policy discussion is strongly restrictive/i.test(plan.communityAndShelfPolicy?.playMyGameBoundary || ''), 'r/playmygame participation and AI-policy boundary is missing');
 requireValue(plan.distributionRightsFork?.decisionId === 'D-018', 'distribution rights decision is missing');
 requireValue(plan.distributionRightsFork?.pokiPreferredDealWebExclusive === true, 'Poki web exclusivity fact is missing');
 requireValue(plan.distributionRightsFork?.pokiIndicativeExclusiveTermYears === 5, 'Poki indicative term is missing');

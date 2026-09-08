@@ -15,7 +15,8 @@ const sourcePaths = {
     phaserShowcase: 'docs/company/growth/PHASER_SHOWCASE_ACTIVATION_2026-09-08.json',
     channels: 'docs/company/content/channels.json',
     visualPlan: 'docs/company/content/visual-launch-moments.json',
-    socialIdentity: 'docs/company/content/channel-launch/SOCIAL_IDENTITY_RESERVATION_2026-09-08.json'
+    socialIdentity: 'docs/company/content/channel-launch/SOCIAL_IDENTITY_RESERVATION_2026-09-08.json',
+    discoveryDoorways: 'docs/company/growth/DISCOVERY_DOORWAY_REGISTRY_2026-09-08.json'
 };
 
 function run(name, mutate) {
@@ -39,7 +40,8 @@ try {
         ['vague-signal-word', queue => { queue.nextMove.exactPost.firstComment += ' Follow the signal.'; }],
         ['skip-first-community', queue => { queue.nextMove.route = 'Phaser Showcase'; }],
         ['wrong-automatic-preview', queue => { queue.nextMove.automaticLinkPreviewExpected = 'https://mythicalvoid.com/marketing/unreviewed.png'; }],
-        ['invented-visual-approval', queue => { queue.generatedFrom.approvedGameplayVisuals = 1; }]
+        ['invented-visual-approval', queue => { queue.generatedFrom.approvedGameplayVisuals = 1; }],
+        ['invented-second-immediate-route', queue => { queue.widerDoorwayQueue.immediateRoutes.push('IndieDB'); }]
     ];
 
     for (const [name, mutate] of failures) {

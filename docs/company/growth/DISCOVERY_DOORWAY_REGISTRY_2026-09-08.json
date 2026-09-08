@@ -1,0 +1,405 @@
+{
+  "schemaVersion": 1,
+  "id": "DISCOVERY-DOORWAYS-2026-09-08",
+  "checkedOn": "2026-09-08",
+  "state": "one_route_ready_wider_queue_mapped_no_external_action",
+  "purpose": "Keep a current, ordered list of places where adults already look for browser and independent games, without turning communities into an automated posting list.",
+  "ownedSupport": {
+    "directPlayUrl": "https://mythicalvoid.com/play/",
+    "pressRoomUrl": "https://mythicalvoid.com/press/",
+    "websiteBadgeUrl": "https://mythicalvoid.com/press/embed/mythical-void-play-badge.svg",
+    "badgeBoundary": "Official brand art, not gameplay. The embed contains one clean link and no tracking code."
+  },
+  "executionRules": {
+    "oneCommunityExperimentAtATime": true,
+    "humanRepliesOnly": true,
+    "currentRulesRecheckedAtActionTime": true,
+    "accountAndTermsNeedKevin": true,
+    "noCopiedCrossPosts": true,
+    "noAutomatedReplies": true,
+    "noVoteRequests": true,
+    "noFakeEngagement": true,
+    "noTrackingParameters": true,
+    "noDirectChildContact": true,
+    "generatedArtMayBeCalledGameplay": false
+  },
+  "routes": [
+    {
+      "order": 1,
+      "id": "webgames",
+      "name": "r/WebGames",
+      "kind": "direct_link_community",
+      "audienceIntent": "People actively looking for games that open in a normal browser.",
+      "state": "ready_waiting_for_kevin_action_time_approval",
+      "canRouteDirectlyToOwnedWebsite": true,
+      "needs": {
+        "adultAccount": true,
+        "termsAcceptance": false,
+        "uploadedBuild": false,
+        "approvedGameplayMedia": false,
+        "ongoingParticipation": false,
+        "humanReplyCoverage": true
+      },
+      "preparedArtifact": "docs/company/growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08.json",
+      "nextNeed": "Kevin signs in to an existing adult Reddit account, approves the exact post at action time and owns replies for seven days.",
+      "sources": [
+        {
+          "url": "https://www.reddit.com/r/WebGames/about/rules",
+          "observedOn": "2026-09-08",
+          "finding": "The visible rules require a direct browser-game link, the game name first in the title, no required download or sign-up, no referral link and no repost of the same game within three months."
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "id": "phaser-showcase",
+      "name": "Phaser Showcase",
+      "kind": "developer_community",
+      "audienceIntent": "Browser-game developers who can give practical Phaser and controls feedback.",
+      "state": "prepared_waiting_for_webgames_read_or_cancellation",
+      "canRouteDirectlyToOwnedWebsite": true,
+      "needs": {
+        "adultAccount": true,
+        "termsAcceptance": true,
+        "uploadedBuild": false,
+        "approvedGameplayMedia": false,
+        "ongoingParticipation": true,
+        "humanReplyCoverage": true
+      },
+      "preparedArtifact": "docs/company/growth/PHASER_SHOWCASE_ACTIVATION_2026-09-08.json",
+      "nextNeed": "Finish or cancel the r/WebGames read, then Kevin approves the prepared text topic from an adult account.",
+      "sources": [
+        {
+          "url": "https://phaser.discourse.group/t/welcome-to-the-phaser-showcase-forum/19",
+          "observedOn": "2026-09-08",
+          "finding": "The official showcase welcomes finished and work-in-progress Phaser games and asks work-in-progress topics to be labelled."
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "id": "itch-io",
+      "name": "itch.io",
+      "kind": "searchable_game_shelf",
+      "audienceIntent": "People browsing specifically for new independent and browser games.",
+      "state": "package_ready_waiting_for_first_five_rights_choice_account_terms_and_page_approval",
+      "canRouteDirectlyToOwnedWebsite": false,
+      "needs": {
+        "adultAccount": true,
+        "termsAcceptance": true,
+        "uploadedBuild": true,
+        "approvedGameplayMedia": false,
+        "ongoingParticipation": false,
+        "humanReplyCoverage": true
+      },
+      "preparedArtifact": "docs/company/growth/ITCH_RELEASE_CANDIDATE.json",
+      "nextNeed": "Complete the private First Five, decide itch.io-first versus preserving the Poki option, then Kevin approves the page, cover, disclosure and current terms.",
+      "sources": [
+        {
+          "url": "https://itch.io/docs/creators/getting-indexed",
+          "observedOn": "2026-09-08",
+          "finding": "A public page needs a cover and an uploaded or browser-playable project before it is eligible for itch.io search and browse."
+        },
+        {
+          "url": "https://itch.io/docs/creators/quality-guidelines",
+          "observedOn": "2026-09-08",
+          "finding": "The first public release should be complete and accurate; generative-AI use must be disclosed and misleading or spammy material can be removed from discovery."
+        }
+      ]
+    },
+    {
+      "order": 4,
+      "id": "indiedb",
+      "name": "IndieDB",
+      "kind": "searchable_game_profile",
+      "audienceIntent": "Independent-game players and developers browsing new game pages and development news.",
+      "state": "research_verified_waiting_for_account_terms_rights_and_page_preview",
+      "canRouteDirectlyToOwnedWebsite": true,
+      "needs": {
+        "adultAccount": true,
+        "termsAcceptance": true,
+        "uploadedBuild": false,
+        "approvedGameplayMedia": false,
+        "ongoingParticipation": true,
+        "humanReplyCoverage": true
+      },
+      "preparedArtifact": null,
+      "nextNeed": "Review the signed-in game-page form and current terms, then prepare one accurate page using the website link and approved brand material.",
+      "sources": [
+        {
+          "url": "https://www.indiedb.com/how-to",
+          "observedOn": "2026-09-08",
+          "finding": "IndieDB invites development teams to add game profiles with news, images, downloads, forums and comments."
+        },
+        {
+          "url": "https://www.indiedb.com/news/new-platform-web",
+          "observedOn": "2026-09-08",
+          "finding": "IndieDB provides a Web platform category for browser games."
+        }
+      ]
+    },
+    {
+      "order": 5,
+      "id": "html5-game-devs",
+      "name": "HTML5 Game Devs Showcase",
+      "kind": "developer_community",
+      "audienceIntent": "HTML5 game developers and players who browse work-in-progress and finished web games.",
+      "state": "waiting_for_approved_real_game_media_account_and_topic_approval",
+      "canRouteDirectlyToOwnedWebsite": true,
+      "needs": {
+        "adultAccount": true,
+        "termsAcceptance": true,
+        "uploadedBuild": false,
+        "approvedGameplayMedia": true,
+        "ongoingParticipation": true,
+        "humanReplyCoverage": true
+      },
+      "preparedArtifact": null,
+      "nextNeed": "Approve real gameplay images first, then prepare a specific feedback topic and confirm an adult reply owner.",
+      "sources": [
+        {
+          "url": "https://www.html5gamedevs.com/topic/873-guidelines-for-posting-in-this-board/",
+          "observedOn": "2026-09-08",
+          "finding": "The Game Showcase accepts created or in-development games and asks for enough description and specific feedback to support a real discussion."
+        }
+      ]
+    },
+    {
+      "order": 6,
+      "id": "tigsource-devlog",
+      "name": "TIGSource DevLog",
+      "kind": "long_running_developer_community",
+      "audienceIntent": "Independent-game developers and enthusiasts who follow projects over time.",
+      "state": "watch_waiting_for_current_rules_account_and_sustained_human_cadence",
+      "canRouteDirectlyToOwnedWebsite": true,
+      "needs": {
+        "adultAccount": true,
+        "termsAcceptance": true,
+        "uploadedBuild": false,
+        "approvedGameplayMedia": true,
+        "ongoingParticipation": true,
+        "humanReplyCoverage": true
+      },
+      "preparedArtifact": null,
+      "nextNeed": "Confirm current forum rules and use only if Kevin wants to maintain a genuine development diary rather than make one promotional post.",
+      "sources": [
+        {
+          "url": "https://www.tigsource.com/",
+          "observedOn": "2026-09-08",
+          "finding": "TIGSource describes itself as a community of independent-game developers and players and continues to expose browser-game and DevLog material."
+        }
+      ]
+    },
+    {
+      "order": 7,
+      "id": "game-jolt",
+      "name": "Game Jolt",
+      "kind": "game_profile_and_social_shelf",
+      "audienceIntent": "People browsing game pages and following game creators.",
+      "state": "research_incomplete_waiting_for_signed_in_requirements_terms_and_visual_policy",
+      "canRouteDirectlyToOwnedWebsite": false,
+      "needs": {
+        "adultAccount": true,
+        "termsAcceptance": true,
+        "uploadedBuild": true,
+        "approvedGameplayMedia": true,
+        "ongoingParticipation": true,
+        "humanReplyCoverage": true
+      },
+      "preparedArtifact": null,
+      "nextNeed": "Review current signed-in publishing requirements, content rules and AI-art policy before preparing any game page.",
+      "sources": [
+        {
+          "url": "https://ssr.gamejolt.net/help-docs/general",
+          "observedOn": "2026-09-08",
+          "finding": "The current help area includes Add your game, creator requirements, site guidelines and legal terms, but the complete publishing form is not visible while signed out."
+        },
+        {
+          "url": "https://ssr.gamejolt.net/f/faq-frequently-asked-questions/345207",
+          "observedOn": "2026-09-08",
+          "finding": "The archived official FAQ says a thumbnail and maturity rating are needed before a game can be published; current signed-in requirements still need confirmation."
+        }
+      ]
+    },
+    {
+      "order": 8,
+      "id": "playmygame",
+      "name": "r/playmygame",
+      "kind": "playtest_community",
+      "audienceIntent": "Developers and testers exchanging genuine play and feedback.",
+      "state": "held_current_AI_policy_unfavourable_and_participation_required",
+      "canRouteDirectlyToOwnedWebsite": true,
+      "needs": {
+        "adultAccount": true,
+        "termsAcceptance": false,
+        "uploadedBuild": false,
+        "approvedGameplayMedia": false,
+        "ongoingParticipation": true,
+        "humanReplyCoverage": true
+      },
+      "preparedArtifact": null,
+      "nextNeed": "Do not post. Reconsider only after a fresh moderator-rule review shows Mythical Void is welcome and Kevin has genuinely contributed useful feedback to other games.",
+      "sources": [
+        {
+          "url": "https://www.reddit.com/r/playmygame/comments/1m61887/warning_we_are_now_deleting_posts_from_devs_who/",
+          "observedOn": "2026-09-08",
+          "finding": "Moderator guidance requires developers to give useful feedback on other games rather than use the community only for promotion."
+        },
+        {
+          "url": "https://www.reddit.com/r/playmygame/comments/1vyc5xp/decisions_have_been_madeour_new_ai_policy/",
+          "observedOn": "2026-09-08",
+          "finding": "A current moderator discussion describes a strongly restrictive AI policy, making this an unsuitable route without a fresh explicit fit check."
+        }
+      ]
+    },
+    {
+      "order": 9,
+      "id": "indiegaming-reddit",
+      "name": "r/IndieGaming",
+      "kind": "indie_game_community",
+      "audienceIntent": "People discussing and discovering independent games.",
+      "state": "excluded_current_no_AI_rule",
+      "canRouteDirectlyToOwnedWebsite": false,
+      "needs": {
+        "adultAccount": true,
+        "termsAcceptance": false,
+        "uploadedBuild": false,
+        "approvedGameplayMedia": true,
+        "ongoingParticipation": true,
+        "humanReplyCoverage": true
+      },
+      "preparedArtifact": null,
+      "nextNeed": "Do not post while the community's current no-AI rule conflicts with Mythical Void's disclosed development process.",
+      "sources": [
+        {
+          "url": "https://www.reddit.com/r/IndieGaming/comments/1l0bq0o/lets_discuss_ai_generated_content/",
+          "observedOn": "2026-09-08",
+          "finding": "The visible moderator discussion records Rule 8 as No AI."
+        }
+      ]
+    },
+    {
+      "order": 10,
+      "id": "indiegames-reddit",
+      "name": "r/IndieGames",
+      "kind": "indie_game_community",
+      "audienceIntent": "People browsing independent-game promotion and discussion.",
+      "state": "held_until_current_AI_and_promotion_rules_are_explicitly_confirmed",
+      "canRouteDirectlyToOwnedWebsite": false,
+      "needs": {
+        "adultAccount": true,
+        "termsAcceptance": false,
+        "uploadedBuild": false,
+        "approvedGameplayMedia": true,
+        "ongoingParticipation": true,
+        "humanReplyCoverage": true
+      },
+      "preparedArtifact": null,
+      "nextNeed": "Do not post. Current removals show hostility to AI-generated art, and the exact current rule must be confirmed before any future consideration.",
+      "sources": [
+        {
+          "url": "https://www.reddit.com/r/indiegames/comments/1esd7yf/new_rule_no_more_developer_self_promotion_posts/",
+          "observedOn": "2026-09-08",
+          "finding": "Promotion must be presented honestly rather than disguised as a feedback request, and genuine feedback posts cannot carry promotional links."
+        }
+      ]
+    },
+    {
+      "order": 11,
+      "id": "newgrounds",
+      "name": "Newgrounds",
+      "kind": "uploaded_game_shelf",
+      "audienceIntent": "People browsing and judging new web games.",
+      "state": "excluded_for_now_due_AI_thumbnail_rights_and_external_call_risk",
+      "canRouteDirectlyToOwnedWebsite": false,
+      "needs": {
+        "adultAccount": true,
+        "termsAcceptance": true,
+        "uploadedBuild": true,
+        "approvedGameplayMedia": true,
+        "ongoingParticipation": false,
+        "humanReplyCoverage": true
+      },
+      "preparedArtifact": null,
+      "nextNeed": "Do not submit until authored contribution, rights, third-party calls and a real-game thumbnail can satisfy current rules cleanly.",
+      "sources": [
+        {
+          "url": "https://www.newgrounds.com/wiki/help-information/terms-of-use/game-guidelines",
+          "observedOn": "2026-09-08",
+          "finding": "The current game rules may remove projects judged to be overly AI-generated, prohibit AI-generated thumbnails and restrict unsuitable third-party calls."
+        }
+      ]
+    },
+    {
+      "order": 12,
+      "id": "poki",
+      "name": "Poki",
+      "kind": "curated_browser_game_portal",
+      "audienceIntent": "A large audience already choosing a browser game to play.",
+      "state": "option_preserved_not_submitted",
+      "canRouteDirectlyToOwnedWebsite": false,
+      "needs": {
+        "adultAccount": true,
+        "termsAcceptance": true,
+        "uploadedBuild": true,
+        "approvedGameplayMedia": true,
+        "ongoingParticipation": false,
+        "humanReplyCoverage": true
+      },
+      "preparedArtifact": "docs/company/growth/POKI_READINESS_ASSESSMENT.json",
+      "nextNeed": "Pass the visual and first-minute gates, then Kevin decides whether to make a bounded access request before publishing on itch.io.",
+      "sources": [
+        {
+          "url": "https://developers.poki.com/guide/what-we-look-for",
+          "observedOn": "2026-09-08",
+          "finding": "Poki describes quality, loading, engagement and broad device support expectations for games it considers."
+        },
+        {
+          "url": "https://developers.poki.com/guide/revenue-deal-types",
+          "observedOn": "2026-09-08",
+          "finding": "Its preferred partnership can involve web exclusivity, so the request must remain a founder decision before other web-shelf publication."
+        }
+      ]
+    },
+    {
+      "order": 13,
+      "id": "crazygames",
+      "name": "CrazyGames",
+      "kind": "curated_browser_game_portal",
+      "audienceIntent": "People browsing browser games with immediate play intent.",
+      "state": "later_waiting_for_portal_SDK_ad_privacy_rights_and_commercial_review",
+      "canRouteDirectlyToOwnedWebsite": false,
+      "needs": {
+        "adultAccount": true,
+        "termsAcceptance": true,
+        "uploadedBuild": true,
+        "approvedGameplayMedia": true,
+        "ongoingParticipation": false,
+        "humanReplyCoverage": true
+      },
+      "preparedArtifact": null,
+      "nextNeed": "Review the current developer portal, SDK, advertising, privacy, rights and commercial requirements before any submission work.",
+      "sources": [
+        {
+          "url": "https://developer.crazygames.com/games",
+          "observedOn": "2026-09-08",
+          "finding": "CrazyGames operates a developer portal for browser-game submissions; integration and commercial requirements need a separate review."
+        }
+      ]
+    }
+  ],
+  "authority": {
+    "externalPostMade": false,
+    "externalPublishingAuthorized": false,
+    "accountOpened": false,
+    "accountOpeningAuthorized": false,
+    "platformTermsAccepted": false,
+    "platformSubmissionAuthorized": false,
+    "automatedRepliesAuthorized": false,
+    "bulkCrossPostingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "fakeEngagementAuthorized": false,
+    "childContactAuthorized": false
+  },
+  "nextRequiredAction": "Kevin signs in to an existing adult Reddit account, approves the prepared r/WebGames post at action time and confirms seven days of human reply coverage."
+}

@@ -2,6 +2,7 @@
   "id": "BOTTOM-OF-FUNNEL-001",
   "checkedOn": "2026-09-08",
   "state": "owned_entry_live_one_webgames_test_ready_first_five_held_itch_candidate_waiting",
+  "discoveryDoorwayRegistry": "docs/company/growth/DISCOVERY_DOORWAY_REGISTRY_2026-09-08.json",
   "playerPromise": "A free browser adventure where you hatch a strange alien creature, cross six living realms and decide what Project Beacon should tell Earth. No download or account needed.",
   "playerDecisionModel": {
     "sequence": ["wanted feeling", "believable fit", "real gameplay proof", "trust", "low-friction start"],
@@ -82,11 +83,12 @@
     { "name": "owned search landing page", "state": "live", "url": "https://mythicalvoid.com/playable-now/" },
     { "name": "r/WebGames", "state": "one_direct_link_test_ready_not_published", "url": "https://mythicalvoid.com/play/" },
     { "name": "Phaser Showcase", "state": "second_forum_waiting_for_first_community_read" },
+    { "name": "IndieDB", "state": "profile_opportunity_waiting_for_account_terms_rights_and_page_preview" },
     { "name": "Poki", "state": "high_upside_option_preserved_not_submitted" },
     { "name": "itch.io", "state": "package_copy_and_reviewed_cover_ready_not_published" },
     { "name": "YouTube", "state": "held_for_visual_quality" },
     { "name": "Newgrounds", "state": "later_html5_shelf_waiting_for_visual_rights_and_account_review" },
-    { "name": "r/playmygame", "state": "not_a_drop_and_run_route_requires_real_community_participation" },
+    { "name": "r/playmygame", "state": "held_current_AI_policy_unfavourable_and_participation_required" },
     { "name": "CrazyGames", "state": "later_candidate" },
     { "name": "Steam", "state": "not_now", "feeUsd": 100 }
   ],
@@ -94,7 +96,7 @@
     "oneExternalExperimentAtATime": true,
     "secondForum": "Phaser Showcase after the r/WebGames seven-day read or explicit cancellation",
     "newgroundsBoundary": "Newgrounds accepts HTML5 ZIP games with index.html at the root, but new games enter public judgement. Wait for the visual first impression, rights review, account approval and Kevin's review of the live submission preview.",
-    "playMyGameBoundary": "Do not paste a second promotion into r/playmygame. Its moderator guidance expects freely playable games, decent quality and real participation from developers rather than accounts used only for promotion.",
+    "playMyGameBoundary": "Do not post in r/playmygame. Its moderator guidance expects real participation from developers and its current AI-policy discussion is strongly restrictive. Reconsider only after a fresh rule check explicitly supports the fit.",
     "automaticCrossPosting": false,
     "copiedCommunityPostsPermitted": false
   },
@@ -140,6 +142,7 @@
     "https://www.newgrounds.com/wiki/help-information/content-submission/games-and-movies",
     "https://www.newgrounds.com/wiki/help-information/terms-of-use/game-guidelines",
     "https://www.reddit.com/r/playmygame/comments/1eg08dh/how_to_avoid_having_your_posts_removed_version_2/",
-    "https://www.reddit.com/r/playmygame/comments/1m61887/warning_we_are_now_deleting_posts_from_devs_who/"
+    "https://www.reddit.com/r/playmygame/comments/1m61887/warning_we_are_now_deleting_posts_from_devs_who/",
+    "https://www.reddit.com/r/playmygame/comments/1vyc5xp/decisions_have_been_madeour_new_ai_policy/"
   ]
 }

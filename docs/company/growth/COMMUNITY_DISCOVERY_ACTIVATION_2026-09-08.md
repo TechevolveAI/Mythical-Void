@@ -102,6 +102,12 @@ concerns about third-party calls. Mythical Void should not test that boundary
 until its authored work, rights, data behavior and real-game thumbnail are
 ready to explain cleanly.
 
+r/playmygame is also held. Its moderators now expect developers to contribute
+real feedback to other games and have published a strongly restrictive AI
+policy discussion. r/IndieGaming records a current “No AI” rule. Mythical Void
+should disclose its process honestly, so neither is an appropriate place to
+test by simply posting and hoping.
+
 ## The one approval needed
 
 Kevin needs to approve this exact r/WebGames post, confirm whether he has an
@@ -131,3 +137,5 @@ again before the final posting step.
 - https://itch.io/board/10022/release-announcements
 - https://www.newgrounds.com/wiki/help-information/content-submission/games-and-movies
 - https://www.newgrounds.com/wiki/help-information/terms-of-use/game-guidelines
+- https://www.reddit.com/r/playmygame/comments/1vyc5xp/decisions_have_been_madeour_new_ai_policy/
+- https://www.reddit.com/r/IndieGaming/comments/1l0bq0o/lets_discuss_ai_generated_content/

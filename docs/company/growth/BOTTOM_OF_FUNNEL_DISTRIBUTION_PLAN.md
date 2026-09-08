@@ -105,6 +105,7 @@ The father-and-son beginning, creature engine, careful use of AI and NASA-inspir
 | Google and other search engines | The player is already asking for a free browser, creature or indie game | Keep `/playable-now/` as the truthful search landing page and lead directly to play | Live |
 | r/WebGames | Adults are already asking for games that work immediately in a browser | Make one disclosed direct-link post and read the result for seven days | Ready, not posted |
 | Phaser Showcase | Phaser developers can try the real build and give useful browser-game feedback | Ask two plain questions after the r/WebGames read | Prepared second forum, not posted |
+| IndieDB | Independent-game players and developers browse lasting game profiles and development news | Review the current signed-in form and prepare one accurate Web-category page | Researched, no account or page |
 | itch.io | People browse specifically for new independent games; an account is free and HTML games can run in the browser | Use the tested direct-play package and prepared listing | Technically ready, not published |
 | YouTube | Players search for gameplay, reviews and “games to try” | Publish only after four real, excellent gameplay moments exist | Held for visual quality |
 | Poki | A very large audience is already choosing a web game | Preserve the option; its preferred deals can require web exclusivity, so decide before itch.io publication | High-upside option, not submitted |
@@ -121,11 +122,15 @@ waits until the r/WebGames seven-day read is complete or Kevin cancels that
 first route.
 
 r/playmygame is not a place to paste the same announcement next. Its moderator
-guidance expects a freely playable game, decent quality and genuine community
-participation; it warns against accounts that appear only to promote. Mythical
-Void meets the free-play requirement, but a drop-and-run post would not be a
-respectful use of the community. Use it only if Kevin is already taking part
-there as a person and approves a separate, current-rules review.
+guidance expects genuine contribution to other developers' games, and its
+current AI-policy discussion is strongly restrictive. Do not post there now.
+Reconsider it only if a fresh rule check says Mythical Void is welcome and
+Kevin is already contributing there as a person.
+
+The wider checked route list now lives in
+`DISCOVERY_DOORWAY_REGISTRY_2026-09-08.md`. It records thirteen communities,
+game shelves and portals, including IndieDB, HTML5 Game Devs, TIGSource and
+Game Jolt. This is an opportunity queue, not permission to cross-post.
 
 Newgrounds is a possible later shelf rather than the next forum. Its official
 guide accepts HTML5 ZIP games with `index.html` at the top level, but new
@@ -266,3 +271,4 @@ bulk outreach or another platform.
 - Newgrounds game rules: https://www.newgrounds.com/wiki/help-information/terms-of-use/game-guidelines
 - r/playmygame posting guide: https://www.reddit.com/r/playmygame/comments/1eg08dh/how_to_avoid_having_your_posts_removed_version_2/
 - r/playmygame participation warning: https://www.reddit.com/r/playmygame/comments/1m61887/warning_we_are_now_deleting_posts_from_devs_who/
+- r/playmygame current AI-policy discussion: https://www.reddit.com/r/playmygame/comments/1vyc5xp/decisions_have_been_madeour_new_ai_policy/

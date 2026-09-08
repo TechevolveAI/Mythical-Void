@@ -71,6 +71,8 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
     requireValue(plan.fallbackReadOnlyVerification?.route === 'Phaser Showcase' && plan.fallbackReadOnlyVerification?.rulesVisible === true && plan.fallbackReadOnlyVerification?.exactMythicalVoidResultObserved === false, 'the current Phaser fallback verification is missing');
     requireValue(/remains second/i.test(plan.fallbackReadOnlyVerification?.sequenceBoundary || ''), 'the one-route-at-a-time boundary is missing from the fallback check');
     requireValue(plan.excludedForNow?.some(route => route.name === 'Newgrounds' && /AI-generated thumbnails/i.test(route.reason || '')), 'the current Newgrounds risk is missing');
+    requireValue(plan.excludedForNow?.some(route => route.name === 'r/playmygame' && /restrictive AI policy/i.test(route.reason || '') && /genuinely test/i.test(route.reason || '')), 'the current r/playmygame AI-policy and participation hold is missing');
+    requireValue(plan.excludedForNow?.some(route => route.name === 'r/IndieGaming' && /No AI rule/i.test(route.reason || '')), 'the current r/IndieGaming no-AI conflict is missing');
     requireValue(plan.founderDecision?.postAuthorized === false && plan.founderDecision?.humanReplyCoverageConfirmed === false, 'Kevin decision boundary is missing');
 
     for (const field of ['externalPostMade', 'externalPostingAuthorized', 'accountOpened', 'accountOpeningAuthorized', 'platformTermsAccepted', 'automatedRepliesAuthorized', 'bulkCrossPostingAuthorized', 'paidPromotionAuthorized', 'fakeEngagementAuthorized', 'childContactAuthorized']) {
