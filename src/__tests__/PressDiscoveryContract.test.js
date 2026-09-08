@@ -7,6 +7,7 @@ const sitemap = fs.readFileSync(path.join(root, 'public/sitemap.xml'), 'utf8');
 const netlify = fs.readFileSync(path.join(root, 'netlify.toml'), 'utf8');
 const redirects = fs.readFileSync(path.join(root, 'public/_redirects'), 'utf8');
 const release = require('../../docs/company/search/press-search-doorway-2026-09-08.json');
+const indexNow = require('../../docs/company/search/indexnow-submission-2026-09-08-press.json');
 
 describe('press and creator search doorway', () => {
     test('is a real static page with its own search identity', () => {
@@ -66,6 +67,11 @@ describe('press and creator search doorway', () => {
         }));
         expect(release.release).toEqual(expect.objectContaining({
             staticPage: 'public/press/index.html',
+            productionCommit: '270263bed94375097de87295e21978b1d540b7dc',
+            productionDeployId: '6aa00e02db1f0400088e8e4b',
+            productionHttpStatus: 200,
+            rawHtmlTitleVerified: true,
+            rawHtmlCanonicalVerified: true,
             gameplayMediaPackApproved: false,
             exactChildAgePublished: false,
             generatedHeroDisclosureVisible: true,
@@ -73,10 +79,32 @@ describe('press and creator search doorway', () => {
         }));
         expect(release.authority).toEqual(expect.objectContaining({
             ownedWebsitePublicationAuthorized: true,
+            indexNowNotificationSent: true,
             externalPostingAuthorized: false,
             creatorOutreachAuthorized: false,
             accountCreationAuthorized: false,
             paidPromotionAuthorized: false
         }));
+    });
+
+    test('records one accepted changed-page notice without claiming indexing', () => {
+        expect(release.indexNow).toEqual(expect.objectContaining({
+            record: 'docs/company/search/indexnow-submission-2026-09-08-press.json',
+            submittedUrlCount: 1,
+            accepted: true,
+            httpStatus: 200,
+            unchangedUrlsResubmitted: false
+        }));
+        expect(indexNow).toEqual(expect.objectContaining({
+            urls: ['https://mythicalvoid.com/press/'],
+            urlCount: 1,
+            accepted: true,
+            httpStatus: 200,
+            unchangedSitemapUrlsResubmitted: false,
+            personalDataSent: false,
+            accountUsed: false,
+            paidPromotionStarted: false
+        }));
+        expect(indexNow.meaning).toMatch(/does not prove.*crawled.*indexed.*ranked.*visited.*start a game/i);
     });
 });

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "id": "PRESS-SEARCH-DOORWAY-2026-09-08",
-  "checkedAt": "2026-09-08T13:15:00Z",
-  "state": "static_owned_press_doorway_prepared_for_reviewed_release",
+  "checkedAt": "2026-09-08T13:34:00Z",
+  "state": "static_owned_press_doorway_live_and_changed_page_notice_accepted",
   "problem": {
     "publicRoute": "https://mythicalvoid.com/press/",
     "linkedFromOwnedPages": true,
@@ -16,6 +16,12 @@
     "staticPage": "public/press/index.html",
     "canonicalUrl": "https://mythicalvoid.com/press/",
     "directPlayUrl": "https://mythicalvoid.com/play/",
+    "pullRequest": "https://github.com/TechevolveAI/Mythical-Void/pull/206",
+    "productionCommit": "270263bed94375097de87295e21978b1d540b7dc",
+    "productionDeployId": "6aa00e02db1f0400088e8e4b",
+    "productionHttpStatus": 200,
+    "rawHtmlTitleVerified": true,
+    "rawHtmlCanonicalVerified": true,
     "approvedDownloads": [
       "/marketing/mythical-void-emblem-v3.png",
       "/press/mythical-void-fact-sheet.txt",
@@ -26,11 +32,20 @@
     "generatedHeroDisclosureVisible": true,
     "nasaNonEndorsementVisible": true
   },
+  "indexNow": {
+    "record": "docs/company/search/indexnow-submission-2026-09-08-press.json",
+    "submittedUrlCount": 1,
+    "accepted": true,
+    "httpStatus": 200,
+    "unchangedUrlsResubmitted": false,
+    "meaning": "The changed-page notice was accepted. Crawling, indexing, ranking and traffic remain unproven."
+  },
   "measurementBoundary": "A correct static page can help a crawler or creator understand the route. It does not prove indexing, ranking, impressions, visits, plays, enjoyment or growth.",
   "nextExternalMove": "Run the existing r/WebGames experiment only after Kevin supplies an adult account, gives action-time approval and is available to reply personally.",
   "authority": {
     "ownedWebsitePublicationAuthorized": true,
     "indexNowNotificationAuthorizedForThisMeaningfulChangedUrl": true,
+    "indexNowNotificationSent": true,
     "searchConsoleConnectionAuthorized": false,
     "sitemapSubmissionAuthorized": false,
     "externalPostingAuthorized": false,
