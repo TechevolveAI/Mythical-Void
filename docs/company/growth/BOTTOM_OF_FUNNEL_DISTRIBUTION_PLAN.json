@@ -55,8 +55,8 @@
       "buildCommand": "npm run package:itch",
       "directPlay": true,
       "nestedFrameTestPassed": true,
-      "fileCount": 86,
-      "extractedBytes": 33317542,
+      "fileCount": 88,
+      "extractedBytes": 34234277,
       "lastValidatedArchiveBytes": 29456384,
       "withdrawnMediaIncluded": false
     },
