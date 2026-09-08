@@ -104,11 +104,38 @@ The father-and-son beginning, creature engine, careful use of AI and NASA-inspir
 |---|---|---|---|
 | Google and other search engines | The player is already asking for a free browser, creature or indie game | Keep `/playable-now/` as the truthful search landing page and lead directly to play | Live |
 | r/WebGames | Adults are already asking for games that work immediately in a browser | Make one disclosed direct-link post and read the result for seven days | Ready, not posted |
+| Phaser Showcase | Phaser developers can try the real build and give useful browser-game feedback | Ask two plain questions after the r/WebGames read | Prepared second forum, not posted |
 | itch.io | People browse specifically for new independent games; an account is free and HTML games can run in the browser | Use the tested direct-play package and prepared listing | Technically ready, not published |
 | YouTube | Players search for gameplay, reviews and “games to try” | Publish only after four real, excellent gameplay moments exist | Held for visual quality |
 | Poki | A very large audience is already choosing a web game | Preserve the option; its preferred deals can require web exclusivity, so decide before itch.io publication | High-upside option, not submitted |
 | CrazyGames | Another direct web-game shelf | Review its current portal requirements after an account is available; do not promise acceptance | Later candidate |
+| Newgrounds | HTML5 games can be uploaded and then enter public voting | Consider only after the first impression, rights and account checks pass | Later shelf, not submitted |
 | Steam | Strong intent, but a different kind of release | Revisit when there is a suitable downloadable build and a store plan | Not now |
+
+## Do not turn forums into a posting list
+
+The sequence is one place at a time: r/WebGames, then Phaser Showcase, then a
+game shelf chosen by Kevin. The exact Phaser introduction is prepared in plain
+language and asks only whether the first minute and controls make sense. It
+waits until the r/WebGames seven-day read is complete or Kevin cancels that
+first route.
+
+r/playmygame is not a place to paste the same announcement next. Its moderator
+guidance expects a freely playable game, decent quality and genuine community
+participation; it warns against accounts that appear only to promote. Mythical
+Void meets the free-play requirement, but a drop-and-run post would not be a
+respectful use of the community. Use it only if Kevin is already taking part
+there as a person and approves a separate, current-rules review.
+
+Newgrounds is a possible later shelf rather than the next forum. Its official
+guide accepts HTML5 ZIP games with `index.html` at the top level, but new
+submissions enter public judgement and can be removed if they do not pass. Its
+rules also require the uploader to own the game and the rights to its music and
+visual material. That makes the current visual first-impression and complete
+rights review real gates, not paperwork to skip.
+
+No system may cross-post, copy the same message into several communities,
+create an account, accept terms or answer a person automatically.
 
 ## One important choice before itch.io
 
@@ -233,3 +260,9 @@ bulk outreach or another platform.
 - 2025 YouTube gaming survey: https://www.biggamesmachine.com/wp-content/uploads/2025/02/BGM-YouTube-survey-2025.pdf
 - YouTube Gaming discovery help: https://support.google.com/youtube/answer/9134402?hl=en
 - r/WebGames rules: https://www.reddit.com/r/WebGames/about/rules
+- Phaser forum: https://www.phaser.io/community/forum
+- Phaser Showcase welcome: https://phaser.discourse.group/t/welcome-to-the-phaser-showcase-forum/19
+- Newgrounds HTML5 submission guide: https://www.newgrounds.com/wiki/help-information/content-submission/games-and-movies
+- Newgrounds game rules: https://www.newgrounds.com/wiki/help-information/terms-of-use/game-guidelines
+- r/playmygame posting guide: https://www.reddit.com/r/playmygame/comments/1eg08dh/how_to_avoid_having_your_posts_removed_version_2/
+- r/playmygame participation warning: https://www.reddit.com/r/playmygame/comments/1m61887/warning_we_are_now_deleting_posts_from_devs_who/

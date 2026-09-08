@@ -16,6 +16,7 @@ const cases = [
     ['premature terms', record => { record.preflight.platformTermsAcceptedByKevin = true; }, 'must remain false'],
     ['weak media attached', record => { record.preparedTopic.mediaAttached = true; }, 'visual media must stay out'],
     ['retired wording', record => { record.preparedTopic.body += ' Follow the signal with your companion.'; }, 'retired public wording'],
+    ['unneeded child age', record => { record.preparedTopic.body += ' My son is nine years old.'; }, 'exact age'],
     ['missing human replies', record => { record.preflight.adultReplyOwner = null; }, 'named reply owner'],
     ['child contact enabled', record => { record.authority.childContactAuthorized = true; }, 'authority childContactAuthorized']
 ];

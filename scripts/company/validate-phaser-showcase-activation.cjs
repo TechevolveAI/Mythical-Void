@@ -20,14 +20,15 @@ function validatePhaserShowcase({ record, copy, packageJson }) {
     requireValue(record.community?.recentActivityObserved === true && /not that Mythical Void will receive views, replies or players/i.test(record.community?.recentActivityMeaning || ''), 'recent activity needs an honest limit');
     requireValue(record.sequence?.order === 2 && /r_webgames_seven_day_read/i.test(record.sequence?.earliestState || ''), 'Phaser must remain behind the first community read');
 
-    requireValue(topic.title === '[WIP] Mythical Void — a father-and-son Phaser browser adventure', 'prepared title changed or lost the WIP label');
+    requireValue(topic.title === '[WIP] Mythical Void — a father-and-son creature adventure made with Phaser', 'prepared title changed or lost the WIP label');
     requireValue(topic.directGameUrl === 'https://mythicalvoid.com/play/' && !/[?#]/.test(topic.directGameUrl || ''), 'topic must use the clean direct game link');
     requireValue(topic.body?.includes(topic.directGameUrl), 'topic body is missing the direct game link');
-    requireValue(/father-and-son project/i.test(topic.body || '') && /nine-year-old son/i.test(topic.body || ''), 'true studio beginning is missing');
-    requireValue(/generative AI tools/i.test(topic.body || '') && /real running Phaser game/i.test(topic.body || ''), 'AI and real-game disclosure is missing');
-    requireValue(/first minute clear without explanation/i.test(topic.body || '') && /movement and controls feel understandable/i.test(topic.body || ''), 'useful feedback questions are missing');
+    requireValue(/My son and I started Mythical Void at home/i.test(topic.body || '') && /make together/i.test(topic.body || ''), 'true studio beginning is missing');
+    requireValue(/Generative AI is one of the tools/i.test(topic.body || '') && /real running game/i.test(topic.body || ''), 'AI and real-game disclosure is missing');
+    requireValue(/first minute clear without an explanation/i.test(topic.body || '') && /movement and the controls make sense/i.test(topic.body || ''), 'useful feedback questions are missing');
     requireValue(/NASA does not endorse Mythical Void/i.test(topic.body || ''), 'NASA boundary is missing');
-    requireValue(topic.mediaAttached === false && /not attaching weak media/i.test(topic.body || ''), 'withdrawn visual media must stay out');
+    requireValue(topic.mediaAttached === false && /not attaching our current screenshots or videos/i.test(topic.body || ''), 'withdrawn visual media must stay out');
+    requireValue(!/\b(?:nine|9)(?:[- ]year[- ]old| years old)\b/i.test(`${topic.title || ''} ${topic.body || ''}`), 'the public topic does not need the child’s exact age');
     requireValue(topic.trackingParametersPresent === false, 'tracking parameters must stay off');
     requireValue(!/\bcompanions?\b|\bsignals?\b/i.test(`${topic.title || ''} ${topic.body || ''}`), 'retired public wording appears in the topic');
 
