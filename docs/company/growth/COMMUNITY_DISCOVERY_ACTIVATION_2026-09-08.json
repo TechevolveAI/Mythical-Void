@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "id": "COMMUNITY-DISCOVERY-001",
+  "checkedOn": "2026-09-08",
+  "state": "one_direct_link_post_ready_waiting_for_kevin",
+  "problem": "Mythical Void is playable, but no outside game-seeking audience has yet been shown to find and try it.",
+  "firstExperiment": {
+    "community": "r/WebGames",
+    "communityUrl": "https://www.reddit.com/r/WebGames/",
+    "rulesUrl": "https://www.reddit.com/r/WebGames/about/rules",
+    "whyThisOne": "The community is specifically for games that play directly in a normal web browser without downloads or sign-up, which matches Mythical Void's live game.",
+    "observedAudience": {
+      "weeklyVisitorsShown": 19000,
+      "observedOn": "2026-09-08",
+      "approximate": true,
+      "meaning": "A changing community-page estimate, not guaranteed reach and not a player count."
+    },
+    "verifiedRules": {
+      "browserPlayableRequired": true,
+      "directGameLinkRequired": true,
+      "downloadRequiredForbidden": true,
+      "signupRequiredForbidden": true,
+      "referralLinksForbidden": true,
+      "titleMustStartWithGameName": true,
+      "minimumMonthsBeforeRepost": 3
+    },
+    "duplicateCheck": {
+      "query": "\"Mythical Void\"",
+      "checkedOn": "2026-09-08",
+      "existingResultObserved": false,
+      "limitation": "A read-only community search can miss deleted, renamed or unindexed posts. Check once more immediately before posting."
+    },
+    "preparedPost": {
+      "format": "direct_link",
+      "title": "Mythical Void — hatch an alien creature and explore six living realms [HTML5]",
+      "url": "https://mythicalvoid.com/play/",
+      "firstComment": "My son and I began Mythical Void as a father-and-son experiment: what could imagination and generative AI tools help us turn into a real game? It is now a free early-access browser adventure built in Phaser. You hatch an alien creature, cross six strange realms and decide what Project Beacon should become. No download or account is needed. If you try it, the most useful thing you can tell me is where the first minute felt clear or confusing. I am the developer, and I will read and answer replies myself.",
+      "claims": [
+        "free early-access browser game",
+        "no download",
+        "no account",
+        "built with Phaser",
+        "father-and-son beginning",
+        "generative AI tools used as part of a human-led creative process"
+      ]
+    },
+    "preflight": {
+      "liveGameHttpStatusRequired": 200,
+      "freshOpeningJourneyRequired": true,
+      "checkDuplicateImmediatelyBeforePosting": true,
+      "adultReplyOwnerRequired": true,
+      "weakGameplayMediaRequired": false,
+      "trackingParametersAllowed": false
+    },
+    "measurement": {
+      "record": [
+        "post URL and publication time",
+        "platform views and comments when shown",
+        "consented website visits that name Reddit as the referrer when available",
+        "anonymous adult feedback choosing the game website or forum option"
+      ],
+      "neverInfer": [
+        "players from post views",
+        "plays from website visits",
+        "enjoyment from clicks",
+        "retention from comments",
+        "growth from one post"
+      ],
+      "learningQuestion": "Did this direct browser-game community send any people who reached the game and gave useful adult feedback?"
+    },
+    "stopRules": [
+      "Do not ask for votes or create fake engagement.",
+      "Do not cross-post the same message elsewhere during the first seven-day read.",
+      "Do not repost in r/WebGames for at least three months unless moderators approve a substantial update.",
+      "Pause and fix the game if several genuine replies identify the same opening failure.",
+      "Kevin or another named adult handles replies; no bot replies and no direct contact with children."
+    ]
+  },
+  "nextRoutes": [
+    {
+      "order": 2,
+      "name": "Phaser Showcase",
+      "state": "copy_ready_waiting_for_account_and_post_approval",
+      "source": "https://phaser.discourse.group/t/welcome-to-the-phaser-showcase-forum/19",
+      "reason": "The official Phaser forum welcomes finished and work-in-progress Phaser games and asks creators to link the game.",
+      "preparedTitle": "[WIP] Mythical Void — a father-and-son Phaser browser adventure",
+      "visualBoundary": "Do not attach gameplay media until a person has approved it."
+    },
+    {
+      "order": 3,
+      "name": "itch.io",
+      "state": "technical_package_ready_account_terms_cover_and_publication_waiting",
+      "source": "https://itch.io/docs/creators/getting-indexed",
+      "reason": "It is a searchable game shelf where an uploaded HTML5 game can play in the browser. A cover is required for discovery, screenshots are recommended and generative-AI use must be disclosed accurately.",
+      "visualBoundary": "Use the reviewed brand cover only after Kevin approves it; add screenshots only after human visual approval."
+    },
+    {
+      "order": 4,
+      "name": "HTML5 Game Devs Showcase",
+      "state": "research_verified_waiting_for_visual_and_account_decision",
+      "source": "https://www.html5gamedevs.com/forum/8-game-showcase/",
+      "reason": "The forum accepts finished and in-development HTML5 games and requires a playable web link or technical detail.",
+      "visualBoundary": "Its showcase asks for screenshots for promotion, so wait for approved real gameplay media."
+    }
+  ],
+  "excludedForNow": [
+    {
+      "name": "Newgrounds",
+      "source": "https://www.newgrounds.com/wiki/help-information/terms-of-use/game-guidelines",
+      "reason": "Its current rules subjectively reject games seen as generated by an AI prompt, prohibit AI-generated thumbnails and prefer no third-party calls. Mythical Void should not risk a removal until its authored contribution, rights, data calls and real-game thumbnail can be presented clearly."
+    },
+    {
+      "name": "r/Games",
+      "source": "https://www.reddit.com/r/Games/",
+      "reason": "Its current moderation notices direct browser-game links toward r/WebGames or r/BrowserGames."
+    },
+    {
+      "name": "bulk forum posting",
+      "source": "internal boundary",
+      "reason": "One respectful, useful post gives cleaner learning and avoids spam."
+    }
+  ],
+  "founderDecision": {
+    "question": "Approve one direct-link r/WebGames post from an adult Reddit account, with Kevin responsible for the replies?",
+    "accountCreationRequired": "unknown_until_kevin_confirms_an_existing_adult_account",
+    "termsAcceptanceRequiredIfNewAccount": true,
+    "cost": "free",
+    "postAuthorized": false,
+    "accountCreationAuthorized": false,
+    "humanReplyCoverageConfirmed": false
+  },
+  "authority": {
+    "externalPostMade": false,
+    "externalPostingAuthorized": false,
+    "accountOpened": false,
+    "accountOpeningAuthorized": false,
+    "platformTermsAccepted": false,
+    "automatedRepliesAuthorized": false,
+    "bulkCrossPostingAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "fakeEngagementAuthorized": false,
+    "childContactAuthorized": false
+  },
+  "sources": [
+    "https://www.reddit.com/r/WebGames/about/rules",
+    "https://www.reddit.com/r/WebGames/search/?q=%22Mythical%20Void%22&restrict_sr=1&sort=new",
+    "https://phaser.discourse.group/t/welcome-to-the-phaser-showcase-forum/19",
+    "https://www.html5gamedevs.com/forum/8-game-showcase/",
+    "https://itch.io/docs/creators/getting-indexed",
+    "https://itch.io/docs/creators/quality-guidelines",
+    "https://itch.io/board/10022/release-announcements",
+    "https://www.newgrounds.com/wiki/help-information/content-submission/games-and-movies",
+    "https://www.newgrounds.com/wiki/help-information/terms-of-use/game-guidelines"
+  ]
+}
