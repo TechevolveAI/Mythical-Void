@@ -38,7 +38,7 @@ const pages = [
     {
         route: '/studio/',
         file: 'public/studio/index.html',
-        required: ['nine-year-old son', 'father and son', 'people remain responsible', '/press/']
+        required: ['A dad. His son.', 'father and son', 'people remain responsible', '/press/']
     },
     {
         route: '/press/',
@@ -69,6 +69,10 @@ function matchOne(source, expression, label, file) {
 for (const page of pages) {
     const source = contentFor(page.file);
     if (!source) continue;
+
+    if (/\b(?:nine|9)[ -]year[ -]old\b/i.test(source)) {
+        errors.push(`${page.file}: publishes the founder's child's exact age`);
+    }
 
     const title = matchOne(source, /<title>([^<]+)<\/title>/, 'title', page.file);
     const description = matchOne(source, /<meta name="description" content="([^"]+)"/, 'description', page.file);

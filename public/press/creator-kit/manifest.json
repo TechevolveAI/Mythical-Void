@@ -6,8 +6,8 @@
   "archive": {
     "filename": "mythical-void-authentic-gameplay-creator-kit.zip",
     "publicUrl": "https://mythicalvoid.com/press/creator-kit/mythical-void-authentic-gameplay-creator-kit.zip",
-    "bytes": 10660492,
-    "sha256": "43df00a7b0636f2b7fb4d05ba590880b3fa104323a72d0ad8b3d966202c30ff8",
+    "bytes": 10660512,
+    "sha256": "26646107d2f2b65c6500a61a917aace79fd3c8b3f0543121d01aee3f6ecfb247",
     "rootFolder": "mythical-void-creator-kit",
     "fileCount": 12
   },
@@ -19,13 +19,13 @@
     },
     {
       "path": "mythical-void-creator-kit/captions/authentic-gameplay-caption-pack.json",
-      "bytes": 3970,
-      "sha256": "d4ba65588da0f0e559e0b55e8372bc37738f915be5571b9fec71a7976e8c9567"
+      "bytes": 4057,
+      "sha256": "8d5f5cf44c356a4918ffa86428e9051c77b75f9d9823bf66b55408e139fabf5d"
     },
     {
       "path": "mythical-void-creator-kit/facts/mythical-void-fact-sheet.txt",
-      "bytes": 2478,
-      "sha256": "bb80dc79c40c091862a3549a21f9e901aeab6fb2b698da230a5737d537eb9a2b"
+      "bytes": 2464,
+      "sha256": "2543b331138856d8cb55ca0ed7d5aa45c31d6e870b37c0cc5feb9d60d490c4e8"
     },
     {
       "path": "mythical-void-creator-kit/OFFICIAL_CHANNEL_RELEASE_CHECKLIST.txt",
@@ -34,8 +34,8 @@
     },
     {
       "path": "mythical-void-creator-kit/PACKAGE_MANIFEST.json",
-      "bytes": 2994,
-      "sha256": "f0473dfb4a99c25c236146a9cf5757a619837df4e27a8b9d9ce349a0803ca440"
+      "bytes": 2995,
+      "sha256": "4a1ecfb63f2df7cf4f491e1db8e8af2a5b961a27a8f344753fcb7a91996d71c6"
     },
     {
       "path": "mythical-void-creator-kit/posters/mythical-void-real-gameplay-square-poster.png",
@@ -54,8 +54,8 @@
     },
     {
       "path": "mythical-void-creator-kit/README.txt",
-      "bytes": 1825,
-      "sha256": "bc610dcf354506ea3ebe6c4f8dd617a4b066b4b8b067020fc39ab9390caa34d4"
+      "bytes": 1818,
+      "sha256": "a9dae7651461d4f1bbe43214148cc97e07e0fe51865ce31957f410aef9e9e098"
     },
     {
       "path": "mythical-void-creator-kit/videos/mythical-void-real-gameplay-square.mp4",

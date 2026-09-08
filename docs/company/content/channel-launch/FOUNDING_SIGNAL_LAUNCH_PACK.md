@@ -1,4 +1,4 @@
-# The first Mythical Void public signal
+# The first Mythical Void public story
 
 Status: the owned website loop is live; the first outside post waits only for Kevin to confirm the account and approve the complete preview.
 
@@ -8,7 +8,7 @@ no broken image or horizontal page overflow was observed.
 
 ## Why this story goes first
 
-Mythical Void needs a human beginning before it needs a stream of product announcements. The clearest true story is that a father and his nine-year-old son used imagination and generative AI tools to see whether they could build the game they talked about together.
+Mythical Void needs a human beginning before it needs a stream of product announcements. The clearest true story is that a father and his son used imagination and generative AI tools to see whether they could build the game they talked about together.
 
 That beginning leads to something people can try now: a free browser adventure with creature genetics, six living realms, restoration, choices and optional NASA-powered discovery.
 
@@ -16,7 +16,7 @@ The first post should come from Kevin’s existing professional profile if he wa
 
 ## Complete first post
 
-Nine-year-olds ask questions that do not fit neatly inside a business plan.
+Children ask questions that do not fit neatly inside a business plan.
 
 What might live in a world where gravity points sideways? Could a creature sense energy as music? And could a father, his son and today’s generative AI tools turn those ideas into a game?
 
@@ -32,7 +32,7 @@ The game is free to start. No download or account is needed.
 
 See the story and play: https://mythicalvoid.com/studio/
 
-If it makes you think of someone who loves creatures, strange worlds, games or space, pass the signal on.
+If it makes you think of someone who loves creatures, strange worlds, games or space, pass it on.
 
 ## What the preview should show
 

@@ -45,7 +45,8 @@ for (const asset of [linkedIn?.assets?.logo, linkedIn?.assets?.coverSource, yout
 const publicCopy = JSON.stringify(kit.channels || []);
 requireValue(!/\bcompanions?\b/i.test(publicCopy), 'public channel copy uses retired companion wording');
 requireValue(/NASA does not endorse Mythical Void\./.test(publicCopy), 'NASA non-endorsement boundary is missing');
-requireValue(/father-and-son/i.test(publicCopy) && /nine-year-old son/i.test(publicCopy), 'father-and-son origin is missing');
+requireValue(/father-and-son/i.test(publicCopy) && /Kevin and his son/i.test(publicCopy), 'father-and-son origin is missing');
+requireValue(!/\b(?:nine|9)[ -]year[ -]old\b/i.test(publicCopy), "public channel copy publishes the founder's child's exact age");
 requireValue(!/no two creatures|every creature is unique|sentient creature/i.test(publicCopy), 'unsupported creature claim is present');
 
 for (const field of ['accountCreationAuthorized', 'platformTermsAcceptanceAuthorized', 'publishingAuthorized', 'replyingAuthorized', 'paidProductsAuthorized', 'paidPromotionAuthorized', 'externalActionTaken']) {

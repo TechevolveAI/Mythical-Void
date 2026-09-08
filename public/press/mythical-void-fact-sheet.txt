@@ -26,7 +26,7 @@ THE GAME
 - Discover optional learning moments using selected NASA public space data.
 
 THE STUDIO STORY
-Mythical Void began as a father-and-son project in Ireland. Kevin and his nine-year-old son explored what generative AI tools and a lot of imagination could make possible. Their conversations became strange creatures, living worlds and playable moments. AI helps the small team explore and build; people remain responsible for the story, safety and important choices.
+Mythical Void began as a father-and-son project in Ireland. Kevin and his son explored what generative AI tools and a lot of imagination could make possible. Their conversations became strange creatures, living worlds and playable moments. AI helps the small team explore and build; people remain responsible for the story, safety and important choices.
 
 ACCURATE LANGUAGE
 Use: creature adventure; procedural creature genetics; playable in a browser; AI-assisted creative work; generated marketing illustration.

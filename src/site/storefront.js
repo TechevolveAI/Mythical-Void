@@ -143,8 +143,8 @@ function renderPressPage() {
                     </div>
                     <div class="press-origin-copy">
                         <p class="kicker">THE BEGINNING</p>
-                        <h2>A father, his nine-year-old son and one enormous idea.</h2>
-                        <p>Mythical Void began at home with Kevin and his nine-year-old son exploring what generative AI tools and a lot of imagination could make possible.</p>
+                        <h2>A father, his son and one enormous idea.</h2>
+                        <p>Mythical Void began at home with Kevin and his son exploring what generative AI tools and a lot of imagination could make possible.</p>
                         <p>Their conversations became strange creatures, living worlds and playable moments. AI helps the small team explore and build; people remain responsible for the story, safety and important choices.</p>
                         <blockquote>“What if we could build the game we imagined together?”</blockquote>
                     </div>
@@ -504,14 +504,14 @@ function renderStorefront() {
                 <div class="section-inner">
                     <div class="studio-heading">
                         <p class="kicker">OUR BEGINNING</p>
-                        <h2>A dad. His nine-year-old son.<br><em>One enormous idea.</em></h2>
-                        <p class="studio-intro">Mythical Void began at home as a father-and-son project—Kevin and his nine-year-old son exploring what generative AI tools and a lot of imagination could make possible.</p>
+                        <h2>A dad. His son.<br><em>One enormous idea.</em></h2>
+                        <p class="studio-intro">Mythical Void began at home as a father-and-son project—Kevin and his son exploring what generative AI tools and a lot of imagination could make possible.</p>
                     </div>
                     <div class="studio-story-grid">
                         <div class="studio-origin-card" aria-label="How two imaginations became Mythical Void">
                             <div class="origin-stars" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
                             <div class="origin-thought origin-thought-dad"><span>A father's curiosity</span></div>
-                            <div class="origin-thought origin-thought-son"><span>A nine-year-old's imagination</span></div>
+                            <div class="origin-thought origin-thought-son"><span>A child's imagination</span></div>
                             <div class="origin-thread origin-thread-left" aria-hidden="true"></div>
                             <div class="origin-thread origin-thread-right" aria-hidden="true"></div>
                             <div class="origin-spark">

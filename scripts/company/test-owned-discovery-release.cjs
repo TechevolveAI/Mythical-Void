@@ -87,6 +87,7 @@ invalid('index.html', source => source.replace('"offers": {', '"screenshot": "ht
 invalid('README.md', source => source.replace('[Play Mythical Void](https://mythicalvoid.com/playable-now/)', 'Play sometime'), 'public GitHub doorway is missing');
 invalid('README.md', source => source.replace(/NASA does not make or endorse\s+the game/, 'NASA makes the game'), 'NASA boundary');
 invalid('README.md', source => source.replace('[Latest game updates](https://mythicalvoid.com/updates/)', 'Updates coming soon'), 'public GitHub doorway is missing');
+invalid('README.md', source => source.replace('son exploring', 'nine-year-old son exploring'), "child's exact age");
 invalid('README.md', source => `${source}\nWorld Size: 1600x1200\n20 trees\n30 rocks\n40 interactive flowers\n`, 'obsolete prototype world');
 
 function measurementFixture(consentChoice) {
@@ -114,5 +115,5 @@ assert.deepStrictEqual(JSON.parse(JSON.stringify(playSelected[2])), {
     transport_type: 'beacon'
 });
 
-assert.strictEqual(cases, 20);
-console.log('Owned discovery release evaluations passed (20 cases).');
+assert.strictEqual(cases, 21);
+console.log('Owned discovery release evaluations passed (21 cases).');

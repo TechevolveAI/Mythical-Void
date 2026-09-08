@@ -26,7 +26,7 @@
         "companySize": "Kevin selects the truthful value offered by LinkedIn; do not infer a staff count.",
         "companyType": "Kevin selects the truthful legal status; do not imply incorporation or employees.",
         "tagline": "A father-and-son studio building a free browser adventure of alien creatures, living worlds and meaningful choices.",
-        "about": "Mythical Void began in Ireland as a father-and-son project: Kevin and his nine-year-old son asking what imagination and generative AI tools could make possible. The result is a free browser adventure where players hatch strange alien creatures, cross six living realms, restore their guardians and decide what Project Beacon should tell Earth.\n\nWe are building Mythical as an AI-first, human-governed independent studio. AI helps us explore and create; people remain responsible for safety, story, public claims and important player choices. Selected public NASA material can appear in optional STEM discovery moments. NASA does not endorse Mythical Void.\n\nPlay: https://mythicalvoid.com/play/\nOur story: https://mythicalvoid.com/studio/"
+        "about": "Mythical Void began in Ireland as a father-and-son project: Kevin and his son asking what imagination and generative AI tools could make possible. The result is a free browser adventure where players hatch strange alien creatures, cross six living realms, restore their guardians and decide what Project Beacon should tell Earth.\n\nWe are building Mythical as an AI-first, human-governed independent studio. AI helps us explore and create; people remain responsible for safety, story, public claims and important player choices. Selected public NASA material can appear in optional STEM discovery moments. NASA does not endorse Mythical Void.\n\nPlay: https://mythicalvoid.com/play/\nOur story: https://mythicalvoid.com/studio/"
       },
       "assets": {
         "logo": "public/marketing/mythical-void-mark-512.png",
@@ -53,7 +53,7 @@
         "handleCandidate": "@PlayMythicalVoid",
         "fallbackHandleCandidate": "@MythicalVoidGame",
         "handleAvailabilityVerified": false,
-        "description": "Enter a free browser adventure where you hatch a strange alien creature, cross six living realms and decide what Project Beacon should tell Earth.\n\nMythical Void began in Ireland as a father-and-son project between Kevin and his nine-year-old son. We use generative AI as a creative tool, with people responsible for story, safety and important choices. Selected public NASA material can appear in optional STEM discovery moments. NASA does not endorse Mythical Void.\n\nPlay free: https://mythicalvoid.com/play/\nGame guide: https://mythicalvoid.com/playable-now/\nFor grown-ups: https://mythicalvoid.com/parents/"
+        "description": "Enter a free browser adventure where you hatch a strange alien creature, cross six living realms and decide what Project Beacon should tell Earth.\n\nMythical Void began in Ireland as a father-and-son project between Kevin and his son. We use generative AI as a creative tool, with people responsible for story, safety and important choices. Selected public NASA material can appear in optional STEM discovery moments. NASA does not endorse Mythical Void.\n\nPlay free: https://mythicalvoid.com/play/\nGame guide: https://mythicalvoid.com/playable-now/\nFor grown-ups: https://mythicalvoid.com/parents/"
       },
       "assets": {
         "profileImage": "public/marketing/mythical-void-mark-512.png",

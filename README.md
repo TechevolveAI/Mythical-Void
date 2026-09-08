@@ -63,9 +63,9 @@ the game.
 ## The studio story
 
 Mythical Void began in Ireland as a father-and-son experiment: Kevin and his
-nine-year-old son exploring what imagination and generative AI tools could make
-possible. Their conversations became strange creatures, living worlds and
-playable moments.
+son exploring what imagination and generative AI tools could make possible.
+Their conversations became strange creatures, living worlds and playable
+moments.
 
 AI helps this small independent studio explore, build and test. People remain
 responsible for the story, safety boundaries, public claims and important

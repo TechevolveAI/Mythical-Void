@@ -56,7 +56,7 @@ and [use YouTube channel permissions](https://support.google.com/youtube/answer/
 **About**
 
 > Mythical Void began in Ireland as a father-and-son project: Kevin and his
-> nine-year-old son asking what imagination and generative AI tools could make
+> son asking what imagination and generative AI tools could make
 > possible. The result is a free browser adventure where players hatch strange
 > alien creatures, cross six living realms, restore their guardians and decide
 > what Project Beacon should tell Earth.
@@ -87,7 +87,7 @@ and [use YouTube channel permissions](https://support.google.com/youtube/answer/
 > cross six living realms and decide what Project Beacon should tell Earth.
 >
 > Mythical Void began in Ireland as a father-and-son project between Kevin and
-> his nine-year-old son. We use generative AI as a creative tool, with people
+> his son. We use generative AI as a creative tool, with people
 > responsible for story, safety and important choices. Selected public NASA
 > material can appear in optional STEM discovery moments. NASA does not endorse
 > Mythical Void.
