@@ -6,7 +6,7 @@ export const SIGNAL_GARDEN_STAGES = Object.freeze([
 ]);
 
 const STAGE_MESSAGES = Object.freeze({
-    sprout: 'A tiny light leans toward your companion.',
+    sprout: 'A tiny light leans toward your creature.',
     bud: 'The sprout answers the memories you restored.',
     bloom: 'It blooms in colors neither world made alone.'
 });

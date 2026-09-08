@@ -14,7 +14,7 @@ export const FEND_COMMONS_PRIORITIES = Object.freeze([
         decisionLine:
             'First, we open shelter. No frightened life should have to earn a safe night.',
         companionLine:
-            'Your companion marks safe paths that instruments cannot see.'
+            'Your creature marks safe paths that instruments cannot see.'
     }),
     Object.freeze({
         id: 'restoration',
@@ -26,7 +26,7 @@ export const FEND_COMMONS_PRIORITIES = Object.freeze([
         decisionLine:
             'First, we return the flow. Repair begins where the living network is weakest.',
         companionLine:
-            'Your companion listens for the quietest part of the Current.'
+            'Your creature listens for the quietest part of the Current.'
     }),
     Object.freeze({
         id: 'warning',
@@ -38,7 +38,7 @@ export const FEND_COMMONS_PRIORITIES = Object.freeze([
         decisionLine:
             'First, we extend the warning. Every settlement deserves time to choose its own response.',
         companionLine:
-            'Your companion gives the relay a living voice that cannot be mistaken for an order.'
+            'Your creature gives the relay a living voice that cannot be mistaken for an order.'
     })
 ]);
 

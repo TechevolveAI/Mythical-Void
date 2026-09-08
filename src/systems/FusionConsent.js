@@ -157,7 +157,7 @@ export function getFusionCompanionReadiness(parent, now = Date.now()) {
     );
     return {
         creatureId,
-        name: String(parent?.name || 'Companion').slice(0, 20),
+        name: String(parent?.name || 'Creature').slice(0, 20),
         willing,
         reason: willing
             ? 'approaches_willingly'

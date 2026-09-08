@@ -205,7 +205,7 @@ describe('second expedition rescue loop', () => {
         expect(core).toContain('!this.crystalWoundTended');
         expect(core).toContain('this.crystalCoreFound = true');
         expect(source).toContain('Follow the next cyan pulse.');
-        expect(source).toContain('Reach the living fracture with your companion.');
+        expect(source).toContain('Reach the living fracture with your creature.');
         expect(source).toContain('Guardian awakening');
         expect(source).toContain("{ text: 'Beacon Route Aligned', done: this.caveRouteAligned }");
 

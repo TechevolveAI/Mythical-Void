@@ -6,7 +6,7 @@ export const FIRST_EXPEDITION_DRILL_STEPS = Object.freeze([
         id: 'footing',
         action: 'move',
         heading: 'KIHON 1/3 // FIND YOUR FOOTING',
-        instruction: 'Move with {companion}. The astronaut stays close.',
+        instruction: 'Move with {creature}. The astronaut stays close.',
         desktopControl: 'A / D  OR  LEFT / RIGHT',
         mobileControl: 'MOVE THE JOYSTICK LEFT OR RIGHT'
     }),
@@ -14,7 +14,7 @@ export const FIRST_EXPEDITION_DRILL_STEPS = Object.freeze([
         id: 'root',
         action: 'jump',
         heading: 'KIHON 2/3 // CLEAR THE ROOT',
-        instruction: 'Help {companion} clear the first root.',
+        instruction: 'Help {creature} clear the first root.',
         desktopControl: 'SPACE / W / UP',
         mobileControl: 'TAP JUMP (UP ARROW)'
     }),
@@ -30,11 +30,11 @@ export const FIRST_EXPEDITION_DRILL_STEPS = Object.freeze([
 
 export function getFirstExpeditionCompanionName(value) {
     if (typeof value !== 'string') {
-        return 'your companion';
+        return 'your creature';
     }
 
     const normalized = value.trim().replace(/\s+/g, ' ').slice(0, 20);
-    return normalized || 'your companion';
+    return normalized || 'your creature';
 }
 
 export function getFirstExpeditionDrillStep(
@@ -53,7 +53,7 @@ export function getFirstExpeditionDrillStep(
 
     return {
         ...step,
-        instruction: step.instruction.replace('{companion}', displayName),
+        instruction: step.instruction.replace('{creature}', displayName),
         control: isMobile ? step.mobileControl : step.desktopControl
     };
 }

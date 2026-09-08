@@ -2531,7 +2531,7 @@ class GameStateManager {
         const collection = this.getCreatureCollection();
         const companions = collection.map(creature => ({
             id: creature?.id || null,
-            name: creature?.name || 'Unnamed companion',
+            name: creature?.name || 'Unnamed creature',
             ...this.getCreatureFusionReadiness(creature, now)
         }));
         const eligibleCount = companions.filter(companion => companion.eligible).length;
@@ -5757,7 +5757,7 @@ class GameStateManager {
             1: { title: 'Stranger', perk: 'Starting your journey' },
             2: { title: 'Acquaintance', perk: 'Getting to know each other' },
             3: { title: 'Friend', perk: 'Building trust' },
-            4: { title: 'Companion', perk: 'Growing closer' },
+            4: { title: 'Creature Keeper', perk: 'Growing closer' },
             5: { title: 'Trusted Ally', perk: 'Ability Slot 2 unlocked!' },
             6: { title: 'Close Friend', perk: 'Deeper connection' },
             7: { title: 'Partner', perk: 'Working as a team' },
@@ -5768,7 +5768,7 @@ class GameStateManager {
             12: { title: 'Kindred Spirit', perk: 'Minds intertwined' },
             13: { title: 'Heart Link', perk: 'Emotions synchronized' },
             14: { title: 'Cosmic Pair', perk: 'Destiny intertwined' },
-            15: { title: 'Eternal Bond', perk: 'Forever companions' },
+            15: { title: 'Eternal Bond', perk: 'Friends forever' },
             16: { title: 'Legendary', perk: 'Stories told of your bond' },
             17: { title: 'Mythical', perk: 'Bond transcends time' },
             18: { title: 'Transcendent', perk: 'Beyond mortal bonds' },

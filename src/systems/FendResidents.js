@@ -16,7 +16,7 @@ export const FEND_RESIDENT_DEFINITIONS = Object.freeze([
             id: 'shelter_calibration',
             title: 'Shelter Calibration',
             briefing:
-                'Tune the shelter anchors while your companion checks the living roots beneath them.',
+                'Tune the shelter anchors while your creature checks the living roots beneath them.',
             objective: 'Tend the Memory Garden once after speaking with Kiri.',
             actionLine: 'Human instruments above. Creature senses below. Neither works alone.',
             completionLine:
@@ -41,9 +41,9 @@ export const FEND_RESIDENT_DEFINITIONS = Object.freeze([
             id: 'well_return_flow',
             title: 'Return Flow',
             briefing:
-                'Choose one more act of care in the damaged network while your companion guides the released Current home.',
+                'Choose one more act of care in the damaged network while your creature guides the released Current home.',
             objective: 'Complete one new care action in a Current restoration region.',
-            actionLine: 'Repair the channel. Let your companion choose how the Current returns.',
+            actionLine: 'Repair the channel. Let your creature choose how the Current returns.',
             completionLine:
                 'The flow came back quieter than it left. That is how we know it was returned, not taken.',
             evidence: Object.freeze({
@@ -68,7 +68,7 @@ export const FEND_RESIDENT_DEFINITIONS = Object.freeze([
             briefing:
                 'Bring all three signs-of-life patterns to the relay so no settlement has to cross the Fend blind.',
             objective: 'Observe all three signs of life, then return to Tovan.',
-            actionLine: 'Your field receiver aligns the pattern. Your companion translates the living response.',
+            actionLine: 'Your field receiver aligns the pattern. Your creature translates the living response.',
             completionLine:
                 'The relay carries warnings, not orders. Any settlement can answer, and any settlement can refuse.',
             evidence: Object.freeze({
@@ -91,9 +91,9 @@ export const FEND_RESIDENT_DEFINITIONS = Object.freeze([
             id: 'commons_witness',
             title: 'Held Coordinates',
             briefing:
-                'Confirm that Wanderer-77 still holds the Fend coordinates after the network witnessed your companion’s full power.',
+                'Confirm that Wanderer-77 still holds the Fend coordinates after the network witnessed your creature’s full power.',
             objective: 'Keep the uplink held and the Fend coordinates protected.',
-            actionLine: 'The astronaut secures the channel. The companion stands as a citizen, not a sample.',
+            actionLine: 'The astronaut secures the channel. The creature stands as a citizen, not a sample.',
             completionLine:
                 'Then Earth has not been rejected. Contact has been delayed until both worlds can meet without ownership.',
             evidence: Object.freeze({

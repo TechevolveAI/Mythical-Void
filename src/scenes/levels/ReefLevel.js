@@ -451,7 +451,7 @@ class ReefLevel extends PlatformerLevelScene {
         const storyText = this.add.text(width / 2, y(125),
             'Ancient star-travelers crossed these living currents.\n' +
             'The Void broke their route into scattered pieces.\n' +
-            'Your instruments hear noise. Your companion hears a path.', {
+            'Your instruments hear noise. Your creature hears a path.', {
             fontSize: font(12, 11),
             color: '#9370DB',
             align: 'center',
@@ -640,8 +640,8 @@ class ReefLevel extends PlatformerLevelScene {
 
     getCompanionName() {
         return String(
-            window.GameState?.get?.('creature.name') || 'Your companion'
-        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your companion';
+            window.GameState?.get?.('creature.name') || 'Your creature'
+        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your creature';
     }
 
     shouldAnimateReefDecorations() {

@@ -467,8 +467,8 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
     getCompanionName() {
         return String(
-            window.GameState?.get?.('creature.name') || 'Your companion'
-        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your companion';
+            window.GameState?.get?.('creature.name') || 'Your creature'
+        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your creature';
     }
 
     startLevel() {
@@ -1268,7 +1268,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
                     name: 'Quiet Aurora Egg',
                     type: 'egg',
                     rarity: 'rare',
-                    description: 'An egg sheltered inside the light your companion turned away from the sky.',
+                    description: 'An egg sheltered inside the light your creature turned away from the sky.',
                     icon: '🥚🌌'
                 });
                 window.AudioManager?.playAchievement?.();

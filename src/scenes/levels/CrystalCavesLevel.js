@@ -578,8 +578,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
     getCompanionName() {
         return String(
-            window.GameState?.get?.('creature.name') || 'Your companion'
-        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your companion';
+            window.GameState?.get?.('creature.name') || 'Your creature'
+        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your creature';
     }
 
     /**
@@ -4464,7 +4464,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         const message = !this.caveRouteAligned
             ? 'Follow the next cyan pulse.'
-            : 'Reach the living fracture with your companion.';
+            : 'Reach the living fracture with your creature.';
         this.showFloatingText(message, this.player.x, this.player.y - 70, '#F2C94C');
         window.FeedbackManager?.cameraFlash?.(this, 180, 242, 193, 78);
         this.coreGateHintUntil = now + 1800;

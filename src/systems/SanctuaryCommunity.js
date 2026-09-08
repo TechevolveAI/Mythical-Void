@@ -22,7 +22,7 @@ function getCompanionRoster(gameState) {
         return [{
             ...creature,
             id,
-            name: creature.name || 'Unnamed companion',
+            name: creature.name || 'Unnamed creature',
             communityType: index === 0 ? 'player_companion' : 'companion',
             isPlayerCompanion: index === 0
         }];

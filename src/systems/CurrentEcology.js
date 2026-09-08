@@ -47,7 +47,7 @@ const CURRENT_ACTION_DEFINITIONS = Object.freeze({
         label: 'REDIRECT',
         effectLabel: '+12 VITALITY',
         fieldSummary: 'Return loose energy to the living network.',
-        result: 'Your companion guides loose energy back toward the living network.',
+        result: 'Your creature guides loose energy back toward the living network.',
         companionLine: 'Not ours. Back where it belongs.'
     }),
     siphon: Object.freeze({

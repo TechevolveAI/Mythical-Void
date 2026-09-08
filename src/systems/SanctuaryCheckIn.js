@@ -27,9 +27,9 @@ const CHECK_IN_LINES = Object.freeze({
 });
 
 function cleanName(value) {
-    if (typeof value !== 'string') return 'Your companion';
+    if (typeof value !== 'string') return 'Your creature';
     const cleaned = value.replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, 28);
-    return cleaned || 'Your companion';
+    return cleaned || 'Your creature';
 }
 
 function getCycleLabel(hour) {
@@ -144,7 +144,7 @@ export function getSanctuaryReturnSummary({
     nextVillage,
     events = [],
     offlineMinutes = 0,
-    companionName = 'Your companion'
+    companionName = 'Your creature'
 } = {}) {
     const gains = getResourceGains(previousVillage, nextVillage);
     const completedBuildings = getCompletedBuildings(previousVillage, nextVillage);

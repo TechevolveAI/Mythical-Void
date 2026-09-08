@@ -204,8 +204,8 @@ export default class KatanaArtifactModal {
         content.append(timeline);
 
         const companionLine = context === 'upgrade'
-            ? `${creatureName || 'Your companion'} watches the two worlds become one instrument.`
-            : `${creatureName || 'Your companion'} studies the sealed scabbard, then looks back to you.`;
+            ? `${creatureName || 'Your creature'} watches the two worlds become one instrument.`
+            : `${creatureName || 'Your creature'} studies the sealed scabbard, then looks back to you.`;
         content.append(createTextElement('p', 'katana-artifact-companion', companionLine));
 
         const button = createTextElement(

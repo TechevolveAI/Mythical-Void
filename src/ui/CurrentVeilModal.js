@@ -136,7 +136,7 @@ export default class CurrentVeilModal {
             : snapshot.verificationReady
                 ? 'All three anchors answer as one network. Return to Wanderer-77 to test the packet against the living mask.'
                 : snapshot.active
-                    ? 'Your companion can hear where the ship timing still matches the Current. Stabilize each echo without silencing the Fend.'
+                    ? 'Your creature can hear where the ship timing still matches the Current. Stabilize each echo without silencing the Fend.'
                     : 'Ilyra found a risk inside the sealed packet: black-box timing contains a Current rhythm. A skilled receiver could infer a route even without coordinates.';
         addText(contentLeft, top + 70, title, {
             fontSize: compact ? '19px' : '25px',

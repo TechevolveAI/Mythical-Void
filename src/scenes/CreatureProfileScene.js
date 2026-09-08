@@ -347,7 +347,7 @@ export default class CreatureProfileScene extends Phaser.Scene {
         const title = this.add.text(
             margin + 14,
             top + 14,
-            'SHARED COMPANION RECORD',
+            'SHARED CREATURE RECORD',
             {
                 fontSize: this.isMobile ? '11px' : '13px',
                 color: '#8FE3CF',
@@ -504,7 +504,7 @@ export default class CreatureProfileScene extends Phaser.Scene {
             const eyebrow = this.add.text(
                 width / 2,
                 Math.max(42, height * 0.1),
-                'PRIVATE FIELD MEMORY // EXACT COMPANION ART',
+                'PRIVATE FIELD MEMORY // EXACT CREATURE ART',
                 {
                     fontFamily: 'Arial, sans-serif',
                     fontSize: width < 620 ? '11px' : '14px',

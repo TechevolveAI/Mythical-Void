@@ -181,7 +181,7 @@ export default class ControlsTutorialOverlay {
         const companionNote = this.scene.add.text(
             width / 2,
             centerY + 135,
-            'Tap companion: Care, Chat, Profile.',
+            'Tap creature: Care, Chat, Profile.',
             {
                 fontSize: '13px',
                 color: '#B9DAD7',
@@ -209,7 +209,7 @@ export default class ControlsTutorialOverlay {
             { keys: 'SPACE', action: 'Interact with markers' },
             { keys: 'TAB', action: 'Open Care Corner' },
             { keys: 'F / Y / R', action: 'Feed, play, or rest' },
-            { keys: 'T', action: 'Talk with companion' },
+            { keys: 'T', action: 'Talk with creature' },
             { keys: 'I', action: 'Open field inventory' },
             { keys: 'ESC', action: 'Close menus' }
         ];

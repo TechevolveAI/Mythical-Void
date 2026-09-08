@@ -127,7 +127,7 @@ describe('Wanderer-77 reconstruction gameplay contract', () => {
             'powered_berth_service'
         );
         expect(modal).toContain(
-            'SERVICE COMPANION AT POWERED BERTH'
+            'CARE FOR CREATURE AT POWERED BERTH'
         );
         expect(modal).toContain(
             'BERTH ${reconstruction.fieldSupport.status}'

@@ -23,7 +23,7 @@ describe('first-expedition handoff contract', () => {
         expect(hubSource).toContain('handoff.primaryAction');
         expect(hubSource).toContain('handoff.secondaryAction');
         expect(hubSource).toContain(
-            '`COMPANION // ${companionName}: "${handoff.companionMoment}"`'
+            '`CREATURE // ${companionName}: "${handoff.companionMoment}"`'
         );
         expect(hubSource).toContain('this.enterGate(forestGate)');
     });

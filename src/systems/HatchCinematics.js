@@ -586,7 +586,7 @@ class HatchCinematicsManager {
         auroraGlow.fillGradientStyle(config.colors.particles, config.colors.glow, config.colors.particles, config.colors.glow, 0.3);
         auroraGlow.fillRoundedRect(-180, -30, 360, 60, 20);
         
-        const promptText = scene.add.text(0, 0, '✨ Name Your Stellar Companion! ✨', {
+        const promptText = scene.add.text(0, 0, '✨ Name Your Stellar Creature! ✨', {
             fontSize: '22px',
             color: '#FFD54F',
             stroke: '#37474F',
@@ -599,7 +599,7 @@ class HatchCinematicsManager {
         promptContainer.add([auroraGlow, promptText]);
         
         // Accessibility
-        promptContainer.setData('ariaLabel', 'Ready to name your space companion');
+        promptContainer.setData('ariaLabel', 'Ready to name your space creature');
         promptContainer.setData('role', 'alert');
         
         // Gentle aurora descent with cozy whoosh

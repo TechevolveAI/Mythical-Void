@@ -113,8 +113,8 @@ export function getGuardianCompanionRecognition(gameState, guardianId) {
         || {};
     const dna = getValue(gameState, 'creature.dna', {}) || {};
     const companionName = cleanText(
-        getValue(gameState, 'creature.name', 'Companion'),
-        'Companion',
+        getValue(gameState, 'creature.name', 'Creature'),
+        'Creature',
         24
     );
     const storedPersonality = getValue(gameState, 'creature.personality', null);

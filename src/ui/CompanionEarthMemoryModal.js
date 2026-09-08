@@ -152,7 +152,7 @@ export default class CompanionEarthMemoryModal {
     renderMenu({
         snapshot, compact, width, top, bandHeight, depth, addText
     }) {
-        addText(top + 65, 'YOUR COMPANION ASKS ABOUT EARTH', {
+        addText(top + 65, 'YOUR CREATURE ASKS ABOUT EARTH', {
             fontSize: compact ? '17px' : '23px',
             color: '#F2C14E',
             fontStyle: 'bold'
@@ -257,7 +257,7 @@ export default class CompanionEarthMemoryModal {
             color: '#EAF7F4',
             lineSpacing: 5
         });
-        addText(top + (compact ? 286 : 310), 'YOUR COMPANION', {
+        addText(top + (compact ? 286 : 310), 'YOUR CREATURE', {
             fontSize: compact ? '9px' : '11px',
             color: '#D94B4B',
             fontStyle: 'bold'

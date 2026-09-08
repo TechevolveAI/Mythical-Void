@@ -87,7 +87,7 @@ function normalizeIdentifier(value, fallback = null, maxLength = 96) {
     return normalized ? normalized.slice(0, maxLength) : fallback;
 }
 
-function normalizeName(value, fallback = 'Companion') {
+function normalizeName(value, fallback = 'Creature') {
     if (typeof value !== 'string') return fallback;
     const normalized = value
         .replace(/[\u0000-\u001F\u007F<>]/g, '')
@@ -932,7 +932,7 @@ export function getHomecomingReadiness(payload = {}) {
     const requirements = [
         {
             id: 'companion_continuity',
-            label: 'COMPANION CONTINUITY',
+            label: 'CREATURE CONTINUITY',
             complete:
                 normalized.companion.id !== 'companion' &&
                 normalized.companion.species !== 'unknown_species' &&
@@ -940,7 +940,7 @@ export function getHomecomingReadiness(payload = {}) {
             readyDetail:
                 `${normalized.companion.name}'s identity, lineage, bond, and powers are portable.`,
             pendingDetail:
-                'Complete the companion identity record and witness their core power.'
+                'Complete the creature identity record and witness their core power.'
         },
         {
             id: 'living_world_record',
@@ -1018,9 +1018,9 @@ export function getHomecomingReadiness(payload = {}) {
                     'route_recovered' &&
                 !normalized.sensei.contactEstablished,
             readyDetail:
-                'The companion keeps veto power and the unused Sensei route is recoverable.',
+                'The creature keeps veto power and the unused Sensei route is recoverable.',
             pendingDetail:
-                'Finish companion boundaries and recover all three Sensei memories.'
+                'Finish creature boundaries and recover all three Sensei memories.'
         }
     ].map(requirement => ({
         id: requirement.id,

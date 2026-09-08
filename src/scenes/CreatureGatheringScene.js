@@ -602,7 +602,7 @@ export default class CreatureGatheringScene extends Phaser.Scene {
 
         // Current indicator
         if (creatureData.isCurrent) {
-            const currentBadge = this.add.text(width / 2, panelY + 130, '⭐ Active Companion ⭐', {
+            const currentBadge = this.add.text(width / 2, panelY + 130, '⭐ Active Creature ⭐', {
                 fontSize: '12px',
                 color: '#88FF88'
             }).setOrigin(0.5).setDepth(202);

@@ -35,13 +35,13 @@ describe('Living Signal first-session contract', () => {
         );
     });
 
-    test('requires a short companion-led listening dwell and saves each encounter', () => {
+    test('requires a short creature-led listening dwell and saves each encounter', () => {
         expect(gameSceneSource).toContain('checkLivingSignalProximity(delta');
         expect(gameSceneSource).toContain('this.livingSignalDwellMs >= 800');
         expect(gameSceneSource).toContain('nearest.distance > 150');
         expect(gameSceneSource).toContain('Not an Earth transmission');
         expect(gameSceneSource).toContain(
-            'SIGNS OF LIFE // LISTEN TOGETHER'
+            'LIFE CALL // STAND TOGETHER'
         );
         expect(gameSceneSource).toContain('LISTENING ${percent}% // HOLD STILL');
         expect(gameSceneSource).toContain('this.livingSignalDwellMs / 800');
@@ -64,7 +64,7 @@ describe('Living Signal first-session contract', () => {
             'NEXT // Follow the marked pulse. Listen ${result.progress}/${result.total}.'
         );
         expect(gameSceneSource).toContain(
-            'NEXT // Follow your companion toward the World Gate.'
+            'NEXT // Follow your creature toward the World Gate.'
         );
     });
 

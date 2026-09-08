@@ -356,7 +356,7 @@ class CollectibleManager {
                         reward: { xp: { min: 80, max: 110 } },
                         spawnWeight: 3,
                         isLore: true,
-                        loreText: 'The Void is not empty. It is full of possibility. The creatures born here carry fragments of infinite potential. That is why they choose their companions carefully.',
+                        loreText: 'The Void is not empty. It is full of possibility. The creatures born here carry fragments of infinite potential. That is why they choose who to trust carefully.',
                         loreTitle: 'Infinite Potential'
                     }
                 ],
@@ -371,7 +371,7 @@ class CollectibleManager {
                         reward: { xp: { min: 100, max: 140 } },
                         spawnWeight: 3,
                         isLore: true,
-                        loreText: 'The aurora speaks the truth of The Void: We were not stranded here by accident. The creatures called us. They have been waiting for companions worthy of their gifts.',
+                        loreText: 'The aurora speaks the truth of The Void: We were not stranded here by accident. The creatures called us. They have been waiting for someone worthy of their trust.',
                         loreTitle: 'The Calling'
                     },
                     {
@@ -384,7 +384,7 @@ class CollectibleManager {
                         reward: { xp: { min: 100, max: 140 } },
                         spawnWeight: 3,
                         isLore: true,
-                        loreText: 'When the traveler arrives from beyond the stars, the eggs shall awaken. Together, creature and companion will restore what was lost. This is the promise of The Void.',
+                        loreText: 'When the traveler arrives from beyond the stars, the eggs shall awaken. Together, creature and traveler will restore what was lost. This is the promise of The Void.',
                         loreTitle: 'The Promise'
                     }
                 ]

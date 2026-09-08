@@ -5,7 +5,7 @@ export const LIVING_SIGNAL_DEFINITIONS = Object.freeze([
         position: Object.freeze({ x: 500, y: 310 }),
         color: 0x8FE3CF,
         accent: 0xF2C14E,
-        response: 'Its light settles into the rhythm of your companion\'s breathing.',
+        response: 'Its light settles into the rhythm of your creature\'s breathing.',
         companionLine: 'It is listening with us.',
         fieldNote: 'Scanner holstered. Some introductions should not begin with a sample bag.'
     }),

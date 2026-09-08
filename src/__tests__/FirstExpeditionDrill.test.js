@@ -103,8 +103,8 @@ describe('first expedition field drill', () => {
         expect(getFirstExpeditionCompanionName('  Nova   Light  ')).toBe(
             'Nova Light'
         );
-        expect(getFirstExpeditionCompanionName('')).toBe('your companion');
-        expect(getFirstExpeditionCompanionName(null)).toBe('your companion');
+        expect(getFirstExpeditionCompanionName('')).toBe('your creature');
+        expect(getFirstExpeditionCompanionName(null)).toBe('your creature');
         expect(
             getFirstExpeditionCompanionName('ABCDEFGHIJKLMNOPQRSTUVW')
         ).toHaveLength(20);

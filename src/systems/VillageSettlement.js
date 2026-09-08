@@ -529,7 +529,7 @@ export function getVillageWorldState(snapshot) {
                 buildingId: unstaffed.id,
                 definitionId: unstaffed.definitionId,
                 label: `INVITE HELP AT ${unstaffed.definition.shortLabel}`,
-                detail: 'Tap this structure and choose a companion.'
+                detail: 'Tap this structure and choose a creature.'
             }
         };
     }
@@ -663,13 +663,13 @@ export function getVillageOnboardingState(snapshot = {}) {
     } else if (!forager.creature) {
         stage = 'first_helper';
         step = 3;
-        title = 'INVITE YOUR COMPANION';
+        title = 'INVITE YOUR CREATURE';
         instruction = 'A structure only produces supplies when a creature chooses to help there.';
     } else if (!firstFoodDelivered) {
         stage = 'first_delivery';
         step = 4;
         title = 'WATCH THE FIRST SAFE HARVEST';
-        instruction = 'Your companion is returning food to the Heart without stripping the living patch.';
+        instruction = 'Your creature is returning food to the Heart without stripping the living patch.';
     } else if (secondarySupplyCount === 0) {
         stage = 'supply_choice';
         step = 4;
@@ -991,9 +991,9 @@ export function getVillageUnlock(gameState) {
         communityStage: community.stage,
         reason: unlocked
             ? hasCompanion
-                ? 'Your companion has awakened the Village Heart'
+                ? 'Your creature has awakened the Village Heart'
                 : 'First Light Shelter established'
-            : 'Hatch a companion to wake the Village Heart'
+            : 'Hatch a creature to wake the Village Heart'
     };
 }
 
@@ -1024,7 +1024,7 @@ export function getVillageCreatureRoster(gameState) {
         roster.push({
             ...creature,
             id,
-            name: creature.name || 'Unnamed companion',
+            name: creature.name || 'Unnamed creature',
             communityType: index === 0 ? 'player_companion' : 'companion',
             isPlayerCompanion: index === 0,
             villageTraits: Array.isArray(creature.villageTraits)
@@ -1398,7 +1398,7 @@ function getVillagePhase(buildings) {
         objective = `Complete ${producerIds.length - completedProducers} more producer structure${producerIds.length - completedProducers === 1 ? '' : 's'}.`;
     } else if (assignedProducers < producerIds.length) {
         title = 'INVITE CREATURE CREWS';
-        objective = `Invite companions to ${producerIds.length - assignedProducers} unstaffed producer${producerIds.length - assignedProducers === 1 ? '' : 's'}.`;
+        objective = `Invite creatures to ${producerIds.length - assignedProducers} unstaffed producer${producerIds.length - assignedProducers === 1 ? '' : 's'}.`;
     } else if (!completeIds.has('habitat')) {
         title = 'BUILD A SHARED HOME';
         objective = 'Use the supply network to complete a habitat chosen by rescued residents.';
@@ -1890,7 +1890,7 @@ export function getVillageResidentProposal(snapshot, { definitionId = null } = {
     return {
         definitionId: definition.id,
         speakerId: resident.id,
-        speakerName: resident.name || 'Your companion',
+        speakerName: resident.name || 'Your creature',
         speakerRole: resident.role || null,
         speakerArtwork: resident.artwork || null,
         speakerCommunityType: resident.communityType || 'companion',

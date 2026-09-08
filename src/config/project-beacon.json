@@ -94,7 +94,7 @@
       "briefing": "The hatchling is watching what you do. Begin without instruments.",
       "fieldNote": "Easy. Sensei said trust begins with how you enter the room. We entered through the roof.",
       "guidanceDesktop": "Press TAB, then choose Feed or Play.",
-      "guidanceMobile": "Tap your companion, choose Care, then Feed or Play.",
+      "guidanceMobile": "Tap your creature, choose Care, then Feed or Play.",
       "icon": "🤝",
       "type": "story",
       "objective": {
@@ -133,8 +133,8 @@
       "id": "beacon_living_signals",
       "name": "Look for Signs of Life",
       "objectiveLabel": "LISTEN AT 3 MARKED PULSES",
-      "description": "Listen at all three pulses with your companion. They are traces of the planet's living Current, not transmissions from Earth.",
-      "briefing": "These pulses are not messages from Earth. They move through the planet's living Current, and your companion recognizes them like familiar voices. Walk into each pulse and hold position while your companion listens.",
+      "description": "Listen at all three pulses with your creature. They are traces of the planet's living Current, not transmissions from Earth.",
+      "briefing": "These pulses are not messages from Earth. They move through the planet's living Current, and your creature recognizes them like familiar voices. Walk into each pulse and hold position while your creature listens.",
       "fieldNote": "Three readings. No samples until I understand what I am touching.",
       "guidanceDesktop": "Follow the SIGNS OF LIFE marker. Walk into the glow and hold position until something answers.",
       "guidanceMobile": "Follow the SIGNS OF LIFE marker. Use the joystick to enter the glow, then hold position.",
@@ -160,7 +160,7 @@
       "name": "Reach the World Gate",
       "objectiveLabel": "ENTER THE WORLD GATE",
       "description": "Find and enter the gate leading beyond the Sanctuary.",
-      "briefing": "Your companion knows a path beyond the crash site. This time, you are the one being asked to follow.",
+      "briefing": "Your creature knows a path beyond the crash site. This time, you are the one being asked to follow.",
       "fieldNote": "First rule of unfamiliar ground: notice who already knows where to step.",
       "guidanceDesktop": "Follow the WORLD GATE marker and enter when you are ready.",
       "guidanceMobile": "Follow the WORLD GATE marker and tap interact when you are ready.",
@@ -181,7 +181,7 @@
   "firstExpeditionHandoff": {
     "title": "THE PATH ANSWERS",
     "route": "ROOTLIGHT ROUTE // MYTHICAL FOREST",
-    "finding": "The same living Current you found at Rootlight is moving through the gate. Your companion steps forward, then looks back to make sure you are following.",
+    "finding": "The same living Current you found at Rootlight is moving through the gate. Your creature steps forward, then looks back to make sure you are following.",
     "companionMoment": "The Current led us here. Something beyond this gate is calling for help.",
     "fieldNote": "Sensei would say a path is a promise made one step at a time.",
     "primaryAction": "BEGIN EXPEDITION",
@@ -231,7 +231,7 @@
         "label": "Crystal Caves"
       },
       "finding": "The 'structure' was an injured Elder guardian. Clearing the purple corruption restored its living Current. The Forest Core was offered after the rescue. It was not taken.",
-      "companionMoment": "Your companion stayed close through the fight, then approached first when the guardian recovered.",
+      "companionMoment": "Your creature stayed close through the fight, then approached first when the guardian recovered.",
       "fieldNote": "Sensei taught that control means knowing when to stop. The guardian offered the Core after we did."
     },
     {
@@ -245,7 +245,7 @@
         "label": "Stellar Reef"
       },
       "finding": "Around the second system, the scanner finds energy stripped faster than the world can heal. The pattern resembles the damage reported across Earth.",
-      "companionMoment": "Before approaching the ship part, your companion tends a wounded patch of its world.",
+      "companionMoment": "Before approaching the ship part, your creature tends a wounded patch of its world.",
       "fieldNote": "It is not protecting treasure. It is protecting home."
     },
     {
@@ -258,7 +258,7 @@
         "id": "void_peaks",
         "label": "Void Peaks"
       },
-      "finding": "Three restored systems resonate together. At your companion's touch, their pulses align into a route through the Void.",
+      "finding": "Three restored systems resonate together. At your creature's touch, their pulses align into a route through the Void.",
       "companionMoment": "It studies your instruments, corrects the route, and looks pleased when you finally understand.",
       "fieldNote": "I came to catalogue life. Life has started briefing me."
     },
@@ -273,7 +273,7 @@
         "label": "Aurora Depths"
       },
       "finding": "Distant settlements answer your creature's call. These are not random echoes. Warnings are moving between living communities.",
-      "companionMoment": "Your companion keeps you close while the replies arrive, allowing you inside a conversation no human has heard.",
+      "companionMoment": "Your creature keeps you close while the replies arrive, allowing you inside a conversation no human has heard.",
       "fieldNote": "Trust is not something you collect. It is something you return."
     },
     {
@@ -283,7 +283,7 @@
       "icon": "🌍",
       "color": "#F2C14E",
       "finding": "Five systems are online. The uplink can reach Earth, but its message could also reveal this world to everyone listening.",
-      "companionMoment": "Your companion recognizes Earth's symbol on the console and steps closer instead of backing away.",
+      "companionMoment": "Your creature recognizes Earth's symbol on the console and steps closer instead of backing away.",
       "fieldNote": "The mission is larger than the directive now. I am not ready to name the choice, only to admit it exists."
     }
   ]

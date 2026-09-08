@@ -49,7 +49,7 @@ class KidModeManager {
                 action: 'pet', 
                 icon: '🤗', 
                 text: 'PET', 
-                message: "Give your stellar companion some love!",
+                message: 'Give your stellar creature some love!',
                 color: 'hsl(265,55%,78%)'
             }
         };
@@ -245,7 +245,7 @@ class KidModeManager {
                 text: 'PLAY',
                 messages: {
                     curious: `Explore crystal formations with your inquisitive ${genetics.species}!`,
-                    playful: `Dance through the nebula clouds with your joyful companion!`,
+                    playful: `Dance through the nebula clouds with your joyful creature!`,
                     gentle: `Enjoy gentle float-games with your peaceful ${genetics.species}`,
                     wise: `Share constellation wisdom through playful learning!`,
                     energetic: `Race through asteroid fields with your speedy friend!`
@@ -258,7 +258,7 @@ class KidModeManager {
                 text: 'PET',
                 messages: {
                     curious: `Your ${genetics.species} loves gentle touches while exploring!`,
-                    playful: `Tickle and cuddle your joyful space companion!`,
+                    playful: `Tickle and cuddle your joyful space creature!`,
                     gentle: `Soothe your peaceful ${genetics.species} with loving pets`,
                     wise: `Share quiet moments of connection with your sage friend`,
                     energetic: `Give quick loving pets to your active ${genetics.species}!`
@@ -668,13 +668,13 @@ class KidModeManager {
     getActionDescription(action) {
         const descriptions = {
             'FEED': 'Provides cosmic nutrition to your space friend',
-            'REST': 'Helps your companion sleep peacefully in the nebula',
+            'REST': 'Helps your creature sleep peacefully in the nebula',
             'PLAY': 'Explore the crystal gardens together',
-            'PET': 'Give affection to your stellar companion',
+            'PET': 'Give affection to your stellar creature',
             'CLEAN': 'Refresh with aurora shower particles',
             'PHOTO': 'Capture a beautiful moment with your friend'
         };
-        return descriptions[action] || 'Interact with your space companion';
+        return descriptions[action] || 'Interact with your space creature';
     }
 
     /**

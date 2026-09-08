@@ -427,8 +427,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
     getCompanionName() {
         return String(
-            window.GameState?.get?.('creature.name') || 'Your companion'
-        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your companion';
+            window.GameState?.get?.('creature.name') || 'Your creature'
+        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your creature';
     }
 
     startLevel() {

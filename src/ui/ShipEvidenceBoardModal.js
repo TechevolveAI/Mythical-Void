@@ -339,7 +339,7 @@ export default class ShipEvidenceBoardModal {
             protocol.nextStep;
         const buttonLabel = reconstructionActive
             ? berthCanService
-                ? 'SERVICE COMPANION AT POWERED BERTH'
+                ? 'CARE FOR CREATURE AT POWERED BERTH'
             : reconstruction.complete
                 ? archiveComplete
                     ? 'CLOSE RECONSTRUCTION RECORD'

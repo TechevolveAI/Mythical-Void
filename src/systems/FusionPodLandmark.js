@@ -116,7 +116,7 @@ export function getFusionPodLandmarkSnapshot(
             ? `CREATURES ${collection.length}/2`
             : `ADULT CREATURES ${adultCount}/2`;
         interactionLabel = collection.length < 2
-            ? `Fusion needs another companion ${collection.length}/2`
+            ? `Fusion needs another creature ${collection.length}/2`
             : `Fusion adult creatures ${adultCount}/2`;
         tone = 'calibrating';
     }
@@ -143,15 +143,15 @@ export function formatFusionPodLandmarkObjective(snapshot) {
         return 'Locate the dormant Fusion Pod in the Sanctuary.';
     }
     if (snapshot.state === 'dormant') {
-        return 'Rescue a second companion to wake the dormant Fend interface.';
+        return 'Rescue a second creature to wake the dormant Fend interface.';
     }
     if (snapshot.state === 'calibrating') {
-        return `Raise the active companion to field level ${snapshot.levelRequirement}.`;
+        return `Raise the active creature to field level ${snapshot.levelRequirement}.`;
     }
     if (snapshot.state === 'maturing') {
         return snapshot.collectionCount < 2
-            ? 'Rescue another companion. Fusion preserves both parents.'
-            : 'Wait until two companion signatures reach adulthood.';
+            ? 'Rescue another creature. Fusion preserves both parents.'
+            : 'Wait until two creatures reach adulthood.';
     }
     if (snapshot.state === 'capacity_full') {
         return 'Make Sanctuary capacity before creating a new lineage.';

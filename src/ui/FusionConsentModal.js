@@ -47,7 +47,7 @@ export default class FusionConsentModal {
             createElement(
                 'p',
                 'fusion-consent-summary',
-                'Both companions remain themselves. The Pod may stabilize one or two new Current signatures.'
+                'Both creatures remain themselves. The Pod may help one or two new forms of life emerge.'
             )
         );
 
@@ -70,7 +70,7 @@ export default class FusionConsentModal {
                 createElement(
                     'h3',
                     'fusion-consent-parent-name',
-                    parent?.name || 'Companion'
+                    parent?.name || 'Creature'
                 ),
                 createElement(
                     'p',
@@ -98,7 +98,7 @@ export default class FusionConsentModal {
             createElement(
                 'p',
                 'fusion-consent-boundary-copy',
-                'No companion is traded or consumed. Shared Fusion stays sealed until both keepers, both companions, and a protected server invitation agree.'
+                'No creature is traded or consumed. Shared Fusion stays sealed until both keepers, both creatures, and a protected server invitation agree.'
             )
         );
 

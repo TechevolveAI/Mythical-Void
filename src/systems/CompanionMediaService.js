@@ -9,11 +9,11 @@ const DEFAULT_MEDIA_TIMEOUTS = Object.freeze({
     pollWindowMs: 180000
 });
 const COMPANION_VIDEO_MOMENTS = Object.freeze({
-    first_forest_arrival: 'The companion enters the Mythical Forest beside Wanderer-77.',
-    beacon_reflection: 'The companion witnesses the Beacon choice and the cost of returning home.',
-    guardian_rescue: 'The companion helps a rescued guardian leave its cage and choose the Sanctuary.',
-    guardian_trust: 'The companion shares a quiet trust memory with a newly welcomed Sanctuary resident.',
-    guardian_debrief: 'The companion and a Sanctuary resident review what their shared expedition changed.'
+    first_forest_arrival: 'The creature enters the Mythical Forest beside Wanderer-77.',
+    beacon_reflection: 'The creature witnesses the Beacon choice and the cost of returning home.',
+    guardian_rescue: 'The creature helps a rescued guardian leave its cage and choose the Sanctuary.',
+    guardian_trust: 'The creature shares a quiet trust memory with a newly welcomed Sanctuary resident.',
+    guardian_debrief: 'The creature and a Sanctuary resident review what their shared expedition changed.'
 });
 
 function isSupportedVideoMoment(momentId) {

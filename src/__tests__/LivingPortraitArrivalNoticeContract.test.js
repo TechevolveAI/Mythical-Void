@@ -18,7 +18,7 @@ describe('late living portrait arrival contract', () => {
             'void this.maybeShowLivingPortraitReadyNotice(record);'
         );
         expect(gameScene).toContain('LIVING FORM READY');
-        expect(gameScene).toContain('TAP TO VIEW COMPANION PROFILE');
+        expect(gameScene).toContain('TAP TO VIEW CREATURE PROFILE');
         expect(gameScene).toContain('this.openCreatureProfile();');
         expect(gameScene).toContain('timer = this.time.delayedCall(9000');
         expect(gameScene).toContain(

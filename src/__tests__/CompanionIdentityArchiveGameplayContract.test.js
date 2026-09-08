@@ -36,7 +36,7 @@ describe('Companion identity archive gameplay contract', () => {
     });
 
     test('makes the archive part of the Creature Profile workflow', () => {
-        expect(profile).toContain('SHARED COMPANION RECORD');
+        expect(profile).toContain('SHARED CREATURE RECORD');
         expect(profile).toContain('openIdentityArchive');
         expect(profile).toContain(
             'getCompanionIdentityArchiveSnapshot'
@@ -49,7 +49,7 @@ describe('Companion identity archive gameplay contract', () => {
         );
         expect(profile).toContain('showCompanionFieldMemoryReplay');
         expect(profile).toContain(
-            'PRIVATE FIELD MEMORY // EXACT COMPANION ART'
+            'PRIVATE FIELD MEMORY // EXACT CREATURE ART'
         );
         expect(profile).toContain('createCinematicStill?.(this, {');
         expect(profile).toContain("imageUrl: '/marketing/nova.webp'");
@@ -57,7 +57,7 @@ describe('Companion identity archive gameplay contract', () => {
 
     test('uses accessible responsive controls and the requested livery', () => {
         expect(modal).toContain(
-            'FEND CURRENT ARCHIVE // COMPANION RECORD'
+            'FEND CURRENT ARCHIVE // CREATURE RECORD'
         );
         expect(modal).toContain('PRIVATE // NO ACCOUNT IDENTITY');
         expect(modal).toContain(

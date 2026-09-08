@@ -122,7 +122,7 @@ class CreatureAI {
                 core: "wise"
             },
             {
-                name: "Loyal Companion",
+                name: "Loyal Friend",
                 traits: ["loyal", "supportive", "empathetic"],
                 description: "Always there to listen and offer emotional support",
                 core: "gentle"

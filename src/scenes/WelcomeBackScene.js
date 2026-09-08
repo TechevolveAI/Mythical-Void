@@ -243,7 +243,7 @@ class WelcomeBackScene extends Phaser.Scene {
         const stage = window.GameState?.get('creature.lifecycle.stage') || 'baby';
         const name = window.GameState?.get('creature.name') ||
             this.events.find(event => event?.creatureName)?.creatureName ||
-            'Your companion';
+            'Your creature';
 
         return {
             name,

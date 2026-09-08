@@ -511,8 +511,8 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
     getCompanionName() {
         return String(
-            window.GameState?.get?.('creature.name') || 'Your companion'
-        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your companion';
+            window.GameState?.get?.('creature.name') || 'Your creature'
+        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your creature';
     }
 
     startLevel() {
@@ -2400,7 +2400,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             // heart remains without temporarily inflating maximum health.
             incomingDamage = Math.max(0, this.health - 1);
             this.showFloatingText(
-                'BOND RESERVE // YOUR COMPANION PULLS YOU BACK',
+                'BOND RESERVE // YOUR CREATURE PULLS YOU BACK',
                 this.player.x,
                 this.player.y - 75,
                 '#A9F3E4'
@@ -2562,7 +2562,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
         const recoveryText = phase === 4
             ? 'THE NETWORK ANSWERS: +1 HEART / +1 ENERGY'
-            : 'YOUR COMPANION HOLDS THE LINE: +1 HEART / +1 ENERGY';
+            : 'YOUR CREATURE HOLDS THE LINE: +1 HEART / +1 ENERGY';
         this.showFloatingText(
             recoveryText,
             this.player?.x || this.getBossArenaBounds().center,
@@ -2624,7 +2624,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         const decision = result.decision || {};
         const accent = profile.color || 0x8FE3CF;
         const companionName = String(
-            window.GameState?.get?.('creature.name') || 'Your companion'
+            window.GameState?.get?.('creature.name') || 'Your creature'
         ).slice(0, 24);
 
         window.FeedbackManager?.cameraShake?.(this, 650, 0.018);
@@ -2692,7 +2692,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             width / 2,
             height * (compact ? 0.62 : 0.64),
             profile.highPowerReveal?.effect
-                || 'The companion stabilizes the collapsing living network.',
+                || 'The creature stabilizes the collapsing living network.',
             {
                 fontSize: compact ? '13px' : '16px',
                 color: '#E8E6F2',

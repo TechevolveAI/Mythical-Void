@@ -19,7 +19,7 @@ const FUSION_ELIGIBLE_STAGES = new Set(['adult', 'elder']);
 const FUSION_ADULT_AGE_MS = 2 * 24 * 60 * 60 * 1000;
 const FUSION_STORY_COPY = Object.freeze({
     title: 'FUSION POD // CURRENT SYNTHESIS',
-    subtitle: 'Two stable signatures form a new lineage. Both companions remain with you.',
+    subtitle: 'Two stable life patterns form a new lineage. Both creatures remain with you.',
     empty: 'Select two family records to compare their Current signatures.'
 });
 
@@ -588,7 +588,7 @@ class FusionPodScene extends Phaser.Scene {
                     );
                 if (!receipt) {
                     this.showBreedingError(
-                        'Fusion paused: both companions must approach willingly.'
+                        'Fusion paused: both creatures must approach willingly.'
                     );
                     return;
                 }
@@ -656,12 +656,12 @@ class FusionPodScene extends Phaser.Scene {
             icon = '◈';
             title = 'Creature Not Yet Ready';
             const currentLevel = Number(context) || 1;
-            message = `The Fusion Pod responds at companion Level 5.\n\nCurrent level: ${currentLevel}/5\n\nContinue expeditions and strengthen the bond.`;
+            message = `The Fusion Pod responds when a creature reaches Level 5.\n\nCurrent level: ${currentLevel}/5\n\nContinue expeditions and strengthen the bond.`;
         } else if (reason === 'need_creatures') {
             icon = '🥚';
             title = 'More Creatures Needed';
             const collectionCount = context?.collection?.length || 0;
-            message = `Two family records are required.\n\nCollection: ${collectionCount}/2 creatures\n\nRescue or hatch another companion to continue.`;
+            message = `Two family records are required.\n\nCollection: ${collectionCount}/2 creatures\n\nRescue or hatch another creature to continue.`;
         } else if (reason === 'reserved_recovery') {
             icon = '◇';
             title = 'Reserved Lineage Safe';
@@ -675,7 +675,7 @@ class FusionPodScene extends Phaser.Scene {
                 .filter(entry => !entry.eligible)
                 .slice(0, 2)
                 .map(entry => {
-                    const name = entry.creature?.name || 'Companion';
+                    const name = entry.creature?.name || 'Creature';
                     if (entry.reason === 'maturing') {
                         return `${name}: stable in ${formatFusionWaitTime(entry.remainingMs)}`;
                     }
@@ -688,7 +688,7 @@ class FusionPodScene extends Phaser.Scene {
                 `Stable adult signatures: ${readyCount}/2`,
                 ...statusLines,
                 '',
-                'Both companions remain after synthesis.'
+                'Both creatures remain after synthesis.'
             ].join('\n');
         }
 
@@ -2455,7 +2455,7 @@ class FusionPodScene extends Phaser.Scene {
             transaction_not_found: 'Fusion record was interrupted. Please return and try again.',
             invalid_result: 'The new lineage could not be preserved. Please try again.',
             invalid_operation_id: 'Fusion could not create a secure operation record.',
-            fusion_consent_required: 'Both companions must approach willingly before Fusion.',
+            fusion_consent_required: 'Both creatures must approach willingly before Fusion.',
             operation_replayed: 'This Fusion operation has already completed.',
             invalid_authority_request: 'Parent ownership could not be verified.',
             invalid_authority_reservation: 'Fusion authorization could not be saved.',

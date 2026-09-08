@@ -502,7 +502,7 @@ export default class ShopScene extends Phaser.Scene {
                 unavailable: !unlocked,
                 label: unlocked ? 'BUILD' : 'HATCH',
                 message: item.villageSnapshot?.unlock?.reason ||
-                    'Hatch a companion to wake the Base Builder.'
+                    'Hatch a creature to wake the Base Builder.'
             };
         }
 
@@ -552,7 +552,7 @@ export default class ShopScene extends Phaser.Scene {
             name: 'Base Builder',
             description: unlocked
                 ? `Build with field supplies: ${resources.wood} wood, ${resources.stone} stone, ${resources.food} food.`
-                : 'Hatch a companion first. Their presence will bring the Base Builder online.',
+                : 'Hatch a creature first. Their presence will bring the Base Builder online.',
             icon: '🏡',
             type: 'village',
             price: null,
@@ -1663,7 +1663,7 @@ export default class ShopScene extends Phaser.Scene {
                 {
                     id: 'cosmic_egg',
                     name: 'Cosmic Egg',
-                    description: 'Hatch another companion and preserve both family records in your sanctuary.',
+                    description: 'Hatch another creature and preserve both family records in your Sanctuary.',
                     icon: '🥚',
                     price: 250,
                     type: 'egg',
@@ -1674,7 +1674,7 @@ export default class ShopScene extends Phaser.Scene {
                 {
                     id: 'stellar_egg',
                     name: 'Stellar Egg',
-                    description: 'Hatch another companion from an uncommon-or-higher stellar creature.',
+                    description: 'Hatch another uncommon-or-rarer stellar creature.',
                     icon: '🌟',
                     price: 1000,
                     type: 'egg',

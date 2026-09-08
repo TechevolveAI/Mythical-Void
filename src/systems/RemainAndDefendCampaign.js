@@ -68,7 +68,7 @@ export const REMAIN_AND_DEFEND_PHASES = Object.freeze([
         number: 4,
         label: 'RECORD BOUNDARIES',
         summary:
-            'Agree what Earth may learn and preserve the companion\'s veto.'
+            'Agree what Earth may learn and preserve the creature\'s veto.'
     }),
     Object.freeze({
         id: 'earth_archive',

@@ -314,7 +314,7 @@ export class SharedFusionInvitationService {
         if (!parentId || !readiness?.willing) {
             throw new SharedFusionInvitationError(
                 'companion_not_ready',
-                'This companion needs care, time, or space before Shared Fusion.'
+                'This creature needs care, time, or space before Shared Fusion.'
             );
         }
         return parentId;
@@ -406,9 +406,9 @@ export class SharedFusionInvitationService {
             shared_fusion_cloud_save_required:
                 'Sync the current sanctuary before Shared Fusion.',
             shared_fusion_parent_unavailable:
-                'This companion is no longer ready for Shared Fusion.',
+                'This creature is no longer ready for Shared Fusion.',
             shared_fusion_parent_changed:
-                'The companion changed after pairing. Review the invitation again.',
+                'The creature changed after pairing. Review the invitation again.',
             shared_fusion_collection_capacity:
                 'Make one sanctuary space before Shared Fusion.',
             shared_fusion_invitation_not_found:

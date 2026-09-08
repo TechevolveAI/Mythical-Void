@@ -420,7 +420,7 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain('formatCommunityMemberOption(creature)');
         expect(source).toContain("avatar.classList.add('is-authored-resident')");
         expect(source).toContain("'RESCUED RESIDENT'");
-        expect(source).toContain('INVITE A RESIDENT OR COMPANION');
+        expect(source).toContain('INVITE A RESIDENT OR CREATURE');
         expect(source).toContain('IN YOUR GAME · ${proposal.immediateImpact}');
         const scene = read('scenes/GameScene.js');
         const worldBuilder = read('systems/world/WorldBuilder.js');
