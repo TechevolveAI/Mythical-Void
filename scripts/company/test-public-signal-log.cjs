@@ -5,7 +5,13 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { buildSignalLog } = require('./build-public-signal-log.cjs');
+const {
+    buildReleasePage,
+    buildSignalLog,
+    buildUpdatesSitemap,
+    releasePath,
+    releaseUrl
+} = require('./build-public-signal-log.cjs');
 
 const root = path.resolve(__dirname, '../..');
 const validator = path.join(__dirname, 'validate-public-signal-log.cjs');
@@ -23,6 +29,19 @@ function run(name, mutate = value => value, stale = false) {
 }
 
 try {
+    const liveEntries = source.entries.filter(entry => entry.status === 'live');
+    const permanentUrls = liveEntries.map(releaseUrl);
+    const sitemap = buildUpdatesSitemap(source);
+    assert.strictEqual(new Set(permanentUrls).size, liveEntries.length);
+    assert.strictEqual((sitemap.match(/<url>/g) || []).length, liveEntries.length);
+    for (const entry of liveEntries) {
+        const page = buildReleasePage(source, entry);
+        assert.strictEqual(releasePath(entry), `/updates/${entry.id.toLowerCase()}/`);
+        assert(page.includes(`<link rel="canonical" href="${releaseUrl(entry)}">`));
+        assert(page.includes(`"mainEntityOfPage": "${releaseUrl(entry)}"`));
+        assert(page.includes('Brand art, not gameplay.'));
+        assert(!/\bcompanions?\b/i.test(page));
+    }
     assert.strictEqual(run('valid').status, 0);
     assert.notStrictEqual(run('unpublished', data => { data.entries[0].status = 'draft'; }).status, 0);
     assert.notStrictEqual(run('tracked', data => { data.entries[0].destination += '?utm_source=test'; }).status, 0);
@@ -34,7 +53,7 @@ try {
     assert.notStrictEqual(run('missing-release-proof', data => { delete data.entries.find(entry => entry.visualKind === 'text_only_release').releaseProof; }).status, 0);
     assert.notStrictEqual(run('invented-visual-approval', data => { data.entries.find(entry => entry.visualKind === 'text_only_release').releaseProof.gameplayVisualApproved = true; }).status, 0);
     assert.notStrictEqual(run('stale', value => value, true).status, 0);
-    console.log('Public Latest News safeguards passed (11 cases).');
+    console.log(`Public Latest News safeguards passed (11 failure cases and ${liveEntries.length} permanent release pages).`);
 } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
 }

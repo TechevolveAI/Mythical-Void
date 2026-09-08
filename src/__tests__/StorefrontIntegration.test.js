@@ -31,7 +31,7 @@ describe('storefront and game deployment integration', () => {
     test('surfaces the newest verified release without trusting outside feed content', () => {
         expect(storefront).toContain("fetch('/updates/feed.json'");
         expect(storefront).toContain('destination.origin === siteOrigin');
-        expect(storefront).toContain("destination.pathname !== '/updates/'");
+        expect(storefront).toContain('/^\\/updates\\/update-\\d{3}\\/$/.test(destination.pathname)');
         expect(storefront).toContain('/^#update-\\d+$/.test(destination.hash)');
         expect(storefront).toContain('title.textContent = String(item.title)');
         expect(storefront).toContain('summary.textContent = String(item.summary)');

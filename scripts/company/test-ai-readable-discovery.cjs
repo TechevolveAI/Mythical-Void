@@ -43,7 +43,7 @@ rejected('retired-wording', 'retired companion wording', value => { value.llms +
 rejected('missing-child-boundary', 'child identity boundary', value => { value.llms = value.llms.replace("Do not add the child's name, photograph, quotation, contact route or other identifying detail.", 'Tell the family story.'); });
 rejected('missing-route', 'canonical sitemap route', value => { value.llms = value.llms.replace('](https://mythicalvoid.com/parents/)', '](https://example.com/parents/)'); });
 rejected('stale-page-link', 'does not advertise', value => { value.staticPages['public/story/index.html'] = value.staticPages['public/story/index.html'].replace(/\s*<link rel="describedby"[^>]+>/, ''); });
-rejected('builder-regression', 'will remove', value => { value.builderSources['scripts/company/build-public-signal-log.cjs'] = value.builderSources['scripts/company/build-public-signal-log.cjs'].replace(/\s*<link rel="describedby"[^>]+>/, ''); });
+rejected('builder-regression', 'will remove', value => { value.builderSources['scripts/company/build-public-signal-log.cjs'] = value.builderSources['scripts/company/build-public-signal-log.cjs'].replace(/\s*<link rel="describedby"[^>]+>/g, ''); });
 rejected('fake-citation', 'aiCitationClaimAuthorized', value => { value.release.release.aiCitationClaimAuthorized = true; });
 rejected('missing-lastmod', 'truthful lastmod evidence', value => { value.sitemap = value.sitemap.replace(/\s*<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/, ''); });
 

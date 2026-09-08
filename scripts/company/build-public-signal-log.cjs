@@ -7,6 +7,7 @@ const { isWithdrawnPublicVisual, readVisualPublicationRegister } = require('./vi
 const root = path.resolve(__dirname, '../..');
 const defaultDataPath = path.join(root, 'public/updates/releases.json');
 const defaultOutputPath = path.join(root, 'public/updates/index.html');
+const siteOrigin = 'https://mythicalvoid.com';
 
 function escapeHtml(value) {
     return String(value)
@@ -21,6 +22,14 @@ function displayDate(value) {
     return new Intl.DateTimeFormat('en-IE', {
         day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC'
     }).format(new Date(`${value}T00:00:00Z`)).toUpperCase();
+}
+
+function releasePath(entry) {
+    return `/updates/${entry.id.toLowerCase()}/`;
+}
+
+function releaseUrl(entry) {
+    return `${siteOrigin}${releasePath(entry)}`;
 }
 
 function visualMarkup(entry, index, register) {
@@ -48,6 +57,107 @@ function visualMarkup(entry, index, register) {
     return '<div class="signal-entry-no-media"><span>VISUAL WITHHELD</span><small>Awaiting a stronger human-reviewed moment.</small></div>';
 }
 
+function buildReleasePage(data, entry) {
+    const register = readVisualPublicationRegister();
+    const canonicalUrl = releaseUrl(entry);
+    const socialImage = `${siteOrigin}/marketing/mythical-void-brand-link-card-v1.png`;
+    const structuredData = {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: entry.title,
+        description: entry.summary,
+        datePublished: entry.publishedOn,
+        dateModified: entry.publishedOn,
+        mainEntityOfPage: canonicalUrl,
+        author: { '@type': 'Organization', name: 'Mythical Void', url: `${siteOrigin}/studio/` },
+        publisher: {
+            '@type': 'Organization',
+            name: 'Mythical Void',
+            url: `${siteOrigin}/`,
+            logo: { '@type': 'ImageObject', url: `${siteOrigin}/marketing/mythical-void-mark-192.png` }
+        },
+        about: { '@type': 'VideoGame', name: 'Mythical Void', url: `${siteOrigin}/play/` },
+        isPartOf: { '@type': 'CollectionPage', name: data.page.title, url: data.page.canonicalUrl },
+        image: socialImage
+    };
+
+    return `<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="${escapeHtml(entry.summary)}">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="theme-color" content="#090711">
+    <meta property="og:title" content="${escapeHtml(entry.title)} | Mythical Void">
+    <meta property="og:description" content="${escapeHtml(entry.summary)}">
+    <meta property="og:image" content="${socialImage}">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Mythical Void emblem and the words Play free in your browser. Brand art, not gameplay.">
+    <meta property="og:url" content="${canonicalUrl}">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Mythical Void">
+    <meta property="article:published_time" content="${entry.publishedOn}T12:00:00.000Z">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="${escapeHtml(entry.title)} | Mythical Void">
+    <meta name="twitter:description" content="${escapeHtml(entry.summary)}">
+    <meta name="twitter:image" content="${socialImage}">
+    <meta name="twitter:image:alt" content="Mythical Void emblem and the words Play free in your browser. Brand art, not gameplay.">
+    <link rel="canonical" href="${canonicalUrl}">
+    <link rel="describedby" type="text/markdown" href="${siteOrigin}/llms.txt">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="alternate" type="application/rss+xml" title="Mythical Void — The Latest News" href="${siteOrigin}/updates/feed.xml">
+    <link rel="alternate" type="application/feed+json" title="Mythical Void — The Latest News" href="${siteOrigin}/updates/feed.json">
+    <link rel="icon" type="image/png" sizes="32x32" href="/marketing/mythical-void-mark-32.png">
+    <link rel="stylesheet" href="/discovery.css">
+    <title>${escapeHtml(entry.title)} | Mythical Void Update</title>
+    <script type="application/ld+json">${JSON.stringify(structuredData, null, 2).replaceAll('<', '\\u003c')}</script>
+</head>
+<body class="updates-page release-page">
+    <a class="skip-link" href="#main">Skip to what changed</a>
+    <header class="site-header"><div class="header-inner"><a class="brand" href="/" aria-label="Mythical Void home"><img src="/marketing/mythical-void-emblem-v3.png" alt=""><span>MYTHICAL VOID</span></a><nav class="site-nav" aria-label="Main navigation"><a href="/updates/">Latest news</a><a href="/story/">The story</a><a href="/parents/">For grown-ups</a><a class="button button-primary" href="/play/">Play now →</a></nav></div></header>
+    <main id="main">
+        <section class="release-article-hero"><div class="section-inner">
+            <a class="release-back" href="/updates/">← All game updates</a>
+            <p class="kicker">${escapeHtml(entry.category)}</p>
+            <h1>${escapeHtml(entry.title)}</h1>
+            <p class="hero-copy">${escapeHtml(entry.summary)}</p>
+            <div class="release-meta"><time datetime="${escapeHtml(entry.publishedOn)}">${escapeHtml(displayDate(entry.publishedOn))}</time><span>LIVE IN EARLY ACCESS</span></div>
+            <div class="hero-actions"><a class="button button-primary" href="${escapeHtml(entry.destination)}"${entry.download ? ' download' : ''}>${escapeHtml(entry.linkText)} →</a><a class="button button-quiet" href="/updates/">Read every update</a></div>
+        </div></section>
+        <section class="content-section release-detail-section"><div class="section-inner release-detail-grid">
+            <div class="release-detail-visual">${visualMarkup(entry, 0, register)}</div>
+            <article class="release-detail-copy">
+                <p class="kicker">WHAT CHANGED</p>
+                <ul>${entry.details.map(detail => `<li>${escapeHtml(detail)}</li>`).join('')}</ul>
+                <aside class="release-evidence-note"><strong>ABOUT THIS UPDATE</strong><p>${escapeHtml(entry.disclosure)}</p><p>This page records something that is already available. It does not invent player numbers, reviews or promises about what comes next.</p></aside>
+            </article>
+        </div></section>
+        <section class="final-cta"><div class="section-inner"><p class="kicker">TRY THE CURRENT BUILD</p><h2>See the change inside the game.</h2><p>Mythical Void is free to start in a modern browser. No download or account is needed.</p><div class="hero-actions"><a class="button button-primary" href="/play/">Play Mythical Void →</a><a class="button button-quiet" href="/playable-now/">Is this your kind of game?</a></div></div></section>
+    </main>
+    <footer class="site-footer"><div class="footer-inner"><a class="brand" href="/"><img src="/marketing/mythical-void-emblem-v3.png" alt=""><span>MYTHICAL VOID</span></a><nav class="footer-links" aria-label="Footer navigation"><a href="/updates/">What's new</a><a href="/story/">The story</a><a href="/creature-genetics/">Creature genetics</a><a href="/nasa-space-science/">NASA & STEM</a><a href="/parents/">For grown-ups</a><a href="/privacy/">Privacy & safety</a></nav><small>© 2026 Mythical Void. Made in Ireland for curious minds everywhere.</small></div></footer>
+    <script src="/pwa-install.js?v=20260827-installable-game"></script>
+    <script src="/discovery.js?v=20260906-plain-language"></script>
+</body>
+</html>
+`;
+}
+
+function buildUpdatesSitemap(data) {
+    const entries = (data.entries || []).filter(entry => entry.status === 'live');
+    const urls = entries.map(entry => `  <url>
+    <loc>${releaseUrl(entry)}</loc>
+    <lastmod>${entry.publishedOn}</lastmod>
+  </url>`).join('\n');
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls}
+</urlset>
+`;
+}
+
 function buildSignalLog(data) {
     const register = readVisualPublicationRegister();
     const entries = (data.entries || []).filter(entry => entry.status === 'live');
@@ -63,7 +173,7 @@ function buildSignalLog(data) {
             '@type': 'Article',
             headline: entry.title,
             datePublished: entry.publishedOn,
-            url: `https://mythicalvoid.com/updates/#${entry.id.toLowerCase()}`,
+            url: releaseUrl(entry),
             ...(entry.image && !isWithdrawnPublicVisual(entry.image, register) ? { image: `https://mythicalvoid.com${entry.image}` } : {}),
             description: entry.summary
         }))
@@ -74,7 +184,7 @@ function buildSignalLog(data) {
                 ${visualMarkup(entry, index, register)}
                 <div class="signal-entry-copy">
                     <div class="signal-entry-meta"><span>${escapeHtml(entry.category)}</span><time datetime="${escapeHtml(entry.publishedOn)}">${escapeHtml(displayDate(entry.publishedOn))}</time></div>
-                    <h2>${escapeHtml(entry.title)}</h2>
+                    <h2><a href="${escapeHtml(releasePath(entry))}">${escapeHtml(entry.title)}</a></h2>
                     <p class="section-lead">${escapeHtml(entry.summary)}</p>
                     <ul>${entry.details.map(detail => `<li>${escapeHtml(detail)}</li>`).join('')}</ul>
                     <a class="text-link" href="${escapeHtml(entry.destination)}"${entry.download ? ' download' : ''}>${escapeHtml(entry.linkText)} →</a>
@@ -140,8 +250,27 @@ if (require.main === module) {
     const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
     fs.writeFileSync(outputPath, buildSignalLog(data));
-    const count = (data.entries || []).filter(entry => entry.status === 'live').length;
-    console.log(`Built ${outputPath} from ${count} live Latest News entries.`);
+    const outputDir = path.dirname(outputPath);
+    const liveEntries = (data.entries || []).filter(entry => entry.status === 'live');
+    for (const name of fs.readdirSync(outputDir)) {
+        if (/^update-\d{3}$/.test(name)) fs.rmSync(path.join(outputDir, name), { recursive: true, force: true });
+    }
+    for (const entry of liveEntries) {
+        const entryDir = path.join(outputDir, entry.id.toLowerCase());
+        fs.mkdirSync(entryDir, { recursive: true });
+        fs.writeFileSync(path.join(entryDir, 'index.html'), buildReleasePage(data, entry));
+    }
+    fs.writeFileSync(path.join(outputDir, 'sitemap.xml'), buildUpdatesSitemap(data));
+    console.log(`Built ${outputPath}, ${liveEntries.length} release pages and the updates sitemap.`);
 }
 
-module.exports = { buildSignalLog, defaultDataPath, defaultOutputPath, visualMarkup };
+module.exports = {
+    buildReleasePage,
+    buildSignalLog,
+    buildUpdatesSitemap,
+    defaultDataPath,
+    defaultOutputPath,
+    releasePath,
+    releaseUrl,
+    visualMarkup
+};

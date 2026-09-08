@@ -63,11 +63,15 @@ async function mountLatestUpdate(root) {
         const destination = new URL(item.url, window.location.origin);
         const safeHash = /^#update-\d+$/.test(destination.hash) ? destination.hash : '';
         const fromThisSite = destination.origin === window.location.origin || destination.origin === siteOrigin;
-        if (!fromThisSite || destination.pathname !== '/updates/' || !safeHash) return;
+        const isReleasePage = /^\/updates\/update-\d{3}\/$/.test(destination.pathname) && !destination.hash;
+        const isLegacyReleaseLink = destination.pathname === '/updates/' && Boolean(safeHash);
+        if (!fromThisSite || (!isReleasePage && !isLegacyReleaseLink)) return;
 
         title.textContent = String(item.title).slice(0, 90);
         summary.textContent = String(item.summary).slice(0, 180);
-        card.href = `${destination.pathname}${safeHash}`;
+        card.href = isReleasePage
+            ? destination.pathname
+            : `/updates/${safeHash.slice(1)}/`;
         card.hidden = false;
     } catch {
         // Latest News is helpful context, never a reason to block the Play doorway.
