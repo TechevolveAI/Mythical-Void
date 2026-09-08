@@ -28,7 +28,7 @@ one clean link and no tracking code. It is brand art, not gameplay.
 | r/WebGames | People are already looking for games that open in a browser | Kevin signs in, approves the exact prepared post and owns replies for seven days |
 | Phaser Showcase | Phaser developers can give useful browser and controls feedback | Finish or cancel the Reddit read, then approve the prepared text topic |
 | itch.io | A real searchable shelf for independent browser games | First Five review, distribution choice, account, current terms, cover and AI disclosure approval |
-| IndieDB | A lasting game profile, development news and a Web category | Review the signed-in form and terms, then prepare one accurate page |
+| IndieDB | A lasting game profile that can lead people to the official website | The accurate page pack is ready; Kevin must review the terms and permit a read-only signed-in form check |
 | HTML5 Game Devs | A focused web-game showcase | Human-approved real gameplay images and a genuine feedback topic |
 
 ## Useful only with real commitment
@@ -74,7 +74,8 @@ The machine-readable register is
 - https://itch.io/docs/creators/getting-indexed
 - https://itch.io/docs/creators/quality-guidelines
 - https://www.indiedb.com/how-to
-- https://www.indiedb.com/news/new-platform-web
+- https://www.indiedb.com/games/add
+- https://www.indiedb.com/terms-of-use
 - https://www.html5gamedevs.com/topic/873-guidelines-for-posting-in-this-board/
 - https://www.tigsource.com/
 - https://ssr.gamejolt.net/help-docs/general

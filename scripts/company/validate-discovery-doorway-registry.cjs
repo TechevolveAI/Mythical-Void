@@ -38,7 +38,10 @@ const immediate = routes.filter(route => route.state === 'ready_waiting_for_kevi
 requireValue(immediate.length === 1 && immediate[0]?.id === 'webgames', 'exactly one immediate route must be r/WebGames');
 requireValue(routes[1]?.id === 'phaser-showcase' && /waiting_for_webgames_read_or_cancellation/.test(routes[1]?.state || ''), 'Phaser Showcase must wait behind the first read');
 requireValue(routes.find(route => route.id === 'itch-io')?.preparedArtifact === 'docs/company/growth/ITCH_RELEASE_CANDIDATE.json', 'itch.io is detached from its prepared package');
-requireValue(routes.find(route => route.id === 'indiedb')?.canRouteDirectlyToOwnedWebsite === true, 'IndieDB website-link opportunity is missing');
+const indieDb = routes.find(route => route.id === 'indiedb');
+requireValue(indieDb?.canRouteDirectlyToOwnedWebsite === true, 'IndieDB website-link opportunity is missing');
+requireValue(indieDb?.state === 'page_packet_ready_waiting_for_adult_account_terms_signed_in_form_check_and_final_preview', 'IndieDB page packet state is invalid');
+requireValue(indieDb?.preparedArtifact === 'docs/company/growth/INDIEDB_PAGE_CANDIDATE_2026-09-08.json', 'IndieDB is detached from its prepared page packet');
 requireValue(routes.find(route => route.id === 'html5-game-devs')?.needs?.approvedGameplayMedia === true, 'HTML5 showcase must wait for real approved media');
 requireValue(routes.find(route => route.id === 'tigsource-devlog')?.needs?.ongoingParticipation === true, 'TIGSource must not become a one-off promotional drop');
 requireValue(/research_incomplete/.test(routes.find(route => route.id === 'game-jolt')?.state || ''), 'Game Jolt must remain behind a current signed-in requirements review');

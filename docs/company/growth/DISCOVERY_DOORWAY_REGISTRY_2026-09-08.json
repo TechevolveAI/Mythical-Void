@@ -113,7 +113,7 @@
       "name": "IndieDB",
       "kind": "searchable_game_profile",
       "audienceIntent": "Independent-game players and developers browsing new game pages and development news.",
-      "state": "research_verified_waiting_for_account_terms_rights_and_page_preview",
+      "state": "page_packet_ready_waiting_for_adult_account_terms_signed_in_form_check_and_final_preview",
       "canRouteDirectlyToOwnedWebsite": true,
       "needs": {
         "adultAccount": true,
@@ -123,8 +123,8 @@
         "ongoingParticipation": true,
         "humanReplyCoverage": true
       },
-      "preparedArtifact": null,
-      "nextNeed": "Review the signed-in game-page form and current terms, then prepare one accurate page using the website link and approved brand material.",
+      "preparedArtifact": "docs/company/growth/INDIEDB_PAGE_CANDIDATE_2026-09-08.json",
+      "nextNeed": "Kevin reviews the current terms and permits a read-only check of the signed-in game-page form; the prepared page must not be saved or published until he approves the final preview.",
       "sources": [
         {
           "url": "https://www.indiedb.com/how-to",
@@ -132,9 +132,14 @@
           "finding": "IndieDB invites development teams to add game profiles with news, images, downloads, forums and comments."
         },
         {
-          "url": "https://www.indiedb.com/news/new-platform-web",
+          "url": "https://www.indiedb.com/games/add",
           "observedOn": "2026-09-08",
-          "finding": "IndieDB provides a Web platform category for browser games."
+          "finding": "The public add-game doorway requires a signed-in member account, so exact current fields and image requirements still need an adult account check."
+        },
+        {
+          "url": "https://www.indiedb.com/terms-of-use",
+          "observedOn": "2026-09-08",
+          "finding": "The terms set public-content, rights and broad content-licence responsibilities that Kevin must review before submission."
         }
       ]
     },
