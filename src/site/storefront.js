@@ -48,6 +48,32 @@ const brandMark = () => `
     <img class="brand-mark" src="/marketing/mythical-void-emblem-v3.png" alt="" width="38" height="58">
 `;
 
+async function mountLatestUpdate(root) {
+    const card = root?.querySelector('[data-latest-update]');
+    const title = card?.querySelector('[data-latest-update-title]');
+    const summary = card?.querySelector('[data-latest-update-summary]');
+    if (!card || !title || !summary) return;
+
+    try {
+        const response = await fetch('/updates/feed.json', { headers: { Accept: 'application/feed+json, application/json' } });
+        if (!response.ok) return;
+        const item = (await response.json())?.items?.[0];
+        if (!item?.title || !item?.summary || !item?.url) return;
+
+        const destination = new URL(item.url, window.location.origin);
+        const safeHash = /^#update-\d+$/.test(destination.hash) ? destination.hash : '';
+        const fromThisSite = destination.origin === window.location.origin || destination.origin === siteOrigin;
+        if (!fromThisSite || destination.pathname !== '/updates/' || !safeHash) return;
+
+        title.textContent = String(item.title).slice(0, 90);
+        summary.textContent = String(item.summary).slice(0, 180);
+        card.href = `${destination.pathname}${safeHash}`;
+        card.hidden = false;
+    } catch {
+        // Latest News is helpful context, never a reason to block the Play doorway.
+    }
+}
+
 function renderPressPage() {
     updatePageMetadata({
         title: 'Press & Creator Room | Mythical Void',
@@ -302,6 +328,14 @@ function renderStorefront() {
                         </div>
                         <p class="returning-player-note" data-returning-player-note hidden><strong>Welcome back.</strong> Your saved adventure is still in this browser. Continue where you left off.</p>
                         <p class="hero-share-status share-status" data-share-status aria-live="polite"></p>
+                        <a class="hero-latest-update" href="/updates/" data-latest-update hidden>
+                            <span class="hero-latest-label">NEW IN THE GAME</span>
+                            <span class="hero-latest-copy">
+                                <strong data-latest-update-title></strong>
+                                <small data-latest-update-summary></small>
+                            </span>
+                            <span class="hero-latest-action">Read what changed <b aria-hidden="true">→</b></span>
+                        </a>
                         <ul class="hero-genetics" aria-label="How this scene was made">
                             <li><strong>1,000</strong><span>real engine hatches explored</span></li>
                             <li><strong>72</strong><span>varied profiles shaped this scene</span></li>
@@ -597,6 +631,7 @@ function renderStorefront() {
 
     window.MythicalReturningPlayer?.apply(app);
     bindInteractions();
+    mountLatestUpdate(app);
     mountLivePresence(app);
     mountAnalyticsConsent();
 }
