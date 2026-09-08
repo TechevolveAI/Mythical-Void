@@ -26,8 +26,8 @@ const ROOTWAKE_PLATFORM_CONFIGS = Object.freeze([
     Object.freeze({ id: 'rootwake-step-1', x: 438, width: 108, rise: 46 }),
     Object.freeze({ id: 'rootwake-step-2', x: 548, width: 126, rise: 118 }),
     Object.freeze({ id: 'rootwake-step-3', x: 672, width: 144, rise: 190 }),
-    Object.freeze({ id: 'rootwake-step-4', x: 790, width: 126, rise: 116 }),
-    Object.freeze({ id: 'rootwake-step-5', x: 882, width: 104, rise: 44 })
+    Object.freeze({ id: 'rootwake-step-4', x: 742, width: 228, rise: 116 }),
+    Object.freeze({ id: 'rootwake-step-5', x: 858, width: 176, rise: 44 })
 ]);
 
 const FOREST_GROUND_SECTIONS = Object.freeze([
@@ -2348,9 +2348,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
         );
         crossing.formationActive = true;
         if (this.astronautFollower?.sprite?.active) {
+            const followerAnchor = this.astronautFollower.getTargetAnchor?.() || {
+                x: actionX,
+                y: actionY
+            };
             this.astronautFollower.sprite.setPosition(
                 actionX + witnessOffsetX,
-                actionY + 4
+                followerAnchor.y + 4
             );
             this.astronautFollower.resetTrail?.();
         }

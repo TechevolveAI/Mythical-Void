@@ -21249,12 +21249,21 @@ async function smokeRootwakeSequence(session, exceptions) {
         scene.cameras.main.startFollow(scene.player, true, 0.14, 0.14);
         scene.cameras.main.centerOn(scene.player.x + 70, scene.player.y - 30);
         scene.astronautFollower.setContextualFormation?.(
-            { x: ${isPhone ? -95 : -125}, y: 2 },
+            { x: ${isPhone ? -72 : -125}, y: 2 },
             'rootwake_sequence_capture'
         );
+        const followerAnchor = scene.astronautFollower.getTargetAnchor?.() || {
+            x: scene.player.x,
+            y: scene.player.y
+        };
         scene.astronautFollower.sprite.setPosition(
-            scene.player.x - ${isPhone ? 95 : 125},
-            scene.player.y + 2
+            followerAnchor.x - ${isPhone ? 72 : 125},
+            followerAnchor.y + 2
+        );
+        scene.astronautFollower.shadow?.setPosition?.(
+            scene.astronautFollower.sprite.x,
+            scene.astronautFollower.getContactY?.() ||
+                scene.astronautFollower.sprite.y + 34
         );
         scene.astronautFollower.resetTrail?.();
         scene.releaseAllPlatformerActionButtons?.();
@@ -21346,6 +21355,7 @@ async function smokeRootwakeSequence(session, exceptions) {
             creatureFrame,
             astronautFrame,
             actorSeparation,
+            astronautContactY: scene?.astronautFollower?.getContactY?.(),
             modalCount: document.querySelectorAll(
                 '.modal-overlay, .achievement-notification, .companion-media-overlay'
             ).length,
@@ -21366,6 +21376,7 @@ async function smokeRootwakeSequence(session, exceptions) {
         !stateBefore.creatureFrame?.inCleanFrame ||
         !stateBefore.astronautFrame?.inCleanFrame ||
         stateBefore.actorSeparation < 48 ||
+        Math.abs(stateBefore.astronautContactY - stateBefore.playerBody.bottom) > 8 ||
         stateBefore.modalCount ||
         stateBefore.physicsPaused ||
         stateBefore.hatchingActive
@@ -21500,7 +21511,8 @@ async function smokeRootwakeSequence(session, exceptions) {
         !stateAfter.rootwake?.astronautPresent ||
         !stateAfter.creatureFrame?.inCleanFrame ||
         !stateAfter.astronautFrame?.inCleanFrame ||
-        stateAfter.actorSeparation < 48
+        stateAfter.actorSeparation < 48 ||
+        Math.abs(stateAfter.astronautContactY - stateAfter.playerBody.bottom) > 8
     ) {
         throw new Error(`Rootwake settled state failed: ${JSON.stringify(stateAfter)}`);
     }

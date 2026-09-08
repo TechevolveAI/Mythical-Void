@@ -3,6 +3,14 @@ const TEXTURE_WITH_KIT = 'projectBeaconAstronautWithKit';
 const TEXTURE_WITH_CRYSTAL_EDGE = 'projectBeaconAstronautWithCrystalEdge';
 const TEXTURE_WITH_AURORA_GUARD = 'projectBeaconAstronautWithAuroraGuard';
 const TEXTURE_WITH_FULL_KATANA = 'projectBeaconAstronautWithFullKatana';
+const ASTRONAUT_TEXTURE_HEIGHT = 92;
+const ASTRONAUT_VISIBLE_FOOT_Y = 87;
+const PLATFORMER_ASTRONAUT_ORIGIN_Y = 0.72;
+const PLATFORMER_ASTRONAUT_SCALE = 0.78;
+const PLATFORMER_ASTRONAUT_FOOT_OFFSET = (
+    ASTRONAUT_VISIBLE_FOOT_Y -
+    (ASTRONAUT_TEXTURE_HEIGHT * PLATFORMER_ASTRONAUT_ORIGIN_Y)
+) * PLATFORMER_ASTRONAUT_SCALE;
 
 function normalizeKatanaUpgradeIds(upgradeIds) {
     if (!Array.isArray(upgradeIds)) {
@@ -64,6 +72,29 @@ export function findExpeditionTrailTarget(trail, followDistance) {
     }
 
     return trail[trail.length - 1];
+}
+
+export function getExpeditionTargetAnchor(target, mode = 'topDown') {
+    const x = Number(target?.x) || 0;
+    const y = Number(target?.y) || 0;
+    if (mode !== 'platformer') return { x, y };
+
+    const bodyBottom = Number(target?.body?.bottom);
+    const hasBodyBottom = target?.body?.bottom != null &&
+        Number.isFinite(bodyBottom);
+    return {
+        x,
+        y: hasBodyBottom
+            ? bodyBottom - PLATFORMER_ASTRONAUT_FOOT_OFFSET
+            : y
+    };
+}
+
+export function getExpeditionAstronautContactY(sprite, mode = 'topDown') {
+    const y = Number(sprite?.y) || 0;
+    return mode === 'platformer'
+        ? y + PLATFORMER_ASTRONAUT_FOOT_OFFSET
+        : y + 34;
 }
 
 function drawAstronautTexture(
@@ -207,10 +238,18 @@ export class ExpeditionAstronaut {
         );
         const facingRight = !this.target.flipX;
         const offset = getExpeditionFollowOffset(this.mode, facingRight);
-        const startX = this.target.x + offset.x;
-        const startY = this.target.y + offset.y;
+        const targetAnchor = getExpeditionTargetAnchor(this.target, this.mode);
+        const startX = targetAnchor.x + offset.x;
+        const startY = targetAnchor.y + offset.y;
 
-        this.shadow = this.scene.add.ellipse(startX, startY + 34, 34, 11, 0x020407, 0.38);
+        this.shadow = this.scene.add.ellipse(
+            startX,
+            getExpeditionAstronautContactY({ y: startY }, this.mode),
+            34,
+            11,
+            0x020407,
+            0.38
+        );
         this.shadow.setDepth(this.mode === 'platformer' ? 897 : startY - 1);
 
         this.sprite = this.scene.add.sprite(startX, startY, textureKey);
@@ -275,11 +314,20 @@ export class ExpeditionAstronaut {
 
         const facingRight = !this.target.flipX;
         const offset = getExpeditionFollowOffset(this.mode, facingRight);
+        const targetAnchor = getExpeditionTargetAnchor(this.target, this.mode);
         this.trail = [{
-            x: this.target.x + offset.x,
-            y: this.target.y + offset.y
+            x: targetAnchor.x + offset.x,
+            y: targetAnchor.y + offset.y
         }];
-        this.lastTargetPosition = { x: this.target.x, y: this.target.y };
+        this.lastTargetPosition = targetAnchor;
+    }
+
+    getTargetAnchor() {
+        return getExpeditionTargetAnchor(this.target, this.mode);
+    }
+
+    getContactY() {
+        return getExpeditionAstronautContactY(this.sprite, this.mode);
     }
 
     setContextualFormation(offset = null, context = null) {
@@ -304,9 +352,10 @@ export class ExpeditionAstronaut {
             return false;
         }
 
+        const targetAnchor = getExpeditionTargetAnchor(this.target, this.mode);
         const moved = Math.hypot(
-            this.target.x - this.lastTargetPosition.x,
-            this.target.y - this.lastTargetPosition.y
+            targetAnchor.x - this.lastTargetPosition.x,
+            targetAnchor.y - this.lastTargetPosition.y
         );
 
         if (moved > 420) {
@@ -315,9 +364,9 @@ export class ExpeditionAstronaut {
         }
 
         if (moved >= 3) {
-            this.trail.unshift({ x: this.target.x, y: this.target.y });
+            this.trail.unshift(targetAnchor);
             this.trail.length = Math.min(this.trail.length, 180);
-            this.lastTargetPosition = { x: this.target.x, y: this.target.y };
+            this.lastTargetPosition = targetAnchor;
         }
 
         return false;
@@ -432,7 +481,7 @@ export class ExpeditionAstronaut {
 
         this.elapsed += delta;
         if (this.isStriking) {
-            this.shadow?.setPosition(this.sprite.x, this.sprite.y + 34);
+            this.shadow?.setPosition(this.sprite.x, this.getContactY());
             this.shadow?.setAlpha(
                 this.target.body?.blocked?.down ? 0.32 : 0.14
             );
@@ -442,17 +491,18 @@ export class ExpeditionAstronaut {
         const teleported = this.recordTargetPosition();
         const facingRight = !this.target.flipX;
         const stationaryOffset = getExpeditionFollowOffset(this.mode, facingRight);
+        const targetAnchor = getExpeditionTargetAnchor(this.target, this.mode);
         const trailTarget = findExpeditionTrailTarget(this.trail, this.followDistance);
         const desired = this.contextualFormation
             ? {
-                x: this.target.x + this.contextualFormation.x,
-                y: this.target.y + this.contextualFormation.y
+                x: targetAnchor.x + this.contextualFormation.x,
+                y: targetAnchor.y + this.contextualFormation.y
             }
             : this.trail.length > 1
                 ? trailTarget
                 : {
-                    x: this.target.x + stationaryOffset.x,
-                    y: this.target.y + stationaryOffset.y
+                    x: targetAnchor.x + stationaryOffset.x,
+                    y: targetAnchor.y + stationaryOffset.y
                 };
 
         if (!desired) return;
@@ -476,22 +526,22 @@ export class ExpeditionAstronaut {
         this.sprite.y += bob * 0.08;
 
         if (this.mode === 'platformer') {
-            const offsetX = this.sprite.x - this.target.x;
-            const offsetY = this.sprite.y - this.target.y;
+            const offsetX = this.sprite.x - targetAnchor.x;
+            const offsetY = this.sprite.y - targetAnchor.y;
             const distance = Math.hypot(offsetX, offsetY);
             const maximumDistance = this.followDistance + 8;
             if (distance > maximumDistance) {
                 const scale = maximumDistance / distance;
                 this.sprite.setPosition(
-                    this.target.x + (offsetX * scale),
-                    this.target.y + (offsetY * scale)
+                    targetAnchor.x + (offsetX * scale),
+                    targetAnchor.y + (offsetY * scale)
                 );
             }
         }
 
         if (this.mode === 'platformer') {
             this.sprite.setDepth(898);
-            this.shadow?.setPosition(this.sprite.x, this.sprite.y + 34);
+            this.shadow?.setPosition(this.sprite.x, this.getContactY());
             this.shadow?.setDepth(897);
             this.shadow?.setAlpha(this.target.body?.blocked?.down ? 0.38 : 0.16);
         } else {

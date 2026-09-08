@@ -26,6 +26,26 @@ describe('Rootwake Crossing gameplay contract', () => {
         expect(levelSource).toContain('targetTop + collisionHeight / 2');
     });
 
+    test('keeps descending mobile landings at least one player body wide', () => {
+        const configs = Array.from(levelSource.matchAll(
+            /id: 'rootwake-step-(\d)', x: (\d+), width: (\d+), rise: (\d+)/g
+        )).map(match => ({
+            id: Number(match[1]),
+            x: Number(match[2]),
+            width: Number(match[3]),
+            rise: Number(match[4])
+        }));
+        const getOverlap = (fromId, toId) => {
+            const from = configs.find(config => config.id === fromId);
+            const to = configs.find(config => config.id === toId);
+            return (from.x + from.width / 2) - (to.x - to.width / 2);
+        };
+
+        expect(configs).toHaveLength(5);
+        expect(getOverlap(3, 4)).toBeGreaterThanOrEqual(32);
+        expect(getOverlap(4, 5)).toBeGreaterThanOrEqual(32);
+    });
+
     test('makes the real creature action cause the visible world change', () => {
         expect(levelSource).toContain("action: 'creature_resonance_slam'");
         expect(levelSource).toContain("worldChange: 'five_layer_crossing_raised'");
