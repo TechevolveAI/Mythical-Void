@@ -21,6 +21,11 @@ dates the two reviews:
 - after seven days: the same totals, useful themes from public replies, and a
   decision to stop, learn or prepare the already-held Phaser Showcase route.
 
+At each due date, use the guarded observation command in
+`COMMUNITY_OBSERVATION_HANDOFF.md`. It accepts only four aggregate totals. If a
+source does not show a number, record `unavailable` rather than guessing or
+turning missing data into zero.
+
 Do not copy account names, comment text, private messages or personal details
 into the studio record. A view is not a player, a website visit is not a play,
 and either total may honestly be zero.
