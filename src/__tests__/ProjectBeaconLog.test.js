@@ -479,7 +479,7 @@ describe('Project Beacon mission log', () => {
 
         expect(log.phase).toBe('TWO WORLDS // EARTH QUESTION');
         expect(log.directive).toBe(
-            'Return to Wanderer-77 with your companion.'
+            'Return to Wanderer-77 with your creature.'
         );
         expect(log.directiveDetail).toContain('Earth question');
         expect(log.companionEarthMemory.ready).toBe(true);

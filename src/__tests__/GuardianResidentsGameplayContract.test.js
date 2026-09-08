@@ -98,7 +98,7 @@ describe('Guardian resident gameplay contract', () => {
         expect(gameScene).toContain('getGuardianCompanionRecognition(');
         expect(gameScene).toContain('Date.now() - lastRecognitionAt >= 23000');
         expect(gameScene).toContain('showGuardianCompanionRecognitionMoment(recognition, resident');
-        expect(gameScene).toContain('COMPANION RECOGNITION // ${resident.name.toUpperCase()}');
+        expect(gameScene).toContain('CREATURE RECOGNITION // ${resident.name.toUpperCase()}');
         expect(gameScene).toContain('SANCTUARY CARE // LIVING ROUTINE');
         expect(gameScene).toContain('`STEP 1/${steps.length}`');
         expect(gameScene).toContain('CARE COMPLETE // ROUTINE STABLE');

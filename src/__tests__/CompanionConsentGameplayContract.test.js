@@ -53,7 +53,7 @@ describe('Companion consent gameplay contract', () => {
     test('guides every finale priority through common recovery and consent', () => {
         expect(story).toContain('EARTH BOUNDARIES //');
         expect(story).toContain(
-            'Return to Wanderer-77 with your companion.'
+            'Return to Wanderer-77 with your creature.'
         );
         expect(story).not.toContain(
             "priority === 'remain_and_defend' && !fendResidents.complete"

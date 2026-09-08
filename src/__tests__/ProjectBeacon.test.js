@@ -131,7 +131,7 @@ describe('Project Beacon opening', () => {
         const handoffText = Object.values(handoff).join(' ');
 
         expect(handoff.route).toMatch(/ROOTLIGHT ROUTE.*MYTHICAL FOREST/i);
-        expect(handoff.finding).toMatch(/companion/i);
+        expect(handoff.finding).toMatch(/creature/i);
         expect(handoff.finding).toMatch(/living Current/i);
         expect(handoff.companionMoment).toMatch(/calling for help/i);
         expect(handoff.fieldNote).toMatch(/Sensei/i);

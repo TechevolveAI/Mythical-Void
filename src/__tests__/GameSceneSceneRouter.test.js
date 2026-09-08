@@ -277,7 +277,7 @@ describe('GameScene scene router', () => {
             3,
             'CreatureProfileScene',
             undefined,
-            { loadingMessage: 'Opening companion profile...', sound: 'buttonClick' }
+            { loadingMessage: 'Opening creature profile...', sound: 'buttonClick' }
         );
         expect(sceneRouter.startScene).toHaveBeenCalledWith(
             'HubWorldScene',

@@ -604,7 +604,7 @@ describe('first-session Project Beacon mission loop', () => {
         });
     });
 
-    test('makes Care a direct companion action for touch players', () => {
+    test('makes Care a direct creature action for touch players', () => {
         const CreatureRadialMenu = loadCreatureRadialMenu();
         const menu = new CreatureRadialMenu({});
         const careAction = menu.menuItems.find(item => item.id === 'care');
@@ -703,7 +703,7 @@ describe('first-session Project Beacon mission loop', () => {
             expect(mission.guidanceMobile.length).toBeGreaterThan(15);
         });
 
-        expect(projectBeacon.fieldMissions[0].guidanceMobile).toMatch(/Tap your companion/i);
+        expect(projectBeacon.fieldMissions[0].guidanceMobile).toMatch(/Tap your creature/i);
         expect(projectBeacon.fieldMissions[0].fieldNote).toMatch(/Sensei/i);
     });
 

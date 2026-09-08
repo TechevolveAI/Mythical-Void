@@ -16,15 +16,15 @@ describe('Companion Earth memory gameplay contract', () => {
     const game = read('game.js');
     const hatching = read('scenes/HatchingScene.js');
 
-    test('turns Wanderer-77 into a readable companion-led story objective', () => {
+    test('turns Wanderer-77 into a readable creature-led story objective', () => {
         expect(scene).toContain('showCompanionEarthMemory()');
         expect(scene).toContain(
-            'Your companion has an Earth question'
+            'Your creature has an Earth question'
         );
         expect(scene).toMatch(
             /earthMemory\.ready \|\| earthMemory\.complete[\s\S]*showCompanionEarthMemory\(\)/
         );
-        expect(modal).toContain('YOUR COMPANION ASKS ABOUT EARTH');
+        expect(modal).toContain('YOUR CREATURE ASKS ABOUT EARTH');
         expect(modal).toContain(
             'Show me why it is worth saving.'
         );
