@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "LATEST-NEWS-SYNDICATION-2026-09-08-PRESS-ROOM",
-  "state": "owned_site_release_prepared",
+  "state": "complete_owned_site_release_production_verified",
   "source": {
     "path": "public/updates/releases.json",
     "fingerprintSha256": "1d473f9036cc19e9a3f62057c22f7d8a9feb85c0d136ee8066d748bf9877db42",
@@ -46,5 +46,22 @@
     "socialPostingAuthorized": false,
     "externalActionTaken": false
   },
-  "productionVerification": null
+  "productionVerification": {
+    "commit": "d46bc2458347c28925547139200edca8565dfd1d",
+    "deployId": "6aa0185b1e60f7000879670f",
+    "publishedAt": "2026-09-08T14:16:27.852Z",
+    "permalink": "https://6aa0185b1e60f7000879670f--mythicalvoid.netlify.app",
+    "updatesPageHttpStatus": 200,
+    "permanentEntryHttpStatus": 200,
+    "rssHttpStatus": 200,
+    "jsonHttpStatus": 200,
+    "pressRoomHttpStatus": 200,
+    "playDoorwayHttpStatus": 200,
+    "latestEntryId": "UPDATE-026",
+    "latestEntryPresent": true,
+    "rssItemCount": 19,
+    "jsonItemCount": 19,
+    "productionPresentationReview": "text_only_no_gameplay_media",
+    "claimBoundary": "HTTP availability and feed contents were verified. This does not prove subscribers, readership, visits, play, enjoyment or growth."
+  }
 }
