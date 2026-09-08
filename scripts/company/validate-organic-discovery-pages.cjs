@@ -39,6 +39,11 @@ const pages = [
         route: '/studio/',
         file: 'public/studio/index.html',
         required: ['nine-year-old son', 'father and son', 'people remain responsible', '/press/']
+    },
+    {
+        route: '/press/',
+        file: 'public/press/index.html',
+        required: ['OFFICIAL PRESS &amp; CREATOR ROOM', 'The quick way to understand Mythical Void.', 'TRY IT BEFORE YOU WRITE', 'No gameplay download pack is approved.', 'NASA does not endorse Mythical Void.']
     }
 ];
 

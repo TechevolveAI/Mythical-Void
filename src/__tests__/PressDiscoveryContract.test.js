@@ -1,0 +1,82 @@
+const fs = require('fs');
+const path = require('path');
+
+const root = path.resolve(__dirname, '../..');
+const press = fs.readFileSync(path.join(root, 'public/press/index.html'), 'utf8');
+const sitemap = fs.readFileSync(path.join(root, 'public/sitemap.xml'), 'utf8');
+const netlify = fs.readFileSync(path.join(root, 'netlify.toml'), 'utf8');
+const redirects = fs.readFileSync(path.join(root, 'public/_redirects'), 'utf8');
+const release = require('../../docs/company/search/press-search-doorway-2026-09-08.json');
+
+describe('press and creator search doorway', () => {
+    test('is a real static page with its own search identity', () => {
+        expect(press).toContain('<title>Mythical Void Press Kit & Game Facts | Free Browser Game</title>');
+        expect(press).toContain('<link rel="canonical" href="https://mythicalvoid.com/press/">');
+        expect(press).toContain('<meta name="robots" content="index, follow, max-image-preview:large">');
+        expect(press).toContain('"@type": "CollectionPage"');
+        expect(press).toContain('"@id": "https://mythicalvoid.com/#video-game"');
+        expect(press).toContain('<link rel="describedby" type="text/markdown" href="https://mythicalvoid.com/llms.txt">');
+        expect(sitemap).toMatch(/<loc>https:\/\/mythicalvoid\.com\/press\/<\/loc>\s*<lastmod>2026-09-08<\/lastmod>/);
+        expect(netlify).toMatch(/from = "\/press\/"\s+to = "\/press\/index\.html"\s+status = 200/);
+        expect(redirects).toMatch(/^\/press\/\s+\/press\/index\.html\s+200$/m);
+    });
+
+    test('gives a creator a direct, understandable route into the real game', () => {
+        expect(press).toContain('The quick way to understand Mythical Void.');
+        expect(press).toContain('TRY IT BEFORE YOU WRITE');
+        expect(press).toContain('follow the crash-site story, hatch and name a creature, then move together in the Sanctuary');
+        expect(press).toContain('Was the first minute clear without an explanation?');
+        expect((press.match(/href="\/play\/"/g) || [])).toHaveLength(5);
+        expect(press).toContain('data-public-action="play"');
+        expect(press).not.toContain('utm_');
+    });
+
+    test('offers only approved downloads and keeps weak media withdrawn', () => {
+        expect(press).toContain('/marketing/mythical-void-emblem-v3.png');
+        expect(press).toContain('/press/mythical-void-fact-sheet.txt');
+        expect(press).toContain('/resources/mythical-void-stem-creature-lab.pdf');
+        expect(press).toContain('No gameplay download pack is approved.');
+        expect(press).not.toContain('/press/gameplay/');
+        expect(press).not.toContain('/press/gameplay-video/');
+        expect(press).not.toContain('/press/social-video/');
+        expect(press).not.toContain('/press/creator-kit/');
+    });
+
+    test('keeps the public story and claims safe', () => {
+        expect(press).toContain('father-and-son idea');
+        expect(press).not.toMatch(/nine-year-old|9-year-old|\bage\s+9\b/i);
+        expect(press).not.toMatch(/\bcompanions?\b/i);
+        expect(press).not.toMatch(/\bsignals?\b/i);
+        expect(press).not.toMatch(/every (?:hatch|creature) is unique|no two creatures|infinite unique/i);
+        expect(press).toContain('NASA does not endorse Mythical Void.');
+        expect(press).toContain('It is not gameplay.');
+        expect(press).not.toMatch(/mailto:|@mythicalvoid\.com/i);
+    });
+
+    test('uses the shared privacy-aware website helper', () => {
+        expect(press).toContain('rel="stylesheet" href="/discovery.css');
+        expect(press).toContain('src="/discovery.js');
+        expect(press).toContain('href="/privacy/"');
+    });
+
+    test('records the release and keeps outside actions off', () => {
+        expect(release.problem).toEqual(expect.objectContaining({
+            staticPagePreviouslyPresent: false,
+            previousRawHtmlCanonical: 'https://mythicalvoid.com/'
+        }));
+        expect(release.release).toEqual(expect.objectContaining({
+            staticPage: 'public/press/index.html',
+            gameplayMediaPackApproved: false,
+            exactChildAgePublished: false,
+            generatedHeroDisclosureVisible: true,
+            nasaNonEndorsementVisible: true
+        }));
+        expect(release.authority).toEqual(expect.objectContaining({
+            ownedWebsitePublicationAuthorized: true,
+            externalPostingAuthorized: false,
+            creatorOutreachAuthorized: false,
+            accountCreationAuthorized: false,
+            paidPromotionAuthorized: false
+        }));
+    });
+});

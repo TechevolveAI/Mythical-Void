@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "PRESS-SEARCH-DOORWAY-2026-09-08",
+  "checkedAt": "2026-09-08T13:15:00Z",
+  "state": "static_owned_press_doorway_prepared_for_reviewed_release",
+  "problem": {
+    "publicRoute": "https://mythicalvoid.com/press/",
+    "linkedFromOwnedPages": true,
+    "listedInSitemap": true,
+    "staticPagePreviouslyPresent": false,
+    "previousRawHtmlTitle": "Mythical Void | Free Creature Adventure Browser Game",
+    "previousRawHtmlCanonical": "https://mythicalvoid.com/",
+    "meaning": "Before JavaScript ran, the public press address described itself as the homepage. This weakened the route as a distinct search and creator doorway. It did not prove that a search engine had or had not indexed either page."
+  },
+  "release": {
+    "staticPage": "public/press/index.html",
+    "canonicalUrl": "https://mythicalvoid.com/press/",
+    "directPlayUrl": "https://mythicalvoid.com/play/",
+    "approvedDownloads": [
+      "/marketing/mythical-void-emblem-v3.png",
+      "/press/mythical-void-fact-sheet.txt",
+      "/resources/mythical-void-stem-creature-lab.pdf"
+    ],
+    "gameplayMediaPackApproved": false,
+    "exactChildAgePublished": false,
+    "generatedHeroDisclosureVisible": true,
+    "nasaNonEndorsementVisible": true
+  },
+  "measurementBoundary": "A correct static page can help a crawler or creator understand the route. It does not prove indexing, ranking, impressions, visits, plays, enjoyment or growth.",
+  "nextExternalMove": "Run the existing r/WebGames experiment only after Kevin supplies an adult account, gives action-time approval and is available to reply personally.",
+  "authority": {
+    "ownedWebsitePublicationAuthorized": true,
+    "indexNowNotificationAuthorizedForThisMeaningfulChangedUrl": true,
+    "searchConsoleConnectionAuthorized": false,
+    "sitemapSubmissionAuthorized": false,
+    "externalPostingAuthorized": false,
+    "creatorOutreachAuthorized": false,
+    "accountCreationAuthorized": false,
+    "paidPromotionAuthorized": false
+  }
+}

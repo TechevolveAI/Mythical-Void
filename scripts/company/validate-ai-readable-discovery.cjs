@@ -15,6 +15,7 @@ const staticPagePaths = [
     'public/parents/index.html',
     'public/educators/index.html',
     'public/studio/index.html',
+    'public/press/index.html',
     'public/story/index.html',
     'public/updates/index.html'
 ];
