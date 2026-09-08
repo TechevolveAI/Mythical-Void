@@ -51,6 +51,10 @@ actually live or prepared on 8 September 2026.
   adverts. The fourth route, IndieDB, now has a complete truthful page pack,
   rights checklist and approved-brand-art boundary. No IndieDB account was
   opened, no terms were accepted and no page was created or published.
+- Three more apparent routes were screened and kept outside that queue:
+  r/BrowserGames is private, while SlowDen and PlayMateGames still have
+  unanswered framing, advertising, age, privacy or listing questions. No form
+  was filled and no game was submitted.
 - The owned-search notice now reads both public sitemaps and requires every live
   submission to name its changed pages. The homepage, Latest News and the new
   UPDATE-027 page were accepted in one bounded notice. Acceptance is not
