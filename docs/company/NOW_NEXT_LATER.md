@@ -8,8 +8,8 @@ actually live or prepared on 8 September 2026.
 - The game, story, family guide, studio story, creature pages, NASA and STEM
   pages, press room, updates and “find your way in” page are live.
 - Player-facing screens now use **creature** and clear words such as message,
-  clue, current, route and life call instead of repeatedly saying companion or
-  signal. The corrected production files were checked directly after release.
+  clue, current, route and life call instead of vague repeated terms. The
+  corrected production files were checked directly after release.
 - The final step before Play now matches four common moods: wonder, creation,
   challenge and story, and turns each one into a clear three-step starter
   mission.
@@ -42,6 +42,11 @@ actually live or prepared on 8 September 2026.
   entries, including the homepage Hatch Challenge release, and the current first move remains
   one text-only r/WebGames post. Nothing was posted and Kevin keeps control of
   the account and replies.
+- Thirteen places where adults already look for browser or independent games
+  are now checked and ordered. They are a careful queue, not a list for copied
+  adverts. The fourth route, IndieDB, now has a complete truthful page pack,
+  rights checklist and approved-brand-art boundary. No IndieDB account was
+  opened, no terms were accepted and no page was created or published.
 - The owned-search notice now reads both public sitemaps and requires every live
   submission to name its changed pages. The homepage, Latest News and the new
   UPDATE-027 page were accepted in one bounded notice. Acceptance is not
@@ -86,6 +91,10 @@ actually live or prepared on 8 September 2026.
   minute and controls. It carries no weak screenshot, tracking code or invented
   audience claim. It waits until the Reddit read is finished or cancelled, and
   still needs Kevin's account, terms and action-time approval.
+- A lasting IndieDB profile is prepared behind those two community reads. Its
+  copy explains the game, AI use, NASA boundary and father-and-son beginning in
+  plain language, but a signed-in form check and Kevin's current-terms decision
+  are still required before any page can be saved.
 - The public social identity is now clear before any account is opened. Keep
   **Mythical Void** as the display name, try **PlayMythicalVoid** as the shared
   handle and use **MythicalVoidGame** only if needed. The exact MythicalVoid

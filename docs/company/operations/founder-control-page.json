@@ -136,6 +136,22 @@
     "humanRepliesOnly": true,
     "fakeEngagementAllowed": false
   },
+  "preparedDiscoveryRoutes": {
+    "source": "docs/company/growth/DISCOVERY_DOORWAY_REGISTRY_2026-09-08.json",
+    "checkedRoutes": 13,
+    "oneRouteAtATime": true,
+    "firstRoute": "r/WebGames",
+    "secondRoute": "Phaser Showcase",
+    "indieDb": {
+      "state": "page_packet_ready_waiting_for_adult_account_terms_signed_in_form_check_and_final_preview",
+      "candidateState": "copy_and_rights_packet_ready_waiting_for_adult_account_terms_form_check_and_final_preview",
+      "candidate": "docs/company/growth/INDIEDB_PAGE_CANDIDATE_2026-09-08.json",
+      "accountOpened": false,
+      "termsAccepted": false,
+      "pageCreated": false,
+      "pagePublished": false
+    }
+  },
   "unlockSequence": [
     "confirm_existing_adult_reddit_account",
     "approve_exact_post_and_reply_cover",
@@ -192,6 +208,8 @@
     "docs/company/content/visual-launch-moments.json",
     "docs/company/automation/website-analytics-tag.json",
     "docs/company/growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08.json",
-    "docs/company/growth/OWNED_CHANNEL_ATTENTION_2026-09-08.json"
+    "docs/company/growth/OWNED_CHANNEL_ATTENTION_2026-09-08.json",
+    "docs/company/growth/DISCOVERY_DOORWAY_REGISTRY_2026-09-08.json",
+    "docs/company/growth/INDIEDB_PAGE_CANDIDATE_2026-09-08.json"
   ]
 }

@@ -17,6 +17,8 @@ const release = load('docs/company/growth/GITHUB_PLAYABLE_RELEASE.json');
 const analytics = load('docs/company/automation/website-analytics-tag.json');
 const community = load('docs/company/growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08.json');
 const attention = load('docs/company/growth/OWNED_CHANNEL_ATTENTION_2026-09-08.json');
+const discoveryDoorways = load('docs/company/growth/DISCOVERY_DOORWAY_REGISTRY_2026-09-08.json');
+const indieDbCandidate = load('docs/company/growth/INDIEDB_PAGE_CANDIDATE_2026-09-08.json');
 const scoreboard = read('docs/company/growth/WHAT_WE_KNOW_ABOUT_GROWTH_2026-08-27.md');
 const firstFivePage = read('docs/company/research/FIRST_FIVE_PLAYTEST.md');
 const homepage = read('index.html');
@@ -108,6 +110,14 @@ requireValue(control.firstFiveUnlockSequence?.length === 5 && control.firstFiveU
 requireValue(community.state === 'one_direct_link_post_ready_waiting_for_kevin' && community.authority?.externalPostMade === false && community.authority?.externalPostingAuthorized === false, 'community source is not ready and held');
 requireValue(control.communityExperiment?.id === 'WEBGAMES-FIRST-RUN-001' && control.communityExperiment?.state === 'waiting_for_existing_account_and_action_time_approval' && control.communityExperiment?.postMade === false, 'founder community experiment state is invalid');
 requireValue(control.communityExperiment?.oneRouteAtATime === true && control.communityExperiment?.nextRouteBeforeSevenDayReadAllowed === false && control.communityExperiment?.humanRepliesOnly === true && control.communityExperiment?.fakeEngagementAllowed === false, 'community experiment safety boundary is invalid');
+const preparedRoutes = control.preparedDiscoveryRoutes || {};
+const indieDbRoute = (discoveryDoorways.routes || []).find(route => route.id === 'indiedb');
+requireValue(discoveryDoorways.routes?.length === 13 && preparedRoutes.checkedRoutes === 13, 'founder control discovery route count is stale');
+requireValue(preparedRoutes.source === 'docs/company/growth/DISCOVERY_DOORWAY_REGISTRY_2026-09-08.json' && preparedRoutes.oneRouteAtATime === true && preparedRoutes.firstRoute === 'r/WebGames' && preparedRoutes.secondRoute === 'Phaser Showcase', 'founder discovery order is invalid');
+requireValue(preparedRoutes.indieDb?.candidate === 'docs/company/growth/INDIEDB_PAGE_CANDIDATE_2026-09-08.json' && preparedRoutes.indieDb?.state === indieDbRoute?.state && indieDbRoute?.preparedArtifact === preparedRoutes.indieDb?.candidate, 'founder IndieDB packet is detached from the discovery registry');
+requireValue(preparedRoutes.indieDb?.candidateState === indieDbCandidate.state && indieDbCandidate.releaseGate?.readyForPublication === false, 'founder IndieDB packet state is inaccurate');
+for (const field of ['accountOpened', 'termsAccepted', 'pageCreated', 'pagePublished']) requireValue(preparedRoutes.indieDb?.[field] === false, `founder IndieDB ${field} must remain false`);
+requireValue(indieDbCandidate.authority?.accountOpened === false && indieDbCandidate.termsReview?.accepted === false && indieDbCandidate.releaseGate?.pageSaved === false && indieDbCandidate.releaseGate?.pagePublished === false, 'IndieDB source records an unauthorized external action');
 
 requireValue(control.languageAndSafety?.publicCreatureTerm === 'creatures' && control.languageAndSafety?.companionTermAllowed === false, 'public creature language boundary is invalid');
 requireValue(control.languageAndSafety?.childExactAgeAllowed === false && control.languageAndSafety?.childNamePhotoOrContactAllowed === false, 'child privacy boundary is invalid');
@@ -130,6 +140,10 @@ for (const phrase of [
     'https://mythicalvoid.com/play/',
     'Nothing has been posted.',
     '2 repository views from 1 person',
+    'Thirteen discovery routes have now been checked',
+    'What is ready behind the first community test',
+    'the full game-page copy and rights checklist are prepared',
+    'That check must not save or publish a page.',
     'The important product decision that remains held',
     'A person—not an automated check—must approve it',
     'NASA does not make or endorse Mythical Void.',
@@ -150,7 +164,7 @@ const searchExperiment = (currentState.experiments || []).find(item => item.id =
 requireValue(discoveryScore?.current?.includes('official website now links back to that verified public project'), 'current-state scorecard still describes the reciprocal project link as merely prepared');
 requireValue(searchExperiment?.signal?.includes('official website now links back to that verified public project'), 'current-state search experiment still describes the reciprocal project link as merely prepared');
 
-requireValue(Array.isArray(control.sources) && control.sources.length === 10, 'founder control sources are incomplete');
+requireValue(Array.isArray(control.sources) && control.sources.length === 12, 'founder control sources are incomplete');
 for (const source of control.sources || []) requireValue(fs.existsSync(path.join(root, source)), `founder control source does not exist: ${source}`);
 requireValue(packageJson.scripts?.['validate:founder-control'] === 'node scripts/company/validate-founder-control-page.cjs', 'founder control validator command is missing');
 requireValue(packageJson.scripts?.['test:founder-control'] === 'node scripts/company/test-founder-control-page.cjs', 'founder control safeguard command is missing');
