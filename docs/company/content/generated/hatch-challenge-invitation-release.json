@@ -43,9 +43,11 @@
     "comparisonGuidancePresentInGameBundle": true,
     "persistentMenuCandidate": {
       "sourceReady": true,
-      "productionCommit": null,
-      "productionDeployId": null,
-      "productionPublishedAt": null
+      "sourceCommit": "78a21bb9dd935c76f8925133b1b0bd8dcf319e35",
+      "productionCommit": "dc073a0c4f479998381d41bdf81cce4b6a514fe9",
+      "productionDeployId": "6aa03482d8d12800082c59a3",
+      "productionPublishedAt": "2026-09-08T16:26:38.333Z",
+      "sourceAndProductionTreesMatch": true
     }
   }
 }

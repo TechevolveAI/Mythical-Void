@@ -155,7 +155,12 @@ describe('storefront Project Beacon story contract', () => {
     });
 
     test('offers a privacy-safe player-led sharing path', () => {
-        expect((storefront.match(/<button[^>]+data-share-game/g) || [])).toHaveLength(2);
+        expect((storefront.match(/<button[^>]+data-share-game/g) || [])).toHaveLength(1);
+        expect((storefront.match(/<button[^>]+data-share-hatch-challenge/g) || [])).toHaveLength(1);
+        expect(storefront).toContain('Invite someone to hatch');
+        expect(storefront).toContain('The Mythical Void Hatch Challenge');
+        expect(storefront).toContain('https://mythicalvoid.com/hatch-challenge/');
+        expect(storefront).toContain('Challenge link copied — no tracking code.');
         expect(storefront).toContain('hero-share-status');
         expect(storefront).toContain("const shareButtons = [...app.querySelectorAll('[data-share-game]')]");
         expect(storefront).toContain('data-share-label');
