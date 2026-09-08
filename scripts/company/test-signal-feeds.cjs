@@ -10,6 +10,7 @@ const validator = path.join(__dirname, 'validate-signal-feeds.cjs');
 const source = JSON.parse(fs.readFileSync(path.join(root, 'public/updates/releases.json'), 'utf8'));
 const rss = fs.readFileSync(path.join(root, 'public/updates/feed.xml'), 'utf8');
 const json = fs.readFileSync(path.join(root, 'public/updates/feed.json'), 'utf8');
+const release = JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content/generated/signal-log-syndication-release.json'), 'utf8'));
 const cases = [
     ['stale RSS', value => value.replace('The Latest News can now travel', 'Old title'), json],
     ['stale JSON', rss, value => value.replace('The Latest News can now travel', 'Old title')],
@@ -17,15 +18,17 @@ const cases = [
 ];
 let passed = 0;
 
-function run(sourceValue, rssValue, jsonValue) {
+function run(sourceValue, rssValue, jsonValue, releaseValue = release) {
     const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'mythical-signal-feed-'));
     const sourcePath = path.join(folder, 'releases.json');
     const rssPath = path.join(folder, 'feed.xml');
     const jsonPath = path.join(folder, 'feed.json');
+    const releasePath = path.join(folder, 'release.json');
     fs.writeFileSync(sourcePath, JSON.stringify(sourceValue, null, 2));
     fs.writeFileSync(rssPath, rssValue);
     fs.writeFileSync(jsonPath, jsonValue);
-    return spawnSync(process.execPath, [validator, sourcePath, rssPath, jsonPath], { cwd: root, encoding: 'utf8' });
+    fs.writeFileSync(releasePath, JSON.stringify(releaseValue, null, 2));
+    return spawnSync(process.execPath, [validator, sourcePath, rssPath, jsonPath, releasePath], { cwd: root, encoding: 'utf8' });
 }
 
 if (run(source, rss, json).status !== 0) throw new Error('valid feed release was rejected');
@@ -50,6 +53,17 @@ for (const [name, mutate] of [
     const changed = structuredClone(source);
     mutate(changed);
     if (run(changed, rss, json).status === 0) throw new Error(`${name} was accepted`);
+    passed += 1;
+}
+
+for (const [name, mutate] of [
+    ['malformed production commit', value => { value.productionVerification.commit = 'not-a-commit'; }],
+    ['missing latest production entry', value => { value.productionVerification.latestEntryPresent = false; }],
+    ['invented visual approval', value => { value.productionVerification.productionPresentationReview = 'passed'; }]
+]) {
+    const changed = structuredClone(release);
+    mutate(changed);
+    if (run(source, rss, json, changed).status === 0) throw new Error(`${name} was accepted`);
     passed += 1;
 }
 
