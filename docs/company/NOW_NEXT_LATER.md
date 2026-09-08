@@ -27,7 +27,10 @@ actually live or prepared on 8 September 2026.
   action.
 - The public GitHub project now describes the game clearly and has a verified
   early-access release leading to Play. It contains no weak screenshots, video
-  or downloadable second build.
+  or downloadable second build. Its public discovery labels now also describe
+  the game as an early-access, family-friendly, free HTML5/web and space game
+  made with generative AI as part of the creative process. These labels make the
+  project easier to classify; they do not prove that anyone saw or played it.
 - The release hand-off now refreshes every Latest News draft during the normal
   build and reduces the whole backlog to one next audience move. It caught and
   repaired a real one-release gap. The rebuilt Crystal Caves expedition is now
