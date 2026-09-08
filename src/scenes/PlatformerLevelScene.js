@@ -6736,7 +6736,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         const { width } = this.cameras.main;
         const safeArea = this.getSafeAreaInsets();
         const companionName = window.GameState?.get?.('creature.name')
-            || 'Your companion';
+            || 'Your creature';
         const powerName = result?.decision?.powerName || 'Protective Response';
         const recoveryOutcome = result?.decision?.trigger === 'lethal_fall'
             ? 'LETHAL FALL PREVENTED  //  1 HEART HELD'
@@ -6889,7 +6889,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             contentWidth, y, font, buttonPadding
         } = layout;
         const centerX = width / 2;
-        const companionName = window.GameState?.get('creature.name') || 'Your companion';
+        const companionName = window.GameState?.get('creature.name') || 'Your creature';
         const hasCheckpoint = Boolean(this.checkpointPosition);
         const guardianRecovery = Boolean(this.guardianEncounter?.active);
         const recoveryCopy = hasCheckpoint
@@ -8511,7 +8511,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         const fieldKit = window.GameState?.get?.(
             'story.projectBeacon.fieldKit'
         ) || {};
-        const creatureName = window.GameState?.get?.('creature.name') || 'Your companion';
+        const creatureName = window.GameState?.get?.('creature.name') || 'Your creature';
         this.katanaArtifactModal?.destroy?.();
         this.katanaArtifactModal = new KatanaArtifactModal(this);
         const shown = this.katanaArtifactModal.show({
@@ -8796,7 +8796,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             const height = this.cameras?.main?.height || this.scale.height;
             const companionName = this.rescuePortraitPreview
                 ? 'Nova'
-                : window.GameState?.get?.('creature.name') || 'Your companion';
+                : window.GameState?.get?.('creature.name') || 'Your creature';
             const allianceLabel = this.add.text(
                 width / 2,
                 height * 0.8,

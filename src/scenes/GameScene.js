@@ -1660,7 +1660,7 @@ class GameScene extends Phaser.Scene {
         companion.fillCircle(companionX - 16, companionY - 10, 4);
         companion.fillCircle(companionX + 20, companionY - 10, 4);
 
-        const heading = this.add.text(companionX, Math.max(70, height * 0.2), 'PROJECT BEACON // COMPANION CARE', {
+        const heading = this.add.text(companionX, Math.max(70, height * 0.2), 'PROJECT BEACON // CREATURE CARE', {
             fontSize: '20px',
             color: '#8FE3CF',
             fontFamily: 'Arial, sans-serif',
@@ -3754,7 +3754,7 @@ class GameScene extends Phaser.Scene {
                         rows: [
                             {
                                 id: 'companion_continuity',
-                                label: 'COMPANION CONTINUITY',
+                                label: 'CREATURE CONTINUITY',
                                 status: 'VERIFIED',
                                 tone: 'protected',
                                 detail:
@@ -3798,7 +3798,7 @@ class GameScene extends Phaser.Scene {
                                 status: 'VERIFIED',
                                 tone: 'protected',
                                 detail:
-                                    'The companion keeps veto power and the unused Sensei route is recoverable.'
+                                    'The creature keeps veto power and the unused Sensei route is recoverable.'
                             }
                         ]
                     }
@@ -9230,7 +9230,7 @@ class GameScene extends Phaser.Scene {
         if (!snapshot?.unlock?.unlocked) {
             return {
                 verb: 'DORMANT',
-                label: 'HATCH A COMPANION',
+                label: 'HATCH A CREATURE',
                 icon: '·'
             };
         }
@@ -9287,7 +9287,7 @@ class GameScene extends Phaser.Scene {
         } = {}
     ) {
         if (!snapshot?.unlock?.unlocked) {
-            return `Village Heart offline · ${snapshot?.unlock?.reason || 'Hatch a companion first'}`;
+            return `Village Heart offline · ${snapshot?.unlock?.reason || 'Hatch a creature first'}`;
         }
 
         if (snapshot.onboarding?.stage === 'meet_heart') {
@@ -10669,7 +10669,7 @@ class GameScene extends Phaser.Scene {
         };
         addText(
             21,
-            `COMPANION RECOGNITION // ${resident.name.toUpperCase()}`,
+            `CREATURE RECOGNITION // ${resident.name.toUpperCase()}`,
             {
                 fontSize: compact ? '10px' : '12px',
                 fontStyle: 'bold',
@@ -11470,7 +11470,7 @@ class GameScene extends Phaser.Scene {
         } else {
             addText(
                 top + (compact ? 104 : 110),
-                'Kiri, Mara, and Tovan name three urgent needs. Ilyra asks you and your companion to choose what the Commons begins first.',
+                'Kiri, Mara, and Tovan name three urgent needs. Ilyra asks you and your creature to choose what the Commons begins first.',
                 {
                     fontSize: compact ? '12px' : '14px',
                     color: '#BFD8D2',
@@ -12747,7 +12747,7 @@ class GameScene extends Phaser.Scene {
         }
 
         this.isFieldKitModalOpen = true;
-        const creatureName = getGameState().get('creature.name') || 'Your companion';
+        const creatureName = getGameState().get('creature.name') || 'Your creature';
         this.katanaArtifactModal = new KatanaArtifactModal(this);
         const shown = this.katanaArtifactModal.show({
             fieldKit,
@@ -12849,7 +12849,7 @@ class GameScene extends Phaser.Scene {
         }
         if (fieldKitRecovered && earthMemory.ready) {
             return createDescriptor(
-                'Your companion has an Earth question',
+                'Your creature has an Earth question',
                 'ANSWER',
                 'EARTH QUESTION'
             );
@@ -13209,7 +13209,7 @@ class GameScene extends Phaser.Scene {
                     : currentReconstruction.ready
                         ? `Ship reconstruction ${currentReconstruction.completedCount}/${currentReconstruction.totalSteps}`
                     : currentReconstruction.fieldSupport.ready
-                        ? 'Powered berth ready · companion service available'
+                        ? 'Powered berth ready · creature care available'
                     : currentProtocol.complete
                         ? 'Protected return sealed · report held'
                         : currentProtocol.available
@@ -14302,7 +14302,7 @@ class GameScene extends Phaser.Scene {
         if (!this.livingSignalApproachHintShown) {
             this.livingSignalApproachHintShown = true;
             this.showInteractionHint(
-                'Not an Earth transmission. Move into the pulse with your companion.'
+                'Not an Earth transmission. Move into the pulse with your creature.'
             );
         }
 
@@ -14315,7 +14315,7 @@ class GameScene extends Phaser.Scene {
             this.resetActiveLivingSignalListening();
             this.activeLivingSignalId = nearest.signal.signalId;
             this.livingSignalDwellMs = 0;
-            this.showInteractionHint('Hold position. Your companion is listening.');
+            this.showInteractionHint('Hold position. Your creature is listening.');
         }
 
         this.livingSignalDwellMs += Math.min(Number(delta) || 16.67, 100);
@@ -14450,7 +14450,7 @@ class GameScene extends Phaser.Scene {
         const companion = this.add.text(
             panelX + 16,
             panelY + (isMobile ? 112 : 98),
-            `COMPANION // ${result.signal.companionLine}`,
+            `CREATURE // ${result.signal.companionLine}`,
             {
                 fontSize: isMobile ? '10px' : '11px',
                 fontFamily: 'Arial, sans-serif',
@@ -14472,7 +14472,7 @@ class GameScene extends Phaser.Scene {
             }
         ).setScrollFactor(0).setDepth(depth + 1);
         const nextInstruction = result.completed
-            ? 'NEXT // Follow your companion toward the World Gate.'
+            ? 'NEXT // Follow your creature toward the World Gate.'
             : `NEXT // Follow the marked pulse. Listen ${result.progress}/${result.total}.`;
         const next = this.add.text(
             panelX + 16,
@@ -14708,7 +14708,7 @@ class GameScene extends Phaser.Scene {
         const dna = window.GameState?.get?.('creature.dna');
         if (!genes || !dna) return null;
         const creatureData = {
-            name: window.GameState?.get?.('creature.name') || 'Companion',
+            name: window.GameState?.get?.('creature.name') || 'Creature',
             stage,
             genes,
             dna,
@@ -14811,7 +14811,7 @@ class GameScene extends Phaser.Scene {
             fontStyle: 'bold',
             color: '#F2C14E'
         });
-        const companionName = window.GameState?.get?.('creature.name') || 'Your companion';
+        const companionName = window.GameState?.get?.('creature.name') || 'Your creature';
         const copy = this.add.text(
             copyX,
             -5,
@@ -14823,7 +14823,7 @@ class GameScene extends Phaser.Scene {
                 wordWrap: { width: copyWidth }
             }
         );
-        const action = this.add.text(copyX, 31, 'TAP TO VIEW COMPANION PROFILE', {
+        const action = this.add.text(copyX, 31, 'TAP TO VIEW CREATURE PROFILE', {
             fontFamily: 'Arial, sans-serif',
             fontSize: compact ? '9px' : '10px',
             fontStyle: 'bold',
@@ -14892,7 +14892,7 @@ class GameScene extends Phaser.Scene {
             }
         };
         const shown = reveal.show({
-            name: window.GameState?.get?.('creature.name') || 'Companion',
+            name: window.GameState?.get?.('creature.name') || 'Creature',
             species: window.GameState?.get?.('creature.genes.species'),
             stage: record.stage || window.GameState?.get?.(
                 'creature.lifecycle.stage'
@@ -14941,7 +14941,7 @@ class GameScene extends Phaser.Scene {
     openCreatureProfile() {
         console.log('[GameScene] Opening creature profile');
         this.sceneRouter.pauseAndLaunchScene('CreatureProfileScene', undefined, {
-            loadingMessage: 'Opening companion profile...',
+            loadingMessage: 'Opening creature profile...',
             sound: 'buttonClick'
         });
     }
@@ -17756,7 +17756,7 @@ class GameScene extends Phaser.Scene {
             .slice(0, 2);
         const companionLine = names.length === 2
             ? `${names[0]} and ${names[1]} are both secure in the Sanctuary.`
-            : 'Both companions are secure in the Sanctuary.';
+            : 'Both creatures are secure in the Sanctuary.';
         const discoveryLine =
             'A dormant Fend record has answered their two living signatures.';
         const intro = this.add.text(
@@ -17790,7 +17790,7 @@ class GameScene extends Phaser.Scene {
         const requirements = this.add.text(
             contentX,
             panelY + (shortPanel ? 156 : 207),
-            `${status}\n\nCalibrate at field level 5.\nWait until both companions are adults.\nPreview inherited traits before confirming.`,
+            `${status}\n\nCalibrate at field level 5.\nWait until both creatures are adults.\nPreview inherited traits before confirming.`,
             {
                 fontSize: compact || shortPanel ? '11px' : '12px',
                 color: '#D7DEE0',

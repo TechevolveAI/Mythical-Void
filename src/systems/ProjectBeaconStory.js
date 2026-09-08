@@ -128,7 +128,7 @@ export function getProjectBeaconLog(gameState) {
         'story.projectBeacon.lastRouteUnlocked',
         null
     );
-    const companionName = getValue(gameState, 'creature.name', 'Your companion');
+    const companionName = getValue(gameState, 'creature.name', 'Your creature');
     const bondLevel = Math.max(
         1,
         Number(getValue(gameState, 'creature.bond.level', 1)) || 1
@@ -174,7 +174,7 @@ export function getProjectBeaconLog(gameState) {
         : 'Follow the Rootlight route into the Mythical Forest.';
     let directiveDetail = currentMission
         ? currentMission.description
-        : 'Your companion knows a path beyond the crash site.';
+        : 'Your creature knows a path beyond the crash site.';
 
     if (!currentMission && senseiMemory.ready) {
         phase = `PERSONAL ARCHIVE // MEMORY ${senseiMemory.recalledCount + 1} OF ${senseiMemory.totalMemories}`;
@@ -240,7 +240,7 @@ export function getProjectBeaconLog(gameState) {
             directiveDetail = formatFendCultureObjective(fendCulture);
         } else if (companionConsent.ready) {
             phase = `EARTH BOUNDARIES // ${companionConsent.reviewedCount} OF ${companionConsent.totalTopics}`;
-            directive = 'Return to Wanderer-77 with your companion.';
+            directive = 'Return to Wanderer-77 with your creature.';
             directiveDetail = formatCompanionConsentObjective(
                 companionConsent
             );
@@ -296,7 +296,7 @@ export function getProjectBeaconLog(gameState) {
 
     if (!currentMission && companionEarthMemory.ready) {
         phase = 'TWO WORLDS // EARTH QUESTION';
-        directive = 'Return to Wanderer-77 with your companion.';
+        directive = 'Return to Wanderer-77 with your creature.';
         directiveDetail = formatCompanionEarthMemoryObjective(
             companionEarthMemory
         );

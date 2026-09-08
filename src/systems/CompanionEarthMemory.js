@@ -205,7 +205,7 @@ export function formatCompanionEarthMemoryObjective(snapshot) {
         return 'Earth memory shared. No invitation or transmission was made.';
     }
     if (snapshot?.ready) {
-        return 'Return to Wanderer-77. Your companion has an Earth question.';
+        return 'Return to Wanderer-77. Your creature has an Earth question.';
     }
     return 'Complete the Fend recovery chapter before comparing your two worlds.';
 }
