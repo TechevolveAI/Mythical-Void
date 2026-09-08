@@ -7,7 +7,9 @@ const {
     buildSignalLog,
     buildUpdatesSitemap,
     defaultDataPath,
+    defaultMainSitemapPath,
     defaultOutputPath,
+    latestPublishedDate,
     releaseUrl
 } = require('./build-public-signal-log.cjs');
 
@@ -89,6 +91,10 @@ const updatesDir = path.dirname(defaultOutputPath);
 const updatesSitemapPath = path.join(updatesDir, 'sitemap.xml');
 const updatesSitemap = fs.existsSync(updatesSitemapPath) ? fs.readFileSync(updatesSitemapPath, 'utf8') : '';
 requireValue(updatesSitemap === buildUpdatesSitemap(data), 'Latest News sitemap is stale or missing');
+const mainSitemap = fs.existsSync(defaultMainSitemapPath) ? fs.readFileSync(defaultMainSitemapPath, 'utf8') : '';
+const updatesMainSitemapEntry = mainSitemap.match(/<url>\s*<loc>https:\/\/mythicalvoid\.com\/updates\/<\/loc>\s*<lastmod>(\d{4}-\d{2}-\d{2})<\/lastmod>\s*<changefreq>[^<]+<\/changefreq>\s*<priority>[^<]+<\/priority>\s*<\/url>/);
+requireValue(Boolean(updatesMainSitemapEntry), 'main sitemap is missing its complete Latest News entry');
+requireValue(updatesMainSitemapEntry?.[1] === latestPublishedDate(data), 'main sitemap Latest News date is stale');
 for (const entry of liveEntries) {
     const entryPagePath = path.join(updatesDir, entry.id.toLowerCase(), 'index.html');
     const entryPage = fs.existsSync(entryPagePath) ? fs.readFileSync(entryPagePath, 'utf8') : '';
