@@ -33,12 +33,15 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
     requireValue(prepared.title?.startsWith('Mythical Void'), 'the post title must start with the game name');
     requireValue(prepared.url === 'https://mythicalvoid.com/play/', 'the post must use the clean direct game URL');
     requireValue(!/[?#]/.test(prepared.url || ''), 'the game URL must not contain tracking parameters or fragments');
-    requireValue(/father-and-son experiment/i.test(prepared.firstComment || '') && /generative AI tools/i.test(prepared.firstComment || ''), 'the true origin and AI assistance disclosure are missing');
-    requireValue(/early-access browser adventure/i.test(prepared.firstComment || '') && /built in Phaser/i.test(prepared.firstComment || ''), 'the game state and Phaser context are missing');
-    requireValue(/No download or account is needed/i.test(prepared.firstComment || ''), 'the low-friction promise is missing');
-    requireValue(/Crystal Caves.+three-pulse route.+corrupted Guardian awakens/i.test(prepared.firstComment || ''), 'the current Crystal Caves reason to try the game is missing');
-    requireValue(/brand emblem.+not gameplay/i.test(prepared.firstComment || ''), 'the automatic link preview disclosure is missing');
-    requireValue(/first minute felt clear or confusing/i.test(prepared.firstComment || ''), 'the one useful feedback question is missing');
+    requireValue(/My son and I started Mythical Void/i.test(prepared.firstComment || '') && /generative AI tools/i.test(prepared.firstComment || ''), 'the true origin and AI assistance disclosure are missing');
+    requireValue(/free early-access browser adventure/i.test(prepared.firstComment || '') && /hatch your own alien creature/i.test(prepared.firstComment || ''), 'the game state and creature promise are missing');
+    requireValue(/six strange worlds/i.test(prepared.firstComment || '') && /free Guardians trapped by the Void/i.test(prepared.firstComment || '') && /Project Beacon becomes/i.test(prepared.firstComment || ''), 'the plain game experience is incomplete');
+    requireValue(/no download or account/i.test(prepared.firstComment || ''), 'the low-friction promise is missing');
+    requireValue(/brand emblem, not gameplay/i.test(prepared.firstComment || ''), 'the automatic link preview disclosure is missing');
+    requireValue(/what felt clear or confusing in the first minute/i.test(prepared.firstComment || ''), 'the one useful feedback question is missing');
+    requireValue((prepared.title || '').length <= 90, 'the post title is too long');
+    requireValue((prepared.firstComment || '').trim().split(/\s+/).length <= 110, 'the first comment is too long');
+    requireValue(!/\[HTML5\]|built in Phaser|three-pulse route/i.test(`${prepared.title || ''} ${prepared.firstComment || ''}`), 'the first community message has drifted back into technical release-note language');
 
     requireValue(experiment.preflight?.freshOpeningJourneyRequired === true, 'a fresh live journey is required before posting');
     requireValue(experiment.preflight?.checkDuplicateImmediatelyBeforePosting === true, 'the last duplicate check is missing');

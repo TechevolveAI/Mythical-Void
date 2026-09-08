@@ -27,6 +27,16 @@ const cases = [
         expected: 'title must start with the game name'
     },
     {
+        name: 'rejects technical release-note language in the first post',
+        mutate(plan) { plan.firstExperiment.preparedPost.firstComment += ' Built in Phaser with a three-pulse route.'; },
+        expected: 'technical release-note language'
+    },
+    {
+        name: 'rejects an overlong first comment',
+        mutate(plan) { plan.firstExperiment.preparedPost.firstComment += ` ${'More detail '.repeat(60)}`; },
+        expected: 'first comment is too long'
+    },
+    {
         name: 'rejects a duplicate post',
         mutate(plan) { plan.firstExperiment.duplicateCheck.existingResultObserved = true; },
         expected: 'duplicate search no longer supports a first post'

@@ -32,17 +32,18 @@
     },
     "preparedPost": {
       "format": "direct_link",
-      "title": "Mythical Void — hatch an alien creature and explore six living realms [HTML5]",
+      "title": "Mythical Void — hatch an alien creature and explore six strange worlds",
       "url": "https://mythicalvoid.com/play/",
-      "firstComment": "My son and I began Mythical Void as a father-and-son experiment: what could imagination and generative AI tools help us turn into a real game? It is now a free early-access browser adventure built in Phaser. You hatch an alien creature, cross six strange realms and decide what Project Beacon should become. We have just rebuilt Crystal Caves around a clearer three-pulse route before its corrupted Guardian awakens. No download or account is needed. The link preview uses our brand emblem and is clearly marked as not gameplay. If you try it, the most useful thing you can tell me is where the first minute felt clear or confusing. I am the developer, and I will read and answer replies myself.",
+      "firstComment": "My son and I started Mythical Void by asking what imagination and generative AI tools could help us build together. It grew into a free early-access browser adventure where you hatch your own alien creature, explore six strange worlds and free Guardians trapped by the Void. Your choices decide what Project Beacon becomes. It starts straight away — no download or account.\n\nIf you try it, I would value one honest answer: what felt clear or confusing in the first minute? I made the game and will read and answer replies myself. The automatic link picture is our brand emblem, not gameplay.",
       "claims": [
         "free early-access browser game",
         "no download",
         "no account",
-        "built with Phaser",
         "father-and-son beginning",
         "generative AI tools used as part of a human-led creative process",
-        "Crystal Caves has a three-pulse route before its corrupted Guardian awakens",
+        "six strange worlds",
+        "free Guardians trapped by the Void",
+        "player choices decide what Project Beacon becomes",
         "automatic link preview is brand art, not gameplay"
       ]
     },

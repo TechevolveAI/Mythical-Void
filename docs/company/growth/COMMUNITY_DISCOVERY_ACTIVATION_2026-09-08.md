@@ -26,20 +26,20 @@ https://mythicalvoid.com/play/
 
 **Title**
 
-> Mythical Void — hatch an alien creature and explore six living realms [HTML5]
+> Mythical Void — hatch an alien creature and explore six strange worlds
 
 **First comment from Kevin**
 
-> My son and I began Mythical Void as a father-and-son experiment: what could
-> imagination and generative AI tools help us turn into a real game? It is now
-> a free early-access browser adventure built in Phaser. You hatch an alien
-> creature, cross six strange realms and decide what Project Beacon should
-> become. We have just rebuilt Crystal Caves around a clearer three-pulse route
-> before its corrupted Guardian awakens. No download or account is needed. The
-> link preview uses our brand emblem and is clearly marked as not gameplay. If
-> you try it, the most useful thing you can tell me is where the first minute
-> felt clear or confusing. I am the developer, and I will read and answer
-> replies myself.
+> My son and I started Mythical Void by asking what imagination and generative
+> AI tools could help us build together. It grew into a free early-access
+> browser adventure where you hatch your own alien creature, explore six
+> strange worlds and free Guardians trapped by the Void. Your choices decide
+> what Project Beacon becomes. It starts straight away — no download or
+> account.
+>
+> If you try it, I would value one honest answer: what felt clear or confusing
+> in the first minute? I made the game and will read and answer replies myself.
+> The automatic link picture is our brand emblem, not gameplay.
 
 The post itself is the direct game link. There is no tracking code, referral
 link, fabricated audience claim, gameplay image or generated image attached.
