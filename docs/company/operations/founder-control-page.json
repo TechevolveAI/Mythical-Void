@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "FOUNDER-CONTROL-001",
   "asOf": "2026-09-08",
-  "state": "live_with_creature_visual_growth_hold",
+  "state": "live_one_community_test_ready",
   "plainLanguagePage": "docs/company/FOUNDER_CONTROL_PAGE.md",
   "purpose": "Give Kevin one plain-English source of truth for what is live, what is deliberately stopped, what the evidence actually proves, and the single decision that unlocks the next stage of Mythical Void.",
   "live": {
@@ -10,10 +10,24 @@
       "state": "live",
       "websiteUrl": "https://mythicalvoid.com/",
       "playUrl": "https://mythicalvoid.com/play/",
-      "productionSourceCommit": "e9293f09d2ed5332d5538c05f051560d29e4d5e3",
-      "productionDeployId": "6a951fc9e33f9100083fb699",
+      "technicalFirstContactProductionSourceCommit": "e9293f09d2ed5332d5538c05f051560d29e4d5e3",
+      "technicalFirstContactProductionDeployId": "6a951fc9e33f9100083fb699",
       "technicalFirstContactRepairLive": true,
       "creatureArtworkHumanApproved": false,
+      "lastObservedProduction": {
+        "checkedAt": "2026-09-08T15:00:45Z",
+        "sourceCommit": "d894e29ead14ac9d1587c6e22cbbc22deed0c4c5",
+        "deployId": "6aa022b78ae6290008e9682c",
+        "state": "ready",
+        "published": true
+      },
+      "latestGameRelease": {
+        "pullRequest": 197,
+        "mergeCommit": "867db60674440297e92c323dd80cc85d57389752",
+        "mergedAt": "2026-09-08T10:27:30Z",
+        "title": "Stabilize Forest progression and mobile grounding",
+        "containedInLastObservedProduction": true
+      },
       "latestMaterialWebsiteRelease": {
         "checkedOn": "2026-09-08",
         "sourceCommit": "4d91246dcc9d630a68075b379b4c8b26a72ed99a",
@@ -73,9 +87,27 @@
     "enjoymentClaimPermitted": false,
     "retentionClaimPermitted": false,
     "conversionClaimPermitted": false,
-    "growthClaimPermitted": false
+    "growthClaimPermitted": false,
+    "githubRepositoryViewsInRecordedFourteenDayWindow": 2,
+    "githubUniqueRepositoryViewsInRecordedFourteenDayWindow": 1,
+    "githubClonesMayBeUsedAsAudienceEvidence": false
   },
   "currentDecisions": [
+    {
+      "id": "FD-002",
+      "owner": "Kevin",
+      "question": "Approve one direct-link r/WebGames post from an existing adult account and personally cover replies for seven days?",
+      "requires": [
+        "Confirm an existing adult Reddit account or separately approve creating one and accepting its terms.",
+        "Approve the exact prepared title and first comment at action time.",
+        "Confirm Kevin can read and answer public replies for seven days."
+      ],
+      "preparedDecisionArtifact": "docs/company/growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08.md",
+      "cost": "free",
+      "postAuthorized": false
+    }
+  ],
+  "heldDecisions": [
     {
       "id": "FD-001",
       "owner": "Kevin",
@@ -84,10 +116,27 @@
         "Provide one to three visual references for the feeling, material and personality.",
         "Approve a professional concept-artist brief as the direction; any paid work still requires separate spend approval."
       ],
-      "preparedDecisionArtifact": "docs/company/product/CREATURE_CONCEPT_ARTIST_BRIEF.md"
+      "preparedDecisionArtifact": "docs/company/product/CREATURE_CONCEPT_ARTIST_BRIEF.md",
+      "reasonHeld": "Important product work, but it does not replace the single prepared text-only community learning test."
     }
   ],
+  "communityExperiment": {
+    "id": "WEBGAMES-FIRST-RUN-001",
+    "state": "waiting_for_existing_account_and_action_time_approval",
+    "postMade": false,
+    "oneRouteAtATime": true,
+    "nextRouteBeforeSevenDayReadAllowed": false,
+    "humanRepliesOnly": true,
+    "fakeEngagementAllowed": false
+  },
   "unlockSequence": [
+    "confirm_existing_adult_reddit_account",
+    "approve_exact_post_and_reply_cover",
+    "run_action_time_preflight",
+    "publish_one_direct_link_post",
+    "record_day_two_and_day_seven_observations"
+  ],
+  "firstFiveUnlockSequence": [
     "one_private_real_creature_proof",
     "automated_obvious_fault_rejection",
     "adult_human_visual_review",
@@ -134,6 +183,8 @@
     "docs/company/growth/GITHUB_PLAYABLE_RELEASE.json",
     "docs/company/growth/BOTTOM_OF_FUNNEL_DISTRIBUTION_PLAN.json",
     "docs/company/content/visual-launch-moments.json",
-    "docs/company/automation/website-analytics-tag.json"
+    "docs/company/automation/website-analytics-tag.json",
+    "docs/company/growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08.json",
+    "docs/company/growth/OWNED_CHANNEL_ATTENTION_2026-09-08.json"
   ]
 }

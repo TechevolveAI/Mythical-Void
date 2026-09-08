@@ -21,6 +21,8 @@ const files = [
     'docs/company/growth/GITHUB_PLAYABLE_RELEASE.json',
     'docs/company/growth/WHAT_WE_KNOW_ABOUT_GROWTH_2026-08-27.md',
     'docs/company/growth/BOTTOM_OF_FUNNEL_DISTRIBUTION_PLAN.json',
+    'docs/company/growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08.json',
+    'docs/company/growth/OWNED_CHANNEL_ATTENTION_2026-09-08.json',
     'docs/company/content/visual-launch-moments.json',
     'docs/company/automation/website-analytics-tag.json',
     'index.html',
@@ -67,6 +69,9 @@ try {
     assert.strictEqual(result.status, 0, result.stderr);
     const output = JSON.parse(result.stdout);
     assert.strictEqual(output.currentDecisionCount, 1);
+    assert.strictEqual(output.currentDecisionId, 'FD-002');
+    assert.strictEqual(output.heldDecisionCount, 1);
+    assert.strictEqual(output.communityPostMade, false);
     assert.strictEqual(output.creatureArtworkHumanApproved, false);
     assert.strictEqual(output.externalAuthorityGranted, false);
     cases += 1;
@@ -86,6 +91,8 @@ mutateControl('hide fresh consent proof', value => { value.live.websiteAnalytics
 mutateControl('authorize public post', value => { value.authority.publicPostAuthorized = true; }, 'publicPostAuthorized');
 mutateControl('authorize spend', value => { value.authority.spendAuthorized = true; }, 'spendAuthorized');
 mutateControl('add second current decision', value => { value.currentDecisions.push({ id: 'FD-002' }); }, 'exactly one current founder decision');
+mutateControl('pretend community post happened', value => { value.communityExperiment.postMade = true; }, 'founder community experiment state is invalid');
+mutateControl('allow fake engagement', value => { value.communityExperiment.fakeEngagementAllowed = true; }, 'community experiment safety boundary is invalid');
 mutateControl('stale latest website release', value => { value.live.websiteAndGame.latestMaterialWebsiteRelease.deployId = 'stale'; }, 'founder latest material website release deployId is stale');
 mutateControl('hide reciprocal project link', value => { value.live.websiteAndGame.latestMaterialWebsiteRelease.officialProjectReciprocalLinkLive = false; }, 'live reciprocal project link');
 
@@ -115,5 +122,5 @@ try {
     fs.rmSync(privacyRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 17);
-console.log('Founder control safeguards passed (17 cases).');
+assert.strictEqual(cases, 19);
+console.log('Founder control safeguards passed (19 cases).');

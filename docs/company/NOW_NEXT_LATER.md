@@ -41,6 +41,9 @@ actually live or prepared on 8 September 2026.
   and one unique view. Clone totals are excluded because development and
   automation can create them. GitHub remains a useful proof shelf, but this is
   not evidence of meaningful awareness, players or play.
+- The one current founder decision is whether to run the prepared r/WebGames
+  test. The older creature-art decision remains important, but it no longer
+  hides the immediate discovery action.
 
 ## Next — earn the first human evidence
 
@@ -56,13 +59,7 @@ actually live or prepared on 8 September 2026.
 
 - The strongest first outside story is the true beginning: a father and his
   son exploring what imagination and generative AI tools could turn into a
-  real game.
-- A complete text-first founder post is ready. It can come from Kevin’s existing
-  professional profile, so a new Mythical mailbox or company social account is
-  not needed first.
-- Keep that post prepared until the first-contact gate passes. Kevin then needs
-  to confirm the profile and approve the complete preview before it is posted.
-  Replies remain a human responsibility.
+  real game. That story is included plainly in the prepared community post.
 - Google Search Console read access is still needed to see real search queries,
   indexing and crawl problems. This does not stop other work.
 - One respectful r/WebGames post is now fully prepared. That community is made

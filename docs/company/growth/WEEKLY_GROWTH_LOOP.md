@@ -14,7 +14,7 @@ that Mythical already owns.
 - whether Mythical Void appears in public branded and relevant game searches;
 - the accepted 27 August IndexNow submission after seven and fourteen days,
   without resubmitting unchanged URLs or calling acceptance “indexing”;
-- the sitemap, Signal Log, public feeds and important page links;
+- the sitemap, Latest News, public feeds and important page links;
 - optional website measurement remains consent-led and outside the game, and
   its live deployment record is not mistaken for verified Google-property data;
 - whether stronger gameplay moments have passed human visual review;
@@ -42,6 +42,19 @@ npm run feedback:pulse:live
 
 Only the aggregate brief may inform the weekly recommendation. Do not copy raw
 feedback rows into this repository or the task.
+
+Before choosing new work, run:
+
+```bash
+npm run audit:live-health
+npm run watch:game-development
+npm run test:game-development-watch
+npm run validate:game-development-watch
+```
+
+The game-change watch is a reason to inspect an exact build. A person still
+decides whether it looks good. A changed file or passing test does not prove
+that anybody played, enjoyed, returned to or recommended the game.
 
 ## What it may not do
 
