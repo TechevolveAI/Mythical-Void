@@ -24,6 +24,12 @@ const pack = json('docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PA
 const packText = read('docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.md');
 const firstWeekCampaign = json('docs/company/content/campaigns/playable-now-launch.json');
 const releases = json('public/updates/releases.json');
+const updatePages = (releases.entries || [])
+    .filter(entry => entry.status === 'live')
+    .map(entry => ({
+        file: `public/updates/${entry.id.toLowerCase()}/index.html`,
+        url: `https://mythicalvoid.com/updates/${entry.id.toLowerCase()}/`
+    }));
 const hatchChallenge = json('docs/company/growth/HATCH_CHALLENGE_LOOP.json');
 const familyGuide = json('docs/company/growth/FAMILY_GUIDE_RECOMMENDATION_LOOP.json');
 const packageJson = json('package.json');
@@ -37,6 +43,18 @@ for (const page of pages) {
     for (const control of ['data-share-game', 'data-copy-game', 'data-share-status']) requireValue(source.includes(control), `${page.file}: ${control} is missing`);
     requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(source), `${page.file}: tracking code is not permitted`);
 }
+for (const page of updatePages) {
+    const absolute = path.join(root, page.file);
+    const source = fs.existsSync(absolute) ? fs.readFileSync(absolute, 'utf8') : '';
+    requireValue(Boolean(source), `${page.file}: generated update page is missing`);
+    requireValue(source.includes('data-share-card'), `${page.file}: update share card is missing`);
+    requireValue(source.includes(`data-share-url="${page.url}"`), `${page.file}: clean update URL is missing`);
+    requireValue(/data-share-title="[^"]{20,}"/.test(source), `${page.file}: update share title is too weak`);
+    requireValue(/data-share-text="[^"]{60,}"/.test(source), `${page.file}: update share description is too weak`);
+    for (const control of ['data-share-game', 'data-copy-game', 'data-share-status']) requireValue(source.includes(control), `${page.file}: ${control} is missing`);
+    requireValue(source.includes('never asks who receives it'), `${page.file}: sharing privacy promise is missing`);
+    requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(source), `${page.file}: tracking code is not permitted`);
+}
 const parentGuidePage = read('public/parents/index.html');
 requireValue(parentGuidePage.includes('no public player profiles or chat with other players, and no account needed to begin'), 'family-guide share description must carry the checked trust promise');
 requireValue(parentGuidePage.includes('does not ask who receives the link') && parentGuidePage.includes('adds no tracking code'), 'family-guide recommendation privacy promise is missing');
@@ -45,6 +63,8 @@ for (const required of [
     'shareCard.dataset.shareUrl',
     'shareCard.dataset.shareTitle',
     'shareCard.dataset.shareText',
+    'shareCard.dataset.shareSuccess',
+    'shareButton.dataset.copyLabel',
     'navigator.share(shareData)',
     'navigator.clipboard.writeText(shareUrl)',
     "track('share_completed'",
@@ -149,7 +169,8 @@ if (failures.length) {
 
 console.log(JSON.stringify({
     valid: true,
-    sharePageCount: pages.length,
+    sharePageCount: pages.length + updatePages.length,
+    permanentUpdateSharePageCount: updatePages.length,
     gameFinderShareRouteCount: 4,
     hatchChallengeRouteLive: hatchChallenge.state === 'live_production_verified',
     shareSubjects: pages.map(page => page.subject),

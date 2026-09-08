@@ -9,6 +9,10 @@ const { JSDOM } = require('jsdom');
 
 const repositoryRoot = path.resolve(__dirname, '..', '..');
 const validator = path.join(__dirname, 'validate-word-of-mouth-network.cjs');
+const releaseSource = JSON.parse(fs.readFileSync(path.join(repositoryRoot, 'public/updates/releases.json'), 'utf8'));
+const updatePageFiles = releaseSource.entries
+    .filter(entry => entry.status === 'live')
+    .map(entry => `public/updates/${entry.id.toLowerCase()}/index.html`);
 const files = [
     'public/playable-now/index.html',
     'public/parents/index.html',
@@ -24,7 +28,8 @@ const files = [
     'docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.json',
     'docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.md',
     'docs/company/content/campaigns/playable-now-launch.json',
-    'package.json'
+    'package.json',
+    ...updatePageFiles
 ];
 let caseCount = 0;
 
@@ -105,6 +110,21 @@ async function browserFamilyGuideCase({ nativeShare }) {
     return { shared, copied, status: dom.window.document.querySelector('[data-share-status]').textContent };
 }
 
+async function browserUpdateShareCase({ nativeShare }) {
+    const html = '<!doctype html><body><section data-share-card data-share-url="https://mythicalvoid.com/updates/update-025/" data-share-title="Mythical Void update: Crystal Caves has been rebuilt" data-share-text="Crystal Caves has been rebuilt. Read what changed in Mythical Void, then play free in your browser." data-share-success="Thanks for sharing this update."><button data-share-game data-copy-label="Copy update link"><span data-share-label>Share this update</span></button><button data-copy-game>Copy update link</button><p data-share-status></p></section></body>';
+    const dom = new JSDOM(html, { url: 'https://mythicalvoid.com/updates/update-025/', runScripts: 'outside-only' });
+    dom.window.localStorage.setItem('mythical-analytics-consent', 'denied');
+    let shared = null;
+    let copied = null;
+    Object.defineProperty(dom.window.navigator, 'share', { value: nativeShare ? async data => { shared = data; } : undefined, configurable: true });
+    Object.defineProperty(dom.window.navigator, 'clipboard', { value: { writeText: async value => { copied = value; } }, configurable: true });
+    dom.window.eval(fs.readFileSync(path.join(repositoryRoot, 'public/discovery.js'), 'utf8'));
+    const label = dom.window.document.querySelector('[data-share-label]').textContent;
+    dom.window.document.querySelector(nativeShare ? '[data-share-game]' : '[data-copy-game]').click();
+    await new Promise(resolve => setImmediate(resolve));
+    return { shared, copied, label, status: dom.window.document.querySelector('[data-share-status]').textContent };
+}
+
 (async () => {
     caseCount += 1;
     const baselineRoot = fixture();
@@ -112,7 +132,8 @@ async function browserFamilyGuideCase({ nativeShare }) {
         const baseline = execute(baselineRoot);
         assert.strictEqual(baseline.status, 0, baseline.stderr);
         const output = JSON.parse(baseline.stdout);
-        assert.strictEqual(output.sharePageCount, 5);
+        assert.strictEqual(output.sharePageCount, 5 + updatePageFiles.length);
+        assert.strictEqual(output.permanentUpdateSharePageCount, updatePageFiles.length);
         assert.strictEqual(output.recipientCollection, false);
         assert.strictEqual(output.youtubeVisualGateOpen, false);
     } finally {
@@ -120,6 +141,7 @@ async function browserFamilyGuideCase({ nativeShare }) {
     }
 
     invalid('public/studio/index.html', source => source.replace('data-share-url="https://mythicalvoid.com/studio/"', 'data-share-url="https://mythicalvoid.com/?utm_source=social"'), 'clean page-specific URL is missing');
+    invalid(updatePageFiles[0], source => source.replace(/data-share-url="[^"]+"/, 'data-share-url="https://mythicalvoid.com/updates/update-001/?utm_source=social"'), 'clean update URL is missing');
     invalid('public/parents/index.html', source => source.split('no public player profiles or chat with other players, and no account needed to begin').join('family-friendly'), 'family-guide share description must carry the checked trust promise');
     invalid('public/discovery.js', source => source.split('shareCard.dataset.shareUrl').join("'https://example.com/'"), 'shareCard.dataset.shareUrl');
     invalid('docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.json', source => source.replace('"socialPublishingAuthorized": false', '"socialPublishingAuthorized": true'), 'socialPublishingAuthorized');
@@ -181,8 +203,21 @@ async function browserFamilyGuideCase({ nativeShare }) {
     assert.strictEqual(familyCopied.copied, 'https://mythicalvoid.com/parents/');
     assert.strictEqual(familyCopied.status, 'Clean link copied — no tracking code.');
 
-    assert.strictEqual(caseCount, 19);
-    console.log('Word-of-mouth network evaluations passed (19 cases).');
+    caseCount += 1;
+    const updateNative = await browserUpdateShareCase({ nativeShare: true });
+    assert.strictEqual(updateNative.shared?.url, 'https://mythicalvoid.com/updates/update-025/');
+    assert.strictEqual(updateNative.label, 'Share this update');
+    assert.strictEqual(updateNative.status, 'Thanks for sharing this update.');
+
+    caseCount += 1;
+    const updateCopied = await browserUpdateShareCase({ nativeShare: false });
+    assert.strictEqual(updateCopied.shared, null);
+    assert.strictEqual(updateCopied.copied, 'https://mythicalvoid.com/updates/update-025/');
+    assert.strictEqual(updateCopied.label, 'Copy update link');
+    assert.strictEqual(updateCopied.status, 'Clean link copied — no tracking code.');
+
+    assert.strictEqual(caseCount, 22);
+    console.log('Word-of-mouth network evaluations passed (22 cases).');
 })().catch(error => {
     console.error(error.stack || error.message);
     process.exit(1);

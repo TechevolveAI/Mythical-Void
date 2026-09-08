@@ -96,6 +96,13 @@ for (const entry of liveEntries) {
     requireValue(entryPage.includes(`<link rel="canonical" href="${releaseUrl(entry)}">`), `${entry.id} permanent release page lost its canonical address`);
     requireValue(entryPage.includes('<meta property="og:type" content="article">'), `${entry.id} permanent release page lost its article preview`);
     requireValue(entryPage.includes('Brand art, not gameplay.'), `${entry.id} permanent release page lost its preview disclosure`);
+    requireValue(entryPage.includes(`data-share-url="${releaseUrl(entry)}"`), `${entry.id} permanent release page lost its clean share address`);
+    requireValue(/data-share-title="[^"]{20,}"/.test(entryPage) && /data-share-text="[^"]{60,}"/.test(entryPage), `${entry.id} permanent release page has weak share wording`);
+    for (const control of ['data-share-card', 'data-share-game', 'data-copy-game', 'data-share-status']) {
+        requireValue(entryPage.includes(control), `${entry.id} permanent release page lost ${control}`);
+    }
+    requireValue(entryPage.includes('never asks who receives it'), `${entry.id} permanent release page lost its sharing privacy promise`);
+    requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(entryPage), `${entry.id} permanent release page contains tracking code`);
     requireValue(!/\bcompanions?\b/i.test(entryPage), `${entry.id} permanent release page uses retired companion wording`);
     requireValue(!/\b\d[\d,.]*\s+(?:players|customers|downloads|followers|visits)\b/i.test(entryPage), `${entry.id} permanent release page contains an unverified audience metric`);
     let entryStructured;
