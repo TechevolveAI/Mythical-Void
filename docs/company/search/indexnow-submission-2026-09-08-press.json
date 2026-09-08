@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "INDEXNOW-2026-09-08-PRESS",
+  "submittedAt": "2026-09-08T13:34:00Z",
+  "host": "mythicalvoid.com",
+  "endpoint": "https://api.indexnow.org/indexnow",
+  "reason": "The press address changed from a JavaScript fallback that identified itself as the homepage into a real static press and creator page with its own title, canonical URL, game facts and approved downloads.",
+  "urls": [
+    "https://mythicalvoid.com/press/"
+  ],
+  "urlCount": 1,
+  "httpStatus": 200,
+  "accepted": true,
+  "unchangedSitemapUrlsResubmitted": false,
+  "meaning": "Participating search engines accepted a notification for the one genuinely changed canonical page. This does not prove that the page has been crawled, indexed, ranked, visited or used to start a game.",
+  "personalDataSent": false,
+  "accountUsed": false,
+  "paidPromotionStarted": false
+}
