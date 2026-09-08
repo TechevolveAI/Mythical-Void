@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "LATEST-NEWS-SYNDICATION-2026-09-08-CRYSTAL-CAVES",
-  "state": "owned_site_release_prepared",
+  "state": "complete_owned_site_release_production_verified",
   "source": {
     "path": "public/updates/releases.json",
     "fingerprintSha256": "a9b02af4ea0b621301187c069183d579df1db842c8703cab2e993f1a84f58a76",
@@ -46,5 +46,16 @@
     "socialPostingAuthorized": false,
     "externalActionTaken": false
   },
-  "productionVerification": null
+  "productionVerification": {
+    "commit": "5616f6935fe56944d7d63d8aae244c3553657843",
+    "deployId": "6a9fb5e65d58d30008df6952",
+    "publishedAt": "2026-09-08T07:15:58.953Z",
+    "updatesPageHttpStatus": 200,
+    "playDoorwayHttpStatus": 200,
+    "latestEntryId": "UPDATE-025",
+    "latestEntryPresent": true,
+    "rssItemCount": 18,
+    "jsonItemCount": 18,
+    "productionPresentationReview": "text_only_no_gameplay_media"
+  }
 }

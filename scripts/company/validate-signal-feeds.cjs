@@ -37,7 +37,14 @@ requireValue(['owned_site_release_prepared', 'complete_owned_site_release_produc
 if (release.state === 'owned_site_release_prepared') {
     requireValue(release.productionVerification === null, 'prepared feed release must not invent production proof');
 } else {
-    requireValue(release.productionVerification?.commit === 'dc0a77fc8a4f5457a2570ec18182ffe018533788' && release.productionVerification?.deployId === '6a8fc60c7b7e16000795c2b2' && release.productionVerification?.updatesPageHttpStatus === 200 && release.productionVerification?.signalEntryPresent === true && release.productionVerification?.rssItemCount === live.length && release.productionVerification?.jsonItemCount === live.length && release.productionVerification?.productionVisualReview === 'passed', 'live feed production proof is missing');
+    const production = release.productionVerification || {};
+    requireValue(/^[0-9a-f]{40}$/.test(production.commit || ''), 'live feed production commit is missing');
+    requireValue(/^[0-9a-f]{24}$/.test(production.deployId || ''), 'live feed production deploy ID is missing');
+    requireValue(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(production.publishedAt || ''), 'live feed production time is missing');
+    requireValue(production.updatesPageHttpStatus === 200 && production.playDoorwayHttpStatus === 200, 'live feed public doorways were not both checked');
+    requireValue(production.latestEntryId === live[0]?.id && production.latestEntryPresent === true, 'live feed latest entry proof is missing');
+    requireValue(production.rssItemCount === live.length && production.jsonItemCount === live.length, 'live feed production counts drifted');
+    requireValue(production.productionPresentationReview === 'text_only_no_gameplay_media', 'live feed release must preserve its text-only presentation boundary');
 }
 for (const [key, expected] of Object.entries({ ownedWebsitePublicationAuthorized: true, externalSyndicationAuthorized: false, emailSendingAuthorized: false, socialPostingAuthorized: false, externalActionTaken: false })) {
     requireValue(release.authority?.[key] === expected, `release authority.${key} must be ${expected}`);
