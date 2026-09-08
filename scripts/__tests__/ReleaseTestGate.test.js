@@ -37,6 +37,14 @@ describe('release test gate', () => {
         expect(source).not.toContain('awaitPromise: true');
     });
 
+    test('browser smoke gives CI Chrome enough time and avoids shared-memory startup failures', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+
+        expect(source).toContain("const CHROME_START_TIMEOUT_MS = Number(process.env.SMOKE_CHROME_START_TIMEOUT_MS) || 30000;");
+        expect(source).toContain("'--disable-dev-shm-usage'");
+        expect(source).toContain("timeoutMs: CHROME_START_TIMEOUT_MS, message: 'Chrome DevTools target'");
+    });
+
     test('browser smoke rejects console errors and failed same-origin requests', () => {
         const source = read('scripts/smoke-secondary-journeys.js');
 
