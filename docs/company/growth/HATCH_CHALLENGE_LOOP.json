@@ -59,7 +59,10 @@
     "existingConsentedAggregateShareEventsOnly": true
   },
   "visualBoundary": {
-    "newArtworkUsed": false,
+    "newArtworkUsed": true,
+    "newArtworkState": "source_ready_for_owned_release",
+    "newArtworkKind": "ai_assisted_code_authored_brand_art_not_gameplay",
+    "imageModelUsed": false,
     "gameplayMediaUsed": false,
     "approvedGameplayMoments": 0,
     "requiredGameplayMoments": 4,

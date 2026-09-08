@@ -39,7 +39,27 @@
   },
   "visualBoundary": {
     "unapprovedScreenshotUsed": false,
-    "imageIncludedInShare": false
+    "imageIncludedInShare": false,
+    "imageIncludedInShareMeaning": "The Web Share action sends a title, text and the clean page URL only. The destination page supplies its own preview metadata.",
+    "socialPreview": {
+      "state": "source_ready_for_owned_release",
+      "path": "public/marketing/mythical-void-hatch-challenge-card-v1.jpg",
+      "publicUrl": "https://mythicalvoid.com/marketing/mythical-void-hatch-challenge-card-v1.jpg",
+      "sourcePath": "scripts/company/hatch-challenge-link-card.html",
+      "width": 1200,
+      "height": 630,
+      "sha256": "5030a304f7f81b5b7d6284a0100efaef35eec1ff534db0744adbf4de5a7662f7",
+      "classification": "ai_assisted_code_authored_brand_art_not_gameplay",
+      "aiAssistanceUsed": true,
+      "imageModelUsed": false,
+      "gameplayUsed": false,
+      "playerOrCreatureDataUsed": false,
+      "agentVisualPreflightPassed": true,
+      "humanGameplayApprovalClaimed": false,
+      "productionCommit": null,
+      "productionDeployId": null,
+      "productionVerifiedAt": null
+    }
   },
   "verification": {
     "productionCommit": "a5d58c5d6837fb1ce3e3d4f95da02561d1643f37",

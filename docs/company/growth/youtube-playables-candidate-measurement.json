@@ -11,9 +11,9 @@
     "maximumFileCount": 8000
   },
   "package": {
-    "fileCount": 91,
-    "rawBytes": 34530785,
-    "gzipEstimateBytes": 30644499,
+    "fileCount": 92,
+    "rawBytes": 34614862,
+    "gzipEstimateBytes": 30726507,
     "totalHardLimitMet": true,
     "fileCountLimitMet": true,
     "largestFile": {

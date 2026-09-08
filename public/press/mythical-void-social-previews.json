@@ -33,14 +33,19 @@
     {
       "route": "/hatch-challenge/",
       "htmlPath": "public/hatch-challenge/index.html",
-      "imagePath": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
-      "imageUrl": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
-      "imageType": "image/webp",
-      "width": 1672,
-      "height": 941,
-      "alt": "An imagined luminous universe filled with many possible alien creature forms",
-      "classification": "ai_generated_marketing_illustration_not_gameplay",
-      "disclosure": "AI-generated marketing artwork inspired by the creature system. It is not gameplay and is not used as evidence of the current game build."
+      "imagePath": "public/marketing/mythical-void-hatch-challenge-card-v1.jpg",
+      "imageUrl": "https://mythicalvoid.com/marketing/mythical-void-hatch-challenge-card-v1.jpg",
+      "imageType": "image/jpeg",
+      "width": 1200,
+      "height": 630,
+      "alt": "Mythical Void Hatch Challenge brand artwork showing two different imagined cosmic eggs with the words Same starting point. Two creatures. What will hatch?",
+      "classification": "ai_assisted_code_authored_brand_art_not_gameplay",
+      "disclosure": "AI-assisted code-authored brand artwork made for the Hatch Challenge. The card says Brand art · not gameplay and makes no visual claim about the running game.",
+      "sourceTemplate": "scripts/company/hatch-challenge-link-card.html",
+      "sourceEmblem": "public/marketing/mythical-void-emblem-v3.png",
+      "imageModelUsed": false,
+      "playerOrCreatureDataUsed": false,
+      "sha256": "5030a304f7f81b5b7d6284a0100efaef35eec1ff534db0744adbf4de5a7662f7"
     },
     {
       "route": "/story/",

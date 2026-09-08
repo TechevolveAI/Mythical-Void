@@ -16,6 +16,11 @@ actually live or prepared on 8 September 2026.
 - The Hatch Challenge gives one player a clean way to invite somebody they
   already know, play separately and compare what creatures hatch. It is not
   multiplayer and collects no recipient or creature information.
+- A shared Hatch Challenge link now has its own 1200 × 630 preview instead of
+  borrowing the broad creature-universe picture. It explains the two-person
+  idea at a glance, says that it is brand art rather than gameplay and contains
+  no player or creature data. This improves the invitation; it does not prove
+  that anybody shared the link or started playing.
 - The website can count which doorway led to Play only after optional website
   analytics were allowed. It does not build a player profile or measure inside
   the game.
