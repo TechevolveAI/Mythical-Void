@@ -48,7 +48,7 @@
       "checkedAt": null,
       "platformViews": null,
       "publicCommentCount": null,
-      "consentedRedditReferrals": null,
+      "consentedSocialOrCreatorArrivals": null,
       "anonymousAdultForumFeedbackCount": null
     },
     "day7": {
@@ -56,7 +56,7 @@
       "checkedAt": null,
       "platformViews": null,
       "publicCommentCount": null,
-      "consentedRedditReferrals": null,
+      "consentedSocialOrCreatorArrivals": null,
       "anonymousAdultForumFeedbackCount": null
     }
   },
@@ -66,6 +66,7 @@
     "A click does not prove enjoyment.",
     "A comment does not prove retention.",
     "One post does not prove growth.",
+    "A social_or_creator website arrival does not prove that Reddit sent it.",
     "Do not store account names, comment text, private messages or personal details in this record."
   ],
   "nextRequiredAction": "Kevin confirms an existing adult Reddit account, approves the exact post at action time and confirms he can answer replies."

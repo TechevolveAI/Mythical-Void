@@ -11,7 +11,7 @@
     "sourceFingerprints": {
       "releases": "a9b02af4ea0b621301187c069183d579df1db842c8703cab2e993f1a84f58a76",
       "releasePack": "ab70856238eebda19701999c9fd956e2333b9bad22eb3a6ba4b270ee30a67992",
-      "communityRun": "36c24cc2e6c2ba76f3036bcd0cab0161bcc052b8af4a2ee37945c757a6f5c061",
+      "communityRun": "e5bb6e0542364f6a61daf8ee90e565af9af5f96862466a485bdcfac14c83782f",
       "phaserShowcase": "5f1332dbf9d1c452ae29e242fc868b61d8825f26a8b7f875ec1444597033b636",
       "channels": "61c95b390a608c5fbbc256008bfa12783068cf2fdf859880035fd653fec8f4f3",
       "visualPlan": "bf7a822e276bc49fce14bbee7ed2c771720d6ac8cf623ce43d7aba0e33aa4fbf",
@@ -130,6 +130,7 @@
     "A click does not prove enjoyment.",
     "A comment does not prove retention.",
     "One post does not prove growth.",
+    "A social_or_creator website arrival does not prove that Reddit sent it.",
     "Do not store account names, comment text, private messages or personal details in this record."
   ],
   "authority": {

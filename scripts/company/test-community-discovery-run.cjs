@@ -18,6 +18,7 @@ const invalidCases = [
     ['negative count', run => { run.observations.day7.publicCommentCount = -1; }, 'non-negative whole number'],
     ['retired wording', run => { run.preparedPost.firstComment += ' A companion follows the signal.'; }, 'prepared post no longer matches'],
     ['mismatched automatic preview', run => { run.preflight.automaticLinkPreviewMatchesExpected = false; }, 'cannot be recorded as mismatched'],
+    ['invented Reddit attribution', run => { run.observations.day2.consentedRedditReferrals = null; }, 'must not claim Reddit-specific referral attribution'],
     ['missing truth rules', run => { run.truthRules = []; }, 'truth rule is missing']
 ];
 
@@ -67,4 +68,4 @@ assert.deepStrictEqual(statusForRun(published, new Date('2026-09-10T12:00:00Z'))
 published.observations.day2.checkedAt = '2026-09-10T12:05:00.000Z';
 assert.deepStrictEqual(statusForRun(published, new Date('2026-09-15T12:00:00Z')).observationsDue, ['day7']);
 
-console.log('Community discovery run safeguards passed (14 cases).');
+console.log('Community discovery run safeguards passed (15 cases).');

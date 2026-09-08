@@ -70,9 +70,10 @@ function validateCommunityRun({ run, plan }) {
 
     for (const [label, observation] of Object.entries(run.observations || {})) {
         requireValue(['day2', 'day7'].includes(label), `unexpected observation ${label}`);
-        for (const field of ['platformViews', 'publicCommentCount', 'consentedRedditReferrals', 'anonymousAdultForumFeedbackCount']) {
+        for (const field of ['platformViews', 'publicCommentCount', 'consentedSocialOrCreatorArrivals', 'anonymousAdultForumFeedbackCount']) {
             requireValue(nullableWholeNumber(observation[field]), `${label}.${field} must be null or a non-negative whole number`);
         }
+        requireValue(!Object.prototype.hasOwnProperty.call(observation, 'consentedRedditReferrals'), `${label} must not claim Reddit-specific referral attribution`);
         if (!publication.posted) requireValue(Object.values(observation).every(value => value === null), `${label} evidence cannot exist before publication`);
         if (observation.checkedAt !== null) requireValue(Boolean(Date.parse(observation.checkedAt || '')) && Boolean(Date.parse(observation.dueAt || '')), `${label} needs valid due and checked times`);
     }
@@ -85,7 +86,7 @@ function validateCommunityRun({ run, plan }) {
     }
 
     const truth = (run.truthRules || []).join(' ');
-    for (const phrase of ['view is not a player', 'visit is not a play', 'does not prove enjoyment', 'does not prove retention', 'does not prove growth']) {
+    for (const phrase of ['view is not a player', 'visit is not a play', 'does not prove enjoyment', 'does not prove retention', 'does not prove growth', 'social_or_creator website arrival does not prove that reddit sent it']) {
         requireValue(truth.toLowerCase().includes(phrase), `truth rule is missing: ${phrase}`);
     }
     requireValue(!/user(name)?|handle|commentText|comment_text|privateMessage|private_message/i.test(Object.keys(run.observations?.day2 || {}).join(' ')), 'personal or message-level fields are not allowed');
