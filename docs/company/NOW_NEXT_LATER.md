@@ -19,6 +19,9 @@ actually live or prepared on 8 September 2026.
 - The Hatch Challenge gives one player a clean way to invite somebody they
   already know, play separately and compare what creatures hatch. It is not
   multiplayer and collects no recipient or creature information.
+- The first real Guardian restoration now offers that same voluntary invitation,
+  and the shared Hatch Challenge page puts Start before invite or copy. This
+  makes the next step clearer without inventing popularity or tracking a person.
 - The direct Play address now has its own canonical and sharing identity. The
   final r/WebGames check inspects that exact page, its labelled brand preview
   and its real game shell; the homepage can no longer make a broken direct link
@@ -62,6 +65,8 @@ actually live or prepared on 8 September 2026.
   submission to name its changed pages. The homepage, Latest News and the new
   UPDATE-027 page were accepted in one bounded notice. Acceptance is not
   crawling, indexing, ranking, visits, play or growth.
+- The later Hatch Challenge first-screen change was notified on its own. No
+  unchanged page was resubmitted, and acceptance is still not indexing.
 - GitHub's 14-day traffic view on 8 September showed two repository-page views
   and one unique view. Clone totals are excluded because development and
   automation can create them. GitHub remains a useful proof shelf, but this is

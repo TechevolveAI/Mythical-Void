@@ -70,6 +70,9 @@ for (const field of ['newArtDirectionAuthorized', 'gameCodeChangeAuthorized', 'p
 const contactAuditPlan = JSON.parse(JSON.stringify(plan));
 delete contactAuditPlan.entryGates?.stableBuildRef;
 delete contactAuditPlan.entryGates?.productionDeployId;
+delete contactAuditPlan.currentHold?.latestMaterialWebsiteRelease?.sourceCommit;
+delete contactAuditPlan.currentHold?.latestMaterialWebsiteRelease?.protectedMainMergeCommit;
+delete contactAuditPlan.currentHold?.latestMaterialWebsiteRelease?.deployId;
 const serialized = `${JSON.stringify(contactAuditPlan)}\n${invitation}`;
 const contactLike = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(serialized) || /(?:\+?\d[\d .()-]{7,}\d)/.test(serialized.replace(/2026-\d{2}-\d{2}/g, ''));
 requireValue(!contactLike, 'shared playtest plan appears to contain contact data');

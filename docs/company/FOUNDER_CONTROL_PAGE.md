@@ -29,8 +29,10 @@ detailed evidence; it turns that evidence into the decisions that matter now.
 - **The latest game repair is live:** the Mythical Forest crossing and mobile
   creature grounding release is contained in the current production build.
 - **The invitation is live:** the homepage now gives people a clear way to
-  invite someone else to hatch a creature, and the Sanctuary invitation still
-  works. Both use the clean Hatch Challenge link and make no popularity claim.
+  invite someone else to hatch a creature, the Sanctuary invitation still
+  works, and the first real Guardian restoration now offers the same voluntary
+  invitation. The shared Hatch Challenge page leads with Start before its
+  invitation choices. All use the clean link and make no popularity claim.
 - **The press room and Latest News feeds are live:** journalists, creators and
   feed readers have permanent, checked pages to follow without an account.
 - **Adult feedback is available:** adults can send feedback through the owned
@@ -66,6 +68,9 @@ detailed evidence; it turns that evidence into the decisions that matter now.
   owned changed-page notice after the search tool was taught to read both
   canonical sitemaps. The service accepted the notice; that is not proof of
   crawling, indexing, ranking, visits, play or growth.
+- After the Hatch Challenge first screen changed, only that one canonical page
+  was sent through the same notice. It returned `200`; that still is not proof
+  of crawling, indexing, ranking, visits, play or growth.
 - Google Search Console is not connected, so we cannot yet see trustworthy
   search queries or indexing information.
 - The First Five has completed **0 sessions** and contains **0 accepted customer

@@ -12,7 +12,8 @@ const followUpReport = read('docs/company/search/SEARCH_VISIBILITY_FOLLOW_UP_202
 const indexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-08-27.json'));
 const previousChangedPageIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-08-27-05.json'));
 const changedPageIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-08-27-06.json'));
-const newestOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-08-hatch-news.json'));
+const previousOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-08-hatch-news.json'));
+const newestOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-08-hatch-first-screen.json'));
 const handoff = read('docs/company/search/SEARCH_CONSOLE_ACTIVATION.md');
 const report = read('docs/company/search/SEARCH_VISIBILITY_AUDIT_2026-08-27.md');
 const opportunityMap = JSON.parse(read('docs/company/search/search-opportunities.json'));
@@ -82,16 +83,16 @@ requireValue(changedPageIndexNow.accepted === true && changedPageIndexNow.httpSt
 requireValue(JSON.stringify(changedPageIndexNow.urls) === JSON.stringify(['https://mythicalvoid.com/playable-now/']), 'changed-page IndexNow URL list drifted');
 requireValue(changedPageIndexNow.unchangedSitemapUrlsResubmitted === false && /does not prove/i.test(changedPageIndexNow.meaning || ''), 'changed-page IndexNow boundary is missing');
 for (const field of ['personalDataSent', 'accountUsed', 'paidPromotionStarted']) requireValue(changedPageIndexNow[field] === false, `changed-page IndexNow boundary ${field} must remain false`);
-requireValue(audit.indexNow?.newestOwnedChangeNotice?.record === 'docs/company/search/indexnow-submission-2026-09-08-hatch-news.json', 'newest owned changed-page notification evidence link is missing');
-requireValue(audit.indexNow?.newestOwnedChangeNotice?.accepted === true && audit.indexNow?.newestOwnedChangeNotice?.urlCount === 3 && audit.indexNow?.newestOwnedChangeNotice?.unchangedUrlsResubmitted === false, 'newest owned changed-page notification audit is incomplete');
+requireValue(audit.indexNow?.previousOwnedChangeNotice?.record === 'docs/company/search/indexnow-submission-2026-09-08-hatch-news.json', 'previous owned changed-page notification evidence link is missing');
+requireValue(previousOwnedChangeIndexNow.id === 'INDEXNOW-2026-09-08-HATCH-NEWS' && previousOwnedChangeIndexNow.accepted === true && previousOwnedChangeIndexNow.urlCount === 3, 'previous owned changed-page IndexNow evidence is invalid');
+requireValue(audit.indexNow?.newestOwnedChangeNotice?.record === 'docs/company/search/indexnow-submission-2026-09-08-hatch-first-screen.json', 'newest owned changed-page notification evidence link is missing');
+requireValue(audit.indexNow?.newestOwnedChangeNotice?.accepted === true && audit.indexNow?.newestOwnedChangeNotice?.urlCount === 1 && audit.indexNow?.newestOwnedChangeNotice?.unchangedUrlsResubmitted === false, 'newest owned changed-page notification audit is incomplete');
 requireValue(audit.indexNow?.newestOwnedChangeNotice?.indexingClaimed === false, 'newest owned changed-page notice must not claim indexing');
-requireValue(newestOwnedChangeIndexNow.id === 'INDEXNOW-2026-09-08-HATCH-NEWS' && newestOwnedChangeIndexNow.host === 'mythicalvoid.com', 'newest owned changed-page IndexNow evidence identity is invalid');
-requireValue(newestOwnedChangeIndexNow.accepted === true && newestOwnedChangeIndexNow.httpStatus === 200 && newestOwnedChangeIndexNow.urlCount === 3, 'newest owned changed-page IndexNow acceptance evidence is incomplete');
+requireValue(newestOwnedChangeIndexNow.id === 'INDEXNOW-2026-09-08-HATCH-FIRST-SCREEN' && newestOwnedChangeIndexNow.host === 'mythicalvoid.com', 'newest owned changed-page IndexNow evidence identity is invalid');
+requireValue(newestOwnedChangeIndexNow.accepted === true && newestOwnedChangeIndexNow.httpStatus === 200 && newestOwnedChangeIndexNow.urlCount === 1, 'newest owned changed-page IndexNow acceptance evidence is incomplete');
 requireValue(newestOwnedChangeIndexNow.canonicalSitemapCount === 2, 'newest owned changed-page notice did not use both canonical sitemaps');
 requireValue(JSON.stringify(newestOwnedChangeIndexNow.urls) === JSON.stringify([
-    'https://mythicalvoid.com/',
-    'https://mythicalvoid.com/updates/',
-    'https://mythicalvoid.com/updates/update-027/'
+    'https://mythicalvoid.com/hatch-challenge/'
 ]), 'newest owned changed-page IndexNow URL list drifted');
 requireValue(newestOwnedChangeIndexNow.unchangedSitemapUrlsResubmitted === false && /does not prove/i.test(newestOwnedChangeIndexNow.meaning || ''), 'newest owned changed-page IndexNow boundary is missing');
 for (const field of ['personalDataSent', 'accountUsed', 'paidPromotionStarted']) requireValue(newestOwnedChangeIndexNow[field] === false, `newest owned changed-page IndexNow boundary ${field} must remain false`);

@@ -16,6 +16,7 @@ const files = [
     'docs/company/search/indexnow-submission-2026-08-27-05.json',
     'docs/company/search/indexnow-submission-2026-08-27-06.json',
     'docs/company/search/indexnow-submission-2026-09-08-hatch-news.json',
+    'docs/company/search/indexnow-submission-2026-09-08-hatch-first-screen.json',
     'docs/company/search/SEARCH_VISIBILITY_AUDIT_2026-08-27.md',
     'docs/company/search/SEARCH_CONSOLE_ACTIVATION.md',
     'docs/company/search/search-opportunities.json',

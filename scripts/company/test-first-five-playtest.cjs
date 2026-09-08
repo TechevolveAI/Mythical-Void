@@ -60,6 +60,22 @@ try {
     fs.rmSync(baselineRoot, { recursive: true, force: true });
 }
 
+const releaseIdentifierRoot = fixture(fixtureRoot => {
+    const target = path.join(fixtureRoot, 'docs/company/research/first-five-playtest.json');
+    const plan = JSON.parse(fs.readFileSync(target, 'utf8'));
+    plan.currentHold.latestMaterialWebsiteRelease.sourceCommit = '6457034724000000000000000000000000000000';
+    plan.currentHold.latestMaterialWebsiteRelease.protectedMainMergeCommit = '6210009720364000000000000000000000000000';
+    plan.currentHold.latestMaterialWebsiteRelease.deployId = '621000972036400000000000';
+    fs.writeFileSync(target, `${JSON.stringify(plan, null, 2)}\n`);
+});
+try {
+    const result = execute(releaseIdentifierRoot);
+    assert.strictEqual(result.status, 0, result.stderr);
+    cases += 1;
+} finally {
+    fs.rmSync(releaseIdentifierRoot, { recursive: true, force: true });
+}
+
 invalidJson('child audience', plan => { plan.audience.minorParticipationPermitted = true; }, 'minor participation');
 invalidJson('invented product pass', plan => { plan.entryGates.gdh009Passed = true; }, 'must not be marked passed');
 invalidJson('invented build', plan => { plan.entryGates.stableBuildRef = 'not-approved'; }, 'no approved stable build');
@@ -99,5 +115,5 @@ try {
     fs.rmSync(invitationRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 15);
-console.log('First Five playtest safeguards passed (15 cases).');
+assert.strictEqual(cases, 16);
+console.log('First Five playtest safeguards passed (16 cases).');
