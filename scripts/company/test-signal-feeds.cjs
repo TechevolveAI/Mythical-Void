@@ -84,4 +84,17 @@ for (const [name, mutate] of [
     passed += 1;
 }
 
+if (release.state === 'complete_owned_site_release_alias_verified_from_promoted_preview') {
+    for (const [name, mutate] of [
+        ['hidden promoted-preview context', value => { value.productionVerification.deployContextReportedByNetlify = 'production'; }],
+        ['unproven merge tree match', value => { value.productionVerification.mergeTreeMatchesSourceTree = false; }],
+        ['unproven live file match', value => { value.productionVerification.liveFilesMatchSourceSha256 = false; }]
+    ]) {
+        const changed = structuredClone(release);
+        mutate(changed);
+        if (run(source, rss, json, changed).status === 0) throw new Error(`${name} was accepted`);
+        passed += 1;
+    }
+}
+
 console.log(JSON.stringify({ valid: true, adversarialChecksPassed: passed }, null, 2));

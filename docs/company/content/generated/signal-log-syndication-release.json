@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "LATEST-NEWS-SYNDICATION-2026-09-08-HOMEPAGE-HATCH",
-  "state": "owned_site_release_prepared",
+  "state": "complete_owned_site_release_alias_verified_from_promoted_preview",
   "source": {
     "path": "public/updates/releases.json",
     "fingerprintSha256": "c7c0ebb20d3d4bf87424387c01a81272fc8be83f089ee4cb2f59080898a46734",
@@ -46,5 +46,28 @@
     "socialPostingAuthorized": false,
     "externalActionTaken": false
   },
-  "productionVerification": null
+  "productionVerification": {
+    "mergeCommit": "9ac56c8cb4ac994c57f27e0e5e5ecb0ff2c30187",
+    "sourceCommit": "65e8e9054d3f82a4e3880b368848c71697748276",
+    "mergeTreeMatchesSourceTree": true,
+    "deployId": "6aa045b5d6abaf000880efe4",
+    "deployContextReportedByNetlify": "deploy-preview",
+    "promotionMethod": "tested_pr_preview_restored_to_production_alias_after_main_build_was_skipped_for_account_credit_usage",
+    "publishedAt": "2026-09-08T17:34:45.031Z",
+    "productionAlias": "https://mythicalvoid.com",
+    "immutableDeployUrl": "https://6aa045b5d6abaf000880efe4--mythicalvoid.netlify.app",
+    "updatesPageHttpStatus": 200,
+    "permanentEntryHttpStatus": 200,
+    "rssHttpStatus": 200,
+    "jsonHttpStatus": 200,
+    "hatchChallengeHttpStatus": 200,
+    "playDoorwayHttpStatus": 200,
+    "latestEntryId": "UPDATE-027",
+    "latestEntryPresent": true,
+    "rssItemCount": 20,
+    "jsonItemCount": 20,
+    "productionPresentationReview": "text_only_no_gameplay_media",
+    "liveFilesMatchSourceSha256": true,
+    "claimBoundary": "The production alias returned the source-identical update page and feeds. This does not prove subscribers, readership, visits, sharing, play, enjoyment or growth."
+  }
 }
