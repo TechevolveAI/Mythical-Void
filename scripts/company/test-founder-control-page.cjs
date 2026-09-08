@@ -12,14 +12,19 @@ const files = [
     'docs/company/FOUNDER_CONTROL_PAGE.md',
     'docs/company/NOW_NEXT_LATER.md',
     'docs/company/operations/founder-control-page.json',
+    'docs/company/operations/current-state.json',
     'docs/company/research/first-five-playtest.json',
+    'docs/company/research/FIRST_FIVE_PLAYTEST.md',
     'docs/company/reviews/FIRST_CONTACT_VISUAL_REVIEW_2026-08-31.json',
     'docs/company/content/visual-screening-2026-08-27.json',
     'docs/company/search/search-visibility-audit-2026-08-27.json',
     'docs/company/growth/GITHUB_PLAYABLE_RELEASE.json',
+    'docs/company/growth/WHAT_WE_KNOW_ABOUT_GROWTH_2026-08-27.md',
     'docs/company/growth/BOTTOM_OF_FUNNEL_DISTRIBUTION_PLAN.json',
     'docs/company/content/visual-launch-moments.json',
     'docs/company/automation/website-analytics-tag.json',
+    'index.html',
+    'src/site/storefront.js',
     'package.json'
 ];
 let cases = 0;
@@ -80,6 +85,8 @@ mutateControl('trust unverified analytics', value => { value.live.websiteAnalyti
 mutateControl('authorize public post', value => { value.authority.publicPostAuthorized = true; }, 'publicPostAuthorized');
 mutateControl('authorize spend', value => { value.authority.spendAuthorized = true; }, 'spendAuthorized');
 mutateControl('add second current decision', value => { value.currentDecisions.push({ id: 'FD-002' }); }, 'exactly one current founder decision');
+mutateControl('stale latest website release', value => { value.live.websiteAndGame.latestMaterialWebsiteRelease.deployId = 'stale'; }, 'founder latest material website release deployId is stale');
+mutateControl('hide reciprocal project link', value => { value.live.websiteAndGame.latestMaterialWebsiteRelease.officialProjectReciprocalLinkLive = false; }, 'live reciprocal project link');
 
 const wordingRoot = fixture(fixtureRoot => {
     const target = path.join(fixtureRoot, 'docs/company/FOUNDER_CONTROL_PAGE.md');
@@ -107,5 +114,5 @@ try {
     fs.rmSync(privacyRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 14);
-console.log('Founder control safeguards passed (14 cases).');
+assert.strictEqual(cases, 16);
+console.log('Founder control safeguards passed (16 cases).');

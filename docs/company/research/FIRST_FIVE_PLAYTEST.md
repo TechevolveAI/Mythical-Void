@@ -120,7 +120,11 @@ commit `ad4e4599316b327627ff83a5e1fb387ec0d5802d` removed the rectangular
 texture plate and fixed the responsive layout, but the creature itself failed
 the company’s obvious-fault review on phone and desktop. It still reads as a
 soft or blurry mascot rather than the alien living form promised by its
-classification. The candidate was not deployed.
+classification. The candidate was initially stopped before deployment.
+
+Kevin later approved deployment of the technical presentation repair, and it
+is present in production. That deployment fixed the plate and layout; it did
+not approve the creature artwork, release this test or authorize invitations.
 
 The full decision is recorded in
 [`FIRST_CONTACT_VISUAL_REVIEW_2026-08-31.json`](../reviews/FIRST_CONTACT_VISUAL_REVIEW_2026-08-31.json).

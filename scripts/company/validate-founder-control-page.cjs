@@ -15,13 +15,25 @@ const visualScreening = load('docs/company/content/visual-screening-2026-08-27.j
 const search = load('docs/company/search/search-visibility-audit-2026-08-27.json');
 const release = load('docs/company/growth/GITHUB_PLAYABLE_RELEASE.json');
 const analytics = load('docs/company/automation/website-analytics-tag.json');
+const scoreboard = read('docs/company/growth/WHAT_WE_KNOW_ABOUT_GROWTH_2026-08-27.md');
+const firstFivePage = read('docs/company/research/FIRST_FIVE_PLAYTEST.md');
+const homepage = read('index.html');
+const storefront = read('src/site/storefront.js');
+const currentState = load('docs/company/operations/current-state.json');
 const packageJson = load('package.json');
 const normalizedPage = page.replace(/\*\*/g, '').replace(/\s+/g, ' ');
+const normalizedScoreboard = scoreboard.replace(/\*\*/g, '').replace(/\s+/g, ' ');
+const normalizedFirstFivePage = firstFivePage.replace(/\*\*/g, '').replace(/\s+/g, ' ');
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
+const latestMaterialWebsiteRelease = {
+    checkedOn: '2026-09-08',
+    sourceCommit: '4d91246dcc9d630a68075b379b4c8b26a72ed99a',
+    deployId: '6a9fa8c322df6a0008a96302'
+};
 
 requireValue(control.schemaVersion === 1 && control.id === 'FOUNDER-CONTROL-001', 'founder control identity is invalid');
-requireValue(control.asOf === '2026-08-31' && control.state === 'live_with_creature_visual_growth_hold', 'founder control state or date is invalid');
+requireValue(control.asOf === '2026-09-08' && control.state === 'live_with_creature_visual_growth_hold', 'founder control state or date is invalid');
 requireValue(control.plainLanguagePage === 'docs/company/FOUNDER_CONTROL_PAGE.md', 'plain-language page path is invalid');
 
 const live = control.live || {};
@@ -31,6 +43,15 @@ requireValue(live.websiteAndGame?.productionSourceCommit === 'e9293f09d2ed5332d5
 requireValue(live.websiteAndGame?.technicalFirstContactRepairLive === true, 'live first-contact repair is hidden');
 requireValue(live.websiteAndGame?.creatureArtworkHumanApproved === false, 'deployment must not be treated as visual approval');
 requireValue(firstFive.currentHold?.candidateDeployed === true && firstFive.currentHold?.productionSourceCommit === live.websiteAndGame?.productionSourceCommit && firstFive.currentHold?.productionDeployId === live.websiteAndGame?.productionDeployId, 'First Five and founder production evidence disagree');
+for (const [field, expected] of Object.entries(latestMaterialWebsiteRelease)) {
+    requireValue(live.websiteAndGame?.latestMaterialWebsiteRelease?.[field] === expected, `founder latest material website release ${field} is stale`);
+    requireValue(firstFive.currentHold?.latestMaterialWebsiteRelease?.[field] === expected, `First Five latest material website release ${field} is stale`);
+    requireValue(visualReview.laterProductionOverride?.latestMaterialWebsiteRelease?.[field] === expected, `visual review latest material website release ${field} is stale`);
+}
+requireValue(live.websiteAndGame?.latestMaterialWebsiteRelease?.officialProjectReciprocalLinkLive === true, 'founder control hides the live reciprocal project link');
+requireValue(firstFive.currentHold?.latestMaterialWebsiteRelease?.technicalRepairStillLive === true && firstFive.currentHold?.latestMaterialWebsiteRelease?.creatureArtworkHumanApproved === false, 'First Five confuses the live technical repair with artwork approval');
+requireValue(visualReview.laterProductionOverride?.latestMaterialWebsiteRelease?.firstContactRepairStillPresent === true && visualReview.laterProductionOverride?.latestMaterialWebsiteRelease?.visualApprovalGranted === false, 'visual review confuses current production with artwork approval');
+requireValue(homepage.includes('href="https://github.com/TechevolveAI/Mythical-Void"') && storefront.includes('href="https://github.com/TechevolveAI/Mythical-Void"'), 'the live website source does not reciprocally link the verified public project');
 
 requireValue(release.state === 'published_and_verified' && release.publicationCompleted === true, 'GitHub release is falsely described');
 requireValue(live.githubEarlyAccessRelease?.state === release.state && live.githubEarlyAccessRelease?.url === release.publicEvidence?.url, 'GitHub release evidence does not match');
@@ -91,6 +112,16 @@ for (const phrase of [
 requireValue(!/\bcompanions?\b/i.test(page), 'outdated companion wording appears on the founder page');
 requireValue(!/\b(?:nine|9)[ -]year[ -]old\b/i.test(page), 'the founder page exposes a child\'s exact age');
 requireValue(!/NASA[- ](?:powered|endorsed)|official NASA game/i.test(page), 'the founder page implies NASA endorsement');
+requireValue(normalizedScoreboard.includes('Checked: 8 September 2026'), 'growth scoreboard check date is stale');
+requireValue(normalizedScoreboard.includes('website now links back to that official project'), 'growth scoreboard hides the live reciprocal project link');
+requireValue(normalizedScoreboard.includes('The technical first-contact repair is live'), 'growth scoreboard hides the live technical repair');
+requireValue(normalizedScoreboard.includes('Deployment did not approve the creature artwork or release the First Five test.'), 'growth scoreboard confuses deployment with visual approval');
+requireValue(normalizedFirstFivePage.includes('Kevin later approved deployment of the technical presentation repair'), 'First Five page still says the technical repair was never deployed');
+requireValue(normalizedFirstFivePage.includes('did not approve the creature artwork, release this test or authorize invitations'), 'First Five page loses the post-deploy hold');
+const discoveryScore = (currentState.scorecard || []).find(item => item.measure === 'Public discovery checks');
+const searchExperiment = (currentState.experiments || []).find(item => item.id === 'E-001');
+requireValue(discoveryScore?.current?.includes('official website now links back to that verified public project'), 'current-state scorecard still describes the reciprocal project link as merely prepared');
+requireValue(searchExperiment?.signal?.includes('official website now links back to that verified public project'), 'current-state search experiment still describes the reciprocal project link as merely prepared');
 
 requireValue(Array.isArray(control.sources) && control.sources.length === 8, 'founder control sources are incomplete');
 for (const source of control.sources || []) requireValue(fs.existsSync(path.join(root, source)), `founder control source does not exist: ${source}`);

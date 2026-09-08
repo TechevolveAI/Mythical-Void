@@ -1,6 +1,6 @@
 # What we actually know about growth
 
-**Checked:** 31 August 2026
+**Checked:** 8 September 2026
 **Rule:** a working test is not a player, a page view is not enjoyment, and an
 impression is not a recommendation.
 
@@ -8,10 +8,10 @@ impression is not a recommendation.
 
 | Part of the journey | What is proven | What is still unknown |
 | --- | --- | --- |
-| Find Mythical Void | The public pages, sitemap, site identity and search information are live. IndexNow accepted notices for the changed pages. The public GitHub project now has a truthful Play-first description and a verified early-access release with no weak gameplay media attached. | The latest four-search check again found no official Mythical Void result. A signed-in read-only check found no Mythical Void Search Console property. Google indexing, impressions and useful discovery are not proven. |
+| Find Mythical Void | The public pages, sitemap, site identity and search information are live. IndexNow accepted notices for the changed pages. The public GitHub project has a truthful Play-first description and verified early-access release, and the website now links back to that official project. No weak gameplay media is attached. | The 8 September four-search sample found no official Mythical Void result. A signed-in read-only check found no Mythical Void Search Console property. Google indexing, impressions and useful discovery are not proven. |
 | Understand the game | The website explains the creature, six realms, story, free browser access, early-access state and family boundaries. | No unfamiliar adult or guardian has completed the comprehension check. |
 | Start playing | An isolated production check reached the age choice, one Start action and the egg on desktop and phone. A real click or tap began hatching. | We do not yet know whether an unfamiliar person can do this without help. |
-| Reach the first payoff | Hatching can be started reliably. A private repair removed the rectangular creature plate and fixed the first-contact layout. | The repaired creature still failed the obvious visual-quality preflight on phone and desktop, so it was not deployed. A completed hatch, recognisable creature reveal and first bond have not passed a fresh human play check. |
+| Reach the first payoff | Hatching can be started reliably. The technical first-contact repair is live: it removed the rectangular creature plate and fixed the responsive layout. | The repaired creature still failed the obvious visual-quality preflight on phone and desktop. Deployment did not approve the creature artwork or release the First Five test. A completed hatch, recognisable creature reveal and first bond have not passed a fresh human play check. |
 | Find lasting value | The running build contains creature variation, six realms, restoration and the Project Beacon story. | There is no accepted customer evidence that these parts are understood, enjoyable or valuable. |
 | Return | A saved-adventure route exists. | The current returning view failed the human-facing visual review, and no voluntary return is measured. |
 | Share or recommend | Clean sharing routes and the Hatch Challenge are live without collecting a contact or adding tracking codes. | No voluntary share or recommendation has been observed or measured. |
