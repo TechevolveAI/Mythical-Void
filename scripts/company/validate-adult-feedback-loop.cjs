@@ -44,7 +44,7 @@ requireValue(!storefront.includes('Our feedback channel is being prepared now'),
 requireValue(netlify.includes('from = "/feedback"') && netlify.includes('from = "/feedback/"'), 'feedback redirects are missing');
 
 const privacyText = JSON.stringify(legal.privacyPolicy);
-requireValue(legal.privacyPolicy?.lastUpdated === '2026-08-27', 'privacy policy date is stale');
+requireValue(legal.privacyPolicy?.lastUpdated === '2026-09-01', 'privacy policy date is stale');
 requireValue(/adult feedback pulse/i.test(privacyText), 'privacy policy does not describe adult feedback');
 requireValue(/fixed-choice/i.test(privacyText) && /180 days/i.test(privacyText), 'privacy policy is missing feedback fields or retention');
 requireValue(/does not ask for a name, email address, free-text answer, exact age or child details/i.test(privacyText), 'privacy policy does not state the feedback exclusion boundary');

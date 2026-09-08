@@ -851,4 +851,30 @@ describe('CloudSaveManager', () => {
         expect(calls.rpcs).toHaveLength(0);
         jest.useRealTimers();
     });
+
+    test('adopting a durable account replaces the cached anonymous identity and restores its remote save', async () => {
+        const storage = createStorage();
+        storage.setItem('mythical_void_cloud_save_enabled', 'true');
+        const remoteSave = {
+            revision: 4,
+            game_state: { version: '1.1.0', savedAt: 5000, creature: { name: 'Remote' } },
+            client_saved_at: '2026-08-31T12:00:00Z'
+        };
+        const { client, calls } = createClient({ remoteSave });
+        const gameState = createGameState();
+        const manager = new CloudSaveManager({ client, gameState, storage });
+        manager.currentUser = { id: 'anonymous-user', is_anonymous: true };
+
+        await manager.adoptAuthenticatedSession({
+            id: 'durable-user', is_anonymous: false
+        }, { preferRemote: true });
+
+        expect(manager.currentUser.id).toBe('durable-user');
+        expect(manager.remoteRevision).toBe(4);
+        expect(gameState.applyExternalSave).toHaveBeenCalledWith(
+            remoteSave.game_state,
+            { source: 'cloud', persist: true }
+        );
+        expect(calls.rpcs).toHaveLength(0);
+    });
 });

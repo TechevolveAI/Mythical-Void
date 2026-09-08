@@ -47,6 +47,8 @@ import './systems/UXEnhancements.js';
 import './systems/FusionConsent.js';
 import './systems/FusionAuthority.js';
 import './systems/SharedFusionInvitationService.js';
+import './systems/DurableAccountService.js';
+import './systems/SharedGuardianshipService.js';
 import './systems/KidMode.js';
 import './systems/AudioManager.js';
 import './systems/FXLibrary.js';

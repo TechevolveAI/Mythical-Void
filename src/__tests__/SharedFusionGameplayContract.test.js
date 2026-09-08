@@ -50,9 +50,9 @@ describe('Shared Fusion gameplay contract', () => {
         expect(pod).toContain(
             'this.createSharedFusionButton()'
         );
-        expect(pod).toContain(
-            'const sharedLinkLane = this.isSharedFusionAvailable() ? 65 : 0'
-        );
+        expect(pod).toContain('this.isSharedFusionAvailable() ||');
+        expect(pod).toContain('this.isSharedGuardianshipAvailable()');
+        expect(pod).toContain(') ? 65 : 0');
         expect(pod).toContain(
             'const actionX = this.layout.action.x + sharedLinkLane'
         );

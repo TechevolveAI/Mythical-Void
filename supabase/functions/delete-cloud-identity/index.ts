@@ -82,7 +82,18 @@ Deno.serve(async (request) => {
         return jsonResponse(401, { error: 'Cloud identity could not be verified' });
     }
     if (!user.is_anonymous) {
-        return jsonResponse(403, { error: 'Only anonymous cloud identities can self-delete' });
+        const body = await request.json().catch(() => ({})) as Record<string, unknown>;
+        const lastSignInAt = Date.parse(String(user.last_sign_in_at || ''));
+        const recentlyReauthenticated = Number.isFinite(lastSignInAt) &&
+            Date.now() - lastSignInAt <= 5 * 60 * 1000;
+        if (
+            body.confirmation !== 'DELETE_PERMANENT_ACCOUNT' ||
+            !recentlyReauthenticated
+        ) {
+            return jsonResponse(403, {
+                error: 'Permanent account deletion requires recent password confirmation'
+            });
+        }
     }
 
     const adminClient = createClient(supabaseUrl, secretKey, {

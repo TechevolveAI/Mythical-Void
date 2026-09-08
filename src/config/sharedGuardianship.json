@@ -1,0 +1,29 @@
+{
+  "contractVersion": "1.0",
+  "featureFlag": "shared_guardianship_v1",
+  "enabled": false,
+  "minimumAgeGroups": ["age_16_17", "age_18_plus"],
+  "requiresPermanentIdentity": true,
+  "requiresVerifiedEmail": true,
+  "maximumActiveCreaturesPerGuardian": 1,
+  "invitationTtlMinutes": 30,
+  "termsVersion": "shared-guardianship-2026-08-31",
+  "privacyVersion": "shared-guardianship-2026-08-31",
+  "participantLabels": ["Guardian A", "Guardian B"],
+  "safeNames": [
+    "Aster",
+    "Beacon",
+    "Cinder",
+    "Echo",
+    "Lumen",
+    "Nova",
+    "Orbit",
+    "Solace"
+  ],
+  "storyIntegration": false,
+  "levelIntegration": false,
+  "chat": false,
+  "publicDiscovery": false,
+  "onlinePresence": false,
+  "freeformPeerText": false
+}

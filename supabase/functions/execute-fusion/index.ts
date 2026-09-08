@@ -104,6 +104,39 @@ function sharedParticipantResponse(
     };
 }
 
+function sharedGuardianshipParticipantResponse(
+    invitationId: string,
+    operationId: string,
+    role: string,
+    result: unknown,
+    receipt: unknown,
+    replay: boolean
+) {
+    const outcome = asObject(result);
+    const offspring = Array.isArray(outcome.offspring)
+        ? outcome.offspring as JsonObject[]
+        : [];
+    const selected = asObject(offspring[0]);
+    const selectedData = { ...asObject(selected.offspringData) };
+    delete selectedData.parentIds;
+    return {
+        guardianshipInvitationId: invitationId,
+        operationId,
+        status: 'staged',
+        role,
+        offspring: {
+            offspringGenes: asObject(selected.offspringGenes),
+            offspringData: selectedData
+        },
+        compatibilityScore: Number(outcome.compatibilityScore) || 0,
+        birthEvents: Array.isArray(outcome.birthEvents)
+            ? outcome.birthEvents
+            : [],
+        receipt: asObject(receipt),
+        replay
+    };
+}
+
 function pick<T>(values: T[], random: () => number): T {
     return values[Math.floor(random() * values.length)] || values[0];
 }
@@ -769,11 +802,21 @@ Deno.serve(async (request) => {
     const hasInvitation = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
         invitationId
     );
+    const guardianshipInvitationId = typeof body.guardianshipInvitationId === 'string'
+        ? body.guardianshipInvitationId.toLowerCase()
+        : '';
+    const hasGuardianshipInvitation = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
+        guardianshipInvitationId
+    );
     if (
         !hasInvitation &&
+        !hasGuardianshipInvitation &&
         !/^fusion_[A-Za-z0-9_-]{1,160}$/.test(operationId)
     ) {
         return jsonResponse(400, { error: 'Invalid Fusion operation' });
+    }
+    if (hasInvitation && hasGuardianshipInvitation) {
+        return jsonResponse(400, { error: 'Choose one protected Fusion mode' });
     }
 
     const callerClient = createClient(supabaseUrl, publishableKey, {
@@ -797,7 +840,38 @@ Deno.serve(async (request) => {
     });
     let operationOwnerId = userResult.data.user.id;
     let sharedRole = '';
-    if (hasInvitation) {
+    let guardianshipRole = '';
+    if (hasGuardianshipInvitation) {
+        const resolved = await serviceClient.rpc(
+            'resolve_shared_guardianship_execution',
+            {
+                p_user_id: userResult.data.user.id,
+                p_invitation_id: guardianshipInvitationId
+            }
+        );
+        if (resolved.error) {
+            console.error(
+                '[execute-fusion] Shared Guardianship invitation failed:',
+                resolved.error.message
+            );
+            return jsonResponse(409, {
+                error: 'Shared Guardianship invitation is not executable'
+            });
+        }
+        const resolution = asObject(resolved.data);
+        operationOwnerId = String(resolution.operationOwnerId || '');
+        operationId = String(resolution.operationId || '');
+        guardianshipRole = String(resolution.role || '');
+        if (
+            !operationOwnerId ||
+            !/^fusion_guardianship_[A-Za-z0-9_-]{1,160}$/.test(operationId) ||
+            !['host', 'guest'].includes(guardianshipRole)
+        ) {
+            return jsonResponse(409, {
+                error: 'Shared Guardianship invitation is invalid'
+            });
+        }
+    } else if (hasInvitation) {
         const resolved = await serviceClient.rpc(
             'resolve_shared_fusion_execution',
             {
@@ -830,7 +904,9 @@ Deno.serve(async (request) => {
     }
 
     const contextResult = await serviceClient.rpc(
-        'get_fusion_execution_context',
+        hasGuardianshipInvitation
+            ? 'get_shared_guardianship_execution_context'
+            : 'get_fusion_execution_context',
         {
             p_user_id: operationOwnerId,
             p_operation_id: operationId
@@ -847,6 +923,16 @@ Deno.serve(async (request) => {
         });
     }
     if (context.replay === true && context.result && context.receipt) {
+        if (guardianshipRole) {
+            return jsonResponse(200, sharedGuardianshipParticipantResponse(
+                guardianshipInvitationId,
+                operationId,
+                guardianshipRole,
+                context.result,
+                context.receipt,
+                true
+            ));
+        }
         if (sharedRole) {
             return jsonResponse(200, sharedParticipantResponse(
                 invitationId,
@@ -883,7 +969,9 @@ Deno.serve(async (request) => {
             receiptFingerprint: fingerprint(receiptBase)
         };
         const staged = await serviceClient.rpc(
-            'stage_fusion_operation_result',
+            hasGuardianshipInvitation
+                ? 'stage_shared_guardianship_result'
+                : 'stage_fusion_operation_result',
             {
                 p_user_id: operationOwnerId,
                 p_operation_id: operationId,
@@ -895,6 +983,16 @@ Deno.serve(async (request) => {
         if (staged.error) {
             console.error('[execute-fusion] Stage failed:', staged.error.message);
             return jsonResponse(409, { error: 'Fusion result could not be staged' });
+        }
+        if (guardianshipRole) {
+            return jsonResponse(200, sharedGuardianshipParticipantResponse(
+                guardianshipInvitationId,
+                operationId,
+                guardianshipRole,
+                staged.data.result,
+                staged.data.receipt,
+                Boolean(staged.data.replay)
+            ));
         }
         if (sharedRole) {
             return jsonResponse(200, sharedParticipantResponse(
