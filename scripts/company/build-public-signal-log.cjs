@@ -39,6 +39,12 @@ function visualMarkup(entry, index, register) {
                     <figcaption>${escapeHtml(entry.disclosure)}</figcaption>
                 </figure>`;
     }
+    if (entry.visualKind === 'text_only_release') {
+        return `<div class="signal-entry-no-media signal-entry-text-only" role="img" aria-label="${escapeHtml(entry.visualAlt)}">
+                    <span>LIVE GAME UPDATE</span>
+                    <small>${escapeHtml(entry.disclosure)}</small>
+                </div>`;
+    }
     return '<div class="signal-entry-no-media"><span>VISUAL WITHHELD</span><small>Awaiting a stronger human-reviewed moment.</small></div>';
 }
 

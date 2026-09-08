@@ -96,6 +96,7 @@ function buildReleaseToAudienceQueue(inputs) {
             selectionReason: 'Newest checked release that can travel as text without depending on gameplay media.',
             professionalNetworkDraft: newestTextFirstItem.drafts.professionalNetwork,
             destination: newestTextFirstItem.destination,
+            releaseProof: newestTextFirstItem.releaseProof,
             approvalState: newestTextFirstItem.approval.state
         } : null,
         holds: [

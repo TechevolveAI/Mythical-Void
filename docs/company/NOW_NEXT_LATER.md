@@ -30,7 +30,9 @@ actually live or prepared on 8 September 2026.
   or downloadable second build.
 - The release hand-off now refreshes every Latest News draft during the normal
   build and reduces the whole backlog to one next audience move. It caught and
-  repaired a real one-release gap: 17 live updates now produce 51 matching
+  repaired a real one-release gap. The rebuilt Crystal Caves expedition is now
+  the first source-proven, text-only game release in the system: 18 live
+  updates now produce 54 matching
   source drafts. The current first move remains one text-only r/WebGames post;
   nothing was posted and Kevin keeps control of the account and replies.
 

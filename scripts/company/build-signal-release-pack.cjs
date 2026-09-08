@@ -75,6 +75,7 @@ function buildReleasePack(source) {
                     class: entry.imageClass,
                     disclosure: entry.disclosure
                 },
+                releaseProof: entry.releaseProof || null,
                 drafts: {
                     professionalNetwork: {
                         channelRef: 'CH-004',

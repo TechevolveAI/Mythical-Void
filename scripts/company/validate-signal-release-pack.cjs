@@ -39,6 +39,8 @@ for (const item of pack.items || []) {
     requireValue(/^https:\/\/mythicalvoid\.com\//.test(item.destination || ''), `${label} destination must stay on mythicalvoid.com.`);
     requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(item.destination || '') && item.trackingParameters === false, `${label} must not add tracking parameters.`);
     requireValue(item.media?.sourcePath === entry?.image && item.media?.alt === entry?.imageAlt && item.media?.class === entry?.imageClass && item.media?.disclosure === entry?.disclosure, `${label} media must stay source-bound.`);
+    requireValue(JSON.stringify(item.releaseProof) === JSON.stringify(entry?.releaseProof || null), `${label} release proof must stay source-bound.`);
+    if (entry?.releaseProof) requireValue(item.releaseProof.gameplayVisualApproved === false && item.releaseProof.mediaAttached === false, `${label} source proof must not invent visual approval or media.`);
     requireValue(item.approval?.state === 'blocked_missing_verified_channel_and_kevin_approval' && item.approval?.kevinApprovalRequired === true && item.approval?.verifiedChannelRequired === true, `${label} must remain blocked for channel verification and Kevin approval.`);
     requireValue(item.approval?.adultReplyCoverageRequiredBeforeComments === true && item.approval?.copyMediaLinkOrAudienceChangeInvalidatesApproval === true, `${label} must retain reply coverage and change-control gates.`);
     requireValue(item.approval?.approvedAt === null && item.approval?.scheduledAt === null && item.approval?.publishedAt === null, `${label} must not invent approval, scheduling or publication.`);

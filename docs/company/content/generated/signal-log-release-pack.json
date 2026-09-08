@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "id": "SIGNAL-DRAFT-PACK-2026-08-27",
+  "id": "SIGNAL-DRAFT-PACK-2026-09-08",
   "state": "draft_only_missing_verified_social_channels_and_approval",
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "27ed31b15863e845a3df0f66c5a5356b4bf84717952a7c706f30bc4b95060603",
-    "liveEntryCount": 17,
-    "latestSourceDate": "2026-08-27"
+    "sourceFingerprint": "a9b02af4ea0b621301187c069183d579df1db842c8703cab2e993f1a84f58a76",
+    "liveEntryCount": 18,
+    "latestSourceDate": "2026-09-08"
   },
   "purpose": "Turn each checked Latest News note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
   "audienceBoundary": {
@@ -33,6 +33,59 @@
   },
   "items": [
     {
+      "id": "DRAFT-UPDATE-025",
+      "sourceEntryId": "UPDATE-025",
+      "sourcePublishedOn": "2026-09-08",
+      "destination": "https://mythicalvoid.com/play/",
+      "trackingParameters": false,
+      "media": {
+        "disclosure": "Text-only release note about the live browser game; no screenshot or generated image is attached."
+      },
+      "releaseProof": {
+        "sourceCommit": "9a1ec33304738f2c5cd38d7dfb3f8e9ebdbdedaa",
+        "productionMergeCommit": "6a47d84daef1365bbfc096df5c823385fcf1fe72",
+        "productionDeployId": "6a9d9121bf7b1e00087494bb",
+        "productionPublishedAt": "2026-09-06T16:14:27.522Z",
+        "checkedUrl": "https://mythicalvoid.com/play/",
+        "checkedHttpStatus": 200,
+        "gameplayVisualApproved": false,
+        "mediaAttached": false,
+        "claimBoundary": "Source and production proof confirm that the change is live; they do not prove visual quality, play, enjoyment or growth."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Crystal Caves has been rebuilt\n\nThe second realm now gives players a clearer three-pulse route through alien cave geology before the corrupted Guardian awakens.\n\n• Follow three marked pulses across the caves with your creature; each one makes the route and the next objective easier to understand.\n• The Guardian awakens when the route is complete. Defeat the corruption holding it, then leave the restored Guardian alive in its realm.\n• This is a real update to the live browser game. The release note is text-only because the current gameplay artwork still needs human visual approval.\n\nSee what changed: https://mythicalvoid.com/play/\n\nText-only release note about the live browser game; no screenshot or generated image is attached.",
+          "characterCount": 736
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Crystal Caves has been rebuilt\n\nThe second realm now gives players a clearer three-pulse route through alien cave geology before the corrupted Guardian awakens.\n\nhttps://mythicalvoid.com/play/\n\nText-only release note about the live browser game; no screenshot or generated image is attached.",
+          "characterCount": 310
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Crystal Caves has been rebuilt",
+          "body": "Mythical Void has a new live update: Crystal Caves has been rebuilt.\n\nThe second realm now gives players a clearer three-pulse route through alien cave geology before the corrupted Guardian awakens.\n\nFollow three marked pulses across the caves with your creature; each one makes the route and the next objective easier to understand. The Guardian awakens when the route is complete. Defeat the corruption holding it, then leave the restored Guardian alive in its realm. This is a real update to the live browser game. The release note is text-only because the current gameplay artwork still needs human visual approval.\n\nThe checked public destination is https://mythicalvoid.com/play/\n\nMedia note: Text-only release note about the live browser game; no screenshot or generated image is attached.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 871,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
+    {
       "id": "DRAFT-UPDATE-024",
       "sourceEntryId": "UPDATE-024",
       "sourcePublishedOn": "2026-08-27",
@@ -41,6 +94,7 @@
       "media": {
         "disclosure": "Mythical Void procedural star-map artwork; not a NASA image and not gameplay."
       },
+      "releaseProof": null,
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",
@@ -86,6 +140,7 @@
         "class": "ai_generated_marketing_illustration",
         "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay."
       },
+      "releaseProof": null,
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",
@@ -131,6 +186,7 @@
         "class": "game_world_art_not_gameplay",
         "disclosure": "Game-world artwork used by Mythical Void; not a gameplay screenshot."
       },
+      "releaseProof": null,
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",
@@ -176,6 +232,7 @@
         "class": "ai_generated_marketing_illustration",
         "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay."
       },
+      "releaseProof": null,
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",
@@ -221,6 +278,7 @@
         "class": "ai_generated_marketing_illustration",
         "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay."
       },
+      "releaseProof": null,
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",
@@ -266,6 +324,7 @@
         "class": "ai_generated_marketing_illustration",
         "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay."
       },
+      "releaseProof": null,
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",
@@ -311,6 +370,7 @@
         "class": "ai_generated_marketing_illustration",
         "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay."
       },
+      "releaseProof": null,
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",
@@ -356,6 +416,7 @@
         "class": "ai_generated_marketing_illustration",
         "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay."
       },
+      "releaseProof": null,
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",
@@ -401,6 +462,7 @@
         "class": "branded_social_artwork_with_authentic_gameplay_frame_and_nasa_public_image",
         "disclosure": "Branded sharing artwork, not a raw screenshot. The framed screen is real gameplay using a company-controlled test state and contains a credited NASA public image; no player information is shown. NASA does not endorse Mythical Void."
       },
+      "releaseProof": null,
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",
@@ -446,6 +508,7 @@
         "class": "branded_renderer_proof_layout_with_authentic_game_sprite_exports",
         "disclosure": "Branded proof layout, not a playable game scene. Every creature is an exact export from the running game renderer. The field-guide stories are official universe material, not claims that these events are already playable quests."
       },
+      "releaseProof": null,
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",
@@ -491,6 +554,7 @@
         "class": "branded_renderer_proof_layout_with_authentic_game_sprite_exports",
         "disclosure": "Branded proof layout, not a playable game scene. Every creature is an exact game-renderer export; the set was deliberately selected to show range and does not represent normal hatch odds."
       },
+      "releaseProof": null,
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",
@@ -536,6 +600,7 @@
         "class": "authentic_running_build_story_moment",
         "disclosure": "Captured from the running Mythical Void game using an invented QA state. It is an in-game story moment, not a platforming or combat demonstration."
       },
+      "releaseProof": null,
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",
@@ -581,6 +646,7 @@
         "class": "authentic_running_build_story_moment",
         "disclosure": "Poster captured from the running browser game using an invented test state. It is a story moment, not a platforming or combat demonstration; no player identity or private save is shown."
       },
+      "releaseProof": null,
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",
@@ -626,6 +692,7 @@
         "class": "branded_social_artwork_with_authentic_gameplay_frame",
         "disclosure": "Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown."
       },
+      "releaseProof": null,
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",
@@ -671,6 +738,7 @@
         "class": "branded_social_artwork_with_authentic_gameplay_frame",
         "disclosure": "Branded sharing artwork built around a real gameplay capture; the complete layout is not a raw screenshot and no player information is shown."
       },
+      "releaseProof": null,
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",
@@ -716,6 +784,7 @@
         "class": "ai_generated_marketing_illustration",
         "disclosure": "AI-generated marketing illustration inspired by the creature system; not gameplay."
       },
+      "releaseProof": null,
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",
@@ -761,6 +830,7 @@
         "class": "authentic_running_build_screenshot",
         "disclosure": "Captured from the real browser game using an invented test state; no player information is shown."
       },
+      "releaseProof": null,
       "drafts": {
         "professionalNetwork": {
           "channelRef": "CH-004",

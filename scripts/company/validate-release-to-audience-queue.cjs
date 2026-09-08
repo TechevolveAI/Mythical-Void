@@ -22,8 +22,9 @@ requireValue(queue.nextMove?.exactPost?.url === 'https://mythicalvoid.com/play/'
 requireValue(queue.nextMove?.mediaAttached === false && queue.nextMove?.trackingParametersPresent === false, 'First route must remain text-only and tracking-free.');
 requireValue(queue.nextMove?.approvalNeeded?.length === 3, 'Kevin account, exact-post and reply-coverage decisions must all remain explicit.');
 requireValue(queue.afterThat?.route === 'Phaser Showcase' && /waiting_until_first_community_read/.test(queue.afterThat?.state || ''), 'The second community route must wait for the first read.');
-requireValue(queue.latestReleaseDraft?.sourceEntryId === 'UPDATE-024', 'The current text-first Latest News hand-off has drifted.');
+requireValue(queue.latestReleaseDraft?.sourceEntryId === 'UPDATE-025', 'The current text-first Latest News hand-off has drifted.');
 requireValue(queue.latestReleaseDraft?.state === 'prepared_not_publishable_until_an_official_channel_is_confirmed', 'Latest release draft must not imply publication readiness.');
+requireValue(queue.latestReleaseDraft?.releaseProof?.gameplayVisualApproved === false && queue.latestReleaseDraft?.releaseProof?.mediaAttached === false, 'Latest release hand-off must retain its visual and media boundary.');
 
 for (const [field, expectedValue] of Object.entries({
     accountCreationAuthorized: false,

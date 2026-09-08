@@ -4,13 +4,13 @@
   "state": "one_text_only_community_move_waiting_for_kevin",
   "purpose": "Turn checked releases and prepared community work into one clear next move, while keeping accounts, replies and publication under human control.",
   "generatedFrom": {
-    "liveLatestNewsEntries": 17,
-    "preparedReleaseDrafts": 51,
+    "liveLatestNewsEntries": 18,
+    "preparedReleaseDrafts": 54,
     "approvedGameplayVisuals": 0,
     "verifiedExternalPublishingChannels": 0,
     "sourceFingerprints": {
-      "releases": "27ed31b15863e845a3df0f66c5a5356b4bf84717952a7c706f30bc4b95060603",
-      "releasePack": "f1bdc6c2c99f33209f7a4b62594eb1cf0ef06a0f92fd956e973e4b8ca5b725cf",
+      "releases": "a9b02af4ea0b621301187c069183d579df1db842c8703cab2e993f1a84f58a76",
+      "releasePack": "ab70856238eebda19701999c9fd956e2333b9bad22eb3a6ba4b270ee30a67992",
       "communityRun": "0cea1981de4e2f1e82d2db894777b17d3fa360731d4c2dd2451dfc0d3a702334",
       "phaserShowcase": "5f1332dbf9d1c452ae29e242fc868b61d8825f26a8b7f875ec1444597033b636",
       "channels": "61c95b390a608c5fbbc256008bfa12783068cf2fdf859880035fd653fec8f4f3",
@@ -77,17 +77,28 @@
     "nextRequiredAction": "Finish or explicitly cancel the first r/WebGames read, then Kevin confirms an existing adult Phaser forum account, accepts any current terms himself, approves this exact topic at action time and remains available to answer replies."
   },
   "latestReleaseDraft": {
-    "sourceEntryId": "UPDATE-024",
-    "title": "Today’s Space Discovery is live",
+    "sourceEntryId": "UPDATE-025",
+    "title": "Crystal Caves has been rebuilt",
     "state": "prepared_not_publishable_until_an_official_channel_is_confirmed",
     "selectionReason": "Newest checked release that can travel as text without depending on gameplay media.",
     "professionalNetworkDraft": {
       "channelRef": "CH-004",
       "format": "text_post_with_one_link",
-      "body": "Today’s Space Discovery is live\n\nA changing Mythical Void doorway now begins with one real NASA astronomy source, a three-step observation mission and a clearly fictional question about life in another dimension.\n\n• Each visit asks visitors to observe, infer and check before imagining what kind of alien creature could sense that pattern and how it might move.\n• The page reads only the APOD title and date, then links to NASA’s original page for the picture, explanation and full credit information.\n• No signup, email, child profile or republished daily image is involved. NASA does not make, approve or endorse Mythical Void.\n\nSee what changed: https://mythicalvoid.com/space-discovery/\n\nMythical Void procedural star-map artwork; not a NASA image and not gameplay.",
-      "characterCount": 769
+      "body": "Crystal Caves has been rebuilt\n\nThe second realm now gives players a clearer three-pulse route through alien cave geology before the corrupted Guardian awakens.\n\n• Follow three marked pulses across the caves with your creature; each one makes the route and the next objective easier to understand.\n• The Guardian awakens when the route is complete. Defeat the corruption holding it, then leave the restored Guardian alive in its realm.\n• This is a real update to the live browser game. The release note is text-only because the current gameplay artwork still needs human visual approval.\n\nSee what changed: https://mythicalvoid.com/play/\n\nText-only release note about the live browser game; no screenshot or generated image is attached.",
+      "characterCount": 736
     },
-    "destination": "https://mythicalvoid.com/space-discovery/",
+    "destination": "https://mythicalvoid.com/play/",
+    "releaseProof": {
+      "sourceCommit": "9a1ec33304738f2c5cd38d7dfb3f8e9ebdbdedaa",
+      "productionMergeCommit": "6a47d84daef1365bbfc096df5c823385fcf1fe72",
+      "productionDeployId": "6a9d9121bf7b1e00087494bb",
+      "productionPublishedAt": "2026-09-06T16:14:27.522Z",
+      "checkedUrl": "https://mythicalvoid.com/play/",
+      "checkedHttpStatus": 200,
+      "gameplayVisualApproved": false,
+      "mediaAttached": false,
+      "claimBoundary": "Source and production proof confirm that the change is live; they do not prove visual quality, play, enjoyment or growth."
+    },
     "approvalState": "blocked_missing_verified_channel_and_kevin_approval"
   },
   "holds": [
