@@ -16,6 +16,16 @@ function createFixture(files) {
     Object.entries(files).forEach(([fileName, source]) => {
         fs.writeFileSync(path.join(assetsDir, fileName), source);
     });
+    const playDir = path.join(distDir, 'play');
+    fs.mkdirSync(playDir);
+    fs.writeFileSync(
+        path.join(playDir, 'index.html'),
+        '<meta name="mythical-entry" content="direct-play">' +
+        '<link rel="canonical" href="https://mythicalvoid.com/play/">' +
+        '<meta property="og:url" content="https://mythicalvoid.com/play/">' +
+        '<meta property="og:image" content="https://mythicalvoid.com/marketing/mythical-void-brand-link-card-v1.png">' +
+        '<meta property="og:image:alt" content="Mythical Void brand art, not gameplay">'
+    );
     return distDir;
 }
 
@@ -42,8 +52,23 @@ describe('production bundle logging gate', () => {
         expect(verifyProductionBundle(distDir)).toEqual({
             applicationChunkCount: 1,
             removableConsoleCallCount: 0,
+            directPlayEntryPresent: true,
+            directPlayMetadataValid: true,
             failures: []
         });
+    });
+
+    test('rejects a build whose direct game URL identifies itself as the homepage', () => {
+        const distDir = createFixture({ 'game-clean.js': 'console.warn("recoverable");' });
+        fs.writeFileSync(
+            path.join(distDir, 'play', 'index.html'),
+            '<link rel="canonical" href="https://mythicalvoid.com/">' +
+            '<meta property="og:url" content="https://mythicalvoid.com/">'
+        );
+
+        expect(() => verifyProductionBundle(distDir)).toThrow(
+            'Production direct Play metadata is missing or misleading'
+        );
     });
 
     test.each([

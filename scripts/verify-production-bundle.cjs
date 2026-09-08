@@ -29,12 +29,27 @@ function inspectProductionBundle(distDir) {
             : [];
     });
 
+    const directPlayPath = path.join(distDir, 'play', 'index.html');
+    const directPlayHtml = fs.existsSync(directPlayPath)
+        ? fs.readFileSync(directPlayPath, 'utf8')
+        : '';
+    const directPlayMetadataValid = Boolean(
+        directPlayHtml.includes('<meta name="mythical-entry" content="direct-play">')
+        && directPlayHtml.includes('<link rel="canonical" href="https://mythicalvoid.com/play/">')
+        && directPlayHtml.includes('<meta property="og:url" content="https://mythicalvoid.com/play/">')
+        && directPlayHtml.includes('https://mythicalvoid.com/marketing/mythical-void-brand-link-card-v1.png')
+        && /brand art, not gameplay/i.test(directPlayHtml)
+        && !directPlayHtml.includes('__BUILD_TIMESTAMP__')
+    );
+
     return {
         applicationChunkCount: applicationChunks.length,
         removableConsoleCallCount: failures.reduce(
             (total, failure) => total + failure.count,
             0
         ),
+        directPlayEntryPresent: Boolean(directPlayHtml),
+        directPlayMetadataValid,
         failures
     };
 }
@@ -48,6 +63,12 @@ function verifyProductionBundle(distDir = path.resolve(__dirname, '../dist')) {
         throw new Error(
             `Production bundle retained console.log/info/debug calls (${details})`
         );
+    }
+    if (!result.directPlayEntryPresent) {
+        throw new Error('Production bundle is missing play/index.html');
+    }
+    if (!result.directPlayMetadataValid) {
+        throw new Error('Production direct Play metadata is missing or misleading');
     }
     return result;
 }
