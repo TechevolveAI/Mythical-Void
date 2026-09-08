@@ -17,6 +17,39 @@
   },
   "entries": [
     {
+      "id": "UPDATE-026",
+      "publishedOn": "2026-09-08",
+      "status": "live",
+      "category": "FOR PRESS AND CREATORS",
+      "title": "The press room now has its own front door",
+      "summary": "A dedicated public page now gives writers, creators and curious players a clear route to the real game, approved facts and the small set of assets that are safe to use.",
+      "details": [
+        "The page explains the playable browser adventure, the father-and-son beginning, the creature engine, the six realms, the careful use of AI and the optional NASA-based learning layer.",
+        "It leads directly to the live game and offers only the approved emblem, fact sheet and STEM activity. The earlier gameplay media pack remains withheld because it did not pass human visual review.",
+        "The press address now has its own title and canonical identity before JavaScript runs. This helps people and search tools understand the page, but it does not prove indexing, coverage, visits or play."
+      ],
+      "visualKind": "text_only_release",
+      "visualAlt": "A text-only update card announcing the dedicated Mythical Void press and creator room",
+      "disclosure": "Text-only release note about a live owned-site page; no screenshot or generated image is attached.",
+      "destination": "/press/",
+      "linkText": "Open the press and creator room",
+      "download": false,
+      "releaseProof": {
+        "sourceCommit": "bcabb7f4a8c7eb8d510be0c4351111d695bd4677",
+        "productionMergeCommit": "270263bed94375097de87295e21978b1d540b7dc",
+        "productionDeployId": "6aa00e02db1f0400088e8e4b",
+        "productionPublishedAt": "2026-09-08T13:32:12.340Z",
+        "checkedUrl": "https://mythicalvoid.com/play/",
+        "checkedHttpStatus": 200,
+        "ownedPageCheckedUrl": "https://mythicalvoid.com/press/",
+        "ownedPageCheckedHttpStatus": 200,
+        "rawHtmlIdentityVerified": true,
+        "gameplayVisualApproved": false,
+        "mediaAttached": false,
+        "claimBoundary": "The source, production deploy and live raw HTML prove that the press page exists with its own identity. They do not prove visual quality, play, enjoyment or growth; they also do not prove indexing, attention or playership."
+      }
+    },
+    {
       "id": "UPDATE-025",
       "publishedOn": "2026-09-08",
       "status": "live",

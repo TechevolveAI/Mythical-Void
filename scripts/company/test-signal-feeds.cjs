@@ -11,6 +11,21 @@ const source = JSON.parse(fs.readFileSync(path.join(root, 'public/updates/releas
 const rss = fs.readFileSync(path.join(root, 'public/updates/feed.xml'), 'utf8');
 const json = fs.readFileSync(path.join(root, 'public/updates/feed.json'), 'utf8');
 const release = JSON.parse(fs.readFileSync(path.join(root, 'docs/company/content/generated/signal-log-syndication-release.json'), 'utf8'));
+const liveEntryCount = source.entries.filter(entry => entry.status === 'live').length;
+const productionRelease = structuredClone(release);
+productionRelease.state = 'complete_owned_site_release_production_verified';
+productionRelease.productionVerification = {
+    commit: '0'.repeat(40),
+    deployId: '0'.repeat(24),
+    publishedAt: '2026-09-08T12:00:00.000Z',
+    updatesPageHttpStatus: 200,
+    playDoorwayHttpStatus: 200,
+    latestEntryId: source.entries.find(entry => entry.status === 'live').id,
+    latestEntryPresent: true,
+    rssItemCount: liveEntryCount,
+    jsonItemCount: liveEntryCount,
+    productionPresentationReview: 'text_only_no_gameplay_media'
+};
 const cases = [
     ['stale RSS', value => value.replace('The Latest News can now travel', 'Old title'), json],
     ['stale JSON', rss, value => value.replace('The Latest News can now travel', 'Old title')],
@@ -31,7 +46,9 @@ function run(sourceValue, rssValue, jsonValue, releaseValue = release) {
     return spawnSync(process.execPath, [validator, sourcePath, rssPath, jsonPath, releasePath], { cwd: root, encoding: 'utf8' });
 }
 
-if (run(source, rss, json).status !== 0) throw new Error('valid feed release was rejected');
+if (run(source, rss, json).status !== 0) throw new Error('valid prepared feed release was rejected');
+passed += 1;
+if (run(source, rss, json, productionRelease).status !== 0) throw new Error('valid production feed release was rejected');
 passed += 1;
 for (const [name, rssMutation, jsonMutation] of cases) {
     const changedRss = typeof rssMutation === 'function' ? rssMutation(rss) : rssMutation;
@@ -61,7 +78,7 @@ for (const [name, mutate] of [
     ['missing latest production entry', value => { value.productionVerification.latestEntryPresent = false; }],
     ['invented visual approval', value => { value.productionVerification.productionPresentationReview = 'passed'; }]
 ]) {
-    const changed = structuredClone(release);
+    const changed = structuredClone(productionRelease);
     mutate(changed);
     if (run(source, rss, json, changed).status === 0) throw new Error(`${name} was accepted`);
     passed += 1;

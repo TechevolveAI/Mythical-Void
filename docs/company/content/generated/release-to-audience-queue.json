@@ -4,13 +4,13 @@
   "state": "one_text_only_community_move_waiting_for_kevin",
   "purpose": "Turn checked releases and prepared community work into one clear next move, while keeping accounts, replies and publication under human control.",
   "generatedFrom": {
-    "liveLatestNewsEntries": 18,
-    "preparedReleaseDrafts": 54,
+    "liveLatestNewsEntries": 19,
+    "preparedReleaseDrafts": 57,
     "approvedGameplayVisuals": 0,
     "verifiedExternalPublishingChannels": 0,
     "sourceFingerprints": {
-      "releases": "a9b02af4ea0b621301187c069183d579df1db842c8703cab2e993f1a84f58a76",
-      "releasePack": "ab70856238eebda19701999c9fd956e2333b9bad22eb3a6ba4b270ee30a67992",
+      "releases": "1d473f9036cc19e9a3f62057c22f7d8a9feb85c0d136ee8066d748bf9877db42",
+      "releasePack": "82e9f91581ec695d56711de2ca51414b293a178b89acef480acb4808e3a5240b",
       "communityRun": "7c491aa6ff8c68dec3c4ce665568fc7df470cfb895964ab3d8cb15f0c7aabd10",
       "phaserShowcase": "7e6976bfa25dcd3c47b2806153d72f41ae7ed80a40c65fe304eadd9acd0438da",
       "channels": "61c95b390a608c5fbbc256008bfa12783068cf2fdf859880035fd653fec8f4f3",
@@ -80,27 +80,30 @@
     "nextRequiredAction": "Finish or explicitly cancel the first r/WebGames read, then Kevin confirms an existing adult Phaser forum account, accepts any current terms himself, approves this exact topic at action time and remains available to answer replies."
   },
   "latestReleaseDraft": {
-    "sourceEntryId": "UPDATE-025",
-    "title": "Crystal Caves has been rebuilt",
+    "sourceEntryId": "UPDATE-026",
+    "title": "The press room now has its own front door",
     "state": "prepared_not_publishable_until_an_official_channel_is_confirmed",
     "selectionReason": "Newest checked release that can travel as text without depending on gameplay media.",
     "professionalNetworkDraft": {
       "channelRef": "CH-004",
       "format": "text_post_with_one_link",
-      "body": "Crystal Caves has been rebuilt\n\nThe second realm now gives players a clearer three-pulse route through alien cave geology before the corrupted Guardian awakens.\n\n• Follow three marked pulses across the caves with your creature; each one makes the route and the next objective easier to understand.\n• The Guardian awakens when the route is complete. Defeat the corruption holding it, then leave the restored Guardian alive in its realm.\n• This is a real update to the live browser game. The release note is text-only because the current gameplay artwork still needs human visual approval.\n\nSee what changed: https://mythicalvoid.com/play/\n\nText-only release note about the live browser game; no screenshot or generated image is attached.",
-      "characterCount": 736
+      "body": "The press room now has its own front door\n\nA dedicated public page now gives writers, creators and curious players a clear route to the real game, approved facts and the small set of assets that are safe to use.\n\n• The page explains the playable browser adventure, the father-and-son beginning, the creature engine, the six realms, the careful use of AI and the optional NASA-based learning layer.\n• It leads directly to the live game and offers only the approved emblem, fact sheet and STEM activity. The earlier gameplay media pack remains withheld because it did not pass human visual review.\n• The press address now has its own title and canonical identity before JavaScript runs. This helps people and search tools understand the page, but it does not prove indexing, coverage, visits or play.\n\nSee what changed: https://mythicalvoid.com/press/\n\nText-only release note about a live owned-site page; no screenshot or generated image is attached.",
+      "characterCount": 949
     },
-    "destination": "https://mythicalvoid.com/play/",
+    "destination": "https://mythicalvoid.com/press/",
     "releaseProof": {
-      "sourceCommit": "9a1ec33304738f2c5cd38d7dfb3f8e9ebdbdedaa",
-      "productionMergeCommit": "6a47d84daef1365bbfc096df5c823385fcf1fe72",
-      "productionDeployId": "6a9d9121bf7b1e00087494bb",
-      "productionPublishedAt": "2026-09-06T16:14:27.522Z",
+      "sourceCommit": "bcabb7f4a8c7eb8d510be0c4351111d695bd4677",
+      "productionMergeCommit": "270263bed94375097de87295e21978b1d540b7dc",
+      "productionDeployId": "6aa00e02db1f0400088e8e4b",
+      "productionPublishedAt": "2026-09-08T13:32:12.340Z",
       "checkedUrl": "https://mythicalvoid.com/play/",
       "checkedHttpStatus": 200,
+      "ownedPageCheckedUrl": "https://mythicalvoid.com/press/",
+      "ownedPageCheckedHttpStatus": 200,
+      "rawHtmlIdentityVerified": true,
       "gameplayVisualApproved": false,
       "mediaAttached": false,
-      "claimBoundary": "Source and production proof confirm that the change is live; they do not prove visual quality, play, enjoyment or growth."
+      "claimBoundary": "The source, production deploy and live raw HTML prove that the press page exists with its own identity. They do not prove visual quality, play, enjoyment or growth; they also do not prove indexing, attention or playership."
     },
     "approvalState": "blocked_missing_verified_channel_and_kevin_approval"
   },

@@ -1,26 +1,26 @@
 {
   "schemaVersion": 1,
-  "releaseId": "LATEST-NEWS-SYNDICATION-2026-09-08-CRYSTAL-CAVES",
-  "state": "complete_owned_site_release_production_verified",
+  "releaseId": "LATEST-NEWS-SYNDICATION-2026-09-08-PRESS-ROOM",
+  "state": "owned_site_release_prepared",
   "source": {
     "path": "public/updates/releases.json",
-    "fingerprintSha256": "a9b02af4ea0b621301187c069183d579df1db842c8703cab2e993f1a84f58a76",
-    "liveEntryCount": 18
+    "fingerprintSha256": "1d473f9036cc19e9a3f62057c22f7d8a9feb85c0d136ee8066d748bf9877db42",
+    "liveEntryCount": 19
   },
   "feeds": {
     "rss": {
       "path": "public/updates/feed.xml",
       "url": "https://mythicalvoid.com/updates/feed.xml",
       "mimeType": "application/rss+xml; charset=utf-8",
-      "sha256": "304c4d6a7c93f01ddfc62aef5302d1268efbe07d4333a864cfe8805d60fbe1f2",
-      "itemCount": 18
+      "sha256": "e3f2e7b312ed4d1c4048298e83f8eae0a010e287635f605516dbf035e6a234f9",
+      "itemCount": 19
     },
     "json": {
       "path": "public/updates/feed.json",
       "url": "https://mythicalvoid.com/updates/feed.json",
       "mimeType": "application/feed+json; charset=utf-8",
-      "sha256": "a60c9a3b298d5805a848341807b704af74f287017f74b6d316b8771a7402c940",
-      "itemCount": 18
+      "sha256": "80c5e0e2216fd6567ca3df04feef4554486f7f6c8db937870eae3a87b16e0879",
+      "itemCount": 19
     }
   },
   "discovery": {
@@ -46,16 +46,5 @@
     "socialPostingAuthorized": false,
     "externalActionTaken": false
   },
-  "productionVerification": {
-    "commit": "5616f6935fe56944d7d63d8aae244c3553657843",
-    "deployId": "6a9fb5e65d58d30008df6952",
-    "publishedAt": "2026-09-08T07:15:58.953Z",
-    "updatesPageHttpStatus": 200,
-    "playDoorwayHttpStatus": 200,
-    "latestEntryId": "UPDATE-025",
-    "latestEntryPresent": true,
-    "rssItemCount": 18,
-    "jsonItemCount": 18,
-    "productionPresentationReview": "text_only_no_gameplay_media"
-  }
+  "productionVerification": null
 }
