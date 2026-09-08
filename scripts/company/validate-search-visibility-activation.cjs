@@ -7,6 +7,8 @@ const rootFlag = process.argv.indexOf('--root');
 const root = rootFlag === -1 ? path.resolve(__dirname, '..', '..') : path.resolve(process.argv[rootFlag + 1] || '');
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
 const audit = JSON.parse(read('docs/company/search/search-visibility-audit-2026-08-27.json'));
+const followUp = JSON.parse(read('docs/company/search/search-visibility-follow-up-2026-09-08.json'));
+const followUpReport = read('docs/company/search/SEARCH_VISIBILITY_FOLLOW_UP_2026-09-08.md');
 const indexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-08-27.json'));
 const previousChangedPageIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-08-27-05.json'));
 const changedPageIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-08-27-06.json'));
@@ -22,7 +24,7 @@ const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 
 requireValue(audit.id === 'SEARCH-VISIBILITY-2026-08-27', 'search visibility audit identity is missing');
-requireValue(audit.state === 'owned_identity_live_public_github_metadata_live_readme_prepared_search_console_absent', 'search visibility state is stale or overstated');
+requireValue(audit.state === 'owned_identity_live_public_github_live_first_follow_up_complete_search_console_absent', 'search visibility state is stale or overstated');
 requireValue(audit.sample?.queryCount === 8 && audit.sample?.queries?.length === 8, 'eight-query sample boundary is missing');
 requireValue(audit.sample?.queries?.every(item => item.mythicalResultObserved === false), 'sample result was changed without a new dated audit');
 requireValue(/cannot prove global non-indexing/i.test(audit.sample?.limitations || ''), 'search sample limitation is missing');
@@ -31,6 +33,19 @@ requireValue(audit.sample?.unrelatedOrUnverifiedBrandProfileObserved === true, '
 requireValue(audit.latestPublicSample?.queryCount === 4 && audit.latestPublicSample?.queries?.length === 4, 'latest four-query sample boundary is missing');
 requireValue(audit.latestPublicSample?.queries?.every(item => item.mythicalResultObserved === false), 'latest public sample result was changed without new evidence');
 requireValue(audit.latestPublicSample?.officialSiteResultCountClaimed === false && /cannot prove global non-indexing/i.test(audit.latestPublicSample?.limitations || ''), 'latest public sample limitation is missing');
+requireValue(audit.firstScheduledFollowUp?.record === 'docs/company/search/search-visibility-follow-up-2026-09-08.json', 'first scheduled follow-up link is missing');
+requireValue(audit.firstScheduledFollowUp?.daysSinceBaseline >= 7 && audit.firstScheduledFollowUp?.queryCount === 4, 'first scheduled follow-up timing or size is invalid');
+requireValue(audit.firstScheduledFollowUp?.officialResultObserved === false, 'first scheduled follow-up result changed without evidence');
+requireValue(audit.firstScheduledFollowUp?.nextCheckNotBefore === '2026-09-15', 'second scheduled check is too early or missing');
+requireValue(audit.firstScheduledFollowUp?.resultCountClaimed === false && audit.firstScheduledFollowUp?.rankingClaimed === false, 'first scheduled follow-up invents search performance');
+requireValue(followUp.id === 'SEARCH-VISIBILITY-FOLLOW-UP-2026-09-08' && followUp.timing?.gateSatisfied === true && followUp.timing?.daysSinceBaseline === 8, 'dated follow-up identity or timing is invalid');
+requireValue(followUp.queries?.length === 4 && followUp.queries.every(item => item.officialMythicalVoidResultObserved === false), 'dated follow-up query evidence is incomplete');
+requireValue(followUp.comparison?.baselineOfficialResultObserved === false && followUp.comparison?.followUpOfficialResultObserved === false && /does not prove global non-indexing/i.test(followUp.comparison?.meaning || ''), 'dated follow-up comparison is overstated');
+requireValue(followUp.resultCountClaimed === false && followUp.rankingClaimed === false && followUp.searchConsoleEvidenceUsed === false, 'dated follow-up claims unavailable evidence');
+requireValue(followUp.nextScheduledCheck?.notBefore === '2026-09-15', 'dated follow-up schedules the second check too early');
+for (const field of ['searchConsoleConnectionAuthorized', 'sitemapSubmissionAuthorized', 'urlInspectionRequestAuthorized', 'paidSearchAuthorized', 'linkOutreachAuthorized', 'externalPostingAuthorized', 'externalActionTaken']) {
+    requireValue(followUp.authority?.[field] === false, `follow-up authority ${field} must remain false`);
+}
 requireValue(opportunityMap.status === 'owned_pages_live_submission_gated', 'search opportunity map has a stale state');
 requireValue(opportunityMap.clusters?.length === 6 && opportunityMap.clusters.every(item => item.targetState === 'existing_live' && item.liveOwnedPage === true), 'search opportunity map does not reflect the six live owned routes');
 requireValue(!/\bcompanion\b/i.test(JSON.stringify(opportunityMap)), 'retired companion wording remains in the search opportunity map');
@@ -78,6 +93,7 @@ for (const phrase of [
     'href="/play/"',
     'href="/playable-now/"',
     'href="/parents/"',
+    'href="https://github.com/TechevolveAI/Mythical-Void" rel="me noopener noreferrer"',
     "document.documentElement.dataset.initialRoute = isGameRoute ? 'game' : 'site'",
     'html[data-initial-route="game"] .site-entry-fallback'
 ]) requireValue(homepage.includes(phrase), `plain homepage entry is missing: ${phrase}`);
@@ -89,6 +105,7 @@ for (const phrase of [
     '"alternateName": "mythicalvoid.com"',
     '"@type": "Organization"',
     '"@id": "https://mythicalvoid.com/#studio"',
+    '"sameAs": ["https://github.com/TechevolveAI/Mythical-Void"]',
     '"@id": "https://mythicalvoid.com/#video-game"',
     '"publisher": { "@id": "https://mythicalvoid.com/#studio" }'
 ]) requireValue(homepage.includes(phrase), `homepage identity markup is missing: ${phrase}`);
@@ -104,7 +121,7 @@ requireValue(audit.publicGitHubDoorway?.descriptionLive === 'Free browser advent
 requireValue(audit.publicGitHubDoorway?.homepageLive === 'https://mythicalvoid.com/playable-now/', 'public GitHub homepage evidence is missing');
 requireValue(JSON.stringify(audit.publicGitHubDoorway?.topicsLive) === JSON.stringify(['browser-game', 'creature-game', 'indie-game', 'javascript', 'phaser', 'science-fiction', 'stem']), 'public GitHub topic evidence is missing');
 requireValue(audit.publicGitHubDoorway?.readmePlayLinkPrepared === true && audit.publicGitHubDoorway?.readmeFamilyAndPressLinksPrepared === true && audit.publicGitHubDoorway?.truthAndVisualBoundariesPrepared === true, 'public GitHub doorway preparation is incomplete');
-requireValue(audit.publicGitHubDoorway?.metadataUpdatePendingReviewedMerge === false && audit.publicGitHubDoorway?.readmeUpdatePendingReviewedMerge === true && audit.publicGitHubDoorway?.indexingOrRankingClaimed === false, 'public GitHub doorway authority boundary is missing');
+requireValue(audit.publicGitHubDoorway?.metadataUpdatePendingReviewedMerge === false && audit.publicGitHubDoorway?.readmeUpdatePendingReviewedMerge === false && audit.publicGitHubDoorway?.readmeLive === true && audit.publicGitHubDoorway?.reciprocalOfficialWebsiteLinkPrepared === true && audit.publicGitHubDoorway?.indexingOrRankingClaimed === false, 'public GitHub doorway authority boundary is missing');
 requireValue(playable.includes('<link rel="canonical" href="https://mythicalvoid.com/playable-now/">'), 'Playable Now canonical is missing');
 requireValue(robots.includes('User-agent: *') && robots.includes('Allow: /'), 'robots crawl permission is missing');
 requireValue(robots.includes('Sitemap: https://mythicalvoid.com/sitemap.xml'), 'robots sitemap line is missing');
@@ -118,6 +135,9 @@ for (const phrase of ['**Cost:** free', 'does not require another Google Workspa
 for (const phrase of ['warning, not proof', 'There is no obvious public technical block', 'No ranking is claimed', 'official IndexNow endpoint', 'does not guarantee crawling']) {
     requireValue(report.includes(phrase), `plain-language audit is missing: ${phrase}`);
 }
+for (const phrase of ['not in this public sample yet', 'Public project', 'no earlier than 15 September 2026', 'no search result was called a player or a play']) {
+    requireValue(followUpReport.includes(phrase), `plain-language follow-up is missing: ${phrase}`);
+}
 requireValue(packageJson.scripts?.['validate:search-visibility'] === 'node scripts/company/validate-search-visibility-activation.cjs', 'search visibility validator command is missing');
 requireValue(packageJson.scripts?.['test:search-visibility'] === 'node scripts/company/test-search-visibility-activation.cjs', 'search visibility safeguard command is missing');
 
@@ -130,7 +150,7 @@ if (failures.length) {
 console.log(JSON.stringify({
     valid: true,
     state: audit.state,
-    sampledQueries: 12,
+    sampledQueries: 16,
     sampledMythicalResults: 0,
     technicalCrawlChecksPassing: Object.keys(audit.liveTechnicalChecks).length,
     staticHomepageEntryPresent: true,

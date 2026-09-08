@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "SEARCH-VISIBILITY-FOLLOW-UP-2026-09-08",
+  "checkedAt": "2026-09-08T06:10:00Z",
+  "timing": {
+    "baselineCheckedAt": "2026-08-31T05:35:13Z",
+    "daysSinceBaseline": 8,
+    "scheduledGate": "first_check_at_least_seven_days_later",
+    "gateSatisfied": true
+  },
+  "method": "Directional public web-search sample, not a complete index report or stable rank tracker.",
+  "queries": [
+    { "query": "site:mythicalvoid.com Mythical Void", "officialMythicalVoidResultObserved": false },
+    { "query": "\"Mythical Void\" game", "officialMythicalVoidResultObserved": false },
+    { "query": "free alien creature game browser", "officialMythicalVoidResultObserved": false },
+    { "query": "NASA STEM game kids browser", "officialMythicalVoidResultObserved": false }
+  ],
+  "comparison": {
+    "baselineOfficialResultObserved": false,
+    "followUpOfficialResultObserved": false,
+    "change": "no_official_result_observed_in_either_directional_sample",
+    "meaning": "The technical search foundation is live, but this sample still does not show that the official website is findable by name or by a broad game search. It does not prove global non-indexing."
+  },
+  "resultCountClaimed": false,
+  "rankingClaimed": false,
+  "searchConsoleEvidenceUsed": false,
+  "limitations": "Results vary by engine, location, time, language, device and personalization. No result count, ranking, impression, click, visitor, player or play total can be inferred from this sample.",
+  "nextScheduledCheck": {
+    "notBefore": "2026-09-15",
+    "reason": "Repeat once at least fourteen days after the 31 August baseline, as planned, and record whether any official result is observed."
+  },
+  "highestImpactNextMove": "Connect the existing site to Google Search Console, submit the existing sitemap once with Kevin's approval and inspect the homepage and Playable Now page. In parallel, earn one genuine adult-run community mention rather than creating more thin pages.",
+  "authority": {
+    "searchConsoleConnectionAuthorized": false,
+    "sitemapSubmissionAuthorized": false,
+    "urlInspectionRequestAuthorized": false,
+    "paidSearchAuthorized": false,
+    "linkOutreachAuthorized": false,
+    "externalPostingAuthorized": false,
+    "externalActionTaken": false
+  }
+}

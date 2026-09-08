@@ -10,6 +10,8 @@ const root = path.resolve(__dirname, '..', '..');
 const validator = path.join(__dirname, 'validate-search-visibility-activation.cjs');
 const files = [
     'docs/company/search/search-visibility-audit-2026-08-27.json',
+    'docs/company/search/search-visibility-follow-up-2026-09-08.json',
+    'docs/company/search/SEARCH_VISIBILITY_FOLLOW_UP_2026-09-08.md',
     'docs/company/search/indexnow-submission-2026-08-27.json',
     'docs/company/search/indexnow-submission-2026-08-27-05.json',
     'docs/company/search/indexnow-submission-2026-08-27-06.json',
@@ -71,11 +73,27 @@ invalidAudit('premature sitemap authority', audit => { audit.authority.sitemapSu
 invalidAudit('paid search', audit => { audit.authority.paidSearchAuthorized = true; }, 'paidSearchAuthorized');
 invalidAudit('fabricated result', audit => { audit.sample.queries[0].mythicalResultObserved = true; }, 'sample result');
 invalidAudit('fabricated latest result', audit => { audit.latestPublicSample.queries[0].mythicalResultObserved = true; }, 'latest public sample result');
+invalidAudit('fabricated scheduled follow-up result', audit => { audit.firstScheduledFollowUp.officialResultObserved = true; }, 'first scheduled follow-up result');
 invalidAudit('invented indexing', audit => { audit.indexNow.indexingClaimed = true; }, 'cannot be described as indexing');
 invalidAudit('invented result count', audit => { audit.sample.officialSiteResultCountClaimed = true; }, 'must not invent a result count');
 invalidAudit('stale identity state', audit => { audit.homepageIdentityMarkup.productionState = 'prepared_not_deployed'; }, 'live state is stale');
 invalidAudit('invented Search Console property', audit => { audit.searchConsoleAccessCheck.mythicalVoidPropertyAccessible = true; }, 'Search Console absence check');
 invalidAudit('stale GitHub metadata record', audit => { audit.publicGitHubDoorway.metadataUpdatePendingReviewedMerge = true; }, 'authority boundary');
+
+const fabricatedFollowUpRoot = fixture(fixtureRoot => {
+    const target = path.join(fixtureRoot, 'docs/company/search/search-visibility-follow-up-2026-09-08.json');
+    const record = JSON.parse(fs.readFileSync(target, 'utf8'));
+    record.queries[0].officialMythicalVoidResultObserved = true;
+    fs.writeFileSync(target, `${JSON.stringify(record, null, 2)}\n`);
+});
+try {
+    const result = execute(fabricatedFollowUpRoot);
+    assert.strictEqual(result.status, 1);
+    assert(result.stderr.includes('dated follow-up query evidence'));
+    cases += 1;
+} finally {
+    fs.rmSync(fabricatedFollowUpRoot, { recursive: true, force: true });
+}
 
 const robotsRoot = fixture(fixtureRoot => {
     fs.writeFileSync(path.join(fixtureRoot, 'public/robots.txt'), 'User-agent: *\nDisallow: /\n');
@@ -130,6 +148,19 @@ try {
     fs.rmSync(missingStaticEntryRoot, { recursive: true, force: true });
 }
 
+const missingReciprocalLinkRoot = fixture(fixtureRoot => {
+    const target = path.join(fixtureRoot, 'index.html');
+    fs.writeFileSync(target, fs.readFileSync(target, 'utf8').replace('rel="me noopener noreferrer"', 'rel="noopener noreferrer"'));
+});
+try {
+    const result = execute(missingReciprocalLinkRoot);
+    assert.strictEqual(result.status, 1);
+    assert(result.stderr.includes('plain homepage entry'));
+    cases += 1;
+} finally {
+    fs.rmSync(missingReciprocalLinkRoot, { recursive: true, force: true });
+}
+
 const hiddenGameRouteRoot = fixture(fixtureRoot => {
     const target = path.join(fixtureRoot, 'index.html');
     fs.writeFileSync(target, fs.readFileSync(target, 'utf8').replace('html[data-initial-route="game"] .site-entry-fallback', 'html[data-wrong-route="game"] .site-entry-fallback'));
@@ -156,5 +187,5 @@ try {
     fs.rmSync(companionRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 18);
-console.log('Search visibility activation safeguards passed (18 cases).');
+assert.strictEqual(cases, 21);
+console.log('Search visibility activation safeguards passed (21 cases).');

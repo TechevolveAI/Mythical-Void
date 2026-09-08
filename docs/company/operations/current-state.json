@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "weekEnding": "2026-08-11",
   "preparedBy": "Company task",
-  "evidenceFreshness": "Repository, production site, search sample, game package, visual review and operating records checked through 2026-08-31",
+  "evidenceFreshness": "Repository, production site and first scheduled search follow-up checked through 2026-09-08; other operating evidence retains its own dated source",
   "executive": {
     "outcome": "The public Mythical Void website has been rebuilt as a clearer, warmer shop window while the company system keeps publication and other outward actions under human approval.",
     "materialChange": "The home page now explains the creature, adventure, story, choice, and family safeguards in plain language before handing players to /play/. A-055 checks public wording. A-056 sorts invented questions and feedback into safe human routes, A-057 prepares source-linked candidate replies, and A-058 now records the consent-gated Google tag as live on the public pages and absent from the game runtime while property-side evidence remains untrusted.",
@@ -13,7 +13,7 @@
   "scorecard": [
     {
       "measure": "Public discovery checks",
-      "current": "The production site serves real robots, sitemap, canonical, structured game data and AI-readable discovery files; IndexNow accepted the latest homepage submission. The linked site, studio and game identity is live. The latest four-query public sample still showed no official Mythical Void result, and a signed-in read-only check found no Mythical Void Search Console property. The public GitHub project now has an accurate game description, direct Play homepage and discovery topics; its Play-first README change is prepared for reviewed release.",
+      "current": "The production site serves real robots, sitemap, canonical, structured game data and AI-readable discovery files. The linked site, studio and game identity is live. The first scheduled four-query follow-up on 8 September still showed no official Mythical Void result, and Search Console remains unconnected. The public GitHub project has a live Play-first README, accurate description, direct Play homepage and discovery topics; the official website now prepares a reciprocal Public project link.",
       "target": "Owned result found by name and at least one relevant play-intent query, with Search Console evidence when Kevin activates it",
       "trend": "Technical foundation live; search visibility not yet earned",
       "confidence": "High for live files and sampled search; no Search Console performance evidence",
@@ -541,7 +541,7 @@
   "experiments": [
     {
       "id": "E-001",
-      "signal": "Owned discovery files, clearer play-intent pages and linked site, studio and game identity are live; IndexNow accepted the homepage, but the latest four-query public sample still showed no official Mythical Void result. The public GitHub project now has an accurate game description, direct Play homepage and discovery topics; its truthful README correction is prepared for reviewed release.",
+      "signal": "Owned discovery files, clearer play-intent pages and linked site, studio and game identity are live, but the first scheduled four-query follow-up still showed no official Mythical Void result. The public GitHub project has a live Play-first README, and the official website now prepares a reciprocal Public project link.",
       "guardrail": "No popularity or ranking claim; Search Console is not connected and sampled search is directional only.",
       "recommendation": "Keep the pages stable, activate Search Console when Kevin is ready, and earn real mentions and play evidence rather than creating more thin pages."
     },

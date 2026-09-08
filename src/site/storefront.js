@@ -187,7 +187,7 @@ function renderPressPage() {
         <footer>
             <div class="footer-inner">
                 <div class="footer-brand"><a class="brand" href="/">${brandMark()}<span>MYTHICAL VOID</span></a><p>Your creature. Your journey. Your choice.</p></div>
-                <nav aria-label="Press room navigation"><a href="/">Main website</a><a href="/play/">Play game</a><a href="/privacy/">Privacy & safety</a><a href="/terms/">Terms</a></nav>
+                <nav aria-label="Press room navigation"><a href="/">Main website</a><a href="/play/">Play game</a><a href="https://github.com/TechevolveAI/Mythical-Void" rel="me noopener noreferrer">Public project</a><a href="/privacy/">Privacy & safety</a><a href="/terms/">Terms</a></nav>
                 <small>© ${new Date().getFullYear()} Mythical Void. Made in Ireland for curious minds everywhere.</small>
             </div>
         </footer>
@@ -578,6 +578,7 @@ function renderStorefront() {
                     <a href="/playable-now/#find-your-way">Find your way in</a>
                     <a href="/hatch-challenge/">Hatch Challenge</a>
                     <a href="/press/">Press & creators</a>
+                    <a href="https://github.com/TechevolveAI/Mythical-Void" rel="me noopener noreferrer">Public project</a>
                     <a href="/updates/">What's new</a>
                     <a href="/creature-genetics/">Creature genetics</a>
                     <a href="/nasa-space-science/">NASA & STEM</a>
