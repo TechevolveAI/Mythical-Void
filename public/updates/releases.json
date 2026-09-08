@@ -17,6 +17,36 @@
   },
   "entries": [
     {
+      "id": "UPDATE-025",
+      "publishedOn": "2026-09-08",
+      "status": "live",
+      "category": "A CLEARER SECOND EXPEDITION",
+      "title": "Crystal Caves has been rebuilt",
+      "summary": "The second realm now gives players a clearer three-pulse route through alien cave geology before the corrupted Guardian awakens.",
+      "details": [
+        "Follow three marked pulses across the caves with your creature; each one makes the route and the next objective easier to understand.",
+        "The Guardian awakens when the route is complete. Defeat the corruption holding it, then leave the restored Guardian alive in its realm.",
+        "This is a real update to the live browser game. The release note is text-only because the current gameplay artwork still needs human visual approval."
+      ],
+      "visualKind": "text_only_release",
+      "visualAlt": "A text-only live-game update card for the rebuilt Crystal Caves expedition",
+      "disclosure": "Text-only release note about the live browser game; no screenshot or generated image is attached.",
+      "destination": "/play/",
+      "linkText": "Enter the Crystal Caves",
+      "download": false,
+      "releaseProof": {
+        "sourceCommit": "9a1ec33304738f2c5cd38d7dfb3f8e9ebdbdedaa",
+        "productionMergeCommit": "6a47d84daef1365bbfc096df5c823385fcf1fe72",
+        "productionDeployId": "6a9d9121bf7b1e00087494bb",
+        "productionPublishedAt": "2026-09-06T16:14:27.522Z",
+        "checkedUrl": "https://mythicalvoid.com/play/",
+        "checkedHttpStatus": 200,
+        "gameplayVisualApproved": false,
+        "mediaAttached": false,
+        "claimBoundary": "Source and production proof confirm that the change is live; they do not prove visual quality, play, enjoyment or growth."
+      }
+    },
+    {
       "id": "UPDATE-024",
       "publishedOn": "2026-08-27",
       "status": "live",

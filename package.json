@@ -31,7 +31,7 @@
     "test:creature-field-guide": "node scripts/company/test-creature-field-guide.cjs",
     "validate:story-page": "node scripts/company/validate-story-production-release.cjs",
     "build:signal-log": "node scripts/company/build-public-signal-log.cjs && node scripts/company/build-signal-feeds.cjs && npm run build:release-to-audience",
-    "validate:signal-log": "node scripts/company/validate-public-signal-log.cjs && npm run validate:signal-release-pack && npm run test:signal-release-pack && npm run validate:release-to-audience && npm run test:release-to-audience",
+    "validate:signal-log": "node scripts/company/validate-public-signal-log.cjs && npm run test:signal-log && npm run validate:signal-release-pack && npm run test:signal-release-pack && npm run validate:release-to-audience && npm run test:release-to-audience",
     "test:signal-log": "node scripts/company/test-public-signal-log.cjs",
     "build:signal-feeds": "node scripts/company/build-signal-feeds.cjs",
     "validate:signal-feeds": "node scripts/company/validate-signal-feeds.cjs",

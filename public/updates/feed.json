@@ -15,6 +15,18 @@
   ],
   "items": [
     {
+      "id": "https://mythicalvoid.com/updates/#update-025",
+      "url": "https://mythicalvoid.com/updates/#update-025",
+      "external_url": "https://mythicalvoid.com/play/",
+      "title": "Crystal Caves has been rebuilt",
+      "content_text": "The second realm now gives players a clearer three-pulse route through alien cave geology before the corrupted Guardian awakens.\n\n• Follow three marked pulses across the caves with your creature; each one makes the route and the next objective easier to understand.\n• The Guardian awakens when the route is complete. Defeat the corruption holding it, then leave the restored Guardian alive in its realm.\n• This is a real update to the live browser game. The release note is text-only because the current gameplay artwork still needs human visual approval.\n\nSee the live change: https://mythicalvoid.com/play/\n\nVisual note: Text-only release note about the live browser game; no screenshot or generated image is attached.",
+      "summary": "The second realm now gives players a clearer three-pulse route through alien cave geology before the corrupted Guardian awakens.",
+      "date_published": "2026-09-08T12:00:00.000Z",
+      "tags": [
+        "A CLEARER SECOND EXPEDITION"
+      ]
+    },
+    {
       "id": "https://mythicalvoid.com/updates/#update-024",
       "url": "https://mythicalvoid.com/updates/#update-024",
       "external_url": "https://mythicalvoid.com/space-discovery/",

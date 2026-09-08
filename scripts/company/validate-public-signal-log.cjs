@@ -11,7 +11,7 @@ const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
 const page = fs.readFileSync(pagePath, 'utf8');
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
-const allowedKeys = new Set(['id', 'publishedOn', 'status', 'category', 'title', 'summary', 'details', 'image', 'imageAlt', 'imageClass', 'visualKind', 'visualAlt', 'disclosure', 'destination', 'linkText', 'download']);
+const allowedKeys = new Set(['id', 'publishedOn', 'status', 'category', 'title', 'summary', 'details', 'image', 'imageAlt', 'imageClass', 'visualKind', 'visualAlt', 'disclosure', 'destination', 'linkText', 'download', 'releaseProof']);
 const liveEntries = (data.entries || []).filter(entry => entry.status === 'live');
 
 requireValue(data.schemaVersion === 1, 'schemaVersion must be 1');
@@ -34,7 +34,8 @@ for (const [index, entry] of (data.entries || []).entries()) {
     requireValue(Array.isArray(entry?.details) && entry.details.length === 3, `${label} must contain three checkable details`);
     const hasImage = Boolean(entry?.image);
     const hasSpaceSignalVisual = entry?.visualKind === 'space_discovery';
-    requireValue(hasImage || hasSpaceSignalVisual, `${label} needs an approved image or supported code-native visual`);
+    const hasTextOnlyVisual = entry?.visualKind === 'text_only_release';
+    requireValue(hasImage || hasSpaceSignalVisual || hasTextOnlyVisual, `${label} needs an approved image or supported code-native visual`);
     if (hasImage) {
         requireValue(/^\/(?!\/)/.test(entry.image), `${label} image must be an owned path`);
         requireValue(fs.existsSync(path.join(root, 'public', entry.image.replace(/^\//, ''))), `${label} image does not exist`);
@@ -42,6 +43,17 @@ for (const [index, entry] of (data.entries || []).entries()) {
     if (hasSpaceSignalVisual) {
         requireValue(!entry.image && /not a NASA image/i.test(entry?.disclosure || '') && /not gameplay/i.test(entry?.disclosure || ''), `${label} Space Discovery visual lacks its source and gameplay boundary`);
         requireValue(typeof entry?.visualAlt === 'string' && entry.visualAlt.length >= 20, `${label} Space Discovery visual needs useful alternative text`);
+    }
+    if (hasTextOnlyVisual) {
+        requireValue(!entry.image && /text-only release note/i.test(entry?.disclosure || '') && /no screenshot or generated image/i.test(entry?.disclosure || ''), `${label} text-only release lacks its media boundary`);
+        requireValue(typeof entry?.visualAlt === 'string' && entry.visualAlt.length >= 20, `${label} text-only release needs useful alternative text`);
+        requireValue(/^[0-9a-f]{40}$/.test(entry.releaseProof?.sourceCommit || ''), `${label} text-only release needs an exact source commit`);
+        requireValue(/^[0-9a-f]{40}$/.test(entry.releaseProof?.productionMergeCommit || ''), `${label} text-only release needs an exact production merge commit`);
+        requireValue(/^[0-9a-f]{24}$/.test(entry.releaseProof?.productionDeployId || ''), `${label} text-only release needs an exact production deploy ID`);
+        requireValue(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(entry.releaseProof?.productionPublishedAt || ''), `${label} text-only release needs a production publication time`);
+        requireValue(entry.releaseProof?.checkedUrl === 'https://mythicalvoid.com/play/' && entry.releaseProof?.checkedHttpStatus === 200, `${label} text-only release needs the checked live game doorway`);
+        requireValue(entry.releaseProof?.gameplayVisualApproved === false && entry.releaseProof?.mediaAttached === false, `${label} text-only release must not imply visual approval or attached media`);
+        requireValue(/do not prove visual quality, play, enjoyment or growth/i.test(entry.releaseProof?.claimBoundary || ''), `${label} text-only proof needs its claim boundary`);
     }
     requireValue(/^\/(?!\/)/.test(entry?.destination || ''), `${label} destination must be an owned path`);
     requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(entry?.destination || ''), `${label} contains a tracking parameter`);

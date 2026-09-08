@@ -31,8 +31,10 @@ try {
     assert.notStrictEqual(run('invented-metric', data => { data.entries[0].summary = 'Already enjoyed by 10,000 players.'; }).status, 0);
     assert.notStrictEqual(run('opened-comments', data => { data.publicationBoundary.commentsEnabled = true; }).status, 0);
     assert.notStrictEqual(run('unsupported-field', data => { data.entries[0].email = 'hello@example.com'; }).status, 0);
+    assert.notStrictEqual(run('missing-release-proof', data => { delete data.entries.find(entry => entry.visualKind === 'text_only_release').releaseProof; }).status, 0);
+    assert.notStrictEqual(run('invented-visual-approval', data => { data.entries.find(entry => entry.visualKind === 'text_only_release').releaseProof.gameplayVisualApproved = true; }).status, 0);
     assert.notStrictEqual(run('stale', value => value, true).status, 0);
-    console.log('Public Latest News safeguards passed (9 cases).');
+    console.log('Public Latest News safeguards passed (11 cases).');
 } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
 }
