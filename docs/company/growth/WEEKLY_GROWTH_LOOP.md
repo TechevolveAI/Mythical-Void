@@ -22,6 +22,9 @@ that Mythical already owns.
   than unique people and making no claim when the count is zero or too small;
 - which action is now possible without opening an account, contacting someone,
   spending money or accepting outside terms.
+- whether a fresh public request in r/WebGames or the Phaser Showcase genuinely
+  asks for a game like Mythical Void; ignore old-game identification requests,
+  report at most three public links and never reply automatically.
 
 ## What it may do
 
@@ -33,6 +36,8 @@ that Mythical already owns.
   never as a repeated ranking trick;
 - prepare one clear outside action for Kevin when a human account, approval or
   reply is required.
+- prepare one exact reply for Kevin only when a fresh public request is a clear
+  fit, without storing usernames, copied comments or private messages.
 
 When the protected environment is available, run:
 

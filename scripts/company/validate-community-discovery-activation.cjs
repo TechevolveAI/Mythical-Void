@@ -70,6 +70,24 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
     requireValue(plan.nextRoutes?.find(route => route.name === 'itch.io')?.state.includes('publication_waiting'), 'itch.io publication must remain waiting');
     requireValue(plan.fallbackReadOnlyVerification?.route === 'Phaser Showcase' && plan.fallbackReadOnlyVerification?.rulesVisible === true && plan.fallbackReadOnlyVerification?.exactMythicalVoidResultObserved === false, 'the current Phaser fallback verification is missing');
     requireValue(/remains second/i.test(plan.fallbackReadOnlyVerification?.sequenceBoundary || ''), 'the one-route-at-a-time boundary is missing from the fallback check');
+    const radar = plan.opportunityRadar || {};
+    requireValue(radar.state === 'active_read_only_no_current_match_observed' && radar.checkedOn === '2026-09-09', 'the weekly community opportunity watch is missing or stale');
+    requireValue(radar.cadence === 'weekly_as_part_of_the_existing_growth_loop', 'the opportunity watch is not connected to the weekly loop');
+    requireValue(radar.sources?.map(source => source.name).join('|') === 'r/WebGames newest posts|r/WebGames Find-A-Game Megathread|Phaser Showcase', 'the bounded opportunity sources changed');
+    const findAGame = radar.sources?.find(source => source.name === 'r/WebGames Find-A-Game Megathread');
+    requireValue(/never answer a request whose purpose is identifying a particular old game/i.test(findAGame?.use || '') && /No honest Mythical Void recommendation opportunity was observed/i.test(findAGame?.currentFinding || ''), 'the Find-A-Game anti-spam boundary is missing');
+    requireValue(radar.matchRules?.maximumOpportunitiesPerRun === 3 && radar.matchRules?.maximumAgeDays === 7, 'the opportunity report is not small and fresh');
+    requireValue(radar.matchRules?.mustClearlyRequestAtLeastOne?.length === 5, 'the genuine-fit rules are incomplete');
+    requireValue(radar.matchRules?.exclude?.some(item => /identify a particular remembered game/i.test(item)), 'old-game identification requests are not excluded');
+    requireValue(radar.matchRules?.exclude?.some(item => /children/i.test(item) && /private contact/i.test(item)), 'the opportunity watch child-safety boundary is missing');
+    requireValue(JSON.stringify(radar.report?.allowedFields) === JSON.stringify(['public thread URL', 'date observed', 'one-sentence reason it fits', 'route rules to recheck', 'expiry date']), 'the opportunity report fields are not minimal');
+    requireValue(radar.report?.storeUsernames === false && radar.report?.copyCommentText === false && radar.report?.openPrivateMessages === false, 'the opportunity watch stores people or private content');
+    requireValue(radar.report?.draftOnlyAfterFitConfirmed === true && radar.report?.publicationRequiresKevinActionTimeApproval === true, 'the opportunity watch can draft or publish without a genuine fit and fresh approval');
+    for (const field of ['automaticReplyAuthorized', 'automaticPostAuthorized', 'accountActionAuthorized', 'directContactAuthorized', 'currentOpportunityReplyAuthorized']) {
+        requireValue(radar.authority?.[field] === false, `opportunity authority ${field} must remain false`);
+    }
+    requireValue(radar.currentRun?.matchingOpportunityObserved === false && radar.currentRun?.replyDrafted === false && radar.currentRun?.replyPosted === false && radar.currentRun?.externalActionTaken === false, 'the opportunity watch invents a match or outside action');
+    requireValue(/No match is better than forcing the game/i.test(radar.currentRun?.limitation || ''), 'the opportunity watch lacks a no-forced-fit rule');
     requireValue(plan.excludedForNow?.some(route => route.name === 'Newgrounds' && /AI-generated thumbnails/i.test(route.reason || '')), 'the current Newgrounds risk is missing');
     requireValue(plan.excludedForNow?.some(route => route.name === 'r/playmygame' && /restrictive AI policy/i.test(route.reason || '') && /genuinely test/i.test(route.reason || '')), 'the current r/playmygame AI-policy and participation hold is missing');
     requireValue(plan.excludedForNow?.some(route => route.name === 'r/IndieGaming' && /No AI rule/i.test(route.reason || '')), 'the current r/IndieGaming no-AI conflict is missing');
@@ -80,7 +98,7 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
     }
 
     requireValue(feedbackHtml.includes('value="website_creator"><span>A game website, forum, newsletter or creator</span>'), 'adult feedback cannot identify the community route');
-    for (const phrase of ['No post, account or outside contact has been made.', 'not guaranteed reach, posts, replies or player counts', 'Reddit returned 403', 'active community discussion about AI-made web games', 'This discussion is not a rule.', 'A post view is not a player.', 'cannot identify Reddit on its own', 'The one approval needed']) {
+    for (const phrase of ['No post, account or outside contact has been made.', 'not guaranteed reach, posts, replies or player counts', 'Reddit returned 403', 'active community discussion about AI-made web games', 'This discussion is not a rule.', 'A post view is not a player.', 'cannot identify Reddit on its own', 'Weekly opportunity watch', 'no recommendation was prepared or posted', 'stores no username', 'private message or personal detail', 'The one approval needed']) {
         requireValue(copy.includes(phrase), `plain-language plan is missing: ${phrase}`);
     }
     requireValue(copy.replace(/^>\s?/gm, '').replace(/\s+/g, ' ').includes('I have an existing adult Reddit account, I approve the exact title, link and first comment below now, and I can personally answer replies for seven days.'), 'plain-language plan is missing the exact short-lived approval message');

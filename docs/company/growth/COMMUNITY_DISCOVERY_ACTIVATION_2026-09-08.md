@@ -82,6 +82,26 @@ Do not ask for votes, manufacture replies, automate responses or cross-post the
 same message during the first seven-day read. Kevin or another named adult must
 handle replies. Do not contact children.
 
+## Weekly opportunity watch
+
+The existing weekly growth check now watches three public places without
+posting: new r/WebGames posts, its Find-A-Game thread and the Phaser Showcase.
+It may bring Kevin at most three fresh links when somebody is genuinely asking
+for a free browser game, an alien-creature game, a family-friendly space
+adventure, a short action/story game or a Phaser game to discuss.
+
+The Find-A-Game thread needs special care. Its newest visible requests were
+mainly people trying to identify an old game they remembered. Mythical Void is
+not an answer to those questions, so no recommendation was prepared or posted.
+The watch may act only when a person clearly asks for new recommendations and
+the game truly fits.
+
+The report keeps only the public thread address, date, one-sentence reason it
+fits, rules to recheck and an expiry date. It stores no username, copied
+comment, private message or personal detail. It never posts or replies. If a
+real match appears, Kevin sees the exact proposed reply and gives fresh
+approval before any outside action.
+
 ## Routes after the first test
 
 1. **Phaser Showcase:** a good second route for technical feedback. Its official
@@ -129,6 +149,7 @@ again before the final posting step.
 - https://www.reddit.com/r/WebGames/about/rules
 - https://www.reddit.com/r/WebGames/search/?q=%22Mythical%20Void%22&restrict_sr=1&sort=new
 - https://www.reddit.com/r/WebGames/comments/1ryldz4/looking_for_opinions_on_ai_made_web_games/
+- https://www.reddit.com/r/WebGames/comments/sshkvp/findagame_megathread/
 - https://phaser.discourse.group/t/welcome-to-the-phaser-showcase-forum/19
 - https://phaser.discourse.group/search?q=%22Mythical%20Void%22%20%23showcase
 - https://www.html5gamedevs.com/forum/8-game-showcase/

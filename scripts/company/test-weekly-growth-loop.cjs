@@ -19,7 +19,11 @@ const requiredPhrases = [
     'create an account, submit the game to a platform or accept platform terms',
     'spend money or start advertising',
     'describe generated artwork as gameplay',
-    'identify Kevin’s son'
+    'identify Kevin’s son',
+    'ignore old-game identification requests',
+    'report at most three public links',
+    'never reply automatically',
+    'without storing usernames, copied comments or private messages'
 ];
 
 for (const phrase of requiredPhrases) {
