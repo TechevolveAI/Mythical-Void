@@ -86,9 +86,10 @@ export default class ControlsTutorialOverlay {
             getBounds: () => continueBtn.active ? continueBtn.getBounds() : null,
             onActivate: () => this.hide()
         });
-        continueBtn.on('pointerup', pointer => {
-            this.continueTapBridge?.activateGamePoint(pointer.x, pointer.y);
-        });
+        // Phaser has already hit-tested the button at this point. Rechecking
+        // its coordinates through the canvas bridge can disagree after mobile
+        // canvas scaling and leave this blocking overlay visible.
+        continueBtn.on('pointerup', () => this.hide());
         continueBtn.on('pointerover', () => continueBtn.setBackgroundColor('#8AF5EC'));
         continueBtn.on('pointerout', () => continueBtn.setBackgroundColor('#6FE7DD'));
         this.elements.push(continueBtn);

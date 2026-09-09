@@ -290,6 +290,9 @@ describe('first-session Project Beacon mission loop', () => {
             'this.continueTapBridge = createCanvasTapBridge({'
         );
         expect(controlsSource).toContain(
+            "continueBtn.on('pointerup', () => this.hide());"
+        );
+        expect(controlsSource).not.toContain(
             'this.continueTapBridge?.activateGamePoint(pointer.x, pointer.y);'
         );
         expect(controlsSource).toContain(
