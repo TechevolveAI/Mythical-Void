@@ -253,6 +253,8 @@ describe('Village settlement gameplay contract', () => {
         expect(worldSource).toContain('const displayScale = displayHeight / sourceHeight;');
         expect(worldSource).toContain('const displayX = -cropX * displayScale;');
         expect(worldSource).toContain('const visibleWorldWidth = cropWidth * displayScale;');
+        expect(worldSource).toContain('const displayWidth = sourceWidth * displayScale;');
+        expect(worldSource).toContain('coverageRight: displayX + displayWidth');
         expect(worldSource).not.toContain('.setCrop(cropX, 0, cropWidth, sourceHeight)');
         expect(worldSource).toContain('this.backgroundImage.setAlpha(0.38);');
         expect(sanctuaryArtSource).toContain("key: 'sanctuary-biome-backdrop-v1'");

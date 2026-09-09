@@ -10570,6 +10570,7 @@ class WorldBuilder {
         const displayScale = displayHeight / sourceHeight;
         const displayX = -cropX * displayScale;
         const visibleWorldWidth = cropWidth * displayScale;
+        const displayWidth = sourceWidth * displayScale;
 
         this.sanctuaryBiomeBackdrop = this.scene.add.image(displayX, 0, artwork.key)
             .setOrigin(0, 0)
@@ -10587,8 +10588,11 @@ class WorldBuilder {
             .setData('sanctuaryBiomePlateDisplay', {
                 x: displayX,
                 scale: displayScale,
+                displayWidth,
                 displayHeight,
-                visibleWorldWidth
+                visibleWorldWidth,
+                coverageLeft: displayX,
+                coverageRight: displayX + displayWidth
             });
         return this.sanctuaryBiomeBackdrop;
     }
