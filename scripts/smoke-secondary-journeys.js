@@ -15997,7 +15997,8 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.sanctuaryBackground.biomePlate.displayHeight < 2120 ||
         integratedWorld.sanctuaryBackground.biomePlate.crop?.sourceWidth !== 1672 ||
         integratedWorld.sanctuaryBackground.biomePlate.crop?.sourceHeight !== 941 ||
-        integratedWorld.sanctuaryBackground.biomePlate.display?.visibleWorldWidth < 2400 ||
+        integratedWorld.sanctuaryBackground.biomePlate.display?.coverageLeft > 0 ||
+        integratedWorld.sanctuaryBackground.biomePlate.display?.coverageRight < 2400 ||
         integratedWorld.sanctuaryBackground.biomePlate.display?.displayHeight < 2120 ||
         integratedWorld.sanctuaryBackground.biomePlate.display?.x !==
             integratedWorld.sanctuaryBackground.biomePlate.x ||
