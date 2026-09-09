@@ -128,8 +128,8 @@
     "test:nasa-stem-social-release": "node scripts/company/test-nasa-stem-social-release.cjs",
     "validate:father-son-story-social-release": "node scripts/company/validate-father-son-story-social-release.cjs",
     "test:father-son-story-social-release": "node scripts/company/test-father-son-story-social-release.cjs",
-    "validate:channel-opening": "node scripts/company/validate-channel-opening-kit.cjs",
-    "test:channel-opening": "node scripts/company/test-channel-opening-kit.cjs",
+    "validate:channel-opening": "node scripts/company/validate-channel-opening-kit.cjs && node scripts/company/validate-social-first-week-pack.cjs",
+    "test:channel-opening": "node scripts/company/test-channel-opening-kit.cjs && node scripts/company/test-social-first-week-pack.cjs",
     "validate:adult-feedback": "node scripts/company/validate-adult-feedback-loop.cjs",
     "test:adult-feedback": "jest --runInBand src/__tests__/AdultFeedbackFunction.test.js",
     "validate:social-previews": "node scripts/company/validate-social-preview-metadata.cjs",
@@ -188,7 +188,9 @@
     "health-check": "echo 'Health endpoint not available in static build'",
     "lint": "echo 'Linting not configured - add ESLint for production'",
     "validate:social-identity": "node scripts/company/validate-social-identity-reservation.cjs",
-    "test:social-identity": "node scripts/company/test-social-identity-reservation.cjs"
+    "test:social-identity": "node scripts/company/test-social-identity-reservation.cjs",
+    "validate:social-first-week": "node scripts/company/validate-social-first-week-pack.cjs",
+    "test:social-first-week": "node scripts/company/test-social-first-week-pack.cjs"
   },
   "dependencies": {
     "@google/genai": "^2.16.0",

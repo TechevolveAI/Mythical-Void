@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "id": "SOCIAL-FIRST-WEEK-001",
+  "asOf": "2026-09-09",
+  "state": "ready_no_account_or_public_action",
+  "purpose": "Turn the existing Mythical Void channel and launch material into one safe, practical first week without opening accounts, accepting terms or publishing for Kevin.",
+  "recommendedStart": {
+    "firstPublicRoute": "Kevin's existing LinkedIn profile",
+    "reason": "The true father-and-son beginning is personal, understandable and does not require another account or email subscription.",
+    "firstContentId": "PN-002",
+    "firstDestination": "https://mythicalvoid.com/studio/",
+    "firstPostReference": "docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.md",
+    "automaticLinkPreviewOnly": true,
+    "uploadedMediaRequired": false
+  },
+  "identity": {
+    "displayName": "Mythical Void",
+    "primaryHandle": "PlayMythicalVoid",
+    "fallbackHandle": "MythicalVoidGame",
+    "website": "https://mythicalvoid.com/",
+    "handleAvailabilityConfirmed": false,
+    "officialAccountsConfirmed": 0
+  },
+  "costAndAccountPosition": {
+    "additionalGoogleWorkspaceSubscriptionRequired": false,
+    "paidProductRequired": false,
+    "youtubeRoute": "Use a Google Account Kevin already controls if YouTube is enabled, then use channel permissions for any future helper.",
+    "instagramAndTikTokRoute": "Use recovery details Kevin controls. The platform may ask for an email address or phone number; verify the live form before continuing.",
+    "rule": "Optional paid products and advertising are outside this pack. Never store passwords, recovery addresses, phone numbers or codes in the repository."
+  },
+  "channelActions": [
+    {
+      "order": 1,
+      "platform": "LinkedIn",
+      "action": "Use Kevin's existing professional profile for the founder story.",
+      "accountCreationRequired": false,
+      "publishingReady": true,
+      "publicationAuthorized": false,
+      "condition": "Kevin supplies the exact public profile address, approves the complete preview and names the adult watching replies for 48 hours."
+    },
+    {
+      "order": 2,
+      "platform": "YouTube",
+      "action": "Reserve the Mythical Void channel name and first available approved handle.",
+      "accountCreationRequired": true,
+      "publishingReady": false,
+      "publicationAuthorized": false,
+      "profile": {
+        "name": "Mythical Void",
+        "handleCandidates": ["@PlayMythicalVoid", "@MythicalVoidGame"],
+        "website": "https://mythicalvoid.com/",
+        "profileImage": "public/marketing/mythical-void-mark-512.png"
+      },
+      "holdReason": "Reserve the identity only. Publish no video until four real gameplay moments pass human visual review."
+    },
+    {
+      "order": 3,
+      "platform": "Instagram",
+      "action": "Reserve the first available approved handle and complete a truthful profile only.",
+      "accountCreationRequired": true,
+      "publishingReady": false,
+      "publicationAuthorized": false,
+      "profile": {
+        "name": "Mythical Void",
+        "handleCandidates": ["@PlayMythicalVoid", "@MythicalVoidGame"],
+        "website": "https://mythicalvoid.com/",
+        "bioDraft": "A free browser adventure of alien creatures and six living worlds. Built by a father and son in Ireland. Play below.",
+        "profileImage": "public/marketing/mythical-void-mark-512.png"
+      },
+      "holdReason": "Do not post merely to make the account look active. Wait for approved visual material and named adult reply cover."
+    },
+    {
+      "order": 4,
+      "platform": "TikTok",
+      "action": "Reserve the first available approved handle and complete a truthful profile only.",
+      "accountCreationRequired": true,
+      "publishingReady": false,
+      "publicationAuthorized": false,
+      "profile": {
+        "name": "Mythical Void",
+        "handleCandidates": ["@PlayMythicalVoid", "@MythicalVoidGame"],
+        "website": "https://mythicalvoid.com/",
+        "bioDraft": "Alien creatures. Six living worlds. A free browser adventure built by a father and son.",
+        "profileImage": "public/marketing/mythical-void-mark-512.png"
+      },
+      "holdReason": "Do not post merely to make the account look active. Wait for approved visual material and named adult reply cover."
+    },
+    {
+      "order": 5,
+      "platform": "Discord",
+      "action": "Do not open yet.",
+      "accountCreationRequired": true,
+      "publishingReady": false,
+      "publicationAuthorized": false,
+      "state": "deferred",
+      "holdReason": "A child-accessible community needs dependable adult moderation, clear rules and escalation cover before opening."
+    }
+  ],
+  "firstWeek": [
+    {
+      "when": "Before any public post",
+      "action": "Confirm the exact public account, turn on multi-factor security, verify recovery, name Kevin as owner and name a trusted adult backup.",
+      "externalActionAuthorized": false
+    },
+    {
+      "when": "Day 1",
+      "contentId": "PN-002",
+      "action": "Publish the founder story from Kevin's existing LinkedIn profile using only the checked studio-page link preview.",
+      "destination": "https://mythicalvoid.com/studio/",
+      "externalActionAuthorized": false
+    },
+    {
+      "when": "Day 3",
+      "contentId": "PN-001",
+      "action": "If the first post and reply workload are healthy, publish the simple playable-now explanation after a new complete-preview approval.",
+      "destination": "https://mythicalvoid.com/playable-now/",
+      "externalActionAuthorized": false
+    },
+    {
+      "when": "Day 5",
+      "contentId": "PN-003",
+      "action": "If the first two posts remain manageable, share the creature-system story after a new complete-preview approval.",
+      "destination": "https://mythicalvoid.com/creature-genetics/",
+      "externalActionAuthorized": false
+    },
+    {
+      "when": "Day 7",
+      "action": "Record platform totals and useful adult questions. Keep impressions, website visits, play selections and feedback separate; do not call any of them players or growth.",
+      "externalActionAuthorized": false
+    }
+  ],
+  "replyRules": {
+    "owner": "Kevin or a named adult",
+    "coverageWindowHours": 48,
+    "automatedRepliesAuthorized": false,
+    "privateConversationWithChildPermitted": false,
+    "personalDataRequestsPermitted": false,
+    "rule": "Reply in public where suitable. If a person appears to be a child, do not continue privately and do not request a name, age, school, location, image, voice or design."
+  },
+  "contentRules": [
+    "Use creatures, messages, clues, currents and routes in public writing.",
+    "Do not publish weak gameplay images or videos.",
+    "Generated artwork must be clearly labelled and never presented as gameplay.",
+    "NASA does not endorse Mythical Void.",
+    "Never invent followers, reactions, players, testimonials or popularity.",
+    "Do not add a channel link to the website until Kevin confirms ownership of the exact public address.",
+    "Do not automate public replies or private conversations."
+  ],
+  "separateExperiments": {
+    "redditWebGames": "Prepared but not part of this social week. It still needs Kevin's exact action-time approval, an adult Reddit account and named reply cover.",
+    "phaserShowcase": "Prepared behind the Reddit read. Do not run both experiments at once.",
+    "indieDb": "Prepared behind the two community reads and still requires a signed-in form and terms check."
+  },
+  "authority": {
+    "accountCreationAuthorized": false,
+    "platformTermsAcceptanceAuthorized": false,
+    "publishingAuthorized": false,
+    "replyingAuthorized": false,
+    "automatedRepliesAuthorized": false,
+    "paidProductsAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "childContactAuthorized": false,
+    "externalActionTaken": false
+  },
+  "sources": [
+    { "name": "LinkedIn: Create a LinkedIn Page", "url": "https://www.linkedin.com/help/linkedin/answer/a545752", "supports": "A Page can be created from an existing personal LinkedIn account." },
+    { "name": "YouTube: Create a channel", "url": "https://support.google.com/youtube/answer/1646861?hl=en-GB", "supports": "A Google Account can create a channel with a business or other public name." },
+    { "name": "YouTube: Channel permissions", "url": "https://support.google.com/youtube/answer/9481328", "supports": "Future helpers can use channel permissions instead of receiving the Google Account password." },
+    { "name": "Instagram: Lost access to the linked email address or phone number", "url": "https://www.facebook.com/help/instagram/358911864194456?locale=en_GB", "supports": "Recovery depends on maintaining access to the contact route attached to the account." },
+    { "name": "TikTok: Account safety", "url": "https://support.tiktok.com/en/safety-hc/account-and-user-safety/account-safety", "supports": "TikTok recommends security checkup, verified recovery methods and two-step verification." }
+  ],
+  "nextRequiredAction": "Kevin confirms PlayMythicalVoid as the first handle to try, then either gives the exact existing LinkedIn profile address for the first-post preview or checks and reserves the handle on one chosen platform himself."
+}
