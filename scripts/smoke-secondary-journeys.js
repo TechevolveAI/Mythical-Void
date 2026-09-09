@@ -10426,7 +10426,10 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     await waitForScene(session, 'HatchingScene');
     await evaluate(session, `(() => {
         localStorage.setItem('mythical_void_age_confirmed', 'true');
-        localStorage.setItem('mythical_void_age_group', 'age_18_plus');
+        // Keep the setup navigation in the under-16 privacy mode so this
+        // deterministic browser check can never start a real paid portrait
+        // request before the local preview scene is staged below.
+        localStorage.setItem('mythical_void_age_group', 'age_13_15');
         localStorage.removeItem('mythical_creature_save');
         const profile = ${JSON.stringify(firstContactProfile)};
         window.GameState?.set?.('creature.genes', profile.genes);
@@ -10474,6 +10477,14 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         }
         await waitForScene(session, 'SoulRevealScene');
     }
+
+    // The local preview promise is now installed, so restore the adult fixture
+    // used by the rest of this first-session journey without contacting an
+    // image provider or creating a protected media record.
+    await evaluate(session, `(() => {
+        localStorage.setItem('mythical_void_age_group', 'age_18_plus');
+        return true;
+    })()`);
 
     const naming = await waitFor(
         () => evaluate(session, `(() => {

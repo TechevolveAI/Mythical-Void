@@ -465,6 +465,9 @@ describe('release test gate', () => {
         expect(source).toContain('Production intentionally ignores preview query parameters');
         expect(source).toContain("game.scene.start('SoulRevealScene', {");
         expect(source).toContain('Could not stage production SoulRevealScene');
+        expect(source).toContain("localStorage.setItem('mythical_void_age_group', 'age_13_15')");
+        expect(source).toContain('deterministic browser check can never start a real paid portrait');
+        expect(source).toContain('The local preview promise is now installed');
         expect(source).toContain("'[data-testid=\"living-form-continue\"]'");
         expect(source).toContain('Project Beacon story page ${expectedPage}');
         expect(source).toContain('Story page ${page} response exceeded 1500ms');
