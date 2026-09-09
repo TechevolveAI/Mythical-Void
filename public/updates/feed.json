@@ -15,6 +15,18 @@
   ],
   "items": [
     {
+      "id": "https://mythicalvoid.com/updates/#update-031",
+      "url": "https://mythicalvoid.com/updates/#update-031",
+      "external_url": "https://mythicalvoid.com/creature-genetics/",
+      "title": "A Living Portrait can follow you into the Sanctuary",
+      "content_text": "The creature hatched in the real browser game can now become a private AI-made Living Portrait without making the player wait before entering the Sanctuary.\n\n• The image service receives bounded fictional creature traits and a creature reference image—not the player’s name, age range, location, words, photograph, voice, save history or friend information.\n• The portrait can finish while the player continues into the Sanctuary, and the Village Heart refreshes when the result is ready.\n• If the image service is slow, unavailable or interrupted by a reload, the authored adventure continues and the creature remains playable. This text-only note does not present generated artwork as gameplay.\n\nSee the live change: https://mythicalvoid.com/creature-genetics/\n\nVisual note: Text-only release note about a live experimental creature-media feature; no screenshot or generated image is attached.",
+      "summary": "The creature hatched in the real browser game can now become a private AI-made Living Portrait without making the player wait before entering the Sanctuary.",
+      "date_published": "2026-09-09T12:00:00.000Z",
+      "tags": [
+        "YOUR CREATURE, REIMAGINED"
+      ]
+    },
+    {
       "id": "https://mythicalvoid.com/updates/#update-030",
       "url": "https://mythicalvoid.com/updates/#update-030",
       "external_url": "https://mythicalvoid.com/studio/#first-minute",

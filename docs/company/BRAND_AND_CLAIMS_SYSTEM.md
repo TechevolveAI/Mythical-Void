@@ -101,7 +101,7 @@ firsts, commercial terms, and quantitative performance claims.
 | CL-006 | “A companion that remembers.” | C3 usable with visible examples | Current state/memory systems; name the remembered behavior in proof content | “The creature remembers everything” |
 | CL-007 | “Family-friendly fantasy combat without gore.” | C3 usable | Current content direction and storefront | Formal age rating or universal safety guarantee |
 | CL-008 | “Project Beacon sent you to find hope for Earth.” | C2 usable | Current story canon | Presenting fiction as real science/mission |
-| CL-009 | “AI-generated Living Portrait/video is optional and unavailable to under-16 profiles in this release.” | C1 sensitive; re-verify before each use | Production flags, server enforcement, privacy docs | “Child-safe AI” or “zero data risk” |
+| CL-009 | “The current game can create private AI-made media from fictional creature information for every age band after an age range is selected.” | C1 qualified; re-verify before each use | Production flags, server enforcement, provider payload, privacy docs | “Child-safe AI,” “zero data risk,” or any claim that player information is used to personalize the media |
 | CL-010 | “AI-first studio/company.” | C4 internal aspiration today | Company OS; not proof of deployed autonomous operation | “Fully autonomous company” |
 | CL-011 | “Top-class governance.” | C4/C5 ambition | Requires operating evidence, audits, and transparent limitations | Certification or independent assurance claim |
 | CL-012 | “1 of 1” / “every creature is unique.” | C3 unsubstantiated absolute | Random/procedural diversity is evident; collision/uniqueness guarantee not yet proven | Mathematical or globally enforced uniqueness |
