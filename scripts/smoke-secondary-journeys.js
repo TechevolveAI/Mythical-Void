@@ -4260,6 +4260,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     nextSignalVisible: nextSignal?.visual?.visible !== false,
                     nextSignalAlpha: nextSignal?.visual?.alpha,
                     nextSignalEmphasized: Boolean(nextSignal?.guidanceTween),
+                    nextSignalVisualState: nextSignal?.visual?.forestLightState || '',
+                    nextSignalColor: nextSignal?.visual?.forestLightColor,
                     nextSignalAction: nextSignal?.actionPrompt?.text || '',
                     objective: scene?.getForestObjectiveText?.() || ''
                 };
@@ -4961,6 +4963,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             (
                 state.rootwakeInitial?.state !== 'dormant' ||
                 state.rootwakeInitial?.awakened !== false ||
+                guidance.nextSignalVisualState !== 'next' ||
+                guidance.nextSignalColor !== 0xF2C94C ||
                 guidance.nextSignalAction !== 'WALK INTO THE LIGHT' ||
                 !guidance.objective.includes('WALK INTO')
             )
@@ -7128,6 +7132,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     firstSignalEmphasized: Boolean(firstSignal?.guidanceTween),
                     nextSignalIndex: nextSignal.index,
                     nextSignalEmphasized: Boolean(nextSignal?.guidanceTween),
+                    nextSignalVisualState: nextSignal?.visual?.forestLightState || '',
+                    nextSignalColor: nextSignal?.visual?.forestLightColor,
                     compass: scene?.getOrderedRouteCompassText?.() || '',
                     checkpointX: scene?.checkpointPosition?.x,
                     checkpointY: scene?.checkpointPosition?.y,
@@ -7141,6 +7147,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         if (
             routeHandoff.firstSignalEmphasized ||
             !routeHandoff.nextSignalEmphasized ||
+            (route === 'mythicalForest' && routeHandoff.nextSignalVisualState !== 'next') ||
+            (route === 'mythicalForest' && routeHandoff.nextSignalColor !== 0xF2C94C) ||
             !/^CLUE (RIGHT|LEFT|CLOSE)/.test(routeHandoff.compass) ||
             !Number.isFinite(routeHandoff.checkpointX) ||
             !Number.isFinite(routeHandoff.checkpointY) ||

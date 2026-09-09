@@ -431,8 +431,14 @@ describe('first expedition rescue loop', () => {
         )?.[1] || '';
 
         expect(checkpoints).toContain('this.createObjectiveTriggerZone(');
-        expect(checkpoints).toContain('{ width: 150, height: 280 }');
+        expect(checkpoints).toContain("this.drawBeaconCheckpoint(visual, anchorX, supportY, 'future');");
+        expect(checkpoints).toContain('{ width: 220, height: 300 }');
         expect(checkpoints).toContain('this.refreshForestRouteReadability();');
+        expect(source).toContain("const color = complete ? 0x8FE3CF : (next ? 0xF2C94C : 0x35565D);");
+        expect(source).toContain('graphics.forestLightState = state;');
+        expect(source).toContain('graphics.forestLightColor = color;');
+        expect(source).toContain("complete ? 'complete' : (next ? 'next' : 'future')");
+        expect(source).toContain('graphics.fillCircle(x, groundY - 62, 9);');
         expect(source).toContain('this.canActivateOrderedRouteSignal(');
         expect(source).toContain('this.beaconAnchorsActivated++');
         expect(source).toContain('this.forestRouteAligned = true');
