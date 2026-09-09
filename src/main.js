@@ -8,7 +8,13 @@ if (isGameRoute) {
     document.documentElement.classList.add('game-mode');
     document.body.classList.add('game-mode');
     document.title = 'Play Mythical Void';
-    app.innerHTML = '<div id="game" aria-label="Mythical Void game"></div>';
+    app.querySelector('[data-static-search-entry]')?.remove();
+    if (!app.querySelector('#game')) {
+        const gameHost = document.createElement('div');
+        gameHost.id = 'game';
+        gameHost.setAttribute('aria-label', 'Mythical Void game');
+        app.appendChild(gameHost);
+    }
 
     import('./game.js')
         .then(() => {
