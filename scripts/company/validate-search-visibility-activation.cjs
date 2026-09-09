@@ -16,6 +16,7 @@ const previousOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexno
 const newestOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-08-hatch-first-screen.json'));
 const latestOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-09-mobile-homepage.json'));
 const currentOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-09-play-welcome-news.json'));
+const canonicalGameIdentityIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-09-game-identity.json'));
 const handoff = read('docs/company/search/SEARCH_CONSOLE_ACTIVATION.md');
 const report = read('docs/company/search/SEARCH_VISIBILITY_AUDIT_2026-08-27.md');
 const opportunityMap = JSON.parse(read('docs/company/search/search-opportunities.json'));
@@ -124,6 +125,21 @@ requireValue(JSON.stringify(currentOwnedChangeIndexNow.urls) === JSON.stringify(
 requireValue(currentOwnedChangeIndexNow.directPlayUrlSubmitted === false && /not listed in either canonical sitemap/i.test(currentOwnedChangeIndexNow.directPlayUrlOmittedReason || ''), 'current owned changed-page notice does not preserve the direct-Play refusal');
 requireValue(currentOwnedChangeIndexNow.unchangedSitemapUrlsResubmitted === false && /does not prove/i.test(currentOwnedChangeIndexNow.meaning || ''), 'current owned changed-page IndexNow boundary is missing');
 for (const field of ['personalDataSent', 'accountUsed', 'paidPromotionStarted']) requireValue(currentOwnedChangeIndexNow[field] === false, `current owned changed-page IndexNow boundary ${field} must remain false`);
+requireValue(audit.indexNow?.latestCanonicalGameIdentityNotice?.record === 'docs/company/search/indexnow-submission-2026-09-09-game-identity.json', 'canonical game identity notification evidence link is missing');
+requireValue(audit.indexNow?.latestCanonicalGameIdentityNotice?.accepted === true && audit.indexNow?.latestCanonicalGameIdentityNotice?.urlCount === 3 && audit.indexNow?.latestCanonicalGameIdentityNotice?.unchangedUrlsResubmitted === false, 'canonical game identity notification audit is incomplete');
+requireValue(audit.indexNow?.latestCanonicalGameIdentityNotice?.indexingClaimed === false, 'canonical game identity notice must not claim indexing');
+requireValue(canonicalGameIdentityIndexNow.id === 'INDEXNOW-2026-09-09-GAME-IDENTITY' && canonicalGameIdentityIndexNow.host === 'mythicalvoid.com', 'canonical game identity IndexNow evidence identity is invalid');
+requireValue(canonicalGameIdentityIndexNow.submittedAt === null && canonicalGameIdentityIndexNow.submittedOn === '2026-09-09' && canonicalGameIdentityIndexNow.responseTimeRecorded === false, 'canonical game identity notice invents an exact response time');
+requireValue(canonicalGameIdentityIndexNow.accepted === true && canonicalGameIdentityIndexNow.httpStatus === 200 && canonicalGameIdentityIndexNow.urlCount === 3, 'canonical game identity IndexNow acceptance evidence is incomplete');
+requireValue(canonicalGameIdentityIndexNow.canonicalSitemapCount === 2, 'canonical game identity notice did not use both canonical sitemaps');
+requireValue(JSON.stringify(canonicalGameIdentityIndexNow.urls) === JSON.stringify([
+    'https://mythicalvoid.com/',
+    'https://mythicalvoid.com/playable-now/',
+    'https://mythicalvoid.com/press/'
+]), 'canonical game identity IndexNow URL list drifted');
+requireValue(canonicalGameIdentityIndexNow.directPlayUrlSubmitted === false && /not listed in either canonical sitemap/i.test(canonicalGameIdentityIndexNow.directPlayUrlOmittedReason || ''), 'canonical game identity notice does not preserve the direct-Play refusal');
+requireValue(canonicalGameIdentityIndexNow.unchangedSitemapUrlsResubmitted === false && /does not prove/i.test(canonicalGameIdentityIndexNow.meaning || ''), 'canonical game identity IndexNow boundary is missing');
+for (const field of ['personalDataSent', 'accountUsed', 'paidPromotionStarted']) requireValue(canonicalGameIdentityIndexNow[field] === false, `canonical game identity IndexNow boundary ${field} must remain false`);
 
 requireValue(homepage.includes('<meta name="robots" content="index, follow, max-image-preview:large">'), 'homepage index instruction is missing');
 requireValue(homepage.includes('<link rel="canonical" href="https://mythicalvoid.com/">'), 'homepage canonical is missing');
@@ -206,6 +222,6 @@ console.log(JSON.stringify({
     liveOwnedSearchRoutes: opportunityMap.clusters.length,
     searchConsoleConnected: false,
     indexNowAccepted: true,
-    latestChangedPagesNotified: currentOwnedChangeIndexNow.urlCount,
+    latestChangedPagesNotified: canonicalGameIdentityIndexNow.urlCount,
     externalActionTaken: true
 }, null, 2));
