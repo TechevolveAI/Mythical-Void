@@ -420,7 +420,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
         entryElements.push(mission);
 
-        const objective = this.add.text(width / 2, y(178), `Carry ${companionName}'s shared promise to the Command Module`, {
+        const objective = this.add.text(width / 2, y(178), `Follow three glowing marks with ${companionName}, then reach the Command Module`, {
             fontSize: font(20, 17),
             color: '#F2C94C',
             fontStyle: 'bold',
@@ -432,7 +432,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         const checklist = this.add.text(contentLeft, y(225), `${
             resume
                 ? `[ BEACON ] ${resume.label} link restored`
-                : '[ ] Reconnect the five living systems'
+                : '[ ] Reach all 3 glowing marks'
         }\n[ ] Reach reality's edge together\n[ ] Recover the final Command Module`, {
             fontSize: font(16, 14),
             color: '#CCCCCC',
@@ -547,7 +547,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         // The low route requires readable, forgiving jumps over the fracture.
         // The Trust Bridge remains the harder high route and earns a rescue.
         const mainRiftRoute = [
-            [1650, groundY - 100, 180, 'final-rift-step-1'],
+            [1580, groundY - 90, 260, 'final-rift-step-1'],
             [1850, groundY - 190, 190, 'final-rift-step-2'],
             [2070, groundY - 210, 150, 'final-rift-step-3'],
             // Preserve the 2440 endpoint while overlapping the downhill handoff.
@@ -850,10 +850,10 @@ class FinalVoidLevel extends PlatformerLevelScene {
             return `COMMAND MODULE RECOVERED\nUPLINK HELD // NOTHING SENT\nCURRENT // ${networkState}${optional}`;
         }
         if (this.bossFightActive) {
-            return `RESTORE THE VOID EMPRESS\nHOLD THE SHARED LINE TOGETHER\nCURRENT // ${networkState}${optional}`;
+            return `FREE THE VOID EMPRESS\nBREAK THE VOID PRESSURE TOGETHER\nCURRENT // ${networkState}${optional}`;
         }
         if (this.finalSignalReady) {
-            return `EMPRESS SEAL OPEN\nENTER REALITY'S EDGE TOGETHER →\nCURRENT // ${networkState}${optional}`;
+            return `THE WAY IS OPEN\nGO RIGHT TO THE VOID EMPRESS →\nCURRENT // ${networkState}${optional}`;
         }
 
         const nextSignal = [
@@ -864,9 +864,9 @@ class FinalVoidLevel extends PlatformerLevelScene {
         const current = Math.min(this.bondAnchorsActivated + 1, 3);
         const compass = this.getOrderedRouteCompassText();
         const title = this.isCompactObjectiveHUD
-            ? `BOND ${current}/3`
-            : `BOND ${current}/3 // ${nextSignal}`;
-        return `${title}\n${compass || 'FOLLOW THE SHARED TRAIL'}\nCURRENT // ${networkState}${optional}`;
+            ? `GLOWING MARK ${current}/3`
+            : `GLOWING MARK ${current}/3 // ${nextSignal}`;
+        return `${title}\n${compass || 'FOLLOW THE NEXT GLOW'}\nCURRENT // ${networkState}${optional}`;
     }
 
     showObjectiveToast() {
@@ -875,7 +875,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         const toast = this.add.text(
             width / 2,
             isMobileLayout ? 165 : 90,
-            'Follow the shared promise to reality\'s edge',
+            'Reach the 3 glowing marks with your creature',
             {
                 fontSize: isMobileLayout ? '16px' : '18px',
                 color: '#F2C94C',
@@ -990,7 +990,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             visual.setDepth(180);
             this.drawBondAnchor(visual, anchor.x, anchor.y, false);
 
-            const label = this.add.text(anchor.x, anchor.y - 98, `${index + 1} // ${anchor.label}\nLAND + LINK`, {
+            const label = this.add.text(anchor.x, anchor.y - 98, `${index + 1} // ${anchor.label}\nLAND HERE`, {
                 fontSize: '11px',
                 color: '#8F789D',
                 fontStyle: 'bold',
@@ -1085,7 +1085,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             this.bondAnchors,
             this.bondAnchorsActivated,
             {
-                fallbackLabel: 'FOLLOW THE BOND MARKERS',
+                fallbackLabel: 'FOLLOW THE GLOWING MARKS',
                 hintOffsetY: -125
             }
         )) {
@@ -1110,7 +1110,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         });
 
         this.showFloatingText(
-            `BOND MARKER ${this.bondAnchorsActivated}/3`,
+            `GLOWING MARK ${this.bondAnchorsActivated}/3`,
             anchor.x,
             anchor.y - 125,
             '#F2C94C'
@@ -1302,7 +1302,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             x: gateX,
             y: gateY,
             title: 'EMPRESS SEAL',
-            getStatus: () => `BOND MARKERS ${this.bondAnchorsActivated}/3`,
+            getStatus: () => `GLOWING MARKS ${this.bondAnchorsActivated}/3`,
             isReady: () => this.finalSignalReady,
             color: 0xDA70D6,
             readyColor: 0xA9F3E4,
@@ -1323,7 +1323,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 if (this.time.now >= this.bossGateHintUntil) {
                     this.bossGateHintUntil = this.time.now + 1800;
                     this.showFloatingText(
-                        `BOND MARKERS REQUIRED: ${this.bondAnchorsActivated}/3`,
+                        `FIND THE GLOWING MARKS: ${this.bondAnchorsActivated}/3`,
                         gateX - 90,
                         gateY - 205,
                         '#DA70D6'
