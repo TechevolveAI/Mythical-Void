@@ -119,6 +119,14 @@ notice. IndexNow returned `200`; the exact response time was not retained. No
 unchanged page was included, and acceptance still does not prove crawling,
 indexing, ranking, visits, play or growth.
 
+Later on 9 September, Latest News gained a permanent page explaining the new
+welcome that appears while the direct Play experience prepares. Only the
+changed Latest News index and UPDATE-029 page were named. The safeguarded
+workflow refused to add `/play/` because that address is not in either canonical
+sitemap. IndexNow returned `200`; the exact response time was not retained.
+Acceptance still does not prove crawling, indexing, ranking, visits, play or
+growth.
+
 ## The right next move
 
 Do not make lots of near-identical “free game” pages. The useful page already
