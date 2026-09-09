@@ -37,6 +37,10 @@ function fail(message) {
     throw new Error(message);
 }
 
+function providerSpendApproved(argv = process.argv.slice(2)) {
+    return argv.includes('--allow-provider-spend');
+}
+
 async function readJson(response) {
     const responseText = await response.text();
     let result = {};
@@ -59,6 +63,9 @@ async function readJson(response) {
 }
 
 async function run() {
+    if (!providerSpendApproved()) {
+        fail('Refusing a production portrait probe without --allow-provider-spend. A cache miss can consume paid hosting or AI-provider credits.');
+    }
     const root = path.join(__dirname, '..');
     const env = {
         ...readEnvFile(path.join(root, '.env.local')),
@@ -211,7 +218,11 @@ async function run() {
     }
 }
 
-run().catch(error => {
-    console.error(error.stack || error.message);
-    process.exitCode = 1;
-});
+if (require.main === module) {
+    run().catch(error => {
+        console.error(error.stack || error.message);
+        process.exitCode = 1;
+    });
+}
+
+module.exports = { providerSpendApproved };

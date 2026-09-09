@@ -618,6 +618,15 @@ describe('release test gate', () => {
         expect(source).toContain('reused.identityCacheHit !== true');
         expect(source).toContain('reused.quotaConsumed !== false');
         expect(source).toContain('reused.assetRef !== result.assetRef');
+        expect(source).toContain("argv.includes('--allow-provider-spend')");
+        expect(source).toContain('Refusing a production portrait probe');
+    });
+
+    test('production creature-film smoke requires explicit provider-spend approval', () => {
+        const source = read('scripts/smoke-companion-video-production.js');
+
+        expect(source).toContain("argv.includes('--allow-provider-spend')");
+        expect(source).toContain('Refusing a production creature-film probe');
     });
 
     test('portrait failures release capacity and profiles recover missing hatch results', () => {

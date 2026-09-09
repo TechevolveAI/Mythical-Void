@@ -4,6 +4,8 @@ const { execFileSync } = require('node:child_process');
 
 const SITE_ID = '93c139cb-bcec-4717-8e8d-d95b72a65d64';
 const PRODUCTION_ALIAS = 'https://mythicalvoid.com';
+const MAX_PUBLICATIONS_PER_24_HOURS = 2;
+const PUBLICATION_WINDOW_MS = 24 * 60 * 60 * 1000;
 const SHA_PATTERN = /^[0-9a-f]{40}$/i;
 const DEPLOY_PATTERN = /^[0-9a-f]{24}$/i;
 
@@ -47,11 +49,35 @@ function isPlayerFacingPath(file) {
         || file.startsWith('netlify/');
 }
 
+function recentPublications(deploys, now = new Date()) {
+    const nowMs = now.getTime();
+    if (!Number.isFinite(nowMs) || !Array.isArray(deploys)) return [];
+    return deploys.filter(deploy => {
+        const publishedAt = Date.parse(deploy?.published_at || '');
+        return Number.isFinite(publishedAt)
+            && publishedAt <= nowMs
+            && nowMs - publishedAt < PUBLICATION_WINDOW_MS;
+    });
+}
+
 function evaluatePromotion(input) {
     const failures = [];
     const requireValue = (condition, message) => { if (!condition) failures.push(message); };
-    const { sourceCommit, mergeCommit, sourceTree, mergeTree, sourceIsAncestor, changedFiles, previewDeploy, mainDeploy } = input;
+    const {
+        sourceCommit,
+        mergeCommit,
+        sourceTree,
+        mergeTree,
+        sourceIsAncestor,
+        changedFiles,
+        previewDeploy,
+        mainDeploy,
+        site,
+        siteDeploys,
+        now
+    } = input;
     const secretScan = previewDeploy?.deploy_validations_report?.secret_scan_result;
+    const publicationWindow = recentPublications(siteDeploys, now || new Date());
 
     requireValue(sourceIsAncestor === true, 'The reviewed source commit is not an ancestor of the protected-main merge.');
     requireValue(sourceTree === mergeTree, 'Protected main does not have the exact reviewed source tree.');
@@ -72,6 +98,12 @@ function evaluatePromotion(input) {
     requireValue(mainDeploy?.state === 'error' && mainDeploy?.skipped === true, 'The production attempt was not explicitly skipped.');
     requireValue(/skipped due to account credit usage exceeded/i.test(mainDeploy?.error_message || ''), 'The production attempt was not skipped solely because account credits were exhausted.');
     requireValue(Date.parse(mainDeploy?.created_at || '') >= Date.parse(previewDeploy?.created_at || ''), 'The skipped production attempt predates the reviewed preview.');
+    requireValue(site?.id === SITE_ID, 'The current site status belongs to a different Netlify site.');
+    requireValue(site?.disabled !== true, 'The Netlify site is disabled; a deploy promotion cannot restore public service.');
+    requireValue(
+        publicationWindow.length < MAX_PUBLICATIONS_PER_24_HOURS,
+        `The 24-hour release budget is exhausted (${publicationWindow.length}/${MAX_PUBLICATIONS_PER_24_HOURS}); bundle changes and wait before another production promotion.`
+    );
 
     return {
         ready: failures.length === 0,
@@ -82,6 +114,8 @@ function evaluatePromotion(input) {
         mainDeployId: input.mainDeployId,
         pullRequest: previewDeploy?.review_id || null,
         changedFiles: changedFiles || [],
+        publicationsInLast24Hours: publicationWindow.length,
+        maximumPublicationsPer24Hours: MAX_PUBLICATIONS_PER_24_HOURS,
         productionAlias: PRODUCTION_ALIAS,
         externalActionTaken: false
     };
@@ -115,7 +149,10 @@ function collectEvidence(options, cwd = process.cwd()) {
         sourceIsAncestor,
         changedFiles: gitText(['diff', '--name-only', '--no-renames', `${options.mergeCommit}^1`, options.mergeCommit, '--'], cwd).split(/\r?\n/).filter(Boolean),
         previewDeploy: runJson('netlify', ['api', 'getSiteDeploy', '--data', deployData(options.previewDeployId)], cwd),
-        mainDeploy: runJson('netlify', ['api', 'getSiteDeploy', '--data', deployData(options.mainDeployId)], cwd)
+        mainDeploy: runJson('netlify', ['api', 'getSiteDeploy', '--data', deployData(options.mainDeployId)], cwd),
+        site: runJson('netlify', ['api', 'getSite', '--data', JSON.stringify({ site_id: SITE_ID })], cwd),
+        siteDeploys: runJson('netlify', ['api', 'listSiteDeploys', '--data', JSON.stringify({ site_id: SITE_ID, per_page: 100 })], cwd),
+        now: new Date()
     };
 }
 
@@ -164,4 +201,12 @@ if (require.main === module) {
     }
 }
 
-module.exports = { SITE_ID, evaluatePromotion, isPlayerFacingPath, parseArguments };
+module.exports = {
+    MAX_PUBLICATIONS_PER_24_HOURS,
+    PUBLICATION_WINDOW_MS,
+    SITE_ID,
+    evaluatePromotion,
+    isPlayerFacingPath,
+    parseArguments,
+    recentPublications
+};
