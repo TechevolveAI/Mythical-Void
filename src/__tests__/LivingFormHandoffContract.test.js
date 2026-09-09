@@ -107,6 +107,9 @@ describe('living form milestone handoff', () => {
         expect(cssSource).toContain('.living-form-actions');
         expect(cssSource).toContain('--living-form-action-reserve');
         expect(cssSource).toContain('.living-form-mobile-dock');
+        expect(cssSource).toContain(
+            '--living-form-safe-bottom: max(24px, env(safe-area-inset-bottom, 0px))'
+        );
         expect(cssSource).toContain('position: fixed;');
         expect(cssSource).toContain('min-height: var(--living-form-action-reserve);');
         expect(cssSource).toContain('.living-form-spinner');

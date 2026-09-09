@@ -398,7 +398,10 @@ export default class LivingFormHandoff {
         window.addEventListener('keydown', this.keyboardHandler);
         this.resizeHandler = () => this.updateViewportSize?.();
         window.addEventListener('resize', this.resizeHandler);
+        window.addEventListener('orientationchange', this.resizeHandler);
+        window.addEventListener('mythical:viewportchange', this.resizeHandler);
         window.visualViewport?.addEventListener?.('resize', this.resizeHandler);
+        window.visualViewport?.addEventListener?.('scroll', this.resizeHandler);
 
         // Keep the mobile route control outside Phaser's transformed DOM tree.
         // iOS Safari can otherwise clip the action below the visible viewport.
@@ -715,8 +718,14 @@ export default class LivingFormHandoff {
         }
         if (this.resizeHandler) {
             window.removeEventListener('resize', this.resizeHandler);
+            window.removeEventListener('orientationchange', this.resizeHandler);
+            window.removeEventListener('mythical:viewportchange', this.resizeHandler);
             window.visualViewport?.removeEventListener?.(
                 'resize',
+                this.resizeHandler
+            );
+            window.visualViewport?.removeEventListener?.(
+                'scroll',
                 this.resizeHandler
             );
             this.resizeHandler = null;
