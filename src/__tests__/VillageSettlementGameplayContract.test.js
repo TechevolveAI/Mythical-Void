@@ -249,6 +249,11 @@ describe('Village settlement gameplay contract', () => {
         expect(worldSource).toContain('createSanctuaryBiomeBackdrop()');
         expect(worldSource).toContain(".setData('sanctuaryBiomePlate', 'living_basin_v1')");
         expect(worldSource).toContain(".setData('sanctuaryBiomePlateSource', 'generated_environment_art')");
+        expect(worldSource).toContain(".setData('sanctuaryBiomePlateDisplay', {");
+        expect(worldSource).toContain('const displayScale = displayHeight / sourceHeight;');
+        expect(worldSource).toContain('const displayX = -cropX * displayScale;');
+        expect(worldSource).toContain('const visibleWorldWidth = cropWidth * displayScale;');
+        expect(worldSource).not.toContain('.setCrop(cropX, 0, cropWidth, sourceHeight)');
         expect(worldSource).toContain('this.backgroundImage.setAlpha(0.38);');
         expect(sanctuaryArtSource).toContain("key: 'sanctuary-biome-backdrop-v1'");
         expect(sanctuaryArtSource).toContain("url: '/game/sanctuary/sanctuary-biome-v1.webp'");
