@@ -67,7 +67,7 @@ invalid('public/playable-now/index.html', source => source.replace('data-play-li
 invalid('public/discovery.js', source => source.replace("readChoice() !== 'granted'", 'false'), 'measurement is not stopped before consent');
 invalid('public/discovery.js', source => source.replace('/^#find-your-way\\/(wonder|create|challenge|story)$/', '/^#find-your-way\\/(.*)$/'), 'shared intent routes are not restricted');
 invalid('public/discovery.js', source => source.replace('missionTitle:', 'missingMissionTitle:'), 'each reason to play needs one concrete starter mission');
-invalid('public/discovery.css', source => source.replace('scroll-margin-top: 82px', 'scroll-margin-top: 0'), 'does not preserve the 82px site header');
+invalid('public/discovery.css', source => source.replace('.play-intent-section {\n    scroll-margin-top: 82px', '.play-intent-section {\n    scroll-margin-top: 0'), 'does not preserve the 82px site header');
 invalid('public/discovery.css', source => source.replace('.play-intent-mission { padding-top: 1.25rem;', '.play-intent-mission { padding-top: 0;'), 'starter mission does not stack cleanly at phone width');
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceRememberedInBrowser": false', '"choiceRememberedInBrowser": true'), 'choice collection boundary is invalid');
 invalid('docs/company/growth/PLAY_INTENT_DOORWAY.json', source => source.replace('"choiceSentToServer": false', '"choiceSentToServer": true'), 'choiceSentToServer must remain false');
