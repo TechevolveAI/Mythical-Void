@@ -24,6 +24,7 @@ const TITAN_ATTACK_WINDOWS = Object.freeze({
 const TITAN_ATTACK_WINDUP = 700;
 const TITAN_RECOVERY_WINDOW = 650;
 const TITAN_PHASE_RECOVERY = 1300;
+const PEAK_RETURN_CURRENT_LAUNCH_BAND = 130;
 
 const PEAK_ENCOUNTER_PLAN = Object.freeze([
     Object.freeze({
@@ -319,7 +320,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
         entryElements.push(title);
 
-        const subtitle = this.add.text(width / 2, y(92), `"${companionName} hears answers on the wind"`, {
+        const subtitle = this.add.text(width / 2, y(92), `"${companionName} catches a warning in the wind"`, {
             fontSize: font(16, 14),
             color: '#DA70D6',
             fontStyle: 'italic',
@@ -343,7 +344,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
         entryElements.push(mission);
 
-        const objective = this.add.text(width / 2, y(172), `Carry ${companionName}'s warning to three settlements`, {
+        const objective = this.add.text(width / 2, y(172), 'Light three warning beacons. Then reach the Cosmic Titan.', {
             fontSize: font(19, 16),
             color: '#8FE3CF',
             align: 'center',
@@ -354,8 +355,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         const checklist = this.add.text(contentLeft, y(220), `${
             resume
                 ? `[ BEACON ] ${resume.label} link restored`
-                : '[ ] Reach the creature trail network'
-        }\n[ ] Stabilize the Cosmic Titan\n[ OPTIONAL ] Collect Star Fragments (0/5)`, {
+                : '[ ] Light 3 warning beacons'
+        }\n[ ] Free the Cosmic Titan\n[ OPTIONAL ] Collect 5 Star Fragments`, {
             fontSize: font(16, 14),
             color: '#CCCCCC',
             lineSpacing: 8,
@@ -758,10 +759,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         const body = this.player.body;
         const grounded = body.blocked.down || this.isGrounded;
-        const inLaunchBand = body.bottom >= current.bottom - 90;
+        const descendingIntoCurrent = body.velocity.y >= -20;
+        const inLaunchBand = body.bottom >=
+            current.bottom - PEAK_RETURN_CURRENT_LAUNCH_BAND;
         const now = Number(this.time?.now) || 0;
 
-        if (!grounded || !inLaunchBand) return false;
+        if ((!grounded && !descendingIntoCurrent) || !inLaunchBand) return false;
         if (now - current.lastLiftAt < 650) return false;
 
         current.activations += 1;
@@ -1125,32 +1128,36 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             ? this.freeSpecialAttackCharges > 0
                 ? 'TITAN SURGE // 1 FREE BLAST READY'
                 : 'TITAN SURGE // FREE BLAST SPENT'
-            : this.getOptionalRouteStatusText(
-                'peaks_relic_ridge',
-                `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`
-            );
+            : this.peakRouteChoice === 'optional'
+                ? this.getOptionalRouteStatusText(
+                    'peaks_relic_ridge',
+                    `STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`
+                )
+                : '';
+        const withOptional = text => optional ? `${text}\n${optional}` : text;
 
         if (this.bossDefeated) {
-            return `WARNING NETWORK RESTORED\nTHE TITAN IS SAFE\n${optional}`;
+            return withOptional('THE COSMIC TITAN IS FREE');
         }
         if (this.bossFightActive) {
-            return `STABILIZE THE TITAN\nREAD THE NETWORK WARNINGS\n${optional}`;
+            return withOptional(
+                'FREE THE COSMIC TITAN\nDODGE EACH ATTACK // STRIKE WHEN IT PAUSES'
+            );
         }
         if (this.creatureNetworkReached) {
-            return `TITAN PASS OPEN\nFOLLOW THE REPLY LIGHTS →\n${optional}`;
+            return withOptional(
+                'TITAN PASS IS OPEN\nKEEP RIGHT TO THE COSMIC TITAN'
+            );
         }
 
-        const nextRelay = [
-            'LOWER RELAY',
-            'RIDGE RELAY',
-            'SUMMIT RELAY'
-        ][this.beaconRelaysActivated] || 'SUMMIT RELAY';
         const current = Math.min(this.beaconRelaysActivated + 1, 3);
         const compass = this.getOrderedRouteCompassText();
-        const title = this.isCompactObjectiveHUD
-            ? `WARNING ${current}/3`
-            : `WARNING ${current}/3 // ${nextRelay}`;
-        return `${title}\n${compass || 'CLIMB TOWARD THE CLUE'}\n${optional}`;
+        const direction = compass?.replace(/^CLUE/, 'CLIMB');
+        return withOptional(
+            `WARNING BEACON ${current}/3\n${
+                direction || 'CLIMB RIGHT // LAND ON THE ORANGE LIGHT'
+            }`
+        );
     }
 
     createSignalRelays() {
@@ -1184,7 +1191,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             visual.setDepth(180);
             this.drawSignalRelay(visual, relay.x, relay.y, false);
 
-            const label = this.add.text(relay.x, relay.y - 94, `${index + 1} // ${relay.label}\nLAND + TRANSMIT`, {
+            const label = this.add.text(relay.x, relay.y - 94, `${index + 1} // WARNING BEACON\nLAND HERE`, {
                 fontSize: '11px',
                 color: '#7E718A',
                 fontStyle: 'bold',
@@ -1304,7 +1311,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         });
 
         this.showFloatingText(
-            `PROJECT BEACON RELAY ${this.beaconRelaysActivated}/3`,
+            `WARNING BEACON ${this.beaconRelaysActivated}/3 LIT`,
             relay.x,
             relay.y - 120,
             '#8FE3CF'
@@ -1658,7 +1665,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             x,
             y,
             title: 'TITAN PASS',
-            getStatus: () => 'RESTORE 3 WARNING RELAYS',
+            getStatus: () => 'LIGHT 3 WARNING BEACONS',
             isReady: () => this.creatureNetworkReached,
             color: 0xFF4500,
             readyColor: 0x8FE3CF
@@ -1688,7 +1695,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                     const now = this.time.now;
                     if (now >= this.bossGateHintUntil) {
                         this.showFloatingText(
-                            'Titan Pass is silent. Restore the warning relays.',
+                            'Titan Pass is closed. Light all 3 warning beacons.',
                             this.player.x,
                             this.player.y - 70,
                             '#F2C94C'
@@ -1752,7 +1759,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         const toast = this.add.text(
             width / 2,
             toastY,
-            'Restore the warning relays and reach Titan Pass',
+            'Light 3 warning beacons. Then free the Cosmic Titan.',
             {
             fontSize: isMobileLayout ? '15px' : '18px',
             color: '#FFD700',

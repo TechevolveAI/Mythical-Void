@@ -42,9 +42,9 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain("activationSupportIds: ['peak-summit-relay']");
         expect(source).toContain('this.isPlayerGroundedOnTraversalSupport(');
         expect(source).toContain('this.getTraversalSupportCheckpoint(');
-        expect(source).toContain('LAND + TRANSMIT');
+        expect(source).toContain('WARNING BEACON\\nLAND HERE');
         expect(source).toContain('LAND ON THE LIT PLATFORM');
-        expect(source).toContain('PROJECT BEACON RELAY ${this.beaconRelaysActivated}/3');
+        expect(source).toContain('WARNING BEACON ${this.beaconRelaysActivated}/3 LIT');
         expect(source).toContain("activationSupportIds: ['peak-titan-gate']");
         expect(source).toContain("this.isPlayerGroundedOnTraversalSupport('peak-titan-gate')");
     });
@@ -57,7 +57,8 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain('RIDGE FALLING. TITAN HOLDING LINE.');
         expect(source).toContain('THREE SETTLEMENTS ANSWER');
         expect(source).toContain('They want it saved.');
-        expect(source).toContain('Restore the warning relays and reach Titan Pass');
+        expect(source).toContain('Light 3 warning beacons. Then free the Cosmic Titan.');
+        expect(source).toContain('`[ BEACON ] ${resume.label} link restored`');
         expect(source).toContain('this.creatureNetworkReached = true');
         expect(source).toContain("event: 'creature_warning_network_reached'");
     });
@@ -89,8 +90,18 @@ describe('fourth expedition rescue loop', () => {
         )?.[1] || '';
 
         expect(gate).toContain('if (!this.creatureNetworkReached)');
-        expect(gate).toContain('Titan Pass is silent. Restore the warning relays.');
+        expect(gate).toContain('Titan Pass is closed. Light all 3 warning beacons.');
         expect(gate).toContain('return;');
+    });
+
+    test('catches a child who steps off the ledge into a return current', () => {
+        const source = readLevel();
+
+        expect(source).toContain('const PEAK_RETURN_CURRENT_LAUNCH_BAND = 130;');
+        expect(source).toContain('const descendingIntoCurrent = body.velocity.y >= -20;');
+        expect(source).toContain(
+            'if ((!grounded && !descendingIntoCurrent) || !inLaunchBand) return false;'
+        );
     });
 
     test('rewards the complete fragment route with a signal-touched egg', () => {
@@ -178,8 +189,9 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain('Math.min(225, height * 0.28)');
         expect(source).toContain('y: toastY - 20');
         expect(source).toContain('this.createCampaignObjectiveDisplay(');
-        expect(source).toContain('WARNING ${current}/3 // ${nextRelay}');
-        expect(source).toContain('TITAN PASS OPEN');
+        expect(source).toContain('WARNING BEACON ${current}/3');
+        expect(source).toContain("compass?.replace(/^CLUE/, 'CLIMB')");
+        expect(source).toContain('TITAN PASS IS OPEN');
         expect(source).toContain(
             '!(this.isCompactObjectiveHUD && this.bossFightActive)'
         );
