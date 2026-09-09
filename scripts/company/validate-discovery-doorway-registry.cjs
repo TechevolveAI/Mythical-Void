@@ -44,7 +44,11 @@ requireValue(indieDb?.state === 'page_packet_ready_waiting_for_adult_account_ter
 requireValue(indieDb?.preparedArtifact === 'docs/company/growth/INDIEDB_PAGE_CANDIDATE_2026-09-08.json', 'IndieDB is detached from its prepared page packet');
 requireValue(routes.find(route => route.id === 'html5-game-devs')?.needs?.approvedGameplayMedia === true, 'HTML5 showcase must wait for real approved media');
 requireValue(routes.find(route => route.id === 'tigsource-devlog')?.needs?.ongoingParticipation === true, 'TIGSource must not become a one-off promotional drop');
-requireValue(/research_incomplete/.test(routes.find(route => route.id === 'game-jolt')?.state || ''), 'Game Jolt must remain behind a current signed-in requirements review');
+const gameJolt = routes.find(route => route.id === 'game-jolt');
+requireValue(gameJolt?.state === 'page_copy_ready_waiting_for_reddit_read_adult_account_terms_signed_in_form_media_and_build_review', 'Game Jolt must remain behind Reddit, account, terms, form, media and build review');
+requireValue(gameJolt?.preparedArtifact === 'docs/company/growth/GAME_JOLT_PAGE_CANDIDATE_2026-09-09.json', 'Game Jolt is detached from its prepared page packet');
+requireValue(gameJolt?.needs?.approvedCatalogueThumbnail === true && gameJolt?.needs?.isolatedBrowserBuild === true && gameJolt?.needs?.signedInFormReview === true, 'Game Jolt catalogue, build or form gate is missing');
+requireValue(gameJolt?.needs?.approvedGameplayMedia === false, 'Game Jolt incorrectly requires gameplay media instead of an approved truthful catalogue thumbnail');
 requireValue(/held_current_AI_policy_unfavourable/.test(routes.find(route => route.id === 'playmygame')?.state || ''), 'r/playmygame must remain held under the current AI and participation concerns');
 requireValue(routes.find(route => route.id === 'indiegaming-reddit')?.state === 'excluded_current_no_AI_rule', 'r/IndieGaming no-AI conflict is missing');
 requireValue(/held_until_current_AI/.test(routes.find(route => route.id === 'indiegames-reddit')?.state || ''), 'r/IndieGames must remain held for a fresh policy check');

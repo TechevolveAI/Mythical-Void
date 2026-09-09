@@ -201,18 +201,21 @@
       "name": "Game Jolt",
       "kind": "game_profile_and_social_shelf",
       "audienceIntent": "People browsing game pages and following game creators.",
-      "state": "research_incomplete_waiting_for_signed_in_requirements_terms_and_visual_policy",
+      "state": "page_copy_ready_waiting_for_reddit_read_adult_account_terms_signed_in_form_media_and_build_review",
       "canRouteDirectlyToOwnedWebsite": false,
       "needs": {
         "adultAccount": true,
         "termsAcceptance": true,
         "uploadedBuild": true,
-        "approvedGameplayMedia": true,
+        "approvedGameplayMedia": false,
+        "approvedCatalogueThumbnail": true,
+        "isolatedBrowserBuild": true,
+        "signedInFormReview": true,
         "ongoingParticipation": true,
         "humanReplyCoverage": true
       },
-      "preparedArtifact": null,
-      "nextNeed": "Review current signed-in publishing requirements, content rules and AI-art policy before preparing any game page.",
+      "preparedArtifact": "docs/company/growth/GAME_JOLT_PAGE_CANDIDATE_2026-09-09.json",
+      "nextNeed": "Keep Reddit first. Later, use an existing approved adult account for a read-only signed-in form check; do not save, upload, join, accept terms or publish.",
       "sources": [
         {
           "url": "https://ssr.gamejolt.net/help-docs/general",

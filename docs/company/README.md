@@ -155,6 +155,8 @@ an AI-first, human-governed studio.
 - [Current generated release-to-audience queue](content/generated/release-to-audience-queue.json)
 - [Current forum and game-discovery doorway register](growth/DISCOVERY_DOORWAY_REGISTRY_2026-09-08.md)
 - [Machine-readable discovery doorway register](growth/DISCOVERY_DOORWAY_REGISTRY_2026-09-08.json)
+- [Prepared Game Jolt browser-game page](growth/GAME_JOLT_PAGE_CANDIDATE_2026-09-09.md)
+- [Machine-readable Game Jolt page gate](growth/GAME_JOLT_PAGE_CANDIDATE_2026-09-09.json)
 - [Commercial opportunity pipeline](commercial/opportunities.json)
 - [Commercial qualification register](commercial/qualification.json)
 - [Commercial qualification schema](commercial/qualification.schema.json)

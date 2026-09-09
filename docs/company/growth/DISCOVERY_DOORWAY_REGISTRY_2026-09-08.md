@@ -36,8 +36,11 @@ one clean link and no tracking code. It is brand art, not gameplay.
 
 - **TIGSource DevLog** can be valuable if Kevin wants to maintain a genuine
   development diary. It is not useful as a one-off advert.
-- **Game Jolt** needs a current signed-in publishing check, a maturity rating,
-  suitable imagery and a clear answer on its present AI-content rules.
+- **Game Jolt** now has a ready-to-paste page pack. Its public Browser/HTML5,
+  Free and Early Access catalogue is a real fit. It still waits behind the
+  Reddit read and needs a current signed-in form check, Kevin's terms decision,
+  an approved catalogue thumbnail, an isolated tested browser build, an honest
+  maturity choice and a clear answer on its current AI-media rules.
 - **Poki** and **CrazyGames** are game portals rather than links back to the
   website. They need separate technical, commercial, privacy and rights work.
 
