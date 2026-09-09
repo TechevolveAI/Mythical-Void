@@ -4,14 +4,14 @@
   "state": "one_text_only_community_move_waiting_for_kevin",
   "purpose": "Turn checked releases and prepared community work into one clear next move, while keeping accounts, replies and publication under human control.",
   "generatedFrom": {
-    "liveLatestNewsEntries": 21,
-    "preparedReleaseDrafts": 63,
+    "liveLatestNewsEntries": 22,
+    "preparedReleaseDrafts": 66,
     "approvedGameplayVisuals": 0,
     "verifiedExternalPublishingChannels": 0,
     "checkedDiscoveryDoorways": 13,
     "sourceFingerprints": {
-      "releases": "afa78337bc204c6073cdf2e8aa20634aa9a18698158ccf9ad4d9b42872be9cc5",
-      "releasePack": "6c2adfb2b62b49af175c705f020296cb380fd71cd43b8d401a84ce92fd164acd",
+      "releases": "926bcb8a9a3af3cd6cb004a2acf3fca653c3e4e56d0e11d338a2ed4724593cb8",
+      "releasePack": "37f5f3f5e6c94aadf826475fe56f21f4e8f530cb293cb5fee56e7759f7b0885f",
       "communityRun": "f4dbc6dd7705bd90ccb98384acfe3032f54ef7fcf78d96f17657bfadb6a226a5",
       "phaserShowcase": "7e6976bfa25dcd3c47b2806153d72f41ae7ed80a40c65fe304eadd9acd0438da",
       "channels": "61c95b390a608c5fbbc256008bfa12783068cf2fdf859880035fd653fec8f4f3",
@@ -170,33 +170,34 @@
     "rule": "This is an ordered opportunity queue, not permission to cross-post. Recheck current rules and request action-time approval for every outside move."
   },
   "latestReleaseDraft": {
-    "sourceEntryId": "UPDATE-028",
-    "title": "The creature universe now arrives on the first screen",
+    "sourceEntryId": "UPDATE-029",
+    "title": "The game no longer opens in silence",
     "state": "prepared_not_publishable_until_an_official_channel_is_confirmed",
     "selectionReason": "Newest checked release that can travel as text without depending on gameplay media.",
     "professionalNetworkDraft": {
       "channelRef": "CH-004",
       "format": "text_post_with_one_link",
-      "body": "The creature universe now arrives on the first screen\n\nPhone visitors now see a focused window onto Mythical Void’s wider creature universe before the story begins, while the Play button remains clear for a first visit.\n\n• The existing creature-universe artwork now appears as a clear, framed part of the phone welcome instead of disappearing into the background.\n• The picture says that it is imagined artwork inspired by real creature hatches—not gameplay—and it does not claim that every pictured form already appears in the game.\n• The optional website-analytics choice is shorter on phones, stays off unless allowed and no longer covers the main Play button. Website analytics still do not run inside the game.\n\nSee what changed: https://mythicalvoid.com/\n\nText-only release note about a live owned-site improvement; no screenshot or generated image is attached.",
-      "characterCount": 867
+      "body": "The game no longer opens in silence\n\nThe direct Play link now shows a clear Mythical Void welcome while the game prepares, instead of leaving visitors with an unexplained dark screen.\n\n• The Mythical Void mark and a short ‘Opening the Void’ message appear immediately while the real game files prepare.\n• The welcome confirms that the game is free, needs no download or account, and uses a moving line instead of inventing a percentage.\n• It works on phone and desktop, respects reduced-motion settings and fades away when the real Phaser game is ready.\n\nSee what changed: https://mythicalvoid.com/play/\n\nText-only release note about a live game-entry improvement; no screenshot or generated image is attached.",
+      "characterCount": 710
     },
-    "destination": "https://mythicalvoid.com/",
+    "destination": "https://mythicalvoid.com/play/",
     "releaseProof": {
-      "sourceCommit": "6ec645b0552df23bf147c6f066fe49bafb057678",
-      "productionMergeCommit": "1ccbf76e2a75dbbf01660eea4d0f959d98774695",
-      "productionDeployId": "6aa0a18ae06a5500082d4b7b",
-      "productionPublishedAt": "2026-09-09T00:03:46.572Z",
+      "sourceCommit": "3a82b0ccf6a9dff0e7b45c0f9201a08318c22640",
+      "productionMergeCommit": "03cf8ad3155ecc72f4ea5a318ab371557418ddaf",
+      "productionDeployId": "6aa0ac274f424f0008844501",
+      "productionPublishedAt": "2026-09-09T00:48:24.738Z",
       "checkedUrl": "https://mythicalvoid.com/play/",
       "checkedHttpStatus": 200,
       "ownedPageCheckedUrl": "https://mythicalvoid.com/",
       "ownedPageCheckedHttpStatus": 200,
       "phoneViewport": "390x844",
-      "phoneArtworkLoaded": true,
-      "playButtonCoveredByConsent": false,
-      "horizontalOverflowObserved": false,
+      "phoneLoadingWelcomeObserved": true,
+      "desktopLoadingWelcomeObserved": true,
+      "realGameHandoffObserved": true,
+      "inventedProgressPercentage": false,
       "gameplayVisualApproved": false,
       "mediaAttached": false,
-      "claimBoundary": "The source, protected merge, production deploy and live phone check prove that the clearer welcome is available. They do not prove visual quality, play, enjoyment or growth, and they do not prove that anybody saw it or started the game."
+      "claimBoundary": "The source, protected merge, production deploy and live phone check prove that the opening welcome is available and hands over to the real game. They do not prove visual quality, play, enjoyment or growth, and they do not prove that anybody stayed or started playing."
     },
     "approvalState": "blocked_missing_verified_channel_and_kevin_approval"
   },

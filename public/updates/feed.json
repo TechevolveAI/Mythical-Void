@@ -15,6 +15,18 @@
   ],
   "items": [
     {
+      "id": "https://mythicalvoid.com/updates/#update-029",
+      "url": "https://mythicalvoid.com/updates/#update-029",
+      "external_url": "https://mythicalvoid.com/play/",
+      "title": "The game no longer opens in silence",
+      "content_text": "The direct Play link now shows a clear Mythical Void welcome while the game prepares, instead of leaving visitors with an unexplained dark screen.\n\n• The Mythical Void mark and a short ‘Opening the Void’ message appear immediately while the real game files prepare.\n• The welcome confirms that the game is free, needs no download or account, and uses a moving line instead of inventing a percentage.\n• It works on phone and desktop, respects reduced-motion settings and fades away when the real Phaser game is ready.\n\nSee the live change: https://mythicalvoid.com/play/\n\nVisual note: Text-only release note about a live game-entry improvement; no screenshot or generated image is attached.",
+      "summary": "The direct Play link now shows a clear Mythical Void welcome while the game prepares, instead of leaving visitors with an unexplained dark screen.",
+      "date_published": "2026-09-09T12:00:00.000Z",
+      "tags": [
+        "PLAY OPENS WITH A WELCOME"
+      ]
+    },
+    {
       "id": "https://mythicalvoid.com/updates/#update-028",
       "url": "https://mythicalvoid.com/updates/#update-028",
       "external_url": "https://mythicalvoid.com/",

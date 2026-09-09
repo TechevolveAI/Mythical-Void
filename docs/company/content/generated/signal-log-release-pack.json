@@ -5,8 +5,8 @@
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "afa78337bc204c6073cdf2e8aa20634aa9a18698158ccf9ad4d9b42872be9cc5",
-    "liveEntryCount": 21,
+    "sourceFingerprint": "926bcb8a9a3af3cd6cb004a2acf3fca653c3e4e56d0e11d338a2ed4724593cb8",
+    "liveEntryCount": 22,
     "latestSourceDate": "2026-09-09"
   },
   "purpose": "Turn each checked Latest News note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
@@ -32,6 +32,66 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-UPDATE-029",
+      "sourceEntryId": "UPDATE-029",
+      "sourcePublishedOn": "2026-09-09",
+      "destination": "https://mythicalvoid.com/play/",
+      "trackingParameters": false,
+      "media": {
+        "disclosure": "Text-only release note about a live game-entry improvement; no screenshot or generated image is attached."
+      },
+      "releaseProof": {
+        "sourceCommit": "3a82b0ccf6a9dff0e7b45c0f9201a08318c22640",
+        "productionMergeCommit": "03cf8ad3155ecc72f4ea5a318ab371557418ddaf",
+        "productionDeployId": "6aa0ac274f424f0008844501",
+        "productionPublishedAt": "2026-09-09T00:48:24.738Z",
+        "checkedUrl": "https://mythicalvoid.com/play/",
+        "checkedHttpStatus": 200,
+        "ownedPageCheckedUrl": "https://mythicalvoid.com/",
+        "ownedPageCheckedHttpStatus": 200,
+        "phoneViewport": "390x844",
+        "phoneLoadingWelcomeObserved": true,
+        "desktopLoadingWelcomeObserved": true,
+        "realGameHandoffObserved": true,
+        "inventedProgressPercentage": false,
+        "gameplayVisualApproved": false,
+        "mediaAttached": false,
+        "claimBoundary": "The source, protected merge, production deploy and live phone check prove that the opening welcome is available and hands over to the real game. They do not prove visual quality, play, enjoyment or growth, and they do not prove that anybody stayed or started playing."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "The game no longer opens in silence\n\nThe direct Play link now shows a clear Mythical Void welcome while the game prepares, instead of leaving visitors with an unexplained dark screen.\n\n• The Mythical Void mark and a short ‘Opening the Void’ message appear immediately while the real game files prepare.\n• The welcome confirms that the game is free, needs no download or account, and uses a moving line instead of inventing a percentage.\n• It works on phone and desktop, respects reduced-motion settings and fades away when the real Phaser game is ready.\n\nSee what changed: https://mythicalvoid.com/play/\n\nText-only release note about a live game-entry improvement; no screenshot or generated image is attached.",
+          "characterCount": 710
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: The game no longer opens in silence\n\nThe direct Play link now shows a clear Mythical Void welcome while the game prepares, instead of leaving visitors with an unexplained dark screen.\n\nhttps://mythicalvoid.com/play/\n\nText-only release note about a live game-entry improvement; no screenshot or generated image is attached.",
+          "characterCount": 341
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: The game no longer opens in silence",
+          "body": "Mythical Void has a new live update: The game no longer opens in silence.\n\nThe direct Play link now shows a clear Mythical Void welcome while the game prepares, instead of leaving visitors with an unexplained dark screen.\n\nThe Mythical Void mark and a short ‘Opening the Void’ message appear immediately while the real game files prepare. The welcome confirms that the game is free, needs no download or account, and uses a moving line instead of inventing a percentage. It works on phone and desktop, respects reduced-motion settings and fades away when the real Phaser game is ready.\n\nThe checked public destination is https://mythicalvoid.com/play/\n\nMedia note: Text-only release note about a live game-entry improvement; no screenshot or generated image is attached.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 845,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-UPDATE-028",
       "sourceEntryId": "UPDATE-028",

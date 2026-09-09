@@ -13,6 +13,22 @@
       <link>https://mythicalvoid.com/updates/</link>
     </image>
     <item>
+      <guid isPermaLink="true">https://mythicalvoid.com/updates/#update-029</guid>
+      <title>The game no longer opens in silence</title>
+      <link>https://mythicalvoid.com/updates/#update-029</link>
+      <pubDate>Wed, 09 Sep 2026 12:00:00 GMT</pubDate>
+      <category>PLAY OPENS WITH A WELCOME</category>
+      <description>The direct Play link now shows a clear Mythical Void welcome while the game prepares, instead of leaving visitors with an unexplained dark screen.
+
+• The Mythical Void mark and a short ‘Opening the Void’ message appear immediately while the real game files prepare.
+• The welcome confirms that the game is free, needs no download or account, and uses a moving line instead of inventing a percentage.
+• It works on phone and desktop, respects reduced-motion settings and fades away when the real Phaser game is ready.
+
+See the live change: https://mythicalvoid.com/play/
+
+Visual note: Text-only release note about a live game-entry improvement; no screenshot or generated image is attached.</description>
+    </item>
+    <item>
       <guid isPermaLink="true">https://mythicalvoid.com/updates/#update-028</guid>
       <title>The creature universe now arrives on the first screen</title>
       <link>https://mythicalvoid.com/updates/#update-028</link>
