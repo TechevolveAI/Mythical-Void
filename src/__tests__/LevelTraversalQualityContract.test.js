@@ -1073,6 +1073,7 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("platform.traversalId = id;");
         expect(source).toContain("id: 'caves-core-lift'");
         expect(source).toContain("destinationId: 'caves-core-refuge'");
+        expect(source).toContain('(lift.x - body.center.x) * 2.4');
         expect(source).toContain("activationSupportIds: ['caves-echo-upper']");
         expect(source).toContain("activationSupportIds: ['caves-grove-step']");
         expect(source).toContain("activationSupportIds: ['caves-guardian-approach']");

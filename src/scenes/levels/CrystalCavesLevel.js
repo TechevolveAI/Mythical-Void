@@ -1425,7 +1425,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         lift.lastLiftAt = now;
         lift.activations += 1;
         const horizontalCorrection = Phaser.Math.Clamp(
-            (lift.x - this.player.x) * 2.4,
+            (lift.x - body.center.x) * 2.4,
             -85,
             85
         );
