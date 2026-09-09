@@ -146,6 +146,8 @@
     "test:live-presence": "jest --runInBand src/__tests__/LivePresenceFunction.test.js src/__tests__/LivePresenceContract.test.js src/__tests__/StorefrontIntegration.test.js",
     "submit:indexnow": "node scripts/company/submit-indexnow.cjs",
     "test:indexnow": "node scripts/company/test-indexnow-selection.cjs",
+    "plan:netlify-promotion": "node scripts/company/netlify-preview-promotion.cjs",
+    "test:netlify-promotion": "jest scripts/__tests__/NetlifyPreviewPromotion.test.js --runInBand",
     "audit:live-health": "node scripts/company/audit-live-site-health.cjs",
     "test:live-health": "node scripts/company/test-live-site-health.cjs",
     "watch:game-development": "node scripts/company/watch-game-development.cjs --output docs/company/operations/game-development-change-watch.json",

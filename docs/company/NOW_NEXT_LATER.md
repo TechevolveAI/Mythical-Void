@@ -48,6 +48,11 @@ actually live or prepared on 9 September 2026.
 - A weekly growth check now returns to this task every Monday morning. It checks
   production, search visibility, the journey to Play and the strongest next
   action.
+- A guarded website-release fallback is prepared for the current Netlify credit
+  problem. It checks the exact reviewed files, protected merge, ready preview,
+  clean secret scan and credit-only failure, stays dry-run by default and
+  refuses an already-published or internal-record-only preview. It is not an
+  unattended publishing shortcut.
 - The public GitHub project now describes the game clearly and has a verified
   early-access release leading to Play. It contains no weak screenshots, video
   or downloadable second build. Its public discovery labels now also describe
