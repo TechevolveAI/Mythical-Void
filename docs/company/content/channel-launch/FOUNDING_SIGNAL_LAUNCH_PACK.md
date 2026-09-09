@@ -16,21 +16,34 @@ The first post should come from Kevin’s existing professional profile if he wa
 
 ## Complete first post
 
-Children ask questions that do not fit neatly inside a business plan.
+My son and I started Mythical Void at home, using our imagination and today's
+AI tools.
 
-What might live in a world where gravity points sideways? Could a creature sense energy as music? And could a father, his son and today's generative AI tools turn those ideas into a real game?
+We kept asking each other strange questions. What might live where gravity
+points sideways? Could a creature hear energy as music? How far could we take
+those ideas?
 
-That is how Mythical Void began in our home.
+That small project became a real browser game.
 
-Those conversations became alien creatures, six damaged realms, a crashed astronaut and a choice about what Project Beacon should tell Earth.
+You hatch an alien creature, explore six damaged realms, free their Guardians
+from the Void and decide what Project Beacon should become. It is free to play
+and still in early access, with no download or account.
 
-Today it is a free early-access game you can play in a browser. Hatch a creature, explore, battle the corruption holding each Guardian, build a sanctuary and decide what the mission becomes. No download or account is needed.
+AI helped us build, but people made the story, safety and release decisions. We
+have tested, rejected and rebuilt plenty along the way, and I am still
+improving it.
 
-AI helps our small Irish studio explore and build. People remain responsible for the story, safety and what gets released. Optional discovery moments use credited public NASA material. NASA does not endorse Mythical Void.
+Some optional learning moments use credited public NASA material. NASA does
+not endorse the game.
 
-See the story and play: https://mythicalvoid.com/studio/
+See the story and play:
+https://mythicalvoid.com/studio/
 
-If it reminds you of someone who loves strange creatures, games or space, please pass it on.
+If LinkedIn shows the page picture, it is imagined artwork for the wider
+creature universe, not gameplay.
+
+If you try the first minute, I would genuinely like to know what made sense and
+what did not.
 
 ## What the preview should show
 
