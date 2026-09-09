@@ -6,7 +6,10 @@ import {
     GUARDIAN_RESIDENT_DEFINITIONS,
     GUARDIAN_SOCIAL_EXCHANGES
 } from '../GuardianResidents.js';
-import { RESCUED_RESIDENT_DEFINITIONS } from '../RescuedResidents.js';
+import {
+    RESCUED_RESIDENT_DEFINITIONS,
+    getRescuedResidentVariantIndex
+} from '../RescuedResidents.js';
 import { CURRENT_VEIL_ANCHORS } from '../CurrentVeilMission.js';
 import { getFusionPodLandmarkSnapshot } from '../FusionPodLandmark.js';
 import {
@@ -6340,11 +6343,46 @@ class WorldBuilder {
         return { container, tween };
     }
 
+    getRescuedResidentTexture(creature, genetics = creature?.genetics) {
+        if (!genetics?.id || !this.scene?.textures) return null;
+        const variant = getRescuedResidentVariantIndex(creature);
+        const expectedTextureName = `creature_${genetics.id}_juvenile_${variant}`;
+        if (this.scene.textures.exists(expectedTextureName)) {
+            return { textureName: expectedTextureName, variant };
+        }
+        const result = this.graphicsEngine?.createRandomizedSpaceMythicCreature?.(
+            genetics,
+            variant,
+            'juvenile'
+        );
+        const textureName = typeof result === 'string' ? result : result?.textureName;
+        return textureName && this.scene.textures.exists(textureName)
+            ? { textureName, variant }
+            : null;
+    }
+
     createVillageWorkerFigure(creature, { accent = 0x71E6B1 } = {}) {
-        const figure = this.scene.add.graphics();
         const kind = creature?.communityType === 'rescued_resident'
             ? String(creature.kind || 'resident').toLowerCase()
             : 'companion';
+        if (kind !== 'companion' && creature?.genetics) {
+            const runtimeTexture = this.getRescuedResidentTexture(creature);
+            if (runtimeTexture) {
+                const figure = this.scene.add.image(0, -2, runtimeTexture.textureName);
+                figure.setScale(Math.min(
+                    44 / Math.max(1, figure.width),
+                    48 / Math.max(1, figure.height)
+                ));
+                figure
+                    .setData('villageWorkerVisualProfile', 'rescued_resident_runtime_v1')
+                    .setData('villageWorkerCommunityType', creature.communityType)
+                    .setData('residentGeneticsId', creature.genetics.id)
+                    .setData('residentVariant', runtimeTexture.variant);
+                return figure;
+            }
+        }
+
+        const figure = this.scene.add.graphics();
 
         if (kind === 'bloom') {
             figure.fillStyle(0xE7A3C7, 1);
@@ -6569,6 +6607,8 @@ class WorldBuilder {
             'workerVisualProfile',
             figure.getData?.('villageWorkerVisualProfile') || 'companion_worker_v1'
         );
+        worker.setData('residentGeneticsId', figure.getData?.('residentGeneticsId') || null);
+        worker.setData('residentVariant', figure.getData?.('residentVariant') ?? null);
         worker.setData('residentIdentityVisible', isRescuedResident);
         worker.setData('buildingId', building.definitionId);
         worker.setData('plotId', building.plotId);
@@ -9535,11 +9575,7 @@ class WorldBuilder {
                 resident => resident.id === definition.id
             )?.genetics;
             const residentTexture = genetics
-                ? this.graphicsEngine?.createRandomizedSpaceMythicCreature?.(
-                    genetics,
-                    index % 4,
-                    'juvenile'
-                )?.textureName
+                ? this.getRescuedResidentTexture(definition, genetics)?.textureName
                 : null;
             if (residentTexture && this.scene.textures.exists(residentTexture)) {
                 figure = this.scene.add.image(0, -3, residentTexture);
@@ -9687,11 +9723,7 @@ class WorldBuilder {
 
         let portrait = null;
         const residentTexture = resident.genetics
-            ? this.graphicsEngine?.createRandomizedSpaceMythicCreature?.(
-                resident.genetics,
-                1,
-                'juvenile'
-            )?.textureName
+            ? this.getRescuedResidentTexture(resident)?.textureName
             : null;
         if (residentTexture && this.scene.textures.exists(residentTexture)) {
             portrait = this.scene.add.image(0, -3, residentTexture);

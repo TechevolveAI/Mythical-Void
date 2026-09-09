@@ -19,7 +19,8 @@ function loadRescuedResidents() {
                 acknowledgeRescuedResidentArrival,
                 interactWithRescuedResident,
                 getRescuedResidentByLevel,
-                getRescuedResidentGenetics
+                getRescuedResidentGenetics,
+                getRescuedResidentVariantIndex
             };
         `);
     const sandbox = {
@@ -81,6 +82,14 @@ describe('RescuedResidents', () => {
             expect(entry.sanctuaryLine).toBeTruthy();
             expect(entry.supportLabel).toBeTruthy();
         });
+    });
+
+    test('assigns one stable renderer variant to each resident identity', () => {
+        expect(residents.RESCUED_RESIDENT_DEFINITIONS.map(entry => (
+            residents.getRescuedResidentVariantIndex(entry)
+        ))).toEqual([0, 1, 2, 3, 0, 1]);
+        expect(residents.getRescuedResidentVariantIndex('zephyr')).toBe(2);
+        expect(residents.getRescuedResidentVariantIndex('unknown')).toBe(0);
     });
 
     test('derives a stable rare Phaser identity from player genetics', () => {

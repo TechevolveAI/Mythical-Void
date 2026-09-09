@@ -5216,6 +5216,7 @@ class GraphicsEngine {
             accent: colors.accent || 0xFFD700,
             tail: colors.feet || colors.body || 0x9370DB  // Tail uses feet color
         };
+        const bodyColor = creatureColors.body;
 
         // Calculate body positioning and scaling
         const bodyOffset = {

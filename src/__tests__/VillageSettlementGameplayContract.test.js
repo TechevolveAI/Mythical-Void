@@ -419,13 +419,16 @@ describe('Village settlement gameplay contract', () => {
         expect(source).toContain("createElement('span', 'village-resource-icon')");
         expect(source).toContain('village-assignment-routine');
         expect(source).toContain('workerRoutine.emotionalPurpose');
-        expect(source).toContain('createCommunityPulse(snapshot, this.companionPortraitRecord)');
+        expect(source).toContain('createCommunityPulse(\n                    snapshot,\n                    this.companionPortraitRecord,');
         expect(source).toContain('village-community-pulse');
         expect(source).toContain('createVillageSupportImpactSummary(snapshot)');
         expect(source).toContain('createResidentProposal(\n                snapshot,\n                visualDefinition,\n                this.companionPortraitRecord');
         expect(source).toContain('village-resident-proposal');
         expect(source).toContain('formatCommunityMemberOption(creature)');
         expect(source).toContain("avatar.classList.add('is-authored-resident')");
+        expect(source).toContain("avatar.classList.add('is-runtime-resident')");
+        expect(source).toContain('getRuntimeResidentAvatar(creature)');
+        expect(source).toContain("canvas.toDataURL('image/png')");
         expect(source).toContain("'RESCUED RESIDENT'");
         expect(source).toContain('INVITE A RESIDENT OR CREATURE');
         expect(source).toContain('IN YOUR GAME · ${proposal.immediateImpact}');

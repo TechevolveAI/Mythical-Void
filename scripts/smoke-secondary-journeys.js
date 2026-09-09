@@ -20452,28 +20452,38 @@ async function smokeVillageUi(session, exceptions) {
             communityType: worker.getData?.('communityType'),
             residentRole: worker.getData?.('residentRole'),
             visualProfile: worker.getData?.('workerVisualProfile'),
+            geneticsId: worker.getData?.('residentGeneticsId'),
+            variant: worker.getData?.('residentVariant'),
             identityVisible: worker.getData?.('residentIdentityVisible')
         }));
         return {
             workers,
             rescuedNames: landmark?.snapshot?.roster
                 ?.filter(entry => entry.communityType === 'rescued_resident')
-                .map(entry => entry.name) || []
+                .map(entry => entry.name) || [],
+            rescuedGeneticsIds: landmark?.snapshot?.roster
+                ?.filter(entry => entry.communityType === 'rescued_resident')
+                .map(entry => entry.genetics?.id || null) || [],
+            buildingGeneticsIds: landmark?.snapshot?.buildings
+                ?.filter(entry => entry.creature?.communityType === 'rescued_resident')
+                .map(entry => entry.creature?.genetics?.id || null) || []
         };
     })()`);
     const expectedResidentProfiles = {
-        Bloom: 'bloom_worker_v1',
-        Pebble: 'pebble_worker_v1',
-        Zephyr: 'zephyr_worker_v1'
+        Bloom: { profile: 'rescued_resident_runtime_v1', variant: 0 },
+        Pebble: { profile: 'rescued_resident_runtime_v1', variant: 1 },
+        Zephyr: { profile: 'rescued_resident_runtime_v1', variant: 2 }
     };
     if (
         rescuedCommunity.rescuedNames.length !== 3 ||
-        Object.keys(expectedResidentProfiles).some(name => (
+        Object.entries(expectedResidentProfiles).some(([name, expected]) => (
             !rescuedCommunity.rescuedNames.includes(name) ||
             !rescuedCommunity.workers.some(worker => (
                 worker.helperName === name &&
                 worker.communityType === 'rescued_resident' &&
-                worker.visualProfile === expectedResidentProfiles[name] &&
+                worker.visualProfile === expected.profile &&
+                worker.geneticsId === `resident_${name.toLowerCase()}_v1` &&
+                worker.variant === expected.variant &&
                 worker.identityVisible === true &&
                 Boolean(worker.residentRole)
             ))
@@ -20516,6 +20526,9 @@ async function smokeVillageUi(session, exceptions) {
         { message: 'Village Heart resident planner' }
     );
     const rescuedRosterPanel = await evaluate(session, `(() => {
+        const runtimeResidents = [...document.querySelectorAll(
+            '.village-creature-avatar.is-runtime-resident'
+        )];
         const authored = [...document.querySelectorAll(
             '.village-creature-avatar.is-authored-resident'
         )];
@@ -20523,8 +20536,14 @@ async function smokeVillageUi(session, exceptions) {
         const options = [...document.querySelectorAll('.village-creature-select option')]
             .map(option => option.textContent || '');
         return {
-            authoredPortraitCount: authored.length,
-            authoredTypes: authored.map(node => node.dataset.communityType),
+            runtimeResidentCount: runtimeResidents.length,
+            runtimeResidents: runtimeResidents.map(node => ({
+                communityType: node.dataset.communityType,
+                geneticsId: node.dataset.geneticsId,
+                variant: node.dataset.variant,
+                localImage: node.querySelector('img')?.src?.startsWith('data:image/png') === true
+            })),
+            legacyAuthoredPortraitCount: authored.length,
             avatarTypes: avatars.map(node => ({
                 classes: node.className,
                 communityType: node.dataset.communityType
@@ -20540,8 +20559,13 @@ async function smokeVillageUi(session, exceptions) {
     if (
         rescuedRosterPanel.opened !== true ||
         rescuedRosterPanel.panelMatchesWorld !== true ||
-        rescuedRosterPanel.authoredPortraitCount < 1 ||
-        rescuedRosterPanel.authoredTypes.some(type => type !== 'rescued_resident') ||
+        rescuedRosterPanel.runtimeResidentCount < 1 ||
+        rescuedRosterPanel.runtimeResidents.some(resident => (
+            resident.communityType !== 'rescued_resident' ||
+            !resident.geneticsId?.startsWith('resident_') ||
+            resident.localImage !== true
+        )) ||
+        rescuedRosterPanel.legacyAuthoredPortraitCount !== 0 ||
         !rescuedRosterPanel.optionText.some(text => text.includes('Bloom - rescued resident')) ||
         !rescuedRosterPanel.optionText.some(text => text.includes('Root Forager'))
     ) {

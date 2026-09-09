@@ -118,6 +118,16 @@ const RESIDENT_BY_ID = new Map(
     RESCUED_RESIDENT_DEFINITIONS.map(resident => [resident.id, resident])
 );
 
+export function getRescuedResidentVariantIndex(residentOrId) {
+    const residentId = typeof residentOrId === 'string'
+        ? residentOrId
+        : residentOrId?.id;
+    const index = RESCUED_RESIDENT_DEFINITIONS.findIndex(
+        resident => resident.id === residentId
+    );
+    return index >= 0 ? index % 4 : 0;
+}
+
 function cloneValue(value) {
     if (!value || typeof value !== 'object') return value;
     return JSON.parse(JSON.stringify(value));

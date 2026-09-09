@@ -53,4 +53,14 @@ describe('GraphicsEngine creature identity contract', () => {
         expect(platformerSource).toContain('if (!this.textures.exists(textureName))');
         expect(platformerSource).toContain("textureName = 'platformerCreature';");
     });
+
+    test('stage-aware feature colors resolve from the normalized body palette', () => {
+        const methodStart = source.indexOf('\n    renderStageAwareCreatureBody(');
+        const methodEnd = source.indexOf('\n    /**', methodStart + 1);
+        const method = source.slice(methodStart, methodEnd);
+
+        expect(method).toContain('const bodyColor = creatureColors.body;');
+        expect(method).toContain('this.renderTailBud(graphics, center, bodyColor);');
+        expect(method).toContain('colors.wings || bodyColor');
+    });
 });
