@@ -29,14 +29,15 @@
         "title": "Enable private creature media for all ages",
         "containedInLastObservedProduction": true
       },
-      "latestProtectedMain": {
-        "pullRequest": 248,
+      "protectedMainEvidenceCutoff": {
+        "observedThroughPullRequest": 248,
         "mergeCommit": "c7c397d8576a9ec54ad5f73bec99c9c7f6dab029",
         "mergedAt": "2026-09-09T02:49:52Z",
         "title": "Isolate community checks from creature media",
         "changesPlayerExperience": false,
         "productionBuildSkippedForCredits": true,
-        "livePlayerReleaseStillCurrent": true
+        "livePlayerReleaseStillCurrent": true,
+        "laterOperatingRecordMergesExcludedByDesign": true
       },
       "latestMaterialWebsiteRelease": {
         "checkedOn": "2026-09-09",
