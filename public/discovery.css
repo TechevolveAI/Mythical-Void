@@ -836,6 +836,56 @@ details p { margin: 0.9rem 0 0; }
 .final-cta p { color: var(--muted); font-size: 1.1rem; }
 .final-cta .hero-actions { justify-content: center; }
 
+.studio-first-minute { scroll-margin-top: 82px; }
+.studio-first-minute-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(360px, 1.2fr);
+    gap: clamp(2rem, 7vw, 6rem);
+    align-items: center;
+}
+.studio-first-minute-card {
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border: 1px solid rgba(118, 227, 207, 0.34);
+    border-radius: 2rem;
+    background:
+        radial-gradient(circle at 92% 8%, rgba(167, 104, 255, 0.22), transparent 18rem),
+        linear-gradient(145deg, rgba(118, 227, 207, 0.09), rgba(255, 255, 255, 0.025));
+    box-shadow: 0 2rem 6rem rgba(0, 0, 0, 0.28);
+}
+.studio-first-minute-steps {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.studio-first-minute-steps li {
+    display: grid;
+    grid-template-columns: 3.1rem minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+    padding: 1rem;
+    border: 1px solid var(--line);
+    border-radius: 1.15rem;
+    background: rgba(9, 7, 17, 0.55);
+}
+.studio-first-minute-steps li > span {
+    display: grid;
+    place-items: center;
+    width: 3.1rem;
+    height: 3.1rem;
+    border-radius: 50%;
+    background: var(--mint);
+    color: #071411;
+    font-size: 0.72rem;
+    font-weight: 950;
+}
+.studio-first-minute-steps strong { display: block; font-size: 1.05rem; }
+.studio-first-minute-steps p { margin: 0.3rem 0 0; color: var(--muted); }
+.studio-first-minute-card .hero-actions { margin-top: 1.2rem; }
+.studio-first-minute-boundary { margin: 1rem 0 0; color: var(--muted); font-size: 0.84rem; }
+.studio-first-minute-boundary strong { color: var(--gold); }
+
 .help-hero-grid { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 0.85fr); align-items: center; gap: clamp(2.5rem, 7vw, 6rem); }
 .help-hero h1 { font-size: clamp(3.2rem, 6.5vw, 6rem); }
 .help-signal { padding: clamp(1.4rem, 3vw, 2rem); border: 1px solid rgba(118, 227, 207, 0.34); border-radius: 2rem; background: linear-gradient(150deg, rgba(118, 227, 207, 0.1), rgba(167, 104, 255, 0.1)); box-shadow: 0 2rem 6rem rgba(0,0,0,0.35); transform: rotate(1deg); }
@@ -1519,6 +1569,7 @@ details p { margin: 0.9rem 0 0; }
     .playable-proof-grid { grid-template-columns: repeat(2, 1fr); }
     .playable-video-screen { min-height: auto; }
     .playable-share-card { grid-template-columns: 1fr; }
+    .studio-first-minute-shell { grid-template-columns: 1fr; }
     .playable-share-actions { max-width: 440px; }
     .play-intent-heading { grid-template-columns: 1fr; gap: 1rem; }
     .play-intent-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

@@ -12,6 +12,7 @@ const wrapper = read('netlify/functions/adult-feedback.mjs');
 const migration = read('supabase/migrations/20260827000100_create_adult_feedback_pulses.sql');
 const discoveryMigration = read('supabase/migrations/20260827000200_add_adult_feedback_discovery.sql');
 const storefront = read('src/site/storefront.js');
+const studio = read('public/studio/index.html');
 const legal = JSON.parse(read('src/config/legal.json'));
 const netlify = read('netlify.toml');
 const failures = [];
@@ -41,6 +42,10 @@ for (const blocked of ['name, email', 'user ID', 'session ID', 'IP address', 'cr
 }
 requireValue(storefront.includes('href="/feedback/"'), 'homepage does not open adult feedback');
 requireValue(!storefront.includes('Our feedback channel is being prepared now'), 'homepage still says feedback is unavailable');
+requireValue(studio.includes('id="first-minute"') && studio.includes('Try the first minute'), 'studio story does not introduce the one-minute test');
+requireValue(studio.includes('href="/play/" target="_blank" rel="noopener"') && studio.includes('data-source-area="studio_first_minute"'), 'studio story does not open the real game safely for the one-minute test');
+requireValue(studio.includes('href="/feedback/"') && studio.includes('Give anonymous adult feedback'), 'studio story does not return adults to anonymous feedback');
+requireValue(studio.includes('This is not a request for praise.') && studio.includes('asks for no name or contact details'), 'studio story loses its honest feedback boundary');
 requireValue(netlify.includes('from = "/feedback"') && netlify.includes('from = "/feedback/"'), 'feedback redirects are missing');
 
 const privacyText = JSON.stringify(legal.privacyPolicy);
@@ -64,6 +69,7 @@ console.log(JSON.stringify({
     directIdentifiersCollected: false,
     discoverySourceCollectedAsFixedChoice: true,
     tryReasonCollectedAsFixedChoice: true,
+    founderFirstMinuteLoopConnected: true,
     retentionDays: 180,
     externalMessagingEnabled: false
 }, null, 2));
