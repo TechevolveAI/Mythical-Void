@@ -136,7 +136,10 @@ describe('LivingFormHandoff mobile continuation', () => {
         expect(handoff.domElement.y).toBe(378);
 
         handoff.destroy();
-        expect(window.visualViewport.removeEventListener).toHaveBeenCalled();
+        expect(window.visualViewport.removeEventListener)
+            .toHaveBeenCalledWith('resize', expect.any(Function));
+        expect(window.visualViewport.removeEventListener)
+            .toHaveBeenCalledWith('scroll', expect.any(Function));
         Object.defineProperty(window, 'visualViewport', {
             configurable: true,
             value: originalVisualViewport
