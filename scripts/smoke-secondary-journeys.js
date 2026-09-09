@@ -10422,14 +10422,36 @@ async function smokeLateLivingFormArrival(session, exceptions) {
 async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     exceptions.length = 0;
     const firstContactProfile = getVisualReviewCreatureProfile();
+    // This journey verifies first-session play, not a paid media provider.
+    // Disable optional creature media inside this isolated browser before the
+    // game boots. The explicit local success/failure promises below still
+    // exercise both handoff designs without creating an anonymous media job,
+    // uploading a creature reference, or spending provider credits.
+    await session.call('Page.addScriptToEvaluateOnNewDocument', {
+        source: `(() => {
+            Object.defineProperty(window, 'APIConfig', {
+                configurable: true,
+                get() {
+                    return undefined;
+                },
+                set(value) {
+                    value.isEnabled = () => false;
+                    value.isVideoEnabled = () => false;
+                    Object.defineProperty(window, 'APIConfig', {
+                        configurable: true,
+                        enumerable: true,
+                        writable: true,
+                        value
+                    });
+                }
+            });
+        })();`
+    });
     await navigate(session, `${BASE_URL}/play/${SMOKE_ENTRY_HASH}`);
     await waitForScene(session, 'HatchingScene');
     await evaluate(session, `(() => {
         localStorage.setItem('mythical_void_age_confirmed', 'true');
-        // Keep the setup navigation in the under-16 privacy mode so this
-        // deterministic browser check can never start a real paid portrait
-        // request before the local preview scene is staged below.
-        localStorage.setItem('mythical_void_age_group', 'age_13_15');
+        localStorage.setItem('mythical_void_age_group', 'age_18_plus');
         localStorage.removeItem('mythical_creature_save');
         const profile = ${JSON.stringify(firstContactProfile)};
         window.GameState?.set?.('creature.genes', profile.genes);
@@ -10477,14 +10499,6 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         }
         await waitForScene(session, 'SoulRevealScene');
     }
-
-    // The local preview promise is now installed, so restore the adult fixture
-    // used by the rest of this first-session journey without contacting an
-    // image provider or creating a protected media record.
-    await evaluate(session, `(() => {
-        localStorage.setItem('mythical_void_age_group', 'age_18_plus');
-        return true;
-    })()`);
 
     const naming = await waitFor(
         () => evaluate(session, `(() => {
@@ -22292,6 +22306,7 @@ async function main() {
         const networkFailures = [];
         const policyViolations = [];
         const networkRequestUrls = new Map();
+        const creaturePortraitRequests = [];
         const companionVideoRequests = [];
         const documentNavigationRequests = [];
         const smokeOrigin = new URL(BASE_URL).origin;
@@ -22364,6 +22379,13 @@ async function main() {
             if (!params.requestId) return;
             const url = params.request?.url || '';
             networkRequestUrls.set(params.requestId, url);
+            if (
+                sanitizeNetworkUrl(url).endsWith(
+                    '/.netlify/functions/generate-ai-art'
+                )
+            ) {
+                creaturePortraitRequests.push(sanitizeNetworkUrl(url));
+            }
             if (
                 sanitizeNetworkUrl(url).endsWith(
                     '/.netlify/functions/generate-companion-video'
@@ -22604,6 +22626,16 @@ async function main() {
             session,
             `window.APIConfig?.isVideoEnabled?.() === false`
         );
+        if (
+            SMOKE_MODE === 'first-sanctuary' &&
+            creaturePortraitRequests.length
+        ) {
+            throw new Error(
+                `First-session test contacted the paid portrait service: ${JSON.stringify({
+                    creaturePortraitRequests
+                })}`
+            );
+        }
         if (optionalVideoDisabled && companionVideoRequests.length) {
             throw new Error(
                 `Optional video feature gate failed: ${JSON.stringify({
@@ -22630,6 +22662,7 @@ async function main() {
             thirdPartyHttpFailures: 0,
             transportFailures: 0,
             policyViolations: 0,
+            optionalPortraitRequests: creaturePortraitRequests.length,
             optionalVideoRequests: companionVideoRequests.length
         };
         console.log(JSON.stringify({

@@ -465,9 +465,13 @@ describe('release test gate', () => {
         expect(source).toContain('Production intentionally ignores preview query parameters');
         expect(source).toContain("game.scene.start('SoulRevealScene', {");
         expect(source).toContain('Could not stage production SoulRevealScene');
-        expect(source).toContain("localStorage.setItem('mythical_void_age_group', 'age_13_15')");
-        expect(source).toContain('deterministic browser check can never start a real paid portrait');
-        expect(source).toContain('The local preview promise is now installed');
+        expect(source).toContain("session.call('Page.addScriptToEvaluateOnNewDocument'");
+        expect(source).toContain('value.isEnabled = () => false');
+        expect(source).toContain('without creating an anonymous media job');
+        expect(source).toContain("localStorage.setItem('mythical_void_age_group', 'age_18_plus')");
+        expect(source).toContain("SMOKE_MODE === 'first-sanctuary' &&");
+        expect(source).toContain('First-session test contacted the paid portrait service');
+        expect(source).toContain('optionalPortraitRequests: creaturePortraitRequests.length');
         expect(source).toContain("'[data-testid=\"living-form-continue\"]'");
         expect(source).toContain('Project Beacon story page ${expectedPage}');
         expect(source).toContain('Story page ${page} response exceeded 1500ms');
