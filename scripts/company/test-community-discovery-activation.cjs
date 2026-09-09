@@ -37,6 +37,11 @@ const cases = [
         expected: 'title must start with the game name'
     },
     {
+        name: 'rejects a generic marketing title',
+        mutate(plan) { plan.firstExperiment.preparedPost.title = 'Mythical Void — hatch an alien creature and explore six strange worlds'; },
+        expected: 'real personal beginning'
+    },
+    {
         name: 'rejects technical release-note language in the first post',
         mutate(plan) { plan.firstExperiment.preparedPost.firstComment += ' Built in Phaser with a three-pulse route.'; },
         expected: 'technical release-note language'
@@ -48,13 +53,18 @@ const cases = [
     },
     {
         name: 'rejects AI disclosure without evidence of care',
-        mutate(plan) { plan.firstExperiment.preparedPost.firstComment = plan.firstExperiment.preparedPost.firstComment.replace('The game has been tested and reworked; ', ''); },
+        mutate(plan) { plan.firstExperiment.preparedPost.firstComment = plan.firstExperiment.preparedPost.firstComment.replace('We tested and reworked it, ', ''); },
         expected: 'low-effort AI concern'
     },
     {
         name: 'rejects treating a divided discussion as a community rule',
         mutate(plan) { plan.firstExperiment.communityClimate.status = 'official_rule_banning_ai'; },
         expected: 'community climate is missing or overstated'
+    },
+    {
+        name: 'rejects using the old AI discussion as a promotion opportunity',
+        mutate(plan) { plan.firstExperiment.communityClimate.replyOrPromotionRecommended = true; },
+        expected: 'promotional opportunity'
     },
     {
         name: 'rejects a duplicate post',

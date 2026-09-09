@@ -158,7 +158,7 @@ for (const phrase of [
     'The one decision that matters now',
     'Approve one direct-link r/WebGames test from an adult Reddit account.',
     'I have an existing adult Reddit account, I approve the exact title, link and first comment below now, and I can personally answer replies for seven days.',
-    'Mythical Void — hatch an alien creature and explore six strange worlds',
+    'Mythical Void - my son and I made a free alien creature adventure',
     'https://mythicalvoid.com/play/',
     'Nothing has been posted.',
     '2 repository views from 1 person',

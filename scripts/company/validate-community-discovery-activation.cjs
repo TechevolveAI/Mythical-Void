@@ -35,20 +35,23 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
     requireValue(latestCheck.weeklyVisitorsShown === 19000 && latestCheck.weeklyContributionsShown === 836, 'the visible community estimates are incomplete');
     requireValue(latestCheck.machineReadableRedditCheckHttpStatus === 403 && /visible adult browser review/i.test(latestCheck.limitation || ''), 'the blocked machine check is not recorded honestly');
     requireValue(experiment.communityClimate?.status === 'active_discussion_not_a_rule', 'the AI-game community climate is missing or overstated');
+    requireValue(experiment.communityClimate?.checkedOn === '2026-09-09' && experiment.communityClimate?.highlightedOnCommunityPage === true && experiment.communityClimate?.discussionAge === 'about_five_months', 'the current highlighted discussion review is missing');
+    requireValue(experiment.communityClimate?.replyOrPromotionRecommended === false && /Do not reply or advertise inside the old debate/i.test(experiment.communityClimate?.replyDecision || ''), 'the old AI discussion is being treated as a promotional opportunity');
     requireValue(/low-effort AI-made games/i.test(experiment.communityClimate?.finding || '') && /opinion is divided/i.test(experiment.communityClimate?.finding || ''), 'the divided community response to AI-made games is not recorded honestly');
     requireValue(/tested and reworked/i.test(experiment.communityClimate?.launchResponse || '') && /Do not argue with criticism/i.test(experiment.communityClimate?.launchResponse || ''), 'the respectful response to the community climate is missing');
 
     requireValue(prepared.format === 'direct_link', 'the prepared Reddit post must remain a direct link');
     requireValue(prepared.title?.startsWith('Mythical Void'), 'the post title must start with the game name');
+    requireValue(/^Mythical Void - my son and I made/i.test(prepared.title || ''), 'the title must lead with the real personal beginning rather than a generic marketing line');
     requireValue(prepared.url === 'https://mythicalvoid.com/play/', 'the post must use the clean direct game URL');
     requireValue(!/[?#]/.test(prepared.url || ''), 'the game URL must not contain tracking parameters or fragments');
-    requireValue(/My son and I started Mythical Void/i.test(prepared.firstComment || '') && /generative AI tools/i.test(prepared.firstComment || ''), 'the true origin and AI assistance disclosure are missing');
-    requireValue(/free early-access browser adventure/i.test(prepared.firstComment || '') && /hatch your own alien creature/i.test(prepared.firstComment || ''), 'the game state and creature promise are missing');
-    requireValue(/six strange worlds/i.test(prepared.firstComment || '') && /free Guardians trapped by the Void/i.test(prepared.firstComment || '') && /Project Beacon becomes/i.test(prepared.firstComment || ''), 'the plain game experience is incomplete');
-    requireValue(/no download or account/i.test(prepared.firstComment || ''), 'the low-friction promise is missing');
+    requireValue(/My son and I started Mythical Void/i.test(prepared.firstComment || '') && /today's AI tools/i.test(prepared.firstComment || ''), 'the true origin and AI assistance disclosure are missing');
+    requireValue(/free to play and still in early access/i.test(prepared.firstComment || '') && /Hatch an alien creature/i.test(prepared.firstComment || ''), 'the game state and creature promise are missing');
+    requireValue(/six strange worlds/i.test(prepared.firstComment || '') && /free their Guardians from the Void/i.test(prepared.firstComment || '') && /choices change Project Beacon/i.test(prepared.firstComment || ''), 'the plain game experience is incomplete');
+    requireValue(/no (?:account or download|download or account)/i.test(prepared.firstComment || ''), 'the low-friction promise is missing');
     requireValue(/brand emblem, not gameplay/i.test(prepared.firstComment || ''), 'the automatic link preview disclosure is missing');
-    requireValue(/what felt clear or confusing in the first minute/i.test(prepared.firstComment || ''), 'the one useful feedback question is missing');
-    requireValue(/not a substitute for care/i.test(prepared.firstComment || '') && /tested and reworked/i.test(prepared.firstComment || '') && /people decide what is released/i.test(prepared.firstComment || ''), 'the post does not answer the low-effort AI concern plainly');
+    requireValue(/try the first minute/i.test(prepared.firstComment || '') && /what made sense and what did not/i.test(prepared.firstComment || ''), 'the one useful feedback question is missing');
+    requireValue(/AI helped us build/i.test(prepared.firstComment || '') && /people made the decisions/i.test(prepared.firstComment || '') && /tested and reworked/i.test(prepared.firstComment || '') && /I am improving it/i.test(prepared.firstComment || ''), 'the post does not answer the low-effort AI concern plainly');
     requireValue((prepared.title || '').length <= 90, 'the post title is too long');
     requireValue((prepared.firstComment || '').trim().split(/\s+/).length <= 110, 'the first comment is too long');
     requireValue(!/\[HTML5\]|built in Phaser|three-pulse route/i.test(`${prepared.title || ''} ${prepared.firstComment || ''}`), 'the first community message has drifted back into technical release-note language');
@@ -98,7 +101,7 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
     }
 
     requireValue(feedbackHtml.includes('value="website_creator"><span>A game website, forum, newsletter or creator</span>'), 'adult feedback cannot identify the community route');
-    for (const phrase of ['No post, account or outside contact has been made.', 'not guaranteed reach, posts, replies or player counts', 'Reddit returned 403', 'active community discussion about AI-made web games', 'This discussion is not a rule.', 'A post view is not a player.', 'cannot identify Reddit on its own', 'Weekly opportunity watch', 'no recommendation was prepared or posted', 'stores no username', 'private message or personal detail', 'The one approval needed']) {
+    for (const phrase of ['No post, account or outside contact has been made.', 'not guaranteed reach, posts, replies or player counts', 'Reddit returned 403', 'active community discussion about AI-made web games', 'This discussion is not a rule.', 'does not reply to or advertise inside that discussion', 'Kevin should use words he is comfortable owning', 'A post view is not a player.', 'cannot identify Reddit on its own', 'Weekly opportunity watch', 'no recommendation was prepared or posted', 'stores no username', 'private message or personal detail', 'The one approval needed']) {
         requireValue(copy.includes(phrase), `plain-language plan is missing: ${phrase}`);
     }
     requireValue(copy.replace(/^>\s?/gm, '').replace(/\s+/g, ' ').includes('I have an existing adult Reddit account, I approve the exact title, link and first comment below now, and I can personally answer replies for seven days.'), 'plain-language plan is missing the exact short-lived approval message');

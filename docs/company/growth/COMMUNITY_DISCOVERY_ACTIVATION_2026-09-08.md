@@ -37,21 +37,29 @@ https://mythicalvoid.com/play/
 
 **Title**
 
-> Mythical Void — hatch an alien creature and explore six strange worlds
+> Mythical Void - my son and I made a free alien creature adventure
 
 **First comment from Kevin**
 
-> My son and I started Mythical Void at home to see what imagination and
-> generative AI tools could make possible. It became a free early-access
-> browser adventure: hatch your own alien creature, explore six strange worlds
-> and free Guardians trapped by the Void. Your choices decide what Project
-> Beacon becomes. It starts straight away — no download or account.
+> My son and I started Mythical Void at home, using our imagination and today's
+> AI tools. We kept working until it became a real browser game.
 >
-> AI is one tool, not a substitute for care. The game has been tested and
-> reworked; people decide what is released.
+> Hatch an alien creature, explore six strange worlds and free their Guardians
+> from the Void. Your choices change Project Beacon. It is free to play and
+> still in early access, with no account or download.
 >
-> If you try it, what felt clear or confusing in the first minute? I will read
-> and answer replies myself. The link picture is our brand emblem, not gameplay.
+> AI helped us build, but people made the decisions. We tested and reworked it,
+> and I am improving it. If you try the first minute, I would like to know what
+> made sense and what did not.
+>
+> The link picture is our brand emblem, not gameplay.
+
+The community is currently highlighting an older discussion about AI-made web
+games. It is divided and often sharply critical of rushed work, glossy generated
+art that does not match the game, and descriptions that sound automatically
+written. This post does not reply to or advertise inside that discussion. Its
+lesson is simpler: Kevin should use words he is comfortable owning, show the
+real playable game, disclose the help from AI plainly and listen without arguing.
 
 The post itself is the direct game link. There is no tracking code, referral
 link, fabricated audience claim, gameplay image or generated image attached.

@@ -141,7 +141,7 @@ again before the final posting step.
 
 **Exact title**
 
-> Mythical Void — hatch an alien creature and explore six strange worlds
+> Mythical Void - my son and I made a free alien creature adventure
 
 **Exact direct link**
 
@@ -149,17 +149,18 @@ again before the final posting step.
 
 **Exact first comment**
 
-> My son and I started Mythical Void at home to see what imagination and
-> generative AI tools could make possible. It became a free early-access
-> browser adventure: hatch your own alien creature, explore six strange worlds
-> and free Guardians trapped by the Void. Your choices decide what Project
-> Beacon becomes. It starts straight away — no download or account.
+> My son and I started Mythical Void at home, using our imagination and today's
+> AI tools. We kept working until it became a real browser game.
 >
-> AI is one tool, not a substitute for care. The game has been tested and
-> reworked; people decide what is released.
+> Hatch an alien creature, explore six strange worlds and free their Guardians
+> from the Void. Your choices change Project Beacon. It is free to play and
+> still in early access, with no account or download.
 >
-> If you try it, what felt clear or confusing in the first minute? I will read
-> and answer replies myself. The link picture is our brand emblem, not gameplay.
+> AI helped us build, but people made the decisions. We tested and reworked it,
+> and I am improving it. If you try the first minute, I would like to know what
+> made sense and what did not.
+>
+> The link picture is our brand emblem, not gameplay.
 
 The post costs nothing. It asks one useful question about what felt clear or
 confusing in the first minute. It includes no gameplay attachment, tracking
