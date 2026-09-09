@@ -56,6 +56,9 @@ describe('guardian encounter pacing contracts', () => {
             /startBossFight\(\)[\s\S]*this\.hidePlatformerMobileControls\(\);[\s\S]*this\.stageReefGuardianArenaEntry\(\);/
         );
         expect(source).toContain('beginReefGuardianCombat(camera = this.cameras.main)');
+        expect(source).toContain(
+            'DODGE THE FLASH // ATTACK WHEN IT PAUSES'
+        );
         expect(source).toMatch(
             /beginReefGuardianCombat[\s\S]*this\.physics\.resume\(\);[\s\S]*this\.showPlatformerMobileControls\(\);[\s\S]*this\.startBossAI\(\);/
         );
@@ -64,9 +67,9 @@ describe('guardian encounter pacing contracts', () => {
         expect(source).toContain('const NYXVORAL_MOBILE_DISPLAY_WIDTH = 176;');
         expect(source).toContain('mobileZoom: 1');
         expect(source).toContain('mobileCameraLeadRatio: 0.25');
-        expect(source).toContain('mobileTeamGap: 100');
+        expect(source).toContain('mobileTeamGap: 160');
         expect(source).toContain('mobileTeamOffsetX: -30');
-        expect(source).toContain('mobileTeamOffsetY: -115');
+        expect(source).toContain('mobileTeamOffsetY: -155');
         expect(source).toContain('mobileBossOffsetX: -16');
         expect(source).toContain('desktopTeamGap: 172');
         expect(source).toContain("this.platformerPreviewSize === 'mobile'");

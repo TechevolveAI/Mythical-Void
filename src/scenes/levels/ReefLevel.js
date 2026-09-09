@@ -39,9 +39,9 @@ const REEF_GUARDIAN_ARENA = Object.freeze({
     contactDamage: 1,
     mobileZoom: 1,
     mobileCameraLeadRatio: 0.25,
-    mobileTeamGap: 100,
+    mobileTeamGap: 160,
     mobileTeamOffsetX: -30,
-    mobileTeamOffsetY: -115,
+    mobileTeamOffsetY: -155,
     mobileBossOffsetX: -16,
     desktopTeamGap: 172
 });
@@ -512,7 +512,7 @@ class ReefLevel extends PlatformerLevelScene {
             y(295),
             resume
                 ? `${resume.label} link restored`
-                : 'Synchronize the three ancient waypoints',
+                : 'Swim through the three gold current markers',
             {
             fontSize: font(16, 14),
             color: '#8FE3CF',
@@ -523,7 +523,7 @@ class ReefLevel extends PlatformerLevelScene {
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Ship part objective (critical!)
-        const shipObj = this.add.text(width / 2, y(335), 'Recover the Dimensional Drive Fragment', {
+        const shipObj = this.add.text(width / 2, y(335), 'Find Wanderer-77\'s Dimensional Drive', {
             fontSize: font(15, 13),
             color: '#00FFFF',
             fontStyle: 'bold',
@@ -1266,25 +1266,42 @@ class ReefLevel extends PlatformerLevelScene {
 
     getReefObjectiveText() {
         const routeStatus = this.getReefRouteStatusText();
+        const objective = (...lines) => lines.filter(Boolean).join('\n');
 
         if (this.bossDefeated) {
-            return `STELLAR PASSAGE RESTORED\nTHE GUARDIAN IS SAFE\n${routeStatus}`;
+            return objective(
+                'STELLAR PASSAGE RESTORED',
+                "NYX'VORAL IS FREE",
+                routeStatus
+            );
         }
         if (this.bossFightActive) {
-            return `BREAK THE VOID HOLD\nSTRIKE WHEN THE CURRENT OPENS\n${routeStatus}`;
+            return objective(
+                "FREE NYX'VORAL FROM THE VOID",
+                'STRIKE WHEN ITS BODY FLASHES',
+                routeStatus
+            );
         }
         if (this.reefRouteAligned && this.shipPartCollected) {
-            return `PASSAGE GUARDIAN AHEAD\nENTER THE OPEN CURRENT →\n${routeStatus}`;
+            return objective(
+                'THE PASSAGE IS OPEN',
+                "NYX'VORAL IS AWAKENING",
+                routeStatus
+            );
         }
         if (this.beaconAnchorsActivated >= 1 && !this.shipPartCollected) {
-            return `RECOVER THE DIMENSIONAL DRIVE\n${this.getDriveCompassText()}\n${routeStatus}`;
+            return objective(
+                'FIND THE DIMENSIONAL DRIVE',
+                this.getDriveCompassText(),
+                routeStatus
+            );
         }
 
         const nextWaypoint = [
-            'DRIFT MARKER',
-            'TRAVELER RELAY',
-            'PASSAGE VECTOR'
-        ][this.beaconAnchorsActivated] || 'PASSAGE VECTOR';
+            'DRIFT CURRENT',
+            'TRAVELER CURRENT',
+            'PASSAGE CURRENT'
+        ][this.beaconAnchorsActivated] || 'PASSAGE CURRENT';
         const current = Math.min(this.beaconAnchorsActivated + 1, 3);
         const drive = this.shipPartCollected
             ? 'DIMENSIONAL DRIVE // SECURED'
@@ -1294,9 +1311,9 @@ class ReefLevel extends PlatformerLevelScene {
             ? 'SWIM RIGHT + UP // FOLLOW THE GOLD CURRENT'
             : compass;
         const title = this.isCompactObjectiveHUD
-            ? `ROUTE ${current}/3`
-            : `ROUTE ${current}/3 // ${nextWaypoint}`;
-        return `${title}\n${routeDirection || drive}\n${routeStatus}`;
+            ? `GOLD MARKER ${current}/3`
+            : `GOLD MARKER ${current}/3 // ${nextWaypoint}`;
+        return objective(title, routeDirection || drive, routeStatus);
     }
 
     getReefRouteStatusText() {
@@ -1305,6 +1322,7 @@ class ReefLevel extends PlatformerLevelScene {
                 ? 'CURRENT BOOST // NEXT KATANA HIT +2 READY'
                 : 'CURRENT BOOST // CURRENT EDGE SPENT';
         }
+        if (this.reefRouteChoice !== 'optional') return '';
         return this.getOptionalRouteStatusText(
             'reef_star_trench',
             `OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`
@@ -1522,17 +1540,17 @@ class ReefLevel extends PlatformerLevelScene {
         const waypoints = [
             {
                 id: 'reef_waypoint_1',
-                label: 'DRIFT MARKER',
+                label: 'DRIFT CURRENT',
                 activationSupportIds: ['reef-drift-relay']
             },
             {
                 id: 'reef_waypoint_2',
-                label: 'TRAVELER RELAY',
+                label: 'TRAVELER CURRENT',
                 activationSupportIds: ['reef-traveler-relay']
             },
             {
                 id: 'reef_waypoint_3',
-                label: 'PASSAGE VECTOR',
+                label: 'PASSAGE CURRENT',
                 activationSupportIds: ['reef-passage-vector']
             }
         ];
@@ -1560,7 +1578,7 @@ class ReefLevel extends PlatformerLevelScene {
             const label = this.add.text(
                 waypointX,
                 waypointY - 76,
-                `${index + 1} // ${waypoint.label}\nSWIM THROUGH`,
+                `${index + 1} // GOLD MARKER\nSWIM THROUGH`,
                 {
                 fontSize: '11px',
                 color: '#667F94',
@@ -1638,28 +1656,29 @@ class ReefLevel extends PlatformerLevelScene {
     drawBeaconWaypoint(graphics, x, y, supportY, activated) {
         graphics.clear();
         const color = activated ? 0x8FE3CF : 0x3D5266;
+        const core = activated ? 0xF2C94C : 0x8FE3CF;
 
-        graphics.fillStyle(color, activated ? 0.24 : 0.1);
-        graphics.fillCircle(x, y, 38);
-        graphics.lineStyle(3, color, activated ? 1 : 0.7);
-        graphics.strokeCircle(x, y, 25);
-        graphics.lineStyle(2, activated ? 0xF2C94C : color, 0.9);
-        graphics.strokeCircle(x, y, 12);
-        graphics.fillStyle(activated ? 0xF2C94C : color, 0.95);
-        graphics.fillTriangle(x, y - 13, x - 9, y + 8, x + 9, y + 8);
-        graphics.lineStyle(2, color, 0.8);
-        graphics.lineBetween(x - 42, y, x - 27, y);
-        graphics.lineBetween(x + 27, y, x + 42, y);
-        graphics.lineStyle(3, color, activated ? 0.72 : 0.42);
-        graphics.lineBetween(x, y + 38, x, supportY - 5);
-        graphics.fillTriangle(
-            x,
-            supportY - 3,
-            x - 8,
-            supportY - 17,
-            x + 8,
-            supportY - 17
-        );
+        // A current bloom grows from the shelf so the objective belongs to
+        // the Reef instead of reading as a navigation instrument.
+        graphics.fillStyle(color, activated ? 0.24 : 0.12);
+        graphics.fillEllipse(x, y, 66, 86);
+        graphics.fillStyle(core, activated ? 0.34 : 0.18);
+        graphics.fillEllipse(x - 12, y + 3, 24, 48);
+        graphics.fillEllipse(x + 13, y - 4, 20, 38);
+        graphics.fillStyle(core, activated ? 1 : 0.82);
+        graphics.fillCircle(x, y - 5, activated ? 10 : 8);
+        const stemDistance = Math.max(0, supportY - y - 34);
+        const stemCount = Math.max(2, Math.ceil(stemDistance / 18));
+        for (let index = 0; index < stemCount; index += 1) {
+            const progress = stemCount <= 1 ? 1 : index / (stemCount - 1);
+            const drift = Math.sin(progress * Math.PI * 2) * 5;
+            graphics.fillStyle(color, 0.3 + progress * 0.28);
+            graphics.fillCircle(
+                x + drift,
+                y + 36 + progress * stemDistance,
+                Math.max(2, 5 - progress * 2)
+            );
+        }
     }
 
     activateBeaconWaypoint(anchor) {
@@ -1702,7 +1721,7 @@ class ReefLevel extends PlatformerLevelScene {
         });
 
         this.showFloatingText(
-            `PROJECT BEACON WAYPOINT ${this.beaconAnchorsActivated}/3`,
+            `GOLD CURRENT ${this.beaconAnchorsActivated}/3 OPEN`,
             anchor.x,
             anchor.y - 92,
             '#8FE3CF'
@@ -1778,30 +1797,37 @@ class ReefLevel extends PlatformerLevelScene {
             y: this.levelHeight - 300
         };
         const visual = this.add.graphics().setDepth(114);
-        visual.lineStyle(5, 0x8FE3CF, 0.58);
-        visual.beginPath();
-        visual.moveTo(300, this.levelHeight - 285);
-        visual.lineTo(560, this.levelHeight - 390);
-        visual.lineTo(830, this.levelHeight - 535);
-        visual.lineTo(1080, this.levelHeight - 505);
-        visual.lineTo(destinationX, destinationY);
-        visual.strokePath();
+        const drawCurrentPath = (width, color, alpha) => {
+            visual.lineStyle(width, color, alpha);
+            visual.beginPath();
+            visual.moveTo(300, this.levelHeight - 285);
+            visual.lineTo(560, this.levelHeight - 390);
+            visual.lineTo(830, this.levelHeight - 535);
+            visual.lineTo(1080, this.levelHeight - 505);
+            visual.lineTo(destinationX, destinationY);
+            visual.strokePath();
+        };
+        drawCurrentPath(24, 0x8FE3CF, 0.11);
+        drawCurrentPath(9, 0xF2C94C, 0.24);
+        drawCurrentPath(3, 0xD6EEF2, 0.34);
 
-        visual.fillStyle(0xF2C94C, 0.92);
         [
             [departureCue.x, departureCue.y],
             [430, this.levelHeight - 338],
             [690, this.levelHeight - 465],
             [950, this.levelHeight - 520],
             [destinationX - 90, destinationY]
-        ].forEach(([x, y]) => {
-            visual.fillTriangle(x + 12, y, x - 8, y - 8, x - 8, y + 8);
+        ].forEach(([x, y], index) => {
+            visual.fillStyle(0x8FE3CF, 0.16);
+            visual.fillCircle(x, y, 16 + (index % 2) * 3);
+            visual.fillStyle(0xF2C94C, 0.9);
+            visual.fillCircle(x, y, 6 + (index % 2) * 2);
         });
 
         const label = this.add.text(
             520,
             this.levelHeight - 430,
-            'DRIFT MARKER 01  →',
+            'FOLLOW THE GOLD CURRENT  →',
             {
                 fontSize: '12px',
                 color: '#F2C94C',
@@ -1810,6 +1836,9 @@ class ReefLevel extends PlatformerLevelScene {
                 strokeThickness: 4
             }
         ).setOrigin(0.5).setDepth(183);
+        label.setVisible(!(
+            this.isMobile || this.cameras.main.width <= 480
+        ));
 
         const pulseTween = this.tweens.add({
             targets: [visual, label],
@@ -1835,7 +1864,7 @@ class ReefLevel extends PlatformerLevelScene {
         current.retired = true;
         current.pulseTween?.remove?.();
         current.pulseTween = null;
-        current.label?.setText?.('DRIFT MARKER LINKED');
+        current.label?.setText?.('GOLD CURRENT LINKED');
         current.label?.setColor?.('#8FE3CF');
         this.tweens.add({
             targets: [current.visual, current.label].filter(Boolean),
@@ -3086,9 +3115,9 @@ class ReefLevel extends PlatformerLevelScene {
             y: this.levelHeight - 470,
             title: 'STELLAR PASSAGE',
             getStatus: () => {
-                if (!this.reefRouteAligned) return 'SYNCHRONIZE 3 WAYPOINTS';
-                if (!this.shipPartCollected) return 'RECOVER DIMENSIONAL DRIVE';
-                return 'PASSAGE OPEN // GUARDIAN WAKING';
+                if (!this.reefRouteAligned) return 'SWIM THROUGH 3 GOLD MARKERS';
+                if (!this.shipPartCollected) return 'FIND DIMENSIONAL DRIVE';
+                return 'PASSAGE OPEN // GUARDIAN AWAKENING';
             },
             isReady: () => this.reefRouteAligned && this.shipPartCollected,
             color: 0x9B30FF,
@@ -3103,8 +3132,8 @@ class ReefLevel extends PlatformerLevelScene {
                     const now = this.time.now;
                     if (now >= this.bossGateHintUntil) {
                         const message = missingRoute
-                            ? 'The passage is unreadable. Synchronize the waypoints.'
-                            : 'The moving Current is still behind us.';
+                            ? 'The passage needs all three gold markers.'
+                            : 'Find Wanderer-77\'s Dimensional Drive first.';
                         this.showFloatingText(
                             message,
                             this.player.x,
@@ -3427,7 +3456,10 @@ class ReefLevel extends PlatformerLevelScene {
         this.targetCameraLeadX = -this.cameraLeadAmount;
         this.physics.resume();
         this.showPlatformerMobileControls();
-        this.showBossAttackInstruction('GUARDIAN IN VIEW // WATCH THE CURRENT', 1800);
+        this.showBossAttackInstruction(
+            'DODGE THE FLASH // ATTACK WHEN IT PAUSES',
+            2200
+        );
 
         this.bossAttackPreviewTimer = this.time.delayedCall(
             REEF_GUARDIAN_ARENA.openingGraceMs,
