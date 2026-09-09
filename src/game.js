@@ -821,6 +821,7 @@ async function initializeGame() {
 
                         const loadingScreen = document.getElementById('loading-screen');
                         if (loadingScreen) {
+                            loadingScreen.setAttribute('aria-busy', 'false');
                             loadingScreen.style.opacity = '0';
                             loadingScreen.style.pointerEvents = 'none';
                             setTimeout(() => loadingScreen.remove(), 500);

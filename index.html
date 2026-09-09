@@ -48,6 +48,94 @@
         }
         html[data-initial-route="game"] .site-entry-fallback,
         html[data-distribution-target="itch"] .site-entry-fallback { display: none; }
+        .game-entry-loader { display: none; }
+        html[data-initial-route="game"] body,
+        html[data-distribution-target="itch"] body {
+            margin: 0;
+            background: #090711;
+        }
+        html[data-initial-route="game"] .game-entry-loader,
+        html[data-distribution-target="itch"] .game-entry-loader {
+            position: fixed;
+            inset: 0;
+            z-index: 30;
+            display: grid;
+            place-items: center;
+            box-sizing: border-box;
+            min-height: 100svh;
+            padding: 28px;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 50% 28%, rgba(117, 67, 218, 0.28), transparent 30%),
+                radial-gradient(circle at 50% 72%, rgba(118, 227, 207, 0.12), transparent 34%),
+                #090711;
+            color: #fff8ec;
+            font-family: Inter, ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif;
+            text-align: center;
+            transition: opacity 0.45s ease;
+        }
+        .game-entry-loader__inner {
+            width: min(440px, 100%);
+        }
+        .game-entry-loader__mark {
+            width: 76px;
+            height: 76px;
+            margin: 0 auto 22px;
+            filter: drop-shadow(0 0 22px rgba(172, 102, 255, 0.5));
+        }
+        .game-entry-loader__kicker {
+            margin: 0 0 12px;
+            color: #76e3cf;
+            font-size: 12px;
+            font-weight: 850;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+        .game-entry-loader h1 {
+            margin: 0;
+            font-size: clamp(34px, 10vw, 58px);
+            line-height: 1;
+            letter-spacing: -0.04em;
+        }
+        .game-entry-loader__copy {
+            margin: 18px auto 0;
+            color: #d7d1e5;
+            font-size: clamp(16px, 4.5vw, 20px);
+            line-height: 1.45;
+        }
+        .game-entry-loader__progress {
+            position: relative;
+            width: min(240px, 72vw);
+            height: 5px;
+            margin: 28px auto 0;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(255, 248, 236, 0.12);
+        }
+        .game-entry-loader__progress::after {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 -45%;
+            width: 45%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #76e3cf, #ac66ff);
+            animation: mythical-loader-travel 1.35s ease-in-out infinite;
+        }
+        .game-entry-loader__facts {
+            margin: 18px 0 0;
+            color: #ffcb68;
+            font-size: 13px;
+            font-weight: 800;
+        }
+        @keyframes mythical-loader-travel {
+            to { transform: translateX(330%); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .game-entry-loader__progress::after {
+                left: 27.5%;
+                animation: none;
+            }
+        }
         .site-entry-fallback__inner { width: min(850px, 100%); }
         .site-entry-fallback__kicker {
             margin: 0 0 18px;
@@ -287,6 +375,16 @@
                     <a href="/parents/">Read the family guide</a>
                     <a href="https://github.com/TechevolveAI/Mythical-Void" rel="me noopener noreferrer">View the public project</a>
                 </nav>
+            </div>
+        </main>
+        <main id="loading-screen" class="game-entry-loader" role="status" aria-live="polite" aria-busy="true">
+            <div class="game-entry-loader__inner">
+                <img class="game-entry-loader__mark" src="/marketing/mythical-void-mark-192.png" width="76" height="76" alt="">
+                <p class="game-entry-loader__kicker">Mythical Void</p>
+                <h1>Opening the Void…</h1>
+                <p class="game-entry-loader__copy">Preparing your creature and the worlds beyond.</p>
+                <div class="game-entry-loader__progress" aria-hidden="true"></div>
+                <p class="game-entry-loader__facts">Free to play · No download · No account needed</p>
             </div>
         </main>
     </div>
