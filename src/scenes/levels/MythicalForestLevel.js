@@ -1521,7 +1521,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             const supportY = support?.body?.top || groundY;
             const visual = this.add.graphics();
             visual.setDepth(85);
-            this.drawBeaconCheckpoint(visual, anchorX, supportY, false);
+            this.drawBeaconCheckpoint(visual, anchorX, supportY, 'future');
 
             // The compact objective already names the next light on phones.
             // Keep one in-world label for orientation and avoid two distant,
@@ -1565,7 +1565,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             const zone = this.createObjectiveTriggerZone(
                 anchorX,
                 supportY - 62,
-                { width: 150, height: 280 }
+                { width: 220, height: 300 }
             );
 
             const checkpoint = {
@@ -1609,17 +1609,30 @@ class MythicalForestLevel extends PlatformerLevelScene {
         ];
     }
 
-    drawBeaconCheckpoint(graphics, x, groundY, activated) {
+    drawBeaconCheckpoint(graphics, x, groundY, state = 'future') {
         graphics.clear();
-        const color = activated ? 0x8FE3CF : 0x35565D;
-        const glowAlpha = activated ? 0.3 : 0.12;
+        const complete = state === 'complete';
+        const next = state === 'next';
+        const color = complete ? 0x8FE3CF : (next ? 0xF2C94C : 0x35565D);
+        const glowAlpha = complete ? 0.3 : (next ? 0.34 : 0.1);
+        const coreRadius = next ? 40 : 34;
+        const ringRadius = next ? 29 : 24;
+
+        graphics.forestLightState = state;
+        graphics.forestLightColor = color;
 
         graphics.fillStyle(color, glowAlpha);
         graphics.fillRect(x - 12, groundY - 150, 24, 122);
-        graphics.fillCircle(x, groundY - 62, 34);
-        graphics.lineStyle(3, color, activated ? 1 : 0.65);
-        graphics.strokeCircle(x, groundY - 62, 24);
-        graphics.lineStyle(2, color, 0.8);
+        graphics.fillCircle(x, groundY - 62, coreRadius);
+        graphics.lineStyle(next ? 5 : 3, color, complete || next ? 1 : 0.55);
+        graphics.strokeCircle(x, groundY - 62, ringRadius);
+        if (next) {
+            graphics.lineStyle(3, color, 0.72);
+            graphics.strokeCircle(x, groundY - 62, 46);
+            graphics.fillStyle(0xFFF4B8, 0.96);
+            graphics.fillCircle(x, groundY - 62, 9);
+        }
+        graphics.lineStyle(2, color, complete || next ? 0.9 : 0.65);
         graphics.lineBetween(x, groundY - 38, x, groundY - 5);
         graphics.fillStyle(color, 0.95);
         graphics.fillTriangle(
@@ -1655,7 +1668,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             checkpoint.visual,
             checkpoint.x,
             checkpoint.supportY,
-            true
+            'complete'
         );
         this.retireTraversalLandingGuide(checkpoint);
         this.refreshForestRouteReadability();
@@ -1780,6 +1793,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
             const complete = checkpoint.activated === true;
             const next = !complete &&
                 checkpoint.index === this.beaconAnchorsActivated;
+            this.drawBeaconCheckpoint(
+                checkpoint.visual,
+                checkpoint.x,
+                checkpoint.supportY,
+                complete ? 'complete' : (next ? 'next' : 'future')
+            );
             checkpoint.actionPrompt
                 ?.setText?.(
                     complete
@@ -1804,7 +1823,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                     checkpoint.visual,
                     checkpoint.x,
                     checkpoint.supportY,
-                    true
+                    'complete'
                 );
                 this.retireTraversalLandingGuide(checkpoint);
             },
