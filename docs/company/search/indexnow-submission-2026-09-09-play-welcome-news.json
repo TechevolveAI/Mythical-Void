@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "INDEXNOW-2026-09-09-PLAY-WELCOME-NEWS",
+  "submittedAt": null,
+  "submittedOn": "2026-09-09",
+  "host": "mythicalvoid.com",
+  "endpoint": "https://api.indexnow.org/indexnow",
+  "reason": "The live Latest News index gained a permanent UPDATE-029 page explaining the immediate welcome now shown while the direct Play experience prepares.",
+  "release": {
+    "sourceCommit": "1c4d6d21c0fbd8cfef38eed3316bf5086dfef711",
+    "productionMergeCommit": "bd0c9a62f9ebeaf33336435dd0fa9ea5a70d5f83",
+    "productionDeployId": "6aa0ae3953e6b00007d2c751"
+  },
+  "urls": [
+    "https://mythicalvoid.com/updates/",
+    "https://mythicalvoid.com/updates/update-029/"
+  ],
+  "urlCount": 2,
+  "canonicalSitemapCount": 2,
+  "httpStatus": 200,
+  "accepted": true,
+  "responseTimeRecorded": false,
+  "unchangedSitemapUrlsResubmitted": false,
+  "directPlayUrlSubmitted": false,
+  "directPlayUrlOmittedReason": "The direct Play address changed but is not listed in either canonical sitemap, so the safeguarded workflow refused to submit it.",
+  "meaning": "Participating search engines accepted a notice for the two genuinely changed canonical Latest News pages. Acceptance does not prove crawling, indexing, ranking, visits, play or growth.",
+  "personalDataSent": false,
+  "accountUsed": false,
+  "paidPromotionStarted": false
+}

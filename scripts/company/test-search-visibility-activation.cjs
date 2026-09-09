@@ -18,6 +18,7 @@ const files = [
     'docs/company/search/indexnow-submission-2026-09-08-hatch-news.json',
     'docs/company/search/indexnow-submission-2026-09-08-hatch-first-screen.json',
     'docs/company/search/indexnow-submission-2026-09-09-mobile-homepage.json',
+    'docs/company/search/indexnow-submission-2026-09-09-play-welcome-news.json',
     'docs/company/search/SEARCH_VISIBILITY_AUDIT_2026-08-27.md',
     'docs/company/search/SEARCH_CONSOLE_ACTIVATION.md',
     'docs/company/search/search-opportunities.json',
@@ -82,6 +83,8 @@ invalidAudit('invented newest-notice indexing', audit => { audit.indexNow.newest
 invalidAudit('inflated newest-notice count', audit => { audit.indexNow.newestOwnedChangeNotice.urlCount = 99; }, 'newest owned changed-page notification audit is incomplete');
 invalidAudit('invented latest-notice indexing', audit => { audit.indexNow.latestOwnedChangeNotice.indexingClaimed = true; }, 'latest owned changed-page notice must not claim indexing');
 invalidAudit('inflated latest-notice count', audit => { audit.indexNow.latestOwnedChangeNotice.urlCount = 99; }, 'latest owned changed-page notification audit is incomplete');
+invalidAudit('invented current-notice indexing', audit => { audit.indexNow.currentOwnedChangeNotice.indexingClaimed = true; }, 'current owned changed-page notice must not claim indexing');
+invalidAudit('inflated current-notice count', audit => { audit.indexNow.currentOwnedChangeNotice.urlCount = 99; }, 'current owned changed-page notification audit is incomplete');
 invalidAudit('invented result count', audit => { audit.sample.officialSiteResultCountClaimed = true; }, 'must not invent a result count');
 invalidAudit('stale identity state', audit => { audit.homepageIdentityMarkup.productionState = 'prepared_not_deployed'; }, 'live state is stale');
 invalidAudit('invented Search Console property', audit => { audit.searchConsoleAccessCheck.mythicalVoidPropertyAccessible = true; }, 'Search Console absence check');
@@ -196,5 +199,5 @@ try {
     fs.rmSync(companionRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 27);
-console.log('Search visibility activation safeguards passed (27 cases).');
+assert.strictEqual(cases, 29);
+console.log('Search visibility activation safeguards passed (29 cases).');

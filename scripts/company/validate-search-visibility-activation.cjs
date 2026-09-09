@@ -15,6 +15,7 @@ const changedPageIndexNow = JSON.parse(read('docs/company/search/indexnow-submis
 const previousOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-08-hatch-news.json'));
 const newestOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-08-hatch-first-screen.json'));
 const latestOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-09-mobile-homepage.json'));
+const currentOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-09-play-welcome-news.json'));
 const handoff = read('docs/company/search/SEARCH_CONSOLE_ACTIVATION.md');
 const report = read('docs/company/search/SEARCH_VISIBILITY_AUDIT_2026-08-27.md');
 const opportunityMap = JSON.parse(read('docs/company/search/search-opportunities.json'));
@@ -109,6 +110,20 @@ requireValue(JSON.stringify(latestOwnedChangeIndexNow.urls) === JSON.stringify([
 ]), 'latest owned changed-page IndexNow URL list drifted');
 requireValue(latestOwnedChangeIndexNow.unchangedSitemapUrlsResubmitted === false && /does not prove/i.test(latestOwnedChangeIndexNow.meaning || ''), 'latest owned changed-page IndexNow boundary is missing');
 for (const field of ['personalDataSent', 'accountUsed', 'paidPromotionStarted']) requireValue(latestOwnedChangeIndexNow[field] === false, `latest owned changed-page IndexNow boundary ${field} must remain false`);
+requireValue(audit.indexNow?.currentOwnedChangeNotice?.record === 'docs/company/search/indexnow-submission-2026-09-09-play-welcome-news.json', 'current owned changed-page notification evidence link is missing');
+requireValue(audit.indexNow?.currentOwnedChangeNotice?.accepted === true && audit.indexNow?.currentOwnedChangeNotice?.urlCount === 2 && audit.indexNow?.currentOwnedChangeNotice?.unchangedUrlsResubmitted === false, 'current owned changed-page notification audit is incomplete');
+requireValue(audit.indexNow?.currentOwnedChangeNotice?.indexingClaimed === false, 'current owned changed-page notice must not claim indexing');
+requireValue(currentOwnedChangeIndexNow.id === 'INDEXNOW-2026-09-09-PLAY-WELCOME-NEWS' && currentOwnedChangeIndexNow.host === 'mythicalvoid.com', 'current owned changed-page IndexNow evidence identity is invalid');
+requireValue(currentOwnedChangeIndexNow.submittedAt === null && currentOwnedChangeIndexNow.submittedOn === '2026-09-09' && currentOwnedChangeIndexNow.responseTimeRecorded === false, 'current owned changed-page notice invents an exact response time');
+requireValue(currentOwnedChangeIndexNow.accepted === true && currentOwnedChangeIndexNow.httpStatus === 200 && currentOwnedChangeIndexNow.urlCount === 2, 'current owned changed-page IndexNow acceptance evidence is incomplete');
+requireValue(currentOwnedChangeIndexNow.canonicalSitemapCount === 2, 'current owned changed-page notice did not use both canonical sitemaps');
+requireValue(JSON.stringify(currentOwnedChangeIndexNow.urls) === JSON.stringify([
+    'https://mythicalvoid.com/updates/',
+    'https://mythicalvoid.com/updates/update-029/'
+]), 'current owned changed-page IndexNow URL list drifted');
+requireValue(currentOwnedChangeIndexNow.directPlayUrlSubmitted === false && /not listed in either canonical sitemap/i.test(currentOwnedChangeIndexNow.directPlayUrlOmittedReason || ''), 'current owned changed-page notice does not preserve the direct-Play refusal');
+requireValue(currentOwnedChangeIndexNow.unchangedSitemapUrlsResubmitted === false && /does not prove/i.test(currentOwnedChangeIndexNow.meaning || ''), 'current owned changed-page IndexNow boundary is missing');
+for (const field of ['personalDataSent', 'accountUsed', 'paidPromotionStarted']) requireValue(currentOwnedChangeIndexNow[field] === false, `current owned changed-page IndexNow boundary ${field} must remain false`);
 
 requireValue(homepage.includes('<meta name="robots" content="index, follow, max-image-preview:large">'), 'homepage index instruction is missing');
 requireValue(homepage.includes('<link rel="canonical" href="https://mythicalvoid.com/">'), 'homepage canonical is missing');
@@ -191,6 +206,6 @@ console.log(JSON.stringify({
     liveOwnedSearchRoutes: opportunityMap.clusters.length,
     searchConsoleConnected: false,
     indexNowAccepted: true,
-    latestChangedPagesNotified: latestOwnedChangeIndexNow.urlCount,
+    latestChangedPagesNotified: currentOwnedChangeIndexNow.urlCount,
     externalActionTaken: true
 }, null, 2));

@@ -78,6 +78,11 @@ actually live or prepared on 9 September 2026.
 - The later mobile homepage change was also notified on its own. The service
   accepted that one-page notice; the exact response time was not retained, and
   acceptance is still not indexing, visits, play or growth.
+- The new direct-Play welcome release added one permanent Latest News page.
+  Only that page and the changed Latest News index were included in the next
+  accepted notice. The workflow correctly refused to include `/play/` because
+  it is not in the canonical sitemaps. Acceptance is still not indexing,
+  visits, play or growth.
 - GitHub's 14-day traffic view on 8 September showed two repository-page views
   and one unique view. Clone totals are excluded because development and
   automation can create them. GitHub remains a useful proof shelf, but this is
