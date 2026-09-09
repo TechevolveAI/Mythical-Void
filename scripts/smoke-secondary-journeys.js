@@ -10650,6 +10650,319 @@ async function smokeLateLivingFormArrival(session, exceptions) {
     return reveal;
 }
 
+async function smokeCreatureContinuity(session, exceptions) {
+    exceptions.length = 0;
+    await navigate(session, `${BASE_URL}/play/?reset=true`);
+    await waitForScene(session, 'HatchingScene');
+
+    const seeded = await evaluate(session, `(() => {
+        const game = window.mythicalGame;
+        const state = window.GameState;
+        const fixture = ${JSON.stringify(getVisualReviewCreatureProfile())};
+        const creature = {
+            ...(state.get('creature') || {}),
+            id: 'smoke_continuity_nova',
+            name: 'Nova',
+            hatched: true,
+            named: true,
+            genes: fixture.genes,
+            genetics: fixture.genes,
+            dna: fixture.dna,
+            lifecycle: {
+                ...(state.get('creature.lifecycle') || {}),
+                stage: 'baby'
+            }
+        };
+        state.set('creature', creature);
+        state.set('creatures', [JSON.parse(JSON.stringify(creature))]);
+        state.set('activeCreatureIndex', 0);
+        state.set('session.gameStarted', true);
+        state.set('tutorial.crashStorySeen', true);
+        state.set('tutorial.controlsSeen', true);
+        state.set('tutorial.villageHeartArrivalSeen', true);
+        state.set('tutorial.livingFormPending', false);
+        state.set('tutorial.livingFormSeen', true);
+        const portraitSaved = state.saveCreaturePortrait({
+            identityKey: 'SMOKE-CONTINUITY-23:baby:story',
+            stage: 'baby',
+            style: 'cinematic',
+            assetRef: 'portrait-job-v1:22222222-3333-4444-8555-666666666666',
+            provider: 'test',
+            model: 'test',
+            promptVersion: 'continuity-smoke',
+            storage: 'supabase-private',
+            status: 'ready'
+        });
+        const stored = state.getCreaturePortrait('baby');
+        const record = stored ? {
+            ...stored,
+            imageUrl: '/marketing/nova.webp',
+            expiresAt: null
+        } : null;
+        const media = window.CompanionMediaService;
+        if (!portraitSaved || !record || !media) return null;
+        media.resolvePortrait = async stage => (
+            !stage || stage === 'baby' ? { ...record } : null
+        );
+        window.__creatureContinuityRecord = record;
+        state.save();
+        game.scene.stop('HatchingScene');
+        game.scene.start('GameScene', {
+            biome: 'nebula',
+            forceMobileControls: true
+        });
+        return {
+            creatureId: creature.id,
+            identityKey: record.identityKey,
+            collectionIdentityKey: state.get(
+                'creatures.0.portraits.byStage.baby.identityKey'
+            )
+        };
+    })()`);
+    if (
+        !seeded ||
+        seeded.identityKey !== 'SMOKE-CONTINUITY-23:baby:story' ||
+        seeded.collectionIdentityKey !== seeded.identityKey
+    ) {
+        throw new Error(`Creature continuity fixture was not durable: ${JSON.stringify(seeded)}`);
+    }
+
+    await waitForScene(session, 'GameScene', 30000);
+    await waitFor(
+        () => evaluate(session, `Boolean(
+            window.mythicalGame?.scene?.getScene?.('GameScene')?.hamburgerMenu
+        )`),
+        { timeoutMs: 18000, message: 'Creature continuity Sanctuary ready' }
+    );
+    await evaluate(session, `(() => {
+        window.mythicalGame.scene.getScene('GameScene').openCreatureProfile();
+        return true;
+    })()`);
+    await waitForScene(session, 'CreatureProfileScene');
+
+    const profileSurface = await waitFor(
+        () => evaluate(session, `(() => {
+            const state = window.GameState;
+            const record = window.__creatureContinuityRecord;
+            const media = window.CompanionMediaService;
+            const scene = window.mythicalGame?.scene?.getScene?.(
+                'CreatureProfileScene'
+            );
+            const textureKey = media?.getTextureKey?.(record);
+            const portrait = scene?.children?.list?.find(item => (
+                item?.texture?.key === textureKey &&
+                item.visible !== false &&
+                item.alpha > 0
+            ));
+            const appearances = Object.values(
+                state?.get?.('story.companionMedia.appearances') || {}
+            );
+            const appearance = appearances.find(item => (
+                item?.momentId === 'companion_profile'
+            ));
+            if (!portrait || !appearance) return null;
+            return {
+                creatureId: state.get('creature.id'),
+                activeIdentityKey: state.getCreaturePortrait('baby')?.identityKey,
+                collectionIdentityKey: state.get(
+                    'creatures.0.portraits.byStage.baby.identityKey'
+                ),
+                appearanceIdentityKey: appearance.identityKey,
+                textureKey,
+                portraitVisible: true,
+                sanctuaryPaused: window.mythicalGame.scene.isPaused('GameScene')
+            };
+        })()`),
+        { timeoutMs: 15000, message: 'same living portrait in Creature Profile' }
+    );
+    if (
+        profileSurface.creatureId !== seeded.creatureId ||
+        profileSurface.activeIdentityKey !== seeded.identityKey ||
+        profileSurface.collectionIdentityKey !== seeded.identityKey ||
+        profileSurface.appearanceIdentityKey !== seeded.identityKey ||
+        !profileSurface.portraitVisible ||
+        !profileSurface.sanctuaryPaused
+    ) {
+        throw new Error(`Creature Profile changed identity: ${JSON.stringify(profileSurface)}`);
+    }
+
+    await evaluate(session, `(() => {
+        window.mythicalGame.scene.getScene('CreatureProfileScene').goBack();
+        return true;
+    })()`);
+    await waitForScene(session, 'GameScene');
+    await waitFor(
+        () => evaluate(
+            session,
+            `!window.mythicalGame.scene.isActive('CreatureProfileScene')`
+        ),
+        { message: 'Creature continuity profile closed' }
+    );
+    const opened = await evaluate(session, `(() => (
+        window.mythicalGame.scene.getScene('GameScene').openVillageCommand({
+            guided: true
+        })
+    ))()`);
+    if (!opened) throw new Error('Creature continuity could not open the Village Heart');
+
+    const sanctuarySurface = await waitFor(
+        () => evaluate(session, `(() => {
+            const state = window.GameState;
+            const panel = window.mythicalGame?.scene?.getScene?.('GameScene')
+                ?.villageCommandPanel;
+            const image = document.querySelector(
+                '.village-heart-introduction .village-creature-living-portrait'
+            );
+            if (!image?.complete || image.naturalWidth < 256) return null;
+            return {
+                creatureId: state.get('creature.id'),
+                activeIdentityKey: state.getCreaturePortrait('baby')?.identityKey,
+                panelIdentityKey: panel?.companionPortraitRecord?.identityKey || null,
+                imageSource: image.getAttribute('src'),
+                gameSceneActive: window.mythicalGame.scene.isActive('GameScene')
+            };
+        })()`),
+        { timeoutMs: 10000, message: 'same living portrait at Village Heart' }
+    );
+    if (
+        sanctuarySurface.creatureId !== seeded.creatureId ||
+        sanctuarySurface.activeIdentityKey !== seeded.identityKey ||
+        sanctuarySurface.panelIdentityKey !== seeded.identityKey ||
+        sanctuarySurface.imageSource !== '/marketing/nova.webp' ||
+        !sanctuarySurface.gameSceneActive
+    ) {
+        throw new Error(`Sanctuary changed creature identity: ${JSON.stringify(sanctuarySurface)}`);
+    }
+    await evaluate(session, `(() => {
+        document.querySelector('.village-command-close')?.click();
+        return true;
+    })()`);
+    await waitFor(
+        () => evaluate(session, `!document.querySelector('.village-command-modal')`),
+        { message: 'Creature continuity Village Heart closed' }
+    );
+    const playable = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('GameScene');
+        return {
+            sceneActive: scene?.scene?.isActive?.() === true,
+            physicsPaused: scene?.physics?.world?.isPaused === true,
+            playerActive: scene?.player?.active === true,
+            portraitOverlayPresent: Boolean(document.querySelector(
+                '[data-testid="living-form-handoff"]'
+            ))
+        };
+    })()`);
+    if (
+        !playable.sceneActive ||
+        playable.physicsPaused ||
+        !playable.playerActive ||
+        playable.portraitOverlayPresent ||
+        exceptions.length
+    ) {
+        throw new Error(`Creature continuity blocked play: ${JSON.stringify({ playable, exceptions })}`);
+    }
+
+    await evaluate(session, `(async () => {
+        const game = window.mythicalGame;
+        window.GameState.set(
+            'story.projectBeacon.firstForestCinematicVersion',
+            0
+        );
+        game.scene.getScenes(true).forEach(active => {
+            game.scene.stop(active.scene.key);
+        });
+        await window.SceneLoader.loadScene(game, 'MythicalForestLevel');
+        game.scene.start('MythicalForestLevel', {
+            entryPreview: true,
+            forceMobileControls: true,
+            platformerPreviewSize: 'mobile'
+        });
+        return true;
+    })()`);
+    await waitForScene(session, 'MythicalForestLevel');
+    const forestStory = await waitFor(
+        () => evaluate(session, `(() => {
+            const state = window.GameState;
+            const record = window.__creatureContinuityRecord;
+            const media = window.CompanionMediaService;
+            const scene = window.mythicalGame?.scene?.getScene?.(
+                'MythicalForestLevel'
+            );
+            const textureKey = media?.getTextureKey?.(record);
+            const portrait = scene?.children?.list?.find(item => (
+                item?.texture?.key === textureKey &&
+                item.visible !== false &&
+                item.alpha > 0
+            ));
+            const appearances = Object.values(
+                state?.get?.('story.companionMedia.appearances') || {}
+            );
+            const appearance = appearances.find(item => (
+                item?.momentId === 'first_forest_arrival'
+            ));
+            if (!portrait || !appearance) return null;
+            return {
+                creatureId: state.get('creature.id'),
+                activeIdentityKey: state.getCreaturePortrait('baby')?.identityKey,
+                appearanceIdentityKey: appearance.identityKey,
+                textureKey,
+                portraitVisible: true,
+                physicsPaused: scene?.physics?.world?.isPaused === true
+            };
+        })()`),
+        { timeoutMs: 15000, message: 'same living portrait in Forest field brief' }
+    );
+    if (
+        forestStory.creatureId !== seeded.creatureId ||
+        forestStory.activeIdentityKey !== seeded.identityKey ||
+        forestStory.appearanceIdentityKey !== seeded.identityKey ||
+        !forestStory.portraitVisible ||
+        !forestStory.physicsPaused
+    ) {
+        throw new Error(`Forest story changed creature identity: ${JSON.stringify(forestStory)}`);
+    }
+    await tap(session, 195, 140);
+    await delay(550);
+    await tap(session, 195, 140);
+    await delay(500);
+    const forestPlayable = await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame?.scene?.getScene?.(
+                'MythicalForestLevel'
+            );
+            if (
+                !scene?.player?.active ||
+                scene.physics?.world?.isPaused ||
+                scene.platformerControlsVisible !== true
+            ) return null;
+            return {
+                playerActive: true,
+                physicsPaused: false,
+                mobileControls: true,
+                activeIdentityKey: window.GameState
+                    ?.getCreaturePortrait?.('baby')?.identityKey,
+                fieldBriefCleared: scene.forestArrivalElements?.length === 0
+            };
+        })()`),
+        { timeoutMs: 8000, message: 'playable Forest after creature story' }
+    );
+    if (
+        forestPlayable.activeIdentityKey !== seeded.identityKey ||
+        !forestPlayable.fieldBriefCleared ||
+        exceptions.length
+    ) {
+        throw new Error(`Creature story blocked Forest play: ${JSON.stringify({ forestPlayable, exceptions })}`);
+    }
+    return {
+        seeded,
+        profileSurface,
+        sanctuarySurface,
+        playable,
+        forestStory,
+        forestPlayable
+    };
+}
+
 async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     exceptions.length = 0;
     const firstContactProfile = getVisualReviewCreatureProfile();
@@ -22816,6 +23129,12 @@ async function main() {
                 exceptions
             );
             process.stdout.write('PASS LateLivingFormArrival\n');
+        } else if (SMOKE_MODE === 'creature-continuity') {
+            results.creatureContinuity = await smokeCreatureContinuity(
+                session,
+                exceptions
+            );
+            process.stdout.write('PASS CreatureContinuity\n');
         } else if (SMOKE_MODE === 'first-sanctuary') {
             results.firstSanctuary = await smokeFirstSanctuaryOnboarding(
                 session,
@@ -22956,7 +23275,7 @@ async function main() {
         } else {
             throw new Error(
                 `Unknown SMOKE_MODE ${JSON.stringify(SMOKE_MODE)}. ` +
-                'Use home-entry, hatch-gallery, first-sanctuary, nasa-content, interaction, fusion-pod-lifecycle, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, void-portal-lifecycle, hub-forest-transition, village-ui, forest-arrival, visual-story-reel, visual-movement, rootwake-sequence, guardian-pacing, or reef-private-evidence.'
+                'Use home-entry, hatch-gallery, first-sanctuary, living-form-late, creature-continuity, nasa-content, interaction, fusion-pod-lifecycle, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, void-portal-lifecycle, hub-forest-transition, village-ui, forest-arrival, visual-story-reel, visual-movement, rootwake-sequence, guardian-pacing, or reef-private-evidence.'
             );
         }
         const optionalVideoDisabled = await evaluate(
