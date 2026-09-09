@@ -34,13 +34,14 @@ function makeRepository(changes) {
     return { root, before, after };
 }
 
-function run(root, before, after) {
+function run(root, before, after, extraEnv = {}) {
     return spawnSync(process.execPath, [script], {
         cwd: root,
         env: {
             ...process.env,
             CACHED_COMMIT_REF: before,
-            COMMIT_REF: after
+            COMMIT_REF: after,
+            ...extraEnv
         },
         encoding: 'utf8'
     });
@@ -101,5 +102,38 @@ describe('Netlify build-capacity guard', () => {
         });
         expect(result.status).toBe(1);
         expect(result.stdout).toContain('no distinct prior build');
+    });
+
+    test('skips an unbatched pull-request preview before spending build credits', () => {
+        const repository = makeRepository({ 'src/game.js': 'export const version = 2;\n' });
+        roots.push(repository.root);
+        const result = run(repository.root, repository.before, repository.after, {
+            CONTEXT: 'deploy-preview',
+            HEAD: 'codex/core-journey-next-level'
+        });
+        expect(result.status).toBe(0);
+        expect(result.stdout).toContain('not a batched codex/release-* preview branch');
+    });
+
+    test('continues a batched release preview with player-facing changes', () => {
+        const repository = makeRepository({ 'src/game.js': 'export const version = 2;\n' });
+        roots.push(repository.root);
+        const result = run(repository.root, repository.before, repository.after, {
+            CONTEXT: 'deploy-preview',
+            HEAD: 'codex/release-september-levels'
+        });
+        expect(result.status).toBe(1);
+        expect(result.stdout).toContain('public or build-affecting files changed');
+    });
+
+    test('continues a protected-main production build regardless of branch naming', () => {
+        const repository = makeRepository({ 'src/game.js': 'export const version = 2;\n' });
+        roots.push(repository.root);
+        const result = run(repository.root, repository.before, repository.after, {
+            CONTEXT: 'production',
+            BRANCH: 'main'
+        });
+        expect(result.status).toBe(1);
+        expect(result.stdout).toContain('public or build-affecting files changed');
     });
 });

@@ -11,6 +11,10 @@ const SPEC_PATH = '/private/tmp/mythical-void-portrait-specimen.json';
 const REFERENCE_PATH = '/private/tmp/mythical-void-hatch-reference.png';
 const OUTPUT_PATH = '/private/tmp/mythical-void-first-forest-smoke.mp4';
 
+function providerSpendApproved(argv = process.argv.slice(2)) {
+    return argv.includes('--allow-provider-spend');
+}
+
 function readEnvFile(filePath) {
     if (!fs.existsSync(filePath)) return {};
     return Object.fromEntries(
@@ -61,6 +65,9 @@ async function poll({ endpoint, assetRef, accessToken, timeoutMs }) {
 }
 
 async function run() {
+    if (!providerSpendApproved()) {
+        throw new Error('Refusing a production creature-film probe without --allow-provider-spend. A cache miss can consume paid hosting or AI-provider credits.');
+    }
     const root = path.join(__dirname, '..');
     const env = {
         ...readEnvFile(path.join(root, '.env.local')),
@@ -198,7 +205,11 @@ async function run() {
     }
 }
 
-run().catch(error => {
-    console.error(error.message);
-    process.exitCode = 1;
-});
+if (require.main === module) {
+    run().catch(error => {
+        console.error(error.message);
+        process.exitCode = 1;
+    });
+}
+
+module.exports = { providerSpendApproved };

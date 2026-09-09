@@ -1,8 +1,10 @@
 const {
+    MAX_PUBLICATIONS_PER_24_HOURS,
     SITE_ID,
     evaluatePromotion,
     isPlayerFacingPath,
-    parseArguments
+    parseArguments,
+    recentPublications
 } = require('../company/netlify-preview-promotion.cjs');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -48,7 +50,13 @@ function validEvidence() {
             skipped: true,
             error_message: 'Skipped due to account credit usage exceeded',
             created_at: '2026-09-09T00:47:38.198Z'
-        }
+        },
+        site: {
+            id: SITE_ID,
+            disabled: false
+        },
+        siteDeploys: [],
+        now: new Date('2026-09-09T01:00:00.000Z')
     };
 }
 
@@ -69,7 +77,13 @@ describe('guarded Netlify preview promotion', () => {
         ['wrong main commit', input => { input.mainDeploy.commit_ref = 'f'.repeat(40); }, 'protected-main merge'],
         ['ordinary failed build', input => { input.mainDeploy.skipped = false; }, 'not explicitly skipped'],
         ['different skip reason', input => { input.mainDeploy.error_message = 'Build command failed'; }, 'not skipped solely'],
-        ['stale main attempt', input => { input.mainDeploy.created_at = '2026-09-08T23:00:00.000Z'; }, 'predates']
+        ['stale main attempt', input => { input.mainDeploy.created_at = '2026-09-08T23:00:00.000Z'; }, 'predates'],
+        ['disabled site', input => { input.site.disabled = true; }, 'site is disabled'],
+        ['exhausted release budget', input => {
+            input.siteDeploys = Array.from({ length: MAX_PUBLICATIONS_PER_24_HOURS }, (_, index) => ({
+                published_at: `2026-09-09T00:0${index}:00.000Z`
+            }));
+        }, 'release budget is exhausted']
     ])('refuses %s', (_label, mutate, expected) => {
         const evidence = validEvidence();
         mutate(evidence);
@@ -93,6 +107,16 @@ describe('guarded Netlify preview promotion', () => {
         expect(isPlayerFacingPath('public/updates/index.html')).toBe(true);
         expect(isPlayerFacingPath('docs/company/operations/current-state.json')).toBe(false);
         expect(isPlayerFacingPath('scripts/company/private-check.cjs')).toBe(false);
+    });
+
+    test('counts only completed publications inside the previous 24 hours', () => {
+        const result = recentPublications([
+            { published_at: '2026-09-09T00:30:00.000Z' },
+            { published_at: '2026-09-08T00:59:59.000Z' },
+            { published_at: null },
+            { published_at: '2026-09-09T01:01:00.000Z' }
+        ], new Date('2026-09-09T01:00:00.000Z'));
+        expect(result).toHaveLength(1);
     });
 
     test('keeps the operator command dry-run first and documents the live check', () => {

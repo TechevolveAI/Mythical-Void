@@ -4,7 +4,10 @@ const { execFileSync } = require('node:child_process');
 
 const cachedCommit = String(process.env.CACHED_COMMIT_REF || '').trim();
 const currentCommit = String(process.env.COMMIT_REF || '').trim();
+const deployContext = String(process.env.CONTEXT || '').trim();
+const reviewBranch = String(process.env.HEAD || process.env.BRANCH || '').trim();
 const commitPattern = /^[0-9a-f]{40}$/i;
+const releasePreviewPattern = /^codex\/release-[a-z0-9][a-z0-9._/-]*$/i;
 
 const exactPrivateRecords = new Set([
     'docs/company/FOUNDER_CONTROL_PAGE.md',
@@ -28,7 +31,14 @@ function continueBuild(reason) {
     process.exitCode = 1;
 }
 
-if (!commitPattern.test(cachedCommit) || !commitPattern.test(currentCommit)) {
+function skipBuild(reason) {
+    process.stdout.write(`Netlify build skipped: ${reason}\n`);
+    process.exitCode = 0;
+}
+
+if (deployContext === 'deploy-preview' && !releasePreviewPattern.test(reviewBranch)) {
+    skipBuild(`'${reviewBranch || 'unknown'}' is not a batched codex/release-* preview branch.`);
+} else if (!commitPattern.test(cachedCommit) || !commitPattern.test(currentCommit)) {
     continueBuild('a trusted previous/current commit pair was not available.');
 } else if (cachedCommit === currentCommit) {
     continueBuild('there is no distinct prior build to compare safely.');
@@ -51,10 +61,7 @@ if (!commitPattern.test(cachedCommit) || !commitPattern.test(currentCommit)) {
             if (publicBuildFiles.length > 0) {
                 continueBuild(`public or build-affecting files changed (${publicBuildFiles.join(', ')}).`);
             } else {
-                process.stdout.write(
-                    `Netlify build skipped: ${changedFiles.length} private studio-record file(s) changed and no public/build file changed.\n`
-                );
-                process.exitCode = 0;
+                skipBuild(`${changedFiles.length} private studio-record file(s) changed and no public/build file changed.`);
             }
         }
     } catch (error) {
