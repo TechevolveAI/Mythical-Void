@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "FOUNDING-UPDATE-001",
-  "asOf": "2026-08-26",
+  "asOf": "2026-09-09",
   "state": "owned_word_of_mouth_live_first_external_post_waits_for_kevin",
   "primaryStoryUrl": "https://mythicalvoid.com/studio/",
   "playUrl": "https://mythicalvoid.com/",
@@ -10,6 +10,15 @@
   "firstWeekCampaignRef": "docs/company/content/campaigns/playable-now-launch.json",
   "firstWeekContentIds": ["PN-002", "PN-001", "PN-003"],
   "firstWeekAutomaticLinkPreviewsOnly": true,
+  "firstPost": {
+    "channel": "Kevin's existing adult LinkedIn profile",
+    "state": "content_ready_waiting_for_profile_preview_and_fresh_approval",
+    "copy": "Children ask questions that do not fit neatly inside a business plan.\n\nWhat might live in a world where gravity points sideways? Could a creature sense energy as music? And could a father, his son and today's generative AI tools turn those ideas into a real game?\n\nThat is how Mythical Void began in our home.\n\nThose conversations became alien creatures, six damaged realms, a crashed astronaut and a choice about what Project Beacon should tell Earth.\n\nToday it is a free early-access game you can play in a browser. Hatch a creature, explore, battle the corruption holding each Guardian, build a sanctuary and decide what the mission becomes. No download or account is needed.\n\nAI helps our small Irish studio explore and build. People remain responsible for the story, safety and what gets released. Optional discovery moments use credited public NASA material. NASA does not endorse Mythical Void.\n\nSee the story and play: https://mythicalvoid.com/studio/\n\nIf it reminds you of someone who loves strange creatures, games or space, please pass it on.",
+    "sha256": "142f6889511817d51759d389da23d175015d47284fd222c626346e3bbd445f4d",
+    "profileUrlConfirmed": false,
+    "completePreviewApproved": false,
+    "publishingAuthorized": false
+  },
   "approvedVisual": {
     "path": "public/marketing/mythical-void-creature-universe-hero-v2.webp",
     "usage": "automatic link preview from the studio page",
@@ -17,19 +26,25 @@
     "disclosure": "AI-generated marketing artwork inspired by creature-engine profiles; not gameplay."
   },
   "livePreviewCheck": {
-    "checkedAt": "2026-08-27T07:47:12Z",
-    "sourceCommit": "661cc07ea5c72109576eed5901f92203e6fc4f71",
-    "sourceDeployId": "6a8fea1c07447f0008946419",
+    "checkedAt": "2026-09-09T03:22:20Z",
+    "sourceCommit": "2f3843a9b24199565596064007568b9f2516288f",
+    "sourceDeployId": "6aa0c27a200b4400095861ae",
     "url": "https://mythicalvoid.com/studio/",
+    "pageStatus": 200,
     "title": "The Father-and-Son Story | Mythical Void Studio",
     "description": "How Kevin and his son's ideas became creatures, worlds and a playable browser adventure.",
     "image": "https://mythicalvoid.com/marketing/mythical-void-creature-universe-hero-v2.webp",
+    "imageStatus": 200,
+    "imageContentType": "image/webp",
     "imageAlt": "An imagined luminous universe filled with many possible alien creature forms",
     "imageWidth": 1672,
     "imageHeight": 941,
     "imageSha256": "33900887fb56104c3fada02ccd965747b0dfab12be7b2c883c624ff8f448fc47",
+    "generatedArtworkDisclosureObserved": true,
     "brokenImagesObserved": false,
-    "horizontalOverflowObserved": false
+    "horizontalOverflowObserved": false,
+    "linkedInCrawlerPreviewObserved": false,
+    "note": "The public page and its preview image were healthy. This does not prove LinkedIn's own card rendering; the complete LinkedIn preview must still be checked on the chosen adult profile before approval."
   },
   "ownedShareRoutes": [
     {
