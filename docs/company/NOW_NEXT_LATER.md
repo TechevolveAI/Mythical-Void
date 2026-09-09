@@ -26,6 +26,10 @@ actually live or prepared on 9 September 2026.
   final r/WebGames check inspects that exact page, its labelled brand preview
   and its real game shell; the homepage can no longer make a broken direct link
   look ready.
+- The direct Play address also shows a clear Mythical Void welcome immediately
+  while the real game prepares, rather than leaving a new visitor with an
+  unexplained dark screen. It states that play is free, with no download or
+  account, and uses no invented loading percentage.
 - The phone homepage now opens with a focused window into the wider creature
   universe. The Play button remains clear, the optional analytics choice does
   not cover it, and the artwork is explicitly labelled as an imagined
@@ -52,8 +56,8 @@ actually live or prepared on 9 September 2026.
   project easier to classify; they do not prove that anyone saw or played it.
 - The release hand-off now refreshes every Latest News draft during the normal
   build and reduces the whole backlog to one next audience move. It caught and
-  repaired a real one-release gap. The 21st permanent Latest News entry now
-  records the stronger phone welcome, and the current first move remains
+  repaired a real one-release gap. The 22nd permanent Latest News entry is now
+  prepared to record the clearer direct-Play welcome, and the current first move remains
   one text-only r/WebGames post. Nothing was posted and Kevin keeps control of
   the account and replies.
 - Thirteen places where adults already look for browser or independent games
