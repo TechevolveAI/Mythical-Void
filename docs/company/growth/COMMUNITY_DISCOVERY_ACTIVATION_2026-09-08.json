@@ -174,6 +174,69 @@
     "exactMythicalVoidResultObserved": false,
     "sequenceBoundary": "This remains second. Do not use it until the r/WebGames seven-day read is complete or r/WebGames is explicitly cancelled."
   },
+  "opportunityRadar": {
+    "state": "active_read_only_no_current_match_observed",
+    "checkedOn": "2026-09-09",
+    "cadence": "weekly_as_part_of_the_existing_growth_loop",
+    "purpose": "Notice a small number of fresh public requests that Mythical Void genuinely answers, without scraping people, interrupting unrelated conversations or posting automatically.",
+    "sources": [
+      {
+        "name": "r/WebGames newest posts",
+        "url": "https://www.reddit.com/r/WebGames/new/",
+        "use": "Notice direct browser-game conversations and make sure a planned Mythical Void post would not duplicate a recent one."
+      },
+      {
+        "name": "r/WebGames Find-A-Game Megathread",
+        "url": "https://www.reddit.com/r/WebGames/comments/sshkvp/findagame_megathread/",
+        "use": "Only consider a fresh broad request for recommendations that clearly fits Mythical Void; never answer a request whose purpose is identifying a particular old game.",
+        "currentFinding": "The latest visible requests were mainly attempts to identify old games. No honest Mythical Void recommendation opportunity was observed in this check."
+      },
+      {
+        "name": "Phaser Showcase",
+        "url": "https://phaser.discourse.group/c/showcase/5",
+        "use": "Notice current presentation norms and relevant technical conversations. Keep Mythical Void's prepared topic second until the Reddit read ends or is cancelled."
+      }
+    ],
+    "matchRules": {
+      "maximumOpportunitiesPerRun": 3,
+      "maximumAgeDays": 7,
+      "mustClearlyRequestAtLeastOne": [
+        "a free browser game",
+        "an alien-creature or creature-raising game",
+        "a family-friendly space adventure",
+        "a short platforming, battle or story-choice game",
+        "a Phaser game to test or discuss"
+      ],
+      "exclude": [
+        "requests to identify a particular remembered game",
+        "communities whose rules reject the project's disclosed AI-assisted process",
+        "children or anybody whose age is unclear asking for private contact",
+        "off-topic threads, promotional pile-ons and requests requiring a misleading claim"
+      ]
+    },
+    "report": {
+      "allowedFields": ["public thread URL", "date observed", "one-sentence reason it fits", "route rules to recheck", "expiry date"],
+      "storeUsernames": false,
+      "copyCommentText": false,
+      "openPrivateMessages": false,
+      "draftOnlyAfterFitConfirmed": true,
+      "publicationRequiresKevinActionTimeApproval": true
+    },
+    "authority": {
+      "automaticReplyAuthorized": false,
+      "automaticPostAuthorized": false,
+      "accountActionAuthorized": false,
+      "directContactAuthorized": false,
+      "currentOpportunityReplyAuthorized": false
+    },
+    "currentRun": {
+      "matchingOpportunityObserved": false,
+      "replyDrafted": false,
+      "replyPosted": false,
+      "externalActionTaken": false,
+      "limitation": "This was a bounded visible-page review, not a complete census of every forum or request. No match is better than forcing the game into an unrelated conversation."
+    }
+  },
   "authority": {
     "externalPostMade": false,
     "externalPostingAuthorized": false,

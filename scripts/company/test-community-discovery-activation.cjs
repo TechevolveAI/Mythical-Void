@@ -87,6 +87,31 @@ const cases = [
         expected: 'Kevin decision boundary is missing'
     },
     {
+        name: 'rejects pretending a forum opportunity exists',
+        mutate(plan) { plan.opportunityRadar.currentRun.matchingOpportunityObserved = true; },
+        expected: 'invents a match or outside action'
+    },
+    {
+        name: 'rejects automatic opportunity replies',
+        mutate(plan) { plan.opportunityRadar.authority.automaticReplyAuthorized = true; },
+        expected: 'opportunity authority automaticReplyAuthorized'
+    },
+    {
+        name: 'rejects storing forum usernames',
+        mutate(plan) { plan.opportunityRadar.report.storeUsernames = true; },
+        expected: 'stores people or private content'
+    },
+    {
+        name: 'rejects an unbounded opportunity feed',
+        mutate(plan) { plan.opportunityRadar.matchRules.maximumOpportunitiesPerRun = 50; },
+        expected: 'not small and fresh'
+    },
+    {
+        name: 'rejects hijacking an old-game request',
+        mutate(plan) { plan.opportunityRadar.matchRules.exclude = plan.opportunityRadar.matchRules.exclude.filter(item => !/identify a particular remembered game/i.test(item)); },
+        expected: 'old-game identification requests are not excluded'
+    },
+    {
         name: 'requires a measurable fixed feedback route',
         mutatePlan() {},
         feedbackHtml: base.feedbackHtml.replace('A game website, forum, newsletter or creator', 'Another website'),
