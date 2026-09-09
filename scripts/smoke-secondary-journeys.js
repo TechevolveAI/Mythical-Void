@@ -20071,7 +20071,7 @@ async function smokeVillageUi(session, exceptions) {
         'FALLEN TIMBER SHAPED',
         'CURRENT CHANNEL OPEN',
         'A LIGHT FOR EACH RESIDENT',
-        'TWO SIGNALS IN AGREEMENT'
+        'TWO CREATURES IN AGREEMENT'
     ];
     if (
         districtApproachFeedback.length !== 5 ||
