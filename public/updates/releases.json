@@ -17,6 +17,43 @@
   },
   "entries": [
     {
+      "id": "UPDATE-030",
+      "publishedOn": "2026-09-09",
+      "status": "live",
+      "category": "PLAY FOR ONE MINUTE",
+      "title": "Give Mythical Void one minute",
+      "summary": "The father-and-son studio story now links straight to the real game and invites adults to return with anonymous feedback about the opening minute.",
+      "details": [
+        "The studio story now offers one simple test: open the real game in a new tab, play for one minute without an explanation, then decide what made sense.",
+        "Adults can return to a fixed-choice feedback page that asks for no name, email address or contact details.",
+        "The invitation says that confusion is useful to hear about. It does not ask for praise or claim that anybody has played, enjoyed or recommended the game."
+      ],
+      "visualKind": "text_only_release",
+      "visualAlt": "A text-only update card inviting adults to try Mythical Void for one minute",
+      "disclosure": "Text-only release note about a live studio and feedback improvement; no screenshot or generated image is attached.",
+      "destination": "/studio/#first-minute",
+      "linkText": "Try the one-minute test",
+      "download": false,
+      "releaseProof": {
+        "sourceCommit": "2f56aa45fa1087f2b810ec01a0ed84ec0aea382c",
+        "productionMergeCommit": "e09424313e69c5d586aabd2fe9b542c38aa4b53c",
+        "productionDeployId": "6aa0e82db7f294000862abe3",
+        "productionPublishedAt": "2026-09-09T05:05:18.237Z",
+        "checkedUrl": "https://mythicalvoid.com/play/",
+        "checkedHttpStatus": 200,
+        "ownedPageCheckedUrl": "https://mythicalvoid.com/studio/",
+        "ownedPageCheckedHttpStatus": 200,
+        "adultFeedbackCheckedUrl": "https://mythicalvoid.com/feedback/",
+        "adultFeedbackCheckedHttpStatus": 200,
+        "firstMinuteSectionObserved": true,
+        "adultOnlyBoundaryObserved": true,
+        "nameOrContactDetailsRequested": false,
+        "gameplayVisualApproved": false,
+        "mediaAttached": false,
+        "claimBoundary": "The source, protected merge, published production deploy and live route checks prove that the one-minute test and adult feedback route are available. They do not prove visual quality, play, enjoyment or growth, and they do not prove that anybody used either route."
+      }
+    },
+    {
       "id": "UPDATE-029",
       "publishedOn": "2026-09-09",
       "status": "live",
