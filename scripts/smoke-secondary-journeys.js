@@ -4311,8 +4311,14 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     nextSignalEmphasized: Boolean(nextSignal?.guidanceTween),
                     nextSignalVisualState: nextSignal?.visual?.forestLightState || '',
                     nextSignalColor: nextSignal?.visual?.forestLightColor,
-                    nextSignalAction: nextSignal?.actionPrompt?.text || '',
-                    objective: scene?.getForestObjectiveText?.() || ''
+                    nextSignalAction: nextSignal?.actionPrompt?.text ||
+                        nextSignal?.label?.text || '',
+                    objective: scene?.getForestObjectiveText?.() ||
+                        scene?.getCrystalObjectiveText?.() ||
+                        scene?.getReefObjectiveText?.() ||
+                        scene?.getPeakObjectiveText?.() ||
+                        scene?.getAuroraObjectiveText?.() ||
+                        scene?.getFinalObjectiveText?.() || ''
                 };
             })(),
             rootwakeInitial: scene?.getRootwakeCrossingSnapshot?.() || null,
@@ -5022,6 +5028,17 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         ) {
             throw new Error(
                 `${sceneName} does not explain the Beacon action: ${JSON.stringify(guidance)}`
+            );
+        }
+        if (
+            ['reef', 'voidPeaks'].includes(route) &&
+            (
+                !guidance.nextSignalAction.trim() ||
+                !guidance.objective.trim()
+            )
+        ) {
+            throw new Error(
+                `${sceneName} has no child-readable opening action: ${JSON.stringify(guidance)}`
             );
         }
     }
@@ -7418,7 +7435,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             })()`);
             if (
                 reefDriveGate?.ready !== false ||
-                reefDriveGate.status !== 'RECOVER DIMENSIONAL DRIVE'
+                reefDriveGate.status !== 'FIND DIMENSIONAL DRIVE'
             ) {
                 throw new Error(
                     `${sceneName} gate did not identify its remaining drive requirement: ` +
@@ -8110,18 +8127,26 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             await waitFor(
                 () => evaluate(session, `(() => {
                     const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+                    const guardianAlreadyActive =
+                        scene?.bossFightActive === true &&
+                        scene?.guardianEncounter?.active === true;
                     if (${JSON.stringify(route)} === 'mythicalForest') {
-                        return scene?.bossFightActive === true &&
-                            scene?.guardianEncounter?.active === true;
+                        return guardianAlreadyActive;
                     }
                     scene?.refreshGuardianGateState?.(true);
+                    if (${JSON.stringify(route)} === 'reef') {
+                        return guardianAlreadyActive ||
+                            scene?.guardianGateState?.ready === true;
+                    }
                     return scene?.guardianGateState?.ready === true;
                 })()`),
                 {
                     timeoutMs: 3500,
                     message: route === 'mythicalForest'
                         ? `${sceneName} automatic guardian awakening`
-                        : `${sceneName} ready guardian gate`
+                        : (route === 'reef'
+                            ? `${sceneName} open guardian passage`
+                            : `${sceneName} ready guardian gate`)
                 }
             );
         } catch (error) {

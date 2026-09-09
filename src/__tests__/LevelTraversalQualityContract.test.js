@@ -2750,7 +2750,10 @@ describe('campaign traversal quality contracts', () => {
         const shared = read('PlatformerLevelScene.js');
 
         expect(source).toContain('this.createOpeningSignalCurrent();');
-        expect(source).toContain('DRIFT MARKER 01  →');
+        expect(source).toContain('FOLLOW THE GOLD CURRENT  →');
+        expect(source).toContain(
+            'this.isMobile || this.cameras.main.width <= 480'
+        );
         expect(source).toContain('x: 335');
         expect(source).toContain('[departureCue.x, departureCue.y]');
         expect(source).toContain('const isMobile = this.isMobile || (');
@@ -2758,7 +2761,7 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('↑ BUTTON SWIMS UP');
         expect(source).toContain('visual.lineTo(destinationX, destinationY);');
         expect(source).toContain('this.retireOpeningSignalCurrent();');
-        expect(source).toContain("current.label?.setText?.('DRIFT MARKER LINKED')");
+        expect(source).toContain("current.label?.setText?.('GOLD CURRENT LINKED')");
         expect(shared).toContain("supportId: 'reef-opening-3'");
         expect(shared).toContain('this.getTraversalSupportCheckpoint?.(');
         expect(shared).toContain('supportTop + 5');
@@ -2850,8 +2853,18 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.retireTraversalLandingGuide(anchor);');
         expect(source).toContain('this.scheduleAutomaticReefGuardianAwakening();');
         expect(source).toContain('enterReefGuardianEncounter()');
-        expect(source).toContain("return 'PASSAGE OPEN // GUARDIAN WAKING';");
-        expect(source).toContain('BREAK THE VOID HOLD');
+        expect(source).toContain("return 'PASSAGE OPEN // GUARDIAN AWAKENING';");
+        expect(source).toContain("FREE NYX'VORAL FROM THE VOID");
+
+        const smoke = fs.readFileSync(
+            path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
+            'utf8'
+        );
+        expect(smoke).toContain(
+            'return guardianAlreadyActive ||\n' +
+            '                            scene?.guardianGateState?.ready === true;'
+        );
+        expect(smoke).toContain('`${sceneName} open guardian passage`');
     });
 
     test('Mythical Forest audits the mandatory Rootwake crossing as a world change', () => {
@@ -2888,6 +2901,12 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('reefWaypointSupports');
         expect(smoke).toContain('smokeReefForwardCurrents(session)');
         expect(smoke).toContain('reefForwardCurrents');
+        expect(smoke).toContain("nextSignal?.label?.text || ''");
+        expect(smoke).toContain('scene?.getReefObjectiveText?.()');
+        expect(smoke).toContain('scene?.getPeakObjectiveText?.()');
+        expect(smoke).toContain(
+            'has no child-readable opening action'
+        );
         expect(smoke).toContain('Number(audit?.flow?.backtrackDistance) !== 0');
         expect(smoke).toContain('reefFlowFailed');
         expect(smoke).toContain("target.id === 'crystal_core'");

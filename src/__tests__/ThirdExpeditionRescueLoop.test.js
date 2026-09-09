@@ -38,7 +38,7 @@ describe('third expedition rescue loop', () => {
         expect(source).toContain('SWIM THROUGH');
         expect(source).toContain('this.getTraversalSupportCheckpoint(');
         expect(source).toContain('this.setCheckpoint(supportCheckpoint.x, supportCheckpoint.y, {');
-        expect(source).toContain('PROJECT BEACON WAYPOINT ${this.beaconAnchorsActivated}/3');
+        expect(source).toContain('GOLD CURRENT ${this.beaconAnchorsActivated}/3 OPEN');
         expect(source).toContain("traversalLinks: ['reef-current-crown']");
         expect(source).toContain("traversalLinks: ['reef-sky-rise']");
         expect(source).toMatch(/id: 'reef-current-crown'[\s\S]*?oneWay: true/);
@@ -243,10 +243,13 @@ describe('third expedition rescue loop', () => {
         expect(source).toContain('this.forceMobileControls ||');
         expect(source).toContain('screenWidth <= 480');
         expect(source).toContain('this.createCampaignObjectiveDisplay(');
-        expect(source).toContain('ROUTE ${current}/3 // ${nextWaypoint}');
-        expect(source).toContain('PASSAGE GUARDIAN AHEAD');
-        expect(source).toContain('RECOVER THE DIMENSIONAL DRIVE');
+        expect(source).toContain('GOLD MARKER ${current}/3 // ${nextWaypoint}');
+        expect(source).toContain('THE PASSAGE IS OPEN');
+        expect(source).toContain('FIND THE DIMENSIONAL DRIVE');
         expect(source).toContain('getDriveCompassText()');
+        expect(source).toContain("if (this.reefRouteChoice !== 'optional') return '';");
+        expect(source).toContain('SWIM THROUGH 3 GOLD MARKERS');
+        expect(source).toContain('mobileTeamOffsetY: -155');
         expect(source).toContain(
             '!(this.isCompactObjectiveHUD && this.bossFightActive)'
         );
