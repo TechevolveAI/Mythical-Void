@@ -56,8 +56,8 @@ actually live or prepared on 9 September 2026.
   project easier to classify; they do not prove that anyone saw or played it.
 - The release hand-off now refreshes every Latest News draft during the normal
   build and reduces the whole backlog to one next audience move. It caught and
-  repaired a real one-release gap. The 22nd permanent Latest News entry is now
-  prepared to record the clearer direct-Play welcome, and the current first move remains
+  repaired a real one-release gap. The 22nd permanent Latest News entry now
+  records the clearer direct-Play welcome, and the current first move remains
   one text-only r/WebGames post. Nothing was posted and Kevin keeps control of
   the account and replies.
 - Thirteen places where adults already look for browser or independent games
