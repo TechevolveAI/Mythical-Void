@@ -1739,6 +1739,16 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("supportId: 'caves-guardian-approach'");
         expect(source).toContain("lane: 'main'");
         expect(source).toContain("lane: 'shared'");
+        expect(source).toMatch(
+            /beat: 'spider-walk-miniboss',[\s\S]*?supportId: 'caves-spider-arena',[\s\S]*?lane: 'optional'/
+        );
+        expect(source).toContain(
+            "this.getTraversalSupport?.('caves-ground-entry')?.body?.top"
+        );
+        expect(source).toContain('const guardianCenterCoinY = guardianCenter?.body');
+        expect(source).toContain('guardianCenter.body.top - 36');
+        expect(source).toContain('{ x: 4000, y: guardianCenterCoinY }');
+        expect(source).toContain('const optionalLine = this.crystalChamberRoute');
         expect(source).toContain('enemy.encounterAirborne = true;');
         expect(source).toContain('enemy.encounterBeat = encounter.beat;');
         expect(source).toContain(
@@ -2855,6 +2865,7 @@ describe('campaign traversal quality contracts', () => {
 
     test('release smoke completes every campaign route instead of checking only its opening', () => {
         const base = read('PlatformerLevelScene.js');
+        const crystal = read('levels/CrystalCavesLevel.js');
         const smoke = fs.readFileSync(
             path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
             'utf8'
@@ -2984,8 +2995,32 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('state.ambientRendering?.layerCount !== 1');
         expect(smoke).toContain('state.ambientRendering?.pointCount !== 164');
         expect(smoke).toContain('smokeCaveBatchedCoinPickup(session)');
+        expect(smoke).toContain('scene.player.x + pickup.x - body.center.x');
+        expect(smoke).toContain('scene.player.y + pickup.y - body.center.y');
+        expect(smoke).toContain(
+            "scene.getTraversalSupport?.('caves-ground-entry')"
+        );
+        expect(smoke).toContain("'caves-guardian-approach'");
+        expect(smoke).toContain(
+            'scene.player.y + launchSupport.body.top - body.bottom - 1'
+        );
         expect(smoke).toContain('state.caveCoinRendering?.physicsCoinCount !== 0');
+        expect(smoke).toContain('state.caveCrystalRendering?.batchedCount !== 7');
         expect(smoke).toContain('state.caveCrystalRendering?.layerCount !== 1');
+        expect(crystal).toContain('this.customPerformanceTier = (');
+        expect(crystal).toContain("? 'mobile' : 'desktop'");
+        expect(smoke).toContain("scene?.customPerformanceTier || 'custom'");
+        expect(smoke).toContain("crystalCaves: 'GUARDIAN CHAMBER'");
+        expect(smoke).toContain(
+            'automaticContactAccepted: airborneRejected'
+        );
+        expect(smoke).toContain(
+            'did not accept automatic pulse contact'
+        );
+        expect(smoke).toContain(
+            'reward?.choice?.optionalSupportIds?.[0]'
+        );
+        expect(smoke).toContain("wardGate.selectedPath !== 'optional'");
         expect(smoke).toContain('state.caveEnemyRuntime?.scheduledEnemyCount !== 8');
         expect(smoke).toContain('state.caveEnemyRuntime?.individualTimerCount !== 2');
         expect(smoke).toContain('state.caveEnemyRuntime?.proximityActiveCount > 3');
