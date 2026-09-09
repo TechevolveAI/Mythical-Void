@@ -18,6 +18,7 @@ const latestOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-
 const currentOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-09-play-welcome-news.json'));
 const firstMinuteOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-09-first-minute-news.json'));
 const canonicalGameIdentityIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-09-game-identity.json'));
+const creatureMediaClaimIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-09-living-portrait-claims.json'));
 const handoff = read('docs/company/search/SEARCH_CONSOLE_ACTIVATION.md');
 const report = read('docs/company/search/SEARCH_VISIBILITY_AUDIT_2026-08-27.md');
 const opportunityMap = JSON.parse(read('docs/company/search/search-opportunities.json'));
@@ -156,6 +157,24 @@ requireValue(JSON.stringify(canonicalGameIdentityIndexNow.urls) === JSON.stringi
 requireValue(canonicalGameIdentityIndexNow.directPlayUrlSubmitted === false && /not listed in either canonical sitemap/i.test(canonicalGameIdentityIndexNow.directPlayUrlOmittedReason || ''), 'canonical game identity notice does not preserve the direct-Play refusal');
 requireValue(canonicalGameIdentityIndexNow.unchangedSitemapUrlsResubmitted === false && /does not prove/i.test(canonicalGameIdentityIndexNow.meaning || ''), 'canonical game identity IndexNow boundary is missing');
 for (const field of ['personalDataSent', 'accountUsed', 'paidPromotionStarted']) requireValue(canonicalGameIdentityIndexNow[field] === false, `canonical game identity IndexNow boundary ${field} must remain false`);
+requireValue(audit.indexNow?.latestCreatureMediaClaimNotice?.record === 'docs/company/search/indexnow-submission-2026-09-09-living-portrait-claims.json', 'Living Portrait changed-page notification evidence link is missing');
+requireValue(audit.indexNow?.latestCreatureMediaClaimNotice?.accepted === true && audit.indexNow?.latestCreatureMediaClaimNotice?.urlCount === 6 && audit.indexNow?.latestCreatureMediaClaimNotice?.unchangedUrlsResubmitted === false, 'Living Portrait changed-page notification audit is incomplete');
+requireValue(audit.indexNow?.latestCreatureMediaClaimNotice?.indexingClaimed === false, 'Living Portrait changed-page notice must not claim indexing');
+requireValue(creatureMediaClaimIndexNow.id === 'INDEXNOW-2026-09-09-LIVING-PORTRAIT-CLAIMS' && creatureMediaClaimIndexNow.host === 'mythicalvoid.com', 'Living Portrait IndexNow evidence identity is invalid');
+requireValue(creatureMediaClaimIndexNow.submittedAt === null && creatureMediaClaimIndexNow.submittedOn === '2026-09-09' && creatureMediaClaimIndexNow.responseTimeRecorded === false, 'Living Portrait changed-page notice invents an exact response time');
+requireValue(creatureMediaClaimIndexNow.accepted === true && creatureMediaClaimIndexNow.httpStatus === 200 && creatureMediaClaimIndexNow.urlCount === 6, 'Living Portrait IndexNow acceptance evidence is incomplete');
+requireValue(creatureMediaClaimIndexNow.canonicalSitemapCount === 2, 'Living Portrait changed-page notice did not use both canonical sitemaps');
+requireValue(JSON.stringify(creatureMediaClaimIndexNow.urls) === JSON.stringify([
+    'https://mythicalvoid.com/',
+    'https://mythicalvoid.com/parents/',
+    'https://mythicalvoid.com/creature-genetics/',
+    'https://mythicalvoid.com/press/',
+    'https://mythicalvoid.com/updates/',
+    'https://mythicalvoid.com/updates/update-031/'
+]), 'Living Portrait IndexNow URL list drifted');
+requireValue(creatureMediaClaimIndexNow.directPlayUrlSubmitted === false && /did not change/i.test(creatureMediaClaimIndexNow.directPlayUrlOmittedReason || ''), 'Living Portrait changed-page notice does not preserve the direct-Play omission');
+requireValue(creatureMediaClaimIndexNow.unchangedSitemapUrlsResubmitted === false && /does not prove/i.test(creatureMediaClaimIndexNow.meaning || ''), 'Living Portrait changed-page notice boundary is missing');
+for (const field of ['personalDataSent', 'accountUsed', 'paidPromotionStarted']) requireValue(creatureMediaClaimIndexNow[field] === false, `Living Portrait IndexNow boundary ${field} must remain false`);
 
 requireValue(homepage.includes('<meta name="robots" content="index, follow, max-image-preview:large">'), 'homepage index instruction is missing');
 requireValue(homepage.includes('<link rel="canonical" href="https://mythicalvoid.com/">'), 'homepage canonical is missing');
@@ -238,6 +257,6 @@ console.log(JSON.stringify({
     liveOwnedSearchRoutes: opportunityMap.clusters.length,
     searchConsoleConnected: false,
     indexNowAccepted: true,
-    latestChangedPagesNotified: firstMinuteOwnedChangeIndexNow.urlCount,
+    latestChangedPagesNotified: creatureMediaClaimIndexNow.urlCount,
     externalActionTaken: true
 }, null, 2));

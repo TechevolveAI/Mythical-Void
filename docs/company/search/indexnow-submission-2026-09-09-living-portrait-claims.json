@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "INDEXNOW-2026-09-09-LIVING-PORTRAIT-CLAIMS",
+  "submittedAt": null,
+  "submittedOn": "2026-09-09",
+  "host": "mythicalvoid.com",
+  "endpoint": "https://api.indexnow.org/indexnow",
+  "reason": "The live homepage, family guide, creature genetics page and press room now explain the Living Portrait privacy boundary accurately, and Latest News gained the permanent text-only UPDATE-031 page.",
+  "release": {
+    "sourceCommit": "9e740ac806fc319eb8ace283014e6798613bcb54",
+    "productionMergeCommit": "b609cc62eef91b04158424d25c64b0d49324c3a1",
+    "productionDeployId": "6aa1906b817b7c0008da517c"
+  },
+  "urls": [
+    "https://mythicalvoid.com/",
+    "https://mythicalvoid.com/parents/",
+    "https://mythicalvoid.com/creature-genetics/",
+    "https://mythicalvoid.com/press/",
+    "https://mythicalvoid.com/updates/",
+    "https://mythicalvoid.com/updates/update-031/"
+  ],
+  "urlCount": 6,
+  "canonicalSitemapCount": 2,
+  "httpStatus": 200,
+  "accepted": true,
+  "responseTimeRecorded": false,
+  "unchangedSitemapUrlsResubmitted": false,
+  "directPlayUrlSubmitted": false,
+  "directPlayUrlOmittedReason": "The direct Play address did not change in this release and was not resubmitted.",
+  "meaning": "Participating search engines accepted a changed-page notice for the six genuinely changed canonical pages. Acceptance does not prove crawling, indexing, ranking, visits, play or growth.",
+  "personalDataSent": false,
+  "accountUsed": false,
+  "paidPromotionStarted": false
+}
