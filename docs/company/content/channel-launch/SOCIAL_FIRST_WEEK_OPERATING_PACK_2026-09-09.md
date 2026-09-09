@@ -9,10 +9,39 @@ Use Kevin's existing LinkedIn profile first. The father-and-son beginning is
 true, understandable and personal. It also avoids opening another account or
 paying for another email service.
 
-The first post is already written and links to
+The first post is now fixed to one exact version and links to
 `https://mythicalvoid.com/studio/`. Use the page's checked link preview only;
-do not add a gameplay screenshot or video. Kevin still approves the complete
-preview and names the adult watching replies for the following 48 hours.
+do not add a gameplay screenshot or video. “Content ready” does not mean
+“publishing ready”: Kevin still supplies the public profile address, approves
+the complete preview and names the adult watching replies for the following 48
+hours.
+
+## Exact first post
+
+> Children ask questions that do not fit neatly inside a business plan.
+>
+> What might live in a world where gravity points sideways? Could a creature
+> sense energy as music? And could a father, his son and today's generative AI
+> tools turn those ideas into a real game?
+>
+> That is how Mythical Void began in our home.
+>
+> Those conversations became alien creatures, six damaged realms, a crashed
+> astronaut and a choice about what Project Beacon should tell Earth.
+>
+> Today it is a free early-access game you can play in a browser. Hatch a
+> creature, explore, battle the corruption holding each Guardian, build a
+> sanctuary and decide what the mission becomes. No download or account is
+> needed.
+>
+> AI helps our small Irish studio explore and build. People remain responsible
+> for the story, safety and what gets released. Optional discovery moments use
+> credited public NASA material. NASA does not endorse Mythical Void.
+>
+> See the story and play: https://mythicalvoid.com/studio/
+>
+> If it reminds you of someone who loves strange creatures, games or space,
+> please pass it on.
 
 ## Reserve one recognisable name
 
@@ -97,8 +126,7 @@ and [run TikTok's account security checkup](https://support.tiktok.com/en/safety
 
 ## Kevin's one next step
 
-Confirm **PlayMythicalVoid** as the first name to try. Then either send the
-exact public address of the LinkedIn profile you want to use for the founder
-post preview, or reserve the handle yourself on one chosen platform and send
-back only the finished public address—never credentials.
-
+Send the exact public address of the existing adult LinkedIn profile you want
+to use for the founder post preview. Send no password, email address, phone
+number or recovery detail. The exact post and automatic preview are checked
+again, then Kevin gives one fresh approval lasting 30 minutes.

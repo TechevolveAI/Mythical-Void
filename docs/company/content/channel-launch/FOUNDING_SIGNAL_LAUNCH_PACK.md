@@ -10,7 +10,7 @@ no broken image or horizontal page overflow was observed.
 
 Mythical Void needs a human beginning before it needs a stream of product announcements. The clearest true story is that a father and his son used imagination and generative AI tools to see whether they could build the game they talked about together.
 
-That beginning leads to something people can try now: a free browser adventure with creature genetics, six living realms, restoration, choices and optional NASA-powered discovery.
+That beginning leads to something people can try now: a free browser adventure with creature genetics, six living realms, restoration, choices and optional discovery moments using credited public NASA material.
 
 The first post should come from Kevin’s existing professional profile if he wants to use it. That route needs no new Mythical Void mailbox, no paid advertising and no new visual asset. Sharing the studio page produces the reviewed Mythical Void link preview automatically.
 
@@ -18,21 +18,19 @@ The first post should come from Kevin’s existing professional profile if he wa
 
 Children ask questions that do not fit neatly inside a business plan.
 
-What might live in a world where gravity points sideways? Could a creature sense energy as music? And could a father, his son and today’s generative AI tools turn those ideas into a game?
+What might live in a world where gravity points sideways? Could a creature sense energy as music? And could a father, his son and today's generative AI tools turn those ideas into a real game?
 
 That is how Mythical Void began in our home.
 
-We kept going. The conversations became strange organisms, six damaged realms, a crashed mission called Wanderer-77 and a choice about what Project Beacon should tell Earth.
+Those conversations became alien creatures, six damaged realms, a crashed astronaut and a choice about what Project Beacon should tell Earth.
 
-It is now a real early-access browser game. You can hatch a creature, explore, fight the corruption holding each guardian, help build a sanctuary and decide what the mission becomes.
+Today it is a free early-access game you can play in a browser. Hatch a creature, explore, battle the corruption holding each Guardian, build a sanctuary and decide what the mission becomes. No download or account is needed.
 
-AI helps our tiny Irish studio explore, build and test. People remain responsible for the story, safety and important choices. Optional discovery moments can also use credited NASA public material to open a door from the fictional universe into real space. NASA does not endorse Mythical Void.
-
-The game is free to start. No download or account is needed.
+AI helps our small Irish studio explore and build. People remain responsible for the story, safety and what gets released. Optional discovery moments use credited public NASA material. NASA does not endorse Mythical Void.
 
 See the story and play: https://mythicalvoid.com/studio/
 
-If it makes you think of someone who loves creatures, strange worlds, games or space, pass it on.
+If it reminds you of someone who loves strange creatures, games or space, please pass it on.
 
 ## What the preview should show
 
@@ -48,7 +46,7 @@ remains clearly labelled as AI-generated marketing artwork rather than gameplay.
 
 ## Short follow-up
 
-Mythical Void is a free browser creature adventure that began as a father-and-son experiment with imagination and generative AI. Six living realms, creature genetics, restoration choices and optional NASA-powered discovery are playable now: https://mythicalvoid.com/
+Mythical Void is a free browser creature adventure that began as a father-and-son experiment with imagination and generative AI. Six living realms, creature genetics, restoration choices and optional discovery moments using credited public NASA material are playable now: https://mythicalvoid.com/
 
 ## The rest of the first week
 

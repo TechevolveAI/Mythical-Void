@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "SOCIAL-FIRST-WEEK-001",
   "asOf": "2026-09-09",
-  "state": "ready_no_account_or_public_action",
+  "state": "content_ready_waiting_for_profile_and_approval",
   "purpose": "Turn the existing Mythical Void channel and launch material into one safe, practical first week without opening accounts, accepting terms or publishing for Kevin.",
   "recommendedStart": {
     "firstPublicRoute": "Kevin's existing LinkedIn profile",
@@ -10,6 +10,8 @@
     "firstContentId": "PN-002",
     "firstDestination": "https://mythicalvoid.com/studio/",
     "firstPostReference": "docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.md",
+    "exactPostBody": "Children ask questions that do not fit neatly inside a business plan.\n\nWhat might live in a world where gravity points sideways? Could a creature sense energy as music? And could a father, his son and today's generative AI tools turn those ideas into a real game?\n\nThat is how Mythical Void began in our home.\n\nThose conversations became alien creatures, six damaged realms, a crashed astronaut and a choice about what Project Beacon should tell Earth.\n\nToday it is a free early-access game you can play in a browser. Hatch a creature, explore, battle the corruption holding each Guardian, build a sanctuary and decide what the mission becomes. No download or account is needed.\n\nAI helps our small Irish studio explore and build. People remain responsible for the story, safety and what gets released. Optional discovery moments use credited public NASA material. NASA does not endorse Mythical Void.\n\nSee the story and play: https://mythicalvoid.com/studio/\n\nIf it reminds you of someone who loves strange creatures, games or space, please pass it on.",
+    "exactPostSha256": "142f6889511817d51759d389da23d175015d47284fd222c626346e3bbd445f4d",
     "automaticLinkPreviewOnly": true,
     "uploadedMediaRequired": false
   },
@@ -34,7 +36,8 @@
       "platform": "LinkedIn",
       "action": "Use Kevin's existing professional profile for the founder story.",
       "accountCreationRequired": false,
-      "publishingReady": true,
+      "contentReady": true,
+      "publishingReady": false,
       "publicationAuthorized": false,
       "condition": "Kevin supplies the exact public profile address, approves the complete preview and names the adult watching replies for 48 hours."
     },
@@ -137,6 +140,18 @@
     "personalDataRequestsPermitted": false,
     "rule": "Reply in public where suitable. If a person appears to be a child, do not continue privately and do not request a name, age, school, location, image, voice or design."
   },
+  "actionTimeGate": {
+    "existingAdultProfileUrl": null,
+    "profileOwnershipConfirmed": false,
+    "multiFactorSecurityConfirmed": false,
+    "recoveryConfirmed": false,
+    "trustedAdultBackupNamed": false,
+    "exactPostApprovedAt": null,
+    "completePreviewApproved": false,
+    "replyCoverageConfirmed": false,
+    "approvalWindowMinutes": 30,
+    "allRequiredBeforePublication": true
+  },
   "contentRules": [
     "Use creatures, messages, clues, currents and routes in public writing.",
     "Do not publish weak gameplay images or videos.",
@@ -169,5 +184,5 @@
     { "name": "Instagram: Lost access to the linked email address or phone number", "url": "https://www.facebook.com/help/instagram/358911864194456?locale=en_GB", "supports": "Recovery depends on maintaining access to the contact route attached to the account." },
     { "name": "TikTok: Account safety", "url": "https://support.tiktok.com/en/safety-hc/account-and-user-safety/account-safety", "supports": "TikTok recommends security checkup, verified recovery methods and two-step verification." }
   ],
-  "nextRequiredAction": "Kevin confirms PlayMythicalVoid as the first handle to try, then either gives the exact existing LinkedIn profile address for the first-post preview or checks and reserves the handle on one chosen platform himself."
+  "nextRequiredAction": "Kevin gives only the public address of the existing adult LinkedIn profile he wants to use. The exact post and automatic link preview are then rechecked for one fresh approval; no password, email address, phone number or recovery detail is requested."
 }
