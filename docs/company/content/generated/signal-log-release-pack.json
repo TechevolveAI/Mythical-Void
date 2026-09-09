@@ -5,8 +5,8 @@
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "926bcb8a9a3af3cd6cb004a2acf3fca653c3e4e56d0e11d338a2ed4724593cb8",
-    "liveEntryCount": 22,
+    "sourceFingerprint": "84c3de88fa7261c8a738a21b320148c86a266bdc6fb0d6dbe654e49366becc15",
+    "liveEntryCount": 23,
     "latestSourceDate": "2026-09-09"
   },
   "purpose": "Turn each checked Latest News note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
@@ -32,6 +32,66 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-UPDATE-030",
+      "sourceEntryId": "UPDATE-030",
+      "sourcePublishedOn": "2026-09-09",
+      "destination": "https://mythicalvoid.com/studio/#first-minute",
+      "trackingParameters": false,
+      "media": {
+        "disclosure": "Text-only release note about a live studio and feedback improvement; no screenshot or generated image is attached."
+      },
+      "releaseProof": {
+        "sourceCommit": "2f56aa45fa1087f2b810ec01a0ed84ec0aea382c",
+        "productionMergeCommit": "e09424313e69c5d586aabd2fe9b542c38aa4b53c",
+        "productionDeployId": "6aa0e82db7f294000862abe3",
+        "productionPublishedAt": "2026-09-09T05:05:18.237Z",
+        "checkedUrl": "https://mythicalvoid.com/play/",
+        "checkedHttpStatus": 200,
+        "ownedPageCheckedUrl": "https://mythicalvoid.com/studio/",
+        "ownedPageCheckedHttpStatus": 200,
+        "adultFeedbackCheckedUrl": "https://mythicalvoid.com/feedback/",
+        "adultFeedbackCheckedHttpStatus": 200,
+        "firstMinuteSectionObserved": true,
+        "adultOnlyBoundaryObserved": true,
+        "nameOrContactDetailsRequested": false,
+        "gameplayVisualApproved": false,
+        "mediaAttached": false,
+        "claimBoundary": "The source, protected merge, published production deploy and live route checks prove that the one-minute test and adult feedback route are available. They do not prove visual quality, play, enjoyment or growth, and they do not prove that anybody used either route."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "Give Mythical Void one minute\n\nThe father-and-son studio story now links straight to the real game and invites adults to return with anonymous feedback about the opening minute.\n\n• The studio story now offers one simple test: open the real game in a new tab, play for one minute without an explanation, then decide what made sense.\n• Adults can return to a fixed-choice feedback page that asks for no name, email address or contact details.\n• The invitation says that confusion is useful to hear about. It does not ask for praise or claim that anybody has played, enjoyed or recommended the game.\n\nSee what changed: https://mythicalvoid.com/studio/#first-minute\n\nText-only release note about a live studio and feedback improvement; no screenshot or generated image is attached.",
+          "characterCount": 777
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: Give Mythical Void one minute\n\nThe father-and-son studio story now links straight to the real game and invites adults to return with anonymous feedback about the opening minute.\n\nhttps://mythicalvoid.com/studio/#first-minute\n\nText-only release note about a live studio and feedback improvement; no screenshot or generated image is attached.",
+          "characterCount": 359
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: Give Mythical Void one minute",
+          "body": "Mythical Void has a new live update: Give Mythical Void one minute.\n\nThe father-and-son studio story now links straight to the real game and invites adults to return with anonymous feedback about the opening minute.\n\nThe studio story now offers one simple test: open the real game in a new tab, play for one minute without an explanation, then decide what made sense. Adults can return to a fixed-choice feedback page that asks for no name, email address or contact details. The invitation says that confusion is useful to hear about. It does not ask for praise or claim that anybody has played, enjoyed or recommended the game.\n\nThe checked public destination is https://mythicalvoid.com/studio/#first-minute\n\nMedia note: Text-only release note about a live studio and feedback improvement; no screenshot or generated image is attached.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 912,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-UPDATE-029",
       "sourceEntryId": "UPDATE-029",
