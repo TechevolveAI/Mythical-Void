@@ -20,7 +20,7 @@ describe('press and creator search doorway', () => {
         expect(press).toContain('"@type": "CollectionPage"');
         expect(press).toContain('"@id": "https://mythicalvoid.com/#video-game"');
         expect(press).toContain('<link rel="describedby" type="text/markdown" href="https://mythicalvoid.com/llms.txt">');
-        expect(sitemap).toMatch(/<loc>https:\/\/mythicalvoid\.com\/press\/<\/loc>\s*<lastmod>2026-09-08<\/lastmod>/);
+        expect(sitemap).toMatch(/<loc>https:\/\/mythicalvoid\.com\/press\/<\/loc>\s*<lastmod>2026-09-09<\/lastmod>/);
         expect(netlify).toMatch(/from = "\/press\/"\s+to = "\/press\/index\.html"\s+status = 200/);
         expect(redirects).toMatch(/^\/press\/\s+\/press\/index\.html\s+200$/m);
     });

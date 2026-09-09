@@ -90,7 +90,7 @@ requireValue(releaseSignal?.status === 'live' && releaseSignal?.destination === 
 
 for (const [relative, fragment, label] of [
     ['public/sitemap.xml', '<loc>https://mythicalvoid.com/educators/</loc>', 'sitemap'],
-    ['public/sitemap.xml', '<loc>https://mythicalvoid.com/educators/</loc>\n    <lastmod>2026-08-27</lastmod>', 'fresh educator sitemap date'],
+    ['public/sitemap.xml', '<loc>https://mythicalvoid.com/educators/</loc>\n    <lastmod>2026-09-06</lastmod>', 'fresh educator sitemap date'],
     ['public/llms.txt', 'https://mythicalvoid.com/educators/', 'machine-readable site guide'],
     ['public/parents/index.html', 'href="/educators/"', 'parent guide'],
     ['public/nasa-space-science/index.html', 'href="/educators/"', 'NASA and STEM page'],
