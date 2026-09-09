@@ -60,11 +60,11 @@
     "firstFiveReleased": false,
     "gameplayPromotionReleased": false,
     "latestMaterialWebsiteRelease": {
-      "checkedOn": "2026-09-08",
-      "sourceCommit": "61285d765ef203126b7d97853e6c2e250550da89",
-      "protectedMainMergeCommit": "9db7bc0b8dc867a0cab679dc6457034724e05c35",
-      "deployId": "6aa08ecd48e6210009720364",
-      "publishedAt": "2026-09-08T22:44:17.119Z",
+      "checkedOn": "2026-09-09",
+      "sourceCommit": "2f3843a9b24199565596064007568b9f2516288f",
+      "protectedMainMergeCommit": "b331689285f58b8686fa83a5d9f19291bc7531bd",
+      "deployId": "6aa0c27a200b4400095861ae",
+      "publishedAt": "2026-09-09T02:25:11.480Z",
       "sourceAndProductionTreesMatch": true,
       "firstContactRepairStillPresent": true,
       "visualApprovalGranted": false

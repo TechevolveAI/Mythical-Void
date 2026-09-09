@@ -73,6 +73,9 @@ try {
     assert.strictEqual(output.currentDecisionCount, 1);
     assert.strictEqual(output.currentDecisionId, 'FD-002');
     assert.strictEqual(output.heldDecisionCount, 1);
+    assert.strictEqual(output.latestGameReleasePullRequest, 246);
+    assert.strictEqual(output.latestProtectedMainPullRequest, 248);
+    assert.strictEqual(output.latestPublishedDeployId, '6aa0c27a200b4400095861ae');
     assert.strictEqual(output.communityPostMade, false);
     assert.strictEqual(output.creatureArtworkHumanApproved, false);
     assert.strictEqual(output.externalAuthorityGranted, false);
@@ -98,6 +101,9 @@ mutateControl('allow fake engagement', value => { value.communityExperiment.fake
 mutateControl('invent IndieDB account', value => { value.preparedDiscoveryRoutes.indieDb.accountOpened = true; }, 'founder IndieDB accountOpened');
 mutateControl('invent IndieDB publication', value => { value.preparedDiscoveryRoutes.indieDb.pagePublished = true; }, 'founder IndieDB pagePublished');
 mutateControl('stale latest website release', value => { value.live.websiteAndGame.latestMaterialWebsiteRelease.deployId = 'stale'; }, 'founder latest material website release deployId is stale');
+mutateControl('stale protected main', value => { value.live.websiteAndGame.latestProtectedMain.pullRequest = 247; }, 'founder latest protected main pullRequest is stale');
+mutateControl('confuse test-only merge with player release', value => { value.live.websiteAndGame.latestProtectedMain.changesPlayerExperience = true; }, 'founder latest protected main changesPlayerExperience is stale');
+mutateControl('send age to creature media provider', value => { value.live.websiteAndGame.latestMaterialWebsiteRelease.ageSentToCreatureMediaProvider = true; }, 'private creature-media boundary');
 mutateControl('hide reciprocal project link', value => { value.live.websiteAndGame.latestMaterialWebsiteRelease.officialProjectReciprocalLinkLive = false; }, 'live reciprocal project link');
 mutateControl('hide homepage invitation', value => { value.live.websiteAndGame.latestMaterialWebsiteRelease.homepageHatchInvitationLive = false; }, 'live Hatch Challenge invitations');
 mutateControl('remove exact approval', value => { value.currentDecisions[0].exactApprovalMessage = 'approve'; }, 'exact short-lived community approval');
@@ -128,5 +134,5 @@ try {
     fs.rmSync(privacyRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 23);
-console.log('Founder control safeguards passed (23 cases).');
+assert.strictEqual(cases, 26);
+console.log('Founder control safeguards passed (26 cases).');
