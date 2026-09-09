@@ -82,7 +82,7 @@ const CAVE_ENCOUNTER_PLAN = Object.freeze([
         kind: 'spider',
         beat: 'spider-walk-miniboss',
         supportId: 'caves-spider-arena',
-        lane: 'shared',
+        lane: 'optional',
         altitude: 50,
         health: 4,
         patrolRange: 90
@@ -342,6 +342,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     create() {
         // Call parent create
         super.create();
+        this.customPerformanceTier = (
+            this.isMobile || this.detectMobile()
+        ) ? 'mobile' : 'desktop';
 
         // Record level entry for achievements
         if (!this.entryPreview && window.AchievementSystem?.recordEvent) {
@@ -791,7 +794,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     }
 
     getPlayerSpawnGroundTopY() {
-        return this.levelHeight - 80;
+        return this.getTraversalSupport?.('caves-ground-entry')?.body?.top ??
+            this.levelHeight - 80;
     }
 
     /**
@@ -3151,6 +3155,10 @@ class CrystalCavesLevel extends PlatformerLevelScene {
      */
     createCollectibles() {
         this.collectibles = this.physics.add.group();
+        const guardianCenter = this.getTraversalSupport('caves-guardian-center');
+        const guardianCenterCoinY = guardianCenter?.body
+            ? guardianCenter.body.top - 36
+            : this.levelHeight - 401;
 
         // Cosmic coins - Guide player along main path (updated for new layout)
         const coinPositions = [
@@ -3169,7 +3177,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             { x: 2650, y: this.levelHeight - 210 },  // Low step
             { x: 2900, y: this.levelHeight - 290 },  // Rising path
             // Boss arena (3400+)
-            { x: 4000, y: this.levelHeight - 340 },  // Above center platform
+            { x: 4000, y: guardianCenterCoinY },     // Above center platform
         ];
 
         coinPositions.forEach(pos => {
@@ -4402,7 +4410,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             title: 'GUARDIAN CHAMBER',
             getStatus: () => !this.caveRouteAligned
                 ? 'FOLLOW THE 3 PULSES'
-                : 'CORRUPTION DETECTED',
+                : !this.crystalWoundTended
+                    ? 'TEND THE FRACTURED GROVE'
+                    : 'CORRUPTION DETECTED',
             isReady: () => this.canActivateCrystalCore(),
             color: 0xE040FB,
             readyColor: 0x8FE3CF,
@@ -6041,7 +6051,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         const title = this.isCompactObjectiveHUD
             ? `PULSE ${current}/3`
             : `PULSE ${current}/3 // ${nextAnchor}`;
-        const optionalLine = '';
+        const optionalLine = this.crystalChamberRoute
+            ? `\n${optional}`
+            : '';
         return `${title}\n${pulse}${optionalLine}`;
     }
 

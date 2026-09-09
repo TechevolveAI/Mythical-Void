@@ -406,7 +406,7 @@ async function sampleFramePacing(session, sceneName, {
                     scene?.cameras?.main?.postPipelines?.length || 0,
                 performanceTier: biomeManaged
                     ? window.ParallaxBiome?.performanceTier || null
-                    : 'custom',
+                    : scene?.customPerformanceTier || 'custom',
                 parallaxLayers: window.ParallaxBiome?.layers?.reduce?.(
                     (counts, layer) => {
                         const key = layer?.type || 'unknown';
@@ -1424,8 +1424,15 @@ async function smokeCaveBatchedCoinPickup(session) {
         const activeBefore = scene.caveCoinPickups.filter(
             item => item?.batched && !item.collected
         ).length;
-        scene.player.body.reset(pickup.x, pickup.y - 80);
-        scene.player.setVelocity(0, 220);
+        const body = scene.player.body;
+        scene.player.setPosition(pickup.x, pickup.y);
+        body.updateFromGameObject();
+        scene.player.setPosition(
+            scene.player.x + pickup.x - body.center.x,
+            scene.player.y + pickup.y - body.center.y
+        );
+        body.updateFromGameObject();
+        scene.player.setVelocity(0, 0);
         return {
             x: pickup.x,
             y: pickup.y,
@@ -1504,7 +1511,18 @@ async function smokeCaveBatchedCoinPickup(session) {
                 if (enemy?.body && enemy.active !== false) enemy.body.enable = true;
             });
             scene.isInvincible = false;
-            scene.player?.body?.reset?.(200, scene.levelHeight - 130);
+            const body = scene.player?.body;
+            const entry = scene.getTraversalSupport?.('caves-ground-entry');
+            if (body && entry?.body) {
+                const targetX = entry.body.left + 200;
+                scene.player.setPosition(targetX, entry.body.top - 60);
+                body.updateFromGameObject();
+                scene.player.setPosition(
+                    scene.player.x + targetX - body.center.x,
+                    scene.player.y + entry.body.top - body.bottom - 1
+                );
+                body.updateFromGameObject();
+            }
             scene.player?.setVelocity?.(0, 0);
             return true;
         })()`);
@@ -2567,7 +2585,15 @@ async function smokeCrystalCoreLift(session) {
         const destination = scene?.platforms?.getChildren?.().find(
             item => item.traversalId === 'caves-core-refuge'
         );
-        if (!scene?.player?.body || !lift || !destination?.body) return null;
+        const launchSupport = scene?.getTraversalSupport?.(
+            'caves-guardian-approach'
+        );
+        if (
+            !scene?.player?.body ||
+            !lift ||
+            !destination?.body ||
+            !launchSupport?.body
+        ) return null;
 
         scene.isInvincible = true;
         scene.releaseAllPlatformerActionButtons?.();
@@ -2584,7 +2610,17 @@ async function smokeCrystalCoreLift(session) {
         if (scene.crystalCore?.body) scene.crystalCore.body.enable = false;
         lift.activations = 0;
         lift.lastLiftAt = Number.NEGATIVE_INFINITY;
-        scene.player.body.reset(lift.x, scene.levelHeight - 110);
+        const body = scene.player.body;
+        scene.player.setPosition(lift.x, launchSupport.body.top - 60);
+        body.updateFromGameObject();
+        scene.player.setPosition(
+            scene.player.x + lift.x - body.center.x,
+            scene.player.y + launchSupport.body.top - body.bottom - 1
+        );
+        body.updateFromGameObject();
+        body.blocked.down = true;
+        body.touching.down = true;
+        scene.isGrounded = true;
         scene.player.setVelocity(0, 0);
         return {
             liftLabel: lift.label?.text || '',
@@ -2682,7 +2718,20 @@ async function smokeCrystalCoreLift(session) {
                 scene.crystalCore.body.enable = true;
             }
             scene.isInvincible = false;
-            scene.player.body.reset(3480, scene.levelHeight - 110);
+            const body = scene.player?.body;
+            const support = scene.getTraversalSupport?.(
+                'caves-guardian-approach'
+            );
+            if (body && support?.body) {
+                const targetX = support.body.left + 110;
+                scene.player.setPosition(targetX, support.body.top - 60);
+                body.updateFromGameObject();
+                scene.player.setPosition(
+                    scene.player.x + targetX - body.center.x,
+                    scene.player.y + support.body.top - body.bottom - 1
+                );
+                body.updateFromGameObject();
+            }
             scene.player.setVelocity(0, 0);
             return true;
         })()`);
@@ -4358,7 +4407,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             state.caveCoinRendering?.batchedCount !== 11 ||
             state.caveCoinRendering?.layerCount !== 1 ||
             state.caveCoinRendering?.physicsCoinCount !== 0 ||
-            state.caveCrystalRendering?.batchedCount !== 11 ||
+            // The authored void-geology rebuild uses seven larger formations
+            // distributed across the route; coins remain an eleven-item batch.
+            state.caveCrystalRendering?.batchedCount !== 7 ||
             state.caveCrystalRendering?.layerCount !== 1 ||
             state.caveAmbientRendering?.parallaxLayerCount !== 2 ||
             state.caveAmbientRendering?.storyDecorationTweenCount !== 0 ||
@@ -4921,7 +4972,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     })()`);
     const expectedGateTitle = {
         mythicalForest: 'ELDER GROVE',
-        crystalCaves: 'CRYSTAL CORE',
+        crystalCaves: 'GUARDIAN CHAMBER',
         reef: 'STELLAR PASSAGE',
         voidPeaks: 'TITAN PASS',
         auroraDepths: 'PHOENIX SHIELD',
@@ -7030,7 +7081,23 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             const airborneRejected = airborneStage && airborneResult
                 ? { ...airborneStage, ...airborneResult }
                 : null;
-            if (
+            if (route === 'crystalCaves') {
+                if (
+                    airborneRejected?.completed !== true ||
+                    airborneRejected.checkpointAfter?.id !== 'caves_anchor_1' ||
+                    airborneRejected.hintShown !== false
+                ) {
+                    throw new Error(
+                        `${sceneName} did not accept automatic pulse contact: ` +
+                        JSON.stringify(airborneRejected)
+                    );
+                }
+                cavesGroundedObjectives = {
+                    automaticContactAccepted: airborneRejected
+                };
+                await startCampaignScene(session, { route, sceneName });
+                await delay(400);
+            } else if (
                 airborneRejected?.completed !== false ||
                 JSON.stringify(airborneRejected.checkpointAfter) !==
                     JSON.stringify(airborneRejected.checkpointBefore) ||
@@ -7046,8 +7113,6 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 peaksGroundedObjectives = { airborneRejected };
             } else if (route === 'finalVoid') {
                 finalGroundedObjectives = { airborneRejected };
-            } else {
-                cavesGroundedObjectives = { airborneRejected };
             }
         }
 
@@ -7473,23 +7538,40 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                         entry => entry?.active !== false &&
                             entry?.optionalRouteId === ${JSON.stringify(optionalRouteId)}
                     );
-                    if (!scene?.player || !item) return null;
-                    scene.player.setPosition(item.x, item.y);
-                    scene.player.setVelocity?.(0, 0);
-                    scene.collectItem(scene.player, item);
-                    const reward = scene.optionalRouteRewards?.get?.(
+                    const reward = scene?.optionalRouteRewards?.get?.(
                         ${JSON.stringify(optionalRouteId)}
                     );
+                    const optionalSupport = scene?.getTraversalSupport?.(
+                        reward?.choice?.optionalSupportIds?.[0]
+                    );
+                    const body = scene?.player?.body;
+                    if (!body || !item || !optionalSupport?.body) return null;
+                    const targetX = optionalSupport.x;
+                    scene.player.setPosition(targetX, optionalSupport.body.top - 60);
+                    body.updateFromGameObject();
+                    scene.player.setPosition(
+                        scene.player.x + targetX - body.center.x,
+                        scene.player.y + optionalSupport.body.top - body.bottom - 1
+                    );
+                    body.updateFromGameObject();
+                    scene.player.setVelocity?.(0, 0);
+                    body.blocked.down = true;
+                    body.touching.down = true;
+                    scene.isGrounded = true;
+                    scene.updateOptionalRouteChoices?.();
+                    scene.collectItem(scene.player, item);
                     return {
                         blocked: item.active !== false,
                         progress: reward?.progress,
-                        spiderCalmed: scene.crystalSpiderCalmed === true
+                        spiderCalmed: scene.crystalSpiderCalmed === true,
+                        selectedPath: reward?.choice?.selectedPath
                     };
                 })()`);
                 if (
                     wardGate?.blocked !== true ||
                     wardGate.progress !== 0 ||
-                    wardGate.spiderCalmed !== false
+                    wardGate.spiderCalmed !== false ||
+                    wardGate.selectedPath !== 'optional'
                 ) {
                     throw new Error(
                         `${sceneName} ward was not gated by the Spider: ` +
@@ -7590,7 +7672,14 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                             }
                         }
                     } else if (${JSON.stringify(route)} === 'crystalCaves') {
-                        scene.player.body.reset(item.x, item.y);
+                        const body = scene.player.body;
+                        scene.player.setPosition(item.x, item.y);
+                        body.updateFromGameObject();
+                        scene.player.setPosition(
+                            scene.player.x + item.x - body.center.x,
+                            scene.player.y + item.y - body.center.y
+                        );
+                        body.updateFromGameObject();
                         scene.player.setVelocity?.(0, 0);
                         scene.collectItem?.(scene.player, item);
                     } else if (${JSON.stringify(route)} === 'reef') {
