@@ -31,6 +31,18 @@ detailed evidence; it turns that evidence into the decisions that matter now.
   clearer to people and search tools.
 - **The latest game repair is live:** the Mythical Forest crossing and mobile
   creature grounding release is contained in the current production build.
+- **Private creature pictures and short films are available in the game:** the
+  latest player-facing release makes these optional moments available across
+  every age band. Only the fictional creature description is used to make
+  them; the chosen age stays in the browser and no public creature profile is
+  created. The game keeps a local creature view when the optional service is
+  unavailable.
+- **The release record is no longer ambiguous:** the live player-facing build
+  comes from PR #246 and Netlify deployment 6aa0c27a200b4400095861ae.
+  PR #248 landed afterwards, but it changes only the private launch test and
+  deliberately makes no player-facing change. Its automatic production build
+  was skipped because the Netlify credit allowance was exhausted; that does
+  not make the already published game unavailable or stale.
 - **The invitation is live:** the homepage now gives people a clear way to
   invite someone else to hatch a creature, the Sanctuary invitation still
   works, and the first real Guardian restoration now offers the same voluntary
@@ -65,6 +77,10 @@ detailed evidence; it turns that evidence into the decisions that matter now.
 ## What we actually know
 
 - The website, game, public release and feedback route are available.
+- A fresh check on 9 September reached all 16 sitemap pages, six additional
+  important routes and 53 unique owned links. The Play route, both news feeds,
+  analytics boundary and honest live-activity display passed. This proves
+  availability, not players, enjoyment or growth.
 - The latest recorded public search sample found **no official Mythical Void
   result**. This does not prove the site is missing everywhere.
 - The homepage, Latest News and new UPDATE-027 page were sent once through the

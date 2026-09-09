@@ -31,16 +31,25 @@ const normalizedFirstFivePage = firstFivePage.replace(/\*\*/g, '').replace(/\s+/
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 const latestMaterialWebsiteRelease = {
-    checkedOn: '2026-09-08',
-    sourceCommit: '61285d765ef203126b7d97853e6c2e250550da89',
-    protectedMainMergeCommit: '9db7bc0b8dc867a0cab679dc6457034724e05c35',
-    deployId: '6aa08ecd48e6210009720364',
-    publishedAt: '2026-09-08T22:44:17.119Z',
+    checkedOn: '2026-09-09',
+    sourceCommit: '2f3843a9b24199565596064007568b9f2516288f',
+    protectedMainMergeCommit: 'b331689285f58b8686fa83a5d9f19291bc7531bd',
+    deployId: '6aa0c27a200b4400095861ae',
+    publishedAt: '2026-09-09T02:25:11.480Z',
     sourceAndProductionTreesMatch: true
+};
+const latestProtectedMain = {
+    pullRequest: 248,
+    mergeCommit: 'c7c397d8576a9ec54ad5f73bec99c9c7f6dab029',
+    mergedAt: '2026-09-09T02:49:52Z',
+    title: 'Isolate community checks from creature media',
+    changesPlayerExperience: false,
+    productionBuildSkippedForCredits: true,
+    livePlayerReleaseStillCurrent: true
 };
 
 requireValue(control.schemaVersion === 1 && control.id === 'FOUNDER-CONTROL-001', 'founder control identity is invalid');
-requireValue(control.asOf === '2026-09-08' && control.state === 'live_one_community_test_ready', 'founder control state or date is invalid');
+requireValue(control.asOf === '2026-09-09' && control.asOf === currentState.weekEnding && control.state === 'live_one_community_test_ready', 'founder control state or date is invalid');
 requireValue(control.plainLanguagePage === 'docs/company/FOUNDER_CONTROL_PAGE.md', 'plain-language page path is invalid');
 
 const live = control.live || {};
@@ -51,11 +60,14 @@ requireValue(live.websiteAndGame?.technicalFirstContactRepairLive === true, 'liv
 requireValue(live.websiteAndGame?.creatureArtworkHumanApproved === false, 'deployment must not be treated as visual approval');
 requireValue(firstFive.currentHold?.candidateDeployed === true && firstFive.currentHold?.productionSourceCommit === live.websiteAndGame?.technicalFirstContactProductionSourceCommit && firstFive.currentHold?.productionDeployId === live.websiteAndGame?.technicalFirstContactProductionDeployId, 'First Five and founder first-contact production evidence disagree');
 const lastObservedProduction = live.websiteAndGame?.lastObservedProduction || {};
-requireValue(/^2026-09-08T/.test(lastObservedProduction.checkedAt || '') && /^[0-9a-f]{40}$/.test(lastObservedProduction.sourceCommit || '') && /^[0-9a-f]{24}$/.test(lastObservedProduction.deployId || ''), 'latest observed production identity is invalid');
+requireValue(/^2026-09-09T/.test(lastObservedProduction.checkedAt || '') && /^[0-9a-f]{40}$/.test(lastObservedProduction.sourceCommit || '') && /^[0-9a-f]{24}$/.test(lastObservedProduction.deployId || ''), 'latest observed production identity is invalid');
 requireValue(lastObservedProduction.state === 'ready' && lastObservedProduction.published === true, 'latest observed production is not proven ready and published');
 requireValue(lastObservedProduction.sourceCommit === latestMaterialWebsiteRelease.sourceCommit && lastObservedProduction.protectedMainMergeCommit === latestMaterialWebsiteRelease.protectedMainMergeCommit && lastObservedProduction.deployId === latestMaterialWebsiteRelease.deployId, 'latest observed production does not match the live website release');
 const latestGameRelease = live.websiteAndGame?.latestGameRelease || {};
-requireValue(latestGameRelease.pullRequest === 231 && latestGameRelease.mergeCommit === '7c20a0a95d7da431b75f7c1740d544c74b796afb' && latestGameRelease.containedInLastObservedProduction === true, 'latest game release is missing from the production record');
+requireValue(latestGameRelease.pullRequest === 246 && latestGameRelease.mergeCommit === latestMaterialWebsiteRelease.protectedMainMergeCommit && latestGameRelease.mergedAt === '2026-09-09T02:23:51Z' && latestGameRelease.title === 'Enable private creature media for all ages' && latestGameRelease.containedInLastObservedProduction === true, 'latest game release is missing from the production record');
+for (const [field, expected] of Object.entries(latestProtectedMain)) {
+    requireValue(live.websiteAndGame?.latestProtectedMain?.[field] === expected, `founder latest protected main ${field} is stale`);
+}
 for (const [field, expected] of Object.entries(latestMaterialWebsiteRelease)) {
     requireValue(live.websiteAndGame?.latestMaterialWebsiteRelease?.[field] === expected, `founder latest material website release ${field} is stale`);
     requireValue(firstFive.currentHold?.latestMaterialWebsiteRelease?.[field] === expected, `First Five latest material website release ${field} is stale`);
@@ -64,6 +76,7 @@ for (const [field, expected] of Object.entries(latestMaterialWebsiteRelease)) {
 requireValue(live.websiteAndGame?.latestMaterialWebsiteRelease?.officialProjectReciprocalLinkLive === true, 'founder control hides the live reciprocal project link');
 requireValue(live.websiteAndGame?.latestMaterialWebsiteRelease?.homepageHatchInvitationLive === true && live.websiteAndGame?.latestMaterialWebsiteRelease?.persistentGameInvitationStillLive === true, 'the live Hatch Challenge invitations are missing');
 requireValue(live.websiteAndGame?.latestMaterialWebsiteRelease?.firstGuardianInvitationLive === true && live.websiteAndGame?.latestMaterialWebsiteRelease?.hatchChallengeStartIsPrimary === true, 'the latest live word-of-mouth journey is missing');
+requireValue(live.websiteAndGame?.latestMaterialWebsiteRelease?.privateCreatureMediaAvailableToAllAgeBands === true && live.websiteAndGame?.latestMaterialWebsiteRelease?.ageSentToCreatureMediaProvider === false && live.websiteAndGame?.latestMaterialWebsiteRelease?.publicCreatureProfileCreated === false, 'the current private creature-media boundary is missing');
 requireValue(firstFive.currentHold?.latestMaterialWebsiteRelease?.technicalRepairStillLive === true && firstFive.currentHold?.latestMaterialWebsiteRelease?.creatureArtworkHumanApproved === false, 'First Five confuses the live technical repair with artwork approval');
 requireValue(visualReview.laterProductionOverride?.latestMaterialWebsiteRelease?.firstContactRepairStillPresent === true && visualReview.laterProductionOverride?.latestMaterialWebsiteRelease?.visualApprovalGranted === false, 'visual review confuses current production with artwork approval');
 requireValue(homepage.includes('href="https://github.com/TechevolveAI/Mythical-Void"') && storefront.includes('href="https://github.com/TechevolveAI/Mythical-Void"'), 'the live website source does not reciprocally link the verified public project');
@@ -130,10 +143,17 @@ for (const phrase of [
     '# Mythical Void: founder control page',
     'The first-contact layout repair is live',
     'not approval of the creature artwork',
+    'Private creature pictures and short films are available in the game',
+    'the chosen age stays in the browser and no public creature profile is created',
+    'the live player-facing build comes from PR #246 and Netlify deployment 6aa0c27a200b4400095861ae',
+    'PR #248 landed afterwards, but it changes only the private launch test',
+    'does not make the already published game unavailable or stale',
     'The First Five test',
     'no adults have been invited',
     '0 sessions',
     '0 accepted customer evidence',
+    'reached all 16 sitemap pages, six additional important routes and 53 unique owned links',
+    'This proves availability, not players, enjoyment or growth.',
     'The one decision that matters now',
     'Approve one direct-link r/WebGames test from an adult Reddit account.',
     'I have an existing adult Reddit account, I approve the exact title, link and first comment below now, and I can personally answer replies for seven days.',
@@ -181,6 +201,8 @@ console.log(JSON.stringify({
     state: control.state,
     liveWebsite: true,
     latestGameReleasePullRequest: latestGameRelease.pullRequest,
+    latestProtectedMainPullRequest: latestProtectedMain.pullRequest,
+    latestPublishedDeployId: latestMaterialWebsiteRelease.deployId,
     technicalRepairLive: true,
     creatureArtworkHumanApproved: false,
     firstFiveSessionsCompleted: 0,
