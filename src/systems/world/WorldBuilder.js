@@ -10567,11 +10567,13 @@ class WorldBuilder {
             Math.round(sourceHeight * (this.worldWidth / displayHeight))
         );
         const cropX = Math.max(0, Math.round((sourceWidth - cropWidth) / 2));
+        const displayScale = displayHeight / sourceHeight;
+        const displayX = -cropX * displayScale;
+        const visibleWorldWidth = cropWidth * displayScale;
 
-        this.sanctuaryBiomeBackdrop = this.scene.add.image(0, 0, artwork.key)
+        this.sanctuaryBiomeBackdrop = this.scene.add.image(displayX, 0, artwork.key)
             .setOrigin(0, 0)
-            .setCrop(cropX, 0, cropWidth, sourceHeight)
-            .setDisplaySize(this.worldWidth, displayHeight)
+            .setScale(displayScale)
             .setDepth(-1001)
             .setAlpha(0.92)
             .setData('sanctuaryBiomePlate', 'living_basin_v1')
@@ -10581,6 +10583,12 @@ class WorldBuilder {
                 width: cropWidth,
                 sourceWidth,
                 sourceHeight
+            })
+            .setData('sanctuaryBiomePlateDisplay', {
+                x: displayX,
+                scale: displayScale,
+                displayHeight,
+                visibleWorldWidth
             });
         return this.sanctuaryBiomeBackdrop;
     }

@@ -14837,7 +14837,7 @@ async function smokeVillageUi(session, exceptions) {
         residentProposal.building !== 'forager_hut' ||
         !residentProposal.speaker ||
         !(
-            residentProposal.speakerLabel.includes('· COMPANION') ||
+            residentProposal.speakerLabel.includes('· CREATURE') ||
             residentProposal.speakerLabel.includes('· RESCUED RESIDENT')
         ) ||
         residentProposal.title !== 'MARK A SAFE FOOD PATH' ||
@@ -15545,7 +15545,9 @@ async function smokeVillageUi(session, exceptions) {
                         profile: plate?.getData?.('sanctuaryBiomePlate') || null,
                         source: plate?.getData?.('sanctuaryBiomePlateSource') || null,
                         crop: plate?.getData?.('sanctuaryBiomePlateCrop') || null,
+                        display: plate?.getData?.('sanctuaryBiomePlateDisplay') || null,
                         alpha: plate?.alpha || 0,
+                        x: plate?.x || 0,
                         displayWidth: plate?.displayWidth || 0,
                         displayHeight: plate?.displayHeight || 0
                     };
@@ -15991,10 +15993,14 @@ async function smokeVillageUi(session, exceptions) {
         integratedWorld.sanctuaryBackground.biomePlate.source !==
             'generated_environment_art' ||
         integratedWorld.sanctuaryBackground.biomePlate.alpha < 0.9 ||
-        integratedWorld.sanctuaryBackground.biomePlate.displayWidth !== 2400 ||
+        integratedWorld.sanctuaryBackground.biomePlate.displayWidth < 2400 ||
         integratedWorld.sanctuaryBackground.biomePlate.displayHeight < 2120 ||
         integratedWorld.sanctuaryBackground.biomePlate.crop?.sourceWidth !== 1672 ||
         integratedWorld.sanctuaryBackground.biomePlate.crop?.sourceHeight !== 941 ||
+        integratedWorld.sanctuaryBackground.biomePlate.display?.visibleWorldWidth < 2400 ||
+        integratedWorld.sanctuaryBackground.biomePlate.display?.displayHeight < 2120 ||
+        integratedWorld.sanctuaryBackground.biomePlate.display?.x !==
+            integratedWorld.sanctuaryBackground.biomePlate.x ||
         !integratedWorld.sanctuaryBackground.screenBounds ||
         integratedWorld.sanctuaryBackground.screenBounds.bottom <
             integratedWorld.viewport.height ||
