@@ -109,4 +109,20 @@ describe('secondary journey reliability contract', () => {
             );
         });
     });
+
+    test('reload smoke removes the one-shot reset flag before testing persistence', () => {
+        const smoke = fs.readFileSync(
+            path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
+            'utf8'
+        );
+        const journey = smoke.slice(
+            smoke.indexOf('async function smokeSaveReloadJourney'),
+            smoke.indexOf('async function smokeVillageHeartGuidance')
+        );
+
+        expect(journey).toContain("url.searchParams.delete('reset')");
+        expect(journey.indexOf("url.searchParams.delete('reset')")).toBeLessThan(
+            journey.indexOf("session.call('Page.reload'")
+        );
+    });
 });

@@ -14316,6 +14316,17 @@ async function smokeSaveReloadJourney(session, exceptions) {
         { message: 'Save reload construction persistence before reload' }
     );
 
+    await evaluate(session, `(() => {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('reset');
+        window.history.replaceState(
+            {},
+            '',
+            url.pathname + url.search + url.hash
+        );
+        return true;
+    })()`);
+
     await session.call('Page.reload', { ignoreCache: true });
     await waitFor(
         () => evaluate(session, 'document.readyState === "complete"'),
