@@ -198,8 +198,11 @@ describe('first-session Project Beacon mission loop', () => {
         let pollCallback;
         let safetyCallback;
         const pollTimer = { remove: jest.fn() };
+        const hideControls = jest.fn(() => {
+            scene.controlsTutorial.isVisible = false;
+        });
         const scene = {
-            controlsTutorial: { isVisible: true },
+            controlsTutorial: { isVisible: true, hide: hideControls },
             time: {
                 addEvent: jest.fn(({ callback }) => {
                     pollCallback = callback;
@@ -219,9 +222,10 @@ describe('first-session Project Beacon mission loop', () => {
         manager.waitForTutorialDismiss(onComplete);
         safetyCallback();
         safetyCallback();
-        scene.controlsTutorial.isVisible = false;
         pollCallback();
 
+        expect(hideControls).toHaveBeenCalledTimes(1);
+        expect(scene.controlsTutorial.isVisible).toBe(false);
         expect(pollTimer.remove).toHaveBeenCalledTimes(1);
         expect(onComplete).toHaveBeenCalledTimes(1);
     });
@@ -288,6 +292,21 @@ describe('first-session Project Beacon mission loop', () => {
         expect(controlsSource).toContain('START FIELDWORK');
         expect(controlsSource).toContain(
             'this.continueTapBridge = createCanvasTapBridge({'
+        );
+        expect(controlsSource).toContain(
+            "nativeButton.setAttribute('data-testid', 'field-controls-continue');"
+        );
+        expect(controlsSource).toContain(
+            "nativeButton.addEventListener('pointerdown', this.nativeContinueHandler);"
+        );
+        expect(controlsSource).toContain(
+            "nativeButton.addEventListener('touchstart', this.nativeContinueHandler"
+        );
+        expect(controlsSource).toContain(
+            "overlay.on('pointerdown', () => this.hide());"
+        );
+        expect(controlsSource).toContain(
+            "console.error('[ControlsTutorialOverlay] Progress record failed:', error);"
         );
         expect(controlsSource).toContain(
             "continueBtn.on('pointerup', () => this.hide());"
