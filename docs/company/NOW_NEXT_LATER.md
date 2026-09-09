@@ -137,6 +137,12 @@ actually live or prepared on 9 September 2026.
   handle and use **MythicalVoidGame** only if needed. The exact MythicalVoid
   handle is already used by unrelated accounts. Neither proposed handle is
   claimed as available until Kevin checks it inside each platform.
+- The account plan is now a practical first-week checklist. Start with Kevin's
+  existing LinkedIn profile and the true father-and-son story. Reserve YouTube,
+  Instagram and TikTok under one consistent name, but leave the visual-first
+  accounts quiet until real game moments pass human review. This needs no
+  second Google Workspace subscription. Every public post still needs Kevin's
+  complete-preview approval and named adult reply cover.
 
 ## Held until the game looks good in public
 
