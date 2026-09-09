@@ -325,7 +325,7 @@
           "@type": "VideoGame",
           "@id": "https://mythicalvoid.com/#video-game",
           "name": "Mythical Void",
-          "url": "https://mythicalvoid.com/",
+          "url": "https://mythicalvoid.com/play/",
           "mainEntityOfPage": { "@id": "https://mythicalvoid.com/#website" },
           "publisher": { "@id": "https://mythicalvoid.com/#studio" },
           "creator": { "@id": "https://mythicalvoid.com/#studio" },
@@ -333,10 +333,13 @@
           "description": "A free browser creature adventure about recovering Wanderer-77, restoring six living realms, and deciding what Project Beacon should tell Earth.",
           "genre": ["Action-adventure", "Creature raising", "Science fantasy"],
           "playMode": "SinglePlayer",
-          "applicationCategory": "Game",
+          "applicationCategory": "GameApplication",
+          "applicationSubCategory": "Creature adventure game",
           "gamePlatform": "Web browser",
           "inLanguage": "en",
-          "operatingSystem": "Any modern web browser",
+          "operatingSystem": "Any modern operating system with a supported web browser",
+          "softwareRequirements": "A modern JavaScript and WebGL-capable browser with an internet connection",
+          "isAccessibleForFree": true,
           "isFamilyFriendly": true,
           "potentialAction": {
             "@type": "PlayAction",
@@ -351,7 +354,7 @@
           },
           "offers": {
             "@type": "Offer",
-            "price": "0",
+            "price": 0,
             "priceCurrency": "EUR",
             "availability": "https://schema.org/InStock",
             "url": "https://mythicalvoid.com/play/"

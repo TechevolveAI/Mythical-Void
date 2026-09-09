@@ -12,6 +12,7 @@ describe('Playable Now discovery page', () => {
         const pageForReleaseFingerprint = page
             .replace('<a href="/help/">Help</a>', '')
             .replace(gameFitSection, '')
+            .replace('"url": "https://mythicalvoid.com/play/"', '"url": "https://mythicalvoid.com/playable-now/"')
             .replaceAll('20260827-game-fit', '20260827-funnel-source')
             .replaceAll('20260906-plain-language', '20260827-funnel-source');
         expect(crypto.createHash('sha256').update(pageForReleaseFingerprint).digest('hex')).toBe(release.page.sha256);
@@ -43,6 +44,9 @@ describe('Playable Now discovery page', () => {
         expect(page).not.toContain('/press/gameplay/');
         expect(page).not.toContain('/press/gameplay/creature-cosmic-egg-reveal.png');
         expect(page).toContain('"applicationCategory": "GameApplication"');
+        expect(page).toContain('"url": "https://mythicalvoid.com/play/"');
+        expect(page).toContain('"applicationSubCategory": "Creature adventure game"');
+        expect(page).toContain('"softwareRequirements": "A modern JavaScript and WebGL-capable browser with an internet connection"');
         expect(page).toContain('"isAccessibleForFree": true');
         expect(page).not.toContain('"aggregateRating"');
         expect(page).not.toContain('"review"');

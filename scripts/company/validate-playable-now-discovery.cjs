@@ -79,6 +79,7 @@ const gameFitSection = page.match(/\n        <section class="game-fit-section"[\
 const pageForReleaseFingerprint = page
     .replace('<a href="/help/">Help</a>', '')
     .replace(gameFitSection, '')
+    .replace('"url": "https://mythicalvoid.com/play/"', '"url": "https://mythicalvoid.com/playable-now/"')
     .replaceAll('20260827-game-fit', '20260827-funnel-source')
     .replaceAll('20260906-plain-language', '20260827-funnel-source');
 requireValue(sha256(Buffer.from(pageForReleaseFingerprint)) === release.page?.sha256, 'page fingerprint drifted');

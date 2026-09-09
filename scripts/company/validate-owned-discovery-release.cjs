@@ -11,6 +11,8 @@ const failures = [];
 const read = relative => fs.readFileSync(path.join(repositoryRoot, relative), 'utf8');
 
 const index = read('index.html');
+const playableNow = read('public/playable-now/index.html');
+const press = read('public/press/index.html');
 const discovery = read('public/discovery.js');
 const storefront = read('src/site/storefront.js');
 const consent = read('src/site/analytics-consent.js');
@@ -38,19 +40,68 @@ const videoGame = structuredNodes.find(item => item['@type'] === 'VideoGame');
 const website = structuredNodes.find(item => item['@type'] === 'WebSite');
 const organization = structuredNodes.find(item => item['@type'] === 'Organization');
 
+function structuredNodesFrom(source, label) {
+    return [...source.matchAll(/<script\s+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)]
+        .flatMap(match => {
+            try {
+                const value = JSON.parse(match[1]);
+                if (Array.isArray(value)) return value;
+                if (Array.isArray(value?.['@graph'])) return value['@graph'];
+                return [value];
+            } catch {
+                failures.push(`${label} contains invalid JSON-LD`);
+                return [];
+            }
+        });
+}
+
+function nestedVideoGame(nodes) {
+    for (const node of nodes) {
+        if (node?.['@type'] === 'VideoGame') return node;
+        if (node?.mainEntity?.['@type'] === 'VideoGame') return node.mainEntity;
+    }
+    return null;
+}
+
+const canonicalGameUrl = 'https://mythicalvoid.com/play/';
+const playableVideoGame = nestedVideoGame(structuredNodesFrom(playableNow, 'Playable Now'));
+const pressVideoGame = nestedVideoGame(structuredNodesFrom(press, 'press room'));
+
 if (!videoGame) failures.push('homepage VideoGame identity is missing');
 else {
     if (videoGame['@id'] !== 'https://mythicalvoid.com/#video-game') failures.push('homepage VideoGame identity is not canonical');
+    if (videoGame.url !== canonicalGameUrl) failures.push('homepage VideoGame URL must be the clean Play address');
     if (videoGame.mainEntityOfPage?.['@id'] !== 'https://mythicalvoid.com/#website') failures.push('homepage VideoGame does not link to the canonical WebSite');
     if (videoGame.creator?.['@id'] !== 'https://mythicalvoid.com/#studio') failures.push('homepage VideoGame creator is missing');
     if (videoGame.publisher?.['@id'] !== 'https://mythicalvoid.com/#studio') failures.push('homepage VideoGame publisher is missing');
     if (videoGame.potentialAction?.['@type'] !== 'PlayAction') failures.push('homepage direct Play action is missing');
     if (videoGame.potentialAction?.target?.urlTemplate !== 'https://mythicalvoid.com/play/') failures.push('homepage Play action must use the clean direct game URL');
+    if (videoGame.applicationCategory !== 'GameApplication') failures.push('homepage VideoGame must identify a game application');
+    if (videoGame.applicationSubCategory !== 'Creature adventure game') failures.push('homepage VideoGame subcategory is missing');
+    if (videoGame.gamePlatform !== 'Web browser' || videoGame.playMode !== 'SinglePlayer') failures.push('homepage VideoGame platform or play mode is inaccurate');
+    if (videoGame.operatingSystem !== 'Any modern operating system with a supported web browser') failures.push('homepage VideoGame operating-system description is inaccurate');
+    if (videoGame.softwareRequirements !== 'A modern JavaScript and WebGL-capable browser with an internet connection') failures.push('homepage VideoGame browser requirements are missing');
+    if (videoGame.isAccessibleForFree !== true || videoGame.offers?.price !== 0 || videoGame.offers?.url !== canonicalGameUrl) failures.push('homepage VideoGame free Play offer is inaccurate');
     const actionPlatforms = videoGame.potentialAction?.target?.actionPlatform || [];
     for (const platform of ['https://schema.org/DesktopWebPlatform', 'https://schema.org/MobileWebPlatform']) {
         if (!actionPlatforms.includes(platform)) failures.push(`homepage Play action is missing ${platform}`);
     }
     if ('screenshot' in videoGame) failures.push('homepage VideoGame must not publish an unapproved gameplay screenshot');
+}
+
+for (const [label, game] of [['Playable Now', playableVideoGame], ['press room', pressVideoGame]]) {
+    if (!game) {
+        failures.push(`${label} VideoGame identity is missing`);
+        continue;
+    }
+    if (game['@id'] !== 'https://mythicalvoid.com/#video-game') failures.push(`${label} VideoGame identity is not canonical`);
+    if (game.url !== canonicalGameUrl) failures.push(`${label} VideoGame URL must match the clean Play address`);
+    if (game.applicationCategory !== 'GameApplication') failures.push(`${label} VideoGame must identify a game application`);
+    if (game.applicationSubCategory !== 'Creature adventure game') failures.push(`${label} VideoGame subcategory is missing`);
+    if (game.gamePlatform !== 'Web browser' || game.playMode !== 'SinglePlayer') failures.push(`${label} VideoGame platform or play mode is inaccurate`);
+    if (game.operatingSystem !== 'Any modern operating system with a supported web browser') failures.push(`${label} VideoGame operating-system description is inaccurate`);
+    if (game.softwareRequirements !== 'A modern JavaScript and WebGL-capable browser with an internet connection') failures.push(`${label} VideoGame browser requirements are missing`);
+    if (game.isAccessibleForFree !== true) failures.push(`${label} VideoGame does not state that it is free`);
 }
 
 if (!website) failures.push('homepage WebSite identity is missing');

@@ -11,6 +11,8 @@ const repositoryRoot = path.resolve(__dirname, '..', '..');
 const validator = path.join(__dirname, 'validate-owned-discovery-release.cjs');
 const files = [
     'index.html',
+    'public/playable-now/index.html',
+    'public/press/index.html',
     'public/discovery.js',
     'public/sitemap.xml',
     'public/2d33a591a69d023517107abcaf6b7d52.txt',
@@ -83,6 +85,11 @@ invalid('index.html', source => source.replace('"@type": "WebSite"', '"@type": "
 invalid('index.html', source => source.replace('"name": "Mythical Void",\n          "alternateName": "mythicalvoid.com"', '"name": "Mythical Void Portal",\n          "alternateName": "mythicalvoid.com"'), 'official site name must remain Mythical Void');
 invalid('index.html', source => source.replace('"@type": "Organization"', '"@type": "Thing"'), 'homepage Organization identity is missing');
 invalid('index.html', source => source.replace('"urlTemplate": "https://mythicalvoid.com/play/"', '"urlTemplate": "https://mythicalvoid.com/play/?campaign=search"'), 'clean direct game URL');
+invalid('index.html', source => source.replace('"applicationCategory": "GameApplication"', '"applicationCategory": "Game"'), 'identify a game application');
+invalid('index.html', source => source.replace('"softwareRequirements": "A modern JavaScript and WebGL-capable browser with an internet connection"', '"softwareRequirements": "Unknown"'), 'browser requirements are missing');
+invalid('index.html', source => source.replace('"isAccessibleForFree": true', '"isAccessibleForFree": false'), 'free Play offer is inaccurate');
+invalid('public/playable-now/index.html', source => source.replace('"url": "https://mythicalvoid.com/play/"', '"url": "https://mythicalvoid.com/playable-now/"'), 'Playable Now VideoGame URL must match');
+invalid('public/press/index.html', source => source.replace('"applicationSubCategory": "Creature adventure game"', '"applicationSubCategory": "Website"'), 'press room VideoGame subcategory is missing');
 invalid('index.html', source => source.replace('"offers": {', '"screenshot": "https://mythicalvoid.com/unapproved-gameplay.png",\n      "offers": {'), 'must not publish an unapproved gameplay screenshot');
 invalid('README.md', source => source.replace('[Play Mythical Void](https://mythicalvoid.com/playable-now/)', 'Play sometime'), 'public GitHub doorway is missing');
 invalid('README.md', source => source.replace(/NASA does not make or endorse\s+the game/, 'NASA makes the game'), 'NASA boundary');
@@ -115,5 +122,5 @@ assert.deepStrictEqual(JSON.parse(JSON.stringify(playSelected[2])), {
     transport_type: 'beacon'
 });
 
-assert.strictEqual(cases, 21);
-console.log('Owned discovery release evaluations passed (21 cases).');
+assert.strictEqual(cases, 26);
+console.log('Owned discovery release evaluations passed (26 cases).');
