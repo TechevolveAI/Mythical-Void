@@ -45,3 +45,15 @@ PR deploy is ready, the PR is merged through protected main with no additional
 content, and the live result is checked afterwards. Never promote a failed,
 unreviewed, stale or source-mismatched preview. Restoring a previous deploy does
 not prove that a later source change is live.
+
+## Guarded fallback tool
+
+The manual emergency checks are now encoded in
+`scripts/company/netlify-preview-promotion.cjs`. It is dry-run only unless an
+operator adds `--promote`, and it refuses a different source tree, unrelated
+commit, stale or failed preview, secret-scan finding, non-credit build failure,
+already-published preview, or change with no player-facing files. The plain
+runbook is `docs/company/operations/NETLIFY_PREVIEW_PROMOTION_RUNBOOK.md`.
+
+This reduces release mistakes; it does not make publication unattended and it
+does not replace the normal protected-main build.
