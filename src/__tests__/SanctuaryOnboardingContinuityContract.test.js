@@ -32,6 +32,13 @@ describe('Sanctuary onboarding and creature continuity contract', () => {
 
         expect(game).toContain('if (opened) void this.hydrateVillageCommandPortrait');
         expect(game).toContain('await mediaService.resolvePortrait(stage).catch(() => null)');
+        expect(game).toContain("'creaturePortraitGenerationSucceeded',");
+        expect(game).toContain('if (this.villageCommandPanel?.root) {');
+        expect(game).toContain(
+            'void this.hydrateVillageCommandPortrait(\n' +
+            '                        this.villageCommandPanel\n' +
+            '                    );'
+        );
         expect(panel).toContain('setCompanionPortrait(record)');
         expect(panel).toContain("avatar.classList.add('is-living-portrait')");
         expect(panel).toContain('createCommunityDirectory(snapshot, this.companionPortraitRecord)');
