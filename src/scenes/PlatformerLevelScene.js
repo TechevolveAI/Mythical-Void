@@ -1929,13 +1929,24 @@ class PlatformerLevelScene extends Phaser.Scene {
         playerClearance = 76
     } = {}) {
         const support = this.getTraversalSupport(id);
+        const playerY = Number(this.player?.y);
+        const bodyBottom = Number(this.player?.body?.bottom);
+        const measuredClearance = Number.isFinite(playerY) &&
+            Number.isFinite(bodyBottom)
+            ? bodyBottom - playerY + 1
+            : Number.NaN;
+        const resolvedClearance = Number.isFinite(measuredClearance) &&
+            measuredClearance > 0
+            ? measuredClearance
+            : playerClearance;
         return {
             x: Phaser.Math.Clamp(
                 Number(fallbackX) || support?.x || 120,
                 (support?.body?.left || 40) + 30,
                 (support?.body?.right || this.levelWidth - 40) - 30
             ),
-            y: (support?.body?.top || this.levelHeight - 50) - playerClearance
+            y: (support?.body?.top || this.levelHeight - 50) -
+                resolvedClearance
         };
     }
 

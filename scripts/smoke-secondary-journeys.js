@@ -2349,12 +2349,12 @@ async function smokeVoidPeaksReturnCurrents(session) {
     const routes = [
         {
             id: 'peak-return-lower',
-            start: { x: 2310, y: 740 },
+            start: { x: 2310, supportId: 'peak-floor-lower' },
             destinationId: 'peak-warning-lower'
         },
         {
             id: 'peak-return-summit',
-            start: { x: 3200, y: 740 },
+            start: { x: 3200, supportId: 'peak-floor-summit' },
             destinationId: 'peak-warning-summit'
         }
     ];
@@ -2370,7 +2370,7 @@ async function smokeVoidPeaksReturnCurrents(session) {
 
     try {
         for (const route of routes) {
-            await evaluate(session, `(() => {
+            const staged = await evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
                 scene.isInvincible = true;
                 scene.releaseAllPlatformerActionButtons?.();
@@ -2382,10 +2382,32 @@ async function smokeVoidPeaksReturnCurrents(session) {
                     current.activations = 0;
                     current.lastLiftAt = Number.NEGATIVE_INFINITY;
                 }
-                scene.player.body.reset(${route.start.x}, ${route.start.y});
+                const checkpoint = scene.getTraversalSupportCheckpoint(
+                    ${JSON.stringify(route.start.supportId)},
+                    ${route.start.x}
+                );
+                scene.player.setPosition(checkpoint.x, checkpoint.y);
+                scene.player.body.updateFromGameObject?.();
                 scene.player.setVelocity(0, 0);
-                return true;
-            })()`),
+                return {
+                    playerX: Math.round(scene.player.x),
+                    playerY: Math.round(scene.player.y),
+                    bodyLeft: Math.round(scene.player.body.left),
+                    bodyRight: Math.round(scene.player.body.right),
+                    bodyBottom: Math.round(scene.player.body.bottom),
+                    supportTop: Math.round(
+                        scene.getTraversalSupport(
+                            ${JSON.stringify(route.start.supportId)}
+                        ).body.top
+                    )
+                };
+            })()`);
+            if (
+                Math.abs(staged.playerX - route.start.x) > 4 ||
+                Math.abs(staged.bodyBottom - staged.supportTop) > 7
+            ) {
+                throw new Error(`${route.id} actor staging failed: ${JSON.stringify(staged)}`);
+            }
             await waitFor(
                 () => evaluate(session, `(() => {
                     const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
@@ -2434,11 +2456,17 @@ async function smokeVoidPeaksReturnCurrents(session) {
                             top: current.top,
                             bottom: current.bottom,
                             width: current.width,
-                            activations: current.activations
+                            activations: current.activations,
+                            zone: current.zone?.body ? {
+                                left: Math.round(current.zone.body.left),
+                                right: Math.round(current.zone.body.right),
+                                top: Math.round(current.zone.body.top),
+                                bottom: Math.round(current.zone.body.bottom)
+                            } : null
                         } : null
                     };
                 })()`);
-                throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+                throw new Error(`${error.message}: ${JSON.stringify({ staged, diagnostics })}`);
             }
             await setKeyboardKey(session, 'keyUp', {
                 key: 'd',
@@ -8217,15 +8245,12 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                         : 'final-empress-gate');
                 const support = scene.getTraversalSupport?.(supportId);
                 if (!support?.body || !scene.player?.body) return null;
-                scene.player.body.reset(
-                    gate.x,
-                    support.body.top
+                const checkpoint = scene.getTraversalSupportCheckpoint(
+                    supportId,
+                    gate.x
                 );
-                scene.player.body.position.y +=
-                    support.body.top - scene.player.body.bottom;
-                scene.player.body.position.x +=
-                    gate.x - scene.player.body.center.x;
-                scene.player.body.updateCenter?.();
+                scene.player.setPosition(checkpoint.x, checkpoint.y);
+                scene.player.body.updateFromGameObject?.();
                 scene.player.setVelocity?.(0, 0);
                 scene.player.body.blocked.down = true;
                 scene.player.body.touching.down = true;
@@ -8246,10 +8271,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 const guardianStarted = scene.beginGuardianEncounter?.({
                     id: encounterId,
                     title: encounterTitle,
-                    checkpoint: scene.getTraversalSupportCheckpoint(
-                        supportId,
-                        gate.x
-                    ),
+                    checkpoint,
                     start: () => scene.startBossFight()
                 }) === true;
                 if (!guardianStarted) return null;
@@ -8548,9 +8570,21 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         await delay(450);
         const settledRecovery = await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
+            const supportId = ${JSON.stringify(route)} === 'auroraDepths'
+                ? 'aurora-phoenix-gate'
+                : (${JSON.stringify(route)} === 'voidPeaks'
+                    ? 'peak-titan-gate'
+                    : (${JSON.stringify(route)} === 'finalVoid'
+                        ? 'final-empress-gate'
+                        : null));
+            const support = supportId
+                ? scene?.getTraversalSupport?.(supportId)
+                : null;
             return {
                 playerX: scene?.player?.x,
                 playerY: scene?.player?.y,
+                bodyBottom: scene?.player?.body?.bottom,
+                supportTop: support?.body?.top,
                 checkpointX: scene?.checkpointPosition?.x,
                 checkpointY: scene?.checkpointPosition?.y,
                 playerDead: scene?.isPlayerDead === true,
@@ -8562,6 +8596,13 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         if (
             Math.abs(settledRecovery.playerX - settledRecovery.checkpointX) > 80 ||
             Math.abs(settledRecovery.playerY - settledRecovery.checkpointY) > 120 ||
+            (guardianEntrySetup.stagedSupportId && (
+                !Number.isFinite(settledRecovery.bodyBottom) ||
+                !Number.isFinite(settledRecovery.supportTop) ||
+                Math.abs(
+                    settledRecovery.bodyBottom - settledRecovery.supportTop
+                ) > 7
+            )) ||
             settledRecovery.playerDead !== false ||
             settledRecovery.respawning !== false ||
             settledRecovery.physicsPaused !== false ||

@@ -1417,8 +1417,11 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("'RETURN CURRENT\\nTO WARNING LINE ↑'");
         expect(source).toContain("lowerRecoveryIsland.traversalLinks = ['peak-warning-lower']");
         expect(source).toContain("summitRecoveryIsland.traversalLinks = ['peak-warning-summit']");
-        expect(source).toContain('const inLaunchBand = body.bottom >= current.bottom - 90;');
-        expect(source).toContain('if (!grounded || !inLaunchBand) return false;');
+        expect(source).toContain('const PEAK_RETURN_CURRENT_LAUNCH_BAND = 130;');
+        expect(source).toContain('const descendingIntoCurrent = body.velocity.y >= -20;');
+        expect(source).toContain(
+            'if ((!grounded && !descendingIntoCurrent) || !inLaunchBand) return false;'
+        );
         expect(source).toContain('if (now - current.lastLiftAt < 650) return false;');
         expect(source).toContain('calculateBallisticLaunchVelocity({');
         expect(source).toContain('rise: current.bottom - current.top - 20');
@@ -2885,6 +2888,9 @@ describe('campaign traversal quality contracts', () => {
         );
 
         expect(base).toContain('y: this.player?.body?.bottom ?? this.player?.y');
+        expect(base).toContain('const measuredClearance = Number.isFinite(playerY)');
+        expect(base).toContain('bodyBottom - playerY + 1');
+        expect(base).toContain('resolvedClearance');
         expect(smoke).toContain('audit?.flow?.strandingSupportCount !== 0');
         expect(smoke).toContain('smokeVoidPeaksReturnCurrents(session)');
         expect(smoke).toContain('smokeCrystalCoreLift(session)');
@@ -2926,6 +2932,12 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain("'peak-titan-gate'");
         expect(smoke).toContain("id: 'peak-return-lower'");
         expect(smoke).toContain("id: 'peak-return-summit'");
+        expect(smoke).toContain("start: { x: 2310, supportId: 'peak-floor-lower' }");
+        expect(smoke).toContain("start: { x: 3200, supportId: 'peak-floor-summit' }");
+        expect(smoke).toContain('const checkpoint = scene.getTraversalSupportCheckpoint(');
+        expect(smoke).toContain('scene.player.setPosition(checkpoint.x, checkpoint.y);');
+        expect(smoke).toContain('scene.player.body.updateFromGameObject?.();');
+        expect(smoke).toContain('settledRecovery.bodyBottom - settledRecovery.supportTop');
         expect(smoke).toContain('current.lastLiftAt = Number.NEGATIVE_INFINITY;');
         expect(smoke).toContain('guidanceActive: scene.activePeakReturnCurrent?.id === current.id');
         expect(smoke).toContain('destabilized after landing');
