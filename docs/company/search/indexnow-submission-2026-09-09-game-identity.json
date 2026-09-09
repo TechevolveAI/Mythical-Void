@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "INDEXNOW-2026-09-09-GAME-IDENTITY",
+  "submittedAt": null,
+  "submittedOn": "2026-09-09",
+  "host": "mythicalvoid.com",
+  "endpoint": "https://api.indexnow.org/indexnow",
+  "reason": "The homepage, Playable Now page and press room now describe one canonical free browser game and point that game identity to the clean Play address.",
+  "release": {
+    "sourceCommit": "6f6be2b3222a3ac65724f1ac9ec18c5286442f00",
+    "productionMergeCommit": "139c1f553d7e2908b2f358d73981a64e2f8945e2",
+    "productionDeployId": "6aa0bd0859fa7a000854ccf6"
+  },
+  "urls": [
+    "https://mythicalvoid.com/",
+    "https://mythicalvoid.com/playable-now/",
+    "https://mythicalvoid.com/press/"
+  ],
+  "urlCount": 3,
+  "canonicalSitemapCount": 2,
+  "httpStatus": 200,
+  "accepted": true,
+  "responseTimeRecorded": false,
+  "unchangedSitemapUrlsResubmitted": false,
+  "directPlayUrlSubmitted": false,
+  "directPlayUrlOmittedReason": "The direct Play address is the canonical game target but is not listed in either canonical sitemap, so the safeguarded workflow did not submit it.",
+  "meaning": "Participating search engines accepted a changed-page notice for the three genuinely changed canonical pages. Acceptance does not prove crawling, indexing, ranking, visits, play or growth.",
+  "personalDataSent": false,
+  "accountUsed": false,
+  "paidPromotionStarted": false
+}
