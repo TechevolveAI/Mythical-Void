@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "INDEXNOW-2026-09-09-FIRST-MINUTE-NEWS",
+  "submittedAt": null,
+  "submittedOn": "2026-09-09",
+  "host": "mythicalvoid.com",
+  "endpoint": "https://api.indexnow.org/indexnow",
+  "reason": "The live studio story gained a one-minute play-and-adult-feedback route, the Latest News index gained UPDATE-030, and the studio page received its truthful current sitemap date.",
+  "release": {
+    "sourceCommit": "9ff8fde2362378463d50f3e9bb34bc869eed6b20",
+    "productionMergeCommit": "e87e595544de83b7f8d2f57ddaec6b34406f25f8",
+    "productionDeployId": "6aa0ebef4a529800083091bf"
+  },
+  "urls": [
+    "https://mythicalvoid.com/studio/",
+    "https://mythicalvoid.com/updates/",
+    "https://mythicalvoid.com/updates/update-030/"
+  ],
+  "urlCount": 3,
+  "canonicalSitemapCount": 2,
+  "httpStatus": 200,
+  "accepted": true,
+  "responseTimeRecorded": false,
+  "unchangedSitemapUrlsResubmitted": false,
+  "directPlayUrlSubmitted": false,
+  "directPlayUrlOmittedReason": "The direct Play address did not change in this release and was not resubmitted.",
+  "meaning": "Participating search engines accepted a notice for the three genuinely changed canonical pages. Acceptance does not prove crawling, indexing, ranking, visits, play or growth.",
+  "personalDataSent": false,
+  "accountUsed": false,
+  "paidPromotionStarted": false
+}

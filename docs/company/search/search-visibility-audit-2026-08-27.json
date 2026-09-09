@@ -177,6 +177,15 @@
       "unchangedUrlsResubmitted": false,
       "indexingClaimed": false
     },
+    "firstMinuteOwnedChangeNotice": {
+      "record": "docs/company/search/indexnow-submission-2026-09-09-first-minute-news.json",
+      "submittedOn": "2026-09-09",
+      "responseTimeRecorded": false,
+      "urlCount": 3,
+      "accepted": true,
+      "unchangedUrlsResubmitted": false,
+      "indexingClaimed": false
+    },
     "latestCanonicalGameIdentityNotice": {
       "record": "docs/company/search/indexnow-submission-2026-09-09-game-identity.json",
       "submittedOn": "2026-09-09",
