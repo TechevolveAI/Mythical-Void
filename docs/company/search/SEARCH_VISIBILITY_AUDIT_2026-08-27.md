@@ -127,6 +127,15 @@ sitemap. IndexNow returned `200`; the exact response time was not retained.
 Acceptance still does not prove crawling, indexing, ranking, visits, play or
 growth.
 
+Also on 9 September, the homepage, Playable Now page and press room were brought
+into agreement about the game: each now points to the clean Play address and
+describes Mythical Void as a free single-player creature adventure for modern
+web browsers. Only those three changed canonical pages were named in the next
+notice. The safeguarded workflow again omitted `/play/` because it is not in
+either canonical sitemap. IndexNow returned `200`; the exact response time was
+not retained. Acceptance still does not prove crawling, indexing, ranking,
+visits, play or growth.
+
 ## The right next move
 
 Do not make lots of near-identical “free game” pages. The useful page already
