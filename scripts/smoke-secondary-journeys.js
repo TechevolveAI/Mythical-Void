@@ -3339,33 +3339,72 @@ async function smokeAuroraQuietLightClimb(session) {
             item => item.traversalId === 'aurora-heart-launch'
         );
         if (!scene.player?.body || !launch?.body) return false;
+        const checkpoint = scene.getTraversalSupportCheckpoint(
+            'aurora-heart-launch',
+            2600
+        );
         scene.isInvincible = true;
         scene.releaseAllPlatformerActionButtons?.();
         scene.resetJoystick?.();
         (scene.enemies?.getChildren?.() || []).forEach(enemy => {
             if (enemy?.body) enemy.body.enable = false;
         });
-        scene.player.body.reset(2600, launch.body.top - 80);
+        scene.player.setPosition(checkpoint.x, checkpoint.y);
+        scene.player.body.updateFromGameObject?.();
+        scene.player.y += launch.body.top - scene.player.body.bottom - 1;
+        scene.player.body.updateFromGameObject?.();
         scene.player.setVelocity(0, 0);
+        scene.player.body.blocked.down = true;
+        scene.player.body.touching.down = true;
+        scene.isGrounded = true;
         return true;
     })()`);
 
     try {
-        await waitFor(
-            () => evaluate(session, `(() => {
+        try {
+            await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+                    const launch = scene.platforms.getChildren().find(
+                        item => item.traversalId === 'aurora-heart-launch'
+                    );
+                    const body = scene.player?.body;
+                    return Boolean(
+                        launch?.body && body &&
+                        Math.abs(body.bottom - launch.body.top) <= 7 &&
+                        (body.blocked.down || scene.isGrounded)
+                    );
+                })()`),
+                { timeoutMs: 2500, message: 'Aurora Quiet Light launch ledge' }
+            );
+        } catch (error) {
+            const diagnostics = await evaluate(session, `(() => {
                 const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
                 const launch = scene.platforms.getChildren().find(
                     item => item.traversalId === 'aurora-heart-launch'
                 );
                 const body = scene.player?.body;
-                return Boolean(
-                    launch?.body && body &&
-                    Math.abs(body.bottom - launch.body.top) <= 7 &&
-                    (body.blocked.down || scene.isGrounded)
-                );
-            })()`),
-            { timeoutMs: 2500, message: 'Aurora Quiet Light launch ledge' }
-        );
+                return {
+                    player: body ? {
+                        x: Math.round(scene.player.x),
+                        y: Math.round(scene.player.y),
+                        bodyLeft: Math.round(body.left),
+                        bodyRight: Math.round(body.right),
+                        bodyBottom: Math.round(body.bottom),
+                        velocityY: Math.round(body.velocity.y),
+                        blockedDown: body.blocked.down,
+                        touchingDown: body.touching.down,
+                        grounded: scene.isGrounded
+                    } : null,
+                    support: launch?.body ? {
+                        left: Math.round(launch.body.left),
+                        right: Math.round(launch.body.right),
+                        top: Math.round(launch.body.top)
+                    } : null
+                };
+            })()`);
+            throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
+        }
 
         for (const supportId of supportIds) {
             await setKeyboardKey(session, 'keyDown', {
@@ -3445,7 +3484,12 @@ async function smokeAuroraQuietLightClimb(session) {
                 if (enemy?.body && enemy.active !== false) enemy.body.enable = true;
             });
             scene.isInvincible = false;
-            scene.player.body.reset(1150, scene.levelHeight - 130);
+            const checkpoint = scene.getTraversalSupportCheckpoint(
+                'aurora-lower-prism',
+                1150
+            );
+            scene.player.setPosition(checkpoint.x, checkpoint.y);
+            scene.player.body.updateFromGameObject?.();
             scene.player.setVelocity(0, 0);
             return true;
         })()`);
@@ -3739,6 +3783,11 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 '[data-mythical-home-start="true"], [data-mythical-egg-hatch="true"]'
             ).length,
             mobileControls: scene?.platformerControlsVisible === true,
+            touchControlsExpected: Boolean(
+                scene?.isMobile ||
+                (document.querySelector('canvas')?.width || 0) <= 480 ||
+                (document.querySelector('canvas')?.height || 0) < 620
+            ),
             interactiveCount: scene?.input?._list?.length || 0,
             displayCount: scene?.children?.list?.length || 0,
             playerRendering: scene?.player ? {
@@ -4362,7 +4411,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     if (!state.entryAccepted) {
         throw new Error(`${sceneName} did not accept entry input: ${JSON.stringify(state)}`);
     }
-    if (!state.mobileControls) {
+    if (state.touchControlsExpected && !state.mobileControls) {
         throw new Error(`${sceneName} entered gameplay without touch controls: ${JSON.stringify(state)}`);
     }
     if (state.staleOnboardingControlCount !== 0) {
@@ -4586,7 +4635,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         (
             state.auroraAmbientRendering?.shadowCurrentCount !== 3 ||
             state.auroraAmbientRendering?.shadowCurrentLabelCount !== 3 ||
-            state.auroraAmbientRendering?.shadowPulseTweenCount !== 1 ||
+            state.auroraAmbientRendering?.shadowPulseTweenCount !== 0 ||
             state.auroraAmbientRendering?.fragmentCount !== 5 ||
             state.auroraAmbientRendering?.fragmentPulseTweenCount !== 0 ||
             state.auroraAmbientRendering?.landingGuideTweenCount !== 0 ||

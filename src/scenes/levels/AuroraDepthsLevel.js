@@ -1078,13 +1078,13 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         const optional = `${routeStatus}\nOPTIONAL // AURORA FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}`;
 
         if (this.bossDefeated) {
-            return `QUIET UPLINK READY\nEARTH CONTACT NOT TRANSMITTED\n${optional}`;
+            return `PHOENIX FREED\nEARTH CONTACT NOT TRANSMITTED\n${optional}`;
         }
         if (this.bossFightActive) {
-            return `STABILIZE THE PHOENIX\nKEEP THE UPLINK SHIELDED\n${optional}`;
+            return `FREE THE PHOENIX FROM VOID PRESSURE\nDODGE EACH ATTACK // STRIKE WHEN IT PAUSES\n${optional}`;
         }
         if (this.uplinkRiskUnderstood) {
-            return `UPLINK CONTAINED // EXPOSURE 0%\nEARTH CAN BE REACHED BY CHOICE\n${optional}`;
+            return `PHOENIX GATE OPEN\nKEEP RIGHT // LAND ON THE GOLD LIGHT\n${optional}`;
         }
 
         const nextPrism = [
@@ -1095,10 +1095,11 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         const current = Math.min(this.prismsAligned + 1, 3);
         const exposure = Math.max(0, 100 - this.prismsAligned * 33);
         const compass = this.getOrderedRouteCompassText();
+        const direction = compass?.replace(/^CLUE/, 'PRISM');
         const title = this.isCompactObjectiveHUD
             ? `ALIGNMENT ${current}/3`
             : `QUIET ALIGNMENT ${current}/3 // ${nextPrism}`;
-        return `${title}\n${compass || `EXPOSURE ${exposure}% // KEEP THE BEAM DOWN`}\n${optional}`;
+        return `${title}\n${direction || `EXPOSURE ${exposure}% // KEEP THE BEAM DOWN`}\n${optional}`;
     }
 
     showObjectiveToast() {
@@ -1110,7 +1111,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         const toast = this.add.text(
             width / 2,
             toastY,
-            'Follow the lit platforms. Align 3 prisms. Do not send the coordinates to Earth.',
+            'Follow the lit platforms. Align 3 prisms. Keep the beam away from Earth.',
             {
                 fontSize: isMobileLayout ? '15px' : '18px',
                 color: '#F2C94C',
@@ -1175,13 +1176,18 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         });
 
         this.shadowCurrentPulseTween?.remove?.();
-        this.shadowCurrentPulseTween = this.tweens.add({
-            targets: pulseTargets,
-            alpha: { from: 0.45, to: 0.9 },
-            duration: 950,
-            yoyo: true,
-            repeat: -1
-        });
+        this.shadowCurrentPulseTween = null;
+        if (this.shouldAnimateAuroraDecorations()) {
+            this.shadowCurrentPulseTween = this.tweens.add({
+                targets: pulseTargets,
+                alpha: { from: 0.45, to: 0.9 },
+                duration: 950,
+                yoyo: true,
+                repeat: -1
+            });
+        } else {
+            pulseTargets.forEach(visual => visual.setAlpha(0.78));
+        }
     }
 
     createAuroraFragments() {
@@ -1622,7 +1628,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         window.FeedbackManager?.cameraFlash?.(this, 220, 0, 230, 118);
 
         const { width, height } = this.cameras.main;
-        const warningText = this.add.text(width / 2, height / 2, 'THE PHOENIX IS SHIELDING THE UPLINK', {
+        const warningText = this.add.text(width / 2, height / 2, 'THE VOID HAS BOUND THE AURORA PHOENIX', {
             fontSize: width <= 480 ? '20px' : '30px',
             color: '#F2C94C',
             fontStyle: 'bold',
@@ -1872,7 +1878,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossUI.setScrollFactor(0);
         this.bossUI.setDepth(1500);
 
-        this.bossNameText = this.add.text(screenWidth / 2, barY - 28, 'AURORA PHOENIX // SHIELDING US', {
+        this.bossNameText = this.add.text(screenWidth / 2, barY - 28, 'AURORA PHOENIX // VOID-BOUND', {
             fontSize: isMobileLayout ? '18px' : '22px',
             color: '#A9F3E4',
             fontStyle: 'bold',
@@ -1881,7 +1887,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         }).setOrigin(0.5);
         this.bossUI.add(this.bossNameText);
 
-        this.bossSubtitle = this.add.text(screenWidth / 2, barY - 8, 'BREAK VOID PRESSURE // KEEP THE UPLINK QUIET', {
+        this.bossSubtitle = this.add.text(screenWidth / 2, barY - 8, 'DODGE // STRIKE WHEN IT PAUSES', {
             fontSize: isMobileLayout ? '12px' : '13px',
             fontFamily: 'Arial, sans-serif',
             fontStyle: 'bold',
@@ -1939,8 +1945,8 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossHealthBar.fillRoundedRect(barX, barY, currentWidth, barHeight / 2, { tl: 6, tr: 6, bl: 0, br: 0 });
         this.bossExposureText?.setText(
             exposure > 0
-                ? `UPLINK EXPOSURE // ${exposure}/${this.bossMaxHealth}`
-                : 'UPLINK EXPOSURE // CONTAINED'
+                ? `VOID PRESSURE // ${exposure}/${this.bossMaxHealth}`
+                : 'VOID PRESSURE // CLEARED'
         );
     }
 
@@ -2434,8 +2440,8 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             routeBonus
                 ? `CURRENT RELEASE -${finalAmount}`
                 : recoveryBonus
-                    ? `OPEN EXPOSURE -${finalAmount}`
-                    : `EXPOSURE -${finalAmount}`,
+                    ? `OPEN VOID PRESSURE -${finalAmount}`
+                    : `VOID PRESSURE -${finalAmount}`,
             this.boss.x,
             this.boss.y - 100,
             '#A9F3E4'
@@ -2586,7 +2592,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.bossRecoveryUntil = 0;
         this.clearBossEncounterTimers();
         this.clearBossEncounterEffects();
-        this.bossExposureText?.setText('UPLINK EXPOSURE // CONTAINED');
+        this.bossExposureText?.setText('VOID PRESSURE // CLEARED');
 
         if (this.boss?.body) {
             this.boss.body.enable = false;

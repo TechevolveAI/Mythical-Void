@@ -123,11 +123,14 @@ describe('fifth expedition rescue loop', () => {
         expect(source).toContain('height < 620 ? Math.min(142, height * 0.38)');
         expect(source).toContain('y: toastY - 20');
         expect(source).toContain(
-            'Follow the lit platforms. Align 3 prisms. Do not send the coordinates to Earth.'
+            'Follow the lit platforms. Align 3 prisms. Keep the beam away from Earth.'
         );
         expect(source).toContain('this.createCampaignObjectiveDisplay(');
         expect(source).toContain('QUIET ALIGNMENT ${current}/3 // ${nextPrism}');
-        expect(source).toContain('EARTH CAN BE REACHED BY CHOICE');
+        expect(source).toContain('PHOENIX GATE OPEN');
+        expect(source).toContain('KEEP RIGHT // LAND ON THE GOLD LIGHT');
+        expect(source).toContain('FREE THE PHOENIX FROM VOID PRESSURE');
+        expect(source).toContain('DODGE EACH ATTACK // STRIKE WHEN IT PAUSES');
         expect(source).toContain(
             '!(this.isCompactObjectiveHUD && this.bossFightActive)'
         );
@@ -136,18 +139,18 @@ describe('fifth expedition rescue loop', () => {
         expect(source).toContain('this.updateBossIndicator()');
         expect(source).toContain("'PHOENIX >'");
         expect(source).toContain("'< PHOENIX'");
-        expect(source).toContain('THE PHOENIX IS SHIELDING THE UPLINK');
-        expect(source).toContain('BREAK VOID PRESSURE // KEEP THE UPLINK QUIET');
+        expect(source).toContain('THE VOID HAS BOUND THE AURORA PHOENIX');
+        expect(source).toContain('DODGE // STRIKE WHEN IT PAUSES');
     });
 
     test('frames the Phoenix encounter as containing exposure rather than harming an ally', () => {
         const source = readLevel();
 
-        expect(source).toContain('AURORA PHOENIX // SHIELDING US');
-        expect(source).toContain('BREAK VOID PRESSURE // KEEP THE UPLINK QUIET');
-        expect(source).toContain('UPLINK EXPOSURE // ${exposure}/${this.bossMaxHealth}');
-        expect(source).toContain('UPLINK EXPOSURE // CONTAINED');
-        expect(source).toContain('`EXPOSURE -${finalAmount}`');
+        expect(source).toContain('AURORA PHOENIX // VOID-BOUND');
+        expect(source).toContain('DODGE // STRIKE WHEN IT PAUSES');
+        expect(source).toContain('VOID PRESSURE // ${exposure}/${this.bossMaxHealth}');
+        expect(source).toContain('VOID PRESSURE // CLEARED');
+        expect(source).toContain('`VOID PRESSURE -${finalAmount}`');
         expect(source).toContain('this.boss.setTint(0xA9F3E4)');
         expect(source).not.toContain('this.boss.setTint(0xFF0000)');
     });
@@ -239,7 +242,7 @@ describe('fifth expedition rescue loop', () => {
         const source = readLevel();
 
         expect(source).toContain('AURORA PHOENIX RESTORED');
-        expect(source).toContain('QUIET UPLINK READY');
+        expect(source).toContain('PHOENIX FREED');
         expect(source).toContain('Phoenix Gift: Aurora Reactor');
         expect(source).toContain('Earth Contact: Possible, not transmitted');
         expect(source).toContain("achievementLevelId: 'auroraDepths'");

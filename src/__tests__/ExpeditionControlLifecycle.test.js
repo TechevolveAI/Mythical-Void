@@ -88,6 +88,10 @@ describe('expedition control lifecycle', () => {
         expect(smokeSource).toContain(
             'mobileControls: scene?.platformerControlsVisible === true'
         );
+        expect(smokeSource).toContain('touchControlsExpected: Boolean(');
+        expect(smokeSource).toContain(
+            'if (state.touchControlsExpected && !state.mobileControls)'
+        );
         expect(smokeSource).toContain(
             'entered gameplay without touch controls'
         );
