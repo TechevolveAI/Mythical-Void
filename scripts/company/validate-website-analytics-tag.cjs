@@ -108,7 +108,7 @@ for (const required of [
     'G-FTM4W73ECQ', 'analytics_storage: \'denied\'', 'ad_storage: \'denied\'', 'ad_user_data: \'denied\'', 'ad_personalization: \'denied\'',
     "send_page_view: false", "allow_google_signals: false", "allow_ad_personalization_signals: false", "path === '/play'", "path === '/game'", "params.has('testBoss')", 'www.googletagmanager.com/gtag/js'
 ]) if (!indexText.includes(required)) failures.push(`index.html missing ${required}`);
-for (const required of ['Allow analytics', 'No thanks', 'mythical-analytics-consent', 'setConsent', 'analytics-consent', 'whether people reach a lower part of a page']) if (!consentText.includes(required)) failures.push(`analytics consent helper missing ${required}`);
+for (const required of ['Allow analytics', 'No thanks', 'mythical-analytics-consent', 'setConsent', 'analytics-consent', 'helps people reach Play', 'never run inside the game']) if (!consentText.includes(required)) failures.push(`analytics consent helper missing ${required}`);
 for (const required of ['mountAnalyticsConsent', 'Optional website analytics', 'off by default', 'not used in the game', 'whether a visitor reaches a lower part of a public page', 'basic visit and session events after permission is given']) if (!storefrontText.includes(required)) failures.push(`storefront missing ${required}`);
 for (const required of ['analytics-consent', 'analytics-consent-actions', 'analytics-consent-yes']) if (!storefrontCss.includes(required)) failures.push(`storefront style missing ${required}`);
 for (const policy of [netlifyText, vercelText]) {

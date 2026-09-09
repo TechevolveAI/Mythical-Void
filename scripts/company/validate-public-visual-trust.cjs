@@ -9,6 +9,8 @@ const register = readVisualPublicationRegister();
 const failures = [];
 const requireValue = (condition, message) => { if (!condition) failures.push(message); };
 const read = relative => fs.readFileSync(path.join(root, relative), 'utf8');
+const storefront = read('src/site/storefront.js');
+const storefrontCss = read('src/site/storefront.css');
 
 const visiblePages = [
     'index.html',
@@ -37,6 +39,10 @@ for (const relative of visiblePages) {
         requireValue(/AI-generated marketing art/i.test(html) && /not gameplay/i.test(html), `${relative} uses imagined-universe art without a visible boundary`);
     }
 }
+
+requireValue(storefront.includes('class="hero-mobile-window"'), 'homepage has no dedicated phone-size creature-universe view');
+requireValue(storefront.includes('Artwork inspired by real creature hatches — not gameplay.'), 'phone-size creature-universe view lacks a visible not-gameplay boundary');
+requireValue(/@media \(max-width: 620px\)[\s\S]*?\.hero-mobile-window\s*\{[\s\S]*?display:\s*block/.test(storefrontCss), 'phone-size creature-universe view is not exposed at the mobile breakpoint');
 
 for (const relative of ['public/updates/feed.xml', 'public/updates/feed.json']) {
     const feed = read(relative);

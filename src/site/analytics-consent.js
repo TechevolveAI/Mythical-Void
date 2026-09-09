@@ -15,8 +15,8 @@ function mountAnalyticsConsent() {
     banner.innerHTML = `
         <div class="analytics-consent-copy">
             <strong>Help us improve the website?</strong>
-            <p>Optional counting helps us see which pages are useful, the general route people arrived from, whether people reach a lower part of a page, and whether website buttons lead to play or sharing. It is off unless you say yes, and it is not used in the game.</p>
-            <a href="/privacy/">Read the privacy and safety page</a>
+            <p>Optional analytics show what helps people reach Play. They stay off unless you allow them and never run inside the game.</p>
+            <a href="/privacy/">Privacy and safety</a>
         </div>
         <div class="analytics-consent-actions">
             <button type="button" class="analytics-consent-no" data-analytics-deny>No thanks</button>
