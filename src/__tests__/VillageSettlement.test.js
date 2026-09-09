@@ -79,6 +79,13 @@ function loadVillageSettlement() {
                 artwork: '/marketing/bloom 2.webp',
                 textureKey: 'rescued-resident-bloom',
                 accent: 0xF2C14E,
+                genetics: {
+                    id: 'resident_bloom_v1',
+                    traits: {
+                        colorGenome: { primary: 0xE7A3C7 },
+                        features: { specialFeatures: [] }
+                    }
+                },
                 preferredBuildingId: 'forager_hut',
                 villageTraits: ['foraging', 'renewal'],
                 contributionLine: 'Bloom maps food that can regrow.'
@@ -193,6 +200,7 @@ describe('Village settlement phase one', () => {
             preferredBuildingId: 'forager_hut',
             contributionLine: 'Bloom maps food that can regrow.'
         });
+        expect(bloom.genetics.id).toBe('resident_bloom_v1');
         expect(roster.find(entry => entry.id === 'companion_nova')).toMatchObject({
             communityType: 'player_companion',
             isPlayerCompanion: true
@@ -866,6 +874,7 @@ describe('Village settlement phase one', () => {
             buildings: [
                 staffed('forager_hut', 'root_01', 'bloom', 'Bloom', {
                     artwork: '/marketing/bloom 2.webp',
+                    genetics: { id: 'resident_bloom_v1' },
                     communityType: 'rescued_resident',
                     role: 'Renewal Forager'
                 }),
@@ -894,6 +903,7 @@ describe('Village settlement phase one', () => {
             creatureId: 'bloom',
             communityType: 'rescued_resident',
             artwork: '/marketing/bloom 2.webp',
+            genetics: { id: 'resident_bloom_v1' },
             residentRole: 'Renewal Forager',
             roleLabel: 'Renewal Forager'
         }));

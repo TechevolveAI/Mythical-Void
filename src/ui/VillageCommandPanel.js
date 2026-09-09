@@ -5,6 +5,7 @@ import {
     getVillageSupportSummary
 } from '../systems/VillageSettlement.js';
 import { CINEMATIC_MEDIA, shouldPlayCinematicMedia } from '../config/cinematic-media.js';
+import { getRescuedResidentVariantIndex } from '../systems/RescuedResidents.js';
 
 function createElement(tagName, className, text = null) {
     const element = document.createElement(tagName);
@@ -40,7 +41,11 @@ function createBuildingArtwork(definitionId, {
     return artwork;
 }
 
-function createCreatureAvatar(creature, portraitRecord = null) {
+function createCreatureAvatar(
+    creature,
+    portraitRecord = null,
+    runtimeAvatarResolver = null
+) {
     const avatar = createElement('span', 'village-creature-avatar');
     const name = creature?.name || 'Creature';
     avatar.dataset.communityType = creature?.communityType || 'companion';
@@ -51,6 +56,21 @@ function createCreatureAvatar(creature, portraitRecord = null) {
         image.alt = '';
         image.decoding = 'async';
         image.referrerPolicy = 'no-referrer';
+        avatar.append(image);
+        avatar.setAttribute('aria-hidden', 'true');
+        return avatar;
+    }
+    const runtimeAvatar = creature?.communityType === 'rescued_resident'
+        ? runtimeAvatarResolver?.(creature)
+        : null;
+    if (runtimeAvatar?.imageUrl) {
+        avatar.classList.add('is-runtime-resident');
+        avatar.dataset.geneticsId = runtimeAvatar.geneticsId || '';
+        avatar.dataset.variant = String(runtimeAvatar.variant ?? 0);
+        const image = createElement('img', 'village-creature-runtime-portrait');
+        image.src = runtimeAvatar.imageUrl;
+        image.alt = '';
+        image.decoding = 'async';
         avatar.append(image);
         avatar.setAttribute('aria-hidden', 'true');
         return avatar;
@@ -120,7 +140,11 @@ function createVillageViewTabs(snapshot, { activeView, onSelect } = {}) {
     return tabs;
 }
 
-function createCommunityShortcut(snapshot, { onSelect, portraitRecord = null } = {}) {
+function createCommunityShortcut(snapshot, {
+    onSelect,
+    portraitRecord = null,
+    runtimeAvatarResolver = null
+} = {}) {
     const community = snapshot?.community || {};
     const members = [
         ...(community.companions || []),
@@ -145,7 +169,7 @@ function createCommunityShortcut(snapshot, { onSelect, portraitRecord = null } =
 
     const portraits = createElement('span', 'village-community-shortcut-portraits');
     members.slice(0, 3).forEach(member => portraits.append(
-        createCreatureAvatar(member, portraitRecord)
+        createCreatureAvatar(member, portraitRecord, runtimeAvatarResolver)
     ));
     if (members.length > 3) {
         portraits.append(createElement(
@@ -192,7 +216,11 @@ function getCommunityMemberStatus(member, snapshot) {
     return 'HOME · MEMORY GARDEN';
 }
 
-function createCommunityDirectory(snapshot, portraitRecord = null) {
+function createCommunityDirectory(
+    snapshot,
+    portraitRecord = null,
+    runtimeAvatarResolver = null
+) {
     const community = snapshot?.community || {};
     const members = [...(community.companions || []), ...(community.residents || [])]
         .filter((member, index, roster) => (
@@ -274,7 +302,10 @@ function createCommunityDirectory(snapshot, portraitRecord = null) {
                     )
                 )
             );
-            identity.append(createCreatureAvatar(member, portraitRecord), identityCopy);
+            identity.append(
+                createCreatureAvatar(member, portraitRecord, runtimeAvatarResolver),
+                identityCopy
+            );
             card.append(
                 identity,
                 createElement(
@@ -388,7 +419,11 @@ function createVillageVision() {
     return vision;
 }
 
-function createCommunityPulse(snapshot, portraitRecord = null) {
+function createCommunityPulse(
+    snapshot,
+    portraitRecord = null,
+    runtimeAvatarResolver = null
+) {
     const section = createElement('section', 'village-community-pulse');
     const home = snapshot?.home || {};
     const moment = snapshot?.communityMoments?.[0] || null;
@@ -398,7 +433,7 @@ function createCommunityPulse(snapshot, portraitRecord = null) {
         moment.participants.forEach(participant => {
             const person = createElement('span', 'village-community-person');
             person.append(
-                createCreatureAvatar(participant, portraitRecord),
+                createCreatureAvatar(participant, portraitRecord, runtimeAvatarResolver),
                 createElement('strong', '', participant.name),
                 createElement('span', '', participant.roleLabel)
             );
@@ -487,7 +522,12 @@ function createVillageSupportImpactSummary(snapshot) {
     return section;
 }
 
-function createResidentProposal(snapshot, definition, portraitRecord = null) {
+function createResidentProposal(
+    snapshot,
+    definition,
+    portraitRecord = null,
+    runtimeAvatarResolver = null
+) {
     const proposal = getVillageResidentProposal(snapshot, {
         definitionId: definition?.id
     });
@@ -501,9 +541,10 @@ function createResidentProposal(snapshot, definition, portraitRecord = null) {
             name: proposal.speakerName,
             role: proposal.speakerRole,
             artwork: proposal.speakerArtwork,
+            genetics: proposal.speakerGenetics,
             communityType: proposal.speakerCommunityType,
             isPlayerCompanion: proposal.speakerCommunityType === 'player_companion'
-        }, portraitRecord),
+        }, portraitRecord, runtimeAvatarResolver),
         createElement(
             'span',
             'village-resident-proposal-speaker',
@@ -826,6 +867,7 @@ export default class VillageCommandPanel {
         this.statusMessage = '';
         this.lastDecisionResult = null;
         this.companionPortraitRecord = null;
+        this.runtimeResidentAvatarCache = new Map();
         this.activeView = 'plan';
         this.keyboardHandler = null;
         this.refreshTimer = null;
@@ -835,6 +877,51 @@ export default class VillageCommandPanel {
         this.restoreMobileControls = false;
         this.domContainer = null;
         this.previousDomContainerZIndex = '';
+    }
+
+    getRuntimeResidentAvatar(creature) {
+        if (
+            creature?.communityType !== 'rescued_resident' ||
+            !creature?.genetics ||
+            !this.scene?.textures
+        ) return null;
+        const variant = getRescuedResidentVariantIndex(creature);
+        const geneticsId = creature.genetics.id || creature.id;
+        const cacheKey = `${geneticsId}:juvenile:${variant}`;
+        if (this.runtimeResidentAvatarCache.has(cacheKey)) {
+            return this.runtimeResidentAvatarCache.get(cacheKey);
+        }
+
+        let avatar = null;
+        try {
+            const expectedTextureName = `creature_${geneticsId}_juvenile_${variant}`;
+            const result = this.scene.textures.exists(expectedTextureName)
+                ? expectedTextureName
+                : this.scene.graphicsEngine?.createRandomizedSpaceMythicCreature?.(
+                    creature.genetics,
+                    variant,
+                    'juvenile'
+                );
+            const textureName = typeof result === 'string'
+                ? result
+                : result?.textureName;
+            if (textureName && this.scene.textures.exists(textureName)) {
+                const source = this.scene.textures.get(textureName).getSourceImage();
+                const canvas = document.createElement('canvas');
+                canvas.width = source.width;
+                canvas.height = source.height;
+                canvas.getContext('2d')?.drawImage(source, 0, 0);
+                avatar = {
+                    imageUrl: canvas.toDataURL('image/png'),
+                    geneticsId,
+                    variant
+                };
+            }
+        } catch (error) {
+            console.warn('Village resident avatar fallback:', error);
+        }
+        this.runtimeResidentAvatarCache.set(cacheKey, avatar);
+        return avatar;
     }
 
     show({
@@ -1077,6 +1164,7 @@ export default class VillageCommandPanel {
         if (onboarding.showFullPlan && intent !== 'decision') {
             shell.append(createCommunityShortcut(snapshot, {
                 portraitRecord: this.companionPortraitRecord,
+                runtimeAvatarResolver: creature => this.getRuntimeResidentAvatar(creature),
                 onSelect: () => {
                     this.guided = false;
                     this.activeView = 'community';
@@ -1176,7 +1264,8 @@ export default class VillageCommandPanel {
             const residentProposal = createResidentProposal(
                 snapshot,
                 visualDefinition,
-                this.companionPortraitRecord
+                this.companionPortraitRecord,
+                creature => this.getRuntimeResidentAvatar(creature)
             );
             if (residentProposal && ['build', 'supplies'].includes(intent)) {
                 copy.append(residentProposal);
@@ -1553,7 +1642,11 @@ export default class VillageCommandPanel {
                 resources,
                 status,
                 viewTabs,
-                createCommunityDirectory(snapshot, this.companionPortraitRecord)
+                createCommunityDirectory(
+                    snapshot,
+                    this.companionPortraitRecord,
+                    creature => this.getRuntimeResidentAvatar(creature)
+                )
             );
             this.root.append(shell);
             restoreScrollState();
@@ -1694,7 +1787,8 @@ export default class VillageCommandPanel {
             const residentProposal = createResidentProposal(
                 snapshot,
                 selectedDefinition,
-                this.companionPortraitRecord
+                this.companionPortraitRecord,
+                creature => this.getRuntimeResidentAvatar(creature)
             );
             if (residentProposal) plan.append(residentProposal);
         }
@@ -1849,7 +1943,8 @@ export default class VillageCommandPanel {
                 summary.append(
                     createCreatureAvatar(
                         building.creature || snapshot.roster[0],
-                        this.companionPortraitRecord
+                        this.companionPortraitRecord,
+                        creature => this.getRuntimeResidentAvatar(creature)
                     ),
                     summaryCopy
                 );
@@ -1903,12 +1998,20 @@ export default class VillageCommandPanel {
             shell.append(
                 phase,
                 createVillageSupportImpactSummary(snapshot),
-                createCommunityPulse(snapshot, this.companionPortraitRecord)
+                createCommunityPulse(
+                    snapshot,
+                    this.companionPortraitRecord,
+                    creature => this.getRuntimeResidentAvatar(creature)
+                )
             );
             if (heartDecision) shell.append(heartDecision);
             shell.append(createVillageVision());
         } else if (contextualBuilding?.definitionId === 'habitat') {
-            shell.append(createCommunityPulse(snapshot, this.companionPortraitRecord));
+            shell.append(createCommunityPulse(
+                snapshot,
+                this.companionPortraitRecord,
+                creature => this.getRuntimeResidentAvatar(creature)
+            ));
         }
         shell.append(body);
         this.root.append(shell);
@@ -1951,6 +2054,7 @@ export default class VillageCommandPanel {
         this.onTick = null;
         this.onClose = null;
         this.companionPortraitRecord = null;
+        this.runtimeResidentAvatarCache.clear();
         closeHandler?.();
     }
 }

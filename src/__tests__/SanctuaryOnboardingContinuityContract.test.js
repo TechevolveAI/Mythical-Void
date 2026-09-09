@@ -41,7 +41,12 @@ describe('Sanctuary onboarding and creature continuity contract', () => {
         );
         expect(panel).toContain('setCompanionPortrait(record)');
         expect(panel).toContain("avatar.classList.add('is-living-portrait')");
-        expect(panel).toContain('createCommunityDirectory(snapshot, this.companionPortraitRecord)');
+        expect(panel).toContain(
+            'createCommunityDirectory(\n' +
+            '                    snapshot,\n' +
+            '                    this.companionPortraitRecord,'
+        );
+        expect(panel).toContain('creature => this.getRuntimeResidentAvatar(creature)');
     });
 
     test('uses optional story media at rescues, trust scenes, and the ending', () => {
