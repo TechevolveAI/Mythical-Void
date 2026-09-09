@@ -32,8 +32,15 @@ function validateSocialFirstWeek({ record, guide, campaign, founding, packageJso
     requireValue(founding.livePreviewCheck?.pageStatus === 200 && founding.livePreviewCheck?.imageStatus === 200 && founding.livePreviewCheck?.imageContentType === 'image/webp', 'founder story page or preview image was not healthy');
     requireValue(founding.livePreviewCheck?.generatedArtworkDisclosureObserved === true, 'founder story preview does not record the generated-art disclosure');
     requireValue(founding.livePreviewCheck?.linkedInCrawlerPreviewObserved === false && /does not prove LinkedIn/i.test(founding.livePreviewCheck?.note || ''), 'generic page health is being mistaken for a checked LinkedIn preview');
-    requireValue(/free early-access game you can play in a browser/i.test(exactPostBody) && /No download or account is needed/i.test(exactPostBody), 'first LinkedIn post loses the playable-now promise');
-    requireValue(/credited public NASA material/i.test(exactPostBody) && /NASA does not endorse Mythical Void/i.test(exactPostBody) && !/NASA-powered/i.test(exactPostBody), 'first LinkedIn post has an inaccurate NASA claim');
+    requireValue(/^My son and I started Mythical Void at home/i.test(exactPostBody), 'first LinkedIn post loses Kevin\'s direct founder voice');
+    requireValue(/asking each other strange questions/i.test(exactPostBody) && /gravity points sideways/i.test(exactPostBody) && /hear energy as music/i.test(exactPostBody), 'first LinkedIn post loses the shared father-and-son imagination');
+    requireValue(/free to play and still in early access/i.test(exactPostBody) && /no download or account/i.test(exactPostBody), 'first LinkedIn post loses the playable-now promise');
+    requireValue(/AI helped us build, but people made the story, safety and release decisions/i.test(exactPostBody) && /tested, rejected and rebuilt/i.test(exactPostBody), 'first LinkedIn post loses its honest account of AI and human responsibility');
+    requireValue(/credited public NASA material/i.test(exactPostBody) && /NASA does not endorse the game/i.test(exactPostBody) && !/NASA-powered/i.test(exactPostBody), 'first LinkedIn post has an inaccurate NASA claim');
+    requireValue(/If LinkedIn shows the page picture, it is imagined artwork/i.test(exactPostBody) && /not gameplay/i.test(exactPostBody), 'first LinkedIn post does not explain the automatic artwork preview');
+    requireValue(/try the first minute/i.test(exactPostBody) && /what made sense and what did not/i.test(exactPostBody), 'first LinkedIn post loses the useful founder feedback invitation');
+    requireValue(exactPostBody.trim().split(/\s+/).length <= 200, 'first LinkedIn post is too long for the intended founder note');
+    requireValue(!/\b(?:nine|9)[ -]years?[ -]old\b/i.test(exactPostBody), 'first LinkedIn post exposes an unnecessary child detail');
     requireValue(!/\bcompanions?\b|\bsignals?\b/i.test(exactPostBody), 'first LinkedIn post uses retired public wording');
     requireValue(!/[?&](?:utm_|fbclid|gclid)/i.test(exactPostBody), 'first LinkedIn post contains a tracking link');
     requireValue(record.recommendedStart?.automaticLinkPreviewOnly === true && record.recommendedStart?.uploadedMediaRequired === false, 'first post must use the checked link preview only');
@@ -77,7 +84,7 @@ function validateSocialFirstWeek({ record, guide, campaign, founding, packageJso
     requireValue(!/\bcompanions?\b|\bsignals?\b/i.test(`${record.purpose} ${profiles} ${record.nextRequiredAction}`), 'retired public wording appears in the new core copy');
 
     const normalizedGuide = guide.replace(/\s+/g, ' ');
-    for (const phrase of ['No account has been opened', 'existing LinkedIn profile', '@PlayMythicalVoid', 'second Google Workspace subscription', 'name reservations only', 'Exact first post', 'Content ready', 'fresh approval lasting 30 minutes', 'Day 7', 'Never invent followers', 'NASA does not endorse Mythical Void', "Kevin's one next step"]) {
+    for (const phrase of ['No account has been opened', 'existing LinkedIn profile', '@PlayMythicalVoid', 'second Google Workspace subscription', 'name reservations only', 'Exact first post', 'My son and I started Mythical Void at home', 'imagined artwork', 'try the first minute', 'Content ready', 'fresh approval lasting 30 minutes', 'Day 7', 'Never invent followers', 'NASA does not endorse Mythical Void', "Kevin's one next step"]) {
         requireValue(normalizedGuide.includes(phrase), `plain-language guide is missing: ${phrase}`);
     }
     requireValue(packageJson.scripts?.['validate:social-first-week']?.includes('validate-social-first-week-pack.cjs'), 'first-week validation command is missing');

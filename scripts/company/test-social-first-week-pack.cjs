@@ -6,6 +6,7 @@ const { validateSocialFirstWeek, loadFromRoot } = require('./validate-social-fir
 
 const base = loadFromRoot(path.resolve(__dirname, '..', '..'));
 const clone = value => JSON.parse(JSON.stringify(value));
+const crypto = require('crypto');
 assert.deepStrictEqual(validateSocialFirstWeek(base), []);
 
 const cases = [
@@ -54,4 +55,26 @@ for (const [name, mutate, expected] of [
     assert(failures.some(failure => failure.includes(expected)), `${name}: ${JSON.stringify(failures)}`);
 }
 
-console.log(`Social first-week safeguards passed (${cases.length + 9} cases).`);
+const synchronizedCopyCases = [
+    ['replace founder voice with campaign language', copy => copy.replace(/^My son and I started Mythical Void at home/, 'Mythical Void is an innovative game'), 'direct founder voice'],
+    ['remove the shared questions', copy => copy.replace('We kept asking each other strange questions.', 'We created a product concept.'), 'shared father-and-son imagination'],
+    ['hide the human release decisions', copy => copy.replace('AI helped us build, but people made the story, safety and release decisions.', 'AI built the experience.'), 'human responsibility'],
+    ['remove the artwork warning', copy => copy.replace('If LinkedIn shows the page picture, it is imagined artwork for the wider creature universe, not gameplay.', ''), 'automatic artwork preview'],
+    ['remove the useful feedback invitation', copy => copy.replace('If you try the first minute, I would genuinely like to know what made sense and what did not.', 'Please like and share.'), 'founder feedback invitation'],
+    ['add the child age', copy => `${copy}\n\nMy son is nine years old.`, 'unnecessary child detail']
+];
+
+for (const [name, mutate, expected] of synchronizedCopyCases) {
+    const record = clone(base.record);
+    const founding = clone(base.founding);
+    const copy = mutate(record.recommendedStart.exactPostBody);
+    const hash = crypto.createHash('sha256').update(copy).digest('hex');
+    record.recommendedStart.exactPostBody = copy;
+    record.recommendedStart.exactPostSha256 = hash;
+    founding.firstPost.copy = copy;
+    founding.firstPost.sha256 = hash;
+    const failures = validateSocialFirstWeek({ ...base, record, founding });
+    assert(failures.some(failure => failure.includes(expected)), `${name}: ${JSON.stringify(failures)}`);
+}
+
+console.log(`Social first-week safeguards passed (${cases.length + 9 + synchronizedCopyCases.length} cases).`);

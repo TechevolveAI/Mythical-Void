@@ -157,7 +157,7 @@ for (const field of ['socialPublishingAuthorized', 'paidPromotionAuthorized', 'b
     requireValue(pack.boundaries?.[field] === false, `launch boundary ${field} must remain false`);
 }
 requireValue(pack.nextChannel?.name === 'YouTube' && pack.nextChannel?.state === 'held_for_visual_quality', 'YouTube must remain behind the visual-quality gate');
-for (const required of ['Children ask questions', 'No download or account is needed', 'NASA does not endorse Mythical Void', 'Do not continue a private conversation', 'exact public profile URL']) {
+for (const required of ['My son and I started Mythical Void at home', 'no download or account', 'NASA does not endorse the game', 'imagined artwork', 'try the first minute', 'Do not continue a private conversation', 'exact public profile URL']) {
     requireValue(packText.includes(required), `founding launch copy is missing: ${required}`);
 }
 for (const required of ['The rest of the first week', 'https://mythicalvoid.com/playable-now/', 'https://mythicalvoid.com/creature-genetics/', 'Use the automatic link preview only']) requireValue(packText.includes(required), `founding launch first week is missing: ${required}`);

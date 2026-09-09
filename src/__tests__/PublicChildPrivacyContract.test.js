@@ -23,7 +23,7 @@ const publicAndPreparedCopy = [
 describe('public founder-story privacy', () => {
     test.each(publicAndPreparedCopy)('%s does not publish the child’s exact age', relative => {
         const source = fs.readFileSync(path.join(root, relative), 'utf8');
-        expect(source).not.toMatch(/\b(?:nine|9)[ -]year[ -]old\b/i);
+        expect(source).not.toMatch(/\b(?:nine|9)[ -]years?[ -]old\b/i);
     });
 
     test('keeps the true father-and-son beginning', () => {
@@ -36,13 +36,14 @@ describe('public founder-story privacy', () => {
         expect(studio).toMatch(/father and son/i);
     });
 
-    test('does not put retired signal wording back into the prepared founder post', () => {
+    test('keeps retired signal wording out and asks for useful first-minute feedback', () => {
         const founderPost = fs.readFileSync(
             path.join(root, 'docs/company/content/channel-launch/FOUNDING_SIGNAL_LAUNCH_PACK.md'),
             'utf8'
         );
 
         expect(founderPost).not.toMatch(/\bsignal\b/i);
-        expect(founderPost).toContain('pass it on');
+        expect(founderPost).toContain('try the first minute');
+        expect(founderPost).toMatch(/what made sense and\s+what did not/);
     });
 });
