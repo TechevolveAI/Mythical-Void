@@ -15,12 +15,17 @@ describe('Final Void expedition culmination', () => {
         expect(finalVoidSource).toContain('const fractures = [');
     });
 
-    test('requires all three bond signals to open the Empress seal', () => {
+    test('requires all three glowing marks to open the Empress seal', () => {
         expect(finalVoidSource).toContain('this.bondAnchorsActivated === 3');
         expect(finalVoidSource).toContain('this.finalSignalReady = true');
         expect(finalVoidSource).toMatch(
-            /createEmpressGate\(\)[\s\S]*if \(!this\.finalSignalReady\)[\s\S]*BOND MARKERS REQUIRED[\s\S]*this\.beginGuardianEncounter\(\{[\s\S]*id: 'void_empress'[\s\S]*start: \(\) => this\.startBossFight\(\)/
+            /createEmpressGate\(\)[\s\S]*if \(!this\.finalSignalReady\)[\s\S]*FIND THE GLOWING MARKS[\s\S]*this\.beginGuardianEncounter\(\{[\s\S]*id: 'void_empress'[\s\S]*start: \(\) => this\.startBossFight\(\)/
         );
+        expect(finalVoidSource).toContain(
+            'Follow three glowing marks with ${companionName}, then reach the Command Module'
+        );
+        expect(finalVoidSource).toContain('[ ] Reach all 3 glowing marks');
+        expect(finalVoidSource).not.toContain('[ ] Reconnect the five living systems');
     });
 
     test('reveals the living network, Earth route, and companion trust in order', () => {
@@ -129,8 +134,10 @@ describe('Final Void expedition culmination', () => {
         expect(finalVoidSource).toContain('const barY = compact ? 118 : 60');
         expect(finalVoidSource).toContain('compact ? 158 : 112');
         expect(finalVoidSource).toContain('this.createCampaignObjectiveDisplay(');
-        expect(finalVoidSource).toContain('BOND ${current}/3 // ${nextSignal}');
-        expect(finalVoidSource).toContain('EMPRESS SEAL OPEN');
+        expect(finalVoidSource).toContain('GLOWING MARK ${current}/3 // ${nextSignal}');
+        expect(finalVoidSource).toContain('THE WAY IS OPEN');
+        expect(finalVoidSource).toContain('GO RIGHT TO THE VOID EMPRESS');
+        expect(finalVoidSource).toContain('FREE THE VOID EMPRESS');
         expect(finalVoidSource).toContain(
             '!(this.isCompactObjectiveHUD && this.bossFightActive)'
         );

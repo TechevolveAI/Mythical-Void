@@ -3125,16 +3125,13 @@ async function smokeFinalVoidRiftCrossing(session) {
         });
         const support = scene.getTraversalSupport?.('final-ground-return');
         if (!support?.body || !scene.player?.body) return false;
-        scene.player.body.reset(1600, support.body.top);
-        scene.player.body.position.y +=
-            support.body.top - scene.player.body.bottom;
-        scene.player.body.position.x +=
-            1600 - scene.player.body.center.x;
-        scene.player.body.updateCenter?.();
+        const crossingStart = scene.getTraversalSupportCheckpoint(
+            'final-ground-return',
+            1600
+        );
+        scene.player.setPosition(crossingStart.x, crossingStart.y);
+        scene.player.body.updateFromGameObject?.();
         scene.player.setVelocity(0, 0);
-        scene.player.body.blocked.down = true;
-        scene.player.body.touching.down = true;
-        scene.isGrounded = true;
         scene.canJump = true;
         scene.lastGroundedTime = scene.time.now;
         scene.recoveryInputLockedUntil = 0;
@@ -3272,6 +3269,7 @@ async function smokeFinalVoidRiftCrossing(session) {
                     const scene = window.mythicalGame.scene.getScene('FinalVoidLevel');
                     const body = scene.player?.body;
                     return {
+                        launch: ${JSON.stringify(launch)},
                         player: body ? {
                             x: Math.round(scene.player.x),
                             y: Math.round(scene.player.y),
@@ -3290,9 +3288,13 @@ async function smokeFinalVoidRiftCrossing(session) {
                             ))
                             .map(item => ({
                                 id: item.traversalId || null,
+                                type: item.platformType || null,
                                 left: Math.round(item.body.left),
                                 right: Math.round(item.body.right),
-                                top: Math.round(item.body.top)
+                                top: Math.round(item.body.top),
+                                collisionUp: item.body.checkCollision?.up === true,
+                                collisionDown: item.body.checkCollision?.down === true,
+                                enabled: item.body.enable !== false
                             }))
                     };
                 })()`);
@@ -3316,7 +3318,12 @@ async function smokeFinalVoidRiftCrossing(session) {
                 if (enemy?.body && enemy.active !== false) enemy.body.enable = true;
             });
             scene.isInvincible = false;
-            scene.player.body.reset(600, scene.levelHeight - 110);
+            const recovery = scene.getTraversalSupportCheckpoint(
+                'final-ground-arrival',
+                600
+            );
+            scene.player.setPosition(recovery.x, recovery.y);
+            scene.player.body.updateFromGameObject?.();
             scene.player.setVelocity(0, 0);
             return true;
         })()`);
@@ -8286,7 +8293,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 'auroraDepths',
                 'voidPeaks',
                 'finalVoid'
-            ].includes(${JSON.stringify(route)})) {
+            ].includes(${JSON.stringify(route)}) && !guardianAlreadyActive) {
                 const supportId = ${JSON.stringify(route)} === 'auroraDepths'
                     ? 'aurora-phoenix-gate'
                     : (${JSON.stringify(route)} === 'voidPeaks'

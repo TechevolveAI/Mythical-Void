@@ -1823,7 +1823,7 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("'final-rift-step-1'");
         expect(source).toContain("'final-rift-step-4'");
         expect(source).toContain(
-            "[1650, groundY - 100, 180, 'final-rift-step-1']"
+            "[1580, groundY - 90, 260, 'final-rift-step-1']"
         );
         expect(source).toContain(
             "[1850, groundY - 190, 190, 'final-rift-step-2']"
@@ -2969,6 +2969,13 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain("'final-rift-step-1'");
         expect(smoke).toContain("'final-rift-step-4'");
         expect(smoke).toContain(
+            "const crossingStart = scene.getTraversalSupportCheckpoint(\n" +
+            "            'final-ground-return',"
+        );
+        expect(smoke).toContain(
+            'scene.player.setPosition(crossingStart.x, crossingStart.y);'
+        );
+        expect(smoke).toContain(
             "supportId === 'final-rift-step-4' ? 3200 : 1900"
         );
         expect(smoke).toContain('smokeAuroraQuietLightClimb(session)');
@@ -3191,6 +3198,9 @@ describe('campaign traversal quality contracts', () => {
         expect(gateCondition).toBeGreaterThan(declaration);
         expect(setup).toContain(
             'scene?.guardianEncounter?.active === true;'
+        );
+        expect(setup).toContain(
+            "].includes(${JSON.stringify(route)}) && !guardianAlreadyActive) {"
         );
         expect(setup).toContain(
             '} else if (!automaticForest && !guardianAlreadyActive) {'
