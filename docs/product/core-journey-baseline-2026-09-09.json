@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-09",
+  "purpose": "Protect the child-readable opening journey while features are improved one at a time.",
+  "production": {
+    "playUrl": "https://mythicalvoid.com/play/",
+    "netlifyDeployId": "6aa0ebef4a529800083091bf",
+    "publishedSourceCommit": "9ff8fde2362378463d50f3e9bb34bc869eed6b20",
+    "protectedMainAtFreeze": "46669524562505831c27e7f101633853e5bd1530",
+    "gameplayRuntimeDifference": "none",
+    "rollbackTarget": "6aa0ebef4a529800083091bf"
+  },
+  "changeBoundaries": {
+    "preserveSaveCompatibility": true,
+    "generatedMediaMayBlockPlay": false,
+    "oneFeaturePerRelease": true,
+    "unrelatedLevelsRemainUntouched": true,
+    "wholesaleRewriteAuthorized": false
+  },
+  "protectedJourneys": [
+    {
+      "id": "hatch_name_rarity",
+      "ownerFiles": [
+        "src/scenes/HatchingScene.js",
+        "src/systems/OnboardingManager.js"
+      ],
+      "focusedTests": [
+        "src/__tests__/HatchingStartFlowContract.test.js",
+        "src/__tests__/HatchingPersistenceContract.test.js",
+        "src/__tests__/SoulRevealInputContract.test.js"
+      ]
+    },
+    {
+      "id": "portrait_to_sanctuary",
+      "ownerFiles": [
+        "src/systems/CompanionMediaService.js"
+      ],
+      "focusedTests": [
+        "src/__tests__/CompanionMediaService.test.js",
+        "src/__tests__/LivingFormHandoffMobileInput.test.js",
+        "src/__tests__/SanctuaryOnboardingContinuityContract.test.js"
+      ]
+    },
+    {
+      "id": "sanctuary_entry_and_resume",
+      "ownerFiles": [
+        "src/scenes/GameScene.js",
+        "src/systems/SanctuaryCheckIn.js",
+        "src/systems/world/SanctuaryZones.js"
+      ],
+      "focusedTests": [
+        "src/__tests__/SanctuaryCheckIn.test.js",
+        "src/__tests__/SanctuaryNavigationSafety.test.js",
+        "src/__tests__/SaveSafety.test.js"
+      ]
+    },
+    {
+      "id": "forest_three_lights_guardian",
+      "ownerFiles": [
+        "src/scenes/levels/MythicalForestLevel.js"
+      ],
+      "focusedTests": [
+        "src/__tests__/FirstLevelRescueLoop.test.js",
+        "src/__tests__/GuardianPacingContract.test.js"
+      ],
+      "requiredVisibleOutcome": "The third ordered Forest light automatically starts the Elder Treant encounter."
+    },
+    {
+      "id": "forest_rescue_return",
+      "ownerFiles": [
+        "src/scenes/levels/MythicalForestLevel.js",
+        "src/systems/GuardianResidents.js",
+        "src/systems/CampaignJourneyGuide.js"
+      ],
+      "focusedTests": [
+        "src/__tests__/FirstLevelRescueLoop.test.js",
+        "src/__tests__/GuardianResidentsGameplayContract.test.js",
+        "src/__tests__/CampaignJourneyGuide.test.js"
+      ]
+    },
+    {
+      "id": "mobile_core_controls",
+      "ownerFiles": [
+        "src/scenes/PlatformerLevelScene.js"
+      ],
+      "focusedTests": [
+        "src/__tests__/MobileControlDockContract.test.js",
+        "src/__tests__/MobileControlPointerRegression.test.js",
+        "src/__tests__/MobileViewportController.test.js"
+      ]
+    }
+  ],
+  "verificationPolicy": {
+    "always": [
+      "focused tests for the changed feature",
+      "one browser journey through the changed feature",
+      "clean diff review"
+    ],
+    "conditional": {
+      "mobile browser journey": "when input or responsive layout changes",
+      "save compatibility suite": "when persisted state changes",
+      "full test suite and production build": "when shared scenes, routing, saves, release code, or production publication changes"
+    }
+  }
+}
