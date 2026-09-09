@@ -158,6 +158,15 @@
       "accepted": true,
       "unchangedUrlsResubmitted": false,
       "indexingClaimed": false
+    },
+    "latestOwnedChangeNotice": {
+      "record": "docs/company/search/indexnow-submission-2026-09-09-mobile-homepage.json",
+      "submittedOn": "2026-09-09",
+      "responseTimeRecorded": false,
+      "urlCount": 1,
+      "accepted": true,
+      "unchangedUrlsResubmitted": false,
+      "indexingClaimed": false
     }
   },
   "nextAction": {

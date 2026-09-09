@@ -50,8 +50,9 @@ function visualMarkup(entry, index, register) {
                 </figure>`;
     }
     if (entry.visualKind === 'text_only_release') {
+        const textOnlyLabel = entry.destination === '/' ? 'LIVE WEBSITE UPDATE' : 'LIVE GAME UPDATE';
         return `<div class="signal-entry-no-media signal-entry-text-only" role="img" aria-label="${escapeHtml(entry.visualAlt)}">
-                    <span>LIVE GAME UPDATE</span>
+                    <span>${textOnlyLabel}</span>
                     <small>${escapeHtml(entry.disclosure)}</small>
                 </div>`;
     }

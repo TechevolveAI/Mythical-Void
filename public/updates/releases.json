@@ -17,6 +17,42 @@
   },
   "entries": [
     {
+      "id": "UPDATE-028",
+      "publishedOn": "2026-09-09",
+      "status": "live",
+      "category": "A STRONGER FIRST LOOK ON PHONES",
+      "title": "The creature universe now arrives on the first screen",
+      "summary": "Phone visitors now see a focused window onto Mythical Void’s wider creature universe before the story begins, while the Play button remains clear for a first visit.",
+      "details": [
+        "The existing creature-universe artwork now appears as a clear, framed part of the phone welcome instead of disappearing into the background.",
+        "The picture says that it is imagined artwork inspired by real creature hatches—not gameplay—and it does not claim that every pictured form already appears in the game.",
+        "The optional website-analytics choice is shorter on phones, stays off unless allowed and no longer covers the main Play button. Website analytics still do not run inside the game."
+      ],
+      "visualKind": "text_only_release",
+      "visualAlt": "A text-only update card announcing the clearer Mythical Void phone welcome",
+      "disclosure": "Text-only release note about a live owned-site improvement; no screenshot or generated image is attached.",
+      "destination": "/",
+      "linkText": "See the new phone welcome",
+      "download": false,
+      "releaseProof": {
+        "sourceCommit": "6ec645b0552df23bf147c6f066fe49bafb057678",
+        "productionMergeCommit": "1ccbf76e2a75dbbf01660eea4d0f959d98774695",
+        "productionDeployId": "6aa0a18ae06a5500082d4b7b",
+        "productionPublishedAt": "2026-09-09T00:03:46.572Z",
+        "checkedUrl": "https://mythicalvoid.com/play/",
+        "checkedHttpStatus": 200,
+        "ownedPageCheckedUrl": "https://mythicalvoid.com/",
+        "ownedPageCheckedHttpStatus": 200,
+        "phoneViewport": "390x844",
+        "phoneArtworkLoaded": true,
+        "playButtonCoveredByConsent": false,
+        "horizontalOverflowObserved": false,
+        "gameplayVisualApproved": false,
+        "mediaAttached": false,
+        "claimBoundary": "The source, protected merge, production deploy and live phone check prove that the clearer welcome is available. They do not prove visual quality, play, enjoyment or growth, and they do not prove that anybody saw it or started the game."
+      }
+    },
+    {
       "id": "UPDATE-027",
       "publishedOn": "2026-09-08",
       "status": "live",

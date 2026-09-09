@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "INDEXNOW-2026-09-09-MOBILE-HOMEPAGE",
+  "submittedAt": null,
+  "submittedOn": "2026-09-09",
+  "host": "mythicalvoid.com",
+  "endpoint": "https://api.indexnow.org/indexnow",
+  "reason": "The live homepage now gives phone visitors a focused first-screen view of the creature universe, keeps Play clear and labels the artwork as an imagined interpretation rather than gameplay.",
+  "release": {
+    "sourceCommit": "6ec645b0552df23bf147c6f066fe49bafb057678",
+    "productionMergeCommit": "1ccbf76e2a75dbbf01660eea4d0f959d98774695",
+    "productionDeployId": "6aa0a18ae06a5500082d4b7b"
+  },
+  "urls": [
+    "https://mythicalvoid.com/"
+  ],
+  "urlCount": 1,
+  "canonicalSitemapCount": 2,
+  "httpStatus": 200,
+  "accepted": true,
+  "responseTimeRecorded": false,
+  "unchangedSitemapUrlsResubmitted": false,
+  "meaning": "Participating search engines accepted a notice for the one genuinely changed owned page. The exact response time was not retained. Acceptance does not prove crawling, indexing, ranking, visits, play or growth.",
+  "personalDataSent": false,
+  "accountUsed": false,
+  "paidPromotionStarted": false
+}

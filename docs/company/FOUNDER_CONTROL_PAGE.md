@@ -1,6 +1,6 @@
 # Mythical Void: founder control page
 
-This is the short, honest view of the studio on 8 September 2026. It replaces no
+This is the short, honest view of the studio on 9 September 2026. It replaces no
 detailed evidence; it turns that evidence into the decisions that matter now.
 
 ## What is live
@@ -13,6 +13,9 @@ detailed evidence; it turns that evidence into the decisions that matter now.
   labelled as brand art rather than gameplay. The community launch check now
   tests this exact page instead of allowing a healthy homepage to hide a broken
   game link.
+- **The phone welcome is stronger:** visitors now see a focused window into the
+  creature universe on the first screen, Play remains clear and the artwork is
+  labelled as an imagined interpretation rather than gameplay.
 - **The first-contact layout repair is live:** the creature is larger, centred
   and no longer shown on a rectangular block. This was a technical improvement,
   not approval of the creature artwork.
@@ -71,6 +74,9 @@ detailed evidence; it turns that evidence into the decisions that matter now.
 - After the Hatch Challenge first screen changed, only that one canonical page
   was sent through the same notice. It returned `200`; that still is not proof
   of crawling, indexing, ranking, visits, play or growth.
+- After the phone homepage changed, only the homepage was sent through the same
+  notice. It returned `200`; the exact response time was not retained, and this
+  is still not proof of crawling, indexing, ranking, visits, play or growth.
 - Google Search Console is not connected, so we cannot yet see trustworthy
   search queries or indexing information.
 - The First Five has completed **0 sessions** and contains **0 accepted customer
