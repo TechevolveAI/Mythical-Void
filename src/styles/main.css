@@ -358,6 +358,30 @@ body.game-mode {
   outline-offset: 2px;
 }
 
+.field-controls-continue {
+  min-width: 220px;
+  min-height: 54px;
+  padding: 0 30px;
+  color: #061116;
+  background: #6fe7dd;
+  border: 2px solid #d9fffb;
+  border-radius: 6px;
+  font: 800 20px/1 Arial, sans-serif;
+  letter-spacing: 0;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.field-controls-continue:hover,
+.field-controls-continue:focus-visible {
+  background: #8af5ec;
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
 /* First-contact living-form handoff */
 .living-form-handoff {
   position: relative;

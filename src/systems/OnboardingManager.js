@@ -194,7 +194,7 @@ class OnboardingManager {
         }
     }
 
-    waitForDismissal({ isDismissed, onComplete, safetyDelay }) {
+    waitForDismissal({ isDismissed, onComplete, safetyDelay, onSafety }) {
         let settled = false;
         let checkInterval = null;
         let completionTimer = null;
@@ -225,7 +225,14 @@ class OnboardingManager {
         });
         safetyTimer = this.scene.time.delayedCall(
             safetyDelay,
-            () => complete()
+            () => {
+                if (settled) return;
+                try {
+                    onSafety?.();
+                } finally {
+                    complete();
+                }
+            }
         );
 
         return () => {
@@ -244,7 +251,8 @@ class OnboardingManager {
         return this.waitForDismissal({
             isDismissed: () => !this.scene.controlsTutorial?.isVisible,
             onComplete,
-            safetyDelay: 30000
+            safetyDelay: 30000,
+            onSafety: () => this.scene.controlsTutorial?.hide?.()
         });
     }
 

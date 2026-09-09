@@ -11089,6 +11089,26 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     const controls = await waitFor(
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame?.scene?.getScene('GameScene');
+            const nativeAction = document.querySelector(
+                '[data-testid="field-controls-continue"]'
+            );
+            const nativeBounds = nativeAction?.getBoundingClientRect?.();
+            if (
+                scene?.controlsTutorial?.isVisible &&
+                nativeBounds?.width >= 180 &&
+                nativeBounds?.height >= 44
+            ) {
+                const canvasBounds = scene.game?.canvas?.getBoundingClientRect?.();
+                if (!canvasBounds?.width || !canvasBounds?.height) return null;
+                return {
+                    x: Math.round(nativeBounds.left + (nativeBounds.width / 2)),
+                    y: Math.round(nativeBounds.top + (nativeBounds.height / 2)),
+                    width: Math.round(nativeBounds.width),
+                    height: Math.round(nativeBounds.height),
+                    inputLayer: 'native-dom',
+                    mobileControlsSuspended: scene.mobileControls?.isSuspended === true
+                };
+            }
             const action = (scene?.children?.list || []).find(item => (
                 item?.text === 'START FIELDWORK' &&
                 item.visible !== false &&
@@ -11102,6 +11122,7 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
                 y: Math.round(bounds.centerY),
                 width: Math.round(bounds.width),
                 height: Math.round(bounds.height),
+                inputLayer: 'phaser-canvas',
                 mobileControlsSuspended: scene.mobileControls?.isSuspended === true
             };
         })()`),
@@ -11112,6 +11133,7 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         controlsReadyMs > 4000 ||
         controls.width < 180 ||
         controls.height < 44 ||
+        controls.inputLayer !== 'native-dom' ||
         !controls.mobileControlsSuspended
     ) {
         throw new Error(`Field controls handoff was not mobile-safe: ${JSON.stringify({
@@ -11593,6 +11615,7 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         handoffMs,
         storyAdvanceMs,
         controlsReadyMs,
+        controlsInputLayer: controls.inputLayer,
         gameplay,
         movement,
         downwardMovement,

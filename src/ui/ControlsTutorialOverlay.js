@@ -13,6 +13,10 @@ export default class ControlsTutorialOverlay {
         this.isVisible = false;
         this.anyKeyHandler = null;
         this.continueTapBridge = null;
+        this.nativeContinueDom = null;
+        this.nativeContinueButton = null;
+        this.nativeContinueHandler = null;
+        this.previousDomContainerStyles = null;
     }
 
     /**
@@ -94,8 +98,46 @@ export default class ControlsTutorialOverlay {
         continueBtn.on('pointerout', () => continueBtn.setBackgroundColor('#6FE7DD'));
         this.elements.push(continueBtn);
 
+        // Keep the only blocking action on the browser input layer as well as
+        // the Phaser canvas. Physical iPhones can lose a canvas release after
+        // the portrait/story DOM handoff, while a native button remains stable.
+        const domContainer = this.scene.game?.domContainer || null;
+        if (domContainer) {
+            this.previousDomContainerStyles = {
+                zIndex: domContainer.style.zIndex,
+                pointerEvents: domContainer.style.pointerEvents
+            };
+            domContainer.style.zIndex = '13010';
+            domContainer.style.pointerEvents = 'auto';
+
+            const nativeButton = document.createElement('button');
+            nativeButton.type = 'button';
+            nativeButton.className = 'field-controls-continue';
+            nativeButton.textContent = 'START FIELDWORK';
+            nativeButton.setAttribute('aria-label', 'Start exploring the Sanctuary');
+            nativeButton.setAttribute('data-testid', 'field-controls-continue');
+            this.nativeContinueHandler = event => {
+                event?.preventDefault?.();
+                event?.stopPropagation?.();
+                this.hide();
+            };
+            nativeButton.addEventListener('pointerdown', this.nativeContinueHandler);
+            nativeButton.addEventListener('touchstart', this.nativeContinueHandler, {
+                passive: false
+            });
+            nativeButton.addEventListener('click', this.nativeContinueHandler);
+            this.nativeContinueButton = nativeButton;
+            this.nativeContinueDom = this.scene.add.dom(
+                width / 2,
+                height - (isMobile ? 60 : 80),
+                nativeButton
+            ).setOrigin(0.5).setDepth(13011).setScrollFactor(0);
+            continueBtn.setAlpha(0);
+        }
+
         // Click anywhere to dismiss
         overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
+        overlay.on('pointerdown', () => this.hide());
         overlay.on('pointerup', () => this.hide());
 
         // Any key to dismiss (desktop)
@@ -234,21 +276,44 @@ export default class ControlsTutorialOverlay {
     }
 
     hide() {
-        if (!this.isVisible) return;
+        if (!this.isVisible && this.elements.length === 0 && !this.nativeContinueDom) return;
         this.isVisible = false;
 
-        // Mark as seen
-        window.GameState?.set('tutorial.controlsSeen', true);
-        window.GameState?.recordOpeningMilestone?.('controls_completed');
-        window.GameState?.save();
-
-        // Cleanup
+        // Release every blocking input layer before persistence. Storage and
+        // telemetry are allowed to fail; they must never trap a child here.
         if (this.anyKeyHandler) {
             this.scene.input.keyboard?.off('keydown', this.anyKeyHandler);
             this.anyKeyHandler = null;
         }
         this.continueTapBridge?.destroy?.();
         this.continueTapBridge = null;
+
+        if (this.nativeContinueButton && this.nativeContinueHandler) {
+            this.nativeContinueButton.removeEventListener(
+                'pointerdown',
+                this.nativeContinueHandler
+            );
+            this.nativeContinueButton.removeEventListener(
+                'touchstart',
+                this.nativeContinueHandler
+            );
+            this.nativeContinueButton.removeEventListener(
+                'click',
+                this.nativeContinueHandler
+            );
+        }
+        this.nativeContinueDom?.destroy?.();
+        this.nativeContinueDom = null;
+        this.nativeContinueButton = null;
+        this.nativeContinueHandler = null;
+
+        const domContainer = this.scene.game?.domContainer || null;
+        if (domContainer && this.previousDomContainerStyles) {
+            domContainer.style.zIndex = this.previousDomContainerStyles.zIndex;
+            domContainer.style.pointerEvents =
+                this.previousDomContainerStyles.pointerEvents || 'none';
+        }
+        this.previousDomContainerStyles = null;
 
         this.elements.forEach(el => {
             if (el) {
@@ -261,6 +326,14 @@ export default class ControlsTutorialOverlay {
             this.scene.mobileControls?.resume?.();
         }
         this.restoreMobileControls = false;
+
+        try {
+            window.GameState?.set('tutorial.controlsSeen', true);
+            window.GameState?.recordOpeningMilestone?.('controls_completed');
+            window.GameState?.save?.();
+        } catch (error) {
+            console.error('[ControlsTutorialOverlay] Progress record failed:', error);
+        }
 
         if (window.AudioManager) {
             window.AudioManager.playButtonClick?.();
