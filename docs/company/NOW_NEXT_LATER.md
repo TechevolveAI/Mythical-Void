@@ -1,7 +1,7 @@
 # Mythical Void: what happens next
 
 This is the short, plain-English view of the company plan. It reflects what is
-actually live or prepared on 8 September 2026.
+actually live or prepared on 9 September 2026.
 
 ## Now — help the right people find and try the game
 
@@ -26,6 +26,10 @@ actually live or prepared on 8 September 2026.
   final r/WebGames check inspects that exact page, its labelled brand preview
   and its real game shell; the homepage can no longer make a broken direct link
   look ready.
+- The phone homepage now opens with a focused window into the wider creature
+  universe. The Play button remains clear, the optional analytics choice does
+  not cover it, and the artwork is explicitly labelled as an imagined
+  interpretation rather than gameplay.
 - A shared Hatch Challenge link now has its own 1200 × 630 preview instead of
   borrowing the broad creature-universe picture. It explains the two-person
   idea at a glance, says that it is brand art rather than gameplay and contains
@@ -48,8 +52,8 @@ actually live or prepared on 8 September 2026.
   project easier to classify; they do not prove that anyone saw or played it.
 - The release hand-off now refreshes every Latest News draft during the normal
   build and reduces the whole backlog to one next audience move. It caught and
-  repaired a real one-release gap. The public Latest News now contains 20 live
-  entries, including the homepage Hatch Challenge release, and the current first move remains
+  repaired a real one-release gap. A 21st permanent Latest News entry for the
+  stronger phone welcome is prepared for the next owned-site release, and the current first move remains
   one text-only r/WebGames post. Nothing was posted and Kevin keeps control of
   the account and replies.
 - Thirteen places where adults already look for browser or independent games
@@ -67,6 +71,9 @@ actually live or prepared on 8 September 2026.
   crawling, indexing, ranking, visits, play or growth.
 - The later Hatch Challenge first-screen change was notified on its own. No
   unchanged page was resubmitted, and acceptance is still not indexing.
+- The later mobile homepage change was also notified on its own. The service
+  accepted that one-page notice; the exact response time was not retained, and
+  acceptance is still not indexing, visits, play or growth.
 - GitHub's 14-day traffic view on 8 September showed two repository-page views
   and one unique view. Clone totals are excluded because development and
   automation can create them. GitHub remains a useful proof shelf, but this is

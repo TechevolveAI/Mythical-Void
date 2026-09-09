@@ -15,6 +15,18 @@
   ],
   "items": [
     {
+      "id": "https://mythicalvoid.com/updates/#update-028",
+      "url": "https://mythicalvoid.com/updates/#update-028",
+      "external_url": "https://mythicalvoid.com/",
+      "title": "The creature universe now arrives on the first screen",
+      "content_text": "Phone visitors now see a focused window onto Mythical Void’s wider creature universe before the story begins, while the Play button remains clear for a first visit.\n\n• The existing creature-universe artwork now appears as a clear, framed part of the phone welcome instead of disappearing into the background.\n• The picture says that it is imagined artwork inspired by real creature hatches—not gameplay—and it does not claim that every pictured form already appears in the game.\n• The optional website-analytics choice is shorter on phones, stays off unless allowed and no longer covers the main Play button. Website analytics still do not run inside the game.\n\nSee the live change: https://mythicalvoid.com/\n\nVisual note: Text-only release note about a live owned-site improvement; no screenshot or generated image is attached.",
+      "summary": "Phone visitors now see a focused window onto Mythical Void’s wider creature universe before the story begins, while the Play button remains clear for a first visit.",
+      "date_published": "2026-09-09T12:00:00.000Z",
+      "tags": [
+        "A STRONGER FIRST LOOK ON PHONES"
+      ]
+    },
+    {
       "id": "https://mythicalvoid.com/updates/#update-027",
       "url": "https://mythicalvoid.com/updates/#update-027",
       "external_url": "https://mythicalvoid.com/hatch-challenge/",

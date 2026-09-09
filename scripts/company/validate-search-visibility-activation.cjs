@@ -14,6 +14,7 @@ const previousChangedPageIndexNow = JSON.parse(read('docs/company/search/indexno
 const changedPageIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-08-27-06.json'));
 const previousOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-08-hatch-news.json'));
 const newestOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-08-hatch-first-screen.json'));
+const latestOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-09-mobile-homepage.json'));
 const handoff = read('docs/company/search/SEARCH_CONSOLE_ACTIVATION.md');
 const report = read('docs/company/search/SEARCH_VISIBILITY_AUDIT_2026-08-27.md');
 const opportunityMap = JSON.parse(read('docs/company/search/search-opportunities.json'));
@@ -96,6 +97,18 @@ requireValue(JSON.stringify(newestOwnedChangeIndexNow.urls) === JSON.stringify([
 ]), 'newest owned changed-page IndexNow URL list drifted');
 requireValue(newestOwnedChangeIndexNow.unchangedSitemapUrlsResubmitted === false && /does not prove/i.test(newestOwnedChangeIndexNow.meaning || ''), 'newest owned changed-page IndexNow boundary is missing');
 for (const field of ['personalDataSent', 'accountUsed', 'paidPromotionStarted']) requireValue(newestOwnedChangeIndexNow[field] === false, `newest owned changed-page IndexNow boundary ${field} must remain false`);
+requireValue(audit.indexNow?.latestOwnedChangeNotice?.record === 'docs/company/search/indexnow-submission-2026-09-09-mobile-homepage.json', 'latest owned changed-page notification evidence link is missing');
+requireValue(audit.indexNow?.latestOwnedChangeNotice?.accepted === true && audit.indexNow?.latestOwnedChangeNotice?.urlCount === 1 && audit.indexNow?.latestOwnedChangeNotice?.unchangedUrlsResubmitted === false, 'latest owned changed-page notification audit is incomplete');
+requireValue(audit.indexNow?.latestOwnedChangeNotice?.indexingClaimed === false, 'latest owned changed-page notice must not claim indexing');
+requireValue(latestOwnedChangeIndexNow.id === 'INDEXNOW-2026-09-09-MOBILE-HOMEPAGE' && latestOwnedChangeIndexNow.host === 'mythicalvoid.com', 'latest owned changed-page IndexNow evidence identity is invalid');
+requireValue(latestOwnedChangeIndexNow.submittedAt === null && latestOwnedChangeIndexNow.submittedOn === '2026-09-09' && latestOwnedChangeIndexNow.responseTimeRecorded === false, 'latest owned changed-page notice invents an exact response time');
+requireValue(latestOwnedChangeIndexNow.accepted === true && latestOwnedChangeIndexNow.httpStatus === 200 && latestOwnedChangeIndexNow.urlCount === 1, 'latest owned changed-page IndexNow acceptance evidence is incomplete');
+requireValue(latestOwnedChangeIndexNow.canonicalSitemapCount === 2, 'latest owned changed-page notice did not use both canonical sitemaps');
+requireValue(JSON.stringify(latestOwnedChangeIndexNow.urls) === JSON.stringify([
+    'https://mythicalvoid.com/'
+]), 'latest owned changed-page IndexNow URL list drifted');
+requireValue(latestOwnedChangeIndexNow.unchangedSitemapUrlsResubmitted === false && /does not prove/i.test(latestOwnedChangeIndexNow.meaning || ''), 'latest owned changed-page IndexNow boundary is missing');
+for (const field of ['personalDataSent', 'accountUsed', 'paidPromotionStarted']) requireValue(latestOwnedChangeIndexNow[field] === false, `latest owned changed-page IndexNow boundary ${field} must remain false`);
 
 requireValue(homepage.includes('<meta name="robots" content="index, follow, max-image-preview:large">'), 'homepage index instruction is missing');
 requireValue(homepage.includes('<link rel="canonical" href="https://mythicalvoid.com/">'), 'homepage canonical is missing');
@@ -178,6 +191,6 @@ console.log(JSON.stringify({
     liveOwnedSearchRoutes: opportunityMap.clusters.length,
     searchConsoleConnected: false,
     indexNowAccepted: true,
-    latestChangedPagesNotified: newestOwnedChangeIndexNow.urlCount,
+    latestChangedPagesNotified: latestOwnedChangeIndexNow.urlCount,
     externalActionTaken: true
 }, null, 2));

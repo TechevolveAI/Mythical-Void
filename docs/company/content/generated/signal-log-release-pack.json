@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "id": "SIGNAL-DRAFT-PACK-2026-09-08",
+  "id": "SIGNAL-DRAFT-PACK-2026-09-09",
   "state": "draft_only_missing_verified_social_channels_and_approval",
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "c7c0ebb20d3d4bf87424387c01a81272fc8be83f089ee4cb2f59080898a46734",
-    "liveEntryCount": 20,
-    "latestSourceDate": "2026-09-08"
+    "sourceFingerprint": "afa78337bc204c6073cdf2e8aa20634aa9a18698158ccf9ad4d9b42872be9cc5",
+    "liveEntryCount": 21,
+    "latestSourceDate": "2026-09-09"
   },
   "purpose": "Turn each checked Latest News note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
   "audienceBoundary": {
@@ -32,6 +32,65 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-UPDATE-028",
+      "sourceEntryId": "UPDATE-028",
+      "sourcePublishedOn": "2026-09-09",
+      "destination": "https://mythicalvoid.com/",
+      "trackingParameters": false,
+      "media": {
+        "disclosure": "Text-only release note about a live owned-site improvement; no screenshot or generated image is attached."
+      },
+      "releaseProof": {
+        "sourceCommit": "6ec645b0552df23bf147c6f066fe49bafb057678",
+        "productionMergeCommit": "1ccbf76e2a75dbbf01660eea4d0f959d98774695",
+        "productionDeployId": "6aa0a18ae06a5500082d4b7b",
+        "productionPublishedAt": "2026-09-09T00:03:46.572Z",
+        "checkedUrl": "https://mythicalvoid.com/play/",
+        "checkedHttpStatus": 200,
+        "ownedPageCheckedUrl": "https://mythicalvoid.com/",
+        "ownedPageCheckedHttpStatus": 200,
+        "phoneViewport": "390x844",
+        "phoneArtworkLoaded": true,
+        "playButtonCoveredByConsent": false,
+        "horizontalOverflowObserved": false,
+        "gameplayVisualApproved": false,
+        "mediaAttached": false,
+        "claimBoundary": "The source, protected merge, production deploy and live phone check prove that the clearer welcome is available. They do not prove visual quality, play, enjoyment or growth, and they do not prove that anybody saw it or started the game."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "The creature universe now arrives on the first screen\n\nPhone visitors now see a focused window onto Mythical Void’s wider creature universe before the story begins, while the Play button remains clear for a first visit.\n\n• The existing creature-universe artwork now appears as a clear, framed part of the phone welcome instead of disappearing into the background.\n• The picture says that it is imagined artwork inspired by real creature hatches—not gameplay—and it does not claim that every pictured form already appears in the game.\n• The optional website-analytics choice is shorter on phones, stays off unless allowed and no longer covers the main Play button. Website analytics still do not run inside the game.\n\nSee what changed: https://mythicalvoid.com/\n\nText-only release note about a live owned-site improvement; no screenshot or generated image is attached.",
+          "characterCount": 867
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: The creature universe now arrives on the first screen\n\nPhone visitors now see a focused window onto Mythical Void’s wider creature universe before the story begins, while the Play button remains clear for a first visit.\n\nhttps://mythicalvoid.com/\n\nText-only release note about a live owned-site improvement; no screenshot or generated image is attached.",
+          "characterCount": 372
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: The creature universe now arrives on the first screen",
+          "body": "Mythical Void has a new live update: The creature universe now arrives on the first screen.\n\nPhone visitors now see a focused window onto Mythical Void’s wider creature universe before the story begins, while the Play button remains clear for a first visit.\n\nThe existing creature-universe artwork now appears as a clear, framed part of the phone welcome instead of disappearing into the background. The picture says that it is imagined artwork inspired by real creature hatches—not gameplay—and it does not claim that every pictured form already appears in the game. The optional website-analytics choice is shorter on phones, stays off unless allowed and no longer covers the main Play button. Website analytics still do not run inside the game.\n\nThe checked public destination is https://mythicalvoid.com/\n\nMedia note: Text-only release note about a live owned-site improvement; no screenshot or generated image is attached.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 1002,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-UPDATE-027",
       "sourceEntryId": "UPDATE-027",

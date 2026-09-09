@@ -112,6 +112,13 @@ notified. IndexNow returned `200` at 22:48 UTC. No unchanged page was included,
 and acceptance still does not prove crawling, indexing, ranking, visits,
 sharing, play or growth.
 
+On 9 September the homepage's phone welcome changed materially: the creature
+universe artwork moved into the first screen, Play stayed clear, and the artwork
+kept its honest “not gameplay” label. Only the homepage was named in the next
+notice. IndexNow returned `200`; the exact response time was not retained. No
+unchanged page was included, and acceptance still does not prove crawling,
+indexing, ranking, visits, play or growth.
+
 ## The right next move
 
 Do not make lots of near-identical “free game” pages. The useful page already

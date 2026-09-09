@@ -5,13 +5,29 @@
     <link>https://mythicalvoid.com/updates/</link>
     <description>See what is newly live in Mythical Void: game stories, useful resources and honest release notes linked to the playable browser game.</description>
     <language>en-ie</language>
-    <lastBuildDate>Tue, 08 Sep 2026 12:00:00 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 09 Sep 2026 12:00:00 GMT</lastBuildDate>
     <atom:link href="https://mythicalvoid.com/updates/feed.xml" rel="self" type="application/rss+xml" />
     <image>
       <url>https://mythicalvoid.com/marketing/mythical-void-mark-192.png</url>
       <title>Mythical Void — The Latest News</title>
       <link>https://mythicalvoid.com/updates/</link>
     </image>
+    <item>
+      <guid isPermaLink="true">https://mythicalvoid.com/updates/#update-028</guid>
+      <title>The creature universe now arrives on the first screen</title>
+      <link>https://mythicalvoid.com/updates/#update-028</link>
+      <pubDate>Wed, 09 Sep 2026 12:00:00 GMT</pubDate>
+      <category>A STRONGER FIRST LOOK ON PHONES</category>
+      <description>Phone visitors now see a focused window onto Mythical Void’s wider creature universe before the story begins, while the Play button remains clear for a first visit.
+
+• The existing creature-universe artwork now appears as a clear, framed part of the phone welcome instead of disappearing into the background.
+• The picture says that it is imagined artwork inspired by real creature hatches—not gameplay—and it does not claim that every pictured form already appears in the game.
+• The optional website-analytics choice is shorter on phones, stays off unless allowed and no longer covers the main Play button. Website analytics still do not run inside the game.
+
+See the live change: https://mythicalvoid.com/
+
+Visual note: Text-only release note about a live owned-site improvement; no screenshot or generated image is attached.</description>
+    </item>
     <item>
       <guid isPermaLink="true">https://mythicalvoid.com/updates/#update-027</guid>
       <title>Invite someone to hatch from the homepage</title>
