@@ -27,9 +27,11 @@ function createAdminClient(videoOverrides = {}, portraitOverrides = {}) {
         status: 'starting',
         provider_prediction_id: null,
         storage_path: null,
+        input_storage_path: null,
         ...videoOverrides
     };
     const uploads = [];
+    const removals = [];
 
     function table(name) {
         let updateValues = null;
@@ -89,12 +91,24 @@ function createAdminClient(videoOverrides = {}, portraitOverrides = {}) {
                 upload: jest.fn(async (path, bytes, options) => {
                     uploads.push({ bucket, path, bytes, options });
                     return { error: null };
+                }),
+                download: jest.fn(async () => ({
+                    data: {
+                        type: 'image/webp',
+                        arrayBuffer: async () => Buffer.from('portrait bytes')
+                    },
+                    error: null
+                })),
+                remove: jest.fn(async paths => {
+                    removals.push({ bucket, paths });
+                    return { error: null };
                 })
             }))
         },
         portrait,
         video,
-        uploads
+        uploads,
+        removals
     };
 }
 
@@ -113,7 +127,7 @@ function event(body, options = {}) {
     };
 }
 
-describe('personalized companion video Netlify function', () => {
+describe('creature story-video Netlify function', () => {
     const originalEnv = { ...process.env };
 
     beforeEach(() => {
@@ -123,6 +137,7 @@ describe('personalized companion video Netlify function', () => {
         process.env.VIDEO_PROVIDER = 'replicate';
         process.env.REPLICATE_API_TOKEN = 'server-video-token';
         process.env.SUPABASE_SERVICE_ROLE_KEY = 'server-only-test-key';
+        process.env.VITE_SUPABASE_PUBLISHABLE_KEY = 'public-test-key';
     });
 
     afterEach(() => {
@@ -204,7 +219,11 @@ describe('personalized companion video Netlify function', () => {
         const response = await videoFunction.handler(event({
             momentId: 'first_forest_arrival',
             portraitAssetRef: PORTRAIT_REF,
-            creatureName: 'must-not-be-used'
+            creatureName: 'must-not-be-used',
+            playerName: 'private-player-name',
+            ageGroup: 'age_under_13',
+            location: 'private-location',
+            freeText: 'private-free-text'
         }, { authorization: 'Bearer valid-token' }));
 
         expect(response.statusCode).toBe(202);
@@ -216,7 +235,7 @@ describe('personalized companion video Netlify function', () => {
         });
         expect(JSON.stringify(payload)).not.toContain('private-provider-prediction');
 
-        const [url, options] = providerFetch.mock.calls[0];
+        const [url, options] = providerFetch.mock.calls[1];
         const providerBody = JSON.parse(options.body);
         expect(url).toContain('/models/google/veo-3.1-fast/predictions');
         expect(options.headers.Authorization).toBe('Bearer server-video-token');
@@ -226,15 +245,23 @@ describe('personalized companion video Netlify function', () => {
             aspect_ratio: '16:9',
             generate_audio: false
         });
-        expect(providerBody.input.image).toContain('/creature-portraits/');
+        expect(providerBody.input.image).toContain('/creature-media-inputs/');
+        expect(providerBody.input.image).not.toContain(USER_ID);
         expect(providerBody.input.prompt).toContain('exact identity reference');
         expect(providerBody.input.prompt).toContain('Wanderer-77');
         expect(providerBody.input.prompt).not.toContain('must-not-be-used');
+        const providerPayload = JSON.stringify(providerBody);
+        expect(providerPayload).not.toContain('private-player-name');
+        expect(providerPayload).not.toContain('age_under_13');
+        expect(providerPayload).not.toContain('private-location');
+        expect(providerPayload).not.toContain('private-free-text');
+        expect(providerPayload).not.toContain(USER_ID);
     });
 
     test('reports rejected provider credentials as temporary unavailability', async () => {
         const errorLog = jest.spyOn(console, 'error').mockImplementation(() => {});
         const warningLog = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        const adminClient = createAdminClient();
         const providerFetch = jest.fn().mockResolvedValue({
             ok: false,
             status: 401,
@@ -242,7 +269,7 @@ describe('personalized companion video Netlify function', () => {
         });
         videoFunction._internal.setRuntime({
             fetch: providerFetch,
-            createClient: () => createAdminClient()
+            createClient: () => adminClient
         });
 
         const response = await videoFunction.handler(event({
@@ -256,8 +283,49 @@ describe('personalized companion video Netlify function', () => {
             error: 'Video provider request failed'
         });
         expect(providerFetch).toHaveBeenCalledTimes(1);
+        expect(adminClient.rpc).not.toHaveBeenCalled();
+        expect(adminClient.uploads).toHaveLength(0);
         expect(errorLog).not.toHaveBeenCalled();
         expect(warningLog).toHaveBeenCalledTimes(1);
+    });
+
+    test('releases quota and removes opaque input after an immediate provider failure', async () => {
+        const errorLog = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const adminClient = createAdminClient();
+        const providerFetch = jest.fn()
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ username: 'configured-service' })
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    id: 'private-failed-prediction',
+                    status: 'failed',
+                    model: 'google/veo-3.1-fast'
+                })
+            });
+        videoFunction._internal.setRuntime({
+            fetch: providerFetch,
+            createClient: () => adminClient
+        });
+
+        const response = await videoFunction.handler(event({
+            momentId: 'first_forest_arrival',
+            portraitAssetRef: PORTRAIT_REF
+        }, { authorization: 'Bearer valid-token' }));
+
+        expect(response.statusCode).toBe(502);
+        expect(adminClient.video).toMatchObject({
+            status: 'failed',
+            error_code: 'request_failed',
+            counts_toward_daily_limit: false
+        });
+        expect(adminClient.removals).toContainEqual({
+            bucket: 'creature-media-inputs',
+            paths: [`${VIDEO_ID}.webp`]
+        });
+        expect(errorLog).toHaveBeenCalledTimes(1);
     });
 
     test('accepts an authored guardian rescue beat without accepting arbitrary prompts', async () => {
@@ -284,7 +352,7 @@ describe('personalized companion video Netlify function', () => {
         }, { authorization: 'Bearer valid-token' }));
 
         expect(response.statusCode).toBe(202);
-        const providerBody = JSON.parse(providerFetch.mock.calls[0][1].body);
+        const providerBody = JSON.parse(providerFetch.mock.calls[1][1].body);
         expect(providerBody.input.prompt).toContain('newly opened rescue enclosure');
         expect(providerBody.input.prompt).not.toContain('must-not-be-used');
     });
@@ -295,7 +363,7 @@ describe('personalized companion video Netlify function', () => {
         const adminClient = createAdminClient();
         const imageBytes = Buffer.from('private portrait bytes');
         const providerFetch = jest.fn(async url => {
-            expect(url).toContain('/creature-portraits/');
+            expect(url).toContain('/creature-media-inputs/');
             return {
                 ok: true,
                 headers: { get: () => 'image/webp' },

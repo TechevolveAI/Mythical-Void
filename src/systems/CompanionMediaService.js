@@ -1,3 +1,5 @@
+import companionVideoMomentsConfig from '../config/companion-video-moments.json';
+
 const COMPANION_MEDIA_SCHEMA_VERSION = 2;
 const MAX_APPEARANCES = 32;
 const MOMENT_ID_PATTERN = /^[a-z0-9][a-z0-9:_-]{0,63}$/;
@@ -8,21 +10,25 @@ const DEFAULT_MEDIA_TIMEOUTS = Object.freeze({
     textureMs: 8000,
     pollWindowMs: 180000
 });
-const COMPANION_VIDEO_MOMENTS = Object.freeze({
-    first_forest_arrival: 'The creature enters the Mythical Forest beside Wanderer-77.',
-    beacon_reflection: 'The creature witnesses the Beacon choice and the cost of returning home.',
-    guardian_rescue: 'The creature helps a rescued guardian leave its cage and choose the Sanctuary.',
-    guardian_trust: 'The creature shares a quiet trust memory with a newly welcomed Sanctuary resident.',
-    guardian_debrief: 'The creature and a Sanctuary resident review what their shared expedition changed.'
-});
+const COMPANION_VIDEO_MOMENTS = Object.freeze(Object.fromEntries(
+    companionVideoMomentsConfig.moments.map(moment => [
+        moment.key,
+        moment.playerLabel
+    ])
+));
+
+function resolveVideoMomentDefinition(momentId) {
+    return companionVideoMomentsConfig.moments.find(moment => (
+        moment.match === 'exact'
+            ? moment.key === momentId
+            : moment.match === 'prefix' && String(momentId || '').startsWith(
+                moment.prefix
+            )
+    )) || null;
+}
 
 function isSupportedVideoMoment(momentId) {
-    if (Object.prototype.hasOwnProperty.call(COMPANION_VIDEO_MOMENTS, momentId)) {
-        return true;
-    }
-    return /^guardian_(?:rescue|trust|debrief)_[a-z0-9_-]{1,32}$/.test(
-        String(momentId || '')
-    );
+    return Boolean(resolveVideoMomentDefinition(momentId));
 }
 
 function hashText(value) {
@@ -179,6 +185,32 @@ class CompanionMediaService {
             appearance.identityKey === portraitRecord.identityKey &&
             appearance.renderMode === 'generated_video'
         ));
+    }
+
+    getUnviewedGeneratedVideos(record = null) {
+        if (!this.isVideoGenerationEnabled()) return [];
+        const portraitRecord = record || window.GameState?.getCreaturePortrait?.();
+        if (!portraitRecord?.identityKey) return [];
+        const state = this.getState();
+        return Object.values(state.videos)
+            .filter(video => (
+                video.identityKey === portraitRecord.identityKey &&
+                video.status === 'succeeded' &&
+                isSupportedVideoMoment(video.momentId) &&
+                !Object.values(state.appearances).some(appearance => (
+                    appearance.momentId === video.momentId &&
+                    appearance.identityKey === video.identityKey &&
+                    appearance.renderMode === 'generated_video'
+                ))
+            ))
+            .map(video => ({
+                ...video,
+                label: resolveVideoMomentDefinition(video.momentId)?.playerLabel ||
+                    'Creature story scene'
+            }))
+            .sort((left, right) => (
+                (right.generatedAt || 0) - (left.generatedAt || 0)
+            ));
     }
 
     async resolvePortrait(stage = null) {
@@ -666,7 +698,7 @@ class CompanionMediaService {
     /**
      * Resolve a story beat to its best available representation. A completed
      * clip is preferred, but the portrait tableau always wins the first-visit
-     * latency budget and remains the fallback for mobile or restricted players.
+     * latency budget and remains the fallback for mobile, offline play, or provider failure.
      */
     async createStoryMoment(scene, options = {}) {
         const {
@@ -799,5 +831,6 @@ export {
     COMPANION_VIDEO_MOMENTS,
     CompanionMediaService,
     companionMediaService,
-    isSupportedVideoMoment
+    isSupportedVideoMoment,
+    resolveVideoMomentDefinition
 };

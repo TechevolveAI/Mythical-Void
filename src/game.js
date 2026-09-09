@@ -492,6 +492,10 @@ async function initializeCloudSaves() {
         }
     });
 
+    // Creature media uses the same anonymous technical session for private
+    // ownership, independently of whether Cloud Save is age-eligible or enabled.
+    window.CreatureMediaClient = client;
+
     cloudSaveManager = new window.CloudSaveManager({
         client,
         gameState: GameState

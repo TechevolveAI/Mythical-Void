@@ -72,7 +72,7 @@ describe('optional API feature gate', () => {
         expect(apiConfig.isVideoEnabled()).toBe(false);
         expect(apiConfig.getPublicConfig()).toEqual(expect.objectContaining({
             aiArtGeneration: expect.objectContaining({ available: true }),
-            personalizedVideo: expect.objectContaining({
+            creatureStoryVideo: expect.objectContaining({
                 available: false,
                 fallback: 'Living portrait motion still'
             })

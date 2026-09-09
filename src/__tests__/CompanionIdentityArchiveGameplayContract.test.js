@@ -51,7 +51,8 @@ describe('Companion identity archive gameplay contract', () => {
         expect(profile).toContain(
             'PRIVATE FIELD MEMORY // EXACT CREATURE ART'
         );
-        expect(profile).toContain('createCinematicStill?.(this, {');
+        expect(profile).toContain('mediaService?.createStoryMoment?.bind(mediaService)');
+        expect(profile).toContain('mediaService?.createCinematicStill?.bind(mediaService)');
         expect(profile).toContain("imageUrl: '/marketing/nova.webp'");
     });
 
@@ -63,7 +64,7 @@ describe('Companion identity archive gameplay contract', () => {
         expect(modal).toContain(
             'NAME IS THE ONLY PLAYER-AUTHORED FIELD'
         );
-        expect(modal).toContain('REPLAY LATEST //');
+        expect(modal).toContain("latestMemory.videoReady ? 'WATCH NEW' : 'REPLAY LATEST'");
         expect(modal).toContain('this.onReplay?.(latestMemory)');
         expect(modal).toContain("close.setAttribute('aria-label'");
         expect(css).toContain('.companion-archive-action');

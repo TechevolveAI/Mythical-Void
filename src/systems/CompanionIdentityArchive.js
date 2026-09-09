@@ -53,6 +53,7 @@ const MAX_FIELD_MEMORIES = 12;
 
 const FIELD_MEMORY_LABELS = Object.freeze({
     first_living_form: 'FIRST LIVING FORM',
+    first_forest_arrival: 'FIRST FOREST ARRIVAL',
     beacon_reflection: 'BEACON REFLECTION'
 });
 
@@ -458,11 +459,14 @@ export function getCompanionFieldMemories(gameState, creatureId) {
         typeof stored.appearances === 'object'
         ? Object.values(stored.appearances)
         : [];
+    const videos = stored?.videos && typeof stored.videos === 'object'
+        ? Object.values(stored.videos)
+        : [];
     const normalizedCreatureId = normalizeIdentifier(
         creatureId,
         getCreatureId(gameState)
     );
-    const memories = appearances.map(appearance => {
+    const normalizedAppearances = appearances.map(appearance => {
         const momentId = normalizeIdentifier(
             appearance?.momentId,
             null,
@@ -497,11 +501,48 @@ export function getCompanionFieldMemories(gameState, creatureId) {
             ),
             lastViewedAt: Number.isFinite(Number(appearance?.lastViewedAt))
                 ? Number(appearance.lastViewedAt)
-                : null
+                : null,
+            videoReady: false
         };
-    }).filter(Boolean).sort((left, right) => (
-        (right.lastViewedAt || 0) - (left.lastViewedAt || 0)
-    )).slice(0, MAX_FIELD_MEMORIES);
+    }).filter(Boolean);
+    const readyVideos = videos.map(video => {
+        const momentId = normalizeIdentifier(video?.momentId, null, 64);
+        const identityKey = normalizeText(video?.identityKey, null, 180);
+        const label = momentId ? formatFieldMemoryLabel(momentId) : null;
+        const belongsToCompanion = identityKey
+            ?.split(':')
+            .includes(normalizedCreatureId);
+        if (
+            !momentId ||
+            !identityKey ||
+            !label ||
+            !belongsToCompanion ||
+            video?.status !== 'succeeded'
+        ) {
+            return null;
+        }
+        const generatedVideoWasViewed = normalizedAppearances.some(memory => (
+            memory.momentId === momentId &&
+            memory.renderMode === 'generated_video'
+        ));
+        if (generatedVideoWasViewed) return null;
+        return {
+            momentId,
+            label,
+            stage: ALLOWED_STAGES.has(video?.stage) ? video.stage : 'baby',
+            renderMode: 'generated_video',
+            viewCount: 0,
+            lastViewedAt: Number.isFinite(Number(video?.generatedAt))
+                ? Number(video.generatedAt)
+                : null,
+            videoReady: true
+        };
+    }).filter(Boolean);
+    const memories = [...readyVideos, ...normalizedAppearances]
+        .sort((left, right) => (
+            Number(right.videoReady) - Number(left.videoReady) ||
+            (right.lastViewedAt || 0) - (left.lastViewedAt || 0)
+        )).slice(0, MAX_FIELD_MEMORIES);
 
     return {
         count: memories.length,

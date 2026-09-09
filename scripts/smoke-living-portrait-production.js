@@ -111,8 +111,7 @@ async function run() {
         const requestBody = JSON.stringify({
             style: 'cinematic',
             portraitSpec,
-            referenceImage,
-            ageGroup: 'age_18_plus'
+            referenceImage
         });
         const request = await fetch(endpoint, {
             method: 'POST',

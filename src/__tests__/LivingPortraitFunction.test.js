@@ -151,6 +151,7 @@ describe('living portrait Netlify function', () => {
         process.env.GEMINI_API_KEY = 'managed-gateway-test-key';
         process.env.GOOGLE_GEMINI_BASE_URL = 'https://gateway.example.test';
         process.env.SUPABASE_SERVICE_ROLE_KEY = 'server-only-test-key';
+        process.env.VITE_SUPABASE_PUBLISHABLE_KEY = 'public-test-key';
     });
 
     afterEach(() => {

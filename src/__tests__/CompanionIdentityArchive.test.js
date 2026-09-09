@@ -379,6 +379,32 @@ describe('CompanionIdentityArchive', () => {
         expect(JSON.stringify(fieldMemories)).not.toContain('player_supplied');
     });
 
+    test('surfaces an unviewed first Forest video as the next Archive action', () => {
+        const gameState = createGameState();
+        gameState.state.story.companionMedia.videos = {
+            forest: {
+                momentId: 'first_forest_arrival',
+                identityKey: 'portrait:companion_23:juvenile',
+                stage: 'juvenile',
+                status: 'succeeded',
+                generatedAt: 1785457000000
+            }
+        };
+
+        const fieldMemories = getCompanionFieldMemories(
+            gameState,
+            'companion_23'
+        );
+
+        expect(fieldMemories.memories[0]).toEqual(expect.objectContaining({
+            momentId: 'first_forest_arrival',
+            label: 'FIRST FOREST ARRIVAL',
+            renderMode: 'generated_video',
+            videoReady: true,
+            viewCount: 0
+        }));
+    });
+
     test('uses generated art locally without substituting stock species art', () => {
         const generated = getCompanionIdentityArchiveSnapshot(
             createGameState()

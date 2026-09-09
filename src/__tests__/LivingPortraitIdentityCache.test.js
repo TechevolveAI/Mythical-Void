@@ -16,6 +16,13 @@ describe('living portrait identity cache migration', () => {
         ),
         'utf8'
     );
+    const currentPrivacyBoundary = fs.readFileSync(
+        path.join(
+            __dirname,
+            '../../supabase/migrations/20260908000100_creature_media_all_ages_privacy_boundary.sql'
+        ),
+        'utf8'
+    );
 
     test('reuses active or completed identity jobs before checking quota', () => {
         const reuseIndex = migration.indexOf("status in ('starting', 'processing', 'succeeded')");
@@ -41,10 +48,12 @@ describe('living portrait identity cache migration', () => {
         );
     });
 
-    test('keeps the server-side 16+ privacy assertion in the reservation boundary', () => {
-        expect(migration).toContain("profile.age_group in ('age_16_17', 'age_18_plus')");
-        expect(migration).toContain('profile.ai_media_enabled = true');
-        expect(migration).toContain("'reason', 'age_restricted'");
+    test('supersedes the historical age gate with authenticated owner isolation', () => {
+        expect(currentPrivacyBoundary).toContain('v_user_id uuid := auth.uid()');
+        expect(currentPrivacyBoundary).toContain('to authenticated');
+        expect(currentPrivacyBoundary).not.toContain('player_privacy_profiles');
+        expect(currentPrivacyBoundary).not.toContain("'reason', 'age_restricted'");
+        expect(currentPrivacyBoundary).not.toContain('p_user_id');
     });
 
     test('releases historical failed and canceled reservations', () => {
