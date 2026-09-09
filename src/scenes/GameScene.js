@@ -16803,6 +16803,11 @@ class GameScene extends Phaser.Scene {
                 const record = window.GameState?.getCreaturePortrait?.(
                     data?.stage || 'baby'
                 );
+                if (this.villageCommandPanel?.root) {
+                    void this.hydrateVillageCommandPortrait(
+                        this.villageCommandPanel
+                    );
+                }
                 void this.maybeShowLivingPortraitReadyNotice(record);
             }
         );
