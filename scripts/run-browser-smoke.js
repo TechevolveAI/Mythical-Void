@@ -239,6 +239,17 @@ async function main() {
             failures.push(`living-form-late: ${error.message}`);
         }
 
+        console.log('\n[release-smoke] Creature identity across Profile and Sanctuary suite');
+        try {
+            await runNodeScript('scripts/smoke-secondary-journeys.js', {
+                SMOKE_MODE: 'creature-continuity',
+                SMOKE_VIEWPORT_WIDTH: '390',
+                SMOKE_VIEWPORT_HEIGHT: '844'
+            });
+        } catch (error) {
+            failures.push(`creature-continuity: ${error.message}`);
+        }
+
         console.log('\n[release-smoke] NASA discovery fallback and learning suite');
         try {
             await runNodeScript('scripts/smoke-secondary-journeys.js', {

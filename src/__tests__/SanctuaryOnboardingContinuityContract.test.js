@@ -61,4 +61,35 @@ describe('Sanctuary onboarding and creature continuity contract', () => {
         expect(media).toContain('The portrait tableau is the immediate, deterministic fallback');
         expect(media).toContain('this.prepareGeneratedVideo({ momentId, stage, record }).catch(() => null)');
     });
+
+    test('proves one durable creature identity across Profile and Village Heart', () => {
+        const smoke = fs.readFileSync(
+            path.join(__dirname, '../../scripts/smoke-secondary-journeys.js'),
+            'utf8'
+        );
+        const release = fs.readFileSync(
+            path.join(__dirname, '../../scripts/run-browser-smoke.js'),
+            'utf8'
+        );
+
+        expect(smoke).toContain('async function smokeCreatureContinuity');
+        expect(smoke).toContain('SMOKE-CONTINUITY-23:baby:story');
+        expect(smoke).toContain("item?.momentId === 'companion_profile'");
+        expect(smoke).toContain(
+            "'.village-heart-introduction .village-creature-living-portrait'"
+        );
+        expect(smoke).toContain(
+            'profileSurface.appearanceIdentityKey !== seeded.identityKey'
+        );
+        expect(smoke).toContain(
+            'sanctuarySurface.panelIdentityKey !== seeded.identityKey'
+        );
+        expect(smoke).toContain(
+            "item?.momentId === 'first_forest_arrival'"
+        );
+        expect(smoke).toContain(
+            'forestStory.appearanceIdentityKey !== seeded.identityKey'
+        );
+        expect(release).toContain("SMOKE_MODE: 'creature-continuity'");
+    });
 });
