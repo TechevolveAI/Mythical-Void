@@ -19,6 +19,7 @@ const files = [
     'docs/company/search/indexnow-submission-2026-09-08-hatch-first-screen.json',
     'docs/company/search/indexnow-submission-2026-09-09-mobile-homepage.json',
     'docs/company/search/indexnow-submission-2026-09-09-play-welcome-news.json',
+    'docs/company/search/indexnow-submission-2026-09-09-first-minute-news.json',
     'docs/company/search/indexnow-submission-2026-09-09-game-identity.json',
     'docs/company/search/SEARCH_VISIBILITY_AUDIT_2026-08-27.md',
     'docs/company/search/SEARCH_CONSOLE_ACTIVATION.md',
@@ -86,6 +87,8 @@ invalidAudit('invented latest-notice indexing', audit => { audit.indexNow.latest
 invalidAudit('inflated latest-notice count', audit => { audit.indexNow.latestOwnedChangeNotice.urlCount = 99; }, 'latest owned changed-page notification audit is incomplete');
 invalidAudit('invented current-notice indexing', audit => { audit.indexNow.currentOwnedChangeNotice.indexingClaimed = true; }, 'current owned changed-page notice must not claim indexing');
 invalidAudit('inflated current-notice count', audit => { audit.indexNow.currentOwnedChangeNotice.urlCount = 99; }, 'current owned changed-page notification audit is incomplete');
+invalidAudit('invented first-minute-notice indexing', audit => { audit.indexNow.firstMinuteOwnedChangeNotice.indexingClaimed = true; }, 'first-minute owned changed-page notice must not claim indexing');
+invalidAudit('inflated first-minute-notice count', audit => { audit.indexNow.firstMinuteOwnedChangeNotice.urlCount = 99; }, 'first-minute owned changed-page notification audit is incomplete');
 invalidAudit('invented canonical-game-notice indexing', audit => { audit.indexNow.latestCanonicalGameIdentityNotice.indexingClaimed = true; }, 'canonical game identity notice must not claim indexing');
 invalidAudit('inflated canonical-game-notice count', audit => { audit.indexNow.latestCanonicalGameIdentityNotice.urlCount = 99; }, 'canonical game identity notification audit is incomplete');
 invalidAudit('invented result count', audit => { audit.sample.officialSiteResultCountClaimed = true; }, 'must not invent a result count');
@@ -202,5 +205,5 @@ try {
     fs.rmSync(companionRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 31);
-console.log('Search visibility activation safeguards passed (31 cases).');
+assert.strictEqual(cases, 33);
+console.log('Search visibility activation safeguards passed (33 cases).');

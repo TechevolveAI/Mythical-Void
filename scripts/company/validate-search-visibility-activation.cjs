@@ -16,6 +16,7 @@ const previousOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexno
 const newestOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-08-hatch-first-screen.json'));
 const latestOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-09-mobile-homepage.json'));
 const currentOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-09-play-welcome-news.json'));
+const firstMinuteOwnedChangeIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-09-first-minute-news.json'));
 const canonicalGameIdentityIndexNow = JSON.parse(read('docs/company/search/indexnow-submission-2026-09-09-game-identity.json'));
 const handoff = read('docs/company/search/SEARCH_CONSOLE_ACTIVATION.md');
 const report = read('docs/company/search/SEARCH_VISIBILITY_AUDIT_2026-08-27.md');
@@ -125,6 +126,21 @@ requireValue(JSON.stringify(currentOwnedChangeIndexNow.urls) === JSON.stringify(
 requireValue(currentOwnedChangeIndexNow.directPlayUrlSubmitted === false && /not listed in either canonical sitemap/i.test(currentOwnedChangeIndexNow.directPlayUrlOmittedReason || ''), 'current owned changed-page notice does not preserve the direct-Play refusal');
 requireValue(currentOwnedChangeIndexNow.unchangedSitemapUrlsResubmitted === false && /does not prove/i.test(currentOwnedChangeIndexNow.meaning || ''), 'current owned changed-page IndexNow boundary is missing');
 for (const field of ['personalDataSent', 'accountUsed', 'paidPromotionStarted']) requireValue(currentOwnedChangeIndexNow[field] === false, `current owned changed-page IndexNow boundary ${field} must remain false`);
+requireValue(audit.indexNow?.firstMinuteOwnedChangeNotice?.record === 'docs/company/search/indexnow-submission-2026-09-09-first-minute-news.json', 'first-minute owned changed-page notification evidence link is missing');
+requireValue(audit.indexNow?.firstMinuteOwnedChangeNotice?.accepted === true && audit.indexNow?.firstMinuteOwnedChangeNotice?.urlCount === 3 && audit.indexNow?.firstMinuteOwnedChangeNotice?.unchangedUrlsResubmitted === false, 'first-minute owned changed-page notification audit is incomplete');
+requireValue(audit.indexNow?.firstMinuteOwnedChangeNotice?.indexingClaimed === false, 'first-minute owned changed-page notice must not claim indexing');
+requireValue(firstMinuteOwnedChangeIndexNow.id === 'INDEXNOW-2026-09-09-FIRST-MINUTE-NEWS' && firstMinuteOwnedChangeIndexNow.host === 'mythicalvoid.com', 'first-minute owned changed-page IndexNow evidence identity is invalid');
+requireValue(firstMinuteOwnedChangeIndexNow.submittedAt === null && firstMinuteOwnedChangeIndexNow.submittedOn === '2026-09-09' && firstMinuteOwnedChangeIndexNow.responseTimeRecorded === false, 'first-minute owned changed-page notice invents an exact response time');
+requireValue(firstMinuteOwnedChangeIndexNow.accepted === true && firstMinuteOwnedChangeIndexNow.httpStatus === 200 && firstMinuteOwnedChangeIndexNow.urlCount === 3, 'first-minute owned changed-page IndexNow acceptance evidence is incomplete');
+requireValue(firstMinuteOwnedChangeIndexNow.canonicalSitemapCount === 2, 'first-minute owned changed-page notice did not use both canonical sitemaps');
+requireValue(JSON.stringify(firstMinuteOwnedChangeIndexNow.urls) === JSON.stringify([
+    'https://mythicalvoid.com/studio/',
+    'https://mythicalvoid.com/updates/',
+    'https://mythicalvoid.com/updates/update-030/'
+]), 'first-minute owned changed-page IndexNow URL list drifted');
+requireValue(firstMinuteOwnedChangeIndexNow.directPlayUrlSubmitted === false && /did not change/i.test(firstMinuteOwnedChangeIndexNow.directPlayUrlOmittedReason || ''), 'first-minute owned changed-page notice does not preserve the direct-Play omission');
+requireValue(firstMinuteOwnedChangeIndexNow.unchangedSitemapUrlsResubmitted === false && /does not prove/i.test(firstMinuteOwnedChangeIndexNow.meaning || ''), 'first-minute owned changed-page IndexNow boundary is missing');
+for (const field of ['personalDataSent', 'accountUsed', 'paidPromotionStarted']) requireValue(firstMinuteOwnedChangeIndexNow[field] === false, `first-minute owned changed-page IndexNow boundary ${field} must remain false`);
 requireValue(audit.indexNow?.latestCanonicalGameIdentityNotice?.record === 'docs/company/search/indexnow-submission-2026-09-09-game-identity.json', 'canonical game identity notification evidence link is missing');
 requireValue(audit.indexNow?.latestCanonicalGameIdentityNotice?.accepted === true && audit.indexNow?.latestCanonicalGameIdentityNotice?.urlCount === 3 && audit.indexNow?.latestCanonicalGameIdentityNotice?.unchangedUrlsResubmitted === false, 'canonical game identity notification audit is incomplete');
 requireValue(audit.indexNow?.latestCanonicalGameIdentityNotice?.indexingClaimed === false, 'canonical game identity notice must not claim indexing');
@@ -222,6 +238,6 @@ console.log(JSON.stringify({
     liveOwnedSearchRoutes: opportunityMap.clusters.length,
     searchConsoleConnected: false,
     indexNowAccepted: true,
-    latestChangedPagesNotified: canonicalGameIdentityIndexNow.urlCount,
+    latestChangedPagesNotified: firstMinuteOwnedChangeIndexNow.urlCount,
     externalActionTaken: true
 }, null, 2));
