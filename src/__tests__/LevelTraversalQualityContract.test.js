@@ -1219,6 +1219,9 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('this.isMobile ? 80 : 40');
         expect(source).toContain('shouldAnimateAuroraDecorations()');
         expect(source).toMatch(
+            /createShadowCurrents\(\)[\s\S]*if \(this\.shouldAnimateAuroraDecorations\(\)\) \{[\s\S]*this\.shadowCurrentPulseTween = this\.tweens\.add\(/
+        );
+        expect(source).toMatch(
             /createQuietLightRoute\(\)[\s\S]*if \(this\.shouldAnimateAuroraDecorations\(\)\) \{[\s\S]*targets: route,/
         );
         expect(source).toMatch(
@@ -2971,6 +2974,12 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('smokeAuroraQuietLightClimb(session)');
         expect(smoke).toContain("'aurora-heart-launch'");
         expect(smoke).toContain("'aurora-quiet-step-3'");
+        expect(smoke).toContain(
+            "scene.getTraversalSupportCheckpoint(\n            'aurora-heart-launch'"
+        );
+        expect(smoke).toContain(
+            "scene.getTraversalSupportCheckpoint(\n                'aurora-lower-prism'"
+        );
         expect(smoke).toContain('smokeForestForwardHandoffs(session)');
         expect(smoke).toContain("'forest-tree-3-handoff'");
         expect(smoke).toContain('forestAnchorSupports');
@@ -3070,7 +3079,7 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('did not keep Peaks runtime work bounded');
         expect(smoke).toContain('activeTweenCount: 15');
         expect(smoke).toContain('state.auroraAmbientRendering?.shadowCurrentLabelCount !== 3');
-        expect(smoke).toContain('state.auroraAmbientRendering?.shadowPulseTweenCount !== 1');
+        expect(smoke).toContain('state.auroraAmbientRendering?.shadowPulseTweenCount !== 0');
         expect(smoke).toContain('state.auroraAmbientRendering?.fragmentPulseTweenCount !== 0');
         expect(smoke).toContain('state.auroraAmbientRendering?.landingGuideTweenCount !== 0');
         expect(smoke).toContain('did not keep Aurora hazards readable and batched');
