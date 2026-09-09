@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 1,
+  "id": "GAME-JOLT-PAGE-CANDIDATE-2026-09-09",
+  "checkedOn": "2026-09-09",
+  "state": "copy_ready_public_fit_confirmed_waiting_for_adult_account_terms_signed_in_form_media_and_build_review",
+  "purpose": "Prepare a truthful Game Jolt browser-game page without opening an account, accepting terms, uploading a build or publishing on Kevin's behalf.",
+  "platform": {
+    "name": "Game Jolt",
+    "kind": "browser_game_catalogue_and_social_game_page",
+    "publicCatalogue": "https://gamejolt.com/games",
+    "addGameUrl": "https://gamejolt.com/dashboard/games/add",
+    "audienceFit": "The public catalogue lets people browse Browser games and filter by price, maturity and early-access or complete status.",
+    "accountRequired": true,
+    "termsAcceptedAtSignup": true,
+    "gameApiRequiredForInitialPage": false,
+    "listingOnlyWithoutBuildPlanned": false,
+    "audienceSizeClaimed": false,
+    "playerCountClaimed": false
+  },
+  "listing": {
+    "title": "Mythical Void",
+    "developmentStatus": "Early Access",
+    "platform": "Browser / HTML5",
+    "price": "Free",
+    "engine": "Phaser 3",
+    "maturityRating": "Choose honestly in the current signed-in form; no formal rating is claimed in this pack.",
+    "tagsToConfirmInForm": ["adventure", "platformer", "sci-fi", "browser", "creature", "early access"],
+    "officialWebsite": "https://mythicalvoid.com/",
+    "playUrl": "https://mythicalvoid.com/play/",
+    "pressRoom": "https://mythicalvoid.com/press/",
+    "shortDescription": "Hatch an alien creature shaped by genetics, cross six damaged realms, rescue their Guardians and decide what the mission tells Earth.",
+    "fullDescription": "Mythical Void is a free single-player browser adventure. Wanderer-77 has crashed beyond mapped space. Recover what survived, hatch an alien creature shaped by a genetics system, then run, leap, explore and battle through six damaged realms. Rescue the Guardians, build a sanctuary and decide what Project Beacon should tell Earth. The game is in early access and starts with no download or account. Generative AI supports parts of our small Irish studio's creative process, while people remain responsible for the story, safety, testing and what is released. Mythical Void began as a father-and-son project built from imagination, questions and experiments at home. Optional learning moments use credited public NASA material. Mythical Void is independent and is not made, approved or endorsed by NASA.",
+    "features": [
+      "Hatch and name an alien creature shaped by a genetics system.",
+      "Run, leap, explore and battle through six different realms.",
+      "Rescue corrupted Guardians and bring life back to their worlds.",
+      "Build a sanctuary and make a final choice about Project Beacon.",
+      "Play free in a modern browser with no download or account needed to start."
+    ],
+    "aiDisclosure": "Generative AI supports parts of the studio's creative process. People remain responsible for the story, safety, testing and what is released.",
+    "nasaDisclosure": "Optional learning moments use credited public NASA material. Mythical Void is independent and is not made, approved or endorsed by NASA.",
+    "studioStory": "Mythical Void began in Ireland as a father-and-son project: a parent and his young son exploring what imagination and generative AI tools could turn into a real game.",
+    "claimBoundaries": {
+      "formalAgeRatingClaimed": false,
+      "globalCreatureUniquenessClaimed": false,
+      "sentientCreaturesClaimed": false,
+      "nasaPartnershipClaimed": false,
+      "audienceOrPopularityClaimed": false,
+      "platformAcceptancePromised": false
+    }
+  },
+  "publicRequirementsObserved": {
+    "browserHtml5CatalogueObserved": true,
+    "freeFilterObserved": true,
+    "earlyAccessFilterObserved": true,
+    "maturityFilterObserved": true,
+    "thumbnailRequiredBeforePublish": true,
+    "maturityRatingRequiredBeforePublish": true,
+    "releasePackageAndGamePageNeededForDiscovery": true,
+    "currentSignedInUploadFieldsObserved": false,
+    "currentPackageLimitsObserved": false,
+    "currentAiMediaPolicyObserved": false,
+    "note": "The thumbnail, maturity and publication findings come from Game Jolt's public catalogue and archived official FAQ. Exact current upload fields, package limits and any AI-specific media rule still require a signed-in read-only check."
+  },
+  "buildGate": {
+    "uploadedBuildRequiredForPlannedBrowserListing": true,
+    "candidateBuildSelected": false,
+    "currentGameJoltPackageRequirementsConfirmed": false,
+    "browserEmbedJourneyPassed": false,
+    "mobileJourneyPassed": false,
+    "externalRequestsReviewed": false,
+    "gameJoltApiIncluded": false,
+    "sdkIncluded": false,
+    "saveOrAccountIntegrationAdded": false,
+    "rule": "Do not upload the normal website or assume the itch.io archive fits. Select and test one isolated browser package only after the signed-in requirements are recorded."
+  },
+  "mediaGate": {
+    "sourceOfTruth": "public/press/visual-publication-register.json",
+    "requiredThumbnailApproved": false,
+    "requiredThumbnailPrepared": false,
+    "headerPrepared": false,
+    "gameplayScreenshotsAttached": 0,
+    "gameplayVideosAttached": 0,
+    "possibleBrandSource": {
+      "repositoryPath": "public/marketing/mythical-void-emblem-v3.png",
+      "publicUrl": "https://mythicalvoid.com/marketing/mythical-void-emblem-v3.png",
+      "classification": "approved_official_brand_emblem_not_gameplay",
+      "use": "Possible source only. Do not crop, resize or upload it until the signed-in field dimensions, display crop and current AI-media rule are known and Kevin approves the exact result."
+    },
+    "rule": "A required catalogue thumbnail must be visually strong and honestly classified. Generated brand art is not gameplay, and no gameplay image or video may be attached before human visual approval."
+  },
+  "signedInReview": {
+    "completed": false,
+    "exactRequiredFields": null,
+    "packageTypesAndLimitsConfirmed": false,
+    "browserEmbedRulesConfirmed": false,
+    "thumbnailDimensionsAndCropConfirmed": false,
+    "headerDimensionsAndCropConfirmed": false,
+    "maturityChoicesConfirmed": false,
+    "aiDisclosurePlacementConfirmed": false,
+    "aiGeneratedMediaRuleConfirmed": false,
+    "commentAndMessageControlsConfirmed": false,
+    "externalWebsiteFieldConfirmed": false,
+    "note": "Use only Kevin's existing or explicitly approved adult account for a read-only form review. Do not save a draft, upload a file, join a community or publish during that check."
+  },
+  "communityCare": {
+    "commentsExpectedOnGamePage": true,
+    "publicRepliesOnlyWhereSuitable": true,
+    "adultReplyOwnerRequired": true,
+    "automatedRepliesAllowed": false,
+    "privateConversationWithChildAllowed": false,
+    "personalDetailsRequestedFromPlayers": false,
+    "ongoingDevlogCadencePromised": false,
+    "rule": "Do not open a social shelf that nobody can safely maintain. Kevin or another named adult must own comments, reports and any future devlog posts."
+  },
+  "termsReview": {
+    "currentTermsReadByKevin": false,
+    "termsAccepted": false,
+    "privacyAndCookieTermsAccepted": false,
+    "contentRightsReviewed": false,
+    "accountDeletionRouteReviewed": false,
+    "legalAdviceProvided": false,
+    "note": "Game Jolt states that signing up accepts its Terms of Use, Privacy Policy and Cookie Policy. Kevin must review the current text before any account action."
+  },
+  "releaseGate": {
+    "copyPrepared": true,
+    "publicAudienceFitConfirmed": true,
+    "adultAccountAvailable": false,
+    "signedInFormChecked": false,
+    "termsApprovedByKevin": false,
+    "exactBuildApproved": false,
+    "exactThumbnailApproved": false,
+    "maturityChoiceApproved": false,
+    "aiDisclosureVisibleInPreview": false,
+    "adultReplyCoverageConfirmed": false,
+    "finalPreviewApprovedByKevin": false,
+    "gamePageSaved": false,
+    "buildUploaded": false,
+    "gamePublished": false,
+    "readyForPublication": false
+  },
+  "authority": {
+    "accountOpeningAuthorized": false,
+    "accountOpened": false,
+    "platformTermsAcceptanceAuthorized": false,
+    "platformTermsAccepted": false,
+    "externalUploadAuthorized": false,
+    "externalPublishingAuthorized": false,
+    "gamePageCreated": false,
+    "buildUploaded": false,
+    "gamePublished": false,
+    "communityJoined": false,
+    "externalPostMade": false,
+    "automatedRepliesAuthorized": false,
+    "paidPromotionAuthorized": false,
+    "directChildContactAuthorized": false
+  },
+  "sourceEvidence": [
+    {
+      "url": "https://ssr.gamejolt.net/help-docs/Shop/download-games",
+      "observedOn": "2026-09-09",
+      "finding": "Game Jolt's public store guidance says people can filter games by Browser/HTML5, price, maturity and early-access or complete status."
+    },
+    {
+      "url": "https://ssr.gamejolt.net/f/faq-frequently-asked-questions/345207",
+      "observedOn": "2026-09-09",
+      "finding": "The archived official FAQ says a thumbnail and maturity rating are needed before publication and says the release, package and game page must all be published for discovery. Current signed-in requirements still need confirmation."
+    },
+    {
+      "url": "https://ssr.gamejolt.net/",
+      "observedOn": "2026-09-09",
+      "finding": "The public sign-up page says creating an account accepts the Terms of Use, Privacy Policy and Cookie Policy. No account action was taken."
+    },
+    {
+      "url": "https://ssr.gamejolt.net/help-docs/creators/game-api",
+      "observedOn": "2026-09-09",
+      "finding": "The Game API adds optional trophies, scoreboards, sessions and storage. None is needed for the initial page pack and no API or SDK integration is authorised."
+    }
+  ],
+  "nextRequiredAction": "After the Reddit test is read or cancelled, Kevin may approve a read-only signed-in Game Jolt form check using an existing adult account. Do not save, upload, join, accept terms or publish during that check."
+}

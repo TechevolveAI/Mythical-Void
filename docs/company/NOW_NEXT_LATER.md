@@ -70,6 +70,11 @@ actually live or prepared on 9 September 2026.
   adverts. The fourth route, IndieDB, now has a complete truthful page pack,
   rights checklist and approved-brand-art boundary. No IndieDB account was
   opened, no terms were accepted and no page was created or published.
+- Game Jolt now has a truthful ready-to-paste page pack too. Its public
+  Browser/HTML5, Free and Early Access catalogue is a real audience fit, but it
+  remains later in the queue. Its current form, terms, thumbnail, maturity
+  choice and browser package must be checked and approved before any account,
+  upload or publication action.
 - Three more apparent routes were screened and kept outside that queue:
   r/BrowserGames is private, while SlowDen and PlayMateGames still have
   unanswered framing, advertising, age, privacy or listing questions. No form
