@@ -60,9 +60,9 @@
     {
       "id": "CL-009",
       "class": "C1",
-      "status": "restricted_recheck",
-      "approvedText": "Optional personalized creature media is unavailable to under-16 profiles in this release.",
-      "conditions": "Reverify client, server, production flags, vendor flow, and privacy copy for every use."
+      "status": "qualified",
+      "approvedText": "The current game can create private AI-made media from fictional creature information for every age band after an age range is selected.",
+      "conditions": "Reverify client, server, production flags, provider payload and privacy copy for every use. State that the selected age range and player information are not sent to the model; keep Cloud Save and friend-linking restrictions separate. Never expand this into a child-safety or zero-risk guarantee."
     },
     {
       "id": "CL-010",

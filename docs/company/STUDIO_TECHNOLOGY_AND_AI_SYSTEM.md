@@ -14,20 +14,20 @@ Phaser 3 runs the browser game: movement, exploration, combat, guardians, villag
 
 ### 3. AI-made expression
 
-The living portrait and companion-media services can create optional portraits or short AI-generated cinematic cutscenes from the player’s in-game identity. These systems are experimental, age-gated, bounded by consent and service rules, and separate from the core story. AI adds expression; it does not decide the player’s ending, impersonate a child, or replace human-authored dialogue and safety decisions.
+The Living Portrait and Creature Story Scene services can create private AI-made media from the fictional creature’s in-game identity after an age range is selected. Every age band can use this creature-only path in the current release. The selected age range, player-given creature name and information about the player are not sent to the image or video model. These systems are experimental, bounded by service and privacy rules, and separate from the core story. AI adds expression; it does not decide the player’s ending, impersonate a child, or replace human-authored dialogue and safety decisions.
 
 ## What we may say
 
-- “Your companion is assembled from a living genetics system.”
+- “Your creature is assembled from a living genetics system.”
 - “Phaser 3 brings the world to life in your browser.”
-- “Optional AI media can turn your companion’s identity into a portrait or short cinematic moment.”
+- “Private AI-made media can turn fictional creature details into a Living Portrait or short Creature Story Scene without sending information about the player to the model.”
 - “The story and its important choices remain authored and understandable.”
 
 ## What we must not say without new evidence
 
 - “Every creature is completely unique.”
 - “The AI writes the whole game.”
-- “The companion is conscious or unrestricted.”
+- “The creature is conscious or unrestricted.”
 - “AI-generated cutscenes replace the game’s authored story.”
 - “A generated image proves gameplay.”
 

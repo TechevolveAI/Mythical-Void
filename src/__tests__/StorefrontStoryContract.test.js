@@ -144,7 +144,9 @@ describe('storefront Project Beacon story contract', () => {
         expect(storefront).toContain('WHY MYTHICAL VOID IS DIFFERENT');
         expect(storefront).toContain('Genetics with real variety');
         expect(storefront).toContain('Phaser 3');
-        expect(storefront).toContain('Story moments made for your friend');
+        expect(storefront).toContain('Your creature, reimagined');
+        expect(storefront).toContain('fictional creature details');
+        expect(storefront).toContain('not sent to the image or video model');
     });
 
     test('explains the NASA connection as a child-friendly STEM layer', () => {

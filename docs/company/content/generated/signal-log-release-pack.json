@@ -5,8 +5,8 @@
   "generatedFrom": {
     "sourcePath": "public/updates/releases.json",
     "publicSourceUrl": "https://mythicalvoid.com/updates/",
-    "sourceFingerprint": "84c3de88fa7261c8a738a21b320148c86a266bdc6fb0d6dbe654e49366becc15",
-    "liveEntryCount": 23,
+    "sourceFingerprint": "cef4f2c90499fc60ddd20b3d9f4dd28101513074dc3bb544300959a06acdbec2",
+    "liveEntryCount": 24,
     "latestSourceDate": "2026-09-09"
   },
   "purpose": "Turn each checked Latest News note into consistent review drafts without posting, messaging, scheduling or inventing claims.",
@@ -32,6 +32,65 @@
     "externalActionPerformed": false
   },
   "items": [
+    {
+      "id": "DRAFT-UPDATE-031",
+      "sourceEntryId": "UPDATE-031",
+      "sourcePublishedOn": "2026-09-09",
+      "destination": "https://mythicalvoid.com/creature-genetics/",
+      "trackingParameters": false,
+      "media": {
+        "disclosure": "Text-only release note about a live experimental creature-media feature; no screenshot or generated image is attached."
+      },
+      "releaseProof": {
+        "sourceCommit": "8b1c1bd1229846f27bf50e7a4b6e2a6a914d9ea6",
+        "productionMergeCommit": "760e4b403fef1f43d1c6256cd88deb7f1626f506",
+        "productionDeployId": "6aa188c548d0120008feb48e",
+        "productionPublishedAt": "2026-09-09T16:37:39.892Z",
+        "checkedUrl": "https://mythicalvoid.com/play/",
+        "checkedHttpStatus": 200,
+        "phoneViewport": "390x844",
+        "generatedPortraitObserved": true,
+        "generatedPortraitDimensions": "900x900",
+        "sanctuaryEntryObserved": true,
+        "villageHeartRefreshObserved": true,
+        "playerPersonalDataSentToModel": false,
+        "gameplayVisualApproved": false,
+        "mediaAttached": false,
+        "claimBoundary": "The source, protected merge, published production deploy, live first-session journey and authenticated synthetic-creature probe prove that the private Living Portrait path can complete and hand back into the playable Sanctuary. They do not prove visual quality, play, enjoyment or growth, and they do not prove player use, conversion or retention."
+      },
+      "drafts": {
+        "professionalNetwork": {
+          "channelRef": "CH-004",
+          "format": "text_post_with_one_link",
+          "body": "A Living Portrait can follow you into the Sanctuary\n\nThe creature hatched in the real browser game can now become a private AI-made Living Portrait without making the player wait before entering the Sanctuary.\n\n• The image service receives bounded fictional creature traits and a creature reference image—not the player’s name, age range, location, words, photograph, voice, save history or friend information.\n• The portrait can finish while the player continues into the Sanctuary, and the Village Heart refreshes when the result is ready.\n• If the image service is slow, unavailable or interrupted by a reload, the authored adventure continues and the creature remains playable. This text-only note does not present generated artwork as gameplay.\n\nSee what changed: https://mythicalvoid.com/creature-genetics/\n\nText-only release note about a live experimental creature-media feature; no screenshot or generated image is attached.",
+          "characterCount": 932
+        },
+        "videoCommunity": {
+          "channelRef": "CH-002",
+          "format": "text_community_post_with_one_link",
+          "body": "New from the Void: A Living Portrait can follow you into the Sanctuary\n\nThe creature hatched in the real browser game can now become a private AI-made Living Portrait without making the player wait before entering the Sanctuary.\n\nhttps://mythicalvoid.com/creature-genetics/\n\nText-only release note about a live experimental creature-media feature; no screenshot or generated image is attached.",
+          "characterCount": 393
+        },
+        "pressCreatorSourceNote": {
+          "channelRef": "manual_personal_review_only",
+          "format": "source_note_not_bulk_email",
+          "subject": "Mythical Void update: A Living Portrait can follow you into the Sanctuary",
+          "body": "Mythical Void has a new live update: A Living Portrait can follow you into the Sanctuary.\n\nThe creature hatched in the real browser game can now become a private AI-made Living Portrait without making the player wait before entering the Sanctuary.\n\nThe image service receives bounded fictional creature traits and a creature reference image—not the player’s name, age range, location, words, photograph, voice, save history or friend information. The portrait can finish while the player continues into the Sanctuary, and the Village Heart refreshes when the result is ready. If the image service is slow, unavailable or interrupted by a reload, the authored adventure continues and the creature remains playable. This text-only note does not present generated artwork as gameplay.\n\nThe checked public destination is https://mythicalvoid.com/creature-genetics/\n\nMedia note: Text-only release note about a live experimental creature-media feature; no screenshot or generated image is attached.\n\nThis is source material for a personal, reviewed note—not a bulk message.",
+          "characterCount": 1067,
+          "recipient": null
+        }
+      },
+      "approval": {
+        "state": "blocked_missing_verified_channel_and_kevin_approval",
+        "kevinApprovalRequired": true,
+        "verifiedChannelRequired": true,
+        "adultReplyCoverageRequiredBeforeComments": true,
+        "copyMediaLinkOrAudienceChangeInvalidatesApproval": true,
+        "approvedAt": null,
+        "scheduledAt": null,
+        "publishedAt": null
+      }
+    },
     {
       "id": "DRAFT-UPDATE-030",
       "sourceEntryId": "UPDATE-030",

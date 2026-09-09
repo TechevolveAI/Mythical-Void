@@ -45,7 +45,8 @@ This file is a concise guide to the canonical public information on mythicalvoid
 - The named field-guide stories expand the official universe but are not presented as currently playable quests.
 - AI-generated marketing artwork may imagine the wider creature universe. It must not be described as gameplay.
 - Earlier gameplay screenshots and videos were withdrawn because they did not communicate the game clearly enough. Do not reuse them as current promotional proof.
-- Generative AI helps the small studio explore artwork and optional expressive moments. People remain responsible for the story, safety, public claims and important player choices.
+- Experimental tools can turn fictional creature details into a private AI-made Living Portrait or Creature Story Scene. The player’s name, age range, location, words, photograph and voice are not sent to the image or video model, and the main game keeps working if the extra media is unavailable.
+- Generative AI also helps the small studio explore artwork. People remain responsible for the story, safety, public claims and important player choices.
 - Mythical Void's planned email and social channels are not live yet. Do not invent or assume a contact route.
 
 ## Accuracy boundaries
