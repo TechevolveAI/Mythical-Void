@@ -39,10 +39,12 @@ detailed evidence; it turns that evidence into the decisions that matter now.
   unavailable.
 - **The release record is no longer ambiguous:** the live player-facing build
   comes from PR #246 and Netlify deployment 6aa0c27a200b4400095861ae.
-  PR #248 landed afterwards, but it changes only the private launch test and
-  deliberately makes no player-facing change. Its automatic production build
-  was skipped because the Netlify credit allowance was exhausted; that does
-  not make the already published game unavailable or stale.
+  At this record's evidence cut-off, PR #248 had landed afterwards, but it
+  changes only the private launch test and deliberately makes no player-facing
+  change. Its automatic production build was skipped because the Netlify credit
+  allowance was exhausted; that does not make the already published game
+  unavailable or stale. Later operating-record merges do not alter this
+  player-release evidence.
 - **The invitation is live:** the homepage now gives people a clear way to
   invite someone else to hatch a creature, the Sanctuary invitation still
   works, and the first real Guardian restoration now offers the same voluntary

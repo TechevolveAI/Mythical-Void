@@ -38,14 +38,15 @@ const latestMaterialWebsiteRelease = {
     publishedAt: '2026-09-09T02:25:11.480Z',
     sourceAndProductionTreesMatch: true
 };
-const latestProtectedMain = {
-    pullRequest: 248,
+const protectedMainEvidenceCutoff = {
+    observedThroughPullRequest: 248,
     mergeCommit: 'c7c397d8576a9ec54ad5f73bec99c9c7f6dab029',
     mergedAt: '2026-09-09T02:49:52Z',
     title: 'Isolate community checks from creature media',
     changesPlayerExperience: false,
     productionBuildSkippedForCredits: true,
-    livePlayerReleaseStillCurrent: true
+    livePlayerReleaseStillCurrent: true,
+    laterOperatingRecordMergesExcludedByDesign: true
 };
 
 requireValue(control.schemaVersion === 1 && control.id === 'FOUNDER-CONTROL-001', 'founder control identity is invalid');
@@ -65,8 +66,8 @@ requireValue(lastObservedProduction.state === 'ready' && lastObservedProduction.
 requireValue(lastObservedProduction.sourceCommit === latestMaterialWebsiteRelease.sourceCommit && lastObservedProduction.protectedMainMergeCommit === latestMaterialWebsiteRelease.protectedMainMergeCommit && lastObservedProduction.deployId === latestMaterialWebsiteRelease.deployId, 'latest observed production does not match the live website release');
 const latestGameRelease = live.websiteAndGame?.latestGameRelease || {};
 requireValue(latestGameRelease.pullRequest === 246 && latestGameRelease.mergeCommit === latestMaterialWebsiteRelease.protectedMainMergeCommit && latestGameRelease.mergedAt === '2026-09-09T02:23:51Z' && latestGameRelease.title === 'Enable private creature media for all ages' && latestGameRelease.containedInLastObservedProduction === true, 'latest game release is missing from the production record');
-for (const [field, expected] of Object.entries(latestProtectedMain)) {
-    requireValue(live.websiteAndGame?.latestProtectedMain?.[field] === expected, `founder latest protected main ${field} is stale`);
+for (const [field, expected] of Object.entries(protectedMainEvidenceCutoff)) {
+    requireValue(live.websiteAndGame?.protectedMainEvidenceCutoff?.[field] === expected, `founder protected-main evidence cutoff ${field} is stale`);
 }
 for (const [field, expected] of Object.entries(latestMaterialWebsiteRelease)) {
     requireValue(live.websiteAndGame?.latestMaterialWebsiteRelease?.[field] === expected, `founder latest material website release ${field} is stale`);
@@ -146,7 +147,7 @@ for (const phrase of [
     'Private creature pictures and short films are available in the game',
     'the chosen age stays in the browser and no public creature profile is created',
     'the live player-facing build comes from PR #246 and Netlify deployment 6aa0c27a200b4400095861ae',
-    'PR #248 landed afterwards, but it changes only the private launch test',
+    "At this record's evidence cut-off, PR #248 had landed afterwards, but it changes only the private launch test",
     'does not make the already published game unavailable or stale',
     'The First Five test',
     'no adults have been invited',
@@ -201,7 +202,7 @@ console.log(JSON.stringify({
     state: control.state,
     liveWebsite: true,
     latestGameReleasePullRequest: latestGameRelease.pullRequest,
-    latestProtectedMainPullRequest: latestProtectedMain.pullRequest,
+    protectedMainEvidenceThroughPullRequest: protectedMainEvidenceCutoff.observedThroughPullRequest,
     latestPublishedDeployId: latestMaterialWebsiteRelease.deployId,
     technicalRepairLive: true,
     creatureArtworkHumanApproved: false,
