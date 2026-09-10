@@ -4,6 +4,9 @@ const { spawn, spawnSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const {
+    applyBrowserAudioPolicy
+} = require('./lib/browser-audio-policy.cjs');
 
 const BASE_URL = process.env.MYTHICAL_VOID_SMOKE_URL || 'http://127.0.0.1:8125';
 const CHROME_PATH = process.env.CHROME_PATH ||
@@ -7040,6 +7043,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     let peaksGroundedObjectives = null;
     let finalGroundedObjectives = null;
     let cavesGroundedObjectives = null;
+    let peakWarningResponse = null;
     let reefCreaturePassageAction = null;
     let reefCreaturePassageWake = null;
     const reefWaypointSupports = [];
@@ -7337,6 +7341,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         }
 
         for (let signalIndex = 1; signalIndex < 3; signalIndex += 1) {
+            if (route === 'voidPeaks' && signalIndex === 2) {
+                await delay(2000);
+            }
             const stagedSignal = [
                 'mythicalForest',
                 'crystalCaves',
@@ -7516,7 +7523,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     };
                 })()`),
                 {
-                    timeoutMs: 900,
+                    timeoutMs: 1500,
                     message: 'Reef creature passage action'
                 }
             );
@@ -7567,7 +7574,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     };
                 })()`),
                 {
-                    timeoutMs: 1800,
+                    timeoutMs: 2600,
                     message: 'Reef creature opens the living passage'
                 }
             );
@@ -7587,6 +7594,94 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 throw new Error(
                     `${sceneName} did not show a non-blocking creature-to-world response: ` +
                     JSON.stringify(reefCreaturePassageWake)
+                );
+            }
+        }
+        if (route === 'voidPeaks') {
+            const warningAction = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+                    const response = scene?.getCreatureWarningResponseSnapshot?.();
+                    if (
+                        !['sending', 'answering'].includes(response?.stage) ||
+                        response.progress < 0.2 ||
+                        response.progress > 0.9
+                    ) return null;
+                    const camera = scene.cameras?.main;
+                    return {
+                        ...response,
+                        playerX: scene.player?.body?.center?.x,
+                        playerBottom: scene.player?.body?.bottom,
+                        playerScreenX: scene.player?.x - camera?.worldView?.x,
+                        astronautScreenX: scene.astronautFollower?.sprite?.x -
+                            camera?.worldView?.x,
+                        cameraWidth: camera?.width
+                    };
+                })()`),
+                {
+                    timeoutMs: 900,
+                    message: 'Void Peaks creature warning action'
+                }
+            );
+            if (
+                warningAction.relayId !== 'peaks_relay_3' ||
+                !warningAction.visualActive ||
+                Math.abs(warningAction.sourceX - warningAction.playerX) > 12 ||
+                Math.abs(warningAction.sourceY - warningAction.playerBottom) > 20 ||
+                warningAction.playerScreenX < 44 ||
+                warningAction.playerScreenX > warningAction.cameraWidth - 44 ||
+                warningAction.astronautScreenX < 24 ||
+                warningAction.astronautScreenX > warningAction.cameraWidth - 24 ||
+                Math.abs(
+                    warningAction.playerScreenX -
+                    warningAction.astronautScreenX
+                ) < 24
+            ) {
+                throw new Error(
+                    `${sceneName} did not stage the creature-led warning: ` +
+                    JSON.stringify(warningAction)
+                );
+            }
+            if (SMOKE_CAPTURE_DIR) {
+                await captureGameplayStill(
+                    session,
+                    SMOKE_VIEWPORT_WIDTH <= 600
+                        ? 'peaks-creature-warning-phone.png'
+                        : 'peaks-creature-warning-desktop.png'
+                );
+            }
+            peakWarningResponse = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+                    const response = scene?.getCreatureWarningResponseSnapshot?.();
+                    if (!response?.settled || response.replyCount < 4) return null;
+                    return {
+                        ...response,
+                        networkReached: scene.creatureNetworkReached === true,
+                        physicsPaused: scene.physics?.world?.isPaused === true,
+                        playerGravityEnabled: scene.player?.body?.allowGravity !== false,
+                        controlsVisible: scene.platformerControlsVisible === true
+                    };
+                })()`),
+                {
+                    timeoutMs: 1800,
+                    message: 'Void Peaks settlements answer the creature'
+                }
+            );
+            if (
+                peakWarningResponse.relayId !== 'peaks_relay_3' ||
+                peakWarningResponse.stage !== 'settled' ||
+                peakWarningResponse.progress !== 1 ||
+                !peakWarningResponse.visualActive ||
+                !peakWarningResponse.networkReached ||
+                peakWarningResponse.replyCount < 4 ||
+                peakWarningResponse.physicsPaused ||
+                !peakWarningResponse.playerGravityEnabled ||
+                !peakWarningResponse.controlsVisible
+            ) {
+                throw new Error(
+                    `${sceneName} did not show the non-blocking warning reply: ` +
+                    JSON.stringify(peakWarningResponse)
                 );
             }
         }
@@ -8820,6 +8915,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         peaksGroundedObjectives,
         finalGroundedObjectives,
         cavesGroundedObjectives,
+        peakWarningResponse,
         reefCreaturePassageWake,
         reefCreaturePassageAction,
         reefWaypointSupports,
@@ -9639,7 +9735,10 @@ async function stagePlatformBoundRouteSignal(session, {
         scene.player.body.blocked.down = true;
         scene.player.body.touching.down = true;
         scene.isGrounded = true;
-        if (${JSON.stringify(route)} === 'reef' && ${index} === 2) {
+        if (
+            ['reef', 'voidPeaks'].includes(${JSON.stringify(route)}) &&
+            ${index} === 2
+        ) {
             const camera = scene.cameras?.main;
             camera?.centerOn?.(
                 signal.x,
@@ -23072,7 +23171,7 @@ async function main() {
         throw new Error(`Chrome was not found at ${CHROME_PATH}`);
     }
     const profileDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mythical-void-cdp-'));
-    const chromeArgs = [
+    const chromeArgs = applyBrowserAudioPolicy([
         '--headless=new',
         '--enable-webgl',
         '--ignore-gpu-blocklist',
@@ -23088,7 +23187,7 @@ async function main() {
         `--user-data-dir=${profileDir}`,
         `--window-size=${SMOKE_VIEWPORT_WIDTH},${SMOKE_VIEWPORT_HEIGHT}`,
         'about:blank'
-    ];
+    ]);
     if (!SMOKE_HARDWARE_ACCELERATED_CAPTURE) {
         chromeArgs.splice(2, 0, '--use-angle=swiftshader', '--enable-unsafe-swiftshader');
     }

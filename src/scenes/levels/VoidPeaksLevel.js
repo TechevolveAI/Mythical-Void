@@ -144,6 +144,9 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.beaconRelaysActivated = 0;
         this.creatureNetworkReached = false;
         this.replySignals = [];
+        this.creatureWarningResponse = null;
+        this.creatureWarningResponseTween = null;
+        this.warningReplyCameraFocusUntil = 0;
         this.peakStarField = [];
         this.peakStarLayer = null;
         this.peakEmbers = [];
@@ -201,6 +204,9 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.beaconRelaysActivated = 0;
         this.creatureNetworkReached = false;
         this.replySignals = [];
+        this.creatureWarningResponse = null;
+        this.creatureWarningResponseTween = null;
+        this.warningReplyCameraFocusUntil = 0;
         this.peakStarField = [];
         this.peakStarLayer = null;
         this.peakEmbers = [];
@@ -1298,6 +1304,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         relay.zone = null;
         this.beaconRelaysActivated++;
         this.drawSignalRelay(relay.visual, relay.x, relay.y, true);
+        relay.label?.setVisible?.(false);
         this.retireTraversalLandingGuide(relay);
         this.refreshSignalRouteReadability();
         const checkpoint = this.getTraversalSupportCheckpoint(
@@ -1310,12 +1317,14 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             checkpointIndex: relay.index
         });
 
-        this.showFloatingText(
-            `WARNING BEACON ${this.beaconRelaysActivated}/3 LIT`,
-            relay.x,
-            relay.y - 120,
-            '#8FE3CF'
-        );
+        if (this.beaconRelaysActivated < 3) {
+            this.showFloatingText(
+                `WARNING BEACON ${this.beaconRelaysActivated}/3 LIT`,
+                relay.x,
+                relay.y - 120,
+                '#8FE3CF'
+            );
+        }
 
         const companionName = this.getCompanionName();
         if (this.beaconRelaysActivated === 1) {
@@ -1338,7 +1347,9 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             });
         } else if (this.beaconRelaysActivated === 3) {
             this.creatureNetworkReached = true;
-            this.showDistantReplyNetwork(relay);
+            if (!this.playCreatureWarningResponse(relay)) {
+                this.showDistantReplyNetwork(relay);
+            }
             window.AchievementSystem?.recordEvent?.('story_interaction', {
                 event: 'creature_warning_network_reached'
             });
@@ -1610,6 +1621,223 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         }
     }
 
+    drawCreatureWarningResponse(response) {
+        const graphics = response?.visual;
+        if (!graphics?.active) return false;
+
+        const progress = Phaser.Math.Clamp(Number(response.progress) || 0, 0, 1);
+        const travel = Phaser.Math.Clamp(progress / 0.72, 0, 1);
+        const answer = Phaser.Math.Clamp((progress - 0.58) / 0.42, 0, 1);
+        graphics.clear();
+
+        const segmentCount = 14;
+        let previousPoint = null;
+        for (let index = 0; index <= segmentCount; index += 1) {
+            const pathProgress = index / segmentCount;
+            if (pathProgress > travel) break;
+            const bend = Math.sin(pathProgress * Math.PI) * -42;
+            const x = Phaser.Math.Linear(
+                response.sourceX,
+                response.targetX,
+                pathProgress
+            );
+            const y = Phaser.Math.Linear(
+                response.sourceY,
+                response.targetY,
+                pathProgress
+            ) + bend;
+            const width = 34 - pathProgress * 12;
+            if (previousPoint) {
+                graphics.lineStyle(width * 0.62, 0xFFB15C, 0.38);
+                graphics.lineBetween(previousPoint.x, previousPoint.y, x, y);
+                graphics.lineStyle(width * 0.22, 0x8FE3CF, 0.92);
+                graphics.lineBetween(previousPoint.x, previousPoint.y, x, y);
+            }
+            graphics.fillStyle(0xFFE0A3, 0.72);
+            graphics.fillEllipse(x, y, width * 0.42, width * 0.26);
+            previousPoint = { x, y };
+        }
+
+        if (answer > 0) {
+            const spread = 28 + answer * 48;
+            graphics.fillStyle(0x8FE3CF, 0.15 + answer * 0.18);
+            graphics.fillEllipse(
+                response.targetX,
+                response.targetY,
+                58 + answer * 54,
+                48 + answer * 42
+            );
+            graphics.fillStyle(0xF2C94C, 0.55 + answer * 0.35);
+            graphics.fillEllipse(
+                response.targetX - spread * 0.52,
+                response.targetY - spread * 0.38,
+                18,
+                30
+            );
+            graphics.fillEllipse(
+                response.targetX + spread * 0.12,
+                response.targetY - spread * 0.58,
+                16,
+                34
+            );
+            graphics.fillEllipse(
+                response.targetX + spread * 0.58,
+                response.targetY - spread * 0.3,
+                18,
+                28
+            );
+        }
+        response.label?.setText?.(
+            answer > 0
+                ? 'THE RIDGE ANSWERS'
+                : `${this.getCompanionName()} SENDS THE WARNING`
+        );
+        return true;
+    }
+
+    playCreatureWarningResponse(relay) {
+        const body = this.player?.body;
+        if (!relay?.visual?.active || !body) return false;
+
+        this.clearCreatureWarningResponse();
+        const response = {
+            relayId: relay.id,
+            sourceX: body.center.x,
+            sourceY: body.bottom,
+            targetX: relay.x,
+            targetY: relay.y - 44,
+            progress: 0,
+            stage: 'sending',
+            settled: false,
+            previousAllowGravity: body.allowGravity !== false,
+            visual: this.add.graphics().setDepth(184),
+            label: this.add.text(
+                Phaser.Math.Linear(body.center.x, relay.x, 0.5) - 36,
+                Phaser.Math.Linear(body.bottom, relay.y - 44, 0.5),
+                '',
+                {
+                    fontSize: '13px',
+                    fontFamily: 'Arial, sans-serif',
+                    fontStyle: 'bold',
+                    color: '#FFF2C7',
+                    backgroundColor: 'rgba(9, 3, 14, 0.88)',
+                    padding: { x: 8, y: 5 },
+                    align: 'center'
+                }
+            ).setOrigin(0.5).setDepth(185)
+        };
+        body.allowGravity = false;
+        this.recoveryInputLockedUntil = Math.max(
+            Number(this.recoveryInputLockedUntil) || 0,
+            (Number(this.time?.now) || 0) + 1600
+        );
+        this.player?.setVelocityX?.(0);
+        this.player?.setVelocityY?.(0);
+        if (this.cameras?.main?.width <= 480) {
+            response.controlAlphas = this.mobileControlElements
+                ?.filter(element => element?.active && Number.isFinite(element.alpha))
+                .map(element => ({ element, alpha: element.alpha })) || [];
+            response.controlAlphas.forEach(({ element }) => {
+                element.setAlpha?.(Math.min(element.alpha, 0.24));
+            });
+        }
+        const follower = this.astronautFollower;
+        if (follower?.sprite?.active) {
+            response.previousAstronautFormation = follower.contextualFormation
+                ? { ...follower.contextualFormation }
+                : null;
+            const witnessOffsetX = body.center.x <= relay.x ? -72 : 72;
+            follower.setContextualFormation?.(
+                { x: witnessOffsetX, y: 0 },
+                'peaks_warning_witness'
+            );
+            follower.resetTrail?.();
+            const followerAnchor = follower.getTargetAnchor?.() || {
+                x: body.center.x,
+                y: this.player?.y || body.center.y
+            };
+            follower.sprite.setPosition(
+                followerAnchor.x + witnessOffsetX,
+                followerAnchor.y
+            );
+        }
+        this.creatureWarningResponse = response;
+        this.warningReplyCameraFocusUntil = (Number(this.time?.now) || 0) + 1850;
+        this.drawCreatureWarningResponse(response);
+        this.creatureWarningResponseTween = this.tweens.add({
+            targets: response,
+            progress: 1,
+            duration: 1600,
+            ease: 'Sine.easeInOut',
+            onUpdate: () => {
+                const currentBody = this.player?.body;
+                if (currentBody && response.progress < 0.65) {
+                    response.sourceX = currentBody.center.x;
+                    response.sourceY = currentBody.bottom;
+                }
+                response.stage = response.progress < 0.58
+                    ? 'sending'
+                    : 'answering';
+                this.drawCreatureWarningResponse(response);
+            },
+            onComplete: () => {
+                response.progress = 1;
+                response.stage = 'settled';
+                response.settled = true;
+                this.drawCreatureWarningResponse(response);
+                this.showDistantReplyNetwork(relay);
+                this.restoreCreatureWarningPresentation(response);
+                this.creatureWarningResponseTween = null;
+            }
+        });
+        return true;
+    }
+
+    getCreatureWarningResponseSnapshot() {
+        const response = this.creatureWarningResponse;
+        if (!response) return null;
+        return {
+            relayId: response.relayId,
+            sourceX: response.sourceX,
+            sourceY: response.sourceY,
+            targetX: response.targetX,
+            targetY: response.targetY,
+            progress: Number(response.progress) || 0,
+            stage: response.stage,
+            settled: response.settled === true,
+            visualActive: response.visual?.active === true,
+            replyCount: this.replySignals.length
+        };
+    }
+
+    restoreCreatureWarningPresentation(response) {
+        if (this.player?.body && response?.previousAllowGravity != null) {
+            this.player.body.allowGravity = response.previousAllowGravity;
+        }
+        response?.controlAlphas?.forEach(({ element, alpha }) => {
+            if (element?.active) element.setAlpha?.(alpha);
+        });
+        if (
+            this.astronautFollower?.contextualFormation?.context ===
+            'peaks_warning_witness'
+        ) {
+            this.astronautFollower.setContextualFormation?.(
+                response?.previousAstronautFormation || null,
+                response?.previousAstronautFormation?.context || null
+            );
+        }
+        if (response) response.controlAlphas = [];
+    }
+
+    clearCreatureWarningResponse() {
+        this.restoreCreatureWarningPresentation(this.creatureWarningResponse);
+        this.creatureWarningResponseTween?.remove?.();
+        this.creatureWarningResponseTween = null;
+        this.creatureWarningResponse?.visual?.destroy?.();
+        this.creatureWarningResponse?.label?.destroy?.();
+        this.creatureWarningResponse = null;
+    }
+
     showDistantReplyNetwork(relay) {
         const lineLayer = this.add.graphics();
         lineLayer.setDepth(175);
@@ -1788,13 +2016,31 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.updatePeakReturnCurrentGuidance();
 
         this.syncCampaignObjectiveDisplay({
-            visible: !(this.isCompactObjectiveHUD && this.bossFightActive)
+            visible: !(
+                (this.isCompactObjectiveHUD && this.bossFightActive) ||
+                (Number(this.time?.now) || 0) < this.warningReplyCameraFocusUntil
+            )
         });
         this.updateBossIndicator();
     }
 
     updateCameraLead() {
         const camera = this.cameras?.main;
+        if (
+            this.player?.active &&
+            (Number(this.time?.now) || 0) < this.warningReplyCameraFocusUntil
+        ) {
+            this.currentCameraLeadX = 0;
+            this.targetCameraLeadX = 0;
+            const phoneActionLift = camera?.width <= 480
+                ? Math.min(100, camera.height * 0.12)
+                : 0;
+            camera?.setFollowOffset?.(
+                0,
+                this.cameraBaseOffsetY - phoneActionLift
+            );
+            return;
+        }
         const keepTitanInOpeningFrame =
             this.titanOpeningCameraFraming &&
             this.bossFightActive &&
@@ -2735,6 +2981,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             relay.zone?.destroy?.();
         });
         this.beaconRelays = [];
+        this.clearCreatureWarningResponse();
         this.replySignals.forEach(signal => signal?.destroy?.());
         this.replySignals = [];
         this.peakStarLayer?.destroy?.();
