@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "releaseId": "LATEST-NEWS-SYNDICATION-2026-09-10-CREATURE-JOURNEY",
-  "state": "owned_site_release_prepared",
+  "state": "complete_owned_site_release_production_verified",
   "source": {
     "path": "public/updates/releases.json",
     "fingerprintSha256": "d0910ce46bebdc25ce42318c02b487c03b05383ce09f4c836fb303f87556ee1f",
@@ -46,5 +46,21 @@
     "socialPostingAuthorized": false,
     "externalActionTaken": false
   },
-  "productionVerification": null
+  "productionVerification": {
+    "mergeCommit": "a52d984ecd8504a866b8ef05e86930ca70eaa7c6",
+    "deployId": "6aa281493bcd170008a0138e",
+    "publishedAt": "2026-09-10T10:08:26.521Z",
+    "immutableDeployUrl": "https://6aa281493bcd170008a0138e--mythicalvoid.netlify.app",
+    "updatesPageHttpStatus": 200,
+    "permanentEntryHttpStatus": 200,
+    "rssHttpStatus": 200,
+    "jsonHttpStatus": 200,
+    "playDoorwayHttpStatus": 200,
+    "latestEntryId": "UPDATE-032",
+    "latestEntryPresent": true,
+    "rssItemCount": 25,
+    "jsonItemCount": 25,
+    "productionPresentationReview": "text_only_no_gameplay_media",
+    "claimBoundary": "The production alias returned the new update, permanent page, Play doorway and 25-item feeds. This does not prove subscribers, readership, visits, sharing, play, player use, enjoyment, conversion, retention or growth."
+  }
 }
