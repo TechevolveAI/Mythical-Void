@@ -7040,6 +7040,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     let peaksGroundedObjectives = null;
     let finalGroundedObjectives = null;
     let cavesGroundedObjectives = null;
+    let reefCreaturePassageAction = null;
+    let reefCreaturePassageWake = null;
     const reefWaypointSupports = [];
     const forestAnchorSupports = [];
     let forestForwardHandoffs = null;
@@ -7489,6 +7491,104 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 `${sceneName} did not bind its route to distinct Reef relays: ` +
                 JSON.stringify(reefWaypointSupports)
             );
+        }
+        if (route === 'reef') {
+            reefCreaturePassageAction = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('ReefLevel');
+                    const wake = scene?.getCreaturePassageWakeSnapshot?.();
+                    if (
+                        wake?.stage !== 'travelling' ||
+                        wake.progress < 0.28 ||
+                        wake.progress > 0.88
+                    ) return null;
+                    const camera = scene.cameras?.main;
+                    return {
+                        ...wake,
+                        playerX: scene.player?.body?.center?.x,
+                        playerBottom: scene.player?.body?.bottom,
+                        playerScreenX: scene.player?.x - camera?.worldView?.x,
+                        playerScreenY: scene.player?.y - camera?.worldView?.y,
+                        astronautScreenX: scene.astronautFollower?.sprite?.x -
+                            camera?.worldView?.x,
+                        cameraWidth: camera?.width,
+                        cameraHeight: camera?.height
+                    };
+                })()`),
+                {
+                    timeoutMs: 900,
+                    message: 'Reef creature passage action'
+                }
+            );
+            if (
+                reefCreaturePassageAction.anchorId !== 'reef_waypoint_3' ||
+                !reefCreaturePassageAction.visualActive ||
+                Math.abs(
+                    reefCreaturePassageAction.sourceX -
+                    reefCreaturePassageAction.playerX
+                ) > 2 ||
+                Math.abs(
+                    reefCreaturePassageAction.sourceY -
+                    reefCreaturePassageAction.playerBottom
+                ) > 12 ||
+                reefCreaturePassageAction.playerScreenX < 44 ||
+                reefCreaturePassageAction.playerScreenX >
+                    reefCreaturePassageAction.cameraWidth - 44 ||
+                reefCreaturePassageAction.astronautScreenX < 24 ||
+                reefCreaturePassageAction.astronautScreenX >
+                    reefCreaturePassageAction.cameraWidth - 24
+            ) {
+                throw new Error(
+                    `${sceneName} did not stage the creature-led passage action: ` +
+                    JSON.stringify(reefCreaturePassageAction)
+                );
+            }
+            if (SMOKE_CAPTURE_DIR) {
+                await captureGameplayStill(
+                    session,
+                    SMOKE_VIEWPORT_WIDTH <= 600
+                        ? 'reef-creature-passage-action-phone.png'
+                        : 'reef-creature-passage-action-desktop.png'
+                );
+            }
+            reefCreaturePassageWake = await waitFor(
+                () => evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('ReefLevel');
+                    const wake = scene?.getCreaturePassageWakeSnapshot?.();
+                    const passageAnchor = scene?.beaconAnchors?.at?.(-1);
+                    if (!wake?.settled || !passageAnchor?.passageOpen) return null;
+                    return {
+                        ...wake,
+                        passageOpen: passageAnchor.passageOpen === true,
+                        playerX: scene.player?.body?.center?.x,
+                        playerBottom: scene.player?.body?.bottom,
+                        physicsPaused: scene.physics?.world?.isPaused === true,
+                        controlsVisible: scene.platformerControlsVisible === true
+                    };
+                })()`),
+                {
+                    timeoutMs: 1800,
+                    message: 'Reef creature opens the living passage'
+                }
+            );
+            if (
+                reefCreaturePassageWake.anchorId !== 'reef_waypoint_3' ||
+                reefCreaturePassageWake.stage !== 'settled' ||
+                reefCreaturePassageWake.progress !== 1 ||
+                reefCreaturePassageWake.visualActive !== true ||
+                reefCreaturePassageWake.passageOpen !== true ||
+                !Number.isFinite(reefCreaturePassageWake.sourceX) ||
+                !Number.isFinite(reefCreaturePassageWake.sourceY) ||
+                reefCreaturePassageWake.destinationX <=
+                    reefCreaturePassageWake.bloomX + 150 ||
+                reefCreaturePassageWake.physicsPaused ||
+                !reefCreaturePassageWake.controlsVisible
+            ) {
+                throw new Error(
+                    `${sceneName} did not show a non-blocking creature-to-world response: ` +
+                    JSON.stringify(reefCreaturePassageWake)
+                );
+            }
         }
         if (
             route === 'mythicalForest' &&
@@ -8720,6 +8820,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         peaksGroundedObjectives,
         finalGroundedObjectives,
         cavesGroundedObjectives,
+        reefCreaturePassageWake,
+        reefCreaturePassageAction,
         reefWaypointSupports,
         forestAnchorSupports,
         framePacing,
@@ -9537,6 +9639,13 @@ async function stagePlatformBoundRouteSignal(session, {
         scene.player.body.blocked.down = true;
         scene.player.body.touching.down = true;
         scene.isGrounded = true;
+        if (${JSON.stringify(route)} === 'reef' && ${index} === 2) {
+            const camera = scene.cameras?.main;
+            camera?.centerOn?.(
+                signal.x,
+                support.body.top - 120
+            );
+        }
         scene[${JSON.stringify(activationMethod)}]?.(signal);
         return {
             id: signal.id,
