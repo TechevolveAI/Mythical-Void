@@ -76,9 +76,9 @@ try {
     assert.strictEqual(output.currentDecisionCount, 1);
     assert.strictEqual(output.currentDecisionId, 'FD-002');
     assert.strictEqual(output.freshStatusCommand, 'npm run founder:status');
-    assert.strictEqual(output.observedProductionDeployId, '6aa2719385753d0008d06aa0');
+    assert.strictEqual(output.observedProductionDeployId, '6aa28a3fc73e5a0008dfa810');
     assert.strictEqual(output.heldDecisionCount, 1);
-    assert.strictEqual(output.observedProductionSourceCommit, '8e581ac210ce876f7b9bec9e660ff0957cfd2b51');
+    assert.strictEqual(output.observedProductionSourceCommit, '13ad7ff85fd3e77277c378f3b0d2f033cfa761a5');
     assert.strictEqual(output.historicalFirstContactReleasePullRequest, 246);
     assert.strictEqual(output.communityPostMade, false);
     assert.strictEqual(output.creatureArtworkHumanApproved, false);
@@ -144,5 +144,23 @@ try {
     fs.rmSync(privacyRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 32);
-console.log('Founder control safeguards passed (32 cases).');
+const staleCommunityCopyRoot = fixture(fixtureRoot => {
+    const target = path.join(fixtureRoot, 'docs/company/FOUNDER_CONTROL_PAGE.md');
+    const page = fs.readFileSync(target, 'utf8').replace(
+        'decide what your mission should tell Earth',
+        'change Project Beacon'
+    );
+    fs.writeFileSync(target, page);
+});
+try {
+    const result = execute(staleCommunityCopyRoot);
+    assert.strictEqual(result.status, 1);
+    assert(result.stderr.includes('founder exact community post does not match'));
+    assert(result.stderr.includes('unexplained Project Beacon wording'));
+    cases += 1;
+} finally {
+    fs.rmSync(staleCommunityCopyRoot, { recursive: true, force: true });
+}
+
+assert.strictEqual(cases, 33);
+console.log('Founder control safeguards passed (33 cases).');
