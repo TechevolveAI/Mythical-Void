@@ -4,6 +4,9 @@ const { spawn, spawnSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const {
+    applyBrowserAudioPolicy
+} = require('./lib/browser-audio-policy.cjs');
 
 const BASE_URL = process.env.MYTHICAL_VOID_SMOKE_URL || 'http://127.0.0.1:8125';
 const CHROME_PATH = process.env.CHROME_PATH ||
@@ -23072,7 +23075,7 @@ async function main() {
         throw new Error(`Chrome was not found at ${CHROME_PATH}`);
     }
     const profileDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mythical-void-cdp-'));
-    const chromeArgs = [
+    const chromeArgs = applyBrowserAudioPolicy([
         '--headless=new',
         '--enable-webgl',
         '--ignore-gpu-blocklist',
@@ -23088,7 +23091,7 @@ async function main() {
         `--user-data-dir=${profileDir}`,
         `--window-size=${SMOKE_VIEWPORT_WIDTH},${SMOKE_VIEWPORT_HEIGHT}`,
         'about:blank'
-    ];
+    ]);
     if (!SMOKE_HARDWARE_ACCELERATED_CAPTURE) {
         chromeArgs.splice(2, 0, '--use-angle=swiftshader', '--enable-unsafe-swiftshader');
     }

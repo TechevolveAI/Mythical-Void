@@ -4,6 +4,9 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const {
+    applyBrowserAudioPolicy
+} = require('../lib/browser-audio-policy.cjs');
 
 const BASE_URL = (process.env.MYTHICAL_VOID_ANALYTICS_URL || 'http://127.0.0.1:8125').replace(/\/$/, '');
 const CHROME_PATH = process.env.CHROME_PATH ||
@@ -171,7 +174,7 @@ async function main() {
     if (!fs.existsSync(CHROME_PATH)) throw new Error(`Chrome was not found at ${CHROME_PATH}`);
 
     const profileDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'mythical-analytics-consent-'));
-    const chrome = spawn(CHROME_PATH, [
+    const chrome = spawn(CHROME_PATH, applyBrowserAudioPolicy([
         '--headless=new',
         '--no-sandbox',
         '--no-first-run',
@@ -179,7 +182,7 @@ async function main() {
         `--user-data-dir=${profileDirectory}`,
         '--window-size=1280,720',
         'about:blank'
-    ], { stdio: ['ignore', 'ignore', 'ignore'] });
+    ]), { stdio: ['ignore', 'ignore', 'ignore'] });
 
     let session = null;
     let phase = 'opening';
