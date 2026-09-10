@@ -21,12 +21,14 @@ import { defineConfig } from 'vite';
 
 export default defineConfig(({ command, mode }) => {
   const isItchBuild = mode === 'itch';
+  const isContinuityBuild = mode === 'continuity';
   const releaseId = process.env.COMMIT_REF || process.env.DEPLOY_ID || 'local';
 
   return {
   define: {
     __MYTHICAL_RELEASE_ID__: JSON.stringify(releaseId),
-    __MYTHICAL_OBSERVABILITY_DELIVERY_ENABLED__: JSON.stringify(!isItchBuild)
+    __MYTHICAL_OBSERVABILITY_DELIVERY_ENABLED__: JSON.stringify(!isItchBuild && !isContinuityBuild),
+    __MYTHICAL_STATIC_CONTINUITY__: JSON.stringify(isContinuityBuild)
   },
   // itch.io serves HTML games from a project folder rather than the root of a
   // domain. Its build therefore needs relative application chunks and a clear
@@ -48,7 +50,16 @@ export default defineConfig(({ command, mode }) => {
             .replace(/\s*<script defer src="(?:\/|\.\/)returning-player\.js[^>]*><\/script>/, '');
         }
       }]
-    : [],
+    : isContinuityBuild
+      ? [{
+          name: 'mythical-void-static-continuity-entry',
+          transformIndexHtml(html) {
+            return html
+              .replace('<html lang="en">', '<html lang="en" data-hosting-continuity="static">')
+              .replace(/\s*<!-- Google tag:[\s\S]*?<\/script>/, '');
+          }
+        }]
+      : [],
   // Keep local diagnostics intact while removing non-actionable logging from
   // production chunks. Warnings and errors remain available to ErrorHandler.
   esbuild: command === 'build'
@@ -65,7 +76,7 @@ export default defineConfig(({ command, mode }) => {
     open: true
   },
   build: {
-    outDir: isItchBuild ? 'dist-itch' : 'dist',
+    outDir: isItchBuild ? 'dist-itch' : isContinuityBuild ? 'dist-continuity' : 'dist',
     emptyOutDir: true,
     // Use esbuild for minification (Vite's default)
     // Terser's aggressive optimization was causing issues with Phaser's Color class

@@ -28,7 +28,8 @@ describe('truthful live-player count contract', () => {
     test('counts only loaded game routes and never the portal build', () => {
         expect(main).toContain("import('./site/live-presence.js')");
         expect(main).toContain('startGamePresence()');
-        expect(main).toContain('if (!isPortalBuild)');
+        expect(main).toContain('if (!isPortalBuild && !isStaticContinuityBuild)');
+        expect(main).toContain('__MYTHICAL_STATIC_CONTINUITY__');
         expect(main).toContain('The optional live count must never interrupt the game');
         expect(client).toContain("method: 'POST'");
         expect(client).toContain('document.hidden');

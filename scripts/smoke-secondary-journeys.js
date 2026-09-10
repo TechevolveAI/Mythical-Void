@@ -12179,9 +12179,11 @@ async function smokeNASAContent(session, exceptions) {
 
     const visible = await waitFor(
         () => evaluate(session, `(() => {
-            const image = Array.from(document.images).find(candidate =>
-                candidate.src.includes('a11pan1040226lftsm.jpg') ||
-                candidate.dataset.nasaSource?.includes('a11pan1040226lftsm.jpg')
+            const staticContinuity = document.documentElement.dataset.hostingContinuity === 'static';
+            const image = Array.from(document.images).find(candidate => staticContinuity
+                ? candidate.dataset.fallbackApplied === 'true' && candidate.alt.includes('NASA image temporarily unavailable')
+                : candidate.src.includes('a11pan1040226lftsm.jpg') ||
+                    candidate.dataset.nasaSource?.includes('a11pan1040226lftsm.jpg')
             );
             const scene = window.mythicalGame.scene.getScene('GameScene');
             const labels = (scene?.children?.list || [])
@@ -12195,6 +12197,7 @@ async function smokeNASAContent(session, exceptions) {
                 imageLoaded: true,
                 fallbackApplied: image.dataset.fallbackApplied === 'true',
                 deliveryUrl: image.dataset.nasaSource || image.src,
+                staticContinuity,
                 titlePresent: labels.some(label => label.includes('Apollo 11 Landing Panorama')),
                 sourcePresent: true,
                 boundaryPresent: true,
@@ -12207,10 +12210,13 @@ async function smokeNASAContent(session, exceptions) {
     const localSmokeHost = ['127.0.0.1', 'localhost'].includes(
         new URL(BASE_URL).hostname
     );
-    if (
-        !visible.deliveryUrl.startsWith('/api/nasa-image?url=') ||
-        (!localSmokeHost && visible.fallbackApplied)
-    ) {
+    const validStaticFallback = visible.staticContinuity &&
+        visible.fallbackApplied &&
+        visible.deliveryUrl.startsWith('data:image/svg+xml');
+    const validPrimaryDelivery = !visible.staticContinuity &&
+        visible.deliveryUrl.startsWith('/api/nasa-image?url=') &&
+        (localSmokeHost || !visible.fallbackApplied);
+    if (!validStaticFallback && !validPrimaryDelivery) {
         throw new Error(`NASA image delivery did not use the live same-origin source: ${JSON.stringify(visible)}`);
     }
 

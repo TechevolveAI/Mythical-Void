@@ -2,6 +2,7 @@ const app = document.querySelector('#app');
 const path = window.location.pathname.replace(/\/+$/, '') || '/';
 const params = new URLSearchParams(window.location.search);
 const isPortalBuild = import.meta.env.MODE === 'itch';
+const isStaticContinuityBuild = typeof __MYTHICAL_STATIC_CONTINUITY__ !== 'undefined' && __MYTHICAL_STATIC_CONTINUITY__ === true;
 const isGameRoute = isPortalBuild || path === '/play' || path === '/game' || params.has('testBoss');
 
 if (isGameRoute) {
@@ -18,7 +19,7 @@ if (isGameRoute) {
 
     import('./game.js')
         .then(() => {
-            if (!isPortalBuild) {
+            if (!isPortalBuild && !isStaticContinuityBuild) {
                 import('./site/live-presence.js')
                     .then(({ startGamePresence }) => startGamePresence())
                     .catch(() => {

@@ -2,8 +2,10 @@ const ENDPOINT = '/api/live-presence';
 const HEARTBEAT_MS = 30_000;
 const POLL_MS = 30_000;
 const SESSION_STORAGE_KEY = 'mythical-live-presence-session';
+const STATIC_CONTINUITY_BUILD = typeof __MYTHICAL_STATIC_CONTINUITY__ !== 'undefined' && __MYTHICAL_STATIC_CONTINUITY__ === true;
 
 function shouldUseLivePresence(location = window.location) {
+    if (STATIC_CONTINUITY_BUILD) return false;
     const hostname = location?.hostname?.toLowerCase();
     return hostname !== 'localhost' && hostname !== '127.0.0.1' && hostname !== '::1';
 }
