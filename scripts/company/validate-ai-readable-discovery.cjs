@@ -48,8 +48,8 @@ function validateAiReadableDiscovery(inputs) {
     requireValue(llms.includes('Call the beings "creatures".'), 'public creature terminology is missing');
     requireValue(!/\bcompanions?\b/i.test(llms), 'retired companion wording is present in llms.txt');
     requireValue(!/every creature is unique|no two creatures|literally infinite|infinite unique/i.test(llms), 'unsupported creature-uniqueness promise is present in llms.txt');
-    requireValue(sitemapUrls.length === 16, `expected 16 canonical sitemap URLs, found ${sitemapUrls.length}`);
-    requireValue(truthfulLastModifiedCount === 16, `expected truthful lastmod evidence on all 16 sitemap entries, found ${truthfulLastModifiedCount}`);
+    requireValue(sitemapUrls.length === 17, `expected 17 canonical sitemap URLs, found ${sitemapUrls.length}`);
+    requireValue(truthfulLastModifiedCount === 17, `expected truthful lastmod evidence on all 17 sitemap entries, found ${truthfulLastModifiedCount}`);
     for (const url of sitemapUrls) requireValue(llms.includes(`](${url})`), `llms.txt is missing canonical sitemap route ${url}`);
     requireValue(llms.includes('](https://mythicalvoid.com/play/)'), 'llms.txt is missing the direct Play route');
 
@@ -100,7 +100,7 @@ function run() {
         valid: failures.length === 0,
         publicRoute: release.publicRoute,
         conventionState: release.convention?.state,
-        canonicalRouteCount: 16,
+        canonicalRouteCount: 17,
         rankingClaimAuthorized: release.release?.searchRankingClaimAuthorized,
         externalPostingAuthorized: release.release?.externalPostingAuthorized,
         failures

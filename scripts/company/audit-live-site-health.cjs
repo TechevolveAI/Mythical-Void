@@ -112,7 +112,7 @@ function inspectCorePages({ homeHtml, playHtml, updatesHtml, rssBody, jsonBody }
     const gameRouteLoadsWebsiteTag = new RegExp(`${GOOGLE_TAG_ID}|googletagmanager\\.com\/gtag`, 'i').test(play) && !gameRouteGuarded;
     if (!home.includes(GOOGLE_TAG_ID) || !/analytics_storage\s*:\s*['"]denied['"]/.test(home)) errors.push('homepage: consent-denied website analytics boundary missing');
     if (gameRouteLoadsWebsiteTag) errors.push('play route: website analytics tag leaked into the game');
-    if (!/<title>Mythical Void \| Free Creature Adventure Browser Game<\/title>/i.test(play)) errors.push('play route: expected game title missing');
+    if (!/<title>Play Mythical Void Free \| Alien Creature Browser Game<\/title>/i.test(play)) errors.push('play route: expected direct game title missing');
     if (!updates.includes('href="/updates/feed.xml">Follow the news</a>')) errors.push('updates page: visible RSS link missing');
     let jsonItems = 0;
     try { jsonItems = JSON.parse(String(jsonBody || '{}')).items?.length || 0; } catch (error) { errors.push(`JSON feed: ${error.message}`); }
