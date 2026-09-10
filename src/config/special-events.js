@@ -1,10 +1,10 @@
-export const CADEN_BIRTHDAY_EVENT = Object.freeze({
-    id: 'caden-birthday-2026',
+export const CAYDEN_BIRTHDAY_EVENT = Object.freeze({
+    id: 'cayden-birthday-2026',
     date: '2026-09-11',
     timeZone: 'Europe/Dublin',
     previewParam: 'birthday',
-    previewValue: 'caden',
-    answerDigest: '1887884b8865c9620cd7e3f2bacfc8eb9b1a2443877f603baebef739f9f01ea1'
+    previewValue: 'cayden',
+    answerDigest: '388eb2619930b5dfe5c95e0f0934ed8bbb7d6db91e80740606ab4fa6d88cab83'
 });
 
 function getCalendarDate(date, timeZone) {
@@ -22,33 +22,33 @@ function getCalendarDate(date, timeZone) {
     return `${values.year}-${values.month}-${values.day}`;
 }
 
-export function isCadenBirthdayCelebrationActive({
+export function isCaydenBirthdayCelebrationActive({
     date = new Date(),
     search = globalThis.location?.search || ''
 } = {}) {
     const params = new URLSearchParams(search);
     if (
-        params.get(CADEN_BIRTHDAY_EVENT.previewParam) ===
-        CADEN_BIRTHDAY_EVENT.previewValue
+        params.get(CAYDEN_BIRTHDAY_EVENT.previewParam) ===
+        CAYDEN_BIRTHDAY_EVENT.previewValue
     ) {
         return true;
     }
-    return getCalendarDate(date, CADEN_BIRTHDAY_EVENT.timeZone) ===
-        CADEN_BIRTHDAY_EVENT.date;
+    return getCalendarDate(date, CAYDEN_BIRTHDAY_EVENT.timeZone) ===
+        CAYDEN_BIRTHDAY_EVENT.date;
 }
 
-export async function isCadenBirthdayAnswer(
+export async function isCaydenBirthdayAnswer(
     value,
     cryptoApi = globalThis.crypto
 ) {
     const normalized = String(value ?? '').trim();
     if (!/^\d{1,4}$/.test(normalized) || !cryptoApi?.subtle) return false;
     const bytes = new TextEncoder().encode(
-        `mythical-void:${CADEN_BIRTHDAY_EVENT.id}:${normalized}`
+        `mythical-void:${CAYDEN_BIRTHDAY_EVENT.id}:${normalized}`
     );
     const digest = await cryptoApi.subtle.digest('SHA-256', bytes);
     const encoded = Array.from(new Uint8Array(digest))
         .map(byte => byte.toString(16).padStart(2, '0'))
         .join('');
-    return encoded === CADEN_BIRTHDAY_EVENT.answerDigest;
+    return encoded === CAYDEN_BIRTHDAY_EVENT.answerDigest;
 }

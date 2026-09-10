@@ -13,8 +13,8 @@ import {
 import { companionMediaService } from '../../systems/CompanionMediaService.js';
 import { CINEMATIC_MEDIA, shouldPlayCinematicMedia } from '../../config/cinematic-media.js';
 import {
-    isCadenBirthdayAnswer,
-    isCadenBirthdayCelebrationActive
+    isCaydenBirthdayAnswer,
+    isCaydenBirthdayCelebrationActive
 } from '../../config/special-events.js';
 import { shareGuardianRestoration } from '../../utils/GuardianRestorationShare.js';
 
@@ -6020,10 +6020,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
                 if (
                     !this.birthdayCelebrationShown &&
-                    isCadenBirthdayCelebrationActive()
+                    isCaydenBirthdayCelebrationActive()
                 ) {
-                    this.showCadenBirthdayQuestion({
-                        onSuccess: () => this.showCadenBirthdayCelebration({
+                    this.showCaydenBirthdayQuestion({
+                        onSuccess: () => this.showCaydenBirthdayCelebration({
                             onComplete: () => this.showBossVictory()
                         }),
                         onSkip: () => this.showBossVictory()
@@ -6049,7 +6049,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * surprise gate rather than authentication: the answer is never persisted,
      * logged or sent over the network, and normal players can always continue.
      */
-    showCadenBirthdayQuestion({ onSuccess, onSkip } = {}) {
+    showCaydenBirthdayQuestion({ onSuccess, onSkip } = {}) {
         const { width, height } = this.cameras.main;
         const compact = width <= 600;
         const depth = 7000;
@@ -6150,7 +6150,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             if (checking || !answer) return;
             checking = true;
             keyButtons.forEach(button => button.disableInteractive?.());
-            const correct = await isCadenBirthdayAnswer(answer);
+            const correct = await isCaydenBirthdayAnswer(answer);
             if (correct) {
                 feedback.setColor('#F2C14E').setText('THE FOREST REMEMBERS');
                 this.time.delayedCall(420, () => finish(onSuccess));
@@ -6222,7 +6222,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * It uses only existing runtime actors so the moment cannot be blocked by
      * hosted image or video generation.
      */
-    showCadenBirthdayCelebration({ onComplete } = {}) {
+    showCaydenBirthdayCelebration({ onComplete } = {}) {
         this.birthdayCelebrationShown = true;
         this.syncCampaignObjectiveDisplay({ visible: false, force: true });
         this.combatJuice?.comboDisplay?.setVisible?.(false);
@@ -6342,7 +6342,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const title = this.add.text(
             width / 2,
             height * (compact ? 0.19 : 0.2),
-            'HAPPY BIRTHDAY, CADEN!',
+            'HAPPY BIRTHDAY, CAYDEN!',
             {
                 fontSize: compact ? '30px' : '48px',
                 color: '#F2C14E',
@@ -6357,7 +6357,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const message = this.add.text(
             width / 2,
             height * (compact ? 0.32 : 0.34),
-            'We love you so much.\nFrom Dad and Rian.',
+            'We love you to the void and back.\nFrom Dad and Rian.',
             {
                 fontSize: compact ? '20px' : '28px',
                 color: '#FFFFFF',
