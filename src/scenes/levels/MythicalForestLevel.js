@@ -12,6 +12,7 @@ import {
 } from '../../systems/CreaturePowerProfile.js';
 import { companionMediaService } from '../../systems/CompanionMediaService.js';
 import { CINEMATIC_MEDIA, shouldPlayCinematicMedia } from '../../config/cinematic-media.js';
+import { isCadenBirthdayCelebrationActive } from '../../config/special-events.js';
 import { shareGuardianRestoration } from '../../utils/GuardianRestorationShare.js';
 
 const ELDER_TREANT_TEXTURE = 'elderTreant';
@@ -196,6 +197,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.levelEntryDismissing = false;
         this.forestArrivalElements = [];
         this.forestArrivalRequest = 0;
+        this.birthdayCelebrationShown = false;
+        this.birthdayCelebrationElements = [];
     }
 
     /**
@@ -259,6 +262,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         ].includes(data?.bossAttackPreview)
             ? data.bossAttackPreview
             : null;
+        this.birthdayCelebrationShown = false;
+        this.birthdayCelebrationElements = [];
 
         // Reset particles
         this.forestAmbientLayers = [];
@@ -5960,6 +5965,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.bossDefeated = true;
         this.bossFightActive = false;
 
+        // Completion is a protected story state. Keep the creature grounded
+        // while the guardian leaves so a late fall cannot open recovery UI
+        // over the victory or birthday reveal.
+        this.player?.setVelocity?.(0, 0);
+        this.player?.body?.setAllowGravity?.(false);
+
         // Stop AI
         if (this.bossAITimer) {
             this.bossAITimer.remove();
@@ -6004,6 +6015,15 @@ class MythicalForestLevel extends PlatformerLevelScene {
                     this.bossGlow.destroy();
                 }
 
+                if (
+                    !this.birthdayCelebrationShown &&
+                    isCadenBirthdayCelebrationActive()
+                ) {
+                    this.showCadenBirthdayCelebration({
+                        onComplete: () => this.showBossVictory()
+                    });
+                    return;
+                }
                 this.showBossVictory();
             }
         });
@@ -6016,6 +6036,257 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 duration: 500
             });
         }
+    }
+
+    /**
+     * A time-limited family celebration after the Elder Treant is restored.
+     * It uses only existing runtime actors so the moment cannot be blocked by
+     * hosted image or video generation.
+     */
+    showCadenBirthdayCelebration({ onComplete } = {}) {
+        this.birthdayCelebrationShown = true;
+        this.syncCampaignObjectiveDisplay({ visible: false, force: true });
+        this.combatJuice?.comboDisplay?.setVisible?.(false);
+        this.combatJuice?.comboMultiplierDisplay?.setVisible?.(false);
+
+        const { width, height } = this.cameras.main;
+        const compact = width <= 600;
+        const depth = 7000;
+        const elements = [];
+        this.birthdayCelebrationElements = elements;
+        const physicsWasPaused = this.physics?.world?.isPaused === true;
+        this.physics?.pause?.();
+
+        const overlay = this.add.graphics()
+            .setScrollFactor(0)
+            .setDepth(depth)
+            .setAlpha(0);
+        overlay.fillStyle(0x03130F, 1);
+        overlay.fillRect(0, 0, width, height);
+        overlay.fillStyle(0x0B392E, 0.5);
+        overlay.fillEllipse(width / 2, height * 0.53, width * 1.15, height * 0.72);
+        elements.push(overlay);
+
+        if (this.textures.exists(ELDER_TREANT_TEXTURE)) {
+            const guardian = this.add.image(
+                width / 2,
+                height * (compact ? 0.57 : 0.56),
+                ELDER_TREANT_TEXTURE
+            ).setOrigin(0.5)
+                .setScrollFactor(0)
+                .setDepth(depth + 1)
+                .setAlpha(0)
+                .setTint(0x8FE3CF);
+            guardian.setScale(
+                Math.min(
+                    (width * (compact ? 1.08 : 0.72)) / Math.max(1, guardian.width),
+                    (height * 0.7) / Math.max(1, guardian.height)
+                )
+            );
+            elements.push(guardian);
+            this.tweens.add({
+                targets: guardian,
+                alpha: 0.16,
+                scaleX: guardian.scaleX * 1.03,
+                scaleY: guardian.scaleY * 1.03,
+                duration: 1500,
+                ease: 'Sine.easeOut'
+            });
+        }
+
+        const rootLight = this.add.graphics()
+            .setScrollFactor(0)
+            .setDepth(depth + 2)
+            .setAlpha(0);
+        rootLight.lineStyle(compact ? 4 : 6, 0x8FE3CF, 0.56);
+        const rootPoints = [];
+        const rootStart = { x: 0, y: height * 0.78 };
+        const rootControlA = { x: width * 0.24, y: height * 0.67 };
+        const rootControlB = { x: width * 0.72, y: height * 0.86 };
+        const rootEnd = { x: width, y: height * 0.73 };
+        for (let step = 0; step <= 32; step += 1) {
+            const t = step / 32;
+            const inverse = 1 - t;
+            rootPoints.push(new Phaser.Math.Vector2(
+                inverse ** 3 * rootStart.x +
+                    3 * inverse ** 2 * t * rootControlA.x +
+                    3 * inverse * t ** 2 * rootControlB.x +
+                    t ** 3 * rootEnd.x,
+                inverse ** 3 * rootStart.y +
+                    3 * inverse ** 2 * t * rootControlA.y +
+                    3 * inverse * t ** 2 * rootControlB.y +
+                    t ** 3 * rootEnd.y
+            ));
+        }
+        rootLight.strokePoints(rootPoints, false, false);
+        elements.push(rootLight);
+
+        const burstColors = [0xF2C14E, 0xFFFFFF, 0xD7263D, 0x43AA8B];
+        for (let index = 0; index < 23; index += 1) {
+            const angle = (Math.PI * 2 * index) / 23;
+            const distance = Math.min(width, height) * (0.22 + (index % 4) * 0.035);
+            const mote = this.add.circle(
+                width / 2,
+                height * 0.38,
+                compact ? 2.5 : 3.5,
+                burstColors[index % burstColors.length],
+                0.95
+            ).setScrollFactor(0).setDepth(depth + 7).setAlpha(0);
+            elements.push(mote);
+            this.tweens.add({
+                targets: mote,
+                x: width / 2 + Math.cos(angle) * distance,
+                y: height * 0.38 + Math.sin(angle) * distance * 0.62,
+                alpha: { from: 0, to: 0.9 },
+                scale: { from: 0.4, to: 1.8 },
+                duration: 950,
+                delay: 520 + index * 24,
+                yoyo: true,
+                hold: 480,
+                ease: 'Cubic.easeOut'
+            });
+        }
+
+        const eyebrow = this.add.text(
+            width / 2,
+            height * 0.095,
+            'THE LIVING FOREST HAS ONE MORE MESSAGE',
+            {
+                fontSize: compact ? '12px' : '16px',
+                color: '#8FE3CF',
+                fontStyle: 'bold',
+                align: 'center',
+                wordWrap: { width: width * 0.88 }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 8).setAlpha(0);
+
+        const title = this.add.text(
+            width / 2,
+            height * (compact ? 0.19 : 0.2),
+            'HAPPY BIRTHDAY, CADEN!',
+            {
+                fontSize: compact ? '30px' : '48px',
+                color: '#F2C14E',
+                fontStyle: 'bold',
+                stroke: '#06120F',
+                strokeThickness: compact ? 5 : 7,
+                align: 'center',
+                wordWrap: { width: width * 0.9 }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 8).setAlpha(0);
+
+        const message = this.add.text(
+            width / 2,
+            height * (compact ? 0.32 : 0.34),
+            'We love you so much.\nFrom Dad and Rian.',
+            {
+                fontSize: compact ? '20px' : '28px',
+                color: '#FFFFFF',
+                fontStyle: 'bold',
+                align: 'center',
+                lineSpacing: compact ? 8 : 12,
+                stroke: '#06120F',
+                strokeThickness: 4,
+                wordWrap: { width: width * 0.86 }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 8).setAlpha(0);
+        elements.push(eyebrow, title, message);
+
+        const actors = this.createRuntimeForestArrivalActors(width, height, depth + 4);
+        const creatureActor = actors.find(
+            actor => actor?.texture?.key === this.player?.texture?.key
+        );
+        creatureActor?.setScale?.(
+            creatureActor.scaleX * (compact ? 1.3 : 1.2),
+            creatureActor.scaleY * (compact ? 1.3 : 1.2)
+        );
+        actors.forEach(actor => {
+            actor.setAlpha?.(0);
+            elements.push(actor);
+        });
+
+        const continueButton = this.add.text(
+            width / 2,
+            height * (compact ? 0.87 : 0.9),
+            '[ CONTINUE THE CELEBRATION ]',
+            {
+                fontSize: compact ? '17px' : '20px',
+                color: '#06120F',
+                backgroundColor: '#8FE3CF',
+                fontStyle: 'bold',
+                padding: compact ? { x: 18, y: 14 } : { x: 28, y: 14 }
+            }
+        ).setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(depth + 9)
+            .setAlpha(0)
+            .setInteractive({ useHandCursor: true });
+        elements.push(continueButton);
+
+        this.tweens.add({ targets: overlay, alpha: 1, duration: 550 });
+        this.tweens.add({
+            targets: rootLight,
+            alpha: 1,
+            duration: 900,
+            delay: 380
+        });
+        this.tweens.add({
+            targets: eyebrow,
+            alpha: 1,
+            y: eyebrow.y + 5,
+            duration: 450,
+            delay: 300
+        });
+        this.tweens.add({
+            targets: title,
+            alpha: 1,
+            scaleX: { from: 0.78, to: 1 },
+            scaleY: { from: 0.78, to: 1 },
+            duration: 700,
+            delay: 650,
+            ease: 'Back.easeOut'
+        });
+        this.tweens.add({
+            targets: message,
+            alpha: 1,
+            duration: 600,
+            delay: 1150
+        });
+        this.tweens.add({
+            targets: actors,
+            alpha: 1,
+            duration: 650,
+            delay: 1450
+        });
+        this.tweens.add({
+            targets: continueButton,
+            alpha: 1,
+            duration: 450,
+            delay: 1900
+        });
+
+        let closing = false;
+        const closeCelebration = () => {
+            if (closing) return;
+            closing = true;
+            continueButton.disableInteractive?.();
+            this.tweens.add({
+                targets: elements,
+                alpha: 0,
+                duration: 350,
+                onComplete: () => {
+                    elements.forEach(element => element?.destroy?.());
+                    this.birthdayCelebrationElements = [];
+                    if (!physicsWasPaused && this.physics?.world) {
+                        this.physics.resume();
+                    }
+                    onComplete?.();
+                }
+            });
+        };
+        continueButton.on('pointerdown', closeCelebration);
+        this.input.keyboard?.once?.('keydown-ENTER', closeCelebration);
+        this.input.keyboard?.once?.('keydown-SPACE', closeCelebration);
     }
 
     /**
@@ -6185,6 +6456,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestArrivalRequest += 1;
         this.forestArrivalElements.forEach(element => element?.destroy?.());
         this.forestArrivalElements = [];
+        this.birthdayCelebrationElements.forEach(element => element?.destroy?.());
+        this.birthdayCelebrationElements = [];
         this.clearLevelEntryKeyHandler();
         this.levelEntryElements = [];
         this.clearFirstExpeditionDrill();
