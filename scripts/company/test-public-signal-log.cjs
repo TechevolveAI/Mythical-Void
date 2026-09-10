@@ -65,8 +65,10 @@ try {
     assert.notStrictEqual(run('unsupported-field', data => { data.entries[0].email = 'hello@example.com'; }).status, 0);
     assert.notStrictEqual(run('missing-release-proof', data => { delete data.entries.find(entry => entry.visualKind === 'text_only_release').releaseProof; }).status, 0);
     assert.notStrictEqual(run('invented-visual-approval', data => { data.entries.find(entry => entry.visualKind === 'text_only_release').releaseProof.gameplayVisualApproved = true; }).status, 0);
+    assert.notStrictEqual(run('journey-overclaim', data => { data.entries.find(entry => entry.id === 'UPDATE-032').details[2] = 'The complete game is finished.'; }).status, 0);
+    assert.notStrictEqual(run('journey-source-drift', data => { data.entries.find(entry => entry.id === 'UPDATE-032').releaseProof.sourceCommit = '0'.repeat(40); }).status, 0);
     assert.notStrictEqual(run('stale', value => value, true).status, 0);
-    console.log(`Public Latest News safeguards passed (11 failure cases and ${liveEntries.length} permanent release pages).`);
+    console.log(`Public Latest News safeguards passed (13 failure cases and ${liveEntries.length} permanent release pages).`);
 } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
 }

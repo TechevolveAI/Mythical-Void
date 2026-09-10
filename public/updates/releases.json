@@ -17,6 +17,40 @@
   },
   "entries": [
     {
+      "id": "UPDATE-032",
+      "publishedOn": "2026-09-10",
+      "status": "live",
+      "category": "ONE CREATURE, ONE JOURNEY",
+      "title": "Your creature now stays with you across the six-world journey",
+      "summary": "The creature you hatch now keeps its identity as you move from the opening and Sanctuary into Mythical Void’s six strange worlds.",
+      "details": [
+        "The opening, Sanctuary and world handoffs now carry the same hatched creature identity forward, with automated checks designed to catch a missing or replaced creature.",
+        "Recent releases also made the routes, goals and Guardian handoffs clearer across Crystal Caves, Stellar Reef, Void Peaks, Aurora Depths and Final Void.",
+        "These checks show that the current production game contains the journey and continuity changes. This text-only note does not present generated artwork as gameplay or claim that every part of the game is finished."
+      ],
+      "visualKind": "text_only_release",
+      "visualAlt": "A text-only update card explaining creature continuity across Mythical Void’s six-world journey",
+      "disclosure": "Text-only release note about live creature and journey improvements; no screenshot or generated image is attached.",
+      "destination": "/play/",
+      "linkText": "Start the six-world journey",
+      "download": false,
+      "releaseProof": {
+        "sourceCommit": "a091700639406c607b49f6a994611b1920b27160",
+        "productionMergeCommit": "94800164a5bb27b170112879d3cb7f40f6b17415",
+        "productionDeployId": "6aa277ec45b5460008e2c170",
+        "productionPublishedAt": "2026-09-10T09:28:29.137Z",
+        "checkedUrl": "https://mythicalvoid.com/play/",
+        "checkedHttpStatus": 200,
+        "realmsInJourney": 6,
+        "openingContinuityCovered": true,
+        "sanctuaryContinuityCovered": true,
+        "realmHandoffsCovered": true,
+        "gameplayVisualApproved": false,
+        "mediaAttached": false,
+        "claimBoundary": "The source, protected merge, published production deploy and live doorway check prove that the current game contains the creature-continuity journey changes. They do not prove visual quality, play, enjoyment or growth, and they do not prove that every part of the game is finished."
+      }
+    },
+    {
       "id": "UPDATE-031",
       "publishedOn": "2026-09-09",
       "status": "live",
