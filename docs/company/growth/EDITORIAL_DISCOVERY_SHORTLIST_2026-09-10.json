@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "id": "EDITORIAL-DISCOVERY-001",
+  "asOf": "2026-09-10",
+  "state": "three_tailored_pitches_ready_no_outreach_authorized",
+  "purpose": "Give Mythical Void three credible editorial discovery routes without scraping people, bulk-emailing, inventing reach or sending before the game is available.",
+  "positioning": {
+    "openingReason": "a free alien-creature browser adventure that starts immediately",
+    "distinctiveProof": "a real playable creature-genetics journey across six realms",
+    "humanStory": "a father-and-son project begun at home in Ireland",
+    "supportingInterest": [
+      "generative AI used as a creative tool with people responsible for decisions",
+      "optional learning moments using credited public NASA material"
+    ],
+    "nasaEndorsementClaimed": false
+  },
+  "sequence": {
+    "mustWaitFor": [
+      "the public website and /play/ route both return 200",
+      "the opening journey passes on the live release",
+      "the r/WebGames seven-day read finishes or Kevin explicitly cancels it",
+      "Kevin approves one exact recipient, subject and message at action time",
+      "an adult-controlled sending address and adult reply owner are confirmed"
+    ],
+    "onePitchAtATime": true,
+    "daysBetweenNewRecipients": 7,
+    "maximumFollowUpsPerRecipient": 1,
+    "bulkSendingPermitted": false,
+    "automaticSendingPermitted": false,
+    "automaticReplyingPermitted": false
+  },
+  "routes": [
+    {
+      "rank": 1,
+      "id": "alpha-beta-gamer",
+      "name": "Alpha Beta Gamer",
+      "officialSubmissionPage": "https://www.alphabetagamer.com/contact-us/",
+      "publicSubmissionAddress": "Admin@alphabetagamer.com",
+      "whyItFits": "Its official page asks for games still in development and requires public access or downloads to be free. Mythical Void is an early-access game that starts in a browser without an account or download.",
+      "importantBoundary": "The outlet says every submission is read but coverage is not guaranteed. Images or YouTube footage are appreciated, not promised by this pack.",
+      "subject": "Game submission: Mythical Void — a free alien-creature browser adventure",
+      "body": "Hi Alpha Beta Gamer,\n\nMy son and I began Mythical Void at home in Ireland, using our imagination and today’s AI tools. We kept working until it became a real browser game.\n\nPlayers hatch an alien creature shaped by a genetics system, cross six damaged realms, free their Guardians from the Void and decide what Project Beacon should become. It is free, in early access, and starts without a download or account.\n\nPlay: https://mythicalvoid.com/play/\nPress and background: https://mythicalvoid.com/press/\n\nAI helped us create, but people made the story, safety and release decisions. Optional learning moments use credited public NASA material; NASA does not endorse the game.\n\nIf it looks suitable for your readers or channels, I would be grateful if you tried the opening. I understand that a submission does not guarantee coverage.\n\nKind regards,\nKevin\nMythical Void",
+      "attachments": [],
+      "sent": false,
+      "coveragePromised": false
+    },
+    {
+      "rank": 2,
+      "id": "free-game-planet",
+      "name": "Free Game Planet",
+      "officialSubmissionPage": "https://www.freegameplanet.com/contact/",
+      "publicSubmissionAddress": "admin@freegameplanet.com",
+      "whyItFits": "Its public contact page invites suggestions for free games and the site regularly covers games that play in a browser.",
+      "importantBoundary": "The outlet explicitly says it cannot guarantee a feature. Mythical Void must be described as tested in modern browsers, not as working in every browser.",
+      "subject": "Free browser game suggestion: Mythical Void",
+      "body": "Hi Free Game Planet,\n\nI would like to suggest Mythical Void, a free alien-creature adventure that plays in a modern browser with no download or account.\n\nMy son and I began it as a project at home in Ireland. Players hatch a creature shaped by a genetics system, explore six strange realms, free their Guardians and decide what Project Beacon should become.\n\nPlay: https://mythicalvoid.com/play/\nBackground: https://mythicalvoid.com/studio/\n\nGenerative AI supported parts of our creative process, with people responsible for the story, safety, testing and release. Optional learning moments use credited public NASA material; NASA does not endorse the game.\n\nThank you for taking a look. I understand that suggestions are not guaranteed coverage.\n\nKind regards,\nKevin\nMythical Void",
+      "attachments": [],
+      "sent": false,
+      "coveragePromised": false
+    },
+    {
+      "rank": 3,
+      "id": "indie-games-plus",
+      "name": "Indie Games Plus",
+      "officialSubmissionPage": "https://indiegamesplus.com/contact-2/",
+      "publicSubmissionAddress": "editors@indiegamesplus.com",
+      "whyItFits": "Its public contact page invites developers to share games, while its editorial description emphasizes unusual independent games and the people who make them.",
+      "importantBoundary": "This is an editorial suggestion, not a request for paid coverage. The pitch leads with the playable idea and human origin rather than claims about popularity.",
+      "subject": "For consideration: Mythical Void, a father-and-son browser adventure",
+      "body": "Hi Indie Games Plus,\n\nMy son and I started Mythical Void by asking strange questions at home in Ireland: what could live where gravity points sideways, and how different could each creature become? That experiment is now a free browser adventure.\n\nPlayers hatch an alien creature shaped by a genetics system, cross six living realms, rescue their Guardians and decide what Project Beacon should become. It starts without an account or download.\n\nPlay: https://mythicalvoid.com/play/\nStudio story and press material: https://mythicalvoid.com/press/\n\nGenerative AI helped with parts of the creative process, while people remained responsible for the story, safety, testing and release. Optional learning moments use credited public NASA material; NASA does not endorse Mythical Void.\n\nIf the game or its origin feels relevant to your coverage, I would be glad for you to try it. There is no expectation of coverage.\n\nKind regards,\nKevin\nMythical Void",
+      "attachments": [],
+      "sent": false,
+      "coveragePromised": false
+    }
+  ],
+  "mediaBoundary": {
+    "gameplayScreenshotsAttached": 0,
+    "gameplayVideosAttached": 0,
+    "generatedArtworkAttached": 0,
+    "reason": "No gameplay image or video is attached until a person approves the exact real-game asset. Generated art is never a substitute for gameplay proof."
+  },
+  "measurement": {
+    "recordOnly": [
+      "message sent time",
+      "delivery failure if visible",
+      "reply received",
+      "coverage URL if publicly observed",
+      "consented broad referral evidence if available"
+    ],
+    "neverInfer": [
+      "an email open",
+      "a website visit is a player",
+      "coverage caused a play",
+      "no reply means rejection",
+      "one feature proves growth"
+    ]
+  },
+  "authority": {
+    "outreachAuthorized": false,
+    "emailSendingAuthorized": false,
+    "accountCreationAuthorized": false,
+    "termsAcceptanceAuthorized": false,
+    "attachmentsAuthorized": false,
+    "followUpAuthorized": false,
+    "externalActionTaken": false
+  },
+  "sources": [
+    "https://www.alphabetagamer.com/contact-us/",
+    "https://www.freegameplanet.com/contact/",
+    "https://indiegamesplus.com/contact-2/",
+    "https://indiegamesplus.com/the-indiegamesplus-guide-to-contacting-games-press/"
+  ],
+  "nextRequiredAction": "After the public game is restored and the r/WebGames read finishes or is cancelled, Kevin chooses one route and approves that exact subject and message at action time."
+}
