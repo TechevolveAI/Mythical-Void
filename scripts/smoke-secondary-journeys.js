@@ -10663,6 +10663,12 @@ async function smokeCreatureContinuity(session, exceptions) {
     const seeded = await evaluate(session, `(() => {
         const game = window.mythicalGame;
         const state = window.GameState;
+        // This fixture owns a synthetic portrait record. Keep its continuity
+        // proof local so only the explicit paid-media smoke can contact the
+        // story-video provider with a real protected portrait reference.
+        if (window.APIConfig) {
+            window.APIConfig.isVideoEnabled = () => false;
+        }
         const fixture = ${JSON.stringify(getVisualReviewCreatureProfile())};
         const creature = {
             ...(state.get('creature') || {}),
