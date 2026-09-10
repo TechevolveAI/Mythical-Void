@@ -3,7 +3,8 @@ export const CADEN_BIRTHDAY_EVENT = Object.freeze({
     date: '2026-09-11',
     timeZone: 'Europe/Dublin',
     previewParam: 'birthday',
-    previewValue: 'caden'
+    previewValue: 'caden',
+    answerDigest: '1887884b8865c9620cd7e3f2bacfc8eb9b1a2443877f603baebef739f9f01ea1'
 });
 
 function getCalendarDate(date, timeZone) {
@@ -34,4 +35,20 @@ export function isCadenBirthdayCelebrationActive({
     }
     return getCalendarDate(date, CADEN_BIRTHDAY_EVENT.timeZone) ===
         CADEN_BIRTHDAY_EVENT.date;
+}
+
+export async function isCadenBirthdayAnswer(
+    value,
+    cryptoApi = globalThis.crypto
+) {
+    const normalized = String(value ?? '').trim();
+    if (!/^\d{1,4}$/.test(normalized) || !cryptoApi?.subtle) return false;
+    const bytes = new TextEncoder().encode(
+        `mythical-void:${CADEN_BIRTHDAY_EVENT.id}:${normalized}`
+    );
+    const digest = await cryptoApi.subtle.digest('SHA-256', bytes);
+    const encoded = Array.from(new Uint8Array(digest))
+        .map(byte => byte.toString(16).padStart(2, '0'))
+        .join('');
+    return encoded === CADEN_BIRTHDAY_EVENT.answerDigest;
 }

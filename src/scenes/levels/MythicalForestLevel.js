@@ -12,7 +12,10 @@ import {
 } from '../../systems/CreaturePowerProfile.js';
 import { companionMediaService } from '../../systems/CompanionMediaService.js';
 import { CINEMATIC_MEDIA, shouldPlayCinematicMedia } from '../../config/cinematic-media.js';
-import { isCadenBirthdayCelebrationActive } from '../../config/special-events.js';
+import {
+    isCadenBirthdayAnswer,
+    isCadenBirthdayCelebrationActive
+} from '../../config/special-events.js';
 import { shareGuardianRestoration } from '../../utils/GuardianRestorationShare.js';
 
 const ELDER_TREANT_TEXTURE = 'elderTreant';
@@ -6019,8 +6022,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
                     !this.birthdayCelebrationShown &&
                     isCadenBirthdayCelebrationActive()
                 ) {
-                    this.showCadenBirthdayCelebration({
-                        onComplete: () => this.showBossVictory()
+                    this.showCadenBirthdayQuestion({
+                        onSuccess: () => this.showCadenBirthdayCelebration({
+                            onComplete: () => this.showBossVictory()
+                        }),
+                        onSkip: () => this.showBossVictory()
                     });
                     return;
                 }
@@ -6036,6 +6042,179 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 duration: 500
             });
         }
+    }
+
+    /**
+     * Keep the family message behind a playful, local-only question. This is a
+     * surprise gate rather than authentication: the answer is never persisted,
+     * logged or sent over the network, and normal players can always continue.
+     */
+    showCadenBirthdayQuestion({ onSuccess, onSkip } = {}) {
+        const { width, height } = this.cameras.main;
+        const compact = width <= 600;
+        const depth = 7000;
+        const elements = [];
+        this.birthdayCelebrationElements = elements;
+        const physicsWasPaused = this.physics?.world?.isPaused === true;
+        this.physics?.pause?.();
+
+        const overlay = this.add.graphics().setScrollFactor(0).setDepth(depth);
+        overlay.fillStyle(0x03130F, 1);
+        overlay.fillRect(0, 0, width, height);
+        overlay.fillStyle(0x0B392E, 0.72);
+        overlay.fillEllipse(width / 2, height * 0.5, width * 0.92, height * 0.78);
+        elements.push(overlay);
+
+        const eyebrow = this.add.text(
+            width / 2,
+            height * 0.1,
+            'THE ELDER TREE HAS ONE FINAL QUESTION',
+            {
+                fontSize: compact ? '12px' : '16px',
+                color: '#8FE3CF',
+                fontStyle: 'bold',
+                align: 'center',
+                wordWrap: { width: width * 0.88 }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 2);
+
+        const question = this.add.text(
+            width / 2,
+            height * 0.19,
+            'What is your favorite number?',
+            {
+                fontSize: compact ? '24px' : '34px',
+                color: '#F2C14E',
+                fontStyle: 'bold',
+                stroke: '#06120F',
+                strokeThickness: compact ? 4 : 6,
+                align: 'center',
+                wordWrap: { width: width * 0.86 }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 2);
+
+        const answerDisplay = this.add.text(
+            width / 2,
+            height * 0.3,
+            '_',
+            {
+                fontSize: compact ? '28px' : '36px',
+                color: '#FFFFFF',
+                fontStyle: 'bold',
+                align: 'center'
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 2);
+
+        const feedback = this.add.text(
+            width / 2,
+            height * 0.355,
+            'THE ROOTS ARE LISTENING',
+            {
+                fontSize: compact ? '11px' : '14px',
+                color: '#8FE3CF',
+                fontStyle: 'bold',
+                align: 'center'
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 2);
+        elements.push(eyebrow, question, answerDisplay, feedback);
+
+        let answer = '';
+        let checking = false;
+        const updateAnswer = () => answerDisplay.setText(answer || '_');
+        const keyRows = [
+            ['1', '2', '3'],
+            ['4', '5', '6'],
+            ['7', '8', '9'],
+            ['BACK', '0', 'ENTER']
+        ];
+        const keyWidth = compact ? 76 : 96;
+        const keyGap = compact ? 10 : 14;
+        const rowGap = compact ? 52 : 58;
+        const keypadTop = height * (compact ? 0.43 : 0.42);
+        const keyButtons = [];
+
+        let closing = false;
+        const finish = callback => {
+            if (closing) return;
+            closing = true;
+            keyButtons.forEach(button => button.disableInteractive?.());
+            elements.forEach(element => element?.destroy?.());
+            this.birthdayCelebrationElements = [];
+            if (!physicsWasPaused && this.physics?.world) {
+                this.physics.resume();
+            }
+            callback?.();
+        };
+
+        const submitAnswer = async () => {
+            if (checking || !answer) return;
+            checking = true;
+            keyButtons.forEach(button => button.disableInteractive?.());
+            const correct = await isCadenBirthdayAnswer(answer);
+            if (correct) {
+                feedback.setColor('#F2C14E').setText('THE FOREST REMEMBERS');
+                this.time.delayedCall(420, () => finish(onSuccess));
+                return;
+            }
+            answer = '';
+            updateAnswer();
+            feedback.setColor('#FFFFFF').setText('THE FOREST IS STILL LISTENING');
+            keyButtons.forEach(button => button.setInteractive({ useHandCursor: true }));
+            checking = false;
+        };
+
+        keyRows.forEach((row, rowIndex) => {
+            row.forEach((label, columnIndex) => {
+                const x = width / 2 + (columnIndex - 1) * (keyWidth + keyGap);
+                const y = keypadTop + rowIndex * rowGap;
+                const button = this.add.text(x, y, label, {
+                    fontSize: compact ? '17px' : '19px',
+                    color: '#06120F',
+                    backgroundColor: label === 'ENTER' ? '#F2C14E' : '#8FE3CF',
+                    fontStyle: 'bold',
+                    align: 'center',
+                    fixedWidth: keyWidth,
+                    padding: { x: 5, y: compact ? 11 : 13 }
+                }).setOrigin(0.5)
+                    .setScrollFactor(0)
+                    .setDepth(depth + 3)
+                    .setInteractive({ useHandCursor: true });
+                button.on('pointerdown', () => {
+                    if (checking) return;
+                    if (label === 'BACK') {
+                        answer = answer.slice(0, -1);
+                        updateAnswer();
+                        return;
+                    }
+                    if (label === 'ENTER') {
+                        submitAnswer();
+                        return;
+                    }
+                    if (answer.length < 4) {
+                        answer += label;
+                        updateAnswer();
+                    }
+                });
+                keyButtons.push(button);
+                elements.push(button);
+            });
+        });
+
+        const skipButton = this.add.text(
+            width / 2,
+            height * (compact ? 0.93 : 0.91),
+            '[ CONTINUE WITHOUT MESSAGE ]',
+            {
+                fontSize: compact ? '12px' : '14px',
+                color: '#B8C9C4',
+                padding: { x: 12, y: 10 }
+            }
+        ).setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(depth + 3)
+            .setInteractive({ useHandCursor: true });
+        skipButton.on('pointerdown', () => finish(onSkip));
+        elements.push(skipButton);
     }
 
     /**

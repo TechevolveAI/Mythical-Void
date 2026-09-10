@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { TextEncoder } = require('util');
 
 const eventPath = path.join(__dirname, '../config/special-events.js');
 const forestPath = path.join(__dirname, '../scenes/levels/MythicalForestLevel.js');
@@ -8,14 +9,16 @@ const forestPath = path.join(__dirname, '../scenes/levels/MythicalForestLevel.js
 function loadEventModule() {
     const source = fs.readFileSync(eventPath, 'utf8')
         .replace(/export const /g, 'const ')
-        .replace(/export function /g, 'function ')
-        .concat('\nmodule.exports = { CADEN_BIRTHDAY_EVENT, isCadenBirthdayCelebrationActive };');
+        .replace(/export (async )?function /g, '$1function ')
+        .concat('\nmodule.exports = { CADEN_BIRTHDAY_EVENT, isCadenBirthdayAnswer, isCadenBirthdayCelebrationActive };');
     const sandbox = {
         module: { exports: {} },
         exports: {},
         Intl,
         URLSearchParams,
         Date,
+        TextEncoder,
+        Uint8Array,
         globalThis: { location: { search: '' } }
     };
     vm.runInNewContext(source, sandbox);
@@ -44,11 +47,21 @@ describe('Caden birthday Forest celebration', () => {
         })).toBe(true);
     });
 
-    test('runs after restoration and before the normal reward panel', () => {
+    test('accepts the established number without persisting or transmitting it', async () => {
+        const crypto = require('crypto').webcrypto;
+        await expect(events.isCadenBirthdayAnswer('23', crypto)).resolves.toBe(true);
+        await expect(events.isCadenBirthdayAnswer('22', crypto)).resolves.toBe(false);
+        await expect(events.isCadenBirthdayAnswer('not-a-number', crypto)).resolves.toBe(false);
+    });
+
+    test('runs the local question after restoration and before rewards', () => {
         expect(forestSource).toContain('isCadenBirthdayCelebrationActive()');
+        expect(forestSource).toContain('showCadenBirthdayQuestion({');
         expect(forestSource).toContain('showCadenBirthdayCelebration({');
         expect(forestSource).toContain('onComplete: () => this.showBossVictory()');
         expect(forestSource).toContain('this.player?.body?.setAllowGravity?.(false)');
+        expect(forestSource).toContain('What is your favorite number?');
+        expect(forestSource).toContain('[ CONTINUE WITHOUT MESSAGE ]');
     });
 
     test('uses the exact family message and existing runtime actors', () => {
@@ -58,6 +71,7 @@ describe('Caden birthday Forest celebration', () => {
             'this.createRuntimeForestArrivalActors(width, height, depth + 4)'
         );
         expect(forestSource).toContain('index < 23');
+        expect(forestSource).not.toContain("GameState?.set('birthday");
     });
 
     test('keeps completion independent of hosted generated media', () => {
