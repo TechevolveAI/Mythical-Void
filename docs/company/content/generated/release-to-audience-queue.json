@@ -4,14 +4,14 @@
   "state": "one_text_only_community_move_waiting_for_kevin",
   "purpose": "Turn checked releases and prepared community work into one clear next move, while keeping accounts, replies and publication under human control.",
   "generatedFrom": {
-    "liveLatestNewsEntries": 24,
-    "preparedReleaseDrafts": 72,
+    "liveLatestNewsEntries": 25,
+    "preparedReleaseDrafts": 75,
     "approvedGameplayVisuals": 0,
     "verifiedExternalPublishingChannels": 0,
     "checkedDiscoveryDoorways": 13,
     "sourceFingerprints": {
-      "releases": "cef4f2c90499fc60ddd20b3d9f4dd28101513074dc3bb544300959a06acdbec2",
-      "releasePack": "bcb33a38e3f707e6dbee7accbd48f65bba65ce97a01337c3934df04a14dd1d47",
+      "releases": "d0910ce46bebdc25ce42318c02b487c03b05383ce09f4c836fb303f87556ee1f",
+      "releasePack": "a504efd50277c13d6f0ebce50c3e8959879f49d834bfb4af6cc8924b5f9501b9",
       "communityRun": "397e388f5709dbae661958e781f89444da7622b3fa337e06239b8e82671100bc",
       "phaserShowcase": "7e6976bfa25dcd3c47b2806153d72f41ae7ed80a40c65fe304eadd9acd0438da",
       "channels": "61c95b390a608c5fbbc256008bfa12783068cf2fdf859880035fd653fec8f4f3",
@@ -170,33 +170,31 @@
     "rule": "This is an ordered opportunity queue, not permission to cross-post. Recheck current rules and request action-time approval for every outside move."
   },
   "latestReleaseDraft": {
-    "sourceEntryId": "UPDATE-031",
-    "title": "A Living Portrait can follow you into the Sanctuary",
+    "sourceEntryId": "UPDATE-032",
+    "title": "Your creature now stays with you across the six-world journey",
     "state": "prepared_not_publishable_until_an_official_channel_is_confirmed",
     "selectionReason": "Newest checked release that can travel as text without depending on gameplay media.",
     "professionalNetworkDraft": {
       "channelRef": "CH-004",
       "format": "text_post_with_one_link",
-      "body": "A Living Portrait can follow you into the Sanctuary\n\nThe creature hatched in the real browser game can now become a private AI-made Living Portrait without making the player wait before entering the Sanctuary.\n\n• The image service receives bounded fictional creature traits and a creature reference image—not the player’s name, age range, location, words, photograph, voice, save history or friend information.\n• The portrait can finish while the player continues into the Sanctuary, and the Village Heart refreshes when the result is ready.\n• If the image service is slow, unavailable or interrupted by a reload, the authored adventure continues and the creature remains playable. This text-only note does not present generated artwork as gameplay.\n\nSee what changed: https://mythicalvoid.com/creature-genetics/\n\nText-only release note about a live experimental creature-media feature; no screenshot or generated image is attached.",
-      "characterCount": 932
+      "body": "Your creature now stays with you across the six-world journey\n\nThe creature you hatch now keeps its identity as you move from the opening and Sanctuary into Mythical Void’s six strange worlds.\n\n• The opening, Sanctuary and world handoffs now carry the same hatched creature identity forward, with automated checks designed to catch a missing or replaced creature.\n• Recent releases also made the routes, goals and Guardian handoffs clearer across Crystal Caves, Stellar Reef, Void Peaks, Aurora Depths and Final Void.\n• These checks show that the current production game contains the journey and continuity changes. This text-only note does not present generated artwork as gameplay or claim that every part of the game is finished.\n\nSee what changed: https://mythicalvoid.com/play/\n\nText-only release note about live creature and journey improvements; no screenshot or generated image is attached.",
+      "characterCount": 898
     },
-    "destination": "https://mythicalvoid.com/creature-genetics/",
+    "destination": "https://mythicalvoid.com/play/",
     "releaseProof": {
-      "sourceCommit": "8b1c1bd1229846f27bf50e7a4b6e2a6a914d9ea6",
-      "productionMergeCommit": "760e4b403fef1f43d1c6256cd88deb7f1626f506",
-      "productionDeployId": "6aa188c548d0120008feb48e",
-      "productionPublishedAt": "2026-09-09T16:37:39.892Z",
+      "sourceCommit": "a091700639406c607b49f6a994611b1920b27160",
+      "productionMergeCommit": "94800164a5bb27b170112879d3cb7f40f6b17415",
+      "productionDeployId": "6aa277ec45b5460008e2c170",
+      "productionPublishedAt": "2026-09-10T09:28:29.137Z",
       "checkedUrl": "https://mythicalvoid.com/play/",
       "checkedHttpStatus": 200,
-      "phoneViewport": "390x844",
-      "generatedPortraitObserved": true,
-      "generatedPortraitDimensions": "900x900",
-      "sanctuaryEntryObserved": true,
-      "villageHeartRefreshObserved": true,
-      "playerPersonalDataSentToModel": false,
+      "realmsInJourney": 6,
+      "openingContinuityCovered": true,
+      "sanctuaryContinuityCovered": true,
+      "realmHandoffsCovered": true,
       "gameplayVisualApproved": false,
       "mediaAttached": false,
-      "claimBoundary": "The source, protected merge, published production deploy, live first-session journey and authenticated synthetic-creature probe prove that the private Living Portrait path can complete and hand back into the playable Sanctuary. They do not prove visual quality, play, enjoyment or growth, and they do not prove player use, conversion or retention."
+      "claimBoundary": "The source, protected merge, published production deploy and live doorway check prove that the current game contains the creature-continuity journey changes. They do not prove visual quality, play, enjoyment or growth, and they do not prove that every part of the game is finished."
     },
     "approvalState": "blocked_missing_verified_channel_and_kevin_approval"
   },

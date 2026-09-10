@@ -5,13 +5,29 @@
     <link>https://mythicalvoid.com/updates/</link>
     <description>See what is newly live in Mythical Void: game stories, useful resources and honest release notes linked to the playable browser game.</description>
     <language>en-ie</language>
-    <lastBuildDate>Wed, 09 Sep 2026 12:00:00 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 10 Sep 2026 12:00:00 GMT</lastBuildDate>
     <atom:link href="https://mythicalvoid.com/updates/feed.xml" rel="self" type="application/rss+xml" />
     <image>
       <url>https://mythicalvoid.com/marketing/mythical-void-mark-192.png</url>
       <title>Mythical Void — The Latest News</title>
       <link>https://mythicalvoid.com/updates/</link>
     </image>
+    <item>
+      <guid isPermaLink="true">https://mythicalvoid.com/updates/#update-032</guid>
+      <title>Your creature now stays with you across the six-world journey</title>
+      <link>https://mythicalvoid.com/updates/#update-032</link>
+      <pubDate>Thu, 10 Sep 2026 12:00:00 GMT</pubDate>
+      <category>ONE CREATURE, ONE JOURNEY</category>
+      <description>The creature you hatch now keeps its identity as you move from the opening and Sanctuary into Mythical Void’s six strange worlds.
+
+• The opening, Sanctuary and world handoffs now carry the same hatched creature identity forward, with automated checks designed to catch a missing or replaced creature.
+• Recent releases also made the routes, goals and Guardian handoffs clearer across Crystal Caves, Stellar Reef, Void Peaks, Aurora Depths and Final Void.
+• These checks show that the current production game contains the journey and continuity changes. This text-only note does not present generated artwork as gameplay or claim that every part of the game is finished.
+
+See the live change: https://mythicalvoid.com/play/
+
+Visual note: Text-only release note about live creature and journey improvements; no screenshot or generated image is attached.</description>
+    </item>
     <item>
       <guid isPermaLink="true">https://mythicalvoid.com/updates/#update-031</guid>
       <title>A Living Portrait can follow you into the Sanctuary</title>

@@ -30,6 +30,15 @@ for (const [field, expected] of Object.entries({ liveItemsOnly: true, commentsEn
 }
 requireValue(liveEntries.length >= 2, 'Latest News needs at least two real live entries');
 
+const journeyRelease = liveEntries.find(entry => entry.id === 'UPDATE-032');
+requireValue(Boolean(journeyRelease), 'UPDATE-032 must preserve the public creature-continuity release');
+requireValue(journeyRelease?.releaseProof?.sourceCommit === 'a091700639406c607b49f6a994611b1920b27160', 'UPDATE-032 must remain tied to the reviewed creature-continuity source');
+requireValue(journeyRelease?.releaseProof?.productionMergeCommit === '94800164a5bb27b170112879d3cb7f40f6b17415', 'UPDATE-032 must remain tied to the protected production merge');
+requireValue(journeyRelease?.releaseProof?.realmsInJourney === 6, 'UPDATE-032 must describe the checked six-world journey');
+requireValue(journeyRelease?.releaseProof?.openingContinuityCovered === true && journeyRelease?.releaseProof?.sanctuaryContinuityCovered === true && journeyRelease?.releaseProof?.realmHandoffsCovered === true, 'UPDATE-032 must retain its checked continuity boundary');
+requireValue(/does not present generated artwork as gameplay/i.test(journeyRelease?.details?.[2] || ''), 'UPDATE-032 must keep generated artwork separate from gameplay');
+requireValue(/does not .*claim that every part of the game is finished/i.test(journeyRelease?.details?.[2] || ''), 'UPDATE-032 must not overstate game completion');
+
 const ids = new Set();
 for (const [index, entry] of (data.entries || []).entries()) {
     const label = entry?.id || `entries[${index}]`;

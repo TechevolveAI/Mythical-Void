@@ -15,6 +15,18 @@
   ],
   "items": [
     {
+      "id": "https://mythicalvoid.com/updates/#update-032",
+      "url": "https://mythicalvoid.com/updates/#update-032",
+      "external_url": "https://mythicalvoid.com/play/",
+      "title": "Your creature now stays with you across the six-world journey",
+      "content_text": "The creature you hatch now keeps its identity as you move from the opening and Sanctuary into Mythical Void’s six strange worlds.\n\n• The opening, Sanctuary and world handoffs now carry the same hatched creature identity forward, with automated checks designed to catch a missing or replaced creature.\n• Recent releases also made the routes, goals and Guardian handoffs clearer across Crystal Caves, Stellar Reef, Void Peaks, Aurora Depths and Final Void.\n• These checks show that the current production game contains the journey and continuity changes. This text-only note does not present generated artwork as gameplay or claim that every part of the game is finished.\n\nSee the live change: https://mythicalvoid.com/play/\n\nVisual note: Text-only release note about live creature and journey improvements; no screenshot or generated image is attached.",
+      "summary": "The creature you hatch now keeps its identity as you move from the opening and Sanctuary into Mythical Void’s six strange worlds.",
+      "date_published": "2026-09-10T12:00:00.000Z",
+      "tags": [
+        "ONE CREATURE, ONE JOURNEY"
+      ]
+    },
+    {
       "id": "https://mythicalvoid.com/updates/#update-031",
       "url": "https://mythicalvoid.com/updates/#update-031",
       "external_url": "https://mythicalvoid.com/creature-genetics/",

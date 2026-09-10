@@ -14,7 +14,11 @@ const root = path.resolve(__dirname, '..', '..');
 const sitemap = fs.readFileSync(path.join(root, 'public/sitemap.xml'), 'utf8');
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const dates = Object.fromEntries(Object.keys(routeSources).map(route => [route, '2026-01-01']));
-const valid = { sitemap, latestSourceDates: dates, today: '2026-09-09' };
+const today = dateInDublin();
+const tomorrowDate = new Date(`${today}T12:00:00.000Z`);
+tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
+const tomorrow = tomorrowDate.toISOString().slice(0, 10);
+const valid = { sitemap, latestSourceDates: dates, today };
 let cases = 0;
 
 function rejected(name, expected, change) {
@@ -43,8 +47,8 @@ rejected('missing-date', 'is missing a lastmod date', input => {
 });
 rejected('future-date', 'future lastmod date', input => {
     input.sitemap = input.sitemap.replace(
-        '<loc>https://mythicalvoid.com/</loc>\n    <lastmod>2026-09-09</lastmod>',
-        '<loc>https://mythicalvoid.com/</loc>\n    <lastmod>2026-09-10</lastmod>'
+        /(<loc>https:\/\/mythicalvoid\.com\/<\/loc>\n\s*<lastmod>)\d{4}-\d{2}-\d{2}(<\/lastmod>)/,
+        `$1${tomorrow}$2`
     );
 });
 rejected('unknown-route', 'has no declared public source mapping', input => {
