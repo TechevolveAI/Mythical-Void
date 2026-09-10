@@ -25,6 +25,7 @@ function validateItchListing(candidate, visualPlan, copy, options = {}) {
     const repositoryRoot = path.resolve(options.root || root);
     const coverManifest = options.coverManifest || readJson(path.join(repositoryRoot, 'docs/company/content/review/itch-cover/manifest.json'));
     const listing = candidate.listing || {};
+    const technicalEvidence = candidate.technicalEvidence || {};
     const visualGate = candidate.visualGate || {};
     const reviewGate = candidate.reviewGate || {};
     const cover = visualGate.cover || {};
@@ -49,9 +50,28 @@ function validateItchListing(candidate, visualPlan, copy, options = {}) {
     };
 
     requireValue(candidate.id === 'ITCH-CANDIDATE-001', 'candidate identity is invalid');
-    requireValue(candidate.checkedOn === '2026-08-31', 'candidate review date is stale');
+    requireValue(candidate.checkedOn === '2026-09-10', 'candidate review date is stale');
     requireValue(candidate.state === 'technical_package_ready_no_screenshot_page_ready_cover_account_rights_and_terms_approval_pending', 'candidate state is not truthful');
     requireValue(candidate.directPlay === true && candidate.entryPoint === 'index.html', 'candidate must open the game directly');
+    requireValue(/^[a-f0-9]{40}$/.test(technicalEvidence.sourceCommit || ''), 'technical evidence is not source-bound');
+    requireValue(technicalEvidence.checkedOn === candidate.checkedOn, 'technical evidence date does not match the candidate');
+    requireValue(Number.isInteger(technicalEvidence.fileCount) && technicalEvidence.fileCount > 0, 'technical evidence file count is missing');
+    requireValue(Number.isInteger(technicalEvidence.extractedBytes) && technicalEvidence.extractedBytes > 0, 'technical evidence extracted size is missing');
+    requireValue(Number.isInteger(technicalEvidence.archiveBytes) && technicalEvidence.archiveBytes > 0, 'technical evidence archive size is missing');
+    requireValue(/^[a-f0-9]{64}$/.test(technicalEvidence.archiveSha256 || ''), 'technical evidence archive hash is invalid');
+    requireValue(/^[a-f0-9]{64}$/.test(technicalEvidence.packageManifestSha256 || ''), 'technical evidence package hash is invalid');
+    requireValue(technicalEvidence.fileCount <= technicalEvidence.limitsChecked?.maximumExtractedFiles, 'technical package exceeds the recorded file limit');
+    requireValue(technicalEvidence.extractedBytes <= technicalEvidence.limitsChecked?.maximumExtractedBytes, 'technical package exceeds the recorded size limit');
+    const browserChecks = Array.isArray(technicalEvidence.realBrowserChecks) ? technicalEvidence.realBrowserChecks : [];
+    requireValue(browserChecks.length === 2, 'technical evidence must include both phone journeys');
+    for (const journey of ['opening_to_interactive_egg', 'naming_to_real_creature_to_sanctuary_with_hosted_extras_unavailable']) {
+        const check = browserChecks.find(item => item.journey === journey);
+        requireValue(check?.viewport === '390x844' && check?.passed === true, `technical browser journey did not pass: ${journey}`);
+        requireValue(check?.browserErrors === 0 && check?.networkFailures === 0, `technical browser journey was not clean: ${journey}`);
+        requireValue(check?.hostedPortraitRequests === 0 && check?.hostedVideoRequests === 0, `technical browser journey contacted hosted media: ${journey}`);
+    }
+    requireValue(technicalEvidence.testedInsideActualItchPage === false, 'the candidate invents an itch.io upload test');
+    requireValue(technicalEvidence.uploaded === false, 'the candidate invents an itch.io upload');
 
     requireValue(listing.title === 'Mythical Void', 'listing title drifted');
     requireValue(listing.kind === 'html_game' && listing.releaseStage === 'early_access', 'listing kind or release stage drifted');
@@ -155,6 +175,10 @@ function run() {
     console.log(JSON.stringify({
         valid: failures.length === 0,
         state: candidate.reviewGate?.state,
+        technicalEvidenceCheckedOn: candidate.technicalEvidence?.checkedOn,
+        technicalFileCount: candidate.technicalEvidence?.fileCount,
+        archiveBytes: candidate.technicalEvidence?.archiveBytes,
+        realBrowserJourneysPassed: candidate.technicalEvidence?.realBrowserChecks?.filter(item => item.passed).length || 0,
         approvedGameplayMoments: candidate.visualGate?.approvedMoments,
         recommendedGameplayMoments: candidate.visualGate?.recommendedMoments,
         requiredInitialGameplayMoments: candidate.visualGate?.requiredMomentsForInitialPublication,

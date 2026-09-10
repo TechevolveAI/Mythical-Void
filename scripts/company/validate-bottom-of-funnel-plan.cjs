@@ -40,7 +40,12 @@ requireValue(plan.readyFallbackShelf?.requirements?.requiredScreenshotsForInitia
 requireValue(plan.readyFallbackShelf?.gates?.includes('reviewed brand cover approved by Kevin'), 'Kevin cover approval gate is missing');
 requireValue(plan.readyFallbackShelf?.gates?.includes('embedded browser package tested'), 'the embedded build gate is missing');
 requireValue(plan.readyFallbackShelf?.technicalEvidence?.nestedFrameTestPassed === true, 'the nested frame test evidence is missing');
-requireValue(plan.readyFallbackShelf?.technicalEvidence?.fileCount === 88 && plan.readyFallbackShelf?.technicalEvidence?.extractedBytes === 34234277, 'the latest portal measurement is stale');
+requireValue(plan.readyFallbackShelf?.technicalEvidence?.checkedOn === '2026-09-10', 'the latest portal check date is stale');
+requireValue(plan.readyFallbackShelf?.technicalEvidence?.sourceCommit === itchCandidate.technicalEvidence?.sourceCommit, 'the portal source commit does not match the itch candidate');
+requireValue(plan.readyFallbackShelf?.technicalEvidence?.fileCount === itchCandidate.technicalEvidence?.fileCount && plan.readyFallbackShelf?.technicalEvidence?.extractedBytes === itchCandidate.technicalEvidence?.extractedBytes, 'the latest portal measurement is stale');
+requireValue(plan.readyFallbackShelf?.technicalEvidence?.lastValidatedArchiveBytes === itchCandidate.technicalEvidence?.archiveBytes && plan.readyFallbackShelf?.technicalEvidence?.archiveSha256 === itchCandidate.technicalEvidence?.archiveSha256, 'the latest portal archive evidence is stale');
+requireValue(plan.readyFallbackShelf?.technicalEvidence?.phoneBrowserJourneysPassed === 2, 'the current portal phone journeys are missing');
+requireValue(plan.readyFallbackShelf?.technicalEvidence?.testedInsideActualItchPage === false, 'the plan invents an itch.io upload test');
 requireValue(plan.readyFallbackShelf?.technicalEvidence?.withdrawnMediaIncluded === false, 'withdrawn media must remain outside the portal package');
 requireValue(plan.readyFallbackShelf?.visualEvidence?.gameplayScreenshotsAttached === 0 && plan.readyFallbackShelf?.visualEvidence?.brandCoverExplicitlyMarkedNotGameplay === true, 'itch visual evidence is not truthful');
 requireValue(plan.routeOrder?.find(route => route.name === 'itch.io')?.state === 'package_copy_and_reviewed_cover_ready_not_published', 'itch.io route state is stale');
@@ -96,7 +101,7 @@ if (failures.length) {
 
 console.log(JSON.stringify({
     valid: true,
-    ownedSearchDoorway: 'live',
+    recordedOwnedSearchDoorway: 'live_at_last_plan_review_requires_action_time_preflight',
     recommendedFirstAction: 'confirm an existing adult Reddit account and approve one r/WebGames post at action time',
     recommendedFirstPublicShelf: 'itch.io after First Five and Kevin distribution approval',
     readyFallbackShelf: 'itch.io',

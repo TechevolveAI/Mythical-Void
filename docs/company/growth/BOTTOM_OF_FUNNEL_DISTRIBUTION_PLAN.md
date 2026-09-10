@@ -162,11 +162,15 @@ are authorised yet.
 It is the closest match for the game we have today. itch.io supports games that play directly in the browser. Its official guide says the project needs a ZIP with a top-level `index.html`, no more than 1,000 files, no more than 500 MB extracted, and relative file paths. A free account can create the page.
 
 The separate itch.io edition now opens directly into the game from a nested
-project folder. The latest measured build contains 86 files and 33,317,542
-bytes of game data; the last checked upload ZIP was 29,456,384 bytes. The
-embedded test reached the real age-setting screen and loaded the game engine,
-creature systems, opening world image and opening cinematic without a missing
-game file.
+project folder. The package rebuilt from game source `94800164` on 10 September
+contains 92 files and 34,634,700 bytes of game data; the checked upload ZIP is
+30,736,222 bytes. A 390 × 844 browser check reached the interactive egg. A
+second clean phone journey named the creature, showed the real local creature
+and enabled entry to Sanctuary while hosted pictures and films were unavailable.
+Both journeys recorded zero browser or network failures and made no hosted
+portrait or video request. The package has not been uploaded to itch.io, so its
+“Mobile Friendly” setting remains unclaimed until this exact build passes in the
+real platform page.
 
 The public listing still waits for these decisions:
 
