@@ -149,6 +149,8 @@
     "test:owned-discovery": "node scripts/company/test-owned-discovery-release.cjs",
     "validate:github-release": "node scripts/company/validate-github-playable-release.cjs",
     "test:github-release": "node scripts/company/test-github-playable-release.cjs",
+    "audit:github-identity": "node scripts/company/audit-live-github-identity.cjs",
+    "test:github-identity": "node scripts/company/test-live-github-identity.cjs",
     "validate:owned-attention": "node scripts/company/validate-owned-channel-attention.cjs",
     "test:owned-attention": "node scripts/company/test-owned-channel-attention.cjs",
     "validate:website-analytics": "node scripts/company/validate-website-analytics-tag.cjs",
