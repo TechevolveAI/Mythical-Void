@@ -13,7 +13,10 @@ class MemoryManager {
         this.textures = new Set();
         this.canvases = new Set();
         this.observers = new Map();
-        this.memoryWarningThreshold = 100 * 1024 * 1024; // 100MB
+        this.memoryWarningThreshold = 512 * 1024 * 1024; // 512MB
+        this.memoryWarningPercentage = 80;
+        this.memoryWarningCooldown = 60000;
+        this.lastMemoryWarning = 0;
         this.isMonitoring = false;
         this.lastCleanup = Date.now();
         this.cleanupInterval = 30000; // 30 seconds
@@ -46,7 +49,7 @@ class MemoryManager {
      */
     startMemoryMonitoring() {
         if (!performance.memory) {
-            console.warn('[MemoryManager] Performance.memory not available (Chrome only)');
+            console.info('[MemoryManager] Browser memory telemetry unavailable');
             return;
         }
 
@@ -59,7 +62,11 @@ class MemoryManager {
             const memoryLimit = performance.memory.jsHeapSizeLimit;
             const percentage = (memoryUsage / memoryLimit) * 100;
 
-            if (memoryUsage > this.memoryWarningThreshold) {
+            if (
+                this.isMemoryPressureHigh(memoryUsage, memoryLimit) &&
+                Date.now() - this.lastMemoryWarning >= this.memoryWarningCooldown
+            ) {
+                this.lastMemoryWarning = Date.now();
                 console.warn(`[MemoryManager] High memory usage: ${Math.round(memoryUsage / 1024 / 1024)}MB (${percentage.toFixed(1)}%)`);
                 this.performCleanup();
             }
@@ -68,6 +75,17 @@ class MemoryManager {
         };
 
         checkMemory();
+    }
+
+    isMemoryPressureHigh(memoryUsage, memoryLimit) {
+        if (!Number.isFinite(memoryUsage) || memoryUsage < 0) return false;
+
+        const exceedsAbsoluteLimit = memoryUsage >= this.memoryWarningThreshold;
+        const exceedsHeapPercentage = Number.isFinite(memoryLimit) &&
+            memoryLimit > 0 &&
+            (memoryUsage / memoryLimit) * 100 >= this.memoryWarningPercentage;
+
+        return exceedsAbsoluteLimit || exceedsHeapPercentage;
     }
 
     stopMemoryMonitoring() {
