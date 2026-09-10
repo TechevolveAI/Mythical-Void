@@ -1,11 +1,47 @@
 {
   "id": "ITCH-CANDIDATE-001",
-  "checkedOn": "2026-08-31",
+  "checkedOn": "2026-09-10",
   "state": "technical_package_ready_no_screenshot_page_ready_cover_account_rights_and_terms_approval_pending",
   "buildCommand": "npm run package:itch",
   "archive": "release/mythical-void-itch-html5.zip",
   "entryPoint": "index.html",
   "directPlay": true,
+  "technicalEvidence": {
+    "sourceCommit": "94800164a5bb27b170112879d3cb7f40f6b17415",
+    "checkedOn": "2026-09-10",
+    "fileCount": 92,
+    "extractedBytes": 34634700,
+    "archiveBytes": 30736222,
+    "archiveSha256": "45f7aad33eec07881b23aeaa0731c1edea34a9d55d6ecd33a1c84777ce9b6b25",
+    "packageManifestSha256": "f40bfd1e9f4e30b652b6f83e57fd45bfa444b46378ea77c95413bcfb515d9e1f",
+    "limitsChecked": {
+      "maximumExtractedFiles": 1000,
+      "maximumExtractedBytes": 524288000,
+      "maximumPathLength": 240
+    },
+    "realBrowserChecks": [
+      {
+        "journey": "opening_to_interactive_egg",
+        "viewport": "390x844",
+        "passed": true,
+        "browserErrors": 0,
+        "networkFailures": 0,
+        "hostedPortraitRequests": 0,
+        "hostedVideoRequests": 0
+      },
+      {
+        "journey": "naming_to_real_creature_to_sanctuary_with_hosted_extras_unavailable",
+        "viewport": "390x844",
+        "passed": true,
+        "browserErrors": 0,
+        "networkFailures": 0,
+        "hostedPortraitRequests": 0,
+        "hostedVideoRequests": 0
+      }
+    ],
+    "testedInsideActualItchPage": false,
+    "uploaded": false
+  },
   "listing": {
     "title": "Mythical Void",
     "kind": "html_game",

@@ -56,9 +56,14 @@
       "buildCommand": "npm run package:itch",
       "directPlay": true,
       "nestedFrameTestPassed": true,
-      "fileCount": 88,
-      "extractedBytes": 34234277,
-      "lastValidatedArchiveBytes": 29456384,
+      "sourceCommit": "94800164a5bb27b170112879d3cb7f40f6b17415",
+      "checkedOn": "2026-09-10",
+      "fileCount": 92,
+      "extractedBytes": 34634700,
+      "lastValidatedArchiveBytes": 30736222,
+      "archiveSha256": "45f7aad33eec07881b23aeaa0731c1edea34a9d55d6ecd33a1c84777ce9b6b25",
+      "phoneBrowserJourneysPassed": 2,
+      "testedInsideActualItchPage": false,
       "withdrawnMediaIncluded": false
     },
     "visualEvidence": {

@@ -1,6 +1,7 @@
 # Mythical Void — itch.io release candidate
 
-Status: technically packaged; an honest no-screenshot page is ready for Kevin’s review
+Status: rebuilt and browser-checked 10 September 2026; an honest no-screenshot
+page is ready for Kevin’s review
 
 ## What now exists
 
@@ -11,6 +12,19 @@ Status: technically packaged; an honest no-screenshot page is ready for Kevin’
 It opens the game immediately, uses local file paths that work inside an itch.io project folder, keeps progress in the player’s browser and does not run the Mythical Void website’s Google tag. The normal mythicalvoid.com build is unchanged.
 
 The package is automatically stopped if it exceeds itch.io’s current limits of 1,000 extracted files, 500 MB extracted size or 240 characters in a file path. It also checks that every local game file it names is present.
+
+The current package is tied to game source `94800164`. It contains 92 files
+and 34,634,700 extracted bytes. The upload ZIP is 30,736,222 bytes with
+SHA-256 `45f7aad33eec07881b23aeaa0731c1edea34a9d55d6ecd33a1c84777ce9b6b25`.
+
+Two clean 390 × 844 browser journeys passed against that exact package on 10
+September: the opening reached the interactive egg, and the hosted-media
+failure path reached the real local creature and enabled **ENTER SANCTUARY**.
+Both recorded zero browser errors, network failures, portrait requests and
+video requests. This proves the independent package can start and reach its
+first real world without Mythical Void's hosted extras. It does not pretend
+that an upload to itch.io has occurred, and the “Mobile Friendly” listing box
+must remain off until this exact package passes inside an actual itch.io page.
 
 ## Listing copy
 
@@ -120,7 +134,7 @@ When Kevin chooses the itch.io-first route:
 
 That approval will apply only to itch.io. It will not permit advertising, direct messages, bulk outreach or publication on another platform.
 
-## Official platform evidence checked 31 August 2026
+## Official platform evidence checked 10 September 2026
 
 - `https://itch.io/docs/creators/html5` — HTML5 projects use a ZIP with a
   top-level `index.html`, relative paths and the stated file/size limits.

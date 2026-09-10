@@ -39,9 +39,13 @@ rejected('premature cover approval', 'waiting for Kevin', candidate => { candida
 rejected('retired wording', 'retired companion wording', candidate => { candidate.listing.shortDescription = 'Find your AI companion.'; });
 rejected('unsupported uniqueness', 'unsupported creature-uniqueness promise', candidate => { candidate.listing.playerPromise = 'Every creature is unique.'; });
 rejected('unverified phone claim', 'mobile-friendly', candidate => { candidate.listing.mobileFriendlyClaimApproved = true; });
+rejected('invented itch upload test', 'invents an itch.io upload test', candidate => { candidate.technicalEvidence.testedInsideActualItchPage = true; });
+rejected('failed package browser journey', 'technical browser journey did not pass', candidate => { candidate.technicalEvidence.realBrowserChecks[0].passed = false; });
+rejected('hosted media request in portable journey', 'contacted hosted media', candidate => { candidate.technicalEvidence.realBrowserChecks[1].hostedPortraitRequests = 1; });
+rejected('package above file limit', 'exceeds the recorded file limit', candidate => { candidate.technicalEvidence.fileCount = 1001; });
 rejected('invented account access', 'invents an account or page', candidate => { candidate.reviewGate.itchAccountAccessProvided = true; });
 rejected('page created without authority', 'invents an account or page', candidate => { candidate.reviewGate.pageCreated = true; });
 rejected('invented Kevin approval', 'invents Kevin cover approval', candidate => { candidate.reviewGate.coverApprovedByKevin = true; });
 
-assert.strictEqual(cases, 14);
-console.log('itch.io listing safeguards passed (14 cases).');
+assert.strictEqual(cases, 18);
+console.log('itch.io listing safeguards passed (18 cases).');
