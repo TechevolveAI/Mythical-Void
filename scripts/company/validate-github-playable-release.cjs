@@ -30,8 +30,8 @@ requireValue(release.expectedUrl === 'https://github.com/TechevolveAI/Mythical-V
 
 for (const phrase of [
     '# Mythical Void is playable now — Early Access',
-    '[Play Mythical Void free in your browser](https://mythicalvoid.com/playable-now/)',
-    '[Start the game directly](https://mythicalvoid.com/play/)',
+    '[Play Mythical Void free in your browser](https://mythicalvoid.com/play/)',
+    '[See what you do before you begin](https://mythicalvoid.com/playable-now/)',
     '[Read the family guide](https://mythicalvoid.com/parents/)',
     'No download, account, payment details, game adverts or public chat are needed.',
     'father-and-son project',
@@ -44,6 +44,7 @@ for (const phrase of [
 requireValue(!/!\[[^\]]*\]\([^)]*\)|<img\b|<video\b|youtube\.com|youtu\.be|utm_|[?&](?:ref|source|campaign)=/i.test(body), 'release body contains media, video or tracking parameters');
 requireValue(!/unique creature|no two creatures|infinite creatures|NASA-powered|NASA game|perfect for children|safe for all|award|best game/i.test(body), 'release body contains an unsupported or inflated claim');
 requireValue(!/\b(?:nine|9)[ -]year[ -]old\b/i.test(body), 'release body exposes a child\'s exact age');
+requireValue(body.indexOf('https://mythicalvoid.com/play/') < body.indexOf('https://mythicalvoid.com/playable-now/'), 'the primary release action must open the game before the explainer');
 
 const truth = contract.truth || {};
 for (const field of ['earlyAccessDisclosed', 'freeBrowserPlayClaimed', 'noDownloadClaimed', 'noAccountClaimed', 'noPaymentDetailsClaimed', 'noGameAdsClaimed', 'noPublicChatClaimed']) requireValue(truth[field] === true, `truth.${field} must be true`);
@@ -66,7 +67,10 @@ requireValue(publicEvidence.tagName === release.tagName, 'public release tag is 
 requireValue(publicEvidence.targetCommit === 'eac3b8d202420aa5e2d175addcd3bfca70dfc5ae', 'public release target commit is invalid');
 requireValue(publicEvidence.title === release.title, 'public release title is invalid');
 requireValue(publicEvidence.publishedAt === '2026-08-31T06:05:48Z', 'public release time is invalid');
+requireValue(publicEvidence.bodyUpdatedAt === '2026-09-10T13:15:20Z', 'public release body update time is invalid');
 requireValue(publicEvidence.prerelease === true && publicEvidence.draft === false && publicEvidence.assetCount === 0, 'public release status is invalid');
+requireValue(publicEvidence.primaryPlayUrl === 'https://mythicalvoid.com/play/' && publicEvidence.primaryPlayUrlDirect === true, 'public release does not record the direct primary Play action');
+requireValue(publicEvidence.gameGuideUrl === 'https://mythicalvoid.com/playable-now/', 'public release does not record the secondary game guide');
 requireValue(publicEvidence.bodySha256 === crypto.createHash('sha256').update(body).digest('hex'), 'public release body hash is invalid');
 requireValue(typeof contract.measurementBoundary === 'string' && contract.measurementBoundary.length >= 250, 'measurement boundary is incomplete');
 requireValue(typeof contract.rollback === 'string' && contract.rollback.length >= 180, 'rollback is incomplete');
