@@ -183,7 +183,8 @@ if (/World Size:\s*1600x1200|20 trees|30 rocks|40 interactive flowers|Canvas Siz
 if (/\bcompanions?\b|\bsignal\b/i.test(readme)) failures.push('public GitHub doorway uses retired player-facing wording');
 
 const sitemapUrls = [...sitemap.matchAll(/<loc>https:\/\/mythicalvoid\.com\/[^<]*<\/loc>/g)];
-if (sitemapUrls.length !== 16) failures.push(`sitemap should contain 16 public routes, found ${sitemapUrls.length}`);
+if (sitemapUrls.length !== 17) failures.push(`sitemap should contain 17 public routes, found ${sitemapUrls.length}`);
+if (!sitemap.includes('<loc>https://mythicalvoid.com/play/</loc>')) failures.push('sitemap is missing the canonical direct Play route');
 
 if (failures.length) {
     console.error('Owned discovery release is not ready:\n');

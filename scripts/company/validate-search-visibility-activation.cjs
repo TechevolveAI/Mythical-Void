@@ -182,7 +182,7 @@ for (const phrase of [
     'data-static-search-entry',
     'Hatch something strange. Restore six living realms.',
     'alien creature shaped by a genetics system',
-    'decide what Project Beacon should tell Earth',
+    'decide what your mission should tell Earth',
     'Free to play · No download · No account needed',
     'href="/play/"',
     'href="/playable-now/"',
