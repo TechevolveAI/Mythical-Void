@@ -180,7 +180,12 @@ describe('playable level combat contracts', () => {
         expect(source).toContain(
             'drifter.body.checkCollision.none = drifter.isPhased;'
         );
+        expect(source).toContain('!this.isEnemyPhysicsReady(wraith)');
+        expect(source).toContain(
+            'this.trackEnemyTimer(wraith, this.time.delayedCall(1200, () => {'
+        );
         expect(source).toContain('super.update(time, delta);');
         expect(platformerSource).toContain('this.updateEnemyCombatReadability();');
+        expect(platformerSource).toContain('isEnemyPhysicsReady(enemy)');
     });
 });

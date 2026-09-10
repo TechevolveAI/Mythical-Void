@@ -4539,6 +4539,15 @@ class PlatformerLevelScene extends Phaser.Scene {
         return true;
     }
 
+    isEnemyPhysicsReady(enemy) {
+        return Boolean(
+            enemy?.active &&
+            enemy.body &&
+            enemy.body.enable !== false &&
+            this.scene?.isActive?.() !== false
+        );
+    }
+
     telegraphEnemyAttack(enemy, {
         duration = 450,
         color = 0xFF6B6B,
@@ -4547,12 +4556,14 @@ class PlatformerLevelScene extends Phaser.Scene {
         targetY = this.player?.y,
         onComplete = null
     } = {}) {
-        if (!enemy?.active || enemy.attackTelegraphActive) return false;
+        if (!this.isEnemyPhysicsReady(enemy) || enemy.attackTelegraphActive) {
+            return false;
+        }
 
         enemy.attackTelegraphActive = true;
-        const cue = this.add.graphics()
+        const cue = this.trackEnemyArtifact(enemy, this.add.graphics()
             .setPosition(enemy.x, enemy.y)
-            .setDepth(Math.max(874, (Number(enemy.depth) || 0) + 1));
+            .setDepth(Math.max(874, (Number(enemy.depth) || 0) + 1)));
         cue.lineStyle(4, color, 0.92);
         cue.strokeCircle(0, 0, Math.max(16, radius));
         if (Number.isFinite(targetX) && Number.isFinite(targetY)) {
@@ -4568,12 +4579,16 @@ class PlatformerLevelScene extends Phaser.Scene {
             duration: Math.max(180, duration),
             ease: 'Sine.easeIn',
             onUpdate: () => {
-                if (enemy.active) cue.setPosition(enemy.x, enemy.y);
+                if (this.isEnemyPhysicsReady(enemy)) {
+                    cue.setPosition(enemy.x, enemy.y);
+                }
             },
             onComplete: () => {
+                const canComplete = this.isEnemyPhysicsReady(enemy);
+                enemy.runtimeArtifacts?.delete?.(cue);
                 cue.destroy();
                 enemy.attackTelegraphActive = false;
-                if (enemy.active) onComplete?.();
+                if (canComplete) onComplete?.();
             }
         });
         return true;

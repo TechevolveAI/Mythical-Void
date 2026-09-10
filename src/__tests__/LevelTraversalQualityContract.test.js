@@ -62,6 +62,48 @@ function loadPlatformerLevelScene() {
 }
 
 describe('campaign traversal quality contracts', () => {
+    test('enemy telegraphs cannot move an object after its physics body is removed', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'EnemyLifecycleTest' });
+        const cue = {
+            active: true,
+            setPosition: jest.fn().mockReturnThis(),
+            setDepth: jest.fn().mockReturnThis(),
+            lineStyle: jest.fn().mockReturnThis(),
+            strokeCircle: jest.fn().mockReturnThis(),
+            lineBetween: jest.fn().mockReturnThis(),
+            setScale: jest.fn().mockReturnThis(),
+            destroy: jest.fn(function destroy() {
+                this.active = false;
+            })
+        };
+        let tweenConfig = null;
+        scene.scene.isActive = () => true;
+        scene.add = { graphics: jest.fn(() => cue) };
+        scene.tweens = {
+            add: jest.fn(config => {
+                tweenConfig = config;
+                return config;
+            })
+        };
+        const enemy = {
+            active: true,
+            body: { enable: true },
+            x: 120,
+            y: 80,
+            depth: 20
+        };
+        const attack = jest.fn();
+
+        expect(scene.telegraphEnemyAttack(enemy, { onComplete: attack })).toBe(true);
+        enemy.body = undefined;
+        tweenConfig.onComplete();
+
+        expect(cue.destroy).toHaveBeenCalledTimes(1);
+        expect(enemy.attackTelegraphActive).toBe(false);
+        expect(attack).not.toHaveBeenCalled();
+    });
+
     test('campaign objective HUD only rerasterizes when state changes', () => {
         const PlatformerLevelScene = loadPlatformerLevelScene();
         const scene = new PlatformerLevelScene({ key: 'ObjectiveHudBudgetTest' });

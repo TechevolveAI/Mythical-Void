@@ -2996,6 +2996,14 @@ class ReefLevel extends PlatformerLevelScene {
                     color: 0xFF0066,
                     radius: 48,
                     onComplete: () => {
+                        if (
+                            !this.isEnemyPhysicsReady(wraith) ||
+                            !this.player?.active ||
+                            !this.player.body
+                        ) {
+                            wraith.isTelegraphing = false;
+                            return;
+                        }
                         wraith.isTelegraphing = false;
                         wraith.isLunging = true;
                         const angle = Phaser.Math.Angle.Between(
@@ -3008,7 +3016,8 @@ class ReefLevel extends PlatformerLevelScene {
                             Math.cos(angle) * 350,
                             Math.sin(angle) * 350
                         );
-                        this.time.delayedCall(1200, () => {
+                        this.trackEnemyTimer(wraith, this.time.delayedCall(1200, () => {
+                            if (!this.isEnemyPhysicsReady(wraith)) return;
                             wraith.isLunging = false;
                             this.tweens.add({
                                 targets: wraith,
@@ -3017,11 +3026,12 @@ class ReefLevel extends PlatformerLevelScene {
                                 duration: 2500,
                                 ease: 'Sine.easeInOut',
                                 onComplete: () => {
+                                    if (!this.isEnemyPhysicsReady(wraith)) return;
                                     wraith.isLurking = true;
                                     wraith.setVelocity(0, 0);
                                 }
                             });
-                        });
+                        }));
                     }
                 });
             }
