@@ -15,7 +15,7 @@ const healthy = {
     checkedAt: '2026-09-10T09:05:55.149Z',
     status: 'pass',
     playRouteReachable: true,
-    sitemapUrls: 16,
+    sitemapUrls: 17,
     uniqueOwnedLinksChecked: 56,
     rssItems: 24,
     jsonItems: 24,

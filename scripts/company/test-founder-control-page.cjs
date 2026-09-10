@@ -76,9 +76,9 @@ try {
     assert.strictEqual(output.currentDecisionCount, 1);
     assert.strictEqual(output.currentDecisionId, 'FD-002');
     assert.strictEqual(output.freshStatusCommand, 'npm run founder:status');
-    assert.strictEqual(output.observedProductionDeployId, '6aa28a3fc73e5a0008dfa810');
+    assert.strictEqual(output.observedProductionDeployId, '6aa29367f7a56a0008fe652c');
     assert.strictEqual(output.heldDecisionCount, 1);
-    assert.strictEqual(output.observedProductionSourceCommit, '13ad7ff85fd3e77277c378f3b0d2f033cfa761a5');
+    assert.strictEqual(output.observedProductionSourceCommit, 'd9872e8c817714b212062b8a907c96ee4c46808d');
     assert.strictEqual(output.historicalFirstContactReleasePullRequest, 246);
     assert.strictEqual(output.communityPostMade, false);
     assert.strictEqual(output.creatureArtworkHumanApproved, false);

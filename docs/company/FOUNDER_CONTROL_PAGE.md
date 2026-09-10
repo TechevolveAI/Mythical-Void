@@ -7,14 +7,14 @@ that matter now.
 ## Check this first
 
 The website returned after an earlier hosting interruption. A fresh production
-check at 10:56 UTC reached all 16 sitemap pages, six additional important
+check at 11:26 UTC reached all 17 sitemap pages, six additional important
 routes and 57 unique owned links. The game, news feeds, analytics permission
 boundary and truthful live-activity display all passed. This proves
 availability, not players, enjoyment or growth.
 
 The production release observed during that check was deployment
-`6aa28a3fc73e5a0008dfa810`, built from protected main commit
-`13ad7ff85fd3e77277c378f3b0d2f033cfa761a5`. Publishing a later studio-only
+`6aa29367f7a56a0008fe652c`, built from protected main commit
+`d9872e8c817714b212062b8a907c96ee4c46808d`. Publishing a later studio-only
 record may create a newer deployment, so the fresh command—not this historic
 identifier—is the source of truth for availability.
 
@@ -29,10 +29,10 @@ route automatically returns to hold.
   [mythicalvoid.com](https://mythicalvoid.com/) and
   [Play Mythical Void](https://mythicalvoid.com/play/).
 - **The direct game link now introduces itself correctly:** `/play/` has its own
-  web address and share identity, while keeping the approved brand card clearly
-  labelled as brand art rather than gameplay. The community launch check now
-  tests this exact page instead of allowing a healthy homepage to hide a broken
-  game link.
+  search title, plain description, web address and share identity. It is now in
+  the sitemap, while the approved brand card remains clearly labelled as brand
+  art rather than gameplay. The community launch check tests this exact page
+  instead of allowing a healthy homepage to hide a broken game link.
 - **The phone welcome is stronger:** visitors now see a focused window into the
   creature universe on the first screen, Play remains clear and the artwork is
   labelled as an imagined interpretation rather than gameplay.
