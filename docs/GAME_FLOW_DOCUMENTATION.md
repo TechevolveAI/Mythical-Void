@@ -104,10 +104,23 @@ startButton.on('pointerdown', () => {
 
 ---
 
-### 5. **GameScene** (Free Roam World)
+### 5. **GameScene** (Sanctuary Community)
 **File:** `src/scenes/GameScene.js`
-**Purpose:** Main gameplay experience
-**Features:** Creature care, exploration, interaction
+**Purpose:** Peaceful home-base gameplay
+**Features:** Four-direction exploration, creature care, residents, gathering, community building, and expedition departure
+
+`GameScene` is not a platforming level. It uses the `sanctuary-community`
+contract in `src/config/GameplayModes.js` and must not inherit side-on jump,
+pit, checkpoint, or Guardian assumptions.
+
+### 6. **PlatformerLevelScene** (Realm Expeditions)
+**File:** `src/scenes/PlatformerLevelScene.js`
+**Purpose:** Shared base for side-on realm levels
+**Features:** Authored traversal, jumping, combat, hazards, checkpoints, alien ecology actions, Guardian encounters, rescues, and Sanctuary return
+
+Platformer subclasses use the `realm-platformer` contract. Horizontal movement
+and jump are the default; vertical joystick input is enabled only for a level
+whose authored mechanics require it.
 
 ---
 

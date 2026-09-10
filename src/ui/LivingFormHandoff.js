@@ -22,6 +22,38 @@ function formatIdentifier(value, fallback) {
         .toUpperCase();
 }
 
+const RARITY_CLASS = Object.freeze({
+    common: { label: 'COMMON', level: 1 },
+    uncommon: { label: 'UNCOMMON', level: 2 },
+    rare: { label: 'RARE', level: 3 },
+    epic: { label: 'EPIC', level: 4 },
+    legendary: { label: 'LEGENDARY', level: 5 }
+});
+
+function normalizeScore(value, fallback = 50, { ratio = false } = {}) {
+    const score = Number(value);
+    if (!Number.isFinite(score)) return fallback;
+    const normalized = ratio ? score * 100 : score;
+    return Math.round(Math.min(100, Math.max(0, normalized)));
+}
+
+function buildFieldIdentity({ rarity, powerLevel, stats, personality }) {
+    const rarityId = normalizeDisplayText(rarity, 'common', 16).toLowerCase();
+    const rarityClass = RARITY_CLASS[rarityId] || RARITY_CLASS.common;
+    return {
+        rarity: {
+            id: RARITY_CLASS[rarityId] ? rarityId : 'common',
+            ...rarityClass
+        },
+        nature: formatIdentifier(personality, 'CURIOUS'),
+        ratings: [
+            ['CURRENT', normalizeScore(powerLevel, 50, { ratio: true })],
+            ['VITALITY', normalizeScore(stats?.health, 100)],
+            ['ENERGY', normalizeScore(stats?.energy, 100)]
+        ]
+    };
+}
+
 export default class LivingFormHandoff {
     constructor(scene) {
         this.scene = scene;
@@ -64,6 +96,10 @@ export default class LivingFormHandoff {
         species,
         stage = 'baby',
         affinity = 'star',
+        rarity = 'common',
+        powerLevel = 0.5,
+        stats = null,
+        personality = 'curious',
         portraitPromise = null,
         referenceImage = null,
         onContinue = null,
@@ -79,6 +115,12 @@ export default class LivingFormHandoff {
         const safeSpecies = formatIdentifier(species, 'UNKNOWN SPECIES');
         const safeStage = formatIdentifier(stage, 'BABY');
         const safeAffinity = formatIdentifier(affinity, 'STAR');
+        const fieldIdentity = buildFieldIdentity({
+            rarity,
+            powerLevel,
+            stats,
+            personality
+        });
         const isLateReveal = mode === 'late_reveal';
         const isHatchChallengeEntry = window.location?.hash === '#hatch-challenge';
         const { width, height } = this.scene.scale;
@@ -201,15 +243,23 @@ export default class LivingFormHandoff {
         media.append(this.sourceLabel);
 
         const content = createElement('section', 'living-form-content');
-        content.append(
+        content.dataset.rarity = fieldIdentity.rarity.id;
+        const identityHeader = createElement('div', 'living-form-identity-header');
+        identityHeader.append(
             createElement(
                 'p',
                 'living-form-state',
                 isLateReveal
                     ? 'PROTECTED PORTRAIT RECOVERED'
                     : 'FIRST CONTACT RECORD LOCKED'
+            ),
+            createElement(
+                'p',
+                'living-form-rarity',
+                `${fieldIdentity.rarity.label} // CLASS ${fieldIdentity.rarity.level} OF 5`
             )
         );
+        content.append(identityHeader);
         this.title = createElement(
             'h1',
             'living-form-title',
@@ -230,7 +280,8 @@ export default class LivingFormHandoff {
         [
             ['SIGNATURE', safeSpecies],
             ['LIFE STAGE', safeStage],
-            ['CURRENT', safeAffinity]
+            ['CURRENT', safeAffinity],
+            ['NATURE', fieldIdentity.nature]
         ].forEach(([label, value]) => {
             const fact = createElement('div', 'living-form-fact');
             fact.append(
@@ -240,6 +291,34 @@ export default class LivingFormHandoff {
             facts.append(fact);
         });
         content.append(facts);
+
+        const ratings = createElement('section', 'living-form-ratings');
+        ratings.setAttribute('aria-label', `${safeName} field ratings`);
+        ratings.append(createElement(
+            'p',
+            'living-form-ratings-title',
+            'FIELD RATINGS'
+        ));
+        const ratingsGrid = createElement('div', 'living-form-ratings-grid');
+        fieldIdentity.ratings.forEach(([label, value]) => {
+            const rating = createElement('div', 'living-form-rating');
+            const ratingHeader = createElement('div', 'living-form-rating-header');
+            ratingHeader.append(
+                createElement('span', 'living-form-rating-label', label),
+                createElement('strong', 'living-form-rating-value', String(value))
+            );
+            const meter = createElement('span', 'living-form-rating-meter');
+            meter.setAttribute('role', 'meter');
+            meter.setAttribute('aria-label', `${label.toLowerCase()} ${value} out of 100`);
+            meter.setAttribute('aria-valuemin', '0');
+            meter.setAttribute('aria-valuemax', '100');
+            meter.setAttribute('aria-valuenow', String(value));
+            meter.style.setProperty('--living-form-rating', `${value}%`);
+            rating.append(ratingHeader, meter);
+            ratingsGrid.append(rating);
+        });
+        ratings.append(ratingsGrid);
+        content.append(ratings);
 
         if (isHatchChallengeEntry) {
             const challenge = createElement('aside', 'living-form-challenge');

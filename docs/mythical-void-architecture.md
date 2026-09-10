@@ -1,7 +1,7 @@
 # Mythical Void Architecture
 
 ## High-level Product Summary
-Mythical Void is a cozy, mobile-first Phaser game where players hatch and bond with a procedurally generated mythical companion. The experience blends Tamagotchi-style nurturing (feeding, playing, resting) with light exploration, collectible coins, and gentle “sparkle combat” moments. Visuals are hand-crafted via the GraphicsEngine, creating a whimsical, sci-fi-meets-fantasy vibe without heavy asset pipelines.
+Mythical Void is a mobile-first Phaser game where players hatch and bond with a procedurally generated alien creature. The experience combines a peaceful Sanctuary community with side-on expedition realms built around platforming, combat, discovery, and Guardian encounters.
 
 ## Target Players and Tone
 - **Audience**: Ages 8–14 and their caregivers/parents sharing screen time.
@@ -14,9 +14,26 @@ Mythical Void is a cozy, mobile-first Phaser game where players hatch and bond w
 1. **Hatching** – Click to hatch the egg, watch color transitions, and sparkles (`HatchingScene`).
 2. **Personality Reveal** – Reveal genetics/personality flare (`PersonalityScene`).
 3. **Naming** – Player names the creature, building early bond (`NamingScene`).
-4. **Exploration & Care** – Enter `GameScene`; move with touch/keys, smell flowers, collect coins, calm void wisps.
-5. **Nurture Cycle** – Use care actions, feed/play/rest, track happiness/energy XP.
-6. **Economy Loop** – Spend coins in Shop, manage items in Inventory, personalize the companion, repeat exploring & caring.
+4. **Sanctuary & Care** – Enter `GameScene`; care for the creature, meet residents, gather supplies, and grow the community.
+5. **Realm Expeditions** – Enter a `PlatformerLevelScene` subclass; traverse authored routes, fight corruption, discover alien ecology, and confront a Guardian.
+6. **Nurture Cycle** – Use care actions, feed/play/rest, track happiness/energy XP.
+7. **Economy Loop** – Spend coins in Shop, manage items in Inventory, personalize the creature, repeat Sanctuary and expedition play.
+
+## Gameplay Mode Boundary
+
+These are separate player experiences and must not be treated as one generic movement scene.
+
+| Contract | Sanctuary community | Realm platformer |
+| --- | --- | --- |
+| Code owner | `GameScene` | `PlatformerLevelScene` subclasses |
+| Mode ID | `sanctuary-community` | `realm-platformer` |
+| Camera | Top-down exploration | Side-on platforming |
+| Movement | Continuous four-direction ground movement | Horizontal movement, jump and combat; vertical input only when a level explicitly enables it |
+| Main purpose | Care, building, residents, resources and return moments | Traversal, hazards, enemies, ecology actions, Guardian and rescue |
+| Failure expectation | Navigation remains forgiving and never strands the player | Checkpoints, pit recovery and readable platform collision own failure and recovery |
+| UI expectation | One community objective and nearby action; four-direction mobile stick | One route objective plus jump/action controls; no Sanctuary-building controls |
+
+`src/config/GameplayModes.js` is the code-level source for this boundary. Shared UI may consume the active mode, but mode-specific controls and progression remain owned by their scene family.
 
 ## Scene Overview
 | Scene | Purpose | Notes |
@@ -24,7 +41,8 @@ Mythical Void is a cozy, mobile-first Phaser game where players hatch and bond w
 | `HatchingScene` | Entry point, onboarding, Kid Mode gating, Start button resets `GameState`. | Colors, sparkles, tutorial pointer, ensures flow state. |
 | `PersonalityScene` | Shows creature genetics/personality quirks, ensures data from Hatching. | Uses `CreatureGenetics`, displays animations. |
 | `NamingScene` | Player names creature; final pre-world gating. | Input validation via `InputValidator`, flags a welcome toast for GameScene. |
-| `GameScene` | Main loop: exploration, interactions, coins, enemies, care UI, mobile controls. | Uses `WorldBuilder`, `EconomyHudManager`, and `CarePanelManager` to shrink scope. |
+| `GameScene` | Sanctuary community loop: care, residents, resources, building and expedition departure. | Uses `WorldBuilder`, `EconomyHudManager`, and `CarePanelManager`; owns four-direction Sanctuary controls. |
+| `PlatformerLevelScene` | Shared base for expedition realms. | Owns side-on movement, jump/combat controls, platforms, checkpoints, Guardian flow and return to Sanctuary. |
 | `ShopScene` | Cosmic shop UI, responsive layout, categories + purchase panel. | Warm “Bring Home” copy plus “ask a grown-up” guidance; responsive dims per device. |
 | `InventoryScene` | Manage items, sort/filter, equip/use with InventoryManager. | Desktop sidebar vs mobile layout. |
 

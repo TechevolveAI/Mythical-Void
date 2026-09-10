@@ -19,6 +19,7 @@ import {
 import { companionMediaService } from '../systems/CompanionMediaService.js';
 import { getVillageGameplayEffects, getVillageSupportSummary } from '../systems/VillageSettlement.js';
 import { resolveTextureContactGeometry } from '../systems/CreatureContactGeometry.js';
+import { GAMEPLAY_MODES } from '../config/GameplayModes.js';
 
 const BOSS_REWARD_KEY_BY_LEVEL = Object.freeze({
     crystalCaves: 'crystalGolem',
@@ -203,6 +204,7 @@ function calculateVictoryCoins(levelId, bonusCount = 0) {
 class PlatformerLevelScene extends Phaser.Scene {
     constructor(config = {}) {
         super({ key: config.key || 'PlatformerLevel' });
+        this.gameplayMode = GAMEPLAY_MODES.REALM_PLATFORMER;
 
         // Level configuration
         this.levelId = config.levelId || 'unknown';
