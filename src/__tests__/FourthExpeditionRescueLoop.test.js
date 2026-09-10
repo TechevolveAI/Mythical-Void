@@ -49,8 +49,11 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain("this.isPlayerGroundedOnTraversalSupport('peak-titan-gate')");
     });
 
-    test('turns the third relay into the distant creature-network reveal', () => {
+    test('turns the third relay into a visible creature-led warning and reply', () => {
         const source = readLevel();
+        const response = source.match(
+            /playCreatureWarningResponse\(relay\)\s*\{([\s\S]*?)\n    \}\n\n    getCreatureWarningResponseSnapshot/
+        )?.[1] || '';
 
         expect(source).toContain('const companionName = this.getCompanionName()');
         expect(source).toContain('Warning sent. Stay close.');
@@ -60,6 +63,28 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain('Light 3 warning beacons. Then free the Cosmic Titan.');
         expect(source).toContain('`[ BEACON ] ${resume.label} link restored`');
         expect(source).toContain('this.creatureNetworkReached = true');
+        expect(source).toContain('this.playCreatureWarningResponse(relay)');
+        expect(source).toContain('relay.label?.setVisible?.(false)');
+        expect(response).toContain('sourceX: body.center.x');
+        expect(response).toContain('sourceY: body.bottom');
+        expect(source).toContain('SENDS THE WARNING');
+        expect(response).toContain('duration: 1600');
+        expect(response).toContain('Math.min(element.alpha, 0.24)');
+        expect(response).toContain("'peaks_warning_witness'");
+        expect(response).toContain('witnessOffsetX');
+        expect(response).toContain('body.allowGravity = false');
+        expect(response).toContain('this.recoveryInputLockedUntil = Math.max(');
+        expect(response).toContain('this.player?.setVelocityX?.(0)');
+        expect(source).toContain('restoreCreatureWarningPresentation(response)');
+        expect(source).toContain(
+            'this.player.body.allowGravity = response.previousAllowGravity'
+        );
+        expect(source).toContain('element.setAlpha?.(alpha)');
+        expect(response).toContain('this.showDistantReplyNetwork(relay);');
+        expect(response).toContain("response.stage = 'settled'");
+        expect(response).not.toContain('this.physics.pause');
+        expect(response).not.toContain('hidePlatformerMobileControls');
+        expect(source).toContain('this.clearCreatureWarningResponse();');
         expect(source).toContain("event: 'creature_warning_network_reached'");
     });
 
@@ -193,7 +218,10 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain("compass?.replace(/^CLUE/, 'CLIMB')");
         expect(source).toContain('TITAN PASS IS OPEN');
         expect(source).toContain(
-            '!(this.isCompactObjectiveHUD && this.bossFightActive)'
+            '(this.isCompactObjectiveHUD && this.bossFightActive) ||'
+        );
+        expect(source).toContain(
+            '(Number(this.time?.now) || 0) < this.warningReplyCameraFocusUntil'
         );
         expect(source).toContain('this.createBossIndicator()');
         expect(source).toContain('this.updateBossIndicator()');
