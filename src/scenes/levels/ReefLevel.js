@@ -230,6 +230,9 @@ class ReefLevel extends PlatformerLevelScene {
         this.beaconAnchors = [];
         this.beaconAnchorsActivated = 0;
         this.reefRouteAligned = false;
+        this.creaturePassageWake = null;
+        this.creaturePassageWakeTween = null;
+        this.reefPassageCameraFocusUntil = 0;
         this.bossGateHintUntil = 0;
         this.routeHintUntil = 0;
         this.levelEntryDismissing = false;
@@ -329,6 +332,9 @@ class ReefLevel extends PlatformerLevelScene {
         this.beaconAnchors = [];
         this.beaconAnchorsActivated = 0;
         this.reefRouteAligned = false;
+        this.creaturePassageWake = null;
+        this.creaturePassageWakeTween = null;
+        this.reefPassageCameraFocusUntil = 0;
         this.bossGateHintUntil = 0;
         this.routeHintUntil = 0;
         this.levelEntryDismissing = false;
@@ -1653,10 +1659,18 @@ class ReefLevel extends PlatformerLevelScene {
             .sort((left, right) => Number(left.x) - Number(right.x));
     }
 
-    drawBeaconWaypoint(graphics, x, y, supportY, activated) {
+    drawBeaconWaypoint(
+        graphics,
+        x,
+        y,
+        supportY,
+        activated,
+        passageProgress = 0
+    ) {
         graphics.clear();
         const color = activated ? 0x8FE3CF : 0x3D5266;
         const core = activated ? 0xF2C94C : 0x8FE3CF;
+        const opening = Phaser.Math.Clamp(Number(passageProgress) || 0, 0, 1);
 
         // A current bloom grows from the shelf so the objective belongs to
         // the Reef instead of reading as a navigation instrument.
@@ -1667,6 +1681,17 @@ class ReefLevel extends PlatformerLevelScene {
         graphics.fillEllipse(x + 13, y - 4, 20, 38);
         graphics.fillStyle(core, activated ? 1 : 0.82);
         graphics.fillCircle(x, y - 5, activated ? 10 : 8);
+        if (opening > 0) {
+            const spread = 18 + opening * 34;
+            const rise = 24 + opening * 36;
+            graphics.fillStyle(0x8FE3CF, 0.16 + opening * 0.16);
+            graphics.fillEllipse(x, y - 8, 78 + spread, 94 + rise);
+            graphics.fillStyle(0xF2C94C, 0.28 + opening * 0.28);
+            graphics.fillEllipse(x - spread * 0.42, y - rise * 0.38, 20, 50);
+            graphics.fillEllipse(x + spread * 0.45, y - rise * 0.28, 18, 42);
+            graphics.fillStyle(0xE8FFF7, 0.62 + opening * 0.28);
+            graphics.fillEllipse(x, y - rise * 0.72, 14, 24);
+        }
         const stemDistance = Math.max(0, supportY - y - 34);
         const stemCount = Math.max(2, Math.ceil(stemDistance / 18));
         for (let index = 0; index < stemCount; index += 1) {
@@ -1679,6 +1704,196 @@ class ReefLevel extends PlatformerLevelScene {
                 Math.max(2, 5 - progress * 2)
             );
         }
+    }
+
+    drawCreaturePassageWake(wake) {
+        const graphics = wake?.visual;
+        if (!graphics?.active) return false;
+
+        const progress = Phaser.Math.Clamp(Number(wake.progress) || 0, 0, 1);
+        const contactProgress = Phaser.Math.Clamp(progress / 0.22, 0, 1);
+        const travelProgress = Phaser.Math.Clamp((progress - 0.12) / 0.62, 0, 1);
+        const responseProgress = Phaser.Math.Clamp((progress - 0.58) / 0.42, 0, 1);
+        graphics.clear();
+
+        // The first shape remains attached to the creature's actual ground
+        // contact. The Current then grows as overlapping living tissue instead
+        // of a thin line or route marker.
+        graphics.fillStyle(0xF2C94C, 0.18 + contactProgress * 0.28);
+        graphics.fillEllipse(
+            wake.sourceX,
+            wake.sourceY - 3,
+            34 + contactProgress * 46,
+            10 + contactProgress * 12
+        );
+        graphics.fillStyle(0x8FE3CF, 0.18 + contactProgress * 0.34);
+        for (let step = 0; step <= 4; step += 1) {
+            const t = step / 4;
+            graphics.fillEllipse(
+                wake.sourceX + (wake.bloomX - wake.sourceX) * t,
+                wake.sourceY + (wake.bloomY - wake.sourceY) * t,
+                18 + contactProgress * 10,
+                12 + contactProgress * 8
+            );
+        }
+
+        const travelDistance = wake.travelDistance * travelProgress;
+        const segmentCount = Math.max(1, Math.ceil(travelDistance / 16));
+        for (let index = 0; index <= segmentCount; index += 1) {
+            const distance = Math.min(travelDistance, index * 16);
+            const wave = Math.sin((distance / 42) * Math.PI) * 11;
+            const taper = 1 - (distance / Math.max(1, wake.travelDistance)) * 0.38;
+            const x = wake.bloomX + distance;
+            const y = wake.bloomY + wave;
+            graphics.fillStyle(0x8FE3CF, 0.16 + taper * 0.2);
+            graphics.fillEllipse(x, y, 34 * taper, 24 * taper);
+            graphics.fillStyle(0xF2C94C, 0.42 + taper * 0.32);
+            graphics.fillEllipse(x, y, 15 * taper, 9 * taper);
+        }
+
+        if (responseProgress > 0) {
+            const destinationX = wake.bloomX + wake.travelDistance;
+            graphics.fillStyle(0x8FE3CF, 0.16 + responseProgress * 0.2);
+            graphics.fillEllipse(
+                destinationX,
+                wake.bloomY,
+                34 + responseProgress * 54,
+                28 + responseProgress * 64
+            );
+            graphics.fillStyle(0xF2C94C, 0.38 + responseProgress * 0.34);
+            graphics.fillEllipse(
+                destinationX - 16 * responseProgress,
+                wake.bloomY - 21 * responseProgress,
+                16,
+                38
+            );
+            graphics.fillEllipse(
+                destinationX + 18 * responseProgress,
+                wake.bloomY - 16 * responseProgress,
+                14,
+                32
+            );
+        }
+        return true;
+    }
+
+    playCreaturePassageOpening(anchor) {
+        const body = this.player?.body;
+        if (!anchor?.visual?.active || !body) return false;
+
+        this.clearCreaturePassageWake();
+        const wake = {
+            anchorId: anchor.id,
+            sourceX: body.center.x,
+            sourceY: body.bottom,
+            bloomX: anchor.x,
+            bloomY: anchor.y,
+            supportY: anchor.supportY,
+            travelDistance: this.isMobile ? 170 : 250,
+            progress: 0,
+            stage: 'contact',
+            settled: false,
+            visual: this.add.graphics().setDepth(184)
+        };
+        this.creaturePassageWake = wake;
+        this.reefPassageCameraFocusUntil = (Number(this.time?.now) || 0) + 1250;
+        anchor.visual.setAlpha(1);
+        this.drawCreaturePassageWake(wake);
+        this.showFloatingText(
+            `${this.getCompanionName()} PRESSES INTO THE CURRENT`,
+            wake.sourceX,
+            wake.sourceY - 100,
+            '#F2C94C'
+        );
+
+        this.creaturePassageWakeTween = this.tweens.add({
+            targets: wake,
+            progress: 1,
+            duration: 1050,
+            ease: 'Sine.easeInOut',
+            onUpdate: () => {
+                const currentBody = this.player?.body;
+                if (currentBody && wake.progress < 0.72) {
+                    wake.sourceX = currentBody.center.x;
+                    wake.sourceY = currentBody.bottom;
+                }
+                wake.stage = wake.progress < 0.24
+                    ? 'contact'
+                    : (wake.progress < 0.78 ? 'travelling' : 'opening');
+                this.drawCreaturePassageWake(wake);
+                this.drawBeaconWaypoint(
+                    anchor.visual,
+                    anchor.x,
+                    anchor.y,
+                    anchor.supportY,
+                    true,
+                    Phaser.Math.Clamp((wake.progress - 0.5) / 0.5, 0, 1)
+                );
+            },
+            onComplete: () => {
+                wake.stage = 'settled';
+                wake.settled = true;
+                wake.progress = 1;
+                anchor.passageOpen = true;
+                anchor.visual.setAlpha(0.78);
+                this.drawCreaturePassageWake(wake);
+                this.drawBeaconWaypoint(
+                    anchor.visual,
+                    anchor.x,
+                    anchor.y,
+                    anchor.supportY,
+                    true,
+                    1
+                );
+                this.showFloatingText(
+                    'THE REEF OPENS A PATH',
+                    wake.bloomX + wake.travelDistance * 0.56,
+                    wake.bloomY - 70,
+                    '#D6EEF2'
+                );
+                this.creaturePassageWakeTween = null;
+                this.scheduleAutomaticReefGuardianAwakening();
+            }
+        });
+        return true;
+    }
+
+    getCreaturePassageWakeSnapshot() {
+        const wake = this.creaturePassageWake;
+        if (!wake) return null;
+        return {
+            anchorId: wake.anchorId,
+            stage: wake.stage,
+            progress: Number(wake.progress) || 0,
+            settled: wake.settled === true,
+            sourceX: wake.sourceX,
+            sourceY: wake.sourceY,
+            bloomX: wake.bloomX,
+            bloomY: wake.bloomY,
+            supportY: wake.supportY,
+            destinationX: wake.bloomX + wake.travelDistance,
+            visualActive: wake.visual?.active === true
+        };
+    }
+
+    clearCreaturePassageWake() {
+        this.creaturePassageWakeTween?.remove?.();
+        this.creaturePassageWakeTween = null;
+        this.creaturePassageWake?.visual?.destroy?.();
+        this.creaturePassageWake = null;
+    }
+
+    updateCameraLead() {
+        if (
+            this.player &&
+            (Number(this.time?.now) || 0) < this.reefPassageCameraFocusUntil
+        ) {
+            this.currentCameraLeadX = 0;
+            this.targetCameraLeadX = 0;
+            this.cameras.main.setFollowOffset(0, this.cameraBaseOffsetY);
+            return;
+        }
+        super.updateCameraLead();
     }
 
     activateBeaconWaypoint(anchor) {
@@ -1749,18 +1964,10 @@ class ReefLevel extends PlatformerLevelScene {
         } else if (this.beaconAnchorsActivated === 3) {
             this.reefRouteAligned = true;
             this.retireCompletedReefRouteGuidance();
-            this.time.delayedCall(650, () => {
-                this.showFloatingText(
-                    `${companionName}: "I can hold the route open. Stay with me."`,
-                    anchor.x,
-                    anchor.y - 126,
-                    '#F2C94C'
-                );
-            });
+            this.playCreaturePassageOpening(anchor);
             window.AchievementSystem?.recordEvent?.('story_interaction', {
                 event: 'reef_route_aligned'
             });
-            this.scheduleAutomaticReefGuardianAwakening();
         }
 
         window.AudioManager?.playAchievement?.();
@@ -1783,7 +1990,7 @@ class ReefLevel extends PlatformerLevelScene {
             anchor.guidanceTween?.remove?.();
             anchor.guidanceTween = null;
             anchor.label?.setVisible?.(false);
-            anchor.visual?.setAlpha?.(0.14);
+            anchor.visual?.setAlpha?.(anchor.passageOpen ? 0.78 : 0.14);
         });
         return true;
     }
@@ -2229,6 +2436,20 @@ class ReefLevel extends PlatformerLevelScene {
         this.restoreReefRouteState(resume.routeState, {
             rejoined: Number(resume.checkpointIndex) >= 1
         });
+        if (this.reefRouteAligned) {
+            const passageAnchor = this.beaconAnchors.at(-1);
+            if (passageAnchor) {
+                passageAnchor.passageOpen = true;
+                this.drawBeaconWaypoint(
+                    passageAnchor.visual,
+                    passageAnchor.x,
+                    passageAnchor.y,
+                    passageAnchor.supportY,
+                    true,
+                    1
+                );
+            }
+        }
         this.retireCompletedReefRouteGuidance();
         this.syncCampaignObjectiveDisplay();
         return true;
@@ -3193,6 +3414,7 @@ class ReefLevel extends PlatformerLevelScene {
         });
         if (!guardianEntered) return false;
 
+        this.clearCreaturePassageWake();
         this.retireCompletedReefRouteGuidance();
         this.bossTriggerZone?.destroy?.();
         this.bossTriggerZone = null;
@@ -4821,6 +5043,7 @@ class ReefLevel extends PlatformerLevelScene {
             anchor.zone?.destroy?.();
         });
         this.beaconAnchors = [];
+        this.clearCreaturePassageWake();
         this.openingSignalCurrent?.visual?.destroy?.();
         this.openingSignalCurrent?.label?.destroy?.();
         this.openingSignalCurrent?.pulseTween?.remove?.();

@@ -54,15 +54,33 @@ describe('third expedition rescue loop', () => {
         expect(source).toContain('createForwardAscentCurrent({');
     });
 
-    test('turns waypoint synchronization into the companion-led route discovery', () => {
+    test('turns waypoint synchronization into a visible creature-led route discovery', () => {
         const source = readLevel();
+        const opening = source.match(
+            /playCreaturePassageOpening\(anchor\)\s*\{([\s\S]*?)\n    \}\n\n    getCreaturePassageWakeSnapshot/
+        )?.[1] || '';
 
         expect(source).toContain('const companionName = this.getCompanionName()');
         expect(source).toContain('This message did not come from Earth.');
         expect(source).toContain('It is a traveler relay. Someone crossed before us.');
-        expect(source).toContain('I can hold the route open. Stay with me.');
         expect(source).toContain('this.reefRouteAligned = true');
+        expect(source).toContain('this.playCreaturePassageOpening(anchor);');
         expect(source).toContain("event: 'reef_route_aligned'");
+        expect(opening).toContain('sourceX: body.center.x');
+        expect(opening).toContain('sourceY: body.bottom');
+        expect(opening).toContain('wake.sourceX = currentBody.center.x');
+        expect(opening).toContain('wake.sourceY = currentBody.bottom');
+        expect(opening).toContain('duration: 1050');
+        expect(opening).toContain('this.reefPassageCameraFocusUntil');
+        expect(opening).toContain('PRESSES INTO THE CURRENT');
+        expect(opening).toContain('THE REEF OPENS A PATH');
+        expect(opening).toContain("wake.stage = 'settled'");
+        expect(opening).toContain('anchor.passageOpen = true');
+        expect(opening).not.toContain('this.physics.pause');
+        expect(opening).not.toContain('hidePlatformerMobileControls');
+        expect(opening).toContain('this.scheduleAutomaticReefGuardianAwakening();');
+        expect(source).toContain('this.clearCreaturePassageWake();');
+        expect(source).toContain('super.updateCameraLead();');
     });
 
     test('makes the Reef current a visible and mechanically stronger katana link', () => {
