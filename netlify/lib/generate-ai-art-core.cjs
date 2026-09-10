@@ -172,6 +172,18 @@ const NATURAL_IMPERFECTIONS = Object.freeze([
     'Include individual variation in pattern spacing, surface texture, and one subtly imperfect edge.',
     'Include breathing tension, compressed tissue at joints, and naturally irregular color boundaries.'
 ]);
+const ASTRONOMICAL_BACKDROPS = Object.freeze([
+    'Beyond the Sanctuary, a vast hydrogen-emission cloud contains dark molecular pillars and a narrow newborn-star jet, with scale and color behaving like a scientifically observed deep-space phenomenon.',
+    'The upper sky holds a distant galaxy cluster with one restrained gravitational-lensing arc and sparse foreground stars; it must feel physically plausible rather than like a fantasy wallpaper.',
+    'A broad star-forming dust lane crosses a faint edge-on spiral galaxy, with cold dark structure, small hot stellar nurseries, and realistic atmospheric scattering near the horizon.',
+    'A magnetically driven auroral curtain folds above the crystal horizon while a dense Milky-Way-like star field remains sharp only away from the damp ground haze.',
+    'A sculpted molecular cloud is backlit by several young blue stars, revealing deep cavities, dusty knots, and one subtle jet of ionized material rather than a generic colorful nebula.'
+]);
+const DISCOVERY_EASTER_EGGS = Object.freeze([
+    'Hide a tiny natural 23 motif in the terrain: two close amber Current motes beside three more distant white motes. It must reward a second look, never read as text or UI.',
+    'On the far crashed Wanderer-77 hull, include two separated clusters of seven dim practical beacon lamps. Keep them tiny, weathered, and subordinate to the creature.',
+    'Place one narrow mineral seam containing restrained red, charcoal-black, chalk-white, and living green bands together. It must look geological, not like a flag or logo.'
+]);
 
 function classifyGeminiFailure(error) {
     const message = String(error?.message || '').toLowerCase();
@@ -368,7 +380,7 @@ function validatePortraitSpec(spec) {
     if (!spec || typeof spec !== 'object') return false;
     if (
         spec.schemaVersion !== 1 ||
-        spec.promptVersion !== 'living-portrait-v5-individual-biology'
+        spec.promptVersion !== 'living-portrait-v6-alien-field-atlas'
     ) return false;
     if (
         typeof spec.identityKey !== 'string' ||
@@ -501,6 +513,16 @@ function buildCreatureRealization(spec) {
             NATURAL_IMPERFECTIONS,
             identityKey,
             'imperfection'
+        ),
+        astronomicalBackdrop: stablePromptChoice(
+            ASTRONOMICAL_BACKDROPS,
+            identityKey,
+            'astronomical-backdrop'
+        ),
+        discoveryEasterEgg: stablePromptChoice(
+            DISCOVERY_EASTER_EGGS,
+            identityKey,
+            'discovery-easter-egg'
         )
     });
 }
@@ -585,6 +607,9 @@ function buildCreaturePrompt(spec, style, {
         '',
         'SETTING // THE FEND, FIRST CONTACT',
         'Place the creature on real terrain in the alien Sanctuary clearing shortly after hatching: damp dark ground, cyan and green bioluminescent plants, drifting Current motes interacting with the air, distant crystal formations, an indigo-violet nebula sky, and the crashed Wanderer-77 far behind it.',
+        `Deep-sky field atlas: ${realization.astronomicalBackdrop}`,
+        `Quiet discovery detail: ${realization.discoveryEasterEgg}`,
+        'The astronomy must be scientifically grounded but original: do not reproduce a specific observatory photograph and do not include NASA names, insignia, mission marks, spacecraft, interface graphics, or implied endorsement.',
         'Render the ecosystem with convincing scale, weathering, moisture, airborne particles, depth, and contact shadows. It is warm, wondrous, habitable, and mysterious rather than empty outer space.',
         '',
         'COMPOSITION',
@@ -594,7 +619,7 @@ function buildCreaturePrompt(spec, style, {
         'Do not merely upscale, smooth, repaint, or extrude the pixel sprite. This is a creative biological realization of that exact individual.',
         '',
         'EXCLUSIONS',
-        'No pixel art, no game sprite, no voxel art, no mascot render, no stylized animation character, no obvious CGI character render, no concept-art beauty render, no chibi or kawaii proportions, no plush toy, no plastic figurine, no flat illustration, no humans, no astronaut, no human clothing, no spacesuit, no text, no logo, no watermark, no frame, no UI, no extra creatures, no duplicate body parts, no unrecorded eyes, wings, horns, or limbs, no horror, no weapons.'
+        'No pixel art, no game sprite, no voxel art, no mascot render, no stylized animation character, no obvious CGI character render, no concept-art beauty render, no chibi or kawaii proportions, no plush toy, no plastic figurine, no flat illustration, no generic Earth pet or familiar animal, no humans, no astronaut, no human clothing, no spacesuit, no text, no logo, no watermark, no frame, no UI, no extra creatures, no duplicate body parts, no unrecorded eyes, wings, horns, or limbs, no horror, no weapons.'
     ].join('\n');
 }
 

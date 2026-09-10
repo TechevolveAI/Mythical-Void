@@ -459,6 +459,12 @@ describe('LivingFormHandoff mobile continuation', () => {
             .toContain('SANCTUARY READY');
         expect(document.querySelector('[data-testid="living-form-handoff"]')?.dataset.portraitState)
             .toBe('developing');
+        handoff.image.onload();
+        expect(handoff.image.classList.contains('is-ready')).toBe(true);
+        expect(document.querySelector('.living-form-media-fallback')
+            .classList.contains('is-over-artwork')).toBe(true);
+        expect(document.querySelector('.living-form-media-fallback')
+            .classList.contains('is-hidden')).toBe(false);
         expect(document.querySelector('[data-testid="living-form-continue"]')?.disabled)
             .toBe(false);
         handoff.destroy();

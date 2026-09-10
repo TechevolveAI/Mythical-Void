@@ -85,7 +85,7 @@ export default class LivingFormHandoff {
 
         const root = createElement('div', 'living-form-handoff');
         root.classList.toggle('is-portrait-pending', Boolean(portraitPromise));
-        root.dataset.portraitState = portraitPromise ? 'developing' : 'offline';
+        root.dataset.portraitState = portraitPromise ? 'developing' : 'local';
         root.dataset.hatchChallenge = isHatchChallengeEntry ? 'active' : 'none';
         this.updateViewportSize = () => {
             const viewport = window.visualViewport;
@@ -349,6 +349,7 @@ export default class LivingFormHandoff {
         root.append(shell);
         this.root = root;
         this.isVisible = true;
+        this.portraitPending = Boolean(portraitPromise);
         this.continueActivated = false;
         this.continueButton = continueButton;
         this.mobileDock = mobileDock;
@@ -435,7 +436,6 @@ export default class LivingFormHandoff {
         }
 
         if (portraitPromise) {
-            this.portraitPending = true;
             this.startPortraitStatusSequence();
             Promise.resolve(portraitPromise)
                 .then(record => {
@@ -534,6 +534,7 @@ export default class LivingFormHandoff {
             'Living portrait unavailable. A retry has been scheduled.';
         this.root.classList.remove('is-portrait-pending');
         this.root.classList.add('has-portrait-failure');
+        this.mediaFallback?.classList.remove('is-over-artwork');
         this.root.dataset.portraitState = 'retry';
         this.mediaFallback?.classList.add('is-retry');
         this.mediaFallback?.querySelector?.('.living-form-spinner')?.remove?.();
@@ -592,7 +593,15 @@ export default class LivingFormHandoff {
             artworkRevealed = true;
             this.image.alt = alt;
             this.image.classList.add('is-ready');
-            this.mediaFallback?.classList.add('is-hidden');
+            const keepProgressVisible = isLocalReference && this.portraitPending;
+            this.mediaFallback?.classList.toggle(
+                'is-hidden',
+                !keepProgressVisible
+            );
+            this.mediaFallback?.classList.toggle(
+                'is-over-artwork',
+                keepProgressVisible
+            );
             this.displaySource = source;
             if (isGenerated) {
                 this.root.dataset.portraitState = 'ready';

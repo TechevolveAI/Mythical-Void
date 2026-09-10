@@ -12,11 +12,24 @@ function loadMobileControls(environment = {}) {
         .replace(/export default /g, '')
         .concat('\nmodule.exports = MobileControls;');
 
+    const layoutPath = path.join(__dirname, '../systems/MobileControlLayout.js');
+    const layoutSource = fs.readFileSync(layoutPath, 'utf8')
+        .replace(/export function /g, 'function ')
+        .concat('\nmodule.exports = { getJoystickVector };');
+    const layoutSandbox = {
+        module: { exports: {} },
+        exports: {},
+        Math,
+        Number
+    };
+    vm.runInNewContext(layoutSource, layoutSandbox, { filename: layoutPath });
+
     const sandbox = {
         module: { exports: {} },
         exports: {},
         console: { log: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
         devLog: jest.fn(),
+        getJoystickVector: layoutSandbox.module.exports.getJoystickVector,
         window: {
             matchMedia: jest.fn(() => ({ matches: false })),
             addEventListener: jest.fn(),
@@ -331,6 +344,56 @@ describe('MobileControls pointer ownership', () => {
             stopImmediatePropagation: jest.fn()
         });
         expect(controls.joystickActive).toBe(true);
+    });
+
+    test('reads a downward iOS drag relative to where the finger landed', () => {
+        const MobileControls = loadMobileControls({
+            navigator: {
+                maxTouchPoints: 5,
+                userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0) CriOS/140.0 Mobile'
+            }
+        });
+        const { scene, events } = createScene();
+        const controls = new MobileControls(scene);
+        controls.joystickBase = {
+            clear: jest.fn(), fillStyle: jest.fn(), fillCircle: jest.fn(),
+            lineStyle: jest.fn(), strokeCircle: jest.fn()
+        };
+        controls.joystickThumb = {
+            clear: jest.fn(), fillStyle: jest.fn(), fillCircle: jest.fn(),
+            lineStyle: jest.fn(), strokeCircle: jest.fn()
+        };
+        controls.joystickGlow = { setAlpha: jest.fn() };
+        controls.joystickCenterX = 90;
+        controls.joystickCenterY = 760;
+        controls.joystickMaxDistance = 35;
+        controls.joystickThumbRadius = 20;
+        controls.joystickHitBounds = { left: 0, right: 190, top: 700, bottom: 824 };
+        controls.setupCanvasJoystickInput();
+
+        events.find(evt => evt.type === 'touchstart').handler({
+            changedTouches: [{ identifier: 4, clientX: 90, clientY: 720 }],
+            preventDefault: jest.fn(),
+            stopImmediatePropagation: jest.fn()
+        });
+        events.find(evt => evt.type === 'touchmove').handler({
+            touches: [{ identifier: 4, clientX: 90, clientY: 746 }],
+            preventDefault: jest.fn(),
+            stopImmediatePropagation: jest.fn()
+        });
+
+        const latestVector = scene.game.events.emit.mock.calls
+            .filter(call => call[0] === 'virtual-joystick')
+            .at(-1)?.[1];
+        expect(latestVector.y).toBeGreaterThan(0.5);
+        expect(controls.joystickUsesRelativeDrag).toBe(true);
+        expect(controls.joystickThumb.fillCircle).toHaveBeenLastCalledWith(
+            90,
+            expect.any(Number),
+            20
+        );
+        expect(controls.joystickThumb.fillCircle.mock.calls.at(-1)[1])
+            .toBeGreaterThan(760);
     });
 
     test('keeps pointer ownership for Android touch input', () => {

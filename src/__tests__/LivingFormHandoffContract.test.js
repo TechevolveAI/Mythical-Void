@@ -114,6 +114,7 @@ describe('living form milestone handoff', () => {
         expect(cssSource).toContain('min-height: var(--living-form-action-reserve);');
         expect(cssSource).toContain('.living-form-spinner');
         expect(cssSource).toContain('.living-form-progress');
+        expect(cssSource).toContain('.living-form-media-fallback.is-over-artwork');
         expect(cssSource).toContain('@keyframes living-form-spin');
         expect(cssSource).toContain('.living-form-image.is-pixel-reference');
         expect(cssSource).toContain('width: min(48%, 360px)');
