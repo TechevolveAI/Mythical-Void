@@ -97,7 +97,10 @@
     "descriptionPlainLanguageAligned": true,
     "liveCheckCommand": "npm run audit:github-identity",
     "liveCheckReadOnly": true,
-    "homepageLive": "https://mythicalvoid.com/playable-now/",
+    "homepageLive": "https://mythicalvoid.com/play/",
+    "homepageCheckedAt": "2026-09-10T13:28:59Z",
+    "homepageDirectPlay": true,
+    "gameGuideLive": "https://mythicalvoid.com/playable-now/",
     "topicsLive": [
       "browser-game",
       "creature-game",
