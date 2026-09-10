@@ -104,7 +104,7 @@ function loadService({
             CreaturePortraitSpec: {
                 create: jest.fn(portraitSpecFactory || (() => ({
                     schemaVersion: 1,
-                    promptVersion: 'living-portrait-v5-individual-biology',
+                    promptVersion: 'living-portrait-v6-alien-field-atlas',
                     identityKey: 'creature-1:baby:abc123',
                     creatureId: 'creature-1',
                     stage: 'baby',
@@ -513,7 +513,7 @@ describe('background living portrait generation', () => {
             fetchImpl,
             portraitSpecFactory: () => ({
                 schemaVersion: 1,
-                promptVersion: 'living-portrait-v5-individual-biology',
+                promptVersion: 'living-portrait-v6-alien-field-atlas',
                 identityKey: `creature-${identityNumber}:baby:identity`,
                 creatureId: `creature-${identityNumber}`,
                 stage: 'baby',

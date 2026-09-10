@@ -324,6 +324,13 @@ describe('living portrait Netlify function', () => {
             'SETTING // THE FEND, FIRST CONTACT'
         );
         expect(providerBody.input.prompt).toContain('Wanderer-77');
+        expect(providerBody.input.prompt).toContain('Deep-sky field atlas:');
+        expect(providerBody.input.prompt).toContain('Quiet discovery detail:');
+        expect(providerBody.input.prompt).toContain(
+            'do not include NASA names, insignia, mission marks'
+        );
+        expect(providerBody.input.prompt).toMatch(/23 motif|clusters of seven|red, charcoal-black/);
+        expect(providerBody.input.prompt).toContain('no generic Earth pet or familiar animal');
         expect(providerBody.input.prompt).not.toContain('Nova');
     });
 
@@ -585,6 +592,21 @@ describe('living portrait Netlify function', () => {
         ).toEqual(
             portraitFunction._internal.buildCreatureRealization(spec)
         );
+    });
+
+    test('assigns a stable but identity-specific field-atlas backdrop', () => {
+        const original = createSpec();
+        const alternate = {
+            ...createSpec(),
+            identityKey: 'creature:alternate-field-atlas:77'
+        };
+        const first = portraitFunction._internal.buildCreatureRealization(original);
+        const repeated = portraitFunction._internal.buildCreatureRealization(original);
+        const second = portraitFunction._internal.buildCreatureRealization(alternate);
+
+        expect(repeated.astronomicalBackdrop).toBe(first.astronomicalBackdrop);
+        expect(repeated.discoveryEasterEgg).toBe(first.discoveryEasterEgg);
+        expect(second).not.toEqual(first);
     });
 
     test('changes biological realization with creature identity and anatomy', () => {

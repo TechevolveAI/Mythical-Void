@@ -30,6 +30,8 @@ class MobileControls {
         this.deadZone = 0.15; // 15% dead zone - movements within this range return 0
         this.activePointerId = null; // Track which pointer activated joystick
         this.joystickInputSource = null;
+        this.joystickTouchOrigin = null;
+        this.joystickUsesRelativeDrag = false;
         this.joystickActivatedAt = 0;
         this.lastJoystickMagnitude = 0;
         this.minimumFlickDuration = 140;
@@ -636,6 +638,11 @@ class MobileControls {
             this.joystickActive = true;
             this.activePointerId = normalizedPointerId;
             this.joystickInputSource = inputSource;
+            this.joystickTouchOrigin = {
+                x: normalizedPoint.x,
+                y: normalizedPoint.y
+            };
+            this.joystickUsesRelativeDrag = false;
             this.joystickActivatedAt = performance.now();
             this.lastJoystickMagnitude = 0;
             this.updateJoystickFromPointer(normalizedPoint);
@@ -703,7 +710,7 @@ class MobileControls {
             if (this.joystickInputSource && this.joystickInputSource !== 'pointer') return;
             event.preventDefault();
             event.stopImmediatePropagation();
-            this.updateJoystickFromPointer(point);
+            this.updateJoystickFromPointer(point, { relativeToTouchStart: true });
         };
 
         this.canvasPointerUpHandler = event => {
@@ -740,7 +747,7 @@ class MobileControls {
                 if (!point) return;
                 event.preventDefault();
                 event.stopImmediatePropagation?.();
-                this.updateJoystickFromPointer(point);
+                this.updateJoystickFromPointer(point, { relativeToTouchStart: true });
                 return;
             }
         };
@@ -769,7 +776,7 @@ class MobileControls {
                 }
                 event.preventDefault();
                 event.stopImmediatePropagation?.();
-                this.resetJoystick(true);
+                this.finishJoystickInput(this.activePointerId);
                 return;
             }
         };
@@ -777,7 +784,7 @@ class MobileControls {
             if (this.joystickInputSource && this.joystickInputSource !== 'pointer') return;
             const eventPointerId = getPointerId(event.pointerId);
             if (isJoystickPointer(eventPointerId)) {
-                this.resetJoystick(true);
+                this.finishJoystickInput(this.activePointerId);
             }
         };
         this.canvasLostPointerCaptureHandler = event => {
@@ -831,7 +838,7 @@ class MobileControls {
             if (eventPointerId === null || this.activePointerId === null || eventPointerId !== this.activePointerId) {
                 return;
             }
-            this.resetJoystick(true);
+            this.finishJoystickInput(eventPointerId);
         };
         window.addEventListener('pointerup', this.windowPointerUpHandler, { capture: true, passive: true });
         window.addEventListener('pointercancel', this.windowPointerCancelHandler, { capture: true, passive: true });
@@ -937,27 +944,57 @@ class MobileControls {
         }
     }
 
-    updateJoystickFromPointer(pointer) {
+    updateJoystickFromPointer(pointer, { relativeToTouchStart = false } = {}) {
+        const touchOffset = this.joystickTouchOrigin
+            ? {
+                x: Number(pointer?.x) - this.joystickTouchOrigin.x,
+                y: Number(pointer?.y) - this.joystickTouchOrigin.y
+            }
+            : null;
+        const dragDistance = touchOffset
+            ? Math.hypot(touchOffset.x, touchOffset.y)
+            : 0;
+        if (
+            relativeToTouchStart &&
+            dragDistance > this.joystickMaxDistance * this.deadZone
+        ) {
+            this.joystickUsesRelativeDrag = true;
+        }
+        const useRelativeDrag = Boolean(
+            relativeToTouchStart &&
+            this.joystickUsesRelativeDrag &&
+            this.joystickTouchOrigin
+        );
         const vector = getJoystickVector({
             pointerX: pointer?.x,
             pointerY: pointer?.y,
-            centerX: this.joystickCenterX,
-            centerY: this.joystickCenterY,
+            centerX: useRelativeDrag
+                ? this.joystickTouchOrigin.x
+                : this.joystickCenterX,
+            centerY: useRelativeDrag
+                ? this.joystickTouchOrigin.y
+                : this.joystickCenterY,
             maxDistance: this.joystickMaxDistance,
             deadZone: this.deadZone
         });
+        const thumbX = useRelativeDrag
+            ? this.joystickCenterX + vector.x * this.joystickMaxDistance
+            : vector.thumbX;
+        const thumbY = useRelativeDrag
+            ? this.joystickCenterY + vector.y * this.joystickMaxDistance
+            : vector.thumbY;
 
         this.joystickThumb.clear();
         this.joystickThumb.fillStyle(0xFFFFFF, 0.9);
         this.joystickThumb.fillCircle(
-            vector.thumbX,
-            vector.thumbY,
+            thumbX,
+            thumbY,
             this.joystickThumbRadius
         );
         this.joystickThumb.lineStyle(2, 0x00CED1, 1);
         this.joystickThumb.strokeCircle(
-            vector.thumbX,
-            vector.thumbY,
+            thumbX,
+            thumbY,
             this.joystickThumbRadius
         );
 
@@ -979,6 +1016,8 @@ class MobileControls {
         this.joystickActive = false;
         this.activePointerId = null;
         this.joystickInputSource = null;
+        this.joystickTouchOrigin = null;
+        this.joystickUsesRelativeDrag = false;
         this.lastJoystickMagnitude = 0;
 
         // Immediately snap thumb back to center (no tween for responsiveness)

@@ -174,6 +174,39 @@ describe('LivingFormHandoff mobile continuation', () => {
         )).toBeNull();
     });
 
+    test('shows a truthful field identity card from canonical creature values', () => {
+        const handoff = new LivingFormHandoff(createScene());
+        handoff.show({
+            name: 'Nova',
+            species: 'nebulaSprite',
+            stage: 'baby',
+            affinity: 'moon',
+            rarity: 'epic',
+            powerLevel: 0.73,
+            personality: 'curious',
+            stats: { health: 1, energy: 64 }
+        });
+
+        const card = document.querySelector('.living-form-content');
+        expect(card?.dataset.rarity).toBe('epic');
+        expect(document.querySelector('.living-form-rarity')?.textContent)
+            .toBe('EPIC // CLASS 4 OF 5');
+        expect(Array.from(document.querySelectorAll('.living-form-fact-value'))
+            .map(element => element.textContent)).toEqual([
+            'NEBULASPRITE',
+            'BABY',
+            'MOON',
+            'CURIOUS'
+        ]);
+        expect(Array.from(document.querySelectorAll('.living-form-rating-value'))
+            .map(element => element.textContent)).toEqual(['73', '1', '64']);
+        expect(Array.from(document.querySelectorAll('[role="meter"]'))
+            .map(element => element.getAttribute('aria-valuenow')))
+            .toEqual(['73', '1', '64']);
+
+        handoff.destroy();
+    });
+
     test('keeps the mobile Sanctuary route outside Phaser clipping', () => {
         const handoff = new LivingFormHandoff(createScene());
         handoff.show({
@@ -459,6 +492,12 @@ describe('LivingFormHandoff mobile continuation', () => {
             .toContain('SANCTUARY READY');
         expect(document.querySelector('[data-testid="living-form-handoff"]')?.dataset.portraitState)
             .toBe('developing');
+        handoff.image.onload();
+        expect(handoff.image.classList.contains('is-ready')).toBe(true);
+        expect(document.querySelector('.living-form-media-fallback')
+            .classList.contains('is-over-artwork')).toBe(true);
+        expect(document.querySelector('.living-form-media-fallback')
+            .classList.contains('is-hidden')).toBe(false);
         expect(document.querySelector('[data-testid="living-form-continue"]')?.disabled)
             .toBe(false);
         handoff.destroy();

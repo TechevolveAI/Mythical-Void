@@ -8,7 +8,7 @@
 
 (function initializeCreaturePortraitSpec(globalScope) {
     const SCHEMA_VERSION = 1;
-    const PROMPT_VERSION = 'living-portrait-v5-individual-biology';
+    const PROMPT_VERSION = 'living-portrait-v6-alien-field-atlas';
     const VALID_STAGES = new Set(['baby', 'juvenile', 'adult', 'elder']);
     const VALID_RARITIES = new Set(['common', 'uncommon', 'rare', 'epic', 'legendary']);
 

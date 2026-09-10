@@ -69,7 +69,7 @@ describe('CreaturePortraitSpec', () => {
 
         expect(spec).toEqual(expect.objectContaining({
             schemaVersion: 1,
-            promptVersion: 'living-portrait-v5-individual-biology',
+            promptVersion: 'living-portrait-v6-alien-field-atlas',
             creatureId: 'NEB-GEN-1234',
             name: 'Bloom',
             stage: 'baby',

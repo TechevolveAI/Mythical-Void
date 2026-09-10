@@ -30,6 +30,7 @@ import AbilityHUD from '../ui/AbilityHUD.js';
 import AIArtModal from '../ui/AIArtModal.js';
 import LivingFormHandoff from '../ui/LivingFormHandoff.js';
 import { createCanvasTapBridge } from '../utils/CanvasTapBridge.js';
+import { GAMEPLAY_MODES } from '../config/GameplayModes.js';
 import GameSceneSceneRouter from './controllers/GameSceneSceneRouter.js';
 import GameSceneHudController from './controllers/GameSceneHudController.js';
 import projectBeacon from '../config/project-beacon.json';
@@ -171,6 +172,7 @@ const POSITION_PERSIST_DISTANCE = 24;
 class GameScene extends Phaser.Scene {
     constructor() {
         super({ key: 'GameScene' });
+        this.gameplayMode = GAMEPLAY_MODES.SANCTUARY_COMMUNITY;
         this.player = null;
         this.astronautFollower = null;
         this.cursors = null;
@@ -14906,6 +14908,18 @@ class GameScene extends Phaser.Scene {
             affinity: window.GameState?.get?.(
                 'creature.genes.cosmicAffinity.element'
             ) || 'star',
+            rarity: window.GameState?.get?.('creature.genes.rarity')
+                || window.GameState?.get?.('creature.genetics.rarity')
+                || 'common',
+            powerLevel: window.GameState?.get?.(
+                'creature.genes.cosmicAffinity.powerLevel'
+            ) ?? window.GameState?.get?.(
+                'creature.genetics.cosmicAffinity.powerLevel'
+            ) ?? 0.5,
+            stats: window.GameState?.get?.('creature.stats'),
+            personality: window.GameState?.get?.('creature.personality.core')
+                || window.GameState?.get?.('creature.genes.personality.core')
+                || 'curious',
             portraitPromise: Promise.resolve(record),
             mode: 'late_reveal',
             onPortraitShown: shownRecord => {
