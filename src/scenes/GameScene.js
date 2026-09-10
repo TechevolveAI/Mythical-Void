@@ -4891,6 +4891,14 @@ class GameScene extends Phaser.Scene {
 
         if (!this.mobileCameraResizeHandler) {
             this.mobileCameraResizeHandler = () => {
+                if (
+                    this._isShuttingDown ||
+                    this.sys?.isActive?.() === false ||
+                    camera?.scene !== this ||
+                    !camera?._bounds
+                ) {
+                    return;
+                }
                 const mobile = window.responsiveManager?.isMobile ??
                     window.innerWidth < 768;
                 const dockVisible = this.hasVisibleTouchControls();
@@ -4922,6 +4930,13 @@ class GameScene extends Phaser.Scene {
         zoom,
         controlDockVisible = this.hasVisibleTouchControls()
     ) {
+        if (
+            this._isShuttingDown ||
+            camera?.scene !== this ||
+            !camera?._bounds
+        ) {
+            return false;
+        }
         let reservedWorldHeight = 0;
         if (isMobile || controlDockVisible) {
             const layout = getMobileControlLayout({
@@ -4942,6 +4957,7 @@ class GameScene extends Phaser.Scene {
             this.worldHeight + reservedWorldHeight
         );
         this.mobileControlDockWorldReserve = reservedWorldHeight;
+        return true;
     }
 
     applyExplorationCameraFollowOffset(
@@ -18281,6 +18297,14 @@ class GameScene extends Phaser.Scene {
         this._isShuttingDown = true;
         this.villageCommandPreviewState = null;
         console.log('[GameScene] Shutting down - cleaning up event listeners');
+        if (this.mobileCameraResizeHandler) {
+            this.scale?.off?.('resize', this.mobileCameraResizeHandler);
+            this.mobileCameraResizeHandler = null;
+        }
+        if (this.interactionTextResizeHandler) {
+            this.scale?.off?.('resize', this.interactionTextResizeHandler);
+            this.interactionTextResizeHandler = null;
+        }
         this.cancelVillageArrivalReveal();
         this.cancelRescuedResidentArrival();
         this.sanctuaryReturnMomentScheduleTimer?.remove?.();
@@ -18471,15 +18495,6 @@ class GameScene extends Phaser.Scene {
                 this.game.events.off('virtual-key', this.virtualKeyHandler, this);
                 this.virtualKeyHandler = null;
             }
-        }
-
-        if (this.mobileCameraResizeHandler) {
-            this.scale?.off?.('resize', this.mobileCameraResizeHandler);
-            this.mobileCameraResizeHandler = null;
-        }
-        if (this.interactionTextResizeHandler) {
-            this.scale?.off?.('resize', this.interactionTextResizeHandler);
-            this.interactionTextResizeHandler = null;
         }
 
         // Remove scene event listeners

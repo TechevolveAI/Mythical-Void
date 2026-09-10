@@ -744,11 +744,18 @@ export default class ShipEvidenceBoardModal {
         if (!this.isVisible) return;
         this.isVisible = false;
         this.clearElements();
-        if (!this.physicsWasPaused) this.scene.physics?.resume?.();
-        if (this.restoreMobileControls) {
+        const sceneCanResume = Boolean(
+            !this.scene?._isShuttingDown &&
+            this.scene?.sys?.isActive?.() !== false &&
+            this.scene?.physics?.world
+        );
+        if (!this.physicsWasPaused && sceneCanResume) {
+            this.scene.physics.resume();
+        }
+        if (this.restoreMobileControls && sceneCanResume) {
             this.scene.mobileControls?.resume?.();
         }
-        this.onClose?.();
+        if (!this.scene?._isShuttingDown) this.onClose?.();
     }
 
     destroy() {
