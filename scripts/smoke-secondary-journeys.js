@@ -15,6 +15,7 @@ const CDP_TIMEOUT_MS = Number(process.env.SMOKE_CDP_TIMEOUT_MS) || 15000;
 const CHROME_START_TIMEOUT_MS = Number(process.env.SMOKE_CHROME_START_TIMEOUT_MS) || 30000;
 const SMOKE_MODE = process.env.SMOKE_MODE || 'interaction';
 const SMOKE_CASE = process.env.SMOKE_CASE || 'all';
+const LIVE_PORTRAIT_SMOKE_MODE = 'first-sanctuary-live-portrait';
 const SMOKE_TRACE = process.env.SMOKE_TRACE === '1';
 const SMOKE_BROWSER_TRACE = process.env.SMOKE_BROWSER_TRACE === '1';
 const SMOKE_TOUCH_PROBE = process.env.SMOKE_TOUCH_PROBE || '';
@@ -78,6 +79,10 @@ let nextTouchIdentifier = 1;
 let evaluationSequence = 0;
 let activeVideoCapture = null;
 let visualReviewCreatureProfile = null;
+
+function providerSpendApproved(argv = process.argv.slice(2)) {
+    return argv.includes('--allow-provider-spend');
+}
 
 function getVisualReviewCreatureProfile() {
     if (visualReviewCreatureProfile) return visualReviewCreatureProfile;
@@ -10658,6 +10663,12 @@ async function smokeCreatureContinuity(session, exceptions) {
     const seeded = await evaluate(session, `(() => {
         const game = window.mythicalGame;
         const state = window.GameState;
+        // This fixture owns a synthetic portrait record. Keep its continuity
+        // proof local so only the explicit paid-media smoke can contact the
+        // story-video provider with a real protected portrait reference.
+        if (window.APIConfig) {
+            window.APIConfig.isVideoEnabled = () => false;
+        }
         const fixture = ${JSON.stringify(getVisualReviewCreatureProfile())};
         const creature = {
             ...(state.get('creature') || {}),
@@ -10966,36 +10977,44 @@ async function smokeCreatureContinuity(session, exceptions) {
 async function smokeFirstSanctuaryOnboarding(session, exceptions) {
     exceptions.length = 0;
     const firstContactProfile = getVisualReviewCreatureProfile();
+    const useLivePortraitProvider = SMOKE_MODE === LIVE_PORTRAIT_SMOKE_MODE;
     // This journey verifies first-session play, not a paid media provider.
     // Disable optional creature media inside this isolated browser before the
     // game boots. The explicit local success/failure promises below still
     // exercise both handoff designs without creating an anonymous media job,
     // uploading a creature reference, or spending provider credits.
-    await session.call('Page.addScriptToEvaluateOnNewDocument', {
-        source: `(() => {
-            Object.defineProperty(window, 'APIConfig', {
-                configurable: true,
-                get() {
-                    return undefined;
-                },
-                set(value) {
-                    value.isEnabled = () => false;
-                    value.isVideoEnabled = () => false;
-                    Object.defineProperty(window, 'APIConfig', {
-                        configurable: true,
-                        enumerable: true,
-                        writable: true,
-                        value
-                    });
-                }
-            });
-        })();`
-    });
+    if (!useLivePortraitProvider) {
+        await session.call('Page.addScriptToEvaluateOnNewDocument', {
+            source: `(() => {
+                Object.defineProperty(window, 'APIConfig', {
+                    configurable: true,
+                    get() {
+                        return undefined;
+                    },
+                    set(value) {
+                        value.isEnabled = () => false;
+                        value.isVideoEnabled = () => false;
+                        Object.defineProperty(window, 'APIConfig', {
+                            configurable: true,
+                            enumerable: true,
+                            writable: true,
+                            value
+                        });
+                    }
+                });
+            })();`
+        });
+    }
     await navigate(session, `${BASE_URL}/play/${SMOKE_ENTRY_HASH}`);
     await waitForScene(session, 'HatchingScene');
     await evaluate(session, `(() => {
         localStorage.setItem('mythical_void_age_confirmed', 'true');
-        localStorage.setItem('mythical_void_age_group', 'age_18_plus');
+        localStorage.setItem(
+            'mythical_void_age_group',
+            ${JSON.stringify(
+                useLivePortraitProvider ? 'age_under_13' : 'age_18_plus'
+            )}
+        );
         localStorage.removeItem('mythical_creature_save');
         const profile = ${JSON.stringify(firstContactProfile)};
         window.GameState?.set?.('creature.genes', profile.genes);
@@ -11006,18 +11025,16 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         window.GameState?.save?.();
         return true;
     })()`);
-    await navigate(
-        session,
-        `${BASE_URL}/play/?testSoulReveal=${
-            SMOKE_CASE === 'failure-handoff' ? 'fallback' : 'portrait-slow'
-        }${SMOKE_ENTRY_HASH}`
-    );
-    try {
-        await waitForScene(session, 'SoulRevealScene', 2500);
-    } catch (error) {
-        // Production intentionally ignores preview query parameters. Stage the
-        // same scene through Phaser so live audits exercise shipped code without
-        // exposing a public test URL or mutating a real player's save.
+    if (useLivePortraitProvider) {
+        await navigate(session, `${BASE_URL}/play/${SMOKE_ENTRY_HASH}`);
+        await waitForScene(session, 'HatchingScene');
+        const providerEnabled = await evaluate(
+            session,
+            `window.APIConfig?.isEnabled?.() === true`
+        );
+        if (!providerEnabled) {
+            throw new Error('Live portrait provider is not enabled in this build');
+        }
         const staged = await evaluate(session, `(() => {
             const game = window.mythicalGame;
             if (!game?.scene) return false;
@@ -11026,22 +11043,51 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
                     game.scene.stop(activeScene.scene.key);
                 }
             });
-            game.scene.start('SoulRevealScene', {
-                portraitPreviewImage: ${JSON.stringify(
-                    SMOKE_CASE === 'failure-handoff' ? null : '/marketing/nova.webp'
-                )},
-                portraitPreviewSpecies: 'nebulaSprite',
-                portraitPreviewFailure: ${SMOKE_CASE === 'failure-handoff'},
-                portraitPreviewDelay: 5000
-            });
+            game.scene.start('SoulRevealScene');
             return true;
         })()`);
         if (!staged) {
-            throw new Error(
-                `Could not stage production SoulRevealScene after preview hook was unavailable: ${error.message}`
-            );
+            throw new Error('Could not stage the live SoulRevealScene');
         }
         await waitForScene(session, 'SoulRevealScene');
+    } else {
+        await navigate(
+            session,
+            `${BASE_URL}/play/?testSoulReveal=${
+                SMOKE_CASE === 'failure-handoff' ? 'fallback' : 'portrait-slow'
+            }${SMOKE_ENTRY_HASH}`
+        );
+        try {
+            await waitForScene(session, 'SoulRevealScene', 2500);
+        } catch (error) {
+            // Production intentionally ignores preview query parameters. Stage the
+            // same scene through Phaser so live audits exercise shipped code without
+            // exposing a public test URL or mutating a real player's save.
+            const staged = await evaluate(session, `(() => {
+                const game = window.mythicalGame;
+                if (!game?.scene) return false;
+                game.scene.getScenes(true).forEach(activeScene => {
+                    if (activeScene.scene?.key !== 'SoulRevealScene') {
+                        game.scene.stop(activeScene.scene.key);
+                    }
+                });
+                game.scene.start('SoulRevealScene', {
+                    portraitPreviewImage: ${JSON.stringify(
+                        SMOKE_CASE === 'failure-handoff' ? null : '/marketing/nova.webp'
+                    )},
+                    portraitPreviewSpecies: 'nebulaSprite',
+                    portraitPreviewFailure: ${SMOKE_CASE === 'failure-handoff'},
+                    portraitPreviewDelay: 5000
+                });
+                return true;
+            })()`);
+            if (!staged) {
+                throw new Error(
+                    `Could not stage production SoulRevealScene after preview hook was unavailable: ${error.message}`
+                );
+            }
+            await waitForScene(session, 'SoulRevealScene');
+        }
     }
 
     const naming = await waitFor(
@@ -11398,6 +11444,9 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
                 imageWidth: image.naturalWidth,
                 imageHeight: image.naturalHeight,
                 action: button.textContent?.trim(),
+                identityKey: window.GameState?.getCreaturePortrait?.('baby')?.identityKey || null,
+                assetRef: window.GameState?.getCreaturePortrait?.('baby')?.assetRef || null,
+                storage: window.GameState?.getCreaturePortrait?.('baby')?.storage || null,
                 challengeVisible: Boolean(challenge),
                 challengeText: challenge?.textContent?.trim() || '',
                 viewportWidth: window.visualViewport?.width || window.innerWidth,
@@ -11413,7 +11462,10 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
                 }
             };
         })()`),
-        { timeoutMs: 8000, message: 'high-resolution living-form reveal' }
+        {
+            timeoutMs: useLivePortraitProvider ? 120000 : 8000,
+            message: 'high-resolution living-form reveal'
+        }
     );
     if (
         reveal.source !== 'PROTECTED LIVING PORTRAIT' ||
@@ -11431,6 +11483,14 @@ async function smokeFirstSanctuaryOnboarding(session, exceptions) {
         (!SMOKE_ENTRY_HASH && reveal.challengeVisible)
     ) {
         throw new Error(`Living-form handoff was incomplete: ${JSON.stringify(reveal)}`);
+    }
+    if (
+        useLivePortraitProvider &&
+        (!reveal.identityKey || !reveal.assetRef || reveal.storage !== 'supabase-private')
+    ) {
+        throw new Error(
+            `Live portrait was not durably protected: ${JSON.stringify(reveal)}`
+        );
     }
     await captureGameplayStill(session, 'first-living-form-mobile.png');
 
@@ -22891,6 +22951,14 @@ async function smokeGuardianPacing(session, exceptions) {
 }
 
 async function main() {
+    if (
+        SMOKE_MODE === LIVE_PORTRAIT_SMOKE_MODE &&
+        !providerSpendApproved()
+    ) {
+        throw new Error(
+            'Refusing live portrait journey without --allow-provider-spend.'
+        );
+    }
     if (!fs.existsSync(CHROME_PATH)) {
         throw new Error(`Chrome was not found at ${CHROME_PATH}`);
     }
@@ -23141,7 +23209,10 @@ async function main() {
                 exceptions
             );
             process.stdout.write('PASS CreatureContinuity\n');
-        } else if (SMOKE_MODE === 'first-sanctuary') {
+        } else if (
+            SMOKE_MODE === 'first-sanctuary' ||
+            SMOKE_MODE === LIVE_PORTRAIT_SMOKE_MODE
+        ) {
             results.firstSanctuary = await smokeFirstSanctuaryOnboarding(
                 session,
                 exceptions
@@ -23281,7 +23352,7 @@ async function main() {
         } else {
             throw new Error(
                 `Unknown SMOKE_MODE ${JSON.stringify(SMOKE_MODE)}. ` +
-                'Use home-entry, hatch-gallery, first-sanctuary, living-form-late, creature-continuity, nasa-content, interaction, fusion-pod-lifecycle, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, void-portal-lifecycle, hub-forest-transition, village-ui, forest-arrival, visual-story-reel, visual-movement, rootwake-sequence, guardian-pacing, or reef-private-evidence.'
+                'Use home-entry, hatch-gallery, first-sanctuary, first-sanctuary-live-portrait, living-form-late, creature-continuity, nasa-content, interaction, fusion-pod-lifecycle, traversal-topology, aurora-route-journey, guardian-handoff, state-contract, final-priority-journey, save-reload-journey, navigation-lifecycle, void-portal-lifecycle, hub-forest-transition, village-ui, forest-arrival, visual-story-reel, visual-movement, rootwake-sequence, guardian-pacing, or reef-private-evidence.'
             );
         }
         const optionalVideoDisabled = await evaluate(
@@ -23297,6 +23368,12 @@ async function main() {
                     creaturePortraitRequests
                 })}`
             );
+        }
+        if (
+            SMOKE_MODE === LIVE_PORTRAIT_SMOKE_MODE &&
+            creaturePortraitRequests.length === 0
+        ) {
+            throw new Error('Live first-session journey did not request a portrait');
         }
         if (optionalVideoDisabled && companionVideoRequests.length) {
             throw new Error(
@@ -23354,7 +23431,11 @@ async function main() {
     }
 }
 
-main().catch(error => {
-    console.error(error.stack || error.message);
-    process.exit(1);
-});
+if (require.main === module) {
+    main().catch(error => {
+        console.error(error.stack || error.message);
+        process.exit(1);
+    });
+}
+
+module.exports = { providerSpendApproved };

@@ -32,7 +32,10 @@ async function requestJson(url, options) {
     const response = await fetch(url, options);
     const result = await response.json().catch(() => ({}));
     if (!response.ok) {
-        throw new Error(result.error || `Media service error (${response.status})`);
+        const error = new Error(result.error || `Media service error (${response.status})`);
+        error.statusCode = response.status;
+        error.serviceCode = result.code || null;
+        throw error;
     }
     return result;
 }
@@ -108,8 +111,7 @@ async function run() {
             body: JSON.stringify({
                 style: 'cinematic',
                 portraitSpec: specimen.portraitSpec,
-                referenceImage,
-                ageGroup: 'age_18_plus'
+                referenceImage
             })
         });
         let portraitPollCount = 0;
@@ -207,7 +209,11 @@ async function run() {
 
 if (require.main === module) {
     run().catch(error => {
-        console.error(error.message);
+        console.error(JSON.stringify({
+            error: error.message,
+            statusCode: error.statusCode || null,
+            serviceCode: error.serviceCode || null
+        }));
         process.exitCode = 1;
     });
 }
