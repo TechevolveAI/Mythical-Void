@@ -124,7 +124,7 @@ adventure
 
 ## How this runs
 
-1. Restore the official website and prove `/play/` works.
+1. Recheck the official website and prove `/play/` still works at action time.
 2. Finish the first r/WebGames seven-day read, or Kevin deliberately cancels
    it.
 3. Kevin chooses one of these three exact messages and confirms the adult

@@ -1,7 +1,27 @@
 # Mythical Void: founder control page
 
-This is the short, honest view of the studio on 9 September 2026. It replaces no
-detailed evidence; it turns that evidence into the decisions that matter now.
+This is the short, honest view of the studio, refreshed on 10 September 2026.
+It replaces no detailed evidence; it turns that evidence into the decisions
+that matter now.
+
+## Check this first
+
+The website returned after an earlier hosting interruption. A fresh production
+check at 09:05 UTC reached all 16 sitemap pages, six additional important
+routes and 56 unique owned links. The game, news feeds, analytics permission
+boundary and truthful live-activity display all passed. This proves
+availability, not players, enjoyment or growth.
+
+The production release observed during that check was deployment
+`6aa2719385753d0008d06aa0`, built from protected main commit
+`8e581ac210ce876f7b9bec9e660ff0957cfd2b51`. Publishing a later studio-only
+record may create a newer deployment, so the fresh command—not this historic
+identifier—is the source of truth for availability.
+
+Run `npm run founder:status` before any public action. It performs a fresh,
+read-only check and returns the one next action. It never posts, sends, spends,
+opens an account or accepts terms. If the game is unavailable, every discovery
+route automatically returns to hold.
 
 ## What is live
 
@@ -37,14 +57,10 @@ detailed evidence; it turns that evidence into the decisions that matter now.
   them; the chosen age stays in the browser and no public creature profile is
   created. The game keeps a local creature view when the optional service is
   unavailable.
-- **The release record is no longer ambiguous:** the live player-facing build
-  comes from PR #246 and Netlify deployment 6aa0c27a200b4400095861ae.
-  At this record's evidence cut-off, PR #248 had landed afterwards, but it
-  changes only the private launch test and deliberately makes no player-facing
-  change. Its automatic production build was skipped because the Netlify credit
-  allowance was exhausted; that does not make the already published game
-  unavailable or stale. Later operating-record merges do not alter this
-  player-release evidence.
+- **The release record is no longer ambiguous:** the older first-contact repair
+  remains part of the game, while the latest observed production identity is
+  recorded above. A deployment is still not human approval of the creature
+  artwork.
 - **The invitation is live:** the homepage now gives people a clear way to
   invite someone else to hatch a creature, the Sanctuary invitation still
   works, and the first real Guardian restoration now offers the same voluntary
@@ -79,10 +95,8 @@ detailed evidence; it turns that evidence into the decisions that matter now.
 ## What we actually know
 
 - The website, game, public release and feedback route are available.
-- A fresh check on 9 September reached all 16 sitemap pages, six additional
-  important routes and 53 unique owned links. The Play route, both news feeds,
-  analytics boundary and honest live-activity display passed. This proves
-  availability, not players, enjoyment or growth.
+- The fresh 10 September check reached the routes recorded above. It found 24
+  matching items in both public news feeds.
 - The latest recorded public search sample found **no official Mythical Void
   result**. This does not prove the site is missing everywhere.
 - The homepage, Latest News and new UPDATE-027 page were sent once through the
@@ -186,7 +200,16 @@ copy and stop rules are in
   waits for Kevin to review the current terms and permit a read-only signed-in
   form check. That check must not save or publish a page.
 - **itch.io:** the technical package and no-screenshot page remain prepared,
-  but the wider distribution choice and visual-quality gate are still open.
+  but the wider distribution choice and visual-quality gate are still open. A
+  current 92-file package passed local 390px browser checks; it has not been
+  uploaded or tested inside an actual itch.io page.
+- **Editorial discovery:** tailored messages for Alpha Beta Gamer, Free Game
+  Planet and Indie Games Plus are ready. None has been sent. Each exact message
+  still needs Kevin's action-time approval and waits until the Reddit read ends
+  or is cancelled.
+- **Founder social post:** the father-and-son story is prepared in Kevin's
+  voice. It still needs the public profile address, a fresh preview and
+  approval.
 
 Preparing later routes does not permit cross-posting. The first real audience
 read still happens in one place at a time.

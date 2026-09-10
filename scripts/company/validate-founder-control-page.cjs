@@ -50,8 +50,19 @@ const protectedMainEvidenceCutoff = {
 };
 
 requireValue(control.schemaVersion === 1 && control.id === 'FOUNDER-CONTROL-001', 'founder control identity is invalid');
-requireValue(control.asOf === '2026-09-09' && control.asOf === currentState.weekEnding && control.state === 'live_one_community_test_ready', 'founder control state or date is invalid');
+requireValue(control.asOf === '2026-09-10' && control.state === 'live_one_community_test_ready', 'founder control state or date is invalid');
 requireValue(control.plainLanguagePage === 'docs/company/FOUNDER_CONTROL_PAGE.md', 'plain-language page path is invalid');
+
+const doorway = control.currentPublicDoorway || {};
+requireValue(doorway.state === 'healthy_at_latest_check' && /^2026-09-10T/.test(doorway.checkedAt || ''), 'current public doorway evidence is stale');
+requireValue(doorway.websiteUrl === 'https://mythicalvoid.com/' && doorway.playUrl === 'https://mythicalvoid.com/play/', 'current public doorway links are invalid');
+requireValue(doorway.sitemapUrls === 16 && doorway.coreExtraRoutes === 6 && doorway.uniqueOwnedLinksChecked === 56, 'current public doorway coverage is incomplete');
+requireValue(doorway.rssItems === 24 && doorway.jsonItems === 24, 'current public news feeds are inconsistent');
+requireValue(doorway.analyticsDefaultDenied === true && doorway.gameRouteLoadsWebsiteTag === false, 'current analytics boundary is invalid');
+requireValue(doorway.livePresenceEndpointHealthy === true, 'current live-activity endpoint is not healthy');
+requireValue(doorway.provesPlayers === false && doorway.provesEnjoyment === false && doorway.provesGrowth === false, 'availability is being overstated as an outcome');
+requireValue(/^[0-9a-f]{24}$/.test(doorway.observedProductionAtCheck?.deployId || '') && /^[0-9a-f]{40}$/.test(doorway.observedProductionAtCheck?.sourceCommit || '') && doorway.observedProductionAtCheck?.notClaimedAsPermanentCurrentIdentity === true, 'observed production identity is invalid or overclaimed');
+requireValue(doorway.freshStatusCommand === 'npm run founder:status' && doorway.holdAllDiscoveryWhenUnhealthy === true, 'fresh founder status gate is missing');
 
 const live = control.live || {};
 requireValue(live.websiteAndGame?.state === 'live', 'website and game must be recorded as live');
@@ -133,28 +144,34 @@ requireValue(preparedRoutes.indieDb?.candidate === 'docs/company/growth/INDIEDB_
 requireValue(preparedRoutes.indieDb?.candidateState === indieDbCandidate.state && indieDbCandidate.releaseGate?.readyForPublication === false, 'founder IndieDB packet state is inaccurate');
 for (const field of ['accountOpened', 'termsAccepted', 'pageCreated', 'pagePublished']) requireValue(preparedRoutes.indieDb?.[field] === false, `founder IndieDB ${field} must remain false`);
 requireValue(indieDbCandidate.authority?.accountOpened === false && indieDbCandidate.termsReview?.accepted === false && indieDbCandidate.releaseGate?.pageSaved === false && indieDbCandidate.releaseGate?.pagePublished === false, 'IndieDB source records an unauthorized external action');
+requireValue(preparedRoutes.itch?.candidate === 'docs/company/growth/ITCH_RELEASE_CANDIDATE.json' && preparedRoutes.itch?.uploaded === false && preparedRoutes.itch?.testedInsideActualPlatform === false, 'founder itch route is inaccurate');
+requireValue(preparedRoutes.editorial?.candidate === 'docs/company/growth/EDITORIAL_DISCOVERY_SHORTLIST_2026-09-10.json' && preparedRoutes.editorial?.messagesSent === 0, 'founder editorial route is inaccurate');
+requireValue(preparedRoutes.social?.candidate === 'docs/company/content/channel-launch/SOCIAL_FIRST_WEEK_OPERATING_PACK_2026-09-09.json' && preparedRoutes.social?.postsMade === 0, 'founder social route is inaccurate');
 
 requireValue(control.languageAndSafety?.publicCreatureTerm === 'creatures' && control.languageAndSafety?.companionTermAllowed === false, 'public creature language boundary is invalid');
 requireValue(control.languageAndSafety?.childExactAgeAllowed === false && control.languageAndSafety?.childNamePhotoOrContactAllowed === false, 'child privacy boundary is invalid');
 requireValue(control.languageAndSafety?.generatedArtworkMayBeCalledGameplay === false && control.languageAndSafety?.generatedSupportLabel === 'AI-created interpretation — not gameplay', 'generated artwork boundary is invalid');
 requireValue(control.languageAndSafety?.nasaEndorsementClaimed === false, 'NASA endorsement must not be claimed');
-for (const field of ['publicPostAuthorized', 'directContactAuthorized', 'spendAuthorized', 'newAccountAuthorized', 'platformTermsAuthorized', 'platformSubmissionAuthorized', 'childContactAuthorized']) requireValue(control.authority?.[field] === false, `founder authority ${field} must remain false`);
+for (const field of ['publicPostAuthorized', 'directContactAuthorized', 'spendAuthorized', 'newAccountAuthorized', 'platformTermsAuthorized', 'platformSubmissionAuthorized', 'childContactAuthorized', 'inventedActivityAuthorized']) requireValue(control.authority?.[field] === false, `founder authority ${field} must remain false`);
 
 for (const phrase of [
     '# Mythical Void: founder control page',
+    'refreshed on 10 September 2026',
+    'The website returned after an earlier hosting interruption.',
+    'all 16 sitemap pages, six additional important routes and 56 unique owned links',
+    'This proves availability, not players, enjoyment or growth.',
+    '6aa2719385753d0008d06aa0',
+    '8e581ac210ce876f7b9bec9e660ff0957cfd2b51',
+    'npm run founder:status',
+    'If the game is unavailable, every discovery route automatically returns to hold.',
     'The first-contact layout repair is live',
     'not approval of the creature artwork',
     'Private creature pictures and short films are available in the game',
     'the chosen age stays in the browser and no public creature profile is created',
-    'the live player-facing build comes from PR #246 and Netlify deployment 6aa0c27a200b4400095861ae',
-    "At this record's evidence cut-off, PR #248 had landed afterwards, but it changes only the private launch test",
-    'does not make the already published game unavailable or stale',
     'The First Five test',
     'no adults have been invited',
     '0 sessions',
     '0 accepted customer evidence',
-    'reached all 16 sitemap pages, six additional important routes and 53 unique owned links',
-    'This proves availability, not players, enjoyment or growth.',
     'The one decision that matters now',
     'Approve one direct-link r/WebGames test from an adult Reddit account.',
     'I have an existing adult Reddit account, I approve the exact title, link and first comment below now, and I can personally answer replies for seven days.',
@@ -165,6 +182,9 @@ for (const phrase of [
     'Thirteen discovery routes have now been checked',
     'What is ready behind the first community test',
     'the full game-page copy and rights checklist are prepared',
+    'A current 92-file package passed local 390px browser checks',
+    'tailored messages for Alpha Beta Gamer, Free Game Planet and Indie Games Plus are ready',
+    'the father-and-son story is prepared in Kevin',
     'That check must not save or publish a page.',
     'The important product decision that remains held',
     'A person—not an automated check—must approve it',
@@ -186,10 +206,12 @@ const searchExperiment = (currentState.experiments || []).find(item => item.id =
 requireValue(discoveryScore?.current?.includes('official website now links back to that verified public project'), 'current-state scorecard still describes the reciprocal project link as merely prepared');
 requireValue(searchExperiment?.signal?.includes('official website now links back to that verified public project'), 'current-state search experiment still describes the reciprocal project link as merely prepared');
 
-requireValue(Array.isArray(control.sources) && control.sources.length === 12, 'founder control sources are incomplete');
+requireValue(Array.isArray(control.sources) && control.sources.length === 15, 'founder control sources are incomplete');
 for (const source of control.sources || []) requireValue(fs.existsSync(path.join(root, source)), `founder control source does not exist: ${source}`);
 requireValue(packageJson.scripts?.['validate:founder-control'] === 'node scripts/company/validate-founder-control-page.cjs', 'founder control validator command is missing');
 requireValue(packageJson.scripts?.['test:founder-control'] === 'node scripts/company/test-founder-control-page.cjs', 'founder control safeguard command is missing');
+requireValue(packageJson.scripts?.['founder:status'] === 'node scripts/company/founder-live-status.cjs', 'fresh founder status command is missing');
+requireValue(packageJson.scripts?.['test:founder-status'] === 'node scripts/company/test-founder-live-status.cjs', 'fresh founder status safeguards are missing');
 
 if (failures.length) {
     console.error('Founder control page is incomplete or unsafe:\n');
@@ -201,9 +223,10 @@ console.log(JSON.stringify({
     valid: true,
     state: control.state,
     liveWebsite: true,
-    latestGameReleasePullRequest: latestGameRelease.pullRequest,
-    protectedMainEvidenceThroughPullRequest: protectedMainEvidenceCutoff.observedThroughPullRequest,
-    latestPublishedDeployId: latestMaterialWebsiteRelease.deployId,
+    freshStatusCommand: doorway.freshStatusCommand,
+    observedProductionDeployId: doorway.observedProductionAtCheck.deployId,
+    observedProductionSourceCommit: doorway.observedProductionAtCheck.sourceCommit,
+    historicalFirstContactReleasePullRequest: latestGameRelease.pullRequest,
     technicalRepairLive: true,
     creatureArtworkHumanApproved: false,
     firstFiveSessionsCompleted: 0,
