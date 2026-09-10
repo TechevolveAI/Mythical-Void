@@ -30,7 +30,6 @@ import AbilityHUD from '../ui/AbilityHUD.js';
 import AIArtModal from '../ui/AIArtModal.js';
 import LivingFormHandoff from '../ui/LivingFormHandoff.js';
 import { createCanvasTapBridge } from '../utils/CanvasTapBridge.js';
-import { GAMEPLAY_MODES } from '../config/GameplayModes.js';
 import GameSceneSceneRouter from './controllers/GameSceneSceneRouter.js';
 import GameSceneHudController from './controllers/GameSceneHudController.js';
 import projectBeacon from '../config/project-beacon.json';
@@ -172,7 +171,7 @@ const POSITION_PERSIST_DISTANCE = 24;
 class GameScene extends Phaser.Scene {
     constructor() {
         super({ key: 'GameScene' });
-        this.gameplayMode = GAMEPLAY_MODES.SANCTUARY_COMMUNITY;
+        this.gameplayMode = 'sanctuary-community';
         this.player = null;
         this.astronautFollower = null;
         this.cursors = null;

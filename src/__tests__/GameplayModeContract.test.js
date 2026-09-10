@@ -25,11 +25,13 @@ describe('gameplay mode ownership contract', () => {
 
     test('binds each scene family to its own mode', () => {
         expect(sanctuary).toContain(
-            'this.gameplayMode = GAMEPLAY_MODES.SANCTUARY_COMMUNITY;'
+            "this.gameplayMode = 'sanctuary-community';"
         );
         expect(platformer).toContain(
-            'this.gameplayMode = GAMEPLAY_MODES.REALM_PLATFORMER;'
+            "this.gameplayMode = 'realm-platformer';"
         );
+        expect(sanctuary).not.toContain("import { GAMEPLAY_MODES }");
+        expect(platformer).not.toContain("import { GAMEPLAY_MODES }");
     });
 
     test('documents the player-facing and control boundary', () => {
