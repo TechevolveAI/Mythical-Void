@@ -454,6 +454,20 @@ describe('first expedition rescue loop', () => {
         expect(source).toContain('this.bossTriggerZone?.destroy?.()');
     });
 
+    test('keeps the Elder Treant rooted from its entrance through restoration', () => {
+        const source = fs.readFileSync(
+            path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
+            'utf8'
+        );
+
+        expect(source).toContain('this.bossArenaY = spawnY;');
+        expect(source).toContain('this.boss.body.setAllowGravity(false);');
+        expect(source).toContain('this.boss.body.setImmovable(true);');
+        expect(source).toContain('this.keepElderTreantRooted();');
+        expect(source).toContain('Math.abs(this.boss.y - this.bossArenaY) > 1');
+        expect(source).toContain('this.boss.setY(this.bossArenaY);');
+    });
+
     test('keeps live forest objectives visible without covering compact combat', () => {
         const source = fs.readFileSync(
             path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
