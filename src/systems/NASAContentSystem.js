@@ -11,6 +11,8 @@
 
 import { devLog, devWarn } from '../utils/devLogger.js';
 
+const STATIC_CONTINUITY_BUILD = typeof __MYTHICAL_STATIC_CONTINUITY__ !== 'undefined' && __MYTHICAL_STATIC_CONTINUITY__ === true;
+
 class NASAContentSystem {
     constructor() {
         this.isInitialized = false;
@@ -433,6 +435,7 @@ class NASAContentSystem {
      * and a visible fallback without exposing an open proxy.
      */
     buildImageDeliveryUrl(url) {
+        if (STATIC_CONTINUITY_BUILD) return null;
         const source = this.ensureHttps(url);
         if (!source) return null;
         try {
