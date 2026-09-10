@@ -1,10 +1,35 @@
 {
   "schemaVersion": 1,
   "id": "FOUNDER-CONTROL-001",
-  "asOf": "2026-09-09",
+  "asOf": "2026-09-10",
   "state": "live_one_community_test_ready",
   "plainLanguagePage": "docs/company/FOUNDER_CONTROL_PAGE.md",
   "purpose": "Give Kevin one plain-English source of truth for what is live, what is deliberately stopped, what the evidence actually proves, and the single decision that unlocks the next stage of Mythical Void.",
+  "currentPublicDoorway": {
+    "state": "healthy_at_latest_check",
+    "checkedAt": "2026-09-10T09:05:55.149Z",
+    "websiteUrl": "https://mythicalvoid.com/",
+    "playUrl": "https://mythicalvoid.com/play/",
+    "sitemapUrls": 16,
+    "coreExtraRoutes": 6,
+    "uniqueOwnedLinksChecked": 56,
+    "rssItems": 24,
+    "jsonItems": 24,
+    "analyticsDefaultDenied": true,
+    "gameRouteLoadsWebsiteTag": false,
+    "livePresenceEndpointHealthy": true,
+    "provesPlayers": false,
+    "provesEnjoyment": false,
+    "provesGrowth": false,
+    "observedProductionAtCheck": {
+      "deployId": "6aa2719385753d0008d06aa0",
+      "sourceCommit": "8e581ac210ce876f7b9bec9e660ff0957cfd2b51",
+      "publishedAt": "2026-09-10T09:01:41.078Z",
+      "notClaimedAsPermanentCurrentIdentity": true
+    },
+    "freshStatusCommand": "npm run founder:status",
+    "holdAllDiscoveryWhenUnhealthy": true
+  },
   "live": {
     "websiteAndGame": {
       "state": "live",
@@ -166,6 +191,21 @@
       "termsAccepted": false,
       "pageCreated": false,
       "pagePublished": false
+    },
+    "itch": {
+      "candidate": "docs/company/growth/ITCH_RELEASE_CANDIDATE.json",
+      "state": "technical_package_ready_not_uploaded",
+      "uploaded": false,
+      "testedInsideActualPlatform": false
+    },
+    "editorial": {
+      "candidate": "docs/company/growth/EDITORIAL_DISCOVERY_SHORTLIST_2026-09-10.json",
+      "state": "three_tailored_pitches_ready_no_outreach_authorized",
+      "messagesSent": 0
+    },
+    "social": {
+      "candidate": "docs/company/content/channel-launch/SOCIAL_FIRST_WEEK_OPERATING_PACK_2026-09-09.json",
+      "postsMade": 0
     }
   },
   "unlockSequence": [
@@ -212,7 +252,8 @@
     "newAccountAuthorized": false,
     "platformTermsAuthorized": false,
     "platformSubmissionAuthorized": false,
-    "childContactAuthorized": false
+    "childContactAuthorized": false,
+    "inventedActivityAuthorized": false
   },
   "sources": [
     "docs/company/NOW_NEXT_LATER.md",
@@ -226,6 +267,9 @@
     "docs/company/growth/COMMUNITY_DISCOVERY_ACTIVATION_2026-09-08.json",
     "docs/company/growth/OWNED_CHANNEL_ATTENTION_2026-09-08.json",
     "docs/company/growth/DISCOVERY_DOORWAY_REGISTRY_2026-09-08.json",
-    "docs/company/growth/INDIEDB_PAGE_CANDIDATE_2026-09-08.json"
+    "docs/company/growth/INDIEDB_PAGE_CANDIDATE_2026-09-08.json",
+    "docs/company/growth/ITCH_RELEASE_CANDIDATE.json",
+    "docs/company/growth/EDITORIAL_DISCOVERY_SHORTLIST_2026-09-10.json",
+    "docs/company/content/channel-launch/SOCIAL_FIRST_WEEK_OPERATING_PACK_2026-09-09.json"
   ]
 }

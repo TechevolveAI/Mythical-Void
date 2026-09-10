@@ -25,6 +25,9 @@ const files = [
     'docs/company/growth/OWNED_CHANNEL_ATTENTION_2026-09-08.json',
     'docs/company/growth/DISCOVERY_DOORWAY_REGISTRY_2026-09-08.json',
     'docs/company/growth/INDIEDB_PAGE_CANDIDATE_2026-09-08.json',
+    'docs/company/growth/ITCH_RELEASE_CANDIDATE.json',
+    'docs/company/growth/EDITORIAL_DISCOVERY_SHORTLIST_2026-09-10.json',
+    'docs/company/content/channel-launch/SOCIAL_FIRST_WEEK_OPERATING_PACK_2026-09-09.json',
     'docs/company/content/visual-launch-moments.json',
     'docs/company/automation/website-analytics-tag.json',
     'index.html',
@@ -72,10 +75,11 @@ try {
     const output = JSON.parse(result.stdout);
     assert.strictEqual(output.currentDecisionCount, 1);
     assert.strictEqual(output.currentDecisionId, 'FD-002');
+    assert.strictEqual(output.freshStatusCommand, 'npm run founder:status');
+    assert.strictEqual(output.observedProductionDeployId, '6aa2719385753d0008d06aa0');
     assert.strictEqual(output.heldDecisionCount, 1);
-    assert.strictEqual(output.latestGameReleasePullRequest, 246);
-    assert.strictEqual(output.protectedMainEvidenceThroughPullRequest, 248);
-    assert.strictEqual(output.latestPublishedDeployId, '6aa0c27a200b4400095861ae');
+    assert.strictEqual(output.observedProductionSourceCommit, '8e581ac210ce876f7b9bec9e660ff0957cfd2b51');
+    assert.strictEqual(output.historicalFirstContactReleasePullRequest, 246);
     assert.strictEqual(output.communityPostMade, false);
     assert.strictEqual(output.creatureArtworkHumanApproved, false);
     assert.strictEqual(output.externalAuthorityGranted, false);
@@ -107,6 +111,12 @@ mutateControl('send age to creature media provider', value => { value.live.websi
 mutateControl('hide reciprocal project link', value => { value.live.websiteAndGame.latestMaterialWebsiteRelease.officialProjectReciprocalLinkLive = false; }, 'live reciprocal project link');
 mutateControl('hide homepage invitation', value => { value.live.websiteAndGame.latestMaterialWebsiteRelease.homepageHatchInvitationLive = false; }, 'live Hatch Challenge invitations');
 mutateControl('remove exact approval', value => { value.currentDecisions[0].exactApprovalMessage = 'approve'; }, 'exact short-lived community approval');
+mutateControl('stale current health', value => { value.currentPublicDoorway.state = 'unknown'; }, 'current public doorway evidence is stale');
+mutateControl('overclaim observed deployment', value => { value.currentPublicDoorway.observedProductionAtCheck.notClaimedAsPermanentCurrentIdentity = false; }, 'observed production identity is invalid or overclaimed');
+mutateControl('overstate availability', value => { value.currentPublicDoorway.provesPlayers = true; }, 'availability is being overstated');
+mutateControl('remove outage stop', value => { value.currentPublicDoorway.holdAllDiscoveryWhenUnhealthy = false; }, 'fresh founder status gate is missing');
+mutateControl('invent editorial outreach', value => { value.preparedDiscoveryRoutes.editorial.messagesSent = 1; }, 'founder editorial route is inaccurate');
+mutateControl('authorize invented activity', value => { value.authority.inventedActivityAuthorized = true; }, 'inventedActivityAuthorized');
 
 const wordingRoot = fixture(fixtureRoot => {
     const target = path.join(fixtureRoot, 'docs/company/FOUNDER_CONTROL_PAGE.md');
@@ -134,5 +144,5 @@ try {
     fs.rmSync(privacyRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 26);
-console.log('Founder control safeguards passed (26 cases).');
+assert.strictEqual(cases, 32);
+console.log('Founder control safeguards passed (32 cases).');
