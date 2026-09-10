@@ -110,6 +110,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Boss state
         this.boss = null;
         this.bossTargetScale = 1;
+        this.bossArenaY = null;
         this.bossHealth = 0;
         // Six clean katana hits are enough to teach the rescue fight without
         // making the first guardian more durable than late-game bosses.
@@ -241,6 +242,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Reset boss state
         this.boss = null;
         this.bossTargetScale = 1;
+        this.bossArenaY = null;
         this.bossHealth = 0;
         this.bossPhase = 1;
         this.bossAttackTimer = null;
@@ -1392,6 +1394,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
     update(time, delta) {
         super.update(time, delta);
         if (this.levelCompletionActive) return;
+        this.keepElderTreantRooted();
         this.updateRootwakeCrossing();
         this.updateForestEnemyActivation();
         if (this.forestEnemyAISchedulerActive) this.updateForestEnemyAI();
@@ -5155,6 +5158,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         // Create boss sprite
         this.boss = this.physics.add.sprite(spawnX, spawnY, textureKey);
+        this.bossArenaY = spawnY;
         this.boss.setCollideWorldBounds(true);
         this.boss.setBounce(0);
         this.boss.setDepth(880);
@@ -5169,6 +5173,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
             this.boss.height * 0.2
         );
         this.boss.setScale(this.bossTargetScale);
+        this.boss.body.setAllowGravity(false);
+        this.boss.body.setImmovable(true);
 
         // Initialize boss state
         this.bossHealth = this.bossMaxHealth;
@@ -5216,6 +5222,26 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         // Add ambient glow effect
         this.createBossAmbientEffects();
+    }
+
+    /**
+     * The Elder Treant is rooted into the arena rather than a mobile enemy.
+     * Keep that story truth independent of platform collision timing so a
+     * resize, physics resume or late impact cannot drop it into a void gap.
+     */
+    keepElderTreantRooted() {
+        if (
+            !this.boss?.active ||
+            !this.bossFightActive ||
+            this.bossDefeated ||
+            !Number.isFinite(this.bossArenaY)
+        ) return;
+
+        this.boss.body?.setAllowGravity?.(false);
+        this.boss.setVelocity?.(0, 0);
+        if (Math.abs(this.boss.y - this.bossArenaY) > 1) {
+            this.boss.setY(this.bossArenaY);
+        }
     }
 
     /**
@@ -5986,6 +6012,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // The guardian recovers and withdraws after the corruption is cleared.
         this.boss.setVelocity(0, 0);
         this.boss.body.setAllowGravity(false);
+        if (Number.isFinite(this.bossArenaY)) {
+            this.boss.setY(this.bossArenaY);
+        }
         this.boss.clearTint?.();
         this.boss.setTint(0x8FE3CF);
 
