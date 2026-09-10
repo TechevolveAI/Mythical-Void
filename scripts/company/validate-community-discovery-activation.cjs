@@ -14,12 +14,12 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
     const authority = plan.authority || {};
 
     requireValue(plan.id === 'COMMUNITY-DISCOVERY-001', 'community discovery id is missing');
-    requireValue(plan.checkedOn === '2026-09-08', 'community research date is stale');
+    requireValue(plan.checkedOn === '2026-09-10', 'community research date is stale');
     requireValue(plan.state === 'one_direct_link_post_ready_waiting_for_kevin', 'plan overstates activation');
     requireValue(experiment.community === 'r/WebGames', 'the first bounded experiment must remain r/WebGames');
     requireValue(experiment.rulesUrl === 'https://www.reddit.com/r/WebGames/about/rules', 'the live community rules source is missing');
     requireValue(experiment.observedAudience?.weeklyVisitorsShown === 19000, 'the dated audience observation is missing');
-    requireValue(experiment.observedAudience?.weeklyContributionsShown === 836, 'the dated contribution observation is missing');
+    requireValue(experiment.observedAudience?.weeklyContributionsShown === 896, 'the dated contribution observation is missing');
     requireValue(experiment.observedAudience?.approximate === true && /not guaranteed reach/i.test(experiment.observedAudience?.meaning || '') && /player counts/i.test(experiment.observedAudience?.meaning || ''), 'the changing audience estimate needs its limits');
 
     const rules = experiment.verifiedRules || {};
@@ -30,9 +30,9 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
     requireValue(experiment.duplicateCheck?.existingResultObserved === false, 'the duplicate search no longer supports a first post');
     requireValue(experiment.duplicateCheck?.checkedOn === plan.checkedOn, 'the duplicate search date is stale');
     const latestCheck = experiment.latestReadOnlyVerification || {};
-    requireValue(latestCheck.checkedAt === '2026-09-08T16:52:53Z' && latestCheck.method === 'normal_browser_visible_review', 'the latest visible community verification is missing');
+    requireValue(latestCheck.checkedAt === '2026-09-10T10:18:30Z' && latestCheck.method === 'normal_browser_visible_review', 'the latest visible community verification is missing');
     requireValue(latestCheck.rulesVisibleAndMatchedPreparedPlan === true && latestCheck.duplicateSearchVisible === true && latestCheck.existingMythicalVoidResultObserved === false, 'the visible rule or duplicate check is incomplete');
-    requireValue(latestCheck.weeklyVisitorsShown === 19000 && latestCheck.weeklyContributionsShown === 836, 'the visible community estimates are incomplete');
+    requireValue(latestCheck.weeklyVisitorsShown === 19000 && latestCheck.weeklyContributionsShown === 896, 'the visible community estimates are incomplete');
     requireValue(latestCheck.machineReadableRedditCheckHttpStatus === 403 && /visible adult browser review/i.test(latestCheck.limitation || ''), 'the blocked machine check is not recorded honestly');
     requireValue(experiment.communityClimate?.status === 'active_discussion_not_a_rule', 'the AI-game community climate is missing or overstated');
     requireValue(experiment.communityClimate?.checkedOn === '2026-09-09' && experiment.communityClimate?.highlightedOnCommunityPage === true && experiment.communityClimate?.discussionAge === 'about_five_months', 'the current highlighted discussion review is missing');
@@ -46,8 +46,9 @@ function validateCommunityDiscovery({ plan, copy, feedbackHtml, packageJson }) {
     requireValue(prepared.url === 'https://mythicalvoid.com/play/', 'the post must use the clean direct game URL');
     requireValue(!/[?#]/.test(prepared.url || ''), 'the game URL must not contain tracking parameters or fragments');
     requireValue(/My son and I started Mythical Void/i.test(prepared.firstComment || '') && /today's AI tools/i.test(prepared.firstComment || ''), 'the true origin and AI assistance disclosure are missing');
-    requireValue(/free to play and still in early access/i.test(prepared.firstComment || '') && /Hatch an alien creature/i.test(prepared.firstComment || ''), 'the game state and creature promise are missing');
-    requireValue(/six strange worlds/i.test(prepared.firstComment || '') && /free their Guardians from the Void/i.test(prepared.firstComment || '') && /choices change Project Beacon/i.test(prepared.firstComment || ''), 'the plain game experience is incomplete');
+    requireValue(/free(?: to play)?,? (?:and )?still in early access/i.test(prepared.firstComment || '') && /hatch an alien creature/i.test(prepared.firstComment || ''), 'the game state and creature promise are missing');
+    requireValue(/travel together through six strange worlds/i.test(prepared.firstComment || '') && /Free the Guardians from the Void/i.test(prepared.firstComment || '') && /build a Sanctuary/i.test(prepared.firstComment || '') && /decide what your mission should tell Earth/i.test(prepared.firstComment || ''), 'the plain game experience is incomplete');
+    requireValue(!/Project Beacon/i.test(prepared.firstComment || ''), 'the first community post assumes unexplained story language');
     requireValue(/no (?:account or download|download or account)/i.test(prepared.firstComment || ''), 'the low-friction promise is missing');
     requireValue(/brand emblem, not gameplay/i.test(prepared.firstComment || ''), 'the automatic link preview disclosure is missing');
     requireValue(/try the first minute/i.test(prepared.firstComment || '') && /what made sense and what did not/i.test(prepared.firstComment || ''), 'the one useful feedback question is missing');

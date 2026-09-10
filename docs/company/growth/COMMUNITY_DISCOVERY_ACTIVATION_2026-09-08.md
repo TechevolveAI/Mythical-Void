@@ -1,6 +1,6 @@
 # The first respectful route into a game-seeking community
 
-Checked 8 September 2026. No post, account or outside contact has been made.
+Checked again 10 September 2026. No post, account or outside contact has been made.
 
 ## The decision
 
@@ -11,7 +11,7 @@ direct game link possible, require the title to begin with the game's name,
 forbid referral links and do not allow the same game to be reposted within
 three months.
 
-The community page showed about 19,000 weekly visitors and 836 weekly
+The community page showed about 19,000 weekly visitors and 896 weekly
 contributions when checked in a normal browser. Those are changing Reddit
 estimates, not guaranteed reach, posts, replies or player counts. A visible
 search inside the community showed no existing result for “Mythical Void,” but
@@ -41,16 +41,17 @@ https://mythicalvoid.com/play/
 
 **First comment from Kevin**
 
-> My son and I started Mythical Void at home, using our imagination and today's
-> AI tools. We kept working until it became a real browser game.
+> My son and I started Mythical Void at home with imagination and today's AI
+> tools. We kept working until it became a real browser game.
 >
-> Hatch an alien creature, explore six strange worlds and free their Guardians
-> from the Void. Your choices change Project Beacon. It is free to play and
-> still in early access, with no account or download.
+> You crash beyond mapped space, hatch an alien creature and travel together
+> through six strange worlds. Free the Guardians from the Void, build a
+> Sanctuary and decide what your mission should tell Earth. It is free, still
+> in early access, with no account or download.
 >
-> AI helped us build, but people made the decisions. We tested and reworked it,
-> and I am improving it. If you try the first minute, I would like to know what
-> made sense and what did not.
+> AI helped us build; people made the decisions. We tested and reworked it. I am
+> improving it. Try the first minute and tell me what made sense and what did
+> not.
 >
 > The link picture is our brand emblem, not gameplay.
 

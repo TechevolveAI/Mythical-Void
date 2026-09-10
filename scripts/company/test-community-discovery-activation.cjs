@@ -47,13 +47,18 @@ const cases = [
         expected: 'technical release-note language'
     },
     {
+        name: 'rejects unexplained story language in the first post',
+        mutate(plan) { plan.firstExperiment.preparedPost.firstComment += ' Your choices change Project Beacon.'; },
+        expected: 'unexplained story language'
+    },
+    {
         name: 'rejects an overlong first comment',
         mutate(plan) { plan.firstExperiment.preparedPost.firstComment += ` ${'More detail '.repeat(60)}`; },
         expected: 'first comment is too long'
     },
     {
         name: 'rejects AI disclosure without evidence of care',
-        mutate(plan) { plan.firstExperiment.preparedPost.firstComment = plan.firstExperiment.preparedPost.firstComment.replace('We tested and reworked it, ', ''); },
+        mutate(plan) { plan.firstExperiment.preparedPost.firstComment = plan.firstExperiment.preparedPost.firstComment.replace('We tested and reworked it. ', ''); },
         expected: 'low-effort AI concern'
     },
     {

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "COMMUNITY-DISCOVERY-001",
-  "checkedOn": "2026-09-08",
+  "checkedOn": "2026-09-10",
   "state": "one_direct_link_post_ready_waiting_for_kevin",
   "problem": "Mythical Void is playable, but no outside game-seeking audience has yet been shown to find and try it.",
   "firstExperiment": {
@@ -11,8 +11,8 @@
     "whyThisOne": "The community is specifically for games that play directly in a normal web browser without downloads or sign-up, which matches Mythical Void's live game.",
     "observedAudience": {
       "weeklyVisitorsShown": 19000,
-      "weeklyContributionsShown": 836,
-      "observedOn": "2026-09-08",
+      "weeklyContributionsShown": 896,
+      "observedOn": "2026-09-10",
       "approximate": true,
       "meaning": "Changing community-page estimates, not guaranteed reach, posts, replies or player counts."
     },
@@ -27,18 +27,18 @@
     },
     "duplicateCheck": {
       "query": "\"Mythical Void\"",
-      "checkedOn": "2026-09-08",
+      "checkedOn": "2026-09-10",
       "existingResultObserved": false,
       "limitation": "A read-only community search can miss deleted, renamed or unindexed posts. Check once more immediately before posting."
     },
     "latestReadOnlyVerification": {
-      "checkedAt": "2026-09-08T16:52:53Z",
+      "checkedAt": "2026-09-10T10:18:30Z",
       "method": "normal_browser_visible_review",
       "rulesVisibleAndMatchedPreparedPlan": true,
       "duplicateSearchVisible": true,
       "existingMythicalVoidResultObserved": false,
       "weeklyVisitorsShown": 19000,
-      "weeklyContributionsShown": 836,
+      "weeklyContributionsShown": 896,
       "machineReadableRedditCheckHttpStatus": 403,
       "limitation": "Reddit blocked the machine-readable check, so the current evidence comes from the visible adult browser review. Recheck in the browser immediately before posting."
     },
@@ -57,16 +57,17 @@
       "format": "direct_link",
       "title": "Mythical Void - my son and I made a free alien creature adventure",
       "url": "https://mythicalvoid.com/play/",
-      "firstComment": "My son and I started Mythical Void at home, using our imagination and today's AI tools. We kept working until it became a real browser game.\n\nHatch an alien creature, explore six strange worlds and free their Guardians from the Void. Your choices change Project Beacon. It is free to play and still in early access, with no account or download.\n\nAI helped us build, but people made the decisions. We tested and reworked it, and I am improving it. If you try the first minute, I would like to know what made sense and what did not.\n\nThe link picture is our brand emblem, not gameplay.",
+      "firstComment": "My son and I started Mythical Void at home with imagination and today's AI tools. We kept working until it became a real browser game.\n\nYou crash beyond mapped space, hatch an alien creature and travel together through six strange worlds. Free the Guardians from the Void, build a Sanctuary and decide what your mission should tell Earth. It is free, still in early access, with no account or download.\n\nAI helped us build; people made the decisions. We tested and reworked it. I am improving it. Try the first minute and tell me what made sense and what did not.\n\nThe link picture is our brand emblem, not gameplay.",
       "claims": [
         "free early-access browser game",
         "no download",
         "no account",
         "father-and-son beginning",
         "generative AI tools used as part of a human-led creative process",
-        "six strange worlds",
+        "one creature travels with the player through six strange worlds",
         "free Guardians trapped by the Void",
-        "player choices decide what Project Beacon becomes",
+        "build a Sanctuary",
+        "player decides what the mission should tell Earth",
         "automatic link preview is brand art, not gameplay"
       ]
     },
