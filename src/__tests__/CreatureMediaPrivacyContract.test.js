@@ -44,6 +44,10 @@ describe('creature media privacy and prompt contract', () => {
         path.join(__dirname, '../../scripts/smoke-living-portrait-production.js'),
         'utf8'
     );
+    const productionVideoSmoke = fs.readFileSync(
+        path.join(__dirname, '../../scripts/smoke-companion-video-production.js'),
+        'utf8'
+    );
 
     test('defines the only fields allowed to cross the model boundary', () => {
         expect(videoConfig.providerDataContract.allowed).toEqual([
@@ -78,6 +82,9 @@ describe('creature media privacy and prompt contract', () => {
         expect(portraitServer).not.toContain('player_privacy_profiles');
         expect(videoServer).not.toContain('player_privacy_profiles');
         expect(productionPortraitSmoke).not.toContain("ageGroup: 'age_18_plus'");
+        expect(productionVideoSmoke).not.toContain('ageGroup');
+        expect(productionVideoSmoke).not.toContain('playerName');
+        expect(productionVideoSmoke).not.toContain('creatureName');
     });
 
     test('keeps creature-media authentication independent from Cloud Save eligibility', () => {
