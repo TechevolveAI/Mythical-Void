@@ -1,10 +1,10 @@
 # Mythical Void
 
 **A free browser adventure where you hatch a strange alien creature, cross six
-living realms and decide what Project Beacon should tell Earth.**
+living realms and decide what your mission should tell Earth.**
 
-[Play Mythical Void](https://mythicalvoid.com/playable-now/) ·
-[Start the game](https://mythicalvoid.com/play/) ·
+[Play Mythical Void](https://mythicalvoid.com/play/) ·
+[See what you do in the game](https://mythicalvoid.com/playable-now/) ·
 [Latest game updates](https://mythicalvoid.com/updates/) ·
 [Family guide](https://mythicalvoid.com/parents/) ·
 [Player help](https://mythicalvoid.com/help/) ·

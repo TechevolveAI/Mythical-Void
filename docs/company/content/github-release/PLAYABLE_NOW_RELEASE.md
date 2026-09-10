@@ -1,9 +1,9 @@
 # Mythical Void is playable now — Early Access
 
-Hatch a strange alien creature, cross six living realms and decide what
-Project Beacon should tell Earth.
+Hatch a strange alien creature, cross six living realms and decide what your
+mission should tell Earth.
 
-**[Play Mythical Void free in your browser](https://mythicalvoid.com/playable-now/)**
+**[Play Mythical Void free in your browser](https://mythicalvoid.com/play/)**
 
 No download, account, payment details, game adverts or public chat are needed.
 Progress can be kept in the browser. A keyboard gives the smoothest
@@ -37,7 +37,7 @@ not represent it well enough, so this release contains no gameplay media.
 Stronger real-game moments will be added only after a person has reviewed them.
 Generated universe artwork is never presented as gameplay.
 
-- [Start the game directly](https://mythicalvoid.com/play/)
+- [See what you do before you begin](https://mythicalvoid.com/playable-now/)
 - [Read the family guide](https://mythicalvoid.com/parents/)
 - [See the studio story](https://mythicalvoid.com/studio/)
 - [Read current press and creator facts](https://mythicalvoid.com/press/)

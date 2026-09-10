@@ -17,7 +17,8 @@
     "expectedUrl": "https://github.com/TechevolveAI/Mythical-Void/releases/tag/early-access-2026-08-31"
   },
   "truth": {
-    "playUrl": "https://mythicalvoid.com/playable-now/",
+    "playUrl": "https://mythicalvoid.com/play/",
+    "gameGuideUrl": "https://mythicalvoid.com/playable-now/",
     "directGameUrl": "https://mythicalvoid.com/play/",
     "familyUrl": "https://mythicalvoid.com/parents/",
     "earlyAccessDisclosed": true,
@@ -65,10 +66,14 @@
     "targetCommit": "eac3b8d202420aa5e2d175addcd3bfca70dfc5ae",
     "title": "Mythical Void is playable now — Early Access",
     "publishedAt": "2026-08-31T06:05:48Z",
+    "bodyUpdatedAt": "2026-09-10T13:15:20Z",
     "prerelease": true,
     "draft": false,
     "assetCount": 0,
-    "bodySha256": "7e0938857922ea71120b01562d0cfccca044948b2a77cf6661cab5667dae574e"
+    "primaryPlayUrl": "https://mythicalvoid.com/play/",
+    "gameGuideUrl": "https://mythicalvoid.com/playable-now/",
+    "primaryPlayUrlDirect": true,
+    "bodySha256": "10ce61e95b48933b0de78a43c0910d831c2a983bf62afceee7fd256d6e2131d5"
   },
   "measurementBoundary": "A GitHub release view, reaction, download or repository visit is not a player, a completed game session, enjoyment, retention or recommendation. Public GitHub numbers and consented aggregate website events describe separate actions and cannot be joined into a person-level journey. No conversion rate, audience size or product-value claim may be inferred from them.",
   "rollback": "Delete the GitHub release and its tag if the wording, target, links or boundaries differ from this reviewed record. Removing a release cannot erase screenshots, quotes or cached copies made by others after publication.",

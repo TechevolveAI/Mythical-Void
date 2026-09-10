@@ -161,8 +161,8 @@ if (!indexNow.includes('A live IndexNow submission requires at least one explici
 if (packageJson.scripts?.['submit:indexnow'] !== 'node scripts/company/submit-indexnow.cjs') failures.push('package.json: IndexNow command is missing');
 
 for (const required of [
-    '[Play Mythical Void](https://mythicalvoid.com/playable-now/)',
-    '[Start the game](https://mythicalvoid.com/play/)',
+    '[Play Mythical Void](https://mythicalvoid.com/play/)',
+    '[See what you do in the game](https://mythicalvoid.com/playable-now/)',
     '[Latest game updates](https://mythicalvoid.com/updates/)',
     '[Family guide](https://mythicalvoid.com/parents/)',
     '[Player help](https://mythicalvoid.com/help/)',

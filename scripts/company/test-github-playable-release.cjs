@@ -74,12 +74,14 @@ invalid('unapproved account', mutateContract(value => { value.authority.newAccou
 invalid('missing completion', mutateContract(value => { value.publicationCompleted = false; }), 'publication boundary');
 invalid('failed public gate', mutateContract(value => { value.gates[9].satisfied = false; }), 'gate 10 state');
 invalid('wrong public target', mutateContract(value => { value.publicEvidence.targetCommit = '0000000000000000000000000000000000000000'; }), 'target commit');
-invalid('tracked link', mutateBody(source => source.replace('https://mythicalvoid.com/playable-now/', 'https://mythicalvoid.com/playable-now/?utm_source=github')), 'tracking parameters');
+invalid('indirect primary Play record', mutateContract(value => { value.publicEvidence.primaryPlayUrl = 'https://mythicalvoid.com/playable-now/'; value.publicEvidence.primaryPlayUrlDirect = false; }), 'direct primary Play action');
+invalid('tracked link', mutateBody(source => source.replace('https://mythicalvoid.com/play/', 'https://mythicalvoid.com/play/?utm_source=github')), 'tracking parameters');
+invalid('explainer before game', mutateBody(source => `[See what you do before you begin](https://mythicalvoid.com/playable-now/)\n\n${source}`), 'primary release action');
 invalid('gameplay image', mutateBody(source => `${source}\n![Gameplay](gameplay.png)\n`), 'contains media');
 invalid('NASA endorsement', mutateBody(source => source.replace('NASA does not make or endorse Mythical Void.', 'This is a NASA-powered game.')), 'missing: NASA does not');
 invalid('uniqueness claim', mutateBody(source => source.replace('an alien creature shaped by a genetics system', 'a unique creature shaped by a genetics system')), 'unsupported or inflated');
 invalid('missing family link', mutateBody(source => source.replace('[Read the family guide](https://mythicalvoid.com/parents/)', 'Family details coming soon')), 'missing: [Read the family guide]');
 invalid('child exact age', mutateBody(source => source.replace('father-and-son project', 'father-and-son project with his nine-year-old son')), "exposes a child's exact age");
 
-assert.strictEqual(cases, 13);
-console.log('GitHub playable release safeguards passed (13 cases).');
+assert.strictEqual(cases, 15);
+console.log('GitHub playable release safeguards passed (15 cases).');
