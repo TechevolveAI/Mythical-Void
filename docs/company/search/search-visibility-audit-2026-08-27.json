@@ -92,7 +92,11 @@
     "repositoryPublic": true,
     "previousDescriptionPresent": false,
     "previousHomepagePresent": false,
-    "descriptionLive": "Free browser adventure: hatch an alien creature, cross six living realms, and shape Project Beacon. No download or account.",
+    "descriptionLive": "Free browser adventure: hatch an alien creature, cross six living realms, and decide what your mission should tell Earth. No download or account.",
+    "descriptionCheckedAt": "2026-09-10T11:40:48Z",
+    "descriptionPlainLanguageAligned": true,
+    "liveCheckCommand": "npm run audit:github-identity",
+    "liveCheckReadOnly": true,
     "homepageLive": "https://mythicalvoid.com/playable-now/",
     "topicsLive": [
       "browser-game",

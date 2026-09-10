@@ -100,6 +100,9 @@ invalidAudit('invented Search Console property', audit => { audit.searchConsoleA
 invalidAudit('stale GitHub metadata record', audit => { audit.publicGitHubDoorway.metadataUpdatePendingReviewedMerge = true; }, 'authority boundary');
 invalidAudit('missing current GitHub discovery topic', audit => { audit.publicGitHubDoorway.topicsLive = audit.publicGitHubDoorway.topicsLive.filter(topic => topic !== 'html5-game'); }, 'topic evidence');
 invalidAudit('invented GitHub discovery result', audit => { audit.publicGitHubDoorway.topicExpansionMeaning = 'The new topics have increased plays and ranking.'; }, 'topic meaning boundary');
+invalidAudit('stale GitHub description', audit => { audit.publicGitHubDoorway.descriptionLive = 'Free browser adventure: hatch an alien creature, cross six living realms, and shape Project Beacon. No download or account.'; }, 'public GitHub description evidence');
+invalidAudit('missing GitHub description check', audit => { audit.publicGitHubDoorway.descriptionCheckedAt = null; }, 'plain-language evidence');
+invalidAudit('mutable GitHub identity check', audit => { audit.publicGitHubDoorway.liveCheckReadOnly = false; }, 'live identity check');
 
 const fabricatedFollowUpRoot = fixture(fixtureRoot => {
     const target = path.join(fixtureRoot, 'docs/company/search/search-visibility-follow-up-2026-09-08.json');
@@ -221,5 +224,5 @@ try {
     fs.rmSync(projectNameRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 36);
-console.log('Search visibility activation safeguards passed (36 cases).');
+assert.strictEqual(cases, 39);
+console.log('Search visibility activation safeguards passed (39 cases).');
