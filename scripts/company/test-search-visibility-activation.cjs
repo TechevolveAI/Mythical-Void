@@ -208,5 +208,18 @@ try {
     fs.rmSync(companionRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 35);
-console.log('Search visibility activation safeguards passed (35 cases).');
+const projectNameRoot = fixture(fixtureRoot => {
+    const target = path.join(fixtureRoot, 'index.html');
+    fs.writeFileSync(target, fs.readFileSync(target, 'utf8').replaceAll('decide what your mission should tell Earth', 'decide what Project Beacon should tell Earth'));
+});
+try {
+    const result = execute(projectNameRoot);
+    assert.strictEqual(result.status, 1);
+    assert(result.stderr.includes('plain homepage entry'));
+    cases += 1;
+} finally {
+    fs.rmSync(projectNameRoot, { recursive: true, force: true });
+}
+
+assert.strictEqual(cases, 36);
+console.log('Search visibility activation safeguards passed (36 cases).');

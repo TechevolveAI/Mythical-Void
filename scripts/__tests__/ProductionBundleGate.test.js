@@ -23,6 +23,9 @@ function createFixture(files) {
         '<meta name="mythical-entry" content="direct-play">' +
         '<link rel="canonical" href="https://mythicalvoid.com/play/">' +
         '<meta property="og:url" content="https://mythicalvoid.com/play/">' +
+        '<title>Play Mythical Void Free | Alien Creature Browser Game</title>' +
+        '<meta name="description" content="Start Mythical Void free in your browser.">' +
+        '"mainEntityOfPage": { "@id": "https://mythicalvoid.com/play/" }' +
         '<meta property="og:image" content="https://mythicalvoid.com/marketing/mythical-void-brand-link-card-v1.png">' +
         '<meta property="og:image:alt" content="Mythical Void brand art, not gameplay">'
     );

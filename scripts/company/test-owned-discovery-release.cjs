@@ -64,7 +64,7 @@ try {
     assert.strictEqual(output.ready, true);
     assert.strictEqual(output.gameMeasured, false);
     assert.deepStrictEqual(output.eventNames, ['play_selected', 'share_completed', 'share_link_copied']);
-    assert.strictEqual(output.sitemapUrlCount, 16);
+    assert.strictEqual(output.sitemapUrlCount, 17);
     assert.strictEqual(output.officialSiteName, 'Mythical Void');
     assert.strictEqual(output.directPlayAction, 'https://mythicalvoid.com/play/');
     assert.strictEqual(output.githubDoorwayReady, true);

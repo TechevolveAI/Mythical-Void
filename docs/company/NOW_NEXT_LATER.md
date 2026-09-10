@@ -1,7 +1,7 @@
 # Mythical Void: what happens next
 
 This is the short, plain-English view of the company plan. It reflects what is
-actually live or prepared on 9 September 2026.
+actually live or prepared on 10 September 2026.
 
 ## Now — help the right people find and try the game
 
@@ -153,7 +153,8 @@ actually live or prepared on 9 September 2026.
 
 - YouTube, short video and gameplay-led promotion remain held.
 - Four genuine moments must pass human visual review: the hatch, creature
-  identity in play, restoration, and the Project Beacon choice.
+  identity in play, restoration, and the final decision about what the mission
+  should tell Earth.
 - Generated universe artwork may explain the wider imagination, but it must not
   be described as gameplay.
 

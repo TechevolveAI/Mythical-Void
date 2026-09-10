@@ -7,14 +7,14 @@ that matter now.
 ## Check this first
 
 The website returned after an earlier hosting interruption. A fresh production
-check at 09:05 UTC reached all 16 sitemap pages, six additional important
-routes and 56 unique owned links. The game, news feeds, analytics permission
+check at 11:26 UTC reached all 17 sitemap pages, six additional important
+routes and 57 unique owned links. The game, news feeds, analytics permission
 boundary and truthful live-activity display all passed. This proves
 availability, not players, enjoyment or growth.
 
 The production release observed during that check was deployment
-`6aa2719385753d0008d06aa0`, built from protected main commit
-`8e581ac210ce876f7b9bec9e660ff0957cfd2b51`. Publishing a later studio-only
+`6aa29367f7a56a0008fe652c`, built from protected main commit
+`d9872e8c817714b212062b8a907c96ee4c46808d`. Publishing a later studio-only
 record may create a newer deployment, so the fresh command—not this historic
 identifier—is the source of truth for availability.
 
@@ -29,10 +29,10 @@ route automatically returns to hold.
   [mythicalvoid.com](https://mythicalvoid.com/) and
   [Play Mythical Void](https://mythicalvoid.com/play/).
 - **The direct game link now introduces itself correctly:** `/play/` has its own
-  web address and share identity, while keeping the approved brand card clearly
-  labelled as brand art rather than gameplay. The community launch check now
-  tests this exact page instead of allowing a healthy homepage to hide a broken
-  game link.
+  search title, plain description, web address and share identity. It is now in
+  the sitemap, while the approved brand card remains clearly labelled as brand
+  art rather than gameplay. The community launch check tests this exact page
+  instead of allowing a healthy homepage to hide a broken game link.
 - **The phone welcome is stronger:** visitors now see a focused window into the
   creature universe on the first screen, Play remains clear and the artwork is
   labelled as an imagined interpretation rather than gameplay.
@@ -95,7 +95,7 @@ route automatically returns to hold.
 ## What we actually know
 
 - The website, game, public release and feedback route are available.
-- The fresh 10 September check reached the routes recorded above. It found 24
+- The fresh 10 September check reached the routes recorded above. It found 25
   matching items in both public news feeds.
 - The latest recorded public search sample found **no official Mythical Void
   result**. This does not prove the site is missing everywhere.
@@ -120,7 +120,8 @@ route automatically returns to hold.
   can create them. GitHub is currently proof of the project, not an audience.
 - r/WebGames is a verified fit for one direct-link test: it requires a playable
   browser game, direct link, no required download or sign-up and no referral
-  link. Its page showed about 19,000 weekly visitors on 8 September, but that is
+  link. Its page showed about 19,000 weekly visitors and 896 weekly
+  contributions on 10 September, but those are
   a changing community estimate—not reach and not a player count. A community
   search showed no existing Mythical Void post.
 - Thirteen discovery routes have now been checked and put in a deliberate
@@ -163,16 +164,17 @@ again before the final posting step.
 
 **Exact first comment**
 
-> My son and I started Mythical Void at home, using our imagination and today's
-> AI tools. We kept working until it became a real browser game.
+> My son and I started Mythical Void at home with imagination and today's AI
+> tools. We kept working until it became a real browser game.
 >
-> Hatch an alien creature, explore six strange worlds and free their Guardians
-> from the Void. Your choices change Project Beacon. It is free to play and
-> still in early access, with no account or download.
+> You crash beyond mapped space, hatch an alien creature and travel together
+> through six strange worlds. Free the Guardians from the Void, build a
+> Sanctuary and decide what your mission should tell Earth. It is free, still
+> in early access, with no account or download.
 >
-> AI helped us build, but people made the decisions. We tested and reworked it,
-> and I am improving it. If you try the first minute, I would like to know what
-> made sense and what did not.
+> AI helped us build; people made the decisions. We tested and reworked it. I am
+> improving it. Try the first minute and tell me what made sense and what did
+> not.
 >
 > The link picture is our brand emblem, not gameplay.
 

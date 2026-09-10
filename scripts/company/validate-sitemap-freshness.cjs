@@ -8,6 +8,7 @@ const repositoryRoot = path.resolve(__dirname, '..', '..');
 const canonicalOrigin = 'https://mythicalvoid.com';
 const routeSources = {
     '/': ['index.html'],
+    '/play/': ['index.html', 'scripts/build-direct-play-entry.cjs'],
     '/privacy/': ['src/site/storefront.js', 'src/config/legal.json'],
     '/press/': ['public/press/index.html'],
     '/playable-now/': ['public/playable-now/index.html'],

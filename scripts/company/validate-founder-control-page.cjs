@@ -56,8 +56,8 @@ requireValue(control.plainLanguagePage === 'docs/company/FOUNDER_CONTROL_PAGE.md
 const doorway = control.currentPublicDoorway || {};
 requireValue(doorway.state === 'healthy_at_latest_check' && /^2026-09-10T/.test(doorway.checkedAt || ''), 'current public doorway evidence is stale');
 requireValue(doorway.websiteUrl === 'https://mythicalvoid.com/' && doorway.playUrl === 'https://mythicalvoid.com/play/', 'current public doorway links are invalid');
-requireValue(doorway.sitemapUrls === 16 && doorway.coreExtraRoutes === 6 && doorway.uniqueOwnedLinksChecked === 56, 'current public doorway coverage is incomplete');
-requireValue(doorway.rssItems === 24 && doorway.jsonItems === 24, 'current public news feeds are inconsistent');
+requireValue(doorway.sitemapUrls === 17 && doorway.coreExtraRoutes === 6 && doorway.uniqueOwnedLinksChecked === 57, 'current public doorway coverage is incomplete');
+requireValue(doorway.rssItems === 25 && doorway.jsonItems === 25, 'current public news feeds are inconsistent');
 requireValue(doorway.analyticsDefaultDenied === true && doorway.gameRouteLoadsWebsiteTag === false, 'current analytics boundary is invalid');
 requireValue(doorway.livePresenceEndpointHealthy === true, 'current live-activity endpoint is not healthy');
 requireValue(doorway.provesPlayers === false && doorway.provesEnjoyment === false && doorway.provesGrowth === false, 'availability is being overstated as an outcome');
@@ -134,6 +134,15 @@ requireValue(control.heldDecisions?.some(decision => decision.id === 'FD-001' &&
 requireValue(control.unlockSequence?.length === 5 && control.unlockSequence?.[2] === 'run_action_time_preflight' && control.unlockSequence?.[4] === 'record_day_two_and_day_seven_observations', 'community unlock sequence is invalid');
 requireValue(control.firstFiveUnlockSequence?.length === 5 && control.firstFiveUnlockSequence?.[2] === 'adult_human_visual_review' && control.firstFiveUnlockSequence?.[3] === 'five_adult_first_five_test', 'First Five unlock sequence is invalid');
 requireValue(community.state === 'one_direct_link_post_ready_waiting_for_kevin' && community.authority?.externalPostMade === false && community.authority?.externalPostingAuthorized === false, 'community source is not ready and held');
+const exactCommunityComment = String(community.firstExperiment?.preparedPost?.firstComment || '').replace(/\s+/g, ' ').trim();
+const exactCommunityTitle = String(community.firstExperiment?.preparedPost?.title || '').trim();
+const exactCommunityUrl = String(community.firstExperiment?.preparedPost?.url || '').trim();
+requireValue(
+    exactCommunityTitle.length > 0 && normalizedPage.includes(exactCommunityTitle) &&
+    exactCommunityUrl.length > 0 && normalizedPage.includes(exactCommunityUrl) &&
+    exactCommunityComment.length > 0 && normalizedPage.includes(exactCommunityComment),
+    'founder exact community post does not match the authoritative prepared post'
+);
 requireValue(control.communityExperiment?.id === 'WEBGAMES-FIRST-RUN-001' && control.communityExperiment?.state === 'waiting_for_existing_account_and_action_time_approval' && control.communityExperiment?.postMade === false, 'founder community experiment state is invalid');
 requireValue(control.communityExperiment?.oneRouteAtATime === true && control.communityExperiment?.nextRouteBeforeSevenDayReadAllowed === false && control.communityExperiment?.humanRepliesOnly === true && control.communityExperiment?.fakeEngagementAllowed === false, 'community experiment safety boundary is invalid');
 const preparedRoutes = control.preparedDiscoveryRoutes || {};
@@ -158,10 +167,10 @@ for (const phrase of [
     '# Mythical Void: founder control page',
     'refreshed on 10 September 2026',
     'The website returned after an earlier hosting interruption.',
-    'all 16 sitemap pages, six additional important routes and 56 unique owned links',
+    'all 17 sitemap pages, six additional important routes and 57 unique owned links',
     'This proves availability, not players, enjoyment or growth.',
-    '6aa2719385753d0008d06aa0',
-    '8e581ac210ce876f7b9bec9e660ff0957cfd2b51',
+    '6aa29367f7a56a0008fe652c',
+    'd9872e8c817714b212062b8a907c96ee4c46808d',
     'npm run founder:status',
     'If the game is unavailable, every discovery route automatically returns to hold.',
     'The first-contact layout repair is live',
@@ -193,6 +202,7 @@ for (const phrase of [
     'Kevin controls public posts'
 ]) requireValue(normalizedPage.includes(phrase), `plain-language founder page is missing: ${phrase}`);
 requireValue(!/\bcompanions?\b/i.test(page), 'outdated companion wording appears on the founder page');
+requireValue(!/Project Beacon/i.test(page), 'unexplained Project Beacon wording appears on the founder page');
 requireValue(!/\b(?:nine|9)[ -]year[ -]old\b/i.test(page), 'the founder page exposes a child\'s exact age');
 requireValue(!/NASA[- ](?:powered|endorsed)|official NASA game/i.test(page), 'the founder page implies NASA endorsement');
 requireValue(normalizedScoreboard.includes('Checked: 8 September 2026'), 'growth scoreboard check date is stale');
