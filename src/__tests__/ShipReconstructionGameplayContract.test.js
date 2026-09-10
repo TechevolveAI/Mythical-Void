@@ -91,6 +91,18 @@ describe('Wanderer-77 reconstruction gameplay contract', () => {
         expect(hub).not.toContain('VOID VOYAGE READY');
     });
 
+    test('does not restore controls after the Sanctuary scene has shut down', () => {
+        expect(modal).toContain('const sceneCanResume = Boolean(');
+        expect(modal).toContain('!this.scene?._isShuttingDown');
+        expect(modal).toContain('this.scene?.physics?.world');
+        expect(modal).toContain(
+            'if (!this.physicsWasPaused && sceneCanResume)'
+        );
+        expect(modal).toContain(
+            'if (this.restoreMobileControls && sceneCanResume)'
+        );
+    });
+
     test('persists and resets the reconstruction ledger', () => {
         expect(gameState).toContain('shipReconstruction: {');
         expect(gameState).toContain('completedStepIds: []');

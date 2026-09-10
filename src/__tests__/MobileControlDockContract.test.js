@@ -349,6 +349,9 @@ describe('shared mobile control dock', () => {
         expect(gameSource).toContain('this.worldHeight + reservedWorldHeight');
         expect(gameSource).toContain("this.scale.on('resize', this.mobileCameraResizeHandler)");
         expect(gameSource).toContain("this.scale?.off?.('resize', this.mobileCameraResizeHandler)");
+        expect(gameSource).toContain('camera?.scene !== this');
+        expect(gameSource).toContain('!camera?._bounds');
+        expect(gameSource).toContain('this._isShuttingDown ||');
         expect(gameSource).toContain(".replace(/^\\s*Press SPACE\\s*·\\s*/i, 'Tap ✋ · ')");
         expect(gameSource).toContain('if (isProximityPrompt) return;');
         expect(gameSource).toContain('createInteractionPromptPreview()');
