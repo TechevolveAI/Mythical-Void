@@ -102,6 +102,8 @@ invalidAudit('missing current GitHub discovery topic', audit => { audit.publicGi
 invalidAudit('invented GitHub discovery result', audit => { audit.publicGitHubDoorway.topicExpansionMeaning = 'The new topics have increased plays and ranking.'; }, 'topic meaning boundary');
 invalidAudit('stale GitHub description', audit => { audit.publicGitHubDoorway.descriptionLive = 'Free browser adventure: hatch an alien creature, cross six living realms, and shape Project Beacon. No download or account.'; }, 'public GitHub description evidence');
 invalidAudit('missing GitHub description check', audit => { audit.publicGitHubDoorway.descriptionCheckedAt = null; }, 'plain-language evidence');
+invalidAudit('indirect GitHub homepage', audit => { audit.publicGitHubDoorway.homepageLive = 'https://mythicalvoid.com/playable-now/'; audit.publicGitHubDoorway.homepageDirectPlay = false; }, 'public GitHub homepage evidence');
+invalidAudit('missing GitHub homepage check', audit => { audit.publicGitHubDoorway.homepageCheckedAt = null; }, 'direct-Play homepage evidence');
 invalidAudit('mutable GitHub identity check', audit => { audit.publicGitHubDoorway.liveCheckReadOnly = false; }, 'live identity check');
 
 const fabricatedFollowUpRoot = fixture(fixtureRoot => {
@@ -224,5 +226,5 @@ try {
     fs.rmSync(projectNameRoot, { recursive: true, force: true });
 }
 
-assert.strictEqual(cases, 39);
-console.log('Search visibility activation safeguards passed (39 cases).');
+assert.strictEqual(cases, 41);
+console.log('Search visibility activation safeguards passed (41 cases).');

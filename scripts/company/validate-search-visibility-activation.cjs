@@ -215,7 +215,9 @@ requireValue(audit.publicGitHubDoorway?.descriptionLive === 'Free browser advent
 requireValue(/^2026-09-10T\d{2}:\d{2}:\d{2}Z$/.test(audit.publicGitHubDoorway?.descriptionCheckedAt || '') && audit.publicGitHubDoorway?.descriptionPlainLanguageAligned === true, 'public GitHub description plain-language evidence is missing');
 requireValue(audit.publicGitHubDoorway?.liveCheckCommand === 'npm run audit:github-identity' && audit.publicGitHubDoorway?.liveCheckReadOnly === true, 'public GitHub live identity check is missing');
 requireValue(packageJson.scripts?.['audit:github-identity'] === 'node scripts/company/audit-live-github-identity.cjs' && packageJson.scripts?.['test:github-identity'] === 'node scripts/company/test-live-github-identity.cjs', 'package.json GitHub identity audit commands are missing');
-requireValue(audit.publicGitHubDoorway?.homepageLive === 'https://mythicalvoid.com/playable-now/', 'public GitHub homepage evidence is missing');
+requireValue(audit.publicGitHubDoorway?.homepageLive === 'https://mythicalvoid.com/play/', 'public GitHub homepage evidence is missing');
+requireValue(/^2026-09-10T\d{2}:\d{2}:\d{2}Z$/.test(audit.publicGitHubDoorway?.homepageCheckedAt || '') && audit.publicGitHubDoorway?.homepageDirectPlay === true, 'public GitHub direct-Play homepage evidence is missing');
+requireValue(audit.publicGitHubDoorway?.gameGuideLive === 'https://mythicalvoid.com/playable-now/', 'public GitHub secondary game-guide evidence is missing');
 const expectedGitHubTopics = ['browser-game', 'creature-game', 'indie-game', 'javascript', 'phaser', 'science-fiction', 'stem', 'early-access', 'family-friendly', 'free-game', 'generative-ai', 'html5-game', 'space-game', 'web-game'];
 requireValue(JSON.stringify(audit.publicGitHubDoorway?.topicsLive) === JSON.stringify(expectedGitHubTopics), 'public GitHub topic evidence is missing');
 requireValue(/^2026-09-08T\d{2}:\d{2}:\d{2}Z$/.test(audit.publicGitHubDoorway?.topicsCheckedAt || '') && audit.publicGitHubDoorway?.topicExpansionCompleted === true, 'public GitHub topic expansion evidence is missing');

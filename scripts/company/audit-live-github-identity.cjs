@@ -7,7 +7,7 @@ const EXPECTED = Object.freeze({
     repository: 'TechevolveAI/Mythical-Void',
     publicUrl: 'https://github.com/TechevolveAI/Mythical-Void',
     description: 'Free browser adventure: hatch an alien creature, cross six living realms, and decide what your mission should tell Earth. No download or account.',
-    homepage: 'https://mythicalvoid.com/playable-now/',
+    homepage: 'https://mythicalvoid.com/play/',
     topics: [
         'browser-game',
         'creature-game',
