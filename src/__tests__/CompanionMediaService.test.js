@@ -333,6 +333,70 @@ describe('CompanionMediaService', () => {
         expect(JSON.stringify(stored)).not.toContain('videoUrl');
     });
 
+    test('records a terminal provider failure and retries with a new job', async () => {
+        const portrait = {
+            identityKey: 'identity-23',
+            stage: 'baby',
+            imageUrl: 'https://example.test/private-portrait.png',
+            assetRef: 'portrait-job-v1:42e1e046-c676-4fb9-91c9-1575dcb094ee'
+        };
+        const processingVideo = {
+            status: 'processing',
+            assetRef: 'video-job-v1:824363b2-d374-4b44-bf7f-1d7a177fa074'
+        };
+        const fetchMock = jest.fn(async () => ({
+            ok: true,
+            status: 202,
+            json: async () => ({
+                success: false,
+                status: 'failed',
+                assetRef: processingVideo.assetRef
+            })
+        }));
+        const gameState = createGameState(portrait);
+        const sceneWindow = {
+            GameState: gameState,
+            fetch: fetchMock,
+            LivingPortraitService: {
+                hasUsableDisplayUrl: jest.fn(() => true),
+                getAccessToken: jest.fn(async () => 'private-access-token')
+            }
+        };
+        const { CompanionMediaService } = loadCompanionMediaService(sceneWindow);
+        const service = new CompanionMediaService();
+        const stored = service.saveVideoRecord(
+            'first_forest_arrival',
+            portrait,
+            processingVideo
+        );
+
+        await expect(service.resolveGeneratedVideo({
+            momentId: 'first_forest_arrival',
+            portraitRecord: portrait,
+            stored
+        })).resolves.toBeNull();
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(service.getVideoRecord(
+            'first_forest_arrival',
+            portrait.identityKey
+        )?.status).toBe('failed');
+
+        service.startGeneratedVideo = jest.fn(async () => null);
+        service.resolveGeneratedVideo = jest.fn(async () => null);
+
+        await service.prepareGeneratedVideo({
+            momentId: 'first_forest_arrival',
+            record: portrait
+        });
+
+        expect(service.startGeneratedVideo).toHaveBeenCalledWith({
+            momentId: 'first_forest_arrival',
+            portraitRecord: portrait
+        });
+        expect(service.resolveGeneratedVideo).not.toHaveBeenCalled();
+    });
+
     test('backs off after video quota exhaustion and keeps portrait fallback available', async () => {
         const portrait = {
             identityKey: 'identity-23',
