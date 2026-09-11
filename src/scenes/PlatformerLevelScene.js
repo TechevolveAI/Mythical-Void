@@ -413,6 +413,15 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.levelCompletionKeyHandler = null;
         this.companionMediaRequest = 0;
         this.companionRescueTableau = null;
+        this.generatedVideoStatusUnsubscribe = null;
+        this.generatedVideoDeliveryPending = false;
+        this.generatedVideoDeliveryCheckAt = 0;
+        this.generatedVideoReadyNotice = null;
+        this.generatedVideoPlayback = null;
+        this.generatedVideoPlaybackElements = [];
+        this.generatedVideoPlaybackTimer = null;
+        this.generatedVideoDeliveryRequest = 0;
+        this.generatedVideoPlaybackWasPaused = false;
         this.residentReleaseElements = [];
         this.residentReleaseOpen = false;
         this.residentReleaseTableau = null;
@@ -966,6 +975,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
             // 12. Set up collisions
             this.setupCollisions();
+            this.setupGeneratedVideoDelivery();
 
             if (this.recoveryPreview === 'agency') {
                 this.health = 1;
@@ -4998,6 +5008,7 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Main update loop
      */
     update(time, delta) {
+        this.updateGeneratedVideoDelivery(time);
         if (!this.player || this.isPlayerDead || this.levelCompletionActive) return;
 
         // Anti-stuck detection: Check if player is embedded in ground and rescue them
@@ -5066,6 +5077,242 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (this.hasShield) {
             this.updateShield(delta);
         }
+    }
+
+    setupGeneratedVideoDelivery() {
+        this.generatedVideoStatusUnsubscribe?.();
+        this.generatedVideoStatusUnsubscribe = null;
+        this.generatedVideoDeliveryPending = Boolean(
+            (window.CompanionMediaService || companionMediaService)
+                ?.getUnviewedGeneratedVideos?.()?.length
+        );
+        if (typeof window.GameState?.on !== 'function') return;
+
+        this.generatedVideoStatusUnsubscribe = window.GameState.on(
+            'companionVideoStatus',
+            record => {
+                if (record?.status !== 'succeeded') return;
+                this.generatedVideoDeliveryPending = true;
+                this.generatedVideoDeliveryCheckAt = 0;
+            }
+        );
+    }
+
+    updateGeneratedVideoDelivery(time = 0) {
+        if (
+            this.sys?.isActive?.() === false ||
+            this.generatedVideoPlayback ||
+            this.generatedVideoReadyNotice
+        ) {
+            return false;
+        }
+        if (!this.generatedVideoDeliveryPending) return false;
+        if (time < this.generatedVideoDeliveryCheckAt) return false;
+        this.generatedVideoDeliveryCheckAt = time + 1000;
+
+        const mediaService = window.CompanionMediaService || companionMediaService;
+        const ready = mediaService?.getUnviewedGeneratedVideos?.()?.[0];
+        this.generatedVideoDeliveryPending = Boolean(ready);
+        if (!ready) return false;
+
+        const entryOpen = Array.isArray(this.levelEntryElements) &&
+            this.levelEntryElements.length > 0;
+        if (
+            entryOpen ||
+            this.firstExpeditionDrill?.panelVisible ||
+            this.pauseMenuActive ||
+            this.residentReleaseOpen ||
+            this.levelCompletionActive ||
+            this.isPlayerDead
+        ) {
+            return false;
+        }
+        return this.showGeneratedVideoReadyNotice(ready);
+    }
+
+    showGeneratedVideoReadyNotice(ready) {
+        if (!ready?.momentId || this.generatedVideoReadyNotice) return false;
+        const camera = this.cameras?.main;
+        const width = camera?.width || this.scale?.width || 390;
+        const height = camera?.height || this.scale?.height || 720;
+        const compact = width < 600;
+        const panelWidth = Math.min(width - 24, compact ? 354 : 470);
+        const panelHeight = compact ? 94 : 104;
+        const noticeY = compact
+            ? Math.min(height * 0.25, 178)
+            : Math.min(height * 0.2, 150);
+        const container = this.add.container(width / 2, noticeY)
+            .setScrollFactor(0)
+            .setDepth(19000)
+            .setAlpha(0);
+        const panel = this.add.rectangle(
+            0,
+            0,
+            panelWidth,
+            panelHeight,
+            0x071311,
+            0.98
+        ).setStrokeStyle(2, 0xF2C14E, 1)
+            .setInteractive({ useHandCursor: true });
+        const title = this.add.text(
+            -panelWidth / 2 + 18,
+            -panelHeight / 2 + 14,
+            'YOUR CREATURE\'S SCENE IS READY',
+            {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: compact ? '13px' : '15px',
+                fontStyle: 'bold',
+                color: '#F2C14E'
+            }
+        );
+        const detail = this.add.text(
+            -panelWidth / 2 + 18,
+            -4,
+            ready.label || 'A new creature story moment',
+            {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: compact ? '12px' : '14px',
+                color: '#F4F4F4',
+                wordWrap: { width: panelWidth - 112 }
+            }
+        ).setOrigin(0, 0.5);
+        const action = this.add.text(
+            panelWidth / 2 - 18,
+            panelHeight / 2 - 17,
+            'WATCH',
+            {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: '11px',
+                fontStyle: 'bold',
+                color: '#8FE3CF'
+            }
+        ).setOrigin(1, 0.5);
+        container.add([panel, title, detail, action]);
+
+        panel.once('pointerup', () => {
+            this.destroyGeneratedVideoReadyNotice();
+            void this.showGeneratedVideoPlayback(ready);
+        });
+        this.tweens?.add?.({
+            targets: container,
+            alpha: 1,
+            y: noticeY + 7,
+            duration: 260,
+            ease: 'Sine.easeOut'
+        });
+        this.generatedVideoReadyNotice = container;
+        return true;
+    }
+
+    destroyGeneratedVideoReadyNotice() {
+        if (!this.generatedVideoReadyNotice) return;
+        this.tweens?.killTweensOf?.(this.generatedVideoReadyNotice);
+        this.generatedVideoReadyNotice.destroy?.(true);
+        this.generatedVideoReadyNotice = null;
+    }
+
+    async showGeneratedVideoPlayback(ready) {
+        if (!ready?.momentId || this.generatedVideoPlayback) return false;
+        const requestId = ++this.generatedVideoDeliveryRequest;
+        const camera = this.cameras?.main;
+        const width = camera?.width || this.scale?.width || 390;
+        const height = camera?.height || this.scale?.height || 720;
+        const depth = 19100;
+        this.generatedVideoPlaybackWasPaused = Boolean(this.physics?.world?.isPaused);
+        if (!this.generatedVideoPlaybackWasPaused) this.physics?.pause?.();
+
+        const veil = this.add.rectangle(
+            width / 2,
+            height / 2,
+            width,
+            height,
+            0x020706,
+            0.96
+        ).setScrollFactor(0).setDepth(depth);
+        const status = this.add.text(
+            width / 2,
+            height / 2,
+            'OPENING YOUR CREATURE\'S STORY MOMENT...',
+            {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: width < 600 ? '14px' : '18px',
+                fontStyle: 'bold',
+                color: '#8FE3CF',
+                align: 'center',
+                wordWrap: { width: Math.max(260, width - 56) }
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 1);
+        const cancelZone = this.add.zone(0, 0, width, height)
+            .setOrigin(0)
+            .setScrollFactor(0)
+            .setDepth(depth + 4)
+            .setInteractive({ useHandCursor: true });
+        const cancelText = this.add.text(
+            width / 2,
+            height - Math.max(54, height * 0.08),
+            'TAP TO CANCEL',
+            {
+                fontFamily: 'Arial, sans-serif',
+                fontSize: '11px',
+                color: '#C8D8D4',
+                fontStyle: 'bold'
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 5);
+        this.generatedVideoPlaybackElements = [veil, status, cancelZone, cancelText];
+        cancelZone.once('pointerup', () => this.clearGeneratedVideoPlayback());
+
+        const mediaService = window.CompanionMediaService || companionMediaService;
+        const tableau = await mediaService?.createCinematicVideo?.(this, {
+            momentId: ready.momentId,
+            stage: ready.stage || window.GameState?.get?.(
+                'creature.lifecycle.stage'
+            ) || 'baby',
+            depth: depth + 2,
+            alpha: 1,
+            isCurrent: () => (
+                this.generatedVideoDeliveryRequest === requestId &&
+                this.sys?.isActive?.() !== false
+            )
+        });
+        if (
+            !tableau ||
+            this.generatedVideoDeliveryRequest !== requestId ||
+            this.sys?.isActive?.() === false
+        ) {
+            tableau?.destroy?.();
+            if (this.generatedVideoDeliveryRequest === requestId) {
+                this.clearGeneratedVideoPlayback();
+                this.generatedVideoDeliveryPending = true;
+            }
+            return false;
+        }
+
+        this.generatedVideoPlayback = tableau;
+        status.setText(ready.label || 'YOUR CREATURE IN THE MYTHICAL FOREST');
+        status.setY(Math.max(38, height * 0.08));
+        cancelText.setText('TAP TO CONTINUE');
+        this.generatedVideoPlaybackTimer = this.time?.delayedCall?.(
+            4600,
+            () => this.clearGeneratedVideoPlayback()
+        );
+        return true;
+    }
+
+    clearGeneratedVideoPlayback({ resume = true } = {}) {
+        this.generatedVideoDeliveryRequest += 1;
+        this.generatedVideoPlaybackTimer?.remove?.();
+        this.generatedVideoPlaybackTimer = null;
+        this.generatedVideoPlayback?.destroy?.();
+        this.generatedVideoPlayback = null;
+        this.generatedVideoPlaybackElements.forEach(element => {
+            element?.removeAllListeners?.();
+            element?.destroy?.();
+        });
+        this.generatedVideoPlaybackElements = [];
+        if (resume && !this.generatedVideoPlaybackWasPaused) {
+            this.physics?.resume?.();
+        }
+        this.generatedVideoPlaybackWasPaused = false;
     }
 
     /**
@@ -8438,6 +8685,11 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.companionMediaRequest += 1;
         this.companionRescueTableau?.destroy?.();
         this.companionRescueTableau = null;
+        this.generatedVideoStatusUnsubscribe?.();
+        this.generatedVideoStatusUnsubscribe = null;
+        this.destroyGeneratedVideoReadyNotice();
+        this.clearGeneratedVideoPlayback({ resume: false });
+        this.generatedVideoDeliveryPending = false;
         this.residentReleaseOpen = false;
         this.residentReleaseTableau?.destroy?.();
         this.residentReleaseTableau = null;

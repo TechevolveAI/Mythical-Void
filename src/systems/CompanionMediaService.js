@@ -8,7 +8,8 @@ const VIDEO_ASSET_REF_PATTERN = /^video-job-v1:[0-9a-f-]{36}$/i;
 const DEFAULT_MEDIA_TIMEOUTS = Object.freeze({
     requestMs: 8000,
     textureMs: 8000,
-    pollWindowMs: 180000
+    pollWindowMs: 180000,
+    videoStartupMs: 6000
 });
 const COMPANION_VIDEO_MOMENTS = Object.freeze(Object.fromEntries(
     companionVideoMomentsConfig.moments.map(moment => [
@@ -43,6 +44,12 @@ function hashText(value) {
 function normalizeTimestamp(value) {
     const numeric = Number(value);
     return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+}
+
+function normalizeVideoStatus(value) {
+    return ['succeeded', 'failed', 'canceled'].includes(value)
+        ? value
+        : 'processing';
 }
 
 class CompanionMediaService {
@@ -135,7 +142,7 @@ class CompanionMediaService {
                         : 'baby',
                     portraitAssetRef,
                     assetRef,
-                    status: entry.status === 'succeeded' ? 'succeeded' : 'processing',
+                    status: normalizeVideoStatus(entry.status),
                     provider: typeof entry.provider === 'string'
                         ? entry.provider.slice(0, 48)
                         : null,
@@ -435,7 +442,7 @@ class CompanionMediaService {
                 : 'baby',
             portraitAssetRef: portraitRecord.assetRef.toLowerCase(),
             assetRef: result.assetRef.toLowerCase(),
-            status: result.status === 'succeeded' ? 'succeeded' : 'processing',
+            status: normalizeVideoStatus(result.status),
             provider: typeof result.provider === 'string'
                 ? result.provider.slice(0, 48)
                 : null,
@@ -482,7 +489,7 @@ class CompanionMediaService {
         if (active) return active;
 
         const stored = this.getVideoRecord(momentId, portraitRecord.identityKey);
-        const task = stored?.assetRef
+        const task = stored?.assetRef && !['failed', 'canceled'].includes(stored.status)
             ? this.resolveGeneratedVideo({ momentId, portraitRecord, stored })
             : this.startGeneratedVideo({ momentId, portraitRecord });
         const guarded = Promise.resolve(task)
@@ -581,9 +588,14 @@ class CompanionMediaService {
                 return null;
             }
             const { response, result } = request;
-            if (!response.ok || result.status !== 'succeeded' || !result.videoUrl) {
+            if (!response.ok) {
                 return null;
             }
+            if (['failed', 'canceled'].includes(result.status)) {
+                this.saveVideoRecord(momentId, portraitRecord, result);
+                return null;
+            }
+            if (result.status !== 'succeeded' || !result.videoUrl) return null;
             this.saveVideoRecord(momentId, portraitRecord, result);
             return { ...result, portraitRecord };
         })().finally(() => this.videoResolutions.delete(record.assetRef));
@@ -624,7 +636,10 @@ class CompanionMediaService {
                 this.saveVideoRecord(momentId, portraitRecord, result);
                 return { ...result, portraitRecord };
             }
-            if (['failed', 'canceled'].includes(result.status)) return null;
+            if (['failed', 'canceled'].includes(result.status)) {
+                this.saveVideoRecord(momentId, portraitRecord, result);
+                return null;
+            }
         }
         return null;
     }
@@ -675,7 +690,10 @@ class CompanionMediaService {
             video.once?.('playing', () => finish(true));
             video.once?.('error', () => finish(false));
             video.play?.(false);
-            scene.time?.delayedCall?.(1800, () => finish(false));
+            scene.time?.delayedCall?.(
+                this.timeouts.videoStartupMs,
+                () => finish(false)
+            );
         });
         if (!started || (isCurrent && !isCurrent())) {
             video.destroy?.();
