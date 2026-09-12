@@ -96,6 +96,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 jumpBufferTime: 150
             }
         });
+        this.supportsPlatformDropThrough = true;
 
         // Level-specific state
         this.starFragmentsCollected = 0;
@@ -184,6 +185,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.beaconAnchorsActivated = 0;
         this.forestRouteAligned = false;
         this.guardianAwakeningStarted = false;
+        this.forestRouteGuidance = null;
+        this.forestRouteGuidanceLayer = null;
+        this.forestDropCoachShown = false;
         this.bossTriggerZone = null;
         this.bossGateHintUntil = 0;
         this.objectiveDisplay = null;
@@ -317,6 +321,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.beaconAnchorsActivated = 0;
         this.forestRouteAligned = false;
         this.guardianAwakeningStarted = false;
+        this.forestRouteGuidance = null;
+        this.forestRouteGuidanceLayer = null;
+        this.forestDropCoachShown = false;
         this.bossTriggerZone = null;
         this.bossGateHintUntil = 0;
         this.objectiveDisplay = null;
@@ -852,8 +859,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
             contentLeft,
             secondaryY,
             resume
-                ? `[ BEACON ] ${resume.label} link restored // follow the next forest light`
-                : '[ REQUIRED ] Follow 3 forest lights. The Guardian wakes after the third.',
+                ? `[ BEACON ] ${resume.label} link restored // follow the next Root Beacon`
+                : '[ REQUIRED ] Find 3 Root Beacons. The Guardian wakes after the third.',
             {
             fontSize: font(16, 14),
             color: '#AAAAAA',
@@ -990,10 +997,30 @@ class MythicalForestLevel extends PlatformerLevelScene {
     configureForestClimbSupport(platform) {
         if (!platform?.body) return platform;
         platform.platformType = 'one-way';
+        platform.traversalOneWay = true;
         platform.body.checkCollision.down = false;
         platform.body.checkCollision.left = false;
         platform.body.checkCollision.right = false;
         return platform;
+    }
+
+    createForestClimbSupportZone(x, topY, width, {
+        height = 72,
+        traversalId = null
+    } = {}) {
+        const collisionHeight = Math.max(40, Number(height) || 72);
+        const zone = this.add.zone(
+            x,
+            topY + collisionHeight / 2,
+            width,
+            collisionHeight
+        );
+        this.physics.add.existing(zone, true);
+        this.configureForestClimbSupport(zone);
+        zone.traversalId = traversalId;
+        this.platforms.add(zone);
+        this.detachForestPhysicsSupport(zone);
+        return zone;
     }
 
     detachForestPhysicsSupport(platform) {
@@ -1056,11 +1083,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const compass = typeof this.getOrderedRouteCompassText === 'function'
             ? this.getOrderedRouteCompassText()
             : '';
+        const routeDirection = (compass || 'ROOT BEACON RIGHT')
+            .replace('CLUE', 'ROOT BEACON');
         const title = this.isCompactObjectiveHUD
-            ? `FOREST LIGHT ${current}/3 // WALK INTO THE GLOW`
-            : `FOREST LIGHT ${current}/3 // WALK INTO THE GLOW AT ${nextAnchor}`;
+            ? `ROOT BEACON ${current}/3 // FIND THE GOLD GLOW`
+            : `ROOT BEACON ${current}/3 // FIND ${nextAnchor}`;
 
-        return `${title}\n${compass || 'FOLLOW THE GOLD PULSE →'}\n${optional}`;
+        return `${title}\n${routeDirection}\n${optional}`;
     }
 
     startFirstExpeditionDrill({ force = false } = {}) {
@@ -1401,6 +1430,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.updateForestEnemyMotion(time);
         this.updateForestCoinPickups();
         this.updateFirstExpeditionDrill();
+        this.updateForestRouteGuidance(time);
         this.syncCampaignObjectiveDisplay({
             visible:
                 !this.firstExpeditionDrill?.panelVisible &&
@@ -1604,6 +1634,17 @@ class MythicalForestLevel extends PlatformerLevelScene {
             this.checkpointAnchors.push(checkpoint);
         });
 
+        this.forestRouteGuidanceLayer?.destroy?.();
+        this.forestRouteGuidanceLayer = this.add.graphics().setDepth(88);
+        this.forestRouteGuidance = {
+            targetId: null,
+            bestDistance: Number.POSITIVE_INFINITY,
+            lastProgressAt: Number(this.time?.now) || 0,
+            nextPulseAt: 0,
+            pulseStartedAt: 0,
+            pulseUntil: 0,
+            lastSpeechAt: 0
+        };
         this.refreshForestRouteReadability();
     }
 
@@ -1624,8 +1665,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         graphics.clear();
         const complete = state === 'complete';
         const next = state === 'next';
-        const color = complete ? 0x8FE3CF : (next ? 0xF2C94C : 0x35565D);
-        const glowAlpha = complete ? 0.3 : (next ? 0.34 : 0.1);
+        const color = complete ? 0x8FE3CF : (next ? 0xF2C94C : 0x466D72);
+        const glowAlpha = complete ? 0.3 : (next ? 0.4 : 0.18);
         const coreRadius = next ? 40 : 34;
         const ringRadius = next ? 29 : 24;
 
@@ -1697,8 +1738,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const anchorNumber = this.beaconAnchorsActivated;
         this.showFloatingText(
             anchorNumber < 3
-                ? `FOREST LIGHT ${anchorNumber}/3 FOUND\nFOLLOW THE NEXT GOLD LIGHT →`
-                : 'ALL 3 FOREST LIGHTS FOUND\nTHE GUARDIAN IS WAKING',
+                ? `ROOT BEACON ${anchorNumber}/3 FOUND\nFOLLOW YOUR CREATURE'S GOLD PULSE`
+                : 'ALL 3 ROOT BEACONS FOUND\nTHE GUARDIAN IS WAKING',
             checkpoint.x,
             checkpoint.respawnY - 35,
             '#8FE3CF'
@@ -1741,6 +1782,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
             });
         }
 
+        const nextCheckpoint = this.getNextOrderedRouteSignal();
+        if (nextCheckpoint) {
+            this.showForestCurrentTowardNext(checkpoint, nextCheckpoint);
+        }
+
         window.AudioManager?.playAchievement?.();
     }
 
@@ -1777,7 +1823,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             camera?.fadeIn?.(320, 8, 20, 18);
 
             this.showFloatingText(
-                'ALL 3 FOREST LIGHTS FOUND\nTHE GUARDIAN AWAKENS',
+                'ALL 3 ROOT BEACONS FOUND\nTHE GUARDIAN AWAKENS',
                 entranceX + 40,
                 entranceY - 115,
                 '#F2C94C'
@@ -1810,18 +1856,154 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 checkpoint.supportY,
                 complete ? 'complete' : (next ? 'next' : 'future')
             );
+            checkpoint.visual?.setAlpha?.(complete || next ? 1 : 0.58);
             checkpoint.actionPrompt
                 ?.setText?.(
                     complete
-                        ? `LIGHT ${checkpoint.index + 1}/3 FOUND`
+                        ? `ROOT BEACON ${checkpoint.index + 1}/3 FOUND`
                         : next
-                            ? 'WALK INTO THE LIGHT'
-                            : `LIGHT ${checkpoint.index + 1}/3 AHEAD`
+                            ? 'WALK INTO THE ROOT BEACON'
+                            : `ROOT BEACON ${checkpoint.index + 1}/3 AHEAD`
                 )
                 ?.setColor?.(complete ? '#8FE3CF' : (next ? '#F2C94C' : '#7F9CA2'))
                 ?.setAlpha?.(complete || next ? 1 : 0.42);
         });
         return refreshed;
+    }
+
+    showForestCurrentTowardNext(fromCheckpoint, nextCheckpoint) {
+        if (!fromCheckpoint || !nextCheckpoint) return false;
+
+        const current = this.add.graphics().setDepth(84);
+        const startX = Number(fromCheckpoint.x) || 0;
+        const endX = Number(nextCheckpoint.x) || startX;
+        const startY = Number(fromCheckpoint.supportY) - 10;
+        const endY = Number(nextCheckpoint.supportY) - 10;
+        for (let index = 1; index <= 9; index += 1) {
+            const ratio = index / 10;
+            const x = Phaser.Math.Linear(startX, endX, ratio);
+            const y = Phaser.Math.Linear(startY, endY, ratio) -
+                Math.sin(ratio * Math.PI) * 18;
+            current.fillStyle(0xF2C94C, 0.3 + ratio * 0.55);
+            current.fillCircle(x, y, 2 + (index % 3));
+        }
+        this.tweens.add({
+            targets: current,
+            alpha: { from: 0.95, to: 0.18 },
+            duration: 780,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Sine.easeInOut',
+            onComplete: () => current.destroy()
+        });
+        return true;
+    }
+
+    updateForestRouteGuidance(time) {
+        const layer = this.forestRouteGuidanceLayer;
+        const guidance = this.forestRouteGuidance;
+        const target = this.getNextOrderedRouteSignal();
+        if (
+            !layer ||
+            !guidance ||
+            !target ||
+            !this.player?.active ||
+            this.bossFightActive ||
+            this.bossDefeated
+        ) {
+            layer?.clear?.();
+            return false;
+        }
+
+        const dx = Number(target.x) - Number(this.player.x);
+        const dy = Number(target.y) - Number(this.player.y);
+        const distance = Math.hypot(dx, dy);
+        if (!Number.isFinite(distance)) return false;
+
+        if (guidance.targetId !== target.id) {
+            guidance.targetId = target.id;
+            guidance.bestDistance = distance;
+            guidance.lastProgressAt = time;
+            guidance.nextPulseAt = time + 1200;
+        } else if (distance < guidance.bestDistance - 42) {
+            guidance.bestDistance = distance;
+            guidance.lastProgressAt = time;
+        }
+
+        const requiredDescent = dy > 130 && Math.abs(dx) < 520;
+        const stalled = time - guidance.lastProgressAt >= 5200;
+        if ((requiredDescent || stalled) && time >= guidance.nextPulseAt) {
+            guidance.pulseStartedAt = time;
+            guidance.pulseUntil = time + 1100;
+            guidance.nextPulseAt = time + (requiredDescent ? 2400 : 5200);
+
+            if (
+                requiredDescent &&
+                !this.forestDropCoachShown &&
+                window.GameState?.get?.('tutorials.forestPassThrough') !== true
+            ) {
+                this.forestDropCoachShown = true;
+                const creatureName = getFirstExpeditionCompanionName(
+                    window.GameState?.get?.('creature.name')
+                );
+                this.showFloatingText(
+                    `${creatureName}: "ROOT BEACON BELOW."\nHOLD DOWN TO PASS THROUGH THIS BRANCH`,
+                    this.player.x,
+                    this.player.y - 92,
+                    '#F2C94C'
+                );
+                this.showMobileControlCoach?.('joystick');
+                this.time.delayedCall(2600, () => this.clearMobileControlCoach?.());
+            } else if (stalled && time - guidance.lastSpeechAt >= 10000) {
+                guidance.lastSpeechAt = time;
+                const creatureName = getFirstExpeditionCompanionName(
+                    window.GameState?.get?.('creature.name')
+                );
+                this.showFloatingText(
+                    `${creatureName}: "I CAN FEEL THE NEXT ROOT BEACON THIS WAY."`,
+                    this.player.x,
+                    this.player.y - 82,
+                    '#F2C94C'
+                );
+            }
+        }
+
+        layer.clear();
+        if (time > guidance.pulseUntil) return false;
+
+        const magnitude = Math.max(1, Math.hypot(dx, dy));
+        const unitX = dx / magnitude;
+        const unitY = dy / magnitude;
+        const phase = Phaser.Math.Clamp(
+            (time - guidance.pulseStartedAt) / 1100,
+            0,
+            1
+        );
+        for (let index = 0; index < 4; index += 1) {
+            const travel = 34 + index * 27 + phase * 18;
+            const x = this.player.x + unitX * travel;
+            const y = this.player.y + unitY * travel;
+            layer.fillStyle(0xF2C94C, 0.92 - index * 0.14);
+            layer.fillCircle(x, y, 5 - index * 0.65);
+            layer.fillStyle(0xFFF4B8, 0.88);
+            layer.fillCircle(x - 1, y - 1, 1.5);
+        }
+        return true;
+    }
+
+    onPlatformDropThrough() {
+        this.clearMobileControlCoach?.();
+        if (window.GameState?.get?.('tutorials.forestPassThrough') === true) {
+            return;
+        }
+        window.GameState?.set?.('tutorials.forestPassThrough', true);
+        window.GameState?.save?.();
+        this.showFloatingText(
+            'PASS-THROUGH BRANCH LEARNED',
+            this.player.x,
+            this.player.y - 72,
+            '#8FE3CF'
+        );
     }
 
     restoreExpeditionRouteState(resume) {
@@ -2785,6 +2967,18 @@ class MythicalForestLevel extends PlatformerLevelScene {
             structure.fillPath();
             structure.strokePath();
 
+            // Forest branches are pass-through supports. A bright top surface
+            // communicates where they hold the player; two broken underside
+            // marks communicate that Down passes through them.
+            structure.lineStyle(3, 0x8FE3CF, 0.92);
+            structure.lineBetween(branchX, branchY - 8, endX, branchY - 12);
+            structure.lineStyle(2, 0xF2C94C, 0.72);
+            [0.38, 0.68].forEach(ratio => {
+                const markerX = branchX + (endX - branchX) * ratio;
+                structure.lineBetween(markerX - 5, branchY + 6, markerX, branchY + 11);
+                structure.lineBetween(markerX, branchY + 11, markerX + 5, branchY + 6);
+            });
+
             // Glowing tip
             structure.fillStyle(veinColor, 0.6);
             structure.fillCircle(endX + direction * 5, branchY, 8);
@@ -2793,12 +2987,14 @@ class MythicalForestLevel extends PlatformerLevelScene {
             const platformWidth = branchLength + 20;
             const platformX = (branchX + endX) / 2;
 
-            const branchPlatform = this.add.zone(platformX, branchY + 10, platformWidth, 20);
-            this.physics.add.existing(branchPlatform, true);
-            this.configureForestClimbSupport(branchPlatform);
-            branchPlatform.traversalId = `forest-tree-${treeIndex + 1}-branch-${i + 1}`;
-            this.platforms.add(branchPlatform);
-            this.detachForestPhysicsSupport(branchPlatform);
+            const branchPlatform = this.createForestClimbSupportZone(
+                platformX,
+                branchY,
+                platformWidth,
+                {
+                    traversalId: `forest-tree-${treeIndex + 1}-branch-${i + 1}`
+                }
+            );
             this.branchPlatforms.push({
                 zone: branchPlatform,
                 treeIndex,
@@ -2817,12 +3013,14 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
 
         // Add special platform at tree top
-        const topPlatform = this.add.zone(x, baseY - height + 20, 100, 20);
-        this.physics.add.existing(topPlatform, true);
-        this.configureForestClimbSupport(topPlatform);
-        topPlatform.traversalId = `forest-tree-${treeIndex + 1}-crown`;
-        this.platforms.add(topPlatform);
-        this.detachForestPhysicsSupport(topPlatform);
+        const topPlatform = this.createForestClimbSupportZone(
+            x,
+            baseY - height + 10,
+            100,
+            {
+                traversalId: `forest-tree-${treeIndex + 1}-crown`
+            }
+        );
 
         // Visual crown at top (crystal formation, not leaves)
         structure.fillStyle(veinColor, 0.4);
@@ -4492,16 +4690,26 @@ class MythicalForestLevel extends PlatformerLevelScene {
             // Solid crystal bridge
             bridgeGraphics.fillStyle(0x2A2A5E, 0.8);
             bridgeGraphics.fillRect(x1, y, width, 15);
-            bridgeGraphics.lineStyle(2, 0x00FF7F, 0.5);
+            bridgeGraphics.lineStyle(1, 0x10152E, 0.9);
             bridgeGraphics.strokeRect(x1, y, width, 15);
+            bridgeGraphics.lineStyle(3, 0x8FE3CF, 0.9);
+            bridgeGraphics.lineBetween(x1, y, x2, y);
+            bridgeGraphics.lineStyle(2, 0xF2C94C, 0.68);
+            [0.35, 0.65].forEach(ratio => {
+                const markerX = x1 + width * ratio;
+                bridgeGraphics.lineBetween(markerX - 5, y + 8, markerX, y + 13);
+                bridgeGraphics.lineBetween(markerX, y + 13, markerX + 5, y + 8);
+            });
 
             // Physics
-            const bridgeZone = this.add.zone(x1 + width/2, y + 7, width, 15);
-            this.physics.add.existing(bridgeZone, true);
-            this.configureForestClimbSupport(bridgeZone);
-            bridgeZone.traversalId = id || `forest-bridge-${index + 1}`;
-            this.platforms.add(bridgeZone);
-            this.detachForestPhysicsSupport(bridgeZone);
+            this.createForestClimbSupportZone(
+                x1 + width / 2,
+                y,
+                width,
+                {
+                    traversalId: id || `forest-bridge-${index + 1}`
+                }
+            );
 
         } else if (type === 'vine') {
             // Swinging vine bridge (visual only for now - physics complex)
@@ -4528,12 +4736,15 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 bridgeGraphics.fillCircle(stepX, stepY, 15);
 
                 // Physics for each step
-                const stepZone = this.add.zone(stepX, stepY, 30, 20);
-                this.physics.add.existing(stepZone, true);
-                this.configureForestClimbSupport(stepZone);
-                stepZone.traversalId = `forest-vine-${index + 1}-step-${i + 1}`;
-                this.platforms.add(stepZone);
-                this.detachForestPhysicsSupport(stepZone);
+                this.createForestClimbSupportZone(
+                    stepX,
+                    stepY - 10,
+                    30,
+                    {
+                        height: 48,
+                        traversalId: `forest-vine-${index + 1}-step-${i + 1}`
+                    }
+                );
             }
 
         } else if (type === 'collapsing') {
@@ -4553,18 +4764,18 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 sectionGraphics.setPosition(sectionX, y);
 
                 // Physics zone
-                const sectionZone = this.add.zone(sectionX + sectionWidth/2, y + 7, sectionWidth - 5, 15);
-                this.physics.add.existing(sectionZone, true);
+                const sectionZone = this.createForestClimbSupportZone(
+                    sectionX + sectionWidth / 2,
+                    y,
+                    sectionWidth - 5,
+                    {
+                        height: 64,
+                        traversalId: `forest-collapse-${index + 1}-section-${i + 1}`
+                    }
+                );
                 sectionZone.platformType = 'collapsing';
-                sectionZone.traversalId =
-                    `forest-collapse-${index + 1}-section-${i + 1}`;
                 sectionZone.traversalOneWay = true;
                 sectionZone.traversalTransient = true;
-                sectionZone.body.checkCollision.down = false;
-                sectionZone.body.checkCollision.left = false;
-                sectionZone.body.checkCollision.right = false;
-                this.platforms.add(sectionZone);
-                this.detachForestPhysicsSupport(sectionZone);
 
                 // Store for collapse mechanic
                 this.collapsingBranches.push({
@@ -4688,7 +4899,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             title: 'ELDER GROVE',
             getStatus: () => this.forestRouteAligned
                 ? 'ROUTE OPEN // ENTER THE GROVE'
-                : `FOREST LIGHTS ${this.beaconAnchorsActivated}/3 // FOLLOW THE GOLD GLOW`,
+                : `ROOT BEACONS ${this.beaconAnchorsActivated}/3 // FOLLOW YOUR CREATURE'S GOLD PULSE`,
             isReady: () => this.forestRouteAligned,
             color: 0x9370DB,
             readyColor: 0x8FE3CF
@@ -4702,7 +4913,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                         const now = this.time.now;
                         if (now >= this.bossGateHintUntil) {
                             this.showFloatingText(
-                                'Find all 3 forest lights. The Guardian wakes after the third.',
+                                'Find all 3 Root Beacons. The Guardian wakes after the third.',
                                 this.player.x,
                                 this.player.y - 70,
                                 '#F2C94C'
@@ -6506,7 +6717,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.combatJuice?.comboDisplay?.setVisible?.(false);
         this.combatJuice?.comboMultiplierDisplay?.setVisible?.(false);
 
-        const layout = this.getLevelModalLayout({ maxWidth: 420, maxHeight: 430 });
+        const layout = this.getLevelModalLayout({ maxWidth: 420, maxHeight: 480 });
         const {
             width, panelWidth, panelHeight, panelX, panelY,
             contentWidth, y, font, buttonPadding
@@ -6583,17 +6794,23 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         // Ship part notification
         const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
-        this.add.text(width / 2, y(222), `🌳 Guardian's Gift: Forest Core`, {
-            fontSize: font(18, 15),
+        this.add.text(
+            width / 2,
+            y(220),
+            `🌳 Guardian's Gift: Forest Core\n${this.getBossPowerupRewardCopy({ compact: true })}`,
+            {
+            fontSize: font(16, 13),
             color: '#90EE90',
             align: 'center',
+            lineSpacing: 4,
             wordWrap: { width: contentWidth }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
         const totalRequired = window.GameState?.get('hubWorld.shipParts.totalRequired') || 5;
         this.add.text(
             width / 2,
-            y(260),
+            y(275),
             (ecology
                 ? `Current regions: ${ecology.restoredCount}/${ecology.totalRegions}  |  Ship parts: ${shipParts.length}/${totalRequired}`
                 : `Ship Parts: ${shipParts.length}/${totalRequired}`) +
@@ -6609,7 +6826,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         ).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
         if (completionResult?.firstCompletion === true) {
-            const inviteBtn = this.add.text(width / 2, y(340), '[ INVITE SOMEONE ]', {
+            const inviteBtn = this.add.text(width / 2, y(380), '[ INVITE SOMEONE ]', {
                 fontSize: font(16, 14),
                 color: '#160B2E',
                 backgroundColor: '#8FE3CF',
@@ -6637,7 +6854,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
 
         // Continue button
-        const continueBtn = this.add.text(width / 2, y(390), '[ RETURN TO HUB ]', {
+        const continueBtn = this.add.text(width / 2, y(440), '[ RETURN TO HUB ]', {
             fontSize: font(18, 16),
             color: '#FFFFFF',
             backgroundColor: '#228B22',
@@ -6679,6 +6896,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
             checkpoint.label?.destroy?.();
         });
         this.checkpointAnchors = [];
+        this.forestRouteGuidanceLayer?.destroy?.();
+        this.forestRouteGuidanceLayer = null;
+        this.forestRouteGuidance = null;
         this.rootwakeCrossing?.trigger?.destroy?.();
         this.rootwakeCrossing?.platforms?.forEach(platform => {
             platform.zone?.destroy?.();

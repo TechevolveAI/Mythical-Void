@@ -3070,7 +3070,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         const rewardText = this.add.text(
             width / 2,
             y(205),
-            `Guardian Gift: Command Module\nGuardian Reward: ${this.levelCompletionResult?.coinsAwarded || 0} Cosmic Coins\n${this.getVillageCompletionCopy({ compact: true })}`,
+            `Guardian Gift: Command Module\nGuardian Reward: ${this.levelCompletionResult?.coinsAwarded || 0} Cosmic Coins\n${this.getBossPowerupRewardCopy({ compact: true })}\n${this.getVillageCompletionCopy({ compact: true })}`,
             {
                 fontSize: font(20, 16),
                 color: '#FFD700',
@@ -3109,7 +3109,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             () => this.returnToFinalCommandRepair()
         );
 
-        const layout = this.getLevelModalLayout({ maxWidth: 450, maxHeight: 350 });
+        const layout = this.getLevelModalLayout({ maxWidth: 450, maxHeight: 400 });
         const {
             width, height, isCompact, panelWidth, panelHeight, panelX, panelY,
             contentWidth, y, font, buttonPadding
@@ -3164,13 +3164,14 @@ class FinalVoidLevel extends PlatformerLevelScene {
             isCompact
                 ? 'UPLINK HELD // NOTHING TRANSMITTED'
                 : 'Uplink held. Nothing was transmitted.',
+            this.getBossPowerupRewardCopy({ compact: true }),
             this.getVillageCompletionCopy({ compact: true }),
             this.getGuardianSanctuaryArrivalCopy({ compact: true }),
             isCompact
                 ? 'INSTALL THE MODULE AT WANDERER-77'
                 : 'Return to Wanderer-77 and install the Command Module by hand.'
         ].filter(Boolean).join('\n');
-        this.add.text(width / 2, y(isCompact ? 198 : 205), completionMessage, {
+        this.add.text(width / 2, y(isCompact ? 215 : 225), completionMessage, {
             fontSize: font(14, 11),
             color: isCompact ? '#E8E6F2' : '#FFD700',
             align: 'center',
@@ -3178,7 +3179,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
-        const returnBtn = this.add.text(width / 2, y(isCompact ? 304 : 290), '[ INSTALL AT WANDERER-77 ]', {
+        const returnBtn = this.add.text(width / 2, y(isCompact ? 360 : 350), '[ INSTALL AT WANDERER-77 ]', {
             fontSize: font(22, 14),
             color: '#FFFFFF',
             backgroundColor: '#5B2A86',

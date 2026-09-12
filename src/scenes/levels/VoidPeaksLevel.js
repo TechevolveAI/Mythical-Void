@@ -2890,7 +2890,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         this.physics.pause();
 
-        const layout = this.getLevelModalLayout({ maxWidth: 440, maxHeight: 300 });
+        const layout = this.getLevelModalLayout({ maxWidth: 440, maxHeight: 370 });
         const {
             width, panelWidth, panelHeight, panelX, panelY,
             contentWidth, y, font, buttonPadding
@@ -2916,23 +2916,24 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         const totalRequired = window.GameState?.get('hubWorld.shipParts.totalRequired') || 5;
         this.add.text(
             width / 2,
-            y(130),
+            y(175),
             `Distant Replies: Confirmed\n` +
             `Network Witness: ${this.getCompanionName()}\n` +
             `Titan's Gift: Hull Plating\n` +
             `Guardian Reward: ${this.levelCompletionResult?.coinsAwarded || 0} Cosmic Coins\n` +
+            this.getBossPowerupRewardCopy({ compact: true }) + '\n' +
             `Ship Parts: ${shipParts.length}/${totalRequired}\n` +
             this.getVillageCompletionCopy({ compact: true }) + '\n' +
             this.getGuardianSanctuaryArrivalCopy({ compact: true }),
             {
-            fontSize: font(18, 16),
+            fontSize: font(16, 14),
             color: '#FFFFFF',
             align: 'center',
-            lineSpacing: 8,
+            lineSpacing: 5,
             wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
-        const returnBtn = this.add.text(width / 2, y(250), '[ RETURN TO HUB ]', {
+        const returnBtn = this.add.text(width / 2, y(330), '[ RETURN TO HUB ]', {
             fontSize: font(20, 17),
             color: '#00CED1',
             backgroundColor: '#0A1A2A',

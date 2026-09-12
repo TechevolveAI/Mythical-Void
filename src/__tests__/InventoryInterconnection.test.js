@@ -22,6 +22,7 @@ describe('shop, inventory, and field-kit interconnection', () => {
         path.join(__dirname, '../ui/KatanaArtifactModal.js'),
         'utf8'
     );
+    const bossConfigs = require('../config/bosses.json');
 
     test('preserves canonical inventory slots after filtering and sorting', () => {
         expect(inventorySource).toContain('slot.inventoryIndex =');
@@ -44,8 +45,19 @@ describe('shop, inventory, and field-kit interconnection', () => {
     });
 
     test('gives every purchased item a clear destination', () => {
-        expect(shopSource.match(/usageHint:/g)?.length).toBe(17);
-        expect(shopSource).toContain('Expedition pause menu > Power-ups');
+        const bossPowerups = Object.values(bossConfigs)
+            .map(config => config?.rewards?.powerup)
+            .filter(Boolean);
+        expect((shopSource.match(/usageHint:/g)?.length || 0) + bossPowerups.length)
+            .toBe(17);
+        expect(bossPowerups).toHaveLength(6);
+        expect(bossPowerups.every(powerup => (
+            typeof powerup.resultText === 'string' && powerup.resultText.length > 0
+        ))).toBe(true);
+        expect(bossPowerups.every(powerup => (
+            powerup.usageHint === 'Expedition pause menu > Power-ups'
+        ))).toBe(true);
+        expect(shopSource).toContain('.map(config => config?.rewards?.powerup)');
         expect(shopSource).toContain('Inventory > select egg > Hatch');
         expect(shopSource).toContain('Permanent survey support active');
         expect(inventorySource).toContain('item.usageHint || this.getDefaultUsageHint(item)');

@@ -5883,7 +5883,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     showCompletionScreen() {
         this.bindLevelCompletionReturn();
 
-        const layout = this.getLevelModalLayout({ maxWidth: 450, maxHeight: 400 });
+        const layout = this.getLevelModalLayout({ maxWidth: 450, maxHeight: 490 });
         const {
             width, height, panelWidth, panelHeight, panelX, panelY,
             contentWidth, contentLeft, contentRight, y, font, buttonPadding
@@ -5970,8 +5970,8 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             : 'Guardian Gift: Crystal Core';
         this.add.text(
             width / 2,
-            y(300),
-            `${guardianGifts}\n${this.getVillageCompletionCopy({ compact: true })}\n${this.getGuardianSanctuaryArrivalCopy({ compact: true })}`,
+            y(330),
+            `${guardianGifts}\n${this.getBossPowerupRewardCopy({ compact: true })}\n${this.getVillageCompletionCopy({ compact: true })}\n${this.getGuardianSanctuaryArrivalCopy({ compact: true })}`,
             {
             fontSize: font(14, 12),
             color: '#00FFFF',
@@ -5981,7 +5981,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
-        this.add.text(width / 2, y(335), `Ship Repair Progress: ${currentShipParts.length}/${totalRequired} parts`, {
+        this.add.text(width / 2, y(405), `Ship Repair Progress: ${currentShipParts.length}/${totalRequired} parts`, {
             fontSize: font(14, 12),
             color: '#9370DB',
             align: 'center',
@@ -5989,7 +5989,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
         // Return button
-        const returnBtn = this.add.text(width / 2, y(365), '[ RETURN TO HUB ]', {
+        const returnBtn = this.add.text(width / 2, y(455), '[ RETURN TO HUB ]', {
             fontSize: font(20, 16),
             color: '#7B68EE',
             backgroundColor: '#2D1B3D',

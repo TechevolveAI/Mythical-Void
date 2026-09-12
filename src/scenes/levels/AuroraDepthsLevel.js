@@ -2717,7 +2717,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
     showLevelComplete() {
         this.bindLevelCompletionReturn();
 
-        const layout = this.getLevelModalLayout({ maxWidth: 400, maxHeight: 300 });
+        const layout = this.getLevelModalLayout({ maxWidth: 420, maxHeight: 370 });
         const {
             width, height, panelWidth, panelHeight, panelX, panelY,
             contentWidth, y, font, buttonPadding
@@ -2751,9 +2751,10 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             : 'online';
         this.add.text(
             width / 2,
-            y(105),
+            y(120),
             `Phoenix Gift: Aurora Reactor\n` +
             `Guardian Reward: ${this.levelCompletionResult?.coinsAwarded || 0} Cosmic Coins\n` +
+            this.getBossPowerupRewardCopy({ compact: true }) + '\n' +
             (katanaUpgrade
                 ? `Creature-Tech: ${katanaUpgrade.name} ${upgradeStatus}\n`
                 : '') +
@@ -2772,7 +2773,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         const totalRequired = window.GameState?.get('hubWorld.shipParts.totalRequired') || 5;
         this.add.text(
             width / 2,
-            y(195),
+            y(250),
             `Ship Parts: ${shipParts.length}/${totalRequired}\n` +
             'Install the Aurora Reactor at Wanderer-77. The Final Void opens next.',
             {
@@ -2784,7 +2785,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             }
         ).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
-        const returnBtn = this.add.text(width / 2, y(260), '[ INSTALL AURORA REACTOR ]', {
+        const returnBtn = this.add.text(width / 2, y(330), '[ INSTALL AURORA REACTOR ]', {
             fontSize: font(20, 17),
             color: '#00E676',
             backgroundColor: '#1A3A4A',

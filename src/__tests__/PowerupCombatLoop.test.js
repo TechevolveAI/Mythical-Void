@@ -227,6 +227,35 @@ describe('purchased expedition power-ups', () => {
         expect(manager.getItem(0).quantity).toBe(2);
     });
 
+    test('holds a Guardian reward safely until an inventory slot opens', () => {
+        const fullInventory = Array.from({ length: 30 }, (_, index) => ({
+            id: `egg_${index}`,
+            name: `Egg ${index}`,
+            type: 'egg',
+            quantity: 1,
+            slot: index
+        }));
+        const { manager, state } = loadInventoryManager(fullInventory);
+        const reward = {
+            id: 'energy_crystal',
+            name: 'Energy Crystal',
+            type: 'powerup',
+            usableInLevel: true,
+            effect: { crystalEnergy: 3 }
+        };
+
+        expect(manager.addGuaranteedReward(reward)).toEqual(
+            expect.objectContaining({ accepted: true, queued: true })
+        );
+        expect(state.inventory.pendingBossRewards).toHaveLength(1);
+
+        expect(manager.removeItem(3)).toBe(true);
+        expect(state.inventory.pendingBossRewards).toHaveLength(0);
+        expect(manager.getAllItems()).toEqual(expect.arrayContaining([
+            expect.objectContaining({ id: 'energy_crystal', quantity: 1 })
+        ]));
+    });
+
     test('consumes exactly one item only after the level accepts its effect', () => {
         const { manager } = loadInventoryManager([{ ...powerShot, quantity: 2, slot: 0 }]);
         const applyPowerup = jest.fn(() => ({

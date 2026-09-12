@@ -260,7 +260,7 @@ describe('campaign traversal quality contracts', () => {
         expect(scene.getResponsiveHorizontalVelocity(0, 180)).toBeCloseTo(27);
     });
 
-    test('vertical joystick input is exposed only for two-axis levels', () => {
+    test('vertical joystick input is exposed for two-axis levels and Forest descent', () => {
         const PlatformerLevelScene = loadPlatformerLevelScene();
         const createThumb = () => ({
             clear: jest.fn(),
@@ -280,6 +280,12 @@ describe('campaign traversal quality contracts', () => {
         scene.updateJoystick({ x: 100, y: 0 });
         expect(scene.virtualJoystickY).toBe(0);
 
+        scene.supportsPlatformDropThrough = true;
+        scene.updateJoystick({ x: 100, y: 200 });
+        expect(scene.virtualJoystickX).toBeCloseTo(0, 5);
+        expect(scene.virtualJoystickY).toBe(1);
+
+        scene.supportsPlatformDropThrough = false;
         scene.usesVerticalJoystick = true;
         scene.updateJoystick({ x: 100, y: 0 });
         expect(scene.virtualJoystickX).toBeCloseTo(0, 5);
@@ -949,7 +955,7 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("id: 'forest-guardian-handoff'");
         expect(source).toContain('x2: 5200');
         expect(source).toContain(
-            'branchPlatform.traversalId = `forest-tree-${treeIndex + 1}-branch-${i + 1}`;'
+            'traversalId: `forest-tree-${treeIndex + 1}-branch-${i + 1}`'
         );
         expect(source).toContain("activationSupportIds: ['forest-ground-3']");
         expect(source).toContain("activationSupportIds: ['forest-ground-5']");
@@ -967,8 +973,8 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('platform.forestPhysicsOnly = true;');
         expect(source).toContain('this.children.remove(platform);');
         expect(source).toContain('this.detachForestPhysicsSupport(platformZone);');
-        expect(source).toContain('this.detachForestPhysicsSupport(branchPlatform);');
-        expect(source).toContain('this.detachForestPhysicsSupport(bridgeZone);');
+        expect(source).toContain('createForestClimbSupportZone(');
+        expect(source).toContain('this.detachForestPhysicsSupport(zone);');
         expect(source).toContain('startForestEnemyTrailRenderer()');
         expect(source).toContain('delay: this.isMobile ? 180 : 100');
         expect(source).toContain('sprite.x < view.left - 120');

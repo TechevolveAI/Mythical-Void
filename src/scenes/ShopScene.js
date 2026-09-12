@@ -4,6 +4,7 @@
  */
 
 import Phaser from 'phaser';
+import bossConfigs from '../config/bosses.json';
 import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
 import VillageCommandPanel from '../ui/VillageCommandPanel.js';
 import {
@@ -1715,74 +1716,13 @@ export default class ShopScene extends Phaser.Scene {
                     effect: { health: 40 }
                 }
             ],
-            powerups: [
-                {
-                    id: 'energy_crystal',
-                    name: 'Energy Crystal',
-                    description: 'Restore 3 crystal energy during levels. Use for special attacks!',
-                    icon: '⚡',
-                    price: 50,
-                    type: 'powerup',
-                    effect: { crystalEnergy: 3 },
-                    usageHint: 'Expedition pause menu > Power-ups',
-                    usableInLevel: true
-                },
-                {
-                    id: 'power_shot',
-                    name: 'Power Shot',
-                    description: 'Your next ranged attack does 5x damage - instant KO on most enemies!',
-                    icon: '🎯',
-                    price: 75,
-                    type: 'powerup',
-                    effect: { nextRangedDamageMultiplier: 5 },
-                    usageHint: 'Expedition pause menu > Power-ups',
-                    usableInLevel: true
-                },
-                {
-                    id: 'crystal_shield',
-                    name: 'Crystal Shield',
-                    description: 'Block the next 2 hits you take. Great for boss fights!',
-                    icon: '🛡️',
-                    price: 100,
-                    type: 'powerup',
-                    effect: { shieldHits: 2 },
-                    usageHint: 'Expedition pause menu > Power-ups',
-                    usableInLevel: true
-                },
-                {
-                    id: 'super_blast',
-                    name: 'Super Blast',
-                    description: 'FREE super special attack! Damages ALL enemies on screen!',
-                    icon: '💥',
-                    price: 150,
-                    type: 'powerup',
-                    effect: { freeSpecialAttack: 1 },
-                    usageHint: 'Expedition pause menu > Power-ups',
-                    usableInLevel: true
-                },
-                {
-                    id: 'health_boost',
-                    name: 'Health Boost',
-                    description: 'Fully restore health during a level. Emergency rescue!',
-                    icon: '❤️',
-                    price: 80,
-                    type: 'powerup',
-                    effect: { fullHealth: true },
-                    usageHint: 'Expedition pause menu > Power-ups',
-                    usableInLevel: true
-                },
-                {
-                    id: 'double_coins',
-                    name: 'Coin Magnet',
-                    description: 'Double all coins collected for the rest of this level!',
-                    icon: '🧲',
-                    price: 100,
-                    type: 'powerup',
-                    effect: { coinMultiplier: 2 },
-                    usageHint: 'Expedition pause menu > Power-ups',
-                    usableInLevel: true
-                }
-            ],
+            powerups: Object.values(bossConfigs)
+                .map(config => config?.rewards?.powerup)
+                .filter(Boolean)
+                .map(powerup => ({
+                    ...powerup,
+                    effect: { ...powerup.effect }
+                })),
             utilities: [
                 {
                     id: 'void_crystal',

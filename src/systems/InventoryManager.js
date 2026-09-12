@@ -88,6 +88,7 @@ class InventoryManager {
 
         this.migrateLegacyMapItems();
         this.initialized = true;
+        this.claimPendingBossRewards();
         console.log('✅ InventoryManager initialized');
     }
 
@@ -196,6 +197,62 @@ class InventoryManager {
     }
 
     /**
+     * Guardian rewards are never discarded because the normal inventory is
+     * full. They enter a small save-backed inbox and move into inventory as
+     * soon as a slot or matching stack is available.
+     */
+    addGuaranteedReward(item) {
+        if (!item) return { accepted: false, queued: false, item: null };
+
+        if (this.canAcceptItem(item) && this.addItem(item)) {
+            return { accepted: true, queued: false, item };
+        }
+
+        if (!window.GameState) {
+            return { accepted: false, queued: false, item };
+        }
+
+        const pendingPath = 'inventory.pendingBossRewards';
+        const savedPending = window.GameState.get(pendingPath);
+        const pending = Array.isArray(savedPending) ? savedPending : [];
+        window.GameState.set(pendingPath, [
+            ...pending,
+            {
+                ...item,
+                effect: { ...(item.effect || {}) },
+                quantity: 1
+            }
+        ]);
+        window.GameState.save?.();
+        this.events.emit('bossRewardQueued', { item });
+        return { accepted: true, queued: true, item };
+    }
+
+    claimPendingBossRewards() {
+        if (!window.GameState) return 0;
+
+        const pendingPath = 'inventory.pendingBossRewards';
+        const pending = window.GameState.get(pendingPath) || [];
+        if (!Array.isArray(pending) || pending.length === 0) return 0;
+
+        const remaining = [];
+        let claimed = 0;
+        pending.forEach(item => {
+            if (this.canAcceptItem(item) && this.addItem(item)) {
+                claimed += 1;
+            } else {
+                remaining.push(item);
+            }
+        });
+        window.GameState.set(pendingPath, remaining);
+        if (claimed > 0) {
+            window.GameState.save?.();
+            this.events.emit('bossRewardsClaimed', { count: claimed });
+        }
+        return claimed;
+    }
+
+    /**
      * Remove item from inventory
      * @param {number} slot - Inventory slot index
      * @param {number} quantity - Number of items to remove (default: 1)
@@ -227,6 +284,7 @@ class InventoryManager {
 
             this.saveInventory();
             this.events.emit('itemRemoved', { item: removedItem, slot });
+            this.claimPendingBossRewards();
             return true;
         } else {
             // Decrease quantity

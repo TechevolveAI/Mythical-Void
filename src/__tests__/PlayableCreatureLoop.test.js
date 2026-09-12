@@ -32,8 +32,13 @@ function runSingleton(relativePath, exportName, sceneWindow) {
 
 function loadShopScene(sceneWindow) {
     const filePath = path.join(__dirname, '../scenes/ShopScene.js');
+    const bossConfigs = require('../config/bosses.json');
     const source = fs.readFileSync(filePath, 'utf8')
         .replace("import Phaser from 'phaser';", '')
+        .replace(
+            "import bossConfigs from '../config/bosses.json';",
+            'const bossConfigs = BOSS_CONFIG;'
+        )
         .replace(
             "import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';",
             'const SceneTransitionHelper = SCENE_TRANSITION;'
@@ -59,6 +64,7 @@ function loadShopScene(sceneWindow) {
         console,
         window: sceneWindow,
         Phaser: { Scene: PhaserScene },
+        BOSS_CONFIG: bossConfigs,
         SCENE_TRANSITION: { stopScene: jest.fn(), resumeScene: jest.fn() },
         VILLAGE_COMMAND_PANEL: class {},
         VILLAGE_SETTLEMENT: {

@@ -107,7 +107,19 @@
         "rewards": {
             "baseCoins": 500,
             "bonusPerRelic": 100,
-            "items": ["rocket_part_engine_core"]
+            "items": ["rocket_part_engine_core"],
+            "powerup": {
+                "id": "crystal_shield",
+                "name": "Crystal Shield",
+                "description": "Block the next 2 hits you take. Great for boss fights!",
+                "icon": "🛡️",
+                "price": 100,
+                "type": "powerup",
+                "effect": { "shieldHits": 2 },
+                "resultText": "Blocks the next 2 hits",
+                "usageHint": "Expedition pause menu > Power-ups",
+                "usableInLevel": true
+            }
         },
 
         "lore": "The Crystal Golem was once a protector created by ancient miners to guard their most precious discovery - the Crystal Heart. Centuries of solitude in the abandoned caves have corrupted its purpose, and now it attacks all who dare approach the relic it was sworn to protect."
@@ -203,7 +215,19 @@
 
         "rewards": {
             "baseCoins": 750,
-            "items": ["rocket_part_navigation_core"]
+            "items": ["rocket_part_navigation_core"],
+            "powerup": {
+                "id": "double_coins",
+                "name": "Coin Magnet",
+                "description": "Double all coins collected for the rest of this level!",
+                "icon": "🧲",
+                "price": 100,
+                "type": "powerup",
+                "effect": { "coinMultiplier": 2 },
+                "resultText": "Doubles coins for one expedition",
+                "usageHint": "Expedition pause menu > Power-ups",
+                "usableInLevel": true
+            }
         }
     },
 
@@ -287,7 +311,19 @@
 
         "rewards": {
             "baseCoins": 1000,
-            "items": ["rocket_part_fuel_cell"]
+            "items": ["rocket_part_fuel_cell"],
+            "powerup": {
+                "id": "health_boost",
+                "name": "Health Boost",
+                "description": "Fully restore health during a level. Emergency rescue!",
+                "icon": "❤️",
+                "price": 80,
+                "type": "powerup",
+                "effect": { "fullHealth": true },
+                "resultText": "Restores all health",
+                "usageHint": "Expedition pause menu > Power-ups",
+                "usableInLevel": true
+            }
         }
     },
 
@@ -405,7 +441,19 @@
         "rewards": {
             "baseCoins": 600,
             "bonusPerFragment": 100,
-            "items": ["rocket_part_forest_core"]
+            "items": ["rocket_part_forest_core"],
+            "powerup": {
+                "id": "energy_crystal",
+                "name": "Energy Crystal",
+                "description": "Restore 3 crystal energy during levels. Use for special attacks!",
+                "icon": "⚡",
+                "price": 50,
+                "type": "powerup",
+                "effect": { "crystalEnergy": 3 },
+                "resultText": "Restores 3 crystal energy",
+                "usageHint": "Expedition pause menu > Power-ups",
+                "usableInLevel": true
+            }
         },
 
         "lore": "The Elder Treant was once a peaceful guardian of the Mythical Forest, nurturing life and protecting the cosmic secrets hidden within. But as the void encroached upon the forest, the Treant absorbed its dark energy, becoming a twisted sentinel that now attacks all who dare enter its domain."
@@ -508,7 +556,19 @@
 
         "rewards": {
             "baseCoins": 1500,
-            "items": ["rocket_part_hull_plating"]
+            "items": ["rocket_part_hull_plating"],
+            "powerup": {
+                "id": "power_shot",
+                "name": "Power Shot",
+                "description": "Your next ranged attack does 5x damage - instant KO on most enemies!",
+                "icon": "🎯",
+                "price": 75,
+                "type": "powerup",
+                "effect": { "nextRangedDamageMultiplier": 5 },
+                "resultText": "Makes the next ranged hit 5x stronger",
+                "usageHint": "Expedition pause menu > Power-ups",
+                "usableInLevel": true
+            }
         }
     },
 
@@ -627,7 +687,19 @@
         "rewards": {
             "baseCoins": 2500,
             "items": ["rocket_part_command_module"],
-            "unlocks": ["space_travel"]
+            "unlocks": ["space_travel"],
+            "powerup": {
+                "id": "super_blast",
+                "name": "Super Blast",
+                "description": "A free special attack that damages every enemy on screen.",
+                "icon": "💥",
+                "price": 150,
+                "type": "powerup",
+                "effect": { "freeSpecialAttack": 1 },
+                "resultText": "Grants one free full-screen blast",
+                "usageHint": "Expedition pause menu > Power-ups",
+                "usableInLevel": true
+            }
         }
     }
 }

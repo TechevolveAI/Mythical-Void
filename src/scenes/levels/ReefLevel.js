@@ -4698,12 +4698,13 @@ class ReefLevel extends PlatformerLevelScene {
             `Ship Part: ⚙️ Dimensional Drive\n` +
             `Ship Parts Collected: ${shipParts.length}/${totalRequired}\n` +
             `Guardian Reward: ${completionResult?.coinsAwarded || 0} Cosmic Coins\n` +
+            this.getBossPowerupRewardCopy({ compact: true }) + '\n' +
             this.getVillageCompletionCopy({ compact: true }) + '\n' +
             this.getGuardianSanctuaryArrivalCopy({ compact: true }), {
-            fontSize: font(18, 15),
+            fontSize: font(16, 13),
             color: '#CCAAFF',
             align: 'center',
-            lineSpacing: 12,
+            lineSpacing: 6,
             wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
