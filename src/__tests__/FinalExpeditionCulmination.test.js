@@ -221,8 +221,11 @@ describe('Final Void expedition culmination', () => {
         expect(finalVoidSource).toContain(
             'this.getGuardianSanctuaryArrivalCopy({ compact: true })'
         );
-        expect(finalVoidSource).toContain('y(isCompact ? 198 : 205)');
-        expect(finalVoidSource).toContain('y(isCompact ? 304 : 290)');
+        expect(finalVoidSource).toContain(
+            'this.getBossPowerupRewardCopy({ compact: true })'
+        );
+        expect(finalVoidSource).toContain('y(isCompact ? 215 : 225)');
+        expect(finalVoidSource).toContain('y(isCompact ? 360 : 350)');
         expect(finalVoidSource).toMatch(
             /if \(!isCompact\) \{[\s\S]*FINAL REPAIR \/\/ BLACK-BOX RECOVERY READY/
         );
