@@ -4,8 +4,13 @@ const vm = require('vm');
 
 function loadShopScene(sceneWindow) {
     const filePath = path.join(__dirname, '../scenes/ShopScene.js');
+    const bossConfigs = require('../config/bosses.json');
     const source = fs.readFileSync(filePath, 'utf8')
         .replace("import Phaser from 'phaser';", '')
+        .replace(
+            "import bossConfigs from '../config/bosses.json';",
+            'const bossConfigs = BOSS_CONFIG;'
+        )
         .replace(
             "import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';",
             'const SceneTransitionHelper = SCENE_TRANSITION;'
@@ -40,6 +45,7 @@ function loadShopScene(sceneWindow) {
         exports: {},
         console,
         window: sceneWindow,
+        BOSS_CONFIG: bossConfigs,
         SCENE_TRANSITION: {
             stopScene: jest.fn(),
             resumeScene: jest.fn()

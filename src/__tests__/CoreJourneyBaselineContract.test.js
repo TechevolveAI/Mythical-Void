@@ -53,7 +53,7 @@ describe('core journey baseline contract', () => {
             /restoreExpeditionRouteState\(resume\)[\s\S]*this\.forestRouteAligned && !this\.bossDefeated[\s\S]*this\.beginAutomaticGuardianAwakening\(/
         );
         expect(forest).toContain(
-            'ALL 3 FOREST LIGHTS FOUND\\nTHE GUARDIAN IS WAKING'
+            'ALL 3 ROOT BEACONS FOUND\\nTHE GUARDIAN IS WAKING'
         );
     });
 

@@ -413,8 +413,8 @@ describe('first expedition rescue loop', () => {
             'this.setCheckpoint(supportCheckpoint.x, supportCheckpoint.y, {'
         );
         expect(source).toContain('checkpointId: checkpoint.id');
-        expect(source).toContain('FOREST LIGHT ${anchorNumber}/3 FOUND');
-        expect(source).toContain("'WALK INTO THE LIGHT'");
+        expect(source).toContain('ROOT BEACON ${anchorNumber}/3 FOUND');
+        expect(source).toContain("'WALK INTO THE ROOT BEACON'");
         expect(source).toContain('checkpoint.actionPrompt');
     });
 
@@ -434,7 +434,7 @@ describe('first expedition rescue loop', () => {
         expect(checkpoints).toContain("this.drawBeaconCheckpoint(visual, anchorX, supportY, 'future');");
         expect(checkpoints).toContain('{ width: 220, height: 300 }');
         expect(checkpoints).toContain('this.refreshForestRouteReadability();');
-        expect(source).toContain("const color = complete ? 0x8FE3CF : (next ? 0xF2C94C : 0x35565D);");
+        expect(source).toContain("const color = complete ? 0x8FE3CF : (next ? 0xF2C94C : 0x466D72);");
         expect(source).toContain('graphics.forestLightState = state;');
         expect(source).toContain('graphics.forestLightColor = color;');
         expect(source).toContain("complete ? 'complete' : (next ? 'next' : 'future')");
@@ -443,10 +443,10 @@ describe('first expedition rescue loop', () => {
         expect(source).toContain('this.beaconAnchorsActivated++');
         expect(source).toContain('this.forestRouteAligned = true');
         expect(source).toContain('this.beginAutomaticGuardianAwakening(checkpoint);');
-        expect(source).toContain('ALL 3 FOREST LIGHTS FOUND');
+        expect(source).toContain('ALL 3 ROOT BEACONS FOUND');
         expect(bossArena).toContain('if (!this.forestRouteAligned)');
         expect(bossArena).toContain(
-            'Find all 3 forest lights. The Guardian wakes after the third.'
+            'Find all 3 Root Beacons. The Guardian wakes after the third.'
         );
         expect(bossArena).toContain('const guardianGateX = 5520;');
         expect(bossArena).toContain('this.levelHeight / 2');
@@ -478,11 +478,13 @@ describe('first expedition rescue loop', () => {
         expect(source).toContain(
             'this.createCampaignObjectiveDisplay('
         );
-        expect(source).toContain('FOLLOW THE GOLD PULSE →');
-        expect(source).toContain('FOREST LIGHT ${current}/3 // WALK INTO THE GLOW AT ${nextAnchor}');
+        expect(source).toContain("FOLLOW YOUR CREATURE'S GOLD PULSE");
+        expect(source).toContain('ROOT BEACON ${current}/3 // FIND ${nextAnchor}');
         expect(source).toContain(
-            '[ REQUIRED ] Follow 3 forest lights. The Guardian wakes after the third.'
+            '[ REQUIRED ] Find 3 Root Beacons. The Guardian wakes after the third.'
         );
+        expect(source).toContain('HOLD DOWN TO PASS THROUGH THIS BRANCH');
+        expect(source).toContain('updateForestRouteGuidance(time)');
         expect(source).toContain('STRIKE THE PURPLE CORRUPTION');
         expect(source).toContain('OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}');
         expect(source).toContain(
@@ -505,6 +507,56 @@ describe('first expedition rescue loop', () => {
         expect(createPlatforms).toContain('this.physics.add.staticGroup()');
         expect(createPlatforms).not.toContain('super.createPlatforms');
         expect(startLevel).toContain('this.showPlatformerMobileControls()');
+    });
+
+    test('drops through only the supporting one-way branch when Down is held', () => {
+        const PlatformerLevelScene = loadPlatformerLevelScene();
+        const scene = new PlatformerLevelScene({ key: 'MythicalForestLevel' });
+        const support = {
+            platformType: 'one-way',
+            body: {
+                enable: true,
+                left: 60,
+                right: 180,
+                top: 200
+            }
+        };
+        const lowerSupport = {
+            platformType: 'one-way',
+            body: {
+                enable: true,
+                left: 60,
+                right: 180,
+                top: 280
+            }
+        };
+        scene.supportsPlatformDropThrough = true;
+        scene.isGrounded = true;
+        scene.time = { now: 1000 };
+        scene.platforms = { getChildren: () => [support, lowerSupport] };
+        scene.player = {
+            y: 180,
+            body: {
+                enable: true,
+                left: 90,
+                right: 130,
+                bottom: 200,
+                velocity: { y: 0 },
+                updateFromGameObject: jest.fn()
+            },
+            setVelocityY: jest.fn()
+        };
+        scene.onPlatformDropThrough = jest.fn();
+
+        expect(scene.beginPlatformDropThrough()).toBe(true);
+        expect(scene.player.y).toBe(190);
+        expect(scene.player.setVelocityY).toHaveBeenCalledWith(150);
+        expect(scene.shouldProcessPlatformCollision(scene.player, support)).toBe(false);
+        expect(scene.shouldProcessPlatformCollision(scene.player, lowerSupport)).toBe(true);
+        expect(scene.onPlatformDropThrough).toHaveBeenCalledWith(support);
+
+        scene.time.now = 1361;
+        expect(scene.shouldProcessPlatformCollision(scene.player, support)).toBe(true);
     });
 
     test('runs a save-backed, input-verified field drill before first combat', () => {

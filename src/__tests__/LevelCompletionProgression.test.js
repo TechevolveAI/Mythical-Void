@@ -185,6 +185,11 @@ describe('PlatformerLevelScene completion progression', () => {
             recordSuccess: jest.fn()
         };
         sceneWindow.InventoryManager = {
+            addGuaranteedReward: jest.fn(item => ({
+                accepted: true,
+                queued: false,
+                item
+            })),
             addShipPart: jest.fn((partId) => {
                 const collected = gameState.get('hubWorld.shipParts.collected');
                 if (collected.includes(partId)) {
@@ -294,6 +299,13 @@ describe('PlatformerLevelScene completion progression', () => {
             katanaUpgrade: expect.objectContaining({
                 name: 'Aurora Guard'
             }),
+            bossPowerupReward: expect.objectContaining({
+                id: 'health_boost',
+                name: 'Health Boost',
+                resultText: 'Restores all health',
+                awarded: true,
+                queued: false
+            }),
             nextGateId: null,
             nextGateUnlocked: false,
             currentEcology: {
@@ -351,6 +363,15 @@ describe('PlatformerLevelScene completion progression', () => {
         expect(gameState.get('player.cosmicCoins')).toBe(1025);
         expect(gameState.get('stats.coinsCollected')).toBe(1000);
         expect(sceneWindow.InventoryManager.addShipPart).toHaveBeenCalledTimes(1);
+        expect(sceneWindow.InventoryManager.addGuaranteedReward).toHaveBeenCalledTimes(1);
+        expect(sceneWindow.InventoryManager.addGuaranteedReward).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: 'health_boost',
+                type: 'powerup',
+                usableInLevel: true,
+                rewardSource: 'guardian:auroraDepths'
+            })
+        );
         expect(
             sceneWindow.ProjectBeaconFieldKit.installProjectBeaconKatanaUpgrade
         ).toHaveBeenCalledWith(
@@ -577,15 +598,15 @@ describe('PlatformerLevelScene completion progression', () => {
 
     test('grants every configured boss reward and both collectible bonuses', () => {
         const rewards = [
-            ['crystalCaves', 2, 700],
-            ['cosmicReef', 0, 750],
-            ['auroraDepths', 0, 1000],
-            ['mythicalForest', 3, 900],
-            ['voidPeaks', 0, 1500],
-            ['finalVoid', 0, 2500]
+            ['crystalCaves', 2, 700, 'crystal_shield'],
+            ['cosmicReef', 0, 750, 'double_coins'],
+            ['auroraDepths', 0, 1000, 'health_boost'],
+            ['mythicalForest', 3, 900, 'energy_crystal'],
+            ['voidPeaks', 0, 1500, 'power_shot'],
+            ['finalVoid', 0, 2500, 'super_blast']
         ];
 
-        rewards.forEach(([achievementLevelId, rewardBonusCount, expectedCoins]) => {
+        rewards.forEach(([achievementLevelId, rewardBonusCount, expectedCoins, powerupId]) => {
             const scene = new PlatformerLevelScene({
                 key: `${achievementLevelId}Scene`,
                 levelId: achievementLevelId
@@ -596,6 +617,11 @@ describe('PlatformerLevelScene completion progression', () => {
             });
 
             expect(result.coinsAwarded).toBe(expectedCoins);
+            expect(result.bossPowerupReward).toEqual(expect.objectContaining({
+                id: powerupId,
+                awarded: true,
+                queued: false
+            }));
         });
 
         expect(sceneWindow.EconomyManager.addCoins.mock.calls).toEqual(
@@ -604,6 +630,8 @@ describe('PlatformerLevelScene completion progression', () => {
                 `boss_victory:${levelId}`
             ])
         );
+        expect(sceneWindow.InventoryManager.addGuaranteedReward.mock.calls)
+            .toHaveLength(rewards.length);
     });
 
     test('keeps level modal geometry inside desktop and mobile viewports', () => {

@@ -188,6 +188,20 @@ function calculateVictoryCoins(levelId, bonusCount = 0) {
         (normalizedBonusCount * Math.max(0, Number(bonusPerCollectible) || 0));
 }
 
+function getBossPowerupReward(levelId) {
+    const powerup = bossConfigs[BOSS_REWARD_KEY_BY_LEVEL[levelId]]
+        ?.rewards?.powerup;
+    if (!powerup?.id || powerup.type !== 'powerup' || !powerup.usableInLevel) {
+        return null;
+    }
+    return {
+        ...powerup,
+        effect: { ...(powerup.effect || {}) },
+        quantity: 1,
+        rewardSource: `guardian:${levelId}`
+    };
+}
+
 /**
  * PlatformerLevelScene - Base class for side-scrolling platformer levels
  *
@@ -384,6 +398,10 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.virtualJoystickX = 0;  // -1 to 1 from virtual joystick
         this.virtualJoystickY = 0;  // Used by levels with two-axis locomotion
         this.usesVerticalJoystick = false;
+        this.supportsPlatformDropThrough = false;
+        this.platformDropThroughUntil = 0;
+        this.platformDropInputLatched = false;
+        this.platformDropSource = null;
         this.virtualJumpPressed = false;
         this.virtualJumpQueued = false;
         this.mobileControlElements = []; // Track all mobile UI elements for cleanup
@@ -730,6 +748,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Reset mobile control state
         this.virtualJoystickX = 0;
         this.virtualJoystickY = 0;
+        this.platformDropThroughUntil = 0;
+        this.platformDropInputLatched = false;
+        this.platformDropSource = null;
         this.joystickTouchIdentifier = null;
         this.virtualJumpPressed = false;
         this.virtualJumpQueued = false;
@@ -2923,7 +2944,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         joystickBase.fillCircle(joystickX, joystickY, joystickBaseRadius);
         joystickBase.lineStyle(2, 0xFFFFFF, 0.4);
         joystickBase.strokeCircle(joystickX, joystickY, joystickBaseRadius);
-        // Add directional indicators. Swimming levels opt into the vertical pair.
+        // Add directional indicators. Swimming levels use both vertical
+        // directions; authored pass-through routes expose only Down.
         joystickBase.fillStyle(0xFFFFFF, 0.3);
         joystickBase.fillTriangle(
             joystickX - joystickBaseRadius + 10, joystickY,
@@ -2941,6 +2963,12 @@ class PlatformerLevelScene extends Phaser.Scene {
                 joystickX - 8, joystickY - joystickBaseRadius + 22,
                 joystickX + 8, joystickY - joystickBaseRadius + 22
             );
+            joystickBase.fillTriangle(
+                joystickX, joystickY + joystickBaseRadius - 10,
+                joystickX - 8, joystickY + joystickBaseRadius - 22,
+                joystickX + 8, joystickY + joystickBaseRadius - 22
+            );
+        } else if (this.supportsPlatformDropThrough) {
             joystickBase.fillTriangle(
                 joystickX, joystickY + joystickBaseRadius - 10,
                 joystickX - 8, joystickY + joystickBaseRadius - 22,
@@ -3033,6 +3061,12 @@ class PlatformerLevelScene extends Phaser.Scene {
                         touchX - 10, touchY - joystickBaseRadius + 26,
                         touchX + 10, touchY - joystickBaseRadius + 26
                     );
+                    this.joystickBase.fillTriangle(
+                        touchX, touchY + joystickBaseRadius - 12,
+                        touchX - 10, touchY + joystickBaseRadius - 26,
+                        touchX + 10, touchY + joystickBaseRadius - 26
+                    );
+                } else if (this.supportsPlatformDropThrough) {
                     this.joystickBase.fillTriangle(
                         touchX, touchY + joystickBaseRadius - 12,
                         touchX - 10, touchY + joystickBaseRadius - 26,
@@ -3826,7 +3860,10 @@ class PlatformerLevelScene extends Phaser.Scene {
         // Add a dominant-axis arrow when moving.
         if (isMoving) {
             this.joystickThumb.fillStyle(0xFFFFFF, 0.8);
-            if (this.usesVerticalJoystick && Math.abs(offsetY) > Math.abs(offsetX)) {
+            const showsVerticalIntent = this.usesVerticalJoystick || (
+                this.supportsPlatformDropThrough && offsetY > 0
+            );
+            if (showsVerticalIntent && Math.abs(offsetY) > Math.abs(offsetX)) {
                 const arrowDir = offsetY >= 0 ? 1 : -1;
                 this.joystickThumb.fillTriangle(
                     thumbX, thumbY + arrowDir * 8,
@@ -3856,7 +3893,9 @@ class PlatformerLevelScene extends Phaser.Scene {
             } else {
                 this.virtualJoystickX = Math.cos(angle) * magnitude;
             }
-            this.virtualJoystickY = this.usesVerticalJoystick
+            this.virtualJoystickY = (
+                this.usesVerticalJoystick || this.supportsPlatformDropThrough
+            )
                 ? Math.sin(angle) * magnitude
                 : 0;
         } else {
@@ -3973,7 +4012,13 @@ class PlatformerLevelScene extends Phaser.Scene {
      */
     setupCollisions() {
         if (this.player && this.platforms) {
-            this.physics.add.collider(this.player, this.platforms, this.onPlatformCollision, null, this);
+            this.physics.add.collider(
+                this.player,
+                this.platforms,
+                this.onPlatformCollision,
+                this.shouldProcessPlatformCollision,
+                this
+            );
         }
 
         // Enemies collision (to be set up in subclass)
@@ -3992,6 +4037,63 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.isGrounded = true;
         }
     }
+
+    isPassThroughPlatform(platform) {
+        return Boolean(
+            platform && (
+                platform.platformType === 'one-way' ||
+                platform.traversalOneWay === true
+            )
+        );
+    }
+
+    shouldProcessPlatformCollision(player, platform) {
+        if (!this.isPassThroughPlatform(platform)) return true;
+
+        const now = Number(this.time?.now) || 0;
+        return !(
+            now < this.platformDropThroughUntil &&
+            (!this.platformDropSource || platform === this.platformDropSource)
+        );
+    }
+
+    getStandingPassThroughPlatform() {
+        const playerBody = this.player?.body;
+        if (!playerBody || !this.platforms?.getChildren) return null;
+
+        return this.platforms.getChildren().find(platform => {
+            const body = platform?.body;
+            if (!body?.enable || !this.isPassThroughPlatform(platform)) {
+                return false;
+            }
+            const horizontalOverlap = Math.min(playerBody.right, body.right) -
+                Math.max(playerBody.left, body.left);
+            const verticalGap = Number(playerBody.bottom) - Number(body.top);
+            return horizontalOverlap >= 8 && verticalGap >= -14 && verticalGap <= 18;
+        }) || null;
+    }
+
+    beginPlatformDropThrough() {
+        if (!this.supportsPlatformDropThrough || !this.isGrounded) return false;
+
+        const platform = this.getStandingPassThroughPlatform();
+        if (!platform) return false;
+
+        const now = Number(this.time?.now) || 0;
+        this.platformDropSource = platform;
+        this.platformDropThroughUntil = now + 360;
+        this.isGrounded = false;
+        this.wasGrounded = false;
+        this.player.y += 10;
+        this.player.body?.updateFromGameObject?.();
+        this.player.setVelocityY?.(
+            Math.max(150, Number(this.player.body?.velocity?.y) || 0)
+        );
+        this.onPlatformDropThrough?.(platform);
+        return true;
+    }
+
+    onPlatformDropThrough() {}
 
     /**
      * Handle enemy collision (override in subclass)
@@ -5589,9 +5691,21 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Note: Only requires grounded to START ducking, stays ducked while key held
      */
     handleDuck() {
-        const duckPressed = this.cursors.down.isDown || this.wasdKeys.S.isDown;
+        const keyboardDown = this.cursors.down.isDown || this.wasdKeys.S.isDown;
+        const joystickDown = this.supportsPlatformDropThrough &&
+            this.virtualJoystickY > 0.58;
+        const duckPressed = keyboardDown || joystickDown;
 
         if (duckPressed) {
+            if (!this.platformDropInputLatched) {
+                this.platformDropInputLatched = true;
+                if (this.beginPlatformDropThrough()) {
+                    return;
+                }
+            }
+            if ((Number(this.time?.now) || 0) < this.platformDropThroughUntil) {
+                return;
+            }
             // Can only START ducking while grounded, but STAY ducked while key held
             if (!this.isDucking && this.isGrounded) {
                 this.isDucking = true;
@@ -5614,6 +5728,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             }
             // If already ducking, stay ducked (don't check grounded again)
         } else {
+            this.platformDropInputLatched = false;
             // Only stand up when key is released
             if (this.isDucking) {
                 this.isDucking = false;
@@ -8918,6 +9033,25 @@ class PlatformerLevelScene extends Phaser.Scene {
             : `Sanctuary support delivered: ${effects.map(effect => effect.effect).join(' · ')}`;
     }
 
+    getBossPowerupRewardCopy({ compact = false } = {}) {
+        const reward = this.levelCompletionResult?.bossPowerupReward;
+        if (!reward) return '';
+        if (!reward.awarded) {
+            return compact
+                ? 'POWER-UP COULD NOT BE PACKED'
+                : 'The Guardian power-up could not be packed.';
+        }
+        const effect = reward.resultText || reward.description || 'Ready for the next expedition';
+        if (reward.queued) {
+            return compact
+                ? `${reward.icon || 'POWER'} ${reward.name} SAVED // ${effect}\nCLEAR A SLOT // RESTOCK LATER IN THE SHOP`
+                : `${reward.name} is safe in the reward inbox and ${effect.toLowerCase()}. Clear an inventory slot to pack it; the Sanctuary shop can restock it later.`;
+        }
+        return compact
+            ? `${reward.icon || 'POWER'} ${reward.name} PACKED // ${effect}\nUSE: PAUSE > POWER-UPS // RESTOCK: SHOP`
+            : `${reward.name} packed: ${effect}. Use it from Expedition Power-ups; restock it in the Sanctuary shop.`;
+    }
+
     showRescuedResidentReleaseMoment(resident) {
         if (!resident?.newlyRescued || this.residentReleaseOpen) return false;
         this.residentReleaseOpen = true;
@@ -9234,6 +9368,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         let guardianOutcome = null;
         let guardianExpedition = null;
         let rescuedResident = null;
+        const bossPowerupReward = getBossPowerupReward(achievementLevelId);
+        let bossPowerupAwarded = false;
+        let bossPowerupQueued = false;
         const configuredVictoryCoins = calculateVictoryCoins(
             achievementLevelId,
             rewardBonusCount
@@ -9273,6 +9410,30 @@ class PlatformerLevelScene extends Phaser.Scene {
                     gameState.set('hubWorld.shipParts.collected', [...collected, shipPartId]);
                     shipPartAwarded = true;
                 }
+            }
+        }
+
+        if (bossPowerupReward) {
+            const inventoryManager = window.InventoryManager;
+            if (inventoryManager?.addGuaranteedReward) {
+                const rewardResult = inventoryManager.addGuaranteedReward(
+                    bossPowerupReward
+                );
+                bossPowerupAwarded = rewardResult?.accepted === true;
+                bossPowerupQueued = rewardResult?.queued === true;
+            } else if (inventoryManager?.addItem) {
+                bossPowerupAwarded = inventoryManager.addItem(
+                    bossPowerupReward
+                ) === true;
+            } else if (gameState) {
+                const pendingPath = 'inventory.pendingBossRewards';
+                const pending = gameState.get(pendingPath) || [];
+                gameState.set(pendingPath, [
+                    ...pending,
+                    bossPowerupReward
+                ]);
+                bossPowerupAwarded = true;
+                bossPowerupQueued = true;
             }
         }
 
@@ -9423,6 +9584,18 @@ class PlatformerLevelScene extends Phaser.Scene {
             katanaUpgradeId,
             katanaUpgrade,
             katanaUpgradeAwarded,
+            bossPowerupReward: bossPowerupReward
+                ? {
+                    id: bossPowerupReward.id,
+                    name: bossPowerupReward.name,
+                    icon: bossPowerupReward.icon,
+                    description: bossPowerupReward.description,
+                    resultText: bossPowerupReward.resultText,
+                    usageHint: bossPowerupReward.usageHint,
+                    awarded: bossPowerupAwarded,
+                    queued: bossPowerupQueued
+                }
+                : null,
             coinsAwarded,
             nextGateId: nextGateUnlock?.gateId || null,
             nextGateUnlocked: nextGateUnlock?.newlyUnlocked === true,
