@@ -7,7 +7,7 @@ import ExpeditionAstronaut from '../systems/ExpeditionAstronaut.js';
 import '../systems/ProjectBeaconFieldKit.js';
 import { getCampaignEntryStackLayout, getCampaignObjectiveLayout, getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';
 import bossConfigs from '../config/bosses.json';
-import { analyzeTraversalTopology } from '../systems/TraversalTopology.js';
+import { analyzeTraversalSurfaceAlignment, analyzeTraversalTopology } from '../systems/TraversalTopology.js';
 import KatanaArtifactModal, { prefetchKatanaArtifactArtwork } from '../ui/KatanaArtifactModal.js';
 import { getCurrentRegionActionPresentation, recordCurrentRegionRestoration } from '../systems/CurrentEcology.js';
 import { getCurrentAtmosphereProjection } from '../systems/CurrentAtmosphere.js';
@@ -320,6 +320,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.guardianGateState = null;
         this.guardianEncounter = null;
         this.guardianTransitionGuards = new Map();
+        this._isShuttingDown = false;
+        this.mobileControlsRebuilding = false;
         this.guardianTeamSupport = {
             guardianId: null,
             guardianName: null,
@@ -468,6 +470,9 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     init(data) {
+        this._isShuttingDown = false;
+        this.mobileControlsRebuilding = false;
+
         // Accept level data from scene transition
         if (data) {
             this.levelId = data.levelId || this.levelId;
@@ -1372,6 +1377,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             )
         });
         const routeChoices = this.auditOptionalRouteChoiceSupports();
+        const surfaceAlignment = analyzeTraversalSurfaceAlignment({ supports });
 
         return {
             sceneName: this.scene?.key,
@@ -1380,7 +1386,8 @@ class PlatformerLevelScene extends Phaser.Scene {
             reason: result.passed && !routeChoices.passed
                 ? 'route-choice-supports'
                 : result.reason,
-            routeChoices
+            routeChoices,
+            surfaceAlignment
         };
     }
 
@@ -2846,6 +2853,10 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.scale?.on?.('resize', this.handlePlatformerMobileResize, this);
     }
 
+    isSceneLifecycleActive() {
+        return !this._isShuttingDown && this.sys?.isActive?.() !== false;
+    }
+
     /**
      * Detect if device is mobile/touch-capable
      */
@@ -2887,6 +2898,8 @@ class PlatformerLevelScene extends Phaser.Scene {
      * - Ground level and creatures appear ABOVE the control zone
      */
     setupPlatformerMobileControls() {
+        if (!this.isSceneLifecycleActive()) return false;
+
         this.releaseAllPlatformerActionButtons();
         this.cleanupPlatformerInputHandlers();
         this.isMobile = this.detectMobile();
@@ -3018,6 +3031,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         };
 
         joystickZone.on('pointerdown', (pointer) => {
+            if (!this.isSceneLifecycleActive()) return;
             this.joystickActive = true;
             this.joystickPointerId = pointer.id;
             const nativeTouchIdentifier =
@@ -3089,6 +3103,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // Scene-level pointer tracking for joystick
         this.platformerJoystickMoveHandler = (pointer) => {
+            if (!this.isSceneLifecycleActive()) return;
             if (this.joystickActive && pointer.id === this.joystickPointerId) {
                 this.updateJoystick(pointer);
             }
@@ -3096,6 +3111,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.input.on('pointermove', this.platformerJoystickMoveHandler);
 
         this.platformerJoystickUpHandler = (pointer) => {
+            if (!this.isSceneLifecycleActive()) return;
             // Finish this action without interrupting a second finger that owns
             // the joystick. Scene-level release covers drags outside the button.
             if (this.releasePlatformerActionButton(pointer.id)) {
@@ -3117,6 +3133,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             };
         };
         this.platformerTouchStartHandler = (event) => {
+            if (!this.isSceneLifecycleActive()) return;
             const touches = Array.from(event.changedTouches || []).map(candidate => ({
                 candidate,
                 point: mapNativeTouch(candidate)
@@ -3157,6 +3174,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         // stops forwarding an owned drag to Phaser after the finger crosses a
         // display-list boundary. Phaser remains the primary input path.
         this.platformerTouchMoveHandler = (event) => {
+            if (!this.isSceneLifecycleActive()) return;
             if (!this.joystickActive) return;
             const touch = Array.from(event.touches || []).find(
                 candidate => candidate.identifier === this.joystickTouchIdentifier
@@ -3167,6 +3185,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         // Native touch end handler for reliability - only reset if no active touches remain on joystick
         this.platformerTouchEndHandler = (event) => {
+            if (!this.isSceneLifecycleActive()) return;
             const changedTouches = Array.from(event.changedTouches || []);
             changedTouches.forEach(touch => {
                 this.releasePlatformerActionButton(touch.identifier);
@@ -3299,27 +3318,37 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     handlePlatformerMobileResize(gameSize = this.scale?.gameSize) {
+        if (!this.isSceneLifecycleActive() || this.mobileControlsRebuilding) {
+            return false;
+        }
         if (!this.isMobile && !this.detectMobile()) return;
 
         const controlsWereVisible = this.platformerControlsVisible === true;
-        this.destroyPlatformerMobileControls();
-        this.setupPlatformerMobileControls();
+        this.mobileControlsRebuilding = true;
+        try {
+            this.destroyPlatformerMobileControls();
+            if (!this.isSceneLifecycleActive()) return false;
+            this.setupPlatformerMobileControls();
 
-        const width = gameSize?.width || this.scale?.width || 800;
-        const height = gameSize?.height || this.scale?.height || 600;
-        const safeArea = this.getSafeAreaInsets();
-        const layout = getMobileControlLayout({ width, height, safeArea });
-        this.mobileControlZoneHeight = layout.dockHeight + safeArea.bottom;
-        this.cameraBaseOffsetY = -height * 0.12;
-        this.cameraLeadAmount = width * 0.15;
-        this.cameras?.main?.setDeadzone?.(width * 0.1, height * 0.35);
-        this.cameras?.main?.setFollowOffset?.(
-            this.currentCameraLeadX || 0,
-            this.cameraBaseOffsetY
-        );
+            const width = gameSize?.width || this.scale?.width || 800;
+            const height = gameSize?.height || this.scale?.height || 600;
+            const safeArea = this.getSafeAreaInsets();
+            const layout = getMobileControlLayout({ width, height, safeArea });
+            this.mobileControlZoneHeight = layout.dockHeight + safeArea.bottom;
+            this.cameraBaseOffsetY = -height * 0.12;
+            this.cameraLeadAmount = width * 0.15;
+            this.cameras?.main?.setDeadzone?.(width * 0.1, height * 0.35);
+            this.cameras?.main?.setFollowOffset?.(
+                this.currentCameraLeadX || 0,
+                this.cameraBaseOffsetY
+            );
 
-        if (controlsWereVisible) {
-            this.showPlatformerMobileControls();
+            if (controlsWereVisible) {
+                this.showPlatformerMobileControls();
+            }
+            return true;
+        } finally {
+            this.mobileControlsRebuilding = false;
         }
     }
 
@@ -3826,6 +3855,14 @@ class PlatformerLevelScene extends Phaser.Scene {
      * Larger dead zone, horizontal lock by default, and optional two-axis input.
      */
     updateJoystick(pointer) {
+        if (
+            !this.isSceneLifecycleActive() ||
+            !pointer ||
+            !this.joystickThumb ||
+            this.joystickThumb.active === false
+        ) {
+            return false;
+        }
         const offsetX = pointer.x - this.joystickCenterX;
         const offsetY = pointer.y - this.joystickCenterY;
         const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
@@ -3902,6 +3939,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             this.virtualJoystickX = 0;
             this.virtualJoystickY = 0;
         }
+        return true;
     }
 
     /**
@@ -8781,6 +8819,8 @@ class PlatformerLevelScene extends Phaser.Scene {
      */
     shutdown() {
         console.log('[PlatformerLevel] Shutting down - cleaning up resources');
+        this._isShuttingDown = true;
+        this.mobileControlsRebuilding = false;
 
         // Scenes can be left from the death panel. Never retain a paused Clock
         // or TweenManager when Phaser later starts this scene again.

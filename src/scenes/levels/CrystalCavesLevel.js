@@ -5781,10 +5781,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         // Reset camera zoom
         this.cameras.main.zoomTo(1.0, 1000);
 
-        // Victory message and level complete
-        this.time.delayedCall(2000, () => {
-            this.showBossVictory();
-        });
+        // The result handoff must survive a paused or interrupted Phaser clock.
+        this.scheduleGuardianTransition(
+            'crystal-guardian-results',
+            2000,
+            () => this.showBossVictory(),
+            500
+        );
     }
 
     /**

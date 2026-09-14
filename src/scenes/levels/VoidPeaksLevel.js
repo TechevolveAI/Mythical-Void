@@ -2824,17 +2824,29 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             }
         );
 
+        let guardianExitFinished = false;
+        const finishGuardianExit = () => {
+            if (guardianExitFinished) return;
+            guardianExitFinished = true;
+            this.cancelGuardianTransition?.('peaks-guardian-results');
+            this.boss?.destroy?.();
+            this.boss = null;
+            this.showBossVictory();
+        };
+        this.scheduleGuardianTransition(
+            'peaks-guardian-results',
+            1800,
+            finishGuardianExit,
+            500
+        );
+
         this.tweens.add({
             targets: this.boss,
             alpha: 0.12,
             scale: this.bossTargetScale * 0.88,
             duration: 1800,
             ease: 'Sine.easeInOut',
-            onComplete: () => {
-                this.boss?.destroy?.();
-                this.boss = null;
-                this.showBossVictory();
-            }
+            onComplete: finishGuardianExit
         });
 
         this.tweens.add({

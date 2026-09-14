@@ -22,6 +22,30 @@ describe('guardian encounter pacing contracts', () => {
         expect(source).toContain('this.cancelGuardianTransitions();');
     });
 
+    test.each([
+        ['CrystalCavesLevel.js', 'crystal-guardian-results'],
+        ['ReefLevel.js', 'reef-guardian-results'],
+        ['VoidPeaksLevel.js', 'peaks-guardian-results'],
+        ['AuroraDepthsLevel.js', 'aurora-guardian-results'],
+        ['FinalVoidLevel.js', 'final-guardian-results']
+    ])('%s protects its Guardian result handoff', (fileName, transitionKey) => {
+        const source = readLevel(fileName);
+
+        expect(source).toContain('this.scheduleGuardianTransition(');
+        expect(source).toContain(`'${transitionKey}'`);
+    });
+
+    test('Final Void schedules its result fallback only after defeat begins', () => {
+        const source = readLevel('FinalVoidLevel.js');
+        const spawnStart = source.indexOf('\n    spawnVoidEmpress() {');
+        const defeatStart = source.indexOf('\n    onBossDefeated() {');
+        const resultTransition = source.indexOf("'final-guardian-results'");
+
+        expect(spawnStart).toBeGreaterThanOrEqual(0);
+        expect(defeatStart).toBeGreaterThan(spawnStart);
+        expect(resultTransition).toBeGreaterThan(defeatStart);
+    });
+
     test('Reef attacks warn before danger and end in a real damage opening', () => {
         const source = readLevel('ReefLevel.js');
 

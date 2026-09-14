@@ -4653,9 +4653,12 @@ class ReefLevel extends PlatformerLevelScene {
             });
         }
 
-        this.time.delayedCall(2600, () => {
-            this.showVictoryScreen();
-        });
+        this.scheduleGuardianTransition(
+            'reef-guardian-results',
+            2600,
+            () => this.showVictoryScreen(),
+            500
+        );
 
         if (window.AudioManager) {
             window.AudioManager.playLevelUp();

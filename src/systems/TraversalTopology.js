@@ -1,6 +1,7 @@
 const DEFAULT_PLAYER_HALF_WIDTH = 18;
 const DEFAULT_PLAYER_HEIGHT = 58;
 const MIN_SUPPORT_COVERAGE = 0.65;
+const DEFAULT_SURFACE_ALIGNMENT_TOLERANCE = 4;
 
 function finite(value, fallback = 0) {
     const parsed = Number(value);
@@ -48,6 +49,59 @@ function normalizeSupport(support, index) {
         traversalOneWay: type === 'one-way' ||
             support?.traversalOneWay === true,
         traversalLinks
+    };
+}
+
+function resolveVisualSurfaceTop(support) {
+    const authoredTop = finite(support?.traversalVisualTop, Number.NaN);
+    if (Number.isFinite(authoredTop)) return authoredTop;
+
+    const bounds = support?.getBounds?.();
+    const boundsTop = finite(bounds?.top, Number.NaN);
+    return Number.isFinite(boundsTop) ? boundsTop : null;
+}
+
+/**
+ * Reports whether the visible landing edge agrees with its Arcade body. This
+ * remains diagnostic until every required support has an authored visual edge.
+ */
+function analyzeTraversalSurfaceAlignment({
+    supports = [],
+    tolerance = DEFAULT_SURFACE_ALIGNMENT_TOLERANCE
+} = {}) {
+    const allowedOffset = Math.max(0, finite(tolerance, 4));
+    const inspected = [];
+    const unmeasuredSupportIds = [];
+
+    supports.forEach((support, index) => {
+        const normalized = normalizeSupport(support, index);
+        if (!normalized || normalized.traversalObstacle || normalized.traversalCeiling) {
+            return;
+        }
+        const visualTop = resolveVisualSurfaceTop(support);
+        if (!Number.isFinite(visualTop)) {
+            unmeasuredSupportIds.push(normalized.id);
+            return;
+        }
+        const offset = visualTop - normalized.top;
+        inspected.push({
+            id: normalized.id,
+            visualTop,
+            collisionTop: normalized.top,
+            offset,
+            aligned: Math.abs(offset) <= allowedOffset
+        });
+    });
+
+    const misaligned = inspected.filter(surface => !surface.aligned);
+    return {
+        passed: misaligned.length === 0,
+        enforced: false,
+        tolerance: allowedOffset,
+        inspectedCount: inspected.length,
+        misalignedCount: misaligned.length,
+        misaligned,
+        unmeasuredSupportIds
     };
 }
 
@@ -692,6 +746,7 @@ function analyzeTraversalTopology({
 }
 
 export {
+    analyzeTraversalSurfaceAlignment,
     analyzeTraversalTopology,
     calculateBallisticLaunchVelocity,
     calculateJumpEnvelope,

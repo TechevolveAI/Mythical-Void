@@ -7,7 +7,7 @@ function loadTraversalTopology() {
     const source = fs.readFileSync(filePath, 'utf8')
         .replace(
             /export \{[\s\S]*?\};/,
-            'module.exports = { analyzeTraversalTopology, calculateBallisticLaunchVelocity, calculateJumpEnvelope, canTraverseSupport };'
+            'module.exports = { analyzeTraversalSurfaceAlignment, analyzeTraversalTopology, calculateBallisticLaunchVelocity, calculateJumpEnvelope, canTraverseSupport };'
         );
     const sandbox = {
         module: { exports: {} },
@@ -48,6 +48,7 @@ function support(id, left, right, top, {
 
 describe('campaign traversal topology', () => {
     const {
+        analyzeTraversalSurfaceAlignment,
         analyzeTraversalTopology,
         calculateBallisticLaunchVelocity,
         calculateJumpEnvelope,
@@ -77,6 +78,42 @@ describe('campaign traversal topology', () => {
             rise: -10,
             minimumSpeed: 320
         })).toBe(-320);
+    });
+
+    test('reports visible landing edges that disagree with collision surfaces', () => {
+        const aligned = support('aligned', 0, 220, 700);
+        aligned.getBounds = () => ({ top: 702 });
+        const floating = support('floating-art', 260, 480, 700);
+        floating.getBounds = () => ({ top: 676 });
+
+        const result = analyzeTraversalSurfaceAlignment({
+            supports: [aligned, floating],
+            tolerance: 4
+        });
+
+        expect(result.passed).toBe(false);
+        expect(result.enforced).toBe(false);
+        expect(result.inspectedCount).toBe(2);
+        expect(result.misalignedCount).toBe(1);
+        expect(result.misaligned[0]).toEqual(expect.objectContaining({
+            id: 'floating-art',
+            offset: -24,
+            aligned: false
+        }));
+    });
+
+    test('uses an authored landing edge when decorative bounds include overhang', () => {
+        const platform = support('painted-shelf', 0, 220, 700);
+        platform.getBounds = () => ({ top: 660 });
+        platform.traversalVisualTop = 698;
+
+        const result = analyzeTraversalSurfaceAlignment({
+            supports: [platform],
+            tolerance: 4
+        });
+
+        expect(result.passed).toBe(true);
+        expect(result.misaligned).toEqual([]);
     });
 
     test('accepts readable forward steps and rejects impossible rises', () => {

@@ -2890,6 +2890,25 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
         // The corruption breaks apart while the Empress regains her own light.
         const restorationDuration = 4000;
+        let guardianExitFinished = false;
+        const finishGuardianExit = () => {
+            if (guardianExitFinished) return;
+            guardianExitFinished = true;
+            this.cancelGuardianTransition?.('final-guardian-results');
+            this.boss?.destroy?.();
+            this.boss = null;
+            this.bossBody?.destroy?.();
+            this.bossBody = null;
+            this.bossGlow?.destroy?.();
+            this.bossGlow = null;
+            this.showBossVictory();
+        };
+        this.scheduleGuardianTransition(
+            'final-guardian-results',
+            restorationDuration,
+            finishGuardianExit,
+            600
+        );
 
         // A pale restoration wave replaces the void storm.
         const whiteout = this.add.graphics();
@@ -2964,16 +2983,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             y: this.boss.y - 90,
             duration: restorationDuration,
             ease: 'Sine.easeInOut',
-            onComplete: () => {
-                this.boss.destroy();
-                this.boss = null;
-                this.bossBody?.destroy?.();
-                this.bossBody = null;
-
-                if (this.bossGlow) this.bossGlow.destroy();
-
-                this.showBossVictory();
-            }
+            onComplete: finishGuardianExit
         });
 
         if (this.bossUI) {

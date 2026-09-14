@@ -2636,6 +2636,26 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             });
         }
 
+        let guardianExitFinished = false;
+        const finishGuardianExit = () => {
+            if (guardianExitFinished) return;
+            guardianExitFinished = true;
+            this.cancelGuardianTransition?.('aurora-guardian-results');
+            this.boss?.destroy?.();
+            this.boss = null;
+            this.bossBody?.destroy?.();
+            this.bossBody = null;
+            this.bossGlow?.destroy?.();
+            this.bossGlow = null;
+            this.showBossVictory();
+        };
+        this.scheduleGuardianTransition(
+            'aurora-guardian-results',
+            1800,
+            finishGuardianExit,
+            500
+        );
+
         this.tweens.add({
             targets: this.boss,
             alpha: 0.2,
@@ -2643,18 +2663,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             y: this.boss.y - 120,
             duration: 1800,
             ease: 'Sine.easeIn',
-            onComplete: () => {
-                this.boss?.destroy?.();
-                this.boss = null;
-                this.bossBody?.destroy?.();
-                this.bossBody = null;
-
-                if (this.bossGlow) {
-                    this.bossGlow.destroy();
-                }
-
-                this.showBossVictory();
-            }
+            onComplete: finishGuardianExit
         });
 
         if (this.bossUI) {
