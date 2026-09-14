@@ -26,6 +26,7 @@ const FOREST_ARRIVAL_CINEMATIC_VERSION = 3;
 const FOREST_ROOTWAKE_STATE_PATH =
     'story.projectBeacon.forestRootwakeCrossing';
 const FOREST_ROOTWAKE_VERSION = 1;
+const FIRST_EXPEDITION_COACH_DURATION_MS = 3200;
 
 const ROOTWAKE_PLATFORM_CONFIGS = Object.freeze([
     Object.freeze({ id: 'rootwake-step-1', x: 438, width: 108, rise: 46 }),
@@ -196,6 +197,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // One-time, input-verified onboarding for Expedition 01.
         this.firstExpeditionDrill = null;
         this.firstExpeditionDrillElements = [];
+        this.firstExpeditionDrillCoachTimer = null;
         this.firstExpeditionDrillPreview = false;
         this.firstExpeditionDrillAutoCompletePreview = false;
         this.firstExpeditionDrillStepPreview = 0;
@@ -330,6 +332,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.isCompactObjectiveHUD = false;
         this.firstExpeditionDrill = null;
         this.firstExpeditionDrillElements = [];
+        this.firstExpeditionDrillCoachTimer = null;
+        this.forestGapViewActive = false;
         this.clearLevelEntryKeyHandler();
         this.levelEntryElements = [];
         this.levelEntryDismissing = false;
@@ -1208,13 +1212,38 @@ class MythicalForestLevel extends PlatformerLevelScene {
             .setScrollFactor(0)
             .setDepth(depth + 1);
 
+        const closeGlyph = this.add.text(
+            panelX + panelWidth - 17,
+            panelY + 14,
+            '×',
+            {
+                fontSize: compact ? '18px' : '20px',
+                color: '#C8D8D4'
+            }
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 2);
+
+        const dismissZone = this.add.zone(
+            width / 2,
+            panelY + panelHeight / 2,
+            panelWidth,
+            panelHeight
+        )
+            .setScrollFactor(0)
+            .setDepth(depth + 3)
+            .setInteractive({ useHandCursor: true });
+        dismissZone.on('pointerdown', () => {
+            this.hideFirstExpeditionDrillCoach();
+        });
+
         this.firstExpeditionDrillElements = [
             panel,
             header,
             heading,
             instruction,
             control,
-            progress
+            progress,
+            closeGlyph,
+            dismissZone
         ];
         this.firstExpeditionDrillUI = {
             heading,
@@ -1224,6 +1253,47 @@ class MythicalForestLevel extends PlatformerLevelScene {
             centerX: width / 2,
             progressY: panelY + panelHeight - 8
         };
+    }
+
+    showFirstExpeditionDrillCoach({
+        duration = FIRST_EXPEDITION_COACH_DURATION_MS
+    } = {}) {
+        if (!this.firstExpeditionDrill || !this.firstExpeditionDrillElements.length) {
+            return false;
+        }
+
+        this.firstExpeditionDrillCoachTimer?.remove?.();
+        this.firstExpeditionDrillCoachTimer = null;
+        this.firstExpeditionDrill.panelVisible = true;
+        this.firstExpeditionDrillElements.forEach(element => {
+            element?.setVisible?.(true);
+            if (element?.input) element.input.enabled = true;
+        });
+        this.objectiveDisplay?.setVisible?.(false);
+
+        this.firstExpeditionDrillCoachTimer = this.time.delayedCall(
+            duration,
+            () => {
+                this.firstExpeditionDrillCoachTimer = null;
+                this.hideFirstExpeditionDrillCoach();
+            }
+        );
+        return true;
+    }
+
+    hideFirstExpeditionDrillCoach() {
+        this.firstExpeditionDrillCoachTimer?.remove?.();
+        this.firstExpeditionDrillCoachTimer = null;
+        this.clearMobileControlCoach?.();
+        this.firstExpeditionDrillElements.forEach(element => {
+            if (element?.input) element.input.enabled = false;
+            element?.setVisible?.(false);
+        });
+        if (this.firstExpeditionDrill) {
+            this.firstExpeditionDrill.panelVisible = false;
+        }
+        this.objectiveDisplay?.setVisible?.(true);
+        return true;
     }
 
     renderFirstExpeditionDrillStep() {
@@ -1246,6 +1316,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.showMobileControlCoach?.(
             step.action === 'move' ? 'joystick' : step.action
         );
+        this.showFirstExpeditionDrillCoach();
         ui.progress.clear();
 
         const spacing = 16;
@@ -1315,6 +1386,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             `POWER WITNESSED // ${powerProfile.affinityLabel.toUpperCase()}`
         );
         ui?.progress?.clear();
+        this.showFirstExpeditionDrillCoach({ duration: 1900 });
         this.showFirstExpeditionPowerResponse(
             powerProfile,
             drill.knot
@@ -1398,6 +1470,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
     }
 
     clearFirstExpeditionDrill() {
+        this.firstExpeditionDrillCoachTimer?.remove?.();
+        this.firstExpeditionDrillCoachTimer = null;
         this.clearMobileControlCoach?.();
         this.firstExpeditionDrillElements.forEach(element => {
             element?.removeAllListeners?.();
@@ -1418,6 +1492,74 @@ class MythicalForestLevel extends PlatformerLevelScene {
             knot.destroy();
         }
         this.firstExpeditionDrill = null;
+    }
+
+    getForestWideGapCameraContext() {
+        if (!this.player?.active || this.bossFightActive || this.bossDefeated) {
+            return null;
+        }
+
+        const cameraWidth = Number(this.cameras?.main?.width) || 0;
+        if (cameraWidth <= 0) return null;
+
+        const velocityX = Number(this.player.body?.velocity?.x) || 0;
+        const direction = Math.abs(velocityX) > 18
+            ? Math.sign(velocityX)
+            : this.player.facingRight === false ? -1 : 1;
+        const playerX = Number(this.player.x) || 0;
+        const approachDistance = cameraWidth * (this.isMobile ? 0.68 : 0.48);
+        const departureDistance = cameraWidth * 0.12;
+
+        for (let index = 0; index < FOREST_GROUND_SECTIONS.length - 1; index += 1) {
+            const left = FOREST_GROUND_SECTIONS[index];
+            const right = FOREST_GROUND_SECTIONS[index + 1];
+            const gapStart = left.x + left.width;
+            const gapEnd = right.x;
+            const gapWidth = gapEnd - gapStart;
+            if (gapWidth < 320) continue;
+
+            const approachingFromLeft = direction > 0 &&
+                playerX >= gapStart - approachDistance &&
+                playerX <= gapEnd + departureDistance;
+            const approachingFromRight = direction < 0 &&
+                playerX <= gapEnd + approachDistance &&
+                playerX >= gapStart - departureDistance;
+            if (!approachingFromLeft && !approachingFromRight) continue;
+
+            const lead = Math.min(
+                cameraWidth * (this.isMobile ? 0.34 : 0.22),
+                gapWidth * 0.34
+            );
+            return {
+                direction,
+                gapStart,
+                gapEnd,
+                gapWidth,
+                lead
+            };
+        }
+
+        return null;
+    }
+
+    updateCameraLead() {
+        const gapContext = this.getForestWideGapCameraContext();
+        this.forestGapViewActive = Boolean(gapContext);
+        if (!gapContext) {
+            super.updateCameraLead();
+            return;
+        }
+
+        const camera = this.cameras.main;
+        this.targetCameraLeadX = gapContext.direction > 0
+            ? -gapContext.lead
+            : gapContext.lead;
+        this.currentCameraLeadX +=
+            (this.targetCameraLeadX - this.currentCameraLeadX) * 0.045;
+        camera.setFollowOffset(
+            this.currentCameraLeadX,
+            this.cameraBaseOffsetY
+        );
     }
 
     update(time, delta) {
@@ -1932,10 +2074,23 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         const requiredDescent = dy > 130 && Math.abs(dx) < 520;
         const stalled = time - guidance.lastProgressAt >= 5200;
-        if ((requiredDescent || stalled) && time >= guidance.nextPulseAt) {
+        const wideGapContext = this.getForestWideGapCameraContext();
+        const wideGapAhead = Boolean(
+            wideGapContext && (
+                wideGapContext.direction > 0
+                    ? Number(target.x) >= wideGapContext.gapEnd
+                    : Number(target.x) <= wideGapContext.gapStart
+            )
+        );
+        if (
+            (requiredDescent || stalled || wideGapAhead) &&
+            time >= guidance.nextPulseAt
+        ) {
             guidance.pulseStartedAt = time;
             guidance.pulseUntil = time + 1100;
-            guidance.nextPulseAt = time + (requiredDescent ? 2400 : 5200);
+            guidance.nextPulseAt = time + (
+                requiredDescent ? 2400 : wideGapAhead ? 3000 : 5200
+            );
 
             if (
                 requiredDescent &&

@@ -492,6 +492,55 @@ describe('first expedition rescue loop', () => {
         );
     });
 
+    test('keeps first-expedition control coaching brief and dismissible', () => {
+        const source = fs.readFileSync(
+            path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
+            'utf8'
+        );
+        const coach = source.match(
+            /showFirstExpeditionDrillCoach\([\s\S]*?\n    hideFirstExpeditionDrillCoach\(\)/
+        )?.[0] || '';
+        const panel = source.match(
+            /createFirstExpeditionDrillPanel\(\)[\s\S]*?\n    showFirstExpeditionDrillCoach/
+        )?.[0] || '';
+
+        expect(source).toContain(
+            'const FIRST_EXPEDITION_COACH_DURATION_MS = 3200;'
+        );
+        expect(panel).toContain("'×'");
+        expect(panel).toContain("dismissZone.on('pointerdown'");
+        expect(panel).toContain('this.hideFirstExpeditionDrillCoach();');
+        expect(coach).toContain('this.time.delayedCall(');
+        expect(coach).toContain('FIRST_EXPEDITION_COACH_DURATION_MS');
+        expect(source).toContain('this.showFirstExpeditionDrillCoach();');
+        expect(source).toContain(
+            'this.showFirstExpeditionDrillCoach({ duration: 1900 });'
+        );
+        expect(source).toContain('this.clearMobileControlCoach?.();');
+        expect(source).toContain('this.objectiveDisplay?.setVisible?.(true);');
+    });
+
+    test('looks across wide Forest gaps without zooming the shared HUD camera', () => {
+        const source = fs.readFileSync(
+            path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
+            'utf8'
+        );
+        const gapCamera = source.match(
+            /getForestWideGapCameraContext\(\)[\s\S]*?\n    update\(time, delta\)/
+        )?.[0] || '';
+
+        expect(gapCamera).toContain('gapWidth < 320');
+        expect(gapCamera).toContain(
+            'cameraWidth * (this.isMobile ? 0.34 : 0.22)'
+        );
+        expect(gapCamera).toContain('super.updateCameraLead();');
+        expect(gapCamera).toContain('camera.setFollowOffset(');
+        expect(gapCamera).not.toContain('setZoom(');
+        expect(source).toContain('const wideGapContext = this.getForestWideGapCameraContext();');
+        expect(source).toContain('Number(target.x) >= wideGapContext.gapEnd');
+        expect(source).toContain('wideGapAhead ? 3000 : 5200');
+    });
+
     test('keeps authored void gaps physical and restores touch controls after entry', () => {
         const source = fs.readFileSync(
             path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
