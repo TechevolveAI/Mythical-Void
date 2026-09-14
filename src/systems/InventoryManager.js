@@ -204,8 +204,29 @@ class InventoryManager {
     addGuaranteedReward(item) {
         if (!item) return { accepted: false, queued: false, item: null };
 
+        const receiptPath = 'inventory.guaranteedRewardReceipts';
+        const rewardSource = typeof item.rewardSource === 'string'
+            ? item.rewardSource.trim()
+            : '';
+        const receipts = window.GameState?.get?.(receiptPath) || {};
+        if (rewardSource && receipts[rewardSource] === true) {
+            return {
+                accepted: true,
+                queued: false,
+                duplicate: true,
+                item
+            };
+        }
+
         if (this.canAcceptItem(item) && this.addItem(item)) {
-            return { accepted: true, queued: false, item };
+            if (rewardSource && window.GameState) {
+                window.GameState.set(receiptPath, {
+                    ...receipts,
+                    [rewardSource]: true
+                });
+                window.GameState.save?.();
+            }
+            return { accepted: true, queued: false, duplicate: false, item };
         }
 
         if (!window.GameState) {
@@ -223,9 +244,15 @@ class InventoryManager {
                 quantity: 1
             }
         ]);
+        if (rewardSource) {
+            window.GameState.set(receiptPath, {
+                ...receipts,
+                [rewardSource]: true
+            });
+        }
         window.GameState.save?.();
         this.events.emit('bossRewardQueued', { item });
-        return { accepted: true, queued: true, item };
+        return { accepted: true, queued: true, duplicate: false, item };
     }
 
     claimPendingBossRewards() {

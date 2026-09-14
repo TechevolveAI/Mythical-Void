@@ -9408,7 +9408,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         let guardianOutcome = null;
         let guardianExpedition = null;
         let rescuedResident = null;
-        const bossPowerupReward = getBossPowerupReward(achievementLevelId);
+        const bossPowerupReward = wasCompleted
+            ? null
+            : getBossPowerupReward(achievementLevelId);
         let bossPowerupAwarded = false;
         let bossPowerupQueued = false;
         const configuredVictoryCoins = calculateVictoryCoins(

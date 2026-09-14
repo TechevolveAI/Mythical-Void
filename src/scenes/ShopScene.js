@@ -4,9 +4,9 @@
  */
 
 import Phaser from 'phaser';
-import bossConfigs from '../config/bosses.json';
 import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
 import VillageCommandPanel from '../ui/VillageCommandPanel.js';
+import { getGuardianPowerShopItems } from '../systems/GuardianPowerups.js';
 import {
     assignCreatureToVillageBuilding,
     getVillageSnapshot,
@@ -497,6 +497,14 @@ export default class ShopScene extends Phaser.Scene {
     }
 
     getItemUnavailableState(item) {
+        if (item?.type === 'guardian_power_locked') {
+            return {
+                unavailable: true,
+                label: 'RESTORE',
+                message: 'Restore the next Guardian to discover this power.'
+            };
+        }
+
         if (item?.type === 'village') {
             const unlocked = item.villageSnapshot?.unlock?.unlocked === true;
             return {
@@ -538,7 +546,7 @@ export default class ShopScene extends Phaser.Scene {
 
         return {
             unavailable: false,
-            label: 'BUY',
+            label: item?.shopActionLabel || 'BUY',
             message: ''
         };
     }
@@ -1716,13 +1724,7 @@ export default class ShopScene extends Phaser.Scene {
                     effect: { health: 40 }
                 }
             ],
-            powerups: Object.values(bossConfigs)
-                .map(config => config?.rewards?.powerup)
-                .filter(Boolean)
-                .map(powerup => ({
-                    ...powerup,
-                    effect: { ...powerup.effect }
-                })),
+            powerups: getGuardianPowerShopItems(window.GameState),
             utilities: [
                 {
                     id: 'void_crystal',

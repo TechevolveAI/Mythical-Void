@@ -4,12 +4,11 @@ const vm = require('vm');
 
 function loadShopScene(sceneWindow) {
     const filePath = path.join(__dirname, '../scenes/ShopScene.js');
-    const bossConfigs = require('../config/bosses.json');
     const source = fs.readFileSync(filePath, 'utf8')
         .replace("import Phaser from 'phaser';", '')
         .replace(
-            "import bossConfigs from '../config/bosses.json';",
-            'const bossConfigs = BOSS_CONFIG;'
+            "import { getGuardianPowerShopItems } from '../systems/GuardianPowerups.js';",
+            'const getGuardianPowerShopItems = GET_GUARDIAN_POWER_SHOP_ITEMS;'
         )
         .replace(
             "import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';",
@@ -45,7 +44,7 @@ function loadShopScene(sceneWindow) {
         exports: {},
         console,
         window: sceneWindow,
-        BOSS_CONFIG: bossConfigs,
+        GET_GUARDIAN_POWER_SHOP_ITEMS: () => [],
         SCENE_TRANSITION: {
             stopScene: jest.fn(),
             resumeScene: jest.fn()
@@ -242,5 +241,29 @@ describe('shop permanent route-map purchases', () => {
         expect(opened).toBe(true);
         expect(scene.villageCommandPanel.show).toHaveBeenCalledTimes(1);
         expect(sceneWindow.EconomyManager.purchase).not.toHaveBeenCalled();
+    });
+});
+
+describe('Guardian power restocks', () => {
+    test('uses the discovered-power action label and blocks the hidden preview', () => {
+        const { scene } = createScene();
+
+        expect(scene.getItemUnavailableState({
+            id: 'energy_crystal',
+            type: 'powerup',
+            shopActionLabel: 'RESTOCK'
+        })).toEqual({
+            unavailable: false,
+            label: 'RESTOCK',
+            message: ''
+        });
+        expect(scene.getItemUnavailableState({
+            id: 'guardian_power_locked',
+            type: 'guardian_power_locked'
+        })).toEqual({
+            unavailable: true,
+            label: 'RESTORE',
+            message: 'Restore the next Guardian to discover this power.'
+        });
     });
 });

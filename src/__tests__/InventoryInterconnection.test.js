@@ -57,7 +57,7 @@ describe('shop, inventory, and field-kit interconnection', () => {
         expect(bossPowerups.every(powerup => (
             powerup.usageHint === 'Expedition pause menu > Power-ups'
         ))).toBe(true);
-        expect(shopSource).toContain('.map(config => config?.rewards?.powerup)');
+        expect(shopSource).toContain('getGuardianPowerShopItems(window.GameState)');
         expect(shopSource).toContain('Inventory > select egg > Hatch');
         expect(shopSource).toContain('Permanent survey support active');
         expect(inventorySource).toContain('item.usageHint || this.getDefaultUsageHint(item)');

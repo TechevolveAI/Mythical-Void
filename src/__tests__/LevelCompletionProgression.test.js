@@ -489,11 +489,13 @@ describe('PlatformerLevelScene completion progression', () => {
 
         expect(sceneWindow.unlockProjectBeaconMilestone).not.toHaveBeenCalled();
         expect(sceneWindow.queueProjectBeaconDebrief).not.toHaveBeenCalled();
+        expect(sceneWindow.InventoryManager.addGuaranteedReward).not.toHaveBeenCalled();
         expect(gameState.syncCanonicalCampaignGates).not.toHaveBeenCalled();
         expect(result).toEqual(expect.objectContaining({
             firstCompletion: false,
             nextGateId: null,
             nextGateUnlocked: false,
+            bossPowerupReward: null,
             coinsAwarded: 1000
         }));
         expect(sceneWindow.EconomyManager.addCoins).toHaveBeenCalledWith(

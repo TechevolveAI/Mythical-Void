@@ -256,6 +256,30 @@ describe('purchased expedition power-ups', () => {
         ]));
     });
 
+    test('records one Guardian reward receipt and rejects duplicate delivery', () => {
+        const { manager, state, gameState } = loadInventoryManager();
+        const reward = {
+            id: 'energy_crystal',
+            name: 'Energy Crystal',
+            type: 'powerup',
+            usableInLevel: true,
+            effect: { crystalEnergy: 3 },
+            rewardSource: 'guardian:mythicalForest'
+        };
+
+        expect(manager.addGuaranteedReward(reward)).toEqual(
+            expect.objectContaining({ accepted: true, duplicate: false })
+        );
+        expect(state.inventory.guaranteedRewardReceipts).toEqual({
+            'guardian:mythicalForest': true
+        });
+        expect(manager.addGuaranteedReward(reward)).toEqual(
+            expect.objectContaining({ accepted: true, duplicate: true })
+        );
+        expect(manager.getItem(0).quantity).toBe(1);
+        expect(gameState.save).toHaveBeenCalled();
+    });
+
     test('consumes exactly one item only after the level accepts its effect', () => {
         const { manager } = loadInventoryManager([{ ...powerShot, quantity: 2, slot: 0 }]);
         const applyPowerup = jest.fn(() => ({
