@@ -2213,6 +2213,10 @@ describe('campaign traversal quality contracts', () => {
             source.includes('checkpoint: {') ||
             source.includes('checkpoint: this.getTraversalSupportCheckpoint(') ||
             (
+                source.includes("this.getTraversalSupportCheckpoint(\n            'forest-ground-6'") &&
+                source.includes('checkpoint: entrance,\n                start: () => this.startBossFight()')
+            ) ||
+            (
                 source.includes('const checkpoint = this.getTraversalSupportCheckpoint(') &&
                 source.includes('checkpoint,\n                start: () => this.startBossFight()')
             )

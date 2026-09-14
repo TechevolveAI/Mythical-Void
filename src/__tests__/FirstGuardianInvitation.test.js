@@ -95,7 +95,7 @@ describe('first Guardian invitation', () => {
     test('the real Guardian handoff checks both actions are visible and separate', () => {
         const smoke = read('../scripts/smoke-secondary-journeys.js');
         expect(smoke).toContain("item?.text === '[ INVITE SOMEONE ]'");
-        expect(smoke).toContain("item?.text === '[ RETURN TO HUB ]'");
+        expect(smoke).toContain("item?.text === '[ ENTER SANCTUARY ]'");
         expect(smoke).toContain('actionsOverlap');
         expect(smoke).toContain('actionsInFrame');
         expect(smoke).toContain('first-guardian-invitation-phone.png');
