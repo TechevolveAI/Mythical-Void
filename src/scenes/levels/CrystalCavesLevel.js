@@ -13,6 +13,34 @@ const CRYSTAL_CAVES_BACKGROUND_ASSET =
 const CRYSTAL_GUARDIAN_DISPLAY_HEIGHT = 190;
 const CRYSTAL_GUARDIAN_MOBILE_DISPLAY_HEIGHT = 170;
 
+const LIVING_MINERAL_STATES = Object.freeze({
+    stable: Object.freeze({ color: 0x38BFD2, label: 'STABLE' }),
+    warning: Object.freeze({ color: 0xF2B84B, label: 'CHANGING' }),
+    fractured: Object.freeze({ color: 0xC24AC8, label: 'FRACTURED' }),
+    restored: Object.freeze({ color: 0xCFFFEF, label: 'RESTORED' })
+});
+
+const LIVING_MINERAL_SURFACE_PLAN = Object.freeze([
+    Object.freeze({
+        id: 'caves-tutorial-1',
+        mode: 'lesson',
+        warningMs: 700,
+        fracturedMs: 460
+    }),
+    Object.freeze({
+        id: 'caves-tutorial-2',
+        mode: 'practice',
+        warningMs: 900,
+        fracturedMs: 520
+    }),
+    Object.freeze({
+        id: 'caves-tutorial-rise',
+        mode: 'practice',
+        warningMs: 900,
+        fracturedMs: 520
+    })
+]);
+
 const CRYSTAL_GUARDIAN_ARENA = Object.freeze({
     coreX: 4850,
     playerEntryX: 5050,
@@ -242,6 +270,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.coreGateHintUntil = 0;
         this.levelEntryDismissing = false;
         this.levelEntryKeyHandler = null;
+        this.livingMineralPassEnabled = false;
+        this.livingMineralSurfaces = [];
+        this.livingMineralCarrier = null;
+        this.livingMineralCarrierCollider = null;
+        this.livingMineralTimers = new Set();
+        this.livingMineralLessonSpoken = false;
     }
 
     preload() {
@@ -335,6 +369,12 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         this.coreGateHintUntil = 0;
         this.levelEntryDismissing = false;
         this.clearLevelEntryKeyHandler();
+        this.livingMineralPassEnabled = data?.livingMineralPass === true;
+        this.livingMineralSurfaces = [];
+        this.livingMineralCarrier = null;
+        this.livingMineralCarrierCollider = null;
+        this.livingMineralTimers = new Set();
+        this.livingMineralLessonSpoken = false;
 
         console.log('[CrystalCavesLevel] Level-specific state reset for restart');
     }
@@ -453,9 +493,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         const mainObj = this.add.text(
             width / 2,
             y(172),
-            resume
-                ? 'Beacon link restored. Follow the next pulse.'
-                : 'Follow 3 pulses. Defeat the corruption.',
+            this.livingMineralPassEnabled
+                ? (resume
+                    ? 'The cave remembers you. Follow the next blue light.'
+                    : 'Watch the crystal colour. Follow the blue light.')
+                : (resume
+                    ? 'Beacon link restored. Follow the next pulse.'
+                    : 'Follow 3 pulses. Defeat the corruption.'),
             {
             fontSize: font(20, 17),
             color: '#00FFFF',
@@ -470,9 +514,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         const anchors = this.add.text(
             contentLeft,
             secondaryY,
-            resume
-                ? `[ PULSE ] ${resume.label} found`
-                : '[ 1 ] Reach the next cyan pulse',
+            this.livingMineralPassEnabled
+                ? 'BLUE IS SAFE // AMBER MEANS MOVE'
+                : (resume
+                    ? `[ PULSE ] ${resume.label} found`
+                    : '[ 1 ] Reach the next cyan pulse'),
             {
             fontSize: font(16, 14),
             color: '#AAAAAA',
@@ -480,13 +526,17 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             }
         ).setScrollFactor(0).setDepth(3002);
 
-        const grove = this.add.text(contentLeft, y(250), '[ 2 ] Fight through the living cave', {
+        const grove = this.add.text(contentLeft, y(250), this.livingMineralPassEnabled
+            ? ''
+            : '[ 2 ] Fight through the living cave', {
             fontSize: font(16, 14),
             color: '#AAAAAA',
             wordWrap: { width: contentWidth }
         }).setScrollFactor(0).setDepth(3002);
 
-        const relic = this.add.text(contentLeft, y(280), '[ 3 ] Free the Guardian', {
+        const relic = this.add.text(contentLeft, y(280), this.livingMineralPassEnabled
+            ? ''
+            : '[ 3 ] Free the Guardian', {
             fontSize: font(16, 14),
             color: '#AAAAAA',
             wordWrap: { width: contentWidth }
@@ -1297,6 +1347,203 @@ class CrystalCavesLevel extends PlatformerLevelScene {
 
         // Create the Crystal Core Engine goal (ship part)
         this.createCrystalCoreEngine();
+
+        if (this.livingMineralPassEnabled) {
+            this.createLivingMineralPass();
+        }
+    }
+
+    createLivingMineralPass() {
+        this.livingMineralSurfaces = LIVING_MINERAL_SURFACE_PLAN
+            .map(plan => {
+                const support = this.getTraversalSupport?.(plan.id);
+                if (!support?.body) return null;
+                const visual = this.add.graphics().setDepth(
+                    (Number(support.depth) || 0) + 2
+                );
+                const surface = {
+                    ...plan,
+                    support,
+                    visual,
+                    state: 'stable',
+                    triggered: false,
+                    completed: false
+                };
+                this.drawLivingMineralSurface(surface);
+                return surface;
+            })
+            .filter(Boolean);
+
+        this.createLivingMineralCarrier();
+    }
+
+    drawLivingMineralSurface(surface) {
+        if (!surface?.visual?.active || !surface.support?.body) return false;
+
+        const state = LIVING_MINERAL_STATES[surface.state] ||
+            LIVING_MINERAL_STATES.stable;
+        const { left, right, top } = surface.support.body;
+        const width = Math.max(24, right - left);
+        const graphics = surface.visual;
+        graphics.clear();
+        graphics.fillStyle(state.color, surface.state === 'fractured' ? 0.2 : 0.14);
+        graphics.fillRoundedRect(left + 4, top + 3, width - 8, 15, 6);
+        graphics.lineStyle(
+            surface.state === 'warning' ? 5 : 3,
+            state.color,
+            surface.state === 'fractured' ? 0.55 : 0.92
+        );
+        graphics.beginPath();
+        graphics.moveTo(left + 10, top + 4);
+        const step = Math.max(26, width / 6);
+        for (let x = left + step; x < right - 8; x += step) {
+            const offset = surface.state === 'fractured'
+                ? (Math.round(x / step) % 2 === 0 ? -7 : 8)
+                : (Math.round(x / step) % 2 === 0 ? -2 : 3);
+            graphics.lineTo(x, top + 5 + offset);
+        }
+        graphics.lineTo(right - 10, top + 4);
+        graphics.strokePath();
+        return true;
+    }
+
+    scheduleLivingMineralStep(delay, callback) {
+        const timer = this.time?.delayedCall?.(delay, () => {
+            this.livingMineralTimers.delete(timer);
+            if (!this.sys?.isActive?.()) return;
+            callback();
+        });
+        if (timer) this.livingMineralTimers.add(timer);
+        return timer;
+    }
+
+    setLivingMineralSurfaceState(surface, stateName) {
+        if (!surface?.support?.body || !LIVING_MINERAL_STATES[stateName]) {
+            return false;
+        }
+
+        surface.state = stateName;
+        const fractured = stateName === 'fractured';
+        surface.support.body.enable = !fractured;
+        surface.support.setAlpha?.(fractured ? 0.24 : 1);
+        this.drawLivingMineralSurface(surface);
+        return true;
+    }
+
+    triggerLivingMineralSurface(surface) {
+        if (!surface || surface.triggered) return false;
+        surface.triggered = true;
+
+        if (!this.livingMineralLessonSpoken) {
+            this.livingMineralLessonSpoken = true;
+            this.showFloatingText(
+                `${this.getCompanionName()}: "The crystal is changing."`,
+                surface.support.x,
+                surface.support.body.top - 64,
+                '#D6EEF2'
+            );
+        }
+
+        this.setLivingMineralSurfaceState(surface, 'warning');
+        this.scheduleLivingMineralStep(surface.warningMs, () => {
+            this.setLivingMineralSurfaceState(surface, 'fractured');
+        });
+        this.scheduleLivingMineralStep(
+            surface.warningMs + surface.fracturedMs,
+            () => {
+                this.setLivingMineralSurfaceState(surface, 'restored');
+                surface.completed = true;
+            }
+        );
+        return true;
+    }
+
+    updateLivingMineralSurfaces() {
+        const playerX = Number(this.player?.body?.center?.x ?? this.player?.x);
+        if (!Number.isFinite(playerX)) return;
+
+        this.livingMineralSurfaces.forEach(surface => {
+            if (surface.triggered || !surface.support?.body) return;
+            const body = surface.support.body;
+            const shouldTrigger = surface.mode === 'lesson'
+                ? playerX > body.right + 24
+                : playerX >= body.left - 135 && playerX <= body.right + 40;
+            if (shouldTrigger) this.triggerLivingMineralSurface(surface);
+        });
+    }
+
+    createLivingMineralCarrier() {
+        const textureKey = 'crystalCavesLivingCarrier';
+        if (!this.textures.exists(textureKey)) {
+            const graphics = this.make.graphics({ add: false });
+            graphics.fillStyle(0x102A31, 1);
+            graphics.fillRoundedRect(0, 8, 176, 36, 14);
+            graphics.fillStyle(0x245A60, 1);
+            graphics.fillRoundedRect(8, 4, 160, 22, 10);
+            graphics.lineStyle(4, 0x38BFD2, 0.95);
+            graphics.beginPath();
+            graphics.moveTo(12, 16);
+            graphics.lineTo(45, 11);
+            graphics.lineTo(78, 18);
+            graphics.lineTo(112, 10);
+            graphics.lineTo(164, 16);
+            graphics.strokePath();
+            graphics.fillStyle(0xF2B84B, 0.9);
+            graphics.fillCircle(88, 15, 5);
+            graphics.generateTexture(textureKey, 176, 48);
+            graphics.destroy();
+        }
+
+        const carrier = this.physics.add.sprite(3290, this.levelHeight - 350, textureKey);
+        carrier.setImmovable(true);
+        carrier.body.setAllowGravity(false);
+        carrier.body.checkCollision.down = false;
+        carrier.body.checkCollision.left = false;
+        carrier.body.checkCollision.right = false;
+        carrier.setDepth(610);
+        carrier.setVelocityX(46);
+        carrier.body.setSize(166, 30);
+        carrier.body.setOffset(5, 5);
+        carrier.traversalId = 'caves-living-carrier';
+
+        this.livingMineralCarrier = {
+            sprite: carrier,
+            minX: 3200,
+            maxX: 3440,
+            direction: 1,
+            speed: 46,
+            warningUntil: 0,
+            waiting: false
+        };
+        this.livingMineralCarrierCollider = this.physics.add.collider(
+            this.player,
+            carrier
+        );
+    }
+
+    updateLivingMineralCarrier(time) {
+        const carrier = this.livingMineralCarrier;
+        const sprite = carrier?.sprite;
+        if (!sprite?.active || !sprite.body?.enable) return;
+
+        if (carrier.waiting) {
+            if (time < carrier.warningUntil) return;
+            carrier.waiting = false;
+            carrier.direction *= -1;
+            sprite.clearTint?.();
+            sprite.setVelocityX(carrier.speed * carrier.direction);
+            return;
+        }
+
+        const atBoundary = carrier.direction > 0
+            ? sprite.x >= carrier.maxX
+            : sprite.x <= carrier.minX;
+        if (!atBoundary) return;
+
+        carrier.waiting = true;
+        carrier.warningUntil = time + 520;
+        sprite.setVelocityX(0);
+        sprite.setTint?.(LIVING_MINERAL_STATES.warning.color);
     }
 
     shouldAnimateCrystalRouteDecorations() {
@@ -1365,8 +1612,13 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         const lift = this.crystalCoreLift;
         if (!lift?.visual?.active) return false;
 
-        const active = this.caveRouteAligned === true;
-        const color = active ? 0x8FE3CF : 0x4A4268;
+        const powered = this.crystalWoundTended === true;
+        const active = powered && this.caveRouteAligned === true;
+        const color = active
+            ? LIVING_MINERAL_STATES.restored.color
+            : powered
+                ? LIVING_MINERAL_STATES.stable.color
+                : 0x4A4268;
         lift.visual.clear();
         lift.visual.fillStyle(color, active ? 0.12 : 0.05);
         lift.visual.fillRect(
@@ -1391,9 +1643,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         }
         lift.label
             ?.setText?.(active
-                ? 'CRYSTAL LIFT\nCORE ASCENT ↑'
-                : 'CRYSTAL LIFT\nALIGN 3 ANCHORS')
-            ?.setColor?.(active ? '#8FE3CF' : '#756D91');
+                ? 'LIVING LIFT\nCORE ASCENT ↑'
+                : powered
+                    ? 'LIVING LIFT\nFIND THE FINAL LIGHT'
+                    : 'LIVING LIFT\nDORMANT')
+            ?.setColor?.(active ? '#CFFFEF' : powered ? '#38BFD2' : '#756D91');
         return active;
     }
 
@@ -1406,7 +1660,9 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         if (!this.caveRouteAligned) {
             if (now >= lift.hintUntil && (body.blocked.down || this.isGrounded)) {
                 this.showFloatingText(
-                    'The lift needs all three Beacon anchors.',
+                    this.crystalWoundTended
+                        ? 'The living lift needs the final blue light.'
+                        : 'The living lift is still dormant.',
                     lift.x,
                     lift.bottom - 138,
                     '#F2C94C'
@@ -1920,12 +2176,21 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         );
         this.time.delayedCall(850, () => {
             this.showFloatingText(
-                'THE FRACTURED CURRENT STABILIZES',
+                `${companionName}: "It is hurt, not empty."`,
                 grove.x,
                 grove.groundY - 205,
                 '#D6EEF2'
             );
         });
+        this.time.delayedCall(1450, () => {
+            this.showFloatingText(
+                'THE LIVING LIFT WAKES',
+                grove.x + 80,
+                grove.groundY - 150,
+                '#CFFFEF'
+            );
+        });
+        this.refreshCrystalCoreLift();
 
         const wave = this.add.graphics()
             .setPosition(grove.x, grove.groundY - 48)
@@ -3222,9 +3487,15 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             marker: secretSlideMarker,
             returnLabel: 'SLIDE BACK TO THE CAVE ROUTE →',
             choice: {
-                mainLabel: 'LOWER PASSAGE →',
-                mainTradeoff: 'SHORT // ARMORED CRAWLER\nEARNS: CRYSTAL FOCUS // NEXT SHOT x2',
-                challengeLabel: 'SPIDER + SLIDE // EARN 1-HIT WARD',
+                mainLabel: this.livingMineralPassEnabled
+                    ? 'LOW ROAD // SAFER →'
+                    : 'LOWER PASSAGE →',
+                mainTradeoff: this.livingMineralPassEnabled
+                    ? 'DIRECT ROUTE // ONE ARMORED CRAWLER'
+                    : 'SHORT // ARMORED CRAWLER\nEARNS: CRYSTAL FOCUS // NEXT SHOT x2',
+                challengeLabel: this.livingMineralPassEnabled
+                    ? 'HIGH ROAD // RIFT STALKER // EXTRA SHIELD'
+                    : 'SPIDER + SLIDE // EARN 1-HIT WARD',
                 mainMarker: chamberRouteMarker,
                 mainZone: {
                     left: 1900, right: 2440,
@@ -5836,6 +6107,64 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         }
     }
 
+    showCrystalShieldDemonstration({ onComplete } = {}) {
+        const reward = this.levelCompletionResult?.bossPowerupReward;
+        if (
+            !this.livingMineralPassEnabled ||
+            reward?.id !== 'crystal_shield' ||
+            reward?.awarded !== true ||
+            !this.player?.active
+        ) {
+            onComplete?.();
+            return false;
+        }
+
+        const shield = this.add.graphics().setDepth(2100);
+        const shard = this.add.graphics().setDepth(2101);
+        const playerX = this.player.x;
+        const playerY = this.player.y;
+        shield.lineStyle(5, 0xCFFFEF, 0.96);
+        shield.strokeEllipse(playerX, playerY, 92, 112);
+        shield.lineStyle(2, 0x38BFD2, 0.72);
+        shield.strokeEllipse(playerX, playerY, 108, 128);
+        shard.fillStyle(0xF2B84B, 1);
+        shard.fillTriangle(-16, -28, 16, -28, 0, 26);
+        shard.setPosition(playerX, playerY - 170);
+
+        this.showFloatingText(
+            'CRYSTAL SHIELD // BLOCKS THE NEXT 2 HITS',
+            playerX,
+            playerY - 105,
+            '#CFFFEF'
+        );
+        this.tweens.add({
+            targets: shard,
+            y: playerY - 48,
+            duration: 620,
+            ease: 'Cubic.easeIn',
+            onComplete: () => {
+                shard.destroy();
+                window.FXLibrary?.stardustBurst?.(this, playerX, playerY - 35, {
+                    count: 20,
+                    color: [0xCFFFEF, 0x38BFD2, 0xFFFFFF],
+                    duration: 700
+                });
+                this.tweens.add({
+                    targets: shield,
+                    alpha: 0,
+                    scaleX: 1.3,
+                    scaleY: 1.3,
+                    duration: 560,
+                    onComplete: () => {
+                        shield.destroy();
+                        onComplete?.();
+                    }
+                });
+            }
+        });
+        return true;
+    }
+
     /**
      * Handle level completion
      */
@@ -5872,10 +6201,14 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             window.AudioManager.playLevelUp();
         }
 
-        // Show completion screen after celebration
+        // Show the earned shield in action before moving into reward screens.
         this.time.delayedCall(1500, () => {
-            this.showKatanaUpgradeReveal({
-                onClose: () => this.showCompletionScreen()
+            this.showCrystalShieldDemonstration({
+                onComplete: () => {
+                    this.showKatanaUpgradeReveal({
+                        onClose: () => this.showCompletionScreen()
+                    });
+                }
             });
         });
     }
@@ -6087,6 +6420,11 @@ class CrystalCavesLevel extends PlatformerLevelScene {
         super.update(time, delta);
         if (this.levelCompletionActive) return;
 
+        if (this.livingMineralPassEnabled) {
+            this.updateLivingMineralSurfaces();
+            this.updateLivingMineralCarrier(time);
+        }
+
         this.updateCaveEnemyActivation();
         this.updateCaveEnemyAI(time);
         this.updateCaveCoinPickups();
@@ -6212,6 +6550,21 @@ class CrystalCavesLevel extends PlatformerLevelScene {
     shutdown() {
         console.log('[CrystalCavesLevel] Shutting down - cleaning up boss resources');
         this.clearLevelEntryKeyHandler();
+
+        this.livingMineralTimers.forEach(timer => timer?.remove?.());
+        this.livingMineralTimers.clear();
+        this.livingMineralSurfaces.forEach(surface => {
+            if (surface?.support?.body) surface.support.body.enable = true;
+            surface?.support?.setAlpha?.(1);
+            surface?.visual?.destroy?.();
+        });
+        this.livingMineralSurfaces = [];
+        if (this.livingMineralCarrierCollider) {
+            this.physics?.world?.removeCollider?.(this.livingMineralCarrierCollider);
+            this.livingMineralCarrierCollider = null;
+        }
+        this.livingMineralCarrier?.sprite?.destroy?.();
+        this.livingMineralCarrier = null;
 
         // Stop ambient audio
         if (this.ambientAudio && this.ambientAudio.stop) {

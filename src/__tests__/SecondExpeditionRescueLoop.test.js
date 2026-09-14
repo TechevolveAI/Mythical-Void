@@ -90,8 +90,9 @@ describe('second expedition rescue loop', () => {
 
         expect(source).toContain("id: 'caves-core-lift'");
         expect(source).toContain("destinationId: 'caves-core-refuge'");
-        expect(source).toContain("'CRYSTAL LIFT\\nCORE ASCENT ↑'");
-        expect(source).toContain("'CRYSTAL LIFT\\nALIGN 3 ANCHORS'");
+        expect(source).toContain("'LIVING LIFT\\nCORE ASCENT ↑'");
+        expect(source).toContain("'LIVING LIFT\\nFIND THE FINAL LIGHT'");
+        expect(source).toContain("'LIVING LIFT\\nDORMANT'");
         expect(source).toContain('calculateBallisticLaunchVelocity({');
         expect(source).toContain('this.player.setVelocityY(launchVelocity)');
         expect(source).toContain("'caves-core-step-low'");
@@ -99,14 +100,15 @@ describe('second expedition rescue loop', () => {
         expect(source).toContain("{ traversalLinks: ['caves-core-refuge'] }");
     });
 
-    test('makes the wounded-grove companion moment unavoidable across traversal paths', () => {
+    test('makes the wounded-grove creature moment unavoidable across traversal paths', () => {
         const source = readLevel();
 
         expect(source).toContain(
             'this.add.zone(x, this.levelHeight / 2, 190, this.levelHeight)'
         );
         expect(source).toContain('`${companionName}: ${powerProfile.affinityPower.name}`');
-        expect(source).toContain('THE FRACTURED CURRENT STABILIZES');
+        expect(source).toContain('"It is hurt, not empty."');
+        expect(source).toContain('THE LIVING LIFT WAKES');
         expect(source).toContain("eventId: 'crystal_grove_response'");
         expect(source).toContain("outcome: 'fractured_current_stabilized'");
         expect(source).toContain('powerProfile.color');

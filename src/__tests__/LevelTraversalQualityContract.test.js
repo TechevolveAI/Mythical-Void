@@ -1816,10 +1816,10 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("onMainSelected: () => this.selectCrystalChamberRoute('main')");
         expect(source).toContain("onOptionalSelected: () => this.selectCrystalChamberRoute('optional')");
         expect(source).toContain(
-            "mainTradeoff: 'SHORT // ARMORED CRAWLER\\nEARNS: CRYSTAL FOCUS // NEXT SHOT x2'"
+            "? 'DIRECT ROUTE // ONE ARMORED CRAWLER'"
         );
         expect(source).toContain(
-            "challengeLabel: 'SPIDER + SLIDE // EARN 1-HIT WARD'"
+            "? 'HIGH ROAD // RIFT STALKER // EXTRA SHIELD'"
         );
         expect(source).toContain("'CALM THE CRYSTAL SPIDER FIRST'");
         expect(source).toContain('restoreCrystalChamberRoute(resume.routeState');
@@ -1946,9 +1946,9 @@ describe('campaign traversal quality contracts', () => {
         [
             'levels/CrystalCavesLevel.js',
             "id: 'caves_secret_slide'",
-            "mainLabel: 'LOWER PASSAGE →'",
-            "mainTradeoff: 'SHORT // ARMORED CRAWLER\\nEARNS: CRYSTAL FOCUS // NEXT SHOT x2'",
-            "challengeLabel: 'SPIDER + SLIDE // EARN 1-HIT WARD'"
+            "? 'LOW ROAD // SAFER →'",
+            "? 'DIRECT ROUTE // ONE ARMORED CRAWLER'",
+            "? 'HIGH ROAD // RIFT STALKER // EXTRA SHIELD'"
         ],
         [
             'levels/ReefLevel.js',

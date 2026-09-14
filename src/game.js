@@ -1206,6 +1206,9 @@ async function initializeGame() {
                         entryPreview: true,
                         forceMobileControls,
                         katanaPreview,
+                        livingMineralPass:
+                            sceneName === 'CrystalCavesLevel' &&
+                            urlParams.get('livingMineralPass') === '1',
                         platformerPreviewSize:
                             urlParams.get('previewSize') === 'mobile'
                                 ? 'mobile'
