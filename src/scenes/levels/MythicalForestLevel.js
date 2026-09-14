@@ -889,7 +889,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             contentLeft,
             secondaryY,
             resume
-                ? `[ FOREST ] ${resume.label} helped // find the next wounded place`
+                ? `Forest link restored. ${resume.label} helped. Find the next wounded place.`
                 : '[ REQUIRED ] Help the forest in 3 places. The Guardian will wake.',
             {
             fontSize: font(16, 14),
@@ -7494,14 +7494,19 @@ class MythicalForestLevel extends PlatformerLevelScene {
         ).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
 
         const totalRequired = window.GameState?.get('hubWorld.shipParts.totalRequired') || 5;
+        const sanctuaryArrival = this.getGuardianSanctuaryArrivalCopy({ compact: true });
+        const villageOutcome = this.getVillageCompletionCopy({ compact: true });
         this.add.text(
             width / 2,
             y(275),
-            `Wisp is safe in the Sanctuary.` +
-                `\n${completionResult?.nextGateUnlocked
+            [
+                sanctuaryArrival || 'Wisp is safe in the Sanctuary.',
+                completionResult?.nextGateUnlocked
                     ? 'NEXT EXPEDITION OPEN: CRYSTAL CAVES'
-                    : 'NEXT: RETURN TO THE SANCTUARY'}` +
-                `\nShip Parts: ${shipParts.length}/${totalRequired}`,
+                    : 'NEXT: RETURN TO THE SANCTUARY',
+                villageOutcome,
+                `Ship Parts: ${shipParts.length}/${totalRequired}`
+            ].filter(Boolean).join('\n'),
             {
             fontSize: font(13, 11),
             color: '#7FFFD4',
