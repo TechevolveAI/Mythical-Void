@@ -221,6 +221,10 @@ describe('Village settlement phase one', () => {
             step: 1,
             totalSteps: 4,
             showFullPlan: false,
+            focusObjectiveOnly: true,
+            showResourceTotals: false,
+            showCommons: false,
+            worldAction: 'MEET THE HEART',
             visiblePlotCount: 0
         }));
         expect(snapshot.definitions.filter(definition => definition.placement.revealed)
@@ -345,6 +349,9 @@ describe('Village settlement phase one', () => {
         expect(result.onboarding).toEqual(expect.objectContaining({
             stage: 'first_build',
             step: 2,
+            showResourceTotals: false,
+            showCommons: false,
+            worldAction: 'GROW FORAGER HUT',
             visiblePlotCount: 1
         }));
         expect(gameState.save).toHaveBeenCalledTimes(2);
@@ -376,6 +383,12 @@ describe('Village settlement phase one', () => {
                 plotId: 'root_01'
             })
         );
+        expect(placed.snapshot.onboarding).toEqual(expect.objectContaining({
+            stage: 'first_construction',
+            showResourceTotals: true,
+            showCommons: false,
+            worldAction: 'HUT GROWING'
+        }));
 
         const complete = village.reconcileVillageSettlement(gameState, {
             now: 2000 + 8000
@@ -504,6 +517,9 @@ describe('Village settlement phase one', () => {
         expect(assigned.snapshot.onboarding).toEqual(expect.objectContaining({
             stage: 'supply_choice',
             showFullPlan: true,
+            focusObjectiveOnly: false,
+            showResourceTotals: true,
+            showCommons: true,
             visiblePlotCount: 3
         }));
         expect(assigned.snapshot.definitions

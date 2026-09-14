@@ -8,7 +8,7 @@ export const VILLAGE_PRODUCTION_CAP_MS = 4 * 60 * 60 * 1000;
 export const VILLAGE_BUILDING_ARTWORK = Object.freeze({
     forager_hut: Object.freeze({
         key: 'village-forager-hut',
-        url: '/game/village/forager-hut.webp'
+        url: '/game/village/world/grown-tech/forager-hut-grown-v2.webp'
     }),
     sawmill: Object.freeze({
         key: 'village-living-sawmill',
@@ -30,17 +30,19 @@ export const VILLAGE_BUILDING_ARTWORK = Object.freeze({
 
 export const VILLAGE_WORLD_ARTWORK = Object.freeze({
     heart: Object.freeze({
-        key: 'village-world-heart',
-        url: '/game/village/world/village-heart.webp',
-        compactKey: 'village-world-heart-compact',
-        compactUrl: '/game/village/world/compact/village-heart.png'
+        key: 'village-world-heart-grown-v2',
+        url: '/game/village/world/grown-tech/village-heart-grown-v2.webp',
+        compactKey: 'village-world-heart-grown-v2-compact',
+        compactUrl: '/game/village/world/grown-tech/compact/village-heart-grown-v2.png',
+        displayAspectRatio: 1.5
     }),
     forager_hut: Object.freeze({
-        key: 'village-world-forager-hut',
-        url: '/game/village/world/forager-hut.webp',
-        compactKey: 'village-world-forager-hut-compact',
-        compactUrl: '/game/village/world/compact/forager-hut.png',
-        displaySize: 176
+        key: 'village-world-forager-hut-grown-v2',
+        url: '/game/village/world/grown-tech/forager-hut-grown-v2.webp',
+        compactKey: 'village-world-forager-hut-grown-v2-compact',
+        compactUrl: '/game/village/world/grown-tech/compact/forager-hut-grown-v2.png',
+        displaySize: 206,
+        displayAspectRatio: 1.2
     }),
     sawmill: Object.freeze({
         key: 'village-world-living-sawmill',
@@ -681,6 +683,45 @@ export function getVillageOnboardingState(snapshot = {}) {
         ? snapshot.revealState?.visiblePlotCount ??
             Math.min(VILLAGE_PLOTS.length, Math.max(1, (snapshot.buildings?.length || 0) + 1))
         : snapshot.buildings?.length || 0;
+    const showResourceTotals = (snapshot.buildings?.length || 0) > 0;
+    const presentationByStage = {
+        meet_heart: {
+            worldAction: 'MEET THE HEART',
+            worldStatus: 'ONE LIVING LANDMARK',
+            showCommons: false
+        },
+        first_build: {
+            worldAction: 'GROW FORAGER HUT',
+            worldStatus: 'ONE ROOT IS READY',
+            showCommons: false
+        },
+        first_construction: {
+            worldAction: 'HUT GROWING',
+            worldStatus: 'THE CURRENT IS SHAPING IT',
+            showCommons: false
+        },
+        first_helper: {
+            worldAction: 'INVITE A CREATURE',
+            worldStatus: 'THE HUT NEEDS HELP',
+            showCommons: false
+        },
+        first_delivery: {
+            worldAction: 'WATCH THE RETURN',
+            worldStatus: 'SAFE FOOD IS COMING HOME',
+            showCommons: false
+        },
+        supply_choice: {
+            worldAction: 'CHOOSE THE NEXT NEED',
+            worldStatus: 'THE FIRST FOOD PATH IS WORKING',
+            showCommons: true
+        },
+        established: {
+            worldAction: 'OPEN HEART',
+            worldStatus: 'SANCTUARY GROWING',
+            showCommons: true
+        }
+    };
+    const presentation = presentationByStage[stage] || presentationByStage.established;
     return {
         stage,
         step,
@@ -690,6 +731,11 @@ export function getVillageOnboardingState(snapshot = {}) {
         heartMet,
         firstLoopComplete,
         showFullPlan: firstLoopComplete,
+        focusObjectiveOnly: !firstLoopComplete,
+        showResourceTotals,
+        showCommons: presentation.showCommons,
+        worldAction: presentation.worldAction,
+        worldStatus: presentation.worldStatus,
         visiblePlotCount,
         visibleDefinitionIds: snapshot.definitions
             ?.filter(definition => definition.placement.revealed)

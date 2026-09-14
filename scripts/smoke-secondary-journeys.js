@@ -15343,6 +15343,7 @@ async function smokeVillageUi(session, exceptions) {
                 ambientRole: landmark?.glow?.getData?.('villageAmbientRole'),
                 artworkAlpha: landmark?.heartArtwork?.alpha
             },
+            commonsVisible: Boolean(landmark?.commonsLife?.visible),
             heartLife: {
                 stage: landmark?.heartLife?.aura?.getData?.('villageHeartGrowthStage'),
                 tier: landmark?.heartLife?.aura?.getData?.('villageHeartGrowthTier'),
@@ -15400,16 +15401,12 @@ async function smokeVillageUi(session, exceptions) {
     if (
         !firstArrivalWorld.guideActive ||
         firstArrivalWorld.guideMessage !== 'MEET THE VILLAGE HEART' ||
-        JSON.stringify(firstArrivalWorld.guideSteps) !== JSON.stringify(['OPEN HEART', 'REVEAL ROOT']) ||
-        (
-            SMOKE_VIEWPORT_WIDTH <= 600
-                ? firstArrivalWorld.statusText !== 'TAP · 1 COMMUNITY · 0/5 ROOTS'
-                : firstArrivalWorld.statusText !==
-                    '0/5 ROOTS · 1 COMMUNITY · 0 REGIONAL ALLIES'
-        ) ||
+        JSON.stringify(firstArrivalWorld.guideSteps) !== JSON.stringify(['MEET HEART', 'REVEAL ROOT']) ||
+        firstArrivalWorld.statusText !== 'ONE LIVING LANDMARK' ||
         firstArrivalWorld.nextAction !== 'build' ||
         !firstArrivalWorld.actionPlacardVisible ||
-        firstArrivalWorld.actionPlacardText !== 'OPEN HEART' ||
+        firstArrivalWorld.actionPlacardText !== 'MEET THE HEART' ||
+        firstArrivalWorld.commonsVisible ||
         firstArrivalWorld.restored !== 0 ||
         firstArrivalWorld.heartPresentation.pulseProfile !== 'quiet_ambient' ||
         firstArrivalWorld.heartPresentation.ambientRole !== 'settlement_anchor' ||
@@ -15600,6 +15597,24 @@ async function smokeVillageUi(session, exceptions) {
         )`),
         { timeoutMs: 12000, message: 'Village Heart first objective' }
     );
+    const firstPanel = await evaluate(session, `(() => ({
+        title: document.querySelector('.village-guided-title')?.textContent?.trim() || '',
+        concealedStart: document.querySelector('.village-heart-starter-cache.is-concealed')
+            ?.textContent?.replace(/\\s+/g, ' ').trim() || '',
+        resourceTotals: document.querySelectorAll(
+            '.village-heart-cache-resource, .village-heart-quick-resources'
+        ).length
+    }))()`);
+    if (
+        firstPanel.title !== 'MEET THE VILLAGE HEART' ||
+        !firstPanel.concealedStart.includes('ONE SAFE START') ||
+        firstPanel.resourceTotals !== 0
+    ) {
+        throw new Error(
+            `Village Heart first panel revealed too much: ${JSON.stringify(firstPanel)}`
+        );
+    }
+    await captureGameplayStill(session, 'village-heart-first-objective-mobile.png');
     await evaluate(session, `document.querySelector(
         '[data-testid="village-heart-begin"]'
     )?.click()`);
@@ -15764,13 +15779,18 @@ async function smokeVillageUi(session, exceptions) {
             : 'village-resident-proposal-desktop.png'
     );
     const construction = await evaluate(session, `(() => {
-        const action = document.querySelector('.village-construct-action:not(:disabled)');
-        if (!action) return { clicked: false, text: null };
+        const action = document.querySelector('.village-guided-primary:not(:disabled)');
+        const fullPlanVisible = Boolean(document.querySelector('.village-command-body'));
+        if (!action) return { clicked: false, text: null, fullPlanVisible };
         const text = action.textContent;
         action.click();
-        return { clicked: true, text };
+        return { clicked: true, text, fullPlanVisible };
     })()`);
-    if (!construction.clicked || !/BUILD FORAGE HERE/.test(construction.text || '')) {
+    if (
+        !construction.clicked ||
+        !/GROW FORAGER HUT/.test(construction.text || '') ||
+        construction.fullPlanVisible
+    ) {
         throw new Error(`Base Builder construction action unavailable: ${JSON.stringify(construction)}`);
     }
     await waitFor(
@@ -18501,7 +18521,7 @@ async function smokeVillageUi(session, exceptions) {
                 : 'commons_spine_v1'
         ) ||
         layout.worldPresentation.heartDisplaySize !== (
-            SMOKE_VIEWPORT_WIDTH <= 600 ? 132 : 202
+            SMOKE_VIEWPORT_WIDTH <= 600 ? 172 : 236
         ) ||
         layout.worldPresentation.heartPulseProfile !== 'decision_beacon' ||
         layout.worldPresentation.heartAmbientRole !== 'decision_landmark' ||
@@ -18646,7 +18666,7 @@ async function smokeVillageUi(session, exceptions) {
                     : 'commons_spine_v1'
             ) ||
             presentation.artworkDisplaySize > (
-                SMOKE_VIEWPORT_WIDTH <= 600 ? 101 : 153
+                SMOKE_VIEWPORT_WIDTH <= 600 ? 116 : 174
             ) ||
             (
                 presentation.ambientRole === 'inhabited_structure' &&

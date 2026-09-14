@@ -11,6 +11,7 @@ import {
     assignCreatureToVillageBuilding,
     getVillageSnapshot,
     initializeVillageSettlement,
+    markVillageGuidanceSeen,
     placeVillageBuilding,
     reconcileVillageSettlement
 } from '../systems/VillageSettlement.js';
@@ -560,7 +561,9 @@ export default class ShopScene extends Phaser.Scene {
             id: 'village_heart',
             name: 'Base Builder',
             description: unlocked
-                ? `Build with field supplies: ${resources.wood} wood, ${resources.stone} stone, ${resources.food} food.`
+                ? snapshot.onboarding?.showResourceTotals
+                    ? `Build with field supplies: ${resources.wood} wood, ${resources.stone} stone, ${resources.food} food.`
+                    : 'Meet the Village Heart. It will reveal one safe place to start.'
                 : 'Hatch a creature first. Their presence will bring the Base Builder online.',
             icon: '🏡',
             type: 'village',
@@ -588,7 +591,9 @@ export default class ShopScene extends Phaser.Scene {
             this.villageCommandPanel = new VillageCommandPanel(this);
         }
 
+        const initialSnapshot = getVillageSnapshot(window.GameState);
         return this.villageCommandPanel.show({
+            guided: initialSnapshot.onboarding?.firstLoopComplete !== true,
             getSnapshot: () => getVillageSnapshot(window.GameState),
             onPlace: request => {
                 const result = placeVillageBuilding(window.GameState, request);
@@ -612,6 +617,7 @@ export default class ShopScene extends Phaser.Scene {
                 }
                 return result;
             },
+            onAcknowledge: () => markVillageGuidanceSeen(window.GameState),
             onTick: () => reconcileVillageSettlement(window.GameState),
             onClose: () => {
                 this.villageCommandPanel = null;

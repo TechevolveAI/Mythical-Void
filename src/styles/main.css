@@ -3543,6 +3543,18 @@ body.game-mode {
   font-size: 9px;
 }
 
+.village-heart-starter-cache.is-concealed {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.village-heart-starter-cache.is-concealed p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #d8e2df;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .village-heart-cache-resource {
   display: grid;
   min-width: 0;

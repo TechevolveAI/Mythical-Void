@@ -803,23 +803,15 @@ function createHeartIntroduction(snapshot, portraitRecord, onAcknowledge) {
         )
     );
 
-    const cache = createElement('div', 'village-heart-starter-cache');
-    cache.append(createElement('strong', '', 'WANDERER-77 LANDING CACHE'));
-    VILLAGE_RESOURCE_DEFINITIONS.forEach(resource => {
-        const source = snapshot.onboarding?.resourceSources?.find(
-            entry => entry.id === resource.id
-        );
-        const item = createElement('span', 'village-heart-cache-resource');
-        const icon = createElement('i', 'village-resource-icon');
-        icon.dataset.resource = resource.id;
-        icon.setAttribute('aria-hidden', 'true');
-        item.append(
-            icon,
-            createElement('b', '', `${snapshot.resources[resource.id]} ${resource.label}`),
-            createElement('small', '', source?.currentSource || resource.starterSource)
-        );
-        cache.append(item);
-    });
+    const cache = createElement('div', 'village-heart-starter-cache is-concealed');
+    cache.append(
+        createElement('strong', '', 'ONE SAFE START'),
+        createElement(
+            'p',
+            '',
+            'Wanderer-77 salvage can grow one food path. The Heart will show where.'
+        )
+    );
     copy.append(cache);
 
     const action = createElement(
@@ -1107,7 +1099,7 @@ export default class VillageCommandPanel {
         header.append(heading, close);
         shell.append(header);
 
-        if (intent !== 'decision') {
+        if (intent !== 'decision' && onboarding.showResourceTotals) {
             const quickResources = createElement(
                 'section',
                 'village-heart-quick-resources'
@@ -1339,7 +1331,9 @@ export default class VillageCommandPanel {
                     'button',
                     'village-guided-primary',
                     canBuild
-                        ? `BUILD AT ${selectedPlot.label} · ${formatCost(selectedDefinition.cost)}`
+                        ? !onboarding.firstLoopComplete
+                            ? `GROW ${selectedDefinition.label} · ${formatCost(selectedDefinition.cost)}`
+                            : `BUILD AT ${selectedPlot.label} · ${formatCost(selectedDefinition.cost)}`
                         : formatPlacementReason(selectedDefinition, definitionById)
                 );
                 build.type = 'button';

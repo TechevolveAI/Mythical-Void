@@ -14,11 +14,19 @@ describe('Sanctuary onboarding and creature continuity contract', () => {
 
         expect(village).toContain("stage = 'meet_heart'");
         expect(village).toContain('visiblePlotCount = heartMet');
+        expect(village).toContain('focusObjectiveOnly: !firstLoopComplete');
+        expect(village).toContain('showResourceTotals');
+        expect(village).toContain("worldAction: 'MEET THE HEART'");
         expect(world).toContain('snapshot?.onboarding?.visiblePlotCount ?? 1');
         expect(world).toContain("snapshot?.onboarding?.stage === 'meet_heart'");
-        expect(world).toContain(".setText('OPEN HEART')");
+        expect(world).toContain("snapshot.onboarding.worldAction || 'MEET THE HEART'");
+        expect(world).toContain("meetingHeart ? ['MEET HEART', 'REVEAL ROOT']");
+        expect(world).toContain('const rootVisible = index < onboardingVisiblePlotCount');
+        expect(world).toContain('snapshot?.onboarding?.showCommons');
         expect(panel).toContain("onboarding.stage === 'meet_heart'");
         expect(panel).toContain('REVEAL THE FIRST SAFE FOUNDATION');
+        expect(panel).toContain('intent !== \'decision\' && onboarding.showResourceTotals');
+        expect(panel).toContain('ONE SAFE START');
         expect(panel).toContain("action.addEventListener('touchend', activate, { passive: false });");
         expect(panel).toContain('this.snapshot = next;');
         expect(panel).toContain('The wider building plan stays hidden for now.');

@@ -37,7 +37,7 @@ const SANCTUARY_SURFACE_STAR_COUNT = 0;
 const VILLAGE_SETTLEMENT_LAYOUTS = Object.freeze({
     compact: Object.freeze({
         profile: 'terraced_current_v2',
-        heartArtworkSize: 132,
+        heartArtworkSize: 172,
         buildingArtworkScale: 0.56,
         plotOffsets: Object.freeze([
             Object.freeze({ x: -112, y: -226 }),
@@ -49,7 +49,7 @@ const VILLAGE_SETTLEMENT_LAYOUTS = Object.freeze({
     }),
     expanded: Object.freeze({
         profile: 'commons_spine_v1',
-        heartArtworkSize: 202,
+        heartArtworkSize: 236,
         buildingArtworkScale: 0.84,
         plotOffsets: Object.freeze([
             Object.freeze({ x: 210, y: -176 }),
@@ -984,7 +984,10 @@ class WorldBuilder {
             : VILLAGE_WORLD_ARTWORK.heart.key;
         const heartArtwork = this.scene.textures.exists(heartArtworkKey)
             ? this.scene.add.image(x, y - 22, heartArtworkKey)
-                .setDisplaySize(228, 228)
+                .setDisplaySize(
+                    228,
+                    228 / (VILLAGE_WORLD_ARTWORK.heart.displayAspectRatio || 1)
+                )
                 .setDepth(y + 2)
                 .setData(
                     'villageArtworkVariant',
@@ -1865,7 +1868,10 @@ class WorldBuilder {
             if (heartArtwork.texture?.key !== heartArtworkKey) {
                 heartArtwork.setTexture(heartArtworkKey);
             }
-            heartArtwork.setDisplaySize(heartDisplaySize, heartDisplaySize);
+            heartArtwork.setDisplaySize(
+                heartDisplaySize,
+                heartDisplaySize / (VILLAGE_WORLD_ARTWORK.heart.displayAspectRatio || 1)
+            );
             heartArtwork.villageBaseScale = heartArtwork.scaleX;
             heartArtwork
                 .setData('villageLayoutProfile', settlementLayout.profile)
@@ -1972,13 +1978,15 @@ class WorldBuilder {
             resourceContributions,
             compact: compactSettlement
         });
-        const commonsLife = this.createVillageCommonsLife(snapshot, {
-            compact: compactSettlement,
-            heartPosition: {
-                x: landmark.zone.x,
-                y: landmark.zone.y
-            }
-        });
+        const commonsLife = snapshot?.onboarding?.showCommons
+            ? this.createVillageCommonsLife(snapshot, {
+                compact: compactSettlement,
+                heartPosition: {
+                    x: landmark.zone.x,
+                    y: landmark.zone.y
+                }
+            })
+            : null;
         if (commonsLife) {
             landmark.commonsLife = commonsLife.container;
             landmark.commonsSeatPositions = commonsLife.seatPositions;
@@ -2183,6 +2191,8 @@ class WorldBuilder {
                 { x: 112, y: 76 }
             ];
         rootTargets.forEach((target, index) => {
+            const rootVisible = index < onboardingVisiblePlotCount || index < restoredCount;
+            if (!rootVisible) return;
             const active = unlocked && index < restoredCount;
             const complete = active && restoredCount === VILLAGE_PLOTS.length;
             const color = complete ? 0xF2C14E : active ? 0x71E6B1 : 0x53616A;
@@ -2235,7 +2245,9 @@ class WorldBuilder {
             .setAlpha(unlocked ? 0.86 : 0.68)
             .setColor(unlocked ? '#F4F4F4' : '#93A2A9');
         actionLabel
-            .setText(unlocked ? 'OPEN HEART' : 'HEART DORMANT')
+            .setText(unlocked
+                ? snapshot?.onboarding?.worldAction || 'OPEN HEART'
+                : 'HEART DORMANT')
             .setAlpha(1)
             .setColor(unlocked ? '#F2C14E' : '#93A2A9')
             .setData('villageNextAction', null)
@@ -2243,10 +2255,12 @@ class WorldBuilder {
             .setInteractive({ useHandCursor: true });
         statusLabel
             .setText(unlocked
-                ? compactSettlement
-                    ? `TAP · ${sanctuaryCommunityCount} COMMUNITY · ${restoredCount}/${VILLAGE_PLOTS.length} ROOTS`
-                    : `${restoredCount}/${VILLAGE_PLOTS.length} ROOTS · ` +
-                        `${sanctuaryCommunityCount} COMMUNITY · ${regionalGuardianCount} REGIONAL ALLIES`
+                ? snapshot?.onboarding?.focusObjectiveOnly
+                    ? snapshot.onboarding.worldStatus
+                    : compactSettlement
+                        ? `TAP · ${sanctuaryCommunityCount} COMMUNITY · ${restoredCount}/${VILLAGE_PLOTS.length} ROOTS`
+                        : `${restoredCount}/${VILLAGE_PLOTS.length} ROOTS · ` +
+                            `${sanctuaryCommunityCount} COMMUNITY · ${regionalGuardianCount} REGIONAL ALLIES`
                 : 'HATCH A CREATURE TO WAKE IT'
             )
             .setFontSize(compactSettlement ? '8px' : '9px')
@@ -2372,8 +2386,9 @@ class WorldBuilder {
                     .setDisplaySize(
                         (worldArtworkDefinition.displaySize || 176) *
                             settlementLayout.buildingArtworkScale,
-                        (worldArtworkDefinition.displaySize || 176) *
-                            settlementLayout.buildingArtworkScale
+                        ((worldArtworkDefinition.displaySize || 176) *
+                            settlementLayout.buildingArtworkScale) /
+                            (worldArtworkDefinition.displayAspectRatio || 1)
                     )
                     .setData('villageLayoutProfile', settlementLayout.profile)
                     .setData(
@@ -4565,7 +4580,7 @@ class WorldBuilder {
             ? 'MEET THE VILLAGE HEART'
             : 'BUILD A HOME TOGETHER';
         const guideSteps = meetingHeart
-            ? 'OPEN HEART  ·  REVEAL FIRST ROOT'
+            ? 'MEET HEART  ·  REVEAL FIRST ROOT'
             : 'BUILD  ·  INVITE  ·  GROW';
         const guideX = landmark.zone.x + (compact ? 0 : -142);
         const guideY = landmark.zone.y + (compact ? 220 : 126);
@@ -4575,7 +4590,7 @@ class WorldBuilder {
             .setData('villageArrivalMessage', guideTitle)
             .setData(
                 'villageArrivalSteps',
-                meetingHeart ? ['OPEN HEART', 'REVEAL ROOT'] : ['BUILD', 'INVITE', 'GROW']
+                meetingHeart ? ['MEET HEART', 'REVEAL ROOT'] : ['BUILD', 'INVITE', 'GROW']
             );
         const ground = this.scene.add.graphics();
         ground.fillStyle(0x071411, 0.78);
@@ -5216,7 +5231,10 @@ class WorldBuilder {
             rootBed.lineBetween(startX, compact ? 26 : 32, endX, endY);
         });
         const artwork = this.scene.add.image(0, artworkY, artworkKey)
-            .setDisplaySize(displaySize, displaySize)
+            .setDisplaySize(
+                displaySize,
+                displaySize / (artworkDefinition.displayAspectRatio || 1)
+            )
             .setTint(0xFFE8A3)
             .setAlpha(0.38)
             .setData('villageFutureStructureArtwork', true)
@@ -5249,7 +5267,7 @@ class WorldBuilder {
 
         if (snapshot?.onboarding?.stage === 'meet_heart') {
             landmark.actionLabel
-                .setText('OPEN HEART')
+                .setText(snapshot.onboarding.worldAction || 'MEET THE HEART')
                 .setAlpha(1)
                 .setColor('#F2C14E')
                 .setData('villageNextAction', 'meet_heart')

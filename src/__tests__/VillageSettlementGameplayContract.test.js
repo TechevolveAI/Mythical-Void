@@ -53,6 +53,16 @@ describe('Village settlement gameplay contract', () => {
     test('the Living Current vertical-slice world assets ship with the game', () => {
         const publicRoot = path.join(__dirname, '..', '..', 'public');
 
+        [
+            'game/village/world/grown-tech/village-heart-grown-v2.webp',
+            'game/village/world/grown-tech/forager-hut-grown-v2.webp',
+            'game/village/world/grown-tech/compact/village-heart-grown-v2.png',
+            'game/village/world/grown-tech/compact/forager-hut-grown-v2.png'
+        ].forEach(asset => {
+            const assetPath = path.join(publicRoot, asset);
+            expect(fs.existsSync(assetPath)).toBe(true);
+            expect(fs.statSync(assetPath).size).toBeGreaterThan(1024);
+        });
         expect(fs.existsSync(path.join(
             publicRoot,
             'game/village/world/village-heart.webp'
@@ -389,6 +399,9 @@ describe('Village settlement gameplay contract', () => {
         );
         expect(shop).toContain('openVillageHeart()');
         expect(shop).toContain('openVillageBuilder()');
+        expect(shop).toContain('guided: initialSnapshot.onboarding?.firstLoopComplete !== true');
+        expect(shop).toContain('onAcknowledge: () => markVillageGuidanceSeen(window.GameState)');
+        expect(shop).toContain('Meet the Village Heart. It will reveal one safe place to start.');
         expect(shop).toContain('new VillageCommandPanel(this)');
         expect(shop).toContain("item.type === 'village'");
         expect(menu).not.toContain("key: 'village', label: 'Village Heart'");
@@ -504,19 +517,19 @@ describe('Village settlement gameplay contract', () => {
         expect(panel).toContain('createBuildingArtwork');
         expect(panel).toContain('createCreatureAvatar');
         expect(panel).toContain('village-foundation-visual');
-        expect(village).toContain("url: '/game/village/forager-hut.webp'");
+        expect(village).toContain("url: '/game/village/world/grown-tech/forager-hut-grown-v2.webp'");
         expect(village).toContain("url: '/game/village/living-sawmill.webp'");
         expect(village).toContain("url: '/game/village/current-masonry.webp'");
         expect(village).toContain("url: '/game/village/shared-habitat.webp'");
         expect(village).toContain("url: '/game/village/discovery-workshop.webp'");
-        expect(village).toContain("url: '/game/village/world/village-heart.webp'");
-        expect(village).toContain("url: '/game/village/world/forager-hut.webp'");
-        expect(village).toContain("compactUrl: '/game/village/world/compact/forager-hut.png'");
+        expect(village).toContain("url: '/game/village/world/grown-tech/village-heart-grown-v2.webp'");
+        expect(village).toContain("url: '/game/village/world/grown-tech/forager-hut-grown-v2.webp'");
+        expect(village).toContain("compactUrl: '/game/village/world/grown-tech/compact/forager-hut-grown-v2.png'");
         expect(village).toContain("compactUrl: '/game/village/world/compact/living-sawmill.png'");
         expect(village).toContain("compactUrl: '/game/village/world/compact/current-masonry.png'");
         expect(village).toContain("compactUrl: '/game/village/world/compact/shared-habitat.png'");
         expect(village).toContain("compactUrl: '/game/village/world/compact/discovery-workshop.png'");
-        expect(village).toContain("compactUrl: '/game/village/world/compact/village-heart.png'");
+        expect(village).toContain("compactUrl: '/game/village/world/grown-tech/compact/village-heart-grown-v2.png'");
         expect(village).toContain("url: '/game/village/world/living-sawmill.webp'");
         expect(village).toContain("url: '/game/village/world/current-masonry.webp'");
         expect(village).toContain("url: '/game/village/world/shared-habitat.webp'");
@@ -743,7 +756,7 @@ describe('Village settlement gameplay contract', () => {
         expect(world).toContain('createVillageArrivalGuide(landmark, snapshot');
         expect(world).toContain("setData('villageArrivalGuide', true)");
         expect(world).toContain(".setData('villageArrivalMessage', guideTitle)");
-        expect(world).toContain("meetingHeart ? ['OPEN HEART', 'REVEAL ROOT'] : ['BUILD', 'INVITE', 'GROW']");
+        expect(world).toContain("meetingHeart ? ['MEET HEART', 'REVEAL ROOT'] : ['BUILD', 'INVITE', 'GROW']");
         expect(world).toContain("'MEET THE VILLAGE HEART'");
         expect(world).toContain("'BUILD  ·  INVITE  ·  GROW'");
         expect(world).toContain('drawVillageFoundationCradle(');
@@ -990,9 +1003,9 @@ describe('Village settlement gameplay contract', () => {
         expect(scene).toContain("const quietArrival = ['review', 'supplies'].includes(nextAction?.type)");
         expect(scene).toContain('guided: plotId === null');
         expect(world).toContain("profile: 'terraced_current_v2'");
-        expect(world).toContain('heartArtworkSize: 132');
+        expect(world).toContain('heartArtworkSize: 172');
         expect(world).toContain('buildingArtworkScale: 0.56');
-        expect(world).toContain('heartArtworkSize: 202');
+        expect(world).toContain('heartArtworkSize: 236');
         expect(world).toContain('buildingArtworkScale: 0.84');
         expect(world).toContain('Object.freeze({ x: -112, y: -226 })');
         expect(world).toContain('Object.freeze({ x: 0, y: 148 })');
