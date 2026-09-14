@@ -19,13 +19,15 @@ This work extends existing level, inventory, shop, save, and Sanctuary systems. 
 
 ### Mythical Forest guidance
 
-- The three ordered objectives are called Root Beacons.
-- The next Root Beacon is materially brighter than later beacons.
+- The three ordered objectives are wounded Forest places: Tangled Roots, Dark
+  Hollow and Hidden Lives. Their internal checkpoint IDs remain unchanged for
+  save compatibility.
+- The next wounded place is materially brighter than later places.
 - When the next beacon is below, the creature senses it with a short trail of world-space light and one concise line.
 - On mobile, the joystick receives a brief downward control cue. On keyboard, the line names Down or S.
 - If route progress stalls, the creature repeats a small directional pulse. A permanent compass or large arrow is not required.
-- Each activated Root Beacon sends visible light toward the next objective.
-- The Elder Treant awakens automatically after all three Root Beacons are found.
+- Each helped place sends visible light toward the next objective.
+- The Elder Treant awakens automatically after all three places are helped.
 
 ### Guardian rewards
 
@@ -46,7 +48,7 @@ This work extends existing level, inventory, shop, save, and Sanctuary systems. 
 
 ### Phase 1: Forest direction and Guardian power-ups
 
-Implement the traversal, Root Beacon, collision, creature guidance, inventory reward, shop, and victory-copy contracts above. This is the current release-sized change.
+Implement the traversal, Forest help, collision, creature guidance, inventory reward, shop, and victory-copy contracts above. This is the current release-sized change.
 
 ### Phase 2: Returning-player doorway
 
@@ -78,10 +80,10 @@ Core guidance uses deterministic local state: creature traits, objective positio
 
 ## Acceptance gates
 
-- A new player can locate and activate all three Root Beacons without coaching.
+- A new player can locate and help all three wounded places without coaching.
 - Phone and keyboard players can deliberately drop through Forest branches.
 - Stair-step and diagonal routes do not allow the player to fall through a platform that visually reads as safe.
-- The Guardian awakens after the third Root Beacon without another puzzle.
+- The Guardian awakens after the third helped place without another puzzle.
 - Every Guardian completion adds exactly one usable power-up and explains it on the result screen.
 - The same power-up definition is used by the boss reward, inventory, pause menu, and shop.
 - Existing saves, level completion, ship parts, coins, katana upgrades, rescued residents, and replay behavior remain compatible.
