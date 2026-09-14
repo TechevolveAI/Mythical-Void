@@ -129,9 +129,9 @@ const EXPEDITION_CHECKPOINT_PRESENTATION = Object.freeze({
     MythicalForestLevel: {
         levelStateId: 'mythicalForest',
         checkpoints: [
-            ['forest_anchor_1', 'Rootway'],
-            ['forest_anchor_2', 'Crown Path'],
-            ['forest_anchor_3', 'Guardian Approach']
+            ['forest_anchor_1', 'Tangled Roots'],
+            ['forest_anchor_2', 'Dark Hollow'],
+            ['forest_anchor_3', 'Hidden Lives']
         ]
     },
     CrystalCavesLevel: {

@@ -53,8 +53,9 @@ describe('core journey baseline contract', () => {
             /restoreExpeditionRouteState\(resume\)[\s\S]*this\.forestRouteAligned && !this\.bossDefeated[\s\S]*this\.beginAutomaticGuardianAwakening\(/
         );
         expect(forest).toContain(
-            'ALL 3 ROOT BEACONS FOUND\\nTHE GUARDIAN IS WAKING'
+            'The Guardian is not ready. Help all 3 places.'
         );
+        expect(forest).toContain('this.playForestHelpMoment(checkpoint);');
     });
 
     test('records an exact, reversible live baseline', () => {

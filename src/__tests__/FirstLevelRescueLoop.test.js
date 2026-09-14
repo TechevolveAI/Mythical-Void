@@ -286,7 +286,7 @@ describe('first expedition rescue loop', () => {
 
         expect(scene.getExpeditionResumePresentation()).toEqual({
             checkpointId: 'forest_anchor_2',
-            label: 'Crown Path',
+            label: 'Dark Hollow',
             current: 2,
             total: 3
         });
@@ -391,7 +391,7 @@ describe('first expedition rescue loop', () => {
         expect(scene.platformerControlsVisible).toBe(true);
     });
 
-    test('places three authored Beacon anchors across Mythical Forest', () => {
+    test('places three save-compatible wounded places across Mythical Forest', () => {
         const source = fs.readFileSync(
             path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
             'utf8'
@@ -413,12 +413,15 @@ describe('first expedition rescue loop', () => {
             'this.setCheckpoint(supportCheckpoint.x, supportCheckpoint.y, {'
         );
         expect(source).toContain('checkpointId: checkpoint.id');
-        expect(source).toContain('ROOT BEACON ${anchorNumber}/3 FOUND');
-        expect(source).toContain("'WALK INTO THE ROOT BEACON'");
+        expect(source).toContain("label: FOREST_HELP_MOMENTS[0].label");
+        expect(source).toContain("label: FOREST_HELP_MOMENTS[1].label");
+        expect(source).toContain("label: FOREST_HELP_MOMENTS[2].label");
+        expect(source).toContain('this.playForestHelpMoment(checkpoint);');
+        expect(source).toContain('recordForestHelpMoment(');
         expect(source).toContain('checkpoint.actionPrompt');
     });
 
-    test('keeps Beacon anchors local and ordered while gating the guardian on alignment', () => {
+    test('keeps wounded places local and ordered while gating the guardian on alignment', () => {
         const source = fs.readFileSync(
             path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
             'utf8'
@@ -431,22 +434,22 @@ describe('first expedition rescue loop', () => {
         )?.[1] || '';
 
         expect(checkpoints).toContain('this.createObjectiveTriggerZone(');
-        expect(checkpoints).toContain("this.drawBeaconCheckpoint(visual, anchorX, supportY, 'future');");
+        expect(checkpoints).toContain("this.drawBeaconCheckpoint(visual, anchorX, supportY, 'future', index);");
         expect(checkpoints).toContain('{ width: 220, height: 300 }');
         expect(checkpoints).toContain('this.refreshForestRouteReadability();');
-        expect(source).toContain("const color = complete ? 0x8FE3CF : (next ? 0xF2C94C : 0x466D72);");
+        expect(source).toContain("const color = complete ? 0x8FE3CF : (next ? 0xF2C94C : 0x60436D);");
         expect(source).toContain('graphics.forestLightState = state;');
         expect(source).toContain('graphics.forestLightColor = color;');
         expect(source).toContain("complete ? 'complete' : (next ? 'next' : 'future')");
-        expect(source).toContain('graphics.fillCircle(x, groundY - 62, 9);');
+        expect(source).toContain('graphics.fillEllipse(x - 19, groundY - 28, 30, 20);');
         expect(source).toContain('this.canActivateOrderedRouteSignal(');
         expect(source).toContain('this.beaconAnchorsActivated++');
         expect(source).toContain('this.forestRouteAligned = true');
         expect(source).toContain('this.beginAutomaticGuardianAwakening(checkpoint);');
-        expect(source).toContain('ALL 3 ROOT BEACONS FOUND');
+        expect(source).not.toContain('ALL 3 ROOT BEACONS FOUND');
         expect(bossArena).toContain('if (!this.forestRouteAligned)');
         expect(bossArena).toContain(
-            'Find all 3 Root Beacons. The Guardian wakes after the third.'
+            'The Guardian is not ready. Help all 3 places.'
         );
         expect(bossArena).toContain('const guardianGateX = 5520;');
         expect(bossArena).toContain('this.levelHeight / 2');
@@ -478,17 +481,39 @@ describe('first expedition rescue loop', () => {
         expect(source).toContain(
             'this.createCampaignObjectiveDisplay('
         );
-        expect(source).toContain("FOLLOW YOUR CREATURE'S GOLD PULSE");
-        expect(source).toContain('ROOT BEACON ${current}/3 // FIND ${nextAnchor}');
+        expect(source).toContain('FOLLOW THE GOLD PULSE');
+        expect(source).toContain('HELP THE FOREST // ${this.beaconAnchorsActivated}/3');
         expect(source).toContain(
-            '[ REQUIRED ] Find 3 Root Beacons. The Guardian wakes after the third.'
+            '[ REQUIRED ] Help the forest in 3 places. The Guardian will wake.'
         );
-        expect(source).toContain('HOLD DOWN TO PASS THROUGH THIS BRANCH');
+        expect(source).toContain(
+            'The forest hurts below. Hold down to pass through.'
+        );
+        expect(source).not.toContain('PASS-THROUGH BRANCH LEARNED');
         expect(source).toContain('updateForestRouteGuidance(time)');
         expect(source).toContain('STRIKE THE PURPLE CORRUPTION');
         expect(source).toContain('OPTIONAL // STAR FRAGMENTS ${this.starFragmentsCollected}/${this.totalStarFragments}');
         expect(source).toContain(
             '!(this.isCompactObjectiveHUD && this.bossFightActive)'
+        );
+    });
+
+    test('restores the living Forest before established completion flows', () => {
+        const source = fs.readFileSync(
+            path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
+            'utf8'
+        );
+
+        expect(source).toContain('showForestRestorationSequence({ onComplete } = {})');
+        expect(source).toContain('recordForestRestored(window.GameState, { save: true });');
+        expect(source).toContain("'The forest is still here.'");
+        expect(source).toContain("'It is one life. And it remembers.'");
+        expect(source).toContain("'SKIP'");
+        expect(source).toMatch(
+            /showForestRestorationSequence\(\{[\s\S]*continueAfterForestRestoration\(\)/
+        );
+        expect(source).toMatch(
+            /continueAfterForestRestoration\(\)[\s\S]*showCaydenBirthdayQuestion/
         );
     });
 
@@ -645,23 +670,23 @@ describe('first expedition rescue loop', () => {
         expect(source).toContain('window.GameState.save?.()');
     });
 
-    test('uses the named companion throughout the first expedition framing', () => {
+    test('uses the named creature and authored dialogue in first expedition framing', () => {
         const source = fs.readFileSync(
             path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
+            'utf8'
+        );
+        const storySource = fs.readFileSync(
+            path.join(__dirname, '../systems/ForestLivingStory.js'),
             'utf8'
         );
 
         expect(source).toContain(
             '"${companionName} hears a living path through the roots"'
         );
-        expect(source).toContain(
-            '`${companionName}: "Rootway locked. We can return here."`'
-        );
-        expect(source).toContain(
-            '`${companionName}: "The Current is stronger. Keep going."`'
-        );
-        expect(source).toContain(
-            '`${companionName}: "The guardian hears us. Stay close."`'
+        expect(storySource).toContain("'It is still alive.'");
+        expect(storySource).toContain("'The light is underneath us.'");
+        expect(storySource).toContain(
+            "'They are hiding. The Guardian is afraid.'"
         );
         expect(source).toContain(
             "`${companionName} answers the astronaut's katana stance with `"

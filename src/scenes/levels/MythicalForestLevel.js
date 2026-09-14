@@ -17,6 +17,12 @@ import {
     isCaydenBirthdayCelebrationActive
 } from '../../config/special-events.js';
 import { shareGuardianRestoration } from '../../utils/GuardianRestorationShare.js';
+import {
+    FOREST_HELP_MOMENTS,
+    getForestHelpMoment,
+    recordForestHelpMoment,
+    recordForestRestored
+} from '../../systems/ForestLivingStory.js';
 
 const ELDER_TREANT_TEXTURE = 'elderTreant';
 const ELDER_TREANT_ASSET = '/game/guardians/elder-treant.webp';
@@ -189,6 +195,14 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestRouteGuidance = null;
         this.forestRouteGuidanceLayer = null;
         this.forestDropCoachShown = false;
+        this.forestHelpSequenceActive = false;
+        this.forestHelpSequenceElements = [];
+        this.forestStoryBubbleElements = [];
+        this.forestStoryBubbleTimer = null;
+        this.forestStoryTimers = [];
+        this.forestRestorationActive = false;
+        this.forestRestorationElements = [];
+        this.forestRestorationTimers = [];
         this.bossTriggerZone = null;
         this.bossGateHintUntil = 0;
         this.objectiveDisplay = null;
@@ -326,6 +340,14 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestRouteGuidance = null;
         this.forestRouteGuidanceLayer = null;
         this.forestDropCoachShown = false;
+        this.forestHelpSequenceActive = false;
+        this.forestHelpSequenceElements = [];
+        this.forestStoryBubbleElements = [];
+        this.forestStoryBubbleTimer = null;
+        this.forestStoryTimers = [];
+        this.forestRestorationActive = false;
+        this.forestRestorationElements = [];
+        this.forestRestorationTimers = [];
         this.bossTriggerZone = null;
         this.bossGateHintUntil = 0;
         this.objectiveDisplay = null;
@@ -863,8 +885,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
             contentLeft,
             secondaryY,
             resume
-                ? `[ BEACON ] ${resume.label} link restored // follow the next Root Beacon`
-                : '[ REQUIRED ] Find 3 Root Beacons. The Guardian wakes after the third.',
+                ? `[ FOREST ] ${resume.label} helped // find the next wounded place`
+                : '[ REQUIRED ] Help the forest in 3 places. The Guardian will wake.',
             {
             fontSize: font(16, 14),
             color: '#AAAAAA',
@@ -1056,44 +1078,53 @@ class MythicalForestLevel extends PlatformerLevelScene {
             : optionalFallback;
 
         if (this.rootwakeCrossing && !this.rootwakeCrossing.awakened) {
-            return 'ROOTWAY BLOCKED\nGO RIGHT // WALK INTO THE PULSING ROOTLIGHT\nYOUR CREATURE WILL OPEN THE WAY';
+            return this.isCompactObjectiveHUD
+                ? 'TOUCH THE PULSING ROOT'
+                : 'ROOTWAY BLOCKED\nGO RIGHT // TOUCH THE PULSING ROOT';
         }
 
         if (
             this.rootwakeCrossing?.awakened &&
             this.time.now < (this.rootwakeCrossing.revealUntil || 0)
         ) {
-            return 'ROOTWAY OPEN\nCROSS THE LIVING STEPS\nTHE SEEDS ARE FALLING UP';
+            return this.isCompactObjectiveHUD
+                ? 'CROSS THE LIVING ROOTS'
+                : 'ROOTWAY OPEN\nCROSS THE LIVING ROOTS // THE SEEDS ARE FALLING UP';
         }
 
         if (this.bossDefeated) {
-            return `CURRENT RESTORED\nTHE GUARDIAN IS SAFE\n${optional}`;
+            return this.isCompactObjectiveHUD
+                ? 'THE FOREST IS BREATHING'
+                : `CURRENT RESTORED\nTHE GUARDIAN IS SAFE\n${optional}`;
         }
 
         if (this.bossFightActive) {
-            return `RESTORE THE GUARDIAN\nSTRIKE THE PURPLE CORRUPTION\n${optional}`;
+            return this.isCompactObjectiveHUD
+                ? 'FREE THE GUARDIAN\nSTRIKE THE PURPLE CORRUPTION'
+                : `RESTORE THE GUARDIAN\nSTRIKE THE PURPLE CORRUPTION\n${optional}`;
         }
 
         if (this.forestRouteAligned) {
-            return `GUARDIAN AHEAD\nCLEAR THE PURPLE CORRUPTION\n${optional}`;
+            return this.isCompactObjectiveHUD
+                ? 'THE GUARDIAN IS AHEAD'
+                : `GUARDIAN AHEAD\nCLEAR THE PURPLE CORRUPTION\n${optional}`;
         }
 
-        const nextAnchor = [
-            'ROOTWAY',
-            'CROWN PATH',
-            'GUARDIAN APPROACH'
-        ][this.beaconAnchorsActivated] || 'GUARDIAN APPROACH';
+        const nextMoment = getForestHelpMoment(this.beaconAnchorsActivated);
         const current = Math.min(this.beaconAnchorsActivated + 1, 3);
         const compass = typeof this.getOrderedRouteCompassText === 'function'
             ? this.getOrderedRouteCompassText()
             : '';
-        const routeDirection = (compass || 'ROOT BEACON RIGHT')
-            .replace('CLUE', 'ROOT BEACON');
+        const routeDirection = (compass || 'GOLD GLOW RIGHT')
+            .replace('CLUE', 'GOLD GLOW')
+            .replace('ROOT BEACON', 'WOUNDED PLACE');
         const title = this.isCompactObjectiveHUD
-            ? `ROOT BEACON ${current}/3 // FIND THE GOLD GLOW`
-            : `ROOT BEACON ${current}/3 // FIND ${nextAnchor}`;
+            ? `HELP THE FOREST // ${this.beaconAnchorsActivated}/3`
+            : `HELP THE FOREST // ${current} OF 3 // ${nextMoment.label}`;
 
-        return `${title}\n${routeDirection}\n${optional}`;
+        return this.isCompactObjectiveHUD
+            ? title
+            : `${title}\n${routeDirection}\n${optional}`;
     }
 
     startFirstExpeditionDrill({ force = false } = {}) {
@@ -1676,19 +1707,22 @@ class MythicalForestLevel extends PlatformerLevelScene {
             {
                 id: 'forest_anchor_1',
                 x: 1770,
-                label: 'ROOTWAY',
+                label: FOREST_HELP_MOMENTS[0].label,
+                storyMoment: FOREST_HELP_MOMENTS[0],
                 activationSupportIds: ['forest-ground-3']
             },
             {
                 id: 'forest_anchor_2',
                 x: 3570,
-                label: 'CROWN PATH',
+                label: FOREST_HELP_MOMENTS[1].label,
+                storyMoment: FOREST_HELP_MOMENTS[1],
                 activationSupportIds: ['forest-ground-5']
             },
             {
                 id: 'forest_anchor_3',
                 x: 5300,
-                label: 'GUARDIAN APPROACH',
+                label: FOREST_HELP_MOMENTS[2].label,
+                storyMoment: FOREST_HELP_MOMENTS[2],
                 activationSupportIds: ['forest-ground-6']
             }
         ];
@@ -1704,7 +1738,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             const supportY = support?.body?.top || groundY;
             const visual = this.add.graphics();
             visual.setDepth(85);
-            this.drawBeaconCheckpoint(visual, anchorX, supportY, 'future');
+            this.drawBeaconCheckpoint(visual, anchorX, supportY, 'future', index);
 
             // The compact objective already names the next light on phones.
             // Keep one in-world label for orientation and avoid two distant,
@@ -1803,40 +1837,226 @@ class MythicalForestLevel extends PlatformerLevelScene {
         ];
     }
 
-    drawBeaconCheckpoint(graphics, x, groundY, state = 'future') {
+    drawBeaconCheckpoint(graphics, x, groundY, state = 'future', momentIndex = 0) {
         graphics.clear();
         const complete = state === 'complete';
         const next = state === 'next';
-        const color = complete ? 0x8FE3CF : (next ? 0xF2C94C : 0x466D72);
-        const glowAlpha = complete ? 0.3 : (next ? 0.4 : 0.18);
-        const coreRadius = next ? 40 : 34;
-        const ringRadius = next ? 29 : 24;
+        const color = complete ? 0x8FE3CF : (next ? 0xF2C94C : 0x60436D);
+        const rootColor = complete ? 0x437A62 : 0x382C45;
+        const corruptionColor = 0x7B2F86;
+        const sway = (momentIndex % 2 === 0 ? 1 : -1);
 
         graphics.forestLightState = state;
         graphics.forestLightColor = color;
 
-        graphics.fillStyle(color, glowAlpha);
-        graphics.fillRect(x - 12, groundY - 150, 24, 122);
-        graphics.fillCircle(x, groundY - 62, coreRadius);
-        graphics.lineStyle(next ? 5 : 3, color, complete || next ? 1 : 0.55);
-        graphics.strokeCircle(x, groundY - 62, ringRadius);
-        if (next) {
-            graphics.lineStyle(3, color, 0.72);
-            graphics.strokeCircle(x, groundY - 62, 46);
-            graphics.fillStyle(0xFFF4B8, 0.96);
-            graphics.fillCircle(x, groundY - 62, 9);
+        graphics.lineStyle(18, rootColor, complete ? 0.96 : 0.88);
+        graphics.beginPath();
+        graphics.moveTo(x - 54, groundY - 4);
+        graphics.lineTo(x - 20, groundY - 22);
+        graphics.lineTo(x + 8 * sway, groundY - 54);
+        graphics.lineTo(x + 42, groundY - 70);
+        graphics.strokePath();
+        graphics.lineStyle(9, color, complete ? 0.82 : (next ? 0.72 : 0.28));
+        graphics.beginPath();
+        graphics.moveTo(x - 51, groundY - 8);
+        graphics.lineTo(x - 18, groundY - 27);
+        graphics.lineTo(x + 9 * sway, groundY - 56);
+        graphics.lineTo(x + 39, groundY - 71);
+        graphics.strokePath();
+
+        if (!complete) {
+            graphics.fillStyle(corruptionColor, next ? 0.88 : 0.58);
+            graphics.fillEllipse(x - 19, groundY - 28, 30, 20);
+            graphics.fillEllipse(x + 8 * sway, groundY - 53, 25, 24);
+            graphics.lineStyle(5, 0xC45BD1, next ? 0.8 : 0.35);
+            graphics.lineBetween(x - 31, groundY - 45, x + 20, groundY - 17);
+            graphics.lineBetween(x - 5, groundY - 76, x + 27, groundY - 43);
+        } else {
+            graphics.fillStyle(0xB8FFE2, 0.9);
+            graphics.fillEllipse(x - 6, groundY - 68, 15, 27);
+            graphics.fillStyle(0x77D7A7, 0.86);
+            graphics.fillEllipse(x + 21, groundY - 82, 20, 11);
+            graphics.fillEllipse(x - 30, groundY - 40, 17, 10);
         }
-        graphics.lineStyle(2, color, complete || next ? 0.9 : 0.65);
-        graphics.lineBetween(x, groundY - 38, x, groundY - 5);
-        graphics.fillStyle(color, 0.95);
-        graphics.fillTriangle(
-            x,
-            groundY - 86,
-            x - 8,
-            groundY - 68,
-            x + 8,
-            groundY - 68
+    }
+
+    queueForestStoryTimer(delay, callback) {
+        const timer = this.time.delayedCall(delay, () => {
+            this.forestStoryTimers = this.forestStoryTimers.filter(
+                entry => entry !== timer
+            );
+            if (this.scene?.isActive?.() === false) return;
+            callback?.();
+        });
+        this.forestStoryTimers.push(timer);
+        return timer;
+    }
+
+    clearForestStoryBubble() {
+        this.forestStoryBubbleTimer?.remove?.();
+        this.forestStoryBubbleTimer = null;
+        this.forestStoryBubbleElements.forEach(element => {
+            element?.removeAllListeners?.();
+            element?.destroy?.();
+        });
+        this.forestStoryBubbleElements = [];
+    }
+
+    showForestStoryBubble(speaker, line, { duration = 2200 } = {}) {
+        if (!line) return false;
+        this.clearForestStoryBubble();
+
+        const { width, height } = this.cameras.main;
+        const compact = width <= 600;
+        const bubbleWidth = Math.min(compact ? width - 28 : 520, width - 32);
+        const bubbleHeight = compact ? 76 : 88;
+        const x = width / 2;
+        const y = compact ? Math.max(74, height * 0.16) : 92;
+        const creatureName = getFirstExpeditionCompanionName(
+            window.GameState?.get?.('creature.name')
         );
+        const speakerLabel = speaker === 'astronaut'
+            ? 'WANDERER-77'
+            : creatureName.toUpperCase();
+        const accent = speaker === 'astronaut' ? 0xB9DAD7 : 0xF2C94C;
+        const depth = 4600;
+
+        const background = this.add.graphics()
+            .setScrollFactor(0)
+            .setDepth(depth);
+        background.fillStyle(0x071411, 0.94);
+        background.fillRoundedRect(
+            x - bubbleWidth / 2,
+            y - bubbleHeight / 2,
+            bubbleWidth,
+            bubbleHeight,
+            8
+        );
+        background.lineStyle(2, accent, 0.84);
+        background.strokeRoundedRect(
+            x - bubbleWidth / 2,
+            y - bubbleHeight / 2,
+            bubbleWidth,
+            bubbleHeight,
+            8
+        );
+
+        const label = this.add.text(
+            x - bubbleWidth / 2 + 14,
+            y - bubbleHeight / 2 + 10,
+            speakerLabel,
+            {
+                fontSize: compact ? '10px' : '12px',
+                color: speaker === 'astronaut' ? '#B9DAD7' : '#F2C94C',
+                fontStyle: 'bold'
+            }
+        ).setScrollFactor(0).setDepth(depth + 1);
+
+        const copy = this.add.text(x, y + 9, line, {
+            fontSize: compact ? '14px' : '17px',
+            color: '#FFFFFF',
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: bubbleWidth - 28 }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 1);
+
+        const dismissZone = this.add.zone(
+            x,
+            y,
+            bubbleWidth,
+            bubbleHeight
+        ).setScrollFactor(0).setDepth(depth + 2).setInteractive({ useHandCursor: true });
+        dismissZone.on('pointerdown', () => this.clearForestStoryBubble());
+
+        this.forestStoryBubbleElements = [background, label, copy, dismissZone];
+        this.forestStoryBubbleTimer = this.time.delayedCall(duration, () => {
+            this.forestStoryBubbleTimer = null;
+            this.clearForestStoryBubble();
+        });
+        return true;
+    }
+
+    playForestHelpMoment(checkpoint) {
+        const moment = checkpoint?.storyMoment;
+        if (!moment || !this.player?.active) return false;
+
+        this.forestHelpSequenceActive = true;
+        this.drawBeaconCheckpoint(
+            checkpoint.visual,
+            checkpoint.x,
+            checkpoint.supportY,
+            'next',
+            checkpoint.index
+        );
+        this.player.setVelocityX?.(0);
+        this.recoveryInputLockedUntil = Math.max(
+            Number(this.recoveryInputLockedUntil) || 0,
+            (Number(this.time?.now) || 0) + 850
+        );
+
+        const contact = this.add.graphics().setDepth(93);
+        this.forestHelpSequenceElements.push(contact);
+        const startX = Number(this.player.x) || checkpoint.x;
+        const startY = Number(this.player.body?.bottom) || this.player.y + 24;
+        const endX = checkpoint.x;
+        const endY = checkpoint.supportY - 8;
+        const impulse = { progress: 0 };
+        let healedDrawn = false;
+
+        this.tweens.add({
+            targets: impulse,
+            progress: 1,
+            duration: 1150,
+            ease: 'Sine.easeInOut',
+            onUpdate: () => {
+                const progress = Phaser.Math.Clamp(impulse.progress, 0, 1);
+                contact.clear();
+                const steps = Math.max(1, Math.ceil(progress * 9));
+                for (let index = 0; index < steps; index += 1) {
+                    const ratio = steps === 1 ? progress : index / 8;
+                    const x = Phaser.Math.Linear(startX, endX, ratio);
+                    const y = Phaser.Math.Linear(startY, endY, ratio) +
+                        Math.sin(ratio * Math.PI * 2) * 4;
+                    contact.fillStyle(0xF2C94C, 0.34 + ratio * 0.56);
+                    contact.fillEllipse(x, y, 16 - ratio * 5, 8 + ratio * 4);
+                }
+                const spread = progress * 96;
+                contact.lineStyle(7, 0x8FE3CF, 0.22 + progress * 0.58);
+                contact.lineBetween(endX, endY, endX - spread, endY + 5);
+                contact.lineBetween(endX, endY, endX + spread * 0.8, endY - 9);
+
+                if (!healedDrawn && progress >= 0.58) {
+                    healedDrawn = true;
+                    this.drawBeaconCheckpoint(
+                        checkpoint.visual,
+                        checkpoint.x,
+                        checkpoint.supportY,
+                        'complete',
+                        checkpoint.index
+                    );
+                }
+            },
+            onComplete: () => {
+                this.queueForestStoryTimer(650, () => {
+                    contact.destroy?.();
+                    this.forestHelpSequenceElements =
+                        this.forestHelpSequenceElements.filter(
+                            element => element !== contact
+                        );
+                    this.forestHelpSequenceActive = false;
+                });
+            }
+        });
+
+        this.showForestStoryBubble('creature', moment.creatureLine, {
+            duration: 1350
+        });
+        this.queueForestStoryTimer(1450, () => {
+            this.showForestStoryBubble('astronaut', moment.astronautLine, {
+                duration: checkpoint.index === 2 ? 1450 : 1750
+            });
+        });
+        return true;
     }
 
     activateBeaconCheckpoint(checkpoint) {
@@ -1858,12 +2078,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
         if (this.rootwakeCrossing?.awakened) {
             this.rootwakeCrossing.revealUntil = 0;
         }
-        this.drawBeaconCheckpoint(
-            checkpoint.visual,
-            checkpoint.x,
-            checkpoint.supportY,
-            'complete'
-        );
         this.retireTraversalLandingGuide(checkpoint);
         this.refreshForestRouteReadability();
         const supportCheckpoint = this.getTraversalSupportCheckpoint(
@@ -1877,48 +2091,20 @@ class MythicalForestLevel extends PlatformerLevelScene {
             checkpointIndex: checkpoint.index
         });
 
-        const anchorNumber = this.beaconAnchorsActivated;
-        this.showFloatingText(
-            anchorNumber < 3
-                ? `ROOT BEACON ${anchorNumber}/3 FOUND\nFOLLOW YOUR CREATURE'S GOLD PULSE`
-                : 'ALL 3 ROOT BEACONS FOUND\nTHE GUARDIAN IS WAKING',
-            checkpoint.x,
-            checkpoint.respawnY - 35,
-            '#8FE3CF'
+        recordForestHelpMoment(
+            window.GameState,
+            checkpoint.storyMoment?.id,
+            { save: true }
         );
+        this.playForestHelpMoment(checkpoint);
 
-        const companionName = getFirstExpeditionCompanionName(
-            window.GameState?.get?.('creature.name')
-        );
-        if (anchorNumber === 1) {
-            this.time.delayedCall(700, () => {
-                this.showFloatingText(
-                    `${companionName}: "Rootway locked. We can return here."`,
-                    checkpoint.x,
-                    checkpoint.respawnY - 70,
-                    '#D6EEF2'
-                );
-            });
-        } else if (anchorNumber === 2) {
-            this.time.delayedCall(700, () => {
-                this.showFloatingText(
-                    `${companionName}: "The Current is stronger. Keep going."`,
-                    checkpoint.x,
-                    checkpoint.respawnY - 70,
-                    '#D6EEF2'
-                );
-            });
-        } else if (this.beaconAnchorsActivated === this.checkpointAnchors.length) {
+        if (this.beaconAnchorsActivated === this.checkpointAnchors.length) {
             this.forestRouteAligned = true;
-            this.time.delayedCall(700, () => {
-                this.showFloatingText(
-                    `${companionName}: "The guardian hears us. Stay close."`,
-                    checkpoint.x,
-                    checkpoint.respawnY - 70,
-                    '#F2C94C'
-                );
+            const awakeningTimer = this.time.delayedCall(3000, () => {
+                if (!this.scene?.isActive?.() || this.bossDefeated) return;
+                this.beginAutomaticGuardianAwakening(checkpoint);
             });
-            this.beginAutomaticGuardianAwakening(checkpoint);
+            this.forestStoryTimers.push(awakeningTimer);
             window.AchievementSystem?.recordEvent?.('story_interaction', {
                 event: 'forest_route_aligned'
             });
@@ -1964,13 +2150,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
             camera?.startFollow?.(this.player, true, 0.12, 0.12);
             camera?.fadeIn?.(320, 8, 20, 18);
 
-            this.showFloatingText(
-                'ALL 3 ROOT BEACONS FOUND\nTHE GUARDIAN AWAKENS',
-                entranceX + 40,
-                entranceY - 115,
-                '#F2C94C'
-            );
-
             const guardianEntered = this.beginGuardianEncounter({
                 id: 'elder_treant',
                 title: 'ELDER TREANT',
@@ -1996,16 +2175,17 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 checkpoint.visual,
                 checkpoint.x,
                 checkpoint.supportY,
-                complete ? 'complete' : (next ? 'next' : 'future')
+                complete ? 'complete' : (next ? 'next' : 'future'),
+                checkpoint.index
             );
             checkpoint.visual?.setAlpha?.(complete || next ? 1 : 0.58);
             checkpoint.actionPrompt
                 ?.setText?.(
                     complete
-                        ? `ROOT BEACON ${checkpoint.index + 1}/3 FOUND`
+                        ? `FOREST HELPED // ${checkpoint.index + 1} OF 3`
                         : next
-                            ? 'WALK INTO THE ROOT BEACON'
-                            : `ROOT BEACON ${checkpoint.index + 1}/3 AHEAD`
+                            ? checkpoint.storyMoment.objective.toUpperCase()
+                            : `ANOTHER WOUNDED PLACE AHEAD`
                 )
                 ?.setColor?.(complete ? '#8FE3CF' : (next ? '#F2C94C' : '#7F9CA2'))
                 ?.setAlpha?.(complete || next ? 1 : 0.42);
@@ -2098,27 +2278,22 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 window.GameState?.get?.('tutorials.forestPassThrough') !== true
             ) {
                 this.forestDropCoachShown = true;
-                const creatureName = getFirstExpeditionCompanionName(
-                    window.GameState?.get?.('creature.name')
-                );
-                this.showFloatingText(
-                    `${creatureName}: "ROOT BEACON BELOW."\nHOLD DOWN TO PASS THROUGH THIS BRANCH`,
-                    this.player.x,
-                    this.player.y - 92,
-                    '#F2C94C'
+                this.showForestStoryBubble(
+                    'creature',
+                    'The forest hurts below. Hold down to pass through.',
+                    { duration: 2400 }
                 );
                 this.showMobileControlCoach?.('joystick');
-                this.time.delayedCall(2600, () => this.clearMobileControlCoach?.());
+                this.queueForestStoryTimer(
+                    2400,
+                    () => this.clearMobileControlCoach?.()
+                );
             } else if (stalled && time - guidance.lastSpeechAt >= 10000) {
                 guidance.lastSpeechAt = time;
-                const creatureName = getFirstExpeditionCompanionName(
-                    window.GameState?.get?.('creature.name')
-                );
-                this.showFloatingText(
-                    `${creatureName}: "I CAN FEEL THE NEXT ROOT BEACON THIS WAY."`,
-                    this.player.x,
-                    this.player.y - 82,
-                    '#F2C94C'
+                this.showForestStoryBubble(
+                    'creature',
+                    'I can feel where the forest hurts.',
+                    { duration: 1900 }
                 );
             }
         }
@@ -2153,12 +2328,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
         window.GameState?.set?.('tutorials.forestPassThrough', true);
         window.GameState?.save?.();
-        this.showFloatingText(
-            'PASS-THROUGH BRANCH LEARNED',
-            this.player.x,
-            this.player.y - 72,
-            '#8FE3CF'
-        );
     }
 
     restoreExpeditionRouteState(resume) {
@@ -2171,11 +2340,23 @@ class MythicalForestLevel extends PlatformerLevelScene {
                     checkpoint.visual,
                     checkpoint.x,
                     checkpoint.supportY,
-                    'complete'
+                    'complete',
+                    checkpoint.index
                 );
                 this.retireTraversalLandingGuide(checkpoint);
             },
             onRestored: () => {
+                const memoryBackfilled = this.checkpointAnchors
+                    .filter(checkpoint => checkpoint.activated)
+                    .reduce((changed, checkpoint) => {
+                        const result = recordForestHelpMoment(
+                            window.GameState,
+                            checkpoint.storyMoment?.id,
+                            { save: false }
+                        );
+                        return result.changed || changed;
+                    }, false);
+                if (memoryBackfilled) window.GameState?.save?.();
                 this.refreshForestRouteReadability();
                 this.syncCampaignObjectiveDisplay();
             }
@@ -5054,7 +5235,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             title: 'ELDER GROVE',
             getStatus: () => this.forestRouteAligned
                 ? 'ROUTE OPEN // ENTER THE GROVE'
-                : `ROOT BEACONS ${this.beaconAnchorsActivated}/3 // FOLLOW YOUR CREATURE'S GOLD PULSE`,
+                : `FOREST HELPED ${this.beaconAnchorsActivated}/3 // FOLLOW THE GOLD PULSE`,
             isReady: () => this.forestRouteAligned,
             color: 0x9370DB,
             readyColor: 0x8FE3CF
@@ -5067,11 +5248,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
                     if (!this.forestRouteAligned) {
                         const now = this.time.now;
                         if (now >= this.bossGateHintUntil) {
-                            this.showFloatingText(
-                                'Find all 3 Root Beacons. The Guardian wakes after the third.',
-                                this.player.x,
-                                this.player.y - 70,
-                                '#F2C94C'
+                            this.showForestStoryBubble(
+                                'creature',
+                                'The Guardian is not ready. Help all 3 places.',
+                                { duration: 1900 }
                             );
                             window.FeedbackManager?.cameraFlash?.(this, 180, 242, 193, 78);
                             this.bossGateHintUntil = now + 1800;
@@ -6355,6 +6535,332 @@ class MythicalForestLevel extends PlatformerLevelScene {
     /**
      * Handle guardian restoration.
      */
+    showForestRestorationSequence({ onComplete } = {}) {
+        if (
+            this.forestRestorationActive ||
+            !this.player?.active ||
+            !this.cameras?.main
+        ) {
+            return false;
+        }
+
+        this.forestRestorationActive = true;
+        this.levelCompletionActive = true;
+        this.resetJoystick?.();
+        this.clearVirtualJumpInput?.();
+        this.hidePlatformerMobileControls?.();
+        this.syncCampaignObjectiveDisplay({ visible: false, force: true });
+        this.clearForestStoryBubble();
+
+        const camera = this.cameras.main;
+        const { width, height } = camera;
+        const depth = 4300;
+        const stageX = Phaser.Math.Clamp(
+            (Number(this.boss?.x) || 5800) - 180,
+            5560,
+            6120
+        );
+        const stageY = this.levelHeight - 170;
+        const creatureScale = {
+            x: Number(this.player.scaleX) || 1,
+            y: Number(this.player.scaleY) || 1
+        };
+        const elements = this.forestRestorationElements;
+        let completed = false;
+
+        this.player.setPosition?.(stageX, stageY);
+        this.player.setVelocity?.(0, 0);
+        this.player.body?.updateFromGameObject?.();
+        if (this.astronautFollower?.sprite?.active) {
+            this.astronautFollower.sprite.setPosition(stageX - 104, stageY - 6);
+            this.astronautFollower.resetTrail?.();
+        }
+        camera.stopFollow?.();
+        camera.centerOn?.(stageX + 110, stageY - 110);
+
+        const veil = this.add.graphics().setScrollFactor(0).setDepth(depth);
+        veil.fillStyle(0x03100D, 0.42);
+        veil.fillRect(0, 0, width, height);
+        elements.push(veil);
+
+        const contactRoot = this.add.graphics().setDepth(920);
+        contactRoot.lineStyle(24, 0x315743, 0.96);
+        contactRoot.beginPath();
+        contactRoot.moveTo(stageX + 28, stageY + 26);
+        contactRoot.lineTo(stageX + 70, stageY + 12);
+        contactRoot.lineTo(stageX + 116, stageY + 22);
+        contactRoot.strokePath();
+        contactRoot.lineStyle(8, 0x6C3A78, 0.9);
+        contactRoot.lineBetween(
+            stageX + 58,
+            stageY + 7,
+            stageX + 92,
+            stageY + 25
+        );
+        elements.push(contactRoot);
+
+        const livingResponse = this.add.graphics()
+            .setScrollFactor(0)
+            .setDepth(depth + 1);
+        elements.push(livingResponse);
+
+        const blooms = this.add.graphics()
+            .setScrollFactor(0)
+            .setDepth(depth + 2)
+            .setAlpha(0);
+        const bloomY = height * 0.73;
+        [0.12, 0.31, 0.69, 0.87].forEach((ratio, index) => {
+            const bloomX = width * ratio;
+            const bloomColor = index % 2 === 0 ? 0x8FE3CF : 0xB993E8;
+            blooms.fillStyle(bloomColor, 0.2);
+            blooms.fillEllipse(bloomX, bloomY + (index % 2) * 32, 62, 18);
+            blooms.fillEllipse(bloomX - 18, bloomY - 14, 18, 54);
+            blooms.fillEllipse(bloomX + 20, bloomY - 20, 16, 64);
+            blooms.fillStyle(0xF2C94C, 0.72);
+            blooms.fillEllipse(bloomX + 3, bloomY - 12, 9, 24);
+        });
+        elements.push(blooms);
+
+        const upfallDrops = [];
+        const controlSafeBottom = this.isMobile ? 122 : 36;
+        for (let index = 0; index < 18; index += 1) {
+            const drop = this.add.ellipse(
+                24 + ((index * 83) % Math.max(40, width - 48)),
+                height - controlSafeBottom - ((index * 31) % 170),
+                3 + (index % 3),
+                12 + (index % 4) * 3,
+                index % 2 === 0 ? 0x8FE3CF : 0xD5C4FF,
+                0.72
+            ).setScrollFactor(0).setDepth(depth + 3).setAlpha(0);
+            elements.push(drop);
+            upfallDrops.push(drop);
+        }
+
+        const skip = this.add.text(
+            width - 18,
+            height - (this.isMobile ? 142 : 24),
+            'SKIP',
+            {
+                fontSize: this.isMobile ? '13px' : '14px',
+                color: '#D8FFF0',
+                backgroundColor: '#071411',
+                padding: { x: 13, y: 9 }
+            }
+        ).setOrigin(1, 1).setScrollFactor(0).setDepth(depth + 8)
+            .setInteractive({ useHandCursor: true });
+        elements.push(skip);
+
+        const finish = () => {
+            if (completed) return;
+            completed = true;
+            recordForestRestored(window.GameState, { save: true });
+            this.forestRestorationTimers.forEach(timer => timer?.remove?.());
+            this.forestRestorationTimers = [];
+            this.clearForestStoryBubble();
+            this.tweens?.killTweensOf?.(this.player);
+            this.player?.setScale?.(creatureScale.x, creatureScale.y);
+            elements.forEach(element => {
+                this.tweens?.killTweensOf?.(element);
+                element?.removeAllListeners?.();
+                element?.destroy?.();
+            });
+            this.forestRestorationElements = [];
+            this.forestRestorationActive = false;
+            onComplete?.();
+        };
+        skip.on('pointerdown', finish);
+
+        const schedule = (delay, callback) => {
+            const timer = this.time.delayedCall(delay, () => {
+                this.forestRestorationTimers = this.forestRestorationTimers.filter(
+                    entry => entry !== timer
+                );
+                if (completed || this.scene?.isActive?.() === false) return;
+                callback?.();
+            });
+            this.forestRestorationTimers.push(timer);
+            return timer;
+        };
+
+        this.tweens.add({
+            targets: this.player,
+            x: stageX + 34,
+            y: stageY + 5,
+            scaleX: creatureScale.x * 1.04,
+            scaleY: creatureScale.y * 0.9,
+            duration: 720,
+            ease: 'Sine.easeInOut'
+        });
+
+        schedule(280, () => {
+            this.showForestStoryBubble(
+                'creature',
+                'The forest is still here.',
+                { duration: 1450 }
+            );
+        });
+
+        schedule(1050, () => {
+            const contactScreenX = width / 2 - 42;
+            const contactScreenY = Math.min(height * 0.69, height - controlSafeBottom - 26);
+            const growth = { progress: 0 };
+            this.tweens.add({
+                targets: growth,
+                progress: 1,
+                duration: 3300,
+                ease: 'Sine.easeInOut',
+                onUpdate: () => {
+                    const progress = Phaser.Math.Clamp(growth.progress, 0, 1);
+                    livingResponse.clear();
+                    livingResponse.fillStyle(0x8FE3CF, 0.04 + progress * 0.1);
+                    livingResponse.fillEllipse(
+                        width / 2,
+                        height * 0.72,
+                        width * (0.45 + progress * 0.7),
+                        height * (0.12 + progress * 0.28)
+                    );
+                    const branchCount = 6;
+                    for (let index = 0; index < branchCount; index += 1) {
+                        const direction = index % 2 === 0 ? -1 : 1;
+                        const reach = progress * width * (0.25 + index * 0.055);
+                        const endX = contactScreenX + direction * reach;
+                        const endY = contactScreenY - progress * (22 + (index % 3) * 34);
+                        livingResponse.lineStyle(
+                            Math.max(5, 13 - index),
+                            index % 2 === 0 ? 0x4F8D6B : 0x67B895,
+                            0.25 + progress * 0.62
+                        );
+                        livingResponse.beginPath();
+                        livingResponse.moveTo(contactScreenX, contactScreenY);
+                        livingResponse.lineTo(
+                            Phaser.Math.Linear(contactScreenX, endX, 0.48),
+                            contactScreenY + Math.sin(index * 1.7) * 24
+                        );
+                        livingResponse.lineTo(endX, endY);
+                        livingResponse.strokePath();
+                        livingResponse.fillStyle(0xF2C94C, 0.28 + progress * 0.56);
+                        livingResponse.fillEllipse(endX, endY, 10 + index * 2, 18);
+                    }
+                    contactRoot.clear();
+                    contactRoot.lineStyle(26, 0x315743, 0.98);
+                    contactRoot.beginPath();
+                    contactRoot.moveTo(stageX + 28, stageY + 26);
+                    contactRoot.lineTo(stageX + 70, stageY + 12);
+                    contactRoot.lineTo(stageX + 116, stageY + 22);
+                    contactRoot.strokePath();
+                    contactRoot.lineStyle(10, 0x8FE3CF, 0.3 + progress * 0.68);
+                    contactRoot.lineBetween(
+                        stageX + 35,
+                        stageY + 19,
+                        stageX + 113,
+                        stageY + 20
+                    );
+                },
+                onComplete: () => {
+                    this.tweens.add({
+                        targets: this.player,
+                        x: stageX,
+                        y: stageY,
+                        scaleX: creatureScale.x,
+                        scaleY: creatureScale.y,
+                        duration: 620,
+                        ease: 'Back.easeOut'
+                    });
+                }
+            });
+
+            this.tweens.add({
+                targets: veil,
+                alpha: 0.05,
+                duration: 3000,
+                ease: 'Sine.easeOut'
+            });
+            this.tweens.add({
+                targets: blooms,
+                alpha: 1,
+                scaleX: { from: 0.7, to: 1 },
+                scaleY: { from: 0.2, to: 1 },
+                duration: 2600,
+                ease: 'Back.easeOut'
+            });
+            upfallDrops.forEach((drop, index) => {
+                this.tweens.add({
+                    targets: drop,
+                    alpha: { from: 0, to: 0.82 },
+                    y: -24 - (index % 4) * 18,
+                    x: drop.x + Math.sin(index * 2.1) * 28,
+                    duration: 2600 + (index % 5) * 260,
+                    delay: index * 55,
+                    ease: 'Sine.easeInOut'
+                });
+            });
+            if (this.forestScenicVeil?.active) {
+                this.tweens.add({
+                    targets: this.forestScenicVeil,
+                    alpha: 0.04,
+                    duration: 2800
+                });
+            }
+            window.FeedbackManager?.cameraFlash?.(this, 420, 143, 227, 207);
+        });
+
+        schedule(3850, () => {
+            this.showForestStoryBubble(
+                'astronaut',
+                'My scanner could not see any of this.',
+                { duration: 1800 }
+            );
+        });
+        schedule(5850, () => {
+            this.showForestStoryBubble(
+                'creature',
+                'It is one life. And it remembers.',
+                { duration: 1900 }
+            );
+        });
+        schedule(8200, finish);
+        return true;
+    }
+
+    continueAfterForestRestoration() {
+        const showEstablishedCompletion = () => {
+            if (
+                !this.birthdayCelebrationShown &&
+                isCaydenBirthdayCelebrationActive()
+            ) {
+                this.showCaydenBirthdayQuestion({
+                    onSuccess: () => this.showCaydenBirthdayCelebration({
+                        onComplete: () => this.showBossVictory()
+                    }),
+                    onSkip: () => this.showBossVictory()
+                });
+                return;
+            }
+            this.showBossVictory();
+        };
+
+        if (!this.boss?.active) {
+            showEstablishedCompletion();
+            return;
+        }
+
+        this.tweens.add({
+            targets: this.boss,
+            alpha: 0,
+            scaleX: this.bossTargetScale * 1.08,
+            scaleY: this.bossTargetScale * 1.08,
+            y: this.boss.y - 25,
+            duration: 1200,
+            onComplete: () => {
+                this.boss?.destroy?.();
+                this.boss = null;
+                this.bossGlow?.destroy?.();
+                this.bossGlow = null;
+                showEstablishedCompletion();
+            }
+        });
+    }
+
     onBossDefeated() {
         console.log('[MythicalForestLevel] Elder Treant restored!');
         this.bossDefeated = true;
@@ -6397,37 +6903,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
             '#8FE3CF'
         );
 
-        // A calm departure replaces a death animation.
-        this.tweens.add({
-            targets: this.boss,
-            alpha: 0,
-            scaleX: this.bossTargetScale * 1.08,
-            scaleY: this.bossTargetScale * 1.08,
-            y: this.boss.y - 25,
-            duration: 2000,
-            onComplete: () => {
-                this.boss.destroy();
-                this.boss = null;
-
-                if (this.bossGlow) {
-                    this.bossGlow.destroy();
-                }
-
-                if (
-                    !this.birthdayCelebrationShown &&
-                    isCaydenBirthdayCelebrationActive()
-                ) {
-                    this.showCaydenBirthdayQuestion({
-                        onSuccess: () => this.showCaydenBirthdayCelebration({
-                            onComplete: () => this.showBossVictory()
-                        }),
-                        onSkip: () => this.showBossVictory()
-                    });
-                    return;
-                }
-                this.showBossVictory();
-            }
-        });
+        if (!this.showForestRestorationSequence({
+            onComplete: () => this.continueAfterForestRestoration()
+        })) {
+            this.continueAfterForestRestoration();
+        }
 
         // Hide health bar
         if (this.bossUI) {
@@ -7033,6 +7513,24 @@ class MythicalForestLevel extends PlatformerLevelScene {
      */
     shutdown() {
         console.log('[MythicalForestLevel] Shutting down');
+        this.forestStoryTimers.forEach(timer => timer?.remove?.());
+        this.forestStoryTimers = [];
+        this.forestRestorationTimers.forEach(timer => timer?.remove?.());
+        this.forestRestorationTimers = [];
+        this.clearForestStoryBubble();
+        this.forestHelpSequenceElements.forEach(element => {
+            this.tweens?.killTweensOf?.(element);
+            element?.destroy?.();
+        });
+        this.forestHelpSequenceElements = [];
+        this.forestRestorationElements.forEach(element => {
+            this.tweens?.killTweensOf?.(element);
+            element?.removeAllListeners?.();
+            element?.destroy?.();
+        });
+        this.forestRestorationElements = [];
+        this.forestHelpSequenceActive = false;
+        this.forestRestorationActive = false;
         this.forestArrivalRequest += 1;
         this.forestArrivalElements.forEach(element => element?.destroy?.());
         this.forestArrivalElements = [];
