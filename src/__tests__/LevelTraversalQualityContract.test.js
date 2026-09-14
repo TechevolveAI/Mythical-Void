@@ -1711,6 +1711,8 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("'aurora-quiet-step-1'");
         expect(source).toContain("'aurora-quiet-step-3'");
         expect(source).toContain("id: 'aurora_prism_2'");
+        expect(source).toContain("activationSupportIds: ['aurora-opening-rise']");
+        expect(source).toContain("activationSupportIds: ['aurora-heart-approach']");
         expect(source).toContain("activationSupportIds: ['aurora-heart-launch']");
         expect(source).toContain("activationSupportIds: ['aurora-quiet-step-3']");
         expect(source).toContain("activationSupportIds: ['aurora-phoenix-gate']");

@@ -9478,13 +9478,13 @@ async function smokeTraversalTopology(session, levels, exceptions) {
             (audit?.flow?.uncomfortableOptionalTargetIds || []).length > 0 ||
             audit?.flow?.targets?.find(
                 target => target.id === 'aurora_prism_1'
-            )?.pathSupportIds?.at?.(-1) !== 'aurora-lower-prism' ||
+            )?.pathSupportIds?.at?.(-1) !== 'aurora-opening-rise' ||
             audit?.flow?.targets?.find(
                 target => target.id === 'aurora_prism_2'
-            )?.pathSupportIds?.at?.(-1) !== 'aurora-heart-launch' ||
+            )?.pathSupportIds?.at?.(-1) !== 'aurora-heart-approach' ||
             audit?.flow?.targets?.find(
                 target => target.id === 'aurora_prism_3'
-            )?.pathSupportIds?.at?.(-1) !== 'aurora-sky-prism' ||
+            )?.pathSupportIds?.at?.(-1) !== 'aurora-heart-launch' ||
             audit?.flow?.targets?.find(
                 target => target.id === 'aurora_reactor_gate'
             )?.pathSupportIds?.at?.(-1) !== 'aurora-phoenix-gate'
@@ -9971,11 +9971,33 @@ async function stagePlatformBoundRouteSignal(session, {
 }
 
 async function stageAuroraPrism(session, index) {
-    return stagePlatformBoundRouteSignal(session, {
+    const landing = await stagePlatformBoundRouteSignal(session, {
         sceneName: 'AuroraDepthsLevel',
         route: 'auroraDepths',
         index
     });
+    const currentState = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('AuroraDepthsLevel');
+        const current = scene?.shadowCurrents?.[${index}];
+        return current ? {
+            index: current.index,
+            calm: current.calm === true,
+            label: current.label?.text || '',
+            zoneActive: current.zone?.active === true
+        } : null;
+    })()`);
+    if (
+        !currentState ||
+        currentState.calm !== true ||
+        currentState.label !== 'CALM CURRENT // CROSS' ||
+        currentState.zoneActive !== true
+    ) {
+        throw new Error(
+            `Aurora prism ${index + 1} did not visibly calm its current: ` +
+            JSON.stringify(currentState)
+        );
+    }
+    return { ...landing, currentState };
 }
 
 async function restartAuroraFromCheckpoint(session) {

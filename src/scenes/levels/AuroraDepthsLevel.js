@@ -376,7 +376,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
         entryElements.push(mission);
 
-        const mainObj = this.add.text(width / 2, y(172), `Help ${companionName} contain an uplink that can reach Earth`, {
+        const mainObj = this.add.text(width / 2, y(172), `Help ${companionName} calm the aurora storm`, {
             fontSize: font(20, 17),
             color: '#7FFFD4',
             fontStyle: 'bold',
@@ -388,7 +388,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         const obj1 = this.add.text(contentLeft, y(220), `${
             resume
                 ? `[ BEACON ] ${resume.label} link restored`
-                : '[ ] Trace the uplink without broadcasting'
+                : '[ ] Calm 3 dangerous currents'
         }\n[ ] Restore the Phoenix guardian\n[ OPTIONAL ] Collect Aurora Fragments (0/5)`, {
             fontSize: font(16, 14),
             color: '#AAAAAA',
@@ -1088,18 +1088,18 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         }
 
         const nextPrism = [
-            'LOWER PRISM',
-            'HEART PRISM',
-            'SKY PRISM'
+            'LOWER CURRENT',
+            'HEART CURRENT',
+            'SKY CURRENT'
         ][this.prismsAligned] || 'SKY PRISM';
         const current = Math.min(this.prismsAligned + 1, 3);
         const exposure = Math.max(0, 100 - this.prismsAligned * 33);
         const compass = this.getOrderedRouteCompassText();
         const direction = compass?.replace(/^CLUE/, 'PRISM');
         const title = this.isCompactObjectiveHUD
-            ? `ALIGNMENT ${current}/3`
-            : `QUIET ALIGNMENT ${current}/3 // ${nextPrism}`;
-        return `${title}\n${direction || `EXPOSURE ${exposure}% // KEEP THE BEAM DOWN`}\n${optional}`;
+            ? `CALM CURRENT ${current}/3`
+            : `CALM CURRENT ${current}/3 // ${nextPrism}`;
+        return `${title}\n${direction || `STORM ${exposure}% // REACH THE PRISM`}\n${optional}`;
     }
 
     showObjectiveToast() {
@@ -1111,7 +1111,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         const toast = this.add.text(
             width / 2,
             toastY,
-            'Follow the lit platforms. Align 3 prisms. Keep the beam away from Earth.',
+            'Reach the first prism. Watch it calm the current ahead.',
             {
                 fontSize: isMobileLayout ? '15px' : '18px',
                 color: '#F2C94C',
@@ -1140,22 +1140,18 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         ];
         const pulseTargets = [];
 
-        currents.forEach(({ x, width }) => {
+        currents.forEach(({ x, width }, index) => {
             const y = this.levelHeight - 88;
             const zone = this.add.zone(x + width / 2, y, width, 76);
             this.physics.add.existing(zone, true);
 
             const visual = this.add.graphics();
-            visual.fillStyle(0x2D1748, 0.72);
-            visual.fillRoundedRect(x, y - 28, width, 56, 12);
-            visual.lineStyle(2, 0x7FFFD4, 0.45);
-            visual.strokeRoundedRect(x, y - 28, width, 56, 12);
             visual.setDepth(110);
 
             const label = this.add.text(
                 x + width / 2,
                 y - 48,
-                'SHADOW CURRENT // JUMP',
+                'WILD CURRENT',
                 {
                     fontSize: '11px',
                     color: '#F2C94C',
@@ -1167,12 +1163,15 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             ).setOrigin(0.5).setDepth(111);
             pulseTargets.push(visual);
 
+            const current = { index, x, y, width, zone, visual, label, calm: false };
+            this.drawShadowCurrent(current);
+
             this.physics.add.overlap(this.player, zone, () => {
-                if (!this.isInvincible && !this.bossDefeated) {
+                if (!current.calm && !this.isInvincible && !this.bossDefeated) {
                     this.takeDamage(1);
                 }
             });
-            this.shadowCurrents.push({ zone, visual, label });
+            this.shadowCurrents.push(current);
         });
 
         this.shadowCurrentPulseTween?.remove?.();
@@ -1188,6 +1187,59 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         } else {
             pulseTargets.forEach(visual => visual.setAlpha(0.78));
         }
+    }
+
+    drawShadowCurrent(current) {
+        if (!current?.visual) return false;
+
+        const { visual, x, y, width, calm } = current;
+        visual.clear();
+        visual.fillStyle(calm ? 0x143F46 : 0x2D1748, calm ? 0.68 : 0.78);
+        visual.fillRoundedRect(x, y - 28, width, 56, 14);
+        visual.lineStyle(3, calm ? 0xA9F3E4 : 0xC06CEB, calm ? 0.9 : 0.68);
+        visual.strokeRoundedRect(x, y - 28, width, 56, 14);
+
+        const matterColor = calm ? 0xD8FFF6 : 0xEAA4FF;
+        const matterCount = 7;
+        for (let index = 0; index < matterCount; index++) {
+            const progress = index / (matterCount - 1);
+            const matterX = x + 15 + progress * (width - 30);
+            const wave = Math.sin(progress * Math.PI * 3 + current.index) * (calm ? 7 : 17);
+            const matterY = y + wave;
+            const matterWidth = calm ? 18 + (index % 2) * 5 : 12 + (index % 3) * 7;
+            visual.fillStyle(matterColor, calm ? 0.8 : 0.62);
+            visual.fillEllipse(matterX, matterY, matterWidth, calm ? 9 : 15);
+        }
+
+        current.label?.setText?.(calm ? 'CALM CURRENT // CROSS' : 'WILD CURRENT');
+        current.label?.setColor?.(calm ? '#D8FFF6' : '#F2C94C');
+        return true;
+    }
+
+    calmShadowCurrent(index) {
+        const current = this.shadowCurrents[index];
+        if (!current || current.calm) return false;
+
+        current.calm = true;
+        this.drawShadowCurrent(current);
+        const wave = this.add.ellipse(
+            current.x + current.width / 2,
+            current.y,
+            28,
+            52,
+            0xA9F3E4,
+            0.82
+        ).setDepth(112);
+        this.tweens.add({
+            targets: wave,
+            scaleX: Math.max(2, current.width / 24),
+            alpha: 0,
+            duration: 650,
+            ease: 'Sine.easeOut',
+            onComplete: () => wave.destroy()
+        });
+        window.FeedbackManager?.cameraShake?.(this, 180, 0.006);
+        return true;
     }
 
     createAuroraFragments() {
@@ -1286,24 +1338,24 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         const prisms = [
             {
                 id: 'aurora_prism_1',
-                x: 1150,
-                y: 610,
+                x: 710,
+                y: 525,
                 label: 'LOWER PRISM',
-                activationSupportIds: ['aurora-lower-prism']
+                activationSupportIds: ['aurora-opening-rise']
             },
             {
                 id: 'aurora_prism_2',
-                x: 2710,
-                y: 580,
+                x: 1890,
+                y: 575,
                 label: 'HEART PRISM',
-                activationSupportIds: ['aurora-heart-launch']
+                activationSupportIds: ['aurora-heart-approach']
             },
             {
                 id: 'aurora_prism_3',
-                x: 3820,
-                y: 560,
+                x: 2710,
+                y: 635,
                 label: 'SKY PRISM',
-                activationSupportIds: ['aurora-sky-prism']
+                activationSupportIds: ['aurora-heart-launch']
             }
         ];
 
@@ -1422,6 +1474,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         this.retireTraversalLandingGuide(prism);
         this.prismsAligned++;
         this.drawSignalPrism(prism.visual, prism.x, prism.y, true);
+        this.calmShadowCurrent(prism.index);
         this.refreshPrismRouteReadability();
         const checkpoint = this.getTraversalSupportCheckpoint(
             prism.activationSupportIds[0],
@@ -1434,7 +1487,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
         });
 
         this.showFloatingText(
-            `AURORA PRISM ${this.prismsAligned}/3 ALIGNED`,
+            `CURRENT ${this.prismsAligned}/3 CALMED`,
             prism.x,
             prism.y - 125,
             '#A9F3E4'
@@ -1442,9 +1495,9 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
         const companionName = this.getCompanionName();
         const companionLines = [
-            `${companionName}: "Project Beacon can reach Earth from here."`,
-            `${companionName}: "If Earth hears this, anyone can. Help me turn it down."`,
-            `${companionName}: "It is quiet. The choice can wait."`
+            `${companionName}: "The prism calmed it. Cross now."`,
+            `${companionName}: "The storm is carrying Project Beacon toward Earth."`,
+            `${companionName}: "The Phoenix is trapped inside the last storm."`
         ];
         this.time.delayedCall(600, () => {
             this.showFloatingText(

@@ -30,7 +30,7 @@ describe('fifth expedition rescue loop', () => {
         expect(startLevel).not.toContain('this.createLevelContent()');
     });
 
-    test('builds an authored traversal route with visible shadow-current hazards', () => {
+    test('builds an authored traversal route where prisms calm visible currents', () => {
         const source = readLevel();
 
         expect(source).toContain('const ledges = [');
@@ -45,10 +45,14 @@ describe('fifth expedition rescue loop', () => {
         expect(source).toContain('{ x: 810, width: 150 }');
         expect(source).toContain('{ x: 2020, width: 170 }');
         expect(source).toContain('{ x: 3230, width: 180 }');
-        expect(source).toContain('SHADOW CURRENT // JUMP');
+        expect(source).toContain("current.label?.setText?.(calm ? 'CALM CURRENT // CROSS' : 'WILD CURRENT')");
         expect(source).toContain('targets: pulseTargets');
         expect(source).toContain('this.shadowCurrentPulseTween?.remove?.();');
+        expect(source).toContain('if (!current.calm && !this.isInvincible && !this.bossDefeated)');
         expect(source).toContain('this.takeDamage(1)');
+        expect(source).toContain('this.calmShadowCurrent(prism.index)');
+        expect(source).toContain('current.calm = true');
+        expect(source).toContain('targets: wave');
     });
 
     test('places three localized prisms with checkpoints and the exposure reveal', () => {
@@ -60,9 +64,9 @@ describe('fifth expedition rescue loop', () => {
         expect(source).toContain(
             'this.createObjectiveTriggerZone(\n                prism.x,\n                prism.y - 35,\n                { width: 160, height: 210 }'
         );
-        expect(source).toContain('activationSupportIds: [\'aurora-lower-prism\']');
+        expect(source).toContain('activationSupportIds: [\'aurora-opening-rise\']');
+        expect(source).toContain('activationSupportIds: [\'aurora-heart-approach\']');
         expect(source).toContain('activationSupportIds: [\'aurora-heart-launch\']');
-        expect(source).toContain('activationSupportIds: [\'aurora-sky-prism\']');
         expect(source).toContain('this.isPlayerGroundedOnTraversalSupport(');
         expect(source).toContain('this.getTraversalSupportCheckpoint(');
         expect(source).toContain("mainSupportIds: ['aurora-ground-3']");
@@ -70,9 +74,9 @@ describe('fifth expedition rescue loop', () => {
         expect(source).toContain('rejoinSupportIds: [');
         expect(source).toContain('LAND ON THE LIT PLATFORM');
         expect(source).toContain('const companionName = this.getCompanionName()');
-        expect(source).toContain('Project Beacon can reach Earth from here.');
-        expect(source).toContain('If Earth hears this, anyone can. Help me turn it down.');
-        expect(source).toContain('It is quiet. The choice can wait.');
+        expect(source).toContain('The prism calmed it. Cross now.');
+        expect(source).toContain('The storm is carrying Project Beacon toward Earth.');
+        expect(source).toContain('The Phoenix is trapped inside the last storm.');
         expect(source).toContain('EARTH CONTACT POSSIBLE // NOTHING TRANSMITTED');
         expect(source).toContain("event: 'beacon_exposure_risk_discovered'");
     });
@@ -123,10 +127,10 @@ describe('fifth expedition rescue loop', () => {
         expect(source).toContain('height < 620 ? Math.min(142, height * 0.38)');
         expect(source).toContain('y: toastY - 20');
         expect(source).toContain(
-            'Follow the lit platforms. Align 3 prisms. Keep the beam away from Earth.'
+            'Reach the first prism. Watch it calm the current ahead.'
         );
         expect(source).toContain('this.createCampaignObjectiveDisplay(');
-        expect(source).toContain('QUIET ALIGNMENT ${current}/3 // ${nextPrism}');
+        expect(source).toContain('CALM CURRENT ${current}/3 // ${nextPrism}');
         expect(source).toContain('PHOENIX GATE OPEN');
         expect(source).toContain('KEEP RIGHT // LAND ON THE GOLD LIGHT');
         expect(source).toContain('FREE THE PHOENIX FROM VOID PRESSURE');
