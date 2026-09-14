@@ -15,16 +15,16 @@ describe('Final Void expedition culmination', () => {
         expect(finalVoidSource).toContain('const fractures = [');
     });
 
-    test('requires all three glowing marks to open the Empress seal', () => {
+    test('requires all three true lights to open the Empress seal', () => {
         expect(finalVoidSource).toContain('this.bondAnchorsActivated === 3');
         expect(finalVoidSource).toContain('this.finalSignalReady = true');
         expect(finalVoidSource).toMatch(
-            /createEmpressGate\(\)[\s\S]*if \(!this\.finalSignalReady\)[\s\S]*FIND THE GLOWING MARKS[\s\S]*this\.beginGuardianEncounter\(\{[\s\S]*id: 'void_empress'[\s\S]*start: \(\) => this\.startBossFight\(\)/
+            /createEmpressGate\(\)[\s\S]*if \(!this\.finalSignalReady\)[\s\S]*FIND THE TRUE LIGHTS[\s\S]*this\.beginGuardianEncounter\(\{[\s\S]*id: 'void_empress'[\s\S]*start: \(\) => this\.startBossFight\(\)/
         );
         expect(finalVoidSource).toContain(
-            'Follow three glowing marks with ${companionName}, then reach the Command Module'
+            'Follow three true lights with ${companionName}, then reach the Command Module'
         );
-        expect(finalVoidSource).toContain('[ ] Reach all 3 glowing marks');
+        expect(finalVoidSource).toContain('[ ] Reach all 3 true lights');
         expect(finalVoidSource).not.toContain('[ ] Reconnect the five living systems');
     });
 
@@ -34,7 +34,9 @@ describe('Final Void expedition culmination', () => {
             'Project Beacon finds a route to Earth - and an open door back here.',
             '${companionName} stands beside you. No command was needed.'
         ].forEach(line => expect(finalVoidSource).toContain(line));
-        expect(finalVoidSource).toContain('ROUTE PROTECTED // NO MESSAGE TRANSMITTED');
+        expect(finalVoidSource).toContain(
+            'THE VOID CANNOT HIDE THE WAY // NOTHING TRANSMITTED'
+        );
         expect(finalVoidSource).toContain(
             'Number(ecology?.restoredCount)'
         );
@@ -134,7 +136,7 @@ describe('Final Void expedition culmination', () => {
         expect(finalVoidSource).toContain('const barY = compact ? 118 : 60');
         expect(finalVoidSource).toContain('compact ? 158 : 112');
         expect(finalVoidSource).toContain('this.createCampaignObjectiveDisplay(');
-        expect(finalVoidSource).toContain('GLOWING MARK ${current}/3 // ${nextSignal}');
+        expect(finalVoidSource).toContain('TRUE LIGHT ${current}/3 // ${nextSignal}');
         expect(finalVoidSource).toContain('THE WAY IS OPEN');
         expect(finalVoidSource).toContain('GO RIGHT TO THE VOID EMPRESS');
         expect(finalVoidSource).toContain('FREE THE VOID EMPRESS');

@@ -128,7 +128,7 @@ const FINAL_ENCOUNTER_PLAN = Object.freeze([
  * of exposing this world before the Void Empress severs the line.
  *
  * Features:
- * - Three bond-signal anchors and safe checkpoints
+ * - Three ordered true-light memories and safe checkpoints
  * - Epic 5-phase boss fight with late-phase companion support
  * - Void atmosphere with reality-warping effects
  * - Most challenging encounter in the game
@@ -420,7 +420,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
         entryElements.push(mission);
 
-        const objective = this.add.text(width / 2, y(178), `Follow three glowing marks with ${companionName}, then reach the Command Module`, {
+        const objective = this.add.text(width / 2, y(178), `Follow three true lights with ${companionName}, then reach the Command Module`, {
             fontSize: font(20, 17),
             color: '#F2C94C',
             fontStyle: 'bold',
@@ -432,7 +432,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         const checklist = this.add.text(contentLeft, y(225), `${
             resume
                 ? `[ BEACON ] ${resume.label} link restored`
-                : '[ ] Reach all 3 glowing marks'
+                : '[ ] Reach all 3 true lights'
         }\n[ ] Reach reality's edge together\n[ ] Recover the final Command Module`, {
             fontSize: font(16, 14),
             color: '#CCCCCC',
@@ -857,16 +857,16 @@ class FinalVoidLevel extends PlatformerLevelScene {
         }
 
         const nextSignal = [
-            'LIVING SYSTEMS',
-            'RETURN ROUTE',
-            'TRUST MARKER'
-        ][this.bondAnchorsActivated] || 'TRUST MARKER';
+            'LIFE STILL CALLS',
+            'EARTH IS STILL HOME',
+            'TRUST WAS GIVEN'
+        ][this.bondAnchorsActivated] || 'TRUST WAS GIVEN';
         const current = Math.min(this.bondAnchorsActivated + 1, 3);
         const compass = this.getOrderedRouteCompassText();
         const title = this.isCompactObjectiveHUD
-            ? `GLOWING MARK ${current}/3`
-            : `GLOWING MARK ${current}/3 // ${nextSignal}`;
-        return `${title}\n${compass || 'FOLLOW THE NEXT GLOW'}\nCURRENT // ${networkState}${optional}`;
+            ? `TRUE LIGHT ${current}/3`
+            : `TRUE LIGHT ${current}/3 // ${nextSignal}`;
+        return `${title}\n${compass || 'FOLLOW THE NEXT TRUE LIGHT'}\nCURRENT // ${networkState}${optional}`;
     }
 
     showObjectiveToast() {
@@ -875,7 +875,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         const toast = this.add.text(
             width / 2,
             isMobileLayout ? 165 : 90,
-            'Reach the 3 glowing marks with your creature',
+            'Follow 3 true lights with your creature',
             {
                 fontSize: isMobileLayout ? '16px' : '18px',
                 color: '#F2C94C',
@@ -966,21 +966,21 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 id: 'final_bond_1',
                 x: 465,
                 y: 610,
-                label: 'LIVING SYSTEMS',
+                label: 'LIFE STILL CALLS',
                 activationSupportIds: ['final-opening-step']
             },
             {
                 id: 'final_bond_2',
                 x: 1420,
                 y: 500,
-                label: 'RETURN ROUTE',
+                label: 'EARTH IS STILL HOME',
                 activationSupportIds: ['final-return-route']
             },
             {
                 id: 'final_bond_3',
                 x: 2350,
                 y: 600,
-                label: 'TRUST MARKER',
+                label: 'TRUST WAS GIVEN',
                 activationSupportIds: ['final-rift-step-4']
             }
         ];
@@ -990,7 +990,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             visual.setDepth(180);
             this.drawBondAnchor(visual, anchor.x, anchor.y, false);
 
-            const label = this.add.text(anchor.x, anchor.y - 98, `${index + 1} // ${anchor.label}\nLAND HERE`, {
+            const label = this.add.text(anchor.x, anchor.y - 98, `${index + 1} // ${anchor.label}\nTOUCH THE LIGHT`, {
                 fontSize: '11px',
                 color: '#8F789D',
                 fontStyle: 'bold',
@@ -1025,7 +1025,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
                     const now = this.time.now;
                     if (now >= this.routeHintUntil) {
                         this.showFloatingText(
-                            `LAND ON THE LIT PLATFORM // ${bondAnchor.label}`,
+                            `LAND BELOW THE TRUE LIGHT // ${bondAnchor.label}`,
                             bondAnchor.x,
                             bondAnchor.y - 130,
                             '#F2C94C'
@@ -1085,7 +1085,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             this.bondAnchors,
             this.bondAnchorsActivated,
             {
-                fallbackLabel: 'FOLLOW THE GLOWING MARKS',
+                fallbackLabel: 'FOLLOW THE TRUE LIGHTS',
                 hintOffsetY: -125
             }
         )) {
@@ -1110,7 +1110,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
         });
 
         this.showFloatingText(
-            `GLOWING MARK ${this.bondAnchorsActivated}/3`,
+            `TRUE LIGHT ${this.bondAnchorsActivated}/3`,
             anchor.x,
             anchor.y - 125,
             '#F2C94C'
@@ -1141,7 +1141,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             this.finalSignalReady = true;
             this.time.delayedCall(1350, () => {
                 this.showFloatingText(
-                    'ROUTE PROTECTED // NO MESSAGE TRANSMITTED',
+                    'THE VOID CANNOT HIDE THE WAY // NOTHING TRANSMITTED',
                     anchor.x,
                     anchor.y - 205,
                     '#F2C94C'
@@ -1302,7 +1302,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             x: gateX,
             y: gateY,
             title: 'EMPRESS SEAL',
-            getStatus: () => `GLOWING MARKS ${this.bondAnchorsActivated}/3`,
+            getStatus: () => `TRUE LIGHTS ${this.bondAnchorsActivated}/3`,
             isReady: () => this.finalSignalReady,
             color: 0xDA70D6,
             readyColor: 0xA9F3E4,
@@ -1323,7 +1323,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
                 if (this.time.now >= this.bossGateHintUntil) {
                     this.bossGateHintUntil = this.time.now + 1800;
                     this.showFloatingText(
-                        `FIND THE GLOWING MARKS: ${this.bondAnchorsActivated}/3`,
+                        `FIND THE TRUE LIGHTS: ${this.bondAnchorsActivated}/3`,
                         gateX - 90,
                         gateY - 205,
                         '#DA70D6'

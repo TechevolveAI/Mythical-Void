@@ -51,9 +51,14 @@ describe('VictoryScene campaign contract', () => {
         });
     });
 
-    test('does not declare either planet saved before the final choice', () => {
+    test('resolves the chapter through shelter without declaring either planet saved', () => {
         expect(victorySceneSource).not.toContain('saved the cosmos');
-        expect(victorySceneSource).toContain('Together, you survived the Void.');
+        expect(victorySceneSource).toContain('Together, you chose to help.');
+        expect(victorySceneSource).toContain('WANDERER-77 CAN LEAVE');
+        expect(victorySceneSource).toContain('TURN WANDERER-77 TOWARD SHELTER');
+        expect(victorySceneSource).toContain(
+            'WE CAN GO HOME.\\nOUR FRIENDS NEED US FIRST.'
+        );
     });
 
     test('holds the repaired ship and beacon until the player chooses', () => {
@@ -116,16 +121,16 @@ describe('VictoryScene campaign contract', () => {
         expect(victorySceneSource).not.toContain('showComingSoonTeaser');
     });
 
-    test('frames the finale as a protected shared outcome and priority', () => {
-        expect(victorySceneSource).toContain('WHAT COMES FIRST?');
+    test('frames the finale as a protected outcome followed by a future plan', () => {
+        expect(victorySceneSource).toContain('WHAT SHOULD WE PREPARE?');
         expect(victorySceneSource).toContain(
             'const compactChoiceHeight = Math.max(50, Math.min(56, height * 0.105));'
         );
         expect(victorySceneSource).toContain(
-            'The coordinates are protected. Departure is deferred.'
+            'Chapter One is complete. Wanderer-77 is now shelter.'
         );
         expect(victorySceneSource).toContain(
-            'Choose what Wanderer-77 prepares first.'
+            'Choose one plan for the future.'
         );
         expect(victorySceneSource).toContain(
             'DEFEND FIRST\\nRestore communities'
@@ -143,7 +148,7 @@ describe('VictoryScene campaign contract', () => {
             'isCompact ? 0.875 : 0.84'
         );
         expect(victorySceneSource).toContain(
-            'PREPARATION ONLY // NO TRANSMISSION\\nNO DEPARTURE'
+            'FUTURE PLAN ONLY // CHAPTER ENDING UNCHANGED'
         );
         expect(victorySceneSource).toContain(
             'height * (isCompact ? 0.315 : 0.35)'
@@ -256,10 +261,19 @@ describe('VictoryScene campaign contract', () => {
             "this.skipControl.on('pointerdown', () => this.skipVictorySequence())"
         );
         expect(victorySceneSource).toMatch(
-            /skipVictorySequence\(\)\s*\{[\s\S]*this\.time\.removeAllEvents\(\);[\s\S]*this\.phase = 'complete';[\s\S]*this\.showCompletePhase\(width, height\);/
+            /skipVictorySequence\(\)\s*\{[\s\S]*this\.time\.removeAllEvents\(\);[\s\S]*this\.showShelterDecisionPhase\(width, height\);/
         );
         expect(victorySceneSource).toMatch(
             /showCompletePhase\(width, height\)\s*\{\s*this\.removeSkipControl\(\);/
+        );
+    });
+
+    test('does not begin credits until the shelter action is complete', () => {
+        expect(victorySceneSource).toMatch(
+            /completeShelterDecision\(width, height\)[\s\S]*recordCampaignRestoration\(\)[\s\S]*beginCreditsAfterShelter\(width, height\)/
+        );
+        expect(victorySceneSource).toMatch(
+            /beginCreditsAfterShelter\(width, height\)[\s\S]*this\.phase = 'credits';[\s\S]*this\.showCreditsPhase\(width, height\)/
         );
     });
 

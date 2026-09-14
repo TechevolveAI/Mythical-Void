@@ -5,9 +5,9 @@
  * Features:
  * - Ship assembly animation
  * - Project Beacon restoration sequence
- * - A quiet reflection before the final decision
+ * - A quiet reflection before turning Wanderer-77 toward shelter
  * - Credits roll with game stats
- * - Three player-chosen preparation priorities for the next saga chapter
+ * - Three optional preparation priorities for the next saga chapter
  */
 
 import { devLog } from '../utils/devLogger.js';
@@ -106,8 +106,9 @@ export default class VictoryScene extends Phaser.Scene {
     constructor() {
         super({ key: 'VictoryScene' });
         this.elements = [];
-        this.phase = 'assembly'; // assembly, beacon, reflection, credits, complete
+        this.phase = 'assembly'; // assembly, beacon, reflection, shelter, credits, complete
         this.companionMediaRequest = 0;
+        this.shelterActionStarted = false;
     }
 
     init(data) {
@@ -146,6 +147,7 @@ export default class VictoryScene extends Phaser.Scene {
 
         // Get game stats for credits
         this.loadGameStats();
+        this.ensureCreatureTexture();
 
         // Create background
         this.createBackground(width, height);
@@ -197,6 +199,48 @@ export default class VictoryScene extends Phaser.Scene {
         };
 
         devLog('[VictoryScene] Game stats loaded:', this.gameStats);
+    }
+
+    /**
+     * Runtime creature textures are generated assets and can be absent after a
+     * reload. Rebuild the same saved creature instead of omitting it from the
+     * chapter ending.
+     */
+    ensureCreatureTexture() {
+        if (
+            this.gameStats?.creatureTexture
+            && this.textures?.exists?.(this.gameStats.creatureTexture)
+        ) {
+            return this.gameStats.creatureTexture;
+        }
+
+        const state = window.GameState;
+        const activeCreature = state?.getActiveCreature?.();
+        const genes = activeCreature?.genes || state?.get('creature.genes');
+        if (!genes || typeof window.GraphicsEngine !== 'function') {
+            return null;
+        }
+
+        try {
+            const graphicsEngine = new window.GraphicsEngine(this);
+            const stage = activeCreature?.lifecycle?.stage
+                || state?.get('creature.lifecycle.stage')
+                || 'baby';
+            const result = graphicsEngine.createRandomizedSpaceMythicCreature(
+                genes,
+                0,
+                stage
+            );
+            if (!result?.textureName || !this.textures?.exists?.(result.textureName)) {
+                return null;
+            }
+            this.gameStats.creatureTexture = result.textureName;
+            state?.set?.('creature.textureName', result.textureName);
+            return result.textureName;
+        } catch (error) {
+            console.warn('[VictoryScene] Could not restore creature texture:', error);
+            return null;
+        }
     }
 
     /**
@@ -297,16 +341,9 @@ export default class VictoryScene extends Phaser.Scene {
             this.showReflectionPhase(width, height);
         });
 
-        // Phase 4: Credits (18-35s)
+        // Phase 4: The player completes Chapter One through a physical choice.
         this.time.delayedCall(18000, () => {
-            this.phase = 'credits';
-            this.showCreditsPhase(width, height);
-        });
-
-        // Phase 5: Complete (35s+)
-        this.time.delayedCall(35000, () => {
-            this.phase = 'complete';
-            this.showCompletePhase(width, height);
+            this.showShelterDecisionPhase(width, height);
         });
     }
 
@@ -349,11 +386,15 @@ export default class VictoryScene extends Phaser.Scene {
         this.stars = [];
         this.ship = null;
         this.engineFlame = null;
-        this.phase = 'complete';
-
         const { width, height } = this.scale;
         this.createBackground(width, height);
-        this.showCompletePhase(width, height);
+        if (this.phase === 'credits') {
+            this.phase = 'complete';
+            this.showCompletePhase(width, height);
+            return;
+        }
+
+        this.showShelterDecisionPhase(width, height);
     }
 
     /**
@@ -691,6 +732,271 @@ export default class VictoryScene extends Phaser.Scene {
     }
 
     /**
+     * Chapter One resolves through one visible action before the credits.
+     * The three later options remain preparation priorities, not endings.
+     */
+    showShelterDecisionPhase(width, height) {
+        this.phase = 'shelter';
+        this.shelterActionStarted = false;
+        this.removeSkipControl();
+        this.clearNonEssentialElements();
+
+        const isCompact = width < 600;
+        const groundY = height * (isCompact ? 0.71 : 0.76);
+        const shipX = width * (isCompact ? 0.5 : 0.56);
+        const shipY = groundY - (isCompact ? 118 : 136);
+
+        const sanctuary = this.add.graphics();
+        sanctuary.setDepth(35);
+        sanctuary.fillStyle(0x102B2A, 0.96);
+        sanctuary.fillRect(0, groundY, width, height - groundY);
+        sanctuary.fillStyle(0x1E5B49, 0.86);
+        sanctuary.fillEllipse(width * 0.2, groundY + 22, width * 0.7, 92);
+        sanctuary.fillStyle(0x234459, 0.76);
+        sanctuary.fillEllipse(width * 0.82, groundY + 28, width * 0.64, 106);
+        sanctuary.lineStyle(3, 0x73D9BE, 0.5);
+        sanctuary.beginPath();
+        sanctuary.moveTo(0, groundY + 20);
+        sanctuary.lineTo(width * 0.24, groundY - 10);
+        sanctuary.lineTo(width * 0.48, groundY + 16);
+        sanctuary.lineTo(width * 0.72, groundY - 6);
+        sanctuary.lineTo(width, groundY + 18);
+        sanctuary.strokePath();
+        this.elements.push(sanctuary);
+
+        const earth = this.add.graphics();
+        earth.setDepth(36);
+        earth.fillStyle(0x2769A8, 0.9);
+        earth.fillCircle(width * 0.84, height * 0.16, isCompact ? 18 : 25);
+        earth.fillStyle(0x69B88A, 0.9);
+        earth.fillEllipse(width * 0.84 - 5, height * 0.16 - 3, isCompact ? 9 : 12, isCompact ? 5 : 7);
+        earth.lineStyle(2, 0x7FC8FF, 0.55);
+        earth.strokeCircle(width * 0.84, height * 0.16, isCompact ? 25 : 34);
+        this.elements.push(earth);
+
+        if (!this.ship?.active) {
+            this.createAssembledShip(shipX, shipY);
+        }
+        this.tweens.killTweensOf(this.ship);
+        this.ship?.setPosition(shipX, shipY);
+        this.ship?.setScale(isCompact ? 0.76 : 0.96);
+
+        const title = this.add.text(width / 2, height * 0.075, 'WANDERER-77 CAN LEAVE', {
+            fontSize: isCompact ? '22px' : '30px',
+            color: '#F2C14E',
+            fontStyle: 'bold',
+            align: 'center',
+            stroke: '#060A13',
+            strokeThickness: 4
+        }).setOrigin(0.5).setDepth(100);
+
+        const prompt = this.add.text(
+            width / 2,
+            height * (isCompact ? 0.17 : 0.18),
+            'The Sanctuary is still calling for help.\nWhat should the ship become now?',
+            {
+                fontSize: isCompact ? '14px' : '17px',
+                color: '#E8E6F2',
+                align: 'center',
+                lineSpacing: 5,
+                wordWrap: { width: width * 0.84 }
+            }
+        ).setOrigin(0.5).setDepth(100);
+        this.elements.push(title, prompt);
+        this.shelterDecisionCopy = [title, prompt];
+
+        const actorY = groundY - (isCompact ? 30 : 36);
+        const astronautX = shipX - (isCompact ? 86 : 126);
+        const astronaut = this.add.graphics();
+        astronaut.setPosition(astronautX, actorY);
+        astronaut.setDepth(80);
+        astronaut.fillStyle(0xE8EEF2, 1);
+        astronaut.fillRoundedRect(-12, -34, 24, 30, 7);
+        astronaut.fillStyle(0x1E6375, 1);
+        astronaut.fillRoundedRect(-9, -29, 18, 11, 5);
+        astronaut.fillStyle(0xD64545, 1);
+        astronaut.fillRect(-12, -8, 24, 4);
+        astronaut.fillStyle(0x101820, 0.5);
+        astronaut.fillEllipse(0, 3, 32, 8);
+        this.elements.push(astronaut);
+
+        const creatureX = shipX - (isCompact ? 38 : 58);
+        if (this.gameStats.creatureTexture && this.textures.exists(this.gameStats.creatureTexture)) {
+            const creature = this.add.sprite(
+                creatureX,
+                actorY - (isCompact ? 12 : 16),
+                this.gameStats.creatureTexture
+            );
+            creature.setScale(isCompact ? 0.34 : 0.46);
+            creature.setDepth(81);
+            this.elements.push(creature);
+            this.tweens.add({
+                targets: creature,
+                y: creature.y - 4,
+                duration: 900,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+
+        this.shelterCalls = [
+            { x: 0.14, y: 0.47, color: 0xE05D5D },
+            { x: 0.22, y: 0.60, color: 0xF2C14E },
+            { x: 0.82, y: 0.51, color: 0x73D9BE }
+        ].map((call, index) => {
+            const marker = this.add.graphics();
+            marker.setPosition(width * call.x, height * call.y);
+            marker.setDepth(70);
+            marker.fillStyle(call.color, 0.9);
+            marker.fillCircle(0, 0, isCompact ? 7 : 9);
+            marker.lineStyle(2, call.color, 0.7);
+            marker.strokeCircle(0, 0, isCompact ? 14 : 18);
+            this.tweens.add({
+                targets: marker,
+                alpha: { from: 0.35, to: 1 },
+                scale: { from: 0.82, to: 1.14 },
+                duration: 750 + index * 110,
+                yoyo: true,
+                repeat: -1
+            });
+            this.elements.push(marker);
+            return marker;
+        });
+
+        const switchY = height * (isCompact ? 0.80 : 0.84);
+        const switchWidth = Math.min(330, width * 0.84);
+        const switchPanel = this.add.graphics();
+        switchPanel.setDepth(100);
+        switchPanel.fillStyle(0x111524, 0.96);
+        switchPanel.fillRoundedRect(width / 2 - switchWidth / 2, switchY - 8, switchWidth, 64, 8);
+        switchPanel.lineStyle(2, 0x73D9BE, 0.72);
+        switchPanel.strokeRoundedRect(width / 2 - switchWidth / 2, switchY - 8, switchWidth, 64, 8);
+        this.elements.push(switchPanel);
+
+        const leaveLabel = this.add.text(width / 2 - 74, switchY + 24, 'LEAVE', {
+            fontSize: '12px', color: '#847F95', fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(103);
+        const shelterLabel = this.add.text(width / 2 + 72, switchY + 24, 'SHELTER', {
+            fontSize: '12px', color: '#8FE3B8', fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(103);
+        const lever = this.add.graphics();
+        lever.setDepth(102);
+        lever.fillStyle(0xF2C14E, 1);
+        lever.fillCircle(width / 2 - 18, switchY + 24, 10);
+        lever.lineStyle(5, 0xD9E4F0, 1);
+        lever.lineBetween(width / 2 - 18, switchY + 24, width / 2 + 18, switchY + 10);
+        this.elements.push(leaveLabel, shelterLabel, lever);
+        this.shelterLever = lever;
+
+        this.shelterDecisionButton = this.createChoiceButton(
+            width / 2,
+            height * (isCompact ? 0.90 : 0.92),
+            'TURN WANDERER-77 TOWARD SHELTER',
+            0x31845A,
+            () => this.completeShelterDecision(width, height),
+            Math.min(360, width * 0.88),
+            isCompact ? 52 : 58
+        );
+    }
+
+    completeShelterDecision(width, height) {
+        if (this.shelterActionStarted) return false;
+        this.shelterActionStarted = true;
+        this.phase = 'shelter-result';
+
+        const retiredElements = [
+            ...(this.shelterDecisionCopy || []),
+            ...Object.values(this.shelterDecisionButton || {})
+        ];
+        retiredElements.forEach(element => element?.destroy?.());
+        this.elements = this.elements.filter(
+            element => !retiredElements.includes(element)
+        );
+        this.shelterDecisionCopy = [];
+        this.shelterDecisionButton = null;
+
+        if (!this.isPreview) {
+            window.GameState?.set('game.victoryAchieved', true);
+            window.GameState?.set('game.victoryDate', new Date().toISOString());
+            this.recordCampaignRestoration();
+        }
+
+        const switchY = height * (width < 600 ? 0.80 : 0.84);
+        this.shelterLever?.clear?.();
+        this.shelterLever?.fillStyle?.(0x8FE3B8, 1);
+        this.shelterLever?.fillCircle?.(width / 2 + 48, switchY + 24, 12);
+
+        const shelterArt = this.add.graphics();
+        shelterArt.setDepth(75);
+        const shipX = this.ship?.x || width / 2;
+        const shipY = this.ship?.y || height * 0.58;
+        shelterArt.fillStyle(0x173B3A, 0.95);
+        shelterArt.fillRoundedRect(shipX - 94, shipY + 42, 188, 58, 12);
+        shelterArt.lineStyle(3, 0x8FE3B8, 0.9);
+        shelterArt.strokeRoundedRect(shipX - 94, shipY + 42, 188, 58, 12);
+        shelterArt.fillStyle(0xF2C14E, 1);
+        [-54, 0, 54].forEach(offset => shelterArt.fillCircle(shipX + offset, shipY + 70, 7));
+        shelterArt.lineStyle(3, 0x8FE3B8, 0.68);
+        shelterArt.lineBetween(shipX - 80, shipY + 52, shipX - 126, shipY + 88);
+        shelterArt.lineBetween(shipX + 80, shipY + 52, shipX + 126, shipY + 88);
+        shelterArt.setAlpha(0);
+        this.elements.push(shelterArt);
+
+        this.tweens.add({
+            targets: shelterArt,
+            alpha: 1,
+            scaleX: { from: 0.55, to: 1 },
+            duration: 800,
+            ease: 'Back.easeOut'
+        });
+        (this.shelterCalls || []).forEach(marker => {
+            this.tweens.killTweensOf(marker);
+            this.tweens.add({
+                targets: marker,
+                x: Phaser.Math.Linear(marker.x, shipX, 0.35),
+                y: Phaser.Math.Linear(marker.y, shipY + 90, 0.35),
+                alpha: 1,
+                duration: 1000,
+                ease: 'Sine.easeInOut'
+            });
+        });
+
+        const result = this.add.text(
+            width / 2,
+            height * (width < 600 ? 0.29 : 0.27),
+            'WE CAN GO HOME.\nOUR FRIENDS NEED US FIRST.',
+            {
+                fontSize: width < 600 ? '20px' : '28px',
+                color: '#FFFFFF',
+                fontStyle: 'bold',
+                align: 'center',
+                lineSpacing: 7,
+                stroke: '#08110F',
+                strokeThickness: 5,
+                wordWrap: { width: width * 0.84 }
+            }
+        ).setOrigin(0.5).setDepth(150).setAlpha(0);
+        this.elements.push(result);
+        this.tweens.add({ targets: result, alpha: 1, duration: 600 });
+
+        this.time.delayedCall(3200, () => this.beginCreditsAfterShelter(width, height));
+        return true;
+    }
+
+    beginCreditsAfterShelter(width, height) {
+        this.clearEndingView();
+        this.createBackground(width, height);
+        this.phase = 'credits';
+        this.showCreditsPhase(width, height);
+        this.createSkipControl(width);
+        this.time.delayedCall(17000, () => {
+            this.phase = 'complete';
+            this.showCompletePhase(width, height);
+        });
+    }
+
+    /**
      * Phase 4: Credits Roll - Professional game credits
      */
     showCreditsPhase(width, height) {
@@ -726,7 +1032,7 @@ export default class VictoryScene extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(100));
         currentY += lineHeight * 1.5;
 
-        credits.push(this.add.text(width / 2, currentY, 'Your creature. Your journey. Your choice.', {
+        credits.push(this.add.text(width / 2, currentY, 'Your creature. Your journey. Your promise.', {
             fontSize: '18px',
             color: '#CE93D8',
             fontStyle: 'italic'
@@ -960,7 +1266,7 @@ export default class VictoryScene extends Phaser.Scene {
 
         // Victory message
         const victoryMsg = this.add.text(width / 2, height * 0.52,
-            'Together, you survived the Void.', {
+            'Together, you chose to help.', {
             fontSize: Math.min(20, width * 0.045) + 'px',
             color: '#FFD700',
             fontStyle: 'bold',
@@ -970,7 +1276,7 @@ export default class VictoryScene extends Phaser.Scene {
         this.elements.push(victoryMsg);
 
         const subMsg = this.add.text(width / 2, height * 0.57,
-            'The ship and uplink are ready. Nothing has been sent.', {
+            'Wanderer-77 is shelter now. Earth remains a protected route home.', {
             fontSize: Math.min(14, width * 0.034) + 'px',
             color: '#CE93D8',
             fontStyle: 'italic',
@@ -984,11 +1290,11 @@ export default class VictoryScene extends Phaser.Scene {
         );
         const hasPriority = CAMPAIGN_INTENTS.includes(existingPriority);
 
-        // The first visit sets a priority. Later visits replay the saved handoff.
+        // The chapter ending is complete. This optional choice only sets future work.
         const buttonY = height * 0.67;
         this.createButton(
             width / 2, buttonY,
-            hasPriority ? 'Revisit your priority' : 'Choose what comes first',
+            hasPriority ? 'REVISIT FUTURE PLAN' : 'CHOOSE A FUTURE PLAN',
             0x7B68EE,
             () => {
                 if (hasPriority) {
@@ -996,7 +1302,9 @@ export default class VictoryScene extends Phaser.Scene {
                     return;
                 }
                 this.showChoiceScene();
-            }
+            },
+            Math.min(280, width * 0.72),
+            54
         );
 
         // Play celebration
@@ -1089,13 +1397,21 @@ export default class VictoryScene extends Phaser.Scene {
         this.elements.push(panel);
 
         // Title
-        const title = this.add.text(width / 2, height * 0.16, 'WHAT COMES FIRST?', {
-            fontSize: Math.min(28, width * 0.07) + 'px',
+        const title = this.add.text(
+            width / 2,
+            height * 0.16,
+            isCompact ? 'WHAT SHOULD WE\nPREPARE?' : 'WHAT SHOULD WE PREPARE?',
+            {
+            fontSize: isCompact ? '18px' : Math.min(28, width * 0.07) + 'px',
             color: '#FFD700',
             fontStyle: 'bold',
+            align: 'center',
+            lineSpacing: 4,
+            wordWrap: { width: width * 0.82 },
             stroke: '#000000',
             strokeThickness: 3
-        }).setOrigin(0.5).setDepth(101);
+            }
+        ).setOrigin(0.5).setDepth(101);
         this.elements.push(title);
 
         // Creature in center
@@ -1117,7 +1433,7 @@ export default class VictoryScene extends Phaser.Scene {
 
         // Narrative text
         const narrative = this.add.text(width / 2, height * (isCompact ? 0.38 : 0.40),
-            `The coordinates are protected. Departure is deferred.\n${this.gameStats.creatureName} stays beside you while the Fend recovers.\nChoose what Wanderer-77 prepares first.`, {
+            `Chapter One is complete. Wanderer-77 is now shelter.\n${this.gameStats.creatureName} stays beside you while the Fend recovers.\nChoose one plan for the future.`, {
             fontSize: Math.min(14, width * 0.035) + 'px',
             color: '#E8D5FF',
             align: 'center',
@@ -1164,8 +1480,8 @@ export default class VictoryScene extends Phaser.Scene {
         // Hint text
         const hint = this.add.text(width / 2, height * (isCompact ? 0.875 : 0.84),
             isCompact
-                ? 'PREPARATION ONLY // NO TRANSMISSION\nNO DEPARTURE'
-                : 'This sets a preparation priority. It does not transmit or depart.', {
+                ? 'FUTURE PLAN ONLY // CHAPTER ENDING UNCHANGED'
+                : 'This prepares a future chapter. It does not change this ending.', {
             fontSize: isCompact ? '10px' : '12px',
             color: '#D7CDF6',
             fontStyle: 'italic',
@@ -1240,6 +1556,7 @@ export default class VictoryScene extends Phaser.Scene {
         });
 
         this.elements.push(zone);
+        return { background: btn, label: btnText, zone };
     }
 
     showEndingConfirmation(choice) {
@@ -1735,10 +2052,18 @@ export default class VictoryScene extends Phaser.Scene {
     /**
      * Create a button
      */
-    createButton(x, y, text, color, callback) {
+    createButton(
+        x,
+        y,
+        text,
+        color,
+        callback,
+        widthOverride = null,
+        heightOverride = null
+    ) {
         const { width } = this.scale;
-        const btnWidth = Math.min(150, width * 0.35);
-        const btnHeight = 50;
+        const btnWidth = widthOverride || Math.min(150, width * 0.35);
+        const btnHeight = heightOverride || 50;
 
         const btn = this.add.graphics();
         btn.fillStyle(color, 1);

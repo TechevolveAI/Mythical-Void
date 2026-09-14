@@ -127,7 +127,44 @@ function createGameState() {
 }
 
 describe('VictoryScene runtime sequence', () => {
-    test('runs restoration and reflection before presenting the choice', () => {
+    test('rebuilds the saved runtime creature when its generated texture is absent', () => {
+        const gameState = createGameState();
+        gameState.set('creature.genes', { id: 'saved-creature-23' });
+        gameState.set('creature.lifecycle.stage', 'baby');
+        gameState.getActiveCreature = jest.fn(() => ({
+            genes: { id: 'saved-creature-23' },
+            lifecycle: { stage: 'baby' }
+        }));
+        const createRandomizedSpaceMythicCreature = jest.fn(() => ({
+            textureName: 'creature_saved-creature-23_baby_0'
+        }));
+        const GraphicsEngine = jest.fn(() => ({
+            createRandomizedSpaceMythicCreature
+        }));
+        const VictoryScene = loadVictoryScene({
+            GameState: gameState,
+            GraphicsEngine
+        });
+        const scene = new VictoryScene();
+        scene.gameStats = { creatureTexture: null };
+        scene.textures = {
+            exists: jest.fn(key => key === 'creature_saved-creature-23_baby_0')
+        };
+
+        expect(scene.ensureCreatureTexture()).toBe(
+            'creature_saved-creature-23_baby_0'
+        );
+        expect(createRandomizedSpaceMythicCreature).toHaveBeenCalledWith(
+            { id: 'saved-creature-23' },
+            0,
+            'baby'
+        );
+        expect(gameState.get('creature.textureName')).toBe(
+            'creature_saved-creature-23_baby_0'
+        );
+    });
+
+    test('runs restoration and reflection before requiring the shelter action', () => {
         const VictoryScene = loadVictoryScene({});
         const scene = new VictoryScene();
         const scheduled = new Map();
@@ -136,8 +173,7 @@ describe('VictoryScene runtime sequence', () => {
         scene.createSkipControl = jest.fn();
         scene.showBeaconPhase = jest.fn();
         scene.showReflectionPhase = jest.fn();
-        scene.showCreditsPhase = jest.fn();
-        scene.showCompletePhase = jest.fn();
+        scene.showShelterDecisionPhase = jest.fn();
         scene.time = {
             delayedCall: jest.fn((delay, callback) => {
                 scheduled.set(delay, callback);
@@ -147,7 +183,7 @@ describe('VictoryScene runtime sequence', () => {
         scene.startVictorySequence(1280, 720);
 
         expect(scene.showAssemblyPhase).toHaveBeenCalledWith(1280, 720);
-        expect([...scheduled.keys()]).toEqual([5000, 10000, 18000, 35000]);
+        expect([...scheduled.keys()]).toEqual([5000, 10000, 18000]);
 
         scheduled.get(5000)();
         expect(scene.phase).toBe('beacon');
@@ -158,12 +194,7 @@ describe('VictoryScene runtime sequence', () => {
         expect(scene.showReflectionPhase).toHaveBeenCalledWith(1280, 720);
 
         scheduled.get(18000)();
-        expect(scene.phase).toBe('credits');
-        expect(scene.showCreditsPhase).toHaveBeenCalledWith(1280, 720);
-
-        scheduled.get(35000)();
-        expect(scene.phase).toBe('complete');
-        expect(scene.showCompletePhase).toHaveBeenCalledWith(1280, 720);
+        expect(scene.showShelterDecisionPhase).toHaveBeenCalledWith(1280, 720);
     });
 
     test('records restoration without making the ending choice', () => {

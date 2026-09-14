@@ -14926,17 +14926,27 @@ async function smokeFinalPriorityJourney(session, exceptions) {
     exceptions.length = 0;
     await navigate(session, `${BASE_URL}/play/?reset=true`);
     await waitForScene(session, 'HatchingScene');
+    const finaleProfile = getVisualReviewCreatureProfile();
     const started = await evaluate(session, `(() => {
         const game = window.mythicalGame;
         const state = window.GameState;
+        const profile = ${JSON.stringify(finaleProfile)};
         const creature = {
             ...(state.get('creature') || {}),
             id: 'smoke_finale_nova',
             name: 'Nova',
             hatched: true,
             named: true,
+            genes: profile.genes,
+            dna: profile.dna,
+            lifecycle: { stage: 'baby' },
             textureName: state.get('creature.textureName') || null
         };
+        state.set('creature.genes', profile.genes);
+        state.set('creature.genetics', profile.genes);
+        state.set('creature.dna', profile.dna);
+        state.set('creature.lifecycle.stage', 'baby');
+        state.set('creature.textureName', null);
         state.set('creature', creature);
         state.set('creatures', [creature]);
         state.set('activeCreatureIndex', 0);
@@ -14954,9 +14964,48 @@ async function smokeFinalPriorityJourney(session, exceptions) {
     await touchSceneText(session, 'SKIP >>', {
         message: 'Victory skip control'
     });
-    await touchSceneText(session, 'Choose what comes first', {
-        message: 'Final priority entry'
+    if (SMOKE_CAPTURE_DIR) {
+        await captureGameplayStill(
+            session,
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? 'final-shelter-choice-phone.png'
+                : 'final-shelter-choice-desktop.png',
+            { settleMs: 900 }
+        );
+    }
+    await touchSceneText(session, 'TURN WANDERER-77 TOWARD SHELTER', {
+        message: 'Chapter One shelter action'
     });
+    if (SMOKE_CAPTURE_DIR) {
+        await captureGameplayStill(
+            session,
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? 'final-shelter-consequence-phone.png'
+                : 'final-shelter-consequence-desktop.png',
+            { settleMs: 700 }
+        );
+    }
+    await waitFor(
+        () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('VictoryScene');
+            return scene?.phase === 'credits';
+        })()`),
+        { timeoutMs: 6000, message: 'post-shelter credits' }
+    );
+    await touchSceneText(session, 'SKIP >>', {
+        message: 'Credits skip control'
+    });
+    await touchSceneText(session, 'CHOOSE A FUTURE PLAN', {
+        message: 'Future priority entry'
+    });
+    if (SMOKE_CAPTURE_DIR) {
+        await captureGameplayStill(
+            session,
+            SMOKE_VIEWPORT_WIDTH <= 600
+                ? 'final-future-plan-phone.png'
+                : 'final-future-plan-desktop.png'
+        );
+    }
     await touchSceneText(session, 'PREPARE HOMECOMING\nPreserve a secret route', {
         message: 'Prepare Homecoming priority'
     });
