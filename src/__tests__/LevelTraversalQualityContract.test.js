@@ -1423,7 +1423,10 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("rewardLabel: 'RIDGE GUARD // 1 HIT'");
         expect(source).toContain("returnLabel: 'WARNING LINE →'");
         expect(source).toContain("this.grantOptionalRouteGuard('RIDGE GUARD', 1);");
-        expect(source).toContain('{ x: 620, width: 360 }');
+        expect(source).not.toContain('{ x: 620, width: 360 }');
+        expect(source).toContain("id: 'peak-opening-updraft'");
+        expect(source).toContain("destinationId: 'peak-lower-relay-overlook'");
+        expect(source).toContain('openingLesson: true');
         expect(source).toContain("[2730, 300, 'peaks_relic_ridge']");
         expect(source).toContain("[3000, 235, 'peaks_relic_ridge']");
         expect(source).toContain("onOptionalSelected: () => this.selectPeakRoute('optional')");
@@ -1466,7 +1469,7 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("const fragments = [...(this.collectibles?.getChildren?.() || [])]");
         expect(source).toContain('onOptionalRouteGuardConsumed()');
         expect(source).toContain('createPeakReturnCurrents()');
-        expect(source).toContain("'RETURN CURRENT\\nTO WARNING LINE ↑'");
+        expect(source).toContain("definition.openingLesson ? 'UPDRAFT' : 'RETURN WIND'");
         expect(source).toContain("lowerRecoveryIsland.traversalLinks = ['peak-warning-lower']");
         expect(source).toContain("summitRecoveryIsland.traversalLinks = ['peak-warning-summit']");
         expect(source).toContain('const PEAK_RETURN_CURRENT_LAUNCH_BAND = 130;');

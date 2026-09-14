@@ -26,6 +26,24 @@ const TITAN_RECOVERY_WINDOW = 650;
 const TITAN_PHASE_RECOVERY = 1300;
 const PEAK_RETURN_CURRENT_LAUNCH_BAND = 130;
 
+const PEAK_CLIMB_LESSONS = Object.freeze([
+    Object.freeze({
+        title: 'RIDE THE UPDRAFT',
+        action: 'STEP INTO THE RISING STONES',
+        complete: 'THE WIND CARRIES YOU UP'
+    }),
+    Object.freeze({
+        title: 'LET THE WIND CATCH YOU',
+        action: 'AIM FOR THE RISING STONES IF YOU FALL',
+        complete: 'YOU FOUND THE RETURN WIND'
+    }),
+    Object.freeze({
+        title: 'CROSS THE LIFTING STORM',
+        action: 'LAND AT THE LAST ORANGE LIGHT',
+        complete: 'THE TITAN PATH IS OPEN'
+    })
+]);
+
 const PEAK_ENCOUNTER_PLAN = Object.freeze([
     Object.freeze({
         beat: 'opening-clear',
@@ -326,7 +344,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
         entryElements.push(title);
 
-        const subtitle = this.add.text(width / 2, y(92), `"${companionName} catches a warning in the wind"`, {
+        const subtitle = this.add.text(width / 2, y(92), `"${companionName} feels stones falling upward"`, {
             fontSize: font(16, 14),
             color: '#DA70D6',
             fontStyle: 'italic',
@@ -350,7 +368,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
         entryElements.push(mission);
 
-        const objective = this.add.text(width / 2, y(172), 'Light three warning beacons. Then reach the Cosmic Titan.', {
+        const objective = this.add.text(width / 2, y(172), 'Ride the first updraft. Land at the orange warning light.', {
             fontSize: font(19, 16),
             color: '#8FE3CF',
             align: 'center',
@@ -360,8 +378,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         const checklist = this.add.text(contentLeft, y(220), `${
             resume
-                ? `[ BEACON ] ${resume.label} link restored`
-                : '[ ] Light 3 warning beacons'
+                ? `[ WARNING LIGHT ] ${resume.label} restored`
+                : '[ ] Follow 3 warning lights'
         }\n[ ] Free the Cosmic Titan\n[ OPTIONAL ] Collect 5 Star Fragments`, {
             fontSize: font(16, 14),
             color: '#CCCCCC',
@@ -621,7 +639,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     createVoidGeysers() {
         const animateRouteDecorations = this.shouldAnimatePeakRouteDecorations();
         const geysers = [
-            { x: 620, width: 360 }, { x: 1500, width: 380 },
+            { x: 1500, width: 380 },
             { x: 2420, width: 500 }, { x: 3380, width: 520 }
         ];
 
@@ -661,6 +679,16 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         const animateRouteDecorations = this.shouldAnimatePeakRouteDecorations();
         const currents = [
             {
+                id: 'peak-opening-updraft',
+                x: 820,
+                top: 420,
+                bottom: this.levelHeight - 48,
+                width: 300,
+                destinationId: 'peak-lower-relay-overlook',
+                lessonText: 'UPDRAFT // FIRST LIFT',
+                openingLesson: true
+            },
+            {
                 id: 'peak-return-lower',
                 x: 2350,
                 top: 460,
@@ -689,7 +717,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             this.physics.add.existing(zone, true);
 
             const visual = this.add.graphics();
-            visual.fillStyle(0x8FE3CF, 0.12);
+            const currentColor = definition.openingLesson ? 0xFF9B45 : 0x8FE3CF;
+            visual.fillStyle(currentColor, 0.1);
             visual.fillRoundedRect(
                 definition.x - definition.width / 2,
                 definition.top,
@@ -697,21 +726,19 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                 height,
                 14
             );
-            visual.lineStyle(2, 0x8FE3CF, 0.72);
-            visual.lineBetween(
-                definition.x,
-                definition.bottom - 18,
-                definition.x,
-                definition.top + 24
-            );
-            for (let y = definition.bottom - 55; y > definition.top + 35; y -= 58) {
-                visual.strokeTriangle(
-                    definition.x - 14,
-                    y + 10,
-                    definition.x,
-                    y - 8,
-                    definition.x + 14,
-                    y + 10
+            for (let index = 0; index < 6; index += 1) {
+                const progress = index / 5;
+                const y = definition.bottom - 45 - progress * (height - 90);
+                const drift = Math.sin(index * 1.7) * definition.width * 0.22;
+                const size = 18 + (index % 3) * 7;
+                visual.fillStyle(currentColor, 0.22 + progress * 0.32);
+                visual.fillEllipse(definition.x + drift, y, size * 1.7, size);
+                visual.fillStyle(0xF2C94C, 0.34 + progress * 0.35);
+                visual.fillEllipse(
+                    definition.x + drift - size * 0.18,
+                    y - size * 0.08,
+                    size * 0.62,
+                    size * 0.34
                 );
             }
             visual.setDepth(130);
@@ -719,7 +746,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             const label = this.add.text(
                 definition.x,
                 definition.bottom - 68,
-                'RETURN CURRENT\nTO WARNING LINE ↑',
+                definition.openingLesson ? 'UPDRAFT' : 'RETURN WIND',
                 {
                     fontSize: '11px',
                     color: '#8FE3CF',
@@ -729,6 +756,10 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                     align: 'center'
                 }
             ).setOrigin(0.5).setDepth(185);
+            label.setVisible(!(
+                this.isMobile ||
+                (Number(this.cameras?.main?.width) || 0) <= 480
+            ));
 
             const current = {
                 ...definition,
@@ -776,7 +807,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         current.activations += 1;
         current.lastLiftAt = now;
         this.showFloatingText(
-            'RETURN CURRENT // WARNING LINE',
+            current.lessonText || 'RETURN WIND // BACK TO THE RIDGE',
             current.x,
             this.player.y - 55,
             '#8FE3CF'
@@ -800,6 +831,17 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             phase: 'lift',
             expiresAt: now + 3600
         };
+        if (current.openingLesson && !current.lessonShown) {
+            current.lessonShown = true;
+            this.time.delayedCall(500, () => {
+                this.showFloatingText(
+                    `${this.getCompanionName()}: "The stones are falling up. Follow them!"`,
+                    current.x + 120,
+                    current.top - 25,
+                    '#D6EEF2'
+                );
+            });
+        }
         return true;
     }
 
@@ -1157,11 +1199,16 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         }
 
         const current = Math.min(this.beaconRelaysActivated + 1, 3);
+        const lesson = PEAK_CLIMB_LESSONS[
+            Math.min(this.beaconRelaysActivated, PEAK_CLIMB_LESSONS.length - 1)
+        ];
         const compass = this.getOrderedRouteCompassText();
         const direction = compass?.replace(/^CLUE/, 'CLIMB');
         return withOptional(
-            `WARNING BEACON ${current}/3\n${
-                direction || 'CLIMB RIGHT // LAND ON THE ORANGE LIGHT'
+            `CLIMB LESSON ${current}/3 // ${lesson.title}\n${
+                this.beaconRelaysActivated === 0
+                    ? lesson.action
+                    : (direction || lesson.action)
             }`
         );
     }
@@ -1193,11 +1240,12 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         ];
 
         relays.forEach((relay, index) => {
+            const lesson = PEAK_CLIMB_LESSONS[index];
             const visual = this.add.graphics();
             visual.setDepth(180);
             this.drawSignalRelay(visual, relay.x, relay.y, false);
 
-            const label = this.add.text(relay.x, relay.y - 94, `${index + 1} // WARNING BEACON\nLAND HERE`, {
+            const label = this.add.text(relay.x, relay.y - 94, `${index + 1} // ${lesson.title}\n${lesson.action}`, {
                 fontSize: '11px',
                 color: '#7E718A',
                 fontStyle: 'bold',
@@ -1214,6 +1262,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
             const beacon = {
                 ...relay,
+                lesson,
                 index,
                 visual,
                 label,
@@ -1319,7 +1368,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         if (this.beaconRelaysActivated < 3) {
             this.showFloatingText(
-                `WARNING BEACON ${this.beaconRelaysActivated}/3 LIT`,
+                relay.lesson?.complete ||
+                    `WARNING LIGHT ${this.beaconRelaysActivated}/3 LIT`,
                 relay.x,
                 relay.y - 120,
                 '#8FE3CF'
@@ -1330,16 +1380,17 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         if (this.beaconRelaysActivated === 1) {
             this.time.delayedCall(650, () => {
                 this.showFloatingText(
-                    `${companionName}: "Warning sent. Stay close."`,
+                    `${companionName}: "The mountain catches us when we fall."`,
                     relay.x,
                     relay.y - 155,
                     '#D6EEF2'
                 );
             });
         } else if (this.beaconRelaysActivated === 2) {
+            this.setPeakRouteChoiceVisible(true);
             this.time.delayedCall(650, () => {
                 this.showFloatingText(
-                    'UNKNOWN REPLY: "RIDGE FALLING. TITAN HOLDING LINE."',
+                    'DISTANT VOICE: "THE TITAN IS HOLDING THE RIDGE."',
                     relay.x,
                     relay.y - 155,
                     '#D6EEF2'
@@ -1422,6 +1473,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             }
         });
 
+        this.peakRouteChoiceMarkers = { spine, relicRoute };
+        this.setPeakRouteChoiceVisible(Boolean(
+            this.peakRouteChoice || this.beaconRelaysActivated >= 2
+        ));
+
         if (this.shouldAnimatePeakRouteDecorations()) {
             this.tweens.add({
                 targets: [spine, relicRoute],
@@ -1434,6 +1490,13 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             spine.setAlpha(0.9);
             relicRoute.setAlpha(0.9);
         }
+    }
+
+    setPeakRouteChoiceVisible(visible) {
+        const shouldShow = visible === true;
+        this.peakRouteChoiceMarkers?.spine?.setVisible?.(shouldShow);
+        this.peakRouteChoiceMarkers?.relicRoute?.setVisible?.(shouldShow);
+        return shouldShow;
     }
 
     restoreExpeditionRouteState(resume) {
@@ -1458,6 +1521,9 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.restorePeakRouteState(resume.routeState, {
             rejoined: Number(resume.checkpointIndex) >= 2
         });
+        this.setPeakRouteChoiceVisible(
+            this.beaconRelaysActivated >= 2 || Boolean(this.peakRouteChoice)
+        );
         this.syncCampaignObjectiveDisplay();
         return true;
     }
@@ -1485,6 +1551,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
 
         const firstSelection = !this.peakRouteChoice;
         this.peakRouteChoice = path;
+        this.setPeakRouteChoiceVisible(true);
         const choice = this.optionalRouteRewards?.get?.('peaks_relic_ridge')?.choice;
         if (choice) {
             choice.selectedPath = path;
@@ -1893,7 +1960,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             x,
             y,
             title: 'TITAN PASS',
-            getStatus: () => 'LIGHT 3 WARNING BEACONS',
+            getStatus: () => 'REACH ALL 3 WARNING LIGHTS',
             isReady: () => this.creatureNetworkReached,
             color: 0xFF4500,
             readyColor: 0x8FE3CF
@@ -1923,7 +1990,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
                     const now = this.time.now;
                     if (now >= this.bossGateHintUntil) {
                         this.showFloatingText(
-                            'Titan Pass is closed. Light all 3 warning beacons.',
+                            'Titan Pass is closed. Reach all 3 warning lights.',
                             this.player.x,
                             this.player.y - 70,
                             '#F2C94C'
@@ -1987,7 +2054,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         const toast = this.add.text(
             width / 2,
             toastY,
-            'Light 3 warning beacons. Then free the Cosmic Titan.',
+            'Ride the orange updraft to the first warning light.',
             {
             fontSize: isMobileLayout ? '15px' : '18px',
             color: '#FFD700',

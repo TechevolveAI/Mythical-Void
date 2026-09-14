@@ -2360,6 +2360,11 @@ async function setKeyboardKey(session, type, {
 async function smokeVoidPeaksReturnCurrents(session) {
     const routes = [
         {
+            id: 'peak-opening-updraft',
+            start: { x: 740, supportId: 'peak-opening-rise' },
+            destinationId: 'peak-lower-relay-overlook'
+        },
+        {
             id: 'peak-return-lower',
             start: { x: 2310, supportId: 'peak-floor-lower' },
             destinationId: 'peak-warning-lower'

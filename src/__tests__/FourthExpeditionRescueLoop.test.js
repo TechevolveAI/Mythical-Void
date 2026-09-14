@@ -42,9 +42,11 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain("activationSupportIds: ['peak-summit-relay']");
         expect(source).toContain('this.isPlayerGroundedOnTraversalSupport(');
         expect(source).toContain('this.getTraversalSupportCheckpoint(');
-        expect(source).toContain('WARNING BEACON\\nLAND HERE');
+        expect(source).toContain("title: 'RIDE THE UPDRAFT'");
+        expect(source).toContain("action: 'STEP INTO THE RISING STONES'");
+        expect(source).toContain("complete: 'THE WIND CARRIES YOU UP'");
         expect(source).toContain('LAND ON THE LIT PLATFORM');
-        expect(source).toContain('WARNING BEACON ${this.beaconRelaysActivated}/3 LIT');
+        expect(source).toContain('WARNING LIGHT ${this.beaconRelaysActivated}/3 LIT');
         expect(source).toContain("activationSupportIds: ['peak-titan-gate']");
         expect(source).toContain("this.isPlayerGroundedOnTraversalSupport('peak-titan-gate')");
     });
@@ -56,12 +58,12 @@ describe('fourth expedition rescue loop', () => {
         )?.[1] || '';
 
         expect(source).toContain('const companionName = this.getCompanionName()');
-        expect(source).toContain('Warning sent. Stay close.');
-        expect(source).toContain('RIDGE FALLING. TITAN HOLDING LINE.');
+        expect(source).toContain('The mountain catches us when we fall.');
+        expect(source).toContain('THE TITAN IS HOLDING THE RIDGE.');
         expect(source).toContain('THREE SETTLEMENTS ANSWER');
-        expect(source).toContain('They want it saved.');
-        expect(source).toContain('Light 3 warning beacons. Then free the Cosmic Titan.');
-        expect(source).toContain('`[ BEACON ] ${resume.label} link restored`');
+        expect(source).toContain('They are warning you about the Titan. They want it saved.');
+        expect(source).toContain('Ride the first updraft. Land at the orange warning light.');
+        expect(source).toContain('`[ WARNING LIGHT ] ${resume.label} restored`');
         expect(source).toContain('this.creatureNetworkReached = true');
         expect(source).toContain('this.playCreatureWarningResponse(relay)');
         expect(source).toContain('relay.label?.setVisible?.(false)');
@@ -115,13 +117,17 @@ describe('fourth expedition rescue loop', () => {
         )?.[1] || '';
 
         expect(gate).toContain('if (!this.creatureNetworkReached)');
-        expect(gate).toContain('Titan Pass is closed. Light all 3 warning beacons.');
+        expect(gate).toContain('Titan Pass is closed. Reach all 3 warning lights.');
         expect(gate).toContain('return;');
     });
 
     test('catches a child who steps off the ledge into a return current', () => {
         const source = readLevel();
 
+        expect(source).toContain("id: 'peak-opening-updraft'");
+        expect(source).toContain("destinationId: 'peak-lower-relay-overlook'");
+        expect(source).toContain("lessonText: 'UPDRAFT // FIRST LIFT'");
+        expect(source).toContain('openingLesson: true');
         expect(source).toContain('const PEAK_RETURN_CURRENT_LAUNCH_BAND = 130;');
         expect(source).toContain('const descendingIntoCurrent = body.velocity.y >= -20;');
         expect(source).toContain(
@@ -214,7 +220,7 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain('Math.min(225, height * 0.28)');
         expect(source).toContain('y: toastY - 20');
         expect(source).toContain('this.createCampaignObjectiveDisplay(');
-        expect(source).toContain('WARNING BEACON ${current}/3');
+        expect(source).toContain('CLIMB LESSON ${current}/3 // ${lesson.title}');
         expect(source).toContain("compass?.replace(/^CLUE/, 'CLIMB')");
         expect(source).toContain('TITAN PASS IS OPEN');
         expect(source).toContain(
