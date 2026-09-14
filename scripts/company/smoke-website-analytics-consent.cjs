@@ -14,7 +14,9 @@ const CHROME_PATH = process.env.CHROME_PATH ||
 const DEBUG_PORT = Number(process.env.CHROME_DEBUG_PORT) || (9800 + (process.pid % 100));
 const TIMEOUT_MS = Number(process.env.ANALYTICS_SMOKE_TIMEOUT_MS) || 20_000;
 const CONSENT_KEY = 'mythical-analytics-consent';
+const EXCLUSION_KEY = 'mythical-analytics-owner-excluded';
 const GOOGLE_TAG_ID = 'G-FTM4W73ECQ';
+const SMOKE_MODE = process.env.ANALYTICS_SMOKE_MODE || 'consent';
 
 function delay(milliseconds) {
     return new Promise(resolve => setTimeout(resolve, milliseconds));
@@ -162,6 +164,8 @@ async function readPageState(session) {
         path: location.pathname,
         siteHeaderVisible: Boolean(document.querySelector('.site-header')),
         consent: (() => { try { return localStorage.getItem(${JSON.stringify(CONSENT_KEY)}); } catch (error) { return null; } })(),
+        ownerExcluded: (() => { try { return localStorage.getItem(${JSON.stringify(EXCLUSION_KEY)}) === 'true'; } catch (error) { return false; } })(),
+        googleTagDisabled: window[${JSON.stringify(`ga-disable-${GOOGLE_TAG_ID}`)}] === true,
         bannerVisible: Boolean(document.querySelector('[data-analytics-consent]')),
         tagScriptCount: [...document.scripts].filter(script => script.src.includes('googletagmanager.com/gtag/js')).length,
         tagLoaded: Boolean(window.google_tag_manager?.[${JSON.stringify(GOOGLE_TAG_ID)}]),
@@ -224,6 +228,52 @@ async function main() {
                 sameOriginFailures.push({ phase, url: publicUrl(request.url), error: event.errorText });
             }
         });
+
+        if (SMOKE_MODE === 'owner-opt-out') {
+            phase = 'owner_opt_out';
+            await navigate(session, `${BASE_URL}/analytics-opt-out/`);
+            await waitFor(
+                () => evaluate(session, `localStorage.getItem(${JSON.stringify(EXCLUSION_KEY)}) === 'true' && localStorage.getItem(${JSON.stringify(CONSENT_KEY)}) === 'denied'`),
+                'owner analytics exclusion to persist'
+            );
+            const optOut = await readPageState(session);
+            assert(optOut.ownerExcluded, 'Owner exclusion was not saved', optOut);
+            assert(optOut.consent === 'denied', 'Owner exclusion did not deny analytics', optOut);
+            assert(optOut.googleTagDisabled, 'Google disable flag was not set', optOut);
+            assert(optOut.tagScriptCount === 0, 'Opt-out page loaded the Google tag', optOut);
+
+            phase = 'excluded_home';
+            await navigate(session, `${BASE_URL}/`);
+            await waitForStable(
+                () => evaluate(session, `Boolean(document.querySelector('.site-header'))`),
+                'excluded website homepage'
+            );
+            const excludedHome = await readPageState(session);
+            const excludedGoogleRequests = requests.filter(item =>
+                (item.phase === 'owner_opt_out' || item.phase === 'excluded_home') &&
+                /google(?:tagmanager|-analytics)\.com/.test(item.url)
+            );
+            assert(excludedHome.ownerExcluded, 'Owner exclusion did not survive navigation', excludedHome);
+            assert(excludedHome.consent === 'denied', 'Excluded homepage did not stay denied', excludedHome);
+            assert(excludedHome.googleTagDisabled, 'Excluded homepage did not keep Google disabled', excludedHome);
+            assert(excludedHome.tagScriptCount === 0, 'Excluded homepage loaded the Google tag', excludedHome);
+            assert(!excludedHome.bannerVisible, 'Excluded homepage showed the analytics choice', excludedHome);
+            assert(excludedGoogleRequests.length === 0, 'Excluded browser made a Google analytics request', excludedGoogleRequests);
+            assert(sameOriginFailures.length === 0, 'Same-origin resources failed during owner exclusion', sameOriginFailures);
+
+            console.log(JSON.stringify({
+                success: true,
+                checkedUrl: `${BASE_URL}/analytics-opt-out/`,
+                ownerExclusionPersisted: true,
+                analyticsConsent: excludedHome.consent,
+                homepageTagScriptCount: excludedHome.tagScriptCount,
+                googleAnalyticsRequestCount: excludedGoogleRequests.length,
+                sameOriginFailureCount: sameOriginFailures.length,
+                audioPolicy: 'muted',
+                gameRouteVisited: false
+            }, null, 2));
+            return;
+        }
 
         await navigate(session, `${BASE_URL}/`);
         await waitForStable(

@@ -194,6 +194,10 @@
         function gtag() { window.dataLayer.push(arguments); }
         window.gtag = window.gtag || gtag;
         window.MYTHICAL_GOOGLE_TAG_ID = 'G-FTM4W73ECQ';
+        var analyticsExclusionKey = 'mythical-analytics-owner-excluded';
+        var analyticsExcluded = false;
+        try { analyticsExcluded = window.localStorage.getItem(analyticsExclusionKey) === 'true'; } catch (error) { /* Storage can be unavailable. */ }
+        if (analyticsExcluded) window['ga-disable-' + window.MYTHICAL_GOOGLE_TAG_ID] = true;
         var allowedEvents = ['discovery_arrival', 'play_selected', 'share_completed', 'share_link_copied'];
         var allowedAreas = ['header', 'hero', 'content', 'share_section', 'final_cta', 'footer', 'intent_wonder', 'intent_create', 'intent_challenge', 'intent_story'];
         var allowedEntrySources = ['direct_or_private', 'owned_site', 'search', 'game_shelf', 'social_or_creator', 'other_site'];
@@ -240,16 +244,20 @@
             page_path: path,
             page_referrer: ''
         });
-        var tag = document.createElement('script');
-        tag.async = true;
-        tag.src = 'https://www.googletagmanager.com/gtag/js?id=' + window.MYTHICAL_GOOGLE_TAG_ID;
-        document.head.appendChild(tag);
+        if (!analyticsExcluded) {
+            var tag = document.createElement('script');
+            tag.async = true;
+            tag.src = 'https://www.googletagmanager.com/gtag/js?id=' + window.MYTHICAL_GOOGLE_TAG_ID;
+            document.head.appendChild(tag);
+        }
         window.MythicalAnalytics = {
             getConsent: function () {
+                if (analyticsExcluded) return 'denied';
                 try { return window.localStorage.getItem('mythical-analytics-consent'); } catch (error) { return null; }
             },
             setConsent: function (value) {
                 if (value !== 'granted' && value !== 'denied') return;
+                if (analyticsExcluded) value = 'denied';
                 try { window.localStorage.setItem('mythical-analytics-consent', value); } catch (error) { /* private browsing can refuse storage */ }
                 window.gtag('consent', 'update', {
                     analytics_storage: value,
