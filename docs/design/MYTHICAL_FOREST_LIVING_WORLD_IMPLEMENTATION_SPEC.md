@@ -72,6 +72,12 @@ displayed wording remains authored and can be changed without migrating saves.
 
 ## Guardian restoration ending
 
+The Guardian entrance is a protected handoff. The game derives the creature's
+position from the real `forest-ground-6` collision surface, clears every held
+touch action, and locks movement through the fade and awakening. The creature,
+Wanderer-77, checkpoint and last-safe position all use that same grounded
+coordinate. A guessed screen coordinate must never be used for this handoff.
+
 Clearing the Elder Treant's corruption starts a guaranteed 8-10 second Phaser
 sequence before rewards or the birthday event:
 
@@ -87,6 +93,14 @@ sequence before rewards or the birthday event:
 7. The established birthday/reward/return flow continues unchanged.
 
 A visible Skip control must always complete the same state transition.
+The Guardian withdrawal has both a Phaser-timer completion and a once-only
+wall-clock fallback, so a lost tween callback cannot strand the player.
+
+The result screen is a level ending, not the game's final moral choice. It must
+say that the Forest expedition is complete, show that the Elder Treant was
+restored, confirm Wisp is safe, award the Forest Core, and state that Crystal
+Caves is open. Its primary action is `ENTER SANCTUARY`; the later Earth/Fend
+choice remains reserved for the final campaign ending.
 
 ## UX and failure rules
 
@@ -98,6 +112,8 @@ A visible Skip control must always complete the same state transition.
 - Re-entry restores completed help moments from the existing ordered route.
 - Scene shutdown removes every timer, bubble and restoration element.
 - The Guardian still awakens automatically after the third help moment.
+- Guardian entry cannot inherit left/right/down touch state from traversal.
+- The result action remains visible and returns through the existing Hub scene.
 
 ## Acceptance
 
@@ -109,4 +125,3 @@ A visible Skip control must always complete the same state transition.
 - The restored Forest changes most of the frame before the reward panel.
 - Old route saves still restore correctly.
 - Skipping or interrupting the ending cannot block completion.
-

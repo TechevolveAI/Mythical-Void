@@ -63,6 +63,9 @@ describe('level registry coverage', () => {
             } else if (sceneKey === 'AuroraDepthsLevel') {
                 expect(levelSource).toContain('[ INSTALL AURORA REACTOR ]');
                 expect(levelSource).toContain('this.returnToHub()');
+            } else if (sceneKey === 'MythicalForestLevel') {
+                expect(levelSource).toContain('[ ENTER SANCTUARY ]');
+                expect(levelSource).toContain('this.returnToHub()');
             } else {
                 expect(levelSource).toContain('[ RETURN TO HUB ]');
                 expect(levelSource).toContain('this.returnToHub()');

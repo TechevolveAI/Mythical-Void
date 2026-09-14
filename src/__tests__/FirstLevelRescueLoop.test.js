@@ -471,6 +471,24 @@ describe('first expedition rescue loop', () => {
         expect(source).toContain('this.boss.setY(this.bossArenaY);');
     });
 
+    test('stages the Guardian handoff on measured ground with touch input locked', () => {
+        const source = fs.readFileSync(
+            path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
+            'utf8'
+        );
+        const entry = source.match(
+            /stageForestGuardianEntry\([\s\S]*?\n    \}\n\n    refreshForestRouteReadability/
+        )?.[0] || '';
+
+        expect(source).toContain('const FOREST_GUARDIAN_INPUT_LOCK_MS = 2300;');
+        expect(entry).toContain("this.getTraversalSupportCheckpoint(\n            'forest-ground-6'");
+        expect(source).toContain('this.releaseAllPlatformerActionButtons?.();');
+        expect(source).toContain('this.platformDropThroughUntil = 0;');
+        expect(entry).toContain('this.player.body.updateFromGameObject?.();');
+        expect(entry).toContain('this.lastSafePosition = { ...entrance };');
+        expect(source).not.toContain('const entranceY = this.levelHeight - 170;');
+    });
+
     test('keeps live forest objectives visible without covering compact combat', () => {
         const source = fs.readFileSync(
             path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
@@ -515,6 +533,10 @@ describe('first expedition rescue loop', () => {
         expect(source).toMatch(
             /continueAfterForestRestoration\(\)[\s\S]*showCaydenBirthdayQuestion/
         );
+        expect(source).toContain("'forest-guardian-withdrawal'");
+        expect(source).toContain("'FOREST EXPEDITION COMPLETE'");
+        expect(source).toContain("'[ ENTER SANCTUARY ]'");
+        expect(source).toContain("'NEXT EXPEDITION OPEN: CRYSTAL CAVES'");
     });
 
     test('keeps first-expedition control coaching brief and dismissible', () => {

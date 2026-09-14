@@ -33,6 +33,8 @@ const FOREST_ROOTWAKE_STATE_PATH =
     'story.projectBeacon.forestRootwakeCrossing';
 const FOREST_ROOTWAKE_VERSION = 1;
 const FIRST_EXPEDITION_COACH_DURATION_MS = 3200;
+const FOREST_GUARDIAN_ENTRY_X = 5520;
+const FOREST_GUARDIAN_INPUT_LOCK_MS = 2300;
 
 const ROOTWAKE_PLATFORM_CONFIGS = Object.freeze([
     Object.freeze({ id: 'rootwake-step-1', x: 438, width: 108, rise: 46 }),
@@ -203,6 +205,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestRestorationActive = false;
         this.forestRestorationElements = [];
         this.forestRestorationTimers = [];
+        this.forestVictoryShown = false;
         this.bossTriggerZone = null;
         this.bossGateHintUntil = 0;
         this.objectiveDisplay = null;
@@ -348,6 +351,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.forestRestorationActive = false;
         this.forestRestorationElements = [];
         this.forestRestorationTimers = [];
+        this.forestVictoryShown = false;
         this.bossTriggerZone = null;
         this.bossGateHintUntil = 0;
         this.objectiveDisplay = null;
@@ -2130,22 +2134,17 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.guardianAwakeningStarted = true;
         this.bossTriggerZone?.destroy?.();
         this.bossTriggerZone = null;
-        this.resetJoystick?.();
-        this.clearVirtualJumpInput?.();
-        this.player?.setVelocity?.(0, 0);
+        this.lockForestGuardianEntryInput();
 
         const camera = this.cameras.main;
         camera?.fadeOut?.(220, 8, 20, 18);
         this.time.delayedCall(260, () => {
             if (!this.scene.isActive() || this.bossDefeated) return;
 
-            const entranceX = 5520;
-            const entranceY = this.levelHeight - 170;
-            this.player?.setPosition?.(entranceX, entranceY);
-            this.player?.setVelocity?.(0, 0);
-            if (this.astronautFollower?.sprite?.active) {
-                this.astronautFollower.sprite.setPosition(entranceX - 76, entranceY - 6);
-                this.astronautFollower.resetTrail?.();
+            const entrance = this.stageForestGuardianEntry();
+            if (!entrance) {
+                this.guardianAwakeningStarted = false;
+                return;
             }
             camera?.startFollow?.(this.player, true, 0.12, 0.12);
             camera?.fadeIn?.(320, 8, 20, 18);
@@ -2153,12 +2152,52 @@ class MythicalForestLevel extends PlatformerLevelScene {
             const guardianEntered = this.beginGuardianEncounter({
                 id: 'elder_treant',
                 title: 'ELDER TREANT',
-                checkpoint: { x: entranceX, y: entranceY },
+                checkpoint: entrance,
                 start: () => this.startBossFight()
             });
             if (!guardianEntered) this.guardianAwakeningStarted = false;
         });
         return true;
+    }
+
+    lockForestGuardianEntryInput() {
+        this.releaseAllPlatformerActionButtons?.();
+        this.resetJoystick?.();
+        this.clearVirtualJumpInput?.();
+        this.platformDropInputLatched = false;
+        this.platformDropThroughUntil = 0;
+        this.player?.setVelocity?.(0, 0);
+        this.recoveryInputLockedUntil = Math.max(
+            Number(this.recoveryInputLockedUntil) || 0,
+            (Number(this.time?.now) || 0) + FOREST_GUARDIAN_INPUT_LOCK_MS
+        );
+    }
+
+    stageForestGuardianEntry(fallbackX = FOREST_GUARDIAN_ENTRY_X) {
+        if (!this.player?.active || !this.player?.body) return null;
+
+        const entrance = this.getTraversalSupportCheckpoint(
+            'forest-ground-6',
+            fallbackX
+        );
+        if (!Number.isFinite(entrance?.x) || !Number.isFinite(entrance?.y)) {
+            return null;
+        }
+
+        this.lockForestGuardianEntryInput();
+        this.player.body.setAllowGravity?.(true);
+        this.player.setPosition(entrance.x, entrance.y);
+        this.player.body.updateFromGameObject?.();
+        this.player.setVelocity(0, 0);
+        this.lastSafePosition = { ...entrance };
+        if (this.astronautFollower?.sprite?.active) {
+            this.astronautFollower.sprite.setPosition(
+                entrance.x - 76,
+                entrance.y - 6
+            );
+            this.astronautFollower.resetTrail?.();
+        }
+        return entrance;
     }
 
     refreshForestRouteReadability() {
@@ -5258,13 +5297,12 @@ class MythicalForestLevel extends PlatformerLevelScene {
                         }
                         return;
                     }
+                    const entrance = this.stageForestGuardianEntry(5380);
+                    if (!entrance) return;
                     const guardianEntered = this.beginGuardianEncounter({
                         id: 'elder_treant',
                         title: 'ELDER TREANT',
-                        checkpoint: {
-                            x: 5380,
-                            y: this.levelHeight - 170
-                        },
+                        checkpoint: entrance,
                         start: () => this.startBossFight()
                     });
                     if (!guardianEntered) return;
@@ -6823,7 +6861,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
     }
 
     continueAfterForestRestoration() {
+        let completionShown = false;
         const showEstablishedCompletion = () => {
+            if (completionShown) return;
+            completionShown = true;
+            this.cancelGuardianTransition?.('forest-guardian-withdrawal');
             if (
                 !this.birthdayCelebrationShown &&
                 isCaydenBirthdayCelebrationActive()
@@ -6838,12 +6880,25 @@ class MythicalForestLevel extends PlatformerLevelScene {
             }
             this.showBossVictory();
         };
+        const finishGuardianWithdrawal = () => {
+            this.boss?.destroy?.();
+            this.boss = null;
+            this.bossGlow?.destroy?.();
+            this.bossGlow = null;
+            showEstablishedCompletion();
+        };
 
         if (!this.boss?.active) {
             showEstablishedCompletion();
             return;
         }
 
+        this.scheduleGuardianTransition(
+            'forest-guardian-withdrawal',
+            1500,
+            finishGuardianWithdrawal,
+            500
+        );
         this.tweens.add({
             targets: this.boss,
             alpha: 0,
@@ -6851,13 +6906,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             scaleY: this.bossTargetScale * 1.08,
             y: this.boss.y - 25,
             duration: 1200,
-            onComplete: () => {
-                this.boss?.destroy?.();
-                this.boss = null;
-                this.bossGlow?.destroy?.();
-                this.bossGlow = null;
-                showEstablishedCompletion();
-            }
+            onComplete: finishGuardianWithdrawal
         });
     }
 
@@ -7347,6 +7396,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * Show boss victory screen with ship part reward
      */
     showBossVictory() {
+        if (this.forestVictoryShown) return false;
+        this.forestVictoryShown = true;
         this.bindLevelCompletionReturn();
         this.syncCampaignObjectiveDisplay({ visible: false, force: true });
         this.combatJuice?.comboDisplay?.setVisible?.(false);
@@ -7373,7 +7424,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const ecology = completionResult?.currentEcology;
 
         // Victory text
-        const victoryText = this.add.text(width / 2, y(45), '🌳 ELDER TREANT RESTORED 🌳', {
+        const victoryText = this.add.text(width / 2, y(45), 'FOREST EXPEDITION COMPLETE', {
             fontSize: font(32, 24),
             color: '#FFD700',
             fontStyle: 'bold',
@@ -7400,7 +7451,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         panel.setScrollFactor(0).setDepth(2499);
 
         // Rewards header
-        this.add.text(width / 2, y(100), 'LIVING CURRENT RECOVERING', {
+        this.add.text(width / 2, y(100), 'ELDER TREANT RESTORED', {
             fontSize: font(22, 18),
             color: '#90EE90',
             fontStyle: 'bold'
@@ -7446,11 +7497,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.add.text(
             width / 2,
             y(275),
-            (ecology
-                ? `Current regions: ${ecology.restoredCount}/${ecology.totalRegions}  |  Ship parts: ${shipParts.length}/${totalRequired}`
-                : `Ship Parts: ${shipParts.length}/${totalRequired}`) +
-                `\n${this.getVillageCompletionCopy({ compact: true })}` +
-                `\n${this.getGuardianSanctuaryArrivalCopy({ compact: true })}`,
+            `Wisp is safe in the Sanctuary.` +
+                `\n${completionResult?.nextGateUnlocked
+                    ? 'NEXT EXPEDITION OPEN: CRYSTAL CAVES'
+                    : 'NEXT: RETURN TO THE SANCTUARY'}` +
+                `\nShip Parts: ${shipParts.length}/${totalRequired}`,
             {
             fontSize: font(13, 11),
             color: '#7FFFD4',
@@ -7489,7 +7540,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
 
         // Continue button
-        const continueBtn = this.add.text(width / 2, y(440), '[ RETURN TO HUB ]', {
+        const continueBtn = this.add.text(width / 2, y(440), '[ ENTER SANCTUARY ]', {
             fontSize: font(18, 16),
             color: '#FFFFFF',
             backgroundColor: '#228B22',
@@ -7506,6 +7557,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         if (window.AudioManager) {
             window.AudioManager.playLevelUp();
         }
+        return true;
     }
 
     /**

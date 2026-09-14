@@ -8569,6 +8569,14 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     guardianId: encounter.id,
                     checkpointX: scene.checkpointPosition?.x,
                     checkpointY: scene.checkpointPosition?.y,
+                    playerBottom: Number(scene.player?.body?.bottom),
+                    guardianFloorTop: Number(
+                        scene.getTraversalSupport?.('forest-ground-6')?.body?.top
+                    ),
+                    virtualJoystickX: Number(scene.virtualJoystickX) || 0,
+                    virtualJoystickY: Number(scene.virtualJoystickY) || 0,
+                    inputLockedUntil: Number(scene.recoveryInputLockedUntil) || 0,
+                    encounterStartedAt: Number(encounter.startedAt) || 0,
                     gateCleared: scene.guardianGateState == null,
                     duplicateAccepted: scene.beginGuardianEncounter?.({
                         id: 'duplicate_guardian',
@@ -8608,6 +8616,16 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             !guardianEntry.guardianId ||
             !Number.isFinite(guardianEntry.checkpointX) ||
             !Number.isFinite(guardianEntry.checkpointY) ||
+            (route === 'mythicalForest' &&
+                Math.abs(
+                    guardianEntry.playerBottom - guardianEntry.guardianFloorTop
+                ) > 2) ||
+            (route === 'mythicalForest' &&
+                (guardianEntry.virtualJoystickX !== 0 ||
+                    guardianEntry.virtualJoystickY !== 0)) ||
+            (route === 'mythicalForest' &&
+                guardianEntry.inputLockedUntil -
+                    guardianEntry.encounterStartedAt < 2200) ||
             guardianEntry.gateCleared !== true ||
             guardianEntry.duplicateAccepted !== false ||
             guardianEntry.remainingPatrols !== 0 ||
@@ -14339,7 +14357,7 @@ async function smokeGuardianHandoff(session, step, exceptions) {
     }
 
     const returnLabel = {
-        mythicalForest: '[ RETURN TO HUB ]',
+        mythicalForest: '[ ENTER SANCTUARY ]',
         crystalCaves: '[ RETURN TO HUB ]',
         reef: '[ RETURN TO HUB ]',
         voidPeaks: '[ RETURN TO HUB ]',
@@ -14357,7 +14375,7 @@ async function smokeGuardianHandoff(session, step, exceptions) {
                 ));
                 const returnAction = scene?.children?.list?.find?.(item => (
                     item?.visible !== false &&
-                    item?.text === '[ RETURN TO HUB ]' &&
+                    item?.text === '[ ENTER SANCTUARY ]' &&
                     item?.input?.enabled === true
                 ));
                 if (!invite || !returnAction) return null;
