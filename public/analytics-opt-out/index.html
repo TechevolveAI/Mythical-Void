@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Analytics are off | Mythical Void</title>
+    <style>
+        :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+        * { box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            margin: 0;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            background: radial-gradient(circle at top, #22174c 0, #090711 58%);
+            color: #fff8ec;
+        }
+        main {
+            width: min(620px, 100%);
+            padding: clamp(28px, 7vw, 56px);
+            border: 1px solid rgba(118, 227, 207, 0.38);
+            border-radius: 28px;
+            background: rgba(9, 7, 17, 0.9);
+            box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+        }
+        .eyebrow { margin: 0 0 12px; color: #76e3cf; font-size: 0.82rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+        h1 { margin: 0; font-size: clamp(2rem, 8vw, 4rem); line-height: 0.98; }
+        p { margin: 22px 0 0; color: #d7d1e7; font-size: 1.05rem; line-height: 1.65; }
+        a {
+            display: inline-flex;
+            margin-top: 28px;
+            min-height: 48px;
+            align-items: center;
+            padding: 0 22px;
+            border-radius: 999px;
+            background: #76e3cf;
+            color: #090711;
+            font-weight: 800;
+            text-decoration: none;
+        }
+    </style>
+    <script>
+    (function () {
+        var measurementId = 'G-FTM4W73ECQ';
+        var hostname = window.location.hostname.replace(/^www\./, '');
+        window['ga-disable-' + measurementId] = true;
+        try {
+            window.localStorage.setItem('mythical-analytics-owner-excluded', 'true');
+            window.localStorage.setItem('mythical-analytics-consent', 'denied');
+        } catch (error) { /* Private browsing can refuse storage. */ }
+
+        document.cookie.split(';').forEach(function (item) {
+            var cookieName = item.split('=')[0].trim();
+            if (!/^_ga(?:_|$)|^_gid$|^_gat(?:_|$)/.test(cookieName)) return;
+            document.cookie = cookieName + '=; Max-Age=0; path=/; SameSite=Lax';
+            if (hostname) document.cookie = cookieName + '=; Max-Age=0; path=/; domain=.' + hostname + '; SameSite=Lax';
+        });
+    }());
+    </script>
+</head>
+<body>
+    <main>
+        <p class="eyebrow">Mythical Void owner device</p>
+        <h1>Analytics are off.</h1>
+        <p>This browser will no longer add visits or Play-button selections to Mythical Void’s Google Analytics. The setting stays on this browser until its website data is cleared.</p>
+        <p>Open this page once in every browser you use for Mythical Void testing.</p>
+        <a href="/">Return to the website</a>
+    </main>
+</body>
+</html>

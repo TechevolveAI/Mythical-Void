@@ -8,6 +8,18 @@ The public shop window now has the Google tag requested for Mythical:
 
 It is limited to the public pages before the game. The game does not load it.
 
+## Excluding an owner or test browser
+
+Opening `/analytics-opt-out/` once stores an analytics exclusion in that
+browser, records the normal analytics choice as denied, clears existing
+Mythical Google Analytics cookies, and prevents the Google tag from loading on
+later public-page visits. The page is not indexed and does not load analytics.
+
+The setting belongs to the browser rather than to a person. Kevin therefore
+needs to open the page once in each phone and desktop browser used for testing.
+It does not use a name, account, IP address or other identity and it does not
+alter historical Analytics totals.
+
 ## What visitors see
 
 The first time someone visits, they see a simple choice:

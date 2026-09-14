@@ -155,6 +155,8 @@
     "test:owned-attention": "node scripts/company/test-owned-channel-attention.cjs",
     "validate:website-analytics": "node scripts/company/validate-website-analytics-tag.cjs",
     "test:website-analytics": "node scripts/company/test-website-analytics-tag.cjs",
+    "test:analytics-owner-opt-out": "node scripts/company/test-analytics-owner-opt-out.cjs",
+    "smoke:analytics-owner-opt-out": "ANALYTICS_SMOKE_MODE=owner-opt-out node scripts/company/smoke-website-analytics-consent.cjs",
     "smoke:website-analytics-consent": "node scripts/company/smoke-website-analytics-consent.cjs",
     "test:live-presence": "jest --runInBand src/__tests__/LivePresenceFunction.test.js src/__tests__/LivePresenceContract.test.js src/__tests__/StorefrontIntegration.test.js",
     "submit:indexnow": "node scripts/company/submit-indexnow.cjs",

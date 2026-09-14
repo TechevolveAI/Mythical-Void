@@ -1,6 +1,10 @@
 (function () {
     var storageKey = 'mythical-analytics-consent';
+    var exclusionKey = 'mythical-analytics-owner-excluded';
     var tagId = 'G-FTM4W73ECQ';
+    var analyticsExcluded = false;
+    try { analyticsExcluded = window.localStorage.getItem(exclusionKey) === 'true'; } catch (error) { /* Storage can be unavailable. */ }
+    if (analyticsExcluded) window['ga-disable-' + tagId] = true;
     var currentPath = window.location.pathname;
     var allowedEvents = ['discovery_arrival', 'play_selected', 'share_completed', 'share_link_copied'];
     var allowedAreas = ['header', 'hero', 'content', 'share_section', 'final_cta', 'footer', 'intent_wonder', 'intent_create', 'intent_challenge', 'intent_story'];
@@ -372,6 +376,7 @@
     window.gtag = window.gtag || gtag;
 
     function readChoice() {
+        if (analyticsExcluded) return 'denied';
         try { return window.localStorage.getItem(storageKey); } catch (error) { return null; }
     }
 
@@ -380,6 +385,7 @@
     }
 
     function applyChoice(value) {
+        if (analyticsExcluded) value = 'denied';
         window.gtag('consent', 'update', {
             analytics_storage: value,
             ad_storage: 'denied',
@@ -436,10 +442,12 @@
         page_referrer: ''
     });
 
-    var tag = document.createElement('script');
-    tag.async = true;
-    tag.src = 'https://www.googletagmanager.com/gtag/js?id=' + tagId;
-    document.head.appendChild(tag);
+    if (!analyticsExcluded) {
+        var tag = document.createElement('script');
+        tag.async = true;
+        tag.src = 'https://www.googletagmanager.com/gtag/js?id=' + tagId;
+        document.head.appendChild(tag);
+    }
 
     var savedChoice = readChoice();
     if (savedChoice === 'granted' || savedChoice === 'denied') {
