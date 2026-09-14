@@ -3118,6 +3118,95 @@ async function smokeReefForwardCurrents(session) {
     return { drift, traveler };
 }
 
+async function smokeReefReturnFlowLesson(session) {
+    const setup = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('ReefLevel');
+        const lesson = scene?.returnFlowLesson;
+        const body = scene?.player?.body;
+        if (!lesson || !body) return null;
+
+        scene.isInvincible = true;
+        scene.releaseAllPlatformerActionButtons?.();
+        scene.resetJoystick?.();
+        scene.beaconAnchorsActivated = 1;
+        lesson.entered = false;
+        lesson.crossed = false;
+        lesson.hintShown = true;
+        body.reset(
+            lesson.left + ((lesson.right - lesson.left) * 0.55),
+            lesson.top + ((lesson.bottom - lesson.top) * 0.5)
+        );
+        scene.player.setVelocity(140, 0);
+        const velocityBefore = body.velocity.x;
+        const active = scene.updateReturnFlowLesson(16);
+        return {
+            active,
+            entered: lesson.entered,
+            crossed: lesson.crossed,
+            velocityBefore,
+            velocityAfter: body.velocity.x,
+            objective: scene.getReefObjectiveText?.() || '',
+            bounds: {
+                left: lesson.left,
+                right: lesson.right,
+                top: lesson.top,
+                bottom: lesson.bottom
+            }
+        };
+    })()`);
+    if (
+        setup?.active !== true ||
+        setup.entered !== true ||
+        setup.crossed !== false ||
+        !(setup.velocityAfter < setup.velocityBefore) ||
+        !setup.objective.includes('RETURN FLOW PUSHES LEFT')
+    ) {
+        throw new Error(`Reef return-flow resistance failed: ${JSON.stringify(setup)}`);
+    }
+
+    const crossed = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('ReefLevel');
+        const lesson = scene.returnFlowLesson;
+        scene.player.setPosition(
+            lesson.right + 80,
+            lesson.top + ((lesson.bottom - lesson.top) * 0.5)
+        );
+        scene.player.body.updateFromGameObject?.();
+        const requiredCenterX = lesson.right + 48;
+        if (scene.player.body.center.x < requiredCenterX) {
+            scene.player.x += requiredCenterX - scene.player.body.center.x;
+            scene.player.body.updateFromGameObject?.();
+        }
+        scene.player.setVelocity(0, 0);
+        scene.updateReturnFlowLesson(16);
+        return {
+            active: lesson.active,
+            entered: lesson.entered,
+            crossed: lesson.crossed,
+            bodyCenterX: scene.player.body.center.x,
+            requiredCenterX,
+            objective: scene.getReefObjectiveText?.() || ''
+        };
+    })()`);
+    if (
+        crossed?.active !== false ||
+        crossed.entered !== true ||
+        crossed.crossed !== true ||
+        !crossed.objective.includes('EARTH METAL IS CAUGHT AHEAD')
+    ) {
+        throw new Error(`Reef return-flow crossing failed: ${JSON.stringify(crossed)}`);
+    }
+
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('ReefLevel');
+        scene.isInvincible = false;
+        scene.player.body.reset(2300, 340);
+        scene.player.setVelocity(0, 0);
+        return true;
+    })()`);
+    return { setup, crossed };
+}
+
 async function smokeFinalVoidRiftCrossing(session) {
     const supportIds = [
         'final-rift-step-1',
@@ -5794,6 +5883,9 @@ async function smokeLevel(session, route, sceneName, exceptions, {
     const reefForwardCurrents = route === 'reef'
         ? await smokeReefForwardCurrents(session)
         : null;
+    const reefReturnFlowLesson = route === 'reef'
+        ? await smokeReefReturnFlowLesson(session)
+        : null;
 
     let verticalJoystick = null;
     if (route === 'reef') {
@@ -7723,7 +7815,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             })()`);
             if (
                 reefDriveGate?.ready !== false ||
-                reefDriveGate.status !== 'FIND DIMENSIONAL DRIVE'
+                reefDriveGate.status !== 'RECOVER WANDERER-77 DRIVE' ||
+                !reefDriveGate.label.includes('RECOVER WANDERER-77 DRIVE')
             ) {
                 throw new Error(
                     `${sceneName} gate did not identify its remaining drive requirement: ` +
@@ -8925,6 +9018,7 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         returnCurrents,
         reefAscentCurrent,
         reefForwardCurrents,
+        reefReturnFlowLesson,
         finalRiftCrossing,
         auroraQuietLightClimb,
         forestForwardHandoffs,
@@ -9176,6 +9270,56 @@ async function smokeReefPrivateEvidence(session, exceptions) {
         `stellar-reef-current-action-${viewportLabel}.png`
     );
 
+    const returnFlowStaged = await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('ReefLevel');
+        const lesson = scene?.returnFlowLesson;
+        const creature = scene?.player;
+        const follower = scene?.astronautFollower;
+        const astronaut = follower?.sprite;
+        const camera = scene?.cameras?.main;
+        if (!lesson || !creature?.body || !astronaut?.active || !camera) return false;
+
+        scene.beaconAnchorsActivated = 1;
+        lesson.entered = true;
+        lesson.crossed = false;
+        lesson.hintShown = true;
+        creature.setPosition(
+            lesson.left + ((lesson.right - lesson.left) * 0.48),
+            lesson.top + ((lesson.bottom - lesson.top) * 0.54)
+        );
+        creature.body.updateFromGameObject?.();
+        creature.setVelocity?.(-70, 0);
+        creature.facingRight = true;
+        creature.setFlipX?.(false);
+        const formationGap = ${isPhone ? 142 : 174};
+        follower.followDistance = formationGap;
+        follower.setContextualFormation?.(
+            { x: formationGap, y: 2 },
+            'reef_private_return_flow'
+        );
+        follower.resetTrail?.();
+        astronaut.setPosition(creature.x + formationGap, creature.y + 2);
+        follower.shadow?.setPosition?.(astronaut.x, astronaut.y + 34);
+        camera.panEffect?.reset?.();
+        camera.stopFollow();
+        camera.setZoom(1);
+        camera.centerOn((creature.x + astronaut.x) / 2, creature.y - 28);
+        scene.syncCampaignObjectiveDisplay?.({ force: true });
+        scene.updateReturnFlowLesson(16);
+        return true;
+    })()`);
+    if (!returnFlowStaged) {
+        throw new Error('Stellar Reef return-flow evidence could not be staged');
+    }
+    await delay(180);
+    const returnFlow = await inspectFrame('return-flow');
+    assertFrame(returnFlow);
+    const returnFlowPath = await captureGameplayStill(
+        session,
+        `stellar-reef-return-flow-${viewportLabel}.png`,
+        { settleMs: 40 }
+    );
+
     const guardianStarted = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene('ReefLevel');
         if (!scene?.player || scene.bossFightActive) return false;
@@ -9266,9 +9410,10 @@ async function smokeReefPrivateEvidence(session, exceptions) {
         sourceProfileId: profile.genes.id,
         viewport: { width: SMOKE_VIEWPORT_WIDTH, height: SMOKE_VIEWPORT_HEIGHT },
         opening,
+        returnFlow,
         guardian,
         guardianDamage: beforeHealth - afterHealth,
-        files: [openingPath, guardianPath]
+        files: [openingPath, returnFlowPath, guardianPath]
     };
 }
 

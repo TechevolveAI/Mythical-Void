@@ -46,6 +46,27 @@ const REEF_GUARDIAN_ARENA = Object.freeze({
     desktopTeamGap: 172
 });
 
+const REEF_CURRENT_LESSONS = Object.freeze([
+    Object.freeze({
+        id: 'ride',
+        title: 'RIDE THE CURRENT',
+        action: 'ENTER THE FLOW',
+        complete: 'THE CURRENT LIFTS YOU'
+    }),
+    Object.freeze({
+        id: 'resist',
+        title: 'CROSS THE RETURN FLOW',
+        action: 'KEEP SWIMMING RIGHT',
+        complete: 'YOU CROSSED THE RETURN FLOW'
+    }),
+    Object.freeze({
+        id: 'redirect',
+        title: 'OPEN THE PASSAGE',
+        action: 'REACH THE REEF BLOOM',
+        complete: 'THE CREATURE TURNS THE CURRENT'
+    })
+]);
+
 const REEF_ENCOUNTER_PLAN = Object.freeze([
     Object.freeze({
         beat: 'opening-phase-lesson',
@@ -241,6 +262,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.activeReefAscentCurrent = null;
         this.driftAscentCurrent = null;
         this.travelerAscentCurrent = null;
+        this.returnFlowLesson = null;
     }
 
     preload() {
@@ -344,6 +366,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.activeReefAscentCurrent = null;
         this.driftAscentCurrent = null;
         this.travelerAscentCurrent = null;
+        this.returnFlowLesson = null;
 
         console.log('[ReefLevel] Cosmic Abyss state reset');
     }
@@ -466,7 +489,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         // Subtitle
         const subtitle = this.add.text(width / 2, y(95),
-            `"${companionName} recognizes the old waypoints"`, {
+            `"${companionName} can feel where the current is going"`, {
             fontSize: font(13, 12),
             color: '#BA55D3',
             fontStyle: 'italic',
@@ -476,9 +499,9 @@ class ReefLevel extends PlatformerLevelScene {
 
         // Story text
         const storyText = this.add.text(width / 2, y(125),
-            'Ancient star-travelers crossed these living currents.\n' +
-            'The Void broke their route into scattered pieces.\n' +
-            'Your instruments hear noise. Your creature hears a path.', {
+            'The Reef is a sea with no water.\n' +
+            'Living matter drifts between stars.\n' +
+            'Watch what moves, then move with it.', {
             fontSize: font(12, 11),
             color: '#9370DB',
             align: 'center',
@@ -518,7 +541,7 @@ class ReefLevel extends PlatformerLevelScene {
             y(295),
             resume
                 ? `${resume.label} link restored`
-                : 'Swim through the three gold current markers',
+                : 'Learn the three ways a living current moves',
             {
             fontSize: font(16, 14),
             color: '#8FE3CF',
@@ -528,8 +551,9 @@ class ReefLevel extends PlatformerLevelScene {
             }
         ).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
-        // Ship part objective (critical!)
-        const shipObj = this.add.text(width / 2, y(335), 'Find Wanderer-77\'s Dimensional Drive', {
+        // The first screen gives one immediate action. The Drive is discovered
+        // on that route after the player has learned how a current feels.
+        const shipObj = this.add.text(width / 2, y(335), 'FIRST // Enter the gold flow to your right', {
             fontSize: font(15, 13),
             color: '#00FFFF',
             fontStyle: 'bold',
@@ -537,8 +561,7 @@ class ReefLevel extends PlatformerLevelScene {
             wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(3002);
 
-        // Secondary objectives
-        const relicObj = this.add.text(contentLeft, y(375), '[ OPTIONAL ] Collect Star Fragments (0/5)', {
+        const relicObj = this.add.text(contentLeft, y(375), 'Optional discoveries appear off the main current.', {
             fontSize: font(13, 12),
             color: '#AAAACC',
             wordWrap: { width: contentWidth }
@@ -550,8 +573,8 @@ class ReefLevel extends PlatformerLevelScene {
         );
         const controlsHint = this.add.text(width / 2, y(420),
             isMobile
-                ? 'JOYSTICK MOVES + DIVES\n↑ BUTTON SWIMS UP'
-                : 'ARROWS / WASD TO SWIM // SPACE ASCENDS', {
+                ? 'JOYSTICK SWIMS // HOLD UP TO RISE'
+                : 'ARROWS / WASD SWIM // SPACE RISES', {
             fontSize: isMobile ? font(13, 12) : font(11, 10),
             color: '#9370DB',
             align: 'center',
@@ -1295,31 +1318,30 @@ class ReefLevel extends PlatformerLevelScene {
                 routeStatus
             );
         }
-        if (this.beaconAnchorsActivated >= 1 && !this.shipPartCollected) {
+        if (
+            this.beaconAnchorsActivated >= 1 &&
+            this.returnFlowLesson?.crossed &&
+            !this.shipPartCollected
+        ) {
             return objective(
-                'FIND THE DIMENSIONAL DRIVE',
+                'EARTH METAL IS CAUGHT AHEAD',
                 this.getDriveCompassText(),
                 routeStatus
             );
         }
 
-        const nextWaypoint = [
-            'DRIFT CURRENT',
-            'TRAVELER CURRENT',
-            'PASSAGE CURRENT'
-        ][this.beaconAnchorsActivated] || 'PASSAGE CURRENT';
-        const current = Math.min(this.beaconAnchorsActivated + 1, 3);
-        const drive = this.shipPartCollected
-            ? 'DIMENSIONAL DRIVE // SECURED'
-            : 'HOLD JUMP TO SWIM UP';
+        const lesson = REEF_CURRENT_LESSONS[
+            Math.min(this.beaconAnchorsActivated, REEF_CURRENT_LESSONS.length - 1)
+        ];
+        const current = Math.min(this.beaconAnchorsActivated + 1, REEF_CURRENT_LESSONS.length);
         const compass = this.getOrderedRouteCompassText();
-        const routeDirection = this.beaconAnchorsActivated === 0
-            ? 'SWIM RIGHT + UP // FOLLOW THE GOLD CURRENT'
-            : compass;
-        const title = this.isCompactObjectiveHUD
-            ? `GOLD MARKER ${current}/3`
-            : `GOLD MARKER ${current}/3 // ${nextWaypoint}`;
-        return objective(title, routeDirection || drive, routeStatus);
+        const title = `CURRENT LESSON ${current}/3 // ${lesson.title}`;
+        const nextAction = this.beaconAnchorsActivated === 0
+            ? 'SWIM RIGHT + UP // ENTER THE GOLD FLOW'
+            : this.beaconAnchorsActivated === 1
+                ? 'HOLD RIGHT // THE RETURN FLOW PUSHES LEFT'
+                : compass || 'FOLLOW THE GOLD CURRENT TO THE REEF BLOOM';
+        return objective(title, nextAction, routeStatus);
     }
 
     getReefRouteStatusText() {
@@ -1370,6 +1392,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.createReefRouteChoice();
         this.createAbyssAscentCurrent();
         this.createDriftAscentCurrent();
+        this.createReturnFlowLesson();
         this.createTravelerAscentCurrent();
 
         // Boss trigger
@@ -1498,7 +1521,10 @@ class ReefLevel extends PlatformerLevelScene {
                 enemy.isTelegraphing ||
                 enemy.isLunging
             );
-            const shouldStayActive = inWindow || attackActive;
+            const lessonUnlocked = enemy.encounterBeat !== 'main-current-charge' ||
+                this.returnFlowLesson?.crossed === true ||
+                this.beaconAnchorsActivated >= 2;
+            const shouldStayActive = lessonUnlocked && (inWindow || attackActive);
             this.setReefEnemyProximityActive(enemy, shouldStayActive);
             if (shouldStayActive) nearby.push(enemy);
         });
@@ -1562,6 +1588,7 @@ class ReefLevel extends PlatformerLevelScene {
         ];
 
         waypoints.forEach((waypoint, index) => {
+            const lesson = REEF_CURRENT_LESSONS[index];
             const supportId = waypoint.activationSupportIds[0];
             const support = this.getTraversalSupport(supportId);
             const supportCheckpoint = this.getTraversalSupportCheckpoint(
@@ -1584,7 +1611,7 @@ class ReefLevel extends PlatformerLevelScene {
             const label = this.add.text(
                 waypointX,
                 waypointY - 76,
-                `${index + 1} // GOLD MARKER\nSWIM THROUGH`,
+                `${index + 1} // ${lesson.title}\n${lesson.action}`,
                 {
                 fontSize: '11px',
                 color: '#667F94',
@@ -1602,6 +1629,7 @@ class ReefLevel extends PlatformerLevelScene {
 
             const anchor = {
                 ...waypoint,
+                lesson,
                 x: waypointX,
                 y: waypointY,
                 supportY,
@@ -1936,7 +1964,7 @@ class ReefLevel extends PlatformerLevelScene {
         });
 
         this.showFloatingText(
-            `GOLD CURRENT ${this.beaconAnchorsActivated}/3 OPEN`,
+            anchor.lesson?.complete || `CURRENT ${this.beaconAnchorsActivated}/3 RESTORED`,
             anchor.x,
             anchor.y - 92,
             '#8FE3CF'
@@ -1946,7 +1974,7 @@ class ReefLevel extends PlatformerLevelScene {
         if (this.beaconAnchorsActivated === 1) {
             this.time.delayedCall(650, () => {
                 this.showFloatingText(
-                    `${companionName}: "This message did not come from Earth."`,
+                    `${companionName}: "The flow rises ahead. Let it carry us."`,
                     anchor.x,
                     anchor.y - 126,
                     '#D6EEF2'
@@ -1955,7 +1983,7 @@ class ReefLevel extends PlatformerLevelScene {
         } else if (this.beaconAnchorsActivated === 2) {
             this.time.delayedCall(650, () => {
                 this.showFloatingText(
-                    `${companionName}: "It is a traveler relay. Someone crossed before us."`,
+                    `${companionName}: "It pushed back, but we crossed it."`,
                     anchor.x,
                     anchor.y - 126,
                     '#D6EEF2'
@@ -2082,6 +2110,104 @@ class ReefLevel extends PlatformerLevelScene {
         return true;
     }
 
+    createReturnFlowLesson() {
+        const bounds = {
+            left: 1725,
+            right: 2160,
+            top: this.levelHeight - 785,
+            bottom: this.levelHeight - 285
+        };
+        const visual = this.add.graphics().setDepth(116);
+        const centerY = (bounds.top + bounds.bottom) / 2;
+
+        [0, 1, 2].forEach(index => {
+            const y = centerY - 92 + index * 92;
+            visual.lineStyle(18 - index * 3, 0x314F66, 0.16);
+            visual.beginPath();
+            visual.moveTo(bounds.right, y - 24);
+            visual.lineTo(bounds.right - 105, y + 18);
+            visual.lineTo(bounds.right - 230, y - 12);
+            visual.lineTo(bounds.left, y + 28);
+            visual.strokePath();
+        });
+        [0, 1, 2, 3, 4, 5].forEach(index => {
+            const x = bounds.right - 45 - index * 68;
+            const y = centerY + Math.sin(index * 1.4) * 86;
+            visual.fillStyle(index % 2 ? 0x8FE3CF : 0xD6EEF2, 0.42);
+            visual.fillEllipse(x, y, 30, 13);
+            visual.fillStyle(0xF2C94C, 0.58);
+            visual.fillEllipse(x - 10, y, 8, 5);
+        });
+
+        const label = this.add.text(
+            (bounds.left + bounds.right) / 2,
+            bounds.top + 24,
+            'RETURN FLOW // KEEP SWIMMING RIGHT',
+            {
+                fontSize: '11px',
+                color: '#D6EEF2',
+                fontStyle: 'bold',
+                stroke: '#05030C',
+                strokeThickness: 3
+            }
+        ).setOrigin(0.5).setDepth(183);
+        label.setVisible(false);
+
+        this.returnFlowLesson = {
+            ...bounds,
+            visual,
+            label,
+            entered: false,
+            crossed: false,
+            hintShown: false,
+            active: false
+        };
+        return this.returnFlowLesson;
+    }
+
+    updateReturnFlowLesson(delta = 16) {
+        const lesson = this.returnFlowLesson;
+        const body = this.player?.body;
+        if (!lesson || !body || this.beaconAnchorsActivated < 1) return false;
+
+        const inside = body.center.x >= lesson.left && body.center.x <= lesson.right &&
+            body.center.y >= lesson.top && body.center.y <= lesson.bottom;
+        lesson.active = inside;
+        if (inside) {
+            lesson.entered = true;
+            const resistance = Math.min(7, Math.max(2.5, (Number(delta) || 16) * 0.28));
+            this.player.setVelocityX(Math.max(-90, body.velocity.x - resistance));
+            if (!lesson.hintShown) {
+                lesson.hintShown = true;
+                this.showFloatingText(
+                    `${this.getCompanionName()}: "It is pushing us back. Swim right!"`,
+                    this.player.x + 80,
+                    this.player.y - 80,
+                    '#D6EEF2'
+                );
+            }
+            return true;
+        }
+
+        if (lesson.entered && !lesson.crossed && body.center.x > lesson.right + 30) {
+            lesson.crossed = true;
+            this.setReefRouteChoiceVisible(true);
+            this.showFloatingText(
+                'RETURN FLOW CROSSED',
+                this.player.x,
+                this.player.y - 70,
+                '#8FE3CF'
+            );
+        }
+        return false;
+    }
+
+    destroyReturnFlowLesson() {
+        this.returnFlowLesson?.visual?.destroy?.();
+        this.returnFlowLesson?.label?.destroy?.();
+        this.returnFlowLesson = null;
+    }
+
     createReefRouteChoice() {
         const mainRoute = this.add.text(1540, 735, '', {
             fontSize: '12px',
@@ -2136,6 +2262,11 @@ class ReefLevel extends PlatformerLevelScene {
             }
         });
 
+        this.reefRouteChoiceMarkers = { mainRoute, optionalRoute };
+        this.setReefRouteChoiceVisible(Boolean(
+            this.reefRouteChoice || this.beaconAnchorsActivated >= 2
+        ));
+
         if (this.shouldAnimateReefDecorations()) {
             this.tweens.add({
                 targets: [mainRoute, optionalRoute],
@@ -2145,6 +2276,13 @@ class ReefLevel extends PlatformerLevelScene {
                 repeat: -1
             });
         }
+    }
+
+    setReefRouteChoiceVisible(visible) {
+        const shouldShow = visible === true;
+        this.reefRouteChoiceMarkers?.mainRoute?.setVisible?.(shouldShow);
+        this.reefRouteChoiceMarkers?.optionalRoute?.setVisible?.(shouldShow);
+        return shouldShow;
     }
 
     createAbyssAscentCurrent() {
@@ -2436,6 +2574,9 @@ class ReefLevel extends PlatformerLevelScene {
         this.restoreReefRouteState(resume.routeState, {
             rejoined: Number(resume.checkpointIndex) >= 1
         });
+        this.setReefRouteChoiceVisible(
+            this.beaconAnchorsActivated >= 2 || Boolean(this.reefRouteChoice)
+        );
         if (this.reefRouteAligned) {
             const passageAnchor = this.beaconAnchors.at(-1);
             if (passageAnchor) {
@@ -2476,6 +2617,7 @@ class ReefLevel extends PlatformerLevelScene {
 
         const firstSelection = !this.reefRouteChoice;
         this.reefRouteChoice = path;
+        this.setReefRouteChoiceVisible(true);
         const choice = this.optionalRouteRewards?.get?.('reef_star_trench')?.choice;
         if (choice) {
             choice.selectedPath = path;
@@ -3346,8 +3488,8 @@ class ReefLevel extends PlatformerLevelScene {
             y: this.levelHeight - 470,
             title: 'STELLAR PASSAGE',
             getStatus: () => {
-                if (!this.reefRouteAligned) return 'SWIM THROUGH 3 GOLD MARKERS';
-                if (!this.shipPartCollected) return 'FIND DIMENSIONAL DRIVE';
+                if (!this.reefRouteAligned) return 'FOLLOW THE LIVING CURRENT';
+                if (!this.shipPartCollected) return 'RECOVER WANDERER-77 DRIVE';
                 return 'PASSAGE OPEN // GUARDIAN AWAKENING';
             },
             isReady: () => this.reefRouteAligned && this.shipPartCollected,
@@ -3363,8 +3505,8 @@ class ReefLevel extends PlatformerLevelScene {
                     const now = this.time.now;
                     if (now >= this.bossGateHintUntil) {
                         const message = missingRoute
-                            ? 'The passage needs all three gold markers.'
-                            : 'Find Wanderer-77\'s Dimensional Drive first.';
+                            ? 'Follow the living current to open the passage.'
+                            : 'Recover Wanderer-77\'s Drive on the current path.';
                         this.showFloatingText(
                             message,
                             this.player.x,
@@ -4920,6 +5062,7 @@ class ReefLevel extends PlatformerLevelScene {
         if (!this.player || this.isPlayerDead || this.levelCompletionActive) return;
 
         this.updateReefAscentCurrentGuidance();
+        this.updateReturnFlowLesson(delta);
         this.updateCosmicDust(delta);
         this.updatePlayerCosmicTrail(delta);
 
@@ -5067,6 +5210,7 @@ class ReefLevel extends PlatformerLevelScene {
         this.activeReefAscentCurrent = null;
         this.destroyReefCurrent(this.driftAscentCurrent);
         this.driftAscentCurrent = null;
+        this.destroyReturnFlowLesson();
         this.destroyReefCurrent(this.travelerAscentCurrent);
         this.travelerAscentCurrent = null;
 

@@ -2816,8 +2816,7 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('x: 335');
         expect(source).toContain('[departureCue.x, departureCue.y]');
         expect(source).toContain('const isMobile = this.isMobile || (');
-        expect(source).toContain('JOYSTICK MOVES + DIVES');
-        expect(source).toContain('↑ BUTTON SWIMS UP');
+        expect(source).toContain('JOYSTICK SWIMS // HOLD UP TO RISE');
         expect(source).toContain('visual.lineTo(destinationX, destinationY);');
         expect(source).toContain('this.retireOpeningSignalCurrent();');
         expect(source).toContain("current.label?.setText?.('GOLD CURRENT LINKED')");
@@ -2963,6 +2962,10 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain('reefWaypointSupports');
         expect(smoke).toContain('smokeReefForwardCurrents(session)');
         expect(smoke).toContain('reefForwardCurrents');
+        expect(smoke).toContain('smokeReefReturnFlowLesson(session)');
+        expect(smoke).toContain('reefReturnFlowLesson');
+        expect(smoke).toContain('Reef return-flow resistance failed');
+        expect(smoke).toContain('Reef return-flow crossing failed');
         expect(smoke).toContain("nextSignal?.label?.text || ''");
         expect(smoke).toContain('scene?.getReefObjectiveText?.()');
         expect(smoke).toContain('scene?.getPeakObjectiveText?.()');

@@ -35,10 +35,12 @@ describe('third expedition rescue loop', () => {
         expect(source).toContain(
             'this.createObjectiveTriggerZone(\n                waypointX,\n                waypointY,\n                { width: 150, height: 150 }'
         );
-        expect(source).toContain('SWIM THROUGH');
+        expect(source).toContain('RIDE THE CURRENT');
+        expect(source).toContain('CROSS THE RETURN FLOW');
+        expect(source).toContain('OPEN THE PASSAGE');
         expect(source).toContain('this.getTraversalSupportCheckpoint(');
         expect(source).toContain('this.setCheckpoint(supportCheckpoint.x, supportCheckpoint.y, {');
-        expect(source).toContain('GOLD CURRENT ${this.beaconAnchorsActivated}/3 OPEN');
+        expect(source).toContain('anchor.lesson?.complete');
         expect(source).toContain("traversalLinks: ['reef-current-crown']");
         expect(source).toContain("traversalLinks: ['reef-sky-rise']");
         expect(source).toMatch(/id: 'reef-current-crown'[\s\S]*?oneWay: true/);
@@ -54,6 +56,27 @@ describe('third expedition rescue loop', () => {
         expect(source).toContain('createForwardAscentCurrent({');
     });
 
+    test('teaches ride, resist, and redirect as three different current actions', () => {
+        const source = readLevel();
+
+        expect(source).toContain('const REEF_CURRENT_LESSONS = Object.freeze([');
+        expect(source).toContain("id: 'ride'");
+        expect(source).toContain("id: 'resist'");
+        expect(source).toContain("id: 'redirect'");
+        expect(source).toContain('this.createReturnFlowLesson();');
+        expect(source).toContain('updateReturnFlowLesson(delta = 16)');
+        expect(source).toContain('body.velocity.x - resistance');
+        expect(source).toContain('It is pushing us back. Swim right!');
+        expect(source).toContain('RETURN FLOW CROSSED');
+        expect(source).toContain('this.setReefRouteChoiceVisible(true);');
+        expect(source).toContain("enemy.encounterBeat !== 'main-current-charge'");
+        expect(source).toContain('lessonUnlocked && (inWindow || attackActive)');
+        expect(source).toContain('this.beaconAnchorsActivated >= 2;');
+        expect(source).toContain('this.setReefRouteChoiceVisible(\n            this.beaconAnchorsActivated >= 2');
+        expect(source).toContain('this.updateReturnFlowLesson(delta);');
+        expect(source).toContain('this.destroyReturnFlowLesson();');
+    });
+
     test('turns waypoint synchronization into a visible creature-led route discovery', () => {
         const source = readLevel();
         const opening = source.match(
@@ -61,8 +84,8 @@ describe('third expedition rescue loop', () => {
         )?.[1] || '';
 
         expect(source).toContain('const companionName = this.getCompanionName()');
-        expect(source).toContain('This message did not come from Earth.');
-        expect(source).toContain('It is a traveler relay. Someone crossed before us.');
+        expect(source).toContain('The flow rises ahead. Let it carry us.');
+        expect(source).toContain('It pushed back, but we crossed it.');
         expect(source).toContain('this.reefRouteAligned = true');
         expect(source).toContain('this.playCreaturePassageOpening(anchor);');
         expect(source).toContain("event: 'reef_route_aligned'");
@@ -261,12 +284,12 @@ describe('third expedition rescue loop', () => {
         expect(source).toContain('this.forceMobileControls ||');
         expect(source).toContain('screenWidth <= 480');
         expect(source).toContain('this.createCampaignObjectiveDisplay(');
-        expect(source).toContain('GOLD MARKER ${current}/3 // ${nextWaypoint}');
+        expect(source).toContain('CURRENT LESSON ${current}/3 // ${lesson.title}');
         expect(source).toContain('THE PASSAGE IS OPEN');
-        expect(source).toContain('FIND THE DIMENSIONAL DRIVE');
+        expect(source).toContain('EARTH METAL IS CAUGHT AHEAD');
         expect(source).toContain('getDriveCompassText()');
         expect(source).toContain("if (this.reefRouteChoice !== 'optional') return '';");
-        expect(source).toContain('SWIM THROUGH 3 GOLD MARKERS');
+        expect(source).toContain('FOLLOW THE LIVING CURRENT');
         expect(source).toContain('mobileTeamOffsetY: -155');
         expect(source).toContain(
             '!(this.isCompactObjectiveHUD && this.bossFightActive)'
