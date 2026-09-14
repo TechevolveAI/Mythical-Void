@@ -82,7 +82,14 @@ describe('second expedition rescue loop', () => {
         expect(source).toContain('this.beaconAnchorsActivated++');
         expect(source).toContain('this.caveRouteAligned = true');
         expect(source).toContain("event: 'crystal_route_aligned'");
-        expect(source).toContain('this.awakenCorruptedGuardian();');
+        expect(source).toContain('THE GUARDIAN CHAMBER OPENS');
+
+        const routeActivation = source.match(
+            /activateCaveBeacon\(checkpoint\)\s*\{([\s\S]*?)\n    \}\n\n    awakenCorruptedGuardian/
+        )?.[1] || '';
+        expect(routeActivation).not.toBe('');
+        expect(routeActivation).not.toContain('this.awakenCorruptedGuardian()');
+        expect(source).toContain('if (!this.awakenCorruptedGuardian()) return;');
     });
 
     test('powers a named Crystal Lift after route alignment while retaining recovery steps', () => {

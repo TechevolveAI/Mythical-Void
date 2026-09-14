@@ -2640,6 +2640,11 @@ async function smokeCrystalCoreLift(session) {
             !launchSupport?.body
         ) return null;
 
+        if (!scene.crystalWoundTended) {
+            scene.tendWoundedCrystalGrove?.();
+        }
+        scene.refreshCrystalCoreLift?.();
+
         scene.isInvincible = true;
         scene.releaseAllPlatformerActionButtons?.();
         scene.resetJoystick?.();
@@ -2670,12 +2675,16 @@ async function smokeCrystalCoreLift(session) {
         return {
             liftLabel: lift.label?.text || '',
             destinationId: lift.destinationId,
+            crystalWoundTended: scene.crystalWoundTended === true,
+            caveRouteAligned: scene.caveRouteAligned === true,
             startX: Math.round(scene.player.x),
             destinationTop: Math.round(destination.body.top)
         };
     })()`);
     if (
         setup?.destinationId !== 'caves-core-refuge' ||
+        setup.crystalWoundTended !== true ||
+        setup.caveRouteAligned !== true ||
         !setup.liftLabel.includes('CORE ASCENT')
     ) {
         throw new Error(`Crystal Core lift was not visibly ready: ${JSON.stringify(setup)}`);
@@ -3876,6 +3885,11 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 })}`
             );
         }
+
+        // Landing can collect a nearby batched coin and create one short-lived
+        // "+10" text. Measure the settled playfield after that feedback exits,
+        // rather than treating a 600ms reward cue as ambient scene cost.
+        await delay(700);
     }
 
     const state = await evaluate(session, `(() => {
@@ -5212,12 +5226,12 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 state.rootwakeInitial?.awakened !== false ||
                 guidance.nextSignalVisualState !== 'next' ||
                 guidance.nextSignalColor !== 0xF2C94C ||
-                guidance.nextSignalAction !== 'WALK INTO THE LIGHT' ||
-                !guidance.objective.includes('WALK INTO')
+                guidance.nextSignalAction !== 'HELP THE TRAPPED ROOTS BREATHE' ||
+                !guidance.objective.includes('TOUCH THE PULSING ROOT')
             )
         ) {
             throw new Error(
-                `${sceneName} does not explain the Beacon action: ${JSON.stringify(guidance)}`
+                `${sceneName} does not explain the root-help action: ${JSON.stringify(guidance)}`
             );
         }
         if (
@@ -5860,7 +5874,11 @@ async function smokeLevel(session, route, sceneName, exceptions, {
             forestRootwake.state !== 'awake' ||
             forestRootwake.platformCount !== 5 ||
             forestRootwake.settledPlatformCount !== 5 ||
-            !forestRootwake.objective.includes('ROOTWAY OPEN')
+            !forestRootwake.objective.includes(
+                SMOKE_VIEWPORT_WIDTH <= 600
+                    ? 'CROSS THE LIVING ROOTS'
+                    : 'ROOTWAY OPEN'
+            )
         ) {
             throw new Error(
                 `MythicalForestLevel Rootwake handoff failed: ${JSON.stringify(forestRootwake)}`
@@ -8208,13 +8226,13 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                     )
                 };
             })()`);
-            const expectedRewardText = {
-                mythicalForest: 'CANOPY GUARD // 1 HIT // EARNED',
-                crystalCaves: 'CRYSTAL WARD // 1 HIT // EARNED',
-                reef: 'FREE SUPER BLAST // EARNED',
-                voidPeaks: 'RIDGE GUARD // 1 HIT // EARNED',
-                auroraDepths: 'QUIET LIGHT WARD // 1 HIT // EARNED',
-                finalVoid: 'BOND RESERVE // 1 RESCUE // EARNED'
+            const expectedRewardLabel = {
+                mythicalForest: 'CANOPY GUARD // 1 HIT',
+                crystalCaves: 'CRYSTAL WARD // 1 HIT',
+                reef: 'FREE SUPER BLAST',
+                voidPeaks: 'RIDGE GUARD // 1 HIT',
+                auroraDepths: 'QUIET LIGHT WARD // 1 HIT',
+                finalVoid: 'BOND RESERVE // 1 RESCUE'
             }[route];
             const rewardGranted = route === 'reef'
                 ? optionalRouteCompletion.freeSpecialAttackCharges === 1
@@ -8226,7 +8244,8 @@ async function smokeLevel(session, route, sceneName, exceptions, {
                 optionalRouteCompletion.required !== optionalRequired ||
                 optionalRouteCompletion.completed !== true ||
                 !optionalRouteCompletion.marker.includes('COMPLETE') ||
-                !optionalRouteCompletion.objective.includes(expectedRewardText) ||
+                !optionalRouteCompletion.marker.includes(expectedRewardLabel) ||
+                !optionalRouteCompletion.marker.includes('EARNED') ||
                 optionalRouteCompletion.duplicateAccepted !== false ||
                 !rewardGranted
             ) {
@@ -14078,22 +14097,30 @@ async function startCampaignScene(session, step) {
     })()`);
     await waitForScene(session, step.sceneName);
     await delay(450);
-    // Dismiss from the upper playfield so the same pointer cannot land on a
-    // control that becomes interactive while the entry overlay is fading.
-    await tap(session, 195, 140);
-    await delay(500);
-    const entryAccepted = await evaluate(session, `(() => {
-        const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
-        return Boolean(
-            scene?.levelEntryDismissing ||
-            scene?.levelStarted ||
-            scene?.gameStarted
-        ) && !scene?.physics?.world?.isPaused;
-    })()`);
+    // Forest can legitimately have an authored arrival followed by the level
+    // entry card. Advance each visible gate separately and stop as soon as the
+    // playable control state is reached, so the final tap cannot hit gameplay.
+    let entryAccepted = false;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        entryAccepted = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
+            const mobileReady = ${SMOKE_VIEWPORT_WIDTH <= 600}
+                ? scene?.platformerControlsVisible === true
+                : true;
+            return Boolean(
+                mobileReady &&
+                (scene?.levelEntryDismissing || scene?.levelStarted)
+            ) && !scene?.physics?.world?.isPaused;
+        })()`);
+        if (entryAccepted) break;
+        // Use the upper playfield, away from controls that become interactive.
+        await tap(session, 195, 140);
+        await delay(550);
+    }
     if (!entryAccepted) {
         await pressEnter(session);
+        await delay(500);
     }
-    await delay(500);
 }
 
 async function prepareGuardianHandoffState(session, step) {

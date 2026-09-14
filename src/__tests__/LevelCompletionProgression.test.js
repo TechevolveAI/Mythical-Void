@@ -691,9 +691,16 @@ describe('local level-entry preview route', () => {
         ];
 
         expect(gameSource).toContain("urlParams.get('testLevelEntry')");
-        expect(gameSource).toMatch(
-            /game\.scene\.start\(sceneName,\s*\{\s*entryPreview: true,\s*forceMobileControls,\s*katanaPreview,\s*platformerPreviewSize:/
+        const levelEntryRoute = gameSource.slice(
+            gameSource.indexOf('const testLevelEntry')
         );
+        const previewStart = levelEntryRoute.match(
+            /game\.scene\.start\(sceneName,\s*\{([\s\S]*?)\n\s*\}\);/
+        )?.[1] || '';
+        expect(previewStart).toContain('entryPreview: true');
+        expect(previewStart).toContain('forceMobileControls');
+        expect(previewStart).toContain('katanaPreview');
+        expect(previewStart).toContain('platformerPreviewSize:');
         expect(hatchingSource).toContain("previewParams.has('testLevelEntry')");
 
         levelFiles.forEach((fileName) => {

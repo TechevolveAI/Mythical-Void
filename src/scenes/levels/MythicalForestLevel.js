@@ -1215,6 +1215,23 @@ class MythicalForestLevel extends PlatformerLevelScene {
         panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
         panel.lineStyle(2, 0x71E6B1, 0.9);
         panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
+        panel.lineStyle(2, 0xC8D8D4, 0.9);
+        panel.lineBetween(
+            panelX + panelWidth - 22,
+            panelY + 10,
+            panelX + panelWidth - 12,
+            panelY + 20
+        );
+        panel.lineBetween(
+            panelX + panelWidth - 12,
+            panelY + 10,
+            panelX + panelWidth - 22,
+            panelY + 20
+        );
+        panel.setInteractive(
+            new Phaser.Geom.Rectangle(panelX, panelY, panelWidth, panelHeight),
+            Phaser.Geom.Rectangle.Contains
+        );
 
         const header = this.add.text(width / 2, panelY + 15, 'PROJECT BEACON // FIELD DRILL', {
             fontSize: compact ? '10px' : '11px',
@@ -1247,26 +1264,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             .setScrollFactor(0)
             .setDepth(depth + 1);
 
-        const closeGlyph = this.add.text(
-            panelX + panelWidth - 17,
-            panelY + 14,
-            '×',
-            {
-                fontSize: compact ? '18px' : '20px',
-                color: '#C8D8D4'
-            }
-        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 2);
-
-        const dismissZone = this.add.zone(
-            width / 2,
-            panelY + panelHeight / 2,
-            panelWidth,
-            panelHeight
-        )
-            .setScrollFactor(0)
-            .setDepth(depth + 3)
-            .setInteractive({ useHandCursor: true });
-        dismissZone.on('pointerdown', () => {
+        panel.on('pointerdown', () => {
             this.hideFirstExpeditionDrillCoach();
         });
 
@@ -1276,9 +1274,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             heading,
             instruction,
             control,
-            progress,
-            closeGlyph,
-            dismissZone
+            progress
         ];
         this.firstExpeditionDrillUI = {
             heading,

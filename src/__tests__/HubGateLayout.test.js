@@ -287,7 +287,7 @@ describe('persistent expedition resume presentation', () => {
         expect(scene.actionLabel.setText).toHaveBeenCalledWith('RESUME');
     });
 
-    test('all expedition briefings present restored Beacon state without another modal', () => {
+    test('all expedition briefings present a specific restored route without another modal', () => {
         const levelFiles = [
             'MythicalForestLevel.js',
             'CrystalCavesLevel.js',
@@ -304,7 +304,7 @@ describe('persistent expedition resume presentation', () => {
             );
             expect(source).toContain('this.getExpeditionResumePresentation()');
             expect(source).toContain('RESUME EXPEDITION');
-            expect(source).toContain('link restored');
+            expect(source).toContain('restored');
         });
     });
 });

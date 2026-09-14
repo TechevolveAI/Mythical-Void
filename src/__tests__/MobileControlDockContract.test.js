@@ -283,6 +283,9 @@ describe('shared mobile control dock', () => {
         expect(platformerSource).toContain("this.scale?.on?.('resize', this.handlePlatformerMobileResize, this)");
         expect(platformerSource).toContain("this.scale?.off?.('resize', this.handlePlatformerMobileResize, this)");
         expect(platformerSource).toContain('isSceneLifecycleActive()');
+        expect(platformerSource).toContain(
+            'this.sys?.settings?.status === Phaser.Scenes?.CREATING'
+        );
         expect(platformerSource).toContain('this._isShuttingDown = true;');
         expect(platformerSource).toContain(
             'if (!this.isSceneLifecycleActive() || this.mobileControlsRebuilding)'

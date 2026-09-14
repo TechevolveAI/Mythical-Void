@@ -118,7 +118,8 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
             'const bossConfigs = {};'
         )
         .replace(
-            "import { analyzeTraversalTopology } from '../systems/TraversalTopology.js';",
+            "import { analyzeTraversalSurfaceAlignment, analyzeTraversalTopology } from '../systems/TraversalTopology.js';",
+            'const analyzeTraversalSurfaceAlignment = () => null;\n' +
             'const analyzeTraversalTopology = () => null;'
         )
         .replace(

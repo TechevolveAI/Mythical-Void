@@ -554,8 +554,8 @@ describe('first expedition rescue loop', () => {
         expect(source).toContain(
             'const FIRST_EXPEDITION_COACH_DURATION_MS = 3200;'
         );
-        expect(panel).toContain("'×'");
-        expect(panel).toContain("dismissZone.on('pointerdown'");
+        expect(panel).toContain('panel.lineBetween(');
+        expect(panel).toContain("panel.on('pointerdown'");
         expect(panel).toContain('this.hideFirstExpeditionDrillCoach();');
         expect(coach).toContain('this.time.delayedCall(');
         expect(coach).toContain('FIRST_EXPEDITION_COACH_DURATION_MS');

@@ -194,7 +194,8 @@ describe('campaign traversal quality contracts', () => {
         expect(smoke).toContain(
             "message: 'Forest Rootwake completes and restores controls'"
         );
-        expect(smoke).toContain("forestRootwake.objective.includes('ROOTWAY OPEN')");
+        expect(smoke).toContain("? 'CROSS THE LIVING ROOTS'");
+        expect(smoke).toContain(": 'ROOTWAY OPEN'");
         expect(read('levels/MythicalForestLevel.js')).toContain(
             'this.time.now + 1750'
         );
@@ -1126,7 +1127,8 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("activationSupportIds: ['caves-grove-step']");
         expect(source).toContain("activationSupportIds: ['caves-guardian-approach']");
         expect(source).toContain("fallbackLabel: 'FOLLOW THE BEACON ANCHORS'");
-        expect(source).toContain('this.awakenCorruptedGuardian();');
+        expect(source).toContain('if (!this.awakenCorruptedGuardian()) return;');
+        expect(source).toContain('THE GUARDIAN CHAMBER OPENS');
         expect(source).toContain('this.getTraversalSupportCheckpoint(');
         expect(source).not.toContain('this.createSlidePlatform(\'caves-slide-1\'');
     });

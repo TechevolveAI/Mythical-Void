@@ -2854,7 +2854,16 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     isSceneLifecycleActive() {
-        return !this._isShuttingDown && this.sys?.isActive?.() !== false;
+        if (this._isShuttingDown) return false;
+
+        // Phaser does not mark a scene active until create() has completed.
+        // Mobile controls are built during create(), so CREATING is valid even
+        // though sys.isActive() still returns false at that point.
+        if (this.sys?.settings?.status === Phaser.Scenes?.CREATING) {
+            return true;
+        }
+
+        return this.sys?.isActive?.() !== false;
     }
 
     /**

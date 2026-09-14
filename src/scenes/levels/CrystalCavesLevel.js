@@ -1883,7 +1883,7 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             this.refreshCrystalCoreHint();
             this.time.delayedCall(650, () => {
                 this.showFloatingText(
-                    'THE CORRUPTED GUARDIAN AWAKENS',
+                    'THE GUARDIAN CHAMBER OPENS',
                     checkpoint.x,
                     checkpoint.respawnY - 72,
                     '#F2C94C'
@@ -1891,9 +1891,6 @@ class CrystalCavesLevel extends PlatformerLevelScene {
             });
             window.AchievementSystem?.recordEvent?.('story_interaction', {
                 event: 'crystal_route_aligned'
-            });
-            this.time.delayedCall(900, () => {
-                this.awakenCorruptedGuardian();
             });
         }
 
