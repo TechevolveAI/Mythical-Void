@@ -589,7 +589,7 @@ export default class HubWorldScene extends Phaser.Scene {
         this.isProjectBeaconDebriefOpen = true;
         const { width, height, isMobile } = this.dims;
         const panelWidth = Math.min(isMobile ? width - 32 : 620, width - 32);
-        const panelHeight = Math.min(isMobile ? 660 : 520, height - 32);
+        const panelHeight = Math.min(isMobile ? 610 : 520, height - 32);
         const panelX = (width - panelWidth) / 2;
         const panelY = (height - panelHeight) / 2;
         const centerX = width / 2;
@@ -640,30 +640,25 @@ export default class HubWorldScene extends Phaser.Scene {
             wordWrap: { width: textWidth }
         }).setOrigin(0.5).setDepth(502);
 
-        const routeContext = debrief.nextGate?.label
-            ? `\nNEXT EXPEDITION: ${debrief.nextGate.label.toUpperCase()}`
-            : '';
-        const guardianContext = restoredGuardianName
-            ? `\nSANCTUARY RETURN: ${restoredGuardianName.toUpperCase()}`
-            : '';
         const context = this.add.text(
             centerX,
-            panelY + panelHeight * 0.3,
-            `${levelName.toUpperCase()} // ${partName.toUpperCase()} RECOVERED` +
-                `${guardianContext}${routeContext}`,
+            panelY + panelHeight * 0.33,
+            `${levelName.toUpperCase()}  •  ${partName.toUpperCase()} RECOVERED`,
             {
                 fontSize: isMobile ? '10px' : '12px',
                 color: '#7386A8',
                 align: 'center',
-                lineSpacing: 4,
                 wordWrap: { width: textWidth }
             }
         ).setOrigin(0.5).setDepth(502);
 
-        const findingLabel = this.add.text(
+        const summary = [debrief.finding, debrief.companionMoment]
+            .filter(Boolean)
+            .join('\n\n');
+        const summaryLabel = this.add.text(
             centerX,
-            panelY + panelHeight * 0.365,
-            'WHAT THE SCANNER FOUND',
+            panelY + panelHeight * 0.405,
+            'WHAT CHANGED',
             {
                 fontSize: isMobile ? '10px' : '11px',
                 color: '#F2C14E',
@@ -671,7 +666,7 @@ export default class HubWorldScene extends Phaser.Scene {
             }
         ).setOrigin(0.5).setDepth(502);
 
-        const finding = this.add.text(centerX, panelY + panelHeight * 0.45, debrief.finding, {
+        const summaryText = this.add.text(centerX, panelY + panelHeight * 0.51, summary, {
             fontSize: isMobile ? '13px' : '15px',
             color: '#F4F7FF',
             align: 'center',
@@ -679,54 +674,32 @@ export default class HubWorldScene extends Phaser.Scene {
             wordWrap: { width: textWidth }
         }).setOrigin(0.5).setDepth(502);
 
-        const companionLabel = this.add.text(
-            centerX,
-            panelY + panelHeight * 0.575,
-            `${companionName.toUpperCase()} // CREATURE RECORD`,
-            {
-                fontSize: isMobile ? '10px' : '11px',
-                color: '#8FE3CF',
-                fontStyle: 'bold'
-            }
-        ).setOrigin(0.5).setDepth(502);
-
-        const companionMoment = this.add.text(
-            centerX,
-            panelY + panelHeight * 0.65,
-            debrief.companionMoment,
-            {
-                fontSize: isMobile ? '13px' : '15px',
-                color: '#BDEBDD',
-                fontStyle: 'italic',
-                align: 'center',
-                lineSpacing: 4,
-                wordWrap: { width: textWidth }
-            }
-        ).setOrigin(0.5).setDepth(502);
-
-        const noteLabel = this.add.text(
-            centerX,
-            panelY + panelHeight * 0.735,
-            'ASTRONAUT FIELD NOTE',
-            {
-                fontSize: isMobile ? '10px' : '11px',
-                color: '#91A4C6',
-                fontStyle: 'bold'
-            }
-        ).setOrigin(0.5).setDepth(502);
-
-        const fieldNote = this.add.text(centerX, panelY + panelHeight * 0.81, debrief.fieldNote, {
-            fontSize: isMobile ? '12px' : '14px',
-            color: '#D7C7F5',
-            fontStyle: 'italic',
+        const nextText = debrief.nextGate?.label
+            ? `NEXT: ${debrief.nextGate.label.toUpperCase()}`
+            : restoredGuardianName
+                ? `${restoredGuardianName.toUpperCase()} RETURNS TO THE SANCTUARY`
+                : 'THE SANCTUARY IS READY';
+        const nextStep = this.add.text(centerX, panelY + panelHeight * 0.72, nextText, {
+            fontSize: isMobile ? '11px' : '13px',
+            color: '#BDEBDD',
+            fontStyle: 'bold',
             align: 'center',
-            lineSpacing: 4,
             wordWrap: { width: textWidth }
         }).setOrigin(0.5).setDepth(502);
 
+        const fieldNote = this.add.text(centerX, panelY + panelHeight * 0.79, debrief.fieldNote || '', {
+            fontSize: isMobile ? '11px' : '13px',
+            color: '#A9B7D0',
+            fontStyle: 'italic',
+            align: 'center',
+            wordWrap: { width: textWidth }
+        }).setOrigin(0.5).setDepth(502);
+
+        /* Keep the completion action in a dedicated lower band on short screens. */
+        const completionActionY = panelY + panelHeight * 0.925;
         const continueBtn = this.add.text(
             centerX,
-            panelY + panelHeight * 0.925,
+            completionActionY,
             debrief.shipPartId
                 ? `INSTALL ${partName.toUpperCase()}`
                 : debrief.nextGate?.label
@@ -748,11 +721,9 @@ export default class HubWorldScene extends Phaser.Scene {
             icon,
             title,
             context,
-            findingLabel,
-            finding,
-            companionLabel,
-            companionMoment,
-            noteLabel,
+            summaryLabel,
+            summaryText,
+            nextStep,
             fieldNote,
             continueBtn
         ];
