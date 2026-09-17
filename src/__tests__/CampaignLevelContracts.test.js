@@ -26,9 +26,6 @@ function loadPureHelpers(relativePath, exportedNames, dependencies = null, bindi
     );
 }
 
-const guide = loadPureHelpers('systems/CampaignJourneyGuide.js', [
-    'CAMPAIGN_ROUTE', 'getCampaignRoute', 'getCampaignPrerequisiteState', 'getCampaignJourneyStep'
-]);
 const access = loadPureHelpers('systems/GameState.js', [
     'CAMPAIGN_ROUTE_SEQUENCE', 'getCampaignGateAccessFromData'
 ], ['readStatePath']);
@@ -44,6 +41,12 @@ const story = loadPureHelpers('systems/ProjectBeaconStory.js', [
 const ship = loadPureHelpers('systems/ShipReconstruction.js', [
     'SHIP_RECONSTRUCTION_STEPS', 'getShipReconstructionSnapshot', 'installShipReconstructionStep'
 ]);
+const guide = loadPureHelpers('systems/CampaignJourneyGuide.js', [
+    'CAMPAIGN_ROUTE', 'getCampaignRoute', 'getCampaignPrerequisiteState', 'getCampaignJourneyStep'
+], null, {
+    getShipReconstructionSnapshot: ship.getShipReconstructionSnapshot,
+    ...loadPureHelpers('systems/CampaignLegacy.js', ['CAMPAIGN_INTENTS'], [])
+});
 const residents = loadPureHelpers('systems/RescuedResidents.js', [
     'recordRescuedResident', 'getRescuedResidentSnapshot'
 ]);
@@ -308,7 +311,9 @@ describe('campaign level contracts across production helpers', () => {
         });
         state.set('levels.finalVoid.completed', true);
         recoverPart(state, LEVELS[5]);
-        expect(guide.getCampaignJourneyStep(state).status).toBe('complete');
+        expect(guide.getCampaignJourneyStep(state)).toMatchObject({
+            status: 'repair', repairStepId: 'black_box_recovery', sceneKey: 'GameScene'
+        });
         expect(ship.getShipReconstructionSnapshot(state)).toMatchObject({
             complete: false, readyStep: { id: 'black_box_recovery' }
         });
@@ -317,6 +322,9 @@ describe('campaign level contracts across production helpers', () => {
             longRangeUplink: 'held_exposure_risk', creatureLifeSupport: 'prototype_required'
         });
         expect(state.get('story.projectBeacon.finale')).toBeUndefined();
+        expect(guide.getCampaignJourneyStep(state)).toMatchObject({
+            status: 'ending', endingPhase: 'choice', sceneKey: 'VictoryScene'
+        });
     });
 });
 

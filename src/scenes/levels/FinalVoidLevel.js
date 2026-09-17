@@ -3094,14 +3094,23 @@ class FinalVoidLevel extends PlatformerLevelScene {
             window.AchievementSystem.recordEvent('guardian_restored', { bossId: 'void_empress' });
         }
 
-        // Transition to victory scene or completion screen
-        this.time.delayedCall(4000, () => {
-            victoryText.destroy();
-            subtitleText.destroy();
-            rewardText.destroy();
-
+        // Welcoming the resident is the handoff, not another scene-time wait.
+        // Slow rendering must never hide the route to the final ship repair.
+        let completionShown = false;
+        const showCompletion = () => {
+            if (completionShown) return;
+            completionShown = true;
+            [victoryText, subtitleText, rewardText].forEach(text => {
+                this.tweens.killTweensOf(text);
+                text.destroy();
+            });
             this.showLevelComplete();
-        });
+        };
+        if (this.residentReleaseOpen) {
+            this.pendingResidentReleaseContinuation = showCompletion;
+        } else {
+            showCompletion();
+        }
     }
 
     showLevelComplete() {

@@ -166,6 +166,13 @@ export default class VictoryScene extends Phaser.Scene {
             return;
         }
 
+        // A refresh after the celebration must return to the unfinished choice,
+        // not require another viewing of the full sequence.
+        if (window.GameState?.get('story.projectBeacon.uplinkRestored') === true) {
+            this.showChoiceScene();
+            return;
+        }
+
         // Start the victory sequence
         this.startVictorySequence(width, height);
 

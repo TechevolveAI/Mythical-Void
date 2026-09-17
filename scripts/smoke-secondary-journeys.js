@@ -197,8 +197,32 @@ class CdpSession {
     }
 
     close() {
+        for (const pending of this.pending.values()) {
+            pending.reject(new Error('CDP session closed'));
+        }
+        this.pending.clear();
         this.socket.close();
     }
+}
+
+async function closeSmokeBrowser(session, chrome) {
+    // Let Chrome retire its renderer/GPU children before a subsequent journey
+    // starts. Killing only the parent first can leave those processes behind.
+    await Promise.race([
+        session?.call('Browser.close').catch(() => {}),
+        delay(1000)
+    ]);
+    session?.close();
+    for (let attempt = 0; attempt < 20 && chrome.exitCode === null && chrome.signalCode === null; attempt++) {
+        await delay(50);
+    }
+    if (chrome.exitCode === null && chrome.signalCode === null) {
+        chrome.kill('SIGKILL');
+        for (let attempt = 0; attempt < 10 && chrome.exitCode === null && chrome.signalCode === null; attempt++) {
+            await delay(50);
+        }
+    }
+    chrome.unref();
 }
 
 async function evaluate(session, expression) {
@@ -1963,6 +1987,52 @@ async function touch(session, x, y) {
     });
 }
 
+function sceneTextScreenPoint(target) {
+    const scene = target?.scene;
+    const camera = scene?.cameras?.main;
+    const canvas = scene?.game?.canvas?.getBoundingClientRect?.();
+    const bounds = target?.getBounds?.();
+    if (!camera?.matrix || !canvas || !bounds) return null;
+    // Like a normal locator click, wait until the rendered target has stopped
+    // moving. The final hit animates camera shake/zoom independently of text.
+    if (
+        camera.shakeEffect?.isRunning || camera.zoomEffect?.isRunning ||
+        camera.panEffect?.isRunning ||
+        scene.tweens?.getTweensOf?.(camera)?.some(tween => tween.isPlaying?.())
+    ) return null;
+    const project = (x, y) => {
+        const point = camera.matrix.transformPoint(
+            x - camera.scrollX * target.scrollFactorX,
+            y - camera.scrollY * target.scrollFactorY
+        );
+        return {
+            x: canvas.left + point.x * canvas.width / scene.scale.width,
+            y: canvas.top + point.y * canvas.height / scene.scale.height
+        };
+    };
+    const corners = [
+        project(bounds.left, bounds.top), project(bounds.right, bounds.top),
+        project(bounds.left, bounds.bottom), project(bounds.right, bounds.bottom)
+    ];
+    const screenBounds = {
+        left: Math.min(...corners.map(point => point.x)),
+        right: Math.max(...corners.map(point => point.x)),
+        top: Math.min(...corners.map(point => point.y)),
+        bottom: Math.max(...corners.map(point => point.y))
+    };
+    const center = project(bounds.centerX, bounds.centerY);
+    if (
+        !Number.isFinite(center.x) || !Number.isFinite(center.y) ||
+        screenBounds.left < 0 || screenBounds.top < 0 ||
+        screenBounds.right > window.innerWidth || screenBounds.bottom > window.innerHeight
+    ) return null;
+    return {
+        x: Math.round(center.x), y: Math.round(center.y), text: target.text,
+        depth: target.depth, bounds: screenBounds,
+        viewport: { width: window.innerWidth, height: window.innerHeight }
+    };
+}
+
 async function touchSceneText(session, text, {
     match = 'exact',
     message = text
@@ -1978,17 +2048,11 @@ async function touchSceneText(session, text, {
                     : item.text === ${JSON.stringify(text)};
             }).sort((left, right) => (right.depth || 0) - (left.depth || 0));
             const target = matches[0];
-            if (!target?.getBounds) return null;
-            const bounds = target.getBounds();
-            return {
-                x: Math.round(bounds.centerX),
-                y: Math.round(bounds.centerY),
-                text: target.text
-            };
+            return (${sceneTextScreenPoint.toString()})(target);
         })()`),
         { timeoutMs: 12000, message }
     );
-    await touch(session, point.x, point.y);
+    await (SMOKE_VIEWPORT_WIDTH <= 600 ? touch : tap)(session, point.x, point.y);
     return point;
 }
 
@@ -1996,7 +2060,7 @@ async function touchInteractiveSceneText(session, text, {
     match = 'exact',
     message = text,
     timeoutMs = 12000,
-    input = 'touch'
+    input = SMOKE_VIEWPORT_WIDTH <= 600 ? 'touch' : 'mouse'
 } = {}) {
     const point = await waitFor(
         () => evaluate(session, `(() => {
@@ -2013,7 +2077,9 @@ async function touchInteractiveSceneText(session, text, {
                     ? item.text.startsWith(${JSON.stringify(text)})
                     : item.text === ${JSON.stringify(text)};
                 if (!textMatches || !item.getBounds) return false;
-                if (item.input?.enabled === true) return true;
+                if (item.input?.enabled === true) {
+                    return item.scene?.input?._list?.includes(item) === true;
+                }
                 const bounds = item.getBounds();
                 const modal = item.scene?.shipEvidenceBoardModal;
                 if (
@@ -2040,31 +2106,7 @@ async function touchInteractiveSceneText(session, text, {
                 });
             }).sort((left, right) => (right.depth || 0) - (left.depth || 0));
             const target = matches[0];
-            if (!target?.getBounds) return null;
-            const bounds = target.getBounds();
-            const width = target.scene?.scale?.width ||
-                document.querySelector('canvas')?.clientWidth || 0;
-            const height = target.scene?.scale?.height ||
-                document.querySelector('canvas')?.clientHeight || 0;
-            if (
-                bounds.left < 0 ||
-                bounds.top < 0 ||
-                bounds.right > width ||
-                bounds.bottom > height
-            ) return null;
-            return {
-                x: Math.round(bounds.centerX),
-                y: Math.round(bounds.centerY),
-                text: target.text,
-                depth: target.depth,
-                bounds: {
-                    left: Math.round(bounds.left),
-                    right: Math.round(bounds.right),
-                    top: Math.round(bounds.top),
-                    bottom: Math.round(bounds.bottom)
-                },
-                viewport: { width, height }
-            };
+            return (${sceneTextScreenPoint.toString()})(target);
         })()`),
         { timeoutMs, message }
     );
@@ -2116,7 +2158,7 @@ async function touchDomButton(session, selector, {
         })()`),
         { timeoutMs, message }
     );
-    await touch(session, point.x, point.y);
+    await (SMOKE_VIEWPORT_WIDTH <= 600 ? touch : tap)(session, point.x, point.y);
     if (waitForRemoval) {
         try {
             await waitFor(
@@ -14246,6 +14288,68 @@ async function smokeGuardianHandoff(session, step, exceptions) {
         );
     }
 
+    if (step.route === 'mythicalForest') {
+        const skipAction = await touchInteractiveSceneText(session, 'SKIP', {
+            timeoutMs: 30000, message: 'optional forest restoration skip'
+        }).catch(async error => {
+            const diagnosticExpression = `(() => {
+                const game = window.mythicalGame;
+                const scene = game.scene.getScene('MythicalForestLevel');
+                const camera = scene.cameras.main;
+                const skip = scene.children.list.find(item => item.text === 'SKIP');
+                return {
+                    activeScenes: game.scene.getScenes(true).map(item => item.scene.key),
+                    loop: { running: game.loop.running, started: game.loop.started, frame: game.loop.frame, fps: game.loop.actualFps, delta: game.loop.delta, rawDelta: game.loop.rawDelta, inFocus: game.loop.inFocus, paused: game.isPaused, hidden: document.hidden },
+                    clock: { paused: scene.time.paused, scale: scene.time.timeScale, now: scene.time.now },
+                    restorationActive: scene.forestRestorationActive,
+                    completionRecorded: Boolean(scene.levelCompletionResult),
+                    timers: scene.forestRestorationTimers?.map(timer => ({ elapsed: timer.elapsed, delay: timer.delay, paused: timer.paused, dispatched: timer.hasDispatched })),
+                    input: { enabled: scene.input.enabled, active: scene.input.isActive(), managerEnabled: game.input.enabled },
+                    camera: { zoom: camera.zoom, shake: camera.shakeEffect.isRunning, shakeElapsed: camera.shakeEffect._elapsed, pan: camera.panEffect.isRunning, zooming: camera.zoomEffect.isRunning, width: camera.width, height: camera.height },
+                    cameraTweens: scene.tweens.getTweensOf(camera).map(tween => ({ playing: tween.isPlaying(), elapsed: tween.elapsed, duration: tween.duration, totalElapsed: tween.totalElapsed, keys: tween.data?.map(item => item.key) })),
+                    skip: skip ? { x: skip.x, y: skip.y, visible: skip.visible, alpha: skip.alpha, input: skip.input?.enabled, listed: scene.input._list.includes(skip), listeners: skip.listenerCount('pointerdown'), bounds: skip.getBounds(), projected: (${sceneTextScreenPoint.toString()})(skip) } : null,
+                    texts: scene.children.list.filter(item => item.text && item.visible && item.depth > 2000).map(item => item.text),
+                    exceptions: ${JSON.stringify(exceptions)}
+                };
+            })()`;
+            const before = await evaluate(session, diagnosticExpression);
+            await delay(1000);
+            const after = await evaluate(session, diagnosticExpression);
+            throw new Error(error.message + ': ' + JSON.stringify({ before, after }));
+        });
+        if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'forest-after-restoration-skip.png');
+        const afterRestoration = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                if (scene?.levelCompletionResult) return 'reward';
+                return scene?.children?.list?.some(item => item.text === '[ CONTINUE WITHOUT MESSAGE ]' && item.input?.enabled)
+                    ? 'optional-message' : null;
+            })()`),
+            { timeoutMs: 8000, message: 'forest restoration continuation' }
+        ).catch(async error => {
+            const state = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                return {
+                    active: scene.scene.isActive(), timePaused: scene.time.paused,
+                    restorationActive: scene.forestRestorationActive, victoryShown: scene.forestVictoryShown,
+                    paused: scene.physics.world.isPaused, inputEnabled: scene.input.enabled,
+                    camera: { zoom: scene.cameras.main.zoom, x: scene.cameras.main.scrollX, y: scene.cameras.main.scrollY },
+                    skipAction: ${JSON.stringify(skipAction)},
+                    canvas: (() => { const r = window.mythicalGame.canvas.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; })(),
+                    pointer: { x: scene.input.activePointer.x, y: scene.input.activePointer.y, worldX: scene.input.activePointer.worldX, worldY: scene.input.activePointer.worldY },
+                    hitTest: scene.input.hitTestPointer(scene.input.activePointer).map(item => ({ type: item.type, text: item.text, depth: item.depth })),
+                    inputList: scene.input._list.filter(item => item.text === 'SKIP').map(item => ({ x: item.x, y: item.y, enabled: item.input.enabled })),
+                    texts: scene.children.list.filter(item => item.text && item.visible && item.depth > 2000).map(item => ({ text: item.text, input: item.input?.enabled, x: item.x, y: item.y })),
+                    exceptions: ${JSON.stringify(exceptions)}
+                };
+            })()`);
+            throw new Error(error.message + ': ' + JSON.stringify(state));
+        });
+        if (afterRestoration === 'optional-message') {
+            await touchInteractiveSceneText(session, '[ CONTINUE WITHOUT MESSAGE ]', { message: 'optional message continuation' });
+        }
+    }
+
     const completion = await waitFor(
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
@@ -14309,7 +14413,21 @@ async function smokeGuardianHandoff(session, step, exceptions) {
             timeoutMs: 8000,
             message: `${step.sceneName} rescued resident continuation`
         }
-    );
+    ).catch(async error => {
+        const state = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
+            const camera = scene.cameras.main;
+            return {
+                active: scene.scene.isActive(), clockPaused: scene.time.paused,
+                frame: scene.game.loop.frame, fps: scene.game.loop.actualFps,
+                camera: { zoom: camera.zoom, shake: camera.shakeEffect.isRunning, pan: camera.panEffect.isRunning },
+                cameraTweens: scene.tweens.getTweensOf(camera).map(item => ({ playing: item.isPlaying(), elapsed: item.elapsed, keys: item.data?.map(data => data.key) })),
+                controls: scene.children.list.filter(item => item.text?.startsWith('WELCOME ')).map(item => ({ text: item.text, visible: item.visible, alpha: item.alpha, enabled: item.input?.enabled, listed: scene.input._list.includes(item), bounds: item.getBounds(), projected: (${sceneTextScreenPoint.toString()})(item) })),
+                exceptions: ${JSON.stringify(exceptions)}
+            };
+        })()`);
+        throw new Error(error.message + ': ' + JSON.stringify(state));
+    });
 
     const duplicate = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
@@ -14446,20 +14564,13 @@ async function smokeGuardianHandoff(session, step, exceptions) {
         await waitForScene(session, 'GameScene', 12000);
     } else {
         await waitForScene(session, 'HubWorldScene', 12000);
-        const debriefCta = await touchInteractiveSceneText(
+        const debriefCta = await touchDomButton(
             session,
-            `INSTALL ${step.route === 'mythicalForest'
-                ? 'FOREST CORE'
-                : step.route === 'crystalCaves'
-                    ? 'CRYSTAL CORE'
-                    : step.route === 'reef'
-                        ? 'DIMENSIONAL DRIVE'
-                        : step.route === 'voidPeaks'
-                            ? 'HULL PLATING'
-                            : 'AURORA REACTOR'}`,
+            '[data-testid="expedition-debrief-continue"]',
             {
                 timeoutMs: 12000,
-                message: `${step.sceneName} debrief installation action`
+                message: `${step.sceneName} debrief installation action`,
+                waitForRemoval: true
             }
         );
         await waitForScene(session, 'GameScene', 12000);
@@ -14546,6 +14657,22 @@ async function smokeGuardianHandoff(session, step, exceptions) {
             scene: 'HubWorldScene',
             debriefCta: step.__debriefCta
         };
+        if (step.route === 'mythicalForest') {
+            destination.nextRoute = await evaluate(session, `(() => {
+                const hub = window.mythicalGame.scene.getScene('HubWorldScene');
+                return {
+                    recommended: hub.campaignJourneyStep?.gateId,
+                    selected: hub.gates[hub.selectedGateIndex]?.id,
+                    action: hub.campaignJourneyStep?.action
+                };
+            })()`);
+            if (
+                destination.nextRoute.recommended !== 'crystal_caves' ||
+                destination.nextRoute.selected !== 'crystal_caves' ||
+                !destination.nextRoute.action
+            ) throw new Error(`Forest next destination unclear: ${JSON.stringify(destination.nextRoute)}`);
+            if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'forest-next-expedition.png');
+        }
     }
 
     if (exceptions.length) {
@@ -14835,6 +14962,106 @@ async function smokeFinalPriorityJourney(session, exceptions) {
         throw new Error(`Final priority Sanctuary return failed: ${JSON.stringify({ returnState, exceptions })}`);
     }
     return { ending, returnState };
+}
+
+async function smokeCompletionRecovery(session, exceptions) {
+    await navigate(session, `${BASE_URL}/play/?reset=true`);
+    await waitForScene(session, 'HatchingScene');
+    const finalStep = CAMPAIGN_STATE_STEPS.find(step => step.route === 'finalVoid');
+    await prepareGuardianHandoffState(session, finalStep);
+    // Stage the durable state immediately after victory. The separate guardian
+    // journey exercises combat; this case exercises real document reloads.
+    await evaluate(session, `(() => {
+        const state = window.GameState;
+        const profile = ${JSON.stringify(getVisualReviewCreatureProfile())};
+        const creature = {
+            ...state.get('creature'), id: profile.genes.id, genes: profile.genes,
+            dna: profile.dna, name: 'Nova', hatched: true, named: true,
+            spawnPosition: null
+        };
+        state.set('creature', creature);
+        state.set('creatures', [creature]);
+        state.set('activeCreatureIndex', 0);
+        // Use the existing pickup-free Sanctuary centre. A random coin at a
+        // prior spawn must not contaminate the strict saved-balance comparison.
+        state.set('world.currentPosition', { x: 1200, y: 900 });
+        state.set('player.cosmicCoins', 23);
+        state.set('session.gameStarted', true);
+        state.set('tutorial.livingFormPending', false);
+        state.set('tutorial.livingFormSeen', true);
+        state.set('levels.finalVoid.completed', true);
+        state.set('stats.levelsCompleted', 6);
+        state.set('hubWorld.shipParts.collected', [
+            ...state.get('hubWorld.shipParts.collected'), 'command_module'
+        ]);
+        state.set('story.projectBeacon.finale.priority', null);
+        state.set('story.projectBeacon.finale.epilogueSeen', false);
+        state.save();
+        return true;
+    })()`);
+    await navigate(session, `${BASE_URL}/play/`);
+    await waitForScene(session, 'GameScene', 30000);
+    const repair = await touchInteractiveSceneText(session, 'INSTALL COMMAND MODULE', {
+        timeoutMs: 15000, message: 'saved final repair after document reload'
+    });
+    await waitForScene(session, 'VictoryScene', 12000);
+    await touchSceneText(session, 'SKIP >>', { message: 'optional ending sequence skip' });
+    await touchSceneText(session, 'Choose what comes first', { message: 'ending choice entry' });
+    if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'ending-choices.png');
+    // Refresh before selecting, then again after selecting but before seeing
+    // the full epilogue. Neither interruption should strand the player.
+    await navigate(session, `${BASE_URL}/play/`);
+    await waitForScene(session, 'VictoryScene', 30000);
+    await touchSceneText(session, 'PREPARE HOMECOMING\nPreserve a secret route', { message: 'recovered ending choice' });
+    await touchSceneText(session, 'PREPARE THE ROUTE', { message: 'ending confirmation' });
+    const savedChoice = await evaluate(session, `window.GameState.get('story.projectBeacon.finale.priority')`);
+    if (savedChoice !== 'prepare_homecoming') throw new Error('Ending choice did not persist');
+    await navigate(session, `${BASE_URL}/play/`);
+    await waitForScene(session, 'VictoryScene', 30000);
+    for (let index = 0; index < 2; index++) {
+        await touchSceneText(session, 'CONTINUE', { message: `recovered epilogue page ${index + 1}` });
+    }
+    const beforeReturn = await evaluate(session, `(() => ({
+        priority: window.GameState.get('story.projectBeacon.finale.priority'),
+        seen: window.GameState.get('story.projectBeacon.finale.epilogueSeen'),
+        parts: window.GameState.get('hubWorld.shipParts.collected'),
+        coins: window.GameState.get('player.cosmicCoins'),
+        creatureId: window.GameState.get('creature.id'),
+        installed: window.ShipReconstruction.getShipReconstructionSnapshot(window.GameState).completedCount
+    }))()`);
+    if (!beforeReturn.seen || beforeReturn.installed !== 6 || beforeReturn.coins !== 23) {
+        throw new Error(`Incomplete ending or changed saved balance: ${JSON.stringify(beforeReturn)}`);
+    }
+    if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'ending-return-actions.png');
+    await touchSceneText(session, 'SANCTUARY', { message: 'ending return action' });
+    await waitForScene(session, 'HubWorldScene', 12000);
+    await navigate(session, `${BASE_URL}/play/`);
+    await waitForScene(session, 'GameScene', 30000);
+    await delay(1400);
+    const restored = await evaluate(session, `(() => ({
+        priority: window.GameState.get('story.projectBeacon.finale.priority'),
+        seen: window.GameState.get('story.projectBeacon.finale.epilogueSeen'),
+        parts: window.GameState.get('hubWorld.shipParts.collected'),
+        coins: window.GameState.get('player.cosmicCoins'),
+        creatureId: window.GameState.get('creature.id'),
+        installed: window.ShipReconstruction.getShipReconstructionSnapshot(window.GameState).completedCount,
+        victoryActive: window.mythicalGame.scene.isActive('VictoryScene'),
+        gameActive: window.mythicalGame.scene.isActive('GameScene'),
+        position: (() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            return { x: scene.player.x, y: scene.player.y };
+        })()
+    }))()`);
+    for (const key of Object.keys(beforeReturn)) {
+        if (JSON.stringify(beforeReturn[key]) !== JSON.stringify(restored[key])) {
+            throw new Error(`Ending reload changed ${key}: ${JSON.stringify({ beforeReturn, restored })}`);
+        }
+    }
+    if (Math.abs(restored.position.x - 1200) > 1 || Math.abs(restored.position.y - 900) > 1) {
+        throw new Error(`Ending recovery left its pickup-free spawn: ${JSON.stringify(restored.position)}`);
+    }
+    if (restored.victoryActive || !restored.gameActive || exceptions.length) throw new Error(`Ending repeated or failed: ${JSON.stringify({ restored, exceptions })}`);
+    return { repair, beforeReturn, restored, documentReloads: 4, stagedSavedProgress: true };
 }
 
 async function smokeSaveReloadJourney(session, exceptions) {
@@ -23214,6 +23441,12 @@ async function main() {
     });
 
     let session = null;
+    const terminate = async () => {
+        await closeSmokeBrowser(session, chrome);
+        process.exit(1);
+    };
+    process.once('SIGINT', terminate);
+    process.once('SIGTERM', terminate);
     try {
         const target = await waitFor(async () => {
             const response = await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/list`);
@@ -23255,11 +23488,42 @@ async function main() {
         const consoleErrors = [];
         const networkFailures = [];
         const policyViolations = [];
+        const externalRequests = [];
         const networkRequestUrls = new Map();
         const creaturePortraitRequests = [];
         const companionVideoRequests = [];
         const documentNavigationRequests = [];
         const smokeOrigin = new URL(BASE_URL).origin;
+        const isolatedCompletionProof = ['guardian-handoff', 'completion-recovery'].includes(SMOKE_MODE);
+        if (isolatedCompletionProof) {
+            await session.call('Page.addScriptToEvaluateOnNewDocument', {
+                source: `(() => {
+                    localStorage.setItem('audioMuted', 'true');
+                    Object.defineProperty(window, 'APIConfig', {
+                        configurable: true,
+                        set(value) {
+                            value.isEnabled = () => false;
+                            value.isVideoEnabled = () => false;
+                            Object.defineProperty(window, 'APIConfig', { configurable: true, writable: true, value });
+                        }
+                    });
+                    Object.defineProperty(window, 'AudioManager', {
+                        configurable: true,
+                        set(value) {
+                            Object.defineProperty(value, 'muted', { configurable: true, get: () => true, set() {} });
+                            Object.defineProperty(window, 'AudioManager', { configurable: true, writable: true, value });
+                        }
+                    });
+                })()`
+            });
+            await session.call('Network.setBlockedURLs', {
+                urlPatterns: [
+                    { urlPattern: `${smokeOrigin}/*`, block: false },
+                    { urlPattern: 'http://*:*/*', block: true },
+                    { urlPattern: 'https://*:*/*', block: true }
+                ]
+            });
+        }
         const allowLocalStaticFunction404 =
             process.env.SMOKE_ALLOW_LOCAL_STATIC_FUNCTION_404 === '1' &&
             ['127.0.0.1', 'localhost'].includes(new URL(BASE_URL).hostname);
@@ -23302,6 +23566,9 @@ async function main() {
                 .join(' ');
             recordPolicyViolation(message);
             if (params.type === 'error') consoleErrors.push(message);
+            if (isolatedCompletionProof && message.startsWith('[EconomyManager] +')) {
+                console.log(`[completion-economy] ${message}`);
+            }
         });
         session.on('Log.entryAdded', params => {
             recordPolicyViolation(params.entry?.text);
@@ -23329,6 +23596,9 @@ async function main() {
             if (!params.requestId) return;
             const url = params.request?.url || '';
             networkRequestUrls.set(params.requestId, url);
+            if (isolatedCompletionProof && /^https?:/.test(url) && new URL(url).origin !== smokeOrigin) {
+                externalRequests.push(sanitizeNetworkUrl(url));
+            }
             if (
                 sanitizeNetworkUrl(url).endsWith(
                     '/.netlify/functions/generate-ai-art'
@@ -23522,6 +23792,9 @@ async function main() {
                 exceptions
             );
             process.stdout.write('PASS SaveReloadJourney\n');
+        } else if (SMOKE_MODE === 'completion-recovery') {
+            results.completionRecovery = await smokeCompletionRecovery(session, exceptions);
+            process.stdout.write('PASS CompletionRecovery\n');
         } else if (SMOKE_MODE === 'navigation-lifecycle') {
             results.navigationLifecycle = await smokeSanctuaryNavigation(
                 session,
@@ -23611,13 +23884,15 @@ async function main() {
         if (
             consoleErrors.length ||
             networkFailures.length ||
-            policyViolations.length
+            policyViolations.length ||
+            externalRequests.length
         ) {
             throw new Error(
                 `Browser health gate failed: ${JSON.stringify({
                     consoleErrors,
                     networkFailures,
-                    policyViolations
+                    policyViolations,
+                    externalRequests
                 })}`
             );
         }
@@ -23628,7 +23903,8 @@ async function main() {
             transportFailures: 0,
             policyViolations: 0,
             optionalPortraitRequests: creaturePortraitRequests.length,
-            optionalVideoRequests: companionVideoRequests.length
+            optionalVideoRequests: companionVideoRequests.length,
+            externalRequests: externalRequests.length
         };
         console.log(JSON.stringify({
             success: true,
@@ -23645,9 +23921,9 @@ async function main() {
                 console.error(`[gameplay-video] cleanup failed: ${error.message}`);
             });
         }
-        session?.close();
-        chrome.kill('SIGKILL');
-        chrome.unref();
+        await closeSmokeBrowser(session, chrome);
+        process.removeListener('SIGINT', terminate);
+        process.removeListener('SIGTERM', terminate);
         await delay(350);
         try {
             fs.rmSync(profileDir, { recursive: true, force: true });

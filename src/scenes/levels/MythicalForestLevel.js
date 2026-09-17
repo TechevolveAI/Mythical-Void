@@ -5790,6 +5790,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             duration: 1000,
             ease: 'Back.easeOut',
             onComplete: () => {
+                if (this.bossDefeated || this.levelCompletionActive || !this.boss?.active) return;
                 // Start boss AI
                 if (!this.bossAttackPreview) {
                     this.startBossAI();
@@ -6583,7 +6584,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
 
         this.forestRestorationActive = true;
-        this.levelCompletionActive = true;
+        this.enterLevelCompletionState();
         this.resetJoystick?.();
         this.clearVirtualJumpInput?.();
         this.hidePlatformerMobileControls?.();

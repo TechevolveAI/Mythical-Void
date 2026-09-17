@@ -1,26 +1,37 @@
+/** @jest-environment node */
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { parse } = require('@babel/parser');
 
-function loadGuide() {
-    const filePath = path.join(__dirname, '../systems/CampaignJourneyGuide.js');
-    const source = fs.readFileSync(filePath, 'utf8')
-        .replace(
-            /export \{[\s\S]*?\};/,
-            'module.exports = { CAMPAIGN_ROUTE, getCampaignJourneyStep, getCampaignPrerequisiteState, getCampaignRoute };'
-        );
-    const sandbox = {
-        module: { exports: {} },
-        exports: {},
-        Object,
-        Array,
-        String
-    };
-    vm.runInNewContext(source, sandbox, { filename: filePath });
-    return sandbox.module.exports;
+// Execute the real pure dependencies without importing unrelated scene/provider code.
+function loadHelpers(fileName, exportedNames, bindings = {}, selectedNames = null) {
+    const filename = path.join(__dirname, '../systems', fileName);
+    const source = fs.readFileSync(filename, 'utf8');
+    const declarations = parse(source, { sourceType: 'module' }).program.body
+        .map(node => node.type === 'ExportNamedDeclaration' ? node.declaration : node)
+        .filter(node => node && ['FunctionDeclaration', 'VariableDeclaration'].includes(node.type))
+        .filter(node => !selectedNames || (node.type === 'FunctionDeclaration'
+            ? selectedNames.includes(node.id.name)
+            : node.declarations.every(declaration => selectedNames.includes(declaration.id.name))));
+    return vm.runInNewContext(
+        declarations.map(node => source.slice(node.start, node.end)).join('\n') +
+            `\n;({ ${exportedNames.join(', ')} });`,
+        bindings,
+        { filename }
+    );
 }
 
-function createState({ completed = [], unlocked = [], checkpoint = null } = {}) {
+const reconstruction = loadHelpers('ShipReconstruction.js', [
+    'SHIP_RECONSTRUCTION_STEPS', 'getShipReconstructionSnapshot'
+]);
+const legacy = loadHelpers('CampaignLegacy.js', ['CAMPAIGN_INTENTS'], {}, ['CAMPAIGN_INTENTS']);
+const guide = loadHelpers('CampaignJourneyGuide.js', [
+    'CAMPAIGN_ROUTE', 'getCampaignJourneyStep', 'getCampaignPrerequisiteState',
+    'getCampaignRoute', 'getCampaignFinaleRecovery'
+], { ...reconstruction, ...legacy });
+
+function createState({ completed = [], unlocked = [], checkpoint = null, values: extraValues = {} } = {}) {
     const values = {
         'story.projectBeacon.expeditionCheckpoint': checkpoint
     };
@@ -38,7 +49,8 @@ function createState({ completed = [], unlocked = [], checkpoint = null } = {}) 
             unlocked: unlocked.includes(gateId)
         };
     });
-    return { get: jest.fn(key => values[key]) };
+    Object.assign(values, extraValues);
+    return { values, get: jest.fn(key => values[key]), set: jest.fn(), save: jest.fn(), emit: jest.fn() };
 }
 
 describe('campaign journey guide', () => {
@@ -47,7 +59,7 @@ describe('campaign journey guide', () => {
         getCampaignJourneyStep,
         getCampaignPrerequisiteState,
         getCampaignRoute
-    } = loadGuide();
+    } = guide;
 
     test('defines every playable route in the intended campaign order', () => {
         expect(Array.from(CAMPAIGN_ROUTE, route => route.gateId)).toEqual([
@@ -133,7 +145,7 @@ describe('campaign journey guide', () => {
         }));
     });
 
-    test('reports campaign restoration only after all six routes', () => {
+    test('six route completions alone do not report a finished campaign', () => {
         const state = createState({
             completed: [
                 'mythicalForest',
@@ -146,7 +158,176 @@ describe('campaign journey guide', () => {
         });
         expect(getCampaignJourneyStep(state)).toEqual(expect.objectContaining({
             gateId: null,
-            status: 'complete'
+            status: 'repair'
         }));
+    });
+});
+
+describe('returning-player finale recovery', () => {
+    const { getCampaignJourneyStep, getCampaignFinaleRecovery, CAMPAIGN_ROUTE } = guide;
+    const { SHIP_RECONSTRUCTION_STEPS } = reconstruction;
+    const installedSteps = SHIP_RECONSTRUCTION_STEPS.map(step => step.id);
+    const firstFiveRepairs = { completedStepIds: installedSteps.slice(0, 5) };
+    const completedAt = '2026-09-17T12:00:00.000Z';
+
+    function returningState(values = {}, checkpoint = null) {
+        return createState({
+            completed: CAMPAIGN_ROUTE.map(route => route.levelStateId),
+            unlocked: CAMPAIGN_ROUTE.map(route => route.gateId),
+            checkpoint,
+            values: {
+                'story.projectBeacon.fieldKit.recovered': true,
+                'story.projectBeacon.shipReconstruction': { completedStepIds: installedSteps },
+                'hubWorld.shipParts.collected': SHIP_RECONSTRUCTION_STEPS.map(step => step.partId),
+                'hubWorld.shipParts.finalBossUnlocked': true,
+                'hubWorld.shipCompletionCutsceneShown': true,
+                ...values
+            }
+        });
+    }
+
+    test.each([undefined, false, 'true'])('does not infer final victory from parts or ending records (%s)', finalVictory => {
+        const state = returningState({
+            'levels.finalVoid.completed': finalVictory,
+            'story.projectBeacon.finale.priority': 'prepare_homecoming',
+            'story.projectBeacon.finale.epilogueSeen': true
+        });
+        expect(getCampaignFinaleRecovery(state)).toBeNull();
+        expect(getCampaignJourneyStep(state)).toMatchObject({ status: 'ready', levelStateId: 'finalVoid' });
+    });
+
+    test('recovered Command Module, uplink, and unlock flags do not substitute for installation', () => {
+        const state = returningState({
+            'story.projectBeacon.shipReconstruction': firstFiveRepairs,
+            'story.projectBeacon.uplinkRestored': true,
+            'story.projectBeacon.shipCapabilities': { blackBoxProof: 'recovered' }
+        });
+        const recovery = getCampaignFinaleRecovery(state);
+        expect(recovery).toMatchObject({
+            status: 'repair', sceneKey: 'GameScene', label: 'Wanderer-77',
+            gateId: null, levelStateId: null, repairStepId: 'black_box_recovery', priority: null,
+            action: 'Complete the Command Module installation at Wanderer-77.'
+        });
+        expect(getCampaignJourneyStep(state)).toEqual(recovery);
+    });
+
+    test('a non-contiguous or timestamp-only repair ledger still needs its first missing system', () => {
+        const state = returningState({
+            'story.projectBeacon.shipReconstruction': {
+                completedStepIds: ['black_box_recovery'], completedAt
+            },
+            'story.projectBeacon.finale.priority': 'prepare_first_contact'
+        });
+        expect(getCampaignFinaleRecovery(state)).toMatchObject({
+            status: 'repair', repairStepId: 'living_power_lattice', priority: 'prepare_first_contact'
+        });
+    });
+
+    test('uses production reconstruction normalization for history-only installations', () => {
+        const state = returningState({
+            'story.projectBeacon.shipReconstruction': {
+                history: installedSteps.map(stepId => ({
+                    stepId, operationId: `install:${stepId}`, occurredAt: completedAt
+                }))
+            },
+            'story.projectBeacon.fieldKit.recovered': false,
+            'hubWorld.shipParts.collected': []
+        });
+        expect(getCampaignFinaleRecovery(state)).toMatchObject({
+            status: 'ending', endingPhase: 'choice', sceneKey: 'VictoryScene', priority: null
+        });
+    });
+
+    test.each([undefined, null, 'unknown', 'earth', 'void'])(
+        'requires a canonical priority instead of accepting an invalid finale priority (%s)', priority => {
+            const state = returningState({
+                'story.projectBeacon.finale.priority': priority,
+                'story.projectBeacon.finale.epilogueSeen': true
+            });
+            expect(getCampaignFinaleRecovery(state)).toMatchObject({
+                status: 'ending', endingPhase: 'choice', sceneKey: 'VictoryScene', priority: null
+            });
+            expect(getCampaignJourneyStep(state)).toEqual(getCampaignFinaleRecovery(state));
+        }
+    );
+
+    test.each(legacy.CAMPAIGN_INTENTS)('%s is selected, not complete, until its epilogue is seen', priority => {
+        [undefined, false, 'true'].forEach(epilogueSeen => {
+            const state = returningState({
+                'story.projectBeacon.finale.priority': priority,
+                'story.projectBeacon.finale.epilogueSeen': epilogueSeen,
+                'story.projectBeacon.finale.epilogueCompletedAt': completedAt
+            });
+            expect(getCampaignFinaleRecovery(state)).toMatchObject({
+                status: 'ending', endingPhase: 'epilogue', priority, sceneKey: 'VictoryScene'
+            });
+            expect(getCampaignJourneyStep(state)).toEqual(getCampaignFinaleRecovery(state));
+        });
+        const completed = returningState({
+            'story.projectBeacon.finale.priority': priority,
+            'story.projectBeacon.finale.epilogueSeen': true
+        });
+        expect(getCampaignFinaleRecovery(completed)).toBeNull();
+        expect(getCampaignJourneyStep(completed).status).toBe('complete');
+    });
+
+    test.each([
+        ['earth', 'prepare_homecoming'], ['void', 'remain_and_defend']
+    ])('honors the existing %s legacy mapping without restarting completed endings', (choice, priority) => {
+        const legacyFields = {
+            'story.projectBeacon.endingChoice': choice,
+            'story.projectBeacon.endingEpilogueCompletedAt': completedAt
+        };
+        [undefined, false, 'true'].forEach(seen => {
+            expect(getCampaignFinaleRecovery(returningState({
+                ...legacyFields, 'story.projectBeacon.endingEpilogueSeen': seen
+            }))).toMatchObject({ status: 'ending', endingPhase: 'epilogue', priority });
+        });
+        const completed = returningState({
+            ...legacyFields,
+            'story.projectBeacon.endingEpilogueSeen': true,
+            'story.projectBeacon.shipReconstruction': undefined
+        });
+        expect(getCampaignFinaleRecovery(completed)).toBeNull();
+        expect(getCampaignJourneyStep(completed).status).toBe('complete');
+    });
+
+    test('canonical priority wins over legacy choice and legacy epilogue truth remains valid', () => {
+        const values = {
+            'story.projectBeacon.finale.priority': 'prepare_first_contact',
+            'story.projectBeacon.endingChoice': 'earth'
+        };
+        expect(getCampaignFinaleRecovery(returningState(values))).toMatchObject({
+            status: 'ending', endingPhase: 'epilogue', priority: 'prepare_first_contact'
+        });
+        expect(getCampaignFinaleRecovery(returningState({
+            ...values, 'story.projectBeacon.endingEpilogueSeen': true
+        }))).toBeNull();
+    });
+
+    test('unknown legacy choices and lone epilogue flags cannot suppress recovery', () => {
+        expect(getCampaignFinaleRecovery(returningState({
+            'story.projectBeacon.endingChoice': 'unknown',
+            'story.projectBeacon.endingEpilogueSeen': true
+        }))).toMatchObject({ status: 'ending', endingPhase: 'choice', priority: null });
+    });
+
+    test.each([
+        ['repair', { 'story.projectBeacon.shipReconstruction': firstFiveRepairs }],
+        ['ending', {}],
+        ['ending', { 'story.projectBeacon.finale.priority': 'remain_and_defend' }],
+        ['complete', {
+            'story.projectBeacon.finale.priority': 'remain_and_defend',
+            'story.projectBeacon.finale.epilogueSeen': true
+        }]
+    ])('stale final checkpoints cannot replace post-boss %s guidance or mutate the save', (status, values) => {
+        const state = returningState(values, { sceneKey: 'FinalVoidLevel', label: 'Trust Marker' });
+        const before = JSON.stringify(state.values);
+        getCampaignFinaleRecovery(state);
+        expect(getCampaignJourneyStep(state)).toMatchObject({ status, gateId: null, levelStateId: null });
+        expect(JSON.stringify(state.values)).toBe(before);
+        expect(state.set).not.toHaveBeenCalled();
+        expect(state.save).not.toHaveBeenCalled();
+        expect(state.emit).not.toHaveBeenCalled();
     });
 });

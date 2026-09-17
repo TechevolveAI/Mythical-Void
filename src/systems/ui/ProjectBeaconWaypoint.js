@@ -127,6 +127,16 @@ export function resolveSanctuaryCurrentTarget(scene, {
         };
     }
 
+    if (['repair', 'ending'].includes(campaignStep?.status) && isUsableTarget(scene.crashedShip)) {
+        return {
+            missionId: `sanctuary_final_${campaignStep.status}`,
+            label: campaignStep.status === 'repair' ? 'FINISH SHIP REPAIR' : 'CHOOSE WHAT COMES NEXT',
+            color: 0x8FE3CF,
+            target: scene.crashedShip,
+            source: 'sanctuary'
+        };
+    }
+
     const village = scene.villageHeartLandmark?.snapshot;
     const nextVillageAction = village?.worldState?.nextAction;
     const villageNeedsGuidance = village?.unlock?.unlocked === true &&
@@ -314,6 +324,7 @@ export default class ProjectBeaconWaypoint {
 
     refreshTarget() {
         const quest = this.questProvider();
+        const campaignStep = this.campaignStepProvider();
         const activeStoryQuest = Boolean(
             quest?.type === 'story' && !quest.completed && !quest.claimed
         );
@@ -322,10 +333,12 @@ export default class ProjectBeaconWaypoint {
             quest,
             this.scene.player
         );
-        this.currentTarget = activeStoryQuest
+        this.currentTarget = ['repair', 'ending'].includes(campaignStep?.status)
+            ? resolveSanctuaryCurrentTarget(this.scene, { campaignStep })
+            : activeStoryQuest
             ? questTarget
             : questTarget || resolveSanctuaryCurrentTarget(this.scene, {
-                campaignStep: this.campaignStepProvider()
+                campaignStep
             });
 
         if (!this.currentTarget) {

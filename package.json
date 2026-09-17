@@ -195,6 +195,7 @@
     "smoke:topology": "SMOKE_MODE=traversal-topology node scripts/smoke-secondary-journeys.js",
     "smoke:aurora-route": "SMOKE_MODE=aurora-route-journey node scripts/smoke-secondary-journeys.js",
     "smoke:guardian-handoff": "SMOKE_MODE=guardian-handoff node scripts/smoke-secondary-journeys.js",
+    "smoke:completion-flow": "node scripts/run-completion-flow.cjs",
     "smoke:state-contract": "SMOKE_MODE=state-contract node scripts/smoke-secondary-journeys.js",
     "smoke:village-ui": "SMOKE_MODE=village-ui node scripts/smoke-secondary-journeys.js",
     "smoke:void-portal": "SMOKE_MODE=void-portal-lifecycle node scripts/smoke-secondary-journeys.js",

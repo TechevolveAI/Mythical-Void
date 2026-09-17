@@ -30,3 +30,8 @@ jobs:
           CHROME_PATH: /usr/bin/google-chrome
           DEBRIEF_EVIDENCE_DIR: /tmp/mythical-debrief-evidence
         run: node scripts/smoke-expedition-debrief.cjs
+      - name: Verify boss rewards, installation and interrupted ending recovery
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+          COMPLETION_EVIDENCE_DIR: /tmp/mythical-completion-evidence
+        run: node scripts/run-completion-flow.cjs

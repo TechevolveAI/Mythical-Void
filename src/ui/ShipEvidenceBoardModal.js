@@ -710,9 +710,18 @@ export default class ShipEvidenceBoardModal {
     }
 
     activatePointerRegion(pointer) {
-        const x = Number(pointer?.x);
-        const y = Number(pointer?.y);
+        let x = Number(pointer?.x);
+        let y = Number(pointer?.y);
         if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
+        // The panel uses scrollFactor(0), but still inherits camera zoom.
+        // Match Phaser's hit-test transform instead of testing screen pixels
+        // against untransformed panel coordinates.
+        const camera = this.scene?.cameras?.main;
+        if (typeof camera?.getWorldPoint === 'function') {
+            const world = camera.getWorldPoint(x, y);
+            x = world.x - camera.scrollX;
+            y = world.y - camera.scrollY;
+        }
         const region = this.pointerRegions.find(candidate => (
             x >= candidate.left &&
             x <= candidate.right &&
