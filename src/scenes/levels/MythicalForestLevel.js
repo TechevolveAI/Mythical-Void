@@ -17,6 +17,7 @@ import {
     isCaydenBirthdayCelebrationActive
 } from '../../config/special-events.js';
 import { shareGuardianRestoration } from '../../utils/GuardianRestorationShare.js';
+import { getCampaignEntryStackLayout } from '../../systems/MobileControlLayout.js';
 import {
     FOREST_HELP_MOMENTS,
     getForestHelpMoment,
@@ -7490,7 +7491,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.combatJuice?.comboDisplay?.setVisible?.(false);
         this.combatJuice?.comboMultiplierDisplay?.setVisible?.(false);
 
-        const layout = this.getLevelModalLayout({ maxWidth: 420, maxHeight: 480 });
+        const layout = this.getLevelModalLayout({ maxWidth: 480, maxHeight: 600 });
         const {
             width, panelWidth, panelHeight, panelX, panelY,
             contentWidth, y, font, buttonPadding
@@ -7509,9 +7510,16 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         const coinsEarned = completionResult?.coinsAwarded || 0;
 
-        // Victory text
+        const summary = [];
+        const remember = (element) => {
+            element.setName(`forest-victory-${summary.length}`);
+            summary.push(element);
+            return element;
+        };
+
+        // Text is measured after wrapping; fixed centre points overlap long rewards.
         const victoryText = this.add.text(width / 2, y(45), 'FOREST EXPEDITION COMPLETE', {
-            fontSize: font(32, 24),
+            fontSize: font(26, 22),
             color: '#FFD700',
             fontStyle: 'bold',
             stroke: '#000000',
@@ -7519,35 +7527,37 @@ class MythicalForestLevel extends PlatformerLevelScene {
             align: 'center',
             wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2500).setAlpha(0);
+        remember(victoryText);
 
         this.tweens.add({
             targets: victoryText,
             alpha: 1,
-            scaleX: { from: 0.5, to: 1 },
-            scaleY: { from: 0.5, to: 1 },
             duration: 500
         });
 
         // Create victory panel
         const panel = this.add.graphics();
         panel.fillStyle(0x1A301A, 0.95);
-        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
         panel.lineStyle(3, 0x228B22);
-        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
         panel.setScrollFactor(0).setDepth(2499);
 
         // Rewards header
-        this.add.text(width / 2, y(100), 'ELDER TREANT RESTORED', {
-            fontSize: font(22, 18),
+        remember(this.add.text(width / 2, y(100), 'ELDER TREANT RESTORED', {
+            fontSize: font(20, 16),
             color: '#90EE90',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: contentWidth }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(2502));
 
-        this.add.text(
+        const hits = this.forestBossHits || 0;
+        remember(this.add.text(
             width / 2,
             y(140),
             Number.isFinite(this.forestBossDuration)
-                ? `Guardian freed in ${Math.ceil(this.forestBossDuration / 1000)}s\n${this.forestBossHits || 0} successful strikes`
+                ? `Guardian freed in ${Math.ceil(this.forestBossDuration / 1000)}s\n${hits} successful ${hits === 1 ? 'strike' : 'strikes'}`
                 : 'The forest roots carry life again.',
             {
                 fontSize: font(15, 13),
@@ -7556,20 +7566,20 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 align: 'center',
                 wordWrap: { width: contentWidth }
             }
-        ).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(2502));
 
         // Coins earned
-        this.add.text(width / 2, y(182), `💰 ${coinsEarned} Coins`, {
+        remember(this.add.text(width / 2, y(182), `${coinsEarned} Coins`, {
             fontSize: font(18, 16),
             color: '#FFD700'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(2502));
 
         // Ship part notification
         const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
-        this.add.text(
+        remember(this.add.text(
             width / 2,
             y(220),
-            `🌳 Guardian's Gift: Forest Core\n${this.getBossPowerupRewardCopy({ compact: true })}`,
+            `Guardian's Gift: Forest Core\n${this.getBossPowerupRewardCopy({ compact: true })}`,
             {
             fontSize: font(16, 13),
             color: '#90EE90',
@@ -7577,16 +7587,16 @@ class MythicalForestLevel extends PlatformerLevelScene {
             lineSpacing: 4,
             wordWrap: { width: contentWidth }
             }
-        ).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(2502));
 
         const totalRequired = window.GameState?.get('hubWorld.shipParts.totalRequired') || 5;
         const sanctuaryArrival = this.getGuardianSanctuaryArrivalCopy({ compact: true });
         const villageOutcome = this.getVillageCompletionCopy({ compact: true });
-        this.add.text(
+        remember(this.add.text(
             width / 2,
             y(275),
             [
-                sanctuaryArrival || 'Wisp is safe in the Sanctuary.',
+                sanctuaryArrival || 'The forest is safe again.',
                 completionResult?.nextGateUnlocked
                     ? 'NEXT EXPEDITION OPEN: CRYSTAL CAVES'
                     : 'NEXT: RETURN TO THE SANCTUARY',
@@ -7600,7 +7610,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             lineSpacing: 4,
             wordWrap: { width: contentWidth }
             }
-        ).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(2502));
 
         if (completionResult?.firstCompletion === true) {
             const inviteBtn = this.add.text(width / 2, y(380), '[ INVITE SOMEONE ]', {
@@ -7609,6 +7619,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 backgroundColor: '#8FE3CF',
                 padding: buttonPadding
             }).setOrigin(0.5).setScrollFactor(0).setDepth(2502).setInteractive();
+            remember(inviteBtn);
 
             let invitationInProgress = false;
             inviteBtn.on('pointerover', () => inviteBtn.setColor('#3B156B'));
@@ -7637,6 +7648,19 @@ class MythicalForestLevel extends PlatformerLevelScene {
             backgroundColor: '#228B22',
             padding: buttonPadding
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2502).setInteractive();
+        remember(continueBtn);
+
+        const stack = getCampaignEntryStackLayout({
+            top: panelY,
+            bottom: panelY + panelHeight,
+            itemHeights: summary.map(element => element.height),
+            gaps: 14,
+            topPadding: 18,
+            bottomPadding: 18
+        });
+        summary.forEach((element, index) => {
+            element.setY(stack.positions[index] + element.height / 2);
+        });
 
         continueBtn.on('pointerover', () => continueBtn.setColor('#90EE90'));
         continueBtn.on('pointerout', () => continueBtn.setColor('#FFFFFF'));

@@ -14520,6 +14520,15 @@ async function smokeGuardianHandoff(session, step, exceptions) {
                         top: returnAction.getBounds().top,
                         bottom: returnAction.getBounds().bottom
                     },
+                    summary: scene.children.list
+                        .filter(item => item.name?.startsWith('forest-victory-'))
+                        .map(item => ({
+                            text: item.text,
+                            left: item.getBounds().left,
+                            right: item.getBounds().right,
+                            top: item.getBounds().top,
+                            bottom: item.getBounds().bottom
+                        })),
                     viewport: {
                         width: scene.cameras.main.width,
                         height: scene.cameras.main.height
@@ -14543,12 +14552,23 @@ async function smokeGuardianHandoff(session, step, exceptions) {
             bounds.right <= firstGuardianInvitation.viewport.width &&
             bounds.bottom <= firstGuardianInvitation.viewport.height
         ));
-        if (actionsOverlap || !actionsInFrame) {
+        const summaryInFrame = firstGuardianInvitation.summary.length === 8 &&
+            firstGuardianInvitation.summary.every(bounds => (
+                bounds.left >= 0 && bounds.top >= 0 &&
+                bounds.right <= firstGuardianInvitation.viewport.width &&
+                bounds.bottom <= firstGuardianInvitation.viewport.height
+            ));
+        const summaryOverlaps = firstGuardianInvitation.summary.some((bounds, index, blocks) => (
+            index > 0 && bounds.top < blocks[index - 1].bottom + 3
+        ));
+        if (actionsOverlap || !actionsInFrame || !summaryInFrame || summaryOverlaps) {
             throw new Error(
                 `First Guardian invitation layout failed: ${JSON.stringify({
                     firstGuardianInvitation,
                     actionsOverlap,
-                    actionsInFrame
+                    actionsInFrame,
+                    summaryInFrame,
+                    summaryOverlaps
                 })}`
             );
         }

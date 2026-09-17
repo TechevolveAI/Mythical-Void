@@ -72,6 +72,12 @@ automated tests have established the ideal difficulty for children.
   and successful strikes. Existing earned coins, Forest Core, usable power-up,
   rescued resident and next destination remain. No invented score, rating,
   currency, leaderboard or save schema is introduced.
+- Screenshot inspection caught overlapping reward text despite the original
+  button-only checks passing. The result now uses measured wrapped text heights
+  in the existing stack-layout helper, with a taller responsive panel. Power-up
+  instructions and active village-support credit remain visible. The completion
+  check now rejects overlap or off-screen bounds for every summary block and
+  both actions, not just the two buttons.
 
 ## Research Basis
 
@@ -91,11 +97,25 @@ to transplant another game's systems or difficulty.
   injection; isolated patterns with real clocks, input, projectiles and victory.
   Positions/health are reset between cases. This is not a full playthrough or an
   adult approval of difficulty. Evidence goes under `.visual-review/` only.
-- `COMPLETION_CASES=forest-phone,forest-desktop node scripts/run-completion-flow.cjs`:
+- `SMOKE_HARDWARE_ACCELERATED_CAPTURE=1 COMPLETION_CASES=forest-phone,forest-desktop node scripts/run-completion-flow.cjs`:
   the existing focused restoration/rescue/reward/return proof. Its staged final
   hit now waits for a real opening rather than overriding boss protection.
+- The older harness's forced software renderer ran the desktop fixture at about
+  7 FPS and timed out before an attack opening. Normal GPU browser checks pass;
+  the software-rendering limitation is not resolved or hidden by longer waits.
+  The failed software proof remains private alongside the passing GPU evidence.
 - Full Jest suite, production build and diff check. Browser processes are muted,
   optional services disabled in disposable fixtures, and owned processes closed.
 - Exact source and result status are recorded in the private evidence JSON.
   No push or deployment is part of this repair. Child playtesting must still
   judge pace, difficulty and readability before calling it polished.
+
+Final candidate validation: 236 suites / 2,288 tests pass. The tests cover long
+wrapped rewards, replay idempotence and singular/plural strike counts. Actual
+phone/desktop completion evidence is under
+`.visual-review/forest-encounter/final-completion/`; its result JSON records the
+exact source commit and browser outcome. Combat evidence remains under
+`.visual-review/forest-encounter/0ed8fa08/` (the unchanged combat implementation).
+These are local desktop Chrome touch/viewport simulations, not physical iPhone
+or Android device tests. Hosted video and portrait providers are disabled in
+the fixtures; their production availability has not been re-certified here.
