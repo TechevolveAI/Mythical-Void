@@ -14267,6 +14267,31 @@ async function smokeGuardianHandoff(session, step, exceptions) {
     if (step.route === 'mythicalForest') {
         const skipAction = await touchInteractiveSceneText(session, 'SKIP', {
             timeoutMs: 30000, message: 'optional forest restoration skip'
+        }).catch(async error => {
+            const diagnosticExpression = `(() => {
+                const game = window.mythicalGame;
+                const scene = game.scene.getScene('MythicalForestLevel');
+                const camera = scene.cameras.main;
+                const skip = scene.children.list.find(item => item.text === 'SKIP');
+                return {
+                    activeScenes: game.scene.getScenes(true).map(item => item.scene.key),
+                    loop: { running: game.loop.running, started: game.loop.started, frame: game.loop.frame, fps: game.loop.actualFps, delta: game.loop.delta, rawDelta: game.loop.rawDelta, inFocus: game.loop.inFocus, paused: game.isPaused, hidden: document.hidden },
+                    clock: { paused: scene.time.paused, scale: scene.time.timeScale, now: scene.time.now },
+                    restorationActive: scene.forestRestorationActive,
+                    completionRecorded: Boolean(scene.levelCompletionResult),
+                    timers: scene.forestRestorationTimers?.map(timer => ({ elapsed: timer.elapsed, delay: timer.delay, paused: timer.paused, dispatched: timer.hasDispatched })),
+                    input: { enabled: scene.input.enabled, active: scene.input.isActive(), managerEnabled: game.input.enabled },
+                    camera: { zoom: camera.zoom, shake: camera.shakeEffect.isRunning, shakeElapsed: camera.shakeEffect._elapsed, pan: camera.panEffect.isRunning, zooming: camera.zoomEffect.isRunning, width: camera.width, height: camera.height },
+                    cameraTweens: scene.tweens.getTweensOf(camera).map(tween => ({ playing: tween.isPlaying(), elapsed: tween.elapsed, duration: tween.duration, totalElapsed: tween.totalElapsed, keys: tween.data?.map(item => item.key) })),
+                    skip: skip ? { x: skip.x, y: skip.y, visible: skip.visible, alpha: skip.alpha, input: skip.input?.enabled, listed: scene.input._list.includes(skip), listeners: skip.listenerCount('pointerdown'), bounds: skip.getBounds(), projected: (${sceneTextScreenPoint.toString()})(skip) } : null,
+                    texts: scene.children.list.filter(item => item.text && item.visible && item.depth > 2000).map(item => item.text),
+                    exceptions: ${JSON.stringify(exceptions)}
+                };
+            })()`;
+            const before = await evaluate(session, diagnosticExpression);
+            await delay(1000);
+            const after = await evaluate(session, diagnosticExpression);
+            throw new Error(error.message + ': ' + JSON.stringify({ before, after }));
         });
         if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'forest-after-restoration-skip.png');
         const afterRestoration = await waitFor(
