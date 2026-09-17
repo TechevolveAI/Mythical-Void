@@ -73,10 +73,15 @@ async function main() {
         executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
         args: ['--mute-audio']
     });
+    // Vite-only CI serves /play/ through its index fallback; the release build
+    // also writes a dedicated entry. Hash the actual served document in both.
+    const entryResponse = await fetch(`${base}/play/`);
+    assert(entryResponse.ok, 'Play entry is unavailable');
+    const entryHtml = await entryResponse.text();
     const evidence = {
         sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
         sourceStatus: execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim(),
-        shippedEntrySha256: createHash('sha256').update(fs.readFileSync(path.join(root, 'dist/play/index.html'))).digest('hex'),
+        shippedEntrySha256: createHash('sha256').update(entryHtml).digest('hex'),
         fixtureOnly: true,
         publicationAuthorized: false,
         externalRequests: [], pageErrors: [], consoleErrors: [], httpErrors: [], cases: []
