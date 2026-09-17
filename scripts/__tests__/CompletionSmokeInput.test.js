@@ -77,3 +77,36 @@ test('click point follows camera zoom, scroll factor and CSS canvas scaling', ()
     target.scrollFactorX = 1;
     expect(project(target)).toBeNull();
 });
+
+test.each(['clean', 'unresponsive'])('browser cleanup retires a %s browser before the next journey', async state => {
+    const fn = ast.program.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'closeSmokeBrowser');
+    const chrome = { exitCode: null, signalCode: null, unref: jest.fn() };
+    chrome.kill = jest.fn(signal => { chrome.signalCode = signal; });
+    const session = { close: jest.fn(), call: jest.fn(async () => {
+        if (state === 'clean') chrome.exitCode = 0;
+        else throw new Error('browser unresponsive');
+    }) };
+    const close = vm.runInNewContext(`(${source.slice(fn.start, fn.end)})`, { delay: async () => {} });
+    await close(session, chrome);
+    expect(session.call).toHaveBeenCalledWith('Browser.close');
+    expect(session.close).toHaveBeenCalledTimes(1);
+    expect(chrome.kill).toHaveBeenCalledTimes(state === 'clean' ? 0 : 1);
+    expect(chrome.unref).toHaveBeenCalledTimes(1);
+});
+
+test('closing CDP rejects pending work and clears its timers', async () => {
+    const node = ast.program.body.find(item => item.type === 'ClassDeclaration' && item.id.name === 'CdpSession');
+    const socket = { send: jest.fn(), close: jest.fn() };
+    const clear = jest.fn();
+    const CdpSession = vm.runInNewContext(`(${source.slice(node.start, node.end)})`, {
+        WebSocket: function () { return socket; }, CDP_TIMEOUT_MS: 10000,
+        setTimeout: () => 23, clearTimeout: clear
+    });
+    const session = new CdpSession('local');
+    const pending = session.call('Browser.close');
+    session.close();
+    await expect(pending).rejects.toThrow('CDP session closed');
+    expect(clear).toHaveBeenCalledWith(23);
+    expect(session.pending.size).toBe(0);
+    expect(socket.close).toHaveBeenCalledTimes(1);
+});

@@ -197,8 +197,32 @@ class CdpSession {
     }
 
     close() {
+        for (const pending of this.pending.values()) {
+            pending.reject(new Error('CDP session closed'));
+        }
+        this.pending.clear();
         this.socket.close();
     }
+}
+
+async function closeSmokeBrowser(session, chrome) {
+    // Let Chrome retire its renderer/GPU children before a subsequent journey
+    // starts. Killing only the parent first can leave those processes behind.
+    await Promise.race([
+        session?.call('Browser.close').catch(() => {}),
+        delay(1000)
+    ]);
+    session?.close();
+    for (let attempt = 0; attempt < 20 && chrome.exitCode === null && chrome.signalCode === null; attempt++) {
+        await delay(50);
+    }
+    if (chrome.exitCode === null && chrome.signalCode === null) {
+        chrome.kill('SIGKILL');
+        for (let attempt = 0; attempt < 10 && chrome.exitCode === null && chrome.signalCode === null; attempt++) {
+            await delay(50);
+        }
+    }
+    chrome.unref();
 }
 
 async function evaluate(session, expression) {
@@ -14961,6 +14985,7 @@ async function smokeCompletionRecovery(session, exceptions) {
         // Use the existing pickup-free Sanctuary centre. A random coin at a
         // prior spawn must not contaminate the strict saved-balance comparison.
         state.set('world.currentPosition', { x: 1200, y: 900 });
+        state.set('player.cosmicCoins', 23);
         state.set('session.gameStarted', true);
         state.set('tutorial.livingFormPending', false);
         state.set('tutorial.livingFormSeen', true);
@@ -15004,7 +15029,9 @@ async function smokeCompletionRecovery(session, exceptions) {
         creatureId: window.GameState.get('creature.id'),
         installed: window.ShipReconstruction.getShipReconstructionSnapshot(window.GameState).completedCount
     }))()`);
-    if (!beforeReturn.seen || beforeReturn.installed !== 6) throw new Error(`Incomplete ending: ${JSON.stringify(beforeReturn)}`);
+    if (!beforeReturn.seen || beforeReturn.installed !== 6 || beforeReturn.coins !== 23) {
+        throw new Error(`Incomplete ending or changed saved balance: ${JSON.stringify(beforeReturn)}`);
+    }
     if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'ending-return-actions.png');
     await touchSceneText(session, 'SANCTUARY', { message: 'ending return action' });
     await waitForScene(session, 'HubWorldScene', 12000);
@@ -23415,11 +23442,7 @@ async function main() {
 
     let session = null;
     const terminate = async () => {
-        await Promise.race([
-            session?.call('Browser.close').catch(() => {}),
-            delay(1000)
-        ]);
-        chrome.kill('SIGKILL');
+        await closeSmokeBrowser(session, chrome);
         process.exit(1);
     };
     process.once('SIGINT', terminate);
@@ -23898,9 +23921,7 @@ async function main() {
                 console.error(`[gameplay-video] cleanup failed: ${error.message}`);
             });
         }
-        session?.close();
-        chrome.kill('SIGKILL');
-        chrome.unref();
+        await closeSmokeBrowser(session, chrome);
         process.removeListener('SIGINT', terminate);
         process.removeListener('SIGTERM', terminate);
         await delay(350);
