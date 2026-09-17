@@ -6778,8 +6778,8 @@ class GameScene extends Phaser.Scene {
         this.player.setCollideWorldBounds(true);
 
         // Set player collision body size (slightly smaller than sprite for better gameplay)
-        this.player.body.setSize(40, 60);
-        this.player.body.setOffset(10, 10);
+        // Centre the unchanged hitbox inside the phenotype's transparent margins.
+        this.player.body.setSize(40, 60, true);
 
         console.log(`game:info [GameScene] Player created at (${startX}, ${startY}) with world bounds: ${this.worldWidth}x${this.worldHeight}`);
         
