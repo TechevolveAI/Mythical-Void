@@ -81,6 +81,7 @@ class HatchingScene extends Phaser.Scene {
         this.eggTextureName = null;
         this.isStartingGame = false; // Reset START button state
         this.themeMusicLoadRequested = false;
+        this.themeMusicWanted = false;
         this.startButtonPressed = false;
         this.startFlowQueued = false;
         this.homeContentReady = false;
@@ -169,6 +170,7 @@ class HatchingScene extends Phaser.Scene {
         }
 
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
+        this.events.on(Phaser.Scenes.Events.RESUME, this.startThemeMusic, this);
 
         // Stop all other scenes to ensure clean display
         const scenesToStop = ['GameScene', 'InventoryScene', 'ShopScene'];
@@ -441,6 +443,10 @@ class HatchingScene extends Phaser.Scene {
     }
 
     loadThemeMusicInBackground() {
+        this.themeMusicWanted = true;
+        this.themeMusicSettingsCleanup ??= window.AudioManager?.onPreferencesChange?.(
+            () => this.syncThemeMusicPreferences()
+        );
         if (this.cache.audio.exists('themeMusic')) {
             this.startThemeMusic();
             return;
@@ -450,7 +456,7 @@ class HatchingScene extends Phaser.Scene {
         this.themeMusicLoadRequested = true;
         this.load.once('filecomplete-audio-themeMusic', () => {
             this.themeMusicLoadRequested = false;
-            if (!this.sys.isActive() || this.isStartingGame) return;
+            if (!this.sys.isActive() || !this.themeMusicWanted) return;
             this.startThemeMusic();
         });
         this.load.once('loaderror', file => {
@@ -470,6 +476,7 @@ class HatchingScene extends Phaser.Scene {
      * Respects AudioManager mute settings
      */
     startThemeMusic() {
+        if (!this.themeMusicWanted || !this.sys.isActive()) return;
         if (this.themeMusic?.isPlaying) return;
 
         // Check if audio is loaded
@@ -485,16 +492,16 @@ class HatchingScene extends Phaser.Scene {
         }
 
         // Create and play the theme music
-        this.themeMusic = this.sound.add('themeMusic', {
+        this.themeMusic ??= this.sound.add('themeMusic', {
             loop: true,
-            volume: 0.4  // Start at comfortable volume
+            volume: 0
         });
 
         // Fade in the music for a smooth start
         this.themeMusic.play();
         this.tweens.add({
             targets: this.themeMusic,
-            volume: 0.6,
+            volume: this.getThemeMusicVolume(),
             duration: 2000,
             ease: 'Sine.easeIn'
         });
@@ -502,23 +509,44 @@ class HatchingScene extends Phaser.Scene {
         console.log('[HatchingScene] 🎵 Theme music started - Starwhale Over the Nebula Sea');
     }
 
+    getThemeMusicVolume() {
+        const volumes = window.AudioManager?.getVolumes?.() || { master: 0.7, music: 0.5 };
+        return 0.6 * volumes.master * volumes.music;
+    }
+
+    syncThemeMusicPreferences() {
+        if (!this.themeMusicWanted) return;
+        if (!this.themeMusic) {
+            this.startThemeMusic();
+            return;
+        }
+        this.tweens.killTweensOf(this.themeMusic);
+        this.themeMusic.setMute(window.AudioManager?.isMuted?.() === true);
+        this.themeMusic.setVolume(this.getThemeMusicVolume());
+    }
+
     /**
      * Stop theme music with fade out
      */
-    stopThemeMusic() {
-        if (this.themeMusic && this.themeMusic.isPlaying) {
+    stopThemeMusic(immediate = false) {
+        this.themeMusicWanted = false;
+        const music = this.themeMusic;
+        if (!music) return;
+        this.tweens.killTweensOf(music);
+        const dispose = () => {
+            music.stop();
+            music.destroy();
+            if (this.themeMusic === music) this.themeMusic = null;
+        };
+        if (immediate || !music.isPlaying) {
+            dispose();
+        } else {
             this.tweens.add({
-                targets: this.themeMusic,
+                targets: music,
                 volume: 0,
                 duration: 800,
                 ease: 'Sine.easeOut',
-                onComplete: () => {
-                    if (this.themeMusic) {
-                        this.themeMusic.stop();
-                        this.themeMusic.destroy();
-                        this.themeMusic = null;
-                    }
-                }
+                onComplete: dispose
             });
             console.log('[HatchingScene] 🎵 Theme music fading out');
         }
@@ -621,6 +649,7 @@ class HatchingScene extends Phaser.Scene {
 
     showHatchingScreen() {
         console.log('[HatchingScene] 🥚 Showing hatching screen with audio');
+        if (!this.isEggHatch) this.loadThemeMusicInBackground();
 
         // Play suspenseful ambient sound
         if (window.AudioManager) {
@@ -1786,6 +1815,7 @@ class HatchingScene extends Phaser.Scene {
 
     completeHatching() {
         console.log('[HatchingScene] 🎉 Egg hatched! Playing celebration sound');
+        this.stopThemeMusic();
 
         // Get rarity-specific effects configuration
         const rarityKey = this.creatureDNA?.raritySignature || 'common';
@@ -3292,6 +3322,10 @@ class HatchingScene extends Phaser.Scene {
      */
     shutdown() {
         console.log('🧹 HatchingScene.shutdown() - Cleaning up scene resources');
+        this.stopThemeMusic(true);
+        this.themeMusicSettingsCleanup?.();
+        this.themeMusicSettingsCleanup = null;
+        this.events.off(Phaser.Scenes.Events.RESUME, this.startThemeMusic, this);
 
         this.homeStartRecoveryTimer?.remove?.();
         this.homeStartRecoveryTimer = null;
@@ -4964,9 +4998,6 @@ class HatchingScene extends Phaser.Scene {
      * ⚠️ CRITICAL SECTION - DO NOT MODIFY - GAME FLOW LOGIC ⚠️
      */
     handleStartGame() {
-        // Fade out theme music when starting game
-        this.stopThemeMusic();
-
         const GameState = getGameState();
 
         // Mark game as started - CRITICAL for game flow validation
