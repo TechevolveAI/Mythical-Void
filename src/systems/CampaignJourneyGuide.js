@@ -1,3 +1,6 @@
+import { CAMPAIGN_INTENTS } from './CampaignLegacy.js';
+import { getShipReconstructionSnapshot } from './ShipReconstruction.js';
+
 const CAMPAIGN_ROUTE = Object.freeze([
     Object.freeze({
         gateId: 'mythical_forest',
@@ -116,7 +119,70 @@ function getCampaignRouteAccess(gameState, route) {
     };
 }
 
+function getCampaignFinaleRecovery(gameState) {
+    if (read(gameState, 'levels.finalVoid.completed', false) !== true) return null;
+
+    const currentPriority = read(gameState, 'story.projectBeacon.finale.priority');
+    const legacyChoice = read(gameState, 'story.projectBeacon.endingChoice');
+    const priority = CAMPAIGN_INTENTS.includes(currentPriority)
+        ? currentPriority
+        : legacyChoice === 'earth'
+            ? 'prepare_homecoming'
+            : legacyChoice === 'void'
+                ? 'remain_and_defend'
+                : null;
+    const epilogueSeen = read(gameState, 'story.projectBeacon.finale.epilogueSeen', false) === true ||
+        read(gameState, 'story.projectBeacon.endingEpilogueSeen', false) === true;
+    // Completed legacy endings remain complete even without a reconstruction ledger.
+    if (priority && epilogueSeen) return null;
+
+    const reconstruction = getShipReconstructionSnapshot(gameState);
+    if (!reconstruction.complete) {
+        return {
+            gateId: null,
+            levelStateId: null,
+            sceneKey: 'GameScene',
+            label: 'Wanderer-77',
+            status: 'repair',
+            title: 'Final repair: Wanderer-77',
+            action: `Complete the ${reconstruction.nextStep.partName} installation at Wanderer-77.`,
+            repairStepId: reconstruction.nextStep.id,
+            priority
+        };
+    }
+
+    return {
+        gateId: null,
+        levelStateId: null,
+        sceneKey: 'VictoryScene',
+        label: 'Project Beacon',
+        status: 'ending',
+        title: priority ? 'Continue your Project Beacon epilogue' : 'Choose what comes first',
+        action: priority
+            ? 'Continue the epilogue for your saved Project Beacon priority.'
+            : 'Choose your Project Beacon preparation priority.',
+        endingPhase: priority ? 'epilogue' : 'choice',
+        priority
+    };
+}
+
 function getCampaignJourneyStep(gameState) {
+    const nextRoute = CAMPAIGN_ROUTE.find(route => (
+        read(gameState, `levels.${route.levelStateId}.completed`, false) !== true
+    ));
+
+    // A stale expedition checkpoint must not supersede the post-boss handoff.
+    if (!nextRoute) {
+        return getCampaignFinaleRecovery(gameState) || {
+            gateId: null,
+            levelStateId: null,
+            label: 'Wanderer-77',
+            status: 'complete',
+            title: 'Campaign restored',
+            action: 'Review the final mission record and your protected return choices.'
+        };
+    }
+
     const activeCheckpoint = read(
         gameState,
         'story.projectBeacon.expeditionCheckpoint'
@@ -141,21 +207,6 @@ function getCampaignJourneyStep(gameState) {
         }
     }
 
-    const nextRoute = CAMPAIGN_ROUTE.find(route => (
-        read(gameState, `levels.${route.levelStateId}.completed`, false) !== true
-    ));
-
-    if (!nextRoute) {
-        return {
-            gateId: null,
-            levelStateId: null,
-            label: 'Wanderer-77',
-            status: 'complete',
-            title: 'Campaign restored',
-            action: 'Review the final mission record and your protected return choices.'
-        };
-    }
-
     const routeAccess = getCampaignRouteAccess(gameState, nextRoute);
     const unlocked = routeAccess.unlocked === true;
     return {
@@ -174,6 +225,7 @@ function getCampaignJourneyStep(gameState) {
 
 export {
     CAMPAIGN_ROUTE,
+    getCampaignFinaleRecovery,
     getCampaignJourneyStep,
     getCampaignPrerequisiteState,
     getCampaignRoute

@@ -137,19 +137,21 @@ export default class CombatJuice {
      * @param {number} duration - Pause duration in ms (default 50)
      */
     hitStop(duration = 50) {
-        if (this.hitStopActive || !this.scene) return;
+        const scene = this.scene;
+        const world = scene?.physics?.world;
+        if (this.hitStopActive || !world || world.isPaused || scene.levelCompletionActive) return;
 
         this.hitStopActive = true;
+        world.pause();
 
-        // Pause physics
-        if (this.scene.physics && this.scene.physics.world) {
-            this.scene.physics.world.pause();
-        }
-
-        // Resume after duration
-        this.scene.time.delayedCall(duration, () => {
-            if (this.scene && this.scene.physics && this.scene.physics.world) {
-                this.scene.physics.world.resume();
+        // The final hit can enter completion while this brief impact pause runs.
+        scene.time.delayedCall(duration, () => {
+            if (
+                this.scene === scene && scene.physics?.world === world &&
+                !scene.levelCompletionActive && !scene.pauseMenuActive &&
+                !scene._isShuttingDown && scene.scene?.isActive?.() !== false
+            ) {
+                world.resume();
             }
             this.hitStopActive = false;
         });

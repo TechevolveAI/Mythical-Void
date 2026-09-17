@@ -1,9 +1,13 @@
 # Gameplay Hardening Implementation
 
-Status: active, feature-sized implementation. Production is unchanged.
+Status: first hardening slice released; the eight-package programme is incomplete.
 
-Baseline: protected `main`, `c4c6fb77cda0b713e0c7aed965d24cd0bf077bc1`.
-Branch: `codex/gameplay-hardening-sep17`.
+Original baseline: `c4c6fb77cda0b713e0c7aed965d24cd0bf077bc1`.
+Released baseline: protected `main`, `d8f9d25104eede9abc3094411d9cd83a71a03948`
+(PR #315; source `36b3789cd8d2fe8e845107a04dda4cb806bfe221`).
+Netlify production deploy: `6aabc2ae86f7140008761df0`, published
+2026-09-17 at 10:37:58 UTC. Live play entry and released assets were verified.
+Production still uses Netlify/Supabase; this is not a Google cutover.
 
 ## What We Are Protecting
 
@@ -22,10 +26,10 @@ on actual phones. No claim of perfect iOS support based on Chromium emulation.
 
 | Order | Package | Concrete implementation and acceptance | Status |
 | --- | --- | --- | --- |
-| 1 | Playable journeys | Fix completion/debrief blocking UI as a separate component. A native action stays visible; optional story scrolls. Exercise all five pre-final rewards, rapid repeat taps, keyboard, resize, shutdown and queued results. Never wait on a tween to leave. Opening success/pending/failure continues to Sanctuary. | In progress |
-| 2 | Mobile input | Behavior-level regression coverage for downward/left hold, second finger, cancel, blur, visibility and layout changes. Repair only reproduced faults. Verify actual input rather than setting movement state directly. Physical iPhone/Android acceptance remains explicit. | In progress |
-| 3 | Level contracts | Record six canonical level IDs, prerequisites, boss/reward, installation, exit and recovery. Exercise existing pure campaign/reward code across all levels; preserve reward idempotency and replay. Do not redesign levels while certifying them. | In progress |
-| 4 | Creature continuity | Trace one immutable identity through hatch, active collection changes, Sanctuary, rescue and story media. Add targeted tests for stale asynchronous results, unavailable portraits, queued reveals, reload and scene teardown; never substitute another creature's portrait. | Queued |
+| 1 | Playable journeys | Fix completion/debrief blocking UI as a separate component. A native action stays visible; optional story scrolls. Exercise all five pre-final rewards, rapid repeat taps, keyboard, resize, shutdown and queued results. Never wait on a tween to leave. Opening success/pending/failure continues to Sanctuary. | Debrief repair released; full completion-chain acceptance outstanding |
+| 2 | Mobile input | Behavior-level regression coverage for downward/left hold, second finger, cancel, blur, visibility and layout changes. Repair only reproduced faults. Verify actual input rather than setting movement state directly. Physical iPhone/Android acceptance remains explicit. | Reproduced lifecycle fixes released; physical-phone signoff outstanding |
+| 3 | Level contracts | Record six canonical level IDs, prerequisites, boss/reward, installation, exit and recovery. Exercise existing pure campaign/reward code across all levels; preserve reward idempotency and replay. Do not redesign levels while certifying them. | Contracts and targeted fixes released; whole-campaign acceptance outstanding |
+| 4 | Creature continuity | Trace one immutable identity through hatch, active collection changes, Sanctuary, rescue and story media. Add targeted tests for stale asynchronous results, unavailable portraits, queued reveals, reload and scene teardown; never substitute another creature's portrait. | Async identity/media fixes released; remaining journeys and live media proof outstanding |
 | 5 | Media contracts | Inventory versioned portrait/video templates, bounded fictional traits, provider boundaries, limits and fallback. Make prompt changes reviewable separately from UI. Verify no player free text/identity enters provider payloads. Video is optional, skippable and cannot block play. No paid generation just to exercise a fallback. | Queued |
 | 6 | Aggregate measurement | Reuse the existing first-party event boundary. Allowlist event names and enum values, strip unknown fields, and prove failures are nonblocking. No new stable identifier, tracker or transport. Agree the Google ObservabilitySink integration with Ops first. | Queued; adapter integration held |
 | 7 | Saves and performance | Recover and evaluate unmerged enterprise-hardening work, not blindly cherry-pick it. Verify write/read-back, recovery, version-bump fixtures and optional cloud startup isolation. Measure production transfer and cold playable time before budgets. Browser eviction cannot be promised away. | Queued |
@@ -86,13 +90,19 @@ no save-schema change is needed for the first three packages.
 
 ## First Integration Slice
 
-Implemented locally, with 227 Jest suites / 2,124 tests and the complete
-`npm run build` passing. Final source-bound browser proof and review remain
-required before release. The candidate has not been deployed.
+Released through PR #315 after 227 Jest suites / 2,135 tests, production builds,
+required opening-journey CI, and the gameplay-contracts check passed. Private
+exact-source browser evidence is `/private/tmp/mythical-debrief-evidence/result.json`:
+20 debrief cases across four viewports, four underlying-Hub input isolation
+checks, and zero recorded browser/network faults. These are engineering checks,
+not human visual approval, physical-device acceptance or a complete campaign run.
+All automated browsers were muted and closed with their preview servers.
 
 - Package 1: responsive debrief component for the five recovered ship systems.
   The action stays visible while optional story scrolls. Leaving no longer waits
-  for a tween. The five debrief previews have phone/landscape/desktop coverage;
+  for a tween. Native dialog touches cannot activate hidden Hub buttons; the
+  prior Hub input state is restored on dismissal and scene cleanup. The five
+  debrief previews have phone/landscape/desktop coverage;
   that is not an end-to-end boss, installation or final-ending playthrough.
 - Package 2: reproduced cancellation, resize, pointer capture and native-pointer
   identity faults repaired with behavior tests. Physical iOS/Android acceptance
@@ -123,6 +133,42 @@ The new gameplay-contracts workflow runs this with the full Jest suite and Vite
 build on PRs. This adds a workflow; it does not silently change protected-branch
 requirements or replace the existing opening-journey checks.
 
-Packages 5-8 remain queued. The Google migration, production release and human
+Packages 5-8 have not started in this programme. The Google migration and human
 creative approvals remain separate boundaries. Preserve the current playable
 release until the next candidate completes its normal review and release gates.
+
+## Next Bounded Batch
+
+Complete package 1 acceptance using the actual boss/reward/install transition,
+not just a result-screen fixture. Check reward persistence, a clear next
+destination, replay/duplicate safety and the existing final-ending choices and
+return path. Begin with one representative pre-final journey and the finale;
+expand only where shared behavior or a reproduced defect warrants it. Keep
+existing level art, layouts, balance, story choices and provider wiring unchanged.
+This batch is implemented locally, pending the normal release gates:
+
+- Forest restoration now enters the shared completion freeze. The final-hit
+  feedback timer cannot resume physics underneath the reward/rescue screens.
+- Final repair and unfinished ending recovery derive from existing saved
+  campaign/repair/choice state, not a transient scene handoff flag. Completed
+  legacy endings remain complete without inventing a repair ledger.
+- Ship interactions and the Sanctuary waypoint prioritize the unfinished final
+  repair or ending. Refresh after the celebration resumes the existing choice
+  or epilogue instead of replaying the full celebration.
+- Duplicate final transitions are ignored. An optional achievement failure or
+  late shop/inventory load cannot block or cover the final transition.
+- No save-schema, backend, level layout, art, balance or story-choice changes.
+
+`npm run smoke:completion-flow` checks staged real Guardian final attacks,
+native reward/install buttons, Forest-to-Crystal-Caves recommendation and final
+repair/choice/epilogue/reload on 390x844 and 1280x720. It does not claim a natural
+six-level playthrough or physical iOS acceptance. Optional services are disabled,
+outside requests blocked and counted, all audio muted, and processes cleaned up.
+Source revision/dirty state and shipped entry digest are recorded privately in
+`/private/tmp/mythical-completion-evidence/result.json` (override with
+`COMPLETION_EVIDENCE_DIR`). The gameplay-contracts PR check runs the same cases.
+
+Remaining: physical-phone acceptance, the other four level handoffs, live media
+proof and the rest of package 4, then packages 5-8 in order. Engineering passage
+is not adult visual approval. The released baseline above stays authoritative
+until this separate candidate is actually published and verified.

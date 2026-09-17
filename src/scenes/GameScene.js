@@ -81,7 +81,7 @@ import {
 } from '../systems/FendCulture.js';
 import ExpeditionAstronaut from '../systems/ExpeditionAstronaut.js';
 import ProjectBeaconWaypoint from '../systems/ui/ProjectBeaconWaypoint.js';
-import { getCampaignJourneyStep } from '../systems/CampaignJourneyGuide.js';
+import { getCampaignFinaleRecovery, getCampaignJourneyStep } from '../systems/CampaignJourneyGuide.js';
 import ProjectBeaconLogModal from '../ui/ProjectBeaconLogModal.js';
 import SettingsModal from '../ui/SettingsModal.js';
 import KatanaArtifactModal, { prefetchKatanaArtifactArtwork } from '../ui/KatanaArtifactModal.js';
@@ -758,6 +758,7 @@ class GameScene extends Phaser.Scene {
                 : null;
         this.continueFinaleAfterRepair =
             data?.continueFinaleAfterRepair === true;
+        this._finaleTransitionPending = false;
         this.shipReconstructionHandoff =
             data?.shipReconstructionHandoff === true;
         this.shipReconstructionNextGateLabel =
@@ -1040,6 +1041,8 @@ class GameScene extends Phaser.Scene {
                 console.log('[GameScene] Field-kit preview created successfully');
                 return;
             }
+
+            this.restoreFinaleContinuation();
 
             // Set current scene in GameState
             console.log('[GameScene] Setting current scene in GameState...');
@@ -12839,6 +12842,17 @@ class GameScene extends Phaser.Scene {
             label,
             ownerLabel: 'WANDERER-77'
         });
+        const finale = getCampaignFinaleRecovery(window.GameState);
+        if (finale?.status === 'ending') {
+            return createDescriptor('Choose what comes next', 'CONTINUE', 'YOUR ENDING');
+        }
+        if (finale?.status === 'repair' && shipReconstruction.ready) {
+            return createDescriptor(
+                `Install ${shipReconstruction.readyStep.partName}`,
+                'REPAIR',
+                shipReconstruction.readyStep.partName
+            );
+        }
         if (fieldKitRecovered && senseiMemory.ready) {
             return createDescriptor(
                 `Personal memory ${senseiMemory.recalledCount + 1}/${senseiMemory.totalMemories}`,
@@ -12922,9 +12936,16 @@ class GameScene extends Phaser.Scene {
 
     interactWithCrashedShip() {
         if (!this.nearCrashedShip) return false;
+        if (this._finaleTransitionPending) return true;
+        if (this.finishFinaleAfterCommandRepair()) return true;
         if (!this.hasRecoveredProjectBeaconFieldKit()) {
             console.log('[GameScene] Recovering field kit from ship interaction');
             this.recoverProjectBeaconFieldKit();
+            return true;
+        }
+
+        if (this.restoreFinaleContinuation()?.status === 'repair') {
+            this.showShipEvidenceBoard();
             return true;
         }
 
@@ -13178,12 +13199,11 @@ class GameScene extends Phaser.Scene {
             },
             onClose: () => {
                 this.shipEvidenceBoardModal = null;
+                if (this._isShuttingDown) return;
                 if (
-                    this.continueFinaleAfterRepair &&
-                    !this._isShuttingDown &&
-                    getShipReconstructionSnapshot(window.GameState).complete
+                    getShipReconstructionSnapshot(window.GameState).complete &&
+                    this.finishFinaleAfterCommandRepair()
                 ) {
-                    this.finishFinaleAfterCommandRepair();
                     return;
                 }
                 const current = getShipEvidenceSnapshot(
@@ -13252,15 +13272,35 @@ class GameScene extends Phaser.Scene {
         );
     }
 
+    restoreFinaleContinuation() {
+        const recovery = getCampaignFinaleRecovery(window.GameState);
+        this.continueFinaleAfterRepair = Boolean(recovery);
+        return recovery;
+    }
+
     finishFinaleAfterCommandRepair() {
-        if (!this.continueFinaleAfterRepair || this._isShuttingDown) {
+        if (
+            this._isShuttingDown ||
+            this._finaleTransitionPending ||
+            getCampaignFinaleRecovery(window.GameState)?.status !== 'ending'
+        ) {
             return false;
         }
+        this._finaleTransitionPending = true;
         this.continueFinaleAfterRepair = false;
-        window.AchievementSystem?.recordEvent?.('game_complete', {});
+        try {
+            window.AchievementSystem?.recordEvent?.('game_complete', {});
+        } catch (error) {
+            console.warn('[GameScene] Optional completion achievement unavailable:', error.message);
+        }
         this.time.delayedCall(180, () => {
-            if (!this._isShuttingDown) {
+            if (
+                !this._isShuttingDown &&
+                getCampaignFinaleRecovery(window.GameState)?.status === 'ending'
+            ) {
                 this.scene.start('VictoryScene');
+            } else {
+                this._finaleTransitionPending = false;
             }
         });
         return true;

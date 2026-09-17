@@ -68,6 +68,13 @@ function loadGameSceneClass(sceneWindow) {
     return sandbox.module.exports;
 }
 
+function loadSceneRouter(sceneWindow) {
+    const filePath = path.join(__dirname, '../scenes/controllers/GameSceneSceneRouter.js');
+    const source = fs.readFileSync(filePath, 'utf8')
+        .replace('export default class ', 'class ');
+    return new Function('window', `${source}\nreturn GameSceneSceneRouter;`)(sceneWindow);
+}
+
 function createSceneInstance(GameScene, sceneWindow, options = {}) {
     const sceneManager = {
         isActive: jest.fn().mockReturnValue(false)
@@ -407,5 +414,136 @@ describe('GameScene scene router', () => {
 
         expect(profileSpy).toHaveBeenCalledTimes(1);
         expect(abilitiesSpy).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('scene router transition lifecycle', () => {
+    function fixture(registered = false) {
+        let finishLoading;
+        const sceneWindow = {
+            SceneLoader: { loadScene: jest.fn(() => new Promise(resolve => { finishLoading = resolve; })) },
+            AudioManager: { playButtonClick: jest.fn() },
+            UXEnhancements: { showLoading: jest.fn(), hideLoading: jest.fn() }
+        };
+        const active = new Set(['GameScene']);
+        const paused = new Set();
+        const manager = {
+            pause: jest.fn(() => paused.add('GameScene')),
+            launch: jest.fn(key => active.add(key)),
+            start: jest.fn(),
+            bringToTop: jest.fn()
+        };
+        const scene = {
+            _isShuttingDown: false,
+            _finaleTransitionPending: false,
+            scene: manager,
+            sys: { settings: { key: 'GameScene' } },
+            game: { scene: {
+                keys: registered ? { GameScene: {}, InventoryScene: {}, ShopScene: {} } : {},
+                isActive: key => active.has(key),
+                isPaused: key => paused.has(key)
+            } }
+        };
+        const Router = loadSceneRouter(sceneWindow);
+        const router = scene.sceneRouter = new Router(scene);
+        const block = reason => {
+            if (reason === 'finale') scene._finaleTransitionPending = true;
+            if (reason === 'shutdown') scene._isShuttingDown = true;
+            if (reason === 'inactive') active.delete('GameScene');
+            if (reason === 'paused') paused.add('GameScene');
+            if (reason === 'restarted') scene.sceneRouter = new Router(scene);
+        };
+        return { sceneWindow, scene, manager, router, block, active, paused, finish: () => finishLoading(true) };
+    }
+
+    describe.each(['InventoryScene', 'ShopScene'])('%s', destination => {
+        test.each([
+            ['finale', false], ['finale', true],
+            ['shutdown', false], ['shutdown', true],
+            ['inactive', false], ['inactive', true],
+            ['paused', false], ['paused', true]
+        ])('rejects %s at request time, registered=%s', async (reason, registered) => {
+            const { sceneWindow, manager, router, block } = fixture(registered);
+            block(reason);
+            const opening = router.pauseAndLaunchScene(destination, undefined, {
+                sound: 'buttonClick', loadingMessage: 'Opening menu', bringToTop: true
+            });
+            expect(sceneWindow.SceneLoader.loadScene).not.toHaveBeenCalled();
+            await expect(opening).resolves.toBe(false);
+            expect(sceneWindow.AudioManager.playButtonClick).not.toHaveBeenCalled();
+            expect(sceneWindow.UXEnhancements.showLoading).not.toHaveBeenCalled();
+            expect(manager.pause).not.toHaveBeenCalled();
+            expect(manager.launch).not.toHaveBeenCalled();
+            expect(manager.bringToTop).not.toHaveBeenCalled();
+        });
+
+        test.each(['finale', 'shutdown', 'inactive', 'paused', 'restarted'])(
+            'rejects a deferred load after %s without launching over the ending', async reason => {
+                const { sceneWindow, manager, router, block, active, finish } = fixture();
+                const opening = router.pauseAndLaunchScene(destination, undefined, {
+                    loadingMessage: 'Opening menu', bringToTop: true
+                });
+                expect(sceneWindow.SceneLoader.loadScene).toHaveBeenCalledTimes(1);
+                block(reason);
+                if (reason === 'shutdown' || reason === 'inactive') active.add('VictoryScene');
+                finish();
+                await expect(opening).resolves.toBe(false);
+                expect(manager.pause).not.toHaveBeenCalled();
+                expect(manager.launch).not.toHaveBeenCalled();
+                expect(manager.bringToTop).not.toHaveBeenCalled();
+                expect(router.pendingTransitions.size).toBe(0);
+                expect(router.activeTransition).toBeNull();
+                expect(router.managedDestinationScenes.size).toBe(0);
+                expect(sceneWindow.UXEnhancements.hideLoading).toHaveBeenCalledTimes(reason === 'restarted' ? 0 : 1);
+            }
+        );
+    });
+
+    test('a duplicate request during finale does not reuse the earlier allowed request', async () => {
+        const { router, block, finish, manager } = fixture();
+        const opening = router.pauseAndLaunchScene('InventoryScene');
+        block('finale');
+        const duplicate = router.pauseAndLaunchScene('InventoryScene');
+        expect(duplicate).not.toBe(opening);
+        await expect(duplicate).resolves.toBe(false);
+        finish();
+        await expect(opening).resolves.toBe(false);
+        expect(manager.launch).not.toHaveBeenCalled();
+    });
+
+    test('valid deferred navigation keeps deduplication, data and overlay ordering', async () => {
+        const { router, manager, finish } = fixture();
+        const data = { tab: 'ship_parts' };
+        const first = router.pauseAndLaunchScene('InventoryScene', data, { bringToTop: true });
+        expect(router.pauseAndLaunchScene('InventoryScene', data)).toBe(first);
+        expect(manager.pause).not.toHaveBeenCalled();
+        finish();
+        await expect(first).resolves.toBe(true);
+        expect(manager.pause).toHaveBeenCalledTimes(1);
+        expect(manager.launch).toHaveBeenCalledWith('InventoryScene', data);
+        expect(manager.bringToTop).toHaveBeenCalledWith('InventoryScene');
+    });
+
+    test.each([false, true])('permits a legitimate same-scene restart, registered=%s', async registered => {
+        const { router, manager, finish } = fixture(registered);
+        const data = { biome: 'nebula' };
+        const opening = router.startScene('GameScene', data);
+        if (!registered) finish();
+        await expect(opening).resolves.toBe(true);
+        expect(manager.start).toHaveBeenCalledWith('GameScene', data);
+        expect(manager.pause).not.toHaveBeenCalled();
+    });
+
+    test('a canceled transition releases its lock for a later legitimate request', async () => {
+        const { router, scene, manager, block, finish } = fixture();
+        const first = router.pauseAndLaunchScene('ShopScene');
+        block('finale');
+        finish();
+        await expect(first).resolves.toBe(false);
+        scene._finaleTransitionPending = false;
+        const second = router.pauseAndLaunchScene('ShopScene');
+        finish();
+        await expect(second).resolves.toBe(true);
+        expect(manager.launch).toHaveBeenCalledTimes(1);
     });
 });

@@ -6583,7 +6583,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
 
         this.forestRestorationActive = true;
-        this.levelCompletionActive = true;
+        this.enterLevelCompletionState();
         this.resetJoystick?.();
         this.clearVirtualJumpInput?.();
         this.hidePlatformerMobileControls?.();

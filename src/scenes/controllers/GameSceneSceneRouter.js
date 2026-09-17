@@ -54,6 +54,14 @@ export default class GameSceneSceneRouter {
     }
 
     isSourceSceneReady() {
+        if (
+            !this.gameScene ||
+            this.gameScene._isShuttingDown ||
+            this.gameScene._finaleTransitionPending ||
+            (this.gameScene.sceneRouter && this.gameScene.sceneRouter !== this)
+        ) {
+            return false;
+        }
         const sceneKey = this.gameScene?.sys?.settings?.key;
         const manager = this.gameScene?.game?.scene;
         if (
@@ -80,13 +88,15 @@ export default class GameSceneSceneRouter {
             sound = null
         } = options;
 
+        if (!this.isSourceSceneReady()) {
+            return Promise.resolve(false);
+        }
         const existing = this.pendingTransitions.get(sceneKey);
         if (existing) {
             return existing;
         }
         if (
             this.activeTransition ||
-            !this.isSourceSceneReady() ||
             this.hasManagedDestinationOpen()
         ) {
             return Promise.resolve(false);
@@ -96,6 +106,15 @@ export default class GameSceneSceneRouter {
         this.showLoading(loadingMessage);
 
         const executeTransition = () => {
+            // A lazy load may outlive the source scene or its finale handoff.
+            if (!this.isSourceSceneReady() || this.hasManagedDestinationOpen()) {
+                if (loadingMessage && (
+                    !this.gameScene?.sceneRouter || this.gameScene.sceneRouter === this
+                )) {
+                    window.UXEnhancements?.hideLoading?.();
+                }
+                return false;
+            }
             transition();
             this.managedDestinationScenes.add(sceneKey);
             return true;

@@ -14246,6 +14246,38 @@ async function smokeGuardianHandoff(session, step, exceptions) {
         );
     }
 
+    if (step.route === 'mythicalForest') {
+        await touchInteractiveSceneText(session, 'SKIP', {
+            timeoutMs: 8000, message: 'optional forest restoration skip'
+        });
+        if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'forest-after-restoration-skip.png');
+        const afterRestoration = await waitFor(
+            () => evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                if (scene?.levelCompletionResult) return 'reward';
+                return scene?.children?.list?.some(item => item.text === '[ CONTINUE WITHOUT MESSAGE ]' && item.input?.enabled)
+                    ? 'optional-message' : null;
+            })()`),
+            { timeoutMs: 8000, message: 'forest restoration continuation' }
+        ).catch(async error => {
+            const state = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                return {
+                    active: scene.scene.isActive(), timePaused: scene.time.paused,
+                    restorationActive: scene.forestRestorationActive, victoryShown: scene.forestVictoryShown,
+                    paused: scene.physics.world.isPaused, inputEnabled: scene.input.enabled,
+                    camera: { zoom: scene.cameras.main.zoom, x: scene.cameras.main.scrollX, y: scene.cameras.main.scrollY },
+                    texts: scene.children.list.filter(item => item.text && item.visible && item.depth > 2000).map(item => ({ text: item.text, input: item.input?.enabled, x: item.x, y: item.y })),
+                    exceptions: ${JSON.stringify(exceptions)}
+                };
+            })()`);
+            throw new Error(error.message + ': ' + JSON.stringify(state));
+        });
+        if (afterRestoration === 'optional-message') {
+            await touchInteractiveSceneText(session, '[ CONTINUE WITHOUT MESSAGE ]', { message: 'optional message continuation' });
+        }
+    }
+
     const completion = await waitFor(
         () => evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
@@ -14446,20 +14478,13 @@ async function smokeGuardianHandoff(session, step, exceptions) {
         await waitForScene(session, 'GameScene', 12000);
     } else {
         await waitForScene(session, 'HubWorldScene', 12000);
-        const debriefCta = await touchInteractiveSceneText(
+        const debriefCta = await touchDomButton(
             session,
-            `INSTALL ${step.route === 'mythicalForest'
-                ? 'FOREST CORE'
-                : step.route === 'crystalCaves'
-                    ? 'CRYSTAL CORE'
-                    : step.route === 'reef'
-                        ? 'DIMENSIONAL DRIVE'
-                        : step.route === 'voidPeaks'
-                            ? 'HULL PLATING'
-                            : 'AURORA REACTOR'}`,
+            '[data-testid="expedition-debrief-continue"]',
             {
                 timeoutMs: 12000,
-                message: `${step.sceneName} debrief installation action`
+                message: `${step.sceneName} debrief installation action`,
+                waitForRemoval: true
             }
         );
         await waitForScene(session, 'GameScene', 12000);
@@ -14546,6 +14571,22 @@ async function smokeGuardianHandoff(session, step, exceptions) {
             scene: 'HubWorldScene',
             debriefCta: step.__debriefCta
         };
+        if (step.route === 'mythicalForest') {
+            destination.nextRoute = await evaluate(session, `(() => {
+                const hub = window.mythicalGame.scene.getScene('HubWorldScene');
+                return {
+                    recommended: hub.campaignJourneyStep?.gateId,
+                    selected: hub.gates[hub.selectedGateIndex]?.id,
+                    action: hub.campaignJourneyStep?.action
+                };
+            })()`);
+            if (
+                destination.nextRoute.recommended !== 'crystal_caves' ||
+                destination.nextRoute.selected !== 'crystal_caves' ||
+                !destination.nextRoute.action
+            ) throw new Error(`Forest next destination unclear: ${JSON.stringify(destination.nextRoute)}`);
+            if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'forest-next-expedition.png');
+        }
     }
 
     if (exceptions.length) {
@@ -14835,6 +14876,90 @@ async function smokeFinalPriorityJourney(session, exceptions) {
         throw new Error(`Final priority Sanctuary return failed: ${JSON.stringify({ returnState, exceptions })}`);
     }
     return { ending, returnState };
+}
+
+async function smokeCompletionRecovery(session, exceptions) {
+    await navigate(session, `${BASE_URL}/play/?reset=true`);
+    await waitForScene(session, 'HatchingScene');
+    const finalStep = CAMPAIGN_STATE_STEPS.find(step => step.route === 'finalVoid');
+    await prepareGuardianHandoffState(session, finalStep);
+    // Stage the durable state immediately after victory. The separate guardian
+    // journey exercises combat; this case exercises real document reloads.
+    await evaluate(session, `(() => {
+        const state = window.GameState;
+        const profile = ${JSON.stringify(getVisualReviewCreatureProfile())};
+        const creature = {
+            ...state.get('creature'), id: profile.genes.id, genes: profile.genes,
+            dna: profile.dna, name: 'Nova', hatched: true, named: true
+        };
+        state.set('creature', creature);
+        state.set('creatures', [creature]);
+        state.set('activeCreatureIndex', 0);
+        state.set('session.gameStarted', true);
+        state.set('tutorial.livingFormPending', false);
+        state.set('tutorial.livingFormSeen', true);
+        state.set('levels.finalVoid.completed', true);
+        state.set('stats.levelsCompleted', 6);
+        state.set('hubWorld.shipParts.collected', [
+            ...state.get('hubWorld.shipParts.collected'), 'command_module'
+        ]);
+        state.set('story.projectBeacon.finale.priority', null);
+        state.set('story.projectBeacon.finale.epilogueSeen', false);
+        state.save();
+        return true;
+    })()`);
+    await navigate(session, `${BASE_URL}/play/`);
+    await waitForScene(session, 'GameScene', 30000);
+    const repair = await touchInteractiveSceneText(session, 'INSTALL COMMAND MODULE', {
+        timeoutMs: 15000, message: 'saved final repair after document reload'
+    });
+    await waitForScene(session, 'VictoryScene', 12000);
+    await touchSceneText(session, 'SKIP >>', { message: 'optional ending sequence skip' });
+    await touchSceneText(session, 'Choose what comes first', { message: 'ending choice entry' });
+    if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'ending-choices.png');
+    // Refresh before selecting, then again after selecting but before seeing
+    // the full epilogue. Neither interruption should strand the player.
+    await navigate(session, `${BASE_URL}/play/`);
+    await waitForScene(session, 'VictoryScene', 30000);
+    await touchSceneText(session, 'PREPARE HOMECOMING\nPreserve a secret route', { message: 'recovered ending choice' });
+    await touchSceneText(session, 'PREPARE THE ROUTE', { message: 'ending confirmation' });
+    const savedChoice = await evaluate(session, `window.GameState.get('story.projectBeacon.finale.priority')`);
+    if (savedChoice !== 'prepare_homecoming') throw new Error('Ending choice did not persist');
+    await navigate(session, `${BASE_URL}/play/`);
+    await waitForScene(session, 'VictoryScene', 30000);
+    for (let index = 0; index < 2; index++) {
+        await touchSceneText(session, 'CONTINUE', { message: `recovered epilogue page ${index + 1}` });
+    }
+    const beforeReturn = await evaluate(session, `(() => ({
+        priority: window.GameState.get('story.projectBeacon.finale.priority'),
+        seen: window.GameState.get('story.projectBeacon.finale.epilogueSeen'),
+        parts: window.GameState.get('hubWorld.shipParts.collected'),
+        coins: window.GameState.get('player.cosmicCoins'),
+        creatureId: window.GameState.get('creature.id'),
+        installed: window.ShipReconstruction.getShipReconstructionSnapshot(window.GameState).completedCount
+    }))()`);
+    if (!beforeReturn.seen || beforeReturn.installed !== 6) throw new Error(`Incomplete ending: ${JSON.stringify(beforeReturn)}`);
+    if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'ending-return-actions.png');
+    await touchSceneText(session, 'SANCTUARY', { message: 'ending return action' });
+    await waitForScene(session, 'HubWorldScene', 12000);
+    await navigate(session, `${BASE_URL}/play/`);
+    await waitForScene(session, 'GameScene', 30000);
+    await delay(1400);
+    const restored = await evaluate(session, `(() => ({
+        priority: window.GameState.get('story.projectBeacon.finale.priority'),
+        seen: window.GameState.get('story.projectBeacon.finale.epilogueSeen'),
+        parts: window.GameState.get('hubWorld.shipParts.collected'),
+        coins: window.GameState.get('player.cosmicCoins'),
+        creatureId: window.GameState.get('creature.id'),
+        installed: window.ShipReconstruction.getShipReconstructionSnapshot(window.GameState).completedCount,
+        victoryActive: window.mythicalGame.scene.isActive('VictoryScene'),
+        gameActive: window.mythicalGame.scene.isActive('GameScene')
+    }))()`);
+    for (const key of Object.keys(beforeReturn)) {
+        if (JSON.stringify(beforeReturn[key]) !== JSON.stringify(restored[key])) throw new Error(`Ending reload changed ${key}`);
+    }
+    if (restored.victoryActive || !restored.gameActive || exceptions.length) throw new Error(`Ending repeated or failed: ${JSON.stringify({ restored, exceptions })}`);
+    return { repair, beforeReturn, restored, documentReloads: 4, stagedSavedProgress: true };
 }
 
 async function smokeSaveReloadJourney(session, exceptions) {
@@ -23214,6 +23339,16 @@ async function main() {
     });
 
     let session = null;
+    const terminate = async () => {
+        await Promise.race([
+            session?.call('Browser.close').catch(() => {}),
+            delay(1000)
+        ]);
+        chrome.kill('SIGKILL');
+        process.exit(1);
+    };
+    process.once('SIGINT', terminate);
+    process.once('SIGTERM', terminate);
     try {
         const target = await waitFor(async () => {
             const response = await fetch(`http://127.0.0.1:${DEBUG_PORT}/json/list`);
@@ -23255,11 +23390,42 @@ async function main() {
         const consoleErrors = [];
         const networkFailures = [];
         const policyViolations = [];
+        const externalRequests = [];
         const networkRequestUrls = new Map();
         const creaturePortraitRequests = [];
         const companionVideoRequests = [];
         const documentNavigationRequests = [];
         const smokeOrigin = new URL(BASE_URL).origin;
+        const isolatedCompletionProof = ['guardian-handoff', 'completion-recovery'].includes(SMOKE_MODE);
+        if (isolatedCompletionProof) {
+            await session.call('Page.addScriptToEvaluateOnNewDocument', {
+                source: `(() => {
+                    localStorage.setItem('audioMuted', 'true');
+                    Object.defineProperty(window, 'APIConfig', {
+                        configurable: true,
+                        set(value) {
+                            value.isEnabled = () => false;
+                            value.isVideoEnabled = () => false;
+                            Object.defineProperty(window, 'APIConfig', { configurable: true, writable: true, value });
+                        }
+                    });
+                    Object.defineProperty(window, 'AudioManager', {
+                        configurable: true,
+                        set(value) {
+                            Object.defineProperty(value, 'muted', { configurable: true, get: () => true, set() {} });
+                            Object.defineProperty(window, 'AudioManager', { configurable: true, writable: true, value });
+                        }
+                    });
+                })()`
+            });
+            await session.call('Network.setBlockedURLs', {
+                urlPatterns: [
+                    { urlPattern: `${smokeOrigin}/*`, block: false },
+                    { urlPattern: 'http://*:*/*', block: true },
+                    { urlPattern: 'https://*:*/*', block: true }
+                ]
+            });
+        }
         const allowLocalStaticFunction404 =
             process.env.SMOKE_ALLOW_LOCAL_STATIC_FUNCTION_404 === '1' &&
             ['127.0.0.1', 'localhost'].includes(new URL(BASE_URL).hostname);
@@ -23329,6 +23495,9 @@ async function main() {
             if (!params.requestId) return;
             const url = params.request?.url || '';
             networkRequestUrls.set(params.requestId, url);
+            if (isolatedCompletionProof && /^https?:/.test(url) && new URL(url).origin !== smokeOrigin) {
+                externalRequests.push(sanitizeNetworkUrl(url));
+            }
             if (
                 sanitizeNetworkUrl(url).endsWith(
                     '/.netlify/functions/generate-ai-art'
@@ -23522,6 +23691,9 @@ async function main() {
                 exceptions
             );
             process.stdout.write('PASS SaveReloadJourney\n');
+        } else if (SMOKE_MODE === 'completion-recovery') {
+            results.completionRecovery = await smokeCompletionRecovery(session, exceptions);
+            process.stdout.write('PASS CompletionRecovery\n');
         } else if (SMOKE_MODE === 'navigation-lifecycle') {
             results.navigationLifecycle = await smokeSanctuaryNavigation(
                 session,
@@ -23611,13 +23783,15 @@ async function main() {
         if (
             consoleErrors.length ||
             networkFailures.length ||
-            policyViolations.length
+            policyViolations.length ||
+            externalRequests.length
         ) {
             throw new Error(
                 `Browser health gate failed: ${JSON.stringify({
                     consoleErrors,
                     networkFailures,
-                    policyViolations
+                    policyViolations,
+                    externalRequests
                 })}`
             );
         }
@@ -23628,7 +23802,8 @@ async function main() {
             transportFailures: 0,
             policyViolations: 0,
             optionalPortraitRequests: creaturePortraitRequests.length,
-            optionalVideoRequests: companionVideoRequests.length
+            optionalVideoRequests: companionVideoRequests.length,
+            externalRequests: externalRequests.length
         };
         console.log(JSON.stringify({
             success: true,
@@ -23648,6 +23823,8 @@ async function main() {
         session?.close();
         chrome.kill('SIGKILL');
         chrome.unref();
+        process.removeListener('SIGINT', terminate);
+        process.removeListener('SIGTERM', terminate);
         await delay(350);
         try {
             fs.rmSync(profileDir, { recursive: true, force: true });

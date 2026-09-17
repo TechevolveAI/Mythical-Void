@@ -248,6 +248,20 @@ describe('Project Beacon waypoint', () => {
         }));
     });
 
+    test.each(['repair', 'ending'])('points an unfinished finale to the ship instead of village building: %s', status => {
+        const { resolveSanctuaryCurrentTarget } = loadWaypointHelpers();
+        const ship = { x: 200, y: 300, active: true };
+        const target = resolveSanctuaryCurrentTarget({
+            currentBiome: 'nebula', crashedShip: ship,
+            villageHeartLandmark: {
+                zone: { x: 100, y: 100, active: true },
+                snapshot: { unlock: { unlocked: true }, state: { guidanceSeen: false } }
+            }
+        }, { gameState: { get: () => true }, campaignStep: { status } });
+        expect(target.target).toBe(ship);
+        expect(target.missionId).toBe(`sanctuary_final_${status}`);
+    });
+
     test('does not override an active non-spatial story moment with fallback guidance', () => {
         const { ProjectBeaconWaypoint } = loadWaypointHelpers();
         const director = new ProjectBeaconWaypoint({
