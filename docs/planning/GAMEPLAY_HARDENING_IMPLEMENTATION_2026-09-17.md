@@ -155,6 +155,10 @@ This batch is implemented locally, pending the normal release gates:
 - Final Void opens its existing repair action directly after the resident's
   welcome, or immediately on replay. It no longer waits on an extra four-second
   scene timer before exposing the route out of the result.
+- Ship-repair opening, confirmation and ending handoffs use bounded elapsed-time
+  delays with scene cleanup, rather than a frame-dependent simulation clock.
+  Temporary pauses retain due handoffs until resume; replaced dialogs, stopped
+  scenes and cancelled handoffs cannot fire late.
 - Final repair and unfinished ending recovery derive from existing saved
   campaign/repair/choice state, not a transient scene handoff flag. Completed
   legacy endings remain complete without inventing a repair ledger.
