@@ -14134,6 +14134,7 @@ async function startGuardianHandoffEncounter(session, step) {
             }
         }[route];
         if (!encounter?.checkpoint) return null;
+        if (route === 'mythicalForest') encounter.checkpoint = scene.stageForestGuardianEntry();
 
         const accepted = scene.beginGuardianEncounter({
             ...encounter,
@@ -14245,19 +14246,65 @@ async function startGuardianHandoffEncounter(session, step) {
     return { guardianEntry, combatReady };
 }
 
+async function waitForForestGuardianOpening(session) {
+    const startedAt = Date.now();
+    let snapshot;
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+        scene.completionOpeningProbe = scene.time.addEvent({ delay: 12000 });
+    })()`);
+    try {
+        // Phaser TimerEvents consume smoothed frame delta, not Clock.now wall
+        // time. Keep the original 12s simulation budget and a separate hard
+        // wall deadline for stalled/software-rendered browsers.
+        while (Date.now() - startedAt < 60000) {
+            snapshot = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                return {
+                    elapsed: scene.completionOpeningProbe.getElapsed(),
+                    ready: Boolean(scene.bossEntranceComplete && scene.boss?.isRecovering &&
+                        scene.bossPhaseAttackCount > 0 && !scene.bossPhaseTransitioning),
+                    dead: scene.isPlayerDead === true,
+                    active: scene.bossFightActive === true && scene.boss?.active === true,
+                    attacks: scene.bossPhaseAttackCount,
+                    fps: scene.game.loop.actualFps
+                };
+            })()`);
+            if (snapshot.dead || !snapshot.active || snapshot.elapsed >= 12000) break;
+            if (snapshot.ready) {
+                console.log('[guardian-opening]', JSON.stringify({ ...snapshot, wallMs: Date.now() - startedAt }));
+                return snapshot;
+            }
+            await delay(WAIT_STEP_MS);
+        }
+        throw new Error(`Forest guardian earned recovery opening unavailable: ${JSON.stringify({ ...snapshot, wallMs: Date.now() - startedAt })}`);
+    } finally {
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            scene.completionOpeningProbe?.remove?.();
+            delete scene.completionOpeningProbe;
+        })()`);
+    }
+}
+
 async function smokeGuardianHandoff(session, step, exceptions) {
     exceptions.length = 0;
     await navigate(session, `${BASE_URL}/play/?reset=true`);
     await waitForScene(session, 'HatchingScene');
     const prepared = await prepareGuardianHandoffState(session, step);
     const interaction = await startGuardianHandoffEncounter(session, step);
+    if (step.route === 'mythicalForest') {
+        // This is a staged final-hit proof, but must still respect the real
+        // entrance and attack/recovery gate instead of bypassing immunity.
+        await waitForForestGuardianOpening(session);
+    }
     const finalHit = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
         const target = scene?.getBossCombatTarget?.();
         if (!scene?.player || !target || !scene?.bossFightActive) return null;
         scene.bossRecoveryUntil = 0;
         scene.titanRecoveryUntil = 0;
-        if (scene.boss) scene.boss.isRecovering = false;
+        if (scene.boss && ${JSON.stringify(step.route)} !== 'mythicalForest') scene.boss.isRecovering = false;
         scene.crystalEnergy = Math.max(3, Number(scene.crystalEnergy) || 0);
         scene.freeSpecialAttackCharges = 0;
         scene.bossHealth = 3;
@@ -14510,6 +14557,15 @@ async function smokeGuardianHandoff(session, step, exceptions) {
                         top: returnAction.getBounds().top,
                         bottom: returnAction.getBounds().bottom
                     },
+                    summary: scene.children.list
+                        .filter(item => item.name?.startsWith('forest-victory-'))
+                        .map(item => ({
+                            text: item.text,
+                            left: item.getBounds().left,
+                            right: item.getBounds().right,
+                            top: item.getBounds().top,
+                            bottom: item.getBounds().bottom
+                        })),
                     viewport: {
                         width: scene.cameras.main.width,
                         height: scene.cameras.main.height
@@ -14533,12 +14589,23 @@ async function smokeGuardianHandoff(session, step, exceptions) {
             bounds.right <= firstGuardianInvitation.viewport.width &&
             bounds.bottom <= firstGuardianInvitation.viewport.height
         ));
-        if (actionsOverlap || !actionsInFrame) {
+        const summaryInFrame = firstGuardianInvitation.summary.length === 8 &&
+            firstGuardianInvitation.summary.every(bounds => (
+                bounds.left >= 0 && bounds.top >= 0 &&
+                bounds.right <= firstGuardianInvitation.viewport.width &&
+                bounds.bottom <= firstGuardianInvitation.viewport.height
+            ));
+        const summaryOverlaps = firstGuardianInvitation.summary.some((bounds, index, blocks) => (
+            index > 0 && bounds.top < blocks[index - 1].bottom + 3
+        ));
+        if (actionsOverlap || !actionsInFrame || !summaryInFrame || summaryOverlaps) {
             throw new Error(
                 `First Guardian invitation layout failed: ${JSON.stringify({
                     firstGuardianInvitation,
                     actionsOverlap,
-                    actionsInFrame
+                    actionsInFrame,
+                    summaryInFrame,
+                    summaryOverlaps
                 })}`
             );
         }

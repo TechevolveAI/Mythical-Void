@@ -28,7 +28,7 @@ describe('file-based audio assets', () => {
         expect(sceneSource).toContain("'/audio/theme-music.ogg'");
         expect(sceneSource).toContain("'/audio/theme-music.mp3'");
         expect(sceneSource).toContain("'filecomplete-audio-themeMusic'");
-        expect(sceneSource).toContain('if (!this.sys.isActive() || this.isStartingGame) return;');
+        expect(sceneSource).toContain('if (!this.sys.isActive() || !this.themeMusicWanted) return;');
         expect(sceneSource).toContain('if (this.themeMusic?.isPlaying) return;');
         expect(sceneSource).not.toMatch(
             /preload\(\)[\s\S]{0,200}this\.load\.audio\('themeMusic'/

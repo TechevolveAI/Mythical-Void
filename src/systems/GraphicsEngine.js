@@ -3248,6 +3248,15 @@ class GraphicsEngine {
                 throw new Error('Invalid texture name');
             }
 
+            // Phaser draws over an existing CanvasTexture without clearing it.
+            // Rebuild in place so live sprites keep their texture reference.
+            const existing = this.scene?.textures?.exists(name)
+                ? this.scene.textures.get(name)
+                : null;
+            if (existing?.clear && existing?.setSize) {
+                existing.setSize(width, height);
+                existing.clear();
+            }
             graphics.generateTexture(name, width, height);
             graphics.destroy();
             return name;
@@ -3375,6 +3384,14 @@ class GraphicsEngine {
             y: metrics.baseCenter.y + translation.centerShift.y
         };
 
+        if (cosmicAura) {
+            this.addCosmicAura(graphics, center, {
+                innerColor: this.spaceMythicPalette.starGold,
+                outerColor: this.spaceMythicPalette.crystalLilac,
+                intensity: 0.3
+            });
+        }
+
         this.renderCreatureOnGraphics(
             graphics,
             center,
@@ -3385,14 +3402,6 @@ class GraphicsEngine {
             frame,
             geneticTraits
         );
-
-        if (cosmicAura) {
-            this.addCosmicAura(graphics, center, {
-                innerColor: this.spaceMythicPalette.starGold,
-                outerColor: this.spaceMythicPalette.crystalLilac,
-                intensity: 0.3
-            });
-        }
 
         this.addStellarSparkles(graphics, { width: metrics.width, height: metrics.height }, {
             count: 5,
@@ -3490,6 +3499,11 @@ class GraphicsEngine {
                 y: metrics.baseCenter.y + translation.centerShift.y
             };
 
+            const glowIntensity = stageConfig.glowIntensity ?? 1.0;
+            this.addRarityAura(graphics, genetics, center, glowIntensity);
+            this.addCosmicAffinityEffects(graphics, genetics.cosmicAffinity, center, glowIntensity);
+            this.addStageAura(graphics, stageConfig, center, baseSize, genetics);
+
             // Render using stage-aware body type for dramatic transformation
             this.renderStageAwareCreatureBody(
                 graphics,
@@ -3515,16 +3529,12 @@ class GraphicsEngine {
             }
 
             // Add rarity-based special effects (scaled by stage glow intensity)
-            const glowIntensity = stageConfig.glowIntensity || 1.0;
             if (glowIntensity > 0.2) {
                 this.addRarityEffects(graphics, genetics, center, {
                     width: metrics.width,
                     height: metrics.height
                 }, glowIntensity);
             }
-
-            // Add cosmic affinity effects (scaled by stage)
-            this.addCosmicAffinityEffects(graphics, genetics.cosmicAffinity, center, glowIntensity);
 
             // Add personality-based visual traits
             this.addPersonalityEffects(graphics, genetics.personality, center, baseSize);
@@ -3835,9 +3845,6 @@ class GraphicsEngine {
                     this.drawTinyStar(graphics, x, y, 2 + Math.random() * 2);
                 }
 
-                // Add a soft glow around the baby
-                graphics.fillStyle(0xFFB6C1, 0.08 * glowIntensity);
-                graphics.fillCircle(center.x, center.y, size.width * 0.7);
                 break;
 
             case 'subtle_sparkle':
@@ -3853,6 +3860,17 @@ class GraphicsEngine {
                 }
                 break;
 
+        }
+    }
+
+    // Filled atmosphere belongs behind anatomy; face details and sparkles do not.
+    addStageAura(graphics, stageConfig, center, size, genetics) {
+        const glowIntensity = stageConfig.glowIntensity ?? 0.5;
+        switch (stageConfig.particleEffect) {
+            case 'cute_sparkle':
+                graphics.fillStyle(0xFFB6C1, 0.08 * glowIntensity);
+                graphics.fillCircle(center.x, center.y, size.width * 0.7);
+                break;
             case 'standard_aura':
                 // Subtle glow around adult creature
                 graphics.fillStyle(genetics.cosmicAffinity?.color || 0xFFD700, 0.1 * glowIntensity);
@@ -7512,14 +7530,8 @@ class GraphicsEngine {
      * @param {Object} size - Size dimensions
      * @param {number} stageGlowIntensity - Stage-specific glow intensity multiplier (1.0 for adult)
      */
-    addRarityEffects(graphics, genetics, center, size, stageGlowIntensity = 1.0) {
+    addRarityAura(graphics, genetics, center, stageGlowIntensity = 1.0) {
         const rarity = genetics.rarity;
-        const specialFeatures = genetics.traits.features.specialFeatures || [];
-
-        // Common creatures get basic effects
-        if (rarity === 'common') {
-            return;
-        }
 
         // Uncommon and above get enhanced aura (scaled by stage glow intensity)
         if (rarity === 'uncommon' || rarity === 'rare' || rarity === 'legendary') {
@@ -7538,6 +7550,12 @@ class GraphicsEngine {
                 intensity: auraIntensity
             });
         }
+    }
+
+    addRarityEffects(graphics, genetics, center, size, stageGlowIntensity = 1.0) {
+        const rarity = genetics.rarity;
+        if (rarity === 'common') return;
+        const specialFeatures = genetics.traits.features.specialFeatures || [];
 
         // Special feature effects
         specialFeatures.forEach(feature => {
@@ -8169,9 +8187,10 @@ class GraphicsEngine {
     /**
      * Add cosmic affinity-based effects
      */
-    addCosmicAffinityEffects(graphics, cosmicAffinity, center) {
+    addCosmicAffinityEffects(graphics, cosmicAffinity, center, stageGlowIntensity = 1) {
+        if (!cosmicAffinity) return;
         const element = cosmicAffinity.element;
-        const powerLevel = cosmicAffinity.powerLevel;
+        const powerLevel = (cosmicAffinity.powerLevel || 0) * stageGlowIntensity;
         
         const elementColors = {
             star: this.spaceMythicPalette.starGold,
@@ -8782,12 +8801,11 @@ class GraphicsEngine {
     }
 
     addAuroraAura(graphics, center, colors) {
-        // Create flowing aurora-like effect
-        graphics.fillGradientStyle(
-            colors[0], colors[1], colors[0], colors[1],
-            0.3, 0.1, 0.3, 0.1
-        );
+        // Texture baking uses Canvas, which ignores Graphics gradient commands.
+        graphics.fillStyle(colors[0], 0.1);
         graphics.fillEllipse(center.x, center.y, 80, 60);
+        graphics.fillStyle(colors[1], 0.1);
+        graphics.fillEllipse(center.x, center.y, 60, 40);
     }
 
     addConstellationMarkings(graphics, center, color) {
@@ -8902,18 +8920,12 @@ class GraphicsEngine {
             intensity = 0.3
         } = options;
 
-        // Create gradient aura effect
-        graphics.fillGradientStyle(
-            innerColor, innerColor, outerColor, outerColor,
-            intensity, intensity * 0.7, intensity * 0.3, intensity * 0.1
-        );
-        graphics.fillCircle(center.x, center.y, 45); // Outer aura
-        
-        graphics.fillGradientStyle(
-            innerColor, innerColor, innerColor, innerColor,
-            intensity * 0.6, intensity * 0.6, intensity * 0.2, intensity * 0.2
-        );
-        graphics.fillCircle(center.x, center.y, 35); // Inner aura
+        // Explicit low-alpha fills work in both WebGL and baked Canvas textures.
+        const strength = Math.max(0, Math.min(1, Number(intensity) || 0));
+        graphics.fillStyle(outerColor, strength * 0.1);
+        graphics.fillCircle(center.x, center.y, 45);
+        graphics.fillStyle(innerColor, strength * 0.2);
+        graphics.fillCircle(center.x, center.y, 35);
     }
 
     /**
@@ -9042,11 +9054,18 @@ class GraphicsEngine {
                 console.log('graphics:debug [GraphicsEngine] Using DNA aura colors (no genetics colorGenome):', colors);
             }
 
-            // Calculate canvas size based on body archetype
-            const metrics = this.getDNACanvasMetrics(dna.bodyArchetype);
-
             // Get lifecycle stage visual config
             const stageConfig = window.CreatureLifecycle?.getStageVisualConfig(stage) || { scale: 1.0, colorSaturation: 1.0 };
+            const textureName = `creature_dna_${dna.id}_${frame}_${stage}`;
+            const renderIdentity = JSON.stringify([dna, genetics, stageConfig]);
+            const cached = this.scene?.textures?.exists(textureName)
+                ? this.scene.textures.get(textureName)
+                : null;
+            if (cached?.customData?.creatureRenderIdentity === renderIdentity) {
+                return { textureName, dna, colors, metadata: { frame, cached: true } };
+            }
+
+            const metrics = this.getDNACanvasMetrics(dna.bodyArchetype, stageConfig.scale);
 
             // Create graphics context
             const graphics = this.createScratchGraphics();
@@ -9081,6 +9100,19 @@ class GraphicsEngine {
 
             // Get full stage config for baby enhancements BEFORE rendering
             const fullStageConfig = this.getStageVisualConfig(stage);
+            const glowIntensity = fullStageConfig.glowIntensity ?? 1;
+            const minimalGenetics = { cosmicAffinity: { color: colors.accent } };
+
+            // Bake atmosphere first, never over the identifying body and face.
+            this.addElementalAuraToGraphics(graphics, center, sizeObj, dna.elementalAura);
+            if (this.isEpicOrHigher(dna.raritySignature)) {
+                this.addRarityEnhancements(graphics, center, sizeObj, dna.raritySignature);
+            }
+            this.addStageAura(graphics, fullStageConfig, center, sizeObj, minimalGenetics);
+            if (genetics?.traits?.features) {
+                this.addRarityAura(graphics, genetics, center, glowIntensity);
+                this.addCosmicAffinityEffects(graphics, genetics.cosmicAffinity, center, glowIntensity);
+            }
 
             // Render body based on DNA bodyArchetype with stage scaling
             this.renderBodyArchetype(graphics, center, sizeObj, dna.bodyArchetype, stageColors);
@@ -9099,21 +9131,8 @@ class GraphicsEngine {
                 colors
             );
 
-            // Add elemental aura effects (drawn on graphics for texture)
-            // Use average of width/height for aura radius
-            const auraSize = (sizeObj.width + sizeObj.height) / 2;
-            this.addElementalAuraToGraphics(graphics, center, auraSize, dna.elementalAura);
-
-            // Add rarity enhancements for epic+
-            if (this.isEpicOrHigher(dna.raritySignature)) {
-                this.addRarityEnhancements(graphics, center, auraSize, dna.raritySignature);
-            }
-
             // Add stage-specific effects (baby cute features, etc.)
             // Use the same sizeObj for consistent positioning
-            const minimalGenetics = {
-                cosmicAffinity: { color: colors.accent }
-            };
             this.addStageEffects(graphics, stage, fullStageConfig, center, sizeObj, minimalGenetics);
 
             // DNA owns the visible anatomy, while genetics owns the individual
@@ -9150,11 +9169,6 @@ class GraphicsEngine {
                     sizeObj,
                     fullStageConfig.glowIntensity || 1
                 );
-                this.addCosmicAffinityEffects(
-                    graphics,
-                    genetics.cosmicAffinity,
-                    fullStageConfig.glowIntensity || 1
-                );
                 this.addPersonalityEffects(
                     graphics,
                     genetics.personality,
@@ -9189,8 +9203,9 @@ class GraphicsEngine {
             translation.restore();
 
             // Generate texture
-            const textureName = `creature_dna_${dna.id}_${frame}_${stage}`;
             this.finalizeTexture(graphics, textureName, metrics.width, metrics.height);
+            const texture = this.scene?.textures?.get(textureName);
+            if (texture?.customData) texture.customData.creatureRenderIdentity = renderIdentity;
 
             const generationTime = Date.now() - startTime;
             console.log(`graphics:info [GraphicsEngine] DNA creature created in ${generationTime}ms`, {
@@ -9255,7 +9270,7 @@ class GraphicsEngine {
      * @param {string} bodyArchetype - DNA body archetype
      * @returns {Object} Canvas metrics
      */
-    getDNACanvasMetrics(bodyArchetype) {
+    getDNACanvasMetrics(bodyArchetype, stageScale = 1) {
         const baseSizes = {
             blob: { width: 60, height: 60 },
             quadruped: { width: 70, height: 55 },
@@ -9265,18 +9280,15 @@ class GraphicsEngine {
         };
 
         const size = baseSizes[bodyArchetype] || baseSizes.blob;
-        const padding = { x: 15, y: 15 };
-
-        return {
-            size,
-            width: size.width + padding.x * 2,
-            height: size.height + padding.y * 2,
-            padding,
-            baseCenter: {
-                x: size.width / 2 + padding.x,
-                y: size.height / 2 + padding.y
-            }
-        };
+        // Share the legacy renderer's safe margins for horns, wings and auras.
+        // Padding is applied by safeGraphicsTranslate exactly once. The body
+        // remains at the texture centre, independent of the transparent border.
+        const scale = Math.max(1, Number(stageScale) || 1);
+        const metrics = this.getCreatureCanvasMetrics(null, {
+            width: Math.ceil(size.width * scale),
+            height: Math.ceil(size.height * scale)
+        });
+        return { ...metrics, size };
     }
 
     /**
@@ -10109,7 +10121,7 @@ class GraphicsEngine {
             if (activeCreature.dna) {
                 console.log('graphics:info [GraphicsEngine] Loading creature from active creature DNA:', activeCreature.dna.id);
                 try {
-                    const result = this.createCreatureFromDNA(activeCreature.dna, frame, currentStage);
+                    const result = this.createCreatureFromDNA(activeCreature.dna, frame, currentStage, activeCreature.genes);
                     if (result && result.textureName) {
                         console.log('graphics:info [GraphicsEngine] Successfully loaded creature from active creature DNA');
                         return result;
@@ -10140,7 +10152,7 @@ class GraphicsEngine {
         if (dna) {
             console.log('graphics:info [GraphicsEngine] Loading creature from DNA slot:', dna.id);
             try {
-                const result = this.createCreatureFromDNA(dna, frame, currentStage);
+                const result = this.createCreatureFromDNA(dna, frame, currentStage, genes);
                 if (result && result.textureName) {
                     console.log('graphics:info [GraphicsEngine] Successfully loaded creature from DNA slot');
                     return result;

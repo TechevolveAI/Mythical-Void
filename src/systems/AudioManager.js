@@ -12,6 +12,7 @@ class AudioManager {
         this.musicVolume = 0.5;
         this.muted = false;
         this.sounds = new Map();
+        this.preferenceListeners = new Set();
 
         // Cache for procedurally generated audio buffers
         this.generatedSounds = new Map();
@@ -109,6 +110,7 @@ class AudioManager {
 
         // Create unlock handler that resumes audio context on first interaction
         this.unlockHandler = () => {
+            if (this.muted || (typeof document !== 'undefined' && document.hidden)) return;
             if (this.audioUnlocked && this.audioContext?.state === 'running') return;
 
             if (this.audioContext && ['suspended', 'interrupted'].includes(this.audioContext.state)) {
@@ -138,6 +140,11 @@ class AudioManager {
         if (!this.audioContext || typeof document === 'undefined') return;
 
         this.audioVisibilityHandler = () => {
+            if (document.hidden) {
+                this.audioUnlocked = false;
+                this.audioContext?.suspend?.().catch(() => {});
+                return;
+            }
             if (document.visibilityState !== 'visible') return;
             this.rearmAudioAfterInterruption();
         };
@@ -1198,12 +1205,12 @@ class AudioManager {
      */
     playSound(name, volumeMultiplier = 1.0) {
         if (!this.initialized || this.muted || !this.audioContext) return;
+        if (typeof document !== 'undefined' && document.hidden) return;
 
         // Auto-resume audio context if suspended (mobile safety check)
-        if (this.audioContext.state === 'suspended') {
-            this.audioContext.resume().then(() => {
-                this.audioUnlocked = true;
-                this.playSound(name, volumeMultiplier); // Retry after resume
+        if (['suspended', 'interrupted'].includes(this.audioContext.state)) {
+            this.resume().then(resumed => {
+                if (resumed) this.playSound(name, volumeMultiplier);
             });
             return;
         }
@@ -2270,8 +2277,25 @@ class AudioManager {
         }
 
         this.applyMusicGain();
+        if (!this.muted) void this.resume();
+        if (!this.muted && !this.musicPlaying && this.requestedArea) {
+            this.playAreaMusic(this.requestedArea);
+        }
+        this.notifyPreferencesChanged();
         console.log(`[AudioManager] Audio ${this.muted ? 'muted' : 'unmuted'}`);
         return this.muted;
+    }
+
+    onPreferencesChange(listener) {
+        this.preferenceListeners.add(listener);
+        return () => this.preferenceListeners.delete(listener);
+    }
+
+    notifyPreferencesChanged() {
+        this.preferenceListeners.forEach(listener => {
+            try { listener(); }
+            catch (error) { console.warn('[AudioManager] Preference listener failed:', error); }
+        });
     }
 
     persistVolumePreference(path, storageKey, value) {
@@ -2312,6 +2336,7 @@ class AudioManager {
             this.masterVolume
         );
         this.applyMusicGain();
+        this.notifyPreferencesChanged();
         console.log(`[AudioManager] Master volume set to ${this.masterVolume}`);
     }
 
@@ -2353,11 +2378,18 @@ class AudioManager {
      * Resume audio context (needed for user interaction requirement)
      */
     resume() {
-        if (this.audioContext && this.audioContext.state === 'suspended') {
-            this.audioContext.resume().then(() => {
-                console.log('[AudioManager] Audio context resumed');
-            });
-        }
+        const context = this.audioContext;
+        if (!context || this.muted || (typeof document !== 'undefined' && document.hidden)) return Promise.resolve(false);
+        if (context.state === 'running') return Promise.resolve(true);
+        if (!['suspended', 'interrupted'].includes(context.state)) return Promise.resolve(false);
+        return context.resume().then(() => {
+            this.audioUnlocked = context === this.audioContext && context.state === 'running';
+            return this.audioUnlocked;
+        }).catch(() => {
+            this.audioUnlocked = false;
+            this.rearmAudioAfterInterruption();
+            return false;
+        });
     }
 
     // ==========================================
@@ -2460,11 +2492,18 @@ class AudioManager {
      * @param {string} area - Area name: 'home', 'void', 'gathering', 'breeding'
      */
     playAreaMusic(area) {
+        const config = this.areaConfigs[area];
+        if (!config) {
+            console.warn(`[AudioManager] Unknown music area: ${area}`);
+            return;
+        }
+        this.requestedArea = area;
         if (!this.audioContext || this.muted) return;
+        if (typeof document !== 'undefined' && document.hidden) return;
 
         // Resume audio context if suspended
-        if (this.audioContext.state === 'suspended') {
-            this.audioContext.resume();
+        if (['suspended', 'interrupted'].includes(this.audioContext.state)) {
+            void this.resume();
         }
 
         // Stop any currently playing music
@@ -2472,11 +2511,7 @@ class AudioManager {
             this.stopMusic(false); // Don't fade for immediate transition
         }
 
-        const config = this.areaConfigs[area];
-        if (!config) {
-            console.warn(`[AudioManager] Unknown music area: ${area}`);
-            return;
-        }
+        this.requestedArea = area;
 
         console.log(`[AudioManager] 🎵 Playing ${area} music`);
 
@@ -3271,6 +3306,7 @@ class AudioManager {
      * @param {boolean} fade - Whether to fade out (default true)
      */
     stopMusic(fade = true) {
+        this.requestedArea = null;
         if (!this.musicPlaying) return;
 
         console.log('[AudioManager] 🔇 Stopping music');
@@ -3292,8 +3328,9 @@ class AudioManager {
                 );
 
                 // Stop oscillators after fade
+                const retiringNodes = this.musicNodes;
                 setTimeout(() => {
-                    this.stopMusicOscillators();
+                    this.stopMusicOscillators(retiringNodes);
                 }, 1100);
             } else {
                 // Immediate stop
@@ -3307,9 +3344,9 @@ class AudioManager {
     /**
      * Stop all music oscillators
      */
-    stopMusicOscillators() {
-        if (this.musicNodes) {
-            this.musicNodes.oscillators.forEach(osc => {
+    stopMusicOscillators(nodes = this.musicNodes) {
+        if (nodes) {
+            nodes.oscillators.forEach(osc => {
                 try {
                     osc.stop();
                     osc.disconnect();
@@ -3317,20 +3354,20 @@ class AudioManager {
                     // Oscillator already stopped
                 }
             });
-            this.musicNodes.oscillators = [];
+            nodes.oscillators = [];
 
-            this.musicNodes.lfoNodes.forEach(node => {
+            nodes.lfoNodes.forEach(node => {
                 try {
                     node.disconnect();
                 } catch (e) {
                     // Node already disconnected - safe to ignore during cleanup
                 }
             });
-            this.musicNodes.lfoNodes = [];
+            nodes.lfoNodes = [];
 
-            if (this.musicNodes.gainNode) {
-                this.musicNodes.gainNode.disconnect();
-                this.musicNodes.gainNode = null;
+            if (nodes.gainNode) {
+                nodes.gainNode.disconnect();
+                nodes.gainNode = null;
             }
         }
     }
@@ -3347,6 +3384,7 @@ class AudioManager {
             this.musicVolume
         );
         this.applyMusicGain();
+        this.notifyPreferencesChanged();
 
         console.log(`[AudioManager] Music volume set to ${Math.round(this.musicVolume * 100)}%`);
     }
@@ -3363,6 +3401,8 @@ class AudioManager {
      * Clean up audio resources
      */
     destroy() {
+        this.preferenceListeners.clear();
+        this.requestedArea = null;
         // Stop any playing music
         if (this.musicPlaying) {
             this.stopMusic(false);

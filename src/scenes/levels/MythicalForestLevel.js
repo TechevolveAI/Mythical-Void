@@ -17,6 +17,7 @@ import {
     isCaydenBirthdayCelebrationActive
 } from '../../config/special-events.js';
 import { shareGuardianRestoration } from '../../utils/GuardianRestorationShare.js';
+import { getCampaignEntryStackLayout } from '../../systems/MobileControlLayout.js';
 import {
     FOREST_HELP_MOMENTS,
     getForestHelpMoment,
@@ -54,24 +55,24 @@ const FOREST_GROUND_SECTIONS = Object.freeze([
 ]);
 
 const FOREST_GUARDIAN_ATTACK_WINDOWS = Object.freeze({
-    root_slam: 1700,
-    vine_whip: 1500,
-    spore_cloud: 3600,
-    nature_fury: 4800
+    root_slam: 1000,
+    vine_whip: 1200,
+    spore_cloud: 2600,
+    nature_fury: 1900
 });
 
 const FOREST_GUARDIAN_ATTACK_CUES = Object.freeze({
     root_slam: 'ROOTS RISING // JUMP',
-    vine_whip: 'VINE WHIP // MOVE BEHIND IT',
+    vine_whip: 'LOW VINE // JUMP OVER IT',
     spore_cloud: 'SPORE CLOUD // LEAVE THE CIRCLE',
     nature_fury: 'FALLING LEAVES // KEEP MOVING'
 });
 
 const FOREST_GUARDIAN_ATTACK_PACING = Object.freeze({
-    root_slam: { windup: 650, recovery: 850, color: 0xFF8A4C },
-    vine_whip: { windup: 550, recovery: 800, color: 0xFFD166 },
-    spore_cloud: { windup: 700, recovery: 950, color: 0xD47CFF },
-    nature_fury: { windup: 1000, recovery: 1100, color: 0x90EE90 }
+    root_slam: { windup: 900, recovery: 1800, color: 0xFF8A4C },
+    vine_whip: { windup: 900, recovery: 1800, color: 0xFFD166 },
+    spore_cloud: { windup: 1000, recovery: 1800, color: 0xD47CFF },
+    nature_fury: { windup: 1200, recovery: 2000, color: 0x90EE90 }
 });
 
 /**
@@ -119,12 +120,19 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         // Boss state
         this.boss = null;
+        this.bossHazards = new Set();
+        this.bossEntranceComplete = false;
+        this.forestBossDuration = null;
+        this.forestBossHits = 0;
+        this.forestBossAttackIndex = 0;
+        this.bossPhaseAttackCount = 0;
+        this.forestBossNextHitAt = 0;
         this.bossTargetScale = 1;
         this.bossArenaY = null;
         this.bossHealth = 0;
         // Six clean katana hits are enough to teach the rescue fight without
         // making the first guardian more durable than late-game bosses.
-        this.bossMaxHealth = 12;
+        this.bossMaxHealth = 18;
         this.bossPhase = 1;
         this.bossAttackTimer = null;
         this.bossHealthBar = null;
@@ -140,6 +148,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.bossPhaseTransitioning = false;
         this.bossPhasePending = false;
         this.bossTelegraphs = new Set();
+        this.bossHazards = new Set();
+        this.bossEntranceComplete = false;
+        this.forestBossDuration = null;
+        this.forestBossHits = 0;
+        this.forestBossAttackIndex = 0;
+        this.bossPhaseAttackCount = 0;
+        this.forestBossNextHitAt = 0;
         this.bossAttackPreview = null;
 
         // Forest particles
@@ -1578,6 +1593,17 @@ class MythicalForestLevel extends PlatformerLevelScene {
     }
 
     updateCameraLead() {
+        if (this.bossFightActive && this.boss?.active && !this.bossDefeated) {
+            // Look into the arena, not back toward the void behind the player.
+            const camera = this.cameras.main;
+            this.currentCameraLeadX = Phaser.Math.Clamp(
+                -(this.boss.x - this.player.x) * (camera.width <= 480 ? 0.65 : 0.42),
+                -camera.width * 0.32,
+                camera.width * 0.32
+            );
+            camera.setFollowOffset(this.currentCameraLeadX, this.cameraBaseOffsetY);
+            return;
+        }
         const gapContext = this.getForestWideGapCameraContext();
         this.forestGapViewActive = Boolean(gapContext);
         if (!gapContext) {
@@ -1601,6 +1627,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
         super.update(time, delta);
         if (this.levelCompletionActive) return;
         this.keepElderTreantRooted();
+        this.keepForestArenaSafe();
+        this.updateForestBossHazards();
+        if (this.bossUI && this.bossBarLayout?.screenWidth !== this.cameras.main.width) {
+            const cue = this.bossInstructionText?.text;
+            this.createBossHealthBar();
+            if (cue) this.bossInstructionText.setText(cue);
+        }
         this.updateRootwakeCrossing();
         this.updateForestEnemyActivation();
         if (this.forestEnemyAISchedulerActive) this.updateForestEnemyAI();
@@ -2166,6 +2199,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.clearVirtualJumpInput?.();
         this.platformDropInputLatched = false;
         this.platformDropThroughUntil = 0;
+        this.platformDropSource = null;
         this.player?.setVelocity?.(0, 0);
         this.recoveryInputLockedUntil = Math.max(
             Number(this.recoveryInputLockedUntil) || 0,
@@ -2187,7 +2221,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.lockForestGuardianEntryInput();
         this.player.body.setAllowGravity?.(true);
         this.player.setPosition(entrance.x, entrance.y);
-        this.player.body.updateFromGameObject?.();
+        // Reset Arcade's previous position too: a teleport must not become a
+        // frame-long sweep from a branch through the arena floor.
+        this.resetForestPlayerBody(entrance.x, entrance.y);
         this.player.setVelocity(0, 0);
         this.lastSafePosition = { ...entrance };
         if (this.astronautFollower?.sprite?.active) {
@@ -5361,7 +5397,17 @@ class MythicalForestLevel extends PlatformerLevelScene {
     startBossFight() {
         console.log('[MythicalForestLevel] Starting Elder Treant boss fight!');
         this.bossFightActive = true;
+        this.bossEntranceComplete = false;
+        this.forestBossStartedAt = this.time.now;
+        this.forestBossHits = 0;
+        this.forestBossAttackIndex = 0;
+        this.bossPhaseAttackCount = 0;
+        this.forestBossNextHitAt = 0;
+        this.bossHazards = new Set();
         this.retireForestPatrolsForElder();
+        this.clearFirstExpeditionDrill();
+        this.cameras.main.setDeadzone(0, 0);
+        this.astronautFollower?.setContextualFormation?.({ x: -62, y: 0 }, 'forest-guardian');
 
         // Dramatic pause
         this.physics.pause();
@@ -5733,20 +5779,24 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const textureKey = this.createElderTreantTexture();
 
         // Spawn position - center of screen for test mode, or boss arena (Tree 6 area)
-        const { width, height } = this.cameras.main;
-        const mobileVisibleOffset = Math.min(180, Math.max(120, width * 0.34));
+        const { width } = this.cameras.main;
+        const mobileVisibleOffset = width <= 480 ? 190 : 340;
         const spawnX = this.testMode
             ? width / 2 + mobileVisibleOffset
             : Math.min(5900, (this.player?.x || 5520) + mobileVisibleOffset);
-        const spawnY = this.levelHeight - 220;
+        const displayHeight = width <= 480 ? 220 : ELDER_TREANT_DISPLAY_HEIGHT;
+        const spawnY = this.levelHeight - 100 - displayHeight * 0.12;
 
         // Create boss sprite
         this.boss = this.physics.add.sprite(spawnX, spawnY, textureKey);
+        // Combat measures range to sprite position. Anchor that position at
+        // the roots, keeping ground-level melee reachable for every art size.
+        this.boss.setOrigin(0.5, 0.88);
         this.bossArenaY = spawnY;
         this.boss.setCollideWorldBounds(true);
         this.boss.setBounce(0);
         this.boss.setDepth(880);
-        this.bossTargetScale = ELDER_TREANT_DISPLAY_HEIGHT /
+        this.bossTargetScale = displayHeight /
             Math.max(1, this.boss.height);
         this.boss.body.setSize(
             this.boss.width * 0.48,
@@ -5791,6 +5841,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
             ease: 'Back.easeOut',
             onComplete: () => {
                 if (this.bossDefeated || this.levelCompletionActive || !this.boss?.active) return;
+                this.bossEntranceComplete = true;
+                this.releaseAllPlatformerActionButtons?.();
+                this.resetJoystick?.();
+                this.recoveryInputLockedUntil = this.time?.now || 0;
                 // Start boss AI
                 if (!this.bossAttackPreview) {
                     this.startBossAI();
@@ -5829,6 +5883,44 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
     }
 
+    getForestArenaFloor() {
+        return this.platforms?.getChildren?.().find(platform =>
+            platform.traversalId === 'forest-ground-6' && platform.body?.enable
+        )?.body || null;
+    }
+
+    resetForestPlayerBody(x, y) {
+        const body = this.player.body;
+        body.reset(x, y);
+        // Arcade reset starts at texture top-left, ignoring custom hitbox
+        // offsets. Apply them before copying the new collision history.
+        body.updateFromGameObject();
+        body.prev.copy(body.position);
+        body.prevFrame.copy(body.position);
+        body.autoFrame.copy(body.position);
+    }
+
+    keepForestArenaSafe() {
+        if (!this.bossFightActive || this.levelCompletionActive || this.isPlayerDead ||
+            !this.player?.body?.enable) return;
+        const floor = this.getForestArenaFloor();
+        if (!floor) return;
+        const body = this.player.body;
+        const x = Phaser.Math.Clamp(this.player.x, floor.left + 70, floor.right - 70);
+        const belowFloor = body.bottom > floor.top + 4;
+        if (x === this.player.x && !belowFloor) return;
+
+        const y = belowFloor ? this.player.y - (body.bottom - floor.top) - 1 : this.player.y;
+        this.resetForestPlayerBody(x, y);
+        this.player.setVelocity(0, 0);
+        this.resetJoystick?.();
+        this.clearVirtualJumpInput?.();
+        this.platformDropThroughUntil = 0;
+        this.platformDropSource = null;
+        this.astronautFollower?.resetTrail?.();
+        this.lastSafePosition = { x, y };
+    }
+
     /**
      * Create ambient visual effects around the boss
      */
@@ -5843,19 +5935,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
             if (!this.boss || !glow.active) return;
 
             glow.clear();
-            glow.setPosition(this.boss.x, this.boss.y);
+            glow.setPosition(this.boss.x, this.levelHeight - 100);
 
-            // Orange vein glow
-            glow.fillStyle(0xFF4500, 0.2 + Math.sin(this.time.now * 0.003) * 0.1);
-            glow.fillCircle(0, 0, 120);
-
-            // Purple mystical aura
-            glow.fillStyle(0x9932CC, 0.1);
-            glow.fillCircle(-40, -80, 40);
-
-            // Green aura
-            glow.fillStyle(0x32CD32, 0.1);
-            glow.fillCircle(40, -80, 40);
+            glow.fillStyle(0x07190F, 0.55);
+            glow.fillEllipse(0, -3, this.boss.displayWidth * 0.9, 18);
         };
 
         this.time.addEvent({
@@ -5871,13 +5954,15 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * Create boss health bar UI
      */
     createBossHealthBar() {
+        this.bossInstructionTimer?.remove?.();
+        this.bossUI?.destroy?.(true);
         const screenWidth = this.cameras.main.width;
         const barWidth = Math.min(350, screenWidth - 60);
         const barHeight = 28;
         const barX = (screenWidth - barWidth) / 2;
         const isMobileLayout = screenWidth <= 480;
-        const barY = isMobileLayout ? 118 : 55;
-        this.bossBarLayout = { barX, barY, barWidth, barHeight };
+        const barY = isMobileLayout ? 102 : 55;
+        this.bossBarLayout = { screenWidth, barX, barY, barWidth, barHeight };
 
         // UI container
         this.bossUI = this.add.container(0, 0);
@@ -5885,8 +5970,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.bossUI.setDepth(1500);
 
         // Boss name
-        this.bossNameText = this.add.text(screenWidth / 2, barY - 28, 'ELDER TREANT // TRAPPED', {
-            fontSize: isMobileLayout ? '18px' : '22px',
+        this.bossNameText = this.add.text(screenWidth / 2, barY - 23, 'ELDER TREANT // TRAPPED', {
+            fontSize: isMobileLayout ? '16px' : '20px',
             color: '#90EE90',
             fontStyle: 'bold',
             stroke: '#1A251A',
@@ -5897,16 +5982,17 @@ class MythicalForestLevel extends PlatformerLevelScene {
         // Subtitle
         this.bossInstructionText = this.add.text(
             screenWidth / 2,
-            barY - 8,
-            'STRIKE PURPLE CORRUPTION // FREE THE GUARDIAN',
+            barY + barHeight + 19,
+            'DODGE, THEN STRIKE THE PURPLE CORRUPTION',
             {
-            fontSize: '11px',
+            fontSize: '12px',
             fontFamily: 'Arial, sans-serif',
             color: '#B8F3C8',
             fontStyle: 'bold',
             stroke: '#142016',
             strokeThickness: 2,
-            align: 'center'
+            align: 'center',
+            wordWrap: { width: screenWidth - 40 }
             }
         ).setOrigin(0.5);
         this.bossUI.add(this.bossInstructionText);
@@ -5986,8 +6072,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         console.log('[MythicalForestLevel] Starting Elder Treant AI');
 
         // Boss AI timer
+        this.bossAITimer?.remove?.();
         this.bossAITimer = this.time.addEvent({
-            delay: 2000,
+            delay: 500,
             callback: () => this.bossAITick(),
             loop: true
         });
@@ -5997,7 +6084,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * Boss AI tick - choose and execute attacks
      */
     bossAITick() {
-        if (!this.boss || this.bossDefeated || !this.bossFightActive) return;
+        if (!this.boss || this.bossDefeated || !this.bossFightActive ||
+            this.boss.isAttacking || this.bossPhaseTransitioning || !this.bossEntranceComplete) return;
 
         // Face the player
         if (this.player && this.boss) {
@@ -6006,12 +6094,11 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
 
         // Choose attack based on phase
-        const attacks = ['root_slam', 'vine_whip', 'spore_cloud'];
-        if (this.bossPhase >= 2) {
-            attacks.push('nature_fury');
-        }
-
-        const attack = attacks[Math.floor(Math.random() * attacks.length)];
+        const attacks = this.bossPhase >= 2
+            ? ['spore_cloud', 'vine_whip', 'nature_fury', 'root_slam']
+            : ['root_slam', 'vine_whip'];
+        const attack = attacks[this.forestBossAttackIndex % attacks.length];
+        this.forestBossAttackIndex++;
         this.executeBossAttack(attack);
     }
 
@@ -6025,6 +6112,21 @@ class MythicalForestLevel extends PlatformerLevelScene {
             { windup: 600, recovery: 850, color: 0xFFD166 };
         this.boss.isAttacking = true;
         this.boss.isRecovering = false;
+        const body = this.player.body;
+        this.forestBossAttackTarget = {
+            x: body.center.x,
+            y: body.center.y,
+            groundY: this.getForestArenaFloor()?.top ?? this.levelHeight - 100,
+            direction: this.player.x >= this.boss.x ? 1 : -1,
+            viewY: this.cameras.main.worldView.y
+        };
+        this.bossAttackPoseTween?.stop?.();
+        this.bossAttackPoseTween = this.tweens.add({
+            targets: this.boss,
+            angle: -this.forestBossAttackTarget.direction * 4,
+            duration: pacing.windup,
+            ease: 'Sine.easeIn'
+        });
         this.boss.setVelocityX?.(0);
         const attackWindow = FOREST_GUARDIAN_ATTACK_WINDOWS[attackType] || 1800;
         this.showBossAttackInstruction(
@@ -6037,6 +6139,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.bossAttackWindupTimer = this.time.delayedCall(pacing.windup, () => {
             this.bossAttackWindupTimer = null;
             if (!this.boss?.active || this.bossDefeated || this.bossPhaseTransitioning) return;
+            this.bossPhaseAttackCount++;
+            this.bossAttackPoseTween = this.tweens.add({
+                targets: this.boss,
+                angle: this.forestBossAttackTarget.direction * 4,
+                duration: 140,
+                ease: 'Quad.easeOut'
+            });
 
             switch (attackType) {
                 case 'root_slam':
@@ -6084,26 +6193,27 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         const warning = this.add.graphics();
         const color = pacing.color;
-        const groundY = this.levelHeight - 120;
-        const direction = this.boss.facingRight ? 1 : -1;
-        const camera = this.cameras.main;
-        const viewX = camera.worldView?.x ?? camera.scrollX ?? 0;
+        const target = this.forestBossAttackTarget;
+        const groundY = target.groundY;
+        const direction = target.direction;
 
         warning.fillStyle(color, 0.14);
         warning.lineStyle(4, color, 0.95);
         if (attackType === 'root_slam') {
-            warning.fillRect(this.boss.x - 220, groundY - 18, 440, 36);
-            warning.strokeRect(this.boss.x - 220, groundY - 18, 440, 36);
+            warning.fillRect(target.x - 90, groundY - 12, 180, 12);
+            warning.strokeRect(target.x - 90, groundY - 12, 180, 12);
         } else if (attackType === 'vine_whip') {
-            const laneX = direction > 0 ? this.boss.x + 45 : this.boss.x - 365;
-            warning.fillRect(laneX, this.boss.y - 24, 320, 48);
-            warning.strokeRect(laneX, this.boss.y - 24, 320, 48);
+            const laneX = direction > 0 ? this.boss.x : this.boss.x - 380;
+            warning.fillRect(laneX, groundY - 38, 380, 24);
+            warning.strokeRect(laneX, groundY - 38, 380, 24);
         } else if (attackType === 'spore_cloud') {
-            warning.fillCircle(this.player.x, this.player.y, 72);
-            warning.strokeCircle(this.player.x, this.player.y, 72);
+            warning.fillCircle(target.x, target.y, 60);
+            warning.strokeCircle(target.x, target.y, 60);
         } else {
-            warning.fillRect(viewX + 12, 24, camera.width - 24, this.levelHeight - 145);
-            warning.strokeRect(viewX + 12, 24, camera.width - 24, this.levelHeight - 145);
+            for (const offset of [-90, 0, 90]) {
+                warning.fillRect(target.x + offset - 16, groundY - 16, 32, 16);
+                warning.strokeRect(target.x + offset - 16, groundY - 16, 32, 16);
+            }
         }
 
         warning.setDepth(845).setAlpha(0.9);
@@ -6128,13 +6238,17 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
 
         this.boss.isRecovering = true;
+        this.bossAttackPoseTween?.stop?.();
+        this.bossAttackPoseTween = this.tweens.add({
+            targets: this.boss, angle: 0, duration: 250, ease: 'Sine.easeOut'
+        });
         this.bossInstructionText
-            ?.setText('OPENING // STRIKE THE PURPLE CORRUPTION')
+            ?.setText('YOUR TURN! STRIKE THE PURPLE CORRUPTION')
             ?.setColor('#8FE3CF');
         const opening = this.add.graphics();
         opening.lineStyle(5, 0x8FE3CF, 0.9);
         opening.strokeCircle(0, 0, 105);
-        opening.setPosition(this.boss.x, this.boss.y).setDepth(885);
+        opening.setPosition(this.boss.x, this.boss.getCenter().y).setDepth(885);
         this.bossTelegraphs.add(opening);
         this.tweens.add({
             targets: opening,
@@ -6155,6 +6269,10 @@ class MythicalForestLevel extends PlatformerLevelScene {
     }
 
     clearForestBossPacing({ includePhase = false } = {}) {
+        this.bossAttackPoseTween?.stop?.();
+        this.bossAttackPoseTween = null;
+        this.boss?.setAngle?.(0);
+        this.bossHazards?.clear();
         this.bossAttackWindupTimer?.remove?.();
         this.bossAttackWindupTimer = null;
         this.bossRecoveryTimer?.remove?.();
@@ -6193,7 +6311,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             Math.max(600, duration - 250),
             () => {
                 this.bossInstructionText
-                    ?.setText('STRIKE PURPLE CORRUPTION // FREE THE GUARDIAN')
+                    ?.setText('DODGE, THEN STRIKE THE PURPLE CORRUPTION')
                     ?.setColor('#B8F3C8');
                 this.bossInstructionTimer = null;
             }
@@ -6204,7 +6322,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * Root Slam attack - ground shockwave with attack telegraph!
      */
     bossRootSlam() {
-        if (!this.boss) return;
+        if (!this.boss || !this.forestBossAttackTarget) return;
 
         // Screen shake on impact
         if (this.combatJuice) {
@@ -6215,24 +6333,20 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
 
         // Create root spikes
-        for (let i = -3; i <= 3; i++) {
-            const rootX = this.boss.x + i * 50;
-            const rootY = this.levelHeight - 120;
+        const target = this.forestBossAttackTarget;
+        for (let i = -2; i <= 2; i++) {
+            const rootX = target.x + i * 36;
+            const rootY = target.groundY;
 
             const root = this.add.graphics();
-            root.fillStyle(0x8B4513, 1);
-            root.fillTriangle(rootX - 10, rootY, rootX + 10, rootY, rootX, rootY - 40);
-            root.setDepth(850);
-
-            // Damage check
-            if (this.player &&
-                Math.abs(this.player.x - rootX) < 30 &&
-                this.player.y > rootY - 60) {
-                this.handlePlayerDamage(1);
-            }
-
-            // Remove root after delay
-            this.time.delayedCall(1000, () => root.destroy());
+            root.fillStyle(0xB57652, 1);
+            root.fillTriangle(-18, 0, 18, 0, 0, -48);
+            root.lineStyle(3, 0xE2ABFF, 1);
+            root.lineBetween(0, -8, 0, -38);
+            root.setPosition(rootX, rootY).setDepth(890);
+            this.addForestBossHazard(root, () => ({
+                left: rootX - 18, right: rootX + 18, top: rootY - 48, bottom: rootY
+            }), 350);
         }
     }
 
@@ -6240,16 +6354,21 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * Vine Whip attack - with charge telegraph!
      */
     bossVineWhip() {
-        if (!this.boss || !this.player) return;
-
-        const direction = this.boss.facingRight ? 1 : -1;
+        if (!this.boss || !this.forestBossAttackTarget) return;
+        const { direction, groundY } = this.forestBossAttackTarget;
+        const startX = this.boss.x;
 
         // Create vine projectile
         const vine = this.add.graphics();
-        vine.fillStyle(0x228B22, 1);
-        vine.fillRect(0, -5, 80, 10);
-        vine.setPosition(this.boss.x + direction * 50, this.boss.y);
-        vine.setDepth(850);
+        vine.fillStyle(0x50944B, 1);
+        vine.fillRoundedRect(-24, -12, 48, 24, 8);
+        vine.lineStyle(3, 0xD7B0FF, 1);
+        vine.lineBetween(-20, 0, 20, 0);
+        vine.setPosition(startX, groundY - 26).setDepth(890);
+        this.addForestBossHazard(vine, () => ({
+            left: vine.x - 24, right: vine.x + 24,
+            top: vine.y - 12, bottom: vine.y + 12
+        }), 1050);
 
         // Animate vine extending with combat juice
         if (this.combatJuice) {
@@ -6258,24 +6377,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         this.tweens.add({
             targets: vine,
-            x: vine.x + direction * 300,
-            duration: 300,
-            onComplete: () => {
-                // Check collision
-                if (this.player &&
-                    Math.abs(this.player.x - vine.x) < 100 &&
-                    Math.abs(this.player.y - vine.y) < 30) {
-                    this.handlePlayerDamage(1);
-                }
-
-                // Retract
-                this.tweens.add({
-                    targets: vine,
-                    x: this.boss.x + direction * 50,
-                    duration: 200,
-                    onComplete: () => vine.destroy()
-                });
-            }
+            x: startX + direction * 356,
+            duration: 950,
+            ease: 'Sine.easeInOut'
         });
     }
 
@@ -6283,18 +6387,18 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * Spore Cloud attack - area denial with projectile telegraph!
      */
     bossSporeCloud() {
-        if (!this.boss || !this.player) return;
+        if (!this.boss || !this.forestBossAttackTarget) return;
 
         // Target player position
-        const targetX = this.player.x;
-        const targetY = this.player.y;
+        const targetX = this.forestBossAttackTarget.x;
+        const targetY = this.forestBossAttackTarget.y;
 
         // Create spore cloud
         const cloud = this.add.graphics();
         cloud.fillStyle(0x9932CC, 0.5);
         cloud.fillCircle(0, 0, 60);
         cloud.setPosition(targetX, targetY);
-        cloud.setDepth(100);
+        cloud.setDepth(890);
         cloud.setAlpha(0);
 
         // Fade in
@@ -6304,36 +6408,18 @@ class MythicalForestLevel extends PlatformerLevelScene {
             duration: 500
         });
 
-        // Damage over time zone
-        let ticks = 0;
-        const damageInterval = this.time.addEvent({
-            delay: 500,
-            callback: () => {
-                if (this.player &&
-                    Math.abs(this.player.x - cloud.x) < 60 &&
-                    Math.abs(this.player.y - cloud.y) < 60) {
-                    this.handlePlayerDamage(1);
-                }
-                ticks++;
-                if (ticks >= 4) {
-                    damageInterval.remove();
-                    this.tweens.add({
-                        targets: cloud,
-                        alpha: 0,
-                        duration: 500,
-                        onComplete: () => cloud.destroy()
-                    });
-                }
-            },
-            loop: true
-        });
+        // The collision box fits inside the visible cloud, never outside its warning.
+        this.addForestBossHazard(cloud, () => ({
+            left: targetX - 42, right: targetX + 42,
+            top: targetY - 42, bottom: targetY + 42
+        }), 2400);
     }
 
     /**
      * Nature Fury attack - Phase 2 ultimate with AoE telegraph!
      */
     bossNatureFury() {
-        if (!this.boss) return;
+        if (!this.boss || !this.forestBossAttackTarget) return;
 
         // The lane warning is authored before this impact in executeBossAttack.
         if (this.combatJuice) {
@@ -6341,61 +6427,56 @@ class MythicalForestLevel extends PlatformerLevelScene {
             this.combatJuice.hapticFeedback('critical');
         }
 
-        // Screen flash
-        window.FeedbackManager?.cameraFlash?.(this, 500, 34, 139, 34);
-
-        // Warning text
-        const { width, height } = this.cameras.main;
-        const warning = this.add.text(width / 2, height / 3, '🌿 NATURE\'S FURY! 🌿', {
-            fontSize: '28px',
-            color: '#90EE90',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 3
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(2000);
-
-        this.tweens.add({
-            targets: warning,
-            alpha: 0,
-            duration: 1500,
-            onComplete: () => warning.destroy()
-        });
-
-        // Rain of leaves/projectiles
-        for (let i = 0; i < 10; i++) {
-            this.time.delayedCall(i * 200, () => {
-                const viewX = this.cameras.main.worldView?.x ?? this.cameras.main.scrollX ?? 0;
-                const leafX = viewX + Math.random() * width;
-
-                const leaf = this.add.graphics();
-                leaf.fillStyle(Math.random() > 0.5 ? 0x228B22 : 0x8B008B, 1);
-                leaf.fillTriangle(-10, 0, 10, 0, 0, 20);
-                leaf.setPosition(leafX, -20);
-                leaf.setDepth(850);
-
-                this.tweens.add({
-                    targets: leaf,
-                    y: this.levelHeight,
-                    x: leafX + (Math.random() - 0.5) * 100,
-                    rotation: Math.PI * 2,
-                    duration: 1500,
-                    onComplete: () => {
-                        // Damage check at landing
-                        if (this.player && Math.abs(this.player.x - leaf.x) < 30) {
-                            this.handlePlayerDamage(1);
-                        }
-                        leaf.destroy();
-                    }
-                });
+        const target = this.forestBossAttackTarget;
+        for (const offset of [-90, 0, 90]) {
+            const leaf = this.add.graphics();
+            leaf.fillStyle(0xA158BA, 1);
+            leaf.fillTriangle(-16, -18, 16, -18, 0, 18);
+            leaf.lineStyle(3, 0xD1E7AB, 1);
+            leaf.lineBetween(0, -14, 0, 14);
+            leaf.setPosition(target.x + offset, target.viewY + 175).setDepth(890);
+            this.addForestBossHazard(leaf, () => ({
+                left: leaf.x - 16, right: leaf.x + 16,
+                top: leaf.y - 18, bottom: leaf.y + 18
+            }), 1700);
+            this.tweens.add({
+                targets: leaf, y: target.groundY - 18,
+                duration: 1600, ease: 'Quad.easeIn'
             });
         }
+    }
+
+    addForestBossHazard(graphic, bounds, duration) {
+        this.bossTelegraphs.add(graphic);
+        this.bossHazards.add({ graphic, bounds, expiresAt: this.time.now + duration, nextHitAt: 0 });
+    }
+
+    updateForestBossHazards() {
+        if (!this.bossFightActive || this.bossDefeated || this.levelCompletionActive ||
+            this.physics.world.isPaused || !this.player?.body?.enable) return;
+        const body = this.player.body;
+        this.bossHazards?.forEach(hazard => {
+            if (!hazard.graphic.active || this.time.now >= hazard.expiresAt) {
+                this.destroyForestBossTelegraph(hazard.graphic);
+                this.bossHazards.delete(hazard);
+                return;
+            }
+            const bounds = hazard.bounds();
+            if (this.time.now >= hazard.nextHitAt && !this.isInvincible &&
+                body.right > bounds.left && body.left < bounds.right &&
+                body.bottom > bounds.top && body.top < bounds.bottom) {
+                hazard.nextHitAt = this.time.now + 1000;
+                this.handlePlayerDamage(1);
+            }
+        });
     }
 
     /**
      * Handle collision between player and boss
      */
     handleBossCollision(player, boss) {
-        if (this.isInvincible || this.isPlayerDead) return;
+        if (this.isInvincible || this.isPlayerDead || !this.bossEntranceComplete ||
+            !this.bossFightActive || this.bossPhaseTransitioning || boss.isRecovering) return;
         this.handlePlayerDamage(1);
     }
 
@@ -6418,10 +6499,15 @@ class MythicalForestLevel extends PlatformerLevelScene {
      * Handle boss taking damage - with exciting combat juice!
      */
     damageBoss(amount = 1) {
-        if (!this.boss || this.bossDefeated) return false;
+        if (!this.boss?.active || this.bossDefeated || !this.bossEntranceComplete ||
+            !this.bossFightActive || this.bossPhaseTransitioning ||
+            !this.boss.isRecovering || !this.bossPhaseAttackCount ||
+            this.time.now < this.forestBossNextHitAt || !Number.isFinite(amount) || amount <= 0) return false;
 
         const recoveryBonus = this.boss.isRecovering ? 1 : 0;
-        const finalAmount = amount + recoveryBonus;
+        const finalAmount = Math.min(3, amount) + recoveryBonus;
+        this.forestBossNextHitAt = this.time.now + 400;
+        this.forestBossHits++;
         this.bossHealth = Math.max(0, this.bossHealth - finalAmount);
         this.updateBossHealthBar();
 
@@ -6493,6 +6579,8 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         this.bossPhasePending = false;
         this.bossPhase = 2;
+        this.forestBossAttackIndex = 0;
+        this.bossPhaseAttackCount = 0;
         this.bossPhaseTransitioning = true;
         this.clearForestBossPacing();
         this.boss.isAttacking = true;
@@ -6512,7 +6600,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const phaseRing = this.add.graphics();
         phaseRing.lineStyle(7, 0xFF8A4C, 0.95);
         phaseRing.strokeCircle(0, 0, 90);
-        phaseRing.setPosition(this.boss.x, this.boss.y).setDepth(890);
+        phaseRing.setPosition(this.boss.x, this.boss.getCenter().y).setDepth(890);
         this.bossTelegraphs.add(phaseRing);
         this.tweens.add({
             targets: phaseRing,
@@ -6544,7 +6632,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
 
         // Phase two adds a new pattern without deleting the player's reading time.
         if (this.bossAITimer) {
-            this.bossAITimer.delay = 1900;
+            this.bossAITimer.delay = 500;
         }
 
         this.bossPhaseTransitionTimer?.remove?.();
@@ -6556,14 +6644,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
             if (this.bossAITimer) {
                 this.bossAITimer.paused = false;
             }
-            this.showForestBossRecovery(900);
-            this.bossAttackUnlockTimer = this.time.delayedCall(900, () => {
-                if (this.boss) {
-                    this.boss.isAttacking = false;
-                    this.boss.isRecovering = false;
-                }
-                this.bossAttackUnlockTimer = null;
-            });
+            this.boss.isAttacking = false;
+            this.boss.isRecovering = false;
+            this.bossInstructionText?.setText('WATCH THE SPORES // STEP AWAY');
         });
 
         if (window.AudioManager) {
@@ -6912,9 +6995,13 @@ class MythicalForestLevel extends PlatformerLevelScene {
     }
 
     onBossDefeated() {
+        if (this.bossDefeated || !this.boss?.active) return;
         console.log('[MythicalForestLevel] Elder Treant restored!');
         this.bossDefeated = true;
         this.bossFightActive = false;
+        this.enterLevelCompletionState();
+        this.astronautFollower?.setContextualFormation?.(null);
+        this.forestBossDuration = Math.max(0, this.time.now - (this.forestBossStartedAt || this.time.now));
 
         // Completion is a protected story state. Keep the creature grounded
         // while the guardian leaves so a late fall cannot open recovery UI
@@ -7404,7 +7491,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.combatJuice?.comboDisplay?.setVisible?.(false);
         this.combatJuice?.comboMultiplierDisplay?.setVisible?.(false);
 
-        const layout = this.getLevelModalLayout({ maxWidth: 420, maxHeight: 480 });
+        const layout = this.getLevelModalLayout({ maxWidth: 480, maxHeight: 600 });
         const {
             width, panelWidth, panelHeight, panelX, panelY,
             contentWidth, y, font, buttonPadding
@@ -7422,11 +7509,17 @@ class MythicalForestLevel extends PlatformerLevelScene {
         }
 
         const coinsEarned = completionResult?.coinsAwarded || 0;
-        const ecology = completionResult?.currentEcology;
 
-        // Victory text
+        const summary = [];
+        const remember = (element) => {
+            element.setName(`forest-victory-${summary.length}`);
+            summary.push(element);
+            return element;
+        };
+
+        // Text is measured after wrapping; fixed centre points overlap long rewards.
         const victoryText = this.add.text(width / 2, y(45), 'FOREST EXPEDITION COMPLETE', {
-            fontSize: font(32, 24),
+            fontSize: font(26, 22),
             color: '#FFD700',
             fontStyle: 'bold',
             stroke: '#000000',
@@ -7434,35 +7527,37 @@ class MythicalForestLevel extends PlatformerLevelScene {
             align: 'center',
             wordWrap: { width: contentWidth }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2500).setAlpha(0);
+        remember(victoryText);
 
         this.tweens.add({
             targets: victoryText,
             alpha: 1,
-            scaleX: { from: 0.5, to: 1 },
-            scaleY: { from: 0.5, to: 1 },
             duration: 500
         });
 
         // Create victory panel
         const panel = this.add.graphics();
         panel.fillStyle(0x1A301A, 0.95);
-        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
         panel.lineStyle(3, 0x228B22);
-        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
         panel.setScrollFactor(0).setDepth(2499);
 
         // Rewards header
-        this.add.text(width / 2, y(100), 'ELDER TREANT RESTORED', {
-            fontSize: font(22, 18),
+        remember(this.add.text(width / 2, y(100), 'ELDER TREANT RESTORED', {
+            fontSize: font(20, 16),
             color: '#90EE90',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
+            fontStyle: 'bold',
+            align: 'center',
+            wordWrap: { width: contentWidth }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(2502));
 
-        this.add.text(
+        const hits = this.forestBossHits || 0;
+        remember(this.add.text(
             width / 2,
             y(140),
-            ecology
-                ? `${ecology.regionLabel}: ${ecology.beforeVitality}% -> ${ecology.afterVitality}%`
+            Number.isFinite(this.forestBossDuration)
+                ? `Guardian freed in ${Math.ceil(this.forestBossDuration / 1000)}s\n${hits} successful ${hits === 1 ? 'strike' : 'strikes'}`
                 : 'The forest roots carry life again.',
             {
                 fontSize: font(15, 13),
@@ -7471,20 +7566,20 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 align: 'center',
                 wordWrap: { width: contentWidth }
             }
-        ).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(2502));
 
         // Coins earned
-        this.add.text(width / 2, y(182), `💰 ${coinsEarned} Coins`, {
+        remember(this.add.text(width / 2, y(182), `${coinsEarned} Coins`, {
             fontSize: font(18, 16),
             color: '#FFD700'
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(2502));
 
         // Ship part notification
         const shipParts = window.GameState?.get('hubWorld.shipParts.collected') || [];
-        this.add.text(
+        remember(this.add.text(
             width / 2,
             y(220),
-            `🌳 Guardian's Gift: Forest Core\n${this.getBossPowerupRewardCopy({ compact: true })}`,
+            `Guardian's Gift: Forest Core\n${this.getBossPowerupRewardCopy({ compact: true })}`,
             {
             fontSize: font(16, 13),
             color: '#90EE90',
@@ -7492,16 +7587,16 @@ class MythicalForestLevel extends PlatformerLevelScene {
             lineSpacing: 4,
             wordWrap: { width: contentWidth }
             }
-        ).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(2502));
 
         const totalRequired = window.GameState?.get('hubWorld.shipParts.totalRequired') || 5;
         const sanctuaryArrival = this.getGuardianSanctuaryArrivalCopy({ compact: true });
         const villageOutcome = this.getVillageCompletionCopy({ compact: true });
-        this.add.text(
+        remember(this.add.text(
             width / 2,
             y(275),
             [
-                sanctuaryArrival || 'Wisp is safe in the Sanctuary.',
+                sanctuaryArrival || 'The forest is safe again.',
                 completionResult?.nextGateUnlocked
                     ? 'NEXT EXPEDITION OPEN: CRYSTAL CAVES'
                     : 'NEXT: RETURN TO THE SANCTUARY',
@@ -7515,7 +7610,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             lineSpacing: 4,
             wordWrap: { width: contentWidth }
             }
-        ).setOrigin(0.5).setScrollFactor(0).setDepth(2502);
+        ).setOrigin(0.5).setScrollFactor(0).setDepth(2502));
 
         if (completionResult?.firstCompletion === true) {
             const inviteBtn = this.add.text(width / 2, y(380), '[ INVITE SOMEONE ]', {
@@ -7524,6 +7619,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 backgroundColor: '#8FE3CF',
                 padding: buttonPadding
             }).setOrigin(0.5).setScrollFactor(0).setDepth(2502).setInteractive();
+            remember(inviteBtn);
 
             let invitationInProgress = false;
             inviteBtn.on('pointerover', () => inviteBtn.setColor('#3B156B'));
@@ -7552,6 +7648,19 @@ class MythicalForestLevel extends PlatformerLevelScene {
             backgroundColor: '#228B22',
             padding: buttonPadding
         }).setOrigin(0.5).setScrollFactor(0).setDepth(2502).setInteractive();
+        remember(continueBtn);
+
+        const stack = getCampaignEntryStackLayout({
+            top: panelY,
+            bottom: panelY + panelHeight,
+            itemHeights: summary.map(element => element.height),
+            gaps: 14,
+            topPadding: 18,
+            bottomPadding: 18
+        });
+        summary.forEach((element, index) => {
+            element.setY(stack.positions[index] + element.height / 2);
+        });
 
         continueBtn.on('pointerover', () => continueBtn.setColor('#90EE90'));
         continueBtn.on('pointerout', () => continueBtn.setColor('#FFFFFF'));
