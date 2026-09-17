@@ -152,6 +152,9 @@ This batch is implemented locally, pending the normal release gates:
   The shared completion boundary also resets leftover combat shake so reward
   controls remain stable when a slow renderer stretches scene-time effects.
   Late entrance and sword-hit feedback cannot restart combat after completion.
+- Final Void opens its existing repair action directly after the resident's
+  welcome, or immediately on replay. It no longer waits on an extra four-second
+  scene timer before exposing the route out of the result.
 - Final repair and unfinished ending recovery derive from existing saved
   campaign/repair/choice state, not a transient scene handoff flag. Completed
   legacy endings remain complete without inventing a repair ledger.

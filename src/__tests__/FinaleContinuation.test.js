@@ -107,3 +107,40 @@ describe('ending presentation after a refresh', () => {
         expect(scene.startVictorySequence).toHaveBeenCalledTimes(restored ? 0 : 1);
     });
 });
+
+describe('final Guardian result handoff', () => {
+    const levelSource = fs.readFileSync(path.join(__dirname, '../scenes/levels/FinalVoidLevel.js'), 'utf8');
+    const levelClass = parse(levelSource, { sourceType: 'module' }).program.body
+        .find(node => node.type === 'ClassDeclaration' && node.id.name === 'FinalVoidLevel');
+    const node = levelClass.body.body.find(member => member.key?.name === 'showBossVictory');
+    const showVictory = new Function('window', `return ({${levelSource.slice(node.start, node.end)}}).showBossVictory;`)({});
+
+    test.each([true, false])('repair action needs no animation clock; new resident=%s', residentOpen => {
+        const texts = [];
+        const scene = {
+            getLevelModalLayout: () => ({ width: 390, contentWidth: 350, y: value => value, font: value => value }),
+            completeLevelProgression: jest.fn(), residentReleaseOpen: residentOpen,
+            getBossPowerupRewardCopy: () => 'Reward', getVillageCompletionCopy: () => '',
+            showLevelComplete: jest.fn(), time: { delayedCall: jest.fn() },
+            tweens: { add: jest.fn(), killTweensOf: jest.fn() },
+            add: { text: () => {
+                const text = { destroy: jest.fn() };
+                ['setOrigin', 'setScrollFactor', 'setDepth', 'setAlpha'].forEach(name => { text[name] = () => text; });
+                texts.push(text);
+                return text;
+            } }
+        };
+        showVictory.call(scene);
+        expect(scene.time.delayedCall).not.toHaveBeenCalled();
+        expect(scene.showLevelComplete).toHaveBeenCalledTimes(residentOpen ? 0 : 1);
+        if (residentOpen) {
+            scene.pendingResidentReleaseContinuation();
+            scene.pendingResidentReleaseContinuation();
+        }
+        expect(scene.showLevelComplete).toHaveBeenCalledTimes(1);
+        for (const text of texts) {
+            expect(scene.tweens.killTweensOf).toHaveBeenCalledWith(text);
+            expect(text.destroy).toHaveBeenCalledTimes(1);
+        }
+    });
+});
