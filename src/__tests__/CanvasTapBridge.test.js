@@ -24,6 +24,19 @@ function loadCanvasTapBridge() {
 describe('CanvasTapBridge', () => {
     const createCanvasTapBridge = loadCanvasTapBridge();
 
+    test('a Phaser callback never cancels an event owned by a passive listener', () => {
+        const onActivate = jest.fn();
+        const bridge = createCanvasTapBridge({
+            getBounds: () => ({ x: 0, y: 0, width: 100, height: 100 }),
+            onActivate
+        });
+        const event = { cancelable: true, preventDefault: jest.fn() };
+        expect(bridge.activateGamePoint(50, 50, event)).toBe(true);
+        expect(onActivate).toHaveBeenCalledTimes(1);
+        expect(event.preventDefault).not.toHaveBeenCalled();
+        bridge.destroy();
+    });
+
     test('maps an iOS-style touch release into game space exactly once', () => {
         const canvas = document.createElement('canvas');
         canvas.getBoundingClientRect = () => ({

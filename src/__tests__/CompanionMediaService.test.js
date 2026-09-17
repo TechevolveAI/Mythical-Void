@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { EventEmitter } = require('events');
 
 function loadCompanionMediaService(sceneWindow, ImageClass = class {}) {
     if (!sceneWindow.APIConfig) {
@@ -731,5 +732,212 @@ describe('CompanionMediaService', () => {
         expect(
             sceneWindow.LivingPortraitService.getAccessToken
         ).not.toHaveBeenCalled();
+    });
+});
+
+describe('CompanionMediaService reveal lifecycle', () => {
+    const portrait = {
+        identityKey: 'identity-23',
+        stage: 'baby',
+        imageUrl: 'https://example.test/portrait.png',
+        assetRef: 'portrait-job-v1:42e1e046-c676-4fb9-91c9-1575dcb094ee'
+    };
+    const momentId = 'first_forest_arrival';
+    const flush = async () => {
+        for (let index = 0; index < 20; index += 1) await Promise.resolve();
+    };
+    const element = () => {
+        const value = new EventEmitter();
+        for (const method of [
+            'setOrigin', 'setDisplaySize', 'setAlpha', 'setDepth', 'setScrollFactor',
+            'loadURL', 'setMute', 'play', 'stop', 'removeVideoElement', 'destroy',
+            'setScale', 'fillStyle', 'fillRect'
+        ]) value[method] = jest.fn(() => value);
+        value.video = { setAttribute: jest.fn() };
+        return value;
+    };
+    const setup = () => {
+        const gameState = createGameState(portrait);
+        const sceneWindow = {
+            GameState: gameState,
+            APIConfig: { isVideoEnabled: () => false },
+            LivingPortraitService: { hasUsableDisplayUrl: () => true },
+            fetch: jest.fn(() => { throw new Error('Unexpected request'); })
+        };
+        const pendingImages = [];
+        class ControlledImage {
+            set src(url) {
+                this.currentSrc = url;
+                this.naturalWidth = 1024;
+                this.naturalHeight = 1024;
+                pendingImages.push(this);
+            }
+        }
+        const { CompanionMediaService } = loadCompanionMediaService(sceneWindow, ControlledImage);
+        const service = new CompanionMediaService({ timeouts: { videoStartupMs: 50, textureMs: 50 } });
+        const images = new Map();
+        const video = element();
+        const scene = {
+            scale: { width: 390, height: 844 },
+            events: new EventEmitter(),
+            textures: {
+                exists: key => images.has(key),
+                addImage: jest.fn((key, image) => images.set(key, image)),
+                get: key => ({ getSourceImage: () => images.get(key) })
+            },
+            add: { video: jest.fn(() => video), image: jest.fn(element), graphics: jest.fn(element) },
+            tweens: { add: jest.fn() },
+            // A stopped Phaser clock never fires this callback.
+            time: { delayedCall: jest.fn() }
+        };
+        service.resolveGeneratedVideo = jest.fn(async () => ({
+            videoUrl: 'https://example.test/muted.mp4', portraitRecord: portrait
+        }));
+        return { service, scene, video, gameState, pendingImages, sceneWindow };
+    };
+
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => {
+        jest.clearAllTimers();
+        jest.useRealTimers();
+        jest.restoreAllMocks();
+    });
+
+    test('video startup has a deadline even when the scene clock is stopped', async () => {
+        const h = setup();
+        let result = 'pending';
+        h.service.createCinematicVideo(h.scene, { momentId, record: portrait })
+            .then(value => { result = value; });
+        await flush();
+        await jest.advanceTimersByTimeAsync(50);
+        expect(result).toBeNull();
+        expect(h.video.stop).toHaveBeenCalledTimes(1);
+        expect(h.video.removeVideoElement).toHaveBeenCalledTimes(1);
+        expect(h.video.destroy).toHaveBeenCalledTimes(1);
+        expect(h.video.listenerCount('playing')).toBe(0);
+        expect(h.video.listenerCount('error')).toBe(0);
+        expect(h.gameState.save).not.toHaveBeenCalled();
+    });
+
+    test.each(['shutdown', 'destroy'])('scene %s settles pending video startup and detaches listeners', async event => {
+        const h = setup();
+        let result = 'pending';
+        h.service.createCinematicVideo(h.scene, { momentId, record: portrait })
+            .then(value => { result = value; });
+        await flush();
+        h.scene.events.emit(event);
+        await flush();
+        expect(result).toBeNull();
+        expect(h.video.destroy).toHaveBeenCalledTimes(1);
+        expect(h.video.removeVideoElement).toHaveBeenCalledTimes(1);
+        expect(h.scene.events.listenerCount('shutdown')).toBe(0);
+        expect(h.scene.events.listenerCount('destroy')).toBe(0);
+        expect(h.video.listenerCount('playing')).toBe(0);
+        expect(jest.getTimerCount()).toBe(0);
+    });
+
+    test.each(['error', 'throw'])('synchronous video loading %s settles with no viewed appearance', async failure => {
+        const h = setup();
+        h.video.loadURL.mockImplementation(() => {
+            if (failure === 'throw') throw new Error('Media unavailable');
+            h.video.emit('error', new Error('Media unavailable'));
+            return h.video;
+        });
+        let result = 'pending';
+        h.service.createCinematicVideo(h.scene, { momentId, record: portrait })
+            .then(value => { result = value; }, error => { result = error; });
+        await flush();
+        expect(result).toBeNull();
+        expect(h.video.destroy).toHaveBeenCalledTimes(1);
+        expect(h.video.removeVideoElement).toHaveBeenCalledTimes(1);
+        expect(h.gameState.save).not.toHaveBeenCalled();
+        expect(jest.getTimerCount()).toBe(0);
+    });
+
+    test('successful playback stays muted, clears startup hooks, and tears down once', async () => {
+        const h = setup();
+        h.video.play.mockImplementation(() => {
+            expect(h.video.setMute).toHaveBeenCalledWith(true);
+            h.video.emit('playing');
+        });
+        const result = await h.service.createCinematicVideo(h.scene, { momentId, record: portrait });
+        expect(result.renderMode).toBe('generated_video');
+        expect(h.gameState.save).toHaveBeenCalledTimes(1);
+        expect(h.video.listenerCount('error')).toBe(0);
+        expect(h.scene.events.listenerCount('shutdown')).toBe(0);
+        expect(jest.getTimerCount()).toBe(0);
+        result.destroy();
+        result.destroy();
+        expect(h.video.stop).toHaveBeenCalledTimes(1);
+        expect(h.video.removeVideoElement).toHaveBeenCalledTimes(1);
+        expect(h.video.destroy).toHaveBeenCalledTimes(1);
+    });
+
+    test('a superseded reveal cannot record a video appearance when playing arrives late', async () => {
+        const h = setup();
+        let current = true;
+        const pending = h.service.createCinematicVideo(h.scene, {
+            momentId, record: portrait, isCurrent: () => current
+        });
+        await flush();
+        current = false;
+        h.video.emit('playing');
+        await expect(pending).resolves.toBeNull();
+        expect(h.gameState.save).not.toHaveBeenCalled();
+        expect(h.video.removeVideoElement).toHaveBeenCalledTimes(1);
+        expect(h.video.listenerCount('error')).toBe(0);
+    });
+
+    test('optional video rejection still reveals the exact portrait without a generation request', async () => {
+        const h = setup();
+        h.sceneWindow.APIConfig.isVideoEnabled = () => true;
+        h.service.saveVideoRecord(momentId, portrait, {
+            assetRef: 'video-job-v1:824363b2-d374-4b44-bf7f-1d7a177fa074', status: 'succeeded'
+        });
+        h.service.resolveGeneratedVideo.mockRejectedValue(new Error('Authentication unavailable'));
+        h.service.prepareGeneratedVideo = jest.fn(async () => null);
+        jest.spyOn(console, 'warn').mockImplementation(() => {});
+        const pending = h.service.createStoryMoment(h.scene, { momentId, record: portrait })
+            .catch(error => error);
+        await flush();
+        h.pendingImages[0]?.onload();
+        const result = await pending;
+        expect(result.renderMode).toBe('motion_still');
+        expect(result.record.identityKey).toBe(portrait.identityKey);
+        expect(h.sceneWindow.fetch).not.toHaveBeenCalled();
+    });
+
+    test('failed preparation can retry the same protected portrait', async () => {
+        const h = setup();
+        const first = h.service.prepareCinematic(h.scene, { momentId });
+        await flush();
+        h.pendingImages[0].onerror();
+        await expect(first).resolves.toBeNull();
+        const retry = h.service.prepareCinematic(h.scene, { momentId });
+        await flush();
+        expect(h.pendingImages).toHaveLength(2);
+        h.pendingImages[1].onload();
+        await expect(retry).resolves.toMatchObject({ record: portrait });
+    });
+
+    test('an in-flight prepared still cannot replace a newer asset of the same identity', async () => {
+        const h = setup();
+        const first = h.service.prepareCinematic(h.scene, { momentId });
+        await flush();
+        const replacement = {
+            ...portrait,
+            assetRef: 'portrait-job-v1:824363b2-d374-4b44-bf7f-1d7a177fa074',
+            imageUrl: 'https://example.test/replacement.png'
+        };
+        h.gameState.getCreaturePortrait.mockReturnValue(replacement);
+        const pending = h.service.createCinematicStill(h.scene, { momentId });
+        await flush();
+        h.pendingImages[0].onload();
+        await first;
+        await flush();
+        h.pendingImages[1]?.onload();
+        const result = await pending;
+        expect(result.record).toEqual(replacement);
+        expect(result.textureKey).toBe(h.service.getTextureKey(replacement));
     });
 });

@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const CreaturePortraitSpec = require('../systems/CreaturePortraitSpec.js');
 
 function loadService({
     featureEnabled = true,
@@ -11,7 +12,7 @@ function loadService({
     online = true,
     portraitSpecFactory = null,
     serviceOptions = {}
-} = {}) {
+    } = {}) {
     const filePath = path.join(
         __dirname,
         '../systems/LivingPortraitService.js'
@@ -35,7 +36,13 @@ function loadService({
         )
         .replace('export default livingPortraitService;', '');
     let portrait = existingPortrait;
+    let currentCreature = { name: 'Nova', genes: { id: 'creature-1' }, stage: 'baby' };
     const gameState = {
+        get: jest.fn(key => ({
+            'creature.genes': currentCreature?.genes,
+            'creature.dna': currentCreature?.dna,
+            'creature.name': currentCreature?.name
+        })[key]),
         getCreaturePortrait: jest.fn(() => portrait),
         saveCreaturePortrait: jest.fn(record => {
             portrait = { ...record, status: 'ready', aiGenerated: true };
@@ -114,10 +121,7 @@ function loadService({
                 }))),
                 isValid: jest.fn(() => true)
             },
-            GameState: {
-                ...gameState,
-                get: jest.fn(() => false)
-            },
+            GameState: gameState,
             CompanionMediaService: { prepareGeneratedVideo }
         }
     };
@@ -137,6 +141,10 @@ function loadService({
         auth,
         prepareGeneratedVideo,
         setOnline,
+        setCreature: (creature, nextPortrait = null) => {
+            currentCreature = creature;
+            portrait = nextPortrait;
+        },
         getPortrait: () => portrait
     };
 }
@@ -786,5 +794,114 @@ describe('background living portrait generation', () => {
         expect(hatchSource).toContain("['localhost', '127.0.0.1'].includes");
         expect(hatchSource).toContain(".has('portraitQa')");
         expect(hatchSource).toContain("exportElement.type = 'application/json'");
+    });
+});
+
+describe('LivingPortraitService identity continuity', () => {
+    const first = { name: 'Nova', genes: { id: 'creature-1' }, stage: 'baby' };
+    const second = { name: 'Echo', genes: { id: 'creature-2' }, stage: 'baby' };
+    const assetRef = 'portrait-job-v1:824363b2-d374-4b44-bf7f-1d7a177fa074';
+    const secondAssetRef = 'portrait-job-v1:c606eb3e-e9ba-4758-a80e-c964b313a565';
+    const recordFor = (creature, ref = assetRef) => ({
+        identityKey: CreaturePortraitSpec.create(creature).identityKey,
+        stage: creature.stage,
+        assetRef: ref,
+        imageUrl: `https://example.test/${creature.genes.id}.png`,
+        expiresAt: Date.now() + 60000,
+        status: 'ready'
+    });
+    const responseFor = record => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ ...record, status: 'succeeded', success: true })
+    });
+    const flush = async () => {
+        for (let index = 0; index < 20; index += 1) await Promise.resolve();
+    };
+
+    test('out-of-order completion returns each identity without overwriting the selected creature', async () => {
+        const requests = new Map();
+        const h = loadService({
+            portraitSpecFactory: CreaturePortraitSpec.create,
+            fetchImpl: jest.fn((url, options) => new Promise(resolve => {
+                requests.set(JSON.parse(options.body).portraitSpec.identityKey, resolve);
+            }))
+        });
+        const firstRecord = recordFor(first);
+        const secondRecord = recordFor(second, secondAssetRef);
+        const firstJob = h.service.generate({ creatureData: first });
+        h.setCreature(second);
+        const secondJob = h.service.generate({ creatureData: second });
+        await flush();
+        expect(requests.size).toBe(2);
+        requests.get(secondRecord.identityKey)(responseFor(secondRecord));
+        await expect(secondJob).resolves.toMatchObject(secondRecord);
+        h.gameState.saveCreaturePortrait.mockClear();
+        h.prepareGeneratedVideo.mockClear();
+        requests.get(firstRecord.identityKey)(responseFor(firstRecord));
+        await expect(firstJob).resolves.toMatchObject(firstRecord);
+        expect(h.getPortrait()).toMatchObject(secondRecord);
+        expect(h.gameState.saveCreaturePortrait).not.toHaveBeenCalled();
+        expect(h.prepareGeneratedVideo).not.toHaveBeenCalled();
+        expect(h.service.jobs.size).toBe(0);
+    });
+
+    test.each(['switched', 'cleared'])('a late protected resolution does not write to a %s creature slot', async mode => {
+        let complete;
+        const firstRecord = recordFor(first);
+        const secondRecord = recordFor(second, secondAssetRef);
+        const h = loadService({
+            existingPortrait: { ...firstRecord, imageUrl: null },
+            portraitSpecFactory: CreaturePortraitSpec.create,
+            fetchImpl: jest.fn(() => new Promise(resolve => { complete = resolve; }))
+        });
+        const pending = h.service.resolve({ ...firstRecord, imageUrl: null });
+        await flush();
+        h.setCreature(mode === 'switched' ? second : null, mode === 'switched' ? secondRecord : null);
+        complete(responseFor(firstRecord));
+        await expect(pending).resolves.toMatchObject(firstRecord);
+        expect(h.gameState.saveCreaturePortrait).not.toHaveBeenCalled();
+        expect(h.prepareGeneratedVideo).not.toHaveBeenCalled();
+        expect(h.getPortrait()).toEqual(mode === 'switched' ? secondRecord : null);
+        expect(h.service.assetResolutions.size).toBe(0);
+        expect(h.fetchMock).toHaveBeenCalledTimes(1);
+        expect(h.fetchMock.mock.calls[0][1].method).toBeUndefined();
+    });
+
+    test('a reentrant ready listener cannot substitute another creature in the resolution result', async () => {
+        const firstRecord = recordFor(first);
+        const secondRecord = recordFor(second, secondAssetRef);
+        const h = loadService({
+            portraitSpecFactory: CreaturePortraitSpec.create,
+            fetchImpl: jest.fn(async () => responseFor(firstRecord))
+        });
+        const save = h.gameState.saveCreaturePortrait.getMockImplementation();
+        h.gameState.saveCreaturePortrait.mockImplementation(record => {
+            save(record);
+            h.setCreature(second, secondRecord);
+            return true;
+        });
+        const result = await h.service.resolve({ ...firstRecord, imageUrl: null });
+        expect(result).toMatchObject(firstRecord);
+        expect(h.getPortrait()).toMatchObject(secondRecord);
+        expect(h.prepareGeneratedVideo).not.toHaveBeenCalled();
+    });
+
+    test('background work still saves when its creature is selected again before completion', async () => {
+        let complete;
+        const firstRecord = recordFor(first);
+        const h = loadService({
+            portraitSpecFactory: CreaturePortraitSpec.create,
+            fetchImpl: jest.fn(() => new Promise(resolve => { complete = resolve; }))
+        });
+        const pending = h.service.generate({ creatureData: first });
+        await flush();
+        h.setCreature(second);
+        h.setCreature({ ...first, name: 'Renamed Nova' });
+        complete(responseFor(firstRecord));
+        await expect(pending).resolves.toMatchObject(firstRecord);
+        expect(h.getPortrait()).toMatchObject(firstRecord);
+        expect(h.gameState.saveCreaturePortrait).toHaveBeenCalledTimes(2);
+        expect(h.prepareGeneratedVideo).toHaveBeenCalledTimes(1);
     });
 });

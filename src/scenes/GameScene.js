@@ -13865,8 +13865,7 @@ class GameScene extends Phaser.Scene {
         nextZone.on('pointerup', pointer => {
             nextTapBridge?.activateGamePoint?.(
                 pointer?.x,
-                pointer?.y,
-                pointer?.event
+                pointer?.y
             );
         });
 

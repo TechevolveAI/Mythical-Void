@@ -182,7 +182,10 @@ function calculateVictoryCoins(levelId, bonusCount = 0) {
         return 0;
     }
 
-    const normalizedBonusCount = Math.max(0, Math.floor(Number(bonusCount) || 0));
+    const numericBonusCount = Number(bonusCount);
+    const normalizedBonusCount = Number.isFinite(numericBonusCount)
+        ? Math.max(0, Math.floor(numericBonusCount))
+        : 0;
     const bonusPerCollectible = reward.bonusPerRelic || reward.bonusPerFragment || 0;
     return Math.max(0, Number(reward.baseCoins) || 0) +
         (normalizedBonusCount * Math.max(0, Number(bonusPerCollectible) || 0));

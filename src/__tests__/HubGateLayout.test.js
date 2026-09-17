@@ -7,6 +7,7 @@ function loadHubWorldScene(sceneWindow = {}) {
     const source = fs.readFileSync(filePath, 'utf8');
     const transformed = source
         .replace(/^import Phaser from 'phaser';$/m, '')
+        .replace(/^import ExpeditionDebriefPanel from .*;$/m, '')
         .replace(
             /import \{[\s\S]*?\} from '\.\.\/systems\/ProjectBeaconStory\.js';/,
             'const acknowledgeProjectBeaconDebrief = () => {};\n' +

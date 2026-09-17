@@ -1,0 +1,32 @@
+name: Gameplay hardening contracts
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: gameplay-contracts-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gameplay-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npm run build:onboarding-ci
+      - name: Verify every expedition debrief on phone and desktop
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+          DEBRIEF_EVIDENCE_DIR: /tmp/mythical-debrief-evidence
+        run: node scripts/smoke-expedition-debrief.cjs

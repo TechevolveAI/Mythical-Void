@@ -15,6 +15,7 @@ import {
 } from '../systems/ProjectBeaconStory.js';
 import { getExpeditionDiagnosticSnapshot } from '../systems/ExpeditionDiagnostics.js';
 import { getShipReconstructionSnapshot } from '../systems/ShipReconstruction.js';
+import ExpeditionDebriefPanel from '../ui/ExpeditionDebriefPanel.js';
 
 const PRE_FINAL_SHIP_PART_IDS = Object.freeze([
     'crystal_core',
@@ -40,15 +41,6 @@ const SHIP_PART_NAMES = Object.freeze({
     hull_plating: 'Hull Plating',
     aurora_reactor: 'Aurora Reactor',
     command_module: 'Command Module'
-});
-
-const GUARDIAN_NAME_BY_LEVEL = Object.freeze({
-    mythicalForest: 'Elder Treant',
-    crystalCaves: 'Crystal Guardian',
-    cosmicReef: "Nyx'voral",
-    auroraDepths: 'Aurora Phoenix',
-    voidPeaks: 'Cosmic Titan',
-    finalVoid: 'Void Empress'
 });
 
 const FINAL_VOID_GATE_DEFAULT = Object.freeze({
@@ -174,6 +166,8 @@ export default class HubWorldScene extends Phaser.Scene {
         this.vortexTimers = [];
         this.parallaxLayers = [];
         this.projectBeaconDebriefElements = [];
+        this.projectBeaconDebriefPanel?.destroy();
+        this.projectBeaconDebriefPanel = null;
         this.isProjectBeaconDebriefOpen = false;
         this.firstExpeditionElements = [];
         this.isFirstExpeditionInvitationOpen = false;
@@ -579,195 +573,57 @@ export default class HubWorldScene extends Phaser.Scene {
         if (this._isShuttingDown || this.isProjectBeaconDebriefOpen) {
             return false;
         }
-
         const debrief = this.getPendingProjectBeaconDebrief();
         if (!debrief) {
             onComplete?.();
             return false;
         }
 
-        this.isProjectBeaconDebriefOpen = true;
-        const { width, height, isMobile } = this.dims;
-        const panelWidth = Math.min(isMobile ? width - 32 : 620, width - 32);
-        const panelHeight = Math.min(isMobile ? 610 : 520, height - 32);
-        const panelX = (width - panelWidth) / 2;
-        const panelY = (height - panelHeight) / 2;
-        const centerX = width / 2;
-        const textWidth = panelWidth - (isMobile ? 46 : 80);
         const levelName = LEVEL_NAMES[debrief.levelId] || 'Unknown Realm';
         const partName = SHIP_PART_NAMES[debrief.shipPartId] || 'Ship System';
-        const restoredGuardianName =
-            GUARDIAN_NAME_BY_LEVEL[debrief.levelId] || null;
-        const companionName = String(
-            window.GameState?.get?.('creature.name') || 'Your creature'
-        ).trim().replace(/\s+/g, ' ').slice(0, 20) || 'Your creature';
-
-        const overlay = this.add.graphics();
-        overlay.fillStyle(0x02030A, 0.9);
-        overlay.fillRect(0, 0, width, height);
-        overlay.setDepth(500);
-        overlay.setInteractive(
-            new Phaser.Geom.Rectangle(0, 0, width, height),
-            Phaser.Geom.Rectangle.Contains
-        );
-
-        const panel = this.add.graphics();
-        panel.fillStyle(0x11182A, 0.98);
-        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 12);
-        panel.lineStyle(3, Phaser.Display.Color.HexStringToColor(debrief.color).color, 0.95);
-        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 12);
-        panel.setDepth(501);
-
-        const header = this.add.text(
-            centerX,
-            panelY + panelHeight * 0.065,
-            `PROJECT BEACON // FIELD LOG ${String(debrief.completionNumber).padStart(2, '0')}`,
-            {
-                fontSize: isMobile ? '11px' : '13px',
-                color: '#91A4C6'
-            }
-        ).setOrigin(0.5).setDepth(502);
-
-        const icon = this.add.text(centerX, panelY + panelHeight * 0.145, debrief.icon, {
-            fontSize: isMobile ? '34px' : '42px'
-        }).setOrigin(0.5).setDepth(502);
-
-        const title = this.add.text(centerX, panelY + panelHeight * 0.23, debrief.title, {
-            fontSize: isMobile ? '23px' : '30px',
-            color: debrief.color,
-            fontStyle: 'bold',
-            align: 'center',
-            wordWrap: { width: textWidth }
-        }).setOrigin(0.5).setDepth(502);
-
-        const context = this.add.text(
-            centerX,
-            panelY + panelHeight * 0.33,
-            `${levelName.toUpperCase()}  •  ${partName.toUpperCase()} RECOVERED`,
-            {
-                fontSize: isMobile ? '10px' : '12px',
-                color: '#7386A8',
-                align: 'center',
-                wordWrap: { width: textWidth }
-            }
-        ).setOrigin(0.5).setDepth(502);
-
-        const summary = [debrief.finding, debrief.companionMoment]
-            .filter(Boolean)
-            .join('\n\n');
-        const summaryLabel = this.add.text(
-            centerX,
-            panelY + panelHeight * 0.405,
-            'WHAT CHANGED',
-            {
-                fontSize: isMobile ? '10px' : '11px',
-                color: '#F2C14E',
-                fontStyle: 'bold'
-            }
-        ).setOrigin(0.5).setDepth(502);
-
-        const summaryText = this.add.text(centerX, panelY + panelHeight * 0.51, summary, {
-            fontSize: isMobile ? '13px' : '15px',
-            color: '#F4F7FF',
-            align: 'center',
-            lineSpacing: isMobile ? 4 : 6,
-            wordWrap: { width: textWidth }
-        }).setOrigin(0.5).setDepth(502);
-
-        const nextText = debrief.nextGate?.label
-            ? `NEXT: ${debrief.nextGate.label.toUpperCase()}`
-            : restoredGuardianName
-                ? `${restoredGuardianName.toUpperCase()} RETURNS TO THE SANCTUARY`
-                : 'THE SANCTUARY IS READY';
-        const nextStep = this.add.text(centerX, panelY + panelHeight * 0.72, nextText, {
-            fontSize: isMobile ? '11px' : '13px',
-            color: '#BDEBDD',
-            fontStyle: 'bold',
-            align: 'center',
-            wordWrap: { width: textWidth }
-        }).setOrigin(0.5).setDepth(502);
-
-        const fieldNote = this.add.text(centerX, panelY + panelHeight * 0.79, debrief.fieldNote || '', {
-            fontSize: isMobile ? '11px' : '13px',
-            color: '#A9B7D0',
-            fontStyle: 'italic',
-            align: 'center',
-            wordWrap: { width: textWidth }
-        }).setOrigin(0.5).setDepth(502);
-
-        /* Keep the completion action in a dedicated lower band on short screens. */
-        const completionActionY = panelY + panelHeight * 0.925;
-        const continueBtn = this.add.text(
-            centerX,
-            completionActionY,
-            debrief.shipPartId
-                ? `INSTALL ${partName.toUpperCase()}`
-                : debrief.nextGate?.label
-                    ? `TRACK ${debrief.nextGate.label.toUpperCase()}`
-                    : 'CONTINUE',
-            {
-                fontSize: isMobile ? '13px' : '16px',
-                color: '#071018',
-                backgroundColor: debrief.color,
-                fontStyle: 'bold',
-                padding: { x: isMobile ? 28 : 38, y: 12 }
-            }
-        ).setOrigin(0.5).setDepth(503).setInteractive({ useHandCursor: true });
-
-        this.projectBeaconDebriefElements = [
-            overlay,
-            panel,
-            header,
-            icon,
-            title,
-            context,
-            summaryLabel,
-            summaryText,
-            nextStep,
-            fieldNote,
-            continueBtn
-        ];
-
-        continueBtn.on('pointerdown', () => {
-            if (!this.isProjectBeaconDebriefOpen) {
-                return;
-            }
-
-            this.isProjectBeaconDebriefOpen = false;
-            if (!debrief.isPreview) {
-                acknowledgeProjectBeaconDebrief(window.GameState, debrief.id);
-            }
-            window.AudioManager?.playButtonClick?.();
-
-            this.tweens.add({
-                targets: this.projectBeaconDebriefElements,
-                alpha: 0,
-                duration: 250,
-                onComplete: () => {
-                    this.projectBeaconDebriefElements.forEach(element => element?.destroy?.());
-                    this.projectBeaconDebriefElements = [];
-
-                    if (!debrief.isPreview && getNextProjectBeaconDebrief(window.GameState)) {
-                        this.showPendingProjectBeaconDebrief(onComplete);
-                    } else {
-                        if (!debrief.isPreview && debrief.shipPartId) {
-                            this.scene.start('GameScene', {
-                                biome: 'nebula',
-                                shipReconstructionHandoff: true,
-                                shipReconstructionNextGateLabel:
-                                    debrief.nextGate?.label || null
-                            });
-                            return;
-                        }
-                        if (!debrief.isPreview) {
-                            this.focusProjectBeaconNextRoute(debrief);
-                        }
-                        onComplete?.();
-                    }
-                }
-            });
+        this.isProjectBeaconDebriefOpen = true;
+        this.projectBeaconDebriefPanel = new ExpeditionDebriefPanel({
+            onContinue: () => this.completeProjectBeaconDebrief(debrief, onComplete)
         });
+        this.projectBeaconDebriefPanel.show({
+            title: debrief.title,
+            context: `${levelName} / ${partName} recovered`,
+            finding: debrief.finding,
+            creatureMoment: debrief.companionMoment,
+            fieldNote: debrief.fieldNote,
+            nextStep: debrief.nextGate?.label
+                ? `NEXT: ${debrief.nextGate.label}`
+                : 'NEXT: Return to Wanderer-77 to fit the recovered system.',
+            actionLabel: debrief.shipPartId
+                ? `INSTALL ${partName.toUpperCase()}`
+                : 'CONTINUE',
+            color: debrief.color
+        });
+        return true;
+    }
 
+    completeProjectBeaconDebrief(debrief, onComplete) {
+        if (this._isShuttingDown || !this.isProjectBeaconDebriefOpen) return false;
+        if (!debrief.isPreview) {
+            acknowledgeProjectBeaconDebrief(window.GameState, debrief.id);
+        }
+        this.projectBeaconDebriefPanel?.destroy();
+        this.projectBeaconDebriefPanel = null;
+        this.isProjectBeaconDebriefOpen = false;
+
+        // A transition must not depend on a tween or optional media finishing.
+        if (!debrief.isPreview && getNextProjectBeaconDebrief(window.GameState)) {
+            this.showPendingProjectBeaconDebrief(onComplete);
+        } else if (!debrief.isPreview && debrief.shipPartId) {
+            this.scene.start('GameScene', {
+                biome: 'nebula',
+                shipReconstructionHandoff: true,
+                shipReconstructionNextGateLabel: debrief.nextGate?.label || null
+            });
+        } else {
+            if (!debrief.isPreview) this.focusProjectBeaconNextRoute(debrief);
+            onComplete?.();
+        }
         return true;
     }
 
@@ -1940,7 +1796,7 @@ export default class HubWorldScene extends Phaser.Scene {
     }
 
     onGateClicked(gate, index) {
-        if (this.isTransitioning) return;
+        if (this.isTransitioning || this.isProjectBeaconDebriefOpen) return;
 
         this.selectGate(index);
 
@@ -2185,7 +2041,7 @@ export default class HubWorldScene extends Phaser.Scene {
     }
 
     enterGate(gate) {
-        if (this.isTransitioning) return;
+        if (this.isTransitioning || this.isProjectBeaconDebriefOpen) return;
 
         // Double-check for in-development gates (should be caught earlier)
         if (gate.data.inDevelopment) {
@@ -2426,6 +2282,7 @@ export default class HubWorldScene extends Phaser.Scene {
                 // Use SceneLoader for lazy loading
                 if (window.SceneLoader) {
                     const loaded = await window.SceneLoader.loadScene(this.game, sceneName);
+                    if (this._isShuttingDown) return;
                     if (loaded) {
                         if (window.UXEnhancements) {
                             window.UXEnhancements.hideLoading();
@@ -2453,6 +2310,7 @@ export default class HubWorldScene extends Phaser.Scene {
                 this.clearGateTransitionFx(false);
                 this.scene.start(sceneName);
             } catch (error) {
+                if (this._isShuttingDown) return;
                 console.error(`[HubWorldScene] Failed to load ${sceneName}:`, error);
                 if (window.UXEnhancements) {
                     window.UXEnhancements.hideLoading();
@@ -2475,13 +2333,18 @@ export default class HubWorldScene extends Phaser.Scene {
      */
     showLevelLoadError(levelName) {
         const { width, height } = this.dims;
+        const localPreview = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const message = localPreview
+            ? `${levelName} could not download.\nCheck that the local preview server is running, then reload.`
+            : `${levelName} could not download.\nCheck your connection and try again.`;
 
         const errorText = this.add.text(width / 2, height / 2,
-            `Failed to load ${levelName}\nPlease try again`,
+            message,
             {
                 fontSize: '20px',
                 color: '#FF6B6B',
                 align: 'center',
+                wordWrap: { width: Math.min(width - 40, 600) },
                 stroke: '#000000',
                 strokeThickness: 3
             }
@@ -3488,18 +3351,19 @@ export default class HubWorldScene extends Phaser.Scene {
     setupInput() {
         // Keyboard navigation
         this.input.keyboard.on('keydown-LEFT', () => {
-            if (this.isFirstExpeditionInvitationOpen) return;
+            if (this.isFirstExpeditionInvitationOpen || this.isProjectBeaconDebriefOpen) return;
             const newIndex = (this.selectedGateIndex - 1 + this.gates.length) % this.gates.length;
             this.selectGate(newIndex);
         });
 
         this.input.keyboard.on('keydown-RIGHT', () => {
-            if (this.isFirstExpeditionInvitationOpen) return;
+            if (this.isFirstExpeditionInvitationOpen || this.isProjectBeaconDebriefOpen) return;
             const newIndex = (this.selectedGateIndex + 1) % this.gates.length;
             this.selectGate(newIndex);
         });
 
         this.input.keyboard.on('keydown-ENTER', () => {
+            if (this.isProjectBeaconDebriefOpen) return;
             if (this.isFirstExpeditionInvitationOpen) {
                 const forestGate = this.gates.find(gate => gate.id === 'mythical_forest');
                 this.closeFirstExpeditionInvitation();
@@ -3514,6 +3378,7 @@ export default class HubWorldScene extends Phaser.Scene {
         });
 
         this.input.keyboard.on('keydown-ESC', () => {
+            if (this.isProjectBeaconDebriefOpen) return;
             if (this.isFirstExpeditionInvitationOpen) {
                 this.closeFirstExpeditionInvitation();
                 return;
@@ -3535,6 +3400,8 @@ export default class HubWorldScene extends Phaser.Scene {
             this.gateTransitionFallback = null;
         }
         this.closeFirstExpeditionInvitation({ markSeen: false });
+        this.projectBeaconDebriefPanel?.destroy();
+        this.projectBeaconDebriefPanel = null;
 
         // Remove keyboard listeners
         if (this.input?.keyboard) {

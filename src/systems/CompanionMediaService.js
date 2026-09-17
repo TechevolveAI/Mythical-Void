@@ -332,7 +332,11 @@ class CompanionMediaService {
     getPreparedMomentKey(momentId, stage = null, record = null) {
         const currentRecord = record || window.GameState?.getCreaturePortrait?.(stage);
         const identity = currentRecord?.identityKey || currentRecord?.assetRef || stage || 'current';
-        return `${momentId}:${hashText(String(identity))}`;
+        return `${momentId}:${hashText(JSON.stringify([
+            identity,
+            currentRecord?.stage || stage,
+            currentRecord?.assetRef || null
+        ]))}`;
     }
 
     prepareCinematic(scene, { momentId, stage = null, record = null } = {}) {
@@ -359,6 +363,10 @@ class CompanionMediaService {
                     error
                 );
                 return null;
+            })
+            .finally(() => {
+                // Textures remain cached; settled preparation must not pin a failure or old record.
+                this.preparedMoments.delete(preparedKey);
             });
         this.preparedMoments.set(preparedKey, preparation);
         return preparation;
@@ -674,29 +682,49 @@ class CompanionMediaService {
             .setAlpha(alpha)
             .setDepth(depth)
             .setScrollFactor(0);
-        video.loadURL(videoRecord.videoUrl, true, 'anonymous');
-        // Generated clips are an ambient visual layer. Muting also permits
-        // autoplay on iOS without taking over the player's audio settings.
-        video.setMute?.(true);
-        video.video?.setAttribute?.('playsinline', '');
+        let destroyed = false;
+        const destroyVideo = () => {
+            if (destroyed) return;
+            destroyed = true;
+            video.stop?.();
+            video.removeVideoElement?.();
+            video.destroy?.();
+        };
 
         const started = await new Promise(resolve => {
             let settled = false;
+            let timeoutId = null;
             const finish = value => {
                 if (settled) return;
                 settled = true;
+                if (timeoutId !== null) clearTimeout(timeoutId);
+                video.off?.('playing', onPlaying);
+                video.off?.('error', onFailure);
+                scene.events?.off?.('shutdown', onFailure);
+                scene.events?.off?.('destroy', onFailure);
                 resolve(value);
             };
-            video.once?.('playing', () => finish(true));
-            video.once?.('error', () => finish(false));
-            video.play?.(false);
-            scene.time?.delayedCall?.(
-                this.timeouts.videoStartupMs,
-                () => finish(false)
-            );
+            const onPlaying = () => finish(true);
+            const onFailure = () => finish(false);
+            video.once?.('playing', onPlaying);
+            video.once?.('error', onFailure);
+            scene.events?.once?.('shutdown', onFailure);
+            scene.events?.once?.('destroy', onFailure);
+            // Scene clocks stop on shutdown; optional media still needs a real deadline.
+            timeoutId = setTimeout(onFailure, this.timeouts.videoStartupMs);
+            try {
+                video.loadURL(videoRecord.videoUrl, true, 'anonymous');
+                if (settled) return;
+                // Ambient clips never take over the player's audio settings.
+                video.setMute?.(true);
+                video.video?.setAttribute?.('playsinline', '');
+                video.play?.(false);
+            } catch (error) {
+                finish(false);
+            }
         });
         if (!started || (isCurrent && !isCurrent())) {
-            video.destroy?.();
+            destroyVideo();
             return null;
         }
         this.recordAppearance(momentId, portraitRecord, 'generated_video');
@@ -705,11 +733,7 @@ class CompanionMediaService {
             videoRecord,
             renderMode: 'generated_video',
             elements: [video],
-            destroy() {
-                video.stop?.();
-                video.removeVideoElement?.();
-                video.destroy?.();
-            }
+            destroy: destroyVideo
         };
     }
 
@@ -736,12 +760,16 @@ class CompanionMediaService {
             this.isVideoGenerationEnabled() &&
             storedVideo?.status === 'succeeded'
         ) {
-            const video = await this.createCinematicVideo(scene, {
-                ...options,
-                record: portraitRecord,
-                isCurrent
-            });
-            if (video) return video;
+            try {
+                const video = await this.createCinematicVideo(scene, {
+                    ...options,
+                    record: portraitRecord,
+                    isCurrent
+                });
+                if (video) return video;
+            } catch (error) {
+                console.warn(`[CompanionMediaService] Video unavailable for ${momentId}:`, error);
+            }
         }
 
         return this.createCinematicStill(scene, {
