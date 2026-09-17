@@ -15,7 +15,8 @@ test('Forest restoration enters the shared physics/input freeze while its story 
     const drawable = new Proxy({}, { get: () => () => drawable });
     const scene = {
         player: { active: true, scaleX: 1, scaleY: 1, setPosition: jest.fn(), setVelocity: jest.fn(), body: { updateFromGameObject: jest.fn() } },
-        cameras: { main: { width: 390, height: 844, stopFollow: jest.fn(), centerOn: jest.fn() } },
+        cameras: { main: { width: 390, height: 844, stopFollow: jest.fn(), centerOn: jest.fn(),
+            shakeEffect: { isRunning: true, reset: jest.fn(function () { this.isRunning = false; }) } } },
         levelHeight: 900, isMobile: true, forestRestorationElements: [], forestRestorationTimers: [],
         add: { graphics: () => drawable, text: () => drawable, ellipse: () => drawable },
         tweens: { add: jest.fn() },
@@ -35,6 +36,8 @@ test('Forest restoration enters the shared physics/input freeze while its story 
     expect(scene.virtualJoystickX).toBe(0);
     expect(scene.virtualJoystickY).toBe(0);
     expect(scene.time.paused).toBe(false);
+    expect(scene.cameras.main.shakeEffect.reset).toHaveBeenCalledTimes(1);
+    expect(scene.cameras.main.shakeEffect.isRunning).toBe(false);
     expect(scene.time.delayedCall).toHaveBeenCalled();
     expect(restoration.call(scene)).toBe(false);
 });

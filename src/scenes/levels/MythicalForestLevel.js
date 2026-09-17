@@ -6591,6 +6591,9 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.clearForestStoryBubble();
 
         const camera = this.cameras.main;
+        // Combat shake can outlast the fight on slow frames. The completion
+        // controls must not inherit that moving hit target.
+        camera.shakeEffect?.reset?.();
         const { width, height } = camera;
         const depth = 4300;
         const stageX = Phaser.Math.Clamp(

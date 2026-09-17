@@ -149,6 +149,8 @@ This batch is implemented locally, pending the normal release gates:
 
 - Forest restoration now enters the shared completion freeze. The final-hit
   feedback timer cannot resume physics underneath the reward/rescue screens.
+  It also resets leftover combat shake so completion controls remain stable,
+  including when a slow renderer stretches scene-time effects.
 - Final repair and unfinished ending recovery derive from existing saved
   campaign/repair/choice state, not a transient scene handoff flag. Completed
   legacy endings remain complete without inventing a repair ledger.
