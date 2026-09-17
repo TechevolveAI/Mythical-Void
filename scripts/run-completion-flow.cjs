@@ -53,7 +53,7 @@ async function runCase(name, mode, testCase, width, height) {
 
 async function main() {
     fs.mkdirSync(output, { recursive: true });
-    preview = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, stdio: 'ignore' });
+    preview = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: root, env: { ...process.env, BROWSER: 'none' }, stdio: 'ignore' });
     let entry;
     for (let i = 0; i < 80; i++) {
         if (preview.exitCode !== null) throw new Error('Preview failed to start');

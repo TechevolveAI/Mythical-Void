@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
+const { parse } = require('@babel/parser');
 const {
     applyBrowserAudioPolicy,
     automationAudioEnabled
@@ -16,6 +18,20 @@ function javascriptFiles(directory) {
 }
 
 describe('browser automation audio safety', () => {
+    test.each(['run-completion-flow.cjs', 'smoke-expedition-debrief.cjs'])('%s cannot auto-open the host browser', file => {
+        const source = fs.readFileSync(path.join(rootDir, 'scripts', file), 'utf8');
+        const main = parse(source).program.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'main');
+        const launch = main.body.body.find(node => node.expression?.left?.name === 'preview');
+        const spawn = jest.fn();
+        vm.runInNewContext(source.slice(launch.start, launch.end), {
+            spawn, path, root: rootDir, port: 19023,
+            process: { execPath: '/node', env: { BROWSER: 'Google Chrome', PATH: '/bin' } }
+        });
+        expect(spawn).toHaveBeenCalledWith('/node', expect.arrayContaining(['preview']), expect.objectContaining({
+            env: { BROWSER: 'none', PATH: '/bin' }
+        }));
+    });
+
     test('mutes automated browser audio unless it is explicitly authorized', () => {
         const args = ['--headless=new', 'about:blank'];
 
