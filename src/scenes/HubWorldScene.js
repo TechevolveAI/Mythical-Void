@@ -168,6 +168,7 @@ export default class HubWorldScene extends Phaser.Scene {
         this.projectBeaconDebriefElements = [];
         this.projectBeaconDebriefPanel?.destroy();
         this.projectBeaconDebriefPanel = null;
+        this.restoreProjectBeaconDebriefInput();
         this.isProjectBeaconDebriefOpen = false;
         this.firstExpeditionElements = [];
         this.isFirstExpeditionInvitationOpen = false;
@@ -575,12 +576,21 @@ export default class HubWorldScene extends Phaser.Scene {
         }
         const debrief = this.getPendingProjectBeaconDebrief();
         if (!debrief) {
+            this.restoreProjectBeaconDebriefInput();
             onComplete?.();
             return false;
         }
 
         const levelName = LEVEL_NAMES[debrief.levelId] || 'Unknown Realm';
         const partName = SHIP_PART_NAMES[debrief.shipPartId] || 'Ship System';
+        // DOM touches also reach Phaser's window listeners; isolate the Hub until the queue closes.
+        if (this.input && !this.projectBeaconDebriefInputState) {
+            this.projectBeaconDebriefInputState = {
+                input: this.input,
+                enabled: this.input.enabled
+            };
+            this.input.enabled = false;
+        }
         this.isProjectBeaconDebriefOpen = true;
         this.projectBeaconDebriefPanel = new ExpeditionDebriefPanel({
             onContinue: () => this.completeProjectBeaconDebrief(debrief, onComplete)
@@ -602,6 +612,13 @@ export default class HubWorldScene extends Phaser.Scene {
         return true;
     }
 
+    restoreProjectBeaconDebriefInput() {
+        const state = this.projectBeaconDebriefInputState;
+        if (!state) return;
+        this.projectBeaconDebriefInputState = null;
+        state.input.enabled = state.enabled;
+    }
+
     completeProjectBeaconDebrief(debrief, onComplete) {
         if (this._isShuttingDown || !this.isProjectBeaconDebriefOpen) return false;
         if (!debrief.isPreview) {
@@ -615,12 +632,14 @@ export default class HubWorldScene extends Phaser.Scene {
         if (!debrief.isPreview && getNextProjectBeaconDebrief(window.GameState)) {
             this.showPendingProjectBeaconDebrief(onComplete);
         } else if (!debrief.isPreview && debrief.shipPartId) {
+            this.restoreProjectBeaconDebriefInput();
             this.scene.start('GameScene', {
                 biome: 'nebula',
                 shipReconstructionHandoff: true,
                 shipReconstructionNextGateLabel: debrief.nextGate?.label || null
             });
         } else {
+            this.restoreProjectBeaconDebriefInput();
             if (!debrief.isPreview) this.focusProjectBeaconNextRoute(debrief);
             onComplete?.();
         }
@@ -3402,6 +3421,7 @@ export default class HubWorldScene extends Phaser.Scene {
         this.closeFirstExpeditionInvitation({ markSeen: false });
         this.projectBeaconDebriefPanel?.destroy();
         this.projectBeaconDebriefPanel = null;
+        this.restoreProjectBeaconDebriefInput();
 
         // Remove keyboard listeners
         if (this.input?.keyboard) {

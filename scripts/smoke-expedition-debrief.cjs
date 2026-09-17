@@ -125,7 +125,31 @@ async function main() {
             const action = page.getByTestId('expedition-debrief-continue');
             await action.waitFor({ timeout: 30000 });
             const metrics = await checkLayout(page);
-            await page.locator('summary').click();
+            if (number === 1) {
+                const hiddenBack = await page.evaluate(() => {
+                    const game = window.mythicalGame;
+                    const scene = game.scene.getScene('HubWorldScene');
+                    const back = scene.children.list.find(child => child.input?.enabled && /Back$/.test(child.text || ''));
+                    const bounds = back.getBounds();
+                    const canvas = game.canvas.getBoundingClientRect();
+                    const camera = scene.cameras.main;
+                    return {
+                        x: canvas.left + ((bounds.centerX - camera.scrollX) * camera.zoom + camera.x) * canvas.width / game.scale.width,
+                        y: canvas.top + ((bounds.centerY - camera.scrollY) * camera.zoom + camera.y) * canvas.height / game.scale.height
+                    };
+                });
+                if (name === 'desktop') await page.mouse.click(hiddenBack.x, hiddenBack.y);
+                else await page.touchscreen.tap(hiddenBack.x, hiddenBack.y);
+                const isolated = await page.evaluate(async () => {
+                    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                    const scene = window.mythicalGame.scene.getScene('HubWorldScene');
+                    return scene.scene.isActive() && scene.isProjectBeaconDebriefOpen && !scene.input.enabled;
+                });
+                assert(isolated, 'Dialog input reached the hidden Hub Back action');
+                metrics.hiddenHubInputIsolated = true;
+            }
+            if (name === 'desktop') await page.locator('summary').click();
+            else await page.locator('summary').tap();
             await checkLayout(page);
             await page.screenshot({ path: path.join(output, `${name}-debrief-${number}.png`) });
             if (name === 'phone' && number === 1) {
@@ -133,8 +157,10 @@ async function main() {
                 await checkLayout(page);
                 await page.setViewportSize({ width, height });
             }
-            await action.click();
+            if (name === 'desktop') await action.click();
+            else await action.tap();
             await page.getByTestId('expedition-debrief').waitFor({ state: 'detached' });
+            assert(await page.evaluate(() => window.mythicalGame.scene.getScene('HubWorldScene').input.enabled), 'Hub input was not restored');
             evidence.cases.push({ name, number, metrics });
         }
         await context.close();
