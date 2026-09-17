@@ -14246,6 +14246,47 @@ async function startGuardianHandoffEncounter(session, step) {
     return { guardianEntry, combatReady };
 }
 
+async function waitForForestGuardianOpening(session) {
+    const startedAt = Date.now();
+    let snapshot;
+    await evaluate(session, `(() => {
+        const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+        scene.completionOpeningProbe = scene.time.addEvent({ delay: 12000 });
+    })()`);
+    try {
+        // Phaser TimerEvents consume smoothed frame delta, not Clock.now wall
+        // time. Keep the original 12s simulation budget and a separate hard
+        // wall deadline for stalled/software-rendered browsers.
+        while (Date.now() - startedAt < 60000) {
+            snapshot = await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                return {
+                    elapsed: scene.completionOpeningProbe.getElapsed(),
+                    ready: Boolean(scene.bossEntranceComplete && scene.boss?.isRecovering &&
+                        scene.bossPhaseAttackCount > 0 && !scene.bossPhaseTransitioning),
+                    dead: scene.isPlayerDead === true,
+                    active: scene.bossFightActive === true && scene.boss?.active === true,
+                    attacks: scene.bossPhaseAttackCount,
+                    fps: scene.game.loop.actualFps
+                };
+            })()`);
+            if (snapshot.dead || !snapshot.active || snapshot.elapsed >= 12000) break;
+            if (snapshot.ready) {
+                console.log('[guardian-opening]', JSON.stringify({ ...snapshot, wallMs: Date.now() - startedAt }));
+                return snapshot;
+            }
+            await delay(WAIT_STEP_MS);
+        }
+        throw new Error(`Forest guardian earned recovery opening unavailable: ${JSON.stringify({ ...snapshot, wallMs: Date.now() - startedAt })}`);
+    } finally {
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            scene.completionOpeningProbe?.remove?.();
+            delete scene.completionOpeningProbe;
+        })()`);
+    }
+}
+
 async function smokeGuardianHandoff(session, step, exceptions) {
     exceptions.length = 0;
     await navigate(session, `${BASE_URL}/play/?reset=true`);
@@ -14255,11 +14296,7 @@ async function smokeGuardianHandoff(session, step, exceptions) {
     if (step.route === 'mythicalForest') {
         // This is a staged final-hit proof, but must still respect the real
         // entrance and attack/recovery gate instead of bypassing immunity.
-        await waitFor(() => evaluate(session, `(() => {
-            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
-            return scene.bossEntranceComplete && scene.boss?.isRecovering &&
-                scene.bossPhaseAttackCount > 0 && !scene.bossPhaseTransitioning;
-        })()`), { timeoutMs: 12000, message: 'Forest guardian earned recovery opening' });
+        await waitForForestGuardianOpening(session);
     }
     const finalHit = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});

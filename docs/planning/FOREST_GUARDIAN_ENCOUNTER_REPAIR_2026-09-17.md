@@ -101,16 +101,23 @@ to transplant another game's systems or difficulty.
   the existing focused restoration/rescue/reward/return proof. Its staged final
   hit now waits for a real opening rather than overriding boss protection.
 - The older harness's forced software renderer ran the desktop fixture at about
-  7 FPS and timed out before an attack opening. Normal GPU browser checks pass;
-  the software-rendering limitation is not resolved or hidden by longer waits.
-  The failed software proof remains private alongside the passing GPU evidence.
+  7 FPS and timed out before an attack opening. Normal GPU browser checks pass.
+  During release CI this reproduced on desktop. Phaser's Clock.now uses frame
+  time, while TimerEvent.elapsed consumes smoothed frame delta, so a wall-only
+  12-second timeout was not a valid attack-sequence deadline on that renderer.
+  The completion fixture now uses an independent 12-second Phaser TimerEvent
+  budget plus a 60-second wall stall limit, logs both elapsed values and FPS,
+  and fails on a dead player, stopped encounter or missing real opening. The
+  probe timer is always removed. Boss state, speed and attacks are not altered.
+  This is a functional completion test, not a performance pass: the software
+  renderer remains slow. Original failed evidence is retained privately.
 - Full Jest suite, production build and diff check. Browser processes are muted,
   optional services disabled in disposable fixtures, and owned processes closed.
 - Exact source and result status are recorded in the private evidence JSON.
   No push or deployment is part of this repair. Child playtesting must still
   judge pace, difficulty and readability before calling it polished.
 
-Final candidate validation: 236 suites / 2,288 tests pass. The tests cover long
+Final candidate validation: 236 suites / 2,294 tests pass. The tests cover long
 wrapped rewards, replay idempotence and singular/plural strike counts. Actual
 phone/desktop completion evidence is under
 `.visual-review/forest-encounter/final-completion/`; its result JSON records the
@@ -119,3 +126,8 @@ exact source commit and browser outcome. Combat evidence remains under
 These are local desktop Chrome touch/viewport simulations, not physical iPhone
 or Android device tests. Hosted video and portrait providers are disabled in
 the fixtures; their production availability has not been re-certified here.
+The release-only clock follow-up also passes the original forced-software
+desktop completion case: a real opening after 2,555ms of timer delta / 20,412ms
+wall time at about 6 FPS, followed by the complete reward/return/install flow.
+Evidence: `.visual-review/release-sep17-software-clock/`. No shipped gameplay
+files changed in that follow-up.
