@@ -27,6 +27,20 @@ test('ordinary impact resumes its own pause once', () => {
     expect(juice.hitStopActive).toBe(false);
 });
 
+test('post-hit feedback cannot restart combat shake after completion takes over', () => {
+    const { scene, juice } = setup();
+    const camera = { shake: jest.fn() };
+    scene.cameras = { main: camera };
+    juice.hapticFeedback = jest.fn();
+    juice.screenShake(5, 150);
+    expect(camera.shake).toHaveBeenCalledTimes(1);
+    scene.levelCompletionActive = true;
+    juice.screenShake(5, 150);
+    juice.screenShake(2, 60);
+    expect(camera.shake).toHaveBeenCalledTimes(1);
+    expect(juice.hapticFeedback).toHaveBeenCalledTimes(1);
+});
+
 test.each(['levelCompletionActive', 'pauseMenuActive', '_isShuttingDown'])('impact cannot resume a later %s state', flag => {
     const { juice, scene, world, finish } = setup();
     juice.hitStop(40);

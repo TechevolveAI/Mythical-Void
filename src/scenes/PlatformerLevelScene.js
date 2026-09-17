@@ -8945,6 +8945,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         if (this.levelCompletionActive) return false;
 
         this.levelCompletionActive = true;
+        // Scene-time shake can outlast a wall-time celebration on slow frames.
+        // Reward and exit controls must not inherit a moving hit target.
+        this.cameras?.main?.shakeEffect?.reset?.();
         this.virtualJoystickX = 0;
         this.virtualJoystickY = 0;
         this.clearVirtualJumpInput();

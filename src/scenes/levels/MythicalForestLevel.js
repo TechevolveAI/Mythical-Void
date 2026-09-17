@@ -5790,6 +5790,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
             duration: 1000,
             ease: 'Back.easeOut',
             onComplete: () => {
+                if (this.bossDefeated || this.levelCompletionActive || !this.boss?.active) return;
                 // Start boss AI
                 if (!this.bossAttackPreview) {
                     this.startBossAI();
@@ -6591,9 +6592,6 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.clearForestStoryBubble();
 
         const camera = this.cameras.main;
-        // Combat shake can outlast the fight on slow frames. The completion
-        // controls must not inherit that moving hit target.
-        camera.shakeEffect?.reset?.();
         const { width, height } = camera;
         const depth = 4300;
         const stageX = Phaser.Math.Clamp(

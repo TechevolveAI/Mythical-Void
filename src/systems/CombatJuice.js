@@ -42,6 +42,7 @@ export default class CombatJuice {
      */
     screenShake(intensity = 3, duration = 150) {
         if (!this.scene || !this.scene.cameras || !this.scene.cameras.main) return;
+        if (this.scene.levelCompletionActive) return;
 
         const camera = this.scene.cameras.main;
 

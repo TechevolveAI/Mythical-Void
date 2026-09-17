@@ -14389,7 +14389,21 @@ async function smokeGuardianHandoff(session, step, exceptions) {
             timeoutMs: 8000,
             message: `${step.sceneName} rescued resident continuation`
         }
-    );
+    ).catch(async error => {
+        const state = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
+            const camera = scene.cameras.main;
+            return {
+                active: scene.scene.isActive(), clockPaused: scene.time.paused,
+                frame: scene.game.loop.frame, fps: scene.game.loop.actualFps,
+                camera: { zoom: camera.zoom, shake: camera.shakeEffect.isRunning, pan: camera.panEffect.isRunning },
+                cameraTweens: scene.tweens.getTweensOf(camera).map(item => ({ playing: item.isPlaying(), elapsed: item.elapsed, keys: item.data?.map(data => data.key) })),
+                controls: scene.children.list.filter(item => item.text?.startsWith('WELCOME ')).map(item => ({ text: item.text, visible: item.visible, alpha: item.alpha, enabled: item.input?.enabled, listed: scene.input._list.includes(item), bounds: item.getBounds(), projected: (${sceneTextScreenPoint.toString()})(item) })),
+                exceptions: ${JSON.stringify(exceptions)}
+            };
+        })()`);
+        throw new Error(error.message + ': ' + JSON.stringify(state));
+    });
 
     const duplicate = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
@@ -14938,11 +14952,15 @@ async function smokeCompletionRecovery(session, exceptions) {
         const profile = ${JSON.stringify(getVisualReviewCreatureProfile())};
         const creature = {
             ...state.get('creature'), id: profile.genes.id, genes: profile.genes,
-            dna: profile.dna, name: 'Nova', hatched: true, named: true
+            dna: profile.dna, name: 'Nova', hatched: true, named: true,
+            spawnPosition: null
         };
         state.set('creature', creature);
         state.set('creatures', [creature]);
         state.set('activeCreatureIndex', 0);
+        // Use the existing pickup-free Sanctuary centre. A random coin at a
+        // prior spawn must not contaminate the strict saved-balance comparison.
+        state.set('world.currentPosition', { x: 1200, y: 900 });
         state.set('session.gameStarted', true);
         state.set('tutorial.livingFormPending', false);
         state.set('tutorial.livingFormSeen', true);
@@ -15001,10 +15019,19 @@ async function smokeCompletionRecovery(session, exceptions) {
         creatureId: window.GameState.get('creature.id'),
         installed: window.ShipReconstruction.getShipReconstructionSnapshot(window.GameState).completedCount,
         victoryActive: window.mythicalGame.scene.isActive('VictoryScene'),
-        gameActive: window.mythicalGame.scene.isActive('GameScene')
+        gameActive: window.mythicalGame.scene.isActive('GameScene'),
+        position: (() => {
+            const scene = window.mythicalGame.scene.getScene('GameScene');
+            return { x: scene.player.x, y: scene.player.y };
+        })()
     }))()`);
     for (const key of Object.keys(beforeReturn)) {
-        if (JSON.stringify(beforeReturn[key]) !== JSON.stringify(restored[key])) throw new Error(`Ending reload changed ${key}`);
+        if (JSON.stringify(beforeReturn[key]) !== JSON.stringify(restored[key])) {
+            throw new Error(`Ending reload changed ${key}: ${JSON.stringify({ beforeReturn, restored })}`);
+        }
+    }
+    if (Math.abs(restored.position.x - 1200) > 1 || Math.abs(restored.position.y - 900) > 1) {
+        throw new Error(`Ending recovery left its pickup-free spawn: ${JSON.stringify(restored.position)}`);
     }
     if (restored.victoryActive || !restored.gameActive || exceptions.length) throw new Error(`Ending repeated or failed: ${JSON.stringify({ restored, exceptions })}`);
     return { repair, beforeReturn, restored, documentReloads: 4, stagedSavedProgress: true };
@@ -23516,6 +23543,9 @@ async function main() {
                 .join(' ');
             recordPolicyViolation(message);
             if (params.type === 'error') consoleErrors.push(message);
+            if (isolatedCompletionProof && message.startsWith('[EconomyManager] +')) {
+                console.log(`[completion-economy] ${message}`);
+            }
         });
         session.on('Log.entryAdded', params => {
             recordPolicyViolation(params.entry?.text);

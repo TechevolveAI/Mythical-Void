@@ -41,3 +41,31 @@ test('Forest restoration enters the shared physics/input freeze while its story 
     expect(scene.time.delayedCall).toHaveBeenCalled();
     expect(restoration.call(scene)).toBe(false);
 });
+
+test.each(['fighting', 'defeated', 'completing', 'destroyed'])('Elder entrance completion respects the %s state', state => {
+    const sprite = { active: true, width: 200, height: 200 };
+    for (const name of ['setCollideWorldBounds', 'setBounce', 'setDepth', 'setScale', 'setAlpha']) {
+        sprite[name] = jest.fn(() => sprite);
+    }
+    sprite.body = { setSize: jest.fn(), setOffset: jest.fn(), setAllowGravity: jest.fn(), setImmovable: jest.fn() };
+    const feedback = { cameraShake: jest.fn() };
+    const audio = { playError: jest.fn() };
+    const scene = {
+        createElderTreantTexture: () => 'elder', cameras: { main: { width: 390, height: 844 } },
+        levelHeight: 900, bossMaxHealth: 20, createBossHealthBar: jest.fn(),
+        createBossAmbientEffects: jest.fn(), startBossAI: jest.fn(),
+        physics: { add: { sprite: () => sprite } }, tweens: { add: jest.fn() }
+    };
+    const spawn = loadMethod('../scenes/levels/MythicalForestLevel.js', 'spawnElderTreant', {
+        ELDER_TREANT_DISPLAY_HEIGHT: 300, window: { FeedbackManager: feedback, AudioManager: audio }
+    });
+    spawn.call(scene);
+    if (state === 'defeated') scene.bossDefeated = true;
+    if (state === 'completing') scene.levelCompletionActive = true;
+    if (state === 'destroyed') sprite.active = false;
+    scene.tweens.add.mock.calls[0][0].onComplete();
+    const expected = state === 'fighting' ? 1 : 0;
+    expect(scene.startBossAI).toHaveBeenCalledTimes(expected);
+    expect(feedback.cameraShake).toHaveBeenCalledTimes(expected);
+    expect(audio.playError).toHaveBeenCalledTimes(expected);
+});
