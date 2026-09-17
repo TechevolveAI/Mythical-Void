@@ -1988,7 +1988,7 @@ async function touchSceneText(session, text, {
         })()`),
         { timeoutMs: 12000, message }
     );
-    await touch(session, point.x, point.y);
+    await (SMOKE_VIEWPORT_WIDTH <= 600 ? touch : tap)(session, point.x, point.y);
     return point;
 }
 
@@ -1996,7 +1996,7 @@ async function touchInteractiveSceneText(session, text, {
     match = 'exact',
     message = text,
     timeoutMs = 12000,
-    input = 'touch'
+    input = SMOKE_VIEWPORT_WIDTH <= 600 ? 'touch' : 'mouse'
 } = {}) {
     const point = await waitFor(
         () => evaluate(session, `(() => {
@@ -2013,7 +2013,9 @@ async function touchInteractiveSceneText(session, text, {
                     ? item.text.startsWith(${JSON.stringify(text)})
                     : item.text === ${JSON.stringify(text)};
                 if (!textMatches || !item.getBounds) return false;
-                if (item.input?.enabled === true) return true;
+                if (item.input?.enabled === true) {
+                    return item.scene?.input?._list?.includes(item) === true;
+                }
                 const bounds = item.getBounds();
                 const modal = item.scene?.shipEvidenceBoardModal;
                 if (
@@ -2116,7 +2118,7 @@ async function touchDomButton(session, selector, {
         })()`),
         { timeoutMs, message }
     );
-    await touch(session, point.x, point.y);
+    await (SMOKE_VIEWPORT_WIDTH <= 600 ? touch : tap)(session, point.x, point.y);
     if (waitForRemoval) {
         try {
             await waitFor(
