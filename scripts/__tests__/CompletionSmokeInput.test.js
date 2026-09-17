@@ -67,6 +67,13 @@ test('click point follows camera zoom, scroll factor and CSS canvas scaling', ()
         }
     };
     expect(project(target)).toMatchObject({ x: 185, y: 170 });
+    target.scene.cameras.main.shakeEffect = { isRunning: true };
+    expect(project(target)).toBeNull();
+    target.scene.cameras.main.shakeEffect.isRunning = false;
+    target.scene.tweens = { getTweensOf: () => [{ isPlaying: () => true }] };
+    expect(project(target)).toBeNull();
+    target.scene.tweens.getTweensOf = () => [];
+    expect(project(target)).toMatchObject({ x: 185, y: 170 });
     target.scrollFactorX = 1;
     expect(project(target)).toBeNull();
 });

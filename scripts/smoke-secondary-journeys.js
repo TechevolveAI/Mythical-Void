@@ -1969,6 +1969,13 @@ function sceneTextScreenPoint(target) {
     const canvas = scene?.game?.canvas?.getBoundingClientRect?.();
     const bounds = target?.getBounds?.();
     if (!camera?.matrix || !canvas || !bounds) return null;
+    // Like a normal locator click, wait until the rendered target has stopped
+    // moving. The final hit animates camera shake/zoom independently of text.
+    if (
+        camera.shakeEffect?.isRunning || camera.zoomEffect?.isRunning ||
+        camera.panEffect?.isRunning ||
+        scene.tweens?.getTweensOf?.(camera)?.some(tween => tween.isPlaying?.())
+    ) return null;
     const project = (x, y) => {
         const point = camera.matrix.transformPoint(
             x - camera.scrollX * target.scrollFactorX,
@@ -14259,7 +14266,7 @@ async function smokeGuardianHandoff(session, step, exceptions) {
 
     if (step.route === 'mythicalForest') {
         const skipAction = await touchInteractiveSceneText(session, 'SKIP', {
-            timeoutMs: 8000, message: 'optional forest restoration skip'
+            timeoutMs: 30000, message: 'optional forest restoration skip'
         });
         if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'forest-after-restoration-skip.png');
         const afterRestoration = await waitFor(
