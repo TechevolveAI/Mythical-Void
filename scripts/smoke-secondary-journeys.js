@@ -14134,6 +14134,7 @@ async function startGuardianHandoffEncounter(session, step) {
             }
         }[route];
         if (!encounter?.checkpoint) return null;
+        if (route === 'mythicalForest') encounter.checkpoint = scene.stageForestGuardianEntry();
 
         const accepted = scene.beginGuardianEncounter({
             ...encounter,
@@ -14251,13 +14252,22 @@ async function smokeGuardianHandoff(session, step, exceptions) {
     await waitForScene(session, 'HatchingScene');
     const prepared = await prepareGuardianHandoffState(session, step);
     const interaction = await startGuardianHandoffEncounter(session, step);
+    if (step.route === 'mythicalForest') {
+        // This is a staged final-hit proof, but must still respect the real
+        // entrance and attack/recovery gate instead of bypassing immunity.
+        await waitFor(() => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            return scene.bossEntranceComplete && scene.boss?.isRecovering &&
+                scene.bossPhaseAttackCount > 0 && !scene.bossPhaseTransitioning;
+        })()`), { timeoutMs: 12000, message: 'Forest guardian earned recovery opening' });
+    }
     const finalHit = await evaluate(session, `(() => {
         const scene = window.mythicalGame.scene.getScene(${JSON.stringify(step.sceneName)});
         const target = scene?.getBossCombatTarget?.();
         if (!scene?.player || !target || !scene?.bossFightActive) return null;
         scene.bossRecoveryUntil = 0;
         scene.titanRecoveryUntil = 0;
-        if (scene.boss) scene.boss.isRecovering = false;
+        if (scene.boss && ${JSON.stringify(step.route)} !== 'mythicalForest') scene.boss.isRecovering = false;
         scene.crystalEnergy = Math.max(3, Number(scene.crystalEnergy) || 0);
         scene.freeSpecialAttackCharges = 0;
         scene.bossHealth = 3;

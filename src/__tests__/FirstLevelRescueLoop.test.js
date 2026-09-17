@@ -484,7 +484,7 @@ describe('first expedition rescue loop', () => {
         expect(entry).toContain("this.getTraversalSupportCheckpoint(\n            'forest-ground-6'");
         expect(source).toContain('this.releaseAllPlatformerActionButtons?.();');
         expect(source).toContain('this.platformDropThroughUntil = 0;');
-        expect(entry).toContain('this.player.body.updateFromGameObject?.();');
+        expect(entry).toContain('this.resetForestPlayerBody(entrance.x, entrance.y);');
         expect(entry).toContain('this.lastSafePosition = { ...entrance };');
         expect(source).not.toContain('const entranceY = this.levelHeight - 170;');
     });
@@ -724,8 +724,8 @@ describe('first expedition rescue loop', () => {
             'utf8'
         );
 
-        expect(source).toContain('this.bossMaxHealth = 12;');
-        expect(source).toContain('STRIKE PURPLE CORRUPTION // FREE THE GUARDIAN');
+        expect(source).toContain('this.bossMaxHealth = 18;');
+        expect(source).toContain('DODGE, THEN STRIKE THE PURPLE CORRUPTION');
         expect(source).toContain('ELDER TREANT RESTORED');
         expect(source).toContain('ELDER TREANT // TRAPPED');
         expect(source).toContain(
@@ -744,10 +744,10 @@ describe('first expedition rescue loop', () => {
             /executeBossAttack\(attackType\)\s*\{([\s\S]*?)\n    \}\n\n    showBossAttackInstruction/
         )?.[1] || '';
 
-        expect(source).toContain('root_slam: 1700');
-        expect(source).toContain('vine_whip: 1500');
-        expect(source).toContain('spore_cloud: 3600');
-        expect(source).toContain('nature_fury: 4800');
+        expect(source).toContain('root_slam: 1000');
+        expect(source).toContain('vine_whip: 1200');
+        expect(source).toContain('spore_cloud: 2600');
+        expect(source).toContain('nature_fury: 1900');
         expect(attackSource).toContain(
             'FOREST_GUARDIAN_ATTACK_WINDOWS[attackType]'
         );
@@ -765,12 +765,12 @@ describe('first expedition rescue loop', () => {
         );
 
         expect(source).toContain('ROOTS RISING // JUMP');
-        expect(source).toContain('VINE WHIP // MOVE BEHIND IT');
+        expect(source).toContain('LOW VINE // JUMP OVER IT');
         expect(source).toContain('SPORE CLOUD // LEAVE THE CIRCLE');
         expect(source).toContain('FALLING LEAVES // KEEP MOVING');
         expect(source).toContain('showBossAttackInstruction(');
         expect(source).toContain(
-            'STRIKE PURPLE CORRUPTION // FREE THE GUARDIAN'
+            'DODGE, THEN STRIKE THE PURPLE CORRUPTION'
         );
     });
 
@@ -846,7 +846,7 @@ describe('first expedition rescue loop', () => {
         );
 
         expect(source).toContain('Free the guardian and recover the Forest Core');
-        expect(source).toContain('STRIKE PURPLE CORRUPTION // FREE THE GUARDIAN');
+        expect(source).toContain('DODGE, THEN STRIKE THE PURPLE CORRUPTION');
         expect(source).toContain('THE GUARDIAN AWAKENS');
         expect(source).toContain('ELDER TREANT RESTORED');
         expect(source).toContain("Guardian's Gift: Forest Core");
@@ -883,9 +883,9 @@ describe('first expedition rescue loop', () => {
             'utf8'
         );
 
-        expect(source).toContain('this.bossBarLayout = { barX, barY, barWidth, barHeight }');
+        expect(source).toContain('this.bossBarLayout = { screenWidth, barX, barY, barWidth, barHeight }');
         expect(source).toContain('const layout = this.bossBarLayout ||');
-        expect(source).toContain('const barY = isMobileLayout ? 118 : 55');
+        expect(source).toContain('const barY = isMobileLayout ? 102 : 55');
         expect(source).toContain('barWidth = barWidth ?? layout.barWidth');
         expect(source).not.toContain('barWidth = barWidth || 350');
     });

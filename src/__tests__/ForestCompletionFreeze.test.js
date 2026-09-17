@@ -44,7 +44,7 @@ test('Forest restoration enters the shared physics/input freeze while its story 
 
 test.each(['fighting', 'defeated', 'completing', 'destroyed'])('Elder entrance completion respects the %s state', state => {
     const sprite = { active: true, width: 200, height: 200 };
-    for (const name of ['setCollideWorldBounds', 'setBounce', 'setDepth', 'setScale', 'setAlpha']) {
+    for (const name of ['setCollideWorldBounds', 'setBounce', 'setDepth', 'setScale', 'setAlpha', 'setOrigin']) {
         sprite[name] = jest.fn(() => sprite);
     }
     sprite.body = { setSize: jest.fn(), setOffset: jest.fn(), setAllowGravity: jest.fn(), setImmovable: jest.fn() };
@@ -60,6 +60,7 @@ test.each(['fighting', 'defeated', 'completing', 'destroyed'])('Elder entrance c
         ELDER_TREANT_DISPLAY_HEIGHT: 300, window: { FeedbackManager: feedback, AudioManager: audio }
     });
     spawn.call(scene);
+    expect(sprite.setOrigin).toHaveBeenCalledWith(0.5, 0.88);
     if (state === 'defeated') scene.bossDefeated = true;
     if (state === 'completing') scene.levelCompletionActive = true;
     if (state === 'destroyed') sprite.active = false;
@@ -68,4 +69,27 @@ test.each(['fighting', 'defeated', 'completing', 'destroyed'])('Elder entrance c
     expect(scene.startBossAI).toHaveBeenCalledTimes(expected);
     expect(feedback.cameraShake).toHaveBeenCalledTimes(expected);
     expect(audio.playError).toHaveBeenCalledTimes(expected);
+});
+
+test.each([390, 1280])('Forest artwork at %spx keeps feet on ground and its melee target reachable', width => {
+    const displayHeight = width <= 480 ? 220 : 310;
+    const groundY = 1100;
+    const sprite = { active: true, width: 768, height: 768 };
+    for (const name of ['setCollideWorldBounds', 'setBounce', 'setDepth', 'setScale', 'setAlpha', 'setOrigin']) {
+        sprite[name] = jest.fn(() => sprite);
+    }
+    sprite.body = { setSize: jest.fn(), setOffset: jest.fn(), setAllowGravity: jest.fn(), setImmovable: jest.fn() };
+    const create = jest.fn(() => sprite);
+    const scene = {
+        createElderTreantTexture: () => 'elder', cameras: { main: { width, height: 844 } }, levelHeight: 1200,
+        player: { x: 5520 }, bossMaxHealth: 18, createBossHealthBar: jest.fn(), createBossAmbientEffects: jest.fn(),
+        physics: { add: { sprite: create, overlap: jest.fn() } }, tweens: { add: jest.fn() }
+    };
+    loadMethod('../scenes/levels/MythicalForestLevel.js', 'spawnElderTreant', { ELDER_TREANT_DISPLAY_HEIGHT: 310 }).call(scene);
+    const [x, y] = create.mock.calls[0];
+    expect(x - scene.player.x).toBeGreaterThanOrEqual(190);
+    expect(y + displayHeight * 0.12).toBe(groundY);
+    const groundedPlayerY = groundY - 51;
+    const swordTipDistance = Math.hypot(40, y - groundedPlayerY);
+    expect(swordTipDistance).toBeLessThan(80);
 });

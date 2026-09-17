@@ -105,7 +105,8 @@ describe('first guardian artwork', () => {
         expect(source).toContain('this.load.image(ELDER_TREANT_TEXTURE, ELDER_TREANT_ASSET)');
         expect(source).toContain('this.createElderTreantTexture()');
         expect(source).toContain('if (this.textures.exists(textureKey)) return textureKey');
-        expect(source).toContain('ELDER_TREANT_DISPLAY_HEIGHT /');
+        expect(source).toContain('const displayHeight = width <= 480 ? 220 : ELDER_TREANT_DISPLAY_HEIGHT;');
+        expect(source).toContain('this.bossTargetScale = displayHeight /');
         expect(source).toContain('this.boss.width * 0.48');
         expect(source).toContain('this.boss.height * 0.68');
         expect(source).toContain('this.bossTargetScale * 1.08');
