@@ -1963,6 +1963,45 @@ async function touch(session, x, y) {
     });
 }
 
+function sceneTextScreenPoint(target) {
+    const scene = target?.scene;
+    const camera = scene?.cameras?.main;
+    const canvas = scene?.game?.canvas?.getBoundingClientRect?.();
+    const bounds = target?.getBounds?.();
+    if (!camera?.matrix || !canvas || !bounds) return null;
+    const project = (x, y) => {
+        const point = camera.matrix.transformPoint(
+            x - camera.scrollX * target.scrollFactorX,
+            y - camera.scrollY * target.scrollFactorY
+        );
+        return {
+            x: canvas.left + point.x * canvas.width / scene.scale.width,
+            y: canvas.top + point.y * canvas.height / scene.scale.height
+        };
+    };
+    const corners = [
+        project(bounds.left, bounds.top), project(bounds.right, bounds.top),
+        project(bounds.left, bounds.bottom), project(bounds.right, bounds.bottom)
+    ];
+    const screenBounds = {
+        left: Math.min(...corners.map(point => point.x)),
+        right: Math.max(...corners.map(point => point.x)),
+        top: Math.min(...corners.map(point => point.y)),
+        bottom: Math.max(...corners.map(point => point.y))
+    };
+    const center = project(bounds.centerX, bounds.centerY);
+    if (
+        !Number.isFinite(center.x) || !Number.isFinite(center.y) ||
+        screenBounds.left < 0 || screenBounds.top < 0 ||
+        screenBounds.right > window.innerWidth || screenBounds.bottom > window.innerHeight
+    ) return null;
+    return {
+        x: Math.round(center.x), y: Math.round(center.y), text: target.text,
+        depth: target.depth, bounds: screenBounds,
+        viewport: { width: window.innerWidth, height: window.innerHeight }
+    };
+}
+
 async function touchSceneText(session, text, {
     match = 'exact',
     message = text
@@ -1978,13 +2017,7 @@ async function touchSceneText(session, text, {
                     : item.text === ${JSON.stringify(text)};
             }).sort((left, right) => (right.depth || 0) - (left.depth || 0));
             const target = matches[0];
-            if (!target?.getBounds) return null;
-            const bounds = target.getBounds();
-            return {
-                x: Math.round(bounds.centerX),
-                y: Math.round(bounds.centerY),
-                text: target.text
-            };
+            return (${sceneTextScreenPoint.toString()})(target);
         })()`),
         { timeoutMs: 12000, message }
     );
@@ -2042,31 +2075,7 @@ async function touchInteractiveSceneText(session, text, {
                 });
             }).sort((left, right) => (right.depth || 0) - (left.depth || 0));
             const target = matches[0];
-            if (!target?.getBounds) return null;
-            const bounds = target.getBounds();
-            const width = target.scene?.scale?.width ||
-                document.querySelector('canvas')?.clientWidth || 0;
-            const height = target.scene?.scale?.height ||
-                document.querySelector('canvas')?.clientHeight || 0;
-            if (
-                bounds.left < 0 ||
-                bounds.top < 0 ||
-                bounds.right > width ||
-                bounds.bottom > height
-            ) return null;
-            return {
-                x: Math.round(bounds.centerX),
-                y: Math.round(bounds.centerY),
-                text: target.text,
-                depth: target.depth,
-                bounds: {
-                    left: Math.round(bounds.left),
-                    right: Math.round(bounds.right),
-                    top: Math.round(bounds.top),
-                    bottom: Math.round(bounds.bottom)
-                },
-                viewport: { width, height }
-            };
+            return (${sceneTextScreenPoint.toString()})(target);
         })()`),
         { timeoutMs, message }
     );
@@ -14249,7 +14258,7 @@ async function smokeGuardianHandoff(session, step, exceptions) {
     }
 
     if (step.route === 'mythicalForest') {
-        await touchInteractiveSceneText(session, 'SKIP', {
+        const skipAction = await touchInteractiveSceneText(session, 'SKIP', {
             timeoutMs: 8000, message: 'optional forest restoration skip'
         });
         if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'forest-after-restoration-skip.png');
@@ -14269,6 +14278,11 @@ async function smokeGuardianHandoff(session, step, exceptions) {
                     restorationActive: scene.forestRestorationActive, victoryShown: scene.forestVictoryShown,
                     paused: scene.physics.world.isPaused, inputEnabled: scene.input.enabled,
                     camera: { zoom: scene.cameras.main.zoom, x: scene.cameras.main.scrollX, y: scene.cameras.main.scrollY },
+                    skipAction: ${JSON.stringify(skipAction)},
+                    canvas: (() => { const r = window.mythicalGame.canvas.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; })(),
+                    pointer: { x: scene.input.activePointer.x, y: scene.input.activePointer.y, worldX: scene.input.activePointer.worldX, worldY: scene.input.activePointer.worldY },
+                    hitTest: scene.input.hitTestPointer(scene.input.activePointer).map(item => ({ type: item.type, text: item.text, depth: item.depth })),
+                    inputList: scene.input._list.filter(item => item.text === 'SKIP').map(item => ({ x: item.x, y: item.y, enabled: item.input.enabled })),
                     texts: scene.children.list.filter(item => item.text && item.visible && item.depth > 2000).map(item => ({ text: item.text, input: item.input?.enabled, x: item.x, y: item.y })),
                     exceptions: ${JSON.stringify(exceptions)}
                 };

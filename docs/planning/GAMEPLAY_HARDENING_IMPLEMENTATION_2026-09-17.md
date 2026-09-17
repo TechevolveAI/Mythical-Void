@@ -157,6 +157,11 @@ This batch is implemented locally, pending the normal release gates:
   or epilogue instead of replaying the full celebration.
 - Duplicate final transitions are ignored. An optional achievement failure or
   late shop/inventory load cannot block or cover the final transition.
+- The repair board converts pointer coordinates through the same camera
+  transform as its visible controls. At mobile Sanctuary zoom, tapping the
+  drawn installation button no longer misses an unzoomed invisible hit region.
+- Browser checks use the viewport's native input, wait for Phaser hit-test
+  registration, and project canvas controls through camera/CSS transforms.
 - No save-schema, backend, level layout, art, balance or story-choice changes.
 
 `npm run smoke:completion-flow` checks staged real Guardian final attacks,
