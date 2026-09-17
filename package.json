@@ -222,6 +222,7 @@
     "http-server": "^14.1.1",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^30.2.0",
+    "playwright": "1.62.1",
     "postcss": "^8.5.6",
     "supabase": "^2.109.1",
     "tailwindcss": "^4.1.17",

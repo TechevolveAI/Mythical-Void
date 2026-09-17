@@ -273,9 +273,11 @@ class MobileControls {
 
         // Recreate controls with new scaled positions
         // Store visibility state, hide, then show again
+        const wasSuspended = this.isSuspended;
         this.hide();
         this.isVisible = false; // Reset to allow show()
         this.show(explicitlyForced || preserveCompactDock);
+        if (wasSuspended) this.suspend();
     }
 
     /**
@@ -442,7 +444,7 @@ class MobileControls {
 
     suspend() {
         if (!this.isVisible || this.isSuspended) return false;
-        this.resetJoystick();
+        this.resetJoystick(true);
         this.getControlElements().forEach(element => {
             element.setVisible?.(false);
             if (element.input) element.input.enabled = false;
@@ -776,7 +778,7 @@ class MobileControls {
                 }
                 event.preventDefault();
                 event.stopImmediatePropagation?.();
-                this.finishJoystickInput(this.activePointerId);
+                this.resetJoystick(true);
                 return;
             }
         };
@@ -784,14 +786,14 @@ class MobileControls {
             if (this.joystickInputSource && this.joystickInputSource !== 'pointer') return;
             const eventPointerId = getPointerId(event.pointerId);
             if (isJoystickPointer(eventPointerId)) {
-                this.finishJoystickInput(this.activePointerId);
+                this.resetJoystick(true);
             }
         };
         this.canvasLostPointerCaptureHandler = event => {
             if (this.joystickInputSource && this.joystickInputSource !== 'pointer') return;
             const eventPointerId = getPointerId(event.pointerId);
             if (isJoystickPointer(eventPointerId)) {
-                this.finishJoystickInput(this.activePointerId);
+                this.resetJoystick(true);
             }
         };
 
@@ -799,7 +801,8 @@ class MobileControls {
         // Keep direct fallbacks that also filter by joystick pointer ID.
         this.scenePointerUpHandler = (pointer) => {
             if (this.joystickInputSource && this.joystickInputSource !== 'pointer') return;
-            const pointerId = getPointerId(pointer?.id);
+            // Phaser slot IDs and Touch identifiers are not native pointer IDs.
+            const pointerId = getPointerId(pointer?.event?.pointerId);
             if (!this.joystickActive || pointerId === null || pointerId !== this.activePointerId) return;
             this.finishJoystickInput(pointerId);
         };
@@ -838,7 +841,7 @@ class MobileControls {
             if (eventPointerId === null || this.activePointerId === null || eventPointerId !== this.activePointerId) {
                 return;
             }
-            this.finishJoystickInput(eventPointerId);
+            this.resetJoystick(true);
         };
         window.addEventListener('pointerup', this.windowPointerUpHandler, { capture: true, passive: true });
         window.addEventListener('pointercancel', this.windowPointerCancelHandler, { capture: true, passive: true });
@@ -1012,6 +1015,8 @@ class MobileControls {
     resetJoystick(force = false) {
         if (!force && !this.joystickActive) return;
 
+        const pointerId = this.activePointerId;
+        const inputSource = this.joystickInputSource;
         this.clearPendingJoystickReset();
         this.joystickActive = false;
         this.activePointerId = null;
@@ -1019,6 +1024,20 @@ class MobileControls {
         this.joystickTouchOrigin = null;
         this.joystickUsesRelativeDrag = false;
         this.lastJoystickMagnitude = 0;
+
+        // Clear ownership first: releasing capture may dispatch lostpointercapture.
+        const canvas = this.scene?.game?.canvas;
+        try {
+            if (
+                inputSource === 'pointer' &&
+                pointerId !== null &&
+                canvas?.hasPointerCapture?.(pointerId)
+            ) {
+                canvas.releasePointerCapture(pointerId);
+            }
+        } catch (error) {
+            devLog('[MobileControls] Pointer release already completed');
+        }
 
         // Immediately snap thumb back to center (no tween for responsiveness)
         if (this.joystickThumb) {

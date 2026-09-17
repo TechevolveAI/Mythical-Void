@@ -1,0 +1,68 @@
+.expedition-debrief {
+    --debrief-accent: #8fe3cf;
+    position: fixed;
+    inset: 0;
+    z-index: 20000;
+    box-sizing: border-box;
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    display: grid;
+    place-items: center;
+    background: rgb(2 8 11 / 94%);
+    color: #f4f7f6;
+    font-family: Arial, sans-serif;
+    letter-spacing: 0;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
+    pointer-events: auto;
+}
+.expedition-debrief * { box-sizing: border-box; }
+.expedition-debrief-shell {
+    width: min(100%, 620px);
+    max-height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #101b1e;
+    border: 1px solid #527775;
+    border-top: 4px solid var(--debrief-accent);
+    border-radius: 8px;
+}
+.expedition-debrief-header,
+.expedition-debrief-footer { flex: 0 0 auto; padding: 20px 24px; }
+.expedition-debrief p,
+.expedition-debrief h2,
+.expedition-debrief h3 { margin: 0; overflow-wrap: anywhere; }
+.expedition-debrief-eyebrow { color: var(--debrief-accent); font-size: 12px; line-height: 1.5; font-weight: 700; }
+.expedition-debrief-title { font-size: 26px; line-height: 1.2; padding: 8px 0; }
+.expedition-debrief-context { color: #cededa; font-size: 14px; line-height: 1.5; }
+.expedition-debrief-story {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 4px 24px 20px;
+    font-size: 16px;
+    line-height: 1.5;
+}
+.expedition-debrief-story p { margin-top: 12px; }
+.expedition-debrief-creature { color: #cae9dd; }
+.expedition-debrief-details { margin-top: 16px; color: #c6d3d6; }
+.expedition-debrief-details summary { cursor: pointer; padding: 10px 0; min-height: 44px; }
+.expedition-debrief-footer { border-top: 1px solid #385552; background: #0a1417; }
+.expedition-debrief-next { color: #cae9dd; font-size: 14px; line-height: 1.4; padding-bottom: 12px; }
+.expedition-debrief-continue {
+    width: 100%; min-height: 48px; padding: 12px 16px; border: 0; border-radius: 6px;
+    background: var(--debrief-accent); color: #071411; cursor: pointer;
+    font: 700 16px/1.3 Arial, sans-serif; white-space: normal; overflow-wrap: anywhere;
+    touch-action: manipulation;
+}
+.expedition-debrief :focus-visible { outline: 3px solid #f2c14e; outline-offset: -3px; }
+.expedition-debrief-continue:disabled { opacity: .7; }
+.expedition-debrief-error { color: #ffd1bf; padding-bottom: 8px; font-size: 14px; }
+@media (max-height: 500px) {
+    .expedition-debrief-header, .expedition-debrief-footer { padding: 10px 18px; }
+    .expedition-debrief-title { font-size: 20px; padding: 4px 0; }
+    .expedition-debrief-story { padding: 4px 18px 12px; }
+    .expedition-debrief-next { padding-bottom: 8px; }
+}

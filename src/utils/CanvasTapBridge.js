@@ -22,13 +22,12 @@ export function createCanvasTapBridge({
     let lastActivationAt = Number.NEGATIVE_INFINITY;
     let destroyed = false;
 
-    const activateGamePoint = (x, y, event = null) => {
+    const activateGamePoint = (x, y) => {
         if (destroyed || !containsPoint(getBounds?.(), x, y)) return false;
 
         const activatedAt = now();
         if (activatedAt - lastActivationAt < dedupeMs) return true;
         lastActivationAt = activatedAt;
-        event?.preventDefault?.();
         onActivate?.();
         return true;
     };
@@ -45,11 +44,14 @@ export function createCanvasTapBridge({
         ) {
             return false;
         }
-        return activateGamePoint(
+        const activated = activateGamePoint(
             (clientX - rect.left) * (size.width / rect.width),
-            (clientY - rect.top) * (size.height / rect.height),
-            event
+            (clientY - rect.top) * (size.height / rect.height)
         );
+        // Only our own non-passive DOM listeners may cancel a native event.
+        // A Phaser game-object callback may be running inside a passive listener.
+        if (activated && event?.cancelable) event.preventDefault();
+        return activated;
     };
 
     const pointerUpHandler = event => {

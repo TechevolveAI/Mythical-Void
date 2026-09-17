@@ -58,6 +58,31 @@ class LivingPortraitService {
         return getCreatureMediaEligibility();
     }
 
+    isCurrentCreaturePortrait(record) {
+        const genes = window.GameState?.get?.('creature.genes');
+        if (!genes || !record?.identityKey) return false;
+        try {
+            const current = window.CreaturePortraitSpec?.create?.({
+                genes,
+                dna: window.GameState?.get?.('creature.dna'),
+                name: window.GameState?.get?.('creature.name'),
+                stage: record.stage
+            });
+            return current?.identityKey === record.identityKey;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    saveCurrentCreaturePortrait(record) {
+        if (!this.isCurrentCreaturePortrait(record)) return null;
+        const saved = window.GameState?.saveCreaturePortrait?.(record);
+        const current = saved && window.GameState?.getCreaturePortrait?.(record.stage);
+        // Ready listeners can switch creatures synchronously during the save.
+        return current?.identityKey === record.identityKey &&
+            current?.assetRef === record.assetRef ? current : null;
+    }
+
     getActiveJob(stage = 'baby') {
         const identityKey = this.activeStageJobs.get(stage);
         const job = identityKey ? this.jobs.get(identityKey) || null : null;
@@ -483,7 +508,7 @@ class LivingPortraitService {
 
             job.status = initialResult.status || 'processing';
             if (initialResult.assetRef) {
-                window.GameState?.saveCreaturePortrait?.({
+                this.saveCurrentCreaturePortrait({
                     identityKey: portraitSpec.identityKey,
                     stage: portraitSpec.stage,
                     style: job.style,
@@ -520,7 +545,7 @@ class LivingPortraitService {
 
             const completedAt = Date.now();
             const generationDurationMs = Math.max(0, completedAt - job.startedAt);
-            const saved = window.GameState?.saveCreaturePortrait?.({
+            const completedRecord = {
                 identityKey: portraitSpec.identityKey,
                 stage: portraitSpec.stage,
                 style: result.style || job.style,
@@ -534,18 +559,11 @@ class LivingPortraitService {
                 pollCount: job.pollCount,
                 expiresAt: result.expiresAt,
                 storage: result.storage,
-                jobId: result.jobId
-            });
-            const record = (
-                saved &&
-                window.GameState?.getCreaturePortrait?.(portraitSpec.stage)
-            ) || {
-                identityKey: portraitSpec.identityKey,
-                stage: portraitSpec.stage,
-                style: job.style,
-                imageUrl: result.imageUrl,
-                assetRef: result.assetRef
+                jobId: result.jobId,
+                status: 'ready',
+                aiGenerated: true
             };
+            const record = this.saveCurrentCreaturePortrait(completedRecord) || completedRecord;
 
             job.status = 'succeeded';
             job.completedAt = completedAt;
@@ -592,6 +610,7 @@ class LivingPortraitService {
     prepareFirstForestVideo(record) {
         if (
             !record?.assetRef ||
+            !this.isCurrentCreaturePortrait(record) ||
             window.GameState?.get?.('story.projectBeacon.firstForestCinematicSeen')
         ) {
             return null;
@@ -738,11 +757,7 @@ class LivingPortraitService {
             expiresAt: resolvedResult.expiresAt,
             status: 'ready'
         };
-        const saved = window.GameState?.saveCreaturePortrait?.(nextRecord);
-        const resolvedRecord = (
-            saved &&
-            window.GameState?.getCreaturePortrait?.(record.stage)
-        ) || {
+        const resolvedRecord = this.saveCurrentCreaturePortrait(nextRecord) || {
             ...nextRecord,
             status: 'ready',
             aiGenerated: true

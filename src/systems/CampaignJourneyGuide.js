@@ -96,6 +96,26 @@ function getCampaignPrerequisiteState(gameState, identifier) {
     };
 }
 
+function getCampaignRouteAccess(gameState, route) {
+    const effectiveAccess = gameState?.getCampaignGateAccess?.(route.gateId);
+    if (effectiveAccess) return effectiveAccess;
+
+    // Lightweight preview/test states may expose only get(), not GameState APIs.
+    const prerequisites = getCampaignPrerequisiteState(gameState, route.gateId);
+    const gate = read(gameState, `hubWorld.gates.${route.gateId}`, {});
+    const requiresShipAssembly = gate.requiresAllParts === true || route.gateId === 'final_void';
+    const shipRequirementsMet = !requiresShipAssembly || (
+        read(gameState, 'hubWorld.shipParts.finalBossUnlocked', false) === true &&
+        read(gameState, 'hubWorld.shipCompletionCutsceneShown', false) === true
+    );
+    return {
+        ...prerequisites,
+        shipRequirementsMet,
+        unlocked: (gate.unlocked === true || route.gateId === 'mythical_forest') &&
+            prerequisites.prerequisitesMet && shipRequirementsMet
+    };
+}
+
 function getCampaignJourneyStep(gameState) {
     const activeCheckpoint = read(
         gameState,
@@ -108,10 +128,10 @@ function getCampaignJourneyStep(gameState) {
                 `levels.${route.levelStateId}` === activeCheckpoint.levelStatePath ||
                 route.gateId === activeCheckpoint.gateId
         );
-        const checkpointPrerequisites = checkpointRoute
-            ? getCampaignPrerequisiteState(gameState, checkpointRoute.gateId)
+        const checkpointAccess = checkpointRoute
+            ? getCampaignRouteAccess(gameState, checkpointRoute)
             : null;
-        if (checkpointRoute && checkpointPrerequisites.prerequisitesMet) {
+        if (checkpointRoute && checkpointAccess.unlocked === true) {
             return {
                 ...checkpointRoute,
                 status: 'resume',
@@ -136,23 +156,19 @@ function getCampaignJourneyStep(gameState) {
         };
     }
 
-    const gate = read(gameState, `hubWorld.gates.${nextRoute.gateId}`, {});
-    const prerequisiteState = getCampaignPrerequisiteState(
-        gameState,
-        nextRoute.gateId
-    );
-    const unlocked = (
-        gate?.unlocked === true || nextRoute.gateId === 'mythical_forest'
-    ) && prerequisiteState.prerequisitesMet;
+    const routeAccess = getCampaignRouteAccess(gameState, nextRoute);
+    const unlocked = routeAccess.unlocked === true;
     return {
         ...nextRoute,
         status: unlocked ? 'ready' : 'locked',
         title: unlocked ? `Next mission: ${nextRoute.label}` : `Route pending: ${nextRoute.label}`,
         action: unlocked
             ? nextRoute.action
-            : prerequisiteState.nextRequiredRoute
-                ? `Complete ${prerequisiteState.nextRequiredRoute.label} first.`
-                : 'Complete the current expedition and review its Project Beacon debrief.'
+            : routeAccess.nextRequiredRoute
+                ? `Complete ${routeAccess.nextRequiredRoute.label} first.`
+                : routeAccess.shipRequirementsMet === false
+                    ? 'Install the five recovered systems at Wanderer-77 and review the final route reveal.'
+                    : 'Complete the current expedition and review its Project Beacon debrief.'
     };
 }
 

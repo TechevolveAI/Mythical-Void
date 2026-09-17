@@ -606,6 +606,14 @@ export function installShipReconstructionStep(gameState, stepId, {
             snapshot
         };
     }
+    if (!snapshot.available) {
+        return {
+            changed: false,
+            reason: 'field_kit_required',
+            step,
+            snapshot
+        };
+    }
 
     const normalizedOperationId = normalizeIdentifier(
         operationId || `ship_reconstruction:${step.id}`

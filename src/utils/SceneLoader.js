@@ -29,6 +29,8 @@ class SceneLoaderClass {
         // Track loading promises (prevent duplicate loads)
         this.loadingPromises = new Map();
         this.importTimeoutMs = 15000;
+        this.backgroundRetryAfter = new Map();
+        this.backgroundRetryDelayMs = 15000;
 
         // Scene to chunk mapping
         // Each level gets its own chunk for optimal lazy loading
@@ -165,9 +167,24 @@ class SceneLoaderClass {
         const sceneName = this.levelSceneMap[gateId];
         if (sceneName) {
             devLog(`[SceneLoader] Preloading level for gate: ${gateId}`);
-            return this.preload(sceneName);
+            return this.preloadOptional(sceneName);
         }
         return null;
+    }
+
+    // Hover/idle warmups never own navigation or surface a blocking error.
+    // Back off repeated hover events; an explicit loadScene still retries now.
+    async preloadOptional(sceneName) {
+        if (this.loadedScenes.has(sceneName)) return this.loadedModules.get(sceneName);
+        if ((this.backgroundRetryAfter.get(sceneName) || 0) > Date.now()) return null;
+        try {
+            const module = await this.preload(sceneName);
+            this.backgroundRetryAfter.delete(sceneName);
+            return module;
+        } catch {
+            this.backgroundRetryAfter.set(sceneName, Date.now() + this.backgroundRetryDelayMs);
+            return null;
+        }
     }
 
     /**
@@ -215,7 +232,7 @@ class SceneLoaderClass {
             })
             .catch(error => {
                 this.loadingPromises.delete(sceneName);
-                console.error(`[SceneLoader] Failed to preload ${sceneName}:`, error);
+                devWarn(`[SceneLoader] Failed to preload ${sceneName}:`, error);
                 throw error;
             })
             .finally(() => {
@@ -350,25 +367,25 @@ class SceneLoaderClass {
         switch (currentScene) {
             case 'HatchingScene':
                 // User will likely go to PersonalityScene next
-                this.preload('PersonalityScene');
-                this.preload('NamingScene');
+                this.preloadOptional('PersonalityScene');
+                this.preloadOptional('NamingScene');
                 break;
 
             case 'PersonalityScene':
                 // User will go to NamingScene then SoulRevealScene
-                this.preload('NamingScene');
-                this.preload('SoulRevealScene');
+                this.preloadOptional('NamingScene');
+                this.preloadOptional('SoulRevealScene');
                 break;
 
             case 'NamingScene':
                 // User will go to SoulRevealScene then GameScene
-                this.preload('SoulRevealScene');
-                this.preload('GameScene');
+                this.preloadOptional('SoulRevealScene');
+                this.preloadOptional('GameScene');
                 break;
 
             case 'SoulRevealScene':
                 // User will go to GameScene
-                this.preload('GameScene');
+                this.preloadOptional('GameScene');
                 break;
 
             case 'GameScene':
@@ -376,11 +393,11 @@ class SceneLoaderClass {
                 // Use requestIdleCallback to preload during idle time
                 if (typeof requestIdleCallback !== 'undefined') {
                     requestIdleCallback(() => {
-                        this.preload('ShopScene');
-                        this.preload('InventoryScene');
+                        this.preloadOptional('ShopScene');
+                        this.preloadOptional('InventoryScene');
                     }, { timeout: 5000 });
                     requestIdleCallback(() => {
-                        this.preload('HubWorldScene');
+                        this.preloadOptional('HubWorldScene');
                     }, { timeout: 10000 });
                 }
                 break;
@@ -388,7 +405,7 @@ class SceneLoaderClass {
             case 'HubWorldScene':
                 // Mythical Forest is the first route. Later routes are preloaded
                 // when their gate is focused so the Hub does not fetch all levels.
-                this.preload('MythicalForestLevel');
+                this.preloadOptional('MythicalForestLevel');
                 break;
 
             default:

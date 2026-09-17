@@ -303,8 +303,11 @@ describe('Project Beacon campaign debrief state', () => {
         expect(hubSource).toContain('isPreview: true');
         expect(hubSource).toContain('if (!debrief.isPreview)');
         expect(hubSource).toContain('NEXT:');
-        expect(hubSource).toContain('RETURNS TO THE SANCTUARY');
-        expect(hubSource).toContain('WHAT CHANGED');
+        expect(hubSource).toContain('Return to Wanderer-77 to fit the recovered system.');
+        const panelSource = fs.readFileSync(
+            path.join(__dirname, '../ui/ExpeditionDebriefPanel.js'), 'utf8'
+        );
+        expect(panelSource).toContain('WHAT CHANGED');
         expect(hubSource).not.toContain('WHAT THE SCANNER FOUND');
         expect(hubSource).toContain('`INSTALL ${partName.toUpperCase()}`');
         expect(hubSource).toContain("this.scene.start('GameScene', {");
