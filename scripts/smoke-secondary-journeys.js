@@ -14589,7 +14589,7 @@ async function smokeGuardianHandoff(session, step, exceptions) {
             bounds.right <= firstGuardianInvitation.viewport.width &&
             bounds.bottom <= firstGuardianInvitation.viewport.height
         ));
-        const summaryInFrame = firstGuardianInvitation.summary.length === 8 &&
+        const summaryInFrame = firstGuardianInvitation.summary.length === 9 &&
             firstGuardianInvitation.summary.every(bounds => (
                 bounds.left >= 0 && bounds.top >= 0 &&
                 bounds.right <= firstGuardianInvitation.viewport.width &&
@@ -14617,6 +14617,55 @@ async function smokeGuardianHandoff(session, step, exceptions) {
                     : 'first-guardian-invitation-desktop.png'
             );
         }
+        const readBirthdayReplayState = () => evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            return {
+                rewards: scene.levelCompletionResult,
+                shipParts: window.GameState.get('hubWorld.shipParts.collected'),
+                physicsPaused: scene.physics.world.isPaused
+            };
+        })()`);
+        const beforeBirthdayReplay = await readBirthdayReplayState();
+        await touchInteractiveSceneText(session, '[ SECRET MESSAGE ]');
+        await touchInteractiveSceneText(session, '[ CONTINUE WITHOUT MESSAGE ]');
+        await touchInteractiveSceneText(session, '[ SECRET MESSAGE ]');
+        const keypadLayout = await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            const texts = scene.birthdayCelebrationElements.filter(item => typeof item.text === 'string');
+            const bounds = texts.map(item => ({ text: item.text, ...item.getBounds() }));
+            return { bounds, width: scene.cameras.main.width, height: scene.cameras.main.height };
+        })()`);
+        if (!keypadLayout.bounds.every(b => b.x >= 0 && b.y >= 0 &&
+            b.x + b.width <= keypadLayout.width && b.y + b.height <= keypadLayout.height)) {
+            throw new Error(`Birthday keypad clips: ${JSON.stringify(keypadLayout)}`);
+        }
+        if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'birthday-question.png');
+        for (const label of ['2', '3', 'ENTER']) await touchInteractiveSceneText(session, label);
+        await waitFor(() => evaluate(session, `window.mythicalGame.scene.getScene('MythicalForestLevel')
+            .birthdayCelebrationElements.some(item => item.text === 'THE FOREST IS STILL LISTENING')`),
+        { timeoutMs: 5000, message: 'wrong birthday answer permits retry' });
+        if (SMOKE_VIEWPORT_WIDTH <= 600) {
+            for (const label of ['7', '7', 'ENTER']) await touchInteractiveSceneText(session, label);
+        } else {
+            for (let digit = 0; digit < 2; digit += 1) {
+                await setKeyboardKey(session, 'keyDown', { key: '7', code: 'Digit7', keyCode: 55 });
+                await setKeyboardKey(session, 'keyUp', { key: '7', code: 'Digit7', keyCode: 55 });
+            }
+            await pressEnter(session);
+        }
+        await waitFor(() => evaluate(session, `window.mythicalGame.scene.getScene('MythicalForestLevel')
+            .birthdayCelebrationElements.some(item => item.text === 'We love you to the void and back.\\nFrom Dad and Rian.' && item.alpha > 0.99)`),
+        { timeoutMs: 10000, message: 'exact family birthday message after 77' });
+        if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'birthday-celebration.png', { settleMs: 1200 });
+        await touchInteractiveSceneText(session, '[ CONTINUE THE CELEBRATION ]');
+        await waitFor(() => evaluate(session, `window.mythicalGame.scene.getScene('MythicalForestLevel')
+            .children.list.some(item => item.text === '[ ENTER SANCTUARY ]' && item.visible)`),
+        { timeoutMs: 5000, message: 'birthday replay returns to rewards' });
+        const afterBirthdayReplay = await readBirthdayReplayState();
+        if (JSON.stringify(beforeBirthdayReplay) !== JSON.stringify(afterBirthdayReplay)) {
+            throw new Error('Birthday replay changed rewards, ship parts or frozen combat state');
+        }
+        console.log('[birthday-replay] skip, retry, 77, exact message, unchanged rewards: pass');
     }
     const returnCta = await touchInteractiveSceneText(
         session,

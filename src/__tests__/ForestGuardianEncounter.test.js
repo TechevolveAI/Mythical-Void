@@ -222,8 +222,8 @@ test.each([true, false])('victory measures wrapped rewards and keeps the exit re
         getBossPowerupRewardCopy: () => 'Energy Crystal SAVED\nRestores 3 crystal energy\nCLEAR A SLOT // RESTOCK LATER IN THE SHOP',
         getGuardianSanctuaryArrivalCopy: () => 'Bloom FREED -> SANCTUARY // Forager',
         getVillageCompletionCopy: () => 'SANCTUARY // Coins +20%\nGuard +1',
-        getLevelModalLayout: () => ({ width: 390, panelWidth: 350, panelHeight: 600, panelX: 20, panelY: 122,
-            contentWidth: 302, y: offset => 122 + offset, font: (_, compact) => `${compact}px`, buttonPadding: { x: 16, y: 10 } }),
+        getLevelModalLayout: () => ({ width: 390, panelWidth: 350, panelHeight: 680, panelX: 20, panelY: 82,
+            contentWidth: 302, y: offset => 82 + offset, font: (_, compact) => `${compact}px`, buttonPadding: { x: 16, y: 10 } }),
         tweens: { add: jest.fn() },
         add: {
             graphics: () => {
@@ -247,10 +247,11 @@ test.each([true, false])('victory measures wrapped rewards and keeps the exit re
     expect(s.completeLevelProgression).toHaveBeenCalledTimes(1);
     expect(texts.some(t => t.text.endsWith('1 successful strike'))).toBe(true);
     expect(texts.at(-1).text).toBe('[ ENTER SANCTUARY ]');
-    expect(texts.length).toBe(firstCompletion ? 8 : 7);
+    expect(texts.some(t => t.text === '[ SECRET MESSAGE ]')).toBe(true);
+    expect(texts.length).toBe(firstCompletion ? 9 : 8);
     for (const [index, text] of texts.entries()) {
-        expect(text.y - text.height / 2).toBeGreaterThanOrEqual(122);
-        expect(text.y + text.height / 2).toBeLessThanOrEqual(722);
+        expect(text.y - text.height / 2).toBeGreaterThanOrEqual(82);
+        expect(text.y + text.height / 2).toBeLessThanOrEqual(762);
         if (index) expect(text.y - text.height / 2).toBeGreaterThan(texts[index - 1].y + texts[index - 1].height / 2);
     }
 });
