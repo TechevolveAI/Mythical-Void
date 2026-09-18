@@ -1,9 +1,10 @@
 import PlatformerLevelScene from '../PlatformerLevelScene.js';
 import { calculateBallisticLaunchVelocity } from '../../systems/TraversalTopology.js';
 import { MOUNTAIN_BOSS_NAME, MOUNTAIN_ASCENT, mountainSteps, mountainStepRise, mountainEmitter } from '../../systems/MountainBossAscent.js';
+import { drawMountainPressureBar } from '../../systems/MountainBossPresentation.js';
 
 const COSMIC_TITAN_TEXTURE = 'cosmicTitan';
-const COSMIC_TITAN_ASSET = '/game/guardians/peak-of-the-mountain.webp';
+const COSMIC_TITAN_ASSET = '/game/guardians/peak-of-the-mountain-cosmic.webp';
 
 const TITAN_ARENA = Object.freeze({
     playerEntryX: 4820,
@@ -1955,7 +1956,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.mountainBody = this.add.image(MOUNTAIN_ASCENT.faceX, MOUNTAIN_ASCENT.faceY, COSMIC_TITAN_TEXTURE)
             .setOrigin(MOUNTAIN_ASCENT.originX, MOUNTAIN_ASCENT.originY)
             .setScale(MOUNTAIN_ASCENT.displayHeight / this.textures.get(COSMIC_TITAN_TEXTURE).getSourceImage().height)
-            .setTint(0x65707D).setDepth(190);
+            .setTint(0x829BAC).setDepth(190);
         const stone = this.add.graphics().setDepth(850);
         this.mountainStone = stone;
         this.mountainSupports = [];
@@ -1967,12 +1968,15 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             platform.removeFromDisplayList();
             this.mountainSupports.push(platform);
             // Joined basalt, not floating ledges: every riser extends into the body.
-            stone.fillStyle(index % 3 === 0 ? 0x343B43 : 0x252B32, 0.96);
+            stone.fillStyle(index % 3 === 0 ? 0x30444C : 0x182930, 0.98);
             stone.fillRect(step.x, step.y, step.width, Math.min(56, step.height));
-            stone.lineStyle(2, 0xA5B5C4, 0.85);
+            stone.fillStyle(0x457785, 0.4);
+            stone.fillTriangle(step.x + 2, step.y + 5, step.x + 13, step.y + 12, step.x + 4, step.y + 30);
+            stone.lineStyle(2, 0xC5DCEC, 0.9);
             stone.lineBetween(step.x, step.y, step.x + step.width, step.y);
-            stone.lineStyle(1, 0x10151D, 0.9);
-            stone.lineBetween(step.x + 3, step.y + 10, step.x + 12, step.y + 23);
+            stone.lineStyle(1, index % 4 === 0 ? 0xD8AC69 : 0x5A9BA4, 0.65);
+            stone.lineBetween(step.x + 3, step.y + 11, step.x + 9, step.y + 19);
+            stone.lineBetween(step.x + 9, step.y + 19, step.x + 6, step.y + 28);
             if (index === 18) platform.traversalId = 'peak-titan-overlook';
         });
         const gate = this.createPlatform(MOUNTAIN_ASCENT.summitX, MOUNTAIN_ASCENT.summitY,
@@ -1982,23 +1986,33 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         gate.setVisible(false);
         gate.removeFromDisplayList();
         this.mountainSupports.push(gate);
-        stone.fillStyle(0x242B34, 1);
+        stone.fillStyle(0x182930, 1);
         stone.fillPoints([
             { x: 4780, y: 400 }, { x: 5200, y: 400 }, { x: 5200, y: 800 },
             { x: 5040, y: 800 }, { x: 4960, y: 535 }, { x: 4780, y: 455 }
         ], true);
-        stone.fillStyle(0x596570, 1);
+        stone.fillStyle(0x243D48, 1);
+        stone.fillTriangle(4790, 422, 4950, 450, 4980, 630);
+        stone.fillStyle(0x325764, 0.7);
+        stone.fillTriangle(5050, 445, 5200, 425, 5100, 685);
+        stone.lineStyle(3, 0xBA965E, 0.65);
+        stone.lineBetween(4920, 425, 5000, 492);
+        stone.lineBetween(5000, 492, 4980, 553);
+        stone.lineStyle(2, 0x79CFD1, 0.55);
+        stone.lineBetween(5040, 432, 5070, 530);
+        stone.lineBetween(5070, 530, 5150, 608);
+        stone.fillStyle(0x6B9EAA, 1);
         stone.fillRect(4780, 400, 420, 12);
         stone.lineStyle(3, 0xE2EAF0, 1);
         stone.lineBetween(4780, 400, 5200, 400);
         for (let i = 0; i < 17; i++) {
             const x = 4790 + i * 24;
-            stone.lineStyle(1, i % 2 ? 0x687581 : 0x111821, 0.8);
+            stone.lineStyle(1, i % 2 ? 0x689CAA : 0x101E27, 0.8);
             stone.lineBetween(x, 416, x + 11, 440 + i % 3 * 12);
         }
         this.mountainName = this.add.text(MOUNTAIN_ASCENT.faceX, 130,
             MOUNTAIN_BOSS_NAME.toUpperCase().replace(' OF ', '\nOF '), {
-                fontSize: '17px', fontStyle: 'bold', color: '#FFFFFF',
+                fontSize: '17px', fontFamily: 'Arial, sans-serif', fontStyle: 'bold', color: '#EDF5FF',
                 stroke: '#17212C', strokeThickness: 4, align: 'center', wordWrap: { width: 190 }
             }).setOrigin(0.5).setDepth(851);
         this.add.text(4350, 712, 'THE PEAK OF THE MOUNTAIN\nFollow the stone steps', {
@@ -2439,8 +2453,9 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.bossBarConfig = { x: barX, y: barY, width: barWidth, height: 18 };
 
         this.bossNameText = this.add.text(width / 2, barY - 30, MOUNTAIN_BOSS_NAME.toUpperCase(), {
-            fontSize: isMobileLayout ? '15px' : '22px',
-            color: '#A9F3E4',
+            fontSize: isMobileLayout ? '17px' : '22px',
+            fontFamily: 'Arial, sans-serif',
+            color: '#EDF5FF',
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 3,
@@ -2476,27 +2491,8 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     updateBossHealthBar() {
         if (!this.bossHealthBar || !this.bossBarConfig) return;
 
-        const {
-            x,
-            y,
-            width: barWidth,
-            height: barHeight
-        } = this.bossBarConfig;
         const ratio = Phaser.Math.Clamp(this.bossHealth / this.bossMaxHealth, 0, 1);
-
-        this.bossHealthBar.clear();
-        this.bossHealthBar.fillStyle(0x000000, 0.72);
-        this.bossHealthBar.fillRoundedRect(x, y, barWidth, barHeight, 9);
-        this.bossHealthBar.fillStyle(0x8B2FC9, 0.95);
-        this.bossHealthBar.fillRoundedRect(
-            x + 2,
-            y + 2,
-            Math.max(0, (barWidth - 4) * ratio),
-            barHeight - 4,
-            7
-        );
-        this.bossHealthBar.lineStyle(2, 0x8FE3CF, 0.85);
-        this.bossHealthBar.strokeRoundedRect(x, y, barWidth, barHeight, 9);
+        drawMountainPressureBar(this.bossHealthBar, this.bossBarConfig, ratio);
         const pressure = Math.max(0, Math.ceil(this.bossHealth));
         this.bossPressureText?.setText(
             pressure > 0

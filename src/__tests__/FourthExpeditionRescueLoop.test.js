@@ -192,7 +192,7 @@ describe('fourth expedition rescue loop', () => {
     test('uses finished Titan artwork with a procedural combat-safe fallback', () => {
         const source = readLevel();
 
-        expect(source).toContain("const COSMIC_TITAN_ASSET = '/game/guardians/peak-of-the-mountain.webp'");
+        expect(source).toContain("const COSMIC_TITAN_ASSET = '/game/guardians/peak-of-the-mountain-cosmic.webp'");
         expect(source).toContain('this.load.image(COSMIC_TITAN_TEXTURE, COSMIC_TITAN_ASSET)');
         expect(source).toContain('this.createTitanTexture()');
         expect(source).toContain('if (this.textures.exists(COSMIC_TITAN_TEXTURE)) return');

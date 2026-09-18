@@ -51,7 +51,7 @@ export const GUARDIAN_OUTCOME_DEFINITIONS = Object.freeze([
         defaultOutcome: 'restored',
         standing: 'regional_guardian',
         sanctuaryPresence: 'none',
-        artwork: '/game/guardians/peak-of-the-mountain.webp',
+        artwork: '/game/guardians/peak-of-the-mountain-cosmic.webp',
         accent: '#DF5D5D',
         regionRole: 'Peak Warning Keeper',
         outcomeLine: 'Holds the restored warning network across the Void Peaks.'

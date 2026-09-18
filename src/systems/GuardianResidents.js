@@ -315,7 +315,7 @@ export const GUARDIAN_RESIDENT_DEFINITIONS = Object.freeze([
         name: 'The Peak of the Mountain',
         role: 'Ridge Keeper',
         kind: 'titan',
-        artwork: '/game/guardians/peak-of-the-mountain.webp',
+        artwork: '/game/guardians/peak-of-the-mountain-cosmic.webp',
         textureKey: 'guardian-resident-cosmic-titan',
         color: 0x202428,
         accent: 0x8FE3CF,

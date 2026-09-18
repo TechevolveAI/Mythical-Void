@@ -77,7 +77,7 @@ test('new name and art retain progression identifiers and the existing reward', 
     expect(source).toContain("id: 'cosmic_titan'");
     expect(source).toContain("shipPartId: 'hull_plating'");
     expect(source).toContain('MOUNTAIN_BOSS_NAME.toUpperCase()');
-    expect(source).toContain('peak-of-the-mountain.webp');
+    expect(source).toContain('peak-of-the-mountain-cosmic.webp');
     expect(source).toContain('this.releaseBossEffect(overlap)');
     expect(source).toContain('this.mountainSupports?.forEach(platform => platform.destroy())');
 });

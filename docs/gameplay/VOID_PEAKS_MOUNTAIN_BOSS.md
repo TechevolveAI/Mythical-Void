@@ -7,6 +7,18 @@ Only Void Peaks' final approach and guardian encounter change. Earlier relays,
 optional routes, saved progression, the rescued resident and Hull Plating reward
 remain. No backend, migration, account, generation-service or audio changes.
 
+The requested whole-level uphill journey is a separate pending terrain change.
+This candidate still changes only the final climb, not the full level layout.
+
+## Cosmic Material Direction
+
+The user's mountain silhouette remains intact. Its surface is now meteoritic black
+stone with star-filled geode fractures, turquoise mineral depth and warm internal
+veins. White caps are pearlescent star-frost, not ordinary Earth snow. Cut-mineral
+stairs and a small crystal-edged health bar share these materials. The boss name
+uses a clearer sans-serif face. No added orbiting objects, aura or decorative HUD
+labels compete with the fight. This is authored, shipped artwork, not live AI.
+
 ## Player Journey
 
 1. Complete the existing three warning beacons and reach the final mountain.
@@ -28,9 +40,12 @@ remain. No backend, migration, account, generation-service or audio changes.
   laser emitters. No general movement changes in the shared platformer scene.
 - `VoidPeaksLevel.js`: art, ascent collision processing, summit staging and boss
   attack presentation. Arcade body history is synchronized at the staged entry.
-- One 1064 x 1000 alpha WebP (238,416 bytes), loaded only with Void Peaks. No live
+- One 1064 x 1000 alpha WebP (333,036 bytes), loaded with Void Peaks. No live
   generation is required. Existing texture key `cosmicTitan` and save/achievement
   ID `cosmic_titan` remain compatibility identifiers, not the new display name.
+- `MountainBossPresentation.js` paints the existing health-bar graphics only;
+  health, hitboxes, coordinates, attacks, input and rewards are unchanged by the
+  cosmic material pass. The previous artwork is retained for comparison/rollback.
 - Invisible step colliders are removed from the display list and explicitly
   destroyed on shutdown. Stone decoration is one batched graphics object.
 - Boss timers, beams and overlap handlers share encounter-owned cleanup.

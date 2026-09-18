@@ -6,7 +6,7 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const root = path.resolve(__dirname, '..');
-const output = path.join(root, '.visual-review/mountain-boss');
+const output = path.resolve(process.env.MOUNTAIN_EVIDENCE_DIR || path.join(root, '.visual-review/mountain-boss'));
 const port = Number(process.env.MOUNTAIN_SMOKE_PORT || 19179);
 const base = `http://127.0.0.1:${port}`;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -99,6 +99,7 @@ async function main() {
                 return { x: s.player.x, bottom: s.player.body.bottom, bossHealth: s.bossHealth, health: s.health,
                     active: s.bossFightActive, ready: s.bossCombatReady, awake: s.mountainAwake,
                     name: s.bossNameText?.text, nameBounds: s.bossNameText?.getBounds(),
+                    bossTexture: { width: s.boss?.width, height: s.boss?.height, displayHeight: s.boss?.displayHeight },
                     effects: s.bossEncounterEffects.size, displayCount: s.children.list.length,
                     bossX: s.boss?.x, bossY: s.boss?.y, bossScale: s.boss?.scaleX };
             });
@@ -137,6 +138,7 @@ async function main() {
             assert(result.walk.every(s => s.bottom <= 802), 'must never fall below the recovery floor');
             assert(Math.abs(result.summit.bottom - 400) < 3, 'summit feet must meet the ledge');
             assert.equal(result.summit.name, 'THE PEAK OF THE MOUNTAIN');
+            assert.deepEqual(result.summit.bossTexture, { width: 1064, height: 1000, displayHeight: 650 }, 'cosmic art preserves the physical scale');
             assert(result.summit.nameBounds.x >= 0 && result.summit.nameBounds.x + result.summit.nameBounds.width <= width, 'name fits screen');
             await page.screenshot({ path: path.join(output, `${device}-summit.png`) });
             await page.waitForFunction(() => window.mythicalGame.scene.getScene('VoidPeaksLevel').bossEncounterEffects.size >= 3, null, { timeout: 8000 });
