@@ -7,6 +7,7 @@ const path = require('path');
 const {
     applyBrowserAudioPolicy
 } = require('./lib/browser-audio-policy.cjs');
+const { smokeRendererArgs } = require('./lib/smoke-renderer-policy.cjs');
 
 const BASE_URL = process.env.MYTHICAL_VOID_SMOKE_URL || 'http://127.0.0.1:8125';
 const CHROME_PATH = process.env.CHROME_PATH ||
@@ -74,8 +75,6 @@ const SMOKE_VIDEO_PATH = process.env.SMOKE_VIDEO_PATH
     ? path.resolve(process.env.SMOKE_VIDEO_PATH)
     : null;
 const SMOKE_VIDEO_FPS = Number(process.env.SMOKE_VIDEO_FPS) || 12;
-const SMOKE_HARDWARE_ACCELERATED_CAPTURE =
-    process.env.SMOKE_HARDWARE_ACCELERATED_CAPTURE === '1';
 let activeTouchPoint = { x: 0, y: 0 };
 let activeTouchIdentifier = null;
 let nextTouchIdentifier = 1;
@@ -1928,6 +1927,20 @@ async function navigate(session, url) {
         () => evaluate(session, 'Boolean(window.mythicalGame?.scene)'),
         { timeoutMs: 15000, message: 'Phaser game boot' }
     );
+    if (process.env.SMOKE_NATIVE_OPENGL === '1') {
+        const renderer = await evaluate(session, `(() => {
+            const game = window.mythicalGame;
+            const gl = game.renderer.gl;
+            const info = gl?.getExtension('WEBGL_debug_renderer_info');
+            return { webgl: game.renderer.type === window.Phaser.WEBGL,
+                name: info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : null,
+                width: game.scale.width, height: game.scale.height };
+        })()`);
+        console.log('[smoke-renderer]', JSON.stringify(renderer));
+        if (!renderer.webgl || !renderer.name || /swiftshader/i.test(renderer.name)) {
+            throw new Error('Native OpenGL smoke did not receive its required WebGL renderer');
+        }
+    }
 }
 
 async function waitForScene(session, sceneName, timeoutMs = 15000) {
@@ -23556,7 +23569,7 @@ async function main() {
     }
     const profileDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mythical-void-cdp-'));
     const chromeArgs = applyBrowserAudioPolicy([
-        '--headless=new',
+        ...smokeRendererArgs(),
         '--enable-webgl',
         '--ignore-gpu-blocklist',
         '--disable-background-timer-throttling',
@@ -23572,9 +23585,6 @@ async function main() {
         `--window-size=${SMOKE_VIEWPORT_WIDTH},${SMOKE_VIEWPORT_HEIGHT}`,
         'about:blank'
     ]);
-    if (!SMOKE_HARDWARE_ACCELERATED_CAPTURE) {
-        chromeArgs.splice(2, 0, '--use-angle=swiftshader', '--enable-unsafe-swiftshader');
-    }
     const chrome = spawn(CHROME_PATH, chromeArgs, {
         stdio: ['ignore', 'ignore', 'ignore']
     });

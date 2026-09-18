@@ -183,8 +183,10 @@ describe('release test gate', () => {
         expect(smoke).toContain('fs.promises.writeFile(');
         expect(smoke).toContain('await Promise.all(capture.pendingFrameWrites);');
         expect(smoke).toContain('Gameplay video frame write failed');
-        expect(smoke).toContain('SMOKE_HARDWARE_ACCELERATED_CAPTURE');
-        expect(smoke).toContain('if (!SMOKE_HARDWARE_ACCELERATED_CAPTURE)');
+        expect(smoke).toContain('...smokeRendererArgs(),');
+        const rendererPolicy = read('scripts/lib/smoke-renderer-policy.cjs');
+        expect(rendererPolicy).toContain("env.SMOKE_HARDWARE_ACCELERATED_CAPTURE === '1'");
+        expect(rendererPolicy).toContain("'--use-angle=swiftshader'");
         expect(capture).toContain(
             "SMOKE_HARDWARE_ACCELERATED_CAPTURE: mode === 'visual-movement'"
         );

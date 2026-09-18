@@ -34,4 +34,6 @@ jobs:
         env:
           CHROME_PATH: /usr/bin/google-chrome
           COMPLETION_EVIDENCE_DIR: /tmp/mythical-completion-evidence
-        run: node scripts/run-completion-flow.cjs
+          SMOKE_NATIVE_OPENGL: '1'
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: xvfb-run -a -s '-screen 0 1280x1024x24' node scripts/run-completion-flow.cjs
