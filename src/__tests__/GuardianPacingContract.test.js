@@ -185,7 +185,7 @@ describe('guardian encounter pacing contracts', () => {
         );
         expect(source).toContain('openingGraceMs: 3000');
         expect(source).toContain(
-            'const COSMIC_TITAN_MOBILE_DISPLAY_HEIGHT = 240;'
+            'this.bossTargetScale = MOUNTAIN_ASCENT.displayHeight / Math.max(1, this.boss.height);'
         );
         expect(source).toContain('this.bossCombatReadyAt = this.time.now;');
         expect(source).toContain('getTitanOpeningCameraCenterX(camera = this.cameras?.main)');

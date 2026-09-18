@@ -43,6 +43,9 @@ async function runCase(name, mode, testCase, width, height) {
         if (code !== 0 || !text.includes(`[smoke-result] ${mode}:${testCase}:pass`)) {
             throw new Error(`${name} failed; ${logPath}\n${text.slice(-5000)}`);
         }
+        for (const line of text.split('\n')) {
+            if (line.startsWith('[smoke-renderer]') || line.startsWith('[guardian-opening]')) console.log(line);
+        }
         console.log(`PASS ${name}`);
         return { name, mode, testCase, width, height, logPath };
     } finally {

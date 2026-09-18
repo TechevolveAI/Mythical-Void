@@ -131,7 +131,7 @@ function loadCampaignLegacy() {
                 crystal_golem: ['Crystal Guardian', 'Resonance Shield'],
                 nyxvoral: ["Nyx'voral", 'Current Passage'],
                 shadow_phoenix: ['Aurora Phoenix', 'Aurora Lift'],
-                cosmic_titan: ['Cosmic Titan', 'Titan Stance'],
+                cosmic_titan: ['The Peak of the Mountain', 'Titan Stance'],
                 void_empress: ['Void Empress', 'Living Convergence']
             };
             const metIds = new Set(guardians.metIds || []);

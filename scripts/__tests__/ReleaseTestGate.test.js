@@ -17,6 +17,21 @@ function findNumberedDuplicates(directory) {
 }
 
 describe('release test gate', () => {
+    test('birthday reveal keeps a bounded simulation clock and exact visible message assertion', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+        const start = source.indexOf('// The reveal uses Phaser tweens:');
+        const end = source.indexOf("'birthday-celebration.png'", start);
+        const check = source.slice(start, end);
+        expect(check).toContain('scene.time.addEvent({ delay: 10000 })');
+        expect(check).toContain('state.elapsed >= 10000');
+        expect(check).toContain('timeoutMs: 60000');
+        expect(check).toContain('We love you to the void and back.');
+        expect(check).toContain('item.alpha > 0.99');
+        expect(check).toContain('finally');
+        expect(check).toContain('scene.birthdayRevealProbe?.remove?.()');
+        expect(check).not.toMatch(/timeScale\s*=|\.step\(/);
+    });
+
     test.each([
         'scripts/run-browser-smoke.js',
         'scripts/smoke-secondary-journeys.js'
@@ -168,8 +183,10 @@ describe('release test gate', () => {
         expect(smoke).toContain('fs.promises.writeFile(');
         expect(smoke).toContain('await Promise.all(capture.pendingFrameWrites);');
         expect(smoke).toContain('Gameplay video frame write failed');
-        expect(smoke).toContain('SMOKE_HARDWARE_ACCELERATED_CAPTURE');
-        expect(smoke).toContain('if (!SMOKE_HARDWARE_ACCELERATED_CAPTURE)');
+        expect(smoke).toContain('...smokeRendererArgs(),');
+        const rendererPolicy = read('scripts/lib/smoke-renderer-policy.cjs');
+        expect(rendererPolicy).toContain("env.SMOKE_HARDWARE_ACCELERATED_CAPTURE === '1'");
+        expect(rendererPolicy).toContain("'--use-angle=swiftshader'");
         expect(capture).toContain(
             "SMOKE_HARDWARE_ACCELERATED_CAPTURE: mode === 'visual-movement'"
         );

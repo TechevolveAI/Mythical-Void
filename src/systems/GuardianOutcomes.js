@@ -47,11 +47,11 @@ export const GUARDIAN_OUTCOME_DEFINITIONS = Object.freeze([
     Object.freeze({
         guardianId: 'cosmic_titan',
         levelId: 'voidPeaks',
-        name: 'Cosmic Titan',
+        name: 'The Peak of the Mountain',
         defaultOutcome: 'restored',
         standing: 'regional_guardian',
         sanctuaryPresence: 'none',
-        artwork: '/game/guardians/cosmic-titan.webp',
+        artwork: '/game/guardians/peak-of-the-mountain-cosmic.webp',
         accent: '#DF5D5D',
         regionRole: 'Peak Warning Keeper',
         outcomeLine: 'Holds the restored warning network across the Void Peaks.'

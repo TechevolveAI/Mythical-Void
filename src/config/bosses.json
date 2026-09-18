@@ -461,9 +461,9 @@
 
     "cosmicTitan": {
         "id": "cosmic_titan",
-        "name": "COSMIC TITAN",
+        "name": "THE PEAK OF THE MOUNTAIN",
         "level": "void_peaks",
-        "description": "An ancient being from beyond the void, the final guardian before the stars.",
+        "description": "A living mountain of black stone and snowy peaks. Climb its body to face it at the summit.",
 
         "stats": {
             "maxHealth": 15,
@@ -551,7 +551,7 @@
 
         "messages": {
             "intro": "⚠ THE COSMOS TREMBLES ⚠",
-            "defeat": "✨ COSMIC TITAN RESTORED ✨"
+            "defeat": "✨ THE PEAK OF THE MOUNTAIN RESTORED ✨"
         },
 
         "rewards": {

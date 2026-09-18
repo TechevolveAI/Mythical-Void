@@ -1429,7 +1429,7 @@ export default class HubWorldScene extends Phaser.Scene {
             stellar_reef: { difficulty: '⭐⭐⭐', boss: "Nyx'voral", reward: 'Dimensional Drive', desc: 'Cosmic underwater realm' },
             crystal_caves: { difficulty: '⭐⭐', boss: 'Crystal Golem', reward: 'Crystal Core', desc: 'Crystalline underground maze' },
             mythical_forest: { difficulty: '⭐⭐', boss: 'Elder Treant', reward: 'Forest Core', desc: 'Ancient woodland between the stars' },
-            void_peaks: { difficulty: '⭐⭐⭐⭐', boss: 'Cosmic Titan', reward: 'Hull Plating', desc: 'Treacherous mountain peaks' },
+            void_peaks: { difficulty: '⭐⭐⭐⭐', boss: 'The Peak of the Mountain', reward: 'Hull Plating', desc: 'Climb a living mountain' },
             aurora_depths: { difficulty: '⭐⭐⭐⭐⭐', boss: 'Shadow Phoenix', reward: 'Aurora Reactor', desc: 'Deepest cosmic abyss' },
             final_void: { difficulty: '⭐⭐⭐⭐⭐', boss: 'Void Empress', reward: 'Command Module', desc: 'The final frontier beyond reality' }
         };
