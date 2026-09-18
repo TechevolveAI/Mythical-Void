@@ -7146,12 +7146,18 @@ class MythicalForestLevel extends PlatformerLevelScene {
         const keyButtons = [];
 
         let closing = false;
-        const finish = callback => {
-            if (closing) return;
+        let successTimer;
+        const cleanup = () => {
             closing = true;
-            keyButtons.forEach(button => button.disableInteractive?.());
+            successTimer?.remove?.();
+            window.removeEventListener('keydown', onKeyDown);
+            this.events.off('shutdown', cleanup);
             elements.forEach(element => element?.destroy?.());
             this.birthdayCelebrationElements = [];
+        };
+        const finish = callback => {
+            if (closing) return;
+            cleanup();
             if (!physicsWasPaused && this.physics?.world) {
                 this.physics.resume();
             }
@@ -7159,13 +7165,23 @@ class MythicalForestLevel extends PlatformerLevelScene {
         };
 
         const submitAnswer = async () => {
-            if (checking || !answer) return;
+            if (closing || checking || !answer) return;
             checking = true;
             keyButtons.forEach(button => button.disableInteractive?.());
-            const correct = await isCaydenBirthdayAnswer(answer);
+            let correct;
+            try {
+                correct = await isCaydenBirthdayAnswer(answer);
+            } catch {
+                if (closing) return;
+                feedback.setColor('#FFFFFF').setText('Please try again, or continue.');
+                keyButtons.forEach(button => button.setInteractive({ useHandCursor: true }));
+                checking = false;
+                return;
+            }
+            if (closing) return;
             if (correct) {
                 feedback.setColor('#F2C14E').setText('THE FOREST REMEMBERS');
-                this.time.delayedCall(420, () => finish(onSuccess));
+                successTimer = this.time.delayedCall(420, () => finish(onSuccess));
                 return;
             }
             answer = '';
@@ -7174,6 +7190,25 @@ class MythicalForestLevel extends PlatformerLevelScene {
             keyButtons.forEach(button => button.setInteractive({ useHandCursor: true }));
             checking = false;
         };
+
+        const enterKey = label => {
+            if (closing || checking) return;
+            if (label === 'BACK') answer = answer.slice(0, -1);
+            else if (label === 'ENTER') { void submitAnswer(); return; }
+            else if (/^\d$/.test(label) && answer.length < 4) answer += label;
+            updateAnswer();
+        };
+        const onKeyDown = event => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                finish(onSkip);
+            } else if (/^\d$/.test(event.key) || ['Backspace', 'Enter'].includes(event.key)) {
+                event.preventDefault();
+                enterKey({ Backspace: 'BACK', Enter: 'ENTER' }[event.key] || event.key);
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        this.events.once('shutdown', cleanup);
 
         keyRows.forEach((row, rowIndex) => {
             row.forEach((label, columnIndex) => {
@@ -7191,22 +7226,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                     .setScrollFactor(0)
                     .setDepth(depth + 3)
                     .setInteractive({ useHandCursor: true });
-                button.on('pointerdown', () => {
-                    if (checking) return;
-                    if (label === 'BACK') {
-                        answer = answer.slice(0, -1);
-                        updateAnswer();
-                        return;
-                    }
-                    if (label === 'ENTER') {
-                        submitAnswer();
-                        return;
-                    }
-                    if (answer.length < 4) {
-                        answer += label;
-                        updateAnswer();
-                    }
-                });
+                button.on('pointerdown', () => enterKey(label));
                 keyButtons.push(button);
                 elements.push(button);
             });
@@ -7230,7 +7250,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
     }
 
     /**
-     * A time-limited family celebration after the Elder Treant is restored.
+     * A replayable family celebration after the Elder Treant is restored.
      * It uses only existing runtime actors so the moment cannot be blocked by
      * hosted image or video generation.
      */
@@ -7457,6 +7477,17 @@ class MythicalForestLevel extends PlatformerLevelScene {
         });
 
         let closing = false;
+        const cleanup = () => {
+            closing = true;
+            this.input.keyboard?.off?.('keydown-ENTER', closeCelebration);
+            this.input.keyboard?.off?.('keydown-SPACE', closeCelebration);
+            this.events.off('shutdown', cleanup);
+            elements.forEach(element => {
+                this.tweens.killTweensOf(element);
+                element?.destroy?.();
+            });
+            this.birthdayCelebrationElements = [];
+        };
         const closeCelebration = () => {
             if (closing) return;
             closing = true;
@@ -7466,8 +7497,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 alpha: 0,
                 duration: 350,
                 onComplete: () => {
-                    elements.forEach(element => element?.destroy?.());
-                    this.birthdayCelebrationElements = [];
+                    cleanup();
                     if (!physicsWasPaused && this.physics?.world) {
                         this.physics.resume();
                     }
@@ -7478,6 +7508,26 @@ class MythicalForestLevel extends PlatformerLevelScene {
         continueButton.on('pointerdown', closeCelebration);
         this.input.keyboard?.once?.('keydown-ENTER', closeCelebration);
         this.input.keyboard?.once?.('keydown-SPACE', closeCelebration);
+        this.events.once('shutdown', cleanup);
+    }
+
+    replayForestBirthdayMessage(resultElements) {
+        if (this.birthdayCelebrationElements.length) return false;
+        // Keep the existing result and rewards. Enter must submit the number,
+        // not trigger the result screen's keyboard shortcut to the Sanctuary.
+        if (this.levelCompletionKeyHandler) {
+            window.removeEventListener('keydown', this.levelCompletionKeyHandler);
+        }
+        resultElements.forEach(element => element.setVisible(false));
+        const restoreResult = () => {
+            resultElements.forEach(element => element.setVisible(true));
+            this.bindLevelCompletionReturn();
+        };
+        this.showCaydenBirthdayQuestion({
+            onSuccess: () => this.showCaydenBirthdayCelebration({ onComplete: restoreResult }),
+            onSkip: restoreResult
+        });
+        return true;
     }
 
     /**
@@ -7491,7 +7541,7 @@ class MythicalForestLevel extends PlatformerLevelScene {
         this.combatJuice?.comboDisplay?.setVisible?.(false);
         this.combatJuice?.comboMultiplierDisplay?.setVisible?.(false);
 
-        const layout = this.getLevelModalLayout({ maxWidth: 480, maxHeight: 600 });
+        const layout = this.getLevelModalLayout({ maxWidth: 480, maxHeight: 680 });
         const {
             width, panelWidth, panelHeight, panelX, panelY,
             contentWidth, y, font, buttonPadding
@@ -7640,6 +7690,15 @@ class MythicalForestLevel extends PlatformerLevelScene {
                 invitationInProgress = false;
             });
         }
+
+        const birthdayBtn = this.add.text(width / 2, y(420), '[ SECRET MESSAGE ]', {
+            fontSize: font(16, 14),
+            color: '#F2C14E',
+            padding: buttonPadding
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(2502)
+            .setInteractive({ useHandCursor: true });
+        remember(birthdayBtn);
+        birthdayBtn.on('pointerdown', () => this.replayForestBirthdayMessage([panel, ...summary]));
 
         // Continue button
         const continueBtn = this.add.text(width / 2, y(440), '[ ENTER SANCTUARY ]', {
