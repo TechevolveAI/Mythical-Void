@@ -17,6 +17,21 @@ function findNumberedDuplicates(directory) {
 }
 
 describe('release test gate', () => {
+    test('birthday reveal keeps a bounded simulation clock and exact visible message assertion', () => {
+        const source = read('scripts/smoke-secondary-journeys.js');
+        const start = source.indexOf('// The reveal uses Phaser tweens:');
+        const end = source.indexOf("'birthday-celebration.png'", start);
+        const check = source.slice(start, end);
+        expect(check).toContain('scene.time.addEvent({ delay: 10000 })');
+        expect(check).toContain('state.elapsed >= 10000');
+        expect(check).toContain('timeoutMs: 60000');
+        expect(check).toContain('We love you to the void and back.');
+        expect(check).toContain('item.alpha > 0.99');
+        expect(check).toContain('finally');
+        expect(check).toContain('scene.birthdayRevealProbe?.remove?.()');
+        expect(check).not.toMatch(/timeScale\s*=|\.step\(/);
+    });
+
     test.each([
         'scripts/run-browser-smoke.js',
         'scripts/smoke-secondary-journeys.js'

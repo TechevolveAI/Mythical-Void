@@ -14653,9 +14653,32 @@ async function smokeGuardianHandoff(session, step, exceptions) {
             }
             await pressEnter(session);
         }
-        await waitFor(() => evaluate(session, `window.mythicalGame.scene.getScene('MythicalForestLevel')
-            .birthdayCelebrationElements.some(item => item.text === 'We love you to the void and back.\\nFrom Dad and Rian.' && item.alpha > 0.99)`),
-        { timeoutMs: 10000, message: 'exact family birthday message after 77' });
+        // The reveal uses Phaser tweens: preserve its 10s simulation budget
+        // even on CI's slow software renderer, without advancing game time.
+        await evaluate(session, `(() => {
+            const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+            scene.birthdayRevealProbe = scene.time.addEvent({ delay: 10000 });
+        })()`);
+        try {
+            await waitFor(async () => {
+                const state = await evaluate(session, `(() => {
+                    const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                    return {
+                        elapsed: scene.birthdayRevealProbe.getElapsed(),
+                        ready: scene.birthdayCelebrationElements.some(item =>
+                            item.text === 'We love you to the void and back.\\nFrom Dad and Rian.' && item.alpha > 0.99)
+                    };
+                })()`);
+                if (state.elapsed >= 10000) throw new Error('Birthday reveal exceeded 10s simulation budget');
+                return state.ready;
+            }, { timeoutMs: 60000, message: 'exact family birthday message after 77' });
+        } finally {
+            await evaluate(session, `(() => {
+                const scene = window.mythicalGame.scene.getScene('MythicalForestLevel');
+                scene.birthdayRevealProbe?.remove?.();
+                delete scene.birthdayRevealProbe;
+            })()`);
+        }
         if (SMOKE_CAPTURE_DIR) await captureGameplayStill(session, 'birthday-celebration.png', { settleMs: 1200 });
         await touchInteractiveSceneText(session, '[ CONTINUE THE CELEBRATION ]');
         await waitFor(() => evaluate(session, `window.mythicalGame.scene.getScene('MythicalForestLevel')
