@@ -8,7 +8,8 @@ const { chromium } = require('playwright');
 const root = path.resolve(__dirname, '..');
 const output = path.resolve(process.env.MOUNTAIN_EVIDENCE_DIR || path.join(root, '.visual-review/mountain-boss'));
 const port = Number(process.env.MOUNTAIN_SMOKE_PORT || 19179);
-const base = `http://127.0.0.1:${port}`;
+const externalUrl = String(process.env.MOUNTAIN_SMOKE_URL || '').trim().replace(/\/+$/, '');
+const base = externalUrl || `http://127.0.0.1:${port}`;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 let browser, server, cleaning;
 async function cleanup() {
@@ -26,16 +27,19 @@ const deadline = setTimeout(async () => { await cleanup(); process.exit(1); }, 1
 
 async function main() {
     fs.mkdirSync(output, { recursive: true });
-    server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'],
-        { cwd: root, env: { ...process.env, BROWSER: 'none' }, stdio: 'ignore' });
+    if (!externalUrl) {
+        server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'],
+            { cwd: root, env: { ...process.env, BROWSER: 'none' }, stdio: 'ignore' });
+    }
     for (let i = 0; i < 100; i++) {
-        if (server.exitCode !== null) throw Error('Preview failed');
+        if (server && server.exitCode !== null) throw Error('Preview failed');
         try { if ((await fetch(base + '/play/')).ok) break; } catch {}
         await delay(100);
     }
     const evidence = {
         sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
         sourceStatus: execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim(),
+        testedUrl: base,
         fullPlaythrough: false, stagedApproach: true, muted: true, publicationAuthorized: false, cases: []
     };
     try {
