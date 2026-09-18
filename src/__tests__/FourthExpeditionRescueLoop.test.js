@@ -60,7 +60,7 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain('RIDGE FALLING. TITAN HOLDING LINE.');
         expect(source).toContain('THREE SETTLEMENTS ANSWER');
         expect(source).toContain('They want it saved.');
-        expect(source).toContain('Light 3 warning beacons. Then free the Cosmic Titan.');
+        expect(source).toContain('Light 3 warning beacons. Then climb the living mountain.');
         expect(source).toContain('`[ BEACON ] ${resume.label} link restored`');
         expect(source).toContain('this.creatureNetworkReached = true');
         expect(source).toContain('this.playCreatureWarningResponse(relay)');
@@ -94,10 +94,10 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain(
             'this.broadcastTitanWarning(attack, attackTarget)'
         );
-        expect(source).toContain('NETWORK WARNING // GROUND IMPACT - MOVE');
-        expect(source).toContain('NETWORK WARNING // STAR RAIN - KEEP MOVING');
-        expect(source).toContain('NETWORK WARNING // TITAN LUNGE - BREAK RANGE');
-        expect(source).toContain('NETWORK WARNING // SINGULARITY - CLEAR THE FIELD');
+        expect(source).toContain('Summit laser! Move away from the line');
+        expect(source).toContain('Side peaks! Keep moving');
+        expect(source).toContain('Three quick lasers! Dodge');
+        expect(source).toContain('All peaks! Watch the flashes');
         expect(source).toContain('const TITAN_ATTACK_WINDUP = 700;');
         expect(source).toContain(
             'this.time.delayedCall(TITAN_ATTACK_WINDUP'
@@ -115,7 +115,7 @@ describe('fourth expedition rescue loop', () => {
         )?.[1] || '';
 
         expect(gate).toContain('if (!this.creatureNetworkReached)');
-        expect(gate).toContain('Titan Pass is closed. Light all 3 warning beacons.');
+        expect(gate).toContain('Light all 3 warning beacons first.');
         expect(gate).toContain('return;');
     });
 
@@ -184,7 +184,7 @@ describe('fourth expedition rescue loop', () => {
 
         expect(startBoss).toContain('this.physics.pause()');
         expect(source).toContain('this.physics.resume()');
-        expect(source).toContain('if (!marker.active || this.bossDefeated)');
+        expect(source).toContain('if (!this.boss?.active || this.bossDefeated || !this.player?.body) return null;');
         expect(source).toContain('if (this.bossDefeated) return;');
         expect(defeatBoss).toContain('this.boss.body.enable = false');
     });
@@ -192,14 +192,14 @@ describe('fourth expedition rescue loop', () => {
     test('uses finished Titan artwork with a procedural combat-safe fallback', () => {
         const source = readLevel();
 
-        expect(source).toContain("const COSMIC_TITAN_ASSET = '/game/guardians/cosmic-titan.webp'");
+        expect(source).toContain("const COSMIC_TITAN_ASSET = '/game/guardians/peak-of-the-mountain.webp'");
         expect(source).toContain('this.load.image(COSMIC_TITAN_TEXTURE, COSMIC_TITAN_ASSET)');
         expect(source).toContain('this.createTitanTexture()');
         expect(source).toContain('if (this.textures.exists(COSMIC_TITAN_TEXTURE)) return');
-        expect(source).toContain('COSMIC_TITAN_DISPLAY_HEIGHT /');
-        expect(source).toContain('this.boss.width * 0.4');
-        expect(source).toContain('this.boss.height * 0.66');
-        expect(source).toContain('this.bossTargetScale *');
+        expect(source).toContain('MOUNTAIN_ASCENT.displayHeight /');
+        expect(source).toContain('this.boss.width * 0.20');
+        expect(source).toContain('this.boss.height * 0.20');
+        expect(source).toContain('this.boss.setScale(this.bossTargetScale)');
     });
 
     test('uses responsive restoration language for the Titan encounter', () => {
@@ -228,9 +228,9 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain("'TITAN >'");
         expect(source).toContain("'< TITAN'");
         expect(source).toContain('this.bossIndicator?.setVisible?.(false)');
-        expect(source).toContain('WARNING LINE ONLINE // WATCH FOR ATTACK CALLS');
+        expect(source).toContain('Watch the snowy peaks flash');
         expect(source).toContain('TITAN ROUTE STABLE');
-        expect(source).toContain('COSMIC TITAN RESTORED');
+        expect(source).toContain('`${MOUNTAIN_BOSS_NAME.toUpperCase()}\\nRESTORED`');
         expect(source).toContain('WARNING NETWORK RESTORED');
         expect(source).toContain("Titan's Gift: Hull Plating");
         expect(source).not.toContain('COSMIC TITAN CONQUERED');
@@ -239,7 +239,7 @@ describe('fourth expedition rescue loop', () => {
     test('frames the Titan encounter as relieving pressure from an allied guardian', () => {
         const source = readLevel();
 
-        expect(source).toContain('COSMIC TITAN // HOLDING THE LINE');
+        expect(source).toContain('MOUNTAIN_BOSS_NAME.toUpperCase()');
         expect(source).toContain('VOID PRESSURE // ${pressure}/${this.bossMaxHealth}');
         expect(source).toContain('VOID PRESSURE // CLEARED');
         expect(source).toContain('`PRESSURE -${finalAmount}`');

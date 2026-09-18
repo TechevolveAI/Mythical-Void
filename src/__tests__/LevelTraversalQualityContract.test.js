@@ -1674,7 +1674,7 @@ describe('campaign traversal quality contracts', () => {
         ['levels/MythicalForestLevel.js', "title: 'ELDER GROVE'"],
         ['levels/CrystalCavesLevel.js', "title: 'GUARDIAN CHAMBER'"],
         ['levels/ReefLevel.js', "title: 'STELLAR PASSAGE'"],
-        ['levels/VoidPeaksLevel.js', "title: 'TITAN PASS'"],
+        ['levels/VoidPeaksLevel.js', "title: 'MOUNTAIN SUMMIT'"],
         ['levels/AuroraDepthsLevel.js', "title: 'PHOENIX SHIELD'"],
         ['levels/FinalVoidLevel.js', "title: 'EMPRESS SEAL'"]
     ])('%s has a visible, stateful guardian entrance', (relativePath, title) => {
