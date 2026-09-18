@@ -46,16 +46,25 @@ async function main() {
         for (const [device, width, height] of [['phone', 390, 844], ['desktop', 1280, 720]]) {
             browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--mute-audio'] });
             const page = await browser.newPage({ viewport: { width, height }, isMobile: device === 'phone', hasTouch: device === 'phone', serviceWorkers: 'block' });
-            const result = { device, errors: [], externalRequests: [] };
+            const result = { device, errors: [], externalRequests: [], previewPanelBlocks: [] };
             evidence.cases.push(result);
             page.on('pageerror', e => result.errors.push(e.message));
-            page.on('console', m => { if (m.type() === 'error') result.errors.push(m.text()); });
+            page.on('console', m => {
+                if (m.type() !== 'error') return;
+                const message = m.text();
+                // Match the existing smoke suite's preview-only Netlify panel exception.
+                if (/^deploy-preview-\d+--[^.]+\.netlify\.app$/.test(new URL(base).hostname) &&
+                    message.startsWith("Framing 'https://app.netlify.com/' violates the following Content Security Policy directive:")) {
+                    result.previewPanelBlocks.push(message);
+                } else result.errors.push(message);
+            });
             await page.route('**/*', route => {
                 const url = new URL(route.request().url());
                 if (url.origin !== base) { result.externalRequests.push(url.origin + url.pathname); return route.abort(); }
                 return route.continue();
             });
             await page.addInitScript(() => {
+                if (window !== window.top) return;
                 localStorage.setItem('audioMuted', 'true');
                 localStorage.setItem('mythical_void_age_confirmed', 'true');
                 localStorage.setItem('mythical_void_age_group', 'age_18_plus');
