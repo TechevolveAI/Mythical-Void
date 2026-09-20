@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import biomeConfigs from '../../config/biomes.json';
 import SanctuaryZones from './SanctuaryZones.js';
 import { createLivingWorkshop } from './RepairerResident.js';
+import { createDecorativeFlag, syncRescueWelcomeFlag } from './DecorativeFlags.js';
 import { FEND_RESIDENT_DEFINITIONS } from '../FendResidents.js';
 import {
     GUARDIAN_RESIDENT_DEFINITIONS,
@@ -184,6 +185,11 @@ class WorldBuilder {
         crashedShip.body.setOffset(20, 40);
         crashedShip.landmarkId = 'crashedShip';
         crashedShip.landmarkData = landmarks.crashedShip;
+        createDecorativeFlag(this.scene, {
+            x: crashedShip.x + 34, y: crashedShip.y - 52, width: 36,
+            poleHeight: 34, depth: crashedShip.depth + 1,
+            owner: crashedShip, placement: 'ship'
+        });
 
         // Create hub portal (mystical gate to other worlds) at the bottom
         this.graphicsEngine.createHubPortal();
@@ -9521,6 +9527,7 @@ class WorldBuilder {
         const rescuedIds = new Set(
             snapshot?.rescued?.map(resident => resident.id) || []
         );
+        syncRescueWelcomeFlag(this.scene, garden, rescuedIds.size);
         const arrivalSeenIds = new Set(
             snapshot?.state?.sanctuaryArrivalSeenIds || []
         );

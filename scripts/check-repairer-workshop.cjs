@@ -6,7 +6,8 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const root = path.resolve(__dirname, '..');
-const output = path.join(root, '.visual-review/repairer-implementation');
+const flagsOnly = process.env.CHECK_DECORATIVE_FLAGS === '1';
+const output = path.join(root, '.visual-review', flagsOnly ? 'decorative-flags' : 'repairer-implementation');
 const port = 19181;
 const origin = `http://127.0.0.1:${port}`;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -113,6 +114,15 @@ async function run() {
                 await page.waitForTimeout(200);
             }
             assert.notEqual(phases[0], phases[1], 'resident really works rather than a static portrait on the map');
+            if (flagsOnly) {
+                result.flags = await require('./capture-decorative-flags.cjs')(page, { device, output });
+                assert.deepEqual(result.errors, []);
+                assert.deepEqual(result.failedResponses, []);
+                assert.deepEqual(result.externalRequests, []);
+                result.passed = true;
+                await context.close();
+                continue;
+            }
             await page.evaluate(() => window.mythicalGame.scene.getScene('GameScene').openShop());
             await page.waitForFunction(() => window.mythicalGame.scene.isActive('ShopScene') && window.mythicalGame.scene.getScene('ShopScene').workbenchButton);
             await page.screenshot({ path: path.join(output, `${device}-shop.png`) });

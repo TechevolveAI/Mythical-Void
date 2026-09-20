@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { createDecorativeFlag } from './DecorativeFlags.js';
 
 function shape(g, color, points, alpha = 1) {
     g.fillStyle(color, alpha);
@@ -123,6 +124,10 @@ export function createLivingWorkshop(scene, shop) {
         stroke: '#263c3c', strokeThickness: 2
     }).setOrigin(0.5).setDepth(shop.y + 3);
     shop.repairer = resident;
+    createDecorativeFlag(scene, {
+        x: shop.x - 80, y: shop.y - 38, width: 26, poleHeight: 17,
+        depth: shop.y + 3, owner: shop, placement: 'repairer-stall'
+    });
     const cleanup = () => {
         resident.destroy(); counter.destroy(); sign.destroy();
         shop.off('destroy', cleanup);
