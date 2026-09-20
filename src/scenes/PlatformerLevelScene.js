@@ -430,6 +430,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this._levelContentCreated = false;
         this._levelProgressionRecorded = false;
         this.levelCompletionResult = null;
+        this.completionPresentationShown = false;
         this.levelCompletionActive = false;
         this.levelCompletionKeyHandler = null;
         this.companionMediaRequest = 0;
@@ -788,6 +789,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this._levelContentCreated = false;
         this._levelProgressionRecorded = false;
         this.levelCompletionResult = null;
+        this.completionPresentationShown = false;
         this.levelCompletionActive = false;
         this.companionMediaRequest += 1;
         this.companionRescueTableau?.destroy?.();
@@ -9346,7 +9348,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         katanaUpgradeId = null,
         speedrunThreshold = 0,
         bondExperience = 10,
-        rewardBonusCount = 0
+        rewardBonusCount = 0,
+        deferPresentation = false
     } = {}) {
         if (!achievementLevelId) {
             console.warn('[PlatformerLevel] Cannot record completion without an achievement level ID');
@@ -9668,6 +9671,13 @@ class PlatformerLevelScene extends Phaser.Scene {
             firstCompletion: !wasCompleted
         };
 
+        if (!deferPresentation) this.presentLevelCompletion();
+        return this.levelCompletionResult;
+    }
+
+    presentLevelCompletion() {
+        if (!this.levelCompletionResult || this.completionPresentationShown) return false;
+        this.completionPresentationShown = true;
         const residentReleaseShown = this.showRescuedResidentReleaseMoment(
             this.levelCompletionResult.rescuedResident
         );
@@ -9697,7 +9707,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             );
         }
 
-        return this.levelCompletionResult;
+        return true;
     }
 
     /**

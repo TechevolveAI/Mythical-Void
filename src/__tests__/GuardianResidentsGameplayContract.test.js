@@ -42,9 +42,10 @@ describe('Guardian resident gameplay contract', () => {
         expect(platformer).toContain('${resident.name} FREED -> SANCTUARY');
         expect(platformer).toContain('REGIONAL OUTCOME // ${guardian.name}');
         completionLevels.forEach(level => {
-            expect(level).toContain(
-                'this.getGuardianSanctuaryArrivalCopy({ compact: true })'
-            );
+            if (level.includes('class VoidPeaksLevel')) {
+                expect(level).toContain('this.presentLevelCompletion()');
+                expect(level).toContain('this.pendingResidentReleaseContinuation = () => this.returnToHub()');
+            } else expect(level).toContain('this.getGuardianSanctuaryArrivalCopy({ compact: true })');
         });
     });
 

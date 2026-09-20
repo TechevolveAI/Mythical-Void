@@ -265,6 +265,26 @@ describe('PlatformerLevelScene completion progression', () => {
         };
     });
 
+    test('deferred celebration saves the complete result and presents the resident only once later', () => {
+        const scene = new PlatformerLevelScene({ key: 'VoidPeaksLevel', levelId: 'void_peaks_1' });
+        scene.physics = { pause: jest.fn() };
+        scene.player = { setVelocity: jest.fn() };
+        scene.hidePlatformerMobileControls = jest.fn();
+        scene.showCompanionGuardianRescueTableau = jest.fn();
+        const result = scene.completeLevelProgression({
+            achievementLevelId: 'voidPeaks', shipPartId: 'hull_plating', deferPresentation: true
+        });
+        expect(gameState.get('levels.voidPeaks.completed')).toBe(true);
+        expect(gameState.get('hubWorld.shipParts.collected')).toContain('hull_plating');
+        expect(gameState.save).toHaveBeenCalledTimes(1);
+        expect(scene.showRescuedResidentReleaseMoment).not.toHaveBeenCalled();
+        expect(scene.presentLevelCompletion()).toBe(true);
+        expect(scene.presentLevelCompletion()).toBe(false);
+        expect(scene.showRescuedResidentReleaseMoment).toHaveBeenCalledTimes(1);
+        expect(scene.completeLevelProgression({ achievementLevelId: 'voidPeaks' })).toBe(result);
+        expect(gameState.save).toHaveBeenCalledTimes(1);
+    });
+
     test('records reward, badge state, unique completion stats, and bond progress once per run', () => {
         const scene = new PlatformerLevelScene({
             key: 'AuroraDepthsLevel',

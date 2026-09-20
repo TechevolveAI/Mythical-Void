@@ -197,9 +197,8 @@ describe('guardian encounter pacing contracts', () => {
         expect(source).toMatch(
             /beginTitanCombat[\s\S]*camera\.panEffect\?\.reset\?\.\(\);[\s\S]*camera\.stopFollow\(\);/
         );
-        expect(source).toMatch(
-            /performTitanAttack[\s\S]*this\.releaseTitanOpeningCameraFraming\(\);[\s\S]*this\.titanAttackLocked = true;/
-        );
+        expect(source).not.toContain('this.releaseTitanOpeningCameraFraming();');
+        expect(source).toContain('this.player.x - camera.width * 0.32');
         expect(source).toContain('this.clearGuardianGateState();');
         expect(source).toMatch(
             /beginTitanCombat[\s\S]*this\.physics\.resume\(\);[\s\S]*this\.showPlatformerMobileControls\(\);[\s\S]*this\.startTitanAttackLoop\(\);/
