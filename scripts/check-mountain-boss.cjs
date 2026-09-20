@@ -5,6 +5,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
+const { runMountainAscent } = require('./lib/mountain-ascent-journey.cjs');
+const { runMountainWaveChecks, runMountainCompletion } = require('./lib/mountain-completion-journey.cjs');
+const { runMountainCheckpointRestart } = require('./lib/mountain-checkpoint-restart.cjs');
+const ascentJourney = process.env.MOUNTAIN_ASCENT_JOURNEY === '1';
 const root = path.resolve(__dirname, '..');
 const output = path.resolve(process.env.MOUNTAIN_EVIDENCE_DIR || path.join(root, '.visual-review/mountain-boss'));
 const port = Number(process.env.MOUNTAIN_SMOKE_PORT || 19179);
@@ -23,7 +27,7 @@ async function cleanup() {
     })();
 }
 for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, async () => { await cleanup(); process.exit(1); });
-const deadline = setTimeout(async () => { await cleanup(); process.exit(1); }, 180000);
+const deadline = setTimeout(async () => { await cleanup(); process.exit(1); }, ascentJourney ? 420000 : 180000);
 
 async function main() {
     fs.mkdirSync(output, { recursive: true });
@@ -44,6 +48,7 @@ async function main() {
     };
     try {
         for (const [device, width, height] of [['phone', 390, 844], ['desktop', 1280, 720]]) {
+            if (process.env.MOUNTAIN_SMOKE_DEVICE && process.env.MOUNTAIN_SMOKE_DEVICE !== device) continue;
             browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--mute-audio'] });
             const page = await browser.newPage({ viewport: { width, height }, isMobile: device === 'phone', hasTouch: device === 'phone', serviceWorkers: 'block' });
             const result = { device, errors: [], externalRequests: [], previewPanelBlocks: [] };
@@ -88,12 +93,30 @@ async function main() {
                     genes: profile.genes, genetics: profile.genes, dna: profile.dna, lifecycle: { ...state.get('creature.lifecycle'), stage: 'adult' } };
                 state.set('creature', creature); state.set('creatures', [creature]); state.set('activeCreatureIndex', 0);
                 state.set('tutorial.controlsSeen', true); state.set('tutorial.crashStorySeen', true);
+                // Ordinary entry comes from the hub, so preserve that scene dependency in this staged fixture.
+                await window.SceneLoader.loadScene(game, 'HubWorldScene');
                 await window.SceneLoader.loadScene(game, 'VoidPeaksLevel');
                 game.scene.start('VoidPeaksLevel');
             }, profile);
             await page.waitForFunction(() => window.mythicalGame.scene.getScene('VoidPeaksLevel')?.levelEntryKeyHandler);
             await page.keyboard.press('Enter');
-            await page.waitForTimeout(1000);
+            await page.waitForTimeout(3600);
+            result.opening = await page.evaluate(() => {
+                const s = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+                const source = s.textures.get('peak-meteor-stone').getSourceImage();
+                return { displayCount: s.children.list.length, activeTweens: s.tweens.getTweens().length,
+                    materialWidth: source.width, materialHeight: source.height, physicsHeight: s.physics.world.bounds.height };
+            });
+            assert.equal(result.opening.materialWidth, 512);
+            assert.equal(result.opening.materialHeight, 512);
+            if (device === 'phone') {
+                assert(result.opening.displayCount <= 165, 'retain the existing mobile ambient display budget');
+                assert(result.opening.activeTweens <= 10, 'retain the existing mobile ambient tween budget');
+            }
+            if (ascentJourney) {
+                result.ascent = await runMountainAscent(page, device, output);
+                result.checkpointRestart = await runMountainCheckpointRestart(page, device, output);
+            }
             await page.evaluate(() => {
                 const s = window.mythicalGame.scene.getScene('VoidPeaksLevel');
                 s.beaconRelaysActivated = 3; s.creatureNetworkReached = true;
@@ -110,6 +133,7 @@ async function main() {
             const snapshot = () => page.evaluate(() => {
                 const s = window.mythicalGame.scene.getScene('VoidPeaksLevel');
                 return { x: s.player.x, bottom: s.player.body.bottom, bossHealth: s.bossHealth, health: s.health,
+                    guardCharges: s.optionalRouteGuardCharges,
                     active: s.bossFightActive, ready: s.bossCombatReady, awake: s.mountainAwake,
                     name: s.bossNameText?.text, nameBounds: s.bossNameText?.getBounds(),
                     bossTexture: { width: s.boss?.width, height: s.boss?.height, displayHeight: s.boss?.displayHeight },
@@ -158,7 +182,8 @@ async function main() {
             await page.screenshot({ path: path.join(output, `${device}-lasers.png`) });
             await page.waitForTimeout(1200);
             result.attack = await snapshot();
-            assert(result.attack.health < result.summit.health, 'standing on the warned target causes a real laser hit');
+            assert(result.attack.health < result.summit.health || result.attack.guardCharges < result.summit.guardCharges,
+                'standing on the warned target causes real damage or consumes the earned shield');
             result.repair = await page.evaluate(() => {
                 const s = window.mythicalGame.scene.getScene('VoidPeaksLevel');
                 s.player.y += 40; s.player.body.updateFromGameObject(); s.keepMountainArenaGrounded();
@@ -171,6 +196,7 @@ async function main() {
                 s.titanWarningTimer?.remove(); s.clearBossEncounterTimers(); s.clearBossEncounterEffects();
                 s.health = s.maxHealth; s.player.facingRight = false;
             });
+            result.lowWave = await runMountainWaveChecks(page, device, output);
             const before = (await snapshot()).bossHealth;
             if (device === 'phone') {
                 const point = await page.evaluate(() => {
@@ -183,15 +209,22 @@ async function main() {
             await page.waitForTimeout(650);
             result.rangedHit = await snapshot();
             assert(result.rangedHit.bossHealth < before, 'normal projectile reaches the mountain face from the ledge');
-            await page.evaluate(() => window.mythicalGame.scene.getScene('VoidPeaksLevel').damageBoss(100));
+            result.finalHit = await page.evaluate(() => {
+                const s = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+                s.damageBoss(100);
+                return { completed: window.GameState.get('levels.voidPeaks.completed'),
+                    resultShown: s.peakResultShown, reward: s.levelCompletionResult };
+            });
+            assert.equal(result.finalHit.completed, true, 'final hit records victory before animation');
+            assert.equal(result.finalHit.resultShown, false, 'persistence does not wait for the result panel');
             await page.waitForTimeout(2000);
             result.defeat = await snapshot();
             assert.equal(result.defeat.effects, 0, 'defeat retires lasers and their overlaps');
-            await page.evaluate(() => window.mythicalGame.scene.stop('VoidPeaksLevel'));
+            result.completion = await runMountainCompletion(page, device, output);
             await page.waitForTimeout(300);
             assert.deepEqual(result.errors, []);
             assert.deepEqual(result.externalRequests, []);
-            console.log(`PASS ${device}: staircase, summit, lasers, real ranged hit and cleanup`);
+            console.log(`PASS ${device}: ascent, summit, lasers, jumpable wave, ranged hit, reward, rescue and return`);
             await browser.close(); browser = null;
         }
         evidence.pass = true;

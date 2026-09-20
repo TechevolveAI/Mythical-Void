@@ -2,6 +2,8 @@ const fs = require('fs');
 const path = require('path');
 
 const levelPath = path.join(__dirname, '../scenes/levels/VoidPeaksLevel.js');
+const routeSource = fs.readFileSync(path.join(__dirname, '../systems/VoidPeaksRoute.js'), 'utf8');
+const route = new Function(`${routeSource.replace(/^export /gm, '')}; return { PEAK_RELAYS };`)();
 
 function readLevel() {
     return fs.readFileSync(levelPath, 'utf8');
@@ -31,20 +33,19 @@ describe('fourth expedition rescue loop', () => {
     test('places three localized warning relays with safe checkpoints', () => {
         const source = readLevel();
 
-        expect(source).toContain("id: 'peaks_relay_1'");
-        expect(source).toContain("id: 'peaks_relay_2'");
-        expect(source).toContain("id: 'peaks_relay_3'");
+        expect(source).toContain('const relays = PEAK_RELAYS');
+        expect(route.PEAK_RELAYS.map(r => r.id)).toEqual(['peaks_relay_1', 'peaks_relay_2', 'peaks_relay_3']);
         expect(source).toContain(
-            'this.createObjectiveTriggerZone(\n                relay.x,\n                relay.y - 35,\n                { width: 150, height: 190 }'
+            'this.createObjectiveTriggerZone(\n                support.x,\n                relay.y - 35,\n                { width: support.body.width, height: 190 }'
         );
-        expect(source).toContain("activationSupportIds: ['peak-lower-relay-overlook']");
-        expect(source).toContain("activationSupportIds: ['peak-warning-lower']");
-        expect(source).toContain("activationSupportIds: ['peak-summit-relay']");
+        expect(route.PEAK_RELAYS.map(r => r.activationSupportIds[0])).toEqual([
+            'peak-lower-relay-overlook', 'peak-warning-lower', 'peak-summit-relay'
+        ]);
         expect(source).toContain('this.isPlayerGroundedOnTraversalSupport(');
         expect(source).toContain('this.getTraversalSupportCheckpoint(');
-        expect(source).toContain('WARNING BEACON\\nLAND HERE');
-        expect(source).toContain('LAND ON THE LIT PLATFORM');
-        expect(source).toContain('WARNING BEACON ${this.beaconRelaysActivated}/3 LIT');
+        expect(source).toContain('`${index + 1} / 3`');
+        expect(source).toContain('Land by the light');
+        expect(source).toContain('Climb saved');
         expect(source).toContain("activationSupportIds: ['peak-titan-gate']");
         expect(source).toContain("this.isPlayerGroundedOnTraversalSupport('peak-titan-gate')");
     });
@@ -56,12 +57,12 @@ describe('fourth expedition rescue loop', () => {
         )?.[1] || '';
 
         expect(source).toContain('const companionName = this.getCompanionName()');
-        expect(source).toContain('Warning sent. Stay close.');
-        expect(source).toContain('RIDGE FALLING. TITAN HOLDING LINE.');
+        expect(source).toContain('The mountain can feel us.');
+        expect(source).toContain('Keep climbing. We need your help!');
         expect(source).toContain('THREE SETTLEMENTS ANSWER');
         expect(source).toContain('They want it saved.');
-        expect(source).toContain('Light 3 warning beacons. Then climb the living mountain.');
-        expect(source).toContain('`[ BEACON ] ${resume.label} link restored`');
+        expect(source).toContain('Reach the summit. The mountain is alive.');
+        expect(source).toContain('`Continue from ${resume.label}`');
         expect(source).toContain('this.creatureNetworkReached = true');
         expect(source).toContain('this.playCreatureWarningResponse(relay)');
         expect(source).toContain('relay.label?.setVisible?.(false)');
@@ -94,10 +95,10 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain(
             'this.broadcastTitanWarning(attack, attackTarget)'
         );
-        expect(source).toContain('Summit laser! Move away from the line');
-        expect(source).toContain('Side peaks! Keep moving');
-        expect(source).toContain('Three quick lasers! Dodge');
-        expect(source).toContain('All peaks! Watch the flashes');
+        expect(source).toContain('Laser! Move off the line');
+        expect(source).toContain('Low wave! Jump over it');
+        expect(source).toContain('Left, right, left! Keep moving');
+        expect(source).toContain('Dodge, then jump!');
         expect(source).toContain('const TITAN_ATTACK_WINDUP = 700;');
         expect(source).toContain(
             'this.time.delayedCall(TITAN_ATTACK_WINDUP'
@@ -105,7 +106,7 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain(
             'this.executeTitanAttack(attack, attackTarget)'
         );
-        expect(source).toContain('RECOVERY WINDOW // PRESS THE ATTACK');
+        expect(source).toContain('Your turn! Strike the face');
     });
 
     test('keeps Titan Pass closed until the warning network answers', () => {
@@ -146,16 +147,16 @@ describe('fourth expedition rescue loop', () => {
         const source = readLevel();
 
         expect(source).toContain(
-            "mainTradeoff: 'SHORT + RISKY\\nEARNS: TITAN SURGE // 1 FREE BLAST'"
+            "mainTradeoff: 'Extra blast'"
         );
         expect(source).toContain(
-            "challengeLabel: 'HIGH RIDGE // 2 RELICS, FEWER GUARDS'"
+            "challengeLabel: 'EXTRA SHIELD'"
         );
         expect(source).toContain('titanSurgeCharges: this.peakRouteChoice');
         expect(source).toContain('this.freeSpecialAttackCharges += 1');
         expect(source).toContain('this.retireUnavailablePeakRouteFragments()');
-        expect(source).toContain('TITAN SURGE // 1 FREE BLAST READY');
-        expect(source).toContain('TITAN SURGE // FREE BLAST SPENT');
+        expect(source).toContain('titanSurgeCharges: this.peakRouteChoice');
+        expect(source).toContain('ridgeGuardCharges: this.peakRouteChoice');
         expect(source).toContain('onFreeSpecialAttackConsumed()');
         expect(source).toContain('this.refreshPersistedExpeditionRouteState()');
     });
@@ -214,9 +215,8 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain('Math.min(225, height * 0.28)');
         expect(source).toContain('y: toastY - 20');
         expect(source).toContain('this.createCampaignObjectiveDisplay(');
-        expect(source).toContain('WARNING BEACON ${current}/3');
-        expect(source).toContain("compass?.replace(/^CLUE/, 'CLIMB')");
-        expect(source).toContain('TITAN PASS IS OPEN');
+        expect(source).toContain('REACH THE SUMMIT  ${this.beaconRelaysActivated}/3');
+        expect(source).toContain('SUMMIT AHEAD');
         expect(source).toContain(
             '(this.isCompactObjectiveHUD && this.bossFightActive) ||'
         );
@@ -230,9 +230,10 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain('this.bossIndicator?.setVisible?.(false)');
         expect(source).toContain('Watch the snowy peaks flash');
         expect(source).toContain('TITAN ROUTE STABLE');
-        expect(source).toContain('`${MOUNTAIN_BOSS_NAME.toUpperCase()}\\nRESTORED`');
-        expect(source).toContain('WARNING NETWORK RESTORED');
-        expect(source).toContain("Titan's Gift: Hull Plating");
+        expect(source).toContain('THE MOUNTAIN IS FREE');
+        expect(source).toContain('Hull Plating recovered');
+        expect(source).toContain("returnBtn.on('pointerup', continueJourney)");
+        expect(source).toContain('this.layoutCampaignEntryContent(layout, [heading, title, detail, saved, returnBtn]');
         expect(source).not.toContain('COSMIC TITAN CONQUERED');
     });
 
@@ -252,8 +253,8 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain('const TITAN_ATTACK_WINDOWS = Object.freeze({');
         expect(source).toContain('gravityCrush: 1800');
         expect(source).toContain('starRain: 2600');
-        expect(source).toContain('voidPunch: 1500');
-        expect(source).toContain('singularity: 1800');
+        expect(source).toContain('voidPunch: 2600');
+        expect(source).toContain('singularity: 3000');
         expect(source).toContain('this.titanAttackLocked');
         expect(source).toContain('const attackWindow = TITAN_ATTACK_WINDOWS[attack] || 1800');
         expect(source).toContain('this.titanAttackUnlockTimer = this.time.delayedCall(');

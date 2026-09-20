@@ -305,7 +305,7 @@ describe('persistent expedition resume presentation', () => {
             );
             expect(source).toContain('this.getExpeditionResumePresentation()');
             expect(source).toContain('RESUME EXPEDITION');
-            expect(source).toContain('link restored');
+            expect(source).toContain(fileName === 'VoidPeaksLevel.js' ? 'Continue from ${resume.label}' : 'link restored');
         });
     });
 });

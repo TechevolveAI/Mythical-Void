@@ -49,7 +49,7 @@ describe('late guardian pacing contracts', () => {
         expect(attack).toContain(
             'TITAN_ATTACK_WINDUP + attackWindow + TITAN_RECOVERY_WINDOW'
         );
-        expect(warning).toContain('RECOVERY WINDOW // PRESS THE ATTACK');
+        expect(warning).toContain('Your turn! Strike the face');
     });
 
     test('Cosmic Titan phase changes cancel pressure and provide a safe reset', () => {
@@ -60,7 +60,7 @@ describe('late guardian pacing contracts', () => {
         expect(phase).toContain('this.titanAttackLocked = true;');
         expect(phase).toContain('this.clearBossEncounterTimers();');
         expect(phase).toContain('this.clearBossEncounterEffects();');
-        expect(phase).toContain('PHASE ${nextPhase} // PRESSURE SHIFT - RECOVER');
+        expect(phase).toContain('The peaks are shifting. Catch your breath!');
         expect(phase).toContain(
             'this.time.delayedCall(TITAN_PHASE_RECOVERY'
         );

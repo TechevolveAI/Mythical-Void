@@ -66,6 +66,11 @@ describe('level registry coverage', () => {
             } else if (sceneKey === 'MythicalForestLevel') {
                 expect(levelSource).toContain('[ ENTER SANCTUARY ]');
                 expect(levelSource).toContain('this.returnToHub()');
+            } else if (sceneKey === 'VoidPeaksLevel') {
+                expect(levelSource).toContain("'CONTINUE'");
+                expect(levelSource).toContain('this.presentLevelCompletion()');
+                expect(levelSource).toContain('this.pendingResidentReleaseContinuation = () => this.returnToHub()');
+                expect(levelSource).not.toContain('this.returnToSanctuary()');
             } else {
                 expect(levelSource).toContain('[ RETURN TO HUB ]');
                 expect(levelSource).toContain('this.returnToHub()');

@@ -1415,17 +1415,16 @@ describe('campaign traversal quality contracts', () => {
         expect(source).not.toContain('this.spawnLureWraiths();');
     });
 
-    test('Void Peaks separates recovery islands and rewards Relic Ridge', () => {
-        const source = read('levels/VoidPeaksLevel.js');
+    test('Void Peaks connects recovery terraces and rewards Relic Ridge', () => {
+        const source = read('levels/VoidPeaksLevel.js') + read('../systems/VoidPeaksRoute.js');
 
-        expect(source).toContain('const relicRidge = [');
-        expect(source).toContain("title: 'RELIC RIDGE'");
+        expect(source).toContain('PEAK_ROUTE.forEach');
+        expect(source).toContain("title: 'HIGH RIDGE'");
         expect(source).toContain("rewardLabel: 'RIDGE GUARD // 1 HIT'");
         expect(source).toContain("returnLabel: 'WARNING LINE →'");
         expect(source).toContain("this.grantOptionalRouteGuard('RIDGE GUARD', 1);");
-        expect(source).toContain('{ x: 620, width: 360 }');
-        expect(source).toContain("[2730, 300, 'peaks_relic_ridge']");
-        expect(source).toContain("[3000, 235, 'peaks_relic_ridge']");
+        expect(source).toContain("[2730, 945, 'peaks_relic_ridge']");
+        expect(source).toContain("[3000, 850, 'peaks_relic_ridge']");
         expect(source).toContain("onOptionalSelected: () => this.selectPeakRoute('optional')");
         expect(source).toContain('const PEAK_ENCOUNTER_PLAN = Object.freeze([');
         expect(source).toContain("beat: 'opening-clear'");
@@ -1433,16 +1432,16 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("beat: 'titan-overlook'");
         expect(source).toContain("supportId: 'peak-opening-step'");
         expect(source).toContain(
-            "[300, groundY - 145, 210, 'solid', 'peak-opening-step']"
+            "[300, 1930, 300, 'solid', 'peak-opening-step']"
         );
         expect(source).toContain(
-            "[600, groundY - 245, 180, 'solid', 'peak-opening-rise']"
+            "[600, 1820, 260, 'solid', 'peak-opening-rise']"
         );
         expect(source).toContain(
-            "[980, groundY - 150, 460, 'solid', 'peak-lower-relay-overlook']"
+            "[1080, 1600, 480, 'solid', 'peak-lower-relay-overlook']"
         );
         expect(source).toContain("supportId: 'peak-floor-summit'");
-        expect(source).toContain("supportId: 'peak-titan-overlook'");
+        expect(source).toContain("supportId: 'peak-summit-relay'");
         expect(source).toContain("lane: 'main'");
         expect(source).not.toContain("lane: 'optional'");
         expect(source).toContain('enemy.encounterBeat = encounter.beat;');
@@ -1453,12 +1452,12 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain('retirePeakPatrolsForTitan()');
         expect(source).toContain('this.retireRouteEnemies(patrols);');
         expect(source).toContain('this.retirePeakPatrolsForTitan();');
-        expect(source).toContain("mainLabel: 'LOW WARNING LINE →'");
+        expect(source).toContain("mainLabel: 'QUICK CLIMB'");
         expect(source).toContain(
-            "mainTradeoff: 'SHORT + RISKY\\nEARNS: TITAN SURGE // 1 FREE BLAST'"
+            "mainTradeoff: 'Extra blast'"
         );
         expect(source).toContain(
-            "challengeLabel: 'HIGH RIDGE // 2 RELICS, FEWER GUARDS'"
+            "challengeLabel: 'EXTRA SHIELD'"
         );
         expect(source).toContain('peakFragmentMask: this.peakCollectedFragmentMask');
         expect(source).toContain('restorePeakRouteState(resume.routeState');
@@ -1466,9 +1465,9 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("const fragments = [...(this.collectibles?.getChildren?.() || [])]");
         expect(source).toContain('onOptionalRouteGuardConsumed()');
         expect(source).toContain('createPeakReturnCurrents()');
-        expect(source).toContain("'RETURN CURRENT\\nTO WARNING LINE ↑'");
-        expect(source).toContain("lowerRecoveryIsland.traversalLinks = ['peak-warning-lower']");
-        expect(source).toContain("summitRecoveryIsland.traversalLinks = ['peak-warning-summit']");
+        expect(source).toContain("'UPDRAFT'");
+        expect(source).toContain("if (id === 'peak-floor-lower') platform.traversalLinks = ['peak-warning-lower']");
+        expect(source).toContain("if (id === 'peak-floor-summit') platform.traversalLinks = ['peak-warning-summit']");
         expect(source).toContain('const PEAK_RETURN_CURRENT_LAUNCH_BAND = 130;');
         expect(source).toContain('const descendingIntoCurrent = body.velocity.y >= -20;');
         expect(source).toContain(
@@ -1486,9 +1485,9 @@ describe('campaign traversal quality contracts', () => {
         expect(source).toContain("active.phase = 'settle'");
         expect(source).toContain('if (this.isPlayerDead || this.isRespawning)');
         expect(source).toContain('platform.traversalId = id;');
-        expect(source).toContain("arrivalGround.traversalId = 'peak-ground-arrival'");
-        expect(source).toContain("lowerRelayGround.traversalId = 'peak-ground-lower-relay'");
-        expect(source).toContain("titanGround.traversalId = 'peak-ground-titan-pass'");
+        expect(source).toContain("'peak-ground-arrival'");
+        expect(source).toContain("'peak-ground-lower-relay'");
+        expect(source).toContain("'peak-ground-titan-pass'");
         expect(source).toContain("'peak-lower-relay-overlook'");
         expect(source).toContain("'peak-summit-relay'");
         expect(source).toContain("'peak-relic-ridge-1'");
@@ -1960,9 +1959,9 @@ describe('campaign traversal quality contracts', () => {
         [
             'levels/VoidPeaksLevel.js',
             "id: 'peaks_relic_ridge'",
-            "mainLabel: 'LOW WARNING LINE →'",
-            "mainTradeoff: 'SHORT + RISKY\\nEARNS: TITAN SURGE // 1 FREE BLAST'",
-            "challengeLabel: 'HIGH RIDGE // 2 RELICS, FEWER GUARDS'"
+            "mainLabel: 'QUICK CLIMB'",
+            "mainTradeoff: 'Extra blast'",
+            "challengeLabel: 'EXTRA SHIELD'"
         ],
         [
             'levels/AuroraDepthsLevel.js',
@@ -2801,7 +2800,9 @@ describe('campaign traversal quality contracts', () => {
 
         expect(source).toContain('this.canActivateOrderedRouteSignal(');
         expect(source).toContain('this.refreshOrderedRouteSignals(');
-        expect(source).toContain('this.getOrderedRouteCompassText()');
+        if (relativePath === 'levels/VoidPeaksLevel.js') {
+            expect(source).toContain('REACH THE SUMMIT  ${this.beaconRelaysActivated}/3');
+        } else expect(source).toContain('this.getOrderedRouteCompassText()');
     });
 
     test('Stellar Reef visibly links its spawn to the first drift signal', () => {

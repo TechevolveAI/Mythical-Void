@@ -7,9 +7,11 @@ const { MOUNTAIN_ASCENT, MOUNTAIN_BOSS_NAME, mountainSteps, mountainStepRise, mo
 )();
 const source = fs.readFileSync(path.join(__dirname, '../scenes/levels/VoidPeaksLevel.js'), 'utf8');
 const declaration = parse(source, { sourceType: 'module' }).program.body.find(n => n.type === 'ClassDeclaration');
+const patterns = fs.readFileSync(path.join(__dirname, '../systems/MountainBossPatterns.js'), 'utf8');
+const mountainAttackPlan = new Function(`${patterns.replace(/^export /gm, '')}; return mountainAttackPlan;`)();
 function method(name) {
     const n = declaration.body.body.find(n => n.key?.name === name);
-    return new Function('MOUNTAIN_ASCENT', `return ({${source.slice(n.start, n.end)}}).${name};`)(MOUNTAIN_ASCENT);
+    return new Function('MOUNTAIN_ASCENT', 'mountainAttackPlan', `return ({${source.slice(n.start, n.end)}}).${name};`)(MOUNTAIN_ASCENT, mountainAttackPlan);
 }
 
 test('25 joined, small stone steps connect the floor exactly to the summit', () => {
@@ -49,7 +51,9 @@ test('lasers originate at the central snowy peak and both arm tips, not the face
     expect(right.x).toBeGreaterThan(top.x + 200);
     expect(left.y).toBeLessThan(200);
     expect(right.y).toBeLessThan(200);
-    expect(method('getMountainAttackEmitters').call({}, 'singularity')).toEqual(['summit', 'left', 'right']);
+    expect(method('getMountainAttackEmitters').call({}, 'voidPunch')).toEqual(['left', 'right']);
+    expect(method('getMountainAttackEmitters').call({}, 'singularity')).toEqual(['summit']);
+    expect(method('getMountainAttackEmitters').call({}, 'starRain')).toEqual([]);
 });
 
 test('phase changes cannot move or resize the terrain boss', () => {
@@ -80,4 +84,27 @@ test('new name and art retain progression identifiers and the existing reward', 
     expect(source).toContain('peak-of-the-mountain-cosmic.webp');
     expect(source).toContain('this.releaseBossEffect(overlap)');
     expect(source).toContain('this.mountainSupports?.forEach(platform => platform.destroy())');
+});
+
+test('final hit commits rewards before effects, and an interrupted tween cannot lose victory', () => {
+    const order = [];
+    const s = {
+        completeLevelProgression: jest.fn(() => order.push('save')),
+        clearBossEncounterTimers: jest.fn(), clearBossEncounterEffects: jest.fn(),
+        showFloatingText: jest.fn(),
+        scheduleGuardianTransition: jest.fn(),
+        tweens: { add: jest.fn(() => order.push('animation')) }
+    };
+    method('defeatBoss').call(s);
+    method('defeatBoss').call(s);
+    expect(s.completeLevelProgression).toHaveBeenCalledTimes(1);
+    expect(s.completeLevelProgression).toHaveBeenCalledWith({
+        achievementLevelId: 'voidPeaks', shipPartId: 'hull_plating',
+        speedrunThreshold: 180000, deferPresentation: true
+    });
+    expect(order[0]).toBe('save');
+    expect(s.scheduleGuardianTransition).toHaveBeenCalledWith(
+        'peaks-saved-victory', 1800, expect.any(Function)
+    );
+    expect(s.tweens.add.mock.calls[0][0].onComplete).toBeUndefined();
 });
