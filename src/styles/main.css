@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "../ui/ExpeditionDebriefPanel.css";
+@import "../ui/RepairerWorkbench.css";
 
 /* Custom CSS Variables for Mythical Void Theme */
 @theme {

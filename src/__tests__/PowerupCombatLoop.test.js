@@ -106,6 +106,7 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
             'const ExpeditionAstronaut = class {};'
         )
         .replace("import '../systems/ProjectBeaconFieldKit.js';", '')
+        .replace("import { createDecorativeFlag } from '../systems/world/DecorativeFlags.js';", '')
         .replace(
             "import { getCampaignEntryStackLayout, getCampaignObjectiveLayout, getMobileControlLayout, getSafeAreaInsets } from '../systems/MobileControlLayout.js';",
             'const getCampaignEntryStackLayout = () => ({ positions: [], overflow: 0 });\n' +

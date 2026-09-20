@@ -19,6 +19,7 @@ import {
 import { companionMediaService } from '../systems/CompanionMediaService.js';
 import { getVillageGameplayEffects, getVillageSupportSummary } from '../systems/VillageSettlement.js';
 import { resolveTextureContactGeometry } from '../systems/CreatureContactGeometry.js';
+import { createDecorativeFlag } from '../systems/world/DecorativeFlags.js';
 
 const BOSS_REWARD_KEY_BY_LEVEL = Object.freeze({
     crystalCaves: 'crystalGolem',
@@ -9146,6 +9147,14 @@ class PlatformerLevelScene extends Phaser.Scene {
         cage.setScrollFactor(0).setDepth(depth + 4);
         elements.push(cage);
 
+        // A small welcome flag belongs to the rescue, not to the prison bars.
+        const welcomeFlag = createDecorativeFlag(this, {
+            x: artX + artSize * 0.4, y: artY + artSize * 0.42 - (compact ? 30 : 40),
+            width: compact ? 24 : 32, poleHeight: compact ? 30 : 40,
+            depth: depth + 4, scrollFactor: 0, placement: 'rescue-welcome'
+        }).setAlpha(0);
+        elements.push(welcomeFlag);
+
         const titleX = compact ? centerX : width * 0.06;
         const shortCompact = compact && height < 620;
         const titleY = compact
@@ -9225,6 +9234,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.time.delayedCall(700, () => {
             if (!this.residentReleaseOpen) return;
             this.tweens.add({ targets: cage, alpha: 0, scaleX: 1.35, duration: 500 });
+            this.tweens.add({ targets: welcomeFlag, alpha: 1, delay: 500, duration: 350 });
             if (artwork) {
                 this.tweens.add({ targets: artwork, alpha: 1, duration: 700 });
             }
