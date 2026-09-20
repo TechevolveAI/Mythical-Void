@@ -1,6 +1,8 @@
 # Void Peaks: the mountain you climb
 
-Status: private implementation; visual approval and production release pending.
+Status: implementation verified; Kevin authorised normal review and deployment
+on 2026-09-20 for continued testing. Production confirmation is pending the
+protected PR and deployment checks. Human visual/difficulty approval is separate.
 Baseline: e558954d25f7832fd8143f8d80356bd7ed3d1d67.
 
 ## Player promise
@@ -47,7 +49,9 @@ build guard shared contracts. Muted real-browser evidence distinguishes ordinary
 traversal from staged boss tests; no physical-device or human-art approval is
 inferred from emulation. All owned browsers and servers close after verification.
 
-Stop before production for a concise review of the exact changes and evidence.
+The private review handoff is complete. Follow the protected PR and production
+verification process under Kevin's subsequent deployment authorisation; do not
+interpret passing checks as human visual approval.
 
 ## Implemented candidate
 
@@ -98,4 +102,6 @@ human difficulty approval or approval of the existing creature art.
 
 Next human review: judge pacing with patrols present, the shield/blast tradeoff,
 reaction time on a real phone and the final mountain art. No other realm, backend,
-save migration, public website or production deployment is part of this candidate.
+save migration or marketing publication is part of this candidate. For the
+subsequently authorised gameplay release, use
+`docs/testing/HUMAN_PLAYTEST_GUIDE.md` to guide real-device and family testing.
