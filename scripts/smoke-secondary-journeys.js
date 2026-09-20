@@ -8,6 +8,7 @@ const {
     applyBrowserAudioPolicy
 } = require('./lib/browser-audio-policy.cjs');
 const { smokeRendererArgs } = require('./lib/smoke-renderer-policy.cjs');
+const { smokePageReady } = require('./lib/smoke-page-readiness.cjs');
 
 const BASE_URL = process.env.MYTHICAL_VOID_SMOKE_URL || 'http://127.0.0.1:8125';
 const CHROME_PATH = process.env.CHROME_PATH ||
@@ -1918,14 +1919,13 @@ async function navigate(session, url) {
     }
     await session.call('HeapProfiler.enable').catch(() => null);
     await session.call('HeapProfiler.collectGarbage').catch(() => null);
+    // Page.navigate may return before the old document disappears. Its completed
+    // readyState and a late game boot must never satisfy the next page's gate.
+    await evaluate(session, 'window.__mythicalSmokeLeavingDocument = true');
     await session.call('Page.navigate', { url });
     await waitFor(
-        () => evaluate(session, 'document.readyState === "complete"'),
-        { message: `page load ${url}` }
-    );
-    await waitFor(
-        () => evaluate(session, 'Boolean(window.mythicalGame?.scene)'),
-        { timeoutMs: 15000, message: 'Phaser game boot' }
+        () => evaluate(session, `(${smokePageReady.toString()})(window)`),
+        { timeoutMs: 15000, message: `new document and Phaser renderer ready ${url}` }
     );
     if (process.env.SMOKE_NATIVE_OPENGL === '1') {
         const renderer = await evaluate(session, `(() => {
