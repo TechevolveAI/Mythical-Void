@@ -130,3 +130,10 @@ test('expired attack callbacks cannot destroy a Phaser collider twice after reco
     expect(scene.bossEncounterEffects.size).toBe(0);
     effects.forEach(effect => expect(effect.destroy).toHaveBeenCalledTimes(1));
 });
+
+test('restoring the climb does not replay oversized story or control hints', () => {
+    expect(source).toContain('if (!this.checkpointResumeApplied) this.showObjectiveToast()');
+    expect(source).toContain('this.showDistantReplyNetwork(relay, { announce: false })');
+    expect(source).not.toContain('THREE SETTLEMENTS ANSWER');
+    expect(source).not.toContain('They are warning you about the Titan. They want it saved.');
+});

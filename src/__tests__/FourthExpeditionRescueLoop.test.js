@@ -59,8 +59,8 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain('const companionName = this.getCompanionName()');
         expect(source).toContain('The mountain can feel us.');
         expect(source).toContain('Keep climbing. We need your help!');
-        expect(source).toContain('THREE SETTLEMENTS ANSWER');
-        expect(source).toContain('They want it saved.');
+        expect(source).toContain("this.showFloatingText('It heard us!'");
+        expect(source).toContain('Free the Peak of the Mountain.');
         expect(source).toContain('Reach the summit. The mountain is alive.');
         expect(source).toContain('`Continue from ${resume.label}`');
         expect(source).toContain('this.creatureNetworkReached = true');

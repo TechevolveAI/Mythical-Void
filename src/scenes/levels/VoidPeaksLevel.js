@@ -453,7 +453,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         console.log('[VoidPeaksLevel] Starting level');
         this.createPeakAtmosphere();
         this.showPlatformerMobileControls();
-        this.showObjectiveToast();
+        if (!this.checkpointResumeApplied) this.showObjectiveToast();
     }
 
     setupCamera() {
@@ -800,7 +800,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         current.activations += 1;
         current.lastLiftAt = now;
         this.showFloatingText(
-            'RETURN CURRENT // WARNING LINE',
+            'Back up!',
             current.x,
             this.player.y - 55,
             '#8FE3CF'
@@ -1428,7 +1428,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
             onRestored: (relay, restoredCount) => {
                 this.refreshSignalRouteReadability();
                 if (restoredCount === this.beaconRelays.length) {
-                    this.showDistantReplyNetwork(relay);
+                    this.showDistantReplyNetwork(relay, { announce: false });
                 }
                 this.syncCampaignObjectiveDisplay();
             }
@@ -1836,7 +1836,7 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         this.creatureWarningResponse = null;
     }
 
-    showDistantReplyNetwork(relay) {
+    showDistantReplyNetwork(relay, { announce = true } = {}) {
         const lineLayer = this.add.graphics();
         lineLayer.setDepth(175);
         lineLayer.lineStyle(2, 0x8FE3CF, 0.42);
@@ -1862,22 +1862,11 @@ class VoidPeaksLevel extends PlatformerLevelScene {
         });
         this.replySignals.push(lineLayer);
 
-        this.time.delayedCall(600, () => {
-            this.showFloatingText(
-                `THREE SETTLEMENTS ANSWER ${this.getCompanionName().toUpperCase()}`,
-                relay.x,
-                relay.y - 150,
-                '#F2C94C'
-            );
-        });
-        this.time.delayedCall(1500, () => {
-            this.showFloatingText(
-                'They are warning you about the Titan. They want it saved.',
-                relay.x,
-                relay.y - 185,
-                '#D6EEF2'
-            );
-        });
+        if (announce) {
+            this.time.delayedCall(600, () => {
+                this.showFloatingText('It heard us!', relay.x, relay.y - 150, '#F2C94C');
+            });
+        }
     }
 
     createTitanGate() {
