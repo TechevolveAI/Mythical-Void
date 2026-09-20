@@ -9,6 +9,7 @@ const { runMountainAscent } = require('./lib/mountain-ascent-journey.cjs');
 const { runMountainWaveChecks, runMountainCompletion } = require('./lib/mountain-completion-journey.cjs');
 const { runMountainCheckpointRestart } = require('./lib/mountain-checkpoint-restart.cjs');
 const ascentJourney = process.env.MOUNTAIN_ASCENT_JOURNEY === '1';
+const jumpToSummit = process.env.MOUNTAIN_SUMMIT_ENTRY === 'jump';
 const root = path.resolve(__dirname, '..');
 const output = path.resolve(process.env.MOUNTAIN_EVIDENCE_DIR || path.join(root, '.visual-review/mountain-boss'));
 const port = Number(process.env.MOUNTAIN_SMOKE_PORT || 19179);
@@ -44,7 +45,8 @@ async function main() {
         sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(),
         sourceStatus: execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }).trim(),
         testedUrl: base,
-        fullPlaythrough: false, stagedApproach: true, muted: true, publicationAuthorized: false, cases: []
+        fullPlaythrough: false, stagedApproach: true, summitEntry: jumpToSummit ? 'jump' : 'walk',
+        muted: true, publicationAuthorized: false, cases: []
     };
     try {
         for (const [device, width, height] of [['phone', 390, 844], ['desktop', 1280, 720]]) {
@@ -125,9 +127,23 @@ async function main() {
                 s.player.y += 799 - s.player.body.bottom; s.player.body.updateFromGameObject();
                 for (const key of ['prev', 'prevFrame', 'autoFrame']) s.player.body[key]?.copy?.(s.player.body.position);
                 s.player.setVelocity(0, 0);
+                // Observe the real attack clock without forcing an attack. A wave
+                // can hit the entry position and retire between browser polls.
+                window.mountainWaveLaunches = [];
+                const fireWave = s.fireMountainGroundWave.bind(s);
+                s.fireMountainGroundWave = (...args) => {
+                    const wave = fireWave(...args);
+                    if (wave?.active && wave.body) window.mountainWaveLaunches.push({
+                        attackIndex: s.titanAttackIndex, ready: s.bossCombatReady, active: s.bossFightActive,
+                        warning: s.bossSubtitle.text, paused: s.physics.world.isPaused,
+                        x: wave.x, y: wave.y, velocityX: wave.body.velocity.x
+                    });
+                    return wave;
+                };
                 window.mountainWalkSamples = [];
                 window.mountainSampler = s.time.addEvent({ delay: 50, loop: true, callback: () => {
-                    window.mountainWalkSamples.push({ x: s.player.x, bottom: s.player.body.bottom, grounded: s.isGrounded });
+                    window.mountainWalkSamples.push({ x: s.player.x, bottom: s.player.body.bottom,
+                        grounded: s.isGrounded, active: s.bossFightActive });
                 }});
             });
             const snapshot = () => page.evaluate(() => {
@@ -143,6 +159,7 @@ async function main() {
             await page.waitForTimeout(500);
             await page.screenshot({ path: path.join(output, `${device}-approach.png`) });
             let touchSession;
+            let steeringTouch;
             if (device === 'phone') {
                 touchSession = await page.context().newCDPSession(page);
                 const point = await page.evaluate(() => {
@@ -152,7 +169,8 @@ async function main() {
                         distance: (t.radius - 6) * r.width / s.scale.width };
                 });
                 await touchSession.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: point.x, y: point.y, id: 1 }] });
-                await touchSession.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: point.x + point.distance, y: point.y, id: 1 }] });
+                steeringTouch = { x: point.x + point.distance, y: point.y, id: 1 };
+                await touchSession.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [steeringTouch] });
                 result.movementInput = 'real-touch-joystick';
             } else {
                 await page.keyboard.down('ArrowRight');
@@ -161,6 +179,19 @@ async function main() {
             try {
                 await page.waitForFunction(() => window.mythicalGame.scene.getScene('VoidPeaksLevel').player.x >= 4590, null, { timeout: 10000 });
                 await page.screenshot({ path: path.join(output, `${device}-climb.png`) });
+                if (jumpToSummit) {
+                    await page.waitForFunction(() => window.mythicalGame.scene.getScene('VoidPeaksLevel').player.x >= 4710);
+                    if (touchSession) {
+                        const jumpTouch = await page.evaluate(() => {
+                            const s = window.mythicalGame.scene.getScene('VoidPeaksLevel');
+                            const t = s.mobileControlTargets.jump, r = window.mythicalGame.canvas.getBoundingClientRect();
+                            return { x: r.left + t.x * r.width / s.scale.width, y: r.top + t.y * r.height / s.scale.height, id: 2 };
+                        });
+                        await touchSession.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [steeringTouch, jumpTouch] });
+                    } else await page.keyboard.down('Space');
+                    await page.waitForTimeout(130);
+                    if (!touchSession) await page.keyboard.up('Space');
+                }
                 await page.waitForFunction(() => window.mythicalGame.scene.getScene('VoidPeaksLevel').bossFightActive, null, { timeout: 8000 });
             } catch (error) { result.stuck = await snapshot(); await page.screenshot({ path: path.join(output, `${device}-failure.png`) }); throw error;
             } finally {
@@ -171,6 +202,10 @@ async function main() {
             await page.waitForTimeout(400);
             result.summit = await snapshot();
             result.walk = await page.evaluate(() => { window.mountainSampler.remove(); return window.mountainWalkSamples; });
+            if (jumpToSummit) {
+                assert(result.walk.some(s => s.x > 4885 && s.bottom < 399 && !s.grounded && !s.active),
+                    'the real jump must pass the old entry strip before landing and waking the boss');
+            }
             assert(result.walk.some(s => s.x > 4600 && s.bottom < 570), 'must walk up solid stairs without jumping');
             assert(result.walk.every(s => s.bottom <= 802), 'must never fall below the recovery floor');
             assert(Math.abs(result.summit.bottom - 400) < 3, 'summit feet must meet the ledge');
@@ -184,6 +219,11 @@ async function main() {
             result.attack = await snapshot();
             assert(result.attack.health < result.summit.health || result.attack.guardCharges < result.summit.guardCharges,
                 'standing on the warned target causes real damage or consumes the earned shield');
+            await page.waitForFunction(() => window.mountainWaveLaunches.length > 0, null, { timeout: 12000 });
+            result.naturalWave = await page.evaluate(() => window.mountainWaveLaunches[0]);
+            assert.equal(result.naturalWave.attackIndex, 2, 'the natural attack clock advances from lasers to the ground wave');
+            assert.equal(result.naturalWave.paused, false);
+            assert.equal(result.naturalWave.velocityX, 235, 'the natural wave has a moving physics body');
             result.repair = await page.evaluate(() => {
                 const s = window.mythicalGame.scene.getScene('VoidPeaksLevel');
                 s.player.y += 40; s.player.body.updateFromGameObject(); s.keepMountainArenaGrounded();

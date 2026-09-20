@@ -1872,7 +1872,14 @@ class VoidPeaksLevel extends PlatformerLevelScene {
     createTitanGate() {
         const x = TITAN_ARENA.playerEntryX;
         const y = MOUNTAIN_ASCENT.summitY - 65;
-        const gate = this.add.zone(x, y, 100, 130);
+        // A jump can land beyond the entrance marker. Any grounded summit
+        // landing must wake the boss, not only walking through that marker.
+        const gate = this.add.zone(
+            MOUNTAIN_ASCENT.summitX + MOUNTAIN_ASCENT.summitWidth / 2,
+            y,
+            MOUNTAIN_ASCENT.summitWidth,
+            130
+        );
         this.physics.add.existing(gate, true);
         this.titanGate = gate;
 
