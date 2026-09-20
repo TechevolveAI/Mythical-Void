@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import biomeConfigs from '../../config/biomes.json';
 import SanctuaryZones from './SanctuaryZones.js';
+import { createLivingWorkshop } from './RepairerResident.js';
 import { FEND_RESIDENT_DEFINITIONS } from '../FendResidents.js';
 import {
     GUARDIAN_RESIDENT_DEFINITIONS,
@@ -11253,6 +11254,7 @@ class WorldBuilder {
         shop.setDepth(shopY);
         shop.body.setSize(220, 220);
         shop.body.setOffset(-60, -60);
+        if (this.currentBiome === 'nebula') createLivingWorkshop(this.scene, shop);
 
         return { trees, rocks, flowers, shop };
     }

@@ -7,6 +7,8 @@ function loadShopScene(sceneWindow) {
     const bossConfigs = require('../config/bosses.json');
     const source = fs.readFileSync(filePath, 'utf8')
         .replace("import Phaser from 'phaser';", '')
+        .replace("import RepairerWorkbench from '../ui/RepairerWorkbench.js';", '')
+        .replace("import RepairerResident from '../systems/world/RepairerResident.js';", '')
         .replace(
             "import bossConfigs from '../config/bosses.json';",
             'const bossConfigs = BOSS_CONFIG;'
@@ -174,14 +176,16 @@ describe('shop permanent route-map purchases', () => {
 
         expect(scene.dims).toEqual(expect.objectContaining({
             isMobile: true,
-            headerHeight: 92,
-            catalogStartY: 157,
+            headerHeight: 104,
+            catalogStartY: 169,
             itemHeight: 98,
             closeButtonSize: 50
         }));
         expect(scene.dims.catalogStartY).toBeGreaterThan(
             scene.dims.headerHeight + scene.dims.categoryHeight
         );
+        // The mobile bench button starts below the always-visible close button.
+        expect(scene.dims.headerHeight - 25 - 22).toBeGreaterThan(6 + scene.dims.closeButtonSize);
     });
 
     test('records a map directly as permanent progression without using inventory', () => {
@@ -242,5 +246,29 @@ describe('shop permanent route-map purchases', () => {
         expect(opened).toBe(true);
         expect(scene.villageCommandPanel.show).toHaveBeenCalledTimes(1);
         expect(sceneWindow.EconomyManager.purchase).not.toHaveBeenCalled();
+    });
+
+    test('back dismisses the purchase confirmation before leaving the shop', () => {
+        const { scene } = createScene();
+        scene.closePurchaseDialog = jest.fn();
+        scene.repairerWorkbench = { root: {}, destroy: jest.fn() };
+
+        scene.exitShop();
+
+        expect(scene.closePurchaseDialog).toHaveBeenCalledTimes(1);
+        expect(scene.repairerWorkbench.destroy).not.toHaveBeenCalled();
+    });
+
+    test('back returns from practice before closing the workbench and cannot interrupt payment', () => {
+        const { scene } = createScene();
+        scene.repairerWorkbench = { root: {}, practice: { destroy: jest.fn() }, destroy: jest.fn() };
+        scene.isPurchasing = true;
+        scene.exitShop();
+        expect(scene.repairerWorkbench.practice.destroy).not.toHaveBeenCalled();
+
+        scene.isPurchasing = false;
+        scene.exitShop();
+        expect(scene.repairerWorkbench.practice.destroy).toHaveBeenCalledWith(true);
+        expect(scene.repairerWorkbench.destroy).not.toHaveBeenCalled();
     });
 });

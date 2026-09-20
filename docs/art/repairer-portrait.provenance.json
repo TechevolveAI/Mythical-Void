@@ -1,0 +1,18 @@
+{
+  "asset": "public/game/residents/repairer-portrait.webp",
+  "purpose": "Fixed resident portrait in the repairer dialogue, not a gameplay screenshot or map sprite",
+  "created": "2026-09-20",
+  "aiAssisted": true,
+  "generator": "OpenAI image generation tool available in Codex",
+  "modelVersion": "Not exposed by tool",
+  "direction": "User-authorised development of the existing hooded merchant into an original alien repairer; no existing franchise character reference supplied to the generator",
+  "identityAnchors": ["purple work-cowl", "cyan eyes", "amber task light", "integrated mechanical arm"],
+  "sourceReference": "Text description of the existing runtime merchant, no third-party source photo",
+  "personalData": false,
+  "processing": "Generated source encoded to 768x768 WebP, quality 82; no claim that it is runtime creature rendering",
+  "bytes": 116872,
+  "sha256": "0d6e33f6f1ea6a5017171f11fd7f9f6daccb81c5048dc57627cba5932c3a64a7",
+  "rightsNote": "AI-assisted original design requested by the project owner. No third-party artist attribution or exclusive copyright claim is asserted. Retain this record and review before public release.",
+  "reviewStatus": "Local implementation candidate; Kevin visual review pending",
+  "productionPublishedByThisTask": false
+}

@@ -206,7 +206,7 @@ export default defineConfig(({ command, mode }) => {
           }
 
           // Config files
-          if (id.includes('/config/')) {
+          if (id.includes('/config/') || id.endsWith('/systems/ProjectBeaconFieldKit.js')) {
             return 'config';
           }
 

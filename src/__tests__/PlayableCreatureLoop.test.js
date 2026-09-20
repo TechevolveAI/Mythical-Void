@@ -35,6 +35,8 @@ function loadShopScene(sceneWindow) {
     const bossConfigs = require('../config/bosses.json');
     const source = fs.readFileSync(filePath, 'utf8')
         .replace("import Phaser from 'phaser';", '')
+        .replace("import RepairerWorkbench from '../ui/RepairerWorkbench.js';", '')
+        .replace("import RepairerResident from '../systems/world/RepairerResident.js';", '')
         .replace(
             "import bossConfigs from '../config/bosses.json';",
             'const bossConfigs = BOSS_CONFIG;'

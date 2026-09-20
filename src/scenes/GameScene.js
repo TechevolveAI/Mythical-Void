@@ -8963,6 +8963,7 @@ class GameScene extends Phaser.Scene {
         // Only execute once per shop proximity to prevent performance issues
         if (!this.nearShop) {
             this.nearShop = true;
+            shop.repairer?.notice();
             console.log('[GameScene] Player near shop - showing interaction hint');
 
             this.offerSanctuaryInteraction({

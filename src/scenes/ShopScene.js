@@ -7,6 +7,8 @@ import Phaser from 'phaser';
 import bossConfigs from '../config/bosses.json';
 import SceneTransitionHelper from '../utils/SceneTransitionHelper.js';
 import VillageCommandPanel from '../ui/VillageCommandPanel.js';
+import RepairerWorkbench from '../ui/RepairerWorkbench.js';
+import RepairerResident from '../systems/world/RepairerResident.js';
 import {
     assignCreatureToVillageBuilding,
     getVillageSnapshot,
@@ -32,6 +34,7 @@ export default class ShopScene extends Phaser.Scene {
         this.previewOpenRoutes = new Set();
         this.previewVoidCrystalCapacity = false;
         this.villageCommandPanel = null;
+        this.repairerWorkbench = null;
     }
 
     init(data = {}) {
@@ -88,6 +91,22 @@ export default class ShopScene extends Phaser.Scene {
         // Display initial category
         this.displayCategory(this.selectedCategory);
 
+        this.layoutRefreshPending = false;
+        const resize = () => { this.layoutRefreshPending = true; };
+        const refresh = () => {
+            if (!this.layoutRefreshPending || this._isShuttingDown || this.repairerWorkbench?.root ||
+                this.villageCommandPanel || this.isPurchasing || this.closePurchaseDialog) return;
+            this.layoutRefreshPending = false;
+            this.scene.restart({ initialCategory: this.selectedCategory,
+                routeMapPreview: [...this.previewOpenRoutes], voidCrystalCapacityPreview: this.previewVoidCrystalCapacity });
+        };
+        this.scale.on('resize', resize);
+        this.events.on('postupdate', refresh);
+        this.registerCleanupCallback(() => {
+            this.scale.off('resize', resize);
+            this.events.off('postupdate', refresh);
+        });
+
         // Play shop ambient sound
         if (window.AudioManager) {
             window.AudioManager.playButtonClick();
@@ -103,6 +122,7 @@ export default class ShopScene extends Phaser.Scene {
         this._isShuttingDown = false;
         this.gameStateUnsubscribers = [];
         this.cleanupCallbacks = [];
+        this.categoryButtons = [];
     }
 
     registerCleanupCallback(callback) {
@@ -147,10 +167,10 @@ export default class ShopScene extends Phaser.Scene {
             padding: isMobile ? 8 : 15,
 
             // Header
-            headerHeight: isMobile ? 92 : 80,
+            headerHeight: isDesktop ? 80 : 104,
 
             // Shopkeeper (hide on mobile to save space)
-            showShopkeeper: !isMobile,
+            showShopkeeper: isDesktop,
             shopkeeperWidth: isMobile ? 0 : 200,
 
             // Category buttons
@@ -158,7 +178,7 @@ export default class ShopScene extends Phaser.Scene {
             categoryButtonWidth: isMobile ? (width - 30) / 3 : 150,
 
             // Item catalog
-            catalogStartY: isMobile ? 157 : 150,
+            catalogStartY: isDesktop ? 150 : 169,
             itemHeight: isMobile ? 98 : 80,
             itemSpacing: isMobile ? 8 : 10,
 
@@ -167,7 +187,7 @@ export default class ShopScene extends Phaser.Scene {
             closeButtonSize: isMobile ? 50 : 40,
 
             // Font sizes
-            titleSize: isMobile ? '22px' : '36px',
+            titleSize: isDesktop ? '32px' : '22px',
             subtitleSize: isMobile ? '12px' : '16px',
             itemNameSize: isMobile ? '16px' : '18px',
             itemDescSize: isMobile ? '11px' : '12px',
@@ -225,7 +245,8 @@ export default class ShopScene extends Phaser.Scene {
      * Create header with title, coins, and close button (responsive)
      */
     createHeader() {
-        const { width, headerHeight, margin, titleSize, closeButtonSize, isMobile } = this.dims;
+        const { width, headerHeight, margin, titleSize, closeButtonSize } = this.dims;
+        const isMobile = !this.dims.isDesktop;
 
         // Header background
         const headerBg = this.add.graphics();
@@ -240,7 +261,7 @@ export default class ShopScene extends Phaser.Scene {
         const title = this.add.text(
             titleX,
             titleY,
-            isMobile ? 'COSMIC BOUTIQUE' : 'COZY COSMIC BOUTIQUE',
+            isMobile ? 'SANCTUARY SHOP' : 'THE REPAIRER\'S SHOP',
             {
             fontSize: titleSize,
             fontFamily: 'Arial Black',
@@ -253,19 +274,9 @@ export default class ShopScene extends Phaser.Scene {
         title.setOrigin(0, 0.5);
         title.setDepth(11);
 
-        const grownUpHelper = this.add.text(
-            isMobile ? margin : width / 2,
-            isMobile ? 45 : headerHeight - 18,
-            'Need help? Ask a grown-up to browse cozy goodies with you.',
-            {
-                fontSize: this.dims.isMobile ? '10px' : '13px',
-                color: '#E6E6FA',
-                fontFamily: 'Arial, sans-serif',
-                wordWrap: isMobile ? { width: width - closeButtonSize - margin * 3 } : undefined
-            }
-        ).setOrigin(isMobile ? 0 : 0.5, 0.5);
-        grownUpHelper.setDepth(11);
-        grownUpHelper.setAlpha(0.9);
+        if (!this.dims.showShopkeeper) {
+            this.createWorkbenchButton(width - margin - 76, headerHeight - 25, 152, 44);
+        }
 
         // Currency gets its own row on narrow screens.
         const coinX = isMobile
@@ -353,57 +364,39 @@ export default class ShopScene extends Phaser.Scene {
     }
 
     /**
-     * Create animated shopkeeper NPC sprite (desktop only)
+     * The same articulated resident works here and at the Sanctuary counter.
      */
     createShopkeeper() {
-        const { margin, headerHeight } = this.dims;
-        const shopkeeperX = 120;
-        const shopkeeperY = headerHeight + 100;
+        const y = this.dims.headerHeight + 135;
+        this.shopkeeper = new RepairerResident(this, 120, y, 1.75);
+        this.shopkeeper.container.setDepth(20);
+        this.add.text(120, y + 75, 'Parts, repairs and a little ingenuity.', {
+            fontFamily: 'Arial', fontSize: '14px', color: '#c7d8cc',
+            wordWrap: { width: 170 }, align: 'center'
+        }).setOrigin(0.5, 0).setDepth(20);
+        this.createWorkbenchButton(120, y + 150, 178, 48);
+    }
 
-        // Shopkeeper container panel
-        const keeperPanel = this.add.graphics();
-        keeperPanel.fillStyle(0x1A0A2E, 0.8);
-        keeperPanel.fillRoundedRect(margin, headerHeight + margin, 200, 200, 10);
-        keeperPanel.lineStyle(3, 0x6B00B3);
-        keeperPanel.strokeRoundedRect(margin, headerHeight + margin, 200, 200, 10);
-        keeperPanel.setDepth(20);
+    createWorkbenchButton(x, y, width, height) {
+        const background = this.add.rectangle(x, y, width, height, 0x365c55)
+            .setStrokeStyle(1, 0xa1c8ae).setDepth(20);
+        this.add.text(x, y, 'Visit workbench', {
+            fontSize: '15px', fontFamily: 'Arial', color: '#f4e3b8'
+        }).setOrigin(0.5).setDepth(21);
+        this.workbenchButton = this.add.zone(x, y, width, height)
+            .setInteractive({ useHandCursor: true }).setDepth(22);
+        this.workbenchButton.on('pointerdown', () => this.openRepairerWorkbench());
+        this.workbenchButton.on('pointerover', () => { background.setFillStyle(0x496f64); this.shopkeeper?.notice(); });
+        this.workbenchButton.on('pointerout', () => background.setFillStyle(0x365c55));
+    }
 
-        // Generate all animation frames
-        for (let frame = 0; frame < 4; frame++) {
-            this.graphicsEngine.createVoidMerchant(frame);
-        }
-
-        // Create animated sprite
-        this.shopkeeper = this.add.sprite(shopkeeperX, shopkeeperY, 'voidMerchant_0');
-        this.shopkeeper.setDepth(20);
-
-        // Create animation from generated frames
-        if (!this.anims.exists('voidMerchantIdle')) {
-            this.anims.create({
-                key: 'voidMerchantIdle',
-                frames: [
-                    { key: 'voidMerchant_0' },
-                    { key: 'voidMerchant_1' },
-                    { key: 'voidMerchant_2' },
-                    { key: 'voidMerchant_3' }
-                ],
-                frameRate: 4,
-                repeat: -1
-            });
-        }
-
-        // Play idle animation
-        this.shopkeeper.play('voidMerchantIdle');
-
-        // Shopkeeper label
-        const keeperLabel = this.add.text(120, shopkeeperY + 70, 'Void Merchant', {
-            fontSize: '14px',
-            fontFamily: 'Arial',
-            color: '#00FFFF',
-            align: 'center'
+    openRepairerWorkbench() {
+        if (this._isShuttingDown || this.isPurchasing || this.closePurchaseDialog || this.villageCommandPanel) return false;
+        if (!this.repairerWorkbench) this.repairerWorkbench = new RepairerWorkbench(this);
+        return this.repairerWorkbench.show({
+            onClose: () => { this.repairerWorkbench = null; },
+            onSupplies: () => { if (!this._isShuttingDown) this.selectCategory('powerups'); }
         });
-        keeperLabel.setOrigin(0.5, 0.5);
-        keeperLabel.setDepth(20);
     }
 
     /**
@@ -630,9 +623,10 @@ export default class ShopScene extends Phaser.Scene {
 
         // Calculate button positions (centered on mobile, left-aligned on desktop)
         const categoryCount = categories.length;
-        const adjustedButtonWidth = isMobile
-            ? (width - margin * 2 - spacing * (categoryCount - 1)) / categoryCount
-            : categoryButtonWidth * 0.85;
+        const adjustedButtonWidth = Math.min(
+            categoryButtonWidth * 0.85,
+            (this.dims.catalogWidth - spacing * (categoryCount - 1)) / categoryCount
+        );
         const totalWidth = (adjustedButtonWidth * categoryCount) + (spacing * (categoryCount - 1));
         const startX = isMobile ? (width - totalWidth) / 2 : catalogX;
 
@@ -842,7 +836,7 @@ export default class ShopScene extends Phaser.Scene {
                 color: '#FFFFFF'
             });
 
-            const descMaxWidth = Math.max(100, buyBtnX - textX - 12);
+            const descMaxWidth = Math.max(100, buyBtnX - textX - (this.dims.isMobile ? 12 : 115));
             const desc = this.add.text(textX, y + (this.dims.isMobile ? 39 : 45), item.description, {
                 fontSize: this.dims.itemDescSize,
                 fontFamily: 'Arial',
@@ -851,7 +845,7 @@ export default class ShopScene extends Phaser.Scene {
             });
 
             // Price sits above the mobile action button and beside it on desktop.
-            const priceX = buyBtnX + buyBtnWidth / 2;
+            const priceX = this.dims.isMobile ? buyBtnX + buyBtnWidth / 2 : buyBtnX - 62;
             const priceY = y + (this.dims.isMobile ? 18 : itemHeight / 2);
 
             const priceText = this.add.text(
@@ -961,6 +955,7 @@ export default class ShopScene extends Phaser.Scene {
      * Show purchase confirmation dialog (responsive)
      */
     showPurchaseConfirmation(item) {
+        if (this.closePurchaseDialog || this.isPurchasing || this.repairerWorkbench?.root) return;
         console.log(`[ShopScene] Showing confirmation for: ${item.name}`);
 
         const { width, height, isMobile } = this.dims;
@@ -1046,6 +1041,12 @@ export default class ShopScene extends Phaser.Scene {
 
         // Store references for cleanup
         const dialogElements = [overlay, panel, title, details, confirmBtn, confirmLabel, confirmZone, cancelBtn, cancelLabel, cancelZone];
+        const closeDialog = () => {
+            if (this.closePurchaseDialog !== closeDialog) return;
+            this.closePurchaseDialog = null;
+            dialogElements.forEach(el => el.destroy());
+        };
+        this.closePurchaseDialog = closeDialog;
 
         // Confirm handler
         confirmZone.on('pointerdown', () => {
@@ -1054,7 +1055,7 @@ export default class ShopScene extends Phaser.Scene {
             }
 
             // Clean up dialog
-            dialogElements.forEach(el => el.destroy());
+            closeDialog();
 
             // Proceed with purchase
             this.purchaseItem(item);
@@ -1084,7 +1085,7 @@ export default class ShopScene extends Phaser.Scene {
             }
 
             // Clean up dialog
-            dialogElements.forEach(el => el.destroy());
+            closeDialog();
         });
 
         // Cancel button hover
@@ -1104,14 +1105,7 @@ export default class ShopScene extends Phaser.Scene {
             cancelBtn.strokeRoundedRect(cancelBtnX, btnY, btnWidth, btnHeight, 10);
         });
 
-        // ESC to cancel
-        const escHandler = (e) => {
-            if (e.key === 'Escape') {
-                dialogElements.forEach(el => el.destroy());
-                this.input.keyboard.off('keydown', escHandler);
-            }
-        };
-        this.input.keyboard.on('keydown', escHandler);
+        // The shop's existing Escape handler closes only this topmost dialog.
     }
 
     /**
@@ -1646,6 +1640,15 @@ export default class ShopScene extends Phaser.Scene {
     exitShop() {
         console.log('[ShopScene] Exiting Cosmic Shop');
 
+        if (this.isPurchasing) return;
+        if (this.closePurchaseDialog) { this.closePurchaseDialog(); return; }
+
+        if (this.repairerWorkbench?.root) {
+            if (this.repairerWorkbench.practice) this.repairerWorkbench.practice.destroy(true);
+            else this.repairerWorkbench.destroy();
+            return;
+        }
+
         if (window.AudioManager) {
             window.AudioManager.playButtonClick();
         }
@@ -1791,6 +1794,13 @@ export default class ShopScene extends Phaser.Scene {
             return;
         }
         this._isShuttingDown = true;
+
+        this.closePurchaseDialog?.();
+
+        this.repairerWorkbench?.destroy();
+        this.repairerWorkbench = null;
+        this.shopkeeper?.destroy();
+        this.shopkeeper = null;
 
         this.villageCommandPanel?.destroy?.();
         this.villageCommandPanel = null;

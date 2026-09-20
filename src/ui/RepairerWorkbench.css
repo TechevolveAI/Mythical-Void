@@ -1,0 +1,49 @@
+.repairer-workbench {
+    position: fixed; inset: 0; z-index: 10020;
+    display: grid; place-items: center;
+    background: rgba(5, 18, 19, .92); color: #edf3ee;
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    font: 16px/1.45 Arial, sans-serif; letter-spacing: 0;
+    overscroll-behavior: contain; box-sizing: border-box; touch-action: pan-y;
+}
+.repairer-workbench[hidden] { display: none; }
+.repairer-workbench * { box-sizing: border-box; }
+.repairer-shell { width: min(920px, 100%); max-height: 100%; overflow: auto; background: #172d2d; border: 1px solid #55766c; border-radius: 8px; }
+.repairer-header { position: sticky; top: 0; z-index: 1; background: #172d2d; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #49635d; }
+.repairer-workbench h1, .repairer-workbench h2, .repairer-workbench h3, .repairer-workbench p { margin: 0; }
+.repairer-workbench h1 { font-size: 25px; }
+.repairer-workbench h2 { font-size: 21px; }
+.repairer-workbench h3 { font-size: 17px; }
+.repairer-eyebrow { font-size: 11px; color: #dfc797; }
+.repairer-content { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 24px; padding: 20px; }
+.repairer-introduction, .repairer-equipment { min-width: 0; }
+.repairer-portrait { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; border-radius: 5px; }
+.repairer-greeting { padding: 14px 0; color: #dfc797; font-size: 18px; }
+.repairer-section-heading p { color: #aacac0; font-size: 14px; }
+.repairer-katana { display: block; width: 100%; height: 135px; object-fit: contain; margin: 10px 0; background: #0f2022; }
+.repairer-upgrade { padding: 14px 0; border-bottom: 1px solid #49635d; }
+.repairer-upgrade-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; margin-bottom: 4px; }
+.repairer-state { font-size: 11px; color: #b4b7b5; }
+.repairer-upgrade.is-fitted .repairer-state { color: #97e2bc; }
+.repairer-workbench small { display: block; color: #b8c8c3; font-size: 12px; margin-top: 4px; }
+.repairer-actions { display: flex; flex-wrap: wrap; gap: 10px; padding: 18px 0; }
+.repairer-workbench button { font: bold 15px Arial, sans-serif; min-height: 46px; border: 1px solid #779c8c; border-radius: 6px; padding: 10px 16px; cursor: pointer; }
+.repairer-primary { background: #a4dfc8; color: #102c2a; }
+.repairer-secondary, .repairer-close { background: #253f3e; color: #edf3ee; }
+.repairer-workbench button:disabled { opacity: .45; cursor: default; }
+.repairer-workbench button:focus-visible, .repairer-workbench summary:focus-visible { outline: 3px solid #ecc876; outline-offset: 3px; }
+.repairer-supplies summary { min-height: 44px; padding: 10px 0; cursor: pointer; color: #dfc797; }
+.repairer-supply { padding: 12px 0; border-top: 1px solid #49635d; }
+.repairer-supply p { font-size: 14px; }
+@media (max-width: 599px) {
+    .repairer-workbench { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    .repairer-shell { border: 0; border-radius: 0; height: 100%; }
+    .repairer-header { padding: 12px 16px; }
+    .repairer-content { grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 16px; }
+    .repairer-introduction { display: flex; align-items: center; gap: 14px; }
+    .repairer-portrait { width: 92px; height: 92px; flex: 0 0 92px; }
+    .repairer-greeting { font-size: 15px; padding: 0; }
+    .repairer-katana { height: 105px; }
+    .repairer-upgrade { padding: 11px 0; }
+    .repairer-actions > button { flex: 1 1 130px; }
+}
