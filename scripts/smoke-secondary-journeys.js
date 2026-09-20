@@ -8,7 +8,7 @@ const {
     applyBrowserAudioPolicy
 } = require('./lib/browser-audio-policy.cjs');
 const { smokeRendererArgs } = require('./lib/smoke-renderer-policy.cjs');
-const { smokePageReady } = require('./lib/smoke-page-readiness.cjs');
+const { smokePageSnapshot } = require('./lib/smoke-page-readiness.cjs');
 
 const BASE_URL = process.env.MYTHICAL_VOID_SMOKE_URL || 'http://127.0.0.1:8125';
 const CHROME_PATH = process.env.CHROME_PATH ||
@@ -1923,19 +1923,11 @@ async function navigate(session, url) {
     // readyState and a late game boot must never satisfy the next page's gate.
     await evaluate(session, 'window.__mythicalSmokeLeavingDocument = true');
     await session.call('Page.navigate', { url });
-    await waitFor(
-        () => evaluate(session, `(${smokePageReady.toString()})(window)`),
+    const renderer = await waitFor(
+        () => evaluate(session, `(${smokePageSnapshot.toString()})(window)`),
         { timeoutMs: 15000, message: `new document and Phaser renderer ready ${url}` }
     );
     if (process.env.SMOKE_NATIVE_OPENGL === '1') {
-        const renderer = await evaluate(session, `(() => {
-            const game = window.mythicalGame;
-            const gl = game.renderer.gl;
-            const info = gl?.getExtension('WEBGL_debug_renderer_info');
-            return { webgl: game.renderer.type === window.Phaser.WEBGL,
-                name: info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : null,
-                width: game.scale.width, height: game.scale.height };
-        })()`);
         console.log('[smoke-renderer]', JSON.stringify(renderer));
         if (!renderer.webgl || !renderer.name || /swiftshader/i.test(renderer.name)) {
             throw new Error('Native OpenGL smoke did not receive its required WebGL renderer');
