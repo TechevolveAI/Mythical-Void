@@ -54,8 +54,7 @@ function createCampaignProofHtml() {
     </script></body></html>`;
 }
 
-async function clickSceneText(page, text) {
-    const target=await page.waitForFunction(text=>{
+function sceneTextPoint(text) {
         const candidates=[];
         function visit(item) {
             if(!item||item.visible===false||item.alpha<=0)return;
@@ -67,10 +66,25 @@ async function clickSceneText(page, text) {
         if(!item)return null;
         const camera=item.scene.cameras.main,canvas=window.game.canvas.getBoundingClientRect(),bounds=item.getBounds();
         if(camera.shakeEffect?.isRunning||camera.zoomEffect?.isRunning)return null;
+        // Newly drawn labels precede Phaser's next input-list update. Match the
+        // existing completion smoke's live hit-area check, not just the text.
+        const live=item.scene.input?._list||[];
+        const ready=item.input?.enabled===true ? live.includes(item) : live.some(candidate=>{
+            if(!candidate?.input?.enabled||candidate.visible===false||candidate.alpha<=0||!candidate.getBounds)return false;
+            const area=candidate.getBounds();
+            return bounds.centerX>=area.left&&bounds.centerX<=area.right&&bounds.centerY>=area.top&&bounds.centerY<=area.bottom;
+        });
+        const modal=item.scene.shipEvidenceBoardModal;
+        const modalReady=modal?.isVisible===true&&modal.pointerRegions?.some(region=>
+            bounds.centerX>=region.left&&bounds.centerX<=region.right&&bounds.centerY>=region.top&&bounds.centerY<=region.bottom);
+        if(!ready&&!modalReady)return null;
         const point=camera.matrix.transformPoint(bounds.centerX-camera.scrollX*item.scrollFactorX,bounds.centerY-camera.scrollY*item.scrollFactorY);
         const x=canvas.left+point.x*canvas.width/item.scene.scale.width,y=canvas.top+point.y*canvas.height/item.scene.scale.height;
         return x>=0&&x<=innerWidth&&y>=0&&y<=innerHeight?{x,y}:null;
-    },text,{timeout:20000});
+}
+
+async function clickSceneText(page, text) {
+    const target=await page.waitForFunction(sceneTextPoint,text,{timeout:20000});
     const point=await target.jsonValue();await target.dispose();
     if(page.viewportSize().width<600)await page.touchscreen.tap(point.x,point.y);
     else await page.mouse.click(point.x,point.y);
@@ -97,7 +111,11 @@ async function completeCampaignEnding(page,output,name) {
     await page.screenshot({path:path.join(output,`${name}-ending-choices.png`)});
     await clickSceneText(page,'PREPARE HOMECOMING\nPreserve a secret route');
     await clickSceneText(page,'PREPARE THE ROUTE');
-    for(let i=0;i<2;i++)await clickSceneText(page,'CONTINUE');
+    for(let number=1;number<=3;number++) {
+        await page.waitForFunction(text=>window.game.scene.getScene('VictoryScene').children.list.some(item=>
+            item.text===text&&item.visible!==false&&item.alpha>0),`${String(number).padStart(2,'0')} / 03`);
+        if(number<3)await clickSceneText(page,'CONTINUE');
+    }
     await page.screenshot({path:path.join(output,`${name}-epilogue.png`)});
     const ending=await page.evaluate(()=>({coins:GameState.get('player.cosmicCoins'),items:GameState.get('inventory.items'),
         priority:GameState.get('story.projectBeacon.finale.priority'),seen:GameState.get('story.projectBeacon.finale.epilogueSeen'),
@@ -111,4 +129,4 @@ async function completeCampaignEnding(page,output,name) {
     await page.waitForFunction(()=>window.game.scene.isActive('HubWorldScene'),null,{timeout:20000});
     return {before,resumed,ending,actualSanctuaryRepair:true,actualEndingChoice:true,returnedToHub:true};
 }
-module.exports={createCampaignProofHtml,completeCampaignEnding};
+module.exports={createCampaignProofHtml,completeCampaignEnding,sceneTextPoint};
