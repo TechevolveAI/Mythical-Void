@@ -2,6 +2,8 @@
 
 Status: implementation started, not release-ready. Production retains the existing Final Void encounter. No push or deployment is part of this work.
 
+Start with the [current review gate](TRUMPTOPUS_REVIEW_GATE.md) for consolidated status, exact-source evidence and remaining decisions. The dated sections below preserve milestone history: later reward and rollback repairs supersede their earlier open-gap notes. Historical browser captures are not evidence of finished character art or generated finale films.
+
 ## Confirmed creative direction
 
 - Name: Trumptopus. Keep the red cap and "Make the Void great again" slogan.
