@@ -3,6 +3,7 @@ import { getGuardianOutcomeSnapshot } from './GuardianOutcomes.js';
 import { recordCurrentRegionRestoration } from './CurrentEcology.js';
 import { recordRescuedResident } from './RescuedResidents.js';
 import { queueProjectBeaconDebrief } from './ProjectBeaconStory.js';
+import { validApproachCheckpoint } from './FinalVoidApproach.js';
 
 const RUN_PATH = 'story.projectBeacon.trumptopus';
 const OUTCOME_PATH = 'world.antagonistOutcomes.trumptopus';
@@ -34,6 +35,7 @@ export function getTrumptopusRun(gameState) {
         !Number.isInteger(run.phaseIndex) || run.phaseIndex < 0 || run.phaseIndex > 2 ||
         (run.elapsedMs !== undefined && (!Number.isSafeInteger(run.elapsedMs) || run.elapsedMs < 0)) ||
         (run.damageTaken !== undefined && (!Number.isSafeInteger(run.damageTaken) || run.damageTaken < 0)) ||
+        (run.approach !== undefined && !validApproachCheckpoint(run.approach)) ||
         !['fighting', 'won'].includes(run.status) ||
         (run.status === 'won' && (run.receipt?.id !== `trumptopus:${run.sequence}` || run.receipt?.outcome !== 'banished'))) {
         throw new Error('Unsupported Trumptopus progress; existing data was not changed');
@@ -60,7 +62,7 @@ function commit(gameState, state) {
     return persisted;
 }
 
-export function beginTrumptopusRun(gameState, { newExpedition = false } = {}) {
+export function beginTrumptopusRun(gameState, { newExpedition = false, withApproach = false } = {}) {
     const previous = getTrumptopusRun(gameState);
     if (previous && (previous.status === 'fighting' || !newExpedition)) return {
         changed: false, run: previous,
@@ -70,6 +72,7 @@ export function beginTrumptopusRun(gameState, { newExpedition = false } = {}) {
     const state = clone(gameState.state);
     const run = { schemaVersion: 1, encounterId: 'trumptopus', sequence, phaseIndex: 0,
         elapsedMs: 0, damageTaken: 0, status: 'fighting', receipt: null };
+    if (withApproach) run.approach = {schemaVersion:1,clearedGrips:0,arrived:false};
     write(state, RUN_PATH, run);
     return { changed: true, persisted: commit(gameState, state), run: clone(run) };
 }
@@ -79,6 +82,7 @@ export function checkpointTrumptopusRun(gameState, sequence, phaseIndex, progres
     const run = getTrumptopusRun(gameState);
     if (!run || run.sequence !== sequence || run.status !== 'fighting' || phaseIndex < run.phaseIndex) return false;
     if (phaseIndex > run.phaseIndex + 1) throw new Error('Cannot skip a finale phase checkpoint');
+    if (phaseIndex > 0 && run.approach && !run.approach.arrived) throw new Error('Complete the approach before the fight');
     const elapsedMs = validCount(progress.elapsedMs ?? run.elapsedMs ?? 0, 'active time');
     const damageTaken = validCount(progress.damageTaken ?? run.damageTaken ?? 0, 'damage');
     if (elapsedMs < (run.elapsedMs || 0) || damageTaken < (run.damageTaken || 0)) throw new Error('Cannot rewind finale progress');
@@ -86,6 +90,22 @@ export function checkpointTrumptopusRun(gameState, sequence, phaseIndex, progres
     const state = clone(gameState.state);
     write(state, RUN_PATH, { ...run, phaseIndex, elapsedMs, damageTaken });
     commit(gameState, state);
+    return true;
+}
+
+export function checkpointTrumptopusApproach(gameState, sequence, approach, progress = {}) {
+    if (!validApproachCheckpoint(approach)) throw new Error('Invalid approach checkpoint');
+    const run = getTrumptopusRun(gameState);
+    if (!run || run.sequence !== sequence || run.status !== 'fighting' || !run.approach || run.phaseIndex !== 0) return false;
+    if (approach.clearedGrips < run.approach.clearedGrips || (run.approach.arrived && !approach.arrived)) throw new Error('Cannot rewind the approach');
+    if (approach.clearedGrips > run.approach.clearedGrips + 1) throw new Error('Cannot skip an approach checkpoint');
+    const elapsedMs = validCount(progress.elapsedMs ?? run.elapsedMs ?? 0,'active time');
+    const damageTaken = validCount(progress.damageTaken ?? run.damageTaken ?? 0,'damage');
+    if (elapsedMs < (run.elapsedMs || 0) || damageTaken < (run.damageTaken || 0)) throw new Error('Cannot rewind finale progress');
+    if (JSON.stringify(approach) === JSON.stringify(run.approach) && elapsedMs === run.elapsedMs && damageTaken === run.damageTaken) return false;
+    const state = clone(gameState.state);
+    write(state,RUN_PATH,{...run,approach:clone(approach),elapsedMs,damageTaken});
+    commit(gameState,state);
     return true;
 }
 

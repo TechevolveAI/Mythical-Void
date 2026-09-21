@@ -1,4 +1,4 @@
-import { beginTrumptopusRun, checkpointTrumptopusRun, getTrumptopusRun, recordTrumptopusVictory } from './TrumptopusProgress.js';
+import { beginTrumptopusRun, checkpointTrumptopusRun, checkpointTrumptopusApproach, getTrumptopusRun, recordTrumptopusVictory } from './TrumptopusProgress.js';
 import { getCampaignFinaleRecovery } from './CampaignJourneyGuide.js';
 import { FinaleFilms } from './FinaleFilms.js';
 import { TrumptopusResult } from '../ui/TrumptopusResult.js';
@@ -7,12 +7,12 @@ import { TrumptopusResult } from '../ui/TrumptopusResult.js';
 export class TrumptopusCompletion {
     constructor(scene, {
         gameState, films = new FinaleFilms(scene, {encounterId:'trumptopus'}),
-        inventoryManager = null, newExpedition = false, createPanel = options => new TrumptopusResult(options)
+        inventoryManager = null, newExpedition = false, withApproach = false, createPanel = options => new TrumptopusResult(options)
     }) {
         this.scene = scene; this.gameState = gameState; this.films = films;
         this.inventoryManager = inventoryManager; this.createPanel = createPanel;
         this.closed = false; this.continued = false; this.panel = null;
-        const started = beginTrumptopusRun(gameState, {newExpedition});
+        const started = beginTrumptopusRun(gameState, {newExpedition,withApproach});
         this.run = started.run; this.persisted = started.persisted;
         this.elapsedMs = this.run.elapsedMs || 0;
         this.priorDamage = this.run.damageTaken || 0;
@@ -40,6 +40,13 @@ export class TrumptopusCompletion {
     saveProgress(phaseIndex = this.run.phaseIndex) {
         if (this.closed || this.run.status === 'won') return false;
         const changed = checkpointTrumptopusRun(this.gameState,this.run.sequence,phaseIndex,this.progress());
+        this.run = getTrumptopusRun(this.gameState);
+        return changed;
+    }
+
+    saveApproach(checkpoint) {
+        if (this.closed || this.run.status === 'won') return false;
+        const changed = checkpointTrumptopusApproach(this.gameState,this.run.sequence,checkpoint,this.progress());
         this.run = getTrumptopusRun(this.gameState);
         return changed;
     }

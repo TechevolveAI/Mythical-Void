@@ -19,9 +19,10 @@ const residents = load('RescuedResidents.js', ['recordRescuedResident', 'getResc
 const story = load('ProjectBeaconStory.js', ['queueProjectBeaconDebrief'], {projectBeacon:require('../config/project-beacon.json')});
 const ship = load('ShipReconstruction.js', ['getShipReconstructionSnapshot', 'installShipReconstructionStep', 'SHIP_RECONSTRUCTION_STEPS']);
 const journey = load('CampaignJourneyGuide.js', ['getCampaignFinaleRecovery'], {getShipReconstructionSnapshot:ship.getShipReconstructionSnapshot,CAMPAIGN_INTENTS:['remain_and_defend','prepare_homecoming','prepare_first_contact']});
-const { beginTrumptopusRun: begin, checkpointTrumptopusRun: checkpoint, recordTrumptopusVictory: win, getTrumptopusRun: run } = load('TrumptopusProgress.js', [
-    'beginTrumptopusRun','checkpointTrumptopusRun','recordTrumptopusVictory','getTrumptopusRun'
-], {bossConfigs:require('../config/bosses.json'),...guardians,...ecology,...residents,...story});
+const approach = load('FinalVoidApproach.js',['validApproachCheckpoint']);
+const { beginTrumptopusRun: begin, checkpointTrumptopusRun: checkpoint, checkpointTrumptopusApproach: checkpointApproach, recordTrumptopusVictory: win, getTrumptopusRun: run } = load('TrumptopusProgress.js', [
+    'beginTrumptopusRun','checkpointTrumptopusRun','checkpointTrumptopusApproach','recordTrumptopusVictory','getTrumptopusRun'
+], {bossConfigs:require('../config/bosses.json'),...guardians,...ecology,...residents,...story,...approach});
 
 describe('private finale durable victory boundary', () => {
     let state;
@@ -51,6 +52,28 @@ describe('private finale durable victory boundary', () => {
         }
     });
     afterEach(() => { state.stopAutoSave(); jest.restoreAllMocks(); });
+
+    test('the approach resumes at a cleared crossing and carries its time/damage into the fight',()=>{
+        const sequence=begin(state,{withApproach:true}).run.sequence;
+        const route={schemaVersion:1,clearedGrips:1,arrived:false};
+        checkpointApproach(state,sequence,route,{elapsedMs:45000,damageTaken:1});
+        const next=restored();
+        expect(run(next)).toMatchObject({approach:route,elapsedMs:45000,damageTaken:1});
+        expect(()=>checkpoint(next,sequence,1)).toThrow('approach');
+        expect(()=>checkpointApproach(next,sequence,{...route,clearedGrips:0})).toThrow('rewind');
+        checkpointApproach(next,sequence,{...route,clearedGrips:2},{elapsedMs:80000,damageTaken:1});
+        checkpointApproach(next,sequence,{...route,clearedGrips:2,arrived:true},{elapsedMs:95000,damageTaken:1});
+        checkpoint(next,sequence,1);checkpoint(next,sequence,2);
+        win(next,{sequence,completionMs:180000,damageTaken:1});
+        expect(run(next).receipt).toMatchObject({completionMs:180000,damageTaken:1});
+        expect(next.get('levels.finalVoid.noDamageRun')).toBe(false);
+    });
+
+    test('the approach cannot skip crossings or mark an early arrival',()=>{
+        const sequence=begin(state,{withApproach:true}).run.sequence;
+        expect(()=>checkpointApproach(state,sequence,{schemaVersion:1,clearedGrips:2,arrived:true})).toThrow('skip');
+        expect(()=>checkpointApproach(state,sequence,{schemaVersion:1,clearedGrips:0,arrived:true})).toThrow('Invalid');
+    });
 
     test('commits reward, victory, Nova and command module in one primary-save write', () => {
         const sequence = ready();

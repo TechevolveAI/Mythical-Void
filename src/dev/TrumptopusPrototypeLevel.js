@@ -4,15 +4,13 @@ import { TrumptopusEncounter } from '../systems/TrumptopusEncounter.js';
 // Only imported by the local proof harness. Not registered in the game loader.
 // The limb is a mechanics greybox, not the approved Trumptopus artwork.
 export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
-    constructor() {
-        super({ key: 'TrumptopusPrototype', levelId: 'private_grip', biomeId: 'final_void' });
+    constructor(key = 'TrumptopusPrototype') {
+        super({ key, levelId: 'private_grip', biomeId: 'final_void' });
     }
 
     init(data = {}) {
         super.init({ forceMobileControls: this.scale.width < 600, katanaPreview: 'crystal' });
-        this.levelWidth = this.scale.width;
-        this.floorY = Math.round(this.scale.height * 0.64);
-        this.levelHeight = this.floorY + 50;
+        this.configurePrototypeWorld(data);
         this.encounter = this.createEncounter(data);
         this.hitEvidence = [];
         this.damageEvidence = [];
@@ -22,6 +20,17 @@ export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
     }
 
     preload() {}
+
+    configurePrototypeWorld() {
+        this.levelWidth = this.scale.width;
+        this.floorY = Math.round(this.scale.height * 0.64);
+        this.levelHeight = this.floorY + 50;
+        this.spawnX = this.levelWidth * 0.5;
+    }
+
+    createPrototypeTerrain() {
+        this.createPlatform(0, this.floorY, this.levelWidth, 80, 'solid');
+    }
 
     createEncounter() {
         return new TrumptopusEncounter({ minX: 85, maxX: this.levelWidth - 115 });
@@ -34,11 +43,11 @@ export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
         this.cameras.main.setBackgroundColor('#15191c');
         this.add.rectangle(this.levelWidth / 2, this.floorY + 95, this.levelWidth, 190, 0x242d30);
         this.platforms = this.physics.add.staticGroup();
-        this.createPlatform(0, this.floorY, this.levelWidth, 80, 'solid');
+        this.createPrototypeTerrain();
         this.enemies = this.physics.add.group();
         this.graphicsEngine = new window.GraphicsEngine(this);
         this.createPlayer();
-        this.player.x = Math.round(this.levelWidth * 0.5);
+        this.player.x = Math.round(this.spawnX);
         this.player.body.updateFromGameObject();
         this.createExpeditionAstronaut();
         this.astronautFollower.setContextualFormation({ x: -112, y: 0 }, 'private-grip');
@@ -56,11 +65,11 @@ export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
         this.physics.add.existing(this.bossBody, true);
         this.bossHealth = 2;
         this.bossBar = this.add.graphics().setScrollFactor(0).setDepth(10001);
-        this.add.text(this.levelWidth / 2, 78, 'TRUMPTOPUS', {
+        this.bossName = this.add.text(this.scale.width / 2, 78, 'TRUMPTOPUS', {
             fontFamily: 'Arial', fontSize: '18px', color: '#f3f3ec'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(10001);
         this.healthText = this.add.text(18, 125, '', { fontFamily: 'Arial', fontSize: '15px', color: '#e4d7b9' })
-            .setDepth(10001);
+            .setScrollFactor(0).setDepth(10001);
         this.setupInput();
         this.showPlatformerMobileControls();
         this.clearInput = ({ preserveFall = false } = {}) => {
@@ -153,16 +162,7 @@ export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
         if (!this.isDucking) this.handleJump(time);
         this.updatePlayerFacing();
         this.encounter.update(delta, body.center.x);
-        // Keep the supporting astronaut on the safe flank of a committed grab;
-        // a trailing actor must not visibly walk into an attack the player dodged.
-        const grabbing = ['windup', 'strike', 'contact', 'exposed'].includes(this.encounter.state);
-        const allyX = Math.max(36, Math.min(
-            this.player.x - 112,
-            grabbing ? this.encounter.targetX - 86 : this.player.x - 112
-        ));
-        this.astronautFollower.followDistance = Math.max(112, Math.abs(this.player.x - allyX));
-        this.astronautFollower.setContextualFormation({ x: allyX - this.player.x, y: 0 }, 'private-grip');
-        this.astronautFollower.update(delta);
+        this.updatePrototypeFollower(delta);
         this.drawExchange();
         const overlaps = this.overlapsAttack(body);
         if (this.encounter.consumeContact(overlaps) && time >= this.invulnerableUntil) {
@@ -180,6 +180,19 @@ export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
         }
         if (time >= this.invulnerableUntil) this.player.clearTint();
         this.healthText.setText(`Health ${this.health} / 4`);
+    }
+
+    updatePrototypeFollower(delta) {
+        // Keep the supporting astronaut on the safe flank of a committed grab;
+        // a trailing actor must not visibly walk into an attack the player dodged.
+        const grabbing = ['windup', 'strike', 'contact', 'exposed'].includes(this.encounter.state);
+        const allyX = Math.max(36, Math.min(
+            this.player.x - 112,
+            grabbing ? this.encounter.targetX - 86 : this.player.x - 112
+        ));
+        this.astronautFollower.followDistance = Math.max(112, Math.abs(this.player.x - allyX));
+        this.astronautFollower.setContextualFormation({ x: allyX - this.player.x, y: 0 }, 'private-grip');
+        this.astronautFollower.update(delta);
     }
 
     overlapsAttack(body) {
