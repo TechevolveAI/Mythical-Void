@@ -2,6 +2,15 @@ const fs = require('fs');
 const path = require('path');
 const { parse } = require('@babel/parser');
 const GameStateManager = require('../systems/GameState.js');
+const {EventEmitter} = require('events');
+
+function inventoryFor(state) {
+    const source=fs.readFileSync(path.join(__dirname,'../systems/InventoryManager.js'),'utf8')
+        .replace('export default inventoryManager;','');
+    const Manager=new Function('window','Phaser',`${source}\nreturn InventoryManager;`)(
+        {GameState:state},{Events:{EventEmitter}});
+    const manager=new Manager();manager.initialize();return manager;
+}
 
 // Execute real leaf modules with explicit dependencies, without booting Phaser.
 function load(file, names, dependencies = {}) {
@@ -137,6 +146,60 @@ describe('private finale durable victory boundary', () => {
         const result = win(state,{sequence:ready()});
         expect(result.receipt.powerup.queued).toBe(false);
         expect(state.get('inventory.items')[0].quantity).toBe(3);
+    });
+
+    test('queued final reward restores exactly once from every real save during collection',()=>{
+        state.set('inventory.items',Array.from({length:30},(_,slot)=>({id:`egg_${slot}`,name:'Egg',type:'egg',quantity:1,slot})));
+        const sequence=ready();win(state,{sequence});
+        const manager=inventoryFor(state),writes=[];
+        const setItem=Storage.prototype.setItem;
+        jest.spyOn(Storage.prototype,'setItem').mockImplementation(function(key,value){
+            if(key===state.saveKey)writes.push(value);
+            return setItem.call(this,key,value);
+        });
+        expect(manager.removeItem(3)).toBe(true);
+        expect(writes).toHaveLength(2);
+        for(const [index,raw] of writes.entries()) {
+            const next=new GameStateManager();next.saveKey=`private_reward_restore_${index}`;
+            next.commitPreparedSave(next.prepareSaveCandidate(raw),{persist:false});
+            const restoredInventory=inventoryFor(next);
+            expect(restoredInventory.getAllItems().find(item=>item.id==='super_blast').quantity).toBe(1);
+            expect(next.get('inventory.pendingBossRewards')).toEqual([]);
+            expect(restoredInventory.claimPendingBossRewards()).toBe(0);
+            expect(next.get('inventory.items')).toHaveLength(30);
+            expect(next.get('inventory.items').some(item=>item.id==='egg_3')).toBe(false);
+            expect(next.get('player.cosmicCoins')).toBe(2500);
+            expect(next.get('hubWorld.shipParts.collected').filter(id=>id==='command_module')).toHaveLength(1);
+            expect(run(next).receipt).toEqual(run(state).receipt);
+            expect(next.get('world.antagonistOutcomes.trumptopus.outcome')).toBe('banished');
+            expect(next.get('creature.dna.id')).toBe('existing-dna');
+        }
+    });
+
+    test('failed queue-transfer storage can retry from the last durable save without duplication',()=>{
+        state.set('inventory.items',Array.from({length:30},(_,slot)=>({id:`egg_${slot}`,name:'Egg',type:'egg',quantity:1,slot})));
+        win(state,{sequence:ready()});const manager=inventoryFor(state);
+        const setItem=Storage.prototype.setItem;let primaryWrites=0;
+        const denied=jest.spyOn(Storage.prototype,'setItem').mockImplementation(function(key,value){
+            if(key===state.saveKey&&++primaryWrites===2)throw new DOMException('Denied','SecurityError');
+            return setItem.call(this,key,value);
+        });
+        jest.spyOn(console,'error').mockImplementation(()=>{});
+        const saveErrors=[];state.on('saveError',error=>saveErrors.push(error));
+        expect(manager.removeItem(4)).toBe(true);
+        expect(saveErrors).toHaveLength(1);
+        expect(manager.getAllItems().find(item=>item.id==='super_blast').quantity).toBe(1);
+        expect(state.get('inventory.pendingBossRewards')).toEqual([]);
+        expect(manager.claimPendingBossRewards()).toBe(0);
+        const raw=JSON.parse(localStorage.getItem(state.saveKey));
+        expect(raw.inventory.pendingBossRewards).toHaveLength(1);
+        expect(raw.inventory.items.some(item=>item.id==='super_blast')).toBe(false);
+        denied.mockRestore();
+        const next=restored(),restoredInventory=inventoryFor(next);
+        expect(restoredInventory.getAllItems().find(item=>item.id==='super_blast').quantity).toBe(1);
+        expect(next.get('inventory.pendingBossRewards')).toEqual([]);
+        expect(restoredInventory.claimPendingBossRewards()).toBe(0);
+        expect(next.get('player.cosmicCoins')).toBe(2500);
     });
 
     test.each(['memory','denied'])('unavailable %s storage retains the whole win in-session without pretending it was saved', kind => {

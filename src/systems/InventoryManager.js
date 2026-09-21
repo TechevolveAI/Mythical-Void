@@ -229,27 +229,50 @@ class InventoryManager {
     }
 
     claimPendingBossRewards() {
-        if (!window.GameState) return 0;
+        if (!window.GameState || this.claimingBossRewards) return 0;
 
         const pendingPath = 'inventory.pendingBossRewards';
         const pending = window.GameState.get(pendingPath) || [];
         if (!Array.isArray(pending) || pending.length === 0) return 0;
 
+        // Stage both sides before publishing: addItem saves immediately and
+        // would leave a refresh window with the reward owned AND still queued.
+        const items = this.inventory.map(item => ({ ...item }));
         const remaining = [];
-        let claimed = 0;
+        const additions = [];
+        const stackableTypes = ['food', 'powerup', 'utility'];
         pending.forEach(item => {
-            if (this.canAcceptItem(item) && this.addItem(item)) {
-                claimed += 1;
+            const existing = item && stackableTypes.includes(item.type)
+                ? items.find(owned => owned.id === item.id) : null;
+            if (existing) {
+                existing.quantity = (existing.quantity || 1) + 1;
+                additions.push({ item: existing, stacked: true });
+            } else if (item && items.length < this.maxSlots) {
+                const added = { ...item, quantity: item.quantity || 1, addedAt: Date.now(), slot: items.length };
+                items.push(added);
+                additions.push({ item: added, stacked: false });
             } else {
                 remaining.push(item);
             }
         });
-        window.GameState.set(pendingPath, remaining);
-        if (claimed > 0) {
+
+        if (additions.length === 0) return 0;
+        this.claimingBossRewards = true;
+        try {
+            this.inventory = items;
+            window.GameState.set('inventory', {
+                ...window.GameState.get('inventory'),
+                items, pendingBossRewards: remaining
+            });
             window.GameState.save?.();
-            this.events.emit('bossRewardsClaimed', { count: claimed });
+            // Listeners see the complete transfer, including when storage is
+            // unavailable and the existing save boundary keeps it in-session.
+            additions.forEach(addition => this.events.emit('itemAdded', addition));
+            this.events.emit('bossRewardsClaimed', { count: additions.length });
+            return additions.length;
+        } finally {
+            this.claimingBossRewards = false;
         }
-        return claimed;
     }
 
     /**
