@@ -8,12 +8,12 @@ export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
         super({ key: 'TrumptopusPrototype', levelId: 'private_grip', biomeId: 'final_void' });
     }
 
-    init() {
+    init(data = {}) {
         super.init({ forceMobileControls: this.scale.width < 600, katanaPreview: 'crystal' });
         this.levelWidth = this.scale.width;
         this.floorY = Math.round(this.scale.height * 0.64);
         this.levelHeight = this.floorY + 50;
-        this.encounter = new TrumptopusEncounter({ minX: 85, maxX: this.levelWidth - 115 });
+        this.encounter = this.createEncounter(data);
         this.hitEvidence = [];
         this.damageEvidence = [];
         this.health = 4;
@@ -22,6 +22,10 @@ export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
     }
 
     preload() {}
+
+    createEncounter() {
+        return new TrumptopusEncounter({ minX: 85, maxX: this.levelWidth - 115 });
+    }
 
     create() {
         this.setupPlatformerPhysics();
@@ -159,12 +163,13 @@ export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
         this.astronautFollower.setContextualFormation({ x: allyX - this.player.x, y: 0 }, 'private-grip');
         this.astronautFollower.update(delta);
         this.drawExchange();
-        const { x, y } = this.handPose;
-        const overlaps = body.right > x - 35 && body.left < x + 35 && body.bottom > y - 21 && body.top < y + 21;
+        const overlaps = this.overlapsAttack(body);
         if (this.encounter.consumeContact(overlaps) && time >= this.invulnerableUntil) {
             this.health = Math.max(0, this.health - 1);
             this.invulnerableUntil = time + 1000;
-            this.damageEvidence.push({ cycle: this.encounter.cycle, health: this.health });
+            this.damageEvidence.push({ state: this.encounter.state, health: this.health,
+                progress: this.encounter.snapshot().progress, bottom: body.bottom,
+                velocityY: body.velocity.y, hand: { ...this.handPose } });
             this.player.setTint(0xf18b78);
             if (this.health === 0) {
                 this.isPlayerDead = true;
@@ -174,6 +179,11 @@ export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
         }
         if (time >= this.invulnerableUntil) this.player.clearTint();
         this.healthText.setText(`Health ${this.health} / 4`);
+    }
+
+    overlapsAttack(body) {
+        const { x, y } = this.handPose;
+        return body.right > x - 35 && body.left < x + 35 && body.bottom > y - 21 && body.top < y + 21;
     }
 
     drawExchange() {
@@ -228,7 +238,9 @@ export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
             : visible.left - this.player.width / 2);
         return {
             ...this.encounter.snapshot(), hits: this.hitEvidence, damage: this.damageEvidence,
-            player: { x: this.player.x, y: this.player.y, bottom: this.player.body.bottom, texture: this.player.texture.key, facingRight: this.player.facingRight },
+            player: { x: this.player.x, y: this.player.y, left: this.player.body.left, right: this.player.body.right,
+                bottom: this.player.body.bottom, velocityY: this.player.body.velocity.y,
+                texture: this.player.texture.key, facingRight: this.player.facingRight },
             hand: { x: this.bossBody.x, y: this.bossBody.y },
             astronaut: { x: this.astronautFollower.sprite.x, y: this.astronautFollower.sprite.y, width: this.astronautFollower.sprite.displayWidth },
             creatureBounds: { left: creatureLeft, right: creatureLeft + visible.width },

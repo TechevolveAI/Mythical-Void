@@ -5,7 +5,7 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 
-const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta charset="utf-8"><link rel="icon" href="data:,"><title>Private Trumptopus mechanics</title>
+function createProofHtml({ finale = false } = {}) { return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta charset="utf-8"><link rel="icon" href="data:,"><title>Private Trumptopus mechanics</title>
 <style>html,body{margin:0;overflow:hidden;background:#15191c;color:#eee;font:12px Arial}header{height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 8px;box-sizing:border-box}button{height:34px;min-width:56px;border:1px solid #687775;background:#273034;color:white}canvas{display:block;touch-action:none}#paused{position:fixed;inset:45% 20% auto;z-index:3;background:#192423;padding:20px;text-align:center}#paused[hidden]{display:none}</style></head>
 <body><header><span>PRIVATE / MECHANICS ONLY</span><span><button id="pause">Pause</button> <button id="retry">Retry</button></span></header><div id="game"></div><div id="paused" hidden>Paused</div>
 <script type="module">
@@ -13,7 +13,7 @@ import * as Phaser from '/node_modules/phaser/dist/phaser.esm.js';
 window.Phaser = Phaser;
 await import('/src/systems/GraphicsEngine.js');
 await import('/src/systems/StageVisualResolver.js');
-const {default: Prototype} = await import('/src/dev/TrumptopusPrototypeLevel.js');
+const {default: Prototype} = await import('/src/dev/${finale ? 'TrumptopusFinalePreview' : 'TrumptopusPrototypeLevel'}.js');
 const evolution = await (await fetch('/src/config/evolution.json')).json();
 window.CreatureLifecycle = {getStageVisualConfig: stage => evolution.stages[stage].visual};
 const profile = (await (await fetch('/press/gameplay/real-creature-showcase/source-profiles.json')).json()).profiles[1];
@@ -23,15 +23,16 @@ window.saveWrites = 0;
 window.GameState = {get:key=>key.split('.').reduce((value,part)=>value?.[part],fixture),getActiveCreature:()=>fixture.creature,set:()=>{window.saveWrites++;throw Error('Proof attempted save');},save:()=>{window.saveWrites++;throw Error('Proof attempted persistence');}};
 window.fixtureUnchanged = () => window.fixtureBefore === JSON.stringify(fixture);
 window.game = new Phaser.Game({type:Phaser.CANVAS,parent:'game',width:innerWidth,height:innerHeight-42,audio:{noAudio:true},input:{activePointers:3},physics:{default:'arcade',arcade:{debug:false}},scene:Prototype});
-document.querySelector('#retry').onclick=()=>{document.querySelector('#paused').hidden=true;document.querySelector('#paused').textContent='Paused';document.querySelector('#pause').textContent='Pause';window.prototypeScene.scene.restart();};
+document.querySelector('#retry').onclick=()=>{document.querySelector('#paused').hidden=true;document.querySelector('#paused').textContent='Paused';document.querySelector('#pause').textContent='Pause';window.prototypeScene.scene.restart({checkpoint:window.prototypeScene.encounter.checkpoint?.()});};
 document.querySelector('#pause').onclick=()=>window.prototypeScene.showPauseMenu();
 window.addEventListener('prototype-pause',event=>{document.querySelector('#paused').hidden=!event.detail;document.querySelector('#pause').textContent=event.detail?'Resume':'Pause';});
 window.addEventListener('prototype-defeat',()=>{document.querySelector('#paused').textContent='Try again';document.querySelector('#paused').hidden=false;});
-</script></body></html>`;
+</script></body></html>`; }
+const html = createProofHtml();
 
 async function main() {
     const root = path.resolve(__dirname, '..');
-    const output = path.join(root, '.visual-review/trumptopus-grip');
+    const output = path.resolve(root, process.env.TRUMPTOPUS_PROOF_OUTPUT || '.visual-review/trumptopus-grip');
     fs.mkdirSync(output, { recursive: true });
     const report = { kind: 'single-exchange-greybox', finalArtwork: false, campaignIntegrated: false, journeys: [] };
     let server;
@@ -192,4 +193,5 @@ async function main() {
     }
     console.log(JSON.stringify({ passed: report.passed, journeys: report.journeys.map(({ name, realInput }) => ({ name, realInput })), output }, null, 2));
 }
-main().catch(error => { console.error(error); process.exitCode = 1; });
+module.exports = { createProofHtml };
+if (require.main === module) main().catch(error => { console.error(error); process.exitCode = 1; });

@@ -107,7 +107,7 @@ describe('private Trumptopus committed-grab exchange', () => {
     test('private scene is not registered in production, and new films remain disabled', () => {
         const root = path.join(__dirname, '../..');
         for (const file of ['src/game.js', 'src/utils/SceneLoader.js', 'src/scenes/levels/FinalVoidLevel.js']) {
-            expect(fs.readFileSync(path.join(root, file), 'utf8')).not.toMatch(/TrumptopusPrototype|TrumptopusEncounter/);
+            expect(fs.readFileSync(path.join(root, file), 'utf8')).not.toMatch(/TrumptopusPrototype|TrumptopusEncounter|TrumptopusFinale/);
         }
         expect(require('../config/final-void-films.json').enabled).toBe(false);
         expect(source).not.toMatch(/Math\.random|Date\.|\bwindow[.\[]|\bfetch\s*\(|localStorage/);
