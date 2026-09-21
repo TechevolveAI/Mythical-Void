@@ -21,6 +21,8 @@ function setup(width=390,height=802) {
     scene.completion={advance:jest.fn(),saveProgress:jest.fn(),saveApproach:jest.fn()};
     scene.player={x:2790,body:{bottom:scene.floorY}};scene.isGrounded=true;
     scene.clearInput=jest.fn();scene.scene={start:jest.fn()};
+    scene.cameras={main:{scrollX:0,scrollY:0,startFollow:jest.fn()}};
+    scene.getApproachActorBounds=jest.fn(()=>({creature:{top:200},astronaut:{top:220}}));
     return scene;
 }
 
@@ -54,14 +56,53 @@ test('paused approach neither adds active time nor enters the arena',()=>{
     expect(scene.scene.start).not.toHaveBeenCalled();
 });
 
-test('traversal uses the existing world trail; only a grip uses fixed combat formation',()=>{
+test('traversal uses the existing trail; a grip and settling keep the safe combat formation',()=>{
     const scene=setup();
-    scene.astronautFollower={setContextualFormation:jest.fn(),update:jest.fn()};
+    scene.astronautFollower={sprite:{x:100,y:200},setContextualFormation:jest.fn(),update:jest.fn()};
     scene.updatePrototypeFollower(16);
     expect(scene.astronautFollower.setContextualFormation).toHaveBeenCalledWith(null);
     expect(scene.astronautFollower.update).toHaveBeenCalledWith(16);
     expect(scene.astronautFollower.followDistance).toBe(170);
     scene.encounter.mode='grip';scene.updatePrototypeFollower(16);
     expect(scene.combatFormation).toBe(true);
+    scene.combatFormation=false;scene.encounter.mode='settling';scene.updatePrototypeFollower(16);
+    expect(scene.combatFormation).toBe(true);
     expect(scene.astronautFollower.update).toHaveBeenCalledTimes(1);
+});
+
+test('leaving a counter seeds the trail from the actual ally, not reversed player facing',()=>{
+    const scene=setup();scene.player.flipX=true;
+    const follower={sprite:{x:120,y:200},setContextualFormation:jest.fn(()=>true),
+        getTargetAnchor:()=>({x:232,y:200}),update:jest.fn()};
+    scene.astronautFollower=follower;scene.updatePrototypeFollower(16);
+    expect(follower.trail).toEqual([{x:232,y:200},{x:120,y:200}]);
+    expect(follower.lastTargetPosition).toEqual({x:232,y:200});
+    follower.setContextualFormation.mockReturnValue(false);follower.trail.push({x:130,y:195});
+    scene.updatePrototypeFollower(16);expect(follower.trail).toHaveLength(3);
+});
+
+test('high jumps lift the camera above the old world bound without changing actor scale',()=>{
+    const scene=setup(1280,678);
+    scene.getApproachActorBounds.mockReturnValue({creature:{top:-50},astronaut:{top:180}});
+    scene.updateApproachVerticalCamera(16);
+    expect(scene.cameras.main.scrollY).toBe(-166);
+    expect(-50-scene.cameras.main.scrollY).toBe(116);
+    scene.getApproachActorBounds.mockReturnValue({creature:{top:200},astronaut:{top:230}});
+    scene.updateApproachVerticalCamera(16);
+    expect(scene.cameras.main.scrollY).toBeGreaterThan(-166);
+    expect(scene.cameras.main.scrollY).toBeLessThan(0);
+    for(let i=0;i<150;i++) {
+        scene.updateApproachVerticalCamera(16);
+        scene.cameras.main.scrollY=Math.floor(scene.cameras.main.scrollY);
+    }
+    expect(scene.cameras.main.scrollY).toBe(0);
+});
+
+test('returning from a held camera does not snap to the player midpoint',()=>{
+    const scene=setup();const camera=scene.cameras.main;
+    camera.scrollX=1100;camera.scrollY=-130;
+    camera.startFollow.mockImplementation(()=>{camera.scrollX=1300;camera.scrollY=-200;});
+    scene.followApproachPlayer();
+    expect(camera.scrollX).toBe(1100);expect(camera.scrollY).toBe(-130);
+    expect(camera.startFollow).toHaveBeenCalledWith(scene.player,true,0.12,0,24,0);
 });

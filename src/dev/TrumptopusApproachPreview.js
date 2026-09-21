@@ -37,9 +37,10 @@ export default class TrumptopusApproachPreview extends TrumptopusPrototypeLevel 
     create() {
         super.create();
         this.bossName.setText('THE FINAL VOID'); this.bossBar.setVisible(false);
-        this.cameras.main.setBounds(0,0,this.levelWidth,this.scale.height);
-        this.cameras.main.startFollow(this.player,true,0.12,0.12, -35, 0);
+        this.cameras.main.setBounds(0,-240,this.levelWidth,this.scale.height+240);
+        this.followApproachPlayer();
         this.cameras.main.setDeadzone(24,this.scale.height);
+        this.cameras.main.scrollY=0;
         // Catch ledges remain in view beneath the main road, not a lethal void.
         this.drawExchange();
         if (this.completion.run.status === 'won' || this.completion.run.phaseIndex > 0 || this.encounter.arrived) {
@@ -53,10 +54,45 @@ export default class TrumptopusApproachPreview extends TrumptopusPrototypeLevel 
     }
 
     updatePrototypeFollower(delta) {
-        if (this.encounter.mode === 'grip') return super.updatePrototypeFollower(delta);
-        this.astronautFollower.setContextualFormation(null);
-        this.astronautFollower.followDistance = 170;
-        this.astronautFollower.update(delta);
+        if (['grip','settling'].includes(this.encounter.mode)) return super.updatePrototypeFollower(delta);
+        const follower=this.astronautFollower;
+        const position={x:follower.sprite.x,y:follower.sprite.y};
+        if(follower.setContextualFormation(null)) {
+            // A left-facing counter must not rebuild the ally's trail on the right.
+            const anchor=follower.getTargetAnchor();
+            follower.trail=[anchor,position];
+            follower.lastTargetPosition=anchor;
+        }
+        follower.followDistance=170;
+        follower.update(delta);
+    }
+
+    followApproachPlayer() {
+        const camera=this.cameras.main,{scrollX,scrollY}=camera;
+        camera.startFollow(this.player,true,0.12,0,24,0);
+        camera.scrollX=scrollX;camera.scrollY=scrollY;
+    }
+
+    getApproachActorBounds() {
+        const player=this.player,visible=this.playerContactGeometry;
+        const left=player.x+(player.flipX ? player.width/2-visible.right-1 : visible.left-player.width/2)*player.scaleX;
+        const top=player.y+(visible.top-player.height/2)*player.scaleY;
+        const astronaut=this.astronautFollower.sprite.getBounds();
+        return {creature:{left,top,right:left+visible.width*player.scaleX,bottom:top+visible.height*player.scaleY},
+            astronaut:{left:astronaut.left,top:astronaut.top,right:astronaut.right,bottom:astronaut.bottom}};
+    }
+
+    updateApproachVerticalCamera(delta) {
+        const camera=this.cameras.main,bounds=this.getApproachActorBounds();
+        const top=Math.min(bounds.creature.top,bounds.astronaut.top);
+        const desired=Math.min(0,top-140);
+        const smoothing=1-Math.pow(0.002,Math.min(delta,50)/1000);
+        const difference=desired-camera.scrollY;
+        // Integer camera rounding must not strand the return a few pixels high.
+        const step=Math.min(Math.abs(difference),Math.max(1,Math.abs(difference)*smoothing));
+        const smooth=camera.scrollY+Math.sign(difference)*step;
+        // Rise before either hero meets the heading; ease back only after landing.
+        camera.scrollY=Math.max(-240,Math.min(0,smooth,top-116));
     }
 
     update(time,delta) {
@@ -71,8 +107,9 @@ export default class TrumptopusApproachPreview extends TrumptopusPrototypeLevel 
             this.cameras.main.scrollX += (target-this.cameras.main.scrollX)*0.12;
         } else if (this.cameraLockedForGrip) {
             this.cameraLockedForGrip = false;
-            this.cameras.main.startFollow(this.player,true,0.12,0.12,-35,0);
+            this.followApproachPlayer();
         }
+        this.updateApproachVerticalCamera(delta);
         if (this.encounter.clearedGrips !== this.lastSavedGrip) {
             this.completion.saveApproach(this.encounter.checkpoint());
             this.lastSavedGrip = this.encounter.clearedGrips;
@@ -129,6 +166,7 @@ export default class TrumptopusApproachPreview extends TrumptopusPrototypeLevel 
 
     getProofState() {
         return {...super.getProofState(),sceneKey:this.sys.settings.key,cameraX:this.cameras.main.scrollX,
+            cameraY:this.cameras.main.scrollY,actorBounds:this.getApproachActorBounds(),
             width:this.levelWidth,exitX:FINAL_VOID_APPROACH.exitX,catchY:this.floorY + FINAL_VOID_APPROACH.catchDepth,
             bridges:this.bridges.map(bridge=>({top:bridge.body.top,artTop:bridge.y-16,width:bridge.body.width})),
             savedRun:this.completion.run};

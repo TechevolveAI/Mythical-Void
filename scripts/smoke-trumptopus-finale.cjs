@@ -11,9 +11,10 @@ const { playApproach } = require('./lib/trumptopus-approach-proof.cjs');
 
 async function main() {
     const root = path.resolve(__dirname, '..');
-    const approach = process.env.TRUMPTOPUS_APPROACH_PROOF === '1';
+    const framing = process.env.TRUMPTOPUS_FRAMING_PROOF === '1';
+    const approach = framing || process.env.TRUMPTOPUS_APPROACH_PROOF === '1';
     const campaign = approach || process.env.TRUMPTOPUS_CAMPAIGN_PROOF === '1';
-    const output = path.join(root, approach ? '.visual-review/trumptopus-approach' : campaign ? '.visual-review/trumptopus-campaign' : '.visual-review/trumptopus-three-phase');
+    const output = path.join(root, framing ? '.visual-review/trumptopus-framing' : approach ? '.visual-review/trumptopus-approach' : campaign ? '.visual-review/trumptopus-campaign' : '.visual-review/trumptopus-three-phase');
     fs.mkdirSync(output, { recursive: true });
     const report = { kind: campaign ? 'real-fight-to-campaign-ending' : 'three-phase-greybox', finalArtwork: false,
         privateCampaignAdapterProved: campaign, productionIntegrated: false,
@@ -58,7 +59,7 @@ async function main() {
             });
             await page.goto(`${base}/__finale-proof`);
             await page.waitForFunction(() => window.prototypeScene?.player?.body);
-            const routeEvidence = approach ? await playApproach(page,context,output,name) : null;
+            const routeEvidence = approach ? await playApproach(page,context,output,name,{framing}) : null;
             const state = () => page.evaluate(() => window.prototypeScene.getProofState());
             const waitState = expected => page.waitForFunction(value => window.prototypeScene.encounter.state === value, expected, { timeout: 15000 });
             const cdp = name === 'phone' ? await context.newCDPSession(page) : null;
@@ -189,6 +190,7 @@ async function main() {
         if (activePage && !activePage.isClosed()) {
             report.failureState = await activePage.evaluate(() => window.prototypeScene?.getProofState()).catch(() => null);
             report.failureInputTrace = await activePage.evaluate(() => window.approachJumpTrace || null).catch(() => null);
+            report.failureFraming = await activePage.evaluate(() => window.completedFramingSample || null).catch(() => null);
             await activePage.screenshot({path:path.join(output,'failed-attempt.png')}).catch(() => {});
         }
         throw error;
