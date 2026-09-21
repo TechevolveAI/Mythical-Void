@@ -148,9 +148,12 @@ async function main() {
                 const damageBefore = locked.damage.length;
                 if (locked.attack === 'sweep') {
                     await moveTo(195);
-                    await waitState('strike');
-                    // Ordinary -420/500 movement clears this 0.75s sweep from
-                    // launch. A late geometry poll needlessly races input delivery.
+                    // React to the readable wind-up, allowing native input delivery
+                    // time. Ordinary -420/500 movement spans the remaining sweep.
+                    await page.waitForFunction(() => {
+                        const snapshot = window.prototypeScene.encounter.snapshot();
+                        return snapshot.state === 'windup' && snapshot.progress >= 0.55;
+                    });
                     await jump();
                     await page.screenshot({ path: path.join(output, `${name}-sweep-jump.png`) });
                     await waitState('exposed');
