@@ -17,7 +17,9 @@ describe('game flow integrity validator', () => {
         expect(patterns).toEqual(expect.arrayContaining([
             'const prepared = this.prepareSaveCandidate(saveData);',
             'this.commitPreparedSave(prepared, {',
-            'gameStarted: currentSession.gameStarted === true || savedJourneyHasStarted'
+            'gameStarted: currentSession.gameStarted === true || savedJourneyHasStarted',
+            'const { updatePlayTime = false, state = this.state } = options;',
+            'gameStarted: state.session?.gameStarted === true'
         ]));
         expect(patterns).not.toContain(
             'this.state = this.deepMerge(this.state, migrated);'

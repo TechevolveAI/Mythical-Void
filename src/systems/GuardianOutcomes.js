@@ -99,7 +99,14 @@ function normalizeTimestamp(value) {
 function inferLegacyGuardianIds(gameState) {
     const storedIds = gameState?.get?.('world.guardianResidents.rescuedIds');
     const ids = new Set(Array.isArray(storedIds) ? storedIds : []);
+    const antagonist = gameState?.get?.('world.antagonistOutcomes.trumptopus');
+    const finalVoidHasAntagonistOutcome = antagonist?.schemaVersion === 1 &&
+        antagonist.encounterId === 'trumptopus' && antagonist.levelId === 'finalVoid' &&
+        antagonist.outcome === 'banished';
     GUARDIAN_OUTCOME_DEFINITIONS.forEach(definition => {
+        // Explicit historical records and old rescued IDs still win. A newly
+        // completed antagonist encounter does not imply an Empress rescue.
+        if (definition.guardianId === 'void_empress' && finalVoidHasAntagonistOutcome) return;
         if (gameState?.get?.(`levels.${definition.levelId}.completed`) === true) {
             ids.add(definition.guardianId);
         }

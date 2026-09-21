@@ -32,7 +32,7 @@ export class FinaleFilms {
         return this.films.get(beat)?.state === 'prepared';
     }
 
-    watch(beat) {
+    watch(beat, { onClose = () => {} } = {}) {
         if (this.closed || this.player || !this.isReady(beat)) return false;
         const film = this.films.get(beat);
         this.player = new PreparedFilmPlayer({
@@ -40,6 +40,7 @@ export class FinaleFilms {
             onClose: () => {
                 this.player = null;
                 this.films.delete(beat);
+                if (!this.closed) onClose();
             }
         });
         // The outer Watch click is the gesture; no second click or fetch is required.

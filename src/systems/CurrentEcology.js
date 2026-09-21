@@ -901,6 +901,7 @@ export function recordCurrentSignalObservation(gameState, signalId, {
 
 export function recordCurrentRegionRestoration(gameState, levelId, {
     occurredAt = new Date().toISOString(),
+    evidence = 'guardian_restored',
     save = true
 } = {}) {
     const definition = REGION_BY_LEVEL.get(levelId);
@@ -917,7 +918,7 @@ export function recordCurrentRegionRestoration(gameState, levelId, {
             guardianRestored: true,
             vitality: definition.restoredVitality,
             restoredAt: occurredAt,
-            evidence: 'guardian_restored'
+            evidence: evidence === 'antagonist_banished' ? evidence : 'guardian_restored'
         });
         if (!state.restoredRegionIds.includes(definition.id)) {
             state.restoredRegionIds.push(definition.id);
