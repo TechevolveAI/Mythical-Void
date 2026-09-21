@@ -63,14 +63,15 @@ export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
             .setDepth(10001);
         this.setupInput();
         this.showPlatformerMobileControls();
-        this.clearInput = () => {
+        this.clearInput = ({ preserveFall = false } = {}) => {
             this.input.keyboard?.resetKeys();
             this.releaseAllPlatformerActionButtons();
             this.resetJoystick();
             this.virtualJoystickX = 0;
             this.virtualJoystickY = 0;
             this.clearVirtualJumpInput();
-            this.player?.body?.setVelocity(0);
+            this.player?.body?.setVelocityX(0);
+            if (!preserveFall) this.player?.body?.setVelocityY(0);
         };
         this.blurHandler = () => {
             this.clearInput();

@@ -152,6 +152,23 @@ describe('private finale durable victory boundary', () => {
         expect(state.get('story.projectBeacon.trumptopus')).toEqual({schemaVersion:99,sentinel:'keep'});
     });
 
+    test('active time and damage survive phase retry/refresh without creating false perfect-run rewards', () => {
+        const sequence = begin(state).run.sequence;
+        checkpoint(state,sequence,0,{elapsedMs:9000,damageTaken:1});
+        expect(checkpoint(state,sequence,0,{elapsedMs:9000,damageTaken:1})).toBe(false);
+        expect(()=>checkpoint(state,sequence,0,{elapsedMs:10,damageTaken:1})).toThrow('rewind');
+        const next = restored();
+        expect(run(next)).toMatchObject({elapsedMs:9000,damageTaken:1});
+        checkpoint(next,sequence,1,{elapsedMs:300000,damageTaken:2});
+        checkpoint(next,sequence,2,{elapsedMs:390000,damageTaken:3});
+        expect(()=>win(next,{sequence,completionMs:1000,damageTaken:0})).toThrow('rewind');
+        win(next,{sequence,completionMs:420000,damageTaken:3});
+        expect(next.get('levels.finalVoid.noDamageRun')).toBe(false);
+        expect(next.get('levels.finalVoid.speedrun')).toBe(false);
+        expect(next.get('levels.finalVoid.bestTime')).toBe(420000);
+        expect(run(next).receipt).toMatchObject({completionMs:420000,damageTaken:3});
+    });
+
     test('existing final repair leads to the existing ending and preserves an already chosen priority', () => {
         win(state,{sequence:ready()});
         const next = restored();

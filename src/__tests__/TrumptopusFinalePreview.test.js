@@ -28,3 +28,16 @@ test('the private road lift never enables through a player or vanishes under a r
     expect(scene.causeway.y).toBe(434);
     expect(scene.causeway.body.updateFromGameObject).toHaveBeenCalledTimes(1);
 });
+
+test('winning releases held input without repeatedly cancelling the landing fall', () => {
+    const scene = new Preview();
+    scene.lastPreviewPhase = 2;
+    scene.encounter = {snapshot: () => ({phaseIndex:2,mode:'banishment',completionReady:true}),drainEvents:()=>[]};
+    scene.response = {clear:jest.fn()};
+    scene.clearInput = jest.fn();
+    scene.hidePlatformerMobileControls = jest.fn();
+    scene.update(0,16);
+    scene.update(16,16);
+    expect(scene.clearInput.mock.calls).toEqual([[{preserveFall:true}],[{preserveFall:true}]]);
+    expect(scene.hidePlatformerMobileControls).toHaveBeenCalledTimes(2);
+});

@@ -8,7 +8,8 @@ export default class TrumptopusFinalePreview extends TrumptopusPrototypeLevel {
         this.phaseEvidence = [];
         this.lastPreviewPhase = null;
         this.causewaySettled = false;
-        return new TrumptopusFinale({ minX: 85, maxX: this.levelWidth - 115, checkpoint: data.checkpoint });
+        return new TrumptopusFinale({ minX: 85, maxX: this.levelWidth - 115,
+            checkpoint: data.checkpoint, completed: data.completed === true });
     }
 
     create() {
@@ -59,7 +60,7 @@ export default class TrumptopusFinalePreview extends TrumptopusPrototypeLevel {
             this.response.lineBetween(start, this.floorY + 4, end, this.floorY + 4);
         }
         if (state.completionReady) {
-            this.clearInput();
+            this.clearInput({ preserveFall: true });
             this.hidePlatformerMobileControls();
         }
     }

@@ -90,7 +90,7 @@ describe('private finale outcome to existing ending adapter',()=>{
         gameState={storageMode:'local',get:jest.fn(()=>[])};
         deps={
             beginTrumptopusRun:jest.fn(()=>({run:{...run},persisted:false})),
-            checkpointTrumptopusRun:jest.fn((_,sequence,phaseIndex)=>{run={...run,phaseIndex};}),
+            checkpointTrumptopusRun:jest.fn((_,sequence,phaseIndex,progress)=>{run={...run,phaseIndex,...progress};return true;}),
             getTrumptopusRun:()=>({...run}),
             recordTrumptopusVictory:jest.fn(()=>{run={...run,status:'won',receipt};return {changed:true,persisted:false,receipt};}),
             getCampaignFinaleRecovery:jest.fn(()=>({status:'repair'}))
@@ -133,6 +133,19 @@ describe('private finale outcome to existing ending adapter',()=>{
         scene.scene.start.mockImplementationOnce(()=>{throw Error('Unavailable');});
         expect(()=>controller.continue()).toThrow('Unavailable');
         expect(controller.continue()).toBe(true);
+        controller.dispose();
+    });
+    test('active time excludes no-update pauses and carries earlier damage across a new scene instance',()=>{
+        run={...run,phaseIndex:1,elapsedMs:12000,damageTaken:2};
+        scene.damageEvidence=[{damage:1}];
+        const controller=new Completion(scene,{gameState,films,createPanel});
+        controller.advance(20);controller.advance(16.5);
+        controller.saveProgress();
+        expect(run).toMatchObject({elapsedMs:12037,damageTaken:3});
+        controller.observe(encounter({phaseIndex:2,completionReady:true}));
+        expect(deps.recordTrumptopusVictory).toHaveBeenCalledWith(gameState,expect.objectContaining({completionMs:12037,damageTaken:3}));
+        controller.advance(99999);
+        expect(controller.progress().elapsedMs).toBe(12037);
         controller.dispose();
     });
 });

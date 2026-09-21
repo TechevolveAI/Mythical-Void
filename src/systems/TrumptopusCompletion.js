@@ -14,7 +14,11 @@ export class TrumptopusCompletion {
         this.closed = false; this.continued = false; this.panel = null;
         const started = beginTrumptopusRun(gameState, {newExpedition});
         this.run = started.run; this.persisted = started.persisted;
+        this.elapsedMs = this.run.elapsedMs || 0;
+        this.priorDamage = this.run.damageTaken || 0;
         this.onShutdown = () => this.dispose();
+        this.onPageHide = () => this.saveProgress();
+        globalThis.addEventListener?.('pagehide',this.onPageHide);
         scene.events.once('shutdown',this.onShutdown);
         scene.events.once('destroy',this.onShutdown);
         void films.prepare('victory').catch(() => false);
@@ -22,12 +26,29 @@ export class TrumptopusCompletion {
 
     checkpoint() { return {schemaVersion:1,encounterId:'trumptopus',phaseIndex:this.run.phaseIndex}; }
 
+    advance(delta) {
+        if (!this.closed && this.run.status === 'fighting' && Number.isFinite(delta) && delta > 0) {
+            this.elapsedMs += Math.min(delta,250);
+        }
+    }
+
+    progress() {
+        return {elapsedMs:Math.round(this.elapsedMs),damageTaken:this.priorDamage +
+            (this.scene.damageTaken || this.scene.damageEvidence?.length || 0)};
+    }
+
+    saveProgress(phaseIndex = this.run.phaseIndex) {
+        if (this.closed || this.run.status === 'won') return false;
+        const changed = checkpointTrumptopusRun(this.gameState,this.run.sequence,phaseIndex,this.progress());
+        this.run = getTrumptopusRun(this.gameState);
+        return changed;
+    }
+
     observe(encounter) {
         if (this.closed || this.run.status === 'won') return this.result || null;
         const state = encounter.snapshot();
         if (state.phaseIndex > this.run.phaseIndex) {
-            checkpointTrumptopusRun(this.gameState,this.run.sequence,state.phaseIndex);
-            this.run = getTrumptopusRun(this.gameState);
+            this.saveProgress(state.phaseIndex);
         }
         if (!state.completionReady) return null;
         // Persist at the winning hit, but let the scene finish its grounded
@@ -35,8 +56,8 @@ export class TrumptopusCompletion {
         this.scene.clearInput?.({ preserveFall: true });
         this.result = recordTrumptopusVictory(this.gameState, {
             sequence:this.run.sequence,
-            completionMs:Math.max(0,Date.now() - (this.scene.levelStartTime || Date.now())),
-            damageTaken:this.scene.damageTaken || this.scene.damageEvidence?.length || 0,
+            completionMs:this.progress().elapsedMs,
+            damageTaken:this.progress().damageTaken,
             bonusCoins:(this.scene.rescuedResidentSupport?.victoryCoinBonus || 0) + (this.scene.villageSupport?.victoryCoinBonus || 0),
             inventorySlots:this.inventoryManager?.maxSlots ?? 30
         });
@@ -72,7 +93,9 @@ export class TrumptopusCompletion {
 
     dispose() {
         if (this.closed) return;
+        this.saveProgress();
         this.closed = true; this.panel?.close(); this.films.dispose();
+        globalThis.removeEventListener?.('pagehide',this.onPageHide);
         this.scene.events.off('shutdown',this.onShutdown);
         this.scene.events.off('destroy',this.onShutdown);
     }

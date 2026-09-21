@@ -32,6 +32,8 @@ export function getTrumptopusRun(gameState) {
     if (run.schemaVersion !== 1 || run.encounterId !== 'trumptopus' ||
         !Number.isSafeInteger(run.sequence) || run.sequence < 1 ||
         !Number.isInteger(run.phaseIndex) || run.phaseIndex < 0 || run.phaseIndex > 2 ||
+        (run.elapsedMs !== undefined && (!Number.isSafeInteger(run.elapsedMs) || run.elapsedMs < 0)) ||
+        (run.damageTaken !== undefined && (!Number.isSafeInteger(run.damageTaken) || run.damageTaken < 0)) ||
         !['fighting', 'won'].includes(run.status) ||
         (run.status === 'won' && (run.receipt?.id !== `trumptopus:${run.sequence}` || run.receipt?.outcome !== 'banished'))) {
         throw new Error('Unsupported Trumptopus progress; existing data was not changed');
@@ -66,18 +68,23 @@ export function beginTrumptopusRun(gameState, { newExpedition = false } = {}) {
     };
     const sequence = validCount((previous?.sequence || 0) + 1, 'expedition sequence');
     const state = clone(gameState.state);
-    const run = { schemaVersion: 1, encounterId: 'trumptopus', sequence, phaseIndex: 0, status: 'fighting', receipt: null };
+    const run = { schemaVersion: 1, encounterId: 'trumptopus', sequence, phaseIndex: 0,
+        elapsedMs: 0, damageTaken: 0, status: 'fighting', receipt: null };
     write(state, RUN_PATH, run);
     return { changed: true, persisted: commit(gameState, state), run: clone(run) };
 }
 
-export function checkpointTrumptopusRun(gameState, sequence, phaseIndex) {
+export function checkpointTrumptopusRun(gameState, sequence, phaseIndex, progress = {}) {
     validCount(phaseIndex, 'phase', 2);
     const run = getTrumptopusRun(gameState);
-    if (!run || run.sequence !== sequence || run.status !== 'fighting' || phaseIndex <= run.phaseIndex) return false;
-    if (phaseIndex !== run.phaseIndex + 1) throw new Error('Cannot skip a finale phase checkpoint');
+    if (!run || run.sequence !== sequence || run.status !== 'fighting' || phaseIndex < run.phaseIndex) return false;
+    if (phaseIndex > run.phaseIndex + 1) throw new Error('Cannot skip a finale phase checkpoint');
+    const elapsedMs = validCount(progress.elapsedMs ?? run.elapsedMs ?? 0, 'active time');
+    const damageTaken = validCount(progress.damageTaken ?? run.damageTaken ?? 0, 'damage');
+    if (elapsedMs < (run.elapsedMs || 0) || damageTaken < (run.damageTaken || 0)) throw new Error('Cannot rewind finale progress');
+    if (phaseIndex === run.phaseIndex && elapsedMs === (run.elapsedMs || 0) && damageTaken === (run.damageTaken || 0)) return false;
     const state = clone(gameState.state);
-    write(state, RUN_PATH, { ...run, phaseIndex });
+    write(state, RUN_PATH, { ...run, phaseIndex, elapsedMs, damageTaken });
     commit(gameState, state);
     return true;
 }
@@ -94,6 +101,7 @@ export function recordTrumptopusVictory(gameState, {
     validCount(completedAt, 'completion time'); validCount(completionMs, 'duration');
     validCount(damageTaken, 'damage'); validCount(bonusCoins, 'support coins', 10000);
     validCount(inventorySlots, 'inventory capacity', 1000);
+    if (completionMs < (run.elapsedMs || 0) || damageTaken < (run.damageTaken || 0)) throw new Error('Cannot rewind finale progress');
     const state = clone(gameState.state);
     const access = draftAccess(state);
     const now = new Date(completedAt).toISOString();
@@ -152,11 +160,12 @@ export function recordTrumptopusVictory(gameState, {
     access.set('story.projectBeacon.expeditionCheckpoint', null);
     const receipt = {
         id: `trumptopus:${sequence}`, outcome: 'banished', completedAt: now,
+        completionMs, damageTaken,
         coinsAwarded: coins, partId: 'command_module', partAwarded,
         powerup: { id: powerup.id, name: powerup.name, resultText: powerup.resultText, usageHint: powerup.usageHint, queued },
         rescuedResidentId: rescued.resident.id, residentNewlyRescued: rescued.changed,
         regionRestored: restoration.changed, firstCompletion: !wasCompleted
     };
-    access.set(RUN_PATH, { ...run, status: 'won', receipt });
+    access.set(RUN_PATH, { ...run, elapsedMs: completionMs, damageTaken, status: 'won', receipt });
     return { changed: true, persisted: commit(gameState, state), receipt: clone(receipt) };
 }

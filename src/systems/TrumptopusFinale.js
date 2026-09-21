@@ -19,7 +19,7 @@ export function resolveTrumptopusCheckpoint(value) {
 
 // Encounter orchestration only. The caller owns save, reward and presentation policy.
 export class TrumptopusFinale {
-    constructor({ minX = 80, maxX = 1000, checkpoint = null } = {}) {
+    constructor({ minX = 80, maxX = 1000, checkpoint = null, completed = false } = {}) {
         if (!Number.isFinite(minX) || !Number.isFinite(maxX) || maxX < minX) throw new Error('Invalid finale bounds');
         this.bounds = { minX, maxX };
         this.phaseIndex = resolveTrumptopusCheckpoint(checkpoint);
@@ -28,7 +28,11 @@ export class TrumptopusFinale {
         this.cycle = null;
         this.events = [];
         this.defeated = false;
-        this.startPhase();
+        if (completed === true) {
+            this.phaseIndex = 2;
+            this.mode = 'aftermath'; this.elapsed = 0;
+            this.phaseHealth = 0; this.attackIndex = 0; this.defeated = true;
+        } else this.startPhase();
     }
 
     emit(type) {

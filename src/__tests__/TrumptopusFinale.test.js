@@ -18,6 +18,13 @@ const winPhase = boss => {
 };
 
 describe('Trumptopus three-phase finale', () => {
+    test('an already committed victory restores a terminal world without replaying attacks or award events', () => {
+        const boss = new TrumptopusFinale({completed:true});
+        expect(boss.snapshot()).toMatchObject({phaseIndex:2,state:'aftermath',health:0,routeOpen:true,completionReady:true,dangerous:false});
+        expect(boss.hit(9)).toBe(false); expect(boss.consumeContact(true)).toBe(false);
+        expect(boss.retry()).toBe(false); boss.update(2000,200);
+        expect(boss.drainEvents()).toEqual([]);
+    });
     test('three distinct phases cannot be skipped even by an upgraded attack', () => {
         const boss = new TrumptopusFinale();
         expect(boss.snapshot()).toMatchObject({ state: 'phase_intro', health: 24, phaseIndex: 0, dangerous: false });

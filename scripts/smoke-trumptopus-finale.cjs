@@ -5,20 +5,26 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const { createProofHtml } = require('./smoke-trumptopus-grip.cjs');
+const { createCampaignProofHtml, completeCampaignEnding } = require('./lib/trumptopus-campaign-proof.cjs');
 
 async function main() {
     const root = path.resolve(__dirname, '..');
-    const output = path.join(root, '.visual-review/trumptopus-three-phase');
+    const campaign = process.env.TRUMPTOPUS_CAMPAIGN_PROOF === '1';
+    const output = path.join(root, campaign ? '.visual-review/trumptopus-campaign' : '.visual-review/trumptopus-three-phase');
     fs.mkdirSync(output, { recursive: true });
-    const report = { kind: 'three-phase-greybox', finalArtwork: false, campaignIntegrated: false, journeys: [] };
+    const report = { kind: campaign ? 'real-fight-to-campaign-ending' : 'three-phase-greybox', finalArtwork: false,
+        privateCampaignAdapterProved: campaign, productionIntegrated: false,
+        fixturePriorLevels: campaign, physicalDeviceTest: false, journeys: [] };
     let server, browser, activePage;
     const cleanup = async () => { try { await browser?.close(); } finally { await server?.close(); } };
     for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, async () => { await cleanup(); process.exit(1); });
     try {
         const { createServer } = await import('vite');
-        server = await createServer({ configFile: false, root, server: { host: '127.0.0.1', port: 0, open: false }, plugins: [{
+        server = await createServer({ configFile: false, root, envDir: path.join(root,'.private-no-env'),
+            define:{'import.meta.env.VITE_ENABLE_API_FEATURES':'"false"','import.meta.env.VITE_ENABLE_AI_PORTRAITS':'"false"','import.meta.env.VITE_ENABLE_AI_VIDEOS':'"false"',__MYTHICAL_STATIC_CONTINUITY__:'true',__MYTHICAL_OBSERVABILITY_DELIVERY_ENABLED__:'false'},
+            server: { host: '127.0.0.1', port: 0, open: false }, plugins: [{
             name: 'private-finale', configureServer(vite) {
-                vite.middlewares.use('/__finale-proof', (_, res) => { res.setHeader('Content-Type', 'text/html'); res.end(createProofHtml({ finale: true })); });
+                vite.middlewares.use('/__finale-proof', (_, res) => { res.setHeader('Content-Type', 'text/html'); res.end(campaign ? createCampaignProofHtml() : createProofHtml({ finale: true })); });
             }
         }] });
         await server.listen();
@@ -29,12 +35,15 @@ async function main() {
             const page = await context.newPage(); activePage = page;
             const errors = [], requests = [], exchanges = [];
             report.inProgress = { name, errors, exchanges };
-            page.on('pageerror', error => errors.push(error.message));
+            page.on('pageerror', error => errors.push(error.stack || error.message));
             page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-            await page.addInitScript(() => {
+            await page.addInitScript(campaign => {
                 window.storageWrites = 0;
-                for (const method of ['setItem', 'removeItem', 'clear']) Storage.prototype[method] = () => { window.storageWrites++; throw Error('Proof attempted persistent storage'); };
-            });
+                for (const method of ['setItem', 'removeItem', 'clear']) {
+                    const original=Storage.prototype[method];
+                    Storage.prototype[method]=function(...args){window.storageWrites++;if(campaign)return original.apply(this,args);throw Error('Proof attempted persistent storage');};
+                }
+            },campaign);
             await page.route('**/*', route => {
                 const request = route.request(); requests.push({ url: request.url(), method: request.method() });
                 if (!request.url().startsWith(base) || request.method() !== 'GET' || /\/api\/|\/\.netlify\//.test(request.url())) {
@@ -157,12 +166,14 @@ async function main() {
             const motion = await page.evaluate(() => window.stopProofRecording());
             fs.writeFileSync(path.join(output, `${name}-three-phase-silent.webm`), Buffer.from(motion, 'base64'));
             const integrity = await page.evaluate(() => ({saveWrites:window.saveWrites,storageWrites:window.storageWrites,unchanged:window.fixtureUnchanged()}));
-            assert.deepEqual(integrity, {saveWrites:0,storageWrites:0,unchanged:true});
-            await page.evaluate(() => { window.prototypeScene.scene.stop(); window.dispatchEvent(new Event('resize')); window.game.events.emit('focus'); });
+            if(campaign) assert(integrity.unchanged&&integrity.storageWrites>0);
+            else assert.deepEqual(integrity, {saveWrites:0,storageWrites:0,unchanged:true});
+            const ending=campaign ? await completeCampaignEnding(page,output,name) : null;
+            await page.evaluate(() => { window.game.scene.getScenes(true).forEach(scene=>scene.scene.stop()); window.dispatchEvent(new Event('resize')); window.game.events.emit('focus'); });
             await page.waitForTimeout(250);
             assert.equal(await page.evaluate(() => window.prototypeScene.encounter.disposed), true);
             assert.deepEqual(errors, []);
-            report.journeys.push({name,width,height,exchanges,finished,integrity,pausedSafely:true,retryKeptPhase:true,externalRequests:0,errors});
+            report.journeys.push({name,width,height,exchanges,finished,integrity,ending,pausedSafely:true,retryKeptPhase:true,externalRequests:0,errors});
             delete report.inProgress;
             await context.close();
         }
