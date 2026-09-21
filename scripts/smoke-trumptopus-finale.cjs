@@ -64,16 +64,20 @@ async function main() {
             const routeEvidence = approach ? await playApproach(page,context,output,name,{framing}) : null;
             await page.evaluate(() => {
                 window.proofJumpInputs = [];
-                const record = () => {
+                window.proofAttackInputs = [];
+                const record = destination => {
                     const scene = window.prototypeScene, snapshot = scene.encounter.snapshot();
-                    window.proofJumpInputs.push({ state:snapshot.state, attack:snapshot.attack,
+                    destination.push({ state:snapshot.state, attack:snapshot.attack,
                         progress:snapshot.progress, bottom:scene.player.body.bottom,
                         damageCount:scene.damageEvidence.length });
                 };
-                document.addEventListener('keydown', event => { if (event.code === 'Space') record(); }, true);
+                document.addEventListener('keydown', event => {
+                    if (event.code === 'Space') record(window.proofJumpInputs);
+                    if (event.code === 'KeyM') record(window.proofAttackInputs);
+                }, true);
                 document.addEventListener('pointerdown', event => {
                     const jump = window.prototypeScene.mobileControlTargets?.jump;
-                    if (jump && Math.hypot(event.clientX - jump.x, event.clientY - 42 - jump.y) <= jump.radius) record();
+                    if (jump && Math.hypot(event.clientX - jump.x, event.clientY - 42 - jump.y) <= jump.radius) record(window.proofJumpInputs);
                 }, true);
             });
             const state = () => page.evaluate(() => window.prototypeScene.getProofState());
@@ -168,14 +172,14 @@ async function main() {
                 const exposed = await state();
                 assert.equal(exposed.damage.length, damageBefore, `${locked.attack} was not dodged`);
                 assert.equal(exposed.targetX, locked.targetX, 'Committed grab followed the player');
-                if (!captured.has(`${locked.phaseIndex}-exposed`)) {
-                    await page.screenshot({ path: path.join(output, `${name}-phase-${locked.phaseIndex + 1}-exposed.png`) });
-                    captured.add(`${locked.phaseIndex}-exposed`);
-                }
                 for (let press = 0; press < 5 && (await state()).state === 'exposed'; press++) { await attack(); await page.waitForTimeout(380); }
                 const countered = await state();
                 assert(countered.health < exposed.health, `No real ${name} attack reached ${locked.attack}`);
                 exchanges.push({ phase: locked.phaseIndex + 1, attack: locked.attack, damageBefore, damageAfter: countered.damage.length, healthBefore: exposed.health, healthAfter: countered.health });
+                if (!captured.has(`${locked.phaseIndex}-countered`)) {
+                    await page.screenshot({ path: path.join(output, `${name}-phase-${locked.phaseIndex + 1}-countered.png`) });
+                    captured.add(`${locked.phaseIndex}-countered`);
+                }
                 await page.waitForFunction(() => !['exposed', 'recoil'].includes(window.prototypeScene.encounter.state));
             }
             await waitState('aftermath');
@@ -199,7 +203,8 @@ async function main() {
             assert.equal(await page.evaluate(() => window.prototypeScene.encounter.disposed), true);
             assert.deepEqual(errors, []);
             const jumpInputs = await page.evaluate(() => window.proofJumpInputs);
-            report.journeys.push({name,width,height,routeEvidence,exchanges,jumpInputs,finished,integrity,ending,pausedSafely:true,retryKeptPhase:true,externalRequests:0,errors});
+            const attackInputs = await page.evaluate(() => window.proofAttackInputs);
+            report.journeys.push({name,width,height,routeEvidence,exchanges,jumpInputs,attackInputs,finished,integrity,ending,pausedSafely:true,retryKeptPhase:true,externalRequests:0,errors});
             delete report.inProgress;
             await context.close();
         }
@@ -211,6 +216,7 @@ async function main() {
             report.failureInputTrace = await activePage.evaluate(() => window.approachJumpTrace || null).catch(() => null);
             report.failureFraming = await activePage.evaluate(() => window.completedFramingSample || null).catch(() => null);
             report.failureJumpInputs = await activePage.evaluate(() => window.proofJumpInputs || []).catch(() => null);
+            report.failureAttackInputs = await activePage.evaluate(() => window.proofAttackInputs || []).catch(() => null);
             await activePage.screenshot({path:path.join(output,'failed-attempt.png')}).catch(() => {});
         }
         throw error;
