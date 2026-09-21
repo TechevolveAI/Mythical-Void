@@ -62,6 +62,20 @@ async function main() {
             await page.goto(`${base}/__finale-proof`);
             await page.waitForFunction(() => window.prototypeScene?.player?.body);
             const routeEvidence = approach ? await playApproach(page,context,output,name,{framing}) : null;
+            await page.evaluate(() => {
+                window.proofJumpInputs = [];
+                const record = () => {
+                    const scene = window.prototypeScene, snapshot = scene.encounter.snapshot();
+                    window.proofJumpInputs.push({ state:snapshot.state, attack:snapshot.attack,
+                        progress:snapshot.progress, bottom:scene.player.body.bottom,
+                        damageCount:scene.damageEvidence.length });
+                };
+                document.addEventListener('keydown', event => { if (event.code === 'Space') record(); }, true);
+                document.addEventListener('pointerdown', event => {
+                    const jump = window.prototypeScene.mobileControlTargets?.jump;
+                    if (jump && Math.hypot(event.clientX - jump.x, event.clientY - 42 - jump.y) <= jump.radius) record();
+                }, true);
+            });
             const state = () => page.evaluate(() => window.prototypeScene.getProofState());
             const waitState = expected => page.waitForFunction(value => window.prototypeScene.encounter.state === value, expected, { timeout: 15000 });
             const cdp = name === 'phone' ? await context.newCDPSession(page) : null;
@@ -135,9 +149,8 @@ async function main() {
                 if (locked.attack === 'sweep') {
                     await moveTo(195);
                     await waitState('strike');
-                    const sweepStart = await state();
-                    const jumpAt = Math.max(0, (width - 78 - 35 - sweepStart.player.right) / (width - 156) - 0.18);
-                    await page.waitForFunction(value => window.prototypeScene.encounter.snapshot().progress >= value, jumpAt);
+                    // Ordinary -420/500 movement clears this 0.75s sweep from
+                    // launch. A late geometry poll needlessly races input delivery.
                     await jump();
                     await page.screenshot({ path: path.join(output, `${name}-sweep-jump.png`) });
                     await waitState('exposed');
@@ -182,7 +195,8 @@ async function main() {
             await page.waitForTimeout(250);
             assert.equal(await page.evaluate(() => window.prototypeScene.encounter.disposed), true);
             assert.deepEqual(errors, []);
-            report.journeys.push({name,width,height,routeEvidence,exchanges,finished,integrity,ending,pausedSafely:true,retryKeptPhase:true,externalRequests:0,errors});
+            const jumpInputs = await page.evaluate(() => window.proofJumpInputs);
+            report.journeys.push({name,width,height,routeEvidence,exchanges,jumpInputs,finished,integrity,ending,pausedSafely:true,retryKeptPhase:true,externalRequests:0,errors});
             delete report.inProgress;
             await context.close();
         }
@@ -193,6 +207,7 @@ async function main() {
             report.failureState = await activePage.evaluate(() => window.prototypeScene?.getProofState()).catch(() => null);
             report.failureInputTrace = await activePage.evaluate(() => window.approachJumpTrace || null).catch(() => null);
             report.failureFraming = await activePage.evaluate(() => window.completedFramingSample || null).catch(() => null);
+            report.failureJumpInputs = await activePage.evaluate(() => window.proofJumpInputs || []).catch(() => null);
             await activePage.screenshot({path:path.join(output,'failed-attempt.png')}).catch(() => {});
         }
         throw error;
