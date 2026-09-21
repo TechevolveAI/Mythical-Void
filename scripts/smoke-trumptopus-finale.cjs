@@ -14,7 +14,9 @@ async function main() {
     const framing = process.env.TRUMPTOPUS_FRAMING_PROOF === '1';
     const approach = framing || process.env.TRUMPTOPUS_APPROACH_PROOF === '1';
     const campaign = approach || process.env.TRUMPTOPUS_CAMPAIGN_PROOF === '1';
-    const output = path.join(root, framing ? '.visual-review/trumptopus-framing' : approach ? '.visual-review/trumptopus-approach' : campaign ? '.visual-review/trumptopus-campaign' : '.visual-review/trumptopus-three-phase');
+    const proofName = process.env.TRUMPTOPUS_PROOF_NAME || (framing ? 'trumptopus-framing' : approach ? 'trumptopus-approach' : campaign ? 'trumptopus-campaign' : 'trumptopus-three-phase');
+    assert(/^trumptopus-[a-z0-9-]+$/.test(proofName), 'Proof output must be a private Trumptopus folder name');
+    const output = path.join(root, '.visual-review', proofName);
     fs.mkdirSync(output, { recursive: true });
     const report = { kind: campaign ? 'real-fight-to-campaign-ending' : 'three-phase-greybox', finalArtwork: false,
         privateCampaignAdapterProved: campaign, productionIntegrated: false,

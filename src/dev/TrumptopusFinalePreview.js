@@ -75,18 +75,10 @@ export default class TrumptopusFinalePreview extends TrumptopusPrototypeLevel {
         this.bossBody.body.updateFromGameObject();
         this.bossBody.body.enable = state.mode === 'combat';
         this.arm.clear().setAlpha(this.pose.alpha);
-        const count = state.attack === 'closing_grasp' ? 2 : 1;
-        for (let index = 0; index < count; index++) {
-            const handX = x + (count === 2 ? (index ? 28 : -28) : 0);
-            const handWidth = count === 2 ? 54 : width;
-            const elbowX = Math.min(this.levelWidth - 44, handX + 82);
-            const elbowY = Math.min(y - 64, this.floorY - 145);
-            this.arm.lineStyle(28, 0x697876, 1);
-            this.arm.beginPath();
-            this.arm.moveTo(this.levelWidth - 28 - index * 72, this.floorY - 265);
-            this.arm.lineTo(elbowX, elbowY);
-            this.arm.lineTo(handX, y - 15);
-            this.arm.strokePath();
+        for (const limb of this.pose.limbs) {
+            const handX = limb.palm.x, handWidth = limb.palm.width;
+            this.arm.fillStyle(0x697876, 1);
+            this.arm.fillPoints(limb.outline, true);
             this.arm.fillStyle(state.vulnerable ? 0xeecb79 : 0x94a5a0);
             if (!(state.attack === 'sweep' && ['strike', 'contact'].includes(state.state))) {
                 this.arm.fillRoundedRect(handX - handWidth * 0.4, y - 85, handWidth * 0.8, 85, 12);

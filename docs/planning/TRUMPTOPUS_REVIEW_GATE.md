@@ -4,6 +4,8 @@ Private readiness audit, 2026-09-21. Audited source: `3b97206d8fe956f38a346afae8
 
 **The mechanics prototype is reviewable. The authored finale is not finished or ready to release.**
 
+Follow-up: Kevin's extending-tentacle direction prompted a bounded motion correction after this audit. See the final section of [implementation history](TRUMPTOPUS_IMPLEMENTATION.md). Its separate `.visual-review/trumptopus-tentacle-motion/` evidence must not be confused with the older captures listed below. The missing authored character and actual films remain missing.
+
 No push, merge, deployment, publication or paid generation is authorized by this document. The private encounter is absent from the normal game registration. This audit did not inspect the live service and does not assert its current commit.
 
 ## The intended experience
