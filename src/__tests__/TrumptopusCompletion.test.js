@@ -102,6 +102,7 @@ describe('private finale outcome to existing ending adapter',()=>{
     test('private approach checkpoints carry time and damage into the next scene',()=>{
         const controller=new Completion(scene,{gameState,films,createPanel,withApproach:true});
         expect(deps.beginTrumptopusRun).toHaveBeenCalledWith(gameState,{newExpedition:false,withApproach:true});
+        expect(films.prepare).not.toHaveBeenCalled();
         controller.advance(20);scene.damageEvidence=[{}];
         const approach={schemaVersion:1,clearedGrips:1,arrived:false};
         expect(controller.saveApproach(approach)).toBe(true);
@@ -116,6 +117,7 @@ describe('private finale outcome to existing ending adapter',()=>{
     test('records at the final strike once, presents after recovery, continues once',()=>{
         const controller=new Completion(scene,{gameState,films,createPanel});
         expect(controller.checkpoint().phaseIndex).toBe(0);
+        expect(films.prepare).toHaveBeenCalledWith('victory');
         win(controller); controller.observe(encounter({phaseIndex:2,completionReady:true}));
         expect(deps.recordTrumptopusVictory).toHaveBeenCalledTimes(1);
         expect(scene.enterLevelCompletionState).not.toHaveBeenCalled();

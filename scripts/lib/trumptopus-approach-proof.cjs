@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 const fs = require('node:fs');
 
-async function playApproach(page,context,output,name,{framing=false}={}) {
+async function playApproach(page,context,output,name,{framing=false,onArrival=null}={}) {
     const cdp=name==='phone' ? await context.newCDPSession(page) : null;
     let held=null;
     const jumpEvidence=[];
@@ -177,6 +177,11 @@ async function playApproach(page,context,output,name,{framing=false}={}) {
     const second=await clearGrip(1810,2);
     await moveTo(2370);await jumpTo(2570);
     await direction(1);
+    if(onArrival) {
+        await wait(()=>window.prototypeScene?.arrivalCue?.root);
+        await release();
+        await onArrival();
+    }
     await wait(()=>window.prototypeScene?.sys.settings.key==='TrumptopusPrototype');
     await release();
     await finishFramingSample();

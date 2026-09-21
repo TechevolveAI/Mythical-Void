@@ -1,6 +1,8 @@
 import TrumptopusPrototypeLevel from './TrumptopusPrototypeLevel.js';
 import { FinalVoidApproach, FINAL_VOID_APPROACH } from '../systems/FinalVoidApproach.js';
 import { TrumptopusCompletion } from '../systems/TrumptopusCompletion.js';
+import { FinaleFilms } from '../systems/FinaleFilms.js';
+import { TrumptopusArrival } from '../ui/TrumptopusArrival.js';
 
 // Private greybox route. Final art/films and production registration stay gated.
 export default class TrumptopusApproachPreview extends TrumptopusPrototypeLevel {
@@ -14,10 +16,14 @@ export default class TrumptopusApproachPreview extends TrumptopusPrototypeLevel 
         this.bridges = [];
         this.transitioning = false;
         this.cameraLockedForGrip = false;
+        this.arrivalCue = null;
     }
+
+    createFinaleFilms() { return new FinaleFilms(this, {encounterId:'trumptopus'}); }
 
     createEncounter(data) {
         this.completion = new TrumptopusCompletion(this,{gameState:window.GameState,
+            films:this.createFinaleFilms(),
             inventoryManager:window.InventoryManager,withApproach:true,newExpedition:data.newExpedition === true});
         this.encounter = new FinalVoidApproach(this.completion.run.approach || {schemaVersion:1,clearedGrips:2,arrived:true});
         this.spawnX = this.encounter.spawnX;
@@ -45,6 +51,10 @@ export default class TrumptopusApproachPreview extends TrumptopusPrototypeLevel 
         this.drawExchange();
         if (this.completion.run.status === 'won' || this.completion.run.phaseIndex > 0 || this.encounter.arrived) {
             this.time.delayedCall(0,()=>this.enterArena());
+        } else {
+            this.arrivalCue = new TrumptopusArrival(this, {
+                films:this.completion.films, onContinue:()=>this.scene.start('TrumptopusPrototype')
+            });
         }
     }
 
@@ -123,6 +133,7 @@ export default class TrumptopusApproachPreview extends TrumptopusPrototypeLevel 
     enterArena() {
         if (this.transitioning) return;
         this.transitioning = true; this.clearInput();
+        if (this.arrivalCue?.offer()) return;
         this.scene.start('TrumptopusPrototype');
     }
 

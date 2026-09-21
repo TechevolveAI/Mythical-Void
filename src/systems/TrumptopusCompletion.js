@@ -21,7 +21,7 @@ export class TrumptopusCompletion {
         globalThis.addEventListener?.('pagehide',this.onPageHide);
         scene.events.once('shutdown',this.onShutdown);
         scene.events.once('destroy',this.onShutdown);
-        void films.prepare('victory').catch(() => false);
+        if (!withApproach) void films.prepare('victory').catch(() => false);
     }
 
     checkpoint() { return {schemaVersion:1,encounterId:'trumptopus',phaseIndex:this.run.phaseIndex}; }

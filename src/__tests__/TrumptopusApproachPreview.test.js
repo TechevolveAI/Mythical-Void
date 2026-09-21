@@ -56,6 +56,14 @@ test('paused approach neither adds active time nor enters the arena',()=>{
     expect(scene.scene.start).not.toHaveBeenCalled();
 });
 
+test('grounded arrival offers the optional cue once before the arena',()=>{
+    const scene=setup();scene.arrivalCue={offer:jest.fn(()=>true)};
+    scene.update(0,16);scene.update(16,16);
+    expect(scene.completion.saveApproach).toHaveBeenCalledTimes(1);
+    expect(scene.arrivalCue.offer).toHaveBeenCalledTimes(1);
+    expect(scene.scene.start).not.toHaveBeenCalled();
+});
+
 test('traversal uses the existing trail; a grip and settling keep the safe combat formation',()=>{
     const scene=setup();
     scene.astronautFollower={sprite:{x:100,y:200},setContextualFormation:jest.fn(),update:jest.fn()};

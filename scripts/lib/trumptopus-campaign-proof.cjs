@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const path = require('node:path');
 
-function createCampaignProofHtml({approach = false} = {}) {
+function createCampaignProofHtml({approach = false, arrivalFixture = null} = {}) {
     return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>Private finale campaign proof</title>
     <style>html,body{margin:0;overflow:hidden;background:#15191c;color:#eee;font:12px Arial}header{height:42px;box-sizing:border-box;padding:0 8px;display:flex;align-items:center;justify-content:space-between}button{height:34px;min-width:56px;border:1px solid #687775;background:#273034;color:white}canvas{display:block;touch-action:none}#paused{position:fixed;inset:45% 20% auto;z-index:3;background:#192423;padding:20px;text-align:center}#paused[hidden]{display:none}</style>
     </head><body><header><span>PRIVATE / TEMPORARY BOSS ART</span><span><button id="pause">Pause</button> <button id="retry">Retry</button></span></header><div id="game"></div><div id="paused" hidden>Paused</div>
@@ -9,6 +9,37 @@ function createCampaignProofHtml({approach = false} = {}) {
     const {Phaser}=await import('/src/global-init.js');
     const {default:Preview}=await import('/src/dev/TrumptopusCampaignPreview.js');
     ${approach ? "const {default:Approach}=await import('/src/dev/TrumptopusApproachPreview.js');" : ''}
+    ${arrivalFixture ? `
+    const {FinaleFilms}=await import('/src/systems/FinaleFilms.js');
+    const {PreparedFilm}=await import('/src/systems/PreparedFilm.js');
+    const {beginTrumptopusRun,checkpointTrumptopusApproach}=await import('/src/systems/TrumptopusProgress.js');
+    const fixtureParams=new URLSearchParams(location.search);
+    window.arrivalFixtureFetches=0;
+    class ArrivalApproach extends Approach {
+        createEncounter(data) {
+            const encounter=super.createEncounter(data);
+            if(fixtureParams.has('boundary'))this.spawnX=2650;
+            return encounter;
+        }
+        createFinaleFilms() {
+            let failOnce=fixtureParams.has('failed');
+            const config={enabled:!fixtureParams.has('absent'),encounterId:'trumptopus',films:{arrival:{approved:true,
+                title:'Playback fixture: existing Forest film',asset:${JSON.stringify(arrivalFixture)}}}};
+            return new FinaleFilms(this,{encounterId:'trumptopus',config,createFilm:asset=>{
+                const film=new PreparedFilm(asset,{fetch:(...args)=>{
+                    window.arrivalFixtureFetches++;
+                    if(failOnce){failOnce=false;return Promise.reject(Error('injected_offline'));}
+                    if(fixtureParams.has('delayed'))return new Promise((resolve,reject)=>{
+                        const signal=args[1]?.signal;
+                        signal?.addEventListener('abort',()=>reject(new DOMException('Aborted','AbortError')),{once:true});
+                        window.releaseArrivalFixture=()=>{if(!signal?.aborted)resolve(fetch(...args));};
+                    });
+                    return fetch(...args);
+                }});
+                window.arrivalFixtureFilm=film;return film;
+            }});
+        }
+    }` : ''}
     const {default:GameScene}=await import('/src/scenes/GameScene.js');
     const {default:VictoryScene}=await import('/src/scenes/VictoryScene.js');
     const {default:HubWorldScene}=await import('/src/scenes/HubWorldScene.js');
@@ -41,12 +72,16 @@ function createCampaignProofHtml({approach = false} = {}) {
             installShipReconstructionStep(state,step.id,{save:false});
         }
     }
+    ${arrivalFixture ? `if(fixtureParams.has('boundary')&&!saved) {
+        const {run}=beginTrumptopusRun(state,{withApproach:true});
+        for(const clearedGrips of [1,2])checkpointTrumptopusApproach(state,run.sequence,{schemaVersion:1,clearedGrips,arrived:false});
+    }` : ''}
     for(const name of ['EconomyManager','EnemyManager','ProjectileManager','InventoryManager','CreatureLifecycle'])await window[name].initialize();
     for(const name of ['QuestManager','CollectibleManager','CreatureSkills'])await window[name].init();
     window.fixtureIdentity=JSON.stringify({genes:state.get('creature.genes'),dna:state.get('creature.dna')});
     window.fixtureUnchanged=()=>window.fixtureIdentity===JSON.stringify({genes:state.get('creature.genes'),dna:state.get('creature.dna')});
     window.game=window.mythicalGame=new Phaser.Game({type:Phaser.CANVAS,parent:'game',width:innerWidth,height:innerHeight-42,audio:{noAudio:true},
-        dom:{createContainer:true},input:{activePointers:3},physics:{default:'arcade',arcade:{debug:false}},scene:[${approach ? 'Approach,' : ''}Preview,GameScene,VictoryScene,HubWorldScene],
+        dom:{createContainer:true},input:{activePointers:3},physics:{default:'arcade',arcade:{debug:false}},scene:[${approach ? arrivalFixture ? 'ArrivalApproach,' : 'Approach,' : ''}Preview,GameScene,VictoryScene,HubWorldScene],
         callbacks:{postBoot:game=>{window.UXEnhancements.initialize(game);window.FXLibrary.initialize();}}});
     document.querySelector('#retry').onclick=()=>{document.querySelector('#paused').hidden=true;document.querySelector('#paused').textContent='Paused';document.querySelector('#pause').textContent='Pause';window.prototypeScene.scene.restart();};
     document.querySelector('#pause').onclick=()=>window.prototypeScene.showPauseMenu();
