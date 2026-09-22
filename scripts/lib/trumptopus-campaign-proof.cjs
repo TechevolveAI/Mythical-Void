@@ -1,6 +1,13 @@
 const assert = require('node:assert/strict');
 const path = require('node:path');
 
+function seedPriorCampaignRoutes(state,routes) {
+    if(routes.at(-1)?.levelStateId!=='finalVoid')throw new Error('Ending fixture requires the canonical final route');
+    const prior=routes.slice(0,-1);
+    for(const route of prior)state.set('levels.'+route.levelStateId+'.completed',true);
+    state.set('stats.levelsCompleted',prior.length);
+}
+
 function createCampaignProofHtml({approach = false, arrivalFixture = null, seededVictory = false} = {}) {
     assert(!(approach&&seededVictory),'Seeded ending proof must not imply approach gameplay');
     return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>Private finale campaign proof</title>
@@ -45,6 +52,8 @@ function createCampaignProofHtml({approach = false, arrivalFixture = null, seede
     const {default:VictoryScene}=await import('/src/scenes/VictoryScene.js');
     const {default:HubWorldScene}=await import('/src/scenes/HubWorldScene.js');
     const {SHIP_RECONSTRUCTION_STEPS,installShipReconstructionStep}=await import('/src/systems/ShipReconstruction.js');
+    const {CAMPAIGN_ROUTE}=await import('/src/systems/CampaignJourneyGuide.js');
+    ${seedPriorCampaignRoutes.toString()}
     await window.envLoader.load();await window.APIConfig.initialize();
     window.AudioManager.muted=true;
     const state=window.GameState;
@@ -66,8 +75,7 @@ function createCampaignProofHtml({approach = false, arrivalFixture = null, seede
         state.set('story.projectBeacon.firstExpeditionDrill',{completed:true});
         state.set('story.projectBeacon.firstForestCinematicVersion',2);
         state.set('hubWorld.shipCompletionCutsceneShown',true);
-        for(const id of ['mythicalForest','crystalCaves','reef','voidPeaks','auroraDepths'])state.set('levels.'+id+'.completed',true);
-        state.set('stats.levelsCompleted',5);
+        seedPriorCampaignRoutes(state,CAMPAIGN_ROUTE);
         for(const step of SHIP_RECONSTRUCTION_STEPS.slice(0,5)) {
             state.set('hubWorld.shipParts.collected',[...(state.get('hubWorld.shipParts.collected')||[]),step.partId]);
             installShipReconstructionStep(state,step.id,{save:false});
@@ -238,4 +246,4 @@ async function completeCampaignEnding(page,output,name,{priority='prepare_homeco
     return {before,resumed,ending,layouts,choiceBackChecked:exerciseRecovery,epilogueRefreshChecked:exerciseRecovery,
         newGamePlusCancelled:exerciseRecovery,actualSanctuaryRepair:true,actualEndingChoice:true,returnedToHub:true};
 }
-module.exports={createCampaignProofHtml,completeCampaignEnding,sceneTextPoint,ENDING_CHOICES,inspectEndingLayout};
+module.exports={createCampaignProofHtml,completeCampaignEnding,sceneTextPoint,ENDING_CHOICES,inspectEndingLayout,seedPriorCampaignRoutes};

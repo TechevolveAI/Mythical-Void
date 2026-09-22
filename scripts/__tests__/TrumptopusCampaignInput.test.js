@@ -1,5 +1,5 @@
 const vm = require('node:vm');
-const {sceneTextPoint,createCampaignProofHtml,completeCampaignEnding,ENDING_CHOICES,inspectEndingLayout} = require('../lib/trumptopus-campaign-proof.cjs');
+const {sceneTextPoint,createCampaignProofHtml,completeCampaignEnding,ENDING_CHOICES,inspectEndingLayout,seedPriorCampaignRoutes} = require('../lib/trumptopus-campaign-proof.cjs');
 
 function setup() {
     const scene = {input:{_list:[]},scale:{width:390,height:802},children:{list:[]},
@@ -65,4 +65,19 @@ test('ending layout check detects real clipping and text overlap, ignoring hidde
     scene.elements.push(text('offscreen',350,220,410,240),text('overlap',60,40,200,80),text('hidden',0,0,900,900,false));
     expect(inspect().clipped.map(t=>t.text)).toEqual(['offscreen']);
     expect(inspect().overlaps).toEqual([['title','overlap']]);
+});
+
+test('earlier-level fixture uses real save IDs, including cosmicReef, rather than presentation aliases',()=>{
+    const fs=require('node:fs'),path=require('node:path'),{parse}=require('@babel/parser');
+    const source=fs.readFileSync(path.join(__dirname,'../../src/systems/CampaignJourneyGuide.js'),'utf8');
+    const declaration=parse(source,{sourceType:'module'}).program.body.find(node=>node.type==='VariableDeclaration'&&
+        node.declarations.some(item=>item.id.name==='CAMPAIGN_ROUTE'));
+    const routes=vm.runInNewContext(`${source.slice(declaration.start,declaration.end)};CAMPAIGN_ROUTE;`);
+    const state={set:jest.fn()};seedPriorCampaignRoutes(state,routes);
+    expect(state.set.mock.calls).toEqual([
+        ['levels.mythicalForest.completed',true],['levels.crystalCaves.completed',true],
+        ['levels.cosmicReef.completed',true],['levels.voidPeaks.completed',true],
+        ['levels.auroraDepths.completed',true],['stats.levelsCompleted',5]
+    ]);
+    expect(()=>seedPriorCampaignRoutes(state,routes.slice(0,-1))).toThrow('canonical final route');
 });
