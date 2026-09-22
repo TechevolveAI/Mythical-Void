@@ -67,6 +67,14 @@ async function main() {
             });
             await page.goto(`${base}/__finale-proof?renderer=${renderer}`);
             await page.waitForFunction(() => window.prototypeScene?.player?.body);
+            const rendererEvidence=await page.evaluate(requested=>({
+                requested,actualType:window.game.renderer.type,
+                expectedType:requested==='canvas'?window.Phaser.CANVAS:window.Phaser.WEBGL,
+                noAudioConfigured:window.game.config.audio.noAudio===true,
+                noAudioManager:window.game.sound instanceof window.Phaser.Sound.NoAudioSoundManager
+            }),renderer);
+            assert.equal(rendererEvidence.actualType,rendererEvidence.expectedType,'Requested renderer was not actually used');
+            assert(rendererEvidence.noAudioConfigured&&rendererEvidence.noAudioManager,'Proof audio was not disabled');
             const routeEvidence = approach ? await playApproach(page,context,output,name,{framing}) : null;
             const rigTextureCount=()=>page.evaluate(()=>window.game.textures.getTextureKeys().filter(key=>key.startsWith('trumptopus-fight-')).length);
             const stageTextureCount=()=>page.evaluate(()=>window.game.textures.getTextureKeys().filter(key=>key.startsWith('trumptopus-stage-')).length);
@@ -339,7 +347,7 @@ async function main() {
             assert.deepEqual(errors, []);
             const jumpInputs = await page.evaluate(() => window.proofJumpInputs);
             const attackInputs = await page.evaluate(() => window.proofAttackInputs);
-            report.journeys.push({name,width,height,routeEvidence,exchanges,jumpInputs,attackInputs,finished,banishmentFrames,actorSpacing,arenaPropEvidence,presentationPreflight,integrity,ending,pausedSafely:true,retryKeptPhase:true,externalRequests:0,errors});
+            report.journeys.push({name,width,height,rendererEvidence,routeEvidence,exchanges,jumpInputs,attackInputs,finished,banishmentFrames,actorSpacing,arenaPropEvidence,presentationPreflight,integrity,ending,pausedSafely:true,retryKeptPhase:true,externalRequests:0,errors});
             delete report.inProgress;
             await context.close();
         }
