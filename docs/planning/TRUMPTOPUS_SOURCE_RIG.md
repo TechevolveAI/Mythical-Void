@@ -79,19 +79,24 @@ the second completed both viewports and exposed the movement-spacing fault.
 
 ## Movement-spacing correction
 
-The private ally now reserves 350ms of player movement, retreats promptly on the
-same flank, and rises before moving across to the other flank. The sweep vault
-clears the player's ordinary jump. Landing also reserves the existing 30px
-katana lunge and tilted sprite bounds, including the screen edge in the attack
-direction. This changes only private ally staging, not player movement, attack
-timing, damage, saves, or the shared astronaut implementation.
+The private ally now anticipates the player's position 350ms ahead, retreats
+promptly on the same flank, and rises before moving across to the other flank.
+It can start the sweep dodge early when the creature approaches and adjusts
+its landing while airborne. The sweep vault is above the player's ordinary
+jump while its peak stays below the HUD. The private adapter caps the cosmetic
+katana lunge at the creature/screen clearance boundary; it preserves the slash,
+attack timing and damage. This changes only private ally staging, not player
+movement, saves, or the shared astronaut implementation.
 
 The proof now includes sprite rotation/scale/flip in conservative alpha-bound
 envelopes and fails below 24px anywhere in the recorded fight, not only at
 selected screenshots. It also rejects either actor leaving the canvas. This
 is still one scripted input journey, not proof of every possible player input
 or human approval of the motion. Exact-source results are kept separately in
-`.visual-review/trumptopus-spacing-review/`; earlier diagnostics are not relabelled.
+`.visual-review/trumptopus-spacing-final-review/`. The earlier
+`trumptopus-spacing-review` is a failed exact-source gate at `89d6790a`, not a
+passing proof. Iterative diagnostics retained the 24px threshold and exposed
+the delayed sweep dodge, crowded landing and uncapped sword-lunge faults.
 
 Exact test/build results live in the evidence report, not an implied release gate.
 The encounter state machine, prior reward/ending implementation and historical

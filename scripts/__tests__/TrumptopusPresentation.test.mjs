@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {trumptopusArenaLayout,chooseAllyLanding,anticipatedPlayerBounds,allySweepLeapDuration,sampleAllyLeap,trumptopusBanishment} from '../../src/dev/TrumptopusPresentation.js';
+import {trumptopusArenaLayout,chooseAllyLanding,anticipatedPlayerBounds,constrainAllyStrike,allySweepLeapDuration,sampleAllyLeap,trumptopusBanishment} from '../../src/dev/TrumptopusPresentation.js';
 
 test('phone and desktop leave the boss grounded above the player lane and below the HUD',()=>{
     for(const [w,h] of [[390,802],[1280,678]]){
@@ -23,11 +23,11 @@ test('a right-hand player has a separate middle slot rather than forcing the all
 test('a genuinely full lane returns no landing, rather than weakening separation',()=>{
     assert.equal(chooseAllyLanding({width:390,player:{left:10,right:200},hands:[{left:200,right:390}],currentX:83}),null);
 });
-test('landing reserves the current and next player position without predicting outside the canvas',()=>{
+test('a vault aims beyond the current position without predicting outside the canvas',()=>{
     const player={left:140,right:250};
-    assert.deepEqual(anticipatedPlayerBounds(player,300,390),{left:140,right:355});
-    assert.deepEqual(anticipatedPlayerBounds(player,-300,390),{left:35,right:250});
-    assert.deepEqual(anticipatedPlayerBounds(player,900,390),{left:140,right:382});
+    assert.deepEqual(anticipatedPlayerBounds(player,300,390),{left:245,right:355});
+    assert.deepEqual(anticipatedPlayerBounds(player,-300,390),{left:35,right:145});
+    assert.deepEqual(anticipatedPlayerBounds(player,900,390),{left:272,right:382});
     assert.deepEqual(anticipatedPlayerBounds(player,0,390),player);
 });
 test('the katana lunge reserve does not reduce the required 24px player gap',()=>{
@@ -36,10 +36,15 @@ test('the katana lunge reserve does not reduce the required 24px player gap',()=
     assert(x-25-30>=player.right+24);
     assert(x+25<=382);
 });
-test('a lunge toward the screen edge reserves its full travel before choosing a landing',()=>{
-    const x=chooseAllyLanding({width:390,player:{left:235,right:344},hands:[],currentX:33,
-        playerGap:62,edgeGuard:{left:38,right:0}});
-    assert(x-30-25>=8);
+test('cosmetic lunges stop at the screen edge without changing attack timing or damage',()=>{
+    assert.equal(constrainAllyStrike(398,{side:'right',player:{left:110,right:220},width:390}),360);
+    assert.equal(constrainAllyStrike(-5,{side:'left',player:{left:110,right:220},width:390}),30);
+});
+test('a lunge cannot consume the 24px gap, and cannot jump to the opposite flank',()=>{
+    const player={left:110,right:220};
+    assert.equal(constrainAllyStrike(90,{side:'left',player,width:390}),56);
+    assert.equal(constrainAllyStrike(250,{side:'right',player,width:390}),274);
+    assert.equal(constrainAllyStrike(40,{side:'left',player:{left:45,right:300},width:390}),null);
 });
 test('a flank vault rises before crossing and finishes sideways movement before landing',()=>{
     const leap={fromX:50,toX:330,duration:900,floorY:622};
@@ -47,6 +52,14 @@ test('a flank vault rises before crossing and finishes sideways movement before 
     assert.equal(rising.x,50);assert(rising.footY<622-150);
     const descending=sampleAllyLeap({...leap,elapsed:720});
     assert.equal(descending.x,330);assert(descending.footY<622-150);
+});
+test('the sweep vault clears the observed simultaneous jump and stays below the HUD',()=>{
+    const sample=sampleAllyLeap({fromX:33.01,toX:315.43,elapsed:1200,duration:1721.97,height:400,floorY:606});
+    assert(sample.footY<=309.66-24);
+    for(const floorY of [606,622]){
+        const peak=sampleAllyLeap({fromX:33,toX:315,elapsed:500,duration:1000,height:400,floorY});
+        assert(peak.footY-68>=138);
+    }
 });
 test('a sweep leap lands after the full claw has passed, on both viewport widths',()=>{
     for(const width of [390,1280]){

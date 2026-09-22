@@ -128,6 +128,7 @@ async function main() {
             await page.click('#pause');
             await page.evaluate(() => {
                 const scene=window.prototypeScene,cache=new Map();
+                const recordingStarted=performance.now();
                 window.actorSpacing={samples:0,minimumGap:null,offscreenSamples:0,minimum:null};
                 const bounds=sprite=>{
                     const key=sprite.texture.key;
@@ -158,9 +159,16 @@ async function main() {
                     const evidence=window.actorSpacing;evidence.samples++;
                     const state=scene.encounter.snapshot();
                     if(evidence.minimumGap===null||gap<evidence.minimumGap){
-                        evidence.minimumGap=gap;evidence.minimum={creature,ally,mode:state.mode,attack:state.attack,state:state.state};
+                        evidence.minimumGap=gap;evidence.minimum={creature,ally,mode:state.mode,attack:state.attack,state:state.state,
+                            recordingMs:performance.now()-recordingStarted,leap:scene.allyLeap?{...scene.allyLeap}:null,
+                            striking:scene.astronautFollower.isStriking};
                     }
-                    if([creature,ally].some(b=>b.left<0||b.right>scene.scale.width||b.top<0||b.bottom>scene.scale.height))evidence.offscreenSamples++;
+                    if([creature,ally].some(b=>b.left<0||b.right>scene.scale.width||b.top<0||b.bottom>scene.scale.height)){
+                        evidence.offscreenSamples++;
+                        evidence.firstOffscreen??={creature,ally,recordingMs:performance.now()-recordingStarted,
+                            mode:state.mode,state:state.state,attack:state.attack,striking:scene.astronautFollower.isStriking,
+                            leap:scene.allyLeap?{...scene.allyLeap}:null};
+                    }
                     window.currentActorSpacing={gap,creature,ally};
                 };
                 window.game.events.on('poststep',sample);
@@ -281,6 +289,7 @@ async function main() {
             fs.writeFileSync(path.join(output, `${name}-three-phase-silent.webm`), Buffer.from(motion, 'base64'));
             const integrity = await page.evaluate(() => ({saveWrites:window.saveWrites,storageWrites:window.storageWrites,unchanged:window.fixtureUnchanged()}));
             const actorSpacing=await page.evaluate(()=>{window.stopActorSpacing();return window.actorSpacing;});
+            report.inProgress.actorSpacing=actorSpacing;
             const presentationPreflight={
                 method:'Rendered alpha bounds (>16/255), including world rotation/scale/flip; conservative axis-aligned envelopes sampled each game step, not pixel-perfect overlap or human approval',
                 minimumRequiredGap:24,allMovementSeparated:actorSpacing.minimumGap>=24,

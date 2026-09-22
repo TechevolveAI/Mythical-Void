@@ -1,6 +1,6 @@
 import TrumptopusFinalePreview from './TrumptopusFinalePreview.js';
 import TrumptopusCutoutRig from './TrumptopusCutoutRig.js';
-import { trumptopusArenaLayout,chooseAllyLanding,anticipatedPlayerBounds,allySweepLeapDuration,sampleAllyLeap,trumptopusBanishment } from './TrumptopusPresentation.js';
+import { trumptopusArenaLayout,chooseAllyLanding,anticipatedPlayerBounds,constrainAllyStrike,allySweepLeapDuration,sampleAllyLeap,trumptopusBanishment } from './TrumptopusPresentation.js';
 import { getTrumptopusAttackPose } from '../systems/TrumptopusAttackPose.js';
 import TrumptopusArenaStage from './TrumptopusArenaStage.js';
 
@@ -56,37 +56,66 @@ export default class TrumptopusArtFinalePreview extends TrumptopusFinalePreview 
         if(this.rigFrameCosts.length<10000)this.rigFrameCosts.push(performance.now()-started);
     }
 
+    playerVisualBounds() {
+        const visible=this.playerContactGeometry,player=this.player;
+        const left=player.x+(player.flipX?player.width/2-visible.right-1:visible.left-player.width/2)*player.scaleX;
+        return {left:left-1,right:left+visible.width*player.scaleX+1};
+    }
+
+    performAttack(options) {
+        const follower=this.astronautFollower,previous=follower?.strikeTween;
+        super.performAttack(options);
+        const tween=follower?.strikeTween;
+        if(!tween||tween===previous)return;
+        const side=follower.sprite.x<this.player.x?'left':'right';
+        // Preserve the existing slash, timing and damage. Only the cosmetic
+        // lunge stops short when it would cross the creature or screen edge.
+        tween.on('update',()=>{
+            if(!follower.sprite?.active||!this.player?.active)return;
+            const x=constrainAllyStrike(follower.sprite.x,{side,player:this.playerVisualBounds(),width:this.levelWidth});
+            if(x!==null)follower.sprite.x=x;
+        });
+    }
+
     updatePrototypeFollower(delta) {
         const follower=this.astronautFollower;
         if(!follower?.sprite)return;
         const state=this.encounter.snapshot();
         if(state.attack!=='sweep'||state.state==='ready'||state.mode==='phase_intro')this.sweepLeapDone=false;
-        const visible=this.playerContactGeometry,player=this.player;
-        const left=player.x+(player.flipX?player.width/2-visible.right-1:visible.left-player.width/2)*player.scaleX;
-        const playerBounds={left,right:left+visible.width*player.scaleX};
+        const player=this.player,playerBounds=this.playerVisualBounds();
         const anticipated=anticipatedPlayerBounds(playerBounds,player.body.velocity.x,this.levelWidth);
         const contact=getTrumptopusAttackPose({...state,state:'contact',progress:1},{width:this.levelWidth,floorY:this.floorY});
         const hands=state.mode==='combat'&&state.state!=='ready'
             ? contact.limbs.map(limb=>({left:limb.palm.x-limb.palm.width/2,right:limb.palm.x+limb.palm.width/2})) : [];
-        // Reserve the existing 30px katana lunge, tilted sprite bounds and the
-        // 24px gap. The same reserve keeps that lunge inside the screen edge.
-        const edgeGuard=player.facingRight?{left:0,right:38}:{left:38,right:0};
-        const landing=chooseAllyLanding({width:this.levelWidth,player:anticipated,hands,currentX:follower.sprite.x,playerGap:62,edgeGuard});
-        const sweep=state.attack==='sweep'&&state.state==='windup'&&state.progress>=.4&&!this.sweepLeapDone;
+        const landing=chooseAllyLanding({width:this.levelWidth,player:anticipated,hands,currentX:follower.sprite.x,
+            playerGap:32});
         const playerCentre=(playerBounds.left+playerBounds.right)/2;
-        const changesFlank=landing!==null&&(landing-playerCentre)*(follower.sprite.x-playerCentre)<0;
+        const changesFlank=landing!==null&&((landing-playerCentre)*(follower.sprite.x-playerCentre)<0||
+            (landing+49>playerBounds.left&&landing-49<playerBounds.right));
+        const sweep=state.attack==='sweep'&&state.state==='windup'&&!this.sweepLeapDone&&
+            (state.progress>=.4||(changesFlank&&Math.abs(player.body.velocity.x)>20));
         const changeSide=(state.mode==='phase_intro'||state.attack!=='sweep')&&['ready','windup','phase_intro'].includes(state.state)&&
             changesFlank;
         if(!this.allyLeap&&!follower.isStriking&&landing!==null&&(sweep||changeSide)){
             this.allyLeap={fromX:follower.sprite.x,toX:landing,elapsed:0,
-                height:sweep?360:240,
+                height:sweep?400:240,
                 duration:sweep?allySweepLeapDuration({width:this.levelWidth,landingX:landing,progress:state.progress}):900};
             if(sweep)this.sweepLeapDone=true;
         }
         if(follower.isStriking&&!this.allyLeap)return;
         const footOffset=follower.getContactY()-follower.sprite.y;
         if(this.allyLeap){
-            if(this.allyLeap.elapsed<this.allyLeap.duration*.45&&landing!==null)this.allyLeap.toX=landing;
+            const p=this.allyLeap.elapsed/this.allyLeap.duration,step=Math.min(delta,50)*.6;
+            if(landing!==null&&(p<.5||!changesFlank)){
+                const difference=landing-this.allyLeap.toX;
+                this.allyLeap.toX+=Math.sign(difference)*Math.min(Math.abs(difference),step);
+            }
+            // Retreat while lifting if the player approaches. Holding a fixed
+            // take-off point would let them catch the ally before it rises clear.
+            if(p<.2&&Math.sign(player.body.velocity.x)===Math.sign(this.allyLeap.fromX-playerCentre)){
+                this.allyLeap.fromX=Math.max(24,Math.min(this.levelWidth-24,
+                    this.allyLeap.fromX+Math.sign(player.body.velocity.x)*step));
+            }
             this.allyLeap.elapsed+=Math.min(delta,50);
             const sample=sampleAllyLeap({...this.allyLeap,floorY:this.floorY});
             follower.sprite.setPosition(sample.x,sample.footY-footOffset);
@@ -95,7 +124,7 @@ export default class TrumptopusArtFinalePreview extends TrumptopusFinalePreview 
             // Retreat along the same flank immediately; crossing the player
             // requires the separate vault, never a walk through their body.
             const desired=landing!==null&&!changesFlank?landing:follower.sprite.x;
-            const step=Math.min(Math.abs(desired-follower.sprite.x),delta*.45);
+            const step=Math.min(Math.abs(desired-follower.sprite.x),delta*.6);
             follower.sprite.x+=Math.sign(desired-follower.sprite.x)*step;
             follower.sprite.y=this.floorY-footOffset;
         }

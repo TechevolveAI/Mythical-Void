@@ -10,8 +10,8 @@ export function trumptopusArenaLayout(width,height) {
 
 // Reserve the full rendered player and claw, not just their smaller physics
 // bodies. A free interval is a place the astronaut can actually stand.
-export function chooseAllyLanding({width,player,hands,currentX,halfWidth=25,gap=24,playerGap=gap,edgeGuard={left:0,right:0}}) {
-    let intervals=[[halfWidth+8+edgeGuard.left,width-halfWidth-8-edgeGuard.right]];
+export function chooseAllyLanding({width,player,hands,currentX,halfWidth=25,gap=24,playerGap=gap}) {
+    let intervals=[[halfWidth+8,width-halfWidth-8]];
     for(const [index,object] of [player,...hands].entries()){
         const clearance=index===0?playerGap:gap;
         const min=object.left-clearance-halfWidth,max=object.right+clearance+halfWidth;
@@ -25,7 +25,13 @@ export function chooseAllyLanding({width,player,hands,currentX,halfWidth=25,gap=
 
 export function anticipatedPlayerBounds(player,velocityX,width,leadMs=350) {
     const offset=clamp(velocityX*leadMs/1000,8-player.left,width-8-player.right);
-    return {left:Math.min(player.left,player.left+offset),right:Math.max(player.right,player.right+offset)};
+    return {left:player.left+offset,right:player.right+offset};
+}
+
+export function constrainAllyStrike(x,{side,player,width,padding=30,gap=24}) {
+    const min=side==='left'?padding:player.right+gap+padding;
+    const max=side==='left'?player.left-gap-padding:width-padding;
+    return min<=max?clamp(x,min,max):null;
 }
 
 export function allySweepLeapDuration({width,landingX,progress,halfWidth=25}) {
