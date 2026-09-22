@@ -121,5 +121,12 @@ there are no generated assets, saves, provider requests or production registrati
 Tests cover endpoints, tangents, deterministic bounded motion and state-boundary
 continuity. These establish geometry, not a convincing tentacle or final art.
 Source-bound browser evidence and the visual conclusion are recorded separately
-under `.visual-review/trumptopus-limb-articulation-review/`; existence of this
+under `.visual-review/trumptopus-limb-articulation-verified/`; existence of this
 section does not imply that capture or human review passed.
+
+The first browser attempt at `a79c7e8e` completed phone and the desktop fight,
+but desktop screenshot round-trips missed the final banishment frame. It remains
+failed evidence in `trumptopus-limb-articulation-review`. The proof now records
+those four instants directly at Phaser postrender, without pausing or extending
+the animation. These PNGs are gameplay-canvas size, excluding the private 42px
+toolbar. A skipped interval still fails; later frames cannot substitute for it.

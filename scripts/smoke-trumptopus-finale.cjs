@@ -8,6 +8,7 @@ const { chromium } = require('playwright');
 const { createProofHtml } = require('./smoke-trumptopus-grip.cjs');
 const { createCampaignProofHtml, completeCampaignEnding } = require('./lib/trumptopus-campaign-proof.cjs');
 const { playApproach } = require('./lib/trumptopus-approach-proof.cjs');
+const { startBanishmentCapture } = require('./lib/trumptopus-banishment-proof.cjs');
 
 async function main() {
     const root = path.resolve(__dirname, '..');
@@ -186,6 +187,7 @@ async function main() {
                     }; recorder.stop();
                 }); recorder.start(200);
             });
+            if(artwork||campaign)await page.evaluate(startBanishmentCapture);
             const captured = new Set();
             let retriedPhase = false;
             for (let attempt = 0; attempt < 20 && !(await state()).completionReady; attempt++) {
@@ -260,19 +262,22 @@ async function main() {
                 await page.waitForFunction(() => !['exposed', 'recoil'].includes(window.prototypeScene.encounter.state));
             }
             const banishmentFrames=[];
-            if(artwork||campaign)for(const progress of [.25,.55,.82,.94]){
-                await page.waitForFunction(p=>{
-                    const state=window.prototypeScene.encounter.snapshot();
-                    return state.mode==='banishment'&&state.progress>=p;
-                },progress,{timeout:5000});
-                const frame=await state();
-                if(progress<.8){
-                    assert.equal(frame.sourceArtRig.rootAlpha,1,'Banishment fades instead of moving the intact boss');
-                    assert(frame.sourceArtRig.rootScale<frame.sourceArtRig.restScale,'Boss did not recede into the Void');
-                    assert(frame.sourceArtRig.rootRotation<0,'Boss did not react to the pull');
+            if(artwork||campaign){
+                await page.waitForFunction(()=>window.banishmentCapture.error||window.banishmentCapture.frames.length===4,
+                    undefined,{timeout:5000});
+                const capture=await page.evaluate(()=>({error:window.banishmentCapture.error,frames:window.banishmentCapture.frames}));
+                assert.equal(capture.error,null);
+                assert.equal(capture.frames.length,4);
+                for(const frame of capture.frames){
+                    if(frame.target<.8){
+                        assert.equal(frame.rig.rootAlpha,1,'Banishment fades instead of moving the intact boss');
+                        assert(frame.rig.rootScale<frame.rig.restScale,'Boss did not recede into the Void');
+                        assert(frame.rig.rootRotation<0,'Boss did not react to the pull');
+                    }
+                    const {png,...metadata}=frame;
+                    fs.writeFileSync(path.join(output,`${name}-banishment-${Math.round(frame.target*100)}.png`),Buffer.from(png,'base64'));
+                    banishmentFrames.push({...metadata,capture:'postrender-canvas-no-toolbar'});
                 }
-                await page.screenshot({path:path.join(output,`${name}-banishment-${Math.round(progress*100)}.png`)});
-                banishmentFrames.push({progress:frame.progress,rig:frame.sourceArtRig});
             }
             await waitState('aftermath');
             const finished = await state();
