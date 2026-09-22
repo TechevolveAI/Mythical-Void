@@ -1,7 +1,8 @@
 const fs=require('fs');
 const path=require('path');
 const source=fs.readFileSync(path.join(__dirname,'../dev/TrumptopusApproachPreview.js'),'utf8')
-    .replace(/^import .*;$/gm,'').replace('export default class','class');
+    .replace(/^import .*;$/gm,'')
+    .replaceAll('import.meta.url',JSON.stringify('https://private.test/approach.js')).replace('export default class','class');
 const read=name=>fs.readFileSync(path.join(__dirname,'../systems',name),'utf8')
     .replace(/^import .*;$/gm,'').replace(/export /g,'');
 const Encounter=new Function(`${read('TrumptopusEncounter.js')}\nreturn TrumptopusEncounter;`)();

@@ -9,6 +9,19 @@ async function playApproach(page,context,output,name,{framing=false,onArrival=nu
     const framingEvidence=[];
     const state=()=>page.evaluate(()=>window.prototypeScene.getProofState());
     const wait=predicate=>page.waitForFunction(predicate,null,{timeout:16000});
+    function checkArtwork(frame) {
+        const art=frame.approachArtwork;
+        assert.equal(art?.sourcePixelsOnly,true);
+        assert.equal(art.textureCount,5,'Approach textures accumulated across restart');
+        for(const surface of art.surfaces) {
+            assert.equal(surface.artTop,surface.collisionTop,'Visible approach ledge disagrees with its collider');
+            assert.equal(surface.artWidth,surface.collisionWidth);
+        }
+        if(art.claw) {
+            assert(Math.abs(art.claw.visibleBottom-(frame.contactPalm.y+21))<.01);
+            assert(art.claw.elbowGap<.01&&art.claw.wristGap<.01,'Source-art limb detached at an attachment');
+        }
+    }
     async function startFramingSample() {
         if(!framing)return;
         await page.evaluate(()=>{
@@ -113,11 +126,14 @@ async function playApproach(page,context,output,name,{framing=false,onArrival=nu
         await moveTo(x);
         await wait(()=>window.prototypeScene.encounter.state==='windup');
         const warning=await state();
+        checkArtwork(warning);
         await page.screenshot({path:path.join(output,`${name}-approach-${index}-warning.png`)});
         await moveTo(warning.targetX+100);
         await direction(-1);await page.waitForTimeout(65);await release();
         await wait(()=>window.prototypeScene.encounter.state==='exposed');
         const before=await state();
+        checkArtwork(before);
+        await page.screenshot({path:path.join(output,`${name}-approach-${index}-contact.png`)});
         assert.equal(before.damage.length,warning.damage.length,'Approach grab was not dodged');
         for(let press=0;press<3&&(await state()).state==='exposed';press++) {
             if(cdp) {const {melee}=(await state()).controls;await page.touchscreen.tap(melee.x,melee.y+42);}
@@ -130,6 +146,7 @@ async function playApproach(page,context,output,name,{framing=false,onArrival=nu
         await page.screenshot({path:path.join(output,`${name}-approach-${index}-settling.png`)});
         await page.waitForFunction(index=>window.prototypeScene.encounter.clearedGrips===index,index);
         const done=await state();
+        checkArtwork(done);
         assert.equal(done.bridges[index-1].top,done.floorY);
         assert.equal(done.bridges[index-1].top,done.bridges[index-1].artTop);
         assert.equal(done.savedRun.approach.clearedGrips,index);
@@ -139,6 +156,7 @@ async function playApproach(page,context,output,name,{framing=false,onArrival=nu
     await wait(()=>window.prototypeScene.isGrounded);
     await startFramingSample();
     const arrival=await state();
+    checkArtwork(arrival);
     assert.equal(arrival.sceneKey,'TrumptopusApproach');assert.equal(arrival.state,'travel');
     await page.screenshot({path:path.join(output,`${name}-approach-arrival.png`)});
     const first=await clearGrip(640,1);
@@ -147,6 +165,7 @@ async function playApproach(page,context,output,name,{framing=false,onArrival=nu
     assert.equal((await state()).elapsed,paused.elapsed);await page.click('#pause');
     await page.reload();await wait(()=>window.prototypeScene?.encounter?.clearedGrips===1);
     const resumed=await state();
+    checkArtwork(resumed);
     assert(resumed.savedRun.elapsedMs>=paused.savedRun.elapsedMs,'Reload rewound active route time');
     assert.equal(resumed.savedRun.damageTaken,paused.savedRun.damageTaken);
     assert.equal(resumed.bridges[0].top,resumed.floorY);
@@ -188,6 +207,8 @@ async function playApproach(page,context,output,name,{framing=false,onArrival=nu
     const motion=await page.evaluate(()=>window.stopApproachRecording());
     fs.writeFileSync(path.join(output,`${name}-approach-resumed-silent.webm`),Buffer.from(motion,'base64'));
     const arena=await state();
+    assert.equal(await page.evaluate(()=>window.game.textures.getTextureKeys().filter(key=>key.startsWith('trumptopus-approach-')).length),0,
+        'Approach textures survived scene shutdown');
     const progress=await page.evaluate(()=>GameState.get('story.projectBeacon.trumptopus'));
     assert.equal(progress.approach.arrived,true);assert.equal(progress.approach.clearedGrips,2);
     assert(progress.elapsedMs>second.done.savedRun.elapsedMs);assert.equal(arena.phaseIndex,0);

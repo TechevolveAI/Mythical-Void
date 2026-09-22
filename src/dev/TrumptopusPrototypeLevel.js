@@ -41,7 +41,7 @@ export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
         this.physics.world.resume();
         this.physics.world.setBounds(24, 0, this.levelWidth - 48, this.scale.height);
         this.cameras.main.setBackgroundColor('#15191c');
-        this.add.rectangle(this.levelWidth / 2, this.floorY + 95, this.levelWidth, 190, 0x242d30);
+        this.prototypeUnderfloor = this.add.rectangle(this.levelWidth / 2, this.floorY + 95, this.levelWidth, 190, 0x242d30);
         this.platforms = this.physics.add.staticGroup();
         this.createPrototypeTerrain();
         this.enemies = this.physics.add.group();

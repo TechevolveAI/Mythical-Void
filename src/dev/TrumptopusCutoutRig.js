@@ -34,9 +34,9 @@ export function solveCutoutPose(beat, progress = 1) {
 
 // Bake only existing pixels into small transparent textures. Polygons describe
 // anatomy, not arbitrary presentation masks; the original is never overwritten.
-export function bakeTrumptopusCutouts(scene, image, prefix) {
+export function bakeTrumptopusCutouts(scene, image, prefix, selectedParts = CUTOUT_PARTS) {
     const parts = new Map();
-    for (const part of CUTOUT_PARTS) {
+    for (const part of selectedParts) {
         const bounds = partBounds(part);
         const canvas = document.createElement('canvas');
         canvas.width = bounds.width; canvas.height = bounds.height;

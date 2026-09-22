@@ -3,10 +3,16 @@ import { FinalVoidApproach, FINAL_VOID_APPROACH } from '../systems/FinalVoidAppr
 import { TrumptopusCompletion } from '../systems/TrumptopusCompletion.js';
 import { FinaleFilms } from '../systems/FinaleFilms.js';
 import { TrumptopusArrival } from '../ui/TrumptopusArrival.js';
+import TrumptopusApproachStage from './TrumptopusApproachStage.js';
 
-// Private greybox route. Final art/films and production registration stay gated.
+// Private route. Supplied art does not authorize films or production registration.
 export default class TrumptopusApproachPreview extends TrumptopusPrototypeLevel {
     constructor() { super('TrumptopusApproach'); }
+
+    preload() {
+        this.load.image('trumptopus-source',new URL('./assets/trumptopus/source-foreground.png',import.meta.url).href);
+        this.load.image('trumptopus-approach-landscape-source',new URL('./assets/trumptopus/source-landscape.png',import.meta.url).href);
+    }
 
     configurePrototypeWorld() {
         this.levelWidth = FINAL_VOID_APPROACH.width;
@@ -42,6 +48,11 @@ export default class TrumptopusApproachPreview extends TrumptopusPrototypeLevel 
 
     create() {
         super.create();
+        this.approachStage=new TrumptopusApproachStage(this,
+            this.textures.get('trumptopus-approach-landscape-source').getSourceImage(),
+            this.textures.get('trumptopus-source').getSourceImage());
+        this.textures.remove('trumptopus-approach-landscape-source');
+        this.events.once('shutdown',()=>{this.approachStage?.destroy();this.approachStage=null;});
         this.bossName.setText('THE FINAL VOID'); this.bossBar.setVisible(false);
         this.cameras.main.setBounds(0,-240,this.levelWidth,this.scale.height+240);
         this.followApproachPlayer();
@@ -173,6 +184,7 @@ export default class TrumptopusApproachPreview extends TrumptopusPrototypeLevel 
             bridge.y = this.floorY + FINAL_VOID_APPROACH.catchDepth * (1-lift) + 16;
             bridge.body.updateFromGameObject();
         }
+        this.approachStage?.update(state,this.handPose);
     }
 
     getProofState() {
@@ -180,6 +192,8 @@ export default class TrumptopusApproachPreview extends TrumptopusPrototypeLevel 
             cameraY:this.cameras.main.scrollY,actorBounds:this.getApproachActorBounds(),
             width:this.levelWidth,exitX:FINAL_VOID_APPROACH.exitX,catchY:this.floorY + FINAL_VOID_APPROACH.catchDepth,
             bridges:this.bridges.map(bridge=>({top:bridge.body.top,artTop:bridge.y-16,width:bridge.body.width})),
+            approachArtwork:this.approachStage?.getEvidence(),
+            contactPalm:{...this.handPose},
             savedRun:this.completion.run};
     }
 }
