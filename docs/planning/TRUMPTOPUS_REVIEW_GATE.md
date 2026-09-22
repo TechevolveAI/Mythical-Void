@@ -1,4 +1,96 @@
-# Trumptopus: current review gate
+# Trumptopus: current review gate, 2026-09-22
+
+Current private gameplay candidate: `039eea1a02bbd1de6fc213cb041df646e21db55f`.
+**Ready for human review, not a completed or release-approved finale.**
+
+This update supersedes the readiness statements in the historical audit below.
+It does not relabel earlier captures as current. The evidence audit is
+[audit.json](../../.visual-review/trumptopus-review-handoff/audit.json), with its
+read-only [verification script](../../.visual-review/trumptopus-review-handoff/audit.cjs).
+It verified 303 artifact hashes across six proof sets and compared the relevant
+route, ending, playback and save-compatibility source. No new browser, build,
+test suite, provider call or live-service inspection was required by this audit.
+
+## Review in this order
+
+1. [Desktop comparison](../../.visual-review/trumptopus-closer-stage-review/desktop-staging-comparison.png):
+   earlier staging on the left, closer candidate on the right. The closer boss
+   is 372px rather than 308px tall; the phone layout is unchanged. Recommendation:
+   keep the closer staging. Kevin has not selected it yet.
+2. [Phone fight, silent](../../.visual-review/trumptopus-closer-stage-review/phone-three-phase-silent.mp4)
+   and [desktop fight, silent](../../.visual-review/trumptopus-closer-stage-review/desktop-three-phase-silent.mp4):
+   judge the warnings, counter opportunities, extending limbs and banishment.
+   These are canvas recordings, not generated cutscenes.
+3. [Approach sheet](../../.visual-review/trumptopus-limb-articulation-verified/phone-approach-sheet.png)
+   at `fdc87a8b`: judge whether two safe grip lessons teach the route. This is
+   historical approach evidence, not a new current-head playthrough.
+4. [Current phone result](../../.visual-review/trumptopus-closer-stage-review/phone-result.png)
+   and [existing ending choices](../../.visual-review/trumptopus-ending-choices-final/phone-ending-options-sheet.png):
+   judge whether a child understands the reward and next step. The ending-choice
+   sheet belongs to `65fd9ebf`; its source is unchanged, but its victory is seeded.
+
+All videos have no audio stream. They omit the private toolbar and separate HTML
+touch overlay. Individual ordinary screenshots retain the full browser viewport.
+Desktop comparison frames are reduced to half size and come from separate runs.
+
+## Requirement audit
+
+| Requirement | Evidence and current state | Remaining gate |
+| --- | --- | --- |
+| Readable approach | Two real counters, recoverable route, checkpoint reload and arena entry at `fdc87a8b`; route modules unchanged | Human pacing and route comprehension; no current full-campaign run |
+| Three-phase fight, existing controls | Current phone/desktop WebGL runs complete nine counters, pause and phase-preserving retry | First-attempt fairness and difficulty for ages 9-12 |
+| Authored character, red cap and slogan | Ten connected supplied-image parts; current larger desktop staging and deforming arms | Human staging/art decision; source stretch remains visible |
+| Non-graphic banishment | Boss recedes intact; textured opening closes; obstruction releases | Human judgement of impact; runtime effect is not a finished film |
+| Nova and Command Module | Actual win receipt, rewards, no duplicate reward on restore, Sanctuary repair and Hub return | Whether the reward and consequence feel worthwhile |
+| Existing ending handoff | Current prepare-homecoming journey; all three choices separately proved at `65fd9ebf` | Inherited wording is abstract; no claim of child comprehension or new ending editorial approval |
+| Watch-able finale films | Prepared playback/skip/replay/failure handling proved with an explicitly labelled Forest fixture | **Both actual finale films are missing.** Film-readiness gate fails; approval and generation/editing remain required |
+| Save-compatible rollback | Eleven local cases at `3b97206d`; relevant helpers unchanged; genuine Empress history preserved | Hosted/cloud rollout is not tested. Bare historical artifact is not a safe rollback |
+| Silent phone/desktop evidence | Current WebGL viewports, 72 focused checks, zero browser errors/outside requests, owned processes closed | Physical iPhone/Samsung and agreed human audio review. Canvas proof at `9582c9f7` predates the latest material/staging |
+| Production preservation | Legacy FinalVoidLevel registration remains; no production integration, push, merge or deploy by this workstream | Separate future release authorization; this audit makes no claim about another task's live deployment |
+
+The latest production Vite build evidence belongs to `f45a6c27`, not the current
+comparison commit. The latter changes only private staging, its tests and its
+documentation. Earlier full-suite runs retain their own source IDs; none is
+presented as a current full release gate. Automated geometry and image-bound
+checks cannot approve the visual quality or establish that the finale is fun.
+
+## Decisions needed now
+
+- Kevin: select the closer staging, restore the earlier placement, or give a
+  specific alternative. Review the actual motion before further art iteration.
+- Kevin: state a maximum total one-off film-production budget, including failed
+  takes/retries. Two shared films serve all players; this is not a per-player
+  generation charge. No amount has been authorized. Source/provenance and provider
+  content acceptance must also pass; money cannot override a content restriction.
+- Human play review: observe a first attempt without coaching. Can the player
+  identify a committed attack, avoid it, find the safe counter, understand what
+  changed, and choose what to do after winning? Review sound only in an explicitly
+  agreed session; automated testing must stay silent.
+
+The shared arrival film is planned as an eight-second first-person creature-eye
+shot. Banishment and recovery are two planned eight-second shots edited into one
+victory film. Prompts are in
+[final-void-shots.json](../../scripts/cinematics/final-void-shots.json).
+All three shot approvals are false and reference paths unset. Both playable
+manifest assets are null and disabled. A fixture or gameplay recording must not
+be presented as the requested new film. No paid generation has started.
+
+## Next work after decisions
+
+Apply only the selected visual direction, then produce and review the approved
+shared films. Bind exact footage hashes, size, duration and provenance; prove
+Watch/skip/replay with those actual films. Finish human play and agreed audio
+review. Production/cloud integration, compatible hosted rollback and release
+remain later, separately authorized work. Do not use more automatic captures,
+unrelated features or speculative art changes as substitutes for these gates.
+
+The goal remains incomplete. Its unresolved approvals have recurred throughout
+the Canvas, banishment-material and closer-staging passes. The safe autonomous
+work is now handed off for decisions, not treated as a finished public finale.
+
+---
+
+# Historical mechanics review gate, 2026-09-21
 
 Private readiness audit, 2026-09-21. Audited source: `3b97206d8fe956f38a346afae8994928eae2b3d9`.
 
