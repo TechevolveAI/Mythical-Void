@@ -20,6 +20,9 @@ async function playApproach(page,context,output,name,{framing=false,onArrival=nu
         if(art.claw) {
             assert(Math.abs(art.claw.visibleBottom-(frame.contactPalm.y+21))<.01);
             assert(art.claw.elbowGap<.01&&art.claw.wristGap<.01,'Source-art limb detached at an attachment');
+            const {anchor,pillar}=art.claw;
+            assert(anchor.x>pillar.left&&anchor.x<pillar.right&&anchor.y>pillar.top&&anchor.y<pillar.bottom,
+                'Limb does not emerge from the visible obstruction');
         }
     }
     async function startFramingSample() {

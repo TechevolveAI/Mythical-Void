@@ -83,10 +83,12 @@ export default class TrumptopusApproachStage {
             .setAlpha(1-clearing).clearTint();
         if(state.vulnerable)this.hand.setTint(0xffdca7);
         const scale=.32,part=this.parts.get('forearm-left');
-        const start={x:state.section.gateX/scale,y:(scene.floorY-258)/scale};
+        const anchor={x:scene.gate.body.center.x,y:scene.gate.body.top+24};
+        const start={x:anchor.x/scale,y:anchor.y/scale};
         const end={x:transform.x/scale,y:transform.y/scale};
         const options={tipScale:transform.tipScale,
-            wave:state.state==='strike'?35*Math.sin(Math.PI*state.progress):0,travel:state.progress};
+            wave:state.state==='strike'?35*Math.sin(Math.PI*state.progress):0,
+            travel:state.state==='strike'?state.progress:.5};
         const signature=JSON.stringify([start,end,options]);
         if(signature!==this.signature) {
             this.geometry=createLimbWarp(part,ARM_CHAINS[0],start,end,options);
@@ -96,7 +98,9 @@ export default class TrumptopusApproachStage {
             this.signature=signature;
         }
         this.limb.setAlpha(1-clearing);
-        this.clawEvidence={...transform,elbowGap:Math.hypot(this.geometry.start.x-start.x,this.geometry.start.y-start.y)*scale,
+        this.clawEvidence={...transform,anchor,pillar:{left:scene.gate.body.left,right:scene.gate.body.right,
+            top:scene.gate.body.top,bottom:scene.gate.body.bottom},
+            elbowGap:Math.hypot(this.geometry.start.x-start.x,this.geometry.start.y-start.y)*scale,
             wristGap:Math.hypot(this.geometry.end.x-end.x,this.geometry.end.y-end.y)*scale};
     }
 
