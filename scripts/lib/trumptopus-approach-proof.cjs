@@ -12,7 +12,10 @@ async function playApproach(page,context,output,name,{framing=false,onArrival=nu
     function checkArtwork(frame) {
         const art=frame.approachArtwork;
         assert.equal(art?.sourcePixelsOnly,true);
-        assert.equal(art.textureCount,5,'Approach textures accumulated across restart');
+        assert.equal(art.textureCount,6,'Expected sky, stone atlas, pillar, two cutouts and one motion texture');
+        assert.equal(art.material.tiled,false,'Approach returned to repeating scenery strips');
+        assert.equal(art.material.frames.length,art.surfaces.length);
+        assert(art.material.rgbaBytes<2*1024*1024,'Approach stone atlas exceeds 2 MiB RGBA');
         for(const surface of art.surfaces) {
             assert.equal(surface.artTop,surface.collisionTop,'Visible approach ledge disagrees with its collider');
             assert.equal(surface.artWidth,surface.collisionWidth);

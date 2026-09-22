@@ -169,8 +169,11 @@ export default class TrumptopusArtFinalePreview extends TrumptopusFinalePreview 
         ]:[];
         return {...super.getProofState(),banishment:this.banishmentEvidence,allyLeaping:Boolean(this.allyLeap),
             allyContactY:this.astronautFollower?.getContactY(),stageLayout:this.stageLayout,
-            floorContact:{artTop:this.floorY,bodyTop:this.floorPlatform.body.top},
-            stageTextureRgbaBytes:(834*800+320*128+240*170)*4,sourceArtRig:this.characterRig?{
+            floorContact:{artTop:this.arenaStage?.floor.y,bodyTop:this.floorPlatform.body.top},
+            stageMaterial:this.arenaStage?.material,
+            stageTextureRgbaBytes:(this.arenaStage?.keys||[]).reduce((bytes,key)=>{
+                const image=this.textures.get(key).getSourceImage();return bytes+image.width*image.height*4;
+            },0),sourceArtRig:this.characterRig?{
             layerCount:this.characterRig.parts.size,attackHands:this.characterRig.attackHands||[],
             source:'supplied-image',rootAlpha:this.characterRig.root.alpha,
             rootScale:this.characterRig.root.scaleX,restScale:this.characterRig.scale,rootRotation:this.characterRig.root.rotation,

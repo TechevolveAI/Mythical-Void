@@ -1,6 +1,7 @@
 import { bakeTrumptopusCutouts } from './TrumptopusCutoutRig.js';
 import { CUTOUT_PARTS, ARM_CHAINS } from './TrumptopusCutoutData.js';
 import { createLimbWarp, paintLimbWarp } from './TrumptopusLimbWarp.js';
+import { bakeStoneAtlas } from './TrumptopusStoneMaterial.js';
 
 // Match the existing 70 x 42 contact box with the bottom of the visible claw.
 // The longer fingers above it stay presentation-only, as in the arena rig.
@@ -26,13 +27,14 @@ export default class TrumptopusApproachStage {
         background.setScale(Math.max(width/834,height/800));
         this.objects.push(background,scene.add.rectangle(width/2,height/2,width,height,0x070b14,.35)
             .setScrollFactor(0).setDepth(-9));
-        const stone=document.createElement('canvas');stone.width=320;stone.height=128;
-        stone.getContext('2d').drawImage(landscape,530,785,650,220,0,0,320,128);
-        const material=this.texture('stone',stone);
-        for(const platform of scene.platforms.getChildren()) {
+        const platforms=scene.platforms.getChildren();
+        this.material=bakeStoneAtlas(scene,landscape,'trumptopus-approach-stone',platforms.map(({body})=>({
+            width:body.width,height:body.height})));
+        this.keys.push(this.material.key);
+        for(const [index,platform] of platforms.entries()) {
             platform.setVisible(false);
             const {body}=platform;
-            const sprite=scene.add.tileSprite(body.center.x,body.top,body.width,body.height,material)
+            const sprite=scene.add.image(body.center.x,body.top,this.material.key,this.material.frames[index].name)
                 .setOrigin(.5,0).setDepth(689);
             // Recovered crossings brighten only when their actual collider rises.
             const recovery=body.top>scene.floorY;
@@ -40,7 +42,9 @@ export default class TrumptopusApproachStage {
             this.surfaces.push({platform,sprite,recovery});this.objects.push(sprite);
         }
         this.edges=scene.add.graphics().setDepth(691);this.objects.push(this.edges);
-        this.pillar=scene.add.tileSprite(0,0,32,300,material).setDepth(810).setTint(0x777b86);
+        const pillar=bakeStoneAtlas(scene,landscape,'trumptopus-approach-pillar',[{width:32,height:300}]);
+        this.keys.push(pillar.key);
+        this.pillar=scene.add.image(0,0,pillar.key,pillar.frames[0].name).setDepth(810).setTint(0x777b86);
         this.objects.push(this.pillar);
         this.parts=bakeTrumptopusCutouts(scene,foreground,'trumptopus-approach',
             CUTOUT_PARTS.filter(part=>['forearm-left','hand-left'].includes(part.id)));
@@ -106,6 +110,7 @@ export default class TrumptopusApproachStage {
 
     getEvidence() {
         return {sourcePixelsOnly:true,textureCount:this.keys.length,claw:this.clawEvidence,
+            material:this.material,
             surfaces:this.surfaces.map(({platform,sprite})=>({artTop:sprite.y,collisionTop:platform.body.top,
                 artWidth:sprite.width,collisionWidth:platform.body.width})),
             sourceCharacterExcluded:true,productionIntegrated:false};

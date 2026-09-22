@@ -283,6 +283,10 @@ async function main() {
             assert(retriedPhase); assert.equal(finished.causeway.enabled, true);
             assert.equal(finished.causeway.bodyTop, finished.causeway.artTop);
             if(artwork||campaign)assert.equal(finished.floorContact.bodyTop,finished.floorContact.artTop,'Ground art and physics differ');
+            if(artwork||campaign){
+                assert.equal(finished.stageMaterial.tiled,false,'Arena floor returned to repeating landscape strips');
+                assert(finished.stageTextureRgbaBytes<4*1024*1024,'Arena scenery exceeds 4 MiB RGBA');
+            }
             assert(Math.abs(finished.player.bottom - finished.floorY) < 2);
             await page.screenshot({ path: path.join(output, `${name}-aftermath.png`) });
             const motion = await page.evaluate(() => window.stopProofRecording());

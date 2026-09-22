@@ -1,3 +1,5 @@
+import { bakeStoneAtlas } from './TrumptopusStoneMaterial.js';
+
 // Runtime crops of Kevin's supplied landscape. The baked-in character on the
 // left is excluded; only the separately rigged boss appears in gameplay.
 export default class TrumptopusArenaStage {
@@ -10,10 +12,11 @@ export default class TrumptopusArenaStage {
         const background=scene.add.image(width/2,height/2,sky).setDepth(-10);
         background.setScale(Math.max(width/834,height/800));
         this.objects.push(background,scene.add.rectangle(width/2,height/2,width,height,0x070b14,.35).setDepth(-9));
-        const stone=document.createElement('canvas');stone.width=320;stone.height=128;
-        stone.getContext('2d').drawImage(image,530,785,650,220,0,0,320,128);
-        const material=this.texture('stone',stone);
-        this.objects.push(scene.add.tileSprite(width/2,layout.floorY+90,width,180,material).setDepth(689).setTint(0xa5bcc3));
+        this.material=bakeStoneAtlas(scene,image,'trumptopus-stage-stone',[{width,height:180}]);
+        this.keys.push(this.material.key);
+        this.floor=scene.add.image(width/2,layout.floorY,this.material.key,this.material.frames[0].name)
+            .setOrigin(.5,0).setDepth(689).setTint(0xa5bcc3);
+        this.objects.push(this.floor);
         this.edge=scene.add.graphics().setDepth(691);this.objects.push(this.edge);
         this.drawEdge(0);
         const dais=document.createElement('canvas');dais.width=240;dais.height=170;
