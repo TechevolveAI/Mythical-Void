@@ -176,3 +176,21 @@ crop boundaries, texture size and late teardown calls have focused tests.
 Exact-source evidence is separate under `.visual-review/trumptopus-tear-review/`.
 This paragraph does not pre-approve its visual result. The long-arm staging
 decision, physical-device review, final films and human approval remain open.
+
+## Private closer-staging comparison, 2026-09-22
+
+The wide-screen arena places the supplied character on a central rear ledge,
+96px above the foreground lane instead of 160px. At the 1280 x 678 gameplay
+canvas this permits a 372px boss rather than 308px, with the same 138px HUD
+clearance. His contact shadow and textured ledge use that same placement. The
+foreground occludes the ledge's buried lower section. This is a review candidate,
+not a claimed creative selection or a production change.
+
+The 390px layout is unchanged. Attack target positions, collision, timing,
+player/astronaut scale, controls, movement, rewards and saves are unchanged.
+The cutout rig still maps visible claw boundaries onto committed contact palms.
+The geometric test reduces the worst rear-elbow/contact span across both arms
+and arena extremes by at least 20%; this is not a claim that every individual
+attack looks natural. Source-bound captures belong to
+`.visual-review/trumptopus-closer-stage-review/`. Compare them with the prior
+`trumptopus-tear-review` rather than relabelling the older frames.

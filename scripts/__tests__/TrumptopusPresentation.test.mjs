@@ -1,15 +1,36 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {trumptopusArenaLayout,chooseAllyLanding,anticipatedPlayerBounds,constrainAllyStrike,allySweepLeapDuration,sampleAllyLeap,trumptopusBanishment} from '../../src/dev/TrumptopusPresentation.js';
+import {ARM_CHAINS,CUTOUT_REFERENCE} from '../../src/dev/TrumptopusCutoutData.js';
 
 test('phone and desktop leave the boss grounded above the player lane and below the HUD',()=>{
     for(const [w,h] of [[390,802],[1280,678]]){
         const layout=trumptopusArenaLayout(w,h);
         assert(layout.floorY<h-60);
-        assert.equal(layout.floorY-layout.bossFloorY,160);
+        assert.equal(layout.floorY-layout.bossFloorY,w>=900?96:160);
         assert(layout.bossFloorY-layout.bossHeight>=138);
         assert(layout.bossHeight>=280);
     }
+});
+test('closer staging leaves the existing phone layout and playable desktop floor unchanged',()=>{
+    assert.deepEqual(trumptopusArenaLayout(390,802),{floorY:622,bossFloorY:462,bossX:280.8,bossHeight:300.3});
+    const wide=trumptopusArenaLayout(1280,678);
+    assert.equal(wide.floorY,606);assert.equal(wide.bossX,640);
+    assert.equal(wide.bossHeight,372);assert.equal(wide.bossFloorY-wide.bossHeight,138);
+});
+test('wide-screen staging reduces the worst possible rear-elbow to contact span, not the attack reach',()=>{
+    const width=1280,current=trumptopusArenaLayout(width,678);
+    const old={floorY:606,bossFloorY:446,bossX:921.6,bossHeight:308};
+    const maximumSpan=layout=>{
+        const scale=layout.bossHeight/(CUTOUT_REFERENCE.floor-51);
+        return Math.max(...ARM_CHAINS.flatMap(chain=>[78,width-78].map(x=>{
+            const elbowX=layout.bossX+(chain.elbow[0]-640)*scale;
+            const elbowY=layout.bossFloorY+(chain.elbow[1]-CUTOUT_REFERENCE.floor)*scale;
+            return Math.hypot(x-elbowX,layout.floorY-104-elbowY);
+        })));
+    };
+    assert(maximumSpan(current)<maximumSpan(old)*.8);
+    assert.equal(current.floorY,old.floorY);
 });
 test('the sweep resting on the old left formation moves the ally to a clear right slot',()=>{
     const x=chooseAllyLanding({width:390,player:{left:137,right:251},hands:[{left:43,right:113}],currentX:83});

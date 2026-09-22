@@ -3,9 +3,11 @@ const smooth=value=>{const p=clamp(value,0,1);return p*p*(3-2*p);};
 
 export function trumptopusArenaLayout(width,height) {
     const floorY=Math.round(height-(width<600?180:72));
-    const bossFloorY=floorY-160;
-    return {floorY,bossFloorY,bossX:width*.72,
-        bossHeight:Math.min(330,bossFloorY-138,width*.77)};
+    // Private wide-screen comparison: a central, lower rear ledge shortens
+    // the reach without moving the player's floor or committed attack palms.
+    const wide=width>=900,bossFloorY=floorY-(wide?96:160);
+    return {floorY,bossFloorY,bossX:width*(wide?.5:.72),
+        bossHeight:Math.min(wide?410:330,bossFloorY-138,width*.77)};
 }
 
 // Reserve the full rendered player and claw, not just their smaller physics
