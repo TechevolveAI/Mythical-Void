@@ -71,7 +71,7 @@ async function main() {
             const rigTextureCount=()=>page.evaluate(()=>window.game.textures.getTextureKeys().filter(key=>key.startsWith('trumptopus-fight-')).length);
             const stageTextureCount=()=>page.evaluate(()=>window.game.textures.getTextureKeys().filter(key=>key.startsWith('trumptopus-stage-')).length);
             if(artwork||campaign)assert.equal(await rigTextureCount(),13,'Unexpected rig texture ownership');
-            if(artwork||campaign)assert.equal(await stageTextureCount(),3,'Unexpected stage texture ownership');
+            if(artwork||campaign)assert.equal(await stageTextureCount(),4,'Expected sky, floor, dais and prop atlas');
             await page.evaluate(() => {
                 window.proofJumpInputs = [];
                 window.proofAttackInputs = [];
@@ -131,6 +131,7 @@ async function main() {
                 const scene=window.prototypeScene,cache=new Map();
                 const recordingStarted=performance.now();
                 window.actorSpacing={samples:0,minimumGap:null,offscreenSamples:0,minimum:null};
+                window.arenaPropEvidence={samples:0,violations:[],liftSamples:0,retractSamples:0};
                 const bounds=sprite=>{
                     const key=sprite.texture.key;
                     if(!cache.has(key)){
@@ -159,6 +160,18 @@ async function main() {
                         Math.max(0,creature.top-ally.bottom,ally.top-creature.bottom));
                     const evidence=window.actorSpacing;evidence.samples++;
                     const state=scene.encounter.snapshot();
+                    if(scene.arenaStage){
+                        const props=scene.arenaStage.getPropEvidence(),propEvidence=window.arenaPropEvidence;
+                        propEvidence.samples++;
+                        for(const prop of props){
+                            const aligned=Object.keys(prop.art).every(key=>Math.abs(prop.art[key]-prop.collision[key])<.001);
+                            if(!aligned||!prop.sourceHidden||!prop.floorOccludesBuriedSection||prop.visible!==(prop.aboveFloor>0)){
+                                if(propEvidence.violations.length<10)propEvidence.violations.push({state:state.state,...prop});
+                            }
+                            if(prop.name==='rising-foothold'&&prop.visible&&!prop.enabled)propEvidence.liftSamples++;
+                            if(prop.name==='exit-stone'&&prop.aboveFloor>0&&prop.aboveFloor<prop.collision.height)propEvidence.retractSamples++;
+                        }
+                    }
                     if(evidence.minimumGap===null||gap<evidence.minimumGap){
                         evidence.minimumGap=gap;evidence.minimum={creature,ally,mode:state.mode,attack:state.attack,state:state.state,
                             recordingMs:performance.now()-recordingStarted,leap:scene.allyLeap?{...scene.allyLeap}:null,
@@ -203,7 +216,7 @@ async function main() {
                     },artwork||campaign);
                     const retried = await state();
                     if(artwork||campaign)assert.equal(await rigTextureCount(),13,'Retry leaked rig textures');
-                    if(artwork||campaign)assert.equal(await stageTextureCount(),3,'Retry leaked stage textures');
+                    if(artwork||campaign)assert.equal(await stageTextureCount(),4,'Retry leaked stage textures');
                     assert.deepEqual(retried.checkpoint, checkpoint);
                     assert.equal(retried.phaseHealth, 8);
                     retriedPhase = true;
@@ -298,6 +311,7 @@ async function main() {
             fs.writeFileSync(path.join(output, `${name}-three-phase-silent.webm`), Buffer.from(motion, 'base64'));
             const integrity = await page.evaluate(() => ({saveWrites:window.saveWrites,storageWrites:window.storageWrites,unchanged:window.fixtureUnchanged()}));
             const actorSpacing=await page.evaluate(()=>{window.stopActorSpacing();return window.actorSpacing;});
+            const arenaPropEvidence=await page.evaluate(()=>window.arenaPropEvidence);
             report.inProgress.actorSpacing=actorSpacing;
             const presentationPreflight={
                 method:'Rendered alpha bounds (>16/255), including world rotation/scale/flip; conservative axis-aligned envelopes sampled each game step, not pixel-perfect overlap or human approval',
@@ -309,6 +323,10 @@ async function main() {
                 assert(presentationPreflight.allMovementSeparated,`Actor gap ${actorSpacing.minimumGap}px is below 24px during movement`);
                 assert(presentationPreflight.contactMomentsSeparated,'Attack contact actor gap is below 24px');
                 assert(presentationPreflight.actorsOnscreen,'An actor left the canvas');
+                assert(arenaPropEvidence.samples>0&&arenaPropEvidence.liftSamples>0&&arenaPropEvidence.retractSamples>0,
+                    'Moving arena props were not observed');
+                assert.deepEqual(arenaPropEvidence.violations,[],'Arena prop art differs from collision or floor occlusion');
+                assert.equal(finished.arenaProps.find(prop=>prop.name==='exit-stone').visible,false,'Released exit stone remains visible');
             }
             if(campaign) assert(integrity.unchanged&&integrity.storageWrites>0);
             else assert.deepEqual(integrity, {saveWrites:0,storageWrites:0,unchanged:true});
@@ -321,7 +339,7 @@ async function main() {
             assert.deepEqual(errors, []);
             const jumpInputs = await page.evaluate(() => window.proofJumpInputs);
             const attackInputs = await page.evaluate(() => window.proofAttackInputs);
-            report.journeys.push({name,width,height,routeEvidence,exchanges,jumpInputs,attackInputs,finished,banishmentFrames,actorSpacing,presentationPreflight,integrity,ending,pausedSafely:true,retryKeptPhase:true,externalRequests:0,errors});
+            report.journeys.push({name,width,height,routeEvidence,exchanges,jumpInputs,attackInputs,finished,banishmentFrames,actorSpacing,arenaPropEvidence,presentationPreflight,integrity,ending,pausedSafely:true,retryKeptPhase:true,externalRequests:0,errors});
             delete report.inProgress;
             await context.close();
         }

@@ -130,3 +130,24 @@ failed evidence in `trumptopus-limb-articulation-review`. The proof now records
 those four instants directly at Phaser postrender, without pausing or extending
 the animation. These PNGs are gameplay-canvas size, excluding the private 42px
 toolbar. A skipped interval still fails; later frames cannot substitute for it.
+
+## Source-stone arena props, 2026-09-22
+
+The remaining flat grey exit obstruction and rising foothold now use a small
+atlas derived from the same character-free foreground as the arena floor.
+Their artwork reads actual body position and dimensions after the parent
+updates physics. The solid floor renders in front of buried sections, so the
+foothold emerges from the ground and the exit stone disappears into it. Collision
+activation, lift timing and clearance rules are unchanged. No new art is generated.
+
+The prop atlas adds 26,880 raw RGBA bytes. The stage now owns four textures
+(sky, floor, dais, props), explicitly checked through retry and teardown. It
+retains the existing 4 MiB scenery limit rather than increasing it. Unit checks
+cover burial, lift, settlement, exit retraction and cleanup; the private fight
+proof samples rendered-object and collision bounds throughout both movements.
+
+Evidence belongs to `.visual-review/trumptopus-arena-props-review/`. This bounded
+pass repeats the arena and ending, not the unchanged approach. The previous
+full route/fight proof at `fdc87a8b` remains separate. Textured rectangular props
+are not human-approved terrain art, and the stretched limbs, geometric Void
+tear, missing Watch films and physical-device review remain open.

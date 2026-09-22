@@ -31,6 +31,18 @@ export default class TrumptopusArenaStage {
         this.rim=scene.add.graphics().setDepth(681);this.objects.push(this.rim);
         this.rim.lineStyle(2,0xadc4c2).lineBetween(layout.bossX-layout.bossHeight*.285,layout.bossFloorY,
             layout.bossX+layout.bossHeight*.285,layout.bossFloorY);
+        this.props=[{name:'exit-stone',object:scene.gate},{name:'rising-foothold',object:scene.causeway}];
+        const props=bakeStoneAtlas(scene,image,'trumptopus-stage-props',this.props.map(({object})=>({
+            width:object.body.width,height:object.body.height})));
+        this.keys.push(props.key);
+        for(const [index,prop] of this.props.entries()){
+            prop.object.setVisible(false);
+            // Foreground floor occludes the buried section. This makes a
+            // foothold emerge from solid ground, not float below its surface.
+            prop.sprite=scene.add.image(0,0,props.key,props.frames[index].name).setOrigin(0).setDepth(688);
+            this.objects.push(prop.sprite);
+        }
+        this.syncProps();
     }
 
     texture(name,canvas) {
@@ -39,6 +51,7 @@ export default class TrumptopusArenaStage {
     }
 
     drawEdge(recovery) {
+        if(this.destroyed)return;
         const {width}=this.scene.scale,{floorY}=this.layout;
         this.edge.clear();
         this.edge.lineStyle(2,0xaaa5b6).lineBetween(0,floorY,width,floorY);
@@ -48,9 +61,31 @@ export default class TrumptopusArenaStage {
         }
     }
 
+    syncProps() {
+        if(this.destroyed)return;
+        for(const {object,sprite} of this.props){
+            const body=object.body;
+            if(!body){sprite.setVisible(false);continue;}
+            sprite.setPosition(body.left,body.top).setDisplaySize(body.width,body.height)
+                .setVisible(body.top<this.layout.floorY).setTint(body.enable?0xc1cad0:0x89949e);
+        }
+    }
+
+    getPropEvidence() {
+        if(this.destroyed)return [];
+        return this.props.map(({name,object,sprite})=>({name,sourceHidden:object.visible===false,
+            visible:sprite.visible,enabled:object.body.enable,
+            art:{left:sprite.x,top:sprite.y,width:sprite.displayWidth,height:sprite.displayHeight},
+            collision:{left:object.body.left,top:object.body.top,width:object.body.width,height:object.body.height},
+            aboveFloor:Math.max(0,Math.min(object.body.height,this.layout.floorY-object.body.top)),
+            floorOccludesBuriedSection:sprite.depth<this.floor.depth}));
+    }
+
     destroy() {
+        if(this.destroyed)return;
+        this.destroyed=true;
         for(const object of this.objects)object.destroy();
         for(const key of this.keys)this.scene.textures.remove(key);
-        this.objects=[];this.keys=[];
+        this.objects=[];this.keys=[];this.props=[];
     }
 }

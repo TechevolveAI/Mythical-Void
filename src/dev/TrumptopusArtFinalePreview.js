@@ -56,6 +56,13 @@ export default class TrumptopusArtFinalePreview extends TrumptopusFinalePreview 
         if(this.rigFrameCosts.length<10000)this.rigFrameCosts.push(performance.now()-started);
     }
 
+    update(time,delta) {
+        super.update(time,delta);
+        // The parent moves the foothold after drawExchange. Follow its actual
+        // static body here so art and collision never differ by one game step.
+        this.arenaStage?.syncProps();
+    }
+
     playerVisualBounds() {
         const visible=this.playerContactGeometry,player=this.player;
         const left=player.x+(player.flipX?player.width/2-visible.right-1:visible.left-player.width/2)*player.scaleX;
@@ -171,6 +178,7 @@ export default class TrumptopusArtFinalePreview extends TrumptopusFinalePreview 
             allyContactY:this.astronautFollower?.getContactY(),stageLayout:this.stageLayout,
             floorContact:{artTop:this.arenaStage?.floor.y,bodyTop:this.floorPlatform.body.top},
             stageMaterial:this.arenaStage?.material,
+            arenaProps:this.arenaStage?.getPropEvidence(),
             stageTextureRgbaBytes:(this.arenaStage?.keys||[]).reduce((bytes,key)=>{
                 const image=this.textures.get(key).getSourceImage();return bytes+image.width*image.height*4;
             },0),sourceArtRig:this.characterRig?{
