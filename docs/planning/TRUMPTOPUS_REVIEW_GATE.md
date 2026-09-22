@@ -58,9 +58,12 @@ checks cannot approve the visual quality or establish that the finale is fun.
 
 - Kevin: select the closer staging, restore the earlier placement, or give a
   specific alternative. Review the actual motion before further art iteration.
-- Kevin: state a maximum total one-off film-production budget, including failed
-  takes/retries. Two shared films serve all players; this is not a per-player
-  generation charge. No amount has been authorized. Source/provenance and provider
+- Kevin: approve a provider/model and maximum total one-off film-production
+  budget after reviewing the [verified cost estimate](TRUMPTOPUS_FILM_COST_ESTIMATE.md).
+  The current Google Standard authoring path estimates $9.60 for one complete
+  attempt, or $19.20 with one replacement take per shot, before taxes. It does
+  not use Replicate credits. Two shared films serve all players; this is not a
+  per-player generation charge. No amount has been authorized. Source/provenance and provider
   content acceptance must also pass; money cannot override a content restriction.
 - Human play review: observe a first attempt without coaching. Can the player
   identify a committed attack, avoid it, find the safe counter, understand what
