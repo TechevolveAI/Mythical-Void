@@ -12,7 +12,7 @@ function createCampaignProofHtml({approach = false, arrivalFixture = null, seede
     assert(!(approach&&seededVictory),'Seeded ending proof must not imply approach gameplay');
     return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>Private finale campaign proof</title>
     <style>html,body{margin:0;overflow:hidden;background:#15191c;color:#eee;font:12px Arial}header{height:42px;box-sizing:border-box;padding:0 8px;display:flex;align-items:center;justify-content:space-between}button{height:34px;min-width:56px;border:1px solid #687775;background:#273034;color:white}canvas{display:block;touch-action:none}#paused{position:fixed;inset:45% 20% auto;z-index:3;background:#192423;padding:20px;text-align:center}#paused[hidden]{display:none}</style>
-    </head><body><header><span>${seededVictory?'PRIVATE / SEEDED VICTORY / ENDING ONLY':'PRIVATE / TEMPORARY BOSS ART'}</span><span><button id="pause">Pause</button> <button id="retry">Retry</button></span></header><div id="game"></div><div id="paused" hidden>Paused</div>
+    </head><body><header><span>${seededVictory?'PRIVATE / ENDING FIXTURE':'PRIVATE / TEMPORARY BOSS ART'}</span><span><button id="pause">Pause</button> <button id="retry">Retry</button></span></header><div id="game"></div><div id="paused" hidden>Paused</div>
     <script type="module">
     const {Phaser}=await import('/src/global-init.js');
     const {default:Preview}=await import('/src/dev/TrumptopusCampaignPreview.js');

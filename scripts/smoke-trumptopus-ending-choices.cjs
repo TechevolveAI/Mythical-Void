@@ -48,6 +48,14 @@ async function main() {
                 return route.continue();
             });
             await page.goto(`${base}/__ending-choices?renderer=webgl`);
+            const header=await page.evaluate(()=>{
+                const box=document.querySelector('header').getBoundingClientRect();
+                return [...document.querySelectorAll('header span,header button')].map(element=>{
+                    const b=element.getBoundingClientRect();return {text:element.textContent,
+                        inside:b.left>=box.left&&b.right<=box.right&&b.top>=box.top&&b.bottom<=box.bottom};
+                });
+            });
+            assert(header.every(item=>item.inside),'Private proof header clipped');
             const ending=await completeCampaignEnding(page,output,name,{priority,exerciseRecovery:true});
             await page.screenshot({path:path.join(output,`${name}-returned-to-sanctuary.png`)});
             const state=await page.evaluate(()=>({priority:GameState.get('story.projectBeacon.finale.priority'),
@@ -63,7 +71,7 @@ async function main() {
                 window.dispatchEvent(new Event('resize'));window.game.events.emit('focus');});
             await page.waitForTimeout(250);
             assert.deepEqual(errors,[]);assert.deepEqual(outside,[]);
-            report.journeys.push({name,width,height,priority,ending,state,errors,outsideRequests:outside.length});
+            report.journeys.push({name,width,height,priority,header,ending,state,errors,outsideRequests:outside.length});
             delete report.inProgress;await context.close();
         }
         report.passed=true;

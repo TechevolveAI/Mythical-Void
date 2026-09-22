@@ -49,7 +49,7 @@ test('seeded victory is opt-in, labelled, and cannot claim approach gameplay',()
     const ordinary=createCampaignProofHtml();
     expect(ordinary).not.toContain('recordTrumptopusVictory(state');
     const ending=createCampaignProofHtml({seededVictory:true});
-    expect(ending).toContain('SEEDED VICTORY / ENDING ONLY');
+    expect(ending).toContain('PRIVATE / ENDING FIXTURE');
     expect(ending).toContain('checkpointTrumptopusRun(state,run.sequence,1');
     expect(ending).toContain('checkpointTrumptopusRun(state,run.sequence,2');
     expect(ending).toContain('if(!saved)');
