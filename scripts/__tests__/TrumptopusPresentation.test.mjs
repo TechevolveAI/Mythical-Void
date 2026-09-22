@@ -50,12 +50,14 @@ test('a flank vault rises before crossing and finishes sideways movement before 
     const leap={fromX:50,toX:330,duration:900,floorY:622};
     const rising=sampleAllyLeap({...leap,elapsed:180});
     assert.equal(rising.x,50);assert(rising.footY<622-150);
-    const descending=sampleAllyLeap({...leap,elapsed:720});
+    const descending=sampleAllyLeap({...leap,elapsed:630});
     assert.equal(descending.x,330);assert(descending.footY<622-150);
 });
 test('the sweep vault clears the observed simultaneous jump and stays below the HUD',()=>{
     const sample=sampleAllyLeap({fromX:33.01,toX:315.43,elapsed:1200,duration:1721.97,height:400,floorY:606});
     assert(sample.footY<=309.66-24);
+    const descending=sampleAllyLeap({fromX:35.69,toX:315.29,elapsed:1266.61,duration:1738.71,height:400,floorY:606});
+    assert(descending.x-22>=258.3+24);
     for(const floorY of [606,622]){
         const peak=sampleAllyLeap({fromX:33,toX:315,elapsed:500,duration:1000,height:400,floorY});
         assert(peak.footY-68>=138);

@@ -93,10 +93,13 @@ envelopes and fails below 24px anywhere in the recorded fight, not only at
 selected screenshots. It also rejects either actor leaving the canvas. This
 is still one scripted input journey, not proof of every possible player input
 or human approval of the motion. Exact-source results are kept separately in
-`.visual-review/trumptopus-spacing-final-review/`. The earlier
+`.visual-review/trumptopus-spacing-verified/`. The earlier
 `trumptopus-spacing-review` is a failed exact-source gate at `89d6790a`, not a
 passing proof. Iterative diagnostics retained the 24px threshold and exposed
 the delayed sweep dodge, crowded landing and uncapped sword-lunge faults.
+The intermediate `64f936fb` proof passed phone at 26.55px but failed desktop at
+23.38px during descent. The final sideways vault timing addresses that case;
+the threshold remains 24px. That earlier folder remains a failed source gate.
 
 Exact test/build results live in the evidence report, not an implied release gate.
 The encounter state machine, prior reward/ending implementation and historical

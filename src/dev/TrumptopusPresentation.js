@@ -46,7 +46,7 @@ export function sampleAllyLeap({fromX,toX,elapsed,duration,height=240,floorY}) {
     const p=clamp(elapsed/duration,0,1);
     // Rise clear before crossing the creature, then finish the lateral move
     // before descending. The ground endpoints remain exact.
-    return {x:fromX+(toX-fromX)*smooth((p-.2)/.6),footY:floorY-4*height*p*(1-p),progress:p,landed:p===1};
+    return {x:fromX+(toX-fromX)*smooth((p-.2)/.5),footY:floorY-4*height*p*(1-p),progress:p,landed:p===1};
 }
 
 export function trumptopusBanishment(progress) {
