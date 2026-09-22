@@ -146,8 +146,14 @@ retains the existing 4 MiB scenery limit rather than increasing it. Unit checks
 cover burial, lift, settlement, exit retraction and cleanup; the private fight
 proof samples rendered-object and collision bounds throughout both movements.
 
-Evidence belongs to `.visual-review/trumptopus-arena-props-review/`. This bounded
+Evidence belongs to `.visual-review/trumptopus-arena-props-verified/`. This bounded
 pass repeats the arena and ending, not the unchanged approach. The previous
 full route/fight proof at `fdc87a8b` remains separate. Textured rectangular props
 are not human-approved terrain art, and the stretched limbs, geometric Void
 tear, missing Watch films and physical-device review remain open.
+
+The first `f82db65a` proof passed both journeys but the small phone props were
+too dark against the painted backdrop. It remains diagnostic evidence under
+`trumptopus-arena-props-review`. The revised prop-only material uses directional
+face lighting and a pale top edge, preserving underlying source pixels and
+the same body bounds. Floor and approach materials keep their previous treatment.

@@ -24,7 +24,7 @@ export function stoneCrop(width,index) {
     return {...STONE_SOURCE,x:STONE_SOURCE.x+offset,width:span};
 }
 
-function paintSurface(canvas,image,index) {
+function paintSurface(canvas,image,index,relief=false) {
     const ctx=canvas.getContext('2d'),{width,height}=canvas;
     const crop=stoneCrop(width,index),lip=Math.min(8,Math.ceil(height*.2));
     ctx.drawImage(image,crop.x,crop.y,crop.width,18,0,0,width,lip);
@@ -35,6 +35,18 @@ function paintSurface(canvas,image,index) {
     depth.addColorStop(0,'rgba(4,10,16,0.12)');depth.addColorStop(1,'rgba(4,10,16,0.70)');
     ctx.fillStyle=depth;ctx.fillRect(0,lip,width,height-lip);
     ctx.fillStyle='rgba(158,194,201,0.22)';ctx.fillRect(0,0,width,lip);
+    if(relief){
+        // Small foreground obstacles need a readable side plane, not only a
+        // thin top line against the similarly dark painted background.
+        const face=ctx.createLinearGradient(0,0,width,height);
+        face.addColorStop(0,'rgba(105,132,159,0.78)');
+        face.addColorStop(0.55,'rgba(71,94,119,0.64)');
+        face.addColorStop(1,'rgba(29,44,64,0.40)');
+        ctx.globalCompositeOperation='screen';ctx.fillStyle=face;ctx.fillRect(0,lip,width,height-lip);
+        ctx.globalCompositeOperation='source-over';
+        ctx.fillStyle='rgba(184,207,222,0.82)';ctx.fillRect(0,0,width,2);
+        ctx.fillStyle='rgba(138,161,184,0.38)';ctx.fillRect(0,lip,2,height-lip);
+    }
 }
 
 export function bakeStoneAtlas(scene,image,key,surfaces) {
@@ -43,7 +55,7 @@ export function bakeStoneAtlas(scene,image,key,surfaces) {
     const ctx=atlas.getContext('2d');
     for(const [index,frame] of layout.frames.entries()) {
         const tile=document.createElement('canvas');tile.width=frame.width;tile.height=frame.height;
-        paintSurface(tile,image,index);
+        paintSurface(tile,image,index,surfaces[index].relief===true);
         ctx.drawImage(tile,frame.x,frame.y);
         // Extrude edge pixels into the gutter so filtering cannot sample an
         // adjacent platform or transparent atlas padding.

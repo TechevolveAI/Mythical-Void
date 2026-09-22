@@ -33,7 +33,7 @@ export default class TrumptopusArenaStage {
             layout.bossX+layout.bossHeight*.285,layout.bossFloorY);
         this.props=[{name:'exit-stone',object:scene.gate},{name:'rising-foothold',object:scene.causeway}];
         const props=bakeStoneAtlas(scene,image,'trumptopus-stage-props',this.props.map(({object})=>({
-            width:object.body.width,height:object.body.height})));
+            width:object.body.width,height:object.body.height,relief:true})));
         this.keys.push(props.key);
         for(const [index,prop] of this.props.entries()){
             prop.object.setVisible(false);
