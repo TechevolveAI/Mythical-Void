@@ -17,6 +17,12 @@ No new character generation or paid video calls.
   Both active hands participate in the final two-sided grasp; no mirrored art.
 - Private fight/campaign adapters use the existing attack timing, collision,
   input, checkpoints and rewards. They do not register a production scene.
+- The supplied landscape now supplies private arena materials. The boss stands
+  on a raised rear dais rather than sharing the player's ground lane. The
+  astronaut visibly leaps over the sweep and grounds on the same floor line.
+- The winning hit now pulls the intact boss into a closing Void tear and changes
+  the floor edge as his hold releases. This is real Phaser presentation, not a
+  generated film. The tear and remaining greybox obstacles still need art review.
 - No saves, game boot, production registration or outside services in the art proof.
 - Shared first-person film prompts drafted without visible player anatomy.
   Arrival is one proposed film; banishment and recovery are two shots for the other.
@@ -27,6 +33,7 @@ No new character generation or paid video calls.
 ```sh
 node --test scripts/__tests__/TrumptopusCutoutRig.test.mjs
 node --test scripts/__tests__/TrumptopusLimbWarp.test.mjs
+node --test scripts/__tests__/TrumptopusPresentation.test.mjs
 TRUMPTOPUS_CUTOUT_PROOF=trumptopus-source-rig-review node scripts/smoke-trumptopus-cutout.cjs
 TRUMPTOPUS_ART_PROOF=1 TRUMPTOPUS_RENDERER=webgl TRUMPTOPUS_PROOF_NAME=trumptopus-art-fight-review node scripts/smoke-trumptopus-finale.cjs
 node scripts/validate-final-void-films.cjs
@@ -56,8 +63,20 @@ whether the curved forearms and travelling lower-body bend feel like living
 tissue rather than stretched paper. Refine source-pixel overlap where needed;
 do not invent a new character. The private arena adapter now supplies all three
 attack poses and aligns visible hand bounds with the existing collision geometry.
-This is still a plain mechanics arena. Finished scenery, atlas export/budget,
-authored banishment and human difficulty/presentation approval remain open.
+The supplied scene crops now establish the private arena, and an authored
+banishment is present. Finished scenery, atlas export/budget and human
+difficulty/presentation approval remain open. New actor-spacing instrumentation
+reports the whole recorded fight, including retry. Diagnostic contact moments
+meet 24px, but intermediate movement includes overlapping bounds. That remains
+an explicit visual fault; it is not excused by passing encounter tests. The
+desktop forearms also read as stretched material, and the Void tear is still
+too geometric beside the supplied art. Do not label this finished artwork.
+
+The current staging proof is recorded separately under
+`.visual-review/trumptopus-arena-review/`; its manifest binds exact source,
+focused tests, build and recorded journeys. The earlier two diagnostic runs
+remain private: the first exposed a retry-readiness race in the test harness,
+the second completed both viewports and exposed the movement-spacing fault.
 
 Exact test/build results live in the evidence report, not an implied release gate.
 The encounter state machine, prior reward/ending implementation and historical

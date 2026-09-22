@@ -18,3 +18,9 @@ Supplier: Kevin. Original filename:
 AI assistance: supplied artwork; model and upstream rights not independently
 verified. Private adaptation requested in this task. Public release and rights
 clearance are separate gates. No live player information is included.
+
+`source-landscape.png` preserves the supplied scene
+`openart-gpt-image-2-edit-1_1789944674167_e9eb1acb.png`. The private arena uses
+runtime crops from x=510 onward, excluding the baked-in character. Three Canvas
+textures supply the backdrop, ground and raised boss dais; all are removed on
+scene shutdown. No new background generation or production asset registration.

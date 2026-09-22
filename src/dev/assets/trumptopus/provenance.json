@@ -17,6 +17,16 @@
   "paidGenerationCalls": 0,
   "newImageGenerationCalls": 0,
   "privateAdaptationRequested": true,
+  "landscape": {
+    "originalFilename": "openart-gpt-image-2-edit-1_1789944674167_e9eb1acb.png",
+    "sha256": "cda3f8531e25d2cbf6f370800171c1631d91f47bd07354dceb1804288d474b1e",
+    "dimensions": [1344, 1008],
+    "bytes": 2454107,
+    "originalPreserved": true,
+    "preparation": "Unchanged supplied PNG. Runtime Canvas crops exclude the baked-in character on the left. Landscape and rock pixels supply the private arena sky, floor and raised dais.",
+    "upstreamModel": "not independently verified",
+    "upstreamRights": "not independently verified"
+  },
   "productionIntegrated": false,
   "humanVisualApproved": false,
   "publicationAuthorized": false

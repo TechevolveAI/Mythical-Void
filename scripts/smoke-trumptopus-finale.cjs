@@ -68,7 +68,9 @@ async function main() {
             await page.waitForFunction(() => window.prototypeScene?.player?.body);
             const routeEvidence = approach ? await playApproach(page,context,output,name,{framing}) : null;
             const rigTextureCount=()=>page.evaluate(()=>window.game.textures.getTextureKeys().filter(key=>key.startsWith('trumptopus-fight-')).length);
+            const stageTextureCount=()=>page.evaluate(()=>window.game.textures.getTextureKeys().filter(key=>key.startsWith('trumptopus-stage-')).length);
             if(artwork||campaign)assert.equal(await rigTextureCount(),13,'Unexpected rig texture ownership');
+            if(artwork||campaign)assert.equal(await stageTextureCount(),3,'Unexpected stage texture ownership');
             await page.evaluate(() => {
                 window.proofJumpInputs = [];
                 window.proofAttackInputs = [];
@@ -125,6 +127,43 @@ async function main() {
             assert.equal((await state()).elapsed, paused.elapsed);
             await page.click('#pause');
             await page.evaluate(() => {
+                const scene=window.prototypeScene,cache=new Map();
+                window.actorSpacing={samples:0,minimumGap:null,offscreenSamples:0,minimum:null};
+                const bounds=sprite=>{
+                    const key=sprite.texture.key;
+                    if(!cache.has(key)){
+                        const source=sprite.texture.getSourceImage(),canvas=document.createElement('canvas');
+                        canvas.width=source.width;canvas.height=source.height;
+                        const ctx=canvas.getContext('2d');ctx.drawImage(source,0,0);
+                        const pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+                        const box={left:canvas.width,right:0,top:canvas.height,bottom:0};
+                        for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++)if(pixels[(y*canvas.width+x)*4+3]>16){
+                            box.left=Math.min(box.left,x);box.right=Math.max(box.right,x+1);
+                            box.top=Math.min(box.top,y);box.bottom=Math.max(box.bottom,y+1);
+                        }
+                        cache.set(key,box);
+                    }
+                    const box=cache.get(key),left=sprite.flipX?sprite.width-box.right:box.left;
+                    return {left:sprite.x+(left-sprite.width*sprite.originX)*sprite.scaleX,
+                        right:sprite.x+(left+box.right-box.left-sprite.width*sprite.originX)*sprite.scaleX,
+                        top:sprite.y+(box.top-sprite.height*sprite.originY)*sprite.scaleY,
+                        bottom:sprite.y+(box.bottom-sprite.height*sprite.originY)*sprite.scaleY};
+                };
+                const sample=()=>{
+                    if(!scene.player?.active||!scene.astronautFollower?.sprite?.active)return;
+                    const creature=bounds(scene.player),ally=bounds(scene.astronautFollower.sprite);
+                    const gap=Math.hypot(Math.max(0,creature.left-ally.right,ally.left-creature.right),
+                        Math.max(0,creature.top-ally.bottom,ally.top-creature.bottom));
+                    const evidence=window.actorSpacing;evidence.samples++;
+                    const state=scene.encounter.snapshot();
+                    if(evidence.minimumGap===null||gap<evidence.minimumGap){
+                        evidence.minimumGap=gap;evidence.minimum={creature,ally,mode:state.mode,attack:state.attack,state:state.state};
+                    }
+                    if([creature,ally].some(b=>b.left<0||b.right>scene.scale.width||b.top<0||b.bottom>scene.scale.height))evidence.offscreenSamples++;
+                    window.currentActorSpacing={gap,creature,ally};
+                };
+                window.game.events.on('poststep',sample);
+                window.stopActorSpacing=()=>window.game.events.off('poststep',sample);
                 const chunks = [], stream = window.game.canvas.captureStream(24);
                 if(stream.getAudioTracks().length)throw Error('Unexpected proof audio track');
                 const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 1500000 });
@@ -146,9 +185,14 @@ async function main() {
                 if (locked.phaseIndex === 1 && !retriedPhase) {
                     const checkpoint = locked.checkpoint;
                     await page.click('#retry');
-                    await page.waitForFunction(() => window.prototypeScene.encounter.state === 'phase_intro');
+                    await page.waitForFunction(needsArt => {
+                        const scene=window.prototypeScene;
+                        return scene.scene.isActive()&&scene.player?.body&&scene.encounter.state==='phase_intro'&&
+                            (!needsArt||scene.characterRig?.root?.active);
+                    },artwork||campaign);
                     const retried = await state();
                     if(artwork||campaign)assert.equal(await rigTextureCount(),13,'Retry leaked rig textures');
+                    if(artwork||campaign)assert.equal(await stageTextureCount(),3,'Retry leaked stage textures');
                     assert.deepEqual(retried.checkpoint, checkpoint);
                     assert.equal(retried.phaseHealth, 8);
                     retriedPhase = true;
@@ -179,6 +223,7 @@ async function main() {
                     await waitState('exposed');
                 }
                 const exposed = await state();
+                const spacing=await page.evaluate(()=>window.currentActorSpacing);
                 if((artwork||campaign)&&!captured.has(`${locked.attack}-contact`)){
                     await page.screenshot({path:path.join(output,`${name}-${locked.attack}-contact.png`)});
                     captured.add(`${locked.attack}-contact`);
@@ -198,12 +243,27 @@ async function main() {
                 for (let press = 0; press < 5 && (await state()).state === 'exposed'; press++) { await attack(); await page.waitForTimeout(380); }
                 const countered = await state();
                 assert(countered.health < exposed.health, `No real ${name} attack reached ${locked.attack}`);
-                exchanges.push({ phase: locked.phaseIndex + 1, attack: locked.attack, damageBefore, damageAfter: countered.damage.length, healthBefore: exposed.health, healthAfter: countered.health });
+                exchanges.push({ phase: locked.phaseIndex + 1, attack: locked.attack, damageBefore, damageAfter: countered.damage.length, healthBefore: exposed.health, healthAfter: countered.health, spacing });
                 if (!captured.has(`${locked.phaseIndex}-countered`)) {
                     await page.screenshot({ path: path.join(output, `${name}-phase-${locked.phaseIndex + 1}-countered.png`) });
                     captured.add(`${locked.phaseIndex}-countered`);
                 }
                 await page.waitForFunction(() => !['exposed', 'recoil'].includes(window.prototypeScene.encounter.state));
+            }
+            const banishmentFrames=[];
+            if(artwork||campaign)for(const progress of [.25,.55,.82,.94]){
+                await page.waitForFunction(p=>{
+                    const state=window.prototypeScene.encounter.snapshot();
+                    return state.mode==='banishment'&&state.progress>=p;
+                },progress,{timeout:5000});
+                const frame=await state();
+                if(progress<.8){
+                    assert.equal(frame.sourceArtRig.rootAlpha,1,'Banishment fades instead of moving the intact boss');
+                    assert(frame.sourceArtRig.rootScale<frame.sourceArtRig.restScale,'Boss did not recede into the Void');
+                    assert(frame.sourceArtRig.rootRotation<0,'Boss did not react to the pull');
+                }
+                await page.screenshot({path:path.join(output,`${name}-banishment-${Math.round(progress*100)}.png`)});
+                banishmentFrames.push({progress:frame.progress,rig:frame.sourceArtRig});
             }
             await waitState('aftermath');
             const finished = await state();
@@ -213,11 +273,19 @@ async function main() {
             assert.equal(finished.phaseEvidence.filter(event => event.type === 'banished').length, 1);
             assert(retriedPhase); assert.equal(finished.causeway.enabled, true);
             assert.equal(finished.causeway.bodyTop, finished.causeway.artTop);
+            if(artwork||campaign)assert.equal(finished.floorContact.bodyTop,finished.floorContact.artTop,'Ground art and physics differ');
             assert(Math.abs(finished.player.bottom - finished.floorY) < 2);
             await page.screenshot({ path: path.join(output, `${name}-aftermath.png`) });
             const motion = await page.evaluate(() => window.stopProofRecording());
             fs.writeFileSync(path.join(output, `${name}-three-phase-silent.webm`), Buffer.from(motion, 'base64'));
             const integrity = await page.evaluate(() => ({saveWrites:window.saveWrites,storageWrites:window.storageWrites,unchanged:window.fixtureUnchanged()}));
+            const actorSpacing=await page.evaluate(()=>{window.stopActorSpacing();return window.actorSpacing;});
+            const presentationPreflight={
+                method:'Rendered alpha bounds (>16/255), axis-aligned, sampled each game step; not pixel-perfect overlap or human approval',
+                minimumRequiredGap:24,allMovementSeparated:actorSpacing.minimumGap>=24,
+                contactMomentsSeparated:exchanges.every(exchange=>exchange.spacing.gap>=24),
+                actorsOnscreen:actorSpacing.offscreenSamples===0
+            };
             if(campaign) assert(integrity.unchanged&&integrity.storageWrites>0);
             else assert.deepEqual(integrity, {saveWrites:0,storageWrites:0,unchanged:true});
             const ending=campaign ? await completeCampaignEnding(page,output,name) : null;
@@ -225,10 +293,11 @@ async function main() {
             await page.waitForTimeout(250);
             assert.equal(await page.evaluate(() => window.prototypeScene.encounter.disposed), true);
             if(artwork||campaign)assert.equal(await rigTextureCount(),0,'Shutdown retained rig textures');
+            if(artwork||campaign)assert.equal(await stageTextureCount(),0,'Shutdown retained stage textures');
             assert.deepEqual(errors, []);
             const jumpInputs = await page.evaluate(() => window.proofJumpInputs);
             const attackInputs = await page.evaluate(() => window.proofAttackInputs);
-            report.journeys.push({name,width,height,routeEvidence,exchanges,jumpInputs,attackInputs,finished,integrity,ending,pausedSafely:true,retryKeptPhase:true,externalRequests:0,errors});
+            report.journeys.push({name,width,height,routeEvidence,exchanges,jumpInputs,attackInputs,finished,banishmentFrames,actorSpacing,presentationPreflight,integrity,ending,pausedSafely:true,retryKeptPhase:true,externalRequests:0,errors});
             delete report.inProgress;
             await context.close();
         }
