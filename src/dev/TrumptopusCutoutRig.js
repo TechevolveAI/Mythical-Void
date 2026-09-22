@@ -1,5 +1,5 @@
 import { CUTOUT_PARTS, CUTOUT_REFERENCE, ARM_CHAINS, partBounds } from './TrumptopusCutoutData.js';
-import { createLimbWarp, paintLimbWarp } from './TrumptopusLimbWarp.js';
+import { createLimbWarp, paintLimbWarp, attackLimbShape } from './TrumptopusLimbWarp.js';
 
 const smooth = value => { const p = Math.max(0, Math.min(1, value)); return p * p * (3 - 2 * p); };
 const rotate = ([x,y], angle) => [x * Math.cos(angle) - y * Math.sin(angle), x * Math.sin(angle) + y * Math.cos(angle)];
@@ -189,14 +189,16 @@ export default class TrumptopusCutoutRig {
             const hand=this.sprites.get(`hand-${side}`);
             hand.setPosition(...wrist).setScale(scaleX,scaleY).setRotation(0);
             if(snapshot.vulnerable)hand.setTint(0xffdca7);
-            const geometry=this.paintForearm(side,joint.elbow,wrist,{tipScale:scaleX,startAngle:joint.upperAngle,
-                wave:state==='strike'?35*Math.sin(Math.PI*progress):0,travel:progress});
+            const span=Math.hypot(wrist[0]-joint.elbow[0],wrist[1]-joint.elbow[1]);
+            const tissue=attackLimbShape(state,progress,span,engagement);
+            const geometry=this.paintForearm(side,joint.elbow,wrist,{tipScale:scaleX,startAngle:joint.upperAngle,...tissue});
             joint.wrist=wrist;
             this.attackHands.push({side,palm:{...palm},wrist,visibleBottom:this.origin.y+(wrist[1]+bottom*scaleY)*this.scale,
                 visibleLeft:this.origin.x+(wrist[0]+(part.bounds.x+visible.left-part.pivot[0])*scaleX)*this.scale,
                 visibleRight:this.origin.x+(wrist[0]+(part.bounds.x+visible.right-part.pivot[0])*scaleX)*this.scale,
                 elbowGap:Math.hypot(geometry.start.x-joint.elbow[0],geometry.start.y-joint.elbow[1]),
-                wristGap:Math.hypot(geometry.end.x-wrist[0],geometry.end.y-wrist[1])});
+                wristGap:Math.hypot(geometry.end.x-wrist[0],geometry.end.y-wrist[1]),tissue,
+                centreline:geometry.centreline.map(p=>({x:this.origin.x+p.x*this.scale,y:this.origin.y+p.y*this.scale}))});
         }
     }
 

@@ -105,3 +105,21 @@ Exact test/build results live in the evidence report, not an implied release gat
 The encounter state machine, prior reward/ending implementation and historical
 exact-source proofs remain unchanged. No real Trumptopus film exists yet.
 No push, merge, deployment or publication is authorized by this document.
+
+## Bounded limb-articulation pass, 2026-09-22
+
+The long attack originally stretched the forearm over a near-straight span with
+short fixed end tangents. This private pass increases curvature with extension,
+tapers the middle while preserving both joint widths, and moves a stored bend
+from the elbow towards the claw during the strike. Recoil sends a smaller bend
+back. Strip orientation follows the deformed centreline so stronger bends do
+not use the old straight texture orientation. Rest art and the cap are unchanged.
+
+The committed claw, contact box, vulnerable window, timing, damage and other
+fight rules are unchanged. Only the source-art forearm deformation is affected;
+there are no generated assets, saves, provider requests or production registration.
+Tests cover endpoints, tangents, deterministic bounded motion and state-boundary
+continuity. These establish geometry, not a convincing tentacle or final art.
+Source-bound browser evidence and the visual conclusion are recorded separately
+under `.visual-review/trumptopus-limb-articulation-review/`; existence of this
+section does not imply that capture or human review passed.
