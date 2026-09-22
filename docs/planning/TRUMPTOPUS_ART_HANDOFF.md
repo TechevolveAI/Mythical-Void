@@ -52,8 +52,9 @@ original/foreground hashes are in `src/dev/assets/trumptopus/provenance.json`.
 The supported poses are rest, load, extending reach, claw contact and recovery.
 Elbow overlap is held at its source size while distal tissue extends; a separate
 deformation travels through the lower body. Canvas uses the same sprite and
-texture path as WebGL. This is a source-art study, not combat integration or a
-claim that hidden anatomy has been reconstructed. Thin trailing tendrils and
+texture path as WebGL. A later private adapter now connects the curved front
+arms to all three real encounter patterns. Neither adapter reconstructs hidden
+anatomy or registers the character in production. Thin trailing tendrils and
 joint edges still need comparison against the original at human review.
 
 Earlier proof attempts remain in separate private folders. Colour-key cleanup
@@ -62,8 +63,9 @@ could not compile against this Mac's SDK; the working preparation tool is the
 small Objective-C program in `scripts/cinematics/extract-trumptopus-source.m`.
 
 The original PNG is 5,062,822 bytes; the foreground PNG is 3,136,743 bytes.
-These are private source assets, not a release atlas. Export, packing, normal
-gameplay scale and the final-level asset budget remain integration gates.
+These are private source assets, not a release atlas. The private fight now
+places the character beside the real actors at ordinary arena scale. Export,
+packing, finished staging and the final-level asset budget remain release gates.
 
 ## Earlier generation attempt
 

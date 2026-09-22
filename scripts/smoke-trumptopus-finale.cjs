@@ -11,14 +11,19 @@ const { playApproach } = require('./lib/trumptopus-approach-proof.cjs');
 
 async function main() {
     const root = path.resolve(__dirname, '..');
+    const artwork = process.env.TRUMPTOPUS_ART_PROOF === '1';
+    const renderer=process.env.TRUMPTOPUS_RENDERER==='webgl'?'webgl':'canvas';
     const framing = process.env.TRUMPTOPUS_FRAMING_PROOF === '1';
     const approach = framing || process.env.TRUMPTOPUS_APPROACH_PROOF === '1';
     const campaign = approach || process.env.TRUMPTOPUS_CAMPAIGN_PROOF === '1';
     const proofName = process.env.TRUMPTOPUS_PROOF_NAME || (framing ? 'trumptopus-framing' : approach ? 'trumptopus-approach' : campaign ? 'trumptopus-campaign' : 'trumptopus-three-phase');
     assert(/^trumptopus-[a-z0-9-]+$/.test(proofName), 'Proof output must be a private Trumptopus folder name');
     const output = path.join(root, '.visual-review', proofName);
+    assert(!fs.existsSync(path.join(output,'report.json')),'Do not overwrite an existing private proof');
     fs.mkdirSync(output, { recursive: true });
-    const report = { kind: campaign ? 'real-fight-to-campaign-ending' : 'three-phase-greybox', finalArtwork: false,
+    const report = { kind: campaign ? 'real-fight-to-campaign-ending' : artwork ? 'three-phase-source-art' : 'three-phase-greybox', finalArtwork: false,
+        suppliedImageRig:artwork||campaign,
+        renderer,
         privateCampaignAdapterProved: campaign, productionIntegrated: false,
         fixturePriorLevels: campaign, approachIncluded:approach, physicalDeviceTest: false, journeys: [],
         sourceCommit:execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim(),
@@ -32,7 +37,7 @@ async function main() {
             define:{'import.meta.env.VITE_ENABLE_API_FEATURES':'"false"','import.meta.env.VITE_ENABLE_AI_PORTRAITS':'"false"','import.meta.env.VITE_ENABLE_AI_VIDEOS':'"false"',__MYTHICAL_STATIC_CONTINUITY__:'true',__MYTHICAL_OBSERVABILITY_DELIVERY_ENABLED__:'false'},
             server: { host: '127.0.0.1', port: 0, open: false }, plugins: [{
             name: 'private-finale', configureServer(vite) {
-                vite.middlewares.use('/__finale-proof', (_, res) => { res.setHeader('Content-Type', 'text/html'); res.end(campaign ? createCampaignProofHtml({approach}) : createProofHtml({ finale: true })); });
+                vite.middlewares.use('/__finale-proof', (_, res) => { res.setHeader('Content-Type', 'text/html'); res.end(campaign ? createCampaignProofHtml({approach}) : createProofHtml({ finale: true, artwork })); });
             }
         }] });
         await server.listen();
@@ -59,9 +64,11 @@ async function main() {
                 }
                 return route.continue();
             });
-            await page.goto(`${base}/__finale-proof`);
+            await page.goto(`${base}/__finale-proof?renderer=${renderer}`);
             await page.waitForFunction(() => window.prototypeScene?.player?.body);
             const routeEvidence = approach ? await playApproach(page,context,output,name,{framing}) : null;
+            const rigTextureCount=()=>page.evaluate(()=>window.game.textures.getTextureKeys().filter(key=>key.startsWith('trumptopus-fight-')).length);
+            if(artwork||campaign)assert.equal(await rigTextureCount(),13,'Unexpected rig texture ownership');
             await page.evaluate(() => {
                 window.proofJumpInputs = [];
                 window.proofAttackInputs = [];
@@ -119,6 +126,7 @@ async function main() {
             await page.click('#pause');
             await page.evaluate(() => {
                 const chunks = [], stream = window.game.canvas.captureStream(24);
+                if(stream.getAudioTracks().length)throw Error('Unexpected proof audio track');
                 const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 1500000 });
                 recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
                 window.stopProofRecording = () => new Promise(resolve => {
@@ -140,6 +148,7 @@ async function main() {
                     await page.click('#retry');
                     await page.waitForFunction(() => window.prototypeScene.encounter.state === 'phase_intro');
                     const retried = await state();
+                    if(artwork||campaign)assert.equal(await rigTextureCount(),13,'Retry leaked rig textures');
                     assert.deepEqual(retried.checkpoint, checkpoint);
                     assert.equal(retried.phaseHealth, 8);
                     retriedPhase = true;
@@ -170,6 +179,20 @@ async function main() {
                     await waitState('exposed');
                 }
                 const exposed = await state();
+                if((artwork||campaign)&&!captured.has(`${locked.attack}-contact`)){
+                    await page.screenshot({path:path.join(output,`${name}-${locked.attack}-contact.png`)});
+                    captured.add(`${locked.attack}-contact`);
+                }
+                if(artwork||campaign){
+                    assert.equal(exposed.sourceArtRig?.layerCount,10,'Supplied artwork is absent from the fight');
+                    assert.equal(exposed.sourceArtRig.attackHands.length,locked.attack==='closing_grasp'?2:1);
+                    for(const hand of exposed.sourceArtRig.attackHands){
+                        assert(hand.elbowGap<0.001&&hand.wristGap<0.001,'Detached attacking limb');
+                        assert(Math.abs(hand.visibleBottom-(hand.palm.y+hand.palm.height/2))<0.01,'Claw contact differs from collision');
+                        assert(Math.abs(hand.visibleLeft-(hand.palm.x-hand.palm.width/2))<0.01,'Claw left edge differs from collision');
+                        assert(Math.abs(hand.visibleRight-(hand.palm.x+hand.palm.width/2))<0.01,'Claw right edge differs from collision');
+                    }
+                }
                 assert.equal(exposed.damage.length, damageBefore, `${locked.attack} was not dodged`);
                 assert.equal(exposed.targetX, locked.targetX, 'Committed grab followed the player');
                 for (let press = 0; press < 5 && (await state()).state === 'exposed'; press++) { await attack(); await page.waitForTimeout(380); }
@@ -201,6 +224,7 @@ async function main() {
             await page.evaluate(() => { window.game.scene.getScenes(true).forEach(scene=>scene.scene.stop()); window.dispatchEvent(new Event('resize')); window.game.events.emit('focus'); });
             await page.waitForTimeout(250);
             assert.equal(await page.evaluate(() => window.prototypeScene.encounter.disposed), true);
+            if(artwork||campaign)assert.equal(await rigTextureCount(),0,'Shutdown retained rig textures');
             assert.deepEqual(errors, []);
             const jumpInputs = await page.evaluate(() => window.proofJumpInputs);
             const attackInputs = await page.evaluate(() => window.proofAttackInputs);
@@ -222,6 +246,7 @@ async function main() {
         throw error;
     } finally {
         await cleanup();
+        report.browserAndServerClosed=true;
         fs.writeFileSync(path.join(output,'report.json'), JSON.stringify(report,null,2));
     }
     console.log(JSON.stringify({passed:report.passed,journeys:report.journeys.map(({name,exchanges})=>({name,exchanges:exchanges.length})),output},null,2));

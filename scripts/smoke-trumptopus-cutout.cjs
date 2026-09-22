@@ -60,7 +60,7 @@ async function main() {
             if(url==='/'){res.setHeader('Content-Type','text/html');return res.end(html);}
             const capture=/^\/capture\/(phone|desktop)-(rest|load|reach|contact|recover)\.png$/.test(url)?path.join(output,path.basename(url)):null;
             const local=capture || (url==='/phaser.js'?phaser:url==='/source.png'?asset:
-                ['/src/dev/TrumptopusCutoutRig.js','/src/dev/TrumptopusCutoutData.js'].includes(url)?path.join(root,url):null
+                ['/src/dev/TrumptopusCutoutRig.js','/src/dev/TrumptopusCutoutData.js','/src/dev/TrumptopusLimbWarp.js'].includes(url)?path.join(root,url):null
             );
             if(!local){res.writeHead(404);return res.end();}
             res.setHeader('Content-Type',local.endsWith('.png')?'image/png':'text/javascript');

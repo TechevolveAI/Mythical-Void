@@ -63,8 +63,9 @@ test('shutdown is idempotent and late pose updates cannot touch destroyed textur
     let destroyed=0;
     const rig=Object.create(Rig.prototype);
     Object.assign(rig,{root:{destroy(){destroyed++;}},scene:{textures:{remove:key=>removed.push(key)}},
-        parts:new Map([['body',{key:'body'}]]),deform:{key:'lower-motion'},flex:{key:'forearm-motion'}});
-    rig.destroy();rig.destroy();rig.setPose('contact',1);
+        parts:new Map([['body',{key:'body'}]]),deform:{key:'lower-motion'},flex:new Map([
+            ['left',{key:'forearm-left-motion'}],['right',{key:'forearm-right-motion'}]])});
+    rig.destroy();rig.destroy();rig.setPose('contact',1);rig.setAttackPose({},{});
     assert.equal(destroyed,1);
-    assert.deepEqual(removed,['body','lower-motion','forearm-motion']);
+    assert.deepEqual(removed,['body','lower-motion','forearm-left-motion','forearm-right-motion']);
 });

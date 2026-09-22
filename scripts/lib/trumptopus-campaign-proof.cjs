@@ -80,7 +80,7 @@ function createCampaignProofHtml({approach = false, arrivalFixture = null} = {})
     for(const name of ['QuestManager','CollectibleManager','CreatureSkills'])await window[name].init();
     window.fixtureIdentity=JSON.stringify({genes:state.get('creature.genes'),dna:state.get('creature.dna')});
     window.fixtureUnchanged=()=>window.fixtureIdentity===JSON.stringify({genes:state.get('creature.genes'),dna:state.get('creature.dna')});
-    window.game=window.mythicalGame=new Phaser.Game({type:Phaser.CANVAS,parent:'game',width:innerWidth,height:innerHeight-42,audio:{noAudio:true},
+    window.game=window.mythicalGame=new Phaser.Game({type:new URLSearchParams(location.search).get('renderer')==='webgl'?Phaser.WEBGL:Phaser.CANVAS,parent:'game',width:innerWidth,height:innerHeight-42,audio:{noAudio:true},
         dom:{createContainer:true},input:{activePointers:3},physics:{default:'arcade',arcade:{debug:false}},scene:[${approach ? arrivalFixture ? 'ArrivalApproach,' : 'Approach,' : ''}Preview,GameScene,VictoryScene,HubWorldScene],
         callbacks:{postBoot:game=>{window.UXEnhancements.initialize(game);window.FXLibrary.initialize();}}});
     document.querySelector('#retry').onclick=()=>{document.querySelector('#paused').hidden=true;document.querySelector('#paused').textContent='Paused';document.querySelector('#pause').textContent='Pause';window.prototypeScene.scene.restart();};

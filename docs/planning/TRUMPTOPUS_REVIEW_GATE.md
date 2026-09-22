@@ -4,7 +4,7 @@ Private readiness audit, 2026-09-21. Audited source: `3b97206d8fe956f38a346afae8
 
 **The mechanics prototype is reviewable. The authored finale is not finished or ready to release.**
 
-Follow-up: Kevin's extending-tentacle direction prompted a bounded motion correction after this audit. See the final section of [implementation history](TRUMPTOPUS_IMPLEMENTATION.md). Its separate `.visual-review/trumptopus-tentacle-motion/` evidence must not be confused with the older captures listed below. On 2026-09-22, a separate private source-art rig began using his existing image. See [the cutout study](TRUMPTOPUS_SOURCE_RIG.md). It is not integrated into the fight; actual films remain missing.
+Follow-up: Kevin's extending-tentacle direction prompted a bounded motion correction after this audit. See the final section of [implementation history](TRUMPTOPUS_IMPLEMENTATION.md). Its separate `.visual-review/trumptopus-tentacle-motion/` evidence must not be confused with the older captures listed below. On 2026-09-22, a private source-art rig began using his existing image, followed by an adapter into the private three-phase fight. See [the cutout study](TRUMPTOPUS_SOURCE_RIG.md). No production registration or actual films exist yet. The original audit table and captures below describe their stated older sources, not the new artwork adapter.
 
 No push, merge, deployment, publication or paid generation is authorized by this document. The private encounter is absent from the normal game registration. This audit did not inspect the live service and does not assert its current commit.
 

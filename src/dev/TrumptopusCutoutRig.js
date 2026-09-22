@@ -1,4 +1,5 @@
 import { CUTOUT_PARTS, CUTOUT_REFERENCE, ARM_CHAINS, partBounds } from './TrumptopusCutoutData.js';
+import { createLimbWarp, paintLimbWarp } from './TrumptopusLimbWarp.js';
 
 const smooth = value => { const p = Math.max(0, Math.min(1, value)); return p * p * (3 - 2 * p); };
 const rotate = ([x,y], angle) => [x * Math.cos(angle) - y * Math.sin(angle), x * Math.sin(angle) + y * Math.cos(angle)];
@@ -50,12 +51,19 @@ export function bakeTrumptopusCutouts(scene, image, prefix) {
         ctx.drawImage(image, 0, 0, CUTOUT_REFERENCE.width, CUTOUT_REFERENCE.height);
         const key = `${prefix}-${part.id}`;
         scene.textures.addCanvas(key, canvas);
-        parts.set(part.id, { ...part, bounds, key, canvas });
+        const pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+        const visible={left:canvas.width,top:canvas.height,right:0,bottom:0};
+        for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++)if(pixels[(y*canvas.width+x)*4+3]>64){
+            visible.left=Math.min(visible.left,x);visible.right=Math.max(visible.right,x);
+            visible.top=Math.min(visible.top,y);visible.bottom=Math.max(visible.bottom,y);
+        }
+        parts.set(part.id, { ...part, bounds, visible, key, canvas });
     }
     return parts;
 }
 
-// First source-art rig. Kept out of live scene registration and combat collision.
+// Source-art rig. The private adapter supplies combat poses; this class neither
+// registers a live scene nor changes the encounter's collision or timing.
 export default class TrumptopusCutoutRig {
     constructor(scene, image, { x, floorY, height, prefix = 'trumptopus-cutout' }) {
         this.scene = scene;
@@ -75,30 +83,32 @@ export default class TrumptopusCutoutRig {
         for (const id of ['rear-left','rear-right','lower-body','hand-left','hand-right',
             'forearm-left','forearm-right','upper-left','upper-right','body']) this.root.bringToTop(this.sprites.get(id));
         this.lower = this.parts.get('lower-body');
+        this.lowerResolution=Math.max(0.2,this.scale*1.5);
         const canvas = document.createElement('canvas');
-        canvas.width = this.lower.bounds.width + 100;
-        canvas.height = this.lower.bounds.height;
+        canvas.width = Math.ceil((this.lower.bounds.width + 100)*this.lowerResolution);
+        canvas.height = Math.ceil(this.lower.bounds.height*this.lowerResolution);
         this.deform = scene.textures.addCanvas(`${prefix}-lower-motion`, canvas);
         const lowerSprite = this.sprites.get('lower-body');
         lowerSprite.setTexture(this.deform.key).setOrigin(
-            (640 - this.lower.bounds.x + 50) / canvas.width,
-            (1000 - this.lower.bounds.y) / canvas.height);
+            (640 - this.lower.bounds.x + 50)*this.lowerResolution / canvas.width,
+            (1000 - this.lower.bounds.y)*this.lowerResolution / canvas.height).setScale(1/this.lowerResolution);
         const pixels=this.lower.canvas.getContext('2d').getImageData(0,0,this.lower.canvas.width,this.lower.canvas.height).data;
         let lastRow=0;
         for(let i=3;i<pixels.length;i+=4)if(pixels[i]>64)lastRow=Math.floor((i/4)/this.lower.canvas.width);
         lowerSprite.y+=CUTOUT_REFERENCE.floor-(this.lower.bounds.y+lastRow);
-        this.forearm=this.parts.get('forearm-left');
-        const extension=document.createElement('canvas');
-        extension.width=this.forearm.canvas.width;
-        extension.height=this.forearm.canvas.height*3;
-        this.flex=scene.textures.addCanvas(`${prefix}-forearm-motion`,extension);
-        this.sprites.get('forearm-left').setTexture(this.flex.key).setOrigin(
-            (this.forearm.pivot[0]-this.forearm.bounds.x)/extension.width,
-            (this.forearm.pivot[1]-this.forearm.bounds.y)/extension.height);
+        this.flex=new Map();
+        this.warpCache=new Map();
+        for(const side of ['left','right']){
+            const extension=document.createElement('canvas');
+            extension.width=2;extension.height=2;
+            const texture=scene.textures.addCanvas(`${prefix}-forearm-${side}-motion`,extension);
+            this.flex.set(side,texture);
+            this.sprites.get(`forearm-${side}`).setTexture(texture.key).setOrigin(0);
+        }
         this.setPose('rest', 0);
     }
 
-    setPose(beat, progress = 1) {
+    setPose(beat, progress = 1, { deferForearms = false } = {}) {
         if(this.destroyed)return;
         const {p,load,press,bodyLean,bodyPosition,joints} = solveCutoutPose(beat,progress);
         const body = this.sprites.get('body');
@@ -106,35 +116,88 @@ export default class TrumptopusCutoutRig {
         this.sprites.get('rear-left').setRotation(-load * 0.055 + press * 0.035);
         this.sprites.get('rear-right').setRotation(load * 0.045 - press * 0.025);
         this.joints = joints;
-        for (const {side,shoulder,elbow,wrist,upperAngle,lowerAngle,stretch} of joints) {
+        for (const {side,shoulder,elbow,wrist,upperAngle,lowerAngle} of joints) {
             this.sprites.get(`upper-${side}`).setPosition(...shoulder).setRotation(upperAngle);
-            this.sprites.get(`forearm-${side}`).setPosition(...elbow).setRotation(lowerAngle).setScale(1);
-            this.sprites.get(`hand-${side}`).setPosition(...wrist).setRotation(lowerAngle);
+            this.sprites.get(`hand-${side}`).setPosition(...wrist).setRotation(lowerAngle).setScale(1).clearTint();
+            if(!deferForearms)this.paintForearm(side,elbow,wrist,{startAngle:upperAngle,endAngle:lowerAngle,
+                wave:press*Math.sin(Math.PI*p)*24,travel:p});
         }
-        // Keep the elbow overlap at its original size. Stretch only distal
-        // tissue, rather than magnifying a hard source cut across the joint.
-        const flex=this.flex.context, forearm=this.forearm.canvas;
-        const elbowRow=this.forearm.pivot[1]-this.forearm.bounds.y;
-        flex.clearRect(0,0,flex.canvas.width,flex.canvas.height);
-        flex.drawImage(forearm,0,0,forearm.width,elbowRow,0,0,forearm.width,elbowRow);
-        flex.drawImage(forearm,0,elbowRow,forearm.width,forearm.height-elbowRow,
-            0,elbowRow,forearm.width,(forearm.height-elbowRow)*joints[0].stretch);
-        this.flex.refresh();
         // Deformation begins at the hip and travels down into the planted base.
         // Both endpoints stay fixed; no whole-character hopping or translation.
-        const ctx = this.deform.context;
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        const source = this.lower.canvas;
         const phase = beat === 'load' ? p * 0.25 : beat === 'reach' ? 0.25 + p * 0.45 : beat === 'contact' ? 0.7 : beat === 'recover' ? 0.7 + p * 0.3 : 0;
         const strength = beat === 'rest' ? 0 : (beat === 'recover' ? 1 - p : 1);
-        for (let y = 0; y < source.height; y += 2) {
-            const t = y / source.height;
-            const wave = Math.exp(-(((t - phase) / 0.22) ** 2)) * Math.sin(Math.PI * t) * 21 * strength;
-            ctx.drawImage(source, 0, y, source.width, Math.min(2, source.height - y), 50 + wave, y, source.width, Math.min(2, source.height - y));
+        const signature=`${phase}:${strength}`;
+        if(this.lowerSignature!==signature){
+            const ctx = this.deform.context,source = this.lower.canvas;
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.save();ctx.scale(this.lowerResolution,this.lowerResolution);
+            const step=Math.max(2,Math.floor(2/this.lowerResolution));
+            for (let y = 0; y < source.height; y += step) {
+                const t = y / source.height;
+                const wave = Math.exp(-(((t - phase) / 0.22) ** 2)) * Math.sin(Math.PI * t) * 21 * strength;
+                ctx.drawImage(source, 0, y, source.width, Math.min(step, source.height - y), 50 + wave, y, source.width, Math.min(step, source.height - y));
+            }
+            ctx.restore();
+            this.deform.refresh();this.lowerSignature=signature;
         }
-        this.deform.refresh();
         this.beat = beat;
         this.progress = progress;
+    }
+
+    paintForearm(side,elbow,wrist,options={}) {
+        const signature=JSON.stringify([elbow,wrist,options]);
+        if(this.warpCache.get(side)?.signature===signature)return this.warpCache.get(side).geometry;
+        const part=this.parts.get(`forearm-${side}`),chain=ARM_CHAINS.find(arm=>arm.side===side);
+        const geometry=createLimbWarp(part,chain,{x:elbow[0],y:elbow[1]},{x:wrist[0],y:wrist[1]},options);
+        const resolution=Math.max(0.2,this.scale*1.5);
+        const texture=this.flex.get(side);
+        paintLimbWarp(texture,part.canvas,geometry,resolution);
+        this.sprites.get(`forearm-${side}`).setTexture(texture.key).setOrigin(0)
+            .setPosition(geometry.bounds.left,geometry.bounds.top).setRotation(0).setScale(1/resolution);
+        this.warpCache.set(side,{signature,geometry});
+        return geometry;
+    }
+
+    // Consume the same committed palms used by the encounter. Only the front
+    // arms attack; the rear pair and planted base retain the character's stance.
+    setAttackPose(snapshot,pose) {
+        if(this.destroyed)return;
+        const {state,progress}=snapshot;
+        const beat=state==='windup'?'load':state==='strike'?'reach':
+            ['contact','exposed'].includes(state)?'contact':state==='recoil'?'recover':'rest';
+        this.setPose(beat,progress,{deferForearms:true});
+        this.root.setAlpha(pose.alpha);
+        const engagement=state==='windup'?smooth(progress):state==='recoil'?1-smooth(progress):
+            ['strike','contact','exposed'].includes(state)?1:0;
+        this.attackHands=[];
+        const activeSides=engagement===0?[]:pose.limbs.map((_,index)=>index===0?'left':'right');
+        for(const joint of this.joints)if(!activeSides.includes(joint.side))this.paintForearm(joint.side,joint.elbow,joint.wrist);
+        if(engagement===0)return;
+        for(const [index,limb] of pose.limbs.entries()){
+            const side=index===0?'left':'right';
+            const joint=this.joints.find(arm=>arm.side===side);
+            const part=this.parts.get(`hand-${side}`),visible=part.visible;
+            const palm=limb.palm;
+            const width=visible.right-visible.left,height=visible.bottom-visible.top;
+            const scaleX=1+engagement*(palm.width/(width*this.scale)-1);
+            const scaleY=1+engagement*(104/(height*this.scale)-1);
+            const centreX=part.bounds.x+(visible.left+visible.right)/2-part.pivot[0];
+            const bottom=part.bounds.y+visible.bottom-part.pivot[1];
+            const target=[(palm.x-this.origin.x)/this.scale-centreX*scaleX,
+                (palm.y+palm.height/2-this.origin.y)/this.scale-bottom*scaleY];
+            const wrist=joint.wrist.map((value,i)=>value+(target[i]-value)*engagement);
+            const hand=this.sprites.get(`hand-${side}`);
+            hand.setPosition(...wrist).setScale(scaleX,scaleY).setRotation(0);
+            if(snapshot.vulnerable)hand.setTint(0xffdca7);
+            const geometry=this.paintForearm(side,joint.elbow,wrist,{tipScale:scaleX,startAngle:joint.upperAngle,
+                wave:state==='strike'?35*Math.sin(Math.PI*progress):0,travel:progress});
+            joint.wrist=wrist;
+            this.attackHands.push({side,palm:{...palm},wrist,visibleBottom:this.origin.y+(wrist[1]+bottom*scaleY)*this.scale,
+                visibleLeft:this.origin.x+(wrist[0]+(part.bounds.x+visible.left-part.pivot[0])*scaleX)*this.scale,
+                visibleRight:this.origin.x+(wrist[0]+(part.bounds.x+visible.right-part.pivot[0])*scaleX)*this.scale,
+                elbowGap:Math.hypot(geometry.start.x-joint.elbow[0],geometry.start.y-joint.elbow[1]),
+                wristGap:Math.hypot(geometry.end.x-wrist[0],geometry.end.y-wrist[1])});
+        }
     }
 
     getEvidence() {
@@ -157,7 +220,7 @@ export default class TrumptopusCutoutRig {
         return { beat: this.beat, progress: this.progress, layerCount: this.parts.size,
             scale: this.scale, joints: this.joints, bounds: this.root.getBounds(),
             visibleBounds:{left,top,right,bottom},
-            originalPixelsOnly: true, campaignIntegrated: false };
+            attackHands:this.attackHands||[],originalPixelsOnly: true, productionIntegrated: false };
     }
 
     destroy() {
@@ -166,6 +229,6 @@ export default class TrumptopusCutoutRig {
         this.root.destroy(true);
         for (const part of this.parts.values()) this.scene.textures.remove(part.key);
         this.scene.textures.remove(this.deform.key);
-        this.scene.textures.remove(this.flex.key);
+        for(const texture of this.flex.values())this.scene.textures.remove(texture.key);
     }
 }
