@@ -1,10 +1,11 @@
 const assert = require('node:assert/strict');
 const path = require('node:path');
 
-function createCampaignProofHtml({approach = false, arrivalFixture = null} = {}) {
+function createCampaignProofHtml({approach = false, arrivalFixture = null, seededVictory = false} = {}) {
+    assert(!(approach&&seededVictory),'Seeded ending proof must not imply approach gameplay');
     return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>Private finale campaign proof</title>
     <style>html,body{margin:0;overflow:hidden;background:#15191c;color:#eee;font:12px Arial}header{height:42px;box-sizing:border-box;padding:0 8px;display:flex;align-items:center;justify-content:space-between}button{height:34px;min-width:56px;border:1px solid #687775;background:#273034;color:white}canvas{display:block;touch-action:none}#paused{position:fixed;inset:45% 20% auto;z-index:3;background:#192423;padding:20px;text-align:center}#paused[hidden]{display:none}</style>
-    </head><body><header><span>PRIVATE / TEMPORARY BOSS ART</span><span><button id="pause">Pause</button> <button id="retry">Retry</button></span></header><div id="game"></div><div id="paused" hidden>Paused</div>
+    </head><body><header><span>${seededVictory?'PRIVATE / SEEDED VICTORY / ENDING ONLY':'PRIVATE / TEMPORARY BOSS ART'}</span><span><button id="pause">Pause</button> <button id="retry">Retry</button></span></header><div id="game"></div><div id="paused" hidden>Paused</div>
     <script type="module">
     const {Phaser}=await import('/src/global-init.js');
     const {default:Preview}=await import('/src/dev/TrumptopusCampaignPreview.js');
@@ -72,6 +73,13 @@ function createCampaignProofHtml({approach = false, arrivalFixture = null} = {})
             installShipReconstructionStep(state,step.id,{save:false});
         }
     }
+    ${seededVictory ? `if(!saved) {
+        const {beginTrumptopusRun,checkpointTrumptopusRun,recordTrumptopusVictory}=await import('/src/systems/TrumptopusProgress.js');
+        const {run}=beginTrumptopusRun(state);
+        checkpointTrumptopusRun(state,run.sequence,1,{elapsedMs:20000,damageTaken:1});
+        checkpointTrumptopusRun(state,run.sequence,2,{elapsedMs:40000,damageTaken:1});
+        recordTrumptopusVictory(state,{sequence:run.sequence,completionMs:60000,damageTaken:1});
+    }` : ''}
     ${arrivalFixture ? `if(fixtureParams.has('boundary')&&!saved) {
         const {run}=beginTrumptopusRun(state,{withApproach:true});
         for(const clearedGrips of [1,2])checkpointTrumptopusApproach(state,run.sequence,{schemaVersion:1,clearedGrips,arrived:false});
@@ -126,7 +134,38 @@ async function clickSceneText(page, text) {
     else await page.mouse.click(point.x,point.y);
 }
 
-async function completeCampaignEnding(page,output,name) {
+const ENDING_CHOICES=Object.freeze({
+    remain_and_defend:{label:'DEFEND FIRST\nRestore communities',confirm:'SET DEFENCE PRIORITY'},
+    prepare_homecoming:{label:'PREPARE HOMECOMING\nPreserve a secret route',confirm:'PREPARE THE ROUTE'},
+    prepare_first_contact:{label:'PREPARE HONEST CONTACT\nBuild consent and proof',confirm:'BUILD THE PROTOCOL'}
+});
+
+function inspectEndingLayout() {
+    const scene=window.game.scene.getScene('VictoryScene'),{width,height}=scene.scale;
+    const texts=scene.elements.filter(item=>item.type==='Text'&&item.active&&item.visible&&item.alpha>0)
+        .map(item=>{const b=item.getBounds();return {text:item.text,left:b.left,right:b.right,top:b.top,bottom:b.bottom};});
+    const clipped=texts.filter(b=>b.left<0||b.top<0||b.right>width||b.bottom>height);
+    const overlaps=[];
+    for(let i=0;i<texts.length;i++)for(let j=i+1;j<texts.length;j++){
+        const a=texts[i],b=texts[j];
+        if(Math.min(a.right,b.right)-Math.max(a.left,b.left)>1&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>1)
+            overlaps.push([a.text,b.text]);
+    }
+    return {width,height,texts,clipped,overlaps};
+}
+
+async function completeCampaignEnding(page,output,name,{priority='prepare_homecoming',exerciseRecovery=false}={}) {
+    const choice=ENDING_CHOICES[priority];
+    assert(choice,`Unknown ending priority: ${priority}`);
+    const layouts=[];
+    async function layout(stage) {
+        if(!exerciseRecovery)return;
+        const result=await page.evaluate(inspectEndingLayout);
+        layouts.push({stage,...result});
+        assert(result.texts.length>0,'No ending text rendered');
+        assert.deepEqual(result.clipped,[],`Clipped text at ${stage}`);
+        assert.deepEqual(result.overlaps,[],`Overlapping text at ${stage}`);
+    }
     await page.getByRole('button',{name:'Repair the ship',exact:true}).waitFor();
     const before=await page.evaluate(()=>({coins:GameState.get('player.cosmicCoins'),items:GameState.get('inventory.items'),run:GameState.get('story.projectBeacon.trumptopus')}));
     assert.equal(before.run.status,'won');assert.equal(before.items.find(i=>i.id==='super_blast').quantity,1);
@@ -144,12 +183,35 @@ async function completeCampaignEnding(page,output,name) {
     await page.screenshot({path:path.join(output,`${name}-ship-restored.png`)});
     await clickSceneText(page,'SKIP >>');
     await clickSceneText(page,'Choose what comes first');
+    await layout('choices');
     await page.screenshot({path:path.join(output,`${name}-ending-choices.png`)});
-    await clickSceneText(page,'PREPARE HOMECOMING\nPreserve a secret route');
-    await clickSceneText(page,'PREPARE THE ROUTE');
+    await clickSceneText(page,choice.label);
+    await layout('confirmation');
+    if(exerciseRecovery) {
+        await page.screenshot({path:path.join(output,`${name}-confirmation.png`)});
+        assert.equal(await page.evaluate(()=>GameState.get('story.projectBeacon.finale.priority')),null);
+        await clickSceneText(page,'GO BACK');
+        assert.equal(await page.evaluate(()=>GameState.get('story.projectBeacon.finale.priority')),null,'Going back committed a priority');
+        await clickSceneText(page,choice.label);
+    }
+    await clickSceneText(page,choice.confirm);
+    if(exerciseRecovery) {
+        await layout('epilogue-before-refresh');
+        const pending=await page.evaluate(()=>GameState.get('story.projectBeacon.finale'));
+        assert.equal(pending.priority,priority);assert.equal(pending.epilogueSeen,false);
+        await page.reload();
+        await page.getByRole('button',{name:'Finish the story',exact:true}).waitFor();
+        assert.equal(await page.evaluate(()=>GameState.get('player.cosmicCoins')),before.coins);
+        assert.deepEqual(await page.evaluate(()=>GameState.get('inventory.items')),before.items);
+        await page.getByRole('button',{name:'Finish the story',exact:true}).click();
+        await page.waitForFunction(()=>window.game.scene.isActive('VictoryScene'));
+        assert.equal(await page.evaluate(()=>GameState.get('story.projectBeacon.finale.priority')),priority);
+    }
     for(let number=1;number<=3;number++) {
         await page.waitForFunction(text=>window.game.scene.getScene('VictoryScene').children.list.some(item=>
             item.text===text&&item.visible!==false&&item.alpha>0),`${String(number).padStart(2,'0')} / 03`);
+        await layout(`epilogue-${number}`);
+        if(exerciseRecovery)await page.screenshot({path:path.join(output,`${name}-epilogue-${number}.png`)});
         if(number<3)await clickSceneText(page,'CONTINUE');
     }
     await page.screenshot({path:path.join(output,`${name}-epilogue.png`)});
@@ -158,11 +220,22 @@ async function completeCampaignEnding(page,output,name) {
         parts:GameState.get('hubWorld.shipParts.collected'),identityUnchanged:window.fixtureUnchanged(),
         antagonist:GameState.get('world.antagonistOutcomes.trumptopus'),
         empress:window.GuardianOutcomes.getGuardianOutcomeSnapshot(GameState).state.records.void_empress||null}));
-    assert.equal(ending.priority,'prepare_homecoming');assert.equal(ending.seen,true);assert(ending.identityUnchanged);
+    assert.equal(ending.priority,priority);assert.equal(ending.seen,true);assert(ending.identityUnchanged);
     assert.equal(ending.antagonist.outcome,'banished');assert.equal(ending.empress,null);
     assert.equal(ending.items.find(i=>i.id==='super_blast').quantity,1);
+    if(exerciseRecovery) {
+        await clickSceneText(page,'NEW GAME+');
+        await layout('new-game-plus-confirmation');
+        await page.screenshot({path:path.join(output,`${name}-new-game-plus-confirmation.png`)});
+        await clickSceneText(page,'KEEP PRIORITY');
+        await layout('new-game-plus-cancelled');
+        assert.equal(await page.evaluate(()=>GameState.get('story.projectBeacon.finale.priority')),priority);
+        assert.deepEqual(await page.evaluate(()=>GameState.get('inventory.items')),ending.items);
+        assert.deepEqual(await page.evaluate(()=>GameState.get('hubWorld.shipParts.collected')),ending.parts);
+    }
     await clickSceneText(page,'SANCTUARY');
     await page.waitForFunction(()=>window.game.scene.isActive('HubWorldScene'),null,{timeout:20000});
-    return {before,resumed,ending,actualSanctuaryRepair:true,actualEndingChoice:true,returnedToHub:true};
+    return {before,resumed,ending,layouts,choiceBackChecked:exerciseRecovery,epilogueRefreshChecked:exerciseRecovery,
+        newGamePlusCancelled:exerciseRecovery,actualSanctuaryRepair:true,actualEndingChoice:true,returnedToHub:true};
 }
-module.exports={createCampaignProofHtml,completeCampaignEnding,sceneTextPoint};
+module.exports={createCampaignProofHtml,completeCampaignEnding,sceneTextPoint,ENDING_CHOICES,inspectEndingLayout};
