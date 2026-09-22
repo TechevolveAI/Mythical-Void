@@ -79,7 +79,7 @@ async function main() {
             const rigTextureCount=()=>page.evaluate(()=>window.game.textures.getTextureKeys().filter(key=>key.startsWith('trumptopus-fight-')).length);
             const stageTextureCount=()=>page.evaluate(()=>window.game.textures.getTextureKeys().filter(key=>key.startsWith('trumptopus-stage-')).length);
             if(artwork||campaign)assert.equal(await rigTextureCount(),13,'Unexpected rig texture ownership');
-            if(artwork||campaign)assert.equal(await stageTextureCount(),4,'Expected sky, floor, dais and prop atlas');
+            if(artwork||campaign)assert.equal(await stageTextureCount(),5,'Expected sky, floor, dais, prop atlas and tear');
             await page.evaluate(() => {
                 window.proofJumpInputs = [];
                 window.proofAttackInputs = [];
@@ -224,7 +224,7 @@ async function main() {
                     },artwork||campaign);
                     const retried = await state();
                     if(artwork||campaign)assert.equal(await rigTextureCount(),13,'Retry leaked rig textures');
-                    if(artwork||campaign)assert.equal(await stageTextureCount(),4,'Retry leaked stage textures');
+                    if(artwork||campaign)assert.equal(await stageTextureCount(),5,'Retry leaked stage textures');
                     assert.deepEqual(retried.checkpoint, checkpoint);
                     assert.equal(retried.phaseHealth, 8);
                     retriedPhase = true;
@@ -312,6 +312,12 @@ async function main() {
             if(artwork||campaign){
                 assert.equal(finished.stageMaterial.tiled,false,'Arena floor returned to repeating landscape strips');
                 assert(finished.stageTextureRgbaBytes<4*1024*1024,'Arena scenery exceeds 4 MiB RGBA');
+                assert.equal(finished.tearMaterial.closedOutline,false,'Banishment returned to a closed outline');
+                assert.equal(finished.tearVisible,false,'Void tear remains after banishment');
+                for(const frame of banishmentFrames){
+                    assert.equal(frame.tear.visible,true,'Void tear missing during banishment');
+                    assert.equal(frame.tear.material.rgbaBytes,245760,'Unexpected Void tear texture budget');
+                }
             }
             assert(Math.abs(finished.player.bottom - finished.floorY) < 2);
             await page.screenshot({ path: path.join(output, `${name}-aftermath.png`) });

@@ -20,6 +20,7 @@ function startBanishmentCapture(options) {
         }
         const proof = scene.getProofState();
         capture.frames.push({target:targets[index], progress:state.progress, rig:proof.sourceArtRig,
+            tear:{visible:proof.tearVisible,material:proof.tearMaterial},
             width:game.canvas.width, height:game.canvas.height,
             png:game.canvas.toDataURL('image/png').split(',')[1]});
         if (capture.frames.length === targets.length) capture.dispose();

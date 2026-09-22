@@ -157,3 +157,22 @@ too dark against the painted backdrop. It remains diagnostic evidence under
 `trumptopus-arena-props-review`. The revised prop-only material uses directional
 face lighting and a pale top edge, preserving underlying source pixels and
 the same body bounds. Floor and approach materials keep their previous treatment.
+
+## Source-textured banishment opening, 2026-09-22
+
+The private banishment replaces its repeated twenty-point luminous outline with
+an asymmetric split, textured from a character-free crop of the supplied
+landscape. A baked inner shadow and unlit recess replace the closed bright
+stroke. The texture is created once, then follows the existing opening curve;
+the boss's pull, rotation, disappearance, timing and reward sequence do not
+change. This is authored runtime scenery, not a generated video or Watch asset.
+
+The stage owns the extra 192 x 320 texture (245,760 RGBA bytes), keeping the
+same 4 MiB scenery ceiling. Retry and shutdown now account for five stage
+textures. Banishment frames record actual tear visibility; the opening must be
+visible during the four captured instants and absent at the result. Geometry,
+crop boundaries, texture size and late teardown calls have focused tests.
+
+Exact-source evidence is separate under `.visual-review/trumptopus-tear-review/`.
+This paragraph does not pre-approve its visual result. The long-arm staging
+decision, physical-device review, final films and human approval remain open.

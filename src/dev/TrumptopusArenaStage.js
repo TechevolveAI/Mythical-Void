@@ -1,4 +1,5 @@
 import { bakeStoneAtlas } from './TrumptopusStoneMaterial.js';
+import { paintVoidTear,voidTearDimensions } from './TrumptopusVoidTearMaterial.js';
 
 // Runtime crops of Kevin's supplied landscape. The baked-in character on the
 // left is excluded; only the separately rigged boss appears in gameplay.
@@ -31,6 +32,11 @@ export default class TrumptopusArenaStage {
         this.rim=scene.add.graphics().setDepth(681);this.objects.push(this.rim);
         this.rim.lineStyle(2,0xadc4c2).lineBetween(layout.bossX-layout.bossHeight*.285,layout.bossFloorY,
             layout.bossX+layout.bossHeight*.285,layout.bossFloorY);
+        const tearCanvas=document.createElement('canvas');
+        this.tearMaterial=paintVoidTear(tearCanvas,image);
+        this.tear=scene.add.image(layout.bossX+24,layout.bossFloorY-130,this.texture('tear',tearCanvas))
+            .setDepth(790).setVisible(false);
+        this.objects.push(this.tear);
         this.props=[{name:'exit-stone',object:scene.gate},{name:'rising-foothold',object:scene.causeway}];
         const props=bakeStoneAtlas(scene,image,'trumptopus-stage-props',this.props.map(({object})=>({
             width:object.body.width,height:object.body.height,relief:true})));
@@ -59,6 +65,13 @@ export default class TrumptopusArenaStage {
             this.edge.lineStyle(3,0xc8ebd6).lineBetween(0,floorY,width*recovery,floorY);
             this.edge.lineStyle(1,0xebdcae,.7).lineBetween(0,floorY+5,width*recovery,floorY+5);
         }
+    }
+
+    drawTear(opening) {
+        if(this.destroyed)return;
+        const {visible,width,height}=voidTearDimensions(opening);
+        this.tear.setVisible(visible);
+        if(visible)this.tear.setDisplaySize(width,height);
     }
 
     syncProps() {

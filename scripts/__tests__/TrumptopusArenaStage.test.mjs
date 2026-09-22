@@ -48,7 +48,16 @@ test('shutdown removes only owned stage textures once and late draws are harmles
     const {stage}=fixture(),removed=[];let destroyed=0;
     Object.assign(stage,{objects:[{destroy:()=>destroyed++}],keys:['trumptopus-stage-props'],
         scene:{textures:{remove:key=>removed.push(key)}}});
-    stage.destroy();stage.destroy();stage.syncProps();stage.drawEdge(1);
+    stage.destroy();stage.destroy();stage.syncProps();stage.drawEdge(1);stage.drawTear(1);
     assert.equal(destroyed,1);assert.deepEqual(removed,['trumptopus-stage-props']);
     assert.deepEqual(stage.getPropEvidence(),[]);
+});
+
+test('tear is hidden outside banishment and uses the bounded authored opening',()=>{
+    const {stage}=fixture(),tear={setVisible(v){this.visible=v;return this;},
+        setDisplaySize(w,h){this.displayWidth=w;this.displayHeight=h;return this;}};
+    stage.tear=tear;stage.drawTear(1);
+    assert.deepEqual([tear.visible,tear.displayWidth,tear.displayHeight],[true,164,288]);
+    stage.drawTear(.5);assert.equal(tear.displayWidth,82);assert.equal(tear.displayHeight,144);
+    stage.drawTear(0);assert.equal(tear.visible,false);
 });

@@ -38,7 +38,6 @@ export default class TrumptopusArtFinalePreview extends TrumptopusFinalePreview 
         this.arenaStage=new TrumptopusArenaStage(this,this.textures.get('trumptopus-landscape-source').getSourceImage(),this.stageLayout);
         this.textures.remove('trumptopus-landscape-source');
         this.bodyShadow=this.add.ellipse(bossX,bossFloorY+2,bossHeight*0.36,10,0x020304,0.5).setDepth(690);
-        this.voidTear=this.add.graphics().setDepth(790);
         this.banishmentEvidence=[];
         this.events.once('shutdown',()=>{
             this.characterRig?.destroy();this.characterRig=null;
@@ -141,22 +140,17 @@ export default class TrumptopusArtFinalePreview extends TrumptopusFinalePreview 
 
     drawBanishment(state) {
         const rig=this.characterRig,root=rig.root;
-        const {bossX,bossFloorY,bossHeight}=this.stageLayout;
-        this.voidTear.clear();
+        const {bossX,bossFloorY}=this.stageLayout;
         root.setPosition(rig.origin.x,rig.origin.y).setScale(rig.scale).setRotation(0);
         if(state.mode!=='banishment'){
             root.setAlpha(state.mode==='aftermath'?0:1);
             this.bodyShadow.setAlpha(state.mode==='aftermath'?0:.5);
+            this.arenaStage.drawTear(0);
             this.arenaStage.drawEdge(state.mode==='aftermath'?1:0);
             return;
         }
-        const pose=trumptopusBanishment(state.progress),cx=bossX+24,cy=bossFloorY-130;
-        const points=Array.from({length:20},(_,i)=>{
-            const angle=i/20*Math.PI*2,radius=i%2?1:.85;
-            return {x:cx+Math.cos(angle)*74*pose.opening*radius,y:cy+Math.sin(angle)*130*pose.opening*radius};
-        });
-        this.voidTear.fillStyle(0x07020e).fillPoints(points,true);
-        this.voidTear.lineStyle(3,0xb399e1,pose.opening).strokePoints(points,true);
+        const pose=trumptopusBanishment(state.progress);
+        this.arenaStage.drawTear(pose.opening);
         const scale=rig.scale*pose.scale,c=Math.cos(pose.rotation),s=Math.sin(pose.rotation);
         root.setScale(scale).setRotation(pose.rotation).setAlpha(pose.visible?1:0);
         root.setPosition(bossX+pose.x-(640*c-1908*s)*scale,
@@ -178,6 +172,8 @@ export default class TrumptopusArtFinalePreview extends TrumptopusFinalePreview 
             allyContactY:this.astronautFollower?.getContactY(),stageLayout:this.stageLayout,
             floorContact:{artTop:this.arenaStage?.floor.y,bodyTop:this.floorPlatform.body.top},
             stageMaterial:this.arenaStage?.material,
+            tearMaterial:this.arenaStage?.tearMaterial,
+            tearVisible:this.arenaStage?.tear.visible,
             arenaProps:this.arenaStage?.getPropEvidence(),
             stageTextureRgbaBytes:(this.arenaStage?.keys||[]).reduce((bytes,key)=>{
                 const image=this.textures.get(key).getSourceImage();return bytes+image.width*image.height*4;
