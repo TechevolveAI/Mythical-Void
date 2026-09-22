@@ -4,7 +4,7 @@ Private readiness audit, 2026-09-21. Audited source: `3b97206d8fe956f38a346afae8
 
 **The mechanics prototype is reviewable. The authored finale is not finished or ready to release.**
 
-Follow-up: Kevin's extending-tentacle direction prompted a bounded motion correction after this audit. See the final section of [implementation history](TRUMPTOPUS_IMPLEMENTATION.md). Its separate `.visual-review/trumptopus-tentacle-motion/` evidence must not be confused with the older captures listed below. The missing authored character and actual films remain missing.
+Follow-up: Kevin's extending-tentacle direction prompted a bounded motion correction after this audit. See the final section of [implementation history](TRUMPTOPUS_IMPLEMENTATION.md). Its separate `.visual-review/trumptopus-tentacle-motion/` evidence must not be confused with the older captures listed below. On 2026-09-22, a separate private source-art rig began using his existing image. See [the cutout study](TRUMPTOPUS_SOURCE_RIG.md). It is not integrated into the fight; actual films remain missing.
 
 No push, merge, deployment, publication or paid generation is authorized by this document. The private encounter is absent from the normal game registration. This audit did not inspect the live service and does not assert its current commit.
 
@@ -54,7 +54,7 @@ This audit rechecked the 119 listed artifact hashes across those four manifests;
 
 ## Remaining decisions, in order
 
-1. **Character artwork.** Supply a cleared, artist-prepared layered source following the [asset handoff](TRUMPTOPUS_ART_HANDOFF.md). The attempted image-tool request produced no asset and was declined for its public-figure reference. Do not disguise the reference or route it through another tool to bypass that restriction. A flat concept image is not an animated boss.
+1. **Character artwork.** Continue the supplied-image cutout rig described in the [asset handoff](TRUMPTOPUS_ART_HANDOFF.md). Kevin is not required to generate another character or provide layers. The earlier image-tool request produced no asset; the new route is non-generative source preparation. Review anatomy coverage, seams, ordinary gameplay scale and combat-contact alignment before considering the character complete.
 2. **Film production.** Establish accepted content/source rights and a maximum total generation spend including retries. No provider calls or charges have started. [Shot prompts](../../scripts/cinematics/final-void-shots.json) cover arrival, banishment and recovery; the last two are intended to form one victory film. Payment approval alone cannot override a provider's content decision.
 3. **Human play and presentation review.** After real assets are integrated privately, review one child/parent first attempt at ordinary phone and desktop scale. Ask what the boss is doing, when it is safe to attack, what changed after a counter, and what to do after winning. Observe before explaining. Check retries, perceived fairness and reward comprehension, not only successful completion. Review audio only in an explicitly agreed audio session.
 4. **Release integration.** Resolve optional cloud synchronization with the migration team, test the compatible fallback, run the affected release gates and seek separate release authorization. Do not replace the live encounter from this prototype branch now.
@@ -63,4 +63,4 @@ The optional current-creature film insert is deferred. It must never delay entry
 
 ## Immediate stop boundary
 
-Keep the working mechanics, save repairs and evidence intact. Do not keep adding unrelated systems or repeating full captures to compensate for missing artwork. Next meaningful visual work requires the layered character asset and film-production decisions above. No human visual approval is recorded, and the overall finale goal remains incomplete.
+Keep the working mechanics, save repairs and evidence intact. Do not keep adding unrelated systems or repeating full captures to compensate for unfinished artwork. The source-art rig can progress privately using the supplied image; film production still requires the decisions above. No human visual approval is recorded, and the overall finale goal remains incomplete.

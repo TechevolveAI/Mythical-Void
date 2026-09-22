@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "promptVersion": "trumptopus-shared-films-v1",
+  "promptVersion": "trumptopus-shared-films-v2-creature-eye",
   "providerScope": "studio-authored-boss-films-not-player-media",
   "definitions": {
     "finalVoidArrival": {
@@ -9,7 +9,7 @@
       "referenceImage": null,
       "output": "public/game/cinematics/trumptopus-arrival-shot-v1.mp4",
       "durationSeconds": 8,
-      "prompt": "One continuous eight-second science-fantasy shot. Match the approved Trumptopus character reference exactly: metallic organic body, consistent multiple arms and lower contact limbs, pale swept hair, formal vest and red cap. Preserve the approved cap design, with no added wording. His enormous hands hold apart a broken living causeway while the world strains around them. The camera moves slowly from the released edge of stone toward his grip and face, revealing the safe route beneath him. He tightens one hand; the road stops reconnecting. Grand scale, clear physical contact, restrained cosmic light, imposing but suitable for ages nine to twelve. No player creature, dialogue, gore, new limbs, extra villain, sudden cuts, spinning camera, rapid flashes or UI.",
+      "prompt": "One continuous eight-second science-fantasy shot from a low first-person creature-eye viewpoint. The viewer's body, limbs and reflection are never shown, so the same film works for every player creature. Match the approved Trumptopus character reference exactly: metallic organic body, four arms and lower contact limbs, pale swept hair, formal vest and red cap. Preserve the approved cap design, with no added wording. From safe ground, we move slowly towards a broken living causeway. His enormous hands hold its two sides apart while the stone strains beneath them. We look from the reachable grip to his face. He tightens one hand and the road stops reconnecting. End looking back towards the grip that will matter in gameplay. Steady camera without head bob, strong depth, restrained cosmic light, imposing but suitable for ages nine to twelve. No third-person player, personalized creature, dialogue, gore, new limbs, extra villain, sudden cuts, spinning camera, rapid flashes or UI.",
       "negativePrompt": "new text, subtitles, user interface, extra limbs, character deformation, flicker, jump cuts, gore, low detail"
     },
     "finalVoidBanishment": {
@@ -18,7 +18,7 @@
       "referenceImage": null,
       "output": "public/game/cinematics/trumptopus-banishment-shot-v1.mp4",
       "durationSeconds": 8,
-      "prompt": "One continuous eight-second shot matched to the approved final-hit pose and arena. Trumptopus loses his last hold on the causeway. A rift behind him draws his intact body backwards; his fingers release in a clear sequence until he disappears completely into the Void. The rift seals. Preserve his approved anatomy, red cap and costume throughout, with no costume transformation. Show defeat, not healing or voluntary flight. Keep the foreground safe and stable, with no player characters pulled in. Visually decisive, fantastical and non-graphic. No torture, extra boss, surprise return, real-person voice or new slogans.",
+      "prompt": "One continuous eight-second shot from the same low first-person creature-eye viewpoint, matched to the approved final-hit pose and arena. Remain on safe, stable foreground stone. Trumptopus loses his last hold on the causeway. A rift behind him draws his intact body backwards; his fingers release in a clear sequence until he disappears completely into the Void. The rift seals. Preserve his approved four-arm anatomy, red cap and costume throughout, with no costume transformation. Show defeat, not healing or voluntary flight. The viewpoint is never pulled into the rift. The viewer's creature, limbs and reflection are never visible. Steady camera, visually decisive, fantastical and non-graphic. No torture, extra boss, surprise return, real-person voice, new slogans, head bob or rapid flashing.",
       "negativePrompt": "new text, subtitles, user interface, extra limbs, healing, friendly farewell, voluntary escape, flicker, gore, torture, jump cuts"
     },
     "finalVoidRecovery": {
@@ -27,7 +27,7 @@
       "referenceImage": null,
       "output": "public/game/cinematics/trumptopus-recovery-shot-v1.mp4",
       "durationSeconds": 8,
-      "prompt": "One continuous eight-second shot beginning at the sealed rift and matching the approved previous shot's lighting. Follow the released causeway as its two broken surfaces settle firmly together. A broad response travels through the ground into distant arches; the sky becomes calmer and clearer. End on a quiet, fully connected stretch of alien terrain that matches the gameplay aftermath. An earned moment of relief and scale. No villain, substitute player creature, Earth forest, floating text, new story threat, flashing effects or camera spin.",
+      "prompt": "One continuous eight-second shot continuing the same low first-person creature-eye viewpoint at the sealed rift, matching the approved previous shot's lighting. From the same safe foreground stone, watch the released causeway's two broken surfaces settle firmly together. A broad response travels through the ground into distant arches; the sky becomes calmer and clearer. Only once the ground has settled, move slowly forward along the restored path. End on quiet, fully connected alien terrain matching the gameplay aftermath. An earned moment of relief and scale, with a steady camera and no head bob. No viewer body, limbs, reflection, villain, substitute player creature, Earth forest, floating text, new story threat, flashing effects or camera spin.",
       "negativePrompt": "text, subtitles, logo, user interface, people, creatures, villain, flicker, jump cuts, camera spin, Earth forest"
     }
   }
