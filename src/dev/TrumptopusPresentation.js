@@ -10,16 +10,22 @@ export function trumptopusArenaLayout(width,height) {
 
 // Reserve the full rendered player and claw, not just their smaller physics
 // bodies. A free interval is a place the astronaut can actually stand.
-export function chooseAllyLanding({width,player,hands,currentX,halfWidth=25,gap=24}) {
-    let intervals=[[halfWidth+8,width-halfWidth-8]];
-    for(const object of [player,...hands]){
-        const min=object.left-gap-halfWidth,max=object.right+gap+halfWidth;
+export function chooseAllyLanding({width,player,hands,currentX,halfWidth=25,gap=24,playerGap=gap,edgeGuard={left:0,right:0}}) {
+    let intervals=[[halfWidth+8+edgeGuard.left,width-halfWidth-8-edgeGuard.right]];
+    for(const [index,object] of [player,...hands].entries()){
+        const clearance=index===0?playerGap:gap;
+        const min=object.left-clearance-halfWidth,max=object.right+clearance+halfWidth;
         intervals=intervals.flatMap(([left,right])=>max<=left||min>=right?[[left,right]]:
             [[left,Math.min(right,min)],[Math.max(left,max),right]].filter(([a,b])=>b>=a));
     }
     if(!intervals.length)return null;
     const candidates=intervals.map(([left,right])=>clamp(currentX,left,right));
     return candidates.sort((a,b)=>Math.abs(a-currentX)-Math.abs(b-currentX))[0];
+}
+
+export function anticipatedPlayerBounds(player,velocityX,width,leadMs=350) {
+    const offset=clamp(velocityX*leadMs/1000,8-player.left,width-8-player.right);
+    return {left:Math.min(player.left,player.left+offset),right:Math.max(player.right,player.right+offset)};
 }
 
 export function allySweepLeapDuration({width,landingX,progress,halfWidth=25}) {
@@ -30,9 +36,11 @@ export function allySweepLeapDuration({width,landingX,progress,halfWidth=25}) {
     return (1-clamp(progress,0,1))*1300+crossed*750+100;
 }
 
-export function sampleAllyLeap({fromX,toX,elapsed,duration,height=205,floorY}) {
+export function sampleAllyLeap({fromX,toX,elapsed,duration,height=240,floorY}) {
     const p=clamp(elapsed/duration,0,1);
-    return {x:fromX+(toX-fromX)*smooth(p),footY:floorY-4*height*p*(1-p),progress:p,landed:p===1};
+    // Rise clear before crossing the creature, then finish the lateral move
+    // before descending. The ground endpoints remain exact.
+    return {x:fromX+(toX-fromX)*smooth((p-.2)/.6),footY:floorY-4*height*p*(1-p),progress:p,landed:p===1};
 }
 
 export function trumptopusBanishment(progress) {

@@ -65,18 +65,33 @@ do not invent a new character. The private arena adapter now supplies all three
 attack poses and aligns visible hand bounds with the existing collision geometry.
 The supplied scene crops now establish the private arena, and an authored
 banishment is present. Finished scenery, atlas export/budget and human
-difficulty/presentation approval remain open. New actor-spacing instrumentation
-reports the whole recorded fight, including retry. Diagnostic contact moments
-meet 24px, but intermediate movement includes overlapping bounds. That remains
-an explicit visual fault; it is not excused by passing encounter tests. The
-desktop forearms also read as stretched material, and the Void tear is still
-too geometric beside the supplied art. Do not label this finished artwork.
+difficulty/presentation approval remain open. The `df3275be` spacing proof
+showed clear contact moments but overlapping actor bounds during movement.
+That source remains a failed spacing gate, not a visual approval. The desktop
+forearms also read as stretched material, and the Void tear is still too
+geometric beside the supplied art. Do not label this finished artwork.
 
 The current staging proof is recorded separately under
 `.visual-review/trumptopus-arena-review/`; its manifest binds exact source,
 focused tests, build and recorded journeys. The earlier two diagnostic runs
 remain private: the first exposed a retry-readiness race in the test harness,
 the second completed both viewports and exposed the movement-spacing fault.
+
+## Movement-spacing correction
+
+The private ally now reserves 350ms of player movement, retreats promptly on the
+same flank, and rises before moving across to the other flank. The sweep vault
+clears the player's ordinary jump. Landing also reserves the existing 30px
+katana lunge and tilted sprite bounds, including the screen edge in the attack
+direction. This changes only private ally staging, not player movement, attack
+timing, damage, saves, or the shared astronaut implementation.
+
+The proof now includes sprite rotation/scale/flip in conservative alpha-bound
+envelopes and fails below 24px anywhere in the recorded fight, not only at
+selected screenshots. It also rejects either actor leaving the canvas. This
+is still one scripted input journey, not proof of every possible player input
+or human approval of the motion. Exact-source results are kept separately in
+`.visual-review/trumptopus-spacing-review/`; earlier diagnostics are not relabelled.
 
 Exact test/build results live in the evidence report, not an implied release gate.
 The encounter state machine, prior reward/ending implementation and historical

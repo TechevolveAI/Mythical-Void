@@ -144,10 +144,11 @@ async function main() {
                         cache.set(key,box);
                     }
                     const box=cache.get(key),left=sprite.flipX?sprite.width-box.right:box.left;
-                    return {left:sprite.x+(left-sprite.width*sprite.originX)*sprite.scaleX,
-                        right:sprite.x+(left+box.right-box.left-sprite.width*sprite.originX)*sprite.scaleX,
-                        top:sprite.y+(box.top-sprite.height*sprite.originY)*sprite.scaleY,
-                        bottom:sprite.y+(box.bottom-sprite.height*sprite.originY)*sprite.scaleY};
+                    const right=left+box.right-box.left,matrix=sprite.getWorldTransformMatrix();
+                    const corners=[[left,box.top],[right,box.top],[right,box.bottom],[left,box.bottom]].map(([x,y])=>
+                        matrix.transformPoint(x-sprite.displayOriginX,y-sprite.displayOriginY));
+                    return {left:Math.min(...corners.map(p=>p.x)),right:Math.max(...corners.map(p=>p.x)),
+                        top:Math.min(...corners.map(p=>p.y)),bottom:Math.max(...corners.map(p=>p.y))};
                 };
                 const sample=()=>{
                     if(!scene.player?.active||!scene.astronautFollower?.sprite?.active)return;
@@ -281,11 +282,16 @@ async function main() {
             const integrity = await page.evaluate(() => ({saveWrites:window.saveWrites,storageWrites:window.storageWrites,unchanged:window.fixtureUnchanged()}));
             const actorSpacing=await page.evaluate(()=>{window.stopActorSpacing();return window.actorSpacing;});
             const presentationPreflight={
-                method:'Rendered alpha bounds (>16/255), axis-aligned, sampled each game step; not pixel-perfect overlap or human approval',
+                method:'Rendered alpha bounds (>16/255), including world rotation/scale/flip; conservative axis-aligned envelopes sampled each game step, not pixel-perfect overlap or human approval',
                 minimumRequiredGap:24,allMovementSeparated:actorSpacing.minimumGap>=24,
                 contactMomentsSeparated:exchanges.every(exchange=>exchange.spacing.gap>=24),
                 actorsOnscreen:actorSpacing.offscreenSamples===0
             };
+            if(artwork||campaign){
+                assert(presentationPreflight.allMovementSeparated,`Actor gap ${actorSpacing.minimumGap}px is below 24px during movement`);
+                assert(presentationPreflight.contactMomentsSeparated,'Attack contact actor gap is below 24px');
+                assert(presentationPreflight.actorsOnscreen,'An actor left the canvas');
+            }
             if(campaign) assert(integrity.unchanged&&integrity.storageWrites>0);
             else assert.deepEqual(integrity, {saveWrites:0,storageWrites:0,unchanged:true});
             const ending=campaign ? await completeCampaignEnding(page,output,name) : null;
