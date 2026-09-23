@@ -60,3 +60,40 @@ Human film review, sound design/review, physical phone playback and separately
 authorized production integration remain open. Do not enable Watch publicly
 until approved files have an exact digest/size/duration in the production
 manifest and pass the existing release gate.
+
+## Exact Review Candidate
+
+Source: `7dc6e48d3558ee909a54a201278bdd46e32fd8bc`, clean during export, playback
+proof, focused verification and the normal production Vite build.
+
+- [Arrival, 8s, silent](../../.visual-review/trumptopus-authored-films-review/arrival.mp4)
+  (1,404,253 bytes; SHA-256 `620577b821d99ee3e16fca4a68ab580e2de7e218258264d43abd7b10ead39ad7`).
+- [Victory, 16s, silent](../../.visual-review/trumptopus-authored-films-review/victory.mp4)
+  (1,430,900 bytes; SHA-256 `65a4233ff1c074bcc2f0cec52ad6cddb2151068ca4068237f8c94baa2d909514`).
+- Complete [arrival sheet](../../.visual-review/trumptopus-authored-films-review/arrival-sheet.png)
+  and [victory sheet](../../.visual-review/trumptopus-authored-films-review/victory-sheet.png),
+  six and eight sampled frames respectively, with no empty sheet cells.
+- [Phone Watch](../../.visual-review/trumptopus-authored-films-review/playback/phone-arrival-playing.png)
+  and [desktop Watch](../../.visual-review/trumptopus-authored-films-review/playback/desktop-victory-playing.png).
+- [Export report](../../.visual-review/trumptopus-authored-films-review/report.json),
+  [six playback journeys](../../.visual-review/trumptopus-authored-films-review/playback/report.json)
+  and [41-artifact digest manifest](../../.visual-review/trumptopus-authored-films-review/source-evidence.json).
+
+Verification: 18 Node tests and 43 Jest tests in four suites pass. The six browser
+journeys pass with zero console/page errors and outside requests. Watch, replay,
+skip, pause/resume, actual natural-end playback and failure/delay recovery use
+these exact films, not the old Forest fixture. Rewards and result status do not
+change on playback. The normal Vite build passes; it excludes the private film
+stage/files, and the production film manifest remains disabled. Existing large
+chunk and browser-data age warnings remain. This is not a full release pipeline,
+new earned boss playthrough, mobile-device test or human approval.
+
+All owned browser, server and encoding processes closed. MP4 probes confirm one
+video stream each and no audio. No generation credits were consumed.
+
+Own visual assessment: the supplied identity remains recognizable and the two
+hands release in sequence, but the foreground still reads as a relatively flat
+composite, some source-art limb stretching is visible, and world recovery is
+restrained. The phone player preserves the whole landscape frame, so portrait
+view has substantial letterboxing. These are honest review drafts, not yet an
+"epic finale" art approval. Do not iterate indefinitely without Kevin's response.

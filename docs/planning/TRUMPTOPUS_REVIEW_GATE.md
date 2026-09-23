@@ -7,6 +7,9 @@ Later update, 2026-09-23: Kevin approved the non-generative authored-film approa
 The private implementation and repeatable export/playback checks are described in
 [authored films](TRUMPTOPUS_AUTHORED_FILMS.md). This resolves the production-method
 decision below, not finished-film, soundtrack, visual or release approval.
+Two actual silent film drafts now exist at exact source `7dc6e48d`; six real
+playback journeys pass with these files. The 2026-09-22 missing-film statements
+below are superseded for private drafts only, not for approved/public assets.
 
 Update, 2026-09-23: Kevin has authorized Google Veo generation spend without a
 fixed credit ceiling. Budget approval is no longer a blocker. The previously
@@ -55,7 +58,7 @@ Desktop comparison frames are reduced to half size and come from separate runs.
 | Non-graphic banishment | Boss recedes intact; textured opening closes; obstruction releases | Human judgement of impact; runtime effect is not a finished film |
 | Nova and Command Module | Actual win receipt, rewards, no duplicate reward on restore, Sanctuary repair and Hub return | Whether the reward and consequence feel worthwhile |
 | Existing ending handoff | Current prepare-homecoming journey; all three choices separately proved at `65fd9ebf` | Inherited wording is abstract; no claim of child comprehension or new ending editorial approval |
-| Watch-able finale films | Prepared playback/skip/replay/failure handling proved with an explicitly labelled Forest fixture | **Both actual finale films are missing.** Film-readiness gate fails; approval and generation/editing remain required |
+| Watch-able finale films | Two real authored silent drafts; six actual-file phone/desktop playback journeys at `7dc6e48d`, alongside the separately labelled historical Forest fixture | Human film review, soundtrack and physical devices remain; production manifest stays disabled |
 | Save-compatible rollback | Eleven local cases at `3b97206d`; relevant helpers unchanged; genuine Empress history preserved | Hosted/cloud rollout is not tested. Bare historical artifact is not a safe rollback |
 | Silent phone/desktop evidence | Current WebGL viewports, 72 focused checks, zero browser errors/outside requests, owned processes closed | Physical iPhone/Samsung and agreed human audio review. Canvas proof at `9582c9f7` predates the latest material/staging |
 | Production preservation | Legacy FinalVoidLevel registration remains; no production integration, push, merge or deploy by this workstream | Separate future release authorization; this audit makes no claim about another task's live deployment |
@@ -70,11 +73,10 @@ checks cannot approve the visual quality or establish that the finale is fun.
 
 - Kevin: select the closer staging, restore the earlier placement, or give a
   specific alternative. Review the actual motion before further art iteration.
-- Kevin: agree whether to produce the two shared films through non-generative
-  animation of the existing supplied artwork. Google Veo spending was authorized
-  on 2026-09-23; there is no outstanding budget question. The earlier source-art
-  rejection must not be bypassed by sending the character to another generator.
-  Source/provenance, finished-film approval and release remain separate gates.
+- Kevin: review the two [actual authored film drafts](TRUMPTOPUS_AUTHORED_FILMS.md#exact-review-candidate).
+  Non-generative animation was approved on 2026-09-23 and has consumed no credits.
+  There is no outstanding budget or production-method question. Source rights,
+  finished-film quality, soundtrack and release remain separate gates.
 - Human play review: observe a first attempt without coaching. Can the player
   identify a committed attack, avoid it, find the safe counter, understand what
   changed, and choose what to do after winning? Review sound only in an explicitly
@@ -84,9 +86,10 @@ The shared arrival film is planned as an eight-second first-person creature-eye
 shot. Banishment and recovery are two planned eight-second shots edited into one
 victory film. Prompts are in
 [final-void-shots.json](../../scripts/cinematics/final-void-shots.json).
-All three shot approvals are false and reference paths unset. Both playable
-manifest assets are null and disabled. A fixture or gameplay recording must not
-be presented as the requested new film. No paid generation has started.
+The earlier provider plan is inactive: all three generation-shot approvals are
+false and reference paths unset. Both production manifest assets are null and
+disabled. Actual authored drafts live only in the private review directory and
+use the local test harness for Watch. No paid generation has started.
 
 ## Next work after decisions
 
