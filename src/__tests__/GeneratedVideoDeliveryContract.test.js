@@ -14,7 +14,7 @@ describe('generated creature video delivery', () => {
     test('surfaces clips that finish after an expedition has already started', () => {
         expect(platformer).toContain("'companionVideoStatus'");
         expect(platformer).toContain('getUnviewedGeneratedVideos');
-        expect(platformer).toContain("YOUR CREATURE\\'S SCENE IS READY");
+        expect(platformer.includes('nextStoryVideo(mediaService, CAMPAIGN_LEVEL_BY_SCENE_LEVEL')).toBe(true);
         expect(platformer).toContain('showGeneratedVideoPlayback(ready)');
     });
 

@@ -151,6 +151,7 @@ function loadPlatformerLevelScene(sceneWindow = {}) {
             "import { companionMediaService } from '../systems/CompanionMediaService.js';",
             'const companionMediaService = window.CompanionMediaService || {};'
         )
+        .replace("import { nextStoryVideo, showStoryVideoNotice, openStoryVideo } from '../ui/StoryVideoNotice.js';", '')
         .replace(
             "import { getVillageGameplayEffects, getVillageSupportSummary } from '../systems/VillageSettlement.js';",
             'const getVillageGameplayEffects = () => ({ maxEnergyBonus: 0, guardCharges: 0, victoryCoinBonus: 0 });\n' +

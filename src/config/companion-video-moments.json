@@ -1,7 +1,15 @@
 {
   "schemaVersion": 1,
-  "promptVersion": "creature-story-video-v2",
-  "shotVersion": 2,
+  "promptVersion": "creature-story-video-v3",
+  "shotVersion": 3,
+  "rescueLocations": {
+    "elder_treant": "the Mythical Forest after the Elder Treant battle: immense living roots, a reopened hollow and returning forest light",
+    "crystal_golem": "Crystal Caves after the Crystal Guardian battle: translucent mineral chambers, faceted stone and returning light inside the crystals",
+    "nyxvoral": "Stellar Reef after the reef guardian battle: buoyant alien reef shelves, flowing luminous currents and suspended coral-like life",
+    "cosmic_titan": "the summit of Void Peaks after The Peak of the Mountain battle: black cosmic rock, white mineral snow and a clear star-filled sky",
+    "shadow_phoenix": "Aurora Depths after the Aurora Phoenix battle: deep alien terraces, ribbons of aurora light and pools reflecting the sky",
+    "void_empress": "the restored Final Void crossing: floating obsidian islands, distant stars and a quiet recovering cosmic horizon"
+  },
   "providerDataContract": {
     "purpose": "Create a short scene about a fictional game creature.",
     "allowed": [
@@ -33,7 +41,7 @@
     "camera": "One continuous, stable cinematic wildlife shot with a slow low camera move, readable action and restrained depth of field.",
     "world": "The Fend is a warm, strange, habitable alien planet with living Current, damp terrain, moving air and practical environmental contact.",
     "style": "Premium live-action science-fantasy, emotionally warm and wondrous without becoming childish, cartoon-like or frightening.",
-    "exclusions": "No dialogue, subtitles, logos, text, weapons, additional creatures, transformation, pixel art, cartoon rendering, human children or real people."
+    "exclusions": "No dialogue, subtitles, logos, text, weapons, unrequested characters, transformation, pixel art, cartoon rendering, human children or real people. Only include another fictional creature when the authored action requests it."
   },
   "moments": [
     {
@@ -58,7 +66,7 @@
       "key": "guardian_rescue",
       "match": "prefix",
       "prefix": "guardian_rescue_",
-      "playerLabel": "A guardian chooses freedom",
+      "playerLabel": "Freedom after the battle",
       "location": "the newly opened rescue enclosure in the region just completed",
       "action": "The creature approaches the opened enclosure, pauses so the freed guardian can choose, then leads it toward the distant warm lights of the Sanctuary. Wanderer-77 remains visible behind them without blocking either creature.",
       "trigger": "Prepared as soon as the guardian rescue is confirmed, including when the resident-release panel owns the immediate screen.",

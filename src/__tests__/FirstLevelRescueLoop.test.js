@@ -210,6 +210,9 @@ describe('first expedition rescue loop', () => {
             levelHeight: 1200
         });
 
+        firstScene.orderedRouteSignals = [
+            { activated: true }, { activated: false }, { activated: false }
+        ];
         firstScene.setCheckpoint(1770, 1000, {
             persist: true,
             checkpointId: 'forest_anchor_1',
@@ -217,11 +220,12 @@ describe('first expedition rescue loop', () => {
         });
 
         expect(state.story.projectBeacon.expeditionCheckpoint).toEqual({
-            version: 1,
+            version: 2,
             sceneKey: 'MythicalForestLevel',
             levelId: 'mythical_forest_1',
             checkpointId: 'forest_anchor_1',
             checkpointIndex: 0,
+            routeSignalMask: 1,
             x: 1770,
             y: 1000,
             savedAt: expect.any(Number)
@@ -718,13 +722,14 @@ describe('first expedition rescue loop', () => {
         );
     });
 
-    test('keeps the first guardian rescue shorter than later endurance fights', () => {
+    test('keeps the first guardian to six bounded recovery openings with clear combat feedback', () => {
         const source = fs.readFileSync(
             path.join(__dirname, '../scenes/levels/MythicalForestLevel.js'),
             'utf8'
         );
 
-        expect(source).toContain('this.bossMaxHealth = 18;');
+        expect(source.includes('this.bossMaxHealth = 24;')).toBe(true);
+        expect(source.includes('(this.forestRecoveryDamage || 0) >= 4')).toBe(true);
         expect(source).toContain('DODGE, THEN STRIKE THE PURPLE CORRUPTION');
         expect(source).toContain('ELDER TREANT RESTORED');
         expect(source).toContain('ELDER TREANT // TRAPPED');

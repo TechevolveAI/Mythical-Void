@@ -40,7 +40,7 @@ test('walking up a small riser works but walls, rising jumps and under-floor bod
     expect(mountainStepRise({ ...body, velocity: { x: -100, y: 0 } }, step, true)).toBe(0);
 });
 
-test('lasers originate at the central snowy peak and both arm tips, not the face centre', () => {
+test('snow emitters stay on the peaks through combat scale, origin and rotation', () => {
     const sprite = { x: 4660, y: 332, displayWidth: 691.6, displayHeight: 650 };
     const top = mountainEmitter(sprite);
     const left = mountainEmitter(sprite, 'left');
@@ -51,12 +51,16 @@ test('lasers originate at the central snowy peak and both arm tips, not the face
     expect(right.x).toBeGreaterThan(top.x + 200);
     expect(left.y).toBeLessThan(200);
     expect(right.y).toBeLessThan(200);
-    expect(method('getMountainAttackEmitters').call({}, 'voidPunch')).toEqual(['left', 'right']);
+    const combat = { x: 4890, y: 400, displayWidth: 240, displayHeight: 225,
+        originX: 0.49, originY: 0.97, rotation: Math.PI / 2 };
+    expect(mountainEmitter(combat).x).toBeCloseTo(4890 + 225 * 0.87);
+    expect(mountainEmitter(combat).y).toBeCloseTo(400);
+    expect(method('getMountainAttackEmitters').call({}, 'voidPunch')).toEqual(['summit']);
     expect(method('getMountainAttackEmitters').call({}, 'singularity')).toEqual(['summit']);
     expect(method('getMountainAttackEmitters').call({}, 'starRain')).toEqual([]);
 });
 
-test('phase changes cannot move or resize the terrain boss', () => {
+test('phase changes leave the independent climbable terrain intact', () => {
     const phase = declaration.body.body.find(n => n.key?.name === 'enterTitanPhase');
     expect(source.slice(phase.start, phase.end)).not.toMatch(/this\.boss\.set(?:Scale|Position|VelocityX)/);
     expect(source).not.toContain('this.boss.setVelocityX(260');

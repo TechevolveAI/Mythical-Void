@@ -108,12 +108,15 @@ test('openings reward upgraded hits without allowing frame spam or skipping both
     expect(s.bossHealth).toBe(14);
     expect(damage.call(s, 3)).toBe(false);
     s.time.now += 400;
+    expect(damage.call(s, 1)).toBe(false);
+    expect(s.bossHealth).toBe(14);
+    s.forestRecoveryDamage = 0; // A second completed attack opens another window.
     expect(damage.call(s, 1)).toBe(true);
     expect(s.bossHealth).toBe(12);
     s.time.now += 400;
     damage.call(s, 100);
-    expect(s.bossHealth).toBe(8);
-    expect(s.requestForestBossPhase2).toHaveBeenCalledTimes(1);
+    expect(s.bossHealth).toBe(10);
+    expect(s.requestForestBossPhase2).not.toHaveBeenCalled();
     expect(s.forestBossHits).toBe(3);
     expect(s.onBossDefeated).not.toHaveBeenCalled();
 });

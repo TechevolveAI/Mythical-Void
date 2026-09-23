@@ -860,7 +860,7 @@ class FinalVoidLevel extends PlatformerLevelScene {
             'LIVING SYSTEMS',
             'RETURN ROUTE',
             'TRUST MARKER'
-        ][this.bondAnchorsActivated] || 'TRUST MARKER';
+        ][this.getNextOrderedRouteSignal?.()?.index ?? this.bondAnchorsActivated] || 'TRUST MARKER';
         const current = Math.min(this.bondAnchorsActivated + 1, 3);
         const compass = this.getOrderedRouteCompassText();
         const title = this.isCompactObjectiveHUD
@@ -1058,11 +1058,11 @@ class FinalVoidLevel extends PlatformerLevelScene {
 
     drawBondAnchor(graphics, x, y, activated) {
         graphics.clear();
-        const color = activated ? 0xF2C94C : 0x4F315E;
+        const color = activated ? 0x8FE3CF : 0xF2C94C;
 
         graphics.fillStyle(color, activated ? 0.2 : 0.1);
         graphics.fillCircle(x, y - 42, 48);
-        graphics.lineStyle(4, color, activated ? 1 : 0.65);
+        graphics.lineStyle(4, color, 1);
         graphics.strokeCircle(x, y - 46, 28);
         graphics.lineBetween(x, y - 18, x, y + 42);
         graphics.lineBetween(x, y + 42, x - 18, y + 54);

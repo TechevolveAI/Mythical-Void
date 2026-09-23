@@ -114,7 +114,7 @@ describe('creature media privacy and prompt contract', () => {
     test.each([
         ['first_forest_arrival', 'Mythical Forest trail'],
         ['beacon_reflection', 'Project Beacon overlook'],
-        ['guardian_rescue_elder_treant', 'rescue enclosure'],
+        ['guardian_rescue_elder_treant', 'Mythical Forest after the Elder Treant battle'],
         ['guardian_trust_elder_treant', 'Sanctuary beside living roots'],
         ['guardian_debrief_elder_treant', 'Sanctuary recovery overlook']
     ])('builds the authored prompt for %s', (momentId, location) => {
@@ -134,8 +134,8 @@ describe('creature media privacy and prompt contract', () => {
 
     test('delivers completed clips through Sanctuary and the Creature Archive', () => {
         expect(sanctuary).toContain('maybeShowCreatureVideoReadyNotice');
-        expect(sanctuary).toContain('CREATURE STORY SCENE READY');
-        expect(sanctuary).toContain("initialIdentityArchiveChapter: 'shared_journey'");
+        expect(sanctuary.includes('showStoryVideoNotice(this, service, ready')).toBe(true);
+        expect(sanctuary.includes('const ready = nextStoryVideo(service)')).toBe(true);
         expect(archive).toContain("first_forest_arrival: 'FIRST FOREST ARRIVAL'");
     });
 

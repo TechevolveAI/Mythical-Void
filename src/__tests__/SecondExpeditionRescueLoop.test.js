@@ -241,7 +241,7 @@ describe('second expedition rescue loop', () => {
 
         expect(source).toContain('const barY = isMobileLayout ? 118 : 55');
         expect(source).toContain('this.createCampaignObjectiveDisplay(');
-        expect(source).toContain('FOLLOW THE CYAN LIGHT →');
+        expect(source).toContain('FIND THE GOLD LIGHT');
         expect(source).toContain('FRACTURED GROVE AHEAD');
         expect(source).toContain('REACH IT TOGETHER →');
         expect(source).toContain('GUARDIAN AWAKENING');

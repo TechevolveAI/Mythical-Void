@@ -95,10 +95,10 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain(
             'this.broadcastTitanWarning(attack, attackTarget)'
         );
-        expect(source).toContain('Laser! Move off the line');
-        expect(source).toContain('Low wave! Jump over it');
-        expect(source).toContain('Left, right, left! Keep moving');
-        expect(source).toContain('Dodge, then jump!');
+        expect(source).toContain('Snow burst! Step aside');
+        expect(source).toContain('Rolling snowball! Jump!');
+        expect(source).toContain('Snow grenade! Leave the landing spot');
+        expect(source).toContain('Snow burst, then jump!');
         expect(source).toContain('const TITAN_ATTACK_WINDUP = 700;');
         expect(source).toContain(
             'this.time.delayedCall(TITAN_ATTACK_WINDUP'
@@ -106,7 +106,7 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain(
             'this.executeTitanAttack(attack, attackTarget)'
         );
-        expect(source).toContain('Your turn! Strike the face');
+        expect(source).toContain('Your turn! Strike now');
     });
 
     test('keeps Titan Pass closed until the warning network answers', () => {
@@ -198,8 +198,8 @@ describe('fourth expedition rescue loop', () => {
         expect(source).toContain('this.createTitanTexture()');
         expect(source).toContain('if (this.textures.exists(COSMIC_TITAN_TEXTURE)) return');
         expect(source).toContain('MOUNTAIN_ASCENT.displayHeight /');
-        expect(source).toContain('this.boss.width * 0.20');
-        expect(source).toContain('this.boss.height * 0.20');
+        expect(source).toContain('this.boss.width * 0.34');
+        expect(source).toContain('this.boss.height * 0.82');
         expect(source).toContain('this.boss.setScale(this.bossTargetScale)');
     });
 

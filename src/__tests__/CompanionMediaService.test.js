@@ -74,6 +74,22 @@ function createGameState(portrait) {
 }
 
 describe('CompanionMediaService', () => {
+    test('a still fallback and save reload never make a watched film unwatched again', () => {
+        const portrait = { identityKey: 'watched-identity', stage: 'baby',
+            assetRef: 'portrait-job-v1:42e1e046-c676-4fb9-91c9-1575dcb094ee' };
+        const sceneWindow = { GameState: createGameState(portrait) };
+        const { CompanionMediaService } = loadCompanionMediaService(sceneWindow);
+        const service = new CompanionMediaService();
+        service.saveVideoRecord('first_forest_arrival', portrait, {
+            assetRef: 'video-job-v1:42e1e046-c676-4fb9-91c9-1575dcb094ee', status: 'succeeded'
+        });
+        expect(service.getUnviewedGeneratedVideos()).toHaveLength(1);
+        service.recordAppearance('first_forest_arrival', portrait, 'generated_video');
+        service.recordAppearance('first_forest_arrival', portrait, 'motion_still');
+        const reloaded = new CompanionMediaService();
+        expect(reloaded.getUnviewedGeneratedVideos()).toHaveLength(0);
+        expect(reloaded.hasUnviewedGeneratedVideo('first_forest_arrival', portrait)).toBe(false);
+    });
     test('reuses a durable living portrait instead of generating new art', async () => {
         const portrait = {
             identityKey: 'identity-23',

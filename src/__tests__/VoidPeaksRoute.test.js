@@ -110,9 +110,9 @@ test('old checkpoint coordinates are reprojected in memory, without changing the
 test('recovery explicitly retires damage effects before inviting the player to attack', () => {
     const n = declaration.body.body.find(n => n.key?.name === 'broadcastTitanWarning');
     const method = source.slice(n.start, n.end);
-    expect(method.indexOf('this.clearBossEncounterEffects()')).toBeLessThan(method.indexOf('Your turn! Strike the face'));
+    expect(method.indexOf('this.clearBossEncounterEffects()')).toBeLessThan(method.indexOf('Your turn! Strike now'));
     expect(source).toContain("if (kind === 'groundWave') this.fireMountainGroundWave()");
-    expect(source).toContain('wave.body.setAllowGravity(false).setVelocityX(235)');
+    expect(source).toContain('wave.body.setAllowGravity(false).setCircle(26).setVelocityX(direction * 180)');
 });
 
 test('expired attack callbacks cannot destroy a Phaser collider twice after recovery cleanup', () => {

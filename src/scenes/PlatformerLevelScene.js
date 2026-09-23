@@ -17,6 +17,7 @@ import {
     recordCenteringStancePractice
 } from '../systems/SenseiMemory.js';
 import { companionMediaService } from '../systems/CompanionMediaService.js';
+import { nextStoryVideo, showStoryVideoNotice, openStoryVideo } from '../ui/StoryVideoNotice.js';
 import { getVillageGameplayEffects, getVillageSupportSummary } from '../systems/VillageSettlement.js';
 import { resolveTextureContactGeometry } from '../systems/CreatureContactGeometry.js';
 import { createDecorativeFlag } from '../systems/world/DecorativeFlags.js';
@@ -125,7 +126,7 @@ const CURRENT_NODE_LEVEL_CONFIG = Object.freeze({
 
 const EXPEDITION_CHECKPOINT_PATH =
     'story.projectBeacon.expeditionCheckpoint';
-const EXPEDITION_CHECKPOINT_VERSION = 1;
+const EXPEDITION_CHECKPOINT_VERSION = 2;
 const EXPEDITION_CHECKPOINT_PRESENTATION = Object.freeze({
     MythicalForestLevel: {
         levelStateId: 'mythicalForest',
@@ -441,10 +442,6 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.generatedVideoDeliveryCheckAt = 0;
         this.generatedVideoReadyNotice = null;
         this.generatedVideoPlayback = null;
-        this.generatedVideoPlaybackElements = [];
-        this.generatedVideoPlaybackTimer = null;
-        this.generatedVideoDeliveryRequest = 0;
-        this.generatedVideoPlaybackWasPaused = false;
         this.residentReleaseElements = [];
         this.residentReleaseOpen = false;
         this.residentReleaseTableau = null;
@@ -1767,7 +1764,8 @@ class PlatformerLevelScene extends Phaser.Scene {
         fallbackLabel = 'FOLLOW THE CLUE',
         hintOffsetY = -100
     } = {}) {
-        if (signal?.index === activatedCount) return true;
+        // Internal method name remains compatible; exploration is not a sequence lock.
+        if (signal && signals?.includes(signal)) return true;
 
         const now = Number(this.time?.now) || 0;
         if (now >= (Number(this.routeHintUntil) || 0)) {
@@ -1796,7 +1794,7 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         signals.forEach(signal => {
             const complete = signal?.[activeProperty] === true;
-            const next = !complete && signal?.index === activatedCount;
+            const next = !complete;
             signal?.label?.setColor?.(
                 complete ? completeColor : (next ? nextColor : futureColor)
             );
@@ -1840,9 +1838,12 @@ class PlatformerLevelScene extends Phaser.Scene {
 
         const activeProperty = this.orderedRouteSignalOptions?.activeProperty ||
             'activated';
-        const indexed = signals[this.orderedRouteSignalIndex];
-        if (indexed && indexed?.[activeProperty] !== true) return indexed;
-        return signals.find(signal => signal?.[activeProperty] !== true) || null;
+        const remaining = signals.filter(signal => signal?.[activeProperty] !== true);
+        if (!this.player) return remaining[0] || null;
+        return remaining.sort((a, b) =>
+            Math.hypot(a.x - this.player.x, a.y - this.player.y) -
+            Math.hypot(b.x - this.player.x, b.y - this.player.y)
+        )[0] || null;
     }
 
     getOrderedRouteCompassText({ nearDistance = 180 } = {}) {
@@ -5207,6 +5208,10 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     updateGeneratedVideoDelivery(time = 0) {
+        if (this.bossFightActive || this.levelCompletionActive || this.residentReleaseOpen) {
+            this.destroyGeneratedVideoReadyNotice();
+            return false;
+        }
         if (
             this.sys?.isActive?.() === false ||
             this.generatedVideoPlayback ||
@@ -5219,7 +5224,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         this.generatedVideoDeliveryCheckAt = time + 1000;
 
         const mediaService = window.CompanionMediaService || companionMediaService;
-        const ready = mediaService?.getUnviewedGeneratedVideos?.()?.[0];
+        const ready = nextStoryVideo(mediaService, CAMPAIGN_LEVEL_BY_SCENE_LEVEL[this.levelId] || this.levelId);
         this.generatedVideoDeliveryPending = Boolean(ready);
         if (!ready) return false;
 
@@ -5240,187 +5245,31 @@ class PlatformerLevelScene extends Phaser.Scene {
 
     showGeneratedVideoReadyNotice(ready) {
         if (!ready?.momentId || this.generatedVideoReadyNotice) return false;
-        const camera = this.cameras?.main;
-        const width = camera?.width || this.scale?.width || 390;
-        const height = camera?.height || this.scale?.height || 720;
-        const compact = width < 600;
-        const panelWidth = Math.min(width - 24, compact ? 354 : 470);
-        const panelHeight = compact ? 94 : 104;
-        const noticeY = compact
-            ? Math.min(height * 0.25, 178)
-            : Math.min(height * 0.2, 150);
-        const container = this.add.container(width / 2, noticeY)
-            .setScrollFactor(0)
-            .setDepth(19000)
-            .setAlpha(0);
-        const panel = this.add.rectangle(
-            0,
-            0,
-            panelWidth,
-            panelHeight,
-            0x071311,
-            0.98
-        ).setStrokeStyle(2, 0xF2C14E, 1)
-            .setInteractive({ useHandCursor: true });
-        const title = this.add.text(
-            -panelWidth / 2 + 18,
-            -panelHeight / 2 + 14,
-            'YOUR CREATURE\'S SCENE IS READY',
-            {
-                fontFamily: 'Arial, sans-serif',
-                fontSize: compact ? '13px' : '15px',
-                fontStyle: 'bold',
-                color: '#F2C14E'
-            }
-        );
-        const detail = this.add.text(
-            -panelWidth / 2 + 18,
-            -4,
-            ready.label || 'A new creature story moment',
-            {
-                fontFamily: 'Arial, sans-serif',
-                fontSize: compact ? '12px' : '14px',
-                color: '#F4F4F4',
-                wordWrap: { width: panelWidth - 112 }
-            }
-        ).setOrigin(0, 0.5);
-        const action = this.add.text(
-            panelWidth / 2 - 18,
-            panelHeight / 2 - 17,
-            'WATCH',
-            {
-                fontFamily: 'Arial, sans-serif',
-                fontSize: '11px',
-                fontStyle: 'bold',
-                color: '#8FE3CF'
-            }
-        ).setOrigin(1, 0.5);
-        container.add([panel, title, detail, action]);
-
-        panel.once('pointerup', () => {
-            this.destroyGeneratedVideoReadyNotice();
-            void this.showGeneratedVideoPlayback(ready);
+        const service = window.CompanionMediaService || companionMediaService;
+        this.generatedVideoReadyNotice = showStoryVideoNotice(this, service, ready, {
+            onClose: () => { this.generatedVideoReadyNotice = null; },
+            onWatch: () => this.showGeneratedVideoPlayback(ready)
         });
-        this.tweens?.add?.({
-            targets: container,
-            alpha: 1,
-            y: noticeY + 7,
-            duration: 260,
-            ease: 'Sine.easeOut'
-        });
-        this.generatedVideoReadyNotice = container;
-        return true;
+        return Boolean(this.generatedVideoReadyNotice);
     }
 
     destroyGeneratedVideoReadyNotice() {
-        if (!this.generatedVideoReadyNotice) return;
-        this.tweens?.killTweensOf?.(this.generatedVideoReadyNotice);
-        this.generatedVideoReadyNotice.destroy?.(true);
+        this.generatedVideoReadyNotice?.destroy?.();
         this.generatedVideoReadyNotice = null;
     }
 
     async showGeneratedVideoPlayback(ready) {
-        if (!ready?.momentId || this.generatedVideoPlayback) return false;
-        const requestId = ++this.generatedVideoDeliveryRequest;
-        const camera = this.cameras?.main;
-        const width = camera?.width || this.scale?.width || 390;
-        const height = camera?.height || this.scale?.height || 720;
-        const depth = 19100;
-        this.generatedVideoPlaybackWasPaused = Boolean(this.physics?.world?.isPaused);
-        if (!this.generatedVideoPlaybackWasPaused) this.physics?.pause?.();
-
-        const veil = this.add.rectangle(
-            width / 2,
-            height / 2,
-            width,
-            height,
-            0x020706,
-            0.96
-        ).setScrollFactor(0).setDepth(depth);
-        const status = this.add.text(
-            width / 2,
-            height / 2,
-            'OPENING YOUR CREATURE\'S STORY MOMENT...',
-            {
-                fontFamily: 'Arial, sans-serif',
-                fontSize: width < 600 ? '14px' : '18px',
-                fontStyle: 'bold',
-                color: '#8FE3CF',
-                align: 'center',
-                wordWrap: { width: Math.max(260, width - 56) }
-            }
-        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 1);
-        const cancelZone = this.add.zone(0, 0, width, height)
-            .setOrigin(0)
-            .setScrollFactor(0)
-            .setDepth(depth + 4)
-            .setInteractive({ useHandCursor: true });
-        const cancelText = this.add.text(
-            width / 2,
-            height - Math.max(54, height * 0.08),
-            'TAP TO CANCEL',
-            {
-                fontFamily: 'Arial, sans-serif',
-                fontSize: '11px',
-                color: '#C8D8D4',
-                fontStyle: 'bold'
-            }
-        ).setOrigin(0.5).setScrollFactor(0).setDepth(depth + 5);
-        this.generatedVideoPlaybackElements = [veil, status, cancelZone, cancelText];
-        cancelZone.once('pointerup', () => this.clearGeneratedVideoPlayback());
-
-        const mediaService = window.CompanionMediaService || companionMediaService;
-        const tableau = await mediaService?.createCinematicVideo?.(this, {
-            momentId: ready.momentId,
-            stage: ready.stage || window.GameState?.get?.(
-                'creature.lifecycle.stage'
-            ) || 'baby',
-            depth: depth + 2,
-            alpha: 1,
-            isCurrent: () => (
-                this.generatedVideoDeliveryRequest === requestId &&
-                this.sys?.isActive?.() !== false
-            )
+        if (!ready?.momentId || this.generatedVideoPlayback || this.sys?.isActive?.() === false) return false;
+        const service = window.CompanionMediaService || companionMediaService;
+        this.generatedVideoPlayback = openStoryVideo(this, service, ready, () => {
+            this.generatedVideoPlayback = null;
         });
-        if (
-            !tableau ||
-            this.generatedVideoDeliveryRequest !== requestId ||
-            this.sys?.isActive?.() === false
-        ) {
-            tableau?.destroy?.();
-            if (this.generatedVideoDeliveryRequest === requestId) {
-                this.clearGeneratedVideoPlayback();
-                this.generatedVideoDeliveryPending = true;
-            }
-            return false;
-        }
-
-        this.generatedVideoPlayback = tableau;
-        status.setText(ready.label || 'YOUR CREATURE IN THE MYTHICAL FOREST');
-        status.setY(Math.max(38, height * 0.08));
-        cancelText.setText('TAP TO CONTINUE');
-        this.generatedVideoPlaybackTimer = this.time?.delayedCall?.(
-            4600,
-            () => this.clearGeneratedVideoPlayback()
-        );
         return true;
     }
 
     clearGeneratedVideoPlayback({ resume = true } = {}) {
-        this.generatedVideoDeliveryRequest += 1;
-        this.generatedVideoPlaybackTimer?.remove?.();
-        this.generatedVideoPlaybackTimer = null;
-        this.generatedVideoPlayback?.destroy?.();
+        this.generatedVideoPlayback?.close?.({ resume });
         this.generatedVideoPlayback = null;
-        this.generatedVideoPlaybackElements.forEach(element => {
-            element?.removeAllListeners?.();
-            element?.destroy?.();
-        });
-        this.generatedVideoPlaybackElements = [];
-        if (resume && !this.generatedVideoPlaybackWasPaused) {
-            this.physics?.resume?.();
-        }
-        this.generatedVideoPlaybackWasPaused = false;
     }
 
     /**
@@ -6911,6 +6760,11 @@ class PlatformerLevelScene extends Phaser.Scene {
             y: normalizedY,
             savedAt: Date.now()
         };
+        if (this.orderedRouteSignals?.length > 0 && this.orderedRouteSignals.length <= 8) {
+            const property = this.orderedRouteSignalOptions?.activeProperty || 'activated';
+            checkpoint.routeSignalMask = this.orderedRouteSignals.reduce((mask, signal, index) =>
+                mask | (signal[property] === true ? 1 << index : 0), 0);
+        }
         const sanitizedRouteState = this.sanitizeExpeditionRouteState(
             routeState ?? this.getExpeditionRouteState()
         );
@@ -6951,7 +6805,7 @@ class PlatformerLevelScene extends Phaser.Scene {
         }
 
         if (
-            resume?.version !== EXPEDITION_CHECKPOINT_VERSION ||
+            ![1, EXPEDITION_CHECKPOINT_VERSION].includes(resume?.version) ||
             resume?.sceneKey !== sceneKey ||
             resume?.levelId !== this.levelId ||
             typeof resume?.checkpointId !== 'string' ||
@@ -7007,7 +6861,9 @@ class PlatformerLevelScene extends Phaser.Scene {
         return {
             checkpointId: checkpoint[0],
             label: checkpoint[1],
-            current: checkpointIndex + 1,
+            current: Number.isInteger(resume.routeSignalMask)
+                ? presentation.checkpoints.filter((_, index) => resume.routeSignalMask & (1 << index)).length
+                : checkpointIndex + 1,
             total: presentation.checkpoints.length
         };
     }
@@ -7097,8 +6953,14 @@ class PlatformerLevelScene extends Phaser.Scene {
             return false;
         }
 
+        const validMask = Number.isInteger(resume.routeSignalMask) && resume.routeSignalMask >= 0 &&
+            resume.routeSignalMask < (1 << signals.length) && (resume.routeSignalMask & (1 << checkpointIndex));
+        if (resume.version === 2 && !validMask) return false;
+        if (resume.routeSignalMask !== undefined && !validMask) return false;
+        // Old saves were sequential. New saves record exactly which places were helped.
+        const mask = validMask ? resume.routeSignalMask : (1 << (checkpointIndex + 1)) - 1;
         signals.forEach((signal, index) => {
-            if (index > checkpointIndex) return;
+            if (!(mask & (1 << index))) return;
 
             signal[activeProperty] = true;
             signal.zone?.destroy?.();
@@ -7107,7 +6969,7 @@ class PlatformerLevelScene extends Phaser.Scene {
             signal.label?.setColor?.(labelColor);
         });
 
-        const restoredCount = checkpointIndex + 1;
+        const restoredCount = signals.filter(signal => signal[activeProperty] === true).length;
         this[countProperty] = restoredCount;
         this[readyProperty] = restoredCount === signals.length;
         onRestored?.(signals[checkpointIndex], restoredCount);

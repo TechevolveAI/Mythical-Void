@@ -1091,7 +1091,7 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
             'LOWER PRISM',
             'HEART PRISM',
             'SKY PRISM'
-        ][this.prismsAligned] || 'SKY PRISM';
+        ][this.getNextOrderedRouteSignal?.()?.index ?? this.prismsAligned] || 'SKY PRISM';
         const current = Math.min(this.prismsAligned + 1, 3);
         const exposure = Math.max(0, 100 - this.prismsAligned * 33);
         const compass = this.getOrderedRouteCompassText();
@@ -1371,16 +1371,16 @@ class AuroraDepthsLevel extends PlatformerLevelScene {
 
     drawSignalPrism(graphics, x, y, aligned) {
         graphics.clear();
-        const color = aligned ? 0xA9F3E4 : 0x385A5B;
+        const color = aligned ? 0x8FE3CF : 0xF2C94C;
 
         graphics.fillStyle(color, aligned ? 0.24 : 0.12);
         graphics.fillCircle(x, y - 42, 48);
-        graphics.lineStyle(4, color, aligned ? 1 : 0.65);
+        graphics.lineStyle(4, color, 1);
         graphics.strokeTriangle(x, y - 88, x - 28, y - 20, x + 28, y - 20);
         graphics.lineBetween(x, y - 20, x, y + 34);
         graphics.lineBetween(x, y + 34, x - 18, y + 48);
         graphics.lineBetween(x, y + 34, x + 18, y + 48);
-        graphics.fillStyle(aligned ? 0xF2C94C : color, 0.95);
+        graphics.fillStyle(color, 0.95);
         graphics.fillCircle(x, y - 50, 8);
 
         if (aligned) {

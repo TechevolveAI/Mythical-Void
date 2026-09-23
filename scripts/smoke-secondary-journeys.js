@@ -7105,95 +7105,16 @@ async function smokeLevel(session, route, sceneName, exceptions, {
         'auroraDepths',
         'finalVoid'
     ].includes(route)) {
-        const outOfOrderStage = await evaluate(session, `(() => {
+        // Admission is unordered. The dedicated media/combat smoke exercises
+        // third-first-second activation and exact-bit save restoration.
+        outOfOrderGuard = await evaluate(session, `(() => {
             const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
             const signals = scene?.orderedRouteSignals || [];
-            const firstSignal = signals[0];
-            const lastSignal = signals[signals.length - 1];
-            if (!scene?.player || !firstSignal || !lastSignal) return null;
-            scene.isInvincible = true;
-            const checkpointBefore = scene.checkpointPosition
-                ? { ...scene.checkpointPosition }
-                : null;
-            const support = scene.getTraversalSupport?.(
-                lastSignal.activationSupportIds?.[0]
-            );
-            const body = scene.player?.body;
-            const trigger = lastSignal.zone?.body;
-            if (support?.body && body && trigger) {
-                scene.player.setPosition(lastSignal.x, lastSignal.y);
-                body.updateFromGameObject?.();
-                scene.player.setPosition(
-                    scene.player.x + trigger.center.x - body.center.x,
-                    scene.player.y + trigger.center.y - body.center.y
-                );
-                body.updateFromGameObject?.();
-            } else {
-                scene.player.setPosition(lastSignal.x, lastSignal.y);
-            }
-            scene.player.setVelocity?.(0, 0);
-            return {
-                checkpointBefore,
-                firstSignalIndex: firstSignal.index
-            };
+            const last = signals[signals.length - 1];
+            return { allowed: scene?.canActivateOrderedRouteSignal(last, signals, 0) === true };
         })()`);
-        await delay(320);
-        const outOfOrderResult = await evaluate(session, `(() => {
-            const scene = window.mythicalGame.scene.getScene(${JSON.stringify(sceneName)});
-            const signals = scene?.orderedRouteSignals || [];
-            const lastSignal = signals[signals.length - 1];
-            const activeProperty = scene?.orderedRouteSignalOptions?.activeProperty ||
-                'activated';
-            const support = scene?.getTraversalSupport?.(
-                lastSignal?.activationSupportIds?.[0]
-            );
-            if (!scene?.player || !lastSignal) return null;
-            return {
-                activatedCount: signals.filter(
-                    signal => signal?.[activeProperty] === true
-                ).length,
-                lastSignalComplete: lastSignal?.[activeProperty] === true,
-                nextSignalIndex: scene?.getNextOrderedRouteSignal?.()?.index ?? null,
-                checkpointAfter: scene.checkpointPosition
-                    ? { ...scene.checkpointPosition }
-                    : null,
-                hintShown: Number(scene?.routeHintUntil) > Number(scene?.time?.now),
-                playerBody: scene.player?.body ? {
-                    left: scene.player.body.left,
-                    right: scene.player.body.right,
-                    top: scene.player.body.top,
-                    bottom: scene.player.body.bottom,
-                    velocityY: scene.player.body.velocity?.y
-                } : null,
-                support: support?.body ? {
-                    id: support.traversalId,
-                    left: support.body.left,
-                    right: support.body.right,
-                    top: support.body.top
-                } : null,
-                trigger: lastSignal.zone?.body ? {
-                    left: lastSignal.zone.body.left,
-                    right: lastSignal.zone.body.right,
-                    top: lastSignal.zone.body.top,
-                    bottom: lastSignal.zone.body.bottom
-                } : null
-            };
-        })()`);
-        outOfOrderGuard = outOfOrderStage && outOfOrderResult
-            ? { ...outOfOrderStage, ...outOfOrderResult }
-            : null;
-        if (
-            outOfOrderGuard?.activatedCount !== 0 ||
-            outOfOrderGuard.lastSignalComplete !== false ||
-            outOfOrderGuard.nextSignalIndex !== 0 ||
-            JSON.stringify(outOfOrderGuard.checkpointAfter) !==
-                JSON.stringify(outOfOrderGuard.checkpointBefore) ||
-            outOfOrderGuard.firstSignalIndex !== 0 ||
-            outOfOrderGuard.hintShown !== true
-        ) {
-            throw new Error(
-                `${sceneName} accepted an out-of-order route signal: ${JSON.stringify(outOfOrderGuard)}`
-            );
+        if (!outOfOrderGuard?.allowed) {
+            throw new Error(`${sceneName} rejected an available out-of-order route signal`);
         }
 
         if ([
