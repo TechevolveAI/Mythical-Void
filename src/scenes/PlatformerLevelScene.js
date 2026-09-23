@@ -5208,7 +5208,8 @@ class PlatformerLevelScene extends Phaser.Scene {
     }
 
     updateGeneratedVideoDelivery(time = 0) {
-        if (this.bossFightActive || this.levelCompletionActive || this.residentReleaseOpen) {
+        if (this.bossFightActive || this.levelCompletionActive || this.residentReleaseOpen ||
+            this.pauseMenuActive || this.physics?.world?.isPaused === true) {
             this.destroyGeneratedVideoReadyNotice();
             return false;
         }

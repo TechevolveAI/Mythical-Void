@@ -92,6 +92,10 @@ async function main() {
             enterFixture('VoidPeaksLevel');
         }, profile);
         await page.waitForFunction(() => testScene.player?.body && testScene.orderedRouteSignals?.length === 3);
+        await page.waitForFunction(() => typeof testScene.levelEntryKeyHandler === 'function');
+        if (name === 'phone') await page.touchscreen.tap(width / 2, height / 2);
+        else await page.keyboard.press('Enter');
+        await page.waitForFunction(() => !testScene.physics.world.isPaused && !testScene.levelEntryKeyHandler);
         await page.waitForTimeout(1000);
         result.routeOrder = await page.evaluate(() => {
             const s = testScene; const signals = s.orderedRouteSignals;
@@ -103,7 +107,6 @@ async function main() {
         assert.deepEqual(result.peakActivation.map(s => s.restoredMask), [4,5,7]);
         await page.evaluate(() => {
             const s = testScene;
-            s.levelEntryElements?.forEach(e => e.destroy?.()); s.levelEntryElements = [];
             window.fixtureVideos = [{ identityKey: 'video-fixture', stage: 'juvenile', momentId: 'first_forest_arrival', assetRef: 'forest' }];
             window.fixtureWatched = [];
             const media = window.CompanionMediaService;
@@ -243,6 +246,7 @@ async function main() {
                 await page.waitForTimeout(430);
             }
         }
+        await page.waitForFunction(() => window.GameState.get('levels.mythicalForest.completed') === true, null, { timeout: 18000 });
         result.forestBattle = await page.evaluate(() => ({ defeated: testScene.bossDefeated,
             saved: window.GameState.get('levels.mythicalForest.completed'), attacks: forestTrace,
             health: testScene.bossHealth, controlsVisible: testScene.platformerControlsVisible }));

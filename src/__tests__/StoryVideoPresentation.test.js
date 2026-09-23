@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { EventEmitter } = require('events');
+const { parse } = require('@babel/parser');
 const read = name => fs.readFileSync(path.join(__dirname, '..', name), 'utf8').replace(/^import .*;$/gm, '').replace(/^export /gm, '');
 const { storyVideoContext, videoNoticeKey } = new Function(`${read('systems/StoryVideoContext.js')};return {storyVideoContext,videoNoticeKey}`)();
 const PreparedFilm = new Function(`${read('systems/PreparedFilm.js')};return PreparedFilm`)();
@@ -17,6 +18,21 @@ const scene = () => {
 };
 
 afterEach(() => { document.body.replaceChildren(); jest.useRealTimers(); });
+
+test.each(['paused-entry', 'pause-menu', 'boss', 'completion'])('film notices never cover %s', state => {
+    const source = fs.readFileSync(path.join(__dirname, '../scenes/PlatformerLevelScene.js'), 'utf8');
+    const cls = parse(source, { sourceType: 'module' }).program.body.find(n => n.type === 'ClassDeclaration');
+    const n = cls.body.body.find(n => n.key?.name === 'updateGeneratedVideoDelivery');
+    const update = new Function(`return ({${source.slice(n.start, n.end)}}).updateGeneratedVideoDelivery`)();
+    const s = { destroyGeneratedVideoReadyNotice: jest.fn(), generatedVideoDeliveryPending: true };
+    if (state === 'paused-entry') s.physics = { world: { isPaused: true } };
+    if (state === 'pause-menu') s.pauseMenuActive = true;
+    if (state === 'boss') s.bossFightActive = true;
+    if (state === 'completion') s.levelCompletionActive = true;
+    expect(update.call(s, 1000)).toBe(false);
+    expect(s.destroyGeneratedVideoReadyNotice).toHaveBeenCalledTimes(1);
+    expect(s.generatedVideoDeliveryPending).toBe(true);
+});
 
 test('delivery uses the exact realm, not the newest global film; dismiss and expiry suppress repeat offers', () => {
     jest.useFakeTimers();
