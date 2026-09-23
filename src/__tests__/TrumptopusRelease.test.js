@@ -47,3 +47,35 @@ test('production uses saved loadout, not the private crystal preview', () => {
     expect(source).toContain('if (this.productionFinale && this.hasShield) this.updateShield(delta);');
     expect(source).toContain('if (!this.productionFinale) window.prototypeScene = this;');
 });
+
+test('repeated resize notifications queue only one checkpoint restart', () => {
+    const source = fs.readFileSync(path.join(__dirname, '../scenes/levels/TrumptopusLevel.js'), 'utf8')
+        .replace(/^import .*;$/gm, '').replace(/export default /g, '').replace(/export /g, '');
+    const makeRuntime = new Function('Approach', 'Campaign', 'TrumptopusSessionMenu',
+        `${source}; return withCampaignRuntime;`)(class {}, class {}, TrumptopusSessionMenu);
+    const shutdown = [];
+    const text = {};
+    for (const key of ['setOrigin', 'setScrollFactor', 'setDepth', 'setInteractive', 'on', 'setText']) {
+        text[key] = () => text;
+    }
+    class Base {
+        create() {}
+    }
+    const scene = new (makeRuntime(Base))('test');
+    Object.assign(scene, {
+        scale: { width: 390, height: 844, on: jest.fn(), off: jest.fn() },
+        add: { text: () => text },
+        events: { on: jest.fn(), off: jest.fn(), once: (event, callback) => shutdown.push(callback) },
+        scene: { isActive: () => true, restart: jest.fn() },
+        completion: { saveProgress: jest.fn() }, clearInput: jest.fn(), clearPauseMenuElements: jest.fn()
+    });
+    scene.create();
+    scene.scale.width = 844;
+    scene.scale.height = 390;
+    scene.onFinaleResize();
+    scene.onFinaleResize();
+    expect(scene.completion.saveProgress).toHaveBeenCalledTimes(1);
+    expect(scene.scene.restart).toHaveBeenCalledTimes(1);
+    expect(scene.finaleResizePending).toBe(true);
+    shutdown.forEach(callback => callback());
+});

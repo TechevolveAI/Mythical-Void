@@ -197,10 +197,13 @@ async function main() {
         await wait(()=>prototypeScene.player!==window.previousFinalePlayer&&prototypeScene.player?.body&&prototypeScene.playerContactGeometry&&!prototypeScene.isPlayerDead&&prototypeScene.isGrounded);
         assert.equal((await state()).phaseIndex,0);
         if(name==='phone') {
+            await page.evaluate(()=>{window.previousFinalePlayer=prototypeScene.player;});
             await page.setViewportSize({width:844,height:390});
-            await wait(()=>prototypeScene.sceneSize.width===844&&prototypeScene.isGrounded);
+            await wait(()=>prototypeScene.sceneSize.width===844&&!prototypeScene.finaleResizePending&&prototypeScene.player!==window.previousFinalePlayer&&prototypeScene.player?.body&&prototypeScene.playerContactGeometry&&prototypeScene.isGrounded);
+            await page.screenshot({path:path.join(output,`${name}-landscape-recovery.png`)});
+            await page.evaluate(()=>{window.previousFinalePlayer=prototypeScene.player;});
             await page.setViewportSize({width,height});
-            await wait(()=>prototypeScene.sceneSize.width===390&&prototypeScene.isGrounded);
+            await wait(()=>prototypeScene.sceneSize.width===390&&!prototypeScene.finaleResizePending&&prototypeScene.player!==window.previousFinalePlayer&&prototypeScene.player?.body&&prototypeScene.playerContactGeometry&&prototypeScene.isGrounded);
         }
         if(name==='desktop') {
             await page.keyboard.press('Escape');

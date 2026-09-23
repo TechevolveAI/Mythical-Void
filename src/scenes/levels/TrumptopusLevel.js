@@ -15,6 +15,7 @@ export function withCampaignRuntime(Base) {
         create() {
             super.create();
             this.sessionMenu = null;
+            this.finaleResizePending = false;
             this.sceneSize = { width: this.scale.width, height: this.scale.height };
             this.pauseButton = this.add.text(this.scale.width - 16, 18, 'II', {
                 fontFamily: 'Arial', fontSize: '22px', color: '#f2f4ed',
@@ -36,8 +37,9 @@ export function withCampaignRuntime(Base) {
             this.onFinaleResize = () => {
                 // Restart from a durable checkpoint after an orientation change;
                 // never leave collision in the old viewport or interrupt a film.
-                if (!this.scene.isActive() || this.pauseMenuActive || this.levelCompletionActive) return;
+                if (!this.scene.isActive() || this.pauseMenuActive || this.levelCompletionActive || this.finaleResizePending) return;
                 if (this.sceneSize.width === this.scale.width && this.sceneSize.height === this.scale.height) return;
+                this.finaleResizePending = true;
                 this.completion.saveProgress();
                 this.clearInput();
                 this.scene.restart();
