@@ -1,9 +1,36 @@
 # Trumptopus shared-film cost estimate
 
+## Authorization update, 2026-09-23
+
+Kevin explicitly authorized Google Veo generation spend for the shared finale
+films, with no fixed credit ceiling: "Yes I don't mind how many Google VO3
+credits you use. They're not the same as Runway so please go ahead and do this".
+The spending decision is no longer pending. This does not authorize production
+release, unrelated generation, unlimited creative iteration or bypassing a
+provider/content safeguard. No generation call was made in response.
+
+The [earlier source-art refusal](TRUMPTOPUS_ART_HANDOFF.md#earlier-generation-attempt)
+is a separate, verified restriction: the built-in image tool rejected the exact
+character with `moderation_blocked`, category `public-figure`. Do not forward that
+character to another generator, disguise it or alter the cap/slogan to get around
+the refusal. The proposed alternative is to author the shared films from Kevin's
+existing artwork and its non-generative layered animation. Kevin has not yet
+approved that production-method change. The films remain absent and disabled;
+spend authorization is not recorded as asset/content approval.
+
+Only API-key presence in this process was checked: `GEMINI_API_KEY` and
+`GOOGLE_API_KEY` were absent. No secret values, deployed configuration, credit
+balance or billing account were inspected. This is not evidence that Kevin lacks
+a valid key or credits elsewhere. No browser, media playback or paid request was
+started.
+
+## Historical estimate, 2026-09-22
+
 Checked 2026-09-22 against private source
 `5ab875f35dd495f287a44224e9793d484d58daa7` and public provider price pages.
-Estimate only: no spending authorization, generation, account inspection or
-production configuration change. All film approvals remain false.
+At that time there was no spending authorization, generation, account inspection
+or production configuration change. The update above supersedes that spending
+status only. All film-asset approvals remain false.
 
 ## What the cost buys
 

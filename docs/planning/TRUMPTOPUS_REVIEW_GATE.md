@@ -3,6 +3,13 @@
 Current private gameplay candidate: `039eea1a02bbd1de6fc213cb041df646e21db55f`.
 **Ready for human review, not a completed or release-approved finale.**
 
+Update, 2026-09-23: Kevin has authorized Google Veo generation spend without a
+fixed credit ceiling. Budget approval is no longer a blocker. The previously
+recorded source-art moderation refusal must not be bypassed through another
+generator. Non-generative films using the supplied artwork and layered rig are
+proposed for Kevin's agreement; no change of method, generation, asset approval
+or release is implied. See the [authorization record](TRUMPTOPUS_FILM_COST_ESTIMATE.md#authorization-update-2026-09-23).
+
 This update supersedes the readiness statements in the historical audit below.
 It does not relabel earlier captures as current. The evidence audit is
 [audit.json](../../.visual-review/trumptopus-review-handoff/audit.json), with its
@@ -58,13 +65,11 @@ checks cannot approve the visual quality or establish that the finale is fun.
 
 - Kevin: select the closer staging, restore the earlier placement, or give a
   specific alternative. Review the actual motion before further art iteration.
-- Kevin: approve a provider/model and maximum total one-off film-production
-  budget after reviewing the [verified cost estimate](TRUMPTOPUS_FILM_COST_ESTIMATE.md).
-  The current Google Standard authoring path estimates $9.60 for one complete
-  attempt, or $19.20 with one replacement take per shot, before taxes. It does
-  not use Replicate credits. Two shared films serve all players; this is not a
-  per-player generation charge. No amount has been authorized. Source/provenance and provider
-  content acceptance must also pass; money cannot override a content restriction.
+- Kevin: agree whether to produce the two shared films through non-generative
+  animation of the existing supplied artwork. Google Veo spending was authorized
+  on 2026-09-23; there is no outstanding budget question. The earlier source-art
+  rejection must not be bypassed by sending the character to another generator.
+  Source/provenance, finished-film approval and release remain separate gates.
 - Human play review: observe a first attempt without coaching. Can the player
   identify a committed attack, avoid it, find the safe counter, understand what
   changed, and choose what to do after winning? Review sound only in an explicitly
@@ -80,8 +85,8 @@ be presented as the requested new film. No paid generation has started.
 
 ## Next work after decisions
 
-Apply only the selected visual direction, then produce and review the approved
-shared films. Bind exact footage hashes, size, duration and provenance; prove
+Apply only the selected visual direction and agreed film-production method,
+then produce and review the shared films. Bind exact footage hashes, size, duration and provenance; prove
 Watch/skip/replay with those actual films. Finish human play and agreed audio
 review. Production/cloud integration, compatible hosted rollback and release
 remain later, separately authorized work. Do not use more automatic captures,
