@@ -170,7 +170,7 @@ function inspectEndingLayout() {
     return {width,height,texts,clipped,overlaps};
 }
 
-async function completeCampaignEnding(page,output,name,{priority='prepare_homecoming',exerciseRecovery=false}={}) {
+async function completeCampaignEnding(page,output,name,{priority='prepare_homecoming',exerciseRecovery=false,allowPreparedFilms=false,restoreAfterReload=null}={}) {
     const choice=ENDING_CHOICES[priority];
     assert(choice,`Unknown ending priority: ${priority}`);
     const layouts=[];
@@ -185,10 +185,11 @@ async function completeCampaignEnding(page,output,name,{priority='prepare_homeco
     await page.getByRole('button',{name:'Repair the ship',exact:true}).waitFor();
     const before=await page.evaluate(()=>({coins:GameState.get('player.cosmicCoins'),items:GameState.get('inventory.items'),run:GameState.get('story.projectBeacon.trumptopus')}));
     assert.equal(before.run.status,'won');assert.equal(before.items.find(i=>i.id==='super_blast').quantity,1);
-    assert.equal(await page.getByRole('button',{name:'Watch',exact:true}).count(),0,'Unapproved finale film offered Watch');
+    if (!allowPreparedFilms) assert.equal(await page.getByRole('button',{name:'Watch',exact:true}).count(),0,'Unapproved finale film offered Watch');
     await page.screenshot({path:path.join(output,`${name}-result.png`)});
     // A genuine page refresh at the result must restore a terminal encounter.
     await page.reload();
+    if (restoreAfterReload) await restoreAfterReload();
     await page.getByRole('button',{name:'Repair the ship',exact:true}).waitFor();
     const resumed=await page.evaluate(()=>({coins:GameState.get('player.cosmicCoins'),items:GameState.get('inventory.items'),state:window.prototypeScene.encounter.snapshot()}));
     assert.equal(resumed.coins,before.coins);assert.deepEqual(resumed.items,before.items);assert.equal(resumed.state.state,'aftermath');
@@ -216,6 +217,7 @@ async function completeCampaignEnding(page,output,name,{priority='prepare_homeco
         const pending=await page.evaluate(()=>GameState.get('story.projectBeacon.finale'));
         assert.equal(pending.priority,priority);assert.equal(pending.epilogueSeen,false);
         await page.reload();
+        if (restoreAfterReload) await restoreAfterReload();
         await page.getByRole('button',{name:'Finish the story',exact:true}).waitFor();
         assert.equal(await page.evaluate(()=>GameState.get('player.cosmicCoins')),before.coins);
         assert.deepEqual(await page.evaluate(()=>GameState.get('inventory.items')),before.items);

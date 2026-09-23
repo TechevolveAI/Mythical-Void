@@ -15,8 +15,8 @@ export default class TrumptopusArtFinalePreview extends TrumptopusFinalePreview 
     }
 
     preload() {
-        this.load.image('trumptopus-source',new URL('./assets/trumptopus/source-foreground.png',import.meta.url).href);
-        this.load.image('trumptopus-landscape-source',new URL('./assets/trumptopus/source-landscape.png',import.meta.url).href);
+        this.load.image('trumptopus-source','/game/trumptopus/body-v1.webp');
+        this.load.image('trumptopus-landscape-source','/game/trumptopus/world-v1.webp');
     }
 
     createPrototypeTerrain() {

@@ -1,8 +1,8 @@
 import TrumptopusFinalePreview from './TrumptopusArtFinalePreview.js';
 import { TrumptopusCompletion } from '../systems/TrumptopusCompletion.js';
 
-// Private campaign integration: real fight/reward/ending, supplied-image rig.
-// Registered only by the local harness, never the production SceneLoader.
+// Shared campaign integration: real fight, rewards, ending and supplied-image rig.
+// The production shell adds normal pause, loadout and lifecycle behaviour.
 export default class TrumptopusCampaignPreview extends TrumptopusFinalePreview {
     createEncounter(data) {
         this.completion = new TrumptopusCompletion(this, {

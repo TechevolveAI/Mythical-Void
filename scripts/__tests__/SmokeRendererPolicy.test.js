@@ -24,7 +24,11 @@ test('all rendering paths remain muted and preserve completion timing and viewpo
     expect(smoke).toContain('...smokeRendererArgs(),');
     expect(smoke).toContain('!renderer.webgl || !renderer.name || /swiftshader/i.test(renderer.name)');
     const runner = fs.readFileSync(path.join(root, 'scripts/run-completion-flow.cjs'), 'utf8');
-    expect(runner).toContain('}, 180000)');
+    expect(runner).toContain('}, trumptopus ? 300000 : 180000)');
+    expect(runner).toContain("trumptopus ? 'scripts/smoke-trumptopus-release.cjs' : 'scripts/smoke-secondary-journeys.js'");
+    const finale = fs.readFileSync(path.join(root, 'scripts/smoke-trumptopus-release.cjs'), 'utf8');
+    expect(finale).toContain("args: ['--mute-audio']");
+    expect(finale).toContain("['phone', 390, 844], ['desktop', 1280, 720]");
     expect(runner).toContain("'forest-desktop', 'guardian-handoff', 'mythicalForest', 1280, 720");
     expect(runner).toContain("'forest-phone', 'guardian-handoff', 'mythicalForest', 390, 844");
 });

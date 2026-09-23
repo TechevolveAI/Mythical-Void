@@ -33,7 +33,11 @@ describe('level registry coverage', () => {
             expect(gameStateSource).toContain(`${gateId}:`);
             expect(hubWorldSource).toContain(`'${gateId}': '${sceneKey}'`);
             expect(sceneLoaderSource).toContain(`'${gateId}': '${sceneKey}'`);
-            expect(sceneLoaderSource).toContain(`${sceneKey}: () => import('../scenes/levels/${sceneKey}.js')`);
+            if (sceneKey === 'FinalVoidLevel') {
+                expect(sceneLoaderSource).toContain("FinalVoidLevel: () => finalVoidRelease.encounter === 'trumptopus'");
+                expect(sceneLoaderSource).toContain("import('../scenes/levels/TrumptopusLevel.js')");
+                expect(sceneLoaderSource).toContain("import('../scenes/levels/FinalVoidLevel.js')");
+            } else expect(sceneLoaderSource).toContain(`${sceneKey}: () => import('../scenes/levels/${sceneKey}.js')`);
         });
     });
 

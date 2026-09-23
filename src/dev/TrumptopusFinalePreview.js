@@ -38,7 +38,7 @@ export default class TrumptopusFinalePreview extends TrumptopusPrototypeLevel {
             this.clearInput();
             // The small proof arena has no consumables; phase boundaries offer
             // a known baseline without changing any inventory or player save.
-            this.health = 4;
+            this.health = this.productionFinale ? this.maxHealth : 4;
         }
         if (this.causeway) {
             const lifting = state.phaseIndex === 1 && state.mode === 'phase_intro';

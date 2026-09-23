@@ -163,12 +163,18 @@ function runAudit() {
             oldReaderLoaded:true,oldWriterSaved:true,currentReaderRestored:true,empress:before.empress,recovery:before.recovery,rewardRecovery,
             runSchema:before.run?.schemaVersion||null,runStatus:before.run?.status||null});
     }
-    const unchanged=['src/game.js','src/utils/SceneLoader.js','src/scenes/levels/FinalVoidLevel.js',
+    const unchanged=['src/game.js','src/scenes/levels/FinalVoidLevel.js',
         'src/scenes/VictoryScene.js','src/systems/ShipReconstruction.js','src/systems/CampaignJourneyGuide.js'];
     for(const file of unchanged)assert.equal(hash(source(file)),hash(source(file,true)),`${file} changed from the legacy route`);
     report.legacyRouteFilesUnchanged=unchanged;
     const manifest=JSON.parse(local('src/config/final-void-films.json'));
-    assert.equal(manifest.enabled,false);assert(!Object.values(manifest.films).some(film=>film.approved));
+    const release=JSON.parse(local('src/config/final-void-release.json'));
+    assert.equal(release.rollbackEncounter,'legacy-empress');
+    const loader=local('src/utils/SceneLoader.js');
+    assert(loader.includes("finalVoidRelease.encounter === 'trumptopus'"));
+    assert(loader.includes(": import('../scenes/levels/FinalVoidLevel.js')"));
+    assert.equal(manifest.enabled,true);
+    report.rollbackSwitch={file:'src/config/final-void-release.json',encounter:'legacy-empress',disableFilms:true};
     report.retainedCompatibilityFiles=['src/systems/GuardianOutcomes.js','src/systems/InventoryManager.js','src/systems/GameState.js','src/systems/CurrentEcology.js'];
     report.sourceModules=[...sources.entries()].map(([file,contents])=>({file,sha256:hash(contents)}));
     report.supportedRollback='Legacy encounter with retained compatibility helpers, not the bare historical artifact';

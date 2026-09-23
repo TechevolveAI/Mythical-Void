@@ -104,12 +104,18 @@ describe('private Trumptopus committed-grab exchange', () => {
         });
         expect(runs[0]).toEqual(runs[1]);
     });
-    test('private scene is not registered in production, and new films remain disabled', () => {
+    test('greybox is not registered in production; release films require owner approval', () => {
         const root = path.join(__dirname, '../..');
         for (const file of ['src/game.js', 'src/utils/SceneLoader.js', 'src/scenes/levels/FinalVoidLevel.js']) {
             expect(fs.readFileSync(path.join(root, file), 'utf8')).not.toMatch(/TrumptopusPrototype|TrumptopusEncounter|TrumptopusFinale/);
         }
-        expect(require('../config/final-void-films.json').enabled).toBe(false);
+        const films = require('../config/final-void-films.json');
+        expect(films.enabled).toBe(true);
+        for (const film of Object.values(films.films)) {
+            expect(film.approved).toBe(true);
+            expect(film.review.reviewer).toBe('Kevin');
+            expect(film.asset.sha256).toMatch(/^[a-f0-9]{64}$/);
+        }
         expect(source).not.toMatch(/Math\.random|Date\.|\bwindow[.\[]|\bfetch\s*\(|localStorage/);
     });
 });

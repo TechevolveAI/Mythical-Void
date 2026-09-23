@@ -1,6 +1,7 @@
 # Private Finale Rollback Contract
 
-Status: local source/save rehearsal, not permission to deploy. No release or player save has been changed.
+Status: compatibility contract retained for the release authorized on 2026-09-23.
+See `TRUMPTOPUS_RELEASE_2026-09-23.md` for the production scope and film approval.
 
 ## The Rule
 
@@ -19,7 +20,10 @@ Keep the legacy `FinalVoidLevel` encounter, route registration, ship repair and 
 - `GameState.js`: retain the optional staged snapshot API; normal callers still serialize the current state with the same schema.
 - `CurrentEcology.js`: retain the bounded `antagonist_banished` restoration evidence without changing the default Guardian restoration path.
 
-The current private branch's normal build already has this legacy registration: the new scenes are only registered by local proof harnesses. This establishes a compatible fallback composition, not a deployed rollback. When the finale later receives production integration, preserve this composition as its explicit rollback target and re-run the tests against that exact release candidate.
+The release switch is `src/config/final-void-release.json`: set `encounter` to
+`legacy-empress` and disable `src/config/final-void-films.json`, then rebuild from
+the same compatible source. This selects the retained legacy scene without
+removing the readers listed above. It is not a remotely activated kill switch.
 
 Existing unfinished Trumptopus checkpoints remain stored but the legacy encounter does not interpret or resume the private fight. Re-enabling the new encounter can read those checkpoints. A rollback must not claim to resume a frozen strike, nor silently convert the unfinished fight into a completed Empress encounter. Already won saves retain Nova, Command Module, coins, the reward receipt and the existing repair/ending next step.
 
@@ -41,9 +45,9 @@ The script executes the real older GameState reader/writer, retained candidate o
 10. Prepare First Contact ending state.
 11. A future run schema that must survive storage but be rejected by the current encounter reader without mutation.
 
-Ending-choice fixtures are normalized through the current save reader first. They prove persistence of the canonical ending state, not clicks through three ending UI journeys. The raw-baseline negative control must demonstrate the incorrect Empress inference; the retained reader must not reproduce it. The command also checks that the legacy scene loader, final level, game entry, repair, ending and journey-guide source files remain byte-identical to the baseline.
+Ending-choice fixtures are normalized through the current save reader first. They prove persistence of the canonical ending state, not clicks through three ending UI journeys. The raw-baseline negative control must demonstrate the incorrect Empress inference; the retained reader must not reproduce it. The command also checks the explicit scene-loader switch and that the legacy final level, game entry, repair, ending and journey-guide source files remain byte-identical to the baseline.
 
-Private evidence is in `.visual-review/trumptopus-rollback/`. The report records exact baseline/candidate hashes and the result of each case. The normal build must still exclude private scene/presentation identifiers and keep the reviewed-film manifest disabled until actual footage is approved.
+Private evidence is in `.visual-review/trumptopus-rollback/`. The report records exact baseline/candidate hashes and the result of each case. Release uses the approved shared films; the fallback disables their manifest.
 
 ## Release Boundary
 

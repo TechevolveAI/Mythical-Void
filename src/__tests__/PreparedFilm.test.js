@@ -207,7 +207,8 @@ describe('FinaleFilms content gates', () => {
 
     test('missing approved art cannot produce a pretend Watch button or outside request', async () => {
         const createFilm = jest.fn();
-        const films = new FinaleFilms(null, { encounterId: 'trumptopus', createFilm });
+        const films = new FinaleFilms(null, { encounterId: 'trumptopus', createFilm,
+            config: { enabled: false, encounterId: 'trumptopus', films: {} } });
         expect(await films.prepare('arrival')).toBe(false);
         expect(films.watch('arrival')).toBe(false);
         expect(createFilm).not.toHaveBeenCalled();

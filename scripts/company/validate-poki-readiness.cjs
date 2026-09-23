@@ -30,7 +30,11 @@ function validatePokiReadiness(assessment, recordedMeasurement, freshMeasurement
     requireValue(/not worldwide loading speed/i.test(assessment.measurement?.browserReview?.limitation || ''), 'browser-review limitation is missing');
 
     requireValue(recordedMeasurement.target === 'poki-readiness-candidate-not-a-poki-build', 'measurement incorrectly claims a Poki build');
-    requireValue(recordedMeasurement.firstLoad?.resourceCount === 18, 'opening dependency count drifted');
+    // Sep 23: the shared result/film UI adds one 1.1 KiB gzip CSS resource.
+    // Films and boss art must remain outside the opening dependency closure.
+    requireValue(recordedMeasurement.firstLoad?.resourceCount === 19, 'opening dependency count drifted');
+    requireValue(!(recordedMeasurement.firstLoad?.resources || []).some(resource =>
+        /trumptopus/i.test(resource.path)), 'finale media entered the opening download');
     requireValue(recordedMeasurement.firstLoad?.advisoryTargetMet === true, 'opening no longer fits the current advisory target');
     requireValue(recordedMeasurement.package?.advisoryTargetMet === false, 'full package gap is no longer reflected');
     requireValue(

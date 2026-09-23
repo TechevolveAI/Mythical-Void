@@ -27,20 +27,24 @@ async function runCase(name, mode, testCase, width, height) {
     fs.mkdirSync(capture, { recursive: true });
     const logPath = path.join(capture, 'browser.log');
     const log = fs.openSync(logPath, 'w');
+    const trumptopus = testCase === 'finalVoid' && require('../src/config/final-void-release.json').encounter === 'trumptopus';
     try {
-        child = spawn(process.execPath, ['scripts/smoke-secondary-journeys.js'], {
+        child = spawn(process.execPath, [trumptopus ? 'scripts/smoke-trumptopus-release.cjs' : 'scripts/smoke-secondary-journeys.js'], {
             cwd: root,
             env: { ...process.env, MYTHICAL_VOID_SMOKE_URL: base, SMOKE_MODE: mode, SMOKE_CASE: testCase,
-                SMOKE_VIEWPORT_WIDTH: String(width), SMOKE_VIEWPORT_HEIGHT: String(height), SMOKE_CAPTURE_DIR: capture },
+                SMOKE_VIEWPORT_WIDTH: String(width), SMOKE_VIEWPORT_HEIGHT: String(height), SMOKE_CAPTURE_DIR: capture,
+                FINALE_RELEASE_VIEWS: width < 600 ? 'phone' : 'desktop', FINALE_RELEASE_EVIDENCE: capture },
             stdio: ['ignore', log, log]
         });
-        const timeout = setTimeout(() => { void stop(child); }, 180000);
+        const timeout = setTimeout(() => { void stop(child); }, trumptopus ? 300000 : 180000);
         const code = await new Promise((resolve, reject) => {
             child.once('error', reject);
             child.once('exit', resolve);
         }).finally(() => clearTimeout(timeout));
         const text = fs.readFileSync(logPath, 'utf8');
-        if (code !== 0 || !text.includes(`[smoke-result] ${mode}:${testCase}:pass`)) {
+        const passed = trumptopus ? JSON.parse(fs.readFileSync(path.join(capture,'report.json'))).passed === true
+            : text.includes(`[smoke-result] ${mode}:${testCase}:pass`);
+        if (code !== 0 || !passed) {
             throw new Error(`${name} failed; ${logPath}\n${text.slice(-5000)}`);
         }
         for (const line of text.split('\n')) {

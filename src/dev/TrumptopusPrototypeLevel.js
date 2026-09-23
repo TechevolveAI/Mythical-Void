@@ -1,20 +1,22 @@
 import PlatformerLevelScene from '../scenes/PlatformerLevelScene.js';
 import { TrumptopusEncounter } from '../systems/TrumptopusEncounter.js';
 
-// Only imported by the local proof harness. Not registered in the game loader.
-// The limb is a mechanics greybox, not the approved Trumptopus artwork.
+// Shared encounter foundation. Production uses the campaign/art adapter;
+// the standalone greybox remains available only to the local proof harness.
 export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
     constructor(key = 'TrumptopusPrototype') {
         super({ key, levelId: 'private_grip', biomeId: 'final_void' });
     }
 
     init(data = {}) {
-        super.init({ forceMobileControls: this.scale.width < 600, katanaPreview: 'crystal' });
+        super.init(this.productionFinale ? { ...data, levelId: 'final_void_1', biomeId: 'final_void' }
+            : { forceMobileControls: this.scale.width < 600, katanaPreview: 'crystal' });
         this.configurePrototypeWorld(data);
         this.encounter = this.createEncounter(data);
         this.hitEvidence = [];
         this.damageEvidence = [];
-        this.health = 4;
+        this.damageTaken = 0;
+        this.health = this.productionFinale ? this.maxHealth : 4;
         this.invulnerableUntil = 0;
         this.pauseMenuActive = false;
     }
@@ -108,7 +110,7 @@ export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
             this.astronautFollower?.destroy();
         });
         this.drawExchange();
-        window.prototypeScene = this;
+        if (!this.productionFinale) window.prototypeScene = this;
     }
 
     // Deliberately avoid campaign pause, death, checkpoint and completion flows.
@@ -161,11 +163,17 @@ export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
         this.handleMovement();
         if (!this.isDucking) this.handleJump(time);
         this.updatePlayerFacing();
+        if (this.productionFinale) this.updateCenteringStance(time);
+        if (this.productionFinale && this.hasShield) this.updateShield(delta);
         this.encounter.update(delta, body.center.x);
         this.updatePrototypeFollower(delta);
         this.drawExchange();
         const overlaps = this.overlapsAttack(body);
         if (this.encounter.consumeContact(overlaps) && time >= this.invulnerableUntil) {
+            if (this.productionFinale) {
+                this.invulnerableUntil = time + 1000;
+                this.takeDamage(1);
+            } else {
             this.health = Math.max(0, this.health - 1);
             this.invulnerableUntil = time + 1000;
             this.damageEvidence.push({ state: this.encounter.state, health: this.health,
@@ -177,9 +185,10 @@ export default class TrumptopusPrototypeLevel extends PlatformerLevelScene {
                 this.blurHandler();
                 window.dispatchEvent(new CustomEvent('prototype-defeat'));
             }
+            }
         }
         if (time >= this.invulnerableUntil) this.player.clearTint();
-        this.healthText.setText(`Health ${this.health} / 4`);
+        this.healthText.setText(`Health ${this.health} / ${this.productionFinale ? this.maxHealth : 4}`);
     }
 
     updatePrototypeFollower(delta) {

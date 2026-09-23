@@ -7,11 +7,11 @@ import TrumptopusApproachStage from './TrumptopusApproachStage.js';
 
 // Private route. Supplied art does not authorize films or production registration.
 export default class TrumptopusApproachPreview extends TrumptopusPrototypeLevel {
-    constructor() { super('TrumptopusApproach'); }
+    constructor(key = 'TrumptopusApproach') { super(key); }
 
     preload() {
-        this.load.image('trumptopus-source',new URL('./assets/trumptopus/source-foreground.png',import.meta.url).href);
-        this.load.image('trumptopus-approach-landscape-source',new URL('./assets/trumptopus/source-landscape.png',import.meta.url).href);
+        this.load.image('trumptopus-source','/game/trumptopus/body-v1.webp');
+        this.load.image('trumptopus-approach-landscape-source','/game/trumptopus/world-v1.webp');
     }
 
     configurePrototypeWorld() {
@@ -64,7 +64,7 @@ export default class TrumptopusApproachPreview extends TrumptopusPrototypeLevel 
             this.time.delayedCall(0,()=>this.enterArena());
         } else {
             this.arrivalCue = new TrumptopusArrival(this, {
-                films:this.completion.films, onContinue:()=>this.scene.start('TrumptopusPrototype')
+                films:this.completion.films, onContinue:()=>this.scene.start(this.arenaSceneKey || 'TrumptopusPrototype')
             });
         }
     }
@@ -145,7 +145,7 @@ export default class TrumptopusApproachPreview extends TrumptopusPrototypeLevel 
         if (this.transitioning) return;
         this.transitioning = true; this.clearInput();
         if (this.arrivalCue?.offer()) return;
-        this.scene.start('TrumptopusPrototype');
+        this.scene.start(this.arenaSceneKey || 'TrumptopusPrototype');
     }
 
     drawExchange() {
