@@ -11,9 +11,9 @@
     "maximumFileCount": 8000
   },
   "package": {
-    "fileCount": 92,
-    "rawBytes": 34620064,
-    "gzipEstimateBytes": 30727690,
+    "fileCount": 102,
+    "rawBytes": 39140277,
+    "gzipEstimateBytes": 35126990,
     "totalHardLimitMet": true,
     "fileCountLimitMet": true,
     "largestFile": {
@@ -51,12 +51,20 @@
         "rawBytes": 1478412
       },
       {
+        "path": "game/cinematics/trumptopus-victory-v1.mp4",
+        "rawBytes": 1430900
+      },
+      {
+        "path": "game/cinematics/trumptopus-arrival-v1.mp4",
+        "rawBytes": 1404253
+      },
+      {
         "path": "marketing/mythical-void-emblem-v3.png",
         "rawBytes": 820709
       },
       {
-        "path": "assets/gameplay-CmYs5ahE.js",
-        "rawBytes": 643033
+        "path": "assets/gameplay-BHjYu-ec.js",
+        "rawBytes": 655248
       },
       {
         "path": "marketing/mythical-void-brand-link-card-v1.png",
@@ -65,9 +73,9 @@
     ]
   },
   "firstLoad": {
-    "resourceCount": 18,
-    "rawBytes": 7205909,
-    "gzipEstimateBytes": 3958442,
+    "resourceCount": 19,
+    "rawBytes": 7290510,
+    "gzipEstimateBytes": 3982953,
     "hardLimitMet": true,
     "recommendedLimitMet": true,
     "limitation": "Deterministic local reconstruction, not a YouTube Developer Portal or five-second device test."
@@ -76,33 +84,33 @@
     "api.nasa.gov": {
       "fileCount": 1,
       "files": [
-        "assets/game-DFJBjxrS.js"
+        "assets/game-C46ws07s.js"
       ]
     },
     "apod.nasa.gov": {
       "fileCount": 1,
       "files": [
-        "assets/game-DFJBjxrS.js"
+        "assets/game-C46ws07s.js"
       ]
     },
     "mars.nasa.gov": {
       "fileCount": 1,
       "files": [
-        "assets/game-DFJBjxrS.js"
+        "assets/game-C46ws07s.js"
       ]
     },
     "api.open-notify.org": {
       "fileCount": 1,
       "files": [
-        "assets/game-DFJBjxrS.js"
+        "assets/game-C46ws07s.js"
       ]
     },
     "netlify/functions": {
       "fileCount": 3,
       "files": [
-        "assets/core-BSuriwdr.js",
-        "assets/game-DFJBjxrS.js",
-        "assets/gameplay-CmYs5ahE.js"
+        "assets/core-Bw3WesjH.js",
+        "assets/game-C46ws07s.js",
+        "assets/gameplay-BHjYu-ec.js"
       ]
     }
   },
@@ -119,22 +127,22 @@
   },
   "incompatibleCurrentFeatureMarkers": {
     "nativeShareFiles": [
-      "assets/levels-hub-CvAKBdPZ.js",
-      "assets/ui-components-Dl_aGZRz.js"
+      "assets/levels-hub-CaE34bUX.js",
+      "assets/ui-components-8t0CS-Zi.js"
     ],
     "clipboardWriteFiles": [
-      "assets/levels-hub-CvAKBdPZ.js",
-      "assets/ui-components-Dl_aGZRz.js",
-      "assets/utils-Bib8MCj5.js"
+      "assets/levels-hub-CaE34bUX.js",
+      "assets/ui-components-8t0CS-Zi.js",
+      "assets/utils-DnUk9yrr.js"
     ],
     "localStorageFiles": [
-      "assets/config-BTFsayFv.js",
-      "assets/core-BSuriwdr.js",
-      "assets/game-DFJBjxrS.js",
-      "assets/gameplay-CmYs5ahE.js",
-      "assets/onboarding-BKefPekT.js",
-      "assets/ui-components-Dl_aGZRz.js",
-      "assets/utils-Bib8MCj5.js",
+      "assets/config-DXJ9iGiq.js",
+      "assets/core-Bw3WesjH.js",
+      "assets/game-C46ws07s.js",
+      "assets/gameplay-BHjYu-ec.js",
+      "assets/onboarding-CRp5SnGX.js",
+      "assets/ui-components-8t0CS-Zi.js",
+      "assets/utils-DnUk9yrr.js",
       "assets/vendor-phaser-DGEgCO3k.js"
     ]
   },

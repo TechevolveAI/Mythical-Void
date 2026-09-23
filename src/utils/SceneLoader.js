@@ -19,6 +19,7 @@
  */
 
 import { devLog, devWarn } from './devLogger.js';
+import finalVoidRelease from '../config/final-void-release.json';
 
 class SceneLoaderClass {
     constructor() {
@@ -95,7 +96,9 @@ class SceneLoaderClass {
             MythicalForestLevel: () => import('../scenes/levels/MythicalForestLevel.js'),
             VoidPeaksLevel: () => import('../scenes/levels/VoidPeaksLevel.js'),
             AuroraDepthsLevel: () => import('../scenes/levels/AuroraDepthsLevel.js'),
-            FinalVoidLevel: () => import('../scenes/levels/FinalVoidLevel.js'),
+            FinalVoidLevel: () => finalVoidRelease.encounter === 'trumptopus'
+                ? import('../scenes/levels/TrumptopusLevel.js')
+                : import('../scenes/levels/FinalVoidLevel.js'),
 
             // Menus
             ShopScene: () => import('../scenes/ShopScene.js'),

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "encounterId": "trumptopus",
+  "enabled": true,
+  "films": {
+    "arrival": {
+      "id": "final_void_arrival_v1",
+      "title": "A World Held Apart",
+      "approved": true,
+      "review": { "reviewer": "Kevin", "provenancePath": "docs/planning/TRUMPTOPUS_RELEASE_2026-09-23.md" },
+      "asset": {
+        "url": "/game/cinematics/trumptopus-arrival-v1.mp4",
+        "bytes": 1404253,
+        "sha256": "620577b821d99ee3e16fca4a68ab580e2de7e218258264d43abd7b10ead39ad7",
+        "durationSeconds": 8
+      }
+    },
+    "victory": {
+      "id": "final_void_victory_v1",
+      "title": "Break His Grip",
+      "approved": true,
+      "review": { "reviewer": "Kevin", "provenancePath": "docs/planning/TRUMPTOPUS_RELEASE_2026-09-23.md" },
+      "asset": {
+        "url": "/game/cinematics/trumptopus-victory-v1.mp4",
+        "bytes": 1430900,
+        "sha256": "65a4233ff1c074bcc2f0cec52ad6cddb2151068ca4068237f8c94baa2d909514",
+        "durationSeconds": 16
+      }
+    }
+  }
+}

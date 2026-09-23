@@ -3642,29 +3642,29 @@ class GameStateManager {
      * Create the canonical versioned snapshot used by local and cloud saves.
      */
     createSaveSnapshot(options = {}) {
-        const { updatePlayTime = false } = options;
+        const { updatePlayTime = false, state = this.state } = options;
         const now = Date.now();
 
-        if (updatePlayTime && this.state.session) {
-            const sessionStart = Number(this.state.session.sessionStart) || now;
+        if (updatePlayTime && state.session) {
+            const sessionStart = Number(state.session.sessionStart) || now;
             const sessionTime = Math.max(0, now - sessionStart);
-            this.state.player.playTime += sessionTime;
-            this.state.player.lastPlayed = now;
-            this.state.session.sessionStart = now;
+            state.player.playTime += sessionTime;
+            state.player.lastPlayed = now;
+            state.session.sessionStart = now;
         }
 
-        this.state.version = GAME_VERSION;
-        if (updatePlayTime || !Number.isFinite(Number(this.state.savedAt))) {
-            this.state.savedAt = now;
+        state.version = GAME_VERSION;
+        if (updatePlayTime || !Number.isFinite(Number(state.savedAt))) {
+            state.savedAt = now;
         }
 
-        const snapshot = JSON.parse(JSON.stringify(this.state));
+        const snapshot = JSON.parse(JSON.stringify(state));
 
         // The full session is browser-local and must not be restored from a
         // backup or cloud save. Keep only the durable journey-start marker so
         // boot can return a named companion to the Sanctuary after a reload.
         snapshot.session = {
-            gameStarted: this.state.session?.gameStarted === true
+            gameStarted: state.session?.gameStarted === true
         };
         this.stripTransientPortraitUrls(snapshot);
         return snapshot;

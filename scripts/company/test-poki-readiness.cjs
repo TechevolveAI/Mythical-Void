@@ -69,6 +69,13 @@ cases += 1;
     cases += 1;
 }
 rejected('stale measurement', 'measurement drifted', (_a, recorded) => { recorded.package.rawBytes += 1; });
+rejected('extra opening dependency', 'dependency count drifted', (_a, recorded, fresh) => {
+    recorded.firstLoad.resourceCount += 1; fresh.firstLoad.resourceCount += 1;
+});
+rejected('eager finale media', 'finale media entered', (_a, recorded, fresh) => {
+    recorded.firstLoad.resources.push({path:'game/cinematics/trumptopus-arrival-v1.mp4'});
+    fresh.firstLoad.resources.push({path:'game/cinematics/trumptopus-arrival-v1.mp4'});
+});
 rejected('premature request', 'pokiAccessRequestAuthorized', assessment => { assessment.authority.pokiAccessRequestAuthorized = true; });
 rejected('hidden outside-service gap', 'outside-services', assessment => { assessment.readiness.find(item => item.id === 'outside-services').state = 'provisional_pass'; });
 rejected('premature SDK', 'SDK marker appeared before approval', (_a, recorded, fresh) => { recorded.pokiSdkMarkers.PokiSDK = true; fresh.pokiSdkMarkers.PokiSDK = true; });
@@ -78,5 +85,5 @@ rejected('fake tablet proof', 'tablet touch limitation', assessment => { assessm
 rejected('fake total pass', 'total-download', assessment => { assessment.readiness.find(item => item.id === 'total-download').state = 'provisional_pass'; });
 rejected('fake visual approval', 'human visual gate', (_a, _r, _f, visuals) => { visuals.requiredMoments[0].currentState = 'approved'; });
 
-assert.strictEqual(cases, 12);
-console.log('Poki readiness safeguards passed (12 cases).');
+assert.strictEqual(cases, 14);
+console.log('Poki readiness safeguards passed (14 cases).');

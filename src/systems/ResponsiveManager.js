@@ -153,6 +153,10 @@ class ResponsiveManager {
                 this.game.scale &&
                 typeof this.game.scale.resize === 'function'
             ) {
+                // Phaser RESIZE uses cached parent bounds inside resize().
+                // Refresh them first, otherwise a rotation can keep the old
+                // game size while consuming the parent's resize notification.
+                this.game.scale.getParentBounds?.();
                 this.game.scale.resize(newWidth, newHeight);
                 this.lastGameSize = { width: newWidth, height: newHeight };
             }

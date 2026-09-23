@@ -47,6 +47,32 @@ describe('ResponsiveManager', () => {
         expect(text.setFontSize).not.toHaveBeenCalled();
     });
 
+    test('refreshes cached Phaser parent bounds before resizing on rotation', () => {
+        const manager = new ResponsiveManager();
+        const game = createGame();
+        Object.defineProperty(window, 'innerWidth', { value: 844, configurable: true });
+        Object.defineProperty(window, 'innerHeight', { value: 390, configurable: true });
+        manager.game = game;
+        manager.lastGameSize = { width: 390, height: 844 };
+        let parent = { width: 390, height: 844 };
+        game.scale.getParentBounds = jest.fn(() => {
+            parent = { width: window.innerWidth, height: window.innerHeight };
+        });
+        // Phaser RESIZE lays out against its cached parent, not the arguments.
+        game.scale.resize.mockImplementation(() => {
+            game.scale.width = parent.width;
+            game.scale.height = parent.height;
+            game.scale.getParentBounds();
+        });
+
+        manager.handleResize();
+
+        expect(game.scale).toMatchObject({ width: 844, height: 390 });
+        expect(game.scale.getParentBounds.mock.invocationCallOrder[0])
+            .toBeLessThan(game.scale.resize.mock.invocationCallOrder[0]);
+        expect(manager.lastGameSize).toEqual({ width: 844, height: 390 });
+    });
+
     test('does not resize WebGL while the mobile keyboard changes the visual viewport', () => {
         const manager = new ResponsiveManager();
         const game = createGame();
