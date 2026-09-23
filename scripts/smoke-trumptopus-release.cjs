@@ -4,6 +4,7 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const { execFileSync } = require('node:child_process');
 const { chromium } = require('playwright');
+const { smokeRendererArgs } = require('./lib/smoke-renderer-policy.cjs');
 const { completeCampaignEnding, sceneTextPoint } = require('./lib/trumptopus-campaign-proof.cjs');
 const root = path.resolve(__dirname, '..');
 const output = path.resolve(root, process.env.FINALE_RELEASE_EVIDENCE || '.visual-review/release-smoke');
@@ -21,7 +22,12 @@ async function main() {
     const { preview } = await import('vite');
     server = await preview({ root, preview: { host: '127.0.0.1', port: 0, open: false } });
     const base = `http://127.0.0.1:${server.httpServer.address().port}`;
-    browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--mute-audio'] });
+    const nativeOpenGL = process.env.SMOKE_NATIVE_OPENGL === '1';
+    browser = await chromium.launch({
+        ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : { channel: 'chrome' }),
+        headless: !nativeOpenGL,
+        args: smokeRendererArgs({ SMOKE_HARDWARE_ACCELERATED_CAPTURE: '1', ...process.env })
+    });
     const views = (process.env.FINALE_RELEASE_VIEWS || 'phone,desktop').split(',');
     assert(views.every(view=>['phone','desktop'].includes(view)), 'Unknown release viewport');
     for (const [name, width, height] of [['phone', 390, 844], ['desktop', 1280, 720]].filter(([name])=>views.includes(name))) {
@@ -99,6 +105,17 @@ async function main() {
         };
         await enterFixture();
         await page.waitForFunction(() => prototypeScene?.productionFinale && prototypeScene?.isGrounded);
+        const renderer = await page.evaluate(() => {
+            const gl=game.renderer.gl,extension=gl?.getExtension('WEBGL_debug_renderer_info');
+            return {webgl:Boolean(gl),name:extension?gl.getParameter(extension.UNMASKED_RENDERER_WEBGL):null,
+                width:game.scale.width,height:game.scale.height};
+        });
+        report.inProgress.renderer=renderer;
+        if(nativeOpenGL) {
+            console.log('[smoke-renderer]',JSON.stringify(renderer));
+            assert(renderer.webgl&&renderer.name&&!/swiftshader/i.test(renderer.name),
+                'Native OpenGL smoke did not receive its required WebGL renderer');
+        }
         const state = () => page.evaluate(() => prototypeScene.getProofState());
         const wait = predicate => page.waitForFunction(predicate, null, {timeout:20000});
         const cdp = name === 'phone' ? await context.newCDPSession(page) : null;
@@ -242,7 +259,7 @@ async function main() {
         assert.equal(result.status,'won');
         const ending = await completeCampaignEnding(page,output,name,{allowPreparedFilms:true,restoreAfterReload:enterFixture,exerciseRecovery:true});
         assert.deepEqual(errors,[]);assert.deepEqual(outside,[]);assert.deepEqual(failedResponses,[]);
-        report.cases.push({name,counters,result,ending,pausePowerupsRetryChecked:true,deathRecoveryInjected:true,
+        report.cases.push({name,renderer,counters,result,ending,pausePowerupsRetryChecked:true,deathRecoveryInjected:true,
             orientationChecked:name==='phone',errors,outside,failedResponses});
         await context.close();
     }
@@ -268,6 +285,7 @@ main().catch(async error=>{
             sceneActive:window.prototypeScene?.scene.isActive(),
             completionActive:window.prototypeScene?.levelCompletionActive
         })).catch(()=>null);
+        console.error('[finale-failure-state]',JSON.stringify(report.state));
     }
     process.exitCode=1;
 }).finally(async()=>{await cleanup();report.cleanupComplete=true;fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({passed:report.passed,output}));});
