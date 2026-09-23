@@ -187,12 +187,14 @@ async function main() {
         const backHandle=await page.waitForFunction(sceneTextPoint,'← BACK');
         const back=await backHandle.jsonValue();await backHandle.dispose();
         await page.mouse.click(back.x,back.y);
+        await page.evaluate(()=>{window.previousFinalePlayer=prototypeScene.player;});
         await page.getByRole('button',{name:'Retry checkpoint',exact:true}).click();
-        await wait(()=>prototypeScene.sys.settings.key==='TrumptopusArena'&&!prototypeScene.pauseMenuActive&&prototypeScene.isGrounded);
+        await wait(()=>prototypeScene.sys.settings.key==='TrumptopusArena'&&prototypeScene.player!==window.previousFinalePlayer&&prototypeScene.player?.body&&prototypeScene.playerContactGeometry&&!prototypeScene.pauseMenuActive&&prototypeScene.isGrounded);
         // Explicit fault injection tests death recovery before the real fight.
         await page.evaluate(()=>prototypeScene.takeDamage(prototypeScene.maxHealth,true));
+        await page.evaluate(()=>{window.previousFinalePlayer=prototypeScene.player;});
         await page.getByRole('button',{name:'Try again',exact:true}).click();
-        await wait(()=>!prototypeScene.isPlayerDead&&prototypeScene.isGrounded);
+        await wait(()=>prototypeScene.player!==window.previousFinalePlayer&&prototypeScene.player?.body&&prototypeScene.playerContactGeometry&&!prototypeScene.isPlayerDead&&prototypeScene.isGrounded);
         assert.equal((await state()).phaseIndex,0);
         if(name==='phone') {
             await page.setViewportSize({width:844,height:390});
