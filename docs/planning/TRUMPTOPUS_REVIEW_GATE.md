@@ -3,6 +3,11 @@
 Current private gameplay candidate: `039eea1a02bbd1de6fc213cb041df646e21db55f`.
 **Ready for human review, not a completed or release-approved finale.**
 
+Later update, 2026-09-23: Kevin approved the non-generative authored-film approach.
+The private implementation and repeatable export/playback checks are described in
+[authored films](TRUMPTOPUS_AUTHORED_FILMS.md). This resolves the production-method
+decision below, not finished-film, soundtrack, visual or release approval.
+
 Update, 2026-09-23: Kevin has authorized Google Veo generation spend without a
 fixed credit ceiling. Budget approval is no longer a blocker. The previously
 recorded source-art moderation refusal must not be bypassed through another
