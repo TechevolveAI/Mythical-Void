@@ -247,7 +247,22 @@ main().catch(async error=>{
     report.failure=error.stack;console.error(error);
     if(activePage&&!activePage.isClosed()){
         await activePage.screenshot({path:path.join(output,'failure.png')}).catch(()=>{});
-        report.state=await activePage.evaluate(()=>({scene:window.prototypeScene?.sys.settings.key,proof:window.prototypeScene?.getProofState?.()})).catch(()=>null);
+        report.state=await activePage.evaluate(()=>({
+            scene:window.prototypeScene?.sys.settings.key,proof:window.prototypeScene?.getProofState?.(),
+            viewport:{width:innerWidth,height:innerHeight,visualWidth:visualViewport?.width,visualHeight:visualViewport?.height},
+            scale:{width:window.game?.scale.width,height:window.game?.scale.height},
+            scaleParent:{bounds:window.game?.scale.parent?.getBoundingClientRect().toJSON(),
+                width:window.game?.scale.parentSize.width,height:window.game?.scale.parentSize.height,
+                mode:window.game?.scale.scaleMode,dirty:window.game?.scale.dirty,
+                style:window.game?.scale.parent?.getAttribute('style'),
+                maxWidth:window.game?.scale.displaySize.maxWidth,maxHeight:window.game?.scale.displaySize.maxHeight},
+            sceneSize:window.prototypeScene?.sceneSize,
+            responsive:{destroyed:window.responsiveManager?.isDestroyed,lastSize:window.responsiveManager?.lastGameSize},
+            mobileViewport:window.mobileViewportController?.update?.(),
+            scenePaused:window.prototypeScene?.pauseMenuActive,
+            sceneActive:window.prototypeScene?.scene.isActive(),
+            completionActive:window.prototypeScene?.levelCompletionActive
+        })).catch(()=>null);
     }
     process.exitCode=1;
 }).finally(async()=>{await cleanup();report.cleanupComplete=true;fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({passed:report.passed,output}));});
