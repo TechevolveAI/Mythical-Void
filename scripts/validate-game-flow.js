@@ -38,7 +38,8 @@ const CRITICAL_PATTERNS = {
         'this.commitPreparedSave(prepared, {',
         'gameStarted: currentSession.gameStarted === true || savedJourneyHasStarted',
         'snapshot.session = {',
-        'gameStarted: this.state.session?.gameStarted === true'
+        'const { updatePlayTime = false, state = this.state } = options;',
+        'gameStarted: state.session?.gameStarted === true'
     ],
     'src/systems/KidMode.js': [
         // Kid Mode core functions

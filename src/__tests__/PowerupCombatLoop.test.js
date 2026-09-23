@@ -257,6 +257,89 @@ describe('purchased expedition power-ups', () => {
         ]));
     });
 
+    test('every saved reward transfer contains either the queue entry or the claimed item, never both', () => {
+        const {manager,gameState,state}=loadInventoryManager([{id:'egg',name:'Egg',type:'egg',quantity:1,slot:0}]);
+        manager.maxSlots=1;
+        const reward={id:'super_blast',name:'Super Blast',type:'powerup',quantity:1,rewardSource:'boss:trumptopus'};
+        manager.addGuaranteedReward(reward);
+        const snapshots=[];
+        gameState.save.mockImplementation(()=>{snapshots.push(JSON.parse(JSON.stringify(state.inventory)));return true;});
+        manager.removeItem(0);
+        expect(snapshots).toHaveLength(2); // Free slot, then one complete queue-to-item transfer.
+        for(const snapshot of snapshots) {
+            const owned=snapshot.items.filter(item=>item.id===reward.id).reduce((sum,item)=>sum+item.quantity,0);
+            const queued=snapshot.pendingBossRewards.filter(item=>item.id===reward.id).length;
+            expect(owned+queued).toBe(1);
+        }
+        expect(snapshots.at(-1).pendingBossRewards).toEqual([]);
+        expect(manager.claimPendingBossRewards()).toBe(0);
+    });
+
+    test('partial collection preserves pending order and inventory metadata while stacking at capacity',()=>{
+        const {manager,gameState,state}=loadInventoryManager([{...powerShot,quantity:2,slot:0}]);
+        manager.maxSlots=2;
+        state.inventory.futureSetting={keep:true};
+        const egg={id:'reward_egg',name:'Reward egg',type:'egg',quantity:1};
+        const shield={id:'shield',name:'Shield',type:'powerup',quantity:1};
+        state.inventory.pendingBossRewards=[egg,{...powerShot},shield,{...powerShot}];
+        const beforeItems=state.inventory.items;
+        expect(manager.claimPendingBossRewards()).toBe(3);
+        expect(gameState.save).toHaveBeenCalledTimes(1);
+        expect(state.inventory.futureSetting).toEqual({keep:true});
+        expect(state.inventory.pendingBossRewards).toEqual([shield]);
+        expect(manager.inventory).toEqual([
+            expect.objectContaining({id:powerShot.id,quantity:4,slot:0}),
+            expect.objectContaining({id:egg.id,quantity:1,slot:1})
+        ]);
+        expect(beforeItems[0].quantity).toBe(2);
+        expect(manager.claimPendingBossRewards()).toBe(0);
+        expect(gameState.save).toHaveBeenCalledTimes(1);
+    });
+
+    test('state and item listeners see the complete transfer and cannot recursively duplicate it',()=>{
+        const {manager,gameState,state}=loadInventoryManager([]);
+        state.inventory.pendingBossRewards=[{...powerShot},{...powerShot}];
+        const observe=jest.fn(()=>{
+            expect(state.inventory.pendingBossRewards).toEqual([]);
+            expect(state.inventory.items[0].quantity).toBe(2);
+            expect(manager.inventory).toBe(state.inventory.items);
+            expect(manager.claimPendingBossRewards()).toBe(0);
+        });
+        const set=gameState.set.getMockImplementation();
+        gameState.set.mockImplementation((key,value)=>{set(key,value);observe();});
+        manager.on('itemAdded',observe);
+        const claimed=jest.fn();manager.on('bossRewardsClaimed',claimed);
+        expect(manager.claimPendingBossRewards()).toBe(2);
+        expect(observe).toHaveBeenCalledTimes(3);
+        expect(claimed).toHaveBeenCalledWith({count:2});
+        expect(gameState.save).toHaveBeenCalledTimes(1);
+    });
+
+    test('a rejected save leaves one coherent in-session claim, not a second pending reward',()=>{
+        const {manager,gameState,state}=loadInventoryManager([]);
+        state.inventory.pendingBossRewards=[{...powerShot}];
+        gameState.save.mockReturnValue(false);
+        expect(manager.claimPendingBossRewards()).toBe(1);
+        expect(state.inventory.pendingBossRewards).toEqual([]);
+        expect(manager.getItem(0).quantity).toBe(1);
+        expect(manager.claimPendingBossRewards()).toBe(0);
+        expect(gameState.save).toHaveBeenCalledTimes(1);
+    });
+
+    test.each(Object.entries(require('../config/bosses.json')).filter(([,boss])=>boss.rewards?.powerup))(
+        '%s keeps its existing reward and effect through the shared full-inventory inbox',(_,boss)=>{
+            const {manager,state}=loadInventoryManager([{id:'egg',name:'Egg',type:'egg',quantity:1,slot:0}]);
+            manager.maxSlots=1;
+            const reward=boss.rewards.powerup;
+            expect(manager.addGuaranteedReward(reward).queued).toBe(true);
+            manager.removeItem(0);
+            expect(state.inventory.pendingBossRewards).toEqual([]);
+            expect(manager.getAllItems()).toHaveLength(1);
+            expect(manager.getItem(0)).toMatchObject({...reward,quantity:1,slot:0});
+            expect(manager.claimPendingBossRewards()).toBe(0);
+        }
+    );
+
     test('consumes exactly one item only after the level accepts its effect', () => {
         const { manager } = loadInventoryManager([{ ...powerShot, quantity: 2, slot: 0 }]);
         const applyPowerup = jest.fn(() => ({

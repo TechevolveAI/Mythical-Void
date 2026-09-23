@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "encounterId": "trumptopus",
+  "enabled": false,
+  "films": {
+    "arrival": {
+      "id": "final_void_arrival_v1",
+      "title": "A World Held Apart",
+      "approved": false,
+      "asset": null
+    },
+    "victory": {
+      "id": "final_void_victory_v1",
+      "title": "Break His Grip",
+      "approved": false,
+      "asset": null
+    }
+  }
+}

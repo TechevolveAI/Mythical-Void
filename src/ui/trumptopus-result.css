@@ -1,0 +1,35 @@
+.trumptopus-result {
+    position: fixed;
+    z-index: 11000;
+    inset: auto 0 0;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    max-height: calc(100dvh - max(16px, env(safe-area-inset-top)));
+    padding: 24px max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+    box-sizing: border-box;
+    border-top: 1px solid #819c94;
+    background: #11201ff5;
+    color: #f2f4ed;
+    font: 16px/1.4 Arial, sans-serif;
+    letter-spacing: 0;
+}
+.trumptopus-result[hidden] { display: none; }
+.trumptopus-result__body, .trumptopus-result footer { width: 100%; max-width: 620px; margin: 0 auto; }
+.trumptopus-result__body { overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
+.trumptopus-result h2 { margin: 0 0 8px; font-size: 28px; line-height: 1.15; overflow-wrap: anywhere; }
+.trumptopus-result p { margin: 0 0 14px; }
+.trumptopus-result dl { display: grid; grid-template-columns: minmax(100px, 0.8fr) minmax(0, 1.4fr); gap: 12px 16px; margin: 18px 0; }
+.trumptopus-result dt { font-weight: bold; color: #edd291; }
+.trumptopus-result dd { margin: 0; }
+.trumptopus-result dt, .trumptopus-result dd { overflow-wrap: anywhere; }
+.trumptopus-result__detail { color: #c4d7d0; font-size: 14px; }
+.trumptopus-result__notice { color: #ffdb9c; }
+.trumptopus-result p:empty { display: none; }
+.trumptopus-result footer { display: flex; gap: 12px; padding-top: 12px; flex-wrap: wrap; }
+.trumptopus-result button { min-height: 48px; flex: 1 1 130px; padding: 12px 16px; border: 1px solid #8db8ad; border-radius: 4px; background: #172c2a; color: #f2f4ed; font: bold 16px/1.25 Arial, sans-serif; cursor: pointer; overflow-wrap: anywhere; }
+.trumptopus-result button[hidden] { display: none; }
+.trumptopus-result button:disabled { opacity: 0.6; cursor: default; }
+.trumptopus-result button:focus-visible { outline: 3px solid #f2cf82; outline-offset: 3px; }
+.trumptopus-result .trumptopus-result__primary { background: #97e3ce; color: #10201c; }
+@media (max-width: 480px) { .trumptopus-result { padding-top: 20px; } .trumptopus-result h2 { font-size: 25px; } }
+@media (max-height: 500px) { .trumptopus-result { padding-top: 12px; padding-bottom: 12px; } .trumptopus-result h2 { font-size: 22px; } }

@@ -9,6 +9,13 @@ const DEFAULT_MODEL = 'veo-3.1-generate-preview';
 const MAX_WAIT_MS = 12 * 60 * 1000;
 const POLL_DELAY_MS = 10000;
 const JOB_DIRECTORY = '/private/tmp/mythical-void-cinematic-jobs';
+const finalVoidShotPlan = JSON.parse(await readFile(
+    new URL('./cinematics/final-void-shots.json', import.meta.url), 'utf8'
+));
+const ASSET_DEFINITIONS = {
+    ...CINEMATIC_ASSET_DEFINITIONS,
+    ...finalVoidShotPlan.definitions
+};
 
 function getAssetId() {
     const value = process.argv.find(argument => argument.startsWith('--asset='));
@@ -56,6 +63,9 @@ async function savePendingJob(assetId, operation) {
 }
 
 async function generateAsset(assetId, definition) {
+    if (definition.approvalRequired && (definition.approved !== true || !definition.referenceImage)) {
+        throw new Error(`${assetId}: approved source reference is required; obtain generation-budget approval before enabling this shot`);
+    }
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error('GEMINI_API_KEY is required');
     const outputPath = path.resolve(definition.output);
@@ -85,10 +95,10 @@ async function generateAsset(assetId, definition) {
             },
             config: {
                 numberOfVideos: 1,
-                durationSeconds: 8,
+                durationSeconds: definition.durationSeconds || 8,
                 aspectRatio: '16:9',
                 resolution: '720p',
-                negativePrompt: 'text, subtitles, logo, user interface, character deformation, flicker, jump cuts, cartoon, low detail'
+                negativePrompt: definition.negativePrompt || 'text, subtitles, logo, user interface, character deformation, flicker, jump cuts, cartoon, low detail'
             }
         });
         await savePendingJob(assetId, operation);
@@ -120,11 +130,11 @@ async function generateAsset(assetId, definition) {
 }
 
 const assetId = getAssetId();
-if (!assetId || !CINEMATIC_ASSET_DEFINITIONS[assetId]) {
-    console.error(`Usage: node scripts/generate-cinematic-assets.mjs --asset=<${Object.keys(CINEMATIC_ASSET_DEFINITIONS).join('|')}> [--force]`);
+if (!assetId || !ASSET_DEFINITIONS[assetId]) {
+    console.error(`Usage: node scripts/generate-cinematic-assets.mjs --asset=<${Object.keys(ASSET_DEFINITIONS).join('|')}> [--force]`);
     process.exitCode = 1;
 } else {
-    generateAsset(assetId, CINEMATIC_ASSET_DEFINITIONS[assetId]).catch(error => {
+    generateAsset(assetId, ASSET_DEFINITIONS[assetId]).catch(error => {
         console.error(error.message);
         process.exitCode = 1;
     });
